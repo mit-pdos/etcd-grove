@@ -196,7 +196,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [List.dropLast_concat]
     iframe Hlks
     ipureintro
-    exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, by omega, hidx, hidx1⟩
+    exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, hidx, hidx1⟩
   icases Hsy with (⟨%he, Hh, #Hsyn⟩ | %he)
   rotate_left
   · rcases serr with ei | _

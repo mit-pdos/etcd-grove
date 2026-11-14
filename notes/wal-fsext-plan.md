@@ -531,7 +531,8 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof` (`OpenForRead`, `openAtIndex` proved, `wal-read12`),
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof` (`WAL.Save.wp_proof`/`WAL.SaveSnapshot.wp_proof` proved over
   hypotheses, `wal-save12`, W6 log, twelfth session; `Save` re-proved over the batch bound and the window form,
-  `SaveSnapshot` one `sorry` for its stream bound, `wal-save13`, thirteenth session),
+  `SaveSnapshot` one `sorry` for its stream bound, `wal-save13`, thirteenth session; that `sorry` gone and
+  the stream bounds withdrawn over the model's `maxBytes`, `wal-maxb14`, fourteenth session),
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: none (`ReadDir.wp_proof` proved, `wal-small14`; `TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
@@ -1266,7 +1267,9 @@ holds some mode). Nothing proves the new models yet.
   `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
   `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the `ENOENT` rule of `fsExt`
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
+`maxBytes`, ext4's `s_maxbytes` on C: `PWriteFinish`, `FtruncateFinish`, `FallocFinish`, `CrashFile`, `FsInit`;
+`examples/osfs/semantics/data_maxbytes.go`, measured on C; W6 log, fourteenth session); the `ENOENT` rule of `fsExt`
 (2026-11-14, `Impl.lean`'s `ENOENT`, `Open`/`DirReadNext`; `examples/osfs/semantics/meta_enoent.go`,
 measured on C; the W7-W12 log); the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
@@ -3143,6 +3146,59 @@ bound.**
   tail the WAL builds, I3b W6 entry). (4) The window `CrashOk`: `tail_decode` with the candidate function extended
   past `|bs|`, image length free in `[lo, hi]` (`wal-tc5`'s truncate-window lemma is the same argument with the
   truncate's zeros; one lemma for both).
+
+**W6, fourteenth session (branch `wal-maxb14`, 2026-11-14): ext4's `s_maxbytes` in the model; the stream bounds
+withdrawn; `SaveSnapshot` without `sorry`.**
+- *The semantics change (task 1; trusted, decided provisionally by the coordinator, **pending the user's review**,
+  §10)*: `Impl.lean`'s `maxBytes := 0xffffffff000` (configuration C's `s_maxbytes`: `ext4_max_size` gives
+  `(2^32 - 1) << 12` for extent files with 4 KiB blocks). `PWriteFinish` adds `(k = 0 ∨ off + k ≤ maxBytes)` (a
+  write starting at or past it lands nothing, one crossing it is cut there: a page cut, since `maxBytes` is
+  page-aligned); `FtruncateFinish`/`FallocFinish` land a resize (whole, or `fallocate`'s prefix) only if
+  `c.target ≤ maxBytes`, else only the failure with no change; `CrashFile` adds `sz ≤ maxBytes`; `FsInit` adds
+  it of every file at the first start. Go example `examples/osfs/semantics/data_maxbytes.go` (indexed in
+  `doc.go`), **measured on C** by `models_test.go`'s `TestMaxBytes` (`run-models-on-c.sh -run TestMaxBytes`,
+  kernel 7.0.0-38, `check.sh` passed): `pwrite(100 bytes at max-1) = 1` (size `max`), `pwrite` at `max` =
+  `EFBIG` with nothing landed, Go's `WriteAt` crossing it `(0, EFBIG)`, `ftruncate(max)` ok, `ftruncate(max+1)` =
+  `EFBIG` with the size unchanged, `fallocate(0, max-4096, 8192)` and the same with `KEEP_SIZE` = `EFBIG`
+  unchanged, `fallocate(0, max-4096, 4096)` ok.
+- *The model invariant*: `OsWf.sizes` is now `sizeLo ≤ size ≤ sizeHi ≤ maxBytes` (kept by every step,
+  `osWf_setFile`'s premise has the third clause; the start from `FsInit`, the crash from `CrashFile`).
+  **What clients get**: `PwCut` gained its second clause `(k = 0 ∨ off + k ≤ maxBytes)` (`Write.lean`), so every
+  `os` writer spec that states `PwCut` (`WriteAt`, `WriteLong`, `OffLong`, the writer streams) carries the bound
+  of what a write landed; **`wp_osMeta_size`/`wp_osMeta_sizeU`** (`Specs.lean`): before any step of a non-value
+  expression, `m.size ≤ maxBytes` of an `OsMeta` at hand, or of one an update reaches (opening invariants; the
+  general form, from Perennial's `wp_ext_acc`); `crashSeen_max` (`CrashFiles.lean`) and `crash_size_max`
+  (`Bridge.lean`) for the restarted program. `MetaOk` is unchanged (a law on a bare `osMeta` fragment needs the
+  world, so it is a step lemma, not a field). The WP rules' statements are unchanged (a resize past `maxBytes`
+  now only fails; their posts still allow that); their proofs pick the failure step when the target is past it.
+  `Tests.lean`: `CacheOk`/`CacheCand` carry the bound (`cacheOk_step` re-proved), `pwrite_page_cut` states it.
+- *The stream bounds withdrawn (task 2; ledger 2026-11-14, "the batch premise withdrawn")*: `Save`'s premise is
+  back to `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40` (the frame encoding's, ledger "no bound on the records'
+  size"; the batch bound `walBatchBytes < 2 ^ 40` withdrawn); `walHandleIn` lost `o0 + |out| + |pend| ≤
+  0xffffffff000` and the sealed `walOpenWF` its `< 2 ^ 43` (the handle keeps `o0 + |out| ≤ sz ≤ 0xffffffff000`,
+  which writes that succeed now keep: they land below `maxBytes`; the pending bytes are at most `2 ^ 18`);
+  `saveEntry.spec`/`saveState.spec` lost `(tailStream …).length ≤ 0xffffffff000`; `encode.specTail` lost its
+  premise `o0 + |out| + |pend| + |frame| ≤ 0xffffffff000` and its post's `o0 + |out'| + |pend'| ≤ …` (it keeps
+  `sz' ≤ 0xffffffff000`, now the model's). **`SaveSnapshot.wp_proof` has no `sorry`.** `Save`, `Sync`, `sync`
+  (`wp_proofIn`), `cut` repaired. `StreamBound.lean`'s lemmas (`saveStream_le`, `cutStream_lt`, ...) are now
+  unused (left for the cleanup).
+- *`ReadAll`'s growth across restarts*: resolved by the model: a crash leaves no file past `maxBytes`
+  (`crashSeen_max`), and between crashes every size stays below it (`OsWf.sizes`), so a segment's `|g.bs|`
+  (its `OsMeta`'s size) is below `0xffffffff000` at any step: `wp_osMeta_sizeU`, opening `walInv` around the
+  step, gives the decoder's `|g.bs| + 2^12 < 2^62` without an invariant conjunct. **Not given**: a bound on
+  the ghost `om.hi` (`pwPost`'s `hi` is the announced end `max hi (off + n)`, which a write announced past
+  `maxBytes` raises past it although nothing lands there); `WalsBounded`'s `g.om.hi ≤ 0xffffffff000` (wal-path14)
+  should bound `|g.bs|` through `wp_osMeta_sizeU` instead, or `pwPost` could clip `hi` at `maxBytes` (a change to
+  `Write.lean`'s specs, not made).
+- *Task 3 (partial)*: the laws of `P` for `saveEntry`/`saveState` stated: `WalPbIn.MarshalEntLaw`
+  (`MustMarshalMessage` of an entry: a fresh non-nil slice of `Mr.encEntry e` with its capacity) and
+  `WalPbIn.GetIndexLaw` (`GetIndex` returns `e.Index'`), in `Spec/.../WAL__saveEntry.lean`; `saveState` uses the
+  existing `WalPbIn.IsEmptyLaw`/`MarshalHsLaw` (`WAL__cutPre.lean`). `saveEntry.wp_proof`/`saveState.wp_proof`
+  now take them and `encode.specTail` (still `sorry`; `saveState.wp_proofPre`, over a guarded writer, is the
+  model for its proof). *Not done*: the tail writer past the preallocated size (crash side, the design in the
+  thirteenth session; `wal-tc5`'s W1G past the ghost bytes), `sync.wp_proof`, `sync.specCut`, `encode.specTail`.
+  **Obligation for them**: the posts' `sz' ≤ 0xffffffff000` come from `PwCut`'s second clause of each write
+  (`os.File.WriteAt.spec`'s post) with the handle's `sz ≤ 0xffffffff000`; nothing else bounds the stream.
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 

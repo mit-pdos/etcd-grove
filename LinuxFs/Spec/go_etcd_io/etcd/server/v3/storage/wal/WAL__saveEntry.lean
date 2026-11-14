@@ -24,6 +24,26 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
+/-- **`pbutil.MustMarshalMessage` of an entry** (S/wal.go:1002): a fresh non-nil slice of its encoding
+(`Mr.encEntry`, the bytes the WAL's entry record holds). A law of `P`, as `WalPbIn.MarshalHsLaw` of a hard
+state (`WAL__cutPre.lean`), which `saveState` uses: the part cannot import the main tree's specs of
+`pbutil.MustMarshalMessage` over raft's messages (plan §10); to discharge at C6. A hypothesis of
+`saveEntry`'s proof. -/
+abbrev WalPbIn.MarshalEntLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
+  ∀ (l : Loc) (e : EntryM),
+  {{ P.entIn l e }}
+    (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Entry.ty) #l)))
+  {{ (d : GoSlice), RET #d; d ↦* Mr.encEntry e ∗ ownSliceCap w8 d (DFrac.own 1) ∗ ⌜d ≠ slice.nil⌝ }}
+
+/-- **`e.GetIndex()` of an entry** (S/wal.go:1008): its index. A law of `P` (as `MarshalEntLaw`); a
+hypothesis of `saveEntry`'s proof. -/
+abbrev WalPbIn.GetIndexLaw (P : WalPbIn GF) : Prop :=
+  ∀ (l : Loc) (e : EntryM),
+  {{ P.entIn l e }}
+    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Entry.ty @!! go!"GetIndex")) (Val #()))
+  {{ RET #e.Index'; True }}
+
 /-- **`w.saveEntry(e)`** (S/wal.go:1001-1010): the next record of the tail not yet encoded is `e`'s
 entry record; encodes it (`MustMarshalMessage`, `encode`) and sets `w.enti` to its index (below
 `2^64-1`, `Save`'s premise). When it is the last record (`rest = 1`), the history's last index is
