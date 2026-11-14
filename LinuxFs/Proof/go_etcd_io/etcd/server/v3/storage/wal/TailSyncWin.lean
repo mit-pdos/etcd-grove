@@ -402,6 +402,38 @@ theorem dirKeysOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots}
       rw [walSyncS_lookup_ne s dir d e] at hd'
       exact h2 dir' d' lay' hd' hl' hc
 
+/-- **The layout after the tail's fdatasync, exact or in a window** (`syncLay`, or `syncLayW` when a
+resize window is open): its segments `pre` then the synced tail, the directory, cuts and write
+position kept, F-Z, the record boundary, and the invariant's `WalsOk` and directory keys, no cut
+pending, at the synced state. -/
+theorem syncLay_any {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
+    {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {dir : GoString}
+    {d : WalDur} {lay : WalLay} {ents : Ents} {pre : List SegG} {g0 : SegG}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0])
+    (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hK : DirKeysOk C Mr jr s Ls cl n K none)
+    (habs : WalAbsD C Mr d lay ents) :
+    ∃ L : WalLay, L.segs = pre ++ [syncTail g0] ∧ L.j = lay.j ∧ L.nm = lay.nm ∧
+      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ TailZeros L ∧
+      TailBound C Mr { d with m := d.H.length } L ∧
+      WalsOk C Mr R jr (walSyncS s dir d) (<[dir := L]> Ls) cl n ∧
+      DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := L]> Ls) cl n K none := by
+  have hok : CrashOk C Mr d lay cl n :=
+    (crashOkA_none_iff _ _ _ _ _ _).1 (hK.2.1 dir d lay hd hl (by simp))
+  by_cases hex : SegExact g0
+  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
+      walsOk_sync hC hW hd hl hs htail hZ hzf hex hok,
+      dirKeysOk_sync hC hW hd hl hs htail hZ hzf hex hK⟩
+  · have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
+    have hwo : lay.wr ≤ lay.old.length := by
+      obtain ⟨-, -, h3, h4, -⟩ := habs.lastWin g0 hg0; omega
+    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ hwo,
+      tailBound_syncW habs hs htail,
+      walsOk_syncW hC hW hd hl hs htail hZ hzf hex hok,
+      dirKeysOk_syncW hC hW hd hl hs htail hZ hzf hex hK⟩
+
 end syncw
 
 end WalFs
