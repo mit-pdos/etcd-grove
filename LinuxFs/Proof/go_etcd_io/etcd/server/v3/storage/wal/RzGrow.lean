@@ -476,8 +476,10 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs2]; exact hb), k6, k7, k8⟩
     rw [hbs2]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun hZ b x hb hx => ?_, ?_, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun hZ b x hb hx => ?_, ?_, ?_,
+      fun b x hb hlb hbw => ?_⟩
     · simp only [tailLay] at hbw ⊢
+      have hlo1 : (rzLandG g0 tr tg w n zs).om.lo = min g0.om.lo tg := rfl
       have hb' : g0.bs[b]? = some x := by
         rw [← hb]; simp only [rzLandG]; rw [List.getElem?_append_left (by omega)]
       exact hB b x (by rw [hbs]; exact hb') hbw
@@ -503,6 +505,15 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
       simp only [rzSeg, rzMeta_hi] at this
       show lay.old.length ≤ max g0.om.hi tg; omega
     · have h := habs.winLo_any _ hg1; exact h
+    · simp only [tailLay] at hbw ⊢
+      have hb' : g0.bs[b]? = some x := by
+        rw [← hb]; simp only [rzLandG]; rw [List.getElem?_append_left (by omega)]
+      have h := habs.winLo_any _ hg1
+      unfold WinLo at h
+      have : (rzLandG g0 tr tg w n zs).om.lo = min g0.om.lo tg := rfl
+      have : (rzSeg g0 tr tg n).om.lo = min g0.om.lo tg := rfl
+      exact habs.lowW _ hg1 b x (by rw [hbs]; exact hb') hbw (by omega)
+        (fun s hs => by simpa [rzLandG, rzSeg, rzMeta] using hs)
 
 /-- **A growth's first step**: `WalsOk` and the directory keys of the layout with the tail announced
 (`rzSeg` to `size ≤ tg ≤ hi`, at or past the write position, the least crash size at most `wr`), from

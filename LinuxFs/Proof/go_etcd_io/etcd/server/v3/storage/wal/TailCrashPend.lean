@@ -132,7 +132,17 @@ theorem WalAbsD.pendVals {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
     ∀ b (q : w8 × Nat), b < lay.wr + 8 → q ∈ ((segBytesX g).getD b (0, [])).2 →
       q.1 = (segStream C Mr d lay.cuts lay.cuts.length).getD b 0 := by
   obtain ⟨hwz, hLZ⟩ := hP
-  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, htake, -, hWC⟩ := habs.lastWin g hg
+  obtain ⟨hso, hwS, hbo, hwo, -, hz0, htake, -, hWC⟩ := habs.lastWin g hg
+  -- below `wr` (`= z0`, `TailPend`) `ByteOk`: `WalAbsD.low`'s `WinW` arm is past `z0`
+  have hB : ∀ b (x : ByteG), g.bs[b]? = some x → b < lay.wr →
+      ByteOk ((segStream C Mr d lay.cuts lay.cuts.length).getD b 0) (lay.old.getD b 0)
+        (decide (b < (segStream C Mr d lay.cuts lay.cuts.length).length)) (decide (b < lay.wr))
+        (decide (b < lay.so)) x := by
+    intro b x hx hbw
+    rcases habs.low g hg b x hx hbw with ⟨-, h⟩ | ⟨-, h, -⟩
+    · exact h
+    · have : lay.wr = lay.z0 := hwz
+      omega
   intro b q hb hq
   generalize segStream C Mr d lay.cuts lay.cuts.length = S at hS hwS hB htake hWC ⊢
   by_cases hbw : b < lay.wr

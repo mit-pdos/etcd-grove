@@ -301,15 +301,19 @@ theorem WinCands.snoc {S X old : List w8} {wr : Nat} {g : SegG} (h : WinCands S 
     WinCands (S ++ X) old wr g :=
   ⟨h.1, fun b hb1 hb2 q hq => (h.2 b hb1 hb2 q hq).snoc⟩
 
-/-- **The last segment `g` in a resize window** (I3b; `WalAbsD.last`): `TailLast` below `wr` only;
-the segment between `wr` and `old` long (`cut` truncates it to `wr`, `ZeroToEnd` to the start's
-frames, then grows it back to its size); its candidates from `wr` on, and those its `OsMeta` knows
-past its bytes, `old`'s byte, a known resize's zero or the stream's byte (`WinCands`: a truncate's
-announced zeros, a growth's bytes with the candidates the file had past its size, a write's). -/
+/-- **The last segment `g` in a resize window** (I3b; `WalAbsD.last`): `TailLast`'s `ByteOk` below the
+least crash size `lo` only (W6 log, twenty-fourth session: was below `wr`; a write past the size from an
+exact tail keeps `lo` at the size, so the bytes in `[wr, lo)` it may write next keep their shape; the bytes
+from `lo` to `wr`, written in the window, are `WinLow`'s, in `WinLast`); the segment at least `wr` long
+(`cut` truncates it to `wr`, `ZeroToEnd` to the start's frames, then grows it back to its size; a write
+past the size makes it longer than `old`, whose bytes past its end are zeros: `old.getD`), `z0` within
+`old`; its candidates from `wr` on, and those its `OsMeta` knows past its bytes, `old`'s byte, a known
+resize's zero or the stream's byte (`WinCands`: a truncate's announced zeros, a growth's bytes with the
+candidates the file had past its size, a write's). -/
 def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
     let S := segStream C Mr d lay.cuts lay.cuts.length
-    lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ g.bs.length ≤ lay.old.length ∧ lay.wr ≤ g.bs.length ∧
-    (∀ b (x : ByteG), g.bs[b]? = some x → b < lay.wr →
+    lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ lay.z0 ≤ lay.old.length ∧ lay.wr ≤ g.bs.length ∧
+    (∀ b (x : ByteG), g.bs[b]? = some x → b < g.om.lo →
       ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length)) (decide (b < lay.wr))
         (decide (b < lay.so)) x) ∧
     lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
@@ -358,6 +362,31 @@ with `tg` at least the size), a growth neither. The window's crash decoding need
 leaves at or past `lo` is past the synced bytes and the frames found (`TailVals`). -/
 def WinLo (lay : WalLay) (g : SegG) : Prop := max lay.so lay.z0 ≤ g.om.lo
 
+/-- **A byte written in a resize window, from its least crash size on** (`WinLow`; W6 log,
+twenty-fourth session): the stream's byte, each candidate `WinShape` (a byte written past a truncate keeps
+the truncate's zero, `cut`'s flush after its truncate; a byte grown over by a write past the size, the
+candidates the file had there). Weaker than `ByteOk`'s written case, which has no resize's zero. -/
+def WinW (S old : List w8) (rz : List Nat) (b : Nat) (x : ByteG) : Prop :=
+  x.1 = S.getD b 0 ∧ ∀ q ∈ x.2, WinShape S old rz b q
+
+theorem WinW.mono_rz {S old : List w8} {rz rz' : List Nat} {b : Nat} {x : ByteG}
+    (h : WinW S old rz b x) (hrz : ∀ s ∈ rz, s ∈ rz') : WinW S old rz' b x :=
+  ⟨h.1, fun q hq => (h.2 q hq).mono_rz hrz⟩
+
+/-- The stream grows (`Save`'s commit): a byte inside the stream keeps `WinW`. -/
+theorem WinW.snoc {S X old : List w8} {rz : List Nat} {b : Nat} {x : ByteG}
+    (h : WinW S old rz b x) (hb : b < S.length) : WinW (S ++ X) old rz b x := by
+  refine ⟨?_, fun q hq => (h.2 q hq).snoc⟩
+  rw [h.1, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left hb]
+
+/-- **The bytes of the last segment written in a resize window** (`WinLast`; W6 log, twenty-fourth
+session): from the least crash size `lo` to `wr`, `WinW`. Empty when the window opened by a truncate to
+`wr` (`lo ≤ wr`, nothing written yet); a write past the size, or `cut`'s flush after its truncate, writes
+there. -/
+def WinLow (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
+  ∀ b (x : ByteG), g.bs[b]? = some x → g.om.lo ≤ b → b < lay.wr →
+    WinW (segStream C Mr d lay.cuts lay.cuts.length) lay.old g.om.rz b x
+
 /-- **The last segment in a resize window** (`WalAbsD.last`'s window branch): `TailWin`, a zero a
 crash may leave at each byte from `wr` on (`WinHead`; until the twenty-second session of the W6 log,
 `lo ≤ wr`, which a write past the size from an exact tail falsifies; the truncate at `wr`, which
@@ -366,10 +395,11 @@ needed it of the size, gets it from the handle instead: `os.truncSup`'s `P`), `W
 tail's truncate keeps `old`'s torn values past `wr`; the window's fdatasync takes `WinZero` as a
 premise), and `old`
 no longer than the largest size a crash may leave (a window opens from an exact tail, `hi = |bs| =
-|old|`, and no step before the fdatasync lowers `hi`; `wal-tc12`'s option (b)). -/
+|old|`, and no step before the fdatasync lowers `hi`; `wal-tc12`'s option (b)), `WinLo`, and the bytes
+written from `lo` to `wr` (`WinLow`, W6 log, twenty-fourth session). -/
 def WinLast (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
   TailWin C Mr d lay g ∧ WinHead lay g ∧ (TailZeros lay → WinZero lay g) ∧ lay.old.length ≤ g.om.hi ∧
-    WinLo lay g
+    WinLo lay g ∧ WinLow C Mr d lay g
 
 /-- An exact tail's bytes past `wr` are `old`'s (unwritten), so zero where `old` is (F-Z). -/
 theorem TailLast.winZero {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
@@ -400,6 +430,12 @@ theorem ByteOk.winShape {S old : List w8} {rz : List Nat} {w s : Bool} {b : Nat}
       · have := h3 (by simp; omega)
         subst this; simp at hq
     exact .inr (.inr ⟨hb, (h2 q hq).1, (h2 q hq).2⟩)
+
+/-- A written, unsynced byte's `ByteOk` gives `WinW`. -/
+theorem ByteOk.winW {S old : List w8} {rz : List Nat} {s : Bool} {b : Nat} {x : ByteG}
+    (h : ByteOk (S.getD b 0) (old.getD b 0) (decide (b < S.length)) true s x) (hs : s = false) :
+    WinW S old rz b x :=
+  ⟨h.val_w, fun q hq => ByteOk.winShape (w := true) h hs q hq⟩
 
 /-- `TailLast` gives `TailWin`, the segment exact (no candidates past its bytes). -/
 theorem TailLast.win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
@@ -507,7 +543,47 @@ theorem WalAbsD.oldHi {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
 theorem WalAbsD.winLo {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
     WinLo lay g :=
-  ((h.last g hg).2 hx).2.2.2.2
+  ((h.last g hg).2 hx).2.2.2.2.1
+
+/-- **The bytes written in a window, from `lo` to `wr`** (`WalAbsD.last`'s `WinLow`). -/
+theorem WalAbsD.winLow {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
+    WinLow C Mr d lay g :=
+  ((h.last g hg).2 hx).2.2.2.2.2
+
+/-- **The last segment's bytes below the write position**, window or not (W6 log, twenty-fourth
+session): below the least crash size `lo`, `ByteOk`; from `lo` on (in a window only: an exact tail's `lo`
+is its length), past the synced bytes and the frames found, `WinW`. -/
+theorem WalAbsD.low {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (b : Nat) (x : ByteG)
+    (hb : g.bs[b]? = some x) (hbw : b < lay.wr) :
+    (b < g.om.lo ∧ ByteOk ((segStream C Mr d lay.cuts lay.cuts.length).getD b 0) (lay.old.getD b 0)
+        (decide (b < (segStream C Mr d lay.cuts lay.cuts.length).length)) (decide (b < lay.wr))
+        (decide (b < lay.so)) x) ∨
+      (g.om.lo ≤ b ∧ max lay.so lay.z0 ≤ b ∧
+        WinW (segStream C Mr d lay.cuts lay.cuts.length) lay.old g.om.rz b x) := by
+  by_cases hx : SegExact g
+  · have hbl : b < g.bs.length := (List.getElem?_eq_some_iff.1 hb).1
+    exact .inl ⟨by rw [hx.1]; exact hbl, ((h.last g hg).1 hx).2.2.2.2.1 b x hb⟩
+  · by_cases hlo : b < g.om.lo
+    · exact .inl ⟨hlo, (h.lastWin g hg).2.2.2.2.1 b x hb hlo⟩
+    · have hwl := h.winLo g hg hx
+      unfold WinLo at hwl
+      exact .inr ⟨by omega, by omega, h.winLow g hg hx b x hb (by omega) hbw⟩
+
+/-- **A byte below the write position, past the synced bytes, has `WinW`** (any stamps known
+`rz'` above the tail's): `WalAbsD.low`'s two cases. What a step that lowers `lo` below the write position
+(a truncate to `wr`) or writes there gives `WinLow` from. -/
+theorem WalAbsD.lowW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (b : Nat) (x : ByteG)
+    (hb : g.bs[b]? = some x) (hbw : b < lay.wr) (hso : lay.so ≤ b) {rz' : List Nat}
+    (hrz : ∀ s ∈ g.om.rz, s ∈ rz') :
+    WinW (segStream C Mr d lay.cuts lay.cuts.length) lay.old rz' b x := by
+  rcases h.low g hg b x hb hbw with ⟨-, hB⟩ | ⟨-, -, hW⟩
+  · rw [show decide (b < lay.wr) = true from decide_eq_true hbw,
+      show decide (b < lay.so) = false from decide_eq_false (by omega)] at hB
+    exact ByteOk.winW (rz := rz') hB rfl
+  · exact hW.mono_rz hrz
 
 /-- **The tail's least crash size is past the synced bytes and the frames found**, window or not (an
 exact tail's is its length, at least `wr`). -/
