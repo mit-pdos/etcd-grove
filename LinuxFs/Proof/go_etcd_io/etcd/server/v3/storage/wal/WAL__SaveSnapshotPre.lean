@@ -172,14 +172,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr :
   wp_start as ⟨#Henv, #Hzap, #Hpb, Hpre, He, Hout, #Hs⟩
   ihave #Hs0 := Hs
   iunfold walSnapAt at Hs
-  icases Hs with ⟨%s, #Hsp, #Hi, #Ht, %Hcs⟩
-  ihave %Hspn := typedPointsto_not_null sp _ _ $$ Hsp
+  icases Hs with ⟨%sc, Hsr, -⟩
+  ihave %Hspn := snapRoC_ne sp sc $$ Hsr
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
   simp only [decide_eq_false Hspn]
   try wp_auto
-  wp_apply (wp_Validate sp sm cs hcs) $$ []
+  wp_apply (wp_Validate Mr sp sm cs hcs) $$ []
   · iexact Hs0
   try wp_auto
   wp_apply (wp_Marshal sp sm cs) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
@@ -259,9 +259,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr :
   have heq : out ++ ys ++ pend' = out ++ pend ++ snapFrame Mr c sm := by
     rw [List.append_assoc, Hys, snapFrame, List.append_assoc]
   try wp_auto
-  have hIT : walSnapAt (GF := GF) sp sm cs ⊢ walSnapIdTerm sp (sm.Index', sm.Term') := by
-    iintro #H; iunfold walSnapIdTerm; iexists sm, cs; iframe H; ipureintro; rfl
-  ihave #HsIT := hIT $$ Hs0
+  ihave #HsIT := walSnapAt_idTerm Mr sp sm cs $$ Hs0
   wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []
   · iexact HsIT
   wp_if_destruct
