@@ -2722,6 +2722,34 @@ budget, `walpb.Snapshot`'s wire format.**
   (3) `SaveSnapshot` over `SaveSnapshotPre`-style steps and the commit; (4) the past-size writes once `wal-tc2`'s
   window continuation lands, then `saveEntry`/`saveState`/`sync.wp_proof`.
 
+**W6, eleventh session (branch `wal-save11`, 2026-11-14): the append's commit; the marshaller's law; the metadata's
+bound.**
+- *The append's commit, `Save`'s and `SaveSnapshot`'s shared step, proved (no `sorry`)*: `AppendPure.lean` (pure:
+  `walAppS s dir d o`, the WAL state with `o` appended; `walsOk_append` (`walAbsD_snoc` with F-Z from the tail record,
+  `crashOk_snoc`: no cut pending, so no alternative layout), `dirKeysOk_append` (any pending cut), `absentNone_append`,
+  `dirsAvoid_append`, `tailBound_snoc`, `absLe_append`, `walKeysInArea_append`, `walDurLe_append`); `Append.lean`:
+  `walTailsRes_append` (both halves of the tail record moved to `H ++ [o]`), `walInvBody_append` (the program's map
+  `walOwn` moved with the state, `walGhost_upd`), **`walTail_append`** (at an update of mask `⊤`, before any step of the
+  call, `wp_notCrashed_acc`: `walInv` opened with `notCrashed`, the client's update at `walAuMask` committed through
+  `atomic_update_mask_weaken`; out: `Q d` with `d.H` the handle's history, `walLenLb w dir (|H| + 1)`, and the static
+  relation's cut facts `walCutPos`/`Pairwise`, i.e. `cut.spec`'s premises); its fit premise is a function (the WAL's
+  records fitting, so do they with `o`'s), so the caller needs only `o`'s records' fit. `HandleAppend.lean`:
+  **`walHandleIn_append`** (a quiescent handle, `rest = 0`: the handle at `{h with H := H ++ [o], rest := |opDs o|}`,
+  its CRC and stream split unchanged, `WalHS.encRecs_snoc`/`crc_snoc`/`split_snoc`; premises: `∀ c, RecsFit walCodec
+  (chainRecs walCodec c (opDs Mr o.toM))` and the new history's index facts, `saveOp_idx` for a `Save`).
+  `SaveSnapshot` cannot use the handle form (its `w.snapi` is raised after the encode, so the handle's
+  `walMaxSnapIdx ≤ snapi` fails in between): its proof uses `walTail_append` on the unsealed handle's pieces.
+- *The marshaller's law (decided, ledger 2026-11-14)*: `walAreaOk`'s last conjunct `⌜∀ hs, (Mr.encState hs).length <
+  2^32⌝` (`walAreaOk_encState`); patterns repaired (`walPc_bound`, `Create.lean`'s `⟨…, %hrb, -⟩`).
+- *The metadata's bound*: in the sealed client handle, `walOpenWF := ∃ h, walHandleIn h ∗ ⌜h.Done⌝ ∗ ⌜h.md.length <
+  2^41⌝ ∗ ⧗ h.pc` (`walOpenWF_iff`, `Sync` repaired), not in `walHandleIn` (no internal spec changes; `md` never
+  moves, so `Save` keeps the fact in its context). **Obligations**: `Create` (when it returns `walOpenWF`) takes
+  `md.length < 2^41`; `ReadAll` needs the invariant to keep `d.metadata.length < 2^41` (from `Create`'s commit).
+  `h.cuts.Pairwise` is not carried: `walTail_append` returns it.
+- *Spec defect (ledger 2026-11-14, pending)*: nothing bounds the records' size (`Mr.encEntry e`, `Mr.encSnap md`), which
+  the commit needs (`WalAbsD.fit`, `2^56`) and the encoder needs (`2^47`): proposed premises of `Save`/`SaveSnapshot`.
+- *Not done*: `saveEntry`, `saveState`, `Save`, `SaveSnapshot` (task 3).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
