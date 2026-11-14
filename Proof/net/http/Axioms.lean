@@ -35,8 +35,11 @@ address's protocol (`httpProtoFree a`, once per address from program start) fixe
 address's listener exists: a client may then send to the address (`RoundTrip` needs
 `httpProtoAt`; before the listener is bound the connection is refused, an error the spec allows).
 True of a model with a global ghost map from addresses to saved protocols whose entry for `a` is
-set once, with the exclusive `httpProtoFree a`. -/
-axiom reserve (a : GoString) (P : Proto GF) :
+set once, with the exclusive `httpProtoFree a`. (http-boundary-fix, 2026-11-14) Of a protocol
+that admits the server's own answers (`Proto.srvOk`): `RoundTrip`'s post promises the protocol's
+`resp` of whatever status it returns, which may be one Go's server made running no handler (`431`
+for headers over `MaxHeaderBytes`, `examples/premisefix/httpsrvstatus`). -/
+axiom reserve (a : GoString) (P : Proto GF) (hP : P.srvOk) :
   ⊢ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
 
 /-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the

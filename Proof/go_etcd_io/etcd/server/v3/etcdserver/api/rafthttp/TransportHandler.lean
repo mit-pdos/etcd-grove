@@ -83,6 +83,14 @@ theorem http.route_stream (pats : List GoString) (p : GoString)
   revert this
   decide
 
+/-- A path routed to the stream prefix is under it (http-boundary-fix, 2026-11-14). -/
+theorem http.route_stream_pfx (pats : List GoString) (p : GoString)
+    (h : http.route pats p = some go!"/raft/stream/") : streamPfx <+: p := by
+  have := http.route_matches _ _ _ h
+  simp only [http.patMatches] at this
+  rw [if_pos (by decide)] at this
+  exact List.isPrefixOf_iff_prefix.1 this
+
 /-- A path routed to the stream prefix is not the snapshot's (D42, stage 7b). -/
 theorem http.route_stream_snap (pats : List GoString) (p : GoString)
     (h : http.route pats p = some go!"/raft/stream/") : p ≠ snapPath := by
@@ -259,7 +267,7 @@ theorem stream_handlerFor (hServe : rafthttp.streamHandler.ServeHTTP.spec (GF :=
   ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
     simp only [raftHttpNet, raftProto, snapStreamed] at h
     exact http.route_stream_snap _ _ (http.route_of_muxRoute Hr.2) h.2) $$ Hbody
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream_pfx _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq
     Htk Hbody Hw Hhd %Hfl HRs
 
 /-- **A snapshot handler is a handler of what is routed to the snapshot path** (stage 7e). -/

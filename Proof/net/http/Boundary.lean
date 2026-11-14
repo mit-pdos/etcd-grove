@@ -18,7 +18,8 @@ The model (the note's points 1-6):
 * Body streams are prefixes; a request body's reader returns `EOF` only at the end. Any operation
   may fail with an error.
 * The response's status is the one the handler set (revised 2026-10-22: a `403`/`410` is
-  `errMemberRemoved`, which matters in a dynamic cluster).
+  `errMemberRemoved`, which matters in a dynamic cluster), or one of the server's own answers
+  (below, http-boundary-fix).
 * (2026-10-23, stage 4e) **An address's protocol is registered once.** `HttpNet` names a protocol
   for every address, but a spec stated for any `H` would let a client and a server of one
   address use different ones. So the protocol a client sends with and the one a server serves
@@ -33,9 +34,15 @@ The model (the note's points 1-6):
   peers before they listen.
 * (2026-10-23, D38b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
-  protocols are indexed by the ticket's name. Go's client never replays a `POST`
-  (`Request.isReplayable`), and its server runs one handler per request it reads. What a one-shot
-  payload needs: the receiver withdraws a deposit with the ticket, so only once.
+  protocols are indexed by the ticket's name. Go's client never replays a `POST` without an
+  idempotency key (`Request.isReplayable`), and its server runs one handler per request it reads.
+  What a one-shot payload needs: the receiver withdraws a deposit with the ticket, so only once.
+  (http-boundary-fix, 2026-11-14) Only the handler of a request never replayed (`onceOnly`)
+  receives the ticket (`reqTicketOnce`): Go replays a `GET` whose response read fails on a reused
+  connection, so one `RoundTrip` may run its handler twice.
+* (http-boundary-fix, 2026-11-14) **A response's status is a handler's or the server's own**: Go's
+  server answers some requests itself (`srvStatuses`: `400`, `417`, `431`, `501`, `505`), and every
+  registered protocol admits those answers (`Proto.srvOk`).
 * (2026-10-24, D42, rafthttp stage 7b) **A request's body is fixed or streamed.** A fixed body's
   bytes are the request's (`HReq.body`, from `NewRequest`'s reader at its bytes). A streamed body
   is a reader whose bytes the client does not hold (rafthttp's snapshot: the envelope, then the
@@ -137,6 +144,23 @@ instance Proto.resp_persistent (P : Proto GF) (R : HReq) (γk : GName) (st : w64
 instance Proto.sreq_persistent (P : Proto GF) (R : HReq) (γk : GName) (Pre Φ : List w8 → Prop) :
     Persistent (P.sreq R γk Pre Φ) :=
   P.sreq_pers R γk Pre Φ
+
+/-- **The statuses Go's server answers with itself, running no handler** (http-boundary-fix,
+2026-11-14; go1.27.3 `net/http`): `400` (a request it cannot parse, `badRequestError`, or HTTP sent
+to an HTTPS server), `417` (an `Expect` other than `100-continue`, `sendExpectationFailed`), `431`
+(headers over `MaxHeaderBytes`, `errTooLarge`; HTTP/2's `handleHeaderListTooLong` too), `501` (a
+transfer coding it does not support) and `505` (an unsupported protocol version), all in
+`conn.serve` (`server.go:2083-2123`) or `readRequest` (`server.go:1063`). The mux's own answers
+(`404`, `307`) are `mux_handlerOk_spec`'s, a `ServeMux`'s, not the server's. -/
+def srvStatuses : List w64 := [W64 400, W64 417, W64 431, W64 501, W64 505]
+
+/-- **A protocol the server's own answers keep** (http-boundary-fix, 2026-11-14): its `resp`
+admits every status of `srvStatuses` with any bytes, for any request and ticket, and its `rhdr`
+the empty headers (a server-made answer sets only keys of `srvKeys`: `Content-Type`,
+`Connection`). `reserve` asks it of the protocol it registers, so `RoundTrip`'s promise of
+`resp R γk st w` holds of a response no handler made (`examples/premisefix/httpsrvstatus`). -/
+def Proto.srvOk (P : Proto GF) : Prop :=
+  (∀ R γk st w, st ∈ srvStatuses → ⊢ P.resp R γk st w) ∧ ∀ R, P.rhdr R []
 
 /-- **The program's HTTP network**: each address's protocol, fixed for the run. -/
 structure HttpNet (GF : BundledGFunctors) where
@@ -274,6 +298,57 @@ theorem hdrGet_hdrSet_eq (hs : List (GoString × GoString)) (k v : GoString) :
     rw [List.find?_eq_none]; intro x hx; simp [List.mem_filter] at hx; simp [hx.2]
   rw [this]; simp
 
+/-! ### Replayable requests (http-boundary-fix, 2026-11-14) -/
+
+/-- **Headers without an idempotency key**: no `Idempotency-Key` nor `X-Idempotency-Key` present,
+whatever its value (`Request.isReplayable` tests presence, `Header.has`, of these canonical keys). -/
+def noIdemKey (hs : List (GoString × GoString)) : Prop :=
+  ∀ p ∈ hs, p.1 ≠ canonKey go!"Idempotency-Key" ∧ p.1 ≠ canonKey go!"X-Idempotency-Key"
+
+theorem noIdemKey_nil : noIdemKey [] := by
+  intro p hp; cases hp
+
+/-- `Set` of a key that is not an idempotency key keeps `noIdemKey`. -/
+theorem noIdemKey_hdrSet (hs : List (GoString × GoString)) (k v : GoString) (h : noIdemKey hs)
+    (h1 : canonKey k ≠ canonKey go!"Idempotency-Key")
+    (h2 : canonKey k ≠ canonKey go!"X-Idempotency-Key") : noIdemKey (hdrSet hs k v) := by
+  intro p hp
+  unfold hdrSet at hp
+  rcases List.mem_append.1 hp with hp | hp
+  · exact h p (List.mem_filter.1 hp).1
+  · rw [List.mem_singleton.1 hp]; exact ⟨h1, h2⟩
+
+/-- **A request Go's client never replays** (`Request.isReplayable` false, go1.27.3
+`net/http/request.go:1561`): a method other than `GET` (also the empty method's default), `HEAD`,
+`OPTIONS`, `TRACE`, and no idempotency key (`noIdemKey`). Go's `Transport` retries a request on a
+reused connection only if it is replayable or nothing of it was written
+(`persistConn.shouldRetryRequest`, `transport.go:844`; HTTP/2's `shouldRetryRequest` only after a
+refused stream, a `GOAWAY` past it or an unusable connection, which the server did not process);
+the replay of a replayable one runs the server's handler a second time
+(`examples/premisefix/httpreplay`). Of the request's method and headers only: a body without
+`GetBody` makes Go's test false, which only makes more requests replayable here. -/
+def onceOnly (R : HReq) : Prop :=
+  R.meth ≠ [] ∧ R.meth ∉ [go!"GET", go!"HEAD", go!"OPTIONS", go!"TRACE"] ∧ noIdemKey R.hdr
+
+/-- A `POST` without an idempotency key is never replayed. -/
+theorem onceOnly_post (R : HReq) (hm : R.meth = go!"POST") (hk : noIdemKey R.hdr) :
+    onceOnly R := by
+  refine ⟨?_, ?_, hk⟩ <;> rw [hm] <;> decide
+
+/-- **What a handler run receives of a request's ticket** (http-boundary-fix, 2026-11-14): the
+ticket if the request is never replayed (`onceOnly`), nothing otherwise. Until then every handler
+run received `reqTicket γk`, which the replay of a `GET` (one `RoundTrip`, two handler runs, the
+same ticket name) made two copies of an exclusive resource. -/
+def reqTicketOnce (R : HReq) (γk : GName) : IProp GF := iprop(⌜onceOnly R⌝ -∗ reqTicket γk)
+
+/-- A handler of a request never replayed has its ticket. -/
+theorem reqTicketOnce_use (R : HReq) (γk : GName) (h : onceOnly R) :
+    reqTicketOnce (GF := GF) R γk ⊢ reqTicket γk := by
+  unfold reqTicketOnce
+  iintro Ht
+  iapply Ht
+  ipureintro; exact h
+
 /-- **A header map `hm` holding `hs`** (exclusive; a request's headers being built, or a response
 writer's). -/
 opaque hdrOwn (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
@@ -300,6 +375,141 @@ def srvKeys : List GoString :=
 for the keys Go's server sets itself (`srvKeys`). -/
 def srvView (hs hc : List (GoString × GoString)) : Prop :=
   ∀ k, canonKey k ∉ srvKeys → hdrGet hc k = hdrGet hs k
+
+/-! ### Header fields Go carries unchanged (http-boundary-fix, independent review, 2026-11-14) -/
+
+/-- A header value's byte Go's server and client carry unchanged: printable ASCII, `0x20`-`0x7e`
+(no CR or LF, which Go's server turns into spaces, `headerNewlineToSpace`; no other control byte,
+which Go's client rejects, `textproto.validHeaderValueByte`; no tab). -/
+def hdrValByte (c : w8) : Bool := decide (32 ≤ c.toNat ∧ c.toNat ≤ 126)
+
+/-- **A header value Go carries unchanged**: of `hdrValByte`s, neither starting nor ending with a
+space (Go's reader trims both ends, `textproto`'s `trim`, `reader.go:108`, and `TrimLeft`). -/
+def hdrValOk (v : GoString) : Prop :=
+  (∀ c ∈ v, hdrValByte c = true) ∧ v.head? ≠ some (W8 32) ∧ v.getLast? ≠ some (W8 32)
+
+instance hdrValOk_dec (v : GoString) : Decidable (hdrValOk v) := by
+  unfold hdrValOk; infer_instance
+
+/-- **The response header keys a handler may not set** (canonical): `Content-Encoding` (below),
+`Trailer` (Go's client moves it to the response's trailers, `fixTrailer`), the connection
+headers Go's HTTP/2 server drops (`Keep-Alive`, `Proxy-Connection`, `Upgrade`), and (second
+review, 2026-11-14) `Pragma`: of `Pragma: no-cache`, Go's client adds `Cache-Control: no-cache`
+on reading the response (`fixPragmaCacheControl`, `response.go:201,218`;
+`examples/premisefix/httppragma`). -/
+def respNoKeys : List GoString :=
+  [go!"Content-Encoding", go!"Trailer", go!"Keep-Alive", go!"Proxy-Connection", go!"Upgrade",
+    go!"Pragma"]
+
+/-- **Response headers a handler may commit** (http-boundary-fix, independent review, 2026-11-14):
+each key non-empty, of token bytes (Go's server drops a header of another key,
+`examples/premisefix/httphdr`), its value `hdrValOk`, and no `Content-Encoding` (Go's client
+transparently decompresses a `gzip` body it asked for, `transport.go`'s `DisableCompression`
+false, so the reads would not be a prefix of what the handler wrote, `examples/premisefix/httpgzip`)
+nor the other keys of `respNoKeys`. Then the client sees the handler's value at every key but Go's
+own (`srvView`). -/
+def respHdrsOk (hs : List (GoString × GoString)) : Prop :=
+  ∀ p ∈ hs, p.1 ≠ [] ∧ p.1.all hdrTokenByte = true ∧ hdrValOk p.2 ∧ p.1 ∉ respNoKeys
+
+theorem respHdrsOk_nil : respHdrsOk [] := by
+  intro p hp; cases hp
+
+/-- `Set` of a key whose canonical form is of token bytes and not in `respNoKeys` to a `hdrValOk`
+value keeps `respHdrsOk`. -/
+theorem respHdrsOk_hdrSet (hs : List (GoString × GoString)) (k v : GoString) (h : respHdrsOk hs)
+    (hk : canonKey k ∉ respNoKeys ∧ (canonKey k).all hdrTokenByte = true ∧ canonKey k ≠ [])
+    (hv : hdrValOk v) : respHdrsOk (hdrSet hs k v) := by
+  intro p hp
+  unfold hdrSet at hp
+  rcases List.mem_append.1 hp with hp | hp
+  · exact h p (List.mem_filter.1 hp).1
+  · rw [List.mem_singleton.1 hp]
+    exact ⟨hk.2.2, hk.2.1, hv, hk.1⟩
+
+/-- A value of hexadecimal digits Go carries unchanged. -/
+theorem hdrValOk_of_bytes (v : GoString)
+    (h : ∀ c ∈ v, (48 ≤ c.toNat ∧ c.toNat ≤ 57) ∨ (97 ≤ c.toNat ∧ c.toNat ≤ 122) ∨
+      (65 ≤ c.toNat ∧ c.toNat ≤ 90) ∨ c.toNat ∈ [45, 46, 44, 47, 58, 95]) : hdrValOk v := by
+  refine ⟨fun c hc => ?_, ?_, ?_⟩
+  · have := h c hc; unfold hdrValByte; simp only [decide_eq_true_eq]; rcases this with h | h | h | h
+    · omega
+    · omega
+    · omega
+    · simp at h; omega
+  · intro hh
+    have hm := List.mem_of_mem_head? hh
+    have := h _ hm; simp at this
+  · intro hl
+    have hm := List.mem_of_getLast? hl
+    have := h _ hm; simp at this
+
+/-- **The request headers Go's client sets or replaces itself** (canonical keys): `Host`,
+`User-Agent` (a default if unset), `Accept-Encoding` (`gzip` if unset), `Content-Length`,
+`Transfer-Encoding`, `Trailer` (written from the request's fields, not its header map,
+`reqWriteExcludeHeader`), `Connection`, and the connection headers HTTP/2 drops or rewrites
+(`Keep-Alive`, `Proxy-Connection`, `Upgrade`, `Te`); (second review, 2026-11-14) and
+`Cache-Control`, which Go's server adds to a request with `Pragma: no-cache`
+(`fixPragmaCacheControl`, `request.go:1177`; `examples/premisefix/httppragma`). Their values on the server are not the client's map's
+(`examples/premisefix/httpreqhdr`). -/
+def reqTpKeys : List GoString :=
+  [go!"Host", go!"User-Agent", go!"Accept-Encoding", go!"Content-Length", go!"Transfer-Encoding",
+    go!"Trailer", go!"Connection", go!"Keep-Alive", go!"Proxy-Connection", go!"Upgrade", go!"Te",
+    go!"Cache-Control"]
+
+/-- A space or a tab. -/
+def owsByte (c : w8) : Bool := decide (c = W8 32 ∨ c = W8 9)
+
+/-- A header value with its leading and trailing spaces and tabs removed (`textproto`'s reading). -/
+def owsTrim (v : GoString) : GoString :=
+  ((v.dropWhile owsByte).reverse.dropWhile owsByte).reverse
+
+/-- **What the server's handler sees of the headers `hc` a client sent**: at every key but
+`reqTpKeys`, the client's value trimmed (Go's client refuses to send a key of other than token
+bytes or a value with CR, LF or another control byte but tab: `RoundTrip` fails). -/
+def reqHdrView (hc hs : List (GoString × GoString)) : Prop :=
+  ∀ k, canonKey k ∉ reqTpKeys → hdrGet hs k = owsTrim (hdrGet hc k)
+
+/-- Trimming a value that neither starts nor ends with a space or a tab leaves it. -/
+theorem owsTrim_ends (v : GoString) (hh : ∀ c, v.head? = some c → owsByte c = false)
+    (hl : ∀ c, v.getLast? = some c → owsByte c = false) : owsTrim v = v := by
+  unfold owsTrim
+  have h1 : v.dropWhile owsByte = v := by
+    cases v with
+    | nil => rfl
+    | cons c cs => simp only [List.dropWhile, hh c rfl]
+  rw [h1]
+  cases hr : v.reverse with
+  | nil => simpa using hr
+  | cons c cs =>
+    have hw := hl c (by rw [List.getLast?_eq_head?_reverse, hr]; rfl)
+    simp only [List.dropWhile, hw]
+    rw [← hr, List.reverse_reverse]
+
+/-- Trimming a value Go carries unchanged leaves it. -/
+theorem owsTrim_ok (v : GoString) (h : hdrValOk v) : owsTrim v = v := by
+  obtain ⟨hb, hh, hl⟩ := h
+  have hnot : ∀ c ∈ v, c ≠ W8 32 → owsByte c = false := by
+    intro c hc h32
+    unfold owsByte
+    apply decide_eq_false
+    rintro (e | e)
+    · exact h32 e
+    · have := hb c hc; subst e; revert this; decide
+  unfold owsTrim
+  have h1 : v.dropWhile owsByte = v := by
+    cases v with
+    | nil => rfl
+    | cons c cs =>
+      have hw := hnot c (by simp) (fun e => hh (by simp [e]))
+      simp only [List.dropWhile, hw]
+  rw [h1]
+  cases hr : v.reverse with
+  | nil => simpa using hr
+  | cons c cs =>
+    have hcv : c ∈ v := by rw [← List.mem_reverse, hr]; simp
+    have hw := hnot c hcv (fun e => hl (by rw [List.getLast?_eq_head?_reverse, hr]; simp [e]))
+    simp only [List.dropWhile, hw]
+    rw [← hr, List.reverse_reverse]
 
 /-- **A response writer's header map, holding `hs`, not yet committed** (exclusive, opaque;
 2026-10-23, rafthttp stage 5e): what `w.Header()` lends, and what the first `WriteHeader` or
@@ -512,7 +722,9 @@ its ticket `γk`, the protocol registered for its host (`httpProtoAt`) and
 `□ (H.proto R.host).req R γk`, (D42) its body of a kind the protocol allows (`reqSendOk`, with a
 streamed body's stream, `reqStream`, which `RoundTrip` consumes), either fails (with an error of
 net/http's, `netErr`: stage 7d) or returns a response whose status
-`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`, with
+`st` is a handler run's or the server's own (with `□ ∃ w, resp R γk st w`: the server's own answers,
+`srvStatuses`, are in the protocol, `Proto.srvOk`, which `reserve` asks of every registered one;
+http-boundary-fix 2026-11-14) and whose body reader starts at `[]`, with
 the right to close the body (`respCloser`, 2026-10-23, stage 5e-3); the request is the caller's
 again (`RoundTrip` must not modify it). (k8s 7f-4, Addendum T-i, the fix of a refutation:
 `notes/roundtripper-ctx-refuted.md`) The request's context is a `*cancelCtx` child of `Background()`
@@ -538,14 +750,18 @@ instance roundTripperOk_persistent (H : HttpNet GF) (rt : GoInterface) :
 /-! ### The server's side -/
 
 /-- **A received request** at `r` (persistent field facts): its `Method`, `URL` (a `*url.URL` whose
-`Path` is `R.path`), `Header` (`hdrAt` of `R.hdr`), `RemoteAddr` (some ASCII string: the server
+`Path` is `R.path`), `Header` (`hdrAt` of headers that are `R.hdr`'s at every key but the ones Go's
+client sets itself, values trimmed: `reqHdrView`; http-boundary-fix, independent review,
+2026-11-14: until then `R.hdr` itself, false of `Accept-Encoding`, `User-Agent`, `Content-Length`
+and of padded values, `examples/premisefix/httpreqhdr`), `RemoteAddr` (some ASCII string: the server
 writes the peer's `ip:port`) and `Body` (the reader `rd`, never `nil`: the server sets `NoBody`
 for an empty one). -/
 def reqAt (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF :=
   iprop(reqF go!"Method" r ↦□ R.meth ∗
     (∃ u : Loc, reqF go!"URL" r ↦□ u ∗
       urlF go!"Path" u ↦□ R.path) ∗
-    (∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrAt hm R.hdr) ∗
+    (∃ (hm : Loc) (hs : List (GoString × GoString)), reqF go!"Header" r ↦□ hm ∗ hdrAt hm hs ∗
+      ⌜reqHdrView R.hdr hs⌝) ∗
     (∃ ra : GoString, reqF go!"RemoteAddr" r ↦□ ra ∗ ⌜asciiStr ra⌝) ∗
     reqF go!"Body" r ↦□ rd ∗ ⌜rd ≠ GoInterface.nil⌝)
 
@@ -593,7 +809,8 @@ def handlerDone (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (�
     ⌜v.isPanic = true⌝ ∗ respWriter H wr a R γk none [])
 
 /-- **A handler of the address `a`** (persistent), lending each invocation the resource `Rs`:
-`ServeHTTP` of any request the network delivers to `a`, with its ticket, its body (`reqBody`,
+`ServeHTTP` of any request the network delivers to `a`, with its ticket if the request is never
+replayed (`reqTicketOnce`, http-boundary-fix 2026-11-14: a replayed `GET` runs the handler twice), its body (`reqBody`,
 D42: fixed or streamed, as the protocol says) and a
 fresh response writer (a non-`nil` interface value, an `http.Flusher`: the server's writers are)
 with its empty header map, returns `Rs` and the writer (`handlerDone`; or panics, giving them back
@@ -601,7 +818,7 @@ too: `Serve` recovers the panic). -/
 def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
-      reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicket γk -∗
+      reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicketOnce R γk -∗
         reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
@@ -609,10 +826,12 @@ def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) 
           (Val #r)) {{ v, Rs ∗ handlerDone H (GoInterface.ok wi) a R γk v }}))
 
 /-- **Before a response's commit, its headers are ready** (2026-10-23, rafthttp stage 5e): the
-header map not yet committed, holding headers of the protocol (`rhdr`); nothing once committed. -/
+header map not yet committed, holding headers of the protocol (`rhdr`), (http-boundary-fix,
+independent review, 2026-11-14) which Go carries to the client unchanged (`respHdrsOk`); nothing
+once committed. -/
 def hdrsReady (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) :
     Option w64 → IProp GF
-  | none => iprop(∃ hs, respHdrs wr hs ∗ ⌜(H.proto a).rhdr R hs⌝)
+  | none => iprop(∃ hs, respHdrs wr hs ∗ ⌜(H.proto a).rhdr R hs ∧ respHdrsOk hs⌝)
   | some _ => iprop(True)
 
 /-! ### The specs (statements for review; see the file header) -/
@@ -811,11 +1030,13 @@ def ReadFull_resp_spec (H : HttpNet GF) : Prop :=
           p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R γk st (r ++ ys) ∗ errStrOk err }}
 
 /-- `w.(http.Flusher).Flush()` on a response writer: returns (it matters for latency, not for
-safety). -/
+safety). (http-boundary-fix, independent review, 2026-11-14) After the commit only (`st` set): on
+an uncommitted writer Go's `Flush` commits status `200` and the headers, after which a
+`WriteHeader` is ignored, which the writer's `none` would not say. -/
 def Flush_spec (H : HttpNet GF) : Prop :=
   ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName)
     (st : Option w64) (w : List w8),
-    wr = GoInterface.ok wi →
+    wr = GoInterface.ok wi → st.isSome →
     ⊢ {{ respWriter H wr a R γk st w }}
         (App (Val #(methods wi.ty go!"Flush" wi.v)) (Val #()))
       {{ RET #(); respWriter H wr a R γk st w }}
@@ -1017,7 +1238,7 @@ def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoSt
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a ∧ muxRoute pats R = some pat⌝ -∗ □ (H.proto a).req R γk -∗
-        reqTicket γk -∗ reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        reqTicketOnce R γk -∗ reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
         WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))

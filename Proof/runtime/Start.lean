@@ -32,7 +32,7 @@ or empty at start, pairwise disjoint, and touched only by the operations whose s
 effects. The verified code's first `bootstrap` of `dd` consumes the right. So each data directory
 of `Ds` is bootstrapped fresh at most once in a run, over an empty backend, which `bootstrap`'s
 contract needs (`wal.Exist(dir)` false: `bootstrapNewWAL`; no backend file: `HD`, `HmEmpty`).
-(Sweep repairs 1, W5) The addresses of `As` are numeric literals (`hAsLit`, decidable), so each
+(Sweep repairs 1, W5) The addresses of `As` are numeric loopback literals (`hAsLit`, decidable; loopback since 2026-11-14, so no proxy), so each
 names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4) For a program of
 which `verifyEnvOff e` holds (`ETCD_VERIFY` off for the run), it also receives `envVerifyOff`,
 which the backend's lock checks and `VerifyBackendConsistency` take.
@@ -98,14 +98,41 @@ axiomatized proposition of the list.) -/
 def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop :=
   ∀ n ∈ Ns, prometheus.nameUnclaimed e n
 
-/-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address). -/
+/-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address: no other
+process binds it or connects to it, and the program's own connections to it are the ones
+`addrsUnclaimed` lists). -/
 axiom addrUnclaimed [GooseExts] (e : Expr) (a : GoString) : Prop
 
 /-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
 of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, nor a socket
 overlapping one (a wildcard bind of its port, `0.0.0.0:p` or `[::]:p`), and no code of `e` whose
-behaviour this repository does not verify binds one. (Sweep repairs 1, W5) `As`'s strings are
-numeric literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`), so "an address of `As`" is the
+behaviour this repository does not verify binds one. (2026-11-14, the network fault review; the
+connect clause reworded after the independent review the same day) Two parts:
+(a) **the world assumption** (the user accepted it, 2026-11-14): no other process connects to an
+address of `As` (a local process can dial `127.0.0.1:p` and send requests,
+`examples/premisefix/foreignconn`);
+(b) **what `e` itself does** (a fact of its code, checked against the source): every connection to
+an address of `As` is made by `e`, and its requests are either sent through operations this
+repository verifies or specifies at a trust boundary (clientv3 over grpc's `ClientConn`, rafthttp's
+pipeline, stream and snapshot senders over `http.Transport`, `http.roundTripperOk`; the cluster
+programs' bridge, `bridge.New`'s spec), or are etcd's own names-only peer requests: the prober's
+`GET /raft/probing` (`probing.NewProber`, rafthttp `transport.go:146-147`), the version monitor's
+`GET /version` (`cluster_util.go:257`), bootstrap's `GET /members` (`cluster_util.go:81`), and
+leasehttp's forwarded `POST /leases` and `POST /leases/internal` (a follower's `RenewHTTP` and
+`TimeToLiveHTTP` to the leader, `v3_server.go:553,682`), at the pinned etcd. Those reach no handler
+whose protocol needs knowledge: the peer port's handler is
+the `RaftHandler` mux (`EtcdServer.RaftHandler`, `server.go:646`), which routes only `/raft`,
+`/raft/stream/`, `/raft/snapshot` and `/raft/probing` (`transport.go:163-166`), so it answers
+`/version`, `/members`, `/leases` and `/leases/internal` with `404` (`http.mux_handlerOk_spec`),
+and the raft protocol's request knowledge holds of all of them with no premise (`raftProto.req`, `Proof/go_etcd_io/etcd/server/v3/
+etcdserver/api/rafthttp/Stream.lean:464`: its premises are only on `POST /raft`, `POST
+/raft/snapshot` and `GET`s under `/raft/stream/`); the `GET`s' handler runs get no ticket
+(`http.reqTicketOnce`), and the lease `POST`s' runs, which do (`onceOnly`, a ticket no `RoundTrip`
+minted), reach only the mux's `404`, which takes no ticket. `examples/premisefix/peerreqs` records them in a three-member cluster.
+The boundaries' closed world (`InvNet.lean`) rests on (a) and (b). (Sweep repairs 1, W5) `As`'s
+strings are
+numeric loopback literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`; loopback since
+2026-11-14: never proxied), so "an address of `As`" is the
 one socket the literal names. (2026-11-08: stated address by address, `addrUnclaimed`, the same
 claim; until then an axiomatized proposition of the list.) -/
 def addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop := ∀ a ∈ As, addrUnclaimed e a

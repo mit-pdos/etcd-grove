@@ -150,8 +150,9 @@ theorem rafthttp.pipeline.post.wp_proof
     iexists st
     iframe #
     ipureintro
-    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
-      by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
+    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, ⟨lid, Hfrom.1, Hmem.1,
+      by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2.1 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩,
+      Hfrom.2.2⟩
   iunfold pipeReg at Hreg
   ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2
   ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []

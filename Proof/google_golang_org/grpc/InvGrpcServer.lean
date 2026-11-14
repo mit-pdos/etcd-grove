@@ -304,8 +304,9 @@ handler's `SendMsg`/`Send`) has an encoded length, as a natural number, of at mo
 counting a submessage, or a byte slice's contents, once per reference (`notes/reply-size.md`).
 Global, one for the run, not per server. It is about the replies to the calls of the program's own
 clients: a process outside the program could connect to a member's port and send the request
-below that makes it false, which is outside the scope of every closed theorem (they model no
-outside peer).
+below that makes it false, which every closed theorem's premise `addrsUnclaimed`
+(`Proof/runtime/Start.lean`, part (a): no other process connects to an address of the program;
+2026-11-14) excludes.
 
 **What makes it true**: each byte slice and submessage is referenced a bounded number of times
 per reply, so the encoding is at most a small multiple of the memory the reply references, and Go's

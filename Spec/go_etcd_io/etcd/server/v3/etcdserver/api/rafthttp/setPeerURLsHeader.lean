@@ -25,7 +25,8 @@ variable [sem : go.Semantics]
 
 /-- **`setPeerURLsHeader(req, urls)`** on a request being built: the request with some headers,
 the others kept; (2026-10-27, D22 J-T, W8) of URLs of only the scheme `http` and a plain host,
-`X-PeerURLs` their strings (`http://host`) joined by `,` (`peerURLsHdr`). -/
+`X-PeerURLs` their strings (`http://host`) joined by `,` (`peerURLsHdr`); (http-boundary-fix,
+2026-11-14) no idempotency key added (`http.noIdemKey`). -/
 abbrev rafthttp.setPeerURLsHeader.spec : Prop :=
   ∀ (r : Loc) (R : http.HReq) (urls : GoSlice) (uvs : List net.url.URL),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.reqOwn r R ∗ urls ↦*□ uvs }}
@@ -34,6 +35,7 @@ abbrev rafthttp.setPeerURLsHeader.spec : Prop :=
       ⌜∀ k, http.canonKey k ≠ http.canonKey go!"X-PeerURLs" → http.hdrGet hs k = http.hdrGet R.hdr k⌝ ∗
       ⌜uvs ≠ [] → (∀ u ∈ uvs, http.urlRootPlain u) →
         http.hdrGet hs go!"X-PeerURLs" = peerURLsHdr uvs⌝ ∗
+      ⌜http.noIdemKey R.hdr → http.noIdemKey hs⌝ ∗
       http.reqOwn r { R with hdr := hs } }}
 
 end spec

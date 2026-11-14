@@ -25,6 +25,39 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-14: `Http` headers -- Go rewrites header values, adds request headers, decompresses gzip
+
+- **Spec.** `SpecPlan/Spec/net/http/Api.lean`: `hdrView` (the client's view of committed response
+  headers), `srvReq r R rd` (the handler's view of the request's headers), the response writer's
+  `Flush`; the real boundary's `srvView`, `reqAt`, `hdrsReady`, `Flush_spec` (`Proof/net/http/`).
+- **Defect.** Unsound: Go's server turns CR/LF in a response header value into spaces, its client
+  trims values and drops non-token keys, and decompresses a body whose handler set
+  `Content-Encoding: gzip`; the handler sees `Accept-Encoding`, `User-Agent`, `Content-Length` the
+  client never set, and trimmed values; `Flush` on an uncommitted writer commits `200`.
+- **Evidence.** The independent review of `http-boundary-fix` (etcd-grove-81, 2026-11-14);
+  `examples/premisefix/{httpgzip,httphdr,httpreqhdr}`.
+- **Proposed change.** As the real boundary on `http-boundary-fix`: committed response headers
+  `respHdrsOk` (token keys, `hdrValOk` values, none of `respNoKeys`); the handler's request headers
+  `reqHdrView R.hdr hs` (trimmed, but at `reqTpKeys`); `Flush` of a committed writer.
+- **Decision.** Pending (trust-boundary specs of the plan).
+
+## 2026-11-14: `Http.roundTripperOk` -- a response's status may be the server's own, not a handler's
+
+- **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (and the header's "The response's
+  status and headers are the handler's"), `reserve.spec`; the real spec `http.roundTripperOk`,
+  `http.reserve` (`Proof/net/http/`).
+- **Defect.** Unsound: `RoundTrip`'s post gives `respPre P R τ st hs` of a status that may be one
+  Go's server answered with itself, running no handler (`400`, `417`, `431`, `501`, `505`), which no
+  premise puts in `P.resp`. (The plan's tickets already follow `onceOnly`, the real boundary's other
+  finding of the same review.)
+- **Evidence.** The network fault review (etcd-grove-81, 2026-11-14);
+  `examples/premisefix/httpsrvstatus`.
+- **Proposed change.** As the real boundary on `http-boundary-fix`: `reserve` asks of the protocol
+  family that each member admits those statuses at any headers/bytes (`Proto.srvOk`, with
+  `srvStatuses`), or the post splits handler and server answers.
+- **Decision.** Pending (a trust-boundary spec of the plan; the real one fixed on
+  `http-boundary-fix`, awaiting review).
+
 ## 2026-11-12: `Bucket.node.spec`, `Cursor.node.spec` (internal) -- no panic promised on a deleted handle
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/bbolt/Bucket__node.lean`, `SpecPlan/Spec/go_etcd_io/bbolt/Cursor__node.lean`
