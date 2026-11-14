@@ -20,9 +20,11 @@ The callee specs `wal.Create`'s proof takes as hypotheses that no other spec sta
   existing directory"; dropped on `wal-leaf4`, `Create` never used it). (Until `wal-create18` the success
   post also said the new directory names nothing at any crash of its claim, `valAfter … = none`: false,
   `IsDirWriteable`'s `.touch` is created and removed through the claim; dropped, `Create` raising the
-  invariant's commit bound past the directory's entries instead: ledger 2026-11-14.) Not proved: the
-  existing-directory case needs a leftover `.touch`'s file (ledger 2026-11-14, "a leftover `.touch`
-  needs its file") and a spec of `CheckDirPermission`.
+  invariant's commit bound past the directory's entries instead: ledger 2026-11-14.) Proved
+  (`wal-leaf5`): `fileutil.CreateDirAll.wp_proofTmp`
+  (`LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/CreateDirAllTmp.lean`), over `CreateDirAll.spec`,
+  `TouchDirAll.specDir` (the existing directory, with its `.touch`'s file: `tmpSub`, ledger 2026-11-14,
+  "a leftover `.touch` needs its file", adopted), `ReadDir` and `fmt.ErrorfStrs.spec` (the files found).
 * **`os.RemoveAll.specAbsentN`**: `os.RemoveAll.specAbsentS` (proved) for a fraction of a claim on any
   names holding `b` (the proved one takes `.only [b]`; the extension's leaf steps,
   `wp_osUnlinkS_none`/`wp_osRmdirS_none`, take `.only [b]`, and the absent case logs nothing, so

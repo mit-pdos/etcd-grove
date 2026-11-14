@@ -12,14 +12,29 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/
+axiom binary.ReadInt64LE.wp_proof
+axiom fmt.SprintfWalName.wp_proof
+axiom fmt.SscanfWalName.wp_proof
+axiom io.ReadFull.wp_proof
 axiom pbRecordC_reg
 axiom pbSnapC_reg
+axiom proto.ClonePb.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalPb.wp_proof
 axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom recEncC_ok
 axiom snapEncC_ok
+axiom strings.HasSuffix.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Duration.Seconds_ptr.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
 sorry go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof
 sorry os.File.WriteAt.wp_proof_long
 sorry wal.Create.wp_proof

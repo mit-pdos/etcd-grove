@@ -28,14 +28,8 @@ variable [sem : go.Semantics]
 variable [os.Assumptions] [os.file.FieldAssumptions]
 
 /-- A file held whole after a truncation is held whole (`trFile i P` forgets `P`'s facts). -/
-theorem trFile_false (i : Ino) (P : Prop) : trFile (GF := GF) i P ⊢ trFile i False := by
-  unfold trFile
-  iintro ⟨%m, %xs, Hm, Hb, Hc, %hm⟩
-  iexists m, xs
-  iframe
-  ipureintro
-  obtain ⟨h1, -, h3, h4, h5, h6, -⟩ := hm
-  exact ⟨h1, False.elim, h3, h4, h5, h6, False.elim⟩
+theorem trFile_false (i : Ino) (P : Prop) : trFile (GF := GF) i P ⊢ trFile i False :=
+  trFile_mono i P False False.elim
 
 theorem os.WriteFile.wp_proofTruncS (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
     os.WriteFile.specTruncS (GF := GF) (hG := hG) := by
