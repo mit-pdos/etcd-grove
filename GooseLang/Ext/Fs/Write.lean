@@ -83,13 +83,15 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     (hcache : ∀ b, f'.cache b = f.cache b)
     (hcand : ∀ b, ¬ (lo ≤ b ∧ b < hi) → f'.cand b = f.cand b)
     (hmaps : ∀ b len, m.maps !! b = some len ↔ st'.proc.maps !! b = some ⟨i, len⟩)
-    (htg : ∀ t c, st'.proc.inflight !! t = some c → c.ino = i → c.target = tg) :
+    (htg : ∀ t c, st'.proc.inflight !! t = some c → c.ino = i → c.target = tg)
+    (hrz : ∀ s ∈ f.rzs, s ∈ f'.rzs) :
     MetaOk st' i (m.announce lo hi tg) f' := by
   refine ⟨by simp [hmo.size, hsz.1], by simp; have := hmo.lo; omega,
     by simp; have := hmo.hi; omega, by simpa using hmaps, fun t c ht hc => ?_, ?_, ?_, ?_,
     fun b hb hbz => by
       rw [announce_cz] at hbz
-      rw [hcache b]; exact hmo.cz b (by rw [← hsz.1]; exact hb) hbz⟩
+      rw [hcache b]; exact hmo.cz b (by rw [← hsz.1]; exact hb) hbz,
+    fun s hs => hrz s (hmo.rz s (by simpa using hs))⟩
   · rw [htg t c ht hc]; exact ⟨Nat.min_le_right _ _, Nat.le_max_right _ _⟩
   · intro b hb hn
     rw [announce_dlo, announce_dhi] at hn
@@ -486,7 +488,7 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       else f.cand b := fun b => rfl
   refine ⟨fun q => ?_, fun q m' hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
     hcoh.fds, fun t' => ?_, fun t' ti' c' h1 h2 => ?_, fun t' ti' h => ?_, fun t' ti' h => ?_,
-    fun t' ti' h => ?_, fun q m' c' hm hc => ?_⟩
+    fun t' ti' h => ?_, fun t' ti' h hk => ?_, fun q m' c' hm hc => ?_⟩
   · simp only [startState, OsState.addInflight, OsState.stampFile, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -507,12 +509,17 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
           · simp only [startState, OsState.addInflight] at h1
             rw [GMap.lookup_insert_ne _ _ he] at h1
             exact absurd h2 (hni t' c' h1))
+        (fun s hs => by
+          simp only [f', OsFile.announce]; split
+          · exact List.mem_cons_of_mem _ hs
+          · exact hs)
       rw [TokInfo.meta]; exact this
     · rename_i hne
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, by simp only [startState, OsState.addInflight, OsState.stampFile,
         GMap.lookup_insert_eq_iff, if_neg hne]; exact h1, ?_⟩
-      refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail, hm1.cz⟩
+      refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail, hm1.cz,
+        hm1.rz⟩
       by_cases he : t = t'
       · subst he; simp only [startState, OsState.addInflight, GMap.lookup_insert] at h1'
         cases h1'; exact absurd (hcp.symm.trans h2') hne
@@ -583,6 +590,14 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       · rw [hm0] at hz; exact (hmo.zf z hz).2 b hzb
       · rw [hm0] at hsz hc; exact hmo.tail b c (by rw [← hmo.size]; exact hsz) hc
     · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t' ti' h
+      exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t' ti' h))]; exact h1, hrest⟩
+  · rw [GMap.lookup_insert_eq_iff] at h
+    split at h
+    · cases h
+      refine ⟨f', by rw [hfile, hp, if_pos rfl], ?_⟩
+      simp only [f', OsFile.announce]
+      rw [show c.kind = ti.kind from hkind, if_pos hk, hn]; exact List.mem_cons_self
+    · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_rz t' ti' h hk
       exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t' ti' h))]; exact h1, hrest⟩
   · show c' ≤ st.fs.stamp + 1
     rw [GMap.lookup_insert_eq_iff] at hm
@@ -826,7 +841,7 @@ theorem MetaOk.mono_infl {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hin : ∀ t c, st'.proc.inflight !! t = some c → st.proc.inflight !! t = some c)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, fun t c ht => h.targets t c (hin t c ht), h.dur,
-    h.zf, h.tail, h.cz⟩
+    h.zf, h.tail, h.cz, h.rz⟩
 
 theorem doneInflight_sub (st : OsState) (t : Nat) :
     ∀ t' c', (st.doneInflight t).proc.inflight !! t' = some c' → st.proc.inflight !! t' = some c' := by
@@ -862,7 +877,7 @@ theorem osCoh_done {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) :
     OsCoh (st.doneInflight t) Γb Γm Γf (GMap.delete t Γt) := by
   refine ⟨hcoh.meta_dom, fun q m hm => ?_, hcoh.bytes, hcoh.bytes_full, hcoh.fds, fun t' => ?_,
     fun t' ti c' h1 h2 => ?_, fun t' ti h => ?_, fun t' ti h => ?_, fun t' ti h => ?_,
-    fun q m c hm hc => hcoh.cut_le q m c hm hc⟩
+    fun t' ti h hk => ?_, fun q m c hm hc => hcoh.cut_le q m c hm hc⟩
   · obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
     exact ⟨f, hf, hmo.mono_infl (st := st) rfl (doneInflight_sub st t)⟩
   · simp only [OsState.doneInflight, GMap.lookup_delete_iff]; split
@@ -877,6 +892,7 @@ theorem osCoh_done {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) :
   · exact hcoh.tok_meta t' ti h
   · exact hcoh.tok_file t' ti h
   · exact hcoh.tok_cand t' ti h
+  · exact hcoh.tok_rz t' ti h hk
 
 /-- With the change `t` on `p` done, no other change in flight is on `p`. -/
 theorem noTok_done {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt)
@@ -1170,7 +1186,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
           have h1 := hmo.maps b len; simp only [announce_maps] at h1; simp only [announce_maps]
           exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_⟩
+        fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs)⟩
       rotate_right 2
       · rw [show (pwFile f c off k).cand b = f.cand b from rfl]
         rw [hsz2] at hb

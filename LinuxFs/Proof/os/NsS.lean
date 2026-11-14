@@ -16,6 +16,7 @@ public import LinuxFs.Proof.os.File__Close
 public import LinuxFs.Proof.os.SharedExt
 public import LinuxFs.Proof.os.ErrorOk
 public import LinuxFs.Proof.os.Off
+public import LinuxFs.Proof.os.ErrnoPathErr
 
 @[expose] public section
 
@@ -115,6 +116,68 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
 
 /-- `os.OpenFile(p, O_RDONLY, perm)` of the directory `j` (a spine to it): a shared directory fd,
+not read, holding nothing; or a `*PathError` of a nonzero errno. -/
+theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
+    (qc : Qp) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+      (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
+            osDirFdS fd j .idle) ∨
+         (∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
+  wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
+  imod osLogLb_0 with #Hlb
+  iloeb as IH generalizing Hperm Hp HΦ
+  wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  rw [os.file_ty_eq, os.File_ty_eq]
+  rw [show (W64 0 ||| W64 524288) = flRO from by decide]
+  (try wp_auto)
+  wp_apply wp_osOpenDirS R p j dq t s0 qc CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hp Hk as %fd %e %hres Hperm Hp Hfd
+  by_cases he0 : e = W64 0
+  · subst he0
+    ihave Hfd := Hfd $$ %rfl
+    rw [decide_eq_true rfl]
+    wp_auto
+    iStructNamed inner
+    iapply wp_fupd
+    wp_auto
+    ipersist name
+    ipersist f
+    imodintro
+    iapply HΦ
+    iframe
+    ileft
+    iexists fd
+    iframe
+    isplitr
+    · ipureintro; rfl
+    unfold os.ownFile
+    iexists inner_ptr
+    iframe
+    isplitl [] <;> iassumption
+  · iclear Hfd
+    rw [decide_eq_false he0]
+    wp_auto
+    by_cases he4 : e = W64 4
+    · rw [decide_eq_true he4]
+      wp_auto
+      try rw [os.file_ty_eq]
+      try rw [os.File_ty_eq]
+      iapply IH $$ Hperm Hp HΦ
+    · rw [decide_eq_false he4]
+      wp_auto
+      wp_apply os.wp_pathError_errno as %err #Herr
+      iapply HΦ
+      iframe
+      iright
+      iexists e
+      iframe Herr
+      ipureintro; exact ⟨he0, rfl⟩
+
+/-- `os.OpenFile(p, O_RDONLY, perm)` of the directory `j` (a spine to it): a shared directory fd,
 not read, holding nothing; or an error. -/
 theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
@@ -175,6 +238,21 @@ theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (d
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 
+/-- `os.Open(p)` of the directory `j`, the error explicit: `OpenFile(p, O_RDONLY, 0)`. -/
+theorem os.Open.wp_dirErrS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+      (App (Val (@! os.Open)) (Val #p))
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
+            osDirFdS fd j .idle) ∨
+         (∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
+  wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
+  wp_auto
+  wp_apply os.OpenFile.wp_dirErrS p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
+  · iframe; isplitl [] <;> iassumption
+  iapply HΦ
+  iexact Hr
+
 /-- `os.Open(p)` of the directory `j`: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
@@ -229,9 +307,10 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
         osNames j N dq h ∗
         ((∃ names : List GoString, ⌜err = interface.nil ∧ (∀ b ∈ names, NameOk b) ∧
               (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
-              (∀ b, N.Mem b → names.count b ≤ 1)⌝ ∗ sl ↦* names ∗
+              (∀ b, N.Mem b → names.count b ≤ 1) ∧ names.length ≤ 2 ^ 44⌝ ∗ sl ↦* names ∗
             osDirFdS fd j .done) ∨
-         (⌜err ≠ interface.nil⌝ ∗ ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
+         ((∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e) ∗
+            ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
   unfold os.ownFile
   wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hcl⟩
   unfold os.model.inner
@@ -257,17 +336,25 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
   · subst hrs; rw [List.reverse_nil]; iexact Hsl
   ihave Hp : ⌜(fresh = true → rs = []) ∧ (fresh = false → h.next ≤ r0) ∧
       (∀ b ∈ rs, NameOk b ∧ (N.Mem b → (h.cur !! b).isSome)) ∧
-      (∀ b, N.Mem b → rs.count b ≤ 1)⌝ $$ []
+      (∀ b, N.Mem b → rs.count b ≤ 1) ∧ rs.length ≤ 2 ^ 44⌝ $$ []
   · ipureintro; subst hrs hfresh; simp
   clear hfresh hrs hsl0
   wp_auto
   iloeb as IH generalizing %fresh %rs %r0 %sl0 Hp Hosfd Hsl Hcap Hcl
   icases Hp with %Hp
-  obtain ⟨hfr, hr0, hin, hcnt⟩ := Hp
+  obtain ⟨hfr, hr0, hin, hcnt, hlen⟩ := Hp
   wp_apply wp_osDirReadNextS R fd j N r0 rs fresh dq h hfr hr0 CoPset.subseteq_top
     CoPset.subseteq_top $$ Hinv Hsi Hosfd Hcl as %v Hcl ⟨%r0', %hr1, %hr2, Hv⟩
   icases Hv with (⟨%b, %hv, Hosfd⟩ | ⟨%hv, Hosfd⟩ | ⟨%e, %hv, Hosfd⟩)
   · obtain ⟨rfl, hb, hbr⟩ := hv
+    wp_auto
+    ihave %hsl := ownSlice_len _ _ _ $$ Hsl
+    wp_apply_core wp_assume
+    iintro %hlt
+    have hlt' : rs.length < 2 ^ 44 := by
+      rw [List.length_reverse] at hsl
+      have := of_decide_eq_true hlt
+      word
     wp_auto
     wp_apply wp_slice_literal (V := GoString) [b]
     isplitr
@@ -276,7 +363,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     wp_apply wp_slice_append $$ [$Hsl $Hcap $Hsl1] as %sl' ⟨Hsl, Hcap, -⟩
     iapply IH $$ %false %(b :: rs) %r0' %sl' [] [Hosfd] [Hsl] Hcap Hcl HΦ Hfd
     · ipureintro
-      refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_, ?_⟩
+      refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_, ?_, ?_⟩
       · cases fresh
         · rw [hr1 rfl]; exact hr0 rfl
         · exact hr2 rfl
@@ -291,6 +378,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
           have := (hbr hx).2
           rw [List.count_eq_zero_of_not_mem this]; simp
         · simp only [beq_iff_eq, Ne.symm hxb, ↓reduceIte, Nat.add_zero]; exact hcnt x hx
+      · rw [List.length_cons]; omega
     · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hosfd
     · rw [List.reverse_cons]; iexact Hsl
   · obtain ⟨rfl, hall⟩ := hv
@@ -303,7 +391,8 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     iexists rs.reverse
     iframe
     ipureintro
-    refine ⟨rfl, fun x hx => (hin x (List.mem_reverse.1 hx)).1, fun x hx => ?_, fun x hx => ?_⟩
+    refine ⟨rfl, fun x hx => (hin x (List.mem_reverse.1 hx)).1, fun x hx => ?_, fun x hx => ?_,
+      by rw [List.length_reverse]; exact hlen⟩
     · rw [List.mem_reverse]
       exact ⟨hall x hx, fun hm => (hin x hm).2 hx⟩
     · rw [List.count_reverse]; exact hcnt x hx
@@ -314,7 +403,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
       wp_auto
       iapply IH $$ %false %rs %r0' %sl0 [] [Hosfd] Hsl Hcap Hcl HΦ Hfd
       · ipureintro
-        refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin, hcnt⟩
+        refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin, hcnt, hlen⟩
         cases fresh
         · rw [hr1 rfl]; exact hr0 rfl
         · exact hr2 rfl
@@ -323,14 +412,14 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
       wp_auto
       rw [decide_eq_false (show ¬ e = W64 0 from he)]
       wp_auto
-      wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+      wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %err #Herr
       iapply HΦ
       iframe
       isplitl []
       · isplitl [] <;> iassumption
       iright
       isplitr
-      · ipureintro; intro h; cases h
+      · iexists e; iframe Herr; ipureintro; exact he
       iexists r0', rs
       iexact Hosfd
 

@@ -748,7 +748,13 @@ far and `&PathError{"readdirent", name, Errno(e)}`; the result is never a nil sl
 extension's `DirReadNext` gives a name at a time (`fd ↦ (name, done, errno)`), with POSIX's
 `readdir` across concurrent changes; it is stuck on a fd that is not a directory's (Go:
 `ENOTDIR`) and on a second read of one fd (Go returns no names; the WAL never reads a directory fd
-twice). `n > 0` is not modelled: a panic, never reached by a proved program. -/
+twice). `n > 0` is not modelled: a panic, never reached by a proved program. Before each append
+the loop assumes (Perennial's `assume`: it diverges otherwise) that fewer than `2^44` names were read
+(2026-11-14, **pending the user's review**): Go's `append` panics ("growslice: len out of range")
+once a `[]string`'s capacity passes `maxAlloc/16 = 2^44` (linux/amd64), before its length does, so
+the assumption excludes only executions Go ends in that runtime panic, which Perennial's `append`
+treats as an assumption already (its `int` overflow). Go example
+`examples/osfs/semantics/model_os_readdirnames_len.go` (measured, `TestAppendStringsLenLimit`). -/
 noncomputable def File.Readdirnames.impl : val :=
   λ: "f" "n",
     let: "inner" := model.inner "f" in
@@ -764,6 +770,8 @@ noncomputable def File.Readdirnames.impl : val :=
         else if: Fst (Snd "r") =⟨go.uintptr⟩ #(W64 1) then ("names", #GoInterface.nil)
         else
           let: "nm" := Fst "r" in
+          assume ((FuncResolve go.len [go.GoType.SliceType go.string]) #() "names" <⟨go.int⟩
+            #(W64 (2 ^ 44))) ;;
           "loop" ((FuncResolve go.append [go.GoType.SliceType go.string]) #() "names"
             (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
               (LiteralValue [KeyedElement none (ElementExpression go.string (Var "nm"))]))))

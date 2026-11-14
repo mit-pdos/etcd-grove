@@ -1,6 +1,8 @@
 /-
 The callee specs `wal.Exist`'s proof takes as hypotheses (W12 of `notes/wal-fsext-plan.md`, the W7-W12
-log). None is proved yet.
+log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
+`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`: `ReadDir.wp_specAbsentIs`,
+`ReadDir.wp_specChildIs`, from `ReadDir.wp_core`) given `errors.IsPathErrnoNotExist.spec`, which is not.
 
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable). What `Exist` asks of `ReadDir`'s errors.
@@ -14,11 +16,11 @@ log). None is proved yet.
   spine to `d/b`: the program holds half of the area claim, which cannot be split into the `.only [b]`
   claim a spine needs), its error answering `errors.Is(_, os.ErrNotExist)` with `false`. Provable since
   the semantics' `ENOENT` rule (2026-11-14, pending the user's review: `ENOENT` from `open` only for a
-  path that does not resolve, from `getdents` only for a removed directory): the `os` layer is proved
+  path that does not resolve, from `getdents` only for a removed directory): the `os` layer
   (`LinuxFs/Proof/os/NsChildS.lean`: `os.Open.wp_dirChildS`, `os.File.Readdirnames.wp_dirChildS`, over
   the extension's `wp_osOpenDirChildS`/`wp_osDirReadNextChildS`; errors `os.errnoPathErr err e`,
-  `e ≠ ENOENT`). Left: `ReadDir`'s own loops (`applyOpts`, the filter; `sort.Strings` needs at most
-  `2^62` names, which nothing bounds: `ReadDir.wp_proof` is `sorry` for the same reasons) and
+  `e ≠ ENOENT`), `ReadDir`'s loops (`ReadDir.wp_core`) and the names' bound (`Readdirnames`' model
+  assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved; left:
   `errors.IsPathErrnoNotExist.spec` below.
 * **`errors.IsPathErrnoNotExist.spec`**: `errors.Is(err, os.ErrNotExist)` of a `*PathError` of a nonzero
   errno `e` answers `e = ENOENT`. True in Go (`errors.Is` unwraps the `*PathError` to the `Errno`, whose

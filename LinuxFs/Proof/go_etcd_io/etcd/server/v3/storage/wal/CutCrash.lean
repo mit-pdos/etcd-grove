@@ -353,7 +353,7 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
       lay.j _ h x e c hK hx⟩) hfo
       (fun g hg hin => hn g (hpre.subset hg) (by rw [hj']; exact hin)) ?_⟩
     rw [hj'] at hw
-    exact w1G_prefix hpre hw
+    exact w1G_prefix hpre (hw.mono_rz (segRzOf_prefix hpre))
 
 /-! ## The directory's fsync -/
 
