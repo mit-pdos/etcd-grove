@@ -18,9 +18,9 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
-## Handoff point (2026-11-14, seventh 7f-5 agent): 7f-3c in progress (the client part)
+## Handoff point (2026-11-14, seventh 7f-5 agent): 7f-3c done on the branch; checkpoint (not landed)
 
-Done on `k8s-7f5` (commits after `c5073670f3`; decisions in questions.md, 2026-11-14 7f-3c entry):
+Done on `k8s-7f5` (commits `b9e66b2591`..`cb54e77c51`; decisions in questions.md, 2026-11-14 7f-3c entry):
 - Step 1: `client.rawRespOk` is the Draft's `rawRespOkP` in place (`WatchStateDefs.lean`, with
   `prevKvLogOk`, `EvModel.erasePk`, `withPk`); producers: `dispatch_content` (pointers `qs` from
   `evs_pkSent`: `pkQAt`, `pkSent` per event), `cmpl_events` (`pkSent_logOk`, with the run's `pkIs`
@@ -31,15 +31,18 @@ Done on `k8s-7f5` (commits after `c5073670f3`; decisions in questions.md, 2026-1
   (`createOf … pk`, `wrRO`, `watchRequest.toPB.spec` with `prevKV ↦□ pk`).
 - Step 3: `watcher.Watch.spec` is S6's text under the old name (`isRangeWatchP`, `watchStateElemP`);
   `watcher.Watch.wp_proof` proves it.
-- Step 4 (in progress): `Draft7f3a.lean` deleted; old forms kept where the cache uses them
-  (`isRangeWatch`, `watchStateElem`, `watchStateRespOk`, `respAt`). Users switched so far: KMWatch,
-  etcdstart RespChan, compactor (`client_Watch_field` restated with the P-forms), auth Work. Pattern:
+- Step 4: `Draft7f3a.lean` deleted; old forms kept where the cache uses them (`isRangeWatch`,
+  `watchStateElem`, `watchStateRespOk`, `respAt`). Users switched: KMWatch, etcdstart RespChan
+  (`isRespChan_of_state[_cmp]` take `watchStateElemP`: interface regenerated), compactor
+  (`client_Watch_field` restated with the P-forms), auth Work, examples watch/compactwatch. Pattern:
   after `wp_spsc_receive`, `ihave HP := watchStateElemP_elem _ _ _ _ _ _ _ $$ HP`; a premise
   `isRangeWatch … = true` becomes `OpFull.isRangeWatchP_of h` (or `simp [OpFull.isRangeWatchP]`).
+- Checkpoint: full build 17487 jobs (`/shared/tmp/k8s7f3c-full2.log`), tcb 870/4 matches
+  (`/shared/tmp/k8s7f3c-tcb.log`), gates all ok but the etcdstart interface (expected; regenerated
+  in `cb54e77c51`; rerun `/shared/tmp/k8s7f3c/gates2.log`). STOPPED for 81's review.
 
-Next: the remaining users (lean-check each; then the full build), tcb --check, gen-interface,
-gates; STOP for 81 with the statement list (watcher.Watch.spec, toPB.spec, RespChan's lemmas,
-client_Watch_field).
+Next on 81's go: merge lean, STATUS entry (oldest to status-history, append only), `etc/land.sh`.
+Then 7f-3 is complete; next stage per the Scope (7f-5's T5-c/T5-d).
 
 ## Handoff point (2026-11-14, sixth 7f-5 agent, final): 7f-3b v3rpc part LANDED; 7f-3c next (a fresh agent)
 
