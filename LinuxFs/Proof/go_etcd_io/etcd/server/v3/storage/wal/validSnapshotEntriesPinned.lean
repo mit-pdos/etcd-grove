@@ -555,7 +555,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
       unfold ownRec
       icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
       (try wp_auto)
-      wp_apply hHs.unmarshal v.Data' _ r.data h hh $$ Hd as %p ⟨Hd, Hhs'⟩
+      wp_apply hHs.unmarshal v.Data' _ r.data h hh $$ [Hd] as %p ⟨Hd, Hhs'⟩
+      · iexact Hd
       (try wp_auto)
       wp_for_post
       wp_apply (wp_Decode walCodec dec rcp IoE eof ueof (fsD.drop k) off' c' rfl)
