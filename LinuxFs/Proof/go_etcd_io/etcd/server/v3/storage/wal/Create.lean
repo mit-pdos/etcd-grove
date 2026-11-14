@@ -2,7 +2,9 @@
 `wal.Create` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`; spec
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
-proved through the call of `renameWAL` and its committed-error arm; its other three arms are `sorry` (the W4 log, nineteenth session, says what is left). Lean-first.
+proved through the call of `renameWAL`, its committed-error arm and its not-committed arm (the
+unminting, `CreateUnmint.lean`); its two success arms are `sorry` (the W4 log, twenty-first session,
+says what is left). Lean-first.
 -/
 module
 
@@ -39,6 +41,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.AreaPath
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAreaBack
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLockedLeft
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateUnmint
 
 @[expose] public section
 
@@ -134,13 +137,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
-    ihave #Hosf : (iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
-        (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-        (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
-        ∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) :
-        IProp GF) $$ []
-    · iapply isPkgInit_access $$ Hos
-    icases Hosf with ⟨-, ⟨%ee, %hee, #Hee⟩, -, -⟩
+    ihave ⟨%ee, %hee, #Hee⟩ := os.errExist_of_pkgInit $$ Hos
     try wp_auto
     iapply HΦ
     iframe
@@ -780,9 +777,61 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       sorry
     · -- committed, a reopened WAL returned: `renameWALPost`'s arm 2 is pending (ledger 2026-11-14)
       sorry
-    · -- not committed: the unminting step (the creating token, the update and both claims back; not
-      -- yet written), the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
-      sorry
+    · -- not committed: the unminting (`create_unmint`), the deferred `f.Close()` and
+      -- `RemoveAll(nm.tmp)`, the abort over the area claim's rebuilt history (`create_abortTmpH`)
+      rcases err with ei | _
+      rotate_left
+      · exact absurd rfl herr
+      unfold createU
+      icases HU with ⟨-, -, HP⟩
+      simp only [walCreateQ]
+      unfold walCreateP
+      icases HP with ⟨Hcr, Hau, HJh, -, -⟩
+      have hfoJ : FilesOnly (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur :=
+        filesOnly_restrictN _ _ (fun c n hc => by
+          rw [hJcur] at hc
+          split at hc
+          · exact ⟨i, (Option.some.inj hc).symm⟩
+          · cases hc)
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod create_unmint walCodec Mr R jr r (child r nm) N h cl Wn nm hC J
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) hok hnm hNnm hnmA hctmp hcnm hfoJ
+        $$ Hinv Hsi Hnc Hcr HNr HC HJh HJx HTmps with ⟨Hnc, Hu, %hN, %hT', %hNcur, HN, Ht⟩
+      iframe Hnc
+      imodintro
+      try wp_auto
+      wp_apply wp_String as %f1 -
+      wp_apply wp_String as %f2 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd _ _ $$ [Hll] as %cerr -
+      · iframe; iframe #
+      try wp_auto
+      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT'
+        (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
+      · iframe; iframe #
+      icases Ht with ⟨%hT4, Ht⟩
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod create_abortTmpH walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself hN hNcur
+        $$ Hinv Hsi Hnc Hu HN Ht Hcl Hsf
+        with ⟨Hnc, Hu, Hres⟩
+      iframe Hnc
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iframe
+      iright; ileft
+      iframe
+      ipureintro; intro hc; cases hc
     -- committed, an error: the deferred `f.Close()` and `RemoveAll(nm.tmp)` (absent now), the new
     -- name registered, the area back; the client's `Q` and half the permission
     rcases err with ei | _

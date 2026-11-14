@@ -158,7 +158,7 @@ theorem wp_osDirSync_lb (fd : w64) (dq : DFrac) (x : Ino × DirPh) (dqt : DFrac)
   icases osTree_auth _ _ _ _ _ $$ HAd Ht with %HV
   obtain ⟨rfl, rfl⟩ := HV
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with

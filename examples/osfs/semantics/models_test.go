@@ -47,6 +47,34 @@ func TestCloseNil(t *testing.T) {
 	}
 }
 
+// model_os_close_twice.go: a closed *File's Close is &PathError{"close", name, ErrClosed},
+// and closes no other fd (a file opened after the first Close, which may reuse its number,
+// stays open).
+func TestCloseTwice(t *testing.T) {
+	d := extDir(t)
+	name := d + "/seg"
+	f, err := os.Create(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	g, err := os.Open(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer g.Close()
+	err = f.Close()
+	var pe *os.PathError
+	if !errors.As(err, &pe) || pe.Op != "close" || pe.Path != name || pe.Err != os.ErrClosed {
+		t.Fatalf("second Close: %#v, want &PathError{close, %q, ErrClosed}", err, name)
+	}
+	if _, err := g.Stat(); err != nil {
+		t.Fatalf("the file opened after the first Close: %v", err)
+	}
+}
+
 // model_syscall_fallocate.go: syscall.Fallocate's mode 0 grows the size, mode 1 does not.
 func TestSyscallFallocate(t *testing.T) {
 	d := extDir(t)

@@ -74,7 +74,7 @@ theorem walInvBody_lend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   icases (BigSepM.bigSepM_lookup_acc (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
-      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
         TailBound C Mr d lay⌝ ∗
       ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) HT).1 $$ HTm with ⟨Hent, HTm⟩
   icases Hent with ⟨%d, %lay, %g0, %hp, Hv'⟩

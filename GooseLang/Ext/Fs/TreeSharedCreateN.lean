@@ -125,7 +125,7 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
       | false =>
         injection hew with hew; subst hew
         iintro Hw
-        imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfree.2.1
+        imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfree.2.1 hfree.1
           (file_of_entry hw hen) Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
         imodintro
         iexists Γb, Γm, _, Γt
@@ -174,7 +174,7 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
         iintro Hw
         imod osWorld_created hw k j b s0 $$ Hw with ⟨Hw, Hm⟩
         imod osWorld_addFd (st := createdSt st k j b s0) (filesSame_refl _) (fd := fd)
-          (d := openFd st.fs.nextIno fl) hfree.2.1 ⟨_, file_setFile_eq _ _ _⟩ Hr Hfr
+          (d := openFd st.fs.nextIno fl) hfree.2.1 hfree.1 ⟨_, file_setFile_eq _ _ _⟩ Hr Hfr
           $$ Hw with ⟨Hw, Hfd⟩
         imodintro
         iexists Γb, _, _, Γt

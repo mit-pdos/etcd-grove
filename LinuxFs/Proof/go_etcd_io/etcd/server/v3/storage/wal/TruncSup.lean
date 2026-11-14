@@ -64,6 +64,7 @@ theorem walInvBody_tailW_same (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
     (hW : WalsOk C Mr R jr s Ls cl n) (hl : Ls !! dir = some lay) (hs : lay.segs = pre ++ [g0]) :
     ⊢ (∀ (g : SegG) (wr' : Nat) (F' : GMap Ino SegFl),
           ⌜g.ino = g0.ino ∧ g.name = g0.name ∧ (∀ i, i ≠ g0.ino → F' !! i = F !! i) ∧
+            (wr' = lay.wr ∨ TailZeros lay) ∧
             WalsOk C Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl n ∧
             (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
               DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c)⌝ -∗
@@ -75,7 +76,7 @@ theorem walInvBody_tailW_same (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   iintro Hclose Hseg Hv
   have hp := walsOk_self (g := g0) hW hl hs
   iapply Hclose $$ %g0 %lay.wr %F [] Hseg
-  · ipureintro; exact ⟨rfl, rfl, fun _ _ => rfl, hp.1, hp.2⟩
+  · ipureintro; exact ⟨rfl, rfl, fun _ _ => rfl, Or.inl rfl, hp.1, hp.2⟩
   rw [tailLay_self hs]
   iexact Hv
 
@@ -110,7 +111,7 @@ theorem rzSeg_of_okR {g1 : SegG} {t n wr : Nat} {m0 : OsMeta} {bs0 : List ByteG}
 
 /-- **The caller's part of the finish's update**: its key and half of the tail record, the truncate in
 flight on it (the start's `t`, `n`, the `OsMeta` and bytes it found), and the start's facts. -/
-def truncFinP (dir : GoString) (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
+def truncFinP (dir : GoString) (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (i : Ino) (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) : IProp GF :=
   iprop(walTailKeyL (W := W) dir γ ok ∗
     tailVar (W := W) γ ((H, md, cuts, wr, i, some ⟨t, 0, [], n, m0, bs0, some (true, wr)⟩) : TailG) ∗
@@ -118,7 +119,7 @@ def truncFinP (dir : GoString) (γ : GName) (ok : Option Nat) (H : List (WalOpG 
 
 /-- **The finish's update** (see the file header). -/
 theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
+    (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
     (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗ truncFinP (W := W) dir γ ok H md cuts wr i t n m0 bs0 -∗
       osAUnc (A := w64) (rsTok true t i wr m0 (bs0.drop (min m0.size wr)) n)
@@ -213,7 +214,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imod tailVar_upd γ _ _ (tailG d (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) (rzLand g0' lay.wr n).ino
         ((GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
       ihave Hb := Hclose $$ %(rzLand g0' lay.wr n) %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt] Hv'
-      · ipureintro; exact ⟨by rw [e1], by rw [e1], hFd, hW', hDK'⟩
+      · ipureintro; exact ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK'⟩
       · have hn : (GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino = none := by
           rw [e1]; exact GMap.lookup_delete_eq _ _
         unfold segResF; rw [hn]; dsimp only
@@ -259,7 +260,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imod tailVar_upd γ _ _ (tailG d (tailLay lay pre g1 lay.wr) g1.ino
         ((GMap.delete g1.ino F) !! g1.ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
       ihave Hb := Hclose $$ %g1 %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt Hb2] Hv'
-      · ipureintro; exact ⟨rfl, rfl, hFd, hW', hDK'⟩
+      · ipureintro; exact ⟨rfl, rfl, hFd, Or.inl rfl, hW', hDK'⟩
       · unfold segResF; rw [GMap.lookup_delete_eq]; dsimp only
         unfold segRes
         have hom' : g1.om = rsUnMeta true true m0 wr n := hom
@@ -294,7 +295,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
 
 /-- **The caller's part of the start's update**: its tie, and its halves of the tail's `OsMeta` and of
 the bytes cut off. -/
-def truncStartP (dir : GoString) (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
+def truncStartP (dir : GoString) (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (i : Ino) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF :=
   iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) ∗
     osMeta i (DFrac.own (1 : Qp).half) m0 ∗ osBytes i (min m0.size wr) (DFrac.own (1 : Qp).half) xs0)
@@ -304,7 +305,8 @@ property of the state it starts from the handle's `LoWr` (no window open, or `lo
 crash sizes from `lo` on must be the old window's; a later attempt's state has `lo ≤ wr`,
 `os.truncSup`). -/
 theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino) :
+    (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
+    (hok : ∀ k, ok ≠ some (k, true)) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       os.truncSup iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG))
         i wr (fun m => LoWr m wr) := by
@@ -388,7 +390,7 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · rw [hwrl']; exact h
       · exact absurd (SegExact.of_os hsz h) hx
       · rw [hwrl']; exact h
-    obtain ⟨hW', hDK'⟩ := rzStart_pure walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZ hB hn.1 hn.2 hlo
+    obtain ⟨hW', hDK'⟩ := rzStart_pure walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 (hZ.zeros hok) hB hn.1 hn.2 hlo
     rw [hwrl'] at hW' hDK'
     have hFi : ∀ i, i ≠ g0.ino →
         (<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, wr)⟩ : SegFl)]> F) !! i = F !! i :=
@@ -404,7 +406,7 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       $$ Hv Hv' with ⟨Hv, Hv'⟩
     ihave Hb := Hclose $$ %(rzSeg g0 true wr n) %wr
       %(<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, wr)⟩ : SegFl)]> F) [] [Htok Hbt] Hv'
-    · ipureintro; exact ⟨rfl, rfl, hFi, hW', hDK'⟩
+    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl hwrl'.symm, hW', hDK'⟩
     · unfold segResF
       rw [show (rzSeg g0 true wr n).ino = g0.ino from rfl, hFg]
       dsimp only

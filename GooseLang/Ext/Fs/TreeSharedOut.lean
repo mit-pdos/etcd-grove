@@ -79,10 +79,14 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- **The fd `fd` of a directory outside the roots' trees** (`Open`'s outside case), held whole. -/
 def osOutFd (fd : w64) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γo fd (DFrac.own 1) ()
+  gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γo fd (DFrac.own 1) ()
 
 instance osOutFd_timeless (fd : w64) : Timeless (osOutFd (L := L) fd) := by
   unfold osOutFd; infer_instance
+
+/-- An open outside fd is not negative. -/
+theorem osOutFd_nonneg (fd : w64) : osOutFd (L := L) fd ⊢ ⌜0 ≤ fd.toInt⌝ := by
+  unfold osOutFd; exact gFdElem_nonneg _ _ _ _ _
 
 /-- **The lifting of any operation, with the outside fds' interpretation too** (`wp_fs_stepM`'s
 continuation also gets and gives back `ofdCtx`). -/
@@ -160,7 +164,7 @@ theorem outFd_lookup (st : OsState) (fd : w64) :
       ⌜st.proc.ofds !! fd = some () ∧ st.proc.fds !! fd = none ∧ st.proc.dfds !! fd = none⌝ := by
   unfold ofdCtx osOutFd
   iintro ⟨%hd, Ha⟩ Hfd
-  icases gAuth_lookup _ _ _ _ _ _ $$ Ha Hfd with %hl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Ha Hfd with %hl
   ipureintro
   exact ⟨hl, hd fd (by rw [hl]; simp)⟩
 
@@ -271,7 +275,7 @@ theorem wp_osOutClose (fd : w64) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
   · unfold osWorld; iframe; ipureintro; exact Hwc
   unfold ofdCtx osOutFd
   icases Hof with ⟨%hd, Ha⟩
-  imod gAuth_delete _ _ _ _ _ $$ Ha Hfd with Ha
+  imod gFdElem_delete _ _ _ _ _ $$ Ha Hfd with Ha
   imodintro
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
@@ -355,7 +359,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
     imod osWorld_filesSame (st := st) (st' := (st.metaEnd k).addOfd fd) hs Hr Hfr
       $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
     · unfold osWorld; iframe; ipureintro; exact Hwc
-    imod gAuth_insert _ _ _ fd () hfree.2.2.2 $$ Ha with ⟨Ha, Hfd⟩
+    imod gFdElem_insert _ _ _ fd () hfree.1 hfree.2.2.2 $$ Ha with ⟨Ha, Hfd⟩
     imodintro
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]

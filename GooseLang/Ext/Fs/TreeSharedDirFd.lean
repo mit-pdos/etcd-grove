@@ -49,7 +49,7 @@ theorem legacy_dirFdS_excl (st : OsState) (fd : w64) (j : Ino) (ph : DirPhS) :
     ⊢ osDirFdS (L := L) fd j ph -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
   unfold treeLegacy legacyHolds osDirFdS
   iintro Hfd ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, -, Hadfs, -⟩
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %hl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %hl
   simp at hl
 
 /-- A shared directory fd is one of the state's, on its directory. -/
@@ -76,7 +76,7 @@ theorem wp_osFdKindDirS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) 
   icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osDirFdS
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
   obtain ⟨df, hdf, -⟩ := dfdS_lookup hc Hfl
   have hnf : st.proc.fds !! fd = none := by
     cases h0 : st.proc.fds !! fd with
@@ -135,7 +135,7 @@ theorem wp_osDirCloseS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (
   icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osDirFdS
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
   obtain ⟨df, hdf, -⟩ := dfdS_lookup hc Hfl
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -155,7 +155,7 @@ theorem wp_osDirCloseS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (
   obtain ⟨fd', e, df', hv, -, hst, rfl⟩ := Hst
   cases go.intoVal_inj hv
   subst hst
-  imod gAuth_delete _ _ _ _ _ $$ Hadfs Hfd with Hadfs
+  imod gFdElem_delete _ _ _ _ _ $$ Hadfs Hfd with Hadfs
   imod osWorld_filesSame (st := st) (st' := delDfd st fd) hs Hr Hfr
     $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
   · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -205,7 +205,7 @@ theorem wp_osDirSyncS' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) 
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   unfold osDirFdS
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
   obtain ⟨df, hdf, -⟩ := dfdS_lookup hc Hfl
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩

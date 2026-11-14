@@ -282,6 +282,9 @@ theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
   rw [decide_eq_false hnn]
   wp_auto
+  ihave %hfd0 := osDirFdS_nonneg _ _ _ $$ Hosfd
+  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  wp_auto
   wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   wp_apply wp_osDirCloseS fd j ph CoPset.subseteq_top $$ Hinv Hosfd as %e
   by_cases he : e = W64 0

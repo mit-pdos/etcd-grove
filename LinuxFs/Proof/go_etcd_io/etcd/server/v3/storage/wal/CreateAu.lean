@@ -151,7 +151,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
     (hdur : ∀ y ∈ g.bs, y = durB y.1) (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
-    (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+    (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) (hZ0 : TailZeros lay)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
     (hcut : g.om.cut = none) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
@@ -403,7 +403,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           iframe Hcra
           ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
         isplitl [Htl]
-        · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF hLd
+        · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF hLd (Or.inl hZ0)
             (fun i hi => by
               by_cases e : i = g.ino
               · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi

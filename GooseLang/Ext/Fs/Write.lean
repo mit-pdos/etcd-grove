@@ -683,7 +683,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta osBytes
   icases bytesG_lookup _ d.ino _ _ xs Γb $$ HAb Hbs with %Hbl
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag

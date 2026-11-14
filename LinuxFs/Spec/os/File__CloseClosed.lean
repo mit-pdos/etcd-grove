@@ -4,17 +4,18 @@
 `ErrFileClosing`) and returns `&PathError{"close", name, ErrClosed}`, changing nothing. The `*File`
 keeps its name and its fd field -1.
 
-**Not proved: the trusted model does not cover it.** `File.Close.impl` (`TrustedCode/os.lean`) asks the
-extension `FdKind(-1)`, which is stuck on an fd that is not open (`GooseLang/Ext/Fs/Impl.lean`); the
-model's header lists a closed file among what it leaves undefined. The WAL's `Create` reaches it (W4
-log, nineteenth session): after `renameWALUnlock`'s `w.Close()` closed the locks and its rename failed,
-`Create`'s deferred `f.Close()` closes the segment's file again. A hypothesis of `wal.Create.wp_proof`
-until the model returns Go's error on fd -1 (a trusted change, proposed in `notes/wal-fsext-plan.md`, W4
-log, nineteenth session; pending the user's review). Lean-first (no Rocq counterpart).
+The model (`File.Close.impl`, `TrustedCode/os.lean`) returns that error on fd -1 without a system call
+(2026-11-14, pending the user's review; Go example `examples/osfs/semantics/model_os_close_twice.go`).
+The error is `os.ErrClosed`, which the package's initialization gives (`os.errClosed_of_pkgInit`). The
+WAL's `Create` reaches it (`notes/wal-fsext-plan.md`, W4 log, nineteenth session): after
+`renameWALUnlock`'s `w.Close()` closed the locks and its rename failed, `Create`'s deferred `f.Close()`
+closes the segment's file again. Proved in `Proof/os/File__CloseClosed.lean`. Lean-first (no Rocq
+counterpart).
 -/
 module
 
 public import LinuxFs.Proof.os.Base
+public import LinuxFs.Proof.os.PkgInit
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -37,7 +38,8 @@ variable [os.Assumptions]
 /-- See the file header. -/
 abbrev os.File.Close.specClosed : Prop :=
   ∀ (f : Loc) (name : GoString),
-  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f (-1 : w64) name (DFrac.own 1) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗
+      os.ownFile (GF := GF) f (-1 : w64) name (DFrac.own 1) }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f (-1 : w64) name (DFrac.own 1) ∗
       fmtErrorOkOrNil err }}

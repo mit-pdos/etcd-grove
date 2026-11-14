@@ -115,9 +115,10 @@ def osBytes (i : Ino) (off : Nat) (dq : DFrac) (xs : List (ByteG)) : IProp GF :=
 def osMeta (i : Ino) (dq : DFrac) (m : OsMeta) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm i dq m
 
-/-- The fd `fd` is open, as `d` says. -/
+/-- The fd `fd` is open, as `d` says (a fd is never negative: the extension's `Open` gives a free fd,
+`FdFree`, so `Close`'s model can tell an open file from a closed one, fd -1). -/
 def osFd (fd : w64) (dq : DFrac) (d : OsFd) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf fd dq d
+  gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf fd dq d
 
 /-- The change in flight `t`, as `ti` says. -/
 def osTok (t : Nat) (ti : TokInfo) : IProp GF :=
@@ -129,6 +130,15 @@ instance osMeta_timeless (i : Ino) (dq : DFrac) (m : OsMeta) :
     Timeless (osMeta (L := L) i dq m) := by unfold osMeta; infer_instance
 instance osFd_timeless (fd : w64) (dq : DFrac) (d : OsFd) :
     Timeless (osFd (L := L) fd dq d) := by unfold osFd; infer_instance
+
+/-- An open fd is not negative. -/
+theorem osFd_nonneg (fd : w64) (dq : DFrac) (d : OsFd) :
+    osFd (L := L) fd dq d ⊢ ⌜0 ≤ fd.toInt⌝ := by
+  unfold osFd; exact gFdElem_nonneg _ _ _ _ _
+
+theorem osFd_fractional (fd : w64) (d : OsFd) :
+    Fractional (fun q : Qp => osFd (L := L) fd (DFrac.own q) d) where
+  fractional q1 q2 := by unfold osFd; exact gFdElem_split _ _ _ _ _ _
 
 /-- The namespace of the invariant of the mapped cells. -/
 def osN : Namespace := nroot .@ "osfs"
@@ -163,9 +173,14 @@ def osTree (dq : DFrac) (R : Roots) (V : Hist) : IProp GF :=
 def osDir (j : Ino) (dq : DFrac) (g : DirG) : IProp GF :=
   iprop(∃ (R : Roots) (V : Hist), osTree dq R V ∗ ⌜g = dview V j⌝)
 
-/-- The directory fd `fd`, on `x.1`, its read at `x.2`. -/
+/-- The directory fd `fd`, on `x.1`, its read at `x.2` (never negative, as `osFd`). -/
 def osDirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd dq x
+  gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd dq x
+
+/-- An open directory fd is not negative. -/
+theorem osDirFd_nonneg (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
+    osDirFd (L := L) fd dq x ⊢ ⌜0 ≤ fd.toInt⌝ := by
+  unfold osDirFd; exact gFdElem_nonneg _ _ _ _ _
 
 /-- The call on a path `t` is in flight, begun when the log had `s` entries; the state
 interpretation holds the fraction `q` of the history for it, which its step gives back. -/
@@ -529,7 +544,7 @@ theorem legacyWit_dirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
   intro st
   unfold treeShared osDirFd
   iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, -, Haf, -⟩
-  icases gAuth_lookup _ _ _ _ _ _ $$ Haf H with %Hv
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Haf H with %Hv
   simp at Hv
 
 /-- With a legacy resource, the tree's interpretation is the legacy mode's. -/

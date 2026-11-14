@@ -128,7 +128,7 @@ theorem walDecFiles_mk
       unfold segHalves
       iframe
       ipureintro
-      exact List.nil_prefix
+      exact ⟨List.nil_prefix, hfd0⟩
     · iapply BigSepL.bigSepL_cons.2
       simp only [List.getD_cons_zero, List.getD_cons_succ]
       iframe Hls

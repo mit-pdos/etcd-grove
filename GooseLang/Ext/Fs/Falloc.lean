@@ -37,7 +37,7 @@ theorem wp_osOfdLock (fd cmd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) 
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   imodintro
@@ -73,7 +73,7 @@ theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN 
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   imodintro
