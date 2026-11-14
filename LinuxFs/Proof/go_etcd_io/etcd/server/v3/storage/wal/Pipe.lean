@@ -90,7 +90,8 @@ on the name `pipeTmp n`, open write-only at offset 0, its `OsMeta` (no mappings)
 whole, all zeros (`osZerosA`), and the whole claim on its name, which holds it; no sync without its
 bytes (`OsMeta.cut` none), a crash's lower size bound at most the size, and the size a multiple of 8
 (the pipeline's size, `isFilePipe`: the headers' frames are 8-aligned, so the zeros after them are
-too). -/
+too) and below ext4's maximum offset (the pipeline's size: `cut` makes the file a handle's tail,
+whose size `walHandleIn` bounds). -/
 def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (i : Ino) (m : OsMeta) (h : NamesH),
     fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir (pipeTmp n)) (DFrac.own 1) ∗
@@ -98,7 +99,7 @@ def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
     osMeta i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ∗
     osNames j (.only [pipeTmp n]) (DFrac.own 1) h ∗
     ⌜0 ≤ fd.toInt ∧ m.maps = ∅ ∧ h.cur !! pipeTmp n = some (.file i) ∧
-      m.cut = none ∧ m.lo ≤ m.size ∧ m.size % 8 = 0⌝)
+      m.cut = none ∧ m.lo ≤ m.size ∧ m.size % 8 = 0 ∧ m.size ≤ 0xffffffff000⌝)
 
 /-- What the receiver of file `n` hands back: the claim on `pipeTmp (n + 1)`, and the bound. -/
 def pipeQ (j : Ino) (n : Nat) : IProp GF :=
