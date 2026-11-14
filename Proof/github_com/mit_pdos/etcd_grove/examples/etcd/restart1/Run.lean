@@ -90,7 +90,8 @@ theorem Run.wp_proof
   -- `restart1`'s KV invariant, at the bootstrap state (no key in the range)
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot),
     etcdstart.kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
-  imod (r1Inv_alloc ρ.rd.kv _ (by rw [kvStateOf_kvs (lt := [])]; simp [mvcc.stateAfter, mvcc.stateAt, mvcc.applyChanges]) ⊤) $$ Hetcd with ⟨%γc, #Hinv, Hd⟩
+  imod (r1Inv_alloc ρ.rd.kv _ (by rw [kvStateOf_kvs (lt := [])]; simp [mvcc.stateAfter, mvcc.stateAt, mvcc.applyChanges])
+      (by rw [kvStateOf_rev]; rfl) ⊤) $$ Hetcd with ⟨%γc, #Hinv, Hd⟩
   -- the cluster's persistent facts, kept for the restart; `ETCD_VERIFY` off, kept likewise
   icases etcdstart.memberBoot_restartFacts γ ctxs ρ E₀ Φs id $$ Hmb with ⟨#Hrfs, Hmb⟩
   icases etcdstart.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb with ⟨%HE0cmp, Hmb⟩

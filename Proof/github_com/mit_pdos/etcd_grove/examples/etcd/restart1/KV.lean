@@ -10,7 +10,8 @@ in the order of `i`.
 
 **The invariant** (`r1Inv`): the state `σ` and a counter `c ≤ NPuts` (a monotone counter at `γc`,
 half its authority in the invariant), such that the key-values of `σ` in `["k", "l")` are exactly the
-first `c` pairs `(keyOf i, valOf i)`, in order (`r1Ok`). The program is the only writer, and it puts
+first `c` pairs `(keyOf i, valOf i)`, in order, each at version `1`, and the state's revision is
+`c + 1` (`r1Ok`). The program is the only writer, and it puts
 sequentially: the other half of the counter's authority is the driver's, and the put of index `c`
 carries it (`r1PutAu`): when it fires, the counter is `c` and becomes `c + 1`. It fires at most
 once (`kvOpAu1`), so a put that failed but fires later still finds the counter at `c`, and leaves
@@ -55,13 +56,14 @@ def valOf (i : Nat) : GoString := [W8 118, W8 (i : Int)]
 /-- A key in the `Range`'s `["k", "l")` (the server's selection, `inRange`). -/
 def inR1 (v : EtcdKv) : Bool := inRange go!"k" go!"l" v.key
 
-/-- **The first `c` pairs** `(keyOf i, valOf i)`, in order. -/
-def r1Pairs (c : Nat) : List (GoString × GoString) :=
-  (List.range c).map fun i => (keyOf i, valOf i)
+/-- **The first `c` pairs** `(keyOf i, valOf i)`, in order, each at version `1`. -/
+def r1Pairs (c : Nat) : List (GoString × GoString × w64) :=
+  (List.range c).map fun i => (keyOf i, valOf i, W64 1)
 
-/-- **The state's range is the first `c` pairs** (see the file header). -/
+/-- **The state's range is the first `c` pairs**, each at version `1` (put once), and its revision
+`c + 1` (the store's first revision and one per put) (see the file header). -/
 def r1Ok (σ : KVState) (c : Nat) : Prop :=
-  (σ.kvs.filter inR1).map (fun v => (v.key, v.value)) = r1Pairs c
+  (σ.kvs.filter inR1).map (fun v => (v.key, v.value, v.version)) = r1Pairs c ∧ σ.rev = c + 1
 
 /-- The put of index `i`: `restart1`'s `&PutRequest{Key: key(i), Value: value(i)}`. -/
 abbrev r1PutOp (i : Nat) : OpFull := txn.putOpOf (keyOf i) (valOf i) (W64 0) false false false
@@ -96,30 +98,52 @@ theorem btInsert_of_gt_all {v : EtcdKv} :
     simp only [btInsert, hwv, ↓reduceIte, List.cons_append,
       btInsert_of_gt_all (fun x hx => h x (List.mem_cons_of_mem _ hx))]
 
-theorem r1Pairs_succ (c : Nat) : r1Pairs (c + 1) = r1Pairs c ++ [(keyOf c, valOf c)] := by
+theorem r1Pairs_succ (c : Nat) : r1Pairs (c + 1) = r1Pairs c ++ [(keyOf c, valOf c, W64 1)] := by
   simp [r1Pairs, List.range_succ]
 
 theorem r1Ok_keys {σ : KVState} {c : Nat} (h : r1Ok σ c) :
     ∀ x ∈ σ.kvs.filter inR1, ∃ i < c, x.key = keyOf i := by
   intro x hx
-  have hm : (x.key, x.value) ∈ r1Pairs c := by
-    rw [← h]; exact List.mem_map.2 ⟨x, hx, rfl⟩
+  have hm : (x.key, x.value, x.version) ∈ r1Pairs c := by
+    rw [← h.1]; exact List.mem_map.2 ⟨x, hx, rfl⟩
   obtain ⟨i, hi, he⟩ := List.mem_map.1 hm
   exact ⟨i, List.mem_range.1 hi, (Prod.mk.inj he).1.symm⟩
 
 /-- **The put of index `c` extends the range by its pair** (see the file header). -/
+theorem keyOf_inj {i j : Nat} (hi : i < 256) (hj : j < 256) (h : keyOf i = keyOf j) : i = j := by
+  unfold keyOf at h
+  have h2 : W8 (i : Int) = W8 (j : Int) := (List.cons.inj (List.cons.inj h).2).1
+  have := congrArg BitVec.toNat h2
+  simp at this
+  omega
+
 theorem r1Ok_put (σ : KVState) (c : Nat) (hc : c < 256) (h : r1Ok σ c) :
     r1Ok (kvOpStep (.put (r1PutOp c)) σ) (c + 1) := by
   have hk : (kvOpStep (.put (r1PutOp c)) σ).kvs =
       putKv (W64 ((σ.rev + 1 : Nat) : Int)) (keyOf c) (valOf c) (W64 0) σ.kvs := by
     simp [kvOpStep, KVState.commit_kvs, KVState.leaseMissing, txn.needsPrev, mvcc.applyChanges,
       mvcc.applyChange, txn.putChangeOf, txn.putValOf, txn.putLeaseOf, txn.putOpOf]
+  have hrv : (kvOpStep (.put (r1PutOp c)) σ).rev = σ.rev + 1 := by
+    simp only [kvOpStep, KVState.leaseMissing, txn.needsPrev, txn.putOpOf]
+    simp [KVState.commit_rev]
+  have hnone : σ.kvs.find? (fun v => decide (v.key = keyOf c)) = none := by
+    rw [List.find?_eq_none]
+    intro x hx hxk
+    have hxk' : x.key = keyOf c := by simpa using hxk
+    have hin : x ∈ σ.kvs.filter inR1 :=
+      List.mem_filter.2 ⟨hx, by unfold inR1; rw [hxk']; exact keyOf_inR1 c⟩
+    obtain ⟨i, hi, hx2⟩ := r1Ok_keys h x hin
+    have := keyOf_inj (by omega) hc (hx2.symm.trans hxk')
+    omega
   unfold r1Ok
+  refine ⟨?_, by rw [hrv, h.2]⟩
   rw [hk, txn.putKv_eq]
   have hnk := txn.putNv_key (W64 ((σ.rev + 1 : Nat) : Int)) (keyOf c) (valOf c) (W64 0) σ.kvs
   have hnv : (txn.putNv (W64 ((σ.rev + 1 : Nat) : Int)) (keyOf c) (valOf c) (W64 0) σ.kvs).value =
-      valOf c := by
-    simp only [txn.putNv]; split <;> rfl
+      valOf c ∧
+      (txn.putNv (W64 ((σ.rev + 1 : Nat) : Int)) (keyOf c) (valOf c) (W64 0) σ.kvs).version =
+      W64 1 := by
+    simp [txn.putNv, hnone]
   generalize txn.putNv (W64 ((σ.rev + 1 : Nat) : Int)) (keyOf c) (valOf c) (W64 0) σ.kvs = nv
     at hnk hnv ⊢
   have hresp : txn.RespEquiv etcdKvLess inR1 := by
@@ -131,8 +155,8 @@ theorem r1Ok_put (σ : KVState) (c : Nat) (hc : c < 256) (h : r1Ok σ c) :
     simp [inR1, this]
   rw [txn.filter_btInsert etcdKvLess_swo inR1 hresp nv σ.kvs σ.kvs_sorted]
   have hin : inR1 nv = true := by unfold inR1; rw [hnk]; exact keyOf_inR1 c
-  rw [if_pos hin, btInsert_of_gt_all, List.map_append, h, r1Pairs_succ]
-  · simp [hnk, hnv]
+  rw [if_pos hin, btInsert_of_gt_all, List.map_append, h.1, r1Pairs_succ]
+  · simp [hnk, hnv.1, hnv.2]
   · intro x hx
     obtain ⟨i, hi, hx⟩ := r1Ok_keys h x hx
     unfold etcdKvLess; rw [hx, hnk]; exact keyOf_lt hi hc
@@ -171,13 +195,15 @@ theorem srvRangeOk_r1 (s kvs : List EtcdKv) (more : Bool)
 theorem r1Ok_get (σ : KVState) (h : r1Ok σ r1NPuts) :
     (σ.kvs.filter inR1).length = r1NPuts ∧
       ∀ i (hi : i < r1NPuts) v, (σ.kvs.filter inR1)[i]? = some v →
-        v.key = keyOf i ∧ v.value = valOf i := by
-  have hl := congrArg List.length h
+        v.key = keyOf i ∧ v.value = valOf i ∧ v.version = W64 1 := by
+  have hl := congrArg List.length h.1
   simp only [List.length_map, r1Pairs, List.length_range] at hl
   refine ⟨hl, fun i hi v hv => ?_⟩
-  have h2 := congrArg (fun l => l[i]?) h
+  have h2 := congrArg (fun l => l[i]?) h.1
   simp only [List.getElem?_map, hv, r1Pairs, List.getElem?_range hi, Option.map_some] at h2
-  exact ⟨(Prod.mk.inj (Option.some.inj h2)).1, (Prod.mk.inj (Option.some.inj h2)).2⟩
+  have h3 := Option.some.inj h2
+  simp only [Prod.mk.injEq] at h3
+  exact h3
 
 end pure
 
@@ -219,9 +245,10 @@ theorem r1Inv_st (γk γk' : KVNames) (h : γk.st = γk'.st) (γc : GName) :
   unfold r1Inv
   simp only [etcdKV_congr γk γk' h]
 
-/-- **The invariant allocated** at a state with no key in the range (the bootstrap log's: its
-entries are conf changes), the driver's half of the counter at `0`. -/
-theorem r1Inv_alloc (γk : KVNames) (σ : KVState) (hσ : σ.kvs.filter inR1 = []) (E : CoPset) :
+/-- **The invariant allocated** at a state with no key in the range and revision `1` (the
+bootstrap log's: its entries are conf changes), the driver's half of the counter at `0`. -/
+theorem r1Inv_alloc (γk : KVNames) (σ : KVState) (hσ : σ.kvs.filter inR1 = [])
+    (hrev : σ.rev = 1) (E : CoPset) :
     etcdKV (GF := GF) γk σ ⊢ |={E}=> ∃ γc, r1Inv γk γc ∗ monoNatAuthOwn γc (1 : Qp).half 0 := by
   iintro Hσ
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γc, Hc, -⟩
@@ -229,7 +256,7 @@ theorem r1Inv_alloc (γk : KVNames) (σ : KVState) (hσ : σ.kvs.filter inR1 = [
   imod inv_alloc r1N E iprop(∃ (σ : KVState) (c : Nat), etcdKV γk σ ∗
       monoNatAuthOwn γc (1 : Qp).half c ∗ ⌜c ≤ r1NPuts ∧ r1Ok σ c⌝) $$ [Hσ Hc1] with Hinv
   · inext; iexists σ, 0; iframe Hσ Hc1; ipureintro
-    exact ⟨Nat.zero_le _, by simp [r1Ok, hσ, r1Pairs]⟩
+    exact ⟨Nat.zero_le _, by simp [r1Ok, hσ, r1Pairs, hrev]⟩
   imodintro
   iexists γc
   iframe Hc2

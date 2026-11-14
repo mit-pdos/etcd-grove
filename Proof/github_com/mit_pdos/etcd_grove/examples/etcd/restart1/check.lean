@@ -77,13 +77,15 @@ theorem leadInv_of_req (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iexact Hlead
 
 /-- **What the `Range`'s answer says** (see the file header): the response's key-values are the
-`NPuts` pairs `keyOf i ↦ valOf i`, in order. -/
+`NPuts` pairs `keyOf i ↦ valOf i`, in order, each at version `1`, and its header revision `1 + NPuts`. -/
 theorem r1RangeReply (E : apply.AEnv GF) (γr : ReadNames) (resp : Loc) (hnn : resp ≠ null) :
     rangeReadOk E γr (W64 0) [] r1RangeOp resp
         (fun L => iprop(□ ⌜r1Ok (kvStM false γr.kv L) r1NPuts⌝)) ⊢
-      ∃ (kvs : List EtcdKv) (more : Bool) (count rev : w64), txn.rangeResponseIs resp rev kvs more count ∗
+      ∃ (kvs : List EtcdKv) (more : Bool) (count : w64),
+        txn.rangeResponseIs resp (W64 (1 + r1NPuts : Nat)) kvs more count ∗
         ⌜kvs.length = r1NPuts ∧
-          ∀ i (hi : i < r1NPuts) v, kvs[i]? = some v → v.key = keyOf i ∧ v.value = valOf i⌝ := by
+          ∀ i (hi : i < r1NPuts) v, kvs[i]? = some v →
+            v.key = keyOf i ∧ v.value = valOf i ∧ v.version = W64 1⌝ := by
   have hs : r1RangeOp.base.serializable = false := rfl
   iintro H
   iunfold rangeReadOk at H
@@ -108,7 +110,10 @@ theorem r1RangeReply (E : apply.AEnv GF) (γr : ReadNames) (resp : Loc) (hnn : r
   have hk := srvRangeOk_r1 _ _ _ Hsel
   rw [← kvStateOf_kvs (lt := [])] at hk
   obtain ⟨h1, h2⟩ := r1Ok_get _ Hok
-  iexists kvs, more, _, _
+  have hl : ((log.length : Int) - 1) = ((1 + r1NPuts : Nat) : Int) := by
+    have := Hok.2; rw [kvStateOf_rev] at this; omega
+  rw [show W64 ((1 + r1NPuts : Nat) : Int) = W64 ((log.length : Int) - 1) by rw [hl]]
+  iexists kvs, more, _
   iframe Hr
   ipureintro
   rw [hk]
@@ -255,9 +260,9 @@ theorem check.wp_proof
     iapply HΦ; itrivial
   subst Herr
   rw [HEc.2.1, rangeReadOkM_false]
-  icases r1RangeReply E ρ.rd resp Hnn $$ Hok with ⟨%kvs, %more, %count, %rev, #Hr, %Hkv⟩
+  icases r1RangeReply E ρ.rd resp Hnn $$ Hok with ⟨%kvs, %more, %count, #Hr, %Hkv⟩
   iunfold txn.rangeResponseIs at Hr
-  icases Hr with ⟨-, %h, %sl, %ps, -, -, -, #Hkvf, #Hsl, #Hkvs, -, -⟩
+  icases Hr with ⟨-, %h, %sl, %ps, #Hh, %Hhn, #Hrev, #Hkvf, #Hsl, #Hkvs, -, -⟩
   iunfold txn.kvsIs at Hkvs
   icases Hkvs with ⟨%Hlen, #Hall⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
@@ -293,8 +298,8 @@ theorem check.wp_proof
     · iframe Hsl; ipureintro; exact Hp
     ihave #Hkvp := Hall $$ %(sint.nat j) %p %v %Hp %Hv
     iunfold txn.kvIs at Hkvp
-    icases Hkvp with ⟨%kSl, %vSl, #HkF, #HkS, -, -, -, #HvF, #HvS, -, -⟩
-    obtain ⟨hk, hv⟩ := Hkv.2 (sint.nat j) hjn v Hv
+    icases Hkvp with ⟨%kSl, %vSl, #HkF, #HkS, -, -, #HVer, #HvF, #HvS, -, -⟩
+    obtain ⟨hk, hv, hver⟩ := Hkv.2 (sint.nat j) hjn v Hv
     have h256 : sint.Z j < 256 := by have := Hif; simp only [show sint.Z (W64 11) = 11 by rfl] at this; omega
     wp_auto
     -- `string(kv.Key) != string(key(i))`: equal
@@ -317,6 +322,10 @@ theorem check.wp_proof
     · iframe
     (try wp_auto)
     rw [hv]
+    simp only [decide_true, Bool.not_true]
+    wp_auto
+    -- `kv.Version != 1`: equal
+    rw [hver]
     simp only [decide_true, Bool.not_true]
     wp_auto
     wp_for_post
