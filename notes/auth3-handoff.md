@@ -1,4 +1,4 @@
-# auth3 handoff (a three-member etcd_auth_safe, A1)
+# auth3 handoff (a three-member etcd_auth_safe, A1 landed; A2 in progress)
 
 Plan: `notes/auth3-scope.md` (decisions in its §6). Worktree `/shared/etcd-grove-auth3`, branch
 `auth3-a1` (the Scope landed from `auth3-scope`: lean 7245799336). Coordinator etcd-grove-81; rules
@@ -45,3 +45,15 @@ Plan: `notes/auth3-scope.md` (decisions in its §6). Worktree `/shared/etcd-grov
 `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
 --packages=/shared/tmp/manifest-ddc.json build`; land with `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
 PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh` (unwrapped, GOWORK not exported).
+
+## A2 (approved by the user 2026-11-14 via etcd-grove-81; branch `auth3-a2`)
+
+- S0 / CP1 (code reading, nothing built or changed): Q2(i) is NO. `EtcdServer.Authenticate.spec`'s
+  post, `authnAns`, `etcdAuthenticateSpec` carry only `tokIssued`; `raftRequest`'s `pubAfterM` (the
+  state after the entry, published) is dropped in `Authenticate`'s proof, and even with it the
+  entry's position relative to the set-up's log `Lset` is not known (the model's `Authenticate`
+  records no "auth enabled"), so it would not give `setupSt`. Writes (`writeGrantOn`) have the same
+  ordering gap. A linearizable `Range` has the ordering (the read index) but (a) its post drops
+  `authPubLbM m` (the proof holds it, `EtcdServer__Range.lean` `HnAlb`) and (b) its bound comes only
+  from `committedAtLeast γr c`, the member's own `s.committedIndex`, which a client of member k
+  cannot raise past 0. Route (ii) needs both; proposed laws in the CP1 report. STOP until decided.
