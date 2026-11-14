@@ -31,10 +31,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- `ams.HashKV(ctx, r)`: the admin guard (`isPermitted`), then the embedded `maintenanceServer`'s `HashKV` (names
 only, taken as the guarded contract `guardedOk2`: callable only with the token
-`adminRes` of the request's auth info); the outcome `guardOut`: the inner call's
-answer, or `nil` and an error with `Pin` untouched.
-(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
-store's published index: the guard's branch names its error before `togRPCError` and the admin class's reason (`adminWhy`). -/
+`adminRes` of the request's auth info); the outcome `guardOutC`: the inner call's
+answer, or `nil` and an error with `Pin` untouched, the guard's error `e0` given to `togRPCError`
+(`grpcErrOut`), refused for the reason `adminWhy`, for a caller holding a lower bound `n` of the auth
+store's published index (auth-guard-completeness G3, 2026-11-14). -/
 abbrev v3rpc.authMaintenanceServer.HashKV.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)

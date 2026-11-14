@@ -32,10 +32,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- `ams.Alarm(ctx, ar)`: `requireAuthInfo` when `ar.GetAction()` (`alarmActionOk`, names only)
 is `AlarmRequest_GET`, `isPermitted` otherwise, then the embedded `maintenanceServer`'s `Alarm`
-(names only, the guarded contract `guardedOk2` with the token `alarmTok` of the action); the
-outcome `guardOut`.
-(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
-store's published index: the guard's branch names its error before `togRPCError` and the class's reason (`alarmWhy`: authenticated for a get, admin otherwise). -/
+(names only, the guarded contract `guardedOk2` with the token `alarmTok` of the action); the outcome `guardOutC`: the inner call's
+answer, or `nil` and an error with `Pin` untouched, the guard's error `e0` given to `togRPCError`
+(`grpcErrOut`), refused for the reason `alarmWhy` (authenticated for a get, admin otherwise), for a caller holding a lower bound `n` of the auth
+store's published index (auth-guard-completeness G3, 2026-11-14). -/
 abbrev v3rpc.authMaintenanceServer.Alarm.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (ar : Loc) (act : w32) (Pin : IProp GF)

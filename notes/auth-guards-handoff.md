@@ -55,6 +55,10 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
 
 ## Follow-ups
 
+- (G3 review, etcd-grove-81 2026-11-14; needed for G7) The reason does not reach the gRPC error: `grpcErrMapOk`
+  pins only mvcc's two read errors in `toGRPCErrorMap`, so a caller holding the converted error learns nothing
+  of the guard's `e0`. Add the auth errors' entries (as `util.go` has them) to `grpcErrMapOk`.
+
 - (D22, decided by etcd-grove-81 2026-11-14) With auth off the admin guards' error may be `AuthInfoFromCtx`'s,
   which `isReqAuth` (of `NewAuthStore`'s axiom) leaves free, so `adminWhy .off` is `True`. Discharging
   `NewAuthStore`'s axiom by proof (D22) would give "no error with auth off" without new trust.
