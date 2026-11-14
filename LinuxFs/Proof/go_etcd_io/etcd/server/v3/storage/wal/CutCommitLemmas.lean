@@ -254,41 +254,63 @@ theorem dirKeysOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       ¬ c'.2.1.Mem bt := fun c' hc hne hcj => hexcl c' hc hne hcj bt hbtw
   have hne10 : (lay.j, NameSet.except X, hj.log x e c) ≠ (lay.j, NameSet.except X, hj) := by
     intro h; simp only [Prod.mk.injEq] at h; exact namesH_log_ne _ _ _ _ h.2.2
-  refine ⟨fun dir' j' X' hk' => ?_, fun dir' d' lay'' hd' hl'' hcd => ?_⟩
+  -- the cut WAL's claim, replaced
+  have hcutOnce : ClaimOnce (lay.j, NameSet.except X, hj.log x e c)
+      (replClaim (lay.j, NameSet.except X, hj) (lay.j, NameSet.except X, hj.log x e c) cl) := by
+    obtain ⟨l1, l2, hcl', hrep⟩ :=
+      claimOnce_repl (c' := (lay.j, NameSet.except X, hj.log x e c)) hc0
+    have hnot : ∀ l : List Claim, (∀ y ∈ l, y ∈ cl) →
+        (lay.j, NameSet.except X, hj.log x e c) ∉ l := fun l hsub hm =>
+      hexcl _ (hsub _ hm) hne10 rfl _ walNameP_wal (except_mem_wal hX)
+    exact ⟨l1, l2, hrep, hnot l1 (fun y hy => by rw [hcl']; exact List.mem_append_left _ hy),
+      hnot l2 (fun y hy => by rw [hcl']; simp [hy])⟩
+  have hcutEx : ∀ c' ∈ replClaim (lay.j, NameSet.except X, hj) (lay.j, NameSet.except X, hj.log x e c) cl,
+      c' ≠ (lay.j, NameSet.except X, hj.log x e c) → c'.1 = lay.j → ∀ b, walNameP b = true →
+        ¬ c'.2.1.Mem b := by
+    intro c' hc' hne hcj b hb
+    rcases mem_replClaim_cases hc' with he | ⟨hc'', hne0⟩
+    · exact absurd he hne
+    · exact hexcl c' hc'' hne0 hcj b hb
+  -- another WAL's directory claim (its directory not `lay.j`), unchanged
+  have hother : ∀ (j' : Ino) (X' : List GoString) (hj1 : NamesH), j' ≠ lay.j → DirClaimOk jr cl j' X' hj1 →
+      DirClaimOk jr (replClaim (lay.j, NameSet.except X, hj) (lay.j, NameSet.except X, hj.log x e c) cl)
+        j' X' hj1 := by
+    intro j' X' hj1 hj'j ⟨hj1jr, hX1, honce1, hcoh1, hex1⟩
+    have hne0 : (j', NameSet.except X', hj1) ≠ (lay.j, NameSet.except X, hj) := fun e => hj'j
+      (by simp only [Prod.mk.injEq] at e; exact e.1)
+    have hne1 : (j', NameSet.except X', hj1) ≠ (lay.j, NameSet.except X, hj.log x e c) := fun e =>
+      hj'j (by simp only [Prod.mk.injEq] at e; exact e.1)
+    refine ⟨hj1jr, hX1, claimOnce_repl_other honce1 hne0 hne1, hcoh1, fun c' hc' hne hc1 b hb => ?_⟩
+    rcases mem_replClaim_cases hc' with he | ⟨hc'', -⟩
+    · rw [he] at hc1; exact absurd hc1.symm hj'j
+    · exact hex1 c' hc'' hne hc1 b hb
+  refine ⟨fun dir' j' X' hk' => ?_, fun dir' d' lay'' hd' hl'' hcd => ?_, fun dir' l hl' => ?_⟩
   · by_cases hdd : dir' = dir
     · subst hdd
       rw [hK] at hk'
       simp only [Option.some.injEq, Prod.mk.injEq] at hk'
       obtain ⟨rfl, rfl⟩ := hk'
-      refine ⟨lay', hj.log x e c, GMap.lookup_insert_eq .., hlj', hjjr, hX, ?_, hcoh', ?_⟩
-      · obtain ⟨l1, l2, hcl', hrep⟩ :=
-          claimOnce_repl (c' := (lay.j, NameSet.except X, hj.log x e c)) hc0
-        have hnot : ∀ l : List Claim, (∀ y ∈ l, y ∈ cl) →
-            (lay.j, NameSet.except X, hj.log x e c) ∉ l := fun l hsub hm =>
-          hexcl _ (hsub _ hm) hne10 rfl _ walNameP_wal (except_mem_wal hX)
-        refine ⟨l1, l2, hrep, hnot l1 (fun y hy => by rw [hcl']; exact List.mem_append_left _ hy),
-          hnot l2 (fun y hy => by rw [hcl']; simp [hy])⟩
-      · intro c' hc' hne hcj b hb
-        rcases mem_replClaim_cases hc' with he | ⟨hc'', hne0⟩
-        · exact absurd he hne
-        · exact hexcl c' hc'' hne0 hcj b hb
+      exact ⟨lay', hj.log x e c, GMap.lookup_insert_eq .., hlj', hjjr, hX, hcutOnce, hcoh', hcutEx⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]
       obtain ⟨lay1, hj1, hl1, hlj1, hj1jr, hX1, honce1, hcoh1, hex1⟩ := hDK.1 dir' j' X' hk'
       have hj'j : j' ≠ lay.j := hlj1 ▸ walsOk_dir_ne hW hexcl hd hl rfl hdd hl1
-      have hne0 : (j', NameSet.except X', hj1) ≠ (lay.j, NameSet.except X, hj) := fun e => hj'j
-        (by simp only [Prod.mk.injEq] at e; exact e.1)
-      have hne1 : (j', NameSet.except X', hj1) ≠ (lay.j, NameSet.except X, hj.log x e c) := fun e =>
-        hj'j (by simp only [Prod.mk.injEq] at e; exact e.1)
-      refine ⟨lay1, hj1, hl1, hlj1, hj1jr, hX1, claimOnce_repl_other honce1 hne0 hne1, hcoh1,
-        fun c' hc' hne hc1 b hb => ?_⟩
-      rcases mem_replClaim_cases hc' with he | ⟨hc'', -⟩
-      · rw [he] at hc1; exact absurd hc1.symm hj'j
-      · exact hex1 c' hc'' hne hc1 b hb
+      obtain ⟨-, -, honce', -, hex'⟩ := hother j' X' hj1 hj'j ⟨hj1jr, hX1, honce1, hcoh1, hex1⟩
+      exact ⟨lay1, hj1, hl1, hlj1, hj1jr, hX1, honce', hcoh1, hex'⟩
+  rotate_left
+  · by_cases hdd : dir' = dir
+    · subst hdd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [hlj']
+      exact ⟨X, hj.log x e c, hjjr, hX, hcutOnce, hcoh', hcutEx⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+      obtain ⟨X', hj1, hk3⟩ := hDK.2.2 dir' l hl'
+      exact ⟨X', hj1, hother _ X' hj1 (walsOk_dir_ne hW hexcl hd hl rfl hdd hl') hk3⟩
   · have hdd : dir' ≠ dir := fun h => hcd (by rw [h])
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl''
     obtain ⟨la, -, -, hla, -, hjr', -, -, -, -⟩ := hW.1 dir' d' hd'
     rw [hl''] at hla; cases hla
-    exact crashOkA_cut_other (hDK.2 dir' d' lay'' hd' hl'' (fun h => by cases h))
+    exact crashOkA_cut_other (hDK.2.1 dir' d' lay'' hd' hl'' (fun h => by cases h))
       (fun _ h => by cases h) (walsOk_dir_ne hW hexcl hd hl rfl hdd hl'')
       (by rw [hjr']; exact Ne.symm hjjr) hcl hcoh hs hbt hcur hothers
 
