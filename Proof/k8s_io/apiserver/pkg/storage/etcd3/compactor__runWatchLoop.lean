@@ -166,7 +166,7 @@ theorem compactor.runWatchLoop.wp_proof
     wp_apply (wp_getCompactRev c cl γk recorded γc (chanCtxVal sc) (chanCd γi)) $$ []
       as %cr %cur %err Hout
     · iframe #
-    icases Hout with (%Herr | ⟨%Hok, #Hrec⟩)
+    icases Hout with (⟨HerrF, %Herr⟩ | ⟨%Hok, #Hrec⟩)
     · -- the read failed: logged, the next iteration
       cases err with
       | nil => exact absurd rfl Herr
@@ -178,9 +178,20 @@ theorem compactor.runWatchLoop.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl -
+      iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_Errorf _ _ $$ []
+      -- the endpoints (a fresh `[]string`, owned) and the error (`fmt.argOk`)
+      wp_apply wp_Errorf _ _ _ _ $$ [$Hsl Hesl HerrF] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        isplitl [HerrF]
+        · iapply klog.argOkAt_of_argOk
+          isplitr
+          · ipureintro; decide
+          iexact HerrF
+        itrivial
       (try wp_auto)
       wp_for_post
       iframe
@@ -256,7 +267,7 @@ theorem compactor.runWatchLoop.wp_proof
     (try wp_auto)
     wp_apply (wp_fromWatchResponse c γk recorded v) $$ [] as %cr' %err' Hout'
     · iframe #
-    icases Hout' with (%Herr' | ⟨%Hok', #Hrec'⟩)
+    icases Hout' with (⟨HerrF, %Herr'⟩ | ⟨%Hok', #Hrec'⟩)
     · cases err' with
       | nil => exact absurd rfl Herr'
       | ok ei =>
@@ -267,9 +278,20 @@ theorem compactor.runWatchLoop.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl -
+      iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_Errorf _ _ $$ []
+      -- the endpoints (a fresh `[]string`, owned) and the error (`fmt.argOk`)
+      wp_apply wp_Errorf _ _ _ _ $$ [$Hsl Hesl HerrF] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        isplitl [HerrF]
+        · iapply klog.argOkAt_of_argOk
+          isplitr
+          · ipureintro; decide
+          iexact HerrF
+        itrivial
       (try wp_auto)
       wp_for_post
       iframe

@@ -25,8 +25,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`NewServer(cfg)` at a restart** (restart S6, 2026-11-13; D1, approved by the user via
-etcd-grove-81, 2026-11-12; `/shared/tmp/restart-s56/plan.md` §2.1; not linked, not exported: S8 links
-it through `BuildServer.specRestart`). The same binary started again on the data directory its own
+etcd-grove-81, 2026-11-12; `/shared/tmp/restart-s56/plan.md` §2.1; linked since 2026-11-14, `wp_NewServerR`
+in the server's `Link.lean`, but used by no closed theorem: S7/S8 link it through
+`BuildServer.specRestart`). The same binary started again on the data directory its own
 earlier incarnation left at a graceful stop (`HardStop.spec`'s `srvDiskImage`, at its witnesses: the
 stopped incarnation's request names `ρo`, the durable raft state `S`, the WAL's records `σ`, the
 consistent index `i`, the applied log `A`, the backend file's data `D`, the membership `mb` at `i`,

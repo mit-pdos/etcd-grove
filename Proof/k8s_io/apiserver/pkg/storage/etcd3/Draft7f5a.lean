@@ -27,7 +27,7 @@ and `Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean` (the triple), an
    (the `resultChan`'s two producers: the producer token in an invariant), `kCancelPD` (`wc.cancel`'s
    Done proposition).
 5. **Trusted texts T5-f** as statements (`def … .spec : Prop`, no axiom; the axioms land in 7f-5a-P):
-   `klog.Warningf.spec` (restricted arguments), `mvccpb.Event_EventType.String.spec`.
+   `klog.Warningf.spec` (`klog.Errorf.spec`'s restricted form), `mvccpb.Event_EventType.String.spec`.
 -/
 module
 
@@ -36,6 +36,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 public import Proof.k8s_io.apiserver.pkg.storage.SelDefs
 public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
+public import Spec.k8s_io.klog.v2.Args
 
 @[expose] public section
 
@@ -609,27 +610,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`klog.Warningf(f, args...)`** (names-only; `logWatchChannelErr`'s compaction branch,
-`watcher.go:428-437`): logging, a no-op for the program's results, **in the restricted form** (the
-review of 7f-5a-D found `klog.Errorf.spec`'s "any `args`" false: an argument whose `Error()` panics
-with a value whose `String()` panics escapes fmt's recovery, and fmt walks a map another goroutine
-writes, a fatal error; `notes/k8s-7f5a-draft.md` §5): the format's only verb is a bare `%v` (no
-flag: no `GoString()`, and no verb that prints the value by reflection), and `args` is one error
-`err`, read-only (an owned slice is made read-only by the caller), whose `Error()` returns and that
-has no `Format` method (`errStrOk`), so fmt prints `err.Error()` (or `<nil>`).
+`watcher.go:428-437`): logging, a no-op for the program's results, in the restricted form of
+`klog.Errorf.spec` (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`": the same
+`printfDepth`; Go refuted "any arguments"): the arguments' slice, given back, and `klog.argsOk f xs`.
+The watcher's call (`"watch chan error: %v"`, one error whose `Error()` returns) discharges it with
+`klog_args_intro`, `klog.argOkAt_of_argOk` from `fmt.argOk err`, `itrivial`.
 
 Assumed configuration, which the axiom's docstring names: klog's default flags (`-logtostderr`,
 output to stderr), no `klog.SetLogger`/`SetOutput`. Otherwise klog can end the process (an
 unwritable `-log_file`/`-log_dir`, a full disk: `os.Exit(2)`; a broken stderr pipe: `SIGPIPE`) or run
-the installed logger's code; an exit does not break a safety result, a foreign logger would. To be
-aligned with the fix of the landed `klog.Errorf.spec` (`notes/klog-args-fix.md`, not written when
-this was). -/
+the installed logger's code; an exit does not break a safety result, a foreign logger would. -/
 abbrev klog.Warningf.spec : Prop :=
-  ∀ (f pre post : GoString) (args : GoSlice) (err : GoInterface),
-  f = pre ++ go!"%v" ++ post → W8 37 ∉ pre → W8 37 ∉ post →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 ∗ args ↦*□ [err] ∗
-      go_etcd_io.etcd.cache.v3.errStrOk err }}
+  ∀ (f : GoString) (args : GoSlice) (xs : List GoInterface) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 ∗ args ↦*{dq} xs ∗ klog.argsOk f xs }}
     (App (App (Val (@! k8s_io.klog.v2.Warningf)) (Val #f)) (Val #args))
-  {{ RET #(); True }}
+  {{ RET #(); args ↦*{dq} xs ∗ klog.argsOk f xs }}
 
 /-- **`Event_EventType.String(t)`** (names-only; `parseEvent`'s error for a `nil` `PrevKv`, Q5):
 returns some string, for every value, once mvccpb is initialized (`String` reads the enum's

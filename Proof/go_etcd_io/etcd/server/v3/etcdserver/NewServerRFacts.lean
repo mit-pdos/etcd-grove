@@ -3,8 +3,8 @@
 (`NewServerR.lean`) uses that no other proof provides yet, each stated here so that the main proof
 stays a copy of `NewServer.wp_proofG`'s with the boot steps replaced. Lean-first.
 
-STATUS: being written; the lemmas marked `sorry` are open (the handoff's list,
-`notes/restart-s56-handoff.md`, "B2 proof").
+STATUS: done (no `sorry`, 2026-11-14). The copy of `authStoreKit` that was here (`authStoreKitR`) went
+with restart S5's leftovers: `authStoreKit` itself takes a restart's auth bucket.
 -/
 module
 
@@ -666,135 +666,6 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
   · iexact Hinv0
 
 end lemmas
-
-section kit
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
-open go_etcd_io.etcd.server.v3
-
-/-- (Restart S6 B2) **`authStoreKit` with the auth bucket a restart finds**: as `authStoreKit` (its body
-copied), the auth bucket empty (a first start) or at `authBoot` (a restart: what a first start
-leaves), as `NewAuthStore`'s axiom takes it since HS1 (restart S5). Only the mode `off`'s is built
-(`authStoreKitR_off`). Follow-up (proof cleanup): widen `authStoreKit` itself and drop this copy. -/
-def authStoreKitR (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
-  iprop(∃ K : IProp GF, K ∗ □ ∀ (lg : Loc) (ab : GoInterface) (abl : Loc)
-      (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData) (cost : w64),
-    {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
-        ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗ ⌜ab = authBkIface abl⌝ ∗
-        structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
-          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-            #d.be : GoInterface) ∗
-        structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
-        backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
-        backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbOwnIn d.γB authBkts r ∗
-        authKitIn M d ∗
-        ⌜((r.lookup go!"auth").getD ∅ = ∅ ∨ (r.lookup go!"auth").getD ∅ = authBoot) ∧
-          (r.lookup go!"authUsers").getD ∅ = ∅ ∧ (r.lookup go!"authRoles").getD ∅ = ∅⌝ ∗
-        -- (2026-11-02, the backend-auth-split stage) the auth buckets in the backend's table, as
-        -- `NewAuthStore`'s axiom now takes them
-        ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ }}
-      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
-        (Val #ab)) (Val #tp)) (Val #cost))
-    {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
-        authKitOut M d r ∗
-        ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
-        authRdSupply RD ∗
-        -- (auth-schema-fix S1 option A) the request side once the token provider is ready (`start`
-        -- fires `auth.tpReady`)
-        □ (auth.tpReady M -∗ isReqAuth st RD) ∗
-        authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
-        authPublishM M stl ∗
-        -- (E3zb) with auth on, the request side bound to the request context's token
-        □ (⌜M.isOn = true⌝ → auth.tpReady M -∗ isReqAuthBound st RD M) ∗
-        authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
-        -- (R-D1, 2026-11-04) the store abandoned on `NewServer`'s error path
-        authAbandonM M stl d RD ∗
-        -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
-        -- (`NewAuthStore`'s axiom's `authRecoverOk`)
-        □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
-        -- (R2b-3d stage 5b, 2026-11-05) in the mode `off`, the store's `Close` (`NewAuthStore`'s
-        -- axiom's `authCloseOk`), for `Cleanup`
-        □ (⌜M = auth.AuthMode.off⌝ → authCloseOk stl) ∗
-        -- (the auth-on snapshot plan's decision 8) in the mode `on`, its snapshot clause
-        authSnapKitM M stl RD ∗
-        -- (authkv's Main, 2026-10-30) with auth on, the store's cost field, read-only
-        -- (`BcryptCost()`'s; `newAuthStore_on`'s); (C1's A4, 2026-10-31) and its `Authenticate`
-        -- side (`authnStoreOk`, of its invariant: `authnStoreOk_of_authInv`)
-        □ (⌜M.isOn = true⌝ →
-          (∃ c : w64, structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c) ∗
-          authnStoreOk st RD) }})
-
-
-/-- `authStoreKitR` in the mode `off`, of `NewAuthStore`'s axiom (`authStoreKit_off`'s proof). -/
-theorem authStoreKitR_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (tp : GoInterface) :
-    ⊢ authStoreKitR (GF := GF) .off tp := by
-  iunfold authStoreKitR
-  iexists iprop(True)
-  isplitr
-  · itrivial
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe,
-    #Hablg, #HB, Ho, Hh, Hwb, Hrb, -, %Hr, %Hhas⟩ HΦ
-  -- (the auth-on snapshot plan's Prove step) the axiom at the auth buckets, idle
-  ihave Hrb := backend.rbOwnIn_part _ _ _ $$ Hrb
-  iapply (h30 lg ab tp cost abl d W Pk qo authBkts r (fun _ h => h) Hhas.1 Hhas.2.1
-    Hhas.2.2) $$ [Ho Hh Hwb Hrb]
-  · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
-    isplitr
-    · iapply zapLoggerOk_orNil; iexact Hlg
-    ipureintro; exact ⟨Htp, Hfit, Hab, Hr.1, Hr.2⟩
-  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
-  iapply HΦ
-  iframe Ho Hh
-  isplitl [Hr]
-  · simp only [authKitOut]; iexact Hr
-  have hR : backend.authRdN - 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-    rw [sync.rwmutex.actualMaxReaders_unseal]; unfold backend.authRdN; decide
-  icases replicate_takeN _ (backend.authRdN - 1) _ hR $$ Hsl with ⟨Hsl, -⟩
-  ihave Hsl : authRdSupply RD $$ [Hsl]
-  · unfold authRdSupply; iexact Hsl
-  iexists RD, stl
-  iframe Hbe Hsl
-  isplitr
-  · ipureintro; exact Hst
-  isplitr
-  · iintro !> -; iexact Hreq
-  isplitr
-  · iExactEq Hok; rfl
-  isplitr
-  · unfold authStoreLatestM; itrivial
-  isplitr
-  · unfold authStoreLbM; itrivial
-  isplitr
-  · unfold authPublishM; itrivial
-  isplitr
-  · iintro !> %h; exact absurd h (by decide)
-  isplitr
-  · unfold authApplyResPre
-    itrivial
-  isplitr
-  · unfold authCapM; itrivial
-  isplitr
-  · iunfold authAbandonM
-    iintro !> %_st _ _
-    unfold authOpenM
-    imodintro; itrivial
-  isplitr
-  · iintro !> -
-    iexact HauR
-  isplitr
-  · iintro !> -
-    iexact HauC
-  isplitr
-  · unfold authSnapKitM; itrivial
-  iintro !> %h; exact absurd h (by decide)
-
-
-end kit
 
 end EtcdGrove
 end Perennial

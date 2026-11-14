@@ -428,3 +428,12 @@ with its own `PDone'`. (2) The `WithCancel` gap is an entry in `notes/perennial-
 axiom is a stop for 81 if Perennial does not have it by 7f-5a-P's step 4. (3) `klog.Warningf.spec`
 stays restricted until `notes/klog-args-fix.md` lands, then aligns. T5-e lands on its own first.
 
+**T5-e as landed (form decided by the agent, 2026-11-14, for 81's checkpoint):** the axiom states
+parts, not the wand: `Deadline()`'s and `parentCancelCtx`'s WP transfers from the parent and
+`⌜c.ty ≠ stopCtx.ty⌝`, beside the existing `Done`/`Err`/`Value(&cancelCtxKey)` transfers; the proved
+law `WithRequireLeader.isContext_of_post` (`WithRequireLeaderLaws.lean`) gives
+`isContext ctx cd -∗ isContext c cd` for every `cd`. Reason: the wand form made the axiom-tok gate's
+walk stop at `isContextDone` (a truncation, and the allow file adds no new `trunc` line), as for
+T5-a's `watchCtx`. Same meaning. **`klog.Warningf.spec`** now takes `klog.Errorf.spec`'s form
+(`args ↦*{dq} xs ∗ klog.argsOk f xs`, given back), as `notes/klog-args-fix.md` asks.
+

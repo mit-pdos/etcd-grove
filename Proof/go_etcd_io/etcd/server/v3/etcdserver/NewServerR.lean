@@ -7,10 +7,10 @@ B2") A separate proof, not a `SrvBoot` instance of `NewServer.wp_proofG`: the fi
 steps (the bootstrap contract, the WAL, the node, the store, the snapshot directory, the apply rows) are
 replaced by the restart's (`bootstrapRestartContract`, `wal.restartOk_start`, `raftNode_of_RestartNode`,
 `boot_storageR`, the image's directory invariant and counter), and the tail follows `wp_proofG`'s. In
-its own module: `NewServer.lean`'s compile has reached 80 GB. Not linked until it has no `sorry`.
+its own module: `NewServer.lean`'s compile has reached 80 GB. Proved with no `sorry` and linked
+(`NewServer.wp_proofR`, `wp_NewServerR`), 2026-11-14. The auth store's kit is `hTP`'s (`authStoreKit` takes
+the auth bucket at `authBoot` with auth off since restart S5's leftovers, 2026-11-14).
 Follow-up: factor the shared tail of the two proofs.
-
-STATUS: skeleton (the statement); the proof is not written.
 -/
 module
 
@@ -137,9 +137,6 @@ theorem NewServer.wp_proofRG
     (hTP : authSrvTP (GF := GF) (hG := hG) false)
     -- (step 6 of the auth-mode merge) what the uber-applier's contracts with auth on are built from
     (hKit : uberKitM (GF := GF) (hG := hG) false)
-    -- (restart) `NewAuthStore`'s axiom, for the kit at the image's auth buckets (`authStoreKitR_off`:
-    -- the auth bucket `authBoot`, HS1's second disjunct)
-    (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG))
     (h26 : mvcc.api.New.spec (GF := GF) (hG := hG))
     -- (R6, 2026-11-07, the `lean` merge) mvcc's API laws the boot uses (the store over its
     -- storage, `BootStore.boot_storage`; the store invariant, `bootStore_holds`; the readers'
@@ -742,13 +739,11 @@ theorem NewServer.wp_proofRG
   ihave Hkit := Hkit $$ []
   · ipureintro; rfl
   -- (the mode's equation kept in the Iris context: `word` would substitute `on` in the Lean one)
-  imod Hkit with ⟨%M, #HM, -⟩
+  imod Hkit with ⟨%M, #HM, Hkit⟩
   ihave %HM0 := HM
-  -- (restart) the mode `off`, its kit at the image's auth buckets (`authStoreKitR`)
+  -- (restart) the mode `off`: its kit takes the image's auth bucket at `authBoot` (restart S5)
   have hMo : M = .off := (auth.AuthMode.isOn_false_iff M).1 HM0.1
-  ihave Hkit : authStoreKitR M tp $$ []
-  · rw [hMo]; iapply (authStoreKitR_off h30 tp)
-  iunfold authStoreKitR at Hkit
+  iunfold authStoreKit at Hkit
   icases Hkit with ⟨%K, HK, #HKt⟩
   (try wp_auto)
   -- `mvcc.New` over the storage `boot_storage` opened (R8, 2026-11-07: `mvcc.api.New.spec`, in place of
@@ -930,7 +925,7 @@ theorem NewServer.wp_proofRG
     refine ⟨Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide), backend.rbData_lookup]
       split
-      · exact Or.inr (imageRestAt_auth _ _ _ _ _ Himg).1
+      · exact Or.inr ⟨hMo, (imageRestAt_auth _ _ _ _ _ Himg).1⟩
       · exact Or.inl rfl
     · rw [GMap.lookup_insert_ne _ _ (by decide), backend.rbData_lookup]
       split
@@ -2647,7 +2642,7 @@ theorem NewServer.wp_proofR
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
     NewServer.specR (GF := GF) (hG := hG) :=
   NewServer.wp_proofRG h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19
-    h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h30 h26 Hp Hr hsh hfresh hopen hrest hRS hCR
+    h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 Hp Hr hsh hfresh hopen hrest hRS hCR
     hSR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48
     h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72
     h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90
