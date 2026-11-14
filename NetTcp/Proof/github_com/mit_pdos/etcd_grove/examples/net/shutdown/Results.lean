@@ -8,9 +8,19 @@ runs the command's program `boot_node` (initialize the command's package, which 
 imports, then call its `main`), at the start and after every crash (a process that exits or is
 killed and restarted: the semantics covers what the network then sees, `Impl.lean` D10/D11). The
 theorem assumes the deployment of `Impl.lean` D13 (a closed world: the network holds only the
-system's processes; addresses that do not alias; non-ephemeral ports; the target configuration).
-The plan has the node's address `Addr` at a host `h`, which is the node's (it both listens at
-`Addr` and dials it). The network starts with no connection.
+system's processes; the target configuration), and that the plan is well formed (D20: it is the
+list `pl` with `PlanWellFormed pl`, its addresses canonical IPv4 unicast spellings with
+non-ephemeral ports, which do not alias; checked by `decide`, as the `example` after the theorems
+does for the plan with `Addr` alone). The plan has the node's address `Addr` at a host `h`, which
+is the node's (it both listens at `Addr` and dials it). The network starts with no connection.
+
+Over TCP semantics v3 (D14-D21): every failure has a kind, and the checks need only that each
+failure's error is a non-nil `*OpError` (`net.resErr_netErr`); on the closed end, `Write`, `Read`
+and `Close` give only `closed` (D14, D17: the first `Close`, of the open end, succeeds, the second
+fails), and on the closed listener `Accept` gives only `closed`. A failed `Dial` may leave its
+connection pending, abandoned (D16): `wire.dial_au` deposits for it as for a dialed one (the
+acceptor's fresh end, its direction registered in `downInv`), which the accept loop takes and
+closes like any other.
 
 The precondition of the boot program, over the local ghost state `L` of a generation of the node
 (`nodePre`), is the protocol's invariants (`shutInvs`: the address's, every dialer's deposit the
@@ -42,6 +52,7 @@ public import NetTcp.Proof.net.Listen
 public import NetTcp.Proof.net.Listener__Accept
 public import NetTcp.Proof.net.Listener__Close
 public import GooseLang.Ext.Tcp.Adequacy
+public import GooseLang.Ext.Tcp.Deploy
 
 @[expose] public section
 
@@ -109,21 +120,27 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics] [package_sem : cmd.
   ipureintro; rfl
 
 /-- The precondition of the node's boot program in the generation with local ghost state `L`:
-the address's invariant, the plan's entry for `Addr` (at `h`), a fresh package state, and that the
-node's host is `h`. -/
+the address's invariant, the plan's entry for `Addr` (at `h`, as a resource for `Dial` and in the
+network's ghost state's plan for `Listen`), a fresh package state, and that the node's host is
+`h`. -/
 def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (L : GooseLocalGS GF) : IProp GF :=
   iprop((∃ γm, shutInvs (Gg := G) γm) ∗ tcpPlan (extGlobalGS tcpExt) addr h ∗
+    ⌜(extGlobalGS tcpExt (G := G)).plan !! addr = some h⌝ ∗
     ownGoState (hG := L.goose_go_stateGS) ∅ ∗ ⌜(extLocalGS tcpExt (L := L)).host = h⌝)
 
+set_option linter.unusedVariables false in
 /-- `shutdown_crash_safety` for executions of fewer than `N` steps along which the node has fewer
 than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
-`goose_dist_crash_adequacy` for the system. -/
+`goose_dist_crash_adequacy` for the system, whose plan is well formed (D20, `PlanWellFormed pl`,
+checked by `decide`; the proof does not need it). -/
 theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : cmd.node.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σ0 : state) (g : GlobalState) (h : GoString)
     (H0 : NodeStart lctx σ0)
     (Hhost : (extLocal tcpExt σ0.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup addr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σ0).map Prod.fst) n (distInit (system σ0) g) κs c)
@@ -142,7 +159,7 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     iintro Hg
     icases tcp_globalStart g.globalWorld $$ Hg with Hnet
     unfold tcpStart
-    icases Hnet with ⟨Hplans, Hpends⟩
+    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
     have Hpl : PartialMap.get? (extGlobal tcpExt g.globalWorld).plan addr = some h := by
       rw [gmap_get?_eq]; exact Hplan
     ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => tcpPlan (extGlobalGS tcpExt) a h) Hpl)
@@ -179,6 +196,8 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       isplitl []
       · iexists γm
         iframe HaddrInv HdownInv
+      isplitr
+      · ipureintro; rw [HGplan]; exact Hplan
       ipureintro; exact Hh.trans Hhost
     iempintro
   · -- every generation of the node: its boot program, and its next precondition
@@ -192,7 +211,7 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGpl, Hgs, %Hh⟩ _
     imodintro
     isplitl [Hgs]
     · iapply wp_boot _ (cmd.node.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
@@ -200,6 +219,7 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
         net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
       rw [Hh]
       iframe Hinvs Hplan
+      ipureintro; exact HGpl
     · -- after a crash: the host is kept, the rest is persistent
       iintro %L' _ Hcs Hgs'
       icases tcp_crashStart _ L' $$ Hcs with %Hhost'
@@ -208,6 +228,8 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       isplitl []
       · iexists γm
         iexact Hinvs
+      isplitr
+      · ipureintro; exact HGpl
       ipureintro
       rw [Hhost']
       exact Hh
@@ -216,6 +238,7 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     subst hn
     exact H0.threads
 
+set_option linter.unusedVariables false in
 /-- Crash safety of the shutdown system, whose one node is the example's command `cmd/node`, a
 process of its own running the command's program (`boot_node`), deployed as `Impl.lean` D13
 assumes: in every execution with crashes of the node (`DistCrashNsteps`, the real semantics: a
@@ -223,7 +246,8 @@ crash restarts the node with its program, from a crashed local state, the networ
 and the bytes in flight on them kept), from a local state whose Go context satisfies the Go
 semantics and the command's assumptions, with no package
 initialized and its main thread only, where the node's host is `h`, the plan has `Addr` at `h` and
-the network has no connection yet, the program returns `#()` if it returns, no thread of the
+is well formed (D20: `PlanWellFormed pl`, which `decide` checks) and the network has no connection
+yet, the program returns `#()` if it returns, no thread of the
 node is stuck and none has an unrecovered panic: the operations after each `Close` fail, so none of
 the checks panics, however the connection fails and however often the node crashes.
 (`shutdown_crash_safety_bounded` with the ghost state `tcpGF`, the step bound `n + 1` and the
@@ -235,6 +259,8 @@ theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     (H0 : NodeStart lctx σ0)
     (Hhost : (extLocal tcpExt σ0.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup addr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σ0).map Prod.fst) n (distInit (system σ0) g) κs c) :
@@ -243,13 +269,19 @@ theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
   shutdown_crash_safety_bounded (GF := tcpGF) (n + 1) (n + 2) σ0 g h H0 Hhost Hplan
-    Hconns n κs c Hsteps (by omega)
+    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
       | 0, hi => cases hi; exact H0.threads))
 
 end adequacy
+
+/-- The plan with the node's address alone is well formed (D20). -/
+example : PlanWellFormed [(go!"127.0.0.1:7106", go!"h")] := by decide
+
+/-- `Addr` is that address. -/
+example : addr = go!"127.0.0.1:7106" := rfl
 
 #print axioms shutdown_crash_safety
 

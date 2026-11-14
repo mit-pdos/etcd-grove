@@ -9,12 +9,16 @@ and the per-address protocol (`wire/Addr.lean`):
   resource the address's invariant holds is timeless.
 * **The address** `Addr`'s invariant (`wire.addrInv`): every dialer deposits its connection's
   acceptor end (`connProto γm cn`: its fresh `tcpEnd`, and the registration), which the accept
-  loop takes and closes (`acc_close_au`).
+  loop takes and closes (`acc_close_au`). A dial that fails leaving its connection pending,
+  abandoned (D16), deposits the same (`wire.dial_au` makes it with `shut_deposit` too): the
+  protocol asks nothing of what the dialer wrote, so the abandoned connection is accepted and
+  closed like any other.
 * **The listener** (`lisInv hL l γo`, an invariant `Run` allocates after its `Listen`): its state
   `tcpLis hL l Addr o`, shared by the accept loop and the main thread, with a ghost variable `γo`
   mirroring `o`, whose other half is the main thread's. The main thread's `Close` sets both to
   `false` (`lis_close_au`); its last `Accept` then sees `o = false`, so the success branch of
-  `Listener.Accept`'s update is vacuous and the `Accept` fails (`closed_accept_au`).
+  `Listener.Accept`'s update is vacuous and the `Accept` fails, with `closed`
+  (`closed_accept_au`).
 * **The dialer's end** (`endInv cn γc`, an invariant `Run` allocates after its `Dial`): the end's
   state (`tcpEnd cn false`) and its direction (`tcpDir cn false`), shared by the reader goroutine
   (`reader_read_au`) and the main thread, with a ghost variable `γc` (the main thread's other half)
@@ -23,7 +27,7 @@ and the per-address protocol (`wire/Addr.lean`):
   end (a read does not change the end's state, a write or a close of a closed end neither), so the
   `Write`, the `Read` and the second `Close` after it fail (`closed_write_au`, `closed_read_au`,
   `closed_close_au`): on a closed end, `WriteOutcome`, `ReadOutcome` and `CloseOutcome` give only
-  an error.
+  the failure `closed` (D14; D17: the first `Close`, of the open end, succeeds).
 -/
 module
 
@@ -210,7 +214,7 @@ theorem down_acc (γm : GName) (cn : Nat) (E : CoPset) (hE : ↑downN ⊆ E) :
 theorem acc_close_au (γm : GName) (cn : Nat) (st : TcpEnd) :
     ⊢ inv downN (downInv (G (Gg := Gg)) γm) -∗ downReg G γm cn -∗ tcpEnd G cn true st -∗
       |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn true d ∗
-        ∀ ok st' d', ⌜CloseOutcome st0 d ok st' d'⌝ -∗ tcpEnd G cn true st' -∗
+        ∀ res st' d', ⌜CloseOutcome st0 d res st' d'⌝ -∗ tcpEnd G cn true st' -∗
           tcpDir G cn true d' ={∅,⊤}=∗ True := by
   iintro #Hinv #Hreg Hend
   imod down_acc γm cn ⊤ (by simp) $$ Hinv Hreg with ⟨⟨%d, Hd⟩, Hclose⟩
@@ -218,7 +222,7 @@ theorem acc_close_au (γm : GName) (cn : Nat) (st : TcpEnd) :
   iintro Hmask
   iexists st, d
   iframe Hend Hd
-  iintro %ok %st' %d' %Hc Hend Hd
+  iintro %res %st' %d' %Hc Hend Hd
   imod Hmask
   imod Hclose $$ [Hd] with -
   · iexists d'
@@ -294,7 +298,9 @@ theorem loop_accept_au (γm : GName) (hL : TcpLocalGS GF) (l : w64) (γo : GName
 /-- The main thread's `Close` of the listener: it is closed after, and so is `γo`. -/
 theorem lis_close_au (hL : TcpLocalGS GF) (l : w64) (γo : GName) :
     ⊢ inv lisN (lisInv (G (Gg := Gg)) hL l γo) -∗ half G γo true -∗
-      |={⊤,∅}=> ∃ o, tcpLis hL l addr o ∗ (tcpLis hL l addr false ={∅,⊤}=∗ half G γo false) := by
+      |={⊤,∅}=> ∃ o, tcpLis hL l addr o ∗
+        ∀ res, ⌜LisCloseOutcome o res false⌝ -∗ tcpLis hL l addr false ={∅,⊤}=∗
+          half G γo false := by
   iintro #Hl Hh
   iinv Hl with Hli Hclose
   unfold lisInv
@@ -303,7 +309,7 @@ theorem lis_close_au (hL : TcpLocalGS GF) (l : w64) (γo : GName) :
   iintro Hmask
   iexists o
   iframe Hlis
-  iintro Hlis
+  iintro %res - Hlis
   imod Hmask
   imod half_update (Gg := Gg) γo true o false $$ Hh Hh' with ⟨Hh, Hh'⟩
   imod Hclose $$ [Hlis Hh'] with -
@@ -429,11 +435,11 @@ theorem closed_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) :
       half G γc true -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn true d ∗
         ∀ r d', ⌜ReadOutcome st d n r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st -∗
-          tcpDir G cn true d' ={∅,⊤}=∗ half G γc true ∗ ⌜r = .err⌝ := by
+          tcpDir G cn true d' ={∅,⊤}=∗ half G γc true ∗ ⌜r = .err .closed⌝ := by
   iintro #Hdown #Hreg #Hinv Hh
   have HQ : ∀ (st : TcpEnd) (b : Bool) (r : ReadRes), (b = true → st.closed = true) →
       (∃ d d', ReadOutcome st d n r d') →
-      (half (G (Gg := Gg)) γc true ∗ half G γc b ⊢ iprop(half G γc true ∗ ⌜r = .err⌝) ∗
+      (half (G (Gg := Gg)) γc true ∗ half G γc b ⊢ iprop(half G γc true ∗ ⌜r = .err .closed⌝) ∗
         half G γc b) := by
     intro st b r Hb Hr
     iintro ⟨Hh, Hh'⟩
@@ -442,14 +448,14 @@ theorem closed_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) :
     obtain ⟨d, d', Hr⟩ := Hr
     iframe Hh Hh'
     ipureintro; exact readOutcome_of_closed (Hb rfl) Hr
-  iapply end_read_au γm cn γc n (half G γc true) (fun r => iprop(half G γc true ∗ ⌜r = .err⌝))
+  iapply end_read_au γm cn γc n (half G γc true) (fun r => iprop(half G γc true ∗ ⌜r = .err .closed⌝))
     HQ $$ Hdown Hreg Hinv Hh
 
 /-- The main thread's first `Close`: the end is closed after it, whatever it returns. -/
 theorem first_close_au (cn : Nat) (γc : GName) :
     ⊢ inv endN (endInv (G (Gg := Gg)) cn γc) -∗ half G γc false -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
-        ∀ ok st' d', ⌜CloseOutcome st d ok st' d'⌝ -∗ tcpEnd G cn false st' -∗
+        ∀ res st' d', ⌜CloseOutcome st d res st' d'⌝ -∗ tcpEnd G cn false st' -∗
           tcpDir G cn false d' ={∅,⊤}=∗ half G γc true := by
   iintro #Hinv Hh
   iinv Hinv with Hi Hclose
@@ -459,7 +465,7 @@ theorem first_close_au (cn : Nat) (γc : GName) :
   iintro Hmask
   iexists st, d
   iframe Hend Hd
-  iintro %ok %st' %d' %Hc Hend Hd
+  iintro %res %st' %d' %Hc Hend Hd
   imod Hmask
   imod half_update (Gg := Gg) γc false b true $$ Hh Hh' with ⟨Hh, Hh'⟩
   imod Hclose $$ [Hend Hd Hh'] with -
@@ -474,8 +480,8 @@ theorem first_close_au (cn : Nat) (γc : GName) :
 theorem closed_write_au (cn : Nat) (γc : GName) (bs : List w8) :
     ⊢ inv endN (endInv (G (Gg := Gg)) cn γc) -∗ half G γc true -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
-        ∀ k ok d', ⌜WriteOutcome st d bs k ok d'⌝ -∗ tcpEnd G cn false st -∗
-          tcpDir G cn false d' ={∅,⊤}=∗ half G γc true ∗ ⌜ok = false⌝ := by
+        ∀ k res d', ⌜WriteOutcome st d bs k res d'⌝ -∗ tcpEnd G cn false st -∗
+          tcpDir G cn false d' ={∅,⊤}=∗ half G γc true ∗ ⌜res = some .closed⌝ := by
   iintro #Hinv Hh
   iinv Hinv with Hi Hclose
   unfold endInv
@@ -487,7 +493,7 @@ theorem closed_write_au (cn : Nat) (γc : GName) (bs : List w8) :
   iintro Hmask
   iexists st, d
   iframe Hend Hd
-  iintro %k %ok %d' %Hwr Hend Hd
+  iintro %k %res %d' %Hwr Hend Hd
   imod Hmask
   imod Hclose $$ [Hend Hd Hh'] with -
   · inext
@@ -502,8 +508,8 @@ theorem closed_write_au (cn : Nat) (γc : GName) (bs : List w8) :
 theorem closed_close_au (cn : Nat) (γc : GName) :
     ⊢ inv endN (endInv (G (Gg := Gg)) cn γc) -∗ half G γc true -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
-        ∀ ok st' d', ⌜CloseOutcome st d ok st' d'⌝ -∗ tcpEnd G cn false st' -∗
-          tcpDir G cn false d' ={∅,⊤}=∗ half G γc true ∗ ⌜ok = false⌝ := by
+        ∀ res st' d', ⌜CloseOutcome st d res st' d'⌝ -∗ tcpEnd G cn false st' -∗
+          tcpDir G cn false d' ={∅,⊤}=∗ half G γc true ∗ ⌜res = some .closed⌝ := by
   iintro #Hinv Hh
   iinv Hinv with Hi Hclose
   unfold endInv
@@ -515,7 +521,7 @@ theorem closed_close_au (cn : Nat) (γc : GName) :
   iintro Hmask
   iexists st, d
   iframe Hend Hd
-  iintro %ok %st' %d' %Hc Hend Hd
+  iintro %res %st' %d' %Hc Hend Hd
   imod Hmask
   obtain ⟨hok, hst⟩ := closeOutcome_of_closed hc Hc
   imod Hclose $$ [Hend Hd Hh'] with -

@@ -1,7 +1,7 @@
 /-
 The proof of `examples/net/shutdown/cmd/node`, the node's command: its `main` calls `shutdown.Run`
-(`shutdown.wp_Run`), with the package's `isPkgInit` from the command's and `io.EOF`'s value from
-the package's (`shutdown.eof_init`).
+(`shutdown.wp_Run`), with the package's `isPkgInit` from the command's and the values of `io.EOF` and
+`poll.ErrDeadlineExceeded` from the package's (`shutdown.eof_init`, `shutdown.ed_init`).
 -/
 module
 
@@ -18,7 +18,7 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
 open github_com.mit_pdos.etcd_grove.examples.net.wire (G)
-open github_com.mit_pdos.etcd_grove.examples.net.shutdown (addr shutInvs wp_Run eof_init)
+open github_com.mit_pdos.etcd_grove.examples.net.shutdown (addr shutInvs wp_Run eof_init ed_init)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.shutdown.cmd.node
 
@@ -30,7 +30,7 @@ variable [package_sem' : Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 /-- The node's `main`: `Run`, from the protocol's invariants and the plan's entry for `Addr` at
-the node's host. -/
+the node's host (as the network's ghost state's plan has it, for `Listen`'s `ListenAt`). -/
 theorem wp_main
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
@@ -42,19 +42,22 @@ theorem wp_main
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.shutdown.cmd.node ∗
         shutInvs (GF := GF) γm ∗
-        tcpPlan G addr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
+        tcpPlan G addr (extLocalGS tcpExt (L := hG.goose_localGS)).host ∗
+        ⌜(G (GF := GF)).plan !! addr = some (extLocalGS tcpExt (L := hG.goose_localGS)).host⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
+  wp_start as ⟨#Hinvs, #Hplan, %Hpl⟩
   ihave #Hp : (isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.shutdown) $$ []
   · iPkgInit
   iunfold shutInvs at Hinvs
   icases Hinvs with ⟨#Ha, #Hdown⟩
   icases eof_init $$ Hp with ⟨%eof, #Heof⟩
+  icases ed_init $$ Hp with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close γm eof $$ []
-  · iframe Ha Hdown Hplan Heof
+  wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close γm eof ed $$ []
+  · iframe Ha Hdown Hplan Heof Hed
+    ipureintro; exact Hpl
   (try wp_auto)
   iapply HΦ
   itrivial
