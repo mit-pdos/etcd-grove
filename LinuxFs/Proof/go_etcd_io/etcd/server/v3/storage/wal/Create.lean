@@ -248,6 +248,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       iframe
       ipureintro; intro hc; cases hc
     subst herr
+    obtain ⟨hJs1, hJs2, hJs3, hJfr⟩ := hJs
+    replace hJs : hT2.cur !! tmpName nm = some (Node.dir J) ∧ hT2.next ≤ n0 ∧ hJ.cur = ∅ :=
+      ⟨hJs1, hJs2, hJs3⟩
     try wp_auto
     -- `p := filepath.Join(tmpdirpath, walName(0, 0))`
     wp_func_call

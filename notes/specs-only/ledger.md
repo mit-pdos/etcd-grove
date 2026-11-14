@@ -743,3 +743,26 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `WriteAt`'s `cz` is one complete write's, `pwCz m off |data| |data|`; `pwCz_eq_of_lt`, `synced_zf_ge`, all in
   `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
 - **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).
+
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's; a hypothesis of `wal.Create.wp_proof`) -- nothing about the new directory's history
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `fileutil.CreateDirAll.specTmp`
+  (not proved; `CreateDirAll.spec`, proved, is its `name`-absent case).
+- **Defect.** Too weak for `Create`'s commit: `walCreate_osAUnc`'s `hJC` asks that after **any** crash of `J`'s
+  claim (`hJ.valAfter J K`, every `K`) the only `.wal` file is the new segment's. The success post says only
+  `hJ.cur = ∅`; a history with older `.wal` values of `J`'s names (an inode reused, or an existing `nm.tmp`
+  emptied earlier in the generation) would make `hJC` false.
+- **Evidence.** `Create.wp_proof`'s commit (`wal-create16`): `createJ_*` (`CreateJ.lean`) derive `hJC`, `hsn` and
+  the layout's `walInos` from the merged claim of `J`, given that `J`'s claim, as `CreateDirAll` returns it, has
+  no name at any crash (`valAfter … = none`).
+- **Change (made).** The success post gains `∀ K b, hJ.valAfter J K b = none`. True of the directory `CreateDirAll`
+  creates (its `mkdir`'s claim, `TreeShared`'s `hJ.cur = ∅ ∧ hJ.next = x + 1`: a fresh inode, nothing logged on
+  it before the `mkdir`, which writes it empty), which the extension's `mkdir` law does not yet say (an allocator
+  fact: `st.fs.nextIno` above every inode the log writes): **obligation for the extension's owner** (the `mkdir`
+  law's post, then `CreateDirAll.spec`'s and `specTmp`'s). The existing-directory case of `specTmp` (an empty
+  leftover `nm.tmp` that `Exist` missed) needs an argument too: the leftover's history in the generation must not
+  hold a `.wal` value, or `walCreate_osAUnc`'s `hJC` be weakened to the crashes that keep `J`'s entries committed
+  before the rename (`syncDir(nm.tmp)`'s `osCommitLb`, `Create`'s `Hcm1`, unused so far), which needs the
+  invariant's commit bound compared with the program's. Open.
+- **Decision.** Made, minor and internal (`wal-create16`): a hypothesis's post strengthened; its truth is an
+  obligation recorded here and in the W4 log's eighteenth session.
