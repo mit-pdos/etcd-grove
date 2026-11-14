@@ -585,6 +585,15 @@ theorem crashRest_region (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl :=
   crashRest_region' Q L L' D tt V' R cl n E hE
 
+/-- **The tree after a crash is well formed** over the shared invariant's roots (`closed_cut`: the
+shared mode's disciplines make the replay of the kept entries a tree). -/
+theorem crashRest_treeWf (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ={E}=∗
+      ⌜TreeWf R V'.now⌝ ∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' :=
+  crashRest_treeWf' Q L L' D tt V' R E hE
+
 /-- **The tree after a crash, in the shared mode**: the new generation's history, whole (the new
 generation starts in the legacy mode), the crashed tree with the shared invariant's roots. -/
 theorem crashRest_treeS (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
