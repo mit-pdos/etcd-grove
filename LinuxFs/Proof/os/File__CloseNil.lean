@@ -24,11 +24,12 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 theorem os.File.Close.wp_proofNil : os.File.Close.specNil (GF := GF) (hG := hG) := by
-  wp_start as #Hos
-  ihave ⟨%e, #He⟩ := os.errInvalid_of_pkgInit $$ Hos
+  wp_start
+  ihave ⟨%e, #He⟩ := os.errInvalid_of_pkgInit $$ Hpkg
+  unfold os.ErrInvalid at *
   wp_auto
   iapply HΦ
-  done
+  ipureintro; trivial
 
 end proof
 
