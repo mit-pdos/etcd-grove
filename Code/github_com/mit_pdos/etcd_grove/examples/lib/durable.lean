@@ -27,6 +27,9 @@ noncomputable def mu [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Read [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/durable.Read"
 
+noncomputable def tryRead [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/durable.tryRead"
+
 noncomputable def Write [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/durable.Write"
 

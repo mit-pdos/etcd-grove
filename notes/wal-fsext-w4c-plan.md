@@ -265,6 +265,68 @@ new state is `{s with wal := …}`; `Hbd.2.upd` for `absDiskUpd`); a step keepin
   `walAreaRes`: `areaCls` = each `nm.<sfx>` directory's whole claim tagged by its name, `SubCover`/`TmpOk` from
   `hfo`, `tmpClTouch` from the `.touch` files of `bootFiles`. Premises: `hu` (or `TreeWf R V'.now`), `hfo`.
 
+## W4c U2 log
+
+**First session (branch `wal-u2`, 2026-11-14): `lib/durable` translated into the part, its vocabulary
+and the `Read`/`Write` specs stated over `fsExt`; nothing proved yet.** No axiom, no trusted model,
+no `sorry` (no proof file yet). Modules: `LinuxFs/{Code,GeneratedProof}/github_com/mit_pdos/etcd_grove/
+examples/lib/durable.lean` (generated), `LinuxFs/Proof/.../examples/lib/durable/{Defs,PkgInit}.lean`,
+`LinuxFs/Spec/.../examples/lib/durable/{Read,Write}.lean`.
+
+- **The Go, reshaped (our own example; decided autonomously, the user's WAL-over-fsExt delegation).**
+  The semantics are the same (whole-file, atomic, durable `Write`; failures retried; `Read` of a missing
+  file `("", false)`), but only `os` functions the part already models are called: a `Write`'s
+  temporary is the fixed `dir/.durable-<base>`, opened `O_RDWR|O_CREATE|O_TRUNC` (was `os.CreateTemp`,
+  whose `runtime_rand` would be a new trusted model, and whose random names need a cofinite claim),
+  written with one `WriteAt` (skipped when empty), synced, closed, renamed, the directory opened and
+  synced; a `Read` is `tryRead`: `os.Open`, `Stat`, `make`, one `ReadAt` of the size (was
+  `os.ReadFile`, whose `readFileContents` growth loop is untranslated). `errors.Is(err,
+  fs.ErrNotExist)` stays. New premises the package doc states: no name of another file's temporary
+  (`.durable-` prefix), a file of at most 1 GiB. A quick Go test (write, empty write, read back, one
+  entry left in the directory) passed; not committed. The main tree's model
+  (`TrustedCode/.../lib/durable.lean`) is unchanged but for its docstring's list of calls.
+- **Project `durable` has a part `LinuxFs`** (`etc/goose.py`), with `path/filepath` and
+  `internal/filepathlite` mapped to the part, no `LinuxFs/Code/...durable.toml` (every function
+  translated). `etc/goose.py --check --project durable` passes.
+- **The spec design (`Defs.lean`'s header).** Per file `f : DFile` (directory path `d`, its inode `J`,
+  base `b`; `f.Ok`: clean absolute `d`, clean segments `b`, `.durable-b`). The client-visible state is
+  `DurSt := {cur, alt}`: `cur` what `Read` returns, `alt = some old` while a `Write`'s rename may be
+  lost to a crash. **A `Write` is two atomic updates** (`Write.spec`): at the rename `cur := data, alt
+  := some cur`; at the directory sync's commit `alt := none`. Why not one (as `durableExt`'s): between
+  the rename and the commit a crash may keep either contents, and no single point of the client's
+  ghost state is right for both. Rejected: committing the client's update at the crash (helping, the
+  update stored in `durInv`), which needs a saved proposition, a later stripped in the crash
+  obligation, and the writer's `Φ` back through `savedPropOwn`'s `▷`-agreement; the two-update form
+  costs the client only an `alt` it keeps in its own invariant (the tester: the WAL does not move
+  during a `Write`, so both oracles are consistent with it). Masks: `durAuMask = osAuMask \ durN`, so
+  the first update can be opened inside `os.Rename`'s `osAUnc` at the rename step (with `notCrashed`,
+  to open `durInv`). **The mutex guards `True`** (`PkgInit.lean`'s fact `isMutex (globalAddr mu)
+  True`): the calls are serialized in the proof by the caller's exclusive `durHandle γ f R`, not by
+  `mu`, whose invariant is fixed at package init (before any claim exists) and whose ghost name a
+  client's `durInv` could not agree with. kvdurable (concurrent callers) will need the handle in a lock
+  of its own, or the token-in-`durInv` form (lock invariant a token, `durInv` holding `token ∨ handle`).
+- **The invariant (`durInvBody`)**: the other half of `durSt`; the physical state `DurPhys` (half; the
+  handle has the other): the claims' histories `hb` (on `.only [b]`) and `ht` (on `.only [tb]`), a
+  commit lower bound `nc`, the candidates `cands` (inode, `OsMeta`, contents; `DCand.Ok`: size the
+  contents' length, crash bounds `lo = hi = size`, as a synced file and a crash's `initMeta` both
+  have); half of each claim, `osCommitLb nc`, half of every candidate's `osMeta`/`osBytes` (bytes
+  `durB`). Facts (`DurOk`): every `K` keeping the entries of `hb` below `nc` leaves `b` (`valAfter`)
+  as `OutOk` allows (absent iff `cur` or `alt` is, or a candidate holding `cur`'s or `alt`'s
+  contents), stated without `RegionCrashed`'s `Follows` closure, which `b`'s history (renames only)
+  does not need; `b` now holds `cur`'s candidate; the temporary is never a directory; `alt = none →
+  hb.next ≤ nc`.
+- **Next (in order):** (1) `tryRead`/`Read`: needs an `os.Open` of a present file in shared mode whose
+  error is a `*PathError` of an errno other than `ENOENT` (`wp_osOpenFileS` does not export the
+  semantics' `e = ENOENT → lookup = none`: a strengthened extension lemma, as `wp_osOpenDirS`'s), the
+  `fi.Size()` interface call, `errors.IsPathErrnoNotExist.spec` (the WAL's hypothesis, to move from
+  `wal/ExistCallees.lean` to `LinuxFs/Spec/errors/`); (2) `tryWrite`/`Write` (`os.OpenFile.wp_truncS`
+  for an existing temporary, `specCreateTruncSnc` otherwise, `WriteAt`, `Sync`, `Close`,
+  `Rename.specFileSnc` with the first update inside, `Open.wp_dirS`, `Sync.specDirS`, the second update
+  after it); (3) `durInv_crash` (`crashRest_region` on the two claims with `osCommitLb nc`,
+  `crashRestAt_take` of the candidate `b` holds) and the boot (`durBoot`, from the new generation's
+  claims and the crash's `osFileStart`s); (4) `gen-init.py` (`LFS_PKGS`, `LFS_SPECIAL`: `init_Mutex
+  True`) and `etc/gen-link.py` (a mode of its own or `--walfs`'s).
+
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
