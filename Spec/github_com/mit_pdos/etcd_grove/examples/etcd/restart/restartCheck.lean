@@ -75,7 +75,9 @@ abbrev restartCheck.spec : Prop :=
       etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
       context.isClosedchanInit ∗ netHttpOk γn id ∗
       -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
-      etcdstart.memberRestartFacts γ ρ id }}
+      etcdstart.memberRestartFacts γ ρ id ∗
+      -- (restart S7.4) the restart-only rows: restart3's open row (R2s-A removes it)
+      □ (∀ A σ, srvRestartRows γ id A σ) }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.restartCheck))
       (Val #cl)) (Val #m)) (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #caddr))

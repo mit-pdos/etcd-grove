@@ -23,7 +23,11 @@ persistent facts at the stopped names (`memberRestartFacts`: the persistent part
 which `NewServer.specR` takes at the restarted names and which carry over by `restartNames`); until
 then the precondition held none of them, so the triple was not provable. (Restart S7.2',
 2026-11-14) `memberBuiltR` is now `NewServer.specR`'s post shape (until then a DRAFT that no restart
-could give).
+could give). (Restart S7.4, 2026-11-14, decided by etcd-grove-81, option (i)) And `NewServer.specR`'s
+restart-only rows at every image's witnesses (`□ ∀ A σ, srvRestartRows γ id A σ`: the image's `A σ`
+are known only inside the proof): a one-member cluster discharges it (`srvRestartRows_single`,
+`restart1`'s proof, so that `etcd_restart1_safe` does not carry it); restart3's draft carries it as its
+open row, which R2s-A (route B, `notes/restart-s7-p2a.md`) removes.
 -/
 module
 
@@ -117,7 +121,10 @@ abbrev BuildServer.specRestart : Prop :=
       -- (hub step 8, S7) the member's restart bundle without addresses: its stop's disk image
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
       -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
-      memberRestartFacts γ ρ id }}
+      memberRestartFacts γ ρ id ∗
+      -- (restart S7.4, 2026-11-14, decided by etcd-grove-81) `NewServer.specR`'s restart-only rows,
+      -- at every image's witnesses
+      □ (∀ A σ, srvRestartRows γ id A σ) }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))
