@@ -202,6 +202,23 @@ theorem owned_close_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoStr
   iframe Hend Hout
   ipureintro; exact Hcr
 
+
+/-- A close by an end its thread owns, whose state the thread no longer needs. -/
+theorem owned_close_drop (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool) :
+    ⊢ tcpEnd G c s st r -∗ tcpOut (G (hG := hG)) c s out f -∗
+      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
+        ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st0 f0 ok st' f'⌝ -∗
+          tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗ True := by
+  iintro Hend Hout
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st, r, out, f
+  iframe Hend Hout
+  iintro %ok %st' %f' %Hcr - -
+  imod Hmask
+  imodintro
+  itrivial
+
 end wps
 
 end github_com.mit_pdos.etcd_grove.examples.net.wire
