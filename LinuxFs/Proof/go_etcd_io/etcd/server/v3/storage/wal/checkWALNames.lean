@@ -5,8 +5,8 @@ module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.checkWALNames
 public import Spec.strings.HasSuffix
-public import Spec.go_uber_org.zap.String
-public import Spec.go_uber_org.zap.Logger__Warn
+public import LinuxFs.Spec.go_uber_org.zap.String
+public import LinuxFs.Spec.go_uber_org.zap.Logger__Warn
 
 @[expose] public section
 

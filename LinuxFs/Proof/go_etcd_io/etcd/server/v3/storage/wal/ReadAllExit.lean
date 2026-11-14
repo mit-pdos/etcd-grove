@@ -125,7 +125,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- The program's halves of the segments `gs`. -/
-abbrev segHalves (gs : List SegG) : IProp GF :=
+abbrev segHalvesL (gs : List SegG) : IProp GF :=
   iprop([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
     osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
@@ -135,7 +135,7 @@ theorem ownFbrs_halves (IoE : GoInterface → Prop) (eof : GoInterface) :
     fs.length = gs.length →
     (∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
       ∃ (f : Loc) (fd : w64) (nm : GoString) (fl : OsFd), F.S = walFileS f fd nm fl g) →
-    ownFbrs IoE eof fbrs fs rs ⊢ segHalves gs ∗ (segHalves gs -∗ ownFbrs IoE eof fbrs fs rs)
+    ownFbrs IoE eof fbrs fs rs ⊢ segHalvesL gs ∗ (segHalvesL gs -∗ ownFbrs IoE eof fbrs fs rs)
   | [], [], [], [], _, _ => by
     iintro -
     isplitl
@@ -147,7 +147,7 @@ theorem ownFbrs_halves (IoE : GoInterface → Prop) (eof : GoInterface) :
     subst hS
     have ih := ownFbrs_halves IoE eof fbrs fs rs gs (by simpa using hl)
       (fun k F g' h1 h2 => hk (k + 1) F g' h1 h2)
-    simp only [ownFbrs, segHalves]
+    simp only [ownFbrs, segHalvesL]
     iintro ⟨Hf, Hs⟩
     icases ih $$ Hs with ⟨Hgs, Hsb⟩
     iunfold ownFbr at Hf
@@ -187,7 +187,7 @@ theorem ownDecoder_halves (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterf
     (hk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
       ∃ (f : Loc) (fd : w64) (nm : GoString) (fl : OsFd), F.S = walFileS f fd nm fl g) :
     ownDecoder d IoE eof fs off c live ⊢
-      segHalves gs ∗ (segHalves gs -∗ ownDecoder d IoE eof fs off c live) := by
+      segHalvesL gs ∗ (segHalvesL gs -∗ ownDecoder d IoE eof fs off c live) := by
   unfold ownDecoder
   iintro ⟨%sl, %fbrs, %h, %rs, #Hmu, Hbrs, #Hsl, Hoff, Hcrc, Hcont, Hdc, Hf, %hwf⟩
   icases ownFbrs_halves IoE eof fbrs fs rs gs hl hk $$ Hf with ⟨Hh, Hbk⟩
