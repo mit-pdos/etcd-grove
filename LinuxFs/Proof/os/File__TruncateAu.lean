@@ -31,28 +31,34 @@ variable [os.Assumptions]
 /-- The caller's half of a landed attempt from a state that had not landed is the landing from `m`. -/
 theorem os.ftDoneH_of (p : Ino) (m m0 : OsMeta) (tg : Nat) (zs : List Cands)
     (hm0 : m0 = m ∨
-      ∃ tc rz, m0 = (m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz) :
+      ∃ tc rz, TcKnows m tg m.size tc ∧
+        m0 = (m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz) :
     os.ftDoneH (GF := GF) p m0 tg zs ⊢ os.ftDoneH p m tg zs := by
-  have hsz : m0.size = m.size := by rcases hm0 with rfl | ⟨_, _, rfl⟩ <;> simp
+  have hsz : m0.size = m.size := by rcases hm0 with rfl | ⟨_, _, -, rfl⟩ <;> simp
   have hpost : ∀ tc rz, (rsPost true m0 tg tg).withTc tc rz = (rsPost true m tg tg).withTc tc rz := by
     intro tc rz
-    rcases hm0 with rfl | ⟨tc0, rz0, rfl⟩
+    rcases hm0 with rfl | ⟨tc0, rz0, -, rfl⟩
     · rfl
     · rw [rsPost_withTc, os.rsPost_announce]
+  have hk : ∀ tc, TcKnows m0 tg tg tc → TcKnows m tg tg tc := by
+    intro tc h
+    rcases hm0 with rfl | ⟨tc0, rz0, h0, rfl⟩
+    · exact h
+    · exact TcKnows.of_announce h0 h
   unfold os.ftDoneH
   rw [hsz]
-  iintro ⟨%h, ⟨%tc, %rz, Hm⟩, Hb⟩
+  iintro ⟨%h, ⟨%tc, %rz, %htc, Hm⟩, Hb⟩
   rw [hpost]
   isplitr
   · ipureintro; exact h
   isplitl [Hm]
-  · iexists tc, rz; iexact Hm
+  · iexists tc, rz; iframe; ipureintro; exact hk tc htc
   iexact Hb
 
 /-- A further attempt after one that landed (from `rsPost true m tg tg` up to the candidates known
 past the size, nothing to cut off) leaves the landing from `m`, whatever its outcome. -/
 theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tc0 : GMap Nat Cands) (rz0 : List Nat) (tg n : Nat) (e : w64)
-    (zs : List Cands) (hzs : zs.length = tg - m.size) :
+    (zs : List Cands) (hzs : zs.length = tg - m.size) (h0 : TcKnows m tg tg tc0) :
     os.truncOutH (GF := GF) p tg ((rsPost true m tg tg).withTc tc0 rz0) [] n e ∗
       osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))) ⊢
       os.ftDoneH p m tg zs := by
@@ -62,30 +68,38 @@ theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tc0 : GMap Nat Cands) (rz0 : 
       os.ftDoneH p m tg zs := by
     intro zs'
     unfold os.ftDoneH
-    iintro ⟨⟨-, ⟨%tc, %rz, Hm⟩, -⟩, Hb⟩
+    iintro ⟨⟨-, ⟨%tc, %rz, %htc, Hm⟩, -⟩, Hb⟩
     rw [rsPost_withTc, os.rsPost_rsPost]
-    iframe
-    ipureintro; exact hzs
+    isplitr
+    · ipureintro; exact hzs
+    isplitl [Hm]
+    · iexists tc
+      iexists rz
+      isplitr
+      · ipureintro; exact TcKnows.of_rsPost h0 htc
+      iexact Hm
+    iexact Hb
   unfold os.truncOutH
   iintro ⟨Hr, Hb⟩
   icases Hr with (⟨-, %zs', Hd⟩ | ⟨-, (⟨%zs', Hd⟩ | Hu)⟩)
   · iapply hgo zs' $$ [Hd Hb]; iframe
   · iapply hgo zs' $$ [Hd Hb]; iframe
   · unfold os.ftUndoneH os.ftDoneH
-    icases Hu with ⟨⟨%tc, %rz, Hm⟩, -⟩
-    simp only [OsMeta.withTc_size]
+    icases Hu with ⟨⟨%tc, %rz, %htc, Hm⟩, -⟩
+    simp only [OsMeta.withTc_size] at htc ⊢
     rw [announce_withTc, os.announce_rsPost]
     isplitr
     · ipureintro; exact hzs
     isplitl [Hm]
-    · iexists tc, rz; iexact Hm
+    · iexists tc, rz; iframe; ipureintro; exact TcKnows.of_rsPost h0 htc
     iframe
 
 /-- The state of the loop, the caller's halves: no attempt landed yet (the `OsMeta` is `m`, or as
 an attempt announced it; the bytes to cut off have `xs`'s values), or one did. -/
 def ftStateH (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
   iprop((∃ (m0 : OsMeta) (xs0 : List ByteG),
-      ⌜(m0 = m ∨ ∃ (tc : GMap Nat Cands) (rz : List Nat), m0 = (m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz) ∧
+      ⌜(m0 = m ∨ ∃ (tc : GMap Nat Cands) (rz : List Nat), TcKnows m tg m.size tc ∧
+          m0 = (m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz) ∧
         xs0.map Prod.fst = xs.map Prod.fst ∧ xs0.length = m.size - tg⌝ ∗
       osMeta p (DFrac.own (1 : Qp).half) m0 ∗ osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs0) ∨
     ∃ zs, os.ftDoneH p m tg zs)
@@ -115,8 +129,13 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
   unfold ftStateH
   icases HS with (⟨%m0, %xs0, %hm0, Hm, Hb⟩ | ⟨%zs, Hd⟩)
   · obtain ⟨hm0, hv, hl⟩ := hm0
-    have hsz0 : m0.size = m.size := by rcases hm0 with rfl | ⟨_, _, rfl⟩ <;> simp
-    have hmaps0 : m0.maps = m.maps := by rcases hm0 with rfl | ⟨_, _, rfl⟩ <;> simp
+    have hsz0 : m0.size = m.size := by rcases hm0 with rfl | ⟨_, _, -, rfl⟩ <;> simp
+    have hmaps0 : m0.maps = m.maps := by rcases hm0 with rfl | ⟨_, _, -, rfl⟩ <;> simp
+    have hk0 : ∀ tc, TcKnows m0 sz.toNat m.size tc → TcKnows m sz.toNat m.size tc := by
+      intro tc h
+      rcases hm0 with rfl | ⟨tc0, rz0, h0, rfl⟩
+      · exact h
+      · exact TcKnows.of_announce h0 h
     rw [← hsz0] at hl
     ihave Hb : osBytes d.ino (min m0.size sz.toNat) (DFrac.own (1 : Qp).half) xs0 $$ [Hb]
     · rw [hsz0]; iexact Hb
@@ -130,28 +149,30 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         (m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat).withTc tc rz =
         (m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).withTc tc rz := by
       intro tc rz
-      rw [hsz0]; rcases hm0 with rfl | ⟨tc0, rz0, rfl⟩
+      rw [hsz0]; rcases hm0 with rfl | ⟨tc0, rz0, -, rfl⟩
       · rfl
       · rw [announce_withTc, os.announce_idem]
     ihave Hr : (⌜e = 0⌝ ∗ ∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
         (⌜e ≠ 0⌝ ∗ ((∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
           (∃ (xs1 : List ByteG) (tc : GMap Nat Cands) (rz : List Nat),
-            ⌜xs1.map Prod.fst = xs.map Prod.fst ∧ xs1.length = m.size - sz.toNat⌝ ∗
+            ⌜(xs1.map Prod.fst = xs.map Prod.fst ∧ xs1.length = m.size - sz.toNat) ∧
+              TcKnows m sz.toNat m.size tc⌝ ∗
             osMeta d.ino (DFrac.own (1 : Qp).half)
               ((m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).withTc tc rz) ∗
             osBytes d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs1))) $$ [Hr]
     · unfold os.truncOutH os.ftUndoneH
-      icases Hr with (⟨%he, %zs, Hd⟩ | ⟨%he, (⟨%zs, Hd⟩ | ⟨⟨%tc, %rz, Hm⟩, Hb⟩)⟩)
+      icases Hr with (⟨%he, %zs, Hd⟩ | ⟨%he, (⟨%zs, Hd⟩ | ⟨⟨%tc, %rz, %htc, Hm⟩, Hb⟩)⟩)
       · ileft; isplitr; · ipureintro; exact he
         iexists zs; iapply os.ftDoneH_of _ m m0 _ zs hm0 $$ Hd
       · iright; isplitr; · ipureintro; exact he
         ileft; iexists zs; iapply os.ftDoneH_of _ m m0 _ zs hm0 $$ Hd
       · iright; isplitr; · ipureintro; exact he
         iright; iexists rsAnn n xs0, tc, rz
+        rw [hsz0] at htc
         rw [hann tc rz, hsz0]
         iframe
         ipureintro
-        refine ⟨?_, by rw [rsAnn_length]; exact hl⟩
+        refine ⟨⟨?_, by rw [rsAnn_length]; exact hl⟩, hk0 tc htc⟩
         rw [← hv]; simp [rsAnn, List.map_map, Function.comp_def]
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
@@ -161,7 +182,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
       iapply IH $$ [HS] HK Hosfd Hfd HΦ
       icases HS with (H | ⟨%xs1, %tc, %rz, %hxs1, Hm, Hb⟩)
       · iright; iexact H
-      · ileft; iexists _, xs1; iframe; ipureintro; exact ⟨.inr ⟨tc, rz, rfl⟩, hxs1⟩
+      · ileft; iexists _, xs1; iframe; ipureintro; exact ⟨.inr ⟨tc, rz, hxs1.2, rfl⟩, hxs1.1⟩
     · rw [decide_eq_false he4]
       wp_auto
       icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)
@@ -195,13 +216,13 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         · ileft; iexact H
         · iright; unfold os.ftUndoneH; iexists xs1
           isplitr
-          · ipureintro; exact hxs1.1
+          · ipureintro; exact hxs1.1.1
           isplitl [Hm]
-          · iexists tc, rz; iexact Hm
+          · iexists tc, rz; iframe; ipureintro; exact hxs1.2
           iexact Hb
   · -- a further attempt after one that landed: a resize to the size the file has
     iunfold os.ftDoneH at Hd
-    icases Hd with ⟨%hzs, ⟨%tc0, %rz0, Hm⟩, Hbs⟩
+    icases Hd with ⟨%hzs, ⟨%tc0, %rz0, %htc0, Hm⟩, Hbs⟩
     have hdsz : ((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0).size = sz.toNat := rfl
     have hdmaps : ((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0).maps = m.maps := by
       simp [rsPost]
@@ -216,7 +237,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
       as %t %n %- Hosfd Hau
     wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
     ihave Hd : os.ftDoneH d.ino m sz.toNat zs $$ [Hr Hbs]
-    · iapply os.truncOutH_again _ m tc0 rz0 sz.toNat n e zs hzs $$ [Hr Hbs]; iframe
+    · iapply os.truncOutH_again _ m tc0 rz0 sz.toNat n e zs hzs htc0 $$ [Hr Hbs]; iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       wp_auto

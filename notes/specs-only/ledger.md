@@ -793,3 +793,47 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (`Create.spec`'s success post). Not yet made.
 - **Decision.** Pending (`wal-create16` stopped at its budget; the next session makes it with `renameWAL`'s
   re-proof).
+
+## 2026-11-14: `os.File.Truncate.specAu` (the part's, `LinuxFs/Spec/os/File__TruncateAu.lean`) -- the outcome's `tc` domain
+
+- **Spec.** `os.ftDoneH`/`os.ftUndoneH`, the caller's halves of a truncate's outcome in `os.File.Truncate.specAu`'s
+  post (and so in the fileutil `Au` specs over it: `preallocExtendTrunc.specAu`, `ZeroToEnd.specAu`): `∃ tc rz,
+  osMeta ½ (… .withTc tc rz)`, the candidates known past the size existential.
+- **Defect.** Too weak for the WAL's `os.File.Truncate.specWalTail`: its post's `TailMetaW` includes `TailZ` (the
+  candidates of every byte between the size and the known zeros known, `wal-save16`), which the caller cannot
+  derive from an unknown `tc`; the supply (`walInv`) knows it is `rsTail`, but nothing carries the fact out (an
+  invariant opening outside an atomic step has no `notCrashed`). W1 log, nineteenth session, last item.
+- **Evidence.** Every outcome the extension leaves for a file with no sync cut (the WAL's segments: `WalsOk`'s
+  `cut = none`) has `tc = rsTail …` (`rsPostK true`, `rsUnMeta true`); `TcKnows.rsTail`.
+- **Change (made, `wal-tc10`).** `os.ftDoneH p m tg zs` carries `⌜TcKnows m tg tg tc⌝`, `os.ftUndoneH p m tg xs'`
+  `⌜TcKnows m tg m.size tc⌝` (`TcKnows m tg sz' tc := ∀ b, (rsTail true m tg sz' 0 [] !! b).isSome → (tc !!
+  b).isSome`, `LinuxFs/Proof/os/TcKnows.lean`: the domain of the outcome's `rsTail`, landed at `tg` or not at the
+  old size). A strengthening of the post; a supply (only the WAL's, not yet written) must prove it, which a supply
+  for a file with a sync cut could not (its outcome keeps the announcement's `tc`): none exists. The retry loop
+  carries it (`TcKnows.of_announce`, `TcKnows.of_rsPost`). The proposal had one `TcKnows m tg tc`; the not-landed
+  outcome keeps no candidates of the bytes in `[tg, size)` (below its size), hence the size argument.
+- **Decision.** Adopted (the coordinator's task list for `wal-tc10`, "decided").
+
+## 2026-11-14: `fallocDoneH` (the part's `syscall.Fallocate` updates, `LinuxFs/Proof/syscall/FallocateAu.lean`) -- the growth's `tc` domain; `ZeroToEnd.specAu`'s post
+
+- **Spec.** `fallocDoneH i m tg w` (the caller's halves of a growth landed with the size `w`, in `fallocOutH`, the
+  share `fallocSup` hands back, and so in `preallocExtend.specAu`/`Preallocate.specAu`/`ZeroToEnd.specAu` through
+  `preGrownH`): `∃ tc rz, osMeta ½ ((rsPost false m tg w).withTc tc rz) ∗ …`, `tc` existential, as `os.ftDoneH` was
+  before `wal-tc10`.
+- **Defect.** Too weak for `ReadAll`'s `ZeroToEnd` instance, whose post must give the tail's `TailZ` (the candidates of
+  every byte between the size and the known zeros known): after the growth back to the size the caller cannot tell
+  which bytes past it have known candidates (I3b, `wal-tc10` entry, last item).
+- **Evidence.** The outcome the extension leaves for a file with no sync cut has `tc = rsTail false m tg w n []`
+  (`rsDoneK true false`, `wp_osFallocFinishK`); `TcKnowsF.rsTail`.
+- **Change (made, `wal-tc11`).** `fallocDoneH` carries `⌜TcKnowsF m tg w tc⌝` (`TcKnowsF m tg sz' tc := ∀ b,
+  (rsTail false m tg sz' 0 [] !! b).isSome → (tc !! b).isSome`, `TcKnows`' growth form, in `FallocateAu.lean`). No
+  supply exists yet (the WAL's, `fallocSup` at the tail, is the first); `fallocDoneH_preGrownH` drops it. The undone
+  arm of `fallocOutH` is the exact announcement (`rsUndone false`), unchanged: see the obligation below.
+- **Proposed, not made (needs `preGrownH`'s fact first): `ZeroToEnd.specAu`'s success post** gains
+  `⌜ZteMeta m m'⌝`, `ZteMeta m m' := (∀ b, m.size ≤ b → (m.pc b).isSome → (m'.pc b).isSome) ∧ m.cz ≤ m'.cz ∧ ∀ z0,
+  m.zf = some z0 → ∃ z', m'.zf = some z' ∧ z0 ≤ z' ∧ z' ≤ max z0 (pageEnd m.size)` (with `TailZ m` it gives `TailZ m'`,
+  the size and `pageEnd m.size ≤ m'.cz` given). Its proof chains `TcKnows` (the truncate to `o`, landed), `TcKnowsF`
+  (a partial or full `fallocate`) and `TcKnows` (the fallback's truncate): `preGrownH` (`DefsAu.lean`) must carry
+  the pc-domain and `zf` facts through `preGrownH_trans` (`Preallocate.specAu`'s post), a change to
+  `preallocExtend.specAu`/`Preallocate.specAu` and `filePipeline.alloc`'s use of `preGrownH`.
+- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"); `ZteMeta` pending.
