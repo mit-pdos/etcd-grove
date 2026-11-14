@@ -687,6 +687,58 @@ theorem snapshotCert_made_impl (γ : Cluster) (N : Namespace) (k : SnapTrip) :
       refine ⟨Hsl, ?_, Hcl, Hal⟩
       rw [← Hlast]; unfold strip; rw [List.getLast?_map, Option.map_map]; rfl
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination, in the
+cluster's configurations**: from its `snapToOk` (raft's destination fact), not the sender, and an id
+of a membership after a committed prefix (`confAtU`). In the client's decision mode (`ModeDec`,
+which any `confAtU` carries) the tracked configuration is a fold of the recorded decisions over a
+committed prefix (`ModeDec.fold`), and the committed raft log is a lower bound of the committed log
+(`api_committed_lb`). -/
+theorem snapTo_confAt_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (id : w64)
+    (st : MsgSt) (k0 : Nat) (m0 : Membership) (Hty : st.msg.Type' = MsgSnap) :
+    ⊢ clusterInv (GF := GF) γ N -∗ confAtU γ k0 m0 -∗ snapToOk γ.raft id st ={E}=∗
+      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership), confAtU γ k m ∗ ⌜st.msg.To' ∈ m.ids⌝ := by
+  iintro #Hci #Hc0 #Hs
+  unfold snapToOk
+  ihave ⟨%Hne, #Hd⟩ := Hs $$ %Hty
+  iunfold confAtU at Hc0
+  icases Hc0 with ⟨%l0, %M0, -, -, %Hc0p⟩
+  obtain ⟨-, c0, g, Hmd, -⟩ := Hc0p
+  obtain ⟨h0, -, hd, -⟩ := Hmd.1
+  unfold snapDstOk
+  icases Hd with (%Hst | ⟨%L, %M, %c, #HL, #HM, %HC⟩)
+  · exfalso
+    have := RaftNames.dyn_none Hst
+    rw [hd] at this; cases this
+  obtain ⟨HCf, Hin⟩ := HC
+  unfold CfgAt at HCf
+  rw [hd] at HCf
+  simp only at HCf
+  rw [ModeDec.fold Hmd _ hd M L] at HCf
+  obtain ⟨m, Hm, hcm⟩ := Option.map_eq_some_iff.1 HCf
+  have Hid : st.msg.To' ∈ m.ids := by
+    subst hcm
+    simp only [CfgM.voters, cfgOf, Membership.ids] at Hin ⊢
+    rcases (GMap.elem_of_union _ _ _).1 Hin with h | h
+    · rcases (GMap.elem_of_union _ _ _).1 h with h | h
+      · exact (GMap.elem_of_union _ _ _).2 (Or.inl ((GMap.elem_of_union _ _ _).2
+          (Or.inl ((GMap.elem_of_union _ _ _).2 (Or.inl h)))))
+      · exact (GMap.elem_of_union _ _ _).2 (Or.inl ((GMap.elem_of_union _ _ _).2
+          (Or.inl ((GMap.elem_of_union _ _ _).2 (Or.inr h)))))
+    · exact (GMap.elem_of_union _ _ _).2 (Or.inl ((GMap.elem_of_union _ _ _).2 (Or.inr h)))
+  imod api_committed_lb γ N E HE L $$ Hci HL with ⟨#Hlb, -⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hne
+  iexists (strip L).length, m
+  isplitr
+  · unfold confAtU
+    iexists strip L, M
+    iframe Hlb HM
+    ipureintro
+    refine ⟨Nat.le_refl _, c0, g, Hmd, ?_⟩
+    rw [List.take_length]; exact Hm
+  ipureintro; exact Hid
+
 end names
 
 end ApiImpl

@@ -115,3 +115,43 @@ message's `isMessage` behind `durFrags` (`outMsgOk`). `readyRest` itself carries
   restart are above `t0`, and a `StartNode` post change), 5-8 d est.; it serves R2s-A too. Row 1 still needs
   the approved clause.
 - (C) Not acceptable: carrying row 4 into the closed theorem.
+
+## Option (A), done in raft (2026-11-14, etcd-grove-81's decision), and a second stop
+
+**(B) recorded for later:** proving `rnSnapTermAbove` in general (a raft-struct invariant that the messages
+queued since a restart are above the restored term `t0`, with a `StartNode` post change) is R2s-A's route for
+`restart3_safe`, where a restarted member is caught up by snapshots; not done in S7.
+
+**Why `snapDstOk` holds before the batch is durable.** It reads only the committed log (`isCommitted`), the
+recorded decisions (`decLb`) and the sender's configuration at its step (`CfgAt` of a committed prefix,
+`cfgCommitted_of_env` from `dynEnv`), never the node's unsynced state (its vote, term or unpersisted entries,
+which is what `durFrags` guards). The proof does not draw it from behind the durability wand: `outMsgOk`'s
+waiting disjunct now says the message is no snapshot (`⌜m.ty ≠ .snap⌝`: the waiting messages are a
+follower's responses and a candidate's vote requests), so a queued snapshot's fact comes from the outright
+disjunct (`outMsgOk_snapDst`), read off the ghost state before the cut (`ownRaftGhost_snap_keep`).
+
+**Done** (commits `5d6d93926b` and the next; raft builds through `Link`/`Results`):
+- `GhostState`: `outMsgOk`'s waiting disjunct carries `⌜m.ty ≠ .snap⌝`; `isMessage_snapDst`, `outMsgOk_snapDst`
+  (`outMsgOk_self`/`_pend` take the non-snapshot fact; `Enter` keeps an outright message outright).
+- `ApiVocab`: `SnapNotSelf` (a conjunct of `isRaftMsg`), `snapToOk`, `isRaftMsg_snapTo`.
+- `InvRawnodeReady`: `ownRaftGhost_snap_keep`; `ownRawNodeReady`'s `Hmsnap`; the hand-out's post carries each
+  message's `snapToOk`; `LemmasReadyR.outboxRelP_snapTo`. `RawNode.Ready.spec`'s post (`#Hsnapto`), `readyCut`,
+  and `readyRest` (`InvApi`, `InvNode`) carry it.
+- `InvNode`: `snapTo` (sealed), `readyRest_snapTo`, `sentMsg_snapTo`. `InvNodeRule`: `snapTo_confAt` (a `MsgSnap`'s
+  `To ≠ id` and `To ∈ m.ids` for a committed membership `confAt γ k m`), over `InvApiDec.snapTo_confAt_impl`
+  (`ModeDec.fold`, `api_committed_lb`).
+
+**Second stop: the rows cannot be proved as stated (plain wands under a basic update).** `srvRestartRows`
+is `|==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn)`, and both rows are plain wands (`readyRest -∗ …`,
+`sentMsg -∗ …`). From `snapTo` the raft API gives `To ≠ id` (pure) and `To ∈ m.ids` for a committed
+membership `m` — but only under a fancy update (`snapTo_confAt` opens the cluster invariant for
+`api_committed_lb`), and turning `m` into `simple {id}` needs the server's static-membership law
+`srv_confAt_eq_simple`, also a fancy update (`srvConfN`, `srvLogN`). Neither can run inside the rows' wands
+or the basic update.
+- (a) *Recommended.* Restate the two rows with a fancy update at the masks their users have
+  (`rnSnapTermAbove`'s wand `={E}=∗` and `srvWinPend`'s inner wand `={E}=∗`, `srvRestartRows`' `|={⊤}=>`): a
+  weaker premise of `NewServer.specR` (its text changes); users: `EtcdServer__run.lean:908` (inside a WP) and
+  `rnRestartOk_snapTerm` (its callers in the raft loop, inside WPs). Then `srvRestartRows_single` follows from
+  `snapTo_confAt` and `srv_confAt_eq_simple` with `γ.vs = [id]`. Est. 2-3 d.
+- (b) Have the raft API state the destination against a persistent, invariant-free fact. None exists: the
+  committed memberships are known only through the cluster's and the server's invariants.
