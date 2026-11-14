@@ -630,7 +630,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
       mcells (L := L) m.maps m.size (rsHi true m.size sz) (rsCell sz) by rw [hmin]) $$ Hc
     iframe Hc
     isplitr
-    · ipureintro; exact hzs
+    · ipureintro; exact ⟨hzs.1, hzs.2.1⟩
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe
     ipureintro

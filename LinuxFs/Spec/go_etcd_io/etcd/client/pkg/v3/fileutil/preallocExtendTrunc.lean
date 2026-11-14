@@ -10,7 +10,9 @@ The file must be at most `sizeInBytes` long: the truncate would cut a longer fil
 offset known, at most ext4's maximum, as the size and `sizeInBytes`.
 
 Post: the offset unchanged, the file grown to some `w` between its size and `sizeInBytes`, all of
-it on success (`preGrown`: the new bytes a zero run). Proved in
+it on success (`preGrown`: the new bytes a zero run), and on success the zeros known from the page
+cache on (`OsMeta.ZeroPg`, an `ftruncate` landed makes them) if zeros were known from at least the
+size (`OsMeta.ZfGe`). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/preallocExtendTrunc.lean`. Lean-first.
 -/
 module
@@ -46,7 +48,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.spec : Prop :=
       (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ os.ownOff f o ∗ osFd fd dq d ∗
       ∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz.toNat ∧ (err = interface.nil → w = sz.toNat)⌝ ∗
-        preGrown d.ino m w }}
+        preGrown d.ino m w (err = interface.nil ∧ m.ZfGe) }}
 
 end spec
 

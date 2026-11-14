@@ -28,7 +28,8 @@ do not depend on their bodies.
   empty half of the tails' authority (`walTailsFrag ∅`: `ReadAll` registers the tail with it), the
   WAL's key (`walDirKey`), the segments' inodes distinct and each of its bytes' size.
 * `walReadH write w dir s`: the struct's fields as `openAtIndex` leaves them: `lg`, `dir`, `start`,
-  the decoder (`ownDecoder` live at offset 0, CRC 0, over `fs`), `locks`, `readClose` (`nil` in write
+  the decoder (`ownDecoder` live at offset 0, CRC 0, over `fs`, its readers' errors `IoE` none of them
+  `nil`: `ReadAll`'s loop), `locks`, `readClose` (`nil` in write
   mode), the pipeline (write mode: `walPipeH fp dir j 0`, at the inode `j` of the directory whose claim
   `walReadTie` holds; read mode: `nil`), the zero fields
   (`encoder`, `state`, `metadata`, `enti`, `snapi`, `unsafeNoSync`), the mutex, the decoder's
@@ -119,7 +120,7 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
       (locks : GoSlice) (lfs : List Loc) (fp : Loc) (rc : GoFunc) (j : Ino),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.decoder.ty) #dec ∗
-    ownDecoder dec IoE eof fs 0 0#32 true ∗ decEnv IoE eof ueof ∗
+    ownDecoder dec IoE eof fs 0 0#32 true ∗ (decEnv IoE eof ueof ∗ ⌜¬ IoE GoInterface.nil⌝) ∗
     walReadTie dir write s j fs lfs ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗

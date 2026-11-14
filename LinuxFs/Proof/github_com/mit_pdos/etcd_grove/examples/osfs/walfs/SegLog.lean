@@ -163,7 +163,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   have hT : max newMeta.size ((W64 0).toNat + (W64 65536).toNat) = 65536 := by decide
   try rw [hT]
   have hz : zs = List.replicate 65536 [(0, 0)] := by
-    obtain ⟨hl, hzz⟩ := hzs
+    obtain ⟨hl, hzz, -⟩ := hzs
     have hl' : zs.length = 65536 := by rw [hl]; decide
     apply List.ext_getElem? ; intro j
     by_cases hj : j < 65536

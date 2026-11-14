@@ -744,6 +744,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
 - **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).
 
+## 2026-11-14: `WalDecEnvSupply` and `walReadH` -- no I/O error is `nil`
+
+- **Spec.** `openAtIndex.lean`'s hypothesis `WalDecEnvSupply` (the decoder's environment: `∃ IoE eof ueof,
+  decEnv IoE eof ueof ∗ ⌜∀ pe, IoE (*PathError pe)⌝`) and the sealed `walReadH` (`ReadDefs.lean`), which keeps
+  the decoder's `IoE` existential.
+- **Defect.** Too weak for `ReadAll`: `decoder.Decode`'s post (`decPostB`) has an I/O-error arm `⌜IoE err⌝` with
+  the decoder no longer live; nothing excluded `IoE nil`, so at `err == nil` the loop (S/wal.go:523) would go on
+  into its body with a dead decoder and an unknown record (the next `Decode` needs a live one): the loop's
+  invariant is not provable.
+- **Evidence.** The readers' errors are `*PathError`s (`os.File.Read`, `Stat`): `nil` is none of them. The
+  decoder's own code returns a reader's error only under `err != nil`.
+- **Change (made).** `WalDecEnvSupply`'s pure part `(∀ pe, IoE (*PathError pe)) ∧ ¬ IoE nil`; `walReadH`'s
+  `decEnv IoE eof ueof` is `(decEnv IoE eof ueof ∗ ⌜¬ IoE nil⌝)`; `openAtIndex` passes it through. (The
+  alternative, `err ≠ nil` in `decPostB`'s I/O arm, would reprove the decoder's specs.)
+- **Decision.** Adopted (`wal-readall20`, minor: a hypothesis true of Go, and a sealed body; no client-visible change).
+
 ## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's; a hypothesis of `wal.Create.wp_proof`) -- nothing about the new directory's history
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `fileutil.CreateDirAll.specTmp`
@@ -860,4 +876,35 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (a partial or full `fallocate`) and `TcKnows` (the fallback's truncate): `preGrownH` (`DefsAu.lean`) must carry
   the pc-domain and `zf` facts through `preGrownH_trans` (`Preallocate.specAu`'s post), a change to
   `preallocExtend.specAu`/`Preallocate.specAu` and `filePipeline.alloc`'s use of `preGrownH`.
-- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"); `ZteMeta` pending.
+- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"). `ZteMeta`
+  adopted (the coordinator's task list for `wal-tc12`, "decided") and **made, simplified** (`wal-tc12`): `ZteMeta m m'
+  := PcKeep m m' ∧ (m.ZfGe → m'.ZeroPg)` (`DefsAu.lean`; `PcKeep m m' := ∀ b, m.size ≤ b → m'.size ≤ b → (m.pc
+  b).isSome → (m'.pc b).isSome`, `LinuxFs/Proof/os/PcKeep.lean`). `wal-save18`'s `ZeroPg` (zeros known from `z ≥ size`
+  with `pageEnd z ≤ max size cz`) replaces the proposal's `zf` bound and `cz` clause: with `TailZ m` (which gives
+  `ZfGe m`, and `m.pc` known at every byte past the size) and `m'.size = m.size`, `ZeroPg m'` and `PcKeep` give `TailZ
+  m'`. Carried by **`preGrownH i m w Z`** (as `wal-save18`'s `preGrown`: `PcKeep m m'` always, `Z → m'.ZeroPg`),
+  so `preallocExtend.specAu`'s post is `preGrownH … (err = nil ∧ m.ZeroPg)`, `preallocExtendTrunc.specAu`'s `(err = nil
+  ∧ m.ZfGe)`, `Preallocate.specAu`'s (`preallocPostH`) `(err = nil ∧ m.ZeroPg)`, as the whole specs'. `PcKeep` from each
+  outcome's `TcKnows`/`TcKnowsF` (`PcKeep.of_tc`); the undone `fallocate` arm of `fallocOutH` became `∃ tc rz,
+  ⌜TcKnowsF m tg m.size tc⌝ ∗ osMeta ½ ((m.announce …).withTc tc rz)` (the extension's `rsOutF` undone arm
+  `rsUndoneK m.cut.isNone false`, `wal-tc12`), which the obligation above asked for.
+
+## 2026-11-14: `fileutil.Preallocate`/`preallocExtend`/`preallocExtendTrunc` (the part's) and `os.OpenFile.specCreateTruncS`'s `trFile` -- the zeros known on success
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/{Preallocate,preallocExtend,preallocExtendTrunc}.lean`
+  (posts: `preGrown i m w`); `LinuxFs/Spec/os/OpenFileTruncS.lean`'s `trFile i P` (the new or `O_TRUNC`-truncated file).
+- **Defect.** Too weak for `filePipeline.alloc` (`pipeFile`'s `ZeroPg`, W6 log, sixteenth session): neither post said
+  anything of the zeros known (`zf`) or the page cache known zero (`cz`), so `alloc`'s `ZeroPg` was a `sorry`. It was not
+  provable from stronger posts alone either (seventeenth session): a `fallocate` landing left `cz` behind the zeros
+  it announced, and an `O_TRUNC` of an arbitrary leftover gave no zeros fact.
+- **Evidence.** Linux keeps no page past the size's last page (the page cache reads zeros there); the extension now
+  says so (`MetaOk.ce`, untrusted ghost), and a landed resize raises `cz` (`rsCz`: an `ftruncate` to past the zeros
+  known and its announcement's end; `fallocate`'s growth when the old size's page was known zero). Then an
+  `ftruncate` landed makes `ZeroPg` (from `ZfGe`), `fallocate`'s growth landed keeps it; a resize that did not land
+  keeps neither (its `OsMeta` is the announcement's, unchanged, so that the WAL's layouts stay `rsUnMeta`).
+- **Change (made).** `preGrown i m w Z` (a condition `Z`: the grown `OsMeta` has `ZeroPg` if `Z`; `GrowMeta` keeps
+  `ZfGe`): `Preallocate`/`preallocExtend` post `Z := err = nil ∧ m.ZeroPg`, `preallocExtendTrunc` `Z := err = nil ∧
+  m.ZfGe`. `trFile i P` gains `m.ZfGe ∧ (P → m.ZeroPg)` (not unconditional `ZeroPg`, as proposed: a leftover from
+  `alloc`'s error path after a `fallocate` that did not land has none). `alloc`'s `ZeroPg` proved; `zerosA_trFile`
+  takes `ZfGe` (`filePipeline.run`, from `pipeFile`'s `ZeroPg`).
+- **Decision.** Made (`wal-save18`, the coordinator's task 1, `rsCz`; the shape adjusted as above and logged).

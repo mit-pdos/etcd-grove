@@ -101,7 +101,8 @@ variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assu
 /-- **The decoder's environment** (hypothesis): from the WAL package's initialization, `io.EOF`'s and
 `io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`), the decoder's
 packages and variables (`decEnv`); the readers' errors `IoE` hold of every `*PathError` (`os.File.Read`'s
-and `Stat`'s errors). Until 2026-11-14 `IoE` held of every pointer error, which made the hypothesis
+and `Stat`'s errors) and not of `nil` (since 2026-11-14, `wal-readall20`: `ReadAll`'s loop goes on at
+`err == nil`, so an I/O error `nil` would run its body on a dead decoder; ledger, "no I/O error is nil"). Until 2026-11-14 `IoE` held of every pointer error, which made the hypothesis
 unsatisfiable (`isEofOk` needs `¬ IoE eof`, and `io.EOF` is a pointer error); `walDecEnv_eof_not` checks
 that the new form's pure part agrees with `io`'s initialization. Since 2026-11-14 (`wal-readall17`; ledger,
 "the readers' errors and `errors.Is`", adopted provisionally) `isEofOk` asks `errors.Is(e, io.EOF)`'s
@@ -114,7 +115,8 @@ so the hypothesis is true of Go. **Not provable from the packages' facts**: `err
 abbrev WalDecEnvSupply : Prop :=
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
     ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
-      ⌜∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝
+      ⌜(∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ∧
+        ¬ IoE GoInterface.nil⌝
 
 /-- **The sanity check of `WalDecEnvSupply`'s pure part**: by `io`'s initialization `io.EOF` holds an
 `*errorString` (`errors.newVar`), so it is no `*PathError`, and `IoE` the `*PathError`s meets both
@@ -406,8 +408,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     rw [List.length_map] at hfl hll
     have hEnv' : ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
         ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
-          ⌜∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝ := hEnv
+          ⌜(∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ∧
+            ¬ IoE GoInterface.nil⌝ := hEnv
     ihave ⟨%IoE, %eof, %ueof, #Hde, %hIo⟩ := hEnv' $$ Hpkg
+    obtain ⟨hIo, hIoN⟩ := hIo
     ihave #Hde' := Hde
     iunfold decEnv at Hde'
     icases Hde' with ⟨-, -, -, -, #Hbufio, #Heof, -, -, #Hcrc, -, -⟩
@@ -483,6 +487,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iframe
       iframe #
       simp only [Bool.false_eq_true, ↓reduceIte]
+      isplitr
+      · ipureintro; exact hIoN
       isplitl [Ho Hlk]
       · iexists gs, fls
         iframe Ho
@@ -571,6 +577,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iframe
       iframe #
       simp only [↓reduceIte]
+      isplitr
+      · ipureintro; exact hIoN
       isplitl [Ho Hlk]
       · iexists gs, fls
         iframe Ho

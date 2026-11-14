@@ -160,11 +160,11 @@ theorem rsPost_size' (tr : Bool) (m : OsMeta) (tg sz' : Nat) : (rsPost tr m tg s
 
 theorem rsPost_eq (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
     rsPost tr m tg sz' =
-      { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m.size tg m.cz } :=
+      { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m tg } :=
   rfl
 
 theorem rsPost_cz (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
-    (rsPost tr m tg sz').cz = rsCz tr m.size tg m.cz := rfl
+    (rsPost tr m tg sz').cz = rsCz tr m tg := rfl
 
 /-- An `ftruncate` to `tg` leaves the page cache known zero past the size to the end of the page
 holding the larger of the old and new ends. -/
@@ -173,8 +173,8 @@ theorem rsPost_cz_true (m : OsMeta) (tg sz' : Nat) :
   simp only [rsPost_cz, rsCz, rsHi, if_true]; omega
 
 /-- A resize never forgets the page cache known zero. -/
-theorem le_rsPost_cz (tr : Bool) (m : OsMeta) (tg sz' : Nat) : m.cz ≤ (rsPost tr m tg sz').cz := by
-  simp only [rsPost_cz, rsCz]; split <;> omega
+theorem le_rsPost_cz (tr : Bool) (m : OsMeta) (tg sz' : Nat) : m.cz ≤ (rsPost tr m tg sz').cz :=
+  le_rsCz tr m tg
 
 /-- `fileutil.ZeroToEnd`'s resizes from `o` (an `ftruncate` to `o`, then a growth back to the size,
 by `fallocate` or `ftruncate`) leave the page cache known zero past the size to the end of its last
@@ -187,10 +187,34 @@ theorem zeroToEnd_cz (m : OsMeta) (o : Nat) (ho : o ≤ m.size) (tr : Bool) (sz'
   omega
 
 /-- The cz of a resize to the size the file has, after one that landed. -/
-theorem rsCz_same (tr : Bool) (s tg cz : Nat) :
-    rsCz tr tg tg (rsCz tr s tg cz) = rsCz tr s tg cz := by
-  have := rsHi_same_le tr s tg
-  unfold rsCz; cases tr <;> simp only [Bool.false_eq_true, if_true, if_false] <;> omega
+theorem rsCz_same (tr : Bool) (m : OsMeta) (tg : Nat) :
+    rsCz tr (rsPost tr m tg tg) tg = rsCz tr m tg := by
+  cases tr with
+  | false =>
+    unfold rsCz
+    simp only [Bool.false_eq_true, if_false, rsPost_size', Nat.lt_irrefl, false_and]
+    rfl
+  | true =>
+    have h1 := rsHi_same_le true m.size tg
+    have hz : (rsPost true m tg tg).zf =
+        (m.announce (min m.size tg) (rsHi true m.size tg) tg).zf := rfl
+    have h2 : pageEnd (((rsPost true m tg tg).zf).getD 0) ≤ rsCz true m tg := by
+      rw [hz, announce_zf]
+      unfold rsCz
+      simp only [if_true]
+      cases m.zf with
+      | none => simp [pageEnd]
+      | some z =>
+        simp only [Option.map_some, Option.getD_some]
+        simp only [rsHi, if_true]
+        split <;> simp only [pageEnd] <;> omega
+    have h3 : (rsPost true m tg tg).cz = rsCz true m tg := rfl
+    have h4 : rsCz true (rsPost true m tg tg) tg = max (rsPost true m tg tg).cz
+        (max (rsHi true tg tg) (pageEnd (((rsPost true m tg tg).zf).getD 0))) := rfl
+    have h5 : rsHi true m.size tg ≤ rsCz true m tg := by
+      unfold rsCz; simp only [if_true]; omega
+    rw [h4]
+    omega
 
 theorem touch_dlo (m : OsMeta) (lo hi : Nat) :
     (m.touch lo hi).dlo = if hi ≤ lo then m.dlo else if m.dhi ≤ m.dlo then lo else min m.dlo lo := by
@@ -254,7 +278,7 @@ theorem announce_setSizeCz (X : OsMeta) (s c lo hi tg : Nat) :
 /-- A resize to the size a file has, after one that landed, changes nothing. -/
 theorem rsPost_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
     rsPost tr (rsPost tr m tg tg) tg tg = rsPost tr m tg tg := by
-  rw [rsPost_eq tr (rsPost tr m tg tg), rsPost_size', rsPost_cz, rsCz_same, rsPost_eq tr m tg tg,
+  rw [rsPost_eq tr (rsPost tr m tg tg), rsPost_size', rsCz_same, rsPost_eq tr m tg tg,
     announce_setSizeCz, announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
 
 theorem announce_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
@@ -263,10 +287,32 @@ theorem announce_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
   rw [rsPost_size', rsPost_eq tr m tg tg, announce_setSizeCz,
     announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
 
+/-- The page cache known zero after a resize does not depend on its own announcement. -/
+theorem rsCz_announce (tr : Bool) (m : OsMeta) (tg : Nat) :
+    rsCz tr (m.announce (min m.size tg) (rsHi tr m.size tg) tg) tg = rsCz tr m tg := by
+  unfold rsCz
+  simp only [announce_size, announce_cz, announce_zf]
+  cases m.zf with
+  | none => rfl
+  | some z =>
+    simp only [Option.map_some, Option.getD_some]
+    cases tr
+    · simp only [rsHi, Bool.false_eq_true, if_false]
+      by_cases h : m.size < tg
+      · have e1 : min m.size tg = m.size := by omega
+        have e2 : max m.size tg = tg := by omega
+        have e3 : max (max z tg) tg = max z tg := by omega
+        simp only [e1, e2, h, if_true, e3]
+      · simp only [h, _root_.false_and, if_false]
+    · simp only [rsHi, if_true]
+      split
+      · simp only [pageEnd]; omega
+      · rfl
+
 theorem rsPost_announce (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
     rsPost tr (m.announce (min m.size tg) (rsHi tr m.size tg) tg) tg sz' = rsPost tr m tg sz' := by
   unfold rsPost
-  rw [announce_size, announce_idem, announce_cz]
+  rw [announce_size, announce_idem, rsCz_announce]
 
 section resize
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]

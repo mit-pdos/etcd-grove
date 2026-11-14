@@ -113,11 +113,12 @@ def rsOutT (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) (e : w6
     (⌜e ≠ 0⌝ ∗ (rsDoneK (L := L) m.cut.isNone true p tg tg m xs n ∨
       rsUndoneK (L := L) m.cut.isNone true p tg m xs n)))
 
-/-- What `fallocate`'s second step leaves: on success the growth landed; on failure none of it, or a
-prefix (the size `w` between). -/
+/-- What `fallocate`'s second step leaves: on success the growth landed; on failure none of it (for a
+file with no sync cut, the `OsMeta` knowing the candidates past the size and the stamp, `rsUnMeta`),
+or a prefix (the size `w` between). -/
 def rsOutF (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) (e : w64) : IProp GF :=
   iprop((⌜e = 0⌝ ∗ rsDoneK (L := L) m.cut.isNone false p tg tg m [] n) ∨
-    (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
+    (⌜e ≠ 0⌝ ∗ (rsUndoneK (L := L) m.cut.isNone false p tg m [] n ∨
       ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDoneK (L := L) m.cut.isNone false p tg w m [] n)))
 
 /-- **`ftruncate`'s first step, split**: the caller's halves of the `OsMeta` and of the bytes cut
@@ -194,7 +195,7 @@ theorem wp_osFallocStart_au (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMe
   ihave Hc := mcellsAny_nomaps (GF := GF) m.size (max m.size (off.toNat + len.toNat))
   rw [← hmaps]
   iapply wp_osFallocStart fd off len dq d m osN_sub_au hwr hoff hlen $$ Hinv Hfd Hm Hc
-  iintro %t %n Hfd Ht
+  iintro %t %n - Hfd Ht
   iright
   iexists (t, n)
   iframe Ht
