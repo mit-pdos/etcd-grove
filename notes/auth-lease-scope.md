@@ -415,7 +415,13 @@ commit and the axiom post of §2.4.
 - **Q6:** this Scope takes the lease rows only (decided by etcd-grove-81).
 - **Q7:** the `lease.bootCfg` body change goes to the coordinator as a hub change (decided by
   etcd-grove-81).
-- **Open, Q8:** one member or three for S4 (§7.5).
+- **Q8, the member count:** three members directly (the user's decision, 2026-11-14, via
+  etcd-grove-81). S4 is §7's variant. Start lease-mono3 step 2 in parallel.
+- **Q9, the full peer handler:** option S7 (prove `s.LeaseHandler()` and `leaseHandler.ServeHTTP`,
+  then serve etcd's full peer handler) is a follow-up stage after the first theorem (the user's
+  decision, 2026-11-14, via etcd-grove-81).
+- **Start:** implementation begins after the guard-completeness core, in a build worktree, briefed
+  by etcd-grove-81.
 
 ## 6. Overlap with ongoing work
 
@@ -500,7 +506,7 @@ it into a `TimeToLive` reply with `TTL = -1` and no keys (`v3rpc/lease.go:67-73`
 **So the 3-member variant needs no new or changed trusted text**, as long as the peers serve only
 the raft handler.
 
-**Option S7 (later, not recommended for the first theorem): the full peer handler.** This gives
+**Stage S7 (decided 2026-11-14: a follow-up after the first theorem): the full peer handler.** This gives
 realistic forwarding: an allowed follower call answers from the leader. It needs `s.LeaseHandler()`
 and `leaseHandler.ServeHTTP` (leasehttp, names-only, 0% verified).
 - Proving them takes 5 to 8 days, over the http-boundary fix's net/http models, and would then let
@@ -564,7 +570,7 @@ S1–S3 are member-generic, so they are unchanged. S4 grows:
 So the 3-member S4 costs **10 to 18 days more**, and S0–S4 at three members take **35 to 56
 agent-days**, against 25 to 38 at one member. Optional S7 (the full peer handler) is 5 to 8 more.
 
-### 7.5 Recommendation (Q8): three members directly
+### 7.5 Recommendation (Q8): three members directly (decided by the user, 2026-11-14)
 
 - Only S4 depends on the member count. A 1-member S4 (8 to 12 days) would then be largely redone
   for three members: the driver, `Main`, adequacy and the collection. Only the client's lease specs
@@ -575,9 +581,11 @@ agent-days**, against 25 to 38 at one member. Optional S7 (the full peer handler
   auth3 A2's route (ii).
 - **Fallback:** if step 2 stalls on its frozen and hub changes, S4 at one member still gives a
   closed theorem over the same server lemmas, and the 3-member S4 follows.
-- **The realism caveat to state in the theorem's docstring:** with the examples' peers, a follower
-  reports a live lease absent on `TimeToLive`/`KeepAlive` (E10). The theorem claims refusals only,
-  so its statement is unaffected. Realistic forwarding is S7.
+- **The docstring plan (decided):** `etcd_authlease_safe`'s docstring states that, with the
+  examples' peers (raft handler only), an allowed `TimeToLive` or `KeepAlive` at a follower reports
+  the lease absent (`TTL = -1` with no keys; `ErrLeaseNotFound` from `KeepAliveOnce`; E10) until the
+  follow-up stage S7 serves the full peer handler. The theorem claims refusals only, so its
+  statement is unaffected.
 
 ### 7.6 Go evidence for the variant (the pin `2eaeb872bc`)
 
