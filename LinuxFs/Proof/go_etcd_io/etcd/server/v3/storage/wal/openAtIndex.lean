@@ -4,8 +4,9 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lea
 the first step (`walInv_openAt`, `OpenAtPin.lean`); then `selectWALFiles`, `openWALFiles`, the decoder
 (`walDecFiles_mk`, `NewDecoder`), the struct, and in write mode `parseWALName` of the tail's name and the
 pipeline; the error arms put the pinned halves back at the `Errorf` call's step (`walInv_unpin`).
-Hypotheses besides the callees' specs: `WalPinSized` and `WalDirPathLaw` (the invariant's owner's,
-`OpenAtPin.lean`), `WalDecEnvSupply` (the decoder's environment from the package's initialization).
+The path to the WAL directory is lent by the invariant (`walInv_dirPath`, with the pin's
+`walNamesFrag none`; until 2026-11-14 the hypothesis `WalDirPathLaw`). Hypotheses besides the callees'
+specs: `WalPinSized` (the invariant's owner's, `OpenAtPin.lean`), `WalDecEnvSupply` (the decoder's environment from the package's initialization).
 -/
 module
 
@@ -29,6 +30,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
 
 @[expose] public section
 
@@ -134,7 +136,6 @@ theorem walTmpsRes_split (j : Ino) :
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hpin : ∀ R jr r, WalPinSized (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
-    (hpath : ∀ R jr r, WalDirPathLaw (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_Clone : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.spec (GF := GF) (hG := hG))
     (wp_select : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec (GF := GF) (hG := hG))
@@ -210,7 +211,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   · unfold walPinOut
     icases Hpin with ⟨%lay, %X, %hj, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj, Ht⟩
     obtain ⟨hljr, hX, hcoh, habs, hnd, hsn, hsz⟩ := hfacts
-    imod hpath R jr r dir lay.j X qp $$ Hinv Hnc Hkey Hp with ⟨Hnc, Hp, %qd, Hpd⟩
+    icases Htf with ⟨Htf, Hnf⟩
+    imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
+    ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) $$ [Htf Hnf]
+    · iframe
     imodintro
     iframe Hnc
     have hnmf := walLay_nameFmt habs
