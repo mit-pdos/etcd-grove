@@ -70,6 +70,30 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
 - Independent review (2026-11-14): PASS, no blocker or major; the four minor findings (the race, the
   results' premises, these notes, stale docstrings) fixed in docs and records only.
 
+## G4 (2026-11-14; branch `auth-guards-g4`, on lean `e521c084f6`): the serializable read path and apply
+
+- `doSerialize` (`Spec/.../EtcdServer__doSerialize.lean`): new premises `srvAuthLb s E ∗ □ authPubLbM E.authMode n`
+  (its only callers, `Range`/`Txn`, hold them; `specOff` supplies them at `n = 0`), `chk`'s contract gains a
+  refusal predicate `R` (`∀ _ : err ≠ nil, R info err`), the error branch `serialWhy` (`AuthWhy.lean`): the
+  request side's reasons, `chk`'s refusal of the auth info the request side gave (`infoWhy`), or the revision
+  re-check (`oldRevWhy`: a state no older than `n` whose revision is not the info's, the info bound, with the
+  flag read `true` or from the TLS fallback, `nonissues/etcd-auth-old-revision-auth-disabled.md`).
+- For `oldRevWhy`'s flag read: the store's and server's `AuthInfoFromCtx.specLb` give, for a non-`nil`
+  principal, the flag read `true` at a state no older than `n` (server: or `srvTLSId`); `isReqAuthBound`'s
+  third row carries it; `EtcdServer.AuthInfoFromCtx.wpMLb` (`ReqOn.lean`); `srvAuthLb_revision` (`ReadOn.lean`:
+  `Revision()` at the bound, from the lease row of `authStoreLbM`, read only).
+- `ReadWhy.lean`: `rangeWhy`/`txnWhy` (reasons in `Range`'s/`Txn`'s terms), `rangeWhyOut`/`txnWhyOut` (a refusal
+  with its reason, or the read index's error, or the read's own), lemmas from `serialWhy`, ctx transport.
+  Not `authErrVarIs err -∗ why` (G3's form): the read's own errors include a `%w`-wrapped context error, opaque
+  in Perennial's errorf model, so it cannot be told apart from an auth variable.
+- `Range.spec`, `Txn.spec` (exported): error branch `∗ rangeWhyOut …`/`∗ txnWhyOut …` (pure strengthenings).
+- `apply/AuthCheckTxnLb.lean`: the read-only txn's checks over a generic refusal predicate `W`
+  (`permCheck3LbW`, `isAuthStoreRangeLbW`, `checkTxnReqs_lbW`, `checkTxnPermission.specLbW`/`wp_lbW`,
+  `CheckTxnAuth.specLbW`/`wp_lbW`/`wp_lbW_linked`); `checkTxnPermission.wp_lb` now derived (`W := True`); the
+  exported `apply_check_txn_auth_lb` unchanged. `Txn` takes `specLbW` (link: `=apply.CheckTxnAuth.wp_lbW_linked`).
+- `apply/Results.lean`: `admin_rejected_why` (`adminRejL` ⇒ `adminRefused` at the latest state),
+  `kv_rejected_why`/`kv_rejected_why_quota` (`authOutL` with `.rejected .auth` ⇒ `refusedL`).
+
 ## Follow-ups
 
 - (G3 review, etcd-grove-81 2026-11-14; needed for G7) The reason does not reach the gRPC error: `grpcErrMapOk`

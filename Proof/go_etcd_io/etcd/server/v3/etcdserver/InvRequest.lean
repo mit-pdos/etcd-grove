@@ -2713,7 +2713,8 @@ the guards make, read by a caller holding a lower bound `n` of the store's publi
 (`auth.authPubLbM`): `IsAuthEnabled` with its flag at a state no older than `n` (the store's
 `IsAuthEnabled.specLb`); `AuthInfoFromCtx` with why it gave no principal (`auth.noPrincipalFrom`) or
 an error (`ErrInvalidAuthToken`, the flag read `true` at such a state and a token in the context:
-`auth.tokRefusedFrom`), of the store's `AuthInfoFromCtx.specLb`; and `IsAdminPermitted`, the auth
+`auth.tokRefusedFrom`), and with a principal the flag read `true` at such a state (G4), of the store's
+`AuthInfoFromCtx.specLb`; and `IsAdminPermitted`, the auth
 info `nil` or not (`auth.authInfoAt`), with both halves of its verdict at states no older than `n`
 (`auth.adminVerdictFromO`), of the store's `IsAdminPermitted.specLbO`. Here rather than in the
 reader's `authStoreLbM` (the Scope's draft): `AuthInfoFromCtx` calls the token provider, ready only
@@ -2739,7 +2740,8 @@ def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IPro
           authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a ∗
           (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
           (∀ _ : err ≠ GoInterface.nil, auth.authErrOf .invalidAuthToken err ∗
-            auth.enabledVerdictFrom M n true ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}) ∗
+            auth.enabledVerdictFrom M n true ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) ∗
+          (∀ _ : a ≠ null, auth.enabledVerdictFrom M n true) }}) ∗
     □ (∀ (n : Nat) (a : Loc) (oinfo : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
       {{ auth.authPubLbM M n ∗ auth.authInfoAt a dq oinfo ∗ RD }}
         (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))

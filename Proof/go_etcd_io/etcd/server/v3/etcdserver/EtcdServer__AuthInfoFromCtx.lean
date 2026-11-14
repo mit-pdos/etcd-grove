@@ -106,7 +106,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proofLb
   · iframe #
   subst Hai
   wp_auto
-  wp_apply HFromCtx $$ %ctx [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb, #Hae, #Hz, #Hne⟩
+  wp_apply HFromCtx $$ %ctx [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb, #Hae, #Hz, #Hne, #Hnn⟩
   · iframe; iframe #
   wp_if_destruct
   · cases err with
@@ -116,7 +116,9 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proofLb
       isplitl
       · iintro !> %h
         iunfold ctxBoundOrTLS; ileft; iapply Hb; ipureintro; exact h
+      isplitl
       · iintro !> %h %hz; cases hz.2
+      · iintro !> %h %hn; ileft; iapply Hnn $$ %h %hn
     | nil =>
       wp_auto
       cases cca
@@ -134,7 +136,9 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proofLb
         · iintro !> %h %_
           iapply Hz $$ %h
           exact ⟨rfl, rfl⟩
+        isplitl
         · iintro !> %h %hne; exact absurd rfl hne
+        · iintro !> %h %hn; exact absurd rfl hn
       · wp_auto
         wp_apply hAS s _ $$ []
         · iframe #
@@ -154,13 +158,17 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proofLb
         · iintro !> %h %_
           iapply Hz $$ %h
           exact ⟨rfl, rfl⟩
+        isplitl
         · iintro !> %h %hne; exact absurd rfl hne
+        · iintro !> %h %hn; iright; iunfold srvTLSId; iexact Hcca
   · iapply HΦ; iframe Hrd Ha Herr Hae Hne
     isplitl
     · iintro !> %h
       iunfold ctxBoundOrTLS; ileft; iapply Hb; ipureintro; exact h
+    isplitl
     · iintro !> %h %hz
       exact absurd hz.1 Hif
+    · iintro !> %h %hn; ileft; iapply Hnn $$ %h %hn
 
 end proof
 

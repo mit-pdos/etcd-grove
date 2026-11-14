@@ -70,7 +70,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   wp_apply Hctx
   (try wp_auto)
   wp_apply (hAI r.srv.s _ r.srv.E.RD r.srv.E.authMode cca
-      ci cd n) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -, #Hz, #Hne⟩
+      ci cd n) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -, #Hz, #Hne, -⟩
   · iframe #
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)

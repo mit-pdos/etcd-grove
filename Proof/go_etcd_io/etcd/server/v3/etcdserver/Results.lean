@@ -808,9 +808,9 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iintro %resp %err ⟨Hlt, Hrc, Hcr, H⟩
   iapply HΦ
   iframe Hlt Hrc Hcr
-  icases H with (⟨%Hok, -, H⟩ | H)
+  icases H with (⟨%Hok, -, H⟩ | ⟨%Hne, #HE, -⟩)
   · ileft; iframe H; ipureintro; exact Hok
-  · iright; iexact H
+  · iright; iframe HE; ipureintro; exact Hne
 
 /-- **`txn_applied`** (see the section header). -/
 theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)

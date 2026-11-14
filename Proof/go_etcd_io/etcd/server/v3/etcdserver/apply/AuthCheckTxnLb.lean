@@ -125,6 +125,63 @@ instance isAuthStoreRangeLbR_persistent (st : GoInterface) (RD : IProp GF) (M : 
     (n : Nat) : Persistent (isAuthStoreRangeLbR st RD M n) := by
   unfold isAuthStoreRangeLbR permCheck3LbR; infer_instance
 
+/-- **`permCheck3Lb` with a refusal predicate `W`** (auth-guard-completeness G4): the check's verdict
+at states no older than `n` and `W info k e err` of its error (`True`: `permCheck3Lb`;
+`auth.permRefusalM`: `permCheck3LbR`), so that one proof of the read-only transaction's checks serves
+both. -/
+def permCheck3LbW (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode) (n : Nat)
+    (op : auth.PermType) (W : auth.AuthInfo → GoString → GoString → GoInterface → IProp GF) :
+    IProp GF :=
+  iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
+      (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
+        authApplyErrIs err ∗ auth.permVerdictFrom M n info k e op err ∗ W info k e err }}))
+
+/-- **The store's range check no older than `n`, with the refusal predicate `W`.** -/
+def isAuthStoreRangeLbW (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (n : Nat)
+    (W : auth.AuthInfo → GoString → GoString → GoInterface → IProp GF) : IProp GF :=
+  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
+    permCheck3LbW ai go!"IsRangePermitted" RD M n .read W)
+
+instance isAuthStoreRangeLbW_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
+    (n : Nat) (W : auth.AuthInfo → GoString → GoString → GoInterface → IProp GF) :
+    Persistent (isAuthStoreRangeLbW st RD M n W) := by
+  unfold isAuthStoreRangeLbW permCheck3LbW; infer_instance
+
+/-- `isAuthStoreRangeLb` is the range check with no refusal predicate. -/
+theorem isAuthStoreRangeLbW_of_Lb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (n : Nat) :
+    isAuthStoreRangeLb (GF := GF) st RD M n ⊢
+      isAuthStoreRangeLbW st RD M n (fun _ _ _ _ => iprop(True)) := by
+  iunfold isAuthStoreRangeLb
+  iintro ⟨%ai, %Hai, HP⟩
+  iunfold isAuthStoreRangeLbW
+  iexists ai; isplitr; · ipureintro; exact Hai
+  iunfold permCheck3Lb at HP
+  icases HP with #HP
+  iunfold permCheck3LbW
+  iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> Hpre HΦ
+  iapply HP $$ Hpre
+  iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, #Hv⟩
+  iapply HΦ; iframe Ha Hk He HRD Herr Hv
+
+/-- `isAuthStoreRangeLbR` is the range check with `auth.permRefusalM` its refusal predicate. -/
+theorem isAuthStoreRangeLbW_of_LbR (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (n : Nat) :
+    isAuthStoreRangeLbR (GF := GF) st RD M n ⊢
+      isAuthStoreRangeLbW st RD M n (fun info k e err => auth.permRefusalM M n info k e .read err) := by
+  iunfold isAuthStoreRangeLbR
+  iintro ⟨%ai, %Hai, HP⟩
+  iunfold isAuthStoreRangeLbW
+  iexists ai; isplitr; · ipureintro; exact Hai
+  iunfold permCheck3LbR at HP
+  icases HP with #HP
+  iunfold permCheck3LbW
+  iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> Hpre HΦ
+  iapply HP $$ Hpre
+  iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, #Hv, #Hr⟩
+  iapply HΦ; iframe Ha Hk He HRD Herr Hv Hr
+
 /-- **Every permission's verdict passed no older than `n`** (each check at its own state). -/
 def verdictsFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) (L : List Perm3) :
     IProp GF :=
@@ -379,13 +436,15 @@ theorem apply.isAuthStoreRangeLbR_of_authInv
   iapply apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
 
 /-- **`checkTxnReqsPermission` of a read-only branch no older than a lower bound**: every
-operation a get, each get's read checked at states no older than `n`. -/
-theorem apply.checkTxnReqs_lb :
-  ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (n : Nat) (ai : Loc)
+operation a get, each get's read checked at states no older than `n`; a refusal with the range
+check's refusal predicate `W` (G4). -/
+theorem apply.checkTxnReqs_lbW :
+  ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (n : Nat)
+    (W : auth.AuthInfo → GoString → GoString → GoInterface → IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
     (ps : List Loc) (ops : List txn.TxnOpW),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreRangeLb st RD on n ∗ ai ↦{dq} info ∗ RD ∗
+      apply.isAuthStoreRangeLbW st RD on n W ∗ ai ↦{dq} info ∗ RD ∗
       reqs ↦*□ ps ∗ txn.requestOpsIsW ps ops ∗ ⌜∀ op ∈ ops, apply.opW_isGet op = true⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
@@ -394,14 +453,14 @@ theorem apply.checkTxnReqs_lb :
       (∀ _ : err = GoInterface.nil, apply.opsClass on info (txn.TxnOpW.toOps ops)) ∗
       (∀ _ : err = GoInterface.nil, ∃ L, ⌜apply.opsChecked ops L⌝ ∗ apply.verdictsFrom on n info L) ∗
       (∀ _ : err ≠ GoInterface.nil, ∃ x : apply.Perm3, ⌜apply.opsMay ops x⌝ ∗
-        auth.permVerdictFrom on n info x.1 x.2.1 x.2.2 err) }} := by
-  intro st le RD on n ai info dq reqs ps ops
+        auth.permVerdictFrom on n info x.1 x.2.1 x.2.2 err ∗ W info x.1 x.2.1 err) }} := by
+  intro st le RD on n W ai info dq reqs ps ops
   wp_start as ⟨#Hst, Hai, Hrd, #Hreqs, #Hops, %Hro⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hreqs
   ihave #Hst' := Hst
-  iunfold apply.isAuthStoreRangeLb at Hst'
+  iunfold apply.isAuthStoreRangeLbW at Hst'
   icases Hst' with ⟨%sti, %Hsti, #HRange⟩
-  iunfold apply.permCheck3Lb at HRange
+  iunfold apply.permCheck3LbW at HRange
   subst Hsti
   wp_auto
   irename «as» => Has
@@ -456,7 +515,7 @@ theorem apply.checkTxnReqs_lb :
       simp only [Hrn, decide_false]
       wp_auto
       wp_apply HRange $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hai Hrd]
-        as %err ⟨Hai, -, -, Hrd, #HeI1, #Hpv1⟩
+        as %err ⟨Hai, -, -, Hrd, #HeI1, #Hpv1, Hw1⟩
       · iframe; iframe #; ipureintro; exact Hkb
       ihave %Hoff := apply.permVerdictFrom_isOn on n info k e .read err $$ Hpv1
       cases err with
@@ -500,7 +559,7 @@ theorem apply.checkTxnReqs_lb :
         · iintro %h; cases h
         iintro %_
         iexists (k, e, .read)
-        iframe Hpv1
+        iframe Hpv1 Hw1
         ipureintro; exact hmay
     all_goals exact absurd hget (by simp [apply.opW_isGet])
   iapply HΦ; iframe Hai Hrd
@@ -558,9 +617,47 @@ abbrev apply.CheckTxnAuth.specLb : Prop :=
       (∀ _ : err ≠ GoInterface.nil, ∃ x : apply.Perm3, ⌜apply.txnMay t x⌝ ∗
         auth.permVerdictFrom on n info x.1 x.2.1 x.2.2 err) }}
 
-theorem apply.checkTxnPermission.wp_lb :
-    apply.checkTxnPermission.specLb (GF := GF) (hG := hG) := by
-  intro st le RD on n ai info dq rt t
+/-- **`checkTxnPermission` of a read-only transaction no older than a reader's lower bound** (the
+read path's `CheckTxnAuth`, see the file header), with the range check's refusal predicate `W`
+(G4; `W := True` is `specLb`, `auth.permRefusalM` the refusal with why): a pass is each checked permission's verdict
+passed at states no older than `n`; a refusal one checkable permission's verdict refused there. -/
+abbrev apply.checkTxnPermission.specLbW : Prop :=
+  ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (n : Nat)
+    (W : auth.AuthInfo → GoString → GoString → GoInterface → IProp GF) (ai : Loc)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      apply.isAuthStoreRangeLbW st RD on n W ∗ ai ↦{dq} info ∗ RD ∗
+      txn.txnRequestIsW rt t ∗ ⌜apply.readonlyW t⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
+      (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
+      ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
+      (∀ _ : err = GoInterface.nil, ∃ L, ⌜apply.txnChecked t L⌝ ∗ apply.verdictsFrom on n info L) ∗
+      (∀ _ : err ≠ GoInterface.nil, ∃ x : apply.Perm3, ⌜apply.txnMay t x⌝ ∗
+        auth.permVerdictFrom on n info x.1 x.2.1 x.2.2 err ∗ W info x.1 x.2.1 err) }}
+
+/-- **`CheckTxnAuth` of a read-only transaction no older than a reader's lower bound**
+(`checkTxnPermission`'s), with the range check's refusal predicate `W` (G4). -/
+abbrev apply.CheckTxnAuth.specLbW : Prop :=
+  ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (n : Nat)
+    (W : auth.AuthInfo → GoString → GoString → GoInterface → IProp GF) (ai : Loc)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      apply.isAuthStoreRangeLbW st RD on n W ∗ ai ↦{dq} info ∗ RD ∗
+      txn.txnRequestIsW rt t ∗ ⌜apply.readonlyW t⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
+      (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
+      ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
+      (∀ _ : err = GoInterface.nil, ∃ L, ⌜apply.txnChecked t L⌝ ∗ apply.verdictsFrom on n info L) ∗
+      (∀ _ : err ≠ GoInterface.nil, ∃ x : apply.Perm3, ⌜apply.txnMay t x⌝ ∗
+        auth.permVerdictFrom on n info x.1 x.2.1 x.2.2 err ∗ W info x.1 x.2.1 err) }}
+
+theorem apply.checkTxnPermission.wp_lbW :
+    apply.checkTxnPermission.specLbW (GF := GF) (hG := hG) := by
+  intro st le RD on n W ai info dq rt t
   wp_start as ⟨#Hst, Hai, Hrd, #Hrt, %Hro⟩
   iunfold txn.txnRequestIsW at Hrt
   icases Hrt with ⟨%Hrtn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcsl, #Hcs, #Hs, #Hssl, #Hss,
@@ -569,9 +666,9 @@ theorem apply.checkTxnPermission.wp_lb :
   iunfold txn.comparesIs at Hcs
   icases Hcs with ⟨%Hcl, #Hcs⟩
   ihave #Hst' := Hst
-  iunfold apply.isAuthStoreRangeLb at Hst'
+  iunfold apply.isAuthStoreRangeLbW at Hst'
   icases Hst' with ⟨%sti, %Hsti, #HRange⟩
-  iunfold apply.permCheck3Lb at HRange
+  iunfold apply.permCheck3LbW at HRange
   subst Hsti
   wp_auto
   irename «as» => Has
@@ -617,7 +714,7 @@ theorem apply.checkTxnPermission.wp_lb :
     icases Hvs with ⟨%Lp, %hLp, #HLp⟩
     wp_auto
     wp_apply HRange $$ %ai %info %dq %ksl %esl %cm.key %e %DFrac.discard %DFrac.discard [Hai Hrd]
-      as %err ⟨Hai, -, -, Hrd, #HeI7, #Hpv7⟩
+      as %err ⟨Hai, -, -, Hrd, #HeI7, #Hpv7, Hw7⟩
     · iframe; iframe #; ipureintro; exact Hkb
     ihave %Hoff := apply.permVerdictFrom_isOn on n info cm.key e .read err $$ Hpv7
     cases err with
@@ -654,7 +751,7 @@ theorem apply.checkTxnPermission.wp_lb :
       · iintro %h; cases h
       iintro %_
       iexists (cm.key, e, .read)
-      iframe Hpv7
+      iframe Hpv7 Hw7
       ipureintro; exact hmay
   have hle : t.cmps.length ≤ sint.nat m := by unfold sint.nat at *; word
   icases Hvs with ⟨%L1, %hL1, #HL1⟩
@@ -663,8 +760,8 @@ theorem apply.checkTxnPermission.wp_lb :
     Hro op (List.mem_append_left _ h)
   have hroe : ∀ op ∈ t.elseOps, apply.opW_isGet op = true := fun op h =>
     Hro op (List.mem_append_right _ h)
-  wp_apply (apply.checkTxnReqs_lb _ le RD on n ai info dq ssl sps t.thenOps)
-    $$ [$Hst $Hai $Hrd $Hssl $Hss] as %err ⟨Hai, Hrd, #HeI8, %Hof8, #Hcls8, #Hpass8, #Href8⟩
+  wp_apply (apply.checkTxnReqs_lbW _ le RD on n W ai info dq ssl sps t.thenOps)
+    $$ [$Hst $Hai $Hrd $Hssl $Hss] as %err ⟨Hai, Hrd, #HeI8, %Hof8, #Hcls8, #Hpass8, Href8⟩
   · ipureintro; exact hrot
   cases err with
   | ok e' =>
@@ -677,14 +774,14 @@ theorem apply.checkTxnPermission.wp_lb :
     isplitl []
     · iintro %h; cases h
     iintro %_
-    ihave ⟨%x, %hx, #Hx⟩ := Href8 $$ %(fun h => by cases h)
+    ihave ⟨%x, %hx, #Hx, Hwx⟩ := Href8 $$ %(fun h => by cases h)
     iexists x
-    iframe Hx
+    iframe Hx Hwx
     ipureintro; exact Or.inr (Or.inl hx)
   | nil =>
   wp_auto
-  wp_apply (apply.checkTxnReqs_lb _ le RD on n ai info dq fsl fps t.elseOps)
-    $$ [$Hst $Hai $Hrd $Hfsl $Hfs] as %err ⟨Hai, Hrd, #HeI9, %Hof9, #Hcls9, #Hpass9, #Href9⟩
+  wp_apply (apply.checkTxnReqs_lbW _ le RD on n W ai info dq fsl fps t.elseOps)
+    $$ [$Hst $Hai $Hrd $Hfsl $Hfs] as %err ⟨Hai, Hrd, #HeI9, %Hof9, #Hcls9, #Hpass9, Href9⟩
   · ipureintro; exact hroe
   iapply HΦ; iframe Hai Hrd HeI9
   isplitl []
@@ -711,10 +808,29 @@ theorem apply.checkTxnPermission.wp_lb :
       iapply apply.verdictsFrom_append
       iframe HL2 HL3
   · iintro %herr
-    ihave ⟨%x, %hx, #Hx⟩ := Href9 $$ %herr
+    ihave ⟨%x, %hx, #Hx, Hwx⟩ := Href9 $$ %herr
     iexists x
-    iframe Hx
+    iframe Hx Hwx
     ipureintro; exact Or.inr (Or.inr hx)
+
+/-- `specLb`, the refusal predicate `True` (`specLbW`'s). -/
+theorem apply.checkTxnPermission.wp_lb :
+    apply.checkTxnPermission.specLb (GF := GF) (hG := hG) := by
+  intro st le RD on n ai info dq rt t
+  iintro %Φ Hpre HΦ
+  icases Hpre with ⟨#Hpkg, #Hst, Hai, Hrd, #Hrt, %Hro⟩
+  ihave #HstW := apply.isAuthStoreRangeLbW_of_Lb st RD on n $$ Hst
+  iapply (apply.checkTxnPermission.wp_lbW st le RD on n (fun _ _ _ _ => iprop(True)) ai info dq rt t)
+    $$ %Φ [Hai Hrd]
+  · iframe Hpkg HstW Hai Hrd Hrt; ipureintro; exact Hro
+  inext
+  iintro %err ⟨Hai, Hrd, #He, %Hof, #Hc, #Hp, Hr⟩
+  iapply HΦ; iframe Hai Hrd He Hc Hp
+  isplitr
+  · ipureintro; exact Hof
+  iintro %herr
+  ihave ⟨%x, %hx, #Hx, -⟩ := Hr $$ %herr
+  iexists x; iframe Hx; ipureintro; exact hx
 
 theorem apply.CheckTxnAuth.wp_lb
     (hTxn : apply.checkTxnPermission.specLb (GF := GF) (hG := hG)) :
@@ -729,6 +845,20 @@ theorem apply.CheckTxnAuth.wp_lb
 /-- `CheckTxnAuth.specLb`, linked (its only callee's proof is in this file). -/
 theorem apply.CheckTxnAuth.wp_lb_linked : apply.CheckTxnAuth.specLb (GF := GF) (hG := hG) :=
   apply.CheckTxnAuth.wp_lb apply.checkTxnPermission.wp_lb
+
+theorem apply.CheckTxnAuth.wp_lbW
+    (hTxn : apply.checkTxnPermission.specLbW (GF := GF) (hG := hG)) :
+    apply.CheckTxnAuth.specLbW (GF := GF) (hG := hG) := by
+  intro st le RD on n W ai info dq rt t
+  wp_start as ⟨#Hst, Hai, Hrd, #Hrt, %Hro⟩
+  wp_auto
+  wp_apply (hTxn st le RD on n W ai info dq rt t) $$ [$Hst $Hai $Hrd $Hrt] as %err Hai
+  · ipureintro; exact Hro
+  iapply HΦ; iexact Hai
+
+/-- `CheckTxnAuth.specLbW`, linked. -/
+theorem apply.CheckTxnAuth.wp_lbW_linked : apply.CheckTxnAuth.specLbW (GF := GF) (hG := hG) :=
+  apply.CheckTxnAuth.wp_lbW apply.checkTxnPermission.wp_lbW
 
 end proof
 

@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -44,7 +45,10 @@ raft log `L` at which the deposit gave `□ Q L` (`rangeReadOkM`). Failure: no r
 the gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, mvcc's `ErrFutureRev`, or
 the context's), and which (`rangeErrOut`, k8s etcd3 7c-2 part 2, S3: mvcc's `ErrFutureRev` and
 `ErrCompacted` with the read's facts at the error, `rangeErrAt`). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
-modes' former specs). -/
+modes' former specs). (auth-guard-completeness G4, 2026-11-14) And why, if the auth checks refused
+it (`rangeWhyOut`): with auth on, the request side's reasons, the read check of `[key, e)` refusing
+the auth info the request side gave (`permWhy`, at states no older than `n`), or `doSerialize`'s
+revision re-check (`oldRevWhy`); otherwise the error is the read index's or the read's own. -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
@@ -64,7 +68,7 @@ abbrev EtcdServer.Range.spec : Prop :=
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM E.authOn E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-          rangeErrOut E.authOn E γr c F o Q err)) }}
+          rangeErrOut E.authOn E γr c F o Q err ∗ rangeWhyOut s E.authMode n (GoInterface.ok ctx) o err)) }}
 
 end spec
 

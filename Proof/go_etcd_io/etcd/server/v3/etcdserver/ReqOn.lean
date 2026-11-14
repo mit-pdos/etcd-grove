@@ -818,6 +818,63 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
       iintro !> -
       iapply Hb; ipureintro; exact hon
 
+/-- **`wpM` read with a lower bound `n`** (auth-guard-completeness G4, `doSerialize`): over
+`AuthInfoFromCtx.specLb`, with auth on also why it gave no principal or an error, and that a
+principal comes with the flag read `true` at a state no older than `n` or from the TLS fallback. -/
+theorem EtcdServer.AuthInfoFromCtx.wpMLb (on : Bool)
+    (hAuth : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (st : GoInterface) (cca : Bool) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (n : Nat) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
+      srvAuthBoundM on s E ∗ □ auth.authPubLbM E.authMode n ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗
+      context.libCtxOk ctx ∗ E.RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
+      □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) ∗
+      □ (⌜on = true⌝ → ∀ _ : a = null ∧ err = GoInterface.nil,
+        auth.noPrincipalFrom E.authMode n (GoInterface.ok ctx)) ∗
+      □ (⌜on = true⌝ → ∀ _ : err ≠ GoInterface.nil,
+        auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom E.authMode n true ∗
+          auth.tokRefusedFrom E.authMode n (GoInterface.ok ctx)) ∗
+      □ (⌜on = true⌝ → ∀ _ : a ≠ null, auth.enabledVerdictFrom E.authMode n true ∨ srvTLSId s) }} := by
+  cases on
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, -, #Hcca, #Hctx, #Hlib, Hrd⟩ HΦ
+    iapply (hAuth s st E.RD .off cca ctx cd n) $$ [Hrd] [HΦ]
+    · iframe Hrd; iframe #
+      isplitl
+      · iintro !> %h; exact absurd h (by decide)
+      · iintro !>; unfold auth.authPubLbM; itrivial
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, -⟩
+      iapply HΦ; iframe Hrd Ha Herr
+      isplitl
+      · iintro !> %h; cases h
+      isplitl
+      · iintro !> %h; cases h
+      isplitl
+      · iintro !> %h; cases h
+      · iintro !> %h; cases h
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hlb, #Hcca, #Hctx, #Hlib, Hrd⟩ HΦ
+    unfold srvAuthBoundM
+    icases Hbd with ⟨#Hbd, %hon⟩
+    ihave #Hbd2 : □ (⌜E.authOn = true⌝ → srvAuthBound s E) $$ []
+    · iintro !> -; iexact Hbd
+    ihave #Hreqb := srvAuthBound_gate s E st $$ [$Hst $Hbd2]
+    iapply (hAuth s st E.RD E.authMode cca ctx cd n) $$ [Hrd] [HΦ]
+    · iframe Hrd; iframe #
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb, -, #Hz, #Hne, #Hnn⟩
+      have hon' : E.authMode.isOn = true := hon
+      iapply HΦ; iframe Hrd Ha Herr
+      isplitl
+      · iintro !> -; iapply Hb; ipureintro; exact hon'
+      isplitl
+      · iintro !> -; iapply Hz; ipureintro; exact hon'
+      isplitl
+      · iintro !> -; iapply Hne; ipureintro; exact hon'
+      · iintro !> -; iapply Hnn; ipureintro; exact hon'
+
 end lemmas
 
 /-! ## A put in the mode `on` -/

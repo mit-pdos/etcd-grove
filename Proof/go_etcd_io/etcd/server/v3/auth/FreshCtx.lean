@@ -44,7 +44,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- `as.AuthInfoFromCtx(ctx)` read by a reader with the lower bound `n`: `spec`'s post, and on
 `(nil, nil)` no principal from the request side (`noPrincipalFrom`), on an error `ErrInvalidAuthToken`
-for a token the context carries (`tokRefusedFrom`). -/
+for a token the context carries (`tokRefusedFrom`), and with a principal the flag read `true` at a state
+no older than `n` (`store.go:1073`: a principal only past `IsAuthEnabled()`; auth-guard-completeness G4,
+for `doSerialize`'s revision re-check). -/
 abbrev auth.authStore.AuthInfoFromCtx.specLb : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (n : Nat) (ctx : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
@@ -56,7 +58,8 @@ abbrev auth.authStore.AuthInfoFromCtx.specLb : Prop :=
       authErrIs err ∗ ctxBound M (GoInterface.ok ctx) a ∗
       (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
       (∀ _ : err ≠ GoInterface.nil, authErrOf .invalidAuthToken err ∗ enabledVerdictFrom M n true ∗
-        auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}
+        auth.tokRefusedFrom M n (GoInterface.ok ctx)) ∗
+      (∀ _ : a ≠ null, enabledVerdictFrom M n true) }}
 
 end spec
 
@@ -102,7 +105,9 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
     · iunfold ctxBound; ileft; ipureintro; rfl
     isplitr
     · iintro %_; iunfold noPrincipalFrom; iright; iexact Hev
+    isplitr
     · iintro %Hne; exact absurd rfl Hne
+    · iintro %Hnn; exact absurd rfl Hnn
   wp_auto
   wp_apply (h_FromIncomingContext ctx) $$ [$Hinc] as %md %ok Hmd
   icases Hmd with (⟨%Hok, %Hinc⟩ | ⟨%md0, %m, ⟨%Hok, %Hinc, %Hdom⟩, Hm, Hvals⟩)
@@ -118,7 +123,9 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
     · iunfold ctxBound; ileft; ipureintro; rfl
     isplitr
     · iintro %_; iunfold noPrincipalFrom; ileft; iframe Hev; ipureintro; unfold ctxTokenOf; rw [Hinc]
+    isplitr
     · iintro %Hne; exact absurd rfl Hne
+    · iintro %Hnn; exact absurd rfl Hnn
   subst Hok
   wp_auto
   wp_apply wp_map_lookup2 go.string _ md m go!"token" $$ Hm as Hm
@@ -184,9 +191,11 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
       · iunfold ctxBound; ileft; ipureintro; rfl
       isplitr
       · iintro %Hz; exact absurd Hz.2 (fun h => by cases h)
+      isplitr
       · iintro %_; isplitr
         · iunfold authErrOf; iexists eIT; simp only [AuthErr.var]; iframe HeITa
         · iframe Hev; iunfold tokRefusedFrom; ipureintro; exact ⟨_, Htk⟩
+      · iintro %Hnn; exact absurd rfl Hnn
     · (try wp_auto)
       iapply HΦ
       iframe
@@ -206,7 +215,9 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
         iunfold infoBound at Hb'
         icases Hb' with ⟨%Hann, -⟩
         exact absurd Hz.1 Hann
+      isplitr
       · iintro %Hne; exact absurd rfl Hne
+      · iintro %_; iexact Hev
   | none =>
     simp only [Option.isSome_none, Option.getD_none]
     wp_auto
@@ -274,9 +285,11 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
         · iunfold ctxBound; ileft; ipureintro; rfl
         isplitr
         · iintro %Hz; exact absurd Hz.2 (fun h => by cases h)
+        isplitr
         · iintro %_; isplitr
           · iunfold authErrOf; iexists eIT; simp only [AuthErr.var]; iframe HeITa
           · iframe Hev; iunfold tokRefusedFrom; ipureintro; exact ⟨_, Htk⟩
+        · iintro %Hnn; exact absurd rfl Hnn
       · (try wp_auto)
         iapply HΦ
         iframe
@@ -296,7 +309,9 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
           iunfold infoBound at Hb'
           icases Hb' with ⟨%Hann, -⟩
           exact absurd Hz.1 Hann
+        isplitr
         · iintro %Hne; exact absurd rfl Hne
+        · iintro %_; iexact Hev
     | none =>
       simp only [Option.isSome_none, Option.getD_none]
       wp_auto
@@ -311,7 +326,9 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
       isplitr
       · iintro %_; iunfold noPrincipalFrom; ileft; iframe Hev; ipureintro
         unfold ctxTokenOf; rw [Hinc]; simp only [(Hdom _).1 h1, (Hdom _).1 h2]
+      isplitr
       · iintro %Hne; exact absurd rfl Hne
+      · iintro %Hnn; exact absurd rfl Hnn
 
 end proof
 

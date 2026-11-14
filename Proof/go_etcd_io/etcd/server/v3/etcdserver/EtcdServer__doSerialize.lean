@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 
@@ -43,15 +44,72 @@ theorem authInfoIs_ptsto (a : Loc) (user : GoString) (rev : w64) :
     iframe Hu Hr
   · ipureintro; exact Hn
 
+/-- `AuthInfoFromCtx`'s error is the request side's reason (`serialWhy`'s first case). -/
+theorem serialWhy_of_ctxErr (s : Loc) (M : auth.AuthMode) (on : Bool) (hon : M.isOn = true → on = true)
+    (n : Nat) (ctx err : GoInterface)
+    (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF) (herr : err ≠ GoInterface.nil) :
+    □ (⌜on = true⌝ → ∀ _ : err ≠ GoInterface.nil,
+        auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom M n true ∗
+          auth.tokRefusedFrom M n ctx) ⊢ serialWhy (GF := GF) s M n ctx err R := by
+  cases M with
+  | on γa =>
+    iintro #H
+    ihave ⟨#Hit, #Hen, #Htk⟩ := H $$ %(hon rfl) %herr
+    unfold serialWhy reqSideWhy
+    ileft; iframe Hen; iright; iframe Hit Htk
+  | _ => iintro -; unfold serialWhy; itrivial
+
+/-- `chk`'s refusal of the auth info the request side gave (`serialWhy`'s second case). -/
+theorem serialWhy_of_chk (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    □ (⌜M.isOn = true⌝ → infoWhy s M n ctx info) ∗ R info err ⊢
+      serialWhy (GF := GF) s M n ctx err R := by
+  cases M with
+  | on γa =>
+    iintro ⟨#Hi, HR⟩
+    ihave #Hi' := Hi $$ %rfl
+    unfold serialWhy
+    iright; ileft; iexists info; iframe Hi' HR
+  | _ => iintro -; unfold serialWhy; itrivial
+
+/-- The revision re-check's refusal (`serialWhy`'s third case): the auth info's non-zero revision,
+not the revision read at a state no older than `n`. -/
+theorem serialWhy_of_oldRev (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (x : w64) (h0 : info.Revision' ≠ W64 0)
+    (hx : info.Revision' ≠ x) :
+    □ (⌜M.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ → principalBound s M ctx (some info) ∗
+        (auth.enabledVerdictFrom M n true ∨ srvTLSId s)) ∗
+      auth.revisionVerdictFrom M n x ∗ auth.authErrOf .authOldRevision err ⊢
+      serialWhy (GF := GF) s M n ctx err R := by
+  cases M with
+  | on γa =>
+    iintro ⟨#Hb, #Hv, #He⟩
+    ihave ⟨#Hpb, #Hen⟩ := Hb $$ %rfl %h0
+    unfold auth.revisionVerdictFrom
+    icases Hv with ⟨%j, %st, #Hst, %Hj⟩
+    unfold serialWhy oldRevWhy
+    iright; iright
+    iframe He
+    iexists info
+    iframe Hpb Hen
+    isplitr
+    · ipureintro; intro h; apply h0; exact uint_nat_inj _ _ (by rw [h]; rfl)
+    · iexists j, st; iframe Hst; ipureintro
+      refine ⟨Hj.1, ?_⟩
+      rw [← Hj.2]; intro h; exact hx (uint_nat_inj _ _ h.symm)
+  | _ => iintro -; unfold serialWhy; itrivial
+
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.doSerialize.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
-    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q C t e
-  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hlib, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
+  intro s E ρ γr ctx cd chk get G Q C R t e n
+  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, #Hctx, #Hlib, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
@@ -67,8 +125,8 @@ theorem EtcdServer.doSerialize.wp_proof
   wp_auto
   wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
   subst tr
-  wp_apply EtcdServer.AuthInfoFromCtx.wpM E.authOn hAI s E v.auth v.cca ctx cd $$ [Hard]
-    as %a %err ⟨Hard, Ha, #HaE, #Hab⟩
+  wp_apply EtcdServer.AuthInfoFromCtx.wpMLb E.authOn hAI s E v.auth v.cca ctx cd n $$ [Hard]
+    as %a %err ⟨Hard, Ha, #HaE, #Hab, #Hz, #Hne, #Hnn⟩
   · iframe; iframe #
   cases err with
   | ok ei =>
@@ -78,14 +136,31 @@ theorem EtcdServer.doSerialize.wp_proof
     iright
     isplitr
     · ipureintro; intro h; cases h
-    iframe HaE; ileft; iframe HG Htrc
+    iframe HaE
+    isplitr
+    · iapply (serialWhy_of_ctxErr s E.authMode E.authOn (fun h => h) n _ _ R (by intro h; cases h)) $$ Hne
+    ileft; iframe HG Htrc
   | nil =>
     wp_auto
     wp_join iprop(∃ (a' : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
-        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info) with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib⟩
+        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
+        □ (⌜E.authMode.isOn = true⌝ → infoWhy s E.authMode n (GoInterface.ok ctx) info) ∗
+        □ (⌜E.authMode.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ →
+          principalBound s E.authMode (GoInterface.ok ctx) (some info) ∗
+          (auth.enabledVerdictFrom E.authMode n true ∨ srvTLSId s)))
+      with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib, #Hiw, #Hio⟩
     · iexists «$r0_ptr», _, DFrac.own 1
       iframe ai «$r0»
-      iapply infoBoundM_empty; rfl
+      isplitr
+      · iapply infoBoundM_empty; rfl
+      isplitr
+      · iintro !> %hon
+        unfold infoWhy
+        ileft
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl⟩
+        · iapply Hz $$ %hon; exact ⟨rfl, rfl⟩
+      · iintro !> - %h0; exact absurd rfl h0
     · iunfold authInfoOpt at Ha
       icases Ha with (%Han | ⟨%user, %rev, #Hai0⟩)
       · exact absurd Han Hif
@@ -94,11 +169,22 @@ theorem EtcdServer.doSerialize.wp_proof
       · iframe Hai0; iintro %h; iapply Hab $$ %h
       iexists a, _, DFrac.discard
       iframe ai Hp Hib
+      isplitr
+      · iintro !> %hon
+        unfold infoWhy
+        iright
+        iapply principalBound_of_ctxBoundOrTLS s E.authMode _ a user rev
+        iframe Hai0; iapply Hab $$ %hon
+      · iintro !> %hon -
+        isplitr
+        · iapply principalBound_of_ctxBoundOrTLS s E.authMode _ a user rev
+          iframe Hai0; iapply Hab $$ %hon
+        · iapply Hnn $$ %hon %Hif
     wp_bind (App (Val #chk) (Val #a'))
     iapply Hchk $$ [Hai Hard]
     · iframe
     inext
-    iintro %err' ⟨Hai, Hard, #HcE, HC⟩
+    iintro %err' ⟨Hai, Hard, #HcE, HC, HR⟩
     wp_auto
     cases err' with
     | ok ei =>
@@ -108,7 +194,12 @@ theorem EtcdServer.doSerialize.wp_proof
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iframe HcE; ileft; iframe HG Htrc
+      iframe HcE
+      isplitl [HR]
+      · iapply (serialWhy_of_chk s E.authMode n _ _ R info)
+        iframe Hiw
+        iapply HR; intro h; cases h
+      ileft; iframe HG Htrc
     | nil =>
       wp_auto
       wp_apply hStep t e _ slice.nil $$ [$Htrc] as Htrc
@@ -130,7 +221,11 @@ theorem EtcdServer.doSerialize.wp_proof
       · iapply apply.errVarLeaf_authApplyErrIs _
           (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) _ $$ HOld
         iexists eOld; iframe HeOld; ipureintro; rfl
+      ihave #HaOldE : auth.authErrOf (GF := GF) .authOldRevision (GoInterface.ok eOld) $$ []
+      · iunfold auth.authErrOf; iexists eOld; simp only [auth.AuthErr.var]; iframe HeOld
       rw [Heq, Hst]
+      ihave #HRevLb := srvAuthLb_revision s E ai0 n $$ [$HaLb $Hpub $HRev]
+      · rw [← Hst, ← Heq]; iexact Has
       wp_auto
       wp_if_destruct
       · iapply HΦ
@@ -140,7 +235,7 @@ theorem EtcdServer.doSerialize.wp_proof
         isplitr
         · ipureintro; rfl
         iexists _; iframe HCi Hib
-      · wp_apply HRev as %x -
+      · wp_apply HRevLb as %x #Hx
         wp_if_destruct
         · iapply HΦ
           iframe Hard
@@ -154,7 +249,11 @@ theorem EtcdServer.doSerialize.wp_proof
           iright
           isplitr
           · ipureintro; intro h; cases h
-          iframe HaOldA; iright; iexact HQ
+          iframe HaOldA
+          isplitr
+          · iapply (serialWhy_of_oldRev s E.authMode n _ _ R info x ‹_› ‹_›)
+            iframe Hio Hx HaOldE
+          iright; iexact HQ
 
 end proof
 

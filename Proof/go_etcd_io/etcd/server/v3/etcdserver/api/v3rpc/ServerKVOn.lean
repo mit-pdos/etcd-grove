@@ -1074,7 +1074,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, #HrO⟩)
+  icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, #HrO, -⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOkM at Hok'
     icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hres, Hown⟩
@@ -1254,7 +1254,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
         | exact ⟨fun _ => ⟨hg hro, Hany⟩, fun h => by cases h⟩
     iapply HΦ
     iunfold kvAnswer
-    icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hne, #HaE⟩)
+    icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hne, #HaE, -⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnReadOkM at Hok'
       icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hresp, Hown⟩

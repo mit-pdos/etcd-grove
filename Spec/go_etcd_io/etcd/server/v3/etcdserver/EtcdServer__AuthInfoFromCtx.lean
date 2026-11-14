@@ -58,7 +58,9 @@ principal (`(nil, nil)`: the flag read `true` at a state no older than `n` and t
 token, or the flag read `false` at such a state, `auth.noPrincipalFrom`; the TLS fallback returns `nil`
 only after the store's `(nil, nil)`) and why it failed (`ErrInvalidAuthToken`: the flag read `true` at
 such a state and the context carries a token, `auth.tokRefusedFrom`; the token provider's contract says
-nothing more of a refused token). -/
+nothing more of a refused token). (G4, 2026-11-14) A principal comes with the flag read `true` at such a
+state (the store's, `store.go:1073`), or from the TLS fallback (`srvTLSId`), which reads no flag
+(`AuthInfoFromTLS`, `v3_server.go:1214`; `nonissues/etcd-auth-old-revision-auth-disabled.md`). -/
 abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
   ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat),
@@ -76,7 +78,8 @@ abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
         auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
       □ (⌜M.isOn = true⌝ → ∀ _ : err ≠ GoInterface.nil,
         auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom M n true ∗
-          auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}
+          auth.tokRefusedFrom M n (GoInterface.ok ctx)) ∗
+      □ (⌜M.isOn = true⌝ → ∀ _ : a ≠ null, auth.enabledVerdictFrom M n true ∨ srvTLSId s) }}
 
 end spec
 

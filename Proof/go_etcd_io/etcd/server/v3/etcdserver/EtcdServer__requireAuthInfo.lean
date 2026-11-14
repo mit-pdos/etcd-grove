@@ -67,7 +67,7 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
     ihave #HbLb' := HbLb $$ %Hon
     wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n)
-      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, #Hae, #Hz, #Hne⟩
+      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, #Hae, #Hz, #Hne, -⟩
     · iframe #
     ihave #Herr := authApplyErrIs_apply _ $$ Herr0
     ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []

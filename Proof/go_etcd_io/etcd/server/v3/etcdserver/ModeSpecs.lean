@@ -518,22 +518,32 @@ theorem EtcdServer.doSerialize.spec_off
     EtcdServer.doSerialize.specOff (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd chk get G Q C t e
   iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, #Hb, Hpre⟩
+  icases Hpre with ⟨Ha, #Hb, Hrd, Hctx, Hlib, Hct, #Hchk, Hget, HG, Htrc, Hard⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
-  have hM := h s E ρ γr ctx cd chk get G Q C t e
+  ihave #HaLb := srvAuthLb_off s E ρ $$ Hb
+  have hoff : E.authMode = .off := by
+    unfold apply.AEnv.authOn at hon
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  have hM := h s E ρ γr ctx cd chk get G Q C (fun _ _ => iprop(True)) t e 0
   rw [hon] at hM
-  iapply hM $$ %Φ [Ha Hpre]
-  · rw [isServerReqM_false, isServerReadM_false]; iframe Ha Hb Hpre
+  iapply hM $$ %Φ [Ha Hrd Hctx Hlib Hct Hget HG Htrc Hard]
+  · rw [isServerReqM_false, isServerReadM_false]
+    iframe Ha Hb Hrd Hctx Hlib Hct Hget HG Htrc Hard HaLb
+    isplitr
+    · iintro !>; rw [hoff]; unfold auth.authPubLbM; itrivial
+    · iintro %a %info %dq !> %Φ' Hp HΦ'
+      iapply Hchk $$ Hp
+      iintro !> %err ⟨H1, H2, H3, H4⟩
+      iapply HΦ'; iframe H1 H2 H3 H4; iintro %_; itrivial
   inext
   iintro %err ⟨Hrd, Hres⟩
   iapply HΦ
   iframe Hrd
-  icases Hres with (⟨%He, ⟨%info, HC, -⟩, HQ⟩ | Hr)
+  icases Hres with (⟨%He, ⟨%info, HC, -⟩, HQ⟩ | ⟨%Hne, HE, -, Hr⟩)
   · ileft; iframe HQ; isplitr
     · ipureintro; exact He
     · iexists info; iexact HC
-  · iright; iexact Hr
-
+  · iright; iframe HE Hr; ipureintro; exact Hne
 
 end corollaries
 

@@ -193,6 +193,40 @@ theorem srvAuthLb_rangeCheckR (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk)
     iapply apply.rangeCheckFromR_of_permCheck3 $$ HP3
     intro γa h; cases h
 
+/-- **The store's `Revision()` at the reader's lower bound** (auth-guard-completeness G4,
+`doSerialize`'s re-check): with auth on, the lease checks' row of `srvAuthLb` (`isAuthStoreLeaseLb`'s
+`Revision`, a state no older than `n`); otherwise `True`. -/
+theorem srvAuthLb_revision (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) (n : Nat) :
+    srvAuthStoreAddr s ↦□ (GoInterface.ok ai) ∗ srvAuthLb s E ∗ □ auth.authPubLbM E.authMode n ∗
+      □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
+        {{ (x : w64), RET #x; auth.revisionVerdict E.authMode x }}) ⊢
+    □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
+        {{ (x : w64), RET #x; auth.revisionVerdictFrom E.authMode n x }}) := by
+  iintro ⟨#Hf, #HLb, #Hpub, #HRev⟩
+  cases hM : E.authMode with
+  | on γa =>
+    iunfold srvAuthLb at HLb
+    icases HLb with ⟨%au, #Hf2, #HLbM⟩
+    icombine Hf Hf2 gives %Hau
+    subst Hau
+    ihave #HL : iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
+        isAuthStoreLeaseLb (GoInterface.ok ai) E.RD (.on γa) n) $$ []
+    · iapply authStoreLbM_lease γa _ E.RD; rw [← hM]; iexact HLbM
+    ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
+    · rw [← hM]; iexact Hpub
+    ihave #HLn := HL $$ Hpub'
+    iunfold isAuthStoreLeaseLb at HLn
+    icases HLn with ⟨%ai', %Hai', -, #HR, -⟩
+    cases Hai'
+    iexact HR
+  | _ =>
+    iintro !> %Φ !> - HΦ
+    iapply HRev $$ []
+    · itrivial
+    iintro !> %x -
+    iapply HΦ
+    unfold auth.revisionVerdictFrom; itrivial
+
 /-- **A successful `Range` in the auth mode `on`** (`rangeReadOk` with the deposit's committed log
 `L` at the mode's model, `kvModelM on`; `rangeReadOk` at `on = false`, by definition). -/
 def rangeReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)

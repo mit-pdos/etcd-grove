@@ -351,7 +351,92 @@ theorem permWhy_off (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterfa
   | any => cases h
   | on γa => cases h
 
+/-! ### The serializable read path (auth-guard-completeness G4) -/
+
+/-- **The auth info a check saw, as the request side gave it** (persistent; `permWhy`'s principal
+part): the anonymous one (`AuthInfo{}`, `doSerialize`'s and `isWatchPermitted`'s stand-in when the
+request side gave none, `auth.noPrincipalFrom`), or one bound to the request (`principalBound`). -/
+def infoWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  iprop((⌜info.Username' = (zeroValDef : GoString) ∧ info.Revision' = W64 0⌝ ∗
+      auth.noPrincipalFrom M n ctx) ∨ principalBound s M ctx (some info))
+
+instance infoWhy_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (infoWhy (GF := GF) s M n ctx info) := by
+  unfold infoWhy; infer_instance
+
+/-- **Why `doSerialize`'s revision re-check refused** (persistent; `v3_server.go:1053`,
+`if ai.Revision != 0 && ai.Revision != s.authStore.Revision()`): `ErrAuthOldRevision`, for an auth
+info with a non-zero revision bound to the request (`principalBound`) that the request side gave
+with the flag read `true` at a state no older than `n` (or through the TLS fallback, `srvTLSId`,
+which reads no flag: `nonissues/etcd-auth-old-revision-auth-disabled.md`), and a state no older
+than `n` (`Revision()`'s read, after the read) whose revision is not the info's. -/
+def oldRevWhy (s : Loc) (γa : auth.AuthNames) (n : Nat) (ctx err : GoInterface) : IProp GF :=
+  iprop(auth.authErrOf .authOldRevision err ∗ ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
+    ⌜uint.nat info.Revision' ≠ 0⌝ ∗ principalBound s (.on γa) ctx (some info) ∗
+    (auth.enabledVerdictFrom (.on γa) n true ∨ srvTLSId s) ∗
+    ∃ (j : Nat) (sr : auth.AuthState), auth.authStateAt γa j sr ∗
+      ⌜n ≤ j ∧ sr.revision ≠ uint.nat info.Revision'⌝)
+
+instance oldRevWhy_persistent (s : Loc) (γa : auth.AuthNames) (n : Nat) (ctx err : GoInterface) :
+    Persistent (oldRevWhy (GF := GF) s γa n ctx err) := by
+  unfold oldRevWhy; infer_instance
+
+/-- **Why `doSerialize` refused** on the server `s`, its check's refusal being `R info err` for the
+auth info `info` it passed (G4; `v3_server.go:1035-1057`): with auth on, the request side's reasons
+(`reqSideWhy`), or the check's refusal of the auth info the request side gave (`infoWhy`), or its
+own revision re-check (`oldRevWhy`); `True` in the modes `off` (the off store's request side leaves
+`AuthInfoFromCtx`'s error free, as `adminWhy`) and `any`. -/
+def serialWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF) : IProp GF :=
+  match M with
+  | .on γa => iprop(reqSideWhy M n ctx err ∨ (∃ info, infoWhy s M n ctx info ∗ R info err) ∨
+      oldRevWhy s γa n ctx err)
+  | _ => iprop(True)
+
+/-- `permRefusalFrom` at a later lower bound is one at an earlier. -/
+theorem auth.permRefusalFrom_mono (γa : auth.AuthNames) (n n' : Nat) (h : n ≤ n')
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType)
+    (err : GoInterface) :
+    auth.permRefusalFrom (GF := GF) γa n' info key rangeEnd op err ⊢
+      auth.permRefusalFrom γa n info key rangeEnd op err := by
+  unfold auth.permRefusalFrom
+  iintro ⟨⟨%i, %sf, #Hsf, %Hi⟩, H⟩
+  isplitr
+  · iexists i, sf; iframe Hsf; ipureintro; exact ⟨Nat.le_trans h Hi.1, Hi.2⟩
+  icases H with (⟨#He, %Hr⟩ | ⟨#He, %j, %sr, #Hsr, %Hj⟩ |
+    ⟨#He, %j, %ju, %jc, %sr, %su, %sc, #Hsr, #Hsu, #Hsc, %Hj⟩)
+  · ileft; iframe He; ipureintro; exact Hr
+  · iright; ileft; iframe He; iexists j, sr; iframe Hsr; ipureintro
+    exact ⟨Nat.le_trans h Hj.1, Hj.2⟩
+  · iright; iright; iframe He; iexists j, ju, jc, sr, su, sc; iframe Hsr Hsu Hsc; ipureintro
+    exact ⟨Nat.le_trans h Hj.1, Nat.le_trans h Hj.2.1, Nat.le_trans h Hj.2.2.1, Hj.2.2.2⟩
+
+/-- `permWhy` from the check's principal and its refusal at a later bound. -/
+theorem permWhy_of_infoWhy (s : Loc) (γa : auth.AuthNames) (n n' : Nat) (h : n ≤ n')
+    (ctx err : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString)
+    (op : auth.PermType) (herr : err ≠ GoInterface.nil) :
+    infoWhy (GF := GF) s (.on γa) n ctx info ⊢ auth.permRefusalM (.on γa) n' info key rangeEnd op err -∗
+      permWhy s (.on γa) n ctx err info key rangeEnd op := by
+  unfold infoWhy permWhy auth.permRefusalM
+  iintro #Hi #Hr
+  ihave #Hr' := Hr $$ %herr
+  iright
+  isplitr
+  · iexact Hi
+  · iapply (auth.permRefusalFrom_mono γa n n' h) $$ Hr'
+
 end defs
+
+section defs2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+end defs2
 
 section apart
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -497,6 +582,27 @@ theorem authedWhy_not_permissionDenied (γa : auth.AuthNames) (n : Nat) (ctx err
       (by simp [auth.AuthErr.var, go_etcd_io.etcd.server.v3.auth.authErrMsgs])
       (by simp [auth.AuthErr.var, go_etcd_io.etcd.server.v3.auth.authErrMsgs])
       (by decide) err) $$ Hpkg Hit Hpd
+
+/-- **An error variable whose message cell is not an auth message is not an auth error variable**
+(the cells' messages: `readErrIs_authErrVarIs`'s argument, for any package's `errors.New` variable). -/
+theorem errVarCell_authErrVarIs (X m : GoString) (err : GoInterface)
+    (hm : m ∉ go_etcd_io.etcd.server.v3.auth.authErrTexts) (hne : err ≠ GoInterface.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢
+      EtcdGrove.errVarCell X m -∗ globalAddr X ↦□ err -∗ authErrVarIs err -∗ False := by
+  iintro #Hpa #HcX #HX #Ha
+  ihave ⟨%x, %m', ⟨%Hx, %Hm⟩, #Hcell⟩ := authErrVarIs_cell err hne $$ Hpa Ha
+  iunfold EtcdGrove.errVarCell at HcX
+  icases HcX with ⟨%y, #Hy, #Hcy⟩
+  icombine HX Hy gives %Heq
+  rw [Hx] at Heq
+  injection Heq with Heq
+  injection Heq with _ Hv
+  have hxy : x = y := go.intoVal_inj (V := Loc) Hv
+  subst hxy
+  iunfold EtcdGrove.errStrCell at Hcell Hcy
+  icombine Hcell Hcy gives %Hmm
+  exfalso; apply hm
+  rw [← go_etcd_io.etcd.server.v3.auth.authErrMsgs_snd, ← Hmm]; exact Hm
 
 end apart
 
