@@ -598,6 +598,43 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       create_seg_exit
     subst he3
     try wp_auto
+    iunfold os.fileS at HS
+    icases HS with ⟨%mS, %ysS, %hokS, Hf, Hfd, Hoff, HmS, HbS, -⟩
+    -- `syncDir(tmpdirpath)` (F-N1): `nm.tmp` fsynced
+    imod osNames_next R jr _ _ hT3 CoPset.subseteq_top $$ Hsi HT with ⟨HT, #HlbT⟩
+    icases (osPathS_frac R r e a' jr).1 $$ Hp with ⟨Hpe, Hpa⟩
+    icases (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).2 $$ HT with ⟨HTe, HTb⟩
+    ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT3 (tmpName_nameOk hnmO) hJs.1
+      $$ Hpe HTe
+    wp_apply wp_syncDir (child r (tmpName nm)) R J (DFrac.own e) 1 hT3.next $$ [Hpc Hperm]
+      as %serr4 ⟨Hpc, Hperm, Hsd⟩
+    · iframe; iframe #
+    icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
+      with ⟨%hT5, Hp, HTe, %-⟩
+    · iframe
+    icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT5 $$ HTb HTe with %he5
+    subst he5
+    ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
+    · iframe
+    icases Hsd with (%hse | ⟨%hse, #Hcm1⟩)
+    · -- `syncDir` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr4 with ei | _
+      rotate_left
+      · exact absurd rfl hse
+      try wp_auto
+      wp_apply wp_String as %f1 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      create_seg_exit
+    subst hse
+    try wp_auto
     sorry)
 
 end proof
