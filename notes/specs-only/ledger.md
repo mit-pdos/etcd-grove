@@ -763,3 +763,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   carries it (`TcKnows.of_announce`, `TcKnows.of_rsPost`). The proposal had one `TcKnows m tg tc`; the not-landed
   outcome keeps no candidates of the bytes in `[tg, size)` (below its size), hence the size argument.
 - **Decision.** Adopted (the coordinator's task list for `wal-tc10`, "decided").
+
+## 2026-11-14: `fallocDoneH` (the part's `syscall.Fallocate` updates, `LinuxFs/Proof/syscall/FallocateAu.lean`) -- the growth's `tc` domain; `ZeroToEnd.specAu`'s post
+
+- **Spec.** `fallocDoneH i m tg w` (the caller's halves of a growth landed with the size `w`, in `fallocOutH`, the
+  share `fallocSup` hands back, and so in `preallocExtend.specAu`/`Preallocate.specAu`/`ZeroToEnd.specAu` through
+  `preGrownH`): `∃ tc rz, osMeta ½ ((rsPost false m tg w).withTc tc rz) ∗ …`, `tc` existential, as `os.ftDoneH` was
+  before `wal-tc10`.
+- **Defect.** Too weak for `ReadAll`'s `ZeroToEnd` instance, whose post must give the tail's `TailZ` (the candidates of
+  every byte between the size and the known zeros known): after the growth back to the size the caller cannot tell
+  which bytes past it have known candidates (I3b, `wal-tc10` entry, last item).
+- **Evidence.** The outcome the extension leaves for a file with no sync cut has `tc = rsTail false m tg w n []`
+  (`rsDoneK true false`, `wp_osFallocFinishK`); `TcKnowsF.rsTail`.
+- **Change (made, `wal-tc11`).** `fallocDoneH` carries `⌜TcKnowsF m tg w tc⌝` (`TcKnowsF m tg sz' tc := ∀ b,
+  (rsTail false m tg sz' 0 [] !! b).isSome → (tc !! b).isSome`, `TcKnows`' growth form, in `FallocateAu.lean`). No
+  supply exists yet (the WAL's, `fallocSup` at the tail, is the first); `fallocDoneH_preGrownH` drops it. The undone
+  arm of `fallocOutH` is the exact announcement (`rsUndone false`), unchanged: see the obligation below.
+- **Proposed, not made (needs `preGrownH`'s fact first): `ZeroToEnd.specAu`'s success post** gains
+  `⌜ZteMeta m m'⌝`, `ZteMeta m m' := (∀ b, m.size ≤ b → (m.pc b).isSome → (m'.pc b).isSome) ∧ m.cz ≤ m'.cz ∧ ∀ z0,
+  m.zf = some z0 → ∃ z', m'.zf = some z' ∧ z0 ≤ z' ∧ z' ≤ max z0 (pageEnd m.size)` (with `TailZ m` it gives `TailZ m'`,
+  the size and `pageEnd m.size ≤ m'.cz` given). Its proof chains `TcKnows` (the truncate to `o`, landed), `TcKnowsF`
+  (a partial or full `fallocate`) and `TcKnows` (the fallback's truncate): `preGrownH` (`DefsAu.lean`) must carry
+  the pc-domain and `zf` facts through `preGrownH_trans` (`Preallocate.specAu`'s post), a change to
+  `preallocExtend.specAu`/`Preallocate.specAu` and `filePipeline.alloc`'s use of `preGrownH`.
+- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"); `ZteMeta` pending.
