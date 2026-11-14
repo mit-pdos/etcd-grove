@@ -1074,3 +1074,68 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `snapOwnC_freeze` for the read-only snapshot.
 - **Decision.** Open: it adds an obligation to `ReadAll`'s callers (`U`'s coherence with protobuf-go), the
   coordinator's call.
+
+## 2026-11-14: `decoder.Decode.spec`/`proto.UnmarshalWalRecord.spec` (internal, the part's) -- an empty metadata read back as `nil`
+
+- **Spec.** `LinuxFs/Spec/google_golang_org/protobuf/proto/UnmarshalWalRecord.lean` (its success is `ownRec l r`,
+  `walpb/Defs.lean`), and through it `decoder.decodeRecord.spec`/`Decode.spec` (`decPost`); `walHandleIn`'s
+  `recBytes mds (some h.md)` (`Handle.lean`), which `ReadAll` must establish for the slice it read
+  (`wal-readall26`, obligation (c) of `walOpenWF`).
+- **Defect.** `ownRec` says `v.Data' ↦* r.data` only: with an empty metadata (`d.metadata = []`) the slice the
+  loop keeps (`metadata = rec.Data`, S/wal.go) may be `nil` for all the spec says, and then the handle's `cut`
+  would write a metadata record without the data field (`Record{Data: nil}`), not the model's `recOf` bytes (the
+  field present, empty), so `walHandleIn`'s `recBytes … (some md)` (`ds ≠ nil`) is unprovable. Not a Go bug:
+  protobuf-go decodes a present bytes field to a non-nil slice (`internal/impl/codec_gen.go`, `consumeBytes`:
+  `*p.Bytes() = append(emptyBuf[:], v...)`), and `TestRecordEncoder` measured `proto.Unmarshal(recEnc c)` giving
+  back exactly `c`, `Data`'s presence included. The specs drop it: `proto.UnmarshalPb.spec` gives the exact
+  content (`c = c₀` when `bs = pbEncC I c₀`), `UnmarshalWalRecord.wp_proof` forgets it (`recOwnC_ownRec`).
+  With a non-empty metadata the slice is non-nil from its points-to (its length), so only `[]` is affected.
+- **Evidence.** The proof of `ReadAll`'s success arm (`ReadAllWFPure.lean`: `readAll_md_some` gives `st.md = some
+  md`, not the slice's non-nilness); `Create.spec` takes the metadata non-nil but may take `[]`; `walInv_alloc`
+  admits a WAL found at boot with any metadata below `2 ^ 41`.
+- **Proposed change.** Either (A, no client change) the decoder keeps the content's presence: `ownRec l r`
+  gains `⌜∀ r₀, bs = walRecEnc r₀ → (recOf r₀).data.isSome → v.Data' ≠ slice.nil⌝` over the frame's bytes
+  `bs` (from `UnmarshalPb`'s exactness), carried by `decodeRecord`/`Decode` and the reader's model (`goDecode`'s
+  accepted frames are the encoder's for the WAL's files, `walReadFiles_running` at the byte level); or (B) the
+  metadata non-empty: `Create.spec` takes `md ≠ []` (the server's is a marshalled `etcdserverpb.Metadata` with
+  both ids set, never empty) and `WalsBounded` carries `0 < |d.metadata|` (and `walInv_alloc` takes it of the
+  WALs found at boot), so the slice's length gives `≠ nil`. (B) is a few lines; (A) is the faithful one.
+- **Decision.** Open: (B) adds a client premise to `Create` and an assumption on the WALs found at boot; the
+  coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry` (`hmdnn`).
+
+## 2026-11-14: `walHandleIn`'s index bound (internal, the part's) -- `ReadAll` cannot bound `max(enti, snapi) + 1`
+
+- **Spec.** `walHandleIn`'s `max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64` (`Handle.lean`), which
+  `ReadAll` must establish (`wal-readall26`, obligation (d) of `walOpenWF`).
+- **Defect.** `w.enti`/`w.snapi` after the loop are indices read from the WAL; nothing bounds them below
+  `2 ^ 64 - 1`: `Save`/`SaveSnapshot` take `< 2 ^ 64 - 1` of what they write (their premises), but the
+  invariant does not record it, so a WAL read back (or found at boot) may hold index `2 ^ 64 - 1` for all
+  `ReadAll` knows, and `cut` would then name its next segment with a wrapped index.
+- **Evidence.** `WalsBounded` (`Inv.lean`) bounds only the metadata; `WalAbsD.nameBound` bounds the indices
+  before each segment by its name's `ix < 2 ^ 64`, not those of the last segment.
+- **Proposed change.** An invariant fact, framed as `WalsBounded` (or a conjunct of it): `∀ dir d, s.wal !! dir
+  = some d → ¬ walHasMaxIdx (histM d)`; kept by `Save`/`SaveSnapshot` from their premises, by `Create` (index 0),
+  by crashes and cuts (histories' prefixes / unchanged), taken by `walInv_alloc` of the WALs found at boot. No
+  client-visible change but the boot assumption.
+- **Decision.** Open (an invariant change touching `Save`'s commit steps, which `wal-save*` owns): the
+  coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+
+## 2026-11-14: `walDirH`'s sequence bound (internal, the part's) -- `ReadAll` cannot bound the tail's sequence
+
+- **Spec.** `walDirH`'s `∃ sq ix, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k` (`Handle.lean`), `k` the files
+  the handle's pipeline handed over (0 at `ReadAll`), which `ReadAll` must establish for the tail's name
+  (`wal-readall26`, obligation (f) of `walOpenWF`).
+- **Defect.** Nothing bounds a read-back tail's sequence: `WalAbsD.nameBound` gives the name's form and
+  `ix < 2 ^ 64`, not `sq`. `Create` starts at 0 and each `cut` adds one under the handle's receipt bound
+  (`walPc_bound`), but receipts do not survive a crash, so across generations the sequence is bounded by
+  nothing the invariant keeps (a WAL found at boot, or cut `2 ^ 62` times per generation over two
+  generations, may hold `sq ≥ 2 ^ 63`). Then `cut`'s `seq + 1` could wrap (`w.seq()` is a `uint64`).
+- **Evidence.** The assembly of `walOpenWF` in `ReadAll` (`wal-readall26`).
+- **Proposed change.** Either an invariant fact (every `.wal` segment's sequence `< 2 ^ 63`, kept by `cut`
+  with a premise `sq + 1 < 2 ^ 63` that its caller takes from a bound the invariant then must keep: no
+  natural source) or, simpler, `walDirH`'s bound weakened to what `cut` needs, `sq + k < 2 ^ 64 - 1`-style
+  against `uint64` wrap, with the tail's `sq < 2 ^ 64` from the name's 16 hex digits and the remaining room
+  as a premise on `ReadAll` (the same shape as the index bound above: `sq < 2 ^ 63` of the tail an
+  assumption on the WALs found at boot, kept by `cut` only while receipts bound it). Needs the coordinator's
+  design: no option is free.
+- **Decision.** Open: the coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.

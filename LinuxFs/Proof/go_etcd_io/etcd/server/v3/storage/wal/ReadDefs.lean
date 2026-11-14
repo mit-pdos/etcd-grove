@@ -141,12 +141,15 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
 sealed): the ghost handle, `openAtIndex`'s fields in write mode, `w.dirFile`
 (`fileutil.OpenDir(dir)`: a shared directory fd on the WAL directory, not read), and the client's half
 of the call permission (the pipeline holds the other; `ReadAll` moves it into the write handle's
-`walDirH`: `notes/specs-only/ledger.md`, 2026-11-14, "the call permission counted twice"). -/
+`walDirH`: `notes/specs-only/ledger.md`, 2026-11-14, "the call permission counted twice"). The
+directory fd's inode `j` is the WAL's directory key's (`walDirKey dir j X`, persistent: the read tie's
+`j` by the keys' agreement, `walDirKey_agree`), which `ReadAll` needs for the handle's `walDirH`
+(W3/W5 log, twenty-sixth session, obligation (f)). -/
 @[no_expose] def walOpeningF (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
   iprop(walOpening (W := W) w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half ∗
-    ∃ (df : Loc) (dfd : w64) (j : Ino),
+    ∃ (df : Loc) (dfd : w64) (j : Ino) (X : List GoString),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
-    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle)
+    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle ∗ walDirKey (W := W) dir j X)
 
 /-- **`w` is the WAL `OpenForRead` opened in `dir` at `s`** (read mode, sealed): the lock token,
 taken (`walLockedTok`: the reader holds the program's halves of the files as `Open`'s does),
