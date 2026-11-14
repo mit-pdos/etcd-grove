@@ -3,12 +3,12 @@
 # The fresh WAL directory's claim (W4, `notes/wal-fsext-plan.md`, "W4 implementation log", eighteenth
 session; pure)
 
-`Create`'s directory `J`: `CreateDirAll` returns its whole claim with no name at any crash
-(`valAfter … = none`, `fileutil.CreateDirAll.specTmp`'s post), then `createNewWALFile` logs the segment's
-create at `w0` (`crOut`). The claim merged back (`osNames_merge`'s restrictions):
+`Create`'s directory `J`: `CreateDirAll` returns its whole claim empty, then `createNewWALFile` logs
+the segment's create at `w0` (`crOut`). The claim merged back (`osNames_merge`'s restrictions):
 
-* `createJ_val`/`createJ_cur`: at any crash a name of `J` holds nothing, or the segment's file at `w0`;
-  now exactly the segment at `w0`.
+* `createJ_cur`: now exactly the segment at `w0`. (Its names after a crash are not needed:
+  `walCreate_osAUnc` raises the commit bound past `J`'s entries, so every crash it considers keeps
+  them; until `wal-create18` a `valAfter … = none` promise of `CreateDirAll.specTmp`, false: ledger.)
 * `createJ_segsNamed`, `createJ_segsNamedC`, `createJ_walInos`: `walCreate_osAUnc`'s `hsn`, `hJC` and the
   layout's `.wal` entries (`createLay_abs`'s `hents`) for the claim off the pipeline's names.
 -/
@@ -54,34 +54,6 @@ theorem crEnt_writes (J : Ino) (b : GoString) (i : Ino) (s : Nat) : (crEnt J b i
 abbrev crH (hJ : NamesH) (J : Ino) (w0 : GoString) (x s : Nat) (i : Ino) : NamesH :=
   (hJ.restrict J ((NameSet.except []).inter [w0])).log x (crEnt J w0 i s)
     (<[w0 := .file i]> (hJ.restrict J ((NameSet.except []).inter [w0])).cur)
-
-/-- **At any crash of the merged claim, a name holds nothing or the segment's file at `w0`.** -/
-theorem createJ_val {hJ hJ' : NamesH} {J : Ino} {w0 : GoString} {x s : Nat} {i : Ino}
-    (hfr : ∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none)
-    (hA : hJ'.restrict J ((NameSet.except []).diff [w0]) =
-      (hJ.restrict J ((NameSet.except []).diff [w0])).restrict J ((NameSet.except []).diff [w0]))
-    (hB : hJ'.restrict J (.only [w0]) = (crH hJ J w0 x s i).restrict J (.only [w0]))
-    (K : Nat → Prop) (b : GoString) :
-    hJ'.valAfter J K b = none ∨ (b = w0 ∧ hJ'.valAfter J K b = some (.file i)) := by
-  by_cases hb : b = w0
-  · subst hb
-    have hm : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
-    rw [← valAfter_restrict hJ' J _ K b hm, hB, valAfter_restrict _ J _ K b hm]
-    by_cases hK : K x
-    · right
-      refine ⟨rfl, ?_⟩
-      rw [valAfter_log_last _ J K b x _ _ hK (crEnt_writes J b i s)]
-      simp
-    · left
-      rw [valAfter_log_notKept _ J K b x _ _ hK,
-        valAfter_restrict _ J _ K b ((NameSet.mem_inter _ _ _).2 ⟨by simp [NameSet.Mem], by simp⟩)]
-      exact hfr K b
-  · left
-    have hm : ((NameSet.except []).diff [w0]).Mem b := by
-      rw [NameSet.mem_diff]; simp [NameSet.Mem, hb]
-    rw [← valAfter_restrict hJ' J _ K b hm, hA, valAfter_restrict _ J _ K b hm,
-      valAfter_restrict _ J _ K b hm]
-    exact hfr K b
 
 /-- **Now, the merged claim holds exactly the segment at `w0`.** -/
 theorem createJ_cur {hJ hJ' : NamesH} {J : Ino} {w0 : GoString} {x s : Nat} {i : Ino}
@@ -130,19 +102,21 @@ theorem createJ_segsNamed (hg : g.name = walFileName 0 0)
     · cases he; exact ⟨_, rfl⟩
     · cases he
 
-/-- **`hJC`**: after any crash of the claim off the pipeline's names, the only `.wal` file is the
-segment's, at its name. -/
-theorem createJ_segsNamedC
-    (hval : ∀ (K : Nat → Prop) (b : GoString),
-      hJ'.valAfter J K b = none ∨ (b = g.name ∧ hJ'.valAfter J K b = some (.file g.ino)))
-    (hw : walNameP g.name = true) (K : Nat → Prop) (E : Ents)
-    (hE : ∀ b, walNameP b = true →
-      E !! b = (hJ'.restrict J ((NameSet.except []).diff walTmps)).valAfter J K b) :
-    SegsNamedC [g] E := by
-  have hE' : ∀ b, walNameP b = true → E !! b = none ∨ (b = g.name ∧ E !! b = some (.file g.ino)) := by
+/-- **`hJC`**: in the claim off the pipeline's names, the only `.wal` file is the segment's, at its
+name (`SegsNamedC`'s form, which `J`'s names keep after every crash keeping `J`'s entries). -/
+theorem createJ_segsNamedC (hw : walNameP g.name = true)
+    (hcur : ∀ b, hJ'.cur !! b = if b = g.name then some (.file g.ino) else none) :
+    SegsNamedC [g] (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur := by
+  have hE' : ∀ b, walNameP b = true →
+      (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur !! b = none ∨
+      (b = g.name ∧ (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur !! b =
+        some (.file g.ino)) := by
     intro b hb
-    rw [hE b hb, valAfter_restrict _ J _ K b (mem_diff_walTmps hb)]
-    exact hval K b
+    simp only [NamesH.restrict]
+    rw [restrictN_lookup _ _ _ (mem_diff_walTmps hb), hcur]
+    split
+    · rename_i hbg; exact Or.inr ⟨hbg, rfl⟩
+    · exact Or.inl rfl
   refine ⟨fun g' hg' => ?_, fun b e hb he => ?_, fun i hi => ?_⟩
   · simp only [List.mem_singleton] at hg'; subst hg'
     refine ⟨hw, fun hi => ?_⟩
@@ -157,6 +131,14 @@ theorem createJ_segsNamedC
     rcases hE' b hb with h | ⟨-, h⟩
     · rw [h] at hbe; cases hbe
     · rw [h] at hbe; cases hbe; simp
+
+/-- **A restricted claim's entries are entries of the claim** (their indices). -/
+theorem restrict_ents_lt {h : NamesH} {j : Ino} {M : NameSet} {m : Nat}
+    (hl : ∀ xe ∈ h.ents, xe.1 < m) : ∀ xe ∈ (h.restrict j M).ents, xe.1 < m := by
+  intro xe hxe
+  simp only [NamesH.restrict] at hxe
+  obtain ⟨ye, hye, rfl⟩ := List.mem_map.1 hxe
+  exact hl ye (List.mem_filter.1 hye).1
 
 /-- **The claim's `.wal` entries are the segment's file** (`createLay_abs`'s `hents`). -/
 theorem createJ_walInos (hw : walNameP g.name = true)
