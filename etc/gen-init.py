@@ -3139,7 +3139,10 @@ LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 
             'go_etcd_io.etcd.pkg.v3.pbutil', 'go_etcd_io.etcd.server.v3.storage.wal',
             # (W4c U2, 2026-11-14) `examples/lib/durable` over the part's `os` (its fact: `mu` a
             # mutex guarding nothing, `PkgInit.lean`)
-            'github_com.mit_pdos.etcd_grove.examples.lib.durable']
+            'github_com.mit_pdos.etcd_grove.examples.lib.durable',
+            # (W4c U1, 2026-11-14) the WAL robustness tester (`examples/etcd/wal`) over the part's
+            # WAL (its fact `True`, `PkgInit.lean`)
+            'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
 # Packages of `LFS_PKGS` translated in the main tree only (no `os` below them): the part's `Init.lean`
 # is generated from the main translation, over the part's instance.
 LFS_MAIN_CODE = {'go_etcd_io.etcd.client.pkg.v3.verify', 'hash', 'google_golang_org.protobuf.internal.pragma',
