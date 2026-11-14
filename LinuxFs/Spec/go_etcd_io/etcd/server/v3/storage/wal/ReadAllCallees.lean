@@ -82,11 +82,26 @@ abbrev WalPbIn.CloneHsLaw (P : WalPbIn GF) : Prop :=
       ⌜m = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #p'⌝ ∗
       P.hsIn p' h }}
 
+/-- **`U`'s snapshot decoder is coherent with protobuf-go** (a pure law of the client's `U`, as
+`WalUnmarshal.Ok` ties it to the marshaller; to discharge with the client's codec at C6, as
+`walSnapAt` ties `Mr.encSnap` to `snapEnc`): every `bs` it decodes as a snapshot of index and term
+`s` is protobuf-go's encoding `snapEnc c` of a content `c` with valid unknown fields at both levels and
+that index and term. Then `proto.Unmarshal` succeeds on `bs` and gives back `c` (`UnmarshalPb.spec`'s
+D2). (Ledger 2026-11-14, "`MustUnmarshalMessage.specWalSnap`: `U` says nothing of protobuf-go".) -/
+def WalEnc.WalUnmarshal.SnapCoh (U : WalUnmarshal) : Prop :=
+  ∀ (bs : List w8) (s : w64 × w64), U.decSnap bs = some s →
+    ∃ c : WalSnapC, (∀ p ∈ c.levels, ufWire p.1 p.2) ∧ bs = snapEnc c ∧
+      (c.model.Index', c.model.Term') = s
+
 /-- **`pbutil.MustUnmarshalMessage(&snap, d)` into a fresh `walpb.Snapshot`, of bytes `U` decodes**
-(S/wal.go:568): the snapshot holds the decoded index and term, read-only from then on. -/
+(S/wal.go:568), `U` coherent with protobuf-go (`WalUnmarshal.SnapCoh`): the snapshot holds the
+decoded index and term, read-only from then on. Proved:
+`LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/pbutil/MustUnmarshalMessageWalSnap.lean`. -/
 abbrev go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage.specWalSnap (U : WalUnmarshal) : Prop :=
+  U.SnapCoh →
   ∀ (sp : Loc) (d : GoSlice) (dq : DFrac) (bs : List w8) (s : w64 × w64), U.decSnap bs = some s →
-  {{ (sp ↦ (zero_val go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) : IProp GF) ∗ d ↦*{dq} bs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗
+      (sp ↦ (zero_val go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) : IProp GF) ∗ d ↦*{dq} bs }}
     (App (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty) #sp)))
       (Val #d))
