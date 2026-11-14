@@ -154,6 +154,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
           ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
           (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
         walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+        walNamesFrag (W := W) none ∗
         walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
           if write then [dir] else []⟩ ∗
         ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
@@ -162,12 +163,12 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   iintro Hb Hu
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    Hdk, %HAt⟩
+    Hdk, %HAt, Hnms⟩
   obtain ⟨lay, nm, hj, hl, hA, hjr, hnm, hc, habs, hcr⟩ := HW.1 dir d hd
   obtain ⟨X, hX, hcX, hcoh⟩ := hc
   icases Hdk with ⟨%K, %cp, HKa, Hca, %HDK⟩
   imod walDirKeys_pin C Mr jr s Ls cl n K cp dir lay X hj HDK hl hX hcX $$ HKa with ⟨%K', HKa, %HDK', #Hkey⟩
-  imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, %hF⟩
+  imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, Hnf, %hF⟩
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
   -- the segments from `k` on
@@ -203,10 +204,10 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     imodintro
     iexists lay, X, hj
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe HS Hnm Hl Htf Hkey
+    iframe HS Hnm Hl Htf Hnf Hkey
     isplitr
     · ipureintro; exact hpure
-    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca]
+    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca Hnms]
     · iexists Ls, cl, n, ∅
       iframe
       ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt⟩
@@ -218,10 +219,10 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     imodintro
     iexists lay, X, hj
     simp only [↓reduceIte]
-    iframe HS Hnm Hl Htf Ht Hkey
+    iframe HS Hnm Hl Htf Hnf Ht Hkey
     isplitr
     · ipureintro; exact hpure
-    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca]
+    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca Hnms]
     · iexists Ls, cl, n, ∅
       iframe
       ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt⟩

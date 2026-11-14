@@ -202,8 +202,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     iexists none
     iframe HQ
     ileft
-    iframe
-    ipureintro; nofun
+    isplitr
+    · ipureintro; nofun
+    iframe Hu Hperm
+    iexists e1
+    iframe He1
+    ipureintro; rfl
   · unfold walPinOut
     icases Hpin with ⟨%lay, %X, %hj, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj, Ht⟩
     obtain ⟨hljr, hX, hcoh, habs, hnd, hsn, hsz⟩ := hfacts
@@ -252,8 +256,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iexists o
       iframe HQ
       ileft
-      iframe
-      ipureintro; nofun
+      isplitr
+      · ipureintro; nofun
+      iframe Hu Hperm
+      iexists e1
+      iframe He1
+      ipureintro; rfl
     obtain ⟨hout, hsearch, -⟩ := hsel
     have hws : ws = lay.segs.map (·.name) :=
       walNamesOut_segs hX hsn habs.names.1 hnd habs.names.2 hnmf hout
@@ -301,8 +309,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iexists o
       iframe HQ
       ileft
-      iframe
-      ipureintro; nofun
+      isplitr
+      · ipureintro; nofun
+      iframe Hu Hperm
+      iexists e1
+      iframe He1
+      ipureintro; rfl
     subst herr2
     -- the decoder over the opened files
     rw [hws, ← List.map_drop, ← List.map_drop] at *

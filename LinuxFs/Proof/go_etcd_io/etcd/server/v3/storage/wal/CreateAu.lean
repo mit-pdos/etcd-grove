@@ -123,6 +123,7 @@ def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : I
   | some _ => iprop(Q ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
       osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗ walLockedTok (W := W) ∗
       walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailsFrag (W := W) ∅ ∗
+      walNamesFrag (W := W) (some dir) ∗
       walDirKey (W := W) dir J X ∗
       ∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! dir = some (walDurFresh md)⌝)
 
@@ -167,7 +168,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
   icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
   have hco := Hcro
   obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
@@ -188,7 +189,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     iintro Hα
     icases Hcla with ⟨Hab, -⟩
     imod Hab $$ Hab0 with Hau
-    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp]
+    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
     · iexists s
       iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
       iframe Hg Hcm Hlays Htl Hpk
@@ -213,7 +214,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · iexists K, cp
         iframe Hdk Hcp
         ipureintro; exact Hdko
-      ipureintro; exact HAt
+      iframe Hnms; ipureintro; exact HAt
     imodintro
     dsimp only
     iframe Htok Hau HJ Hm Hbs
@@ -226,7 +227,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       icases Hβ with ⟨-, Hα⟩
       icases Hcla with ⟨Hab, -⟩
       imod Hab $$ Hab0 with Hau
-      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
       · iexists s
         iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
         iframe Hg Hcm Hlays Htl Hpk
@@ -251,7 +252,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · iexists K, cp
           iframe Hdk Hcp
           ipureintro; exact Hdko
-        ipureintro; exact HAt
+        iframe Hnms; ipureintro; exact HAt
       imodintro
       dsimp only [walCreateQ, walCreateP]
       iframe Htok Hau HJ Hm Hbs
@@ -310,7 +311,31 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
       imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
-      imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, Htf, -⟩
+      imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, Htf, Hnf, -⟩
+      -- the new WAL's name: committed, its registration pending (G-spine)
+      have hnewNm : ∀ dir' lay', Ls !! dir' = some lay' → lay'.nm ≠ lay.nm := by
+        intro dir' lay' hl' he
+        obtain ⟨d', hd'⟩ : ∃ d', s.wal !! dir' = some d' := by
+          cases h' : s.wal !! dir' with
+          | none => rw [Hok.2.1 dir' h'] at hl'; cases hl'
+          | some d' => exact ⟨d', rfl⟩
+        obtain ⟨l2, nm2, -, hl2, hin2, -, hnm2, -⟩ := Hok.1 dir' d' hd'
+        rw [hl'] at hl2; cases hl2
+        have e : dir' = dir := by rw [hin2.2, hin'.2, ← hnm2, he, hlay.2.1]
+        subst e; rw [hLd] at hl'; cases hl'
+      imod walNamesRes_addWal R jr r Ls dir lay hLd hnewNm $$ Hnms Hnf with ⟨Hnms, Hnf⟩
+      have hnmc : ∀ nm' hn, walNameOk nm' → (jr, NameSet.only [nm'], hn) ∈ l1 ++ (jr, N, h) :: l2 →
+          (jr, NameSet.only [nm'], hn) ∈ createClaims (l1 ++ (jr, N, h) :: l2) jr N h x
+            (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J) J X hJ := by
+        intro nm' hn _ hm
+        unfold createClaims replClaim
+        refine List.mem_append_left _ (List.mem_map.2 ⟨_, hm, ?_⟩)
+        rw [if_neg]
+        intro e
+        simp only [Prod.mk.injEq] at e
+        obtain ⟨-, rfl, -⟩ := e
+        simp only [NameSet.Mem, List.mem_singleton] at hnmN htmpN
+        exact hne (htmpN.trans hnmN.symm)
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
@@ -328,7 +353,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         hsegs hino $$ Hpk Ho with ⟨Hpk, Ho⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
-      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp Hnms]
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,
           createClaims (l1 ++ (jr, N, h) :: l2) jr N h x (renDirEnt jr tmp nm J s0)
@@ -383,6 +408,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin'
             hc hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
             (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz
+        iframe Hnms
         ipureintro
         exact walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
           hlay
@@ -390,7 +416,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       dsimp only [walCreateQ]
       rw [hgbs]
       iframe HQ Hm2 Hb2 Hkey
-      iframe HLk Ho Htf
+      iframe HLk Ho Htf Hnf
       iexists (createSt s dir md)
       iframe Hp
       ipureintro

@@ -425,3 +425,38 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Change (made).** The three take `dir.length < 2 ^ 59` and `NameOk nm`, as `wal.Create.spec` does (a path to
   a WAL directory is short in practice: Linux's `PATH_MAX` is 4096; etcd's name is `wal`).
 - **Decision.** Adopted (minor, proof agent `wal-read12`; no client of the part's `Open` exists yet).
+
+## 2026-11-14: `wal.Open.spec` (the part's, over `fsExt`) -- the call permission counted twice
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (`wal.Open.spec`), success arm:
+  `walOpeningF w dir s ∗ osCallPerm ½`.
+- **Defect.** The client's `osCallPerm 1` is split by `openAtIndex` in write mode: half to the file pipeline
+  (`walPipeH`), half returned. `Open` returned that half to the client, but the handle `ReadAll` makes from
+  `walOpeningF` (`walOpenWF`, its `walDirH`) holds a half of its own (as `Create`'s does, ledger 2026-11-14):
+  after `Open` and `ReadAll` the client would hold 3/2 of the permission, and `ReadAll` could not be proved
+  (nothing in `walOpeningF` supplies the handle's half).
+- **Evidence.** `openAtIndex`'s proof and `ReadAll`'s obligations (W3/W5 log, twelfth session, item (a)).
+- **Change (made).** `Open`'s success arm is `walOpeningF w dir s` alone; the sealed `walOpeningF`
+  (`ReadDefs.lean`) holds the half (`osCallPerm ½`), which `ReadAll` moves into `walDirH`. A resource
+  placement, no new client-visible ghost state; `OpenForRead` (read mode: no pipeline, the whole permission
+  returned to the client) and `openAtIndex` unchanged.
+- **Decision.** Adopted (the coordinator's decision of 2026-11-14, task 1 of `wal-read13`; no client of the
+  part's `Open` exists yet).
+
+## 2026-11-14: `wal.decoder.Decode.spec` (the part's, over `fsExt`) -- the error's identity
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/decoder__Decode.lean` (`decPost`, `stopErr`,
+  `isEofOk` in `DecDefs.lean`).
+- **Defect.** A reader looping to the end (`ReadAll`, S/wal.go:523-611) tests `errors.Is(err, io.EOF)` on the
+  error `Decode` returned. (1) `stopErr`'s catch-all (`e ≠ nil`, for a bad frame, a CRC mismatch, a frame too
+  large) allows `io.EOF` itself: `ReadAll` would then take a stop in the middle of the WAL for its end and succeed
+  with the records after it missing, so its success post cannot be proved. (2) `isEofOk` answers `errors.Is` only
+  on `nil`, `io.EOF`, `io.ErrUnexpectedEOF` and the readers' `IoE` errors, not on the decoder's own errors
+  (`fmt.Errorf`'s, `proto.Unmarshal`'s), so the call cannot be stepped on them at all.
+- **Evidence.** `ReadAll`'s proof (W3/W5 log, fourteenth session): the loop's exit and the write-mode stop check.
+- **Change (proposed, not made).** `Decode.spec` (and `decodeRecord.spec`) add to `decPost`: `err = io.EOF` only
+  at `goDecode`'s `.eof` stop, and `errors.Is(err, io.EOF)`'s answer for a non-nil `err` (`isEofAns`). Stated as
+  `decoder.Decode.specR` (`decoder__DecodeR.lean`), a hypothesis of `WAL.ReadAll.wp_proof` until then. The
+  proof needs Perennial's `fmt.Errorf` model to give an error distinct from `io.EOF` with `errors.Is` answering
+  false on it (its wrapping is not kept) and the same of `proto.Unmarshal`'s error.
+- **Decision.** Pending (proof agent `wal-readall14`; internal spec, no client-visible change).

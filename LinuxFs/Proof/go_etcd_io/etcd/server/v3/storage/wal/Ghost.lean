@@ -115,6 +115,15 @@ class WalGS (GF : BundledGFunctors) where
   half the invariant's (`walParked`), half the lock token's (empty, `walUnlockedTok`) or the
   holder's of what is out (a handle's body, `Create`'s). -/
   γpo : GName
+  /-- The WAL directory `Create` has committed and whose name it has not yet registered (`walNamesAuth`/
+  `walNamesFrag`, `Inv.lean`'s `walNamesRes`; G-spine, W1 log): a ghost variable of an `Option GoString`,
+  half the invariant's, half the lock token's (`none`: every present WAL registered) or that `Create`'s
+  (`some dir`, from its commit, which takes the lock, to its registration). -/
+  γnm : GName
+  /-- The WAL names split out of the area claim (`walSplitAuth`/`walSplitFrag`): a ghost variable of a
+  `List GoString`, half the invariant's (each a present WAL's name, its own claim `.only [nm]`), half
+  the area's program part's (`walAreaRes`: its claim holds every WAL name but these). -/
+  γnw : GName
 
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
@@ -227,6 +236,40 @@ instance walOutAuth_timeless (o : WalOut) : Timeless (walOutAuth (W := W) o) := 
 instance walOutFrag_timeless (o : WalOut) : Timeless (walOutFrag (W := W) o) := by
   unfold walOutFrag; infer_instance
 
+/-- **The WAL directory committed and not yet registered is `o`**, the program's half (`WalGS.γnm`):
+the lock token's (`none`) or the committing `Create`'s. -/
+def walNamesFrag (o : Option GoString) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γnm (1 : Qp).half o
+
+/-- The invariant's half of the pending registration (`walNamesRes`, `Inv.lean`). -/
+def walNamesAuth (o : Option GoString) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γnm (1 : Qp).half o
+
+instance walNamesFrag_timeless (o : Option GoString) : Timeless (walNamesFrag (W := W) o) := by
+  unfold walNamesFrag; infer_instance
+
+instance walNamesAuth_timeless (o : Option GoString) : Timeless (walNamesAuth (W := W) o) := by
+  unfold walNamesAuth; infer_instance
+
+/-- **The WAL names split out of the area claim are `Wn`**, the area's program part's half
+(`WalGS.γnw`, `walAreaRes`). -/
+def walSplitFrag (Wn : List GoString) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γnw (1 : Qp).half Wn
+
+/-- The invariant's half of the split names (`walNamesRes`, `Inv.lean`). -/
+def walSplitAuth (Wn : List GoString) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γnw (1 : Qp).half Wn
+
+instance walSplitFrag_timeless (Wn : List GoString) : Timeless (walSplitFrag (W := W) Wn) := by
+  unfold walSplitFrag; infer_instance
+
+instance walSplitAuth_timeless (Wn : List GoString) : Timeless (walSplitAuth (W := W) Wn) := by
+  unfold walSplitAuth; infer_instance
+
 /-- The program's half of the pending-cut flag (`WalGS.γcp`). -/
 def walCutFrag (c : Option GoString) : IProp GF :=
   letI := walAllG (W := W)
@@ -258,11 +301,13 @@ no handle holds the program's halves of the WALs' files (the invariant parks the
 so that `Open`, holding it, can take them; no cut's rename pending (`walCutFrag none`); and the
 empty record of what is out (`walOutFrag`: taking the lock hands it to the taker, who updates it with
 what it takes and must bring it back empty to release the lock); and the program's half of the tails'
-authority, empty (`walTailsFrag`: no tail registered; the taker likewise). -/
+authority, empty (`walTailsFrag`: no tail registered; the taker likewise); and no WAL name's registration
+pending (`walNamesFrag none`: every present WAL's name registered, so paths to its directory can be
+built, `NameClaims.lean`; the taker likewise; G-spine, W1 log). -/
 def walUnlockedTok : IProp GF :=
   letI := walAllG (W := W)
   iprop(token W.hA.γu ∗ walParkFrag (W := W) true ∗ walCutFrag (W := W) none ∗
-    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅)
+    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none)
 
 /-- **The lock token as an open handle holds it**: the parking flag at `false` (the handle may hold
 program halves the invariant would otherwise park), no cut's rename pending (a cut sets the flag to
@@ -312,7 +357,8 @@ def walCreatingAuth (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) : I
 
 instance walCreatingAuth_timeless (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) :
     Timeless (walCreatingAuth (W := W) CR) := by
-  unfold walCreatingAuth walUnlockedTok walParkFrag walCutFrag walOutFrag walTailsFrag; infer_instance
+  unfold walCreatingAuth walUnlockedTok walParkFrag walCutFrag walOutFrag walTailsFrag walNamesFrag
+  infer_instance
 
 /-- **`Create` of `dir` is renaming in the area claim of names `N`, history `h`** (exclusive, the
 program's): the invariant holds half of that claim (`walInvBody`'s `CreatingOk`), so a client update
@@ -425,7 +471,7 @@ instance walDiskAt_timeless (dir : GoString) (d : WalDur) : Timeless (walDiskAt 
 instance walAbsent_timeless (dir : GoString) : Timeless (walAbsent (W := W) dir) := by
   unfold walAbsent; infer_instance
 instance walUnlockedTok_timeless : Timeless (walUnlockedTok (W := W)) := by
-  unfold walUnlockedTok walParkFrag walCutFrag walOutFrag walTailsFrag; infer_instance
+  unfold walUnlockedTok walParkFrag walCutFrag walOutFrag walTailsFrag walNamesFrag; infer_instance
 instance walLockedTok_timeless : Timeless (walLockedTok (W := W)) := by
   unfold walLockedTok walParkFrag walCutFrag; infer_instance
 
@@ -499,32 +545,68 @@ theorem walOut_set (o1 o2 o : WalOut) :
 /-- **Taking the lock** (`Open`, `Create`): with the invariant's half of the flag, the lock token
 becomes the handles' (the flag `false`); the invariant's half was `true`. The taker gets the empty
 record of what is out (`walOutFrag`), which it updates with what it takes out, and the program's half
-of the tails' authority, empty (`walTailsFrag`). -/
+of the tails' authority, empty (`walTailsFrag`), and the pending registration, `none`
+(`walNamesFrag`). -/
 theorem walUnlockedTok_lock (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walUnlockedTok (W := W) ==∗
       ⌜b = true⌝ ∗ walParkAuth (W := W) false ∗ walLockedTok (W := W) ∗
-        walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ := by
+        walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none := by
   unfold walUnlockedTok walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf⟩
+  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf, Hn⟩
   icases walPark_agree (W := W) b true $$ Ha Hf with %hb
   imod walPark_set (W := W) b true false $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf
+  iframe Ha Ht Hf Hc Ho Htf Hn
   ipureintro; exact hb
 
 /-- **Releasing the lock** (`Close`, an `Open` that failed after taking it): the flag back to `true`,
-with the empty record of what is out (everything put back first) and no tail registered. -/
+with the empty record of what is out (everything put back first), no tail registered and no name
+claim's program half out. -/
 theorem walLockedTok_unlock (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) -∗
-      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ ==∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none ==∗
       ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTok (W := W) := by
   unfold walUnlockedTok walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf
+  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf Hn
   icases walPark_agree (W := W) b false $$ Ha Hf with %hb
   imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf
+  iframe Ha Ht Hf Hc Ho Htf Hn
   ipureintro; exact hb
+
+/-- The halves of the pending registration agree. -/
+theorem walNames_agree (o o' : Option GoString) :
+    ⊢@{IProp GF} walNamesAuth (W := W) o -∗ walNamesFrag (W := W) o' -∗ ⌜o = o'⌝ := by
+  unfold walNamesAuth walNamesFrag
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_agree $$ H1 H2
+
+/-- **Updating the pending registration** (both halves). -/
+theorem walNames_set (o1 o2 o : Option GoString) :
+    ⊢@{IProp GF} walNamesAuth (W := W) o1 -∗ walNamesFrag (W := W) o2 ==∗
+      walNamesAuth (W := W) o ∗ walNamesFrag (W := W) o := by
+  unfold walNamesAuth walNamesFrag
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_update_halves $$ H1 H2
+
+/-- The halves of the split names agree. -/
+theorem walSplit_agree (Wn Wn' : List GoString) :
+    ⊢@{IProp GF} walSplitAuth (W := W) Wn -∗ walSplitFrag (W := W) Wn' -∗ ⌜Wn = Wn'⌝ := by
+  unfold walSplitAuth walSplitFrag
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_agree $$ H1 H2
+
+/-- **Updating the split names** (both halves). -/
+theorem walSplit_set (Wn1 Wn2 Wn : List GoString) :
+    ⊢@{IProp GF} walSplitAuth (W := W) Wn1 -∗ walSplitFrag (W := W) Wn2 ==∗
+      walSplitAuth (W := W) Wn ∗ walSplitFrag (W := W) Wn := by
+  unfold walSplitAuth walSplitFrag
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_update_halves $$ H1 H2
 
 /-- The lock token held twice: impossible (one token). -/
 theorem walLockedTok_unlocked_excl :
@@ -842,7 +924,8 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true ∗
-      walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ walOutAuth (W := W) WalOut.empty := by
+      walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ walOutAuth (W := W) WalOut.empty ∗
+      walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗ walSplitFrag (W := W) [] := by
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
@@ -857,7 +940,11 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
     with ⟨%γdk, Hdk⟩
   imod (ghostVar_alloc (GF := GF) (none : Option GoString)) with ⟨%γcp, Hcp⟩
   imod (ghostVar_alloc (GF := GF) WalOut.empty) with ⟨%γpo, Hpo⟩
-  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo⟩
+  imod (ghostVar_alloc (GF := GF) (none : Option GoString)) with ⟨%γnm, Hnm⟩
+  imod (ghostVar_alloc (GF := GF) ([] : List GoString)) with ⟨%γnw, Hnw⟩
+  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw⟩
+  icases (ghostVar_split_half (GF := GF) γnm 1 (none : Option GoString)).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
+  icases (ghostVar_split_half (GF := GF) γnw 1 ([] : List GoString)).1 $$ Hnw with ⟨Hnw1, Hnw2⟩
   icases (ghostVar_split_half (GF := GF) γpo 1 WalOut.empty).1 $$ Hpo with ⟨Hpo1, Hpo2⟩
   icases (ghostMapAuth_halves (GF := GF) γt (∅ : GMap GoString GName)).1 $$ Ht with ⟨Ht1, Ht2⟩
   icases (ghostVar_split_half (GF := GF) γpk 1 true).1 $$ Hpk with ⟨Hpk1, Hpk2⟩
@@ -868,8 +955,9 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
   iunfold absDiskStart at Hst
   icases Hst with ⟨HM, Hp, Hu⟩
   unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
-    walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walOutFrag walOutAuth walTailsFrag walAllG
-  iframe Hs HP HM Hp Hu Hc Hcr Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2
+    walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walOutFrag walOutAuth walTailsFrag
+    walNamesFrag walNamesAuth walSplitFrag walSplitAuth walAllG
+  iframe Hs HP HM Hp Hu Hc Hcr Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2
   isplitl [Hh Hhd Hhp]
   · isplitl [Hh Hhd Hhp]
     · iexists 0, ∅, ∅, ∅

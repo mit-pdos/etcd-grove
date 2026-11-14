@@ -157,7 +157,7 @@ theorem walInvBody_unl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   iintro Hb HM
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt⟩
+    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms⟩
   imod walGhost_upd (W := W) s (unlSt s dir p) M (absLe_unlSt s dir p) (walKeysInArea_upd s dir _)
     $$ Hg HM with ⟨%hM, Hg, HM, #Hp⟩
   ihave Htl := walTailsRes_unl (W := W) C Mr s Ls F dir p $$ Htl
@@ -167,7 +167,7 @@ theorem walInvBody_unl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   · ipureintro; exact hM
   unfold walInvBody
   iexists Ls, cl, n, F
-  iframe Hg Hcl Hcm Hlays HCR Htl Hpk HKa Hca
+  iframe Hg Hcl Hcm Hlays HCR Htl Hpk HKa Hca Hnms
   ipureintro
   exact ⟨by rw [unlSt_area]; exact Har, walsOk_unl dir p HW, HWC,
     ⟨absentNone_unl dir p Hab.1, dirsAvoid_unl dir p Hab.2⟩, HNm, dirKeysOk_unl dir p HDK, HAt⟩
