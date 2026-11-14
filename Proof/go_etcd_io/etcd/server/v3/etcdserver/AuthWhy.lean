@@ -12,8 +12,10 @@ refusal of these checks follows an `IsAuthEnabled()` of `true` during the call (
 none of them.
 
 * the request side (`reqSideWhy`, common to every class): `ErrUserEmpty` when the context carries no
-  token, or when the flag also read `false` at such a state (the flag changed since `n`: the disable
-  race, `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`; `auth.noPrincipalFrom`);
+  token, or when the flag also read `false` at such a state (the flag changed since `n`; unordered:
+  for `requireAuthInfo` a race with `AuthDisable`,
+  `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`; for the admin check a race with
+  `AuthEnable`, `nonissues/etcd-admin-check-authenable-race.md`; `auth.noPrincipalFrom`);
   `ErrInvalidAuthToken` when the context carries a token (`auth.tokRefusedFrom`: only that; the token
   provider's contract says nothing of a token it refuses, and a live token may be refused, since the
   simple provider's keeper may delete it at any time in a model with no clock; token liveness is the
@@ -25,10 +27,11 @@ none of them.
   `ErrPermissionDenied` for one present there without the root role);
 * **RBAC** (`permWhy`): also, for the principal the request side gave (`AuthInfo{}` exactly when it
   gave none), `isOpPermitted`'s errors tied to their cases (`ErrUserEmpty` for revision `0`,
-  `ErrAuthOldRevision` for a revision below a state's no older than `n`, `ErrPermissionDenied` with a
-  view of such states in which the check refuses, `auth.refusedV`).
+  `ErrAuthOldRevision` for a non-zero revision below a state's no older than `n`,
+  `ErrPermissionDenied` for a non-zero, current revision and a user absent, or not root and not
+  covered, at such states).
 
-With a frozen history (`auth.authFrozenFrom`: no admin change after `n`), enabled, and a context
+With the authority's history frozen from `n` on (`auth.histFrozenFrom`), enabled, and a context
 carrying a token, the authenticated class's only reason left is `ErrInvalidAuthToken`
 (`authed_served_of_frozen`), and so is the admin class's when every principal bound to the token is
 root (`admin_served_of_frozen`). In the mode `any` every reason is `True`. In the mode `off` the
@@ -109,9 +112,10 @@ instance adminWhy_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : 
 /-- **Why one permission check `(key, rangeEnd, op)` refused** the auth info `info` (persistent;
 `isOpPermitted`, `store.go:862-899`): the request side's reasons, or, for the principal the request
 side gave (`AuthInfo{}` exactly when it gave none, or one bound to the request), the flag read `true`
-at a state no older than `n` and `ErrUserEmpty` for revision `0`, `ErrAuthOldRevision` for a revision
-below a state's no older than `n`, or `ErrPermissionDenied` with a view of such states in which the
-check refuses (`auth.refusedV`); `False` with auth off, `True` in the mode `any`. -/
+at a state no older than `n` and `ErrUserEmpty` for revision `0`; `ErrAuthOldRevision` for a non-zero
+revision below a state's no older than `n`; or `ErrPermissionDenied` for a non-zero revision no lower
+than the revision read (a state no older than `n`) and a user absent, or without the root role and not
+covered, at such states (`store.go:869-899`); `False` with auth off, `True` in the mode `any`. -/
 def permWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType) :
     IProp GF :=
@@ -121,10 +125,14 @@ def permWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
           auth.noPrincipalFrom M n ctx) ∨ principalBound s M ctx (some info)) ∗
         auth.enabledVerdictFrom M n true ∗
         ((auth.authErrOf .userEmpty err ∗ ⌜info.Revision' = W64 0⌝) ∨
-         (auth.authErrOf .authOldRevision err ∗ ∃ (j : Nat) (st : auth.AuthState),
+         (auth.authErrOf .authOldRevision err ∗ ⌜info.Revision' ≠ W64 0⌝ ∗
+            ∃ (j : Nat) (st : auth.AuthState),
             auth.authStateAt γa j st ∗ ⌜n ≤ j ∧ uint.nat info.Revision' < st.revision⌝) ∨
          (auth.authErrOf .permissionDenied err ∗ ∃ v : auth.AuthView, auth.recordedVFrom γa n v ∗
-            ⌜auth.refusedV v (auth.authInfoM info) key rangeEnd op⌝))))
+            ⌜info.Revision' ≠ W64 0 ∧ v.rev.revision ≤ uint.nat info.Revision' ∧
+              ∀ u, v.user.users !! info.Username' = some u → ¬ auth.isRoot u ∧
+                (auth.reqShape key rangeEnd → ∀ u', v.cache.users !! info.Username' = some u' →
+                  ¬ auth.covers v.cache u' op key rangeEnd)⌝))))
   | .any => iprop(True)
   | .off => reqSideWhy M n ctx err
 
@@ -244,56 +252,56 @@ theorem adminRes_of_verdictFromO (M : auth.AuthMode) (n : Nat)
 
 /-! ### The positive form: a frozen history leaves only a refused token -/
 
-/-- With the history frozen at `st` from `n` on, auth enabled there, and a token in the context, the
-authenticated check's only reason left is `ErrInvalidAuthToken`: it does not refuse with
-`ErrUserEmpty`, nor with any other error. -/
-theorem authed_served_of_frozen (γa : auth.AuthNames) (n : Nat) (st : auth.AuthState)
-    (ctx err : GoInterface) (t : GoString) (hen : st.enabled = true)
-    (htok : auth.ctxTokenOf ctx = some t) :
-    auth.authFrozenFrom (GF := GF) γa n st ⊢ authedWhy (.on γa) n ctx err -∗
-      auth.authErrOf .invalidAuthToken err := by
-  unfold authedWhy reqSideWhy auth.noPrincipalFrom auth.authFrozenFrom
-  iintro #Hfz ⟨-, (⟨-, (⟨-, %Hnone⟩ | #Hdis)⟩ | ⟨#Hit, -⟩)⟩
+/-- With the authority's history `hs` frozen at `st` from `n` on (`auth.histFrozenFrom`), auth enabled
+there, and a token in the context, the authenticated check's only reason left is `ErrInvalidAuthToken`:
+it does not refuse with `ErrUserEmpty`, nor with any other error. Stated over the authority as it
+stands (`auth.authOwn`, given back), not over states recorded later. -/
+theorem authed_served_of_frozen (γa : auth.AuthNames) (hs : List auth.AuthState) (n : Nat)
+    (st : auth.AuthState) (ctx err : GoInterface) (t : GoString) (hf : auth.histFrozenFrom hs n st)
+    (hen : st.enabled = true) (htok : auth.ctxTokenOf ctx = some t) :
+    auth.authOwn (GF := GF) (.on γa) hs ∗ authedWhy (.on γa) n ctx err ⊢
+      auth.authOwn (.on γa) hs ∗ auth.authErrOf .invalidAuthToken err := by
+  unfold authedWhy reqSideWhy auth.noPrincipalFrom
+  iintro ⟨Ho, -, (⟨-, (⟨-, %Hnone⟩ | #Hdis)⟩ | ⟨#Hit, -⟩)⟩
   · rw [htok] at Hnone; cases Hnone
   · unfold auth.enabledVerdictFrom
     icases Hdis with ⟨%j, %s', #Hs', %Hj⟩
-    ihave %Heq := Hfz $$ %j %s' Hs'
-    have h := Heq Hj.1
-    subst h
+    ihave ⟨Ho, %Heq⟩ := auth.authOwn_frozen γa hs n st j s' hf Hj.1 $$ [$Ho $Hs']
+    subst Heq
     rw [hen] at Hj; cases Hj.2
-  · iexact Hit
+  · iframe Ho Hit
 
-/-- With the history frozen at `st` from `n` on, auth enabled there, a token in the context, and every
-principal bound to the request a named user with the root role at `st`, the admin check's only reason
-left is `ErrInvalidAuthToken`. -/
-theorem admin_served_of_frozen (s : Loc) (γa : auth.AuthNames) (n : Nat) (st : auth.AuthState)
-    (ctx err : GoInterface) (t : GoString) (hen : st.enabled = true)
-    (htok : auth.ctxTokenOf ctx = some t) :
-    auth.authFrozenFrom (GF := GF) γa n st ⊢
-      (□ ∀ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, principalBound s (.on γa) ctx (some info) -∗
-        ⌜info.Username' ≠ [] ∧ ∃ u, st.users !! info.Username' = some u ∧ auth.isRoot u⌝) -∗
-      adminWhy s (.on γa) n ctx err -∗ auth.authErrOf .invalidAuthToken err := by
-  iintro #Hfz #Hroot #H
+/-- With the authority's history frozen at `st` from `n` on, auth enabled there, a token in the
+context, and every principal bound to the request a named user with the root role at `st`, the admin
+check's only reason left is `ErrInvalidAuthToken`. Under client-certificate TLS
+(`ClientCertAuthEnabled`) the premise on bound principals is vacuous-making: `principalBound` then
+holds of any auth info (`srvTLSId`; D4), so the premise says every user is root. -/
+theorem admin_served_of_frozen (s : Loc) (γa : auth.AuthNames) (hs : List auth.AuthState) (n : Nat)
+    (st : auth.AuthState) (ctx err : GoInterface) (t : GoString) (hf : auth.histFrozenFrom hs n st)
+    (hen : st.enabled = true) (htok : auth.ctxTokenOf ctx = some t) :
+    (□ ∀ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, principalBound (GF := GF) s (.on γa) ctx (some info) -∗
+        ⌜info.Username' ≠ [] ∧ ∃ u, st.users !! info.Username' = some u ∧ auth.isRoot u⌝) ∗
+      auth.authOwn (.on γa) hs ∗ adminWhy s (.on γa) n ctx err ⊢
+      auth.authOwn (.on γa) hs ∗ auth.authErrOf .invalidAuthToken err := by
+  iintro ⟨#Hroot, Ho, #H⟩
   unfold adminWhy
   icases H with (#Hr | ⟨%info, #Hpb, #Href⟩)
-  · iapply (authed_served_of_frozen γa n st ctx err t hen htok) $$ Hfz
-    unfold authedWhy; iexact Hr
+  · iapply (authed_served_of_frozen γa hs n st ctx err t hf hen htok)
+    iframe Ho; unfold authedWhy; iexact Hr
   · ihave %Hrt := Hroot $$ %info Hpb
     obtain ⟨hname, u0, hu0, hroot0⟩ := Hrt
-    unfold auth.adminRefusalFrom auth.authFrozenFrom
+    unfold auth.adminRefusalFrom
     icases Href with ⟨-, (⟨-, %Hemp⟩ | ⟨%info', %Hi, (⟨-, %j, %su, #Hsu, %Hj⟩ | ⟨-, %j, %su, %u, #Hsu, %Hj⟩)⟩)⟩
     · exact absurd (Hemp info rfl) hname
     · obtain ⟨hi, -⟩ := Hi
       cases hi
-      ihave %Heq := Hfz $$ %j %su Hsu
-      have h := Heq Hj.1
-      subst h
+      ihave ⟨Ho, %Heq⟩ := auth.authOwn_frozen γa hs n st j su hf Hj.1 $$ [$Ho $Hsu]
+      subst Heq
       rw [hu0] at Hj; cases Hj.2
     · obtain ⟨hi, -⟩ := Hi
       cases hi
-      ihave %Heq := Hfz $$ %j %su Hsu
-      have h := Heq Hj.1
-      subst h
+      ihave ⟨Ho, %Heq⟩ := auth.authOwn_frozen γa hs n st j su hf Hj.1 $$ [$Ho $Hsu]
+      subst Heq
       rw [hu0] at Hj
       obtain ⟨-, hu, hnr⟩ := Hj
       cases hu

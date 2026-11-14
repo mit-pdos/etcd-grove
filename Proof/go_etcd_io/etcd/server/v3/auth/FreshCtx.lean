@@ -6,8 +6,9 @@
 nil)` only when `IsAuthEnabled()` read `true` at a state recorded at an index at least the reader's
 lower bound `n` and the context carries no token (`ctxTokenOf ctx = none`), or when it read `false` at
 such a state
-(`noPrincipalFrom`; the second is the disable race,
-`nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`); and an error only
+(`noPrincipalFrom`; the second is how the flag races reach a guard: `AuthDisable` for
+`requireAuthInfo`, `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`; `AuthEnable` for
+the admin check, `nonissues/etcd-admin-check-authenable-race.md`); and an error only
 `ErrInvalidAuthToken`, when the flag read `true` at such a state and the context carries a token
 (`tokRefusedFrom`: only that; the token provider's contract says nothing when it refuses a token, and
 token liveness is the Scope's G5).

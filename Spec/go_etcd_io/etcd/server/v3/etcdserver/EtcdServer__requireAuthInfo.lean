@@ -52,7 +52,9 @@ abbrev EtcdServer.requireAuthInfo.spec : Prop :=
 published index (`auth.authPubLbM`): `spec`'s post, and on an error the authenticated class's reason
 (`authedOutC`'s `authedWhy`). Never an error with auth off. With auth on, the flag read `true` at a
 state no older than `n`, and `ErrUserEmpty` only when the context carries no token or the flag also
-read `false` at such a state (the flag changed since `n`: the disable race), `ErrInvalidAuthToken`
+read `false` at such a state (the flag changed since `n`: a race with `AuthDisable`,
+`nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`; the two reads not ordered in the
+post), `ErrInvalidAuthToken`
 only when the context carries a token (nothing more: the token provider's contract says nothing of a
 token it refuses, and the simple provider may refuse a token any time its keeper deletes it). So the
 check refuses with no other error, whatever the principal's roles; with the history frozen from `n`

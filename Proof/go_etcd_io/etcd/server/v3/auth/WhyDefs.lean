@@ -12,7 +12,8 @@ cite the boot state, in which auth is disabled and no user exists):
   there was one);
 * `adminRefusalFrom`, `adminVerdictFromO`: `IsAdminPermitted`'s refusal, its error tied to its case
   (`IsAdminPermitted.specLbO`, `FreshAdmin.lean`);
-* `authFrozenFrom`: no admin change after `n`, what makes the reasons exclude a refusal.
+* `histFrozenFrom`, `authOwn_frozen`: no admin change after `n` in the authority's history, what makes
+  the reasons exclude a refusal.
 -/
 module
 
@@ -34,10 +35,14 @@ variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **No principal from the request side, seen with the lower bound `n`** (persistent): the flag
 read `true` at a state recorded at an index at least `n` and the context carries no token; or the flag
-read `false` at such a state (`AuthInfoFromCtx`'s own read, `store.go:1073`). The second is the
-disable race (`nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`): a guard refuses on it
-only beside a read of `true` at such a state too (`reqSideWhy`), so together they say the flag changed
-since `n`. -/
+read `false` at such a state (`AuthInfoFromCtx`'s own read, `store.go:1073`). A guard refuses on the
+second only beside a read of `true` at such a state too (`reqSideWhy`): together they say the flag
+changed since `n`, a race with `AuthDisable` (`requireAuthInfo` reads `true`, then `AuthInfoFromCtx`
+`false`: `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`) or with `AuthEnable` (the
+admin check: `AuthInfoFromCtx` reads `false`, then `IsAdminPermitted` `true`:
+`nonissues/etcd-admin-check-authenable-race.md`). The two reads are not ordered here: the store's
+freshness (`revFresh`) gives each read's flag as some state's at an index at least the published one,
+not the later read's state as the later one. -/
 def noPrincipalFrom (M : AuthMode) (n : Nat) (ctx : GoInterface) : IProp GF :=
   iprop((enabledVerdictFrom M n true ∗ ⌜ctxTokenOf ctx = none⌝) ∨ enabledVerdictFrom M n false)
 
@@ -55,16 +60,6 @@ def tokRefusedFrom (_M : AuthMode) (_n : Nat) (ctx : GoInterface) : IProp GF :=
 instance tokRefusedFrom_persistent (M : AuthMode) (n : Nat) (ctx : GoInterface) :
     Persistent (tokRefusedFrom (GF := GF) M n ctx) := by
   unfold tokRefusedFrom; infer_instance
-
-/-- **The history `γa` is frozen at `st` from the index `n` on** (persistent): every state recorded
-at an index at least `n` is `st` (no admin change after `n`). What makes a guard's reasons exclude a
-refusal (`AuthWhy.lean`, `*_served_of_frozen`). -/
-def authFrozenFrom (γa : AuthNames) (n : Nat) (st : AuthState) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (s' : AuthState), authStateAt γa i s' -∗ ⌜n ≤ i → s' = st⌝)
-
-instance authFrozenFrom_persistent (γa : AuthNames) (n : Nat) (st : AuthState) :
-    Persistent (authFrozenFrom (GF := GF) γa n st) := by
-  unfold authFrozenFrom; infer_instance
 
 end defs
 
@@ -111,6 +106,27 @@ instance adminVerdictFromO_persistent (M : AuthMode) (n : Nat)
     (oinfo : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) (err : GoInterface) :
     Persistent (adminVerdictFromO (GF := GF) M n oinfo err) := by
   unfold adminVerdictFromO; cases M <;> infer_instance
+
+/-- **The authority's history `hs` is frozen at `st` from the index `n` on** (no admin change after
+`n` in the history as it stands; the Scope's §2.1 form). -/
+def histFrozenFrom (hs : List AuthState) (n : Nat) (st : AuthState) : Prop :=
+  ∀ (k : Nat) (s : AuthState), n ≤ k → hs[k]? = some s → s = st
+
+/-- With the authority's history frozen at `st` from `n` on, a state recorded at an index at least
+`n` is `st`. -/
+theorem authOwn_frozen (γa : AuthNames) (hs : List AuthState) (n : Nat) (st : AuthState) (i : Nat)
+    (s' : AuthState) (hf : histFrozenFrom hs n st) (hi : n ≤ i) :
+    authOwn (GF := GF) (.on γa) hs ∗ authStateAt γa i s' ⊢ authOwn (.on γa) hs ∗ ⌜s' = st⌝ := by
+  simp only [authOwn]
+  have key : authHistHalf (GF := GF) γa hs ∗ authStateAt γa i s' ⊢
+      authHistHalf γa hs ∗ ⌜hs[i]? = some s'⌝ :=
+    (and_intro (by iintro ⟨H, -⟩; iexact H) (authHistHalf_lookup γa hs i s')).trans
+      persistent_and_sep_mp
+  iintro ⟨⟨Hh, Hc⟩, #Hs⟩
+  ihave ⟨Hh, %Hi⟩ := key $$ [Hh]
+  · iframe Hh Hs
+  iframe Hh Hc
+  ipureintro; exact hf i s' hi Hi
 
 end refusal
 

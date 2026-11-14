@@ -48,7 +48,9 @@ abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
 /-- `s.checkMembershipOperationPermission(ctx)` with why it refused (auth-guard-completeness G2,
 2026-11-14; `notes/auth-guard-scope.md`, §2.3), for a caller holding a lower bound `n` of the auth
 store's published index (`auth.authPubLbM`): `spec`'s post, and on an error the admin class's reason
-(`adminOutC`'s `adminWhy`). With auth on: the request side's (as `requireAuthInfo.specC`), or a
+(`adminOutC`'s `adminWhy`). With auth on: the request side's (as `requireAuthInfo.specC`, its
+flag race here one with `AuthEnable`: `AuthInfoFromCtx` reads `false`, then `IsAdminPermitted` `true`,
+`nonissues/etcd-admin-check-authenable-race.md`), or a
 principal bound to the request that `IsAdminPermitted` refused with the flag `true` at a state no
 older than `n`: `ErrUserEmpty` for an unnamed one, `ErrUserNotFound` for a user absent at such a
 state, `ErrPermissionDenied` for one present there without the root role. With the history frozen

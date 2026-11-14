@@ -42,6 +42,17 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
 - `n` = the auth state the request saw: see the G3 report (the entry points take any `n`; the request
   path above them, gRPC handlers and the client model, carries none, as for `Range`).
 
+## G3 re-check fixes (etcd-grove-81, 2026-11-14)
+
+- B: `permWhy` ties `ErrAuthOldRevision` (non-zero revision) and `ErrPermissionDenied` (non-zero, current
+  revision, user-part refusal) to their cases.
+- C: `auth.authFrozenFrom` replaced by `auth.histFrozenFrom` over the authority's history and
+  `auth.authOwn_frozen`; `*_served_of_frozen` take and give back `auth.authOwn`. `admin_served_of_frozen`'s
+  docstring names its TLS vacuity.
+- A: naming fixed (disable race for `requireAuthInfo`, enable race for the admin check). The order
+  `n ≤ i ≤ j` for the authenticated class is not done: the store's freshness (`revFresh`) gives a flag
+  read as some state's at an index at least the published one, not ordered with a later read's.
+
 ## Follow-ups
 
 - (D22, decided by etcd-grove-81 2026-11-14) With auth off the admin guards' error may be `AuthInfoFromCtx`'s,
