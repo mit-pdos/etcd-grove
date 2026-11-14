@@ -174,6 +174,40 @@ theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : 
 
 /-! ### Messages -/
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A snapshot's destination is tracked**:
+statically nothing (the tracked bound is `isMessage`'s own clause); dynamically a voter or learner
+of the configuration `c` of a committed log `L` under recorded decisions (`CfgAt`): the sender's
+tracker's configuration when it sent it (`maybeSendSnapshot` sends only to a peer of its progress
+map, whose ids are the configuration's; raft v3's tracker follows the committed conf entries the
+application applies, `ApplyConfChange`'s `DynCCPre`, and a restored snapshot's certified one). -/
+def snapDstOk (γ : RaftNames) (d : w64) : IProp GF :=
+  iprop(⌜γ.reDyn = none⌝ ∨ ∃ (L : List EntryM) (M : DecMap) (c : CfgM),
+    isCommitted γ L ∗ decLb γ M ∗ ⌜CfgAt γ M L c ∧ d ∈ c.voters ∪ c.learners⌝)
+
+instance snapDstOk_persistent (γ : RaftNames) (d : w64) :
+    Persistent (snapDstOk (GF := GF) γ d) := by
+  unfold snapDstOk; infer_instance
+
+/-- (restart S7.3) **A configuration of a committed log** (dynamically; statically nothing): what a
+sender knows of its tracker's configuration `c` (`cfgCommitted_of_env`), from which a snapshot to a
+voter or learner of `c` has `snapDstOk`. -/
+def cfgCommitted (γ : RaftNames) (c : CfgM) : IProp GF :=
+  iprop(⌜γ.reDyn = none⌝ ∨ ∃ (L : List EntryM) (M : DecMap),
+    isCommitted γ L ∗ decLb γ M ∗ ⌜CfgAt γ M L c⌝)
+
+instance cfgCommitted_persistent (γ : RaftNames) (c : CfgM) :
+    Persistent (cfgCommitted (GF := GF) γ c) := by
+  unfold cfgCommitted; infer_instance
+
+theorem snapDstOk_of_cfg (γ : RaftNames) (c : CfgM) (d : w64) (h : d ∈ c.voters ∪ c.learners) :
+    cfgCommitted (GF := GF) γ c ⊢ snapDstOk γ d := by
+  unfold cfgCommitted snapDstOk
+  iintro (%H | ⟨%L, %M, #HL, #HM, %HC⟩)
+  · ileft; ipureintro; exact H
+  · iright; iexists L, M, c
+    iframe HL HM
+    ipureintro; exact ⟨HC, h⟩
+
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
   match m.ty with
   | .vote =>
@@ -236,7 +270,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       ⌜m.src ≠ W64 0⌝ ∗
       -- (D19p, 2026-10-18) to another node, both ids within the tracked bound (`reTracked`):
       -- a leader sends a snapshot only to a peer its tracker holds (`maybeSendSnapshot`)
-      ⌜m.dst ≠ m.src ∧ ∀ T, γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝)
+      ⌜m.dst ≠ m.src ∧ ∀ T, γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝ ∗
+      -- (restart S7.3, 2026-11-14) in the dynamic mode, to a voter or learner of a committed
+      -- log's configuration (`snapDstOk`)
+      snapDstOk γ m.dst)
   | .propose =>
       -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
       -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,

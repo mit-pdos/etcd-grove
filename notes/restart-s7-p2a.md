@@ -82,3 +82,36 @@ Mapped so far (no code yet):
 - Producers of `isRaftMsg` to update: `outboxRelP_isRaftMsg`, `outboxRelP_isRaftMsg_gen`
   (`InvRawnodeReady.lean`), `InvApiView.lean:432`; destructurings: `InvApiView.lean:395`,
   `isRaftMsg_isMessage`, `isRaftMsg_dat`, `NetMsgOk`, `InvNode`/`InvApi`'s `sentMsg` laws.
+
+## Progress and a finding (2026-11-14, hard stop for etcd-grove-81)
+
+**Done (branch `restart-s7`, raft builds through its `Link`):** the protocol carries the destination fact.
+- `Protocol/GhostState.lean`: `snapDstOk γ d` (statically nothing; dynamically `d` a voter or learner of a
+  configuration `CfgAt γ M L c` of a committed log `L`), `cfgCommitted γ c`, `snapDstOk_of_cfg`; the `.snap`
+  clause of `isMessage` gains `snapDstOk γ m.dst`.
+- `Protocol/StepR.lean`: `StepR.win`/`sendApps` carry the snapshot destination fact (`StepC`'s, which the
+  dynamic model dropped); producers `MsgVoteResp`, `MsgProp`, `StepCF.toR` supply it from `ReplSends`'
+  `domSet s.progress` fact; consumers `RefinementDyn`, `StepRInv` take it.
+- `Protocol/StepGhost.lean`: `cfgCommitted_of_env` (the step's configuration is a committed log's, from
+  `dynEnv` and the node's committed prefix); `replOk_message` takes the configuration's commitment and the
+  destination fact and gives the new conjunct. `Refinement.lean`'s `win`/`send_apps` pass them; `SnapMint`'s
+  re-content keeps the conjunct.
+
+**Finding: row 4 (`rnSnapTermAbove`) cannot be discharged from `isRaftMsg`.** Row 1 (`srvWinPend`) reads
+`sentMsg` (which carries `isRaftMsg`, hence `isMessageC` of the `MsgSnap`'s abstraction, hence `snapDstOk`), so
+it follows from the clause plus `To ≠ id`. But row 4 is a fact at the **receive of a `Ready`** (`readyRest`),
+and a `Ready`'s messages carry `isRaftMsg` only behind the batch's durable fragments
+(`readyPost`: `□ (durFrags … -∗ isRaftMsg …)`, or at role leader), because the outbox keeps a pending
+message's `isMessage` behind `durFrags` (`outMsgOk`). `readyRest` itself carries no message facts
+(`msgOutU`, `msgCredits`). So the destination fact is not available where row 4 is used
+(`rnRestartOk_snapTerm`, `InvRaftNode.lean`).
+
+**Options:**
+- (A) *Recommended.* Keep the destination fact outside the durability wand: `outMsgOk` gains, unconditionally,
+  `□ (⌜m.ty = .snap⌝ -∗ snapDstOk γ m.dst)` (it reads only committed state), and `readyRest` gains per message
+  `□ (⌜q.st.msg.Type' = MsgSnap⌝ -∗ ⌜q.st.msg.To' ≠ id⌝ ∗ snapDstOk γ.raft q.st.msg.To')` (raft API: `readyRest`
+  is in `InvApi`/`InvNode`). Then both rows follow for one member. Est. +1 wk over the approved design.
+- (B) Prove `rnSnapTermAbove` in general (R2d'b: a raft-struct invariant that messages queued since the
+  restart are above `t0`, and a `StartNode` post change), 5-8 d est.; it serves R2s-A too. Row 1 still needs
+  the approved clause.
+- (C) Not acceptable: carrying row 4 into the closed theorem.

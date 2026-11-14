@@ -875,12 +875,14 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq (pwinState id s mt) m) →
     -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
     (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
+    -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the configuration
+    (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
     -- (2026-10-18, D19b stage 5) the new entry's index is covered by the receipt `⧖ n`
     plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
     ⊢ ⧖ n -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt)
                            ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
-  intro Hrole Hq Hnw Hmt Hms Hce Htr Hrb
+  intro Hrole Hq Hnw Hmt Hms Hce Htr Hdc Hrb
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
   have Hs2out : (pwinState id s mt).outbox = s.outbox := rfl
@@ -1192,6 +1194,8 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       have := Hfp.1
       rw [List.length_append]; push_cast; omega)]
     iexact Hcmt
+  -- (restart S7.3) the configuration is a committed log's
+  ihave #Hcc := cfgCommitted_of_env γ id c s fp Hfp $$ Henv Hfrecs Hcmt
   -- the log ghost state of the new leader
   have Hterms_ok' : TermsOk (<[s.term := ((γt, s.base), s.log)]> terms) s2 := by
     intro t Ht
@@ -1377,12 +1381,12 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     · iapply outbox_intro
       iapply BigSepL.bigSepL_forall_elim
       iintro %k %x %Hk
-      iapply replOk_message γ id s2 x fp Hwl2' (Hms x (List.mem_of_getElem? Hk)) Hidnz
+      iapply replOk_message γ id s2 x fp c Hwl2' (Hms x (List.mem_of_getElem? Hk)) Hidnz
         (fun hD hty => by
           rw [Hce hD x (List.mem_of_getElem? Hk) hty, HF2, Hs2commit]
           exact ConfI1_snoc (Hi1 hD) (by rw [← He]; exact not_isConfEnt_zero))
-        (Htr x (List.mem_of_getElem? Hk)) $$
-        Hnewlead2 Hp2 Hpf2 Hrecs2' Hcommit2 Hbase2 Hcmt2
+        (Htr x (List.mem_of_getElem? Hk)) (Hdc x (List.mem_of_getElem? Hk)) $$
+        Hcc Hnewlead2 Hp2 Hpf2 Hrecs2' Hcommit2 Hbase2 Hcmt2
   · iapply tally_empty γ id _ (by show s2.votes = ∅; exact Hs2votes)
   · unfold leaderWit
     simp only [psendMsgs_role, Hs2role, psendMsgs_term]
@@ -1491,9 +1495,11 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq s m) →
     -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
     (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
+    -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the configuration
+    (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
     ⊢ dynEnv γ id c s -∗
       ownRaftGhost (GF := GF) γ id s md ==∗ ownRaftGhost γ id (psendMsgs s ms) md := by
-  intro Hrole Hms Hce Htr
+  intro Hrole Hms Hce Htr Hdc
   have Hcnt := rdCount_replOk id s ms Hms
   have Hpo := propsOf_replOk id s ms Hms
   iintro #Henv Hown
@@ -1508,6 +1514,8 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
   ihave ⟨%fp1, %Hfp1, #Hfr1, #Hcm1⟩ := ownLogGhost_cmt $$ Hlg
   ihave ⟨#Hfrp, %Hfp⟩ := lpfull_fp $$ Hpf
   ihave #Hcmt := cprefix_transfer γ fp1 fp s Hfp1 Hfp.1 $$ Hfr1 Hfrp Hcm1
+  -- (restart S7.3) the configuration is a committed log's
+  ihave #Hcc := cfgCommitted_of_env γ id c s fp Hfp.1 $$ Henv Hfrp Hcmt
   -- (2026-10-14, stage B5) I1 of the leader's log at its commit index, in the dynamic mode
   ihave %Hi1 : ⌜γ.reDyn ≠ none → ConfI1 (fp ++ s.log) (uint.Z s.commit).toNat⌝ $$ []
   · iunfold dynEnv at Henv
@@ -1524,10 +1532,10 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     iapply outbox_intro
     iapply BigSepL.bigSepL_forall_elim
     iintro %k %m %Hk
-    iapply replOk_message γ id s m fp Hok.1 (Hms m (List.mem_of_getElem? Hk)) Hidnz
+    iapply replOk_message γ id s m fp c Hok.1 (Hms m (List.mem_of_getElem? Hk)) Hidnz
       (fun hD hty => by rw [Hce hD m (List.mem_of_getElem? Hk) hty]; exact Hi1 hD)
-      (Htr m (List.mem_of_getElem? Hk)) $$
-      Hl Hp Hpf Hrecs Hc Hb Hcmt
+      (Htr m (List.mem_of_getElem? Hk)) (Hdc m (List.mem_of_getElem? Hk)) $$
+      Hcc Hl Hp Hpf Hrecs Hc Hb Hcmt
   · iapply tally_eq γ id s (psendMsgs s _) rfl rfl $$ Htally
   · iapply leaderWit_eq γ id s (psendMsgs s _) rfl rfl $$ Hlead
   · iapply ownLogGhost_mono γ id s (psendMsgs s _) kl _ rfl rfl rfl (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
@@ -5287,7 +5295,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     imod ownRaftGhost_step_win γ c id s mt ms (B.toNat - γ.reBoot.length) Hrole Hq (by omega)
       Hmt Hms (fun h => absurd HC.2.2 h)
       (fun m hm hs T hT => ⟨(HT T hT).2,
-        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) (by omega) $$ Hrc [] Hown
+        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) Hsn (by omega) $$ Hrc [] Hown
       with Hown
     · iapply dynEnv_static γ id c s HC
     imodintro; iframe Hregs Hown
@@ -5336,7 +5344,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     iintro #Hrc Hregs _ - - Hown
     imod ownRaftGhost_step_send_apps γ c id s ms Hrole Hms (fun h => absurd HC.2.2 h)
       (fun m hm hs T hT => ⟨(HT T hT).2,
-        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) $$ [] Hown
+        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) Hsn $$ [] Hown
       with Hown
     · iapply dynEnv_static γ id c s HC
     imodintro; iframe Hregs Hown
