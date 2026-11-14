@@ -46,7 +46,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
     go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) P Mr := by
   intro R jr r w dir a t i n cs Q
   wp_start as ⟨#Harea, Hw, #Hsy, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
   icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, -⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -178,7 +178,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
         Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
       ipureintro; exact ⟨Hen, Hlt, Hpure⟩
-    · ipureintro; exact ⟨hD, hmd, hend⟩
+    · ipureintro; exact ⟨hD, hmd⟩
   wp_auto
   have hlen63 : (lfs.length : Int) = sint.Z locks.len := by
     rw [Hll.1]; word
@@ -216,7 +216,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
         Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
       ipureintro; exact ⟨Hen, Hlt, Hpure⟩
-    · ipureintro; exact ⟨hD, hmd, hend⟩
+    · ipureintro; exact ⟨hD, hmd⟩
   -- the loop closing the locks before `smaller` (all non-tail)
   have hsm1 : 0 < sint.Z sm' := by
     have : ¬ sint.Z sm' ≤ sint.Z (W64 0) := Hif
@@ -316,7 +316,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     ipureintro; exact ⟨Hen, by rw [getLast?_drop lfs _ hsmn]; exact Hlt, Hpure⟩
-  · ipureintro; exact ⟨hD, hmd, hend⟩
+  · ipureintro; exact ⟨hD, hmd⟩
 
 end proof
 
