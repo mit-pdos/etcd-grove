@@ -2935,6 +2935,10 @@ def lfs_inits(ext_txt):
 NT_ROOT = 'NetTcp'
 NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire',
            'github_com.mit_pdos.etcd_grove.examples.net.echo']
+# The part's programs whose adequacy theorem needs the package table of their import closure (as
+# `PROGRAMS`): the root package and the table's file under `NT_ROOT`.
+NT_PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.net.echo':
+               'Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/PkgTable.lean'}
 
 
 def nt_prefix(txt):
@@ -2959,6 +2963,9 @@ def nt_inits(ext_txt):
             if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
                 path, txt = gen(p, SPECIAL.get(p))
                 outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt)))
+        for p, path in NT_PROGRAMS.items():
+            path, txt = gen_table(p, path)
+            outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt)))
     finally:
         inv, inst = saved
     drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
