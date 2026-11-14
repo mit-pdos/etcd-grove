@@ -385,16 +385,18 @@ theorem lastRecs_length (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : Li
       (lastHdr Mr d cuts).length + ((lastOps d cuts).flatMap (opDs Mr)).length := by
   rw [lastRecs_eq, length_chainRecs, List.length_append]
 
-/-- **The crash of a tail written this generation** (see the file header): the tree part from a
-`CrashTo` of the layout over another image `fo0` of the tail, for the WAL at any synced mark `m0`
-covering the earlier segments (a sync's commit raises the mark: `crashOk_sync`). -/
-theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+/-- **The crash of a tail written this generation, its image of any length** (I3b, `wal-tc6`): as
+`crashTo_tailM`, the tail's image `f` at least `max so z0` long, no longer than its bytes, each byte
+below its size one of its bytes' candidates (a resize window on the tail leaves such images: a
+truncate's zeros are candidates of the bytes past `wr`, `crashOkA_win`). -/
+theorem crashTo_tailL {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
     (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
     (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g) (hex : SegExact g)
     (m0 : Nat) (hm0 : segStart lay.cuts lay.cuts.length ≤ m0)
     (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
-    (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
+    (himg0 : ∀ f, fo g.ino = some f → max lay.so lay.z0 ≤ f.size ∧ f.size ≤ g.bs.length ∧
+      ∀ b, b < f.size → ∃ s, (f.cache b, s) ∈ (g.bs.getD b (0, [])).2)
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
     {rzOf : Ino → List Nat}
     (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) rzOf) :
@@ -411,11 +413,7 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   have hgin : g.ino ∈ walInos (entsOf m' lay.j) := by
     rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
   obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
-  obtain ⟨-, hlo, hhi, hrun, -⟩ := hfc f hf
-  have hmlo := hex.1
-  have hmhi := hex.2
-  have hsz : f.size = g.bs.length := by omega
-  obtain ⟨hso, hwr, hlen, hwro, -, hz0, -, -⟩ := (habs.last g hg).1 hex
+  obtain ⟨hszlo, hsz, hrun⟩ := himg0 f hf
   -- the decoding core
   generalize hR : lastRecs C Mr d lay.cuts = R
   have hRS : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR]; rfl
@@ -423,20 +421,14 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   rw [hRS] at hT
   generalize hcs : (fun b => if b < g.bs.length then (g.bs.getD b (0, [])).2 else [(0, 0)]) = cs
     at hT
-  have himgl : f.contents.length = g.bs.length := by rw [contents_length, hsz]
+  have himgl : f.contents.length ≤ g.bs.length := by rw [contents_length]; exact hsz
   have himg : ∀ b, b < f.contents.length → ∃ s, (f.contents.getD b 0, s) ∈ cs b := by
     intro b hb
-    rw [himgl] at hb
-    have := hrun (0, DFrac.own (1 : Qp).half, g.bs) (List.mem_singleton_self _) b hb
-      (by simp only [Nat.zero_add]; omega)
-    simp only [Nat.zero_add] at this
-    rcases this with this | ⟨h0, -⟩
-    rotate_left; · omega
-    rw [contents_getD f b (by omega), ← hcs]
-    simp only [if_pos hb]
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb, Option.getD_some]
-    exact this
-  have hlenI : max lay.so lay.z0 ≤ f.contents.length := by rw [himgl, hlen]; omega
+    rw [contents_length] at hb
+    rw [contents_getD f b hb, ← hcs]
+    simp only [if_pos (show b < g.bs.length by omega)]
+    exact hrun b hb
+  have hlenI : max lay.so lay.z0 ≤ f.contents.length := by rw [contents_length]; exact hszlo
   obtain ⟨jE, hjE, hEb⟩ := hB
   have hRdef : (segRecs C Mr d lay.cuts).getD lay.cuts.length [] = R := hR
   rw [hRdef] at hjE hEb
@@ -485,7 +477,7 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem_ex hnd hgm (Nat.le_of_eq hex.2)) (by
         show p + frameCore (imgOf (fo g.ino)) p ≤ g.bs.length
         have hl : (imgOf (fo g.ino)).length ≤ g.bs.length := by
-          simp [imgOf, hf, contents_length, hsz]
+          simpa [imgOf, hf, contents_length] using hsz
         rw [hjs] at hx
         simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, Option.some.injEq] at hx
         rw [← hx] at hxb; simp only at hxb; omega)
@@ -495,7 +487,7 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       rw [← hx] at hxb; simp only at hxb
       simp only [imgOf, hf, Option.map_some, Option.getD_some] at h1
       have hcsb : ∀ b, b < p + frameCore f.contents p → cs b = (g.bs.getD b (0, [])).2 := by
-        intro b hb; rw [← hcs]; simp only; rw [if_pos (by rw [← himgl]; omega)]
+        intro b hb; rw [← hcs]; simp only; rw [if_pos (by omega)]
       replace h1 := asOfOneG_asOf h1
       rcases h1 with h1 | ⟨n, hn0, h1⟩
       · left; intro b hb1 hb2; rw [hcsb b hb2]; exact h1 b hb1 hb2
@@ -572,6 +564,36 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     refine ⟨hpre, fun r len c' => ?_⟩
     have := hrej r len c'
     rwa [← e2] at this
+
+/-- **The crash of a tail written this generation** (see the file header): the tree part from a
+`CrashTo` of the layout over another image `fo0` of the tail, for the WAL at any synced mark `m0`
+covering the earlier segments (a sync's commit raises the mark: `crashOk_sync`). -/
+theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
+    (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g) (hex : SegExact g)
+    (m0 : Nat) (hm0 : segStart lay.cuts lay.cuts.length ≤ m0)
+    (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
+    (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
+    (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
+    {rzOf : Ino → List Nat}
+    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) rzOf) :
+    CrashTo C Mr d lay m' fo := by
+  refine crashTo_tailL hC habs hZ hB hnd hg hex m0 hm0 h0 hfo (fun f hf => ?_) hn hw
+  obtain ⟨-, hlo, hhi, hrun, -⟩ := hfc f hf
+  have hmlo := hex.1
+  have hmhi := hex.2
+  have hsz : f.size = g.bs.length := by omega
+  obtain ⟨hso, hwr, hlen, hwro, -, hz0, -, -⟩ := (habs.last g hg).1 hex
+  refine ⟨by omega, by omega, fun b hb => ?_⟩
+  have hb' : b < g.bs.length := by omega
+  have := hrun (0, DFrac.own (1 : Qp).half, g.bs) (List.mem_singleton_self _) b hb'
+    (by simp only [Nat.zero_add]; omega)
+  simp only [Nat.zero_add] at this
+  rcases this with this | ⟨h0, -⟩
+  rotate_left; · omega
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb', Option.getD_some]
+  exact this
 
 /-- **The crash of a tail written this generation** (`crashTo_tailM` at the WAL's own mark). -/
 theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
