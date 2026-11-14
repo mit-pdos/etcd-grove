@@ -114,7 +114,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (W := W) P Mr := by
-  intro R jr r dir nm w s qp qc Q hin hcl
+  intro R jr rt dir nm w s qp qc Q hin hcl
   wp_start as ⟨#Harea, Hp, Hperm, Hop, Hau⟩
   unfold walOpeningF
   icases Hop with ⟨Hgh, Hrh, Hph, %df, %dfd, %jd, Hdff, Hdf, Hdfs⟩
@@ -142,7 +142,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_readFiles walCodec Mr R jr r dir j X hj gs
+  imod walInv_readFiles walCodec Mr R jr rt dir j X hj gs
       (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz
       $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Htf, Hh, %d0, %lay, %kk, %hlook⟩
   ihave Hdec := Hdbk $$ Hh
@@ -342,7 +342,30 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               exact ⟨hL' hnc, ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
             · subst hei
               wp_auto
-              sorry
+              wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
+              ihave #Hwi : (wal.walInit : IProp GF) $$ []
+              · iapply isPkgInit_access $$ Hpkg
+              iunfold wal.walInit at Hwi
+              icases Hwi with ⟨-, -, -, -, -, -, #HeX, -⟩
+              iunfold wal.errVar at HeX
+              icases HeX with ⟨%eX, #HeX, -⟩
+              wp_auto
+              wp_for_post
+              iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+              iintro %dq HQ Hfail
+              wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+              · ipureintro; trivial
+              iapply HΦ
+              iframe Hp Hperm
+              iexists dq
+              iframe HQ
+              ileft
+              isplitr
+              · ipureintro; simp
+              unfold walReadFailedF
+              iframe Hfail
+              iexists lg
+              iframe Hlg Hdir Hzap
         sorry
       · icases Hm with ⟨%hst, -, -⟩
         exact absurd hst.1 (stopErr_nil hnn.1 hnn.2 sx)
