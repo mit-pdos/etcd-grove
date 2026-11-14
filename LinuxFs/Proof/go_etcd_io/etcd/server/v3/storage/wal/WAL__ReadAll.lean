@@ -23,7 +23,8 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllInv
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllExit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllEnd
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllReg
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegPend
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllPend
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllNamed
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllSynced
@@ -240,9 +241,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_CloneHs : WalPbIn.CloneHsLaw (GF := GF) (hG := hG) P)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
-    (wp_register : ∀ R jr r, WalFs.walInvRegisterTailLaw (hG := hG) (W := W) walCodec Mr R jr r)
+    (wp_register : ∀ R jr r, WalFs.walInvRegisterPendLaw (hG := hG) (W := W) walCodec Mr R jr r)
     (wp_ZeroToEnd : go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (hG := hG) (W := W) Mr)
-    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_FdatasyncP : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (hG := hG) (W := W) Mr)
     (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
     (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
     (wp_Dir : filepath.Dir.spec (GF := GF) (hG := hG))
@@ -291,7 +292,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
   imodintro
-  obtain ⟨-, hab, hex, hwr, hgs, htm⟩ := hlook
+  obtain ⟨-, hab, hex, hwr, hgs, htm, -, hold⟩ := hlook
   have hR0 := readFiles_ok' walCodec_ok hU hab hex hwr kk gs hgs hgne (fs.map (·.bs))
     (decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1))
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Hdenv
@@ -473,17 +474,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             rw [tailStream_eq]; exact hwr
           have hwrS : lay.wr ≤ gl.om.size := by have := hgsz gl hglm; omega
           -- the length word at `wr` is zero (`ZeroToEnd`'s premise once `wal-tc16` restates it)
-          have _hzw : ∀ j, j < 8 → (gl.bs.getD (lay.wr + j) (0, [])).1 = 0 := by
+          have hzw : ∀ j, j < 8 → (gl.bs.getD (lay.wr + j) (0, [])).1 = 0 := by
             refine readAll_tailZeroWord walCodec (c := 0#32) hglast ?_ ?_
             · rw [← hgs, ← hR0eq]; exact hR0s
             · rw [← hgs, ← hR0eq]; exact hR0o
-          ihave Htw := walTailW_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay hfdl htm hszb
+          rw [hold]
+          ihave Htw := walTailP_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay gl.om.size hfdl htm hzw hszb
             $$ [Hfl Hfdl Hoffl Htk Hml Hbyl Htv]
           · iframe
           wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
           · iframe
           (try wp_auto)
-          wp_apply (wp_ZeroToEnd R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr gl.om.size
+          wp_apply (wp_ZeroToEnd R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr gl.om.size gl.om.size
             hwrS hwrT) $$ [$HareaK $Htw] as %ez Hz
           icases Hz with (⟨%hez, %sz', %hsz', Htw⟩ | %hez)
           rotate_left
@@ -515,10 +517,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           · iframe
           (try wp_auto)
           icases walOpening_cutFrag w dir s $$ Hgh with ⟨Hcf, Hgh⟩
-          wp_apply (fileutil.Fdatasync.wp_tailW wp_Fd Mr R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata
-            lay.cuts lay.wr sz' [] (by simpa using hwrT)) $$ [$HareaK $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
+          wp_apply (wp_FdatasyncP R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata
+            lay.cuts lay.wr sz' gl.om.size hwrT) $$ [$HareaK $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
           ihave Hgh := Hgh $$ Hcf
-          icases Hz with (⟨%hef, Htw, #Hsyn⟩ | ⟨%hef, -⟩)
+          icases Hz with (⟨%hef, Htw, #Hsyn⟩ | %hef)
           rotate_left
           · -- the fdatasync's error
             have hez : errnoErr ef ≠ GoInterface.nil := WalFs.errnoErr_ne ef hef
