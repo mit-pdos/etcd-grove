@@ -197,7 +197,7 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
       · rw [← hsz]; exact hTM.1.2.2.2.2
     · rw [hwr, tailStream_eq]
     · rw [hg] at hg'; cases hg'
-      exact ⟨hTM.2, fun z hz => by rw [← hsz]; exact hTM.1.2.2.1 z hz⟩
+      exact ⟨hTM.2, fun z hz => by rw [← hsz]; exact hTM.1.2.2.1.ge z hz⟩
   imod Hclose $$ %(⟨hidle, GMap.lookup_empty _⟩ : TailIdle walCodec Mr d lay ∧ (∅ : GMap Ino SegFl) !! g.ino = none) with ⟨Htl, Htf⟩
   ihave Hlays := (laysRes_list (L := L) Ls).2 $$ Hlays
   ihave Hlays := (laysResF_empty (L := L) Ls).2 $$ Hlays

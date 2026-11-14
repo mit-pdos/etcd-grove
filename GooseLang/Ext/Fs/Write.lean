@@ -929,31 +929,33 @@ theorem insertBytes_append (p : Ino) : ∀ (off : Nat) (xs ys : List (ByteG))
 /-- The size after a `pwrite` of `k` bytes at `off` of a file of size `sz`. -/
 def pwSize (sz off k : Nat) : Nat := if k = 0 then sz else max sz (off + k)
 
-/-- The page cache known zero past the size after a `pwrite` that wrote `k` bytes at `off`: a
-write that landed something up to or past the zeros known (`zf ≤ off + k`) leaves the page cache
-zero to the end of the page holding its end (what it did not write there was past the zeros known,
-`MetaOk.zc`); otherwise as before. -/
-def pwCz (m : OsMeta) (off k : Nat) : Nat :=
+/-- The page cache known zero past the size after a `pwrite` of `n` bytes at `off` that wrote `k`:
+a write that wrote all of its data up to or past the zeros known (`zf ≤ off + n`) leaves the page
+cache zero to the end of the page holding its end (what it did not write there was past the zeros
+known, `MetaOk.zc`); otherwise as before (a short write ends on a page boundary, `PwCut`, so there
+would be nothing to add; and leaving it out keeps a retry's `OsMeta` the whole write's,
+`pwPost_step`). -/
+def pwCz (m : OsMeta) (off n k : Nat) : Nat :=
   match m.zf with
-  | some z => if 0 < k ∧ z ≤ off + k then max m.cz (pageEnd (off + k)) else m.cz
+  | some z => if 0 < n ∧ k = n ∧ z ≤ off + n then max m.cz (pageEnd (off + n)) else m.cz
   | none => m.cz
 
-theorem le_pwCz (m : OsMeta) (off k : Nat) : m.cz ≤ pwCz m off k := by
+theorem le_pwCz (m : OsMeta) (off n k : Nat) : m.cz ≤ pwCz m off n k := by
   unfold pwCz; split
   · split <;> omega
   · exact Nat.le_refl _
 
-/-- A write that landed something up to or past the zeros known raises `cz` to its end's page. -/
-theorem pwCz_raise {m : OsMeta} {off k z : Nat} (hz : m.zf = some z) (hk : 0 < k)
-    (hzk : z ≤ off + k) : pageEnd (off + k) ≤ pwCz m off k := by
-  unfold pwCz; rw [hz]; simp only [if_pos (And.intro hk hzk)]; omega
+/-- A write of all of its data up to or past the zeros known raises `cz` to its end's page. -/
+theorem pwCz_raise {m : OsMeta} {off n z : Nat} (hz : m.zf = some z) (hn : 0 < n)
+    (hzk : z ≤ off + n) : pageEnd (off + n) ≤ pwCz m off n n := by
+  unfold pwCz; rw [hz]; dsimp only; rw [if_pos ⟨hn, rfl, hzk⟩]; omega
 
 /-- The `OsMeta` after a `pwrite` of `n` bytes at `off` that wrote `k`: as its first step left it,
 with the size it leaves, and the page cache known zero past it (`pwCz`). -/
 def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
   { m.announce (min off m.size) (off + n) (max m.size (off + n)) with
     size := pwSize m.size off k
-    cz := pwCz m off k }
+    cz := pwCz m off n k }
 
 /-- The candidates known past the size after a `pwrite` of `data` at `off` (inside the file),
 announced as change `n`: each byte of its range past the old size with the data's byte as a new
@@ -1038,33 +1040,24 @@ abbrev pwState (st : OsState) (t : Nat) (p : Ino) (f : OsFile) (c : OsChange) (o
 
 end finish
 
-/-- A page-aligned end is its page's end. -/
-theorem pageEnd_of_mod {x : Nat} (h : x % osPageSize = 0) : pageEnd x = x := by
-  simp only [pageEnd]; simp only [osPageSize] at h; omega
-
-/-- The page cache past the end of a write that raised `cz` (`pwCz`) is zero: only a write that
-wrote all of its data reaches past the end of a page, and the bytes past its data were past the
-zeros its first step announced (`MetaOk.zc`). -/
+/-- The page cache past the end of a write that raised `cz` (`pwCz`) is zero: the write wrote all
+of its data, and the bytes past it were past the zeros its first step announced (`MetaOk.zc`). -/
 theorem pwFinish_cz_raise {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} {off k b : Nat}
     {data : List w8}
     (hmo : MetaOk st i (m.announce off (off + data.length) (max m.size (off + data.length))) f)
-    (hdl : 0 < data.length) (hb : pwSize f.size off k ≤ b)
-    (hpc : k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0)
-    (hbz : b < pwCz m off k) (hbc : ¬ b < m.cz) : f.cache b = 0 := by
+    (hb : pwSize f.size off k ≤ b) (hbz : b < pwCz m off data.length k) (hbc : ¬ b < m.cz) :
+    f.cache b = 0 := by
   unfold pwCz at hbz
   split at hbz
   · rename_i z0 hz0
     split at hbz
     · rename_i hraise
-      obtain ⟨hk0, hzk⟩ := hraise
-      have hbk : off + k ≤ b := by unfold pwSize at hb; split at hb <;> omega
-      rcases hpc with h0 | hfull | hcut
-      · omega
-      · subst hfull
-        refine hmo.zc (max z0 (off + data.length)) ?_ b (by omega)
-        simp only [announce_zf, hz0, Option.map_some]
-        rw [if_pos (by omega)]
-      · rw [pageEnd_of_mod hcut] at hbz; omega
+      obtain ⟨hn0, hfull, hzk⟩ := hraise
+      subst hfull
+      have hbk : off + data.length ≤ b := by unfold pwSize at hb; split at hb <;> omega
+      refine hmo.zc (max z0 (off + data.length)) ?_ b (by omega)
+      simp only [announce_zf, hz0, Option.map_some]
+      rw [if_pos (by omega)]
     · omega
   · omega
 
@@ -1234,7 +1227,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
         size := pwSize m.size off k,
         tc := cond keep (pwTail m off data n)
           (m.announce off (off + data.length) (max m.size (off + data.length))).tc,
-        cz := pwCz m off k } := by
+        cz := pwCz m off data.length k } := by
     simp only [pwPostK, pwPost, hcanon]
   have hcoh2 : OsCoh (pwState st t c.ino f c off k) (insertBytes c.ino off ys Γb)
       (<[c.ino := pwPostK keep m off data k n]> Γm) Γf (GMap.delete t Γt) := by
@@ -1284,10 +1277,10 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
         have hk : ¬ (off ≤ b ∧ b < off + k) := by unfold pwSize at hb; split at hb <;> omega
         have hfb : f.size ≤ b := by unfold pwSize at hb; split at hb <;> omega
         rw [hcache b, if_neg hk]
-        change b < pwCz m off k at hbz
+        change b < pwCz m off data.length k at hbz
         by_cases hbc : b < m.cz
         · exact hmo.cz b hfb (by simpa only [announce_cz] using hbc)
-        · exact pwFinish_cz_raise hmo hdl hb hpc.1 hbz hbc
+        · exact pwFinish_cz_raise hmo hb hbz hbc
       · simp only [announce_zf, Option.map_eq_some_iff] at hz
         obtain ⟨z0, hz0, rfl⟩ := hz
         have hz1 := hmo.zc _ (by simp only [announce_zf, hz0]; rfl) b hzb

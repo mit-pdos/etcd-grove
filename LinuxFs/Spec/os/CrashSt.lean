@@ -57,12 +57,13 @@ theorem WReach.cut {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {
   | refl => rfl
   | step _ _ _ _ _ _ _ _ _ _ _ ih => simp [pwPostK, pwPost, OsMeta.announce, ih]
 
-/-- A state the loop reached has the start's page cache known zero past the size (writes keep it). -/
+/-- A state the loop reached knows the page cache zero past the size at least as far as the start
+(writes keep it, or raise it: `pwCz`). -/
 theorem WReach.cz {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
-    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data nn m' bs') : m'.cz = m.cz := by
+    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data nn m' bs') : m.cz ≤ m'.cz := by
   induction h with
-  | refl => rfl
-  | step _ _ _ _ _ _ _ _ _ _ _ ih => simp [pwPostK, pwPost, ih]
+  | refl => exact Nat.le_refl _
+  | step _ _ _ _ _ _ _ _ _ _ _ ih => exact Nat.le_trans ih (le_pwCz _ _ _ _)
 
 /-- **A state the loop reached is one the write may pass through** (`WIn`), and the bytes written
 so far are inside it. -/

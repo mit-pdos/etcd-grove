@@ -29,6 +29,7 @@ which `run` closes when it returns.
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandshakeN
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
@@ -87,7 +88,8 @@ variable [os_sem : os.Assumptions]
 
 /-- **The `n`-th file of the pipeline of the directory `dir` (inode `j`), at `lf`**: a locked file
 on the name `pipeTmp n`, open write-only at offset 0, its `OsMeta` (no mappings) and its bytes
-whole, all zeros (`osZerosA`), and the whole claim on its name, which holds it; no sync without its
+whole, all zeros (`osZerosA`), and the whole claim on its name, which holds it; the zeros known past
+its size (`ZeroPg`: `cut` syncs it as the new tail, whose `TailZ` needs them); no sync without its
 bytes (`OsMeta.cut` none), a crash's lower size bound at most the size, and the size a multiple of 8
 (the pipeline's size, `isFilePipe`: the headers' frames are 8-aligned, so the zeros after them are
 too) and below ext4's maximum offset (the pipeline's size: `cut` makes the file a handle's tail,
@@ -99,7 +101,7 @@ def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
     osMeta i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ∗
     osNames j (.only [pipeTmp n]) (DFrac.own 1) h ∗
     ⌜0 ≤ fd.toInt ∧ m.maps = ∅ ∧ h.cur !! pipeTmp n = some (.file i) ∧
-      m.cut = none ∧ m.lo ≤ m.size ∧ m.size % 8 = 0 ∧ m.size ≤ 0xffffffff000⌝)
+      m.cut = none ∧ m.lo ≤ m.size ∧ m.size % 8 = 0 ∧ m.size ≤ 0xffffffff000 ∧ ZeroPg m⌝)
 
 /-- What the receiver of file `n` hands back: the claim on `pipeTmp (n + 1)`, and the bound. -/
 def pipeQ (j : Ino) (n : Nat) : IProp GF :=
