@@ -534,14 +534,14 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   `SaveSnapshot` one `sorry` for its stream bound, `wal-save13`, thirteenth session),
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
-- `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
+- `fileutil/`: none (`ReadDir.wp_proof` proved, `wal-small14`; `TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
 `Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`); `hErrNotExist` dropped and the
 `os`/extension layer of its `ReadDir` hypotheses proved over the provisional `ENOENT` rule (`wal-enoent13`,
-W7-W12 log, second session); left: `ReadDir`'s loops and the names' bound, `errors.IsPathErrnoNotExist.spec`. Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
+W7-W12 log, second session); `ReadDir`'s loops and the names' bound proved (`wal-small14`, W7-W12 log, third session: `Readdirnames`' model assumes Go's `growslice` limit, pending review); left: `errors.IsPathErrnoNotExist.spec`. `ReleaseLockTo`'s spec and update stated/proved, its body not. Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
 (§4.2's W7-W11), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session). `openAtIndex` and `OpenForRead` are proved, over two invariant hypotheses (`WalPinSized`: the segments' size bound; `WalDirPathLaw`: a path to the WAL directory, `wal-path13`'s to replace) and `WalDecEnvSupply` (`wal-read12`; W3/W5 log, twelfth session). `Open` is proved over `openAtIndex.spec`, `WalDirPathLaw`
 and the hypothesis `WAL.Close.specOpening` (W10's to discharge); `Open`'s success keeps the client's half of the call
@@ -3921,6 +3921,48 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   the error tree of the part's `os` errors, `syscall.Errno.Is`, and `os.ErrNotExist = oserror.ErrNotExist`
   distinct from `ErrPermission`/`ErrExist`/`ErrUnsupported` in the package facts).
 - *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).
+
+**Third session (branch `wal-small14`, 2026-11-14).**
+
+- **Integration build** (after the `rzs` stamps and the `ENOENT` rule): every `LinuxFs` and
+  `GooseLang/Ext/Fs` target built, 3115 jobs, no fix needed; `gen-part-copies.py --check`,
+  `gen-init.py --check` pass. Rebuilt after this session's model change and the `wal-int` merge
+  (`5f004edd54`): 3135 jobs, success.
+- **Decision [user], provisional, pending the user's review: `Readdirnames`' model assumes Go's
+  `growslice` limit.** `sort.Strings.spec` needs at most `2^62` names, and the bound is real (Go's
+  `heapSort` computes `2*i+1`, which overflows past `2^62`). The model cannot give it: `DirReadNext`
+  may return a name again after a concurrent change, so a shared-mode read is unbounded, and the
+  names outside the caller's claim are unconstrained; a premise on the claim's history would not
+  cover `Exist`'s `.except X` claim nor bound the entries. What bounds it in Go is `append`: a
+  `[]string` panics ("growslice: len out of range") once its capacity passes `maxAlloc/16 = 2^44`
+  (linux/amd64), before its length does; Perennial's `append` models only the `int` overflow as an
+  assumption. So `File.Readdirnames.impl` (`LinuxFs/TrustedCode/os.lean`) assumes (`assume`: diverges
+  otherwise) that fewer than `2^44` names were read before each append, excluding only executions Go
+  ends in that runtime panic. Go example `examples/osfs/semantics/model_os_readdirnames_len.go`,
+  **measured** (`TestAppendStringsLenLimit`: `unsafe.Slice` makes a `2^44`-string header without
+  allocating; one `append` panics so). Rejected: a hypothesis "Readdirnames returns at most `2^62`
+  names" (false in the model, so unsound as an axiom). General fix for Perennial (its `append` should
+  assume `newLen ≤ maxAlloc/elemSize`): `notes/perennial-changes.md`.
+- **`os` layer**: `errnoPathErr` and its lemmas moved to `LinuxFs/Proof/os/ErrnoPathErr.lean` (imported
+  by `NsS`); `File.Readdirnames.wp_dirS` states its error (`errnoPathErr`, nonzero) and both readdir
+  specs (`wp_dirS`, `wp_dirChildS`) the bound `names.length ≤ 2^44`; `os.OpenFile/Open.wp_dirErrS` (the
+  error explicit; `wp_dirS` unchanged for `OpenDir`); `Ns.lean`'s `wp_dir` steps past the `assume`.
+- **Proved (no `sorry`)**: `fileutil.ReadDir.wp_core` (`ReadDirCore.lean`: the options loop over the
+  closures, `os.Open`, the deferred `Close`, `Readdirnames(-1)`, `sort.Strings`, the extension filter,
+  over abstract triples of the three `os` calls), **`ReadDir.wp_proof`** (its last `sorry`),
+  **`ReadDir.wp_specChildIs`** and **`ReadDir.wp_specAbsentIs`**
+  (`LinuxFs/Proof/.../wal/ExistCallees.lean`), both over the one remaining hypothesis
+  `errors.IsPathErrnoNotExist.spec`. `Exist` now rests on that hypothesis alone (with `WithExt`,
+  proved): `wal-create12`/linking pass `ReadDir.wp_specAbsentIs wp_Strings wp_Ext wp_IsNE` and
+  `wp_specChildIs …` for `wp_RDabs`/`wp_RDchild`.
+- **`ReleaseLockTo` (W9), started**: the spec over `fsExt`
+  (`LinuxFs/Spec/.../wal/WAL__ReleaseLockTo.lean`: the main axiom's, with the area, `walOpenWF`, the
+  update at `walAuMask`; `unl` bookkeeping per §6 Q1, committed right after `w.mu.Lock()` whatever the
+  outcome) and its update's ghost step `walInv_unlAU` (`ReleaseAu.lean`, proved). Not done: the body
+  (the lock loop: `Name()` of each lock, `parseWALName`, the `Close` of the earlier locks, the reslice
+  `w.locks[smaller:]`, which keeps the tail last: `walLockH` for the dropped ones, `ownSlice_slice_with_cap`).
+- *Not started*: `ValidSnapshotEntries` (W8): it needs the read-mode pin (`walInv_openAt`'s), the
+  `openWALFiles`/decoder specs `ReadAll` uses (`wal-readall14`), so it belongs after `ReadAll`.
 **W3/W5 log, thirteenth session (branch `wal-read13`, 2026-11-14).** `Open.wp_proof` proved (no `sorry`, `lake build`).
 - *Task 1, the call permission* (ledger 2026-11-14, "the call permission counted twice"): the sealed `walOpeningF`
   (`ReadDefs.lean`) holds `osCallPerm ½`; `Open.spec`'s success arm is `walOpeningF w dir s` alone. `ReadAll` must move
