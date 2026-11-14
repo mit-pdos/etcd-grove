@@ -322,14 +322,6 @@ theorem pcRunN_add {m : OsMeta} : ∀ {b k1 : Nat} (k2 : Nat),
         show b + 1 + k1 = b + (k1 + 1) by omega]
       simp only [List.cons_append, List.length_cons, Nat.add_right_cancel_iff]
 
-theorem pcRunN_length_le {m : OsMeta} : ∀ {b k : Nat}, (pcRunN m b k).length ≤ k
-  | _, 0 => by simp [pcRunN]
-  | b, k + 1 => by
-    unfold pcRunN
-    split
-    · simp only [List.length_cons]; have := pcRunN_length_le (m := m) (b := b + 1) (k := k); omega
-    · simp
-
 theorem pcRunN_fst {m : OsMeta} : ∀ {b k : Nat} {y : ByteG}, y ∈ pcRunN m b k → y.1 = 0
   | _, 0, _, h => by simp [pcRunN] at h
   | b, k + 1, y, h => by
@@ -452,7 +444,9 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [rzSeg g0 tr tg n])
     (hlen : g0.bs.length = g0.om.size) (hgrow : g0.om.size ≤ w) (hw : w ≤ tg)
     (hzl : zs.length = w - g0.om.size) (hcut : g0.om.cut = none)
-    (hlo : min g0.om.lo tg ≤ lay.wr) (hold : w ≤ lay.old.length) :
+    (hlo : min g0.om.lo tg ≤ lay.wr) (hold : w ≤ lay.old.length)
+    (hzf : ∀ z, g0.om.zf = some z → g0.om.size ≤ z)
+    (hzs : ∀ j c, j < zs.length → g0.om.pc (g0.om.size + j) = some c → zs[j]? = some c) :
     WalAbsD C Mr d (tailLay lay pre (rzLandG g0 tr tg w n zs) lay.wr) ents := by
   have hg1 : lay.segs.getLast? = some (rzSeg g0 tr tg n) := by rw [hs]; simp
   have hbs := rzSeg_bs_of_le (tr := tr) (n := n) hlen (show g0.om.size ≤ tg by omega)
@@ -462,7 +456,7 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
   have hlo0' : min g0.om.lo tg ≤ g0.bs.length := by
     have : (rzSeg g0 tr tg n).om.lo = min g0.om.lo tg := rfl
     omega
-  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩ := habs.lastWin _ hg1
+  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ, hWC⟩ := habs.lastWin _ hg1
   refine walAbsD_win habs hs rfl rfl ?_ ⟨fun hx => ?_, fun _ => ?_⟩
   · refine ⟨?_, ?_, ?_, ?_⟩
     · show (rsPost tr g0.om tg w).size = _; rw [hl2]; rfl
@@ -482,11 +476,18 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs2]; exact hb), k6, k7, k8⟩
     rw [hbs2]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ⟩, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_⟩
     · simp only [tailLay] at hbw ⊢
       have hb' : g0.bs[b]? = some x := by
         rw [← hb]; simp only [rzLandG]; rw [List.getElem?_append_left (by omega)]
       exact hB b x (by rw [hbs]; exact hb') hbw
+    · obtain ⟨t, ht⟩ := segBytesX_rzLandG (tr := tr) (n := n) hlen hgrow hw hzl hzf hzs
+      refine hWC.same (by show max g0.om.hi tg ≤ max g0.om.hi tg; exact Nat.le_refl _)
+        (by rw [hl2]; show w ≤ max g0.om.hi tg; omega)
+        (by rw [← ht, List.length_append]; omega) (fun b hb => ?_) (fun s hs => ?_)
+      · rw [← ht, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+          List.getElem?_append_left hb]
+      · simpa [rzLandG, rzSeg, rzMeta] using hs
     · show min g0.om.lo tg ≤ lay.wr; exact hlo
 
 /-- **A growth's first step**: `WalsOk` and the directory keys of the layout with the tail announced
@@ -510,7 +511,7 @@ theorem rzGrow_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     hnd hs hsz.symm (by omega) hgrow htg hk htcz
   refine ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
-  exact walAbsD_rzStart h hs hwr hlo
+  exact walAbsD_rzStart h hs hwr hlo htg (segBytesX_rzGrow hk hgrow htg hsz.symm htcz.1)
 
 /-- **A growth's landing**: `WalsOk` and the directory keys of the layout with the tail landed
 (`rzLandG`), from the in-flight one. -/
@@ -532,7 +533,7 @@ theorem rzLandG_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
   have hstep := tailCrashStep_rzLandG (C := C) (Mr := Mr) (d := d) (cl := cl) (k := n)
     hnd hs hlen hgrow hw hzl hzf hzs
   refine ⟨walsOk_tailA hW hd hl hs rfl ?_
-    (fun ents h => walAbsD_rzLandG h hs hlen hgrow hw hzl hcut hlo hold) hstep,
+    (fun ents h => walAbsD_rzLandG h hs hlen hgrow hw hzl hcut hlo hold hzf hzs) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
   simp [rzLandG, rsPostK, rsPost, OsMeta.announce, hcut]
 

@@ -39,6 +39,46 @@ theorem valAt_append_pos (c : Cands) (x : w8) {n : Nat} (hn : 0 < n) :
 def RzCands (rz : List Nat) (cs cs' : Cands) : Prop :=
   cs' = cs ∨ ∃ n, 0 < n ∧ n ∈ rz ∧ cs' = cs ++ [(0, n)]
 
+section wc
+variable [GooseExts]
+
+/-- **A window's candidates across a step that appends known resizes' zeros** (a resize's first step,
+`segBytesX_rzSeg`/`_rzGrow`): `segBytesX` as long, `hi` no higher, each candidate list the old one or
+with a zero stamped by a resize `g'` knows; `g'` knows `g`'s stamps. -/
+theorem WinCands.rz {S old : List w8} {wr : Nat} {g g' : SegG} (h : WinCands S old wr g)
+    (hhi : g'.om.hi ≤ g.om.hi) (hlen : (segBytesX g').length = (segBytesX g).length)
+    (hcand : ∀ b, b < (segBytesX g).length →
+      RzCands g'.om.rz ((segBytesX g).getD b (0, [])).2 ((segBytesX g').getD b (0, [])).2)
+    (hrz : ∀ s ∈ g.om.rz, s ∈ g'.om.rz) : WinCands S old wr g' := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨by omega, fun b hb1 hb2 q hq => ?_⟩
+  rw [hlen] at hb2
+  rcases hcand b hb2 with e | ⟨n, -, hn, e⟩
+  · rw [e] at hq; exact (h2 b hb1 hb2 q hq).mono_rz hrz
+  · rw [e] at hq
+    rcases List.mem_append.1 hq with hq | hq
+    · exact (h2 b hb1 hb2 q hq).mono_rz hrz
+    · simp only [List.mem_singleton] at hq; subst hq; exact winShape_rz hn
+
+/-- **A window's candidates across a step that keeps `segBytesX`'s candidates** (a resize's landing,
+`segBytesX_rzLand`/`_rzLandG`): the old candidates a prefix of the new ones' (position by position),
+`hi` no higher and the new bytes within it (so `segBytesX` no longer), the stamps known kept. -/
+theorem WinCands.same {S old : List w8} {wr : Nat} {g g' : SegG} (h : WinCands S old wr g)
+    (hhi : g'.om.hi ≤ g.om.hi) (hbs : g'.bs.length ≤ g'.om.hi)
+    (hlen : (segBytesX g).length ≤ (segBytesX g').length)
+    (hcand : ∀ b, b < (segBytesX g).length →
+      ((segBytesX g').getD b (0, [])).2 = ((segBytesX g).getD b (0, [])).2)
+    (hrz : ∀ s ∈ g.om.rz, s ∈ g'.om.rz) : WinCands S old wr g' := by
+  obtain ⟨h1, h2⟩ := h
+  have hmax := segBytesX_length_le_max g'
+  have hl : (segBytesX g').length = (segBytesX g).length := by omega
+  refine ⟨by omega, fun b hb1 hb2 q hq => ?_⟩
+  rw [hl] at hb2
+  rw [hcand b hb2] at hq
+  exact (h2 b hb1 hb2 q hq).mono_rz hrz
+
+end wc
+
 /-- **W1 over the candidates with a known resize's zeros appended gives W1 without them.** -/
 theorem AsOfW.drop_rz {cs cs' : Nat → Cands} {rz : List Nat} {v : Nat → w8} {o len : Nat}
     (hc : ∀ b, o ≤ b → b < o + len → RzCands rz (cs b) (cs' b))

@@ -156,6 +156,92 @@ def SegExact (g : SegG) : Prop := g.om.lo = g.bs.length ∧ g.om.hi = g.bs.lengt
 /-- Every named segment of `lay` but the last is exact (`WalAbsD.metas`); the last too. -/
 def TailExact (lay : WalLay) : Prop := ∀ g, lay.segs.getLast? = some g → SegExact g
 
+/-! ## The candidates past a segment's bytes -/
+
+/-- The candidates `m` knows (`OsMeta.pc`) of `k` bytes from `b` on, up to the first it does not
+know, as ghost bytes (their value 0: `W1G` reads only the candidates). -/
+def pcRunN (m : OsMeta) : Nat → Nat → List ByteG
+  | _, 0 => []
+  | b, k + 1 => match m.pc b with
+    | some c => (0, c) :: pcRunN m (b + 1) k
+    | none => []
+
+/-- The candidates `m` knows from byte `b` on, below `m.hi`, up to the first it does not know. -/
+def pcRun (m : OsMeta) (b : Nat) : List ByteG := pcRunN m b (m.hi - b)
+
+theorem pcRunN_getElem? {m : OsMeta} : ∀ {b k j : Nat} {y : ByteG}, (pcRunN m b k)[j]? = some y →
+    j < k ∧ m.pc (b + j) = some y.2
+  | _, 0, _, _, h => by simp [pcRunN] at h
+  | b, k + 1, j, y, h => by
+    unfold pcRunN at h
+    split at h
+    · rename_i c hc
+      cases j with
+      | zero =>
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+        subst h; exact ⟨by omega, by simpa using hc⟩
+      | succ j =>
+        simp only [List.getElem?_cons_succ] at h
+        obtain ⟨h1, h2⟩ := pcRunN_getElem? h
+        exact ⟨by omega, by rw [show b + (j + 1) = b + 1 + j by omega]; exact h2⟩
+    · simp at h
+
+theorem pcRunN_length_le {m : OsMeta} : ∀ {b k : Nat}, (pcRunN m b k).length ≤ k
+  | _, 0 => by simp [pcRunN]
+  | b, k + 1 => by
+    unfold pcRunN
+    split
+    · simp only [List.length_cons]; have := pcRunN_length_le (m := m) (b := b + 1) (k := k); omega
+    · simp
+
+/-- **A segment's ghost bytes, then the candidates its `OsMeta` knows past them** (W1 past the
+bytes, I3b, `wal-tc6`): in a resize window, or after a write past the preallocated size, a crash may
+leave the segment longer than the bytes the invariant holds (up to `om.hi`), and its frames there are
+as of the candidates `om` knows past the size (`OsMeta.pc`: a truncate's cut-off bytes, `rzMeta`/
+`rsPostK true`; known zeros). The bytes of an exact segment (`om.hi ≤ |bs|`). -/
+def segBytesX (g : SegG) : List ByteG := g.bs ++ pcRun g.om g.bs.length
+
+theorem segBytesX_of_hi {g : SegG} (h : g.om.hi ≤ g.bs.length) : segBytesX g = g.bs := by
+  unfold segBytesX pcRun
+  rw [show g.om.hi - g.bs.length = 0 by omega]
+  simp [pcRunN]
+
+theorem segBytesX_getElem?_lt {g : SegG} {b : Nat} (hb : b < g.bs.length) :
+    (segBytesX g)[b]? = g.bs[b]? := List.getElem?_append_left hb
+
+theorem segBytesX_getD_lt {g : SegG} {b : Nat} (hb : b < g.bs.length) (d : ByteG) :
+    (segBytesX g).getD b d = g.bs.getD b d := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, segBytesX_getElem?_lt hb]
+
+theorem segBytesX_length_le {g : SegG} : g.bs.length ≤ (segBytesX g).length := by
+  simp [segBytesX]
+
+/-- `segBytesX g` stops at `hi` (or at the bytes' end). -/
+theorem segBytesX_length_le_max (g : SegG) : (segBytesX g).length ≤ max g.bs.length g.om.hi := by
+  have := pcRunN_length_le (m := g.om) (b := g.bs.length) (k := g.om.hi - g.bs.length)
+  simp only [segBytesX, pcRun, List.length_append]; omega
+
+/-- A byte of `segBytesX g` past `g.bs` is one `g.om` knows, below `g.om.hi`. -/
+theorem segBytesX_getElem?_ge {g : SegG} {b : Nat} {y : ByteG} (hb : g.bs.length ≤ b)
+    (h : (segBytesX g)[b]? = some y) : b < g.om.hi ∧ g.om.pc b = some y.2 := by
+  unfold segBytesX at h
+  rw [List.getElem?_append_right hb] at h
+  obtain ⟨h1, h2⟩ := pcRunN_getElem? h
+  refine ⟨by omega, ?_⟩
+  rw [show b = g.bs.length + (b - g.bs.length) by omega]; exact h2
+
+/-- The candidates of `segBytesX g` are a file's whose candidates are `g.bs`'s and, past the size
+(`|g.bs|`), those `g.om` knows. -/
+theorem segBytesX_cand {g : SegG} {f : Fs.OsFile} (hsz : g.om.size = g.bs.length)
+    (hbs : ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2)
+    (hpc : ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c) :
+    ∀ b (y : ByteG), (segBytesX g)[b]? = some y → f.cand b = y.2 := by
+  intro b y h
+  by_cases hb : b < g.bs.length
+  · rw [segBytesX_getElem?_lt hb] at h; exact hbs b y h
+  · obtain ⟨-, h2⟩ := segBytesX_getElem?_ge (by omega) h
+    exact hpc b y.2 (by omega) h2
+
 /-- **The last segment `g`, no resize window open on it** (`WalAbsD.last`): its stream up to `wr`,
 `old` past it, each byte durable below `so`, written once since the sync between `so` and `wr`
 (`ByteOk`), `old` zeros past the start's frames once anything is appended. -/
@@ -168,10 +254,50 @@ def TailLast (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : S
     lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
     (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
 
+/-- **The shape of a candidate `q` of byte `b` of the last segment, at or past the write position,
+in a resize window** (I3b; `TailWin`, W6 log, seventeenth session): the byte under the stream as of
+the generation's start (`old`'s, stamp 0; zero past `old`), a known resize's zero (its stamp among
+`rz`), or the stream's byte, stamped by a write (inside the stream). -/
+def WinShape (S old : List w8) (rz : List Nat) (b : Nat) (q : w8 × Nat) : Prop :=
+  q = (old.getD b 0, 0) ∨ (q.1 = 0 ∧ q.2 ∈ rz) ∨ (b < S.length ∧ q.1 = S.getD b 0 ∧ 0 < q.2)
+
+theorem WinShape.mono_rz {S old : List w8} {rz rz' : List Nat} {b : Nat} {q : w8 × Nat}
+    (h : WinShape S old rz b q) (hrz : ∀ s ∈ rz, s ∈ rz') : WinShape S old rz' b q := by
+  rcases h with h | ⟨h1, h2⟩ | h
+  · exact .inl h
+  · exact .inr (.inl ⟨h1, hrz _ h2⟩)
+  · exact .inr (.inr h)
+
+/-- The stream grows (`Save`'s commit): a candidate keeps its shape. -/
+theorem WinShape.snoc {S X old : List w8} {rz : List Nat} {b : Nat} {q : w8 × Nat}
+    (h : WinShape S old rz b q) : WinShape (S ++ X) old rz b q := by
+  rcases h with h | h | ⟨h1, h2, h3⟩
+  · exact .inl h
+  · exact .inr (.inl h)
+  · refine .inr (.inr ⟨by simp; omega, ?_, h3⟩)
+    rw [h2, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left h1]
+
+/-- A known resize's zero has the shape. -/
+theorem winShape_rz {S old : List w8} {rz : List Nat} {b n : Nat} (h : n ∈ rz) :
+    WinShape S old rz b ((0 : w8), n) := .inr (.inl ⟨rfl, h⟩)
+
+/-- **The candidates of the last segment `g` past the write position `wr`, in a window** (`TailWin`'s
+last conjunct): every byte `g.om` may leave past its bytes is known (`segBytesX g` reaches `hi`), and
+each candidate of `segBytesX g` from `wr` on has `WinShape`. -/
+def WinCands (S old : List w8) (wr : Nat) (g : SegG) : Prop :=
+  g.om.hi ≤ (segBytesX g).length ∧
+  ∀ b, wr ≤ b → b < (segBytesX g).length →
+    ∀ q ∈ ((segBytesX g).getD b (0, [])).2, WinShape S old g.om.rz b q
+
+theorem WinCands.snoc {S X old : List w8} {wr : Nat} {g : SegG} (h : WinCands S old wr g) :
+    WinCands (S ++ X) old wr g :=
+  ⟨h.1, fun b hb1 hb2 q hq => (h.2 b hb1 hb2 q hq).snoc⟩
+
 /-- **The last segment `g` in a resize window** (I3b; `WalAbsD.last`): `TailLast` below `wr` only;
 the segment between `wr` and `old` long (`cut` truncates it to `wr`, `ZeroToEnd` to the start's
-frames, then grows it back to its size); its bytes past `wr` are not constrained (a truncate's
-announced zeros, a growth's bytes with the candidates the file had past its size). -/
+frames, then grows it back to its size); its candidates from `wr` on, and those its `OsMeta` knows
+past its bytes, `old`'s byte, a known resize's zero or the stream's byte (`WinCands`: a truncate's
+announced zeros, a growth's bytes with the candidates the file had past its size, a write's). -/
 def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
     let S := segStream C Mr d lay.cuts lay.cuts.length
     lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ g.bs.length ≤ lay.old.length ∧ lay.wr ≤ g.bs.length ∧
@@ -179,13 +305,37 @@ def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : Se
       ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length)) (decide (b < lay.wr))
         (decide (b < lay.so)) x) ∧
     lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
-    (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+    (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) ∧
+    WinCands S lay.old lay.wr g
 
-/-- `TailLast` gives `TailWin`. -/
+/-- A byte at or past the write position, not synced: its candidates have the window's shape. -/
+theorem ByteOk.winShape {S old : List w8} {rz : List Nat} {w s : Bool} {b : Nat} {g : ByteG}
+    (h : ByteOk (S.getD b 0) (old.getD b 0) (decide (b < S.length)) w s g) (hs : s = false) :
+    ∀ q ∈ g.2, WinShape S old rz b q := by
+  subst hs
+  obtain ⟨ex, h1, h2, h3, -⟩ := h
+  intro q hq
+  rw [h1] at hq
+  rcases List.mem_cons.1 hq with rfl | hq
+  · exact .inl rfl
+  · have hb : b < S.length := by
+      rcases Nat.lt_or_ge b S.length with hb | hb
+      · exact hb
+      · have := h3 (by simp; omega)
+        subst this; simp at hq
+    exact .inr (.inr ⟨hb, (h2 q hq).1, (h2 q hq).2⟩)
+
+/-- `TailLast` gives `TailWin`, the segment exact (no candidates past its bytes). -/
 theorem TailLast.win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
-    (h : TailLast C Mr d lay g) : TailWin C Mr d lay g := by
+    (h : TailLast C Mr d lay g) (hx : SegExact g) : TailWin C Mr d lay g := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
-  exact ⟨h1, h2, by omega, by omega, fun b x hb _ => h5 b x hb, h6, h7, h8⟩
+  have hX : segBytesX g = g.bs := segBytesX_of_hi (Nat.le_of_eq hx.2)
+  refine ⟨h1, h2, by omega, by omega, fun b x hb _ => h5 b x hb, h6, h7, h8, ?_, ?_⟩
+  · rw [hX]; exact Nat.le_of_eq hx.2
+  · intro b hb1 hb2 q hq
+    rw [hX] at hb2 hq
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb2, Option.getD_some] at hq
+    exact (h5 b _ (List.getElem?_eq_getElem hb2)).winShape (by simp; omega) q hq
 
 /-- **The static relation of the WAL `d` and its layout `lay`**, the WAL directory's entries being
 `ents` (plan §2.1). -/
@@ -252,7 +402,7 @@ theorem WalAbsD.lastWin {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) :
     TailWin C Mr d lay g := by
   by_cases hx : SegExact g
-  · exact ((h.last g hg).1 hx).win
+  · exact ((h.last g hg).1 hx).win hx
   · exact ((h.last g hg).2 hx).1
 
 /-- **A window's least crash size is at most the write position** (`WalAbsD.last`'s `winLo`). -/
@@ -298,77 +448,6 @@ def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → O
   ∀ k, ∀ p ∈ acceptsFiles C ((js.drop k).map img) 0#32, ∀ i bs, (js.drop k)[p.1]? = some i →
     bsOf i = some bs → p.2 + frameCore (img i) p.2 ≤ bs.length →
       AsOfOneG bs (rzOf i) (img i) p.2 (frameCore (img i) p.2)
-
-/-- The candidates `m` knows (`OsMeta.pc`) of `k` bytes from `b` on, up to the first it does not
-know, as ghost bytes (their value 0: `W1G` reads only the candidates). -/
-def pcRunN (m : OsMeta) : Nat → Nat → List ByteG
-  | _, 0 => []
-  | b, k + 1 => match m.pc b with
-    | some c => (0, c) :: pcRunN m (b + 1) k
-    | none => []
-
-/-- The candidates `m` knows from byte `b` on, below `m.hi`, up to the first it does not know. -/
-def pcRun (m : OsMeta) (b : Nat) : List ByteG := pcRunN m b (m.hi - b)
-
-theorem pcRunN_getElem? {m : OsMeta} : ∀ {b k j : Nat} {y : ByteG}, (pcRunN m b k)[j]? = some y →
-    j < k ∧ m.pc (b + j) = some y.2
-  | _, 0, _, _, h => by simp [pcRunN] at h
-  | b, k + 1, j, y, h => by
-    unfold pcRunN at h
-    split at h
-    · rename_i c hc
-      cases j with
-      | zero =>
-        simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-        subst h; exact ⟨by omega, by simpa using hc⟩
-      | succ j =>
-        simp only [List.getElem?_cons_succ] at h
-        obtain ⟨h1, h2⟩ := pcRunN_getElem? h
-        exact ⟨by omega, by rw [show b + (j + 1) = b + 1 + j by omega]; exact h2⟩
-    · simp at h
-
-/-- **A segment's ghost bytes, then the candidates its `OsMeta` knows past them** (W1 past the
-bytes, I3b, `wal-tc6`): in a resize window, or after a write past the preallocated size, a crash may
-leave the segment longer than the bytes the invariant holds (up to `om.hi`), and its frames there are
-as of the candidates `om` knows past the size (`OsMeta.pc`: a truncate's cut-off bytes, `rzMeta`/
-`rsPostK true`; known zeros). The bytes of an exact segment (`om.hi ≤ |bs|`). -/
-def segBytesX (g : SegG) : List ByteG := g.bs ++ pcRun g.om g.bs.length
-
-theorem segBytesX_of_hi {g : SegG} (h : g.om.hi ≤ g.bs.length) : segBytesX g = g.bs := by
-  unfold segBytesX pcRun
-  rw [show g.om.hi - g.bs.length = 0 by omega]
-  simp [pcRunN]
-
-theorem segBytesX_getElem?_lt {g : SegG} {b : Nat} (hb : b < g.bs.length) :
-    (segBytesX g)[b]? = g.bs[b]? := List.getElem?_append_left hb
-
-theorem segBytesX_getD_lt {g : SegG} {b : Nat} (hb : b < g.bs.length) (d : ByteG) :
-    (segBytesX g).getD b d = g.bs.getD b d := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, segBytesX_getElem?_lt hb]
-
-theorem segBytesX_length_le {g : SegG} : g.bs.length ≤ (segBytesX g).length := by
-  simp [segBytesX]
-
-/-- A byte of `segBytesX g` past `g.bs` is one `g.om` knows, below `g.om.hi`. -/
-theorem segBytesX_getElem?_ge {g : SegG} {b : Nat} {y : ByteG} (hb : g.bs.length ≤ b)
-    (h : (segBytesX g)[b]? = some y) : b < g.om.hi ∧ g.om.pc b = some y.2 := by
-  unfold segBytesX at h
-  rw [List.getElem?_append_right hb] at h
-  obtain ⟨h1, h2⟩ := pcRunN_getElem? h
-  refine ⟨by omega, ?_⟩
-  rw [show b = g.bs.length + (b - g.bs.length) by omega]; exact h2
-
-/-- The candidates of `segBytesX g` are a file's whose candidates are `g.bs`'s and, past the size
-(`|g.bs|`), those `g.om` knows. -/
-theorem segBytesX_cand {g : SegG} {f : Fs.OsFile} (hsz : g.om.size = g.bs.length)
-    (hbs : ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2)
-    (hpc : ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c) :
-    ∀ b (y : ByteG), (segBytesX g)[b]? = some y → f.cand b = y.2 := by
-  intro b y h
-  by_cases hb : b < g.bs.length
-  · rw [segBytesX_getElem?_lt hb] at h; exact hbs b y h
-  · obtain ⟨-, h2⟩ := segBytesX_getElem?_ge (by omega) h
-    exact hpc b y.2 (by omega) h2
 
 /-- The ghost bytes of the segment of inode `i`, if it is one of the layout's, with the candidates
 its `OsMeta` knows past them (`segBytesX`). -/

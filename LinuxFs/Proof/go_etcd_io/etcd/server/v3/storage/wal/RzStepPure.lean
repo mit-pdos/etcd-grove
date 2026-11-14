@@ -18,6 +18,7 @@ The crash condition across the window (`CrashOk`) is not here: see the I3b log (
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailStepPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.RzW1
 
 @[expose] public section
 
@@ -116,18 +117,24 @@ theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
 /-- **A resize's first step keeps the static relation** (the window opens, or stays open), the target
 at or past the write position (`cut` truncates to it, `ZeroToEnd` to `z0 = wr`), the least crash size
 the step announces at most `wr` (`min lo tg ≤ wr`: so for `cut`'s and `ZeroToEnd`'s truncate, `tg =
-wr`): the bytes below the write position are untouched. From an exact tail or a window (`wal-tc7`). -/
+wr`): the bytes below the write position are untouched. From an exact tail or a window (`wal-tc7`).
+The target at most `hi` (a truncate to `wr`, a growth back to the size) and `segBytesX` across the step
+as `segBytesX_rzSeg`/`segBytesX_rzGrow` give it (`hX`): the window's candidates (`WinCands`) gain the
+step's zero. -/
 theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {tr : Bool} {tg n : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
-    (hwr : lay.wr ≤ tg) (hlo : min g0.om.lo tg ≤ lay.wr) :
+    (hwr : lay.wr ≤ tg) (hlo : min g0.om.lo tg ≤ lay.wr) (htg : tg ≤ g0.om.hi)
+    (hX : (segBytesX (rzSeg g0 tr tg n)).length = (segBytesX g0).length ∧
+      ∀ b, b < (segBytesX g0).length → RzCands (rzSeg g0 tr tg n).om.rz
+        ((segBytesX g0).getD b (0, [])).2 ((segBytesX (rzSeg g0 tr tg n)).getD b (0, [])).2) :
     WalAbsD C Mr d (tailLay lay pre (rzSeg g0 tr tg n) lay.wr) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   obtain ⟨hsz, hcut, hlo0, hhi0, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
   have hlen := rzSeg_length g0 tr tg n
   have hl : g0.bs.length = g0.om.size := hsz.symm
   have hW := habs.lastWin g0 hg0
-  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩ := hW
+  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ, hWC⟩ := hW
   refine walAbsD_win habs hs rfl rfl ?_ ⟨fun hx => ?_, fun _ => ?_⟩
   · simp only [rzSeg, rzMeta_size, rzMeta_cut, rzMeta_lo, rzMeta_hi] at hlen ⊢
     rw [hlen]; exact ⟨hsz, hcut, by omega, by omega⟩
@@ -145,10 +152,12 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     rw [e]
     exact ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ⟩, by simp only [rzSeg, rzMeta_lo]; omega⟩
-    simp only [tailLay] at hbw
-    rw [rzSeg_getElem?_lt hl (by omega)] at hb
-    exact hB b x hb (by omega)
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, by simp only [rzSeg, rzMeta_lo]; omega⟩
+    · simp only [tailLay] at hbw
+      rw [rzSeg_getElem?_lt hl (by omega)] at hb
+      exact hB b x hb (by omega)
+    · exact hWC.rz (by simp only [rzSeg, rzMeta_hi]; omega) hX.1 hX.2
+        (fun s hs => by simp [rzSeg, rzMeta, hs])
 
 end pure
 
