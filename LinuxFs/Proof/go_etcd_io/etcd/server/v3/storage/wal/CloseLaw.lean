@@ -6,8 +6,8 @@ session): `Close`'s put-back at a program step.
   name twice is two whole claims on one key: impossible).
 * `walTailsRes_close`: the open handle's tail record removed from the invariant's part, given the
   WAL's `TailIdle` (the WAL leaves the registered ones, so `WalTailIdle` must cover it).
-* `walInvBody_untail`: the body-level unregistration; the tail's synced `OsMeta` half (`TailMeta`)
-  agrees with the layout's last segment, whose `SegExact` and `wr` give `TailIdle`.
+* `walInvBody_untail`: the body-level unregistration; the tail's synced halves (`TailMetaS`) agree
+  with the layout's last segment, whose `SegExact`, `wr` and durable bytes give `TailIdle`.
 * `walCloseLaw`: the update committed unchanged, the tail unregistered, then `walInvBody_unpin`
   (`OpenUnpin.lean`) with the tail's halves, the directory claim and the pipeline names, and the lock.
 Lean-first.
@@ -153,18 +153,19 @@ theorem walTailsRes_close (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
   · iapply BigSepM.bigSepM_empty.2; iempintro
 
 /-- **The open handle's tail unregistered** at the body (see the file header): its tail record (all
-written, nothing in flight), the program's synced half of its `OsMeta`; the WAL's history is the
-record's. -/
+written, nothing in flight), the program's synced halves of its `OsMeta` and bytes (`TailMetaS`); the
+WAL's history is the record's. -/
 theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState)
     (dir : GoString) (γ γt : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
-    (wr : Nat) (ino : Ino) (m : OsMeta) (bs : List ByteG) (hTM : TailMeta m bs)
+    (wr : Nat) (ino : Ino) (m : OsMeta) (bs : List ByteG) (hTM : TailMetaS m bs)
     (hwr : wr = (tailStream Mr H md cuts).length) :
     ⊢ walInvBody (L := L) (W := W) walCodec Mr R jr r s -∗ walTailsFrag (W := W) (<[dir := γt]> ∅) -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
-      osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ==∗
+      osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs ==∗
       ∃ d : WalDur, ⌜s.wal !! dir = some d ∧ d.H = H⌝ ∗ walInvBody (L := L) (W := W) walCodec Mr R jr r s ∗
-        walTailsFrag (W := W) ∅ ∗ osMeta (L := L) ino (DFrac.own (1 : Qp).half) m := by
-  iintro Hb Htf Hk Hv Hm
+        walTailsFrag (W := W) ∅ ∗ osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗
+        osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs := by
+  iintro Hb Htf Hk Hv Hm Hbs
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     HK, %HAt, Hnms, %Hbd⟩
@@ -177,18 +178,26 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   subst hF0 hH hmd hcuts hwr' hino
   icases (laysResF_empty (L := L) Ls).1 $$ Hlays with Hlays
   icases (laysRes_list (L := L) Ls).1 $$ Hlays with Hlays
-  icases segsRes_meta (L := L) (segsAll Ls) g.ino _ m $$ [Hlays Hm] with ⟨%hm, Hlays, Hm⟩
-  · iframe Hlays Hm
   have hgm : g ∈ segsAll Ls := mem_segsAll hl (List.mem_of_getLast? hg)
-  have hgom : g.om = m := hm g hgm rfl
   have hsz := walsOk_segs_size HW g hgm
+  icases (BigSepL.bigSepL_mem_acc (Φ := fun g => segRes (L := L) g) hgm) $$ Hlays with ⟨Hg1, Hlays⟩
+  iunfold segRes at Hg1
+  icases Hg1 with ⟨Hm2, Hb2⟩
+  icases parked_osMeta_agree (L := L) g.ino _ _ m g.om $$ Hm Hm2 with %hgom
+  subst hgom
+  icases osBytes_agree (L := L) g.ino _ _ 0 bs g.bs (by rw [hTM.1.1, hsz]) $$ Hbs Hb2 with %hbb
+  subst hbb
+  ihave Hlays := Hlays $$ [Hm2 Hb2]
+  · iunfold segRes; iframe Hm2 Hb2
   have hidle : TailIdle walCodec Mr d lay := by
-    refine ⟨fun g' hg' => ?_, ?_⟩
+    refine ⟨fun g' hg' => ?_, ?_, fun g' hg' => ?_⟩
     · rw [hg] at hg'; cases hg'
       refine ⟨?_, ?_⟩
-      · rw [← hsz, hgom]; exact hTM.2.2.2.1
-      · rw [← hsz, hgom]; exact hTM.2.2.2.2
+      · rw [← hsz]; exact hTM.1.2.2.2.1
+      · rw [← hsz]; exact hTM.1.2.2.2.2
     · rw [hwr, tailStream_eq]
+    · rw [hg] at hg'; cases hg'
+      exact ⟨hTM.2, fun z hz => by rw [← hsz]; exact hTM.1.2.2.1 z hz⟩
   imod Hclose $$ %(⟨hidle, GMap.lookup_empty _⟩ : TailIdle walCodec Mr d lay ∧ (∅ : GMap Ino SegFl) !! g.ino = none) with ⟨Htl, Htf⟩
   ihave Hlays := (laysRes_list (L := L) Ls).2 $$ Hlays
   ihave Hlays := (laysResF_empty (L := L) Ls).2 $$ Hlays
@@ -196,7 +205,7 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   iexists d
   isplitr
   · ipureintro; exact ⟨hd, rfl⟩
-  iframe Htf Hm
+  iframe Htf Hm Hbs
   iexists Ls, cl, n, ∅
   iframe Hg Hcl Hcm HCR Htl Hpk Hlays HK Hnms
   isplitr
@@ -238,14 +247,14 @@ theorem walCloseLaw (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
   · iexists M
     iframe HM
     ipureintro; exact HMd
-  imod walInvBody_untail Mr R jr r s dir γ γt H md cuts wr ino m bs hTM hwr $$ Hb Htf Hk Hv Hm with
-    ⟨%d, %hd, Hb, Htf, Hm⟩
+  imod walInvBody_untail Mr R jr r s dir γ γt H md cuts wr ino m bs hTM hwr $$ Hb Htf Hk Hv Hm Hbs with
+    ⟨%d, %hd, Hb, Htf, Hm, Hbs⟩
   have hdH : dc.H = H := by
     rw [hsd] at hd; obtain ⟨hd1, hd2⟩ := hd; cases hd1; rw [hle.1, hd2]
   unfold walOpenW walLockedTok
   icases Hopen with ⟨-, Hlk⟩
   have hS : ∀ g ∈ [(⟨go!"", ino, m, bs⟩ : SegG)], g.om.size = g.bs.length := by
-    intro g hg; simp only [List.mem_singleton] at hg; subst hg; exact hTM.1.symm
+    intro g hg; simp only [List.mem_singleton] at hg; subst hg; exact hTM.1.1.symm
   have hu := walInvBody_unpin (L := L) (W := W) walCodec Mr R jr r s dir j X hj
     [(⟨go!"", ino, m, bs⟩ : SegG)] true hS
   simp only [List.map_cons, List.map_nil, ↓reduceIte] at hu

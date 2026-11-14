@@ -30,7 +30,9 @@ reads `w.fp`; the proof is `sync.spec`'s with the pipeline left out of the frame
 docstring: `w.sync()` (S/wal.go:967-992) of a handle with every record of its history encoded
 (`rest = 0`): the encoder's pending bytes flushed to the tail (`out ++ pend`, nothing pending; the
 tail's size grown to cover them if they pass it), the tail fdatasynced: the history synced (`walSyncedLb
-|H|`), the tail's resize window closed (the handle exact: `OsMeta.synced`). The window may be open before
+|H|`), the tail's resize window closed and every byte durable (the handle's `TailMetaS`: `OsMeta.synced`,
+`durB`; `TailMetaS.of_sync` from `wp_osFsync`'s post; `Close`'s unregistration needs it for the WAL's
+`TailSynced`, the W7-W12 log's sixth session). The window may be open before
 (`TailMetaW`: a write past the preallocated size, W6 log, thirteenth session). *Error*: the handle lost. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS),
@@ -39,7 +41,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walHandleC P Mr w dir j
-          { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } ∗
+          { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
+          TailMetaS ∗
           WalFs.walSyncedLb dir h.H.length) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
