@@ -1,0 +1,119 @@
+/- Lean-first (no Rocq counterpart).
+
+# `Create` before the rename: the fresh directory's claims (W4, `notes/wal-fsext-plan.md`, "W4
+implementation log", eighteenth session)
+
+* `createJ_claims`: `J`'s claim off the segment's name and the segment's create (`crOut`) merged back,
+  then split into the claim off the pipeline's names (`.except walTmps`, for the commit, half to
+  `walCreateP`, half to the handle) and the pipeline's names (`walTmpsRes J`, `renameWAL`'s pre), with
+  the merged history's facts (`createJ_val`, `createJ_cur`).
+-/
+module
+
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateJ
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace WalFs
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Fs WalEnc
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+theorem walTmps_ne_wal {b t : GoString} (hb : walNameP b = true) (ht : t ∈ walTmps) : t ≠ b := by
+  rintro rfl; rw [walTmps_not_wal t ht] at hb; cases hb
+
+/-- **`J`'s claims after the segment's create** (see the file header). -/
+theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : NamesH)
+    (x s : Nat) (i : Ino) (hJe : hJ.cur = ∅)
+    (hfr : ∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none)
+    (hw0 : walNameP w0 = true) (hE : ↑osShN ⊆ E) :
+    osSharedInv (GF := GF) R -∗
+      osNames J ((NameSet.except []).diff [w0]) (DFrac.own 1) (hJ.restrict J ((NameSet.except []).diff [w0])) -∗
+      crOut J w0 (hJ.restrict J ((NameSet.except []).inter [w0])) (DFrac.own 1) (some (x, s, i)) ={E}=∗
+      ∃ hJ' : NamesH,
+        osNames J ((NameSet.except []).diff walTmps) (DFrac.own 1)
+          (hJ'.restrict J ((NameSet.except []).diff walTmps)) ∗ walTmpsRes J ∗
+        ⌜(∀ (K : Nat → Prop) (b : GoString),
+            hJ'.valAfter J K b = none ∨ (b = w0 ∧ hJ'.valAfter J K b = some (.file i))) ∧
+          (∀ b, hJ'.cur !! b = if b = w0 then some (.file i) else none)⌝ := by
+  iintro #Hsi HD Ho
+  have hN : ∀ c, (NameSet.except []).Mem c ↔
+      ((NameSet.except []).diff [w0]).Mem c ∨ (NameSet.only [w0]).Mem c := by
+    intro c
+    rw [NameSet.mem_diff]
+    simp only [NameSet.Mem, List.mem_singleton, List.not_mem_nil, not_false_eq_true, _root_.true_and]
+    by_cases hc : c = w0 <;> simp [hc]
+  simp only [crOut]
+  icases Ho with ⟨-, -, Hn1⟩
+  imod osNames_merge R J _ _ (.except []) _ _ hN hE $$ Hsi HD Hn1 with ⟨%h'', Hn, %hr⟩
+  have hval := createJ_val hfr hr.1 hr.2.1
+  have hcur := createJ_cur (x := x) (s := s) hJe hr.1 hr.2.1
+  imod osNames_split R J (.except []) walTmps h'' hE $$ Hsi Hn with ⟨HT, HD⟩
+  -- the pipeline's names, one claim each
+  imod osNames_split R J _ [go!"0.tmp"] _ hE $$ Hsi HT with ⟨H0, H1⟩
+  have hS0 : (((NameSet.except []).inter walTmps).inter [go!"0.tmp"]).Same (.only [go!"0.tmp"]) :=
+    fun b => by
+      rw [NameSet.mem_inter, NameSet.mem_inter]
+      show _ ↔ b ∈ [go!"0.tmp"]
+      constructor
+      · exact fun h => h.2
+      · intro h
+        rw [List.mem_singleton] at h; subst h
+        exact ⟨⟨by simp [NameSet.Mem], by simp [walTmps]⟩, by simp⟩
+  have hS1 : (((NameSet.except []).inter walTmps).diff [go!"0.tmp"]).Same (.only [go!"1.tmp"]) :=
+    fun b => by
+      rw [NameSet.mem_diff, NameSet.mem_inter]
+      show _ ↔ b ∈ [go!"1.tmp"]
+      constructor
+      · rintro ⟨⟨-, hT⟩, h0⟩
+        simp only [walTmps, List.mem_cons, List.not_mem_nil, _root_.or_false] at hT
+        rcases hT with rfl | rfl
+        · exact absurd (List.mem_singleton_self _) h0
+        · exact List.mem_singleton_self _
+      · intro h
+        rw [List.mem_singleton] at h; subst h
+        exact ⟨⟨by simp [NameSet.Mem], by simp [walTmps]⟩, by decide⟩
+  imod osNames_rekey R J _ (.only [go!"0.tmp"]) _ hS0 hE $$ Hsi H0 with H0
+  imod osNames_rekey R J _ (.only [go!"1.tmp"]) _ hS1 hE $$ Hsi H1 with H1
+  have hc : ∀ t (M1 M2 : NameSet), t ∈ walTmps → M1.Mem t → M2.Mem t →
+      ((h''.restrict J M1).restrict J M2).cur !! t = none := by
+    intro t M1 M2 ht h1 h2
+    simp only [NamesH.restrict]
+    rw [restrictN_lookup _ _ _ h2, restrictN_lookup _ _ _ h1, hcur, if_neg (walTmps_ne_wal hw0 ht)]
+  have h0m : (NameSet.except []).inter walTmps |>.Mem go!"0.tmp" :=
+    (NameSet.mem_inter _ _ _).2 ⟨by simp [NameSet.Mem], by simp [walTmps]⟩
+  have h1m : (NameSet.except []).inter walTmps |>.Mem go!"1.tmp" :=
+    (NameSet.mem_inter _ _ _).2 ⟨by simp [NameSet.Mem], by simp [walTmps]⟩
+  have hc0 := hc go!"0.tmp" _ (((NameSet.except []).inter walTmps).inter [go!"0.tmp"]) (by simp [walTmps]) h0m
+    ((NameSet.mem_inter _ _ _).2 ⟨h0m, by simp⟩)
+  have hc1 := hc go!"1.tmp" _ (((NameSet.except []).inter walTmps).diff [go!"0.tmp"]) (by simp [walTmps]) h1m
+    ((NameSet.mem_diff _ _ _).2 ⟨h1m, by decide⟩)
+  imodintro
+  iexists h''
+  iframe HD
+  ihave Ht0 : tmpClaim J go!"0.tmp" $$ [H0]
+  · unfold tmpClaim; iexists _; iframe H0; rw [hc0]; simp only [tmpEnt]; iempintro
+  ihave Ht1 : tmpClaim J go!"1.tmp" $$ [H1]
+  · unfold tmpClaim; iexists _; iframe H1; rw [hc1]; simp only [tmpEnt]; iempintro
+  isplitl [Ht0 Ht1]
+  · unfold walTmpsRes walTmps
+    iframe Ht0 Ht1
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+  ipureintro
+  exact ⟨hval, hcur⟩
+
+end proof
+
+end WalFs
+end EtcdGrove
+end Perennial

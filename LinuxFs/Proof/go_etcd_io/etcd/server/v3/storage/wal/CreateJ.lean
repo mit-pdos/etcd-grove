@@ -59,7 +59,7 @@ abbrev crH (hJ : NamesH) (J : Ino) (w0 : GoString) (x s : Nat) (i : Ino) : Names
 theorem createJ_val {hJ hJ' : NamesH} {J : Ino} {w0 : GoString} {x s : Nat} {i : Ino}
     (hfr : ∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none)
     (hA : hJ'.restrict J ((NameSet.except []).diff [w0]) =
-      hJ.restrict J ((NameSet.except []).diff [w0]))
+      (hJ.restrict J ((NameSet.except []).diff [w0])).restrict J ((NameSet.except []).diff [w0]))
     (hB : hJ'.restrict J (.only [w0]) = (crH hJ J w0 x s i).restrict J (.only [w0]))
     (K : Nat → Prop) (b : GoString) :
     hJ'.valAfter J K b = none ∨ (b = w0 ∧ hJ'.valAfter J K b = some (.file i)) := by
@@ -79,14 +79,15 @@ theorem createJ_val {hJ hJ' : NamesH} {J : Ino} {w0 : GoString} {x s : Nat} {i :
   · left
     have hm : ((NameSet.except []).diff [w0]).Mem b := by
       rw [NameSet.mem_diff]; simp [NameSet.Mem, hb]
-    rw [← valAfter_restrict hJ' J _ K b hm, hA, valAfter_restrict _ J _ K b hm]
+    rw [← valAfter_restrict hJ' J _ K b hm, hA, valAfter_restrict _ J _ K b hm,
+      valAfter_restrict _ J _ K b hm]
     exact hfr K b
 
 /-- **Now, the merged claim holds exactly the segment at `w0`.** -/
 theorem createJ_cur {hJ hJ' : NamesH} {J : Ino} {w0 : GoString} {x s : Nat} {i : Ino}
     (hJe : hJ.cur = ∅)
     (hA : hJ'.restrict J ((NameSet.except []).diff [w0]) =
-      hJ.restrict J ((NameSet.except []).diff [w0]))
+      (hJ.restrict J ((NameSet.except []).diff [w0])).restrict J ((NameSet.except []).diff [w0]))
     (hB : hJ'.restrict J (.only [w0]) = (crH hJ J w0 x s i).restrict J (.only [w0]))
     (b : GoString) : hJ'.cur !! b = if b = w0 then some (.file i) else none := by
   by_cases hb : b = w0
@@ -100,7 +101,7 @@ theorem createJ_cur {hJ hJ' : NamesH} {J : Ino} {w0 : GoString} {x s : Nat} {i :
       rw [NameSet.mem_diff]; simp [NameSet.Mem, hb]
     have := congrArg (fun h : NamesH => h.cur !! b) hA
     simp only [NamesH.restrict] at this
-    rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, hJe] at this
+    rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, hJe] at this
     rw [this, if_neg hb]; rfl
 
 /-- A `.wal` name is a name of the claim off the pipeline's names. -/
