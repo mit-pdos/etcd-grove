@@ -366,7 +366,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (try wp_auto)
     -- the mode check: only `io.EOF`
     iunfold decPost at Hpost
-    icases Hpost with ⟨Hpb, #Hans⟩
+    icases Hpost with ⟨Hpb, #Hans, -⟩
     iunfold decAns at Hans
     icases Hans with (%hn0 | #Hans)
     · exact absurd hn0 (by simp)
@@ -918,7 +918,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (try wp_auto)
     iunfold decPost at Hpost
     iunfold decPostB at Hpost
-    icases Hpost with ⟨⟨%k, Hk, Hm⟩ | ⟨%hio, -, -⟩ | ⟨%k, %sx, %offx, %cx, %hgf, -⟩, #Hans⟩
+    icases Hpost with ⟨⟨%k, Hk, Hm⟩ | ⟨%hio, -, -⟩ | ⟨%k, %sx, %offx, %cx, %hgf, -⟩, #Hans, -⟩
     · ihave Hleft := leftS_merge fs fsD kD k hkD $$ [Hleft Hk]
       · iframe
       generalize hgd : goDecode walCodec (List.map (fun x => x.bs) fsD) off c = gd

@@ -17,17 +17,16 @@ shape:
   `repairAt_fail`), on an I/O error because it answers `false`.
 
 The I/O arm (`errUeAns_ioe`, from the arm's `notUeof`, and the stream the arm now keeps) is proved
-(`wal-vsnap2`, 2026-11-14). **Not proved yet** (`sorry`): `errUeAns_end`, the answer on `Decode`'s own errors
-at the end of the frames: `errors.Is(err, io.ErrUnexpectedEOF)` must return, and `decEnv` gives no spec of
-`errors.Is` on `Decode`'s own errors (a `fmt.Errorf` wrap, `proto.Unmarshal`'s, `ErrCRCMismatch`'s); it needs
-`Decode`'s post to carry that call's termination for its stop and `Unmarshal` errors (as `decAns` carries
-`errors.Is(err, io.EOF)`'s), a further decoder spec change.
+(`wal-vsnap2`, 2026-11-14); the answer on `Decode`'s own errors at the end of the frames (`errUeAns_end`: any,
+since `errors.Is(err, io.ErrUnexpectedEOF)` returns, `Decode`'s `decUe`) since `wal-vsnap3` (2026-11-14; ledger,
+"no `errors.Is(_, io.ErrUnexpectedEOF)` termination").
 -/
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPre
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllExit
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecTerm
 
 @[expose] public section
 
@@ -58,12 +57,6 @@ instance errUeAns_persistent (err ueof : GoInterface) (P : Prop) :
     Persistent (errUeAns (GF := GF) err ueof P) := by
   unfold errUeAns; infer_instance
 
-/-- The answer at the end of the frames (`P` holds): any. **`sorry`**: waits for `Decode`'s
-`io.ErrUnexpectedEOF` answers (see the file header). -/
-theorem errUeAns_end (IoE : GoInterface → Prop) (eof ueof err : GoInterface) (P : Prop) (hP : P) :
-    decEnv (GF := GF) IoE eof ueof ⊢ errUeAns err ueof P := by
-  sorry
-
 /-- The answer on a reader's I/O error: `false` (`notUeof`, which `Decode`'s I/O arm gives). -/
 theorem errUeAns_ioe (ueof err : GoInterface) (P : Prop) :
     notUeof (GF := GF) err ∗ globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ⊢
@@ -78,6 +71,32 @@ theorem errUeAns_ioe (ueof err : GoInterface) (P : Prop) :
   iapply HΦ
   ipureintro
   intro h; rw [hb] at h; cases h
+
+/-- The answer at the end of the frames (`P` holds): any, since the call returns (`decUe`: `Decode`'s own
+errors' `errIsTerm`, an I/O error's `notUeof`). -/
+theorem errUeAns_end (IoE : GoInterface → Prop) (eof ueof err : GoInterface) (P : Prop) (hP : P)
+    (hn : err ≠ GoInterface.nil) :
+    decEnv (GF := GF) IoE eof ueof ∗ decUe err ⊢ errUeAns err ueof P := by
+  iintro ⟨#Henv, #Hue⟩
+  ihave %hp := decEnv_ueof_ptr IoE eof ueof $$ Henv
+  iunfold decUe at Hue
+  icases Hue with (%h | #Ht | #Hn)
+  · exact absurd h hn
+  · unfold errUeAns
+    iunfold errIsTerm at Ht
+    ihave #Hq := Ht $$ %ueof %hp
+    iintro !> %Φ
+    iintro !> - HΦ
+    wp_apply Hq as %b -
+    iapply HΦ
+    ipureintro
+    exact fun _ => hP
+  · ihave #Hu : globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof $$ []
+    · iunfold decEnv at Henv
+      icases Henv with ⟨-, -, -, -, -, -, #Hueof, -⟩
+      iexact Hueof
+    iapply errUeAns_ioe ueof err P
+    iframe Hn Hu
 
 /-- The files' streams, the dropped ones and those left in the decoder. -/
 theorem streams_take_drop (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (fs : List (DecFile GF))
@@ -110,14 +129,14 @@ theorem goFail_one {C : WalCodec} {bs : List w8} {off : Nat} {c : w32} {s : WalS
 theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface) (F : DecFile GF)
     (rs : List WalRec) (off : Nat) (c : w32) (err : GoInterface) (hRF : RepairFile walCodec F.bs rs)
     (hat : RepairAt walCodec rs off c) (hIoN : ¬ IoE GoInterface.nil) :
-    decEnv (GF := GF) IoE eof ueof ∗ decPostB walCodec d rp IoE eof ueof [F] off c err ⊢
+    decEnv (GF := GF) IoE eof ueof ∗ decUe err ∗ decPostB walCodec d rp IoE eof ueof [F] off c err ⊢
       (∃ (r : WalRec) (off' : Nat) (c' : w32),
           ⌜err = GoInterface.nil ∧ goDecode walCodec [F.bs] off c = .ok r [F.bs] off' c'⌝ ∗ ownRec rp r ∗
           ownDecoder d IoE eof [F] off' c' true) ∨
       (⌜err = eof⌝ ∗ ∃ q, F.S q) ∨
       (⌜err ≠ GoInterface.nil ∧ err ≠ eof⌝ ∗ (∃ q, F.S q) ∗
         errUeAns err ueof (off = (recFrames walCodec rs).length)) := by
-  iintro ⟨#Henv, Hp⟩
+  iintro ⟨#Henv, #Hue, Hp⟩
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Henv
   ihave #Henv2 := Henv
   iunfold decEnv at Henv2
@@ -167,7 +186,8 @@ theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoI
       isplitr
       · ipureintro; exact hne2
       iframe Hs
-      iapply errUeAns_end IoE eof ueof err _ hend $$ Henv
+      iapply errUeAns_end IoE eof ueof err _ hend hne2.1
+      iframe Henv Hue
   · -- a reader's I/O error: the stream back (the arm keeps the files), the answer `false`
     ihave Hs := streams_take_drop d IoE eof [F] k off' c' _ $$ [$Ht $Hd]
     ihave Hs := (BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ (F : DecFile GF) => iprop(∃ q, F.S q))).1 $$ Hs
@@ -192,7 +212,8 @@ theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoI
     isplitr
     · ipureintro; exact hne2
     iframe Hs
-    iapply errUeAns_end IoE eof ueof err _ hend $$ Henv
+    iapply errUeAns_end IoE eof ueof err _ hend hne2.1
+    iframe Henv Hue
 
 end norm
 
