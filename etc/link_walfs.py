@@ -56,6 +56,7 @@ PARAMS = [r"WalPbIn GF", r"WalMarshal", r"WalCodec", r"WalUnmarshal", r"Loc → 
 PREMISES = [
     (r"WalPbIn\.(\w+)(?: \((?:GF|hG) := \w+\))* P(?: \w+)*", lambda m: "WalPbIn_" + m.group(1)),
     (r"U\.Ok Mr", lambda m: "U_Ok"),
+    (r"U\.SnapCoh", lambda m: "U_SnapCoh"),
     (r"WalHsOwn P U HsO", lambda m: "WalHsOwn"),
     (r"WalDecEnvSupply(?: \(GF := GF\))?", lambda m: "WalDecEnvSupply"),
 ]
@@ -187,8 +188,11 @@ def main(root, perennial, argv0, check=False):
             for pat, stem in PREMISES:
                 pm = re.fullmatch(pat, ty)
                 if pm:
-                    # one text per proposition: the heap's names left to elaboration
-                    out.append(("premise", n, re.sub(r" \((?:GF|hG) := \w+\)", "", ty), stem(pm)))
+                    # one text per proposition: a law of `P` leaves the heap's names to
+                    # elaboration (`P`'s type fixes `GF`)
+                    if ty.startswith("WalPbIn."):
+                        ty = re.sub(r" \((?:GF|hG) := \w+\)", "", ty)
+                    out.append(("premise", n, ty, stem(pm)))
                     break
             else:
                 return None
