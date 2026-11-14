@@ -236,11 +236,13 @@ structure RdLoop (C : WalCodec) (U : WalUnmarshal) (s : w64 × w64) (R0 : DecOut
   stop : R0.stop = (rdRest C fs off c).stop
   fold : (acc.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st
   idx : acc.foldl (raIdx U s) (W64 0, W64 0) = ix
+  endOff : R0.off = (rdRest C fs off c).off
+  endCrc : R0.crc = (rdRest C fs off c).crc
 
 /-- The loop's start: a fresh decoder (offset 0, CRC 0), nothing handled. -/
 theorem rdLoop_start (C : WalCodec) (U : WalUnmarshal) (s : w64 × w64) (fs : List (List w8)) :
     RdLoop C U s (rdRest C fs 0 0#32) [] fs 0 0#32 raInit (W64 0, W64 0) :=
-  ⟨rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- **A record step**: the decoder returned `r` (not a CRC record the reader rejects), and the
 arm's step is `st'`: `r` is one of the reader's records, and the invariant holds at the decoder's new
@@ -254,13 +256,15 @@ theorem rdLoop_ok {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {R0 : DecOu
   have he := rdRest_ok h hok
   have hrecs : R0.recs = (acc ++ [r]) ++ (rdRest C fs' off' (rdCrc c' r)).recs := by
     rw [hL.recs, he]; simp
-  refine ⟨?_, hrecs, ?_, ?_, ?_⟩
+  refine ⟨?_, hrecs, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hrecs]; simp
   · rw [hL.stop, he]
   · rw [List.map_append, List.foldlM_append, hL.fold]
     simp only [List.map_cons, List.map_nil, List.foldlM_cons, List.foldlM_nil, bind, Except.bind, hst]
     rfl
   · rw [List.foldl_append, hL.idx]; rfl
+  · rw [hL.endOff, he]
+  · rw [hL.endCrc, he]
 
 /-- **A stop**: the decoder returned the stop `s'`: the reader read exactly the records handled, and
 stopped with `s'`. -/
@@ -270,6 +274,17 @@ theorem rdLoop_stop {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {R0 : Dec
     (h : goDecode C fs off c = .stop s' fs' off' c') : R0.recs = acc ∧ R0.stop = s' := by
   obtain ⟨h1, h2, -⟩ := rdRest_stop h
   exact ⟨by rw [hL.recs, h1, List.append_nil], by rw [hL.stop, h2]⟩
+
+/-- **A stop's position**: at a stop other than a CRC mismatch, the reader ended at the decoder's
+offset and CRC (`DecOut.off`/`crc`: the end of the last record accepted, the chain's CRC after it). -/
+theorem rdLoop_stop_end {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {R0 : DecOut}
+    {acc : List WalRec} {fs fs' : List (List w8)} {off off' : Nat} {c c' : w32} {st : RAState}
+    {ix : w64 × w64} {s' : WalStop} (hL : RdLoop C U s R0 acc fs off c st ix)
+    (h : goDecode C fs off c = .stop s' fs' off' c') (hs : ∀ t, s' ≠ .crcErr t) :
+    R0.off = off' ∧ R0.crc = c' := by
+  obtain ⟨-, -, h3⟩ := rdRest_stop h
+  obtain ⟨h4, h5⟩ := h3 hs
+  exact ⟨by rw [hL.endOff, h4], by rw [hL.endCrc, h5]⟩
 
 /-- **The loop ended at `io.EOF`** (write mode's only accepted stop): the fold of everything the
 reader read is the loop's variables, and the success arm's checks are `readAllFold`'s. -/

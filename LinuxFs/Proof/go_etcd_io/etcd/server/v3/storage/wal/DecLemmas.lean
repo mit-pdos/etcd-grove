@@ -330,16 +330,20 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c : w32)
     (err : GoInterface) (h : decRecStep C fs.isEmpty F.bs off c = .eof) (hfs : fs ≠ []) :
-    decPostB C d rp IoE eof ueof fs 0 c err ⊢ decPostB C d rp IoE eof ueof (F :: fs) off c err := by
+    (∃ q, F.S q) ∗ decPostB C d rp IoE eof ueof fs 0 c err ⊢
+      decPostB C d rp IoE eof ueof (F :: fs) off c err := by
   have hg : goDecode C ((F :: fs).map (·.bs)) off c = goDecode C (fs.map (·.bs)) 0 c := by
     simp only [List.map_cons]
     exact goDecode_eof_next (by simpa using h) (by simpa using hfs)
   unfold decPostB
   rw [hg]
-  iintro (⟨%k, H⟩ | H | ⟨%k, %s, %off', %c', %hf, H⟩)
+  iintro ⟨HF, (⟨%k, Hk, H⟩ | H | ⟨%k, %s, %off', %c', %hf, H⟩)⟩
   · ileft
     iexists (k + 1)
-    simp only [List.drop_succ_cons]
+    simp only [List.drop_succ_cons, List.take_succ_cons]
+    isplitl [HF Hk]
+    · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+      iframe
     iexact H
   · iright; ileft
     iexact H
@@ -370,7 +374,9 @@ theorem decPost_stop (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
   iintro ⟨Hr, Hd⟩
   ileft
   iexists 0
-  simp only [List.drop_zero]
+  simp only [List.drop_zero, List.take_zero]
+  isplitl []
+  · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   iframe
   ipureintro
   exact ⟨herr, trivial⟩
@@ -389,7 +395,9 @@ theorem decPost_accept (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
   iintro ⟨Hr, Hd⟩
   ileft
   iexists 0
-  simp only [List.drop_zero]
+  simp only [List.drop_zero, List.take_zero]
+  isplitl []
+  · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   iframe
   ipureintro
   exact ⟨trivial, trivial⟩

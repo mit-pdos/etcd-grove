@@ -270,13 +270,14 @@ instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface)
 
 /-- **What `Decode` (and `decodeRecord`) returns from the live decoder `(fs, off, c)`**: what
 `goDecode` says (a record in `*rp` and the decoder live at the next frame; or the stop's error,
-the decoder live only at the end), with the files left a suffix of `fs`; or an I/O error of `IoE`
+the decoder live only at the end), with the files left a suffix of `fs` and the streams of the files
+before it given back (`fs.take k`); or an I/O error of `IoE`
 (a failed `FileInfo` of the file reached, or a failed read), the decoder no longer live; or
 `proto.Unmarshal` failed on a frame (`GoFail`: bytes that are no record's encoding), the decoder
 no longer live and the record not given back. (The body of `decPost`.) -/
 def decPostB (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface)
     (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) : IProp GF :=
-  iprop((∃ k : Nat, match goDecode C (fs.map (·.bs)) off c with
+  iprop((∃ k : Nat, ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ match goDecode C (fs.map (·.bs)) off c with
       | .ok r fs' off' c' =>
         ⌜err = GoInterface.nil ∧ (fs.drop k).map (·.bs) = fs'⌝ ∗ ownRec rp r ∗
           ownDecoder d IoE eof (fs.drop k) off' c' true
