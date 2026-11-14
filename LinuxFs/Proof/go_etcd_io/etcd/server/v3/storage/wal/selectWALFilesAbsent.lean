@@ -32,7 +32,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proofAbsent
   wp_start as ⟨#Hlg, #Hos, #Hsi, Hp, Hperm, Hn⟩
   wp_auto
   wp_apply HNames lg d b R j dq qc N dqn h hb hN hi $$ [Hp Hperm Hn]
-    as %r %err ⟨Hp, Hperm, Hn, %e, %herr, #He⟩
+    as %r %err ⟨Hp, Hperm, Hn, %e, %herr, #He, -⟩
   · iframe
     isplitl []
     · iexact Hlg

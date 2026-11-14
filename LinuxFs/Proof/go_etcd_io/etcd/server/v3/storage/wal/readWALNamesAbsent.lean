@@ -5,7 +5,7 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/readWALNamesAbs
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNamesAbsent
-public import LinuxFs.Spec.fmt.ErrorfErrs
+public import LinuxFs.Spec.fmt.ErrorfErrsTerm
 
 @[expose] public section
 
@@ -27,13 +27,13 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proofAbsent
     (HRead : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.specAbsent (GF := GF) (hG := hG))
-    (HErrorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
+    (HErrorf : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.readWALNames.specAbsent (GF := GF) (hG := hG) := by
   intro lg d b R j dq qc N dqn h hb hN hi
   wp_start as ⟨#Hlg, #Hos, #Hsi, Hp, Hperm, Hn⟩
   wp_auto
   wp_apply HRead d b R j dq qc N dqn h hb hN hi $$ [Hp Hperm Hn]
-    as %r %err ⟨Hp, Hperm, Hn, %herr, #Herr⟩
+    as %r %err ⟨Hp, Hperm, Hn, %herr, #Herr, #Hterm⟩
   · isplitl []
     · iexact Hos
     isplitl []
@@ -54,7 +54,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proofAbsent
         right
         simpa using hii) $$ [Hasl] as %err2 #Herr2
   · iframe
-    iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+    iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
+      errIsTerm (GoInterface.ok e)))).2
+    iframe Hterm
     unfold fmtErrorOkOrNil fmtErrorOk
     icases Herr with ⟨-, H⟩
     unfold errOk

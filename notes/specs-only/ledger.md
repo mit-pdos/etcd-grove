@@ -1523,6 +1523,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   W4c U4 task 3): `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal`, `WalHsOwn.reset` remain hypotheses of
   the closed result, listed in §10 of `notes/wal-fsext-plan.md` as pending the user.
 
+## 2026-11-14: `fileutil.ReadDir.spec`/`specAbsent`, `readWALNames.spec`/`specAbsent`, `openWALFiles.spec` (internal, the part's) -- no `errors.Is` termination on their errors
+
+- **Spec.** Their error arms give only `fmtErrorOkOrNil`/`errOk`: `errors.Is` on the error has no spec.
+- **Defect.** Too weak for `validSnapshotEntries` (`specPinned`/`specAbsent`), whose errors must carry `wal.vseErrIs`
+  (`ValidSnapshotEntries`' retry test `errors.Is(err, os.ErrNotExist)`, S/wal.go:639, on every error the attempt
+  returns: `readWALNames`', `openWALFiles`', the decoder's, `ErrCRCMismatch`). Found in `wal-vsnap3` (W8, third
+  session).
+- **Evidence.** The errors are `*PathError`s of an errno (`os.errnoPathErr`, the part's `os` models: `ReadDir`'s
+  every error, `os.OpenFile`'s), `fmt.Errorf("...: %w", e)` of them, and `errors.New` leaves (`ErrFileNotFound`,
+  `ErrCRCMismatch`); `errors.Is` terminates on each in Go (`*PathError` has no `Is`; its `Unwrap` gives the `Errno`,
+  whose `Is` compares the target with four pointer errors; `*wrapError` unwraps to its argument).
+- **Change (made, `wal-vsnap4`).** `errIsTerm` (`errors.Is(e, u)` returns for every pointer target `u`) on: the
+  error arms of `ReadDir.spec`/`specAbsent`, `readWALNames.spec`/`specAbsent`, `openWALFiles.spec` (read mode: write
+  mode's `TryLockFile` errors are not needed), `notUeof` (the decoder's I/O errors); the wal package's error
+  variables (`wal.errVar`) and `walpbInit`'s `ErrCRCMismatch` (`*errorString` leaves, proved). The `os`/`io/fs`
+  package facts record `ErrNotExist` as an `*errorString` (proved from `internal/oserror`'s `errors.New`), so that
+  `vseErrIs` follows from `errIsTerm`. Two new hypotheses, true of Go (as `errors.IsErrno.spec`,
+  `fmt.ErrorfErrsNot.spec`): `errors.IsPathErrnoTerm.spec` (`errIsTerm` of an `os.errnoPathErr`) and
+  `fmt.ErrorfErrsTerm.spec` (`fmt.ErrorfErrs.spec` passing `errIsTerm` from the error arguments to the result).
+- **Decision.** Made (internal; no ghost state).
+
 ## 2026-11-14: `walInvBody` (internal, the part's) -- the crash boot's files-only fact `hfo` not derivable (W4c U3)
 
 - **Spec.** `walInvBody` (`LinuxFs/Proof/.../wal/Inv.lean`) and what `walInv_crash` returns of the crashed tree.

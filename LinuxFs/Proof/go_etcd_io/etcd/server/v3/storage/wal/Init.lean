@@ -5,7 +5,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.wal`
 Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
 `Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
-variable an error whose `Error()` returns (`wal.errVar`), and `openWALFilesFn` the function
+variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
 untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
@@ -41,6 +41,7 @@ public import LinuxFs.Proof.os.Init
 public import LinuxFs.Proof.path.filepath.Init
 public import Perennial.Proof.errors.NewVar
 public import LinuxFs.Proof.hash.crc32.MakeTable
+public import LinuxFs.Proof.errors.ErrIsTerm
 public import LinuxFs.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -181,7 +182,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd11
-  icases Hpb with ⟨%eC, #HpbC, #HpbOk⟩
+  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩
   try wp_auto
   -- translated initializer of ErrSnapshotMismatch))
   try wp_auto
@@ -221,65 +222,86 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HwalWriteBytes
   ipersist HopenWALFilesFn
   ihave #VerrBadWALName : (EtcdGrove.wal.errVar errBadWALName : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HerrBadWALName
-    iintro !> %Φ' HΦ'
-    iapply EBW
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply EBW
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xBW; iexact Hd2
   ihave #VErrMetadataConflict : (EtcdGrove.wal.errVar ErrMetadataConflict : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrMetadataConflict
-    iintro !> %Φ' HΦ'
-    iapply EMC
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply EMC
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xMC; iexact Hd2
   ihave #VErrFileNotFound : (EtcdGrove.wal.errVar ErrFileNotFound : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrFileNotFound
-    iintro !> %Φ' HΦ'
-    iapply EFN
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply EFN
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xFN; iexact Hd2
   ihave #VErrSnapshotMismatch : (EtcdGrove.wal.errVar ErrSnapshotMismatch : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSnapshotMismatch
-    iintro !> %Φ' HΦ'
-    iapply ESM
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply ESM
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xSM; iexact Hd2
   ihave #VErrSnapshotNotFound : (EtcdGrove.wal.errVar ErrSnapshotNotFound : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSnapshotNotFound
-    iintro !> %Φ' HΦ'
-    iapply ESN
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply ESN
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xSN; iexact Hd2
   ihave #VErrSliceOutOfRange : (EtcdGrove.wal.errVar ErrSliceOutOfRange : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSliceOutOfRange
-    iintro !> %Φ' HΦ'
-    iapply ESO
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply ESO
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xSO; iexact Hd2
   ihave #VErrDecoderNotFound : (EtcdGrove.wal.errVar ErrDecoderNotFound : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
+  · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrDecoderNotFound
-    iintro !> %Φ' HΦ'
-    iapply EDN
-    inext
-    iapply HΦ'
+    isplitl []
+    · unfold EtcdGrove.errOk
+      iintro !> %Φ' HΦ'
+      iapply EDN
+      inext
+      iapply HΦ'
+    · iapply EtcdGrove.errIsTerm_errorString xDN; iexact Hd2
   ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
-    iframe HErrCRCMismatch HpbOk
+    iframe HErrCRCMismatch HpbOk HpbT
   iframe Hown
   imodintro
   isplitr

@@ -84,7 +84,7 @@ theorem decStep_of_recStep' {C : WalCodec} {last : Bool} {bs : List w8} {off : N
   · simp only [ht, ite_false, rdCrc]
 
 /-- At the end of a file, the decoder's step is `.eof`. -/
-theorem decRecStep_end (C : WalCodec) (last : Bool) (bs : List w8) (c : w32) :
+theorem decRecStep_fileEnd (C : WalCodec) (last : Bool) (bs : List w8) (c : w32) :
     decRecStep C last bs bs.length c = .eof := by
   unfold decRecStep
   simp
@@ -174,7 +174,7 @@ theorem filesAt_ok {C : WalCodec} (hC : C.Ok) :
       · -- the file's end: the next file from 0
         simp only [List.append_nil] at hfit hch hok' h hA'
         have he : decRecStep C false (recFrames C xs) off c = .eof := by
-          rw [hoff]; exact decRecStep_end C false _ c
+          rw [hoff]; exact decRecStep_fileEnd C false _ c
         simp only [goDecode, List.isEmpty_cons, he] at h
         rw [← hc] at hA'
         exact ih hA' h hok
@@ -253,7 +253,7 @@ theorem filesAt_fail {C : WalCodec} (hC : C.Ok) :
       rcases filesAt_cur hfit hch with rfl | ⟨y, ys', rfl, hfy, hcy, -, -⟩
       · simp only [List.append_nil] at hfit hch hok' hA' h ⊢
         have he : decRecStep C false (recFrames C xs) off c = .eof := by
-          rw [hoff]; exact decRecStep_end C false _ c
+          rw [hoff]; exact decRecStep_fileEnd C false _ c
         rw [rdRest_next (List.cons_ne_nil g gs) (by rw [List.isEmpty_cons]; exact he)]
         rw [← hc] at hA'
         cases h with

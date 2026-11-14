@@ -8,6 +8,8 @@ module
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.openWALFiles
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.closeAll
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.TryLockFile
+public import LinuxFs.Spec.fmt.ErrorfErrsTerm
+public import LinuxFs.Spec.errors.IsPathErrnoTerm
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileReader
 public import LinuxFs.Spec.path.filepath.Join
 public import LinuxFs.Proof.os.NsS
@@ -340,7 +342,7 @@ theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (
   iapply HΦ
   iunfold fileutil.openPost
   iexists ()
-  icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr⟩)
+  icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr, -⟩)
   · ileft
     isplitr
     · ipureintro; exact hh.1
@@ -359,7 +361,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     (wp_NewFileReader : go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileReader.spec (GF := GF) (hG := hG))
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
     (wp_closeAll : go_etcd_io.etcd.server.v3.storage.wal.closeAll.spec (GF := GF) (hG := hG))
-    (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
+    (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
+    (wp_ErrorfT : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec (GF := GF) (hG := hG) := by
   intro lg d sl names dqs k write is R j dq qc N dqn h hk0 hkl hlen hd hnames
   wp_start as ⟨#Hlg, #Hinv, #Hsi, Hp, Hperm, Hn, Hsl⟩
@@ -447,7 +451,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       · isplitl []; · iexact Hinv
         isplitl []; · iexact Hsi
         iframe
-      icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr⟩)
+      icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr, %ee, %hee, #Hep⟩)
       · obtain ⟨rfl, hfd0⟩ := hh
         (try wp_auto)
         wp_apply wp_slice_literal (V := Loc) [null]
@@ -516,6 +520,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         | nil => exact (hne rfl).elim
         | ok e =>
         ihave #Hok := walOpen_errOk e $$ Herr
+        ihave #Hosp : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+        · iPkgInit
+        ihave #Hterm := wp_Term (GoInterface.ok e) ee hee $$ Hosp Hep
         (try wp_auto)
         wp_apply wp_closeAll lg rcsl rcs (DFrac.own 1) $$ [Hrc Hop] as %e2 ⟨Hrc, -⟩
         · iframe
@@ -527,15 +534,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply wp_Errorf _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] (by
+        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] (by
             intro ii hii
             simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
             rcases hii with hii | hii
             · left; cases hii; exact argWf_string _
-            · right; cases hii; simp) $$ [Hasl] as %e1 #He1
+            · right; cases hii; simp) $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
         · iframe
-          iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
-          iexact Hok
+          iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
+            errIsTerm (GoInterface.ok e)))).2
+          iframe Hok Hterm
         (try wp_auto)
         wp_for_post
         (try wp_auto)
@@ -546,8 +554,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         iframe
         iright
         iexists e1
-        iframe He1
-        ipureintro; rfl
+        isplitr
+        · ipureintro; rfl
+        isplitl []
+        · iexact He1
+        iright; iexact He1t
     · (try wp_auto)
       wp_apply wp_TryLock (child d b) (W64 2) (W32 384) _ Unit _ _
           (walOpen_triple R d b dq j i N dqn h qc (W64 2)
@@ -665,8 +676,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         iframe
         iright
         iexists e1
-        iframe He1
-        ipureintro; rfl
+        isplitr
+        · ipureintro; rfl
+        isplitl []
+        · iexact He1
+        ileft; ipureintro; rfl
   · have hjn : sint.nat jj = ns.length := by
       have : ¬ sint.Z jj < sint.Z (sl.len - k) := by
         intro h; apply Hif; first | exact h | rw [decide_eq_true h]

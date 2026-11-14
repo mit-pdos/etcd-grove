@@ -7,7 +7,8 @@ specs read of its package variables, read-only for good.
 * `walFsyncSec`, `walWriteSec`, `walWriteBytes` (metrics.go, untranslated `prometheus` constructors):
   metrics whose `Observe`/`Add` return (`wal.metricsInit`, `Metrics.lean`);
 * `SegmentSizeBytes` (wal.go, `64 * 1000 * 1000`, a `var` only tests assign): `64000000`;
-* the error variables (`wal.errVar`: each holds an error whose `Error()` returns, `errOk`): those of
+* the error variables (`wal.errVar`: each holds an error whose `Error()` returns, `errOk`, and on which
+  `errors.Is` returns, `errIsTerm`): those of
   `errors.New` calls (`errBadWALName`, `ErrMetadataConflict`, `ErrFileNotFound`, `ErrSnapshotMismatch`,
   `ErrSnapshotNotFound`, `ErrSliceOutOfRange`, `ErrDecoderNotFound`) and `ErrCRCMismatch`
   (`walpb.ErrCRCMismatch`'s value, `walpbInit`). (Distinctness of the errors is not stated: no spec
@@ -45,9 +46,11 @@ variable [sem : go.Semantics]
 
 namespace EtcdGrove
 
-/-- The error variable `X` holds an error whose `Error()` returns, read-only. -/
+/-- The error variable `X` holds an error whose `Error()` returns and on which `errors.Is` returns for every
+pointer target (`errIsTerm`, since 2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' retry test on
+`ErrFileNotFound` and `ErrCRCMismatch`), read-only. -/
 def wal.errVar (X : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr X ↦□ GoInterface.ok e ∗ errOk e)
+  iprop(∃ e : GoInterfaceOk, globalAddr X ↦□ GoInterface.ok e ∗ errOk e ∗ errIsTerm (GoInterface.ok e))
 
 instance wal.errVar_persistent (X : GoString) : Persistent (wal.errVar (GF := GF) X) := by
   unfold wal.errVar; infer_instance

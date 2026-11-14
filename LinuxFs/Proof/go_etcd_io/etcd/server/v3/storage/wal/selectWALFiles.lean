@@ -79,7 +79,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proof
     isplitl []
     · iexact Hos
     iexact Hsi
-  icases Hr with (⟨%ws, ⟨%herr, %hout⟩, Hws⟩ | ⟨%e, %herr, #He⟩)
+  icases Hr with (⟨%ws, ⟨%herr, %hout⟩, Hws⟩ | ⟨%e, %herr, #He, -⟩)
   · subst herr
     try wp_auto
     wp_apply HIdx sp s $$ []

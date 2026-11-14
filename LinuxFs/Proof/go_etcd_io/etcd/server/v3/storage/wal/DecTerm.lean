@@ -11,6 +11,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
 public import Perennial.Proof.errors.Results
 public import Proof.errors.NewVar
+public import LinuxFs.Proof.errors.ErrIsTerm
 
 @[expose] public section
 
@@ -29,20 +30,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 variable [errs_sem : _root_.Perennial.errors.Assumptions]
-
-/-- **An `*errorString`'s `errors.Is` returns** on every pointer target. -/
-theorem errIsTerm_errorString (x : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.errors ⊢
-      errIsTerm (GF := GF) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
-  iintro #Hi
-  unfold errIsTerm
-  iintro !> %u %hu
-  iintro !> %Φ - HΦ
-  obtain ⟨hp, hleaf, hIs⟩ := EtcdGrove.errorString_leaf x
-  wp_apply (_root_.Perennial.errors.wp_Is_leaf _ u hleaf hIs hu
-    (_root_.Perennial.errors.treeTyped_pointer _ u hp))
-  iapply HΦ
-  itrivial
 
 /-- **`io.EOF`'s and `io.ErrUnexpectedEOF`'s `errors.Is` return** (`decEnv`'s `io` initialization). -/
 theorem decEnv_term (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
