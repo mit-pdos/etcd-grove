@@ -61,13 +61,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) P Mr := by
   intro R jr r w dir sp md cs sized Q
   wp_start as ⟨#Harea, Hw, #Hs, %hcs, %hidx, %hsz, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %stp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
     Hopen, %Hpure⟩
-  obtain ⟨hsplit, hfd, hoff, hszb, hpend, ⟨hidx0, hidx1⟩, hmax⟩ := Hpure
+  obtain ⟨hsplit, hfd, hoff, hszb, ⟨hidx0, hidx1⟩, hmax⟩ := Hpure
   have hidx0' := hidx0 hD.1
   iunfold walTailW at Htw
   icases Htw with ⟨Hf, Hfdo, Hoff, Htk, %m, %bs, Hm, Hbs, %hmb, Hv⟩
@@ -140,13 +140,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
   have hpre : h.out ++ h.pend ++ frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c (h.crc Mr)
       (Mr.encSnap md), Mr.encSnap md⟩) <+: (tailStream Mr (h.H ++ [WalOpG.snap md]) h.md h.cuts).drop h.o0 :=
     ⟨[], by rw [List.append_nil]; exact hguard⟩
-  have hbnd : h.o0 + h.out.length + h.pend.length + (frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c (h.crc Mr)
-      (Mr.encSnap md), Mr.encSnap md⟩)).length ≤ 0xffffffff000 := by
-    have := frame_walRecEnc_tight snapshotType (hash.crc32.crc32c (h.crc Mr) (Mr.encSnap md)) (Mr.encSnap md)
-      (by decide) (by omega)
-    omega
   wp_apply (wp_encodeTail R jr r e f fd name dir h.γ h.ino (h.H ++ [WalOpG.snap md]) h.md h.cuts h.o0 h.sz
-      h.out h.pend (h.crc Mr) _ snapshotType (Mr.encSnap md) (snap_recSize _ _ hsz) hpre hoff hszb hbnd)
+      h.out h.pend (h.crc Mr) _ snapshotType (Mr.encSnap md) (snap_recSize _ _ hsz) hpre hoff hszb)
     $$ [Henc Hf Hfdo Hoff Htk Hm Hbs Hv «$r0»] as %err ⟨%pend', Henc, #Hrec, Hres⟩
   · iframe Harea Henv Henc
     isplitl [Hf Hfdo Hoff Htk Hm Hbs Hv]
@@ -169,7 +164,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
       · ipureintro; exact Hdn
       · iexact Hd
     · ipureintro; simp
-  icases Hres with (⟨%out', %sz', ⟨%herr, %heq, %hs1, %hs2, %hs3⟩, Htw⟩ | %herr)
+  icases Hres with (⟨%out', %sz', ⟨%herr, %heq, %hs1, %hs2⟩, Htw⟩ | %herr)
   rotate_left
   · -- the encode failed
     rcases err with ei | _
@@ -235,7 +230,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     ipureintro
-    exact ⟨Hen, Hlt, hsplit2, hfd, hs1, hs2, hs3, ⟨fun _ => hi1, hi2⟩, hi3⟩
+    exact ⟨Hen, Hlt, hsplit2, hfd, hs1, hs2, ⟨fun _ => hi1, hi2⟩, hi3⟩
   wp_apply (wp_sync R jr r w dir { h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev } hD.1) $$ [Hh2] as %err Hres
   · iframe Harea Hh2
   try wp_auto
@@ -255,10 +250,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
       simp only
       iframe Hr
       ipureintro
-      -- the stream's end after the snapshot record: NOT provable (W6 log, thirteenth session): `SaveSnapshot`
-      -- never cuts, so `walOpenWF`'s `< 2 ^ 43` fails after enough `SaveSnapshot`s in a row; the fix is the
-      -- coordinator's (ext4's `EFBIG` at `s_maxbytes` in the model, or another bound).
-      refine ⟨⟨hD.1, ?_⟩, hmd, sorry⟩
+      refine ⟨⟨hD.1, ?_⟩, hmd⟩
       show h.st = walLastHS ((h.H ++ [WalOpG.snap md]).map WalOpG.toM)
       rw [hmap, walLastHS_snap]; exact hD.2
     iexists d

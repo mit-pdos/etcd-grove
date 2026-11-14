@@ -35,7 +35,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 theorem walOpenWF_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     walOpenWF (W := W) P Mr w dir ⊣⊢
       ∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
-        ⌜h.o0 + h.out.length + h.pend.length < 2 ^ 43⌝ ∗ ⧗ h.pc :=
+        ⧗ h.pc :=
   .rfl
 
 /-- **A length lower bound is at most the handle's history** (at an update; see the file header). -/

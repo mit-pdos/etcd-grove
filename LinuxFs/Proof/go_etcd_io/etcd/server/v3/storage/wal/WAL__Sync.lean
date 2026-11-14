@@ -33,7 +33,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.spec (W := W) P Mr := by
   intro R jr r w dir n
   wp_start as ⟨#Harea, Hw, #Hn⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
@@ -53,7 +53,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
       iexists { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
       iframe Hh Hr
-      ipureintro; refine ⟨hD, hmd, ?_⟩; simp only [List.length_append, List.length_nil]; omega
+      ipureintro; exact ⟨hD, hmd⟩
     · iapply (WalFs.walSyncedLb_mono (W := W) dir h.H.length n hn) $$ Hs
   · iapply HΦ
     iright; ipureintro; exact Herr

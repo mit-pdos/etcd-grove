@@ -78,7 +78,12 @@ with no claim on what that makes durable, and closes).
   `s_maxbytes`); both contrasts outside C (a limited `RLIMIT_FSIZE`, an unreadable source page)
   cut mid-page. It is a rule of the step's
   result only: a write in flight at a crash leaves, byte by byte, any candidates (the crash rule),
-  as a process killed in mid-copy leaves a mid-page prefix in the page cache.
+  as a process killed in mid-copy leaves a mid-page prefix in the page cache. **The largest file**
+  (`maxBytes`, ext4's `s_maxbytes` on C, `2^44 - 4096`; **pending the user's review**, 2026-11-14):
+  a `pwrite` lands nothing at or past it (`EFBIG` at it, a page-aligned cut when crossing it), an
+  `ftruncate` or `fallocate` past it fails with no change (`EFBIG`), and no crash or first start has a
+  larger file; so every file's sizes stay at most it (`OsWf.sizes`). Measured on C
+  (`examples/osfs/semantics/data_maxbytes.go`).
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`, and `O_TRUNC`
   in one step) is two steps (`…Start`/`…Finish`, the change in flight between them,
   `ProcState.inflight`). **At most one change is in flight on a file**: a change's first step is
@@ -346,6 +351,13 @@ def PROT_READ : Nat := 0x1
 def MAP_SHARED : Nat := 0x1
 def MAP_POPULATE : Nat := 0x8000
 def osPageSize : Nat := 4096
+/-- **Configuration C's largest file size**, ext4's `s_maxbytes` with 4 KiB blocks and extent-mapped
+files: `(2^32 - 1) << 12 = 2^44 - 4096` (`ext4_max_size`, `fs/ext4/super.c`). No step lands a byte at
+or past it, no resize reaches past it and no crash leaves a file larger (`PWriteFinish`,
+`FtruncateFinish`, `FallocFinish`, `CrashFile`; at the first start, `FsInit`), so every file's sizes
+stay at most it (`OsWf.sizes`). Measured on C: `examples/osfs/semantics/data_maxbytes.go`
+(**pending the user's review**, 2026-11-14). It is page-aligned, so a write cut there is a page cut. -/
+def maxBytes : Nat := 0xffffffff000
 
 /-! ## Bytes -/
 
@@ -751,12 +763,14 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   any prefix. Whatever the errno, the prefix is empty, the whole write, or ends on a 4096-byte
   page boundary of the file (**page cuts**, the header). It lands the announced bytes up to the
   end of what was written (the zero gap included), none if nothing was; the size grows to that
-  end. -/
+  end. **Nothing lands at or past `maxBytes`** (`k = 0 ∨ off + k ≤ maxBytes`): a write starting
+  there fails with nothing landed (`EFBIG`), one crossing it is cut there (a short count, page-aligned;
+  `data_maxbytes.go`, pending the user's review). -/
   | "PWriteFinish" => ∃ (t : Nat) (c : OsChange) (off : Nat) (data : List w8) (f : OsFile)
       (k : Nat) (e : w64), v = osTokV t ∧ st.proc.inflight !! t = some c ∧
       c.kind = .write off data ∧ st.file c.ino = some f ∧ k ≤ data.length ∧
       ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
-      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) ∧
+      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) ∧ (k = 0 ∨ off + k ≤ maxBytes) ∧
       (let w := if k = 0 then c.lo else off + k
        st' = (st.doneInflight t).setFile c.ino (f.land c w (max f.size w))) ∧
       e' = osRes (#(W64 k)) e
@@ -773,13 +787,15 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. It lands all of the announced bytes and the new size; on
-  failure the file may or may not be resized. -/
+  failure the file may or may not be resized. A size past `maxBytes` fails with no change (`EFBIG`,
+  `data_maxbytes.go`, pending the user's review); the bytes the first step announced stay among the
+  candidates, as on any failure. -/
   | "FtruncateFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
       st.proc.inflight !! t = some c ∧ c.kind = .truncate sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
        let st1 := st0.setFile c.ino (f.land c c.hi c.target)
-       st' = st1 ∧ e' = Val (#(0 : w64)) ∨
-       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ st' = st1))
+       c.target ≤ maxBytes ∧ st' = st1 ∧ e' = Val (#(0 : w64)) ∨
+       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ c.target ≤ maxBytes ∧ st' = st1))
   /- `fsync(fd)` and `fdatasync(fd)` of a file alike: `#fd ↦ #errno`. Success makes every byte
   not under an in-flight change durable (`OsFile.synced`); a failure changes nothing (no failed
   writeback, the header: whatever it wrote, a crash may keep anyway). A failure is never `EINTR`:
@@ -960,13 +976,15 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. It lands all of the announced bytes (zeros from the old
   end) and the new size; on failure, a prefix of them, the size grown to the prefix's end (ext4
-  grows the file as each chunk is allocated). -/
+  grows the file as each chunk is allocated). A target past `maxBytes` fails with no change
+  (`EFBIG`, `data_maxbytes.go`, pending the user's review). -/
   | "FallocFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
       st.proc.inflight !! t = some c ∧ c.kind = .falloc sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
-       st' = st0.setFile c.ino (f.land c c.hi c.target) ∧ e' = Val (#(0 : w64)) ∨
+       c.target ≤ maxBytes ∧ st' = st0.setFile c.ino (f.land c c.hi c.target) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-         (st' = st0 ∨ ∃ w, c.lo ≤ w ∧ w ≤ c.hi ∧ st' = st0.setFile c.ino (f.land c w w)))
+         (st' = st0 ∨ c.target ≤ maxBytes ∧ ∃ w, c.lo ≤ w ∧ w ≤ c.hi ∧
+           st' = st0.setFile c.ino (f.land c w w)))
   /- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: `(#fd, #off, #len) ↦ #errno`. No change: the
   blocks it allocates past the end are unwritten extents, which read as zeros until written, as a
   page with no block does (durable zeros, the header); any errno. Stuck on a negative offset or a
@@ -996,7 +1014,8 @@ end step
 
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size between the
 smallest and the largest it had since its last successful sync, or between such a size and the
-target of the change in flight; each byte
+target of the change in flight, and never past `maxBytes` (a size the file had: no step makes one
+larger, `data_maxbytes.go`, pending the user's review); each byte
 any one of its crash candidates, each independently (its bytes past the size included), or zero
 at or past the smallest size since the last sync (writeback zeroes the page holding the end past
 the size of the moment, the header; **pending the user's review**); all of it on disk (`ofDisk`:
@@ -1005,6 +1024,7 @@ def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (img : Nat → w8),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ sz) ∧
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target)) ∧
+    sz ≤ maxBytes ∧
     (∀ b, (∃ s, (img b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ img b = 0)) ∧ f' = OsFile.ofDisk img sz
 
 /-- The file `i` is named in the tree `m`. -/
@@ -1028,13 +1048,14 @@ def OsCrash (st st' : OsState) : Prop := MachineCrash st st'
 
 /-- A state a program may start in: the process has nothing open; nothing logged or committed; the
 roots and the tree well formed; every inode the tree names is a file, every file named (no orphan
-at boot) and all of it on disk (the environment's "durable at first start"); every inode in use
-below `nextIno`. -/
+at boot) and all of it on disk (the environment's "durable at first start"), none larger than
+`maxBytes` (no file of C is, `data_maxbytes.go`); every inode in use below `nextIno`. -/
 def FsInit (st : OsState) : Prop :=
   st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ (∀ y, ¬ st.fs.committed y) ∧
   RootsOk st.fs.roots ∧ TreeWf st.fs.roots st.fs.treeDur ∧
   (∀ i, Named st.fs.treeDur i → st.fs.files !! i ≠ none) ∧
-  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ img sz, f = OsFile.ofDisk img sz) ∧
+  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧
+    ∃ img sz, sz ≤ maxBytes ∧ f = OsFile.ofDisk img sz) ∧
   (∀ i, i ∈ st.fs.files → i < st.fs.nextIno) ∧ (∀ j, j ∈ st.fs.treeDur → j < st.fs.nextIno)
 
 instance fs_semantics : ExtSemantics fsExt where

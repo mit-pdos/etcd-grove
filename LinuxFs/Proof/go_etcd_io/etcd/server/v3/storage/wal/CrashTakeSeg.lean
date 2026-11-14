@@ -141,7 +141,7 @@ theorem tok_crash_past {st st' : OsState} {Γb : GMap (Ino × Nat) ByteG} {Γm :
   have hn : Named st'.fs.treeDur ti.ino := by
     apply Classical.byContradiction; intro hn
     rw [(hc.2.2.2.2.2.2.2 ti.ino).2 hn] at hf'; cases hf'
-  obtain ⟨f0, f1, hf0, ⟨sz, img, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 ti.ino).1 hn
+  obtain ⟨f0, f1, hf0, ⟨sz, img, -, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 ti.ino).1 hn
   rw [hf] at hf0; cases hf0
   rw [hf'] at hf1; cases hf1
   obtain ⟨f2, hf2, hc2⟩ := hcoh.tok_cand t ti hti
@@ -160,6 +160,45 @@ theorem tok_crash_past {st st' : OsState} {Γb : GMap (Ino × Nat) ByteG} {Γm :
   rcases hcand b with ⟨s, hs⟩ | ⟨hl, h0⟩
   · rw [hc0] at hs; exact .inl ⟨s, hs⟩
   · exact .inr ⟨Nat.le_trans hok.lo hl, h0⟩
+
+theorem OsMeta.pc_congr {m1 m2 : OsMeta} {b : Nat} (htc : m1.tc !! b = m2.tc !! b)
+    (hzf : m1.zf = m2.zf) : m1.pc b = m2.pc b := by
+  unfold OsMeta.pc; rw [htc, hzf]
+
+/-- **What `rzMeta` knows past the size is the file's** (W1 past the bytes, I3b): outside the
+announced range the token's `OsMeta`'s (`FileCrashAt`), inside it the candidates the resize's first
+step saw then the zero stamped `n` (`OsCoh.tok_cand`, exported by `crashRestAt_take_tok`). -/
+theorem rzMeta_pc_cand {tr : Bool} {m : OsMeta} {tg n : Nat} {f : OsFile}
+    (hmeta : ∀ b c, m.size ≤ b → (m.announce (min m.size tg) (rsHi tr m.size tg) tg).pc b = some c →
+      f.cand b = c)
+    (htok : ∀ b c, inRange (min m.size tg) (rsHi tr m.size tg) b = true → m.size ≤ b →
+      m.pc b = some c → f.cand b = c ++ [((0 : w8), n)]) :
+    ∀ b c, (rzMeta tr m tg n).size ≤ b → (rzMeta tr m tg n).pc b = some c → f.cand b = c := by
+  intro b c hb hc
+  have hsz : (rzMeta tr m tg n).size = m.size := by simp [rzMeta]
+  rw [hsz] at hb
+  by_cases hin : min m.size tg ≤ b ∧ b < rsHi tr m.size tg
+  · have htc : (rzMeta tr m tg n).tc !! b = (m.pc b).map (· ++ [((0 : w8), n)]) := by
+      show rsTail tr m tg m.size n [] !! b = _
+      rw [rsTail_lookup, if_pos ⟨hin.1, hin.2, hb⟩, if_neg (by omega)]
+    rcases OsMeta.pc_some hc with ht | ⟨z, hz, hzb, -⟩
+    · rw [htc] at ht
+      obtain ⟨c', hc', rfl⟩ := Option.map_eq_some_iff.1 ht
+      exact htok b c' (by simp [inRange, hin.1, hin.2]) hb hc'
+    · exfalso
+      have hz' : (rzMeta tr m tg n).zf =
+          m.zf.map (fun z => if min m.size tg < rsHi tr m.size tg then max z (rsHi tr m.size tg) else z) :=
+        rfl
+      rw [hz'] at hz
+      obtain ⟨z0, -, rfl⟩ := Option.map_eq_some_iff.1 hz
+      rw [if_pos (by omega)] at hzb
+      omega
+  · have he : (rzMeta tr m tg n).pc b = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).pc b := by
+      refine OsMeta.pc_congr ?_ (show (rzMeta tr m tg n).zf = _ from rfl)
+      show rsTail tr m tg m.size n [] !! b = _
+      rw [rsTail_lookup, if_neg (fun h => hin ⟨h.1, h.2.1⟩)]
+    rw [he] at hc
+    exact hmeta b c hb hc
 
 /-- **A resize in flight's crash is one the layout's `OsMeta` allows** (`rzMeta`: the token's, and the
 candidates of the bytes announced past the size, `TokPast`). -/
@@ -223,7 +262,9 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
       ([∗list] r ∈ rs, bytesG hL ti.ino r.1 r.2.1 r.2.2) -∗
       ⌜FileCrashAt st st' V' ti.ino ti.meta ((ti.lo, DFrac.own 1, ti.saved) :: rs) ∧
         TokPast ti (st'.fs.files !! ti.ino) ∧
-        (ti.kind.isResize = true → ∃ f, st.fs.files !! ti.ino = some f ∧ ti.n ∈ f.rzs)⌝ ∗
+        ∃ f, st.fs.files !! ti.ino = some f ∧ (ti.kind.isResize = true → ti.n ∈ f.rzs) ∧
+          ∀ b c, inRange ti.lo ti.hi b = true → ti.m0.size ≤ b → ti.m0.pc b = some c →
+            f.cand b = c ++ [(ti.val b, ti.n)]⌝ ∗
         fileStartO hL' ti.ino (st'.fs.files !! ti.ino) ∗
         crashRestAt Q hL hL' (ti.ino :: D) tt V' st st' ∗
         gElem hL hL.γt t (DFrac.own 1) ti ∗ ([∗list] r ∈ rs, bytesG hL ti.ino r.1 r.2.1 r.2.2) := by
@@ -255,9 +296,23 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
   iframe Hf Ht Hbs
   isplitr
   · ipureintro
-    refine ⟨⟨crashSeen_crashed hseen, fun hn => hnamed _ hn, ?_⟩, hpast, hcoh.tok_rz t ti hti⟩
     obtain ⟨f, hf, hmok⟩ := hcoh.meta_some ti.ino ti.meta hmo
-    refine ⟨f, hf, fun hcut r hr k hk => ?_, hmok.rz⟩
+    refine ⟨⟨crashSeen_crashed hseen, fun hn => hnamed _ hn, ?_⟩, hpast, f, hf, fun hrs => ?_,
+      fun b c hin hb hc => ?_⟩
+    rotate_left
+    · obtain ⟨f1, hf1, hn1⟩ := hcoh.tok_rz t ti hti hrs
+      simp only [OsState.file, hf, Option.some.injEq] at hf1
+      subst hf1; exact hn1
+    · obtain ⟨f1, hf1, hc1⟩ := hcoh.tok_cand t ti hti
+      simp only [OsState.file, hf, Option.some.injEq] at hf1
+      subst hf1
+      obtain ⟨c0, he, hz, htc⟩ := hc1 b hin
+      rw [he]
+      rcases OsMeta.pc_some hc with ht | ⟨z, hz0, hzb, rfl⟩
+      · rw [htc c hb ht]
+      · rw [hz z hz0 hzb]
+    refine ⟨f, hf, fun hcut r hr k hk => ?_, hmok.rz,
+      fun b c hb hc => hmok.pc_cand b c (by rw [← hmok.size]; exact hb) hc⟩
     obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes ti.ino _ _ (hxs r hr k hk)
     simp only [OsState.file, hf, Option.some.injEq] at hf1
     subst hf1
@@ -288,7 +343,7 @@ def SegCrashAt (st st' : OsState) (V' : Hist) (g : SegG) : Prop :=
   FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
     (Named V'.now g.ino → (st'.fs.files !! g.ino).isSome) ∧
     ∃ f, st.fs.files !! g.ino = some f ∧ (∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) ∧
-      ∀ s ∈ g.om.rz, s ∈ f.rzs
+      (∀ s ∈ g.om.rz, s ∈ f.rzs) ∧ ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c
 
 /-- **Taking a segment, idle or with a write or a resize in flight, at a fixed crash.** -/
 theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
@@ -314,8 +369,8 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
     iframe Hr Hm Hb
     isplitr
     · ipureintro
-      obtain ⟨h1, h2, f, hf, h3, h4⟩ := hfc
-      exact ⟨h1, h2, f, hf, cands_cover (runsCover_one _ _) (h3 hcut), h4⟩
+      obtain ⟨h1, h2, f, hf, h3, h4, h5⟩ := hfc
+      exact ⟨h1, h2, f, hf, cands_cover (runsCover_one _ _) (h3 hcut), h4, h5⟩
     iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
   | some fl =>
     simp only []
@@ -335,13 +390,14 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
         iapply BigSepL.bigSepL_singleton.2; iexact Hb2
       icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
       icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
-      obtain ⟨⟨h1, h2, f, hf, h3, h4⟩, -, -⟩ := hfc
+      obtain ⟨⟨h1, h2, f, hf, h3, h4, h5⟩, -, -⟩ := hfc
       have hcov := runsCover_fl hok
       have hmeta : g.om = cfMeta fl.m fl.off fl.data.length := hok.2.2.2.2.1
       iframe Hr Hb1 Hb2
       isplitr
       · ipureintro
-        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => h4 s ?_⟩
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => h4 s ?_,
+          fun b c hb hc => h5 b c (by rw [hmeta] at hb; exact hb) (by rw [hmeta] at hc; exact hc)⟩
         rotate_right
         · rw [hmeta] at hs; simpa [cfMeta, TokInfo.meta, TokInfo.lo, TokInfo.hi, TokInfo.target] using hs
         · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
@@ -364,22 +420,27 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
         $$ Hr Ht [Hb1] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
       · iapply BigSepL.bigSepL_singleton.2; iexact Hb1
       icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb1
-      obtain ⟨⟨h1, h2, f, hf, h3, h4⟩, hpast, htrz⟩ := hfc
+      obtain ⟨⟨h1, h2, f, hf, h3, h4, h5⟩, hpast, f1, hf1, htrz, htc⟩ := hfc
+      rw [hf] at hf1; cases hf1
       simp only [rsKind_lo] at h1 h3
       have hcov := runsCover_rz hok
       iframe Hr Hb1
       isplitr
       · ipureintro
-        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => ?_⟩
-        rotate_right
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => ?_, ?_⟩
+        · rw [hok.2.2.1]; exact fileCrashedR_rzMeta (fileCrashedR_cover _ hcov h1) hpast
+        · rw [rsKind_meta]; simp [hcut0]
         · rw [hok.2.2.1] at hs
           simp only [rzMeta, List.mem_cons] at hs
           rcases hs with rfl | hs
-          · obtain ⟨f1, hf1, hn1⟩ := htrz (by cases tr <;> rfl)
-            rw [hf] at hf1; cases hf1; exact hn1
+          · exact htrz (by cases tr <;> rfl)
           · exact h4 s (by rw [rsKind_meta]; simpa using hs)
-        · rw [hok.2.2.1]; exact fileCrashedR_rzMeta (fileCrashedR_cover _ hcov h1) hpast
-        · rw [rsKind_meta]; simp [hcut0]
+        · rw [hok.2.2.1]
+          refine rzMeta_pc_cand (fun b c hb hc => h5 b c ?_ ?_) (fun b c hin hb hc => ?_)
+          · rw [rsKind_meta]; simpa using hb
+          · rw [rsKind_meta]; exact hc
+          · have := htc b c (by simpa only [rsKind_lo, rsKind_hi] using hin) hb hc
+            simpa only [rsKind_val] using this
       isplitl [Hf]
       · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
       iframe Ht

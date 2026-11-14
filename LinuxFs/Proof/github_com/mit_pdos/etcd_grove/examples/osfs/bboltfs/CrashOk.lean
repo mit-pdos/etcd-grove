@@ -237,7 +237,7 @@ theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hcut : s.m.cu
   have hn : Named st'.fs.treeDur i := by
     apply Classical.byContradiction; intro hn
     rw [(hcr.2.2.2.2.2.2.2 i).2 hn] at hfo; cases hfo
-  obtain ⟨f1, f2, hf1, ⟨sz, img, -, hcand, rfl⟩, hf2⟩ := (hcr.2.2.2.2.2.2.2 i).1 hn
+  obtain ⟨f1, f2, hf1, ⟨sz, img, -, -, hcand, rfl⟩, hf2⟩ := (hcr.2.2.2.2.2.2.2 i).1 hn
   rw [hf0] at hf1; cases hf1
   rw [hfo] at hf2; cases hf2
   refine ⟨hdisk, hlo, hhi, fun b c hpg hc => ?_, fun j hj hsz hv _ => ?_⟩
