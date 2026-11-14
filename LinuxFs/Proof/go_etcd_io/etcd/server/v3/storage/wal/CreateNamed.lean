@@ -332,7 +332,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       ipureintro
       exact dirKeysOk_named (n := max n0 n) (Nat.le_max_left _ _) Hok Hdko hd hin' hc' hN hl
         (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _)) hJ
-    iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_upd Hbd (fun _ => rfl)⟩
+    iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_upd Hbd (fun _ => rfl) (fun _ => rfl)⟩
   iframe Hn
   unfold walNamed
   iexists (setNamed s dir), { d with named := true }

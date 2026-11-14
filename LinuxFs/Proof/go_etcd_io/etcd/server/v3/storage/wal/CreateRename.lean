@@ -73,7 +73,7 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
     (md : List w8) (Q : IProp GF) (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
     (m2 mS : OsMeta) (zs2 : List Cands) (ysS : List ByteG) (lb : Nat)
     (hin : InArea r (child r nm) nm) (hnm : walNameOk nm) (hMr : WalMarshalCreateOk Mr)
-    (hmd : md.length < 2 ^ 41)
+    (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
     (hctmp : hC.cur !! tmpName nm = some (.dir J)) (hJjr : J ≠ jr)
     (hlb : hC.next ≤ lb) (hJlb : (hJ'.restrict J ((NameSet.except []).diff walTmps)).next ≤ lb)
     (hJcoh : ClaimCoh (hJ'.restrict J ((NameSet.except []).diff walTmps)) J (.except walTmps))
@@ -93,7 +93,7 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
         walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)) from rfl]
   iintro ⟨#Hinv, ⟨%m, %hJm, #Hcm⟩, HP⟩
-  ihave Hau := createFresh_osAUnc Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd
+  ihave Hau := createFresh_osAUnc Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd hmdne
     hctmp hJjr hlb hJlb hJcoh m hJm hcur hok hm2s hm2c hm2m $$ Hinv Hcm HP
   iapply osAUnc_mono $$ [] Hau
   iintro !> %o HQ

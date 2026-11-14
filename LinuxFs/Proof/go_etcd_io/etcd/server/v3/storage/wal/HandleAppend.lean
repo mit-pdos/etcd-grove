@@ -81,6 +81,27 @@ theorem saveOp_idx (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (hs : HardStateM
     simpa [walLastIdx, List.foldl_append] using hH
   · simpa [walMaxSnapIdx, List.foldl_append] using hS
 
+/-- **A `Save`'s operation has no maximal index** (`Save.spec`'s index premise; `WalsBounded`). -/
+theorem saveOp_noMax (hs : HardStateM) (es : List EntryM)
+    (h : ∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1) :
+    ¬ walHasMaxIdx [(WalOpG.save hs es).toRaw.toM] := by
+  rw [WalOpG.toM_toRaw]
+  rintro ⟨o, ho, hm⟩
+  simp only [List.mem_singleton] at ho
+  subst ho
+  obtain ⟨e, he, he'⟩ := hm
+  have := h e he
+  omega
+
+/-- **A `SaveSnapshot`'s operation has no maximal index** (its index premise; `WalsBounded`). -/
+theorem snapOp_noMax (m : SnapshotMetadataM) (h : uint.nat m.Index' < 2 ^ 64 - 1) :
+    ¬ walHasMaxIdx [(WalOpG.snap m : WalOpG WalEnt).toM] := by
+  rintro ⟨o, ho, hm⟩
+  simp only [List.mem_singleton] at ho
+  subst ho
+  have hm' : uint.nat m.Index' = 2 ^ 64 - 1 := hm
+  omega
+
 /-- **Records of small types and data below `2^40` bytes fit a frame**, whatever the CRC. -/
 theorem recsFit_chainRecs_small (c : w32) (ds : List (w64 × List w8))
     (h : ∀ p ∈ ds, uint.nat p.1 < 2 ^ 8 ∧ p.2.length < 2 ^ 40) :
@@ -137,6 +158,7 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
       ((opDs Mr o.toM).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
         max (uint.nat h.enti) (uint.nat h.snapi)) ∧
       walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi)
+    (hox : ¬ walHasMaxIdx [o.toM])
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       walHandleIn (W := W) P Mr w dir h tm -∗
@@ -174,7 +196,7 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
     · exact hold x hx
     · exact hfit _ x hx
   imod walTail_append walCodec Mr R jr r w dir h.γ
-    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) o sized Q hfit'
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) o sized Q hfit' hox
     $$ Hinv Hnc Hk [Hv] Hw Hau with ⟨Hnc, Hk, Hv, Hw, Hlb, HQ, %hcp⟩
   · unfold tailVar; iexact Hv
   have hc : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
