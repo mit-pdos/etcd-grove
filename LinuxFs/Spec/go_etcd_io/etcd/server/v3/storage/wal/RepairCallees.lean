@@ -13,10 +13,10 @@ framed (after `io.Copy` it is the file's end).
 * `fileutil.Fsync.specRepTail`: `fileutil.Fsync(f.File)` after the truncate landed: the window closed
   (`syncLayW`; `WinZero` vacuous, the segment `wr` long; F-Z of the synced layout from `wr = z0`,
   `tailZeros_syncW0`), the key back (`walLentRes_unpend` at the commit), the tail exact and synced
-  (`TailMeta`, every byte durable: what `walInvBody_untail` takes to unregister it); on an error the
-  file handle back, the tail lost. Not yet proved (a hypothesis of `Repair.wp_proof`; its proof is
-  `Fdatasync.wp_specWalPend`'s, `FdatasyncPend.lean`, over `fileutil.Fsync`'s body and a kind-`true`
-  `walInvBody_syncP`).
+  (`TailMetaR`, the zeros known from the size on, every byte durable: what `walInvBody_untail` reads of
+  `TailMetaS` to unregister it; not `TailZ`, which needs the page cache known zero past the size, a fact
+  `Repair`'s tail never had); on an error the file handle back, the tail lost. Proved
+  (`fileutil.Fsync.wp_specRepTail`, `RepairFsync.lean`, over `walInvBody_syncR`).
 Lean-first.
 -/
 module
@@ -68,7 +68,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specRepTail (Mr : WalMarshal
       ((⌜err = GoInterface.nil⌝ ∗ walTailKey (W := W) dir γ ∗
           ∃ (m : OsMeta) (bs : List ByteG),
             osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-            ⌜m.size = o0 ∧ TailMeta m bs ∧ ∀ y ∈ bs, y = Fs.durB y.1⌝ ∗
+            ⌜m.size = o0 ∧ TailMetaR m bs ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ ∀ y ∈ bs, y = Fs.durB y.1⌝ ∗
             (letI := walAllG (W := W); ghostVar γ (1 : Qp).half ((H, md, cuts, o0, i, none) : TailG))) ∨
        ⌜err ≠ GoInterface.nil⌝) }}
 
