@@ -62,6 +62,26 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   `memberRestartFacts`' `srvRaftLogInv`. Both add a premise that reaches `etcd_restart1_safe` (true by
   construction there). Recommended: (i), general and honest; restart3 keeps its open row.
 
+- **S7.4 started** (2026-11-14): option (i) in (`BuildServer.specRestart` takes `□ ∀ A σ, srvRestartRows γ id A σ`;
+  restart3's `startMember.specRestart`/`restartCheck.spec` carry it, `Run.wp_proof` takes it as a hypothesis
+  `hRows`, its open row, R2s-A removes it). Not landed.
+- **S7.4 plan for the proof** (next agent):
+  1. `newServerMode.specRestart` (retention 0, revision mode, `cmp = false`, auth off) over
+     `NewServer.specR`, mirroring `newServerMode.wp_proof`; `newServer.specRestart`; `BuildServer.wp_proofRestart`.
+  2. Inside, from the precondition: open `memberRestartRes_boot` → `srvDiskImage` → its witnesses
+     (`S σ i A D m M`) for `srvDiskImageAt`; `Hrows` at those `A σ`; `memberRestartFacts` → `srvRaftLogInv`,
+     `idClusterInv`, `idNoZero`, `srvPropMint`/`srvRdCtxInv` (carry over: `Scratch/S7Probe.lean`'s
+     `probe_P4_mint`/`probe_P4_rdctx`, to be made laws), `kvInv` (→ `kvInvM false` by `kvInv_restartNames`).
+  3. Allocate the incarnation's names (ghost updates in the proof): `idIncarnation_alloc` (the key's entry,
+     wait token, fact at the new `E₀'.γs.slog`), the slot/pending maps (`idShare`'s other two auths), a fresh
+     `KVSNames` for `newServerStoreFreshA`, `cok`, `γrev`, the read names' fresh rows (`srvReadNamesFreshNK`:
+     applied, committed, notifier, logs, pend, `kv.hi`), with `ρ'.rd.raft = ρ.rd.raft`, `ρ'.rd.kv` the old
+     names but `hi`/`cok`, so that `restartNames ρ ρ'` (check `kvCongr`'s fields).
+  4. **Gap found**: `envVerifyOff` (`NewServer.specR`'s `#Hvoff`) comes at a first start from
+     `memberFreshRes_verify`; `memberRestartRes` lacks it. Proposal (form): add `envVerifyOff` to
+     `BuildServer.specRestart`'s precondition (persistent; the driver keeps it from the first start's fresh
+     bundle; the same world assumption `verifyEnvOff` the closed theorems already take).
+
 ## Next, in order
 1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
    for etcd-grove-81's review.
