@@ -46,9 +46,9 @@
 //
 // Writes (write_test.go):
 //
-//	TestEmptyWrite               D2   an empty Write: (0, nil) live; (0, timeout) with an expired       REFUTES D2, measured
-//	                                  write deadline; (0, ECONNRESET) then (0, EPIPE) after a RST;
-//	                                  (0, EPIPE) after CloseWrite (WriteOutcome: success only, below)
+//	TestEmptyWrite               D2   an empty Write: (0, nil) live; (0, timeout) with an expired       allowed (since the fix
+//	                                  write deadline; (0, ECONNRESET) then (0, EPIPE) after a RST;      below), measured
+//	                                  (0, EPIPE) after CloseWrite
 //
 // Close, CloseWrite (close_test.go):
 //
@@ -81,12 +81,12 @@
 //
 //	TestErrorsAreOpErrors        models every failure an *OpError, Net "tcp", Op read/write/close/   allowed, measured
 //	                                  set/dial/listen/accept; EOF is io.EOF itself
-//	TestZeroValues               models a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket   (model: id 0; more
-//	                                  touched                                                           defined than Go)
+//	TestZeroValues               models a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket   model: stuck (id 0
+//	                                  touched                                                           names nothing)
 //
 // Addresses (addr_test.go):
 //
-//	TestAddressAliases           D7,D12 "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s   D12's deployment
+//	TestAddressAliases           D13  "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s     D13's deployment
 //	                                  listener takes 127.0.0.1:P, 127.0.0.2:P; Listen(127.0.0.1:P) with  assumption, measured
 //	                                  ":P" open: EADDRINUSE
 //
@@ -119,8 +119,16 @@
 // (write(2) of no bytes still fails: tcp_sendmsg_locked checks the socket's
 // error and state first). TestEmptyWrite measures it, and
 // examples/axiomcx/tcp-emptywrite is a program that panics on every run and
-// has a closed no-panic theorem from the semantics (emptywrite_crash_safety).
-// Not yet fixed in Impl.lean.
+// had a closed no-panic theorem from the semantics (emptywrite_crash_safety).
+// Fixed the same day: WriteOutcome's failures write a shorter prefix or
+// nothing (k < len(bs) or k = 0), and the counterexample's proof no longer
+// holds (its translation and proof were removed; the program and its test
+// remain in examples/axiomcx/tcp-emptywrite). The same review found that a
+// zero-value TCPConn's id 0 named connection 0's dialer end: now no
+// connection or listener has id 0, so the model is stuck there (Go returns
+// EINVAL), and stated the deployment the theorems assume (Impl.lean, D13:
+// a closed world, addresses that do not alias, ports outside the ephemeral
+// range, the target configuration).
 //
 // Also measured, the fork window (child_test.go, forkMu): while a process
 // forks (os/exec), the child holds a copy of every fd until its exec, so a

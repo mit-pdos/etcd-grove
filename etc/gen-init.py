@@ -2935,15 +2935,12 @@ def lfs_inits(ext_txt):
 NT_ROOT = 'NetTcp'
 NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
     [f'github_com.mit_pdos.etcd_grove.examples.net.{p}' for p in
-     ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']] + \
-    ['github_com.mit_pdos.etcd_grove.examples.axiomcx.tcp_emptywrite']
+     ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']]
 # The part's programs whose adequacy theorem needs the package table of their import closure (as
 # `PROGRAMS`): the root package and the table's file under `NT_ROOT`.
 NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{p}':
                f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{p}/PkgTable.lean'
                for p in ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']}
-NT_PROGRAMS['github_com.mit_pdos.etcd_grove.examples.axiomcx.tcp_emptywrite'] = \
-    'Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/tcp_emptywrite/PkgTable.lean'
 
 
 def nt_prefix(txt, made=()):

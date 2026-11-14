@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `copy`'s count is only `sint.nat n = min …` (2026-11-14, branch `net-tcp`)
+
+- **The gap.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) returns `n` with
+  `sint.nat n = min vs.length vs'.length`, which leaves `n`'s sign free when the minimum is 0 (a
+  negative `w64` has `sint.nat` 0). Go's `copy` returns the minimum itself.
+- **Effect here.** `net.Conn.Read`'s spec (`NetTcp/Spec/net/Conn__Read.lean`, `ReadOut`), whose model
+  returns `copy`'s count, can promise only the same, so a caller that reads 0 bytes cannot conclude
+  `k = 0` (`wire.ReadFull` gets around it with `ReadOutcome`'s "a read of m > 0 bytes returns some").
+- **Proposed (general; record only).** `wp_slice_copy`'s post with `n = W64 (min …)` (or
+  `0 ≤ sint.Z n` beside the existing fact).
+- **Status.** Recorded only.
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of

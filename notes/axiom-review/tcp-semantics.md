@@ -266,3 +266,23 @@ out against an unreachable host (a failure, allowed).
 4. `notes/net-tcp.md` still describes the first semantics (`tcpOut`, broken ends, "no process
    exit"): bring it to v2.
 5. `doc.go` lists `TestEmptyWrite` as REFUTES D2: once 1 is applied, change it to "allowed".
+
+## Applied (2026-11-14, the same day; semantics v2.1)
+
+All four recommendations were applied in `GooseLang/Ext/Tcp/Impl.lean`:
+
+1. **The refutation**: `WriteOutcome`'s three failure clauses now allow a prefix shorter than asked
+   *or nothing* (`k < bs.length ∨ k = 0`), D2's prose says why (`TestEmptyWrite`, now "allowed").
+   `emptywrite_crash_safety` no longer holds: the counterexample's translation and proof were taken
+   out of project `nettcp` (`etc/goose.py`, `etc/gen-init.py`); the program and its test remain in
+   `examples/axiomcx/tcp-emptywrite` (it still panics, as it should).
+2. **F1**: `DialStep` numbers no connection 0 and `ListenStep` gives no listener id 0, so id 0 (a
+   zero-value `TCPConn`/`TCPListener`) names nothing and its operations are stuck (less defined than
+   Go's `EINVAL`: sound); the trusted models' docstring says so.
+3. **F2–F4**: a "Deployment" paragraph (D13) in `Impl.lean`'s header: a closed world, addresses that
+   do not alias (canonical `IP:port`, no hostnames or wildcards, no two strings the kernel confuses),
+   ports outside the ephemeral range, and the target configuration (Linux 7.0 defaults, Go 1.27.3).
+4. `notes/net-tcp.md` rewritten for the current semantics.
+
+The seven examples' proofs were re-checked over the revised semantics.
+

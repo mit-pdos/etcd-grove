@@ -831,7 +831,7 @@ theorem wp_tcp_Listen (a : GoString) (Φ : val → IProp GF) :
   obtain ⟨rfl, a0, Hv, ⟨-, Hcase⟩, rfl⟩ := Hst
   obtain rfl := go.intoVal_inj (V := GoString) Hv
   imod Hclose
-  rcases Hcase with ⟨rfl, rfl⟩ | ⟨-, l, hl, rfl, rfl⟩
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨-, l, -, hl, rfl, rfl⟩
   · icases HΦ with ⟨HΦ, -⟩
     imodintro
     iframe Hheap
@@ -1007,7 +1007,7 @@ theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
   obtain ⟨rfl, a0, Hv, ⟨-, Hcase⟩, rfl⟩ := Hst
   obtain rfl := go.intoVal_inj (V := GoString) Hv
   imod Hclose
-  rcases Hcase with ⟨rfl, rfl⟩ | ⟨c, hc, hb, rfl, rfl⟩
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨c, -, hc, hb, rfl, rfl⟩
   · -- a failure
     icases HΦ with ⟨HΦ, -⟩
     imodintro

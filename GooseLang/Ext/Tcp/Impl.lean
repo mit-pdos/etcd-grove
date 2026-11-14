@@ -19,9 +19,12 @@ address and whether it is open). Nothing records past operations.
 
 **Handles.** A connection end is named by a 64-bit id, `2 c + s` for the connection `c` and the
 side `s` (0 the dialer, 1 the acceptor); a listener by a 64-bit id of its node. An operation on an
-id that names nothing is stuck: the trusted models only pass ids the extension returned, which a
-Go program cannot forge (they are inside `net`'s unexported structs, and the heap does not survive
-a crash).
+id that names nothing is stuck. The trusted models pass the ids the extension returned, which a Go
+program cannot forge (they are inside `net`'s unexported structs, and the heap does not survive a
+crash), or the id 0 of a zero-value `TCPConn` or `TCPListener` (`var c net.TCPConn`), which names
+nothing: no connection is numbered 0 and no listener has id 0 (`DialStep`, `ListenStep`), so a
+program using a zero value is stuck, never proved (Go's methods return `EINVAL` there:
+`TestZeroValues`).
 
 **Each operation's outcome is a pure relation** on one end's state and one direction
 (`ReadOutcome`, `WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`); the step
@@ -39,11 +42,14 @@ goose returns a Go function's results.
   the writer's process looks like (its kernel's FIN, or a reset whose error another call took).
 * D2 `"Write"` of `bs` at an end, into the direction from it (`WriteOutcome`): on a closed end, or a
   direction the end shut (`fin`), an error writing nothing. Into an open direction: all of `bs`
-  appended; or a prefix of it, shorter, appended and the connection broken (`cut`), with an error;
-  with a write deadline set, a prefix, shorter, appended and a timeout error, the direction still
-  open. Into a cut direction: the bytes are discarded, with success or an error (a write after a
-  reset may land in the local buffer and be lost, or fail). Go's `Write` returns fewer bytes than
-  asked only with an error.
+  appended; or a prefix of it, shorter (or nothing), appended and the connection broken (`cut`),
+  with an error; with a write deadline set, a prefix, shorter (or nothing), appended and a timeout
+  error, the direction still open. Into a cut direction: the bytes are discarded, with success or an
+  error (a write after a reset may land in the local buffer and be lost, or fail). Go's `Write`
+  returns fewer bytes than
+  asked only with an error; it may fail having written nothing even when asked for nothing (Go makes
+  the system call for an empty buffer too, and the deadline check comes first:
+  `TestEmptyWrite`; an earlier draft excluded this, `notes/axiom-review/tcp-semantics.md`).
 * D3 `"Close"` of an end (`CloseOutcome`): an error if it is closed already; otherwise the end is
   closed and its direction, if open, becomes `fin`; the result may be an error all the same.
 * D4 `"CloseWrite"` of an end (`CloseWriteOutcome`): an error if it is closed; otherwise its
@@ -74,6 +80,18 @@ goose returns a Go function's results.
 listeners are gone (`lis` empty), so the restarted node may listen at its addresses again. What
 its peers see of its connections (a FIN, a reset, or nothing) is covered by cuts (D1, D2). The host
 is kept.
+
+**The deployment** (D13), which every theorem over this semantics assumes and the semantics cannot
+state. *A closed world*: no process outside the system's nodes listens at, or dials, the plan's
+addresses (an outside listener at a server's address would accept its clients: `examples/axiomcx/
+tcp-squat`). *Addresses that do not alias*: each plan string is a canonical `IP:port` (no hostname,
+no wildcard `:port` or `0.0.0.0`), and no two plan strings name sockets the kernel would confuse
+(`127.0.0.1:P` and `localhost:P`, or a wildcard listener and any address at its port:
+`TestAddressAliases`); `Listen` and `Dial` compare strings, as the kernel then does. *Ports outside
+the ephemeral range* (Linux's `ip_local_port_range`, 32768–60999 by default), so that a `Dial` with
+no listener cannot connect to itself. *The target configuration*: Linux 7.0 with its default
+sysctls, Go 1.27.3 (its listeners' default, MPTCP when available, behaves as TCP for every decision
+here), measured in `examples/net/semantics/`.
 
 **What is not modeled** (D12). Memory exhaustion in the kernel (`ENOMEM`/`ENOBUFS`: a failure of a
 live connection that is not a cut), as the file extensions' allocation failures. Addresses are the
@@ -238,14 +256,15 @@ def WriteOutcome (st : TcpEnd) (d : TcpDir) (bs : List w8) (k : Nat) (ok : Bool)
   if st.closed || decide (d.status = .fin) then k = 0 ∧ ok = false ∧ d' = d
   else if d.status = .cut then
     -- discarded
-    ((k = bs.length ∧ ok = true) ∨ (k < bs.length ∧ ok = false)) ∧ d' = d
+    ((k = bs.length ∧ ok = true) ∨ ((k < bs.length ∨ k = 0) ∧ ok = false)) ∧ d' = d
   else
     -- all of it
     (k = bs.length ∧ ok = true ∧ d' = { d with bytes := d.bytes ++ bs }) ∨
-    -- a prefix, and the connection breaks
-    (k < bs.length ∧ ok = false ∧ d' = ⟨d.bytes ++ bs.take k, .cut⟩) ∨
-    -- a prefix, and a timeout
-    (st.wdl = true ∧ k < bs.length ∧ ok = false ∧ d' = { d with bytes := d.bytes ++ bs.take k })
+    -- a prefix (shorter, or nothing), and the connection breaks
+    ((k < bs.length ∨ k = 0) ∧ ok = false ∧ d' = ⟨d.bytes ++ bs.take k, .cut⟩) ∨
+    -- a prefix (shorter, or nothing), and a timeout
+    (st.wdl = true ∧ (k < bs.length ∨ k = 0) ∧ ok = false ∧
+      d' = { d with bytes := d.bytes ++ bs.take k })
 
 /-- `d` shut by its writer, if it is open. -/
 def TcpDir.shut (d : TcpDir) : TcpDir :=
@@ -323,7 +342,7 @@ def SetDeadlineStep (c : Nat) (s : Bool) (kind : w64) (set : Bool) (g : TcpGloba
 def DialStep (a : GoString) (g : TcpGlobal) (e' : Expr) (g' : TcpGlobal) : Prop :=
   (g.plan !! a).isSome ∧
   ((e' = Val (PairV (#(W64 0)) (#false)) ∧ g' = g) ∨
-   (∃ c, g.conns !! c = none ∧ 2 * c + 1 < 2 ^ 64 ∧
+   (∃ c, c ≠ 0 ∧ g.conns !! c = none ∧ 2 * c + 1 < 2 ^ 64 ∧
      e' = Val (PairV (#(endId c false)) (#true)) ∧
      g' = g.setConn c (TcpConn.fresh a)))
 
@@ -341,7 +360,7 @@ def AcceptStep (op : Expr) (a : GoString) (isOpen : Bool) (g : TcpGlobal) (e' : 
 def ListenStep (a : GoString) (g : TcpGlobal) (L : TcpLocal) (e' : Expr) (L' : TcpLocal) : Prop :=
   g.plan !! a = some L.host ∧
   ((e' = Val (PairV (#(W64 0)) (#false)) ∧ L' = L) ∨
-   ((∀ l, L.lis !! l ≠ some (a, true)) ∧ ∃ l, L.lis !! l = none ∧
+   ((∀ l, L.lis !! l ≠ some (a, true)) ∧ ∃ l, l ≠ 0 ∧ L.lis !! l = none ∧
      e' = Val (PairV (#l) (#true)) ∧ L' = { L with lis := L.lis.insert l (a, true) }))
 
 /-- The step relation of the TCP extension, for a node with local state `L` on the network `g`. -/

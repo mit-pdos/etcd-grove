@@ -681,12 +681,8 @@ PROJECTS = [
         root="NetTcp",
         lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp"],
         packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
-                  "./shutdown", "./preface",
-                  # the counterexample of notes/axiom-review/tcp-semantics.md (an empty Write)
-                  "../axiomcx/tcp-emptywrite"],
-        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net"),
-               os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "axiomcx",
-                            "tcp_emptywrite")],
+                  "./shutdown", "./preface"],
+        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
     ),
     Project(
         name="durablekv",

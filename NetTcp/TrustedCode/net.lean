@@ -11,8 +11,9 @@ the socket. `conn` is trusted, with the layout `struct{ id uint64 }` (`conn.unde
 the extension's id of the connection end the socket is. The other fields of Go's `netFD` (the
 network name, the addresses, the poller) are not observable to code outside `net` but through
 `LocalAddr`, `RemoteAddr` and the errors' fields, which are not modeled (below). A `*TCPConn` is
-made only by `Dial.impl` and `TCPListener.Accept.impl`; Go code outside `net` cannot make a `conn`
-(its type is unexported), so `id` is always an id the extension returned.
+made only by `Dial.impl` and `TCPListener.Accept.impl`, so its `id` is an id the extension returned,
+except in a zero-value `TCPConn` (`var c net.TCPConn`, which Go code outside `net` can make): its
+`id` is 0, which names no connection end (`Impl.lean`, "Handles"), so its methods are stuck.
 
 **Listeners.** `TCPListener` (`struct{ fd *netFD; lc ListenConfig }` in Go) is trusted, with the
 layout `struct{ lid uint64 }`, the extension's id of the listener on this node.
