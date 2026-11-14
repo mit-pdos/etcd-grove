@@ -457,7 +457,7 @@ it lands with the first proofs.
   `cleanupWAL` returns an error), in `/home/ubuntu/.claude-E/jobs/af0ee947/tmp/etcd-fork` (scratch: copy
   the commits to a durable clone before the job ends). **Not pushed [user].** Until the user pushes them,
   the WAL is translated from that checkout (`etc/goose.py --src etcd=...`) on the WAL branches, and they
-  cannot land on `lean` (CI's `goose.py --check` needs the pin on GitHub).
+  cannot land on `lean` (CI's `goose.py --check` needs the pin on GitHub). **Pushed 2026-11-14** (`notes/wal-fsext-fork/README.md`).
 - **Encoding layer** (`wal-enc`, `d607fbfb92`, continuing): `WalEncFrame`, `WalEncDecode`, `WalEncRecs`,
   `WalEncFiles` (main tree, pure, no `sorry`): frame round trip, `walDecode` (the Go decoder and
   `ReadAll`'s CRC check, stop reasons), decode∘encode, the prefix lemma under `NoCollision`,
@@ -2041,6 +2041,17 @@ condition lifted to `CrashOkA`.**
      `filepath.Base` (`= g.name`), `parseWALName` (no error on a `walNameStr`, so its `closer()` arm is
      unreachable), `newFilePipeline`; the ghost handle `walOpening` (allocate `γ`).
   5. Error arms after step 2: put the halves back (`walLockedTok_unlock`).
+
+**Integration with `lean` (2026-11-14, `wal-above`).** `lean` moved the per-byte file layer back into the
+main tree (`003d52e8ff`, the bbolt port's step 0: the revert of the `LinuxFs/` split) and has no
+`LinuxFs/` at all; its etcd pin is `2eaeb872b`. So landing the WAL means: merge `lean`, move the part's
+WAL, `walpb`, `fileutil`, `ioutil`, `crc` translations (with bodies) and their specs and proofs into the
+main tree, replacing the main tree's names-only WAL and its axioms (`Spec/.../storage/wal/`, the 12 of
+section 1, with section 3's binders), repair their clients (the server's restart proofs, the WAL tester),
+and pin the fork's `goose-lean-walfs` (`594861caf`, on `2eaeb872b`; `notes/wal-fsext-fork/README.md`) in
+`etc/goose.py` and the examples' `go.mod`. Deferred until the five parallel units (`wal-u-open`,
+`wal-u-cut`, `wal-u-save`, `wal-u-create`, `wal-u-misc`; logs in `notes/wal-units/`) are merged here,
+since it moves the files they edit.
 
 ## I3b: resizes in flight on a crash-tracked file (branch `wal-i3b`, 2026-11-13)
 
