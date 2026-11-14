@@ -41,6 +41,16 @@ pattern, for a parent the client's watch takes (`watchCtx ctx s`) or `Background
 * answers every key whose type is not grpc's `mdOutgoingKey` as the parent does, in the WP form
   (`c.Value(k)`, from the parent's `ctx.Value(k)` triple) and in the chain form
   (`context.ctxValue`, what a descendant's walk of `context.value` and `WithCancel` carry);
+* (k8s 7f-5a, T5-e, `notes/k8s-7f5a-draft.md` §5) has the parent's `Deadline()` (promoted), and
+  `parentCancelCtx(c)` does what `parentCancelCtx(ctx)` does (it reads only `c.Done()` and
+  `c.Value(&cancelCtxKey)`, which are the parent's, then the found `*cancelCtx`'s `done`), and `c`'s
+  type is `*valueCtx`, not `stopCtx`: with the parts above, over a parent with Perennial's context
+  model (`context.isContext ctx cd`, any `cd`) the result is one too, at the same descriptor (the
+  proved law `WithRequireLeader.isContext_of_post`; `isContext` never reads `cd.Values`). Stated as
+  parts for the axiom-tok gate, as the `watchCtx` transfer. `WithValue.spec` claims `isContext`
+  for five other key types; this is grpc's `mdOutgoingKey{}`, in both of `WithRequireLeader`'s
+  branches. Go evidence: `examples/premisefix/watcherctx/draft7f5a_test.go`
+  (`TestWithRequireLeaderIsContext`, `…IsContextDone`, `TestIsContextCheckDetects`);
 * (the old triple, unchanged, for `Background()`: premise-fixes-7/8, C1) when the parent is
   `Background()`, `WithCancel(c)` is a cancellable context done only when cancelled
   (`propagateCancel` returns at once: `c.Done()` is `nil`), as `context.WithCancelTodo` says of
@@ -81,6 +91,15 @@ abbrev WithRequireLeader.spec : Prop :=
           ⌜∀ k' : GoInterfaceOk, k = GoInterface.ok k' →
             k'.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ -∗
           _root_.Perennial.context.ctxValue ctx k R -∗ _root_.Perennial.context.ctxValue c k R) ∗
+      □ (∀ Φ : val → IProp GF,
+          WP (App (Val #(methods ctx.ty go!"Deadline" ctx.v)) (Val #())) {{ Φ }} -∗
+          WP (App (Val #(methods c.ty go!"Deadline" c.v)) (Val #())) {{ Φ }}) ∗
+      □ (∀ Φ : val → IProp GF,
+          WP (App (Val (@! _root_.Perennial.context.parentCancelCtx))
+            (Val #(GoInterface.ok ctx))) {{ Φ }} -∗
+          WP (App (Val (@! _root_.Perennial.context.parentCancelCtx))
+            (Val #(GoInterface.ok c))) {{ Φ }}) ∗
+      ⌜c.ty ≠ _root_.Perennial.context.stopCtx.ty⌝ ∗
       (⌜ctx = _root_.Perennial.context.backgroundCtxVal⌝ -∗
         □ iprop({{ isPkgInit (PROP := IProp GF) pkg_id.context }}
           (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(GoInterface.ok c)))

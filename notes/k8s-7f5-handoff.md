@@ -27,6 +27,37 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-14, ninth 7f-5 agent): review fixes of the 7f-5a Draft done; STOPPED for 81's re-review
+
+81 accepted D1-D7 and decided the review's fixes (questions.md, 2026-11-14). Done on `k8s-7f5`
+(see the commit after `0b8c92dd0b`): `Draft7f5a.lean` restated (the no-gap prefix only while the
+watch is live: `kStreamSub` always, `kStreamOk` unless `kCancelled γ cd := kStopped γ ∨ □ cd.PDone`;
+`kLive`/`kStopped` with `Stop`; `kStartOk` ties the start point to a fired `□ Q lb0 σ0`; `eventAt σ`
+keeps `prevValue ↔ kPrevAt`; no thread tokens; T5-f's `klog.Warningf.spec` (restricted) and
+`mvccpb.Event_EventType.String.spec` as Lean statements in its §5), `notes/k8s-7f5a-draft.md` §8
+(each change old → new) and §9 (items for the re-review), the Go tests
+(`examples/premisefix/watcherctx/draft7f5a_test.go`: metadata and already-done parents, the UTF-8
+panic asserted), `nonissues/k8s-etcd3-watcher-gap-after-cancel.md` (+ test). Built; tcb --check no
+change (`/shared/tmp/k8s7f5a-fix/tcb.log`). **Next, on 81's re-review:** T5-e's Lean (restate
+`WithRequireLeader.wp_proof` with `□ ∀ cd, isContext ctx cd -∗ isContext c cd`), then 7f-5a-P as in
+the Draft's §6; before its step 4, settle the `WithCancel`-keeps-`PDone` gap (§6 risks); align
+`klog.Warningf.spec` with `notes/klog-args-fix.md` once it exists.
+
+## START HERE (2026-11-14, eighth 7f-5 agent): 7f-5a-D Draft written; STOPPED at S3 for etcd-grove-81
+
+The Draft of the etcd3 watcher's serial branch is in the unlinked
+`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`; builds with
+`lake build Proof.k8s_io.apiserver.pkg.storage.etcd3.Draft7f5a`), explained in
+`notes/k8s-7f5a-draft.md` (statements §1-§4, trusted texts §5, proof plan §6, decisions D1-D7 §7).
+Go evidence for the new trusted texts T5-e (`isContext` through `WithRequireLeader`) and T5-f (leaf
+no-op specs): `examples/premisefix/watcherctx/draft7f5a_test.go` (passes). tcb --check: no change
+(`/shared/tmp/k8s7f5a-d-tcb.log`). **Next, on 81's decisions:** if T5-e is approved, restate
+`WithRequireLeader.wp_proof` (one conjunct), build, tcb --check (same count: the name is unchanged),
+axiom-tok, land T5-e on its own; then 7f-5a-P in the Draft's §6 order (move the vocabulary to
+`WatchDefs.lean`, the triple to `Spec/.../store__Watch.lean`, delete the Draft). Pitfalls: the
+monoList ghost lists need `Pos.Countable` (Draft: `watchEvent_countable`, `kwev_countable`; `KRaw`
+needs one too, today an instance argument of `kInElem`/`kResInv`).
+
 ## START HERE (2026-11-14, seventh 7f-5 agent, final): 7f-3 LANDED; next 7f-5a-D, a fresh agent
 
 7f-3 is complete and landed (7f-3c approved by etcd-grove-81, including keeping `isRangeWatch`,
