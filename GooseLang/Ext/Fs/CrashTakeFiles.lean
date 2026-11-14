@@ -89,14 +89,18 @@ theorem crashRestAt_mono (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D D
   obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
   exact ⟨hwf, hcoh, hcr, hQ, fun i hi => hF i (fun h => hi (hD i h)), hroots, htc, hnamed, htd⟩
 
-/-- **Taking a file** from the restart's resources at a fixed crash, keeping its old resources. -/
-theorem crashRestAt_take (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : List Ino)
-    (tt : Bool) (V' : Hist) (st st' : OsState) (i : Ino) (hi : i ∉ D) (dq : DFrac) (m : OsMeta)
-    (rs : List (Nat × DFrac × List ByteG)) :
+/-- **Taking a file, or only learning what the crash did to it** (`tk = false`: the file stays in
+the restart's resources, for another client), at a fixed crash, keeping its old resources. What the
+crash did (`FileCrashAt`) needs no exclusion: only the transfer of the file's start (`tk = true`) needs
+it not taken yet (`i ∉ D`). -/
+theorem crashRestAt_takeIf (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (st st' : OsState) (i : Ino) (tk : Bool) (hi : tk = true → i ∉ D)
+    (dq : DFrac) (m : OsMeta) (rs : List (Nat × DFrac × List ByteG)) :
     ⊢ crashRestAt Q hL hL' D tt V' st st' -∗ gElem hL hL.γm i dq m -∗
       ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) -∗
-      ⌜FileCrashAt st st' V' i m rs⌝ ∗ fileStartO hL' i (st'.fs.files !! i) ∗
-        crashRestAt Q hL hL' (i :: D) tt V' st st' ∗
+      ⌜FileCrashAt st st' V' i m rs⌝ ∗
+        (if tk then fileStartO hL' i (st'.fs.files !! i) else emp) ∗
+        crashRestAt Q hL hL' (if tk then i :: D else D) tt V' st st' ∗
         gElem hL hL.γm i dq m ∗ ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) := by
   unfold crashRestAt
   iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Ht⟩ Hm Hbs
@@ -104,14 +108,10 @@ theorem crashRestAt_take (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D :
   icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
   icases bytesG_lookup_runs hL i Γb rs $$ Hab Hbs with %hxs
   icases tokRes_meta_whole hL $$ Htok Hm with %hnt
-  icases files_take hL' F i $$ Hfs with ⟨Hf, Hfs⟩
-  have hFi := hF i hi
-  have hseen : CrashSeenR Q i m rs [] (F !! i) :=
-    ⟨st, st', Γb, Γm, Γf, Γt, hwf, hcoh, hcr, hQ, hFi.symm, hmo, hxs,
+  have hseen : CrashSeenR Q i m rs [] (st'.fs.files !! i) :=
+    ⟨st, st', Γb, Γm, Γf, Γt, hwf, hcoh, hcr, hQ, rfl, hmo, hxs,
       fun t ti ht hp => absurd hp (hnt t ti ht), fun _ h => nomatch h⟩
-  rw [hFi] at hseen
-  rw [hFi]
-  iframe Hf Hm Hbs
+  iframe Hm Hbs
   isplitr
   · ipureintro
     refine ⟨crashSeen_crashed hseen, fun hn => hnamed i hn, ?_⟩
@@ -124,10 +124,36 @@ theorem crashRestAt_take (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D :
     have hc : cutOf Γm i = none := by simp [cutOf, hmo, hcut]
     rw [hc] at hrel
     exact hrel
-  iexists Γb, Γm, GMap.delete i F, Γf, Γt, V
-  iframe Hab Ham Hfs HAt Htok HAd Ht
-  ipureintro
-  exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+  cases tk with
+  | false =>
+    simp only [Bool.false_eq_true, ite_false]
+    isplitr
+    · iempintro
+    iexists Γb, Γm, F, Γf, Γt, V
+    iframe Hab Ham Hfs HAt Htok HAd Ht
+    ipureintro
+    exact ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩
+  | true =>
+    simp only [ite_true]
+    icases files_take hL' F i $$ Hfs with ⟨Hf, Hfs⟩
+    have hFi := hF i (hi rfl)
+    rw [hFi]
+    iframe Hf
+    iexists Γb, Γm, GMap.delete i F, Γf, Γt, V
+    iframe Hab Ham Hfs HAt Htok HAd Ht
+    ipureintro
+    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+
+/-- **Taking a file** from the restart's resources at a fixed crash, keeping its old resources. -/
+theorem crashRestAt_take (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (st st' : OsState) (i : Ino) (hi : i ∉ D) (dq : DFrac) (m : OsMeta)
+    (rs : List (Nat × DFrac × List ByteG)) :
+    ⊢ crashRestAt Q hL hL' D tt V' st st' -∗ gElem hL hL.γm i dq m -∗
+      ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) -∗
+      ⌜FileCrashAt st st' V' i m rs⌝ ∗ fileStartO hL' i (st'.fs.files !! i) ∗
+        crashRestAt Q hL hL' (i :: D) tt V' st st' ∗
+        gElem hL hL.γm i dq m ∗ ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) :=
+  crashRestAt_takeIf hL Q hL' D tt V' st st' i true (fun _ => hi) dq m rs
 
 /-- The old resources of a file a client takes: a fraction of its `OsMeta`, its bytes in runs. -/
 def fileOld (x : Ino × DFrac × OsMeta × List (Nat × DFrac × List ByteG)) : IProp GF :=
