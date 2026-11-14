@@ -156,7 +156,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   icases HP with ⟨#Hkey, Hk, Hv, Hq, Ht, Hpf, Ho, Hcf, Hm0, Hb0, Hmg, Hbg, #Hsy, #Hnd⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
@@ -202,7 +202,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · iexists K, cp
         iframe Hdk Hcp
         ipureintro; exact Hdko
-      iframe Hnms; ipureintro; exact HAt
+      iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only
     iframe Hkey Hk Hv Hq Ht Hpf Ho Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
@@ -239,7 +239,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · iexists K, cp
           iframe Hdk Hcp
           ipureintro; exact Hdko
-        iframe Hnms; ipureintro; exact HAt
+        iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walCutQ, walCutP]
       iframe Hkey Hk Hv Hq Ht Hpf Ho Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
@@ -401,7 +401,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · ipureintro
           exact walsAt_repl HAt hl1 rfl rfl (by simpa [cutClaim, hj1j] using hjjr)
         ihave Hnms := walNamesRes_insert _ _ _ _ dir lay1 (cutLay lay1 d.H.length g wr) hl1 rfl rfl $$ Hnms
-        iexact Hnms
+        iframe Hnms; ipureintro; exact Hbd
       imodintro
       dsimp only [walCutQ, cutClaim]
       rw [hgbs']

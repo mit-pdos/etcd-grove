@@ -49,7 +49,7 @@ theorem walInvBody_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iintro Hb #Hsi H Hsf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, #Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Ht, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms, %Hbd⟩
   icases walNamesRes_splitOk (L := L) (W := W) R jr r Ls Wn $$ Hnms Hsf with ⟨Hnms, Hsf, %hW⟩
   have hN : N.Mem nm := hN0.resolve_right (split_absent hwo hW (hr ▸ hin) hsw)
   imod osClaims_keys R jr N _ h _ (nameSet_ne_empty hN) hE $$ Hsi H Hcl with ⟨H, Hcl, %hkeys⟩
@@ -71,7 +71,7 @@ theorem walInvBody_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     isplitr; · ipureintro; exact hwn
     isplitl [HK Hcc]
     · iexists K, cc; iframe HK Hcc; ipureintro; exact hdk
-    iframe Hnms; ipureintro; exact hAt
+    iframe Hnms; ipureintro; exact ⟨hAt, Hbd⟩
   · ipureintro; exact ⟨hN, hnone⟩
 
 /-- See the file header. -/

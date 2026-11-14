@@ -499,6 +499,44 @@ theorem walsAt_mid {jr : Ino} {Ls : GMap GoString WalLay} {l1 l2 : List Claim} {
   · exact absurd (by rw [← hm]) hne
   · exact Or.inr (Or.inr hm)
 
+/-- **Every WAL's metadata is shorter than `2^41`** (a framed conjunct of `walInvBody`; the plan's W1
+log, fifteenth session): `Create` takes the bound on its metadata (its spec's premise), `walInv_alloc`
+on the WALs found at boot, and no other step changes a WAL's metadata. `ReadAll` reads it
+(`walInvBody_bounded`): the metadata record it decodes and returns. -/
+def WalsBounded (s : AbsDiskState) : Prop :=
+  ∀ dir d, s.wal !! dir = some d → d.metadata.length < 2 ^ 41
+
+/-- `WalsBounded` is kept by a change of WAL states keeping each present WAL's metadata. -/
+theorem WalsBounded.mono {s s' : AbsDiskState} (h : WalsBounded s)
+    (h' : ∀ dir d', s'.wal !! dir = some d' → ∃ d, s.wal !! dir = some d ∧ d'.metadata = d.metadata) :
+    WalsBounded s' := by
+  intro dir d' hd'
+  obtain ⟨d, hd, he⟩ := h' dir d' hd'
+  rw [he]; exact h dir d hd
+
+/-- `WalsBounded` with one WAL's state set to one with a bounded metadata. -/
+theorem walsBounded_ins {s s' : AbsDiskState} {dir : GoString} {d' : WalDur} (h : WalsBounded s)
+    (hw : s'.wal = <[dir := d']> s.wal) (hd' : d'.metadata.length < 2 ^ 41) : WalsBounded s' := by
+  intro k e he
+  rw [hw] at he
+  by_cases hk : k = dir
+  · subst hk; rw [GMap.lookup_insert_eq] at he; cases he; exact hd'
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at he; exact h k e he
+
+/-- `WalsBounded` with one WAL's state set to one with the same metadata. -/
+theorem walsBounded_insSame {s s' : AbsDiskState} {dir : GoString} {d d' : WalDur} (h : WalsBounded s)
+    (hw : s'.wal = <[dir := d']> s.wal) (hd : s.wal !! dir = some d) (hm : d'.metadata = d.metadata) :
+    WalsBounded s' :=
+  walsBounded_ins h hw (by rw [hm]; exact h dir d hd)
+
+/-- `WalsBounded` across an update of one WAL keeping its metadata (`absDiskUpd`). -/
+theorem walsBounded_upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalDur} (h : WalsBounded s)
+    (hm : ∀ d, (f d).metadata = d.metadata) : WalsBounded (absDiskUpd s dir f) := by
+  unfold absDiskUpd
+  cases hd : s.wal !! dir with
+  | none => exact h
+  | some d => exact walsBounded_insSame h rfl hd (hm d)
+
 /-- **A WAL's tail idle** (`WalTailIdle`'s, W3/W5 fifteenth session): no resize window open on its last
 segment (`TailExact`) and its last segment's stream all written (`wr` its length). What `ReadAll` needs
 of a WAL no handle has registered: without it, it could succeed with the history's last records missing
@@ -941,7 +979,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) C Mr s Ls F ∗
     ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl F ∗
     (∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝) ∗
-    ⌜WalsAt jr Ls cl⌝ ∗ walNamesRes (L := L) (W := W) R jr r Ls)
+    ⌜WalsAt jr Ls cl⌝ ∗ walNamesRes (L := L) (W := W) R jr r Ls ∗ ⌜WalsBounded s⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
@@ -980,6 +1018,21 @@ theorem walInv_open (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
     iapply Hclose
     inext; ileft; iexact Hb
   · iexfalso; iapply notCrashed_crashed $$ Hnc Hc
+
+/-- **The metadata bound read off the invariant** (`WalsBounded`; `ReadAll`'s). -/
+theorem walInvBody_bounded (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) :
+    walInvBody (L := L) (W := W) C Mr R jr r s ⊢
+      ⌜WalsBounded s⌝ ∗ walInvBody (L := L) (W := W) C Mr R jr r s := by
+  iintro Hb
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Har, Hcl, Hcm, Hlays, Hok, Hco, HCR, Htl, Hab, Hnm, Hpk, Hdk,
+    HAt, Hnms, %Hbd⟩
+  isplitr
+  · ipureintro; exact Hbd
+  iexists Ls, cl, n, F
+  iframe
+  ipureintro; exact Hbd
 
 /-- A name's share under a change of layouts keeping every layout of its name's directory. -/
 theorem nameShare_mono (jr : Ino) (Ls Ls' : GMap GoString WalLay) (nm : GoString)

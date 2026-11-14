@@ -126,7 +126,7 @@ theorem walInvBody_readIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iintro Hb Hk Hf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    HK, %HAt, Hnms⟩
+    HK, %HAt, Hnms, %Hbd⟩
   icases walDirKeys_lay C Mr jr s Ls cl n dir j X $$ HK Hk with ⟨%hlay, HK, Hk⟩
   icases walTailsRes_idle C Mr s Ls F $$ Htl Hf with ⟨%hidle, Htl, Hf⟩
   obtain ⟨lay, hl, hlj⟩ := hlay
@@ -144,7 +144,7 @@ theorem walInvBody_readIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iframe Hk Hf
   iexists Ls, cl, n, F
   iframe
-  ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HAt⟩
+  ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HAt, Hbd⟩
 
 end laws
 

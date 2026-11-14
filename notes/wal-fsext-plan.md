@@ -557,6 +557,8 @@ not started (`wal-readall14`; W3/W5 log, fourteenth session). The decoder's erro
 decision on `io.ReadFull`'s axiom); `WalReadState` restated satisfiably (the pinned names); the hypotheses' audit (`wal-readall16`;
 W3/W5 log, sixteenth session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
+`ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
+invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). `WalsBounded` (metadata `< 2^41`, a framed conjunct; the segments' size read at a step, `wp_segs_size`) replaces `WalPinSized`, and `Open` takes its path from `walInv_dirPath` (`WalDirPathLaw` deleted); `renameWAL.spec`'s spine law restated with `notCrashed` and the update's result (ledger); the nil-receiver `File.Close` proved (`wal-path15`; W1 log, fifteenth session). Open: `renameWAL`, `renameWALUnlock`, `Create`'s body after the commit.
 
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry).
 
@@ -1232,6 +1234,27 @@ area or creating claim. Design (internal invariant, no client-visible ghost stat
   2026-11-14: the metadata half as a framed conjunct, the segments' `om.hi ≤ 0xffffffff000` as a named hypothesis
   until `wal-maxb14`'s model lemma lands; no `pipeFile` obligation) not started. (4) nil-receiver `File.Close`,
   `renameWALUnlock`, `renameWAL` not started.
+
+**Fifteenth session (branch `wal-path15`, 2026-11-14; G-spine continued).**
+- **`WalsBounded`** (`Inv.lean`): `walInvBody` gains a last framed conjunct `⌜WalsBounded s⌝` (every WAL's metadata
+  `< 2^41`; on `s` only, not the layouts). Kept by every step through `walsBounded_upd` (an `absDiskUpd` keeping
+  metadata: `setNamed`, `unlSt`), `walsBounded_insSame` (`walAppS`, `walSyncS`) and `walsBounded_ins` (a new WAL with
+  a bounded metadata: `createSt`); established by `walCreate_osAUnc` (new premise `hmd : md.length < 2 ^ 41`, `Create`'s
+  spec premise) and `walInv_alloc` (new premise `hbd : WalsBounded s`). Read with **`walInvBody_bounded`** (`ReadAll`'s).
+  Every destructuring of `walInvBody` threads it (`…, Hnms, %Hbd⟩`; 22 modules, plus `ReadAllLaws`' `walInvBody_readIdle`).
+- **The segments' half is not in the invariant** (`SegSize.lean`, new): `wp_segs_size` reads `g.om.size ≤ maxBytes`
+  (`= 0xffffffff000`) off a list of `segRes` before a step (`Fs.wp_osMeta_size`, `wal-maxb14`); `openAtIndex` applies it
+  right after the pin (`|g.bs| = g.om.size` from `WalAbsD.metas`). The bound on `om.hi` is not kept (a write's
+  announcement raises it) and not needed. `walPinOut` drops its size clause; **`walInvBody_pinOut`** proves the pin;
+  **`WalPinSized` deleted**, `walInv_openAt` and `openAtIndex.wp_proof` lose the hypothesis (the latter's are now its
+  callees' specs and `WalDecEnvSupply`). (A named hypothesis `OsMetaSizeLaw`, the statement of `wp_osMeta_size`, stood in
+  until `wal-maxb14` landed the same session.)
+- **`Open` without `WalDirPathLaw`** (`Open.lean`): **`walReadH_namesOut`** takes the lock's `walNamesFrag none` (and the
+  key) out of `walReadH` with the wand putting it back; `walInv_dirPath` at a step. **`WalDirPathLaw` deleted.**
+- **`renameWAL.spec`'s spine law restated** (ledger 2026-11-14): with `notCrashed` and `U (some x)` in and out. Not yet
+  discharged by `Create` (needs `walInv_splitNew` in `Create`'s update result) and `renameWAL` not proved.
+- `os`'s package fact records `os.ErrInvalid` (`gen-init` `LFS_OS`, `os.errInvalid_of_pkgInit`) for the nil-receiver
+  `File.Close` (W7-W12 log).
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -2564,6 +2587,13 @@ program: see the W1 log's task-3 entry.
 (`walInv_absent` gives `N.Mem nm` from the client's `walAbsent dir`); the post-commit split and the registration
 proved as steps (`CreateSplit.lean`; W1 log, fourteenth session, for the order inside `Create` and why the
 registration waits for the parent's fsync); the body not advanced (frontier `sorry` unchanged).
+
+**Fifteenth session (branch `wal-path15`, 2026-11-14).** `walCreate_osAUnc` takes `md.length < 2 ^ 41` (the commit
+establishes `WalsBounded`); `renameWAL.spec`'s `RenameWALOk` third conjunct restated (ledger) so that `Create` can
+discharge it with `walInv_splitNew` (at the step after the rename, with `notCrashed` and the result's lock token);
+the nil-receiver `File.Close` spec proved (W7-W12 log). `renameWALUnlock`, `renameWAL` and `Create`'s body not
+advanced (frontier `sorry`s unchanged). Note: the stream-end fact `< 2^43` is gone from `walOpenWF`/`walHandleIn`
+(`wal-maxb14`): `Create` does not establish it.
 
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
@@ -4434,3 +4464,14 @@ tasks 3-4 not started. No `sorry` added or removed.
   (`ReadAll.wp_proof`, the fourteenth session's plan). Build note: a seed `.lake` older than `wal-int` rebuilds
   `GooseLang.Ext.Fs.Impl`; copying `GooseLang`/`LinuxFs`/`Proof/.../storage` from a fresher worktree's build avoided it.
 
+**W7-W12 log, nil-receiver `File.Close` (branch `wal-path15`, 2026-11-14).** **`os.File.Close.specNil`**
+(`LinuxFs/Spec/os/File__CloseNil.lean`) / **`os.File.Close.wp_proofNil`** (`LinuxFs/Proof/os/File__CloseNil.lean`, no
+`sorry`): `{{ isPkgInit os }} (null : Loc).Close() {{ err, RET #err; True }}` (the model's nil test, then a load of
+`os.ErrInvalid`). For `WAL.Close.specOpening` (`wal-close16`) and `renameWALUnlock`'s `w.Close()`. `os`'s fact now
+records `ErrInvalid`'s variable (`os.errInvalid_of_pkgInit`; `Create.lean`'s pattern on the fact updated).
+
+**W3/W5 log, `WalsBounded` for `ReadAll` (branch `wal-path15`, 2026-11-14).** The metadata bound: `walInvBody_bounded
+: walInvBody s ⊢ ⌜WalsBounded s⌝ ∗ walInvBody s` (`Inv.lean`), with `WalsBounded s := ∀ dir d, s.wal !! dir = some d →
+d.metadata.length < 2 ^ 41`; `WalReadState` gives `s.wal !! dir = some d` with the body, so apply it there. The segments'
+size: `wp_segs_size` (`SegSize.lean`, `Fs.wp_osMeta_size` over `segRes`s, before any step). `WalPinSized` and
+`WalDirPathLaw` are deleted (use `walInv_dirPath`).

@@ -179,7 +179,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   iintro Hb Hk Hv Hcf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCut_agree cp none $$ Hcp Hcf with %Hcpe
   subst Hcpe
   icases walTailsRes_zeros C Mr s Ls F dir γ tg $$ Htl Hk with ⟨%HZs, Htl, Hk⟩
@@ -233,7 +233,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     · iexists K, none
       iframe Hdk Hcp
       ipureintro; exact Hdko
-    iframe Hnms; ipureintro; exact HAt
+    iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
   iintro ⟨%hF, %htail, %hzf, %hex⟩ Hseg
   -- F-Z, from the tail record's entry (kept by `walTailsRes_cut`'s premise)
   have hZ : TailZeros lay := hZB.1
@@ -314,7 +314,9 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     isplitr
     · ipureintro
       exact walsAt_insert hl rfl rfl HAt
-    iapply walNamesRes_insert _ _ _ _ _ _ (syncLay lay pre g0) hl rfl rfl $$ Hnms
+    isplitl [Hnms]
+    · iapply walNamesRes_insert _ _ _ _ _ _ (syncLay lay pre g0) hl rfl rfl $$ Hnms
+    ipureintro; exact walsBounded_insSame Hbd rfl hd rfl
   · unfold walPast; iexact Hpast
 
 end iris
