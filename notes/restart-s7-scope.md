@@ -1,6 +1,27 @@
 # Restart S7: Scope for the first closed restart theorem (2026-11-14, for etcd-grove-81; notes only, nothing built)
 
-DRAFT for review. Written at `restart-s56` after S6 landed (`lean` `a10cbbfb26`, `NewServer.specR` proved and
+## Approved (2026-11-14)
+
+**By the user (2026-11-14, via etcd-grove-81):**
+- S7 goes ahead.
+- **N1** (§5): `bootstrapRestartContract` is accepted as a premise of the closed theorem. The theorem's docstring
+  and `notes/STATUS.md` list it.
+- **N2** (§5): "restart" means a graceful stop in the same process. The docstring says that the theorem does
+  not cover a kill, a SIGKILL, or a power loss.
+
+**By etcd-grove-81 (2026-11-14):** all six D-S7 recommendations (§6):
+- D-S7-1: one member;
+- D-S7-2: `N` distinct-key `Put`s, then one `Range` checked exactly;
+- D-S7-3: the read after the restart in-process (`EtcdServer.Range`);
+- D-S7-4: `#Hmembers` (S11) after S7's Freeze;
+- D-S7-5: the stage is named "S7 (restart1)"; "R2s-A" keeps its name (`notes/restart-scope.md`'s table updated);
+- D-S7-6: `specR`'s text kept (S7 discharges `srvRestartRows` for one member).
+
+The rest of this note is the Scope as reviewed.
+
+---
+
+Written for review. Written at `restart-s56` after S6 landed (`lean` `a10cbbfb26`, `NewServer.specR` proved and
 linked as `wp_NewServerR`). Inputs: `notes/restart-scope.md` (S7-S9, §4 decisions D1-D7, the crash ladder),
 `/shared/tmp/restart-s56/plan.md`, `notes/restart-vs-crash.md`, `notes/wal-crash-handoff/restart-wal-interface.md`.
 Abbreviations: `E/` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/`, `SE/` = `Spec/go_etcd_io/etcd/server/v3/etcdserver/`,

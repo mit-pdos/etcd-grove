@@ -990,6 +990,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
     ),
     Project(
+        name="restart1",
+        # The one-member restart example (restart S7, notes/restart-s7-scope.md): one member started
+        # in-process, Puts of distinct keys through its own API, a graceful stop (HardStop) and a
+        # start again on its data directory (the WAL replayed past a snapshot record), and a
+        # Range through the restarted member's API checked exactly. A package of the examples' Go
+        # module (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "restart1"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart1")],
+    ),
+    Project(
         name="etcd-wal",
         # The WAL robustness tester (WAL W4c; `etcd_wal_safe`, notes/decisions.md "WAL W4c"): one
         # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
