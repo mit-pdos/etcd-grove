@@ -699,6 +699,21 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       rw [show ys1 ++ ys2 ++ pend2 = ys1 ++ (ys2 ++ pend2) by simp, hys2, ← List.append_assoc, hys1]
     have hokS' : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS := by
       rw [← hout]; exact hokS
+    -- `J`'s claim: half to the update, half kept (the handle's)
+    icases (osNames_frac J (.except walTmps) (1 : Qp).half (1 : Qp).half _).1 $$ [HJx] with ⟨HJh, HJx⟩
+    · rw [Qp.half_add_half]; iexact HJx
+    -- the update (`createFresh_osAUnc`), its result with the invariant (`createU`)
+    ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau HJh HmS HbS]
+    · unfold walCreateP createSeg
+      rw [show i = (openFd i (walOpenFlag false ||| W64 524288)).ino from rfl]
+      iframe
+    ihave HU : createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createSeg i mS ysS) none $$ [HP]
+    · unfold createU; simp only [walCreateQ]; iframe Hinv HP
+    ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
+      (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
+      (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c $$ HU
     sorry)
 
 end proof
