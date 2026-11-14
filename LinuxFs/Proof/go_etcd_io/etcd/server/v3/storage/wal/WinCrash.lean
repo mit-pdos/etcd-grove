@@ -15,6 +15,9 @@ gives `(old b, 0)` first; `old b = 0` by F-Z, `z0 ≤ wr`).
 * `crashOkA_win`: `CrashOkA` of the exact layout `lay0` gives `CrashOkA` of the window layout `lay`
   (the `crashOkA_tail` pattern: the old condition at images as of the last sync, then
   `crashTo_tailL` on `lay0` with `W1G.drop_rz`).
+* `crashOkA_same`: across a step that allows no new crash and keeps the candidates (the truncate's
+  landing: the invariant keeps only the current layout's condition, so the finish goes from the
+  in-flight layout, not from the exact one).
 -/
 module
 
@@ -243,6 +246,63 @@ theorem crashOkA_win {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     exact crashTo_congr_lay hjr hnm hj hcuts hfirst hinos h1
   · right
     exact ⟨la, hla, crashTo_congr_fo (fun g' hg' => hfo _ (halt la hla g' hg')) h⟩
+
+/-- **The crash condition across a step on the tail that allows no new crash** (a truncate's landing,
+I3b): the layouts differ only in the tail's ghost (`g1` to `g2`, same inode); every crash `g2`'s
+`OsMeta` and bytes allow, `g1`'s allow (`fileCrashedR_rsPostK_rz` for a landing); `segBytesX g2` is at
+least as long as `segBytesX g1`, with the same candidates over it; `g2` knows the resize stamps `g1`
+knows. -/
+theorem crashOkA_same {C : WalCodec} {Mr : WalMarshal} {d : WalDur}
+    {lay1 lay2 : WalLay} {alt : Option WalLay} {cl : List Claim} {n : Nat}
+    {pre : List SegG} {g1 g2 : SegG}
+    (hnd : (lay1.segs.map (·.ino)).Nodup)
+    (hs1 : lay1.segs = pre ++ [g1]) (hs2 : lay2.segs = pre ++ [g2]) (hino : g2.ino = g1.ino)
+    (hjr : lay2.jr = lay1.jr) (hnm : lay2.nm = lay1.nm) (hj : lay2.j = lay1.j)
+    (hcuts : lay2.cuts = lay1.cuts) (hfirst : lay2.first = lay1.first)
+    (hfc : ∀ fo, FileCrashedR g2.om [(0, DFrac.own (1 : Qp).half, g2.bs)] fo →
+      FileCrashedR g1.om [(0, DFrac.own (1 : Qp).half, g1.bs)] fo)
+    (hlen : (segBytesX g1).length ≤ (segBytesX g2).length)
+    (hcand : ∀ b, b < (segBytesX g1).length →
+      ((segBytesX g2).getD b (0, [])).2 = ((segBytesX g1).getD b (0, [])).2)
+    (hrz : ∀ s ∈ g1.om.rz, s ∈ g2.om.rz)
+    (hok : CrashOkA C Mr d lay1 alt cl n) : CrashOkA C Mr d lay2 alt cl n := by
+  intro m' fo hr hf hnmd hw
+  have hg1 : g1 ∈ lay1.segs := by rw [hs1]; simp
+  have hg2 : g2 ∈ lay2.segs := by rw [hs2]; simp
+  have hinos : lay2.segs.map (·.ino) = lay1.segs.map (·.ino) := by
+    rw [hs2, hs1]; simp [hino]
+  have hnd2 : (lay2.segs.map (·.ino)).Nodup := by rw [hinos]; exact hnd
+  have hpre1 : ∀ g' ∈ lay1.segs, g' ∈ pre ∨ g' = g1 := by
+    intro g' hg'; rw [hs1, List.mem_append, List.mem_singleton] at hg'; exact hg'
+  have hf1 : ∀ g' ∈ lay1.segs, FileCrashedR g'.om [(0, DFrac.own (1 : Qp).half, g'.bs)]
+      (fo g'.ino) := by
+    intro g' hg'
+    rcases hpre1 g' hg' with hp | rfl
+    · exact hf g' (by rw [hs2]; simp [hp])
+    · rw [← hino]; exact hfc _ (hf g2 hg2)
+  have hn1 : ∀ g' ∈ lay1.segs, g'.ino ∈ walInos (entsOf m' lay1.j) → (fo g'.ino).isSome := by
+    intro g' hg' hin
+    rcases hpre1 g' hg' with hp | rfl
+    · exact hnmd g' (by rw [hs2]; simp [hp]) (by rw [hj]; exact hin)
+    · rw [← hino]; exact hnmd g2 hg2 (by rw [hj, hino]; exact hin)
+  have hw1 : W1G C (walInos (entsOf m' lay1.j)) (fun i => imgOf (fo i)) (segBytesOf lay1)
+      (segRzOf lay1) := by
+    rw [← hj]
+    refine (W1G.drop_rz hw (fun i bs hbs => ?_)).mono_rz (fun i s hs => ?_)
+    · obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs
+      rcases hpre1 g' hg' with hp | rfl
+      · exact ⟨segBytesX g', segBytesOf_mem hnd2 (by rw [hs2]; simp [hp]), Nat.le_refl _,
+          fun b _ => .inl rfl⟩
+      · exact ⟨segBytesX g2, by rw [← hino]; exact segBytesOf_mem hnd2 hg2, hlen,
+          fun b hb => .inl (hcand b hb)⟩
+    · obtain ⟨g', hg', hi, hs'⟩ := segRzOf_mem hs
+      subst hi
+      rcases hpre1 g' hg' with hp | rfl
+      · rw [segRzOf_of_mem hnd2 (by rw [hs2]; simp [hp])]; exact hs'
+      · rw [← hino, segRzOf_of_mem hnd2 hg2]; exact hrz s hs'
+  rcases hok m' fo hr hf1 hn1 hw1 with h | ⟨la, hla, h⟩
+  · left; exact crashTo_congr_lay hjr hnm hj hcuts hfirst hinos h
+  · right; exact ⟨la, hla, h⟩
 
 end win
 

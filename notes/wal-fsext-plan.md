@@ -1142,6 +1142,9 @@ builds (merged with `wal-int` `4fb9b41cd4`).
   `crashOkA_tail`), then `crashTo_tailL` on `lay0` with `W1G.drop_rz` (zero is a candidate stamped 0 of `g0`'s bytes
   from `wr` on: **`tail_zero_cand`**, from `TailLast`'s `ByteOk` and F-Z). Covers the truncate in flight (`rzMeta`,
   `rsAnn`: `|g.bs| = |g0.bs|`) and landed (`rsPostK true`: `|g.bs| = wr`, the cut-off bytes in `pcRun`).
+- **`crashOkA_same`** (`WinCrash.lean`, proved): `CrashOkA` across a tail step that allows no new crash, keeps
+  `segBytesX`'s candidates (no shorter) and the stamps: the truncate's finish, from the in-flight layout (the
+  invariant keeps only the current layout's condition).
 
 **Thirteenth session (branch `wal-path13`, 2026-11-14; G-spine, the claim on each WAL name).** A path to
 `dir = r/nm` is a spine through a fraction of a claim on `nm` alone (`osPathS_child`); `nm` sat only in the
@@ -3674,7 +3677,10 @@ log, sixteenth session): `crashTo_tailL`, **`crashOkA_win`** (`WinCrash.lean`). 
   `crashOkA_win` (from the exact `lay0`) is not available; the finish needs `crashOkA` from the in-flight layout
   (`rzMeta`, `rsAnn`) to the landed one (`rsPostK true`): `FileCrashedR` of the landed by
   `fileCrashedR_rsPostK_rz`, `W1G` by equal candidates of `segBytesX` (the landed `pcRun` is the in-flight `rsAnn`'s
-  candidates, values aside: `rsTail` below the old size), `segRzOf` equal (`n :: m.rz` both). A short lemma.
+  candidates, values aside: `rsTail` below the old size), `segRzOf` equal (`n :: m.rz` both). The generic step is
+  proved, **`crashOkA_same`** (`WinCrash.lean`: the tail's crashes no more, `segBytesX` no shorter with the same
+  candidates, the stamps kept); the instance's facts (`fileCrashedR_rsPostK_rz`, the `pcRun` of `rsTail` equal to
+  `rsAnn`'s candidates) are the supply's.
 - *The window before the truncate*: `specWalTail`'s pre is `TailMetaW` (a `Save`'s writes past the preallocated
   size), so `lay0` may itself be in a window; `crashOkA_win` and `crashTo_tailL` need `SegExact g0` and `TailLast`
   (`tailCands_of_abs`). The general form is `crashTo_tailL` over `TailWin` with the candidates past `|bs|` from
