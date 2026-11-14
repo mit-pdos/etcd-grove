@@ -71,5 +71,4 @@ PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh` (unwrapped, GOWORK n
     `srvGoRes`), `Main`, `MainLinked`, `Adequacy` (auth3Addrs + client bundles), `Results` docstring.
   - Go: `run`/`barrier`/`newUserClient` in auth3.go (Serve on all three, barrier per member, u@2,
     v@3, anon@1, bad@2); auth3_test.go checks refusals and the anonymous watch at every member.
-- Next: full build green, gates (bounds baseline for the new specs' threadBound, tcb collection
-  update, etcdstart interface), then STOP for the Freeze (81's review), then land.
+- Freeze passed (etcd-grove-81, 2026-11-14); docstring fixes applied; landed via etc/land.sh.
