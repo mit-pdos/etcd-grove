@@ -392,10 +392,14 @@ instance hdrValOk_dec (v : GoString) : Decidable (hdrValOk v) := by
   unfold hdrValOk; infer_instance
 
 /-- **The response header keys a handler may not set** (canonical): `Content-Encoding` (below),
-`Trailer` (Go's client moves it to the response's trailers, `fixTrailer`), and the connection
-headers Go's HTTP/2 server drops (`Keep-Alive`, `Proxy-Connection`, `Upgrade`). -/
+`Trailer` (Go's client moves it to the response's trailers, `fixTrailer`), the connection
+headers Go's HTTP/2 server drops (`Keep-Alive`, `Proxy-Connection`, `Upgrade`), and (second
+review, 2026-11-14) `Pragma`: of `Pragma: no-cache`, Go's client adds `Cache-Control: no-cache`
+on reading the response (`fixPragmaCacheControl`, `response.go:201,218`;
+`examples/premisefix/httppragma`). -/
 def respNoKeys : List GoString :=
-  [go!"Content-Encoding", go!"Trailer", go!"Keep-Alive", go!"Proxy-Connection", go!"Upgrade"]
+  [go!"Content-Encoding", go!"Trailer", go!"Keep-Alive", go!"Proxy-Connection", go!"Upgrade",
+    go!"Pragma"]
 
 /-- **Response headers a handler may commit** (http-boundary-fix, independent review, 2026-11-14):
 each key non-empty, of token bytes (Go's server drops a header of another key,
@@ -443,11 +447,14 @@ theorem hdrValOk_of_bytes (v : GoString)
 `User-Agent` (a default if unset), `Accept-Encoding` (`gzip` if unset), `Content-Length`,
 `Transfer-Encoding`, `Trailer` (written from the request's fields, not its header map,
 `reqWriteExcludeHeader`), `Connection`, and the connection headers HTTP/2 drops or rewrites
-(`Keep-Alive`, `Proxy-Connection`, `Upgrade`, `Te`). Their values on the server are not the client's map's
+(`Keep-Alive`, `Proxy-Connection`, `Upgrade`, `Te`); (second review, 2026-11-14) and
+`Cache-Control`, which Go's server adds to a request with `Pragma: no-cache`
+(`fixPragmaCacheControl`, `request.go:1177`; `examples/premisefix/httppragma`). Their values on the server are not the client's map's
 (`examples/premisefix/httpreqhdr`). -/
 def reqTpKeys : List GoString :=
   [go!"Host", go!"User-Agent", go!"Accept-Encoding", go!"Content-Length", go!"Transfer-Encoding",
-    go!"Trailer", go!"Connection", go!"Keep-Alive", go!"Proxy-Connection", go!"Upgrade", go!"Te"]
+    go!"Trailer", go!"Connection", go!"Keep-Alive", go!"Proxy-Connection", go!"Upgrade", go!"Te",
+    go!"Cache-Control"]
 
 /-- A space or a tab. -/
 def owsByte (c : w8) : Bool := decide (c = W8 32 ∨ c = W8 9)

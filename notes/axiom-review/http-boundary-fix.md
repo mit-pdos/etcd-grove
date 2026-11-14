@@ -134,3 +134,30 @@ are excluded from response values (`hdrValByte` is printable ASCII only), which 
 handlers; `canonKey` is idempotent on canonical keys, so the server's re-canonicalization is the
 identity on `R.hdr`'s keys; `Host` never reaches `r.Header`; a key the client set among
 `reqTpKeys` gets no promise.
+
+## The second review (etcd-grove-81's, 2026-11-14)
+
+1. **MAJOR, `Pragma`.** Go adds `Cache-Control: no-cache` to a header map it reads with `Pragma:
+   no-cache` (`fixPragmaCacheControl`, go1.27.3 `response.go:218`, from `readRequest`,
+   `request.go:1177`, and `ReadResponse`, `response.go:201`), on the server and on the client.
+   **Fix** (key exclusions): `Pragma` in `respNoKeys`, `Cache-Control` in `reqTpKeys`;
+   `examples/premisefix/httppragma`. The other headers Go touches on read, checked at go1.27.3:
+   `Host` (moved to `r.Host`, `server.go:1087`, `request.go:1074`), `Transfer-Encoding`
+   (`transfer.go:644`), `Content-Length` (`transfer.go:687,727,736`), `Connection`
+   (`transfer.go:768`), `Trailer` (`transfer.go:790`): all in `reqTpKeys`, and on responses in
+   `srvKeys` or `respNoKeys`; the server's write side drops only keys of `srvKeys`
+   (`server.go:1231-1340`, `respExcludeHeader`).
+2. **MINOR, leasehttp's forwarded `POST`s.** A follower's `RenewHTTP`/`TimeToLiveHTTP` send `POST
+   /leases` and `/leases/internal` to the leader's peer port (`v3_server.go:553,682`): part (b) of
+   `addrsUnclaimed` now names them. **Unminted tickets:** as `onceOnly` `POST`s, their handler runs
+   receive `reqTicketOnce`, a ticket no `RoundTrip` minted (leasehttp's client is names-only).
+   Harmless today: `raftProto.req` puts no premise on them, the mux answers `404` and takes no
+   ticket, and no closed program forwards a lease request. **The coming auth-on-leases work (three
+   members) reaches this path**: a verified handler of `/leases` must not rely on a ticket of such a
+   request (or the boundary must stop handing one to requests no verified client sends).
+3. **MINOR, the restart boundary.** After a served listener is closed and `http.Serve` returns, its
+   keep-alive connections keep starting new runs of the OLD handler, even after the address is
+   listened on again with another handler (`examples/premisefix/httpkeepalive`).
+   `ListenerClose.lean`'s header now says so. No closed theorem uses `ListenerClose` and restart1
+   has no listener; **restart3's review must account for those runs** (old-generation handler runs
+   of a re-served address).

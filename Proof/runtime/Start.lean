@@ -117,15 +117,18 @@ repository verifies or specifies at a trust boundary (clientv3 over grpc's `Clie
 pipeline, stream and snapshot senders over `http.Transport`, `http.roundTripperOk`; the cluster
 programs' bridge, `bridge.New`'s spec), or are etcd's own names-only peer requests: the prober's
 `GET /raft/probing` (`probing.NewProber`, rafthttp `transport.go:146-147`), the version monitor's
-`GET /version` (`cluster_util.go:257`) and bootstrap's `GET /members` (`cluster_util.go:81`), at
-the pinned etcd. Those reach no handler whose protocol needs knowledge: the peer port's handler is
+`GET /version` (`cluster_util.go:257`), bootstrap's `GET /members` (`cluster_util.go:81`), and
+leasehttp's forwarded `POST /leases` and `POST /leases/internal` (a follower's `RenewHTTP` and
+`TimeToLiveHTTP` to the leader, `v3_server.go:553,682`), at the pinned etcd. Those reach no handler
+whose protocol needs knowledge: the peer port's handler is
 the `RaftHandler` mux (`EtcdServer.RaftHandler`, `server.go:646`), which routes only `/raft`,
 `/raft/stream/`, `/raft/snapshot` and `/raft/probing` (`transport.go:163-166`), so it answers
-`/version` and `/members` with `404` (`http.mux_handlerOk_spec`), and the raft protocol's request
-knowledge holds of all three with no premise (`raftProto.req`, `Proof/go_etcd_io/etcd/server/v3/
+`/version`, `/members`, `/leases` and `/leases/internal` with `404` (`http.mux_handlerOk_spec`),
+and the raft protocol's request knowledge holds of all of them with no premise (`raftProto.req`, `Proof/go_etcd_io/etcd/server/v3/
 etcdserver/api/rafthttp/Stream.lean:464`: its premises are only on `POST /raft`, `POST
-/raft/snapshot` and `GET`s under `/raft/stream/`); being `GET`s, their handler runs get no ticket
-(`http.reqTicketOnce`). `examples/premisefix/peerreqs` records them in a three-member cluster.
+/raft/snapshot` and `GET`s under `/raft/stream/`); the `GET`s' handler runs get no ticket
+(`http.reqTicketOnce`), and the lease `POST`s' runs, which do (`onceOnly`, a ticket no `RoundTrip`
+minted), reach only the mux's `404`, which takes no ticket. `examples/premisefix/peerreqs` records them in a three-member cluster.
 The boundaries' closed world (`InvNet.lean`) rests on (a) and (b). (Sweep repairs 1, W5) `As`'s
 strings are
 numeric loopback literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`; loopback since
