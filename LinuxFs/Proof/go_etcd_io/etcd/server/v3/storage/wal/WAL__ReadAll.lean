@@ -24,9 +24,15 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllExit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllEnd
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllReg
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllNamed
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllSynced
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
 public import LinuxFs.Spec.os.File__Fd
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.syncDir
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
+public import LinuxFs.Spec.path.filepath.Dir
 public import LinuxFs.Proof.os.Off
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.bytes.Equal
@@ -197,7 +203,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
     (wp_register : ∀ R jr r, WalFs.walInvRegisterTailLaw (hG := hG) (W := W) walCodec Mr R jr r)
     (wp_ZeroToEnd : go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (hG := hG) (W := W) Mr)
-    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG)) :
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
+    (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
+    (wp_Dir : filepath.Dir.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (W := W) P Mr := by
   intro R jr rt dir nm w s qp qc Q hin hcl
   wp_start as ⟨#Harea, Hp, Hperm, Hop, Hau⟩
@@ -222,7 +231,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   obtain ⟨hfl, hll, hfll, hfk⟩ := Hfs
   ihave #HareaK := Harea
   iunfold WalFs.walAreaOk at Harea
-  icases Harea with ⟨#Hinv, -⟩
+  icases Harea with ⟨#Hinv, #HosI, #Hsi, -⟩
   icases ownDecoder_halves dec IoE eof fs 0 0#32 true gs hfl (fun k F g h1 h2 => by
       obtain ⟨-, -, f, fd, -, hS⟩ := hfk k F g h1 h2
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
@@ -230,6 +239,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   iintro Hnc
   -- the look at the invariant registers the tail (`walInvRegisterTailLaw`)
   obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
+  -- the update committed at this look, at the state as read (`walInv_readCommit`)
+  imod walInv_readCommit walCodec Mr R jr rt w dir s j X hj gs
+      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz _ Q
+      $$ Hinv Hsi Hnc Hk Hn Htf Hnf Hh Hgh Hau
+    with ⟨Hnc, Hn, Htf, Hnf, Hh, Hgh, %dc, %d1, %lay1, %kk1, %s1, %nmw, %qn, %hnw, HQ, #Hp1, #Hlen,
+      Hnw, #Hlbw, %hcm⟩
   imod wp_register R jr rt dir j X hj gs glr
       (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr
       $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Hh, %d0, %lay, %kk, %γt, Htf, Htk, Htv, %hlook⟩
@@ -433,7 +448,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · exact absurd rfl hez
             dsimp only
             (try wp_auto)
-            iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+            iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
             iintro %dq HQ Hfail
             wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
             · ipureintro; trivial
@@ -468,7 +483,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · exact absurd rfl hez
             dsimp only
             (try wp_auto)
-            iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+            iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
             iintro %dq HQ Hfail
             wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
             · ipureintro; trivial
@@ -499,7 +514,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       (try wp_auto)
       wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
       (try wp_auto)
-      iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+      iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
       iintro %dq HQ Hfail
       wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
       · ipureintro; trivial
@@ -628,7 +643,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                   iexact HeXok
                 (try wp_auto)
                 wp_for_post
-                iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+                iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
                 iintro %dq HQ Hfail
                 wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
                 · ipureintro; trivial
@@ -842,7 +857,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               icases HeX with ⟨%eX, #HeX, -⟩
               wp_auto
               wp_for_post
-              iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+              iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
               iintro %dq HQ Hfail
               wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
               · ipureintro; trivial
@@ -972,7 +987,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               icases HeX with ⟨%eX, #HeX, -⟩
               (try wp_auto)
               wp_for_post
-              iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+              iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
               iintro %dq HQ Hfail
               wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
               · ipureintro; trivial
@@ -1027,7 +1042,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iempintro
           (try wp_auto)
           wp_for_post
-          iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+          iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
           iintro %dq HQ Hfail
           wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
           · ipureintro; trivial
