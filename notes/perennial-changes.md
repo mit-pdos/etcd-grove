@@ -2451,3 +2451,21 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   returns it.
 - **Also:** `errors.Is(err, io.EOF)` on the part's `*PathError`s (`errors.IsPathErrnoEof.spec`,
   `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), the same gap as `IsPathErrnoNotExist.spec` above.
+
+## 2026-11-14: The WAL's leaf specs (`wal-leaf1`): `errors.As` first match, `Errno.Is`
+
+- **Missing.** (1) Perennial's `errors.As.spec` (an axiom: `As` is reflection) says nothing of the result
+  (`∃ b v'`), even when `err`'s own dynamic type is the target's element type, where Go's `as` stores `err` and
+  returns `true` before any `Unwrap`; and it asks for the whole error tree. `renameWAL`'s
+  `errors.As(err, &linkErr)` on `os.Rename`'s `*LinkError` needs the first-match case
+  (`errors.AsLinkError.spec`, `LinuxFs/Spec/errors/AsLinkError.lean`). (2) `syscall.Errno.Is` and
+  `(*fs.PathError).Unwrap` are names-only in the part (`LinuxFs/Code/syscall.toml`, `io/fs.toml`: this repository's
+  goose configuration, not Perennial's), so `errors.is` cannot step past an errno (`errors.IsErrno.spec`,
+  `errors.IsPathErrnoEof.spec`); with them translated, `IsErrno` still needs the 2026-11-13 entry's `errors.is.spec`
+  at a comparable non-pointer target, and both need `oserror`'s errors (and `errors.ErrUnsupported`) distinct from
+  the target (the `errors.newVar` entry above).
+- **Workaround here.** The three stay hypotheses of their callers' proofs (plan §8, "Leaf specs log").
+- **Proposed.** (1) `errors.As.spec` with a first-match case: if `err`'s dynamic type is the target's element type,
+  `As` returns `true` and stores `err`, with no tree premise. (2) Translate `Errno.Is` and `PathError.Unwrap` in the
+  part (a configuration change here), and Perennial's `errors.is.spec` for comparable targets.
+- **Status.** Recorded.
