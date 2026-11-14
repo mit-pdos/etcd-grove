@@ -1399,3 +1399,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   lf`: the `*fileReader`'s file, its fd whole, in write mode the lock's `lockedFile`), returning some error.
   Write mode (`openAtIndex`) drops it.
 - **Decision.** Made (internal; no ghost state).
+
+
+## 2026-11-14: `decoder.Decode.spec`/`decodeRecord.spec` (internal, the part's) -- the I/O arm loses the files' streams
+
+- **Spec.** `decPostB`'s I/O arm (`LinuxFs/Proof/.../wal/DecDefs.lean`): `⌜IoE err⌝ ∗ ownRecAny rp ∗ ∃ fs' off' c',
+  ownDecoder d IoE eof fs' off' c' false`.
+- **Defect.** Too weak for `wal.Repair` (S/repair.go:30-106): on a reader's I/O error its `default` arm returns `false`
+  and the deferred `f.Close()` runs, which needs the segment's `*os.File` (`os.File.Close.spec`: `os.ownFile`, `osFd`),
+  held in the segment's stream (`walFileS`) inside the decoder; the arm's decoder is over unknown files `fs'`, so
+  the stream cannot be taken out (`ownDecoder_streams`).
+- **Evidence.** `RepairLoop.lean`'s `repair_decNorm` (the I/O arm, `sorry`); the decoder only ever leaves files at
+  their end (`d.brs = d.brs[1:]`), so its files are always a suffix of `fs` (as the record and stop arms say).
+- **Proposed change.** The I/O arm as the first arm's files: `∃ k off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗
+  ownDecoder d IoE eof (fs.drop k) off' c' false` (`decodeRecord`'s I/O exits build it with `k = 0`,
+  `decPost_cons_eof` adds one). Implies the old arm; `ReadAll` (the only other caller) drops it.
+- **Decision.** Pending (internal; to be made after `wal-vsnap2`'s change of the same arm lands, to avoid a conflict).
+  **2026-11-14 (`wal-vsnap2`): adopted** (the coordinator's decision), as proposed: the I/O arm is `⌜IoE err⌝ ∗
+  notUeof err ∗ ownRecAny rp ∗ ∃ k off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ownDecoder d IoE eof (fs.drop k)
+  off' c' false`.
