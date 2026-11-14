@@ -97,7 +97,7 @@ def walCutQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : 
       walCutFrag (W := W) (some dir) ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
 /-- A tail record's halves, both updated. -/
-theorem tailVar_upd (γ : GName) (a1 a2 b : TailG) :
+private theorem tailVar_upd (γ : GName) (a1 a2 b : TailG) :
     ⊢ tailVar (W := W) γ a1 -∗ tailVar (W := W) γ a2 ==∗ tailVar (W := W) γ b ∗ tailVar (W := W) γ b := by
   letI := walAllG (W := W)
   unfold tailVar
@@ -105,7 +105,7 @@ theorem tailVar_upd (γ : GName) (a1 a2 b : TailG) :
   iapply ghostVar_update_halves $$ H1 H2
 
 /-- Two parts of an `OsMeta` agree. -/
-theorem osMeta_agree' (i : Ino) (dq1 dq2 : DFrac) (m1 m2 : OsMeta) :
+private theorem osMeta_agree' (i : Ino) (dq1 dq2 : DFrac) (m1 m2 : OsMeta) :
     ⊢@{IProp GF} osMeta i dq1 m1 -∗ osMeta i dq2 m2 -∗ ⌜m1 = m2⌝ := by
   unfold osMeta
   iintro H1 H2

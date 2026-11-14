@@ -85,12 +85,12 @@ theorem walFileName_walNameStr (sq ix : Nat) :
   simp only [List.append_assoc]
   rfl
 
-theorem walNames_nodup (E : Ents) : (walNames E).Nodup := by
+private theorem walNames_nodup (E : Ents) : (walNames E).Nodup := by
   unfold walNames
   refine (List.mergeSort_perm _ _).nodup_iff.2 (List.Nodup.sublist (List.filter_sublist) ?_)
   exact GMap.toList_keys_nodup E
 
-theorem mem_walNames {E : Ents} {b : GoString} {e : Node} (hb : walNameP b = true)
+private theorem mem_walNames {E : Ents} {b : GoString} {e : Node} (hb : walNameP b = true)
     (he : E !! b = some e) : b ∈ walNames E := by
   unfold walNames
   refine (List.mergeSort_perm _ _).mem_iff.2 (List.mem_filter.2 ⟨?_, hb⟩)

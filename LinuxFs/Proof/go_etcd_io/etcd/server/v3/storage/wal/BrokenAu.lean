@@ -49,7 +49,7 @@ theorem walNameP_broken {b : GoString} (hb : go!".wal.broken" <:+ b) : walNameP 
   exact absurd h (by decide)
 
 /-- A file's create writes only its own slot. -/
-theorem crEnt_writes {j j' : Ino} {b b' : GoString} {i : Ino} {s : Nat}
+private theorem crEnt_writes {j j' : Ino} {b b' : GoString} {i : Ino} {s : Nat}
     (h : (crEnt j b i s).op.Writes j' b') : j' = j ∧ b' = b := by
   rcases h with h | ⟨j0, b0, h⟩
   · simp only [crEnt, MetaOp.slots, List.mem_cons, List.not_mem_nil, or_false,

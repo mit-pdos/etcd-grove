@@ -95,7 +95,8 @@ def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : 
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗ walDirKey (W := W) dir j X ∗
     ⌜gs ≠ [] ∧ (gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
       (∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1) ∧
-      (write = true → ∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name) ∧
+      (write = true → (∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name) ∧
+        ∀ t ∈ walTmps, t ∈ X) ∧
       ∃ kk, (walNames hj.cur).drop kk = gs.map (·.name)⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →

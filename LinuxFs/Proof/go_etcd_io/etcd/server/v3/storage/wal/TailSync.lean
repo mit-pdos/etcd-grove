@@ -320,7 +320,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       exact walsAt_insert hl hLnm hLj HAt
     isplitl [Hnms]
     · iapply walNamesRes_insert _ _ _ _ _ _ Lw hl hLnm hLj $$ Hnms
-    ipureintro; exact walsBounded_insSame Hbd rfl hd rfl
+    ipureintro; exact walsBounded_insSame Hbd rfl hd rfl rfl
   · unfold walPast; iexact Hpast
 
 end iris

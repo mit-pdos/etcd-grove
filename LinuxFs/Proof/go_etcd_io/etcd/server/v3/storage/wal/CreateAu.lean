@@ -166,7 +166,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hTB : TailBound C Mr (walDurFresh md) lay)
     (hcut : g.om.cut = none) (hmaps : g.om.maps = ∅) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
-    (hmd : md.length < 2 ^ 41) (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
+    (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
+    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
     ⊢ walInv (W := W) C Mr R jr r -∗ osCommitLb m -∗
       walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
@@ -450,7 +451,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         iframe Hnms
         ipureintro
         exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
-          hlay, walsBounded_ins Hbd rfl hmd⟩
+          hlay, walsBounded_ins Hbd rfl
+            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, walDurFresh]⟩⟩
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]

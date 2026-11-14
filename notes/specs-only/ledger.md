@@ -1174,6 +1174,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   WALs found at boot), so the slice's length gives `≠ nil`. (B) is a few lines; (A) is the faithful one.
 - **Decision.** Open: (B) adds a client premise to `Create` and an assumption on the WALs found at boot; the
   coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry` (`hmdnn`).
+  **Decided 2026-11-14 (coordinator; `wal-readall27`): (B).** The coordinator's first choice, relaxing
+  `walHandleIn` to accept a `nil` slice at `md = []`, is not sound: `cut` encodes `Record{Type: …, Data:
+  w.metadata}` as is (S/wal.go:842) and `record.proto`'s `data` is a proto2 `optional bytes`, so protobuf-go
+  omits the field for a `nil` slice and writes it, empty, for `[]byte{}` (`recEnc`'s `optBytesField`, measured by
+  `TestRecordEncoder`); a handle with a `nil` metadata would write a metadata record other than the model's
+  `walRecEnc (recOf ⟨metadataType, _, []⟩)` (the field present), which the segments' byte model (`tailStream`,
+  `WalAbsD`'s streams, the reader) fixes. Accepting it would need that model to admit both encodings of an empty
+  metadata record, or (A). Made: `Create.spec` takes `md ≠ []` (beside `mp ≠ nil`; the server's metadata is a
+  marshalled `etcdserverpb.Metadata` with both ids set); `WalsBounded` keeps `d.metadata ≠ []` (`Create`'s
+  commit from the premise; no other step changes a metadata; `walInv_alloc`'s caller for the WALs at boot,
+  none at the run's start); `ReadAll` gets the slice non-nil from its points-to's length.
 
 ## 2026-11-14: `walHandleIn`'s index bound (internal, the part's) -- `ReadAll` cannot bound `max(enti, snapi) + 1`
 
@@ -1191,6 +1202,11 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   client-visible change but the boot assumption.
 - **Decision.** Open (an invariant change touching `Save`'s commit steps, which `wal-save*` owns): the
   coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+  **Decided 2026-11-14 (coordinator; `wal-readall27`): as proposed**, as a conjunct of `WalsBounded`
+  (`¬ walHasMaxIdx (histM d)`): `walInvBody_append` (and `walTail_append`, `walHandleIn_append`) take
+  `¬ walHasMaxIdx [o.toM]` of the appended operation, which `Save` and `SaveSnapshot` give from their index
+  premises; `Create` starts empty; the other steps keep the history. `ReadAll` bounds `max(enti, snapi) + 1`
+  by it (`readAll_idxD`: every index the loop writes is one of the history's, or 0).
 
 ## 2026-11-14: `walDirH`'s sequence bound (internal, the part's) -- `ReadAll` cannot bound the tail's sequence
 
@@ -1211,6 +1227,13 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   assumption on the WALs found at boot, kept by `cut` only while receipts bound it). Needs the coordinator's
   design: no option is free.
 - **Decision.** Open: the coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+  **2026-11-14 (`wal-readall27`): the coordinator chose a receipts budget; designed, not made.** The sketch (a boot
+  premise `sq < 2^63` on `walInv_alloc`, each cut consuming an exclusive receipt) does not close across generations
+  (the handle's `⧗` vanish at a crash; the next boot's premise is not implied). Design (`notes/bounds-plan.md`, "The
+  WAL's segment sequence"): crash-stable persistent receipts `⧖` of the global step counter, `WalAbsD.nameBound` with
+  sequence `first + k`, the invariant holding `⧖ |lay.cuts|` per WAL (deposited by `cut` after a counted step), or `⧖
+  |d.H|` (deposited at `Save`'s commit; a crash keeps a prefix). No statement of `walDirH` changes. `ReadAll`'s `hsq`
+  stays a marked `sorry` until it is made.
 
 ## 2026-11-14: the resize supplies' `P` (internal, the part's) -- a growth's supply cannot bound the crash size
 
@@ -1245,3 +1268,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `specWalTail`'s pre gains `isPkgInit errors` (`ReadAll`: `iPkgInit`, adapted), its post `sz' = sz`. Proved:
   `ZeroToEnd.wp_specWalTail` (`ZteWalTail.lean`, over `ZeroToEnd.specAu`).
 - **Decision.** Made (internal).
+
+## 2026-11-14: `wal.Create.spec` (the part's) -- the success arm is false when the parent's fsync fails and its close succeeds
+
+- **Spec.** `wal.Create.spec`'s first arm: `err = nil` gives `walOpenWF P Mr w dir`, `walNamed dir`, `Q`, ...
+- **Defect.** Not the spec's: the code's. After a failed `fileutil.Fsync(pdir)`, `Create` calls `dirCloser()`,
+  which assigns `pdir.Close()`'s result to `perr`; a successful close makes `Create` return `(nil, nil)` and skip
+  its deferred `cleanupWAL`. Over `fsExt` the fsync may fail (`Fsync.specDirS`) and the close succeed, so no
+  spec with an honest success arm holds (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`; etcd's
+  `bootstrapNewWAL` would dereference the nil WAL).
+- **Evidence.** The continuation after `renameWAL` (`wal-create22`).
+- **Proposed change.** None to the spec: the fork fix `notes/wal-fsext-fork/0005-...diff` (`pdir.Close()` on
+  that path), then retranslate; the spec stays as it is.
+- **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
+  path only.

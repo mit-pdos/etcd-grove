@@ -4,8 +4,9 @@
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
 proved through the call of `renameWAL`, its committed-error arm and its not-committed arm (the
 unminting, `CreateUnmint.lean`); arm 1 builds the handle before naming (`walOpenWFU`, `CreateHandle.lean`);
-both success arms are `sorry` from there on, at the same point (the parent's fsync and the naming; W4 log,
-twenty-third session). Lean-first.
+both success arms then run one continuation (`create_named_cont`: the parent's fsync and the naming), whose
+error exits (`cleanupWAL`) are `sorry`, one of them a code bug (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`;
+W4 log, twenty-fourth session). Lean-first.
 -/
 module
 
@@ -44,6 +45,15 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAreaBack
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLockedLeft
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateUnmint
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHandle
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamedStep
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleUnnamed
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
+public import LinuxFs.Spec.path.filepath.Dir
+public import LinuxFs.Spec.time.Duration__Seconds
+public import Perennial.Spec.time.Now
+public import Perennial.Spec.time.Since
+public import LinuxFs.Proof.os.NsS
 
 @[expose] public section
 
@@ -95,6 +105,105 @@ macro "create_seg_exit" : tactic => `(tactic| (
     iframe
     ipureintro; intro hc; cases hc))
 
+set_option hygiene false in
+/-- **The continuation after a committed `renameWAL` that returned a WAL** (arms 1 and 2, at the
+handle before naming `walOpenWFU P Mr w dir`, `walPurgeW w dir` and `createUH x`), in Go's order:
+`w.dir` (`walOpenWFU_dirAcc`), `filepath.Dir` (`dir_child_model`), `OpenDir(r)` with the handle's
+call-permission half lent (`walOpenWFU_permAcc`), `time.Now`, `Fsync` with `osLogLb (x.1 + 1)`, the
+naming at its success (`walInv_named`), `walFsyncSec.Observe`, `dirCloser()`, then the deferred calls
+in LIFO order (the cleanup closure and `f.Close` skipped, `RemoveAll(nm.tmp)` of the absent name),
+`walOpenWFU_named`, `create_areaBack` (`T := walOpenWF`), `walPurgeW_fresh_lbs`. Unhygienic: it
+names `Create`'s hypotheses. The error exits (`OpenDir`, `Fsync`, the close: `cleanupWAL`) are
+`sorry` (W4 log, twenty-fourth session). -/
+macro "create_named_cont" w:term : tactic => `(tactic| (
+    iunfold createUH at HUH
+    icases HUH with ⟨HQ, ⟨%s', #Hpast, %hs'⟩, ⟨%c, %hn, Hnm, %hnm⟩, #HlbX, ⟨%ht, Htmp, %hht⟩, Hsf'⟩
+    try wp_auto
+    -- `pdir, perr := fileutil.OpenDir(filepath.Dir(w.dir))`
+    icases walOpenWFU_dirAcc P Mr $w (child r nm) $$ Hw with ⟨Hdir, Hw⟩
+    try wp_auto
+    wp_apply wp_Dir (child r nm) as %pd %hpd
+    rw [dir_child_model hrc hnmO] at hpd
+    subst pd
+    ihave Hw := Hw $$ Hdir
+    icases walOpenWFU_permAcc P Mr $w (child r nm) $$ Hw with ⟨Hperm, Hw⟩
+    wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half $$ [Hp Hperm]
+      as %pf %perr ⟨Hp, Hperm, Hod⟩
+    · iframe; iframe #
+    icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, -⟩)
+    rotate_left
+    · -- `OpenDir` failed: the deferred `cleanupWAL` (task 2 of the twenty-fourth session)
+      sorry
+    subst hperr
+    try wp_auto
+    wp_apply wp_Now as %t0 -
+    try wp_auto
+    wp_apply wp_FsyncDir pf pfd r (DFrac.own 1) R jr .idle (x.1 + 1) $$ [Hpf Hpfd] as %ferr
+      ⟨Hpf, Hpfd, Hfr⟩
+    · iframe; iframe #
+    icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
+    · -- `Fsync` failed: `dirCloser()` overwrites `perr` with the close's result, so a successful close
+      -- returns `(nil, nil)` (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`, fork diff 0005,
+      -- pending); a failed one runs the deferred `cleanupWAL` (task 2)
+      sorry
+    subst hfe
+    try wp_auto
+    -- the parent's fsync names the WAL
+    obtain ⟨hnc, ex, Ex, hlw, hEx⟩ := hnm
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_named walCodec Mr R jr r (child r nm) nm s' (walDurFresh md) (.only [nm]) (DFrac.own c)
+      hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
+      $$ Hinv Hsi Hnc Hpast Hnm Hcm with ⟨Hnc, -, #Hnamed⟩
+    iframe Hnc
+    imodintro
+    -- `walFsyncSec.Observe(time.Since(start).Seconds())`
+    ihave #Henv0 := Henv
+    iunfold encEnv at Henv0
+    icases Henv0 with ⟨-, -, -, #Htm, #Hmet0⟩
+    iunfold wal.metricsInit at Hmet0
+    icases Hmet0 with ⟨⟨%hfs, #Hhs, #Hhspec⟩, -, -⟩
+    iunfold wal.histSpec at Hhspec
+    wp_apply wp_Since as %dur -
+    try wp_auto
+    haveI _hni : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
+    wp_pures
+    wp_apply (wp_Seconds dur) as %fl -
+    try wp_auto
+    wp_apply Hhspec
+    iclear Hhspec Hhs
+    try wp_auto
+    -- `dirCloser()`
+    wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr -
+    · iframe; iframe #
+    by_cases hce : cerr = interface.nil
+    rotate_left
+    · -- the close failed: the deferred `cleanupWAL` (task 2)
+      sorry
+    subst hce
+    try wp_auto
+    -- the deferred `RemoveAll(nm.tmp)` (absent)
+    wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+      (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
+    · iframe; iframe #
+    ihave Hw := Hw $$ Hperm
+    ihave Hw := walOpenWFU_named P Mr $w (child r nm) $$ Hw Hnamed
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walOpenWF P Mr $w (child r nm))
+      (walOpenWF_unlocked_excl P Mr $w (child r nm)) hok hnm hself hht
+      $$ Hinv Hsi Hnc Hw HNr Htmp Hcl Hsf' with ⟨Hnc, Hw, Hres⟩
+    iframe Hnc
+    imodintro
+    ihave ⟨Hpw, Hlen, Hsyn⟩ := walPurgeW_fresh_lbs $w (child r nm) s' (walDurFresh md) hs' $$ Hpw Hpast
+    try wp_auto
+    iapply HΦ
+    iframe
+    ileft
+    iframe
+    iframe Hnamed
+    ipureintro; rfl))
+
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
 theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.NilLaw P)
@@ -124,9 +233,15 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
     (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
     (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
-    (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr) :
+    (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr)
+    (wp_Dir : filepath.Dir.spec (GF := GF) (hG := hG))
+    (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG))
+    (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
+    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
+    (wp_Since : time.Since.spec (GF := GF) (hG := hG))
+    (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp hmd hMr
+  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp hmd hmdne hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -720,7 +835,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     · unfold createU; simp only [walCreateQ]; iframe Hinv HP
       iexists _; iframe Hcm1; ipureintro; exact hJlt
     ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
-      (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
+      (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hmdne hctmp hJjr
       (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2 $$ HU
     -- the spine law's fractions: `d` twice of the area's spine (the invariant's lend,
     -- `walInv_areaPath`: one spine stays with the pipeline) and of the new name's claim
@@ -762,7 +877,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       ⟨hin, hdl, hnmO, tmpName_nameOk hnmO, tmpName_ne nm, by simp [NameSet.Mem],
         by simp [NameSet.Mem], hctmp, hcnm,
         create_spine Mr R jr J r nm hC md Q _ _ _ d (b1 + b1) hd hnm hnmO,
-        createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
+        createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hmdne hctmp hJjr
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
@@ -834,10 +949,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size)
         (createHS_done md i _ γt _) hmd $$ [HhIn Hr0]
       · iframe
-      sorry
+      create_named_cont wl
     · -- committed, a reopened WAL returned (the handle before naming, `walOpenWFU`, and `createUH`):
-      -- the parent's fsync, the naming (not yet)
-      sorry
+      -- the parent's fsync, the naming
+      subst herr
+      create_named_cont w'
     · -- not committed: the unminting (`create_unmint`), the deferred `f.Close()` and
       -- `RemoveAll(nm.tmp)`, the abort over the area claim's rebuilt history (`create_abortTmpH`)
       rcases err with ei | _

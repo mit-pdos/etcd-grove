@@ -15,8 +15,8 @@ public import LinuxFs.Spec.path.filepath.Join
 public import LinuxFs.Spec.os.File__Close
 public import Proof.fmt.SprintfTmp
 public import Spec.go_uber_org.zap.Logger__Error
-public import Spec.go_uber_org.zap.Int64
-public import Spec.go_uber_org.zap.Error
+public import LinuxFs.Spec.go_uber_org.zap.Int64
+public import LinuxFs.Spec.go_uber_org.zap.Error
 
 @[expose] public section
 
