@@ -196,16 +196,27 @@ the writes in flight unchanged on their segments. -/
 theorem walTailsRes_create (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay) (F F' : GMap Ino SegFl)
     (dir : GoString) (md : List w8) (lay : WalLay) (hd : s.wal !! dir = none)
     (h : ∀ g ∈ segsAll Ls, F' !! g.ino = F !! g.ino) (hLd : Ls !! dir = none)
-    (hF : ∀ i, F' !! i ≠ none → F !! i ≠ none) :
+    (hF : ∀ i, F' !! i ≠ none → F !! i ≠ none) (hidle : TailIdle C Mr (walDurFresh md) lay) :
     walTailsRes (W := W) C Mr s Ls F ⊢
       walTailsRes (W := W) C Mr (createSt s dir md) (<[dir := lay]> Ls) F' := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, Hm⟩
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩
   iexists T
   iframe Ha
   isplitr
   · ipureintro; exact Ho.insert_new hLd hF
+  isplitr
+  · ipureintro
+    intro k d' lay' hk hd' hl'
+    by_cases hkd : k = dir
+    · subst hkd
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      unfold createSt at hd'; rw [GMap.lookup_insert] at hd'; cases hd'
+      exact hidle
+    · unfold createSt at hd'; rw [GMap.lookup_insert_ne _ _ (Ne.symm hkd)] at hd'
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hkd)] at hl'
+      exact Hi k d' lay' hk hd' hl'
   iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
   intro dir' γ
   iintro ⟨%d, %lay', %g, %hp, Hv⟩

@@ -105,7 +105,7 @@ theorem walTailsRes_lookup (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg := by
   letI := walAllG (W := W)
   unfold walTailsRes tailVar
-  iintro ⟨%T, HTa, %HTo, HTm⟩ Hk Hv
+  iintro ⟨%T, HTa, %HTo, %HTi, HTm⟩ Hk Hv
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -121,6 +121,8 @@ theorem walTailsRes_lookup (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iframe HTa
   isplitr
   · ipureintro; exact HTo
+  isplitr
+  · ipureintro; exact HTi
   iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧

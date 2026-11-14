@@ -10,14 +10,14 @@ public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.decodeFrameSize
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record__Reset
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record__GetType
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record__Validate
-public import LinuxFs.Spec.google_golang_org.protobuf.proto.UnmarshalWalRecord
+public import LinuxFs.Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader__FileInfo
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader__Err
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader__Read
 public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Sum32
 public import Spec.io.ReadFull
 public import Spec.encoding.binary.ReadInt64LE
-public import LinuxFs.Spec.fmt.ErrorfErrs
+public import LinuxFs.Spec.fmt.ErrorfErrsNot
 public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Write
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
 
@@ -40,11 +40,11 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
-    (HUnm : proto.UnmarshalWalRecord.spec (GF := GF) (hG := hG))
+    (HUnm : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG))
     (HReset : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Reset.spec (GF := GF) (hG := hG))
     (HGetType : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.GetType.spec (GF := GF) (hG := hG))
     (HValidate : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.spec (GF := GF) (hG := hG))
-    (HErrorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
+    (HErrorf : fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG))
     (HTorn : go_etcd_io.etcd.server.v3.storage.wal.decoder.isTornEntry.spec (GF := GF) (hG := hG))
     (HRI : go_etcd_io.etcd.server.v3.storage.wal.readInt64.spec (GF := GF) (hG := hG))
     (HDFS : go_etcd_io.etcd.server.v3.storage.wal.decodeFrameSize.spec (GF := GF) (hG := hG))
@@ -73,7 +73,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm, #Hproto⟩
     wp_if_destruct
     · iapply HΦ
-      iunfold decPost
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inl rfl)); iexact Heok
+      iunfold decPostB
       ileft
       iexists 0
       simp only [goDecode, List.drop_zero, List.map_nil, decide_true]
@@ -126,7 +129,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     · -- `Err()` failed: return its error
       wp_auto
       iapply HΦ
-      iunfold decPost
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr (Or.inr (Hferr (by simp))))); iexact Heok
+      iunfold decPostB
       iright; ileft
       isplitl []
       · ipureintro; exact Hferr (by simp)
@@ -160,6 +166,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     icombine Hueof Hx2 gives %hu
     have heofn : eof ≠ GoInterface.nil := by rw [he]; simp [interface.mkOk]
     have hueofn : ueof ≠ GoInterface.nil := by rw [hu]; simp [interface.mkOk]
+    have hu2 : GoInterface.ok ⟨go.GoType.PointerType errors.errorString.ty, #x2⟩ = ueof := by
+      rw [hu]
+    ihave #HeokA : isEofOk IoE eof ueof $$ []
+    · iexact Heok
+    ihave #HU := errIsNot_ueof IoE eof ueof $$ Heok
     iunfold isEofOk at Heok
     icases Heok with ⟨%Hneq, #Heok⟩
     ihave #Hrs := fbr_readerStream HRead IoE eof F fbr b fi GoInterface.nil $$ [Hf HF]
@@ -234,7 +245,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           have hfs0 : fs = [] := List.length_eq_zero_iff.mp (by simpa using Hl.1.symm)
           subst hfs0
           iapply HΦ
-          iunfold decPost
+          iapply decPost_mk
+          isplitl []
+          · iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inl rfl)); iexact HeokA
+          iunfold decPostB
           ileft
           iexists 1
           rw [show ([F] : List (DecFile GF)).map (·.bs) = [F.bs] from rfl,
@@ -279,6 +293,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
             · exact absurd rfl hfs
             · simp [liveRs]
           iapply HΦ
+          iunfold decPost at Hpost
+          icases Hpost with ⟨Hpost, #Hans⟩
+          iapply decPost_mk
+          isplitl []
+          · iexact Hans
           iapply decPost_cons_eof C d rp IoE eof ueof F fs off c err' hstep hfs
           iexact Hpost
     rw [decide_eq_false (fun h => hdrop (Or.inl h))]
@@ -290,7 +309,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         | nil => exact absurd rfl hn
       wp_auto
       iapply HΦ
-      iunfold decPost
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_of_eofOk IoE eof ueof _ (readFull_err_cases Hys.1); iexact HeokA
+      iunfold decPostB
       by_cases hI : IoE (GoInterface.ok ei)
       · iright; ileft
         isplitl []
@@ -406,20 +428,29 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           interface.mkOk go.int64 #(W64 F.bs.length), interface.mkOk go.int64 #(W64 off),
           interface.mkOk go.int64 #(W64 pad),
           interface.mkOk go.int64 #(W64 F.bs.length - W64 off - W64 pad)]
-          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] (by
+          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof (by
           intro ii hii
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
           rcases hii with h | h | h | h | h | h | h <;> rw [interface.mkOk] at h <;> cases h
           · exact Or.inr (by simp)
           · exact Or.inl (argWf_string _)
-          all_goals exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e1 -
+          all_goals exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e1 ⟨-, #Hn1⟩
       · iframe
-        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
-        iexact HUerr
+        iframe Heof
+        iapply (BigSepL.bigSepL_singleton
+          (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) eof))).2
+        iframe HUerr
+        rw [hu2]
+        iexact HU
+      ihave %hn1 := errIsNot_ne _ _ $$ Hn1
       have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .tooLarge c := by
         rw [hframe, ite_eq_left htl]
       iapply HΦ
-      iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .tooLarge hstep (by simp [stopErr])
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_of_not; iexact Hn1
+      iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .tooLarge hstep
+        (by simp only [stopErr]; exact ⟨by simp, hn1⟩)
       isplitl [Hr]
       · iapply blank_ownRecAny; iexact Hr
       iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys) off c _ hoff
@@ -465,6 +496,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       · rw [decide_eq_false (fun (h : GoInterface.ok ei2 = eof) => Hneq.2 (h ▸ hI))]
         wp_auto
         iapply HΦ
+        iapply decPost_mk
+        isplitl []
+        · iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr (Or.inr hI))); iexact HeokA
         iapply decPost_ioe C d rp IoE eof ueof (F :: fs) (F :: fs) off off c c _ hI
         isplitl [Hr]
         · iapply blank_ownRecAny; iexact Hr
@@ -493,6 +527,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       all_goals
         wp_auto
         iapply HΦ
+        iapply decPost_mk
+        isplitl []
+        · iapply decAns_of_eofOk IoE eof ueof _
+            (Or.inr (Or.inr (Or.inl (by first | exact hu.symm | exact h1)))); iexact HeokA
         iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .shortData hstep
           (by simp only [stopErr]; first | exact hu.symm | exact h1)
         isplitl [Hr]
@@ -553,8 +591,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       rw [hrbn, h0n]; simp [subslice]
     rw [hsub2]
     wp_auto
-    wp_apply HUnm _ _ (DFrac.own 1) rp $$ [Hdm Hr] as %err3 ⟨Hdm, Hres⟩
+    wp_apply HUnm _ _ (DFrac.own 1) rp eof $$ [Hdm Hr] as %err3 ⟨Hdm, Hres⟩
     · iframe
+      iframe Heof
     ihave Hdat := (ownSlice_slice (W64 0) (W64 rb) dsl (DFrac.own 1) ys2
       ⟨by rw [hz0]; decide, by rw [hz0, hrbz]; omega, by rw [hrbz]; omega⟩).2 $$ [Hd0 Hdm Hd2]
     · rw [hsub2]; iframe
@@ -596,13 +635,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iexists fii
       iframe HSize HName
       ipureintro; rfl
-    icases Hres with (⟨%r, ⟨%herr3, %hdec⟩, Hrec⟩ | ⟨%herr3, %hdec⟩)
+    icases Hres with (⟨%r, ⟨%herr3, %hdec⟩, Hrec⟩ | ⟨⟨%herr3, %hdec⟩, #Hn3⟩)
     rotate_left
     · -- `proto.Unmarshal` failed
       obtain ⟨ei3, rfl⟩ : ∃ ei, err3 = GoInterface.ok ei := by
         cases err3 with
         | ok ei => exact ⟨ei, rfl⟩
         | nil => exact absurd rfl herr3
+      ihave %hn3 := errIsNot_ne _ _ $$ Hn3
       wp_auto
       wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2o
         $$ [Hbrs Hoff Hdat] as ⟨Hbrs, Hoff, Hdat⟩
@@ -616,8 +656,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       all_goals
         wp_auto
         iapply HΦ
+        iapply decPost_mk
+        isplitl []
+        · first
+            | (iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr (Or.inl hu.symm))); iexact HeokA)
+            | (iapply decAns_of_not; iexact Hn3)
         iapply decPost_fail C d rp IoE eof ueof F fs off c _ _ hfr
-          (by simp only [stopErr]; first | exact hu.symm | simp)
+          (by simp only [stopErr]; first | exact hu.symm | exact ⟨by simp, hn3⟩)
         iapply Hown c _ (by simp)
         iframe
         iframe Hmu Hf HF Hsl Hfio
@@ -644,6 +689,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         rw [hstep0]; unfold decRecData; rw [hdec]; simp [hct]
       rw [hacc_off]
       iapply HΦ
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_nil
       iapply decPost_accept C d rp IoE eof ueof F fs off c c r _ hstep
       iframe Hrec
       iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) _ c true
@@ -664,15 +712,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     · iframe
       iframe Htab
     wp_apply HSum lc _ tab (DFrac.own 1) $$ Hlc as Hlc
-    icases Hcm with ⟨%ecm, #Hecm, #Hecmok⟩
-    wp_apply HValidate rp r (hash.crc32.crc32c c r.data) ecm $$ [Hrv Hrdata] as %err4 ⟨Hrec, Hv⟩
-    · iframe Hecm Hecmok
+    icases Hcm with ⟨%ecm, #Hecm, #Hecmok, #Hecmn⟩
+    wp_apply HValidate rp r (hash.crc32.crc32c c r.data) ecm _root_.Perennial.io.EOF eof
+      $$ [Hrv Hrdata] as %err4 ⟨Hrec, Hv⟩
+    · iframe Hecm Hecmok Heof Hecmn
       iunfold ownRec
       iexists v
       iframe
       iframe Ht Hc
     have hCc : C.crc32c c r.data = hash.crc32.crc32c c r.data := by rw [hC]; rfl
-    icases Hv with (%hv | ⟨%hne, %ei4, %he4, #Hei4⟩)
+    icases Hv with (%hv | ⟨%hne, %ei4, %he4, #Hei4, #Hn4⟩)
     · -- the CRC matches: the record is accepted
       obtain ⟨rfl, hcrc⟩ := hv
       wp_auto
@@ -681,6 +730,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         rw [hstep0]; unfold decRecData; rw [hdec]; simp [hct, hCc, hcrc]
       rw [hacc_off]
       iapply HΦ
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_nil
       iapply decPost_accept C d rp IoE eof ueof F fs off c _ r _ hstep
       iframe Hrec
       iapply ownDecoder_intro d IoE eof sl fbr fbrs _ F fs (F.bs.take off ++ ys ++ ys2) _ _ true
@@ -723,31 +775,42 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iintro %asl ⟨Hasl, -⟩
     all_goals first
       | (wp_apply HErrorf _ _ [GoInterface.ok ei4, interface.mkOk go.string #nm,
-            interface.mkOk go.int64 #(W64 off)] [ei4] (by
+            interface.mkOk go.int64 #(W64 off)] [ei4] _root_.Perennial.io.EOF eof (by
             intro ii hii
             simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
             rcases hii with h | h | h
             · cases h; exact Or.inr (by simp)
             · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
-            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 -
+            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 ⟨-, #Hn5⟩
          · iframe
-           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
-           iexact Hei4)
+           iframe Heof
+           iapply (BigSepL.bigSepL_singleton
+             (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) eof))).2
+           iframe Hei4 Hn4)
       | (wp_apply HErrorf _ _ [interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2,
             interface.mkOk go.string #nm, interface.mkOk go.int64 #(W64 off)]
-            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] (by
+            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof (by
             intro ii hii
             simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
             rcases hii with h | h | h
             · rw [interface.mkOk] at h; cases h; exact Or.inr (by simp)
             · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
-            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 -
+            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 ⟨-, #Hn5⟩
          · iframe
-           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
-           iexact HUerr)
+           iframe Heof
+           iapply (BigSepL.bigSepL_singleton
+             (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) eof))).2
+           iframe HUerr
+           rw [hu2]
+           iexact HU)
     all_goals
+      ihave %hn5 := errIsNot_ne _ _ $$ Hn5
       iapply HΦ
-      iapply decPost_stop C d rp IoE eof ueof F fs off c _ _ _ hstep (by simp [stopErr])
+      iapply decPost_mk
+      isplitl []
+      · iapply decAns_of_not; iexact Hn5
+      iapply decPost_stop C d rp IoE eof ueof F fs off c _ _ _ hstep
+        (by simp only [stopErr]; exact ⟨by simp, hn5⟩)
       isplitl [Hr]
       · iunfold ownRecAny; iexists _; iexact Hr
       iapply Hown _ _ (by simp)

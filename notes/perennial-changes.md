@@ -2392,6 +2392,25 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed.** `Errorf`'s model wraps the `%w` arguments (Go's `wrapError`/`wrapErrors`) and its spec
   accepts error arguments, with `errors.Is`/`Unwrap` following the chain.
 
+## 2026-11-14: `errors.Is` on `fmt.Errorf`'s result, and on `proto.Unmarshal`'s error (the WAL decoder)
+
+- **Missing.** A reader looping to `io.EOF` (etcd's `wal.ReadAll`) tests `errors.Is(err, io.EOF)` on the WAL
+  decoder's errors, which include `fmt.Errorf("%w: ...", io.ErrUnexpectedEOF)`, `fmt.Errorf("%w: ...",
+  Validate's error)` and `proto.Unmarshal`'s error. Perennial's `Errorf` spec gives nothing of its result
+  (and refuses error arguments, the 2026-11-13 entry above); this repository's trust-boundary axiom
+  `proto.UnmarshalPb.spec` (`LinuxFs/Proof/google_golang_org/protobuf/proto/UnmarshalPb.lean`) says only
+  that the error is not `nil`.
+- **Workaround here.** Two hypotheses of the decoder's proof (branch `wal-readall15`):
+  `fmt.ErrorfErrsNot.spec` (`LinuxFs/Spec/fmt/ErrorfErrsNot.lean`: the result is not `t` and `errors.Is(_, t)`
+  answers `false` on it, `t` a package variable's value, when so of every error argument) and
+  `proto.UnmarshalWalRecordE.spec` (`LinuxFs/Spec/google_golang_org/protobuf/proto/UnmarshalWalRecordE.lean`:
+  the error is not `io.EOF`, the same answer). Both hold in Go (the files' headers say why).
+- **Proposed.** With the 2026-11-13 entry's `Errorf` (wrapping `%w`, `*wrapError` results), the first follows
+  from `errors.Is`'s walk; Perennial's `errors.newVar` could keep the `*errorString`'s points-to, so that
+  freshness proves "not `t`" under today's model too. For `proto`: an extension of `UnmarshalPb.spec`'s error
+  (not `io.EOF`, `errors.Is(_, io.EOF)` false) — a trust-base change, for the user.
+- **Status.** Recorded; hypotheses in place.
+
 ## 2026-11-13: `go.NotInterface` does not unfold `go.int64` (method calls on `time.Duration`)
 
 - **Missing.** `MethodResolve` on a named type over `int64` (`time.Duration`) needs a `go.NotInterface go.int64`

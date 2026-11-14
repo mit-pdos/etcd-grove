@@ -34,6 +34,16 @@ theorem walSearchFrom_lt {idxs : List w64} {index : w64} :
     · cases h; omega
     · exact Nat.lt_succ_of_lt (walSearchFrom_lt h)
 
+/-- `walSearchFrom` finds a position whose index is at most `index`. -/
+theorem walSearchFrom_le {idxs : List w64} {index : w64} :
+    ∀ {n k : Nat}, walSearchFrom idxs index n = some k → uint.Z (idxs.getD k 0) ≤ uint.Z index
+  | 0, _, h => by simp [walSearchFrom] at h
+  | n + 1, k, h => by
+    unfold walSearchFrom at h
+    split at h
+    · cases h; assumption
+    · exact walSearchFrom_le h
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]

@@ -243,10 +243,11 @@ files from it (`WalHS.pc`):
 the pipeline (over the directory's inode `j`, the handle's `walDirH`'s; roots `R`, path fraction `dq`,
 file size `sz`), the
 caller's token after `n ≤ k` files received, and the claim on the name the next `Open` hands back
-(`pipeTmp (n + 1)`: the name of the file received last, renamed away by its cut). -/
+(`pipeTmp (n + 1)`: the name of the file received last, renamed away by its cut); `fp` non-nil
+(`Close` tests it, S/wal.go:1057). -/
 def walPipeH (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) : IProp GF :=
   iprop(∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64) (n : Nat),
-    isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k⌝)
+    isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k⌝ ∗ ⌜fp ≠ null⌝)
 
 /-- A non-tail lock: a `*fileutil.LockedFile` (`fileutil.lockedFile`, what `fileutil.LockFile`
 returns) and its open file, whole. -/
@@ -270,12 +271,17 @@ claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their
 name (`DirKeysOk`'s: `cut`'s rename target is in the claim, `os.Rename.specFileSnc`'s `N'.Mem bt`);
 the WAL is named (`walNamed`, persistent: `walCut_osAUnc`'s `walCutP` takes it); the record of what
 the handle holds out of the parked state (`walOutFrag`: the tail, the directory's claim, the
-pipeline's names; W1 log, tenth session). -/
+pipeline's names; W1 log, tenth session); the lock holder's half of the tails' authority, with this
+WAL's tail registered (`walTailsFrag`, W1 log, eleventh session), and no name registration pending
+(`walNamesFrag none`): what `Close` needs to give the lock token back (`walLockedTok_unlock`; W10,
+W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they return the handle). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
     walNamed (W := W) dir ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
+    (∃ γt : GName, walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))) ∗
+    walNamesFrag (W := W) none ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
       (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k) ∧

@@ -37,7 +37,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec : Prop :=
       pipeRes R dir dq j ∗ tmpClaim j (pipeTmp 0) }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline)) (Val #lg))
       (Val #dir)) (Val #sz))
-  {{ (fp : Loc), RET #fp; ∃ γ : PipeNames, isFilePipe fp γ R dir dq j sz ∗ pipeMain γ 0 }}
+  {{ (fp : Loc), RET #fp; ⌜fp ≠ null⌝ ∗ ∃ γ : PipeNames, isFilePipe fp γ R dir dq j sz ∗ pipeMain γ 0 }}
 
 end spec
 

@@ -128,7 +128,7 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ := by
   letI := walAllG (W := W)
   unfold walTailsRes
-  iintro ⟨%T, HTa, %HTo, HTm⟩ Hk
+  iintro ⟨%T, HTa, %HTo, %HTi, HTm⟩ Hk
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -147,6 +147,8 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iframe HTa
   isplitr
   · ipureintro; exact HTo
+  isplitr
+  · ipureintro; exact HTi
   iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
@@ -280,7 +282,14 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         · subst e; rw [hd] at hk; cases hk
           exact ⟨_, walSyncS_lookup s k d, rfl, rfl⟩
         · exact ⟨d1, by rw [walSyncS_lookup_ne s dir d e]; exact hk, rfl, rfl⟩
-      iapply walTailsRes_mono C Mr s (walSyncS s dir d) _ F hmono
+      have hmono' : ∀ k d', (walSyncS s dir d).wal !! k = some d' → ∃ d1, s.wal !! k = some d1 ∧
+          d'.H = d1.H ∧ d'.metadata = d1.metadata := by
+        intro k d' hk
+        by_cases e : k = dir
+        · subst e; rw [walSyncS_lookup] at hk; cases hk
+          exact ⟨d, hd, rfl, rfl⟩
+        · exact ⟨d', by rw [walSyncS_lookup_ne s dir d e] at hk; exact hk, rfl, rfl⟩
+      iapply walTailsRes_mono C Mr s (walSyncS s dir d) _ F hmono hmono'
       iapply Htlc $$ %(syncLay lay pre g0) %(syncTail g0) %F [] [Hv']
       · ipureintro
         exact ⟨by simp [syncLay], hZ,
