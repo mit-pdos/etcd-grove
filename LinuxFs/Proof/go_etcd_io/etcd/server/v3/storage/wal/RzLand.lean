@@ -88,7 +88,7 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs]; exact hb), k6, k7, k8⟩
     rw [hbs]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_, ?_⟩
     · simp only [tailLay] at hbw ⊢
       rw [rzLand_getElem? hwr hlen hbw] at hb
       exact hB b x hb hbw
@@ -105,6 +105,7 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     · have := habs.oldHi_any _ hg1
       simp only [rzSeg, rzMeta_hi] at this
       show lay.old.length ≤ max g0.om.hi lay.wr; omega
+    · have h := habs.winLo_any _ hg1; exact h
 
 /-- **The landing keeps the crash condition** (from the in-flight layout, `crashOkA_same`). -/
 theorem crashOkA_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur}

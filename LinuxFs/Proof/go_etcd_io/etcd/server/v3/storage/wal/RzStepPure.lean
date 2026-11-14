@@ -169,7 +169,7 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
       fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩,
       WinHead.of_lo (by simp only [tailLay, rzSeg, rzMeta_lo]; omega),
-      fun b x hb hx => ?_, ?_⟩
+      fun b x hb hx => ?_, ?_, ?_⟩
     · simp only [tailLay] at hbw
       rw [rzSeg_getElem?_lt hl (by omega)] at hb
       exact hB b x hb (by omega)
@@ -179,6 +179,9 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
       rw [← hy1]; exact hz b y hb hy
     · have := habs.oldHi_any g0 hg0
       simp only [tailLay, rzSeg, rzMeta_hi]; omega
+    · have := habs.winLo_any g0 hg0
+      unfold WinLo at this ⊢
+      simp only [tailLay, rzSeg, rzMeta_lo]; omega
 
 end pure
 

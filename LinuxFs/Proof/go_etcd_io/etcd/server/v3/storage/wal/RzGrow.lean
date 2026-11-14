@@ -477,7 +477,7 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs2]; exact hb), k6, k7, k8⟩
     rw [hbs2]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_, ?_⟩
     · simp only [tailLay] at hbw ⊢
       have hb' : g0.bs[b]? = some x := by
         rw [← hb]; simp only [rzLandG]; rw [List.getElem?_append_left (by omega)]
@@ -503,6 +503,7 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     · have := habs.oldHi_any _ hg1
       simp only [rzSeg, rzMeta_hi] at this
       show lay.old.length ≤ max g0.om.hi tg; omega
+    · have h := habs.winLo_any _ hg1; exact h
 
 /-- **A growth's first step**: `WalsOk` and the directory keys of the layout with the tail announced
 (`rzSeg` to `size ≤ tg ≤ hi`, at or past the write position, the least crash size at most `wr`), from
