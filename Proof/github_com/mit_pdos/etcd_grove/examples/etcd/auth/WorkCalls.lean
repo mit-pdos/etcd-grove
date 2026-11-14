@@ -877,7 +877,7 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     iexact Hp
   imod (monoNatLbOwn_0 (GF := GF) ρ.rd.committed) with #H0
   ihave #Hc0 : committedAtLeast ρ.rd (W64 0) $$ []
-  · unfold committedAtLeast
+  · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   ihave Hres := optsAt_res sl gs iprop(True) $$ Hopts
@@ -985,7 +985,7 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     iexact Hp
   imod (monoNatLbOwn_0 (GF := GF) ρ.rd.committed) with #H0
   ihave #Hc0 : committedAtLeast ρ.rd (W64 0) $$ []
-  · unfold committedAtLeast
+  · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci cd b
@@ -1085,7 +1085,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
     iexact Hp
   imod (monoNatLbOwn_0 (GF := GF) ρ.rd.committed) with #H0
   ihave #Hc0 : committedAtLeast ρ.rd (W64 0) $$ []
-  · unfold committedAtLeast
+  · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci cd

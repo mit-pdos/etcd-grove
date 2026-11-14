@@ -14,7 +14,9 @@ no attempt carries a credential token) and a server with no TLS identity, so the
 are `SetUp`'s alone: it holds the client's view of the auth history (`authHistView`, at the boot
 history). When `SetUp` returns `true`, the history is frozen (`authHistFrozen`: no admin request
 changes the auth state after it, the auth-mode merge's 5b) at a log `Lset` whose auth state is
-`setupSt r`, published (`authPubLb`, `authStateAt`); when it returns `false`, nothing (`Main`
+`setupSt r`, published (`authPubLb`, `authStateAt`), and a committed raft log `Lc` (`AuthEnable`'s
+entry and what precedes it) has that auth state too (the auth3 Scope's A2, 2026-11-14: the bound of
+a barrier read at another member, `auth3/AuthFixed.lean`); when it returns `false`, nothing (`Main`
 stops).
 -/
 module
@@ -91,7 +93,8 @@ abbrev SetUp.spec : Prop :=
             (r : Nat),
           authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
           ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝ ∗
-          auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r))
+          auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r) ∗
+          ∃ Lc : List EntryModel, srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝)
       else iprop(True) }}
 
 end spec

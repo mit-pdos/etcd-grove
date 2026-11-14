@@ -11,6 +11,15 @@ theorem etcdstart.kvInvOn_reg [v3rpc_sem :
         pre := [], ai0 := W64 0 }
       γk srvAuthSt0
 
+def etcdstart.sameCluster (ρ ρ' : ReqNames) : Prop :=
+  ρ'.rd.kv.st = ρ.rd.kv.st ∧
+    ρ'.rd.kv.c0 = ρ.rd.kv.c0 ∧
+      ρ'.rd.kv.ch0 = ρ.rd.kv.ch0 ∧
+        ρ'.rd.kv.log0 = ρ.rd.kv.log0 ∧
+          ρ'.rd.kv.hist = ρ.rd.kv.hist ∧
+            ρ'.rd.raft.raft.cl = ρ.rd.raft.raft.cl ∧
+              ρ'.rd.raft.raft.log = ρ.rd.raft.raft.log ∧ ρ'.rd.raft.pre = ρ.rd.raft.pre ∧ ρ'.rd.raft.ai0 = ρ.rd.raft.ai0
+
 theorem etcdstart.alloc3On [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁,
     id₂, id₃]) (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot) (dir :
@@ -22,19 +31,20 @@ theorem etcdstart.alloc3On [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api
     -∗ etcdstart.memberStartRes n₃ { peer := some a₃, client := c₃ } ={⊤}=∗ ∃ γ reg₁ reg₂ reg₃ ρ₁ ρ₂
     ρ₃ E₁ E₂ E₃ Φs γn, ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot =
     LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.c0 = W64 0 ∧ ρ₁.rd.kv.log0
-    = [[], []]⌝ ∗ etcdstart.memberBootOn { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot,
-    reg := reg₁, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired :=
-    γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₁ E₁ Φs id₁ ∗
-    (netHttpOk γn id₁ ∗ etcdstart.memberFreshRes n₁ { peer := some a₁, client := c₁ } γn) ∗
-    etcdstart.memberBootOn { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₂,
-    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
-    rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₂ E₂ Φs id₂ ∗ (netHttpOk γn id₂
-    ∗ etcdstart.memberFreshRes n₂ { peer := some a₂, client := c₂ } γn) ∗ etcdstart.memberBootOn {
-    cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₃, snapLoc := γ.snapLoc, log
+    = [[], []] ∧ etcdstart.sameCluster ρ₁ ρ₂ ∧ etcdstart.sameCluster ρ₁ ρ₃⌝ ∗ etcdstart.memberBootOn
+    { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₁, snapLoc := γ.snapLoc, log
     := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend :=
-    γ.pend, authOn := γ.authOn } ctxs ρ₃ E₃ Φs id₃ ∗ (netHttpOk γn id₃ ∗ etcdstart.memberFreshRes n₃
-    { peer := some a₃, client := c₃ } γn) ∗ etcdKV ρ₁.rd.kv (kvStateOf (kvModelOn ρ₁.rd.kv
-    srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗ authHistView ρ₁.rd.kv [srvAuthSt0]
+    γ.pend, authOn := γ.authOn } ctxs ρ₁ E₁ Φs id₁ ∗ (netHttpOk γn id₁ ∗ etcdstart.memberFreshRes n₁
+    { peer := some a₁, client := c₁ } γn) ∗ etcdstart.memberBootOn { cl := γ.cl, vs := γ.vs, rule :=
+    γ.rule, boot := γ.boot, reg := reg₂, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props
+    := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₂
+    E₂ Φs id₂ ∗ (netHttpOk γn id₂ ∗ etcdstart.memberFreshRes n₂ { peer := some a₂, client := c₂ }
+    γn) ∗ etcdstart.memberBootOn { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg :=
+    reg₃, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
+    rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₃ E₃ Φs id₃ ∗ (netHttpOk γn id₃
+    ∗ etcdstart.memberFreshRes n₃ { peer := some a₃, client := c₃ } γn) ∗ etcdKV ρ₁.rd.kv (kvStateOf
+    (kvModelOn ρ₁.rd.kv srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗ authHistView
+    ρ₁.rd.kv [srvAuthSt0]
 
 theorem etcdstart.memberBootOn_of [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
@@ -52,7 +62,14 @@ theorem etcdstart.memberBootOn_of [v3rpc_sem :
     ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)
     -∗ ghostMapAuth reg 1 ∅ -∗ srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 ∅ -∗
     ghostMapAuth rev 1 ∅ ==∗ ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-    ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist⌝ ∗ etcdstart.memberBootOn { cl := γ.cl, vs :=
-    γ.vs, rule := γ.rule, boot := γ.boot, reg := reg, snapLoc := γ.snapLoc, log := γ.log, fresh :=
-    γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn :=
-    γ.authOn } ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id
+    ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.raft = { raft :=
+                                                  { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
+                                                    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh,
+                                                    props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh,
+                                                    pend := γ.pend, authOn := γ.authOn },
+                                                pre := [], ai0 := W64 0 }⌝ ∗
+                                etcdstart.memberBootOn
+                                  { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
+                                    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
+                                    fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn }
+                                  ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id

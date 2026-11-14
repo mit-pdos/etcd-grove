@@ -100,13 +100,15 @@ theorem infoBoundM_tok (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
   iintro H; iexact H
 
 /-- **A read's check, as the answer reports it** (persistent): the permissions the check of `o`
-saw granted at states recorded at an index `m` at least the caller's bound `n`, and for a
+saw granted at states recorded at an index `m` at least the caller's bound `n`, the store
+published through `m` (`auth.authPubLbM`; the auth3 A2 read barrier, 2026-11-14), and for a
 linearizable read no older than the auth state the committed log through the read index `c` left;
 the auth info checked the caller's (`infoBoundT`, E3zb, 2026-10-28). -/
 def rangeAuthed (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
     (tok : Option GoString) (o : OpFull) : IProp GF :=
   iprop(∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
     apply.rangeClassFrom E.authMode m info o ∗ infoBoundT s E.authMode tok info ∗
+    auth.authPubLbM E.authMode m ∗
     (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m))
 
 instance rangeAuthed_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
@@ -1104,9 +1106,9 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
       ipureintro; exact ⟨Hlen.1, Hlen.2.1, Hlen.2.2.1, rfl, Hlen.2.2.2⟩
     iintro %hon
     iunfold rangeAuthed
-    icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
+    icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hpb, #Hf⟩
     iexists info, m
-    iframe Hc Hf
+    iframe Hc Hpb Hf
     isplitr
     · ipureintro; exact Hm
     rw [hon]

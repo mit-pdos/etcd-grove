@@ -3,12 +3,16 @@
 (`putget3/MainLinked.lean`): `etcd_auth3.Main.wp_proof` applied to `zap.NewNop`'s axiom, `startMember`'s
 proof over the server's linked `NewServer.specM true` (`server_new_auth_on`, at D22's named
 hypothesis `authSchemaSrv`, as authkv's `authkv_startServer`), `net.Listen`, `RaftHandler` and
-`Start`, and authkv's linked `Run` (`auth/Link.lean`). `Results.lean` restates it.
+`Start`, and auth3's `run` (A2, 2026-11-14: `run.lean`, with `barrier` and `newUserClient`) over authkv's
+linked `SetUp`, `Work` and checks (`auth/Link.lean`). `Results.lean` restates it.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.barrier
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.newUserClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.startMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -44,12 +48,36 @@ theorem etcd_auth3.wp_startMember (hD22 : ⊢ authSchemaSrv (GF := GF)) :
   etcd_auth3.startMember.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
     (server_new_auth_on hD22) etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
 
+/-- **auth3's `newUserClient`** (authkv's copy), over `clientv3.New`. -/
+theorem etcd_auth3.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    etcd_auth3.newUserClient.spec (GF := GF) (hG := hG) :=
+  etcd_auth3.newUserClient.wp_proof client.v3.clientv3.wp_New
+
+/-- **auth3's `barrier`**: root's linearizable read at a member (`barrier.lean`). -/
+theorem etcd_auth3.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    etcd_auth3.barrier.spec (GF := GF) (hG := hG) :=
+  etcd_auth3.barrier.wp_proof etcd_auth3.wp_newUserClient context.wp_ErrAny
+    etcd_auth.context.wp_WithTimeoutBackground
+
+/-- **auth3's `run`**: authkv's run across the three members (`run.lean`), over authkv's linked
+`SetUp`, `Work` and checks (`auth/Link.lean`). -/
+theorem etcd_auth3.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    etcd_auth3.run.spec (GF := GF) (hG := hG) :=
+  etcd_auth3.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
+    context.wp_ErrAny etcd_auth.wp_SetUp etcd_auth3.wp_newUserClient etcd_auth3.wp_barrier
+    etcd_auth.wp_Work etcd_auth.wp_Principals etcd_auth.wp_CheckHistory etcd_auth.wp_LastIn
+    etcd_auth.context.wp_WithTimeoutBackground etcdstart.wp_Collect
+    client.v3.watcher.wp_Watch etcd_auth.v3.wp_WithPrefix etcd_auth.v3.wp_WithRev
+    etcd_auth.v3.wp_WithRange etcd_auth.wp_Permitted mvcc.api.mvccApi_persistent_law_holds
+    mvcc.api.mvccApi_mvccState_reachable_law_holds
+
 /-- **auth3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/Main.lean`). -/
 theorem etcd_auth3.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [EtcdGrove.ErrorStringLeaf] (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=
-  etcd_auth3.Main.wp_proof zap.NewNop.wp_proof (etcd_auth3.wp_startMember hD22) etcd_auth.wp_Run
+  etcd_auth3.Main.wp_proof zap.NewNop.wp_proof (etcd_auth3.wp_startMember hD22) etcd_auth3.wp_run
     mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results

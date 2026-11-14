@@ -1,4 +1,4 @@
-# auth3 handoff (a three-member etcd_auth_safe, A1)
+# auth3 handoff (a three-member etcd_auth_safe, A1 landed; A2 in progress)
 
 Plan: `notes/auth3-scope.md` (decisions in its §6). Worktree `/shared/etcd-grove-auth3`, branch
 `auth3-a1` (the Scope landed from `auth3-scope`: lean 7245799336). Coordinator etcd-grove-81; rules
@@ -45,3 +45,30 @@ Plan: `notes/auth3-scope.md` (decisions in its §6). Worktree `/shared/etcd-grov
 `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
 --packages=/shared/tmp/manifest-ddc.json build`; land with `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
 PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh` (unwrapped, GOWORK not exported).
+
+## A2 (approved by the user 2026-11-14 via etcd-grove-81; branch `auth3-a2`)
+
+- S0 / CP1 (code reading, nothing built or changed): Q2(i) is NO. `EtcdServer.Authenticate.spec`'s
+  post, `authnAns`, `etcdAuthenticateSpec` carry only `tokIssued`; `raftRequest`'s `pubAfterM` (the
+  state after the entry, published) is dropped in `Authenticate`'s proof, and even with it the
+  entry's position relative to the set-up's log `Lset` is not known (the model's `Authenticate`
+  records no "auth enabled"), so it would not give `setupSt`. Writes (`writeGrantOn`) have the same
+  ordering gap. A linearizable `Range` has the ordering (the read index) but (a) its post drops
+  `authPubLbM m` (the proof holds it, `EtcdServer__Range.lean` `HnAlb`) and (b) its bound comes only
+  from `committedAtLeast γr c`, the member's own `s.committedIndex`, which a client of member k
+  cannot raise past 0. Route (ii) needs both.
+- CP1 approved by etcd-grove-81 (2026-11-14): route (ii) with L1 and L2; L2 disjunctive; the `ileft`s in
+  other examples allowed (restartCheck.lean minimal); in-place strengthening, `auth3Addrs` grows.
+- Done (branch `auth3-a2`):
+  - L2: `committedAtLeast` (InvRequest.lean) = member's committed index lb OR a committed raft log at
+    least that long (docstring says why sound); `committedAtLeast_of_lb`, `committedAtLeast_of_rlog`;
+    `ileft` at every introduction site (server, read loop, client, examples).
+  - L1: `EtcdServer.Range.spec`'s success post and `v3rpc.rangeAuthed` carry `authPubLbM E.authMode m`.
+  - `SetUp.spec` post also gives a committed log `Lc` with state `setupSt r` (internal, stronger post).
+  - `etcdstart.sameCluster` and `alloc3On`'s post (`sameCluster ρ₁ ρ₂`, `ρ₁ ρ₃`).
+  - auth3: `AuthFixed.lean` (`akAuthFixed_barrier`, `*_same` transfers), `barrier`, `newUserClient`
+    (copy), `run` (with `serve_member`, the thread token handed back through `grpcUpOn`'s
+    `srvGoRes`), `Main`, `MainLinked`, `Adequacy` (auth3Addrs + client bundles), `Results` docstring.
+  - Go: `run`/`barrier`/`newUserClient` in auth3.go (Serve on all three, barrier per member, u@2,
+    v@3, anon@1, bad@2); auth3_test.go checks refusals and the anonymous watch at every member.
+- Freeze passed (etcd-grove-81, 2026-11-14); docstring fixes applied; landed via etc/land.sh.

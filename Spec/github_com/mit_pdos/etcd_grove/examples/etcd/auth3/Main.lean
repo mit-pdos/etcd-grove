@@ -1,22 +1,22 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (`examples/etcd/auth3/auth3.go`; the auth3 Scope's A1, `notes/auth3-scope.md`): three etcd
-members of one new cluster started in process with auth on (the simple token provider, etcd's
-default token TTL, the examples' no-snapshot settings; `startMember`, each serving its raft handler
-on its own peer listener), then authkv's run on the first (`auth.Run`: its gRPC API served at its
-client address, the auth state set up and auth enabled through a client of it, the four
-principals' workloads through clients of it, root's last write and the history's check, `u`'s
-watch check).
+`Main()` (`examples/etcd/auth3/auth3.go`; the auth3 Scope's A1, `notes/auth3-scope.md`, and A2 since
+2026-11-14): three etcd members of one new cluster started in process with auth on (the simple token
+provider, etcd's default token TTL, the examples' no-snapshot settings; `startMember`, each serving
+its raft handler on its own peer listener), then authkv's run across them (`run`: every member's
+gRPC API served at its client address, the auth state set up and auth enabled through member 1,
+root's barrier read at each member, the four principals' workloads each through its own member,
+root's last write and the history's check through member 1, `u`'s watch check through member 2).
 
 **The triple** (the closed theorem's form, as putget3's and authkv's): from the package's
 `isPkgInit`, the members' start bundles (each member's WAL directory fresh, the right to listen on
-its peer address with its HTTP protocol unregistered, and member 1's on its client address), the
-main thread's token and `Main`'s named premises (`etcd_auth3.premises`, putget3's at auth3's
-configuration), `Main()` does not panic and returns `Ok` (`0`), `Failed` (`1`: a member's start,
-`Serve`, a client's creation, a step of the set-up or root's last put failed) or `WatchEnded`
-(`2`). Not panicking is authkv's auth result (`auth/Main.lean`'s header), for the first member of a
-three-member cluster whose followers apply every entry, the set-up's admin entries and the
-`Authenticate` entries included, with auth on.
+its peer address with its HTTP protocol unregistered, and on its client address), the main thread's
+token and `Main`'s named premises (`etcd_auth3.premises`, putget3's at auth3's configuration),
+`Main()` does not panic and returns `Ok` (`0`), `Failed` (`1`: a member's start, a `Serve`, a
+client's creation, a step of the set-up, a barrier read or root's last put failed) or `WatchEnded`
+(`2`). Not panicking is authkv's auth result (`auth/Main.lean`'s header) for each principal at
+its own member (u at 2, v at 3, the client with no token at 1, the invalid token at 2), after a
+barrier read at every member.
 -/
 module
 
@@ -58,8 +58,8 @@ abbrev Main.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth3 ∗
       etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗
-      etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, none⟩ ∗
-      etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, none⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, some clientAddr₂⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, some clientAddr₃⟩ ∗
       threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Main)) (Val #()))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}

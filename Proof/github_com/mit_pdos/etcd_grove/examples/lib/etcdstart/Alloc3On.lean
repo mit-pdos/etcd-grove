@@ -33,6 +33,17 @@ namespace etcdstart
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
+/-- **Two members' names of one cluster** (auth3 A2, 2026-11-14): the KV names' state, start and
+auth-history fields and the raft names' committed log, requested log, prefix and start index are
+the same (what the cluster's predicates read: `etcdKV`, `admStates`, `srvAuthAtLog`,
+`authHistFrozen`, `srvRLogLb`, `srvReqLogLb`); the members differ in their storage registries,
+request ids and certificates. -/
+def sameCluster [GooseExts] (ρ ρ' : ReqNames) : Prop :=
+  ρ'.rd.kv.st = ρ.rd.kv.st ∧ ρ'.rd.kv.c0 = ρ.rd.kv.c0 ∧ ρ'.rd.kv.ch0 = ρ.rd.kv.ch0 ∧
+    ρ'.rd.kv.log0 = ρ.rd.kv.log0 ∧ ρ'.rd.kv.hist = ρ.rd.kv.hist ∧
+    ρ'.rd.raft.raft.cl = ρ.rd.raft.raft.cl ∧ ρ'.rd.raft.raft.log = ρ.rd.raft.raft.log ∧
+    ρ'.rd.raft.pre = ρ.rd.raft.pre ∧ ρ'.rd.raft.ai0 = ρ.rd.raft.ai0
+
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -72,7 +83,8 @@ theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (
       srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-        ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist⌝ ∗
+        ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
+        ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩⌝ ∗
         memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id := by
   subst Hx
   have hlm : γk.lm = .none := by simpa [KVNames.lg_eq] using Hklg
@@ -90,7 +102,7 @@ theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (
   iexists ρ
   isplitr
   · ipureintro
-    exact ⟨hst, hc0', hch', hlog', hhist⟩
+    exact ⟨hst, hc0', hch', hlog', hhist, hraft⟩
   iunfold memberBootOn
   simp only [env₀]
   rw [hiss', hcnt, hraft, Hiss]
@@ -130,7 +142,8 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
         (γn : NetNames GF),
       ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0 ∧
-        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.c0 = W64 0 ∧ ρ₁.rd.kv.log0 = [[], []]⌝ ∗
+        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.c0 = W64 0 ∧ ρ₁.rd.kv.log0 = [[], []] ∧
+        sameCluster ρ₁ ρ₂ ∧ sameCluster ρ₁ ρ₃⌝ ∗
       memberBootOn { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ ∗
       (netHttpOk γn id₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
       memberBootOn { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ ∗
@@ -191,11 +204,11 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
   imod (memberBootOn_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ γm idx₂ cok₂ rev₂
       (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog hvs hkc hklg HΦ₂)
       $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
-    with ⟨%ρ₂, -, Hb₂⟩
+    with ⟨%ρ₂, %Hρ₂, Hb₂⟩
   imod (memberBootOn_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ γm idx₃ cok₃ rev₃
       (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog hvs hkc hklg HΦ₃)
       $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
-    with ⟨%ρ₃, -, Hb₃⟩
+    with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
   imod (netHttp_reserve3 γn a₁ a₂ a₃ Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
@@ -203,7 +216,13 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
   ihave #Hs₁ := Hnet $$ %id₁
   ihave #Hs₂ := Hnet $$ %id₂
   ihave #Hs₃ := Hnet $$ %id₃
-  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hhist₁⟩ := Hρ₁
+  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hhist₁, hraft₁⟩ := Hρ₁
+  have hsame : ∀ (ρ : ReqNames) (reg : GName), (ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
+      ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
+      ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩) → sameCluster ρ₁ ρ := by
+    intro ρ reg ⟨h1, h2, h3, h4, h5, h6⟩
+    refine ⟨by rw [h1, hst₁], by rw [h2, hc0₁], by rw [h3, hch₁], by rw [h4, hlog₁],
+      by rw [h5, hhist₁], ?_, ?_, ?_, ?_⟩ <;> rw [h6, hraft₁]
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
     env₀ γm idx₁ rev₁ (srvApi.kvNx ρ₁.rd true), env₀ γm idx₂ rev₂ (srvApi.kvNx ρ₂.rd true),
@@ -211,7 +230,8 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hc0₁, hc0], by rw [hlog₁, hlog]⟩
+    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hc0₁, hc0], by rw [hlog₁, hlog],
+      hsame ρ₂ reg₂ Hρ₂, hsame ρ₃ reg₃ Hρ₃⟩
   rw [← hboot]
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModelOn ρ₁.rd.kv srvAuthSt0 (bootEntries γ.boot) = kvModelOn γk srvAuthSt0 (bootEntries γ.boot) by
@@ -241,7 +261,8 @@ theorem alloc3On (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (
         (γn : NetNames GF),
       ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0 ∧
-        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.c0 = W64 0 ∧ ρ₁.rd.kv.log0 = [[], []]⌝ ∗
+        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.c0 = W64 0 ∧ ρ₁.rd.kv.log0 = [[], []] ∧
+        sameCluster ρ₁ ρ₂ ∧ sameCluster ρ₁ ρ₃⌝ ∗
       memberBootOn { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ ∗
       (netHttpOk γn id₁ ∗ memberFreshRes n₁ ⟨some a₁, c₁⟩ γn) ∗
       memberBootOn { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ ∗

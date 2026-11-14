@@ -444,6 +444,8 @@ local macro "range_tail" : tactic => `(tactic| (
         · iapply apply.rangeClassFrom_off n infoc o $$ Hcls
         isplitr
         · iunfold infoBoundM; ipureintro; trivial
+        isplitr
+        · unfold auth.authPubLbM; ipureintro; trivial
         rw [authFloorAt_off]; split <;> (ipureintro; trivial)
       iunfold rangeReadOk
       ihave #Hres2 : iprop(∃ crev' : Int,
@@ -654,6 +656,8 @@ local macro "range_tailOn" : tactic => `(tactic| (
         · ipureintro; exact HnA
         isplitr
         · iapply (infoBoundM_ctx true s E _ _ infoc (by rw [Hinc2, Hinc1])) $$ Hib
+        isplitr
+        · rw [hM]; iexact HnAlb
         rw [hM]; iexact Hfl
       iunfold rangeReadOkM
       ihave #Hres2 : iprop(∃ crev' : Int,

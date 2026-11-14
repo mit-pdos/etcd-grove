@@ -50,7 +50,7 @@ theorem read.NewRead.wp_proof
   icases ghostVar_halves γr.notifier (nc, γn) $$ Hg with ⟨Hg1, Hg2⟩
   imod monoNatLbOwn_0 γr.committed with #H0
   ihave #Hc0 : committedAtLeast (GF := GF) γr (W64 0) $$ []
-  · iunfold committedAtLeast; rw [show uint.nat (W64 0) = 0 by word]; iexact H0
+  · iunfold committedAtLeast; ileft; rw [show uint.nat (W64 0) = 0 by word]; iexact H0
   imod inv_alloc readInvN ⊤ iprop(∃ (nc : Loc) (γn : NeedNames) (n : w64) (gs : List GName),
       ghostVar γr.notifier (1 : Qp).half (nc, γn) ∗ notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
       monoNatAuthOwn γn.need 1 (uint.nat n) ∗ committedAtLeast γr n ∗

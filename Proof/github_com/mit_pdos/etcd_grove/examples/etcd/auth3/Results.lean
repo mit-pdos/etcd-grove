@@ -1,10 +1,11 @@
 /-
-auth3's results (`examples/etcd/auth3/auth3.go`; the auth3 Scope's A1, `notes/auth3-scope.md`),
+auth3's results (`examples/etcd/auth3/auth3.go`; the auth3 Scope's A1, `notes/auth3-scope.md`, and since
+2026-11-14 its A2: every member serving, each principal through its own member, after a barrier),
 restated, with the trust base of each printed in the build log (`#print axioms`). Lean-first (no
 Rocq counterpart).
 
 * **`auth3_Main`** (`MainLinked.lean`'s `etcd_auth3.wp_Main`): `Main()` -- three members with the
-  simple token provider, then authkv's run on the first -- does not panic and returns `Ok`,
+  simple token provider, then authkv's run across them (`run`) -- does not panic and returns `Ok`,
   `Failed` or `WatchEnded` (`Spec/.../auth3/Main.lean`).
 * **`etcd_auth3_safe`** (`Adequacy.lean`'s `etcd_auth3_adequate`): the closed theorem.
 -/
@@ -51,25 +52,30 @@ variable [go_gctx : GoGlobalContext]
 /-- **The three-member authentication example is safe, in the operational semantics**
 (`etcd_auth3_adequate`, see `Adequacy.lean`'s header for the program and the hypotheses): every
 real execution of `n` steps of `auth3`'s initialization followed by `Main()`, from a fresh state
-with one thread, has no stuck thread, no thread ended in a panic (so none of authkv's checks
-failed, on the first member of a three-member cluster whose other members apply every entry,
-the auth set-up's and the `Authenticate` entries included, with auth on), and the main thread's
-result, if any, is `0`, `1` or `2`.
+with one thread, has no stuck thread, no thread ended in a panic, and the main thread's result, if
+any, is `0`, `1` or `2`. Not panicking means none of authkv's checks failed, at any member: every
+member serves gRPC; the auth state is set up and auth enabled through member 1; root then makes a
+linearizable read at each member (the barrier: each member has applied the set-up before any
+principal uses it); then the four principals' workloads run at once, each through its own member
+(`u` through member 2, `v` through member 3, the client with no token through member 1, the one
+with a token no provider issued through member 2), so each member refuses every forbidden request
+of the principals that use it (writes, ranges, transactions, watches; a refusal is an error, a watch
+outside `[a, b)` reports no event) and replies only with keys the principal may read; root's
+history watch through member 1 holds only permitted writes, and `u`'s watch through member 2 only
+keys of `[a, b)`.
 
 **What the result does not say:** everything `etcd_auth_safe`'s list says (liveness; `Failed` and
 `WatchEnded` skip the history's or `u`'s watch check; a refusal is any error; the cases not
 exercised; `u`'s permitted requests need not succeed; password checking is not verified; only the
 simple token provider; no client-certificate authentication; a refused watch is read for 2 s
 only; the history's check attributes a write to the principal its key names), and:
-* every client is a client of the first member, the only one serving gRPC: the other two members
-  serve no request, so that a follower enforces the auth state on reads, watches and writes it
-  receives is not shown (variant A2's); a follower's application of the set-up's admin entries and
-  of the `Authenticate` entries with auth on is exercised, and the history's check covers every
-  write member 1 applied, which is every committed write;
-* no check reads a follower's state: that the followers' applied KV and auth state equal member 1's
-  is not observed (it follows from the one log and the deterministic apply, and `kvInvOn` is
-  cluster-wide, but the theorem states only that the followers' threads neither panic nor get
-  stuck);
+* each principal uses one member: a principal's requests are checked at its member only (the
+  client with no token at member 1, `u` and the invalid token at member 2, `v` at member 3), not at
+  every member;
+* the barrier is the driver's: a member that has not yet applied `AuthEnable` serves a watch with
+  auth off (`nonissues/etcd-watch-lagging-member-auth-off.md`), which etcd does not promise
+  against; the theorem is about clients that use a member only after root's linearizable read
+  there returned;
 * the proof covers snapshot installs (`NewServer`'s spec is generic in the snapshot settings), but
   this run never reaches one (the members' `NoSnapCount`/`NoSnapCatchUp`), so the auth state
   carried by a snapshot is not exercised (variant B's);
