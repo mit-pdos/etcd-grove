@@ -739,19 +739,153 @@ instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L
   · infer_instance
   · split <;> infer_instance
 
+/-- **The old lengths the tails' map records** (`walOldsRes`; I3b, `wal-tc13`): each element
+`(dir, c) ↦ k` is of a WAL directory of the layouts whose cuts extend `c`, and `k` is the length of
+its `old` while its cuts are `c`. A step that keeps a layout's cuts keeps its `old` (`tailLay`); a cut
+extends the cuts; `Create` adds a directory with none; a crash starts from an empty map. -/
+def OldOk (M : GMap (GoString × List Nat) Nat) (Ls : GMap GoString WalLay) : Prop :=
+  ∀ dir c k, M !! (dir, c) = some k → ∃ lay, Ls !! dir = some lay ∧ c <+: lay.cuts ∧
+    (c = lay.cuts → k = lay.old.length)
+
+theorem OldOk.empty (Ls : GMap GoString WalLay) : OldOk ∅ Ls := fun _ _ _ h => by
+  rw [GMap.lookup_empty] at h; cases h
+
+/-- A layout replaced by one whose cuts extend its own, `old` as long if the cuts are the same. -/
+theorem OldOk.insert_ext {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
+    {dir : GoString} {lay lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = some lay)
+    (hc : lay.cuts <+: lay'.cuts) (ho : lay'.cuts = lay.cuts → lay'.old.length = lay.old.length) :
+    OldOk M (<[dir := lay']> Ls) := by
+  intro dir' c k hk
+  obtain ⟨la, hla, hcp, hk'⟩ := h dir' c k hk
+  by_cases e : dir' = dir
+  · subst e
+    rw [hl] at hla; cases hla
+    refine ⟨lay', GMap.lookup_insert _ _ _, hcp.trans hc, fun hce => ?_⟩
+    have h1 := hcp.length_le
+    have h2 := hc.length_le
+    have hcl : c = la.cuts := hcp.eq_of_length (by rw [hce] at h1 ⊢; omega)
+    rw [hk' hcl, ho (by rw [← hce, hcl])]
+  · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hcp, hk'⟩
+
+/-- A layout replaced by one with the same cuts and an `old` as long. -/
+theorem OldOk.insert_same {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
+    {dir : GoString} {lay lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = some lay)
+    (hc : lay'.cuts = lay.cuts) (ho : lay'.old.length = lay.old.length) :
+    OldOk M (<[dir := lay']> Ls) :=
+  h.insert_ext hl (by rw [hc]) (fun _ => ho)
+
+/-- A new directory's layout. -/
+theorem OldOk.insert_new {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
+    {dir : GoString} {lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = none) :
+    OldOk M (<[dir := lay']> Ls) := by
+  intro dir' c k hk
+  obtain ⟨la, hla, hcp, hk'⟩ := h dir' c k hk
+  by_cases e : dir' = dir
+  · subst e; rw [hl] at hla; cases hla
+  · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hcp, hk'⟩
+
+/-- **The tails' old lengths** (I3b, `wal-tc13`): the authority of `walOldFrag`'s map, `OldOk` of the
+layouts. A framed conjunct of `walTailsRes`: only the steps that change the layouts touch it. -/
+def walOldsRes (Ls : GMap GoString WalLay) : IProp GF :=
+  iprop(∃ M, walOldsAuth (W := W) M ∗ ⌜OldOk M Ls⌝)
+
+instance walOldsRes_timeless (Ls : GMap GoString WalLay) : Timeless (walOldsRes (W := W) Ls) := by
+  unfold walOldsRes; infer_instance
+
+theorem walOldsRes_init (Ls : GMap GoString WalLay) :
+    walOldsAuth (W := W) ∅ ⊢ walOldsRes (W := W) Ls := by
+  unfold walOldsRes
+  iintro Ha
+  iexists ∅
+  iframe Ha
+  ipureintro; exact OldOk.empty Ls
+
+theorem walOldsRes_insert_ext (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
+    (hl : Ls !! dir = some lay) (hc : lay.cuts <+: lay'.cuts)
+    (ho : lay'.cuts = lay.cuts → lay'.old.length = lay.old.length) :
+    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) := by
+  unfold walOldsRes
+  iintro ⟨%M, Ha, %h⟩
+  iexists M
+  iframe Ha
+  ipureintro; exact h.insert_ext hl hc ho
+
+theorem walOldsRes_insert_same (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
+    (hl : Ls !! dir = some lay) (hc : lay'.cuts = lay.cuts) (ho : lay'.old.length = lay.old.length) :
+    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) :=
+  walOldsRes_insert_ext Ls dir lay lay' hl (by rw [hc]) (fun _ => ho)
+
+theorem walOldsRes_insert_new (Ls : GMap GoString WalLay) (dir : GoString) (lay' : WalLay)
+    (hl : Ls !! dir = none) :
+    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) := by
+  unfold walOldsRes
+  iintro ⟨%M, Ha, %h⟩
+  iexists M
+  iframe Ha
+  ipureintro; exact h.insert_new hl
+
+/-- **A tail's old length handed out** (persistent). -/
+theorem walOldsRes_mint (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
+    (hl : Ls !! dir = some lay) :
+    ⊢ walOldsRes (W := W) Ls ==∗ walOldsRes (W := W) Ls ∗ walOldFrag (W := W) dir lay.cuts lay.old.length := by
+  unfold walOldsRes
+  iintro ⟨%M, Ha, %h⟩
+  cases hM : M !! (dir, lay.cuts) with
+  | none =>
+    imod walOldFrag_insert (W := W) M dir lay.cuts lay.old.length hM $$ Ha with ⟨Ha, Hk⟩
+    imodintro
+    iframe Hk
+    iexists _
+    iframe Ha
+    ipureintro
+    intro dir' c k hk
+    by_cases e : (dir, lay.cuts) = (dir', c)
+    · obtain ⟨rfl, rfl⟩ := Prod.mk.inj e
+      rw [GMap.lookup_insert] at hk; cases hk
+      exact ⟨lay, hl, List.prefix_refl _, fun _ => rfl⟩
+    · rw [GMap.lookup_insert_ne _ _ e] at hk
+      exact h dir' c k hk
+  | some k =>
+    obtain ⟨la, hla, -, hk⟩ := h dir lay.cuts k hM
+    rw [hl] at hla; cases hla
+    icases walOldsAuth_get (W := W) M dir la.cuts k hM $$ Ha with ⟨Ha, Hk⟩
+    rw [← hk rfl]
+    imodintro
+    iframe Hk
+    iexists M
+    iframe Ha
+    ipureintro; exact h
+
+/-- **A tail's old length read off the map**: the length of `old` while the cuts are `c`. -/
+theorem walOldsRes_agree (Ls : GMap GoString WalLay) (dir : GoString) (c : List Nat) (k : Nat) :
+    ⊢ walOldsRes (W := W) Ls -∗ walOldFrag (W := W) dir c k -∗
+      ⌜∀ lay, Ls !! dir = some lay → lay.cuts = c → k = lay.old.length⌝ ∗ walOldsRes (W := W) Ls := by
+  unfold walOldsRes
+  iintro ⟨%M, Ha, %h⟩ Hk
+  icases walOldFrag_lookup (W := W) M dir c k $$ Ha Hk with %hM
+  isplitr
+  · ipureintro
+    intro lay hl hc
+    obtain ⟨la, hla, -, hk⟩ := h dir c k hM
+    rw [hl] at hla; cases hla
+    exact hk hc.symm
+  iexists M
+  iframe Ha
+  ipureintro; exact h
+
 /-- **The open handles' tails** (W6): the invariant's half of the tails' authority, a change in
 flight only on a registered tail (`TailsOnly`), and for each directory with an open handle, its WAL
 and layout, the last segment, F-Z, the record boundary (`TailBound`), and the invariant's half of the
-tail; every other WAL idle (`WalTailIdle`). -/
+tail; every other WAL idle (`WalTailIdle`); the tails' old lengths (`walOldsRes`). -/
 def walTailsRes (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ T : GMap GoString GName, walTailsAuth (W := W) T ∗ ⌜TailsOnly T Ls F⌝ ∗
     ⌜WalTailIdle C Mr s Ls T⌝ ∗
-    [∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
+    ([∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
         TailBound C Mr d lay⌝ ∗
-      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))
+      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino))) ∗ walOldsRes (W := W) Ls)
 
 instance walTailsRes_timeless (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) :
