@@ -641,6 +641,45 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   absent source (`ENOENT`, no effect).
 - **Decision.** (1) adopted (coordinator); (2), (3) pending the coordinator.
 
+## 2026-11-14: `wal.Create.spec` (the part's, over `fsExt`) -- the initial snapshot record's bytes
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`.
+- **Defect.** `Create` writes `&walpb.Snapshot{Index: new(0), Term: new(0)}` through `SaveSnapshot`
+  (S/wal.go:181), whose bytes are protobuf-go's (`snapEnc snapC0`; `SaveSnapshot.specPre` writes
+  `Mr.encSnap sm` of a `walSnapAt Mr sp sm cs`, which ties the object's encoding to `Mr.encSnap`). The
+  committed state `walDurFresh md` has `Mr.snap0` there (`hdrDs`). Nothing relates `Mr.snap0`, `Mr.encSnap`
+  and `snapEnc`: with an arbitrary marshaller the spec's commit is false.
+- **Evidence.** `Create.wp_proof`'s `SaveSnapshot` step (`wal-create15`); `WalEncRecs.lean` (`hdrDs`).
+- **Change (made).** Premise `WalMarshalCreateOk Mr` (`CreateSnap.lean`: `Mr.snap0 = snapEnc snapC0 ∧
+  Mr.encSnap snapC0.model = Mr.snap0`), a pure fact of the client's marshaller parameter, which the
+  server meets with the real one (as `walSnapAt`'s tie, ledger 2026-11-13).
+- **Decision.** Adopted (minor: a pure premise on a parameter, no ghost state; `wal-create15`).
+
+## 2026-11-14: `wal.WAL.renameWALUnlock.spec` (internal, the part's) -- (2) Create-specific: blocked on `Open`'s update
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWALUnlock.lean`, defect (2) of the
+  entry above, and the coordinator's decision (b) (make `renameWAL`/`renameWALUnlock` `Create`-specific, naming
+  `walAreaRes`, `walUnlockedTok` and the client's update on `walDirIs dir`).
+- **Finding (`wal-create15`).** `Create`-specific statements give `walAreaRes jr` (`Create` holds it through
+  `walAreaRes_open`'s parts, merged back by `walInv_merge2` after the unminting or the commit) and
+  `walUnlockedTok` (the commit's `walCreateQ` returns `walLockedTok`; `Close` of the pre-rename `w` does not
+  give it back, so the retry must release it first: `walLockedTok_unlock` needs the handle's
+  `walOutFrag`/`walTailsFrag`/`walNamesFrag none`, which `walCreateQ (some x)` holds). **But `Open`'s update
+  cannot be built**: after the second rename commits, the client's update (`walAbsent dir` to `walDiskAt dir
+  (walDurFresh md)`) has been spent (its `COMM Q` is in `walCreateQ (some x)`), and `Open.spec` asks for an
+  atomic update on `∃∃ o, walDirIs dir o`, which only the client's resources open. `Create` owns no
+  `walDirIs`/`walDiskAt` fragment after the commit (they are the client's, inside `Q`). So the retry's
+  `Open`/`ReadAll` are provable only if `Create.spec` takes a **second client update** for the reopen
+  (`AU <{ ∃∃ o, walDirIs dir o }> @ walAuMask, ∅ <{ walDirIs dir (o.map …), COMM Q' o }>`, used only on the
+  retry path; on every other path returned or dropped), or if `Create`'s success arm on the retry path
+  returns without the reopened handle (not what the code does).
+- **Evidence.** `Open.spec`'s pre (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean`); `walCreateQ`
+  (`CreateAu.lean`); `Create.spec`'s pre.
+- **Change.** None made: a second client update in `Create.spec` is a change to the client's contract (the
+  coordinator's / the user's decision). (3) (the second rename's absent source) and (1) (the pre carries the
+  encoder and the tail file) are independent of it.
+- **Decision.** Pending the coordinator.
+
 ## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`, new): the main
