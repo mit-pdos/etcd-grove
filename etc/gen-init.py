@@ -2971,6 +2971,10 @@ NT_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
 NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}':
                f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{ex}/cmd/{n}/PkgTable.lean'
                for ex, ns in NT_NODES.items() for n in ns}
+# The counterexample of notes/axiom-review/tcp-semantics.md, v3 (a deadline set during a Write).
+NT_PKGS += ['github_com.mit_pdos.etcd_grove.examples.axiomcx.tcp_writedeadline']
+NT_PROGRAMS['github_com.mit_pdos.etcd_grove.examples.axiomcx.tcp_writedeadline'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/tcp_writedeadline/PkgTable.lean'
 
 
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their

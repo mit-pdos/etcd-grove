@@ -286,3 +286,191 @@ All four recommendations were applied in `GooseLang/Ext/Tcp/Impl.lean`:
 
 The seven examples' proofs were re-checked over the revised semantics.
 
+## v3 (2026-11-14)
+
+Reviewed by the `axiom` skill, adapted to a trusted operational semantics, on branch `net-tcp` at
+`da41275c2a`: semantics v3 (commits `c974721af7`, `0be9b1f622`, `580758abba`;
+`notes/net-tcp-v3-plan.md`, D14-D21), the same target (Linux 7.0.0-38-generic, default sysctls,
+Go 1.27.3, sources read in `/usr/local/go/src`). Read whole: `GooseLang/Ext/Tcp/{Impl,Deploy,Ghost,
+Adequacy}.lean`, `NetTcp/TrustedCode/net.lean`, `NetTcp/Code/net.toml`, `net`'s package fact and
+initializer (`NetTcp/Proof/net/{Base,Init}.lean`) and the copied initializers of `os`,
+`internal/poll`, `syscall` (proved from their translations, so they add no trust).
+
+**Verdict: refuted.** A `Write` is one step of the semantics, and `WriteOutcome` (D2) lets it time
+out only if the end's write deadline is set *at that step*. Go's `Write` is a loop of `write(2)`
+calls that checks the deadline in every wait: a deadline set by another goroutine while the `Write`
+blocks, after the peer has read some of its bytes, makes it return `(n, os.ErrDeadlineExceeded)`.
+In the semantics the bytes the peer read must have been appended by the `Write`'s step, which
+therefore came before the deadline was set: the timeout is excluded.
+`examples/axiomcx/tcp-writedeadline` panics in 99 of 100 runs and has a closed no-panic theorem
+over the semantics, `writedeadline_safety`, with no `sorry` and no axiom but Lean's, the
+translation's axiomatized Go types and Perennial's `time.Now.wp_proof` (the list
+`emptywrite_crash_safety` printed). Everything else attacked survives (the table below).
+
+### R1. A deadline set while a `Write` blocks (D2, D5)
+
+**The gap.** `WriteOutcome st d bs k res d'` (`Impl.lean`): every clause with `res = some .timeout`
+has `st.wdl = true`, `st` the end's state at the `Write`'s one step; on an open direction the same
+step appends the `k` bytes it counts. Lean: `write_noTimeout`
+(`NetTcp/Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/tcp_writedeadline/Main.lean`).
+
+**Go and Linux.** `(*poll.FD).Write` (`internal/poll/fd_unix.go`, go1.27.3): `prepareWrite` checks
+the deadline once, then the loop calls `write(2)` and, on `EAGAIN`, `fd.pd.waitWrite`, which returns
+`ErrDeadlineExceeded` as soon as the write deadline passes, including a deadline set after the
+`Write` began (`SetDeadline`/`SetWriteDeadline` re-arm the poller's timer,
+`runtime_pollSetDeadline`, and wake a waiter whose deadline has passed); the `Write` returns
+`(nn, err)`, `nn` the bytes already in the kernel. Measured (`examples/axiomcx/tcp-writedeadline`,
+`TestWriteDeadlineSetDuring`, `-count=20` passes): a 32 MiB `Write` on a loopback connection
+blocks; the peer reads one byte; another goroutine sets the writer's deadline
+(`SetDeadline(time.Now())`, or `SetWriteDeadline(time.Now().Add(100ms))`, which expires while the
+`Write` blocks):
+
+```
+now:    Write = (2633835, ...: i/o timeout), Err *poll.DeadlineExceededError, Timeout true; the peer read 2633835 bytes, then EOF
+future: Write = (2633835, ...: i/o timeout), Err *poll.DeadlineExceededError, Timeout true; the peer read 2633835 bytes, then EOF
+```
+
+The `Err` is `os.ErrDeadlineExceeded` itself, `0 < n < len`, and the peer reads exactly `n` bytes:
+the shape of `TestWriteDeadlinePrefix`, whose deadline is set *before* the `Write` (the case the
+semantics covers). `TestWriteCloseRace` is the same race with `Close`, which D15 covers because its
+`closed` clause has no precondition on the end's state.
+
+**The program** (`examples/axiomcx/tcp-writedeadline/writedeadline.go`; one node, plan
+`{127.0.0.1:7197 ↦ its host}`, well formed):
+
+```go
+func reader(a, c net.Conn) {
+	b := make([]byte, 1)
+	if _, err := a.Read(b); err == nil {
+		c.SetDeadline(time.Now()) // one of the Write's bytes arrived: the Write has started
+	}
+}
+
+func Main() {
+	l, err := net.Listen("tcp", Addr)
+	if err != nil { return }
+	c, err := net.Dial("tcp", Addr)
+	if err != nil { return }
+	a, err := l.Accept()
+	if err != nil { return }
+	go reader(a, c)
+	_, err = c.Write(make([]byte, Size)) // 32 MiB: more than loopback's socket buffers hold
+	if err != nil {
+		oe := err.(*net.OpError)
+		if _, ok := oe.Err.(*os.SyscallError); !ok && oe.Timeout() {
+			panic("tcpwritedeadline: a Write timed out, its deadline set while it ran")
+		}
+	}
+}
+```
+
+Go (`TestMainPanics`, each run its own process, `repeat.sh`): **99 of 100, and 198 of 200, runs
+panic**. In the others the new connection's `Write` fails with `ECONNRESET` (an `*os.SyscallError`:
+no panic; 3 of 1500 runs of the same body): the fixed port's 4-tuple is probably reused from the
+previous run's connection, which its process's exit reset. A reset is a cut, which the model
+allows, so the theorem covers those runs too.
+
+**The proof.** Translated by the pinned goose (project `nettcp`, package
+`../axiomcx/tcp-writedeadline`; package init and table by `etc/gen-init.py`, `NT_PKGS`/
+`NT_PROGRAMS`). `Main.lean`'s `wp_Main` is the triple `{{ isPkgInit pkg ∗ tcpPlan G addr host ∗
+⌜G.plan !! addr = some host⌝ ∗ tcpPend G addr ∅ }} Main #() {{ RET #(); True }}` from the specs of
+`net.Listen`, `Dial`, `Listener.Accept`, `Conn.Read`, `Conn.Write`, `Conn.SetDeadline`,
+`OpError.Timeout` (all proved from the trusted models over the extension) and `time.Now.spec`. The
+ghost argument (`raceInv`): the dialer's end and its direction are in an invariant that is *before
+the write* (the direction empty, `wdl = false`, the reader's token `γr` inside) or *after* (the
+writer's token `γw` inside, and `γr` until the reader takes it). The `Write` holds `γw`, so its step
+finds *before*: no deadline, no timeout (`write_au`). A `Read` of one byte from an empty direction
+returns no bytes and leaves it empty (`read_empty`), so a `Read` that returns a byte finds *after*
+and takes `γr` (`read_au`); holding `γr`, the `SetDeadline` finds *after* (`deadline_au`). So the
+`Write`'s error is `nil`, or an `*OpError` whose `Err` is an `*os.SyscallError` (the type
+assertion succeeds) or `poll.ErrNetClosing` (whose `Timeout()` is `false`, `ErrFlag`): `Main` never
+reaches the panic. `Results.lean`'s `writedeadline_safety` is the closed theorem over Perennial's
+`goose_dist_adequacy` (executions without crashes, as Go's run is): from a local state with no
+package initialized and its main thread, the node's host `h`, the plan with `Addr` at `h`, well
+formed (`PlanWellFormed`, checked by `decide`), the network with no connection, no thread is stuck
+and none has an unrecovered panic. `flock .lake/agent-build.lock lake build
+NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.axiomcx.tcp_writedeadline.Results`: built;
+`#print axioms writedeadline_safety`: `propext`, `Classical.choice`, `Quot.sound`, the translation's
+axiomatized types (`net.Dialer`, `net.netFD`, ..., `os.Process`, `sync.Map`, ...) and
+`time.Now.wp_proof`; no `sorryAx`.
+
+Why not the crash form (`goose_dist_crash_adequacy`, as the examples): with crashes the program is
+not safe in the model either, for a reason that is not this gap (N1): a connection dialed before a
+crash stays pending (D7) with the bytes its dead dialer wrote, a restarted node may accept it
+instead of its own, read a byte its own `Write` did not write, and set the deadline before its own
+`Write`'s step. Go's run has no crash, so the crash-free theorem is the refutation.
+
+**What rests on it.** No example sets a deadline while another goroutine writes on the same end
+(`preface` sets and clears deadlines in the goroutine that reads and writes), and no proof of the
+examples mentions `wdl`, so no exported result is known to be false; but every theorem over the
+extension is about a semantics with this gap.
+
+**Proposed fixes (not applied: a trusted change, for the user).**
+
+1. The faithful one: make `"Write"` the loop it is. `WriteStep` may append a non-empty proper
+   prefix of `bs` (open direction, end not closed) and continue as `ExternalOp "Write"` of the
+   rest, carrying the count so far (or the trusted `conn.Write.impl` loops over the extension's op,
+   as `poll.FD.Write` loops over `write(2)`); each step's outcome is the present `WriteOutcome` on
+   the current state, its count added. A timeout then needs a deadline set at the step that times
+   out, as in Go, and the bytes appended by earlier steps are what the peer may already have read.
+   The `Conn.Write` spec becomes a sequence of updates, so `wire.write_au` and the examples' write
+   proofs change.
+2. The small one: drop `st.wdl = true` from `WriteOutcome`'s three timeout clauses (a `Write` may
+   time out whatever the deadline when its step is taken), and say in D2 and D5 why. Sound (it only
+   adds behaviours); it loses "a `Write` on an end that never had a deadline does not time out",
+   which no proof uses today (`wdl` appears only in `Impl`, `Ghost`, `Tests` and this
+   counterexample).
+
+Either way `doc.go` gets a row for `TestWriteDeadlineSetDuring` (REFUTES D2/D5, then "allowed"),
+and once applied `writedeadline_safety` no longer holds: take the translation and the proof out of
+project `nettcp` (`etc/goose.py`, `etc/gen-init.py`), as the v2 review's were, keeping the program
+and its test. Reads need no change: a timed-out `Read` consumes nothing, so its step can be placed
+after a concurrent `SetDeadline`.
+
+### Findings that are not refutations
+
+- **N1. Stale pending connections across a crash** (above): the model lets a restarted node accept
+  a connection dialed by its previous incarnation, with its bytes, which Linux resets (D7 says so).
+  Sound, but a crash theorem cannot rely on "the connection I accepted is the one I dialed" even for
+  a node that dials only its own listener.
+- **N2. `CloseWrite` of a closed TCP socket.** Linux's `inet_shutdown` in `TCP_CLOSE` returns
+  `ENOTCONN` and still sets `SEND_SHUTDOWN` (`fallthrough`): later writes fail with `EPIPE`.
+  `CloseWriteOutcome`'s `sys` branch leaves the direction unchanged; since any later `Write` on an
+  open direction may fail anyway, this is sound (the v2 review's row 15 found it by measurement).
+- **N3. `TestWildcardListen` measures one order only** (a wildcard open, then the specific
+  address). `examples/axiomcx/tcp-writedeadline`'s `TestListenOrders` measures both orders and the
+  three spellings pairwise: every pair is `EADDRINUSE`, so D6/D21's forced failure holds.
+- **N4. A fresh loopback connection can be reset at once** when a fixed port is reused across runs
+  (R1's failed runs): a cut, allowed.
+
+### Attacks that failed (v3)
+
+| # | Attack | Outcome | Evidence |
+|---|---|---|---|
+| 1 | `closed` is `poll.ErrNetClosing` (`errNetClosing{}`) for `Read`, `Write`, `Close`, `CloseWrite`, `SetDeadline`, `Accept`, `LisClose` on a closed end or listener; never on one not closed | Go's: `fdmu` stays closed after `increfAndClose`; `readLock`/`writeLock`/`incref` fail with `errClosing(false)`; only `Close` evicts the poller | `internal/poll/fd_unix.go`, `fd_mutex.go`, `fd_posix.go` (`Shutdown`) |
+| 2 | `timeout` is `poll.ErrDeadlineExceeded`, unwrapped (`wrapSyscallError` wraps only `Errno`) | Go's | `net/fd_posix.go`; `TestDeadlineErrors` |
+| 3 | `sys` names: `"read"`, `"write"` (`fd_unix.go:18,21`), `"shutdown"` (`netFD.shutdown`), `"accept4"` (`poll.FD.Accept`'s `errcall`); `Dial`/`Listen` arbitrary | Go's | `net/fd_posix.go`, `internal/poll/sock_cloexec.go` |
+| 4 | `OpError` fields per operation: `Op`; `Net` (`fd.net` is `"tcp"`, MPTCP listeners and wildcards included); `Source`/`Addr` (conn ops `laddr`/`raddr`; deadlines `nil`/`laddr`; `Accept` and the listener's `Close` `nil`/`laddr`; `Dial` `nil` (`sd.LocalAddr`) and the resolved address, also on `dialSerial`'s timeout paths; `Listen` `nil`/`la`) | Go's (`net.go:198-299`, `tcpsock.go:376-401`, `dial.go:739-810, 903`); the paths with `Addr: nil` (resolution failures) are unreachable for plan strings | source |
+| 5 | `OpError.Timeout`/`Temporary`: `errNetClosing` false, `*DeadlineExceededError`/`*timeoutError` true, else arbitrary; program-built `OpError`s (`Op: "accept"` with `syscall.ECONNRESET`, a nil `Err`, an `*os.SyscallError` around a timeout) | a superset of `net.go:539-565` | source |
+| 6 | Type assertions (`*OpError`, `*os.SyscallError`, `syscall.Errno`; `io.ReaderFrom` on a `*TCPConn`) | goose emits Go's full method sets (`MethodSetIs`), untranslated methods included | `NetTcp/Code/net.lean` |
+| 7 | `errors.Is(err, context.DeadlineExceeded)` on a `DialTimeout` timeout | `timeoutError.Is` translated; `DeadlineExceededError` has no `Is`: both as Go | source |
+| 8 | D17: `Close` of an open end or listener fails | never: `close(2)` of a socket returns 0 (no `flush`); `Close` waits for concurrent I/O (`csema`) and still returns `nil` | `poll.FD.Close`, `destroy` |
+| 9 | `SetDeadline` of an open end fails | never (`ErrNoDeadline` needs an unregistered fd, which fails the `Dial` or `Accept`) | `setDeadlineImpl` |
+| 10 | D15: `(k > 0, ErrClosed)`, the peer reading `k` | allowed (no precondition) | `TestWriteCloseRace` |
+| 11 | A blocked `Write` and a concurrent own `CloseWrite`: `(k > 0, EPIPE)`, the peer reads `k`, then EOF | allowed: the `Write` steps first (`sys`, cut), `CloseWrite` of a cut direction succeeds, a cut direction reads its bytes then EOF | conform README (`writeclosewrite`) |
+| 12 | **A deadline set during a blocked `Write`** | **refuted** (R1) | above |
+| 13 | A `Read` timing out, its deadline set during it | allowed: a timeout changes nothing, so the `Read` steps after the `SetDeadline` | `ReadAvail` |
+| 14 | D16: a failed `DialTimeout`'s connection accepted, reading EOF or a reset | allowed (for every dial) | `TestDialTimeoutAccepted` |
+| 15 | D19: `DialTimeout`'s errors: `errTimeout` (`mapErr`; also `partialDeadline` and the `ctx.Done()` checks), `ErrDeadlineExceeded` (`WaitWrite`), `*os.SyscallError`; `errCanceled` unreachable (no cancel before return); a success leaves no deadline (`context.AfterFunc`'s `stop()` false turns a success into `errTimeout`; the deferred `SetWriteDeadline(noDeadline)` runs last) | as the model; a timeout of 0 means none (a superset) | `net/fd_unix.go:50-147`, `dial.go` |
+| 16 | D18: `LocalAddr`/`RemoteAddr` nil or changing | never: `getsockname` of a TCP socket does not fail (`inet_getname`, peer 0); `accept4`'s address is AF_INET/AF_INET6; `dial`'s `raddr` falls back to the dialed one; stored once (`setAddr`), returned as stored | `sock_posix.go:136-143`, `fd_unix.go:162-163`; `TestAddrs` |
+| 17 | D21: the forced failure in both orders, all spellings | `EADDRINUSE` in every pair | `TestListenOrders` (N3) |
+| 18 | D21: a wildcard listener accepts dials the model routes elsewhere | only dials to a plan address with its port, unique in the plan; a plan address not on the node's machine only removes real behaviours (the real `Dial` fails) | `ListenAt` |
+| 19 | Two nodes with one host string both listening at one address | the model allows the second success (more than Linux) | `ListenStep` |
+| 20 | `PlanWellFormed`'s parser: leading zeros, `+`, whitespace, empty parts, extra colons, ports 0 or above 65535, `0.x`, multicast | all rejected (`decNat`, `isDigit`, `splitBy`); accepted strings are Go's canonical IPv4 literals, distinct sockets; broadcast-like addresses below 224 (`127.255.255.255`, a subnet's broadcast) only make `Listen`/`Dial` fail, which is allowed | `Deploy.lean` |
+| 21 | Package facts: `ErrClosed`/`errClosed` hold `errNetClosing{}`, `errTimeout` a `*timeoutError`, `os.ErrDeadlineExceeded` is `poll`'s pointer | proved from the translated initializers (`errClosed`'s trusted one stores the zero value, as Go's `errClosed = poll.ErrNetClosing`) | `NetTcp/Proof/net/Init.lean`, `Code/os.lean` |
+| 22 | Zero-size pointers (`&DeadlineExceededError{}`, `&timeoutError{}` may compare equal in Go) | unobservable: both unexported, the model reads the variables | — |
+| 23 | The initial state: `initgP` (no connection), arbitrary listeners and host, the plan in the ghost state | proved; an arbitrary initial `lis` only strengthens the theorems | `Ghost.lean` |
+
+Not tried: listener deadlines and the other unmodelled methods (stuck), IPv6-only hosts, `GODEBUG`
+variations, memory exhaustion (D12).
+
