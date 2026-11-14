@@ -6,11 +6,14 @@ of D2 2026-11-04; the shapes in `CompactorDefs.lean`). Lean-first (no Rocq count
 `Get(ctx, compact_rev_key)` through the client's KV (`clientKvOk`) with the caller's read update
 (`keyReadOk`); the key's value, if present, parsed (`ParseInt`); the header's revision. On success,
 the value parsed is a compaction revision (`recRevOk`: the key holds `keyValOk` values, `0` if
-absent) and the revision read is at least `1` (`keyHistOk`'s): where the loop's watch starts.
+absent) and the revision read is at least `1` (`keyHistOk`'s): where the loop's watch starts. The
+error is one `fmt` formats by its `Error()` (`fmt.argOk`: `fmt.Errorf`'s; klog-args-fix, 2026-11-14,
+for the caller's `klog.Errorf`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -41,7 +44,7 @@ abbrev compactor.getCompactRev.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"getCompactRev")) (Val #(GoInterface.ok ci)))
   {{ (cr cur : w64) (err : GoInterface), RET (PairV (PairV #cr #cur) #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨
+      (fmt.argOk err ∗ ⌜err ≠ GoInterface.nil⌝) ∨
         (⌜err = GoInterface.nil ∧ 1 ≤ sint.Z cur⌝ ∗ recRevOk γk recorded cr) }}
 
 end spec

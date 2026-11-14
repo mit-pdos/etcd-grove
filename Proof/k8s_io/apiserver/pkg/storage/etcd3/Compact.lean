@@ -346,7 +346,11 @@ theorem Compact.wp_proof
     iframe #
     isplitr
     · unfold recRevOk; ileft; ipureintro; rfl
-    ipureintro; intro _; rfl
+    isplitr
+    · ipureintro; intro _; rfl
+    iunfold kvErr at Hke
+    icases Hke with ⟨-, #Hse, -⟩
+    iapply fmtArgOk_of_statusErrOk $$ Hse
   subst Herr
   obtain ⟨hok, hrel, hpos⟩ := Hσ
   iunfold txnRespMsg at Hm
@@ -444,7 +448,9 @@ theorem Compact.wp_proof
       icases Hoc with (%Hc0 | ⟨%Hcpos, #Hclb⟩)
       · ileft; ipureintro; exact Hc0
       · iright; iframe #; ipureintro; exact Hcpos
-    ipureintro; intro h; exact absurd rfl h
+    isplitr
+    · ipureintro; intro h; exact absurd rfl h
+    unfold fmt.argOk; itrivial
   · -- the compare held: the put, then the compaction
     rw [hs] at hok
     rw [← hok]
@@ -457,7 +463,9 @@ theorem Compact.wp_proof
       iframe #
       isplitr
       · unfold recRevOk; ileft; ipureintro; rfl
-      ipureintro; intro _; rfl
+      isplitr
+      · ipureintro; intro _; rfl
+      unfold fmt.argOk; itrivial
     -- the client's `Compact(rev)`, `rev` reached
     ihave #Hrev' := Hrev
     iunfold revOk at Hrev'
@@ -483,10 +491,17 @@ theorem Compact.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl5 -
+      iintro %sl5 ⟨Hsl5, -⟩
       wp_auto
       wp_apply wp_V (W32 4) as %vb -
-      wp_apply wp_Infof vb _ _ $$ []
+      wp_apply wp_Infof vb _ _ _ _ $$ [$Hsl5 Hesl] as -
+      · iframe #
+        klog_args_intro
+        isplitl []
+        · iapply klog.argOkAt_int64
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        itrivial
       (try wp_auto)
       iapply HΦ
       iframe #
@@ -496,7 +511,9 @@ theorem Compact.wp_proof
         · ipureintro; exact Hrpos
         iframe
         iframe #
-      ipureintro; intro h; exact absurd rfl h
+      isplitr
+      · ipureintro; intro h; exact absurd rfl h
+      unfold fmt.argOk; itrivial
     · cases cerr with
       | nil => exact absurd rfl Hce0.1
       | ok ei => ?_
@@ -505,7 +522,11 @@ theorem Compact.wp_proof
       iframe #
       isplitr
       · unfold recRevOk; ileft; ipureintro; rfl
-      ipureintro; intro _; rfl
+      isplitr
+      · ipureintro; intro _; rfl
+      iunfold kvErr at Hcke
+      icases Hcke with ⟨-, #Hse, -⟩
+      iapply fmtArgOk_of_statusErrOk $$ Hse
 
 end proof
 

@@ -39,6 +39,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import GeneratedProof.k8s_io.utils.clock
 public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -323,6 +324,41 @@ theorem isCompactor_core [sync.Assumptions] (c cl : Loc) (γk : KVNames)
   iexact H
 
 end defs
+
+section fmtarg
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+open Iris.ProofMode in
+/-- An error whose `Error()` returns and that has no `Format` (`errStrOk`) is one `fmt` formats by
+its `Error()` (`fmt.argOk`): what the compactor's `klog.Errorf` needs of the loops' errors
+(klog-args-fix, 2026-11-14). -/
+theorem fmtArgOk_of_errStrOk (err : GoInterface) :
+    go_etcd_io.etcd.cache.v3.errStrOk (GF := GF) err ⊢ fmt.argOk err := by
+  cases err with
+  | nil => iintro -; unfold fmt.argOk; itrivial
+  | ok e =>
+    unfold go_etcd_io.etcd.cache.v3.errStrOk fmt.argOk
+    iintro #H
+    ihave ⟨#HS, %hF⟩ := H $$ %e %rfl
+    iright; ileft
+    isplitr
+    · rw [show fmt.stringMethodSpec e go!"Error" = go_etcd_io.etcd.cache.v3.errorStringSpec e
+        from rfl]
+      iexact HS
+    · ipureintro; exact hF
+
+open Iris.ProofMode in
+/-- A client error grpc's `status` accepts (`statusErrOk`, `kvErr`'s) is `fmt.argOk`. -/
+theorem fmtArgOk_of_statusErrOk (err : GoInterface) :
+    go_etcd_io.etcd.cache.v3.statusErrOk (GF := GF) err ⊢ fmt.argOk err := by
+  iintro #H
+  iapply fmtArgOk_of_errStrOk
+  iapply go_etcd_io.etcd.cache.v3.errStrOk_of_statusErrOk $$ H
+
+end fmtarg
 
 end k8s
 end EtcdGrove

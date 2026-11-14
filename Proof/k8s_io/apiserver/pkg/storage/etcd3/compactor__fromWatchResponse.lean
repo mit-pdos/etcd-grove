@@ -53,12 +53,17 @@ theorem compactor.fromWatchResponse.wp_proof
   wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hse] as %err1 ⟨resp, %Herr1, -⟩
   cases err1 with
   | ok e1 =>
-    -- an error response: `Err()` again, non-nil too
+    -- an error response: `Err()` again, non-nil too, and `fmt.argOk` (its `errStrOk`, from the
+    -- close error's `statusErrOk`)
     (try wp_auto)
-    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hse] as %err2 ⟨resp, %Herr2, -⟩
+    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hse] as %err2 ⟨resp, %Herr2, #Hes2⟩
     (try wp_auto)
     iapply HΦ
     ileft
+    isplitl
+    · iapply fmtArgOk_of_errStrOk
+      iapply Hes2
+      iapply go_etcd_io.etcd.cache.v3.errStrOk_of_statusErrOk $$ Hse
     ipureintro
     intro h2
     have := Herr1.2 (Herr2.1 h2)

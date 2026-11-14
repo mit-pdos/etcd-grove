@@ -171,11 +171,19 @@ theorem compactor.getCompactRev.wp_proof
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     wp_auto
-    wp_apply wp_Errorf $$ [$Hsl] as %e2 -
+    wp_apply wp_Errorf $$ [$Hsl] as %e2 ⟨-, #He2, %He2t, -⟩
     · iframe #
       fmt_args_ok
     iapply HΦ
-    ileft; ipureintro; simp
+    ileft
+    isplitl
+    · -- `fmt.Errorf`'s error: `fmt.argOk` by its `Error()`
+      unfold fmt.argOk
+      iright; ileft
+      isplitr
+      · iexact He2
+      · ipureintro; exact He2t.1
+    ipureintro; simp
   -- the `Get` succeeded
   subst Herr
   obtain ⟨hhdr, hfit, hkvs⟩ := Hσ

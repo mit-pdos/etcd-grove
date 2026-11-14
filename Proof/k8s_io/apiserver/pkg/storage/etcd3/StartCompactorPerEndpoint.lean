@@ -143,7 +143,13 @@ theorem StartCompactorPerEndpoint.wp_proof
       (try wp_auto)
       wp_apply wp_V as %vb -
       (try wp_auto)
-      wp_apply wp_Infof
+      -- the endpoints: a fresh `[]string`, owned
+      wp_apply wp_Infof _ _ _ _ _ $$ [$Hasl Hesl2] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl2]
+        · iapply klog.argOkAt_strSlice $$ Hesl2
+        itrivial
       (try wp_auto)
       wp_for_post
       wp_apply (sync.Mutex.wp_Unlock _ registryInv) $$ [Hlocked Hmp Hm Hents]

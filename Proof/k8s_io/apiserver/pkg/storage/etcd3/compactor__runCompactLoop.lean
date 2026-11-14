@@ -108,7 +108,7 @@ theorem compactor.runCompactLoop.wp_proof
   · iintro %t
     (try wp_auto)
     wp_apply (wp_Compact cl ms V γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret)
-        $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr⟩
+        $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr, Herrf⟩
     · iframe #
     cases err with
     | ok ei =>
@@ -120,9 +120,20 @@ theorem compactor.runCompactLoop.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl -
+      iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_Errorf _ _ $$ []
+      -- the endpoints (a fresh `[]string`, owned) and the round's error (`fmt.argOk`, Compact's)
+      wp_apply wp_Errorf _ _ _ _ $$ [$Hsl Hesl Herrf] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        isplitl [Herrf]
+        · iapply klog.argOkAt_of_argOk
+          isplitr
+          · ipureintro; decide
+          iexact Herrf
+        itrivial
       (try wp_auto)
       wp_for_post
       iframe
