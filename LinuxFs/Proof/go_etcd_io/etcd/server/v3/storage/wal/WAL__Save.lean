@@ -55,6 +55,14 @@ theorem save_slen_zero (sl : GoSlice) (xs : List Loc) (h1 : xs.length = sint.nat
     have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
     word
 
+/-- An offset below ext4's maximum, as a signed word (`cut`'s `cut_off_toInt`). -/
+theorem save_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
+    0 ≤ (W64 ((a : Int) + (b : Int))).toInt ∧ (W64 ((a : Int) + (b : Int))).toInt ≤ 0xffffffff000 ∧
+      (W64 ((a : Int) + (b : Int))).toInt = a + b := by
+  have : (W64 ((a : Int) + (b : Int))).toInt = a + b := by
+    word
+  omega
+
 /-- **`Save`'s success post** from a quiescent handle (`hc.Done`) and the sync's wand. -/
 theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (hs : HardStateM)
     (es : List EntryM) (Q : WalDur → IProp GF) (h hc : WalHS) (hD : hc.Done)
@@ -76,6 +84,7 @@ theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) 
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAssumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_saveEntry : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.spec (W := W) P Mr)
@@ -193,6 +202,123 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   wp_apply (wp_mustSync hp' sp' hs h1.st sl.len) $$ [] as %ms %hms
   · iframe Hhs' Hst'
   ihave Hh := Hback $$ Hsp Hst'
+  rename_i _ i_ptr_1
+  have hst1 : h1.st = walLastHS (h.H.map WalOpG.toM) := hs0.st.trans hD.2
+  have hsl : sint.nat sl.len = es.length := by omega
+  -- the entries' records: after `j` of them, the handle at `SaveSt … j`
+  ihave HI : (∃ (j k0 : w64) (hc : WalHS),
+      "i" ∷ i_ptr ↦ j ∗ "i0" ∷ i_ptr_1 ↦ k0 ∗ "Hh" ∷ walHandleIn P Mr w dir hc ∗
+      "%Hs" ∷ ⌜SaveSt Mr h hs es (sint.nat j) hc⌝ ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF)
+    $$ [-HΦ Hr HQ «$res0» w Hlocked defer ents st mustSync]
+  · iexists W64 0, _, h1
+    iframe
+    ipureintro
+    exact ⟨hs0, by decide, Nat.zero_le _⟩
+  wp_for HI
+  by_cases Hlt : sint.Z j < sint.Z sl.len
+  · -- an entry
+    rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+    have hjl : sint.nat j < es.length := by
+      have : sint.nat j = (sint.Z j).toNat := rfl
+      have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
+      omega
+    obtain ⟨l, hl⟩ : ∃ l, esL[sint.nat j]? = some l :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    obtain ⟨e, he⟩ : ∃ e, es[sint.nat j]? = some e :=
+      ⟨_, List.getElem?_eq_getElem hjl⟩
+    ihave #Hel := BigSepL2.bigSepL2_lookup hl he $$ Hes
+    have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hlt⟩
+    (try wp_auto)
+    (try simp only [hb, _root_.and_self, ↓reduceIte])
+    wp_apply wp_load_slice_index sl (sint.Z j) esL DFrac.discard l Hj.1 $$ [Hsl] as -
+    · iframe #; ipureintro; exact hl
+    (try wp_auto)
+    (try simp only [hb, _root_.and_self, ↓reduceIte])
+    wp_apply wp_load_slice_index sl (sint.Z j) esL DFrac.discard l Hj.1 $$ [Hsl] as -
+    · iframe #; ipureintro; exact hl
+    (try wp_auto)
+    obtain ⟨hpos, hlast, hrec⟩ := Hs.entryPre hcut hix.2 e he
+    have hei : uint.nat e.Index' < 2 ^ 64 - 1 := hidx e (List.mem_of_getElem? he)
+    wp_apply (wp_saveEntry R jr r w dir hc l e hpos hei hlast hrec) $$ [Hh] as %err Hres
+    · iframe Harea Hh Hel
+    icases Hres with (⟨%herr, %out', %pend', Hh⟩ | %herr)
+    · subst herr
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists j + W64 1, _, _
+      iframe
+      have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      ipureintro
+      refine ⟨?_, ?_, ?_⟩
+      · rw [hj1]; exact Hs.step e he out' pend'
+      · word
+      · omega
+    · rcases err with ei | _
+      rotate_left
+      · exact absurd rfl herr
+      (try wp_auto)
+      wp_for_post
+      (try wp_auto)
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+      (try wp_auto)
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact herr
+      icases HQ with ⟨%d, HQ, -⟩
+      iexists d; iexact HQ
+  -- the entries done
+  rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+  have hje : sint.nat j = es.length := by
+    have : sint.nat j = (sint.Z j).toNat := rfl
+    have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
+    omega
+  rw [hje] at Hs
+  (try wp_auto)
+  -- the state's record
+  wp_apply (wp_saveState R jr r w dir hc hp' hs (Hs.statePre hcut hix0 hix.2)) $$ [Hh] as %err Hres
+  · iframe Harea Hh Hhs'; ipureintro; exact hp'n
+  ihave Hres2 : (⌜err = GoInterface.nil⌝ ∗ ∃ hc2 : WalHS, walHandleIn P Mr w dir hc2 ∗
+      ⌜SaveFin h hs es hc2⌝) ∨ ⌜err ≠ GoInterface.nil⌝ $$ [Hres]
+  · icases Hres with (⟨⟨%herr, %hse⟩, Hh⟩ | ⟨⟨%herr, %hse⟩, %out', %pend', Hh⟩ | %herr)
+    · ileft; iframe; ipureintro; exact ⟨herr, Hs.finEmpty hD hse⟩
+    · ileft; isplitr
+      · ipureintro; exact herr
+      iexists _; iframe Hh; ipureintro; exact Hs.finState hse out' pend'
+    · iright; ipureintro; exact herr
+  icases Hres2 with (⟨%herr, %hc2, Hh, %hf⟩ | %herr)
+  rotate_left
+  · rcases err with ei | _
+    rotate_left
+    · exact absurd rfl herr
+    (try wp_auto)
+    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact herr
+    icases HQ with ⟨%d, HQ, -⟩
+    iexists d; iexact HQ
+  subst herr
+  (try wp_auto)
+  -- the tail's offset
+  icases walHandleIn_seek P Mr w dir hc2 $$ Hh with
+    ⟨%locks, %ls, %lt, %f, %fd, %name, Hlocks, Hls, #Hltf, Hf, Hoff, %hsk, Hback⟩
+  wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+  · iframe
+  ihave #Hlt0 := Hltf
+  iunfold fileutil.lockedFile at Hlt0
+  iStructNamed Hlt0
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) (m := go!"Seek")]
+  wp_call
+  (try wp_auto)
+  obtain ⟨ho1, ho2, ho3⟩ := save_off_toInt hc2.o0 hc2.out.length hsk.2
+  wp_apply (os.File.Seek.wp_cur f fd name (DFrac.own 1) _ hsk.1 ho1 ho2) $$ [$Hf $Hoff] as ⟨Hf, Hoff⟩
+  ihave Hh := Hback $$ Hlocks Hls Hf Hoff
+  (try wp_auto)
   sorry
 
 end proof

@@ -81,6 +81,46 @@ theorem walHandleIn_state (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
   ipureintro
   exact ⟨Hen, Hlt, Hpure⟩
 
+/-- **The handle's tail file and its offset** (for `w.tail().Seek(0, SeekCurrent)`), out and back. -/
+theorem walHandleIn_seek (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (h : WalHS) :
+    ⊢ walHandleIn (W := W) P Mr w dir h -∗ ∃ (locks : GoSlice) (ls : List Loc) (lt f : Loc) (fd : w64)
+        (name : GoString),
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
+      locks ↦* (ls ++ [lt]) ∗ fileutil.lockedFile lt f ∗ os.ownFile f fd name (DFrac.own 1) ∗
+      os.ownOff f (W64 (h.o0 + h.out.length)) ∗
+      ⌜0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ 0xffffffff000⌝ ∗
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks -∗
+        locks ↦* (ls ++ [lt]) -∗ os.ownFile f fd name (DFrac.own 1) -∗
+        os.ownOff f (W64 (h.o0 + h.out.length)) -∗ walHandleIn (W := W) P Mr w dir h) := by
+  iintro Hh
+  iunfold walHandleIn at Hh
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
+    Hopen, %Hpure⟩
+  obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
+  iunfold walTailW at Htw
+  icases Htw with ⟨Hf, Hfdo, Hoff, Htk, %m, %bs, Hm, Hbs, %hmb, Hv⟩
+  iexists locks, ls, lt, f, fd, name
+  iframe Hlocks Hls Hltf Hf Hoff
+  isplitr
+  · ipureintro; exact ⟨hmb.2.2.2, by have := Hpure.2.2.1; have := Hpure.2.2.2.1; omega⟩
+  iintro Hlocks Hls Hf Hoff
+  ihave Htw : walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out
+      $$ [Hf Hfdo Hoff Htk Hm Hbs Hv]
+  · iunfold walTailW
+    iframe Hf Hfdo Hoff Htk
+    iexists m, bs
+    iframe Hm Hbs Hv
+    ipureintro; exact hmb
+  iunfold walHandleIn
+  iexists lg, df, sp, e, fp, lt, f, mds, locks, ls ++ [lt], fd, dfd, name, dnm, j, rc
+  iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+    Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+  ipureintro
+  exact ⟨Hen, Hlt, Hpure⟩
+
 /-- The handle's pure index facts (see the file header). -/
 theorem walHandleIn_idx (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (h : WalHS) :
