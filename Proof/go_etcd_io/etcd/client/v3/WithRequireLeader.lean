@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 parent, decision D1, `notes/k8s-7f5-freeze.md` "T5-a addendum"): `WithRequireLeader(ctx)` is
 `metadata.NewOutgoingContext(ctx, md)`, a `valueCtx` over `ctx` at grpc's `mdOutgoingKey{}`: every
 other key, `Done`, `Err` and `Value(&cancelCtxKey)` (so `Cause`) are the parent's (Go evidence:
-`examples/premisefix/watcherctx/requireleader_spec_test.go`). Over `Background()` it is never done, so
+`examples/premisefix/watcherctx/requireleader_spec_test.go`); over an `isContext` parent it is an
+`isContext` at the same descriptor (k8s 7f-5a, T5-e; `draft7f5a_test.go`). Over `Background()` it is never done, so
 `WithCancel` of it propagates nothing (see the spec). Not translated: proved from a translation it
 would need three or four trusted changes in place of this one (`notes/k8s-7f3a-draft.md` §6, D1). -/
 axiom WithRequireLeader.wp_proof : WithRequireLeader.spec (GF := GF) (hG := hG)

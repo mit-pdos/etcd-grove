@@ -41,6 +41,16 @@ pattern, for a parent the client's watch takes (`watchCtx ctx s`) or `Background
 * answers every key whose type is not grpc's `mdOutgoingKey` as the parent does, in the WP form
   (`c.Value(k)`, from the parent's `ctx.Value(k)` triple) and in the chain form
   (`context.ctxValue`, what a descendant's walk of `context.value` and `WithCancel` carry);
+* (k8s 7f-5a, T5-e, `notes/k8s-7f5a-draft.md` §5) over a parent with Perennial's context model
+  (`context.isContext ctx cd`, for any descriptor `cd`), is one too, at the same descriptor: its
+  `Deadline`, `Done`, `Err` are the parent's (promoted), `Value(&cancelCtxKey)` walks to the
+  parent's, so `parentCancelCtx(c)` (which reads exactly `Done` and that value) succeeds as the
+  parent's does (`HParentCC`); `c`'s type is `*valueCtx`, not `stopCtx`; `HDoneFresh`/`HClosedchan`
+  are ghost or package facts of the same descriptor, and `isContext` never reads `cd.Values`.
+  `WithValue.spec` claims the same for five other key types; this is grpc's `mdOutgoingKey{}`, in
+  both of `WithRequireLeader`'s branches (the parent with or without outgoing metadata). Go
+  evidence: `examples/premisefix/watcherctx/draft7f5a_test.go` (`TestWithRequireLeaderIsContext`,
+  `…IsContextDone`, `TestIsContextCheckDetects`);
 * (the old triple, unchanged, for `Background()`: premise-fixes-7/8, C1) when the parent is
   `Background()`, `WithCancel(c)` is a cancellable context done only when cancelled
   (`propagateCancel` returns at once: `c.Done()` is `nil`), as `context.WithCancelTodo` says of
@@ -81,6 +91,8 @@ abbrev WithRequireLeader.spec : Prop :=
           ⌜∀ k' : GoInterfaceOk, k = GoInterface.ok k' →
             k'.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ -∗
           _root_.Perennial.context.ctxValue ctx k R -∗ _root_.Perennial.context.ctxValue c k R) ∗
+      □ (∀ cd : _root_.Perennial.context.ContextDesc (IProp GF),
+          context.isContext ctx cd -∗ context.isContext c cd) ∗
       (⌜ctx = _root_.Perennial.context.backgroundCtxVal⌝ -∗
         □ iprop({{ isPkgInit (PROP := IProp GF) pkg_id.context }}
           (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(GoInterface.ok c)))

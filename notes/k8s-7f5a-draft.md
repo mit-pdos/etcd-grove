@@ -422,3 +422,9 @@ The review: `/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-
   local axiom only if it is not in before step 4.
 - `klog.Warningf.spec`'s restriction, to align with `notes/klog-args-fix.md`.
 
+**Re-review (etcd-grove-81, 2026-11-14): accepted.** (1) The witness form stays; the 7f-6 plan
+(`notes/k8s-7f-scope.md`, after §9's table) records the driver's move to `WithCancel(Background())`
+with its own `PDone'`. (2) The `WithCancel` gap is an entry in `notes/perennial-changes.md`; a local
+axiom is a stop for 81 if Perennial does not have it by 7f-5a-P's step 4. (3) `klog.Warningf.spec`
+stays restricted until `notes/klog-args-fix.md` lands, then aligns. T5-e lands on its own first.
+

@@ -17,6 +17,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `WithCancel` over a general `isContext` parent loses the parent's Done proposition (2026-11-14, k8s 7f-5a)
+
+What is missing: Perennial's `context.WithCancel.spec` gives the child
+`PDone := parent.PDone ∨ PDone'` only for a parent that is itself a `*cancelCtx` made by `WithCancel`
+(`isCancelCtxCtx`). For any other `isContext` parent (a `*valueCtx` over one, a `*timerCtx`, a
+wrapper whose `parentCancelCtx` succeeds), `wp_WithCancel_any` gives `PDone := True`: an observer of
+the child's closed Done channel learns nothing of why it closed.
+
+What Go does: the child's Done channel is closed by its own cancel function, or by
+`propagateCancel`: if the parent is already done (its Done channel closed), at once; otherwise
+`parentCancelCtx(parent)` finds the `*cancelCtx` `p` whose Done channel is the parent's (it checks
+`pdone == done` against `parent.Done()`), the child goes into `p.children`, and `p.cancel` closes
+`p.done` (the parent's Done channel) before it cancels its children. So whenever the child is closed
+by propagation, the parent's Done channel is already closed, and the parent's `isContextDone` gives
+`□ parent.PDone`.
+
+What the model should give: `wp_WithCancel` for any `isContext parent s` (with `HParentCC`) and any
+`PDone'`, the child `isContext` at `{ s with PDone := s.PDone ∨ PDone', Done_gn := γ' }`, its cancel
+needing `□ PDone'`. The missing link is in `isContext`'s `HParentCC`: it gives `isCancelCtx p` with an
+unknown Done proposition and channel. Strengthen it to say `p`'s Done channel is the parent's `ch`
+(or that `p`'s proposition gives `s.PDone`), true of every context the model makes (`*cancelCtx`,
+`*timerCtx`, value links over them), so that the children `p` cancels can be given
+`□ s.PDone`.
+
+Who needs it: the etcd3 watcher (k8s 7f-5a): `wc.ctx = WithCancel(WithRequireLeader(ctx))`, and the
+store watch's spec states the no-gap prefix unless the watch is cancelled, which a dropped event
+must witness from `wc.ctx`'s closed Done channel (`notes/k8s-7f5a-draft.md` §4, `kCancelPD`, §6
+risks). Workaround: none yet. If this is not in Perennial by 7f-5a-P's step 4 (the channel
+operations), a clearly marked local trust-boundary axiom with a Go test, a stop for etcd-grove-81's
+axiom review. Status: proposal, not yet on a Perennial branch.
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
