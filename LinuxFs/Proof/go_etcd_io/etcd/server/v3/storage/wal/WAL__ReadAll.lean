@@ -93,6 +93,41 @@ instance walEntsIn_persistent (P : WalPbIn GF) (esL : List Loc) (es : List Entry
     Persistent (walEntsIn P esL es) := by
   unfold walEntsIn; infer_instance
 
+theorem walEntsIn_len (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) :
+    walEntsIn P esL es ⊢ ⌜esL.length = es.length⌝ := by
+  unfold walEntsIn; exact BigSepL2.bigSepL2_length
+
+theorem walEntsIn_take (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) (n : Nat) :
+    walEntsIn P esL es ⊢ walEntsIn P (esL.take n) (es.take n) := by
+  iintro H
+  ihave %hl := walEntsIn_len P esL es $$ H
+  unfold walEntsIn
+  rw [← List.take_append_drop n esL, ← List.take_append_drop n es]
+  icases (BigSepL2.bigSepL2_append (Φ := fun _ l e => P.entIn l e)
+    (Or.inl (by simp [List.length_take, hl]))).1 $$ H with ⟨H, -⟩
+  simp only [List.take_append_drop]
+  iexact H
+
+theorem walEntsIn_snoc (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) (l : Loc) (e : EntryM) :
+    walEntsIn P esL es ∗ P.entIn l e ⊢ walEntsIn P (esL ++ [l]) (es ++ [e]) := by
+  unfold walEntsIn; exact BigSepL2.bigSepL2_snoc.2
+
+theorem raArgWf_uint64 (v : w64) :
+    fmt.ArgWf (interface.mk go.uint64 #v) :=
+  ⟨fun h => by simp [go.uint64, go.string] at h, fun _ => ⟨_, .uint64 v⟩,
+    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
+
+theorem raArgWf_int (v : w64) :
+    fmt.ArgWf (interface.mk go.int #v) :=
+  ⟨fun h => by simp [go.int, go.string] at h, fun _ => ⟨_, .int v⟩,
+    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
+
+/-- The entry arm's offset: `e.GetIndex() - start - 1`, no wrap above the start. -/
+theorem entOff_nat (ei si : w64) (h : uint.nat si < uint.nat ei) :
+    uint.nat (ei - si - W64 1) = uint.nat ei - uint.nat si - 1 := by
+  word
+
+set_option maxHeartbeats 2000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr)
@@ -211,7 +246,177 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           fun hnc => hR0 r (rdLoop_mem hL hgd hnc)
         wp_if_destruct
         · -- EntryType
-          sorry
+          have hT : r.typ = entryType := Hif
+          have hnc : ¬ (r.typ = crcType ∧ crcRecBad c' r) := by
+            rw [hT]; simp [entryType, crcType]
+          obtain ⟨e, he⟩ := (hdec0 hnc).1.1 hT
+          unfold ownRec
+          icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
+          wp_auto
+          wp_apply wp_UnmarshalEnt v.Data' _ r.data e he $$ Hd as %el ⟨Hd, #Hel⟩
+          ihave %hlE := walEntsIn_len P esL st.ents $$ Hein
+          ihave %hlS := ownSlice_len (GF := GF) entsv _ esL $$ Hents
+          ihave %hcS := ownSliceCap_wf (GF := GF) (V := Loc) entsv _ $$ Hecap
+          wp_apply wp_EntIndex el e $$ Hel
+          wp_apply wp_SnapIndex sp s $$ Hsp
+          by_cases hle : uint.nat e.Index' ≤ uint.nat s.1
+          · -- at or below the start: `ents = ents[:0]`
+            have hre : readEnt (uint.nat s.1) st.ents e = some [] := by simp [readEnt, hle]
+            have hst : raStep U s st (r.typ, r.data) = .ok { st with ents := [] } := by
+              simp [raStep, hT, he, hre]
+            have hix : raIdx U s ix r = (e.Index', ix.2) := by simp [raIdx, hT, he]
+            have hL' := rdLoop_next hL hgd hok.2 hnc hst
+            rw [hix, rdCrc_other (by rw [hT]; simp [entryType, crcType])] at hL'
+            wp_if_destruct
+            · have hb : (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧
+                  sint.Z (W64 0) ≤ sint.Z entsv.cap) := by
+                refine ⟨by decide, Int.le_refl _, ?_⟩
+                have : sint.Z (W64 0) = 0 := rfl
+                omega
+              simp only [hb, ite_true]
+              icases ownSlice_slice_with_cap (W64 0) (W64 0) entsv esL ⟨by decide, Int.le_refl _, by
+                  have : sint.Z (W64 0) = 0 := rfl
+                  omega⟩ $$ [Hents Hecap] with ⟨-, Hents, Hecap⟩
+              · iframe
+              rw [show subslice (sint.nat (W64 0)) (sint.nat (W64 0)) esL = [] by simp [subslice]]
+              wp_auto
+              wp_apply wp_EntIndex el e $$ Hel
+              wp_apply wp_SnapIndex sp s $$ Hsp
+              wp_if_destruct
+              · exfalso; word
+              wp_apply wp_EntIndex el e $$ Hel
+              (try wp_auto)
+              wp_for_post
+              wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+                $$ [Hdec Hl] as %e' Hpost
+              · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+              iframe
+              iexists acc ++ [r], fsD.drop k, off', c', { st with ents := [] }, (e.Index', ix.2), e',
+                mdv, stp, _, []
+              iframe
+              isplitr
+              · simp only [walEntsIn]; iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2; iempintro
+              ipureintro
+              exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+            · exfalso; apply Hif; word
+          · -- above the start: the offset
+            have hlt : uint.nat s.1 < uint.nat e.Index' := by omega
+            wp_if_destruct
+            · exfalso; word
+            wp_apply wp_EntIndex el e $$ Hel
+            wp_apply wp_SnapIndex sp s $$ Hsp
+            wp_if_destruct
+            · wp_apply wp_EntIndex el e $$ Hel
+              wp_apply wp_SnapIndex sp s $$ Hsp
+              (try wp_auto)
+              have hoff := entOff_nat e.Index' s.1 hlt
+              wp_if_destruct
+              · -- `offset > len(ents)`: `ErrSliceOutOfRange`
+                ihave #Hwi : (wal.walInit : IProp GF) $$ []
+                · iapply isPkgInit_access $$ Hpkg
+                iunfold wal.walInit at Hwi
+                icases Hwi with ⟨-, -, -, -, -, -, -, -, -, #HeX, -⟩
+                iunfold wal.errVar at HeX
+                icases HeX with ⟨%eX, #HeX, #HeXok⟩
+                (try wp_auto)
+                wp_apply wp_SnapIndex sp s $$ Hsp
+                wp_apply wp_SnapTerm sp s $$ Hsp
+                wp_apply wp_EntIndex el e $$ Hel
+                wp_apply wp_EntTerm el e $$ Hel
+                (try wp_auto)
+                wp_apply wp_slice_literal
+                isplitr
+                · ipureintro; rfl
+                iintro %asl ⟨Hasl, -⟩
+                wp_apply wp_Errorf _ _ [GoInterface.ok eX, interface.mkOk go.uint64 #s.1,
+                    interface.mkOk go.uint64 #s.2, interface.mkOk go.uint64 #e.Index',
+                    interface.mkOk go.uint64 #e.Term', interface.mkOk go.int #entsv.len] [eX] (by
+                    intro ii hii
+                    simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
+                    rcases hii with h | h | h | h | h | h
+                    · right; cases h; simp
+                    all_goals (left; cases h; first | exact raArgWf_uint64 _ | exact raArgWf_int _))
+                  $$ [Hasl] as %e1 #He1
+                · iframe
+                  iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+                  iexact HeXok
+                (try wp_auto)
+                wp_for_post
+                iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+                iintro %dq HQ Hfail
+                wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+                · ipureintro; trivial
+                iapply HΦ
+                iframe Hp Hperm
+                iexists dq
+                iframe HQ
+                ileft
+                isplitr
+                · ipureintro; simp
+                unfold walReadFailedF
+                iframe Hfail
+                iexists lg
+                iframe Hlg Hdir Hzap
+              · -- `ents = append(ents[:offset], e)`
+                have hoL : uint.nat (e.Index' - s.1 - W64 1) ≤ esL.length := by
+                  have h1 : ¬ uint.Z entsv.len < uint.Z (e.Index' - s.1 - W64 1) := Hif
+                  word
+                have hon : uint.nat (e.Index' - s.1 - W64 1) = uint.nat e.Index' - uint.nat s.1 - 1 := hoff
+                have hre : readEnt (uint.nat s.1) st.ents e =
+                    some (st.ents.take (uint.nat e.Index' - uint.nat s.1 - 1) ++ [e]) := by
+                  have h2 : uint.nat e.Index' - uint.nat s.1 - 1 ≤ st.ents.length := by omega
+                  simp only [readEnt, hle, h2, ↓reduceIte]
+                have hst : raStep U s st (r.typ, r.data) =
+                    .ok { st with ents := st.ents.take (uint.nat e.Index' - uint.nat s.1 - 1) ++ [e] } := by
+                  simp [raStep, hT, he, hre]
+                have hix : raIdx U s ix r = (e.Index', ix.2) := by simp [raIdx, hT, he]
+                have hL' := rdLoop_next hL hgd hok.2 hnc hst
+                rw [hix, rdCrc_other (by rw [hT]; simp [entryType, crcType])] at hL'
+                have hsZ : sint.Z (e.Index' - s.1 - W64 1) ≤ sint.Z entsv.len := by word
+                have hb : (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (e.Index' - s.1 - W64 1) ∧
+                    sint.Z (e.Index' - s.1 - W64 1) ≤ sint.Z entsv.cap) := by
+                  have : sint.Z (W64 0) = 0 := rfl
+                  refine ⟨by decide, ?_, by omega⟩
+                  rw [this]; word
+                simp only [hb, ite_true]
+                icases ownSlice_slice_with_cap (W64 0) (e.Index' - s.1 - W64 1) entsv esL
+                    ⟨hb.1, hb.2.1, hsZ⟩ $$ [Hents Hecap] with ⟨-, Hents, Hecap⟩
+                · iframe
+                have hsub : subslice (sint.nat (W64 0)) (sint.nat (e.Index' - s.1 - W64 1)) esL =
+                    esL.take (uint.nat e.Index' - uint.nat s.1 - 1) := by
+                  have h0 : sint.nat (W64 0) = 0 := rfl
+                  have h1 : sint.nat (e.Index' - s.1 - W64 1) = uint.nat e.Index' - uint.nat s.1 - 1 := by
+                    rw [← hon]; word
+                  rw [h0, h1]; simp [subslice]
+                rw [hsub]
+                ihave #Hein' := walEntsIn_take P esL st.ents (uint.nat e.Index' - uint.nat s.1 - 1) $$ Hein
+                (try wp_auto)
+                wp_apply wp_slice_literal (V := Loc) [el]
+                isplitr
+                · ipureintro; rfl
+                iintro %asl ⟨Hasl, Hcl⟩
+                wp_apply wp_slice_append $$ [Hents Hecap Hasl] as %sl' ⟨Hents, Hecap, -⟩
+                · iframe
+                (try wp_auto)
+                wp_apply wp_EntIndex el e $$ Hel
+                (try wp_auto)
+                wp_for_post
+                wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+                  $$ [Hdec Hl] as %e' Hpost
+                · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+                ihave Hein2 := walEntsIn_snoc P (esL.take (uint.nat e.Index' - uint.nat s.1 - 1))
+                  (st.ents.take (uint.nat e.Index' - uint.nat s.1 - 1)) el e $$ []
+                · isplitr
+                  · iexact Hein'
+                  · iexact Hel
+                iframe
+                iexists acc ++ [r], fsD.drop k, off', c',
+                  { st with ents := st.ents.take (uint.nat e.Index' - uint.nat s.1 - 1) ++ [e] },
+                  (e.Index', ix.2), e', mdv, stp, sl', _
+                iframe
+                ipureintro
+                exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+            · exfalso; apply Hif; word
         wp_if_destruct
         · -- StateType
           have hT : r.typ = stateType := Hif
@@ -275,7 +480,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             rw [hdd, Option.getD_some]
             wp_apply bytes.Equal.wp_proof $$ [Hmdv Hd] as ⟨Hmdv, Hd⟩
             · iframe
-            simp only [hmdd dd hdd, ← hmd, eq_self_iff_true, _root_.decide_true]
+            simp only [hmdd dd hdd, ← hmd, _root_.decide_true]
             wp_auto
             wp_for_post
             wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
