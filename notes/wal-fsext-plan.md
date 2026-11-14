@@ -4168,7 +4168,15 @@ or trusted change.
   `OldOk` hold only while nothing is appended past `z0` (`lay.wr = lay.z0`, `ZeroToEnd`'s flow; `cut`'s tail has
   appended records or is past them; to check: a `cut` with nothing appended since the generation's start, a tail
   found past the segment size), minting only then; the window fdatasync after appends then changes `old` freely.
-- *Not done*: tasks 2 and 3 (task 3 blocked on finding B; task 2 not started).
+- *Task 2, stated (not repaired)*: with finding C the obligation on a file entering the layout (`Create`'s first
+  segment, `cut`'s next one, from the pipeline: `filePipeline.alloc`'s `preGrown`/`trFile` posts) is `PastZ` of its
+  `OsMeta` in the handle's `TailMeta` (nothing past `hi` but zeros stamped 0: `tc` empty from the preallocated size on,
+  or a sync before the file enters the layout); `TailMeta`'s other users (`OsMeta.synced`: `tc = ∅`) have it. Where
+  `alloc` gets it: `preGrownH`'s `PcKeep` and `Z → ZeroPg` (the zeros past the grown size) say what `pc` is past the
+  size, but not that `tc` holds nothing else (to check when `PastZ` is added, task 3's first step).
+- *Not done*: task 3 (blocked on finding B); task 2's repair (waits on `PastZ`, task 3).
+- *Build*: seeded from `agent-a0d5232984f8fe5f2`; the 210 importers of `Abs.lean` build (`lake build` of their leaves,
+  2837 jobs), and `WAL__ReadAll`/`ReadAllTail` after merging `wal-int` `6330e224cd`.
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
