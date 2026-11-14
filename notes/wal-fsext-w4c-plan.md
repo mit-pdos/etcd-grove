@@ -570,3 +570,64 @@ axiom, no `sorry`, nothing trusted changed. `TP/` = `LinuxFs/Proof/github_com/mi
      fit (U4 b log); `Open`'s `walpb.Snapshot{Index, Term}` needs only `walSnapIdTerm`.
   4. **For C6, not the tester:** real etcd's member directory holds `snap/` beside `wal/`, a name `AreaSlot`
      covers, so U3's `hslots` (and the area claim) do not fit the server's layout with the area at `member/`.
+
+## W4c U5 log (branch `wal-u5`, 2026-11-14)
+
+**First session: the tester's invariant and first boot over `fsExt`, `storeOracle`/`loadOracle` proved; no member
+operation yet.** No axiom, no `sorry`, nothing trusted changed, no Go changed. `TP/` as in the U1 log; specs in
+`LinuxFs/Spec/.../examples/etcd/wal/`.
+
+- **`TP/Inv.lean`** (decisions mine, internal):
+  - `TEnv` = `root`, the roots `R`, the area's directory `jr`, the oracle directory's `jo`. The area `tArea root` and
+    `tOrDir root` (`root/oracle`) are **two roots of `R`** (U3's premise 3; U1 mismatch 1 stands: `Boot`'s
+    `TouchDirAll(data)`/`TouchDirAll(memberDir)` have no spec there; held for the user). `TEnv.orFile` the
+    `DFile ⟨tOrDir root, jo, "state"⟩`; `tOrPath_child`: its name is `tOrPath root`.
+  - `tOracleFile s o oa` over durable's `DurSt`: `cur` holds `o` (`tOrHolds`: its encoding, **at most 1 GiB**,
+    `tOrSmall`; or no file and the fresh oracle), and `alt = some v` iff `oa = some o'` with `v` holding `o'` (the
+    oracle before a pending `Write`). Lemmas `_alt`, `_write` (the rename's update), `_sync`, `_fresh`, `_crash`
+    (a crash's file, `cur` or `alt`'s, holds one of the two oracles: for `tester_crash`). The 1 GiB bound is
+    `durable.Write`'s premise (U1 mismatch 2: whether the tester meets it is still open, so `storeOracle.spec`
+    takes `tOrSmall o'`) and gives `decodeOracle` its length bound (the W4c handoff's open question 2: settled this
+    way, an internal invariant).
+  - `TInvBody e γ` (ghost names `TGS`: durable's `DurGS`, `γo` holding `(o, oa)`, `γw` holding `od`): `durSt γd s`,
+    `tOracleFile s o oa`, the ghost halves, `WalFs.walDirIs (tWalDir root) od`, `tRelI root o od` (as the main
+    tree's, over `WalFs.walSyncedLb`/`walNamed`) and **`tRelA root oa od`** (the pending oracle's relation: a crash
+    during a `Write` may keep the old file; the WAL does not move during a `Write`). `TInv` is a **plain invariant**
+    (not `body ∨ crashed ∗ tok`): the client cannot refute `crashed` inside durable's/the WAL's atomic updates (no
+    `notCrashed` there), so the crash obligation must open it and close it with its contents (the `_keep` lemmas,
+    as the main tree's `tester_crash`). The main tree's `dirDurable root` and the conditional `dirDurable (tArea
+    root)` are gone (the area is a root, durable from the first boot); `durableReserved` has no counterpart.
+  - `TBoot e` (the incarnation's precondition **after** the shared mode's switch; how the program reaches
+    `wp_osShare` before its first `os` call, inside `loadOracle`, is U7's): `∃ W γ o od`, `TInv`, `tOrOwn γ o none`,
+    `tWalOwn γ od`, `walAreaOk walCodec walRaftMr R jr (tArea root)`, `dirDurable (tArea root)`, `walAreaRes jr`,
+    `walUnlockedTok`, `durInv`, `durHandle`, `osCallPerm 1`, and the crash tokens the crash obligation takes
+    (`walCrashTok`, `durCrashTok`; `fsSQ_crash_adequacy`'s obligation is produced with the WP from `P L`, so it can
+    hold them). `ownGoState`/package init not included (U7).
+- **`walBoot0` now exports `walOwn ∅`** (`S/BootStart0.lean`, `S/Boot0.lean`; statement changes, no other importer):
+  it dropped `walGhost_init`'s program map, so a client had no `walAbsent dir` for `Create`'s update. **Merge note
+  for `wal-u3d`**: `walStart_boot0`'s conclusion gained `∗ walOwn (W := W) ∅` (last), `walBoot0`'s `∗ walOwn
+  (W := W) ∅` after `walPast`.
+- **`TP/Boot0.lean`, `tBoot0`** (proved): from `wp_osShare`'s outputs, `TBoot e`, over `walBoot0` and **`DurBoot0`, a
+  hypothesis (U2's durable first boot, not landed)**: from the whole claim on the file's directory (a root of `R`,
+  neither `f.b` nor `f.tb` present, nothing logged), `|={E}=> ∃ γ, durInv γ f ∗ durHandle γ f R ∗ durSt γ ⟨none,
+  none⟩ ∗ durCrashTok γ`. U2c may prove a finer form (the two `.only` claims) and derive this one. World premises
+  (U7): `RootsOk R`, the two roots, `jo ≠ jr`, both in `V.now`, `hslots`, no oracle file nor temporary,
+  `ReceiptBoundLe GF (2^62)`, `e.orFile.Ok`.
+- **`absSnapMd`** = `⟨⟨[1], [], [], [], false⟩, idx, term⟩` (`TP/Defs.lean`; `RefLemmas` unaffected). The model reads a
+  nil `AutoLeave` and a set `false` alike, so the invariant fits either Go form; whether `wal.go:373`'s object
+  encodes canonically (`snapEnc c = Mr.encSnap md`, U4's `walCsCanon` sets `AutoLeave`) is an obligation of
+  `saveSnap`'s proof, not of the invariant: U1 mismatch 3 (the Go `AutoLeave: new(bool)`) still held for the user.
+- **Proved** (`TP/storeOracle.lean`, `TP/loadOracle.lean`): `storeOracle.wp_proof` (from `encodeOracle.spec` and
+  `durable.Write.spec`): the rename's update (`tOracleFile_write`, ghost `(o', some o)`, `tRelI o'` the caller's,
+  `tRelA (some o)` the old body's `tRelI o`), the sync's (`tOracleFile_sync`, ghost `(o', none)`); `tN_sub_durAu`.
+  `loadOracle.wp_proof` (from `decodeOracle.spec`, `freshOracle.spec`, `durable.Read.spec`): the read's update
+  commits unchanged and gives `tOrHolds s.cur o`; no panic. **Stated, not proved** (callee hypotheses, pure Go):
+  `encodeOracle.spec`, `decodeOracle.spec` (on `tEncodeOracle o` with `tOrSmall o`: `(v, true)`), `freshOracle.spec`.
+- **Next (in order):** a member representation (`memberRep`: `m.o` the program's oracle `o`, `m.w` the open handle
+  `walOpenWF walRaftP walRaftMr w (tWalDir root)` or nil, the raft-like fields; with `TBoot`'s resources), then
+  `member.sync`/`close` (WAL `Sync`/`Close` + `storeOracle`, `tRelI` re-established from the new `walSyncedLb`),
+  `save`/`saveSnap` (the WAL AU committed in `TInv`: `walDirIs` with `tWalOwn`; `toRaft`/`toHS` against
+  `walRaftP`; `saveSnap`'s `walSnapAt` needs mismatch 3 decided), `opOwnSnap` without the purge (U6), `restart`
+  (`restartRead`: `ValidSnapshotEntries`, `Open`, `ReadAll`, `Repair`; `checkRestart`), `Boot` (the `Create` arm:
+  `walAbsent` from `TBoot`'s `od = none`), and `encode/decodeOracle`; `tester_crash` once U2c's `durInv_crash` and
+  U3d's `walBootCrash` land (over `tOracleFile_crash`, `CrashPure`, the WAL `_keep` lemmas).
