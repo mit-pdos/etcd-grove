@@ -1358,3 +1358,23 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `isEofAns e ueof` (with `e ≠ ueof` for an `IoE` error, as `¬ IoE eof`), `walDecFiles_mk` proves it from an
   `errors.IsPathErrnoEof`-style spec for `ueof`.
 - **Decision.** Pending (internal; `validSnapshotEntries.specPinned` stays a hypothesis of VSE until it is made).
+  **2026-11-14 (`wal-vsnap2`): adopted, refined.** A general `decide (e = ueof)` answer is false of `Decode`'s
+  own errors (a `fmt.Errorf("%w ...", io.ErrUnexpectedEOF)` is not `ueof` but `errors.Is` finds it), so the
+  answer is carried only on the I/O errors, which are the ones `Decode` passes on: `notUeof e` (`errors.Is(e,
+  io.ErrUnexpectedEOF)` returns `false`, for the value the global holds; no new parameter), `ioUeof IoE e`
+  (`e` nil or not `IoE`, or `notUeof e`) in `decRdE` and in `decFile`'s and `ownFbr`'s `FileInfo` result,
+  and `notUeof err` in `decPostB`'s I/O arm. The readers' evidence: `errors.IsPathErrnoEof.spec` (a
+  hypothesis) now also covers `io.ErrUnexpectedEOF`'s value (the same argument: a fifth `errors.New`
+  allocation), `walPathErr_ueof` (`ReadBridge.lean`).
+
+## 2026-11-14: `openWALFiles.spec` (internal, the part's) -- the closer not specified
+
+- **Spec.** `LinuxFs/Spec/.../wal/openWALFiles.lean`: the success arm said nothing of the closer `cl`.
+- **Defect.** Too weak for `validSnapshotEntries`/`Verify` (`defer func() { if closer != nil { closer() } }()`):
+  the call needs a triple.
+- **Evidence.** S/wal.go:494 (`closer := func() error { return closeAll(lg, rcs...) }`); W8 session's gap 2.
+- **Change (made, `wal-vsnap2`).** The success arm adds `wal.walCloser write frs lfs cl` (`CloseDefs.lean`):
+  `cl` non-nil, and `□` a triple of `cl()` over each reader's file again closable (`wal.walClosable write fr
+  lf`: the `*fileReader`'s file, its fd whole, in write mode the lock's `lockedFile`), returning some error.
+  Write mode (`openAtIndex`) drops it.
+- **Decision.** Made (internal; no ghost state).

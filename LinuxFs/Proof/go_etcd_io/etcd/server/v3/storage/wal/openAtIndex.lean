@@ -396,7 +396,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       (by simp [hwl]) (by omega) (walOpenNames_ok (sint.nat kk) hX hsn hnmf hout hws)
       $$ [Hpd Hperm Hj Hws] as %rsl %lsl %clo %err2 ⟨Hpd, Hperm, Hj, Hws, Hopen⟩
     · iframe; iframe #
-    icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles⟩ | ⟨%e, %herr, #He⟩)
+    icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles, -⟩ | ⟨%e, %herr, #He⟩)
     rotate_left
     · -- `openWALFiles` failed: the halves back
       obtain ⟨-, rfl⟩ : True ∧ err2 = GoInterface.ok e := ⟨trivial, herr⟩

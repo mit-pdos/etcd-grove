@@ -161,6 +161,137 @@ theorem walOpenedRcs_close (write : Bool) (dir : GoString) (ns : List GoString) 
   refine (BigSepL.bigSepL_mono (fun {m x} _ => walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _)).trans ?_
   exact rcFiles_take is j rcs hl hj
 
+/-- What the closer keeps of a file `openWALFiles` opened (persistent): the reader's `*fileReader` over
+the `*os.File` `f`, and the `io.ReadCloser` collected (`rc`): the lock (write mode) or the file. -/
+def walRcLink (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : GoInterface) : IProp GF :=
+  iprop(∃ (f rl : Loc),
+    ⌜GoInterface.ok fr = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty) #rl⌝ ∗
+    rl ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f ∗
+    (if write then fileutil.lockedFile lf f ∗
+        ⌜rc = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) #lf⌝
+      else ⌜rc = interface.mkOk (go.GoType.PointerType os.File.ty) #f⌝))
+
+instance walRcLink_persistent (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : GoInterface) :
+    Persistent (walRcLink (GF := GF) write fr lf rc) := by
+  unfold walRcLink; cases write <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
+
+theorem walOpenedRc_split (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceOk) (lf : Loc)
+    (rc : GoInterface) :
+    walOpenedRc (GF := GF) write dir b i fr lf rc ⊢
+      walOpenedFile write dir b i fr lf ∗ walRcLink write fr lf rc := by
+  iintro H
+  ihave #Hl : walRcLink (GF := GF) write fr lf rc $$ [H]
+  · iunfold walOpenedRc at H
+    icases H with ⟨%f, %fd, %rl, -, -, -, -, %hfr, #Hrl, Hw⟩
+    iunfold walRcLink
+    iexists f, rl
+    isplitr
+    · ipureintro; exact hfr
+    iframe Hrl
+    cases write
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      icases Hw with %hw
+      ipureintro; exact hw.2
+    · simp only [↓reduceIte]
+      iexact Hw
+  · iframe Hl
+    iapply walOpenedRc_file
+    iexact H
+
+theorem walOpenedRcs_split (write : Bool) (dir : GoString) (ns : List GoString) (is : List Ino) (j : Nat)
+    (frs : List GoInterfaceOk) (lfs : List Loc) (rcs : List GoInterface) :
+    walOpenedRcs (GF := GF) write dir ns is j frs lfs rcs ⊢
+      ([∗list] m ↦ i ∈ is.take j, walOpenedFile write dir (ns.getD m []) i
+        (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩) (lfs.getD m null)) ∗
+      [∗list] m ↦ _i ∈ is.take j, walRcLink write (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩)
+        (lfs.getD m null) (rcs.getD m GoInterface.nil) := by
+  unfold walOpenedRcs
+  refine (BigSepL.bigSepL_mono (fun {m x} _ => walOpenedRc_split (GF := GF) write dir _ x _ _ _)).trans ?_
+  exact BigSepL.bigSepL_sep_eqv.1
+
+/-- The closer's step: a file closable again, with what the closer kept of it, is `closeAll`'s. -/
+theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : GoInterface) :
+    walRcLink (GF := GF) write fr lf rc ∗ wal.walClosable write fr lf ⊢ wal.rcFile rc := by
+  iintro ⟨#Hl, Hc⟩
+  iunfold walRcLink at Hl
+  iunfold wal.walClosable at Hc
+  icases Hl with ⟨%f, %rl, %hfr, #Hrl, #Hw⟩
+  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, -⟩
+  have hrl : rl' = rl := by
+    have h1 := hfr'.symm.trans hfr
+    unfold interface.mkOk at h1
+    injection h1 with h1
+    injection h1 with h2 h3
+    exact go.intoVal_inj h3
+  subst hrl
+  icombine Hrl Hrl' gives %he
+  have hf : f' = f := by
+    injection he with he
+    exact he.symm
+  subst hf
+  iunfold wal.rcFile
+  iexists f', fd, nm, fl
+  iframe Hf Hfd
+  cases write
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hw with %hw
+    ileft; ipureintro; exact hw
+  · simp only [↓reduceIte]
+    icases Hw with ⟨#Hlk, %hw⟩
+    iright
+    iexists lf
+    iframe Hlk
+    ipureintro; exact hw
+
+/-- `[∗list]` over two lists of the same length, of a predicate of the index only. -/
+theorem bigSepL_idx_congr {A B : Type} (Φ : Nat → IProp GF) :
+    ∀ (l1 : List A) (l2 : List B), l1.length = l2.length →
+    ([∗list] k ↦ _x ∈ l1, Φ k) ⊢ [∗list] k ↦ _y ∈ l2, Φ k
+  | [], [], _ => .rfl
+  | _ :: l1, _ :: l2, h => by
+    refine (BigSepL.bigSepL_cons (Φ := fun k (_ : A) => Φ k)).1.trans
+      ((sep_mono .rfl ?_).trans (BigSepL.bigSepL_cons (Φ := fun k (_ : B) => Φ k)).2)
+    exact bigSepL_idx_congr (fun k => Φ (k + 1)) l1 l2 (by simpa using h)
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+
+/-- A `[∗list]` over `l` is one over its indices, each element `l.getD m d`. -/
+theorem bigSepL_getD_self {A : Type} (Φ : Nat → A → IProp GF) (l : List A) (d : A) :
+    ([∗list] m ↦ x ∈ l, Φ m x) ⊢ [∗list] m ↦ _x ∈ l, Φ m (l.getD m d) := by
+  apply BigSepL.bigSepL_mono
+  intro m x hm
+  rw [List.getD_eq_getElem?_getD, hm, Option.getD_some]
+
+theorem bigSepL_getD_self_r {A : Type} (Φ : Nat → A → IProp GF) (l : List A) (d : A) :
+    ([∗list] m ↦ _x ∈ l, Φ m (l.getD m d)) ⊢ [∗list] m ↦ x ∈ l, Φ m x := by
+  apply BigSepL.bigSepL_mono
+  intro m x hm
+  rw [List.getD_eq_getElem?_getD, hm, Option.getD_some]
+
+/-- **The closer's precondition gives `closeAll`'s**, with what the closer kept of each file. -/
+theorem walClose_rcFiles (write : Bool) (is : List Ino) (j : Nat) (frs : List GoInterfaceOk)
+    (lfs : List Loc) (rcs : List GoInterface) (hf : frs.length = j) (hr : rcs.length = j)
+    (hj : j ≤ is.length) :
+    ([∗list] m ↦ _i ∈ is.take j, walRcLink (GF := GF) write (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩)
+        (lfs.getD m null) (rcs.getD m GoInterface.nil)) ∗
+      ([∗list] m ↦ fr ∈ frs, wal.walClosable write fr (lfs.getD m null)) ⊢
+      [∗list] rc ∈ rcs, wal.rcFile rc := by
+  have htl : (is.take j).length = j := by simp; omega
+  iintro ⟨Hl, Hc⟩
+  ihave Hc2 := bigSepL_getD_self (GF := GF) (fun m fr => wal.walClosable write fr (lfs.getD m null)) frs
+    ⟨go.GoType.PointerType go.string, #()⟩ $$ Hc
+  ihave Hc3 := bigSepL_idx_congr (GF := GF) (fun m => wal.walClosable write
+    (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩) (lfs.getD m null)) frs (is.take j)
+    (by rw [hf, htl]) $$ Hc2
+  ihave H := BigSepL.bigSepL_sep_eqv.2 $$ [Hl Hc3]
+  · iframe
+  ihave H2 := BigSepL.bigSepL_mono (fun {m x} _ => (sep_comm.1.trans
+    (walRcLink_rcFile (GF := GF) write _ _ (rcs.getD m GoInterface.nil)))) $$ H
+  ihave H3 := bigSepL_idx_congr (GF := GF) (fun m => wal.rcFile (rcs.getD m GoInterface.nil)) (is.take j) rcs
+    (by rw [hr, htl]) $$ H2
+  iapply (bigSepL_getD_self_r (GF := GF) (fun _ rc => wal.rcFile rc) rcs GoInterface.nil)
+  iexact H3
+
 theorem walOpen_getElem? {α : Type} (l : List α) (n : Nat) (h : n < l.length) :
     ∃ b, l[n]? = some b := ⟨_, List.getElem?_eq_getElem h⟩
 
@@ -277,6 +408,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     exact ⟨by decide, Nat.zero_le _, rfl, rfl, rfl⟩
   have hnsl : ns.length = sint.nat sl.len - sint.nat k := by
     rw [← hns, List.length_drop, Hsll.1]
+  iapply wp_fupd
   wp_for IH
   obtain ⟨Hj0, Hjl, Hfl, Hll, Hrl⟩ := Hj
   wp_if_destruct
@@ -407,6 +539,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         (try wp_auto)
         wp_for_post
         (try wp_auto)
+        imodintro
         iapply HΦ
         ihave Hsl := (ownSlice_slice k sl.len sl dqs names ⟨hk0, hkz, Int.le_refl _⟩).2 $$ [Hw1 Hw2 Hw3]
         · rw [hsub, hns]; iframe
@@ -525,6 +658,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         (try wp_auto)
         wp_for_post
         (try wp_auto)
+        imodintro
         iapply HΦ
         ihave Hsl := (ownSlice_slice k sl.len sl dqs names ⟨hk0, hkz, Int.le_refl _⟩).2 $$ [Hw1 Hw2 Hw3]
         · rw [hsub, hns]; iframe
@@ -537,6 +671,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       have : ¬ sint.Z jj < sint.Z (sl.len - k) := by
         intro h; apply Hif; first | exact h | rw [decide_eq_true h]
       rw [hnsl]; exact walOpen_eq_sub jj k sl.len hk0 hkz Hj0 (hnsl ▸ Hjl) this
+    ihave ⟨Hop, #Hlk⟩ := walOpenedRcs_split write d ns is (sint.nat jj) frs lfs rcs $$ Hop
+    ipersist rcs
+    ipersist lg
+    imod ownSlice_persist $$ Hrc with #Hrc
+    imodintro
     iapply HΦ
     ihave Hsl := (ownSlice_slice k sl.len sl dqs names ⟨hk0, hkz, Int.le_refl _⟩).2 $$ [Hw1 Hw2 Hw3]
     · rw [hsub, hns]; iframe
@@ -546,10 +685,25 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     iframe
     isplitr
     · ipureintro; exact ⟨rfl, by omega, by omega⟩
-    iunfold walOpenedRcs at Hop
-    rw [hjn, hlen, List.take_length]
-    iapply (BigSepL.bigSepL_mono (fun {m x} _ => walOpenedRc_file (GF := GF) write d _ x _ _ _))
-    iexact Hop
+    isplitl [Hop]
+    · rw [hjn, hlen, List.take_length] at *
+      iexact Hop
+    iunfold wal.walCloser
+    isplitr
+    · ipureintro; nofun
+    iintro !> %Φ'
+    iintro !> Hcl HΦ'
+    rw [← recv_eq_func_mk]
+    wp_auto
+    wp_apply wp_closeAll lg rcsl rcs DFrac.discard $$ [Hcl] as %e2 -
+    · iframe Hrc
+      isplitl []; · iexact Hlg
+      isplitl []; · iexact Hinv
+      iapply (walClose_rcFiles write is (sint.nat jj) frs lfs rcs Hfl Hrl (by omega))
+      iframe Hlk Hcl
+    (try wp_auto)
+    iapply HΦ'
+    ipureintro; trivial
 
 end proof
 
