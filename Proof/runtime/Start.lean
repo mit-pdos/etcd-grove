@@ -98,13 +98,19 @@ axiomatized proposition of the list.) -/
 def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop :=
   ∀ n ∈ Ns, prometheus.nameUnclaimed e n
 
-/-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address). -/
+/-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address: no other
+process, nor unverified code of the program, binds it or connects to it). -/
 axiom addrUnclaimed [GooseExts] (e : Expr) (a : GoString) : Prop
 
 /-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
 of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, nor a socket
 overlapping one (a wildcard bind of its port, `0.0.0.0:p` or `[::]:p`), and no code of `e` whose
-behaviour this repository does not verify binds one. (Sweep repairs 1, W5) `As`'s strings are
+behaviour this repository does not verify binds one. (2026-11-14, the network fault review; a
+world assumption the user accepted that day) Nor does any other process, or any code of `e` whose
+behaviour this repository does not verify, connect to an address of `As`: every connection
+accepted on one was dialed by `e`'s verified code (a local process can dial `127.0.0.1:p` and send
+requests, `examples/premisefix/foreignconn`; the boundaries' closed world, `InvNet.lean`, rests on
+it). (Sweep repairs 1, W5) `As`'s strings are
 numeric literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`), so "an address of `As`" is the
 one socket the literal names. (2026-11-08: stated address by address, `addrUnclaimed`, the same
 claim; until then an axiomatized proposition of the list.) -/

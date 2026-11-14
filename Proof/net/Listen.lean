@@ -22,8 +22,10 @@ variable [sem : go.Semantics]
 
 /-- **Trust boundary** (item 4, the server start): `net.Listen("tcp", addr)` binds and listens on a
 TCP socket at `addr` (resolved), returning a `*net.TCPListener` as a `net.Listener`, or an error
-(the address in use, not permitted, unresolvable). Connections dialed to `addr` reach the listener:
-`netAddrFree` says no other socket holds the address, the closed-world assumption of `InvNet.lean`. -/
+(the address in use, not permitted, unresolvable). The listener accepts the connections dialed to
+`addr` by the program: `netAddrFree` says no other socket holds the address and (2026-11-14) no
+other process, nor unverified code of the program, dials it, the closed-world assumption of
+`InvNet.lean` (`addrsUnclaimed`). -/
 axiom net.Listen.wp_proof : net.Listen.spec (GF := GF) (hG := hG)
 
 end proof

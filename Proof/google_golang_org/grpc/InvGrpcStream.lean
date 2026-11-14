@@ -20,8 +20,9 @@ queues are persistent facts (`upClosed γ L`: the client closed the up queue aft
 `NewStream` assert, read them against grpc's `stream.go`/`server.go` and HTTP/2): while the
 stream lives, each direction delivers the messages intact (the codec's copy of a message `send`
 holds at `m` is one `recv` holds at `m`, the `StreamMsg` instance's wire model), in order, without
-loss or duplication; a receive returns `io.EOF` exactly when the other side closed its direction
-and everything it sent before was received; a send that fails may or may not have delivered its
+loss or duplication; a receive returns `io.EOF` only when the other side closed its direction
+and everything it sent before was received (2026-11-14: was "exactly when"; the posts claim only
+this direction: a client's receive gets `io.EOF` only once the handler returned `nil`); a send that fails may or may not have delivered its
 message (the sender's token is at the old or the new list, which one being the transport's
 knowledge, so the two ends never disagree); after an error nothing more is promised. The server's
 run starts when the client's `NewStream` returns (the handler may be entered later; no message is
