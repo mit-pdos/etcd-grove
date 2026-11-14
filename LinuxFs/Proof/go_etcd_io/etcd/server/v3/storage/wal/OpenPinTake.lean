@@ -142,21 +142,21 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
     iframe Ha Hk
     ipureintro; exact hK
 
-/-- **`Open`'s pin** (see the file header): the WAL in `dir` present, its segments from position `k`
+/-- **`Open`'s pin** (see the file header): the WAL in `dir` present, its segments from position `k lay` (a function of the layout: `selectWALFiles`' `walSearch`)
 on, its directory's claim and, in write mode, its pipeline names taken out of the parked state, with
 the lock; what the layout says of them. -/
 theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) (k : Nat)
+    (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) (k : WalLay → Nat)
     (write : Bool) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
       ∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
         ⌜InArea s.area dir lay.nm ∧ lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
           ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
-          (lay.segs.map (·.ino)).Nodup⌝ ∗ walDirKey (W := W) dir lay.j X ∗
+          (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
         walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
-        walOutFrag (W := W) ⟨(lay.segs.drop k).map (·.ino), [(lay.j, .except X)],
+        walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
           if write then [dir] else []⟩ ∗
-        ([∗list] g ∈ lay.segs.drop k, segRes (L := L) g) ∗
+        ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
         osNames (L := L) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
         (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j else emp) := by
   iintro Hb Hu
@@ -171,12 +171,12 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
   -- the segments from `k` on
-  have hS : ∀ g ∈ lay.segs.drop k, g ∈ segsAll Ls := fun g hg =>
+  have hS : ∀ g ∈ lay.segs.drop (k lay), g ∈ segsAll Ls := fun g hg =>
     mem_segsAll hl (List.mem_of_mem_drop hg)
-  have hnd : ((lay.segs.drop k).map (·.ino)).Nodup := by
+  have hnd : ((lay.segs.drop (k lay)).map (·.ino)).Nodup := by
     rw [List.map_drop]
     exact (((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl).sublist (List.drop_sublist _ _)
-  imod walParked_takeSegs (L := L) (W := W) Ls cl ∅ WalOut.empty (lay.segs.drop k) hS
+  imod walParked_takeSegs (L := L) (W := W) Ls cl ∅ WalOut.empty (lay.segs.drop (k lay)) hS
     (fun _ _ h => by cases h) hnd $$ Hpk Ho with ⟨Hpk, Ho, HS, -⟩
   -- the directory's claim
   imod walParked_takeClaim (L := L) (W := W) Ls cl ∅ _ (lay.j, .except X, hj) hcX
@@ -184,18 +184,20 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   -- exact halves
   icases (laysResF_del (L := L) ∅ Ls dir lay hl).1 $$ Hlays with ⟨Hsegs, Hrest⟩
   ihave Hsegs := BigSepL.bigSepL_mono (fun {_ g} _ => (segResF_empty (L := L) g).1) $$ Hsegs
-  icases (bigSepL_take_drop (fun g => segRes (L := L) g) lay.segs k).1 $$ Hsegs with ⟨Hpre, Hpost⟩
-  icases segsRes_exact (L := L) (lay.segs.drop k) $$ [Hpost HS] with ⟨Hpost, HS⟩
+  icases (bigSepL_take_drop (fun g => segRes (L := L) g) lay.segs (k lay)).1 $$ Hsegs with ⟨Hpre, Hpost⟩
+  icases segsRes_exact (L := L) (lay.segs.drop (k lay)) $$ [Hpost HS] with ⟨Hpost, HS⟩
   · iframe Hpost HS
   ihave Hlays := (laysResF_del (L := L) ∅ Ls dir lay hl).2 $$ [Hpre Hpost Hrest]
   · iframe Hrest
     iapply BigSepL.bigSepL_mono (fun {_ g} _ => (segResF_empty (L := L) g).2)
-    iapply (bigSepL_take_drop (fun g => segRes (L := L) g) lay.segs k).2
+    iapply (bigSepL_take_drop (fun g => segRes (L := L) g) lay.segs (k lay)).2
     iframe Hpre Hpost
   have hpure : InArea s.area dir lay.nm ∧ lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
-      ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ (lay.segs.map (·.ino)).Nodup := by
+      ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ (lay.segs.map (·.ino)).Nodup ∧
+      SegsNamed lay.segs hj.cur := by
     rw [hnm]
-    exact ⟨hA, hjr, hX, hcoh, habs, ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl⟩
+    exact ⟨hA, hjr, hX, hcoh, habs, ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl,
+      (HNm dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩⟩
   cases write with
   | false =>
     imodintro

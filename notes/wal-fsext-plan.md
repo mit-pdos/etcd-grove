@@ -972,6 +972,27 @@ a change in flight only on a registered tail.** Every importer of `Ghost.lean` b
   (`walParked_putSeg`'s `g ∈ segsAll Ls'`): by inode and length (`segResP` depends on nothing else), the sizes
   from `WalAbsD.metas` at both ends and the `OsMeta` agreement, or dropped if no segment has the inode.
 
+**Twelfth session (branch `wal-read11`, 2026-11-14; gap C as decided, option (b)).** Every importer of `Ghost.lean`
+builds; no `sorry` added.
+- *The clause* (`Inv.lean`): **`DirClaimOk jr cl j X hj`** (`j ≠ jr`, `X` no `.wal` name, `ClaimOnce (j, .except X,
+  hj) cl`, coherent, no other claim of `j` on a `.wal` name: the keyed clause's facts) and **`DirClaimsOk jr Ls cl :=
+  ∀ dir lay, Ls !! dir = some lay → ∃ X hj, DirClaimOk jr cl lay.j X hj`**, **`DirKeysOk`'s third conjunct** (so
+  `walInvBody`'s shape is unchanged). Lemmas: `DirClaimOk.eq_of_mem` (a `WalDirClaim` of `j` is that claim),
+  `.key_once` (`walParked_putClaim`'s `l1 ++ c :: l2` and no other of its key), `DirClaimsOk.insert`, `.mono_cl`.
+  Kept by every `DirKeysOk` step lemma (`_drop`, `_cover`, `_create` (new WAL: the key's facts; others: `j ≠ J`),
+  `_named`, `_cut` (cut WAL: the replaced claim; others: `walsOk_dir_ne`), `_cutSynced`, `_sync`, `_tail`).
+- **`walInv_alloc` takes `hdirs1`** (new premise; no caller yet): each WAL directory's boot claim `(J, .except
+  walTmps, h)` occurs once in `cl` and no other claim of `J` holds a `.wal` name (`dirClaimsOk_start`).
+- **The key authority keeps a copy of each key** (`Ghost.lean`): `walDirKeysAuth K := ghostMapAuth γdk 1 K ∗ [∗map]
+  dir ↦ x ∈ K, dir ↪□ x`; new `walDirKeysAuth_get` (a holder of the lock finds a key made earlier in the
+  generation, e.g. by a `Create` or a `ReadAll` whose handle was closed). `walDirKey_lookup`/`_insert` unchanged.
+- **Statement changes** (callers repaired): a proof projecting `DirKeysOk`'s crash clause writes `h.2.1` (was
+  `h.2`; `CreateKeys`, `CreateNamed`, `CutSync`, `CutCommit`, `CutCommitLemmas`, `TailSync`); a proof building it
+  gives a third component (`h.2.2`, `h3.insert hl rfl` for a layout replaced at the same directory).
+- **Obligations**: `Create` (`wal-create*`) none beyond the above (its commit lemma `dirKeysOk_create` is repaired
+  here); a unit proving a new `DirKeysOk` step: the third conjunct; the adequacy theorem (`walInv_alloc`'s caller):
+  `hdirs1` from the boot split of the claims.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -3381,3 +3402,22 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   `openAtIndex`, `OpenForRead`, `Open` (the proofs; `Open`'s leftover `N.tmp` meeting `trFile`'s `cut = none ∧ lo ≤
   size` and `walPipeH` at `pc = 0` are for its pipeline step). The `ZeroToEnd` instance on the crash-tracked tail
   (`wal-tc2`) stays a hypothesis of `ReadAll`.
+
+**Eleventh session (branch `wal-read11`, 2026-11-14).** Gap C closed (W1 log, twelfth session); no `sorry` added.
+- *The pin keys its WAL* (`OpenPinTake.lean`): **`walInvBody_pin`'s post gains `walDirKey dir lay.j X`** and the
+  pure fact `(lay.segs.map ino).Nodup` (`walDirKeys_pin`: the generation's key if any, `walDirKeysAuth_get`, else
+  made, `dirKeysOk_key`; the claim's `X` by `DirClaimOk.eq_of_mem`). `ReadAll` no longer makes the key: the
+  handle's body carries the pin's.
+- *Proved, the put-back* (`OpenUnpin.lean`): **`walInvBody_unpin … dir j X hj S write (hS : ∀ g ∈ S, g.om.size =
+  g.bs.length) : ⊢ walInvBody s -∗ walLockedTok -∗ walTailsFrag ∅ -∗ walOutFrag ⟨S.map ino, [(j, .except X)], if
+  write then [dir] else []⟩ -∗ [∗list] g ∈ S, segRes g -∗ osNames j (.except X) ½ hj -∗ (if write then walTmpsRes j
+  else emp) -∗ walDirKey dir j X ==∗ walInvBody s ∗ walUnlockedTok`** (at any `s`: the key gives the layout and
+  the claim once, `osNames_agree` its history; segments by inode, `walParked_putSegsRes`; `hS` from the pin's
+  `WalAbsD.metas`).
+- *Proved, the commit's `unl`* (`OpenUnl.lean`): **`walInvBody_unl … s dir p M : ⊢ walInvBody s -∗ walOwn M ==∗
+  ⌜walMapLe M s.wal⌝ ∗ walInvBody (unlSt s dir p) ∗ walOwn (unlSt s dir p).wal ∗ walPast (unlSt s dir p)`**
+  (`unlSt s dir p := absDiskUpd s dir (fun d => {d with unl := max d.unl p})`; nothing in the invariant reads `unl`).
+- *Proved, the tail's registration* (`TailReg.lean`): `walTails_register`/`_unregister` (both halves of the tails'
+  authority combined, the key inserted/deleted, split back) and **`walTailsRes_register`** (from `walTailsFrag ∅`
+  and the record's facts: a fresh `γ`, the invariant's half in `walTailsRes`, the program's half, the key and
+  `walTailsFrag {dir ↦ γ}`).
