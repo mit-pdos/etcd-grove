@@ -67,6 +67,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
        etc/gen-link.py --walfs > LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
+       etc/gen-link.py --durable > LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
@@ -631,7 +632,7 @@ for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
-if sys.argv[1:2] == ["--walfs"]:
+if sys.argv[1:2] in (["--walfs"], ["--durable"]):
     # etcd's WAL over the per-byte Linux file extension: the callees read off the proofs' binders,
     # the results generic in the model parameters (`etc/link_walfs.py`); `--check` compares
     sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -639,7 +640,8 @@ if sys.argv[1:2] == ["--walfs"]:
     import link_walfs  # noqa: E402
     import proof_roots  # noqa: E402  (Perennial's checkout as Lake resolves it)
     link_walfs.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
-                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:])
+                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
+                    cfg=link_walfs.DURABLE if sys.argv[1] == "--durable" else None)
     sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)

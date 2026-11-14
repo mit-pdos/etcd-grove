@@ -416,6 +416,48 @@ waits on Perennial's `errors-facts` branch) and the `os` specs `File.Stat`, `fil
   `tmp ∉ cands` in `DurOk`, from `tmpRes`'s whole `trFile`, or derived from the resources); a retry after
   a rename makes a fresh candidate (`O_CREAT`, the temporary absent) with `data`, so `cands` grows
   and `alt` stays. (3) the crash and boot lemmas; (4) the link.
+
+**Third session (branch `wal-u2c`, 2026-11-14): `tryWrite` and `Write` proved; the link generated.** No
+axiom, no trusted change, no `sorry`. `Write.wp_proof` takes `tryWrite.spec`; `tryWrite.wp_proof` takes
+the `filepath` specs (`Dir`, `Base`, `Join`) and the `os` specs `OpenFile.specCreateTruncSnc`,
+`File.WriteAt`, `File.Sync`, `File.Sync.specDirS`, `File.Close`, `Rename.specFileSnc` (all proved in the
+part); `os.OpenFile.wp_truncS`, `os.Open.wp_dirS`, `os.File.Close.wp_dirS` used as theorems.
+- **Defs changes (internal; decided autonomously).** `DurPhys.alt` (a copy of the state's `alt`, with
+  `DurOk.alt : s.alt = p.alt`): the state is then determined by the physical state (`cur` by `CurIs`
+  and `inj`), so the handle knows it and no client can move it between a `Write`'s steps. `durHandle` is
+  `∃ p, durHandleP p ∗ ⌜p.alt = none⌝` (no `Write` between its rename and its commit between calls):
+  what the first update needs (the old `alt` none, so a crash keeps `cur` or `data`, not an older value).
+  `durWriteSync` moved from `Spec/.../Write.lean` to `Defs.lean` (same text), with `durWriteAU` (the
+  first update) and `durWOwe` (what a `Write` still owes: both updates at `alt = none`, or the second at
+  `alt ≠ none` with the name holding `data`). `Write.spec` unchanged.
+- **`tryWrite.spec`** (internal): at the handle's `p` (premise `∃ s, DurOk f s p`), with `durWOwe` in the
+  pre; post `true` with `Ψ` (the second update committed) and the handle at `alt = none`, or `false`
+  with the handle at some `p'` and `durWOwe p'`.
+- **The invariant steps** (`WriteInv.lean`): `durCreate_osAUnc` (the temporary's create, the
+  invariant's half of its claim to `crHt`), `durRename_osAUnc` (at the rename's commit: both claims'
+  halves to the outcome, the temporary's file a candidate, `c.i ∉ cands` from its whole `OsMeta` against
+  the invariant's halves, `candRes_notin`; the client's first update, `DurOk.renA`, or a retry's,
+  `DurOk.renB`), `durInv_commit` (the second update at a step after the directory's sync: `osCommitLb
+  n` with `n` the name's claim's `next`, the claim coherent). Pure facts in `WritePure.lean`
+  (`DurOk.crHt/renA/renB/commit`, `TrOk` of the temporary's file across write and sync, the paths).
+- **`HistCoh`/`osNames_histCoh`** (`GooseLang/Ext/Fs/TreeSharedCoh.lean`, untrusted, a new module): the
+  WAL's `ClaimCoh`/`osNames_coh` restated in the extension (copies of four lemmas of
+  `wal/CreateCoh.lean`, `CreateCommit.lean`'s `entsOf_entry`, `CreateDrop.lean`'s `valAfter_congrK`;
+  the WAL's can switch to it, a cleanup).
+- **`tryWrite`'s proof** (`WriteOpen.lean`: `durTmpOpen`, the open by cases on the temporary's name;
+  `durHandle_tmp`/`durHandle_ren`, the handle rebuilt; `tryWrite.lean`): the `if len(data) > 0` joined
+  with `wp_wand` (as `mvccfull`'s `runner.end`), every other failure path closes and returns `false`.
+- **The link** (`etc/gen-link.py --durable`, the `--walfs` generator parameterized: `link_walfs.DURABLE`):
+  `LinuxFs/Proof/.../durable/Link.lean`, 29 results; `wp_Read`/`wp_tryRead` take
+  `h_errors_IsPathErrnoNotExist` (pending on Perennial's `errors-facts`), `wp_Write` closed. `--check`
+  passes for both modes.
+- **Not done: (3) the crash and boot lemmas.** Design (unchanged): `durInv_crash` opens `durInv` with
+  the crash token (as `walInv_crash`), `crashRest_region` on the two claims (`osCommitLb nc`) gives a
+  `RegionCrashed` `K`, `DurOk.crash` the name's value (`OutOk`: `none`, or a candidate holding `cur`'s
+  or `alt`'s contents), `crashRest_take_named`/`crashRestAt_take` the candidate's start resources
+  (`DCand.Ok`: `lo = hi = size`, every byte `durB`); `durBoot` from the new generation's whole claims on
+  `b`/`tb` (split off by the boot's client), the state `⟨v, none⟩`. Needs: whether the tester (`wal-u1`)
+  wants the boot per file or for the directory.
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
