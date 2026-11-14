@@ -581,3 +581,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   notCrashed ∗ U (some x) ∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`; `renameWAL` applies it at a
   program step after the rename (`wp_notCrashed_acc`). `dq` is fixed by `Create`.
 - **Decision.** Adopted (the coordinator's decision, 2026-11-14, `wal-path15` task 3; internal spec, no client).
+
+## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`, new): the main
+  tree's axiom (`Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean`) with plan §3's binders (`walAreaOk`, the
+  area's spine and `walAreaRes`, `osCallPerm 1`, the update at `walAuMask`; `Open`'s premises, as `Repair` reads
+  the same directory), and `walUnlockedTok` framed.
+- **Defect (of the main axiom).** It promised that `Repair` blocks on the tail's lock while a handle holds it,
+  then acts as with no handle. Over `fsExt` the file locks are bookkeeping (plan §6 Q1: no lock state), so
+  `LockFile` waits for nothing and a concurrent appender would race the truncation: the axiom's statement
+  without the token is not provable (and with Q1's model, not true of the model).
+- **Evidence.** Plan §3 ("`Repair` takes `walUnlockedTok`") and §5/§6 Q7; both callers comply: the WAL tester
+  calls `Repair` after a successful `Close` (examples/etcd/wal/wal.go:192-198), `openWALFromSnapshot` before
+  any `Open`.
+- **Change (made).** The token in the pre and the post (framed); the "blocks until the handle's `Close`"
+  scenario dropped until the lock model. Otherwise the main tree's: committed as accessed, the boolean unconstrained.
+- **Decision.** Adopted (the coordinator, plan §6 Q7, 2026-11-13; stated in the W7-W12 log's fifth session).
