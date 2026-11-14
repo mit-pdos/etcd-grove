@@ -52,11 +52,9 @@ theorem Storage.Snapshot.wp_proof
   iNamed Hinit
   icombine ErrSnapUnavail Hesu gives %Hesu_eq
   wp_auto
-  wp_apply wp_MemoryStorage_Snapshot ms γs J none c false esu $$ [$Hraftinit $Hc $Hesu]
+  wp_apply wp_MemoryStorage_Snapshot ms γs J none c none esu $$ [$Hraftinit $Hc $Hesu]
     as %snap %err ⟨-, Hr⟩
-  · isplitr
-    · iapply memStorAt_none_intro $$ Hinv
-      iempintro
+  · iapply memStorAt_none_intro $$ Hinv
     iempintro
   cases err with
   | nil =>

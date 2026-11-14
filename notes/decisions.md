@@ -35598,3 +35598,9 @@ in place of `mvcc.lateReg d.gx` (same meaning; what `boot_storageR` takes). Why 
 copy of a reviewed `bootOk` row reached by the same Go code. Old → new text: the freeze package §11.6
 (`/shared/tmp/restart-s56/freeze-package.md`). The skeleton `E/NewServerR.lean` (its `sorry`) is kept off
 `lean` (removed from the tree at this checkpoint; restore it with `git show c081768592:<path>`).
+
+**`srvRestartRows`' parse** (2026-11-14, decided by etcd-grove-81 on the B2 reviewer's finding). The row's
+text `|==> rnSnapTermAbove γn ∗ srvWinPend s γr γn` parsed as `(|==> rnSnapTermAbove γn) ∗ srvWinPend …`
+(`|==>` binds tighter than `∗`), not the docstring's "a ghost update gives both rows". Restated old → new as
+`|==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn)`: implied by the old text, so a weaker premise on
+`NewServer.specR`'s caller (safe); the freeze package §11.7.

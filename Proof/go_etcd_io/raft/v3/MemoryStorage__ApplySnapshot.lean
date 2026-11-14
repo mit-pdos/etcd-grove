@@ -67,26 +67,29 @@ private theorem wp_ApplySnapshot_gen
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG))
     (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat)
     (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface)
+    (w : Option SnapshotM)
     (Hjs : j ≤ uint.nat sv.Metadata'.Index' ∨ (uint.nat sv.Metadata'.Index' = 0 ∧ j = 1))
     (Hs61 : uint.nat sv.Metadata'.Index' < 2^61) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       memStorAt ms γs J o
         iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
       memLog γs j (DFrac.own 1) old ∗ memEnd γs (j + old.length) ∗
-      snapArg sp dq sv ∗ memSnapLb γs 0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood ∗
+      snapArg sp dq sv ∗ (match w with | none => memSnapLb γs 0 | some s0 => memSnapNone γs s0) ∗
+      globalAddr ErrSnapOutOfDate ↦□ eood ∗
       (⌜j ≤ uint.nat sv.Metadata'.Index'⌝ ∨ memLog γs 0 DFrac.discard [memDummy sv]) }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot")) (Val #sp))
   {{ RET #interface.nil; ownSnapM sp dq sv ∗
       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
       memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
-      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') ∗
+      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
+      (match w with
+       | none => memSnapLb γs (uint.nat sv.Metadata'.Index')
+       | some _ => memSnapNone γs sv) ∗
       (match o with
        | some (c, _) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
        | none => emp) }} := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  wp_start as ⟨Hat, Hold, Hend, Hsnap, #Hlb0, #Herr, HZ⟩
-  iunfold memSnapLb at Hlb0
-  icases Hlb0 with ⟨-, #Hpr⟩
+  wp_start as ⟨Hat, Hold, Hend, Hsnap, Htok, #Herr, HZ⟩
   icases memStorAt_split ms γs J o _ $$ Hat with ⟨#Hlock, Hjc, Hho⟩
   iunfold memStorLock at Hlock
   icases Hlock with ⟨#Hinit, #Hmu⟩
@@ -224,7 +227,32 @@ private theorem wp_ApplySnapshot_gen
       (by iintro ⟨#HB, -⟩; iexact HB) $$ Hjc with ⟨#Hcjn, Hjc⟩
     imod memSnap_update γs sv0 sv0 sv $$ Hsx_inv Hsxh with ⟨Hsx_inv, Hsxh⟩
     imod mono_nat_own_update (uint.nat sv.Metadata'.Index') (by omega) $$ Hsl_inv with ⟨Hsl_inv, #Hslb⟩
-    iclear Hsn_inv
+    -- the unopened snapshot: kept open (`memSnapLb`), or moved to `sv` with the token
+    icases Hsn_inv with ⟨%s1, Hs1, -⟩
+    ihave Hsn' : iprop(|==> ((∃ s0', ghostVar γs.s0 (1 : Qp).half s0' ∗
+        (⌜sv = s0'⌝ ∨ monoNatLbOwn γs.pr 1)) ∗
+        (match w with
+         | none => memSnapLb γs (uint.nat sv.Metadata'.Index')
+         | some _ => memSnapNone γs sv))) $$ [Htok Hs1]
+    · cases w with
+      | none =>
+        simp only
+        iunfold memSnapLb at Htok
+        icases Htok with ⟨-, #Hpr⟩
+        imodintro
+        isplitl [Hs1]
+        · iexists s1; iframe Hs1; iright; iexact Hpr
+        iunfold memSnapLb; iframe Hslb Hpr
+      | some s0 =>
+        simp only
+        iunfold memSnapNone at Htok
+        icases Htok with ⟨Hpr0, Hh, -⟩
+        imod ghostVar_update_halves sv γs.s0 _ _ $$ Hh Hs1 with ⟨Hh, Hs1⟩
+        imodintro
+        isplitl [Hs1]
+        · iexists sv; iframe Hs1; ileft; ipureintro; rfl
+        iunfold memSnapNone; iframe Hpr0 Hh Hslb
+    imod Hsn' with ⟨Hsn', Hpost⟩
     rw [← memLkAt_bump γs o (uint.nat sv.Metadata'.Index')]
     icases memValNew_of_bound ms γs J (memBumpAt o (uint.nat sv.Metadata'.Index')) _ sv
       (by iintro ⟨-, #HSV, #HDL⟩; iright; iframe HSV HDL) $$ Hjc with ⟨Hjc, Hvn⟩
@@ -246,7 +274,7 @@ private theorem wp_ApplySnapshot_gen
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hsl_cap Hcs_firstIndex
-      Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog Hen_inv Hcp Hsx_inv Hsl_inv Hlk]
+      Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog Hen_inv Hcp Hsx_inv Hsl_inv Hsn' Hlk]
     · unfold memstorageInv
       iexists entryID.mk sv.Metadata'.Term' sv.Metadata'.Index', [], _, sv
       simp only [named, List.length_nil, Nat.add_zero]
@@ -267,8 +295,8 @@ private theorem wp_ApplySnapshot_gen
           iapply entsBigZ_nil
         ipureintro; exact ⟨rfl, rfl⟩
       iframe Hlog Hen_inv Hcp Hsx_inv Hsl_inv Hlk Hcjn
-      isplitr
-      · iright; iexact Hpr
+      isplitl [Hsn']
+      · iexact Hsn'
       isplitr
       · iexists memDummy sv
         iframe Hd
@@ -298,9 +326,8 @@ private theorem wp_ApplySnapshot_gen
       ipureintro; right; simp only [List.length_singleton]; omega
     isplitl [Hen Hek]
     · iunfold memEnd; iframe Hen Hek
-    isplitr
-    · iunfold memSnapLb
-      iframe Hpr Hslb
+    isplitl [Hpost]
+    · iexact Hpost
     cases o with
     | none => iempintro
     | some p0 =>
@@ -316,12 +343,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · intro ms γs J o j old sp dq sv eood Hjs Hs61
     iintro %Φ ⟨#Hinit, Hat, Hold, Hend, Hsnap, #Hlb0, #Herr⟩ HΦ
     wp_apply wp_ApplySnapshot_gen wp_EnsureSnapshot wp_GetMetadata wp_GetIndex wp_GetTerm
-      wp_CloneSnapshot ms γs J o j old sp dq sv eood (Or.inl Hjs) Hs61 $$ [Hat Hold Hend Hsnap]
-      as ⟨Hs, #Hc, #Hd, He, #Hl, Hf⟩
+      wp_CloneSnapshot ms γs J o j old sp dq sv eood none (Or.inl Hjs) Hs61
+      $$ [Hat Hold Hend Hsnap] as ⟨Hs, #Hc, #Hd, He, #Hl, Hf⟩
     · iframe Hat Hold Hend Hsnap Hlb0 Herr
       ileft; ipureintro; exact Hjs
     iapply HΦ
@@ -335,10 +362,39 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
         J.DL (uint.nat sv.Metadata'.Index')) $$ [Hat]
     · rw [H0]; iexact Hat
     wp_apply wp_ApplySnapshot_gen wp_EnsureSnapshot wp_GetMetadata wp_GetIndex wp_GetTerm
-      wp_CloneSnapshot ms γs J o 1 old sp dq sv eood (Or.inr ⟨H0, rfl⟩) (by omega)
+      wp_CloneSnapshot ms γs J o 1 old sp dq sv eood none (Or.inr ⟨H0, rfl⟩) (by omega)
       $$ [Hat Hold Hend Hsnap]
       as ⟨Hs, #Hc, #Hd, He, #Hl, Hf⟩
     · iframe Hat Hold Hend Hsnap Hlb0 Herr
+      iright; iexact Hd0
+    rw [H0]
+    iapply HΦ
+    iframe Hs Hc Hd He Hl
+    cases o with
+    | none => iexact Hf
+    | some p0 => obtain ⟨c0, _⟩ := p0; simp only [Nat.max_zero]; iexact Hf
+  · intro ms γs J o j old sp dq sv eood s0 Hjs Hs61
+    iintro %Φ ⟨#Hinit, Hat, Hold, Hend, Hsnap, Htok, #Herr⟩ HΦ
+    wp_apply wp_ApplySnapshot_gen wp_EnsureSnapshot wp_GetMetadata wp_GetIndex wp_GetTerm
+      wp_CloneSnapshot ms γs J o j old sp dq sv eood (some s0) (Or.inl Hjs) Hs61
+      $$ [Hat Hold Hend Hsnap Htok] as ⟨Hs, #Hc, #Hd, He, Hl, Hf⟩
+    · iframe Hat Hold Hend Hsnap Htok Herr
+      ileft; ipureintro; exact Hjs
+    iapply HΦ
+    iframe Hs Hc Hd He Hl
+    cases o with
+    | none => iexact Hf
+    | some p0 => obtain ⟨c0, _⟩ := p0; iexact Hf
+  · intro ms γs J o old sp dq sv eood s0 H0
+    iintro %Φ ⟨#Hinit, Hat, Hold, Hend, #Hd0, Hsnap, Htok, #Herr⟩ HΦ
+    ihave Hat : memStorAt ms γs J o iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗
+        J.DL (uint.nat sv.Metadata'.Index')) $$ [Hat]
+    · rw [H0]; iexact Hat
+    wp_apply wp_ApplySnapshot_gen wp_EnsureSnapshot wp_GetMetadata wp_GetIndex wp_GetTerm
+      wp_CloneSnapshot ms γs J o 1 old sp dq sv eood (some s0) (Or.inr ⟨H0, rfl⟩) (by omega)
+      $$ [Hat Hold Hend Hsnap Htok]
+      as ⟨Hs, #Hc, #Hd, He, Hl, Hf⟩
+    · iframe Hat Hold Hend Hsnap Htok Herr
       iright; iexact Hd0
     rw [H0]
     iapply HΦ

@@ -47,7 +47,7 @@ abbrev newReplica.spec : Prop :=
       nodeRunning n γr.cluster kvrRaftN 1 ∗
       nodeConfig n γr.cluster kvrRaftN ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
       kvrStorRec st ms γs ∗ memStorInvP ms γs (kvrJ γr.cluster K) ∗ memStorMeta ms γs hs ∗
-      memSnapNone γs ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
+      memSnapNone γs memSnapEmpty ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
       id ↪[γr.rseq] W64 0 ∗
       -- (raft-entsize §2, 2026-11-09) no bound on proposed data (the replica's `%Hmd`)
       ⌜γr.cluster.maxData = none⌝ }}

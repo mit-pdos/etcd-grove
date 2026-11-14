@@ -37,32 +37,91 @@ theorem MemoryStorage.ApplySnapshot.wp_proof [package_sem : Assumptions] (wp_Ens
                           (intoVal ms)))
                       (intoVal sp))
                     {{ Φ }}) ∧
-    ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
-      (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
-      uint.nat sv.Metadata'.Index' = 0 →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
-                  memLog γs 1 (DFrac.own 1) old ∗
-                    memEnd γs (1 + old.length) ∗
-                      memLog γs 0 DFrac.discard [memDummy sv] ∗
-                        snapArg sp dq sv ∗
-                          memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
-              ▷
-                  ((ownSnapM sp dq sv ∗
-                      memCompacted γs 0 ∗
+    (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
+        (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
+        uint.nat sv.Metadata'.Index' = 0 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
+                    memLog γs 1 (DFrac.own 1) old ∗
+                      memEnd γs (1 + old.length) ∗
                         memLog γs 0 DFrac.discard [memDummy sv] ∗
-                          memEnd γs 1 ∗
-                            memSnapLb γs 0 ∗
-                              match o with
-                              | some (c, snd) => memStorFresh ms γs c sv
-                              | none => emp) -∗
-                    Φ (intoVal GoInterface.nil)) -∗
-                WP
-                  ((intoVal
-                      (methods MemoryStorage.ty.PointerType
-                        go!"ApplySnapshot"
-                        (intoVal ms)))
-                    (intoVal sp))
-                  {{ Φ }}
+                          snapArg sp dq sv ∗
+                            memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                ▷
+                    ((ownSnapM sp dq sv ∗
+                        memCompacted γs 0 ∗
+                          memLog γs 0 DFrac.discard [memDummy sv] ∗
+                            memEnd γs 1 ∗
+                              memSnapLb γs 0 ∗
+                                match o with
+                                | some (c, snd) => memStorFresh ms γs c sv
+                                | none => emp) -∗
+                      Φ (intoVal GoInterface.nil)) -∗
+                  WP
+                    ((intoVal
+                        (methods MemoryStorage.ty.PointerType
+                          go!"ApplySnapshot"
+                          (intoVal ms)))
+                      (intoVal sp))
+                    {{ Φ }}) ∧
+      (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat) (old : List EntryM)
+          (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface) (s0 : SnapshotM),
+          j ≤ uint.nat sv.Metadata'.Index' →
+            uint.nat sv.Metadata'.Index' < 2 ^ 61 →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      memStorAt ms γs J o
+                          iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
+                        memLog γs j (DFrac.own 1) old ∗
+                          memEnd γs (j + old.length) ∗
+                            snapArg sp dq sv ∗
+                              memSnapNone γs s0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                    ▷
+                        ((ownSnapM sp dq sv ∗
+                            memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+                              memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+                                memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
+                                  memSnapNone γs sv ∗
+                                    match o with
+                                    | some (c, snd) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+                                    | none => emp) -∗
+                          Φ (intoVal GoInterface.nil)) -∗
+                      WP
+                        ((intoVal
+                            (methods MemoryStorage.ty.PointerType
+                              go!"ApplySnapshot"
+                              (intoVal ms)))
+                          (intoVal sp))
+                        {{ Φ }}) ∧
+        ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
+          (dq : DFrac) (sv : SnapshotM) (eood : GoInterface) (s0 : SnapshotM),
+          uint.nat sv.Metadata'.Index' = 0 →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
+                      memLog γs 1 (DFrac.own 1) old ∗
+                        memEnd γs (1 + old.length) ∗
+                          memLog γs 0 DFrac.discard [memDummy sv] ∗
+                            snapArg sp dq sv ∗
+                              memSnapNone γs s0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                  ▷
+                      ((ownSnapM sp dq sv ∗
+                          memCompacted γs 0 ∗
+                            memLog γs 0 DFrac.discard [memDummy sv] ∗
+                              memEnd γs 1 ∗
+                                memSnapNone γs sv ∗
+                                  match o with
+                                  | some (c, snd) => memStorFresh ms γs c sv
+                                  | none => emp) -∗
+                        Φ (intoVal GoInterface.nil)) -∗
+                    WP
+                      ((intoVal
+                          (methods MemoryStorage.ty.PointerType
+                            go!"ApplySnapshot"
+                            (intoVal ms)))
+                        (intoVal sp))
+                      {{ Φ }}
