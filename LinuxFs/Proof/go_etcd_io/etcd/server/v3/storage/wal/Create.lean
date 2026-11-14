@@ -3,9 +3,9 @@
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
 proved through the call of `renameWAL`, its committed-error arm and its not-committed arm (the
-unminting, `CreateUnmint.lean`); its two success arms are `sorry` (the W4 log, twenty-second session,
-plans them: arm 1 assembles the handle before naming, `walOpenWFU`, and both continue to the parent's
-fsync). Lean-first.
+unminting, `CreateUnmint.lean`); arm 1 builds the handle before naming (`walOpenWFU`, `CreateHandle.lean`);
+both success arms are `sorry` from there on, at the same point (the parent's fsync and the naming; W4 log,
+twenty-third session). Lean-first.
 -/
 module
 
@@ -796,8 +796,12 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       icases Hlk with ⟨Henc, Hf, Hfd, Hoff⟩
       have hpe0 : Fs.pageEnd 0 = 0 := by unfold Fs.pageEnd; rfl
       have hzp : ZeroPg m2 := hzp2 ⟨trivial, ⟨0, by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes,
-        OsFile.ofDisk], by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk],
+        OsFile.ofDisk, hpe0], by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk],
         by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, hpe0]⟩⟩
+      have hoffE : W64 ((((0 + ([] ++ ys1 ++ ys2 ++ pend2 ++ snapFrame Mr
+          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model).length : Nat)) : Int)) =
+          W64 (((createStream Mr md).length : Nat) : Int) := by
+        rw [hout, Nat.zero_add]
       have htmS := createSeg_tailMeta Mr md hMr i m2 mS zs2 ysS hokS' hm2s hm2c hmaps2 hzp
       obtain ⟨hL, hszS⟩ := createSeg_size Mr md hMr hmd i m2 mS zs2 ysS hokS' hm2s
       have hjm : ((NameSet.except []).diff walTmps).Mem (walFileName 0 0) :=
@@ -820,7 +824,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (child (child r (tmpName nm)) (walFileName 0 0)) (child r (tmpName nm))
         (openFd i (wal.walOpenFlag false ||| W64 524288)) _ (createSeg i mS ysS) jr J
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
-        (DFrac.own d) sz rfl hwr (by simp only [hout, Nat.zero_add]) hmp rfl htmS hL hszS hj0 hj1 hfpn
+        (DFrac.own d) sz rfl hwr hoffE hmp rfl htmS hL hszS hj0 hj1 hfpn
         hfi.1 $$ [Hpre Henc Hf Hfd Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
           Hfpf Hpipe Hmain Ht1 Hopen]
       · iframe; iframe #
