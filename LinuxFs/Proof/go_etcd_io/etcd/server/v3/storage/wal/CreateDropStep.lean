@@ -204,7 +204,7 @@ theorem walUnlocked_out (o : WalOut) :
     ⊢@{IProp GF} walOutAuth (W := W) o -∗ walUnlockedTok (W := W) -∗
       ⌜o = WalOut.empty⌝ ∗ walOutAuth (W := W) o ∗ walUnlockedTok (W := W) := by
   unfold walUnlockedTok
-  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf⟩
+  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf, Hn⟩
   icases walOut_agree (W := W) o _ $$ Ha Ho with %ho
   iframe
   ipureintro; exact ho
@@ -253,7 +253,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   unfold walInvBody
   iintro Hb #Hsi Hu H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Ht, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
   unfold walCreatingAuth
   icases HCRa with ⟨HCRa, Hor⟩
   icases Hor with (%hCR0 | ⟨-, Hl⟩)
@@ -302,6 +302,17 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       InArea s.area dir nm ∧ lay.jr = jr ∧ lay.nm = nm := fun dir d hd' => by
     obtain ⟨lay, nm', hj, hl, hia, hjr, hnm', -⟩ := hwo.1 dir d hd'
     exact ⟨lay, nm', hl, hia, hjr, hnm'⟩
+  have hnmd : ∀ nm' hn, walNameOk nm' → (jr, NameSet.only [nm'], hn) ∈ l1 ++ (jr, N1, h1) :: l2 →
+      (jr, NameSet.only [nm'], hn) ∈ dropClaims (l1 ++ (jr, N1, h1) :: l2) jr N1 h1 b := by
+    intro nm' hn _ hm
+    unfold dropClaims replClaim
+    refine List.mem_map.2 ⟨_, hm, ?_⟩
+    rw [if_neg]
+    intro e
+    simp only [Prod.mk.injEq] at e
+    obtain ⟨-, rfl, -⟩ := e
+    simp only [NameSet.Mem, List.mem_singleton] at hb hNnm
+    exact hbnm (hNnm.trans hb.symm)
   imodintro
   iframe Hu HI HD2
   iexists Ls, dropClaims (l1 ++ (jr, N1, h1) :: l2) jr N1 h1 b, n, F
@@ -336,8 +347,10 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     iframe HK Hcc
     ipureintro
     exact dirKeysOk_drop hd hbw hbn hw hdk
-  ipureintro
-  exact walsAt_drop hAt hd.mem
+  isplitr
+  · ipureintro
+    exact walsAt_drop hAt hd.mem
+  iexact Hnms
 
 end iris
 

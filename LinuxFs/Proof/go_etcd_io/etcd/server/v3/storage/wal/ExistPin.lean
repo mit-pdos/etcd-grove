@@ -86,13 +86,13 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
        (⌜s.wal !! dir ≠ none⌝ ∗ ∃ (J : Ino) (X : List GoString) (hj : NamesH),
           ⌜h.cur !! nm = some (.dir J) ∧ (∀ b ∈ X, walNameP b = false) ∧
             ∃ b, walNameP b = true ∧ (hj.cur !! b).isSome⌝ ∗
-          walPast (W := W) s ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+          walPast (W := W) s ∗ walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
           walOutFrag (W := W) (WalOut.empty.addClaim (J, .except X)) ∗
           osNames (L := L) J (.except X) (DFrac.own (1 : Qp).half) hj)) := by
   iintro Hb #Hsi H Hu
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, HCR, Ht, %hab,
-    %hwn, Hpk, Hdk, %hAt⟩
+    %hwn, Hpk, Hdk, %hAt, Hnms⟩
   imod osClaims_keys R jr N _ h _ (nameSet_ne_empty hN) hE $$ Hsi H Hcl with ⟨H, Hcl, %hkeys⟩
   obtain ⟨N1, h1, hm1, hN1⟩ := hwc nm hin.1
   obtain ⟨rfl, rfl⟩ := hkeys ((jr, N1, h1), _) (List.mem_map_of_mem hm1) rfl nm hN hN1
@@ -119,13 +119,13 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     have hsn : SegsNamed lay.segs hj.cur := (hwn dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩
     obtain ⟨g, hg⟩ := List.exists_mem_of_ne_nil _ habs.nonempty
     obtain ⟨hgw, hgj⟩ := hsn.1 g hg
-    imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, -⟩
+    imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, Hnf, -⟩
     imod walParked_takeClaim (L := L) (W := W) Ls cl F WalOut.empty (lay.j, .except X, hj) hcX
       ⟨dir, lay, hl, rfl, X, rfl, hX⟩ (by simp [WalOut.empty]) $$ Hpk Ho with ⟨Hpk, Ho, HJ⟩
     imod walGhost_past s $$ Hg with ⟨Hg, #Hp⟩
     imodintro
     iframe H
-    isplitr [Hl Ho Htf HJ]
+    isplitr [Hl Ho Htf Hnf HJ]
     · iexists Ls, cl, n, F
       iframe
       ipureintro; exact ⟨hr, hwo, hwc, hab, hwn, hAt⟩
@@ -133,7 +133,7 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     isplitr
     · ipureintro; simp
     iexists lay.j, X, hj
-    iframe Hp Hl Htf Ho HJ
+    iframe Hp Hl Htf Hnf Ho HJ
     ipureintro
     exact ⟨hat, hX, g.name, hgw, by rw [hgj]; rfl⟩
 
@@ -145,7 +145,7 @@ theorem walInvBody_existUnpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
     (hs0 : s0.wal !! dir ≠ none) (hX : ∀ b ∈ X, walNameP b = false) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
       osNames (L := L) jr N (DFrac.own (1 : Qp).half) h -∗ walPast (W := W) s0 -∗
-      walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗
+      walLockedTok (W := W) -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
       walOutFrag (W := W) (WalOut.empty.addClaim (J, .except X)) -∗
       osNames (L := L) J (.except X) (DFrac.own (1 : Qp).half) hj ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗
@@ -154,7 +154,7 @@ theorem walInvBody_existUnpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   iintro Hb #Hsi H #Hp Hl Htf Ho HJ
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, HCR, Ht, %hab,
-    %hwn, Hpk, Hdk, %hAt⟩
+    %hwn, Hpk, Hdk, %hAt, Hnms⟩
   icases walPast_ghost_le s s0 $$ Hg Hp with %hle
   obtain ⟨d0, hd0⟩ := Option.ne_none_iff_exists'.1 hs0
   obtain ⟨d, hsd, -⟩ := hle.2.2 dir d0 hd0
@@ -211,7 +211,8 @@ theorem walInvBody_existUnpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   have hoe : (WalOut.empty.addClaim (J, NameSet.except X)).delClaim (J, NameSet.except X) =
       WalOut.empty := by simp [WalOut.empty, WalOut.addClaim, WalOut.delClaim]
   ihave Ho := walOutFrag_eq' (W := W) WalOut.empty $$ Ho %hoe
-  imod walParked_unlock (L := L) (W := W) Ls _ F $$ Hpk Hl Ho Htf with ⟨Hpk, Hu⟩
+  icases Htf with ⟨Htf, Hnf⟩
+  imod walParked_unlock (L := L) (W := W) Ls _ F $$ Hpk Hl Ho Htf Hnf with ⟨Hpk, Hu⟩
   imodintro
   iframe H Hu
   iexists Ls, l1 ++ (J, NameSet.except X, hj) :: l2, n, F
@@ -234,7 +235,7 @@ theorem walInv_existStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
        (⌜od ≠ none⌝ ∗ ∃ (s0 : AbsDiskState) (J : Ino) (X : List GoString) (hj : NamesH),
           ⌜s0.wal !! dir ≠ none ∧ h.cur !! nm = some (.dir J) ∧ (∀ b ∈ X, walNameP b = false) ∧
             ∃ b, walNameP b = true ∧ (hj.cur !! b).isSome⌝ ∗
-          walPast (W := W) s0 ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+          walPast (W := W) s0 ∗ walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
           walOutFrag (W := W) (WalOut.empty.addClaim (J, .except X)) ∗
           osNames (L := L) J (.except X) (DFrac.own (1 : Qp).half) hj)) := by
   iintro #Hinv #Hsi Hnc HA H Hu
@@ -247,7 +248,7 @@ theorem walInv_existStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
        (⌜od ≠ none⌝ ∗ ∃ (s0 : AbsDiskState) (J : Ino) (X : List GoString) (hj : NamesH),
           ⌜s0.wal !! dir ≠ none ∧ h.cur !! nm = some (.dir J) ∧ (∀ b ∈ X, walNameP b = false) ∧
             ∃ b, walNameP b = true ∧ (hj.cur !! b).isSome⌝ ∗
-          walPast (W := W) s0 ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+          walPast (W := W) s0 ∗ walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
           walOutFrag (W := W) (WalOut.empty.addClaim (J, .except X)) ∗
           osNames (L := L) J (.except X) (DFrac.own (1 : Qp).half) hj)))
     ⊤ CoPset.subseteq_top (fun s => by
@@ -279,7 +280,7 @@ theorem walInv_existEnd (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗
       osNames (L := L) jr N (DFrac.own (1 : Qp).half) h -∗ walPast (W := W) s0 -∗
-      walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗
+      walLockedTok (W := W) -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
       walOutFrag (W := W) (WalOut.empty.addClaim (J, .except X)) -∗
       osNames (L := L) J (.except X) (DFrac.own (1 : Qp).half) hj ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗
@@ -287,7 +288,7 @@ theorem walInv_existEnd (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   iintro #Hinv #Hsi Hnc H #Hp Hl Htf Ho HJ
   iapply walInv_step C Mr R jr r
     iprop(osSharedInv (L := L) R ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗
-      walPast (W := W) s0 ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+      walPast (W := W) s0 ∗ walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
       walOutFrag (W := W) (WalOut.empty.addClaim (J, .except X)) ∗
       osNames (L := L) J (.except X) (DFrac.own (1 : Qp).half) hj)
     iprop(osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ walUnlockedTok (W := W))

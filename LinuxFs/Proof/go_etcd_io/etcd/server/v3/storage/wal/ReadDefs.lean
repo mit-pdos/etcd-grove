@@ -86,7 +86,7 @@ def walReadTie (dir : GoString) (write : Bool) (fs : List (DecFile GF)) (lfs : L
   iprop(∃ (j : Ino) (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
-    walTailsFrag (W := W) ∅ ∗ walDirKey (W := W) dir j X ∗
+    (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗ walDirKey (W := W) dir j X ∗
     ⌜(gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length)⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →

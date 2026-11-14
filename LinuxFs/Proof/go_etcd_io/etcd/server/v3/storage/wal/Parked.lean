@@ -265,18 +265,18 @@ theorem walParkedIn_of_halves (Ls : GMap GoString WalLay) (cl : List Claim) (F :
 
 /-- **Taking the lock** (`Open`, at its pin): nothing is out (the lock token's record is empty), so
 no change is in flight (gap B); the taker gets the lock token's record and its half of the tails'
-authority, empty (`walTailsFrag`). -/
+authority, empty (`walTailsFrag`), and the pending registration, `none` (`walNamesFrag`). -/
 theorem walParked_lock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl) :
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walUnlockedTok (W := W) ==∗
       walParked (L := L) (W := W) Ls cl F ∗ walLockedTok (W := W) ∗ walOutFrag (W := W) WalOut.empty ∗
-        walTailsFrag (W := W) ∅ ∗ ⌜∀ i, F !! i = none⌝ := by
+        walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none ∗ ⌜∀ i, F !! i = none⌝ := by
   unfold walParked
   iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Hu
-  imod walUnlockedTok_lock (W := W) b $$ Hpa Hu with ⟨-, Hpa, Hl, Ho, Htf⟩
+  imod walUnlockedTok_lock (W := W) b $$ Hpa Hu with ⟨-, Hpa, Hl, Ho, Htf, Hn⟩
   icases walOut_agree (W := W) o WalOut.empty $$ Hoa Ho with %ho
   subst ho
   imodintro
-  iframe Hl Ho Htf
+  iframe Hl Ho Htf Hn
   isplitl [Hpa Hoa Hs Hc Ht]
   · iexists false, WalOut.empty
     iframe Hpa Hoa Hs Hc Ht
@@ -286,14 +286,14 @@ theorem walParked_lock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap I
   exact Classical.byContradiction fun h => List.not_mem_nil (hp i h)
 
 /-- **Releasing the lock** (`Close`, an `Open` failing after its pin): everything put back (the
-record empty, no tail registered). -/
+record empty, no tail registered, no registration pending). -/
 theorem walParked_unlock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl) :
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walLockedTok (W := W) -∗ walOutFrag (W := W) WalOut.empty -∗
-      walTailsFrag (W := W) ∅ ==∗
+      walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none ==∗
       walParked (L := L) (W := W) Ls cl F ∗ walUnlockedTok (W := W) := by
   unfold walParked
-  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Hl Ho Htf
-  imod walLockedTok_unlock (W := W) b $$ Hpa Hl Ho Htf with ⟨-, Hpa, Hu⟩
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Hl Ho Htf Hn
+  imod walLockedTok_unlock (W := W) b $$ Hpa Hl Ho Htf Hn with ⟨-, Hpa, Hu⟩
   imodintro
   iframe Hu
   iexists true, o
