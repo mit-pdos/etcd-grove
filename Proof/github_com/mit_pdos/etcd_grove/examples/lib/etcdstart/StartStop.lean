@@ -54,19 +54,19 @@ theorem wp_Start_builtR (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `Start.spec`'s construction premise: the restart's built part and the stop's slot
   ihave Hsb := srvBuiltR_C s γA ci TM E ρ ρ.rd
-    (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+    (srvEr ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N $$ [Hsb Hkeep]
   · iframe Hsb
     iapply (srvStop.slot_intro s cfg E γrn γk
-      (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+      (srvEr ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
       rfl) $$ Hkeep
   have h' := wp_Start s γA ci TM .off E ρ ρ.rd
-    (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+    (srvEr ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false] at h'
   -- the server's member id is the member's (`srvNetMember`'s)
   icases isServerBuiltC_mid .off s γA ci TM E ρ ρ.rd
-    (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+    (srvEr ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N $$ Hsb with ⟨Hsb, #HmidS, -⟩
   ihave #Hnm' := Hnm
   iunfold srvNetMember at Hnm'
