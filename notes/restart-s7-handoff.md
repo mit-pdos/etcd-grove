@@ -23,7 +23,11 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
 - **P4-a statement, done** (same commit): `memberRestartFacts` in `BuildServer.specRestart`'s precondition,
   `memberBoot_restartFacts`; restart3's draft `startMember.specRestart`/`restartCheck.spec` carry it.
   `BuildServer.specRestart`'s proof is S7.4, not started.
-- **P2-a**: Go check done, law designed (`notes/restart-s7-p2a.md`), not yet written.
+- **Landed** S7.2' + P4-a statement: `lean` `5355352d5d` (2026-11-14; the first try failed the mode gate:
+  `srvErM false` literals, now `srvEr`, definitionally equal).
+- **P2-a, WIP** (`de74cd8d84`, not landed): the protocol's `MsgSnap` carries `snapDstOk` (raft builds through its
+  `Link`; server not rebuilt yet, a full build). Stopped on the row-4 finding (`notes/restart-s7-p2a.md`,
+  "Progress and a finding"): waiting for etcd-grove-81 on options (A)/(B).
 
 - **srvLeaseRd consumer check** (etcd-grove-81's condition on the change, 2026-11-14):
   `etc/importers.py --uses srvLeaseRd` lists `etcdstart.{Defs,Restart,Served,ServedLease,newServerMode}`;
