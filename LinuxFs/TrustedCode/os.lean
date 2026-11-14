@@ -1348,6 +1348,188 @@ def Stderr.init : val :=
     GlobalVarAddr go!"os.Stderr" #() <-[go.GoType.PointerType (go.GoType.Named go!"os.File" [])]
       (GoPrealloc #())
 
+/-! ### `io.Copy` between two files (2026-11-14; pending the user's review)
+
+Go's path for `io.Copy(dst, src)` with `*File`s on Linux (`notes/wal-fsext-plan.md`, "io.Copy log")
+is translated: `File.WriteTo` → `File.writeTo` (no `sendfile`: `dst`'s `SyscallConn` is no network
+connection) → `genericWriteTo` → `io.Copy(dst, fileWithoutWriteTo{src})` → `File.ReadFrom` →
+`File.readFrom`. Only `readFrom`, `copyFileRange` and `spliceToFile` are modelled here, because they
+read `f.appendMode` and pass `&f.pfd`, which the trusted layout `file.underlying` has not; each is
+Go's body with that replaced. The system call, `copy_file_range(2)`, is `model.copyFileRangeRound`:
+a read of the source's bytes and a write of them, the extension's `PRead` and `PWriteStart`/
+`PWriteFinish` (Go example `examples/osfs/semantics/model_os_copy_file_range.go`). -/
+
+/-- One `copy_file_range(src, NULL, dst, NULL, max, 0)` (`poll.copyFileRange`'s
+`unix.CopyFileRange`, file offsets used and updated) between the files at `dst` and `src` (their
+inner `*file`s): `(n, errno)`. On configuration C (ext4, which has no `remap_file_range`), Linux
+copies through the page cache (`vfs_copy_file_range` → `splice_copy_file_range` →
+`do_splice_direct`): it reads the source from its offset and writes what it read at the
+destination's offset (`generic_perform_write`, the path of `pwrite(2)`), returns the count written
+(short on an error after progress, or the error with nothing written), and advances both offsets by
+it. The model is that read and that write, the extension's `PRead` (a non-empty prefix of what is
+there, nothing at the end of the file, or any errno) and `PWriteStart`/`PWriteFinish` (announced,
+landed with the page cuts of a write, its crash candidates), then both offsets move by the count
+written. One round being one `PRead` makes the read atomic where Linux reads page by page; `PRead`'s
+short counts make every finer split a sequence of rounds, which Go's loop issues anyway
+(`poll.CopyFileRange` loops until 0 or an error), so the model has every outcome of Linux's
+(chunked reads racing writers of the source included). Every errno Linux can give with nothing
+copied (`EINVAL` for overlapping ranges of one file, `EXDEV`, `EBADF`, `EINTR`, ...) is an errno of
+`PRead` (any). An errno after a partial write is the count, with errno 0, as Linux returns it. Not
+modelled (a panic), as for `File.Read`/`Write`: a closed file (fd -1), an unknown offset (after a
+failed `Write`), offsets reaching `model.offMax`. -/
+noncomputable def model.copyFileRangeRound : val :=
+  λ: "dst" "src" "max",
+    let: "dfd" := ![go.int] (StructFieldRef model.file go!"fd" "dst") in
+    let: "sfd" := ![go.int] (StructFieldRef model.file go!"fd" "src") in
+    let: "doff" := ![go.int64] (StructFieldRef model.file go!"off" "dst") in
+    let: "soff" := ![go.int64] (StructFieldRef model.file go!"off" "src") in
+    if: ("dfd" <⟨go.int⟩ #(W64 0)) || ("sfd" <⟨go.int⟩ #(W64 0)) then
+      Panic "os: copy_file_range of a closed file not modelled"
+    else if: ("doff" <⟨go.int64⟩ #(W64 0)) || ("soff" <⟨go.int64⟩ #(W64 0)) then
+      Panic "os: copy_file_range at an unknown offset not modelled"
+    else if: (#model.offMax ≤⟨go.int64⟩ ("doff" +⟨go.int64⟩ "max")) ||
+        (#model.offMax ≤⟨go.int64⟩ ("soff" +⟨go.int64⟩ "max")) then
+      Panic "os: copy_file_range past 2^62 not modelled"
+    else
+      let: "r" := ExternalOp Fs.fsExt.name "PRead" ("sfd", ("soff", "max")) in
+      if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then (#(W64 0), Snd "r")
+      else if: (FuncResolve go.len [go.string]) #() (Fst "r") =⟨go.int⟩ #(W64 0) then
+        (#(W64 0), #(W64 0)) -- the source's end
+      else
+        let: "t" := ExternalOp Fs.fsExt.name "PWriteStart" ("dfd", ("doff", Fst "r")) in
+        let: "w" := ExternalOp Fs.fsExt.name "PWriteFinish" "t" in
+        if: Fst "w" =⟨go.int⟩ #(W64 0) then (#(W64 0), Snd "w")
+        else
+          StructFieldRef model.file go!"off" "src" <-[go.int64] ("soff" +⟨go.int64⟩ Fst "w") ;;
+          StructFieldRef model.file go!"off" "dst" <-[go.int64] ("doff" +⟨go.int64⟩ Fst "w") ;;
+          (Fst "w", #(W64 0))
+
+/-- `poll.CopyFileRange(&f.pfd, &src.pfd, remain)` (`copy_file_range_unix.go`) for the files at
+`d` and `s` (inner `*file`s), with `lr` (the `*io.LimitedReader` or nil) updated as
+`File.copyFileRange` does after it, and the result wrapped as it does:
+
+```go
+	if !supportCopyFileRange() { return 0, false, nil }
+	for remain > 0 {
+		max := min(remain, maxCopyFileRangeRound)
+		n, e := copyFileRange(dst, src, int(max))  // ignoringEINTR2(unix.CopyFileRange(...))
+		if n > 0 { remain -= n; written += n }
+		handled, err = handleCopyFileRangeErr(e, n, written)
+		if n == 0 || !handled || err != nil { return }
+	}
+	return written, true, nil
+```
+
+`supportCopyFileRange()` (`unix.KernelVersionGE(5, 3)`) is true on configuration C (Linux 7.0).
+`copyFileRange`'s `dst.writeLock()`/`src.readLock()` (Go's `fdMutex`, failing only on a closed
+file) are not modelled (as `File.Read`/`Write` do not lock either); one round is
+`model.copyFileRangeRound`, `EINTR` retried; `handleCopyFileRangeErr` is Go's, translated. Go reads
+the function from the package variable `pollCopyFileRange`, which only `os`'s tests reassign. -/
+noncomputable def model.pollCopyFileRange : val :=
+  λ: "d" "s" "lr" "remain",
+    let: "res" := (rec: "loop" "remain" "written" :=
+      if: "remain" ≤⟨go.int64⟩ #(W64 0) then (("written", #true), #GoInterface.nil) else
+      let: "max" := if: "remain" <⟨go.int64⟩ #(W64 0x7ffff000) then "remain"
+        else #(W64 0x7ffff000) in
+      let: "c" := (rec: "eintr" <> :=
+        let: "c" := model.copyFileRangeRound "d" "s" "max" in
+        if: Snd "c" =⟨go.uintptr⟩ #(W64 4) then "eintr" #() else "c") #() in
+      let: "n" := Fst "c" in
+      let: "remain" := if: #(W64 0) <⟨go.int64⟩ "n" then "remain" -⟨go.int64⟩ "n" else "remain" in
+      let: "written" := if: #(W64 0) <⟨go.int64⟩ "n" then "written" +⟨go.int64⟩ "n"
+        else "written" in
+      let: "h" := (FuncResolve go!"internal/poll.handleCopyFileRangeErr" []) #()
+        (syscall.model.errno (Snd "c")) "n" "written" in
+      if: ("n" =⟨go.int64⟩ #(W64 0)) || (⟨go.bool⟩! Fst "h") || (Snd "h" ≠⟨go.error⟩ #GoInterface.nil) then
+        (("written", Fst "h"), Snd "h")
+      else "loop" "remain" "written") "remain" #(W64 0) in
+    (if: "lr" ≠⟨go.PointerType io.LimitedReader.ty⟩ #null then
+      StructFieldRef io.LimitedReader.ty go!"N" "lr" <-[go.int64]
+        (![go.int64] (StructFieldRef io.LimitedReader.ty go!"N" "lr") -⟨go.int64⟩ Fst (Fst "res"))
+    else #()) ;;
+    ((Fst (Fst "res"), Snd (Fst "res")),
+      (FuncResolve go!"os.wrapSyscallError" []) #() #"copy_file_range" (Snd "res"))
+
+/-- `(*File).copyFileRange(r io.Reader) (written int64, handled bool, err error)`
+(`zero_copy_linux.go`), Go's body with `pollCopyFileRange(&f.pfd, &src.pfd, remain)` as
+`model.pollCopyFileRange` (which also does the `lr.N` update and the `wrapSyscallError` that follow
+it in Go):
+
+```go
+	if lr, r, remain = tryLimitedReader(r); remain <= 0 { return 0, true, nil }
+	var src *File
+	switch v := r.(type) {
+	case *File: src = v
+	case fileWithoutWriteTo: src = v.File
+	default: return 0, false, nil
+	}
+	if src.checkValid("ReadFrom") != nil { return 0, false, nil }
+	written, handled, err = pollCopyFileRange(&f.pfd, &src.pfd, remain)
+	if lr != nil { lr.N -= written }
+	return written, handled, wrapSyscallError("copy_file_range", err)
+``` -/
+noncomputable def File.copyFileRange.impl : val :=
+  λ: "f" "r",
+    let: "t" := (FuncResolve go!"os.tryLimitedReader" []) #() "r" in
+    let: "lr" := Fst (Fst "t") in
+    let: "r" := Snd (Fst "t") in
+    let: "remain" := Snd "t" in
+    if: "remain" ≤⟨go.int64⟩ #(W64 0) then ((#(W64 0), #true), #GoInterface.nil) else
+    let: "a" := TypeAssert2 (go.PointerType model.File) "r" in
+    let: "b" := TypeAssert2 (go.GoType.Named go!"os.fileWithoutWriteTo" []) "r" in
+    if: (⟨go.bool⟩! Snd "a") && (⟨go.bool⟩! Snd "b") then ((#(W64 0), #false), #GoInterface.nil) else
+    let: "src" := if: Snd "a" then Fst "a"
+      else StructFieldGet (go.GoType.Named go!"os.fileWithoutWriteTo" []) go!"File" (Fst "b") in
+    if: (MethodResolve (go.PointerType model.File) go!"checkValid") "src" #"ReadFrom"
+        ≠⟨go.error⟩ #GoInterface.nil then ((#(W64 0), #false), #GoInterface.nil)
+    else model.pollCopyFileRange (model.inner "f") (model.inner "src") "lr" "remain"
+
+/-- `(*File).spliceToFile(r io.Reader) (written int64, handled bool, err error)`
+(`zero_copy_linux.go`), Go's body up to its `pollSplice(&f.pfd, pfd, remain)`, which is not
+modelled (a panic): it is reached only for a source whose `SyscallConn` gives a network
+connection's `PollFD` (`getPollFDAndNetwork`, translated), never for a `*File`'s (`rawConn`). Go
+also returns `(0, false, nil)` for a non-nil `pfd` that is not a stream; the model panics there
+too (less defined). -/
+noncomputable def File.spliceToFile.impl : val :=
+  λ: "f" "r",
+    let: "t" := (FuncResolve go!"os.tryLimitedReader" []) #() "r" in
+    if: Snd "t" ≤⟨go.int64⟩ #(W64 0) then ((#(W64 0), #true), #GoInterface.nil) else
+    let: "p" := (FuncResolve go!"os.getPollFDAndNetwork" []) #()
+      (Convert io.Reader.ty go.any (Snd (Fst "t"))) in
+    if: Fst "p" =⟨go.PointerType (go.GoType.Named go!"internal/poll.FD" [])⟩ #null then
+      ((#(W64 0), #false), #GoInterface.nil)
+    else Panic "os: splice(2) not modelled"
+
+/-- `(*File).readFrom(r io.Reader) (written int64, handled bool, err error)`
+(`zero_copy_linux.go`): Go's body; `f.appendMode` is false (the extension's `Open` refuses
+`O_APPEND`, the module docstring):
+
+```go
+	if f.appendMode { return 0, false, nil }
+	written, handled, err = f.copyFileRange(r)
+	if handled { return }
+	return f.spliceToFile(r)
+``` -/
+noncomputable def File.readFrom.impl : val :=
+  λ: "f" "r",
+    let: "c" := (MethodResolve (go.PointerType model.File) go!"copyFileRange") "f" "r" in
+    if: Snd (Fst "c") then "c"
+    else (MethodResolve (go.PointerType model.File) go!"spliceToFile") "f" "r"
+
+/-- `(*rawConn).Control`, `Read` and `Write` (`rawconn.go`): `c.file.pfd.RawControl/RawRead/
+RawWrite`, not modelled (a panic). `File.SyscallConn` (translated) makes a `rawConn`;
+`getPollFDAndNetwork` only asserts it to an interface it does not implement. -/
+noncomputable def rawConn.Control.impl : val :=
+  λ: "c" "f", Panic "os: rawConn.Control not modelled"
+
+@[inherit_doc rawConn.Control.impl]
+noncomputable def rawConn.Read.impl : val :=
+  λ: "c" "f", Panic "os: rawConn.Read not modelled"
+
+@[inherit_doc rawConn.Control.impl]
+noncomputable def rawConn.Write.impl : val :=
+  λ: "c" "f", Panic "os: rawConn.Write not modelled"
+
 end code
 end os
 

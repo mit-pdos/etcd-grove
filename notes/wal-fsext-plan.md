@@ -561,14 +561,14 @@ ties the pipeline's directory inode to the claim's and `walReadTie` records `gs 
 seventeenth session) `WalReadState` proved and deleted (`walInvBody_readState`: the pinned
 segments from `walReadTie`'s new name fact and the claim halves' agreement, no invariant law), the cuts positive
 (`WalAbsD.cutPos`, `WAL.cut.spec`'s `0 < |H|`: ledger) and the names' indices below `2^64` (`WalAbsD.nameBound`);
-`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session); its loop's pure invariant (`ReadAllLoop`: `RdLoop`, `rdLoop_ok`/`_stop`/`_fold_eof`, the indices `raIdx`, no arm panics: `readFiles_dec`), the look at the invariant before the loop (`walInv_readFiles`, no step), the arms' callees as hypotheses (`ReadAllCallees`: `UnmarshalEntLaw`, `WalHsOwn`, `CloneHsLaw`, `MustUnmarshalMessage.specWalSnap`, `GetTerm`s) and the proof's prologue through the first `Decode` are in (`wal-readall19`; W3/W5 log, nineteenth session). The loop (phase 1) and three of its five arms (state, metadata, CRC with its mismatch exit) are proved; the entry, snapshot and default arms and the loop's exit (phases 3-4) `sorry`; the error exits' rule (`readAll_failWp`), the halves lent out of the decoder, the metadata records' uniformity (`RecMd`) and no I/O error `nil` (`WalDecEnvSupply`, `walReadH`; ledger) are in (`wal-readall20`; W3/W5 log, twentieth session). All five arms and every error exit of the loop are proved (the entry arm with `ErrSliceOutOfRange`, the snapshot arm with `ErrSnapshotMismatch`, the default arm's `unexpected block type`), and the exit through the mode check (`w.tail()` non-nil, `errors.Is(err, io.EOF)`, the decoder's error returned) and the pure facts at `io.EOF` (`rdLoop_stop`); phases 3-4 (from `Seek`) one `sorry` (`wal-readall21`; W3/W5 log, twenty-first session). `Decode` gives back the streams of the files it leaves (ledger; at `io.EOF` it holds none), so the loop ends with every file's stream; the decoder's end offset/CRC (`rdLoop_stop_end`) and the residue's `LastCRC` (`ReadAllTail`) are in; phases 3-4 still one `sorry`, the decoder-end-is-`wr` pure lemma next (`wal-readall22`; W3/W5 log, twenty-second session).
+`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session); its loop's pure invariant (`ReadAllLoop`: `RdLoop`, `rdLoop_ok`/`_stop`/`_fold_eof`, the indices `raIdx`, no arm panics: `readFiles_dec`), the look at the invariant before the loop (`walInv_readFiles`, no step), the arms' callees as hypotheses (`ReadAllCallees`: `UnmarshalEntLaw`, `WalHsOwn`, `CloneHsLaw`, `MustUnmarshalMessage.specWalSnap`, `GetTerm`s) and the proof's prologue through the first `Decode` are in (`wal-readall19`; W3/W5 log, nineteenth session). The loop (phase 1) and three of its five arms (state, metadata, CRC with its mismatch exit) are proved; the entry, snapshot and default arms and the loop's exit (phases 3-4) `sorry`; the error exits' rule (`readAll_failWp`), the halves lent out of the decoder, the metadata records' uniformity (`RecMd`) and no I/O error `nil` (`WalDecEnvSupply`, `walReadH`; ledger) are in (`wal-readall20`; W3/W5 log, twentieth session). All five arms and every error exit of the loop are proved (the entry arm with `ErrSliceOutOfRange`, the snapshot arm with `ErrSnapshotMismatch`, the default arm's `unexpected block type`), and the exit through the mode check (`w.tail()` non-nil, `errors.Is(err, io.EOF)`, the decoder's error returned) and the pure facts at `io.EOF` (`rdLoop_stop`); phases 3-4 (from `Seek`) one `sorry` (`wal-readall21`; W3/W5 log, twenty-first session). `Decode` gives back the streams of the files it leaves (ledger; at `io.EOF` it holds none), so the loop ends with every file's stream; the decoder's end offset/CRC (`rdLoop_stop_end`) and the residue's `LastCRC` (`ReadAllTail`) are in; phases 3-4 still one `sorry`, the decoder-end-is-`wr` pure lemma next (`wal-readall22`; W3/W5 log, twenty-second session). The reader ends at `lay.wr` with the chain's CRC (`walReadFiles_running_end`, pure); `LastOffset`, `Seek`, the tail registered at the look before the loop and `ZeroToEnd` on it (named hypotheses `walInvRegisterTailLaw`, `ZeroToEnd.specWalTail`, until `wal-tc14`), the fdatasync, with their error exits, proved; one `sorry` left from `fileutil.Fsync(w.dirFile)` on (the two directory syncs with the AU's commit, `match`, phase 4) (`wal-readall23`; W3/W5 log, twenty-third session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). `WalsBounded` (metadata `< 2^41`, a framed conjunct; the segments' size read at a step, `wp_segs_size`) replaces `WalPinSized`, and `Open` takes its path from `walInv_dirPath` (`WalDirPathLaw` deleted); `renameWAL.spec`'s spine law restated with `notCrashed` and the update's result (ledger); the nil-receiver `File.Close` proved (`wal-path15`; W1 log, fifteenth session). `renameWAL` proved over `renameWALUnlock.spec` (a hypothesis, unprovable as stated: ledger 2026-11-14) and `errors.AsLinkError.spec`; `Create` through `Preallocate` (`wal-create14`; W4 log, sixteenth session). `Create`'s header phase proved through `syncDir(nm.tmp)` (the encoder, `saveCrc`, the metadata record, the initial snapshot frozen by `walSnapAt_lit` over the new premise `WalMarshalCreateOk Mr`, `SaveSnapshot.specPre`, every error exit), `os.Rename.specAbsentSrc` proved (`wal-create15`; W4 log, seventeenth session). `Create` proved through the call of `renameWAL` (the fresh layout's `WalAbsD`, `J`'s claims and `hJC`, the minting, the update `createFresh_osAUnc`, `RenameWALOk`'s laws `create_spine`/`createU_none`); `CreateDirAll.specTmp`'s post says the new directory names nothing at any crash (ledger; obligation on the extension's `mkdir` law) (`wal-create16`; W4 log, eighteenth session). `renameWALPost`'s error arms restated (the lock file open or closed, `walLockLeft`; the spines' area part the invariant's lend, `walInv_areaPath`), `renameWAL` re-proved, `Create`'s committed-error arm proved (registration, `create_areaBack`); the second close `os.File.Close.specClosed` a hypothesis (the model is stuck on a closed fd: trusted change proposed) (`wal-create17`; W4 log, nineteenth session). `hJC` limited to the crashes keeping `J`'s entries (the commit bound raised past them), `specTmp`'s false `valAfter` clause dropped (ledger); the closed-file `Close` model change made but not merged (blocked: the open-fd `Close` proofs cannot refute `fd = -1`, §10) (`wal-create18`; W4 log, twentieth session). Open: arm 3's unminting (planned; a restriction-union lemma), arm 2 (needs a handle before naming), arm 1's post-commit order and the handle (`TailZ`), `renameWALUnlock`, `specClosed`.
 
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry). A write in flight past the size is in the layout (`wrMeta`) and the crash take; `saveEntry`/`saveState` proved over `encode.specTail`; the writer past the size waits on known zeros past the size (lost by `OsMeta.synced`), the window's size fact and `TailWin`'s past-size clause (`wal-save15`; W6 log, fifteenth session).
-The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the window-to-window form (`crashOkA_rzStart`, over the invariant's new `WalAbsD.winLo` and the extension's `OsMeta.TcZ`/`0 < n` at the start's commit) and the landing's facts (`rzLand`, `segBytesX_rzLand`) are proved (`wal-tc7`; W1 log, seventeenth session); the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc7` entry). The start's `zf ≥ size` is in the commit's `OsMeta.TcZ`, the landing's static relation and crash condition and the invariant's transports over any crash step are proved (`walAbsD_rzLand`, `crashOkA_rzLand`, `walsOk_tailA`/`dirKeysOk_tailA`, `tailCrashStep_rzStart`/`_rzLand`); the not-landed outcome needs the extension's `rsUndone` to keep the stamp and the candidates past the size (`rsUndoneK`, designed); `truncSup`, `specWalTail`, growth and `ZeroToEnd`'s instance not started (`wal-tc8`; W1 log, eighteenth session; I3b, `wal-tc8` entry). `rsUndoneK` is in (a not-landed truncate's `OsMeta` keeps the candidates past the size and the stamp, `rsUnMeta`; `os.ftUndoneH` up to `tc`/`rz`); `specWalTail`'s `TailZ` post needs `os.ftDoneH`/`ftUndoneH` to carry a domain fact on their `tc` (`TcKnows`, proposed); `truncSup`, growth and `ZeroToEnd`'s instance not started (`wal-tc9`; W1 log, nineteenth session; I3b, `wal-tc9` entry). `TcKnows` is on `os.ftDoneH`/`ftUndoneH` (ledger); the truncate supply at the write position (`walTail_truncSup`) and `os.File.Truncate.specWalTail` are proved, `WAL.cut.wp_proof` no longer takes the latter; growth (`fallocSup`, the growing truncate) and `ZeroToEnd`'s instance not started (`wal-tc10`; W1 log, twentieth session; I3b, `wal-tc10` entry). The growth's pure pieces are proved (`RzGrow.lean`: the first step `rzSeg … tr tg` with `size ≤ tg ≤ hi`, `crashOkA_rzGrow`/`tailCrashStep_rzGrow`/`rzGrow_pure`; the landing `rzLandG`, `crashOkA_rzLandG`/`walAbsD_rzLandG`/`rzLandG_pure`, given that the bytes grown over have the candidates the `OsMeta` knew, `hzs`) and `fallocDoneH` carries `TcKnowsF` (ledger); the supplies (`fallocSup`, the growing truncate's) wait on three extension facts (`fallocate`'s start: `0 < n ∧ m.TcZ`; its not-landed outcome: `rsUndoneK`; `rsDoneK`'s `zs`: the `OsMeta`'s known candidates), and `ZeroToEnd`'s instance (`ZeroToEnd.specWalTail`, named) on them and on `ZteMeta` (ledger, proposed) (`wal-tc11`; W1 log, twenty-first session; I3b, `wal-tc11` entry). The three extension facts are in (`wp_osFallocStart`'s `0 < n ∧ m.TcZ`, `fallocAuW`'s commit; `rsOutF`'s undone arm `rsUndoneK m.cut.isNone false`, `fallocOutH`'s up to `tc`/`rz` with `TcKnowsF`; `rsDoneK`'s `zs` the `OsMeta`'s known candidates), `preGrownH i m w Z` carries `PcKeep` and `Z → ZeroPg`, `ZeroToEnd.specAu`'s post `ZteMeta` (ledger, adopted); the WAL's growth supplies are **blocked on an invariant fact**: at their commits they need the target `tg` (the size `ZeroToEnd` found) `≤ |lay.old|` and `≤ g.om.hi`, which neither the tie nor the state found gives (`wal-tc12`; W1 log, twenty-second session; I3b, `wal-tc12` entry).
-The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry). A write in flight past the size is in the layout (`wrMeta`) and the crash take; `saveEntry`/`saveState` proved over `encode.specTail`; the writer past the size waits on known zeros past the size (lost by `OsMeta.synced`), the window's size fact and `TailWin`'s past-size clause (`wal-save15`; W6 log, fifteenth session). The known zeros past the size survive a sync: the extension's `MetaOk.zc` and `pwCz` (a complete write up to the zeros known raises `cz`), the tail's `TailZ` in `TailMeta`/`TailMetaW` (`ZeroPg` on the pipeline's files; `filePipeline.alloc`'s `ZeroPg` a `sorry` pending `trFile`/`preGrown` posts; `Create`/`ReadAll`/`specWalTail` obligations); finding 2 restated (false of `ZeroToEnd`'s window), finding 3 not added; bboltfs's `DB.init`/`initCrash` exact `cz` to repair (`wal-save16`; W6 log, sixteenth session). Minibolt's `DB.init`/`initCrash` repaired (posts' `cz` `pwCz m 0 16384 16384`; `WReach.cz_done`; `WriteAt.specCrashS` says `nn = |data|`; ledger); `alloc`'s `ZeroPg` is not provable from strengthened `trFile`/`preGrown` posts alone (a `fallocate` to an unaligned or partly landed size leaves `cz` behind the zeros it announces, and the leftover `N.tmp`'s `O_TRUNC` gives no zeros fact): an extension change proposed (`rsCz` for a `fallocate` landing); finding 3's clause, as proposed, false of `ZeroToEnd`'s window (torn bytes past `z0`, durable): amended design (stamp-0 candidates are `old`'s bytes, and the window's bytes in `[wr, |bs|)` constrained too), not implemented (`wal-save17`; W6 log, seventeenth session). `alloc`'s `ZeroPg` proved: the extension's `MetaOk.ce` (the page cache zero past the size's last page) lets a landed resize raise `cz` (`rsCz`); `preGrown` takes a condition `Z` (`ZeroPg` on success), `trFile` carries `ZfGe ∧ (P → ZeroPg)` (ledger); the amended `TailWin` not started (`wal-save18`; W6 log, eighteenth session). The amended `TailWin` is in (`WinCands` over `segBytesX`, `TailLast.win` over `SegExact`), finding 2 as `WalAbsD.last`'s `WinZero` (bytes from `wr` on zero in a window), and the window's fdatasync's static relation (`syncLayW`, `walAbsD_syncW`); its crash half (`crashOk_syncW`, designed), the writer past the size, `encode.specTail` and `sync` not started (`wal-save19`; W6 log, nineteenth session). The window's fdatasync proved through the invariant step (`crashOk_syncW`, `walsOk_syncW`/`dirKeysOk_syncW`, `syncLay_any`; `walInvBody_sync`, `wp_tailFsync` and `syscall.Fdatasync.wp_tail` no longer need `SegExact`, `fileutil.Fdatasync.wp_tailW`); the writer past the size is blocked on two invariant facts (`winLo` is false of a write past the size from an exact tail; the candidates past `hi` are unconstrained), designed, not made; `sync` not started (`wal-save20`; W6 log, twentieth session).
+The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the window-to-window form (`crashOkA_rzStart`, over the invariant's new `WalAbsD.winLo` and the extension's `OsMeta.TcZ`/`0 < n` at the start's commit) and the landing's facts (`rzLand`, `segBytesX_rzLand`) are proved (`wal-tc7`; W1 log, seventeenth session); the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc7` entry). The start's `zf ≥ size` is in the commit's `OsMeta.TcZ`, the landing's static relation and crash condition and the invariant's transports over any crash step are proved (`walAbsD_rzLand`, `crashOkA_rzLand`, `walsOk_tailA`/`dirKeysOk_tailA`, `tailCrashStep_rzStart`/`_rzLand`); the not-landed outcome needs the extension's `rsUndone` to keep the stamp and the candidates past the size (`rsUndoneK`, designed); `truncSup`, `specWalTail`, growth and `ZeroToEnd`'s instance not started (`wal-tc8`; W1 log, eighteenth session; I3b, `wal-tc8` entry). `rsUndoneK` is in (a not-landed truncate's `OsMeta` keeps the candidates past the size and the stamp, `rsUnMeta`; `os.ftUndoneH` up to `tc`/`rz`); `specWalTail`'s `TailZ` post needs `os.ftDoneH`/`ftUndoneH` to carry a domain fact on their `tc` (`TcKnows`, proposed); `truncSup`, growth and `ZeroToEnd`'s instance not started (`wal-tc9`; W1 log, nineteenth session; I3b, `wal-tc9` entry). `TcKnows` is on `os.ftDoneH`/`ftUndoneH` (ledger); the truncate supply at the write position (`walTail_truncSup`) and `os.File.Truncate.specWalTail` are proved, `WAL.cut.wp_proof` no longer takes the latter; growth (`fallocSup`, the growing truncate) and `ZeroToEnd`'s instance not started (`wal-tc10`; W1 log, twentieth session; I3b, `wal-tc10` entry). The growth's pure pieces are proved (`RzGrow.lean`: the first step `rzSeg … tr tg` with `size ≤ tg ≤ hi`, `crashOkA_rzGrow`/`tailCrashStep_rzGrow`/`rzGrow_pure`; the landing `rzLandG`, `crashOkA_rzLandG`/`walAbsD_rzLandG`/`rzLandG_pure`, given that the bytes grown over have the candidates the `OsMeta` knew, `hzs`) and `fallocDoneH` carries `TcKnowsF` (ledger); the supplies (`fallocSup`, the growing truncate's) wait on three extension facts (`fallocate`'s start: `0 < n ∧ m.TcZ`; its not-landed outcome: `rsUndoneK`; `rsDoneK`'s `zs`: the `OsMeta`'s known candidates), and `ZeroToEnd`'s instance (`ZeroToEnd.specWalTail`, named) on them and on `ZteMeta` (ledger, proposed) (`wal-tc11`; W1 log, twenty-first session; I3b, `wal-tc11` entry). The three extension facts are in (`wp_osFallocStart`'s `0 < n ∧ m.TcZ`, `fallocAuW`'s commit; `rsOutF`'s undone arm `rsUndoneK m.cut.isNone false`, `fallocOutH`'s up to `tc`/`rz` with `TcKnowsF`; `rsDoneK`'s `zs` the `OsMeta`'s known candidates), `preGrownH i m w Z` carries `PcKeep` and `Z → ZeroPg`, `ZeroToEnd.specAu`'s post `ZteMeta` (ledger, adopted); the WAL's growth supplies are **blocked on an invariant fact**: at their commits they need the target `tg` (the size `ZeroToEnd` found) `≤ |lay.old|` and `≤ g.om.hi`, which neither the tie nor the state found gives (`wal-tc12`; W1 log, twenty-second session; I3b, `wal-tc12` entry). The tails' old-length map (`walOldsRes` in `walTailsRes`, `walOldFrag`, minted by `walInvBody_tailW`) is in on `wal-tc13`, not merged: the window's fdatasync (`syncLayW`) shortens `old` with the cuts unchanged, so the length is not fixed per key, and `tg ≤ hi` cannot be persistent; the growth supplies and `ZeroToEnd.specWalTail` wait on the coordinator's choice among (d) lending the tail record, (c) supply premises, (a') `old` kept long (`wal-tc13`; W1 log, twenty-third session; I3b, `wal-tc13` entry). Option (d) is in instead: the map removed, the lent tails (`walLentRes` in `walTailsRes`, `walLentTok`, `walTailKeyL` in `walInvBody_tailW` and `walTail_truncSup`, `walInv_lend`/`walInv_unlend`); the weaker registration designed, not made; the growth supplies and `ZeroToEnd.specWalTail` not started (`wal-tc14`; W1 log, twenty-fourth session; I3b, `wal-tc14` entry).
+The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry). A write in flight past the size is in the layout (`wrMeta`) and the crash take; `saveEntry`/`saveState` proved over `encode.specTail`; the writer past the size waits on known zeros past the size (lost by `OsMeta.synced`), the window's size fact and `TailWin`'s past-size clause (`wal-save15`; W6 log, fifteenth session). The known zeros past the size survive a sync: the extension's `MetaOk.zc` and `pwCz` (a complete write up to the zeros known raises `cz`), the tail's `TailZ` in `TailMeta`/`TailMetaW` (`ZeroPg` on the pipeline's files; `filePipeline.alloc`'s `ZeroPg` a `sorry` pending `trFile`/`preGrown` posts; `Create`/`ReadAll`/`specWalTail` obligations); finding 2 restated (false of `ZeroToEnd`'s window), finding 3 not added; bboltfs's `DB.init`/`initCrash` exact `cz` to repair (`wal-save16`; W6 log, sixteenth session). Minibolt's `DB.init`/`initCrash` repaired (posts' `cz` `pwCz m 0 16384 16384`; `WReach.cz_done`; `WriteAt.specCrashS` says `nn = |data|`; ledger); `alloc`'s `ZeroPg` is not provable from strengthened `trFile`/`preGrown` posts alone (a `fallocate` to an unaligned or partly landed size leaves `cz` behind the zeros it announces, and the leftover `N.tmp`'s `O_TRUNC` gives no zeros fact): an extension change proposed (`rsCz` for a `fallocate` landing); finding 3's clause, as proposed, false of `ZeroToEnd`'s window (torn bytes past `z0`, durable): amended design (stamp-0 candidates are `old`'s bytes, and the window's bytes in `[wr, |bs|)` constrained too), not implemented (`wal-save17`; W6 log, seventeenth session). `alloc`'s `ZeroPg` proved: the extension's `MetaOk.ce` (the page cache zero past the size's last page) lets a landed resize raise `cz` (`rsCz`); `preGrown` takes a condition `Z` (`ZeroPg` on success), `trFile` carries `ZfGe ∧ (P → ZeroPg)` (ledger); the amended `TailWin` not started (`wal-save18`; W6 log, eighteenth session). The amended `TailWin` is in (`WinCands` over `segBytesX`, `TailLast.win` over `SegExact`), finding 2 as `WalAbsD.last`'s `WinZero` (bytes from `wr` on zero in a window), and the window's fdatasync's static relation (`syncLayW`, `walAbsD_syncW`); its crash half (`crashOk_syncW`, designed), the writer past the size, `encode.specTail` and `sync` not started (`wal-save19`; W6 log, nineteenth session). The window's fdatasync proved through the invariant step (`crashOk_syncW`, `walsOk_syncW`/`dirKeysOk_syncW`, `syncLay_any`; `walInvBody_sync`, `wp_tailFsync` and `syscall.Fdatasync.wp_tail` no longer need `SegExact`, `fileutil.Fdatasync.wp_tailW`); the writer past the size is blocked on two invariant facts (`winLo` is false of a write past the size from an exact tail; the candidates past `hi` are unconstrained), designed, not made; `sync` not started (`wal-save20`; W6 log, twentieth session). A window's `|old| ≤ hi` is in the invariant (`WinLast`, `WalAbsD.oldHi_any`) and `wal-tc13`'s old-length map merged (the window's fdatasync takes its element, `walOldOpt`: `ZeroToEnd`'s flow has it, `cut`'s does not); `winLo` stays, since the truncate at `wr` needs it of the crash size (finding B: a handle-level fact with a predicate on `os.truncSup`'s meta recommended), `WinHead` derived; `PastCands` is false of a crash's tail and goes on the handle (`PastZ`); the writer past the size, task 2 and `sync` not started (`wal-save21`; W6 log, twenty-first session). Option (A) made (`os.truncSup`'s `P`, `walTailW`'s `LoWr`), `winLo` replaced by `WinHead` in the invariant, `PastZ` in `TailMeta`/`TailMetaW` (with `os.ftDoneH`'s `TcFrom`; ledger); the pipeline's `PastZ` obligation moot (tails enter after an fdatasync); the writer past the size, `encode.specTail` and `sync` not started (`wal-save22`; W6 log, twenty-second session).
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the window-to-window form (`crashOkA_rzStart`, over the invariant's new `WalAbsD.winLo` and the extension's `OsMeta.TcZ`/`0 < n` at the start's commit) and the landing's facts (`rzLand`, `segBytesX_rzLand`) are proved (`wal-tc7`; W1 log, seventeenth session); the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc7` entry).
 
 ### Inventory (2026-11-14, integration)
@@ -1421,6 +1421,79 @@ caller's `tc`.** Untrusted; `Impl.lean` unchanged. Task 1 done; tasks 2 (`truncS
   rz0` keeps `tc0`'s domain); the supply proves it of `rsTail`. The other route, reading the invariant's half after the
   call, needs an invariant opening outside an atomic step (no `notCrashed` there).
 
+**Twenty-fourth session (branch `wal-tc14`, 2026-11-14): option (d), the lent tails; the old-length map
+removed.** Untrusted; no trusted change. Task 1 done (builds); tasks 2-4 not done (task 2 designed below; 3-4
+wait on task 2 and on supplies not started). `wal-save21` merged.
+- **The map is removed** (`walOldsAuth`/`walOldFrag`/`OldOk`/`OldStep`/`walOldsRes`, and `wal-save21`'s
+  `walOldOpt` arguments of `walInvBody_sync`, `wp_tailFsync`, `syscall.Fdatasync.wp_tail`,
+  `fileutil.Fdatasync.wp_tailW`, `syncLay_any`'s `hold`/`hLo`): (d) does not need it. `walInvBody_tailW` is no
+  longer an update.
+- **Ghost** (`Ghost.lean`): `WalGS.γl`; **`walLentAuth M`** (`M : GMap GoString (GName × Nat)`, exclusive
+  elements), **`walLentTok dir γ k`** (the tail of `dir`, record `γ`, lent, `|old| = k`), `_lookup`/`_insert`/
+  `_delete`; **`walTailKey_excl`** (the key is exclusive); `walGhost_init` returns `walLentAuth ∅`.
+- **Invariant** (`Inv.lean`): **`walLentRes T Ls := ∃ M, walLentAuth M ∗ [∗map] dir ↦ x ∈ M, ⌜LentOk T Ls dir
+  x⌝ ∗ walTailKey dir x.1`** (`LentOk`: registered at `x.1`, `|old| = x.2`), a framed conjunct of `walTailsRes`
+  (its last). While lent the invariant holds the tail's key, so no step needing the key (an append, a cut, the
+  window's fdatasync, `Close`) runs. Laws: `_init`, `_mono`, **`_insert_same`** (a layout replaced, `old` as long:
+  every tail step but a cut and the window's fdatasync), `_insert_new` (`Create`), **`_notLent`**/**`_insert_key`**/
+  **`_free`** (the key's holder: the tail is not lent, any new layout), `_reg`, `_unreg` (`Close`, with the key),
+  **`_lookup`** (the token: `LentOk`), **`_lend`**, **`_unlend`**. Threaded through every site of `walTailsRes`
+  (`TailAcc`, `TailAccW`, `TailSyncIdle`, `CreateAuLemmas`: `_insert_same`/`_insert_new`; `CutAuLemmas`'s
+  `walTailsRes_cut`: `_free`; `CloseLaw`: `_unreg`; `TailReg`: `_reg`; `Crash`: `_init`; the rest framed).
+- **Stepping a lent tail**: **`walTailKeyL dir γ ok`** (`TailAccW.lean`: `none` the key, `some k` the token),
+  **`walTailKeyL_lookup`**; **`walInvBody_tailW`** now takes and returns `walTailKeyL dir γ ok` (new argument
+  `ok`) and its pure facts end in `∀ k, ok = some k → lay.old.length = k`. **`walTail_truncSup`**,
+  `walTail_truncFin`, `truncStartP`, `truncFinP` take `ok` (`K = walTailKeyL dir γ ok ∗ tailVar …`);
+  `os.File.Truncate.wp_specWalTail` uses `ok := none` (`walTailKeyL_none`).
+- **Lending** (`TailLend.lean`, new, proved): **`walAbsD_old_exact`** (an exact last segment's `|old|` is its
+  size), **`walInvBody_lend`** (key + idle record + the program's `osMeta ½ m` with `m.lo = m.size = m.hi` ⟹
+  `walLentTok dir γ m.size`), **`walInvBody_unlend`**, and their `walInv`/`notCrashed` forms **`walInv_lend`**,
+  **`walInv_unlend`** (at any program step: `wp_notCrashed_acc`).
+- *Why the lending is at a program step, not at a supply's commit*: a supply quantifies over the `OsMeta`
+  each attempt finds, so its first commit cannot tell it is the first (exact) one; the lend must come from
+  the handle's exact `TailMeta`, before `ZeroToEnd`. And the post of a spec of `ZeroToEnd`'s call is at a
+  value (no `notCrashed`), so the un-lend is the caller's, at its next step.
+- **Task 2 (weaker registration) not done; found**: an entry fact `TailZeros lay ∨ lay.wr = lay.z0` alone is
+  not enough: appends need `TailZeros` (`walsOk_tail`: past `z0` the stream grows over `old`), and nothing
+  stops an append between registration and the fdatasync after `ZeroToEnd`; and an un-lend requiring
+  `TailZeros` would come after the fdatasync, which needs the key. Design (next session): the entry's fact
+  `TailZeros lay ∨ lay.wr = lay.z0`; `walLentRes` gains `∀ dir γ lay, T !! dir = some γ → M !! dir = none →
+  Ls !! dir = some lay → TailZeros lay ∨ ZeroPending` with the pending state a second kind of lent element
+  (`M`'s value `Option Nat` for "registered, not yet zeroed": the key in the invariant, the handle holding a
+  token that allows the resize steps and the window's fdatasync, which restores `TailZeros` by
+  `tailZeros_syncW` from `wr = z0`, and an un-lend only from `TailZeros`). `ReadAll` would register in that
+  mode (`walTailsRes_register` with the disjunction, returning the token, not the key), and `specWalTail`
+  and the fdatasync after it take the token.
+
+**Twenty-third session (branch `wal-tc13`, 2026-11-14): the tails' old-length map (option (a)); found: it is not
+fixed per `(dir, cuts)` once the window's fdatasync lands, and the growth supplies still need `tg ≤ hi`.**
+Untrusted; no trusted change. Task 1 done as decided (builds); tasks 2 and 3 not done (blocked: I3b, `wal-tc13` entry).
+- **Ghost** (`Ghost.lean`): `WalGS.γo`; **`walOldsAuth M`** (a ghost map `(dir, cuts) ↦ k` with persistent elements and
+  a copy of each, as `walDirKeysAuth`), **`walOldFrag dir cuts k`** (persistent), `walOldFrag_lookup`/`_agree`/`_insert`,
+  `walOldsAuth_get`; `walGhost_init` also returns `walOldsAuth ∅` (`Crash.lean`'s `walStart` carries it).
+- **Invariant** (`Inv.lean`): **`OldOk M Ls`** (each element `(dir, c) ↦ k` is of a directory of `Ls` whose cuts extend
+  `c`, `k = |old|` while the cuts are `c`), `OldOk.empty`/`insert_ext`/`insert_same`/`insert_new`; **`OldStep lay lay'`**
+  (cuts extended, `old` as long while they stay; `.same`, `.cut`); **`walOldsRes Ls := ∃ M, walOldsAuth M ∗ ⌜OldOk M Ls⌝`**,
+  `walOldsRes_init`/`_insert_ext`/`_insert_same`/`_insert_new`/`_step`, **`walOldsRes_mint`** (hands out `walOldFrag dir
+  lay.cuts |lay.old|`), **`walOldsRes_agree`**. **Placement**: a framed conjunct of `walTailsRes` (its last, inside `∃ T`),
+  not of `walInvBody`: only the steps that change `Ls` handle `walTailsRes` (18 sites), against 45 destructurings of
+  `walInvBody` that frame `Htl` whole and stay unchanged.
+- **Statement changes**: `walInvBody_tailW` is now an update (`==∗`) and also returns `walOldFrag dir lay.cuts
+  |lay.old|` (minted at the access; `TruncSup`'s two uses `imod` it); `walTailsRes_cut`'s continuation takes `OldStep lay
+  lay'` (`CutAu`: `OldStep.cut`; `TailSync`'s two uses: `OldStep.same rfl rfl`). Repaired: `TailAcc`, `TailAccW`,
+  `CutAuLemmas`, `CreateAuLemmas` (`insert_new`), `TailSyncIdle` (`syncLay`: same), `Crash`, and the lookups that keep `Ls`
+  (`CutSync`, `TailSync`, `TailReg`, `TailLenLb`, `CloseLaw`, `ReadAllLaws`, `Append`, `Inv`'s `walTailsRes_mono`/`_none`).
+- **Found (blocks tasks 2-3): `|old|` is not fixed per `(dir, cuts)`.** `TailSyncWin.syncLayW` (`wal-save19`, not yet a
+  step) sets `old := old.take wr ++ replicate (|bs| - wr) 0`, of length `|bs|`, cuts unchanged: shorter than `old` whenever
+  the window's bytes are (cut's truncate to `wr`, then its fdatasync; or writes past the size short of `old`). `TailLast`
+  forces it (`|bs| = |old|` for an exact tail). Once that step is wired through `walTailsRes_cut`, `OldStep` fails there,
+  and no persistent value can survive it (a later `ReadAll` of the same cuts in the generation sees the shorter `old`).
+  **Do not merge this branch's invariant change into `wal-int` before the coordinator decides** (I3b, `wal-tc13`).
+- *Build*: the 181 importers of `Ghost.lean` build (`lake build` of their leaves, 2818 jobs) but `WAL__Close` and `WAL__CloseOpening`, which fail at `wal-int`'s merge independently of this change (`iexact: cannot unify zapLoggerOk lg2 and ⌜lg2 ≠ null⌝`, lines 220/281; neither mentions `walTailsRes`).
+- **Also found: `tg ≤ hi` cannot go into the map** (the coordinator's suggestion): `hi` changes at every resize and
+  every fdatasync (`OsMeta.synced` makes it the size), so no persistent element can carry it. Neither the tie nor the
+  invariant gives it at the growth commits (a window found with `hi < tg` is allowed by `WalAbsD`).
+
 **Twenty-second session (branch `wal-tc12`, 2026-11-14): the three extension facts; `PcKeep`, `preGrownH`'s `Z`,
 `ZteMeta`; the growth supplies blocked on the tail's old length.** Untrusted (`GooseLang/Ext/Fs` WP specs, not
 `Impl.lean`). Tasks 1 and 2 done; task 3 not started (designed, blocked: I3b, `wal-tc12` entry).
@@ -1689,6 +1762,13 @@ holds some mode). Nothing proves the new models yet.
   step. Plan: translate those (the `io` part a Perennial configuration change, or the part's copy), add an `fsExt`
   `CopyFileRange` step modelled as a `pwrite` of the source's bytes (crash candidates as a write's), with a Go example
   measured on C — that step pending the user's review. The hypothesis below stands until then.
+  **Done in part (`wal-copy1`, 2026-11-14, "io.Copy log" at the end):** the part's `os` translates the dispatch
+  (`File.ReadFrom`/`WriteTo`, `writeTo`, `generic*`, `getPollFDAndNetwork`, ...) and `poll.handleCopyFileRangeErr`;
+  `copy_file_range(2)` is modelled with no new `fsExt` step, as the extension's `PRead` then `PWriteStart`/
+  `PWriteFinish` (`model.copyFileRangeRound`, **pending the user's review**, with three Go bodies made trusted because
+  they touch `pfd`, absent from the trusted `file` layout; `examples/osfs/semantics/model_os_copy_file_range.go`,
+  measured on C). `io.Copy`/`copyBuffer` still have no bodies (Perennial's `io`), so the hypothesis stays until
+  Perennial translates them (`notes/perennial-changes.md`, "`io.Copy`/`copyBuffer` without bodies").
 - **`io.Copy(bf, f)` of two `*os.File`s** (`wal-repair19`, 2026-11-14; **a missing trusted model, pending the
   user**): `Repair` copies the torn segment into its `.broken` file with `io.Copy`, which on `*os.File` goes through
   `File.ReadFrom` (Linux: `copy_file_range`/`splice`/`sendfile`, then a generic loop) or `File.WriteTo`: neither is
@@ -4133,6 +4213,105 @@ the writer past the size blocked on two invariant facts (designed).**
 - *Not done*: tasks 2 and 3 (blocked on findings 1 and 2: an internal invariant change shared with `wal-tc13`'s
   lemmas, for the coordinator to schedule).
 
+**W6, twenty-first session (branch `wal-save21`, 2026-11-14): `|old| ≤ hi` in a window (`WinLast`); `WinHead`
+defined but `winLo` kept (the truncate at `wr` needs it); `PastCands` not an invariant fact (false at a crash's
+tail); `wal-tc13`'s old-length map merged, the window's fdatasync taking its element.** Untrusted, internal; no spec
+or trusted change.
+- *Done (builds)*: **`WinLast`** (`Abs.lean`), `WalAbsD.last`'s window branch as one definition: `TailWin ∧ lo ≤ wr ∧
+  WinZero ∧ |old| ≤ hi` (`WalAbsD.oldHi`; **`WalAbsD.oldHi_any`**: `|old| ≤ hi` of any tail, an exact one as long as
+  `old`). Constructions repaired: `walAbsD_win` (takes `WinLast`), `walAbsD_rzStart` (`hi' = max hi tg`), `walAbsD_rzLand`,
+  `walAbsD_rzLandG` (from the in-flight layout's `oldHi_any`). **`WinHead lay g`** (each byte of `segBytesX g` from `wr` on
+  is at or past `lo`, or has a zero candidate `(0, s)`), `WinHead.of_lo`, `WalAbsD.winHead`; `crashOk_syncW` now takes
+  its zero arm from `WinHead` (a zero candidate, else the zero arm past `lo`), so it no longer reads `winLo`.
+- **Finding A (the coordinator's `WinHead` is false; amended)**: "every byte from `wr` on has `(0, 0)`" fails in
+  `ZeroToEnd`'s window on a crash's tail: its bytes past `z0` are the crash image's (torn, not zero: `WalsStart`,
+  `TailZeros` does not hold there, `wal-tc13` entry), and the truncate to `z0` gives them `[(old b, 0), (0, n)]`. The
+  disjunctive form above holds of every window (`ZeroToEnd`'s and `cut`'s have `lo ≤ wr`; a write past the size from an
+  exact tail has `(old b, 0) = (0, 0)` below the size by F-Z, which the writer has from `walTailsRes`, and `lo` = the size
+  past it) and is what `crashOk_syncW` and the truncate's crash step need of the bytes.
+- **Finding B (blocks replacing `winLo`)**: the truncate at `wr` (`crashOkA_rzStart`'s window case, through
+  `walTail_truncSup`) needs `lo ≤ wr` for the *size* a crash may leave, not only the bytes: its announcement lowers `lo`
+  to `wr`, so the crashes of size in `[wr, lo)` are new, and `crashOkA_rz` (inclusion of the new crashes in the old) fails
+  for them. A write past the size from an exact tail has `lo` = the old size `> wr` from its announcement until it
+  completes (and for ever after a failed one, the handle lost), so the invariant cannot keep `winLo`; but a handle at rest
+  always has it (a complete write ends at `wr ≥ lo`; `cut`'s and `ZeroToEnd`'s truncates set `lo = wr`). The supply cannot
+  see the handle: `os.truncSup` is `∀ m0` and its tie cannot name the `OsMeta`. Options (for the coordinator; none made):
+  (A) **a handle-level fact**: `walTailW` gains `(lo = size = hi) ∨ lo ≤ o0 + |out|` (true at rest, every construction
+  has it), and `os.truncSup`/`File.Truncate.specAu` a predicate `P` on the `OsMeta` handed to the supply (default `True`;
+  `specAu` takes `P m` of its caller's), so `walTail_truncSup` gets `lo ≤ wr` for a window (plumbing: the 19 `walTailW`
+  unfoldings, the four fileutil AU specs passing `True`); (B) **the crash step without it**: a window's crash of size `s ∈
+  [wr, lo)` is the old window's of size `lo` with zeros in `[s, lo)` (allowed by `WinHead`), then a reader lemma that zeros
+  past `wr` read as the end of the file (new `W1G`/`CrashTo` reasoning); (C) an extension law lowering a file's `lo` while
+  nothing is in flight (sound: weaker knowledge), used by the writer before a write past the size, the step from an exact
+  tail then `crashOkA_win`'s case. Recommended: (A) (mechanical, no new crash reasoning). Until then `winLo` stays in
+  `WinLast` beside the derived `WinHead`, and the writer past the size stays blocked on it.
+- **Finding C (`PastCands` is not an invariant fact)**: a crash's tail has `om = initMeta f` with `tc = tailMap f` (the
+  disk's bytes past the size in its last page, stamp 0, any value), and `ZeroToEnd`'s truncate keeps them past `hi` (the old
+  size); so "the candidates known past `hi` are shaped" is false of `ZeroToEnd`'s window (and of the crash's exact tail). No
+  write happens there; writes happen only through a handle whose `OsMeta` came through a sync (`tc = ∅`), `Create`'s or
+  `cut`'s pipeline file (task 2), and the writer's own steps (which raise `hi` over every candidate they add). So the fact
+  belongs to the handle: **`PastZ m := ∀ b c, m.hi ≤ b → m.pc b = some c → ∀ q ∈ c, q = (0, 0)`** in `TailMeta` (exact
+  handles; `OsMeta.synced` has it, `tc = ∅`) and in the writer's state in a window (`TailMetaW ∧ PastZ`, kept by writes and
+  truncates: both raise `hi` past what they add; not of `ZeroToEnd`'s post, whose fdatasync restores it). With `|old| ≤ hi`
+  (in `WinLast`) a zero stamped 0 past `hi` is `(old b, 0)`, the `WinShape` the writer's new bytes need. Not made (task 3).
+- **`wal-tc13` merged** (its old-length map `walOldsRes`, `walOldFrag`, `OldStep`), conflict in `walInvBody_sync`
+  resolved: the window's fdatasync (`syncLayW`) keeps `|old|` only if the tail is as long as `old`, so
+  **`walInvBody_sync` takes `walOldOpt dir cuts ko`** (`walOldFrag dir cuts k` if `ko = some k`; `walTailsRes_oldOpt`
+  agrees it) and its success premise `SegExact g0 ∨ ko = some |bs|`; `syncLay_any` takes `¬ SegExact g0 → |bs| = |old|`
+  and returns `|L.old| = |old|` (so `OldStep.same`). `wp_tailFsync`/`syscall.Fdatasync.wp_tail` take `ko` with `(lo = size
+  = hi) ∨ ko = some size`; `fileutil.Fdatasync.wp_tail` passes `none`; **`fileutil.Fdatasync.wp_tailW` takes
+  `walOldFrag dir cuts sz`** (no users yet). This settles `ZeroToEnd`'s fdatasync (regrown to `|old|`, the map's element
+  minted at its pre) and leaves `cut`'s (`sync.specCut`: truncated short of `old`) on `wal-tc13`'s item 1, now sharper:
+  with the map as is, `cut`'s window fdatasync is not a step. The way out I recommend: (a') limited to the map, i.e. let
+  `OldOk` hold only while nothing is appended past `z0` (`lay.wr = lay.z0`, `ZeroToEnd`'s flow; `cut`'s tail has
+  appended records or is past them; to check: a `cut` with nothing appended since the generation's start, a tail
+  found past the segment size), minting only then; the window fdatasync after appends then changes `old` freely.
+- *Task 2, stated (not repaired)*: with finding C the obligation on a file entering the layout (`Create`'s first
+  segment, `cut`'s next one, from the pipeline: `filePipeline.alloc`'s `preGrown`/`trFile` posts) is `PastZ` of its
+  `OsMeta` in the handle's `TailMeta` (nothing past `hi` but zeros stamped 0: `tc` empty from the preallocated size on,
+  or a sync before the file enters the layout); `TailMeta`'s other users (`OsMeta.synced`: `tc = ∅`) have it. Where
+  `alloc` gets it: `preGrownH`'s `PcKeep` and `Z → ZeroPg` (the zeros past the grown size) say what `pc` is past the
+  size, but not that `tc` holds nothing else (to check when `PastZ` is added, task 3's first step).
+- *Not done*: task 3 (blocked on finding B); task 2's repair (waits on `PastZ`, task 3).
+- *Build*: seeded from `agent-a0d5232984f8fe5f2`; the 210 importers of `Abs.lean` build (`lake build` of their leaves,
+  2837 jobs), and `WAL__ReadAll`/`ReadAllTail` after merging `wal-int` `6330e224cd`.
+
+**W6, twenty-second session (branch `wal-save22`, 2026-11-14): option (A) made (the truncate told the handle's
+`lo ≤ wr`), `winLo` replaced by `WinHead` in the invariant; `PastZ` in the handle's tail facts (task 2).**
+Untrusted; two Lean-first spec changes (ledger: `os.truncSup`'s `P`, `os.ftDoneH`'s `TcFrom`); no trusted change, no
+client-visible ghost state. Merged `wal-int` (`wal-tc14`'s lent tails).
+- *Task 1 (done, builds)*: **`os.truncSup K p tg P`** (`P` defaults to `True`) tells the supply `m0.lo ≤ tg ∨ P m0`;
+  **`os.File.Truncate.specAu`** takes `P` and `P m` (later attempts start from announced or landed states, `lo ≤
+  tg`: `os.announce_lo_le`, `os.rsPost_lo_le`); the fileutil proofs pass `fun _ => True`. **`walTailW`**'s pure facts
+  end in **`LoWr m (o0 + |out|)`** (`(lo = size ∧ hi = size) ∨ lo ≤ wr`, `Handle.lean`; `TailMeta.loWr`, `LoWr.mono`);
+  the constructions repaired (`TailWriter`'s two, `WAL__cut`'s new handle, `TruncWalTail`'s post: `lo = wr` after the
+  landing). **`walTail_truncSup`** takes `P := (LoWr · wr)`; **`tailCrashStep_rzStart`/`rzStart_pure`** take `hlo :
+  ¬ SegExact g0 → g0.om.lo ≤ lay.wr` from it instead of the invariant. **`WinLast`'s second conjunct is `WinHead lay
+  g`** (was `lo ≤ wr`); `WalAbsD.winLo` deleted, `WalAbsD.winHead` a projection; the window constructions
+  (`walAbsD_rzStart`, `walAbsD_rzLand`, `walAbsD_rzLandG`) give `WinHead.of_lo` of what they proved. Not made: the
+  coordinator's "19 unfoldings" plumbing was not needed beyond the five constructions (the pattern `⟨…, hfd0⟩` takes
+  the new fact as part of its last component where it is not built).
+- *For the growth supplies (`ZeroToEnd`'s, not written)*: `rzGrow_pure`'s `hlo : min lo tg ≤ wr` no longer comes from
+  the invariant: from the handle's `LoWr` through the supplies' `P` (`fallocSup` has no `P` yet: add one as
+  `os.truncSup`'s when the supply is written), or from `lo ≤ wr` of the truncate to `o` before them (its landing).
+- *Task 2 (done for the handle's facts, builds)*: **`PastZ m`** (`Handle.lean`): every candidate known at or past
+  `hi` is a zero stamped 0 **or by a known resize** (finding: the twenty-first session's `(0, 0)` only is false after
+  `cut`'s truncate, which announces its zeros, stamp `n`, up to `pageEnd` of the old size, past `hi`). In
+  **`TailMeta`** and **`TailMetaW`** (last conjunct; `TailMeta.pastZ`, `TailMetaW.pastZ`). Laws: `PastZ.of_pc`,
+  `PastZ.announce`, `PastZ.pwPost` (any write keeps it: `hi` is raised over what it adds), `PastZ.synced`,
+  `PastZ.of_tcFrom` (a resize's outcome). The truncate's post needs the candidates' values, which the caller's half
+  did not give: **`os.ftDoneH`/`ftUndoneH` carry `TcFrom m (max m.size tg) tc rz`** (`TcKnows.lean`: `rz ⊇ m.rz`, each
+  candidate of `tc` from there on `m.pc`'s or a zero stamped 0 or in `rz`; `TcFrom.rsTail`, `TcFrom.trans`; ledger).
+  **The obligation on the pipeline (alloc's `PastZ`) is moot**: no file enters a handle's tail before an fdatasync
+  (`Create`'s `TailSynced`, `cut`'s `tailMeta_synced` after its header phase over the whole-resource writer,
+  `ReadAll`'s after `ZeroToEnd`), and `PastZ.synced` holds of any synced `OsMeta`.
+- *Next (task 3)*: the writer past the size with `PastZ` and `|old| ≤ hi` (`WalAbsD.oldHi_any`): a candidate `q` of
+  `m.pc b`, `b ≥ hi`, has `WinShape S old m.rz b q` (`(0, 0) = (old b, 0)` past `|old|`, or `winShape_rz`); then
+  `segAnnW`, `pwPostK true`, `wal.tailWriterW`, `encode.specTail`, `sync`, as designed in the twentieth session. The
+  window's `WinHead` after a write past the size from an exact tail: bytes in `[wr, size)` have `(old b, 0) = (0, 0)`
+  (F-Z), bytes from the size on are at or past `lo` (the announcement keeps `lo` at the size).
+- *Build*: the 42 leaves of the changed modules (`etc/importers.py --leaves`), after merging `wal-int` `1948f75dbb`.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -4776,6 +4955,82 @@ which makes the zero arm unnecessary), and **`PastCands`** (the candidates known
 window: the `wal-tc12` entry's option (b)). Both change `WalAbsD.last`'s window branch, which `walAbsD_rzStart`/
 `rzLand`/`rzLandG` construct: to be made in one change with `wal-tc13`'s.
 
+
+**The old-length map in; it does not survive the window's fdatasync (branch `wal-tc13`, 2026-11-14).** W1 log,
+twenty-third session. Done: option (a) as decided (`walOldsRes` in `walTailsRes`, `walOldFrag`, `walInvBody_tailW`
+minting it; builds). **Not done: the exact-tail precondition, `fallocSup`/the growing truncate's supply,
+`ZeroToEnd.specWalTail`** (no new name for `wal-readall21`; keep the hypothesis). Why, and the options:
+1. *`|old|` changes with the cuts unchanged*: `syncLayW` (the window's fdatasync, `wal-save19`) shortens `old` to `|bs|`
+   (`TailLast`'s `|bs| = |old|`). So `OldOk`'s "fixed per key" is false once that step exists, and option (a) cannot
+   be kept as designed. (The growth flow itself never shortens it: `ZeroToEnd` grows back to `|old|` before `ReadAll`'s
+   fdatasync. The other flows do: `cut`'s truncate then fdatasync; a lost handle leaves the shorter `old` for the next
+   `ReadAll` of the same cuts.)
+2. *`tg ≤ g0.om.hi` at the growth commits*: needed by `rzGrow_pure` and now by `walAbsD_rzStart`; `hi` is not
+   persistent (the map cannot hold it). In `ZeroToEnd`'s flow it holds (the truncate to `o` keeps `hi ≥` the old size,
+   the growths raise it), but a generic supply quantifies over every state the invariant allows.
+3. *An exact tail found at the growth's start of size `tg > wr`* (the generation-start state) needs an exact form of
+   `rzGrow_pure`/`rzLandG_pure` (`hlo` fails; the step announces nothing, `walAbsD_tail`-like congruence): small, pure.
+Options for 1-2 (coordinator):
+- (d) **Lend the tail record to the invariant during `ZeroToEnd`** (recommended): `specWalTail`'s proof moves the program's
+  half of `tailVar γ` into `walTailsRes`'s entry for `dir`, in a "lent" mode that records `k` (`= |old| = tg`, minted from
+  the exact pre) and asserts `k = |lay.old|`, `k ≤ hi`, `lo ≤ wr ∨ exact at k`; `K` holds the lent mode's token. Any other
+  tail step brings the program's half and refutes the lent mode (three halves); only the supplies (owning the token) step
+  a lent tail, and they keep the facts (`rzMeta`/`rsPost` raise `hi`, keep `old`). The 18 `walTailsRes` sites gain a
+  refutation; the truncate supply needs a lent-mode twin.
+- (c) The supplies' premises from the caller (`fallocSup`/`os.truncSup` with `tg ≤ m0.hi`, threaded through
+  `preallocExtend`/`preallocExtendTrunc`/`Preallocate`/`File.Truncate.specAu`): settles 2, not 1.
+- (a') Keep `old` long at the window's fdatasync (relax `TailLast` to `|bs| ≤ |old|`, bytes past `|bs|` unconstrained),
+  so the map is sound again: settles 1, not 2, and touches `wal-save`'s `TailLast` users.
+*Update (coordinator, after `wal-save20`)*: `wal-save21` adds option (b), `|old| ≤ hi` in a window (`PastCands`), and `WinHead` in place of `winLo`; with `k = |old|` from the map that settles item 2. Item 1 (the map's soundness across `syncLayW`) stands: with (b) in, (a') (keep `old` long at the window's fdatasync) or (d) remain the ways to keep `k = |old|`.
+Pieces ready: `walOldFrag`/`walOldsRes` (reusable as (d)'s record of `k`), `rzGrow_pure`, `rzLandG_pure` (now with
+`hZ`), `rsUndoneK`, `TcKnowsF.rsTail`, `TailZ.zte`.
+
+**`WinLast`, `WinHead`, and the old-length map merged (branch `wal-save21`, 2026-11-14).** W6 log, twenty-first
+session. **For `wal-tc13` and the resize agents**: `WalAbsD.last`'s window branch is now `WinLast C Mr d lay g` (`TailWin ∧
+lo ≤ wr ∧ WinZero ∧ |lay.old| ≤ g.om.hi`); a window's `|old| ≤ hi` is `WalAbsD.oldHi`, any tail's `WalAbsD.oldHi_any` (so
+the growth supplies' `tg ≤ hi` follows from `tg ≤ |old|`, i.e. from the map's `k = |old|` with `tg = k`). `walAbsD_win`
+takes `WinLast`; `walAbsD_rzStart`/`rzLand`/`rzLandG` prove the new conjunct themselves (no new premise). `winLo` stays
+(the truncate at `wr` needs it of the size, finding B: options (A)-(C), (A) recommended); `WinHead` (disjunctive: `lo ≤ b`
+or a zero candidate) is derived and used by `crashOk_syncW`. `PastCands` is **not** an invariant fact (finding C: a
+crash's tail knows the disk's bytes past its size, kept past `hi` by `ZeroToEnd`'s truncate); it goes on the handle
+(`PastZ`, task 3). `wal-tc13`'s map is merged; the window's fdatasync (`walInvBody_sync`) takes the map's element
+(`walOldOpt`), which `ZeroToEnd`'s flow has and `cut`'s does not (item 1 stands for `cut`; proposal in the W6 log).
+
+**Option (A), `WinHead` in the invariant, `PastZ` (branch `wal-save22`, 2026-11-14).** W6 log, twenty-second
+session. **For the resize agents**: `WinLast`'s second conjunct is `WinHead` (`winLo` gone); a truncate at `wr` gets
+`lo ≤ wr` of a window from the handle (`walTailW`'s `LoWr`, `os.truncSup`'s new `P`, `os.File.Truncate.specAu`'s `P m`):
+`walTail_truncSup` takes `P := (LoWr · wr)`, `rzStart_pure`/`tailCrashStep_rzStart` take `hlo`. `rzGrow_pure`'s `hlo`
+must come the same way (a `P` on `fallocSup`, or the truncate to `o`'s landing). `os.ftDoneH`/`ftUndoneH` carry
+`TcFrom` (the candidates' values past the old size; ledger), and `TailMeta`/`TailMetaW` end in `PastZ`: a
+`ZeroToEnd.specWalTail` post needs another tail form (its window knows the disk's bytes past its size: finding C).
+
+**For `wal-readall21`: registration before `ZeroToEnd` (branch `wal-tc13`, 2026-11-14).** `TailZeros lay` does **not**
+hold of an idle tail after a crash: `WalsStart` (`CrashPure.lean`) gives `wr = so = z0 = |stream|` and the tail's bytes
+`old.map durB`, `old` the crash image (`walCrash_pure`'s `old := imgOf (fo g.ino)`), and nothing about `old` past `z0`
+(a torn frame, a write that reached the page cache but not the frame's end, `fallocate`'s zeros: all allowed by W1).
+So `walTailsRes_register`'s `TailZeros` premise cannot be met at `ReadAll`'s pin. The registration needed (the
+`wal-zte2` design, I3b log, "`ReadAll`'s tie"): `walTailsRes`' per-tail fact `TailZeros lay ∨ lay.wr = lay.z0` (nothing
+appended past the start's frames; "zeros past `wr`" is the same set of bytes then, since `wr = z0`), and the window's
+fdatasync after `ZeroToEnd` committing `syncLayW` (`old := old.take wr ++ zeros`, of the same length since `ZeroToEnd`
+regrew the tail to `|old|`), which gives `TailZeros` back (`tailZeros_syncW`). The users of the per-tail `TailZeros`
+(`walsOk_tail`'s appends, `rzGrow_pure`/`rzLandG_pure`'s `hZ`, `walAbsD_rzLandG`) need it only once something is
+appended or the bytes past `wr` are read: the appends come after that fdatasync; for the growth supplies, the window
+found has `WinZero` (`WalAbsD.zeroPast`) and the exact one is the no-op form (item 3 above), so `hZ` should be replaceable
+by the disjunction there (to check when the supplies are written). `ZeroToEnd.specWalTail` is **not written** (blocked by
+items 1-2 above); its intended statement: `walAreaOk ∗ walTailW f fd name dir γ i H md cuts o0 sz out TailMeta` with
+`o0 + |out| = wr` and the offset there, the post on success `walTailW … sz out TailMetaW` with the bytes from `wr` to
+`sz` a zero run (`osZerosA`) and `TailZ` (`TailZ.zte`), on an error the handle lost.
+
+**The lent tails, option (d) (branch `wal-tc14`, 2026-11-14).** W1 log, twenty-fourth session. The old-length
+map is removed (with `wal-save21`'s `walOldOpt` arguments); `walLentRes` (in `walTailsRes`) holds the key of
+each lent tail and `|old|`. For the growth supplies and `ZeroToEnd.specWalTail` (not written): lend at
+`specWalTail`'s first step (`walInv_lend`, from `walTailW`'s exact `TailMeta`: `k = sz`), make the three
+supplies with `K = walLentTok dir γ sz ∗ tailVar γ (H, md, cuts, wr, i, none)` (`walTail_truncSup` with `ok :=
+some sz`; `fallocSup` and the growing truncate's supply, to write, over `walInvBody_tailW` with `ok := some sz`,
+which gives `|lay.old| = sz` at each commit, hence `tg = sz ≤ |old|` and, with `wal-save21`'s
+`WalAbsD.oldHi_any`, `tg ≤ hi`); the post a lent handle (`walTailW` with `walLentTok` for the key), returned by
+the caller at its next step (`walInv_unlend`). Blocked first on task 2 (registration, W1 log, twenty-fourth
+session): the same lending must cover the window before `TailZeros` holds.
 
 **The truncate supply and `specWalTail` (branch `wal-tc10`, 2026-11-14).** W1 log, twentieth session. Done:
 `TcKnows` on `os.ftDoneH`/`ftUndoneH` (ledger), `walTail_truncSup` (`TruncSup.lean`, no `sorry`),
@@ -6086,7 +6341,7 @@ stream in hand. No `sorry` added or removed; one spec defect fixed (ledger 2026-
   `walTailKey dir γ`, `walTailsFrag {dir ↦ γ}`, the tail record's half `(H, md, cuts, wr, g.ino, none)` with `d`,
   `lay`, `kk` as `walInv_readFiles`') and `ZeroToEnd.specWalTail` (`wal-tc13`'s intended statement: pre `walAreaOk ∗
   walTailW … TailMeta` at `o0 + |out| = wr`, post `walTailW … TailMetaW` with the bytes from `wr` a zero run and
-  `TailZ`; on an error the handle lost); `wal-tc14` logs the real names here. (4) F-Z's `fileutil.Fdatasync`, F-N4's
+  `TailZ`; on an error the handle lost); `wal-tc14` logs the real names here. *`wal-tc14` (2026-11-14)*: neither is written yet (keep the hypotheses). What changes for `ReadAll`: the tail is lent while `ZeroToEnd` runs (option (d): `walInv_lend`/`walInv_unlend`, `TailLend.lean`; `walLentTok dir γ k` in place of the key), so `ZeroToEnd.specWalTail`'s post will hold the token, not the key, and `ReadAll` returns it (`walInv_unlend`) at a step after the call; and the registration with `TailZeros lay ∨ lay.wr = lay.z0` will hand out a token of a "registered, not yet zeroed" tail rather than the key (W1 log, twenty-fourth session, task 2), which the fdatasync after `ZeroToEnd` turns into the key. (4) F-Z's `fileutil.Fdatasync`, F-N4's
   `Fsync(w.dirFile)`/`syncDir` (the AU's commit at the directory sync), then **`!match` (decided: verified to the end)**:
   `err = ErrSnapshotNotFound`, `proto.Clone`, `readClose`, `w.start`, `w.metadata`, `newFileEncoder` (its nil error
   overwrites `err`), `w.decoder = nil`, the final `err == nil && !match` re-set, exit by `readAll_failWp` (the registered
@@ -6094,3 +6349,120 @@ stream in hand. No `sorry` added or removed; one spec defect fixed (ledger 2026-
 - Build: seeded from `agent-a0d5232984f8fe5f2` (traces unshared, `GooseLang`/`LinuxFs` real copies); `lean-check -a`
   of `DecLemmas`, `ReadAllTail`; `--fast` of `decodeRecord`, `Decode`, `WAL__ReadAll`; `lake build` of the 53 leaves
   importing `DecDefs` (below).
+
+## io.Copy log (branch `wal-copy1`, 2026-11-14)
+
+**The Go path** of `Repair`'s `io.Copy(bf, f)` (`bf` an `*os.File`, `f` a `*fileutil.LockedFile`, whose method set has
+`*os.File`'s promoted `WriteTo`), Go 1.27.3 (`GO_TOOLCHAIN`), linux/amd64, file:line of `$GOROOT/src`:
+
+1. `io.Copy` (io.go:387) → `copyBuffer(dst, src, nil)` (io.go:407): `src.(WriterTo)` holds → `f.File.WriteTo(bf)`.
+2. `File.WriteTo` (os/file.go:265): `checkValid("read")`, then `f.writeTo(bf)` (zero_copy_linux.go:18):
+   `getPollFDAndNetwork(bf)` (:124): `bf.(syscall.Conn)` holds, `bf.SyscallConn()` (file.go:698, `newRawConn`,
+   rawconn.go:45) is a `*rawConn`, which has no `PollFD`/`Network` → `nil` → unhandled → `genericWriteTo(f, bf)`
+   (file.go:294) → `io.Copy(bf, fileWithoutWriteTo{File: f})`.
+3. `copyBuffer`: `fileWithoutWriteTo` has no `WriteTo` (the embedded `noWriteTo`'s and `*File`'s collide at depth 1);
+   `bf.(ReaderFrom)` holds → `bf.ReadFrom(src')` (file.go:175): `checkValid("write")`, `bf.readFrom(src')`
+   (zero_copy_linux.go:42): `appendMode` false → `bf.copyFileRange(src')` (:89): `tryLimitedReader` (zero_copy_posix.go:26,
+   `remain = 2^63-1`), the type switch's `fileWithoutWriteTo` case, `src.checkValid`, `pollCopyFileRange(&bf.pfd,
+   &f.pfd, remain)` = `poll.CopyFileRange` (internal/poll/copy_file_range_unix.go:13): `supportCopyFileRange()`
+   (copy_file_range_linux.go:15, kernel ≥ 5.3), rounds of `copyFileRange` (:35, fd locks, `ignoringEINTR2`,
+   `unix.CopyFileRange(src, nil, dst, nil, min(remain, 0x7ffff000), 0)`) until `n == 0` or an error, each judged by
+   `handleCopyFileRangeErr` (copy_file_range_linux.go:95).
+4. Handled (the first round copied something): `ReadFrom` returns `(written, f.wrapErr("write", e))` (the error a
+   `*os.SyscallError{"copy_file_range", errno}`). Unhandled (the first round returned 0 — an empty rest — or `ENOSYS`,
+   `EXDEV`, `EINVAL`, `EIO`, `EOPNOTSUPP`, `EPERM`): `spliceToFile` (:59, unhandled: the source's `rawConn` has no
+   `PollFD`) → `genericReadFrom` (file.go:204) → `io.Copy(fileWithoutReadFrom{bf}, src')` → `copyBuffer`'s loop with a
+   32 KiB buffer over `File.Read`/`File.Write` (both modelled).
+
+Measured on C (strace, `TestCopyFileRangeIoCopy`): a 9900-byte rest is `copy_file_range(4, NULL, 7, NULL, 2147479552,
+0) = 9900` then `= 0`; an empty source `copy_file_range(...) = 0` then `read(8, "", 32768) = 0`. No `sendfile`/`splice`.
+
+**What is translated, what is trusted** (`8b93163b63`): the part's `os.toml` translates `File.ReadFrom`, `File.WriteTo`,
+`File.writeTo`, `genericReadFrom`/`genericWriteTo`, `noReadFrom.ReadFrom`/`noWriteTo.WriteTo` (panics),
+`getPollFDAndNetwork` (its assertion to an anonymous interface translates), `isUnixOrTCP`, `tryLimitedReader`,
+`File.checkValid`, `File.wrapErr`, `File.SyscallConn`, `newRawConn`, `wrapSyscallError`, `NewSyscallError`,
+`SyscallError.Error`/`Unwrap`; `internal/poll.toml` translates `handleCopyFileRangeErr` and `maxCopyFileRangeRound`.
+Trusted (`LinuxFs/TrustedCode/os.lean`, **pending the user's review**): `File.readFrom`, `File.copyFileRange`,
+`File.spliceToFile` (Go's bodies, but they read `f.appendMode` and pass `&f.pfd`, absent from the trusted `file`
+layout), `rawConn.Control/Read/Write` (panics: `pfd.RawRead`, never reached here), and the system call
+`model.copyFileRangeRound` with `model.pollCopyFileRange` (poll's loop, `supportCopyFileRange()` true on C).
+`goose.py --check --project bboltfs` passes; `gen-init --check` unchanged.
+
+**Decision (provisional, coordinator's to confirm, then the user's): no new `fsExt` step.** One `copy_file_range`
+round is the existing `PRead` of up to `max` bytes at the source's offset, then `PWriteStart`/`PWriteFinish` of what it
+read at the destination's offset, both offsets (the trusted `file.off` cells) moved by the count written; an errno
+with nothing written is returned; at the source's end 0. So `Impl.lean` is unchanged and every existing write/read
+lemma (page cuts, crash candidates, announce/land, `PwCut`) applies to the copy; no world rebuild of `GooseLang`. Why
+it is a superset of Linux on C (the docstring and `model_os_copy_file_range.go`): ext4 has no `remap_file_range`, so
+`vfs_copy_file_range` copies by `splice_copy_file_range` → `do_splice_direct`, a page-cache read and a
+`generic_perform_write` (pwrite's path); finer interleavings with writers of the source are sequences of rounds
+(`PRead`'s short counts); every errno with nothing copied (`EINVAL` on overlapping ranges of one file, measured) is a
+`PRead` errno. `TestCopyFileRange` on C: 12388 bytes from offset 100 to offset 50, both offsets advanced by the count,
+the bytes the source's; 0 at the end; `EINVAL` with nothing changed on overlapping ranges.
+
+**Finding** (`nonissues/go-os-readfrom-count-after-fallback.md`): after a partial copy, an `EIO`/`EINVAL`/... round
+makes `ReadFrom` fall back and return only the fallback's count. `Repair` ignores the count; the triple below claims
+nothing of `n`. So the logged statement's "the source's offset moved by `n`" is **dropped** (ledger: not a frozen
+spec, the hypothesis's own statement).
+
+**Not done: the triple's proof.** `io.Copy`/`copyBuffer` have no bodies (Perennial's `io.toml`: names-only), and a
+part copy of `io` cannot give them (`notes/perennial-changes.md`, the `io.ReadFull` entry: a `FuncUnfold` comes only
+from its package's `Assumptions`, and Perennial's `io` is in every closure). Recorded as a Perennial change
+("`io.Copy`/`copyBuffer` without bodies"). So `Repair.wp_proof` keeps the hypothesis, restated:
+`io.CopyFiles.spec`: for `dst = bf` (an `*os.File` with the whole file's `osMeta`/`osBytes` claim and its offset `o_d`)
+and `src = f` (an `*os.File` or a struct embedding one, offset `o_s`, the source's bytes `S`), `io.Copy(dst, src)`
+returns `(n, err)`; afterwards the source's bytes are `S`, the destination's are `D[:o_d] ++ S[o_s:o_s+k]` past its
+old content for some `k` (with the write's crash candidates) and both offsets moved by `k`, with `k = |S| - o_s` when
+`err = nil`; `n` arbitrary. What `Repair.wp_proof` should call: that hypothesis (named `io.CopyFiles.spec`), its
+`err` only compared with `nil`.
+Proof plan once Perennial translates `io`: the chain above, in `LinuxFs/Proof/os/` (`File__WriteTo`, `File__ReadFrom`,
+`copyFileRange` over a round lemma `model.copyFileRangeRound` = `wp_PRead` + `wp_PWrite*`), and the generic loop
+of `copyBuffer` (a loop over `File.Read`/`File.Write`'s specs; reached only from an empty rest, so one iteration:
+`Read` returns `io.EOF`).
+
+**W3/W5 log, twenty-third session (branch `wal-readall23`, 2026-11-14).** `ReadAll.wp_proof` still one `sorry`, now
+after the tail's fdatasync (before `fileutil.Fsync(w.dirFile)`). Steps (1)-(3) of the twenty-second session's list done,
+(4) begun. No spec statement changed; two named hypotheses added (the coordinator's forms), one internal definition
+strengthened.
+- *Pure (`ReadAllEnd.lean`, new, no `sorry`)*: **`walReadFiles_running_end`**: from the `kk`-th named segment on, the
+  reader ends at `lay.wr` with CRC `chainEnd 0 (recsOfSegs … (segsOf (histM d) lay.cuts))` (= `tailCrc`, `h.crc Mr` at
+  `rest = 0`), under `walReadFiles_running`'s premises. Over `walDecodeFiles_intact_last` (intact files then a last
+  one: the last file's decoding at the chain's CRC), `walDecodeFrom_framesEnd` (a file holding the frames of `rs` and
+  nothing accepted after them ends at `|recFrames rs|`, CRC `chainEnd c rs`) and, for a start in a cut file at CRC 0,
+  `chainOk_crcHead`/`chainEnd_crcHead` (a chain starting with a CRC record does not depend on its start;
+  `segsDs_cut`: every file after the first starts with a cut header). The core lemmas of the main tree were not
+  touched (the part's copies stay generated). Also `walReadFiles_wr_le` (`lay.wr ≤ |g.bs|` of the last file).
+- *Internal definition (no ledger: not client-visible)*: `walFileS` carries `0 ≤ fd.toInt` (`Seek` needs it; `Open`'s
+  `walOpenedFile` had it and dropped it); `OpenFiles`, `ReadBridge` repaired, the 8 importer leaves rebuilt.
+- *In `WAL__ReadAll.lean`*: at `io.EOF` the decoder holds no file (`goDecode_eof_nil`, `decRecStep_ne_eof`), so
+  `Hleft` is every file's stream; the last file split off (`walFileS` of `gl`, `lockedFile lt fl` through
+  `fls.getD`); **`LastOffset`** (`off' = lay.wr` by `walReadFiles_running_end`; `c'` the chain's CRC, kept as
+  `hcrcw` for `newFileEncoder`); **`Seek`** (`os.File.Seek.wp_start`, the size bound by `Fs.wp_osMeta_size`);
+  **`ZeroToEnd`** on the registered tail (`walTailW_ofRead`: the stream state, the key and the tail record as
+  `walTailW … lay.wr gl.om.size []`), its error exit; **the fdatasync** (`fileutil.Fdatasync.wp_tailW`, the pending-cut
+  flag lent by the opening handle, `walOpening_cutFrag`), its error exit; on success the tail exact again
+  (`walTailW … TailMeta`) and `walSyncedLb dir d0.H.length`. Error exits by `readAll_failWp` (the registered tail
+  dropped affinely: it stays registered, as decided for `!match`).
+- *Named hypotheses (until `wal-tc14` lands; `ReadAll.wp_proof` takes them)*: **`WalFs.walInvRegisterTailLaw`**
+  (`ReadAllReg.lean`): the look at the invariant before the loop **with** the registration, in place of
+  `walInv_readFiles`: its facts, plus `walTailsFrag {dir ↦ γ}` (for `walTailsFrag ∅`), `walTailKey dir γ`, the
+  program's half of `tailG d lay gl.ino none` (`gl` the last segment), and **`TailMeta gl.om gl.bs`** (the pinned
+  last segment's `OsMeta` exact: `maps = ∅`, `lo = hi = size`, `TailZ`; an obligation of the registration's proof).
+  **`fileutil.ZeroToEnd.specWalTail Mr`** (`Spec/…/wal/ReadAllTailCallees.lean`): pre `walAreaOk ∗ walTailW … o0 sz
+  [] TailMeta` with `o0 ≤ sz`, `o0 = |tailStream|`; success `∃ sz' ≥ o0, walTailW … o0 sz' [] TailMetaW`; error: the
+  tail lost. (The zeros from `o0` on are the invariant's, not in the triple: `walTailW` hides the bytes.) Also
+  `wp_Fd : os.File.Fd.spec` (proved in the part) and the instance binders `[syscall.Assumptions]`,
+  `[ioutil.Assumptions]` (`TailFdatasync`'s).
+- *Gotchas*: importing `TailFdatasync` makes `decide_true` ambiguous with `BI.decide_true` under `open Iris.BI`: the
+  file now says `_root_.decide_true`. `rw [h]` on the proof-mode goal rewrites the Iris context too (used for
+  `fs.take (kD + k) = fs` and `fls.getD … = fl`); `subst hoffw` turns the `Seek` offset into `lay.wr`.
+- *Next, in order*: (a) `fileutil.Fsync(w.dirFile)` (`Hdf`, `Hdfs : osDirFdS dfd jd .idle`; cut's `os.File.Sync.specDirS`
+  is the pattern), then `syncDir(filepath.Dir(dir))` (`syncDir.lean`'s spec; the area, `Hp`) **with the AU's commit**
+  there (`walNamed dir`; `walAu_same` for the error exits before it, `readAll_failWp` after only if the commit has not
+  happened: split the two). (b) `match`: case on `st.matched` once both syncs succeeded: `!match` to the end through
+  `readAll_failWp` (decided); `match`: phase 4 (`readAll_success` with `rdLoop_fold_eof`, `h.st = walLastHS H`, the
+  `raIdx` fold lemma, `CloneHsLaw`, `readClose`, `w.start`, `w.metadata`, `newFileEncoder` at `c'` (`hcrcw`, `tailCrc`)
+  over `walTailW`, `walOpenWF` with `walDirH` holding `walTailsFrag {dir ↦ γt}` and `walNamesFrag none`).
+- Build: seeded from `agent-a0d5232984f8fe5f2` (its `walpb` TrustedCode/ManualProof oleans were missing: rebuilt);
+  `lean-check -a` of `ReadAllEnd`, `ReadAllReg`, `ReadAllTailCallees`; `lake build` of `ReadDefs`'s 8 importer leaves;
+  `lean-check --fast` then `lake build` of `WAL__ReadAll`.

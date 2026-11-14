@@ -136,17 +136,18 @@ theorem dirKeysOk_tailA {C : WalCodec} {Mr : WalMarshal} {jr : Ino}
 
 /-! ## The truncate at the write position -/
 
-/-- **The truncate's first step is a crash step** (`crashOkA_rzStart`). -/
+/-- **The truncate's first step is a crash step** (`crashOkA_rzStart`), a window's least crash size at
+most the write position (`hlo`: the handle's, through `os.truncSup`'s `P`; W6 log, twenty-second
+session). -/
 theorem tailCrashStep_rzStart {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     {lay : WalLay} {ents : Ents} {cl : List Claim} {k : Nat} {pre : List SegG} {g0 : SegG} {n : Nat}
     (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
     (hnd : (lay.segs.map (·.ino)).Nodup) (hs : lay.segs = pre ++ [g0])
-    (hn : 0 < n) (htcz : g0.om.TcZ) :
+    (hn : 0 < n) (htcz : g0.om.TcZ) (hlo : ¬ SegExact g0 → g0.om.lo ≤ lay.wr) :
     TailCrashStep C Mr d lay pre g0 (rzSeg g0 true lay.wr n) lay.wr cl k := by
-  have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   intro alt halt hok
   exact crashOkA_rzStart hC habs hZ hB hnd hs htcz.1 hn
-    (fun hx => ⟨habs.winLo g0 hg0 hx, htcz⟩) halt hok
+    (fun hx => ⟨hlo hx, htcz⟩) halt hok
 
 /-- **The truncate's landing is a crash step** (`crashOkA_rzLand`), from the in-flight layout. -/
 theorem tailCrashStep_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur}

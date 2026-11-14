@@ -4,7 +4,8 @@
 
 `walTail_truncSup`: `os.truncSup` (`LinuxFs/Spec/os/File__TruncateAu.lean`) for the truncate of a WAL's
 tail `i` to its write position `wr`, built from `walInv`, the caller's tie `K` its key and half of the
-tail record, idle (`walTailKey dir γ ∗ tailVar γ (H, md, cuts, wr, i, none)`). Each attempt:
+tail record, idle (`walTailKeyL dir γ ok ∗ tailVar γ (H, md, cuts, wr, i, none)`: its key, or the
+token of the tail lent, `ZeroToEnd`'s). Each attempt:
 
 * *the start's update* opens `walInv` (`walInvBody_tailW`), agrees the tail's halves with the caller's
   (the `OsMeta` `m0`, the bytes cut off `xs0`: `g0.om = m0`, `g0.bs.drop wr = xs0`), and lends the whole
@@ -109,23 +110,23 @@ theorem rzSeg_of_okR {g1 : SegG} {t n wr : Nat} {m0 : OsMeta} {bs0 : List ByteG}
 
 /-- **The caller's part of the finish's update**: its key and half of the tail record, the truncate in
 flight on it (the start's `t`, `n`, the `OsMeta` and bytes it found), and the start's facts. -/
-def truncFinP (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
+def truncFinP (dir : GoString) (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (i : Ino) (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) : IProp GF :=
-  iprop(walTailKey (W := W) dir γ ∗
+  iprop(walTailKeyL (W := W) dir γ ok ∗
     tailVar (W := W) γ ((H, md, cuts, wr, i, some ⟨t, 0, [], n, m0, bs0, some (true, wr)⟩) : TailG) ∗
     ⌜m0.size ≤ m0.hi ∧ wr ≤ m0.size⌝)
 
 /-- **The finish's update** (see the file header). -/
 theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
+    (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
     (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) :
-    ⊢ walInv (W := W) walCodec Mr R jr r -∗ truncFinP (W := W) dir γ H md cuts wr i t n m0 bs0 -∗
+    ⊢ walInv (W := W) walCodec Mr R jr r -∗ truncFinP (W := W) dir γ ok H md cuts wr i t n m0 bs0 -∗
       osAUnc (A := w64) (rsTok true t i wr m0 (bs0.drop (min m0.size wr)) n)
         (rsOutT i wr m0 (bs0.drop (min m0.size wr)) n)
         (fun e => iprop(os.truncOutH i wr m0 (bs0.drop (min m0.size wr)) n e ∗
-          (walTailKey (W := W) dir γ ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG)))) := by
+          (walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG)))) := by
   iintro #Hinv HP
-  iapply osAUnc_coiter _ _ _ (truncFinP (W := W) dir γ H md cuts wr i t n m0 bs0) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (truncFinP (W := W) dir γ ok H md cuts wr i t n m0 bs0) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -135,10 +136,10 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   unfold truncFinP
   icases HP with ⟨Hk, Hv, %hf⟩
   obtain ⟨hhi, hwr⟩ := hf
-  icases walInvBody_tailW walCodec Mr R jr r s dir γ _ m0 $$ Hb Hk Hv [] with
+  icases walInvBody_tailW walCodec Mr R jr r s dir γ ok _ m0 $$ Hb Hk Hv [] with
     ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g1, %hp, Hseg, Hk, Hv, Hv', -, Hclose⟩
   · dsimp only [tailHeld]; iempintro
-  obtain ⟨hd, hl, hs, htg0, hW, ⟨ents, habs⟩, hcut1, hZ, hB⟩ := hp
+  obtain ⟨hd, hl, hs, htg0, hW, ⟨ents, habs⟩, hcut1, hZ, hB, -⟩ := hp
   have htg := htg0
   simp only [tailG, Prod.mk.injEq] at htg
   obtain ⟨hH, hmd, hcuts, hwrl, hino, hF⟩ := htg
@@ -234,7 +235,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · iexists (rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))).tc
           iexists (rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))).rz
           isplitr
-          · ipureintro; exact TcKnows.rsTail m0 wr wr n _
+          · ipureintro; exact ⟨TcKnows.rsTail m0 wr wr n _, TcFrom.rsTail m0 wr wr n _⟩
           rw [← rsPostK_withTc]; iexact Hm1
         simp only [List.map_nil]
         unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
@@ -285,7 +286,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · iexists (rsTail true m0 wr m0.size n [])
         iexists (n :: m0.rz)
         isplitr
-        · ipureintro; exact TcKnows.rsTail m0 wr m0.size n []
+        · ipureintro; exact ⟨TcKnows.rsTail m0 wr m0.size n [], TcFrom.rsTail m0 wr m0.size n []⟩
         have eU : rsUnMeta true true m0 wr n = (m0.announce (min m0.size wr) (rsHi true m0.size wr) wr).withTc
             (rsTail true m0 wr m0.size n []) (n :: m0.rz) := rfl
         rw [← eU]; iexact Hm1
@@ -293,23 +294,27 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
 
 /-- **The caller's part of the start's update**: its tie, and its halves of the tail's `OsMeta` and of
 the bytes cut off. -/
-def truncStartP (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
+def truncStartP (dir : GoString) (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (i : Ino) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF :=
-  iprop(walTailKey (W := W) dir γ ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) ∗
+  iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) ∗
     osMeta i (DFrac.own (1 : Qp).half) m0 ∗ osBytes i (min m0.size wr) (DFrac.own (1 : Qp).half) xs0)
 
-/-- **The supply of the tail's truncate at its write position** (see the file header). -/
+/-- **The supply of the tail's truncate at its write position** (see the file header), the caller's
+property of the state it starts from the handle's `LoWr` (no window open, or `lo ≤ wr`: a window's
+crash sizes from `lo` on must be the old window's; a later attempt's state has `lo ≤ wr`,
+`os.truncSup`). -/
 theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino) :
+    (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
-      os.truncSup iprop(walTailKey (W := W) dir γ ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG)) i wr := by
+      os.truncSup iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG))
+        i wr (fun m => LoWr m wr) := by
   iintro #Hinv
   unfold os.truncSup
-  iintro !> %m0 %xs0 %hxs0 ⟨Hk, Hv⟩ Hm Hbx
+  iintro !> %m0 %xs0 %hxs0 %hP0 ⟨Hk, Hv⟩ Hm Hbx
   unfold os.truncAuW
-  ihave HP : truncStartP (W := W) dir γ H md cuts wr i m0 xs0 $$ [Hk Hv Hm Hbx]
+  ihave HP : truncStartP (W := W) dir γ ok H md cuts wr i m0 xs0 $$ [Hk Hv Hm Hbx]
   · unfold truncStartP; iframe
-  iapply osAUnc_coiter _ _ _ (truncStartP (W := W) dir γ H md cuts wr i m0 xs0) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (truncStartP (W := W) dir γ ok H md cuts wr i m0 xs0) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -318,11 +323,11 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   icases Hb with ⟨%s, Hb⟩
   unfold truncStartP
   icases HP with ⟨Hk, Hv, Hm, Hbx⟩
-  icases walInvBody_tailW walCodec Mr R jr r s dir γ _ m0 $$ Hb Hk Hv [Hm] with
+  icases walInvBody_tailW walCodec Mr R jr r s dir γ ok _ m0 $$ Hb Hk Hv [Hm] with
     ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hm, Hclose⟩
   · dsimp only [tailHeld]; iexact Hm
   dsimp only [tailHeld]
-  obtain ⟨hd, hl, hs, htg0, hW, ⟨ents, habs⟩, hcut0, hZ, hB⟩ := hp
+  obtain ⟨hd, hl, hs, htg0, hW, ⟨ents, habs⟩, hcut0, hZ, hB, -⟩ := hp
   have htg := htg0
   simp only [tailG, Prod.mk.injEq] at htg
   obtain ⟨hH, hmd, hcuts, hwrl, hino, hF⟩ := htg
@@ -378,7 +383,12 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     icases Hβ with ⟨Htok, %hn⟩
     imod Hcl'
     have hwrl' : lay.wr = wr := hwrl.symm
-    obtain ⟨hW', hDK'⟩ := rzStart_pure walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZ hB hn.1 hn.2
+    have hlo : ¬ SegExact g0 → g0.om.lo ≤ lay.wr := fun hx => by
+      rcases hP0 with h | h | h
+      · rw [hwrl']; exact h
+      · exact absurd (SegExact.of_os hsz h) hx
+      · rw [hwrl']; exact h
+    obtain ⟨hW', hDK'⟩ := rzStart_pure walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZ hB hn.1 hn.2 hlo
     rw [hwrl'] at hW' hDK'
     have hFi : ∀ i, i ≠ g0.ino →
         (<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, wr)⟩ : SegFl)]> F) !! i = F !! i :=
@@ -405,7 +415,7 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     · iexists s; iexact Hb
     imodintro
     rw [etg]
-    iapply walTail_truncFin Mr R jr r dir γ H md cuts wr g0.ino t n g0.om g0.bs $$ Hinv [Hk Hv]
+    iapply walTail_truncFin Mr R jr r dir γ ok H md cuts wr g0.ino t n g0.om g0.bs $$ Hinv [Hk Hv]
     unfold truncFinP
     iframe
     ipureintro; exact ⟨by omega, hwr⟩

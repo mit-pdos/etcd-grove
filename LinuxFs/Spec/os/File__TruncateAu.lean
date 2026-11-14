@@ -44,9 +44,11 @@ variable [os.Assumptions]
 (`os.ftDone`'s, the candidates `zs` of the bytes grown over), its `OsMeta` up to the candidates it
 knows past the size and of its resize stamps (`rsPostK`: the update's owner, holding the other half,
 knows them), knowing which bytes past the size have known candidates (`TcKnows`: those the landing
-keeps known, `rsTail`'s domain; `wal-tc10`). -/
+keeps known, `rsTail`'s domain; `wal-tc10`), and that the candidates known past the old size and the
+target are `m`'s or zeros stamped 0 or by a known resize (`TcFrom`; `wal-save22`). -/
 def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
-  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc rz, ⌜TcKnows m tg tg tc⌝ ∗ osMeta p (DFrac.own (1 : Qp).half)
+  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc rz, ⌜TcKnows m tg tg tc ∧ TcFrom m (max m.size tg) tc rz⌝ ∗
+      osMeta p (DFrac.own (1 : Qp).half)
       ((rsPost true m tg tg).withTc tc rz)) ∗
     osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))))
 
@@ -54,9 +56,10 @@ def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
 bytes it would have cut off `xs'`), its `OsMeta` up to the candidates it knows past the size and of
 its resize stamps (`rsUnMeta`: the update's owner, holding the other half, knows them), knowing which
 bytes past the size have known candidates (`TcKnows` at the old size: those the not-landed outcome keeps
-known). -/
+known), and where the candidates known past the old size and the target come from (`TcFrom`). -/
 def os.ftUndoneH (p : Ino) (m : OsMeta) (tg : Nat) (xs' : List ByteG) : IProp GF :=
-  iprop((∃ tc rz, ⌜TcKnows m tg m.size tc⌝ ∗ osMeta p (DFrac.own (1 : Qp).half)
+  iprop((∃ tc rz, ⌜TcKnows m tg m.size tc ∧ TcFrom m (max m.size tg) tc rz⌝ ∗
+      osMeta p (DFrac.own (1 : Qp).half)
       ((m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz)) ∗
     osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs')
 
@@ -77,26 +80,34 @@ def os.truncAuW (K : IProp GF) (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List By
     (fun tn => osAUnc (A := w64) (rsTok true tn.1 p tg m0 xs0 tn.2) (rsOutT p tg m0 xs0 tn.2)
       (fun e => iprop(os.truncOutH p tg m0 xs0 tn.2 e ∗ K)))
 
-/-- **The supply of a resize of `p` to `tg`**, the caller's tie `K` (persistent): for any state, the
-caller's halves and `K` make the attempt's updates. -/
-def os.truncSup (K : IProp GF) (p : Ino) (tg : Nat) : IProp GF :=
-  iprop(□ ∀ (m0 : OsMeta) (xs0 : List ByteG), ⌜xs0.length = m0.size - tg⌝ -∗ K -∗
-    osMeta p (DFrac.own (1 : Qp).half) m0 -∗
+/-- **The supply of a resize of `p` to `tg`**, the caller's tie `K` (persistent): for any state `m0`,
+the caller's halves and `K` make the attempt's updates. The supply is told that `m0`'s least crash
+size is at most the target, or that `m0` has the caller's property `P`: `os.File.Truncate.specAu`
+takes `P` of the state it starts from, and every later attempt starts from a state an attempt
+announced or landed, whose `lo` is at most `tg`. `P` is `True` by default; the WAL's tail passes
+"no resize window open" (I3b; W6 log, twenty-second session: the truncate at the write position needs
+`lo ≤ wr` of a window, which only the handle knows). -/
+def os.truncSup (K : IProp GF) (p : Ino) (tg : Nat) (P : OsMeta → Prop := fun _ => True) :
+    IProp GF :=
+  iprop(□ ∀ (m0 : OsMeta) (xs0 : List ByteG), ⌜xs0.length = m0.size - tg⌝ -∗
+    ⌜m0.lo ≤ tg ∨ P m0⌝ -∗ K -∗ osMeta p (DFrac.own (1 : Qp).half) m0 -∗
     osBytes p (min m0.size tg) (DFrac.own (1 : Qp).half) xs0 -∗ os.truncAuW K p tg m0 xs0)
 
-instance os.truncSup_persistent (K : IProp GF) (p : Ino) (tg : Nat) :
-    Persistent (os.truncSup (GF := GF) K p tg) := by
+instance os.truncSup_persistent (K : IProp GF) (p : Ino) (tg : Nat) (P : OsMeta → Prop) :
+    Persistent (os.truncSup (GF := GF) K p tg P) := by
   unfold os.truncSup; infer_instance
 
-/-- See the file header. -/
+/-- See the file header. `P` is the caller's property of the state the truncate starts from, which
+the supply is told of at the first attempt (`os.truncSup`). -/
 abbrev os.File.Truncate.specAu : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
-    (m : OsMeta) (xs : List ByteG) (K : IProp GF),
+    (m : OsMeta) (xs : List ByteG) (K : IProp GF) (P : OsMeta → Prop),
   0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.maps = ∅ → xs.length = m.size - sz.toNat →
+  P m →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
       osMeta (GF := GF) d.ino (DFrac.own (1 : Qp).half) m ∗
       osBytes (GF := GF) d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs ∗
-      K ∗ os.truncSup (GF := GF) K d.ino sz.toNat }}
+      K ∗ os.truncSup (GF := GF) K d.ino sz.toNat P }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗ K ∗
       ((⌜err = interface.nil⌝ ∗ ∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨

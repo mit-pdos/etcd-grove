@@ -98,7 +98,7 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
   iintro %Φ ⟨#Harea, Hw⟩ HΦ
   unfold walTailW
   icases Hw with ⟨Hof, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  obtain ⟨hmsz, ⟨hlen, hmaps, hZ, hlo, hhi⟩, hsz62, hfd⟩ := hp
+  obtain ⟨hmsz, ⟨hlen, hmaps, hZ, hlo, hhi, hpz⟩, hsz62, hfd, hlw⟩ := hp
   have hwr : o0 + out.length ≤ m.size := by omega
   have hT : (W64 ((o0 : Int) + (out.length : Int))).toNat = o0 + out.length := by word
   have hI : 0 ≤ (W64 ((o0 : Int) + (out.length : Int))).toInt := by word
@@ -107,8 +107,8 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
   icases Harea with ⟨#Hinv, #Hos, -⟩
   ihave #Hsup : os.truncSup iprop(walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG)) i
-      (W64 ((o0 : Int) + (out.length : Int))).toNat $$ []
-  · rw [hT]; iapply walTail_truncSup Mr R jr r dir γ H md cuts (o0 + out.length) i $$ Hinv
+      (W64 ((o0 : Int) + (out.length : Int))).toNat (fun m => LoWr m (o0 + out.length)) $$ []
+  · rw [hT, ← walTailKeyL_none]; iapply walTail_truncSup Mr R jr r dir γ none H md cuts (o0 + out.length) i $$ Hinv
   ihave HK : iprop(walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG)) $$ [Hk Hv]
   · unfold tailVar; iframe
@@ -116,8 +116,8 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
       (DFrac.own (1 : Qp).half) (bs.drop (o0 + out.length)) $$ [Hbd]
   · rw [hT, Nat.min_eq_right hwr]; iexact Hbd
   wp_apply wp_Truncate f fd name (DFrac.own 1) (W64 ((o0 : Int) + (out.length : Int))) (DFrac.own 1)
-    ⟨i, rd, true⟩ m (bs.drop (o0 + out.length)) _ hfd rfl hI hmaps
-    (by rw [List.length_drop, hT]; omega) $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
+    ⟨i, rd, true⟩ m (bs.drop (o0 + out.length)) _ (fun m => LoWr m (o0 + out.length)) hfd rfl hI hmaps
+    (by rw [List.length_drop, hT]; omega) hlw $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
   · iframe; iframe #
   rw [hT]
   iapply HΦ
@@ -136,11 +136,15 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
     isplitr
     · ipureintro
       refine ⟨rfl, ⟨by simp only [List.length_take, OsMeta.withTc_size, Perennial.os.rsPost_size']; omega,
-        by simp [rsPost, hmaps], TailZ.rsPost_tc hZ hwr htc, ?_, ?_⟩, by omega, hfd⟩
+        by simp [rsPost, hmaps], TailZ.rsPost_tc hZ hwr htc.1, ?_, ?_, ?_⟩, by omega, hfd, ?_⟩
       · simp only [OsMeta.withTc_lo, OsMeta.withTc_size, Perennial.os.rsPost_size', rsPost, announce_lo]
         omega
       · simp only [OsMeta.withTc_hi, OsMeta.withTc_size, Perennial.os.rsPost_size', rsPost, announce_hi]
         omega
+      · exact hpz.of_tcFrom htc.2
+          (by simp only [OsMeta.withTc_hi, rsPost, announce_hi]; omega)
+          (by simp only [OsMeta.withTc_hi, rsPost, announce_hi]; omega)
+      · exact .inr (by simp only [OsMeta.withTc_lo, rsPost, announce_lo]; omega)
     unfold tailVar; iexact Hv
   · iright; ipureintro; exact he
 

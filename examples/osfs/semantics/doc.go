@@ -76,6 +76,8 @@
 //	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
 //	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
 //	model_os_readdirnames_len.go  Readdirnames: under 2^44 names     os.lean: File.Readdirnames.impl (assume)
+//	model_os_copy_file_range.go   io.Copy of files: copy_file_range  os.lean: model.copyFileRangeRound,
+//	                              as PRead + PWrite (pending review) pollCopyFileRange, File.copyFileRange.impl
 //
 // Client premises (not part of the semantics; a theorem states them):
 //

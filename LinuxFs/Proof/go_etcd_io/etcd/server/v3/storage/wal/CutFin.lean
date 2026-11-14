@@ -67,7 +67,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **The tail's `TailMeta` after its fdatasync**: all its bytes, no mappings. -/
 theorem tailMeta_synced (m : OsMeta) (bs : List ByteG) (hl : bs.length = m.size)
     (hmaps : m.maps = ∅) (hB : pageEnd m.size ≤ max m.size m.cz) : TailMeta m.synced bs :=
-  ⟨hl, hmaps, TailZ.synced_of hB, rfl, rfl⟩
+  ⟨hl, hmaps, TailZ.synced_of hB, rfl, rfl, PastZ.synced m⟩
 
 /-- **Step 7 of `cut`** (`walInvBody_cutSynced`) as an update of the invariant, at a program step
 (the generation's `notCrashed`, handed back). -/

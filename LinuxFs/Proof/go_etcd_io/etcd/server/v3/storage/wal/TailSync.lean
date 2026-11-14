@@ -129,7 +129,7 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ := by
   letI := walAllG (W := W)
   unfold walTailsRes
-  iintro ⟨%T, HTa, %HTo, %HTi, HTm⟩ Hk
+  iintro ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩ Hk
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -145,7 +145,7 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     exact ⟨hp.2.2.2.1, hp.2.2.2.2⟩
   iframe Hk
   iexists T
-  iframe HTa
+  iframe HTa HL
   isplitr
   · ipureintro; exact HTo
   isplitr

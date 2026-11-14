@@ -2503,3 +2503,20 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
   {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
   `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).
+
+## 2026-11-14: `io.Copy`/`copyBuffer` without bodies (the WAL's `Repair`, branch `wal-copy1`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only but for its types and errors, so `io.Copy` cannot be
+  stepped. The WAL's `Repair` calls `io.Copy(bf, f)` of two files (`repair.go`), whose path on Linux is ordinary Go
+  down to `copy_file_range(2)` (`notes/wal-fsext-plan.md`, "io.Copy log"): the part's `os` side is now translated and
+  the system call modelled; only `io`'s two functions are missing.
+- **Workaround here.** `Repair.wp_proof` takes the `io.Copy`-of-files triple as a hypothesis (`io.CopyFiles.spec`,
+  the plan's "io.Copy log"); no axiom. A part copy of `io` is impossible for the reason of the `io.ReadFull` entry.
+- **Proposed.** `io.toml`: translate `Copy`, `CopyBuffer`, `copyBuffer`, `CopyN`, `LimitReader`, `LimitedReader.Read`
+  with bodies (`errInvalidWrite`, `ErrShortWrite`, `EOF` already are). General: every `io.Copy` user (`os`, `bufio`,
+  `net/http`) needs it. Untested whether goose translates `copyBuffer`'s two interface assertions and its loop
+  unchanged (it translates the part's `os` type switches and an assertion to an anonymous interface).
+- **Status.** Drafted on branch `io-copy` of Perennial (commit `7e4d729e6`, off the pin `ddc0f0acc`, pushed, not
+  landed), pending user review: goose translates all six unchanged (both assertions, the loop); full Perennial
+  `lake build` passes. Regenerated with go1.26.10, keeping only `io`'s output (the other packages' regeneration differs
+  from the committed output under every local toolchain).
