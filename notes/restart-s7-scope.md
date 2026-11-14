@@ -22,6 +22,9 @@
   hold open) and `srvRestartRows` as `|={⊤}=>` (a weaker premise of `NewServer.specR`), so that the one-member
   discharge can open the cluster's and the server's invariants. No closed theorem supplies the premise.
 
+- (2026-11-14) **`etcd_restart1_safe`'s statement approved by the user** (via etcd-grove-81): revision 2 of
+  `notes/restart-s7-freeze.md`.
+
 The rest of this note is the Scope as reviewed.
 
 ---

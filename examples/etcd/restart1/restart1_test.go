@@ -133,6 +133,9 @@ func (c counts) report() string {
 // above the bootstrap entries and at or above the snapshot's (it logs how many entries were
 // replayed past the snapshot and skipped); the WAL's commit index at least the
 // bootstrap entries plus the Puts; no snapshot sent.
+// Each run needs its own process (go test -c, then the binary once per run): Run leaves the restarted
+// member running, and a second TestRun in the same process (-count > 1) removes its directory under
+// it ("failed to release wal").
 func TestRun(t *testing.T) {
 	t.Chdir(t.TempDir())
 	c := newCounts()
