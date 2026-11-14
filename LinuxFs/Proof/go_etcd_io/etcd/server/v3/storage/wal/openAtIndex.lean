@@ -33,6 +33,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SegSize
 
 @[expose] public section
@@ -162,6 +163,31 @@ theorem wal_encEnv :
   icases Hw with ⟨-, #Hm, -⟩
   iunfold encEnv
   iframe #
+
+/-- **The claim's `.wal` names are the segments'**, in order (`walNamesOut_segs`'s argument, over
+`walNames`). -/
+theorem walNames_segs {hj : NamesH} {segs : List SegG}
+    (hsn : SegsNamed segs hj.cur)
+    (hnames : walInos hj.cur = segs.map (·.ino)) (hnd : (segs.map (·.ino)).Nodup)
+    (hsort : (segs.map (·.name)).Pairwise (fun a b => go.GoStringLt a b)) :
+    walNames hj.cur = segs.map (·.name) := by
+  have hnds : (segs.map (·.name)).Nodup :=
+    hsort.imp (fun {a b} h hab => by subst hab; exact go.goStringLt_irrefl _ h)
+  have hndk : (((GMap.toList hj.cur).map (·.1)).filter walNameP).Nodup :=
+    List.Nodup.sublist List.filter_sublist (GMap.toList_keys_nodup hj.cur)
+  have hperm : (((GMap.toList hj.cur).map (·.1)).filter walNameP).Perm (segs.map (·.name)) := by
+    refine (List.perm_ext_iff_of_nodup hndk hnds).2 fun b => ⟨fun hb => ?_, fun hb => ?_⟩
+    · obtain ⟨hbk, hbw⟩ := List.mem_filter.1 hb
+      obtain ⟨⟨b', e⟩, he, rfl⟩ := List.mem_map.1 hbk
+      have he' := (GMap.mem_toList _ _ _).1 he
+      obtain ⟨g, hg, rfl⟩ := walName_seg hsn hnames hnd hbw he'
+      exact List.mem_map.2 ⟨g, hg, rfl⟩
+    · obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hb
+      obtain ⟨hgw, hge⟩ := hsn.1 g hg
+      exact List.mem_filter.2 ⟨List.mem_map.2 ⟨(g.name, _), (GMap.mem_toList _ _ _).2 hge, rfl⟩, hgw⟩
+  unfold walNames
+  rw [mergeSort_name_perm hperm]
+  exact List.mergeSort_of_pairwise (hsort.imp fun h => by simp [h])
 
 /-- `os`'s initialization, from the WAL package's. -/
 theorem wal_osInit :
@@ -448,6 +474,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       rw [← hgs, List.map_drop]; exact hnd.sublist (List.drop_sublist _ _)
     have htf := walReadTie_facts htie hll hnmg
     have hgne : gs ≠ [] := List.ne_nil_of_length_pos (by omega)
+    have hlastw : write = true → ∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name := by
+      intro _ g hg
+      rw [walNames_segs hsn habs.names.1 hnd habs.names.2, List.getLast?_map]
+      rw [← hgs, List.getLast?_drop, if_neg (by omega)] at hg
+      rw [hg]; rfl
     cases write
     · -- read mode
       try wp_auto
@@ -479,7 +510,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hgne, hndg, hS, hselg⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, hlastw⟩
         isplitr
         · ipureintro; exact htf
         iexact Hlk
@@ -567,7 +598,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hgne, hndg, hS, hselg⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, hlastw⟩
         isplitr
         · ipureintro; exact htf
         rw [hlfs]

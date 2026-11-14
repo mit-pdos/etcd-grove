@@ -16,7 +16,8 @@ do not depend on their bodies.
   file, the fd, the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
 * `walReadTie dir write s j fs lfs`: the decoder's files are the WAL's segments from the opened one on
-  (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none),
+  (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none; in write mode the last one at the
+  claim's last `.wal` name, so the handle's last file is the WAL's tail: `Close.specOpening`'s `wp_idleFsync`),
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
   that the directory's names cannot change either (no atomic readdir needed); in write mode each
   lock is `fileutil.lockedFile` of its file. And what the pin returns for the put-back
@@ -90,7 +91,8 @@ def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : 
     walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗ walDirKey (W := W) dir j X ∗
     ⌜gs ≠ [] ∧ (gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
-      ∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1⌝ ∗
+      (∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1) ∧
+      (write = true → ∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name)⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
