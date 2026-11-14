@@ -11,6 +11,9 @@ the fdatasync made durable unchanged.
 
 * `syncLayW`, `walAbsD_syncW`: the static relation after the window's fdatasync;
 * `tailZeros_syncW`, `tailBound_syncW`: F-Z and the record boundary after it.
+* `crashOk_syncW`: the crash condition after it (`crashOk_sync`'s window form: the tail imaged as of
+  the last sync, past `wr` a stamp-0 candidate or, past `lo`, zero; W6 log, twentieth session);
+* `walsOk_syncW`, `dirKeysOk_syncW`: the invariant's pure conjuncts after it.
 -/
 module
 
@@ -160,6 +163,244 @@ theorem tailBound_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
     TailBound C Mr { d with m := d.H.length } (syncLayW lay pre g0) :=
   by have := tailBound_sync (pre := pre) habs hs htail; exact this
+
+/-- A candidate list's value as of stamp 0 is one of its candidates' values, or zero (no candidate
+stamped 0). -/
+theorem valAt0_cases (c : Cands) : valAt c 0 = 0 ∨ ∃ s, (valAt c 0, s) ∈ c := by
+  cases h : (c.filter (fun q => decide (q.2 ≤ 0))).getLast? with
+  | none => left; unfold valAt; rw [h]; rfl
+  | some z =>
+    right
+    refine ⟨z.2, ?_⟩
+    have hzm : z ∈ c := (List.mem_filter.1 (List.mem_of_getLast? h)).1
+    unfold valAt
+    rw [h]
+    exact hzm
+
+/-- **The crash condition after the fdatasync of a tail in a window** (`crashOk_sync`'s window
+form): the old condition at the tail imaged as of the last sync (`syncImg`, of the synced size
+`|bs| ∈ [lo, hi]`; below `wr` a stamp-0 candidate, `ByteOk`'s head; from `wr` on, past `lo`
+(`winLo`), a stamp-0 candidate or the zero arm), then `crashTo_tailM` at the raised mark over the
+static relation of `syncLayW` (`walAbsD_syncW`). -/
+theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {cl : List Claim} {n : Nat} {pre : List SegG} {g0 : SegG}
+    (habs0 : WalAbsD C Mr d lay ents) (hs0 : lay.segs = pre ++ [g0]) (hx : ¬ SegExact g0)
+    (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length)
+    (hZ : TailZeros lay) (hnd0 : (lay.segs.map (·.ino)).Nodup)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hok : CrashOk C Mr d lay cl n) :
+    CrashOk C Mr { d with m := d.H.length } (syncLayW lay pre g0) cl n := by
+  have hg0 : lay.segs.getLast? = some g0 := by rw [hs0]; simp
+  have hwin := habs0.lastWin g0 hg0
+  have hwo : lay.wr ≤ lay.old.length := by obtain ⟨-, -, h3, h4, -⟩ := hwin; omega
+  have habs := walAbsD_syncW habs0 hs0 hx htail
+  have hZ' : TailZeros (syncLayW lay pre g0) := tailZeros_syncW hZ hwo
+  have hB := tailBound_syncW (pre := pre) habs0 hs0 htail
+  intro m' fo hr hf hnmd hw
+  have hs : (syncLayW lay pre g0).segs = pre ++ [syncTail g0] := rfl
+  have hgm : syncTail g0 ∈ (syncLayW lay pre g0).segs := by rw [hs]; simp
+  have hg : (syncLayW lay pre g0).segs.getLast? = some (syncTail g0) := by rw [hs]; simp
+  have hxs : SegExact (syncTail g0) := by
+    simp [SegExact, syncTail, OsMeta.synced, (habs0.metas g0 (List.mem_of_getLast? hg0)).1]
+  have hino : (syncTail g0).ino = g0.ino := rfl
+  have hinos : (syncLayW lay pre g0).segs.map (·.ino) = lay.segs.map (·.ino) := by
+    rw [hs, hs0]; simp [hino]
+  have hnd : ((syncLayW lay pre g0).segs.map (·.ino)).Nodup := by rw [hinos]; exact hnd0
+  have hpre : ∀ g' ∈ pre, g'.ino ≠ g0.ino := by
+    intro g' hg' he
+    rw [hs0, List.map_append, List.nodup_append] at hnd0
+    exact hnd0.2.2 _ (List.mem_map_of_mem hg') _ (by simp) he
+  have hpreX : ∀ g' ∈ pre, SegExact g' := by
+    intro g' hg'
+    obtain ⟨-, -, -, -, h5⟩ := habs0.metas g' (by rw [hs0]; simp [hg'])
+    rcases h5 with h5 | h5
+    · rw [hg0] at h5; cases h5; exact absurd rfl (hpre _ hg')
+    · exact h5
+  let fo0 : Ino → Option Fs.OsFile := fun i =>
+    if i = g0.ino then (fo i).map (fun f => syncImg g0.bs f.size) else fo i
+  have hfo : ∀ i, i ≠ g0.ino → fo0 i = fo i := fun i hi => by simp [fo0, hi]
+  have hfo0g : fo0 g0.ino = (fo g0.ino).map (fun f => syncImg g0.bs f.size) := by simp [fo0]
+  have hlen0 : (syncTail g0).bs.length = g0.bs.length := by simp [syncTail]
+  have hsyncSz : ∀ f, fo g0.ino = some f → f.size = g0.bs.length := by
+    intro f hf1
+    obtain ⟨-, hlo, hhi, -, -⟩ := hf (syncTail g0) hgm f hf1
+    have hmlo := hxs.1
+    have hmhi := hxs.2
+    rw [hlen0] at hmlo hmhi
+    omega
+  -- the old tail's crash, imaged as of the last sync
+  have hfc0 : FileCrashedR g0.om [(0, DFrac.own (1 : Qp).half, g0.bs)] (fo0 g0.ino) := by
+    rw [hfo0g]
+    intro f' hf'
+    obtain ⟨f, hf1, rfl⟩ := Option.map_eq_some_iff.1 hf'
+    have hsz : f.size = g0.bs.length := hsyncSz f hf1
+    have hsz' : (syncImg g0.bs f.size).size = g0.bs.length := hsz
+    obtain ⟨hm1, -, hm3, hm4, -⟩ := habs0.metas g0 (List.mem_of_getLast? hg0)
+    have hlw := habs0.winLo g0 hg0 hx
+    refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_, fun b c hb _ hb2 => absurd hb2 (by omega)⟩
+    · intro r hr k hk hks
+      rw [List.mem_singleton] at hr; subst hr
+      simp only [Nat.zero_add] at hks ⊢
+      rw [syncImg_cache g0.bs f.size k (show k < f.size from hks)]
+      have e : g0.bs.getD k (0, []) = g0.bs[k]'hk := by
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
+      rw [e]
+      by_cases hkw : k < lay.wr
+      · obtain ⟨-, -, -, -, hbytes, -⟩ := hwin
+        exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw).head0)
+      · rcases valAt0_cases (g0.bs[k]'hk).2 with h0 | h0
+        · exact .inr ⟨by omega, h0⟩
+        · exact .inl h0
+    · intro z hz b hzb hb
+      have := hzf z hz; omega
+  have hf0 : ∀ g' ∈ lay.segs, FileCrashedR g'.om [(0, DFrac.own (1 : Qp).half, g'.bs)]
+      (fo0 g'.ino) := by
+    intro g' hg'
+    rw [hs0, List.mem_append, List.mem_singleton] at hg'
+    rcases hg' with hg' | rfl
+    · rw [hfo _ (hpre g' hg')]; exact hf g' (by rw [hs]; simp [hg'])
+    · exact hfc0
+  have hn0 : ∀ g' ∈ lay.segs, g'.ino ∈ walInos (entsOf m' lay.j) → (fo0 g'.ino).isSome := by
+    intro g' hg' hnd'
+    rw [hs0, List.mem_append, List.mem_singleton] at hg'
+    rcases hg' with hg' | rfl
+    · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) hnd'
+    · rw [hfo0g, Option.isSome_map]; exact hnmd (syncTail g') (by rw [hs]; simp) hnd'
+  have hw0 : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay)
+      (segRzOf lay) := by
+    apply w1G_sync
+    intro i bs hbs b hb
+    obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs
+    have hg'' := hg'
+    rw [hs0, List.mem_append, List.mem_singleton] at hg''
+    rcases hg'' with hgp | rfl
+    · have hX := hpreX g' hgp
+      rw [segBytesX_of_hi (Nat.le_of_eq hX.2)]
+      rw [hfo _ (hpre g' hgp)] at hb ⊢
+      obtain ⟨k, hk⟩ := List.getElem?_of_mem hgp
+      have hk' : lay.segs[k]? = some g' := by
+        rw [hs0, List.getElem?_append_left ((List.getElem?_eq_some_iff.1 hk).1)]; exact hk
+      have hkl : k + 1 < lay.segs.length := by
+        have := (List.getElem?_eq_some_iff.1 hk).1; rw [hs0]; simp; omega
+      have hint := habs0.intact k g' hkl hk'
+      have hdur : ∀ y ∈ g'.bs, y = durB y.1 := by
+        rw [hint]; intro y hy; obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+      cases hfg : fo g'.ino with
+      | none => simp [imgOf, hfg] at hb
+      | some f' =>
+        have hfc := hf g' (by rw [hs]; simp [hgp])
+        rw [hfg] at hfc
+        have hc := img_durable hfc hdur hX.1 hX.2
+        simp only [imgOf, hfg, Option.map_some, Option.getD_some, hc] at hb ⊢
+        simp only [List.length_map] at hb
+        rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hb,
+          List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb]
+        simp only [Option.map_some, Option.getD_some]
+        rw [hdur _ (List.getElem_mem hb)]
+        exact (valAt_durB _).symm
+    · rw [hfo0g] at hb ⊢
+      cases hfg : fo g'.ino with
+      | none => simp [imgOf, hfg] at hb
+      | some f' =>
+        have hsz := hsyncSz f' hfg
+        simp only [imgOf, hfg, Option.map_some, Option.getD_some, syncImg_length] at hb ⊢
+        rw [syncImg_getD _ _ _ hb, segBytesX_getD_lt (by omega)]
+  have h0 := hok m' fo0 hr hf0 hn0 hw0
+  have h' : CrashTo C Mr d (syncLayW lay pre g0) m' fo0 :=
+    crashTo_congr_lay (lay := lay) (lay' := syncLayW lay pre g0) rfl rfl rfl rfl rfl hinos h0
+  exact crashTo_tailM hC habs hZ' hB hnd hg hxs d.m habs0.lastSynced h' hfo (hf _ hgm)
+    (hnmd _ hgm) hw
+
+/-- `syncLayW` keeps the inodes. -/
+theorem syncLayW_inos (lay : WalLay) (pre : List SegG) (g0 : SegG) (hs : lay.segs = pre ++ [g0]) :
+    (syncLayW lay pre g0).segs.map (·.ino) = lay.segs.map (·.ino) :=
+  syncLay_inos lay pre g0 hs
+
+/-- **`WalsOk` after the fdatasync of a tail in a window** (`walsOk_sync`'s window form). -/
+theorem walsOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
+    {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
+    {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 : SegG}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0])
+    (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hx : ¬ SegExact g0)
+    (hok : CrashOk C Mr d lay cl n) :
+    WalsOk C Mr R jr (walSyncS s dir d) (<[dir := syncLayW lay pre g0]> Ls) cl n := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hW
+  have hsub : ∀ dir' lay', (<[dir := syncLayW lay pre g0]> Ls) !! dir' = some lay' →
+      ∃ lay1, Ls !! dir' = some lay1 ∧ (lay'.segs.map (·.ino)).Sublist (lay1.segs.map (·.ino)) := by
+    intro dir' lay' h
+    by_cases e : dir' = dir
+    · subst e
+      rw [GMap.lookup_insert] at h; cases h
+      exact ⟨lay, hl, by rw [syncLayW_inos lay pre g0 hs]; exact List.Sublist.refl _⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h
+      exact ⟨lay', h, List.Sublist.refl _⟩
+  refine ⟨fun dir' d' hd' => ?_, fun dir' hn => ?_, segsAll_nodup_sub h3 hsub, fun g' hg' => ?_,
+    fun dir' nm hin hn => ?_, h6⟩
+  · by_cases e : dir' = dir
+    · subst e
+      rw [walSyncS_lookup] at hd'; cases hd'
+      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, -⟩ := h1 dir' d hd
+      have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
+      rw [e] at hjr hnm hc habs
+      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
+      exact ⟨syncLayW lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
+        walAbsD_syncW habs hs hx htail,
+        ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
+          (crashOk_syncW hC habs hs hx htail hZ hnd hzf hok)⟩⟩
+    · rw [walSyncS_lookup_ne s dir d e] at hd'
+      obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
+      exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
+  · have e : dir' ≠ dir := by rintro rfl; rw [walSyncS_lookup] at hn; cases hn
+    rw [walSyncS_lookup_ne s dir d e] at hn
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact h2 dir' hn
+  · obtain ⟨dir', lay', hl', hg''⟩ := segsAll_mem hg'
+    by_cases e : dir' = dir
+    · subst e
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      simp only [syncLayW, syncLay, List.mem_append, List.mem_singleton] at hg''
+      rcases hg'' with hg'' | rfl
+      · exact h4 g' (mem_segsAll hl (by rw [hs]; exact List.mem_append_left _ hg''))
+      · exact h4 g0 (mem_segsAll hl (by rw [hs]; simp))
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+      exact h4 g' (mem_segsAll hl' hg'')
+  · have e : dir' ≠ dir := by rintro rfl; rw [walSyncS_lookup] at hn; cases hn
+    rw [walSyncS_lookup_ne s dir d e] at hn
+    exact h5 dir' nm hin hn
+
+/-- **The directory keys after the fdatasync of a tail in a window**, no cut pending
+(`dirKeysOk_sync`'s window form). -/
+theorem dirKeysOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
+    {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {dir : GoString}
+    {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 : SegG}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0])
+    (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hx : ¬ SegExact g0)
+    (h : DirKeysOk C Mr jr s Ls cl n K none) :
+    DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := syncLayW lay pre g0]> Ls) cl n K none := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_, h3.insert hl rfl⟩
+  · obtain ⟨lay1, hj, hl1, rest⟩ := h1 dir' j X hk
+    by_cases e : dir' = dir
+    · subst e; rw [hl] at hl1; cases hl1
+      exact ⟨syncLayW lay pre g0, hj, GMap.lookup_insert _ _ _, rest⟩
+    · exact ⟨lay1, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
+  · by_cases e : dir' = dir
+    · subst e
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      rw [walSyncS_lookup] at hd'; cases hd'
+      obtain ⟨lay1, nm1, hj1, hl1, -, -, -, -, habs, -⟩ := hW.1 dir' d hd
+      rw [hl] at hl1; cases hl1
+      have hnd : (lay.segs.map (·.ino)).Nodup :=
+        ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+      have hok := (crashOkA_none_iff _ _ _ _ _ _).1 (h2 dir' d lay hd hl (by simp))
+      exact (crashOkA_none_iff _ _ _ _ _ _).2 (crashOk_syncW hC habs hs hx htail hZ hnd hzf hok)
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+      rw [walSyncS_lookup_ne s dir d e] at hd'
+      exact h2 dir' d' lay' hd' hl' hc
 
 end syncw
 
