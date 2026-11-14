@@ -551,6 +551,53 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       create_seg_exit
     subst he2
     try wp_auto
+    -- `SaveSnapshot(&walpb.Snapshot{Index: new(0), Term: new(0)})`: its record, then `sync`
+    imod walSnapAt_lit Mr hMr «$a0_ptr» «$v0_ptr» «$v1_ptr» _ _ $$ «$a0» «$v0» «$v1» with #Hsnap
+    ihave Hpre : walPreIn wl lg (child r nm) mp md enc lf f (W64 0) (W64 0)
+        $$ [lg dir metadata unsafeNoSync enti snapi Hencf locks Hls Hcap]
+    · iunfold walPreIn
+      iexists locks'
+      iframe; iframe #
+      ipureintro; exact he
+    ihave #Hpbu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil $$ []
+    · iPkgInit
+    have hlen1 := congrArg List.length hys1
+    have hlen2 := congrArg List.length hys2
+    have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288)) m2
+      (zs2.map (fun c => ((0 : w8), c)))
+    wp_apply (wp_SaveSnapPre wl lg (child r nm) mp md enc lf f (W64 0) (W64 0) _ _ _
+        (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
+        (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) «$a0_ptr» snapC0.model false
+        (Or.inl (by simp [snapC0, WalSnapC.model])) (by
+          rw [hFr]
+          simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega)
+        (by omega) hsyncOk)
+      $$ [Hws] [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, Hr3⟩
+    · iexact Hws
+    · iframe; iframe #
+    icases Hr3 with (⟨%he3, Henc, HS⟩ | ⟨%he3, %c3, %pend3, Henc, HBW⟩)
+    rotate_left
+    · -- `SaveSnapshot` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr3 with ei | _
+      rotate_left
+      · exact absurd rfl he3
+      ihave Hff : (os.ownFile f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288))) $$ [HBW]
+      · icases HBW with (⟨%a3, %b3, HB⟩ | ⟨%o3, HW⟩)
+        · iunfold os.fileBI at HB
+          icases HB with ⟨HB, -⟩
+          iunfold os.fileB at HB
+          icases HB with ⟨%o', %mb, %ysb, -, Hf, Hfd, -⟩
+          iframe
+        · iunfold os.fileWI at HW
+          icases HW with ⟨HW, -⟩
+          iunfold os.fileW at HW
+          icases HW with ⟨%mb, %ysb, -, Hf, Hfd, -⟩
+          iframe
+      icases Hff with ⟨Hf, Hfd⟩
+      try wp_auto
+      create_seg_exit
+    subst he3
+    try wp_auto
     sorry)
 
 end proof
