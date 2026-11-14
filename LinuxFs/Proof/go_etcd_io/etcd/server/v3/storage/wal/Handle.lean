@@ -186,6 +186,17 @@ not say so of the last segment, I3b). -/
 def TailMeta (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
   bs.length = m.size ∧ m.maps = ∅ ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ m.lo = m.size ∧ m.hi = m.size
 
+/-- **`TailMeta` with a resize window open** (I3b, `wal-tc3`): from `cut`'s truncate of the tail at its
+write position until `cut`'s fdatasync (`os.File.Truncate.specWalTail`'s post, `WAL.sync.specCut`'s
+pre). The truncate lands its size (`rsPost true m tg tg`: `lo = size = tg`, `hi` the old size), the
+flush's writes past it raise the size; a crash may leave any size in `[lo, hi]` (`SegExact` fails).
+Otherwise as `TailMeta`. -/
+def TailMetaW (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
+  bs.length = m.size ∧ m.maps = ∅ ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi
+
+theorem TailMeta.win {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) : TailMetaW m bs :=
+  ⟨h.1, h.2.1, h.2.2.1, Nat.le_of_eq h.2.2.2.1, Nat.le_of_eq h.2.2.2.2.symm⟩
+
 theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List w8}
     {cuts : List Nat} {o0 sz : Nat} {xs ys : List w8} (h : xs <+: ys)
     (hy : tailOk Mr H md cuts o0 sz ys) : tailOk Mr H md cuts o0 sz xs :=
@@ -208,16 +219,17 @@ record `γ` in `dir`, and its half of the record: history `H`, metadata `md`, cu
 `o0 + |out|`, inode `i`, no write in flight; and what the program knows of the tail's `OsMeta`
 (`TailMeta`: all its bytes, no mappings, its zeros past the size), the size below `2^62` (the
 model's `Write` bound: whoever builds it, `Create` and `ReadAll`, knows the size, at most
-ext4's `s_maxbytes`) and the fd open. -/
+ext4's `s_maxbytes`) and the fd open. With `tm := TailMetaW`, the tail in a resize window
+(`cut`'s truncate until its fdatasync). -/
 def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
-    (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8) :
-    IProp GF :=
+    (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8)
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) : IProp GF :=
   letI := walAllG (W := W)
   iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ rd : Bool, osFd fd (DFrac.own 1) ⟨i, rd, true⟩) ∗
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-    ⌜m.size = sz ∧ TailMeta m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt⌝ ∗
+    ⌜m.size = sz ∧ tm m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
 /-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having taken at most `k`
@@ -272,9 +284,10 @@ the indices `enti`/`snapi` bounding every index of the history (`cut` names the 
 handle with every record encoded (`rest = 0`: `saveEntry` sets `w.enti` to each entry's index in
 turn, S/wal.go:1086), the one on the snapshot records (`walMaxSnapIdx ≤ snapi`) always (`Save`
 needs it when its entries go back below an earlier snapshot record). The encoder non-nil (`sync`
-tests it, S/wal.go:968). -/
-def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS) :
-    IProp GF :=
+tests it, S/wal.go:968). With `tm := TailMetaW`, the tail in a resize window (`cut` between its
+truncate and its fdatasync, `WAL.sync.specCut`). -/
+def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (lg df sp e fp lt f : Loc) (mds locks : GoSlice) (lfs : List Loc) (fd dfd : w64)
       (name dnm : GoString) (j : Ino) (rc : GoFunc),
@@ -295,7 +308,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦ h.snapi ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
-    walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out ∗
+    walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
     walDirH (W := W) dir j dfd h.ino name h.pc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
