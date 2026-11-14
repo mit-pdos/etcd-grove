@@ -100,6 +100,8 @@ theorem cut_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
     word
   omega
 
+-- (the proof term's instantiation at the end of the declaration exceeds the default budget)
+set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
@@ -767,6 +769,54 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   (try wp_auto)
   wp_apply (os.File.Seek.wp_start f3 fd3 _ _ (W64 0) _ hfd3 hoS1 hoS2) $$ [$Hf3 $Hoff3] as ⟨Hf3, Hoff3⟩
   (try wp_auto)
+  -- `w.locks[len(w.locks)-1] = newTail`
+  ihave %hlen := ownSlice_len locks'' (DFrac.own 1) _ $$ Hls
+  simp only [List.length_append, List.length_singleton] at hlen
+  have hix : 0 ≤ sint.Z (locks''.len - W64 1) ∧ sint.Z (locks''.len - W64 1) < sint.Z locks''.len := by
+    obtain ⟨hl1, hl2⟩ := hlen; constructor <;> word
+  rw [if_pos hix]
+  wp_apply (wp_store_slice_index locks'' (sint.Z (locks''.len - W64 1)) _ lf3) $$ [$Hls] as Hls
+  · ipureintro
+    obtain ⟨hl1, hl2⟩ := hlen
+    simp only [List.length_append, List.length_singleton]
+    constructor <;> word
+  have hset : (ls ++ [lt] ++ [ntl]).set (sint.Z (locks''.len - W64 1)).toNat lf3 = (ls ++ [lt]) ++ [lf3] := by
+    have : (sint.Z (locks''.len - W64 1)).toNat = (ls ++ [lt]).length := by
+      obtain ⟨hl1, hl2⟩ := hlen; simp only [List.length_append, List.length_singleton]; word
+    rw [this, List.set_append_right _ _ (Nat.le_refl _)]
+    simp
+  rw [hset]
+  (try wp_auto)
+  -- `prevCrc = w.encoder.crc.Sum32()`
+  iunfold ownEncoder at Henc2
+  icases Henc2 with ⟨%pw2, %hc2, %b2, %u2, %bs2, %us2, #Hmu2, Hbw2, Hpw2, Hcf2, Hdc2, Hb2, Hbs2, %hb2,
+    Hu2, Hus2, %hus2⟩
+  iunfold ownDecCrc at Hdc2
+  icases Hdc2 with ⟨%l2, %tab2, %hl2, Hl2, #Htab2⟩
+  subst hl2
+  (try wp_auto)
+  wp_apply (wp_Sum32 l2 _ tab2 (DFrac.own 1)) $$ [Hl2] as Hl2
+  · iexact Hl2
+  (try wp_auto)
+  -- `w.encoder, err = newFileEncoder(w.tail().File, prevCrc)`
+  wp_apply (wp_tail w locks'' (ls ++ [lt]) lf3 (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls]
+    as ⟨Hlocks, Hls⟩
+  · iframe
+  (try wp_auto)
+  wp_apply (wp_newFileEncoder f3 fd3 _ _ (W64 ((0 : Nat) + (L : Int))) _ hfd3 hoS1 hoS2)
+    $$ [Hf3 Hoff3] as %e3 ⟨Henc3, Hf3, Hoff3, %he3⟩
+  · iframe; iframe #
+  (try wp_auto)
+  -- the log line
+  wp_apply wp_String as %fs -
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [fs]
+  isplitr
+  · ipureintro; rfl
+  iintro %fsl ⟨-, -⟩
+  (try wp_auto)
+  wp_apply wp_Info lg _ _ $$ []
+  · iframe #
   sorry
 
 end proof
