@@ -65,9 +65,14 @@ only; the history's check attributes a write to the principal its key names), an
   serve no request, so that a follower enforces the auth state on reads, watches and writes it
   receives is not shown (variant A2's); a follower's application of the set-up's admin entries and
   of the `Authenticate` entries with auth on is exercised, and the history's check covers every
-  write the cluster applied;
-* no snapshot is sent or installed (the members' `NoSnapCount`/`NoSnapCatchUp`), so the auth
-  state is never carried by a snapshot (variant B's);
+  write member 1 applied, which is every committed write;
+* no check reads a follower's state: that the followers' applied KV and auth state equal member 1's
+  is not observed (it follows from the one log and the deterministic apply, and `kvInvOn` is
+  cluster-wide, but the theorem states only that the followers' threads neither panic nor get
+  stuck);
+* the proof covers snapshot installs (`NewServer`'s spec is generic in the snapshot settings), but
+  this run never reaches one (the members' `NoSnapCount`/`NoSnapCatchUp`), so the auth state
+  carried by a snapshot is not exercised (variant B's);
 * tokens are used only at the member that issued them (the client of one endpoint never fails
   over), so a token's validity at another member is not exercised;
 * no member fails, restarts or is partitioned. -/

@@ -5,7 +5,12 @@
 # `startMember`, the server's `server_new_auth_on`/`server_Start`, authkv's linked `Run` and the
 # trust-boundary axioms) and the closed theorem `etcd_auth3_safe`/`etcd_auth3_adequate`, which also
 # rests on the package initializers' axioms and on D22's `authSchemaSrv`, a named hypothesis this
-# report does not show. Expected: authkv's axioms and putget3's, no sorry, no new axiom.
+# report does not show. Its axioms are authkv's and putget3's, no sorry, no new axiom, with one
+# exception: putget3's `auth.NewAuthStore.wp_proof` is not reached, as in authkv's collection. That
+# axiom is reached only through the server Link's `auth.wp_NewAuthStore`, which the auth-off
+# `NewServer.spec` uses (`authSrvTP_off`); auth3's members are built by `server_new_auth_on`
+# (`NewServer.specM true`, `authSrvTP_on`), whose store comes from its proof in the mode on
+# (`auth.newAuthStore_on`, AuthSrv.lean's header) over D22's `authSchemaSrv`.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/auth3.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/auth3.txt --check    against the lines below
