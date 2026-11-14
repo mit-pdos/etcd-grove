@@ -81,37 +81,39 @@ end defs
 
 section wps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt tcpExt] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- What the server gets when it accepts `cn`. -/
 def connProto (γm : GName) (cn : Nat) : IProp GF :=
   iprop(∃ γ, tcpEnd G cn true TcpEnd.fresh 0 ∗ echoTok G γ ∗ echoName G γm cn γ)
 
-instance connProto_timeless (γm : GName) (cn : Nat) : Timeless (connProto (hG := hG) γm cn) := by
+instance connProto_timeless (γm : GName) (cn : Nat) : Timeless (connProto (Gg := Gg) γm cn) := by
   unfold connProto; infer_instance
 
 /-- The invariants of the protocol. -/
 def echoInvs (γm : GName) : IProp GF :=
-  iprop(inv addrN (addrInv srvAddr (connProto (hG := hG) γm)) ∗ inv echoN (echoState G γm))
+  iprop(inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗ inv echoN (echoState G γm))
 
-instance echoInvs_persistent (γm : GName) : Persistent (echoInvs (hG := hG) γm) := by
+instance echoInvs_persistent (γm : GName) : Persistent (echoInvs (Gg := Gg) γm) := by
   unfold echoInvs; infer_instance
 
 theorem echoInvs_elim (γm : GName) :
-    echoInvs (hG := hG) γm ⊢ inv addrN (addrInv srvAddr (connProto (hG := hG) γm)) ∗
+    echoInvs (Gg := Gg) γm ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗
       inv echoN (echoState G γm) := .rfl
 
 theorem echoTok_exclusive (γ : GName) :
-    echoTok (G (hG := hG)) γ -∗ echoTok G γ -∗ False := by
+    echoTok (G (Gg := Gg)) γ -∗ echoTok G γ -∗ False := by
   unfold echoTok
-  letI := (G (hG := hG)).allG
+  letI := (G (Gg := Gg)).allG
   iintro H1 H2
   iapply token_exclusive $$ H1 H2
 
 /-- A dialer's deposit for its new connection `cn`: a token, its name in the map, the
 connection's echo state (nothing written yet), and the acceptor end's state for the server. -/
 theorem echo_deposit (γm : GName) (cn : Nat) :
-    ⊢ inv echoN (echoState (G (hG := hG)) γm) -∗ tcpConnAt G cn srvAddr -∗
+    ⊢ inv echoN (echoState (G (Gg := Gg)) γm) -∗ tcpConnAt G cn srvAddr -∗
       tcpFreshEnd G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ ∃ γ, echoName G γm cn γ := by
   iintro #Hinv #Hat Ha
   iinv Hinv with Hi Hclose
@@ -120,7 +122,7 @@ theorem echo_deposit (γm : GName) (cn : Nat) :
   icases Hi with ⟨%m, >Hm, >Hconns⟩
   unfold tcpFreshEnd
   icases Ha with ⟨Hae, Hao⟩
-  letI := (G (hG := hG)).allG
+  letI := (G (Gg := Gg)).allG
   cases hm : m.lookup cn with
   | some γ' =>
     -- `cn` is new: its acceptor's written bytes are owned once
@@ -156,13 +158,13 @@ theorem echo_deposit (γm : GName) (cn : Nat) :
 /-- The echo state of a connection, from the invariant, by its token name: it and the update that
 puts it back. -/
 theorem echoState_acc (γm : GName) (cn : Nat) (γ : GName) (E : CoPset) (hE : ↑echoN ⊆ E) :
-    ⊢ inv echoN (echoState (G (hG := hG)) γm) -∗ echoName G γm cn γ -∗
+    ⊢ inv echoN (echoState (G (Gg := Gg)) γm) -∗ echoName G γm cn γ -∗
       |={E, E \ ↑echoN}=> echoConn G cn γ ∗ (echoConn G cn γ ={E \ ↑echoN, E}=∗ True) := by
   iintro #Hinv #Hname
   iinv Hinv with Hi Hclose
   unfold echoState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
-  letI := (G (hG := hG)).allG
+  letI := (G (Gg := Gg)).allG
   unfold echoName
   icases ghost_map_lookup $$ Hm Hname with %Hl
   icases BigSepM.bigSepM_insert_acc (show PartialMap.get? m cn = some γ by
@@ -174,7 +176,7 @@ theorem echoState_acc (γm : GName) (cn : Nat) (γ : GName) (E : CoPset) (hE : �
     show m.insert cn γ = m
     apply GMap.ext; intro k; simp only [GMap.lookup_insert_eq_iff]
     split <;> simp_all
-  have hconv : ([∗map] k ↦ v ∈ PartialMap.insert m cn γ, echoConn (G (hG := hG)) k v) ⊢
+  have hconv : ([∗map] k ↦ v ∈ PartialMap.insert m cn γ, echoConn (G (Gg := Gg)) k v) ⊢
       [∗map] k ↦ v ∈ m, echoConn G k v := by rw [hm]
   imod Hclose $$ [Hm Hback Hc] with -
   · inext
@@ -189,7 +191,7 @@ theorem echoState_acc (γm : GName) (cn : Nat) (γ : GName) (E : CoPset) (hE : �
 the connection's token: the echo state's bytes were nothing, and are a prefix of `si` after. -/
 theorem server_write_au (γm : GName) (cn : Nat) (γ : GName) (bs si : GoString) (st : TcpEnd)
     (r : Nat) (hbs : bs <+: si) :
-    ⊢ inv echoN (echoState (G (hG := hG)) γm) -∗ echoName G γm cn γ -∗ echoTok G γ -∗
+    ⊢ inv echoN (echoState (G (Gg := Gg)) γm) -∗ echoName G γm cn γ -∗ echoTok G γ -∗
       tcpOutLb G cn false si -∗ tcpEnd G cn true st r -∗
       |={⊤,∅}=> ∃ st0 r0 out f, tcpEnd G cn true st0 r0 ∗ tcpOut G cn true out f ∗
         ∀ k ok st', ⌜WriteRes st0 bs k ok st'⌝ -∗ tcpEnd G cn true st' r0 -∗
@@ -222,7 +224,7 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : GName) (bs si : GoString)
 
 /-- The server's close of `cn`: the echo state's bytes do not change. -/
 theorem server_close_au (γm : GName) (cn : Nat) (γ : GName) (st : TcpEnd) (r : Nat) :
-    ⊢ inv echoN (echoState (G (hG := hG)) γm) -∗ echoName G γm cn γ -∗ tcpEnd G cn true st r -∗
+    ⊢ inv echoN (echoState (G (Gg := Gg)) γm) -∗ echoName G γm cn γ -∗ tcpEnd G cn true st r -∗
       |={⊤,∅}=> ∃ st r out f, tcpEnd G cn true st r ∗ tcpOut G cn true out f ∗
         ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st' f'⌝ -∗
           tcpEnd G cn true st' r -∗ tcpOut G cn true out f' ={∅,⊤}=∗ True := by
@@ -244,7 +246,7 @@ theorem server_close_au (γm : GName) (cn : Nat) (γ : GName) (st : TcpEnd) (r :
 the client's own bytes `out`. -/
 theorem client_check (γm : GName) (cn : Nat) (γ : GName) (out : GoString) (f : Bool)
     (resp : GoString) :
-    ⊢ inv echoN (echoState (G (hG := hG)) γm) -∗ echoName G γm cn γ -∗
+    ⊢ inv echoN (echoState (G (Gg := Gg)) γm) -∗ echoName G γm cn γ -∗
       tcpOut G cn false out f -∗ tcpOutLb G cn true resp ={⊤}=∗
       ⌜resp <+: out⌝ ∗ tcpOut G cn false out f := by
   iintro #Hinv #Hname Hmy #Hresp

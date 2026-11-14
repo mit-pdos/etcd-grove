@@ -10,7 +10,8 @@ fresh ghost map of listeners, empty, as the crash leaves the node's listeners
 (`Impl.lean`'s `crash`); `crashStart` says the host is kept.
 
 **Start resources**: the network's (`tcpStart`: the plan's persistent entries and every plan
-address's pending set, empty), and a node's listeners (none, for a node that starts with none).
+address's pending set, empty), and a node's host and listeners (none, for a node that starts with
+none).
 -/
 module
 
@@ -95,7 +96,7 @@ theorem tcp_globalStart [G : GooseGlobalGS .hasLC GF] (g : ExtsGlobalState exts)
     extsGlobalStart (GF := GF) g ⊢ tcpStart (extGlobalGS tcpExt) (extGlobal tcpExt g) :=
   sep_elim_left
 
-/-- The local start resources of `[tcpExt]` for a node: its listeners. -/
+/-- The local start resources of `[tcpExt]` for a node: its host and its listeners. -/
 theorem tcp_localStart [L : GooseLocalGS GF] (σ : ExtsLocalState exts) :
     extsLocalStart (GF := GF) σ ⊢ lisStart (extLocalGS tcpExt (L := L)) (extLocal tcpExt σ) :=
   sep_elim_left

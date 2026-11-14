@@ -82,10 +82,12 @@ theorem ndot_mask (N : Namespace) (x y : String) (h : x ≠ y) :
 
 section wps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt tcpExt] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- The network's ghost state. -/
-abbrev G : TcpGS GF := extGlobalGS tcpExt (G := hG.goose_globalGS)
+abbrev G : TcpGS GF := extGlobalGS tcpExt (G := Gg)
 
 /-- The invariant of the plan address `a`: its pending connections, each with its dialer's
 deposit `Φ cn`. -/
@@ -164,7 +166,7 @@ theorem addrInv_alloc (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) :
 state and bytes after the write. -/
 theorem owned_write_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool)
     (bs : GoString) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (hG := hG)) c s out f -∗
+    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
       |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
         ∀ k ok st', ⌜WriteRes st0 bs k ok st'⌝ -∗ tcpEnd G c s st' r0 -∗
           tcpOut G c s (out0 ++ bs.take k) f0 ={∅,⊤}=∗
@@ -184,7 +186,7 @@ theorem owned_write_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoStr
 
 /-- A close by an end its thread owns: the update of `net.Conn.Close`. -/
 theorem owned_close_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (hG := hG)) c s out f -∗
+    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
       |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
         ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st0 f0 ok st' f'⌝ -∗
           tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗
@@ -205,7 +207,7 @@ theorem owned_close_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoStr
 
 /-- A close by an end its thread owns, whose state the thread no longer needs. -/
 theorem owned_close_drop (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (hG := hG)) c s out f -∗
+    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
       |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
         ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st0 f0 ok st' f'⌝ -∗
           tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗ True := by

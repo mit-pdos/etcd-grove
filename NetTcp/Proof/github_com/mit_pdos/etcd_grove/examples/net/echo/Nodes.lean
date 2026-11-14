@@ -22,6 +22,7 @@ public import NetTcp.Spec.net.Conn__Close
 public import NetTcp.Spec.net.Dial
 public import NetTcp.Spec.net.Listen
 public import NetTcp.Spec.net.Listener__Accept
+public import Perennial.Proof.io
 
 @[expose] public section
 
@@ -45,6 +46,15 @@ variable [sem : go.Semantics]
 variable [package_sem' : echo.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
+/-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
+state's, the same up to unfolding). -/
+theorem client_check' (γm : GName) (cn : Nat) (γ : GName) (out : GoString) (f : Bool)
+    (resp : GoString) :
+    ⊢ inv echoN (echoState (G (GF := GF)) γm) -∗ echoName G γm cn γ -∗
+      tcpOut G cn false out f -∗ tcpOutLb G cn true resp ={⊤}=∗
+      ⌜resp <+: out⌝ ∗ tcpOut G cn false out f :=
+  client_check γm cn γ out f resp
+
 theorem wp_serveConn
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -62,7 +72,7 @@ theorem wp_serveConn
   wp_apply (wp_slice_make2 (V := w8) (W64 5)) as %buf ⟨Hbuf, -⟩
   · ipureintro; decide
   (try wp_auto)
-  imod tcpOutLb_nil (G (hG := hG)) cn false srvAddr $$ Hat with #Hlb0
+  imod tcpOutLb_nil (G (GF := GF)) cn false srvAddr $$ Hat with #Hlb0
   wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr buf
       _ TcpEnd.fresh 0 [] eof rfl $$ [Hbuf Hend]
     as %ok ⟨%st', %r', %bs', Hend, Hbuf, %Hlen, Hres⟩
@@ -228,7 +238,7 @@ theorem wp_Call
     wp_apply (wp_slice_make2 (V := w8) (W64 5)) as %buf ⟨Hbuf, -⟩
     · ipureintro; decide
     (try wp_auto)
-    imod tcpOutLb_nil (G (hG := hG)) cn true srvAddr $$ Hat with #Hlb0
+    imod tcpOutLb_nil (G (GF := GF)) cn true srvAddr $$ Hat with #Hlb0
     wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
         buf _ TcpEnd.fresh 0 [] eof rfl $$ [Hbuf Hend]
       as %ok ⟨%st'', %r', %bs', Hend, Hbuf, %Hlen, Hres⟩
@@ -253,7 +263,7 @@ theorem wp_Call
       obtain ⟨rfl, rfl, hsl, hsd⟩ := Hs
       simp only [List.drop_zero] at hsd
       subst hsd
-      imod client_check γm cn γ _ false sent $$ HechoInv Hname Hout Hsent with ⟨%Hpre, Hout⟩
+      imod client_check' γm cn γ _ false sent $$ HechoInv Hname Hout Hsent with ⟨%Hpre, Hout⟩
       have hs : sent = go!"hello" := by
         simp only [List.nil_append, List.take_of_length_le (by decide : List.length (go!"hello") ≤ 5)] at Hpre
         exact Hpre.eq_of_length (by simpa using hsl)
@@ -326,7 +336,7 @@ theorem wp_SendJunk
     wp_apply (wp_slice_make2 (V := w8) (W64 3)) as %buf ⟨Hbuf, -⟩
     · ipureintro; decide
     (try wp_auto)
-    imod tcpOutLb_nil (G (hG := hG)) cn true srvAddr $$ Hat with #Hlb0
+    imod tcpOutLb_nil (G (GF := GF)) cn true srvAddr $$ Hat with #Hlb0
     wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
         buf _ st' 0 [] eof rfl $$ [Hbuf Hend]
       as %ok ⟨%st'', %r', %bs', Hend, Hbuf, -, -⟩
@@ -347,6 +357,75 @@ theorem wp_SendJunk
     wp_auto
     iapply HΦ
     itrivial
+
+
+/-- `io.EOF`'s value, from the package's initialization. -/
+theorem eof_init :
+    isPkgInit (PROP := IProp GF) pkg ⊢ ∃ eof : GoInterface, globalAddr io.EOF ↦□ eof := by
+  iintro #Hpkg
+  ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
+  · iPkgInit
+  ihave #Hn := io.eof_of_init $$ Hio
+  isimp only [_root_.Perennial.errors.newVar] at Hn
+  icases Hn with ⟨%eofl, #Heof, -⟩
+  iexists _
+  iexact Heof
+
+theorem wp_Server
+    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
+    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
+    (γm : GName) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗
+        tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
+      (App (Val (@! Server)) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hinvs, #Hplan⟩
+  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
+  (try wp_auto)
+  wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof $$ []
+  · iframe Hinvs Hplan Heof
+  (try wp_auto)
+  wp_apply wp_Forever as ⟨⟩
+
+theorem wp_Client
+    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
+    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
+    (γm : GName) (h : GoString) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ tcpPlan G srvAddr h }}
+      (App (Val (@! Client)) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hinvs, #Hplan⟩
+  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
+  (try wp_auto)
+  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
+  · iframe Hinvs Hplan Heof
+  (try wp_auto)
+  wp_apply wp_Forever as ⟨⟩
+
+theorem wp_Junk
+    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
+    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
+    (γm : GName) (h : GoString) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ tcpPlan G srvAddr h }}
+      (App (Val (@! Junk)) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hinvs, #Hplan⟩
+  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
+  (try wp_auto)
+  wp_apply wp_SendJunk wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
+  · iframe Hinvs Hplan Heof
+  (try wp_auto)
+  wp_apply wp_Forever as ⟨⟩
 
 end proof
 

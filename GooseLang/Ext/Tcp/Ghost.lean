@@ -279,9 +279,9 @@ theorem tcp_global_init (hPre : TcpGpreS GF) (g : TcpGlobal) (hg : g.conns = ∅
   · unfold tcpStart tcpPlan tcpPend
     iframe Hls Hps
 
-/-- The start resources of a node: its listeners. -/
+/-- The start resources of a node: its host, and its listeners. -/
 def lisStart (hL : TcpLocalGS GF) (L : TcpLocal) : IProp GF :=
-  iprop([∗map] l ↦ x ∈ L.lis, tcpLis hL l x.1 x.2)
+  iprop(⌜hL.host = L.host⌝ ∗ [∗map] l ↦ x ∈ L.lis, tcpLis hL l x.1 x.2)
 
 theorem tcp_local_init (hPre : TcpGpreS GF) (L : TcpLocal) :
     ⊢@{IProp GF} |==> ∃ hL : TcpLocalGS GF, tcpLocalCtx hL L ∗ lisStart hL L := by
@@ -291,7 +291,7 @@ theorem tcp_local_init (hPre : TcpGpreS GF) (L : TcpLocal) :
   iexists (⟨hPre.allG, L.host, γ⟩ : TcpLocalGS GF)
   unfold tcpLocalCtx lisStart tcpLis
   iframe H Hs
-  ipureintro; rfl
+  isplit <;> ipureintro <;> rfl
 
 end init
 
