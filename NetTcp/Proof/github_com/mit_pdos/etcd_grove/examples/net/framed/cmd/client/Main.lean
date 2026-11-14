@@ -1,6 +1,7 @@
 /-
 The proof of `examples/net/framed/cmd/client`'s `main`, the client node's program: it calls
-`framed.Call` (`wp_Call`), with `io.EOF`'s value from the package's initialization.
+`framed.Call` (`wp_Call`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the
+package's initialization.
 -/
 module
 
@@ -16,7 +17,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_Call eof_init)
+open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_Call eof_init ed_init)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.client
 
@@ -42,9 +43,10 @@ theorem wp_main
     $$ []
   · iPkgInit
   icases eof_init $$ Hfr with ⟨%eof, #Heof⟩
+  icases ed_init $$ Hfr with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
-  · iframe Hinvs Hplan Heof
+  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof ed $$ []
+  · iframe Hinvs Hplan Heof Hed
   (try wp_auto)
   iapply HΦ
   itrivial

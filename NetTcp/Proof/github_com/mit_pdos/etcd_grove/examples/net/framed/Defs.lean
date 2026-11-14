@@ -19,7 +19,11 @@ the per-direction stream protocol (`wire/Stream.lean`) and the per-address proto
   (`wire.accept_lis_au`): the acceptor end's state (`tcpEnd cn true fresh`), the reader half of
   the up direction (nothing read), the server's half of the view (nothing written) and the names.
   The dialer keeps its end's state, the writer half of the up direction and the reader half of the
-  down direction (`dialerProto`).
+  down direction (`dialerProto`). A dial that fails but leaves its connection pending (abandoned,
+  D16: the dialer's end closed, the up direction shut and empty) deposits the same protocol
+  (`framed_deposit_ab`), its up direction's state made from the shut direction (`framed_alloc`
+  takes any direction with nothing unread); the dialer keeps nothing, so nothing is ever written
+  up, and the server reads EOF.
 
 The server writes back only bytes it has read: a write of `bs` after `so`, with `so ++ bs` a prefix
 of a lower bound of the dialer's bytes (`server_write_au`), keeps the server's bytes a prefix of
@@ -151,20 +155,48 @@ theorem framedInvs_elim (γm : GName) :
     framedInvs (Gg := Gg) γm ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗
       inv framedN (framedState γm) := .rfl
 
-/-- A dialer's deposit for its new connection `cn`: the two directions' protocols and the framed
-fact (nothing written), the names in the map, the server's part (`connProto`) and the dialer's
-(`dialerProto`). -/
-theorem framed_deposit (γm : GName) (cn : Nat) :
-    ⊢ inv framedN (framedState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗
-      tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑addrN}=∗
-      connProto γm cn ∗ dialerProto γm cn := by
-  iintro #Hinv #Hat Hd Ha
+/-- A new direction's protocol state from a direction with no unread bytes, of any status (a
+fresh one, or an abandoned dial's shut one, D16): `wire.dirInv_body_alloc` for any direction that
+agrees with nothing written and nothing read. -/
+theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
+    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
+  letI := (G (Gg := Gg)).allG
+  iintro Hd
+  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
+  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
+      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
+    conv => lhs; rw [← Qp.half_add_half 1]
+    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
+  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  imodintro
+  iexists ⟨γw, γr⟩
+  unfold dirInv sentAll rcvdAll
+  isplitl [Hd Hw1 Hr1]
+  · iexists d, [], []
+    iframe Hd Hw1 Hr1
+    ipureintro; exact hd
+  iframe Hw2 Hr2
+
+/-- An empty direction agrees with nothing written and nothing read, whatever its status. -/
+theorem dirOk_empty (st : TcpStatus) : DirOk ⟨[], st⟩ [] [] := by
+  cases st <;> simp [DirOk]
+
+/-- A new connection `cn`'s protocol, from the direction from its dialer (with nothing unread)
+(`dd`) and the acceptor's fresh resources: the two directions' protocols and the framed fact (nothing
+written), the names in the map; the server's part (`connProto`), and what is left for the dialer
+(the up direction's writer half and the down direction's reader half). -/
+theorem framed_alloc (γm : GName) (cn : Nat) (dd : TcpDir) (hdd : DirOk dd [] []) :
+    ⊢ inv framedN (framedState (Gg := Gg) γm) -∗ tcpDir G cn false dd -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗
+      connProto γm cn ∗ ∃ γ : FNames, sentAll γ.u [] ∗ rcvdAll γ.d [] ∗ sentLb γ.d [] ∗
+        framedName γm cn γ := by
+  iintro #Hinv Hdd Ha
   iinv Hinv with Hi Hclose
   · exact ndot_mask nroot "framed_conns" "framed_addr" (by decide)
   unfold framedState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
   unfold tcpFresh
-  icases Hd with ⟨Hde, Hdd⟩
   icases Ha with ⟨Hae, Had⟩
   letI := (G (Gg := Gg)).allG
   cases hm : m.lookup cn with
@@ -174,9 +206,9 @@ theorem framed_deposit (γm : GName) (cn : Nat) :
       rw [gmap_get?_eq]; exact hm) $$ Hconns with ⟨Hc, -⟩
     unfold framedConn dirInv
     icases Hc with ⟨⟨%d, %W, %R, Hd', -⟩, -⟩
-    icases tcpDir_excl _ cn false d TcpDir.fresh $$ Hd' Hdd with ⟨⟩
+    icases tcpDir_excl _ cn false d _ $$ Hd' Hdd with ⟨⟩
   | none =>
-    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, Hu, Huw, Hur⟩
+    imod dirInv_body_alloc_of cn false _ hdd $$ Hdd with ⟨%γu, Hu, Huw, Hur⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdn, Hdw, Hdr⟩
     imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γv, Hv⟩
     icases (ghostVar_split_half (GF := GF) γv 1 ([] : List w8)).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -197,12 +229,40 @@ theorem framed_deposit (γm : GName) (cn : Nat) :
       iframe Hdw Hv1 Hlb0
       ipureintro; exact List.prefix_refl _
     imodintro
-    unfold connProto dialerProto framedName srvView
+    unfold connProto framedName srvView
     isplitl [Hae Hur Hv2]
     · iexists γ
       iframe Hae Hur Hlb0 Hv2 Hname
     · iexists γ
-      iframe Hde Huw Hdr Hlbd Hname
+      iframe Huw Hdr Hlbd Hname
+
+/-- A dialer's deposit for its new connection `cn` (`framed_alloc`): the server's part
+(`connProto`) and the dialer's (`dialerProto`). -/
+theorem framed_deposit (γm : GName) (cn : Nat) :
+    ⊢ inv framedN (framedState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗
+      tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑addrN}=∗
+      connProto γm cn ∗ dialerProto γm cn := by
+  iintro #Hinv - Hd Ha
+  iunfold tcpFresh at Hd
+  icases Hd with ⟨Hde, Hdd⟩
+  imod framed_alloc γm cn TcpDir.fresh wire.dirOk_fresh $$ Hinv Hdd Ha with ⟨Hp, %γ, Huw, Hdr, #Hlbd, #Hname⟩
+  imodintro
+  iframe Hp
+  unfold dialerProto
+  iexists γ
+  iframe Hde Huw Hdr Hlbd Hname
+
+/-- The deposit of an abandoned dial (D16) of `cn` (`framed_alloc`): the server's part, the
+connection's up direction shut with nothing written; the dialer keeps nothing (its end is closed,
+and nothing more is ever written up). -/
+theorem framed_deposit_ab (γm : GName) (cn : Nat) :
+    ⊢ inv framedN (framedState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗
+      tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗ tcpDir G cn false ⟨[], .fin⟩ -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
+  iintro #Hinv - - Hdd Ha
+  imod framed_alloc γm cn ⟨[], .fin⟩ (dirOk_empty .fin) $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imodintro
+  iexact Hp
 
 /-- The state of a connection, from the invariant, by its names: it and the update that puts it
 back. -/

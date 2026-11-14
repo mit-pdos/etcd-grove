@@ -1,6 +1,7 @@
 /-
 The proof of `examples/net/framed/cmd/server`'s `main`, the server node's program: it calls
-`framed.Serve` (`wp_Serve`), with `io.EOF`'s value from the package's initialization.
+`framed.Serve` (`wp_Serve`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the
+package's initialization.
 -/
 module
 
@@ -16,7 +17,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_Serve eof_init)
+open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_Serve eof_init ed_init)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.server
 
@@ -35,17 +36,21 @@ theorem wp_main
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.server ∗
-        framedInvs γm ∗ tcpPlan wire.G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
+        framedInvs γm ∗
+        ⌜(wire.G (Gg := hG.goose_globalGS)).plan !! srvAddr =
+          some (extLocalGS tcpExt (L := hG.goose_localGS)).host⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
+  wp_start as ⟨#Hinvs, %Hplan⟩
   ihave #Hfr : (isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.framed)
     $$ []
   · iPkgInit
   icases eof_init $$ Hfr with ⟨%eof, #Heof⟩
+  icases ed_init $$ Hfr with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof $$ []
-  · iframe Hinvs Hplan Heof
+  wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof ed $$ []
+  · iframe Hinvs Heof Hed
+    ipureintro; exact Hplan
   (try wp_auto)
   iapply HΦ
   itrivial
