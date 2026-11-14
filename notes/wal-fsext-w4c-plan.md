@@ -226,3 +226,39 @@ Modules (`S/`): `BootPure` (pure), `BootStart0` (the first generation's `walStar
   must carry them, or the WAL invariant must gain them): every WAL directory and every `nm.<sfx>` directory of
   the area holds only files (`tmpEnt (dir _) = False`, `TmpOk`, `SubCover`); the WAL creates nothing else there,
   but no invariant records that the claims' histories hold only files.
+
+## W4c U4 log (branch `wal-u4`, 2026-11-14)
+
+**The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
+- `Varint.lean`: minimal varints are prefix-free (`varintEnc_append_inj`) and short (`varintEnc_length_w64`).
+- `Codec.lean`: canonical contents and their bytes. Snapshots: `walSnapCanon m` (`Index`/`Term` set, conf state
+  nil iff zero, else set with `AutoLeave` set; no unknown fields; `Create`'s `snapC0` is canonical), bytes
+  `snapEnc`; `walDecSnap`. Hard states: `WalHsC`, `hsEnc` (tags 1-3, then the unknown fields), `walHsCanon`
+  (all nil when empty, as `&raftpb.HardState{}`; else all set, as raft's `hardState()`), `walDecHs`, bound 33
+  bytes.
+- `EntCodec.lean`: `walEntCanon` (`Term`/`Index`/`Type` set, `Data` nil iff empty), bytes `entryEncC` (the
+  registered `raftpb.Entry`'s opaque encoder) below `2^48`, stand-in bytes above (ledger item 4); `walDecEnt`.
+  Over two new part extracts (`etc/gen-part-copies.py`): `LinuxFs/Proof/go_etcd_io/raft/v3/PbContent.lean`
+  (`EntryC`, `entrySize`) and `PbEntryType.lean` (`entDecode`, `EntWireOk`, `entryEncC`, and **`entryEncC_ok`, a
+  copy of the main tree's axiom**: same name and statement; no new axiom). The script's `Extract` gained `bare`
+  names (top-level declarations with their own binders).
+- `Marshal.lean`: `walRaftMr : WalMarshal`, `walRaftU : WalUnmarshal`; proved `walRaftU_ok : walRaftU.Ok
+  walRaftMr`, `walRaftU_snapCoh`, `walRaftMr_createOk : WalMarshalCreateOk walRaftMr`, `walRaftMr_encState_lt`.
+
+**Per law** (the Link's hypotheses):
+| law | status |
+|---|---|
+| `U.Ok`, `U.SnapCoh`, `WalMarshalCreateOk`, `Mr.encState < 2^32` | proved (`Marshal.lean`) |
+| `NilLaw`, `ZeroLaw`, `MustSyncLaw`, `GetIndexLaw`, `GetTermLaw`, `WalHsOwn.{zero,getCommit,freeze}` | provable, not done: they need `P.hsIn`/`P.entIn`, whose form waits on the trust decision below (a frozen object at a canonical content with its hidden fields in an invariant, as `snapRoC`; for entries, the part copy of `entRoC`/`pbMsg`/`pbEntryC`/`pbEntryC_reg`) |
+| `MarshalEntLaw` | provable after the part copies of `pbEntryC`, `pbEntryC_reg` (a copy of the main tree's axiom) and their vocabulary, with `isPkgInit pbutil` carried in `P.entIn` |
+| `UnmarshalEntLaw`, `IsEmptyLaw` | blocked: no `isPkgInit` in the pre (ledger 2026-11-14, "the WAL's raftpb laws", item 1) |
+| `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal` | blocked: `raftpb.HardState` has no trusted wire model (item 2; `CloneHsLaw`, `unmarshal` also item 1) |
+| `WalHsOwn.reset` | blocked: `HardState.Reset` is names-only (item 3) |
+| `WalDecEnvSupply` | not a law of these parameters (`errors.newVar`'s Perennial gap, §2) |
+
+No law is false of real raftpb. `walPb_laws` (the bundle) waits for the blocked laws.
+
+**Client obligation (C6 and the tester).** `Mr.encSnap`/`encState`/`encEntry` are the canonical forms' bytes, so
+the objects a client passes must be canonical: raft's `hardState()` (all set) is, a zero hard state any form;
+entries need `Term`/`Index`/`Type` set and `Data` nil iff empty (check the tester's and raft's literals;
+otherwise change the canonical form, a choice internal to the instance).

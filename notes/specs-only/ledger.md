@@ -1441,3 +1441,54 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   **2026-11-14 (`wal-vsnap2`): adopted** (the coordinator's decision), as proposed: the I/O arm is `⌜IoE err⌝ ∗
   notUeof err ∗ ownRecAny rp ∗ ∃ k off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ownDecoder d IoE eof (fs.drop k)
   off' c' false`.
+
+## 2026-11-14: `openLast.spec` (internal, the part's) -- the last segment's name not known valid
+
+- **Spec.** `walLastOpen` (`LinuxFs/Proof/.../wal/OpenLastDefs.lean`), `openLast.spec`'s success arm: the pin of the
+  last segment `gL`, its file open at `child dir gL.name`, with pure facts on the layout.
+- **Defect.** Too weak for `wal.Repair`'s `createNewWALFile(f.Name() + ".broken", true)` (S/repair.go:62): the open
+  specs take `NameOk` of the created name, `repBroken gL.name`, which follows from `NameOk gL.name`; nothing in
+  `walLastOpen` gives it (the segments' facts say `.wal` suffix and the entries, not validity).
+- **Evidence.** `openLast.wp_proof` has it (`hbok`, from `ReadDir`'s output) and drops it; `Repair.wp_proof`'s
+  `io.ErrUnexpectedEOF` arm (`wal-repair26`).
+- **Change (made, `wal-repair26`).** `walLastOpen`'s pure facts add `NameOk gL.name` (last). A strengthening;
+  `Repair` is the only client.
+- **Decision.** Made (internal; no ghost state).
+
+## 2026-11-14: the WAL's raftpb laws (`WalPbIn.*Law`, `WalHsOwn`) -- unprovable for real raftpb as stated (W4c U4)
+
+- **Spec.** The model laws the WAL's `Link.lean` results take of the client's `P : WalPbIn GF`, `U`, `HsO`
+  (`LinuxFs/Spec/.../wal/{WAL__Save,WAL__cutPre,WAL__saveEntry,ReadAllCallees}.lean`,
+  `LinuxFs/Proof/.../wal/HandleUnnamed.lean`), to be discharged by the raftpb instance (U4).
+- **Defects** (the laws are true of Go; they are not provable from this repository's trusted facts):
+  1. **No package initialization in the pre.** `WalPbIn.UnmarshalEntLaw` and `WalHsOwn.unmarshal` (pre
+     `d ↦*{dq} bs` only) call `pbutil.MustUnmarshalMessage`, whose specs (`MustUnmarshalMessagePb.spec`,
+     `specWalSnap`) and `proto.UnmarshalPb.spec` take `isPkgInit pbutil`/`proto`; `WalPbIn.CloneHsLaw` calls
+     `proto.Clone` (`ClonePb.spec`: `isPkgInit proto`) on any `P.hsIn` object, including a fresh zero one
+     that `WalPbIn.ZeroLaw` makes from nothing; `WalPbIn.IsEmptyLaw` runs `raft.IsEmptyHardState`, which
+     reads raft's package variable `emptyState` (node.go:32, :122-124), known only from `isPkgInit raft`,
+     again on a fresh zero object. `P.hsIn` cannot carry the initialization: `WalPbIn.NilLaw` (`⊢ P.hsIn null
+     hsZero`) and `ZeroLaw` produce it from no resource. (`MarshalEntLaw`/`MarshalHsLaw` can be met by
+     putting `isPkgInit pbutil` into `P.entIn` and into the non-empty arm of `P.hsIn`, a workaround.)
+  2. **`raftpb.HardState` has no trusted wire model.** It is not a registered `PbTypeC` (its schema is `[]`,
+     `Proof/google_golang_org/protobuf/proto/PbSchema.lean`, "a type not listed here"), so no `proto` spec
+     says what `pbutil.MustMarshalMessage`, `pbutil.MustUnmarshalMessage` or `proto.Clone` do on a
+     `*raftpb.HardState`: `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal` are unprovable without a new
+     registration (two axioms, as `walpb.Snapshot`'s `snapEncC_ok`/`pbSnapC_reg`).
+  3. **`HardState.Reset` has no body.** raftpb's `Reset` is names-only (`Code/go_etcd_io/raft/v3/raftpb.toml`:
+     `!*.Reset`), with no spec: `WalHsOwn.reset` needs a trusted model (as walpb's `Record.Reset.impl`).
+  4. (Minor, worked around.) `WalUnmarshal.Ok.entry` is a round trip for **every** entry, but the entry
+     encoder's trusted fact (`entryEncC_ok`) says nothing at sizes `≥ 2^63`; the instance uses stand-in bytes
+     for entries of `2^48` bytes or more (`RaftModel/EntCodec.lean`), which no `Save` writes (its premise is
+     `< 2^40`).
+- **Evidence.** W4c U4 log (`notes/wal-fsext-w4c-plan.md`); the instance `walRaftMr`/`walRaftU` and its pure
+  laws (`LinuxFs/Proof/.../wal/RaftModel/Marshal.lean`).
+- **Proposed change.** (1) Add `isPkgInit pbutil` to the pres of `UnmarshalEntLaw`, `WalHsOwn.unmarshal`,
+  `MarshalEntLaw`, `MarshalHsLaw`; `isPkgInit proto` to `CloneHsLaw`'s; `isPkgInit raft` (the part's
+  `go_etcd_io.raft.v3`) to `IsEmptyLaw`'s. Their callers (`ReadAll`, `saveEntry`, `saveState`, `Save`, `cut`) hold
+  `isPkgInit wal`, which gives the three (the WAL imports pbutil, proto and raft). (2)+(3) [user]: register
+  `raftpb.HardState` in the part (`WalHsC`, `hsEnc` as in `RaftModel/Codec.lean`, a schema
+  `[(1,[0]),(2,[0]),(3,[0])]`, `hsEncC_ok`, `pbHsC_reg`; Go-tested as `walpb.Snapshot`'s) and give
+  `HardState.Reset` a trusted model -- or keep the three laws as hypotheses of the closed result.
+- **Decision.** Pending (the coordinator for (1), an internal law change; the user for (2)-(3), trust-base
+  additions).
