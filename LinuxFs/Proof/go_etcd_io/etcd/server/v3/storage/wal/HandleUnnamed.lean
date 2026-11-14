@@ -37,6 +37,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
+/-- **A nil hard state holds the zero state** (`WalPbIn`'s "nil read as the zero state"; a law of `P`,
+as `WalPbIn.ZeroLaw`'s converse: `Create`'s `w.state` is nil). -/
+abbrev WalPbIn.NilLaw (P : WalPbIn GF) : Prop := ⊢ P.hsIn null hsZero
+
+/-- **The handle before naming, from its state** (`Create`'s arm 1: `walOpenWFU` is sealed). -/
+theorem walOpenWFU_intro (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
+    (hD : h.Done) (hmd : h.md.length < 2 ^ 41) :
+    walHandleIn (W := W) P Mr w dir h TailMetaW emp ∗ ⧗ h.pc ⊢ walOpenWFU (W := W) P Mr w dir := by
+  iintro ⟨Hh, Hr⟩
+  unfold walOpenWFU
+  iexists h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd⟩
+
 /-- **The directory share's naming fact changed** along a wand. -/
 theorem walDirH_nmd (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
     (A B : IProp GF) :

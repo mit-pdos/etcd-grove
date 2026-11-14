@@ -25,6 +25,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAuLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateKeys
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamed
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailReg
 
 @[expose] public section
 
@@ -114,18 +115,27 @@ def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : I
     osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
     osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs)
 
+/-- **The new WAL's tail registered** (`Create`'s commit, W4 log, twenty-third session): the program's
+half of the tails' authority with `dir ↦ γ`, the tail's key, and the program's half of its tail record
+`t`. -/
+def walTailReg (dir : GoString) (t : TailG) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(∃ γ : GName, walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
+    walTailKey (W := W) dir γ ∗ ghostVar γ (1 : Qp).half t)
+
 /-- **What `Create` gets from the rename's update**: with no effect, what it held; after the commit,
 the client's `Q`, the segment's halves the invariant did not take, a past state with the fresh
 WAL in `dir`, the lock token, the record of what is out (the new WAL's segment, directory claim and
-pipeline names: `WalOut.create`, the handle's to carry), the program's half of the tails' authority
-(empty: the handle registers its tail with it), and the new WAL's directory key
-(`walDirKey dir J X`: the invariant holds the other half of `J`'s claim, once). -/
+pipeline names: `WalOut.create`, the handle's to carry), the new WAL's tail registered at the commit
+(`walTailReg dir t`, `t` the tail record: the commit is the one step that knows the fresh WAL's
+layout, which the handle's encoder and offset must match; W4 log, twenty-third session), and the new
+WAL's directory key (`walDirKey dir J X`: the invariant holds the other half of `J`'s claim, once). -/
 def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
-    (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : Option (Nat × Nat) → IProp GF
+    (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) (t : TailG) : Option (Nat × Nat) → IProp GF
   | none => walCreateP (W := W) dir N h md Q J X hJ g
   | some _ => iprop(Q ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
       osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗ walLockedTok (W := W) ∗
-      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailsFrag (W := W) ∅ ∗
+      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailReg (W := W) dir t ∗
       walNamesFrag (W := W) (some dir) ∗
       walDirKey (W := W) dir J X ∗
       ∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! dir = some (walDurFresh md)⌝)
@@ -153,6 +163,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) (hZ0 : TailZeros lay)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
+    (hTB : TailBound C Mr (walDurFresh md) lay)
     (hcut : g.om.cut = none) (hmaps : g.om.maps = ∅) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
     (hmd : md.length < 2 ^ 41) :
@@ -160,7 +171,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
-        (walCreateQ (W := W) dir N h md Q J X hJ g) := by
+        (walCreateQ (W := W) dir N h md Q J X hJ g (tailG (walDurFresh md) lay g.ino none)) := by
   have hex : TailExact lay := fun g1 hg1 => by
     rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1; exact hg1 ▸ hgx
   iintro #Hinv #Hcmm HP
@@ -368,6 +379,22 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         hsegs hino $$ Hpk Ho with ⟨Hpk, Ho⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
+      -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)
+      ihave Htl := walTailsRes_create C Mr s Ls F (GMap.delete g.ino F) dir md lay hsd hF hLd (Or.inl hZ0)
+        (fun i hi => by
+          by_cases e : i = g.ino
+          · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
+          · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail, fun g1 hg1 => by
+            rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
+            exact hg1 ▸ ⟨hdur, hzf⟩,
+          ((habs.last g (by rw [hsegs]; rfl)).1 hgx).so_eq hdur, fun g1 hg1 => by
+            rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
+            exact hg1 ▸ hmaps⟩ $$ Htl
+      imod walTailsRes_register C Mr (createSt s dir md) (<[dir := lay]> Ls) (GMap.delete g.ino F) dir
+        (walDurFresh md) lay g ⟨by simp [createSt], by simp,
+          by rw [hsegs]; rfl, hZ0, hTB⟩ $$ Htl Htf with ⟨%γt, Htl, Htf, Htk, Htv⟩
+      have hdF : (GMap.delete g.ino F) !! g.ino = none := GMap.lookup_delete_eq _ _
+      isimp only [hdF] at Htv
       imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp Hnms]
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,
@@ -403,16 +430,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           iframe Hcra
           ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
         isplitl [Htl]
-        · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF hLd (Or.inl hZ0)
-            (fun i hi => by
-              by_cases e : i = g.ino
-              · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
-              · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail, fun g1 hg1 => by
-                rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
-                exact hg1 ▸ ⟨hdur, hzf⟩,
-              ((habs.last g (by rw [hsegs]; rfl)).1 hgx).so_eq hdur, fun g1 hg1 => by
-                rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
-                exact hg1 ▸ hmaps⟩ $$ Htl
+        · iexact Htl
         isplitr
         · ipureintro; exact ⟨han', Han.2⟩
         isplitr
@@ -437,7 +455,9 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       dsimp only [walCreateQ]
       rw [hgbs]
       iframe HQ Hm2 Hb2 Hkey
-      iframe HLk Ho Htf Hnf
+      iframe HLk Ho Hnf
+      isplitl [Htf Htk Htv]
+      · unfold walTailReg; iexists γt; iframe
       iexists (createSt s dir md)
       iframe Hp
       ipureintro
