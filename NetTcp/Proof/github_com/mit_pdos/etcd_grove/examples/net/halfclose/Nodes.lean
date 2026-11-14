@@ -13,12 +13,12 @@ The proofs of `examples/net/halfclose`'s functions, over the specs of `net` and 
   (`client_write_au`), the shutdown of the write side (`hc_closeWrite_au`), `readAll`
   (`client_read_acc`), and the check: the response is a prefix of `"hello"` (`client_check`), so
   `prefixOf` returns `true` and the panic is unreachable.
-* `Server`, `Client`: the bodies, then `wire.Forever`.
+* `eof_init`: `io.EOF`'s value, from the package's initialization (what the commands' `main`s,
+  `cmd/{server,client}/Main.lean`, pass to `Serve` and `Call`).
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.Defs
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -37,7 +37,8 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap sentAll rcvdAll)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap sentAll rcvdAll dial_both_au
+  readOutcome_got_le readOutcome_bytes_pos)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.halfclose
 
@@ -175,7 +176,7 @@ theorem wp_readAll
     imodintro
     iframe HP
     ipureintro
-    have := readOutcome_got_le Hrd.1
+    have := (readOutcome_got_le Hrd.1).1
     refine ⟨by omega, fun bs hbs => ?_⟩
     subst hbs
     exact readOutcome_bytes_pos Hrd.1 (by omega)
@@ -543,45 +544,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists eofl
   iexact Heof
-
-theorem wp_Server
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
-    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ hcInvs γm ∗
-        tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
-      (App (Val (@! Server)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%x, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Serve wp_Listen wp_Accept wp_Read wp_Write wp_Close γm x $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
-
-theorem wp_Client
-    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_CloseWrite : net.TCPConn.CloseWrite.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ hcInvs γm ∗ tcpPlan G srvAddr h }}
-      (App (Val (@! Client)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%x, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_Read wp_Write wp_CloseWrite wp_Close γm h x $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
 
 end proof
 

@@ -11,7 +11,7 @@ the shared per-address protocol (`wire/Addr.lean`) and the stream bookkeeping of
   prefix of what it read (`WD <+: RU`). All connections' states are in one invariant
   (`hcState γm`), so that every resource the protocol moves is timeless.
 * **The connection's protocol** `connProto γm cn`, which every dialer deposits in `srvAddr`'s
-  invariant (`hc_deposit`, through `dial_both_au`) and the server takes when it accepts `cn`
+  invariant (`hc_deposit`, through `wire.dial_both_au`) and the server takes when it accepts `cn`
   (`wire.accept_lis_au`): the acceptor end's state, the reader's half of the up direction and the
   writer's half of the down direction, and the names. The dialer keeps the other halves
   (`clientProto`).
@@ -41,7 +41,7 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
 open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames sentAll
-  rcvdAll DirOk dirOk_prefix dirOk_fresh dirOk_read dirOk_write dirOk_close dirOk_closeWrite
+  rcvdAll DirOk dirInv dirInv_body_alloc dirOk_prefix dirOk_fresh dirOk_read dirOk_write dirOk_close dirOk_closeWrite
   setMap_insert setMap_lookup_none sentAll_app)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.halfclose
@@ -63,49 +63,15 @@ prefix of `"hello"`, the acceptor a prefix of what it read. -/
 def HcOk (dU : TcpDir) (WU RU : List w8) (dD : TcpDir) (WD RD : List w8) : Prop :=
   DirOk dU WU RU ∧ DirOk dD WD RD ∧ WU <+: hello ∧ WD <+: RU
 
-theorem hcOk_fresh : HcOk TcpDir.fresh [] [] TcpDir.fresh [] [] :=
-  ⟨dirOk_fresh, dirOk_fresh, List.nil_prefix, List.nil_prefix⟩
+/-- Nothing written or read. -/
+theorem hcOk_nil {dU dD : TcpDir} (hU : DirOk dU [] []) (hD : DirOk dD [] []) :
+    HcOk dU [] [] dD [] [] :=
+  ⟨hU, hD, List.nil_prefix, List.nil_prefix⟩
 
 /-- What the dialer read is a prefix of `"hello"`. -/
 theorem hcOk_check {dU dD : TcpDir} {WU RU WD RD : List w8} (h : HcOk dU WU RU dD WD RD) :
     RD <+: hello :=
   (dirOk_prefix h.2.1).trans (h.2.2.2.trans ((dirOk_prefix h.1).trans h.2.2.1))
-
-/-- A read returns at most the bytes asked for. -/
-theorem readOutcome_got_le {st : TcpEnd} {d d' : TcpDir} {n : Nat} {r : ReadRes}
-    (h : ReadOutcome st d n r d') : r.got.length ≤ n := by
-  have hav : ∀ (d0 : TcpDir), ReadAvail st d0 n r d' → r.got.length ≤ n := by
-    intro d0 hr
-    rcases hr with ⟨k, -, hk, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ |
-      ⟨-, rfl, -⟩
-    · simp only [ReadRes.got, List.length_take]; omega
-    all_goals simp [ReadRes.got]
-  unfold ReadOutcome at h
-  split at h
-  · rw [h.1]; simp [ReadRes.got]
-  · split at h
-    · rw [h.1]; simp [ReadRes.got]
-    · rcases h with h | ⟨k, -, h⟩
-      · exact hav d h
-      · exact hav _ h
-
-/-- A read of `n > 0` bytes that returns bytes returns at least one. -/
-theorem readOutcome_bytes_pos {st : TcpEnd} {d d' : TcpDir} {n : Nat} {bs : List w8}
-    (h : ReadOutcome st d n (.bytes bs) d') (hn : 0 < n) : 1 ≤ bs.length := by
-  have hav : ∀ (d0 : TcpDir), ReadAvail st d0 n (.bytes bs) d' → 1 ≤ bs.length := by
-    intro d0 hr
-    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩ |
-      ⟨-, hr, -⟩
-    · cases hr; simp only [List.length_take]; omega
-    all_goals cases hr
-  unfold ReadOutcome at h
-  split at h
-  · cases h.1
-  · split at h
-    · omega
-    · rcases h with h | ⟨k, -, h⟩
-      · exact hav d h
-      · exact hav _ h
 
 /-! ## The ghost names -/
 
@@ -203,55 +169,25 @@ theorem hcInvs_elim (γm : GName) :
 
 /-! ## Dialing -/
 
-/-- A dial of `a` whose dialer deposits `Φ cn`, made (at the address's invariant's mask) from both
-ends' fresh resources, and keeps `R cn`. (`wire.dial_au` hands `mk` the acceptor's end only; this
-protocol needs both directions at once, to put them in one invariant.) -/
-theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
-    [∀ cn, Timeless (Φ cn)] :
-    ⊢ inv N (addrInv a Φ) -∗
-      (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗
-        Φ cn ∗ R cn) -∗
-      |={⊤,∅}=> ∃ S, tcpPend G a S ∗
-        ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
-          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ R cn := by
-  iintro #Hinv Hmk
-  iinv Hinv with Hi Hclose
-  unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists S
-  iframe Hpend
-  iintro %cn %HcS Hpend #Hat Hd Ha
-  imod Hmask
-  imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
-  imod Hclose $$ [Hpend Hdeps HΦ] with -
-  · inext
-    iexists S ∪ {[cn]}
-    iframe Hpend
-    rw [setMap_insert]
-    iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
-    iframe Hdeps HΦ
-  imodintro
-  iexact HR
-
-/-- A direction's protocol ghost state, new: the invariant's halves and the thread's. -/
-theorem dirNames_alloc :
-    ⊢@{IProp GF} |==> ∃ γ : DirNames,
-      @monoListAuthOwn GF (G (Gg := Gg)).allG w8 _ γ.w (1 : Qp).half ([] : List w8) ∗ sentAll (Gg := Gg) γ [] ∗
-      @ghostVar GF (G (Gg := Gg)).allG (List w8) _ γ.r (1 : Qp).half ([] : List w8) ∗ rcvdAll γ [] := by
+/-- A new direction's protocol state (`wire.dirInv_body_alloc`), as the invariant's part of it here:
+nothing written or read. -/
+theorem dirPart_alloc (c : Nat) (s : Bool) :
+    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ d, dirPart c s γ d [] [] ∗ ⌜DirOk d [] []⌝ ∗
+      sentAll γ [] ∗ rcvdAll γ [] := by
   letI := (G (Gg := Gg)).allG
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  iintro Hd
+  imod dirInv_body_alloc c s $$ Hd with ⟨%γ, Hb, Hw, Hr⟩
+  unfold dirInv sentAll rcvdAll
+  icases Hb with ⟨%d, %W, %R, Hd, HW, HR, %Hok⟩
+  icases monoListAuthOwn_agree γ.w _ _ W [] $$ HW Hw with %HW'
+  icases ghostVar_agree γ.r R _ [] _ $$ HR Hr with %HR'
+  obtain ⟨-, rfl⟩ := HW'
+  subst HR'
   imodintro
-  iexists ⟨γw, γr⟩
-  unfold sentAll rcvdAll
-  iframe Hw1 Hw2 Hr1 Hr2
+  iexists γ, d
+  unfold dirPart
+  iframe Hd HW HR Hw Hr
+  ipureintro; exact Hok
 
 /-- A dialer's deposit for its new connection `cn`, from both ends' fresh resources: the
 connection's state (nothing written or read) in the invariant, the server's part (`connProto`) and
@@ -277,22 +213,22 @@ theorem hc_deposit (γm : GName) (cn : Nat) :
     icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, -, -⟩, -, -⟩
     icases tcpDir_excl _ cn false dU TcpDir.fresh $$ HdU Hdd with ⟨⟩
   | none =>
-    imod dirNames_alloc (Gg := Gg) with ⟨%γu, HuW, HuS, HuR, HuC⟩
-    imod dirNames_alloc (Gg := Gg) with ⟨%γd, HdW, HdS, HdR, HdC⟩
+    imod dirPart_alloc cn false $$ Hdd with ⟨%γu, %dU, HuP, %HokU, HuS, HuC⟩
+    imod dirPart_alloc cn true $$ Had with ⟨%γd, %dD, HdP, %HokD, HdS, HdC⟩
     imod ghost_map_insert_persist cn (HcNames.of γu γd) hm $$ Hm
       with ⟨Hm, #Hname⟩
-    imod Hclose $$ [Hm Hconns Hdd Had HuW HuR HdW HdR] with -
+    imod Hclose $$ [Hm Hconns HuP HdP] with -
     · inext
       iexists m.insert cn (HcNames.of γu γd)
       iframe Hm
       iapply (BigSepM.bigSepM_insert (show PartialMap.get? m cn = none by
         rw [gmap_get?_eq]; exact hm)).2
       iframe Hconns
-      unfold hcConn dirPart
-      iexists TcpDir.fresh, [], [], TcpDir.fresh, [], []
+      unfold hcConn
+      iexists dU, [], [], dD, [], []
       rw [HcNames.of_u, HcNames.of_d]
-      iframe Hdd Had HuW HuR HdW HdR
-      ipureintro; exact hcOk_fresh
+      iframe HuP HdP
+      ipureintro; exact hcOk_nil HokU HokD
     imodintro
     unfold connProto clientProto hcName
     isplitl [Hae HuC HdS]
