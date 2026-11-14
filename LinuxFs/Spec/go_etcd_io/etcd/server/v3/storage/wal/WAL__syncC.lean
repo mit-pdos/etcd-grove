@@ -33,7 +33,9 @@ tail's size grown to cover them if they pass it), the tail fdatasynced: the hist
 |H|`), the tail's resize window closed and every byte durable (the handle's `TailMetaS`: `OsMeta.synced`,
 `durB`; `TailMetaS.of_sync` from `wp_osFsync`'s post; `Close`'s unregistration needs it for the WAL's
 `TailSynced`, the W7-W12 log's sixth session). The window may be open before
-(`TailMetaW`: a write past the preallocated size, W6 log, thirteenth session). *Error*: the handle lost. -/
+(`TailMetaW`: a write past the preallocated size, W6 log, thirteenth session). *Error*: the handle lost but
+the lock token (`walLockedTok`: `Close` returns before it unlocks, and `Create`'s cleanup must still merge
+`nm.tmp`'s claim back, which needs a token excluding the free one; ledger 2026-11-14). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS),
   h.rest = 0 →
@@ -44,7 +46,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
           TailMetaS ∗
           WalFs.walSyncedLb dir h.H.length) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok) }}
 
 end spec
 

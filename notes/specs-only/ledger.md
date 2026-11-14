@@ -1282,3 +1282,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   that path), then retranslate; the spec stays as it is.
 - **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
   path only.
+
+## 2026-11-14: `wal.WAL.sync.specC` (internal, the part's) -- the error arm keeps the lock token; `WAL.Close.specU`
+
+- **Spec.** `WAL.sync.specC`'s error arm `⌜err ≠ nil⌝` (the handle and the lock token lost).
+- **Defect.** `Create`'s cleanup (`cleanupWAL` after a committed rename whose parent fsync failed) runs `w.Close()`;
+  when its `sync` fails, `Close` returns before unlocking, and `Create` must still merge `nm.tmp`'s claim back to
+  the area (`create_areaBack`, which needs a token excluding the free one): `walLockedTok`, which the failed
+  `sync` still holds (`walOpenW`: its flush failure leaves it, the fdatasync returns the pending-cut flag).
+- **Evidence.** `cleanupWAL`'s design (W4 log, twenty-fourth session, (b)); `wal-create23`.
+- **Change (made, `wal-create23`).** `sync.wp_core`'s error arm returns `walOpenW w dir`; `specC`'s error arm
+  `⌜err ≠ nil⌝ ∗ walLockedTok` (`walOpenW_lockedTok`); `sync.spec`/`specCut` unchanged (they drop it). New:
+  `WAL.Close.specU` (the cleanup's `Close`: over `walOpenWFU`, no update, the commit-free put-back
+  `walCloseLawU`), post `(walUnlockedTok ∗ osCallPerm 1) ∨ (⌜err ≠ nil⌝ ∗ walLockedTok)` (the left arm whatever
+  `err`: the directory's close failed after everything else).
+- *Obligation, not made*: `Create`'s deferred `f.Close()` after the cleanup needs the segment's lock file: closed
+  (`os.ownFile f (-1)`) when `Close` succeeded, open when its `sync` failed. Both need the handle's tail lock to be
+  `Create`'s `f` (`walOpenWFU` hides it: a parameter `lt`, from a copy of `walHandleIn` with `lt` free), and the
+  failed arm needs the tail file back from `sync`'s error arms (through `wp_tailWriteAtW`, `wp_tailWriteW`,
+  `wal.tailWriterW`'s `B`, `flush`), and `renameWALPost`'s arm 2 must return `walLockLeft f …` (the retry's
+  `w.Close()` closed it, or its `sync` failed and left it open).
+- **Decision.** Made (internal).

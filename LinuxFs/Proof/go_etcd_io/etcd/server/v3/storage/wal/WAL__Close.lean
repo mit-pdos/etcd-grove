@@ -107,7 +107,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Henv Hcrc Hwpk Hopen
     ipureintro; exact ⟨Hen, Hlt, Hpure⟩
-  icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | %Herr)
+  icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | ⟨%Herr, -⟩)
   rotate_left
   · -- the sync failed: returned before the locks
     rcases err with ei | _

@@ -18,6 +18,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncC
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenWLocked
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeG
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__flush
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
@@ -252,7 +253,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
           locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
           ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝) ∨
-        ⌜err ≠ GoInterface.nil⌝ }} := by
+        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walOpenW (W := W) w dir) }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -284,7 +285,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · exact absurd rfl Herr
     wp_auto
     iapply HΦ
-    iright; ipureintro; exact Herr
+    iright; iframe Hopen; ipureintro; exact Herr
   subst Herr
   iunfold walTailWS at Htw
   icases Htw with ⟨Htw, %hbx⟩
@@ -346,7 +347,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       · iapply (walOpenW_cut (W := W) w dir).2; iframe
       iframe Hlg Hns He Henc Htw Hlocks Hls Hopen HS
       ipureintro; exact hbx'
-    · iright; ipureintro; unfold errnoErr; simp; exact H0
+    · iright
+      isplitr
+      · ipureintro; unfold errnoErr; simp; exact H0
+      iapply (walOpenW_cut (W := W) w dir).2; iframe
   · try wp_auto
     wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl took
     · iframe
@@ -362,7 +366,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       · iapply (walOpenW_cut (W := W) w dir).2; iframe
       iframe Hlg Hns He Henc Htw Hlocks Hls Hopen HS
       ipureintro; exact hbx'
-    · iright; ipureintro; unfold errnoErr; simp; exact H0
+    · iright
+      isplitr
+      · ipureintro; unfold errnoErr; simp; exact H0
+      iapply (walOpenW_cut (W := W) w dir).2; iframe
 
 /-- See the file header: `wp_core` over the handle (`walHandleIn`), the tail's `TailMetaS` weakened to
 `TailMeta`. -/
@@ -389,7 +396,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof [os.file.FieldAs
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | %H0)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen⟩)
   · ileft
     iframe HS
     isplitr
@@ -432,7 +439,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | %H0)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen⟩)
   · ileft
     iframe HS
     isplitr
@@ -446,7 +453,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
     ipureintro
     refine ⟨Hen, Hlt, WalHS.split_flush hsplit, hfd, ?_, hbx, hidx, hidx1⟩
     simp only [List.length_append]; omega
-  · iright; ipureintro; exact H0
+  · iright
+    isplitr
+    · ipureintro; exact H0
+    iapply walOpenW_lockedTok $$ Hopen
 
 /-- **`WAL.sync.specCut`**: `sync.spec` at a handle whose size is its write position
 (`h.sz = o0 + |out|`, `cut`'s truncate), so the size after the flush is the stream's end
