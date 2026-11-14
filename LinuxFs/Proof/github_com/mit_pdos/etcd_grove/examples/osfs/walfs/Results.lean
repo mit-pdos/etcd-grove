@@ -241,7 +241,7 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
       have hk := hso.2 k rfl
       have hnm : Named (extLocal fsExt σ.world).fs.treeDur k := ⟨j, segB, by rw [hm0]; exact hk⟩
       obtain ⟨f, hf⟩ := Option.ne_none_iff_exists'.1 (Hinit.2.2.2.2.2.1 k hnm)
-      obtain ⟨vs, sz, hvs⟩ := (Hinit.2.2.2.2.2.2.1 k f hf).2
+      obtain ⟨vs, sz, -, hvs⟩ := (Hinit.2.2.2.2.2.2.1 k f hf).2
       have hgood : DataGood (some f) := by rw [← hf]; exact Hseg k hk
       icases (BigSepM.bigSepM_lookup
         (Φ := fun i f => osFileStart (L := hG.goose_localGS) i f) hf) $$ Hfs with Hf

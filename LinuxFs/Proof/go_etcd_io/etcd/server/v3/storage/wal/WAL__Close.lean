@@ -4,7 +4,8 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Close.lean
 name back, `pipeLeft`), `w.sync()` of the tail over the handle without its pipeline
 (`WAL.sync.specC`), the loop closing every lock's file (the non-tail locks' `walLockH`, then the
 tail's file, `walTailW`'s; a failed close is logged), the invariant's put-back at the next step
-(`WalCloseLaw`: the update committed, the halves parked, the lock token back), the directory's
+(`WalCloseLaw`, proved: `walCloseLaw`, `CloseLaw.lean`; the update committed, the halves parked, the
+lock token back), the directory's
 `Close` (`os.File.Close.wp_dirS`). Lean-first.
 -/
 module
@@ -17,7 +18,7 @@ public import LinuxFs.Spec.os.File__Close
 public import LinuxFs.Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import LinuxFs.Proof.os.NsS
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseHandle
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
@@ -55,7 +56,6 @@ theorem pipeTmp_mem (n : Nat) : pipeTmp n ∈ walTmps := by
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
-    (hlaw : ∀ R jr r, WalCloseLaw (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
     (wp_syncC : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (W := W) P Mr)
     (wp_fpClose : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Close.spec (GF := GF) (hG := hG))
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
@@ -65,7 +65,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) P Mr := by
   intro R jr r w dir Q
   wp_start as ⟨#Harea, Hw, Hpw, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
   icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, -⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -303,7 +303,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
   icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
-  imod hlaw R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
+  imod walCloseLaw (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
     b (pipeTmp (np + 1)) Q hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc
     Hout Htf Hnf Hopen Hpw Hsy Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩
   · unfold tailVar; iexact Hv2

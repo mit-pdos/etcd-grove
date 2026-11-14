@@ -51,7 +51,8 @@ theorem durCrash_machine {st st' : OsState} (hok : CacheOk st) (hc : MachineCras
   · obtain ⟨f, f', hf, -, -⟩ := (hfiles i).1 hN
     have hcc := hok.1 i f hf
     refine ⟨f, durFile f, hf, (sectorWhole_durable st i f
-      (Nat.le_trans hcc.2.1 hcc.2.2) hcc.1.2).1, ?_⟩
+      (Nat.le_trans hcc.2.1 hcc.2.2.1) (Nat.le_trans hcc.2.1 (Nat.le_trans hcc.2.2.1 hcc.2.2.2))
+      hcc.1.2).1, ?_⟩
     simp only [durCrash] at hN
     rw [durCrash_files, if_pos hN, hf]; rfl
   · simp only [durCrash] at hN
@@ -85,7 +86,7 @@ theorem p1_untouched (st : OsState) (i : Ino) (f f' : OsFile) (v : Nat → w8)
     ∀ j < 2, 4096 * j < f'.size → 4096 * j + 80 ≤ f.sizeLo →
       ∃ n, ∀ k < 64, f'.cache (4096 * j + 16 + k) = valAt (f.cand (4096 * j + 16 + k)) n := by
   intro j _ hsz hlo
-  obtain ⟨sz, img, -, himg, rfl⟩ := hc
+  obtain ⟨sz, img, -, -, himg, rfl⟩ := hc
   refine ⟨0, fun k _ => ?_⟩
   obtain ⟨s, hs⟩ | ⟨h0, -⟩ := himg (4096 * j + 16 + k)
   rotate_left; · omega

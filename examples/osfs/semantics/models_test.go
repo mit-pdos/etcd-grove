@@ -438,6 +438,78 @@ func TestEnoent(t *testing.T) {
 	t.Logf("3000 rounds of open/readdir under churn: %d failures, none ENOENT", fails)
 }
 
+// data_maxbytes.go: ext4's s_maxbytes (2^44 - 4096 with 4 KiB blocks and extents). A pwrite
+// crossing it is cut there (a short count, errno 0), one at it fails EFBIG with nothing landed;
+// ftruncate to it succeeds, past it EFBIG with no change; fallocate ending past it EFBIG with no
+// change (mode 0 and KEEP_SIZE), ending at it succeeds. A sparse file: no block is written but
+// the first page and the last.
+func TestMaxBytes(t *testing.T) {
+	const maxBytes = int64(0xffffffff000)
+	d := extDir(t)
+	f, err := os.Create(d + "/f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	fd := int(f.Fd())
+	size := func() int64 {
+		var st syscall.Stat_t
+		if err := syscall.Fstat(fd, &st); err != nil {
+			t.Fatal(err)
+		}
+		return st.Size
+	}
+	// pwrite crossing s_maxbytes: cut at it
+	n, err := syscall.Pwrite(fd, fill(100, 'a'), maxBytes-1)
+	t.Logf("pwrite(100 at max-1) = (%d, %v), size %d", n, err, size())
+	if n != 1 || err != nil || size() != maxBytes {
+		t.Fatalf("pwrite at max-1: (%d, %v) size %d, want (1, nil) size max", n, err, size())
+	}
+	// pwrite at s_maxbytes: EFBIG, nothing landed
+	n, err = syscall.Pwrite(fd, fill(100, 'b'), maxBytes)
+	t.Logf("pwrite(100 at max) = (%d, %v), size %d", n, err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != maxBytes {
+		t.Fatalf("pwrite at max: (%d, %v), want EFBIG", n, err)
+	}
+	// Go's WriteAt crossing it: one short pwrite, then EFBIG
+	m, err := f.WriteAt(fill(8192, 'c'), maxBytes-4096-100)
+	t.Logf("WriteAt(8192 at max-4196) = (%d, %v), size %d", m, err, size())
+	if !errors.Is(err, syscall.EFBIG) {
+		t.Fatalf("WriteAt crossing max: (%d, %v), want EFBIG", m, err)
+	}
+	// ftruncate to s_maxbytes, then past it
+	if err := syscall.Ftruncate(fd, 4096); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Ftruncate(fd, maxBytes); err != nil || size() != maxBytes {
+		t.Fatalf("ftruncate to max: %v size %d", err, size())
+	}
+	if err := syscall.Ftruncate(fd, 4096); err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Ftruncate(fd, maxBytes+1)
+	t.Logf("ftruncate(max+1) = %v, size %d", err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != 4096 {
+		t.Fatalf("ftruncate past max: %v size %d, want EFBIG size 4096", err, size())
+	}
+	// fallocate ending past s_maxbytes, mode 0 and KEEP_SIZE; then ending at it
+	err = syscall.Fallocate(fd, 0, maxBytes-4096, 8192)
+	t.Logf("fallocate(0, max-4096, 8192) = %v, size %d", err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != 4096 {
+		t.Fatalf("fallocate past max: %v size %d, want EFBIG size 4096", err, size())
+	}
+	err = syscall.Fallocate(fd, unix.FALLOC_FL_KEEP_SIZE, maxBytes-4096, 8192)
+	t.Logf("fallocate(KEEP_SIZE, max-4096, 8192) = %v, size %d", err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != 4096 {
+		t.Fatalf("fallocate keep-size past max: %v size %d, want EFBIG size 4096", err, size())
+	}
+	err = syscall.Fallocate(fd, 0, maxBytes-4096, 4096)
+	t.Logf("fallocate(0, max-4096, 4096) = %v, size %d", err, size())
+	if err != nil || size() != maxBytes {
+		t.Fatalf("fallocate to max: %v size %d, want nil size max", err, size())
+	}
+}
+
 // model_os_readdirnames_len.go: append of one string to a []string of 2^44 panics with
 // "growslice: len out of range" (the slice header made by unsafe.Slice over one string:
 // growslice checks the new capacity before it allocates anything).

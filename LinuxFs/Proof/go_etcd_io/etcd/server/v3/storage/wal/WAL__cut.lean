@@ -141,7 +141,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
-  obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
+  obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
   rw [List.dropLast_concat]
   wp_auto
@@ -196,7 +196,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [List.dropLast_concat]
     iframe Hlks
     ipureintro
-    exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, by omega, hidx, hidx1⟩
+    exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, hidx, hidx1⟩
   icases Hsy with (⟨%he, Hh, #Hsyn⟩ | %he)
   rotate_left
   · rcases serr with ei | _
@@ -228,7 +228,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
-  obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
+  obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
   try rw [h1H]
   try rw [h1md]
@@ -898,7 +898,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iframe
   ipureintro
   refine ⟨WalHS.split_fresh Mr _ rfl hL.symm rfl rfl, hfd3, hgbs.2, hgsz,
-    by have := hgbs.2; simp only [List.length_nil]; omega,
     ⟨fun _ => hidx.1 (by rw [h1rest, hrest]), hidx.2⟩, hmx⟩
 
 end proof

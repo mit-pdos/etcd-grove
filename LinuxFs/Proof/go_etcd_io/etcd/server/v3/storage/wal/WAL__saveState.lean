@@ -1,10 +1,13 @@
 /-
-`(*WAL).saveState` over the guarded `encode`. Also to come: `IsEmptyHardState`/`MustMarshalMessage` over `P.hsIn`. Proved over the callees' specs (`sorry` while W6 is in progress). Lean-first.
+`(*WAL).saveState` over the tail's `encode` (`encode.specTail`) and two laws of `P` (`WalPbIn.IsEmptyLaw`:
+`IsEmptyHardState`; `WalPbIn.MarshalHsLaw`: `MustMarshalMessage` of a hard state, both `WAL__cutPre.lean`'s).
+Proved over the callees' specs (`sorry` while W6 is in progress). Lean-first.
 -/
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveState
-public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeG
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeTail
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutPre
 
 @[expose] public section
 
@@ -26,7 +29,8 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
-    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF)) :
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (W := W) Mr)
+    (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P) (wp_marshal : WalPbIn.MarshalHsLaw P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr := by
   sorry
 

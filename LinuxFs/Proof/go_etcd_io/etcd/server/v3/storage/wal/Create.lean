@@ -77,10 +77,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
     ihave #Hosf : (iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
         (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-        ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) :
+        (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
+        ∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) :
         IProp GF) $$ []
     · iapply isPkgInit_access $$ Hos
-    icases Hosf with ⟨-, ⟨%ee, %hee, #Hee⟩, -⟩
+    icases Hosf with ⟨-, ⟨%ee, %hee, #Hee⟩, -, -⟩
     try wp_auto
     iapply HΦ
     iframe

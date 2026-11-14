@@ -68,7 +68,7 @@ theorem walDecFiles_mk
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_Name : os.fileStat.Name.spec (GF := GF) (hG := hG))
-    (IoE : GoInterface → Prop) (hIo : ∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii))
+    (IoE : GoInterface → Prop) (hIo : ∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))
     (eof : GoInterface) (write : Bool) (dir : GoString) :
     ∀ (gs : List SegG) (frs : List GoInterfaceOk) (lfs : List Loc),
     frs.length = gs.length → lfs.length = gs.length →
