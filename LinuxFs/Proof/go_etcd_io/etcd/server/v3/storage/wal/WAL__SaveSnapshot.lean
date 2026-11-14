@@ -210,7 +210,59 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     rw [if_pos (by word)]
   · iframe; ipureintro
     rw [if_neg (by word)]
-  sorry
+  -- the handle after the encode and the raises
+  have heq' : out' ++ pend' = h.out ++ h.pend ++ frame (walRecEnc (snapRec Mr (h.crc Mr) md)) := by
+    unfold snapRec; exact heq
+  obtain ⟨hsplit2, hcrc2⟩ := WalHS.split_snap Mr h md hc hsplit hD.1 out' pend' sz' sv ev heq'
+  have hmap : (h.H ++ [WalOpG.snap md]).map WalOpG.toM = h.H.map WalOpG.toM ++ [WalOpG.snap md] := by
+    simp [WalOpG.toM]
+  obtain ⟨hi1, hi2, hi3⟩ := snap_idx (h.H.map WalOpG.toM) md h.enti h.snapi hidx0' hidx1 hidx hmax
+  rw [← hsv, ← hev, ← hmap] at hi1
+  rw [← hsv, ← hmap] at hi2
+  rw [← hsv, ← hev] at hi3
+  ihave Hh2 : walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev }
+    $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp
+      Hpipe Hopen]
+  · iunfold walHandleIn
+    iexists lg, df, stp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+    rw [hcrc2]
+    iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+      Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+    ipureintro
+    exact ⟨Hen, Hlt, hsplit2, hfd, hs1, hs2, hs3, ⟨fun _ => hi1, hi2⟩, hi3⟩
+  wp_apply (wp_sync R jr r w dir { h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev } hD.1) $$ [Hh2] as %err Hres
+  · iframe Harea Hh2
+  try wp_auto
+  wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
+  try wp_auto
+  iapply HΦ
+  icases Hres with (⟨%herr, Hh, #Hsyn⟩ | %herr)
+  · ileft
+    isplitr
+    · ipureintro; exact herr
+    icases HQ with ⟨%d, HQ, %hd⟩
+    isplitl [Hh Hr]
+    · iapply (walOpenWF_iff P Mr w dir).2
+      iexists _
+      iframe Hh
+      simp only
+      iframe Hr
+      ipureintro
+      refine ⟨⟨hD.1, ?_⟩, hmd⟩
+      show h.st = walLastHS ((h.H ++ [WalOpG.snap md]).map WalOpG.toM)
+      rw [hmap, walLastHS_snap]; exact hD.2
+    iexists d
+    iframe HQ
+    rw [hd]
+    iframe Hlb
+    have hl : (h.H ++ [WalOpG.snap md]).length = h.H.length + 1 := by simp
+    rw [← hl]
+    iexact Hsyn
+  · iright
+    isplitr
+    · ipureintro; exact herr
+    icases HQ with ⟨%d, HQ, -⟩
+    iexists d; iexact HQ
 
 end proof
 
