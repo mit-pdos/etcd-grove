@@ -30,3 +30,15 @@ Coordinator's review of the trusted-text diff, then `etc/land.sh` on its go. The
 
 `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
 --packages=/shared/tmp/manifest-ddc.json build`.
+
+## Later the same day
+
+- `netAddrLit` loopback only (etcd-grove-81's decision; `examples/premisefix/httpproxy`).
+- The auth triage's `issues/etcd-v3election-shared-watch-wrong-user.md` (etcd#17502) and
+  `nonissues/etcd-auth-corrupt-bucket-startup-panic.md` (etcd#22747); the matrix and Defs
+  docstrings corrected.
+- The independent review's fixes (`notes/axiom-review/http-boundary-fix.md`, last section): the
+  closed-world clause in two parts, `raftProto`'s stream branch `streamPfx`, `respHdrsOk`,
+  `reqHdrView`, `Flush_spec` committed-only.
+- Next: the coordinator's review of `/shared/tmp/coord-81/http-boundary-fix/*.diff`, then
+  `etc/land.sh` on its go.
