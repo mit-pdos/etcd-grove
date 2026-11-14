@@ -60,7 +60,7 @@ theorem rzStart_pure {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
   obtain ⟨hsz, -, -, hhi, -⟩ := h.metas g0 (by rw [hs]; simp)
   obtain ⟨-, -, -, hwb, -⟩ := h.lastWin g0 (by rw [hs]; simp)
   exact walAbsD_rzStart h hs (Nat.le_refl _) (Nat.min_le_right _ _) (by omega)
-    (segBytesX_rzSeg hk (by omega) hsz.symm (by omega) htcz.1)
+    (segBytesX_rzSeg hk (by omega) hsz.symm (by omega) htcz.1) (h.zeroPast g0 (by rw [hs]; simp) hZ)
 
 /-- **The truncate's landing at the write position**: `WalsOk` and the directory keys of the layout
 with the tail landed (`rzLand`), from the in-flight one. -/

@@ -446,7 +446,8 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     (hzl : zs.length = w - g0.om.size) (hcut : g0.om.cut = none)
     (hlo : min g0.om.lo tg ≤ lay.wr) (hold : w ≤ lay.old.length)
     (hzf : ∀ z, g0.om.zf = some z → g0.om.size ≤ z)
-    (hzs : ∀ j c, j < zs.length → g0.om.pc (g0.om.size + j) = some c → zs[j]? = some c) :
+    (hzs : ∀ j c, j < zs.length → g0.om.pc (g0.om.size + j) = some c → zs[j]? = some c)
+    (hZ : ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) :
     WalAbsD C Mr d (tailLay lay pre (rzLandG g0 tr tg w n zs) lay.wr) ents := by
   have hg1 : lay.segs.getLast? = some (rzSeg g0 tr tg n) := by rw [hs]; simp
   have hbs := rzSeg_bs_of_le (tr := tr) (n := n) hlen (show g0.om.size ≤ tg by omega)
@@ -476,7 +477,7 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs2]; exact hb), k6, k7, k8⟩
     rw [hbs2]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_⟩
     · simp only [tailLay] at hbw ⊢
       have hb' : g0.bs[b]? = some x := by
         rw [← hb]; simp only [rzLandG]; rw [List.getElem?_append_left (by omega)]
@@ -489,6 +490,16 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
           List.getElem?_append_left hb]
       · simpa [rzLandG, rzSeg, rzMeta] using hs
     · show min g0.om.lo tg ≤ lay.wr; exact hlo
+    · have hz := habs.zeroPast _ hg1 hZ
+      simp only [tailLay] at hb
+      simp only [rzLandG] at hx
+      by_cases hbl : b < g0.bs.length
+      · rw [List.getElem?_append_left hbl] at hx
+        exact hz b x hb (by rw [hbs]; exact hx)
+      · rw [List.getElem?_append_right (by omega)] at hx
+        simp only [growBytes, List.getElem?_map] at hx
+        obtain ⟨c, -, rfl⟩ := Option.map_eq_some_iff.1 hx
+        rfl
 
 /-- **A growth's first step**: `WalsOk` and the directory keys of the layout with the tail announced
 (`rzSeg` to `size ≤ tg ≤ hi`, at or past the write position, the least crash size at most `wr`), from
@@ -499,7 +510,7 @@ theorem rzGrow_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0]) (habs : ∃ ents, WalAbsD C Mr d lay ents)
     (hgrow : g0.om.size ≤ tg) (htg : tg ≤ g0.om.hi) (hwr : lay.wr ≤ tg)
-    (hlo : min g0.om.lo tg ≤ lay.wr) (hk : 0 < k) (htcz : g0.om.TcZ) :
+    (hlo : min g0.om.lo tg ≤ lay.wr) (hk : 0 < k) (htcz : g0.om.TcZ) (hZ : TailZeros lay) :
     WalsOk C Mr R jr s (<[dir := tailLay lay pre (rzSeg g0 tr tg k) lay.wr]> Ls) cl n ∧
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzSeg g0 tr tg k) lay.wr]> Ls) cl n K c) := by
@@ -512,6 +523,7 @@ theorem rzGrow_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
   refine ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
   exact walAbsD_rzStart h hs hwr hlo htg (segBytesX_rzGrow hk hgrow htg hsz.symm htcz.1)
+    (h.zeroPast g0 (by rw [hs]; simp) hZ)
 
 /-- **A growth's landing**: `WalsOk` and the directory keys of the layout with the tail landed
 (`rzLandG`), from the in-flight one. -/
@@ -525,7 +537,7 @@ theorem rzLandG_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (hzl : zs.length = w - g0.om.size) (hcut : g0.om.cut = none)
     (hzf : ∀ z, g0.om.zf = some z → g0.om.size ≤ z)
     (hzs : ∀ j c, j < zs.length → g0.om.pc (g0.om.size + j) = some c → zs[j]? = some c)
-    (hlo : min g0.om.lo tg ≤ lay.wr) (hold : w ≤ lay.old.length) :
+    (hlo : min g0.om.lo tg ≤ lay.wr) (hold : w ≤ lay.old.length) (hZ : TailZeros lay) :
     WalsOk C Mr R jr s (<[dir := tailLay lay pre (rzLandG g0 tr tg w k zs) lay.wr]> Ls) cl n ∧
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzLandG g0 tr tg w k zs) lay.wr]> Ls) cl n K c) := by
@@ -533,7 +545,7 @@ theorem rzLandG_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
   have hstep := tailCrashStep_rzLandG (C := C) (Mr := Mr) (d := d) (cl := cl) (k := n)
     hnd hs hlen hgrow hw hzl hzf hzs
   refine ⟨walsOk_tailA hW hd hl hs rfl ?_
-    (fun ents h => walAbsD_rzLandG h hs hlen hgrow hw hzl hcut hlo hold hzf hzs) hstep,
+    (fun ents h => walAbsD_rzLandG h hs hlen hgrow hw hzl hcut hlo hold hzf hzs hZ) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
   simp [rzLandG, rsPostK, rsPost, OsMeta.announce, hcut]
 
