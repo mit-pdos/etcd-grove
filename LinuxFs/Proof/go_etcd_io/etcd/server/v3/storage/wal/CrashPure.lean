@@ -419,9 +419,9 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     ∃ o, CrashGood C Mr jr s Ls m' st' dir d o := by
   obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, habs, alt, halt, hcok⟩ := hok.1 dir d hd
   have hf : ∀ g ∈ lay.segs, _ := fun g hg => hfiles g (mem_segsAll hLs hg)
-  have hw1G := w1G_of_W1 C st st' m' lay hw1 htree (fun g hg => by
-    obtain ⟨-, -, hc⟩ := hf g hg
-    exact hc)
+  have hw1G := w1G_of_W1 C st st' m' lay (fun _ => []) hw1 htree (fun g hg => by
+    obtain ⟨-, -, f, hf1, hc⟩ := hf g hg
+    exact ⟨f, hf1, hc, fun _ h => by cases h⟩)
   have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1)
     (fun g hg hin => (hf g hg).2.1 (named_of_mem_walInos hin)) hw1G
   -- the layout whose `CrashTo` the crash gives: `lay`, or the one before a pending cut's rename

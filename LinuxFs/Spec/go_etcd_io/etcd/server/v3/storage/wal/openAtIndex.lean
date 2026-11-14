@@ -9,7 +9,8 @@ lock model) and changing nothing in read mode. *Success*: write mode, the ghost 
 handle's fields (`walReadH true`), half the call permission (the pipeline holds the other); read
 mode, the lock token taken (`walLockedTok`: the handle holds the WAL's halves out of `walParked`) and
 `walReadH false` and the whole permission; `dirFile` nil in both. *Error*: the
-token and the permission back. Lean-first; proof `sorry`
+token and the permission back, and an error whose `Error()` returns a string (`errOk`: `Open` wraps it
+with `%w`). Lean-first; proof `sorry`
 (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean`). W5 of
 `notes/wal-fsext-plan.md`.
 -/
@@ -18,6 +19,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Spec.go_uber_org.zap.Defs
+public import LinuxFs.Spec.fmt.ErrorfErrs
 
 @[expose] public section
 
@@ -40,7 +42,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (sp : Loc) (s : w64 × w64) (write : Bool)
     (qp : Qp) (Q : Option WalDur → IProp GF),
-  InArea r dir nm → cleanAbsPath r →
+  InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       osCallPerm 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
@@ -51,7 +53,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) 
       (Val #dir)) (Val #sp)) (Val #write))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ ∃ o : Option WalDur, Q o ∗
-      ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok ∗ osCallPerm 1) ∨
+      ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok ∗ osCallPerm 1 ∗
+        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) ∨
        (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) ∗
         if write then iprop(WalFs.walOpening w dir s ∗ walReadH true w dir s ∗

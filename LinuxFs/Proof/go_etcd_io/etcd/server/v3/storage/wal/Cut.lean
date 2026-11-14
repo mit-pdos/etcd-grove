@@ -124,7 +124,7 @@ def CrashOkA (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (alt :
   ∀ (m' : Tree) (fo : Ino → Option Fs.OsFile), RegionCrashed cl n m' →
     (∀ g ∈ lay.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino)) →
     (∀ g ∈ lay.segs, g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome) →
-    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) →
+    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) (fun _ => []) →
     CrashTo C Mr d lay m' fo ∨ ∃ lay0, alt = some lay0 ∧ CrashTo C Mr d lay0 m' fo
 
 /-- **What the invariant says of a WAL's crashes**: the crash condition, with an alternative layout

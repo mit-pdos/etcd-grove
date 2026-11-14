@@ -391,7 +391,8 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
-    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)) :
+    {rzOf : Ino → List Nat}
+    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) rzOf) :
     CrashTo C Mr d lay m' fo := by
   rcases h0 with hl | ⟨q, I0, hent, hq, hinos, hI0, hLI0, hpur, hmid, -⟩
   · exact Or.inl hl
@@ -475,9 +476,14 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
         simp only [List.map_cons, List.map_nil, acceptsFiles, imgOf, hf, Option.map_some,
           Option.getD_some, List.mem_map]
         exact ⟨p, hp, rfl⟩
-      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm)
-        (by show (imgOf (fo g.ino)).length ≤ _; simp [imgOf, hf, contents_length, hsz])
       obtain ⟨x, hx, hxb⟩ := acceptsFiles_bound C _ _ _ hp'
+      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm) (by
+        show p + frameCore (imgOf (fo g.ino)) p ≤ g.bs.length
+        have hl : (imgOf (fo g.ino)).length ≤ g.bs.length := by
+          simp [imgOf, hf, contents_length, hsz]
+        rw [hjs] at hx
+        simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, Option.some.injEq] at hx
+        rw [← hx] at hxb; simp only at hxb; omega)
       rw [hjs] at hx
       simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, imgOf, hf, Option.map_some,
         Option.getD_some, Option.some.injEq] at hx
@@ -485,6 +491,7 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       simp only [imgOf, hf, Option.map_some, Option.getD_some] at h1
       have hcsb : ∀ b, b < p + frameCore f.contents p → cs b = (g.bs.getD b (0, [])).2 := by
         intro b hb; rw [← hcs]; simp only; rw [if_pos (by rw [← himgl]; omega)]
+      replace h1 := asOfOneG_asOf h1
       rcases h1 with h1 | ⟨n, hn0, h1⟩
       · left; intro b hb1 hb2; rw [hcsb b hb2]; exact h1 b hb1 hb2
       · right; refine ⟨n, hn0, fun b hb1 hb2 => ?_⟩
@@ -569,7 +576,8 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     (h0 : CrashTo C Mr d lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
-    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)) :
+    {rzOf : Ino → List Nat}
+    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) rzOf) :
     CrashTo C Mr d lay m' fo :=
   crashTo_tailM hC habs hZ hB hnd hg hex d.m habs.lastSynced h0 hfo hfc hn hw
 
@@ -640,10 +648,10 @@ theorem syncImg_length (bs : List ByteG) (sz : Nat) : (syncImg bs sz).contents.l
 
 /-- **W1 over images as of the last sync** holds by itself. -/
 theorem w1G_sync (C : WalCodec) (js : List Ino) (img : Ino → List w8)
-    (bsOf : Ino → Option (List ByteG))
+    (bsOf : Ino → Option (List ByteG)) (rzOf : Ino → List Nat)
     (h : ∀ i bs, bsOf i = some bs → ∀ b, b < (img i).length →
       (img i).getD b 0 = valAt (bs.getD b (0, [])).2 0) :
-    W1G C js img bsOf := by
+    W1G C js img bsOf rzOf := by
   intro k p hp i bs hi hbs _
   obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
   rw [List.getElem?_map, hi] at hx
@@ -758,7 +766,8 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     rcases hg' with hg' | rfl
     · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) (by rw [hj]; exact hnd')
     · rw [← hino, hfo0g, Option.isSome_map]; exact hnmd g hgm (by rw [hino, hj]; exact hnd')
-  have hw0 : W1G C (walInos (entsOf m' lay0.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay0) := by
+  have hw0 : W1G C (walInos (entsOf m' lay0.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay0)
+      (fun _ => []) := by
     apply w1G_sync
     intro i bs hbs b hb
     obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs

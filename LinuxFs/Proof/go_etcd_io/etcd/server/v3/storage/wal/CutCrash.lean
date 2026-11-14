@@ -198,10 +198,10 @@ theorem valAt_durB (x : w8) : valAt (durB x).2 0 = x := by
 /-- **W1 over segments whose every byte is durable** holds by itself: each image is its bytes (or
 empty), so every accepted frame is as of the last sync. -/
 theorem w1G_durable (C : WalCodec) (js : List Ino) (img : Ino → List w8)
-    (bsOf : Ino → Option (List ByteG))
+    (bsOf : Ino → Option (List ByteG)) (rzOf : Ino → List Nat)
     (h : ∀ i bs, bsOf i = some bs → (∀ y ∈ bs, y = durB y.1) ∧
       (img i = bs.map (·.1) ∨ img i = [])) :
-    W1G C js img bsOf := by
+    W1G C js img bsOf rzOf := by
   intro k p hp i bs hi hbs _
   obtain ⟨hdur, himg⟩ := h i bs hbs
   obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
@@ -210,6 +210,7 @@ theorem w1G_durable (C : WalCodec) (js : List Ino) (img : Ino → List w8)
   subst hx
   left
   intro b hb1 hb2
+  show (img i).getD b 0 = valAt (bs.getD b (0, [])).2 0
   rcases himg with himg | himg
   · have hlt : b < (img i).length := by omega
     rw [himg] at hlt ⊢
@@ -232,8 +233,8 @@ theorem segBytesOf_prefix {lay lay' : WalLay} (h : lay.segs <+: lay'.segs) (i : 
   | some g => rw [hf] at hb; simpa using hb
 
 theorem w1G_prefix {C : WalCodec} {js : List Ino} {img : Ino → List w8} {lay lay' : WalLay}
-    (h : lay.segs <+: lay'.segs) (hw : W1G C js img (segBytesOf lay')) :
-    W1G C js img (segBytesOf lay) :=
+    {rzOf : Ino → List Nat} (h : lay.segs <+: lay'.segs) (hw : W1G C js img (segBytesOf lay') rzOf) :
+    W1G C js img (segBytesOf lay) rzOf :=
   fun k p hp i bs hi hbs => hw k p hp i bs hi (segBytesOf_prefix h i bs hbs)
 
 /-! ## The rename -/
@@ -322,7 +323,7 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
     · -- where the WAL directory is: the old crash condition, over the tree without `bt`
       have hct := hok (treeDel m' lay.j bt) fo ((regionCrashed_iff _ _ _).2 ⟨K, hK'⟩) hfo
         (fun g hg hin => hn g (hpre.subset hg) (by rw [hj']; exact mem_walInos_treeDel hin))
-        (w1G_durable C _ _ _ (fun i bs hb => by
+        (w1G_durable C _ _ _ _ (fun i bs hb => by
           obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some hb
           refine ⟨hdur g hg, ?_⟩
           cases hfg : fo g.ino with

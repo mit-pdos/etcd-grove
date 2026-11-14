@@ -55,7 +55,9 @@ with no claim on what that makes durable, and closes).
   nonzero `mmap` offset, a `munmap` of anything but a whole mapping, a negative offset, a path that
   is not canonical in a root's tree.
 * *Environmental failure is a nondeterministic errno*: every step that makes a system call may fail
-  with any nonzero errno; on failure, the changes listed in each case may or may not have happened;
+  with any nonzero errno (but `ENOENT` from `open` of a path that resolves, or from `getdents` of a
+  directory still in the tree: `ENOENT`, 2026-11-14, pending review); on failure, the changes listed
+  in each case may or may not have happened;
   a failed `pread` read a prefix; a failed `pwrite` wrote a prefix. **Page cuts**: whatever its
   errno, a `pwrite` (`PWriteFinish`) landed nothing, all of its data, or a prefix ending on a
   4096-byte page boundary of the file. On C, a write's loop (`generic_perform_write`) stops only
@@ -108,7 +110,9 @@ each byte, its *crash candidates* (`OsFile.cand`): the value it had at the last 
 then the value each change since announced for it, stamped with the change's number. A change
 announces its bytes when it starts, with all of its data, whatever it later lands (`…Start`,
 `OsFile.announce`); its finish lands a prefix of exactly those announced values in the page cache
-(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A successful
+(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A file also
+records the stamps of its resizes (`OsFile.rzs`), which no step reads: bookkeeping for a client
+premise that must tell a resize's zeros from a write's (**pending the user's review**). A successful
 sync (`OsFile.synced`) collapses every byte not under a change in flight to its page-cache value;
 a failed one changes nothing (no failed writeback). **The crash rule** (`OsCrash`, a machine
 crash; a restart of the process is one, by the environment's assumption on restarts): the durable
@@ -178,14 +182,23 @@ the file's last successful sync (or boot, or crash), stamped 0. -/
 abbrev Cands := List (w8 × Nat)
 
 /-- A regular file: its page cache (`cache b` is byte `b` as reads see it below the size; past the
-size, what its page holds there), each byte's crash candidates, its size, and the smallest and
-largest sizes since its last successful sync. -/
+size, what its page holds there), each byte's crash candidates, its size, the smallest and
+largest sizes since its last successful sync, and the stamps of its resizes. -/
 structure OsFile where
   cache : Nat → w8
   cand : Nat → Cands
   size : Nat
   sizeLo : Nat
   sizeHi : Nat
+  /-- **Bookkeeping only** (2026-11-14, `notes/wal-fsext-plan.md` §2.5; pending the user's review):
+  the stamps of the resizes (`ftruncate`, `fallocate`'s growth, `open`'s `O_TRUNC`) announced on
+  the file since it was last read from disk (`ofDisk`: a boot or a crash; a new file starts with
+  none), appended at the announcement (`OsFile.announce`). No step reads it: no behaviour or
+  outcome depends on it. It lets a client premise on crashes tell a candidate a resize announced
+  (zeros) from one a `pwrite` announced (W1, `LinuxFs/.../wal/W1.lean`). A sync keeps it: a resize
+  in flight keeps its candidates across a sync, and stamps are never reused, so an old stamp in the
+  list says nothing wrong. `examples/osfs/semantics/model_resize_stamps.go`. -/
+  rzs : List Nat := []
 
 /-- The page of byte `b` holds a byte below the size `sz` (4096-byte pages, which are the blocks
 of the configuration: the header). -/
@@ -326,6 +339,9 @@ def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
 
 def EINTR : w64 := 4
+/-- `ENOENT`: what a failing `open(2)` returns only for a path that does not resolve, and a failing
+`getdents64` only for a removed directory (`IsFsStep`'s `"Open"` and `"DirReadNext"`). -/
+def ENOENT : w64 := 2
 def PROT_READ : Nat := 0x1
 def MAP_SHARED : Nat := 0x1
 def MAP_POPULATE : Nat := 0x8000
@@ -373,10 +389,17 @@ def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) (trunc : Bool) : OsChang
     hi := if trunc then pageEnd (max f.size sz) else max f.size sz, val := fun _ => 0,
     target := sz }
 
+/-- The change is a resize (`ftruncate` or `fallocate`'s growth), not a `pwrite`. -/
+def OsChangeKind.isResize : OsChangeKind → Bool
+  | .write _ _ => false
+  | .truncate _ => true
+  | .falloc _ => true
+
 /-- `f` with the change `c` announced as change number `n`: each byte of `[c.lo, c.hi)` gets the
-candidate `c.val b`, stamped `n`. -/
+candidate `c.val b`, stamped `n`; a resize's stamp is recorded (`OsFile.rzs`, bookkeeping only). -/
 def OsFile.announce (f : OsFile) (c : OsChange) (n : Nat) : OsFile :=
-  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b }
+  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b,
+           rzs := if c.kind.isResize then n :: f.rzs else f.rzs }
 
 /-- `f` with the change `c` landed up to `e` (`c.lo ≤ e ≤ c.hi`): the bytes `[c.lo, e)` take their
 announced values in the page cache, and the size becomes `sz`; the size range widens to it. -/
@@ -679,7 +702,12 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   ends, and a fresh fd of a directory outside the trees (`ofds`) is open, of which the model knows
   nothing else (`OutSync`, `OutClose`; every other step on it is stuck), or any errno, nothing else
   changing. Any other flags there are stuck. Go example:
-  `examples/osfs/semantics/model_os_open_above.go`. -/
+  `examples/osfs/semantics/model_os_open_above.go`.
+  **`ENOENT`** (2026-11-14, decided provisionally, **pending the user's review**; plan
+  `notes/wal-fsext-plan.md` §10): a failure of the first disjunct returns `ENOENT` only when `p` does not
+  resolve at the step (`st0.lookup p = none`): Linux's `ENOENT` is a component's lookup finding no
+  entry, or a dead directory, and with no directory renamed during the call the path did not resolve at
+  that instant, where the step may be placed. Go example: `examples/osfs/semantics/meta_enoent.go`. -/
   | "Open" => (∃ (p : GoString) (fl : w64) (t start : Nat),
       v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ st.TreePath p ∧ OpenFlagsOk fl.toNat ∧
       st.proc.calls !! t = some start ∧
@@ -696,7 +724,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
             | .dir j => st1.setProc { st1.proc with
                 dfds := <[fd := ⟨j, .idle⟩]> st1.proc.dfds }) ∧
           e' = osRes (#fd) 0) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
+       (∃ e : w64, e ≠ 0 ∧ (e = ENOENT → st0.lookup p = none) ∧ e' = osRes (#(-1 : w64)) e ∧
           (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc start st' tgt)))) ∨
     OpenOutside v st e' st'
   /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`, as `ReadSees` allows. On success,
@@ -844,8 +872,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   the directory had at some point since the read began, not returned since it was last touched; or
   the end, once it has returned every name the directory had when the read began, still has, and
   that no operation touched since (POSIX's `readdir`: an entry added or removed meanwhile may or may
-  not be returned); or an errno, the read unchanged. After the end, a second read is stuck. A
-  removed directory has no names. -/
+  not be returned); or an errno, the read unchanged, `ENOENT` only for a removed directory (not
+  reachable from a root: Linux's `iterate_dir` answers `ENOENT` for a dead directory, and only then;
+  2026-11-14, decided provisionally, **pending the user's review**, Go example
+  `examples/osfs/semantics/meta_enoent.go`). After the end, a second read is stuck. A removed
+  directory has no names. -/
   | "DirReadNext" => ∃ (fd : w64) (df : OsDirFd) (u s r : GoString → Bool), v = #fd ∧
       st.proc.dfds !! fd = some df ∧ df.rd.cur st df.ino = some (u, s, r) ∧
       ((∃ b, s b = true ∧ r b = false ∧
@@ -855,7 +886,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        ((∀ b, u b = true → present st df.ino b = true → r b = true) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with rd := .done }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64))))) ∨
-       (∃ e : w64, e ≠ 0 ∧
+       (∃ e : w64, e ≠ 0 ∧ (e = ENOENT → ¬ Reach st.fs.roots st.tree df.ino) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with
             rd := .reading u s r }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(0 : w64)) (#e)))))
