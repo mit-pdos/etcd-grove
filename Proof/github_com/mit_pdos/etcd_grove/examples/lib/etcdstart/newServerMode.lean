@@ -179,8 +179,11 @@ theorem newServerMode.wp_proofRestart
       NewServer.specR (GF := GF) (hG := hG)) :
     newServerMode.specRestart (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
-    bootLog ctxs dir id γ ρ γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
+    bootLog ctxs dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hret Haf Hbuq Hdbo
+  have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
+  have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff,
     #Hrows⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg

@@ -58,8 +58,7 @@ theorem BuildServer.wp_proofRestart
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   (try wp_auto)
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu
-      Uok ps bootLog ctxs dir id γ ρ γn (ThreadBoundLe.le (GF := GF) (2 ^ 28))
-      (ReceiptBoundLe.le (GF := GF) (2 ^ 48)) (ReceiptBoundLe.le (GF := GF) (N + 1)) HwbN hvs hrule
+      Uok ps bootLog ctxs dir id γ ρ γn HwbN hvs hrule
       hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU rfl Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
   iapply HΦ
