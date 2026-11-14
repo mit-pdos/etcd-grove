@@ -766,29 +766,29 @@ theorem deleteReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o 
 attempts carry `who`'s tokens, the member's KV methods with auth on, the TLS refutation, the
 history invariant, the auth state fixed after the set-up, an empty index certificate and an
 empty option list. -/
-def akCallEnv (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
+def akCallEnv (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
-    kvObjAtC api conn [go!"127.0.0.1:23916"] ∗ attemptTokOk conn (akTokP γa who) ∗
-    akKVOn go!"127.0.0.1:23916" s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗ akHistInv ρ.kv ∗
+    kvObjAtC api conn [addr] ∗ attemptTokOk conn (akTokP γa who) ∗
+    akKVOn addr s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗ akHistInv ρ.kv ∗
     akAuthFixed γa ρ Lset n ∗ srvApi.kvLogLb E.γs [] ∗ optsAt slice.nil [])
 
-instance akCallEnv_persistent (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+instance akCallEnv_persistent (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString) :
-    Persistent (akCallEnv (GF := GF) cl api conn s E ρ cid mid γa Lset n who) := by
+    Persistent (akCallEnv (GF := GF) cl api conn addr s E ρ cid mid γa Lset n who) := by
   unfold akCallEnv; infer_instance
 
 /-- **`cli.Put(ctx, k, v)` of `who`'s**: a reply with no error was granted to `who` (`hop`: a
 granted put keeps the history). -/
-theorem work_put (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
+theorem work_put (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (k v : GoString) (hγa : E.authMode = .on γa)
     (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
     (hop : akOpGranted who (.put (putKeyOp k v)) → opHistOk (.put (putKeyOp k v)))
     (hsz : opSizeOk (opPutModel k v [])) :
-    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #v)) (Val #slice.nil))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -811,14 +811,14 @@ theorem work_put (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   · ipureintro; intro h; exact absurd h Herr
 
 /-- **`cli.Delete(ctx, k)` of `who`'s**: a reply with no error was granted to `who`. -/
-theorem work_delete (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
     (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
     (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) →
       opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
     (hsz : opSizeOk (opDeleteModel k [])) :
-    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #slice.nil))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -843,14 +843,14 @@ theorem work_delete (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
 /-- **`cli.Get(ctx, key, opts...)` of `who`'s** (no sort, no panic): a reply with no error was
 granted at `setupSt` to a user of `who`'s, for the request's range (`akRead_granted`), and its
 keys are in that range (`srvRangeOk_keys`). -/
-theorem work_get (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (hγa : E.authMode = .on γa)
     (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
     (hg : ¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1)
     (hs : (opGetModel key gs).base.sortSet = false) (hsz : opSizeOk (opGetModel key gs)) :
-    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
         optsAt sl gs }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -948,7 +948,7 @@ theorem txnReplied_facts (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F 
 /-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
 permission cache decides): a reply with no error was granted to `who` (`hop`: a granted
 transaction keeps the history). -/
-theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (hγa : E.authMode = .on γa) (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who)
@@ -958,7 +958,7 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
     (hro : txn.txnReadonly (txnWireOf b.model) = false)
     (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
     (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))) :
-    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗ txnObjAt tp [go!"127.0.0.1:23916"] ci cd b ∗
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ txnObjAt tp [addr] ci cd b ∗
         txnKvIs tp api }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
@@ -1019,13 +1019,13 @@ theorem work_commit (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : R
 principal may write `c/...`: `t4M_not_granted`; etcd checks a nested transaction's operations,
 `checkTxnReqsPermission`). `hwho`: `who` is a principal of the program, so the request fits a gRPC
 message (`t4M_size`; `Commit`'s size premise, 2026-10-30, postdates this statement). -/
-theorem then_commit_nested_refused (cl api conn tp : Loc) (s : Loc) (E : apply.AEnv GF)
+theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat)
     (who : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl tsl : GoSlice)
     (op : go_etcd_io.etcd.client.v3.Op) (hwho : who ∈ principals) (hγa : E.authMode = .on γa)
     (hout : metadata.outgoingOf (GoInterface.ok ci) = akOut who) :
-    {{ akCallEnv cl api conn s E ρ cid mid γa Lset n who ∗
-        txnObjAt tp [go!"127.0.0.1:23916"] ci cd TxnBuild.empty ∗ txnKvIs tp api ∗
+    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗
+        txnObjAt tp [addr] ci cd TxnBuild.empty ∗ txnKvIs tp api ∗
         sl ↦*□ [op] ∗ opFullAt op OpFull.txnInit ∗ cmpsAt op.cmps' [] ∗
         ⌜op.thenOps' = tsl ∧ op.elseOps' = slice.nil⌝ ∗
         opsAt tsl [opPutModel (keyOfK go!"c" who go!"t3") go!"vt" []] }}
@@ -1053,7 +1053,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (s : Loc) (E : apply.A
     iframe Hobj
     ipureintro
     exact ⟨by simp [OpT.txnOps, OpT.txnOp, txnOpOf_put], rfl, rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp [go!"127.0.0.1:23916"] ci cd
+  ihave Hobj : txnObjAt (GF := GF) tp [addr] ci cd
       ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩ $$ [Hobj]
   · iExactEq Hobj
     simp [TxnModel.empty, t4M]

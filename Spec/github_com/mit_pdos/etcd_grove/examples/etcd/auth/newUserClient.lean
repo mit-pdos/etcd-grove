@@ -1,14 +1,14 @@
 /-
-`newUserClient(name, pw, lg)` (`examples/etcd/auth/etcd_auth.go`; `notes/authkv-main-plan.md`, S3): a
-client of authkv's client address `127.0.0.1:23916` that authenticates as `name` with the
-password `pw`. Lean-first (no Rocq counterpart).
+`newUserClient(addr, name, pw, lg)` (`examples/etcd/auth/authkv.go`; `notes/authkv-main-plan.md`, S3):
+a client of the address `addr` (authkv's client address, or auth3's first member's: `Run`'s, since
+the auth3 Scope's Q6) that authenticates as `name` with the password `pw`. Lean-first (no Rocq counterpart).
 
 **The triple:** `clientv3.New.spec`'s at the configuration `newUserClient` builds (etcdctl's
 timeouts, as `etcdstart.NewClient`'s, and the user name and password): given `Authenticate`
 registered at the address with a reply to `(name, pw)` meeting `P` (`authTokReg`; with auth on,
 `P` is `auth.tokIssued γa · name`), a new client (`isNewClient`) whose KV calls carry a token
 meeting `P` or the context's own (`clientTokAt`; `clientTokAt_user` gives `userClientAt`), or an
-error and `nil`. The name and password fit in a gRPC message (`strsSizeOk`, `New`'s premise for the
+error and `nil`. The address is a plain `host:port` (`plainEndpoint`, `New`'s); the name and password fit in a gRPC message (`strsSizeOk`, `New`'s premise for the
 `Authenticate` it sends; invoke-size).
 -/
 module
@@ -35,17 +35,17 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 /-- See the file header. -/
 abbrev newUserClient.spec : Prop :=
-  ∀ (name pw : GoString) (lg : Loc) (V : WEnv GF) (P : GoString → IProp GF),
-  threadBound GF ≤ 2 ^ 30 → strsSizeOk [name, pw] →
+  ∀ (addr name pw : GoString) (lg : Loc) (V : WEnv GF) (P : GoString → IProp GF),
+  plainEndpoint addr → threadBound GF ≤ 2 ^ 30 → strsSizeOk [name, pw] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
-      client.ctxErrClientAll ∗ authTokReg [go!"127.0.0.1:23916"] name pw P }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.newUserClient))
-      (Val #name)) (Val #pw)) (Val #lg))
+      client.ctxErrClientAll ∗ authTokReg [addr] name pw P }}
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.newUserClient))
+      (Val #addr)) (Val #name)) (Val #pw)) (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [go!"127.0.0.1:23916"] V ∗
-        clientTokAt cl [go!"127.0.0.1:23916"] P) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
+        clientTokAt cl [addr] P) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec
