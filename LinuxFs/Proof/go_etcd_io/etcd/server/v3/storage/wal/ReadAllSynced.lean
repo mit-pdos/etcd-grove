@@ -79,6 +79,7 @@ theorem walInv_tailH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
     with ⟨%Ls, %cl, %n, %F, %d, %lay, %pre, %g0, %hf, Hseg, Hk, Hv, Hv2, Hm, Hclose⟩
   obtain ⟨hd, hl, hs, htg, hW, -⟩ := hf
   ihave Hb := walInvBody_tailW_same (hG := hG) C Mr R jr r s dir γ Ls cl n F d lay pre g0 hW hl hs
+    none trivial
     $$ Hclose Hseg [Hv2]
   · rw [← htg]; iexact Hv2
   imod Hcl $$ [Hb] with -

@@ -109,11 +109,12 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
 after a crash): as `walTailsRes_register`, under `TailZ0` (F-Z, or nothing written past the start's
 frames) in place of F-Z; the holder gets the pending token `walPendTok dir γ |old|` in place of the
 key, which goes into the invariant (`walLentRes_regPend`), until the fdatasync after `ZeroToEnd`
-(`walLentRes_unpend`). -/
+(`walLentRes_unpend`). The lent registry records F-Z or `RepOld` of the tail (`hr`: an exact tail with
+`wr = z0` has `RepOld`, `WalAbsD.repOld`; the W7-W12 log, thirteenth session). -/
 theorem walTailsRes_registerPend (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) (dir : GoString) (d : WalDur) (lay : WalLay) (g : SegG)
     (hp : s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧
-      TailBound C Mr d lay) :
+      TailBound C Mr d lay) (hr : TailZ0 lay → TailZeros lay ∨ RepOld lay) :
     ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ ==∗ ∃ γ : GName,
       ⌜TailZ0 lay⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) (<[dir := γ]> ∅) ∗
         walPendTok (W := W) dir γ lay.old.length ∗
@@ -128,7 +129,7 @@ theorem walTailsRes_registerPend (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskSt
   imod walTails_register (W := W) ∅ dir γ (GMap.lookup_empty _) $$ Ha Hf with ⟨Ha, Hf, Hk⟩
   icases walLentRes_idle (W := W) ∅ Ls $$ HL with ⟨%hI, HL⟩
   have hz0 : TailZ0 lay := hI dir lay (GMap.lookup_empty _) hp.2.1
-  imod walLentRes_regPend (W := W) ∅ Ls dir γ lay (GMap.lookup_empty _) hp.2.1 $$ Hk HL with ⟨Hl, HL⟩
+  imod walLentRes_regPend (W := W) ∅ Ls dir γ lay (GMap.lookup_empty _) hp.2.1 (hr hz0) $$ Hk HL with ⟨Hl, HL⟩
   imodintro
   iexists γ
   iframe Hf Hl Hv2

@@ -90,7 +90,7 @@ theorem segResF_grow (F : GMap Ino SegFl) (g1 : SegG) (t n : Nat) (tr : Bool) (t
 change found `m0`, `bs0`) replaced by `rzLandG` with the size `w`, the record idle; the caller's halves
 of the landed `OsMeta` and of the bytes grown over. -/
 theorem walTail_growLand (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState)
-    (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
+    (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (Ls : GMap GoString WalLay) (cl : List Claim) (nn : Nat) (F : GMap Ino SegFl) (d : WalDur)
     (lay : WalLay) (pre : List SegG) (g1 : SegG) (tr : Bool) (tg w t n : Nat) (m0 : OsMeta)
     (bs0 : List ByteG) (zs : List Cands)
@@ -107,7 +107,8 @@ theorem walTail_growLand (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
             (wr' = lay.wr ∨ TailZeros lay) ∧
             WalsOk walCodec Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl nn ∧
             (∀ K c, DirKeysOk walCodec Mr jr s Ls cl nn K c →
-              DirKeysOk walCodec Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl nn K c)⌝ -∗
+              DirKeysOk walCodec Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl nn K c) ∧
+            TailRK (some (k, false)) (tailLay lay pre g wr')⌝ -∗
           segResF F' g -∗
           tailVar (W := W) γ (tailG d (tailLay lay pre g wr') g.ino (F' !! g.ino)) -∗
           walInvBody (W := W) walCodec Mr R jr r s) -∗
@@ -147,7 +148,7 @@ theorem walTail_growLand (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (rzLandG g0' tr tg w n zs).ino ((GMap.delete g1.ino F) !! (rzLandG g0' tr tg w n zs).ino))
     $$ Hv Hv' with ⟨Hv, Hv'⟩
   ihave Hb := Hclose $$ %(rzLandG g0' tr tg w n zs) %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt Hz2] Hv'
-  · ipureintro; exact ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK'⟩
+  · ipureintro; exact ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK', trivial⟩
   · have hn : (GMap.delete g1.ino F) !! (rzLandG g0' tr tg w n zs).ino = none := by
       rw [e1]; exact GMap.lookup_delete_eq _ _
     unfold segResF; rw [hn]; dsimp only
@@ -164,7 +165,7 @@ theorem walTail_growLand (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
 /-- **A growth that did not land, in the invariant** (both kinds): the in-flight layout kept, idle; the
 caller's half of the announced `OsMeta`. -/
 theorem walTail_growUndone (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState)
-    (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
+    (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (Ls : GMap GoString WalLay) (cl : List Claim) (nn : Nat) (F : GMap Ino SegFl) (d : WalDur)
     (lay : WalLay) (pre : List SegG) (g1 : SegG) (tr : Bool) (tg t n : Nat) (m0 : OsMeta)
     (bs0 : List ByteG)
@@ -178,7 +179,8 @@ theorem walTail_growUndone (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
             (wr' = lay.wr ∨ TailZeros lay) ∧
             WalsOk walCodec Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl nn ∧
             (∀ K c, DirKeysOk walCodec Mr jr s Ls cl nn K c →
-              DirKeysOk walCodec Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl nn K c)⌝ -∗
+              DirKeysOk walCodec Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl nn K c) ∧
+            TailRK (some (k, false)) (tailLay lay pre g wr')⌝ -∗
           segResF F' g -∗
           tailVar (W := W) γ (tailG d (tailLay lay pre g wr') g.ino (F' !! g.ino)) -∗
           walInvBody (W := W) walCodec Mr R jr r s) -∗
@@ -205,7 +207,7 @@ theorem walTail_growUndone (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   have htake : bs0.take (min m0.size tg) = bs0 := by
     rw [hmin]; exact List.take_of_length_le (by omega)
   ihave Hb := Hclose $$ %g1 %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt] Hv'
-  · ipureintro; exact ⟨rfl, rfl, hFd, Or.inl rfl, hW', hDK'⟩
+  · ipureintro; exact ⟨rfl, rfl, hFd, Or.inl rfl, hW', hDK', trivial⟩
   · unfold segResF; rw [GMap.lookup_delete_eq]; dsimp only
     unfold segRes
     obtain ⟨-, -, hom, hbs, -⟩ := hok
@@ -266,7 +268,7 @@ theorem walTail_fallocFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     imod Hcl'
     ihave Hseg : segResF F g1 $$ [Htok Hbt]
     · rw [segResF_grow F g1 t n false tg m0 bs0 hF.symm hlen hgrow]; iframe; ipureintro; exact hok
-    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g1 hW hl hs
+    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g1 hW hl hs (some (k, false)) trivial
       $$ Hclose Hseg Hv'
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
@@ -289,7 +291,7 @@ theorem walTail_fallocFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     · unfold rsDoneK
       icases Hd with ⟨%zs, %hzs, Hm, Hbz, -⟩
       obtain ⟨hzl, -, hzc⟩ := hzs
-      imod walTail_growLand Mr R jr r s dir γ H md cuts wr Ls cl nn F d lay pre g1 false tg w t n m0
+      imod walTail_growLand Mr R jr r s dir γ k H md cuts wr Ls cl nn F d lay pre g1 false tg w t n m0
         bs0 zs hd hl hs hW hH hmd hcuts hwrl hok (by omega) hlen hw.1 hw.2.1 hzf (by omega) hzl hzc
         $$ Hclose Hv' Hv Hbt Hm Hbz with ⟨Hb, Hv, Hm1, Hz1⟩
       imod Hcl $$ [Hb]
@@ -324,7 +326,7 @@ theorem walTail_fallocFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
         iright; iexists w; iframe Hdone; ipureintro; exact ⟨hw.1, hw.2.1⟩
     · unfold rsUndoneK
       icases Hu with ⟨Hm, -, -⟩
-      imod walTail_growUndone Mr R jr r s dir γ H md cuts wr Ls cl nn F d lay pre g1 false tg t n m0
+      imod walTail_growUndone Mr R jr r s dir γ k H md cuts wr Ls cl nn F d lay pre g1 false tg t n m0
         bs0 hl hs hW hH hmd hcuts hwrl hok hlen hgrow $$ Hclose Hv' Hv Hbt Hm with ⟨Hb, Hv, Hm1⟩
       imod Hcl $$ [Hb]
       · iexists s; iexact Hb
@@ -410,7 +412,7 @@ theorem walTail_fallocSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     icases (osMeta_halves _ _).1 $$ HmA with ⟨Hm1, Hm2⟩
     ihave Hseg : segResF F g0 $$ [Hm2 Hb2]
     · rw [eseg]; iframe
-    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g0 hW hl hs
+    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g0 hW hl hs (some (k, false)) trivial
       $$ Hclose Hseg Hv'
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
@@ -437,7 +439,7 @@ theorem walTail_fallocSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
       $$ Hv Hv' with ⟨Hv, Hv'⟩
     ihave Hb := Hclose $$ %(rzSeg g0 false tg n) %lay.wr
       %(<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (false, tg)⟩ : SegFl)]> F) [] [Htok Hb2] Hv'
-    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl rfl, hW', hDK'⟩
+    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl rfl, hW', hDK', trivial⟩
     · rw [segResF_grow _ (rzSeg g0 false tg n) t n false tg g0.om g0.bs hFg hsz.symm hsz0,
         show (rzSeg g0 false tg n).ino = g0.ino from rfl]
       iframe
@@ -501,7 +503,7 @@ theorem walTail_truncGFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     imod Hcl'
     ihave Hseg : segResF F g1 $$ [Htok Hbt]
     · rw [segResF_grow F g1 t n true tg m0 bs0 hF.symm hlen hgrow]; iframe; ipureintro; exact hok
-    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g1 hW hl hs
+    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g1 hW hl hs (some (k, false)) trivial
       $$ Hclose Hseg Hv'
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
@@ -523,7 +525,7 @@ theorem walTail_truncGFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     · unfold rsDoneK
       icases Hd with ⟨%zs, %hzs, Hm, Hbz, -⟩
       obtain ⟨hzl, -, hzc⟩ := hzs
-      imod walTail_growLand Mr R jr r s dir γ H md cuts wr Ls cl nn F d lay pre g1 true tg tg t n m0
+      imod walTail_growLand Mr R jr r s dir γ k H md cuts wr Ls cl nn F d lay pre g1 true tg tg t n m0
         bs0 zs hd hl hs hW hH hmd hcuts hwrl hok (by omega) hlen hgrow (Nat.le_refl _) hzf (by omega) hzl hzc
         $$ Hclose Hv' Hv Hbt Hm Hbz with ⟨Hb, Hv, Hm1, Hz1⟩
       imod Hcl $$ [Hb]
@@ -555,7 +557,7 @@ theorem walTail_truncGFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
         ileft; iexact Hdone
     · unfold rsUndoneK
       icases Hu with ⟨Hm, -, -⟩
-      imod walTail_growUndone Mr R jr r s dir γ H md cuts wr Ls cl nn F d lay pre g1 true tg t n m0
+      imod walTail_growUndone Mr R jr r s dir γ k H md cuts wr Ls cl nn F d lay pre g1 true tg t n m0
         bs0 hl hs hW hH hmd hcuts hwrl hok hlen hgrow $$ Hclose Hv' Hv Hbt Hm with ⟨Hb, Hv, Hm1⟩
       imod Hcl $$ [Hb]
       · iexists s; iexact Hb
@@ -644,7 +646,7 @@ theorem walTail_truncSupG (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     icases (osMeta_halves _ _).1 $$ HmA with ⟨Hm1, Hm2⟩
     ihave Hseg : segResF F g0 $$ [Hm2 Hb2]
     · rw [eseg]; iframe
-    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g0 hW hl hs
+    ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g0 hW hl hs (some (k, false)) trivial
       $$ Hclose Hseg Hv'
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
@@ -671,7 +673,7 @@ theorem walTail_truncSupG (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
       $$ Hv Hv' with ⟨Hv, Hv'⟩
     ihave Hb := Hclose $$ %(rzSeg g0 true tg n) %lay.wr
       %(<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, tg)⟩ : SegFl)]> F) [] [Htok Hb2] Hv'
-    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl rfl, hW', hDK'⟩
+    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl rfl, hW', hDK', trivial⟩
     · rw [segResF_grow _ (rzSeg g0 true tg n) t n true tg g0.om g0.bs hFg hsz.symm hsz0,
         show (rzSeg g0 true tg n).ino = g0.ino from rfl]
       iframe
