@@ -571,64 +571,53 @@ The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `Os
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry). A write in flight past the size is in the layout (`wrMeta`) and the crash take; `saveEntry`/`saveState` proved over `encode.specTail`; the writer past the size waits on known zeros past the size (lost by `OsMeta.synced`), the window's size fact and `TailWin`'s past-size clause (`wal-save15`; W6 log, fifteenth session). The known zeros past the size survive a sync: the extension's `MetaOk.zc` and `pwCz` (a complete write up to the zeros known raises `cz`), the tail's `TailZ` in `TailMeta`/`TailMetaW` (`ZeroPg` on the pipeline's files; `filePipeline.alloc`'s `ZeroPg` a `sorry` pending `trFile`/`preGrown` posts; `Create`/`ReadAll`/`specWalTail` obligations); finding 2 restated (false of `ZeroToEnd`'s window), finding 3 not added; bboltfs's `DB.init`/`initCrash` exact `cz` to repair (`wal-save16`; W6 log, sixteenth session). Minibolt's `DB.init`/`initCrash` repaired (posts' `cz` `pwCz m 0 16384 16384`; `WReach.cz_done`; `WriteAt.specCrashS` says `nn = |data|`; ledger); `alloc`'s `ZeroPg` is not provable from strengthened `trFile`/`preGrown` posts alone (a `fallocate` to an unaligned or partly landed size leaves `cz` behind the zeros it announces, and the leftover `N.tmp`'s `O_TRUNC` gives no zeros fact): an extension change proposed (`rsCz` for a `fallocate` landing); finding 3's clause, as proposed, false of `ZeroToEnd`'s window (torn bytes past `z0`, durable): amended design (stamp-0 candidates are `old`'s bytes, and the window's bytes in `[wr, |bs|)` constrained too), not implemented (`wal-save17`; W6 log, seventeenth session). `alloc`'s `ZeroPg` proved: the extension's `MetaOk.ce` (the page cache zero past the size's last page) lets a landed resize raise `cz` (`rsCz`); `preGrown` takes a condition `Z` (`ZeroPg` on success), `trFile` carries `ZfGe ∧ (P → ZeroPg)` (ledger); the amended `TailWin` not started (`wal-save18`; W6 log, eighteenth session). The amended `TailWin` is in (`WinCands` over `segBytesX`, `TailLast.win` over `SegExact`), finding 2 as `WalAbsD.last`'s `WinZero` (bytes from `wr` on zero in a window), and the window's fdatasync's static relation (`syncLayW`, `walAbsD_syncW`); its crash half (`crashOk_syncW`, designed), the writer past the size, `encode.specTail` and `sync` not started (`wal-save19`; W6 log, nineteenth session). The window's fdatasync proved through the invariant step (`crashOk_syncW`, `walsOk_syncW`/`dirKeysOk_syncW`, `syncLay_any`; `walInvBody_sync`, `wp_tailFsync` and `syscall.Fdatasync.wp_tail` no longer need `SegExact`, `fileutil.Fdatasync.wp_tailW`); the writer past the size is blocked on two invariant facts (`winLo` is false of a write past the size from an exact tail; the candidates past `hi` are unconstrained), designed, not made; `sync` not started (`wal-save20`; W6 log, twentieth session). A window's `|old| ≤ hi` is in the invariant (`WinLast`, `WalAbsD.oldHi_any`) and `wal-tc13`'s old-length map merged (the window's fdatasync takes its element, `walOldOpt`: `ZeroToEnd`'s flow has it, `cut`'s does not); `winLo` stays, since the truncate at `wr` needs it of the crash size (finding B: a handle-level fact with a predicate on `os.truncSup`'s meta recommended), `WinHead` derived; `PastCands` is false of a crash's tail and goes on the handle (`PastZ`); the writer past the size, task 2 and `sync` not started (`wal-save21`; W6 log, twenty-first session). Option (A) made (`os.truncSup`'s `P`, `walTailW`'s `LoWr`), `winLo` replaced by `WinHead` in the invariant, `PastZ` in `TailMeta`/`TailMetaW` (with `os.ftDoneH`'s `TcFrom`; ledger); the pipeline's `PastZ` obligation moot (tails enter after an fdatasync); the writer past the size, `encode.specTail` and `sync` not started (`wal-save22`; W6 log, twenty-second session). `PastZ.winShape` (task 1); the decoding over abstract read facts (`tail_decodeV`), `TailShape`, `crashTo_tailW` and `crashOkA_tailAny`/`crashOkW_tailW`: any tail step's crash condition from the two layouts' static relations; `WinLo` (a window's `lo` past `so`, `z0`) in `WinLast`; the writer's steps (`walAbsD_announceW`, the Iris steps, `wal.tailWriterW`), `encode.specTail` and `sync` not started (`wal-save23`; W6 log, twenty-third session).
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the window-to-window form (`crashOkA_rzStart`, over the invariant's new `WalAbsD.winLo` and the extension's `OsMeta.TcZ`/`0 < n` at the start's commit) and the landing's facts (`rzLand`, `segBytesX_rzLand`) are proved (`wal-tc7`; W1 log, seventeenth session); the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc7` entry).
 
-### Inventory (2026-11-14, integration)
+### Inventory (2026-11-14, integration, refreshed on `wal-int4`)
 
-Branch `wal-int3` (from `wal-int` `c63cf77346`): every `LinuxFs` and `GooseLang/Ext/Fs` target builds
-(3197 jobs, no failure, nothing to fix); `etc/gen-part-copies.py --check` and `etc/gen-init.py --check`
-pass. `etc/tcb-report.py --collection etc/tcb-collections/linuxfs.txt` (run on the LinuxFs roots only:
-the rest of the tree was not rebuilt): 72 roots, 0 axioms of this repository, 0 `sorry`s, matching the
-baseline. The WAL is in no linked root yet (no `Link.lean` for `wal`/`fileutil`), so nothing below shows
-in that report. Paths: `S/` = `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`, `Sp/` =
-`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`.
+Branch `wal-int4` (from `wal-int` `5c98a6197a`, `wal-save22` merged): every `LinuxFs` and `GooseLang/Ext/Fs`
+target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py --check`, `etc/gen-init.py --check` and `etc/goose.py
+--check` for projects `bboltfs`, `crashlog`, `walfs` pass. Scripted from the source (the theorems
+`*.wp_proof*` under `S/` and `fileutil/`: their binders; a callee spec counts as proved when some `theorem` or
+`axiom` of this repository or Perennial has it as its type). The WAL is in no linked root yet. Paths: `S/` =
+`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`, `Sp/` = `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`.
 
-**`sorry`s (5 declarations; source lines of the `sorry`)**
-- `S/Create.lean:761` (`wal.Create.wp_proof`, :92): after the call of `renameWAL` (its error arms, the
-  post-commit order, the handle).
-- `S/WAL__ReadAll.lean:89` (`WAL.ReadAll.wp_proof`, :44): everything after the first `Decode`.
+**`sorry`s (4 declarations, 6 `sorry`s; source lines)**
+- `S/Create.lean:780`, `:782`, `:785` (`wal.Create.wp_proof`, :95): three of `renameWALPost`'s four arms
+  (committed with `w` returned; committed with a reopened WAL; not committed); the committed-error arm is proved.
+- `S/WAL__ReadAll.lean:300` (`WAL.ReadAll.wp_proof`, :140): the loop's EOF stop and what follows it.
 - `S/WAL__sync.lean:210` (`WAL.sync.wp_proof`, :208): whole proof (writes past the tail's size).
-- `S/filePipeline__alloc.lean:137` (`filePipeline.alloc.wp_proof`, :40): the new file's `ZeroPg`
-  (needs `trFile`/`preGrown` posts to carry it; extension change `rsCz` proposed).
 - `LinuxFs/Proof/os/WriteLong.lean:56` (`os.File.WriteAt.wp_proof_long`, :41): writes past 1 GiB.
+- `S/filePipeline__alloc.lean`: none now (was :137). `fileutil/`: none.
 - (Not counted: `LinuxFs/GeneratedProof/os.lean:182-205`, generated instances of axiomatized types.)
-- `fileutil/`: none.
 
-**Non-callee premises of the `wp_proof`s (laws and supplies; 13 binders, 11 distinct)**
-- `S/WAL__ReadAll.lean:46` `hU : U.Ok Mr`: the unmarshaller inverts the marshaller.
-- `S/WAL__ReadAll.lean:47` `hHs : WalHsOwn P U HsO` (`Sp/ReadAllCallees.lean:57`): HardState ownership.
-- `S/WAL__ReadAll.lean:58` `WalPbIn.UnmarshalEntLaw` (`Sp/ReadAllCallees.lean:40`): entry unmarshal.
-- `S/WAL__ReadAll.lean:59`, `S/WAL__saveEntry.lean:34` `WalPbIn.GetIndexLaw` (`Sp/WAL__saveEntry.lean:41`).
-- `S/WAL__ReadAll.lean:60` `WalPbIn.GetTermLaw` (`Sp/ReadAllCallees.lean:47`).
-- `S/WAL__ReadAll.lean:61` `WalPbIn.CloneHsLaw` (`Sp/ReadAllCallees.lean:76`).
-- `S/WAL__Save.lean:115`, `S/WAL__cutPre.lean:57`, `S/WAL__saveState.lean:35` `WalPbIn.IsEmptyLaw`
-  (`Sp/WAL__cutPre.lean:80`): raft's `IsEmptyHardState`.
-- `S/WAL__Save.lean:116` `WalPbIn.MustSyncLaw` (`Sp/WAL__Save.lean:34`): raft's `MustSync`.
-- `S/WAL__Save.lean:117` `WalPbIn.ZeroLaw` (`Sp/WAL__Save.lean:43`): the zero HardState.
-- `S/WAL__cutPre.lean:58`, `S/WAL__saveState.lean:35` `WalPbIn.MarshalHsLaw` (`Sp/WAL__cutPre.lean:88`).
-- `S/WAL__saveEntry.lean:34` `WalPbIn.MarshalEntLaw` (`Sp/WAL__saveEntry.lean:32`).
-- `S/openAtIndex.lean:205` `hEnv : WalDecEnvSupply` (`S/openAtIndex.lean:114`): the decoder's
-  environment (true of Go but for `errors.newVar`'s allocation identity, a Perennial gap).
-- (The `[pkg.Assumptions]`/`[T.FieldAssumptions]` instance binders are the generated Goose ones, not listed.)
+**Non-callee premises of the `wp_proof`s (laws and supplies; 16 binders, 12 distinct)**
+- `S/WAL__ReadAll.lean:142` `hU : U.Ok Mr`; `:143` `hHs : WalHsOwn P U HsO` (`Sp/ReadAllCallees.lean`).
+- `S/WAL__ReadAll.lean:155` `WalPbIn.UnmarshalEntLaw`; `:157` `GetTermLaw`; `:158` `CloneHsLaw`.
+- `WalPbIn.GetIndexLaw`: `S/WAL__ReadAll.lean:156`, `S/WAL__saveEntry.lean:34`.
+- `WalPbIn.IsEmptyLaw` (`Sp/WAL__cutPre.lean:80`): `S/WAL__Save.lean:115`, `S/WAL__cutPre.lean:57`,
+  `S/WAL__saveState.lean:35`.
+- `S/WAL__Save.lean:116` `WalPbIn.MustSyncLaw`; `:117` `WalPbIn.ZeroLaw`.
+- `WalPbIn.MarshalHsLaw`: `S/WAL__cutPre.lean:58`, `S/WAL__saveState.lean:35`.
+- `S/WAL__saveEntry.lean:34` `WalPbIn.MarshalEntLaw`.
+- `S/openAtIndex.lean:207` `hEnv : WalDecEnvSupply` (the decoder's environment; `errors.newVar`'s allocation
+  identity, a Perennial gap).
+- (Parameters `P`, `Mr`, `U`, `C : WalCodec`, and the generated `[…Assumptions]` instances are not listed.)
 
-**Callee specs taken as hypotheses with no proof or axiom anywhere (15)**
-- WAL's own variants: `WAL.renameWALUnlock.spec` (`Sp/WAL__renameWALUnlock.lean:36`; `renameWAL`; ledger:
-  unprovable as stated), `WAL.sync.specC` (`Sp/WAL__syncC.lean:37`; `Close`), `WAL.sync.specCut`
-  (`Sp/WAL__cutTail.lean:58`; `cut`), `encoder.encode.specTail` (`Sp/encoder__encodeTail.lean:35`;
-  `SaveSnapshot`, `saveEntry`, `saveState`), `walpb.Record.Reset.spec` (`Sp/walpb/Record__Reset.lean:33`;
-  `Decode`), `walpb.Snapshot.GetTerm.spec` (`Sp/ReadAllCallees.lean:96`; `ReadAll`).
-- `fileutil.CreateDirAll.specTmp`, `os.RemoveAll.specAbsentN` (`Sp/CreateCallees.lean:80`, `:96`; `Create`, `renameWAL`).
-- Standard library / protobuf (`LinuxFs/Spec/...`): `errors.AsLinkError.spec` (`renameWAL`),
-  `errors.IsErrno.spec` (`fileutil.TryLockFile`), `errors.IsPathErrnoEof.spec` (`openAtIndex`),
-  `fmt.ErrorfErrs.spec` (10 proofs), `fmt.ErrorfErrsNot.spec` (`decodeRecord`), `proto.CloneWalSnap.spec`
-  (`walpb.Snapshot.Clone`), `proto.UnmarshalWalRecordE.spec` (`decodeRecord`).
-- The other callee specs the proofs take are proved or trust-boundary axioms (main tree `Proof/`, Perennial).
-- **Update (`wal-leaf1`, 2026-11-14; the "Leaf specs log" below):** proved, as `wp_proof`s over their own
-  callees: `walpb.Snapshot.GetTerm.spec`, `os.RemoveAll.specAbsentN`, `fmt.ErrorfErrs.spec`,
-  `proto.CloneWalSnap.spec` (over `proto.ClonePb.spec`, whose axiom the part does not copy yet). Left: 11.
-- **Update (`wal-leaf2`, 2026-11-14; the "Leaf specs log (branch `wal-leaf2`)" below):** proved,
-  `walpb.Record.Reset.spec`, over a new trusted model (`Record.Reset.impl`, pending the user's review, §10).
-  Left: 10. `errors.IsErrno.spec`, `errors.IsPathErrnoEof.spec`, `errors.AsLinkError.spec` and
-  `fmt.ErrorfErrsNot.spec` are unprovable from Perennial's present facts and specs, whatever this repository
-  translates (the log says exactly what each lacks).
+**Callee specs taken as hypotheses with no proof or axiom anywhere (13)**
+- WAL's own variants: `WAL.renameWALUnlock.spec` (`S/WAL__renameWAL.lean:69`), `WAL.sync.specC`
+  (`S/WAL__Close.lean:59`), `WAL.sync.specCut` (`S/WAL__cut.lean:112`), `encoder.encode.specTail` (3 uses, first
+  `S/WAL__SaveSnapshot.lean:55`).
+- `fileutil.CreateDirAll.specTmp` (`Sp/CreateCallees.lean:82`; `S/Create.lean:101`; false as stated, ledger).
+- `os.File.Close.specClosed` (`LinuxFs/Spec/os/File__CloseClosed.lean:38`; `S/Create.lean:111`, `CreateLockedLeft`).
+- `pbutil.MustMarshalMessage.specWalSnap` (`LinuxFs/Spec/.../pbutil/MustMarshalMessageWalSnap.lean:39`;
+  `S/WAL__SaveSnapshot.lean:60`, `SaveSnapshotPre`), `pbutil.MustUnmarshalMessage.specWalSnap`
+  (`Sp/ReadAllCallees.lean:87`; `S/WAL__ReadAll.lean:154`).
+- Standard library / protobuf: `errors.AsLinkError.spec` (`S/WAL__renameWAL.lean:68`), `errors.IsErrno.spec`
+  (`fileutil/TryLockFile.lean:300`), `errors.IsPathErrnoEof.spec` (`S/openAtIndex.lean:208`, `OpenFiles`),
+  `fmt.ErrorfErrsNot.spec` (`S/decoder__decodeRecord.lean:47`), `proto.UnmarshalWalRecordE.spec`
+  (`S/decoder__decodeRecord.lean:43`).
+- Against the previous inventory's 10 left: the same 10, plus 3 the earlier count missed (the two `pbutil`
+  `specWalSnap`s and `os.File.Close.specClosed`). The four `errors`/`fmt` leaves are unprovable from
+  Perennial's present facts (the `wal-leaf2` log below).
 
 ## Leaf specs log (branch `wal-leaf1`, 2026-11-14)
 
