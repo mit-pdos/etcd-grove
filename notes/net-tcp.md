@@ -110,7 +110,7 @@ table, `<cmd>.getIsPkgInit_wf`), and `cmd/<node>/Main.lean`'s `wp_main` proves t
 body's theorem (the example's `isPkgInit` from the command's, `iPkgInit`). The process tests
 (`process_test.go`) build the commands and run them as separate processes over real TCP: each
 client node again and again against the server, each exiting 0, and the server killed (SIGKILL) and
-restarted under running clients, none of which may panic. (Checked 2026-11-14 by `etc/lean-check.py -a`; framed, preface and shutdown also by `lake build`, the others' build pending: the full build was stopped by memory pressure.) Until then, each node's program was the
+restarted under running clients, none of which may panic. (All seven checked by `lake build`, 2026-11-14.) Until then, each node's program was the
 body followed by `wire.Forever()` (a process that never exits), because v1's semantics had no FIN
 on exit; v2's breaks cover it, so `Forever` is gone.
 
