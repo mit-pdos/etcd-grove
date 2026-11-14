@@ -86,6 +86,28 @@ theorem candsElems_set (vs : List cand) (cs : List TCand) (j : Nat) (v : cand) (
   · simp only [hij, if_false] at h1 h2
     iapply Hall; ipureintro; exact ⟨h1, h2⟩
 
+/-- Reading an element of an owned slice: its points-to, and the slice back from it unchanged. -/
+theorem ownSlice_elem_read_cand
+    (i : Int) (v : cand) (s : GoSlice) (vs : List cand) (hpos : 0 ≤ i) (hlookup : vs[i.toNat]? = some v) :
+    (s ↦* vs : IProp GF) ⊢
+      typedPointsto (sliceIndexRef cand i s) v (DFrac.own 1) ∗
+      (typedPointsto (sliceIndexRef cand i s) v (DFrac.own 1) -∗ s ↦* vs) := by
+  iintro Hs
+  icases ownSlice_elem_acc i v s (DFrac.own 1) vs hpos hlookup $$ Hs with ⟨Hv, Hb⟩
+  iframe
+  iintro Hv
+  have hset : vs.set i.toNat v = vs := by
+    apply List.ext_getElem?
+    intro n
+    rw [List.getElem?_set]
+    split
+    · rename_i hn; subst hn
+      rw [if_pos (List.getElem?_eq_some_iff.1 hlookup).1]; exact hlookup.symm
+    · rfl
+  ihave H := Hb $$ Hv
+  rw [hset]
+  iexact H
+
 end lemmas
 
 end etcd_wal

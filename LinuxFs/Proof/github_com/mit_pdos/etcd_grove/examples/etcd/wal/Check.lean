@@ -160,6 +160,23 @@ theorem tCheckNext_fold_ne_nil (o : TOracle) (c : TContents) :
     simp only [List.foldl_cons]
     exact ih _ (tCandNext_ne_nil o c cd _ _ h)
 
+theorem tImgReads_true {img : List TOp} {pur : w64} {c : TContents} {kk : Nat}
+    (hkk : kk ≤ uint.nat pur ∧ kk ≤ img.length) (hr : tReadCut img (W64 kk) = some c) :
+    tImgReads img pur c = true := by
+  unfold tImgReads
+  rw [List.any_eq_true]
+  exact ⟨kk, List.mem_range.2 (by omega), by simpa using hr⟩
+
+theorem tImgReads_false {img : List TOp} {pur : w64} {c : TContents}
+    (h : ∀ j, j ≤ min (uint.nat pur) img.length → tReadCut img (W64 j) ≠ some c) :
+    tImgReads img pur c = false := by
+  unfold tImgReads
+  rw [Bool.eq_false_iff]
+  intro ht
+  rw [List.any_eq_true] at ht
+  obtain ⟨j, hj, hr⟩ := ht
+  exact h j (by have := List.mem_range.1 hj; omega) (by simpa using hr)
+
 /-- **The check succeeds** when some candidate's image at its mark reads `c` from a purged prefix
 within its purge bound. -/
 theorem tCheckNext_ne_nil {o : TOracle} {c : TContents} {cd : TCand} {img : List TOp} {kk : Nat}
