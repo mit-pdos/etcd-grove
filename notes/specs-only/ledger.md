@@ -298,3 +298,29 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   is below that segment's name index, at most the target snapshot's, which it reads; `Create`: 0).
 - **Decision.** Adopted (proof agent; withdraws a provisional client obligation, so nothing for the user to
   approve; flagged in the W6 log).
+
+## 2026-11-14: `wal.WAL.SaveSnapshot.spec` -- `walSnapAt` does not determine the bytes `SaveSnapshot` writes
+
+- **Spec.** `walSnapAt sp md cs` (the WAL vocabulary, `Proof/go_etcd_io/etcd/server/v3/storage/WalDisk.lean`),
+  taken by `SaveSnapshot.spec`; in the part over `fsExt`, `LinuxFs/Spec/.../wal/WAL__SaveSnapshot.lean`, whose
+  history records `.snap md` written as `Mr.encSnap md` (`WalEncRecs.opDs`).
+- **Defect.** `walSnapAt` fixed the index, the term and whether the conf state is nil, not the conf state's
+  content nor either level's unknown fields, all of which `pbutil.MustMarshalMessage` writes; so the bytes
+  of the snapshot record were not a function of `md`, and the law `MustMarshalMessage.specWalSnap` (bytes
+  `Mr.encSnap md`) was false of the real marshaller. It also held the object as a whole frozen struct
+  (`sp ↦□ s`), which protobuf-go's `Marshal` (it writes `sizeCache`) cannot read.
+- **Evidence.** The W6 proof (`notes/wal-fsext-plan.md`, W6 log, fifth and ninth sessions);
+  `MustMarshalMessageWalSnap.lean`'s former "Open" note.
+- **Proposed change (made, in the part).** `walSnapAt Mr sp md cs` (`LinuxFs/Proof/.../wal/walpb/
+  PbSnapshot.lean`): a frozen `walpb.Snapshot` at a wire content `c` (`snapRoC`, the registered
+  `walpb.Snapshot`, hidden fields of both levels in invariants) with `c.model = md`, `Index`/`Term` set,
+  `cs = c.confState.isSome`, and **`snapEnc c = Mr.encSnap md`**. `walSnapIdTerm` is over the same content
+  (the getters' index and term). **New client obligation (C6):** the server's marshaller parameter `Mr`
+  must give one wire form per snapshot metadata, the one of every `walpb.Snapshot` it passes. Plausible: the
+  server builds each one the same way (`storage.go:62-66`, `Index`/`Term` copied from raft's metadata, the
+  conf state raft's own object), so `Mr.encSnap md` is `snapEnc` of that shape provided raft's conf states
+  carry no unknown fields (raft builds them; a decoded one from a peer could, which C6 must exclude or
+  carry). The main tree's `walSnapAt` (the W4a axioms' vocabulary) is unchanged until the part's specs
+  replace them.
+- **Decision.** Adopted (the coordinator's decision, W6 ninth-session plan; the user away). **For the
+  user's review** with the two trusted axioms `snapEncC_ok`, `pbSnapC_reg` (plan §10).
