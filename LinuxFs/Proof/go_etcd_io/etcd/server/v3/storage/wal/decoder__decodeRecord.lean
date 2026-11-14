@@ -79,7 +79,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iunfold decPostB
       ileft
       iexists 0
-      simp only [goDecode, List.drop_zero, List.map_nil, decide_true]
+      simp only [goDecode, List.drop_zero, List.take_zero, List.map_nil, decide_true]
+      isplitl []
+      · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
       isplitl []
       · ipureintro; simp [stopErr]
       isplitl [Hr]
@@ -248,6 +250,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           subst hfbrs0
           have hfs0 : fs = [] := List.length_eq_zero_iff.mp (by simpa using Hl.1.symm)
           subst hfs0
+          icases bufio.ownReader_open b F.fr _ _ _ $$ Hb with ⟨%q, HS, -⟩
           iapply HΦ
           iapply decPost_mk
           isplitl []
@@ -257,7 +260,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           iexists 1
           rw [show ([F] : List (DecFile GF)).map (·.bs) = [F.bs] from rfl,
             goDecode_eof_last (by simpa using hstep)]
-          simp only [List.drop_succ_cons, List.drop_zero, List.map_nil]
+          simp only [List.drop_succ_cons, List.drop_zero, List.map_nil, List.take_succ_cons, List.take_zero]
+          isplitl [HS]
+          · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+            isplitl [HS]
+            · iexists _; iexact HS
+            iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
           isplitl []
           · ipureintro; simp [stopErr]
           isplitl [Hr]
@@ -302,7 +310,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           iapply decPost_mk
           isplitl []
           · iexact Hans
+          icases bufio.ownReader_open b F.fr _ _ _ $$ Hb with ⟨%q, HS, -⟩
           iapply decPost_cons_eof C d rp IoE eof ueof F fs off c err' hstep hfs
+          isplitl [HS]
+          · iexists _; iexact HS
           iexact Hpost
     rw [decide_eq_false (fun h => hdrop (Or.inl h))]
     by_cases hn : err ≠ GoInterface.nil
@@ -355,7 +366,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
             .stop .shortLen ((F :: fs).map (·.bs)) off c := by
           simp only [List.map_cons]; unfold goDecode; rw [hstep']
         rw [hg]
-        simp only [List.drop_zero]
+        simp only [List.drop_zero, List.take_zero]
+        isplitl []
+        · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
         isplitl []
         · ipureintro; exact ⟨h1, trivial⟩
         isplitl [Hr]
