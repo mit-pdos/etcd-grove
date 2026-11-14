@@ -19,6 +19,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegPend
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailReg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailLend
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailCrashRep
 
 @[expose] public section
 
@@ -129,7 +130,7 @@ theorem walInvBody_readReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   obtain ⟨htm, hold⟩ := hid.tailMetaR habs hglL
   -- the registration, not yet zeroed
   imod walTailsRes_registerPend (W := W) C Mr s Ls ∅ dir d lay gl ⟨hd, hl, hglL, hid.bound habs⟩
-    $$ Htl Hf with ⟨%γ, %hz0, Htl, Hf, Hpt, Hv⟩
+    (fun h => h.elim Or.inl (fun hwz => Or.inr (habs.repOld hid.1 hwz))) $$ Htl Hf with ⟨%γ, %hz0, Htl, Hf, Hpt, Hv⟩
   isimp only [GMap.lookup_empty] at Hv
   imodintro
   iexists d, lay, kk, γ

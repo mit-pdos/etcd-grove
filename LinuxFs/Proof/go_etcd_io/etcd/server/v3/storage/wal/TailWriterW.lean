@@ -255,7 +255,7 @@ theorem wp_tailPWriteStartW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     exact ⟨hino.symm, rfl, fun i hi => GMap.lookup_insert_ne _ _ (fun h => hi (h.symm.trans hino.symm)),
       Or.inl rfl,
       walsOk_tailA hW hdw hl hs rfl (by simp [g', segAnnW_om, hcut0]) habs' hstep,
-      fun K c h => dirKeysOk_tailA hdw hl hstep h⟩
+      fun K c h => dirKeysOk_tailA hdw hl hstep h, trivial⟩
   · rw [show F' !! g'.ino = some fl from GMap.lookup_insert _ _ _]
     dsimp only [fl]
     rw [show g'.ino = d.ino from hino.symm]
@@ -401,7 +401,7 @@ theorem wp_tailPWriteFinishW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStr
   · ipureintro
     exact ⟨rfl, rfl, fun i' hi => GMap.lookup_delete_ne _ (Ne.symm hi), Or.inr hZ,
       walsOk_tailA hW hdw hl hs rfl (by simp only [g', segFinW]; rw [pwPostK_cut]; exact hmc) habs' hstep,
-      fun K c h => dirKeysOk_tailA hdw hl hstep h⟩
+      fun K c h => dirKeysOk_tailA hdw hl hstep h, trivial⟩
   · rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     dsimp only
     unfold segRes

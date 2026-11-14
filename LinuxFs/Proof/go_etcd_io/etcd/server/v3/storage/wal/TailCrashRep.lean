@@ -23,7 +23,7 @@ No decoder evidence from the program is needed: `tailStop` is the invariant's (a
 |S|`). The segment must stay no longer than `old` (`RepOld`): a growth's zeros past `old` could complete
 a frame the durable image tears short.
 
-* `RepOld`: `wr = z0`, and from `wr` on each byte the segment may leave lies within `old` and reads `old`'s
+* `RepOld` (now `Inv.lean`'s, the lent registry's channel): `wr = z0`, and from `wr` on each byte the segment may leave lies within `old` and reads `old`'s
   byte as of the last sync; every exact tail with `wr = z0` has it (`TailLast.repOld`); a truncate's first
   step (`RzCands`: zeros appended with stamps `> 0`) and its landing keep it (`repOld_rzSeg`,
   `repOld_rzLand`).
@@ -141,13 +141,6 @@ theorem acceptsFrom_frames_sub {C : WalCodec} (hC : C.Ok) {last : Bool} {img : L
 
 section rep
 variable [GooseExts]
-
-/-- **A tail whose frame at `wr` is the durable image's** (see the file header): nothing written past
-the start's frames (`wr = z0`), and from `wr` on each byte the segment may leave (`segBytesX`) lies within
-`old` and reads `old`'s byte as of the last sync. -/
-def RepOld (lay : WalLay) : Prop :=
-  lay.wr = lay.z0 ∧ ∀ g, lay.segs.getLast? = some g → ∀ b, lay.wr ≤ b → b < (segBytesX g).length →
-    b < lay.old.length ∧ valAt ((segBytesX g).getD b (0, [])).2 0 = lay.old.getD b 0
 
 /-- **An exact tail with `wr = z0` has `RepOld`**: past `wr` its bytes are unsynced, `old`'s byte
 stamped 0 first, then writes' candidates stamped `> 0` (`ByteOk`); the segment is `old` long. -/
@@ -556,6 +549,45 @@ theorem rzStart_pureR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {
     hsz.symm htcz hk
   exact ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) habs' hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+
+/-- **The truncate's first step at the write position, by the tail's right** (`walTail_truncSup`'s start;
+the W7-W12 log, thirteenth session): F-Z by the key; F-Z or `TailPend` lent (`rzStart_pureP`); F-Z or
+`RepOld` registered, not yet zeroed (`rzStart_pureR`), the last kept for the announced tail
+(`repOld_rzCands`); a lent tail's write position the stream's end (`hS`). -/
+theorem rzStart_pureK {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
+    {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
+    {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 : SegG} {k : Nat} {ok : Option (Nat × Bool)}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0]) (habs : ∃ ents, WalAbsD C Mr d lay ents)
+    (hcut : g0.om.cut = none) (hZ : TailZK ok lay)
+    (hS : ok ≠ none → (segStream C Mr d lay.cuts lay.cuts.length).length = lay.wr)
+    (hB : TailBound C Mr d lay) (hk : 0 < k)
+    (htcz : g0.om.TcZ) (hlo : ¬ SegExact g0 → g0.om.lo ≤ lay.wr) :
+    WalsOk C Mr R jr s (<[dir := tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr]> Ls) cl n ∧
+      (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
+        DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr]> Ls) cl n K c) ∧
+      TailRK ok (tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr) := by
+  rcases ok with _ | ⟨kk, _ | _⟩
+  · exact ⟨(rzStart_pure hC hW hd hl hs habs hcut hZ hB hk htcz hlo).1,
+      (rzStart_pure hC hW hd hl hs habs hcut hZ hB hk htcz hlo).2, trivial⟩
+  · have hZP : TailZeros lay ∨
+        (TailPend lay ∧ (segStream C Mr d lay.cuts lay.cuts.length).length = lay.wr) :=
+      (hZ : TailZeros lay ∨ TailPend lay).elim Or.inl (fun h => Or.inr ⟨h, hS (by simp)⟩)
+    obtain ⟨h1, h2⟩ := rzStart_pureP hC hW hd hl hs habs hcut hZP hB hk htcz hlo
+    exact ⟨h1, h2, trivial⟩
+  · obtain ⟨-, hR⟩ := (hZ : TailZ0 lay ∧ (TailZeros lay ∨ RepOld lay))
+    have hZR : TailZeros lay ∨
+        (RepOld lay ∧ (segStream C Mr d lay.cuts lay.cuts.length).length = lay.wr) :=
+      hR.elim Or.inl (fun h => Or.inr ⟨h, hS (by simp)⟩)
+    obtain ⟨h1, h2⟩ := rzStart_pureR hC hW hd hl hs habs hcut hZR hB hk htcz hlo
+    refine ⟨h1, h2, ?_⟩
+    rcases hR with hR | hR
+    · exact Or.inl hR
+    · obtain ⟨ents, habs⟩ := habs
+      obtain ⟨hsz, -, -, hhi, -⟩ := habs.metas g0 (by rw [hs]; simp)
+      obtain ⟨-, -, -, hwb, -⟩ := habs.lastWin g0 (by rw [hs]; simp)
+      obtain ⟨hXl, hXc⟩ := segBytesX_rzSeg (tg := lay.wr) hk (by omega) hsz.symm (by omega) htcz.1
+      exact Or.inr (repOld_rzCands hs rfl hR hXl hXc)
 
 /-- **`RepOld` across the truncate's landing at `wr`** (`segBytesX_rzLand`: the same candidates). -/
 theorem repOld_rzLand {lay : WalLay} {pre : List SegG} {g0 : SegG} {n : Nat}
