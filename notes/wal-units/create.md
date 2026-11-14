@@ -118,8 +118,24 @@ has after its commit), building the handle from `Create`'s claim fraction and re
 `RenameWALOk` law from `U (some x) ∗ SpR x` to `UH x` and the reopen's resources; (c) a public `os.Rename`
 spec for an absent source (the second rename after a first that took effect). None is a client-facing change.
 
+**Second session part (same branch, after the coordinator's merge of `6a6ca38e90` into `wal-int`).**
+- **Step 1 done** (commit `9acff93374`): the tail lock file. `walHandleIn`/`walHandleC`'s naming fact takes the
+  tail's `*os.File` (`nmd : Loc → Roots → Qp → IProp`, passed as `nmd f` to `walDirH`, whose type is unchanged);
+  `walOpenWFU P Mr w dir Rp qp tf` pins it (`Create`'s `f`); **`Close.specU`** returns it closed (`os.ownFile tf
+  (-1) _`) on success, open with its fd on the sync's failure. The tail writer's failure predicate **`tailWB`**
+  (`TailWriterW.lean`) keeps the tail's file and fd: `wp_tailWriteAtW`/`wp_tailWriteW`'s error arms return
+  `osFd` (they held it), `wal.tailWriterW`'s `B` is `tailWB` (`encoder__encodeTail` follows), `sync.wp_core`'s
+  error arm returns the file and fd (flush failure: `tailWB`; fdatasync failure: from `walTailW`), **`sync.specC`**'s
+  error arm with the naming fact at them. **`renameWALPost`'s arm 2** now also returns the caller's segment file
+  (`walLockLeft f …`: the retry's `w.Close()` closed it, or left it open), the reopened tail `tf` unknown. Gotcha:
+  a lambda naming fact passed through a metavariable (`wp_syncC … _ _`) is beta-reduced by `instantiateMVars`
+  and no longer matches the unfolded `(fun … ) f` in the context; pass it explicitly (`WAL__Close`,
+  `WAL__CloseU`).
+- `origin/wal-int` (`87ead66a41`, with this branch) merged (`9750299bba`, clean); `Create` and the 24 importer
+  leaves of every changed file (the WAL `Link`, `BootCrash`, the tester, `durable.Crash`) build.
+
 **Left (the next steps, in order):**
-1. **The tail lock file after the cleanup.** `Create`'s deferred `f.Close()` runs after `cleanupWAL` (`retErr`
+1. ~~**The tail lock file after the cleanup.**~~ (done above; the original note:) `Create`'s deferred `f.Close()` runs after `cleanupWAL` (`retErr`
    set): `Create` needs `os.ownFile f (-1)` (after `Close.specU`'s success: `os.File.Close.specClosed`) or the
    open file (after its failure). `walOpenWFU` hides the tail lock: pin it too (a fourth pinned value: the
    handle's last lock `lt` and its `*os.File`), and `Close.specU` returns the file (closed, or open with its
