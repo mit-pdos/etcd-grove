@@ -386,13 +386,15 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   The invariant's `d.metadata.length < 2^41` (for `ReadAll`) is to be established at `Create`'s commit
   (`walCreate_osAUnc`), not yet done.
 
-## 2026-11-14: `wal.openAtIndex.spec`, `wal.Open.spec`, `wal.OpenForRead.spec` (the part's, over `fsExt`) -- the WAL directory's length
+## 2026-11-14: `wal.openAtIndex.spec`, `wal.Open.spec`, `wal.OpenForRead.spec` (the part's, over `fsExt`) -- the WAL directory's length and name
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/{openAtIndex,Open,OpenForRead}.lean`.
 - **Defect.** `openWALFiles` (`filepath.Join(dir, name)`) and `newFilePipeline` take `dir.length < 2^61`; the
   specs bound neither `dir` nor the area `r` (the invariant records no length of a WAL's directory path).
+  For an absent WAL, `selectWALFiles.specAbsent` (`os.Open` of a missing name) takes `NameOk nm`, which
+  `walNameOk nm` does not give (it allows a NUL byte).
 - **Evidence.** `openAtIndex`'s proof (W3/W5 log, twelfth session): the premises of `openWALFiles.spec` and
   `newFilePipeline.spec`.
-- **Change (made).** The three take `dir.length < 2 ^ 59`, as `wal.Create.spec` does (a path to a WAL directory
-  is short in practice: Linux's `PATH_MAX` is 4096).
+- **Change (made).** The three take `dir.length < 2 ^ 59` and `NameOk nm`, as `wal.Create.spec` does (a path to
+  a WAL directory is short in practice: Linux's `PATH_MAX` is 4096; etcd's name is `wal`).
 - **Decision.** Adopted (minor, proof agent `wal-read12`; no client of the part's `Open` exists yet).
