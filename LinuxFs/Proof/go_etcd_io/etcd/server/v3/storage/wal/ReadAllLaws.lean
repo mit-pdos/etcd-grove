@@ -47,20 +47,30 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **The WAL as `ReadAll` reads it** (hypothesis; see the file header): its state `d`, the invariant's
 layout and directory names, the tail idle (`WalTailIdle`), the cuts positive, and the pinned segments the
-layout's from `kk` on (`WalPinnedSegs`). -/
+layout's from `kk` on (`WalPinnedSegs`). The pinned segments' names are the program's: each names its
+inode in the program's half of the directory's claim (`walReadTie`'s fact). Until 2026-11-14 the law took
+no such fact, and the pinned segments' names were otherwise unconstrained (the out record and the halves
+fix only the inodes, metadata and bytes): renaming one in `gs` to a name of no WAL segment gave `False`
+through `WalAbsD.nameBound`, so the hypothesis was unsatisfiable once a segment was pinned. Proving it
+needs the directory's files singly named (no two names of one inode among the WAL's names). Any
+record of open WALs `ws` (read mode records none, `walReadTie`). -/
 def WalReadState (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
-  ∀ (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (gs : List SegG),
+  ∀ (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG)
+    (ws : List GoString),
+    (∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino)) →
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+      osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗
-      walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], [dir]⟩ -∗
+      walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], ws⟩ -∗
       ([∗list] g ∈ gs, osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) -∗
       ∃ (d : WalDur) (lay : WalLay) (hj : NamesH) (kk : Nat),
         ⌜s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj.cur ∧ TailExact lay ∧
           lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ (∀ b ∈ lay.cuts, 0 < b) ∧
           lay.segs.drop kk = gs⌝ ∗
-        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walTailsFrag (W := W) ∅ ∗
-        walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], [dir]⟩ ∗
+        walInvBody (L := L) (W := W) C Mr R jr r s ∗
+        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗ walTailsFrag (W := W) ∅ ∗
+        walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], ws⟩ ∗
         ([∗list] g ∈ gs, osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
           osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
