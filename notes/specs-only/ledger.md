@@ -1515,3 +1515,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `HardState.Reset` a trusted model -- or keep the three laws as hypotheses of the closed result.
 - **Decision.** Pending (the coordinator for (1), an internal law change; the user for (2)-(3), trust-base
   additions).
+
+## 2026-11-14: `walInvBody` (internal, the part's) -- the crash boot's files-only fact `hfo` not derivable (W4c U3)
+
+- **Spec.** `walInvBody` (`LinuxFs/Proof/.../wal/Inv.lean`) and what `walInv_crash` returns of the crashed tree.
+- **Defect.** The crash boot (`walBootCrash`) must give the next generation `walTmpsRes J` (`0.tmp`/`1.tmp` absent or
+  files), `walOthersL` (a WAL directory's non-segment entries files), `walAreaRes`'s `TmpOk` (a leftover `nm.tmp` holds
+  only files, for `os.RemoveAll.specDirS`) and `tmpClTouch` (its `.touch` no directory). A crash leaves at a name what
+  one of its claim's versions held (`RegionCrashed`), and only for the claims the invariant holds when the crash comes;
+  the pipeline's names (while a write handle holds them), `Repair`'s lent names, `Create`'s `nm.tmp` directory and its
+  contents are under claims the program holds whole, and the invariant's own WAL-directory claims record no fact about
+  their past versions. So the fact is the crash boot's premise `hfo` (U3 log, second session), true of the Go code (the
+  WAL creates no directory there) but dischargeable by no one.
+- **Evidence.** U3 log, second session, (d); `BootFilesOnly.lean` (the crash-side lemma, proved).
+- **Proposed change (decided by the coordinator, 2026-11-14).** A new framed conjunct of `walInvBody` (its own
+  predicate, `walFoRes`): a list `fl` of claims held at half, and pure facts: every claim of `fl`, and every
+  WAL-directory claim of `cl`, has a history holding no directory at its names (`HistNoDir`, all versions); and every
+  version of an area claim of `cl` holding a directory `J` at a WAL name or at `nm.tmp` has every name of `J` covered by
+  such a claim. Then `RegionCrashed (cl ++ fl) n V'.now` gives `hfo` (`regionCrashed_filesOnly`), narrowed to WAL names
+  and `nm.tmp` (the `nm.broken.<t>` directories need only `SubCover`, which the boot's whole claims give). Every update
+  under a claim of `fl` becomes an invariant step (`osAU`/`osAUnc` with the invariant's half: the os specs are already
+  shaped for it). Condition checked: `walAreaRes` is unpacked by no client (outside the WAL's proofs only comments and
+  the WAL's own specs name it; its body is exposed, not `@[no_expose]`-sealed). No client-visible ghost state: `fl` is
+  inside the invariant.
+- **Decision.** Adopted (internal), in progress: the design's open points are in the U3 log, third session.

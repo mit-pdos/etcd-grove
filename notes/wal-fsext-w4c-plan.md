@@ -327,6 +327,47 @@ examples/lib/durable.lean` (generated), `LinuxFs/Proof/.../examples/lib/durable/
   claims and the crash's `osFileStart`s); (4) `gen-init.py` (`LFS_PKGS`, `LFS_SPECIAL`: `init_Mutex
   True`) and `etc/gen-link.py` (a mode of its own or `--walfs`'s).
 
+**Third session (branch `wal-u3c`, 2026-11-14): `hu` discharged; `hfo`'s invariant designed, its crash side proved;
+`walBootCrash` not started.** No axiom, nothing trusted changed.
+- **`hu` gone.** The replay of a closed set of logged operations is a tree only under the shared mode's disciplines
+  (`TreeCut.lean`: without them it need not be, the §4.3 counterexample), and that theorem was proved (`closed_cut`,
+  used by `machineCrash_initS`), but its conclusion was not kept for the next generation. Now `crashShared`
+  (`GooseLang/Ext/Fs/CrashTok.lean`, untrusted) keeps `TreeWf st.fs.roots V'.now` (first conjunct; built in
+  `os_local_crash` from `FsInit`), and **`crashRest_treeWf`** (`TreeShared.lean`, proof `TreeSharedCrash.lean`):
+  `osSharedInv R -∗ crashRest … V' ={E}=∗ ⌜TreeWf R V'.now⌝ ∗ crashRest … V'`. `walInv_crash` takes no `hu` (it calls
+  `crashRest_treeWf`; `uniqNames_of_wf`). The crash boot gets `TreeWf R V'.now` the same way (`NameOk`, `hjr`).
+  **Merge note:** a proof destructuring `crashShared`'s pure part gains a first component (two sites, fixed).
+- **`hfo`: condition checked, design (ledger 2026-11-14, "`hfo` not derivable").** `walAreaRes` is unpacked by no
+  client (outside `wal/` only comments and the WAL's own `Spec` files name it); its body is exposed (not
+  `@[no_expose]`): sealing it formally means `import all` in its WAL proofs (a follow-up, not needed for the check).
+  The crash side is proved (`BootFilesOnly.lean`): `HistNoDir h b` (no version of the history holds a directory at
+  `b`), `regionCrashed_noDir`, `regionCrashed_filesOnly` (a directory all of whose names crash-kept claims cover with
+  `HistNoDir` holds only files after the crash), `HistNoDir.log`. `hfo` narrows to WAL names and `nm.tmp`: the
+  `nm.broken.<t>` directories need only `SubCover`, which the boot's whole claims give (all directories reachable
+  under the name, tagged with it). The invariant side (a framed conjunct `walFoRes`: claims `fl` at half, `HistNoDir`
+  of `fl` and of the WAL-directory claims, coverage of every area version's directory at a WAL name or `nm.tmp`), by
+  the updates under the new claims, each to become an invariant step:
+  1. the pipeline's `0.tmp`/`1.tmp` (`tmpClaim`): `filePipeline.alloc`'s create (`specCreateS` → `specCreateSnc` with
+     the invariant's half, the os specs are shaped for it), the pipeline's removal of its leftover, `cut`'s rename
+     (already an invariant step; its source half now the invariant's too), the hand-off (`walParked` ↔ the handle:
+     `openAtIndex`, `Close`, `CloseHandle`, `WAL__CloseOpening`, `CreateHandle`, `CreateUnmint`): ~15 proofs;
+  2. `Create`'s `nm.tmp`: the `mkdir` (an area step: the new directory's claim's half into `fl`), `TouchDirAll`'s
+     `.touch` probe (fileutil's spec takes `osSubtree` whole: needs an AU-shaped spec, a fileutil spec change),
+     the first segment's create, `os.RemoveAll(nm.tmp)` of a leftover (needs an AU-shaped `os.RemoveAll` spec, a new
+     os spec and proof), the rename `nm.tmp` → `nm` (the claims become the WAL directory's);
+  3. `Repair`'s lent names (`lendKey`): its `.broken` file's create, rename;
+  4. the WAL-directory claims' `HistNoDir`: every invariant step logging into one proves its new version files-only
+     (segments and `walOthers`): `cut`, `Create`'s commit, `Repair`, `renameWAL`;
+  5. **open point**: `cleanupWAL` (`wal-create25`) renames `nm` → `nm.broken.<t>`: until that rename is committed a
+     crash may keep the version with `J` at `nm`, so `J`'s claims must stay covered (the invariant's half in `fl`), but
+     `walAreaRes`'s `areaCls` holds `nm.broken.<t>`'s subtree claims whole (for `os.RemoveAll`). Either coverage is
+     released only past the commit bound (`n`), the broken directory's claims staying split until a sync, or
+     `walAreaRes` takes the broken subtrees at less than whole.
+  **Estimate 3-5 sessions; cheaper alternative for 2 (for the coordinator):** drop `TmpOk` for a general-subtree
+  `os.RemoveAll` spec (`SubCover`, which the boot gives) and let `tmpClTouch` accept a directory `.touch` (the probe's
+  `O_CREAT` open fails with `EISDIR`, `Create` returns the error): then only `nm` (1, 3, 4) needs `fl`, and none of the
+  AU-shaped fileutil/`RemoveAll` specs.
+
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
