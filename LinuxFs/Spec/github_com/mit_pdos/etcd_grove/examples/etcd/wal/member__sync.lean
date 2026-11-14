@@ -53,7 +53,8 @@ abbrev member.sync.spec : Prop :=
       m.[member, go!"o"] ↦ v' ∗ tWalOwn γ (some d) ∗
       if b then oracleRep v' (tSynced o) ∗ tOrOwn γ (tSynced o) none ∗
         walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
-        WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length
+        WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length ∗
+        WalFs.walSyncedLb (W := W) (tWalDir e.root) d.H.length
       else oracleRep v' o ∗ tOrOwn γ o none }}
 
 end spec
