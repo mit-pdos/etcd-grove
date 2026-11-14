@@ -801,6 +801,20 @@ theorem wp_tailWriteW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (
     iright
     ipureintro; intro h; cases h
 
+/-- **The encoder's pending bytes are at most its page writer's buffer** (`2 * wmBytes`: the buffer is
+the watermark and a page). -/
+theorem ownEncoder_pend_le (e : Loc) (wi : GoInterfaceOk) (c : w32) (pend : List w8) :
+    ownEncoder (GF := GF) e wi c pend ⊢ ⌜pend.length ≤ 262144⌝ ∗ ownEncoder (GF := GF) e wi c pend := by
+  refine (BI.and_intro ?_ .rfl).trans persistent_and_sep_mp
+  unfold ownEncoder ioutil.ownPageWriter
+  iintro ⟨%pw, %h, %b, %u, %bs, %us, -, -, ⟨%v, %bs', -, -, %hv⟩, -⟩
+  ipureintro
+  obtain ⟨-, -, hok, rfl⟩ := hv
+  obtain ⟨-, h2, -, -, -, -, -, h8⟩ := hok
+  rw [show ioutil.wmBytes = 131072 from rfl] at h2 h8
+  rw [List.length_take]
+  omega
+
 /-- **The tail writer's state past the size** (`wal.tailWriterW`): `walTailW` with the tail's size the
 larger of `sz` and the stream's end, a resize window possibly open (`TailMetaW`), the stream's end below
 `max sz maxBytes` (a write lands nothing past `maxBytes`). At `o0 + |out| ≤ sz`, `walTailW … sz out

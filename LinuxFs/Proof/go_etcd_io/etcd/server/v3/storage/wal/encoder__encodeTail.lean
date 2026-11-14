@@ -28,20 +28,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-/-- **The encoder's pending bytes are at most its page writer's buffer** (`2 * wmBytes`: the buffer is
-the watermark and a page). -/
-theorem ownEncoder_pend_le (e : Loc) (wi : GoInterfaceOk) (c : w32) (pend : List w8) :
-    ownEncoder (GF := GF) e wi c pend ⊢ ⌜pend.length ≤ 262144⌝ ∗ ownEncoder (GF := GF) e wi c pend := by
-  refine (BI.and_intro ?_ .rfl).trans persistent_and_sep_mp
-  unfold ownEncoder ioutil.ownPageWriter
-  iintro ⟨%pw, %h, %b, %u, %bs, %us, -, -, ⟨%v, %bs', -, -, %hv⟩, -⟩
-  ipureintro
-  obtain ⟨-, -, hok, rfl⟩ := hv
-  obtain ⟨-, h2, -, -, -, -, -, h8⟩ := hok
-  rw [show ioutil.wmBytes = 131072 from rfl] at h2 h8
-  rw [List.length_take]
-  omega
-
 /-- The frame of a record of protobuf size below 2^47 is below 2^48. -/
 theorem frame_walRecEnc_lt (x : WalRec) (h : recSize (recOf x) < 2 ^ 47) :
     (frame (walRecEnc x)).length < 2 ^ 48 := by
