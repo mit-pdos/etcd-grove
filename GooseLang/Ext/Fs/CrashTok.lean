@@ -173,11 +173,12 @@ def crashCommit (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
 §4.2): its legacy history `V`, whole (no legacy resource exists), the shared history's authority (the
 crashed state's), the crash's facts (a closed set `S` of the log's entries kept, with the committed
 ones, each slot of the new tree `V'` as right after its last kept writer; the entries' calls began no
-later than they took effect), and the committed prefix's authoritative bound. -/
+later than they took effect; the new tree well formed, `closed_cut`), and the committed prefix's
+authoritative bound. -/
 def crashShared (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
   iprop(gElem hL hL.γd () (DFrac.own 1) (st.fs.roots, V) ∗
     gAuth hL hL.γs (histMap (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog) : Hist))) ∗
-    ⌜Starts st.fs.metaLog ∧ ∃ S : Nat → Prop, (∀ x, S x → x < st.fs.metaLog.length) ∧
+    ⌜TreeWf st.fs.roots V'.now ∧ Starts st.fs.metaLog ∧ ∃ S : Nat → Prop, (∀ x, S x → x < st.fs.metaLog.length) ∧
       Closed st.fs.metaLog S ∧ (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, V'.now.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b⌝ ∗
     commitRes hL st)
@@ -431,7 +432,7 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
     rw [← hroots]
     iframe Hd0 Has Hcm
     ipureintro
-    exact ⟨htw.2.starts, hS⟩
+    exact ⟨hinit.2.2.2.2.1, htw.2.starts, hS⟩
 
 /-- The crash interpretation of the Linux file extension. -/
 instance fs_crash_interp : ExtCrashInterp fsExt where

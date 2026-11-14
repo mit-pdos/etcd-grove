@@ -2387,6 +2387,25 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   module: append it to `COPIES` (an extract when its imports are heavy). The copies go with the `os`
   promotion.
 
+- **The raftpb instance's laws pending the user** (W4c U4 b, branch `wal-u4b`, 2026-11-14; ledger 2026-11-14,
+  "the WAL's raftpb laws", items 2-3; [user]). The instance (`wal/RaftModel/`, `walPb_laws`) proves every
+  model law the WAL's Link results take but four, which stay **hypotheses of the closed result**:
+  `WalPbIn.MarshalHsLaw` (`pbutil.MustMarshalMessage` of a `*raftpb.HardState`), `WalPbIn.CloneHsLaw`
+  (`proto.Clone` of one), `WalHsOwn.unmarshal` (`MustUnmarshalState`: `proto.Unmarshal` into one) and
+  `WalHsOwn.reset` (`HardState.Reset`). All four are true of Go; none is provable: `raftpb.HardState` is not
+  a registered protobuf type (no `proto` spec covers it) and its `Reset` is names-only. **What registering
+  would take** (as `walpb.Snapshot`'s, `walpb/PbSnapshot.lean`): two axioms in the part, `hsEncC_ok`
+  (protobuf-go's `Marshal` writes `hsEnc c`, `RaftModel/Codec.lean`, and `Unmarshal` gives `c` back, for a
+  content with valid unknown fields at the schema `[(1,[0]),(2,[0]),(3,[0])]`) and `pbHsC_reg` (the
+  registration `pbModelOf GF raftpb.HardState.ty = some pbHsC`), backed by a Go round-trip test in
+  `examples/stdlib/` (as `TestSnapshotEncoder`); `PbSchema.lean`'s `HardState` schema (today `[]`) gains its
+  three fields in the main tree too (raft's `pbMsg raftpb.HardState` claims `ufWire` at it: a weaker claim,
+  every main-tree hard state has `uf = []`). Then `MarshalHsLaw`, `CloneHsLaw` (over the part's
+  `proto.ClonePb.spec`) and `unmarshal` follow as `MarshalEntLaw`/`UnmarshalEntLaw` do. `reset` needs a
+  trusted model of `(*raftpb.HardState).Reset` (`*x = HardState{}` and the message-state store, as
+  walpb's `Record.Reset.impl`) or raftpb's `Reset` translated with its body (it calls
+  `protoimpl.X.MessageStateOf`, names-only).
+
 ## W3a: the decoder (branch `wal-dec`, 2026-11-13)
 
 - **Pure** (`Proof/.../storage/WalEncDecoder.lean`, no `sorry`): the Go decoder's own step

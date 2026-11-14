@@ -694,11 +694,46 @@ says returns.''',
             'iframe #'],
 )
 # (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
-# translated `&pb.HardState{}`, not in its fact (`True`)
+# translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
+# main tree's (`Proof/go_etcd_io/raft/v3/Init.lean`'s steps): its cells (all `nil`) frozen, its hidden
+# fields in the `protobuf` invariant
+# (W4c U2, 2026-11-14) the part's `examples/lib/durable`: `mu`, a mutex guarding nothing
+LFS_SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.durable'] = dict(
+    doc='''Its fact (`durable.durableInit`, `PkgInit.lean`): `mu` is a mutex guarding nothing (the calls are
+serialized in the proofs by the file's handle). Its initializer allocates `mu` and initializes its
+imports.''',
+    alloc_types={'mu': '_root_.Perennial.sync.Mutex'},
+    finish=['imod sync.init_Mutex iprop(True) ⊤ (globalAddr mu) $$ Hmu [] with #HM', '· inext; itrivial'] +
+           FIN_PRE[:6],
+)
 LFS_SPECIAL['io.fs'] = LFS_IOFS
 LFS_SPECIAL['os'] = LFS_OS
 LFS_SPECIAL['go_etcd_io.raft.v3'] = dict(
+    doc='''Its fact (`rootInit`, `PkgInit.lean`): `emptyState` holds a pointer to a zero `HardState`,
+its cells `nil` for good, its hidden fields in the `protobuf` invariant. Its initializer initializes
+its imports, runs the untranslated initializers of its other variables (`X.init`, axioms of the
+translation), which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
+translated `emptyState = &pb.HardState{}`.''',
     alloc_types={'emptyState': 'Loc'},
+    finish=['ihave %HesNN := typedPointsto_not_null $$ «$r0»',
+            'icases typedPointsto_split _ _ _ $$ «$r0» with Hes',
+            'simp only [TypedPointsto.typedPointstoDef]',
+            'icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩',
+            'ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []',
+            '· iapply ownSlice_nil',
+            'imod inv_alloc (nroot.@"protobuf") ⊤',
+            '    iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),',
+            '      _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗',
+            '        _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))',
+            '    $$ [Hst Heuf Hesc Hnil] with #HesPb',
+            '· inext',
+            '  iexists _, _, _',
+            '  iframe Hst Hesc Heuf Hnil',
+            'ipersist HemptyState', 'ipersist HeT', 'ipersist HeV', 'ipersist HeC',
+            'iframe Hown', 'imodintro', 'isplitr',
+            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
+            'unfold rootInit', 'iexists _', 'iframe HemptyState HeT HeV HeC HesPb',
+            'ipureintro; exact HesNN'],
 )
 
 SPECIAL['internal.poll'] = dict(
@@ -3110,7 +3145,13 @@ LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 
             'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.runtime.protoimpl',
             'go_etcd_io.etcd.server.v3.storage.wal.walpb', 'go_etcd_io.raft.v3', 'go_uber_org.zap.zapcore',
             'go_uber_org.zap', 'github_com.Masterminds.semver.v3', 'github_com.prometheus.client_golang.prometheus',
-            'go_etcd_io.etcd.pkg.v3.pbutil', 'go_etcd_io.etcd.server.v3.storage.wal']
+            'go_etcd_io.etcd.pkg.v3.pbutil', 'go_etcd_io.etcd.server.v3.storage.wal',
+            # (W4c U2, 2026-11-14) `examples/lib/durable` over the part's `os` (its fact: `mu` a
+            # mutex guarding nothing, `PkgInit.lean`)
+            'github_com.mit_pdos.etcd_grove.examples.lib.durable',
+            # (W4c U1, 2026-11-14) the WAL robustness tester (`examples/etcd/wal`) over the part's
+            # WAL (its fact `True`, `PkgInit.lean`)
+            'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
 # Packages of `LFS_PKGS` translated in the main tree only (no `os` below them): the part's `Init.lean`
 # is generated from the main translation, over the part's instance.
 LFS_MAIN_CODE = {'go_etcd_io.etcd.client.pkg.v3.verify', 'hash', 'google_golang_org.protobuf.internal.pragma',

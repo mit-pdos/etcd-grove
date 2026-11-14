@@ -125,6 +125,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   icases walHandleIn_idx P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hix⟩
   icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, #Hseg⟩
   icases walHandleIn_pure P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hpu0⟩
+  icases walHandleIn_pkgInit P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hwpk0⟩
   have hix0 := hix.1 hD.1
   -- the WALs' step bound at a look (`⧖ |H|`), raised by the receipt of the deferred `w.mu.Unlock`'s
   -- resolution, deposited by the commit right after it (`notes/bounds-plan.md`, "The WAL's segment sequence")

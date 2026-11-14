@@ -265,6 +265,157 @@ new state is `{s with wal := …}`; `Hbd.2.upd` for `absDiskUpd`); a step keepin
   `walAreaRes`: `areaCls` = each `nm.<sfx>` directory's whole claim tagged by its name, `SubCover`/`TmpOk` from
   `hfo`, `tmpClTouch` from the `.touch` files of `bootFiles`. Premises: `hu` (or `TreeWf R V'.now`), `hfo`.
 
+## W4c U2 log
+
+**First session (branch `wal-u2`, 2026-11-14): `lib/durable` translated into the part, its vocabulary
+and the `Read`/`Write` specs stated over `fsExt`; nothing proved yet.** No axiom, no trusted model,
+no `sorry` (no proof file yet). Modules: `LinuxFs/{Code,GeneratedProof}/github_com/mit_pdos/etcd_grove/
+examples/lib/durable.lean` (generated), `LinuxFs/Proof/.../examples/lib/durable/{Defs,PkgInit}.lean`,
+`LinuxFs/Spec/.../examples/lib/durable/{Read,Write}.lean`.
+
+- **The Go, reshaped (our own example; decided autonomously, the user's WAL-over-fsExt delegation).**
+  The semantics are the same (whole-file, atomic, durable `Write`; failures retried; `Read` of a missing
+  file `("", false)`), but only `os` functions the part already models are called: a `Write`'s
+  temporary is the fixed `dir/.durable-<base>`, opened `O_RDWR|O_CREATE|O_TRUNC` (was `os.CreateTemp`,
+  whose `runtime_rand` would be a new trusted model, and whose random names need a cofinite claim),
+  written with one `WriteAt` (skipped when empty), synced, closed, renamed, the directory opened and
+  synced; a `Read` is `tryRead`: `os.Open`, `Stat`, `make`, one `ReadAt` of the size (was
+  `os.ReadFile`, whose `readFileContents` growth loop is untranslated). `errors.Is(err,
+  fs.ErrNotExist)` stays. New premises the package doc states: no name of another file's temporary
+  (`.durable-` prefix), a file of at most 1 GiB. A quick Go test (write, empty write, read back, one
+  entry left in the directory) passed; not committed. The main tree's model
+  (`TrustedCode/.../lib/durable.lean`) is unchanged but for its docstring's list of calls.
+- **Project `durable` has a part `LinuxFs`** (`etc/goose.py`), with `path/filepath` and
+  `internal/filepathlite` mapped to the part, no `LinuxFs/Code/...durable.toml` (every function
+  translated). `etc/goose.py --check --project durable` passes.
+- **The spec design (`Defs.lean`'s header).** Per file `f : DFile` (directory path `d`, its inode `J`,
+  base `b`; `f.Ok`: clean absolute `d`, clean segments `b`, `.durable-b`). The client-visible state is
+  `DurSt := {cur, alt}`: `cur` what `Read` returns, `alt = some old` while a `Write`'s rename may be
+  lost to a crash. **A `Write` is two atomic updates** (`Write.spec`): at the rename `cur := data, alt
+  := some cur`; at the directory sync's commit `alt := none`. Why not one (as `durableExt`'s): between
+  the rename and the commit a crash may keep either contents, and no single point of the client's
+  ghost state is right for both. Rejected: committing the client's update at the crash (helping, the
+  update stored in `durInv`), which needs a saved proposition, a later stripped in the crash
+  obligation, and the writer's `Φ` back through `savedPropOwn`'s `▷`-agreement; the two-update form
+  costs the client only an `alt` it keeps in its own invariant (the tester: the WAL does not move
+  during a `Write`, so both oracles are consistent with it). Masks: `durAuMask = osAuMask \ durN`, so
+  the first update can be opened inside `os.Rename`'s `osAUnc` at the rename step (with `notCrashed`,
+  to open `durInv`). **The mutex guards `True`** (`PkgInit.lean`'s fact `isMutex (globalAddr mu)
+  True`): the calls are serialized in the proof by the caller's exclusive `durHandle γ f R`, not by
+  `mu`, whose invariant is fixed at package init (before any claim exists) and whose ghost name a
+  client's `durInv` could not agree with. kvdurable (concurrent callers) will need the handle in a lock
+  of its own, or the token-in-`durInv` form (lock invariant a token, `durInv` holding `token ∨ handle`).
+- **The invariant (`durInvBody`)**: the other half of `durSt`; the physical state `DurPhys` (half; the
+  handle has the other): the claims' histories `hb` (on `.only [b]`) and `ht` (on `.only [tb]`), a
+  commit lower bound `nc`, the candidates `cands` (inode, `OsMeta`, contents; `DCand.Ok`: size the
+  contents' length, crash bounds `lo = hi = size`, as a synced file and a crash's `initMeta` both
+  have); half of each claim, `osCommitLb nc`, half of every candidate's `osMeta`/`osBytes` (bytes
+  `durB`). Facts (`DurOk`): every `K` keeping the entries of `hb` below `nc` leaves `b` (`valAfter`)
+  as `OutOk` allows (absent iff `cur` or `alt` is, or a candidate holding `cur`'s or `alt`'s
+  contents), stated without `RegionCrashed`'s `Follows` closure, which `b`'s history (renames only)
+  does not need; `b` now holds `cur`'s candidate; the temporary is never a directory; `alt = none →
+  hb.next ≤ nc`.
+- **Next (in order):** (1) `tryRead`/`Read`: needs an `os.Open` of a present file in shared mode whose
+  error is a `*PathError` of an errno other than `ENOENT` (`wp_osOpenFileS` does not export the
+  semantics' `e = ENOENT → lookup = none`: a strengthened extension lemma, as `wp_osOpenDirS`'s), the
+  `fi.Size()` interface call, `errors.IsPathErrnoNotExist.spec` (the WAL's hypothesis, to move from
+  `wal/ExistCallees.lean` to `LinuxFs/Spec/errors/`); (2) `tryWrite`/`Write` (`os.OpenFile.wp_truncS`
+  for an existing temporary, `specCreateTruncSnc` otherwise, `WriteAt`, `Sync`, `Close`,
+  `Rename.specFileSnc` with the first update inside, `Open.wp_dirS`, `Sync.specDirS`, the second update
+  after it); (3) `durInv_crash` (`crashRest_region` on the two claims with `osCommitLb nc`,
+  `crashRestAt_take` of the candidate `b` holds) and the boot (`durBoot`, from the new generation's
+  claims and the crash's `osFileStart`s); (4) `gen-init.py` (`LFS_PKGS`, `LFS_SPECIAL`: `init_Mutex
+  True`) and `etc/gen-link.py` (a mode of its own or `--walfs`'s).
+
+**Third session (branch `wal-u3c`, 2026-11-14): `hu` discharged; `hfo`'s invariant designed, its crash side proved;
+`walBootCrash` not started.** No axiom, nothing trusted changed.
+- **`hu` gone.** The replay of a closed set of logged operations is a tree only under the shared mode's disciplines
+  (`TreeCut.lean`: without them it need not be, the §4.3 counterexample), and that theorem was proved (`closed_cut`,
+  used by `machineCrash_initS`), but its conclusion was not kept for the next generation. Now `crashShared`
+  (`GooseLang/Ext/Fs/CrashTok.lean`, untrusted) keeps `TreeWf st.fs.roots V'.now` (first conjunct; built in
+  `os_local_crash` from `FsInit`), and **`crashRest_treeWf`** (`TreeShared.lean`, proof `TreeSharedCrash.lean`):
+  `osSharedInv R -∗ crashRest … V' ={E}=∗ ⌜TreeWf R V'.now⌝ ∗ crashRest … V'`. `walInv_crash` takes no `hu` (it calls
+  `crashRest_treeWf`; `uniqNames_of_wf`). The crash boot gets `TreeWf R V'.now` the same way (`NameOk`, `hjr`).
+  **Merge note:** a proof destructuring `crashShared`'s pure part gains a first component (two sites, fixed).
+- **`hfo`: condition checked, design (ledger 2026-11-14, "`hfo` not derivable").** `walAreaRes` is unpacked by no
+  client (outside `wal/` only comments and the WAL's own `Spec` files name it); its body is exposed (not
+  `@[no_expose]`): sealing it formally means `import all` in its WAL proofs (a follow-up, not needed for the check).
+  The crash side is proved (`BootFilesOnly.lean`): `HistNoDir h b` (no version of the history holds a directory at
+  `b`), `regionCrashed_noDir`, `regionCrashed_filesOnly` (a directory all of whose names crash-kept claims cover with
+  `HistNoDir` holds only files after the crash), `HistNoDir.log`. `hfo` narrows to WAL names and `nm.tmp`: the
+  `nm.broken.<t>` directories need only `SubCover`, which the boot's whole claims give (all directories reachable
+  under the name, tagged with it). The invariant side (a framed conjunct `walFoRes`: claims `fl` at half, `HistNoDir`
+  of `fl` and of the WAL-directory claims, coverage of every area version's directory at a WAL name or `nm.tmp`), by
+  the updates under the new claims, each to become an invariant step:
+  1. the pipeline's `0.tmp`/`1.tmp` (`tmpClaim`): `filePipeline.alloc`'s create (`specCreateS` → `specCreateSnc` with
+     the invariant's half, the os specs are shaped for it), the pipeline's removal of its leftover, `cut`'s rename
+     (already an invariant step; its source half now the invariant's too), the hand-off (`walParked` ↔ the handle:
+     `openAtIndex`, `Close`, `CloseHandle`, `WAL__CloseOpening`, `CreateHandle`, `CreateUnmint`): ~15 proofs;
+  2. `Create`'s `nm.tmp`: the `mkdir` (an area step: the new directory's claim's half into `fl`), `TouchDirAll`'s
+     `.touch` probe (fileutil's spec takes `osSubtree` whole: needs an AU-shaped spec, a fileutil spec change),
+     the first segment's create, `os.RemoveAll(nm.tmp)` of a leftover (needs an AU-shaped `os.RemoveAll` spec, a new
+     os spec and proof), the rename `nm.tmp` → `nm` (the claims become the WAL directory's);
+  3. `Repair`'s lent names (`lendKey`): its `.broken` file's create, rename;
+  4. the WAL-directory claims' `HistNoDir`: every invariant step logging into one proves its new version files-only
+     (segments and `walOthers`): `cut`, `Create`'s commit, `Repair`, `renameWAL`;
+  5. **open point**: `cleanupWAL` (`wal-create25`) renames `nm` → `nm.broken.<t>`: until that rename is committed a
+     crash may keep the version with `J` at `nm`, so `J`'s claims must stay covered (the invariant's half in `fl`), but
+     `walAreaRes`'s `areaCls` holds `nm.broken.<t>`'s subtree claims whole (for `os.RemoveAll`). Either coverage is
+     released only past the commit bound (`n`), the broken directory's claims staying split until a sync, or
+     `walAreaRes` takes the broken subtrees at less than whole.
+  **Estimate 3-5 sessions; cheaper alternative for 2 (for the coordinator):** drop `TmpOk` for a general-subtree
+  `os.RemoveAll` spec (`SubCover`, which the boot gives) and let `tmpClTouch` accept a directory `.touch` (the probe's
+  `O_CREAT` open fails with `EISDIR`, `Create` returns the error): then only `nm` (1, 3, 4) needs `fl`, and none of the
+  AU-shaped fileutil/`RemoveAll` specs.
+- **`walBootCrash`, started (pure).** `BootCrashCl.lean`: `bootWals m jr` (the area's WAL names holding a directory,
+  with it), `mem_bootWals`, `bootWals_nodup`, `bootWals_fun`, `bootWals_inj` (unique naming: distinct directories),
+  `bootWals_ne_root`, `bootWals_nameOk`, `bootWals_mem` (`TreeWf`): the facts `hdirs1`/`hJm`/`hnames`/`hnok` rest on.
+  Next: the claim list over `bootWals` (the `osNames_split`s of the area's and each `J`'s whole claims), then the
+  proof as designed in the second session, with `hfo` (narrowed) its premise until `walFoRes` lands.
+
+**Second session (branch `wal-u2b`, 2026-11-14): `tryRead` and `Read` proved; the package initializer
+generated.** No axiom, no trusted change, no `sorry`. `Read.wp_proof` takes `tryRead.spec`;
+`tryRead.wp_proof` takes `errors.IsPathErrnoNotExist.spec` (the WAL's hypothesis, still unproved: it
+waits on Perennial's `errors-facts` branch) and the `os` specs `File.Stat`, `fileStat.Size`,
+`File.ReadAt`, `File.Close` (proved in the part).
+
+- **The Go: `errors.Is(err, os.ErrNotExist)`** (was `fs.ErrNotExist`, the same variable's value in Go):
+  the WAL's hypothesis is stated of `os.ErrNotExist`'s variable (`os`'s package fact gives its
+  points-to), so no second hypothesis for `io/fs`'s; `io/fs` is no longer imported. Retranslated
+  (`etc/goose.py --project durable`; the main tree's trusted translation is unchanged).
+- **`Open` of a present file never fails with `ENOENT`**: the extension lemma `wp_osOpenFileSN'`
+  (`GooseLang/Ext/Fs/TreeSharedOpenFileN.lean`, untrusted, a new module so that nothing rebuilds:
+  `wp_osOpenFileS'`'s proof with the semantics' `ENOENT` premise used in its failure branch) and the
+  `os` lemmas `OpenFile.wp_fileSN`/`Open.wp_fileSN` (`LinuxFs/Proof/os/NsFileS.lean`, the errno explicit
+  as `os.errnoPathErr err e`, `e ≠ ENOENT`).
+- **Defs changes (internal):** `durHandleP γ f R p` (the handle at a physical state; `durHandle` is
+  `∃ p, durHandleP`), `DurPhys.CurIs f p v` (what the name holds under `p`), `DurOk.inj` (the
+  candidates at distinct inodes, so `cur` is determined by `p`), `DCand.Ok`'s `length ≤ 1 GiB` (one
+  `ReadAt`; `Write`'s `data` bound, so the write proof keeps it).
+- **`tryRead.spec`** (`LinuxFs/Spec/.../durable/tryRead.lean`, internal): at the handle's `p`, with `∃ s,
+  DurOk f s p` as a premise (read off the invariant by the caller at a step), `isPkgInit os`; when
+  `done`, `(s, ok)` is what the name holds (`CurIs`). Nothing changes, so no update in it.
+- **`Inv.lean`**: `DurOk.curIs`, `DurPhys.curIs_unique`, `durInv_open` (with `notCrashed`),
+  `durInv_okAt`/`durInv_okHandle` (the facts of the handle's `p`), `durInv_readAU`/`durInv_readHandle`
+  (a read's update committed at a step: `s.cur` is what the name holds), `curRes_file`/`curRes_none`.
+- **`Read`**: the mutex taken (`mu_of_pkgInit`, `PkgInit.lean`), `tryRead` retried (`wp_for`); before
+  each attempt, at a step (`wp_notCrashed_acc`), `durInv_okHandle`; after a done one, at the next step,
+  `durInv_readHandle` commits the client's update; the deferred `Unlock`.
+- **The package initializer**: `etc/gen-init.py` (`LFS_PKGS`, `LFS_SPECIAL`: `sync.init_Mutex True`),
+  `LinuxFs/Proof/.../durable/Init.lean` generated; `--check` passes.
+- **Not done:** `errors.IsPathErrnoNotExist.spec` still lives in
+  `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`, which `tryRead`'s proof imports
+  (moving it to `LinuxFs/Spec/errors/` rebuilds the WAL's importers: do it when Perennial's
+  `errors-facts` proves it). No `etc/gen-link.py` mode yet (the plan: lines `durable_tryRead: ...` /
+  `durable_Read: durable_tryRead` in `--bboltfs`'s list, or a mode of its own; `errors.IsPathErrnoNotExist`
+  a pending hypothesis).
+- **Next (in order):** (2) `tryWrite`/`Write`: `tryWrite`'s spec at the handle's `p` with the first
+  update inside, as `tryRead`'s (premise `∃ s, DurOk f s p`; post: `false` with the handle at some `p'`
+  and the first update not yet committed, or committed; `true` with the second committed). The
+  invariant cases: the temporary's inode is never a candidate within a generation (needs a fact
+  `tmp ∉ cands` in `DurOk`, from `tmpRes`'s whole `trFile`, or derived from the resources); a retry after
+  a rename makes a fresh candidate (`O_CREAT`, the temporary absent) with `data`, so `cands` grows
+  and `alt` stays. (3) the crash and boot lemmas; (4) the link.
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
@@ -294,9 +445,128 @@ new state is `{s with wal := …}`; `Hbd.2.upd` for `absDiskUpd`); a step keepin
 | `WalHsOwn.reset` | blocked: `HardState.Reset` is names-only (item 3) |
 | `WalDecEnvSupply` | not a law of these parameters (`errors.newVar`'s Perennial gap, §2) |
 
-No law is false of real raftpb. `walPb_laws` (the bundle) waits for the blocked laws.
+No law is false of real raftpb. `walPb_laws` (the bundle) waits for the blocked laws (superseded below, U4 b).
 
 **Client obligation (C6 and the tester).** `Mr.encSnap`/`encState`/`encEntry` are the canonical forms' bytes, so
 the objects a client passes must be canonical: raft's `hardState()` (all set) is, a zero hard state any form;
 entries need `Term`/`Index`/`Type` set and `Data` nil iff empty (check the tester's and raft's literals;
 otherwise change the canonical form, a choice internal to the instance).
+
+## W4c U4 b log (branch `wal-u4b`, 2026-11-14)
+
+**Decisions** (the coordinator's, recorded in the ledger 2026-11-14, "the WAL's raftpb laws"):
+- **Package initializations in the laws' pres** (item 1): `isPkgInit pbutil` in `MarshalEntLaw`'s and
+  `MarshalHsLaw`'s, `isPkgInit proto` in `CloneHsLaw`'s, the part's `isPkgInit raft` in `IsEmptyLaw`'s,
+  `isPkgInit wal` in `UnmarshalEntLaw`'s and `WalHsOwn.unmarshal`'s (wal functions, as every wal spec);
+  `WAL.saveState.specPre` (`cut`'s) gains `isPkgInit wal`. Repairs: `saveState`/`Save` take the handle's
+  `isPkgInit wal` out (`walHandleIn_pkgInit`, `SaveHandle.lean`), `cut` frames its `Hwpk`.
+- **The part's raft root fact** is `rootInit`: `emptyState`, the main tree's conjunct word for word
+  (`LinuxFs/Proof/go_etcd_io/raft/v3/PkgInit.lean`; its `wp_initialize'` generated, `etc/gen-init.py`'s
+  `LFS_SPECIAL`, the main tree's steps).
+- **`raftpb.HardState`'s registration and `HardState.Reset`'s model stay out** (the user's call): four
+  laws stay hypotheses of the closed result (`notes/wal-fsext-plan.md` §10, "The raftpb instance's laws
+  pending the user", with what registering would take).
+- **Part extracts** (`etc/gen-part-copies.py`, copies of existing main-tree declarations and of one
+  main-tree axiom, `pbEntryC_reg`): `InvPb` (`pbMsg`, `pbMsg_alloc`), `PbContent` (+ `optCell`, `bytesC`,
+  `entRoC`), `PbContentOwn` (`entPtsCC`), `PbEntryType` (+ `entryTree`, `pbEntryM`, `pbEntryC`, its simp
+  lemmas, `entPtsCC_freeze`, `pbEntryC_reg`). The script: a `set_option`/`omit ... in` prefix joins its
+  declaration; an extract keeps the source's order (sections around top-level declarations; `pre` ones
+  first), with the source section's variables.
+
+**The instance's objects** (`RaftModel/Pb.lean`; internal choices):
+- `P.entIn l e := entRoC l (walEntCanon e) ∗ ⌜walEntSmall e⌝`: the frozen registered entry at the canonical
+  content.
+- `P.hsIn p h := ⌜p = null ∧ h = hsZero⌝ ∨ ∃ c, hsRoC p c ∗ ⌜c.model = h ∧ (hsEmptyP h ∨ c = walHsCanon h)⌝`:
+  **an empty hard state at any content** (changed from the canonical one: the tester's `toHS` of a zero
+  state sets the three cells, raft's `emptyState` leaves them nil; an empty state is never marshalled).
+  `hsRoC` = the frozen cells (`hsCells`) and raft's `pbMsg raftpb.HardState` invariant.
+- `HsO p h := hsOwnC p (walHsCanon h)`: owned cells and hidden fields (`WalHsOwn.zero` has no update to
+  allocate an invariant with; `freeze` allocates `pbMsg`).
+- **Stand-in entry bytes** (`EntCodec.lean`, ledger item 4): now `2 ^ 64` bytes or more (was `2 ^ 48`),
+  longer than any slice, so bytes in memory that `walDecEnt` decodes are the real encoding
+  (`walDecEnt_small`): `UnmarshalEntLaw` needs it.
+
+**Per law** (supersedes the U4 table):
+| law | status |
+|---|---|
+| `U.Ok`, `U.SnapCoh`, `WalMarshalCreateOk`, `Mr.encState < 2^32` | proved (U4, `Marshal.lean`) |
+| `NilLaw`, `ZeroLaw`, `MustSyncLaw`, `IsEmptyLaw` | proved (`LawsHs.lean`; `IsEmptyLaw` over `rootInit`) |
+| `GetIndexLaw`, `GetTermLaw`, `MarshalEntLaw`, `UnmarshalEntLaw` | proved (`LawsEnt.lean`, over `proto.MarshalPb.spec`/`UnmarshalPb.spec` at `pbEntryC_reg`) |
+| `WalHsOwn.zero`, `getCommit`, `freeze` | proved (`LawsHs.lean`) |
+| `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal`, `WalHsOwn.reset` | **hypotheses** (no trusted model of `raftpb.HardState`; [user]) |
+| `WalDecEnvSupply` | not a law of these parameters (§2) |
+
+The bundle: `walPb_laws : WalPbLaws walRaftP walRaftMr walRaftU` (`RaftModel/Laws.lean`) and
+`walRaftHsO_own h_unmarshal h_reset : WalHsOwn walRaftP walRaftU walRaftHsO`.
+
+**The client literals against the canonical forms** (task 4):
+- The tester (`examples/etcd/wal/wal.go`): `toRaft` sets `Index`, `Term`, `Type` (`EntryNormal.Enum()`), and
+  `Data = entData(e)`, non-nil and of at least 16 bytes: canonical. `toHS` sets the three cells: canonical
+  when non-empty; a zero state is not canonical, hence the relaxed `P.hsIn` above.
+- Raft: `hardState()` (`raft.go:504`) sets the three cells: canonical; `emptyState` (all nil): an empty state.
+  **Raft's entries are not canonical**: `appendEntry` sets `Term`/`Index` on a clone of the proposal, whose
+  `Type` is nil for a normal entry (`raft.go:979`'s `&pb.Entry{Data: nil}`, `node.go:472`'s proposals) but set
+  for a conf change (`bootstrap.go:61`) and for `raft.go:1359`'s replaced proposals (`EntryNormal.Enum()`);
+  entries a follower appends come off the wire with the leader's presence. **No canonical form fits both
+  the tester and raft**: `Mr.encEntry` is a function of the model only. For C6 the WAL's marshaller
+  parameter must speak of contents (`encEntry` over `EntryC`, or `P.entIn` carrying the content and `Save`'s
+  stream over it) -- a statement change of the WAL's specs, deferred to C6. The canonical form stays the
+  tester's (`Type` set).
+
+
+## W4c U1 log (branch `wal-u1`, 2026-11-14)
+
+**The tester is in the part, translated and with its pure proofs; nothing over the new WAL specs yet.** No
+axiom, no `sorry`, nothing trusted changed. `TP/` = `LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/`.
+
+- **Translation** (`etc/goose.py`, project `etcd-wal`'s new part `LinuxFs`): `LinuxFs/{Code,GeneratedProof}/
+  github_com/mit_pdos/etcd_grove/examples/etcd/wal.lean`, over the part's `os`, `wal`, `walpb`, `fileutil` and
+  `lib/durable` (raftpb, zap, `strings`, `primitive`: the main tree's/Perennial's). **`purgeRound` translated with
+  its body** (no `LinuxFs/Code/.../etcd/wal.toml`; the main tree's names-only `!purgeRound` and its approved axiom
+  stay main-tree only): the body adds no trust; U6 decides whether it stays. `--check` passes.
+- **Package init**: `TP/PkgInit.lean` (the main tree's `Base.lean`: fact `True`), `TP/Init.lean` generated
+  (`etc/gen-init.py`, `LFS_PKGS`; `--check` passes).
+- **Pure proofs, copied** (55 modules, all build): `TP/Defs.lean` = the main `Defs.lean`'s `section pure` **minus
+  `tOracleFile`** (over `durableExt`'s `DurableState`); `Rep`, `RefLemmas`, the 25 function proofs of `ref.go`/
+  `oracle.go` and their 25 specs (`LinuxFs/Spec/.../etcd/wal/`) unchanged but for imports; `TP/CrashPure.lean`
+  (`tCandOk_crash`, `tPreOk_crash`, the pure half of `Crash.lean`: the `fsExt` WAL's `walStCrash` is
+  `absDisk_semantics.crash`, so they apply as they are). The copies are plain files, not `gen-part-copies.py`
+  output: from now on the part's are the tester's proof, the main tree's are frozen until U8 deletes them.
+- **Left for U5 (not copied)**, with what each needs:
+  - `Defs.lean`'s `tOracleFile`: restate over `lib/durable`'s client state (`DurSt` `{cur, alt}`: the oracle file
+    holds `tEncodeOracle o`, or none and `tFreshOracle`, for `cur`, and for `alt` while a `Write` is pending);
+  - `TInvBody`/`TInv`/`TBoot`: `durableOwnM`/`durableReserved` → U2's `durInv`/`durHandle`; `walDirIs`/
+    `walSyncedLb`/`walNamed` → the part's (`walPast`, `walSyncedLb`, `walNamed`); `walArea` → `walAreaOk`/
+    `walAreaRes`; `dirDurable root`, `dirDurable (tArea root)` → U3's area-a-root (`DirsRoots`); the lock token
+    and `osCallPerm 1`/`½` threaded (§2); `tRelI` unchanged in shape;
+  - `Crash.lean`'s `tester_crash`: over `walInv_crash` + `walBootCrash` (U3) and `durInv_crash`/`durBoot` (U2),
+    with `CrashPure`'s lemmas for the oracle;
+  - `PurgeBody.lean`, `purgeRound.lean` and its spec: over `absDiskExt`'s `"WalPurge"` step; no `fsExt` statement
+    without the lock model (U6);
+  - `absSnapMd` (in the copied `Defs`): the new `walSnapAt` requires `c.model = md`, the old constrained only the
+    index, the term and whether the conf state is set; the tester's conf state is `{Voters: [1]}`, so `absSnapMd`
+    becomes `⟨⟨[1], [], [], [], false⟩, idx, term⟩` (`RefLemmas` reads only its `Index'`/`Term'`).
+- **Mismatches found** (for U5/U7; each a change to our own example's Go, so a change of the closed theorem's
+  statement: the user's at U7's hard stop):
+  1. **The paths against U3's boot premise 3 (the area a root).** The tester's area is `root/data/member`
+     (`tArea`), the oracle `root/oracle/state`. With the area an `fsExt` root, `root` cannot be one (`RootsOk`:
+     no root under another), so `root/oracle` is a second root (`durable` never creates a directory). Then
+     `Boot`'s first start, `TouchDirAll(data)` and `TouchDirAll(memberDir)` (`wal.go:617`), has no spec: `data` is
+     above a root (its `.touch` probe is an `O_CREAT` open there, stuck: `fsExt` opens only `O_RDONLY` above a
+     root) and `memberDir` is the root (the part's `TouchDirAll.spec` creates an absent `parent/name`; its probe's
+     `.touch` in the area is under the WAL invariant's area claim, `walBoot0` giving back only names holding an
+     entry at boot). Proposed: drop both calls (the area and the oracle directory are the environment's, as the
+     roots are), `Boot(area, orDir, …)` taking the two roots. The other boot facts hold: the oracle and its
+     temporary `.durable-state` are outside the area; the WAL name `wal` is `NameOk`; `Create`'s metadata `"m"` is
+     non-empty and short.
+  2. **The oracle's size against `durable.Write`'s 1 GiB premise.** The candidates' histories (`c.h`) are
+     whole histories since `Create`, so `tEncodeOracle o` grows without bound across incarnations; `durableExt`
+     had no bound. Proposed: the tester stops (`StatusDown`, before the `storeOracle`) once the encoding would
+     exceed `2^30` bytes, or the closed theorem bounds the incarnations.
+  3. **`SaveSnapshot`'s conf state against U4's canonical form.** `wal.go:373`'s `&raftpb.ConfState{Voters:
+     []uint64{1}}` leaves `AutoLeave` nil; `walCsCanon` has it set (as raft's `ProgressTracker.ConfState()`
+     sets it), so `walSnapAt`'s `snapEnc c = Mr.encSnap md` fails. Proposed: the tester sets `AutoLeave:
+     new(bool)` (keeping the canonical form raft's, which C6 needs). Entries (`toRaft`) and hard states (`toHS`)
+     fit (U4 b log); `Open`'s `walpb.Snapshot{Index, Term}` needs only `walSnapIdTerm`.
+  4. **For C6, not the tester:** real etcd's member directory holds `snap/` beside `wal/`, a name `AreaSlot`
+     covers, so U3's `hslots` (and the area claim) do not fit the server's layout with the area at `member/`.

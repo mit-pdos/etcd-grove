@@ -46,14 +46,21 @@ class Whole:
 
 class Extract:
     def __init__(self, path, names, imports, opens, variables=('variable [GooseExts]',), options=(),
-                 bare=()):
+                 bare=(), pre=()):
         self.path, self.names, self.imports = path, list(names), list(imports)
         self.opens, self.variables, self.options = list(opens), list(variables), list(options)
-        # names declared at the top level in the source (their own binders): after the section
-        self.bare = list(bare)
+        # names declared at the top level in the source (their own binders): outside the sections, in
+        # the source's order; `pre` ones before everything
+        self.bare = list(bare) + list(pre)
+        self.pre = list(pre)
 
 
 STOR = 'Proof/go_etcd_io/etcd/server/v3/storage/'
+# the variables of raft's protobuf sections (`PbContent`'s, `InvPb`'s: any `hlc`; `PbEntryType`'s: `HasLC.hasLC`)
+_PB_VARS_HLC = ['variable [GooseExts] [GooseSemantics] [GooseInterp]', 'variable [go_gctx : GoGlobalContext]',
+                'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]', 'variable [sem : go.Semantics]']
+_PB_VARS = ['variable [GooseExts] [GooseSemantics] [GooseInterp]', 'variable [go_gctx : GoGlobalContext]',
+            'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]', 'variable [sem : go.Semantics]']
 COPIES = [
     # raft's protobuf records (`EntryM`, `HardStateM`, ...): over raftpb, but the module imports the raft root
     Whole('Proof/go_etcd_io/raft/v3/PbModel.lean'),
@@ -73,14 +80,38 @@ COPIES = [
             opens=['Iris Iris.BI go_etcd_io.raft.v3']),
     # an `Entry`'s wire content and size, and its encoder with its trusted fact (`entryEncC_ok`, a copy
     # of the main tree's axiom): the raftpb instance's entry marshaller (W4c U4, `wal/RaftModel/`)
+    # (W4c U4 b, 2026-11-14) and the registered `raftpb.Entry` (`pbEntryC`, its registration
+    # `pbEntryC_reg`, a copy of the main tree's axiom), its frozen and owned objects (`entRoC`,
+    # `entPtsCC`) and the protobuf hidden fields' invariant they hold (`pbMsg`): the instance's
+    # `P.entIn` and its `proto.Marshal`/`proto.Unmarshal` laws
+    Extract('Proof/go_etcd_io/raft/v3/InvPb.lean',
+            ['pbN', 'pbMsg', 'pbMsg_persistent', 'pbMsg_ufWire', 'pbMsg_alloc'],
+            imports=['Proof.go_etcd_io.raft.v3.PbModel', 'Proof.google_golang_org.protobuf.proto.PbSchema',
+                     'GeneratedProof.google_golang_org.protobuf.internal.impl', 'GeneratedProof.go_etcd_io.raft.v3.raftpb'],
+            opens=['Iris Iris.BI go_etcd_io.raft.v3'],
+            variables=_PB_VARS_HLC + ['variable [package_sem : go_etcd_io.raft.v3.Assumptions]']),
     Extract('Proof/go_etcd_io/raft/v3/PbContent.lean',
-            ['EntryC', 'EntryC.model', 'optVarintSize', 'entrySize'],
-            imports=['Proof.go_etcd_io.raft.v3.PbModel', 'Proof.google_golang_org.protobuf.proto.UfWire'],
-            opens=['Iris Iris.BI go_etcd_io.raft.v3'], variables=()),
+            ['EntryC', 'EntryC.model', 'optVarintSize', 'entrySize', 'optCell', 'bytesC', 'optCell_persistent',
+             'bytesC_persistent', 'pbMsg_uf_entry', 'entRoC', 'entRoC_persistent'],
+            imports=['Proof.go_etcd_io.raft.v3.PbModel', 'Proof.google_golang_org.protobuf.proto.UfWire',
+                     'Proof.go_etcd_io.raft.v3.InvPb'],
+            opens=['Iris Iris.BI go_etcd_io.raft.v3'], variables=_PB_VARS_HLC,
+            options=['set_option linter.unusedSectionVars false'],
+            pre=['EntryC', 'EntryC.model', 'optVarintSize', 'entrySize']),
+    Extract('Proof/go_etcd_io/raft/v3/PbContentOwn.lean',
+            ['entPtsCC'],
+            imports=['Proof.go_etcd_io.raft.v3.PbContent'],
+            opens=['Iris Iris.BI go_etcd_io.raft.v3'], variables=_PB_VARS_HLC),
     Extract('Proof/go_etcd_io/raft/v3/PbEntryType.lean',
-            ['entDecode', 'EntWireOk', 'entryEncC', 'entryEncC_ok'],
-            imports=['Proof.go_etcd_io.raft.v3.PbContent', 'Proof.google_golang_org.protobuf.proto.PbSchema'],
-            opens=['Iris Iris.BI go_etcd_io.raft.v3'], bare=['entryEncC', 'entryEncC_ok']),
+            ['entDecode', 'EntWireOk', 'entryEncC', 'entryEncC_ok', 'entryTree', 'pbEntryM', 'pbEntryC',
+             'pbEncC_pbEntryC', 'pbEntryC_ty', 'pbEntryC_roC', 'pbEntryC_C', 'pbEntryC_modelOf', 'pbEntryC_size',
+             'pbEntryC_marshals', 'pbEntryC_wire', 'pbEntryC_decOk', 'pbEntryC_ufValid', 'pbEntryC_blank',
+             'pbEntryC_dec', 'pbEntryC_decC', 'entPtsCC_freeze', 'pbEntryC_reg'],
+            imports=['Proof.go_etcd_io.raft.v3.PbContentOwn', 'Proof.google_golang_org.protobuf.proto.PbSchema',
+                     'Proof.google_golang_org.protobuf.proto.InvProto'],
+            opens=['Iris Iris.BI go_etcd_io.raft.v3'], variables=_PB_VARS,
+            options=['set_option linter.unusedSectionVars false'],
+            bare=['entryEncC', 'entryEncC_ok', 'pbEntryC_reg']),
     # the abstract disk (its histories, states and ghost state, which the W1 layer reuses)
     Whole('GooseLang/Ext/AbsDisk/Impl.lean'),
     Whole('GooseLang/Ext/AbsDisk/Specs.lean'),
@@ -224,7 +255,9 @@ def chunks(lines):
         raw.append(cur)
     merged, pend = [], []
     for ch in raw:
-        if ch[0].startswith('/--') or re.match(r'^@\[[^\]]*\]\s*$', ch[0]):
+        # (a `set_option ... in` prefix joins the command after it too)
+        if ch[0].startswith('/--') or re.match(r'^@\[[^\]]*\]\s*$', ch[0]) or \
+                (len(ch) == 1 and re.match(r'^(?:set_option|omit) .* in\s*$', ch[0])):
             pend += ch
             continue
         merged.append(pend + ch)
@@ -259,13 +292,18 @@ DECL_RE = re.compile(r'^(?:@\[[^\]]*\]\s*)*(?:(?:noncomputable|private|protected
 
 def decl_name(ch):
     i = 0
-    if ch[0].startswith('/--'):
-        depth = 0
-        while True:
-            depth += len(re.findall(r'/-', ch[i])) - len(re.findall(r'-/', ch[i]))
+    while i < len(ch):
+        if re.match(r'^(?:set_option|omit) .* in\s*$', ch[i]):
             i += 1
-            if depth <= 0:
-                break
+        elif ch[i].startswith('/--'):
+            depth = 0
+            while True:
+                depth += len(re.findall(r'/-', ch[i])) - len(re.findall(r'-/', ch[i]))
+                i += 1
+                if depth <= 0:
+                    break
+        else:
+            break
     text = ' '.join(l.strip() for l in ch[i:i + 3])
     m = DECL_RE.match(text)
     return m.group(2) if m else None
@@ -297,15 +335,24 @@ def gen_extract(c):
     out += c.options + ([''] if c.options else [])
     out += ['noncomputable section', '', 'namespace Perennial', 'namespace EtcdGrove', '']
     out += ['open ' + o for o in c.opens] + ['']
-    out += ['section extract'] + list(c.variables) + ['']
-    # in the source's order
-    for n in sorted(found, key=lambda n: order[n]):
-        if n not in c.bare:
-            out += found[n] + ['']
-    out += ['end extract', '']
-    for n in sorted(found, key=lambda n: order[n]):
-        if n in c.bare:
-            out += found[n] + ['']
+    # in the source's order: each run of the declarations of a section in a `section extract` with
+    # the variables, the `bare` ones between (a run of bare ones first in the source comes after the
+    # first section, as before: `entryEncC` after `entDecode`; `pre` ones before it)
+    names = sorted(found, key=lambda n: order[n])
+    pre = [n for n in names if n in c.pre]
+    rest = [n for n in names if n not in c.pre]
+    for n in pre:
+        out += found[n] + ['']
+    insec = False
+    for n in rest:
+        if (n not in c.bare) != insec:
+            out += (['section extract'] + list(c.variables) + ['']) if not insec else ['end extract', '']
+            insec = not insec
+        out += found[n] + ['']
+    if insec:
+        out += ['end extract', '']
+    elif not [n for n in rest if n not in c.bare]:
+        out += ['section extract'] + list(c.variables) + ['', 'end extract', '']
     out += ['end EtcdGrove', 'end Perennial', '']
     kind = 'An extract (the declarations ' + ', '.join(f'`{n}`' for n in c.names) + \
         ', verbatim, in a frame of the part\'s imports),'

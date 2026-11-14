@@ -2,9 +2,11 @@
 Package initialization of `go_etcd_io.raft.v3`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact (`rootInit`, `PkgInit.lean`): `emptyState` holds a pointer to a zero `HardState`,
+its cells `nil` for good, its hidden fields in the `protobuf` invariant. Its initializer initializes
+its imports, runs the untranslated initializers of its other variables (`X.init`, axioms of the
+translation), which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
+translated `emptyState = &pb.HardState{}`.
 -/
 module
 
@@ -94,6 +96,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Loc) emptyState _ as HemptyState
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
       EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd18⟩
@@ -147,8 +150,34 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrSnapshotTemporarilyUnavailable.init (by mem_tac))
   wp_apply (opaqueInitsOk isLocalMsg.init (by mem_tac))
   wp_apply (opaqueInitsOk isResponseMsg.init (by mem_tac))
+  ihave %HesNN := typedPointsto_not_null $$ «$r0»
+  icases typedPointsto_split _ _ _ $$ «$r0» with Hes
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod inv_alloc (nroot.@"protobuf") ⊤
+      iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),
+        _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))
+      $$ [Hst Heuf Hesc Hnil] with #HesPb
+  · inext
+    iexists _, _, _
+    iframe Hst Hesc Heuf Hnil
+  ipersist HemptyState
+  ipersist HeT
+  ipersist HeV
+  ipersist HeC
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  unfold rootInit
+  iexists _
+  iframe HemptyState HeT HeV HeC HesPb
+  ipureintro; exact HesNN
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -57,6 +57,26 @@ theorem walHandleIn_lockFacts (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir 
   ipureintro
   exact ⟨Hen, Hlt, Hpure⟩
 
+/-- **The handle's package initialization** (the raftpb laws' pres: ledger 2026-11-14, "the WAL's
+raftpb laws", item 1). -/
+theorem walHandleIn_pkgInit (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
+    ⊢ walHandleIn (W := W) P Mr w dir h tm -∗ walHandleIn (W := W) P Mr w dir h tm ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal := by
+  iintro Hh
+  iunfold walHandleIn at Hh
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
+    Hopen, %Hpure⟩
+  iframe Hwpk
+  iunfold walHandleIn
+  iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+  iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+    Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+  ipureintro
+  exact ⟨Hen, Hlt, Hpure⟩
+
 /-- **The handle's `w.state`**, out and back (any pointer holding the same hard state). -/
 theorem walHandleIn_state (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :

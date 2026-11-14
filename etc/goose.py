@@ -627,6 +627,17 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")],
+        # (2026-11-14, W4c U2: notes/wal-fsext-w4c-plan.md) translated with its bodies into the part
+        # `LinuxFs/` too, over the part's `os` (fsExt) and `path/filepath`, where its specs are
+        # proved (no trusted function: `LinuxFs/Code/.../examples/lib/durable.toml` absent)
+        parts=[Part(
+            root="LinuxFs",
+            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
+                        "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
+                        "internal/syscall=LinuxFs", "path/filepath=LinuxFs",
+                        "internal/filepathlite=LinuxFs"],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
     Project(
         name="prophkv",
@@ -1044,6 +1055,23 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
+        # (2026-11-14, W4c U1: notes/wal-fsext-w4c-plan.md) translated with its bodies (`purgeRound`
+        # too) into the part `LinuxFs/` as well, over the part's `os` (fsExt), WAL, `fileutil`,
+        # `walpb` and `lib/durable` (raftpb, zap, protobuf the main tree's), where its proof moves
+        # (`LinuxFs/Code/.../examples/etcd/wal.toml` absent: every function translated). The main
+        # tree's translation stays until U8 retires it.
+        parts=[Part(
+            root="LinuxFs",
+            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "go.etcd.io/etcd=",
+                        "go.etcd.io/etcd/server/v3/storage/wal=LinuxFs",
+                        "go.etcd.io/etcd/client/pkg/v3/fileutil=LinuxFs",
+                        "go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
+                        "go.uber.org=", "google.golang.org=",
+                        "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
+                        "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs",
+                        "path/filepath=LinuxFs", "internal/filepathlite=LinuxFs"],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")])],
     ),
     Project(
         name="porcupine",
