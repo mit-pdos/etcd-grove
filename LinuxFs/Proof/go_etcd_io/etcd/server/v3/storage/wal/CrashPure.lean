@@ -415,16 +415,16 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
       (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
       ∃ f, st.fs.files !! g.ino = some f ∧ (∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) ∧
-        ∀ s ∈ g.om.rz, s ∈ f.rzs)
+        (∀ s ∈ g.om.rz, s ∈ f.rzs) ∧ ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c)
     (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
     ∃ o, CrashGood C Mr jr s Ls m' st' dir d o := by
   obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, habs, alt, halt, hcok⟩ := hok.1 dir d hd
   have hf : ∀ g ∈ lay.segs, _ := fun g hg => hfiles g (mem_segsAll hLs hg)
   have hw1G := w1G_of_W1 C st st' m' lay (segRzOf lay) hw1 htree (fun g hg => by
-    obtain ⟨-, -, f, hf1, hc, -⟩ := hf g hg
-    refine ⟨f, hf1, hc, fun s hs => ?_⟩
+    obtain ⟨-, -, f, hf1, hc, -, hpc⟩ := hf g hg
+    refine ⟨f, hf1, segBytesX_cand (habs.metas g hg).1 hc hpc, fun s hs => ?_⟩
     obtain ⟨g', hg', hino, hs'⟩ := segRzOf_mem hs
-    obtain ⟨-, -, f', hf1', -, hrz⟩ := hf g' hg'
+    obtain ⟨-, -, f', hf1', -, hrz, -⟩ := hf g' hg'
     rw [hino, hf1] at hf1'; cases hf1'
     exact hrz s hs')
   have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1)
@@ -510,7 +510,7 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
       FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
       (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
       ∃ f, st.fs.files !! g.ino = some f ∧ (∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) ∧
-        ∀ s ∈ g.om.rz, s ∈ f.rzs) :
+        (∀ s ∈ g.om.rz, s ∈ f.rzs) ∧ ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c) :
     ∃ (s' : AbsDiskState) (Ls' : GMap GoString WalLay), walStCrash s s' ∧ s'.area = s.area ∧
       walKeysInArea s' ∧ WalsStart C Mr R jr s' Ls' m' ∧ ((segsAll Ls').map (·.ino)).Nodup ∧
       ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
