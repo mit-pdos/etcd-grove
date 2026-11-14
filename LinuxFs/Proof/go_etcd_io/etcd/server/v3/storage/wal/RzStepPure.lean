@@ -169,8 +169,8 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
       fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩,
       WinHead.of_lo (by simp only [tailLay, rzSeg, rzMeta_lo]; omega),
-      fun b x hb hx => ?_, ?_, ?_⟩
-    · simp only [tailLay] at hbw
+      fun b x hb hx => ?_, ?_, ?_, fun b x hb hlb hbw => ?_⟩
+    · simp only [tailLay, rzSeg, rzMeta_lo] at hbw
       rw [rzSeg_getElem?_lt hl (by omega)] at hb
       exact hB b x hb (by omega)
     · exact hWC.rz (by simp only [rzSeg, rzMeta_hi]; omega) hX.1 hX.2
@@ -182,6 +182,13 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     · have := habs.winLo_any g0 hg0
       unfold WinLo at this ⊢
       simp only [tailLay, rzSeg, rzMeta_lo]; omega
+    · -- the bytes written below `wr` (the truncate to `tg ≥ wr` leaves them): `WinW`, the stamp known
+      simp only [tailLay] at hbw ⊢
+      simp only [rzSeg, rzMeta_lo] at hlb
+      rw [rzSeg_getElem?_lt hl (by omega)] at hb
+      have := habs.winLo_any g0 hg0
+      unfold WinLo at this
+      exact habs.lowW g0 hg0 b x hb hbw (by omega) (fun s hs => by simp [rzSeg, rzMeta, hs])
 
 end pure
 

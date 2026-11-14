@@ -88,9 +88,13 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs]; exact hb), k6, k7, k8⟩
     rw [hbs]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_, ?_,
+      fun b x hb hlb hbw => ?_⟩
     · simp only [tailLay] at hbw ⊢
-      rw [rzLand_getElem? hwr hlen hbw] at hb
+      have hbw' : b < lay.wr := by
+        have : (rzLand g0 lay.wr n).om.lo = min g0.om.lo lay.wr := rfl
+        omega
+      rw [rzLand_getElem? hwr hlen hbw'] at hb
       exact hB b x hb hbw
     · have hX := segBytesX_rzLand (n := n) hwr hlen hhi
       have hXl : (segBytesX (rzLand g0 lay.wr n)).length = (segBytesX (rzSeg g0 true lay.wr n)).length := by
@@ -106,6 +110,13 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
       simp only [rzSeg, rzMeta_hi] at this
       show lay.old.length ≤ max g0.om.hi lay.wr; omega
     · have h := habs.winLo_any _ hg1; exact h
+    · simp only [tailLay] at hbw ⊢
+      rw [rzLand_getElem? hwr hlen hbw] at hb
+      have h := habs.winLo_any _ hg1
+      unfold WinLo at h
+      have : (rzLand g0 lay.wr n).om.lo = min g0.om.lo lay.wr := rfl
+      have : (rzSeg g0 true lay.wr n).om.lo = min g0.om.lo lay.wr := rfl
+      exact habs.lowW _ hg1 b x hb hbw (by omega) (fun s hs => by simpa [rzLand, rzSeg, rzMeta] using hs)
 
 /-- **The landing keeps the crash condition** (from the in-flight layout, `crashOkA_same`). -/
 theorem crashOkA_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur}

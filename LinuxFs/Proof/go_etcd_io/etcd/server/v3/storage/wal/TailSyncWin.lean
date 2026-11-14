@@ -33,21 +33,28 @@ section syncw
 variable [GooseExts]
 
 /-- **The layout after the fdatasync of a tail `g` in a window**: `syncLay`, and `old` zeros past
-the write position (the synced bytes there, `WinZero`). -/
+the write position (the synced bytes there, `WinZero`); below it `old`'s bytes, zero past `old`'s end (a
+write past the size makes the tail longer than `old`: W6 log, twenty-fourth session). -/
 def syncLayW (lay : WalLay) (pre : List SegG) (g : SegG) : WalLay :=
-  { syncLay lay pre g with old := lay.old.take lay.wr ++ List.replicate (g.bs.length - lay.wr) 0 }
+  { syncLay lay pre g with
+    old := (lay.old ++ List.replicate lay.wr 0).take lay.wr ++ List.replicate (g.bs.length - lay.wr) 0 }
 
-theorem syncOld_length (old : List w8) (wr k : Nat) (hwr : wr ≤ old.length) :
-    (old.take wr ++ List.replicate k (0 : w8)).length = wr + k := by
-  simp; omega
+theorem syncOld_length (old : List w8) (wr k : Nat) :
+    ((old ++ List.replicate wr 0).take wr ++ List.replicate k (0 : w8)).length = wr + k := by
+  simp <;> omega
 
-theorem syncOld_getD_lt (old : List w8) (wr k b : Nat) (hwr : wr ≤ old.length) (hb : b < wr) :
-    (old.take wr ++ List.replicate k (0 : w8)).getD b 0 = old.getD b 0 := by
+theorem syncOld_getD_lt (old : List w8) (wr k b : Nat) (hb : b < wr) :
+    ((old ++ List.replicate wr 0).take wr ++ List.replicate k (0 : w8)).getD b 0 = old.getD b 0 := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
     List.getElem?_append_left (by simp; omega), List.getElem?_take, if_pos hb]
+  by_cases hbo : b < old.length
+  · rw [List.getElem?_append_left hbo]
+  · rw [List.getElem?_append_right (by omega), List.getElem?_replicate, if_pos (by omega),
+      List.getElem?_eq_none (show old.length ≤ b by omega)]
+    rfl
 
-theorem syncOld_getD_ge (old : List w8) (wr k b : Nat) (hwr : wr ≤ old.length) (hb : wr ≤ b) :
-    (old.take wr ++ List.replicate k (0 : w8)).getD b 0 = 0 := by
+theorem syncOld_getD_ge (old : List w8) (wr k b : Nat) (hb : wr ≤ b) :
+    ((old ++ List.replicate wr 0).take wr ++ List.replicate k (0 : w8)).getD b 0 = 0 := by
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by simp; omega)]
   simp only [List.getElem?_replicate]
   split <;> rfl
@@ -73,9 +80,8 @@ theorem walAbsD_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     syncLay_getElem? hs
   have hSm : ∀ k, segStream C Mr { d with m := d.H.length } lay.cuts k =
       segStream C Mr d lay.cuts k := fun _ => rfl
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := h.lastWin g0 hg0
+  obtain ⟨h1, h2, h3, h4, -, h6, h7, h8, -⟩ := h.lastWin g0 hg0
   have hwz := h.winZero g0 hg0 hx
-  have hwo : lay.wr ≤ lay.old.length := by omega
   refine { names := ?_, cuts := ?_, nameBound := ?_, cut := h.cut, metas := ?_, intact := ?_,
            last := ?_, synced := ?_, lastSynced := ?_, fit := h.fit, tailStop := ?_,
            nonempty := ?_, cutPos := h.cutPos }
@@ -115,26 +121,31 @@ theorem walAbsD_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
       simp [SegExact, syncTail, OsMeta.synced, (h.metas g0 (by rw [hs]; simp)).1]
     refine ⟨fun _ => ?_, fun hx' => absurd hxs hx'⟩
     unfold TailLast
-    simp only [syncLayW, syncLay, hSm] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
-    refine ⟨Nat.le_refl _, h2, ?_, by rw [syncOld_length _ _ _ hwo]; omega, fun b x hb => ?_, h6,
+    simp only [syncLayW, syncLay, hSm] at h1 h2 h3 h4 h6 h7 h8 ⊢
+    refine ⟨Nat.le_refl _, h2, ?_, by rw [syncOld_length _ _ _]; omega, fun b x hb => ?_, h6,
       ?_, fun hz b hb1 hb2 => ?_⟩
-    · rw [syncOld_length _ _ _ hwo]; simp [syncTail]; omega
+    · rw [syncOld_length _ _ _]; simp [syncTail]; omega
     · simp only [syncTail, List.getElem?_map] at hb
       cases hb0 : g0.bs[b]? with
       | none => rw [hb0] at hb; cases hb
       | some y =>
         rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
         by_cases hbw : b < lay.wr
-        · rw [syncOld_getD_lt _ _ _ _ hwo hbw]
-          exact byteOk_sync (h5 b y hb0 hbw) (fun _ => decide_eq_true hbw)
-        · rw [syncOld_getD_ge _ _ _ _ hwo (by omega), hwz b y (by omega) hb0]
+        · rw [syncOld_getD_lt _ _ _ _ hbw]
+          rcases h.low g0 hg0 b y hb0 hbw with ⟨-, hB⟩ | ⟨-, -, hW⟩
+          · exact byteOk_sync hB (fun _ => decide_eq_true hbw)
+          · simp [ByteOk, hbw, hW.1]
+        · rw [syncOld_getD_ge _ _ _ _ (by omega), hwz b y (by omega) hb0]
           exact byteOk_durB (decide_eq_false hbw) (decide_eq_false hbw)
     · rw [List.take_append_of_le_length (by simp; omega), List.take_take,
-        Nat.min_eq_left h6]
+        Nat.min_eq_left h6, List.take_append_of_le_length h3]
       exact h7
     · by_cases hbw : b < lay.wr
-      · rw [syncOld_getD_lt _ _ _ _ hwo hbw]; exact h8 hz b hb1 (by omega)
-      · exact syncOld_getD_ge _ _ _ _ hwo (by omega)
+      · rw [syncOld_getD_lt _ _ _ _ hbw]
+        by_cases hbo : b < lay.old.length
+        · exact h8 hz b hb1 hbo
+        · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+      · exact syncOld_getD_ge _ _ _ _ (by omega)
   · refine ⟨Nat.le_refl _, ?_⟩
     simp only [syncLayW, syncLay, List.take_length]
     rw [htail]; exact Nat.le_refl _
@@ -143,19 +154,23 @@ theorem walAbsD_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     simp only [syncLayW, syncLay, hSm] at hz ⊢
     have hz0 : lay.z0 = lay.wr := by omega
     apply decStep_zeros_any C true (z := g0.bs.length - lay.wr)
-    rw [hz0, List.drop_append_of_le_length (by simp; omega), List.drop_eq_nil_of_le (by simp; omega),
+    rw [hz0, List.drop_append_of_le_length (by simp <;> omega),
+      List.drop_eq_nil_of_le (by simp <;> omega),
       List.nil_append]
     rfl
   · simp [syncLayW, syncLay]
 
 /-- **F-Z after the window's fdatasync.** -/
-theorem tailZeros_syncW {lay : WalLay} {pre : List SegG} {g0 : SegG} (hZ : TailZeros lay)
-    (hwo : lay.wr ≤ lay.old.length) : TailZeros (syncLayW lay pre g0) := by
+theorem tailZeros_syncW {lay : WalLay} {pre : List SegG} {g0 : SegG} (hZ : TailZeros lay) :
+    TailZeros (syncLayW lay pre g0) := by
   intro b hb1 hb2
   simp only [syncLayW, syncLay] at hb1 hb2 ⊢
   by_cases hbw : b < lay.wr
-  · rw [syncOld_getD_lt _ _ _ _ hwo hbw]; exact hZ b hb1 (by omega)
-  · exact syncOld_getD_ge _ _ _ _ hwo (by omega)
+  · rw [syncOld_getD_lt _ _ _ _ hbw]
+    by_cases hbo : b < lay.old.length
+    · exact hZ b hb1 hbo
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+  · exact syncOld_getD_ge _ _ _ _ (by omega)
 
 /-- **The record boundary after the window's fdatasync** (`tailBound_sync`: it does not read `old`). -/
 theorem tailBound_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
@@ -192,9 +207,8 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     CrashOk C Mr { d with m := d.H.length } (syncLayW lay pre g0) cl n := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs0]; simp
   have hwin := habs0.lastWin g0 hg0
-  have hwo : lay.wr ≤ lay.old.length := by obtain ⟨-, -, h3, h4, -⟩ := hwin; omega
   have habs := walAbsD_syncW habs0 hs0 hx htail
-  have hZ' : TailZeros (syncLayW lay pre g0) := tailZeros_syncW hZ hwo
+  have hZ' : TailZeros (syncLayW lay pre g0) := tailZeros_syncW hZ
   have hB := tailBound_syncW (pre := pre) habs0 hs0 htail
   intro m' fo hr hf hnmd hw
   have hs : (syncLayW lay pre g0).segs = pre ++ [syncTail g0] := rfl
@@ -246,8 +260,12 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
       rw [e]
       by_cases hkw : k < lay.wr
-      · obtain ⟨-, -, -, -, hbytes, -⟩ := hwin
-        exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw).head0)
+      · rcases habs0.low g0 hg0 k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw with
+          ⟨-, hB⟩ | ⟨hl, -, -⟩
+        · exact .inl (valAt_mem0 hB.head0)
+        · rcases valAt0_cases (g0.bs[k]'hk).2 with h0 | h0
+          · exact .inr ⟨hl, h0⟩
+          · exact .inl h0
       · rcases valAt0_cases (g0.bs[k]'hk).2 with h0 | h0
         · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
           rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩
@@ -431,9 +449,7 @@ theorem syncLay_any {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
       walsOk_sync hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_sync hC hW hd hl hs htail hZ hzf hex hK⟩
   · have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
-    have hwo : lay.wr ≤ lay.old.length := by
-      obtain ⟨-, -, h3, h4, -⟩ := habs.lastWin g0 hg0; omega
-    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ hwo,
+    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ,
       tailBound_syncW habs hs htail,
       walsOk_syncW hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_syncW hC hW hd hl hs htail hZ hzf hex hK⟩

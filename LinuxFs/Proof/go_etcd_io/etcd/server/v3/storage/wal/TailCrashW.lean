@@ -422,10 +422,13 @@ theorem fileCrashedR_syncImg {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay 
     by_cases hx : SegExact g0
     · obtain ⟨-, -, -, -, hbytes, -⟩ := (habs.last g0 hg0).1 hx
       exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk)).head0)
-    · have hwin := habs.lastWin g0 hg0
-      by_cases hkw : k < lay.wr
-      · obtain ⟨-, -, -, -, hbytes, -⟩ := hwin
-        exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw).head0)
+    · by_cases hkw : k < lay.wr
+      · rcases habs.low g0 hg0 k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw with
+          ⟨-, hB⟩ | ⟨hl, -, -⟩
+        · exact .inl (valAt_mem0 hB.head0)
+        · rcases valAt0_casesW (g0.bs[k]'hk).2 with h0 | h0
+          · exact .inr ⟨hl, h0⟩
+          · exact .inl h0
       · have hhd := habs.winHead g0 hg0 hx
         rcases valAt0_casesW (g0.bs[k]'hk).2 with h0 | h0
         · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
@@ -587,17 +590,30 @@ theorem WalAbsD.tailShape {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
     (hg : lay.segs.getLast? = some g) :
     TailShape (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0) lay.so lay.z0
       g.om.rz (fun b => ((segBytesX g).getD b (0, [])).2) := by
-  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, htake, -, hWC⟩ := habs.lastWin g hg
-  refine tailShape_win (wr := lay.wr) hso hz0 (fun b hb => ?_) (fun b q hb hq => ?_) htake hZ
+  obtain ⟨hso, hwS, -, hwo, -, hz0, htake, -, hWC⟩ := habs.lastWin g hg
+  have hwl := habs.winLo_any g hg
+  unfold WinLo at hwl
+  -- below `min wr lo` `ByteOk`; from there on `WinShape` (`WinW` from `lo` to `wr`, `WinCands` from `wr`)
+  refine tailShape_win (wr := min lay.wr g.om.lo) (by omega) (by omega) (fun b hb => ?_)
+    (fun b q hb hq => ?_) htake hZ
   · have hbl : b < g.bs.length := by omega
-    refine ⟨g.bs[b], decide (b < (segStream C Mr d lay.cuts lay.cuts.length).length),
-      decide (b < lay.wr), ?_, hB b _ (List.getElem?_eq_getElem hbl) hb⟩
-    rw [segBytesX_getD_lt hbl, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl,
-      Option.getD_some]
-  · by_cases hbX : b < (segBytesX g).length
-    · exact hWC.2 b hb hbX q hq
-    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)] at hq
-      simp at hq
+    rcases habs.low g hg b _ (List.getElem?_eq_getElem hbl) (by omega) with ⟨-, hB⟩ | ⟨h1, -⟩
+    · refine ⟨g.bs[b], decide (b < (segStream C Mr d lay.cuts lay.cuts.length).length),
+        decide (b < lay.wr), ?_, hB⟩
+      rw [segBytesX_getD_lt hbl, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl,
+        Option.getD_some]
+    · omega
+  · by_cases hbw : lay.wr ≤ b
+    · by_cases hbX : b < (segBytesX g).length
+      · exact hWC.2 b hbw hbX q hq
+      · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)] at hq
+        simp at hq
+    · have hbl : b < g.bs.length := by omega
+      rw [segBytesX_getD_lt hbl, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl,
+        Option.getD_some] at hq
+      rcases habs.low g hg b _ (List.getElem?_eq_getElem hbl) (by omega) with ⟨h1, -⟩ | ⟨-, -, hW⟩
+      · omega
+      · exact hW.2 q hq
 
 /-- **A crash leaves the last segment no longer than `segBytesX`** (an exact tail's `hi` is its
 length; a window's `WinCands`). -/
