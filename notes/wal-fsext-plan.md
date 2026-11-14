@@ -249,6 +249,18 @@ need a witness after the landing), for no gain: either way W1 excludes a few rea
 the *intended* frame when part of it is zeros (unwritten, zeroed by the truncate, or written as zeros),
 which the old W1 already did for unwritten zeros. Both are in `W1.lean`'s docstring for the review.
 
+**Restated exactly (2026-11-14, `wal-tc4`; trusted bookkeeping pending the user's review).** The
+amendment above excluded real crashes: a frame split by the page writer whose second `pwrite`'s share of
+the core is zeros (the data's trailing zeros) comes back intact, yet that `pwrite` "wrote no nonzero
+byte". The state now records each file's resize stamps (`OsFile.rzs`, appended by `OsFile.announce` for
+a `truncate`/`falloc` kind, `[]` at `ofDisk`; read by no step: `examples/osfs/semantics/data_resize_stamps.go`),
+and the change disjunct asks `p.2 ∉ f.rzs` in place of `WroteIn`. Allowed: the split frame
+(`AsOfW.split_zero`); excluded: the truncate window (`AsOfW.not_rz_window`). What W1 still excludes of
+real crashes: an intended core whose zero tail no announced `pwrite` has written yet (still in the
+encoder's buffer when the crash comes, the bytes under it zeros): the state has no record of buffered
+bytes (`W1.lean`'s docstring). Not reset at a sync (a resize in flight keeps its candidates across one;
+stamps are never reused).
+
 ## 3. Changes to the statements
 
 Binder changes for all 12:
@@ -1029,6 +1041,38 @@ core has a nonzero candidate stamped `n_rz`, so `AsOfW` at such `n` is false; be
 `latestAt` is stamped 0. So an accepted frame straddling `wr` is as of the flush (`n ≥ k`: intended) or
 as of the sync.
 
+**Fourteenth session (branch `wal-tc4`, 2026-11-14): W1 restated exactly over recorded resize stamps.**
+- *Trusted* (`GooseLang/Ext/Fs/Impl.lean`, **pending the user's review**, bookkeeping only): `OsFile.rzs :
+  List Nat := []`, `OsChangeKind.isResize`, `OsFile.announce` appends the stamp of a resize (so
+  `FtruncateStart`, `FallocStart` and `open`'s `O_TRUNC` record it; `ofDisk`/`newFile` start empty). Go
+  example `examples/osfs/semantics/data_resize_stamps.go` (indexed in `doc.go`). No extension proof
+  changed (every `GooseLang/Ext/Fs` module rebuilt as is).
+- *W1* (`W1.lean`): `WroteIn` dropped; the statement (Lean):
+```lean
+def AsOfW (cs : Nat → Cands) (rz : List Nat) (v : Nat → w8) (o len : Nat) : Prop :=
+  (∀ b, o ≤ b → b < o + len → v b = valAt (cs b) 0) ∨
+  ∃ n, 0 < n ∧ ∀ b, o ≤ b → b < o + len →
+    ∃ p, latestAt (cs b) n = some p ∧ v b = p.1 ∧ 0 < p.2 ∧ p.2 ∉ rz
+def AsOfOne (f f' : OsFile) (o len : Nat) : Prop := AsOfW f.cand f.rzs f'.cache o len
+```
+  `AsOfW.congr` takes `rz' ⊆ rz` (fewer resizes known is weaker); `AsOfW.weak` unchanged in form; sanity
+  lemmas `AsOfW.of_last`, `AsOfW.split_zero` (allowed: the split frame, second share zeros),
+  `AsOfW.not_rz_window` (excluded: a byte last zeroed by a resize after a byte written since the sync);
+  `W1Sat` unchanged. The docstring's "excludes real crashes" caveat narrowed to the buffered-zeros case.
+- *Ghost side* (`Abs.lean`): `AsOfOneG bs rz img o len`, **`W1G … bsOf rzOf`** (the resize stamps known of
+  each file); `w1G_of_W1 … rzOf` asks, of each segment, `∀ s ∈ rzOf g.ino, s ∈ f.rzs`. **`CrashOk` and
+  `CrashOkA` pass `fun _ => []`** for now: their users get exactly the weak form (as before), and no
+  `CrashOk` proof changed. `w1G_durable`, `w1G_sync`, `w1G_prefix`, `crashTo_tailM`/its wrapper are generic
+  in `rzOf`.
+- **The ghost link `cut`'s window needs (next unit, not done)**: the WAL must know, at a crash, that the
+  truncate's stamp is in the file's `rzs`. Plan: `OsMeta.rz : List Nat := []` (ghost, `Ghost.lean`), a
+  `MetaOk` clause `∀ s ∈ m.rz, s ∈ f.rzs` (kept by every step: `rzs` only grows, `announce` keeps `m.rz`),
+  `rsPostK … n …` sets `rz := n :: m.rz` (`rsPostK_false` and `ResizeAu`'s `withTc` form then need the
+  `rz` field), the crash take (`crashRest_take_files`, `FileCrashAt`) exporting it next to the
+  candidates, `walCrash_pure`'s `hfiles` carrying it, and `CrashOk`'s `W1G` passing `segRzOf lay i :=
+  (find g.ino).om.rz`. Every `CrashOk` prover is unaffected (`asOfOneG_asOf` is generic in `rz`); the
+  window's prover uses `AsOfW` with the truncate's stamp in `g.om.rz` (`AsOfW.not_rz_window`'s argument).
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -1096,7 +1140,9 @@ holds some mode). Nothing proves the new models yet.
 **Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
 non-`Data` bytes, under investigation on `wal-bytemix`; amended 2026-11-14 so a resize's zeros do not
-write a frame, §2.5, and it excludes a few real crashes that leave the intended frame, its docstring); the new `os`/`syscall` models and the
+write a frame, restated exactly over the recorded resize stamps by `wal-tc4`, §2.5; it still excludes the rare crash
+leaving an intended frame whose zero tail was not yet written, its docstring); the resize-stamp record `OsFile.rzs`
+(bookkeeping, `wal-tc4`); the new `os`/`syscall` models and the
 `PathKind` query in `GooseLang/Ext/Fs/Impl.lean` (§9, `notes/wal-fsext-models-review.md`); the
 crc32 model; the `walpb` registrations; the leaf axioms above; the restated `ReadAll` post
 (`notes/specs-only/ledger.md`, 2026-11-13).
@@ -3306,6 +3352,15 @@ decision (option 1); task 3 (the supplies) not done.
   `(img i).length ≤ |bs|`, `crashTo_tailM` derives it from the image's length);
   (3) `truncSup`/`fallocSup` from `walInv` via `walInvBody_tailW`, then `specWalTail`'s proof and `ZeroToEnd`'s
   instance.
+
+**W1 restated exactly (branch `wal-tc4`, 2026-11-14).** Task 1 of `wal-tc3`'s list redone exactly (W1 log,
+fourteenth session): the state records resize stamps (`OsFile.rzs`, trusted bookkeeping, pending review),
+W1's change disjunct asks each byte's candidate as of `n` be a `pwrite`'s (`p.2 ∉ f.rzs`), so the
+split-frame crash with a zero share is allowed and `cut`'s truncate window excluded. `W1G` takes the
+resize stamps known per file (`rzOf`); `CrashOk` passes none until the ghost link (`OsMeta.rz`, the W1 log's
+plan) is in. **Open (task 3, unchanged)**: the ghost link first; then the pure `CrashOk` of `cut`'s window
+(with `segRzOf`), `ReadAll`'s `ZeroToEnd` (`segBytesOf` by `pc`, `SegCrashAt`), `truncSup`/`fallocSup` from
+`walInv` via `walInvBody_tailW`, `specWalTail`'s proof and the `ZeroToEnd` instance.
 
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking

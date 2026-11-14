@@ -269,21 +269,22 @@ theorem segExact_metas {g : SegG} {lay : WalLay} (h : SegExact g) :
 /-! ## W1 over the ghost candidates -/
 
 /-- The ghost form of `AsOfOne`: the image bytes `img` of `[o, o + len)` against the bytes `bs`'
-candidates. -/
-def AsOfOneG (bs : List ByteG) (img : List w8) (o len : Nat) : Prop :=
-  AsOfW (fun b => (bs.getD b (0, [])).2) (fun b => img.getD b 0) o len
+candidates, `rz` resizes of the file known. -/
+def AsOfOneG (bs : List ByteG) (rz : List Nat) (img : List w8) (o len : Nat) : Prop :=
+  AsOfW (fun b => (bs.getD b (0, [])).2) rz (fun b => img.getD b 0) o len
 
 /-- **W1 over a crashed WAL directory**, from the ghost candidates: its `.wal` files `js` (in name
 order), their images `img`, read from any of them on with a fresh reader; a file that is a segment
 the invariant knows (`bsOf i = some bs`) has every accepted frame whose core lies in `bs` (`wal-tc3`;
 was: the whole image no longer than `bs`) as of one change of `bs`' candidates. (The image may be longer
 than the bytes the invariant knows in a resize window, I3b: a frame past them is the state's, which the
-ghost state does not see.) -/
-def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → Option (List ByteG)) :
-    Prop :=
+ghost state does not see.) `rzOf i`: stamps known to be resizes of the file `i` (`OsFile.rzs`;
+`wal-tc4`: `CrashOk` passes none yet, so its users get the weak form, `AsOfW.weak`). -/
+def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → Option (List ByteG))
+    (rzOf : Ino → List Nat) : Prop :=
   ∀ k, ∀ p ∈ acceptsFiles C ((js.drop k).map img) 0#32, ∀ i bs, (js.drop k)[p.1]? = some i →
     bsOf i = some bs → p.2 + frameCore (img i) p.2 ≤ bs.length →
-      AsOfOneG bs (img i) p.2 (frameCore (img i) p.2)
+      AsOfOneG bs (rzOf i) (img i) p.2 (frameCore (img i) p.2)
 
 /-- The ghost bytes of the segment of inode `i`, if it is one of the layout's. -/
 def segBytesOf (lay : WalLay) (i : Ino) : Option (List ByteG) :=
@@ -308,13 +309,14 @@ theorem contents_getD (f : Fs.OsFile) (b : Nat) (hb : b < f.size) : f.contents.g
 crashed tree is the state's, each segment's image no larger than its bytes the invariant knows, its
 candidates in the old state the ghost ones. -/
 theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay)
-    (hw1 : W1 C st st') (htree : st'.fs.treeDur = m')
+    (rzOf : Ino → List Nat) (hw1 : W1 C st st') (htree : st'.fs.treeDur = m')
     (hsegs : ∀ g ∈ lay.segs,
-      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
-    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (st'.fs.files !! i)) (segBytesOf lay) := by
+      ∃ f, st.fs.files !! g.ino = some f ∧ (∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) ∧
+        ∀ s ∈ rzOf g.ino, s ∈ f.rzs) :
+    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (st'.fs.files !! i)) (segBytesOf lay) rzOf := by
   intro k p hp i bs hi hbs hsz
   obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some hbs
-  obtain ⟨f, hf, hcand⟩ := hsegs g hg
+  obtain ⟨f, hf, hcand, hrz⟩ := hsegs g hg
   obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
   rw [List.getElem?_map, hi] at hx
   simp only [Option.map_some, Option.some.injEq] at hx
@@ -351,7 +353,7 @@ theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
         exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm
       exact AsOfW.congr (fun b hb1 hb2 => (hbyte b hb1 hb2).2.symm)
-        (fun b hb1 hb2 => (hbyte b hb1 hb2).1.symm) h1
+        (fun b hb1 hb2 => (hbyte b hb1 hb2).1.symm) hrz h1
 
 /-! ## The crash condition -/
 
@@ -390,7 +392,7 @@ def CrashOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : L
   ∀ (m' : Tree) (fo : Ino → Option Fs.OsFile), RegionCrashed cl n m' →
     (∀ g ∈ lay.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino)) →
     (∀ g ∈ lay.segs, g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome) →
-    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) →
+    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) (fun _ => []) →
     CrashTo C Mr d lay m' fo
 
 end abs
