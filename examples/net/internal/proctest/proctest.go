@@ -7,6 +7,13 @@
 // A test never connects to the nodes itself (the theorems assume a closed world:
 // nothing outside the system uses its addresses); it waits for a listener by
 // reading the kernel's socket table, /proc/net/tcp.
+//
+// With NETTCP_CONFORM=1 (conformance tracing, examples/net/conform/README.md), Build
+// builds each command with the tracer's overlay of Go's net package, and Start and Run give
+// each node's process NETTCP_NODE (the command's name) and NETTCP_TRACE_DIR (the test's
+// trace directory, $NETTCP_TRACE_DIR/<package>/<test>, or under a temporary directory), and
+// record its start, kill and exit in the directory's driver file (conform/events). Nothing
+// changes otherwise.
 package proctest
 
 import (
@@ -23,6 +30,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/mit-pdos/etcd-grove/examples/net/conform/events"
 )
 
 // Build builds the commands cmds (package paths, relative to the test's
@@ -35,11 +44,18 @@ func Build(t *testing.T, cmds ...string) map[string]string {
 	for _, c := range cmds {
 		name := filepath.Base(c)
 		out := filepath.Join(dir, name)
-		b, err := exec.Command("go", "build", "-o", out, c).CombinedOutput()
+		args := []string{"build", "-o", out, c}
+		if conformOn {
+			args = []string{"build", "-overlay", conformOverlay(t), "-o", out, c}
+		}
+		b, err := exec.Command("go", args...).CombinedOutput()
 		if err != nil {
 			t.Fatalf("go build %s: %v\n%s", c, err, b)
 		}
 		bins[name] = out
+		if conformOn {
+			conformBuilt(t, out)
+		}
 	}
 	return bins
 }
@@ -51,6 +67,7 @@ type Proc struct {
 	out  bytes.Buffer
 	done chan struct{}
 	err  error
+	log  *events.Log // conformance tracing: the trace directory's driver file
 }
 
 type lockedWriter struct{ p *Proc }
@@ -68,11 +85,20 @@ func Start(t *testing.T, bin string) *Proc {
 	p.cmd = exec.Command(bin)
 	p.cmd.Stdout = lockedWriter{p}
 	p.cmd.Stderr = lockedWriter{p}
+	if conformOn {
+		p.log = conformEnv(p.cmd, bin)
+	}
 	if err := p.cmd.Start(); err != nil {
 		t.Fatalf("start %s: %v", bin, err)
 	}
+	if conformOn {
+		p.log.Start(filepath.Base(bin), p.cmd.Process, bin)
+	}
 	go func() {
 		p.err = p.cmd.Wait()
+		if conformOn {
+			p.log.Exit(filepath.Base(bin), p.cmd.Process.Pid, p.cmd.ProcessState)
+		}
 		close(p.done)
 	}()
 	t.Cleanup(p.Kill)
@@ -82,6 +108,9 @@ func Start(t *testing.T, bin string) *Proc {
 // Kill kills the process with SIGKILL (a crash: its kernel closes its sockets)
 // and waits for it.
 func (p *Proc) Kill() {
+	if conformOn {
+		conformKill(p)
+	}
 	_ = p.cmd.Process.Kill()
 	<-p.done
 }
@@ -104,6 +133,9 @@ func (p *Proc) Alive(t *testing.T) {
 func Run(bin string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	if conformOn {
+		return conformRun(exec.CommandContext(ctx, bin), bin)
+	}
 	out, err := exec.CommandContext(ctx, bin).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s: %v\n%s", filepath.Base(bin), err, out)
