@@ -91,7 +91,11 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     fun b hb hbz => by
       rw [announce_cz] at hbz
       rw [hcache b]; exact hmo.cz b (by rw [← hsz.1]; exact hb) hbz,
-    fun s hs => hrz s (hmo.rz s (by simpa using hs))⟩
+    fun s hs => hrz s (hmo.rz s (by simpa using hs)), fun z hz b hb => ?_⟩
+  rotate_right
+  · simp only [announce_zf, Option.map_eq_some_iff] at hz
+    obtain ⟨z0, hz0, rfl⟩ := hz
+    rw [hcache b]; exact hmo.zc z0 hz0 b (by split at hb <;> omega)
   · rw [htg t c ht hc]; exact ⟨Nat.min_le_right _ _, Nat.le_max_right _ _⟩
   · intro b hb hn
     rw [announce_dlo, announce_dhi] at hn
@@ -519,7 +523,7 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       refine ⟨f1, by simp only [startState, OsState.addInflight, OsState.stampFile,
         GMap.lookup_insert_eq_iff, if_neg hne]; exact h1, ?_⟩
       refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail, hm1.cz,
-        hm1.rz⟩
+        hm1.rz, hm1.zc⟩
       by_cases he : t = t'
       · subst he; simp only [startState, OsState.addInflight, GMap.lookup_insert] at h1'
         cases h1'; exact absurd (hcp.symm.trans h2') hne
@@ -841,7 +845,7 @@ theorem MetaOk.mono_infl {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hin : ∀ t c, st'.proc.inflight !! t = some c → st.proc.inflight !! t = some c)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, fun t c ht => h.targets t c (hin t c ht), h.dur,
-    h.zf, h.tail, h.cz, h.rz⟩
+    h.zf, h.tail, h.cz, h.rz, h.zc⟩
 
 theorem doneInflight_sub (st : OsState) (t : Nat) :
     ∀ t' c', (st.doneInflight t).proc.inflight !! t' = some c' → st.proc.inflight !! t' = some c' := by
@@ -925,10 +929,30 @@ theorem insertBytes_append (p : Ino) : ∀ (off : Nat) (xs ys : List (ByteG))
 /-- The size after a `pwrite` of `k` bytes at `off` of a file of size `sz`. -/
 def pwSize (sz off k : Nat) : Nat := if k = 0 then sz else max sz (off + k)
 
+/-- The page cache known zero past the size after a `pwrite` that wrote `k` bytes at `off`: a
+write that landed something up to or past the zeros known (`zf ≤ off + k`) leaves the page cache
+zero to the end of the page holding its end (what it did not write there was past the zeros known,
+`MetaOk.zc`); otherwise as before. -/
+def pwCz (m : OsMeta) (off k : Nat) : Nat :=
+  match m.zf with
+  | some z => if 0 < k ∧ z ≤ off + k then max m.cz (pageEnd (off + k)) else m.cz
+  | none => m.cz
+
+theorem le_pwCz (m : OsMeta) (off k : Nat) : m.cz ≤ pwCz m off k := by
+  unfold pwCz; split
+  · split <;> omega
+  · exact Nat.le_refl _
+
+/-- A write that landed something up to or past the zeros known raises `cz` to its end's page. -/
+theorem pwCz_raise {m : OsMeta} {off k z : Nat} (hz : m.zf = some z) (hk : 0 < k)
+    (hzk : z ≤ off + k) : pageEnd (off + k) ≤ pwCz m off k := by
+  unfold pwCz; rw [hz]; simp only [if_pos (And.intro hk hzk)]; omega
+
 /-- The `OsMeta` after a `pwrite` of `n` bytes at `off` that wrote `k`: as its first step left it,
-with the size it leaves. -/
+with the size it leaves, and the page cache known zero past it (`pwCz`). -/
 def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
-  { m.announce (min off m.size) (off + n) (max m.size (off + n)) with size := pwSize m.size off k }
+  { m.announce (min off m.size) (off + n) (max m.size (off + n)) with size := pwSize m.size off k,
+    cz := pwCz m off k }
 
 /-- The candidates known past the size after a `pwrite` of `data` at `off` (inside the file),
 announced as change `n`: each byte of its range past the old size with the data's byte as a new
@@ -1012,6 +1036,36 @@ abbrev pwState (st : OsState) (t : Nat) (p : Ino) (f : OsFile) (c : OsChange) (o
   (st.doneInflight t).setFile p (pwFile f c off k)
 
 end finish
+
+/-- A page-aligned end is its page's end. -/
+theorem pageEnd_of_mod {x : Nat} (h : x % osPageSize = 0) : pageEnd x = x := by
+  simp only [pageEnd]; simp only [osPageSize] at h; omega
+
+/-- The page cache past the end of a write that raised `cz` (`pwCz`) is zero: only a write that
+wrote all of its data reaches past the end of a page, and the bytes past its data were past the
+zeros its first step announced (`MetaOk.zc`). -/
+theorem pwFinish_cz_raise {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} {off k b : Nat}
+    {data : List w8}
+    (hmo : MetaOk st i (m.announce off (off + data.length) (max m.size (off + data.length))) f)
+    (hdl : 0 < data.length) (hb : pwSize f.size off k ≤ b)
+    (hpc : k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0)
+    (hbz : b < pwCz m off k) (hbc : ¬ b < m.cz) : f.cache b = 0 := by
+  unfold pwCz at hbz
+  split at hbz
+  · rename_i z0 hz0
+    split at hbz
+    · rename_i hraise
+      obtain ⟨hk0, hzk⟩ := hraise
+      have hbk : off + k ≤ b := by unfold pwSize at hb; split at hb <;> omega
+      rcases hpc with h0 | hfull | hcut
+      · omega
+      · subst hfull
+        refine hmo.zc (max z0 (off + data.length)) ?_ b (by omega)
+        simp only [announce_zf, hz0, Option.map_some]
+        rw [if_pos (by omega)]
+      · rw [pageEnd_of_mod hcut] at hbz; omega
+    · omega
+  · omega
 
 section specs2
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
@@ -1178,7 +1232,8 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
       { m.announce off (off + data.length) (max m.size (off + data.length)) with
         size := pwSize m.size off k,
         tc := cond keep (pwTail m off data n)
-          (m.announce off (off + data.length) (max m.size (off + data.length))).tc } := by
+          (m.announce off (off + data.length) (max m.size (off + data.length))).tc,
+        cz := pwCz m off k } := by
     simp only [pwPostK, pwPost, hcanon]
   have hcoh2 : OsCoh (pwState st t c.ino f c off k) (insertBytes c.ino off ys Γb)
       (<[c.ino := pwPostK keep m off data k n]> Γm) Γf (GMap.delete t Γt) := by
@@ -1195,8 +1250,8 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
           have h1 := hmo.maps b len; simp only [announce_maps] at h1; simp only [announce_maps]
           exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs)⟩
-      rotate_right 2
+        fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs), fun z hz b hzb => ?_⟩
+      rotate_right 3
       · rw [show (pwFile f c off k).cand b = f.cand b from rfl]
         rw [hsz2] at hb
         have hfb : f.size ≤ b := by
@@ -1225,12 +1280,21 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
           · rename_i hr
             exact hmo.tail b cs hfb (by rw [announce_tc, if_neg hr]; exact hc)
       · rw [hsz2] at hb
-        have hbz' : b < (m.announce off (off + data.length) (max m.size (off + data.length))).cz := by
-          simp only [announce_cz] at hbz ⊢; exact hbz
         have hk : ¬ (off ≤ b ∧ b < off + k) := by unfold pwSize at hb; split at hb <;> omega
         have hfb : f.size ≤ b := by unfold pwSize at hb; split at hb <;> omega
         rw [hcache b, if_neg hk]
-        exact hmo.cz b hfb hbz'
+        change b < pwCz m off k at hbz
+        by_cases hbc : b < m.cz
+        · exact hmo.cz b hfb (by simpa only [announce_cz] using hbc)
+        · exact pwFinish_cz_raise hmo hdl hb hpc.1 hbz hbc
+      · rw [hsz2] at hzb
+        simp only [announce_zf, Option.map_eq_some_iff] at hz
+        obtain ⟨z0, hz0, rfl⟩ := hz
+        have hz1 := hmo.zc _ (by simp only [announce_zf, hz0]; rfl) b hzb
+        have hlt : off < off + data.length := by omega
+        simp only [hlt, if_true] at hzb
+        rw [hcache b, if_neg (by omega)]
+        exact hz1
       · simp only [pwFile, OsFile.land, announce_lo]; omega
       · simp only [pwFile, OsFile.land, announce_hi]; split <;> omega
       · exfalso
