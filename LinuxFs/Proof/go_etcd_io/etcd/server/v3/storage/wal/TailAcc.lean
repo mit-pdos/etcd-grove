@@ -305,7 +305,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   iintro Hb Hk Hv Hh
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
   unfold walTailsRes
   icases Htl with ⟨%T, HTa, %HTo, HTm⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
@@ -420,8 +420,10 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     iframe Hdk Hcp
     ipureintro
     exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hlen hzf hZ hB habs' Hdko
-  ipureintro
-  exact walsAt_insert hl rfl rfl HAt
+  isplitr
+  · ipureintro
+    exact walsAt_insert hl rfl rfl HAt
+  iapply walNamesRes_insert _ _ _ _ _ _ (tailLay lay pre g wr') hl rfl rfl $$ Hnms
 
 end iris
 

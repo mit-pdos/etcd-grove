@@ -37,14 +37,16 @@ has handed over since this `Open`/`Create`, `walPipeH`): its `count` is a Go `in
 `w.state` the history's last hard state: the new segment's headers hold it (`cutHdrDs`). The cuts
 increasing (the headers' state is `walLastHS` of the segments' concatenation, `segsOf_flatten`);
 the metadata and the state's encoding below `2^42` bytes (the headers' frames below ext4's maximum
-offset, `Seek`'s bound, and each record below the encoder's `2^47`, `encoder.encode.specG`). -/
+offset, `Seek`'s bound, and each record below the encoder's `2^47`, `encoder.encode.specG`). The old
+tail's resize window may be open (`TailMetaW`: `Save` cuts after writing past the preallocated size, W6 log,
+thirteenth session). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS),
   h.rest = 0 → h.st = walLastHS (h.H.map WalOpG.toM) → h.pc + 2 < 2 ^ 63 →
   (∀ b ∈ h.cuts, b < h.H.length) → h.cuts.Pairwise (· < ·) →
   walCutPos (h.H.map WalOpG.toM) h.H.length →
   h.md.length + (Mr.encState h.st).length < 2 ^ 42 →
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h }}
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"cut")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ h' : WalHS, walHandleIn P Mr w dir h' ∗

@@ -398,7 +398,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h0, _, .inl ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
-      ⟨fun _ i' hi' => by rw [hl0] at hi'; cases hi'; exact hnb, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩,
+      ⟨fun _ i' hi' => by rw [hl0] at hi'; cases hi'; exact hnb, .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩,
       hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
@@ -428,7 +428,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   have hc1 : TreeCohS (truncSt (st.metaEnd k) i f) s1 Γdf (GMap.delete k Γc) Γg :=
     (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨⟨f', hf', hst1⟩, rfl⟩ := heff

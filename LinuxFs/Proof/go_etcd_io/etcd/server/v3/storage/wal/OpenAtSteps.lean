@@ -38,20 +38,20 @@ theorem walInv_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (S : List SegG) (write : Bool)
     (hS : ∀ g ∈ S, g.om.size = g.bs.length) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗
+      walLockedTok (W := W) -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ -∗
       ([∗list] g ∈ S, segRes (L := L) g) -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) -∗ walDirKey (W := W) dir j X ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Hl Htf Ho HS Hn Ht #Hk
   iapply walInv_step C Mr R jr r
-    iprop(walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+    iprop(walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
       ([∗list] g ∈ S, segRes (L := L) g) ∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) ∗ walDirKey (W := W) dir j X)
     (walUnlockedTok (W := W)) ⊤ CoPset.subseteq_top (fun s => by
-      iintro Hb ⟨Hl, Htf, Ho, HS, Hn, Ht, Hk⟩
-      imod walInvBody_unpin C Mr R jr r s dir j X hj S write hS $$ Hb Hl Htf Ho HS Hn Ht Hk
+      iintro Hb ⟨Hl, ⟨Htf, Hnf⟩, Ho, HS, Hn, Ht, Hk⟩
+      imod walInvBody_unpin C Mr R jr r s dir j X hj S write hS $$ Hb Hl Htf Hnf Ho HS Hn Ht Hk
         with ⟨Hb, Hu⟩
       imodintro
       iframe)

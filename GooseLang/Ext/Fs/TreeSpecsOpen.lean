@@ -264,7 +264,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, .inl ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl', flRO_ok, hcall,
-      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -283,7 +283,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨-, -, -, hst1, rfl⟩ := heff
@@ -388,7 +388,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, .inl ⟨p, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
-      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -410,7 +410,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff
@@ -632,7 +632,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, .inl ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hl hb), flCreat_ok, hcall,
-      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -691,7 +691,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     iframe
   -- the files' world of the created state, from the old one's parts
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst | ⟨tgt, heff⟩⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst | ⟨tgt, heff⟩⟩
   · -- success
     obtain ⟨rfl, rfl⟩ := heffect st1 tgt heff
     obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree

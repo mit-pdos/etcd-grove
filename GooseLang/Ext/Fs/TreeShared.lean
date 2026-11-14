@@ -422,17 +422,46 @@ theorem wp_osOpenFileS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (d
         @ s; E {{ Φ }} :=
   wp_osOpenFileS' R d b j i N dq dqn h k s0 q fl hfl htr hb hN hi hE hE' Φ
 
-/-- **`open(2)` of a directory, read-only**: a shared directory fd, holding nothing. -/
+/-- **`open(2)` of a directory, read-only**: a shared directory fd, holding nothing; a failure is
+not `ENOENT`. -/
 theorem wp_osOpenDirS (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
       osCallS (L := L) k s0 q -∗
-      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗ osCallPerm (L := L) q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗
         osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} :=
   wp_osOpenDirS' R p j dq k s0 q hE hE' Φ
+
+/-- **`open(2)` read-only of the directory `d/b`**, with a fraction of a claim on names of `d`'s
+directory containing `b`, holding the directory `J`: a shared directory fd on `J`; a failure is not
+`ENOENT`. -/
+theorem wp_osOpenDirChildS (R : Roots) (d b : GoString) (j J : Ino) (N : NameSet) (dq dqn : DFrac)
+    (h : NamesH) (k s0 : Nat) (q : Qp) (hb : NameOk b) (hN : N.Mem b)
+    (hJ : h.cur !! b = some (.dir J)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        (⌜e = 0⌝ -∗ osDirFdS (L := L) fd J .idle) -∗ Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flRO)))))
+        @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk HΦ
+  iapply wp_osOpenDirGenS' R (child d b) J
+    iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h) k s0 q
+    (fun st Γn hw hR hcoh => by
+      iintro HA HP
+      icases pathNames_of R d dq j N dqn h st Γn hR hcoh $$ HA HP with %hpn
+      ipureintro
+      rw [pathNames_child hw hpn hb hN, hJ]) hE hE' Φ $$ Hinv Hsi [Hp Hn] Hk
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hn
+  iintro %fd %e %hr Hq ⟨Hp, Hn⟩ Hfd
+  iapply HΦ $$ %fd %e %hr Hq Hp Hn Hfd
 
 /-! ## Shared directory fds -/
 
@@ -477,6 +506,52 @@ theorem wp_osDirReadNextS (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : N
         Φ v) -∗
       WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} :=
   wp_osDirReadNextS' R fd j N r0 rs fresh dq h hfr hr0 hE hE' Φ
+
+/-- **One step of a read of a shared directory fd on the directory `d/b`**, `wp_osDirReadNextS` with
+a spine to `d` and a fraction of a claim on names of `d`'s directory containing `b`, holding `J`: an
+errno is not `ENOENT` (the directory is in the tree). -/
+theorem wp_osDirReadNextChildS (R : Roots) (fd : w64) (d b : GoString) (jp J : Ino) (Np : NameSet)
+    (dqp dqn : DFrac) (hp : NamesH) (N : NameSet) (r0 : Nat) (rs : List GoString) (fresh : Bool)
+    (dq : DFrac) (h : NamesH) (hb : NameOk b) (hNp : Np.Mem b) (hJ : hp.cur !! b = some (.dir J))
+    (hfr : fresh = true → rs = []) (hr0 : fresh = false → h.next ≤ r0)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗
+      osDirFdS (L := L) fd J (if fresh then .idle else .reading N r0 rs) -∗
+      osNames (L := L) J N dq h -∗ osPathS (L := L) R d dqp jp -∗ osNames (L := L) jp Np dqn hp -∗
+      (∀ v, osNames (L := L) J N dq h -∗ osPathS (L := L) R d dqp jp -∗
+        osNames (L := L) jp Np dqn hp -∗
+        (∃ r0', ⌜fresh = false → r0' = r0⌝ ∗ ⌜fresh = true → h.next ≤ r0'⌝ ∗
+          ((∃ b, ⌜v = rdName b ∧ NameOk b ∧ (N.Mem b → (h.cur !! b).isSome ∧ b ∉ rs)⌝ ∗
+              osDirFdS (L := L) fd J (.reading N r0' (b :: rs))) ∨
+           (⌜v = rdEnd ∧ ∀ b, N.Mem b → (h.cur !! b).isSome → b ∈ rs⌝ ∗
+              osDirFdS (L := L) fd J .done) ∨
+           (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ v = rdErr e⌝ ∗
+              osDirFdS (L := L) fd J (.reading N r0' rs)))) -∗
+        Φ v) -∗
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hfd Hn Hp Hnp HΦ
+  iapply wp_osDirReadNextGenS' R fd J N r0 rs fresh dq h
+    iprop(osPathS (L := L) R d dqp jp ∗ osNames (L := L) jp Np dqn hp)
+    (fun st => PathNames st d jp Np hp) False
+    (fun st Γn hR hcoh => pathNames_of R d dqp jp Np dqn hp st Γn hR hcoh)
+    (fun st hw hpn hr => hr (by
+      have := pathNames_child hw hpn hb hNp; rw [hJ] at this; exact reach_of_lookup this))
+    hfr hr0 hE hE' Φ $$ Hinv Hsi Hfd Hn [Hp Hnp]
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hnp
+  iintro %v Hn ⟨Hp, Hnp⟩ ⟨%r0', %h1, %h2, Hv⟩
+  iapply HΦ $$ %v Hn Hp Hnp
+  iexists r0'
+  isplitr
+  · ipureintro; exact h1
+  isplitr
+  · ipureintro; exact h2
+  icases Hv with (Hv | Hv | ⟨%e, %he, Hfd⟩)
+  · ileft; iexact Hv
+  · iright; ileft; iexact Hv
+  · iright; iright; iexists e; iframe Hfd; ipureintro
+    exact ⟨he.1, fun h0 => he.2.2 h0, he.2.1⟩
 
 /-- **One step of a blind read of a shared directory fd** (no claim): a valid name, the end, or an
 errno. -/

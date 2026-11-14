@@ -55,7 +55,9 @@ with no claim on what that makes durable, and closes).
   nonzero `mmap` offset, a `munmap` of anything but a whole mapping, a negative offset, a path that
   is not canonical in a root's tree.
 * *Environmental failure is a nondeterministic errno*: every step that makes a system call may fail
-  with any nonzero errno; on failure, the changes listed in each case may or may not have happened;
+  with any nonzero errno (but `ENOENT` from `open` of a path that resolves, or from `getdents` of a
+  directory still in the tree: `ENOENT`, 2026-11-14, pending review); on failure, the changes listed
+  in each case may or may not have happened;
   a failed `pread` read a prefix; a failed `pwrite` wrote a prefix. **Page cuts**: whatever its
   errno, a `pwrite` (`PWriteFinish`) landed nothing, all of its data, or a prefix ending on a
   4096-byte page boundary of the file. On C, a write's loop (`generic_perform_write`) stops only
@@ -337,6 +339,9 @@ def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
 
 def EINTR : w64 := 4
+/-- `ENOENT`: what a failing `open(2)` returns only for a path that does not resolve, and a failing
+`getdents64` only for a removed directory (`IsFsStep`'s `"Open"` and `"DirReadNext"`). -/
+def ENOENT : w64 := 2
 def PROT_READ : Nat := 0x1
 def MAP_SHARED : Nat := 0x1
 def MAP_POPULATE : Nat := 0x8000
@@ -697,7 +702,12 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   ends, and a fresh fd of a directory outside the trees (`ofds`) is open, of which the model knows
   nothing else (`OutSync`, `OutClose`; every other step on it is stuck), or any errno, nothing else
   changing. Any other flags there are stuck. Go example:
-  `examples/osfs/semantics/model_os_open_above.go`. -/
+  `examples/osfs/semantics/model_os_open_above.go`.
+  **`ENOENT`** (2026-11-14, decided provisionally, **pending the user's review**; plan
+  `notes/wal-fsext-plan.md` §10): a failure of the first disjunct returns `ENOENT` only when `p` does not
+  resolve at the step (`st0.lookup p = none`): Linux's `ENOENT` is a component's lookup finding no
+  entry, or a dead directory, and with no directory renamed during the call the path did not resolve at
+  that instant, where the step may be placed. Go example: `examples/osfs/semantics/meta_enoent.go`. -/
   | "Open" => (∃ (p : GoString) (fl : w64) (t start : Nat),
       v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ st.TreePath p ∧ OpenFlagsOk fl.toNat ∧
       st.proc.calls !! t = some start ∧
@@ -714,7 +724,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
             | .dir j => st1.setProc { st1.proc with
                 dfds := <[fd := ⟨j, .idle⟩]> st1.proc.dfds }) ∧
           e' = osRes (#fd) 0) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
+       (∃ e : w64, e ≠ 0 ∧ (e = ENOENT → st0.lookup p = none) ∧ e' = osRes (#(-1 : w64)) e ∧
           (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc start st' tgt)))) ∨
     OpenOutside v st e' st'
   /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`, as `ReadSees` allows. On success,
@@ -862,8 +872,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   the directory had at some point since the read began, not returned since it was last touched; or
   the end, once it has returned every name the directory had when the read began, still has, and
   that no operation touched since (POSIX's `readdir`: an entry added or removed meanwhile may or may
-  not be returned); or an errno, the read unchanged. After the end, a second read is stuck. A
-  removed directory has no names. -/
+  not be returned); or an errno, the read unchanged, `ENOENT` only for a removed directory (not
+  reachable from a root: Linux's `iterate_dir` answers `ENOENT` for a dead directory, and only then;
+  2026-11-14, decided provisionally, **pending the user's review**, Go example
+  `examples/osfs/semantics/meta_enoent.go`). After the end, a second read is stuck. A removed
+  directory has no names. -/
   | "DirReadNext" => ∃ (fd : w64) (df : OsDirFd) (u s r : GoString → Bool), v = #fd ∧
       st.proc.dfds !! fd = some df ∧ df.rd.cur st df.ino = some (u, s, r) ∧
       ((∃ b, s b = true ∧ r b = false ∧
@@ -873,7 +886,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        ((∀ b, u b = true → present st df.ino b = true → r b = true) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with rd := .done }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64))))) ∨
-       (∃ e : w64, e ≠ 0 ∧
+       (∃ e : w64, e ≠ 0 ∧ (e = ENOENT → ¬ Reach st.fs.roots st.tree df.ino) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with
             rd := .reading u s r }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(0 : w64)) (#e)))))

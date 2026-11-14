@@ -44,12 +44,14 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     (herr : ∀ st (df : OsDirFd) u s r, FsTreeWf st → df.ino = j → PhOkS st j ph df.rd → Q st →
       df.rd.cur st j = some (u, s, r) → PhOkS st j (phErr st.fs.metaLog.length) (.reading u s r))
     (hwn : ∀ st, FsTreeWf st → Q st → WN st.fs.metaLog.length)
+    (WGone : Prop) (hgone : ∀ st, FsTreeWf st → Q st → ¬ Reach st.fs.roots st.tree j → WGone)
     (hnd : ph ≠ .done)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗ F -∗
       (∀ v, F -∗ (∃ n, ⌜WN n⌝ ∗ ((∃ b, ⌜v = rdName b ∧ WName n b⌝ ∗ osDirFdS (L := L) fd j (phName n b)) ∨
           (⌜v = rdEnd ∧ WDone⌝ ∗ osDirFdS (L := L) fd j .done) ∨
-          (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (phErr n)))) -∗ Φ v) -∗
+          (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e ∧ (e = ENOENT → WGone)⌝ ∗
+            osDirFdS (L := L) fd j (phErr n)))) -∗ Φ v) -∗
       WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hfd HF HΦ
   iapply wp_fs_stepM "DirReadNext" _ Φ (by simp [val.isPanic]) hE $$ Hinv
@@ -100,7 +102,7 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 hs Hag
     refine ⟨_, h, _, ⟨fd, df, u, s1, r, rfl, hdf, by rw [hino]; exact hcur,
-      .inr (.inr ⟨1, by decide, rfl, rfl⟩)⟩, hfr, hr⟩
+      .inr (.inr ⟨1, by decide, fun h => absurd h (by decide), rfl, rfl⟩)⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
@@ -136,7 +138,7 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     exact ⟨hw', hc', commitGrows_of_eq rfl, rfl, rfl, rfl⟩
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
-  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, hst, rfl⟩
+  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, hgn, hst, rfl⟩
   · obtain ⟨hok, hW⟩ := hname st df u s1 r b hw hino hph hQ hcur hsb hrb
     imod hfin _ _ hok hst $$ Hw Hadfs Hfd with ⟨Hw, Hadfs, Hfd, %hp⟩
     obtain ⟨hw', hc', hcg, hro, hdu, hlo⟩ := hp
@@ -208,7 +210,8 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     iexists st.fs.metaLog.length
     isplitr
     · ipureintro; exact hwn st hw hQ
-    iright; iright; iexists e; iframe Hfd; ipureintro; exact ⟨he, rfl⟩
+    iright; iright; iexists e; iframe Hfd; ipureintro
+    exact ⟨he, rfl, fun h0 => hgone st hw hQ (by rw [← hino]; exact hgn h0)⟩
 
 end specs
 
@@ -260,7 +263,7 @@ theorem wp_osDirReadNextBlind' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (h
       ⟨hok st _ _ _ (phOkS_seen hph' hph hcur), phOkS_seen hph' hph hcur b hsb⟩)
     (fun _ _ _ _ _ _ _ _ _ _ _ => trivial)
     (fun st df u s r _ _ hph' _ hcur => hok st _ _ _ (phOkS_seen hph' hph hcur))
-    (fun _ _ _ => trivial)
+    (fun _ _ _ => trivial) True (fun _ _ _ _ => trivial)
     hph hE hE' Φ $$ Hinv Hsi Hfd []
   · iempintro
   iintro %v - ⟨%n, -, Hv⟩
@@ -268,7 +271,7 @@ theorem wp_osDirReadNextBlind' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (h
   icases Hv with (⟨%b, ⟨%hv, %hb⟩, Hfd⟩ | ⟨⟨%hv, -⟩, Hfd⟩ | ⟨%e, %he, Hfd⟩)
   · ileft; iexists b; iframe Hfd; ipureintro; exact ⟨hv, hb⟩
   · iright; ileft; iframe Hfd; ipureintro; exact hv
-  · iright; iright; iexists e; iframe Hfd; ipureintro; exact he
+  · iright; iright; iexists e; iframe Hfd; ipureintro; exact ⟨he.1, he.2.1⟩
 
 /-- A claim's names are the tree's. -/
 theorem entry_of_namesOf {st : OsState} {j : Ino} {N : NameSet} {h : NamesH}
@@ -297,25 +300,33 @@ theorem present_of_entry {st : OsState} (hw : FsTreeWf st) {j : Ino} {b : GoStri
     have := (htw.2.2.1 j b n he).1
     simp [present, this, he]
 
-theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : Nat)
-    (rs : List GoString) (fresh : Bool) (dq : DFrac) (h : NamesH)
+/-- `wp_osDirReadNextS'` with a further resource `P` of the caller, which shows `QP` of the state;
+an `ENOENT` gives `WGone`, which a state of `QP` where `j` is removed shows. -/
+theorem wp_osDirReadNextGenS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : Nat)
+    (rs : List GoString) (fresh : Bool) (dq : DFrac) (h : NamesH) (P : IProp GF)
+    (QP : OsState → Prop) (WGone : Prop)
+    (hP : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
+      ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ P -∗ ⌜QP st⌝)
+    (hgone : ∀ st, FsTreeWf st → QP st → ¬ Reach st.fs.roots st.tree j → WGone)
     (hfr : fresh = true → rs = []) (hr0 : fresh = false → h.next ≤ r0)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗
       osDirFdS (L := L) fd j (if fresh then .idle else .reading N r0 rs) -∗
-      osNames (L := L) j N dq h -∗
-      (∀ v, osNames (L := L) j N dq h -∗
+      osNames (L := L) j N dq h -∗ P -∗
+      (∀ v, osNames (L := L) j N dq h -∗ P -∗
         (∃ r0', ⌜fresh = false → r0' = r0⌝ ∗ ⌜fresh = true → h.next ≤ r0'⌝ ∗
           ((∃ b, ⌜v = rdName b ∧ NameOk b ∧ (N.Mem b → (h.cur !! b).isSome ∧ b ∉ rs)⌝ ∗
               osDirFdS (L := L) fd j (.reading N r0' (b :: rs))) ∨
            (⌜v = rdEnd ∧ ∀ b, N.Mem b → (h.cur !! b).isSome → b ∈ rs⌝ ∗
               osDirFdS (L := L) fd j .done) ∨
-           (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading N r0' rs)))) -∗
+           (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e ∧ (e = ENOENT → WGone)⌝ ∗
+              osDirFdS (L := L) fd j (.reading N r0' rs)))) -∗
         Φ v) -∗
       WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
   let ph : DirPhS := if fresh then .idle else .reading N r0 rs
   let r0F : Nat → Nat := fun n => if fresh then n else r0
-  let Q : OsState → Prop := fun st => h = namesOf (st.fs.treeDur, st.fs.metaLog) j N
+  let Q0 : OsState → Prop := fun st => h = namesOf (st.fs.treeDur, st.fs.metaLog) j N
+  let Q : OsState → Prop := fun st => Q0 st ∧ QP st
   have hnd : ph ≠ .done := by cases fresh <;> simp [ph]
   -- the read as the step finds it: at `idle`, begun now; else as it was
   have hstart : ∀ st (df : OsDirFd) u s r, FsTreeWf st → PhOkS st j ph df.rd → Q st →
@@ -342,7 +353,7 @@ theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : 
         rw [hrd] at hcur hph
         simp only [OsDirRead.cur, Option.some.injEq, Prod.mk.injEq] at hcur
         obtain ⟨rfl, rfl, rfl⟩ := hcur
-        exact hph.2.2 (noWrite_of_next hQ (hr0 hf))
+        exact hph.2.2 (noWrite_of_next hQ.1 (hr0 hf))
       | _ => rw [hrd] at hph; simp [PhOkS] at hph
   have hok : ∀ st (u s r : GoString → Bool) (rs' : List GoString), FsTreeWf st → Q st →
       (∀ b, N.Mem b → u b = present st j b ∧ s b = present st j b ∧ r b = decide (b ∈ rs')) →
@@ -360,12 +371,16 @@ theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : 
     simp only [ph, hf, Bool.false_eq_true, if_false] at hph
     cases rd <;> simp [PhOkS] at hph
     exact hph.1
-  iintro #Hinv #Hsi Hfd Hn HΦ
-  iapply wp_dirReadS R fd j ph (osNames (L := L) j N dq h) Q
+  iintro #Hinv #Hsi Hfd Hn HP HΦ
+  iapply wp_dirReadS R fd j ph iprop(osNames (L := L) j N dq h ∗ P) Q
     (fun n b => .reading N (r0F n) (b :: rs)) (fun n => .reading N (r0F n) rs)
     (fun _ b => NameOk b ∧ (N.Mem b → (h.cur !! b).isSome ∧ b ∉ rs))
     (∀ b, N.Mem b → (h.cur !! b).isSome → b ∈ rs) (fun n => h.next ≤ n)
-    (fun st Γn _ hcoh => osNames_auth L hcoh j N dq h)
+    (fun st Γn hR hcoh => by
+      iintro HA ⟨Hn, HP⟩
+      icases osNames_auth L hcoh j N dq h $$ HA Hn with %h1
+      icases hP st Γn hR hcoh $$ HA HP with %h2
+      ipureintro; exact ⟨h1, h2⟩)
     (fun st df u s r b hw _ hph hQ hcur hsb hrb => by
       obtain ⟨hm, hs⟩ := hstart st df u s r hw hph hQ hcur
       refine ⟨hok st u s _ (b :: rs) hw hQ (fun b' hb' => ?_) hs ?_, hs b hsb, fun hb => ?_⟩
@@ -375,14 +390,14 @@ theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : 
       · exact hle st _ hph
       · obtain ⟨-, h2, h3⟩ := hm b hb
         rw [h2] at hsb
-        rw [← entry_of_namesOf hQ hb]
+        rw [← entry_of_namesOf hQ.1 hb]
         refine ⟨?_, ?_⟩
         · simp only [present, Bool.and_eq_true] at hsb; exact hsb.2
         · rw [h3] at hrb; simpa using hrb)
     (fun st df u s r hw _ hph hQ hcur hall => by
       obtain ⟨hm, -⟩ := hstart st df u s r hw hph hQ hcur
       intro b hb hsome
-      rw [← entry_of_namesOf hQ hb] at hsome
+      rw [← entry_of_namesOf hQ.1 hb] at hsome
       obtain ⟨h1, -, h3⟩ := hm b hb
       have hp := present_of_entry hw hsome
       have := hall b (by rw [h1]; exact hp) hp
@@ -390,10 +405,14 @@ theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : 
     (fun st df u s r hw _ hph hQ hcur => by
       obtain ⟨hm, hs⟩ := hstart st df u s r hw hph hQ hcur
       exact hok st u s r rs hw hQ hm hs (hle st _ hph))
-    (fun st _ hQ => by rw [hQ]; exact namesOf_next_le _ _ _)
-    hnd hE hE' Φ $$ Hinv Hsi Hfd Hn
-  iintro %v Hn ⟨%n, %hn, Hv⟩
-  iapply HΦ $$ %v Hn
+    (fun st _ hQ => by rw [hQ.1]; exact namesOf_next_le _ _ _)
+    WGone (fun st hw hQ hr => hgone st hw hQ.2 hr)
+    hnd hE hE' Φ $$ Hinv Hsi Hfd [Hn HP]
+  · isplitl [Hn]
+    · iexact Hn
+    · iexact HP
+  iintro %v ⟨Hn, HP⟩ ⟨%n, %hn, Hv⟩
+  iapply HΦ $$ %v Hn HP
   iexists r0F n
   isplitr
   · ipureintro; intro hf; simp [r0F, hf]
@@ -403,6 +422,39 @@ theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : 
   · ileft; iexists b; iframe Hfd; ipureintro; exact ⟨hv, hb⟩
   · iright; ileft; iframe Hfd; ipureintro; exact ⟨hv, hd⟩
   · iright; iright; iexists e; iframe Hfd; ipureintro; exact he
+
+theorem wp_osDirReadNextS' (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : Nat)
+    (rs : List GoString) (fresh : Bool) (dq : DFrac) (h : NamesH)
+    (hfr : fresh = true → rs = []) (hr0 : fresh = false → h.next ≤ r0)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗
+      osDirFdS (L := L) fd j (if fresh then .idle else .reading N r0 rs) -∗
+      osNames (L := L) j N dq h -∗
+      (∀ v, osNames (L := L) j N dq h -∗
+        (∃ r0', ⌜fresh = false → r0' = r0⌝ ∗ ⌜fresh = true → h.next ≤ r0'⌝ ∗
+          ((∃ b, ⌜v = rdName b ∧ NameOk b ∧ (N.Mem b → (h.cur !! b).isSome ∧ b ∉ rs)⌝ ∗
+              osDirFdS (L := L) fd j (.reading N r0' (b :: rs))) ∨
+           (⌜v = rdEnd ∧ ∀ b, N.Mem b → (h.cur !! b).isSome → b ∈ rs⌝ ∗
+              osDirFdS (L := L) fd j .done) ∨
+           (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading N r0' rs)))) -∗
+        Φ v) -∗
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hfd Hn HΦ
+  iapply wp_osDirReadNextGenS' R fd j N r0 rs fresh dq h emp (fun _ => True) True
+    (fun _ _ _ _ => by iintro _ _; ipureintro; trivial) (fun _ _ _ _ => trivial) hfr hr0 hE hE' Φ
+    $$ Hinv Hsi Hfd Hn []
+  · iempintro
+  iintro %v Hn - ⟨%r0', %h1, %h2, Hv⟩
+  iapply HΦ $$ %v Hn
+  iexists r0'
+  isplitr
+  · ipureintro; exact h1
+  isplitr
+  · ipureintro; exact h2
+  icases Hv with (Hv | Hv | ⟨%e, %he, Hfd⟩)
+  · ileft; iexact Hv
+  · iright; ileft; iexact Hv
+  · iright; iright; iexists e; iframe Hfd; ipureintro; exact ⟨he.1, he.2.1⟩
 
 end specs
 

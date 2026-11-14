@@ -1,6 +1,8 @@
 /-
 The callee specs `wal.Exist`'s proof takes as hypotheses (W12 of `notes/wal-fsext-plan.md`, the W7-W12
-log). None is proved yet.
+log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
+`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`: `ReadDir.wp_specAbsentIs`,
+`ReadDir.wp_specChildIs`, from `ReadDir.wp_core`) given `errors.IsPathErrnoNotExist.spec`, which is not.
 
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable). What `Exist` asks of `ReadDir`'s errors.
@@ -12,17 +14,26 @@ log). None is proved yet.
 * **`fileutil.ReadDir.specChildIs`**: `ReadDir.spec` of `d/b` holding the directory `J` (the read path
   through a fraction of a claim of `d`'s directory on names holding `b`, as `ReadDir.specAbsent`'s, not a
   spine to `d/b`: the program holds half of the area claim, which cannot be split into the `.only [b]`
-  claim a spine needs), its error answering `errors.Is(_, os.ErrNotExist)` with `false`. **Unprovable
-  against the current model** [user]: `fsExt` lets a failing `open`/`getdents` return any errno, `ENOENT`
-  included (`notes/specs-only/ledger.md`, 2026-11-14). Its path part needs a child form of
-  `wp_osOpenDirS` (`GooseLang/Ext/Fs/TreeSharedOpenDir.lean`; the lookup through the claim, as
-  `wp_osOpenFileS`'s), `Open`'s pin needs the same (`readWALNames` of a present WAL).
+  claim a spine needs), its error answering `errors.Is(_, os.ErrNotExist)` with `false`. Provable since
+  the semantics' `ENOENT` rule (2026-11-14, pending the user's review: `ENOENT` from `open` only for a
+  path that does not resolve, from `getdents` only for a removed directory): the `os` layer
+  (`LinuxFs/Proof/os/NsChildS.lean`: `os.Open.wp_dirChildS`, `os.File.Readdirnames.wp_dirChildS`, over
+  the extension's `wp_osOpenDirChildS`/`wp_osDirReadNextChildS`; errors `os.errnoPathErr err e`,
+  `e ≠ ENOENT`), `ReadDir`'s loops (`ReadDir.wp_core`) and the names' bound (`Readdirnames`' model
+  assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved; left:
+  `errors.IsPathErrnoNotExist.spec` below.
+* **`errors.IsPathErrnoNotExist.spec`**: `errors.Is(err, os.ErrNotExist)` of a `*PathError` of a nonzero
+  errno `e` answers `e = ENOENT`. True in Go (`errors.Is` unwraps the `*PathError` to the `Errno`, whose
+  `Is` compares the target with `oserror.ErrNotExist`); its proof needs the error tree of the part's `os`
+  errors (Perennial's `errors.Is.spec` with `syscall.Errno.Is`, `notes/perennial-changes.md`, as
+  `errors.IsErrno.spec`) and `os`'s package fact to say `os.ErrNotExist` is `oserror.ErrNotExist`, distinct
+  from `ErrPermission`, `ErrExist` and `errors.ErrUnsupported` (it says only "some error"). Not proved.
 Lean-first.
 -/
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
-public import LinuxFs.Proof.os.NsAbsentS
+public import LinuxFs.Proof.os.NsChildS
 public import LinuxFs.Proof.os.PkgInit
 
 @[expose] public section
@@ -50,6 +61,12 @@ def errIsNotExist (err : GoInterface) (b : Bool) : IProp GF :=
 instance errIsNotExist_persistent (err : GoInterface) (b : Bool) :
     Persistent (errIsNotExist (GF := GF) err b) := by
   unfold errIsNotExist; infer_instance
+
+/-- See the file header. -/
+abbrev errors.IsPathErrnoNotExist.spec : Prop :=
+  ∀ (err : GoInterface) (e : w64), e ≠ 0 →
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗ os.errnoPathErr (GF := GF) err e -∗
+      errIsNotExist (GF := GF) err (decide (e = Fs.ENOENT))
 
 end defs
 

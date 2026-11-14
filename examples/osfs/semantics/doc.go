@@ -55,6 +55,8 @@
 //	meta_file_fsync.go            a file fsync commits no name       Fsync, DirSync
 //	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
+//	meta_enoent.go                ENOENT only for a missing path     ENOENT, Open, DirReadNext (pending review)
+//	                              or a removed directory
 //
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
 // models_test.go holds their measurements, run on C by run-models-on-c.sh):
@@ -70,6 +72,7 @@
 //	model_os_filestat_name.go     fileStat.Name: base of the path    os.lean: fileStat, model.base; os.toml
 //	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
 //	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
+//	model_os_readdirnames_len.go  Readdirnames: under 2^44 names     os.lean: File.Readdirnames.impl (assume)
 //
 // Client premises (not part of the semantics; a theorem states them):
 //

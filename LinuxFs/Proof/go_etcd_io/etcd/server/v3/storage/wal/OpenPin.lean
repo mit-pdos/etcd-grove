@@ -67,7 +67,7 @@ theorem walInvBody_areaAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iintro Hb #Hsh Hn
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
-    Hk, %HAt⟩
+    Hk, %HAt, Hnms⟩
   obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
   have hmem : ((jr, N', h'), DFrac.own (1 : Qp).half) ∈
       cl.map (fun c => (c, DFrac.own (1 : Qp).half)) := List.mem_map_of_mem hc'

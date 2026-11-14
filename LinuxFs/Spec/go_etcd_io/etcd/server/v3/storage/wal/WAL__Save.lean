@@ -28,9 +28,28 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
+/-- **`raft.MustSync` over the client's hard states** (raft's `rawnode.go`: `entsnum != 0 ||
+st.GetVote() != prevst.GetVote() || st.GetTerm() != prevst.GetTerm()`; a law of `P`, as
+`WalPbIn.IsEmptyLaw`: the part cannot import the main tree's raft specs, plan §10). -/
+abbrev WalPbIn.MustSyncLaw (P : WalPbIn GF) : Prop :=
+  ∀ (p1 p2 : Loc) (h1 h2 : HardStateM) (n : w64),
+  {{ P.hsIn p1 h1 ∗ P.hsIn p2 h2 }}
+    (App (App (App (Val (@! go_etcd_io.raft.v3.MustSync)) (Val #p1)) (Val #p2)) (Val #n))
+  {{ (b : Bool), RET #b; ⌜b = true ↔ (n ≠ W64 0 ∨ h1.Vote' ≠ h2.Vote' ∨ h1.Term' ≠ h2.Term')⌝ }}
+
+/-- **A nil hard state, a fresh zero one** (`Save`'s `st == nil`/`w.state == nil` cases, S/wal.go:1100-1105):
+a nil pointer holds only the zero state (`WalPbIn`'s "nil read as the zero state"), and a freshly
+allocated `raftpb.HardState{}` holds it (a law of `P`: its hidden fields are the client's to keep). -/
+abbrev WalPbIn.ZeroLaw (P : WalPbIn GF) : Prop :=
+  (∀ hs : HardStateM, P.hsIn null hs ⊢ ⌜hs = hsZero⌝) ∧
+  ∀ (p : Loc) (E : CoPset),
+    p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> P.hsIn p hsZero
+
 /-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): every entry index below `2^64-1` (a cut's name
-would wrap, as the main tree's spec says), and every entry's encoding below `2^40` bytes (its record
-must fit a frame, whose length field has 56 bits, and the encoder's `2^47`; ledger 2026-11-14). The update commits right after `w.mu.Lock()`, before any
+would wrap, as the main tree's spec says), and the batch below `2^40` bytes (`walBatchBytes`: each
+entry's encoding plus a frame's overhead; each record must fit a frame, whose length field has 56 bits,
+and the encoder's `2^47`, and the tail's stream must stay below ext4's maximum offset across the batch;
+ledger 2026-11-14, "the batch's size"). The update commits right after `w.mu.Lock()`, before any
 record is encoded (a crash mid-call leaves an image of `H ++ [op]` past the mark, `walImg`); then
 the entries' records, `st`'s unless empty (`saveState`), then a `sync` if `MustSync`, or a `cut`
 if the tail reached `SegmentSizeBytes` (which syncs). `Save` of an empty state and no entries
@@ -46,7 +65,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
     (sl : GoSlice) (esL : List Loc) (es : List EntryM) (sized : Bool) (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ P.hsIn hp hs ∗ sl ↦*□ esL ∗
       walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
-      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
+      ⌜walBatchBytes Mr es < 2 ^ 40⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))

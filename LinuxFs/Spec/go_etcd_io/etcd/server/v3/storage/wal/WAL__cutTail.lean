@@ -5,7 +5,8 @@ seventh session), hypotheses of `WAL.cut.wp_proof` until proved:
   position: `os.File.Truncate.specAu` with the supply of updates built from `walInv` (the in-flight
   `SegFl` of `walTailsRes`, `CrashOk` across the resize; branch `wal-zte`). The tail's size becomes
   its write position (`walTailW` at `sz := o0 + |out|`), its resize window open until `cut`'s fdatasync
-  (`TailMetaW`: a crash may leave the old size; `wal-tc3`).
+  (`TailMetaW`: a crash may leave the old size; `wal-tc3`). The tail may be in a window before too (a
+  `Save`'s writes past the preallocated size, W6 log, thirteenth session).
 * `WAL.sync.specCut`: `w.sync()` of a handle whose tail was so truncated (its window open,
   `walHandleIn … TailMetaW`; the post's handle exact again: the fdatasync closes it), the page writer's pending
   bytes written past its size: the tail sized to its stream, synced. `WAL.sync.spec` at a handle
@@ -45,7 +46,7 @@ abbrev os.File.Truncate.specWalTail (Mr : WalMarshal) : Prop :=
     (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat)
     (out : List w8),
   o0 + out.length ≤ sz →
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out }}
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out TailMetaW }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate"))
       (Val #(W64 (o0 + out.length))))
   {{ (err : GoInterface), RET #err;

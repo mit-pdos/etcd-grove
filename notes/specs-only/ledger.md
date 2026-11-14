@@ -425,3 +425,61 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Change (made).** The three take `dir.length < 2 ^ 59` and `NameOk nm`, as `wal.Create.spec` does (a path to
   a WAL directory is short in practice: Linux's `PATH_MAX` is 4096; etcd's name is `wal`).
 - **Decision.** Adopted (minor, proof agent `wal-read12`; no client of the part's `Open` exists yet).
+
+## 2026-11-14: `wal.Open.spec` (the part's, over `fsExt`) -- the call permission counted twice
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (`wal.Open.spec`), success arm:
+  `walOpeningF w dir s ∗ osCallPerm ½`.
+- **Defect.** The client's `osCallPerm 1` is split by `openAtIndex` in write mode: half to the file pipeline
+  (`walPipeH`), half returned. `Open` returned that half to the client, but the handle `ReadAll` makes from
+  `walOpeningF` (`walOpenWF`, its `walDirH`) holds a half of its own (as `Create`'s does, ledger 2026-11-14):
+  after `Open` and `ReadAll` the client would hold 3/2 of the permission, and `ReadAll` could not be proved
+  (nothing in `walOpeningF` supplies the handle's half).
+- **Evidence.** `openAtIndex`'s proof and `ReadAll`'s obligations (W3/W5 log, twelfth session, item (a)).
+- **Change (made).** `Open`'s success arm is `walOpeningF w dir s` alone; the sealed `walOpeningF`
+  (`ReadDefs.lean`) holds the half (`osCallPerm ½`), which `ReadAll` moves into `walDirH`. A resource
+  placement, no new client-visible ghost state; `OpenForRead` (read mode: no pipeline, the whole permission
+  returned to the client) and `openAtIndex` unchanged.
+- **Decision.** Adopted (the coordinator's decision of 2026-11-14, task 1 of `wal-read13`; no client of the
+  part's `Open` exists yet).
+
+## 2026-11-14: `wal.decoder.Decode.spec` (the part's, over `fsExt`) -- the error's identity
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/decoder__Decode.lean` (`decPost`, `stopErr`,
+  `isEofOk` in `DecDefs.lean`).
+- **Defect.** A reader looping to the end (`ReadAll`, S/wal.go:523-611) tests `errors.Is(err, io.EOF)` on the
+  error `Decode` returned. (1) `stopErr`'s catch-all (`e ≠ nil`, for a bad frame, a CRC mismatch, a frame too
+  large) allows `io.EOF` itself: `ReadAll` would then take a stop in the middle of the WAL for its end and succeed
+  with the records after it missing, so its success post cannot be proved. (2) `isEofOk` answers `errors.Is` only
+  on `nil`, `io.EOF`, `io.ErrUnexpectedEOF` and the readers' `IoE` errors, not on the decoder's own errors
+  (`fmt.Errorf`'s, `proto.Unmarshal`'s), so the call cannot be stepped on them at all.
+- **Evidence.** `ReadAll`'s proof (W3/W5 log, fourteenth session): the loop's exit and the write-mode stop check.
+- **Change (proposed, not made).** `Decode.spec` (and `decodeRecord.spec`) add to `decPost`: `err = io.EOF` only
+  at `goDecode`'s `.eof` stop, and `errors.Is(err, io.EOF)`'s answer for a non-nil `err` (`isEofAns`). Stated as
+  `decoder.Decode.specR` (`decoder__DecodeR.lean`), a hypothesis of `WAL.ReadAll.wp_proof` until then. The
+  proof needs Perennial's `fmt.Errorf` model to give an error distinct from `io.EOF` with `errors.Is` answering
+  false on it (its wrapping is not kept) and the same of `proto.Unmarshal`'s error.
+- **Decision.** Pending (proof agent `wal-readall14`; internal spec, no client-visible change).
+## 2026-11-14: `wal.WAL.Save.spec` (the part's, over `fsExt`) -- the batch's size, not each entry's
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`, premise
+  `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40` (ledger 2026-11-14, "Records' size").
+- **Defect.** Each entry bounded, the batch is not: the tail's stream grows by the whole batch before `Save`
+  checks `SegmentSizeBytes`, and nothing then bounds the encoder's offset and pending bytes by ext4's maximum
+  offset (`0xffffffff000`, `walHandleIn`'s `o0 + |out| + |pend|` bound, `Seek`'s and the writes' arithmetic):
+  `saveEntry`/`saveState`/`encode.specTail` claimed it in their posts with no source (W6 log, twelfth
+  session).
+- **Evidence.** W6 log, thirteenth session (`wal-save13`): the bound is the stream before the call (a handle
+  fact at quiescence, below) plus the batch's frames; a frame is at most its data plus 64 bytes
+  (`frame_walRecEnc_tight`).
+- **Change (made).** `Save` takes `walBatchBytes Mr es < 2 ^ 40` (each entry's encoding plus 64 bytes, summed;
+  implies the per-entry bound). `SaveSnapshot`'s per-record premise is already its batch's. The handle fact
+  (sealed `walOpenWF`, no client-visible change): the tail's stream end `o0 + |out| + |pend| < 2 ^ 43` at
+  quiescence (`Save` cuts once the offset reaches `SegmentSizeBytes`, the pending bytes at most the page
+  writer's buffer, 2^18; a cut's or `Create`'s headers at most the metadata, below 2^41, and the state).
+  **C6 obligation**: raft bounds a `Ready`'s entries (`MaxSizePerMsg`, the uncommitted-size limit), so the
+  server's batches are far below 2^40 bytes.
+- **Decision.** Adopted (the coordinator's decision of 2026-11-14 for `wal-save13`, task 2), with two
+  corrections to its wording found in the proof: the fact is on the stream's end, not the offset (a `Save` that
+  syncs flushes its pending bytes after its `Seek`, so the next `Save` may start at `SegmentSizeBytes` plus the
+  buffer), and its bound covers a cut's headers (the metadata may reach 2^41 bytes).

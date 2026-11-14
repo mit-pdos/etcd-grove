@@ -90,7 +90,7 @@ theorem wp_osOpenAbsentS (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
       ∃ e', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e'
         (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, .inl ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp.1 hb), hfl,
-      hcall, fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩
+      hcall, fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
       PathNames st d j N h →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
@@ -103,7 +103,7 @@ theorem wp_osOpenAbsentS (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
     replace Hst := open_inTree Hst (.inr (treeName_child hp.1 hb))
     obtain ⟨p', fl', k', s', hv, -, -, -, -, hres⟩ := Hst
     obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
-    rcases hres with ⟨st1, tgt, fd, hoe, -⟩ | ⟨e, he0, rfl, hst'⟩
+    rcases hres with ⟨st1, tgt, fd, hoe, -⟩ | ⟨e, he0, -, rfl, hst'⟩
     · simp only [OpenEffect, hl, hcr', Bool.false_eq_true, false_and] at hoe
     · rcases hst' with rfl | ⟨tgt, hoe⟩
       · exact ⟨rfl, _, rfl, e, he0, rfl⟩
