@@ -1227,6 +1227,13 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   assumption on the WALs found at boot, kept by `cut` only while receipts bound it). Needs the coordinator's
   design: no option is free.
 - **Decision.** Open: the coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+  **2026-11-14 (`wal-readall27`): the coordinator chose a receipts budget; designed, not made.** The sketch (a boot
+  premise `sq < 2^63` on `walInv_alloc`, each cut consuming an exclusive receipt) does not close across generations
+  (the handle's `⧗` vanish at a crash; the next boot's premise is not implied). Design (`notes/bounds-plan.md`, "The
+  WAL's segment sequence"): crash-stable persistent receipts `⧖` of the global step counter, `WalAbsD.nameBound` with
+  sequence `first + k`, the invariant holding `⧖ |lay.cuts|` per WAL (deposited by `cut` after a counted step), or `⧖
+  |d.H|` (deposited at `Save`'s commit; a crash keeps a prefix). No statement of `walDirH` changes. `ReadAll`'s `hsq`
+  stays a marked `sorry` until it is made.
 
 ## 2026-11-14: the resize supplies' `P` (internal, the part's) -- a growth's supply cannot bound the crash size
 
