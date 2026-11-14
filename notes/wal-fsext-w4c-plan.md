@@ -416,6 +416,87 @@ waits on Perennial's `errors-facts` branch) and the `os` specs `File.Stat`, `fil
   `tmp ∉ cands` in `DurOk`, from `tmpRes`'s whole `trFile`, or derived from the resources); a retry after
   a rename makes a fresh candidate (`O_CREAT`, the temporary absent) with `data`, so `cands` grows
   and `alt` stays. (3) the crash and boot lemmas; (4) the link.
+
+**Third session (branch `wal-u2c`, 2026-11-14): `tryWrite` and `Write` proved; the link generated.** No
+axiom, no trusted change, no `sorry`. `Write.wp_proof` takes `tryWrite.spec`; `tryWrite.wp_proof` takes
+the `filepath` specs (`Dir`, `Base`, `Join`) and the `os` specs `OpenFile.specCreateTruncSnc`,
+`File.WriteAt`, `File.Sync`, `File.Sync.specDirS`, `File.Close`, `Rename.specFileSnc` (all proved in the
+part); `os.OpenFile.wp_truncS`, `os.Open.wp_dirS`, `os.File.Close.wp_dirS` used as theorems.
+- **Defs changes (internal; decided autonomously).** `DurPhys.alt` (a copy of the state's `alt`, with
+  `DurOk.alt : s.alt = p.alt`): the state is then determined by the physical state (`cur` by `CurIs`
+  and `inj`), so the handle knows it and no client can move it between a `Write`'s steps. `durHandle` is
+  `∃ p, durHandleP p ∗ ⌜p.alt = none⌝` (no `Write` between its rename and its commit between calls):
+  what the first update needs (the old `alt` none, so a crash keeps `cur` or `data`, not an older value).
+  `durWriteSync` moved from `Spec/.../Write.lean` to `Defs.lean` (same text), with `durWriteAU` (the
+  first update) and `durWOwe` (what a `Write` still owes: both updates at `alt = none`, or the second at
+  `alt ≠ none` with the name holding `data`). `Write.spec` unchanged.
+- **`tryWrite.spec`** (internal): at the handle's `p` (premise `∃ s, DurOk f s p`), with `durWOwe` in the
+  pre; post `true` with `Ψ` (the second update committed) and the handle at `alt = none`, or `false`
+  with the handle at some `p'` and `durWOwe p'`.
+- **The invariant steps** (`WriteInv.lean`): `durCreate_osAUnc` (the temporary's create, the
+  invariant's half of its claim to `crHt`), `durRename_osAUnc` (at the rename's commit: both claims'
+  halves to the outcome, the temporary's file a candidate, `c.i ∉ cands` from its whole `OsMeta` against
+  the invariant's halves, `candRes_notin`; the client's first update, `DurOk.renA`, or a retry's,
+  `DurOk.renB`), `durInv_commit` (the second update at a step after the directory's sync: `osCommitLb
+  n` with `n` the name's claim's `next`, the claim coherent). Pure facts in `WritePure.lean`
+  (`DurOk.crHt/renA/renB/commit`, `TrOk` of the temporary's file across write and sync, the paths).
+- **`HistCoh`/`osNames_histCoh`** (`GooseLang/Ext/Fs/TreeSharedCoh.lean`, untrusted, a new module): the
+  WAL's `ClaimCoh`/`osNames_coh` restated in the extension (copies of four lemmas of
+  `wal/CreateCoh.lean`, `CreateCommit.lean`'s `entsOf_entry`, `CreateDrop.lean`'s `valAfter_congrK`;
+  the WAL's can switch to it, a cleanup).
+- **`tryWrite`'s proof** (`WriteOpen.lean`: `durTmpOpen`, the open by cases on the temporary's name;
+  `durHandle_tmp`/`durHandle_ren`, the handle rebuilt; `tryWrite.lean`): the `if len(data) > 0` joined
+  with `wp_wand` (as `mvccfull`'s `runner.end`), every other failure path closes and returns `false`.
+- **The link** (`etc/gen-link.py --durable`, the `--walfs` generator parameterized: `link_walfs.DURABLE`):
+  `LinuxFs/Proof/.../durable/Link.lean`, 29 results; `wp_Read`/`wp_tryRead` take
+  `h_errors_IsPathErrnoNotExist` (pending on Perennial's `errors-facts`), `wp_Write` closed. `--check`
+  passes for both modes.
+- **Not done: (3) the crash and boot lemmas.** Design (unchanged): `durInv_crash` opens `durInv` with
+  the crash token (as `walInv_crash`), `crashRest_region` on the two claims (`osCommitLb nc`) gives a
+  `RegionCrashed` `K`, `DurOk.crash` the name's value (`OutOk`: `none`, or a candidate holding `cur`'s
+  or `alt`'s contents), `crashRest_take_named`/`crashRestAt_take` the candidate's start resources
+  (`DCand.Ok`: `lo = hi = size`, every byte `durB`); `durBoot` from the new generation's whole claims on
+  `b`/`tb` (split off by the boot's client), the state `⟨v, none⟩`. Needs: whether the tester (`wal-u1`)
+  wants the boot per file or for the directory.
+
+**Fourth session (branch `wal-u2d`, 2026-11-14): the boot and the crash lemma proved; the tester's `DurBoot0`
+discharged.** No axiom, no `sorry`, nothing trusted changed; `Write.spec`/`Read.spec` unchanged.
+- **`DurOk.tmpH : NoDirH p.ht f.tb`** (internal, decided autonomously): no version of the temporary's history
+  holds a directory (`DurOk.tmp` spoke of `cur` only, which a crash need not keep). Kept by the two steps logging
+  into `ht` (`DurOk.crHt`: the create's file; `ren_common`: the rename's deletion), `NoDirH.log`. Only
+  `WritePure.lean` builds a `DurOk`.
+- **`Boot.lean`.** `durFound f m v` (the name in the generation's first tree `m`: no file and `v = none`, or a
+  file whose `osFileStart` the generation holds, `v` its contents, at most 1 GiB; never a directory) and
+  `durFoundTmp f m` (no temporary, or its file whole, `trFile i False`; never a directory). **`durBoot`**: from
+  `osSharedInv R`, the whole claim `osNames f.J (.except []) 1 (namesOf V f.J _)` with `V.2 = []`, `(f.d, f.J) ∈ R`,
+  `durFound f V.now v`, `durFoundTmp f V.now`: `|={E}=> ∃ γ, durInv γ f ∗ durHandle γ f R ∗ durSt γ ⟨v, none⟩ ∗
+  durCrashTok γ` (the claim split along `[f.b]`, `[f.tb]`, halves; `nc = 0`, the found file the one candidate,
+  its `initMeta` a synced file's). **`durBoot0`**: exactly the tester's `DurBoot0` (both names absent).
+  The tester's `tBoot0` no longer takes `hdur` (`durBoot0_holds : DurBoot0`; `DurBoot0` kept as the statement).
+- **`Crash.lean`, `durInv_crash`** (generic in `Q`, `D`, `tt`): `durInv γ f -∗ crashed -∗ durCrashTok γ -∗ durSt γ s
+  -∗ osSharedInv R -∗ crashRest Q L L' D tt V' ={E}=∗ ∃ v D', ⌜v = s.cur ∨ s.alt = some v⌝ ∗ durSt γ s ∗ durFound
+  (L := L') f V'.now v ∗ durFoundTmp (L := L') f V'.now ∗ crashRest … (D' ++ D) tt V'` (the form
+  `tOracleFile_crash` takes). The invariant closed with the crash token first (as `walInv_crash`);
+  `crashRest_region` on the two claims at `osCommitLb nc`; the name by `DurOk.crash` (`OutOk`), the candidate taken
+  with the invariant's halves (`osCrash_take_runs_keep`), its new contents by `fileCrashedR_cand` (`DCand.Ok`:
+  crash bounds the size, bytes durable); the temporary by `crashRest_take_named` (the WAL's `CrashTakeNamed`,
+  namespace `Fs`), distinct from the candidate by `TreeWf`'s unique naming. **The re-boot after a crash is
+  `durBoot`** at the new generation's `wp_osShare` with `V = V'` (`crashRest_treeS`: `V'.2 = []`), from
+  `durInv_crash`'s `durFound`/`durFoundTmp`.
+- **Open point for the tester (`tester_crash`), premise `hD`**: `∀ i ∈ D, V'.now.entry f.J f.b ≠ some (.file i) ∧
+  V'.now.entry f.J f.tb ≠ some (.file i)` (the files another client's crash lemma already took are not at the
+  file's names). `walInv_crash` takes `crashRest … []`, so the tester calls it first and passes its `D` here; for
+  its `bootFiles` part `hD` follows from unique naming (they are named in WAL directories, not in the oracle
+  root), but for the old segments' inodes it does not follow from the trees alone: it needs the old generation's
+  exclusivity (the WAL's whole `osMeta` of each segment against durable's half of each candidate). Options: (a)
+  `walInv_crash` generalized to `crashRest … D` with its segments `∉ D` and durable's lemma called first with `D =
+  []` (`hD` trivial; the WAL's premise is then the same question mirrored), or (b) `walInv_crash` returning the old
+  segments' `osMeta` (old generation), so the tester gets `hD` from `gElem` validity against durable's candidates
+  (which `durInv_crash` would then have to return too). Not decided here (the WAL's statements are `wal-u3d`'s).
+- **Merge fix:** `storeOracle.lean`'s `unfold durWriteSync` → `DurFs.durWriteSync` (moved to `Defs.lean` in the
+  third session; the tester's file had not been rebuilt). `etc/gen-link.py --durable --check` passes (no new Go
+  function proofs; the link is unchanged).
+
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:

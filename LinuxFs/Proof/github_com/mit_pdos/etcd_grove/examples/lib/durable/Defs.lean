@@ -96,12 +96,14 @@ def DCand.Ok (c : DCand) : Prop :=
   c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length ≤ 0x40000000
 
 /-- **The physical state**: the claims' histories of the file's name (`hb`) and of the
-temporary's (`ht`), a commit lower bound `nc`, the candidates. -/
+temporary's (`ht`), a commit lower bound `nc`, the candidates, and the state's `alt` (a copy, so
+that the handle knows it: the state is determined by the physical state, `DurOk.alt`). -/
 structure DurPhys where
   hb : NamesH
   ht : NamesH
   nc : Nat
   cands : List DCand
+  alt : Option (Option GoString)
 
 instance DCand.countable : Pos.Countable DCand :=
   Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.i, c.m, c.v))
@@ -111,11 +113,11 @@ instance DCand.countable : Pos.Countable DCand :=
       obtain ⟨h1, h2, h3⟩ := h; subst h1 h2 h3; rfl)
 
 instance DurPhys.countable : Pos.Countable DurPhys :=
-  Pos.Countable.ofInjective (fun p => Pos.Countable.encode (p.hb, p.ht, p.nc, p.cands))
+  Pos.Countable.ofInjective (fun p => Pos.Countable.encode (p.hb, p.ht, p.nc, p.cands, p.alt))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4⟩ := h; subst h1 h2 h3 h4; rfl)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h; subst h1 h2 h3 h4 h5; rfl)
 
 /-- **What a crash may leave at the file's name** `o` is allowed by the state `s`: nothing if `cur` or
 `alt` is no file; a candidate's inode with the contents `cur` or `alt`'s. -/
@@ -124,11 +126,26 @@ def OutOk (s : DurSt) (cs : List DCand) : Option Node → Prop
   | some (.file i) => ∃ c ∈ cs, c.i = i ∧ (s.cur = some c.v ∨ s.alt = some (some c.v))
   | some (.dir _) => False
 
+/-- **No version of the history `h` holds a directory at the name `b`**: neither at boot nor after
+any of its logged entries (so neither does what a crash leaves there, `NamesH.valAfter`). -/
+def NoDirH (h : NamesH) (b : GoString) : Prop :=
+  (∀ J, h.boot !! b ≠ some (.dir J)) ∧ ∀ xe ∈ h.ents, ∀ J, xe.2.2 !! b ≠ some (.dir J)
+
+/-- A new version holding no directory at `b` keeps `NoDirH`. -/
+theorem NoDirH.log {h : NamesH} {b : GoString} (hn : NoDirH h b) (x : Nat) (e : LogEntry)
+    (E : Ents) (hE : ∀ J, E !! b ≠ some (.dir J)) : NoDirH (h.log x e E) b := by
+  refine ⟨hn.1, fun xe hxe J => ?_⟩
+  simp only [NamesH.log, List.mem_append, List.mem_singleton] at hxe
+  rcases hxe with hxe | rfl
+  · exact hn.2 xe hxe J
+  · exact hE J
+
 /-- **The invariant's facts** of the file `f`, the state `s`, the physical state `p`: every crash that
 keeps the entries below the commit bound leaves the name as `OutOk` allows; the name holds, now,
 `cur` (a candidate's inode); the temporary's name holds no directory; with no rename to lose
 (`alt = none`), every entry of the name is below the commit bound; the candidates are `Ok`, at
-distinct inodes. -/
+distinct inodes; `alt` is the physical state's copy; no version of the temporary's history holds a
+directory (a crash leaves none there, `durInv_crash`). -/
 structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   crash : ∀ K : Nat → Prop, (∀ y e E, (y, e, E) ∈ p.hb.ents → y < p.nc → K y) →
     OutOk s p.cands (p.hb.valAfter f.J K f.b)
@@ -139,6 +156,8 @@ structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   synced : s.alt = none → p.hb.next ≤ p.nc
   cands : ∀ c ∈ p.cands, c.Ok
   inj : (p.cands.map DCand.i).Nodup
+  alt : s.alt = p.alt
+  tmpH : NoDirH p.ht f.tb
 
 /-- **What the file's name holds under the physical state `p`**: no file (`none`), or a candidate's
 inode and its contents. -/
@@ -226,9 +245,28 @@ def durHandleP (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) : IProp GF :=
 
 /-- **A call's handle on the file `f`** in the roots `R`: the physical state's other half, the
 claims' other halves, the current inode's other half, the temporary's file, a fraction of the
-directory's spine. Exclusive (the claims' halves). -/
+directory's spine. Exclusive (the claims' halves). Between calls no `Write` is between its rename
+and its commit (`alt = none`). -/
 def durHandle (γ : DurGS) (f : DFile) (R : Roots) : IProp GF :=
-  iprop(∃ p : DurPhys, durHandleP γ f R p)
+  iprop(∃ p : DurPhys, durHandleP γ f R p ∗ ⌜p.alt = none⌝)
+
+/-- The second update of a `Write`: the directory's sync, `alt := none`. -/
+abbrev durWriteSync (γ : DurGS) (Ψ : IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
+    <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM Ψ }>)
+
+/-- The first update of a `Write` of `data`: the rename, `cur := data, alt := some cur`; then the
+second (`durWriteSync`). -/
+abbrev durWriteAU (γ : DurGS) (data : GoString) (Ψ : IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
+    <{ durSt (GF := GF) γ ⟨some data, some s.cur⟩, COMM durWriteSync γ Ψ }>)
+
+/-- **What a `Write` of `data` still owes its client** at the handle's physical state `p`: both
+updates (no rename yet: `alt = none`), or the second (a rename done: `alt ≠ none`, the name holding
+`data`). -/
+def durWOwe (γ : DurGS) (f : DFile) (data : GoString) (p : DurPhys) (Ψ : IProp GF) : IProp GF :=
+  iprop((⌜p.alt = none⌝ ∗ durWriteAU γ data Ψ) ∨
+    (⌜p.alt ≠ none ∧ p.CurIs f (some data)⌝ ∗ durWriteSync γ Ψ))
 
 end res
 
