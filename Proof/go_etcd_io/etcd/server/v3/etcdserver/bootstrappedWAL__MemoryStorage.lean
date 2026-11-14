@@ -55,31 +55,34 @@ private theorem wp_ApplySnapshot_fresh
     (eood : GoInterface) (Hb61 : σ.b < 2^61) (H0t : σ.b = 0 → σ.base.term' = W64 0) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
       memStorFresh ms γs 0 memSnapEmpty ∗ memEnd γs 1 ∗ memLog γs 0 DFrac.discard [zero_val EntryM] ∗
-      snapArg sp sdq (walSnapCS σ cs) ∗ memSnapLb γs 0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood }}
+      snapArg sp sdq (walSnapCS σ cs) ∗ memSnapNone γs memSnapEmpty ∗
+      globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot")) (Val #sp))
   {{ RET #interface.nil; ownSnapM sp sdq (walSnapCS σ cs) ∗
       memCompacted γs σ.b ∗ memLog γs σ.b DFrac.discard [memDummy (walSnapCS σ cs)] ∗
-      memEnd γs (σ.b + 1) ∗ memSnapLb γs σ.b ∗ memStorFresh ms γs σ.b (walSnapCS σ cs) }} := by
-  iintro %Φ ⟨#Hinit, #Hlock, Hfresh, Hend, #Hd0, Hsnap, #Hlb0, #Heood⟩ HΦ
+      memEnd γs (σ.b + 1) ∗ memSnapNone γs (walSnapCS σ cs) ∗
+      memStorFresh ms γs σ.b (walSnapCS σ cs) }} := by
+  iintro %Φ ⟨#Hinit, #Hlock, Hfresh, Hend, #Hd0, Hsnap, Hnone, #Heood⟩ HΦ
   ihave Hend1 : memEnd γs (1 + ([] : List EntryM).length) $$ [Hend]
   · iexact Hend
   by_cases Hb0 : σ.b = 0
   · ihave #Hd0 : memLog γs 0 DFrac.discard [memDummy (walSnapCS σ cs)] $$ []
     · rw [walSnapCS_dummy_zero σ cs Hb0 (H0t Hb0)]; iexact Hd0
-    wp_apply wp_ApplySnapshot.2 ms γs trivJ (some (0, memSnapEmpty)) [] sp sdq (walSnapCS σ cs) eood
-      (by rw [walSnapCS_index]; exact Hb0) $$ [Hfresh Hend1 Hsnap]
-      as ⟨Hsnap, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩
+    wp_apply wp_ApplySnapshot.2.2.2 ms γs trivJ (some (0, memSnapEmpty)) [] sp sdq (walSnapCS σ cs) eood
+      memSnapEmpty (by rw [walSnapCS_index]; exact Hb0) $$ [Hfresh Hend1 Hsnap Hnone]
+      as ⟨Hsnap, #Hcomp, #Hdum, Hend, Hslb, Hfresh⟩
     · rw [memStorAt_some]
-      iframe Hlock Hfresh Hend1 Hd0 Hlb0 Heood Hsnap
+      iframe Hlock Hfresh Hend1 Hd0 Hnone Heood Hsnap
       iapply memLog_nil
     iapply HΦ
     rw [Hb0]
     iframe Hsnap Hcomp Hdum Hend Hslb Hfresh
-  · wp_apply wp_ApplySnapshot.1 ms γs trivJ (some (0, memSnapEmpty)) 1 [] sp sdq (walSnapCS σ cs) eood
-      (by rw [walSnapCS_index]; omega) (by rw [walSnapCS_index]; exact Hb61) $$ [Hfresh Hend1 Hsnap]
-      as ⟨Hsnap, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩
+  · wp_apply wp_ApplySnapshot.2.2.1 ms γs trivJ (some (0, memSnapEmpty)) 1 [] sp sdq (walSnapCS σ cs) eood
+      memSnapEmpty (by rw [walSnapCS_index]; omega) (by rw [walSnapCS_index]; exact Hb61)
+      $$ [Hfresh Hend1 Hsnap Hnone]
+      as ⟨Hsnap, #Hcomp, #Hdum, Hend, Hslb, Hfresh⟩
     · rw [memStorAt_some]
-      iframe Hlock Hfresh Hend1 Hlb0 Heood Hsnap
+      iframe Hlock Hfresh Hend1 Hnone Heood Hsnap
       iapply memLog_nil
     iapply HΦ
     unfold StorContents.b; rw [Nat.zero_max]
@@ -100,7 +103,6 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
   try wp_auto
   wp_apply wp_NewMemoryStorage sz as %ms %γs ⟨%Hsz, #Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
   try wp_auto
-  imod memSnapNone_open γs $$ Hnone with #Hlb0
   ihave #Hinit := go_etcd_io.raft.v3.isInitialized_access $$ Hraft
   iunfold go_etcd_io.raft.v3.isInitialized at Hinit
   iNamed Hinit
@@ -111,8 +113,8 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
   rw [decide_eq_false Hspnn]
   try wp_auto
   wp_apply wp_ApplySnapshot_fresh wp_ApplySnapshot ms γs σ cs bw.snapshot' sdq _ Hb61 H0t
-    $$ [Hfresh Hend Hsnap] as ⟨Hsnap, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩
-  · iframe Hlock Hfresh Hend Hd0 Hsnap Hlb0 Heood
+    $$ [Hfresh Hend Hsnap Hnone] as ⟨Hsnap, #Hcomp, #Hdum, Hend, Hslb, Hfresh⟩
+  · iframe Hlock Hfresh Hend Hd0 Hsnap Hnone Heood
   try wp_auto
   -- the hard state (`nil`: already zero)
   wp_join iprop("wal" ∷ wal_ptr ↦ w ∗ "st" ∷ w.[bootstrappedWAL, go!"st"] ↦{dq} bw.st' ∗

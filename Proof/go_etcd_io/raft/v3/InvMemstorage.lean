@@ -22,10 +22,13 @@ writer's `done`, the hand-out `ep`, the floor and the certificate registry); all
   clients' persistent lower bound: etcd's two writers, the raft goroutine's `ApplySnapshot` and the
   apply thread's `CreateSnapshot`/`Compact`, neither knowing the other's last write).
 - `pr`: whether the stored snapshot is open for writes, a monotone counter at `0` (the client's
-  `memSnapNone γs`, `NewMemoryStorage`'s, exclusive) or `1` (its lower bound, part of every
-  `memSnapLb`): while the client holds `memSnapNone`, the stored snapshot is the empty one
-  (`Snapshot()` answers it exactly); the writers' `memSnapLb` premises open it
-  (`memSnapNone_open`).
+  `memSnapNone γs sv₀`, `NewMemoryStorage`'s at the empty snapshot, exclusive) or `1` (its lower
+  bound, part of every `memSnapLb`): while the client holds `memSnapNone γs sv₀`, the stored
+  snapshot is `sv₀` (`Snapshot()` answers it exactly); the writers' `memSnapLb` premises open it
+  (`memSnapNone_open`). `ApplySnapshot`'s token variant writes without opening it, moving `sv₀`.
+- `s0`: the snapshot `sv₀` stored while not yet open for writes, a ghost variable in halves (the
+  lock's and `memSnapNone`'s; restart S6 B2, 2026-11-14: a restart's storage, rebuilt by
+  `ApplySnapshot` of the WAL's snapshot, is not opened until `run` has read it).
 - `lk`: the lock's key, which takes the snapshot out of its home (`memSnapHome`, in the
   justification invariant: the snapshot, physically, and its validity `J.SV sv ∗ J.DL i`) for a
   critical section.
@@ -132,6 +135,9 @@ structure MemStorNames where
   sl : GName
   /-- the stored snapshot opened for writes (monotone, `0` or `1`) -/
   pr : GName
+  /-- (restart S6 B2, 2026-11-14) the stored snapshot while not yet opened for writes, a ghost
+  variable in halves: the lock's and the client's (`memSnapNone γs sv₀`) -/
+  s0 : GName
   /-- (out_size C2; ghost, chosen at `NewMemoryStorage`) the storage is **sized**: its entry objects
   are at contents of bounded size (`entSizeOk`), which `Append` takes (`entsPtsZ γs.sz`) and
   `Entries` returns, cut at `maxSize` (`isStorageP γs.sz`) -/
@@ -450,41 +456,61 @@ theorem memSnapLb_mono (γs : MemStorNames) (i i' : Nat) (h : i' ≤ i) :
   · iapply monoNatLbOwn_le i' h $$ H1
   iexact H2
 
-/-- **No snapshot stored yet** (exclusive; `NewMemoryStorage`'s): until the client opens the stored
-snapshot for writes (`memSnapNone_open`), it is the empty one (`Snapshot()` answers it). -/
-def memSnapNone (γs : MemStorNames) : IProp GF := monoNatAuthOwn γs.pr 1 0
+/-- **No write since the storage was made** (exclusive; `NewMemoryStorage`'s at the empty snapshot,
+`ApplySnapshot`'s token variant's at the snapshot it stores): until the client opens the stored
+snapshot for writes (`memSnapNone_open`), it is `sv₀` (`Snapshot()` answers it), whose index the
+stored one's has reached. (Restart S6 B2, 2026-11-14, approved by etcd-grove-81: generalized from the
+empty snapshot to `sv₀`, so that a restart's storage, rebuilt from the WAL's snapshot, answers it.) -/
+def memSnapNone (γs : MemStorNames) (sv₀ : SnapshotM) : IProp GF :=
+  iprop(monoNatAuthOwn γs.pr 1 0 ∗ ghostVar γs.s0 (1 : Qp).half sv₀ ∗
+    monoNatLbOwn γs.sl (uint.nat sv₀.Metadata'.Index'))
 
-instance memSnapNone_timeless (γs : MemStorNames) : Timeless (memSnapNone (GF := GF) γs) := by
+instance memSnapNone_timeless (γs : MemStorNames) (sv₀ : SnapshotM) :
+    Timeless (memSnapNone (GF := GF) γs sv₀) := by
   unfold memSnapNone; infer_instance
 
-/-- Open the stored snapshot for writes: the writers' `memSnapLb γs 0`. -/
-theorem memSnapNone_open (γs : MemStorNames) :
-    ⊢ memSnapNone (GF := GF) γs ==∗ memSnapLb γs 0 := by
+/-- Open the stored snapshot for writes: the writers' `memSnapLb`, at `sv₀`'s index. -/
+theorem memSnapNone_open (γs : MemStorNames) (sv₀ : SnapshotM) :
+    ⊢ memSnapNone (GF := GF) γs sv₀ ==∗ memSnapLb γs (uint.nat sv₀.Metadata'.Index') := by
   iintro H
   unfold memSnapNone memSnapLb
+  icases H with ⟨H, -, #Hsl⟩
   imod mono_nat_own_update 1 (Nat.zero_le 1) $$ H with ⟨-, #Hpr⟩
-  imod monoNatLbOwn_0 γs.sl with #Hsl
   imodintro
   iframe Hsl Hpr
 
-/-- While no snapshot is stored yet, the lock's stored snapshot is the empty one (`Snapshot`). -/
-theorem memSnapNone_empty (γs : MemStorNames) (b : Bool) (sv : SnapshotM) :
-    (if b then memSnapNone (GF := GF) γs else emp) ∗ (⌜sv = memSnapEmpty⌝ ∨ monoNatLbOwn γs.pr 1) ⊢
-      (if b then memSnapNone γs else emp) ∗ ⌜b = true → sv = memSnapEmpty⌝ := by
-  iintro ⟨H, (%Hs | #Hpr)⟩
-  · iframe H; ipureintro; intro _; exact Hs
-  cases b
-  · iframe H; ipureintro; intro h; cases h
-  · simp only [if_true]
-    unfold memSnapNone
-    icases monoNatLbOwn_valid γs.pr 1 0 1 $$ H Hpr with %Hv
-    exfalso; have := Hv.2; omega
+/-- `memSnapNone_open` at the empty snapshot (a first start's): the writers' `memSnapLb γs 0`. -/
+theorem memSnapNone_open_empty (γs : MemStorNames) :
+    ⊢ memSnapNone (GF := GF) γs memSnapEmpty ==∗ memSnapLb γs 0 :=
+  memSnapNone_open γs memSnapEmpty
 
-/-- No snapshot stored yet and a write's permission contradict. -/
-theorem memSnapNone_lb (γs : MemStorNames) (i : Nat) :
-    memSnapNone (GF := GF) γs ∗ memSnapLb γs i ⊢ False := by
+/-- While no write has been made, the lock's stored snapshot is the token's (`Snapshot`). -/
+theorem memSnapNone_eq (γs : MemStorNames) (t : Option SnapshotM) (sv s1 : SnapshotM) :
+    (match t with | some s => memSnapNone (GF := GF) γs s | none => emp) ∗
+      ghostVar γs.s0 (1 : Qp).half s1 ∗ (⌜sv = s1⌝ ∨ monoNatLbOwn γs.pr 1) ⊢
+      (match t with | some s => memSnapNone γs s | none => emp) ∗
+        ghostVar γs.s0 (1 : Qp).half s1 ∗ ⌜∀ s, t = some s → sv = s⌝ := by
+  cases t with
+  | none =>
+    iintro ⟨H, Hs, -⟩
+    iframe H Hs; ipureintro; intro s h; cases h
+  | some s =>
+    simp only
+    iintro ⟨H, Hs, Hor⟩
+    unfold memSnapNone
+    icases H with ⟨Hpr, Hh, #Hsl⟩
+    icases ghostVar_agree γs.s0 _ _ _ _ $$ Hh Hs with %Hag
+    subst Hag
+    icases Hor with (%Heq | #Hlb)
+    · iframe Hpr Hh Hs Hsl; ipureintro; intro s' h; cases h; exact Heq
+    · icases monoNatLbOwn_valid γs.pr 1 0 1 $$ Hpr Hlb with %Hv
+      exfalso; have := Hv.2; omega
+
+/-- No write yet and a write's permission contradict. -/
+theorem memSnapNone_lb (γs : MemStorNames) (sv₀ : SnapshotM) (i : Nat) :
+    memSnapNone (GF := GF) γs sv₀ ∗ memSnapLb γs i ⊢ False := by
   unfold memSnapNone memSnapLb
-  iintro ⟨H, -, #Hpr⟩
+  iintro ⟨⟨H, -, -⟩, -, #Hpr⟩
   icases monoNatLbOwn_valid γs.pr 1 0 1 $$ H Hpr with %Hv
   exfalso; have := Hv.2; omega
 
@@ -619,7 +645,7 @@ instance memCompJust_persistent (γs : MemStorNames) (c : Nat) :
 /-- **The lock's invariant** (γ-free): the fields at the dummy's id `p` (the compaction point
 `c = p.index`) and the entries `ents` after it; the log's map `M` (its authority), the end's half,
 the compaction point's authority and its justification's registration, the lock's half of the
-stored snapshot `sv`, the authority of its index, the stored snapshot empty unless opened for
+stored snapshot `sv`, the authority of its index, the stored snapshot the unopened one (`s0`, half) unless opened for
 writes, and the lock's key; the dummy frozen in the map, of the dummy's term (so no
 range a client owns covers it, and `Term(c)` answers what any range says), and the stored
 snapshot's index frozen likewise, unless it is `0` (so `ApplySnapshot`, given an owned range from
@@ -633,7 +659,8 @@ def memstorageInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
   "#Hcj" ∷ memCompJust γs (uint.nat p.index') ∗
   "Hsx" ∷ ghostVar γs.sx (1 : Qp).half sv ∗
   "Hsl" ∷ monoNatAuthOwn γs.sl 1 (uint.nat sv.Metadata'.Index') ∗
-  "#Hsn" ∷ (⌜sv = memSnapEmpty⌝ ∨ monoNatLbOwn γs.pr 1) ∗
+  "Hsn" ∷ (∃ (s0 : SnapshotM), ghostVar γs.s0 (1 : Qp).half s0 ∗
+     (⌜sv = s0⌝ ∨ monoNatLbOwn γs.pr 1)) ∗
   "Hlk" ∷ memKey γs.lk ∗
   "#Hd0" ∷ (∃ (e0 : EntryM), (uint.nat p.index') ↪[γs.log]□ e0 ∗ ⌜e0.Term' = p.term'⌝) ∗
   "#Hsf" ∷ (⌜uint.nat sv.Metadata'.Index' = 0⌝ ∨ ∃ (e : EntryM),

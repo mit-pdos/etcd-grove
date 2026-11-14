@@ -82,7 +82,7 @@ theorem MemoryStorage.Compact.wp_proof
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv
-      Hsx_inv Hsl_inv Hlk_inv]
+      Hsx_inv Hsl_inv Hsn_inv Hlk_inv]
     · unfold memstorageInv
       iexists p, ents, M, sv0
       simp only [named]
@@ -253,7 +253,7 @@ theorem MemoryStorage.Compact.wp_proof
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState_1 Hents_f_1 Hes'_cap Hcs_firstIndex_1
-    Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1 Hlog_inv Hen_inv Hcp Hsx_inv Hsl_inv Hlk_inv]
+    Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1 Hlog_inv Hen_inv Hcp Hsx_inv Hsl_inv Hsn_inv Hlk_inv]
   · unfold memstorageInv
     inext
     iexists entryID.mk e.Term' ci, ents.drop (uint.nat ci - uint.nat p.index'), M, sv0

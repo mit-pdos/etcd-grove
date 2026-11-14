@@ -581,22 +581,90 @@ theorem kvCertInv_allocR (γs : ServerRaftNames) (γk : KVNames) (E : CoPset) (A
   iunfold kvCert
   iright; iexact Hc
 
+/-- A snapshot's read-only conf state at a non-null pointer, as `epCsVoters` takes it
+(`epCsOk_of_csOptA`'s third case). -/
+theorem csPts_of_csOptA (p : Loc) (c : ConfStateM) (hp : p ≠ null) :
+    ⊢ csOptA (GF := GF) p DFrac.discard c -∗ csPts p DFrac.discard c false := by
+  iintro H
+  iunfold csOptA at H
+  icases H with (⟨%Hn, -⟩ | #H | #H)
+  · exact absurd Hn hp
+  · iexact H
+  · iunfold csPts at H
+    icases H with ⟨%sv, %sl, %so, %sn, %pa, H⟩
+    iNamed H
+    iunfold csPts
+    iexists sv, sl, so, sn, pa
+    simp only [named]
+    iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+    ipureintro; exact ⟨Hnn, fun h => by cases h⟩
+
 /-- (Restart S6 B2, P3) **The restarted storage's snapshot, once** (`rnSnapOnce_of_tok`'s restart
-form): `MemoryStorage.Snapshot()` on the storage `bootstrap` rebuilt from the WAL's records `σ` answers
-the records' snapshot, at the index `σ.b = |A.take σ.b|` and the base's term, its conf state the voters
-after `A` (`epCsAt`). OPEN: the proof opens `memStorInv` for `memStorAt` as `rnSnapOnce_of_tok` does
-and reads the snapshot's justification (`MemJust.SV`) of the restarted storage; it may need a premise
-from `NodeStartSpecR`'s post (`memStorMeta`, a compaction bound `memCompacted γs σ.b`): a form. -/
+form): `MemoryStorage.Snapshot()` on the storage `bootstrap` rebuilt from the WAL's records `σ`, not yet
+opened for writes (`memSnapNone γs (walSnapCS σ cs)`, `NodeStartSpecR`'s post: nothing writes the
+storage's snapshot before `run` reads it), answers exactly the records' snapshot `walSnapCS σ cs`: the
+index `σ.b = |A.take σ.b|`, the base's term, the conf state `cs` the voters' (`epCsAt`); the writers'
+`memSnapLb γs 0` once opened (`memSnapNone_open`). (Restart S6 B2, 2026-11-14: restated once raft's
+token was generalized to the attached snapshot, approved by etcd-grove-81; until then over the
+records' certificate and the server's log, from which the exact answer did not follow.) -/
 theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
-    (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0) (hb : σ.b ≤ A.length) :
+    (cs : ConfStateM) (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0)
+    (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg)) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ walSnapCert γ.node.cl σ -∗
-      srvRaftLogInv γr -∗ srvRLogLb γr A -∗
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs (walSnapCS σ cs) -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗
         rnSnapOnceR (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs
           (W64 (A.take σ.b).length) σ.base.term' γr A := by
-  sorry
+  subst Hms0
+  iintro #Hpkg #Hrn #Hinv Hnone
+  ihave #Hinv0 := Hinv
+  iunfold memStorInv at Hinv
+  ihave #Hrn' := Hrn
+  iunfold isRaftNode at Hrn'
+  iNamed Hrn'
+  subst Hmsγ
+  iexists γ.ms
+  iframe Hms
+  iunfold rnSnapOnceR
+  iintro %Φ HΦ
+  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  ihave #Hinit := isInitialized_access $$ Hraft
+  iunfold isInitialized at Hinit
+  iNamed Hinit
+  ihave #Hc0 := memCompacted_zero (GF := GF) γs
+  iapply wp_fupd
+  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.key) none 0 (some (walSnapCS σ cs)) _
+    $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
+  · isplitr [Hnone]
+    · iapply memStorAt_none_intro $$ Hinv
+      iempintro
+    simp only; iexact Hnone
+  imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc, #Hcs⟩
+  have Hsv0 := Hsv.2 _ rfl
+  subst Hsv0
+  subst Herr
+  simp only at Hnone
+  imod memSnapNone_open γs (walSnapCS σ cs) $$ Hnone with #Hlb
+  imodintro
+  have hidx : (walSnapCS σ cs).Metadata'.Index' = W64 (A.take σ.b).length := by
+    have hl : (A.take σ.b).length = σ.b := by simp; omega
+    rw [hl]
+    show σ.base.index' = W64 σ.b
+    unfold StorContents.b; simp
+  iapply HΦ $$ %snap %pm %pc %(walSnapCS σ cs) [] Hsn Hpm Hpc [] [] [] []
+  · ipureintro
+    exact ⟨hidx, rfl, Hnn.1, Hnn.2⟩
+  · iapply epCsOk_of_csOptA $$ Hcs
+  · iapply epCsAt_voters
+    iunfold epCsVoters
+    iexists cs
+    isplitl []
+    · iapply csPts_of_csOptA pc cs Hnn.2 $$ Hcs
+    ipureintro; exact hcs
+  · imodintro; iapply memSnapLb_mono γs _ 0 (Nat.zero_le _) $$ Hlb
+  · iexact Hinv0
 
 end lemmas
 

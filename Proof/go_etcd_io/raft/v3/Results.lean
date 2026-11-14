@@ -479,7 +479,8 @@ namespace EtcdGrove
 #print axioms memSnap_update
 #print axioms memSnapNone_open
 #print axioms memSnapNone_lb
-#print axioms memSnapNone_empty
+#print axioms memSnapNone_eq
+#print axioms memSnapNone_open_empty
 #print axioms memSnapLb_mono
 #print axioms Membership.Valid.snapListsOk'
 
