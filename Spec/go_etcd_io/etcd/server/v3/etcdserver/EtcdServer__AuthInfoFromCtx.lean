@@ -51,6 +51,30 @@ abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
       □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) ∗
       □ (⌜M.isOn = true⌝ → authErrVarIs err) }}
 
+/-- `s.AuthInfoFromCtx(ctx)` read by a caller holding a lower bound `n` of the auth store's
+published index (`auth.authPubLbM`; auth-guard-completeness G1, 2026-11-14,
+`notes/auth-guard-scope.md`, §2.2): `spec`'s post, and with auth on, why the request side gave no
+principal (`(nil, nil)`: the context carries no token, or auth was disabled at a state no older than
+`n`, `auth.noPrincipalFrom`; the TLS fallback returns `nil` only after the store's `(nil, nil)`) and
+why it failed (`ErrInvalidAuthToken`, for a token the context carries, `auth.tokRefusedFrom`). -/
+abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
+  ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
+      □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗
+      context.libCtxOk ctx ∗ □ auth.authPubLbM M n ∗ RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
+      □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) ∗
+      □ (⌜M.isOn = true⌝ → authErrVarIs err) ∗
+      □ (⌜M.isOn = true⌝ → ∀ _ : a = null ∧ err = GoInterface.nil,
+        auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
+      □ (⌜M.isOn = true⌝ → ∀ _ : err ≠ GoInterface.nil,
+        auth.authErrOf .invalidAuthToken err ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}
+
 end spec
 
 end EtcdGrove
