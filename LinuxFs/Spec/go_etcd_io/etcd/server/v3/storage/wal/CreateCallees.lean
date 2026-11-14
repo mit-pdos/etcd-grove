@@ -14,8 +14,10 @@ The callee specs `wal.Create`'s proof takes as hypotheses that no other spec sta
   that `RemoveAll` returned `nil` on, `ENOENT` with no effect: `os.RemoveAll.specDirS`'s header), and
   its error arm narrowed to `tmpDirH` (the proved spec's `osSubtreeH`: `TouchDirAll`'s `MkdirAll`
   creates one directory, `IsDirWriteable` a file in it). Success: as `CreateDirAll.spec` (an empty
-  directory: `ReadDir` found none), and no name of the new directory at any crash of its claim
-  (`valAfter … = none`: ledger 2026-11-14, an obligation on the extension's `mkdir` law).
+  directory: `ReadDir` found none). (Until `wal-create18` the success post also said the new
+  directory names nothing at any crash of its claim, `valAfter … = none`: false, `IsDirWriteable`'s
+  `.touch` is created and removed through the claim; dropped, `Create` raising the invariant's commit
+  bound past the directory's entries instead: ledger 2026-11-14.)
 * **`os.RemoveAll.specAbsentN`**: `os.RemoveAll.specAbsentS` (proved) for a fraction of a claim on any
   names holding `b` (the proved one takes `.only [b]`; the extension's leaf steps,
   `wp_osUnlinkS_none`/`wp_osRmdirS_none`, take `.only [b]`, and the absent case logs nothing, so
@@ -87,8 +89,7 @@ abbrev fileutil.CreateDirAll.specTmp [go_etcd_io.etcd.client.pkg.v3.fileutil.Ass
   {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
       ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
         (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino) (n : Nat),
-          ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅ ∧
-            ∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none⌝ ∗
+          ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅⌝ ∗
           osNames jp (.only [name]) (DFrac.own 1) h' ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
           osCommitLb n)) }}
 

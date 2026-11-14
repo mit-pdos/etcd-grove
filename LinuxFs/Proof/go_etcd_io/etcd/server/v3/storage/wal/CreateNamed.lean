@@ -153,6 +153,13 @@ theorem crashOkA_none_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay :
   · exact Or.inl (crashTo_named hct (hname m' hr))
   · cases h0
 
+/-- **The directory keys at a bigger commit bound.** -/
+theorem dirKeysOk_mono {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n0 n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {c : Option GoString} (hn : n0 ≤ n)
+    (hk : DirKeysOk C Mr jr s Ls cl n0 K c) : DirKeysOk C Mr jr s Ls cl n K c :=
+  ⟨hk.1, fun dir d lay hd hl hcd => crashOkA_mono hn (hk.2.1 dir d lay hd hl hcd), hk.2.2⟩
+
 /-- **The directory keys with the WAL in `dir` named** (as `walsOk_named`). -/
 theorem dirKeysOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n0 n : Nat}

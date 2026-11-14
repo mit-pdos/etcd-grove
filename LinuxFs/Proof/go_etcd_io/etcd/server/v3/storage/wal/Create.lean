@@ -255,9 +255,6 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       iframe
       ipureintro; intro hc; cases hc
     subst herr
-    obtain ⟨hJs1, hJs2, hJs3, hJfr⟩ := hJs
-    replace hJs : hT2.cur !! tmpName nm = some (Node.dir J) ∧ hT2.next ≤ n0 ∧ hJ.cur = ∅ :=
-      ⟨hJs1, hJs2, hJs3⟩
     try wp_auto
     -- `p := filepath.Join(tmpdirpath, walName(0, 0))`
     wp_func_call
@@ -610,13 +607,18 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     try wp_auto
     iunfold os.fileS at HS
     icases HS with ⟨%mS, %ysS, %hokS, Hf, Hfd, Hoff, HmS, HbS, -⟩
-    -- `syncDir(tmpdirpath)` (F-N1): `nm.tmp` fsynced
-    imod osNames_next R jr _ _ hT3 CoPset.subseteq_top $$ Hsi HT with ⟨HT, #HlbT⟩
+    -- `syncDir(tmpdirpath)` (F-N1): `nm.tmp` fsynced, committing `J`'s entries (all below `mJ`)
+    imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJr with ⟨HJr, #HlbJr⟩
+    ihave ⟨Ho, #HlbO⟩ := crOut_logLb J (walFileName 0 0) _ _ x0 s0 i $$ Ho
+    ihave #HlbJ0 := osLogLb_max (hJ.restrict J ((NameSet.except []).diff [walFileName 0 0])).next
+      (x0 + 1) $$ [HlbJr HlbO]
+    · iframe #
     icases (osPathS_frac R r e a' jr).1 $$ Hp with ⟨Hpe, Hpa⟩
     icases (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).2 $$ HT with ⟨HTe, HTb⟩
     ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT3 (tmpName_nameOk hnmO) hJs.1
       $$ Hpe HTe
-    wp_apply wp_syncDir (child r (tmpName nm)) R J (DFrac.own e) 1 hT3.next $$ [Hpc Hperm]
+    wp_apply wp_syncDir (child r (tmpName nm)) R J (DFrac.own e) 1
+      (max (hJ.restrict J ((NameSet.except []).diff [walFileName 0 0])).next (x0 + 1)) $$ [Hpc Hperm]
       as %serr4 ⟨Hpc, Hperm, Hsd⟩
     · iframe; iframe #
     icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
@@ -646,9 +648,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     subst hse
     try wp_auto
     -- `J`'s claims: merged after the segment's create, split off the pipeline's names
-    imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2.2 hJfr (walNameP_walFileName 0 0)
+    imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2.2 (walNameP_walFileName 0 0)
       CoPset.subseteq_top $$ Hsi HJr Ho with ⟨%hJ', HJx, HTmps, %hJf⟩
-    obtain ⟨hJval, hJcur⟩ := hJf
+    obtain ⟨hJlt, hJcur⟩ := hJf
     imod osNames_coh R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, %hJcoh⟩
     imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, #HlbJ⟩
     imod osNames_rekey R J ((NameSet.except []).diff walTmps) (.except walTmps) _ (fun _ => Iff.rfl)
@@ -717,9 +719,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave HU : createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
         (createSeg i mS ysS) none $$ [HP]
     · unfold createU; simp only [walCreateQ]; iframe Hinv HP
+      iexists _; iframe Hcm1; ipureintro; exact hJlt
     ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
       (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
-      (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c $$ HU
+      (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c $$ HU
     -- the spine law's fractions: `d` twice of the area's spine (the invariant's lend,
     -- `walInv_areaPath`: one spine stays with the pipeline) and of the new name's claim
     iapply wp_notCrashed_acc _ _ rfl
@@ -761,7 +764,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
         by simp [NameSet.Mem], hctmp, hcnm,
         create_spine Mr R jr J r nm hC md Q _ _ _ d (b1 + b1) hd hnm hnmO,
         createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
-          (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c⟩
+          (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _ hOk
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hoff] as %w' %err Hpost
@@ -806,7 +809,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       (tmpName_nameOk hnmO) hnt.2 $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
     unfold createU
-    icases HU with ⟨-, HQ⟩
+    icases HU with ⟨-, -, HQ⟩
     unfold walCreateQ
     icases HQ with ⟨HQ, -, -, Hlt, -, -, Hnf, -, %s', Hpast, %hs'⟩
     iapply wp_notCrashed_acc _ _ rfl

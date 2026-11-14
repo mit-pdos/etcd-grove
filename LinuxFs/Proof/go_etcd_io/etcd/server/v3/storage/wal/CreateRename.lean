@@ -6,8 +6,9 @@ session)
 `renameWAL.spec` is generic in the update's result `U`, the spine law's resource `Sp` and its remainder
 `SpR`; `RenameWALOk` asks two laws of them. `Create`'s choices:
 
-* `createU`: `walCreateQ` with `walInv` (persistent), so that the aborted result `U none` rebuilds the
-  update (`createU_none`, over `createFresh_osAUnc` and `osAUnc_mono`) inside a closed `⊢`.
+* `createU`: `walCreateQ` with `walInv` and a commit bound past `J`'s entries (persistent), so that
+  the aborted result `U none` rebuilds the update (`createU_none`, over `createFresh_osAUnc` and
+  `osAUnc_mono`) inside a closed `⊢`.
 * `createSp`/`createSpR`, `create_spine`: two fractions `d` of the area's spine; after the commit
   `walInv_splitNew` splits the program's half of the creating claim into its half of `.only [nm]` (two
   fractions `d` of it make the two spines to the new WAL's directory, `osPathS_child`; the rest `c` is
@@ -62,6 +63,7 @@ theorem osAUnc_mono {A : Type} (α : IProp GF) (β Q Q' : A → IProp GF) :
 def createU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : NamesH) (md : List w8)
     (Q : IProp GF) (J : Ino) (hJ : NamesH) (g : SegG) (o : Option (Nat × Nat)) : IProp GF :=
   iprop(walInv (W := W) walCodec Mr R jr r ∗
+    (∃ m : Nat, ⌜∀ xe ∈ hJ.ents, xe.1 < m⌝ ∗ osCommitLb m) ∗
     walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps hJ g o)
 
 /-- **The aborted result rebuilds the update** (`RenameWALOk`'s last conjunct), over the fresh layout. -/
@@ -73,8 +75,6 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
     (hctmp : hC.cur !! tmpName nm = some (.dir J)) (hJjr : J ≠ jr)
     (hlb : hC.next ≤ lb) (hJlb : (hJ'.restrict J ((NameSet.except []).diff walTmps)).next ≤ lb)
     (hJcoh : ClaimCoh (hJ'.restrict J ((NameSet.except []).diff walTmps)) J (.except walTmps))
-    (hval : ∀ (K : Nat → Prop) (b : GoString),
-      hJ'.valAfter J K b = none ∨ (b = walFileName 0 0 ∧ hJ'.valAfter J K b = some (.file i)))
     (hcur : ∀ b, hJ'.cur !! b = if b = walFileName 0 0 then some (.file i) else none)
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
     (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) :
@@ -86,15 +86,20 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
           (createSeg i mS ysS)) := by
   rw [show createU (W := W) Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
       (createSeg i mS ysS) none = iprop(walInv (W := W) walCodec Mr R jr r ∗
+        (∃ m : Nat, ⌜∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents, xe.1 < m⌝ ∗
+          osCommitLb m) ∗
         walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)) from rfl]
-  iintro ⟨#Hinv, HP⟩
+  iintro ⟨#Hinv, ⟨%m, %hJm, #Hcm⟩, HP⟩
   ihave Hau := createFresh_osAUnc Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd
-    hctmp hJjr hlb hJlb hJcoh hval hcur hok hm2s hm2c $$ Hinv HP
+    hctmp hJjr hlb hJlb hJcoh m hJm hcur hok hm2s hm2c $$ Hinv Hcm HP
   iapply osAUnc_mono $$ [] Hau
   iintro !> %o HQ
   unfold createU
   iframe HQ Hinv
+  iexists m
+  iframe Hcm
+  ipureintro; exact hJm
 
 /-- **`Create`'s spine resource**: the WAL invariant, the shared invariant, two fractions `d` of the
 area's spine. -/
@@ -134,7 +139,7 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   have hT : ⊢ createU (W := W) Mr R jr r nm hC md Q J hJ g (some (x, s)) -∗
       walUnlockedTok (W := W) -∗ False := by
     unfold createU
-    iintro ⟨-, HQ⟩ Hu
+    iintro ⟨-, -, HQ⟩ Hu
     unfold walCreateQ
     icases HQ with ⟨-, -, -, Hl, -⟩
     iapply walLockedTok_unlocked_excl $$ Hl Hu

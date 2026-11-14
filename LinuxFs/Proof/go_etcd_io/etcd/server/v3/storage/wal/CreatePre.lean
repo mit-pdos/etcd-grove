@@ -6,7 +6,8 @@ implementation log", eighteenth session)
 * `createJ_claims`: `J`'s claim off the segment's name and the segment's create (`crOut`) merged back,
   then split into the claim off the pipeline's names (`.except walTmps`, for the commit, half to
   `walCreateP`, half to the handle) and the pipeline's names (`walTmpsRes J`, `renameWAL`'s pre), with
-  the merged history's facts (`createJ_val`, `createJ_cur`).
+  the merged history's facts (`createJ_cur`; its entries below both parts' bounds, `ClaimCoh` of the
+  merged claim).
 * `osNames_disj`: two claims held on different keys of one directory share no name (the shared
   invariant's `NamesCoh.disj`); so `J ≠ jr` (`Create` holds `nm.tmp`'s claim of `jr` and `J`'s claim
   off the pipeline's names, which holds `nm.tmp`).
@@ -17,6 +18,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateJ
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
 public import GooseLang.Ext.Fs.TreeSharedRes
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
 
 @[expose] public section
 
@@ -36,10 +38,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 theorem walTmps_ne_wal {b t : GoString} (hb : walNameP b = true) (ht : t ∈ walTmps) : t ≠ b := by
   rintro rfl; rw [walTmps_not_wal t ht] at hb; cases hb
 
+/-- A logged create's outcome bounds the log below past its entry. -/
+theorem crOut_logLb (J : Ino) (b : GoString) (h : NamesH) (dq : DFrac) (x s : Nat) (i : Ino) :
+    crOut (GF := GF) J b h dq (some (x, s, i)) ⊢
+      crOut (GF := GF) J b h dq (some (x, s, i)) ∗ osLogLb (x + 1) := by
+  simp only [crOut]
+  iintro ⟨%hp, Hl, Hn⟩
+  unfold osLogged
+  icases Hl with ⟨%hs, Hle, #Hlb⟩
+  iframe Hn Hle Hlb
+  ipureintro; exact ⟨hp, hs⟩
+
 /-- **`J`'s claims after the segment's create** (see the file header). -/
 theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : NamesH)
     (x s : Nat) (i : Ino) (hJe : hJ.cur = ∅)
-    (hfr : ∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none)
     (hw0 : walNameP w0 = true) (hE : ↑osShN ⊆ E) :
     osSharedInv (GF := GF) R -∗
       osNames J ((NameSet.except []).diff [w0]) (DFrac.own 1) (hJ.restrict J ((NameSet.except []).diff [w0])) -∗
@@ -47,8 +59,8 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
       ∃ hJ' : NamesH,
         osNames J ((NameSet.except []).diff walTmps) (DFrac.own 1)
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) ∗ walTmpsRes J ∗
-        ⌜(∀ (K : Nat → Prop) (b : GoString),
-            hJ'.valAfter J K b = none ∨ (b = w0 ∧ hJ'.valAfter J K b = some (.file i))) ∧
+        ⌜(∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents,
+            xe.1 < max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1)) ∧
           (∀ b, hJ'.cur !! b = if b = w0 then some (.file i) else none)⌝ := by
   iintro #Hsi HD Ho
   have hN : ∀ c, (NameSet.except []).Mem c ↔
@@ -60,7 +72,16 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
   simp only [crOut]
   icases Ho with ⟨-, -, Hn1⟩
   imod osNames_merge R J _ _ (.except []) _ _ hN hE $$ Hsi HD Hn1 with ⟨%h'', Hn, %hr⟩
-  have hval := createJ_val hfr hr.1 hr.2.1
+  imod osNames_coh R J _ _ _ hE $$ Hsi Hn with ⟨Hn, %hcoh⟩
+  have hlt : ∀ xe ∈ (h''.restrict J ((NameSet.except []).diff walTmps)).ents,
+      xe.1 < max (hJ.restrict J ((NameSet.except []).diff [w0])).next (x + 1) := by
+    refine restrict_ents_lt (fun xe hxe => ?_)
+    have e : ((hJ.restrict J ((NameSet.except []).inter [w0])).log x (crEnt J w0 i s)
+        (<[w0 := .file i]> (hJ.restrict J ((NameSet.except []).inter [w0])).cur)).next = x + 1 := by
+      simp [NamesH.next, NamesH.log]
+    have h1 := hcoh.1 xe hxe
+    rw [hr.2.2, e] at h1
+    exact h1
   have hcur := createJ_cur (x := x) (s := s) hJe hr.1 hr.2.1
   imod osNames_split R J (.except []) walTmps h'' hE $$ Hsi Hn with ⟨HT, HD⟩
   -- the pipeline's names, one claim each
@@ -114,7 +135,7 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
     iframe Ht0 Ht1
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   ipureintro
-  exact ⟨hval, hcur⟩
+  exact ⟨hlt, hcur⟩
 
 /-- **Two claims held on different keys of a directory share no name.** -/
 theorem osNames_disj {E : CoPset} (R : Roots) (j : Ino) (N N' : NameSet) (dq dq' : DFrac)

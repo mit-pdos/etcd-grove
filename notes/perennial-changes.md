@@ -1820,6 +1820,10 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `601b7fb5d` (`errors.Is.spec` at any
+  `ComparableTarget`: a target whose type's `==` is the equality of plain values, `ComparableErr`; an empty
+  struct or a value struct of comparable fields should qualify, not checked). The `As` false-for-a-leaf case is
+  not drafted.
 
 ### `go.NotInterface go.uint64`
 
@@ -2437,6 +2441,11 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `Unwrap`, `Errno.Is`) and `os.ErrNotExist = oserror.ErrNotExist` distinct from `oserror`'s other errors
   in the package facts. Workaround: the hypothesis `errors.IsPathErrnoNotExist.spec`
   (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`).
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `601b7fb5d`. `errors.Is.spec`/`errors.is.spec`
+  take `ComparableTarget S target`/`ComparableErr S tii` (the type's `CheckComparable` steps, its `==` is Lean's
+  `=` on some `V` with an injective `#`, the target's and the tree's same-typed values are of `V`);
+  `comparableErr_uintptr` gives it for an `Errno` (`[tii.ty ↓u go.uintptr]`, `V := w64`); the old statement is
+  `errors.wp_Is_ptr` (a client's `wp_Is S I U err target htarget htyped` becomes `wp_Is_ptr` with the same arguments).
 
 ## 2026-11-14: `errors.newVar` forgets the allocation (the WAL decoder's environment, `wal-readall17`)
 
@@ -2451,6 +2460,12 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   returns it.
 - **Also:** `errors.Is(err, io.EOF)` on the part's `*PathError`s (`errors.IsPathErrnoEof.spec`,
   `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), the same gap as `IsPathErrnoNotExist.spec` above.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `58e04c5c0`. `newVar X msg := ∃ x, globalAddr X ↦□
+  *x ∗ x.[errorString, "s"] ↦□ msg ∗ □ Error()` (moved to `Perennial/Proof/errors/Base.lean`);
+  `wp_New_errorString` returns the field; `errors.errorString_ne` and `errors.newVar_ne (h : m1 ≠ m2) : newVar X m1 ⊢
+  newVar Y m2 -∗ globalAddr X ↦□ v1 -∗ globalAddr Y ↦□ v2 -∗ ⌜v1 ≠ v2⌝`. Perennial's initializer proofs (`io`,
+  `io/fs`, `oserror`, `poll`, `strconv`, `context`) build unchanged; a client destructing `newVar` into three parts
+  (`errOk_newVar`, `walDecEnv_eof_not`, ...) gets one more conjunct.
 
 ## 2026-11-14: The WAL's leaf specs (`wal-leaf1`): `errors.As` first match, `Errno.Is`
 
@@ -2479,3 +2494,29 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `errors.IsErrno.spec` and `errors.IsPathErrnoEof.spec` (with `newVar`'s allocation for the second). And (1),
   `errors.As`: no first-match lemma is derivable from the axiom `errors.As.wp_proof` (its post is `∃ b v'`, and
   `As` has neither translation nor model), so `errors.AsLinkError.spec` waits for the Perennial spec.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed). (a) `errors` fact, `58e04c5c0`: `errors`' `isPkgInit`
+  is `isInit := newVar ErrUnsupported "unsupported operation"` (`errors.isInit_access`, `errors.errUnsupported_of_init`),
+  `errors.initialize'` proved from `wp_New_errorString`. (b) `errors.As`, `7533cf64a`, **a strengthened axiom** (for
+  review; the Go check of its soundness is in `errors.As.wp_proof`'s docstring): `As.spec` takes `(v x : T')` and
+  `⌜AsFirst T err #x⌝ ∨ (isErrorTree S T' T ∗ ⌜S err⌝)`, post `l ↦ v' ∗ ⌜AsFirst T err #x → b = true ∧ v' = x⌝`
+  (`AsFirst`: `err`'s dynamic type is `T`, its value stored; or in an interface `T`'s type set, `err` stored);
+  `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
+  {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
+  `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).
+
+## 2026-11-14: `io.Copy`/`copyBuffer` without bodies (the WAL's `Repair`, branch `wal-copy1`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only but for its types and errors, so `io.Copy` cannot be
+  stepped. The WAL's `Repair` calls `io.Copy(bf, f)` of two files (`repair.go`), whose path on Linux is ordinary Go
+  down to `copy_file_range(2)` (`notes/wal-fsext-plan.md`, "io.Copy log"): the part's `os` side is now translated and
+  the system call modelled; only `io`'s two functions are missing.
+- **Workaround here.** `Repair.wp_proof` takes the `io.Copy`-of-files triple as a hypothesis (`io.CopyFiles.spec`,
+  the plan's "io.Copy log"); no axiom. A part copy of `io` is impossible for the reason of the `io.ReadFull` entry.
+- **Proposed.** `io.toml`: translate `Copy`, `CopyBuffer`, `copyBuffer`, `CopyN`, `LimitReader`, `LimitedReader.Read`
+  with bodies (`errInvalidWrite`, `ErrShortWrite`, `EOF` already are). General: every `io.Copy` user (`os`, `bufio`,
+  `net/http`) needs it. Untested whether goose translates `copyBuffer`'s two interface assertions and its loop
+  unchanged (it translates the part's `os` type switches and an assertion to an anonymous interface).
+- **Status.** Drafted on branch `io-copy` of Perennial (commit `7e4d729e6`, off the pin `ddc0f0acc`, pushed, not
+  landed), pending user review: goose translates all six unchanged (both assertions, the loop); full Perennial
+  `lake build` passes. Regenerated with go1.26.10, keeping only `io`'s output (the other packages' regeneration differs
+  from the committed output under every local toolchain).

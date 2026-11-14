@@ -104,8 +104,9 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
           walTailsRes (W := W) C Mr s (<[dir := lay']> Ls) F' := by
   letI := walAllG (W := W)
   unfold walTailsRes tailVar
-  iintro ⟨%T, HTa, %HTo, %HTi, HTm⟩ Hk Hv
+  iintro ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩ Hk Hv
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
+  icases walLentRes_free (W := W) T Ls dir γ $$ Hk HL with ⟨Hk, HL⟩
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
@@ -122,7 +123,8 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   iintro %lay' %g %F' %hp Hvn
   obtain ⟨hg', hZ, hB, hF, hFo⟩ := hp
   iexists T
-  iframe HTa
+  ispecialize HL $$ %lay'
+  iframe HTa HL
   isplitr
   · ipureintro; exact HTo.insert HT hl hg hg' hFo
   isplitr

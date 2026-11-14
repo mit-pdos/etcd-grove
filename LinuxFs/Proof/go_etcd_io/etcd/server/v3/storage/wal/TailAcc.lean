@@ -307,7 +307,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm⟩
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -378,9 +378,10 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     exact walsOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hcut hlen hzf hZ hB habs'
   isplitr
   · ipureintro; exact HWC
-  isplitl [HTa HTm Hvn]
+  isplitl [HTa HTm Hvn HL]
   · iexists T
-    iframe HTa
+    ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl $$ HL
+    iframe HTa HL
     isplitr
     · ipureintro
       exact HTo.insert HT hl hg (by simp [tailLay]) (fun i hi =>

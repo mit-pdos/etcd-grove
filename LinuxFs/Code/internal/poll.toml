@@ -12,6 +12,9 @@ translate = ["!*",
   "TestHookDidWritev", "TestHookDidSendFile",
   "Accept4Func", "CloseFunc", "AcceptFunc",
   "splicePipePool", "_",
+  # (2026-11-14, `io.Copy` of two files: notes/wal-fsext-plan.md, "io.Copy log") what os's trusted
+  # `File.copyFileRange` (its inlined `CopyFileRange` loop) calls: the errno dispatch, Go's body
+  "handleCopyFileRangeErr", "maxCopyFileRangeRound",
 ]
 
 imports = ["!*", "errors", "sync", "syscall", "internal/syscall/unix"]
