@@ -227,6 +227,44 @@ Modules (`S/`): `BootPure` (pure), `BootStart0` (the first generation's `walStar
   the area holds only files (`tmpEnt (dir _) = False`, `TmpOk`, `SubCover`); the WAL creates nothing else there,
   but no invariant records that the claims' histories hold only files.
 
+**Second session (branch `wal-u3b`, 2026-11-14): (a) and (c) done; (d) not derivable as decided; (b) designed.**
+No axiom, nothing trusted changed. **For concurrent branches (merge note):** `walInvBody`'s last conjunct is now
+`⌜WalsBounded s ∧ DirsRoots R s⌝` (`DirsRoots` moved from `BootPure` to `Inv.lean`, with `DirsRoots.congr`/`.upd`):
+a step's `%Hbd` is the pair; rebuild with `⟨walsBounded_… Hbd.1 …, Hbd.2⟩` (`Hbd.2` is accepted as is when the
+new state is `{s with wal := …}`; `Hbd.2.upd` for `absDiskUpd`); a step keeping `s` closes with `Hbd` unchanged.
+`walInv_alloc` takes `(hdr : DirsRoots R s)` after `hbd`. `walStart`'s pure part gained `∀ i ∈ is, Named m i →
+(fo i).isSome` (second conjunct). `entsOf_lookup` moved from `Crash.lean` to `BootCrashPure.lean`.
+- **(a)** `walInv_crash` returns `WalsBounded s' ∧ DirsRoots R s'` (`walsBounded_crash`, `dirsRoots_crash`).
+- **(c)** `walInv_crash` also returns `[∗list] i ∈ bootFiles V'.now jr, trFile i False` (new generation): every
+  file of the crashed tree at a non-`.wal` name of a directory at a WAL name of the area (the others and the
+  pipeline names `0.tmp`/`1.tmp`), and at `.touch` of a directory at `nm.tmp` (`BootCrashPure.lean`). Distinct by
+  unique naming, a new premise **`hu : UniqNames V'.now`** (`TreeWf`'s last part of the crashed tree: `MachineCrash`
+  does not state the crashed tree well formed; a lemma "replaying a `Closed` set of logged operations on a
+  well-formed durable tree keeps `TreeWf`" would discharge it, not proved). An old segment's inode found at a
+  non-`.wal` name (a `cut` rename the crash dropped) comes from its segment start (`walStart` keeps only the old
+  segments not in `bootFiles`; the new layouts' segments are at `.wal` names, so none is lost); the rest from
+  `crashRest` (`crashRest_take_named`, `CrashTakeNamed.lean`: no old resources needed).
+- **(d) "WAL directories and `nm.<sfx>` directories hold only files" cannot be a fact of the WAL invariant as
+  it stands.** A fact about the crashed tree comes from the claims the invariant holds (`RegionCrashed cl n`). The
+  entries in question are under claims the invariant does not hold when the crash comes: the pipeline names'
+  `tmpClaim`s while a write handle holds them (`filePipeline.alloc` creates `0.tmp` with the whole claim, no
+  invariant step), the names `Repair` lends (`lendKey`), the whole claims of every directory under an `nm.<sfx>`
+  (`walAreaRes`'s `areaCls`, the program's), and `Create`'s `nm.tmp` directory's claim. Only the WAL directory's
+  own claim `(J, .except walTmps)` is the invariant's. Making it derivable means the invariant keeping a share of
+  those claims (the pipeline's and `Create`'s file creations becoming invariant steps through `osAU`, and
+  `walAreaRes`'s subtree claims shared): a change to `walAreaRes` (client-visible vocabulary) and to the
+  pipeline's ownership — **left to the coordinator/user** (not done). Until then it is the crash boot's premise
+  **`hfo : ∀ b J, AreaSlot b → V'.now.entry jr b = some (.dir J) → FilesOnly (entsOf V'.now J)`** (true of the Go
+  code: nothing creates a directory there; not dischargeable by a client either).
+- **(b), next: `walBootCrash`** (new generation, at its `wp_osShare` with `V = V'`, `V'.2 = []` from
+  `crashRest_treeS`), designed: `cl` = the area claim `(jr, .except (Wn ++ others), _)` (`Wn` the present WALs'
+  names, `others` the area's names holding an entry that are no `AreaSlot`, given back as at the first boot), per
+  present WAL `nm` at `J`: `(J, .except walTmps, _)` and `(jr, .only [nm], _)`; `(J, .only walTmps)` → `walTmpsRes J`
+  (files from `bootFiles`, `hfo`), `Jm` = the present WALs' directories; `hdirs1`/`hJm`/`hnames`/`hnok` from
+  `UniqNames` and `TreeWf` (`NameOk`); `hdok`/`hav` from `DirsRoots` (`BootPure`); `walOthersL` from `bootFiles`;
+  `walAreaRes`: `areaCls` = each `nm.<sfx>` directory's whole claim tagged by its name, `SubCover`/`TmpOk` from
+  `hfo`, `tmpClTouch` from the `.touch` files of `bootFiles`. Premises: `hu` (or `TreeWf R V'.now`), `hfo`.
+
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
