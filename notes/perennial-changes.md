@@ -2516,3 +2516,7 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   with bodies (`errInvalidWrite`, `ErrShortWrite`, `EOF` already are). General: every `io.Copy` user (`os`, `bufio`,
   `net/http`) needs it. Untested whether goose translates `copyBuffer`'s two interface assertions and its loop
   unchanged (it translates the part's `os` type switches and an assertion to an anonymous interface).
+- **Status.** Drafted on branch `io-copy` of Perennial (commit `7e4d729e6`, off the pin `ddc0f0acc`, pushed, not
+  landed), pending user review: goose translates all six unchanged (both assertions, the loop); full Perennial
+  `lake build` passes. Regenerated with go1.26.10, keeping only `io`'s output (the other packages' regeneration differs
+  from the committed output under every local toolchain).
