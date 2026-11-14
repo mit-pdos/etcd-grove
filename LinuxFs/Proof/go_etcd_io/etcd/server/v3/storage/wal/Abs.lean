@@ -275,14 +275,15 @@ def AsOfOneG (bs : List ByteG) (img : List w8) (o len : Nat) : Prop :=
 
 /-- **W1 over a crashed WAL directory**, from the ghost candidates: its `.wal` files `js` (in name
 order), their images `img`, read from any of them on with a fresh reader; a file that is a segment
-the invariant knows (`bsOf i = some bs`), its image no longer than its bytes, has every accepted
-frame's core as of one change of `bs`' candidates. (An image longer than the bytes the invariant knows
-is a crash in a resize window, I3b: the bytes past them are the state's, which the ghost state does not
-see.) -/
+the invariant knows (`bsOf i = some bs`) has every accepted frame whose core lies in `bs` (`wal-tc3`;
+was: the whole image no longer than `bs`) as of one change of `bs`' candidates. (The image may be longer
+than the bytes the invariant knows in a resize window, I3b: a frame past them is the state's, which the
+ghost state does not see.) -/
 def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → Option (List ByteG)) :
     Prop :=
   ∀ k, ∀ p ∈ acceptsFiles C ((js.drop k).map img) 0#32, ∀ i bs, (js.drop k)[p.1]? = some i →
-    bsOf i = some bs → (img i).length ≤ bs.length → AsOfOneG bs (img i) p.2 (frameCore (img i) p.2)
+    bsOf i = some bs → p.2 + frameCore (img i) p.2 ≤ bs.length →
+      AsOfOneG bs (img i) p.2 (frameCore (img i) p.2)
 
 /-- The ghost bytes of the segment of inode `i`, if it is one of the layout's. -/
 def segBytesOf (lay : WalLay) (i : Ino) : Option (List ByteG) :=
@@ -346,7 +347,7 @@ theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay
         have hbs : b < f'.size := by omega
         refine ⟨contents_getD f' b hbs, ?_⟩
         have hbl : b < g.bs.length := by
-          simp only [hf', imgOf, Option.map_some, Option.getD_some, hlen] at hsz; omega
+          simp only [hf', imgOf, Option.map_some, Option.getD_some] at hsz; omega
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
         exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm
       exact AsOfW.congr (fun b hb1 hb2 => (hbyte b hb1 hb2).2.symm)

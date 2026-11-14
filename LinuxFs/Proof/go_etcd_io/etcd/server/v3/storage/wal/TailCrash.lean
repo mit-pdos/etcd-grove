@@ -475,9 +475,14 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
         simp only [List.map_cons, List.map_nil, acceptsFiles, imgOf, hf, Option.map_some,
           Option.getD_some, List.mem_map]
         exact ⟨p, hp, rfl⟩
-      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm)
-        (by show (imgOf (fo g.ino)).length ≤ _; simp [imgOf, hf, contents_length, hsz])
       obtain ⟨x, hx, hxb⟩ := acceptsFiles_bound C _ _ _ hp'
+      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm) (by
+        show p + frameCore (imgOf (fo g.ino)) p ≤ g.bs.length
+        have hl : (imgOf (fo g.ino)).length ≤ g.bs.length := by
+          simp [imgOf, hf, contents_length, hsz]
+        rw [hjs] at hx
+        simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, Option.some.injEq] at hx
+        rw [← hx] at hxb; simp only at hxb; omega)
       rw [hjs] at hx
       simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, imgOf, hf, Option.map_some,
         Option.getD_some, Option.some.injEq] at hx
