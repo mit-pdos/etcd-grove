@@ -153,6 +153,14 @@ theorem ByteOk.snoc {S X : List w8} {y : w8} {w s : Bool} {g : ByteG} {b : Nat}
 /-- A segment's `OsMeta` half bounds a crash's size to its bytes' (no resize window open on it). -/
 def SegExact (g : SegG) : Prop := g.om.lo = g.bs.length ∧ g.om.hi = g.bs.length
 
+/-- An `OsMeta` bounds a crash's size to its size (no resize window open on its file): what
+`os.truncSup`'s `P` is for the tail's truncate at its write position (`walTail_truncSup`; W6 log,
+twenty-second session). -/
+def OsExact (m : Fs.OsMeta) : Prop := m.lo = m.size ∧ m.hi = m.size
+
+theorem SegExact.of_os {g : SegG} (hsz : g.om.size = g.bs.length) (h : OsExact g.om) : SegExact g :=
+  ⟨h.1.trans hsz, h.2.trans hsz⟩
+
 /-- Every named segment of `lay` but the last is exact (`WalAbsD.metas`); the last too. -/
 def TailExact (lay : WalLay) : Prop := ∀ g, lay.segs.getLast? = some g → SegExact g
 
@@ -330,13 +338,14 @@ def WinHead (lay : WalLay) (g : SegG) : Prop :=
 theorem WinHead.of_lo {lay : WalLay} {g : SegG} (h : g.om.lo ≤ lay.wr) : WinHead lay g :=
   fun _ hb _ => .inl (Nat.le_trans h hb)
 
-/-- **The last segment in a resize window** (`WalAbsD.last`'s window branch): `TailWin`, the least
-size a crash may leave at most `wr` (`winLo`; to be replaced by `WinHead`, which it implies, once the
-truncate at `wr` no longer needs it: W6 log, twenty-first session), `WinZero`, and `old` no longer than
-the largest size a crash may leave (a window opens from an exact tail, `hi = |bs| = |old|`, and no step
-before the fdatasync lowers `hi`; `wal-tc12`'s option (b)). -/
+/-- **The last segment in a resize window** (`WalAbsD.last`'s window branch): `TailWin`, a zero a
+crash may leave at each byte from `wr` on (`WinHead`; until the twenty-second session of the W6 log,
+`lo ≤ wr`, which a write past the size from an exact tail falsifies; the truncate at `wr`, which
+needed it of the size, gets it from the handle instead: `os.truncSup`'s `P`), `WinZero`, and `old`
+no longer than the largest size a crash may leave (a window opens from an exact tail, `hi = |bs| =
+|old|`, and no step before the fdatasync lowers `hi`; `wal-tc12`'s option (b)). -/
 def WinLast (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
-  TailWin C Mr d lay g ∧ g.om.lo ≤ lay.wr ∧ WinZero lay g ∧ lay.old.length ≤ g.om.hi
+  TailWin C Mr d lay g ∧ WinHead lay g ∧ WinZero lay g ∧ lay.old.length ≤ g.om.hi
 
 /-- An exact tail's bytes past `wr` are `old`'s (unwritten), so zero where `old` is (F-Z). -/
 theorem TailLast.winZero {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
@@ -420,7 +429,7 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   /-- The last segment: its stream up to `wr`, `old` past it, durable below `so`; while a resize
   window is open on it (`¬ SegExact g`, I3b: from a resize's first step to the fdatasync after it),
   only the bytes below `wr`, the segment no longer than `old` and at least `wr` long
-  (`TailWin`), the least crash size at most `wr` (`winLo`), the bytes from `wr` on zero
+  (`TailWin`), a zero a crash may leave from `wr` on (`WinHead`), the bytes from `wr` on zero
   (`WinZero`) and `|old| ≤ hi` (`WinLast`). -/
   last : ∀ g, lay.segs.getLast? = some g →
     (SegExact g → TailLast C Mr d lay g) ∧ (¬ SegExact g → WinLast C Mr d lay g)
@@ -462,12 +471,6 @@ theorem WalAbsD.lastWin {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
 theorem WalAbsD.winHead {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
     WinHead lay g :=
-  WinHead.of_lo ((h.last g hg).2 hx).2.1
-
-/-- **A window's least crash size is at most the write position** (`WalAbsD.last`'s `winLo`). -/
-theorem WalAbsD.winLo {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
-    g.om.lo ≤ lay.wr :=
   ((h.last g hg).2 hx).2.1
 
 /-- **`old` is no longer than a window's `hi`** (`WalAbsD.last`'s window branch). -/

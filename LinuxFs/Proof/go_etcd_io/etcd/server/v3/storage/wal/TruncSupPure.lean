@@ -48,13 +48,13 @@ theorem rzStart_pure {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0]) (habs : ∃ ents, WalAbsD C Mr d lay ents)
     (hcut : g0.om.cut = none) (hZ : TailZeros lay) (hB : TailBound C Mr d lay) (hk : 0 < k)
-    (htcz : g0.om.TcZ) :
+    (htcz : g0.om.TcZ) (hlo : ¬ SegExact g0 → g0.om.lo ≤ lay.wr) :
     WalsOk C Mr R jr s (<[dir := tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr]> Ls) cl n ∧
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr]> Ls) cl n K c) := by
   obtain ⟨ents, habs⟩ := habs
   have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
-  have hstep := tailCrashStep_rzStart (cl := cl) (k := n) hC habs hZ hB hnd hs hk htcz
+  have hstep := tailCrashStep_rzStart (cl := cl) (k := n) hC habs hZ hB hnd hs hk htcz hlo
   refine ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
   obtain ⟨hsz, -, -, hhi, -⟩ := h.metas g0 (by rw [hs]; simp)

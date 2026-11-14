@@ -107,7 +107,7 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
   icases Harea with ⟨#Hinv, #Hos, -⟩
   ihave #Hsup : os.truncSup iprop(walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG)) i
-      (W64 ((o0 : Int) + (out.length : Int))).toNat $$ []
+      (W64 ((o0 : Int) + (out.length : Int))).toNat OsExact $$ []
   · rw [hT]; iapply walTail_truncSup Mr R jr r dir γ H md cuts (o0 + out.length) i $$ Hinv
   ihave HK : iprop(walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG)) $$ [Hk Hv]
@@ -116,8 +116,8 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
       (DFrac.own (1 : Qp).half) (bs.drop (o0 + out.length)) $$ [Hbd]
   · rw [hT, Nat.min_eq_right hwr]; iexact Hbd
   wp_apply wp_Truncate f fd name (DFrac.own 1) (W64 ((o0 : Int) + (out.length : Int))) (DFrac.own 1)
-    ⟨i, rd, true⟩ m (bs.drop (o0 + out.length)) _ hfd rfl hI hmaps
-    (by rw [List.length_drop, hT]; omega) $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
+    ⟨i, rd, true⟩ m (bs.drop (o0 + out.length)) _ OsExact hfd rfl hI hmaps
+    (by rw [List.length_drop, hT]; omega) ⟨hlo, hhi⟩ $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
   · iframe; iframe #
   rw [hT]
   iapply HΦ

@@ -74,7 +74,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
   obtain ⟨rfl, rfl⟩ := hn
   wp_auto
   have hmin : min m.size o.toNat = o.toNat := by omega
-  wp_apply wp_Truncate f fd name dqf o dq d m xs K hfd hwr ho0 hmaps (by omega)
+  wp_apply wp_Truncate f fd name dqf o dq d m xs K (fun _ => True) hfd hwr ho0 hmaps (by omega) trivial
     $$ [Hf Hfd Hm Hb HK] as %err ⟨Hf, Hfd, HK, Hr, -⟩
   · rw [hmin]; iframe; iframe Hinv; iexact Hto
   icases Hr with (⟨%he, %zs, Hd⟩ | ⟨%he, Hd⟩)

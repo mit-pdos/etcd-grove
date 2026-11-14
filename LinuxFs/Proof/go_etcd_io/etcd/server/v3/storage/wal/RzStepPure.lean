@@ -168,7 +168,7 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     exact ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
       fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩,
-      by simp only [tailLay, rzSeg, rzMeta_lo]; omega,
+      WinHead.of_lo (by simp only [tailLay, rzSeg, rzMeta_lo]; omega),
       fun b x hb hx => ?_, ?_⟩
     · simp only [tailLay] at hbw
       rw [rzSeg_getElem?_lt hl (by omega)] at hb

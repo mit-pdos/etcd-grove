@@ -99,7 +99,7 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
         (by rw [hl2]; show lay.wr ≤ max g0.om.hi lay.wr; omega) (Nat.le_of_eq hXl.symm)
         (fun b _ => getD_snd_of_map hX b) (fun s hs => ?_)
       simpa [rzLand, rzSeg, rzMeta] using hs
-    · show min g0.om.lo lay.wr ≤ lay.wr; omega
+    · exact WinHead.of_lo (by show min g0.om.lo lay.wr ≤ lay.wr; omega)
     · have := (List.getElem?_eq_some_iff.1 hx).1
       simp only [tailLay] at hb; rw [hl2] at this; omega
     · have := habs.oldHi_any _ hg1

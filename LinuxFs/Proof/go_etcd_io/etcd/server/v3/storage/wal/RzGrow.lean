@@ -489,7 +489,7 @@ theorem walAbsD_rzLandG {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
       · rw [← ht, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
           List.getElem?_append_left hb]
       · simpa [rzLandG, rzSeg, rzMeta] using hs
-    · show min g0.om.lo tg ≤ lay.wr; exact hlo
+    · exact WinHead.of_lo (by show min g0.om.lo tg ≤ lay.wr; exact hlo)
     · have hz := habs.zeroPast _ hg1 hZ
       simp only [tailLay] at hb
       simp only [rzLandG] at hx

@@ -62,7 +62,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
   wp_auto
   ihave Hb0 : osBytes (GF := GF) d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) [] $$ []
   · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
-  wp_apply wp_Truncate f fd name dqf sz dq d m [] K hfd hwr hsz0 hmaps (by simp; omega)
+  wp_apply wp_Truncate f fd name dqf sz dq d m [] K (fun _ => True) hfd hwr hsz0 hmaps (by simp; omega) trivial
     $$ [Hf Hfd Hm Hb0 HK] as %err ⟨Hf, Hfd, HK, Hr, -⟩
   · iframe; iframe Hinv; iexact Hsup
   iapply HΦ
