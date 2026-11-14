@@ -53,14 +53,16 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
     have hp : rsDone (GF := GF) false d.ino (max m.size (0 + sz.toNat)) (max m.size (0 + sz.toNat)) m n ⊢
-        preGrown (GF := GF) d.ino m sz.toNat := by
+        preGrown (GF := GF) d.ino m sz.toNat (interface.nil = interface.nil ∧ m.ZeroPg) := by
       have := rsDone_preGrown (GF := GF) (tr := false) d.ino (max m.size (0 + sz.toNat))
-        (max m.size (0 + sz.toNat)) m n (Or.inr rfl)
+        (max m.size (0 + sz.toNat)) m n (interface.nil = interface.nil ∧ m.ZeroPg) (Or.inr rfl)
+        (Nat.le_max_right _ _) (fun h => OsMeta.zeroPg_rsPost_false h.2 _ _ (Nat.le_max_left _ _)
+          (Nat.le_refl _))
       rw [htg'] at this ⊢; exact this
     iapply hp $$ Hd
   icases Hr with (⟨%h0, -⟩ | ⟨-, Hr⟩)
   · exact absurd h0 he
-  ihave Hg : ∃ w0, ⌜m.size ≤ w0 ∧ w0 ≤ sz.toNat⌝ ∗ preGrown (GF := GF) d.ino m w0 $$ [Hr]
+  ihave Hg : ∃ w0, ⌜m.size ≤ w0 ∧ w0 ≤ sz.toNat⌝ ∗ preGrown (GF := GF) d.ino m w0 False $$ [Hr]
   · icases Hr with (Hu | ⟨%w, %hw, Hd⟩)
     · iexists m.size
       isplitr
@@ -69,7 +71,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     · iexists w
       isplitr
       · ipureintro; omega
-      iapply rsDone_preGrown (hsz := Or.inl hw.1) $$ Hd
+      iapply rsDone_preGrown (hsz := Or.inl hw.1) (hle := by omega) (hZ := False.elim) $$ Hd
   icases Hg with ⟨%w0, %hw0, Hg⟩
   rw [show errnoErr e = interface.ok ⟨syscall.Errno.ty, #e⟩ from if_neg he]
   wp_auto
@@ -84,13 +86,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     iapply HΦ
     iframe Hf Ho Hfd
     iexists w0
-    iframe Hg
-    ipureintro; exact ⟨hw0.1, hw0.2, fun h => by cases h⟩
+    isplitr
+    · ipureintro; exact ⟨hw0.1, hw0.2, fun h => by cases h⟩
+    iapply preGrown_mono _ _ _ (fun h => by cases h.1) $$ Hg
   · wp_auto
     by_cases h95 : v' = W64 95
     · subst h95
       wp_auto
-      icases (preGrown_unfold _ _ _).1 $$ Hg with ⟨%m1, %hm1, Hm1, Hz⟩
+      icases (preGrown_unfold _ _ _ _).1 $$ Hg with ⟨%m1, %hm1, Hm1, Hz⟩
       obtain ⟨rfl, hmm, hcz1, hg1⟩ := hm1
       wp_apply wp_trunc f fd name dqf dq d m1 o sz hfd hwr (hmm.trans hmaps) ho0 ho1 (by omega)
           hsz1 hw0.2 $$ [Hf Ho Hfd Hm1] as %err ⟨Hf, Ho, Hfd, %w, %hw, Hg'⟩
@@ -100,14 +103,15 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
       iexists w
       isplitr
       · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2⟩
-      iapply preGrown_trans d.ino m m1 w hw0.1 hw.1 hmm hcz1 hg1 $$ [Hz Hg']
+      iapply preGrown_mono _ _ _ (Z := err = interface.nil ∧ m1.ZfGe) (fun h => ⟨h.1, hg1.1.2.2 h.2.zfGe⟩)
+      iapply preGrown_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1.1 $$ [Hz Hg']
       iframe
     · try rw [decide_eq_false h95]
       try wp_auto
       by_cases h4 : v' = W64 4
       · subst h4
         wp_auto
-        icases (preGrown_unfold _ _ _).1 $$ Hg with ⟨%m1, %hm1, Hm1, Hz⟩
+        icases (preGrown_unfold _ _ _ _).1 $$ Hg with ⟨%m1, %hm1, Hm1, Hz⟩
         obtain ⟨rfl, hmm, hcz1, hg1⟩ := hm1
         wp_apply wp_trunc f fd name dqf dq d m1 o sz hfd hwr (hmm.trans hmaps) ho0 ho1 (by omega)
             hsz1 hw0.2 $$ [Hf Ho Hfd Hm1] as %err ⟨Hf, Ho, Hfd, %w, %hw, Hg'⟩
@@ -117,15 +121,17 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
         iexists w
         isplitr
         · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2⟩
-        iapply preGrown_trans d.ino m m1 w hw0.1 hw.1 hmm hcz1 hg1 $$ [Hz Hg']
+        iapply preGrown_mono _ _ _ (Z := err = interface.nil ∧ m1.ZfGe) (fun h => ⟨h.1, hg1.1.2.2 h.2.zfGe⟩)
+        iapply preGrown_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1.1 $$ [Hz Hg']
         iframe
       · try rw [decide_eq_false h4]
         wp_auto
         iapply HΦ
         iframe Hf Ho Hfd
         iexists w0
-        iframe Hg
-        ipureintro; exact ⟨hw0.1, hw0.2, fun h => by cases h⟩
+        isplitr
+        · ipureintro; exact ⟨hw0.1, hw0.2, fun h => by cases h⟩
+        iapply preGrown_mono _ _ _ (fun h => by cases h.1) $$ Hg
 
 end proof
 

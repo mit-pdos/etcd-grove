@@ -7,7 +7,8 @@ Premises: `preallocExtend`'s (the file unmapped, the offset known, sizes at most
 when extending the file at most `sizeInBytes` long, `nonissues/etcd-fileutil-prealloc-fallback-
 shrinks.md`), `errors`' package initialized. Post: the offset unchanged; extending, the file grown to
 some `w` between its size and `sizeInBytes`, all of it on success (`preGrown`: the new bytes a zero
-run, I4's `osZerosA`); not extending, the file as it was. Proved in
+run, I4's `osZerosA`; on success the zeros known from the page cache on, `OsMeta.ZeroPg`, if they
+were); not extending, the file as it was. Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/Preallocate.lean`. Lean-first.
 -/
 module
@@ -35,7 +36,7 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- What `Preallocate` leaves of the file `i` of `OsMeta` `m`. -/
 def preallocPost (i : Ino) (m : OsMeta) (sz : Nat) (ext : Bool) (err : GoInterface) : IProp GF :=
   if ext then iprop(∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz ∧ (err = interface.nil → w = sz)⌝ ∗
-    preGrown i m w)
+    preGrown i m w (err = interface.nil ∧ m.ZeroPg))
   else osMeta i (DFrac.own 1) m
 
 /-- See the file header. -/
