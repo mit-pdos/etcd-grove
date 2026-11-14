@@ -171,6 +171,34 @@ theorem durInv_readAU (γ : DurGS) (f : DFile) (p : DurPhys) (v : Option GoStrin
   ipureintro
   exact DurPhys.curIs_unique hok.inj hok.curIs hv
 
+/-- `durInv_okAt` with the handle. -/
+theorem durInv_okHandle (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) :
+    ⊢ durInv (L := L) γ f -∗ notCrashed (hC := L.goose_crashGS) -∗ durHandleP (L := L) γ f R p ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ durHandleP (L := L) γ f R p ∗ ⌜∃ s, DurOk f s p⌝ := by
+  iintro #Hinv Hnc Hh
+  unfold durHandleP
+  icases Hh with ⟨%qd, Hp, Hh⟩
+  imod durInv_okAt γ f p $$ Hinv Hnc Hp with ⟨Hnc, Hp, %hok⟩
+  imodintro
+  iframe Hnc
+  isplitl [Hp Hh]
+  · iexists qd; iframe
+  ipureintro; exact hok
+
+/-- `durInv_readAU` with the handle. -/
+theorem durInv_readHandle (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) (v : Option GoString)
+    (Q : DurSt → IProp GF) (hv : p.CurIs f v) :
+    ⊢ durInv (L := L) γ f -∗ notCrashed (hC := L.goose_crashGS) -∗ durHandleP (L := L) γ f R p -∗
+      (AU <{ ∃∃ s : DurSt, durSt γ s }> @ durAuMask, ∅ <{ durSt γ s, COMM Q s }>) ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ durHandleP (L := L) γ f R p ∗ ∃ s, ⌜s.cur = v⌝ ∗ Q s := by
+  iintro #Hinv Hnc Hh Hau
+  unfold durHandleP
+  icases Hh with ⟨%qd, Hp, Hh⟩
+  imod durInv_readAU γ f p v Q hv $$ Hinv Hnc Hp Hau with ⟨Hnc, Hp, HQ⟩
+  imodintro
+  iframe Hnc HQ
+  iexists qd; iframe
+
 end iris
 
 end DurFs

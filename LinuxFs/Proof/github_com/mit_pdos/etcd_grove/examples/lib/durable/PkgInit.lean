@@ -44,6 +44,12 @@ instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable :=
   build_get_is_pkg_init_wf
 
+/-- `durable`'s fact read off its package's: `mu` is a mutex guarding nothing. -/
+theorem mu_of_pkgInit :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable ⊢
+      sync.isMutex (globalAddr github_com.mit_pdos.etcd_grove.examples.lib.durable.mu) iprop(True) :=
+  isPkgInit_access (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable
+
 end github_com.mit_pdos.etcd_grove.examples.lib.durable
 
 end init
