@@ -20,7 +20,7 @@ resize's zero, the stream's byte stamped by a write). Here the decoding over suc
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailCrash
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.WinCrash
 
 @[expose] public section
 
@@ -46,11 +46,16 @@ structure TailShape (X : Nat → w8) (so z0 : Nat) (rz : List Nat) (cs : Nat →
 
 variable {X : Nat → w8} {so z0 : Nat} {rz : List Nat} {cs : Nat → Cands}
 
-/-- The image's values (`tail_decodeV`'s `TailVals`). -/
+/-- The image's values (`tail_decodeV`'s `TailVals`): each byte a candidate, or a zero past
+`max so z0` (a crash's zero at or past `lo`, `WinLo`, or past the zeros known). -/
 theorem TailShape.vals (h : TailShape X so z0 rz cs) {img : List w8}
-    (himg : ∀ b, b < img.length → ∃ s, (img.getD b 0, s) ∈ cs b) : TailVals X so z0 img := by
+    (himg : ∀ b, b < img.length →
+      (∃ s, (img.getD b 0, s) ∈ cs b) ∨ (max so z0 ≤ b ∧ img.getD b 0 = 0)) :
+    TailVals X so z0 img := by
   intro b hb
-  obtain ⟨s, hs⟩ := himg b hb
+  rcases himg b hb with ⟨s, hs⟩ | hz
+  rotate_left
+  · exact .inr hz
   by_cases hbs : b < so
   · rw [h.synced b hbs, List.mem_singleton] at hs
     exact .inl (Prod.mk.inj hs).1
@@ -209,7 +214,8 @@ theorem crashTo_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     (m0 : Nat) (hm0 : segStart lay.cuts lay.cuts.length ≤ m0)
     (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (himg0 : ∀ f, fo g.ino = some f → max lay.so lay.z0 ≤ f.size ∧ f.size ≤ (segBytesX g).length ∧
-      ∀ b, b < f.size → ∃ s, (f.cache b, s) ∈ ((segBytesX g).getD b (0, [])).2)
+      ∀ b, b < f.size → (∃ s, (f.cache b, s) ∈ ((segBytesX g).getD b (0, [])).2) ∨
+        (max lay.so lay.z0 ≤ b ∧ f.cache b = 0))
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
     {rzOf : Ino → List Nat}
     (hT : TailShape (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0) lay.so lay.z0
@@ -234,7 +240,8 @@ theorem crashTo_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   have hRS : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR]; rfl
   rw [hRS] at hT
   generalize hcs : (fun b => ((segBytesX g).getD b (0, [])).2) = cs at hT
-  have himg : ∀ b, b < f.contents.length → ∃ s, (f.contents.getD b 0, s) ∈ cs b := by
+  have himg : ∀ b, b < f.contents.length → (∃ s, (f.contents.getD b 0, s) ∈ cs b) ∨
+      (max lay.so lay.z0 ≤ b ∧ f.contents.getD b 0 = 0) := by
     intro b hb
     rw [contents_length] at hb
     rw [contents_getD f b hb, ← hcs]
@@ -378,6 +385,247 @@ theorem crashTo_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     refine ⟨hpre, fun r len c' => ?_⟩
     have := hrej r len c'
     rwa [← e2] at this
+
+/-- A candidate list's value as of stamp 0 is one of its candidates' values, or zero. -/
+theorem valAt0_casesW (c : Cands) : valAt c 0 = 0 ∨ ∃ s, (valAt c 0, s) ∈ c := by
+  cases h : (c.filter (fun q => decide (q.2 ≤ 0))).getLast? with
+  | none => left; unfold valAt; rw [h]; rfl
+  | some z =>
+    right
+    refine ⟨z.2, ?_⟩
+    have hzm : z ∈ c := (List.mem_filter.1 (List.mem_of_getLast? h)).1
+    unfold valAt
+    rw [h]
+    exact hzm
+
+/-- **The image of a tail `g0` as of its last sync, of its size, is a crash its ghost allows**: below
+`wr` a stamp-0 candidate (`ByteOk`'s head); from `wr` on, in a window, a stamp-0 candidate, else a zero
+candidate or the zero arm past `lo` (`WinHead`); an exact tail's bytes all `ByteOk`. -/
+theorem fileCrashedR_syncImg {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {g0 : SegG} (habs : WalAbsD C Mr d lay ents) (hg0 : lay.segs.getLast? = some g0)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) {fo : Option Fs.OsFile}
+    (hfo : ∀ f, fo = some f → f = syncImg g0.bs g0.bs.length) :
+    FileCrashedR g0.om [(0, DFrac.own (1 : Qp).half, g0.bs)] fo := by
+  intro f' hf'
+  rw [hfo f' hf']
+  have hsz' : (syncImg g0.bs g0.bs.length).size = g0.bs.length := rfl
+  obtain ⟨hm1, -, hm3, hm4, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
+  refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_, fun b c hb _ hb2 => absurd hb2 (by omega)⟩
+  · intro r hr k hk hks
+    rw [List.mem_singleton] at hr; subst hr
+    simp only [Nat.zero_add] at hks ⊢
+    rw [syncImg_cache g0.bs g0.bs.length k (show k < g0.bs.length by omega)]
+    have e : g0.bs.getD k (0, []) = g0.bs[k]'hk := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
+    rw [e]
+    by_cases hx : SegExact g0
+    · obtain ⟨-, -, -, -, hbytes, -⟩ := (habs.last g0 hg0).1 hx
+      exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk)).head0)
+    · have hwin := habs.lastWin g0 hg0
+      by_cases hkw : k < lay.wr
+      · obtain ⟨-, -, -, -, hbytes, -⟩ := hwin
+        exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw).head0)
+      · have hhd := habs.winHead g0 hg0 hx
+        rcases valAt0_casesW (g0.bs[k]'hk).2 with h0 | h0
+        · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
+          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩
+          · exact .inr ⟨by omega, h0⟩
+          · rw [segBytesX_getD_lt hk, e] at hs0
+            exact .inl ⟨s0, by rw [h0]; exact hs0⟩
+        · exact .inl h0
+  · intro z hz b hzb hb
+    have := hzf z hz; omega
+
+/-- **A crash of a tail, its bytes**: below its size each byte a candidate of `segBytesX g` or a zero
+past `max so z0` (at or past `lo`, `WinLo`; past the zeros known), given the size within `segBytesX`. -/
+theorem crashImg_tail {g : SegG} {so z0 : Nat} {f : Fs.OsFile}
+    (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (some f))
+    (hsz : g.om.size = g.bs.length) (hlo : max so z0 ≤ g.om.lo)
+    (hzf : ∀ z, g.om.zf = some z → max so z0 ≤ z) (hhiX : g.om.hi ≤ (segBytesX g).length) :
+    max so z0 ≤ f.size ∧ f.size ≤ (segBytesX g).length ∧
+      ∀ b, b < f.size → (∃ s, (f.cache b, s) ∈ ((segBytesX g).getD b (0, [])).2) ∨
+        (max so z0 ≤ b ∧ f.cache b = 0) := by
+  obtain ⟨-, hflo, hfhi, hrun, hzfc, htc⟩ := hfc f rfl
+  refine ⟨by omega, by omega, fun b hb => ?_⟩
+  by_cases hbg : b < g.bs.length
+  · have := hrun (0, DFrac.own (1 : Qp).half, g.bs) (List.mem_singleton_self _) b hbg
+      (by simp only [Nat.zero_add]; exact hb)
+    simp only [Nat.zero_add] at this
+    rcases this with ⟨s, hs'⟩ | ⟨h1, h2⟩
+    · left; refine ⟨s, ?_⟩
+      rw [segBytesX_getD_lt hbg, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbg,
+        Option.getD_some]
+      exact hs'
+    · right; exact ⟨by omega, h2⟩
+  · have hbX : b < (segBytesX g).length := by omega
+    have hy := segBytesX_getElem?_ge (g := g) (by omega) (List.getElem?_eq_getElem hbX)
+    rcases OsMeta.pc_some hy.2 with ht | ⟨z, hz, hzb, -⟩
+    · rcases htc b _ (by omega) ht hb with ⟨s, hs'⟩ | ⟨h1, h2⟩
+      · left; refine ⟨s, ?_⟩
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbX, Option.getD_some]
+        exact hs'
+      · right; exact ⟨by omega, h2⟩
+    · have := hzf z hz
+      right; exact ⟨by omega, hzfc z hz b hzb hb⟩
+
+/-- **A step on the tail, any window, keeps the crash condition** (W6 log, twenty-third session; the
+`crashOkA_tail` pattern for a tail in a window, before or after): the layouts `lay0` (tail `g0`) and
+`lay` (tail `g`, same inode) differ only in the tail's ghost and the write position; the old condition
+at the tail's image as of its last sync (`fileCrashedR_syncImg`), then `crashTo_tailW` on `lay` with the
+new tail's candidates' shape (`hT`), its least crash size and its zeros known past `max so z0` and its
+`segBytesX` reaching `hi`; no alternative layout holds the tail. -/
+theorem crashOkA_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
+    {lay0 lay : WalLay} {ents0 ents : Ents} {alt : Option WalLay} {cl : List Claim} {n : Nat}
+    {pre : List SegG} {g0 g : SegG}
+    (habs0 : WalAbsD C Mr d lay0 ents0) (habs : WalAbsD C Mr d lay ents)
+    (hB : TailBound C Mr d lay) (hnd : (lay.segs.map (·.ino)).Nodup)
+    (hs0 : lay0.segs = pre ++ [g0]) (hs : lay.segs = pre ++ [g]) (hino : g.ino = g0.ino)
+    (hjr : lay.jr = lay0.jr) (hnm : lay.nm = lay0.nm) (hj : lay.j = lay0.j)
+    (hcuts : lay.cuts = lay0.cuts) (hfirst : lay.first = lay0.first)
+    (hzf0 : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hzf : ∀ z, g.om.zf = some z → max lay.so lay.z0 ≤ z) (hlo : max lay.so lay.z0 ≤ g.om.lo)
+    (hhiX : g.om.hi ≤ (segBytesX g).length)
+    (hT : TailShape (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0) lay.so lay.z0
+      g.om.rz (fun b => ((segBytesX g).getD b (0, [])).2))
+    (halt : ∀ la, alt = some la → ∀ g' ∈ la.segs, g'.ino ≠ g.ino)
+    (hok : CrashOkA C Mr d lay0 alt cl n) : CrashOkA C Mr d lay alt cl n := by
+  intro m' fo hr hf hnmd hw
+  have hgm : g ∈ lay.segs := by rw [hs]; simp
+  have hg : lay.segs.getLast? = some g := by rw [hs]; simp
+  have hg0 : lay0.segs.getLast? = some g0 := by rw [hs0]; simp
+  have hinos : lay.segs.map (·.ino) = lay0.segs.map (·.ino) := by
+    rw [hs, hs0]; simp [hino]
+  have hpre : ∀ g' ∈ pre, g'.ino ≠ g.ino := by
+    intro g' hg' he
+    have hnd' := hnd
+    rw [hs, List.map_append, List.nodup_append] at hnd'
+    exact hnd'.2.2 _ (List.mem_map_of_mem hg') _ (by simp) he
+  have hpreX : ∀ g' ∈ pre, SegExact g' := by
+    intro g' hg'
+    obtain ⟨-, -, -, -, h5⟩ := habs0.metas g' (by rw [hs0]; simp [hg'])
+    rcases h5 with h5 | h5
+    · rw [hg0] at h5; cases h5; exact absurd hino.symm (hpre _ hg')
+    · exact h5
+  let fo0 : Ino → Option Fs.OsFile := fun i =>
+    if i = g.ino then (fo i).map (fun _ => syncImg g0.bs g0.bs.length) else fo i
+  have hfo : ∀ i, i ≠ g.ino → fo0 i = fo i := fun i hi => by simp [fo0, hi]
+  have hfo0g : fo0 g.ino = (fo g.ino).map (fun _ => syncImg g0.bs g0.bs.length) := by simp [fo0]
+  have hfc0 : FileCrashedR g0.om [(0, DFrac.own (1 : Qp).half, g0.bs)] (fo0 g0.ino) := by
+    rw [← hino, hfo0g]
+    refine fileCrashedR_syncImg habs0 hg0 hzf0 (fun f hf' => ?_)
+    obtain ⟨_, -, rfl⟩ := Option.map_eq_some_iff.1 hf'
+    rfl
+  have hf0 : ∀ g' ∈ lay0.segs, FileCrashedR g'.om [(0, DFrac.own (1 : Qp).half, g'.bs)]
+      (fo0 g'.ino) := by
+    intro g' hg'
+    rw [hs0, List.mem_append, List.mem_singleton] at hg'
+    rcases hg' with hg' | rfl
+    · rw [hfo _ (hpre g' hg')]; exact hf g' (by rw [hs]; simp [hg'])
+    · exact hfc0
+  have hn0 : ∀ g' ∈ lay0.segs, g'.ino ∈ walInos (entsOf m' lay0.j) → (fo0 g'.ino).isSome := by
+    intro g' hg' hnd'
+    rw [hs0, List.mem_append, List.mem_singleton] at hg'
+    rcases hg' with hg' | rfl
+    · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) (by rw [hj]; exact hnd')
+    · rw [← hino, hfo0g, Option.isSome_map]; exact hnmd g hgm (by rw [hino, hj]; exact hnd')
+  have hw0 : W1G C (walInos (entsOf m' lay0.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay0)
+      (segRzOf lay0) := by
+    apply w1G_sync
+    intro i bs hbs b hb
+    obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs
+    have hg'' := hg'
+    rw [hs0, List.mem_append, List.mem_singleton] at hg''
+    rcases hg'' with hgp | rfl
+    · have hX := hpreX g' hgp
+      rw [segBytesX_of_hi (Nat.le_of_eq hX.2)]
+      rw [hfo _ (hpre g' hgp)] at hb ⊢
+      obtain ⟨k, hk⟩ := List.getElem?_of_mem hgp
+      have hk' : lay0.segs[k]? = some g' := by
+        rw [hs0, List.getElem?_append_left ((List.getElem?_eq_some_iff.1 hk).1)]; exact hk
+      have hkl : k + 1 < lay0.segs.length := by
+        have := (List.getElem?_eq_some_iff.1 hk).1; rw [hs0]; simp; omega
+      have hint := habs0.intact k g' hkl hk'
+      have hdur : ∀ y ∈ g'.bs, y = durB y.1 := by
+        rw [hint]; intro y hy; obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+      cases hfg : fo g'.ino with
+      | none => simp [imgOf, hfg] at hb
+      | some f' =>
+        have hfc := hf g' (by rw [hs]; simp [hgp])
+        rw [hfg] at hfc
+        have hc := img_durable hfc hdur hX.1 hX.2
+        simp only [imgOf, hfg, Option.map_some, Option.getD_some, hc] at hb ⊢
+        simp only [List.length_map] at hb
+        rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hb,
+          List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb]
+        simp only [Option.map_some, Option.getD_some]
+        rw [hdur _ (List.getElem_mem hb)]
+        exact (valAt_durB _).symm
+    · rw [← hino, hfo0g] at hb ⊢
+      cases hfg : fo g.ino with
+      | none => simp [imgOf, hfg] at hb
+      | some f' =>
+        simp only [imgOf, hfg, Option.map_some, Option.getD_some, syncImg_length] at hb ⊢
+        rw [syncImg_getD _ _ _ hb, segBytesX_getD_lt hb]
+  rcases hok m' fo0 hr hf0 hn0 hw0 with h | ⟨la, hla, h⟩
+  · left
+    have h' := crashTo_congr_lay hjr hnm hj hcuts hfirst hinos h
+    have hsz := (habs.metas g hgm).1
+    refine crashTo_tailW hC habs hB hnd hg d.m habs.lastSynced h' hfo
+      (fun f hf1 => crashImg_tail (by rw [← hf1]; exact hf g hgm) hsz hlo hzf hhiX)
+      (hnmd g hgm) (rzOf := segRzOf lay) ?_ hw
+    rw [segRzOf_of_mem hnd hgm]; exact hT
+  · right
+    exact ⟨la, hla, crashTo_congr_fo (fun g' hg' => hfo _ (halt la hla g' hg')) h⟩
+
+
+/-- **The last segment's candidates have the decoding's shape** (`TailShape`, over `segBytesX`), window
+or not, given F-Z: below `wr` `ByteOk`, from `wr` on `WinShape` (`WinCands`; an exact tail's unsynced
+bytes, `ByteOk.winShape`), nothing past `segBytesX`. -/
+theorem WalAbsD.tailShape {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {g : SegG} (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay)
+    (hg : lay.segs.getLast? = some g) :
+    TailShape (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0) lay.so lay.z0
+      g.om.rz (fun b => ((segBytesX g).getD b (0, [])).2) := by
+  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, htake, -, hWC⟩ := habs.lastWin g hg
+  refine tailShape_win (wr := lay.wr) hso hz0 (fun b hb => ?_) (fun b q hb hq => ?_) htake hZ
+  · have hbl : b < g.bs.length := by omega
+    refine ⟨g.bs[b], decide (b < (segStream C Mr d lay.cuts lay.cuts.length).length),
+      decide (b < lay.wr), ?_, hB b _ (List.getElem?_eq_getElem hbl) hb⟩
+    rw [segBytesX_getD_lt hbl, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl,
+      Option.getD_some]
+  · by_cases hbX : b < (segBytesX g).length
+    · exact hWC.2 b hb hbX q hq
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)] at hq
+      simp at hq
+
+/-- **A crash leaves the last segment no longer than `segBytesX`** (an exact tail's `hi` is its
+length; a window's `WinCands`). -/
+theorem WalAbsD.hiX {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {g : SegG} (habs : WalAbsD C Mr d lay ents) (hg : lay.segs.getLast? = some g) :
+    g.om.hi ≤ (segBytesX g).length :=
+  (habs.lastWin g hg).2.2.2.2.2.2.2.2.1
+
+/-- **A step on the tail keeps the crash condition, from the static relations alone** (`crashOkA_tailW`
+with the new tail's facts from `WalAbsD`: `tailShape`, `winLo_any`, `hiX`): the new tail's zeros known
+from its length on (`hzf`, `MetaOk.zf`'s), F-Z of the new layout. -/
+theorem crashOkA_tailAny {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
+    {lay0 lay : WalLay} {ents0 ents : Ents} {alt : Option WalLay} {cl : List Claim} {n : Nat}
+    {pre : List SegG} {g0 g : SegG}
+    (habs0 : WalAbsD C Mr d lay0 ents0) (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay)
+    (hB : TailBound C Mr d lay) (hnd : (lay.segs.map (·.ino)).Nodup)
+    (hs0 : lay0.segs = pre ++ [g0]) (hs : lay.segs = pre ++ [g]) (hino : g.ino = g0.ino)
+    (hjr : lay.jr = lay0.jr) (hnm : lay.nm = lay0.nm) (hj : lay.j = lay0.j)
+    (hcuts : lay.cuts = lay0.cuts) (hfirst : lay.first = lay0.first)
+    (hzf0 : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
+    (halt : ∀ la, alt = some la → ∀ g' ∈ la.segs, g'.ino ≠ g.ino)
+    (hok : CrashOkA C Mr d lay0 alt cl n) : CrashOkA C Mr d lay alt cl n := by
+  have hg : lay.segs.getLast? = some g := by rw [hs]; simp
+  obtain ⟨hso, -, -, hwo, -, hz0, -⟩ := habs.lastWin g hg
+  exact crashOkA_tailW hC habs0 habs hB hnd hs0 hs hino hjr hnm hj hcuts hfirst hzf0
+    (fun z hz => by have := hzf z hz; omega) (habs.winLo_any g hg) (habs.hiX hg)
+    (habs.tailShape hZ hg) halt hok
+
 
 end crash
 
