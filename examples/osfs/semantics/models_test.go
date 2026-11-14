@@ -12,6 +12,7 @@ package semantics
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -528,4 +529,99 @@ func TestAppendStringsLenLimit(t *testing.T) {
 	if msg != "runtime error: growslice: len out of range" {
 		t.Fatalf("append past 2^44 strings: %q, want growslice's panic", msg)
 	}
+}
+
+// model_os_copy_file_range.go: copy_file_range(2) with NULL offsets copies the source's bytes from
+// its offset to the destination's offset and advances both by the count; 0 at the source's end;
+// EINVAL for overlapping ranges of one file, nothing changed.
+func TestCopyFileRange(t *testing.T) {
+	d := extDir(t)
+	src, err := os.Create(d + "/src")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer src.Close()
+	data := make([]byte, 3*4096+200)
+	for i := range data {
+		data[i] = byte(i % 251)
+	}
+	if _, err := src.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := src.Seek(100, 0); err != nil {
+		t.Fatal(err)
+	}
+	dst, err := os.Create(d + "/dst")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dst.Close()
+	if _, err := dst.Write(fill(50, 'x')); err != nil {
+		t.Fatal(err)
+	}
+	n, err := unix.CopyFileRange(int(src.Fd()), nil, int(dst.Fd()), nil, 1<<20, 0)
+	if err != nil || n != len(data)-100 {
+		t.Fatalf("copy_file_range = (%d, %v), want (%d, nil)", n, err, len(data)-100)
+	}
+	so, _ := src.Seek(0, 1)
+	do, _ := dst.Seek(0, 1)
+	if so != int64(len(data)) || do != int64(50+n) {
+		t.Fatalf("offsets after: src %d dst %d, want %d %d", so, do, len(data), 50+n)
+	}
+	got, err := os.ReadFile(d + "/dst")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got[:50]) != string(fill(50, 'x')) || string(got[50:]) != string(data[100:]) {
+		t.Fatalf("dst's bytes are not x*50 ++ src[100:]")
+	}
+	n, err = unix.CopyFileRange(int(src.Fd()), nil, int(dst.Fd()), nil, 1<<20, 0)
+	if err != nil || n != 0 {
+		t.Fatalf("copy_file_range at the source's end = (%d, %v), want (0, nil)", n, err)
+	}
+	// one file, overlapping ranges
+	offIn, offOut := int64(0), int64(100)
+	n, err = unix.CopyFileRange(int(src.Fd()), &offIn, int(src.Fd()), &offOut, 1000, 0)
+	if err != unix.EINVAL {
+		t.Fatalf("copy_file_range on overlapping ranges = (%d, %v), want EINVAL", n, err)
+	}
+	after, _ := os.ReadFile(d + "/src")
+	if string(after) != string(data) {
+		t.Fatalf("overlapping copy_file_range changed the file")
+	}
+	t.Logf("copy_file_range: %d bytes from offset 100 of %d to offset 50, then 0, then EINVAL",
+		len(data)-100, len(data))
+}
+
+// model_os_copy_file_range.go: io.Copy between two files, nonempty and empty source. Run the test
+// binary under `strace -f -e trace=copy_file_range,read,write,splice,sendfile` with COPY_TRACE=1
+// to see its system calls between the markers; plain, it checks io.Copy's results.
+func TestCopyFileRangeIoCopy(t *testing.T) {
+	d := extDir(t)
+	mark := func(s string) {
+		if os.Getenv("COPY_TRACE") != "" {
+			fmt.Fprintln(os.Stderr, "--- "+s)
+		}
+	}
+	src, _ := os.Create(d + "/src")
+	defer src.Close()
+	src.Write(fill(10000, 'a'))
+	src.Seek(100, 0)
+	dst, _ := os.Create(d + "/dst")
+	defer dst.Close()
+	mark("io.Copy nonempty")
+	n, err := io.Copy(dst, src)
+	if n != 9900 || err != nil {
+		t.Fatalf("io.Copy = (%d, %v), want (9900, nil)", n, err)
+	}
+	empty, _ := os.Create(d + "/empty")
+	defer empty.Close()
+	dst2, _ := os.Create(d + "/dst2")
+	defer dst2.Close()
+	mark("io.Copy empty")
+	n, err = io.Copy(dst2, empty)
+	if n != 0 || err != nil {
+		t.Fatalf("io.Copy from empty = (%d, %v), want (0, nil)", n, err)
+	}
+	mark("done")
 }
