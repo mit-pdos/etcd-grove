@@ -324,3 +324,15 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   replace them.
 - **Decision.** Adopted (the coordinator's decision, W6 ninth-session plan; the user away). **For the
   user's review** with the two trusted axioms `snapEncC_ok`, `pbSnapC_reg` (plan §10).
+
+## 2026-11-14: the WAL's marshaller parameter `Mr` -- a bound on the hard state's encoding
+
+- **Spec.** The WAL specs over `fsExt` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`), their parameter
+  `Mr : WalMarshal` (the client's marshallers of entries, hard states, snapshots).
+- **Defect.** `cut` writes the hard-state record into a new segment's headers and needs
+  `h.md.length + (Mr.encState h.st).length < 2^42` (W2, `wal-cut9`); nothing bounds `Mr.encState`.
+- **Proposed change.** A law of `Mr` (in `walAreaOk` or `WalMarshal.Ok`): `(Mr.encState hs).length < 2^32` for
+  every hard state; `md` is bounded at `Create`. raft's `HardState` encodes as three varints (at most
+  ~33 bytes): discharged at C6 from raftpb's encoder.
+- **Decision.** Adopted (the coordinator, the user away): a client-visible law on a parameter, true of
+  etcd's marshaller.
