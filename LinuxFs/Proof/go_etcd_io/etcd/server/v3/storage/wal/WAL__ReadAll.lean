@@ -28,6 +28,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllNamed
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllSynced
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllOpen
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllZero
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
 public import LinuxFs.Spec.os.File__Fd
@@ -471,6 +472,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           have hwrT : lay.wr = (tailStream Mr d0.H d0.metadata lay.cuts).length := by
             rw [tailStream_eq]; exact hwr
           have hwrS : lay.wr ≤ gl.om.size := by have := hgsz gl hglm; omega
+          -- the length word at `wr` is zero (`ZeroToEnd`'s premise once `wal-tc16` restates it)
+          have _hzw : ∀ j, j < 8 → (gl.bs.getD (lay.wr + j) (0, [])).1 = 0 := by
+            refine readAll_tailZeroWord walCodec (c := 0#32) hglast ?_ ?_
+            · rw [← hgs, ← hR0eq]; exact hR0s
+            · rw [← hgs, ← hR0eq]; exact hR0o
           ihave Htw := walTailW_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay hfdl htm hszb
             $$ [Hfl Hfdl Hoffl Htk Hml Hbyl Htv]
           · iframe
