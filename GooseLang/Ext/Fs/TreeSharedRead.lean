@@ -74,7 +74,7 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   unfold osDirFdS
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
   obtain ⟨df, hdf, hino⟩ := dfdS_lookup hc Hfl
   have hph : PhOkS st j ph df.rd := by have := hc.ph fd _ df Hfl hdf; exact this
   have hnf : st.proc.fds !! fd = none := by
@@ -116,10 +116,10 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
       st' = setDfd st fd { df with rd := rd' } →
       ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS Γdf -∗
-        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph) ==∗
+        gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph) ==∗
         osWorld (L := L) st' Γb Γm Γf Γt h' ∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS (<[fd := (j, ph')]> Γdf) ∗
-        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph') ∗
+        gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph') ∗
         ⌜FsTreeWf st' ∧ TreeCohS st' s0 (<[fd := (j, ph')]> Γdf) Γc Γg ∧ CommitGrows st st' ∧
           st'.fs.roots = st.fs.roots ∧ st'.fs.treeDur = st.fs.treeDur ∧
           st'.fs.metaLog = st.fs.metaLog⌝ := by
@@ -129,7 +129,7 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     have hc' := treeCohS_setDfd (fd := fd) (df' := { df with rd := rd' }) (x := (j, ph')) hc
       hino.symm (hok.congr rfl rfl)
     iintro Hw HAdf Hfd
-    imod gAuth_update _ _ _ _ _ (j, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
+    imod gFdElem_update _ _ _ _ _ (j, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
     imod osWorld_filesSame (st := st) (st' := setDfd st fd { df with rd := rd' })
       (filesSame_setDfd _ _ _) Hr Hfr $$ Hw with Hw
     imodintro

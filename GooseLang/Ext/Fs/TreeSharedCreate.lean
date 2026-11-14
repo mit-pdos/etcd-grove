@@ -352,7 +352,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       | false =>
         injection hew with hew; subst hew
         iintro Hw
-        imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfree.2.1
+        imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfree.2.1 hfree.1
           (file_of_entry hw hen) Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
         imodintro
         iexists Γb, Γm, _, Γt
@@ -401,7 +401,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         iintro Hw
         imod osWorld_created hw k j b s0 $$ Hw with ⟨Hw, Hm⟩
         imod osWorld_addFd (st := createdSt st k j b s0) (filesSame_refl _) (fd := fd)
-          (d := openFd st.fs.nextIno fl) hfree.2.1 ⟨_, file_setFile_eq _ _ _⟩ Hr Hfr
+          (d := openFd st.fs.nextIno fl) hfree.2.1 hfree.1 ⟨_, file_setFile_eq _ _ _⟩ Hr Hfr
           $$ Hw with ⟨Hw, Hfd⟩
         imodintro
         iexists Γb, _, _, Γt
@@ -604,7 +604,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     have hst'' : st' = (st.metaEnd k).setProc { (st.metaEnd k).proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k).proc.fds } := hst
     subst hst''
-    imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfdn (file_of_entry hw hen)
+    imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfdn hfd0 (file_of_entry hw hen)
       Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
     imodintro
     iexists Γb, Γm, <[fd := openFd i fl]> Γf, Γt

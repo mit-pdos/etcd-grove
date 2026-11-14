@@ -1,8 +1,7 @@
 /-
 `wal.Create`'s deferred `f.Close()` after a failed `renameWAL` (W4 of `notes/wal-fsext-plan.md`,
 nineteenth session): the lock file open, or closed by `renameWALUnlock`'s `w.Close()` (`walLockLeft`,
-`renameWALPost`'s error arms); the second close over `os.File.Close.specClosed` (a hypothesis: the
-trusted model is stuck on a closed file). Lean-first.
+`renameWALPost`'s error arms); the second close over `os.File.Close.specClosed`. Lean-first.
 -/
 module
 
@@ -33,11 +32,12 @@ closed by `renameWALUnlock`'s `w.Close()`). -/
 theorem wp_lockedCloseLeft (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_CloseC : os.File.Close.specClosed (GF := GF) (hG := hG)) (lf f : Loc) (fd : w64)
     (name : GoString) (d : OsFd) :
-    {{ osInv (GF := GF) ∗ fileutil.lockedFile lf f ∗ walLockLeft (hG := hG) f fd name d }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ fileutil.lockedFile lf f ∗
+        walLockLeft (hG := hG) f fd name d }}
       (App (Val (lf @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty @!!
         go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err }} := by
-  iintro %Φ ⟨#Hinv, #Hlf, Hl⟩ HΦ
+  iintro %Φ ⟨#Hos, #Hinv, #Hlf, Hl⟩ HΦ
   iunfold walLockLeft at Hl
   iunfold fileutil.lockedFile at Hlf
   iStructNamed Hlf
@@ -48,8 +48,8 @@ theorem wp_lockedCloseLeft (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   · wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd] as %err ⟨-, #Herr⟩
     · iframe; iexact Hinv
     iapply HΦ $$ Herr
-  · wp_apply wp_CloseC f name $$ [Hinv Hf] as %err ⟨-, #Herr⟩
-    · iframe; iexact Hinv
+  · wp_apply wp_CloseC f name $$ [Hos Hinv Hf] as %err ⟨-, #Herr⟩
+    · iframe; iframe #
     iapply HΦ $$ Herr
 
 end proof

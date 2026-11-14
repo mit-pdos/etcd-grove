@@ -728,6 +728,81 @@ theorem gVar_update (a1 a2 b : GMap Loc (Option w8 × Bool) × Nat) :
 
 end wrappers
 
+/-! ### The entries of an fd map: an fd is never negative
+
+The extension's fd predicates (`osFd`, `osDirFd`, `osDirFdS`, `osOutFd`) are such entries: `Open`
+gives a free fd (`FdFree`: `0 ≤ fd.toInt`), and `os.File.Close`'s model tells a closed file (fd -1)
+from an open one. -/
+
+section fdElems
+variable {GF : BundledGFunctors} (hL : OsGS GF)
+variable {V : Type} [Pos.Countable V]
+
+/-- The entry `fd ↦ v` of the fd map `γ`, `fd` not negative. -/
+def gFdElem (γ : GName) (fd : w64) (dq : DFrac) (v : V) : IProp GF :=
+  iprop(⌜0 ≤ fd.toInt⌝ ∗ gElem hL γ fd dq v)
+
+instance gFdElem_timeless (γ : GName) (fd : w64) (dq : DFrac) (v : V) :
+    Timeless (gFdElem hL γ fd dq v) := by
+  unfold gFdElem; infer_instance
+
+theorem gFdElem_nonneg (γ : GName) (fd : w64) (dq : DFrac) (v : V) :
+    gFdElem hL γ fd dq v ⊢ ⌜0 ≤ fd.toInt⌝ := by
+  unfold gFdElem; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem gFdElem_lookup (γ : GName) (m : GMap w64 V) (k : w64) (dq : DFrac) (v : V) :
+    ⊢ gAuth hL γ m -∗ gFdElem hL γ k dq v -∗ ⌜m !! k = some v⌝ := by
+  unfold gFdElem
+  iintro HA ⟨-, H⟩
+  iapply gAuth_lookup $$ HA H
+
+theorem gFdElem_update (γ : GName) (m : GMap w64 V) (k : w64) (v w : V) :
+    ⊢ gAuth hL γ m -∗ gFdElem hL γ k (DFrac.own 1) v ==∗
+      gAuth hL γ (<[k := w]> m) ∗ gFdElem hL γ k (DFrac.own 1) w := by
+  unfold gFdElem
+  iintro HA ⟨%h, H⟩
+  imod gAuth_update _ _ _ _ _ w $$ HA H with ⟨HA, H⟩
+  imodintro
+  iframe HA; iframe H; ipureintro; exact h
+
+theorem gFdElem_insert (γ : GName) (m : GMap w64 V) (k : w64) (v : V) (h0 : 0 ≤ k.toInt)
+    (h : m !! k = none) :
+    ⊢ gAuth hL γ m ==∗ gAuth hL γ (<[k := v]> m) ∗ gFdElem hL γ k (DFrac.own 1) v := by
+  unfold gFdElem
+  iintro HA
+  imod gAuth_insert _ _ _ _ v h $$ HA with ⟨HA, H⟩
+  imodintro
+  iframe HA; iframe H; ipureintro; exact h0
+
+theorem gFdElem_delete (γ : GName) (m : GMap w64 V) (k : w64) (v : V) :
+    ⊢ gAuth hL γ m -∗ gFdElem hL γ k (DFrac.own 1) v ==∗ gAuth hL γ (GMap.delete k m) := by
+  unfold gFdElem
+  iintro HA ⟨-, H⟩
+  iapply gAuth_delete $$ HA H
+
+theorem gFdElem_valid_2 (γ : GName) (k : w64) (dq1 dq2 : DFrac) (v1 v2 : V) :
+    ⊢ gFdElem hL γ k dq1 v1 -∗ gFdElem hL γ k dq2 v2 -∗ ⌜✓ (dq1 • dq2) ∧ v1 = v2⌝ := by
+  unfold gFdElem
+  iintro ⟨-, H1⟩ ⟨-, H2⟩
+  iapply gElem_valid_2 $$ H1 H2
+
+theorem gFdElem_split (γ : GName) (k : w64) (q1 q2 : Qp) (v : V) :
+    gFdElem hL γ k (DFrac.own (q1 + q2)) v ⊣⊢
+      gFdElem hL γ k (DFrac.own q1) v ∗ gFdElem hL γ k (DFrac.own q2) v := by
+  unfold gFdElem
+  constructor
+  · iintro ⟨%h, H⟩
+    icases (gElem_split _ _ _ _ _ _).1 $$ H with ⟨H1, H2⟩
+    isplitl [H1]
+    · iframe H1; ipureintro; exact h
+    · iframe H2; ipureintro; exact h
+  · iintro ⟨⟨%h, H1⟩, ⟨-, H2⟩⟩
+    isplitr
+    · ipureintro; exact h
+    · iapply (gElem_split _ _ _ _ _ _).2; isplitl [H1]; iexact H1; iexact H2
+
+end fdElems
+
 /-! ### Runs of bytes -/
 
 section bytes

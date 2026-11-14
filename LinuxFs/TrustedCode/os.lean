@@ -27,7 +27,8 @@ not modelled: a nil `*File` (but in `Close`, which returns Go's `ErrInvalid`) or
 returns `ErrInvalid` or `EINVAL`), and a closed
 file (`Close` sets `fd` to -1, as Go's `pfd.destroy` sets `Sysfd`; Go then returns `ErrClosed`,
 while the extension is stuck on fd -1, and the methods that answer without it, `Seek`, `Write`,
-`Read` and `Truncate`, panic first: not modelled), including a method racing `Close` (Go's reference count
+`Read` and `Truncate`, panic first: not modelled; but `Close`, which returns Go's `ErrClosed` in a
+`PathError`, 2026-11-14, pending the user's review), including a method racing `Close` (Go's reference count
 makes that safe; in the model it is a race on the inner cell, or an operation on a closed fd).
 Unrelated to the extension: an open file's finalizer (`notes/osfs-ext-plan.md`, D5).
 -/
@@ -277,7 +278,13 @@ directory outside the roots' trees (`os.Open` of a strict ancestor of a root; 20
 user's review) (the model asks which, `FdKind`, a query of the model's state, not a system call). A
 nil `*File` returns `ErrInvalid` without a system call (`file_posix.go`: `if f == nil { return ErrInvalid }`; 2026-11-13, the WAL's `Open` error path
 closes a WAL whose `dirFile` is nil: `notes/wal-fsext-plan.md`, item 6; Go example
-`examples/osfs/semantics/model_os_close_nil.go`). -/
+`examples/osfs/semantics/model_os_close_nil.go`). A closed `*File` (fd -1, which only `Close` sets)
+returns `&PathError{"close", name, ErrClosed}` without a system call, changing nothing
+(`file_unix.go`'s `file.close`: `pfd.Close`'s `increfAndClose` fails once the `poll.FD` is closing,
+`poll.ErrFileClosing`, which `close` maps to `ErrClosed`; 2026-11-14, pending the user's review:
+`wal.Create`'s deferred `f.Close()` after `renameWALUnlock`'s `w.Close()` closed the tail's file,
+`notes/wal-fsext-plan.md`, W4 log, twentieth session; Go example
+`examples/osfs/semantics/model_os_close_twice.go`, measured on configuration C). -/
 noncomputable def File.Close.impl : val :=
   λ: "f" <>,
     if: "f" =⟨go.PointerType model.File⟩ #null then
@@ -285,6 +292,10 @@ noncomputable def File.Close.impl : val :=
     else
     let: "inner" := model.inner "f" in
     let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    if: "fd" =⟨go.int⟩ #(-1 : w64) then
+      model.pathError #"close" (![go.string] (StructFieldRef model.file go!"name" "inner"))
+        (![go.error] (GlobalVarAddr go!"os.ErrClosed" #()))
+    else
     let: "kind" := ExternalOp Fs.fsExt.name "FdKind" "fd" in
     StructFieldRef model.file go!"fd" "inner" <-[go.int] #(-1 : w64) ;;
     let: "e" := if: "kind" =⟨go.uintptr⟩ #(W64 0) then ExternalOp Fs.fsExt.name "Close" "fd"
