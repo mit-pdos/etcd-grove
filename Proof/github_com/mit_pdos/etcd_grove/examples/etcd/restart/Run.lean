@@ -250,6 +250,9 @@ theorem Run.wp_proof
   -- (R2c-4) members 2 and 3 out of compaction mode (their boot bundles'): their stops' scope
   icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₂ with ⟨%hc₂, Hmb₂⟩
   icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₃ with ⟨%hc₃, Hmb₃⟩
+  -- (restart S7.4) the cluster's persistent facts at members 2's and 3's names, for their restarts
+  icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₂ with ⟨#Hrfs₂, Hmb₂⟩
+  icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₃ with ⟨#Hrfs₃, Hmb₃⟩
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
   have hd₂ : go!"http://" ++ peerAddr₂ ∈ dir3 id₁ id₂ id₃ id₂ := by simp [dir3, hn12.symm]

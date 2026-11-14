@@ -73,7 +73,9 @@ abbrev restartCheck.spec : Prop :=
       netAddrFree (GF := GF) caddr ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
-      context.isClosedchanInit ∗ netHttpOk γn id }}
+      context.isClosedchanInit ∗ netHttpOk γn id ∗
+      -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
+      etcdstart.memberRestartFacts γ ρ id }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.restartCheck))
       (Val #cl)) (Val #m)) (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #caddr))

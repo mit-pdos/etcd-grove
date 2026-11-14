@@ -5,7 +5,8 @@ peer address, the listener registered closable (the draft boundary `http.registe
 `go http.Serve(pl, s.RaftHandler())`, `s.Start()` (`etcdstart.wp_Start_built`), and the `member`
 record allocated. As `etcdstart.NewMember`'s and
 `etcdstart.StartMember`'s proofs. Lean-first (no Rocq counterpart). `wp_proofRestart`: the same over
-`BuildServer.specRestart` and the restart's start (`etcdstart.Start_builtR_spec`, R2d).
+`BuildServer.specRestart` and the restart's start (`etcdstart.wp_Start_builtR`; until restart S7.2' the
+hypothesis `Start_builtR_spec`).
 -/
 module
 
@@ -88,7 +89,7 @@ theorem startMember.wp_proof
   subst Hlerr
   wp_auto
   iunfold etcdstart.memberBuilt at Hmb
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  simp only [etcdstart.memberPeerServeRes, Bool.false_eq_true, ↓reduceIte]
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, Hlrd, Hkeep⟩
   -- the listener registered, closable (the draft boundary): it serves the peer address with the
@@ -118,7 +119,7 @@ theorem startMember.wp_proof
     iframe #
     iunfold etcdstart.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
-    simp only [↓reduceIte]
+    simp only [etcdstart.memberPeerServeRes, ↓reduceIte]
     iframe
     iframe #
     ipureintro; exact HE
@@ -140,11 +141,11 @@ theorem startMember.wp_proofRestart
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (hReg : http.registerClosable_spec (GF := GF))
-    (wp_StartR : etcdstart.Start_builtR_spec (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.specRestart (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, #Hnet, Hrr⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, #Hnet, Hrr, #Hrfs⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   icases etcdstart.memberRestartRes_peer _ _ _ _ _ _ _ rfl $$ Hrr with ⟨⟨Haddr, Hpown⟩, Hrr⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -182,11 +183,9 @@ theorem startMember.wp_proofRestart
   subst Hlerr
   wp_auto
   iunfold etcdstart.memberBuiltR at Hmb
-  icases Hmb with ⟨%ai₀, %at₀, %c₀, %x₀, Hmb⟩
-  iunfold etcdstart.memberBuilt at Hmb
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, HServeR, Hrest⟩
+  simp only [etcdstart.memberPeerServeRes, Bool.false_eq_true, ↓reduceIte]
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %at₀, %A, %HE, Hstk, #Hwb, Hsb, Hserve,
+    Hsv, #Hoff, Hlgm, Hrc, #Hnm, Htokp, HServeR, Hrest⟩
   -- the listener registered, closable (the draft boundary): it serves the peer address with the
   -- member's raft protocol
   imod (hReg lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with ⟨%Hli, Hlis, Hcloser⟩
@@ -207,15 +206,14 @@ theorem startMember.wp_proofRestart
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_StartR s ρ' E₀ lg γn id N true)
+  wp_apply (etcdstart.wp_Start_builtR wp_Start s ρ' E₀ lg γn id N true
+      (ReceiptBoundLe.le (GF := GF) (N + 1)) (ReceiptBoundLe.le (GF := GF) (2 ^ 48)))
     $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp Hrest Htok] as Hup
   · iframe Htok
     iframe #
     iunfold etcdstart.memberBuiltR
-    iexists ai₀, at₀, c₀, x₀
-    iunfold etcdstart.memberBuilt
-    iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
-    simp only [↓reduceIte]
+    iexists γA, ci, TM, E, γrn, b, cfg, γk, τ, at₀, A
+    simp only [etcdstart.memberPeerServeRes, ↓reduceIte]
     iframe
     iframe #
     ipureintro; exact HE

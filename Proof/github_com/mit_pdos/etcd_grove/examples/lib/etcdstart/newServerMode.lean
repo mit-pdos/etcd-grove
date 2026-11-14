@@ -141,7 +141,7 @@ theorem newServerMode.wp_proof
     iexists _
     iframe Hmf Hfgc
   ihave #Hlr : srvLeaseRd srv E lm $$ []
-  · iunfold srvLeaseRd; iexists _; iexact Hlsrv
+  · iapply srvLeaseRd_of_srvInv srv E lm _ $$ Hlsrv
   -- (the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part, at the peers
   ihave #Httl' : leaseTTLRowR srv ps $$ []
   · rw [← hvs]; iexact Httl
@@ -153,7 +153,7 @@ theorem newServerMode.wp_proof
   iframe Htok Httl' Hddir
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, _, γk, τ
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  simp only [etcdstart.memberPeerServeRes, Bool.false_eq_true, ↓reduceIte]
   -- (per-type stage B2) the raw stocks framed explicitly (`srvServeStock`)
   isplitr
   rotate_left

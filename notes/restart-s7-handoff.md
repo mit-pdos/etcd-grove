@@ -15,14 +15,31 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   index 15 (19/20; 1/20 at 14 = the last entry), commit 15, no snapshot sent.
 - **S7.1 (CP-b):** `Scratch/S7Probe.lean` (untracked; probes P1-P4, checked) and the report.
 
-## Next, in order (after etcd-grove-81's decisions on the report)
-1. S7.2 (P3): `memberBuiltR`'s body in `specR`'s post shape; `wp_Start_builtR` from `Start.spec` (copy of
-   `wp_Start_built`, `srvBuiltR_C`, `srvStop.slot_intro`); delete `Start_builtR_spec`.
-2. S7.4 (P4-a): `BuildServer.specRestart`'s precondition gains the persistent part of `memberBoot` at the stopped
-   names; its proof (allocate the per-incarnation names, `idIncarnation_alloc`).
-3. S7.3 (P2-a): the raft law, then `srvRestartRows_single`.
-4. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
-   theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then (not yet: no proof).
+- **Landed** S7.0 + notes: `lean` `19cd2cb540` (2026-11-14).
+- **S7.2' (P3), done** (`7560eecea4`): `memberBuiltR` in `NewServer.specR`'s post shape; `wp_Start_builtR`
+  proved from `Start.spec`; `Start_builtR_spec` deleted (restart3's `startMember.wp_proofRestart` uses
+  `wp_Start_builtR`). Restarted-lessor check: `srvLeaseRd` in the mode `none` also accepts `lease.srvInvAt`
+  at the recovered snapshot (laws `srvLeaseRd_of_srvInv`, `_of_srvInvAt`, `_srvInv`).
+- **P4-a statement, done** (same commit): `memberRestartFacts` in `BuildServer.specRestart`'s precondition,
+  `memberBoot_restartFacts`; restart3's draft `startMember.specRestart`/`restartCheck.spec` carry it.
+  `BuildServer.specRestart`'s proof is S7.4, not started.
+- **P2-a**: Go check done, law designed (`notes/restart-s7-p2a.md`), not yet written.
+
+- **srvLeaseRd consumer check** (etcd-grove-81's condition on the change, 2026-11-14):
+  `etc/importers.py --uses srvLeaseRd` lists `etcdstart.{Defs,Restart,Served,ServedLease,newServerMode}`;
+  with the laws' users (`srvLeaseRd_lessorRd`, `srvLeaseRd_srvInv`, `lease.srvInv_first`): `Served` passes it
+  through (`memberUp_served`); `newServerMode` and `Restart` build it; `ServedLease`'s mode-`none` branch takes
+  only the reader side (`srvLeaseRd_lessorRd`), its `mono`/`revocable` branches go through
+  `srvLeaseRd_srvInv` (`m ≠ none`, the empty start); the lease-expiry example (`revocable`) reads the empty
+  first snapshot through `srvLeaseRd_srvInv` then `lease.srvInv_first`. **No mode-`none` consumer relies on the
+  empty start.**
+
+## Next, in order
+1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
+   for etcd-grove-81's review.
+2. S7.4: `BuildServer.specRestart`'s proof (allocate the per-incarnation names, `idIncarnation_alloc`).
+3. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
+   theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then.
 
 ## Pitfalls
 - Run the Go test once per process (`go test -c`, then the binary per run): Run leaves the restarted member

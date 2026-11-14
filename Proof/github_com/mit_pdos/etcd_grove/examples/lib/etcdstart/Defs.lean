@@ -282,9 +282,15 @@ closed lease example, 2026-11-02, `notes/lease-ex-plan.md`): (the lease-expiry p
 2026-11-04, the user's (a)) `NewServer`'s `lease.srvInv` at `m`, at some auth mode; until then its
 reader side only (`srvLessorRd`, `lessorRdPool`), which the served lease reads take
 (`raftLeaseRead_server`, `srvLeaseRd_lessorRd`), and which the monotone mode's grant takes whole
-(`v3rpc.lessorGrantOkL_server`). -/
+(`v3rpc.lessorGrantOkL_server`). (Restart S7.2', 2026-11-14, the restarted-lessor check of
+`notes/restart-s7-probe.md`, P3) Or, in the mode `none` only, the lessor at any first snapshot
+(`lease.srvInvAt`): a restarted member's `NewLessor` recovers the image's leases
+(`NewServer.specR`'s post), and the mode `none`'s consumers take only the reader side; the modes that
+read the first snapshot (`lease.srvInv_first`, the lease-expiry example's `revocable`) keep a first
+start's empty one. -/
 def srvLeaseRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) : IProp GF :=
-  iprop(∃ on : Bool, lease.srvInv on s E m)
+  iprop(∃ on : Bool, lease.srvInv on s E m ∨
+    (⌜m = .none⌝ ∗ ∃ σ₀ : lease.LSnap, lease.srvInvAt on s E m σ₀))
 
 instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     Persistent (srvLeaseRd (GF := GF) s E m) := by
@@ -295,8 +301,47 @@ theorem srvLeaseRd_lessorRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) :
     srvLeaseRd (GF := GF) s E m ⊢
       srvLessorRd s (mvcc.api.mvccLeases E.γ) ∗ lease.lessorRdPool (mvcc.api.mvccLeases E.γ) := by
   unfold srvLeaseRd
-  iintro ⟨%on, #H⟩
-  iapply lease.srvInv_lessorRd on s E m $$ H
+  iintro ⟨%on, #H | ⟨-, %σ₀, #H⟩⟩
+  · iapply lease.srvInv_lessorRd on s E m $$ H
+  · iapply lease.srvInvAt_lessorRd on s E m σ₀ $$ H
+
+/-- **`srvLeaseRd` from a first start's lessor** (`NewServer.spec`'s `lease.srvInv`). -/
+theorem srvLeaseRd_of_srvInv (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) (on : Bool) :
+    lease.srvInv on s E m ⊢ srvLeaseRd (GF := GF) s E m := by
+  unfold srvLeaseRd
+  iintro #H
+  iexists on
+  ileft
+  iexact H
+
+/-- **`srvLeaseRd` from a restarted lessor, in the mode `none`** (`NewServer.specR`'s
+`lease.srvInvAt` at the recovered snapshot). -/
+theorem srvLeaseRd_of_srvInvAt (s : Loc) (E : apply.AEnv GF) (on : Bool) (σ₀ : lease.LSnap) :
+    lease.srvInvAt on s E .none σ₀ ⊢ srvLeaseRd (GF := GF) s E .none := by
+  unfold srvLeaseRd
+  iintro #H
+  iexists on
+  iright
+  isplitr
+  · ipureintro; rfl
+  iexists σ₀
+  iexact H
+
+/-- **A lease mode other than `none` reads a first start's lessor** (the lease-expiry example's
+`lease.srvInv_first`). -/
+theorem srvLeaseRd_srvInv (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) (hm : m ≠ .none) :
+    srvLeaseRd (GF := GF) s E m ⊢ ∃ on : Bool, lease.srvInv on s E m := by
+  unfold srvLeaseRd
+  iintro ⟨%on, #H | ⟨%h, -⟩⟩
+  · iexists on; iexact H
+  · exact absurd h hm
+
+/-- **What `http.Serve`'s request goroutines borrow until the peer address is served** (`served`):
+nothing once it is, else `http.httpProcSlots` of the transport's serving resources (`srvServeRes`).
+Named (restart S7.2', 2026-11-14) so that `memberBuilt` and a restart's `memberBuiltR` share one
+count (`etc/bounds-check.py`). -/
+def memberPeerServeRes (γn : NetNames GF) (τ : SrvTr GF) (served : Bool) : IProp GF :=
+  if served then iprop(True) else iprop([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ)
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
@@ -332,7 +377,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
-    (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+    memberPeerServeRes γn τ served ∗
     srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the

@@ -149,8 +149,7 @@ theorem Main.wp_proof
   -- the lessor's facts the argument uses: its reader invariant and its empty first snapshot, and
   -- the lease-TTL row of the first start
   ihave #HLR' := HLR
-  iunfold etcdstart.srvLeaseRd at HLR'
-  icases HLR' with ⟨%on, #Hsi⟩
+  icases etcdstart.srvLeaseRd_srvInv srv E .revocable (by decide) $$ HLR' with ⟨%on, #Hsi⟩
   ihave #Hfirst := lease.srvInv_first on srv E .revocable $$ Hsi
   ihave #Hlrd := lease.srvInv_lessorRd on srv E .revocable $$ Hsi
   icases Hlrd with ⟨#Hslr, -⟩
