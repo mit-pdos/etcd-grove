@@ -1247,6 +1247,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   sequence `first + k`, the invariant holding `⧖ |lay.cuts|` per WAL (deposited by `cut` after a counted step), or `⧖
   |d.H|` (deposited at `Save`'s commit; a crash keeps a prefix). No statement of `walDirH` changes. `ReadAll`'s `hsq`
   stays a marked `sorry` until it is made.
+  **2026-11-14 (`wal-readall28`): made, the alternative** (`⧖` of every history's length in the invariant's ghost
+  state, `walStepsLb`; `WalAbsD.seqName`; `notes/bounds-plan.md`, "Made"). No client-visible statement changed; the
+  `sorry` is gone.
 
 ## 2026-11-14: the resize supplies' `P` (internal, the part's) -- a growth's supply cannot bound the crash size
 
@@ -1316,3 +1319,63 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (`restartRead`) uses `Repair`'s token only on `true` (the retried `Open`).
 - **Decision.** Accepted (the coordinator, under plan §6 Q6, 2026-11-14: option (b) of the twelfth session's
   finding); applied by `wal-repair24` (the W7-W12 log, thirteenth session).
+
+## 2026-11-14: `wal.WAL.sync.specC` (internal, the part's) -- the error arm keeps the lock token; `WAL.Close.specU`
+
+- **Spec.** `WAL.sync.specC`'s error arm `⌜err ≠ nil⌝` (the handle and the lock token lost).
+- **Defect.** `Create`'s cleanup (`cleanupWAL` after a committed rename whose parent fsync failed) runs `w.Close()`;
+  when its `sync` fails, `Close` returns before unlocking, and `Create` must still merge `nm.tmp`'s claim back to
+  the area (`create_areaBack`, which needs a token excluding the free one): `walLockedTok`, which the failed
+  `sync` still holds (`walOpenW`: its flush failure leaves it, the fdatasync returns the pending-cut flag).
+- **Evidence.** `cleanupWAL`'s design (W4 log, twenty-fourth session, (b)); `wal-create23`.
+- **Change (made, `wal-create23`).** `sync.wp_core`'s error arm returns `walOpenW w dir`; `specC`'s error arm
+  `⌜err ≠ nil⌝ ∗ walLockedTok` (`walOpenW_lockedTok`); `sync.spec`/`specCut` unchanged (they drop it). New:
+  `WAL.Close.specU` (the cleanup's `Close`: over `walOpenWFU`, no update, the commit-free put-back
+  `walCloseLawU`), post `(walUnlockedTok ∗ osCallPerm 1) ∨ (⌜err ≠ nil⌝ ∗ walLockedTok)` (the left arm whatever
+  `err`: the directory's close failed after everything else).
+- *Obligation, not made*: `Create`'s deferred `f.Close()` after the cleanup needs the segment's lock file: closed
+  (`os.ownFile f (-1)`) when `Close` succeeded, open when its `sync` failed. Both need the handle's tail lock to be
+  `Create`'s `f` (`walOpenWFU` hides it: a parameter `lt`, from a copy of `walHandleIn` with `lt` free), and the
+  failed arm needs the tail file back from `sync`'s error arms (through `wp_tailWriteAtW`, `wp_tailWriteW`,
+  `wal.tailWriterW`'s `B`, `flush`), and `renameWALPost`'s arm 2 must return `walLockLeft f …` (the retry's
+  `w.Close()` closed it, or its `sync` failed and left it open).
+- **Decision.** Made (internal).
+
+## 2026-11-14: `time.Time.Format.spec` (trusted, an axiom) -- its result unconstrained; `cleanupWAL`'s rename
+
+- **Spec.** `time.Time.Format.spec` (`Spec/time/Time__Format.lean`, axiom `Proof/time/Time__Format.lean`): post `True`.
+- **Defect.** `cleanupWAL` renames the WAL to `fmt.Sprintf("%s.broken.%v", w.dir, time.Now().Format("20060102.150405.999999"))`;
+  with nothing known of the timestamp the target may hold `/` (a path under some other directory) or be any length,
+  and no `os.Rename` spec (nor ownership) covers an arbitrary target.
+- **Evidence.** `cleanupWAL`'s proof (`wal-create23`; W4 log, twenty-fifth session).
+- **Proposed change.** A spec of `Format` for that layout: the result's characters are digits and `.`, its length at
+  most 22 (Go's layout: `yyyymmdd.hhmmss` and a fraction of up to six digits, trailing zeros and a bare `.` dropped).
+  Until then `cleanupWAL`'s proof takes it as a callee hypothesis. Separately an `os.Rename` spec over `fsExt` for a
+  target name past 255 bytes (`ENAMETOOLONG`, nothing changed).
+- **Decision.** Pending the user (a trust-boundary change).
+## 2026-11-14: `wal.ValidSnapshotEntries.spec` (the part's, W8) -- restated over `fsExt`
+
+- **Spec.** The main tree's axiom `Spec/.../wal/ValidSnapshotEntries.lean` (`walUnlockedTok` framed, the AU over
+  `walDirIs` unchanged, success `walSnapsAt ps (walValidSnaps (d.H.map toM) d.cut)`), restated over `fsExt`:
+  `LinuxFs/Spec/.../wal/ValidSnapshotEntries.lean`.
+- **Defect.** None of the main tree's statement: only plan §3's binders change (`walAreaOk walCodec Mr`, the
+  area's spine `osPathS R r qp jr` and `walAreaRes jr` framed, `osCallPerm 1` framed, the update at
+  `walAuMask`; premises `InArea r dir nm`, `NameOk nm`, `cleanAbsPath r`, `dir.length < 2^59`), as `Repair`'s
+  and `OpenForRead`'s, which read the same directory the same way.
+- **Evidence.** `Repair.spec`, `OpenForRead.spec` (the same binders); S/wal.go:698-791.
+- **Change (made, `wal-vsnap1`).** The restated spec; the update commits unchanged where the proof pins the
+  segments (before the retry loop: every attempt reads the same pinned files, so the retry needs no second
+  commit).
+- **Decision.** Made (the restatement plan §3 prescribes).
+
+## 2026-11-14: `decoder.Decode.spec` (the part's) -- no `errors.Is(err, io.ErrUnexpectedEOF)` answer on an I/O error
+
+- **Spec.** `decPost`'s I/O arm (`⌜IoE err⌝`, `DecDefs.lean`) and `decAns` (only `errors.Is(err, io.EOF)`).
+- **Defect.** Too weak for read mode's callers: `validSnapshotEntries` (W8) and `ReadAll` in read mode accept
+  `errors.Is(err, io.ErrUnexpectedEOF)` as the end; on an `IoE` error the proof knows no answer, so a `true` would
+  make a partial read a success. In Go the readers' errors are `*PathError`s of an errno, for which it is `false`.
+- **Evidence.** S/wal.go:772-776 (VSE's exit test); `ReadBridge.lean` (the readers' errors are `errnoPathErr`).
+- **Proposed change.** Carry the `io.ErrUnexpectedEOF` answer as the `io.EOF` one: `decRdE` and `decAns` gain
+  `isEofAns e ueof` (with `e ≠ ueof` for an `IoE` error, as `¬ IoE eof`), `walDecFiles_mk` proves it from an
+  `errors.IsPathErrnoEof`-style spec for `ueof`.
+- **Decision.** Pending (internal; `validSnapshotEntries.specPinned` stays a hypothesis of VSE until it is made).

@@ -367,7 +367,7 @@ needs no goroutines and no `T > 2 ^ 30` for `Begin_kv`: **`bbolt.DB.Begin_kv` is
 `backend.Snapshot` is Stuck on the Go side (a live goroutine per snapshot, about 4 TiB at `2 ^ 30`). The
 proposed fix is `bbolt-spec-decisions.md`'s D1, a `threadTok` per read transaction and per snapshot.
 
-## The WAL's segment sequence: a step-counter bound owned by the WAL invariant (2026-11-14, `wal-readall27`; designed, not made)
+## The WAL's segment sequence: a step-counter bound owned by the WAL invariant (2026-11-14, `wal-readall27`; made in `wal-readall28`, the alternative)
 
 `walDirH` (the part's WAL handle, `LinuxFs/Proof/.../storage/wal/Handle.lean`) says the tail's name is
 `walFileName sq ix` with `sq < 2^63 + k`, `k` the handle's cuts (`WalHS.pc`, one exclusive receipt `⧗` each,
@@ -390,6 +390,29 @@ bounds (ledger 2026-11-14, "`walDirH`'s sequence bound").
   `absDiskInitOk`). (4) `ReadAll` reads its WAL's `⧖ |cuts|` at its give-back look: `sq = |cuts| <
   receiptBound ≤ 2^62 < 2^63`. No client-visible statement changes; `receiptBound` stays inside the WAL's
   owner files (`walAreaOk`).
-- **Status**: not made in `wal-readall27` (it touches `WalAbsD`, 230 importing modules, `cut`'s rename commit
-  and proof, the tail steps' `walNamesRes_insert`, and the crash path); `ReadAll`'s `walOpenWF` keeps it as
-  one marked `sorry` (`hsq`).
+- **Status**: not made in `wal-readall27`; made in `wal-readall28` as the alternative below.
+- **Made (`wal-readall28`), the alternative: the owner protocol.** One receipt for all WALs, over their
+  histories rather than their cuts (a crash keeps a prefix of each history, `walImg_length_le`, so the crash
+  step is pure, and `cut` is untouched but for the names):
+  - *The owner*: the WAL invariant's ghost state, `walGhost s` (`Ghost.lean`), holds `walStepsLb s := ∃ n, ⧖ n
+    ∗ ⌜WalsStepped s n⌝` (every WAL's `|d.H| ≤ n`). Every step changing `s` keeps it: `walGhost_upd`/`_upd_lag`
+    take `∀ n, WalsStepped s n → WalsStepped s' n` (`Create`'s fresh WAL has `H = []`; `unl`, `named`, `m`
+    keep `H`: `WalsStepped.insert`/`.upd`); `walGhost_updR` takes a receipt `⧖ n'` and keeps `max n n'`
+    (`preceipt_max`).
+  - *The appends* (`Save`, `SaveSnapshot`: the only steps that lengthen a history): a look at the invariant
+    through the handle's tail record gives `⧖ |H|` (`walHandleIn_steps`, `walTail_steps`, `Steps.lean`); the
+    resolution of the deferred `w.mu.Unlock` right after `w.mu.Lock()` is taken with `wp_raise_receipt`, giving `⧖ (|H| +
+    1)`; the commit right after it (`walHandleIn_append`/`walTail_append`/`walInvBody_append`, each now taking `⧖
+    (|H| + 1)`) deposits it (`walGhost_updR`). No client-visible statement changes: the receipt is read and
+    deposited inside the handle's proofs (`Save.spec`/`SaveSnapshot.spec`, `walOpenWF` as before).
+  - *The crash*: `walInv_crash` reads `walStepsLb s` off the old ghost state, carries it to the crashed state
+    (`walsStepped_crash`) and gives it to `walGhost_init`, which now takes it (so `walStart`'s ghost state, and
+    `walInv_alloc`'s invariant, have it; `walInv_alloc`'s statement is unchanged). A run's first generation
+    gives `walGhost_init` the bound of a state with no WAL: `preceipt_zero`.
+  - *The names*: `WalAbsD.seqName` (segment `k` named `walFileName (first + k) _`: `Create`'s `0`, `cut`'s the old
+    tail's plus one, `cutLay_abs`'s new `hsq` from `walDirH`'s name, equal modulo `2^64` by `walFileName_succ_eq`;
+    a crash's `first + q`). `WalAbsD.tailSeq`: the tail's sequence is `|cuts| ≤ |H|` (`cuts_le`: increasing
+    positive cut positions).
+  - *The consumer*: `ReadAll`'s give-back look reads `⧖ |H|` (`walTail_steps`): `sq = |cuts| ≤ |H| <
+    receiptBound ≤ 2^62` (`walAreaOk`), `walDirH`'s `sq < 2^63 + 0`. The `hsq` `sorry` is gone.
+  - `etc/bounds-check.py --check`: ok, 330 (baseline 330): no counted kind moved.

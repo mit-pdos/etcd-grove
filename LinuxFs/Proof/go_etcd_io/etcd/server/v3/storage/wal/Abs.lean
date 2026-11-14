@@ -512,12 +512,55 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   record (`cut.spec`'s `0 < |H|`), and a crash keeps the cuts. `ReadAll` from a cut file reads past a
   nonempty prefix (`readAll_success`). -/
   cutPos : ∀ b ∈ lay.cuts, 0 < b
+  /-- The sequence numbers (`notes/bounds-plan.md`, "The WAL's segment sequence"): segment `k` is named
+  with sequence `lay.first + k` (`Create` names its segment `0`, `cut` `w.seq() + 1`, a crash drops a
+  prefix and raises `first` as much); so the last segment's is `|lay.cuts|` (`cuts`), at most the
+  history's length (`cutPos`), which the invariant's step bound bounds (`walStepsLb`). -/
+  seqName : ∀ k (g : SegG), lay.segs[k]? = some g → ∃ ix : Nat, g.name = walFileName (lay.first + k) ix
 
 /-- **The last segment's facts, no resize window open on it.** -/
 theorem WalAbsD.lastEx {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (h : WalAbsD C Mr d lay ents) (hex : TailExact lay) (g : SegG) (hg : lay.segs.getLast? = some g) :
     TailLast C Mr d lay g :=
   (h.last g hg).1 (hex g hg)
+
+/-- A strictly increasing list of numbers in `(m, N]` has at most `N - m` elements. -/
+theorem length_le_of_pairwise_lt : ∀ {l : List Nat} {m N : Nat}, m ≤ N → l.Pairwise (· < ·) →
+    (∀ b ∈ l, m < b ∧ b ≤ N) → l.length + m ≤ N
+  | [], _, _, hmN, _, _ => by simp; omega
+  | a :: t, m, N, _, hp, hb => by
+    have ha := hb a (List.mem_cons_self ..)
+    have ih := length_le_of_pairwise_lt (m := a) (N := N) ha.2 (List.pairwise_cons.1 hp).2
+      (fun b hbt => ⟨(List.pairwise_cons.1 hp).1 b hbt, (hb b (List.mem_cons_of_mem _ hbt)).2⟩)
+    simp only [List.length_cons]
+    omega
+
+/-- **The cuts are at most the history's length** (positive, increasing cut positions). -/
+theorem WalAbsD.cuts_le {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) : lay.cuts.length ≤ d.H.length := by
+  have := length_le_of_pairwise_lt (m := 0) (N := d.H.length) (Nat.zero_le _) h.cuts.2.1 (fun b hb => by
+    refine ⟨h.cutPos b hb, ?_⟩
+    rcases h.cuts.1 b hb with h0 | ⟨hh, es, hb', -⟩
+    · omega
+    · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
+      · simp only [histM, List.length_map] at h1; omega
+      · rw [List.getElem?_eq_none h1] at hb'; cases hb')
+  omega
+
+/-- **The last segment's sequence number is the number of cuts** (`seqName`), at most the history's
+length. -/
+theorem WalAbsD.tailSeq {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) :
+    (∃ ix, g.name = walFileName lay.cuts.length ix) ∧ lay.cuts.length ≤ d.H.length := by
+  refine ⟨?_, h.cuts_le⟩
+  have hne : lay.segs ≠ [] := h.nonempty
+  have hk : lay.segs[lay.segs.length - 1]? = some g := by
+    rw [List.getLast?_eq_getElem?] at hg; exact hg
+  obtain ⟨ix, hix⟩ := h.seqName _ g hk
+  refine ⟨ix, ?_⟩
+  have hl := h.cuts.2.2
+  have hpos : 0 < lay.segs.length := List.length_pos_iff.2 hne
+  rw [hix]; congr 1; omega
 
 /-- **The last segment's facts below `wr`**, a resize window open on it or not. -/
 theorem WalAbsD.lastWin {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}

@@ -638,7 +638,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
     (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
     (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
-    (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ hbtw hcurbt hbs0 hm0x
+    (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ ⟨sq, ix, hnm0, rfl⟩ hbtw hcurbt hbs0 hm0x
     rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
   · iunfold walCutP
     iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed

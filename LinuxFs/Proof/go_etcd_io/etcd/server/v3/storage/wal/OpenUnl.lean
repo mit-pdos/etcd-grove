@@ -34,7 +34,7 @@ def unlSt (s : AbsDiskState) (dir : GoString) (p : Nat) : AbsDiskState :=
 theorem walAbsD_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (u : Nat) (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr { d with unl := u } lay ents :=
   ⟨h.names, h.cuts, h.nameBound, h.cut, h.metas, h.intact, h.last, h.synced, h.lastSynced, h.fit,
-    h.tailStop, h.nonempty, h.cutPos⟩
+    h.tailStop, h.nonempty, h.cutPos, h.seqName⟩
 
 theorem crashOkA_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {alt : Option WalLay} {cl : List Claim} {n : Nat} (u : Nat) (h : CrashOkA C Mr d lay alt cl n) :
@@ -166,6 +166,7 @@ theorem walInvBody_unl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, %Hbd⟩
   imod walGhost_upd (W := W) s (unlSt s dir p) M (absLe_unlSt s dir p) (walKeysInArea_upd s dir _)
+    (fun _ hn => hn.upd (fun _ => rfl))
     $$ Hg HM with ⟨%hM, Hg, HM, #Hp⟩
   ihave Htl := walTailsRes_unl (W := W) C Mr s Ls F dir p $$ Htl
   imodintro

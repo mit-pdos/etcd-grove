@@ -2561,3 +2561,15 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   landed), pending user review: goose translates all six unchanged (both assertions, the loop); full Perennial
   `lake build` passes. Regenerated with go1.26.10, keeping only `io`'s output (the other packages' regeneration differs
   from the committed output under every local toolchain).
+
+## 2026-11-14: `Sprintf`'s `%v` of a string (the WAL's `cleanupWAL`, branch `wal-create24`)
+
+- **Missing.** Perennial's `Sprintf` model (`SprintfOut`, `Perennial/Proof/fmt/Base.lean`) formats `%s` of a string
+  and `%v` of an integer; `%v` of a string falls to `other` (the rest of the output arbitrary). Go prints `%v` of a
+  string as `%s` (`fmt/print.go`, `printArg`'s `case string`, `fmtString`'s `case 'v'` without `#`). The WAL's
+  `cleanupWAL` names its target `Sprintf("%s.broken.%v", w.dir, time.Now().Format(...))`.
+- **Workaround here.** `fmt.SprintfBroken.spec` (`LinuxFs/Spec/fmt/SprintfBroken.lean`), a hypothesis of
+  `cleanupWAL`'s proof, pending the user; no axiom.
+- **Proposed.** `SimpleDirective`/`SprintfOut`: a constructor for `%v` of an interface holding a string, giving the
+  string, as `str` does for `%s` (and the trusted `Sprintf` model's verb table to match). General: every `%v` of a
+  string (error messages, names).
