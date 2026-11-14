@@ -65,7 +65,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) P Mr := by
   intro R jr r w dir Q
   wp_start as ⟨#Harea, Hw, Hpw, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
   icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, -⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
