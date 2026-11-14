@@ -6,7 +6,7 @@
 update of mask `⊤` (`wp_notCrashed_acc` before any step of the call): the handle's history is
 `H ++ [o]` with `o`'s records not yet encoded (`rest := |opDs o|`); nothing else of it moves (the
 encoder's CRC and the stream split are the same: the records encoded so far are the same, `o`'s come
-after them). The index facts of the new history are the caller's (`hidx`; for a `Save`,
+after them). The index facts of the new history follow from the old ones (`hidx`; for a `Save`,
 `saveOp_idx`); `o`'s records must fit a frame whatever the CRC (`hfit`; the WAL's do, the static
 relation's `fit`). Also out: the client's `Q d` (`d.H` the
 handle's history), `walLenLb` at the new length, the cuts' facts (`cut.spec`'s premises).
@@ -15,6 +15,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Append
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdrStream
 import all LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 
 @[expose] public section
@@ -80,6 +81,42 @@ theorem saveOp_idx (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (hs : HardStateM
     simpa [walLastIdx, List.foldl_append] using hH
   · simpa [walMaxSnapIdx, List.foldl_append] using hS
 
+/-- **Records of small types and data below `2^40` bytes fit a frame**, whatever the CRC. -/
+theorem recsFit_chainRecs_small (c : w32) (ds : List (w64 × List w8))
+    (h : ∀ p ∈ ds, uint.nat p.1 < 2 ^ 8 ∧ p.2.length < 2 ^ 40) :
+    RecsFit walCodec (chainRecs walCodec c ds) := by
+  induction ds generalizing c with
+  | nil => intro r hr; simp [chainRecs] at hr
+  | cons p ds ih =>
+    obtain ⟨t, d⟩ := p
+    intro r hr
+    simp only [chainRecs, List.mem_cons] at hr
+    rcases hr with rfl | hr
+    · obtain ⟨ht, hd⟩ := h (t, d) List.mem_cons_self
+      simp only at ht hd
+      have := recSize_le t (walCodec.crc32c c d) d ht
+      show (walRecEnc _).length < 2 ^ 56
+      rw [walRecEnc, recEnc_length]; omega
+    · exact ih _ (fun q hq => h q (List.mem_cons_of_mem _ hq)) r hr
+
+/-- **A `Save`'s records fit a frame** (the entries' encodings below `2^40` bytes, `Save`'s premise; the
+hard state's below `2^32`, `walAreaOk`'s law). -/
+theorem saveOp_fit (Mr : WalMarshal) (hs : HardStateM) (es : List EntryM)
+    (hS : (Mr.encState hs).length < 2 ^ 32) (hE : ∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40) (c : w32) :
+    RecsFit walCodec (chainRecs walCodec c (opDs Mr (WalOpG.save hs es).toRaw.toM)) := by
+  rw [WalOpG.toM_toRaw]
+  apply recsFit_chainRecs_small
+  intro p hp
+  simp only [opDs, List.mem_append, List.mem_map] at hp
+  rcases hp with ⟨e, he, rfl⟩ | hp
+  · exact ⟨by show uint.nat entryType < 2 ^ 8; decide, hE e he⟩
+  · split at hp
+    · simp at hp
+    · simp only [List.mem_singleton] at hp
+      subst hp
+      exact ⟨by show uint.nat stateType < 2 ^ 8; decide,
+        by show (Mr.encState hs).length < 2 ^ 40; omega⟩
+
 end pure
 
 section handle
@@ -95,7 +132,9 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
     (w : Loc) (dir : GoString) (h : WalHS) (o : WalOpG WalEnt) (sized : Bool) (Q : WalDur → IProp GF)
     (hr : h.rest = 0)
     (hfit : ∀ c, RecsFit walCodec (chainRecs walCodec c (opDs Mr o.toM)))
-    (hidx : ((opDs Mr o.toM).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
+    (hidx : walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi) →
+      walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi →
+      ((opDs Mr o.toM).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
         max (uint.nat h.enti) (uint.nat h.snapi)) ∧
       walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
@@ -159,9 +198,10 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
       iframe Hm Hb Hv
       ipureintro; exact hm
     ipureintro
-    obtain ⟨p1, p2, p3, p4, p5, ⟨-, p6⟩, p7⟩ := hp
-    refine ⟨WalHS.split_snoc Mr h o hc p1, p2, p3, p4, p5, ⟨fun h0 => ?_, hidx.2⟩, p7⟩
-    exact hidx.1 (by simpa [hr] using h0)
+    obtain ⟨p1, p2, p3, p4, p5, ⟨p6a, p6⟩, p7⟩ := hp
+    have hidx' := hidx (p6a hr) p6
+    refine ⟨WalHS.split_snoc Mr h o hc p1, p2, p3, p4, p5, ⟨fun h0 => ?_, hidx'.2⟩, p7⟩
+    exact hidx'.1 (by simpa [hr] using h0)
   isplitl [Hlb]
   · iexact Hlb
   isplitl [HQ]

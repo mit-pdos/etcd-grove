@@ -317,7 +317,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   etcd: raft entries are bounded by the server's request size limit (`--max-request-bytes`, below
   `2^31`), snapshot metadata is a few varints and the conf state's member ids. A C6 obligation on the
   server.
-- **Decision.** Pending (the coordinator); `Save`'s proof takes it as the hypothesis `hfitE` until then.
+- **Decision.** Adopted as a minor fix (`wal-save11`, for the coordinator's and the user's review): the two premises
+  are in the part's specs.
 
 ## 2026-11-14: `wal.WAL.SaveSnapshot.spec` -- `walSnapAt` does not determine the bytes `SaveSnapshot` writes
 

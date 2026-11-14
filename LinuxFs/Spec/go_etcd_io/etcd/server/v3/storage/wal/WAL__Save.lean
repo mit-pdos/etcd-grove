@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): every entry index below `2^64-1` (a cut's name
-would wrap, as the main tree's spec says). The update commits right after `w.mu.Lock()`, before any
+would wrap, as the main tree's spec says), and every entry's encoding below `2^40` bytes (its record
+must fit a frame, whose length field has 56 bits, and the encoder's `2^47`; ledger 2026-11-14). The update commits right after `w.mu.Lock()`, before any
 record is encoded (a crash mid-call leaves an image of `H ++ [op]` past the mark, `walImg`); then
 the entries' records, `st`'s unless empty (`saveState`), then a `sync` if `MustSync`, or a `cut`
 if the tail reached `SegmentSizeBytes` (which syncs). `Save` of an empty state and no entries
@@ -45,6 +46,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
     (sl : GoSlice) (esL : List Loc) (es : List EntryM) (sized : Bool) (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ P.hsIn hp hs ∗ sl ↦*□ esL ∗
       walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
+      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))
