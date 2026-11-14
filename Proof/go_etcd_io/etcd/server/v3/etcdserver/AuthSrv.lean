@@ -200,7 +200,9 @@ theorem authOpenM_join (M : auth.AuthMode) (d : mvcc.KBReal) :
 /-- **The auth store's construction in the mode `M`** with the token provider `tp` (see the file
 header): `NewAuthStore`'s axiom's triple, the apply contract in the mode `M`, at a resource `K`
 the kit holds (`True` in the mode `off`; the admin side's authority, the batch lock's half and the
-provider's admin resource in the mode `on`). -/
+provider's admin resource in the mode `on`). The auth bucket is empty (a first start) or, in the mode
+`off`, at `authBoot` (a restart, restart S5: `NewServer.wp_proofRG`'s; the mode `on`'s proof needs it
+empty, and no auth-on restart is claimed). -/
 def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
   iprop(∃ K : IProp GF, K ∗ □ ∀ (lg : Loc) (ab : GoInterface) (abl : Loc)
       (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData) (cost : w64),
@@ -213,8 +215,10 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
         backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbOwnIn d.γB authBkts r ∗
         authKitIn M d ∗
-        ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
-          (r.lookup go!"authRoles").getD ∅ = ∅⌝ ∗
+        -- (restart S5, 2026-11-14) the auth bucket a first start finds (empty), or, with auth off, the
+        -- one a restart finds (`authBoot`, what a first start leaves: `NewAuthStore`'s axiom since HS1)
+        ⌜((r.lookup go!"auth").getD ∅ = ∅ ∨ (M = auth.AuthMode.off ∧ (r.lookup go!"auth").getD ∅ = authBoot)) ∧
+          (r.lookup go!"authUsers").getD ∅ = ∅ ∧ (r.lookup go!"authRoles").getD ∅ = ∅⌝ ∗
         -- (2026-11-02, the backend-auth-split stage) the auth buckets in the backend's table, as
         -- `NewAuthStore`'s axiom now takes them
         ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ }}
@@ -343,7 +347,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
     isplitr
     · iapply zapLoggerOk_orNil; iexact Hlg
-    ipureintro; exact ⟨Htp, Hfit, Hab, Or.inl Hr.1, Hr.2⟩
+    ipureintro; exact ⟨Htp, Hfit, Hab, Hr.1.imp_right And.right, Hr.2⟩
   iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
@@ -482,7 +486,7 @@ theorem authStoreKit_on
   ihave HD' := HD $$ %γa %lg %abl %d %W %Pk %qo %r [] [] [] [] HB Hopen HopQ Hslots0 Hhook Hrbo
     Hsucc HI HpubQ
   · iapply zapLoggerOk_ne_null; iexact Hlg
-  · ipureintro; exact Hr
+  · ipureintro; exact ⟨Hr.1.resolve_right (fun h => nomatch h.1), Hr.2⟩
   · iunfold ablOn; iframe Habbe Hablg
   · ipureintro; exact Hhas
   imod HD' with ⟨%R, %P, %f, %Pre, %Q, %Post, %γc, #Hrdok, Hcu, #HwokR, #HwAt, #HLend, #HCreate, HT, Hpt,

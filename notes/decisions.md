@@ -35604,3 +35604,19 @@ text `|==> rnSnapTermAbove γn ∗ srvWinPend s γr γn` parsed as `(|==> rnSnap
 (`|==>` binds tighter than `∗`), not the docstring's "a ghost update gives both rows". Restated old → new as
 `|==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn)`: implied by the old text, so a weaker premise on
 `NewServer.specR`'s caller (safe); the freeze package §11.7.
+
+## Restart S5: the constructors at a restart (2026-11-14 · HS1 approved at CP2, the rest forms decided by the agent, reviewed by etcd-grove-81 · branch `restart-s56`)
+
+S5 of `notes/restart-scope.md` (`/shared/tmp/restart-s56/plan.md` §1): what a restart's constructors
+need from the auth store and the store, besides `NewServer` (S6, the entries above).
+- **HS1** (CP2, 2026-11-13): `auth.NewAuthStore.spec`'s precondition (the axiom `auth.NewAuthStore.wp_proof`)
+  takes the auth bucket empty (a first start) or at `authBoot` (a restart: what a first start leaves,
+  `authRevision = 1`, no `authEnabled` key). Weaker precondition, so a stronger axiom, re-attacked with the
+  `axiom` skill at CP2. The users' and roles' buckets stay empty (the restart scope is auth off).
+- **`lateWBR` deleted** (Phase B): `bootOkR`'s `Hnew` takes the first start's `mvcc.api.mvccW d.gx`.
+- **`authStoreKit` widened** (2026-11-14, a form): the kit's triple takes the auth bucket empty or, *in the
+  mode `off` only*, at `authBoot` (`∅ ∨ (M = .off ∧ authBoot)`). Not `∅ ∨ authBoot` for every mode: the mode
+  `on`'s proof (`authStoreKit_on`, through `authSchemaSrv`) needs the bucket empty, and no auth-on restart is
+  claimed (`srvStop.scope`). Weaker precondition of the kit, so `authSrvTP false` says more (the axiom gives
+  it); the mode `on`'s meaning is unchanged. `NewServer.wp_proofRG` uses `hTP`'s kit directly; the copy
+  `authStoreKitR`/`authStoreKitR_off` (`NewServerRFacts.lean`) and `wp_proofRG`'s premise `h30` went.
