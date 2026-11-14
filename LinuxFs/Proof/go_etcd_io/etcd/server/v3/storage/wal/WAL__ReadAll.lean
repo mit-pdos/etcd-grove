@@ -60,6 +60,23 @@ theorem rdLoop_mem {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {R0 : DecO
     r ∈ R0.recs := by
   rw [hL.recs, rdRest_ok h hok]; simp
 
+/-- The invariant at the decoder's next state (`rdLoop_ok` over the decoder's files). -/
+theorem rdLoop_next {GF : BundledGFunctors} {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {R0 : DecOut}
+    {acc : List WalRec} {fsD : List (DecFile GF)} {fs' : List (List w8)} {k off off' : Nat} {c c' : w32}
+    {st st' : RAState} {ix : w64 × w64} {r : WalRec}
+    (hL : RdLoop C U s R0 acc (fsD.map (·.bs)) off c st ix)
+    (h : goDecode C (fsD.map (·.bs)) off c = .ok r fs' off' c') (hfs : (fsD.drop k).map (·.bs) = fs')
+    (hok : ¬ (r.typ = crcType ∧ crcRecBad c' r)) (hst : raStep U s st (r.typ, r.data) = .ok st') :
+    RdLoop C U s R0 (acc ++ [r]) ((fsD.drop k).map (·.bs)) off' (rdCrc c' r) st' (raIdx U s ix r) := by
+  subst hfs; exact (rdLoop_ok hL h hok hst).2
+
+theorem raIdx_other {U : WalUnmarshal} {s ix : w64 × w64} {r : WalRec} (h1 : r.typ ≠ entryType)
+    (h2 : r.typ ≠ snapshotType) : raIdx U s ix r = ix := by
+  simp [raIdx, h1, h2]
+
+theorem rdCrc_other {c : w32} {r : WalRec} (h : r.typ ≠ crcType) : rdCrc c r = c := by
+  simp [rdCrc, h]
+
 instance walEntsIn_persistent (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) :
     Persistent (walEntsIn P esL es) := by
   unfold walEntsIn; infer_instance
@@ -178,7 +195,37 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
         simp only [decide_true, ↓reduceIte]
         wp_auto
         wp_apply wp_GetType $$ Hr as Hr
-        wp_auto
+        have hdec0 : ¬ (r.typ = crcType ∧ crcRecBad c' r) → RecDec U r ∧ RecMd d0.metadata r :=
+          fun hnc => hR0 r (rdLoop_mem hL hgd hnc)
+        wp_if_destruct
+        · -- EntryType
+          sorry
+        wp_if_destruct
+        · -- StateType
+          have hT : r.typ = stateType := Hif
+          have hnc : ¬ (r.typ = crcType ∧ crcRecBad c' r) := by
+            rw [hT]; simp [stateType, crcType]
+          obtain ⟨h, hh⟩ := (hdec0 hnc).1.2.1 hT
+          unfold ownRec
+          icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
+          wp_auto
+          wp_apply hHs.unmarshal v.Data' _ r.data h hh $$ Hd as %p ⟨Hd, Hhs'⟩
+          have hst : raStep U s st (r.typ, r.data) = .ok { st with hs := h } := by
+            simp [raStep, hT, hh, stateType, entryType]
+          wp_for_post
+          wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+            $$ [Hdec Hl] as %e' Hpost
+          · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+          iframe
+          have hi1 : r.typ ≠ entryType := by rw [hT]; simp [stateType, entryType]
+          have hi2 : r.typ ≠ snapshotType := by rw [hT]; simp [stateType, snapshotType]
+          have hi3 : r.typ ≠ crcType := by rw [hT]; simp [stateType, crcType]
+          have hL' := rdLoop_next hL hgd hok.2 hnc hst
+          rw [raIdx_other hi1 hi2, rdCrc_other hi3] at hL'
+          iexists acc ++ [r], fsD.drop k, off', c', { st with hs := h }, ix, e', mdv, p, entsv, esL
+          iframe
+          ipureintro
+          exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
         sorry
       · icases Hm with ⟨%hst, -, -⟩
         exact absurd hst.1 (stopErr_nil hnn.1 hnn.2 sx)
