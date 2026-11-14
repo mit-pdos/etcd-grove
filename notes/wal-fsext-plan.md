@@ -3202,6 +3202,15 @@ withdrawn; `SaveSnapshot` without `sorry`.**
   thirteenth session; `wal-tc5`'s W1G past the ghost bytes), `sync.wp_proof`, `sync.specCut`, `encode.specTail`.
   **Obligation for them**: the posts' `sz' ≤ 0xffffffff000` come from `PwCut`'s second clause of each write
   (`os.File.WriteAt.spec`'s post) with the handle's `sz ≤ 0xffffffff000`; nothing else bounds the stream.
+  `sync`'s proof must also give `WAL.sync.specC` (`WAL__syncC.lean`, `wal-close15`: `sync.spec` over `walHandleC`,
+  the handle after `Close` closed the pipeline; `sync` never reads `w.fp`): ideally both from one core lemma over
+  the handle without the pipeline (coordinator, 2026-11-14). `walHandleC` lost the stream-end fact with
+  `walHandleIn` (this session).
+  From `wal-tc6` (merged, `W1G` past the ghost's bytes: `segBytesX`, `crashRestAt_take_tok`, `WinCrash.lean`): a
+  write in flight past the size stops `segBytesX` at the announced range, because the token's `OsMeta` forgot those
+  candidates; the thirteenth session's design item 2 (the announced layout keeping the token's candidates, `pwTail`-
+  shaped) fixes that, and is the tail writer's (not started here). `wal-tc7` does the window-to-window `CrashOk`
+  and `specWalTail`.
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
