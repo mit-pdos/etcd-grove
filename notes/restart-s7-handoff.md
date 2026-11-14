@@ -103,7 +103,12 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   `traceutil.ctxTraceIs_bgFrom`, `bgCtx_facts`), `startMember` (b: `wp_proof`, `wp_proofRestart` with the rows
   discharged inside by `srvRestartRows_single`; the spec takes no rows), `put` (c), `stop` (e;
   `etcdstart.memberRestartRes_intro0` added to `StartRes`, an etcdstart API addition: regenerate its interface).
-  Commits `582a6bd5c4`, `97f5de66bb`, and the stop commit. Next: (f) `check`, (g) `Run`/`Main`, Freeze.
+  Commits `582a6bd5c4`, `97f5de66bb`, the stop commit; (f) `check` (`d041f2a04c`: `r1RangeReply`,
+  `srvRangeOk_r1`, `r1Ok_get`), (g) `Run`/`Main` (`29acd63ff6`; rows discharged inside). **Stopped at the
+  Freeze** of `etcd_restart1_safe`: `notes/restart-s7-freeze.md`. After the go: `X/etcd/restart1/Init.lean`
+  (`etc/gen-init.py`'s `ROOTS` gets the package, and its `PkgTable`), `etc/gen-link.py` link, `MainLinked`,
+  `Adequacy` (putget's), `Results.lean`, `etc/tcb-collections/restart1.txt`; regenerate etcdstart's interface
+  (`StartRes`: `memberRestartRes_intro0`); `etc/api-check.py`, layout, bounds, full build, tcb `--check`.
 
 ## Next, in order
 1. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
