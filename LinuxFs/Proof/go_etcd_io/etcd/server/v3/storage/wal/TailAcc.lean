@@ -309,13 +309,15 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   unfold walTailsRes
   icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
+  icases walLentRes_zeros T Ls dir γ $$ Hk HL with ⟨%HZk, Hk, HL⟩
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
-      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
         TailBound C Mr d lay⌝ ∗
       ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) HT).1 $$ HTm
   icases Hent with ⟨%d, %lay, %g0, %hp, Hv'⟩
-  obtain ⟨hd, hl, hg, hZ, hB⟩ := hp
+  obtain ⟨hd, hl, hg, -, hB⟩ := hp
+  have hZ : TailZeros lay := HZk lay (by rw [HT]; simp) hl
   obtain ⟨pre, hs⟩ := List.getLast?_eq_some_iff.1 hg
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Htg
   obtain ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ := HW
@@ -380,7 +382,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   · ipureintro; exact HWC
   isplitl [HTa HTm Hvn HL]
   · iexists T
-    ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl $$ HL
+    ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl id $$ HL
     iframe HTa HL
     isplitr
     · ipureintro
@@ -393,13 +395,13 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     iapply (BigSepM.bigSepM_delete (Φ := fun (k : GoString) (γ' : GName) =>
       iprop(∃ (d' : WalDur) (la : WalLay) (g' : SegG),
         ⌜s.wal !! k = some d' ∧ (<[dir := tailLay lay pre g wr']> Ls) !! k = some la ∧
-          la.segs.getLast? = some g' ∧ TailZeros la ∧ TailBound C Mr d' la⌝ ∗
+          la.segs.getLast? = some g' ∧ TailZ0 la ∧ TailBound C Mr d' la⌝ ∗
         ghostVar γ' (1 : Qp).half (tailG d' la g'.ino (F' !! g'.ino)))) HT).2
     isplitl [Hvn]
     · iexists d, (tailLay lay pre g wr'), g
       iframe Hvn
       ipureintro
-      exact ⟨hd, GMap.lookup_insert _ _ _, by simp [tailLay], hZ, hB⟩
+      exact ⟨hd, GMap.lookup_insert _ _ _, by simp [tailLay], Or.inl hZ, hB⟩
     · iapply BigSepM.bigSepM_mono (fun {k γ'} hk => ?_) $$ HTm
       have hne : k ≠ dir := by
         change GMap.delete dir T !! k = some γ' at hk

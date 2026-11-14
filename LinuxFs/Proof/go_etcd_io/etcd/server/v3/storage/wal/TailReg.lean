@@ -97,7 +97,7 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     exact Hi k d' lay' (GMap.lookup_empty _) hd' hl'
   iapply (BigSepM.bigSepM_insert (Φ := fun (dir' : GoString) (γ' : GName) => iprop(∃ (d : WalDur)
       (lay : WalLay) (g : SegG), ⌜s.wal !! dir' = some d ∧ Ls !! dir' = some lay ∧
-        lay.segs.getLast? = some g ∧ TailZeros lay ∧ TailBound C Mr d lay⌝ ∗
+        lay.segs.getLast? = some g ∧ TailZ0 lay ∧ TailBound C Mr d lay⌝ ∗
       ghostVar γ' (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) (GMap.lookup_empty _)).2
   iframe Hm
   iexists d, lay, g

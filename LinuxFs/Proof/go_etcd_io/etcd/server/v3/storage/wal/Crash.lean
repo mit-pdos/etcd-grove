@@ -623,7 +623,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitl [Htl Hlt]
     · unfold walTailsRes
       iexists ∅
-      ihave Hlt := walLentRes_init (W := W) ∅ Ls $$ Hlt
+      ihave Hlt := walLentRes_init (W := W) ∅ Ls (fun _ _ h _ => (h (GMap.lookup_empty _)).elim) $$ Hlt
       iframe Htl Hlt
       isplitr
       · ipureintro; intro i hi; exact absurd (GMap.lookup_empty (K := Ino) (V := SegFl) i) hi

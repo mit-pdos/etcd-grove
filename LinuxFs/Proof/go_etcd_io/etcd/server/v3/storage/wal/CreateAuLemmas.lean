@@ -202,8 +202,19 @@ theorem walTailsRes_create (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (
   unfold walTailsRes
   letI := walAllG (W := W)
   iintro ⟨%T, Ha, %Ho, %Hi, Hm, HL⟩
+  cases hTd : T !! dir with
+  | some γ0 =>
+    ihave ⟨⟨%d0, %l0, %g0, %hp0, -⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
+      iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
+        ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
+          TailBound C Mr d lay⌝ ∗
+        ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) hTd).1 $$ Hm
+    exfalso
+    have h0 := hp0.1; rw [hd] at h0; cases h0
+  | none =>
   iexists T
-  ihave HL := walLentRes_insert_new (W := W) T Ls dir lay hLd $$ HL
+  ihave HL := walLentRes_insert_new (W := W) T Ls dir lay hLd
+    (fun h => (h hTd).elim) $$ HL
   iframe Ha HL
   isplitr
   · ipureintro; exact Ho.insert_new hLd hF
