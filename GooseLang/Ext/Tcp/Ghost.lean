@@ -1,5 +1,6 @@
 /-
-The ghost state of the TCP extension (`Impl.lean`) and its interpretation (`ExtInterp`).
+The ghost state of the TCP extension (`Impl.lean`) and its interpretation (`ExtInterp`). Its
+resources are the extension's state, piece by piece, and nothing else (no history of operations).
 
 **The network's resources** (global, all in the one `AllG GF` of the ghost state, `TcpGS`):
 
@@ -9,12 +10,10 @@ The ghost state of the TCP extension (`Impl.lean`) and its interpretation (`ExtI
   logically atomic steps, so a program keeps it in an invariant with what it promises about the
   connections of `S` (the per-address protocol).
 * For a connection `c` and its end `s` (`false` the dialer, `true` the acceptor):
-  - `tcpEnd c s st r`: the state of the end and how many bytes it has read (of the other end's
-    out-pipe). A half of a ghost variable; the network holds the other half.
-  - `tcpOut c s bs f`: the bytes `bs` the end has written, and whether it has sent its FIN (`f`):
-    a half of a monotone list and, while `f = false`, a half of the FIN's one-shot ghost variable.
-  - `tcpOutLb c s bs` (persistent): the end has written at least `bs` (a prefix of its bytes).
-  - `tcpFin c s bs` (persistent): the end has sent its FIN after exactly the bytes `bs`.
+  - `tcpEnd c s st`: the state of the end (closed, its deadlines). A half of a ghost variable; the
+    network holds the other half.
+  - `tcpDir c s d`: the direction from the end `s` to the other end: its unread bytes and its
+    status (`TcpDir`). A half of a ghost variable, and a token that makes it exclusive.
   - `tcpConnAt c a` (persistent): `c` was dialed to `a`.
   A connection's ghost names are in a ghost map from connection numbers (persistent entries).
 
@@ -25,15 +24,13 @@ threads); and the node's host (`TcpLocalGS.host`), fixed, which the local interp
 node's.
 
 **Crashes**: the network's resources are global and survive a crash, as the network does. The
-listeners' ghost map is the node's, made anew at a crash (no listener survives).
+listeners' ghost maps are the node's, made anew at a crash (no listener survives).
 -/
 module
 
 public import Perennial.GooseLang.Lifting
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
-public import Perennial.Ghost.DGhostVar
-public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.Token
 public import GooseLang.Ext.Tcp.Impl
 
@@ -48,51 +45,63 @@ open Iris Iris.BI Iris.Std ProofMode
 
 /-! ## Ghost names -/
 
-/-- The ghost names of a connection, and its address. `v s`: the state of the end `s` and how many
-bytes it has read; `out s`: the bytes it has written; `fin s`: its FIN. -/
+/-- The ghost names of a connection, and its address. `v s`: the state of the end `s`; `q s`: the
+direction from the end `s`; `tk s`: the token of that direction. -/
 structure ConnNames where
   addr : GoString
   v0 : GName
   v1 : GName
-  out0 : GName
-  out1 : GName
-  fin0 : GName
-  fin1 : GName
+  q0 : GName
+  q1 : GName
   tk0 : GName
   tk1 : GName
 deriving DecidableEq
 
 def ConnNames.enc (γ : ConnNames) :=
-  (γ.addr, γ.v0, γ.v1, γ.out0, γ.out1, γ.fin0, γ.fin1, γ.tk0, γ.tk1)
+  (γ.addr, γ.v0, γ.v1, γ.q0, γ.q1, γ.tk0, γ.tk1)
 
 instance ConnNames.countable : Pos.Countable ConnNames :=
   .ofInjective (fun γ => Pos.Countable.encode γ.enc) (fun a b h => by
     have h' := Pos.encode_inj h
     cases a; cases b; simp only [ConnNames.enc, Prod.mk.injEq] at h'
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
 
 def ConnNames.v (γ : ConnNames) : Bool → GName
   | false => γ.v0
   | true => γ.v1
 
-def ConnNames.out (γ : ConnNames) : Bool → GName
-  | false => γ.out0
-  | true => γ.out1
-
-def ConnNames.fin (γ : ConnNames) : Bool → GName
-  | false => γ.fin0
-  | true => γ.fin1
+def ConnNames.q (γ : ConnNames) : Bool → GName
+  | false => γ.q0
+  | true => γ.q1
 
 def ConnNames.tk (γ : ConnNames) : Bool → GName
   | false => γ.tk0
   | true => γ.tk1
 
-instance TcpEnd.countable : Pos.Countable TcpEnd :=
-  .ofInjective (fun st : TcpEnd => Pos.Countable.encode (st.closed, st.wshut, st.broken, st.dl))
+def TcpStatus.toNat : TcpStatus → Nat
+  | .open => 0
+  | .fin => 1
+  | .cut => 2
+
+instance TcpStatus.countable : Pos.Countable TcpStatus :=
+  .ofInjective (fun k : TcpStatus => Pos.Countable.encode k.toNat)
+    (fun a b h => by
+      have h' := Pos.encode_inj h
+      cases a <;> cases b <;> first | rfl | (simp [TcpStatus.toNat] at h'))
+
+instance TcpDir.countable : Pos.Countable TcpDir :=
+  .ofInjective (fun d : TcpDir => Pos.Countable.encode (d.bytes, d.status))
     (fun a b h => by
       have h' := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h'
-      obtain ⟨rfl, rfl, rfl, rfl⟩ := h'; rfl)
+      obtain ⟨rfl, rfl⟩ := h'; rfl)
+
+instance TcpEnd.countable : Pos.Countable TcpEnd :=
+  .ofInjective (fun st : TcpEnd => Pos.Countable.encode (st.closed, st.rdl, st.wdl))
+    (fun a b h => by
+      have h' := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h'
+      obtain ⟨rfl, rfl, rfl⟩ := h'; rfl)
 
 /-- The global ghost state: the universal camera, and the ghost maps of the connections' names, of
 the pending sets and of the plan. -/
@@ -119,23 +128,14 @@ variable {GF : BundledGFunctors}
 
 /-! ## The network's interpretation -/
 
-/-- The FIN of a pipe: once sent, its bytes for good (a persistent ghost variable); before, a half
-of the one-shot variable (the writer holds the other half). -/
-def finCtx [AllG GF] (γ : GName) (p : TcpPipe) : IProp GF :=
-  if p.fin then dghostVar γ .discard (some p.sent) else dghostVar γ (.own (1 : Qp).half) (none : Option GoString)
-
-/-- The network's part of the end `s` of the connection `cn`, with names `γ`. Its pure facts: the
-bytes read of the end's out-pipe are bytes written, and a FIN means the end writes no more. -/
-def endCtx [AllG GF] (γ : ConnNames) (s : Bool) (cn : TcpConn) : IProp GF :=
-  iprop(ghostVar (γ.v s) (1 : Qp).half (cn.endSt s, (cn.out (!s)).rcvd) ∗
-    monoListAuthOwn (γ.out s) (1 : Qp).half (cn.out s).sent ∗
-    finCtx (γ.fin s) (cn.out s) ∗
-    ⌜(cn.out s).rcvd ≤ (cn.out s).sent.length ∧
-      ((cn.out s).fin = true → (cn.endSt s).closed = true ∨ (cn.endSt s).wshut = true)⌝)
-
-/-- The network's part of the connection `cn`, with names `γ`. -/
+/-- The network's part of the connection `cn`, with names `γ`: the other halves of its ends' and
+directions' ghost variables. -/
 def connCtx [AllG GF] (γ : ConnNames) (cn : TcpConn) : IProp GF :=
-  iprop(⌜γ.addr = cn.addr⌝ ∗ endCtx γ false cn ∗ endCtx γ true cn)
+  iprop(⌜γ.addr = cn.addr⌝ ∗
+    ghostVar (γ.v false) (1 : Qp).half (cn.endSt false) ∗
+    ghostVar (γ.v true) (1 : Qp).half (cn.endSt true) ∗
+    ghostVar (γ.q false) (1 : Qp).half (cn.out false) ∗
+    ghostVar (γ.q true) (1 : Qp).half (cn.out true))
 
 /-- The pending sets agree with the network: `pm` has the plan's addresses, each with the
 connections dialed to it and not yet accepted; and every connection was dialed to a plan address. -/
@@ -169,29 +169,16 @@ def tcpLocalCtx (hL : TcpLocalGS GF) (L : TcpLocal) : IProp GF :=
 def tcpNames (hG : TcpGS GF) (c : Nat) (γ : ConnNames) : IProp GF :=
   letI := hG.allG; ghostMapElem hG.γnames c .discard γ
 
-/-- The end `s` of `c`: its state `st`, and `r` bytes read. -/
-def tcpEnd (hG : TcpGS GF) (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) : IProp GF :=
+/-- The end `s` of `c`: its state `st`. -/
+def tcpEnd (hG : TcpGS GF) (c : Nat) (s : Bool) (st : TcpEnd) : IProp GF :=
   letI := hG.allG
-  iprop(∃ γ, tcpNames hG c γ ∗ ghostVar (γ.v s) (1 : Qp).half (st, r))
+  iprop(∃ γ, tcpNames hG c γ ∗ ghostVar (γ.v s) (1 : Qp).half st)
 
-/-- The bytes `bs` written by the end `s` of `c`, and whether it has sent its FIN. Exclusive
-(the end's token, `γ.tk s`, which only this resource holds). -/
-def tcpOut (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool) : IProp GF :=
+/-- The direction from the end `s` of `c`: its unread bytes and its status, `d`. Exclusive (the
+direction's token, `γ.tk s`, which only this resource holds). -/
+def tcpDir (hG : TcpGS GF) (c : Nat) (s : Bool) (d : TcpDir) : IProp GF :=
   letI := hG.allG
-  iprop(∃ γ, tcpNames hG c γ ∗ monoListAuthOwn (γ.out s) (1 : Qp).half bs ∗
-    (if f then dghostVar (γ.fin s) .discard (some bs)
-     else dghostVar (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) ∗
-    token (γ.tk s))
-
-/-- The end `s` of `c` has written at least `bs`. -/
-def tcpOutLb (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) : IProp GF :=
-  letI := hG.allG
-  iprop(∃ γ, tcpNames hG c γ ∗ monoListLbOwn (γ.out s) bs)
-
-/-- The end `s` of `c` has sent its FIN after exactly the bytes `bs`. -/
-def tcpFin (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) : IProp GF :=
-  letI := hG.allG
-  iprop(∃ γ, tcpNames hG c γ ∗ dghostVar (γ.fin s) .discard (some bs))
+  iprop(∃ γ, tcpNames hG c γ ∗ ghostVar (γ.q s) (1 : Qp).half d ∗ token (γ.tk s))
 
 /-- `c` was dialed to `a` (and its ends' ids are in range). -/
 def tcpConnAt (hG : TcpGS GF) (c : Nat) (a : GoString) : IProp GF :=
@@ -217,24 +204,15 @@ def tcpLisAt (hL : TcpLocalGS GF) (l : w64) (a : GoString) : IProp GF :=
 
 instance tcpNames_persistent (hG : TcpGS GF) c γ : Persistent (tcpNames hG c γ) := by
   unfold tcpNames; letI := hG.allG; infer_instance
-instance tcpOutLb_persistent (hG : TcpGS GF) c s bs : Persistent (tcpOutLb hG c s bs) := by
-  unfold tcpOutLb; letI := hG.allG; infer_instance
-instance tcpFin_persistent (hG : TcpGS GF) c s bs : Persistent (tcpFin hG c s bs) := by
-  unfold tcpFin; letI := hG.allG; infer_instance
 instance tcpConnAt_persistent (hG : TcpGS GF) c a : Persistent (tcpConnAt hG c a) := by
   unfold tcpConnAt; letI := hG.allG; infer_instance
 instance tcpPlan_persistent (hG : TcpGS GF) a h : Persistent (tcpPlan hG a h) := by
   unfold tcpPlan; letI := hG.allG; infer_instance
 
-instance tcpEnd_timeless (hG : TcpGS GF) c s st r : Timeless (tcpEnd hG c s st r) := by
+instance tcpEnd_timeless (hG : TcpGS GF) c s st : Timeless (tcpEnd hG c s st) := by
   unfold tcpEnd tcpNames; letI := hG.allG; infer_instance
-instance tcpOut_timeless (hG : TcpGS GF) c s bs f : Timeless (tcpOut hG c s bs f) := by
-  unfold tcpOut tcpNames; letI := hG.allG; cases f <;> simp only [Bool.false_eq_true, ↓reduceIte] <;>
-    infer_instance
-instance tcpOutLb_timeless (hG : TcpGS GF) c s bs : Timeless (tcpOutLb hG c s bs) := by
-  unfold tcpOutLb tcpNames; letI := hG.allG; infer_instance
-instance tcpFin_timeless (hG : TcpGS GF) c s bs : Timeless (tcpFin hG c s bs) := by
-  unfold tcpFin tcpNames; letI := hG.allG; infer_instance
+instance tcpDir_timeless (hG : TcpGS GF) c s d : Timeless (tcpDir hG c s d) := by
+  unfold tcpDir tcpNames; letI := hG.allG; infer_instance
 instance tcpConnAt_timeless (hG : TcpGS GF) c a : Timeless (tcpConnAt hG c a) := by
   unfold tcpConnAt tcpNames; letI := hG.allG; infer_instance
 instance tcpPend_timeless (hG : TcpGS GF) a S : Timeless (tcpPend hG a S) := by
