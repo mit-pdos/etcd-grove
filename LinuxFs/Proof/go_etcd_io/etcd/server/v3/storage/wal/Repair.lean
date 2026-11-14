@@ -71,6 +71,36 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 theorem openFd_rdwr (i : Ino) : openFd i (W64 2 ||| W64 524288) = ⟨i, true, true⟩ := by
   unfold openFd; congr
 
+set_option hygiene false in
+/-- **A `false` exit** with the segment's file and fd (`Hf`, `Hfd`): the deferred `f.Close()`, then the
+post with the token lost (`Repair.spec`'s `false` arm). Unhygienic: it names `Repair`'s hypotheses. -/
+macro "repair_false" : tactic => `(tactic| (
+    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+    · iframe; iframe #
+    try wp_auto
+    try imodintro
+    try wp_auto
+    iapply HΦ
+    iframe Hp Hres Hperm
+    isplitr [HQ]
+    · iright; ipureintro; rfl
+    iexists o; iexact HQ))
+
+set_option hygiene false in
+/-- **The segment's stream out of the decoder** (`HS : walFileS …`). Unhygienic. -/
+macro "repair_stream" : tactic => `(tactic| (
+    ihave Hs := ownDecoder_streams dec IoE eof [F] _ _ _ $$ Hdec
+    ihave ⟨%q, HS⟩ := (BigSepL.bigSepL_singleton (PROP := IProp GF)
+      (Φ := fun _ (F : DecFile GF) => iprop(∃ q, F.S q))).1 $$ Hs))
+
+set_option hygiene false in
+/-- **The segment's stream opened** (`HS : F.S q` to its file, fd, offset and halves). Unhygienic. -/
+macro "repair_open" : tactic => `(tactic| (
+    rw [← hF]
+    simp only [walDecFile]
+    iunfold walFileS at HS
+    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hoff, Hm, Hb⟩))
+
 /-- See the file header. -/
 theorem wal.Repair.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
@@ -277,7 +307,9 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
           subst hei
           try wp_auto
           wp_for_post
-          sorry
+          repair_stream
+          repair_open
+          repair_false
     · -- not a CRC record
       have hnc : ¬ (r.typ = crcType ∧ crcRecBad c1x r) := fun h => Hif h.1
       wp_for_post
@@ -290,8 +322,54 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       have := hnext c1x hnc rfl
       have hT : ¬ r.typ = crcType := Hif
       rwa [show rdCrc c1x r = c1x by simp [rdCrc, hT]] at this
-  · -- `io.EOF`
-    sorry
+  · -- `io.EOF`: the pin put back unchanged, `true`
+    subst err
+    ihave %hnn := decEnv_nonnil IoE eof ueof $$ Hde
+    obtain ⟨ei, rfl⟩ : ∃ ei, eof = GoInterface.ok ei := by
+      cases eof with
+      | ok ei => exact ⟨ei, rfl⟩
+      | nil => exact absurd rfl hnn.1
+    repair_open
+    try wp_auto
+    ihave #Hea := Heofa
+    iunfold isEofAns at Hea
+    wp_apply Hea as %b %hb
+    subst hb
+    rw [decide_eq_true rfl]
+    try wp_auto
+    wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+    · iframe Hf Hlf
+    wp_apply wp_String as %f1 -
+    try wp_auto
+    wp_apply wp_Error as %f2 -
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    try wp_auto
+    wp_apply wp_Info lg _ _ $$ []
+    · iframe #
+    try wp_auto
+    wp_for_post
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    ihave HS : segRes gL $$ [Hm Hb]
+    · unfold segRes; iframe
+    imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj Hkey
+      with ⟨Hnc, Hu⟩
+    · iframe
+    imodintro
+    iframe Hnc
+    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+    · iframe; iframe #
+    try wp_auto
+    try imodintro
+    try wp_auto
+    iapply HΦ
+    iframe Hp Hres Hperm
+    isplitl [Hu]
+    · ileft; iexact Hu
+    iexists o; iexact HQ
   · -- any other error
     sorry
 
