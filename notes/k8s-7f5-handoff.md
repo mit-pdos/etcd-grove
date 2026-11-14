@@ -18,6 +18,22 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## START HERE (2026-11-14, ninth 7f-5 agent): review fixes of the 7f-5a Draft done; STOPPED for 81's re-review
+
+81 accepted D1-D7 and decided the review's fixes (questions.md, 2026-11-14). Done on `k8s-7f5`
+(see the commit after `0b8c92dd0b`): `Draft7f5a.lean` restated (the no-gap prefix only while the
+watch is live: `kStreamSub` always, `kStreamOk` unless `kCancelled γ cd := kStopped γ ∨ □ cd.PDone`;
+`kLive`/`kStopped` with `Stop`; `kStartOk` ties the start point to a fired `□ Q lb0 σ0`; `eventAt σ`
+keeps `prevValue ↔ kPrevAt`; no thread tokens; T5-f's `klog.Warningf.spec` (restricted) and
+`mvccpb.Event_EventType.String.spec` as Lean statements in its §5), `notes/k8s-7f5a-draft.md` §8
+(each change old → new) and §9 (items for the re-review), the Go tests
+(`examples/premisefix/watcherctx/draft7f5a_test.go`: metadata and already-done parents, the UTF-8
+panic asserted), `nonissues/k8s-etcd3-watcher-gap-after-cancel.md` (+ test). Built; tcb --check no
+change (`/shared/tmp/k8s7f5a-fix/tcb.log`). **Next, on 81's re-review:** T5-e's Lean (restate
+`WithRequireLeader.wp_proof` with `□ ∀ cd, isContext ctx cd -∗ isContext c cd`), then 7f-5a-P as in
+the Draft's §6; before its step 4, settle the `WithCancel`-keeps-`PDone` gap (§6 risks); align
+`klog.Warningf.spec` with `notes/klog-args-fix.md` once it exists.
+
 ## START HERE (2026-11-14, eighth 7f-5 agent): 7f-5a-D Draft written; STOPPED at S3 for etcd-grove-81
 
 The Draft of the etcd3 watcher's serial branch is in the unlinked
