@@ -87,7 +87,10 @@ key, the pipeline names' claims (`b`, `b'`: the pipeline's leftover name and the
 both of `walTmps`), the record of what is out, the lock holder's halves (the tails' authority with
 this tail, no registration pending), the ghost handle with the lock token (`walOpenW`), the purge right
 and the history synced; the client's update. Gives the update's `Q d` (committed unchanged), the
-history synced in `d`'s terms, and the free lock token. -/
+history synced in `d`'s terms, and the free lock token. The unregistration must establish the WAL's
+`TailIdle` (`walTailsRes`'s `WalTailIdle`, `Inv.lean`): the record's `wr` is the tail stream's end (all
+written) and `TailMeta m bs` (synced: `lo = size = hi`) gives the layout's `TailExact` by agreement of
+the halves. -/
 def WalCloseLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
   ∀ (w : Loc) (dir : GoString) (γ γt : GName) (ino j : Ino) (X : List GoString) (hj : NamesH)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (m : OsMeta)

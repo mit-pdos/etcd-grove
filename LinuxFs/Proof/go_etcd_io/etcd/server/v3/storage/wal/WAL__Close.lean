@@ -18,6 +18,7 @@ public import LinuxFs.Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import LinuxFs.Proof.os.NsS
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseHandle
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
 public import Perennial.Proof.sync.Results
@@ -51,7 +52,7 @@ theorem pipeTmp_mem (n : Nat) : pipeTmp n ∈ walTmps := by
   unfold pipeTmp walTmps; split <;> simp
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (hlaw : ∀ R jr r, WalCloseLaw (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
@@ -134,6 +135,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
   have hlen2 : 0 < lfs2.length := by
     obtain ⟨ls2, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt2; simp
   -- the loop closing the locks' files
+  (try wp_auto)
   ihave IH : iprop(∃ (k : w64) (lv : Loc),
       "i" ∷ i_ptr ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗ "Hls" ∷ locks2 ↦* lfs2 ∗
       "Hlks" ∷ ([∗list] lf ∈ lfs2.dropLast.drop (sint.nat k), walLockH lf) ∗
@@ -144,7 +146,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
     simp only [named]
     iframe
     rw [show sint.nat (W64 0) = 0 from rfl, decide_eq_true hlen2]
-    simp only [ite_true, List.drop_zero]
+    simp only [ite_true]
     iframe
     ipureintro; exact ⟨by decide, by simp⟩
   wp_join (iprop(w_ptr ↦ w ∗
@@ -156,7 +158,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
     · have hkl : sint.nat k < lfs2.length := by
         have : sint.Z k < sint.Z locks2.len := Hif
         rw [Hll2.1]; word
-      rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hk0, by have : sint.Z k < sint.Z locks2.len := Hif; exact this⟩)]
+      have hkb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z locks2.len := ⟨Hk0, Hif⟩
+      (try wp_auto)
+      rw [ite_eq_left_of_eq_true _ _ (eq_true hkb)]
       obtain ⟨lf, hlf⟩ : ∃ lf, lfs2[sint.nat k]? = some lf := ⟨_, List.getElem?_eq_getElem hkl⟩
       wp_apply wp_load_slice_index locks2 (sint.Z k) lfs2 (DFrac.own 1) lf Hk0 $$ [Hls] as Hls
       · iframe; ipureintro; exact hlf
@@ -168,7 +172,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
       · -- a non-tail lock
         have hkd : sint.nat k < lfs2.dropLast.length := by rw [List.length_dropLast]; omega
         have hlfd : lfs2.dropLast[sint.nat k]? = some lf := by
-          rw [List.getElem?_dropLast, if_pos (by omega)]; exact hlf
+          rw [List.getElem?_dropLast, ite_eq_left_of_eq_true _ _ (eq_true (by omega))]; exact hlf
         have hdrop : lfs2.dropLast.drop (sint.nat k) =
             lf :: lfs2.dropLast.drop (sint.nat (k + W64 1)) := by
           rw [hk1, List.drop_eq_getElem_cons hkd]
@@ -192,7 +196,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
         (try wp_auto)
         have hdk : decide (sint.nat (k + W64 1) < lfs2.length) = decide (sint.nat k < lfs2.length) := by
           rw [hk1, decide_eq_true hlast, decide_eq_true hkl]
-        rw [hdk]
         cases err1 with
         | nil =>
           wp_auto
@@ -200,6 +203,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
           iframe
           iexists k + W64 1, lf
           simp only [named]
+          rw [hdk]
           iframe
           ipureintro
           constructor <;> word
@@ -213,12 +217,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply wp_LError lg2 _ _ $$ []
-          · iexact Hzap2
+          · iapply zapLoggerOk_ne_null; iexact Hzap2
           (try wp_auto)
           wp_for_post
           iframe
           iexists k + W64 1, lf
           simp only [named]
+          rw [hdk]
           iframe
           ipureintro
           constructor <;> word
@@ -245,7 +250,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
         (try wp_auto)
         have hdk : decide (sint.nat (k + W64 1) < lfs2.length) = false := by
           rw [hk1, hkl1]; simp
-        rw [hdk]
         have hdrop : lfs2.dropLast.drop (sint.nat (k + W64 1)) = [] := by
           rw [hk1, hkl1, List.drop_eq_nil_iff, List.length_dropLast]; omega
         cases err1 with
@@ -255,8 +259,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
           iframe
           iexists k + W64 1, lf
           simp only [named]
-          rw [hdrop]
+          rw [hdrop, hdk]
+          simp only [Bool.false_eq_true, ite_false]
           iframe
+          isplitr
+          · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+          isplitr
+          · iempintro
           ipureintro
           constructor <;> word
         | ok ie =>
@@ -269,14 +278,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply wp_LError lg2 _ _ $$ []
-          · iexact Hzap2
+          · iapply zapLoggerOk_ne_null; iexact Hzap2
           (try wp_auto)
           wp_for_post
           iframe
           iexists k + W64 1, lf
           simp only [named]
-          rw [hdrop]
+          rw [hdrop, hdk]
+          simp only [Bool.false_eq_true, ite_false]
           iframe
+          isplitr
+          · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+          isplitr
+          · iempintro
           ipureintro
           constructor <;> word
     · (try wp_auto)
@@ -284,7 +298,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
   iintro ⟨w, Hlg⟩
   (try wp_auto)
   -- the put-back, at the next step
-  iunfold pipeLeft pipeRes at Hleft
+  iunfold pipeLeft at Hleft
+  iunfold pipeRes at Hleft
   icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
