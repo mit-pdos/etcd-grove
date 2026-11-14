@@ -312,6 +312,22 @@ theorem PastZ.of_tcFrom {m M : Fs.OsMeta} {s : Nat} (h : PastZ m) (hf : Fs.TcFro
       exact ⟨h1, h2.imp_right (hf.1 _)⟩
     · exact hz
 
+/-- **A candidate known at or past `hi` has the window's shape** (W6 log, twenty-third session, task 1):
+with `PastZ` and `old` no longer than `hi` (`WalAbsD.oldHi_any`), a zero stamped 0 there is `old`'s byte
+(zero past `old`), a zero of a known resize `winShape_rz`'s. What the writer past the size needs of the
+bytes it grows over (`pwTail`'s `m.pc b`). -/
+theorem PastZ.winShape {m : Fs.OsMeta} (h : PastZ m) {S old : List w8} (hold : old.length ≤ m.hi)
+    {b : Nat} {c : Fs.Cands} (hb : m.hi ≤ b) (hc : m.pc b = some c) :
+    ∀ q ∈ c, WinShape S old m.rz b q := by
+  intro q hq
+  obtain ⟨h1, h2⟩ := h b c hb hc q hq
+  rcases h2 with h2 | h2
+  · left
+    have e : old.getD b 0 = 0 := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+    rw [e, ← h1, ← h2]
+  · exact .inr (.inl ⟨h1, h2⟩)
+
 /-- **What the program knows of the tail's `OsMeta` `m` and bytes `bs`** (`walTailW`): all its bytes,
 no mappings, the candidates past its size (`TailZ`: zeros known past it, `MetaOk.zf`, a fact of the
 state, which the WAL invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s

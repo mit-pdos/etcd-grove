@@ -338,6 +338,13 @@ def WinHead (lay : WalLay) (g : SegG) : Prop :=
 theorem WinHead.of_lo {lay : WalLay} {g : SegG} (h : g.om.lo ≤ lay.wr) : WinHead lay g :=
   fun _ hb _ => .inl (Nat.le_trans h hb)
 
+/-- **A crash leaves the last segment at least `max so z0` long, in a window** (W6 log, twenty-third
+session): a window opens by a truncate to `wr` (`cut`'s, `ZeroToEnd`'s: `so, z0 ≤ wr`) or by a write past
+the size from an exact tail (`lo` its size, past `wr`); writes do not lower `lo` (`announce`'s `min lo tg`
+with `tg` at least the size), a growth neither. The window's crash decoding needs it: a zero a crash
+leaves at or past `lo` is past the synced bytes and the frames found (`TailVals`). -/
+def WinLo (lay : WalLay) (g : SegG) : Prop := max lay.so lay.z0 ≤ g.om.lo
+
 /-- **The last segment in a resize window** (`WalAbsD.last`'s window branch): `TailWin`, a zero a
 crash may leave at each byte from `wr` on (`WinHead`; until the twenty-second session of the W6 log,
 `lo ≤ wr`, which a write past the size from an exact tail falsifies; the truncate at `wr`, which
@@ -345,7 +352,7 @@ needed it of the size, gets it from the handle instead: `os.truncSup`'s `P`), `W
 no longer than the largest size a crash may leave (a window opens from an exact tail, `hi = |bs| =
 |old|`, and no step before the fdatasync lowers `hi`; `wal-tc12`'s option (b)). -/
 def WinLast (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
-  TailWin C Mr d lay g ∧ WinHead lay g ∧ WinZero lay g ∧ lay.old.length ≤ g.om.hi
+  TailWin C Mr d lay g ∧ WinHead lay g ∧ WinZero lay g ∧ lay.old.length ≤ g.om.hi ∧ WinLo lay g
 
 /-- An exact tail's bytes past `wr` are `old`'s (unwritten), so zero where `old` is (F-Z). -/
 theorem TailLast.winZero {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
@@ -477,7 +484,22 @@ theorem WalAbsD.winHead {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
 theorem WalAbsD.oldHi {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
     lay.old.length ≤ g.om.hi :=
-  ((h.last g hg).2 hx).2.2.2
+  ((h.last g hg).2 hx).2.2.2.1
+
+/-- **A window's least crash size is past the synced bytes and the frames found** (`WinLo`). -/
+theorem WalAbsD.winLo {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
+    WinLo lay g :=
+  ((h.last g hg).2 hx).2.2.2.2
+
+/-- **The tail's least crash size is past the synced bytes and the frames found**, window or not (an
+exact tail's is its length, at least `wr`). -/
+theorem WalAbsD.winLo_any {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) : WinLo lay g := by
+  by_cases hx : SegExact g
+  · obtain ⟨h1, -, h3, h4, -, h6, -⟩ := (h.last g hg).1 hx
+    unfold WinLo; rw [hx.1]; omega
+  · exact h.winLo g hg hx
 
 /-- **`old` is no longer than the tail's `hi`**, window or not (an exact tail is as long as `old`). -/
 theorem WalAbsD.oldHi_any {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
