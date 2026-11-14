@@ -5199,6 +5199,28 @@ items 1-2 above); its intended statement: `walAreaOk ∗ walTailW f fd name dir 
 `o0 + |out| = wr` and the offset there, the post on success `walTailW … sz out TailMetaW` with the bytes from `wr` to
 `sz` a zero run (`osZerosA`) and `TailZ` (`TailZ.zte`), on an error the handle lost.
 
+**Fixes A and B (branch `wal-tc17`, 2026-11-14; merge first, they change `WalAbsD` and `walLentRes`).**
+W1 log, twenty-seventh session. All 38 WAL leaves importing `Abs.lean` build (2851 jobs). *Fix A*:
+`WinLast`'s third conjunct is `TailZeros lay → WinZero lay g`; `WalAbsD.winZero` takes `TailZeros lay`
+(`WalAbsD.zeroPast` unchanged); `walAbsD_rzStart` has **no `WinZero` premise** (it derives it from
+`zeroPast`); `walAbsD_rzLandG`, `rzGrow_pure`, `rzLandG_pure` **lose their `TailZeros` premise**;
+`walAbsD_syncW` takes **`hwz : WinZero lay g0`**; `crashOk_syncW`, `walsOk_syncW`, `dirKeysOk_syncW` take
+**`hZ : TailZ0 lay`** and `hwz` (new `tailZeros_syncW0 : TailZ0 lay → wr ≤ |old| → TailZeros (syncLayW
+…)`); `syncLay_any` unchanged (F-Z). `TailZeros` moved to `Abs.lean`, `LenZ`/`TailPend` (from
+`TailCrashPend.lean`) too (same names). A window built by hand (`fun b x hb hx => …` in `WinLast`'s
+third place) now takes the F-Z hypothesis first (`fun _ b x hb hx`; `RzLand`, `RzGrow` adapted).
+*Fix B*: `ZerosOk T Ls M := ∀ dir lay, T !! dir ≠ none → Ls !! dir = some lay → NotPend M dir →
+TailZeros lay ∨ (M !! dir ≠ none ∧ TailPend lay)` (`ZerosOk.zeros`: not lent, F-Z; `zerosOr_congr`);
+`TailZK (some (_, false)) := TailZeros ∨ TailPend`, `TailZK.zeros` now takes `∀ k p, ok ≠ some (k, p)`
+(the key), new `TailZK.zp` (`∀ k, ok ≠ some (k, true)` → F-Z or `TailPend`); **`walLentRes_pendStop`**
+`(hp : ∀ lay, Ls !! dir = some lay → TailPend lay) : walPendTok dir γ k -∗ walLentRes T Ls ==∗
+walLentTok dir γ k ∗ walLentRes T Ls`; `walLentRes_unlend` takes `hz : ∀ lay, Ls !! dir = some lay →
+TailZeros lay`; **`walLentRes_unpend … (p : Bool)`** takes `walLentTokB dir γ k p` (either kind);
+`walLentRes_insert_same` gains `hp : TailPend lay → TailZeros lay' ∨ TailPend lay'` (after `hz`),
+`walLentRes_mono`'s `hz` the same conjunct; `walLentRes_lookup`'s `p = false` fact is `TailZeros ∨
+TailPend`; `walInvBody_unlend`/`walInv_unlend` removed (unused); `walTail_truncSup`'s `hok` is `∀ k p, ok
+≠ some (k, p)` (the key) until task 4 generalizes it.
+
 **The pending tail's crash step (branch `wal-tc16`, 2026-11-14).** W1 log, twenty-sixth session. Proved
 (`TailCrashPend.lean`): `LenZ`, `TailPend`, `decStep_zeroWord`, `crashTo_tailP`, `WalAbsD.pendVals`,
 **`crashOkA_tailPend`** (any tail step of a pending tail keeps `CrashOkA`, from `WalAbsD` before and after,
