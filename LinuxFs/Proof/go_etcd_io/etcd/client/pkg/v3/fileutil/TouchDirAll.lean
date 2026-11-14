@@ -57,27 +57,6 @@ theorem touchC_get (full : List GoString) (m i : Nat) (hi : i < (touchC full m).
     (touchC full m)[i] = os.ancPath (full.take (m + i)) := by
   simp [touchC]
 
-/-- The claims of a directory holding no directory cover its subtree. -/
-theorem subCover_noDirs (J : Ino) (hJ : NamesH) (hno : ∀ b J', hJ.cur !! b ≠ some (.dir J')) :
-    SubCover [(J, NameSet.except [], hJ)] (some (.dir J)) := by
-  have key : ∀ A B, ClReach [(J, NameSet.except [], hJ)] A B → A = B := by
-    intro A B hr
-    cases hr with
-    | refl => rfl
-    | step _ J1 _ h b hm hb _ =>
-      simp only [List.mem_singleton, Prod.mk.injEq] at hm
-      obtain ⟨-, -, rfl⟩ := hm
-      exact absurd hb (hno b J1)
-  intro J0 he J' hr
-  have h1 : J0 = J := by cases he; rfl
-  subst h1
-  have := key _ _ hr
-  subst this
-  exact ⟨hJ, by simp⟩
-
-theorem subCover_none (cl : List Claim) : SubCover cl none := by
-  intro J he; cases he
-
 /-- `verify.Assert(true, …)` returns. -/
 theorem wp_verifyAssert_true (msg : GoString) (v : GoSlice) :
     {{ (emp : IProp GF) }}
@@ -142,31 +121,34 @@ theorem mkOut_join (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat
     iframe Hl
     iapply (osNames_join j _ _ _ _ (Qp.half_add_half 1)).1 $$ [$H1 $H2]
 
-/-- An absent name, its claim whole: its subtree. -/
-theorem osSubtreeH_none (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b = none) :
-    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ⊢ osSubtreeH j b h := by
-  unfold osSubtreeH
+/-- An absent name, its claim whole: `tmpDirH`. -/
+theorem tmpDirH_none (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b = none) :
+    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ⊢ tmpDirH j b h := by
+  unfold tmpDirH
+  rw [hb]
+  unfold tmpSub
   iintro Hn
-  iexists []
-  iframe
-  isplitl []
-  · simp only [List.map_nil, osClaims]; iempintro
-  ipureintro; rw [hb]; exact subCover_none _
+  isplitl [Hn]
+  · iexact Hn
+  · iempintro
 
-/-- A name holding a directory that holds no directory, both claims whole: its subtree. -/
-theorem osSubtreeH_dir (j : Ino) (b : GoString) (h : NamesH) (J : Ino) (hJ : NamesH)
+/-- A name holding a directory that holds no directory, both claims whole: `tmpDirH`. -/
+theorem tmpDirH_dir (j : Ino) (b : GoString) (h : NamesH) (J : Ino) (hJ : NamesH)
     (hb : h.cur !! b = some (.dir J)) (hno : ∀ c J', hJ.cur !! c ≠ some (.dir J')) :
     osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ⊢
-      osSubtreeH j b h := by
-  unfold osSubtreeH
+      tmpDirH j b h := by
+  unfold tmpDirH
+  rw [hb]
+  unfold tmpSub
   iintro ⟨Hn, HJ⟩
-  iexists [(J, NameSet.except [], hJ)]
   iframe Hn
-  isplitl [HJ]
-  · simp only [List.map_cons, List.map_nil, osClaims]
-    iframe
-    iempintro
-  ipureintro; rw [hb]; exact subCover_noDirs J hJ hno
+  iexists hJ
+  iframe HJ
+  ipureintro
+  intro c n hc
+  cases n with
+  | file i => exact ⟨i, rfl⟩
+  | dir J' => exact absurd hc (hno c J')
 
 /-- A directory's claim merged from its `.only [b]` and `.except [b]` parts: each name's entry is the
 part's holding it. -/
@@ -327,12 +309,12 @@ theorem fileutil.TouchDirAll.wp_proof
     rcases o with _ | ⟨x, s, J⟩
     · dsimp only [mkOut]
       iexists h
-      iapply osSubtreeH_none jp name h hnone $$ Hout
+      iapply tmpDirH_none jp name h hnone $$ Hout
     · dsimp only [mkOut, mkNew]
       icases Hout with ⟨-, Hn1⟩
       icases Hnew with ⟨%hJ, HJ, %hJc⟩
       iexists _
-      iapply osSubtreeH_dir jp name (h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur)) J hJ
+      iapply tmpDirH_dir jp name (h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur)) J hJ
         (by simp [NamesH.log])
         (fun c J' hc => by rw [hJc.1] at hc; simp at hc) $$ [Hn1 HJ]
       iframe
@@ -394,7 +376,7 @@ theorem fileutil.TouchDirAll.wp_proof
         isplitr
         · ipureintro; intro hc; cases hc
         iexists h1
-        iapply osSubtreeH_dir jp name h1 J hJ hcur1 hno $$ [Hn1 HJ]
+        iapply tmpDirH_dir jp name h1 J hJ hcur1 hno $$ [Hn1 HJ]
         iframe
       | nil =>
         wp_auto
@@ -465,7 +447,7 @@ theorem fileutil.TouchDirAll.wp_proof
         isplitr
         · ipureintro; intro hc; cases hc
         iexists h''
-        iapply osSubtreeH_dir jp name h'' J hM hcur1 hnoM $$ [Hn1 HM]
+        iapply tmpDirH_dir jp name h'' J hM hcur1 hnoM $$ [Hn1 HM]
         iframe
       | nil =>
         iright
@@ -568,7 +550,7 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
       isplitr
       · ipureintro; intro hc; cases hc
       iexists h''
-      iapply osSubtreeH_dir jp name h'' J hJ hf.1 hno $$ [Hn HJ]
+      iapply tmpDirH_dir jp name h'' J hJ hf.1 hno $$ [Hn HJ]
       iframe
 
 end proof
