@@ -47,7 +47,7 @@ theorem segFl_take_cons {fl : SegFl} {g : SegG} (h : fl.Ok g) :
     exact ⟨y, ys.take k, rfl⟩
 
 /-- A resize in flight leaves byte 0 to the halves below it (I3b). -/
-theorem segFlR_take_cons {fl : SegFl} {tg : Nat} {g : SegG} (h : fl.OkR tg g) :
+theorem segFlR_take_cons {fl : SegFl} {tr : Bool} {tg : Nat} {g : SegG} (h : fl.OkR tr tg g) :
     ∃ y ys, fl.bs.take (min fl.m.size tg) = y :: ys := by
   obtain ⟨hlen, -, -, -, hpos⟩ := h
   cases hb : fl.bs with
