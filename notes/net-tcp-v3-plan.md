@@ -1,0 +1,66 @@
+# TCP semantics v3: what we take from dsverify-lab's network model
+
+Started 2026-11-14 (branch `net-tcp`). The user: "Borrow the good ideas from dsverify-lab's net
+semantics and add them here." The survey of dsverify-lab's `NetConn` model at its master (`91cebb8`:
+`harness/lean/Harness/GooseLang/Ext/NetConn/`, `harness/netsem/`, `harness/conform/`) against ours
+(v2.1, `notes/net-tcp.md`) found eleven ideas worth taking; this file is the plan and its decisions.
+Every decision keeps our rules: only observable state, auditable, sound against Go 1.27.3 on Linux 7.0
+(more behaviors than Linux is sound; fewer needs evidence), each decision with a Go example
+(`examples/net/semantics/`).
+
+## Decisions
+
+- **E1. Error identities.** Errors become values a program can test, as Go's: an operation on the
+  caller's own closed end or listener fails with `net.ErrClosed` (`poll.ErrNetClosing`), a deadline
+  timeout with `os.ErrDeadlineExceeded` (`poll.ErrDeadlineExceeded`), a `DialTimeout` timeout with
+  `net`'s `errTimeout`, and every other failure with an `*os.SyscallError` wrapping some nonzero
+  `syscall.Errno` (Go's own types: dsverify-lab's model-only `connError` is refutable by a type
+  assertion, so we do not copy it); each wrapped in a `*net.OpError` with Go's `Op`, `Net`,
+  `Source`, `Addr`. `OpError` and `OpError.Unwrap` translated, so `errors.Is` works through
+  Perennial's `errors.Is`. `OpError.Timeout`/`Temporary` are true for a deadline timeout, false for
+  `ErrClosed`, and arbitrary otherwise (an `ETIMEDOUT` from keepalive or a retransmission timeout has
+  `Timeout()` true: never "true only for deadlines"). The extension's results carry a kind
+  (`closed | timeout | sys`), mapped to those values by the trusted `net` models.
+- **E2. The Write/Close race** (dsverify-lab's F2, required by E1): a `Write` at an open end may
+  return `ErrClosed` with a prefix of its bytes (shorter, or none) appended, the direction still
+  open (a `Close` by another goroutine while the write blocked). Measured: `TestWriteCloseRace`.
+- **E3. Abandoned dials** (F1): a failed `Dial` may leave a pending connection whose dialer's end is
+  closed and whose direction from it is `fin` and empty, which an `Accept` may return (it reads EOF).
+  For every `Dial` (simplest, sound). Measured: `TestDialTimeoutAccepted`.
+- **E4. `Close` of an open end, and of an open listener, succeeds** (Go's `poll.FD.Close`, Linux's
+  `close(2)` of a socket; `TestCloseTwice`, `TestCloseAfterReset`).
+- **E5. Addresses**: a connection's `LocalAddr`/`RemoteAddr` and a listener's `Addr` are non-nil
+  `*TCPAddr`s fixed at creation, otherwise arbitrary (in the Go heap: no extension state); `TCPAddr`,
+  `IP` translated, `TCPAddr.String` arbitrary.
+- **E6. `DialTimeout`**: as `Dial`, its failure also the timeout (E1); E3 applies.
+- **E7. The deployment as a decidable premise**: `PlanWellFormed plan` (every address the canonical
+  spelling of an IPv4 host that is not `0.0.0.0/8`, multicast or broadcast, with a port outside
+  Linux's default ephemeral range 32768–60999 and not 0), a premise of every top-level theorem,
+  checked by `decide`; the closed world stays D13's only prose assumption.
+- **E8. Wildcard `Listen`** (`":p"`, `"0.0.0.0:p"`, `"[::]:p"`): resolves to the plan address with
+  port `p` and this node's host, stuck unless that port appears exactly once in the plan (on one
+  machine a wildcard listener takes every address with its port). Measured: `TestAddressAliases`
+  extended.
+- **E9. Evidence**: `GooseLang/Ext/Tcp/Tests.lean`, one `example` per `doc.go` row (the outcome
+  allowed or excluded); `doc.go`'s rows classed measured / documented (a cited source) / assumed;
+  tests in network namespaces (`sudo -n`, gated by `NETTCP_NETNS=1`): a partition with
+  `TCP_USER_TIMEOUT` (ETIMEDOUT with `Timeout()` true, then EOF), a reset injected by the network,
+  a healed partition.
+- **E10. A conformance checker** (dsverify-lab's `harness/conform`): trace real runs (the examples'
+  process tests, the semantics tests, a probe of races) with a `go build -overlay` tracer of `net`,
+  and check each trace against a transcription of `Impl.lean` with a linearizability search; then
+  certify an admitted verdict in Lean (the search outputs its witness, a `lake exe` replays it
+  through decidable versions of the outcome relations, proved equivalent).
+
+Not taken: a break that cuts both directions (ours, per direction, allows more); pending connections
+owned by a listener (impossible with node-local crashes, D7); dsverify-lab's Hoare-triple token specs
+(ours are logically atomic and more general); `"tcp4"`.
+
+## Phases
+
+1. Semantics v3 (E1–E8), the extension's and `net`'s specs and proofs, the measured tests, E9's
+   `Tests.lean` and evidence classes.
+2. The namespace tests (E9), in parallel with 1.
+3. The seven examples re-proved over v3, `PlanWellFormed` in each theorem.
+4. An axiom review of v3 (`axiom` skill).
+5. The conformance checker (E10), over v3.
