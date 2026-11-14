@@ -48,7 +48,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here
+## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here (CP2 landed)
 
 81 decided route (C) for finding 1 (`questions.md`; freeze package §11.1a, superseding (A)).
 - **Done, commit `033c31e5fd`**: `srvSnapOwn`'s index is the apply thread's ghost index `g`
@@ -61,7 +61,32 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 - Merged `lean` (570cea0725, k8s 7f-3b mvcc); STATUS entry added (ten kept, oldest to status-history).
 - Verified (after the merge): full build clean, 17479 jobs (`/shared/tmp/restart-s56/routeC/full.log`);
   `tcb-report --check` matches the baseline (870 axioms, 4 sorries; `routeC/tcb.log`); `gen-interface
-  --check` clean for every `etc/api` list. Gates and landing: by `etc/land.sh` (`routeC/land.log`).
+  --check` clean for every `etc/api` list.
+- **Landed: `lean` 77f542f56c** (`/shared/tmp/restart-s56/routeC/land2.log`, gates all passed). The
+  first land.sh failed two gates, both from `NewServer.specR` (CP2): bounds +6 (its copies of specG's
+  `threadBound`, `receiptBound` x2, `etcdMaxRequestBytesOk`, `maxTxnOpsOk`, the `srvServeRes`
+  replicate) and mode +3 (its auth-off literals); baselines raised and specR classified `lit-mode
+  unmoved` (commit 77f542f56c; `questions.md`, a form for 81's checkpoint review).
+
+### B2 map (not started; for the next agent)
+
+`NewServer.wp_proofG` (`E/NewServer.lean:277`, ~2700 lines) uses the first-start boot rows in a few
+places only (line numbers at 77f542f56c):
+- 418-700: the bootstrap call (`Hboot`, 444-446: `Hrauth`, `Hwdf`), the WAL (`wal.bootOk_start`, 476),
+  the meta rows (`Hmeta`/`Hmsmeta`, `HmEmpty`, `Hm0`, `Hthr` 478-485), the node (`Hnboot`, `Hraft`,
+  `raftNode_of_StartNode`, 514-542), the store (`boot_storage`, 672-700, `HnoCmp` 688);
+- 1230-1261: the snapshot directory (`Hsdo`, `Hsdir`; at a restart: the image's invariant through
+  `snapDirInv_ss_congr` and `Hssp`, the image's counter for the `srvBuiltRestartR` row, route (C):
+  `c ≤ i + 1 = |A| + 1`);
+- 1613 (`Hsnone`), 1996-2019 (`Hrauth`'s later use), 2212-2359 (the apply rows at `[]`, `Hlog0`,
+  `Hthr`); `Hkvinv` 1578-2226 (unchanged text).
+The tail between is shared but runs in the context the boot built. Numbers for D1's fallback decision:
+a lemma-factored `wp_proofB` must thread the bootstrap's whole context (`bootOk` and `bootOkR` differ in
+~25 named rows); a separate `wp_proofR` copies ~2700 lines and adapts ~400. Recommendation to ask 81
+first: the fallback (separate `wp_proofR` reusing `raftNode_of_RestartNode`, `wal.restartOk_start`,
+`boot_storageR`), since the factoring would touch every step of the frozen first-start proof.
+- NodeStart's `Hbc` from I3: not needed for B2. `NodeStartSpecR`'s `σ.b ≤ |A₀| ≤ σ.commit` follows from
+  the image (`wal.stopImage`'s `σ.b ≤ i ≤ σ.commit`, `uint.Z i = |A|`, `A₀ = A`).
 - **For B2**: the restart's `srvBuiltRestartR` row is `srvSnapOwn … (0 + W64 |A|)`, i.e. `c ≤ |A| + 1 =
   i + 1` with the image's `c ≤ i + 1` (`uint.Z i = |A|`, the image's) -- no WAL link needed.
 
