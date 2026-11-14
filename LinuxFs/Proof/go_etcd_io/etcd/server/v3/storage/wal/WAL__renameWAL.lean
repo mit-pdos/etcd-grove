@@ -68,7 +68,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     (wp_As : errors.AsLinkError.spec (GF := GF) (hG := hG))
     (wp_unlock : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (W := W) P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr := by
-  intro R jr J r dir nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp SpR hok
+  intro R jr J r dir nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp SpR UH hok
   have hok' := hok
   obtain ⟨hin, hdl, hnm, htmp, hne, hNnm, hNt, htJ, hnmA, hSp, hU⟩ := hok
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, #Hlb, HN, Hau, HSp, Htmps, Hpre, Hlk, Hfp, Hdf⟩
@@ -124,7 +124,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     wp_apply wp_As le _ null $$ [$linkErr] as Hl
     try wp_auto
     wp_apply wp_unlock R jr J r (child r nm) nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname
-      d c off U Sp SpR o hok' $$ [Hp Hperm HU Hout HSp Htmps Hlg Hdir Hpre Hlk Hfp Hdf] as %w' %err' Hpost
+      d c off U Sp SpR UH o hok' $$ [Hp Hperm HU Hout HSp Htmps Hlg Hdir Hpre Hlk Hfp Hdf] as %w' %err' Hpost
     · iframe; iframe #
       iunfold walPreIn
       iexists locks

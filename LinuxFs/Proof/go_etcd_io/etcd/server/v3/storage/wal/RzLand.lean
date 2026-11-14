@@ -88,7 +88,7 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs]; exact hb), k6, k7, k8⟩
     rw [hbs]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_, ?_, ?_,
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun _ b x hb hx => ?_, ?_, ?_,
       fun b x hb hlb hbw => ?_⟩
     · simp only [tailLay] at hbw ⊢
       have hbw' : b < lay.wr := by

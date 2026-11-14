@@ -199,11 +199,6 @@ abbrev TailG := List (WalOpG WalEnt) × List w8 × List Nat × Nat × Ino × Opt
 def tailG (d : WalDur) (lay : WalLay) (i : Ino) (fl : Option SegFl) : TailG :=
   (d.H, d.metadata, lay.cuts, lay.wr, i, fl)
 
-/-- **F-Z**: past the frames found at the generation's start, the tail is zeros (`ReadAll`'s
-`ZeroToEnd` and fdatasync; a segment this generation created is zeros past its headers). -/
-def TailZeros (lay : WalLay) : Prop :=
-  ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0
-
 /-- **F-Z, or nothing written past the start's frames** (I3b, `wal-tc15`): every registered tail's
 fact in `walTailsRes`. A tail `ReadAll` registers after a crash has `wr = z0` and its `old` past `z0`
 unknown (a torn frame); it is registered, not yet zeroed (`walPendTok`), until the fdatasync after
@@ -213,23 +208,36 @@ def TailZ0 (lay : WalLay) : Prop := TailZeros lay ∨ lay.wr = lay.z0
 
 theorem TailZ0.of_zeros {lay : WalLay} (h : TailZeros lay) : TailZ0 lay := Or.inl h
 
-/-- **What a step of the tail knows of F-Z** by its right (`walTailKeyL`'s `ok`): F-Z, unless the tail is
-registered, not yet zeroed (`some (k, true)`), then `TailZ0`. -/
+/-- `TailPend` gives `TailZ0`. -/
+theorem TailZ0.of_pend {lay : WalLay} (h : TailPend lay) : TailZ0 lay := Or.inr h.1
+
+/-- **What a step of the tail knows of F-Z** by its right (`walTailKeyL`'s `ok`): F-Z by the key
+(`none`); F-Z or `TailPend` lent (`some (k, false)`: by the key's holder, or a pending tail whose reader
+stopped at `wr`, `walLentRes_pendStop`; `wal-tc17`, finding B); `TailZ0` registered, not yet zeroed
+(`some (k, true)`). -/
 def TailZK : Option (Nat × Bool) → WalLay → Prop
   | some (_, true), lay => TailZ0 lay
-  | _, lay => TailZeros lay
+  | some (_, false), lay => TailZeros lay ∨ TailPend lay
+  | none, lay => TailZeros lay
 
-theorem TailZK.zeros {ok : Option (Nat × Bool)} {lay : WalLay} (hok : ∀ k, ok ≠ some (k, true))
+theorem TailZK.zeros {ok : Option (Nat × Bool)} {lay : WalLay} (hok : ∀ k p, ok ≠ some (k, p))
     (h : TailZK ok lay) : TailZeros lay := by
-  rcases ok with _ | ⟨k, _ | _⟩
+  rcases ok with _ | ⟨k, p⟩
   · exact h
+  · exact absurd rfl (hok k p)
+
+/-- F-Z or `TailPend`, unless registered, not yet zeroed. -/
+theorem TailZK.zp {ok : Option (Nat × Bool)} {lay : WalLay} (hok : ∀ k, ok ≠ some (k, true))
+    (h : TailZK ok lay) : TailZeros lay ∨ TailPend lay := by
+  rcases ok with _ | ⟨k, _ | _⟩
+  · exact Or.inl h
   · exact h
   · exact absurd rfl (hok k)
 
 theorem TailZK.z0 {ok : Option (Nat × Bool)} {lay : WalLay} (h : TailZK ok lay) : TailZ0 lay := by
   rcases ok with _ | ⟨k, _ | _⟩
   · exact Or.inl h
-  · exact Or.inl h
+  · exact h.elim Or.inl TailZ0.of_pend
   · exact h
 
 /-- **The tail's record boundary** (W6): the larger of the synced offset and the end of the frames
@@ -778,10 +786,19 @@ def LentOk (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString
 def NotPend (M : GMap GoString (GName × Nat × Bool)) (dir : GoString) : Prop :=
   ∀ x, M !! dir = some x → x.2.2 = false
 
-/-- **F-Z of every registered tail but those registered, not yet zeroed** (I3b, `wal-tc15`). -/
+/-- **F-Z of every registered tail but those registered, not yet zeroed** (I3b, `wal-tc15`); a lent
+one (kind `false`) may instead have `TailPend` (a pending tail whose reader stopped at `wr`,
+`walLentRes_pendStop`; `wal-tc17`, finding B). -/
 def ZerosOk (T : GMap GoString GName) (Ls : GMap GoString WalLay) (M : GMap GoString (GName × Nat × Bool)) :
     Prop :=
-  ∀ dir lay, T !! dir ≠ none → Ls !! dir = some lay → NotPend M dir → TailZeros lay
+  ∀ dir lay, T !! dir ≠ none → Ls !! dir = some lay → NotPend M dir →
+    TailZeros lay ∨ (M !! dir ≠ none ∧ TailPend lay)
+
+/-- A registered tail not lent has F-Z. -/
+theorem ZerosOk.zeros {T : GMap GoString GName} {Ls : GMap GoString WalLay}
+    {M : GMap GoString (GName × Nat × Bool)} (h : ZerosOk T Ls M) {dir : GoString} {lay : WalLay}
+    (hT : T !! dir ≠ none) (hl : Ls !! dir = some lay) (hM : M !! dir = none) : TailZeros lay :=
+  (h dir lay hT hl (fun x hx => by rw [hM] at hx; cases hx)).elim id (fun h => absurd hM h.1)
 
 /-- **Every unregistered WAL's tail: F-Z, or nothing written past the start's frames** (I3b,
 `wal-tc15`): a crash leaves `wr = z0`; `Create`'s, `Close`'s (the key's holder's) tails have F-Z; an idle
@@ -829,7 +846,7 @@ theorem walLentRes_init (T : GMap GoString GName) (Ls : GMap GoString WalLay)
   iexists ∅
   iframe Ha
   isplitr
-  · ipureintro; exact fun dir lay hT hl _ => hz dir lay hT hl
+  · ipureintro; exact fun dir lay hT hl _ => Or.inl (hz dir lay hT hl)
   isplitr
   · ipureintro; exact hz0
   iapply BigSepM.bigSepM_empty.2; iempintro
@@ -839,7 +856,8 @@ and F-Z of each registered tail. -/
 theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString WalLay)
     (h : ∀ dir x, LentOk T Ls dir x → LentOk T' Ls' dir x)
     (hz : ∀ dir lay', T' !! dir ≠ none → Ls' !! dir = some lay' →
-      ∃ lay, T !! dir ≠ none ∧ Ls !! dir = some lay ∧ (TailZeros lay → TailZeros lay'))
+      ∃ lay, T !! dir ≠ none ∧ Ls !! dir = some lay ∧ (TailZeros lay → TailZeros lay') ∧
+        (TailPend lay → TailZeros lay' ∨ TailPend lay'))
     (hz0 : IdleZ0 T Ls → IdleZ0 T' Ls') :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T' Ls' := by
   unfold walLentRes
@@ -849,8 +867,10 @@ theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString Wal
   isplitr
   · ipureintro
     intro dir lay' hT hl hp
-    obtain ⟨lay, hT0, hl0, himp⟩ := hz dir lay' hT hl
-    exact himp (HZ dir lay hT0 hl0 hp)
+    obtain ⟨lay, hT0, hl0, himp, himp'⟩ := hz dir lay' hT hl
+    rcases HZ dir lay hT0 hl0 hp with h | ⟨hM, h⟩
+    · exact Or.inl (himp h)
+    · exact (himp' h).elim Or.inl (fun h' => Or.inr ⟨hM, h'⟩)
   isplitr
   · ipureintro; exact hz0 HI
   iapply BigSepM.bigSepM_mono (fun {k x} _ => ?_) $$ Hm
@@ -858,11 +878,12 @@ theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString Wal
   iframe Hk
   ipureintro; exact h k x hk
 
-/-- **A layout replaced, its `old` as long, F-Z kept** (any step but a cut and the window's
-fdatasync). -/
+/-- **A layout replaced, its `old` as long, F-Z kept, `TailPend` kept or turned into F-Z** (any step
+but a cut and the window's fdatasync). -/
 theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
     (lay lay' : WalLay) (hl : Ls !! dir = some lay) (ho : lay'.old.length = lay.old.length)
-    (hz : TailZeros lay → TailZeros lay') (hz0 : T !! dir = none → TailZ0 lay → TailZ0 lay') :
+    (hz : TailZeros lay → TailZeros lay') (hp : TailPend lay → TailZeros lay' ∨ TailPend lay')
+    (hz0 : T !! dir = none → TailZ0 lay → TailZ0 lay') :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T (<[dir := lay']> Ls) := by
   refine walLentRes_mono T T Ls _ (fun d x ⟨hT, la, hla, hk⟩ => ⟨hT, ?_⟩) (fun d la' hT hla' => ?_)
     (fun HI d la' hT hla' => ?_)
@@ -872,9 +893,9 @@ theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString Wal
     · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hk⟩
   · by_cases e : d = dir
     · subst e; rw [GMap.lookup_insert] at hla'; cases hla'
-      exact ⟨lay, hT, hl, hz⟩
+      exact ⟨lay, hT, hl, hz, hp⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla'
-      exact ⟨la', hT, hla', id⟩
+      exact ⟨la', hT, hla', id, Or.inr⟩
   · by_cases e : d = dir
     · subst e; rw [GMap.lookup_insert] at hla'; cases hla'
       exact hz0 hT (HI d lay hT hl)
@@ -894,7 +915,7 @@ theorem walLentRes_insert_new (T : GMap GoString GName) (Ls : GMap GoString WalL
   · ipureintro
     intro d la hT hla hp
     by_cases e : d = dir
-    · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz hT
+    · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact Or.inl (hz hT)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla; exact HZ d la hT hla hp
   isplitr
   · ipureintro
@@ -941,11 +962,17 @@ theorem walLentRes_zeros (T : GMap GoString GName) (Ls : GMap GoString WalLay) (
   isplitr
   · ipureintro
     intro lay hT hl
-    exact hM.2.1 dir lay hT hl (fun x hx => by rw [hM.1] at hx; cases hx)
+    exact hM.2.1.zeros hT hl hM.1
   unfold walLentRes
   iexists M
   iframe Ha Hm
   ipureintro; exact hM.2
+
+/-- `ZerosOk`'s fact at a directory whose lent entry is unchanged. -/
+theorem zerosOr_congr {M M' : GMap GoString (GName × Nat × Bool)} {d : GoString} {lay : WalLay}
+    (e : M' !! d = M !! d) (h : TailZeros lay ∨ (M !! d ≠ none ∧ TailPend lay)) :
+    TailZeros lay ∨ (M' !! d ≠ none ∧ TailPend lay) := by
+  rw [e]; exact h
 
 /-- The entries of the other directories when `dir`'s is absent from `M` and its layout changes. -/
 private theorem lentOk_insert_of_none {T : GMap GoString GName} {Ls : GMap GoString WalLay}
@@ -961,7 +988,7 @@ private theorem zerosOk_insert {T : GMap GoString GName} {Ls : GMap GoString Wal
     (hz : TailZeros lay') : ZerosOk T (<[dir := lay']> Ls) M := by
   intro d la hT hla hp
   by_cases e : d = dir
-  · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz
+  · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact Or.inl hz
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla; exact hZ d la hT hla hp
 
 /-- **The tail's layout replaced by its key's holder** (a cut, the window's fdatasync): any `old`,
@@ -1022,7 +1049,7 @@ theorem walLentRes_reg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (di
   · ipureintro
     intro d la hT' hla hp
     by_cases e : d = dir
-    · subst e; exact hz la hla
+    · subst e; exact Or.inl (hz la hla)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hT'; exact HZ d la hT' hla hp
   isplitr
   · ipureintro; exact HI.reg
@@ -1062,7 +1089,8 @@ theorem walLentRes_regPend (T : GMap GoString GName) (Ls : GMap GoString WalLay)
     · subst e
       exact absurd (hp _ (GMap.lookup_insert _ _ _)) (by simp)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hT'
-      exact HZ d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx))
+      exact zerosOr_congr (GMap.lookup_insert_ne _ _ (Ne.symm e))
+        (HZ d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx)))
   isplitr
   · ipureintro; exact HI.reg
   have hT1 : (<[dir := γ]> T) !! dir = some γ := GMap.lookup_insert _ _ _
@@ -1105,7 +1133,7 @@ theorem walLentRes_unreg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (
     · subst e
       by_cases hT0 : T !! d = none
       · exact hM.2.2 d la hT0 hla
-      · exact Or.inl (hM.2.1 d la hT0 hla (fun x hx => by rw [hM.1] at hx; cases hx))
+      · exact Or.inl (hM.2.1.zeros hT0 hla hM.1)
     · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hT; exact hM.2.2 d la hT hla
   iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
   iintro ⟨%hx, Hk⟩
@@ -1121,7 +1149,8 @@ key's holder (`p = false`), F-Z. -/
 theorem walLentRes_lookup (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
     (γ : GName) (k : Nat) (p : Bool) :
     ⊢ walLentTokB (W := W) dir γ k p -∗ walLentRes (W := W) T Ls -∗
-      ⌜LentOk T Ls dir (γ, k, p) ∧ (p = false → ∀ lay, Ls !! dir = some lay → TailZeros lay)⌝ ∗
+      ⌜LentOk T Ls dir (γ, k, p) ∧
+        (p = false → ∀ lay, Ls !! dir = some lay → TailZeros lay ∨ TailPend lay)⌝ ∗
         walLentTokB (W := W) dir γ k p ∗ walLentRes (W := W) T Ls := by
   unfold walLentRes
   iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
@@ -1131,8 +1160,11 @@ theorem walLentRes_lookup (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
   iframe Hl
   isplitr
   · ipureintro
-    refine ⟨hx, fun hp lay hl => HZ dir lay (by rw [hx.1]; simp) hl (fun x' hx' => ?_)⟩
-    rw [hM] at hx'; cases hx'; simpa using hp
+    refine ⟨hx, fun hp lay hl => ?_⟩
+    rcases HZ dir lay (by rw [hx.1]; simp) hl (fun x' hx' => by rw [hM] at hx'; cases hx'; simpa using hp)
+      with h | ⟨-, h⟩
+    · exact Or.inl h
+    · exact Or.inr h
   iexists M
   iframe Ha
   isplitr
@@ -1163,8 +1195,11 @@ theorem walLentRes_lend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (d
     intro d la hT' hla hp
     by_cases e : d = dir
     · subst e
-      exact hM.2.1 d la hT' hla (fun x hx => by rw [hM.1] at hx; cases hx)
-    · exact hM.2.1 d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx))
+      exact Or.inl (hM.2.1.zeros hT' hla hM.1)
+    · rcases hM.2.1 d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx))
+        with h | ⟨h1, h⟩
+      · exact Or.inl h
+      · exact Or.inr ⟨by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact h1, h⟩
   isplitr
   · ipureintro; exact hM.2.2
   iapply (BigSepM.bigSepM_insert (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
@@ -1172,9 +1207,10 @@ theorem walLentRes_lend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (d
   iframe Hm Hk
   ipureintro; exact ⟨hT, lay, hl, rfl⟩
 
-/-- **A lent tail returned**: the token in, the key out. -/
+/-- **A lent tail returned**: the token in, the key out, given F-Z of its layout (the key's holder
+reads F-Z, `walLentRes_zeros`; `wal-tc17`: a lent tail may have `TailPend` instead). -/
 theorem walLentRes_unlend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
-    (γ : GName) (k : Nat) :
+    (γ : GName) (k : Nat) (hz : ∀ lay, Ls !! dir = some lay → TailZeros lay) :
     ⊢ walLentTok (W := W) dir γ k -∗ walLentRes (W := W) T Ls ==∗
       walTailKey (W := W) dir γ ∗ walLentRes (W := W) T Ls := by
   unfold walLentRes
@@ -1191,23 +1227,25 @@ theorem walLentRes_unlend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
   · ipureintro
     intro d la hT hla hp
     by_cases e : d = dir
-    · subst e; exact HZ d la hT hla (fun x hx => by rw [hM] at hx; cases hx; rfl)
-    · exact HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx))
+    · subst e; exact Or.inl (hz la hla)
+    · exact zerosOr_congr (GMap.lookup_delete_ne _ (Ne.symm e))
+        (HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx)))
   ipureintro; exact HI
 
-/-- **A pending tail zeroed** (I3b, `wal-tc15`; the fdatasync after `ZeroToEnd`): the pending token in,
-the key out, the tail's layout replaced by one with F-Z. -/
+/-- **A lent tail zeroed** (I3b, `wal-tc15`; the fdatasync after `ZeroToEnd`): the token of either
+kind (`wal-tc17`: a pending tail's, or one `walLentRes_pendStop` made) in, the key out, the tail's
+layout replaced by one with F-Z. -/
 theorem walLentRes_unpend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
-    (γ : GName) (k : Nat) :
-    ⊢ walPendTok (W := W) dir γ k -∗ walLentRes (W := W) T Ls ==∗
+    (γ : GName) (k : Nat) (p : Bool) :
+    ⊢ walLentTokB (W := W) dir γ k p -∗ walLentRes (W := W) T Ls ==∗
       walTailKey (W := W) dir γ ∗
         ∀ lay' : WalLay, ⌜TailZeros lay'⌝ -∗ walLentRes (W := W) T (<[dir := lay']> Ls) := by
   unfold walLentRes
   iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
-  icases walLentTok_lookup M dir γ k true $$ Ha Hl with %hM
+  icases walLentTok_lookup M dir γ k p $$ Ha Hl with %hM
   ihave ⟨⟨-, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
-  imod walLentTok_delete M dir γ k true $$ Ha Hl with Ha
+  imod walLentTok_delete M dir γ k p $$ Ha Hl with Ha
   imodintro
   iframe Hk
   iintro %lay' %hz
@@ -1217,9 +1255,10 @@ theorem walLentRes_unpend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
   · ipureintro
     intro d la hT hla hp
     by_cases e : d = dir
-    · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz
+    · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact Or.inl hz
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla
-      exact HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx))
+      exact zerosOr_congr (GMap.lookup_delete_ne _ (Ne.symm e))
+        (HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx)))
   isplitr
   · ipureintro; exact HI.insert (Or.inl hz)
   iapply BigSepM.bigSepM_mono (fun {k' x} hk => ?_) $$ Hm
@@ -1230,6 +1269,42 @@ theorem walLentRes_unpend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
     change GMap.delete dir M !! k' = some x at hk; rintro rfl; rw [GMap.lookup_delete_eq] at hk; cases hk
   obtain ⟨hT, la, hla, hlen⟩ := hx
   exact ⟨hT, la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hlen⟩
+
+/-- **A pending tail whose reader stopped at `wr`** (I3b, `wal-tc17`, finding B; `ZeroToEnd`'s first
+step): the pending token in, the lent token (kind `false`) out, given `TailPend` of its layout (the
+zero length word at `wr`, which the handle's bytes show). The resize supplies then step the tail by
+`crashOkA_tailPend`. -/
+theorem walLentRes_pendStop (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (k : Nat) (hp : ∀ lay, Ls !! dir = some lay → TailPend lay) :
+    ⊢ walPendTok (W := W) dir γ k -∗ walLentRes (W := W) T Ls ==∗
+      walLentTok (W := W) dir γ k ∗ walLentRes (W := W) T Ls := by
+  unfold walLentRes
+  iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
+  icases walLentTok_lookup M dir γ k true $$ Ha Hl with %hM
+  ihave ⟨⟨%hx, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
+    iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
+  imod walLentTok_delete M dir γ k true $$ Ha Hl with Ha
+  have hM0 : (GMap.delete dir M) !! dir = none := GMap.lookup_delete_eq _ _
+  imod walLentTok_insert (GMap.delete dir M) dir γ k false hM0 $$ Ha with ⟨Ha, Hl⟩
+  imodintro
+  iframe Hl
+  iexists _
+  iframe Ha
+  isplitr
+  · ipureintro
+    intro d la hT hla hnp
+    by_cases e : d = dir
+    · subst e
+      exact Or.inr ⟨by rw [GMap.lookup_insert]; simp, hp la hla⟩
+    · have e1 : (<[dir := (γ, k, false)]> (GMap.delete dir M)) !! d = M !! d := by
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm e), GMap.lookup_delete_ne _ (Ne.symm e)]
+      exact zerosOr_congr e1 (HZ d la hT hla (fun x hx => hnp x (by rw [e1]; exact hx)))
+  isplitr
+  · ipureintro; exact HI
+  iapply (BigSepM.bigSepM_insert (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
+    iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM0).2
+  iframe Hm Hk
+  ipureintro; exact hx
 
 /-- **The unregistered tails' `TailZ0`** (`walLentRes`'s `IdleZ0`). -/
 theorem walLentRes_idle (T : GMap GoString GName) (Ls : GMap GoString WalLay) :

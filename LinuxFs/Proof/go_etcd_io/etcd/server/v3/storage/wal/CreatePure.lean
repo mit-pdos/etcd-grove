@@ -34,6 +34,14 @@ theorem clean_child {r nm : GoString} (hr : filepath.CleanAbs r) (hnm : NameOk n
   rw [e] at h
   exact filepath.cleanModel_cleanAbs _ h
 
+/-- **`filepath.Dir` of the WAL's directory** (`Create`'s parent fsync): the area. -/
+theorem dir_child_model {r nm : GoString} (hr : filepath.CleanAbs r) (hnm : NameOk nm) :
+    path.dirModel (child r nm) = r := by
+  have h := filepath.dirModel_name r nm hr (cleanSeg_of_nameOk hnm)
+  have e : r ++ [path.slash] ++ nm = child r nm := by simp [child]; rfl
+  rw [e] at h
+  exact h
+
 theorem tmpName_nameOk {nm : GoString} (h : NameOk nm) : NameOk (tmpName nm) := by
   obtain ⟨h1, -, -, h4, h5⟩ := h
   refine ⟨by simp [tmpName], ?_, ?_, ?_, ?_⟩
