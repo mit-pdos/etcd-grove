@@ -198,9 +198,10 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   cuts : (∀ b ∈ lay.cuts, walCutPos (histM d) b) ∧ lay.cuts.Pairwise (· < ·) ∧
     lay.first + lay.segs.length = lay.cuts.length + 1
   /-- The name bound (W4a.2): a segment starting at `b` is named with an index above every entry
-  index before `b`. -/
+  index before `b`; the index a `uint64` (`walFileName` keeps it modulo `2^64`: `Create` names its
+  segment with 0, a cut with `max(w.enti, w.snapi) + 1`, below `2^64` by the handle's bound). -/
   nameBound : ∀ k (g : SegG), lay.segs[k]? = some g → ∃ sq ix : Nat,
-    g.name = walFileName sq ix ∧ (0 < lay.first + k → walLastIdx ((histM d).take (segStart lay.cuts (lay.first + k))) + 1 ≤ ix)
+    g.name = walFileName sq ix ∧ ix < 2 ^ 64 ∧ (0 < lay.first + k → walLastIdx ((histM d).take (segStart lay.cuts (lay.first + k))) + 1 ≤ ix)
   /-- What `Open` reads from, and what was purged. -/
   cut : d.cut = segStart lay.cuts lay.first ∧ (0 < lay.first → d.cut ≤ d.pur)
   /-- Each segment's `OsMeta` half: its size is its bytes', no sync cut, a crash leaves it with
@@ -235,6 +236,10 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
       (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) ≠ .accept r len c'
   /-- There is a segment (`Create` makes the first; a purge keeps the last). -/
   nonempty : lay.segs ≠ []
+  /-- Every cut past the history's start (`walCutPos` allows 0): a cut follows a `Save` that wrote a
+  record (`cut.spec`'s `0 < |H|`), and a crash keeps the cuts. `ReadAll` from a cut file reads past a
+  nonempty prefix (`readAll_success`). -/
+  cutPos : ∀ b ∈ lay.cuts, 0 < b
 
 /-- **The last segment's facts, no resize window open on it.** -/
 theorem WalAbsD.lastEx {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}

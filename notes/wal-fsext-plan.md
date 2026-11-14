@@ -558,7 +558,10 @@ W3/W5 log, sixteenth session). The readers' errors carry their `errors.Is` evide
 `io.ReadFull` axiom (adopted provisionally, pending the user's review), so `WalDecEnvSupply` is true of Go (unprovable only
 for `errors.newVar`'s lost allocation identity, a Perennial gap); new hypothesis `errors.IsPathErrnoEof.spec`; `walReadH`
 ties the pipeline's directory inode to the claim's and `walReadTie` records `gs ≠ []` (`wal-readall17`; W3/W5 log,
-seventeenth session).
+seventeenth session) `WalReadState` proved and deleted (`walInvBody_readState`: the pinned
+segments from `walReadTie`'s new name fact and the claim halves' agreement, no invariant law), the cuts positive
+(`WalAbsD.cutPos`, `WAL.cut.spec`'s `0 < |H|`: ledger) and the names' indices below `2^64` (`WalAbsD.nameBound`);
+`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). `WalsBounded` (metadata `< 2^41`, a framed conjunct; the segments' size read at a step, `wp_segs_size`) replaces `WalPinSized`, and `Open` takes its path from `walInv_dirPath` (`WalDirPathLaw` deleted); `renameWAL.spec`'s spine law restated with `notCrashed` and the update's result (ledger); the nil-receiver `File.Close` proved (`wal-path15`; W1 log, fifteenth session). `renameWAL` proved over `renameWALUnlock.spec` (a hypothesis, unprovable as stated: ledger 2026-11-14) and `errors.AsLinkError.spec`; `Create` through `Preallocate` (`wal-create14`; W4 log, sixteenth session). Open: `renameWALUnlock`'s restatement, `Create`'s body from the encoder on.
@@ -5003,3 +5006,57 @@ their evidence; a trust-boundary axiom restated, **adopted provisionally, pendin
 - *Not done*: task 2 (the invariant facts for `WalReadState`: files singly named, cut positivity, the pinned-segments
   law, `nameBound`'s `ix < 2^64`), task 3 (`ReadAll.wp_proof`). Build note: `wal-create14`'s `.lake` (GooseLang,
   LinuxFs, `Proof/*.olean` top level, `Proof/go_etcd_io/etcd/server/v3/storage`) after its build seeded this one.
+
+**W3/W5 log, eighteenth session (branch `wal-readall18`, 2026-11-14).** Task 1 done: **`WalReadState` proved and
+deleted** (`walInvBody_readState`, `ReadState.lean`, no `sorry`); task 2 (`ReadAll.wp_proof`) not started beyond the
+plan below. No `sorry` added or removed.
+- *The cuts' positivity*: a new field **`WalAbsD.cutPos : ∀ b ∈ lay.cuts, 0 < b`** (last, after `nonempty`; the
+  positional constructions in `OpenUnl`, `TailSyncIdle`, `RzStepPure`, `TailStepPure`, `SaveAbs`, `CreateNamed`,
+  `CreateCommit`, `Crash` take it through). Established by `cutLay_abs` (new premise `hpos : 0 < d.H.length`), kept by
+  the crash (`CrashPure`: the cuts unchanged) and every other step (the cuts unchanged). Plumbing: **`WAL.cut.spec`
+  takes `0 < h.H.length`** (ledger 2026-11-14, "the history nonempty at a cut"; `WAL.Save.wp_proof` supplies it from
+  `H ++ [save]`), `CutAu`'s/`cutCommit_pure`'s `hcpos` is `walCutPos … ∧ 0 < |H|`. Not a part of `walTailsRes`
+  (the fifteenth session's plumbing plan): a field reaches every layout, the crash included, with no new framed part.
+- *`nameBound`'s `ix < 2^64`*: **`WalAbsD.nameBound`** now reads `∃ sq ix, g.name = walFileName sq ix ∧ ix < 2 ^ 64 ∧
+  (…)`; `cutLay_abs` takes `hix : ix < 2 ^ 64`, the cut's `hbt` (`CutAu`, `cutCommit_pure`) ends with `ix < 2 ^ 64`,
+  which `WAL.cut.wp_proof` has from the handle (`hmx : max enti snapi + 1 < 2^64`). `readAll_success` drops its
+  `hcpos`/`hnb` premises and reads both from `WalAbsD`.
+- *The pinned segments, with no invariant law* (**deviation** from the sixteenth session's "files singly named" and
+  `WalPinnedSegs` designs): the program's half of the WAL directory's claim agrees with the invariant's
+  (`osClaims_agree`), so it suffices that **`walReadTie` records `∃ kk, (walNames hj.cur).drop kk = gs.map name`**
+  (`ReadDefs.lean`, a sealed-module change; `openAtIndex` proves it from `walNames_segs` and `gs = lay.segs.drop kk`).
+  At any later step, `walNames hj.cur = lay.segs.map name` (`WalAbsD.names`, `SegsNamed`, distinct inodes), so the
+  pinned names are the layout's from `kk` on; each name gives the same inode in both (`segs_drop_inos`), and the
+  halves of `OsMeta` and bytes agree (`halves_agree`; `walTailsRes_none`: no change in flight), so `lay.segs.drop kk
+  = gs` (`segs_drop_eq`). The claim's history cannot change while the program holds its half, which is why no
+  invariant law is needed: no purge, cut or rename moves a `.wal` name of a WAL whose claim half is out.
+- **`walInvBody_readState hnm hdrop hsz`** (`ReadState.lean`): `walInvBody s`, `walDirKey dir j X`, the program's
+  half `osNames j (.except X) ½ hj0`, `walTailsFrag ∅` and the pinned halves give `d`, `lay` with `lay.j = j`,
+  `WalAbsD C Mr d lay hj0.cur`, `TailExact`, the stream written and `lay.segs.drop kk = gs`, everything returned.
+  Its premises are `walReadTie`'s facts (`hj.cur !! g.name = some (.file g.ino)`, the new `hdrop`, `g.om.size =
+  g.bs.length`). `walNames_segs` moved there from `openAtIndex.lean` (which now imports `ReadState`). Statement
+  difference from the deleted hypothesis: no `walOutFrag` (unused), no cut-positivity conjunct (in `WalAbsD`).
+- *Merged* `wal-int` `29500dc08c` (`wal-save16`: `TailMeta`/`TailMetaW` carry `TailZ m`). **Obligation for
+  `ReadAll`**: its write handle (`walOpenWF`) must establish `TailZ` of the tail's meta: a tail read from disk has it
+  only after `ZeroToEnd`'s truncate (`ZeroToEnd.specAu`'s `pageEnd m.size ≤ m'.cz`, then the fdatasync), so from
+  `wal-tc9`'s `ZeroToEnd` instance or a named hypothesis whose post includes it.
+- *Name clashes found*: `ReadAllDecode.lastRecs` vs `TailCrash.lastRecs` (resolved as `wal-repair18`'s
+  `038c1103d5` did, the identical rename to `lastSegRecs` in `TailCrash`, so the merge is clean);
+  `OpenPinTake.bigSepL_take_drop` (mine renamed `rs_bigSepL_take_drop`).
+- *Obligations for other units*: `Create`'s body (`wal-create15`) supplies `CreateAu`'s `habs` with the two new
+  fields (`cutPos`: no cuts; `nameBound`: index 0). Any new `WalAbsD` construction adds `cutPos`.
+- *Plan for `ReadAll.wp_proof`* (refines the fourteenth session's; one module per phase): (1) `ReadAllLoop`: the
+  `for` loop, invariant over the decoder state `(fsᵢ, offᵢ, cᵢ)`: `(rdRest C fs₀ 0 0#32).recs = acc ++ (rdRest C
+  fsᵢ offᵢ cᵢ).recs` and `foldlM raStep raInit acc = .ok st` with Go's `metadata`/`state`/`ents`/`match` holding `st`
+  (and `w.enti`/`w.snapi`, written only); a record step by `rdRest_ok`, the exit by `rdRest_stop` or `decPostB`'s
+  `IoE`/`GoFail` arms (the error post). (2) `ReadAllArms`: each switch arm against `raStep` (callees:
+  `MustUnmarshalEntry`/`State`, `pbutil.MustUnmarshalMessage`, `bytes.Equal`, `decoder.LastCRC`/`UpdateCRC`,
+  `Record.Validate`, `HardState.Reset`, the Go `append(ents[:offset], e)`). (3) `ReadAllTail`: the mode check
+  (`errors.Is` with `decAns`), `Seek(LastOffset)`, `ZeroToEnd.specAu` with the invariant's supplies, the F-Z
+  fdatasync, `TailZ`. (4) `ReadAllCommit`: open `walInv` at the directory sync (`walNamed`), `walInvBody_readState`
+  with `walReadTie`'s facts, `walInvBody_bounded`, `readAll_success`; the AU's commit; the put-back of all but the
+  tail's halves; `walTails_register`, then `walTailsFrag {dir ↦ γt}` and `walNamesFrag none` into `walDirH`;
+  `newFileEncoder`; `walOpenWF`.
+- Build: seeded from `wal-repair18`'s `.lake` (`GooseLang`, `LinuxFs`, `Proof/io`, `Proof/*.olean` top level,
+  `Proof/go_etcd_io/etcd/server/v3/storage`), `GooseLang.Ext.Fs.Zeros` and `Proof.io.ReaderStream` rebuilt; all 32
+  build leaves of `Abs`, `WAL__cut`'s spec, `ReadDefs`, `ReadState` and `TailCrash` build (`lake build`).

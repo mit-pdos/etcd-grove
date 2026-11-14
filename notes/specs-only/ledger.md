@@ -674,6 +674,21 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   takes `TailMetaS`; `WAL.Close.wp_proof` unchanged.
 - **Decision.** Adopted (the coordinator's `TailSynced` decision, 2026-11-14).
 
+## 2026-11-14: `wal.WAL.cut.spec` (internal, the part's) -- the history nonempty at a cut
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (`WAL.cut.spec`, a hypothesis of
+  `WAL.Save.wp_proof`, proved by `WAL.cut.wp_proof`).
+- **Defect.** Too weak for `ReadAll`: its premise `walCutPos (h.H.map toM) |H|` allows `|H| = 0`, so a cut at
+  position 0 could enter the invariant's layout; `ReadAll` from a cut file reads past a nonempty prefix
+  (`readAll_ok_pure`'s `hk0`), and a cut at 0 would make that prefix empty (W3/W5 log, fourteenth to sixteenth
+  sessions: the cuts' positivity).
+- **Evidence.** `cut`'s only caller, `Save` (S/wal.go: `if curOff < SegmentSizeBytes { ... return nil }; return
+  w.cut()`), cuts after appending a save record: its history is `H ++ [save]`, nonempty.
+- **Change (made).** The premise `0 < h.H.length` after `walCutPos`; the invariant's `WalAbsD.cutPos` (every cut
+  `> 0`, `CutLay` from the premise, the crash keeping the cuts). `WAL.Save.wp_proof` supplies it.
+- **Decision.** Adopted (eighteenth W3/W5 session, minor: a premise its one caller meets; no client-visible
+  change, `cut` is unexported).
+
 ## 2026-11-14: minibolt's `DB.init.spec`/`DB.init.specCrash` (the part's example) -- the post's `cz`; `os.File.WriteAt.specCrashS` -- the bytes written
 
 - **Spec.** `LinuxFs/Spec/.../examples/osfs/bboltfs/DB__init.lean` (post: `({ m with size := max m.size 16384 }).synced`),
