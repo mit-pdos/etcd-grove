@@ -179,12 +179,13 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   · intro g hg
     refine ⟨fun hx => ?_, fun hx => ?_⟩
     rotate_left
-    · obtain ⟨⟨h1, h2, h3, h4, h5, h6, h7, h8⟩, hlo⟩ := (hlast g hg).2 hx
-      refine ⟨?_, hlo⟩
+    · obtain ⟨⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩, hlo, hwz⟩ := (hlast g hg).2 hx
+      refine ⟨?_, hlo, hwz⟩
       unfold TailWin
-      simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+      simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 ⊢
       rw [hS]
-      refine ⟨h1, by simp; omega, h3, h4, fun b x hb hbw => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
+      refine ⟨h1, by simp; omega, h3, h4, fun b x hb hbw => ?_, h6, ?_, fun hz b hb1 hb2 => ?_,
+        h9.snoc⟩
       · exact (h5 b x hb hbw).snoc (fun hw => by simp at hw; omega) (fun hs => by simp at hs; omega)
       · rw [List.take_append_of_le_length (by omega)]; exact h7
       · rcases Nat.lt_or_ge lay.z0 (segStream C Mr d lay.cuts lay.cuts.length).length with hlt | hge

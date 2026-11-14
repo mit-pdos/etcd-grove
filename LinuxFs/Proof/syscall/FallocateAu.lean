@@ -97,17 +97,19 @@ def fallocDoneH (i : Ino) (m : OsMeta) (tg w : Nat) : IProp GF :=
     osZerosA i m.size (w - m.size) (DFrac.own (1 : Qp).half))
 
 /-- **The caller's halves of a growth's outcome** (`rsOutF`'s): on success the growth landed; on
-failure none of it (the `OsMeta` as announced), or a prefix. -/
+failure none of it (the `OsMeta` as announced, up to the candidates it knows past the size and the
+resize stamps, knowing those `TcKnowsF` names), or a prefix. -/
 def fallocOutH (i : Ino) (tg : Nat) (m : OsMeta) (e : w64) : IProp GF :=
   iprop((⌜e = 0⌝ ∗ fallocDoneH i m tg tg) ∨
-    (⌜e ≠ 0⌝ ∗ (osMeta i (DFrac.own (1 : Qp).half) (m.announce (min m.size tg) (rsHi false m.size tg) tg) ∨
+    (⌜e ≠ 0⌝ ∗ ((∃ tc rz, ⌜TcKnowsF m tg m.size tc⌝ ∗
+        osMeta i (DFrac.own (1 : Qp).half) ((m.announce (min m.size tg) (rsHi false m.size tg) tg).withTc tc rz)) ∨
       ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ fallocDoneH i m tg w)))
 
 /-- **The updates of a growth of `i` from `m` to `tg`, the update lending the whole `OsMeta`**, the
-caller's share `Q`. -/
+caller's share `Q`; the start's commit learns `0 < n ∧ m.TcZ` (`wp_osFallocStart_auW`). -/
 def fallocAuW (i : Ino) (tg : Nat) (m : OsMeta) (Q : Nat → w64 → IProp GF) : IProp GF :=
   osAUnc (A := Nat × Nat) (osMeta i (DFrac.own 1) m)
-    (fun tn => rsTok false tn.1 i tg m [] tn.2)
+    (fun tn => iprop(rsTok false tn.1 i tg m [] tn.2 ∗ ⌜0 < tn.2 ∧ m.TcZ⌝))
     (fun tn => osAUnc (A := w64) (rsTok false tn.1 i tg m [] tn.2) (rsOutF i tg m tn.2) (Q tn.2))
 
 /-- **The supply of a growth of `i` to `tg`**, the caller's tie `K` (persistent): from any `OsMeta`

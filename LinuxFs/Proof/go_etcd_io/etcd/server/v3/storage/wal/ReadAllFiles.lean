@@ -59,17 +59,6 @@ theorem tailLast_img {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
       rw [hx.val_unw, getD_of_lt _ _ _ (by omega)]
       congr 1; omega
 
-/-- The reader accepts nothing on zeros. -/
-theorem decStep_zeros_any (C : WalCodec) (last : Bool) {bs : List w8} {off z : Nat} {c : w32}
-    (hbs : bs.drop off = List.replicate z (0#8)) (r : WalRec) (len : Nat) (c' : w32) :
-    decStep C last bs off c ≠ .accept r len c' := by
-  by_cases hz : z = 0 ∨ 8 ≤ z
-  · rw [decStep_zeros C last hz hbs]; intro h; cases h
-  · unfold decStep
-    simp only [hbs, List.length_replicate]
-    rw [if_neg (by omega), if_pos (by omega)]
-    intro h; cases h
-
 /-- **What `ReadAll`'s reader reads from the named segments from the `kk`-th on** (see the file
 header). -/
 theorem walReadFiles_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}

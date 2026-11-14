@@ -782,6 +782,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   invariant's commit bound compared with the program's. Open.
 - **Decision.** Made, minor and internal (`wal-create16`): a hypothesis's post strengthened; its truth is an
   obligation recorded here and in the W4 log's eighteenth session.
+  **Superseding direction (the coordinator, decided; `wal-create17`, not yet made)**: limit `hJC` to the
+  crashes that keep `J`'s entries (`∀ y e E, (y, e, E) ∈ hJ.ents → K y`), under which `hJ.valAfter J K b =
+  hJ.cur !! b`; `walCreate_osAUnc` then takes `osCommitLb m` with `J`'s entries below `m` (`syncDir(nm.tmp)`
+  gives `osCommitLb n` for any `osLogLb n`: pass `J`'s claim's `next`) and raises the invariant's commit
+  bound to `max n m` at the commit (`walsOk_mono`, `walsNamed_mono`, `absentNone_mono`, as `walInvBody_named`
+  does), so every `RegionCrashedK` it quantifies over keeps them; then the post's `valAfter … = none` is
+  dropped from `specTmp` (no allocator fact). Note also that `Create` removes an existing `nm.tmp` before
+  `CreateDirAll`, so only `specTmp`'s `mkdir` case is reached.
 
 ## 2026-11-14: `wal.WAL.renameWAL.spec` / `renameWALUnlock.spec` (internal, the part's) -- the error arms lose the lock file and the spines
 
@@ -807,8 +815,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   without the client's update (the open position of index 0 leaves `unl`, so no commit is needed; the
   state from `walCreateQ`'s `walPast`), and its success arm adding `walLenLb w' dir 0 ∗ walSyncedLb dir 0`
   (`Create.spec`'s success post). Not yet made.
-- **Decision.** Pending (`wal-create16` stopped at its budget; the next session makes it with `renameWAL`'s
-  re-proof).
+- **Decision.** Adopted in part (`wal-create17`, the coordinator's task 1, decided). **Made**: the pre takes
+  `walLockIn e f fd fname d c off` (the empty encoder, the segment's `*os.File`, its fd and descriptor, its
+  offset); arm 1 returns it; arms 3 and 4 return `walLockLeft f fd fname d` (open: `os.ownFile f fd`,
+  `osFd`; or closed by `renameWALUnlock`'s `Close`: `os.ownFile f (-1)`), and arm 4's case list names the
+  retry's failed `Open`/`ReadAll`; `renameWALUnlock.spec`'s pre the same; `renameWAL` re-proved. The second
+  close is `os.File.Close.specClosed` (`LinuxFs/Spec/os/File__CloseClosed.lean`): **not provable from the
+  model** (`File.Close.impl` asks `FdKind(-1)`, stuck on a closed fd), a hypothesis of `Create.wp_proof`;
+  proposed trusted change (pending the user): the model returns Go's `&PathError{"close", name,
+  ErrClosed}` on fd -1. **Changed from the proposal**: arm 4 does not return the two spines (one stays
+  with the pipeline `renameWAL` started, which an error leaves running, so `Create` could never give the
+  caller's area spine back); instead their area part is the invariant's lend (`walInv_areaPath`,
+  `AreaPath.lean`), and `Create`'s caller's spine is never lent. **Not made** (arm 2): as stated it is
+  unprovable (`walOpenWF` holds `walNamed dir` and `walNamesFrag none`, which only `Create`'s parent fsync
+  and registration give, after `renameWAL` returns; and `U (some x)` holds the lock token the handle holds
+  too, so the arm is contradictory for `Create`, which does not use that). It needs a handle before
+  naming (`walDirH` without `walNamed`, with `walNamesFrag (some dir)`), which `Create`'s arm 1 would build
+  too, both then going through the parent fsync and the registration: not designed. `Create` leaves arm 2
+  a `sorry`.
 
 ## 2026-11-14: `os.File.Truncate.specAu` (the part's, `LinuxFs/Spec/os/File__TruncateAu.lean`) -- the outcome's `tc` domain
 
@@ -852,7 +876,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (a partial or full `fallocate`) and `TcKnows` (the fallback's truncate): `preGrownH` (`DefsAu.lean`) must carry
   the pc-domain and `zf` facts through `preGrownH_trans` (`Preallocate.specAu`'s post), a change to
   `preallocExtend.specAu`/`Preallocate.specAu` and `filePipeline.alloc`'s use of `preGrownH`.
-- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"); `ZteMeta` pending.
+- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"). `ZteMeta`
+  adopted (the coordinator's task list for `wal-tc12`, "decided") and **made, simplified** (`wal-tc12`): `ZteMeta m m'
+  := PcKeep m m' ∧ (m.ZfGe → m'.ZeroPg)` (`DefsAu.lean`; `PcKeep m m' := ∀ b, m.size ≤ b → m'.size ≤ b → (m.pc
+  b).isSome → (m'.pc b).isSome`, `LinuxFs/Proof/os/PcKeep.lean`). `wal-save18`'s `ZeroPg` (zeros known from `z ≥ size`
+  with `pageEnd z ≤ max size cz`) replaces the proposal's `zf` bound and `cz` clause: with `TailZ m` (which gives
+  `ZfGe m`, and `m.pc` known at every byte past the size) and `m'.size = m.size`, `ZeroPg m'` and `PcKeep` give `TailZ
+  m'`. Carried by **`preGrownH i m w Z`** (as `wal-save18`'s `preGrown`: `PcKeep m m'` always, `Z → m'.ZeroPg`),
+  so `preallocExtend.specAu`'s post is `preGrownH … (err = nil ∧ m.ZeroPg)`, `preallocExtendTrunc.specAu`'s `(err = nil
+  ∧ m.ZfGe)`, `Preallocate.specAu`'s (`preallocPostH`) `(err = nil ∧ m.ZeroPg)`, as the whole specs'. `PcKeep` from each
+  outcome's `TcKnows`/`TcKnowsF` (`PcKeep.of_tc`); the undone `fallocate` arm of `fallocOutH` became `∃ tc rz,
+  ⌜TcKnowsF m tg m.size tc⌝ ∗ osMeta ½ ((m.announce …).withTc tc rz)` (the extension's `rsOutF` undone arm
+  `rsUndoneK m.cut.isNone false`, `wal-tc12`), which the obligation above asked for.
 
 ## 2026-11-14: `fileutil.Preallocate`/`preallocExtend`/`preallocExtendTrunc` (the part's) and `os.OpenFile.specCreateTruncS`'s `trFile` -- the zeros known on success
 
@@ -873,3 +908,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `alloc`'s error path after a `fallocate` that did not land has none). `alloc`'s `ZeroPg` proved; `zerosA_trFile`
   takes `ZfGe` (`filePipeline.run`, from `pipeFile`'s `ZeroPg`).
 - **Decision.** Made (`wal-save18`, the coordinator's task 1, `rsCz`; the shape adjusted as above and logged).
+
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's) -- the `valAfter` clause and `.touch`
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `fileutil.CreateDirAll.specTmp`
+  (the success post's `∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none`, added by the 2026-11-14 entry
+  above).
+- **Defect.** False, also in the case the entry above took for true (`CreateDirAll` makes the directory):
+  `CreateDirAll` runs `TouchDirAll`, whose `IsDirWriteable(J)` writes `J/.touch` and removes it
+  (`fileutil.go`), through `J`'s claim (`IsDirWriteable.spec` takes `osNames J (.only [.touch]) 1`), so the returned
+  `hJ.ents` hold the create and the remove of `.touch`; with `K` keeping the create's index and not the remove's,
+  `hJ.valAfter J K .touch` is the file, not `none`. The clause quantifies over every `K`, and the claim's history
+  cannot be dropped, so no proof exists.
+- **Evidence.** `NamesH.valAfter` (`GooseLang/Ext/Fs/NamesGhost.lean`: the last kept entry writing `b`);
+  `IsDirWriteable.spec`'s post (`LinuxFs/Spec/.../fileutil/IsDirWriteable.lean`). Found proving the inventory's leaf
+  specs (`wal-leaf1`, plan §8 "Leaf specs log").
+- **Proposed change.** None new: the coordinator's superseding direction in the entry above (limit `hJC` to the
+  crashes keeping `J`'s entries, drop the clause from `specTmp`) removes the false clause; this entry is one more
+  reason for it (a clause restricted to `b ≠ .touch` would instead need the extension's allocator fact).
+- **Decision.** Recorded only (`wal-leaf1`); the restatement is `wal-create17`'s.

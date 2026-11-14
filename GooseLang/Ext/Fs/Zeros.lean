@@ -163,7 +163,7 @@ theorem rsDone_zeros (tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (n z : Na
   unfold rsDone
   iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
   have hzr : zs = List.replicate (sz' - m.size) [((0 : w8), 0)] := by
-    obtain ⟨hl, hzz⟩ := hzs
+    obtain ⟨hl, hzz, -⟩ := hzs
     apply List.ext_getElem?; intro j
     by_cases hj : j < sz' - m.size
     · rw [hzz j z hzf (by omega) (by rw [hl]; exact hj), List.getElem?_replicate, ite_eq_left_iff.mpr (fun h => absurd hj h)]
@@ -292,7 +292,7 @@ theorem rsDoneK_zeros (keep tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (xs
   unfold rsDoneK
   iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
   have hzr : zs = List.replicate (sz' - m.size) [((0 : w8), 0)] := by
-    obtain ⟨hl, hzz⟩ := hzs
+    obtain ⟨hl, hzz, -⟩ := hzs
     apply List.ext_getElem?; intro j
     by_cases hj : j < sz' - m.size
     · rw [hzz j z hzf (by omega) (by rw [hl]; exact hj), List.getElem?_replicate, ite_eq_left_iff.mpr (fun h => absurd hj h)]

@@ -277,11 +277,12 @@ def rsTok (tr : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs : List Byt
   iprop(osTok (L := L) t ⟨p, rsKind tr tg, n, m, rsAnn n xs⟩ ∗ ⌜xs.length = m.size - tg⌝)
 
 /-- A resize landed with the size `sz'`: its `OsMeta`, the bytes it grew the file over, zeros, with
-their candidates (those they had, `zs`: the zero alone past the zeros known, then zero stamped `n`),
-and the client's halves of the mapped cells over the range, showing the new contents. -/
+their candidates (those they had, `zs`: the zero alone past the zeros known, those the `OsMeta` knew
+where it knew them, then zero stamped `n`), and the client's halves of the mapped cells over the range, showing the new contents. -/
 def rsDone (tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) : IProp GF :=
   iprop(∃ zs : List Cands, ⌜zs.length = sz' - m.size ∧
-      ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ ∗
+      (∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]) ∧
+      ∀ j c, m.pc (m.size + j) = some c → j < zs.length → zs[j]? = some c⌝ ∗
     osMeta (L := L) p (DFrac.own 1) (rsPost tr m tg sz') ∗
     osBytes (L := L) p m.size (DFrac.own 1) (zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)]))) ∗
     mcells m.maps (min m.size tg) (rsHi tr m.size tg) (rsCell sz'))
@@ -291,7 +292,8 @@ def rsDone (tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) : IProp G
 def rsDoneK (keep tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) :
     IProp GF :=
   iprop(∃ zs : List Cands, ⌜zs.length = sz' - m.size ∧
-      ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ ∗
+      (∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]) ∧
+      ∀ j c, m.pc (m.size + j) = some c → j < zs.length → zs[j]? = some c⌝ ∗
     osMeta (L := L) p (DFrac.own 1) (rsPostK keep tr m tg sz' n xs) ∗
     osBytes (L := L) p m.size (DFrac.own 1) (zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)]))) ∗
     mcells m.maps (min m.size tg) (rsHi tr m.size tg) (rsCell sz'))
@@ -1000,6 +1002,13 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
     have := hz0 z hz hzj
     simp only [hzs0, List.getElem?_map, List.getElem?_range hj, hc0, this, Option.map_some]
     simp
+  have hzspc : ∀ j c0, m.pc (m.size + j) = some c0 → j < zs.length → zs[j]? = some c0 := by
+    intro j c0 hc hj
+    rw [hzsl] at hj
+    have hb := hcandP (m.size + j) c0 (by omega)
+      (by rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega) hc
+    simp only [hzs0, List.getElem?_map, List.getElem?_range hj, hb, Option.map_some]
+    simp
   imodintro
   isplitr [Hm Hys Hc]
   · iexists _, _, Γf, _
@@ -1011,7 +1020,7 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
   iexists zs
   iframe Hm Hys
   isplitr
-  · ipureintro; exact ⟨hzsl, hzsfact⟩
+  · ipureintro; exact ⟨hzsl, hzsfact, hzspc⟩
   unfold mcells
   iapply (BigSepM.bigSepM_toList (Φ := fun (b : Loc) (len : Nat) =>
     cellsR b (min (min m.size tg) len) (min (rsHi tr m.size tg) len - min (min m.size tg) len)

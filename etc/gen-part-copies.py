@@ -96,6 +96,10 @@ COPIES = [
           add=['LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit']),
     Whole('Spec/google_golang_org/protobuf/proto/UnmarshalPb.lean',
           add=['LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit']),
+    # `proto.Clone`'s spec (`walpb.Snapshot.Clone`'s callee, `proto.CloneWalSnap.wp_proof`); its axiom
+    # is not copied yet (the part's link would need it)
+    Whole('Spec/google_golang_org/protobuf/proto/ClonePb.lean',
+          add=['LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit']),
     Whole('Proof/google_golang_org/protobuf/proto/SizePb.lean'),
     Whole('Proof/google_golang_org/protobuf/proto/MarshalPb.lean'),
     Whole('Proof/google_golang_org/protobuf/proto/UnmarshalPb.lean'),
