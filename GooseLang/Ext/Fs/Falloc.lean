@@ -194,7 +194,7 @@ theorem wp_osFallocFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsM
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
   rcases hres with ⟨htm, rfl, rfl⟩ | ⟨e, he, rfl, rfl | ⟨htm, w, hw1, hw2, rfl⟩⟩
   · rw [hF.hctg] at Hr Hfr htm ⊢
-    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun h => by cases h) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun h => by cases h) (fun _ => hgrow) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -215,7 +215,7 @@ theorem wp_osFallocFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsM
   · have hlw : (max m.size tg ≤ w ∧ w = rsHi false m.size tg ∧ w = tg) ∨
         (m.size ≤ tg ∧ m.size ≤ w ∧ w ≤ tg ∧ w = w) := by
       rw [hF.hclo] at hw1; rw [hchi'] at hw2; right; omega
-    imod resize_done_worldK keep hwf hcoh hF w w hlw (fun h => by cases h) hkeep
+    imod resize_done_worldK keep hwf hcoh hF w w hlw (fun h => by cases h) (fun _ => hgrow) hkeep
       (by rw [hchi'] at hw2; rw [hF.hctg] at htm; omega) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro

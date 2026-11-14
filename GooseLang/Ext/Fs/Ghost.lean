@@ -327,6 +327,10 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   change's announced range; a sync zeroes it past the size's last page). What lets a write that
   lands up to the zeros known raise `cz` (`pwPost`). -/
   zc : ∀ z, m.zf = some z → ∀ b, z ≤ b → f.cache b = 0
+  /-- The page cache is zero past the size's last page (Linux has no page there: a file from disk
+  reads zeros past it, `OsFile.ofDisk`; a resize lands zeros to the end of the page it announced;
+  a sync zeroes it). With `cz`, what lets a resize's landing raise `cz` (`rsCz`). -/
+  ce : ∀ b, pageEnd f.size ≤ b → f.cache b = 0
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
@@ -1227,7 +1231,7 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
   refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_,
     fun b c _ h => tailMap_cand _ b c h, fun b _ h => absurd h (by simp [initMeta]),
-    fun s h => by simp [initMeta] at h, ?_⟩
+    fun s h => by simp [initMeta] at h, ?_, fun b hb => diskByte_past hb⟩
   · intro b len
     simp only [initMeta]
     constructor

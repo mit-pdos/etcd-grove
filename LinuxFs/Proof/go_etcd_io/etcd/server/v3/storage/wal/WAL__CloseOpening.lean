@@ -280,7 +280,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply wp_LError lg _ _ $$ []
-        · iapply zapLoggerOk_ne_null; iexact Hzap
+        · iexact Hzap
         (try wp_auto)
         wp_for_post
         iframe

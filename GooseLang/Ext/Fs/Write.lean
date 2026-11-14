@@ -91,7 +91,8 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     fun b hb hbz => by
       rw [announce_cz] at hbz
       rw [hcache b]; exact hmo.cz b (by rw [← hsz.1]; exact hb) hbz,
-    fun s hs => hrz s (hmo.rz s (by simpa using hs)), fun z hz b hb => ?_⟩
+    fun s hs => hrz s (hmo.rz s (by simpa using hs)), fun z hz b hb => ?_,
+    fun b hb => by rw [hcache b]; exact hmo.ce b (by rw [← hsz.1]; exact hb)⟩
   rotate_right
   · simp only [announce_zf, Option.map_eq_some_iff] at hz
     obtain ⟨z0, hz0, rfl⟩ := hz
@@ -523,7 +524,7 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       refine ⟨f1, by simp only [startState, OsState.addInflight, OsState.stampFile,
         GMap.lookup_insert_eq_iff, if_neg hne]; exact h1, ?_⟩
       refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail, hm1.cz,
-        hm1.rz, hm1.zc⟩
+        hm1.rz, hm1.zc, hm1.ce⟩
       by_cases he : t = t'
       · subst he; simp only [startState, OsState.addInflight, GMap.lookup_insert] at h1'
         cases h1'; exact absurd (hcp.symm.trans h2') hne
@@ -845,7 +846,7 @@ theorem MetaOk.mono_infl {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hin : ∀ t c, st'.proc.inflight !! t = some c → st.proc.inflight !! t = some c)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, fun t c ht => h.targets t c (hin t c ht), h.dur,
-    h.zf, h.tail, h.cz, h.rz, h.zc⟩
+    h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
 
 theorem doneInflight_sub (st : OsState) (t : Nat) :
     ∀ t' c', (st.doneInflight t).proc.inflight !! t' = some c' → st.proc.inflight !! t' = some c' := by
@@ -1244,7 +1245,18 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
           have h1 := hmo.maps b len; simp only [announce_maps] at h1; simp only [announce_maps]
           exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs), fun z hz b hzb => ?_⟩
+        fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs), fun z hz b hzb => ?_,
+        fun b hb => ?_⟩
+      rotate_right 1
+      · -- the page cache past the new size's last page: not written, past the old one's
+        rw [hsz2] at hb
+        have h1 : pwSize f.size off k ≤ pageEnd (pwSize f.size off k) := le_pageEnd _
+        have h2 : pageEnd f.size ≤ pageEnd (pwSize f.size off k) :=
+          pageEnd_mono (by unfold pwSize; split <;> omega)
+        have h3 : k = 0 ∨ off + k ≤ pwSize f.size off k := by unfold pwSize; split <;> omega
+        have hk : ¬ (off ≤ b ∧ b < off + k) := by omega
+        rw [hcache b, if_neg hk]
+        exact hmo.ce b (by omega)
       rotate_right 3
       · rw [show (pwFile f c off k).cand b = f.cand b from rfl]
         rw [hsz2] at hb

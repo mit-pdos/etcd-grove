@@ -44,7 +44,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.wp_proof
       iexists m.size
       isplitr
       · ipureintro; simp [h0]
-      iapply preGrown_same $$ Hm
+      iapply preGrown_same _ _ _ (fun h => h.2) $$ Hm
   have hpos : 0 < sz.toInt := by
     rcases Int.lt_or_eq_of_le hsz0 with h | h
     · exact h

@@ -469,10 +469,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     have hnm0 : Fs.newMeta.size = 0 := by
       simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
     iunfold preGrown at Hpa
-    icases Hpa with ⟨%m2, ⟨%hm2s, %hm2maps, -, %hgrow⟩, Hm2, Hz2⟩
+    icases Hpa with ⟨%m2, ⟨%hm2s, %hm2maps, -, %hgrow, -⟩, Hm2, Hz2⟩
     icases (osZerosA_unfold i _ _ (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
     have hlo2 : m2.lo ≤ m2.size :=
-      hgrow.2 (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
+      hgrow.2.1 (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
     have hmaps2 : m2.maps = ∅ := by
       rw [hm2maps]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
     ihave Hm2 : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) m2 $$ [Hm2]

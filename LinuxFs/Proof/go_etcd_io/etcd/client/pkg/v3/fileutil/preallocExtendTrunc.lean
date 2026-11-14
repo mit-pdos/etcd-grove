@@ -49,7 +49,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proof
     iexists m.size
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => by cases h⟩
-    iapply preGrown_same $$ Hm
+    iapply preGrown_same _ _ _ (fun h => absurd h.1 herr) $$ Hm
   obtain ⟨rfl, hfit, rfl⟩ := hn
   wp_auto
   wp_apply os.File.Seek.wp_start f fd name dqf _ o hfd ho0 ho1 $$ [Hf Ho] as ⟨Hf, Ho⟩
@@ -71,14 +71,15 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proof
   · iexists sz.toNat
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    iapply ftDone_preGrown $$ Hd
+    iapply ftDone_preGrown _ _ _ _ (fun h => h.2) $$ Hd
   · iexists sz.toNat
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    iapply ftDone_preGrown $$ Hd
+    iapply ftDone_preGrown _ _ _ _ (fun h => h.2) $$ Hd
   · iexists m.size
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
+    iapply preGrown_mono _ _ _ (fun h => absurd h.1 he)
     iapply ftUndone_preGrown $$ Hd
 
 end proof
