@@ -20,7 +20,9 @@ half of its resources (`osCrash_take_runs_keep`): its crash bounds are its size 
 no old resources (`crashRest_take_named`).
 
 The premise `hD`: the files already taken (`D`, by another client's crash lemma) are not at the file's
-names in the new tree.
+names in the new tree. It holds when every file of `D` is unnamed in the new tree or named in another
+directory (`durCrash_hD`), and trivially when the lemma is called first (`durInv_crash0`); the lemma
+says where its own takes are named (`f.b` or `f.tb`), for a crash lemma called after it.
 -/
 module
 
@@ -164,7 +166,8 @@ theorem durCrash_tmp (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     (D : List Ino) (tt : Bool) (V' : Hist) (htd : ∀ J, V'.now.entry f.J f.tb ≠ some (.dir J))
     (hD : ∀ i ∈ D, V'.now.entry f.J f.tb ≠ some (.file i)) :
     ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
-      ∃ D2 : List Ino, durFoundTmp (L := L') f V'.now ∗
+      ∃ D2 : List Ino, ⌜∀ i ∈ D2, V'.now.entry f.J f.tb = some (.file i)⌝ ∗
+        durFoundTmp (L := L') f V'.now ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (D2 ++ D) tt V' := by
   iintro Hcr
   unfold durFoundTmp
@@ -173,6 +176,7 @@ theorem durCrash_tmp (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     iexists []
     simp only [List.nil_append]
     iframe Hcr
+    ipureintro; intro i hi; cases hi
   | some n =>
     cases n with
     | dir J => exact absurd he (htd J)
@@ -184,6 +188,8 @@ theorem durCrash_tmp (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
         $$ Hcr with ⟨Hf, Hcr⟩
       iexists [i]
       iframe Hcr
+      isplitr
+      · ipureintro; intro i' hi'; rw [List.mem_singleton.1 hi']
       icases BigSepL.bigSepL_cons.1 $$ Hf with ⟨⟨%fl, Hf⟩, -⟩
       iapply osFileStart_trFile' L' i fl
       iapply (Fs.fileStart_eq (L := L') i fl).1 $$ Hf
@@ -196,7 +202,9 @@ theorem durInv_crash (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     ⊢ durInv (L := L) γ f -∗ crashed (hC := L.goose_crashGS) -∗ durCrashTok (GF := GF) γ -∗
       durSt (GF := GF) γ s -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ={E}=∗
-      ∃ (v : Option GoString) (D' : List Ino), ⌜v = s.cur ∨ s.alt = some v⌝ ∗
+      ∃ (v : Option GoString) (D' : List Ino),
+        ⌜(v = s.cur ∨ s.alt = some v) ∧
+          ∀ i ∈ D', V'.now.entry f.J f.b = some (.file i) ∨ V'.now.entry f.J f.tb = some (.file i)⌝ ∗
         durSt (GF := GF) γ s ∗ durFound (L := L') f V'.now v ∗ durFoundTmp (L := L') f V'.now ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (D' ++ D) tt V' := by
   iintro #Hinv #Hcrd Htok Hs #Hsh Hcr
@@ -244,12 +252,42 @@ theorem durInv_crash (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     rcases List.mem_append.1 hi with hi | hi
     · exact f.tb_ne (hu _ _ _ _ _ he (hD1 i hi)).2
     · exact (hD i hi).2 he
-  icases durCrash_tmp Q L L' f (D1 ++ D) tt V' htd hD1' $$ Hcr with ⟨%D2, Ht, Hcr⟩
+  icases durCrash_tmp Q L L' f (D1 ++ D) tt V' htd hD1' $$ Hcr with ⟨%D2, %hD2, Ht, Hcr⟩
   imodintro
   iexists v, D2 ++ D1
   rw [List.append_assoc]
   iframe Hs Hf Ht Hcr
-  ipureintro; exact hv
+  ipureintro
+  refine ⟨hv, fun i hi => ?_⟩
+  rcases List.mem_append.1 hi with hi | hi
+  · exact Or.inr (hD2 i hi)
+  · exact Or.inl (hD1 i hi)
+
+/-- `durInv_crash`'s `hD` from where the files already taken are named: none in the file's
+directory (each unnamed in the new tree, or named in another directory: another client's crash
+lemma took only files of its own directories, e.g. the WAL's, under the area). -/
+theorem durCrash_hD (f : DFile) (D : List Ino) (V' : Hist)
+    (hD : ∀ i ∈ D, ∀ J b, V'.now.entry J b = some (.file i) → J ≠ f.J) :
+    ∀ i ∈ D, V'.now.entry f.J f.b ≠ some (.file i) ∧ V'.now.entry f.J f.tb ≠ some (.file i) :=
+  fun i hi => ⟨fun he => hD i hi _ _ he rfl, fun he => hD i hi _ _ he rfl⟩
+
+/-- **The crash lemma called first** (nothing taken yet): no premise on the taken files. Its
+`D'` is named at the file's two names only, so a crash lemma called after it whose own takes
+are named outside `f.J` (or unnamed) meets its premise by unique naming. -/
+theorem durInv_crash0 (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (γ : DurGS) (f : DFile)
+    (R : Roots) (tt : Bool) (V' : Hist) (s : DurSt) (E : CoPset)
+    (hE : ↑durN ⊆ E) (hE' : ↑osShN ⊆ E) :
+    ⊢ durInv (L := L) γ f -∗ crashed (hC := L.goose_crashGS) -∗ durCrashTok (GF := GF) γ -∗
+      durSt (GF := GF) γ s -∗ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] tt V' ={E}=∗
+      ∃ (v : Option GoString) (D' : List Ino),
+        ⌜(v = s.cur ∨ s.alt = some v) ∧
+          ∀ i ∈ D', V'.now.entry f.J f.b = some (.file i) ∨ V'.now.entry f.J f.tb = some (.file i)⌝ ∗
+        durSt (GF := GF) γ s ∗ durFound (L := L') f V'.now v ∗ durFoundTmp (L := L') f V'.now ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D' tt V' := by
+  have h := durInv_crash Q L L' γ f R [] tt V' s E hE hE' (fun i hi => by cases hi)
+  simp only [List.append_nil] at h
+  exact h
 
 end crash
 
