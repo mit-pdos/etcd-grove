@@ -73,8 +73,8 @@ variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assu
 `io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`, over Perennial's
 `errors.Is` on pointer errors), the decoder's packages and variables (`decEnv`); the readers' errors are
 the pointer errors (`os.File.Read`'s and `Stat`'s `*PathError`s). -/
-def WalDecEnvSupply : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ⊢
+abbrev WalDecEnvSupply : Prop :=
+  ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
     ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
       ⌜∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii)⌝
 
@@ -262,6 +262,39 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       ileft
       iframe
       ipureintro; nofun
+    subst herr2
+    -- the decoder over the opened files
+    rw [hws, ← List.map_drop, ← List.map_drop] at *
+    have hKs : sint.nat kk < lay.segs.length := by omega
+    have hsz' : ∀ g ∈ lay.segs.drop (sint.nat kk), g.om.size = g.bs.length ∧ g.bs.length + 2 ^ 12 < 2 ^ 62 :=
+      fun g hg => ⟨hS g hg, hsz g (List.mem_of_mem_drop hg)⟩
+    generalize hgs : lay.segs.drop (sint.nat kk) = gs at *
+    have hgl : gs.length = lay.segs.length - sint.nat kk := by rw [← hgs, List.length_drop]
+    obtain ⟨gL, hgL⟩ : ∃ gL, gs[gs.length - 1]? = some gL :=
+      ⟨gs[gs.length - 1]'(by omega), List.getElem?_eq_getElem _⟩
+    rw [List.length_map] at hfl hll
+    have hEnv' : ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
+        ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
+          ⌜∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii)⌝ := hEnv
+    ihave ⟨%IoE, %eof, %ueof, #Hde, %hIo⟩ := hEnv' $$ Hpkg
+    ihave #Hde' := Hde
+    iunfold decEnv at Hde'
+    icases Hde' with ⟨-, -, -, -, #Hbufio, #Heof, -, -, #Hcrc, -, -⟩
+    ihave ⟨Hfiles, #Hlast⟩ := WalFs.walOpenedFiles_last write dir gs frs lfs _ gL hgL $$ Hfiles
+    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName IoE hIo eof
+      write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
+    · iframe Hfiles
+      isplitl []
+      · iexact Hosi
+      isplitl []
+      · iexact Heof
+      unfold segHalves segRes
+      iexact HS
+    subst hfr
+    rw [List.map_map] at *
+    try wp_auto
+    wp_apply wp_NewDecoder rsl fs IoE eof $$ [Hrsl Hdf] as %dI ⟨%dec, %hdI, Hrsl, Hdec⟩
+    · iframe; iframe #
     sorry
 
 end proof
