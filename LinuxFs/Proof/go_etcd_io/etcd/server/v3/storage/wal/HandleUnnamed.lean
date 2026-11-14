@@ -8,7 +8,10 @@
 `Create`'s assembly, arm 2 as the retry returns it), and the parent's fsync gives `walNamed dir`
 (`walInv_named`), which seals it into `walOpenWF` (`walOpenWFU_named`). A named handle forgets its
 naming (`walOpenWF_unnamed`: the retry's `ReadAll` names the WAL itself). `walOpenWFU_dirAcc` lends
-the `dir` field (`Create` reads `w.dir` after `renameWAL`).
+the `dir` field (`Create` reads `w.dir` after `renameWAL`), `walOpenWFU_permAcc` the handle's half of
+the call permission (the parent's `OpenDir`/`Fsync`); both handles hold the lock token
+(`walOpenWFU_unlocked_excl`, `walOpenWF_unlocked_excl`); `walPurgeW_fresh_lbs` gives `Create.spec`'s
+lower bounds of the fresh WAL.
 -/
 module
 
@@ -101,6 +104,48 @@ theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
   iframe Hr
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
   iframe H1 H2 H3 Hh
+
+/-- **The handle's half of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
+theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    ⊢ walOpenWFU (W := W) P Mr w dir -∗ osCallPerm (1 : Qp).half ∗
+      (osCallPerm (1 : Qp).half -∗ walOpenWFU (W := W) P Mr w dir) := by
+  iintro H
+  unfold walOpenWFU
+  icases H with ⟨%h, Hh, Hr⟩
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
+    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, Hh⟩
+  unfold walDirH
+  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hperm, Hd⟩
+  iframe Hperm
+  iintro Hperm
+  iexists h
+  iframe Hr
+  iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 Hh
+  iexists R, q, X, hj, nm0, ph
+  iframe Hk Hn Hp Hsi Hperm Hd
+
+/-- **The fresh WAL's lower bounds** (`Create.spec`'s success post): its empty history written and
+synced, from the purge right's handle name and a past state with the fresh WAL. -/
+theorem walPurgeW_fresh_lbs (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur)
+    (hs : s.wal !! dir = some d) :
+    ⊢ walPurgeW (W := W) w dir -∗ walPast (W := W) s -∗
+      walPurgeW (W := W) w dir ∗ walLenLb (W := W) w dir 0 ∗ walSyncedLb (W := W) dir 0 := by
+  iintro Hpw #Hp
+  unfold walPurgeW
+  icases Hpw with ⟨%γ, #Hd, Hpt⟩
+  isplitl [Hpt]
+  · iexists γ; iframe Hd Hpt
+  isplitl []
+  · unfold walLenLb
+    iexists γ, s, d
+    iframe Hd Hp
+    ipureintro; exact ⟨hs, Nat.zero_le _⟩
+  · unfold walSyncedLb
+    iexists s, d
+    iframe Hp
+    ipureintro; exact ⟨hs, Nat.zero_le _⟩
 
 /-- **The handle before naming holds the lock token** (`create_areaBack`'s `T`). -/
 theorem walOpenWFU_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :

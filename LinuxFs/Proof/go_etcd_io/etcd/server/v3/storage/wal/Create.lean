@@ -3,8 +3,9 @@
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
 proved through the call of `renameWAL`, its committed-error arm and its not-committed arm (the
-unminting, `CreateUnmint.lean`); its two success arms are `sorry` (the W4 log, twenty-first session,
-says what is left). Lean-first.
+unminting, `CreateUnmint.lean`); its two success arms are `sorry` (the W4 log, twenty-second session,
+plans them: arm 1 assembles the handle before naming, `walOpenWFU`, and both continue to the parent's
+fsync). Lean-first.
 -/
 module
 
