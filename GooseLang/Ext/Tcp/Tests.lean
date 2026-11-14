@@ -198,7 +198,8 @@ private theorem planA_lookup : planA !! go!"127.0.0.1:7101" = some go!"h" := by
 /-- `TestAddressAliases` (D21): `":7101"` listens at the plan's only address with port 7101, at
 this node's host. -/
 example : ListenAt planA go!"h" go!":7101" go!"127.0.0.1:7101" := by
-  refine ⟨planA_lookup, .inr ⟨go!"7101", by decide, by decide, fun x hx hp => ?_⟩⟩
+  refine ⟨planA_lookup, .inr ⟨?_, go!"7101", by decide, by decide, fun x hx hp => ?_⟩⟩
+  · unfold planA GMap.ofList; exact GMap.lookup_insert_ne _ _ (by decide)
   simp only [planA, GMap.ofList] at hx
   by_cases h : go!"127.0.0.1:7101" = x
   · exact h.symm

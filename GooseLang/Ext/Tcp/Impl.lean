@@ -135,10 +135,10 @@ modeled (the methods are not modeled either, so a program calling them is stuck)
 * D19 `DialTimeout`: `"Dial"`; its model may turn a failure into a timeout (`net`'s `errTimeout`, or
   `poll.ErrDeadlineExceeded`: `NetTcp/TrustedCode/net.lean`), and D16 applies.
 * D20 the plan's well-formedness (D13, `Deploy.lean`).
-* D21 wildcard `Listen` (`ListenAt`): `":p"`, `"0.0.0.0:p"`, `"[::]:p"` listen at the plan address
-  with the port `p`, which must be at this node's host and the plan's only address with that port
-  (stuck otherwise): on one machine a wildcard listener takes every local address with its port
-  (`TestAddressAliases`).
+* D21 wildcard `Listen` (`ListenAt`): `":p"`, `"0.0.0.0:p"`, `"[::]:p"` (not themselves plan
+  addresses) listen at the plan address with the port `p`, which must be at this node's host and
+  the plan's only address with that port (stuck otherwise): on one machine a wildcard listener
+  takes every local address with its port (`TestAddressAliases`, `TestWildcardListen`).
 -/
 module
 
@@ -392,12 +392,13 @@ def portOf (a : GoString) : Option GoString :=
   | _ :: p => some p
 
 /-- D6, D21. `Listen` of the string `a` by a node at `host` listens at the plan address `a0`: `a`
-itself, in the plan at `host`; or, for a wildcard `a` with port `p`, the plan's only address with
-the port `p`, at `host`. -/
+itself, in the plan at `host`; or, for a wildcard `a` with port `p` that is not itself in the
+plan, the plan's only address with the port `p`, at `host` (so `a0` is unique:
+`listenAt_unique`). -/
 def ListenAt (plan : GMap GoString GoString) (host a a0 : GoString) : Prop :=
   plan !! a0 = some host ∧
-  (a0 = a ∨ ∃ p, wildPort a = some p ∧ portOf a0 = some p ∧
-    ∀ x, (plan !! x).isSome → portOf x = some p → x = a0)
+  (a0 = a ∨ (plan !! a = none ∧ ∃ p, wildPort a = some p ∧ portOf a0 = some p ∧
+    ∀ x, (plan !! x).isSome → portOf x = some p → x = a0))
 
 /-! ## The step relation -/
 

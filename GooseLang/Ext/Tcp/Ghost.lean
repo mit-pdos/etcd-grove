@@ -4,7 +4,9 @@ resources are the extension's state, piece by piece, and nothing else (no histor
 
 **The network's resources** (global, all in the one `AllG GF` of the ghost state, `TcpGS`):
 
-* `tcpPlan a h` (persistent): the plan has the address `a`, at the host `h`.
+* `tcpPlan a h` (persistent): the plan has the address `a`, at the host `h`. The plan itself is a
+  field of the ghost state (`TcpGS.plan`, the network's, which no step changes; the start resources
+  say which), for `Listen`'s resolution of a wildcard, which needs the whole plan (`ListenAt`).
 * `tcpPend a S` (exclusive, one per plan address, from the start resources): `S` is the set of the
   connections dialed to `a` and not yet accepted. `Dial` adds to it and `Accept` takes from it, as
   logically atomic steps, so a program keeps it in an invariant with what it promises about the
@@ -103,13 +105,15 @@ instance TcpEnd.countable : Pos.Countable TcpEnd :=
       cases a; cases b; simp only [Prod.mk.injEq] at h'
       obtain ⟨rfl, rfl, rfl⟩ := h'; rfl)
 
-/-- The global ghost state: the universal camera, and the ghost maps of the connections' names, of
-the pending sets and of the plan. -/
+/-- The global ghost state: the universal camera, the ghost maps of the connections' names, of
+the pending sets and of the plan, and the plan itself (`plan`: the network's, which no step
+changes; what `Listen`'s resolution of a wildcard needs, `ListenAt`). -/
 structure TcpGS (GF : BundledGFunctors) where
   allG : AllG GF
   γnames : GName
   γpend : GName
   γplan : GName
+  plan : GMap GoString GoString
 
 /-- The local ghost state: the universal camera, the node's host, and its listeners' ghost map. -/
 structure TcpLocalGS (GF : BundledGFunctors) where
@@ -150,7 +154,7 @@ def tcpCtx (hG : TcpGS GF) (g : TcpGlobal) : IProp GF :=
   letI := hG.allG
   iprop(∃ (nm : GMap Nat ConnNames) (pm : GMap GoString (GSet Nat)),
     ghostMapAuth hG.γnames 1 nm ∗ ghostMapAuth hG.γpend 1 pm ∗ ghostMapAuth hG.γplan 1 g.plan ∗
-    ⌜(∀ c, (nm !! c).isSome = (g.conns !! c).isSome) ∧ PendOk g pm⌝ ∗
+    ⌜(∀ c, (nm !! c).isSome = (g.conns !! c).isSome) ∧ PendOk g pm ∧ g.plan = hG.plan⌝ ∗
     [∗map] c ↦ cn ∈ g.conns, ∃ γ, ⌜nm !! c = some γ⌝ ∗ ghostMapElem hG.γnames c .discard γ ∗
       connCtx γ cn)
 
@@ -239,7 +243,8 @@ def pendInit (g : TcpGlobal) : GMap GoString (GSet Nat) := GMap.fmap (fun _ => (
 
 /-- The start resources of the network: its plan, and every plan address's (empty) pending set. -/
 def tcpStart (hG : TcpGS GF) (g : TcpGlobal) : IProp GF :=
-  iprop(([∗map] a ↦ h ∈ g.plan, tcpPlan hG a h) ∗ [∗map] a ↦ S ∈ pendInit g, tcpPend hG a S)
+  iprop(([∗map] a ↦ h ∈ g.plan, tcpPlan hG a h) ∗ ([∗map] a ↦ S ∈ pendInit g, tcpPend hG a S) ∗
+    ⌜hG.plan = g.plan⌝)
 
 theorem pendOk_init (g : TcpGlobal) (h : g.conns = ∅) : PendOk g (pendInit g) := by
   refine ⟨fun a => ?_, fun a S c hS => ?_, fun c cn hc => ?_⟩
@@ -258,7 +263,7 @@ theorem tcp_global_init (hPre : TcpGpreS GF) (g : TcpGlobal) (hg : g.conns = ∅
   imod ghost_map_insert_persist_big (γ := γl) g.plan (fun _ _ h => by simp at h)
     $$ Hl with ⟨Hl, Hls⟩
   imodintro
-  iexists (⟨hPre.allG, γn, γp, γl⟩ : TcpGS GF)
+  iexists (⟨hPre.allG, γn, γp, γl, g.plan⟩ : TcpGS GF)
   isplitl [Hn Hp Hl]
   · unfold tcpCtx
     iexists ∅, pendInit g
@@ -269,10 +274,11 @@ theorem tcp_global_init (hPre : TcpGpreS GF) (g : TcpGlobal) (hg : g.conns = ∅
     iframe Hl
     isplitr
     · ipureintro
-      exact ⟨fun c => by simp [hg, gmap_get?_eq], pendOk_init g hg⟩
+      exact ⟨fun c => by simp [hg, gmap_get?_eq], pendOk_init g hg, rfl⟩
     · rw [hg]; iapply BigSepM.bigSepM_empty.2; iempintro
   · unfold tcpStart tcpPlan tcpPend
     iframe Hls Hps
+    ipureintro; rfl
 
 /-- The start resources of a node: its host, and its listeners. -/
 def lisStart (hL : TcpLocalGS GF) (L : TcpLocal) : IProp GF :=
