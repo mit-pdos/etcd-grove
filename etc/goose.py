@@ -627,6 +627,17 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")],
+        # (2026-11-14, W4c U2: notes/wal-fsext-w4c-plan.md) translated with its bodies into the part
+        # `LinuxFs/` too, over the part's `os` (fsExt) and `path/filepath`, where its specs are
+        # proved (no trusted function: `LinuxFs/Code/.../examples/lib/durable.toml` absent)
+        parts=[Part(
+            root="LinuxFs",
+            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
+                        "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
+                        "internal/syscall=LinuxFs", "path/filepath=LinuxFs",
+                        "internal/filepathlite=LinuxFs"],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
     Project(
         name="prophkv",
