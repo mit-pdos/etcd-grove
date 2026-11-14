@@ -98,7 +98,8 @@ theorem put.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     put.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γc i hi hE hlv hrb
+  intro s E ρ γc i RcB hi hE hlv
+  have hrb := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   wp_start as ⟨#Hreq, #Hb, Htok, #Hinv, Hd⟩
   have hi256 : i < 256 := by simp only [r1NPuts] at hi; omega
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

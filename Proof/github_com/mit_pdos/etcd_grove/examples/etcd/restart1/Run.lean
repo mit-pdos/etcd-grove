@@ -41,7 +41,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.As
 /-- `put(s, j)` at a `w64` argument. -/
 theorem wp_put' (wp_put : put.spec (GF := GF) (hG := hG)) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γc : GName) (j : w64) (h0 : 0 ≤ sint.Z j) (hj : sint.Z j < r1NPuts)
-    (hE : E.authOn = false) (hlv : srvLevels (GF := GF)) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    [ReceiptBoundLe GF (2 ^ 48)] (hE : E.authOn = false) (hlv : srvLevels (GF := GF)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1 ∗
         isServerReq s E ρ ∗ srvRevokeBuilt s E ∗ threadTok ∗
         r1Inv ρ.kv γc ∗ monoNatAuthOwn γc (1 : Qp).half (sint.nat j) }}
@@ -51,7 +51,7 @@ theorem wp_put' (wp_put : put.spec (GF := GF) (hG := hG)) (s : Loc) (E : apply.A
         ((⌜err = GoInterface.nil⌝ ∗ monoNatAuthOwn γc (1 : Qp).half (sint.nat j + 1)) ∨
           ⌜err ≠ GoInterface.nil⌝) }} := by
   have hw := wp_put s E ρ γc (sint.nat j) (by unfold sint.nat; unfold sint.Z at h0 hj; omega)
-    hE hlv hrb
+    hE hlv
   rwa [show W64 ((sint.nat j : Nat) : Int) = j by unfold sint.nat; word] at hw
 
 set_option maxHeartbeats 2000000 in
@@ -124,7 +124,7 @@ theorem Run.wp_proof
   wp_if_destruct
   · wp_apply (wp_put' wp_put s E { ρ with wait := γw } γc j Hj.1
         (by have := Hif; simp only [show sint.Z (W64 11) = 11 by rfl] at this; simp only [r1NPuts]; omega)
-        HE.2 hlv Hrb48) $$ [Htok Hd] as %perr ⟨Htok, Hput⟩
+        HE.2 hlv) $$ [Htok Hd] as %perr ⟨Htok, Hput⟩
     · iframe; iframe #
     icases Hput with (⟨%Hperr, Hd⟩ | %Hperr)
     rotate_left

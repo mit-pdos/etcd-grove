@@ -80,7 +80,7 @@ theorem leadInv_of_req (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
 `NPuts` pairs `keyOf i ↦ valOf i`, in order, each at version `1`, and its header revision `1 + NPuts`. -/
 theorem r1RangeReply (E : apply.AEnv GF) (γr : ReadNames) (resp : Loc) (hnn : resp ≠ null) :
     rangeReadOk E γr (W64 0) [] r1RangeOp resp
-        (fun L => iprop(□ ⌜r1Ok (kvStM false γr.kv L) r1NPuts⌝)) ⊢
+        (fun L => iprop(□ ⌜r1Ok (kvStOff γr.kv L) r1NPuts⌝)) ⊢
       ∃ (kvs : List EtcdKv) (more : Bool) (count : w64),
         txn.rangeResponseIs resp (W64 (1 + r1NPuts : Nat)) kvs more count ∗
         ⌜kvs.length = r1NPuts ∧
@@ -93,7 +93,7 @@ theorem r1RangeReply (E : apply.AEnv GF) (γr : ReadNames) (resp : Loc) (hnn : r
   icases H with ⟨%log, -, -, -, %Hl, -, ⟨%L, -, %HL, %HQ⟩, ⟨%crev, #Hres⟩, -⟩
   obtain ⟨-, hlen, hlen', -⟩ := Hl
   have Hok : r1Ok (kvStateOf log) r1NPuts := by
-    rw [kvStM_false] at HQ; unfold kvStOff at HQ; rw [HL] at HQ; exact HQ
+    unfold kvStOff at HQ; rw [HL] at HQ; exact HQ
   iunfold txn.rangeResult at Hres
   icases Hres with (⟨⟨-, %Hn⟩, -⟩ | ⟨⟨-, -, -, %Hn, -⟩, -⟩ | ⟨-, %kvs, %more, #Hr, %Hsel⟩ |
     ⟨⟨-, -, %Hn⟩, -⟩)
@@ -225,7 +225,7 @@ theorem check.wp_proof
   -- the read deposit: `restart1`'s read update
   ihave #Hdep : kvDep ρ.rd.kv
       (fun L => iprop(□ (fun σ => iprop(⌜r1Ok σ r1NPuts⌝) : KVState → IProp GF)
-        (kvStM false ρ.rd.kv L))) (kvStM false ρ.rd.kv) $$ []
+        (kvStOff ρ.rd.kv L))) (kvStOff ρ.rd.kv) $$ []
   · iunfold kvDep
     ileft
     iexists (fun σ => iprop(⌜r1Ok σ r1NPuts⌝) : KVState → IProp GF)
@@ -238,9 +238,9 @@ theorem check.wp_proof
   have hany : E.authMode ≠ .any := by rw [hoff]; intro h; cases h
   wp_apply (wp_Range s E { ρ with wait := γw } ρ.rd (W64 0) ctx cd «$a1_ptr» r1RangeOp none false
       (fun L => iprop(□ (fun σ => iprop(⌜r1Ok σ r1NPuts⌝) : KVState → IProp GF)
-        (kvStM false ρ.rd.kv L))) [] 0 hany) $$ [Hcall] as %resp %err ⟨-, Hout⟩
+        (kvStOff ρ.rd.kv L))) [] 0 hany) $$ [Hcall] as %resp %err ⟨-, Hout⟩
   · rw [HEc.2.1]
-    simp only [isServerReqM_false, isServerReadM_false]
+    simp only [isServerReqM_false, isServerReadM_false, kvStM_false]
     iframe Hcall
     iframe #
     isplitr; · iapply srvAuthLb_off s E _ $$ Hreq

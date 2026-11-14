@@ -12,6 +12,7 @@ half at `i + 1` (the put fired: the range holds the first `i + 1` pairs), or an 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.KV
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -32,8 +33,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.As
 
 /-- See the file header. -/
 abbrev put.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γc : GName) (i : Nat),
-  i < r1NPuts → E.authOn = false → srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γc : GName) (i : Nat)
+    [ReceiptBoundLe GF (2 ^ 48)],
+  i < r1NPuts → E.authOn = false → srvLevels (GF := GF) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1 ∗
       isServerReq s E ρ ∗ srvRevokeBuilt s E ∗ threadTok ∗
       r1Inv ρ.kv γc ∗ monoNatAuthOwn γc (1 : Qp).half i }}
