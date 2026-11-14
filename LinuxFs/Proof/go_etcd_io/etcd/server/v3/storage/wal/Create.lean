@@ -670,7 +670,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       (h.restrict jr (N.diff [tmpName nm])) hT3 J walTmps
       (hJ'.restrict J ((NameSet.except []).diff walTmps)) ⊤ CoPset.subseteq_top walN_osShN_top hnm
       hNnm' hNt' hDe (tmpName_not_walName nm) (tmpName_walNameP nm) (walNameOk_not_tmps hnm)
-      walTmps_not_wal $$ Hinv Hsi Hnc Hu HN HT HJx with ⟨Hnc, %hC, Hcr, HNr, HC, HJx, %hCf⟩
+      walTmps_not_wal (fun _ h => h) $$ Hinv Hsi Hnc Hu HN HT HJx with ⟨Hnc, %hC, Hcr, HNr, HC, HJx, %hCf⟩
     iframe Hnc
     imodintro
     imod create_J_ne R jr J [nm, tmpName nm] nm _ _ hC _ (by simp) (walNameOk_not_tmps hnm)

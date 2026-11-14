@@ -64,7 +64,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
     (createLay jr nm J (createSeg i mS ysS) (createStream Mr md).length) (createSeg i mS ysS) lb
     hin (tmpName_ne nm) (by simp [NameSet.Mem]) (by simp [NameSet.Mem]) hctmp
     (tmpName_not_walName nm) (tmpName_walNameP nm) (tmpName_areaSlot hnm) hJjr hlb hJlb
-    ⟨rfl, rfl, rfl⟩ rfl hne hJcoh walTmps_not_wal
+    ⟨rfl, rfl, rfl⟩ rfl hne hJcoh walTmps_not_wal rfl
     (createLay_abs Mr md hMr hmd jr nm J _ _ rfl ⟨hbs1, hbs2⟩ hmeta (createJ_walInos hw hcur'))
     hdur hzf rfl
   · intro b hb _
