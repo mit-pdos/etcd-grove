@@ -367,6 +367,11 @@ examples/lib/durable.lean` (generated), `LinuxFs/Proof/.../examples/lib/durable/
   `os.RemoveAll` spec (`SubCover`, which the boot gives) and let `tmpClTouch` accept a directory `.touch` (the probe's
   `O_CREAT` open fails with `EISDIR`, `Create` returns the error): then only `nm` (1, 3, 4) needs `fl`, and none of the
   AU-shaped fileutil/`RemoveAll` specs.
+- **`walBootCrash`, started (pure).** `BootCrashCl.lean`: `bootWals m jr` (the area's WAL names holding a directory,
+  with it), `mem_bootWals`, `bootWals_nodup`, `bootWals_fun`, `bootWals_inj` (unique naming: distinct directories),
+  `bootWals_ne_root`, `bootWals_nameOk`, `bootWals_mem` (`TreeWf`): the facts `hdirs1`/`hJm`/`hnames`/`hnok` rest on.
+  Next: the claim list over `bootWals` (the `osNames_split`s of the area's and each `J`'s whole claims), then the
+  proof as designed in the second session, with `hfo` (narrowed) its premise until `walFoRes` lands.
 
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
