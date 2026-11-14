@@ -5,11 +5,10 @@ same index and term (and a conf state iff the original has one), which the calle
 (`walSnapIdTerm`, persistent).
 
 What it stands for: `proto.ClonePb.spec` (the main tree's per-type trust boundary, over a registered
-message type, `pbModelOf`) at `walpb.Snapshot`, once that type is registered in the part (as
-`walpb.Record` is, `PbRecord.lean`), with `walSnapAt` over its content model: W6's `SaveSnapshot`
-fix (`walSnapAt` with the full protobuf content model, `notes/wal-fsext-plan.md`) brings both; this
-statement then follows from `ClonePb` (the clone's model equals the original's, so its index and
-term). Until then it is a hypothesis, recorded in the W3/W5 log. Lean-first.
+message type, `pbModelOf`) at `walpb.Snapshot`, registered in the part since W6 (`pbSnapC`,
+`walpb/PbSnapshot.lean`): the clone is `snapOwnC` at the original's content, which the caller freezes
+(a lemma to write: `snapOwnC` to `snapRoC`, allocating the hidden fields' invariants). Until the part
+has a copy of `ClonePb` and that lemma it is a hypothesis, recorded in the W3/W5 log. Lean-first.
 -/
 module
 

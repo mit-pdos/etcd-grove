@@ -26,31 +26,35 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.wp_
     (wp_GetIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF)
       (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.spec (GF := GF) (hG := hG) := by
-  intro sp sm cs hcs
+  intro Mr sp sm cs hcs
   wp_start as #Hs
   ihave #Hs0 := Hs
   iunfold walSnapAt at Hs
-  icases Hs with ⟨%s, #Hsp, #Hi, #Ht, %Hcs⟩
-  ihave %Hn := typedPointsto_not_null sp _ _ $$ Hsp
-  ihave %Hin := typedPointsto_not_null s.Index' _ _ $$ Hi
-  ihave %Htn := typedPointsto_not_null s.Term' _ _ $$ Ht
-  iStructNamed Hsp
+  icases Hs with ⟨%c, Hs, %Hc⟩
+  obtain ⟨Hm, Hi, Ht, Hcs, -⟩ := Hc
+  iunfold snapRoC at Hs
+  icases Hs with ⟨%pi, %pt, %pc, %Hn, #Hpi, Hci, #Hpt, Hct, #Hpc, Hcc, -⟩
+  ihave #Hci := recCell_of_eq_some pi Hi $$ Hci
+  ihave #Hct := recCell_of_eq_some pt Ht $$ Hct
+  ihave %Hcn := walCsOptRoC_null pc c.confState $$ Hcc
+  ihave %Hin := typedPointsto_not_null pi _ _ $$ Hci
+  ihave %Htn := typedPointsto_not_null pt _ _ $$ Hct
   wp_auto
   wp_if_destruct
-  · exact absurd Hif Hin
+  · exact absurd rfl Hin
   wp_if_destruct
-  · exact absurd Hif Htn
+  · exact absurd rfl Htn
   wp_if_destruct
   · -- the conf state nil: the index is 0
     have hi : sm.Index' = W64 0 := by
       rcases hcs with h | h
       · exact h
-      · subst h; simp [Hif] at Hcs
+      · have h0 := Hcn.1 rfl
+        rw [h0] at Hcs
+        exact absurd (h.symm.trans Hcs) (by decide)
     wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []
-    · iunfold walSnapIdTerm
-      iexists sm, cs
-      iframe Hs0
-      ipureintro; rfl
+    · iapply walSnapAt_idTerm
+      iexact Hs0
     rw [hi]
     wp_auto
     iapply HΦ

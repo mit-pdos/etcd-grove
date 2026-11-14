@@ -473,6 +473,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     · unfold walTailsRes
       iexists ∅
       iframe Htl
+      isplitr
+      · ipureintro; intro i hi; exact absurd (GMap.lookup_empty (K := Ino) (V := SegFl) i) hi
       iapply BigSepM.bigSepM_empty.2; iempintro
     isplitr
     · ipureintro

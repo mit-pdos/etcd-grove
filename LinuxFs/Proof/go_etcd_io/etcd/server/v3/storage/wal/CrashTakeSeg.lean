@@ -97,7 +97,7 @@ theorem runsCover_fl {fl : SegFl} {g : SegG} (h : fl.Ok g) :
 
 /-- A resize in flight's runs (its token's bytes cut off, the halves below them) cover the segment
 as the layout holds it (I3b). -/
-theorem runsCover_rz {fl : SegFl} {tg : Nat} {g : SegG} (h : fl.OkR tg g) :
+theorem runsCover_rz {fl : SegFl} {tr : Bool} {tg : Nat} {g : SegG} (h : fl.OkR tr tg g) :
     RunsCover [(min fl.m.size tg, DFrac.own 1, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))),
       (0, DFrac.own (1 : Qp).half, fl.bs.take (min fl.m.size tg))] g.bs := by
   obtain ⟨hlen, -, -, hbs, -⟩ := h
@@ -251,29 +251,31 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
       · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
       iframe Ht
       ipureintro; exact ⟨hgap, hok⟩
-    | some tg =>
+    | some p =>
+      obtain ⟨tr, tg⟩ := p
       simp only []
       icases Hs with ⟨Ht, Hb1, %hok⟩
       unfold rsTok osTok osBytes
       icases Ht with ⟨Ht, %hxl⟩
       have hcut0 : fl.m.cut = none := hok.2.1
       icases crashRestAt_take_tok (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' st st' fl.t
-        ⟨g.ino, rsKind true tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩
+        ⟨g.ino, rsKind tr tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩
         hi [(0, DFrac.own (1 : Qp).half, fl.bs.take (min fl.m.size tg))]
         $$ Hr Ht [Hb1] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
       · iapply BigSepL.bigSepL_singleton.2; iexact Hb1
       icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb1
+      simp only [rsKind_lo] at hfc
       obtain ⟨h1, h2, f, hf, h3⟩ := hfc
       have hcov := runsCover_rz hok
       have hmeta : g.om = TokInfo.meta
-          ⟨g.ino, rsKind true tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩ :=
-        hok.2.2.1
+          ⟨g.ino, rsKind tr tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩ := by
+        rw [rsKind_meta]; exact hok.2.2.1
       iframe Hr Hb1
       isplitr
       · ipureintro
         refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_)⟩
         · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
-        · simp [TokInfo.meta, OsMeta.announce, hcut0]
+        · rw [rsKind_meta]; simp [hcut0]
       isplitl [Hf]
       · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
       iframe Ht

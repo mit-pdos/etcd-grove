@@ -265,6 +265,46 @@ theorem rsDone_zerosA (tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat
   iframe Hb
   ipureintro; rw [List.length_map, hzs.1]
 
+/-- `rsDone_zerosA` of `rsDoneK`. -/
+theorem rsDoneK_zerosA (keep tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (xs : List ByteG)
+    (n : Nat) :
+    rsDoneK (L := L) keep tr p tg sz' m xs n ⊢
+      osMeta (L := L) p (DFrac.own 1) (rsPostK keep tr m tg sz' n xs) ∗
+      osZerosA (L := L) p m.size (sz' - m.size) (DFrac.own 1) ∗
+      mcells (L := L) m.maps (min m.size tg) (rsHi tr m.size tg) (rsCell sz') := by
+  unfold rsDoneK
+  iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
+  iframe Hm Hc
+  iapply (osZerosA_unfold p m.size _ _).2
+  iexists zs.map (fun c0 => c0 ++ [(0, n)])
+  rw [show (zs.map (fun c0 => c0 ++ [((0 : w8), n)])).map (fun c => ((0 : w8), c)) =
+    zs.map (fun c0 => ((0 : w8), c0 ++ [((0 : w8), n)])) by simp [Function.comp_def]]
+  iframe Hb
+  ipureintro; rw [List.length_map, hzs.1]
+
+/-- `rsDone_zeros` of `rsDoneK`. -/
+theorem rsDoneK_zeros (keep tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (xs : List ByteG)
+    (n z : Nat) (hzf : m.zf = some z) (hz : z ≤ m.size) :
+    rsDoneK (L := L) keep tr p tg sz' m xs n ⊢
+      osMeta (L := L) p (DFrac.own 1) (rsPostK keep tr m tg sz' n xs) ∗
+      osZeros (L := L) p m.size (sz' - m.size) (DFrac.own 1) (zcs n) ∗
+      mcells (L := L) m.maps (min m.size tg) (rsHi tr m.size tg) (rsCell sz') := by
+  unfold rsDoneK
+  iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
+  have hzr : zs = List.replicate (sz' - m.size) [((0 : w8), 0)] := by
+    obtain ⟨hl, hzz⟩ := hzs
+    apply List.ext_getElem?; intro j
+    by_cases hj : j < sz' - m.size
+    · rw [hzz j z hzf (by omega) (by rw [hl]; exact hj), List.getElem?_replicate, ite_eq_left_iff.mpr (fun h => absurd hj h)]
+    · rw [List.getElem?_eq_none (by rw [hl]; omega),
+        List.getElem?_eq_none (by rw [List.length_replicate]; omega)]
+  subst hzr
+  rw [List.map_replicate, show List.replicate (sz' - m.size) ((0 : w8), [((0 : w8), 0)] ++ [((0 : w8), n)])
+    = zrun (sz' - m.size) (zcs n) from rfl]
+  iframe Hm Hc
+  iapply (osZeros_bytes p m.size _ _ _).2
+  iexact Hb
+
 /-- A 64 MB segment's run, its first 8 bytes taken for a write: nothing is materialized. -/
 example (i : Ino) (cs : Cands) :
     osZeros (L := L) i 0 (64 * 1024 * 1024) (DFrac.own 1) cs ⊢

@@ -99,7 +99,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (Mr : WalM
     {{ encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗
         walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
-        W out ∗ walSnapAt sp sm cs }}
+        W out ∗ walSnapAt Mr sp sm cs }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
         go!"SaveSnapshot")) (Val #sp))
     {{ (err : GoInterface), RET #err;

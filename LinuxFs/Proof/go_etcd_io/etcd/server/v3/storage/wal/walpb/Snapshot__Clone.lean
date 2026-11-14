@@ -1,6 +1,6 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/walpb/Snapshot__Clone.lean`: the
-receiver is non-nil (`walSnapAt`'s points-to), so `proto.Clone` (`proto.CloneWalSnap.spec`, a
+receiver is non-nil (`snapRoC_ne`), so `proto.Clone` (`proto.CloneWalSnap.spec`, a
 hypothesis) and the type assertion, which holds.
 -/
 module
@@ -31,10 +31,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.wp_proof
   wp_start as #Hs
   ihave #Hs2 := Hs
   iunfold walSnapIdTerm at Hs2
-  icases Hs2 with ⟨%md, %cs, Hs2, %hs⟩
-  iunfold walSnapAt at Hs2
-  icases Hs2 with ⟨%v, #Hp, -, -, -⟩
-  ihave %Hn := typedPointsto_not_null sp _ _ $$ Hp
+  icases Hs2 with ⟨%c, Hs2, %hs⟩
+  ihave %Hn := snapRoC_ne sp c $$ Hs2
   wp_auto
   simp only [decide_eq_false Hn]
   wp_auto

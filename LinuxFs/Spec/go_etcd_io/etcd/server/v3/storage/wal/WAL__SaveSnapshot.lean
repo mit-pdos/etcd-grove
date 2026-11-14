@@ -32,7 +32,7 @@ write, the flush, the fdatasync): committed (`Q d`), the handle lost, as `Save`'
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (sp : Loc)
     (md : SnapshotMetadataM) (cs : Bool) (sized : Bool) (Q : WalDur → IProp GF),
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ walSnapAt sp md cs ∗
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ walSnapAt Mr sp md cs ∗
       ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] }, COMM Q d }> }}
