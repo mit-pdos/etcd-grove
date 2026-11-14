@@ -48,6 +48,26 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S5 leftovers done; S7 Scope written (2026-11-14, the S5/S7 agent): a fresh agent starts here
+
+- **S5's leftovers (proofs and forms only, no trusted text):**
+  - `authSrvTP_off`'s call site already took HS1's `Or.inl` (in `authStoreKit_off`): nothing left there.
+  - `authStoreKit` (`E/AuthSrv.lean`) widened: its triple's auth bucket is `∅ ∨ (M = .off ∧ authBoot)`
+    (mode-dependent: `authStoreKit_on` needs it empty, through `authSchemaSrv`). `authStoreKit_off` passes
+    `Hr.1.imp_right And.right`, `authStoreKit_on` `Hr.1.resolve_right`. `NewServer.lean` passes `Or.inl`.
+  - `NewServerR.lean` uses `hTP`'s kit directly (`Or.inr ⟨hMo, …⟩`). `wp_proofRG`'s premise `h30` is gone
+    (the wrapper `wp_proofR` keeps it for `authSrvTP_off`). `authStoreKitR`/`authStoreKitR_off`
+    (`NewServerRFacts.lean`) are deleted.
+  - Docstrings: `NewServerR.lean`'s header (no more "skeleton"), `NewServerRFacts.lean`'s STATUS, and
+    `SE/NewServerR.lean` ("linked, used by no closed theorem"). `notes/decisions.md`: "Restart S5: the
+    constructors at a restart".
+  - Verified: full build `/shared/tmp/restart-s56/s5-full.log`, then tcb `--check` and gates (see the report).
+- **S7 Scope:** `notes/restart-s7-scope.md`, notes only. STOP for etcd-grove-81's review. Recommended: one
+  member (`restart1`), in-process `Put`s of distinct keys, `HardStop`, restart, `Range`; no R2s-A. Est. 7-10 wk.
+
+**Next, in order:** 81's answers on the S7 Scope (D-S7-1..6, N1/N2 for the user), then S7.0 (the Go program)
+and S7.1 (the probe) in a new worktree. The proof cleanup (item 3 below) is still open.
+
 ## S6 B2 DONE: `NewServer.specR` proved and linked (2026-11-14, CP3 approved by etcd-grove-81): a fresh agent starts here
 
 The restart constructor's spec is proved, with no `sorry` (`wp_NewServerR` in the server's `Link.lean`). It is
