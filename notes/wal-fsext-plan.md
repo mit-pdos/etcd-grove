@@ -1682,8 +1682,8 @@ rename's return; `sorry` from the rename's outcome on.**
   sequence below `2^63`. `pipeFile` carries `m.size ≤ 0xffffffff000` (the new tail's size, `walHandleIn`'s
   `sz` bound; `alloc` proves it from the pipeline's size).
 - *Gotchas*: `MethodResolve` on a `time.Duration` value needs `go.NotInterface go.int64`, which instance search
-  does not find (`go.int64` a plain `def`; `notInterface_Named` does not unfold it): a local `haveI` (for
-  `notes/perennial-changes.md`: an instance for the predeclared named types). `wp_method_call` searches the
+  does not find (`go.int64` a plain `def`; `notInterface_Named` does not unfold it): a local `haveI` (already in
+  `notes/perennial-changes.md`, 2026-11-13). `wp_method_call` searches the
   hypotheses too: clear a used `wal.histSpec` (it mentions `methods hs.ty "Observe"`) before the next call. The
   proof's end-of-declaration processing needs `maxHeartbeats 1000000`.
 

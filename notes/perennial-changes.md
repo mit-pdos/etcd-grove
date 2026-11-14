@@ -2402,13 +2402,3 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed.** `errors.is.spec` for any target whose type's errors in the tree hold comparable values
   (the comparison `err == target` is then defined), and a spec of `syscall.Errno.Is` (a `switch` comparing
   the target with `oserror`'s pointer errors).
-
-## `go.NotInterface` of the predeclared named types (2026-11-14, `wal-cut10`)
-
-- **Problem.** `go_method_resolve_step` needs `go.NotInterface tunder` of the receiver's underlying type; for a
-  `time.Duration` (underlying `go.int64`) instance search finds none: `go.int64` is a plain `def` of
-  `go.Named go!"int64" []`, which `notInterface_Named` does not unfold. `wp_pures` then leaves
-  `MethodResolve time.Duration.ty "Seconds" #d` unreduced.
-- **Workaround here.** `WAL.cut.wp_proof`: a local `haveI : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩`.
-- **Proposed.** `NotInterface` (and `NotNamed` where true) instances for the predeclared types (`go.int64`, ...),
-  or making them `@[reducible]`.
