@@ -450,6 +450,42 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iframe Hlg Hdir Hzap
           subst hez
           (try wp_auto)
+          -- `fileutil.Fdatasync(w.tail().File)`: the zeroing durable, the window closed
+          wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+          · iframe
+          (try wp_auto)
+          icases walOpening_cutFrag w dir s $$ Hgh with ⟨Hcf, Hgh⟩
+          wp_apply (fileutil.Fdatasync.wp_tailW wp_Fd Mr R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata
+            lay.cuts lay.wr sz' [] (by simpa using hwrT)) $$ [$HareaK $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
+          ihave Hgh := Hgh $$ Hcf
+          icases Hz with (⟨%hef, Htw, #Hsyn⟩ | ⟨%hef, -⟩)
+          rotate_left
+          · -- the fdatasync's error
+            have hez : errnoErr ef ≠ GoInterface.nil := WalFs.errnoErr_ne ef hef
+            generalize errnoErr ef = ez at hez ⊢
+            rcases ez with ei | _
+            rotate_left
+            · exact absurd rfl hez
+            dsimp only
+            (try wp_auto)
+            iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+            iintro %dq HQ Hfail
+            wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+            · ipureintro; trivial
+            iapply HΦ
+            iframe Hp Hperm
+            iexists dq
+            iframe HQ
+            ileft
+            isplitr
+            · ipureintro; simp
+            unfold walReadFailedF
+            iframe Hfail
+            iexists lg
+            iframe Hlg Hdir Hzap
+          subst hef
+          (try rw [show errnoErr 0 = GoInterface.nil from WalFs.errnoErr_zero])
+          (try wp_auto)
           sorry
       · exact absurd hio hEu.2
       · exfalso
