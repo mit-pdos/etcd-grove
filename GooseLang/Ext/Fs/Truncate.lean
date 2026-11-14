@@ -114,12 +114,21 @@ theorem rsTail_lookup (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG
 (`OsMeta.cut = none`), whose byte resources' candidates are the state's. -/
 def rsPostK (keep : Bool) (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) : OsMeta :=
   { rsPost tr m tg sz' with
-    tc := cond keep (rsTail tr m tg sz' n xs) (rsPost tr m tg sz').tc }
+    tc := cond keep (rsTail tr m tg sz' n xs) (rsPost tr m tg sz').tc
+    rz := cond keep (n :: m.rz) (rsPost tr m tg sz').rz }
 
 theorem rsPostK_false (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
     rsPostK false tr m tg sz' n xs = rsPost tr m tg sz' := rfl
 
-/-- `rsPostK` differs from `rsPost` only in `tc`. -/
+@[simp] theorem rsPost_rz (tr : Bool) (m : OsMeta) (tg sz' : Nat) : (rsPost tr m tg sz').rz = m.rz := by
+  simp [rsPost]
+
+/-- A resize landed with its cut-off candidates known (`keep`) records its stamp. -/
+@[simp] theorem rsPostK_rz (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
+    (rsPostK keep tr m tg sz' n xs).rz = cond keep (n :: m.rz) m.rz := by
+  cases keep <;> simp [rsPostK]
+
+/-- `rsPostK` differs from `rsPost` only in `tc` and `rz`. -/
 @[simp] theorem rsPostK_size (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
     (rsPostK keep tr m tg sz' n xs).size = (rsPost tr m tg sz').size := rfl
 @[simp] theorem rsPostK_lo (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
@@ -540,7 +549,17 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
           have h1 := hmo.maps b len; simp only [announce_maps] at h1
           simp only [rsPostK_maps, rsPost, announce_maps]; exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_⟩
+        fun b hb hbz => ?_, fun s hs => ?_⟩
+      rotate_right 1
+      · show s ∈ f.rzs
+        have hmz : ∀ s ∈ m.rz, s ∈ f.rzs := fun s hs => hmo.rz s (by simpa using hs)
+        cases keep with
+        | false => exact hmz s (by simpa [rsPostK, rsPost] using hs)
+        | true =>
+          rcases List.mem_cons.1 (show s ∈ n :: m.rz from hs) with rfl | hs
+          · obtain ⟨f1, hf1, hn1⟩ := hcoh.tok_rz t _ hti (by cases tr <;> rfl)
+            rw [hf] at hf1; cases hf1; exact hn1
+          · exact hmz s hs
       rotate_right 2
       · rw [show f2.cand b = f.cand b from rfl]
         have hcase : (keep = true ∧ min m.size tg ≤ b ∧ b < rsHi tr m.size tg ∧ sz' ≤ b ∧
