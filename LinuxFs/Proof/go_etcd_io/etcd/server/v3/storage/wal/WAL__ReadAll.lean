@@ -224,7 +224,7 @@ set_option maxHeartbeats 2000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [syscall.Assumptions]
     [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
-    (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr)
+    (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr) (hUs : U.SnapCoh)
     (HsO : Loc → HardStateM → IProp GF) (hHs : WalHsOwn P U HsO)
     (wp_Decode : go_etcd_io.etcd.server.v3.storage.wal.decoder.Decode.spec (GF := GF) (hG := hG))
     (wp_LastCRC : go_etcd_io.etcd.server.v3.storage.wal.decoder.LastCRC.spec (GF := GF) (hG := hG))
@@ -1118,7 +1118,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           unfold ownRec
           icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
           wp_auto
-          wp_apply wp_UnmarshalSnap snap_ptr v.Data' _ r.data p hp $$ [snap Hd] as ⟨Hd, #Hsn⟩
+          wp_apply wp_UnmarshalSnap hUs snap_ptr v.Data' _ r.data p hp $$ [snap Hd] as ⟨Hd, #Hsn⟩
           · iframe
           wp_apply wp_SnapIndex snap_ptr p $$ Hsn
           wp_join iprop(w_ptr ↦ w ∗ structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦
@@ -1272,7 +1272,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               intro ii hii
               left
               simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-              cases hii
+              injection hii with hii; subst hii
               exact argWf_int64 _) $$ [Hasl] as %e1 #He1
           · iframe
             try simp only [BigSepL.bigSepL_nil]

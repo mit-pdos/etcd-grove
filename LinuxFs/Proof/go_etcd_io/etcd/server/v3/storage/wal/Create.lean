@@ -71,7 +71,7 @@ hypotheses. -/
 macro "create_seg_exit" : tactic => `(tactic| (
     wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
     · iframe; iframe #
-    imod segClaim_back R J (walFileName 0 0) hJ (some (x0, s0, i)) hJs.2.2 CoPset.subseteq_top
+    imod segClaim_back R J (walFileName 0 0) hJ (some (x0, s0, i)) hJs.2 CoPset.subseteq_top
       $$ Hsi HJr Ho with ⟨%hJ', %hJf, HJ⟩
     ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
     · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
@@ -220,7 +220,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     wp_apply wp_CDA lg R jr (child r (tmpName nm)) r (tmpName nm) qp hT1 rfl (tmpName_nameOk hnmO) htl
       $$ [Hp Hperm Ht] as %err ⟨Hp, Hperm, Hcda⟩
     · iframe; iframe #
-    icases Hcda with (⟨%herr, %hT2, Ht⟩ | ⟨%herr, %hT2, %hJ, %J, %n0, %hJs, HT, HJ, #Hcm0⟩)
+    icases Hcda with (⟨%herr, %hT2, Ht⟩ | ⟨%herr, %hT2, %hJ, %J, %hJs, HT, HJ⟩)
     · -- `CreateDirAll` failed: the deferred `RemoveAll(nm.tmp)`, then the abort
       cases err
       case nil => exact absurd rfl herr
@@ -296,7 +296,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         walFileName 0 0 = none := by
       simp only [NamesH.restrict]
       rw [restrictN_lookup _ _ _ ((NameSet.mem_inter _ _ _).2 ⟨by simp [NameSet.Mem], by simp⟩),
-        hJs.2.2]
+        hJs.2]
       rfl
     imod osNames_split R J (.except []) [walFileName 0 0] hJ CoPset.subseteq_top $$ Hsi HJ
       with ⟨HJ0, HJr⟩
@@ -323,7 +323,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     · -- the create failed: the segment's claim back, the deferred `RemoveAll(nm.tmp)`, the abort
       cases err
       case nil => exact absurd rfl herr
-      imod segClaim_back R J (walFileName 0 0) hJ o hJs.2.2 CoPset.subseteq_top $$ Hsi HJr Ho
+      imod segClaim_back R J (walFileName 0 0) hJ o hJs.2 CoPset.subseteq_top $$ Hsi HJr Ho
         with ⟨%hJ', %hJf, HJ⟩
       ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
       · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
@@ -647,7 +647,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     subst hse
     try wp_auto
     -- `J`'s claims: merged after the segment's create, split off the pipeline's names
-    imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2.2 (walNameP_walFileName 0 0)
+    imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2 (walNameP_walFileName 0 0)
       CoPset.subseteq_top $$ Hsi HJr Ho with ⟨%hJ', HJx, HTmps, %hJf⟩
     obtain ⟨hJlt, hJcur⟩ := hJf
     imod osNames_coh R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, %hJcoh⟩
