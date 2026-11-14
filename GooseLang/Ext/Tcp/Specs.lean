@@ -529,6 +529,11 @@ def ReadRes.toVal : ReadRes → val
   | .err => readRes [] 2
   | .wait => readRes [] 2
 
+/-- The bytes a read returned (none for EOF or an error). -/
+def ReadRes.got : ReadRes → List w8
+  | .bytes bs => bs
+  | _ => []
+
 theorem ReadRes.toExpr_val {e0 : Expr} {r : ReadRes} {w : val} (h : Val w = r.toExpr e0)
     (hop : ∀ w', e0 ≠ Val w') : r ≠ .wait ∧ w = r.toVal := by
   cases r with

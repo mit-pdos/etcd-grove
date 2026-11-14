@@ -9,14 +9,14 @@
 // Two nodes: Server listens at SrvAddr and serves each connection in turn: it
 // reads until EOF, writes everything it read back, and closes the connection;
 // Client dials, writes its request, shuts its write side, reads until EOF and
-// checks that the response is exactly its request. The check holds because a
-// reader sees EOF only after every byte in flight and the writer's FIN, and a
-// writer sends its FIN only if its writes all succeeded (a write that fails
-// with no deadline breaks the connection, whose close then sends no FIN): so
-// the server's EOF means it has read all of the request and nothing more, and
-// the client's means it has read all of the server's single write. Reads may
-// return any number of bytes, operations may fail at any time (no EOF then),
-// and a crash keeps the bytes in flight but sends no FIN.
+// checks that the response is a prefix of its request. Only a prefix: EOF does
+// not mean the writer finished. When a process dies its kernel sends a FIN (or
+// a reset whose error another call may take), so a server killed after reading
+// the request and before writing its reply gives the client EOF with an empty
+// response (examples/net/semantics, TestServerKilledBeforeReply). What the
+// stream does guarantee is that the bytes read are the bytes written, in order,
+// with none invented; this is the weakness of close-delimited bodies that
+// HTTP's Content-Length avoids.
 package halfclose
 
 import (
@@ -88,10 +88,23 @@ func Call() {
 		return
 	}
 	resp, ok := readAll(c)
-	if ok && string(resp) != "hello" {
-		panic("halfclose: the response is not the request")
+	if ok && !prefixOf(resp, []byte("hello")) {
+		panic("halfclose: the response is not a prefix of the request")
 	}
 	c.Close()
+}
+
+// prefixOf reports whether a is a prefix of b.
+func prefixOf(a, b []byte) bool {
+	if len(a) > len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // Server is the server node's boot program.

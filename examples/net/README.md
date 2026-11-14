@@ -14,7 +14,7 @@ node may crash (the bytes it wrote stay in flight; its connections send no FIN).
 | `framed` | several length-prefixed messages on one persistent connection (HTTP/1.1 keep-alive, grpc's length-prefixed messages) | `Server`, `Client`, `Junk` | each of three replies is its request |
 | `acceptloop` | an accept loop with a goroutine per connection (`http.Server.Serve`, `grpc.Server.Serve`) | `Server`, `Client` (two concurrent callers) | each caller gets its own id back |
 | `duplex` | a reader and a writer goroutine on one connection (grpc's reader and loopyWriter; net/http's `persistConn` readLoop and writeLoop) | `Server`, `Client` | the bytes 1..4 come back in order |
-| `halfclose` | `CloseWrite` and reading until EOF (net/http's `closeWriteAndWait`, close-delimited bodies) | `Server`, `Client` | the response read until EOF is exactly the request |
+| `halfclose` | `CloseWrite` and reading until EOF (net/http's `closeWriteAndWait`, close-delimited bodies) | `Server`, `Client` | the response read until EOF is a prefix of the request (EOF does not mean the writer finished: a killed process's kernel sends a FIN) |
 | `shutdown` | closing a listener under a blocked `Accept`, a connection under a blocked `Read` (`http.Server.Shutdown`, `grpc.Server.GracefulStop`, `http2Client.Close`) | `Node` | every operation after `Close` fails |
 | `preface` | a handshake read under a deadline, then the deadline cleared (grpc's `handleRawConn` and client preface) | `Server`, `Client`, `Junk` | the reply after the preface is the request |
 
