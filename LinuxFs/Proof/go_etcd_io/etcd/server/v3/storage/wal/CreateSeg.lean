@@ -12,6 +12,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
+public import LinuxFs.Spec.os.RemoveAll
 
 @[expose] public section
 
@@ -30,6 +31,32 @@ theorem walOpenFlag_create :
       (wal.walOpenFlag false ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 := by
   unfold OpenFlagsOk O_CREAT O_TRUNC O_CLOEXEC wal.walOpenFlag
   decide
+
+/-- **The temporary directory's claim merged back holds only files**: its part off `b` from an empty
+directory, its part on `b` absent or a file. -/
+theorem filesOnly_merge (J : Ino) (b : GoString) (hJ h1 h'' : NamesH) (hJe : ∀ c, hJ.cur !! c = none)
+    (h1b : h1.cur !! b = none ∨ ∃ i, h1.cur !! b = some (.file i))
+    (hD : h''.restrict J ((NameSet.except []).diff [b]) = hJ.restrict J ((NameSet.except []).diff [b]))
+    (hB : h''.restrict J (.only [b]) = h1.restrict J (.only [b])) :
+    FilesOnly h''.cur := by
+  intro c n hc
+  by_cases hcb : c = b
+  · subst hcb
+    have hm : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
+    have := congrArg (fun x : NamesH => x.cur !! c) hB
+    simp only [NamesH.restrict] at this
+    rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm] at this
+    rw [this] at hc
+    rcases h1b with h1b | ⟨i, h1b⟩
+    · rw [h1b] at hc; cases hc
+    · rw [h1b] at hc; cases hc; exact ⟨i, rfl⟩
+  · have hm : ((NameSet.except []).diff [b]).Mem c := by
+      rw [NameSet.mem_diff]; simp [NameSet.Mem, hcb]
+    have := congrArg (fun x : NamesH => x.cur !! c) hD
+    simp only [NamesH.restrict] at this
+    rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, hJe] at this
+    rw [this] at hc
+    cases hc
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -126,6 +153,49 @@ theorem wp_createSeg [os.file.FieldAssumptions]
     iframe Ho Hm
     iright
     ipureintro; exact he.1
+
+/-- **The segment's claim merged back into the temporary directory's** (on an error after the create):
+the whole claim on the directory, holding only files. -/
+theorem segClaim_back {E : CoPset} (R : Roots) (J : Ino) (b : GoString) (hJ : NamesH)
+    (o : Option (Nat × Nat × Ino)) (hJe : hJ.cur = ∅) (hE : ↑osShN ⊆ E) :
+    osSharedInv (GF := GF) R -∗
+      osNames J ((NameSet.except []).diff [b]) (DFrac.own 1) (hJ.restrict J ((NameSet.except []).diff [b])) -∗
+      crOut J b (hJ.restrict J ((NameSet.except []).inter [b])) (DFrac.own 1) o ={E}=∗
+      ∃ hJ' : NamesH, ⌜FilesOnly hJ'.cur⌝ ∗ osNames J (.except []) (DFrac.own 1) hJ' := by
+  iintro #Hsi HD Ho
+  have hN : ∀ c, (NameSet.except []).Mem c ↔
+      ((NameSet.except []).diff [b]).Mem c ∨ (NameSet.only [b]).Mem c := by
+    intro c
+    rw [NameSet.mem_diff]
+    simp only [NameSet.Mem, List.mem_singleton, List.not_mem_nil, not_false_eq_true, _root_.true_and]
+    by_cases hc : c = b <;> simp [hc]
+  have hb0 : (hJ.restrict J ((NameSet.except []).inter [b])).cur !! b = none := by
+    simp only [NamesH.restrict]
+    rw [restrictN_lookup _ _ _ ((NameSet.mem_inter _ _ _).2 ⟨by simp [NameSet.Mem], by simp⟩), hJe]
+    rfl
+  have hDe : ∀ c, (hJ.restrict J ((NameSet.except []).diff [b])).cur !! c = none := by
+    intro c
+    simp only [NamesH.restrict]
+    by_cases hc : ((NameSet.except []).diff [b]).Mem c
+    · rw [restrictN_lookup _ _ _ hc, hJe]; rfl
+    · exact restrictN_lookup_not _ _ _ hc
+  cases o with
+  | none =>
+    simp only [crOut]
+    imod osNames_merge R J _ _ (.except []) _ _ hN hE $$ Hsi HD Ho with ⟨%h'', Hn, %hr⟩
+    iexists h''
+    iframe Hn
+    ipureintro
+    exact filesOnly_merge J b _ _ h'' hDe (Or.inl hb0) hr.1 hr.2.1
+  | some xsi =>
+    obtain ⟨x, s, i⟩ := xsi
+    simp only [crOut]
+    icases Ho with ⟨-, -, Hn1⟩
+    imod osNames_merge R J _ _ (.except []) _ _ hN hE $$ Hsi HD Hn1 with ⟨%h'', Hn, %hr⟩
+    iexists h''
+    iframe Hn
+    ipureintro
+    exact filesOnly_merge J b _ _ h'' hDe (Or.inr ⟨i, by simp [NamesH.log]⟩) hr.1 hr.2.1
 
 end proof
 
