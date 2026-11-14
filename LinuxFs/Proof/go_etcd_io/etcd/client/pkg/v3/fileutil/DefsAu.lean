@@ -139,12 +139,15 @@ theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
 theorem ftUndoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) :
     os.ftUndoneH (GF := GF) p m tg [] ⊢ preGrownH p m m.size := by
   unfold os.ftUndoneH preGrownH
-  iintro ⟨Hm, -⟩
+  iintro ⟨⟨%tc, %rz, Hm⟩, -⟩
   iexists _
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm,
-      growMeta_announce ..⟩
+  · ipureintro
+    exact ⟨announce_size' m (min m.size tg) (rsHi true m.size tg) tg,
+      announce_maps' m (min m.size tg) (rsHi true m.size tg) tg,
+      Nat.le_of_eq (announce_cz' m (min m.size tg) (rsHi true m.size tg) tg).symm,
+      growMeta_announce m (min m.size tg) (rsHi true m.size tg) tg⟩
   rw [Nat.sub_self]
   iapply osZerosA_nil
 

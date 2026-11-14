@@ -49,9 +49,11 @@ def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
     osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))))
 
 /-- The caller's half of a resize of `p` from `m` to `tg` that did not land (`os.ftUndone`'s, the
-bytes it would have cut off `xs'`). -/
+bytes it would have cut off `xs'`), its `OsMeta` up to the candidates it knows past the size and of
+its resize stamps (`rsUnMeta`: the update's owner, holding the other half, knows them). -/
 def os.ftUndoneH (p : Ino) (m : OsMeta) (tg : Nat) (xs' : List ByteG) : IProp GF :=
-  iprop(osMeta p (DFrac.own (1 : Qp).half) (m.announce (min m.size tg) (rsHi true m.size tg) tg) ∗
+  iprop((∃ tc rz, osMeta p (DFrac.own (1 : Qp).half)
+      ((m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz)) ∗
     osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs')
 
 /-- What the caller gets back of an attempt from `m0`, `xs0` whose second step returned `e`: its

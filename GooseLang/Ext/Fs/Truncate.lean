@@ -216,6 +216,56 @@ def rsUndone (tr : Bool) (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n 
     osBytes (L := L) p (min m.size tg) (DFrac.own 1) (rsAnn n xs) ∗
     mcells m.maps (min m.size tg) (rsHi tr m.size tg) (rsOld m.size (min m.size tg) xs))
 
+/-- The `OsMeta` a resize that did not land leaves: as its first step left it, and, if `keep`, knowing
+the candidates of the bytes announced past the size (`rsTail` at the old size: those `m` knew, then
+zero stamped `n`) and the resize's stamp `n`, as a client's layout of the change in flight does (the
+WAL's `rzMeta`). Needs no sync cut: only bytes past the size, whose candidates are the state's. -/
+def rsUnMeta (keep tr : Bool) (m : OsMeta) (tg n : Nat) : OsMeta :=
+  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with
+    tc := cond keep (rsTail tr m tg m.size n []) (m.announce (min m.size tg) (rsHi tr m.size tg) tg).tc
+    rz := cond keep (n :: m.rz) (m.announce (min m.size tg) (rsHi tr m.size tg) tg).rz }
+
+theorem rsUnMeta_false (tr : Bool) (m : OsMeta) (tg n : Nat) :
+    rsUnMeta false tr m tg n = m.announce (min m.size tg) (rsHi tr m.size tg) tg := rfl
+
+@[simp] theorem rsUnMeta_rz (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).rz = cond keep (n :: m.rz) m.rz := by
+  cases keep <;> simp [rsUnMeta]
+
+@[simp] theorem rsUnMeta_tc (tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta true tr m tg n).tc = rsTail tr m tg m.size n [] := rfl
+
+/-- `rsUnMeta` differs from the announcement only in `tc` and `rz`. -/
+@[simp] theorem rsUnMeta_size (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).size = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).size := rfl
+@[simp] theorem rsUnMeta_lo (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).lo = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).lo := rfl
+@[simp] theorem rsUnMeta_hi (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).hi = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).hi := rfl
+@[simp] theorem rsUnMeta_maps (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).maps = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).maps := rfl
+@[simp] theorem rsUnMeta_dlo (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).dlo = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).dlo := rfl
+@[simp] theorem rsUnMeta_dhi (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).dhi = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).dhi := rfl
+@[simp] theorem rsUnMeta_zf (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).zf = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).zf := rfl
+@[simp] theorem rsUnMeta_cut (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).cut = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).cut := rfl
+@[simp] theorem rsUnMeta_cz (keep tr : Bool) (m : OsMeta) (tg n : Nat) :
+    (rsUnMeta keep tr m tg n).cz = (m.announce (min m.size tg) (rsHi tr m.size tg) tg).cz := rfl
+
+/-- `rsUndone` whose `OsMeta`, if `keep`, knows the candidates past the size and the stamp
+(`rsUnMeta`). -/
+def rsUndoneK (keep tr : Bool) (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) :
+    IProp GF :=
+  iprop(osMeta (L := L) p (DFrac.own 1) (rsUnMeta keep tr m tg n) ∗
+    osBytes (L := L) p (min m.size tg) (DFrac.own 1) (rsAnn n xs) ∗
+    mcells m.maps (min m.size tg) (rsHi tr m.size tg) (rsOld m.size (min m.size tg) xs))
+
+theorem rsUndoneK_false (tr : Bool) (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) :
+    rsUndoneK (L := L) false tr p tg m xs n = rsUndone (L := L) tr p tg m xs n := rfl
+
 /-- The first step of a resize (`ftruncate(fd, sz)`, or `fallocate`'s growth, `op`) to `tg`, with
 the whole of the file's `OsMeta`, the bytes it cuts off (`[tg, size)`, whole; none if it grows the
 file) and the client's halves of the cells of every mapping over the range. They stay with the
@@ -853,6 +903,64 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
   rw [← rsDoneK_false (xs := xs)]
   exact resize_done_worldK false hwf hcoh hF e sz' hland htr (fun h => by cases h) hmax Hr Hfr
 
+/-- **The ghost maps with the `OsMeta` of the file `i` replaced** by one with the same cut, `MetaOk`
+for the file, no change in flight on it: the state unchanged. -/
+theorem osCoh_setMeta {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
+    {m0 m' : OsMeta} {f : OsFile} (hml : Γm !! i = some m0) (hf : st.file i = some f)
+    (hmo : MetaOk st i m' f) (hcut : m'.cut = m0.cut)
+    (hnt : ∀ t ti, Γt !! t = some ti → ti.ino ≠ i) :
+    OsCoh st Γb (<[i := m']> Γm) Γf Γt := by
+  refine ⟨fun q => ?_, fun q m hm => ?_, fun q b x hx => ?_, hcoh.bytes_full, hcoh.fds, hcoh.toks,
+    hcoh.tok_is, fun t ti h => ?_, hcoh.tok_file, hcoh.tok_cand, hcoh.tok_rz, fun q m c hm hc => ?_⟩
+  · rw [GMap.lookup_insert_eq_iff]
+    split
+    · subst_vars; simp only [OsState.file] at hf; simp [hf]
+    · exact hcoh.meta_dom q
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · subst_vars; cases hm; exact ⟨f, hf, hmo⟩
+    · exact hcoh.meta_some q m hm
+  · rw [cutOf_insert]
+    obtain ⟨f1, h1, hb, hx⟩ := hcoh.bytes q b x hx
+    refine ⟨f1, h1, hb, ?_⟩
+    split
+    · subst_vars; rw [hcut]; simpa [cutOf, hml] using hx
+    · exact hx
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm (hnt t ti h))]; exact hcoh.tok_meta t ti h
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · subst_vars; cases hm; exact hcoh.cut_le _ m0 c hml (hcut ▸ hc)
+    · exact hcoh.cut_le q m c hm hc
+
+/-- `MetaOk` of the `OsMeta` a resize that did not land leaves (`rsUnMeta`), from the
+announcement's: the bytes announced past the size have the candidates `m` knew, then zero stamped
+`n` (`RsFacts.hcandP`), and the stamp is the file's (`OsCoh.tok_rz`). -/
+theorem metaOk_rsUnMeta {st : OsState} {p : Ino} {keep tr : Bool} {m : OsMeta} {tg n : Nat}
+    {f : OsFile} (hmo : MetaOk st p (m.announce (min m.size tg) (rsHi tr m.size tg) tg) f)
+    (hcandP : ∀ b c, m.size ≤ b → b < rsHi tr m.size tg → m.pc b = some c → f.cand b = c ++ [(0, n)])
+    (hn : keep = true → n ∈ f.rzs) :
+    MetaOk st p (rsUnMeta keep tr m tg n) f := by
+  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_⟩
+  · intro b c hb hc
+    cases keep with
+    | false => exact hmo.tail b c hb hc
+    | true =>
+      change rsTail tr m tg m.size n [] !! b = some c at hc
+      rw [rsTail_lookup] at hc
+      split at hc
+      · rename_i hin
+        rw [if_neg (by omega)] at hc
+        obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
+        exact hcandP b c1 hin.2.2 hin.2.1 hc1
+      · exact hmo.tail b c hb hc
+  · intro s hs
+    cases keep with
+    | false => exact hmo.rz s hs
+    | true =>
+      rcases List.mem_cons.1 (show s ∈ n :: m.rz from hs) with rfl | hs
+      · exact hn rfl
+      · exact hmo.rz s (by simpa using hs)
+
 /-- **A resize that did not land**: the change done, the file as its first step left it. -/
 theorem resize_undone_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)}
     {t : Nat} {tr : Bool} {p : Ino} {tg : Nat} {m : OsMeta} {xs : List ByteG} {n : Nat} {c : OsChange}
@@ -992,6 +1100,51 @@ theorem resize_undone_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (N
   iapply (halves_mapsCells _ _ _ _ hdisj).1
   rw [hC]; iexact Hc
 
+/-- **A resize that did not land**: the change done, the file as its first step left it; if `keep`,
+its `OsMeta` knows the candidates past the size and the stamp (`rsUnMeta`). -/
+theorem resize_undone_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt}
+    {h h' : GMap Loc (NonAtomic val)}
+    {t : Nat} {tr : Bool} {p : Ino} {tg : Nat} {m : OsMeta} {xs : List ByteG} {n : Nat} {c : OsChange}
+    {f : OsFile} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt)
+    (hF : RsFacts st Γb Γm Γt t tr p tg m xs n c f)
+    (Hr : HeapRendered st (st.doneInflight t) h h') (Hfr : MapsFresh st (st.doneInflight t) h) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm -∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf -∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt -∗
+      tokRes (gooseOsGS (L := L)) Γt -∗ cellsRes (cellView st) -∗ naHeapCtx tls h -∗
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt t (DFrac.own 1)
+        (⟨p, rsKind tr tg, n, m, rsAnn n xs⟩ : TokInfo) ==∗
+      (∃ Γb' Γm' Γf' Γt', osWorld (L := L) (st.doneInflight t) Γb' Γm' Γf' Γt' h') ∗
+        rsUndoneK (L := L) keep tr p tg m xs n := by
+  iintro HAb HAm HAf HAt Htok Hcells Hσ Ht
+  imod resize_undone_world hwf hcoh hF Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  obtain ⟨hwf', hcoh'⟩ := Hwc
+  unfold rsUndone
+  icases Hd with ⟨Hm, Hbs, Hc⟩
+  unfold osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
+  obtain ⟨f1, hf1, hmo⟩ := coh_meta hcoh' Hml
+  have hf0 : (st.doneInflight t).file p = some f := by
+    have := hF.hf; have hc := hF.hcino; subst hc; exact this
+  rw [hf0] at hf1; cases hf1
+  have hn : keep = true → n ∈ f.rzs := fun _ => by
+    obtain ⟨f2, hf2, hn2⟩ := hcoh.tok_rz t _ hF.hti (by cases tr <;> rfl)
+    rw [hF.hf] at hf2; cases hf2; exact hn2
+  imod gAuth_update _ _ _ _ _ (rsUnMeta keep tr m tg n) $$ HAm Hm with ⟨HAm, Hm⟩
+  imodintro
+  isplitr [Hm Hbs Hc]
+  · iexists Γb', _, Γf', Γt'
+    iframe HAb HAm HAf HAt Htok Hσ Hcells
+    ipureintro
+    exact ⟨hwf', osCoh_setMeta hcoh' Hml hf0 (metaOk_rsUnMeta hmo hF.hcandP hn) rfl Hnt⟩
+  unfold rsUndoneK osMeta
+  iframe Hm Hbs Hc
+
 /-- The first step of `ftruncate(fd, sz)`: `wp_osResizeStart`. -/
 theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
     (hE : ↑osN ⊆ E) (hwr : d.writable = true) (hsz0 : 0 ≤ sz.toInt)
@@ -1014,15 +1167,16 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     exact ⟨f, t, hf, ht, rfl, hst'⟩
 
 /-- The second step of `ftruncate`: on success the file has the new size (`rsDoneK`); on failure it
-may have, or be as its first step left it (`rsUndone`). If `keep` (a file with no sync cut), the
-`OsMeta` it lands with knows the candidates of the bytes cut off (`rsPostK`). -/
+may have, or be as its first step left it (`rsUndoneK`). If `keep` (a file with no sync cut), the
+`OsMeta` it lands with knows the candidates of the bytes cut off (`rsPostK`), and one not landed
+those past the size and the stamp (`rsUnMeta`). -/
 theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta)
     (xs : List ByteG) (n : Nat) (hkeep : keep = true → m.cut = none) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ rsTok (L := L) true t p tg m xs n -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ rsDoneK (L := L) keep true p tg tg m xs n) ∨
-         (⌜e ≠ 0⌝ ∗ (rsDoneK (L := L) keep true p tg tg m xs n ∨ rsUndone (L := L) true p tg m xs n))) -∗
+         (⌜e ≠ 0⌝ ∗ (rsDoneK (L := L) keep true p tg tg m xs n ∨ rsUndoneK (L := L) keep true p tg m xs n))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
@@ -1080,7 +1234,7 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
     · iapply (osWorld_unfold (L := L)).1 $$ Hw
     iapply wp_value'
     iapply HΦ; ileft; iframe; ipureintro; rfl
-  · imod resize_undone_world hwf hcoh hF Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+  · imod resize_undone_worldK keep hwf hcoh hF Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -1108,7 +1262,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs : L
          (⌜e ≠ 0⌝ ∗ (rsDone (L := L) true p tg tg m n ∨ rsUndone (L := L) true p tg m xs n))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
-  rw [← rsDoneK_false (xs := xs)]
+  rw [← rsDoneK_false (xs := xs), ← rsUndoneK_false]
   exact wp_osFtruncateFinishK false t p tg m xs n (fun h => by cases h) hE Φ
 
 end specs2
