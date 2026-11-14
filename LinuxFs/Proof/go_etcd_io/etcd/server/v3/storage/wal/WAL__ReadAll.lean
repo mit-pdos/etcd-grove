@@ -273,7 +273,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 refine ⟨by decide, Int.le_refl _, ?_⟩
                 have : sint.Z (W64 0) = 0 := rfl
                 omega
-              simp only [hb, ite_true]
+              simp only [hb]
               icases ownSlice_slice_with_cap (W64 0) (W64 0) entsv esL ⟨by decide, Int.le_refl _, by
                   have : sint.Z (W64 0) = 0 := rfl
                   omega⟩ $$ [Hents Hecap] with ⟨-, Hents, Hecap⟩
@@ -378,7 +378,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                   have : sint.Z (W64 0) = 0 := rfl
                   refine ⟨by decide, ?_, by omega⟩
                   rw [this]; word
-                simp only [hb, ite_true]
+                simp only [hb]
                 icases ownSlice_slice_with_cap (W64 0) (e.Index' - s.1 - W64 1) entsv esL
                     ⟨hb.1, hb.2.1, hsZ⟩ $$ [Hents Hecap] with ⟨-, Hents, Hecap⟩
                 · iframe
@@ -571,7 +571,191 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               iframe Hfail
               iexists lg
               iframe Hlg Hdir Hzap
-        sorry
+        wp_if_destruct
+        · -- SnapshotType
+          have hT : r.typ = snapshotType := Hif
+          have hnc : ¬ (r.typ = crcType ∧ crcRecBad c' r) := by
+            rw [hT]; simp [snapshotType, crcType]
+          obtain ⟨p, hp⟩ := (hdec0 hnc).1.2.2 hT
+          unfold ownRec
+          icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
+          wp_auto
+          wp_apply wp_UnmarshalSnap snap_ptr v.Data' _ r.data p hp $$ [snap Hd] as ⟨Hd, #Hsn⟩
+          · iframe
+          wp_apply wp_SnapIndex snap_ptr p $$ Hsn
+          wp_join iprop(w_ptr ↦ w ∗ structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦
+              (if uint.nat ix.2 < uint.nat p.1 then p.1 else ix.2)) with [w Hsnapi] as ⟨w, Hsnapi⟩
+          · wp_apply wp_SnapIndex snap_ptr p $$ Hsn
+            (try wp_auto)
+            have hc : uint.nat ix.2 < uint.nat p.1 := by word
+            simp only [hc, ↓reduceIte]
+            wp_join_done
+          · have hc : ¬ uint.nat ix.2 < uint.nat p.1 := by word
+            simp only [hc, ↓reduceIte]
+            iframe
+          have hi1 : r.typ ≠ entryType := by rw [hT]; simp [snapshotType, entryType]
+          have hi3 : r.typ ≠ crcType := by rw [hT]; simp [snapshotType, crcType]
+          wp_apply wp_SnapIndex snap_ptr p $$ Hsn
+          wp_apply wp_SnapIndex sp s $$ Hsp
+          wp_if_destruct
+          · -- the start's snapshot
+            have hps : p.1 = s.1 := Hif
+            wp_apply wp_SnapTerm snap_ptr p $$ Hsn
+            wp_apply wp_SnapTerm sp s $$ Hsp
+            wp_if_destruct
+            · -- matched
+              have hpt : p.2 = s.2 := Hif
+              (try wp_auto)
+              wp_join iprop(∃ (ev : GoSlice) (eL : List Loc), ents_ptr ↦ ev ∗ ev ↦* eL ∗
+                  ownSliceCap Loc ev (DFrac.own 1) ∗
+                  walEntsIn P eL (if uint.nat st.hs.Commit' < uint.nat p.1 then [] else st.ents) ∗
+                  HsO stp st.hs ∗ state_ptr ↦ stp)
+                at next with [ents Hents Hecap Hein Hhs state]
+                as ⟨%ev, %eL, ents, Hents, Hecap, Hein, Hhs, state⟩
+              · (try wp_auto)
+                wp_apply wp_SnapIndex snap_ptr p $$ Hsn
+                wp_apply hHs.getCommit stp st.hs $$ Hhs as Hhs
+                ihave %hcS := ownSliceCap_wf (GF := GF) (V := Loc) entsv _ $$ Hecap
+                wp_if_destruct
+                · have hc : uint.nat st.hs.Commit' < uint.nat p.1 := by word
+                  have hb : (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧
+                      sint.Z (W64 0) ≤ sint.Z entsv.cap) := by
+                    refine ⟨by decide, Int.le_refl _, ?_⟩
+                    have : sint.Z (W64 0) = 0 := rfl
+                    omega
+                  simp only [hb]
+                  icases ownSlice_slice_with_cap (W64 0) (W64 0) entsv esL ⟨by decide, Int.le_refl _, by
+                      have : sint.Z (W64 0) = 0 := rfl
+                      omega⟩ $$ [Hents Hecap] with ⟨-, Hents, Hecap⟩
+                  · iframe
+                  rw [show subslice (sint.nat (W64 0)) (sint.nat (W64 0)) esL = [] by simp [subslice]]
+                  (try wp_auto)
+                  wp_join_done
+                  iexists _, []
+                  simp only [hc, ↓reduceIte]
+                  iframe
+                  simp only [walEntsIn]; iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2; iempintro
+                · have hc : ¬ uint.nat st.hs.Commit' < uint.nat p.1 := by word
+                  (try wp_auto)
+                  wp_join_done
+                  iexists entsv, esL
+                  simp only [hc, ↓reduceIte]
+                  iframe
+              wp_apply wp_SnapIndex snap_ptr p $$ Hsn
+              wp_join iprop(w_ptr ↦ w ∗ structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"enti" w ↦
+                  (if uint.nat ix.1 < uint.nat p.1 then p.1 else ix.1)) with [w Henti] as ⟨w, Henti⟩
+              · wp_apply wp_SnapIndex snap_ptr p $$ Hsn
+                (try wp_auto)
+                have hc : uint.nat ix.1 < uint.nat p.1 := by word
+                simp only [hc, ↓reduceIte]
+                wp_join_done
+              · have hc : ¬ uint.nat ix.1 < uint.nat p.1 := by word
+                simp only [hc, ↓reduceIte]
+                iframe
+              have hst : raStep U s st (r.typ, r.data) =
+                  .ok { st with matched := true,
+                                ents := if uint.nat st.hs.Commit' < uint.nat p.1 then [] else st.ents } := by
+                simp [raStep, hT, hp, hps, hpt, snapshotType, entryType, stateType, metadataType, crcType]
+              have hix : raIdx U s ix r = ((if uint.nat ix.1 < uint.nat p.1 then p.1 else ix.1),
+                  if uint.nat ix.2 < uint.nat p.1 then p.1 else ix.2) := by
+                simp [raIdx, hT, hp, hps, snapshotType, entryType]
+              have hL' := rdLoop_next hL hgd hok.2 hnc hst
+              rw [hix, rdCrc_other hi3] at hL'
+              (try wp_auto)
+              wp_for_post
+              wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+                $$ [Hdec Hl] as %e' Hpost
+              · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+              iframe
+              iexists acc ++ [r], fsD.drop k, off', c',
+                { st with matched := true,
+                          ents := if uint.nat st.hs.Commit' < uint.nat p.1 then [] else st.ents },
+                ((if uint.nat ix.1 < uint.nat p.1 then p.1 else ix.1),
+                  if uint.nat ix.2 < uint.nat p.1 then p.1 else ix.2), e', mdv, stp, ev, eL
+              iframe
+              ipureintro
+              exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+            · -- `ErrSnapshotMismatch`
+              (try wp_auto)
+              wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
+              ihave #Hwi : (wal.walInit : IProp GF) $$ []
+              · iapply isPkgInit_access $$ Hpkg
+              iunfold wal.walInit at Hwi
+              icases Hwi with ⟨-, -, -, -, -, -, -, #HeX, -⟩
+              iunfold wal.errVar at HeX
+              icases HeX with ⟨%eX, #HeX, -⟩
+              (try wp_auto)
+              wp_for_post
+              iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+              iintro %dq HQ Hfail
+              wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+              · ipureintro; trivial
+              iapply HΦ
+              iframe Hp Hperm
+              iexists dq
+              iframe HQ
+              ileft
+              isplitr
+              · ipureintro; simp
+              unfold walReadFailedF
+              iframe Hfail
+              iexists lg
+              iframe Hlg Hdir Hzap
+          · -- another snapshot: nothing but `w.snapi`
+            have hps : p.1 ≠ s.1 := Hif
+            have hst : raStep U s st (r.typ, r.data) = .ok st := by
+              simp [raStep, hT, hp, hps, snapshotType, entryType, stateType, metadataType, crcType]
+            have hix : raIdx U s ix r = (ix.1, if uint.nat ix.2 < uint.nat p.1 then p.1 else ix.2) := by
+              simp [raIdx, hT, hp, hps, snapshotType, entryType]
+            have hL' := rdLoop_next hL hgd hok.2 hnc hst
+            rw [hix, rdCrc_other hi3] at hL'
+            (try wp_auto)
+            wp_for_post
+            wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+              $$ [Hdec Hl] as %e' Hpost
+            · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+            iframe
+            iexists acc ++ [r], fsD.drop k, off', c', st, (ix.1, if uint.nat ix.2 < uint.nat p.1 then p.1 else ix.2),
+              e', mdv, stp, entsv, esL
+            iframe
+            ipureintro
+            exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+        · -- the default arm: `unexpected block type`
+          (try wp_auto)
+          wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
+          (try wp_auto)
+          wp_apply wp_GetType $$ Hr as Hr
+          (try wp_auto)
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %asl ⟨Hasl, -⟩
+          wp_apply wp_Errorf _ _ [interface.mkOk go.int64 #r.typ] [] (by
+              intro ii hii
+              left
+              simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
+              cases hii
+              exact argWf_int64 _) $$ [Hasl] as %e1 #He1
+          · iframe
+            try simp only [BigSepL.bigSepL_nil]
+            iempintro
+          (try wp_auto)
+          wp_for_post
+          iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+          iintro %dq HQ Hfail
+          wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+          · ipureintro; trivial
+          iapply HΦ
+          iframe Hp Hperm
+          iexists dq
+          iframe HQ
+          ileft
+          isplitr
+          · ipureintro; simp
+          unfold walReadFailedF
+          iframe Hfail
+          iexists lg
+          iframe Hlg Hdir Hzap
       · icases Hm with ⟨%hst, -, -⟩
         exact absurd hst.1 (stopErr_nil hnn.1 hnn.2 sx)
     · exact absurd hio hIoN
