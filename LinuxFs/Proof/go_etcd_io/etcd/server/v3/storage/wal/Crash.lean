@@ -639,10 +639,9 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
         obtain ⟨lay', nm, hl', -, -, -, -, -, -, hws, hwz, hzS, hlast⟩ := hstart.1 dir d hd
         rw [hl] at hl'; cases hl'
         refine ⟨fun g hg => (hlast g hg).2, hwz.trans hzS, fun g hg => ⟨?_, ?_⟩, hws.symm,
-          fun g hg => ?_⟩
-        rotate_left
-        · obtain ⟨-, f, -, hom, -⟩ := hsegs dir lay hl g (List.mem_of_getLast? hg)
-          rw [hom]; rfl
+          fun g hg => by
+            obtain ⟨-, f, -, hom, -⟩ := hsegs dir lay hl g (List.mem_of_getLast? hg)
+            rw [hom]; rfl⟩
         · rw [(hlast g hg).1]; intro y hy
           obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
         · obtain ⟨-, f, -, hom, hbs⟩ := hsegs dir lay hl g (List.mem_of_getLast? hg)
