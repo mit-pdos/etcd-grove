@@ -26,6 +26,8 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenNames
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles
 
 @[expose] public section
 
@@ -36,6 +38,27 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 open Fs WalEnc WalFs
+
+section pure
+variable [GooseExts]
+
+theorem walLay_nameFmt {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (habs : WalAbsD C Mr d lay ents) : ∀ g ∈ lay.segs, ∃ sq ix : Nat, g.name = walFileName sq ix := by
+  intro g hg
+  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hg
+  obtain ⟨sq, ix, h1, -⟩ := habs.nameBound k _ (List.getElem?_eq_getElem hk)
+  exact ⟨sq, ix, h1⟩
+
+theorem walOpenK_eq {idx : w64} {lay : WalLay} {ws : List GoString} {k : Nat}
+    (hk : walSearch (ws.map walNameIdx) idx = some k) (hws : ws = lay.segs.map (·.name)) :
+    walOpenK idx lay = k := by
+  unfold walOpenK; rw [← hws, hk]; rfl
+
+theorem walSearch_lt {ws : List GoString} {idx : w64} {k : Nat}
+    (hk : walSearch (ws.map walNameIdx) idx = some k) : k < ws.length := by
+  have := walSearchFrom_lt hk; simpa using this
+
+end pure
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
@@ -140,7 +163,57 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     ileft
     iframe
     ipureintro; nofun
-  · sorry
+  · unfold walPinOut
+    icases Hpin with ⟨%lay, %X, %hj, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj, Ht⟩
+    obtain ⟨hljr, hX, hcoh, habs, hnd, hsn, hsz⟩ := hfacts
+    imod hpath R jr r dir lay.j X qp $$ Hinv Hnc Hkey Hp with ⟨Hnc, Hp, %qd, Hpd⟩
+    imodintro
+    iframe Hnc
+    have hnmf := walLay_nameFmt habs
+    have hdn : WalDirNamesOk (.except X) hj := walDirNamesOk_of hX hsn habs.names.1 hnd hnmf
+    have hS : ∀ g ∈ lay.segs.drop (walOpenK s.1 lay), g.om.size = g.bs.length := fun g hg =>
+      (habs.metas g (List.mem_of_mem_drop hg)).1
+    wp_apply wp_Clone sp s $$ [] as %sp' #Hsp'
+    · iexact Hsp
+    try wp_auto
+    wp_apply wp_select lg dir sp' s R lay.j (DFrac.own qd) 1 (.except X) (DFrac.own (1 : Qp).half) hj hdn
+      $$ [Hpd Hperm Hj] as %rr %kk %err ⟨Hpd, Hperm, Hj, Hsel⟩
+    · iframe; iframe #
+    icases Hsel with (⟨%ws, ⟨%herr, %hk0, %hsel⟩, Hws⟩ | ⟨%e, %herr, #He⟩)
+    rotate_left
+    · -- `selectWALFiles` failed: the halves back
+      subst herr
+      try wp_auto
+      wp_apply wp_slice_literal (V := GoAny) [interface.ok e]
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
+        with ⟨Hnc, Hu⟩
+      imodintro
+      iframe Hnc
+      wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
+          intro ii hii
+          right
+          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+          cases hii
+          simp) $$ [Hasl] as %e1 #He1
+      · iframe
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+        iexact He
+      try wp_auto
+      iapply HΦ
+      iframe Hp
+      isplitl [HN Hcl]
+      · iapply walAreaRes_close jr N h cl hok; iframe
+      iexists o
+      iframe HQ
+      ileft
+      iframe
+      ipureintro; nofun
+    sorry
 
 end proof
 
