@@ -4,7 +4,7 @@ opened read-only, no locks, no pipeline; `ReadAll` then tolerates a torn last re
 (`io.ErrUnexpectedEOF`). Its callers (`Verify`, W8) hold the lock token, as `ValidSnapshotEntries`'s
 spec (the main tree's) does; the update commits unchanged where the files are pinned. *Success*: the
 read handle (`walReadOnlyF`, with the token) and the whole call permission (no pipeline). *Error*:
-the token and the permission back. Lean-first; proof `sorry`
+the token and the permission back. Lean-first; proved
 (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/OpenForRead.lean`, from `openAtIndex`'s). W5
 of `notes/wal-fsext-plan.md`.
 -/
