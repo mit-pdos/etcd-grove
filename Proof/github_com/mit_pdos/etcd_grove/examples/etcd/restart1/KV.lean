@@ -137,6 +137,48 @@ theorem r1Ok_put (σ : KVState) (c : Nat) (hc : c < 256) (h : r1Ok σ c) :
     obtain ⟨i, hi, hx⟩ := r1Ok_keys h x hx
     unfold etcdKvLess; rw [hx, hnk]; exact keyOf_lt hi hc
 
+/-- The `Range` after the restart: `restart1`'s `&RangeRequest{Key: "k", RangeEnd: "l"}`. -/
+abbrev r1RangeOp : OpFull :=
+  txn.rangeOpOf go!"k" go!"l" (W64 0) (W64 0) (W32 0) (W32 0) false false false (W64 0) (W64 0)
+    (W64 0) (W64 0)
+
+/-- **The `Range`'s answer is the state's key-values in `["k", "l")`**, in key order. -/
+theorem srvRangeOk_r1 (s kvs : List EtcdKv) (more : Bool)
+    (h : txn.srvRangeOk r1RangeOp s kvs more) : kvs = s.filter inR1 := by
+  obtain ⟨L, hsort, hmore, hkvs⟩ := h
+  have hpre : txn.srvPre r1RangeOp s = s.filter inR1 := by
+    have hr : txn.kvRead false = id := by funext v; simp [txn.kvRead]
+    unfold txn.srvPre
+    simp [txn.rangeLimitOf, txn.hasRevFilters, mvcc.limitOf, mvcc.takeLimit, txn.fastKeysOnly,
+      rangeIn, hr]
+    apply List.filter_congr
+    intro v _
+    simp [kvFilterOk, inR1]
+  have hord : r1RangeOp.effSortOrder = W64 0 := by
+    simp [OpFull.effSortOrder]
+  have hL : L = txn.srvPre r1RangeOp s := by
+    obtain ⟨-, -, -, h4⟩ := hsort
+    exact h4 (by rw [hord]; decide) (by rw [hord]; decide)
+  have hm : txn.srvMore r1RangeOp L = false := by
+    simp [txn.srvMore]
+  rw [hkvs]
+  unfold txn.srvTrunc
+  rw [hm, hL, hpre]
+  have hid : txn.respKv r1RangeOp = id := by funext v; simp [txn.respKv]
+  simp [hid]
+
+/-- The range's key-values, by index: the `i`-th is `keyOf i ↦ valOf i`. -/
+theorem r1Ok_get (σ : KVState) (h : r1Ok σ r1NPuts) :
+    (σ.kvs.filter inR1).length = r1NPuts ∧
+      ∀ i (hi : i < r1NPuts) v, (σ.kvs.filter inR1)[i]? = some v →
+        v.key = keyOf i ∧ v.value = valOf i := by
+  have hl := congrArg List.length h
+  simp only [List.length_map, r1Pairs, List.length_range] at hl
+  refine ⟨hl, fun i hi v hv => ?_⟩
+  have h2 := congrArg (fun l => l[i]?) h
+  simp only [List.getElem?_map, hv, r1Pairs, List.getElem?_range hi, Option.map_some] at h2
+  exact ⟨(Prod.mk.inj (Option.some.inj h2)).1, (Prod.mk.inj (Option.some.inj h2)).2⟩
+
 end pure
 
 section inv
