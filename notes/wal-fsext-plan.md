@@ -3641,7 +3641,11 @@ and `rsCz`); task 2 (the amended `TailWin`) not started.**
   m.ZeroPg)`, not an unconditional `ZeroPg` (the proposal): a leftover from `alloc`'s error path after a `fallocate`
   that did not land has none, and needs none (the `O_TRUNC` open makes it, `trFile_of_rsDone` from `ZfGe`).
   `zerosA_trFile` takes `ZfGe` (`filePipeline.run`: from `pipeFile`'s `ZeroPg`). **`filePipeline.alloc`'s `ZeroPg`
-  `sorry` discharged.**
+  `sorry` discharged** (`#print axioms` of `filePipeline.alloc.wp_proof`: no `sorryAx`). Trust base: no baseline
+  changes; `etc/tcb-collections/linuxfs.txt`'s roots (the `osfs` examples) do not reach the WAL (no `Link` yet), and
+  `--check` refused to run here (it needs the whole repository built). The extension's importers (80 leaves, 3065
+  jobs) build. Also repaired: `alloc`, `WAL.Close`, `WAL.CloseOpening` discharged `zap.Logger.Error`'s premise as `⌜lg
+  ≠ null⌝` (a stale `Spec/go_uber_org/zap` artifact's); its spec takes `zapLoggerOk lg` since `173a618ddd`.
 - *For other units*: `Create` gets `ZeroPg` of its file from `Preallocate`'s post now if it wants it (`newMeta` has
   it; `Create.lean` only repaired for the pattern). `ZeroToEnd`'s growth by `ftruncate` (and, with `ZeroPg` of the
   truncated meta, by `fallocate`) gives `ZeroPg`: the `TailZ` obligation of `ReadAll`'s handle can use
