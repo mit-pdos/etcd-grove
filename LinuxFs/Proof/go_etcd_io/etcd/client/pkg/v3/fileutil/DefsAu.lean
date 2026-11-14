@@ -86,11 +86,11 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.
 theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size ≤ w ∨ w = tg) :
     fallocDoneH (GF := GF) i m tg w ⊢ preGrownH i m w := by
   unfold fallocDoneH preGrownH
-  iintro ⟨Hm, Hz⟩
-  iexists rsPost false m tg w
+  iintro ⟨%tc, Hm, Hz⟩
+  iexists (rsPost false m tg w).withTc tc
   iframe
   ipureintro
-  exact ⟨rfl, rsPost_maps .., os.le_rsPost_cz false m tg w, growMeta_rsPost false m tg w hw⟩
+  exact ⟨rfl, rsPost_maps false m tg w, os.le_rsPost_cz false m tg w, growMeta_rsPost false m tg w hw⟩
 
 /-- A growth's outcome: grown to some `w` between the size and the target, all of it on success. -/
 theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : m.size ≤ tg) :
@@ -123,12 +123,12 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
 theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
     os.ftDoneH (GF := GF) p m tg zs ⊢ preGrownH p m tg := by
   unfold os.ftDoneH preGrownH
-  iintro ⟨%hzs, Hm, Hb⟩
-  iexists rsPost true m tg tg
+  iintro ⟨%hzs, ⟨%tc, Hm⟩, Hb⟩
+  iexists (rsPost true m tg tg).withTc tc
   iframe Hm
   isplitr
   · ipureintro
-    exact ⟨rfl, rsPost_maps .., by simp only [rsPost, rsCz, ite_true]; omega,
+    exact ⟨rfl, rsPost_maps true m tg tg, by simp only [OsMeta.withTc_cz, rsPost, rsCz, ite_true]; omega,
       growMeta_rsPost true m tg tg (Or.inr rfl)⟩
   iapply (osZerosA_unfold p m.size _ _).2
   iexists zs
