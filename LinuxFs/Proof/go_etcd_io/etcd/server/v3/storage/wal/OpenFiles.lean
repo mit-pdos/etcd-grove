@@ -79,6 +79,7 @@ theorem walDecFiles_mk
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_Name : os.fileStat.Name.spec (GF := GF) (hG := hG))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG))
     (IoE : GoInterface → Prop) (hIo : ∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))
     (eof : GoInterface) (hIoEof : ¬ IoE eof) (write : Bool) (dir : GoString) :
     ∀ (gs : List SegG) (frs : List GoInterfaceOk) (lfs : List Loc),
@@ -108,7 +109,7 @@ theorem walDecFiles_mk
   | g :: gs, fr :: frs, lf :: lfs, hfr, hlf, hsz => by
     simp only [List.length_cons, Nat.add_right_cancel_iff] at hfr hlf
     obtain ⟨hsz1, hlen1⟩ := hsz g (List.mem_cons_self ..)
-    have ih := walDecFiles_mk wp_Stat wp_Size wp_Name wp_IsEof IoE hIo eof hIoEof write dir gs frs lfs hfr hlf
+    have ih := walDecFiles_mk wp_Stat wp_Size wp_Name wp_IsEof wp_Term IoE hIo eof hIoEof write dir gs frs lfs hfr hlf
       (fun g' hg' => hsz g' (List.mem_cons_of_mem _ hg'))
     iintro ⟨#Hinv, #Heof, #Hos, #Heofa, Hop, Hh⟩
     simp only [List.map_cons]
@@ -132,7 +133,7 @@ theorem walDecFiles_mk
     · iapply BigSepL.bigSepL_cons.2
       iframe Hfs
       isplitr
-      · iapply (walDecFile_ok wp_Stat wp_Size wp_Name wp_IsEof IoE hIo eof hIoEof rl f fd (child dir g.name)
+      · iapply (walDecFile_ok wp_Stat wp_Size wp_Name wp_IsEof wp_Term IoE hIo eof hIoEof rl f fd (child dir g.name)
           (openFd g.ino (walReadFlag write)) g hfd0 rfl ?_ hsz1 hlen1)
         · cases write <;> rfl
         · iframe Hinv Heof Hos Heofa Hrl

@@ -5,13 +5,15 @@ a claim on names `N` of the directory (`osNames`, as `fileutil.ReadDir`'s): the 
 `WalNamesOut N h`, sorted, non-empty, each a name `parseWALName` may accept, exact on the names of
 `N` that parse. For a WAL directory (`walInv`'s `WalDirClaim`, `.except X` with no `.wal` name in
 `X`) the names outside `N` are no `.wal` names, so the result is exactly the directory's names that
-parse. An error is one `fmt.Errorf` may wrap (`errOk`). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/readWALNames.lean`. W5 of
+parse. An error is one `fmt.Errorf` may wrap (`errOk`), on which `errors.Is` returns for every pointer target
+(`errIsTerm`; 2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' retry test). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/readWALNames.lean`. W5 of
 `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.checkWALNames
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
+public import LinuxFs.Spec.fmt.ErrorfErrsNot
 
 @[expose] public section
 
@@ -54,7 +56,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec : Prop :=
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
       osNames j N dqn h ∗
       ((∃ ws : List GoString, ⌜err = interface.nil ∧ WalNamesOut N h ws⌝ ∗ r ↦* ws) ∨
-       ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }}
+       ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e ∗ errIsTerm (GoInterface.ok e)) }}
 
 end spec
 

@@ -40,14 +40,16 @@ namespace io.fs
 
 /-- `io/fs`: its five error variables, which `os`'s initializer copies, hold some error for good
 (2026-11-07: its variables' initializers are translated), `ErrExist` a non-nil one (internal/oserror's
-`errors.New`; `wal.Create` returns `os.ErrExist` as its error, 2026-11-14), `ErrClosed` one `fmt`
+`errors.New`; `wal.Create` returns `os.ErrExist` as its error, 2026-11-14), `ErrNotExist` an `*errorString`
+(internal/oserror's `errors.New`; `wal-vsnap4`), `ErrClosed` one `fmt`
 formats (internal/oserror's `errors.New`; the closed-file `(*os.File).Close` wraps it, 2026-11-14). -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.io.fs :=
   define_is_pkg_init iprop(
     (∃ e : GoInterface, typedPointsto (globalAddr ErrInvalid) e DFrac.discard) ∗
     (∃ e : GoInterface, typedPointsto (globalAddr ErrPermission) e DFrac.discard) ∗
     (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr ErrExist) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr ErrNotExist) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
     (∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr ErrClosed) e DFrac.discard))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.io.fs :=
   build_get_is_pkg_init_wf
@@ -59,14 +61,15 @@ namespace os
 /-- `os`: `Stderr` holds a fixed `*File`, which raft's initializer loads (`defaultLogger`); the
 trusted model of its initializer (`TrustedCode/os.lean`) allocates it (2026-11-07; until then an
 assumption of `Init.lean`'s); and `ErrExist` holds a non-nil error (io/fs's, which the initializer
-copies; `wal.Create` returns it, 2026-11-14), `ErrNotExist` holds some error for good (`wal.Exist`
-compares with it, 2026-11-14), and so does `ErrInvalid` (the nil-receiver `(*File).Close` returns it,
+copies; `wal.Create` returns it, 2026-11-14), `ErrNotExist` holds an `*errorString` for good (`wal.Exist`
+compares with it, 2026-11-14; its type since `wal-vsnap4`), and so does `ErrInvalid` (the nil-receiver `(*File).Close` returns it,
 `WAL.Close` of a nil `dirFile`, 2026-11-14); the part's only: the main tree's `os` fact is `Stderr`'s
 alone. -/
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
   define_is_pkg_init iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
     (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
     (∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) ∗
     ∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr os.ErrClosed) e DFrac.discard)
 instance os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
@@ -79,7 +82,8 @@ theorem errExist_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.os ⊢
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans ?_
   show iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
       (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-      (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
+      (∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
       (∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) ∗
       ∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗
         typedPointsto (globalAddr os.ErrClosed) e DFrac.discard) ⊢ _
@@ -92,7 +96,26 @@ theorem errNotExist_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.os ⊢
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans ?_
   show iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
       (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-      (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
+      (∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
+      (∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) ∗
+      ∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗
+        typedPointsto (globalAddr os.ErrClosed) e DFrac.discard) ⊢ _
+  iintro ⟨-, -, ⟨%x, #He⟩, -, -⟩
+  iexists _
+  iexact He
+
+/-- `os.ErrNotExist` holds an `*errorString`, for good (the part's fact; internal/oserror's `errors.New`,
+which `io/fs` and `os` copy: 2026-11-14, `wal-vsnap4`, so that `errors.Is(_, os.ErrNotExist)` is a call on a
+pointer target, `errIsTerm`). -/
+theorem errNotExist_ptr_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.os ⊢
+    ∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard := by
+  refine (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans ?_
+  show iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
+      (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
+      (∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
       (∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) ∗
       ∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗
         typedPointsto (globalAddr os.ErrClosed) e DFrac.discard) ⊢ _
@@ -105,7 +128,8 @@ theorem errInvalid_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.os ⊢
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans ?_
   show iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
       (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-      (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
+      (∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
       (∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) ∗
       ∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗
         typedPointsto (globalAddr os.ErrClosed) e DFrac.discard) ⊢ _
@@ -119,7 +143,8 @@ theorem errClosed_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.os ⊢
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans ?_
   show iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
       (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
-      (∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ∗
+      (∃ x : Loc, typedPointsto (globalAddr os.ErrNotExist)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗
       (∃ e : GoInterface, typedPointsto (globalAddr os.ErrInvalid) e DFrac.discard) ∗
       ∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗
         typedPointsto (globalAddr os.ErrClosed) e DFrac.discard) ⊢ _

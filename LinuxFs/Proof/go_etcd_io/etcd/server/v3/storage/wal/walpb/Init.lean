@@ -3,7 +3,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.wal.walpb`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
-returns (`errOk`). Its initializer stores that error (a translated `errors.New` call, record.go;
+returns (`errOk`) and on which `errors.Is` returns for every pointer target (`errIsTerm`: an `*errorString`
+leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated `errors.New` call, record.go;
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.
@@ -17,6 +18,7 @@ public import LinuxFs.Proof.go_etcd_io.raft.v3.InitPb
 public import LinuxFs.Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import LinuxFs.Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 public import Perennial.Proof.errors.NewVar
+public import LinuxFs.Proof.errors.ErrIsTerm
 public import LinuxFs.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -106,6 +108,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk file_record_proto_depIdxs.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrCRCMismatch
+  ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ Hd1
   iframe Hown
   imodintro
   isplitr
@@ -113,9 +116,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold EtcdGrove.walpb.walpbInit EtcdGrove.errOk
+  unfold EtcdGrove.walpb.walpbInit
   iexists _
-  iframe HErrCRCMismatch
+  iframe HErrCRCMismatch TC
+  unfold EtcdGrove.errOk
   iintro !> %Φ' HΦ'
   iapply EC
   inext

@@ -24,6 +24,7 @@ public import LinuxFs.Spec.os.File__Stat
 public import LinuxFs.Spec.os.fileStat__Size
 public import LinuxFs.Spec.os.fileStat__Name
 public import LinuxFs.Spec.errors.IsPathErrnoEof
+public import LinuxFs.Spec.errors.IsPathErrnoTerm
 
 @[expose] public section
 
@@ -84,13 +85,17 @@ theorem walPathErr_ans (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := 
   ipureintro
   rfl
 
-/-- **`errors.Is(err, io.ErrUnexpectedEOF)` on the `os` models' `*PathError`s** answers `false`
-(`notUeof`). -/
+/-- **`errors.Is(err, io.ErrUnexpectedEOF)` on the `os` models' `*PathError`s** answers `false`, and
+`errors.Is(err, _)` returns on every pointer target (`notUeof`). -/
 theorem walPathErr_ueof (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG))
     (err : GoInterface) (e : w64) (he : e ≠ 0) :
     isPkgInit (PROP := IProp GF) pkg_id.os ∗ os.errnoPathErr (GF := GF) err e ⊢ notUeof err := by
   iintro ⟨#Hos, #Hep⟩
   unfold notUeof
+  isplitl []
+  rotate_left
+  · iapply (wp_Term err e he) $$ Hos Hep
   imodintro
   iintro %ueof #Hu
   ihave #Hu2 : (globalAddr _root_.Perennial.io.EOF ↦□ ueof ∨
@@ -120,6 +125,7 @@ theorem walDecFile_ok
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_Name : os.fileStat.Name.spec (GF := GF) (hG := hG))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG))
     (IoE : GoInterface → Prop) (hIo : ∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))
     (eof : GoInterface) (hIoEof : ¬ IoE eof) (rl f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG)
     (hfd : 0 ≤ fd.toInt) (hino : fl.ino = g.ino) (hrd : fl.readable = true)
@@ -186,7 +192,7 @@ theorem walDecFile_ok
         · iapply walPathErr_ans wp_IsEof IoE hIo err eof hIoEof e he
           iframe Hos Heof Hep
         iunfold ioUeof; iright
-        iapply walPathErr_ueof wp_IsEof err e he
+        iapply walPathErr_ueof wp_IsEof wp_Term err e he
         iframe Hos Hep
     iapply HΦ
     iexists ((g.bs.map Prod.fst).drop r.length).take k
@@ -296,7 +302,7 @@ theorem walDecFile_ok
         iframe Hos Heof Hep
       isplitl []
       · iunfold ioUeof; iright
-        iapply walPathErr_ueof wp_IsEof err e he
+        iapply walPathErr_ueof wp_IsEof wp_Term err e he
         iframe Hos Hep
       iintro %h
       exact absurd h hne

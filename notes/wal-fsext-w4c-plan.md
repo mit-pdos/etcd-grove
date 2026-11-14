@@ -513,3 +513,60 @@ The bundle: `walPb_laws : WalPbLaws walRaftP walRaftMr walRaftU` (`RaftModel/Law
   stream over it) -- a statement change of the WAL's specs, deferred to C6. The canonical form stays the
   tester's (`Type` set).
 
+
+## W4c U1 log (branch `wal-u1`, 2026-11-14)
+
+**The tester is in the part, translated and with its pure proofs; nothing over the new WAL specs yet.** No
+axiom, no `sorry`, nothing trusted changed. `TP/` = `LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/`.
+
+- **Translation** (`etc/goose.py`, project `etcd-wal`'s new part `LinuxFs`): `LinuxFs/{Code,GeneratedProof}/
+  github_com/mit_pdos/etcd_grove/examples/etcd/wal.lean`, over the part's `os`, `wal`, `walpb`, `fileutil` and
+  `lib/durable` (raftpb, zap, `strings`, `primitive`: the main tree's/Perennial's). **`purgeRound` translated with
+  its body** (no `LinuxFs/Code/.../etcd/wal.toml`; the main tree's names-only `!purgeRound` and its approved axiom
+  stay main-tree only): the body adds no trust; U6 decides whether it stays. `--check` passes.
+- **Package init**: `TP/PkgInit.lean` (the main tree's `Base.lean`: fact `True`), `TP/Init.lean` generated
+  (`etc/gen-init.py`, `LFS_PKGS`; `--check` passes).
+- **Pure proofs, copied** (55 modules, all build): `TP/Defs.lean` = the main `Defs.lean`'s `section pure` **minus
+  `tOracleFile`** (over `durableExt`'s `DurableState`); `Rep`, `RefLemmas`, the 25 function proofs of `ref.go`/
+  `oracle.go` and their 25 specs (`LinuxFs/Spec/.../etcd/wal/`) unchanged but for imports; `TP/CrashPure.lean`
+  (`tCandOk_crash`, `tPreOk_crash`, the pure half of `Crash.lean`: the `fsExt` WAL's `walStCrash` is
+  `absDisk_semantics.crash`, so they apply as they are). The copies are plain files, not `gen-part-copies.py`
+  output: from now on the part's are the tester's proof, the main tree's are frozen until U8 deletes them.
+- **Left for U5 (not copied)**, with what each needs:
+  - `Defs.lean`'s `tOracleFile`: restate over `lib/durable`'s client state (`DurSt` `{cur, alt}`: the oracle file
+    holds `tEncodeOracle o`, or none and `tFreshOracle`, for `cur`, and for `alt` while a `Write` is pending);
+  - `TInvBody`/`TInv`/`TBoot`: `durableOwnM`/`durableReserved` → U2's `durInv`/`durHandle`; `walDirIs`/
+    `walSyncedLb`/`walNamed` → the part's (`walPast`, `walSyncedLb`, `walNamed`); `walArea` → `walAreaOk`/
+    `walAreaRes`; `dirDurable root`, `dirDurable (tArea root)` → U3's area-a-root (`DirsRoots`); the lock token
+    and `osCallPerm 1`/`½` threaded (§2); `tRelI` unchanged in shape;
+  - `Crash.lean`'s `tester_crash`: over `walInv_crash` + `walBootCrash` (U3) and `durInv_crash`/`durBoot` (U2),
+    with `CrashPure`'s lemmas for the oracle;
+  - `PurgeBody.lean`, `purgeRound.lean` and its spec: over `absDiskExt`'s `"WalPurge"` step; no `fsExt` statement
+    without the lock model (U6);
+  - `absSnapMd` (in the copied `Defs`): the new `walSnapAt` requires `c.model = md`, the old constrained only the
+    index, the term and whether the conf state is set; the tester's conf state is `{Voters: [1]}`, so `absSnapMd`
+    becomes `⟨⟨[1], [], [], [], false⟩, idx, term⟩` (`RefLemmas` reads only its `Index'`/`Term'`).
+- **Mismatches found** (for U5/U7; each a change to our own example's Go, so a change of the closed theorem's
+  statement: the user's at U7's hard stop):
+  1. **The paths against U3's boot premise 3 (the area a root).** The tester's area is `root/data/member`
+     (`tArea`), the oracle `root/oracle/state`. With the area an `fsExt` root, `root` cannot be one (`RootsOk`:
+     no root under another), so `root/oracle` is a second root (`durable` never creates a directory). Then
+     `Boot`'s first start, `TouchDirAll(data)` and `TouchDirAll(memberDir)` (`wal.go:617`), has no spec: `data` is
+     above a root (its `.touch` probe is an `O_CREAT` open there, stuck: `fsExt` opens only `O_RDONLY` above a
+     root) and `memberDir` is the root (the part's `TouchDirAll.spec` creates an absent `parent/name`; its probe's
+     `.touch` in the area is under the WAL invariant's area claim, `walBoot0` giving back only names holding an
+     entry at boot). Proposed: drop both calls (the area and the oracle directory are the environment's, as the
+     roots are), `Boot(area, orDir, …)` taking the two roots. The other boot facts hold: the oracle and its
+     temporary `.durable-state` are outside the area; the WAL name `wal` is `NameOk`; `Create`'s metadata `"m"` is
+     non-empty and short.
+  2. **The oracle's size against `durable.Write`'s 1 GiB premise.** The candidates' histories (`c.h`) are
+     whole histories since `Create`, so `tEncodeOracle o` grows without bound across incarnations; `durableExt`
+     had no bound. Proposed: the tester stops (`StatusDown`, before the `storeOracle`) once the encoding would
+     exceed `2^30` bytes, or the closed theorem bounds the incarnations.
+  3. **`SaveSnapshot`'s conf state against U4's canonical form.** `wal.go:373`'s `&raftpb.ConfState{Voters:
+     []uint64{1}}` leaves `AutoLeave` nil; `walCsCanon` has it set (as raft's `ProgressTracker.ConfState()`
+     sets it), so `walSnapAt`'s `snapEnc c = Mr.encSnap md` fails. Proposed: the tester sets `AutoLeave:
+     new(bool)` (keeping the canonical form raft's, which C6 needs). Entries (`toRaft`) and hard states (`toHS`)
+     fit (U4 b log); `Open`'s `walpb.Snapshot{Index, Term}` needs only `walSnapIdTerm`.
+  4. **For C6, not the tester:** real etcd's member directory holds `snap/` beside `wal/`, a name `AreaSlot`
+     covers, so U3's `hslots` (and the area claim) do not fit the server's layout with the area at `member/`.

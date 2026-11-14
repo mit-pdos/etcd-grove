@@ -5,6 +5,7 @@ module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNames
 public import LinuxFs.Spec.fmt.ErrorfErrs
+public import LinuxFs.Spec.fmt.ErrorfErrsTerm
 
 @[expose] public section
 
@@ -49,7 +50,7 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
     (HRead : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec (GF := GF) (hG := hG))
     (HCheck : go_etcd_io.etcd.server.v3.storage.wal.checkWALNames.spec (GF := GF) (hG := hG))
-    (HErrorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
+    (HErrorf : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec (GF := GF) (hG := hG) := by
   intro lg d R j dq qc N dqn h
   wp_start as ⟨#Hlg, #Hos, #Hsi, Hp, Hperm, Hn⟩
@@ -59,7 +60,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   ihave Hfnf := wal.walInit_ErrFileNotFound $$ Hi
   iunfold wal.errVar at Hfnf
-  icases Hfnf with ⟨%efnf, #Hfnf, #Hfok⟩
+  icases Hfnf with ⟨%efnf, #Hfnf, #Hfok, #Hfterm⟩
   wp_auto
   wp_apply HRead d slice.nil [] [] (DFrac.own 1) R j dq qc N dqn h rfl $$ [Hp Hperm Hn]
     as %r %err ⟨Hp, Hperm, Hn, -, Hr⟩
@@ -74,7 +75,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
     · iapply ownSlice_nil
     try simp only [BigSepL.bigSepL_nil]
     iempintro
-  icases Hr with (⟨%names, %rs, ⟨%herr, %hok, %hex, %hcnt, %hout⟩, Hrs⟩ | ⟨%herr, #Herr⟩)
+  icases Hr with (⟨%names, %rs, ⟨%herr, %hok, %hex, %hcnt, %hout⟩, Hrs⟩ | ⟨%herr, #Herr, #Hterm⟩)
   · subst herr
     wp_auto
     wp_apply HCheck lg r rs (DFrac.own 1) $$ [Hrs] as %ws ⟨Hrs, %wl, %hsel, Hws⟩
@@ -89,7 +90,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
       iexists efnf
       isplitr
       · ipureintro; rfl
-      iexact Hfok
+      iframe Hfok Hfterm
     · have hne : wl ≠ [] := by
         intro he; subst he; apply Hif; simp at Hwl; word
       try wp_auto
@@ -113,7 +114,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
           right
           simpa using hii) $$ [Hasl] as %err2 #Herr2
     · iframe
-      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
+        errIsTerm (GoInterface.ok e)))).2
+      iframe Hterm
       unfold fmtErrorOkOrNil fmtErrorOk
       icases Herr with ⟨-, H⟩
       unfold errOk

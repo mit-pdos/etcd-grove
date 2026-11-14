@@ -63,6 +63,7 @@ theorem errUeAns_ioe (ueof err : GoInterface) (P : Prop) :
       errUeAns err ueof P := by
   iintro ⟨#Hn, #Hu⟩
   iunfold notUeof at Hn
+  icases Hn with ⟨#Hn, -⟩
   ihave #Hq := Hn $$ %ueof Hu
   unfold errUeAns
   iintro !> %Φ

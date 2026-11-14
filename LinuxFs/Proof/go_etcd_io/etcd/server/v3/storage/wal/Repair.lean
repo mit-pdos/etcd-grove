@@ -139,6 +139,7 @@ macro "repair_open" : tactic => `(tactic| (
 theorem wal.Repair.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG))
     (wp_openLast : go_etcd_io.etcd.server.v3.storage.wal.openLast.spec (W := W) Mr)
     (wp_String : zap.String.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
@@ -240,7 +241,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   iintro %hszl Hm
   have hlen : gL.bs.length + 2 ^ 12 < 2 ^ 62 := by
     have h2 : Fs.maxBytes = 0xffffffff000 := rfl; omega
-  ihave #HdF := walDecFile_ok wp_Stat wp_Size wp_FName wp_IsEof IoE hIo eof hIoEof rl f fd
+  ihave #HdF := walDecFile_ok wp_Stat wp_Size wp_FName wp_IsEof wp_Term IoE hIo eof hIoEof rl f fd
     (child dir gL.name) ⟨gL.ino, true, true⟩ gL hfd rfl rfl hSz hlen
     $$ []
   · iframe #

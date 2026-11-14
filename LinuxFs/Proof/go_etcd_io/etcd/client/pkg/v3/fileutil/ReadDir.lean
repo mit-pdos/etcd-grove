@@ -8,6 +8,7 @@ assumes Go's `growslice` limit, `TrustedCode/os.lean`, pending the user's review
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirCore
+public import LinuxFs.Spec.errors.IsPathErrnoTerm
 
 @[expose] public section
 
@@ -29,7 +30,8 @@ variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     (wp_Strings : sort.Strings.spec (GF := GF) (hG := hG))
-    (wp_Ext : filepath.Ext.spec (GF := GF) (hG := hG)) :
+    (wp_Ext : filepath.Ext.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec (GF := GF) (hG := hG) := by
   intro d sl gs es dqs R j dq qc N dqn h hlen
   iintro %Φ ⟨#Hinv, #Hsi, #Hpkg, Hp, Hperm, Hn, Hsl, #Hgs⟩ HΦ
@@ -118,8 +120,12 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
   · iright
     isplitr
     · ipureintro; exact herr
+    ihave #Hosp : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+    · iPkgInit
     icases Herr with (⟨%e, %he, #Herr⟩ | ⟨%e, %he, #Herr⟩) <;>
-      iapply (os.errnoPathErr_fmtErrorOkOrNil err e he) $$ Herr
+    · isplitl []
+      · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he) $$ Herr
+      · iapply (wp_Term err e he) $$ Hosp Herr
 
 end proof
 

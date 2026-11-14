@@ -1004,7 +1004,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 · iapply isPkgInit_access $$ Hpkg
                 ihave #HeX := wal.walInit_ErrSliceOutOfRange $$ Hwi
                 iunfold wal.errVar at HeX
-                icases HeX with ⟨%eX, #HeX, #HeXok⟩
+                icases HeX with ⟨%eX, #HeX, #HeXok, -⟩
                 (try wp_auto)
                 wp_apply wp_SnapIndex sp s $$ Hsp
                 wp_apply wp_SnapTerm sp s $$ Hsp

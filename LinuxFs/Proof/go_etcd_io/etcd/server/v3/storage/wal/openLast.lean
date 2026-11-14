@@ -73,7 +73,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     iframe Hnc
     subst hdc
     wp_apply wp_namesAbs lg r nm R jr (DFrac.own qp) 1 N (DFrac.own (1 : Qp).half) h hnmO hNnm hcn
-      $$ [Hp Hperm HN] as %rr %err ⟨Hp, Hperm, HN, %e, %herr, #He⟩
+      $$ [Hp Hperm HN] as %rr %err ⟨Hp, Hperm, HN, %e, %herr, #He, -⟩
     · iframe; iframe #
     subst herr
     try wp_auto
@@ -100,7 +100,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     wp_apply wp_names lg dir R lay.j (DFrac.own qd) 1 (.except X) (DFrac.own (1 : Qp).half) hj
       $$ [Hpd Hperm Hj] as %rr %err ⟨Hpd, Hperm, Hj, Hnames⟩
     · iframe; iframe #
-    icases Hnames with (⟨%ws, ⟨%herr, %hout⟩, Hws⟩ | ⟨%e, %herr, #He⟩)
+    icases Hnames with (⟨%ws, ⟨%herr, %hout⟩, Hws⟩ | ⟨%e, %herr, #He, -⟩)
     rotate_left
     · -- `readWALNames` failed: the pin back
       iapply wp_notCrashed_acc _ _ rfl

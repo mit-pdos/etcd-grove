@@ -21,7 +21,8 @@ The rules:
   the results their binders reach are linked too, whatever their package (`os`, `syscall`,
   `ioutil`, `crc`, ...: the part's proofs, the result's name says the package).
 - **A result** `<T>.wp_<M><S>` (namespace `EtcdGrove.walfs`) takes the proof's model parameters
-  (same names, same order), then one hypothesis `h_<name>` for each spec with no proof and each
+  (same names, same order), then those of its callees (transitively) that their conclusions do not
+  mention and the proof has not (`ValidSnapshotEntries`' `P U HsO`, from `validSnapshotEntries.specPinned`), then one hypothesis `h_<name>` for each spec with no proof and each
   premise its proof or a callee's (transitively) takes, and states the proof's conclusion. The
   results with a hypothesis are in `section links_pending` (`etc/proof_roots.py`'s pending roots).
 - **The callees** are the proof's explicit binders, in order: a spec with a result is given it, its
@@ -327,6 +328,30 @@ def main(root, perennial, argv0, check=False):
             sub.setdefault(p[1], p[1])
         return sub
 
+    # the model parameters a result takes beyond its proof's own: a callee's parameter its conclusion
+    # does not mention (so the caller's of the same name) that the caller has not (as
+    # `validSnapshotEntries.specPinned`'s `P U HsO` under `ValidSnapshotEntries`, whose spec takes `Mr` only)
+    extras_of = {}
+
+    def extras(s):
+        if s in extras_of:
+            return extras_of[s]
+        extras_of[s] = []
+        x = how[s][1]
+        names = {p[1] for p in x["params"]}
+        out = []
+        for b in x["binders"]:
+            if b[0] != "spec" or how[b[2]][0] != "result":
+                continue
+            cx = how[b[2]][1]
+            sub = inst(b[2], b)
+            for p in [q for q in cx["params"] if sub[q[1]] == q[1]] + extras(b[2]):
+                if p[1] not in names:
+                    names.add(p[1])
+                    out.append(p)
+        extras_of[s] = out
+        return out
+
     def hyps(s):
         if s in hyps_of:
             return hyps_of[s]
@@ -378,7 +403,7 @@ def main(root, perennial, argv0, check=False):
             return hyp_names[spec_ty(b[2], b[3], b[4])]
         x = h[1]
         sub = inst(b[2], b)
-        args = [sub[p[1]] for p in x["params"]]
+        args = [sub[p[1]] for p in x["params"]] + [p[1] for p in extras(b[2])]
         hs = []
         for n in hyps_of[b[2]]:
             ty = norm(subst(hyp_types[n], {k: v for k, v in sub.items() if k != v}))
@@ -388,7 +413,7 @@ def main(root, perennial, argv0, check=False):
 
     def emit(s):
         x = how[s][1]
-        binders = [f"({p[1]} : {p[2]})" for p in x["params"]] + \
+        binders = [f"({p[1]} : {p[2]})" for p in x["params"] + extras(s)] + \
             [f"({n} : {hyp_types[n]})" for n in hyps_of[s]]
         args = []
         for b in x["binders"]:
