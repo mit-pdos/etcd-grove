@@ -180,7 +180,7 @@ theorem valAt0_cases (c : Cands) : valAt c 0 = 0 ∨ ∃ s, (valAt c 0, s) ∈ c
 /-- **The crash condition after the fdatasync of a tail in a window** (`crashOk_sync`'s window
 form): the old condition at the tail imaged as of the last sync (`syncImg`, of the synced size
 `|bs| ∈ [lo, hi]`; below `wr` a stamp-0 candidate, `ByteOk`'s head; from `wr` on, past `lo`
-(`winLo`), a stamp-0 candidate or the zero arm), then `crashTo_tailM` at the raised mark over the
+a stamp-0 candidate, else a zero candidate or the zero arm past `lo` (`WinHead`)), then `crashTo_tailM` at the raised mark over the
 static relation of `syncLayW` (`walAbsD_syncW`). -/
 theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {ents : Ents} {cl : List Claim} {n : Nat} {pre : List SegG} {g0 : SegG}
@@ -236,7 +236,7 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     have hsz : f.size = g0.bs.length := hsyncSz f hf1
     have hsz' : (syncImg g0.bs f.size).size = g0.bs.length := hsz
     obtain ⟨hm1, -, hm3, hm4, -⟩ := habs0.metas g0 (List.mem_of_getLast? hg0)
-    have hlw := habs0.winLo g0 hg0 hx
+    have hhd := habs0.winHead g0 hg0 hx
     refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_, fun b c hb _ hb2 => absurd hb2 (by omega)⟩
     · intro r hr k hk hks
       rw [List.mem_singleton] at hr; subst hr
@@ -249,7 +249,11 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       · obtain ⟨-, -, -, -, hbytes, -⟩ := hwin
         exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw).head0)
       · rcases valAt0_cases (g0.bs[k]'hk).2 with h0 | h0
-        · exact .inr ⟨by omega, h0⟩
+        · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
+          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩
+          · exact .inr ⟨by omega, h0⟩
+          · rw [segBytesX_getD_lt hk, e] at hs0
+            exact .inl ⟨s0, by rw [h0]; exact hs0⟩
         · exact .inl h0
     · intro z hz b hzb hb
       have := hzf z hz; omega
