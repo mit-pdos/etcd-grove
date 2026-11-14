@@ -42,6 +42,10 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   first snapshot through `srvLeaseRd_srvInv` then `lease.srvInv_first`. **No mode-`none` consumer relies on the
   empty start.**
 
+- **P2-a done** (2026-11-14, `acfa82c7ff`, interfaces `3fe663255f`): rows as fancy updates, `srvRestartRows_single`
+  (`RestartRowsSingle.lean`); full build OK (flock, 64G); tcb unchanged (870, 4); bounds/mode/api/layout ok.
+  Waiting for etcd-grove-81's review of the interface diff (`/shared/tmp/restart-s7/p2a-interface.diff`), then land.
+
 ## Next, in order
 1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
    for etcd-grove-81's review.
