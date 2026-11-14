@@ -20,6 +20,7 @@ tie the second update cannot find its token in the invariant.)
 module
 
 public import LinuxFs.Proof.os.ResizeAuW
+public import LinuxFs.Proof.os.TcKnows
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -42,17 +43,20 @@ variable [os.Assumptions]
 /-- The caller's half of a resize of the unmapped file `p` from `m` to `tg` that landed
 (`os.ftDone`'s, the candidates `zs` of the bytes grown over), its `OsMeta` up to the candidates it
 knows past the size and of its resize stamps (`rsPostK`: the update's owner, holding the other half,
-knows them). -/
+knows them), knowing which bytes past the size have known candidates (`TcKnows`: those the landing
+keeps known, `rsTail`'s domain; `wal-tc10`). -/
 def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
-  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc rz, osMeta p (DFrac.own (1 : Qp).half)
+  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc rz, ⌜TcKnows m tg tg tc⌝ ∗ osMeta p (DFrac.own (1 : Qp).half)
       ((rsPost true m tg tg).withTc tc rz)) ∗
     osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))))
 
 /-- The caller's half of a resize of `p` from `m` to `tg` that did not land (`os.ftUndone`'s, the
 bytes it would have cut off `xs'`), its `OsMeta` up to the candidates it knows past the size and of
-its resize stamps (`rsUnMeta`: the update's owner, holding the other half, knows them). -/
+its resize stamps (`rsUnMeta`: the update's owner, holding the other half, knows them), knowing which
+bytes past the size have known candidates (`TcKnows` at the old size: those the not-landed outcome keeps
+known). -/
 def os.ftUndoneH (p : Ino) (m : OsMeta) (tg : Nat) (xs' : List ByteG) : IProp GF :=
-  iprop((∃ tc rz, osMeta p (DFrac.own (1 : Qp).half)
+  iprop((∃ tc rz, ⌜TcKnows m tg m.size tc⌝ ∗ osMeta p (DFrac.own (1 : Qp).half)
       ((m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz)) ∗
     osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs')
 
