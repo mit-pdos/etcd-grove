@@ -101,6 +101,11 @@ def renDirOut (j J : Ino) (N : NameSet) (bs bt : GoString) (h : NamesH) (dq : DF
     claimOut j N dq h (renDirEnt j bs bt J)
       (restrictN N (<[bt := .dir J]> (GMap.delete bs h.cur))) o)
 
+/-- `os.Rename`'s error: `nil`, or a `*LinkError` (`&LinkError{"rename", old, new, Errno(e)}`), which
+`renameWAL`'s `errors.As(err, &linkErr)` matches. -/
+def os.renameErrOk (err : GoInterface) : Prop :=
+  err = interface.nil ∨ ∃ le : Loc, err = interface.mkOk (go.GoType.PointerType os.LinkError.ty) #le
+
 /-- See the file header. -/
 abbrev os.Rename.specDirS : Prop :=
   ∀ (d bs bt : GoString) (j J : Ino) (N : NameSet) (R : Roots) (qd : Qp) (h : NamesH)
@@ -112,7 +117,8 @@ abbrev os.Rename.specDirS : Prop :=
       osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) lb o }}
+      ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗
+        renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
 /-- `specDirS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
 `notCrashed`, so a client can open an invariant with a crash branch (the WAL's `walInv`) at it; it
@@ -127,7 +133,8 @@ abbrev os.Rename.specDirSnc : Prop :=
       osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) lb o }}
+      ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗
+        renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
 end spec
 
