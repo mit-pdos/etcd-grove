@@ -19,6 +19,10 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAbsent
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAbort
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenNames
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
+public import Spec.fmt.SprintfWalName
 
 @[expose] public section
 
@@ -47,7 +51,9 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_CDA : fileutil.CreateDirAll.specTmp (GF := GF) (hG := hG))
     (wp_String : zap.String.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
-    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (wp_SprintfWal : fmt.SprintfWalName.spec (GF := GF) (hG := hG))
+    (wp_Join : filepath.Join.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) C Mr := by
   intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
@@ -58,7 +64,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   · iframe; iframe #
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
-  icases Hdeps with ⟨-, -, -, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
+  icases Hdeps with ⟨-, -, #Hfmt, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
@@ -178,6 +184,38 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
       iright; ileft
       iframe
       ipureintro; intro hc; cases hc
+    subst herr
+    try wp_auto
+    -- `p := filepath.Join(tmpdirpath, walName(0, 0))`
+    wp_func_call
+    wp_call
+    try wp_auto
+    wp_apply wp_slice_literal (V := GoInterface)
+      [interface.mkOk go.uint64 #(W64 0), interface.mkOk go.uint64 #(W64 0)]
+    isplitr
+    · ipureintro; rfl
+    iintro %asl ⟨Hasl, -⟩
+    try wp_auto
+    wp_apply wp_SprintfWal _ _ _ _ $$ [$Hasl] as %bw ⟨-, %hbw⟩
+    rw [show fmt.walNameStr (W64 0) (W64 0) = walFileName 0 0 from
+      (walFileName_walNameStr 0 0).symm] at hbw
+    subst hbw
+    try wp_auto
+    wp_apply wp_slice_literal (V := GoString) [child r (tmpName nm), walFileName 0 0]
+    isplitr
+    · ipureintro; rfl
+    iintro %jsl ⟨Hjsl, -⟩
+    try wp_auto
+    have hjl : ([child r (tmpName nm), walFileName 0 0].map List.length).sum + 2 < 2 ^ 62 := by
+      simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, walFileName_length]
+      omega
+    have htc : filepath.CleanAbs (child r (tmpName nm)) := by
+      have := filepath.cleanAbs_append r (tmpName nm) hrc (cleanSeg_of_nameOk (tmpName_nameOk hnmO))
+      simpa [child, slashB] using this
+    wp_apply wp_Join _ _ _ hjl $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
+    rw [join_child htc (walFileName_nameOk 0 0)] at hfpath
+    subst hfpath
+    try wp_auto
     sorry)
 
 end proof
