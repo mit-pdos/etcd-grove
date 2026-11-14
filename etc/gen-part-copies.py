@@ -112,6 +112,11 @@ COPIES = [
             opens=['Iris Iris.BI go_etcd_io.raft.v3'], variables=_PB_VARS,
             options=['set_option linter.unusedSectionVars false'],
             bare=['entryEncC', 'entryEncC_ok', 'pbEntryC_reg']),
+    # `EntryType.Enum`'s spec and proof (the WAL tester's `toRaft`, W4c U5: `raftpb` is the main tree's
+    # translation, the spec's module reaches the main raft root through `InvPb`)
+    Whole('Spec/go_etcd_io/raft/v3/raftpb/EntryType__Enum.lean',
+          add=['LinuxFs.Proof.go_etcd_io.raft.v3.PkgInit']),
+    Whole('Proof/go_etcd_io/raft/v3/raftpb/EntryType__Enum.lean'),
     # the abstract disk (its histories, states and ghost state, which the W1 layer reuses)
     Whole('GooseLang/Ext/AbsDisk/Impl.lean'),
     Whole('GooseLang/Ext/AbsDisk/Specs.lean'),
