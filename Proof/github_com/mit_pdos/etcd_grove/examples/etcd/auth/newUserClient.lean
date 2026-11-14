@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     newUserClient.spec (GF := GF) (hG := hG) := by
-  intro name pw lg V P Htb Hsz
+  intro addr name pw lg V P Hpe Htb Hsz
   wp_start as ⟨#Hzlg, #Hce, #Hreg⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -48,7 +48,7 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   -- `clientv3.New(Config{Endpoints: {clientAddr}, ..., Username: name, Password: pw, Logger: lg})`
   haveI : ThreadBoundLe GF (2 ^ 31) := ⟨by omega⟩
-  wp_apply (wp_New _ [go!"127.0.0.1:23916"] V P) $$ [] as %cl %cerr Hcl
+  wp_apply (wp_New _ [addr] V P) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -58,7 +58,7 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
       · iapply ownSlice_nil
       ipureintro
       refine ⟨?_, ?_⟩
-      · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
+      · exact plainEndpoints_singleton _ Hpe
       · simp [Hlg]
     iunfold clientAuthPre
     iright

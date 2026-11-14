@@ -94,7 +94,7 @@ theorem Work.wp_proof
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG)) :
     Work.spec (GF := GF) (hG := hG) := by
-  intro CS EA FA RA CRE CEC cl who V s E ρ cid mid γa Lset n hwho hγa hV hAs
+  intro CS EA FA RA CRE CEC cl who addr V s E ρ cid mid γa Lset n hwho hγa hV hAs
   obtain ⟨hVa, hVm, hVw, hVn, hVs, hVE, hVk⟩ := hV
   wp_start as ⟨#Hnc, #Hwf, #Htok, #Hkv, #Htls, #Hinv, #Hf, #Htag⟩
   ihave #Htok0 := Htok
@@ -104,7 +104,7 @@ theorem Work.wp_proof
   · iPkgInit
   imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil := optsAt_nil (GF := GF)
-  ihave #Henv : akCallEnv cl api conn s E ρ cid mid γa Lset n who $$ []
+  ihave #Henv : akCallEnv cl api conn addr s E ρ cid mid γa Lset n who $$ []
   · unfold akCallEnv; iframe #
   wp_auto
   wp_apply wp_keyOf go!"a" who go!"0"
@@ -115,7 +115,7 @@ theorem Work.wp_proof
   wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
   subst Hc
   (try wp_auto)
-  wp_apply (work_put cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"0")
+  wp_apply (work_put cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"0")
       go!"v0" hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
       (opHistOk_put_a who go!"0" go!"v0" (by decide))
       (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
@@ -148,7 +148,7 @@ theorem Work.wp_proof
   wp_apply (wp_reqCtx who hAs) as %c %cancel ⟨#Hcancel, %ci, %cd, %c0, %Hc, #Hctx, #Hce, %Hout⟩
   subst Hc
   (try wp_auto)
-  wp_apply (work_put cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"0")
+  wp_apply (work_put cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"0")
       go!"v0" hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
       (fun h => absurd (akOpGranted_put who _ go!"v0" (keyOfK_ne_nil _ _ _ (by decide)) h)
         (not_permitted_c who _))
@@ -173,7 +173,7 @@ theorem Work.wp_proof
   ihave #Hopts := optsAt_one (GF := GF) _ f1 (withRangeM hi) $$ [Hosl Hf1]
   · iframe #
   (try wp_auto)
-  wp_apply (work_get cl api conn s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM hi] hγa
+  wp_apply (work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM hi] hγa
       (reqCtx_out who _ c0 Hout.1 Hout.2) get_ab_ok.1 get_ab_ok.2.1
       (akRange_sizeOk (by decide) (by decide))) $$ []
     as %resp %err Hres
@@ -220,7 +220,7 @@ theorem Work.wp_proof
   ihave #Hopts := optsAt_one (GF := GF) _ f1 (withPrefixM) $$ [Hosl Hf1]
   · iframe #
   (try wp_auto)
-  wp_apply (work_get cl api conn s E ρ cid mid γa Lset n who ci cd go!"c/" _ [withPrefixM] hγa
+  wp_apply (work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd go!"c/" _ [withPrefixM] hγa
       (reqCtx_out who _ c0 Hout.1 Hout.2) get_c_ok.1 get_c_ok.2.1
       (akPrefix_sizeOk (by decide))) $$ []
     as %resp %err Hres
@@ -247,7 +247,7 @@ theorem Work.wp_proof
   ihave #Hopts := optsAt_one (GF := GF) _ f1 (withRangeM go!"d") $$ [Hosl Hf1]
   · iframe #
   (try wp_auto)
-  wp_apply (work_get cl api conn s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM go!"d"] hγa
+  wp_apply (work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM go!"d"] hγa
       (reqCtx_out who _ c0 Hout.1 Hout.2) get_past_ok.1 get_past_ok.2.1
       (akRange_sizeOk (by decide) (by decide))) $$ []
     as %resp %err Hres
@@ -306,7 +306,7 @@ theorem Work.wp_proof
     iframe Hobj
     ipureintro
     exact ⟨by simp [txnOpOf_put, txnOpOf_get_ab], rfl, rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp [go!"127.0.0.1:23916"] ci cd
+  ihave Hobj : txnObjAt (GF := GF) tp [addr] ci cd
       ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ $$ [Hobj]
   · iExactEq Hobj
     simp [TxnModel.empty, t1M]
@@ -320,7 +320,7 @@ theorem Work.wp_proof
       (by simp [t1M, txnWireOf, opWire]) h
     exact opHistOk_txn_put_get _ _ _
       (by rw [show writerK (keyOfK go!"a" go!"u" go!"t") = go!"u" by decide]; exact ⟨rfl, hr⟩)
-  wp_apply (work_commit cl api conn tp s E ρ cid mid γa Lset n who ci cd
+  wp_apply (work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
       ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ hγa
       (reqCtx_out who _ c0 Hout.1 Hout.2) hp1 hin1
       (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)) hsh1
@@ -401,7 +401,7 @@ theorem Work.wp_proof
     iframe Hobj
     ipureintro
     exact ⟨by simp [txnOpOf_put], rfl, rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp [go!"127.0.0.1:23916"] ci cd
+  ihave Hobj : txnObjAt (GF := GF) tp [addr] ci cd
       ⟨t2M (keyOfK go!"a" who go!"t1") (keyOfK go!"c" who go!"t1") go!"vt", false, true, false⟩
     $$ [Hobj]
   · iExactEq Hobj
@@ -414,7 +414,7 @@ theorem Work.wp_proof
       (t2M (keyOfK go!"a" who go!"t1") (keyOfK go!"c" who go!"t1") go!"vt"))) := fun h =>
     not_permitted_c who _ (akOpGranted_txn_put who _ go!"vt" (W64 0) _ hk2
       (by simp [t2M, txnWireOf, opWire]) h)
-  wp_apply (work_commit cl api conn tp s E ρ cid mid γa Lset n who ci cd
+  wp_apply (work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
       ⟨t2M (keyOfK go!"a" who go!"t1") (keyOfK go!"c" who go!"t1") go!"vt", false, true, false⟩
       hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp2 hin2
       (t2M_size _ _ _ (keyOfK_principal_le hwho (by decide) (by decide))
@@ -500,7 +500,7 @@ theorem Work.wp_proof
     iframe Hobj
     ipureintro
     exact ⟨by simp [txnOpOf_put], rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp [go!"127.0.0.1:23916"] ci cd
+  ihave Hobj : txnObjAt (GF := GF) tp [addr] ci cd
       ⟨t3M (compareM (cmpKeyM .value (keyOfK go!"a" who go!"0")) .eq (.str go!"none"))
         (keyOfK go!"a" who go!"t2") (keyOfK go!"c" who go!"t2") go!"vt", true, true, true⟩
     $$ [Hobj]
@@ -518,7 +518,7 @@ theorem Work.wp_proof
         (keyOfK go!"a" who go!"t2") (keyOfK go!"c" who go!"t2") go!"vt"))) := fun h =>
     not_permitted_c who _ (akOpGranted_txn_put who _ go!"vt" (W64 0) _ hk2
       (by simp [t3M, txnWireOf, opWire]) h)
-  wp_apply (work_commit cl api conn tp s E ρ cid mid γa Lset n who ci cd
+  wp_apply (work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
       ⟨t3M (compareM (cmpKeyM .value (keyOfK go!"a" who go!"0")) .eq (.str go!"none"))
         (keyOfK go!"a" who go!"t2") (keyOfK go!"c" who go!"t2") go!"vt", true, true, true⟩
       hγa (reqCtx_out who _ c0 Hout.1 Hout.2) hp3 hin3
@@ -569,7 +569,7 @@ theorem Work.wp_proof
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (then_commit_nested_refused cl api conn tp s E ρ cid mid γa Lset n who ci cd _ _ top
+  wp_apply (then_commit_nested_refused cl api conn tp addr s E ρ cid mid γa Lset n who ci cd _ _ top
       hwho hγa (reqCtx_out who _ c0 Hout.1 Hout.2)) $$ [Hobj] as HC
   · iframe #
     iframe Hobj
@@ -588,7 +588,7 @@ theorem Work.wp_proof
   wp_apply wp_keyOf go!"a" who go!"d"
   (try wp_auto)
   have hkd : keyOfK go!"a" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  wp_apply (work_delete cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"d")
+  wp_apply (work_delete cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"d")
       hkd hγa (reqCtx_out who _ c0 Hout.1 Hout.2) (fun h => by
         obtain ⟨rfl, hr⟩ := akOpGranted_delete who _ hkd h
         exact opHistOk_delete_point _
@@ -627,7 +627,7 @@ theorem Work.wp_proof
   wp_apply wp_keyOf go!"c" who go!"d"
   (try wp_auto)
   have hkc : keyOfK go!"c" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  wp_apply (work_delete cl api conn s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"d")
+  wp_apply (work_delete cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"d")
       hkc hγa (reqCtx_out who _ c0 Hout.1 Hout.2)
       (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
       (akDelete_sizeOk hwho (by decide) (by decide)))
