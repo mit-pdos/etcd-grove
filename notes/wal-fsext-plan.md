@@ -7438,7 +7438,7 @@ fdatasync, `walLentRes_unpend`, either kind). *`wal-tc16` (2026-11-14)*: the pen
   invariant without `ReadAll`'s fold), `VsePin.lean`, **`wal.ValidSnapshotEntries.wp_proof`** (over
   `validSnapshotEntries.specPinned`/`specAbsent` and zap's `String`/`Int`/`Error`/`Logger.Warn`; `zap.Int'`'s
   spec and axiom added to the part copies, `etc/gen-part-copies.py`: a copy of a main-tree axiom, not a new one).
-  Linked (`etc/gen-link.py --walfs`): 197 results, 170 without hypothesis; `wal.wp_ValidSnapshotEntries` takes
+  Linked (`etc/gen-link.py --walfs`, after merging `wal-int` 6925c9ce1a; builds, 3072 jobs): 202 results, 173 without hypothesis; `wal.wp_ValidSnapshotEntries` takes
   `h_wal_validSnapshotEntriesPinned`/`Absent`.
 - **Not done: the attempt's proof** (`validSnapshotEntries.specPinned`/`specAbsent` stay hypotheses). Plan, reusing
   `openAtIndex`'s read path (its proof lines 330-520 are the template): `readWALNames.spec` over the claim's half
