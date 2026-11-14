@@ -530,7 +530,8 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof` (`OpenForRead`, `openAtIndex` proved, `wal-read12`),
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof` (`WAL.Save.wp_proof`/`WAL.SaveSnapshot.wp_proof` proved over
-  hypotheses, `wal-save12`, W6 log, twelfth session),
+  hypotheses, `wal-save12`, W6 log, twelfth session; `Save` re-proved over the batch bound and the window form,
+  `SaveSnapshot` one `sorry` for its stream bound, `wal-save13`, thirteenth session),
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
@@ -2966,6 +2967,53 @@ bound.**
 - *Not done*: `sync.wp_proof` and `sync.specCut` (both flush pending bytes past the tail's size: blocked on the
   writes past the size, as `saveEntry`/`saveState`; `wal-tc3` landed the truncate's window only).
 
+**W6, thirteenth session (branch `wal-save13`, 2026-11-14): the stream bound; the window form on the save path.**
+- *The stream bound (task 2, decided; ledger 2026-11-14, "the batch's size")*: `Save` takes **`walBatchBytes Mr es <
+  2 ^ 40`** (`Handle.lean`: each entry's encoding plus 64, summed; replaces the per-entry premise, which follows,
+  `walBatchBytes_each`). The handle fact is in the sealed **`walOpenWF`: `o0 + |out| + |pend| < 2 ^ 43`** (the
+  stream's *end*, not the offset: a `Save` that syncs flushes its pending bytes after its `Seek`; and `2 ^ 43`,
+  not `SegmentSizeBytes`, because a cut's headers hold the metadata, up to `2 ^ 41`). `saveEntry.spec`/
+  `saveState.spec` take `(tailStream Mr h.H h.md h.cuts).length ≤ 0xffffffff000` (`Save` has it from the fact
+  and the batch, `saveStream_le`); `encoder.encode.specTail` takes `sz ≤ 0xffffffff000` and `o0 + |out| + |pend| +
+  |frame| ≤ 0xffffffff000` (its post's bounds follow). Pure (`StreamBound.lean`, no `sorry`): the tight frame
+  bound `frame_walRecEnc_tight` (`|d| + 64`), `recFrames_chainRecs_le`, `saveOp_frames_le`, `WalHS.split_end`/
+  `end_le`/`end_rest0`, `cutStream_lt` (a cut's headers `< 2 ^ 43`), `saveStream_le`. `HandleLaws.lean`:
+  `ioutil_ownPageWriter_pend` (`|pend| ≤ 2 ^ 18`), `walHandleIn_pure` (split, pend, offset bounds).
+- **Finding (for the coordinator): `SaveSnapshot` cannot keep any constant stream bound.** It never cuts
+  (S/wal.go:1137-1162), so `n` `SaveSnapshot`s in a row grow the tail by `n` records; the model's `pwrite` may
+  succeed past ext4's `s_maxbytes` (only `offMax = 2^62` is a hard stop), so nothing bounds the tail at all, and
+  `walHandleIn`'s existing `sz ≤ 0xffffffff000` is unmaintainable too. `SaveSnapshot.wp_proof` now has one `sorry`
+  (its post's `< 2 ^ 43`). Options: (a) the model's write fails (`EFBIG`) past `s_maxbytes` (a trusted
+  restriction [user], measurable on configuration C; then the tail's written bytes stay `≤ 0xffffffff000` by the
+  writes' success, the pending ones `≤ 2 ^ 18`, and neither the batch premise nor the handle fact is needed);
+  (b) a per-lifetime budget of `SaveSnapshot`s (receipts, as the cuts budget) with a bound on each snapshot record
+  (`2 ^ 40` makes the product too large: the record's real size is tens of bytes, so a much smaller premise).
+  Recommended (a).
+- *The window form on the save path (task 1's handle side)*: a `Save` that writes past the preallocated size and
+  does not sync leaves the tail's window open (`pwPost`: `lo` the old size, `hi` the end), so **`walOpenWF` holds
+  `walHandleIn … TailMetaW`**, and `saveEntry`/`saveState` (pre and post, `∃ sz'`), `sync.spec` (pre; its post
+  exact, `sz := max sz (o0 + |out| + |pend|)`), `cut.spec` (pre), `os.File.Truncate.specWalTail` (pre: **obligation
+  for `wal-tc5`**, the truncate from a window) and `encode.specTail` (pre and post) are over `TailMetaW`. Laws:
+  `walTailW_mono`, `walHandleIn_mono`, `walHandleIn_win`; `SaveHandle`'s four lemmas, `walHandleIn_append` and
+  `walHandleIn_lenLb` take a last `tm` argument (default `TailMeta`). `SaveSt.step`/`finState` take the new size.
+  `Save` re-proved (no `sorry`), `Sync`, `cut` and every importer build.
+- *Not done*: task 1's writer past the size (below, design for the next session), `sync.wp_proof`, `sync.specCut`,
+  `saveEntry`/`saveState`'s proofs (they need three laws of `P` as hypotheses, to state: `MustMarshalMessage` of an
+  entry/hard state to `Mr.encEntry e`/`Mr.encState hs` in a fresh non-nil slice, and `GetIndex` over `P.entIn`;
+  then `encode.specTail` with `recSize_tight`, the guard from `WalHS.Split` and the next record, as `snap_guard`),
+  `encode.specTail`'s proof.
+- *Design for task 1 (the writer past the size), checked against the extension's definitions*: (1) **`W1G` over the
+  known candidates past the bytes** (the I3b `wal-tc2` proposal, shared with `ZeroToEnd`'s growth, `wal-tc5`):
+  `segBytesOf lay i := g.bs ++` the run of `g.om.pc` from `|g.bs|` below `g.om.hi`; `w1G_of_W1`'s premise from
+  `MetaOk.tail`/`zf` (idle) and `tok_cand` (in flight); exact segments unchanged (`hi = |bs|`). Without it a short
+  write (`EINTR` with `k < n` landed) leaves `hi > size` with the image's frames past the ghost's bytes, where `W1G`
+  says nothing. (2) `SegFl.Ok` past the size: the announced layout's `g.om` with `tc` the token's candidates
+  (`pwTail`-shaped, `[(0, 0), (d_b, n)]` given `zf = some size`), as `rzMeta` does for resizes; the crash take's
+  write case gives it (`TokPast`). (3) `TailMeta(W)` gains `m.zf = some m.hi`-style known zeros (true of every
+  tail the WAL builds, I3b W6 entry). (4) The window `CrashOk`: `tail_decode` with the candidate function extended
+  past `|bs|`, image length free in `[lo, hi]` (`wal-tc5`'s truncate-window lemma is the same argument with the
+  truncate's zeros; one lemma for both).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -3406,6 +3454,12 @@ resize stamps known per file (`rzOf`); `CrashOk` passes none until the ghost lin
 plan) is in. **Open (task 3, unchanged)**: the ghost link first; then the pure `CrashOk` of `cut`'s window
 (with `segRzOf`), `ReadAll`'s `ZeroToEnd` (`segBytesOf` by `pc`, `SegCrashAt`), `truncSup`/`fallocSup` from
 `walInv` via `walInvBody_tailW`, `specWalTail`'s proof and the `ZeroToEnd` instance.
+
+**For `wal-tc5`, from `wal-save13` (2026-11-14).** `os.File.Truncate.specWalTail`'s pre is now `walTailW …
+TailMetaW` (a `Save`'s writes past the preallocated size leave the window open when `cut` runs), and `cut.spec`'s
+pre `walHandleIn … TailMetaW`. Task 1's crash side needs `W1G` over the known candidates past `|g.bs|` (W6 log,
+thirteenth session, design item 1), which your `ZeroToEnd` growth needs too: if you make it, I build on it;
+`wal-save13` has not touched `Abs.lean`, `CrashTakeSeg.lean` or `Inv.lean`.
 
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
