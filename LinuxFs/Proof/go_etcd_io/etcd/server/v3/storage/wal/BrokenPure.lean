@@ -285,11 +285,19 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
         exact ⟨lay2, hj2, hl2, hlj2, hj2jr, hX2, honce', hcoh2, hex'⟩
     · exact crashOkA_nonwal (hDK.2.1 dir' d' lay' hd' hl' hcd) (fun _ h0 => by cases h0)
         (hljr dir' d' lay' hd' hl') H
-    · obtain ⟨X', hj1, hk3⟩ := hDK.2.2 dir' l hl'
+    · obtain ⟨X', hj1, hk3, hx3⟩ := hDK.2.2 dir' l hl'
       by_cases hj' : l.j = lay.j
-      · rw [hj']
-        exact ⟨X, hj.log x e c, hD'⟩
-      · exact ⟨X', hj1, dirClaimOk_nonwal_other hj' hk3⟩
+      · rw [hj'] at hk3 hx3 ⊢
+        obtain ⟨hXe, hje⟩ := hD.eq_of_mem hk3.2.1 (claimOnce_mem hk3.2.2.1)
+        rw [hXe, hje] at hx3
+        refine ⟨X, hj.log x e c, hD', hx3.repl fun c' hc' hne _ => ?_⟩
+        rcases mem_replClaim_cases hc' with he | ⟨hc'', hne0⟩
+        · exact absurd he hne
+        · exact ⟨hc'', hne0⟩
+      · refine ⟨X', hj1, dirClaimOk_nonwal_other hj' hk3, hx3.mono fun c' hc' hcj _ => ?_⟩
+        rcases mem_replClaim_cases hc' with he | ⟨hc'', -⟩
+        · rw [he] at hcj; exact absurd hcj.symm hj'
+        · exact hc''
   · -- `WalsAt`: the area's claims unchanged
     intro dir' lay' hl'
     refine ⟨hAt.ne hl', fun N h hm hN => ?_⟩

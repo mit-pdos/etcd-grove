@@ -345,7 +345,7 @@ theorem walsAt_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 
 /-- **Every WAL's directory claim once and exclusive, at the start** (pure; gap C): the boot program
 claims every directory at a WAL name wholly (`hdirs`), once, and no other of its claims of that
-directory holds a `.wal` name (`hdirs1`). -/
+directory holds one of its names (`hdirs1`). -/
 theorem dirClaimsOk_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
@@ -353,8 +353,8 @@ theorem dirClaimsOk_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
       ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
     (hdirs1 : ∀ nm J h, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       (J, NameSet.except walTmps, h) ∈ cl → ClaimOnce (J, NameSet.except walTmps, h) cl ∧
-        ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J → ∀ b, walNameP b = true →
-          ¬ c'.2.1.Mem b)
+        ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J →
+          ∀ b, (NameSet.except walTmps).Mem b → ¬ c'.2.1.Mem b)
     (hst : WalsStart C Mr R jr s Ls V.now) : DirClaimsOk jr Ls cl := by
   intro dir lay hL
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
@@ -367,7 +367,9 @@ theorem dirClaimsOk_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   obtain ⟨honce, hex⟩ := hdirs1 nm lay.j h hin.1 he hjm
   have hjc := hcl _ hjm
   simp only at hjc
-  refine ⟨walTmps, h, hst.2.2.2.2.2 dir lay hL, walTmps_not_wal, honce, ?_, hex⟩
+  refine ⟨walTmps, h, ⟨hst.2.2.2.2.2 dir lay hL, walTmps_not_wal, honce, ?_,
+    fun c' hc' hne hcj b hb => hex c' hc' hne hcj b (fun hbX => by
+      rw [walTmps_not_wal b hbX] at hb; cases hb)⟩, walTmps_not_broken, hex⟩
   exact claimCoh_init _ _ _ (by rw [hjc, namesOf_nil hV])
     (fun b _ => by rw [hjc, namesOf_nil hV])
 
@@ -485,8 +487,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
     (hdirs1 : ∀ nm J h, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       (J, NameSet.except walTmps, h) ∈ cl → ClaimOnce (J, NameSet.except walTmps, h) cl ∧
-        ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J → ∀ b, walNameP b = true →
-          ¬ c'.2.1.Mem b)
+        ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J →
+          ∀ b, (NameSet.except walTmps).Mem b → ¬ c'.2.1.Mem b)
     (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →

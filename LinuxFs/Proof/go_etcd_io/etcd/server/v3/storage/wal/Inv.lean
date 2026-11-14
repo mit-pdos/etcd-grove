@@ -286,13 +286,14 @@ def ClaimOnce (c : Claim) (cl : List Claim) : Prop :=
 
 /-- **What the creating map records of the new WAL's directory `J`** (the `walCreating` token's;
 for the commit's `DirKeysOk`, W2 log, "the directory-claim map"): `J` is not the area directory, no
-claim of `J` among `cl` holds a `.wal` name (the program holds `J`'s claim on all of them: the
-shared invariant's `NamesCoh.disj` where the token is made; so `J` is no keyed WAL's directory,
-whose claim holds them), no other entry's directory is `J`, and the area claim leaves out a `.wal`
+claim of `J` among `cl` holds a name but the pipeline's (`walTmps`; the program holds `J`'s claim on
+all the others: the shared invariant's `NamesCoh.disj` where the token is made; so `J` is no keyed
+WAL's directory, whose claim holds the `.wal` names; and the commit's claim is exclusive on all its
+names, `DirClaimExcl`), no other entry's directory is `J`, and the area claim leaves out a `.wal`
 name (it is none of a WAL directory's claims, `WalDirClaimOf`; `.only [nm, nm.tmp]`). -/
 def CreatingNew (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH × Ino))
     (dir : GoString) (N : NameSet) (J : Ino) : Prop :=
-  J ≠ jr ∧ (∀ c ∈ cl, c.1 = J → ∀ b, walNameP b = true → ¬ c.2.1.Mem b) ∧
+  J ≠ jr ∧ (∀ c ∈ cl, c.1 = J → ∀ b, b ∉ walTmps → ¬ c.2.1.Mem b) ∧
   (∀ dir' x, dir' ≠ dir → CR !! dir' = some x → x.2.2 ≠ J) ∧
   ∃ b, walNameP b = true ∧ ¬ N.Mem b
 
@@ -329,13 +330,48 @@ def DirClaimOk (jr : Ino) (cl : List Claim) (j : Ino) (X : List GoString) (hj : 
     ClaimCoh hj j (.except X) ∧
     ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b
 
+/-- **A WAL directory's claim is exclusive on all its names** (W7-W12 log, ninth and tenth
+sessions; `DirClaimsOk`'s second conjunct): no other claim of `j` among `cl` holds a name of `.except
+X`, and `X` holds no `.wal.broken` name. `Repair` creates `<seg>.wal.broken` in the claim at an
+`os` call's update, where the shared invariant's `NamesCoh.disj` cannot be opened: the name is in the
+claim (not in `X`) and in no other claim of `j` (`brokenHist_pure`'s `hothers`). -/
+def DirClaimExcl (cl : List Claim) (j : Ino) (X : List GoString) (hj : NamesH) : Prop :=
+  (∀ b ∈ X, ¬ go!".wal.broken" <:+ b) ∧
+    ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, (NameSet.except X).Mem b → ¬ c'.2.1.Mem b
+
+/-- The pipeline's names hold no `.wal.broken` name. -/
+theorem walTmps_not_broken : ∀ b ∈ walTmps, ¬ go!".wal.broken" <:+ b := by
+  intro b hb
+  simp only [walTmps, List.mem_cons, List.not_mem_nil, or_false] at hb
+  rcases hb with rfl | rfl <;> decide
+
+/-- A `.wal` name is none of the pipeline's. -/
+theorem not_walTmps_of_wal {b : GoString} (hb : walNameP b = true) : b ∉ walTmps := fun hm => by
+  rw [walTmps_not_wal b hm] at hb; cases hb
+
+/-- `DirClaimExcl` of a claim replaced by one of the same directory and names (the claims of `j`
+after, but the new one, are claims of `j` before, not the old one). -/
+theorem DirClaimExcl.repl {cl cl' : List Claim} {j : Ino} {X : List GoString} {hj hj' : NamesH}
+    (h : DirClaimExcl cl j X hj)
+    (hsub : ∀ c' ∈ cl', c' ≠ (j, .except X, hj') → c'.1 = j → c' ∈ cl ∧ c' ≠ (j, .except X, hj)) :
+    DirClaimExcl cl' j X hj' :=
+  ⟨h.1, fun c' hc' hne hcj b hb => h.2 c' (hsub c' hc' hne hcj).1 (hsub c' hc' hne hcj).2 hcj b hb⟩
+
+/-- `DirClaimExcl` under a change of claims adding no claim of `j`. -/
+theorem DirClaimExcl.mono {cl cl' : List Claim} {j : Ino} {X : List GoString} {hj : NamesH}
+    (h : DirClaimExcl cl j X hj)
+    (hsub : ∀ c' ∈ cl', c'.1 = j → c' ≠ (j, .except X, hj) → c' ∈ cl) :
+    DirClaimExcl cl' j X hj :=
+  h.repl fun c' hc' hne hcj => ⟨hsub c' hc' hcj hne, hne⟩
+
 /-- **Every WAL's directory claim, once and exclusive** (gap C, `DirKeysOk`'s third conjunct): of
 every present WAL, keyed or not, so that a holder of its program half can put it back at a later step
 (`walParked_putClaim`'s `l1 ++ c :: l2`, no other claim of its key) and the pin can key it
-(`walDirKey_insert`). Established at the start (`walInv_alloc`'s `hdirs1`: the boot program's claims),
-kept by every step (no claim of a WAL directory changes but a cut's, which keeps these facts). -/
+(`walDirKey_insert`); exclusive on all its names (`DirClaimExcl`, for `Repair`'s `.broken` file).
+Established at the start (`walInv_alloc`'s `hdirs1`: the boot program's claims), kept by every step
+(no claim of a WAL directory changes but a cut's and `Repair`'s create, which keep these facts). -/
 def DirClaimsOk (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim) : Prop :=
-  ∀ dir lay, Ls !! dir = some lay → ∃ X hj, DirClaimOk jr cl lay.j X hj
+  ∀ dir lay, Ls !! dir = some lay → ∃ X hj, DirClaimOk jr cl lay.j X hj ∧ DirClaimExcl cl lay.j X hj
 
 /-- **The WAL directories' claim keys, and no cut pending** (framed; W2 log, "the directory-claim
 map"). Each key `dir ↦ (j, X)` (`walDirKey`, persistent; an open handle holds the program's half of
@@ -405,8 +441,12 @@ theorem DirClaimsOk.insert {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Cla
 theorem DirClaimsOk.mono_cl {jr : Ino} {Ls : GMap GoString WalLay} {cl cl' : List Claim}
     (h : DirClaimsOk jr Ls cl)
     (hc : ∀ dir lay, Ls !! dir = some lay → ∀ X hj, DirClaimOk jr cl lay.j X hj →
-      DirClaimOk jr cl' lay.j X hj) : DirClaimsOk jr Ls cl' := fun dir lay hl =>
-  let ⟨X, hj, hk⟩ := h dir lay hl; ⟨X, hj, hc dir lay hl X hj hk⟩
+      DirClaimOk jr cl' lay.j X hj)
+    (hsub : ∀ dir lay, Ls !! dir = some lay → ∀ X hj, DirClaimOk jr cl lay.j X hj →
+      ∀ c' ∈ cl', c'.1 = lay.j → c' ≠ (lay.j, .except X, hj) → c' ∈ cl) :
+    DirClaimsOk jr Ls cl' := fun dir lay hl =>
+  let ⟨X, hj, hk, hx⟩ := h dir lay hl
+  ⟨X, hj, hc dir lay hl X hj hk, hx.mono (hsub dir lay hl X hj hk)⟩
 
 /-- A name of the area a WAL function may change: a WAL name, or `nm.<sfx>` of one (`Create`'s
 `nm.tmp`, the cleanup's `nm.broken.<time>`). -/

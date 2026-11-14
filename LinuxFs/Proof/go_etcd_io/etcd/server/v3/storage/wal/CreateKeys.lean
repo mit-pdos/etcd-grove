@@ -120,6 +120,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false)
     (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J)
     (hJcoh : ClaimCoh hJ J (.except X)) (hJs : hJ.next ≤ st) (hX : ∀ b ∈ X, walNameP b = false)
+    (hXt : X = walTmps)
     (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur) (hexL : TailExact lay)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
@@ -149,22 +150,22 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       · simp only [if_pos h0, Prod.mk.injEq] at hfc; exact hJjr hfc.1.symm
       · simp only [if_neg h0] at hfc
         subst hfc
-        exact hJc _ hc0 rfl b0 hb0 (hexc X hX)
+        exact hJc _ hc0 rfl b0 (not_walTmps_of_wal hb0) (hexc X hX)
     · simp only [Prod.mk.injEq] at he; exact hJjr he.1
-    · exact hJc _ hm' rfl b0 hb0 (hexc X hX)
+    · exact hJc _ hm' rfl b0 (not_walTmps_of_wal hb0) (hexc X hX)
   have hnewEx : ∀ c' ∈ createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ,
       c' ≠ (J, NameSet.except X, hJ) → c'.1 = J → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b := by
     intro c' hc' hne' hcj b hb
     rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
     · exact (hne' he).elim
     · rw [he] at hcj; exact (hJjr hcj.symm).elim
-    · exact hJc c' hm' hcj b hb
+    · exact hJc c' hm' hcj b (not_walTmps_of_wal hb)
   -- another WAL's directory claim, once and exclusive after the commit
   have hother : ∀ (j : Ino) (X' : List GoString) (hj : NamesH), DirClaimOk jr cl j X' hj →
       DirClaimOk jr (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ)
         j X' hj := by
     intro j X' hj ⟨hjjr, hX', honce, hcoh', hex⟩
-    have hjJ : j ≠ J := fun e => hJc _ (claimOnce_mem honce) e b0 hb0 (hexc X' hX')
+    have hjJ : j ≠ J := fun e => hJc _ (claimOnce_mem honce) e b0 (not_walTmps_of_wal hb0) (hexc X' hX')
     refine ⟨hjjr, hX',
       claimOnce_createClaims honce (fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1))
         (fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1)) hjJ, hcoh', ?_⟩
@@ -191,10 +192,21 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       rw [GMap.lookup_insert_eq] at hl'
       cases hl'
       rw [hlay.2.2]
-      exact ⟨X, hJ, hJjr, hX, hnewOnce, hJcoh, hnewEx⟩
+      refine ⟨X, hJ, ⟨hJjr, hX, hnewOnce, hJcoh, hnewEx⟩, by rw [hXt]; exact walTmps_not_broken,
+        fun c' hc' hne' hcj b hb => ?_⟩
+      rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
+      · exact (hne' he).elim
+      · rw [he] at hcj; exact (hJjr hcj.symm).elim
+      · exact hJc c' hm' hcj b (by rw [← hXt]; exact hb)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
-      obtain ⟨X', hj, hk3⟩ := hk.2.2 dir' l hl'
-      exact ⟨X', hj, hother _ X' hj hk3⟩
+      obtain ⟨X', hj, hk3, hx3⟩ := hk.2.2 dir' l hl'
+      have hjJ : l.j ≠ J := fun e =>
+        hJc _ (claimOnce_mem hk3.2.2.1) e b0 (not_walTmps_of_wal hb0) (hexc X' hk3.2.1)
+      refine ⟨X', hj, hother _ X' hj hk3, hx3.mono fun c' hc' hcj _ => ?_⟩
+      rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
+      · rw [he] at hcj; exact (hjJ hcj.symm).elim
+      · rw [he] at hcj; exact (hk3.1 hcj.symm).elim
+      · exact hm'
   · by_cases hdd : dir' = dir
     · subst hdd
       simp only [createSt, GMap.lookup_insert_eq, Option.some.injEq] at hd'
@@ -249,7 +261,7 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       rcases mem_createClaims_cases hm with he | he | ⟨hm', -⟩
       · simp only [Prod.mk.injEq] at he; rw [he.2.2]; exact hsn
       · simp only [Prod.mk.injEq] at he; exact absurd (hlj.symm.trans he.1) hJjr
-      · exact absurd (hexc X' hX') (hJc _ hm' (by rw [hlj]) b0 hb0)
+      · exact absurd (hexc X' hX') (hJc _ hm' (by rw [hlj]) b0 (not_walTmps_of_wal hb0))
     · obtain ⟨K, hK⟩ := (regionCrashed_iff _ _ _).1 hr
       refine hJC K _ (fun b hb => ?_)
       have hbX : (NameSet.except X).Mem b := fun hbX => by rw [hX b hbX] at hb; cases hb
@@ -264,7 +276,7 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     obtain ⟨d', hd'⟩ := hd'
     obtain ⟨lay1, -, hj0, hl1, -, -, -, ⟨X0, hX0, hm0, -⟩, -, -⟩ := hok.1 dir' d' hd'
     rw [hl'] at hl1; simp only [Option.some.injEq] at hl1; subst hl1
-    have hjJ : lay'.j ≠ J := fun e => hJc _ hm0 e b0 hb0 (hexc X0 hX0)
+    have hjJ : lay'.j ≠ J := fun e => hJc _ hm0 e b0 (not_walTmps_of_wal hb0) (hexc X0 hX0)
     obtain ⟨h1, h2⟩ := hW dir' lay' hl'
     refine ⟨fun hj' hWc => ?_, fun m' hr => ?_⟩
     · obtain ⟨X', hX', hm, hcoh'⟩ := hWc
@@ -298,7 +310,7 @@ theorem parkedClaim_create {Ls : GMap GoString WalLay} {cl : List Claim} {D : Li
   obtain ⟨-, hJc, -, b0, hb0, -⟩ := hnew
   have hcJ : c.1 = J → ∀ X' : List GoString, (∀ b ∈ X', walNameP b = false) →
       c.2.1 ≠ .except X' := fun e X' hX' hN => by
-    refine hJc c hc e b0 hb0 ?_
+    refine hJc c hc e b0 (not_walTmps_of_wal hb0) ?_
     rw [hN]; intro hb; rw [hX' b0 hb] at hb0; cases hb0
   unfold ParkedClaim WalDirClaimOf
   constructor

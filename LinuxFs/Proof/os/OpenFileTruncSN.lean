@@ -188,7 +188,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
       try dsimp only [crTr]
       iframe
       isplitl [Hd]
-      · iapply trFile_of_rsDone i m n _ hmb.2.2.1 hmb.2.2.2.1 $$ Hd
+      · iapply trFile_of_rsDone i m n _ hmb.2.2.1 hmb.2.2.2.1 hmb.2.2.2.2.2.1 $$ Hd
       ileft
       iexists fd, i
       iframe
@@ -210,7 +210,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         · ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 m.size
           unfold trFile; iexists m, bs; iframe; isplitl [Hc]; · iexact Hc
           ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
-        · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 $$ Hd
+        · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 hmb.2.2.2.2.2.1 $$ Hd
       wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
