@@ -43,6 +43,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.AreaPath
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAreaBack
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLockedLeft
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateUnmint
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHandle
 
 @[expose] public section
 
@@ -96,7 +97,7 @@ macro "create_seg_exit" : tactic => `(tactic| (
 
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
-theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
+theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.NilLaw P)
     (wp_Exist : wal.Exist.specCreate (GF := GF) walCodec Mr)
     (wp_FExist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
     (wp_Clean : filepath.Clean.spec (GF := GF) (hG := hG))
@@ -468,7 +469,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     have hnm0 : Fs.newMeta.size = 0 := by
       simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
     iunfold preGrown at Hpa
-    icases Hpa with ⟨%m2, ⟨%hm2s, %hm2maps, -, %hgrow, -⟩, Hm2, Hz2⟩
+    icases Hpa with ⟨%m2, ⟨%hm2s, %hm2maps, -, %hgrow, %hzp2⟩, Hm2, Hz2⟩
     icases (osZerosA_unfold i _ _ (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
     have hlo2 : m2.lo ≤ m2.size :=
       hgrow.2.1 (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
@@ -775,7 +776,59 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, %hfpn, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
         Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HUH, Hw, Hpw⟩ |
       ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
-    · -- committed, `w` returned: the parent's fsync, the registration, the handle (not yet)
+    · -- committed, `w` returned: the name registered, the handle minted and assembled
+      -- (`create_ghost`, `create_handleIn`: the handle before naming)
+      obtain ⟨rfl, hw'⟩ := herr
+      subst w'
+      obtain ⟨hs1, hs2⟩ := hse3
+      obtain rfl : snapi' = W64 0 := by rcases hs1 with h | h <;> rw [h] <;> rfl
+      obtain rfl : enti' = W64 0 := by rcases hs2 with h | h <;> rw [h] <;> rfl
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod create_ghost Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createSeg i mS ysS) Wn (b1 + b1) x wl hin hnmO $$ Hsi Hnc HU HSpR Hsf
+        with ⟨Hnc, HUH, -, Hh, Hm, Hb, Ho, Htr, Hnf, #Hk⟩
+      iframe Hnc
+      imodintro
+      icases walHandleP_openW wl (child r nm) $$ Hh with ⟨Hopen, Hpw⟩
+      ihave #Hst0 := hnil
+      iunfold walLockIn at Hlk
+      icases Hlk with ⟨Henc, Hf, Hfd, Hoff⟩
+      have hzp : ZeroPg m2 := hzp2 ⟨rfl, ⟨0, by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes,
+        OsFile.ofDisk], by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk],
+        by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]; decide⟩⟩
+      have htmS := createSeg_tailMeta Mr md hMr i m2 mS zs2 ysS hokS' hm2s hm2c hmaps2 hzp
+      obtain ⟨hL, hszS⟩ := createSeg_size Mr md hMr hmd i m2 mS zs2 ysS hokS' hm2s
+      have hjm : ((NameSet.except []).diff walTmps).Mem (walFileName 0 0) :=
+        (NameSet.mem_diff _ _ _).2 ⟨by simp [NameSet.Mem], fun h => by
+          have := walTmps_not_wal _ h; rw [walNameP_walFileName] at this; cases this⟩
+      have hj0 : (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur !! walFileName 0 0 =
+          some (.file (createSeg i mS ysS).ino) := by
+        simp only [NamesH.restrict]; rw [restrictN_lookup _ _ _ hjm, hJcur]; simp [createSeg]
+      have hj1 : ∀ b n, (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur !! b = some n →
+          b = walFileName 0 0 := by
+        intro b n hb
+        simp only [NamesH.restrict] at hb
+        by_cases hm : ((NameSet.except []).diff walTmps).Mem b
+        · rw [restrictN_lookup _ _ _ hm, hJcur] at hb
+          split at hb
+          · assumption
+          · cases hb
+        · rw [restrictN_lookup_not _ _ _ hm] at hb; cases hb
+      ihave HhIn := create_handleIn P Mr hMr wl lg r nm mp md enc lf f fd
+        (child (child r (tmpName nm)) (walFileName 0 0)) (child r (tmpName nm))
+        (openFd i (wal.walOpenFlag false ||| W64 524288)) _ (createSeg i mS ysS) jr J
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
+        (DFrac.own d) sz rfl hwr (by simp only [hout, Nat.zero_add]) hmp rfl htmS hL hszS hj0 hj1 hfpn
+        hfi.1 $$ [Hpre Henc Hf Hfd Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
+          Hfpf Hmain Ht1 Hopen]
+      · iframe; iframe #
+      icases HhIn with ⟨%γt, HhIn⟩
+      imod (receipt_zero (GF := GF)) with Hr0
+      ihave Hw := walOpenWFU_intro P Mr wl (child r nm)
+        (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size)
+        (createHS_done md i _ γt _) hmd $$ [HhIn Hr0]
+      · iframe
       sorry
     · -- committed, a reopened WAL returned (the handle before naming, `walOpenWFU`, and `createUH`):
       -- the parent's fsync, the naming (not yet)
