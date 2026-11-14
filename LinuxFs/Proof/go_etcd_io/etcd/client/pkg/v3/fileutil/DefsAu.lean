@@ -86,7 +86,7 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.
 theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size ≤ w ∨ w = tg) :
     fallocDoneH (GF := GF) i m tg w ⊢ preGrownH i m w := by
   unfold fallocDoneH preGrownH
-  iintro ⟨%tc, %rz, Hm, Hz⟩
+  iintro ⟨%tc, %rz, -, Hm, Hz⟩
   iexists (rsPost false m tg w).withTc tc rz
   iframe
   ipureintro
