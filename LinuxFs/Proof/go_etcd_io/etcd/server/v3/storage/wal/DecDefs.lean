@@ -297,7 +297,9 @@ instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface)
 `goDecode` says (a record in `*rp` and the decoder live at the next frame; or the stop's error,
 the decoder live only at the end), with the files left a suffix of `fs` and the streams of the files
 before it given back (`fs.take k`); or an I/O error of `IoE`
-(a failed `FileInfo` of the file reached, or a failed read), the decoder no longer live; or
+(a failed `FileInfo` of the file reached, or a failed read), the decoder no longer live, its files
+again a suffix of `fs` and the streams before it given back (since 2026-11-14, `wal-vsnap2`; ledger,
+"the I/O arm loses the files' streams"); or
 `proto.Unmarshal` failed on a frame (`GoFail`: bytes that are no record's encoding), the decoder
 no longer live and the record not given back. (The body of `decPost`.) -/
 def decPostB (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface)
@@ -310,7 +312,8 @@ def decPostB (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof 
         ⌜stopErr eof ueof s err ∧ (fs.drop k).map (·.bs) = fs'⌝ ∗ ownRecAny rp ∗
           ownDecoder d IoE eof (fs.drop k) off' c' (decide (s = .eof))) ∨
     (⌜IoE err⌝ ∗ notUeof err ∗ ownRecAny rp ∗
-      ∃ (fs' : List (DecFile GF)) (off' : Nat) (c' : w32), ownDecoder d IoE eof fs' off' c' false) ∨
+      ∃ (k : Nat) (off' : Nat) (c' : w32), ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗
+        ownDecoder d IoE eof (fs.drop k) off' c' false) ∨
     (∃ (k : Nat) (s : WalStop) (off' : Nat) (c' : w32),
       ⌜GoFail C (fs.map (·.bs)) off c s ((fs.drop k).map (·.bs)) off' c' ∧ stopErr eof ueof s err⌝ ∗
       ownDecoder d IoE eof (fs.drop k) off' c' false))

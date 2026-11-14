@@ -16,11 +16,12 @@ shape:
   (`errUeAns`): on a stop and a failed `Unmarshal` because they are at the end (`repairAt_stop`,
   `repairAt_fail`), on an I/O error because it answers `false`.
 
-**Not proved yet** (`sorry`): the `io.ErrUnexpectedEOF` answers (`errUeAns_end`, `errUeAns_ioe`), which wait for
-`decoder.Decode.spec`'s `errors.Is(err, io.ErrUnexpectedEOF)` answers (ledger 2026-11-14, "no
-`errors.Is(err, io.ErrUnexpectedEOF)` answer on an I/O error"; branch `wal-vsnap2`), and the I/O arm's stream,
-which `decPostB`'s I/O arm drops with the dead decoder's files (ledger 2026-11-14, "`Decode`'s I/O arm loses
-the files' streams", this session).
+The I/O arm (`errUeAns_ioe`, from the arm's `notUeof`, and the stream the arm now keeps) is proved
+(`wal-vsnap2`, 2026-11-14). **Not proved yet** (`sorry`): `errUeAns_end`, the answer on `Decode`'s own errors
+at the end of the frames: `errors.Is(err, io.ErrUnexpectedEOF)` must return, and `decEnv` gives no spec of
+`errors.Is` on `Decode`'s own errors (a `fmt.Errorf` wrap, `proto.Unmarshal`'s, `ErrCRCMismatch`'s); it needs
+`Decode`'s post to carry that call's termination for its stop and `Unmarshal` errors (as `decAns` carries
+`errors.Is(err, io.EOF)`'s), a further decoder spec change.
 -/
 module
 
@@ -63,11 +64,20 @@ theorem errUeAns_end (IoE : GoInterface → Prop) (eof ueof err : GoInterface) (
     decEnv (GF := GF) IoE eof ueof ⊢ errUeAns err ueof P := by
   sorry
 
-/-- The answer on a reader's I/O error: `false`. **`sorry`**: waits for `Decode`'s
-`io.ErrUnexpectedEOF` answers (see the file header). -/
-theorem errUeAns_ioe (IoE : GoInterface → Prop) (eof ueof err : GoInterface) (P : Prop) (hI : IoE err) :
-    decEnv (GF := GF) IoE eof ueof ⊢ errUeAns err ueof P := by
-  sorry
+/-- The answer on a reader's I/O error: `false` (`notUeof`, which `Decode`'s I/O arm gives). -/
+theorem errUeAns_ioe (ueof err : GoInterface) (P : Prop) :
+    notUeof (GF := GF) err ∗ globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ⊢
+      errUeAns err ueof P := by
+  iintro ⟨#Hn, #Hu⟩
+  iunfold notUeof at Hn
+  ihave #Hq := Hn $$ %ueof Hu
+  unfold errUeAns
+  iintro !> %Φ
+  iintro !> - HΦ
+  wp_apply Hq as %b %hb
+  iapply HΦ
+  ipureintro
+  intro h; rw [hb] at h; cases h
 
 /-- The files' streams, the dropped ones and those left in the decoder. -/
 theorem streams_take_drop (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (fs : List (DecFile GF))
@@ -99,7 +109,7 @@ theorem goFail_one {C : WalCodec} {bs : List w8} {off : Nat} {c : w32} {s : WalS
 /-- **`decPostB` by `Repair`'s switch** (see the file header). -/
 theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface) (F : DecFile GF)
     (rs : List WalRec) (off : Nat) (c : w32) (err : GoInterface) (hRF : RepairFile walCodec F.bs rs)
-    (hat : RepairAt walCodec rs off c) :
+    (hat : RepairAt walCodec rs off c) (hIoN : ¬ IoE GoInterface.nil) :
     decEnv (GF := GF) IoE eof ueof ∗ decPostB walCodec d rp IoE eof ueof [F] off c err ⊢
       (∃ (r : WalRec) (off' : Nat) (c' : w32),
           ⌜err = GoInterface.nil ∧ goDecode walCodec [F.bs] off c = .ok r [F.bs] off' c'⌝ ∗ ownRec rp r ∗
@@ -111,12 +121,12 @@ theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoI
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Henv
   ihave #Henv2 := Henv
   iunfold decEnv at Henv2
-  icases Henv2 with ⟨-, -, -, -, -, -, -, #Hok, -⟩
+  icases Henv2 with ⟨-, -, -, -, -, -, #Hueof, #Hok, -⟩
   iunfold isEofOk at Hok
   icases Hok with ⟨%hne, -⟩
   have hF : [F].map (·.bs) = [F.bs] := rfl
   iunfold decPostB at Hp
-  icases Hp with (⟨%k, Ht, Hm⟩ | ⟨%hI, -, -⟩ | ⟨%k, %s, %off', %c', ⟨%hgf, %hse⟩, Hd⟩)
+  icases Hp with (⟨%k, Ht, Hm⟩ | ⟨%hI, #Hnu, -, %k, %off', %c', Ht, Hd⟩ | ⟨%k, %s, %off', %c', ⟨%hgf, %hse⟩, Hd⟩)
   · rw [hF]
     generalize hg : goDecode walCodec [F.bs] off c = g
     cases g with
@@ -158,8 +168,15 @@ theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoI
       · ipureintro; exact hne2
       iframe Hs
       iapply errUeAns_end IoE eof ueof err _ hend $$ Henv
-  · -- a reader's I/O error: **`sorry`**, the stream is lost with the dead decoder (see the file header)
-    sorry
+  · -- a reader's I/O error: the stream back (the arm keeps the files), the answer `false`
+    ihave Hs := streams_take_drop d IoE eof [F] k off' c' _ $$ [$Ht $Hd]
+    ihave Hs := (BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ (F : DecFile GF) => iprop(∃ q, F.S q))).1 $$ Hs
+    iright; iright
+    isplitr
+    · ipureintro; exact ⟨fun h => hIoN (h ▸ hI), fun h => hne.2.1 (h ▸ hI)⟩
+    iframe Hs
+    iapply errUeAns_ioe ueof err _
+    iframe Hnu Hueof
   · have hfs' : ([F].drop k).map (·.bs) = [F.bs] := goFail_one hgf
     obtain rfl := drop_one_map hfs'
     have hend := repairAt_fail walCodec_ok hRF hat (by rw [hF] at hgf; exact hgf)

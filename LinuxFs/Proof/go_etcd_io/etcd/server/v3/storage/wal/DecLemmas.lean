@@ -348,7 +348,15 @@ theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop
       iframe
     iexact H
   · iright; ileft
-    iexact H
+    icases H with ⟨%hI, #Hn, Hr, %k, %off', %c', Hk, Hd⟩
+    isplitl []
+    · ipureintro; exact hI
+    iframe Hn Hr
+    iexists (k + 1), off', c'
+    simp only [List.drop_succ_cons, List.take_succ_cons]
+    iframe Hd
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+    iframe
   · iright; iright
     iexists (k + 1), s, off', c'
     simp only [List.drop_succ_cons]
@@ -417,17 +425,20 @@ theorem ioUeof_io (IoE : GoInterface → Prop) (e : GoInterface) (h : IoE e) (hn
 
 /-- An I/O error. -/
 theorem decPost_ioe (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
-    (eof ueof : GoInterface) (fs fs' : List (DecFile GF)) (off off' : Nat) (c c' : w32)
+    (eof ueof : GoInterface) (fs : List (DecFile GF)) (off off' : Nat) (c c' : w32)
     (err : GoInterface) (hI : IoE err) :
-    notUeof err ∗ ownRecAny rp ∗ ownDecoder d IoE eof fs' off' c' false ⊢
+    notUeof err ∗ ownRecAny rp ∗ ownDecoder d IoE eof fs off' c' false ⊢
       decPostB C d rp IoE eof ueof fs off c err := by
   iintro ⟨#Hn, Hr, Hd⟩
   unfold decPostB
   iright; ileft
   isplitl []
   · ipureintro; exact hI
-  iframe Hn
-  iframe
+  iframe Hn Hr
+  iexists 0, off', c'
+  simp only [List.take_zero, List.drop_zero]
+  iframe Hd
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
 
 /-- A blank record is a record. -/
 theorem blank_ownRecAny (l : Loc) : (pbRecordC (GF := GF)).data.blank l ⊢ ownRecAny l := by

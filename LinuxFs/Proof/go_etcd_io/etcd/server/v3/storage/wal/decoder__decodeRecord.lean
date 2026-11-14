@@ -142,7 +142,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       · iapply ioUeof_io IoE _ (Hferr (by simp)) (by simp); iexact Hfu
       isplitl [Hr]
       · iapply blank_ownRecAny; iexact Hr
-      iexists (F :: fs), off, c
+      iexists 0, off, c
+      simp only [List.take_zero, List.drop_zero]
+      isplitl []
+      · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
       iunfold ownDecoder
       iexists sl, fbr :: fbrs, h, (F.bs.take off :: fs.map (fun _ => []))
       iframe
@@ -338,7 +341,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         · iapply ioUeof_io IoE _ hI (by simp); iexact HUs0
         isplitl [Hr]
         · iapply blank_ownRecAny; iexact Hr
-        iexists (F :: fs), off, c
+        iexists 0, off, c
+        simp only [List.take_zero, List.drop_zero]
+        isplitl []
+        · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
         iunfold ownDecoder
         iexists sl, fbr :: fbrs, h, ((F.bs.take off ++ ys) :: fs.map (fun _ => []))
         iframe
@@ -522,7 +528,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply decPost_mk
         isplitl []
         · iapply decAns_of_ans; iexact HIs2a
-        iapply decPost_ioe C d rp IoE eof ueof (F :: fs) (F :: fs) off off c c _ hI
+        iapply decPost_ioe C d rp IoE eof ueof (F :: fs) off off c c _ hI
         isplitl []
         · iapply ioUeof_io IoE _ hI (by simp); iexact HUs2
         isplitl [Hr]

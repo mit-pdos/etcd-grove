@@ -7588,6 +7588,13 @@ fdatasync, `walLentRes_unpend`, either kind). *`wal-tc16` (2026-11-14)*: the pen
   `io.ErrUnexpectedEOF`'s value too (`walPathErr_ueof`, `ReadBridge.lean`). Re-proved: `DecLemmas`
   (`readFull_ans` gives `ioUeof`, `ioUeof_io`, `decPost_ioe` takes `notUeof`), `NewDecoder`, `decodeRecord`,
   `ReadBridge`; the users (`ReadAll`, `openAtIndex`) unchanged but for `isEofOk`'s new conjunct.
+- **The I/O arm keeps the streams (done; the coordinator's decision, ledger "the I/O arm loses the files'
+  streams", adopted).** `decPostB`'s I/O arm: `⌜IoE err⌝ ∗ notUeof err ∗ ownRecAny rp ∗ ∃ k off' c',
+  ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ownDecoder d IoE eof (fs.drop k) off' c' false`; `decPost_ioe` builds it
+  at `k = 0`, `decPost_cons_eof` adds the dropped file. `Repair`'s `RepairLoop.lean`: `errUeAns_ioe` (now over
+  `notUeof`) and `repair_decNorm`'s I/O arm proved (it takes `¬ IoE nil`); `errUeAns_end` stays `sorry`: the
+  answer of `errors.Is(err, io.ErrUnexpectedEOF)` on `Decode`'s own stop errors needs `Decode`'s post to carry
+  that call's termination (a further decoder change, not made).
 - **Gap 4 (not done): design.** The lemma needs the decoder's state at a frame boundary of the encoder's
   frames, across files: a multi-file `RepairAt` (`RepairDecode.lean` has the one-file case,
   `repairAt_fail`). Proposed: `FilesAt C Fs (fs, off, c)` := `fs = Fs.drop i`, the `i`-th file's records `xs ++
