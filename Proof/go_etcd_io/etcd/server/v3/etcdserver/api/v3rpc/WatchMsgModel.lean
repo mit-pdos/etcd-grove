@@ -100,9 +100,9 @@ instance WatchRespM.countable : Pos.Countable WatchRespM :=
       simp_all)
 
 /-- **The restrictions of the watch server's proof** (`upRestricted`): a create request asks
-neither for previous key-values (`prev_kv`: the send loop's `PrevKv` write and the store read
-behind it are not modeled; not a bug: `newWatcherBatch` copies each event per watcher), nor for
-fragments, nor filters; and no request is `other` (an empty oneof or a `nil` inner request: the translation
+neither for fragments nor filters (k8s 7f-3b: previous key-values, `prev_kv`, are allowed: the send
+loop's `PrevKv` write and the store read behind it are proved, `evsSentOk`); and no request is
+`other` (an empty oneof or a `nil` inner request: the translation
 of `recvLoop`'s `default:` branch reads the type switch's variable `uv`, which Goose leaves
 unbound there, a translator bug, `notes/STATUS.md`; etcd's client never sends one). And (the
 watch slice's unit W-C) a create request asks for no watch id of its own (`WatchId = 0`,
@@ -111,7 +111,7 @@ does (`watch.go`'s `toPB` leaves it `0`); it is what makes the server's ids uniq
 the premise `srvEventIdsAssigned` of the client's watch true of the server
 (`client/v3/InvWatch.lean`). -/
 def watchReqOk : WatchReqM → Prop
-  | .create c => c.prevKv = false ∧ c.fragment = false ∧ c.filters = [] ∧ c.watchId = W64 0
+  | .create c => c.fragment = false ∧ c.filters = [] ∧ c.watchId = W64 0
   | .other => False
   | _ => True
 
@@ -142,13 +142,21 @@ def createRangeOk (c : CreateReqM) (id : w64) (r : mvcc.WatchRange) : Prop :=
    else r.end? = some c.rangeEnd)
 
 /-- **The response the send loop makes of the `n`-th received response `x`** with the header `h`
-(its revision `x.rev`): `x`'s watch id, events and compaction revision, canceled if that is set (a
-watch behind the compaction revision: `chooseAll`'s response; watches across a compaction, D6,
-2026-11-01), not created, no reason, not fragmented, `(n, x)` as its ghost source. -/
-def mvccResp (n : Nat) (x : mvcc.api.WResp) (h : HdrM) : WatchRespM :=
+(its revision `x.rev`) and the events `evs` (`x`'s, each with the previous key-value the send loop
+wrote into it, k8s 7f-3b: `evsSentOk`): `x`'s watch id and compaction revision, canceled if that
+is set (a watch behind the compaction revision: `chooseAll`'s response; watches across a
+compaction, D6, 2026-11-01), not created, no reason, not fragmented, `(n, x)` as its ghost
+source. -/
+def mvccResp (n : Nat) (x : mvcc.api.WResp) (h : HdrM) (evs : List mvcc.EvM) : WatchRespM :=
   { hdr := h, watchId := x.id, created := false, canceled := decide (x.compactRev ≠ W64 0),
-    compactRev := x.compactRev, cancelReason := [], fragment := false, evs := x.evs,
+    compactRev := x.compactRev, cancelReason := [], fragment := false, evs := evs,
     src := some (n, x) }
+
+/-- **An event is a create** (`v3rpc.IsCreateEvent`, `mvccpb.Event.IsCreate`): a put whose key-value
+was created at its modification. The send loop reads no previous key-value for one. -/
+def evIsCreate (ev : mvcc.EvM) : Prop := ev.del = false ∧ ev.kv.createRev = ev.kv.modRev
+
+instance (ev : mvcc.EvM) : Decidable (evIsCreate ev) := by unfold evIsCreate; infer_instance
 
 /-- **The watch id `X` is live after the responses `L`** (pure; the watch slice's unit W-C): the
 last control response for `X` among `L` is a created, not canceled, one. The send loop sends an

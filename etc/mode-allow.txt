@@ -126,3 +126,4 @@ lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Wa
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 3
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/startMember\.lean::  # 3 (auth3 A1, 2026-11-14): authkv's startServer at a member of three

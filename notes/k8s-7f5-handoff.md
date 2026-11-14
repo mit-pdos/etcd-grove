@@ -18,7 +18,105 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
-## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED; v3rpc part next
+## START HERE (2026-11-14, seventh 7f-5 agent, final): 7f-3 LANDED; next 7f-5a-D, a fresh agent
+
+7f-3 is complete and landed (7f-3c approved by etcd-grove-81, including keeping `isRangeWatch`,
+`watchStateElem`, `watchStateRespOk`, `respAt` beside the P-forms for the cache; lean hash in STATUS /
+`/shared/tmp/k8s7f3c/land.log`). **Next: 7f-5a-D, the Draft of the etcd3 watcher's serial branch**
+(`notes/k8s-7f5-scope.md` §6 row 7f-5a-D; the parent `notes/k8s-7f-scope.md` §9 row 7f-5a):
+`store.Watch.spec`, `k8sWatch`, the list of internal specs, the protocol (the `incomingEventChan`
+SPSC, `resultChan` with two producers), stated against the landed client spec: `watcher.Watch.spec`
+now takes `isRangeWatchP` (the etcd3 watcher asks `WithPrevKV`) and its channel element is
+`watchStateElemP` (`WatchStateDefs.lean`: each event's `PrevKv` readable through `respAtP`'s
+`eventsPkAt`, its pointer `prevKvOk`: `nil` always admitted, else the key's record at `rev - 1` for a
+non-create event). Go: `staging/.../storage/etcd3/watcher.go` `:546-575` (`processEvents`,
+`serialProcessEvents`); the Scope's §2-§5 (context enumeration, T5-b/T5-c landed, T5-d text only,
+Q6's temporary premise `ConcurrentWatchObjectDecode` off introduced here). **Hard stop S3: the Draft
+for etcd-grove-81's review**; no Lean proofs before it. Worktree `/shared/etcd-grove-k8s7f`, branch
+`k8s-7f5` (merge lean first). Build: see the earlier sections (flock + `systemd-run --scope -p
+MemoryMax=64G`, `--packages=/shared/tmp/manifest-ddc.json`); long proofs: `etc/lean-check.py --fast --split`.
+
+## Handoff point (2026-11-14, seventh 7f-5 agent): 7f-3c done on the branch; checkpoint (not landed)
+
+Done on `k8s-7f5` (commits `b9e66b2591`..`cb54e77c51`; decisions in questions.md, 2026-11-14 7f-3c entry):
+- Step 1: `client.rawRespOk` is the Draft's `rawRespOkP` in place (`WatchStateDefs.lean`, with
+  `prevKvLogOk`, `EvModel.erasePk`, `withPk`); producers: `dispatch_content` (pointers `qs` from
+  `evs_pkSent`: `pkQAt`, `pkSent` per event), `cmpl_events` (`pkSent_logOk`, with the run's `pkIs`
+  from `regFacts`' new 4th conjunct `pkReg`, filled at the created response from `ctrlWatcher`);
+  consumer `raw_to_state` (WatchFire) gives `watchStateRespOkP` (`prevKvLogOk_state`).
+- Step 2: `recvCmpl` carries `watchStateRespOkP ∗ eventsPkAt`; `outcElem := watchStateElemP`;
+  run/serveSubstream/sendCloseSubstream/WatchApiLemmas adapted; the request carries `prevKV`
+  (`createOf … pk`, `wrRO`, `watchRequest.toPB.spec` with `prevKV ↦□ pk`).
+- Step 3: `watcher.Watch.spec` is S6's text under the old name (`isRangeWatchP`, `watchStateElemP`);
+  `watcher.Watch.wp_proof` proves it.
+- Step 4: `Draft7f3a.lean` deleted; old forms kept where the cache uses them (`isRangeWatch`,
+  `watchStateElem`, `watchStateRespOk`, `respAt`). Users switched: KMWatch, etcdstart RespChan
+  (`isRespChan_of_state[_cmp]` take `watchStateElemP`: interface regenerated), compactor
+  (`client_Watch_field` restated with the P-forms), auth Work, examples watch/compactwatch. Pattern:
+  after `wp_spsc_receive`, `ihave HP := watchStateElemP_elem _ _ _ _ _ _ _ $$ HP`; a premise
+  `isRangeWatch … = true` becomes `OpFull.isRangeWatchP_of h` (or `simp [OpFull.isRangeWatchP]`).
+- Checkpoint: full build 17487 jobs (`/shared/tmp/k8s7f3c-full2.log`), tcb 870/4 matches
+  (`/shared/tmp/k8s7f3c-tcb.log`), gates all ok but the etcdstart interface (expected; regenerated
+  in `cb54e77c51`; rerun `/shared/tmp/k8s7f3c/gates2.log`). STOPPED for 81's review.
+
+Next on 81's go: merge lean, STATUS entry (oldest to status-history, append only), `etc/land.sh`.
+Then 7f-3 is complete; next stage per the Scope (7f-5's T5-c/T5-d).
+
+## Handoff point (2026-11-14, sixth 7f-5 agent, final): 7f-3b v3rpc part LANDED; 7f-3c next (a fresh agent)
+
+81 approved the v3rpc part as is (step 4 moved to 7f-3c, the `γpk`/`pkIs` map, the nonissue); landed
+via `etc/land.sh` (hash in STATUS / the landing log `/shared/tmp/k8s7f3b-v3rpc/land.log`).
+
+**Next: 7f-3c, the client part**, in this order (statements in `Draft7f3a.lean`, `notes/k8s-7f3a-draft.md` §5):
+1. `client.rawRespOkP` in place of `rawRespOk` (`WatchStateDefs.lean`; move `prevKvLogOk` there, with
+   `v3rpc.evIsCreate`). Producers (WatchRun's `prog_cmpl`/`cmpl_events`, WatchCompl, `run` ~1374) derive
+   each pointer's `prevKvLogOk` from the server's `evsSentOk` (`client.mvccOk_evsSent`, `v3rpc.pkWritten`):
+   for `prevKV = false`, `pkIs` of the response's id agrees (`v3rpc.pkIs_agree`, names through
+   `v3rpc.auxOf_inj_pk`) with the created response's `pkIs … c.prevKv` (`ctrlWatcher`); for a written
+   one, transfer `stateAt` between `pkWritten`'s `L` and the client's log by `histLb` agreement
+   (`v3rpc.stateAt_prefix`), and exclude revision 1 by `L[1] = []`. Consumers (WatchFire `raw_to_state`,
+   WatchResume, serveSubstream `rawRespOk_created`) read the erased-events equation.
+2. The client's `watchGRPCStream.run` / `serveSubstream` / `dispatchEvent` carry the `PrevKv` pointer
+   (the client copies the `*Event` pointers; today `evs_eventsAt` gives `evModelOf` with `prevKv := null`).
+3. `watcher.Watch.specP` (S6).
+4. Swap the old definitions (`isRangeWatch`, `watchStateRespOk`, `watchStateElem`, `respAt`,
+   `watcher.Watch.spec`) for the P-forms; each user (watchkv, cachekv, linkv3p `MainWatch`, the
+   compactor, `etcdstart.Collect`, `Election.observe`, recipes, auth `RootWatch`/`WorkCalls`) switches to
+   `specP` and reads elements through `watchStateElemP_elem`.
+Report the interface/statement changes to 81 before landing, as for 7f-3b.
+
+## Handoff point (2026-11-14, sixth 7f-5 agent): 7f-3b v3rpc part done on the branch; checkpoint (not landed)
+
+Done (`35fdc186ad` and the commit after it on `k8s-7f5`; questions.md entries of 2026-11-14):
+- Steps 1-3, 5, 6 of the list below. `recvLoop` records `prevKV[id] = true` (`swsMu`, the Draft's
+  `swsMuP` under the old name, each entry carrying `pkIs γpk id true`); `sendLoop`'s `PrevKv` branch
+  (`IsCreateEvent` on `evRd`, the watchable store's `Range` at `ModRevision - 1` through
+  `shapes.law`'s `KV.Range.contract` and `v3rpc.range_au`, `r.KVs[0]` written into the copy's owned
+  field, the error/empty arms) inside the macro `pk_branch` (the code generator overflowed with one
+  macro); `watchReqOk` without `prev_kv = false`; `wrespRO` removed.
+- The server's guarantee for the client (7f-3c): `mvccOk` carries `evsSentOk r x m.evs` (`pkWritten`
+  per event: mvcc's event, or with `PrevKv := some kv` for a non-create event of a watcher with
+  `pkIs … true`, `kv` the key's record at `ModRevision - 1` of a certified log `L` with `L[1] = []`,
+  claimed at revisions ≥ 2). The created response's `ctrlWatcher` gives `pkIs r.γpk id c.prevKv`
+  (agreement: `pkIs_agree`; the client finds `γpk` through `auxOf_inj_pk`).
+- Client adapted minimally (`evRd` readers, `m.evs.length = x.evs.length`); finding
+  `nonissues/etcd-watch-prevkv-revision-one.md`.
+- **Step 4 moved to 7f-3c** (form decision): `rawRespOkP` swap is client-only.
+
+Checkpoint passed (2026-11-14, `de5280daab`): full build 17487 jobs, tcb 870/4, gates all passed
+(`/shared/tmp/k8s7f3b-v3rpc/{full,tcb,gates}.log`), no interface diff; review material
+`/shared/tmp/k8s7f3b-v3rpc/review.md`. STOPPED for 81. Next on 81's go: merge lean (it moved,
+77f542f56c), STATUS entry (oldest to status-history, append only), `etc/land.sh`;
+then 7f-3c: `rawRespOkP` (prevKvLogOk from `evsSentOk`: for `prevKV = false`, `pkIs` agreement with the
+created response's `pkIs … c.prevKv`; for a written one, `stateAt` transfer between `L` and the
+client's log by `histLb` agreement, and `L[1] = []` to exclude revision 1), then `watchGRPCStream`
+carrying the pointer, `watcher.Watch.specP`, the users.
+
+Pitfalls: in a `local macro` a `$$ [$H]` is an antiquotation (write `$$ [H]` and `iframe H`); a
+`--goal` inside a macro body does not work (use a deliberate `done`); `rw … at H` on an Iris
+hypothesis fails (rewrite the goal, or `irevert`).
+
+## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED (lean `570cea0725`); v3rpc part next
 
 Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
 the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
@@ -43,8 +141,8 @@ the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
   read-only form over `mvcc.evIs`) and `wrespIs_ro : wrespIs ⊢ |==> wrespRO`, applied at the send
   loop's two receipts. The v3rpc part of 7f-3b replaces this by the `PrevKv` write.
 
-81 approved the interface diff and accepted `wrespRO` as temporary; landed on lean (hash in the next
-handoff line / STATUS). **Next, a fresh agent: the v3rpc part of 7f-3b**, in this order (statements in
+81 approved the interface diff and accepted `wrespRO` as temporary; landed on lean `570cea0725`
+(gates all passed, `/shared/tmp/k8s7f3b/land.log`). **Next, a fresh agent: the v3rpc part of 7f-3b**, in this order (statements in
 `Draft7f3a.lean`: `swsMuP`, `watchReqOkP`, `client.rawRespOkP`, `prevKvLogOk`):
 1. `recvLoop` records `creq.PrevKv` in the `prevKV` map (`watch.go:342-349`): `swsMu` → `swsMuP`
    (entries allowed in `prevKV`, `fragment` still empty).

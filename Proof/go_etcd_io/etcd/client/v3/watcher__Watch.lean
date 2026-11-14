@@ -59,8 +59,8 @@ theorem watcher.Watch.wp_proof
     rw [cplCond_iff]
     refine ⟨rfl, rangeExact_of_ne _ _ (OpFull.watchNorm_key_ne _), ?_⟩
     intro h; rw [h] at Hrev1; simp at Hrev1
-  have HrwN : (opWatchModel key gs).watchNorm.isRangeWatch rev = true := by
-    rw [isRangeWatch_watchNorm]; exact Hrw
+  have HrwN : (opWatchModel key gs).watchNorm.isRangeWatchP rev = true := by
+    rw [isRangeWatchP_watchNorm]; exact Hrw
   have HnpN : ¬ (opWatchModel key gs).watchNorm.watchPanics := by
     rw [OpFull.watchNorm_watchPanics]; exact Hnp
   have HbaseN := OpFull.watchNorm_base (opWatchModel key gs)
@@ -77,9 +77,11 @@ theorem watcher.Watch.wp_proof
   iunfold opAt at Hopat
   icases Hopat with ⟨%Hfields, #Hendsl⟩
   have Hrw' := Hrw
-  unfold OpFull.isRangeWatch at Hrw'
+  unfold OpFull.isRangeWatchP at Hrw'
   simp only [decide_eq_true_eq] at Hrw'
-  obtain ⟨Ht1, Hrv, Hpk, Hfr, Hfp, Hfd⟩ := Hrw'
+  obtain ⟨Ht1, Hrv, Hfr, Hfp, Hfd⟩ := Hrw'
+  have Hpk : (opWatchModel key gs).base.prevKV = (opWatchModel key gs).watchNorm.base.prevKV :=
+    (watchNorm_prevKV _).symm
   obtain ⟨-, Hfpk, -, -, -, -, -, -, Hffr, Hfcn, Hffp, Hffd, Hfrev, -, Hfpn⟩ := Hfields
   rw [Hffp, Hfp]
   wp_auto

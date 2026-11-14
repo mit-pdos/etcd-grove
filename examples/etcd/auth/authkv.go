@@ -118,11 +118,11 @@ func startServer(lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	return s, nil
 }
 
-// newUserClient connects a client that authenticates as user name with password pw (clientv3.New
-// calls Authenticate when it dials, and the token is sent with every request).
-func newUserClient(name string, pw string, lg *zap.Logger) (*clientv3.Client, error) {
+// newUserClient connects a client of addr that authenticates as user name with password pw
+// (clientv3.New calls Authenticate when it dials, and the token is sent with every request).
+func newUserClient(addr string, name string, pw string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
-		Endpoints:            []string{clientAddr},
+		Endpoints:            []string{addr},
 		DialTimeout:          etcdstart.DialTimeout,
 		DialKeepAliveTime:    etcdstart.KeepAliveTime,
 		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
@@ -374,35 +374,42 @@ func LastIn(evs []etcdstart.Event) int64 {
 	return last
 }
 
-// Main starts the member, sets up and enables auth, runs the four principals' workloads at once,
-// then checks the history through root's watch, and u's watch of [lo, hi).
+// Main starts the member, then runs the set-up, the workloads and the checks through it (Run).
 func Main() int {
 	lg := zap.NewNop()
 	s, err := startServer(lg)
 	if err != nil {
 		return Failed
 	}
-	if err := etcdstart.Serve(s, clientAddr); err != nil {
+	return Run(s, clientAddr, lg)
+}
+
+// Run serves the started member s's gRPC API at addr, sets up and enables auth through a client
+// of addr, runs the four principals' workloads at once through clients of addr, then checks the
+// history through root's watch, and u's watch of [lo, hi). It is Main after the member's start,
+// shared with examples/etcd/auth3, whose first member it runs on.
+func Run(s *etcdserver.EtcdServer, addr string, lg *zap.Logger) int {
+	if err := etcdstart.Serve(s, addr); err != nil {
 		return Failed
 	}
 
 	// The client with no user name: the set-up's, then the anon and bad principals'.
-	cli, err := etcdstart.NewClient(clientAddr, lg)
+	cli, err := etcdstart.NewClient(addr, lg)
 	if err != nil {
 		return Failed
 	}
 	if !SetUp(cli) {
 		return Failed
 	}
-	root, err := newUserClient("root", rootPw, lg)
+	root, err := newUserClient(addr, "root", rootPw, lg)
 	if err != nil {
 		return Failed
 	}
-	ucli, err := newUserClient("u", uPw, lg)
+	ucli, err := newUserClient(addr, "u", uPw, lg)
 	if err != nil {
 		return Failed
 	}
-	vcli, err := newUserClient("v", vPw, lg)
+	vcli, err := newUserClient(addr, "v", vPw, lg)
 	if err != nil {
 		return Failed
 	}

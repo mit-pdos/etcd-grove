@@ -79,7 +79,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
           GoInterface.ok (client.watcherIfaceOf w) ∗
         client.isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
         EtcdGrove.context.watchCtx ctx cd ∗ optsAt sl opts ∗
-        ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
+        ⌜(opWatchModel key opts).isRangeWatchP rev = true ∧ ¬ opWatchPanics key opts ∧
           1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
         □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
         □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
@@ -87,7 +87,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
     {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
-        isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
+        isSpsc γw.spsc ch (watchStateElemP V.kv γw (opWatchModel key opts).watchNorm Q
           iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
             (GoInterface.ok ctx) n (opWatchModel key opts).key
             (opWatchModel key opts).base.rangeEnd)))
@@ -221,7 +221,7 @@ theorem compactor.runWatchLoop.wp_proof
       isplitr
       · ipureintro
         refine ⟨?_, ?_, hcur, ?_⟩
-        · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatch, OpFull.newOp,
+        · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatchP, OpFull.newOp,
             OpModel.zero, compactRevKey]
         · simp [opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit, withRevM,
             OpFull.newOp, OpModel.zero, compactRevKey]
@@ -247,6 +247,7 @@ theorem compactor.runWatchLoop.wp_proof
       iframe
     simp only [↓reduceIte]
     icases Hv with ⟨HP, Hcons⟩
+    ihave HP := watchStateElemP_elem _ _ _ _ _ _ _ $$ HP
     unfold watchStateElem
     icases HP with ⟨%r, %σ, %c0, %c1, #Hr, #HQ, -, -, #Hok, -, -⟩
     ihave #Hrk := respKeyOk_of_state γk recorded (keyWatchOp cur) (keyWatchOp_key cur)

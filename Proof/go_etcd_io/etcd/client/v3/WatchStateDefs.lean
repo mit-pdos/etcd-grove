@@ -237,6 +237,107 @@ theorem posQ_of_resp (o : OpFull) (Q : KVState → IProp GF) (σ : KVState) (c c
     unfold posQ; iright; iexists σ; iframe HQ; ipureintro
     exact ⟨by omega, hrv, hok⟩
 
+/-! ## Previous key-values (k8s 7f-3c, `WithPrevKV`) -/
+
+/-- **An event's `PrevKv` pointer `pk`** (persistent; k8s 7f-3a/3c), for the state's event `ev` of a
+watch of `o` read at `σ`: without `WithPrevKV`, `nil`; with it, `nil` (the server sends none for a
+create, after a failed range, or before `recvLoop` records the watch's `prevKV` entry:
+`issues/etcd-watch-prevkv-before-created.md`), or, the event not a create, a `*KeyValue` holding
+the key's record at the revision before the event's (`v3rpc/watch.go:442-455`: a range of the key
+at `ModRevision - 1`). -/
+def prevKvOk (o : OpFull) (σ : KVState) (ev : mvcc.EvM) (pk : Loc) : IProp GF :=
+  if o.base.prevKV then
+    iprop(⌜pk = null⌝ ∨
+      ∃ r : KVRec, ⌜¬ v3rpc.evIsCreate ev ∧ σ.at (sint.nat ev.kv.modRev - 1) !! ev.kv.key = some r⌝ ∗
+        kvValAt pk (KVRec.toKv ev.kv.key r))
+  else iprop(⌜pk = null⌝)
+
+instance prevKvOk_persistent (o : OpFull) (σ : KVState) (ev : mvcc.EvM) (pk : Loc) :
+    Persistent (prevKvOk (GF := GF) o σ ev pk) := by
+  unfold prevKvOk; split <;> infer_instance
+
+/-- Without `WithPrevKV` the pointer is `nil`. -/
+theorem prevKvOk_noPrev (o : OpFull) (σ : KVState) (ev : mvcc.EvM) (pk : Loc)
+    (h : o.base.prevKV = false) : prevKvOk (GF := GF) o σ ev pk ⊣⊢ ⌜pk = null⌝ := by
+  unfold prevKvOk; rw [h]; simp
+
+open Iris.ProofMode in
+/-- `nil` is always allowed. -/
+theorem prevKvOk_null (o : OpFull) (σ : KVState) (ev : mvcc.EvM) :
+    ⊢ prevKvOk (GF := GF) o σ ev null := by
+  unfold prevKvOk
+  split
+  · iintro; ileft; ipureintro; rfl
+  · iintro; ipureintro; rfl
+
+/-- The slice `sl` of `*mvccpb.Event` (read-only) holds events whose `PrevKv` fields are the
+models' (`eventsAt`'s companion). -/
+def eventsPkAt (sl : GoSlice) (evs : List EvModel) : IProp GF :=
+  iprop(∃ ls : List Loc, sl ↦*□ ls ∗ ⌜ls.length = evs.length⌝ ∗
+    □ (∀ (i : Nat) (ev : Loc) (e : EvModel), ⌜ls[i]? = some ev⌝ -∗ ⌜evs[i]? = some e⌝ -∗
+      structFieldRef mvccpb.Event go!"PrevKv" ev ↦□ e.prevKv))
+
+instance eventsPkAt_persistent (sl : GoSlice) (evs : List EvModel) :
+    Persistent (eventsPkAt (GF := GF) sl evs) := by
+  unfold eventsPkAt; infer_instance
+
+/-- `respAt` with the events' `PrevKv` fields. -/
+def respAtP (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
+  iprop(respAt resp r ∗ eventsPkAt resp.Events' r.events)
+
+instance respAtP_persistent (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    Persistent (respAtP (GF := GF) resp r) := by
+  unfold respAtP; infer_instance
+
+/-- The pointers' part of a response, read at `σ`: each delivered event's `PrevKv` pointer
+`prevKvOk` of the state's event it is. -/
+def respPkOk (o : OpFull) (σ : KVState) (c c' : w64) (r : RespModel) : IProp GF :=
+  iprop(□ ∀ (i : Nat) (e : EvModel) (ev : mvcc.EvM), ⌜r.events[i]? = some e⌝ -∗
+      ⌜(σ.rangeEvents o (sint.nat c + 1) (sint.nat c' + 1))[i]? = some ev⌝ -∗
+      prevKvOk o σ ev e.prevKv)
+
+instance respPkOk_persistent (o : OpFull) (σ : KVState) (c c' : w64) (r : RespModel) :
+    Persistent (respPkOk (GF := GF) o σ c c' r) := by
+  unfold respPkOk; infer_instance
+
+/-- **A watch's response, as a read of the state, with `PrevKv`** (k8s 7f-3a/3c):
+`watchStateRespOk`, and each delivered event's `PrevKv` pointer `prevKvOk` of the state's event it
+is (vacuous for a response without events: the range read is empty then). -/
+def watchStateRespOkP (o : OpFull) (σ : KVState) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
+  iprop(watchStateRespOk o σ c c' v r ∗ respPkOk o σ c c' r)
+
+instance watchStateRespOkP_persistent (o : OpFull) (σ : KVState) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    Persistent (watchStateRespOkP (GF := GF) o σ c c' v r) := by
+  unfold watchStateRespOkP; infer_instance
+
+open Iris.ProofMode in
+/-- An empty range read has no pointer to say anything of. -/
+theorem respPkOk_nil (o : OpFull) (σ : KVState) (c c' : w64) (r : RespModel)
+    (h : σ.rangeEvents o (sint.nat c + 1) (sint.nat c' + 1) = []) :
+    ⊢ respPkOk (GF := GF) o σ c c' r := by
+  unfold respPkOk
+  iintro !> %i %e %ev %_ %hev
+  rw [h] at hev; simp at hev
+
+/-- `watchStateElem` with `respAtP` and `watchStateRespOkP` (k8s 7f-3a/3c). -/
+def watchStateElemP (γk : KVNames) (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
+    (Au : IProp GF) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+  iprop(∃ (r : RespModel) (σ : KVState) (c c' : w64), respAtP v r ∗ □ Q σ ∗
+    monoListIdxOwn γw.cur i.toNat c ∗ monoListIdxOwn γw.cur (i.toNat + 1) c' ∗
+    watchStateRespOkP o σ c c' v r ∗ □ (⌜r.events ≠ []⌝ → Au) ∗ cmpOkOf γk v.CompactRevision')
+
+open Iris.ProofMode in
+/-- **The new element gives the old one** (the users at `prevKV = false` read what they read). -/
+theorem watchStateElemP_elem (γk : KVNames) (γw : EtcdWatchNames) (o : OpFull)
+    (Q : KVState → IProp GF) (Au : IProp GF) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    watchStateElemP (GF := GF) γk γw o Q Au i v ⊢ watchStateElem γk γw o Q Au i v := by
+  unfold watchStateElemP watchStateElem respAtP watchStateRespOkP
+  iintro ⟨%r, %σ, %c, %c', ⟨Hr, -⟩, HQ, H1, H2, ⟨Hs, -⟩, HA, Hc⟩
+  iexists r, σ, c, c'
+  iframe
+
 end resp
 
 namespace client
@@ -253,11 +354,71 @@ variable [sem : go.Semantics]
 def evModelOf (ev : mvcc.EvM) (kv : Loc) : EvModel :=
   { typ := mvcc.evType ev, key := ev.kv.key, kv := kv, rev := ev.kv.modRev }
 
+/-- An event model without its `PrevKv` pointer (the server-level equations read the events up
+to their pointers). -/
+def _root_.Perennial.EtcdGrove.EvModel.erasePk (e : EvModel) : EvModel := { e with prevKv := null }
+
+@[simp] theorem evModelOf_erasePk (ev : mvcc.EvM) (kv : Loc) :
+    (evModelOf ev kv).erasePk = evModelOf ev kv := rfl
+
+@[simp] theorem _root_.Perennial.EtcdGrove.EvModel.erasePk_rev (e : EvModel) : e.erasePk.rev = e.rev := rfl
+
+/-- The events `es` with the `PrevKv` pointers `qs`. -/
+def withPk (es : List EvModel) (qs : List Loc) : List EvModel :=
+  List.zipWith (fun e q => { e with prevKv := q }) es qs
+
+theorem withPk_length (es : List EvModel) (qs : List Loc) (h : qs.length = es.length) :
+    (withPk es qs).length = es.length := by
+  unfold withPk; simp [h]
+
+theorem withPk_erase (es : List EvModel) (qs : List Loc) (h : qs.length = es.length) :
+    (withPk es qs).map EvModel.erasePk = es.map EvModel.erasePk := by
+  induction es generalizing qs with
+  | nil => cases qs <;> rfl
+  | cons e es ih =>
+    cases qs with
+    | nil => simp at h
+    | cons q qs =>
+      simp only [withPk, List.zipWith_cons_cons, List.map_cons] at ih ⊢
+      rw [ih qs (by simpa using h)]; rfl
+
+theorem withPk_revs (es : List EvModel) (qs : List Loc) (h : qs.length = es.length) :
+    (withPk es qs).map EvModel.rev = es.map EvModel.rev := by
+  have := congrArg (List.map EvModel.rev) (withPk_erase es qs h)
+  simpa [List.map_map, Function.comp_def] using this
+
+theorem withPk_getElem? (es : List EvModel) (qs : List Loc) (i : Nat) :
+    (withPk es qs)[i]? = (match es[i]?, qs[i]? with
+      | some e, some q => some { e with prevKv := q }
+      | _, _ => none) := by
+  unfold withPk; rw [List.getElem?_zipWith]
+  cases es[i]? <;> cases qs[i]? <;> rfl
+
+theorem zipWith_evModelOf_erase (evs : List mvcc.EvM) (kvs : List Loc) :
+    (List.zipWith evModelOf evs kvs).map EvModel.erasePk = List.zipWith evModelOf evs kvs := by
+  rw [List.map_zipWith]; rfl
+
+/-- **An event's `PrevKv` pointer at the server's level** (persistent; k8s 7f-3a/3c): `prevKvOk`
+with a watched log's state at the revision before (`mvcc.stateAt L (r - 1)`, which the send loop's
+range at `ModRevision - 1` reads), the key-value fixed (`mvcc.kvPtrFixed`, as the event's own). -/
+def prevKvLogOk (o : OpFull) (L : mvcc.Log) (ev : mvcc.EvM) (pk : Loc) : IProp GF :=
+  if o.base.prevKV then
+    iprop(⌜pk = null⌝ ∨
+      ∃ kv : EtcdKv, ⌜¬ v3rpc.evIsCreate ev ∧
+          mvcc.findKey ev.kv.key (mvcc.stateAt L (sint.nat ev.kv.modRev - 1)) = some kv⌝ ∗
+        mvcc.kvPtrFixed pk kv)
+  else iprop(⌜pk = null⌝)
+
+instance prevKvLogOk_persistent (o : OpFull) (L : mvcc.Log) (ev : mvcc.EvM) (pk : Loc) :
+    Persistent (prevKvLogOk (GF := GF) o L ev pk) := by
+  unfold prevKvLogOk; split <;> infer_instance
+
 /-- **A response, at the server's level** (the client watcher's pipeline's second cursor; see the
 file header): as `watchStateRespOk`, but the events and the progress notification's revision are
 a watched log's of the server's watch facts `W` (strict M1: a certified lower bound of its
 notified log, `□ W.histLb`; until M1 mvcc's `evLog`, sealed and certified), the events'
-key-values fixed (`mvcc.kvPtrFixed`, the API's `evIs`'s). -/
+key-values fixed (`mvcc.kvPtrFixed`, the API's `evIs`'s); (k8s 7f-3c, the Draft's `rawRespOkP`)
+the events the log's up to their `PrevKv` pointers, each pointer `prevKvLogOk` of its event. -/
 def rawRespOk (W : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
   iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
@@ -271,10 +432,14 @@ def rawRespOk (W : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
         (r.events.getLast?.map EvModel.rev) = some c'⌝ ∗
       ∃ (L : mvcc.Log) (kvs : List Loc), □ W.histLb L ∗
         ⌜sint.Z c' < L.length ∧ kvs.length = (rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1)).length ∧
-          r.events = List.zipWith evModelOf (rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1)) kvs⌝ ∗
+          r.events.map EvModel.erasePk =
+            List.zipWith evModelOf (rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1)) kvs⌝ ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc),
           ⌜(rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1))[k]? = some ev⌝ →
-          ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv)))
+          ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv) ∗
+        □ (∀ (k : Nat) (ev : mvcc.EvM) (e : EvModel),
+          ⌜(rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1))[k]? = some ev⌝ →
+          ⌜r.events[k]? = some e⌝ → prevKvLogOk o L ev e.prevKv)))
 
 instance rawRespOk_persistent (W : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :

@@ -92,6 +92,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestBytesWithOverhead
+public import Proof.context.TODO
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
@@ -335,6 +336,10 @@ theorem wp_checkTxnRequest :
 theorem wp_checkRequestOp :
     EtcdGrove.v3rpc.checkRequestOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.checkRequestOp.wp_proof wp_checkRangeRequest wp_checkPutRequest wp_checkDeleteRequest wp_checkTxnRequest
+
+theorem context.wp_TODO :
+    EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.TODO.wp_proof
 
 theorem headerFillingRangeStream.wp_Send :
     EtcdGrove.v3rpc.headerFillingRangeStream.Send.spec (GF := GF) (hG := hG) :=
@@ -873,7 +878,7 @@ theorem serverWatchStream.wp_recvLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem serverWatchStream.wp_sendLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_wsChan_recv_law_holds mvcc.api.mvccApi_wsRecv_ok_law_holds mvcc.api.mvccApi_wsSentLb_zero_law_holds verify.wp_Assert _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.wp_ReportEventReceived
+  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds wp_IsCreateEvent context.wp_TODO mvcc.api.mvccApi_wsChan_recv_law_holds mvcc.api.mvccApi_wsRecv_ok_law_holds mvcc.api.mvccApi_wsSentLb_zero_law_holds verify.wp_Assert _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.wp_ReportEventReceived
 
 theorem watchServer.wp_Watch [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=

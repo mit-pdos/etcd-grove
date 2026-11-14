@@ -29,14 +29,14 @@ theorem etcdstart.respChan_recv_au (ch : Loc) (γ : EtcdWatchNames) (Ok : etcdst
     go_etcd_io.etcd.client.v3.WatchResponse Φ
 
 theorem etcdstart.isRespChan_of_state_cmp (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o :
-    OpFull) (Q : KVState → IProp GF) (Au : IProp GF) : (isSpsc γ.spsc ch (watchStateElem γk γ o Q
+    OpFull) (Q : KVState → IProp GF) (Au : IProp GF) : (isSpsc γ.spsc ch (watchStateElemP γk γ o Q
     Au) fun x => iprop(True)) ⊢ etcdstart.isRespChan ch γ (etcdstart.stateCmpOk γk o Q)
 
 def etcdstart.stateOk (o : OpFull) (Q : KVState → IProp GF) : etcdstart.RespOk GF :=
   iprop(∃ σ, □ Q σ ∗ watchStateRespOk o σ c c' v r)
 
 theorem etcdstart.isRespChan_of_state (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q
-    : KVState → IProp GF) (Au : IProp GF) : (isSpsc γ.spsc ch (watchStateElem γk γ o Q Au) fun x =>
+    : KVState → IProp GF) (Au : IProp GF) : (isSpsc γ.spsc ch (watchStateElemP γk γ o Q Au) fun x =>
     iprop(True)) ⊢ etcdstart.isRespChan ch γ (etcdstart.stateOk o Q)
 
 theorem etcdstart.stateOk_persistent (o : OpFull) (Q : KVState → IProp GF) (c c' : w64) (v :

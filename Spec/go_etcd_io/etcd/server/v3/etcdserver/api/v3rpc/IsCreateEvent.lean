@@ -28,10 +28,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`IsCreateEvent(e)`** of an mvcc event `ev`: a put whose key-value was created at its
-modification (`CreateRevision == ModRevision`). -/
+modification (`CreateRevision == ModRevision`). It reads the event's type and key-value only
+(`mvcc.evRd`, k8s 7f-3b: the send loop's copy, whose `PrevKv` field it owns). -/
 abbrev v3rpc.IsCreateEvent.spec : Prop :=
   ∀ (e : Loc) (ev : mvcc.EvM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ mvcc.evIs e ev }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ mvcc.evRd e ev }}
     (App (Val (@! v3rpc.IsCreateEvent)) (Val #e))
   {{ (b : Bool), RET #b; ⌜b = (!ev.del && decide (ev.kv.createRev = ev.kv.modRev))⌝ }}
 

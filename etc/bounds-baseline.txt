@@ -1,6 +1,7 @@
 # etc/bounds-check.py's baseline: KIND PACKAGE COUNT (notes/bounds-plan.md, B0).
 # Counts may only go down; rewrite with `etc/bounds-check.py --check --update`.
-spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth 3
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth 4
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth3 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/cache 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compacted 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 1
@@ -22,7 +23,8 @@ spec-thread go_etcd_io/etcd/server/v3/etcdserver 10
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness 4
-spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth 4
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth 5
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth3 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/cache 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compacted 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 2

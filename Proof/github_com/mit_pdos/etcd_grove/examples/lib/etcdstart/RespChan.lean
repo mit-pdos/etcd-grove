@@ -141,17 +141,18 @@ instance stateOk_persistent (o : OpFull) (Q : KVState → IProp GF) (c c' : w64)
     Persistent (stateOk (GF := GF) o Q c c' v r) := by
   unfold stateOk; infer_instance
 
-/-- The client's Watch spec's channel is one (`watchStateElem`, at `stateOk`), whatever its
+/-- The client's Watch spec's channel is one (`watchStateElemP`, read as `watchStateElem`, at `stateOk`), whatever its
 authorization row `Au` (G2). -/
 theorem isRespChan_of_state (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull)
     (Q : KVState → IProp GF) (Au : IProp GF) :
-    isSpsc (GF := GF) γ.spsc ch (watchStateElem γk γ o Q Au) (fun _ => iprop(True)) ⊢
+    isSpsc (GF := GF) γ.spsc ch (watchStateElemP γk γ o Q Au) (fun _ => iprop(True)) ⊢
       isRespChan ch γ (stateOk o Q) := by
   iintro #Hsp
   unfold isRespChan
-  iexists watchStateElem γk γ o Q Au
+  iexists watchStateElemP γk γ o Q Au
   iframe Hsp
   iintro !> %i %v HP
+  ihave HP := watchStateElemP_elem γk γ o Q Au i v $$ HP
   unfold watchStateElem
   icases HP with ⟨%r, %σ, %c, %c', #Hr, #HQ, #Hc, #Hc', #Hok, -⟩
   imodintro
@@ -169,13 +170,14 @@ def stateCmpOk (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) : RespOk 
 /-- The client's Watch spec's channel is one at `stateCmpOk` (C3's watch side). -/
 theorem isRespChan_of_state_cmp (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull)
     (Q : KVState → IProp GF) (Au : IProp GF) :
-    isSpsc (GF := GF) γ.spsc ch (watchStateElem γk γ o Q Au) (fun _ => iprop(True)) ⊢
+    isSpsc (GF := GF) γ.spsc ch (watchStateElemP γk γ o Q Au) (fun _ => iprop(True)) ⊢
       isRespChan ch γ (stateCmpOk γk o Q) := by
   iintro #Hsp
   unfold isRespChan
-  iexists watchStateElem γk γ o Q Au
+  iexists watchStateElemP γk γ o Q Au
   iframe Hsp
   iintro !> %i %v HP
+  ihave HP := watchStateElemP_elem γk γ o Q Au i v $$ HP
   unfold watchStateElem
   icases HP with ⟨%r, %σ, %c, %c', #Hr, #HQ, #Hc, #Hc', #Hok, -, #Hcmp⟩
   imodintro

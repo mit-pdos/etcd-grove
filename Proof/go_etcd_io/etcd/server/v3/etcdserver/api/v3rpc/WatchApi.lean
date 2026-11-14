@@ -161,6 +161,26 @@ instance regIs_timeless (γreg : GName) (id : w64) (i : RegInfo) :
 /-- The id's token (exclusive; a stream announces an id once). -/
 def idTok (γtok : GName) (id : w64) : IProp GF := ghostMapElem γtok id (DFrac.own 1) ()
 
+/-- **The watcher `id` asked for previous key-values exactly when `b`** (persistent; k8s 7f-3b: the
+create request's `prev_kv`, entered when the watcher registers). -/
+def pkIs (γpk : GName) (id : w64) (b : Bool) : IProp GF := ghostMapElem γpk id DFrac.discard b
+
+instance pkIs_persistent (γpk : GName) (id : w64) (b : Bool) :
+    Persistent (pkIs (GF := GF) γpk id b) := by
+  unfold pkIs; infer_instance
+
+instance pkIs_timeless (γpk : GName) (id : w64) (b : Bool) :
+    Timeless (pkIs (GF := GF) γpk id b) := by
+  unfold pkIs; infer_instance
+
+/-- A watcher's previous key-value request is one value. -/
+theorem pkIs_agree (γpk : GName) (id : w64) (b b' : Bool) :
+    pkIs (GF := GF) γpk id b ∗ pkIs γpk id b' ⊢ ⌜b = b'⌝ := by
+  unfold pkIs
+  iintro ⟨H1, H2⟩
+  ihave %H := ghostMapElem_agree id γpk _ _ b b' $$ H1 H2
+  ipureintro; exact H
+
 /-- The send loop's received list has `l` first (persistent). -/
 def rcvLb (γr : GName) (l : List mvcc.api.WResp) : IProp GF := monoListLbOwn γr l
 
@@ -188,15 +208,18 @@ def wsN : Namespace := (nroot .@ "v3rpc") .@ "ws"
 requests `cq`; `InvWatch.lean`'s `wsInv r`): the stream's state `S`; the registry agrees with `S`
 (every watcher's `RegInfo`, its discarded entries kept, so the snapshot can copy them; the id
 tokens minted for exactly `S`'s ids); every watcher unfiltered; every watcher not live was
-cancelled at the client's request (`cq`); the stream open, or the close token deposited. -/
-def wsInvG (ι : mvcc.api.WsName) (γreg γtok γcl : GName) (cq : w64 → IProp GF) : IProp GF :=
+cancelled at the client's request (`cq`); the stream open, or the close token deposited; (k8s 7f-3b)
+the map `γpk` of whether each registered watcher asked for previous key-values (`pkIs`, entered at
+the registration: its ids among the tokens'). -/
+def wsInvG (ι : mvcc.api.WsName) (γreg γtok γpk γcl : GName) (cq : w64 → IProp GF) : IProp GF :=
   iprop(∃ (S : mvcc.api.StreamState) (R : GMap w64 RegInfo) (T : GMap w64 Unit),
     mvcc.api.wsState ι S ∗ ghostMapAuth γreg 1 R ∗ ghostMapAuth γtok 1 T ∗
     ⌜∀ id, R !! id = (S.ws !! id).map regInfoOf ∧ ((T !! id).isSome ↔ (S.ws !! id).isSome)⌝ ∗
     ⌜∀ id w, S.ws !! id = some w → w.fs = []⌝ ∗
     □ ([∗map] id ↦ i ∈ R, regIs γreg id i) ∗
     ([∗map] id ↦ w ∈ S.ws, ⌜w.live = true⌝ ∨ cq id) ∗
-    (⌜S.closed = false⌝ ∨ closeTok γcl))
+    (⌜S.closed = false⌝ ∨ closeTok γcl) ∗
+    (∃ P : GMap w64 Bool, ghostMapAuth γpk 1 P ∗ ⌜∀ id, (P !! id).isSome → (T !! id).isSome⌝))
 
 /-- **The send loop's snapshot of the received responses `rs`** (the draft's `rcvSnap`, at the
 server's side `W`, the registry `γreg` and the cancel requests `cq`; `InvWatch.lean`'s
@@ -212,46 +235,21 @@ def rcvSnapG (W : SrvW GF) (γreg : GName) (cq : w64 → IProp GF) (rs : List mv
 
 /-- The update `Watch` commits for a fresh, unfiltered watcher (the draft's O1 `COMM`): on a
 closed stream the id `-1`; on an open one its registry entry, its token, the stream's sent count
-at its stamp, the certified log it starts after, nothing pending, its first revision and range. -/
-def watchQ (W : SrvW GF) (ι : mvcc.api.WsName) (γreg γtok : GName) (kk e : List w8)
+at its stamp, the certified log it starts after, nothing pending, its first revision and range,
+and (k8s 7f-3b) its previous key-value request `pk` entered (`pkIs`). -/
+def watchQ (W : SrvW GF) (ι : mvcc.api.WsName) (γreg γtok γpk : GName) (pk : Bool) (kk e : List w8)
     (endk : GoSlice) (startRev : w64) (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState)
     (id : w64) : IProp GF :=
   if S.closed then iprop(⌜id = W64 (-1)⌝) else
-    iprop(∃ i : RegInfo, regIs γreg id i ∗ idTok γtok id ∗ mvcc.api.wsSentLb ι i.k ∗
+    iprop(∃ i : RegInfo, regIs γreg id i ∗ idTok γtok id ∗ pkIs γpk id pk ∗ mvcc.api.wsSentLb ι i.k ∗
       W.histLb σ.log ∗ ⌜σ.pending = none ∧ i.lo = mvcc.api.watchLo σ startRev ∧
         i.rg = mvcc.watchRangeOf kk e endk startRev id⌝)
 
 /-! ## The laws as instances (from `persistent.law`) -/
 
-/-- **A received response, read-only for good** (k8s 7f-3b): `wrespIs` with each event's `PrevKv`
-field given up (`mvcc.evIs`, the store's form). What the send loop reads of a response until it
-writes `PrevKv` (the v3rpc part of 7f-3b). -/
-def wrespRO (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (r : mvcc.api.WResp) :
-    IProp GF :=
-  iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
-    ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
-      [∗list] x ∈ ps.zip r.evs, mvcc.evIs x.1 x.2)
-
-instance wrespRO_persistent (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse)
-    (x : mvcc.api.WResp) : Persistent (wrespRO (GF := GF) v x) := by
-  unfold wrespRO; infer_instance
-
-/-- A received response's copies given up for good. -/
-theorem wrespIs_ro (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (x : mvcc.api.WResp) :
-    mvcc.api.wrespIs (GF := GF) v x ⊢ |==> wrespRO v x := by
-  unfold mvcc.api.wrespIs wrespRO
-  iintro ⟨%Hf, %ps, #Hs, %Hl, Hevs⟩
-  imod mvcc.evOwns_persist _ 1 $$ Hevs with #Hevs
-  imodintro
-  isplitr
-  · ipureintro; exact Hf
-  iexists ps
-  iframe Hs Hevs
-  ipureintro; exact Hl
-
 theorem wsInvG_timeless (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName)
-    (γreg γtok γcl : GName) (cq : w64 → IProp GF) [∀ id, Timeless (cq id)] :
-    Timeless (wsInvG ι γreg γtok γcl cq) := by
+    (γreg γtok γpk γcl : GName) (cq : w64 → IProp GF) [∀ id, Timeless (cq id)] :
+    Timeless (wsInvG ι γreg γtok γpk γcl cq) := by
   have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   unfold wsInvG; infer_instance
 
@@ -284,16 +282,24 @@ registry, the id tokens and the close token allocated, the stream open; the clos
 `close`. -/
 theorem wsInvG_alloc (ι : mvcc.api.WsName) :
     mvcc.api.wsState (GF := GF) ι mvcc.api.wsStart ⊢
-      |={⊤}=> ∃ γreg γtok γcl : GName, inv wsN (wsInvG ι γreg γtok γcl cq) ∗ closeTok γcl := by
+      |={⊤}=> ∃ γreg γtok γpk γcl : GName, inv wsN (wsInvG ι γreg γtok γpk γcl cq) ∗ closeTok γcl := by
   iintro HS
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := RegInfo) with ⟨%γreg, HR⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γtok, HT⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Bool) with ⟨%γpk, HP⟩
+  ihave HPk : iprop(∃ P : GMap w64 Bool, ghostMapAuth γpk 1 P ∗
+      ⌜∀ id, (P !! id).isSome → ((∅ : GMap w64 Unit) !! id).isSome⌝) $$ [HP]
+  · iexists ∅
+    iframe HP
+    ipureintro
+    intro id h
+    simp [GMap.lookup_empty] at h
   imod dghostVar_alloc (GF := GF) () with ⟨%γcl, Hcl⟩
-  imod (inv_alloc wsN ⊤ (wsInvG ι γreg γtok γcl cq)) $$ [HS HR HT] with #Hinv
+  imod (inv_alloc wsN ⊤ (wsInvG ι γreg γtok γpk γcl cq)) $$ [HS HR HT HPk] with #Hinv
   · inext
     iunfold wsInvG
     iexists mvcc.api.wsStart, ∅, ∅
-    iframe HS HR HT
+    iframe HS HR HT HPk
     isplitr
     · ipureintro
       intro id
@@ -312,7 +318,7 @@ theorem wsInvG_alloc (ι : mvcc.api.WsName) :
       iempintro
     ileft; ipureintro; rfl
   imodintro
-  iexists γreg, γtok, γcl
+  iexists γreg, γtok, γpk, γcl
   iframe Hinv
   unfold closeTok
   iexact Hcl
@@ -351,9 +357,9 @@ theorem rel_register (S : mvcc.api.StreamState) (R : GMap w64 RegInfo) (T : GMap
 invariant and the server's peek, at `⊤ \ ↑mvccN`. At the commit on an open stream, the registry
 and the id tokens get the fresh `id`, the watcher is live; on a closed one nothing changes. -/
 theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : Loc)
-    (ι : mvcc.api.WsName) (γreg γtok γcl : GName) (kk e : List w8) (endk : GoSlice)
-    (startRev : w64) :
-    inv wsN (wsInvG ι γreg γtok γcl cq) ∗ srvWOk W wsl wsN ⊢
+    (ι : mvcc.api.WsName) (γreg γtok γpk γcl : GName) (kk e : List w8) (endk : GoSlice)
+    (startRev : w64) (pk : Bool) :
+    inv wsN (wsInvG ι γreg γtok γpk γcl cq) ∗ srvWOk W wsl wsN ⊢
     AU <{ ∃∃ (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState),
           mvcc.api.mvccState W.γm σ ∗ mvcc.api.wsState ι S }> @ ⊤ \ ↑mvcc.api.mvccN, ∅
       <{ ∀∀ (id : w64) (k : Nat), mvcc.api.mvccState W.γm σ ∗
@@ -362,11 +368,11 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
              mvcc.api.wsState ι (S.register id
                { rg := mvcc.watchRangeOf kk e endk startRev id, fs := [],
                  lo := mvcc.api.watchLo σ startRev, k := k, live := true })),
-        COMM watchQ W ι γreg γtok kk e endk startRev σ S id }> := by
+        COMM watchQ W ι γreg γtok γpk pk kk e endk startRev σ S id }> := by
   have : ∀ γ σ, Timeless (mvcc.api.mvccState (GF := GF) γ σ) := hP.2.2.2.2.2.1
   have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
-  have := wsInvG_timeless hP ι γreg γtok γcl cq
+  have := wsInvG_timeless hP ι γreg γtok γpk γcl cq
   have := srvWOk_persistent hP W wsl wsN
   iintro ⟨#Hinv, #HW⟩
   iunfold srvWOk at HW
@@ -376,7 +382,7 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
   unfold atomic_acc
   iinv Hinv with > Hi Hclose
   iunfold wsInvG at Hi
-  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, Hcq, Hcl⟩
+  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, Hcq, Hcl, HPk⟩
   iunfold srvPeek at Hpk
   icases Hpk with #Hpk
   imod Hpk $$ %((⊤ \ ↑mvcc.api.mvccN) \ ↑wsN) %hN1 with ⟨%σ, Hσ, Hh, -, Hclose2⟩
@@ -392,7 +398,7 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
     iintro ⟨Hσ, HS⟩
     imod Hclose3 with -
     imod Hclose2 $$ Hσ with -
-    imod Hclose $$ [HS HR HT Hcq Hcl] with -
+    imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
     · inext; iunfold wsInvG; iexists S, R, T; iframe; iframe #; ipureintro; exact ⟨Hrel, Hfs⟩
     imodintro; iempintro
   · -- commit
@@ -403,8 +409,8 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
     by_cases hcl : S.closed = true
     · simp only [ite_eq_left hcl]
       icases Hres with ⟨%Hid, HS⟩
-      imod Hclose $$ [HS HR HT Hcq Hcl] with -
-      · inext; iunfold wsInvG; iexists S, R, T; iframe HS HR HT Hreg Hcq Hcl
+      imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
+      · inext; iunfold wsInvG; iexists S, R, T; iframe HS HR HT Hreg Hcq Hcl HPk
         isplitr
         · ipureintro; exact Hrel
         ipureintro; exact Hfs
@@ -427,12 +433,38 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
       imod ghost_map_insert id () hT $$ HT with ⟨HT, Htok0⟩
       ihave Htok : idTok (GF := GF) γtok id $$ [Htok0]
       · iunfold idTok; iexact Htok0
+      icases HPk with ⟨%P, HP, %HPT⟩
+      have hP : P.lookup id = none := by
+        cases hc : P.lookup id with
+        | none => rfl
+        | some _ =>
+          have := HPT id (by show (P.lookup id).isSome; rw [hc]; rfl)
+          rw [show T !! id = T.lookup id from rfl, hT] at this; exact absurd this (by simp)
+      imod ghost_map_insert_persist id pk hP $$ HP with ⟨HP, #Hpk0⟩
+      ihave #Hpk : pkIs (GF := GF) γpk id pk $$ []
+      · iunfold pkIs; iexact Hpk0
       have Hrel' := rel_register S R T id w rfl Hrel Hfs
-      imod Hclose $$ [HS HR HT Hcq Hcl] with -
+      ihave HPk : iprop(∃ P' : GMap w64 Bool, ghostMapAuth γpk 1 P' ∗
+          ⌜∀ x, (P' !! x).isSome → ((T.insert id ()) !! x).isSome⌝) $$ [HP]
+      · iexists P.insert id pk
+        iframe HP
+        ipureintro
+        intro x hx
+        by_cases hix : id = x
+        · subst hix
+          show ((T.insert id ()).lookup id).isSome
+          rw [GMap.lookup_insert]; rfl
+        · show ((T.insert id ()).lookup x).isSome
+          rw [GMap.lookup_insert_ne _ _ hix]
+          have hx' : (P.lookup x).isSome := by
+            have : ((P.insert id pk).lookup x).isSome := hx
+            rwa [GMap.lookup_insert_ne _ _ hix] at this
+          exact HPT x hx'
+      imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
       · inext
         iunfold wsInvG
         iexists S.register id w, R.insert id (regInfoOf w), T.insert id ()
-        iframe HS HR HT
+        iframe HS HR HT HPk
         isplitr
         · ipureintro; exact Hrel'.1
         isplitr
@@ -453,7 +485,7 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
           · iright; iexact Hcl
       imodintro
       iexists regInfoOf w
-      iframe Hid Htok
+      iframe Hid Htok Hpk
       isplitr
       · rw [show (regInfoOf w).k = k from rfl]; iexact Hk
       isplitr
@@ -468,19 +500,19 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
 /-- **O2, `cancel_au`**: the update `recvLoop` passes to `Cancel id`, with the client's cancel
 request (`cq id`): the watcher, if any, not live, its cancel fact kept. -/
 theorem cancel_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName)
-    (γreg γtok γcl : GName) (id : w64) :
-    inv wsN (wsInvG ι γreg γtok γcl cq) ∗ cq id ⊢
+    (γreg γtok γpk γcl : GName) (id : w64) :
+    inv wsN (wsInvG ι γreg γtok γpk γcl cq) ∗ cq id ⊢
     AU <{ ∃∃ (S : mvcc.api.StreamState), mvcc.api.wsState ι S }> @ ⊤ \ ↑mvcc.api.mvccN, ∅
       <{ mvcc.api.wsState ι (S.cancel id), COMM True }> := by
   have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
-  have := wsInvG_timeless hP ι γreg γtok γcl cq
+  have := wsInvG_timeless hP ι γreg γtok γpk γcl cq
   iintro ⟨#Hinv, #Hq⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with > Hi Hclose
   · unfold wsN mvcc.api.mvccN; solve_ndisj
   iunfold wsInvG at Hi
-  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, Hcq, Hcl⟩
+  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, Hcq, Hcl, HPk⟩
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvcc.api.mvccN) \ ↑wsN from
     Std.LawfulSet.empty_subset)
   iintro Hclose3
@@ -490,7 +522,7 @@ theorem cancel_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsNam
   isplit
   · iintro HS
     imod Hclose3 with -
-    imod Hclose $$ [HS HR HT Hcq Hcl] with -
+    imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
     · inext; iunfold wsInvG; iexists S, R, T; iframe; iframe #; ipureintro; exact ⟨Hrel, Hfs⟩
     imodintro; iempintro
   · iintro HS
@@ -499,18 +531,18 @@ theorem cancel_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsNam
     | none =>
       have hc : S.cancel id = S := by unfold mvcc.api.StreamState.cancel; rw [hw]
       rw [hc]
-      imod Hclose $$ [HS HR HT Hcq Hcl] with -
+      imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
       · inext; iunfold wsInvG; iexists S, R, T; iframe; iframe #; ipureintro; exact ⟨Hrel, Hfs⟩
       imodintro; itrivial
     | some w =>
       have hc : S.cancel id = { S with ws := S.ws.insert id { w with live := false } } := by
         unfold mvcc.api.StreamState.cancel; rw [hw]
       rw [hc]
-      imod Hclose $$ [HS HR HT Hcq Hcl] with -
+      imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
       · inext
         iunfold wsInvG
         iexists { S with ws := S.ws.insert id { w with live := false } }, R, T
-        iframe HS HR HT Hcl
+        iframe HS HR HT Hcl HPk
         isplitr
         · ipureintro
           intro x
@@ -555,20 +587,20 @@ theorem cancel_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsNam
 /-- **O3, `close_au`**: the update `close` passes to `Close`: the close token shows the stream
 open, and is deposited. -/
 theorem close_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName)
-    (γreg γtok γcl : GName) :
-    inv wsN (wsInvG ι γreg γtok γcl cq) ∗ closeTok γcl ⊢
+    (γreg γtok γpk γcl : GName) :
+    inv wsN (wsInvG ι γreg γtok γpk γcl cq) ∗ closeTok γcl ⊢
     AU <{ ∃∃ (S : mvcc.api.StreamState), mvcc.api.wsState ι S ∗ ⌜S.closed = false⌝ }>
         @ ⊤ \ ↑mvcc.api.mvccN, ∅
       <{ mvcc.api.wsState ι S.close, COMM True }> := by
   have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
-  have := wsInvG_timeless hP ι γreg γtok γcl cq
+  have := wsInvG_timeless hP ι γreg γtok γpk γcl cq
   iintro ⟨#Hinv, Htok⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with > Hi Hclose
   · unfold wsN mvcc.api.mvccN; solve_ndisj
   iunfold wsInvG at Hi
-  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, Hcq, Hcl⟩
+  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, Hcq, Hcl, HPk⟩
   icases Hcl with (%Hop | Htok')
   rotate_left
   · iexfalso; iapply closeTok_excl γcl $$ [Htok Htok']; iframe
@@ -583,8 +615,8 @@ theorem close_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName
   isplit
   · iintro ⟨HS, -⟩
     imod Hclose3 with -
-    imod Hclose $$ [HS HR HT Hcq] with -
-    · inext; iunfold wsInvG; iexists S, R, T; iframe HS HR HT Hreg Hcq
+    imod Hclose $$ [HS HR HT Hcq HPk] with -
+    · inext; iunfold wsInvG; iexists S, R, T; iframe HS HR HT Hreg Hcq HPk
       isplitr
       · ipureintro; exact Hrel
       isplitr
@@ -593,8 +625,8 @@ theorem close_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName
     imodintro; iexact Htok
   · iintro HS
     imod Hclose3 with -
-    imod Hclose $$ [HS HR HT Hcq Htok] with -
-    · inext; iunfold wsInvG; iexists S.close, R, T; iframe HS HR HT Hreg
+    imod Hclose $$ [HS HR HT Hcq Htok HPk] with -
+    · inext; iunfold wsInvG; iexists S.close, R, T; iframe HS HR HT Hreg HPk
       isplitr
       · ipureintro; exact Hrel
       isplitr
@@ -637,6 +669,81 @@ theorem rev_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : Lo
     imod Hclose2 $$ Hσ with -
     imodintro; itrivial
 
+/-! ## `Range()`: the send loop's read of a previous key-value (k8s 7f-3b) -/
+
+omit [GooseSemantics] [GooseInterp] go_gctx sem mvcc_sem in
+/-- A reachable state's revision `1` is empty (`NewStore`'s), and so is its notified log's. -/
+theorem reach_rev1 {σ : mvcc.api.MvccState} (h : mvcc.api.MvccReachable σ) :
+    1 < σ.log.length ∧ σ.log.getD 1 [] = [] := by
+  induction h with
+  | start => exact ⟨by decide, rfl⟩
+  | notify σ pend _ _ _ ih => exact ih
+  | commit σ _ ih =>
+    show 1 < (mvcc.commitLog σ.log (σ.pending.getD [])).length ∧
+      (mvcc.commitLog σ.log (σ.pending.getD [])).getD 1 [] = []
+    unfold mvcc.commitLog
+    split
+    · exact ih
+    · refine ⟨by simp; omega, ?_⟩
+      rw [List.getD_eq_getElem?_getD, List.getElem?_append_left ih.1, ← List.getD_eq_getElem?_getD]
+      exact ih.2
+  | compact σ r _ _ _ _ _ ih => exact ih
+
+omit [GooseSemantics] [GooseInterp] go_gctx sem mvcc_sem in
+/-- The notified log has the log first. -/
+theorem log_prefix_notified (σ : mvcc.api.MvccState) : σ.log <+: σ.notifiedLog := by
+  unfold mvcc.api.MvccState.notifiedLog
+  split
+  · exact List.prefix_refl _
+  · exact List.prefix_append _ _
+
+omit [GooseSemantics] [GooseInterp] go_gctx sem mvcc_sem in
+/-- A log's state at a revision it has is its extension's. -/
+theorem stateAt_prefix {L L' : mvcc.Log} (h : L <+: L') {r : Nat} (hr : r < L.length) :
+    mvcc.stateAt L r = mvcc.stateAt L' r := by
+  unfold mvcc.stateAt
+  obtain ⟨t, rfl⟩ := h
+  rw [List.take_append_of_le_length (by omega)]
+
+/-- **`range_au`**: the peek as `Range`'s update, learning the certified notified log of the state
+read and that the state is reachable (`mvccState_reachable.law`). -/
+theorem range_au (hP : mvcc.api.persistent.law (GF := GF))
+    (hRe : mvcc.api.mvccState_reachable.law (GF := GF)) (W : SrvW GF) (wsl : Loc) :
+    srvWOk W wsl wsN ⊢
+    AU <{ ∃∃ (σ : mvcc.api.MvccState), mvcc.api.mvccState W.γm σ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅
+      <{ mvcc.api.mvccState W.γm σ, COMM (□ W.histLb σ.notifiedLog ∗
+        ⌜mvcc.api.MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝) }> := by
+  have := srvWOk_persistent hP W wsl wsN
+  iintro #HW
+  ihave #HW' := HW
+  iunfold srvWOk at HW'
+  icases HW' with ⟨-, #Hmv, #Hpk, %Hm, #Hhp, -⟩
+  iauintro
+  unfold atomic_acc
+  iunfold srvPeek at Hpk
+  icases Hpk with #Hpk
+  imod Hpk $$ %(⊤ \ ↑mvcc.api.mvccN) %Hm.1 with ⟨%σ, Hσ, Hh, -, Hclose2⟩
+  ihave #Hh := Hhp $$ Hh
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvcc.api.mvccN) \ ↑W.N from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose3
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose3 with -
+    imod Hclose2 $$ Hσ with -
+    imodintro; iempintro
+  · iintro Hσ
+    ihave %Hr := hRe W.kv W.γm σ $$ [Hσ]
+    · iframe Hmv Hσ
+    imod Hclose3 with -
+    imod Hclose2 $$ Hσ with -
+    imodintro
+    iframe Hh
+    ipureintro; exact Hr
+
 /-! ## O4: the send loop's snapshot after a receive -/
 
 /-- **The snapshot is duplicable** (its `histLb` and `crevOk` by `srvWOk`'s laws). -/
@@ -678,9 +785,9 @@ run's invariant and the server's peek (timeless), apply `wsRecv_ok.law`, close b
 snapshot, and each id of `M` a watcher of the snapshot's `S` with that entry. -/
 theorem snap_after_recv (hP : mvcc.api.persistent.law (GF := GF))
     (hok : mvcc.api.wsRecv_ok.law (GF := GF)) (W : SrvW GF) (wsl : Loc) (ws : GoInterface)
-    (ι : mvcc.api.WsName) (γreg γtok γcl : GName) (rs : List mvcc.api.WResp)
+    (ι : mvcc.api.WsName) (γreg γtok γpk γcl : GName) (rs : List mvcc.api.WResp)
     (M : GMap w64 RegInfo) :
-    mvcc.api.isMvccWatchStream ws W.γm ι ∗ inv wsN (wsInvG ι γreg γtok γcl cq) ∗
+    mvcc.api.isMvccWatchStream ws W.γm ι ∗ inv wsN (wsInvG ι γreg γtok γpk γcl cq) ∗
       srvWOk W wsl wsN ∗ mvcc.api.wsRecv ι rs ∗ □ ([∗map] X ↦ i ∈ M, regIs γreg X i) ⊢
     |={⊤}=> mvcc.api.wsRecv ι rs ∗ ∃ (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState),
       rcvSnapG W γreg cq rs σ S ∗
@@ -688,7 +795,7 @@ theorem snap_after_recv (hP : mvcc.api.persistent.law (GF := GF))
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ γ σ, Timeless (mvcc.api.mvccState (GF := GF) γ σ) := hP.2.2.2.2.2.1
   have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
-  have := wsInvG_timeless hP ι γreg γtok γcl cq
+  have := wsInvG_timeless hP ι γreg γtok γpk γcl cq
   have := srvWOk_persistent hP W wsl wsN
   iintro ⟨#Hws, #Hinv, #HW, Hr, #HM⟩
   ihave #HW' := HW
@@ -697,7 +804,7 @@ theorem snap_after_recv (hP : mvcc.api.persistent.law (GF := GF))
   obtain ⟨-, hN2⟩ := masks_nested Hm.1 Hm.2.1 Hm.2.2
   iinv Hinv with > Hi Hclose
   iunfold wsInvG at Hi
-  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, #Hcq, Hcl⟩
+  icases Hi with ⟨%S, %R, %T, HS, HR, HT, %Hrel, %Hfs, #Hreg, #Hcq, Hcl, HPk⟩
   iunfold srvPeek at Hpk
   icases Hpk with #Hpk
   imod Hpk $$ %(⊤ \ ↑wsN) %hN2 with ⟨%σ, Hσ, Hh, Hc, Hclose2⟩
@@ -716,7 +823,7 @@ theorem snap_after_recv (hP : mvcc.api.persistent.law (GF := GF))
     · iexact Hreg
     · iexact Hcq
   imod Hclose2 $$ Hσ with -
-  imod Hclose $$ [HS HR HT Hcq Hcl] with -
+  imod Hclose $$ [HS HR HT Hcq Hcl HPk] with -
   · inext; iunfold wsInvG; iexists S, R, T; iframe; iframe #; ipureintro; exact ⟨Hrel, Hfs⟩
   imodintro
   iframe Hr
