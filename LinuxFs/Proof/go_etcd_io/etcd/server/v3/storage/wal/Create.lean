@@ -27,6 +27,10 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLocked
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import LinuxFs.Proof.os.MkdirAllParts
 public import Spec.fmt.SprintfWalName
 
@@ -97,9 +101,18 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_Prealloc : go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.spec (GF := GF) (hG := hG))
+    (wp_newFileEncoder : go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec (GF := GF)
+      (hG := hG))
+    (wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
+    (wp_SaveSnapPre : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (GF := GF)
+      (hG := hG) Mr)
+    (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
+    (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
+    (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
     (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp _hmd
+  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp hmd hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -108,7 +121,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   · iframe; iframe #
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
-  icases Hdeps with ⟨-, #Herrs, #Hfmt, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
+  icases Hdeps with ⟨#Hbin, #Herrs, #Hfmt, -, -, #Hsync, #Hproto, #Hfu, -, -, -, -, #Hos, #Htime, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
@@ -379,7 +392,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave #Hwi : (wal.walInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
     iunfold wal.walInit at Hwi
-    icases Hwi with ⟨-, -, #Hseg, -⟩
+    icases Hwi with ⟨#Hcrct, #Hmet, #Hseg, -⟩
     try wp_auto
     have hwr : (openFd i (wal.walOpenFlag false ||| W64 524288)).writable = true := by
       simp only [openFd]; unfold wal.walOpenFlag O_RDONLY; decide
@@ -411,6 +424,85 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       try wp_auto
       create_seg_exit
     obtain rfl : wsz = 64000000 := hwsz.2.2 rfl
+    try wp_auto
+    -- `w := &WAL{lg, dir, metadata}` (allocated), `newFileEncoder(f.File, 0)`
+    irename lg => Hlgp
+    irename metadata => Hmdp
+    irename «$r0» => Hwal
+    generalize «$r0_ptr» = wl at *
+    iStructNamed Hwal
+    imod sync.init_Mutex (BI.pure True : IProp GF) ⊤
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" wl) $$ mu [] with #Hmu
+    · inext; ipureintro; trivial
+    ihave #Henv : (encEnv : IProp GF) $$ []
+    · iunfold encEnv; iframe #
+    ihave #Hioi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil $$ []
+    · iPkgInit
+    ihave Hoff : os.ownOff f (W64 0) $$ [Hoff]
+    · iexact Hoff
+    wp_apply (wp_newFileEncoder f fd _ _ (W64 0) (W32 0) hfi.1 (by decide) (by decide))
+      $$ [Hf Hoff] as %e ⟨Henc, Hf, Hoff, %he⟩
+    · iframe; iframe #
+    try wp_auto
+    -- `w.locks = append(w.locks, f)`
+    wp_apply wp_slice_literal (V := Loc) [lf]
+    isplitr
+    · ipureintro; rfl
+    iintro %l1 ⟨Hl1, -⟩
+    ihave Hls0 := ownSlice_nil (GF := GF) (V := Loc) (DFrac.own 1)
+    ihave Hcap0 := ownSliceCap_nil (GF := GF) (V := Loc)
+    wp_apply (wp_slice_append (V := Loc) slice.nil [] _ [lf] (DFrac.own 1)) $$ [Hl1]
+      as %locks' ⟨Hls, Hcap, -⟩
+    · iframe; iframe #
+    try wp_auto
+    -- the headers' stream over the segment's zeros, from offset 0
+    have hFr := createStream_frames Mr md hMr
+    have hL := createStream_fit Mr md hMr hmd
+    have hnm0 : Fs.newMeta.size = 0 := by
+      simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
+    iunfold preGrown at Hpa
+    icases Hpa with ⟨%m2, ⟨%hm2s, %hm2maps, -, %hgrow⟩, Hm2, Hz2⟩
+    icases (osZerosA_unfold i _ _ (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
+    have hlo2 : m2.lo ≤ m2.size :=
+      hgrow.2 (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
+    have hmaps2 : m2.maps = ∅ := by
+      rw [hm2maps]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
+    ihave Hm2 : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) m2 $$ [Hm2]
+    · rw [hino]; iexact Hm2
+    ihave Hz2 : osBytes (openFd i (wal.walOpenFlag false ||| W64 524288)).ino 0 (DFrac.own 1)
+        (zs2.map (fun c => ((0 : w8), c))) $$ [Hz2]
+    · rw [hino, ← hnm0]; iexact Hz2
+    ihave HW0 := os.fileW_start f fd _ (DFrac.own 1) (DFrac.own 1)
+      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 0 (zs2.map (fun c => ((0 : w8), c)))
+      hlo2 (Nat.zero_le _) (by simp [hzs2, hm2s, hnm0]) $$ [Hf Hfd Hoff Hm2 Hz2]
+    · iframe
+    ihave #Hws := os.File.writerStreamI wp_WriteAt f fd _ (DFrac.own 1) (DFrac.own 1)
+      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c)))
+      (createStream Mr md).length hfi.1 hwr hmaps2 (by omega) $$ Hosi
+    ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
+    ihave HW0' : os.fileWI f fd _ (DFrac.own 1) (DFrac.own 1)
+      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c))) [] $$ [HW0]
+    · iunfold os.fileWI; iframe; iframe #
+    -- `saveCrc(0)`
+    rw [show (W32 0) = 0#32 from rfl] at *
+    wp_apply (wp_saveCrc wl e (wal.fileWi f) _ _ (fun ys => ys.length ≤ (createStream Mr md).length)
+        [] [] 0#32 0#32 (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by rw [hFr]; simp))
+      $$ [HwsP] [encoder Henc HW0'] as %serr1 ⟨%pend1, Hencf, Henc, Hr1⟩
+    · iexact HwsP
+    · iframe; iframe #
+    icases Hr1 with (⟨%ys1, ⟨%he1, %hys1⟩, HW1⟩ | ⟨%a1, %b1, ⟨%he1, -, -⟩, HB1⟩)
+    rotate_left
+    · -- `saveCrc` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr1 with ei | _
+      rotate_left
+      · exact absurd rfl he1
+      iunfold os.fileBI at HB1
+      icases HB1 with ⟨HB1, -⟩
+      iunfold os.fileB at HB1
+      icases HB1 with ⟨%o', %mb, %ysb, -, Hf, Hfd, -⟩
+      try wp_auto
+      create_seg_exit
+    subst he1
     try wp_auto
     sorry)
 
