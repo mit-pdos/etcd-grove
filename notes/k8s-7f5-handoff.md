@@ -36,7 +36,10 @@ Done (`35fdc186ad` and the commit after it on `k8s-7f5`; questions.md entries of
   `nonissues/etcd-watch-prevkv-revision-one.md`.
 - **Step 4 moved to 7f-3c** (form decision): `rawRespOkP` swap is client-only.
 
-Next: the checkpoint (full build, tcb --check, gates, interfaces), report to 81, land on its go;
+Checkpoint passed (2026-11-14, `de5280daab`): full build 17487 jobs, tcb 870/4, gates all passed
+(`/shared/tmp/k8s7f3b-v3rpc/{full,tcb,gates}.log`), no interface diff; review material
+`/shared/tmp/k8s7f3b-v3rpc/review.md`. STOPPED for 81. Next on 81's go: merge lean (it moved,
+77f542f56c), STATUS entry (oldest to status-history, append only), `etc/land.sh`;
 then 7f-3c: `rawRespOkP` (prevKvLogOk from `evsSentOk`: for `prevKV = false`, `pkIs` agreement with the
 created response's `pkIs … c.prevKv`; for a written one, `stateAt` transfer between `L` and the
 client's log by `histLb` agreement, and `L[1] = []` to exclude revision 1), then `watchGRPCStream`
