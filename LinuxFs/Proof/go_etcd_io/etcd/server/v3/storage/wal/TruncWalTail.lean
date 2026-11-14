@@ -40,8 +40,8 @@ theorem TailZ.rsPost_tc {m : OsMeta} {wr : Nat} {tc : GMap Nat Cands} {rz : List
   · simp only [OsMeta.withTc_zf, rsPost, announce_zf, hz0, Option.map_some, hmin, hhi]
   · simp only [OsMeta.withTc_size, Perennial.os.rsPost_size']; split <;> omega
   · simp only [OsMeta.withTc_size, OsMeta.withTc_cz, Perennial.os.rsPost_size']
-    show pageEnd _ ≤ max wr (rsCz true m.size wr m.cz)
-    simp only [rsCz, if_true, hhi]
+    show pageEnd _ ≤ max wr (rsCz true m wr)
+    simp only [rsCz, if_true, hhi, hz0, Option.getD_some]
     by_cases hw : wr < pageEnd m.size
     · rw [if_pos hw]
       simp only [pageEnd] at hp0 hle hw ⊢
