@@ -364,3 +364,52 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   needs the invariant to keep `d.metadata.length < 2^41`, established at `Create`'s commit). The cuts'
   increase (`cut.spec`'s `h.cuts.Pairwise`) is not carried by the handle: the append's commit returns it
   from the invariant's static relation (`walTail_append`).
+
+## 2026-11-14: `wal.Create.spec` (the part's, over `fsExt`) -- its success post is the ghost-only handle
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), success arm:
+  `walOpenW w dir` (the sealed ghost handle: mode and lock token) and `osCallPerm ½`.
+- **Defect.** `Save`/`SaveSnapshot`/`Sync`/`Close` (W6/W10) take the client handle `walOpenWF P Mr w dir`
+  (`Handle.lean`: `w`'s fields, encoder, tail, pipeline, directory share, `walOpenW` inside), as `ReadAll`
+  returns it; a WAL made by `Create` could not be appended to. The commit's out-record, the tails' authority half,
+  the named entry and the metadata belong in that handle, and were dropped.
+- **Evidence.** W4 log, eleventh session ("For the coordinator"); the coordinator's decision of 2026-11-14
+  (task 3 of `wal-create12`).
+- **Change (made).** `wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal)` over `walAreaOk walCodec Mr` (the
+  handle's codec, as `Save`'s), `HeapGS HasLC.hasLC` (the handle's receipts); success arm `Q ∗ walOpenWF P Mr w dir ∗
+  walNamed dir ∗ walLenLb w dir 0 ∗ walSyncedLb dir 0 ∗ walPurgeW w dir`, the call permission's half now inside the
+  handle (`walDirH`). An internal refinement: no new client-visible ghost state (`walOpenWF` is the existing
+  handle; it implies `walOpenW`, `walOpenWF_iff`); no client of `Create`'s part spec exists yet.
+- **Decision.** Adopted (coordinator's decision; proof agent, `wal-create12`).
+- **Addendum (2026-11-14, `wal-save11`'s obligation).** `Create.spec` also takes `md.length < 2 ^ 41` (a
+  premise: the handle `walOpenWF` now holds `h.md.length < 2^41`); minor, the metadata etcd writes is small.
+  The invariant's `d.metadata.length < 2^41` (for `ReadAll`) is to be established at `Create`'s commit
+  (`walCreate_osAUnc`), not yet done.
+
+## 2026-11-14: `wal.Exist.spec` -- the lock token, and a `false` that `fsExt` cannot exclude
+
+- **Spec.** `wal.Exist.spec` (the main tree's W4a axiom `Spec/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean`),
+  restated over `fsExt` in `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean` (W12 of
+  `notes/wal-fsext-plan.md`).
+- **Defects.** (1) *The token.* To read a present WAL's directory, `Exist` needs a fraction of its directory's
+  claim, which `walParked` holds while no handle is open; taking it out needs the lock (`walParked_lock`,
+  as `Open`'s pin). The old spec took no token. (2) *Q4 (b).* `Create`'s failure after its rename leaves a
+  fresh, unnamed WAL whose directory `cleanupWAL` may have moved aside (plan §11): `false` must allow it.
+  (3) *`false` on a present WAL.* `Exist` returns `false` when `ReadDir` fails with an error
+  `errors.Is(_, os.ErrNotExist)` accepts. `fsExt` lets every failing system call return any errno, `ENOENT`
+  included (`IsFsStep` "Open", "Readdir"), so the model has runs where `Exist` of a present, named WAL
+  returns `false`: the old post (`false → o = none`) is false of the model, though true on configuration C
+  (Linux's `open(2)` returns `ENOENT` only for a missing component; `getdents64` only on a removed
+  directory, which a WAL directory under the area discipline is not).
+- **Evidence.** `GooseLang/Ext/Fs/Impl.lean`, "Environmental failure is a nondeterministic errno"; the W12
+  proof (the plan's W7-W12 log).
+- **Proposed change.** (1) `Exist` takes `walUnlockedTok` (framed), as `Open` and `Create` do; its callers
+  (the server's bootstrap, the tester's restart) call it with no handle open. (2) `false → o = none ∨ ∃ d,
+  o = some d ∧ d.H = [] ∧ d.named = false`. (3) Kept the strong post, proved over the hypothesis
+  `fileutil.ReadDir.specChildIs` (a present directory's read fails only with an error `errors.Is` does not
+  take for `os.ErrNotExist`), unprovable against the current model; the model fix ("`ENOENT` only when the
+  path does not resolve", for `open` and `getdents`) is the user's (trusted semantics) -- the alternative,
+  a `false` that claims nothing, would leave `Create` (which needs `walAbsent`) unreachable from the
+  server's bootstrap.
+- **Decision.** (1), (2) adopted (minor; (2) is the coordinator's Q4 (b)). (3) **for the user**: the
+  hypothesis stays until the model tightens `ENOENT` (`notes/wal-fsext-plan.md`, W7-W12 log).
