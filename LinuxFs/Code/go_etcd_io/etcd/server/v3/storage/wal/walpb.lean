@@ -8,6 +8,7 @@ public import Code.go_etcd_io.raft.v3.raftpb
 public import Code.google_golang_org.protobuf.reflect.protoreflect
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import LinuxFs.TrustedCode.go_etcd_io.etcd.server.v3.storage.wal.walpb
 
 @[expose] public section
 
@@ -452,6 +453,7 @@ class Record.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_GetData_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetData" Record.GetData.impl
   ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetType" Record.GetType.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"ProtoMessage" Record.ProtoMessage.impl
+  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"Reset" Record.Reset.impl
   ptr_Validate_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"Validate" Record.Validate.impl
 
 attribute [instance] Record.TypeAssumptions.type_repr
@@ -474,6 +476,7 @@ attribute [instance] Record.TypeAssumptions.type_repr
   Record.TypeAssumptions.ptr_GetData_unfold
   Record.TypeAssumptions.ptr_GetType_unfold
   Record.TypeAssumptions.ptr_ProtoMessage_unfold
+  Record.TypeAssumptions.ptr_Reset_unfold
   Record.TypeAssumptions.ptr_Validate_unfold
 
 structure Snapshot [GooseExts] where

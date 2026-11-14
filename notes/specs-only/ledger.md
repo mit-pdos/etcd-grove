@@ -908,3 +908,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `alloc`'s error path after a `fallocate` that did not land has none). `alloc`'s `ZeroPg` proved; `zerosA_trFile`
   takes `ZfGe` (`filePipeline.run`, from `pipeFile`'s `ZeroPg`).
 - **Decision.** Made (`wal-save18`, the coordinator's task 1, `rsCz`; the shape adjusted as above and logged).
+
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's) -- the `valAfter` clause and `.touch`
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `fileutil.CreateDirAll.specTmp`
+  (the success post's `∀ (K : Nat → Prop) (b : GoString), hJ.valAfter J K b = none`, added by the 2026-11-14 entry
+  above).
+- **Defect.** False, also in the case the entry above took for true (`CreateDirAll` makes the directory):
+  `CreateDirAll` runs `TouchDirAll`, whose `IsDirWriteable(J)` writes `J/.touch` and removes it
+  (`fileutil.go`), through `J`'s claim (`IsDirWriteable.spec` takes `osNames J (.only [.touch]) 1`), so the returned
+  `hJ.ents` hold the create and the remove of `.touch`; with `K` keeping the create's index and not the remove's,
+  `hJ.valAfter J K .touch` is the file, not `none`. The clause quantifies over every `K`, and the claim's history
+  cannot be dropped, so no proof exists.
+- **Evidence.** `NamesH.valAfter` (`GooseLang/Ext/Fs/NamesGhost.lean`: the last kept entry writing `b`);
+  `IsDirWriteable.spec`'s post (`LinuxFs/Spec/.../fileutil/IsDirWriteable.lean`). Found proving the inventory's leaf
+  specs (`wal-leaf1`, plan §8 "Leaf specs log").
+- **Proposed change.** None new: the coordinator's superseding direction in the entry above (limit `hJC` to the
+  crashes keeping `J`'s entries, drop the clause from `specTmp`) removes the false clause; this entry is one more
+  reason for it (a clause restricted to `b ≠ .touch` would instead need the extension's allocator fact).
+- **Decision.** Recorded only (`wal-leaf1`); the restatement is `wal-create17`'s.

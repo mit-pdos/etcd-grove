@@ -75,7 +75,7 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino))) := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩ Hf
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩ Hf
   icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
   subst hT
   imod (ghostVar_alloc (GF := GF) (tailG d lay g.ino (F !! g.ino))) with ⟨%γ, Hv⟩
@@ -85,7 +85,7 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iexists γ
   iframe Hf Hk Hv2
   iexists <[dir := γ]> ∅
-  iframe Ha HOld
+  iframe Ha
   isplitr
   · ipureintro
     intro i hi

@@ -8,7 +8,8 @@ flushed (the write position at the end of the tail's stream, no write in flight)
 (`walInvBody_sync`, `TailSync.lean`) and runs `wp_osFsync`. On success the invariant moves to the WAL
 state with the mark at the whole history (`walSyncS`), the tail synced, and the program gets its
 halves of the synced tail and `walSyncedLb dir |H|`; on failure (never `EINTR`) nothing changes.
-The lock token's pending-cut flag (`walCutFrag none`) says no cut's rename is pending.
+The lock token's pending-cut flag (`walCutFrag none`) says no cut's rename is pending. The tail may
+be in a resize window (`TailMetaW`: the invariant moves to `syncLayW`, W6 log, twentieth session).
 -/
 module
 
@@ -37,7 +38,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd) (Φ : val → IProp GF)
-    (hm : TailMeta m bs) (hwr : wr = (tailStream Mr H md cuts).length) :
+    (hm : TailMetaW m bs) (hwr : wr = (tailStream Mr H md cuts).length) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) -∗ walCutFrag (W := W) none -∗
       osMeta d.ino (DFrac.own (1 : Qp).half) m -∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs -∗
@@ -89,7 +90,7 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
     icases Hconts with ⟨Hsucc, -⟩
     imod Hsucc $$ [] [Hm2 Hb2] with ⟨Hb, Hpast⟩
-    · ipureintro; exact ⟨rfl, htail, hzf, ⟨hm.2.2.2.1.trans hm.1.symm, hm.2.2.2.2.trans hm.1.symm⟩⟩
+    · ipureintro; exact ⟨rfl, htail, hzf⟩
     · dsimp only [syncTail]; rw [← hino]; iframe
     imod Hid
     imod Hcl $$ [Hb]
