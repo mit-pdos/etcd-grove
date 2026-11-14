@@ -485,8 +485,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
           · iframe
           (try wp_auto)
+          ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+          · iPkgInit
           wp_apply (wp_ZeroToEnd R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr gl.om.size gl.om.size
-            hwrS hwrT) $$ [$HareaK $Htw] as %ez Hz
+            hwrS hwrT) $$ [$HareaK $Herrs $Htw] as %ez Hz
           icases Hz with (⟨%hez, %sz', %hsz', Htw⟩ | %hez)
           rotate_left
           · -- `ZeroToEnd`'s error

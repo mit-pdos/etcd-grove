@@ -349,15 +349,16 @@ def growStartP (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)
   iprop(growTie (W := W) dir γ k H md cuts wr i ∗ osMeta i (DFrac.own (1 : Qp).half) m0)
 
 /-- **The supply of `fallocate`'s growth of the lent tail to `tg ≤ k`** (see the file header), told
-`lo ≤ wr` of the state. -/
+`lo ≤ wr` of the state (and, as `walTail_truncSupG`'s, that it is at most `tg` long). -/
 theorem walTail_fallocSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (i : Ino) (tg : Nat) (htg : tg ≤ k) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
-      fallocSup (growTie (W := W) dir γ k H md cuts wr i) i tg (fun m => m.lo ≤ wr) := by
+      fallocSup (growTie (W := W) dir γ k H md cuts wr i) i tg (fun m => m.lo ≤ wr ∧ m.size ≤ tg) := by
   iintro #Hinv
   unfold fallocSup
-  iintro !> %m0 %hsz0 %hP0 HK Hm
+  iintro !> %m0 %hsz0 %hP0' HK Hm
+  obtain ⟨hP0, -⟩ := hP0'
   unfold fallocAuW
   ihave HP : growStartP (W := W) dir γ k H md cuts wr i m0 $$ [HK Hm]
   · unfold growStartP; iframe
