@@ -713,3 +713,142 @@ writes, not a hang (the correction above, under Draft pass 2(a)).
 (r3 N3), the duplicate `LeaseLeases` registration and the unused TTL read in `memberServed` (kept
 for step 2, the revocable mode).
 
+
+## Step 2 Scope: the revocable mode on three members (2026-11-14, session lease-mono3-s2)
+
+Branch `lease-mono3-s2` (off `lean` `89ef103d5b`), worktree `/shared/etcd-grove-auth3`. Asked for by
+the auth-on-leases Scope's §7 (branch `auth-lease-scope`, table 7.4: 4-7 days; fallback "the
+one-granting-member form", 2-4 days). Phase: **Scope**, no Lean edited.
+
+### S2.1 What blocks the revocable mode on three members today (read at `89ef103d5b`)
+
+- `kvGrantIds` (`InvRequest.lean:531`) keeps the log's revocable-mode grant ids as generated ids `U`,
+  each of the one prefix `kvPfx γk` (`:525`, `γk.ids.pfx` in the revocable mode): the masked ids are
+  distinct only within a prefix (`leaseIdMask_nodup_of_pfx`, `:664`).
+- `kvCongr` (`:707`) asks `kvPfx γk = kvPfx γk'`, so every member's KV names must have one prefix,
+  while `memberBoot` pins each member's `ρ.ids.pfx = idPfxOf id` (`etcdstart/Defs.lean:233`) and
+  `LeaseGrant` hands over an id of its own generator's prefix (`grantIdOwn`, `:543`;
+  `EtcdServer__LeaseGrant.lean:220-235`). Hence `srvMemberBoot_alloc`'s
+  `hpfx : γk.lm = .revocable → γk.ids.pfx = idPfxOf id` (`NewServerAlloc.lean:346`) holds for one
+  member only, and `alloc3`/`memberBoot_of` carry the scope premise `lm ≠ .revocable`.
+- Nothing else is single-member in the revocable mode on this path: `cluster3.StartMember` already
+  proves every mode (`servedRegs_of_lease`), `StartCluster.wp_proof`'s `revocable` case is only
+  `absurd rfl Hrev` (`StartCluster.lean:310`; it becomes the `mono` case: no client `etcdKV`), the
+  snapshot paths hold in every mode since S2-S4, and the server's revocation proofs are per member.
+- The real bug behind the single prefix (`issues/etcd-lease-id-mask-member-prefix.md`): the mask
+  clears bit 63, bit 15 of the 16-bit member prefix, so members whose ids agree in their low 15 bits
+  generate colliding lease ids. A multi-member revocable cluster needs a premise excluding it.
+
+### S2.2 The change (the full form)
+
+Server (internal to etcdserver; no API list, no interface file):
+- `KVNames` gains a cluster field `gps : List w64 := []`, **the cluster's grant prefixes** (its
+  members' generator prefixes). `kvPfx` goes.
+- `kvPfxOk γk : Prop := γk.lm = .revocable → γk.ids.pfx ∈ γk.gps ∧ (γk.gps.map (· &&& leaseIdMask)).Nodup`
+  (the member's own prefix is one of the cluster's, and the cluster's prefixes stay distinct after
+  the mask).
+- `kvGrantIds γk L`: `∀ u ∈ U, idPfx u = kvPfx γk` becomes `∀ u ∈ U, idPfx u ∈ γk.gps`, and the pure
+  part gains `kvPfxOk γk`. `kvInv`'s own text is unchanged.
+- `leaseIdMask_nodup_of_pfxs` (new, beside `_of_pfx`): distinct ids whose prefixes are in a list
+  distinct after the mask stay distinct after the mask (two ids equal after the mask agree in bits
+  0-62, so their prefixes agree after the mask, so they are one prefix: `leaseIdMask_inj_pfx`). The
+  three users (`kv_grantIds_nodup`, `ApplyCmpArm.lean:1118,1145`) switch to it.
+- `kvGrantIds_snoc` gets the granting member's prefix in `gps` from the invariant's own `kvPfxOk`
+  (its `grantIdOwn` is unchanged: `idPfx u = γk.ids.pfx`), so neither `LeaseGrant` nor anything
+  between `memberBoot` and the commit changes; `NewServer.specG` is untouched.
+- `kvCongr`'s last field: `kvPfx γk = kvPfx γk'` becomes `γk.gps = γk'.gps ∧ (kvPfxOk γk ↔ kvPfxOk γk')`;
+  `kvInv_congr` rewrites the latter by `propext`. `restartReqNames` keeps `gps` (`Iff.rfl`).
+- `srvClusterBoot_alloc`: new `(gps : List w64)` with `(hgps : lm = .revocable → gp ∈ gps ∧ (gps.map (· &&& leaseIdMask)).Nodup)`;
+  post adds `γk.gps = gps`. `alloc1` (`Alloc.lean:70`) passes `[gp]`.
+- `srvMemberBoot_alloc`: `hpfx` becomes `γk.lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps`, plus
+  `kvPfxOk γk` of the cluster's names (for the `↔`); the member's names copy `gps`.
+
+Vocabulary (new, a premise's): `leaseIdsApart (ids : List w64) : Prop := (ids.map (fun id => uint.Z id % 2 ^ 15)).Nodup`
+(the members' ids' 15 low bits distinct: their lease ids' masked prefixes, the issue's condition), in
+`SrvRaftLog.lean` beside `BootCore`, with the lemma that it and `BootCore.lowNz` make
+`idPfxsOf ids` distinct after the mask.
+
+etcdstart (API, `etc/api/etcdstart.txt`; hub request to 81):
+- `memberBoot_of`: `(hrev : lm ≠ .revocable)` becomes `(hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)`.
+- `alloc3Http` (private), `alloc3`: `(hrev : lm ≠ .revocable)` becomes
+  `(hap : lm = .revocable → leaseIdsApart [id₁, id₂, id₃])`; `gp := idPfxOf id₁`,
+  `gps := idPfxsOf ps`. Posts unchanged. Docstring: the scope paragraph replaced.
+
+cluster3 (FROZEN, hub step 7 E2; a hub request):
+- `StartCluster.spec`: the premise `lm ≠ .revocable` becomes `(lm = .revocable → leaseIdsApart [id₁, id₂, id₃])`;
+  docstring's lease-mode paragraph rewritten (the premise, the issue, the Go test). Post unchanged.
+  Every caller today runs `none` or `mono` and discharges it by `nofun`-style proofs: **no closed
+  theorem gains a premise**, and no closed theorem's statement changes.
+- `StartCluster.wp_proof`: the `revocable` case is the `mono` case.
+
+Go test ("Go first"): the member-id premise is checked per configuration, as `BootFacts`' 16-bit one:
+- `TestMemberIDs` of `examples/etcd/leasecatchup` (cluster3's configuration) and of
+  `examples/etcd/auth3` (auth-on-leases S4's base) also check the 15 low bits distinct. Measured now:
+  leasecatchup `0x2995, 0x7fa9, 0x5839`; auth3 `0x5698, 0x0a21, 0x7ad2` (both pass).
+- A grant test on three members (`examples/etcd/leasecatchup`, new `TestGrantEveryMember`): grants with
+  no ID through each member, interleaved, then `Leases` at each member lists all of them with
+  distinct IDs, and revoking one through a follower removes it everywhere. It shows the full form's
+  claim (grants through followers are ordinary) on a configuration that satisfies the premise; the
+  issue's own test shows the failure when it does not hold.
+
+`issues/etcd-lease-id-mask-member-prefix.md`'s "Proof" paragraph: the premise `leaseIdsApart` is
+where the proof records it (`blocks-proof: no` unchanged).
+
+### S2.3 Trust base
+
+- **No new axiom, sorry, opaque or trusted model.** No TTL row: nothing on this path reads
+  `leaseTTLRow` (single-voter, guarded) or a follower's `TimeToLive`; a multi-member TTL row stays
+  out of scope (a hard stop if ever asked for).
+- New text a closed theorem's reader must read, once a theorem runs the revocable mode on three
+  members: the premise `leaseIdsApart`, discharged per configuration by the Go test.
+- `etc/tcb-baseline.txt` and the collections unchanged (to be checked at Freeze).
+
+### S2.4 The one-granting-member form, and why it is not cheaper
+
+The fallback (every grant through member 1; members 2 and 3 have "no grant right") does not fit
+the server's proof as it is:
+- `kvCongr` makes every member's `kvPfx` one, and `memberBoot` makes each member's `ρ.ids.pfx` its
+  own: members 2 and 3 cannot be booted in the revocable mode at all with `hpfx` for member 1 only.
+- `LeaseGrant.wp_proof` is generic: at any member in the revocable mode it hands over an id of that
+  member's prefix. Withholding the grant right from members 2 and 3 needs a per-member grant guard
+  (a new field or premise read by `NewServer.specG`'s inner predicates and `LeaseGrant.spec`), a
+  change to frozen server statements, while the driver's clients of members 2 and 3 still reach
+  `LeaseGrant` through gRPC.
+- So the restricted form is a larger frozen change than the full form, and claims less.
+
+### S2.5 Estimate
+
+| item | days |
+|---|---|
+| server core (`KVNames.gps`, `kvPfxOk`, `kvGrantIds`, the nodup lemma, `kvCongr`, the two allocs) | 0.5-1 |
+| `leaseIdsApart` and its mask lemma (bit-level, as `leaseIdMask_inj_pfx`) | 0.5 |
+| `alloc3`, `memberBoot_of`, `StartCluster.spec`/proof, callers | 0.5-1 |
+| Go tests | 0.5 |
+| build, interfaces, Freeze package, review fixes | 1-1.5 |
+
+Total **3-4.5 days**, below the auth-lease Scope's 4-7. Rebuild: `InvRequest` and `KVNames` reach
+most of etcdserver (a full build).
+
+### S2.6 For the auth-on-leases S4 (notes/auth-lease-scope.md §7)
+
+- S4 starts from auth3's start (`alloc3On`, `memberBootOn_of`, `kvInvOn`), not `cluster3.StartCluster`
+  (its §7.3). What it reuses of step 2 is the server core (`gps`, `kvPfxOk`, the nodup lemma,
+  `srvClusterBoot_alloc`/`srvMemberBoot_alloc`'s new premises), `leaseIdsApart`, and auth3's
+  `TestMemberIDs` check. `kvInvOn` has no `kvGrantIds` today; S3 adds the lease state to it and
+  should take `kvGrantIds` in this form. `alloc3On`'s revocable mode is S3/S4's (it needs
+  `lease.bootCfg`'s auth change, the auth-lease Scope's §2.3).
+- Overlap: S3 (in `/shared/etcd-grove-rs56`'s successor) may edit `InvRequest.lean` near `kvGrantIds`;
+  landing step 2 first avoids a textual merge there.
+
+### S2.7 Questions (recommendation first)
+
+1. **Form.** Recommended: the full form (S2.2). The one-granting-member form is a larger frozen
+   change (S2.4).
+2. **Where the premise lives.** Recommended: a separate gated premise of `StartCluster.spec`
+   (`lm = .revocable → leaseIdsApart …`), not a new field of `BootFacts`/`BootCore` (which would add
+   a premise to every closed three-member theorem).
+3. **The hub request:** `StartCluster.spec` (FROZEN E2), `etcdstart.alloc3`/`memberBoot_of` (API),
+   `KVNames` (a wide-fan-in record: a defaulted field, no existing literal's meaning changes; the
+   three positional literals updated). Recommended: approve as one request with this Scope.
+4. **The grant test** (`TestGrantEveryMember`). Recommended: yes (half a day), so the claim that
+   grants through followers work is tested where the premise holds.
