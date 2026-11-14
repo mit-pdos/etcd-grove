@@ -17,6 +17,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -506,5 +507,25 @@ func TestMaxBytes(t *testing.T) {
 	t.Logf("fallocate(0, max-4096, 4096) = %v, size %d", err, size())
 	if err != nil || size() != maxBytes {
 		t.Fatalf("fallocate to max: %v size %d, want nil size max", err, size())
+	}
+}
+
+// model_os_readdirnames_len.go: append of one string to a []string of 2^44 panics with
+// "growslice: len out of range" (the slice header made by unsafe.Slice over one string:
+// growslice checks the new capacity before it allocates anything).
+func TestAppendStringsLenLimit(t *testing.T) {
+	var one string
+	big := unsafe.Slice(&one, 1<<44)
+	msg := func() (msg string) {
+		defer func() {
+			if r := recover(); r != nil {
+				msg = fmt.Sprint(r)
+			}
+		}()
+		big = append(big, "x")
+		return ""
+	}()
+	if msg != "runtime error: growslice: len out of range" {
+		t.Fatalf("append past 2^44 strings: %q, want growslice's panic", msg)
 	}
 }

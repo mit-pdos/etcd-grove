@@ -132,21 +132,22 @@ theorem walInvBody_mapLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 /-- **`openAtIndex`'s update and pin** (see the file header). -/
 theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (hpin : WalPinSized (L := L) (W := W) C Mr R jr r) (dir nm : GoString) (N : NameSet) (dq : DFrac)
-    (h : NamesH) (write : Bool) (idx : w64) (Q : Option WalDur → IProp GF)
-    (hin : InArea r dir nm) (hN : N.Mem nm) :
+    (h : NamesH) (Wn : List GoString) (write : Bool) (idx : w64) (Q : Option WalDur → IProp GF)
+    (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
       (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o }> @ walAuMask, ∅
         <{ walDirIs (W := W) dir (if write then o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) idx) }) else o), COMM Q o }>) -∗
-      osNames (L := L) jr N dq h ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ ∃ o : Option WalDur, Q o ∗
-        ((⌜o = none ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
+      osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
+      ∃ o : Option WalDur, Q o ∗
+        ((⌜o = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
          (⌜o ≠ none⌝ ∗ ∃ d, walPinOut (L := L) (W := W) C Mr jr dir d (walOpenK idx) write)) := by
-  iintro #Hinv #Hsi Hnc Hu Hau Hn
+  iintro #Hinv #Hsi Hnc Hu Hau Hn Hsf
   imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_areaAt C Mr R jr r s dir nm N dq h hin hN walN_osShN_top' $$ Hb Hsi Hn
-    with ⟨Hb, Hn, %Hat⟩
+  imod walInvBody_areaAt C Mr R jr r s dir nm N dq h Wn hin hN walN_osShN_top' $$ Hb Hsi Hn Hsf
+    with ⟨Hb, Hn, Hsf, %Hat⟩
   ihave Hau := atomic_update_mask_weaken walAuMask_sub_top' $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -169,12 +170,12 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
     imod Hcl $$ [Hb] with -
     · iexists s; iexact Hb
     imodintro
-    iframe Hnc Hn
+    iframe Hnc Hn Hsf
     iexists none
     iframe HQ
     ileft
     iframe Hu
-    ipureintro; exact ⟨rfl, Hat.1 hsd⟩
+    ipureintro; exact ⟨rfl, Hat hsd⟩
   | some dc =>
     obtain ⟨d0, hM0, hle0⟩ := (walOptLe_some_iff _ _).1 HMd
     obtain ⟨ds, hsd, hle⟩ : ∃ ds, s.wal !! dir = some ds ∧ walDurLe dc ds := by
@@ -190,7 +191,7 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       imod Hcl $$ [Hb] with -
       · iexists s; iexact Hb
       imodintro
-      iframe Hnc Hn
+      iframe Hnc Hn Hsf
       iexists (some dc)
       iframe HQ
       iright
@@ -211,7 +212,7 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       imod Hcl $$ [Hb] with -
       · iexists _; iexact Hb
       imodintro
-      iframe Hnc Hn
+      iframe Hnc Hn Hsf
       iexists (some dc)
       iframe HQ
       iright

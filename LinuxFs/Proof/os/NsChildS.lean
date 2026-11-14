@@ -21,107 +21,6 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs
 
-namespace os
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- `err` is a `*PathError` whose `Err` is the errno `e` (`errnoErr e`), its fields persistent: what
-`os`'s models return on a failed system call (`model.pathError`, `model.wrapErrno`). -/
-def errnoPathErr (err : GoInterface) (e : w64) : IProp GF :=
-  iprop(∃ (pe : Loc) (op path : GoString),
-    ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
-    structFieldRef io.fs.PathError go!"Op" pe ↦□ op ∗
-    structFieldRef io.fs.PathError go!"Path" pe ↦□ path ∗
-    structFieldRef io.fs.PathError go!"Err" pe ↦□ errnoErr e)
-
-instance errnoPathErr_persistent (err : GoInterface) (e : w64) :
-    Persistent (errnoPathErr (GF := GF) err e) := by
-  unfold errnoPathErr; infer_instance
-
-theorem errnoPathErr_ne (err : GoInterface) (e : w64) :
-    errnoPathErr (GF := GF) err e ⊢ ⌜err ≠ interface.nil⌝ := by
-  unfold errnoPathErr
-  iintro ⟨%pe, %op, %path, %h, -⟩
-  ipureintro; subst h; intro h; cases h
-
-end defs
-
-section wps
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : os.Assumptions]
-
-/-- A `*PathError` of a nonzero errno is one `fmt` formats. -/
-theorem errnoPathErr_fmtErrorOk (err : GoInterface) (e : w64) (he : e ≠ 0) :
-    errnoPathErr (GF := GF) err e ⊢ EtcdGrove.fmtErrorOk (GF := GF) err := by
-  unfold errnoPathErr
-  iintro ⟨%pe, %op, %path, %h, #Op, #Path, #Err⟩
-  subst h
-  iapply (pathError_fmtErrorOk pe op path (errnoErr e)) $$ Op Path Err
-  iapply (errnoErr_fmtErrorOk e he)
-
-theorem errnoPathErr_fmtErrorOkOrNil (err : GoInterface) (e : w64) (he : e ≠ 0) :
-    errnoPathErr (GF := GF) err e ⊢ EtcdGrove.fmtErrorOkOrNil (GF := GF) err := by
-  iintro #H
-  iapply (EtcdGrove.fmtErrorOkOrNil_of _)
-  iapply (errnoPathErr_fmtErrorOk err e he) $$ H
-
-/-- `&PathError{op, path, Errno(e)}` (`model.pathError`): `errnoPathErr`. -/
-theorem wp_pathError_errno (op path : GoString) (e : w64) (Φ : val → IProp GF) :
-    (∀ err : GoInterface, errnoPathErr (GF := GF) err e -∗ Φ #err) ⊢
-      WP (App (App (App (Val os.model.pathError) (Val #op)) (Val #path))
-        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
-  iintro HΦ
-  wp_apply wp_errno
-  unfold os.model.pathError
-  iapply wp_fupd
-  wp_auto
-  iStructNamed pe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
-  iapply HΦ
-  unfold errnoPathErr
-  iexists pe_ptr, op, path
-  isplitr
-  · ipureintro; rfl
-  iframe Op Path Err
-
-/-- `f.wrapErr(op, Errno(e))` (`model.wrapErrno`): `errnoPathErr`. -/
-theorem wp_wrapErrno_errno (op : GoString) (inner : Loc) (name : GoString) (e : w64)
-    (Φ : val → IProp GF) :
-    structFieldRef os.file go!"name" inner ↦□ name -∗
-      (∀ err : GoInterface, errnoPathErr (GF := GF) err e -∗ Φ #err) -∗
-      WP (App (App (App (Val os.model.wrapErrno) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
-  iintro #Hn HΦ
-  unfold os.model.wrapErrno os.model.pathError
-  rw [file_ty_eq]
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_errno
-  iStructNamed pe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
-  iapply HΦ
-  unfold errnoPathErr
-  iexists pe_ptr, op, name
-  isplitr
-  · ipureintro; rfl
-  iframe Op Path Err
-
-end wps
-
-end os
-
 namespace EtcdGrove
 
 section proof
@@ -297,7 +196,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
         osNames j N dq h ∗ osPathS R d dqp jp ∗ osNames jp Np dqn hp ∗
         ((∃ names : List GoString, ⌜err = interface.nil ∧ (∀ b ∈ names, NameOk b) ∧
               (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
-              (∀ b, N.Mem b → names.count b ≤ 1)⌝ ∗ sl ↦* names ∗
+              (∀ b, N.Mem b → names.count b ≤ 1) ∧ names.length ≤ 2 ^ 44⌝ ∗ sl ↦* names ∗
             osDirFdS fd j .done) ∨
          ((∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT⌝ ∗ os.errnoPathErr err e) ∗
             ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
@@ -326,18 +225,26 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
   · subst hrs; rw [List.reverse_nil]; iexact Hsl
   ihave Hp : ⌜(fresh = true → rs = []) ∧ (fresh = false → h.next ≤ r0) ∧
       (∀ b ∈ rs, NameOk b ∧ (N.Mem b → (h.cur !! b).isSome)) ∧
-      (∀ b, N.Mem b → rs.count b ≤ 1)⌝ $$ []
+      (∀ b, N.Mem b → rs.count b ≤ 1) ∧ rs.length ≤ 2 ^ 44⌝ $$ []
   · ipureintro; subst hrs hfresh; simp
   clear hfresh hrs hsl0
   wp_auto
   iloeb as IH generalizing %fresh %rs %r0 %sl0 Hp Hosfd Hsl Hcap Hcl Hpp Hnp
   icases Hp with %Hp
-  obtain ⟨hfr, hr0, hin, hcnt⟩ := Hp
+  obtain ⟨hfr, hr0, hin, hcnt, hlen⟩ := Hp
   wp_apply wp_osDirReadNextChildS R fd d b jp j Np dqp dqn hp N r0 rs fresh dq h hb hNp hJ hfr hr0
     CoPset.subseteq_top CoPset.subseteq_top $$ Hinv Hsi Hosfd Hcl Hpp Hnp
     as %v Hcl Hpp Hnp ⟨%r0', %hr1, %hr2, Hv⟩
   icases Hv with (⟨%b, %hv, Hosfd⟩ | ⟨%hv, Hosfd⟩ | ⟨%e, %hv, Hosfd⟩)
   · obtain ⟨rfl, hb, hbr⟩ := hv
+    wp_auto
+    ihave %hsl := ownSlice_len _ _ _ $$ Hsl
+    wp_apply_core wp_assume
+    iintro %hlt
+    have hlt' : rs.length < 2 ^ 44 := by
+      rw [List.length_reverse] at hsl
+      have := of_decide_eq_true hlt
+      word
     wp_auto
     wp_apply wp_slice_literal (V := GoString) [b]
     isplitr
@@ -346,7 +253,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
     wp_apply wp_slice_append $$ [$Hsl $Hcap $Hsl1] as %sl' ⟨Hsl, Hcap, -⟩
     iapply IH $$ %false %(b :: rs) %r0' %sl' [] [Hosfd] [Hsl] Hcap Hcl Hpp Hnp HΦ Hfd
     · ipureintro
-      refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_, ?_⟩
+      refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_, ?_, ?_⟩
       · cases fresh
         · rw [hr1 rfl]; exact hr0 rfl
         · exact hr2 rfl
@@ -361,6 +268,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
           have := (hbr hx).2
           rw [List.count_eq_zero_of_not_mem this]; simp
         · simp only [beq_iff_eq, Ne.symm hxb, ↓reduceIte, Nat.add_zero]; exact hcnt x hx
+      · rw [List.length_cons]; omega
     · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hosfd
     · rw [List.reverse_cons]; iexact Hsl
   · obtain ⟨rfl, hall⟩ := hv
@@ -373,7 +281,8 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
     iexists rs.reverse
     iframe
     ipureintro
-    refine ⟨rfl, fun x hx => (hin x (List.mem_reverse.1 hx)).1, fun x hx => ?_, fun x hx => ?_⟩
+    refine ⟨rfl, fun x hx => (hin x (List.mem_reverse.1 hx)).1, fun x hx => ?_, fun x hx => ?_,
+      by rw [List.length_reverse]; exact hlen⟩
     · rw [List.mem_reverse]
       exact ⟨hall x hx, fun hm => (hin x hm).2 hx⟩
     · rw [List.count_reverse]; exact hcnt x hx
@@ -384,7 +293,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
       wp_auto
       iapply IH $$ %false %rs %r0' %sl0 [] [Hosfd] Hsl Hcap Hcl Hpp Hnp HΦ Hfd
       · ipureintro
-        refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin, hcnt⟩
+        refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin, hcnt, hlen⟩
         cases fresh
         · rw [hr1 rfl]; exact hr0 rfl
         · exact hr2 rfl

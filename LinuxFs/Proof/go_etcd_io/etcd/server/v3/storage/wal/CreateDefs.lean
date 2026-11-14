@@ -11,7 +11,7 @@
 * **`walAreaOk`** (persistent): the WAL invariant of the area and the file system's invariants. Its old
   `durableResvD` (the `lib/durable` reservation) is gone (plan §3).
 * **`walAreaRes jr`** (exclusive, the program's): its half of the area directory's claim on names `N`
-  containing every WAL name and every `nm.<sfx>` of one (the invariant holds the other half:
+  containing every WAL name not split out (`walSplitFrag Wn`) and every `nm.<sfx>` of one (the invariant holds the other half:
   `walInv_alloc`'s `harea`), and the
   whole claims of every directory reachable from a non-WAL name of `N` (`SubCover`). From it a WAL
   function takes the claims it writes in the area (`n.tmp`, `n.broken.*`, `n`), giving back the
@@ -118,16 +118,18 @@ def TmpOk (cl : List Claim) (e : Option Node) : Prop :=
   e = none ∨ ∃ J, e = some (.dir J) ∧ ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur
 
 /-- **The program's part of the WAL area's directory `jr`** (exclusive): its half of the claim on
-names `N` containing every WAL name and every name `nm.<sfx>` of one (`Create`'s `nm.tmp`, the cleanup's
-`nm.broken.<time>`; the invariant holds the other half), and, for each non-WAL name `b` of `N`, the whole
+names `N` containing every WAL name not split out (`Wn`, `walSplitFrag`: the registered WALs' names, each
+in its own claim, `walNamesRes`; G-spine, W1 log, fourteenth session) and every name `nm.<sfx>` of a WAL
+name (`Create`'s `nm.tmp`, the cleanup's `nm.broken.<time>`; the invariant holds the other half), and, for each non-WAL name `b` of `N`, the whole
 claims of every directory under it (`SubCover`; each claim tagged with the name it is under, so that a
 function working on `b`'s subtree takes and gives back `b`'s claims only: W4 log, eleventh session); a
 WAL name's temporary directory `nm.tmp` (a leftover of a `Create` a crash interrupted) holds nothing or a
 directory of files only (`TmpOk`: the WAL creates nothing else there), so that `Create`'s
 `os.RemoveAll(nm.tmp)` (`os.RemoveAll.specDirS`) applies. -/
 def walAreaRes (jr : Ino) : IProp GF :=
-  iprop(∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)),
-    osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ ⌜∀ nm, walNameOk nm → N.Mem nm⌝ ∗
+  iprop(∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (Wn : List GoString),
+    osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
+    ⌜∀ nm, walNameOk nm → N.Mem nm ∨ nm ∈ Wn⌝ ∗
     ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
     osClaims L (cl.map (fun c => (c.2, DFrac.own 1))) ∗
     ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover (clOf cl b) (h.cur !! b)⌝ ∗

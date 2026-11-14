@@ -222,7 +222,8 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
     ⊢ crashRestAt Q hL hL' D tt V' st st' -∗ gElem hL hL.γt t (DFrac.own 1) ti -∗
       ([∗list] r ∈ rs, bytesG hL ti.ino r.1 r.2.1 r.2.2) -∗
       ⌜FileCrashAt st st' V' ti.ino ti.meta ((ti.lo, DFrac.own 1, ti.saved) :: rs) ∧
-        TokPast ti (st'.fs.files !! ti.ino)⌝ ∗
+        TokPast ti (st'.fs.files !! ti.ino) ∧
+        (ti.kind.isResize = true → ∃ f, st.fs.files !! ti.ino = some f ∧ ti.n ∈ f.rzs)⌝ ∗
         fileStartO hL' ti.ino (st'.fs.files !! ti.ino) ∗
         crashRestAt Q hL hL' (ti.ino :: D) tt V' st st' ∗
         gElem hL hL.γt t (DFrac.own 1) ti ∗ ([∗list] r ∈ rs, bytesG hL ti.ino r.1 r.2.1 r.2.2) := by
@@ -254,9 +255,9 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
   iframe Hf Ht Hbs
   isplitr
   · ipureintro
-    refine ⟨⟨crashSeen_crashed hseen, fun hn => hnamed _ hn, ?_⟩, hpast⟩
-    obtain ⟨f, hf, -⟩ := hcoh.meta_some ti.ino ti.meta hmo
-    refine ⟨f, hf, fun hcut r hr k hk => ?_⟩
+    refine ⟨⟨crashSeen_crashed hseen, fun hn => hnamed _ hn, ?_⟩, hpast, hcoh.tok_rz t ti hti⟩
+    obtain ⟨f, hf, hmok⟩ := hcoh.meta_some ti.ino ti.meta hmo
+    refine ⟨f, hf, fun hcut r hr k hk => ?_, hmok.rz⟩
     obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes ti.ino _ _ (hxs r hr k hk)
     simp only [OsState.file, hf, Option.some.injEq] at hf1
     subst hf1
@@ -286,7 +287,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 def SegCrashAt (st st' : OsState) (V' : Hist) (g : SegG) : Prop :=
   FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
     (Named V'.now g.ino → (st'.fs.files !! g.ino).isSome) ∧
-    ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2
+    ∃ f, st.fs.files !! g.ino = some f ∧ (∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) ∧
+      ∀ s ∈ g.om.rz, s ∈ f.rzs
 
 /-- **Taking a segment, idle or with a write or a resize in flight, at a fixed crash.** -/
 theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
@@ -312,8 +314,8 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
     iframe Hr Hm Hb
     isplitr
     · ipureintro
-      obtain ⟨h1, h2, f, hf, h3⟩ := hfc
-      exact ⟨h1, h2, f, hf, cands_cover (runsCover_one _ _) (h3 hcut)⟩
+      obtain ⟨h1, h2, f, hf, h3, h4⟩ := hfc
+      exact ⟨h1, h2, f, hf, cands_cover (runsCover_one _ _) (h3 hcut), h4⟩
     iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
   | some fl =>
     simp only []
@@ -333,13 +335,15 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
         iapply BigSepL.bigSepL_singleton.2; iexact Hb2
       icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
       icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
-      obtain ⟨⟨h1, h2, f, hf, h3⟩, -⟩ := hfc
+      obtain ⟨⟨h1, h2, f, hf, h3, h4⟩, -, -⟩ := hfc
       have hcov := runsCover_fl hok
       have hmeta : g.om = cfMeta fl.m fl.off fl.data.length := hok.2.2.2.2.1
       iframe Hr Hb1 Hb2
       isplitr
       · ipureintro
-        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_)⟩
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => h4 s ?_⟩
+        rotate_right
+        · rw [hmeta] at hs; simpa [cfMeta, TokInfo.meta, TokInfo.lo, TokInfo.hi, TokInfo.target] using hs
         · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
         · show (cfMeta fl.m fl.off fl.data.length).cut = none
           simp [cfMeta, OsMeta.announce, hcut0]
@@ -360,13 +364,20 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
         $$ Hr Ht [Hb1] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
       · iapply BigSepL.bigSepL_singleton.2; iexact Hb1
       icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb1
-      obtain ⟨⟨h1, h2, f, hf, h3⟩, hpast⟩ := hfc
+      obtain ⟨⟨h1, h2, f, hf, h3, h4⟩, hpast, htrz⟩ := hfc
       simp only [rsKind_lo] at h1 h3
       have hcov := runsCover_rz hok
       iframe Hr Hb1
       isplitr
       · ipureintro
-        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_)⟩
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => ?_⟩
+        rotate_right
+        · rw [hok.2.2.1] at hs
+          simp only [rzMeta, List.mem_cons] at hs
+          rcases hs with rfl | hs
+          · obtain ⟨f1, hf1, hn1⟩ := htrz (by cases tr <;> rfl)
+            rw [hf] at hf1; cases hf1; exact hn1
+          · exact h4 s (by rw [rsKind_meta]; simpa using hs)
         · rw [hok.2.2.1]; exact fileCrashedR_rzMeta (fileCrashedR_cover _ hcov h1) hpast
         · rw [rsKind_meta]; simp [hcut0]
       isplitl [Hf]

@@ -279,7 +279,7 @@ the invariant knows (`bsOf i = some bs`) has every accepted frame whose core lie
 was: the whole image no longer than `bs`) as of one change of `bs`' candidates. (The image may be longer
 than the bytes the invariant knows in a resize window, I3b: a frame past them is the state's, which the
 ghost state does not see.) `rzOf i`: stamps known to be resizes of the file `i` (`OsFile.rzs`;
-`wal-tc4`: `CrashOk` passes none yet, so its users get the weak form, `AsOfW.weak`). -/
+`CrashOk` passes those the layout's `OsMeta` halves know, `segRzOf`, `wal-tc5`). -/
 def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → Option (List ByteG))
     (rzOf : Ino → List Nat) : Prop :=
   ∀ k, ∀ p ∈ acceptsFiles C ((js.drop k).map img) 0#32, ∀ i bs, (js.drop k)[p.1]? = some i →
@@ -289,6 +289,44 @@ def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → O
 /-- The ghost bytes of the segment of inode `i`, if it is one of the layout's. -/
 def segBytesOf (lay : WalLay) (i : Ino) : Option (List ByteG) :=
   (lay.segs.find? (fun g => decide (g.ino = i))).map (·.bs)
+
+/-- The resize stamps the layout's `OsMeta` half of the segment of inode `i` knows (`OsMeta.rz`),
+if it is one of the layout's. -/
+def segRzOf (lay : WalLay) (i : Ino) : List Nat :=
+  ((lay.segs.find? (fun g => decide (g.ino = i))).map (·.om.rz)).getD []
+
+theorem segRzOf_mem {lay : WalLay} {i : Ino} {s : Nat} (h : s ∈ segRzOf lay i) :
+    ∃ g ∈ lay.segs, g.ino = i ∧ s ∈ g.om.rz := by
+  unfold segRzOf at h
+  cases hf : lay.segs.find? (fun g => decide (g.ino = i)) with
+  | none => simp [hf] at h
+  | some g =>
+    simp only [hf, Option.map_some, Option.getD_some] at h
+    exact ⟨g, List.mem_of_find?_eq_some hf, by simpa using List.find?_some hf, h⟩
+
+/-- `W1G` knowing fewer resize stamps is weaker. -/
+theorem W1G.mono_rz {C : WalCodec} {js : List Ino} {img : Ino → List w8}
+    {bsOf : Ino → Option (List ByteG)} {rzOf rzOf' : Ino → List Nat}
+    (h : W1G C js img bsOf rzOf) (hrz : ∀ i, ∀ s ∈ rzOf' i, s ∈ rzOf i) :
+    W1G C js img bsOf rzOf' := fun k p hp i bs hi hbs hsz =>
+  AsOfW.congr (fun _ _ _ => rfl) (fun _ _ _ => rfl) (hrz i) (h k p hp i bs hi hbs hsz)
+
+/-- `W1G` with the stamps the layout knows, weakened to none. -/
+theorem W1G.weak_rz {C : WalCodec} {js : List Ino} {img : Ino → List w8}
+    {bsOf : Ino → Option (List ByteG)} {rzOf : Ino → List Nat}
+    (h : W1G C js img bsOf rzOf) : W1G C js img bsOf (fun _ => []) :=
+  h.mono_rz (fun _ _ hs => by cases hs)
+
+/-- A prefix of the segments knows only stamps the whole knows. -/
+theorem segRzOf_prefix {lay lay' : WalLay} (h : lay.segs <+: lay'.segs) (i : Ino) :
+    ∀ s ∈ segRzOf lay i, s ∈ segRzOf lay' i := by
+  obtain ⟨r, hr⟩ := h
+  intro s hs
+  unfold segRzOf at hs ⊢
+  rw [← hr, List.find?_append]
+  cases hf : lay.segs.find? (fun g => decide (g.ino = i)) with
+  | none => simp [hf] at hs
+  | some g => simpa [hf] using hs
 
 /-- The image of a file a crash left (empty if none). -/
 def imgOf (fo : Option Fs.OsFile) : List w8 := (fo.map Fs.OsFile.contents).getD []
@@ -385,14 +423,14 @@ def CrashTo (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (m' : T
 (`RegionCrashed` of the claims `cl` with the commit bound `n`) and every image of each segment its
 halves allow (`FileCrashedR`), there if the crashed tree lists it among the WAL directory's `.wal`
 files (a weaker premise than its being named anywhere: so the condition carries across a change of
-any other name, `Create`'s drop of `nm.tmp`), on which W1 holds (`W1G`),
+any other name, `Create`'s drop of `nm.tmp`), on which W1 holds (`W1G`, with the resize stamps the layout's `OsMeta` halves know: `segRzOf`),
 `CrashTo`. -/
 def CrashOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : List Claim)
     (n : Nat) : Prop :=
   ∀ (m' : Tree) (fo : Ino → Option Fs.OsFile), RegionCrashed cl n m' →
     (∀ g ∈ lay.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino)) →
     (∀ g ∈ lay.segs, g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome) →
-    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) (fun _ => []) →
+    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) (segRzOf lay) →
     CrashTo C Mr d lay m' fo
 
 end abs

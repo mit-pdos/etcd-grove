@@ -17,6 +17,7 @@ learned once, stays true.
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSteps
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameSplit
 
 @[expose] public section
 
@@ -38,24 +39,26 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- See the file header. -/
 theorem walInvBody_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (N : NameSet) (dq : DFrac) (h : NamesH) (dir nm : GoString)
-    (hin : InArea r dir nm) (hN : N.Mem nm) (hsw : s.wal !! dir = none) {Em : CoPset}
+    (s : AbsDiskState) (N : NameSet) (dq : DFrac) (h : NamesH) (Wn : List GoString) (dir nm : GoString)
+    (hin : InArea r dir nm) (hN0 : N.Mem nm ∨ nm ∈ Wn) (hsw : s.wal !! dir = none) {Em : CoPset}
     (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h ={Em}=∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) jr N dq h ∗
-        ⌜h.cur !! nm = none⌝ := by
-  iintro Hb #Hsi H
+      osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={Em}=∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
+        ⌜N.Mem nm ∧ h.cur !! nm = none⌝ := by
+  iintro Hb #Hsi H Hsf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, #Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Ht, %hab,
     %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
+  icases walNamesRes_splitOk (L := L) (W := W) R jr r Ls Wn $$ Hnms Hsf with ⟨Hnms, Hsf, %hW⟩
+  have hN : N.Mem nm := hN0.resolve_right (split_absent hwo hW (hr ▸ hin) hsw)
   imod osClaims_keys R jr N _ h _ (nameSet_ne_empty hN) hE $$ Hsi H Hcl with ⟨H, Hcl, %hkeys⟩
   obtain ⟨N1, h1, hm1, hN1⟩ := hwc nm hin.1
   obtain ⟨rfl, rfl⟩ := hkeys ((jr, N1, h1), _) (List.mem_map_of_mem hm1) rfl nm hN hN1
   have hnone : h1.cur !! nm = none :=
     (hab.1 dir nm (hr ▸ hin) hsw).1 N1 h1 hm1 hN1
   imodintro
-  iframe H
+  iframe H Hsf
   isplitl
   · iexists Ls, cl, n, F
     iframe Hg Hcl Hn HF Ht Hpk
@@ -69,28 +72,28 @@ theorem walInvBody_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     isplitl [HK Hcc]
     · iexists K, cc; iframe HK Hcc; ipureintro; exact hdk
     iframe Hnms; ipureintro; exact hAt
-  · ipureintro; exact hnone
+  · ipureintro; exact ⟨hN, hnone⟩
 
 /-- See the file header. -/
 theorem walInv_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (N : NameSet) (dq : DFrac) (h : NamesH) (dir nm : GoString) (md : List w8) (Q : IProp GF)
-    (hin : InArea r dir nm) (hN : N.Mem nm) :
+    (N : NameSet) (dq : DFrac) (h : NamesH) (Wn : List GoString) (dir nm : GoString) (md : List w8)
+    (Q : IProp GF) (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗
       (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) -∗
-      osNames (L := L) jr N dq h ={⊤}=∗
+      osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗
       (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
-      osNames (L := L) jr N dq h ∗ ⌜h.cur !! nm = none⌝ := by
-  iintro #Hinv #Hsi Hnc Hau H
+      osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗ ⌜N.Mem nm ∧ h.cur !! nm = none⌝ := by
+  iintro #Hinv #Hsi Hnc Hau H Hsf
   iapply walInv_step C Mr R jr r
     iprop(osSharedInv (L := L) R ∗
       (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
-      osNames (L := L) jr N dq h)
+      osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn)
     iprop((AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
-      osNames (L := L) jr N dq h ∗ ⌜h.cur !! nm = none⌝)
+      osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗ ⌜N.Mem nm ∧ h.cur !! nm = none⌝)
     ⊤ CoPset.subseteq_top (fun s => by
-      iintro Hb ⟨#Hsi, Hau, H⟩
+      iintro Hb ⟨#Hsi, Hau, H, Hsf⟩
       -- read `dir`'s absence off the client's update, aborted at once
       have hsub : walAuMask ⊆ (⊤ : CoPset) \ ↑walN := by
         intro p hp
@@ -117,13 +120,13 @@ theorem walInv_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       imod Hmc with -
       ihave Hb : walInvBody (L := L) (W := W) C Mr R jr r s $$ [Hg Hrest]
       · unfold walInvBody; iexists Ls, cl, n, F; iframe
-      imod walInvBody_absent C Mr R jr r s N dq h dir nm hin hN hsd walN_osShN_top $$ Hb Hsi H
-        with ⟨Hb, H, %hn⟩
+      imod walInvBody_absent C Mr R jr r s N dq h Wn dir nm hin hN hsd walN_osShN_top $$ Hb Hsi H Hsf
+        with ⟨Hb, H, Hsf, %hn⟩
       imodintro
       iframe
       ipureintro; exact hn)
-    $$ Hinv Hnc [Hau H]
-  iframe Hau H; iexact Hsi
+    $$ Hinv Hnc [Hau H Hsf]
+  iframe Hau H Hsf; iexact Hsi
 
 end iris
 

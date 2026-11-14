@@ -17,6 +17,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
+
+Go's `append` panics ("growslice: len out of range") once the new capacity times the element size
+passes `maxAlloc` (`2^48` on linux/amd64); Perennial's `go.append` assumes only that the new length
+does not overflow an `int` (`sumAssumeNoOverflowSigned`). A slice built by appends is therefore
+bounded only by `2^63` in the model, and `sort.Strings.spec` needs at most `2^62` elements (Go's
+`heapSort` overflows past that). Local workaround: the trusted `File.Readdirnames.impl` of the
+`LinuxFs` part assumes fewer than `2^44` names before each append (`notes/wal-fsext-plan.md`, W7-W12
+log, third session; pending the user's review). General fix: `append` (and `make`) assume
+`newLen * elemSize ≤ maxAlloc`, as they assume the overflow, and `wp_slice_append` returns the bound.
+
 ### An indexed handshake idiom (2026-11-13, branch `wal-cut2`)
 
 - **The gap.** `Chan/Idioms/Handshake` hands the sender one proposition `Q` for every exchange, so a

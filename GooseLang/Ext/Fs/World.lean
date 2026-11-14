@@ -723,7 +723,8 @@ theorem osCoh_filesSame {Γb Γm Γf Γt} (hc : OsCoh st Γb Γm Γf Γt) : OsCo
   refine ⟨fun i => by rw [h1]; exact hc.meta_dom i, fun i m hm => ?_, fun i b x hx => ?_,
     fun i f b hfi hb => ?_, by rw [h2]; exact hc.fds, fun t => by rw [h3]; exact hc.toks t,
     fun t ti c hti hc' => by rw [h3] at hc'; exact hc.tok_is t ti c hti hc', hc.tok_meta,
-    fun t ti hti => ?_, fun t ti hti => ?_, fun i m c hm hc' => by rw [h5]; exact hc.cut_le i m c hm hc'⟩
+    fun t ti hti => ?_, fun t ti hti => ?_, fun t ti hti hk => by rw [hf]; exact hc.tok_rz t ti hti hk,
+    fun i m c hm hc' => by rw [h5]; exact hc.cut_le i m c hm hc'⟩
   · obtain ⟨f, hfi, hmo⟩ := hc.meta_some i m hm
     exact ⟨f, by rw [h1]; exact hfi, hmk _ _ _ hmo⟩
   · obtain ⟨f, hfi, hb, hx⟩ := hc.bytes i b x hx

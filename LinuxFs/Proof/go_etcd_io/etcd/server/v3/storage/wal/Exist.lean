@@ -69,16 +69,15 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
   iunfold WalFs.walAreaOk at Hok'
   icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
   iunfold walAreaRes at Hres
-  icases Hres with ⟨%N, %h, %cl, HN, %a1, %a2, Hc, %a3, %a4⟩
-  have hNnm : N.Mem nm := a1 nm hin.1
+  icases Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %a1, %a2, Hc, %a3, %a4⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_existStart C Mr R jr r (child r nm) nm N h A Lin hA hin hNnm $$ Hinv Hsi Hnc HA HN Hu
-    with ⟨Hnc, HN, %od, HL, Hcase⟩
+  imod walInv_existStart C Mr R jr r (child r nm) nm N h Wn A Lin hA hin (a1 nm hin.1)
+    $$ Hinv Hsi Hnc HA HN Hsf Hu with ⟨Hnc, HN, Hsf, %od, HL, Hcase⟩
   iframe Hnc
   imodintro
-  icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %s0, %J, %X, %hj, %hp, #Hp0, Hl, Htf, Ho, HJ⟩)
-  · obtain ⟨hod, hnone⟩ := hc
+  icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %J, %X, %hj, %q1, %q2, %hn, %hp, Hn1, Hsp, #Hk, Hl, Htf, Ho, HJ⟩)
+  · obtain ⟨hod, hNnm, hnone⟩ := hc
     wp_apply wp_RDabs r nm _ [g] [go!".wal"] _ R jr _ 1 N _ h rfl hnmO hNnm hnone
       $$ [Hp Hperm HN Hosl] as %rs %err ⟨Hp, Hperm, HN, Hosl, %herr, %bn, #Herr⟩
     · iframe; iframe #
@@ -97,20 +96,21 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
     wp_auto
     iapply HΦ
     iframe Hp Hperm Hu
-    isplitl [HN Hc]
-    · iunfold walAreaRes; iexists N, h, cl; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+    isplitl [HN Hsf Hc]
+    · iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
     iexists od; iframe HL; ipureintro; intro _; exact hod
-  · obtain ⟨hs0, hJ, hX, b0, hb0w, hb0s⟩ := hp
-    wp_apply wp_RDchild r nm _ [g] [go!".wal"] _ R jr _ N _ h J 1 (.except X) _ hj rfl hnmO hNnm hJ
-      $$ [Hp HN Hperm HJ Hosl] as %rs %err ⟨Hp, HN, Hperm, HJ, Hosl, Hout⟩
+  · obtain ⟨hJ, hX, b0, hb0w, hb0s⟩ := hp
+    wp_apply wp_RDchild r nm _ [g] [go!".wal"] _ R jr _ (.only [nm]) _ hn J 1 (.except X) _ hj rfl hnmO
+      (by simp [NameSet.Mem]) hJ
+      $$ [Hsp Hn1 Hperm HJ Hosl] as %rs %err ⟨-, -, Hperm, HJ, Hosl, Hout⟩
     · iframe; iframe #
       iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
       simp only [List.getD_cons_zero]
       iexact Hg
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_existEnd C Mr R jr r s0 (child r nm) nm N h J X hj hin hNnm hJ hs0 hX
-      $$ Hinv Hsi Hnc HN Hp0 Hl Htf Ho HJ with ⟨Hnc, HN, Hu⟩
+    imod walInv_existEnd C Mr R jr r (child r nm) J X hj hX
+      $$ Hinv Hsi Hnc Hk Hl Htf Ho HJ with ⟨Hnc, Hu⟩
     iframe Hnc
     imodintro
     icases Hout with (⟨%names, %rs', %hout, Hrs⟩ | ⟨%herr, #Herr⟩)
@@ -129,8 +129,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       rw [decide_eq_false hl0]
       iapply HΦ
       iframe Hp Hperm Hu
-      isplitl [HN Hc]
-      · iunfold walAreaRes; iexists N, h, cl; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+      isplitl [HN Hsf Hc]
+      · iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
       iexists od; iframe HL; ipureintro; intro hc; cases hc
     · ihave ⟨%ee, #Hee⟩ := os.errNotExist_of_pkgInit $$ Hos
       cases err with
@@ -144,8 +144,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       wp_auto
       iapply HΦ
       iframe Hp Hperm Hu
-      isplitl [HN Hc]
-      · iunfold walAreaRes; iexists N, h, cl; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+      isplitl [HN Hsf Hc]
+      · iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
       iexists od; iframe HL; ipureintro; intro hc; cases hc
 
 /-- **`wal.Exist.spec`**: the core with the client's update committed unchanged

@@ -213,6 +213,9 @@ theorem os.File.Readdirnames.wp_dir (f : Loc) (fd : w64) (name : GoString) (dqf 
   icases Hv with (⟨%b, %hv, Hosfd⟩ | ⟨%hv, Hosfd⟩ | ⟨%e, %hv, Hosfd⟩)
   · obtain ⟨rfl, hb, hbr⟩ := hv
     wp_auto
+    wp_apply_core wp_assume
+    iintro %-
+    wp_auto
     wp_apply wp_slice_literal (V := GoString) [b]
     isplitr
     · ipureintro; rfl
