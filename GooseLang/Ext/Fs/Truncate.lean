@@ -945,7 +945,7 @@ theorem metaOk_rsUnMeta {st : OsState} {p : Ino} {keep tr : Bool} {m : OsMeta} {
     (hcandP : ∀ b c, m.size ≤ b → b < rsHi tr m.size tg → m.pc b = some c → f.cand b = c ++ [(0, n)])
     (hn : keep = true → n ∈ f.rzs) :
     MetaOk st p (rsUnMeta keep tr m tg n) f := by
-  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_⟩
+  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_, hmo.zc⟩
   · intro b c hb hc
     cases keep with
     | false => exact hmo.tail b c hb hc
