@@ -743,3 +743,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `WriteAt`'s `cz` is one complete write's, `pwCz m off |data| |data|`; `pwCz_eq_of_lt`, `synced_zf_ge`, all in
   `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
 - **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).
+
+## 2026-11-14: `WalDecEnvSupply` and `walReadH` -- no I/O error is `nil`
+
+- **Spec.** `openAtIndex.lean`'s hypothesis `WalDecEnvSupply` (the decoder's environment: `∃ IoE eof ueof,
+  decEnv IoE eof ueof ∗ ⌜∀ pe, IoE (*PathError pe)⌝`) and the sealed `walReadH` (`ReadDefs.lean`), which keeps
+  the decoder's `IoE` existential.
+- **Defect.** Too weak for `ReadAll`: `decoder.Decode`'s post (`decPostB`) has an I/O-error arm `⌜IoE err⌝` with
+  the decoder no longer live; nothing excluded `IoE nil`, so at `err == nil` the loop (S/wal.go:523) would go on
+  into its body with a dead decoder and an unknown record (the next `Decode` needs a live one): the loop's
+  invariant is not provable.
+- **Evidence.** The readers' errors are `*PathError`s (`os.File.Read`, `Stat`): `nil` is none of them. The
+  decoder's own code returns a reader's error only under `err != nil`.
+- **Change (made).** `WalDecEnvSupply`'s pure part `(∀ pe, IoE (*PathError pe)) ∧ ¬ IoE nil`; `walReadH`'s
+  `decEnv IoE eof ueof` is `(decEnv IoE eof ueof ∗ ⌜¬ IoE nil⌝)`; `openAtIndex` passes it through. (The
+  alternative, `err ≠ nil` in `decPostB`'s I/O arm, would reprove the decoder's specs.)
+- **Decision.** Adopted (`wal-readall20`, minor: a hypothesis true of Go, and a sealed body; no client-visible change).
