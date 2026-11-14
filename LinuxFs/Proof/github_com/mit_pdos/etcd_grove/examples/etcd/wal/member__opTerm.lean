@@ -50,11 +50,11 @@ theorem member.opTerm.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG := hG
     imod ownSlice_persist $$ Hesl with #Hesl
     wp_auto
     iunfold memSaveRes at Hres
-    icases Hres with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16⟩
+    icases Hres with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
     wp_apply (wp_save W e γ m w v o os c d qc (hardState.mk (tNextTerm t) k cm) esl [] hf hok hhs
       (by simp) (hsm _).1 (hsm _).2) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b Hpost
     · iframe
-      iframe Hesl H13 H15 H16 H1 H2 H3 H4
+      iframe Hesl H13 H15 H16 H17 H1 H2 H3 H4
     iapply HΦ
     iexists k
     iframe

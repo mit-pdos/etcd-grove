@@ -198,7 +198,10 @@ macro "save_main" : tactic => `(tactic| (
         have hcm : tCandMark ({ tSaveO1 o h es with lastHS := tPhsNext o.lastHS h } : TOracle) c =
             tCandMark o c := rfl
         rw [hcm]
-        iexact Hsl
+        isplitl []
+        · iexact Hsl
+        rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]
+        iexact Hlen1
       · -- the save synced: the mark moved and stored
         simp only [hMS, ↓reduceIte] at hsv
         try wp_auto
@@ -237,7 +240,10 @@ macro "save_main" : tactic => `(tactic| (
           show tCandMark (tSynced (tSaveO1 o h es)) c = _
           rw [tSynced_mark _ c hl, ← tMemOk_len hd']; simp [tSaveD]
         rw [hcm2]
-        iexact Hsy
+        isplitl []
+        · iexact Hsy
+        rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]
+        iexact Hlen1
     · -- `Save` failed: the member stops
       cases err with
       | nil => exact absurd rfl Herr
@@ -264,7 +270,7 @@ theorem member.save.wp_proof
     member.save.spec (GF := GF) (hG := hG) := by
   intro W e γ m w v o os c d qc h esl es hf hok hhs hes hsm1 hsm2
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Hes, #Harea, Hwf,
-    #Hnm, #Hsl⟩
+    #Hnm, #Hsl, #Hll⟩
   ihave %Hlen := ownSlice_len $$ Hes
   try wp_auto
   wp_apply wp_hsEmpty
