@@ -150,8 +150,8 @@ theorem framed_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       $$ Hpends
     -- framed's protocol: the connections' framed state (none yet), then the address's invariant
     letI := (extGlobalGS tcpExt (G := G)).allG
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γm, Hm⟩
-    imod inv_alloc framedN ⊤ (framedState (extGlobalGS tcpExt) γm) $$ [Hm] with #HInv
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := FNames) with ⟨%γm, Hm⟩
+    imod inv_alloc framedN ⊤ (framedState (Gg := G) γm) $$ [Hm] with #HInv
     · inext
       unfold framedState
       iexists ∅
