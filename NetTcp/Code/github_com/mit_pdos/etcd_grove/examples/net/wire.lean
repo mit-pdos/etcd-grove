@@ -24,14 +24,11 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.wire
 noncomputable def ReadFull [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/wire.ReadFull"
 
-noncomputable def Forever [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/wire.Forever"
-
 /-- ReadFull reads exactly len(buf) bytes from c into buf, as io.ReadFull does:
     it loops over c.Read, which may return fewer bytes than asked. It returns
     false on any error before buf is full (an EOF included).
 
-    go: wire.go:12:6 -/
+    go: wire.go:11:6 -/
 noncomputable def ReadFull.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "buf"
@@ -86,15 +83,6 @@ noncomputable def ReadFull.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- Forever blocks the calling goroutine forever.
-
-    go: wire.go:25:6 -/
-noncomputable def Forever.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [])))
-  (Val #())))
-
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire where
   pkgImportedPkgs := [pkg_id.net]
 
@@ -107,11 +95,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ReadFull_unfold : FuncUnfold ReadFull [] ReadFull.impl
-  Forever_unfold : FuncUnfold Forever [] Forever.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
 
 attribute [instance] Assumptions.ReadFull_unfold
-  Assumptions.Forever_unfold
   Assumptions.import_net_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.net.wire

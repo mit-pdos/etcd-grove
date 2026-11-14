@@ -5,16 +5,17 @@
 // Transport (go pconn.readLoop() and go pconn.writeLoop() on one persistConn,
 // src/net/http/transport.go).
 //
-// Two nodes: Server listens at SrvAddr and serves each connection in turn by
-// echoing whatever it reads (io.Copy's loop, written out) until an error;
-// Client dials, starts a goroutine that writes the bytes 1..N, one Write per
-// byte, while its main goroutine reads N bytes one at a time and checks that
-// the i-th is i. The check holds however the two goroutines interleave and
-// however the server's Reads split the bytes: the bytes arrive in order and
-// intact on their own connection, in both directions, and a failed write
-// stops the writer (a write that fails with no deadline breaks the
-// connection, which then writes nothing more), so no byte is skipped.
-// Operations may fail at any time and a crash keeps the bytes in flight.
+// Two nodes, each a process (cmd/server, cmd/client): the server listens at
+// SrvAddr and serves each connection in turn by echoing whatever it reads
+// (io.Copy's loop, written out) until an error; the client dials, starts a
+// goroutine that writes the bytes 1..N, one Write per byte, while its main
+// goroutine reads N bytes one at a time and checks that the i-th is i. The
+// check holds however the two goroutines interleave and however the server's
+// Reads split the bytes: the bytes arrive in order and intact on their own
+// connection, in both directions, and a failed write stops the writer (a write
+// that fails with no deadline breaks the connection, which then writes nothing
+// more), so no byte is skipped. Operations may fail at any time and a crash
+// keeps the bytes in flight.
 package duplex
 
 import (
@@ -92,16 +93,4 @@ func Call() {
 		}
 	}
 	c.Close()
-}
-
-// Server is the server node's boot program.
-func Server() {
-	Serve()
-	wire.Forever()
-}
-
-// Client is the client node's boot program.
-func Client() {
-	Call()
-	wire.Forever()
 }

@@ -8,6 +8,7 @@ variable).
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Base
+public import Perennial.Proof.sync.Link
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Init
 public import NetTcp.Proof.net.Init
 public import NetTcp.Proof.runtime.PkgInitExt
@@ -48,7 +49,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish

@@ -8,17 +8,18 @@
 // then the payload, which the client writes as two Writes, header then payload,
 // as a buffered writer's flush may split them.
 //
-// Three nodes: Server listens at SrvAddr and serves each connection in turn,
-// echoing message after message until an error; Client sends three messages of
-// different sizes on one connection and checks that each reply is its request;
-// Junk dials the server too and writes malformed frames. The client's check
-// holds however the bytes are split among Reads, because a connection carries
-// its own dialer's bytes in order and intact: the server's n-th reply is built
-// from the n-th frame of the client's stream, and the client parses the
-// replies with the framing the server wrote them in. A failed write may have
-// written part of its bytes, but the writer then stops (closes), so a later
-// frame is never read past a partial one; Junk's bytes are on its own
-// connection; a crash keeps the bytes in flight.
+// Three nodes, each a process (cmd/server, cmd/client, cmd/junk): the server
+// listens at SrvAddr and serves each connection in turn, echoing message after
+// message until an error; the client sends three messages of different sizes on
+// one connection and checks that each reply is its request; the junk node dials
+// the server too and writes malformed frames. The client's check holds however
+// the bytes are split among Reads, because a connection carries its own
+// dialer's bytes in order and intact: the server's n-th reply is built from the
+// n-th frame of the client's stream, and the client parses the replies with the
+// framing the server wrote them in. A failed write may have written part of its
+// bytes, but the writer then stops (closes), so a later frame is never read
+// past a partial one; Junk's bytes are on its own connection; a crash keeps the
+// bytes in flight.
 package framed
 
 import (
@@ -114,22 +115,4 @@ func SendJunk() {
 	}
 	c.Write([]byte("\x09xyz"))
 	c.Close()
-}
-
-// Server is the server node's boot program.
-func Server() {
-	Serve()
-	wire.Forever()
-}
-
-// Client is the client node's boot program.
-func Client() {
-	Call()
-	wire.Forever()
-}
-
-// Junk is the third node's boot program.
-func Junk() {
-	SendJunk()
-	wire.Forever()
 }

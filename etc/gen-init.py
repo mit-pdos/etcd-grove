@@ -2936,11 +2936,18 @@ NT_ROOT = 'NetTcp'
 NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
     [f'github_com.mit_pdos.etcd_grove.examples.net.{p}' for p in
      ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']]
+# Each example's nodes, a command each (`examples/net/<ex>/cmd/<node>`): the programs.
+NT_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
+            'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
+            'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
+            'shutdown': ['node']}
+NT_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
+            for ex, ns in NT_NODES.items() for n in ns]
 # The part's programs whose adequacy theorem needs the package table of their import closure (as
 # `PROGRAMS`): the root package and the table's file under `NT_ROOT`.
-NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{p}':
-               f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{p}/PkgTable.lean'
-               for p in ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']}
+NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}':
+               f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{ex}/cmd/{n}/PkgTable.lean'
+               for ex, ns in NT_NODES.items() for n in ns}
 
 
 def nt_prefix(txt, made=()):

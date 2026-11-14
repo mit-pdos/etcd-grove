@@ -4,19 +4,20 @@
 // handleRawConn per accepted connection, grpc-go server.go), with clients
 // calling concurrently, each on its own connection.
 //
-// Two nodes: Server listens at SrvAddr and, for each connection it accepts,
-// starts a goroutine that reads a 1-byte request, writes it back and closes the
-// connection; Client starts two goroutines, each dialing its own connection,
-// sending its own id (1 and 2) and checking that the reply is its id. The check
-// holds however the goroutines of both nodes interleave: a connection carries
-// only its own dialer's bytes, and the server's handler for a connection reads
-// and writes only that connection, so no reply crosses to the other client.
-// Operations may fail at any time (a client then gives up) and a crash keeps
-// the bytes in flight.
+// Two nodes, each a process (cmd/server, cmd/client): the server listens at
+// SrvAddr and, for each connection it accepts, starts a goroutine that reads a
+// 1-byte request, writes it back and closes the connection; the client starts
+// two goroutines, each dialing its own connection, sending its own id (1 and 2)
+// and checking that the reply is its id. The check holds however the goroutines
+// of both nodes interleave: a connection carries only its own dialer's bytes,
+// and the server's handler for a connection reads and writes only that
+// connection, so no reply crosses to the other client. Operations may fail at
+// any time (a client then gives up) and a crash keeps the bytes in flight.
 package acceptloop
 
 import (
 	"net"
+	"sync"
 
 	"github.com/mit-pdos/etcd-grove/examples/net/wire"
 )
@@ -70,18 +71,15 @@ func CallOne(id byte) {
 
 // Call starts two concurrent calls, with the ids 1 and 2.
 func Call() {
-	go CallOne(1)
-	go CallOne(2)
-}
-
-// Server is the server node's boot program.
-func Server() {
-	Serve()
-	wire.Forever()
-}
-
-// Client is the client node's boot program.
-func Client() {
-	Call()
-	wire.Forever()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		CallOne(1)
+		wg.Done()
+	}()
+	go func() {
+		CallOne(2)
+		wg.Done()
+	}()
+	wg.Wait()
 }

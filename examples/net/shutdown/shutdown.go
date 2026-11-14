@@ -20,8 +20,6 @@ package shutdown
 
 import (
 	"net"
-
-	"github.com/mit-pdos/etcd-grove/examples/net/wire"
 )
 
 // Addr is the node's listening address.
@@ -81,10 +79,4 @@ func Run() {
 	if _, err := l.Accept(); err == nil {
 		panic("shutdown: an Accept after Close succeeded")
 	}
-}
-
-// Node is the node's boot program.
-func Node() {
-	Run()
-	wire.Forever()
 }

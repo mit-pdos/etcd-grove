@@ -44,15 +44,6 @@ noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def SendJunk [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/preface.SendJunk"
 
-noncomputable def Server [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/preface.Server"
-
-noncomputable def Client [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/preface.Client"
-
-noncomputable def Junk [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/preface.Junk"
-
 /-- serveConn checks the preface of the connection c under a deadline, echoes
     one 1-byte request, and closes it.
 
@@ -304,45 +295,6 @@ noncomputable def SendJunk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0")))))))))))))
   (Val #())))
 
-/-- Server is the server node's boot program.
-
-    go: preface.go:112:6 -/
-noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Serve []))) (Val #())) (Val #())))))
-  (Val #())))
-
-/-- Client is the client node's boot program.
-
-    go: preface.go:118:6 -/
-noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Call []))) (Val #())) (Val #())))))
-  (Val #())))
-
-/-- Junk is the third node's boot program.
-
-    go: preface.go:124:6 -/
-noncomputable def Junk.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve SendJunk []))) (Val #())) (Val #())))))
-  (Val #())))
-
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface where
   pkgImportedPkgs := [pkg_id.net, pkg_id.time, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire]
 
@@ -364,9 +316,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   Call_unfold : FuncUnfold Call [] Call.impl
   SendJunk_unfold : FuncUnfold SendJunk [] SendJunk.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  Client_unfold : FuncUnfold Client [] Client.impl
-  Junk_unfold : FuncUnfold Junk [] Junk.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
@@ -375,9 +324,6 @@ attribute [instance] Assumptions.serveConn_unfold
   Assumptions.Serve_unfold
   Assumptions.Call_unfold
   Assumptions.SendJunk_unfold
-  Assumptions.Server_unfold
-  Assumptions.Client_unfold
-  Assumptions.Junk_unfold
   Assumptions.import_net_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_wire_Assumption

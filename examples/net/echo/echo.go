@@ -4,12 +4,13 @@
 // (several Reads); the server accepts a connection, reads a fixed-size
 // request in full, and writes it back.
 //
-// Three nodes: Server listens at SrvAddr; Client checks that the reply is its
-// request; Junk dials the server too and writes bytes of its own. The client's
-// check holds however the reads are split, whatever Junk sends (a connection
-// carries only its own dialer's bytes) and however often any node crashes
-// (a crash keeps the bytes already written in flight; the restarted server
-// listens again and may accept connections dialed before its crash).
+// Three nodes, each a process (cmd/server, cmd/client, cmd/junk): the server
+// listens at SrvAddr; the client checks that the reply is its request; the junk
+// node dials the server too and writes bytes of its own. The client's check
+// holds however the reads are split, whatever the junk node sends (a connection
+// carries only its own dialer's bytes) and however often any node crashes (a
+// crash keeps the bytes already written in flight; the restarted server listens
+// again and may accept connections dialed before its crash).
 package echo
 
 import (
@@ -76,22 +77,4 @@ func SendJunk() {
 	resp := make([]byte, 3)
 	wire.ReadFull(c, resp)
 	c.Close()
-}
-
-// Server is the server node's boot program.
-func Server() {
-	Serve()
-	wire.Forever()
-}
-
-// Client is the client node's boot program.
-func Client() {
-	Call()
-	wire.Forever()
-}
-
-// Junk is the third node's boot program.
-func Junk() {
-	SendJunk()
-	wire.Forever()
 }

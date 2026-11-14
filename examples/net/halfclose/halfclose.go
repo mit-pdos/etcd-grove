@@ -6,24 +6,23 @@
 // Content-Length nor chunking is delimited by the connection's close, its body
 // read until EOF (readTransfer, src/net/http/transfer.go).
 //
-// Two nodes: Server listens at SrvAddr and serves each connection in turn: it
-// reads until EOF, writes everything it read back, and closes the connection;
-// Client dials, writes its request, shuts its write side, reads until EOF and
-// checks that the response is a prefix of its request. Only a prefix: EOF does
-// not mean the writer finished. When a process dies its kernel sends a FIN (or
-// a reset whose error another call may take), so a server killed after reading
-// the request and before writing its reply gives the client EOF with an empty
-// response (examples/net/semantics, TestServerKilledBeforeReply). What the
-// stream does guarantee is that the bytes read are the bytes written, in order,
-// with none invented; this is the weakness of close-delimited bodies that
-// HTTP's Content-Length avoids.
+// Two nodes, each a process (cmd/server, cmd/client): the server listens at
+// SrvAddr and serves each connection in turn: it reads until EOF, writes
+// everything it read back, and closes the connection; the client dials, writes
+// its request, shuts its write side, reads until EOF and checks that the
+// response is a prefix of its request. Only a prefix: EOF does not mean the
+// writer finished. When a process dies its kernel sends a FIN (or a reset whose
+// error another call may take), so a server killed after reading the request
+// and before writing its reply gives the client EOF with an empty response
+// (examples/net/semantics, TestServerKilledBeforeReply). What the stream does
+// guarantee is that the bytes read are the bytes written, in order, with none
+// invented; this is the weakness of close-delimited bodies that HTTP's Content-
+// Length avoids.
 package halfclose
 
 import (
 	"io"
 	"net"
-
-	"github.com/mit-pdos/etcd-grove/examples/net/wire"
 )
 
 // SrvAddr is the server's address.
@@ -105,16 +104,4 @@ func prefixOf(a, b []byte) bool {
 		}
 	}
 	return true
-}
-
-// Server is the server node's boot program.
-func Server() {
-	Serve()
-	wire.Forever()
-}
-
-// Client is the client node's boot program.
-func Client() {
-	Call()
-	wire.Forever()
 }

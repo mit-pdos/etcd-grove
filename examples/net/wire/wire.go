@@ -1,7 +1,6 @@
-// Package wire holds the helpers the net examples share: reading a buffer in
+// Package wire holds the helper the net examples share: reading a buffer in
 // full from a net.Conn (io.ReadFull's loop, which grpc and net/http use to
-// read frames and fixed-size headers), and blocking forever (the end of every
-// node's boot program: a node's process never exits, see examples/net/README.md).
+// read frames and fixed-size headers).
 package wire
 
 import "net"
@@ -19,9 +18,4 @@ func ReadFull(c net.Conn, buf []byte) bool {
 		}
 	}
 	return true
-}
-
-// Forever blocks the calling goroutine forever.
-func Forever() {
-	select {}
 }

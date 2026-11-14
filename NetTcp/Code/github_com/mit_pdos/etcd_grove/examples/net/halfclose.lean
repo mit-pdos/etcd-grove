@@ -3,7 +3,6 @@ module
 
 public import Perennial.Code.io
 public import NetTcp.Code.net
-public import NetTcp.Code.github_com.mit_pdos.etcd_grove.examples.net.wire
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -41,16 +40,10 @@ noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def prefixOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/halfclose.prefixOf"
 
-noncomputable def Server [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/halfclose.Server"
-
-noncomputable def Client [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/halfclose.Client"
-
 /-- readAll reads c until EOF. It returns the bytes read, and whether EOF was
     reached (false: an error).
 
-    go: halfclose.go:34:6 -/
+    go: halfclose.go:33:6 -/
 noncomputable def readAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -120,7 +113,7 @@ noncomputable def readAll.impl [GooseExts] [GoGlobalContext] : val :=
 /-- serveConn reads the connection c until EOF, writes back what it read, and
     closes it.
 
-    go: halfclose.go:51:6 -/
+    go: halfclose.go:50:6 -/
 noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -153,7 +146,7 @@ noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve listens at SrvAddr, then accepts connections one at a time and serves
     each. It returns only if it cannot listen.
 
-    go: halfclose.go:61:6 -/
+    go: halfclose.go:60:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -208,7 +201,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Call sends the request "hello", shuts its write side, and checks that the
     response read until EOF is the request.
 
-    go: halfclose.go:77:6 -/
+    go: halfclose.go:76:6 -/
 noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -298,7 +291,7 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- prefixOf reports whether a is a prefix of b.
 
-    go: halfclose.go:98:6 -/
+    go: halfclose.go:97:6 -/
 noncomputable def prefixOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -347,47 +340,18 @@ noncomputable def prefixOf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- Server is the server node's boot program.
-
-    go: halfclose.go:111:6 -/
-noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Serve []))) (Val #())) (Val #())))))
-  (Val #())))
-
-/-- Client is the client node's boot program.
-
-    go: halfclose.go:117:6 -/
-noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Call []))) (Val #())) (Val #())))))
-  (Val #())))
-
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose where
-  pkgImportedPkgs := [pkg_id.io, pkg_id.net, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire]
+  pkgImportedPkgs := [pkg_id.io, pkg_id.net]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #())))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.net.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   readAll_unfold : FuncUnfold readAll [] readAll.impl
@@ -395,22 +359,16 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   Call_unfold : FuncUnfold Call [] Call.impl
   prefixOf_unfold : FuncUnfold prefixOf [] prefixOf.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  Client_unfold : FuncUnfold Client [] Client.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
 attribute [instance] Assumptions.readAll_unfold
   Assumptions.serveConn_unfold
   Assumptions.Serve_unfold
   Assumptions.Call_unfold
   Assumptions.prefixOf_unfold
-  Assumptions.Server_unfold
-  Assumptions.Client_unfold
   Assumptions.import_io_Assumption
   Assumptions.import_net_Assumption
-  Assumptions.import_wire_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.net.halfclose
 

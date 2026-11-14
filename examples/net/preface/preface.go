@@ -8,18 +8,18 @@
 // is what keeps a client that never finishes its preface from holding the
 // server.
 //
-// Three nodes: Server listens at SrvAddr and serves each connection in turn:
-// it sets a deadline, reads a 4-byte preface, closes the connection if the
-// preface is not Magic (no panic: junk connections happen), and otherwise
-// clears the deadline and echoes a 1-byte request; Client writes Magic, then
-// a 1-byte request, and checks that the reply is its request; Junk writes
-// half a preface and waits. The client's check holds because its bytes arrive
-// in order and intact on its own connection, so the byte the server reads
-// after the preface is the client's request. A failure with a deadline set
-// may be a timeout of a live connection (it does not break the connection,
-// whose close then sends its FIN), so the client may see EOF instead of a
-// reply, but never another byte; operations may fail at any time and a crash
-// keeps the bytes in flight.
+// Three nodes, each a process (cmd/server, cmd/client, cmd/junk): the server
+// listens at SrvAddr and serves each connection in turn: it sets a deadline,
+// reads a 4-byte preface, closes the connection if the preface is not Magic (no
+// panic: junk connections happen), and otherwise clears the deadline and echoes
+// a 1-byte request; the client writes Magic, then a 1-byte request, and checks
+// that the reply is its request; the junk node writes half a preface and waits.
+// The client's check holds because its bytes arrive in order and intact on its
+// own connection, so the byte the server reads after the preface is the
+// client's request. A failure with a deadline set may be a timeout of a live
+// connection (it does not break the connection, whose close then sends its
+// FIN), so the client may see EOF instead of a reply, but never another byte;
+// operations may fail at any time and a crash keeps the bytes in flight.
 package preface
 
 import (
@@ -106,22 +106,4 @@ func SendJunk() {
 	resp := make([]byte, 1)
 	wire.ReadFull(c, resp)
 	c.Close()
-}
-
-// Server is the server node's boot program.
-func Server() {
-	Serve()
-	wire.Forever()
-}
-
-// Client is the client node's boot program.
-func Client() {
-	Call()
-	wire.Forever()
-}
-
-// Junk is the third node's boot program.
-func Junk() {
-	SendJunk()
-	wire.Forever()
 }

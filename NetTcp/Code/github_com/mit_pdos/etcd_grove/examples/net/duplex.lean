@@ -40,16 +40,10 @@ noncomputable def writeAll [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/duplex.Call"
 
-noncomputable def Server [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/duplex.Server"
-
-noncomputable def Client [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/duplex.Client"
-
 /-- serveConn writes back whatever it reads of the connection c until an error,
     then closes it.
 
-    go: duplex.go:34:6 -/
+    go: duplex.go:35:6 -/
 noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -111,7 +105,7 @@ noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve listens at SrvAddr, then accepts connections one at a time and echoes
     each until it fails. It returns only if it cannot listen.
 
-    go: duplex.go:52:6 -/
+    go: duplex.go:53:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -165,7 +159,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeAll writes the bytes 1..n to c, one Write each, until one fails.
 
-    go: duplex.go:67:6 -/
+    go: duplex.go:68:6 -/
 noncomputable def writeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -212,7 +206,7 @@ noncomputable def writeAll.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Call writes the bytes 1..n from one goroutine while it reads their echo in
     another, and checks the bytes read.
 
-    go: duplex.go:79:6 -/
+    go: duplex.go:80:6 -/
 noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -276,32 +270,6 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0")))))))))))))
   (Val #())))
 
-/-- Server is the server node's boot program.
-
-    go: duplex.go:98:6 -/
-noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Serve []))) (Val #())) (Val #())))))
-  (Val #())))
-
-/-- Client is the client node's boot program.
-
-    go: duplex.go:104:6 -/
-noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Call []))) (Val #())) (Val #())))))
-  (Val #())))
-
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.duplex where
   pkgImportedPkgs := [pkg_id.net, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire]
 
@@ -320,8 +288,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   writeAll_unfold : FuncUnfold writeAll [] writeAll.impl
   Call_unfold : FuncUnfold Call [] Call.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  Client_unfold : FuncUnfold Client [] Client.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
@@ -329,8 +295,6 @@ attribute [instance] Assumptions.serveConn_unfold
   Assumptions.Serve_unfold
   Assumptions.writeAll_unfold
   Assumptions.Call_unfold
-  Assumptions.Server_unfold
-  Assumptions.Client_unfold
   Assumptions.import_net_Assumption
   Assumptions.import_wire_Assumption
 

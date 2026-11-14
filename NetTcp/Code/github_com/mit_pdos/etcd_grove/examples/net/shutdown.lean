@@ -2,7 +2,6 @@
 module
 
 public import NetTcp.Code.net
-public import NetTcp.Code.github_com.mit_pdos.etcd_grove.examples.net.wire
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -37,12 +36,9 @@ noncomputable def closeConn [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/shutdown.Run"
 
-noncomputable def Node [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/shutdown.Node"
-
 /-- acceptLoop accepts connections on l and closes each, until Accept fails.
 
-    go: shutdown.go:31:6 -/
+    go: shutdown.go:29:6 -/
 noncomputable def acceptLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Seq (App (Val exceptionDo)
@@ -76,7 +72,7 @@ noncomputable def acceptLoop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- readLoop reads c until an error.
 
-    go: shutdown.go:42:6 -/
+    go: shutdown.go:40:6 -/
 noncomputable def readLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -112,7 +108,7 @@ noncomputable def readLoop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- closeConn closes c, then checks that a Write, a Read and a Close of it fail.
 
-    go: shutdown.go:52:6 -/
+    go: shutdown.go:50:6 -/
 noncomputable def closeConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -182,7 +178,7 @@ noncomputable def closeConn.impl [GooseExts] [GoGlobalContext] : val :=
     goroutine, then closes the listener, checking that the operations after each
     Close fail.
 
-    go: shutdown.go:69:6 -/
+    go: shutdown.go:67:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -263,48 +259,28 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "l") (Var "$r0")))))))))))))
   (Val #())))
 
-/-- Node is the node's boot program.
-
-    go: shutdown.go:87:6 -/
-noncomputable def Node.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Run []))) (Val #())) (Val #())))))
-  (Val #())))
-
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.shutdown where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire]
+  pkgImportedPkgs := [pkg_id.net]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.net.shutdown)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #())))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.net.initialize') (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   acceptLoop_unfold : FuncUnfold acceptLoop [] acceptLoop.impl
   readLoop_unfold : FuncUnfold readLoop [] readLoop.impl
   closeConn_unfold : FuncUnfold closeConn [] closeConn.impl
   Run_unfold : FuncUnfold Run [] Run.impl
-  Node_unfold : FuncUnfold Node [] Node.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
 attribute [instance] Assumptions.acceptLoop_unfold
   Assumptions.readLoop_unfold
   Assumptions.closeConn_unfold
   Assumptions.Run_unfold
-  Assumptions.Node_unfold
   Assumptions.import_net_Assumption
-  Assumptions.import_wire_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.net.shutdown
 

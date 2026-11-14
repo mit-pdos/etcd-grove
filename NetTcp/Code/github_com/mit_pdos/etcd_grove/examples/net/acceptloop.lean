@@ -2,6 +2,7 @@
 module
 
 public import NetTcp.Code.net
+public import Perennial.Code.sync
 public import NetTcp.Code.github_com.mit_pdos.etcd_grove.examples.net.wire
 public import Perennial.Golang.Defn
 
@@ -37,15 +38,9 @@ noncomputable def CallOne [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/acceptloop.Call"
 
-noncomputable def Server [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/acceptloop.Server"
-
-noncomputable def Client [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/net/acceptloop.Client"
-
 /-- handle echoes one 1-byte request of the connection c, then closes it.
 
-    go: acceptloop.go:28:6 -/
+    go: acceptloop.go:29:6 -/
 noncomputable def handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -71,7 +66,7 @@ noncomputable def handle.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve listens at SrvAddr, then accepts connections and serves each in a
     goroutine of its own. It returns only if it cannot listen.
 
-    go: acceptloop.go:38:6 -/
+    go: acceptloop.go:39:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -127,7 +122,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- CallOne sends id on a new connection and checks that the reply is id.
 
-    go: acceptloop.go:53:6 -/
+    go: acceptloop.go:54:6 -/
 noncomputable def CallOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -204,59 +199,58 @@ noncomputable def CallOne.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Call starts two concurrent calls, with the ids 1 and 2.
 
-    go: acceptloop.go:72:6 -/
+    go: acceptloop.go:73:6 -/
 noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
+  (App (Val doExecute)
   (Let "$a0" (Val #(W8 1))
-  (Let "$go" (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #())) (Var "$a0"))))))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
+  (App (Val doExecute)
   (Let "$a0" (Val #(W8 2))
-  (Let "$go" (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #()))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0"))))))))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #())) (Var "$a0"))))))
   (Val #())))
-
-/-- Server is the server node's boot program.
-
-    go: acceptloop.go:78:6 -/
-noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Serve []))) (Val #())) (Val #())))))
-  (Val #())))
-
-/-- Client is the client node's boot program.
-
-    go: acceptloop.go:84:6 -/
-noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Fork
+  (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever []))) (Val #())) (Val #())))))
+  (Fork
+  (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve Call []))) (Val #())) (Val #())))))
+  (Let "$a0" (Val #(W64 2))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.sync, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.initialize') (Val #()))))))))
 
@@ -265,18 +259,16 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   CallOne_unfold : FuncUnfold CallOne [] CallOne.impl
   Call_unfold : FuncUnfold Call [] Call.impl
-  Server_unfold : FuncUnfold Server [] Server.impl
-  Client_unfold : FuncUnfold Client [] Client.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_wire_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.Assumptions
 
 attribute [instance] Assumptions.handle_unfold
   Assumptions.Serve_unfold
   Assumptions.CallOne_unfold
   Assumptions.Call_unfold
-  Assumptions.Server_unfold
-  Assumptions.Client_unfold
   Assumptions.import_net_Assumption
+  Assumptions.import_sync_Assumption
   Assumptions.import_wire_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.net.acceptloop
