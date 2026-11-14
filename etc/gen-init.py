@@ -2933,19 +2933,23 @@ def lfs_inits(ext_txt):
 # initializers are generated as `LinuxFs/`'s, from the part's translation and instances, with the
 # imports of the part's modules prefixed, and a `PkgInitExt` without raft.
 NT_ROOT = 'NetTcp'
-NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire',
-           'github_com.mit_pdos.etcd_grove.examples.net.echo']
+NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
+    [f'github_com.mit_pdos.etcd_grove.examples.net.{p}' for p in
+     ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']]
 # The part's programs whose adequacy theorem needs the package table of their import closure (as
 # `PROGRAMS`): the root package and the table's file under `NT_ROOT`.
-NT_PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.net.echo':
-               'Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/PkgTable.lean'}
+NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{p}':
+               f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{p}/PkgTable.lean'
+               for p in ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']}
 
 
-def nt_prefix(txt):
-    """`txt` with its imports of the part's modules (those with a file under `NT_ROOT`) prefixed."""
+def nt_prefix(txt, made=()):
+    """`txt` with its imports of the part's modules (those with a file under `NT_ROOT`, or among the
+    paths `made`, generated in the same run) prefixed."""
     def imp(m):
         x = m.group(2)
-        if os.path.exists(f'{NT_ROOT}/{x.replace(".", "/")}.lean') or x == 'Proof.runtime.PkgInitExt':
+        f = f'{NT_ROOT}/{x.replace(".", "/")}.lean'
+        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
             x = f'{NT_ROOT}.{x}'
         return m.group(1) + x
     return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
@@ -2963,9 +2967,10 @@ def nt_inits(ext_txt):
             if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
                 path, txt = gen(p, SPECIAL.get(p))
                 outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt)))
+        made = {path for path, _ in outs}
         for p, path in NT_PROGRAMS.items():
             path, txt = gen_table(p, path)
-            outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt)))
+            outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
     finally:
         inv, inst = saved
     drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
