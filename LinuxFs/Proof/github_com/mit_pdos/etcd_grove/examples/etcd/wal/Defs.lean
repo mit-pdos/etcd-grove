@@ -263,10 +263,15 @@ def absHs (h : THs) : HardStateM := ⟨h.term', h.vote', h.commit'⟩
 /-- The entry as the model's (`toRaft`: `EntryNormal`, data `entData`). -/
 def absEnt (e : TEnt) : EntryM := ⟨e.term', e.index', W32 0, tEntData e⟩
 
-/-- The snapshot record the tester saves at `(idx, term)`: the conf state is the model's choice,
-fixed here (`SaveSnapshot`'s `walSnapAt` constrains only the index, the term and whether the conf
-state is set). -/
-def absSnapMd (idx term : w64) : SnapshotMetadataM := ⟨⟨[], [], [], [], false⟩, idx, term⟩
+/-- The snapshot record the tester saves at `(idx, term)` (`saveSnap`, wal.go: `ConfState:
+&raftpb.ConfState{Voters: []uint64{1}}`): the model of the object it passes (`SaveSnapshot`'s
+`walSnapAt` requires the object's model to be the record's, `c.model = md`; W4c U5). The model reads
+a nil `AutoLeave` and a set `false` alike (`AutoLeave' = false`), so this record fits the tester's
+object whichever form it takes; whether the object's encoding is the marshaller's canonical one
+(`snapEnc c = Mr.encSnap md`, U4's `walCsCanon` with `AutoLeave` set) is a fact of the object, proved
+at the call (`saveSnap`), not a choice of this record (`notes/wal-fsext-w4c-plan.md`, W4c U1 log,
+mismatch 3). -/
+def absSnapMd (idx term : w64) : SnapshotMetadataM := ⟨⟨[W64 1], [], [], [], false⟩, idx, term⟩
 
 /-- The operation as the history's. -/
 def absOp (o : TOp) : WalOp :=
