@@ -93,7 +93,7 @@ Perennial's), and for preface Perennial's `time.Now.wp_proof` (the only spec of 
 | duplex | `duplex_crash_safety` | 2 | one end shared by a writer and a reader goroutine: `ReadFull` through an accessor (below) |
 | halfclose | `halfclose_crash_safety` | 2 | `CloseWrite` (`NetTcp/Spec/net/TCPConn__CloseWrite.lean`); EOF pins the peer's full bytes (`tcpFin`), a broken end sends no FIN |
 | preface | `preface_crash_safety` | 3 | `SetDeadline` (`NetTcp/Spec/net/Conn__SetDeadline.lean`), `time.Now` and `Time.Add` (Perennial's specs) |
-| shutdown | (in progress) | 1 | a listener and an end shared with blocked threads; every operation after `Close` fails (below) |
+| shutdown | `shutdown_crash_safety` | 1 | a listener shared with a thread blocked in `Accept`, an end shared with one blocked in `Read` (invariants with a ghost copy of "closed"); every operation after `Close` fails: needs the atomic listener specs (below) |
 
 ## Changes made along the way
 

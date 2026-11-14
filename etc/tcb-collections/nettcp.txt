@@ -1,0 +1,12 @@
+# The TCP extension (`GooseLang/Ext/Tcp`, notes/net-tcp.md) and the programs proved over it, in the
+# part NetTcp/: the crash-safety results of the seven examples of `examples/net/` (echo, framed,
+# acceptloop, duplex, halfclose, preface, shutdown) in their Results.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/nettcp.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/nettcp.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/nettcp.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update (not yet run: the baseline is
+# empty, which is what each Results.lean's `#print axioms` shows of this repository's part).
+roots ^NetTcp/Proof/github_com/mit_pdos/etcd_grove/examples/net/
