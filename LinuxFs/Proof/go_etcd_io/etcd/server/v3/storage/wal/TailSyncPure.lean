@@ -134,7 +134,8 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
       (segRzOf lay) := by
     apply w1G_sync
     intro i bs hbs b hb
-    obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs
+    obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some_ex
+      (fun g1 hg1 => Nat.le_of_eq (habs0.metasEx hTE g1 hg1).2.2.2) hbs
     have hg'' := hg'
     rw [hs0, List.mem_append, List.mem_singleton] at hg''
     rcases hg'' with hgp | rfl

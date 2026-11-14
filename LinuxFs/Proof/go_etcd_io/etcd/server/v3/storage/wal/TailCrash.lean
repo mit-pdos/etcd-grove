@@ -293,7 +293,7 @@ theorem drop_length_sub_one' {α : Type} : ∀ {l : List α} (h : l ≠ []),
 
 /-- A segment of distinct inodes is the one `segBytesOf` finds. -/
 theorem segBytesOf_mem {lay : WalLay} {g : SegG} (hnd : (lay.segs.map (·.ino)).Nodup)
-    (hg : g ∈ lay.segs) : segBytesOf lay g.ino = some g.bs := by
+    (hg : g ∈ lay.segs) : segBytesOf lay g.ino = some (segBytesX g) := by
   unfold segBytesOf
   cases hf : lay.segs.find? (fun g' => decide (g'.ino = g.ino)) with
   | none =>
@@ -305,6 +305,11 @@ theorem segBytesOf_mem {lay : WalLay} {g : SegG} (hnd : (lay.segs.map (·.ino)).
     have hi : g'.ino = g.ino := by simpa using List.find?_some hf
     have : g' = g := Fs.eq_of_nodup_map hnd hg' hg hi
     subst this; rfl
+
+/-- `segBytesOf_mem` for an exact segment (`om.hi ≤ |bs|`). -/
+theorem segBytesOf_mem_ex {lay : WalLay} {g : SegG} (hnd : (lay.segs.map (·.ino)).Nodup)
+    (hg : g ∈ lay.segs) (hex : g.om.hi ≤ g.bs.length) : segBytesOf lay g.ino = some g.bs := by
+  rw [segBytesOf_mem hnd hg, segBytesX_of_hi hex]
 
 /-- **The tail's candidates** (`TailCands`) from the static relation and F-Z. -/
 theorem tailCands_of_abs {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
@@ -477,7 +482,7 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
           Option.getD_some, List.mem_map]
         exact ⟨p, hp, rfl⟩
       obtain ⟨x, hx, hxb⟩ := acceptsFiles_bound C _ _ _ hp'
-      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm) (by
+      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem_ex hnd hgm (Nat.le_of_eq hex.2)) (by
         show p + frameCore (imgOf (fo g.ino)) p ≤ g.bs.length
         have hl : (imgOf (fo g.ino)).length ≤ g.bs.length := by
           simp [imgOf, hf, contents_length, hsz]
@@ -770,7 +775,8 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
       (segRzOf lay0) := by
     apply w1G_sync
     intro i bs hbs b hb
-    obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs
+    obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some_ex (fun g1 hg1 => Nat.le_of_eq (habs0.metasEx (fun g2 hg2 => by
+      rw [hg0] at hg2; exact Option.some.inj hg2 ▸ hzf.2.1) g1 hg1).2.2.2) hbs
     have hg'' := hg'
     rw [hs0, List.mem_append, List.mem_singleton] at hg''
     rcases hg'' with hgp | rfl
