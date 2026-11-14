@@ -9,8 +9,8 @@ junk sender may be on any host (the server's too). The network starts with no co
 
 The precondition of a node's boot program, over the local ghost state `L` of a generation of the
 node (`nodePre`), is preface's protocol (`pfInvs`, `Defs.lean`: the address's invariant and every
-connection's reply state), the plan's entry for `SrvAddr`, a fresh package state and, for the
-server, its host. The global setup allocates the protocol from the network's start resources
+connection's state: its directions' stream protocols and its reply state), the plan's entry for
+`SrvAddr`, a fresh package state and, for the server, its host. The global setup allocates the protocol from the network's start resources
 (`SrvAddr`'s pending set, empty); each node's first generation gets its precondition from its start
 resources (its host); a crash keeps the host (`tcp_crashStart`), and the rest is persistent, so
 every generation's proof guarantees the next one's precondition.
@@ -152,10 +152,10 @@ theorem preface_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
       rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => tcpPend (extGlobalGS tcpExt) a S) Hpe)
       $$ Hpends
-    -- preface's protocol: the connections' reply state (none yet), then the address's invariant
+    -- preface's protocol: the connections' state (none yet), then the address's invariant
     letI := (extGlobalGS tcpExt (G := G)).allG
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γm, Hm⟩
-    imod inv_alloc pfN ⊤ (pfState (extGlobalGS tcpExt) γm) $$ [Hm] with #HpfInv
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := PfNames) with ⟨%γm, Hm⟩
+    imod inv_alloc pfN ⊤ (pfState (Gg := G) γm) $$ [Hm] with #HpfInv
     · inext
       unfold pfState
       iexists ∅
