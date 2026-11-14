@@ -78,7 +78,7 @@ theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCo
   isplitr
   · iapply BigSepL.bigSepL_nil.2; iempintro
   ipureintro
-  refine ⟨List.nodup_nil, fun i hi => by cases hi, ?_, walsStart_boot0 C Mr R jr r m hR hr hnone,
+  refine ⟨List.nodup_nil, fun i hi => (by cases hi), ?_, walsStart_boot0 C Mr R jr r m hR hr hnone,
     fun dir lay hl => by simp at hl⟩
   have h0 : (FiniteMap.toList (∅ : GMap GoString WalLay)) = [] := GMap.toList_empty
   simp [segsAll, h0]

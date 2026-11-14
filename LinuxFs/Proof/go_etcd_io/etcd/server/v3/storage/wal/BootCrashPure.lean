@@ -11,7 +11,6 @@ the tree's unique naming (`TreeWf`'s last part), and none a segment's (`.wal` na
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Crash
 
 @[expose] public section
 
@@ -45,6 +44,10 @@ def bootFiles (m : Tree) (jr : Ino) : List Ino :=
   (GMap.toList (entsOf m jr)).flatMap (fun an => match an.2 with
     | .dir J => dirBootFiles m an.1 J
     | .file _ => [])
+
+theorem entsOf_lookup (m : Tree) (j : Ino) (b : GoString) : entsOf m j !! b = m.entry j b := by
+  unfold entsOf Tree.entry
+  cases m !! j <;> rfl
 
 /-- Unique naming (`TreeWf`'s last part). -/
 def UniqNames (m : Tree) : Prop :=
@@ -91,8 +94,8 @@ theorem mem_bootFiles {m : Tree} {jr i : Ino} :
     exact ⟨(a, .dir J), (GMap.mem_toList _ _ _).2 (by rw [entsOf_lookup]; exact he),
       mem_dirBootFiles.2 ⟨b, hb, ht⟩⟩
 
-theorem toList_nodup {K V : Type} [LawfulFiniteMap GMap K] (M : GMap K V) : (GMap.toList M).Nodup :=
-  List.Nodup.of_map Prod.fst (GMap.toList_keys_nodup M)
+theorem toList_nodup {V : Type} (M : GMap GoString V) : (GMap.toList M).Nodup :=
+  List.Pairwise.of_map Prod.fst (fun a b h e => h (by rw [e])) (GMap.toList_keys_nodup M)
 
 /-- A list's `flatMap` has no duplicate if each part has none and no two parts meet. -/
 theorem nodup_flatMap_of {α β : Type} {f : α → List β} :
@@ -131,6 +134,7 @@ theorem nodup_filterMap_of {α β : Type} {f : α → Option β} :
       subst this
       exact ha ha'
 
+open Classical in
 /-- An element of `dirBootFiles`'s list maps to `i` only from a file entry `i`. -/
 theorem dirBootFiles_some {a : GoString} {be : GoString × Node} {i : Ino}
     (h : (match be.2 with
