@@ -984,7 +984,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn Hzlg
     ipureintro
     refine ⟨Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
-    · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"auth" (by decide)
+    · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact Or.inl (hDl go!"auth" (by decide))
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
   (try wp_auto)
