@@ -4428,7 +4428,10 @@ started.** Untrusted, internal; no spec, trusted or client-visible change.
   (`pwPostK true`, `finBytes`' bytes past the old size `zs` = `m.pc`); the Iris steps `wp_tailPWriteStartW`/`FinishW`
   (`TailMetaW` in place of `TailMeta`, `PastZ` kept by `PastZ.pwPost`, `TailZ` by a past-size `TailZ.pwPost`, `LoWr`
   by `LoWr.mono`), the loop `wp_tailWriteAt` over them, `wal.tailWriterW`; then tasks 3-4.
-- *Build*: the 38 leaves of `Abs.lean`'s importers (212 modules) and `TailCrashW`, after the `WinLo` change.
+- *Started*: `TailStepW.lean` (the window steps' pure pieces) with **`wrMeta_pc_ge`** (past the size, `wrMeta`'s `pc` is
+  `m.pc` with the data's byte appended in the range, `m.pc` past it).
+- *Build*: the 38 leaves of `Abs.lean`'s importers (212 modules) and `TailCrashW`, after the `WinLo` change and after
+  merging `wal-int` `475414c88c` (2846 jobs).
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
