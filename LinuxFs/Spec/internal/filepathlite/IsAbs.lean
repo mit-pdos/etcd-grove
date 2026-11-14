@@ -1,6 +1,6 @@
 /-
 `filepathlite.IsAbs` (`internal/filepathlite`, Go 1.27 `path_unix.go`, the part's translation; WAL leaf specs, 2026-11-13).
-Lean-first; proved in `LinuxFs/Proof/internal/filepathlite/IsAbs.lean`.
+Lean-first; not proved: its `stringslite.HasPrefix` has no body in Perennial (`notes/perennial-changes.md`, 2026-11-14).
 -/
 module
 

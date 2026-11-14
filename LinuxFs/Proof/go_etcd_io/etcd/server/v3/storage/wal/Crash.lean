@@ -512,17 +512,19 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
       ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J) -∗
-      osPathS (L := L) R r (DFrac.own qs) jr ={E}=∗
+      osPathS (L := L) R r (DFrac.own qs) jr -∗
+      (∀ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ -∗ walOthersL (L := L) Ls [] cl) ={E}=∗
       walInv (L := L) (W := W) C Mr R jr r ∗
       ∃ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ ∗
         walSplitFrag (W := W) (nameClaimsOf jr Ls cl) ∗
         ⌜∀ nm, nm ∈ nameClaimsOf jr Ls cl ↔ ∃ dir lay, Ls !! dir = some lay ∧ lay.nm = nm⌝ ∗
         [∗list] c ∈ cl, if WalDirClaimOf Ls c ∨ NameClaimOf jr Ls c then emp else
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 := by
-  iintro Hst Hcl Htmp Hsp
+  iintro Hst Hcl Htmp Hsp Hoth
   unfold walStart
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
+  ihave Hoth := Hoth $$ %Ls %hstart
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
     obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
@@ -612,7 +614,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
       (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$
-      [Hg Hc1 Hi Hcr Htl Hpk Hpo Hp Hc2 Hdk Hcp Htmp Hnm Hnw Hsp Hns Hlt]
+      [Hg Hc1 Hi Hcr Htl Hpk Hpo Hp Hc2 Hdk Hcp Htmp Hnm Hnw Hsp Hns Hlt Hoth]
       with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
@@ -669,7 +671,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
-    isplitl [Hpk Hpo Hc2 Hp Htmp]
+    isplitl [Hpk Hpo Hc2 Hp Htmp Hoth]
     · unfold walParked
       iexists true, WalOut.empty
       dsimp only [WalOut.empty]
@@ -681,6 +683,9 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
         rw [if_neg List.not_mem_nil]; exact segRes_segResP g
       isplitl [Hp]
       · iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
+      isplitl [Htmp]
+      rotate_left
+      · iexact Hoth
       unfold walTmpParked
       iexists Jm
       isplitr
@@ -897,6 +902,24 @@ theorem walArea_crash_keep (r : GoString) :
   isplitl [HG HM']
   · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
   · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
+
+/-- **A file a crash kept is held whole once taken** (`osFileStart`, as a generation's `fileStart`
+gives it: `initMeta`, its bytes durable): `trFile i False`. What the boot program gives of a leftover
+file the WAL's temporary names hold: a pipeline's `N.tmp` (`walTmpsRes`'s `tmpEnt`) and a temporary
+directory's `.touch` (`walAreaRes`'s `tmpClTouch`, `wal-leaf5`: the area's establishment, C6, takes each
+such file from the crash's `crashRest`). -/
+theorem osFileStart_trFile (L : GooseLocalGS GF) (i : Ino) (f : Fs.OsFile) :
+    osFileStart (L := L) i f ⊢ trFile (hG := ⟨G, L⟩) i False := by
+  unfold osFileStart trFile
+  iintro ⟨Hm, Hb⟩
+  iexists initMeta f, f.contents.map durB
+  iframe Hm Hb
+  isplitl []
+  · unfold mcellsAny
+    exact BigSepM.bigSepM_empty.2
+  ipureintro
+  refine ⟨by simp [initMeta, contents_length], fun h => h.elim, rfl, rfl, Nat.le_refl _,
+    ⟨pageEnd f.size, rfl, le_pageEnd _⟩, fun h => h.elim⟩
 
 end crash
 

@@ -1630,6 +1630,211 @@ theorem walTailsRes_none (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
   iframe Ha Hm HL
   ipureintro; exact ⟨Ho, Hi⟩
 
+/-- **A name lent out of a WAL directory's others** (`walOthers`): the pseudo-key `(j, .only [b])` in
+the record of what is out (`WalOut.D`). A claim's key there is always an `.except` one (a WAL
+directory's, `WalDirClaimOf`), so the two never meet. `Repair` lends its `<seg>.wal.broken` across the
+steps that write it. -/
+def lendKey (j : Ino) (b : GoString) : Ino × NameSet := (j, .only [b])
+
+/-- **The entries of a WAL directory's claim the invariant owns** (`walOthers`): those of `E` (the
+claim's current entries) at its non-`.wal` names, but those lent (`lendKey j b ∈ D`). -/
+def othersOf (D : List (Ino × NameSet)) (j : Ino) (E : Ents) : Ents :=
+  GMap.filter (fun b _ => !walNameP b && !decide (lendKey j b ∈ D)) E
+
+theorem othersOf_lookup (D : List (Ino × NameSet)) (j : Ino) (E : Ents) (b : GoString) :
+    othersOf D j E !! b = if walNameP b = false ∧ lendKey j b ∉ D then E !! b else none := by
+  unfold othersOf
+  rw [GMap.lookup_filter]
+  cases E !! b <;> by_cases h1 : walNameP b = false <;> by_cases h2 : lendKey j b ∈ D <;> simp [h1, h2]
+
+/-- Entries agreeing off the `.wal` names: the same others. -/
+theorem othersOf_congr {D : List (Ino × NameSet)} {j : Ino} {E E' : Ents}
+    (h : ∀ b, walNameP b = false → E' !! b = E !! b) : othersOf D j E' = othersOf D j E := by
+  apply GMap.ext; intro b
+  show othersOf D j E' !! b = othersOf D j E !! b
+  rw [othersOf_lookup, othersOf_lookup]
+  split
+  · next hb => exact h b hb.1
+  · rfl
+
+/-- Records agreeing on the names lent from `j`: the same others. -/
+theorem othersOf_congrD {D D' : List (Ino × NameSet)} {j : Ino} (E : Ents)
+    (h : ∀ b, lendKey j b ∈ D' ↔ lendKey j b ∈ D) : othersOf D' j E = othersOf D j E := by
+  apply GMap.ext; intro b
+  show othersOf D' j E !! b = othersOf D j E !! b
+  rw [othersOf_lookup, othersOf_lookup]
+  simp only [h b]
+
+/-- A claim's key (an `.except` one) added: no name lent. -/
+theorem lendKey_cons_except {D : List (Ino × NameSet)} {j j' : Ino} {X : List GoString} (b : GoString) :
+    lendKey j b ∈ (j', NameSet.except X) :: D ↔ lendKey j b ∈ D := by
+  simp [lendKey]
+
+/-- A claim's key (an `.except` one) removed: no name lent. -/
+theorem lendKey_filter_except {D : List (Ino × NameSet)} {j j' : Ino} {X : List GoString} (b : GoString) :
+    lendKey j b ∈ D.filter (· ≠ (j', NameSet.except X)) ↔ lendKey j b ∈ D := by
+  simp [lendKey]
+
+/-- **The others of the WAL directory `j`, owned whole** (`walParked`'s, `tmpEnt`: a leftover file
+whole, `trFile`; no directory): what `Repair`'s `O_TRUNC` open of a leftover `<seg>.wal.broken` takes. -/
+def walOthers (D : List (Ino × NameSet)) (j : Ino) (E : Ents) : IProp GF :=
+  iprop([∗map] _b ↦ n ∈ othersOf D j E, tmpEnt (hG := ⟨G, L⟩) (some n))
+
+/-- Every WAL directory claim's others (`walParked`'s last part). -/
+def walOthersL (Ls : GMap GoString WalLay) (D : List (Ino × NameSet)) (cl : List Claim) : IProp GF :=
+  iprop([∗list] c ∈ cl, if WalDirClaimOf Ls c then walOthers (L := L) D c.1 c.2.2.cur else emp)
+
+instance walOthersL_timeless (Ls : GMap GoString WalLay) (D : List (Ino × NameSet)) (cl : List Claim) :
+    Timeless (walOthersL (L := L) Ls D cl) := by
+  unfold walOthersL walOthers
+  haveI : ∀ c : Claim, Timeless (iprop(if WalDirClaimOf Ls c then
+      iprop([∗map] _b ↦ n ∈ othersOf D c.1 c.2.2.cur, tmpEnt (hG := ⟨G, L⟩) (some n)) else iprop(emp)) :
+      IProp GF) := fun c => by split <;> infer_instance
+  infer_instance
+
+/-- `walOthersL` over other directories and another record, claim by claim. -/
+theorem walOthersL_mono {Ls Ls' : GMap GoString WalLay} {D D' : List (Ino × NameSet)} {cl : List Claim}
+    (h : ∀ c ∈ cl, WalDirClaimOf Ls' c → WalDirClaimOf Ls c ∧
+      othersOf D' c.1 c.2.2.cur = othersOf D c.1 c.2.2.cur) :
+    walOthersL (L := L) Ls D cl ⊢ walOthersL (L := L) Ls' D' cl := by
+  unfold walOthersL
+  refine BigSepL.bigSepL_mono (fun {k c} hk => ?_)
+  have hc := List.mem_of_getElem? hk
+  by_cases h' : WalDirClaimOf Ls' c
+  · obtain ⟨h1, h2⟩ := h c hc h'
+    rw [if_pos h', if_pos h1]
+    unfold walOthers
+    rw [h2]
+  · rw [if_neg h']; iintro -; iempintro
+
+/-- No entry at a non-`.wal` name: no others. -/
+theorem walOthers_none {D : List (Ino × NameSet)} {j : Ino} {E : Ents}
+    (h : ∀ b, walNameP b = false → E !! b = none) : ⊢ walOthers (L := L) D j E := by
+  have e : othersOf D j E = ∅ := by
+    apply GMap.ext; intro b
+    show othersOf D j E !! b = (∅ : Ents) !! b
+    rw [othersOf_lookup, GMap.lookup_empty]
+    split
+    · next hb => exact h b hb.1
+    · rfl
+  unfold walOthers
+  rw [e]
+  iapply BigSepM.bigSepM_empty.2; iempintro
+
+/-- A WAL directory's claim is one by its key. -/
+theorem walDirClaimOf_key {Ls : GMap GoString WalLay} {c c' : Claim} (h1 : c'.1 = c.1)
+    (h2 : c'.2.1 = c.2.1) : WalDirClaimOf Ls c' ↔ WalDirClaimOf Ls c := by
+  unfold WalDirClaimOf; rw [h1, h2]
+
+/-- `walOthersL` with one claim replaced (`l1 ++ c :: l2`), claim by claim. -/
+theorem walOthersL_repl {Ls Ls' : GMap GoString WalLay} {D D' : List (Ino × NameSet)}
+    {l1 l2 : List Claim} {c c' : Claim}
+    (hL : ∀ c1 ∈ l1 ++ l2, WalDirClaimOf Ls' c1 → WalDirClaimOf Ls c1 ∧
+      othersOf D' c1.1 c1.2.2.cur = othersOf D c1.1 c1.2.2.cur)
+    (hc : WalDirClaimOf Ls' c' → WalDirClaimOf Ls c ∧
+      othersOf D' c'.1 c'.2.2.cur = othersOf D c.1 c.2.2.cur) :
+    walOthersL (L := L) Ls D (l1 ++ c :: l2) ⊢ walOthersL (L := L) Ls' D' (l1 ++ c' :: l2) := by
+  unfold walOthersL
+  iintro H
+  icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ H with ⟨H1, H2⟩
+  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨Hc, H2⟩
+  iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+  isplitl [H1]
+  · have h := walOthersL_mono (L := L) (Ls := Ls) (Ls' := Ls') (D := D) (D' := D') (cl := l1)
+      (fun c1 hc1 => hL c1 (List.mem_append_left _ hc1))
+    unfold walOthersL at h
+    iapply h $$ H1
+  iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+  isplitl [Hc]
+  · by_cases h' : WalDirClaimOf Ls' c'
+    · obtain ⟨h1, h2⟩ := hc h'
+      rw [if_pos h', if_pos h1]
+      unfold walOthers
+      rw [h2]; iexact Hc
+    · rw [if_neg h']; iclear Hc; iempintro
+  · have h := walOthersL_mono (L := L) (Ls := Ls) (Ls' := Ls') (D := D) (D' := D') (cl := l2)
+      (fun c1 hc1 => hL c1 (List.mem_append_right _ hc1))
+    unfold walOthersL at h
+    iapply h $$ H2
+
+theorem lendKey_inj {j j' : Ino} {b b' : GoString} : lendKey j b = lendKey j' b' ↔ j = j' ∧ b = b' := by
+  simp [lendKey]
+
+/-- **A name lent at its create** (`Repair`'s absent `.broken`): the entries changed only there,
+absent before; the same others. -/
+theorem othersOf_lend {D : List (Ino × NameSet)} {j : Ino} {E E' : Ents} {bt : GoString}
+    (hE : E !! bt = none) (hE' : ∀ b, b ≠ bt → E' !! b = E !! b) :
+    othersOf (lendKey j bt :: D) j E' = othersOf D j E := by
+  apply GMap.ext; intro b
+  show othersOf _ j E' !! b = othersOf D j E !! b
+  rw [othersOf_lookup, othersOf_lookup]
+  by_cases hb : b = bt
+  · subst hb
+    rw [if_neg (fun h => h.2 (List.mem_cons_self ..)), hE]
+    split <;> rfl
+  · have e : lendKey j b ∈ lendKey j bt :: D ↔ lendKey j b ∈ D := by
+      simp only [List.mem_cons, lendKey_inj, hb, and_false, false_or]
+    simp only [e, hE' b hb]
+
+/-- A name lent from another directory: the same others. -/
+theorem othersOf_lend_ne {D : List (Ino × NameSet)} {j j' : Ino} {E : Ents} {bt : GoString}
+    (hj : j' ≠ j) : othersOf (lendKey j bt :: D) j' E = othersOf D j' E :=
+  othersOf_congrD E (fun b => by
+    simp only [List.mem_cons, lendKey_inj, hj, false_and, false_or])
+
+/-- **A name lent out of the others** (`Repair`'s leftover `.broken`, for its `O_TRUNC`): its file. -/
+theorem walOthers_lend {D : List (Ino × NameSet)} {j : Ino} {E : Ents} {bt : GoString} {n : Node}
+    (hw : walNameP bt = false) (hD : lendKey j bt ∉ D) (hE : E !! bt = some n) :
+    walOthers (L := L) D j E ⊢
+      tmpEnt (hG := ⟨G, L⟩) (some n) ∗ walOthers (L := L) (lendKey j bt :: D) j E := by
+  have h1 : othersOf D j E !! bt = some n := by
+    rw [othersOf_lookup, if_pos ⟨hw, hD⟩, hE]
+  have e : othersOf (lendKey j bt :: D) j E = GMap.delete bt (othersOf D j E) := by
+    apply GMap.ext; intro b
+    show othersOf _ j E !! b = GMap.delete bt (othersOf D j E) !! b
+    by_cases hb : b = bt
+    · subst hb
+      rw [GMap.lookup_delete_eq, othersOf_lookup, if_neg (fun h => h.2 (List.mem_cons_self ..))]
+    · rw [GMap.lookup_delete_ne _ (Ne.symm hb), othersOf_lookup, othersOf_lookup]
+      have e : lendKey j b ∈ lendKey j bt :: D ↔ lendKey j b ∈ D := by
+        simp only [List.mem_cons, lendKey_inj, hb, and_false, false_or]
+      simp only [e]
+  unfold walOthers
+  rw [e]
+  exact (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (n : Node) => tmpEnt (hG := ⟨G, L⟩) (some n))
+    h1).1
+
+/-- **A lent name given back** (its file). -/
+theorem walOthers_unlend {D : List (Ino × NameSet)} {j : Ino} {E : Ents} {bt : GoString} {n : Node}
+    (hw : walNameP bt = false) (hD : lendKey j bt ∈ D) (hE : E !! bt = some n) :
+    walOthers (L := L) D j E ∗ tmpEnt (hG := ⟨G, L⟩) (some n) ⊢
+      walOthers (L := L) (D.filter (· ≠ lendKey j bt)) j E := by
+  have h1 : othersOf D j E !! bt = none := by
+    rw [othersOf_lookup, if_neg (fun h => h.2 hD)]
+  have e : othersOf (D.filter (· ≠ lendKey j bt)) j E = <[bt := n]> (othersOf D j E) := by
+    apply GMap.ext; intro b
+    show othersOf _ j E !! b = (<[bt := n]> (othersOf D j E)) !! b
+    by_cases hb : b = bt
+    · subst hb
+      rw [GMap.lookup_insert, othersOf_lookup, if_pos ⟨hw, by simp⟩, hE]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hb), othersOf_lookup, othersOf_lookup]
+      have e : lendKey j b ∈ D.filter (· ≠ lendKey j bt) ↔ lendKey j b ∈ D := by
+        simp only [List.mem_filter, ne_eq, lendKey_inj, hb, and_false, not_false_eq_true,
+          decide_true, and_true]
+      simp only [e]
+  unfold walOthers
+  rw [e]
+  iintro ⟨H, Hn⟩
+  iapply (BigSepM.bigSepM_insert (Φ := fun (_ : GoString) (n : Node) => tmpEnt (hG := ⟨G, L⟩) (some n))
+    h1).2
+  iframe H Hn
+
+/-- `walOthersL` with a claim's key added to or removed from the record (no name lent). -/
+theorem walOthersL_keyD {Ls : GMap GoString WalLay} {D D' : List (Ino × NameSet)} {cl : List Claim}
+    (h : ∀ j b, lendKey j b ∈ D' ↔ lendKey j b ∈ D) :
+    walOthersL (L := L) Ls D cl ⊢ walOthersL (L := L) Ls D' cl :=
+  walOthersL_mono fun c _ hc => ⟨hc, othersOf_congrD _ (h c.1)⟩
+
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
 (`walParkAuth b`, `Ghost.lean`) and the record of what is out (`walOutAuth o`, gap A: its other half
 is the lock token's, empty, so that `Open` finds nothing out, or the holder's of what is out, so that
@@ -1640,14 +1845,17 @@ segments from the selected one on and its directory claim) and puts back what it
 (`ReadAll`: all but the tail's); returning a half needs no token (a third half contradicts). And the
 pipeline names' claims (`walTmpParked`, gap 3) but those of the directories `o.T`. **A change in
 flight only on a segment taken out** (gap B: `F`, the invariant's changes in flight, only on `o.O`),
-so the parked segments are idle and their halves the layout's (`Open`'s pin). -/
+so the parked segments are idle and their halves the layout's (`Open`'s pin). **Every WAL directory's
+others** (`walOthersL`, the W7-W12 log's eleventh session): the files at its claim's non-`.wal` names,
+whole, but those lent (`lendKey`, recorded in `o.D`), whether the claim is parked or out: the claim's
+history is the invariant's either way (`osClaims`), and only `Repair` changes it at such a name. -/
 def walParked (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl) : IProp GF :=
   iprop(∃ (b : Bool) (o : WalOut), walParkAuth (W := W) b ∗ walOutAuth (W := W) o ∗
     ⌜∀ i, F !! i ≠ none → i ∈ o.O⌝ ∗
     ([∗list] g ∈ segsAll Ls, if g.ino ∈ o.O then emp else segResP (L := L) g) ∗
     ([∗list] c ∈ cl, if ParkedClaim Ls o.D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp) ∗
-    walTmpParked (G := G) (L := L) Ls o.T)
+    walTmpParked (G := G) (L := L) Ls o.T ∗ walOthersL (L := L) Ls o.D cl)
 
 instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl) :
     Timeless (walParked (L := L) (W := W) Ls cl F) := by
@@ -1662,6 +1870,7 @@ instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) (F : G
   haveI : ∀ (D : List (Ino × NameSet)) (c : Claim), Timeless (iprop(if ParkedClaim Ls D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else iprop(emp)) : IProp GF) :=
     fun D c => by split <;> infer_instance
+  haveI := fun D => walOthersL_timeless (L := L) Ls D cl
   infer_instance
 
 theorem walOsSpine_timeless (j : Ino) (cs : List GoString) (dq : DFrac) (j' : Ino) :

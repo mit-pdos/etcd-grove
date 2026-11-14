@@ -188,7 +188,8 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
     (hl : Ls !! dir = some lay)
     (hg0 : lay.segs.getLast? = some g0) (hnd : ((segsAll Ls).map (·.ino)).Nodup)
     (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino) (hkey : c'.1 = c.1 ∧ c'.2.1 = c.2.1)
-    (hD : (c.1, c.2.1) ∈ o.D) (hF0 : F !! g0.ino = none) :
+    (hD : (c.1, c.2.1) ∈ o.D) (hF0 : F !! g0.ino = none)
+    (hcur : ∀ b, walNameP b = false → c'.2.2.cur !! b = c.2.2.cur !! b) :
     ⊢ walParked (L := L) (W := W) Ls (l1 ++ c :: l2) F -∗ walOutFrag (W := W) o -∗
         segResP (L := L) g0 ==∗
       walParked (L := L) (W := W) (<[dir := cutLay lay b g wr]> Ls) (l1 ++ c' :: l2) (GMap.delete g.ino F) ∗
@@ -205,7 +206,7 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
   have hother : ∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, g'.ino ≠ g0.ino :=
     fun k la hk hla g' hg' => hnd'.2 k dir la lay hk hla hl g' hg' g0 hg0m
   unfold walParked
-  iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht⟩ Hf Hp
+  iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf Hp
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
   subst ho
   imod walOut_set (W := W) o' o' ((o'.delSeg g0.ino).addSeg g.ino) $$ Hoa Hf with ⟨Hoa, Hf⟩
@@ -302,8 +303,13 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
         have e := hP c1 (List.mem_append_right _ (List.mem_of_getElem? hk))
         simp only [propext e]
         exact .rfl
+  isplitl [Ht]
   · -- the pipeline names: the same directory
     iapply walTmpParked_insert Ls T dir lay (cutLay lay b g wr) hl rfl $$ Ht
+  · -- the others: the claim's history changed at a `.wal` name only
+    have hins := fun c1 => walDirClaimOf_insert (c := c1) hl (lay' := cutLay lay b g wr) (by simp [cutLay])
+    iapply walOthersL_repl (L := L) (fun c1 _ h => ⟨(hins c1).1 h, rfl⟩) (fun h => ⟨(walDirClaimOf_key
+      hkey.1 hkey.2).1 ((hins c').1 h), by rw [hkey.1]; exact othersOf_congr hcur⟩) $$ Hw
 
 end iris
 

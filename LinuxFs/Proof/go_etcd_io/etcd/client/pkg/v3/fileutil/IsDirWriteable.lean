@@ -105,7 +105,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
   wp_apply wp_string_to_bytes ([] : GoString) as %sl ⟨Hsl, -⟩
   (try wp_auto)
   wp_apply wp_WriteFile dir go!".touch" sl (DFrac.own 1) _ R J dq hJ qc touch_nameOk hnone
-    $$ [Hp Hperm Hn Hsl] as %err ⟨Hp, Hperm, -, %o, %hok, Hout⟩
+    $$ [Hp Hperm Hn Hsl] as %err ⟨Hp, Hperm, -, %o, %hok, Hout, Htr⟩
   · iframe; isplitl [] <;> iassumption
   cases err with
   | ok e =>
@@ -116,17 +116,19 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     · dsimp only [crOut]
       iexists hJ
       iframe
-      ipureintro; exact ⟨fun hc => (by cases hc), fun J' h => by rw [hnone] at h; cases h⟩
-    · dsimp only [crOut]
+      isplitl []
+      · ileft; ipureintro; exact hnone
+      ipureintro; intro hc; cases hc
+    · dsimp only [crOut, crTr]
       icases Hout with ⟨-, -, Hn⟩
       iexists _
-      iframe
-      ipureintro
-      refine ⟨fun hc => (by cases hc), fun J' h => ?_⟩
-      simp [NamesH.log] at h
+      iframe Hn
+      isplitl [Htr]
+      · iright; iexists i; iframe; ipureintro; simp [NamesH.log]
+      ipureintro; intro hc; cases hc
   | nil =>
     obtain ⟨⟨x, s, i⟩, rfl⟩ := Option.isSome_iff_exists.1 (hok rfl)
-    dsimp only [crOut]
+    dsimp only [crOut, crTr]
     icases Hout with ⟨-, -, Hn⟩
     wp_auto
     generalize hh : hJ.log x (crEnt J go!".touch" i s) (<[go!".touch" := Node.file i]> hJ.cur) = h1
@@ -145,12 +147,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     · iframe
     (try wp_auto)
     iapply HΦ
-    iframe
-    ipureintro
-    refine ⟨fun he => hc.1 (hok' he), fun J' h => ?_⟩
-    rcases hc.2 with hc | hc <;> rw [hc] at h
-    · cases h
-    · rw [hcur] at h; cases h
+    iframe Hp Hperm
+    iexists h'
+    iframe Hn
+    isplitl [Htr]
+    · rcases hc.2 with hc2 | hc2
+      · ileft; ipureintro; exact hc2
+      · iright; iexists i; iframe; ipureintro; rw [hc2, hcur]
+    ipureintro; exact fun he => hc.1 (hok' he)
 
 end proof
 

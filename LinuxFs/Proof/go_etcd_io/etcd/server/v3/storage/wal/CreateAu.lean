@@ -166,7 +166,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hTB : TailBound C Mr (walDurFresh md) lay)
     (hcut : g.om.cut = none) (hmaps : g.om.maps = ∅) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
-    (hmd : md.length < 2 ^ 41) (hmdne : md ≠ []) :
+    (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
+    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
     ⊢ walInv (W := W) C Mr R jr r -∗ osCommitLb m -∗
       walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
@@ -377,7 +378,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       imod walDirKey_insert K dir J X hKd $$ Hdk with ⟨Hdk, #Hkey⟩
       imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
         (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
-        hsegs hino $$ Hpk Ho with ⟨Hpk, Ho⟩
+        hsegs hino hJo $$ Hpk Ho with ⟨Hpk, Ho⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
       -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)

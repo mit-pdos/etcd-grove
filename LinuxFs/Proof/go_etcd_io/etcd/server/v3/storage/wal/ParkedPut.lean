@@ -62,7 +62,7 @@ theorem walParked_putSegIno (Ls : GMap GoString WalLay) (cl : List Claim) (F : G
     iapply walParked_putSeg (L := L) (W := W) Ls cl F o g' hg' hnd hF $$ Hp Ho Hg
   · have hS : ∀ x ∈ segsAll Ls, x.ino ≠ g.ino := fun x hx e => hex ⟨x, hx, e⟩
     unfold walParked
-    iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho -
+    iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho -
     icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
     subst ho
     imod walOut_set (W := W) o' o' (o'.delSeg g.ino) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -71,7 +71,7 @@ theorem walParked_putSegIno (Ls : GMap GoString WalLay) (cl : List Claim) (F : G
     iframe Ho
     iexists b, o'.delSeg g.ino
     dsimp only [WalOut.delSeg]
-    iframe Hpa Hoa Hs Hc Ht
+    iframe Hpa Hoa Hs Hc Ht Hw
     ipureintro
     intro i hi
     have hne : i ≠ g.ino := by rintro rfl; exact hi hF

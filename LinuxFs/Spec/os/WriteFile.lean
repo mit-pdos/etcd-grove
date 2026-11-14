@@ -3,7 +3,9 @@
 `Close`) of an empty `data`, in the tree's shared mode, for a name `b` holding nothing whose claim
 the caller holds whole: `OpenFile(d/b, O_WRONLY|O_CREATE|O_TRUNC, perm)` (`os.OpenFile.specCreateTruncS`
 with the trivial update), the empty `Write` (no effect), `Close`. Outcome `o` the create's
-(`crOut`); a success has created the file. What `fileutil.IsDirWriteable`'s probe `dir/.touch` needs.
+(`crOut`); a success has created the file; the file created, if any, comes back whole (`crTr False o`,
+`wal-leaf5`: a probe left by an error is a file someone must own, `CreateDirAll`'s later probe
+truncating it). What `fileutil.IsDirWriteable`'s probe `dir/.touch` needs.
 Proved in `LinuxFs/Proof/os/WriteFile.lean`. Lean-first (W4).
 -/
 module
@@ -36,7 +38,7 @@ abbrev os.WriteFile.specEmptyS : Prop :=
       osNames j (.only [b]) (DFrac.own 1) h ∗ sl ↦*{dqs} ([] : List w8) }}
     (App (App (App (Val (@! os.WriteFile)) (Val #(child d b))) (Val #sl)) (Val #perm))
   {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm qc ∗ sl ↦*{dqs} ([] : List w8) ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ crOut j b h (DFrac.own 1) o }}
+      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ crOut j b h (DFrac.own 1) o ∗ crTr False o }}
 
 end spec
 

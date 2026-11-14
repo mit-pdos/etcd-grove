@@ -256,7 +256,7 @@ theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GMa
     walParkedIn (L := L) (W := W) Ls cl F g0.ino ⊢
       walParked (L := L) (W := W) (<[dir := tailLay lay pre g wr']> Ls) cl F' := by
   unfold walParkedIn walParked
-  iintro ⟨%b, %o, Ha, Hoa, %hp, Hs, Hc, Ht⟩
+  iintro ⟨%b, %o, Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩
   iexists b, o
   iframe Ha Hoa
   isplitr
@@ -279,7 +279,9 @@ theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GMa
       unfold ParkedClaim; rw [walDirClaimOf_tail hl c]
     simp only [propext e]
     exact .rfl
+  isplitl [Ht]
   · iapply walTmpParked_insert Ls o.T dir lay (tailLay lay pre g wr') hl rfl $$ Ht
+  · iapply walOthersL_mono (fun c _ hc => ⟨(walDirClaimOf_tail hl c).1 hc, rfl⟩) $$ Hw
 
 /-- **The tail's access** (see the file header): the caller lends its half of the tail's `OsMeta`
 while the tail is idle (`tailHeld`, given back). -/

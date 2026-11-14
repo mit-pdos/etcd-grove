@@ -146,7 +146,7 @@ theorem walDecEnv_eof_not (eof : GoInterface) :
 theorem walAreaRes_close (jr : Ino) (N : NameSet) (h : NamesH) (cl : List (GoString × Claim))
     (Wn : List GoString) (hok : AreaOk N h cl Wn) :
     osNames (L := hG.goose_localGS) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
-      osClaims hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) ⊢
+      areaCls (L := hG.goose_localGS) cl ⊢
       walAreaRes (L := hG.goose_localGS) jr := by
   unfold walAreaRes
   iintro ⟨Hn, Hs, Hc⟩
