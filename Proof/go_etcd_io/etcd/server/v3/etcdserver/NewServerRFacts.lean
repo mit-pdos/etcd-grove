@@ -149,6 +149,131 @@ theorem imageRestAt_alarm (γk : KVNames) (bootLog : List EntryM) (i : w64)
     restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
   simp [restBoot, restBootBk]
 
+/-- (Restart S6 B2, P3) **The indices at a restart**: `srvIndices_allocM`'s at the mode off, the apply
+thread's ghost applied index at the image's `i` (`uint.Z i = |A|`), its log `kvModel A`'s (Go's
+atomic fields still `0`: `run` sets them, and the invariant asks only `v ≤ a`). -/
+theorem srvIndices_allocR (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : CoPset)
+    (A : List EntryModel) (i : w64) (hai : γr.raft.ai0 = W64 0) (hi : uint.Z i = A.length) :
+    ⊢ sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) (W64 0) -∗
+      sync.atomic.ownUint64 (srvCommittedIndexAddr s) (DFrac.own 1) (W64 0) -∗
+      sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) (W64 0) -∗
+      monoNatAuthOwn γr.applied 1 0 -∗ monoNatAuthOwn γr.committed 1 0 -∗
+      ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) -∗ ghostVar γr.pend 1 false -∗
+      srvApi.kvLogLb E.γs (kvModel γr.kv A) -∗ srvRLogLb γr.raft A ={Ec}=∗
+      srvAppliedInvM false s E γr ∗ srvAppliedOwn γr i ∗ appliedLogAt γr i (kvModel γr.kv A) ∗
+      srvCommittedInv s γr ∗ srvCommittedOwn γr (W64 0) ∗
+      inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) := by
+  iintro Hai Hci Hti Hap Hcm Hlogs Hpend #Hcert #HL
+  have h0 : uint.nat (W64 0) = 0 := rfl
+  imod (mono_nat_own_update (uint.nat i) (Nat.zero_le _)) $$ Hap with ⟨Hap, -⟩
+  icases buildMonoNatHalves γr.applied (uint.nat i) $$ Hap with ⟨Hap1, Hap2⟩
+  icases buildMonoNatHalves γr.committed 0 $$ Hcm with ⟨Hcm1, Hcm2⟩
+  icases buildGhostVarHalves γr.pend false $$ Hpend with ⟨Hp1, Hp2⟩
+  imod ghost_map_insert_persist i (kvModel γr.kv A) (GMap.lookup_empty _) $$ Hlogs with ⟨Hlogs, #Hlog0⟩
+  imod inv_alloc srvN Ec (iprop(∃ t : w64,
+      sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t)) $$ [Hti] with #Hterm
+  · inext; iexists W64 0; iexact Hti
+  imod inv_alloc srvN Ec (iprop(∃ v : w64,
+      sync.atomic.ownUint64 (srvCommittedIndexAddr s) (DFrac.own 1) v ∗
+      monoNatAuthOwn γr.committed (1 : Qp).half (uint.nat v) ∗
+      (∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z v ≤ uint.Z γr.raft.ai0 + L.length⌝)))
+    $$ [Hci Hcm1] with #Hcinv
+  · inext
+    iexists W64 0
+    rw [h0]
+    iframe Hci Hcm1
+    iexists A
+    iframe HL
+    ipureintro; rw [hai]; word
+  imod inv_alloc srvN Ec (srvAppliedBodyM false s E γr)
+    $$ [Hai Hap1 Hlogs Hp1] with #Hainv
+  · inext
+    iunfold srvAppliedBodyM
+    iexists W64 0, i, kvModel γr.kv A, (∅ : GMap w64 mvcc.Log).insert i (kvModel γr.kv A), false
+    iframe Hai Hap1 Hlogs Hp1 Hcert
+    isplitr
+    · ipureintro
+      refine ⟨by simp, ?_, ?_⟩
+      · intro k L' hk
+        rw [GMap.lookup_insert_Some] at hk
+        rcases hk with ⟨rfl, -⟩ | ⟨-, hk⟩
+        · left; exact Int.le_refl _
+        · simp at hk
+      · intro k k' L1 L2 h1 h2 _
+        rw [GMap.lookup_insert_Some] at h1 h2
+        rcases h1 with ⟨-, rfl⟩ | ⟨-, h1⟩
+        · rcases h2 with ⟨-, rfl⟩ | ⟨-, h2⟩
+          · exact List.prefix_refl _
+          · simp at h2
+        · simp at h1
+    isplitr
+    · iunfold appliedLogAt; iexact Hlog0
+    iapply (kvLogsPubM_iff false E γr _ _).2
+    isplitl
+    · iunfold kvLogsOkM
+      iexists A
+      iframe HL
+      ipureintro
+      intro k L' hk
+      rw [GMap.lookup_insert_Some] at hk
+      rcases hk with ⟨rfl, rfl⟩ | ⟨-, hk⟩
+      · refine ⟨A, List.prefix_refl _, ?_, by rw [kvModelM_false]⟩
+        rw [hai, hi]; word
+      · simp at hk
+    iunfold appliedPubM; itrivial
+  imodintro
+  unfold srvAppliedInvM srvCommittedInv srvAppliedOwn srvCommittedOwn
+  iframe Hainv Hcinv Hterm
+  rw [h0]
+  iframe Hap2 Hp2 Hcm2
+  iunfold appliedLogAt; iexact Hlog0
+
+/-- (Restart S6 B2, P3) **The certificates' invariant at a restart**: `kvCertInv_alloc`'s, its bound
+`hi` the image's KV model's length, the model certified (its certificate at its length). -/
+theorem kvCertInv_allocR (γs : ServerRaftNames) (γk : KVNames) (E : CoPset) (A : List EntryModel)
+    (h2 : 2 ≤ γk.log0.length) (hlen : (kvModel γk A).length < 2 ^ 63) :
+    ⊢ ghostMapAuth (GF := GF) γk.cok 1 (∅ : GMap w64 mvcc.Log) -∗
+      ghostVar γk.hi (1 : Qp).half (kvModel γk A).length -∗ srvRLogLb γs A ={E}=∗
+      kvCertInv γs γk ∗ kvCert γk (kvModel γk A) := by
+  iintro HC Hhi #HL
+  imod ghost_map_insert_persist (W64 ((kvModel γk A).length : Int)) (kvModel γk A)
+    (GMap.lookup_empty _) $$ HC with ⟨HC, #Hc⟩
+  imod inv_alloc kvcN E iprop(∃ (C : GMap w64 mvcc.Log) (hi : Nat) (Lb : List EntryModel),
+    ghostMapAuth γk.cok 1 C ∗ ghostVar γk.hi (1 : Qp).half hi ∗ srvRLogLb γs Lb ∗
+    ⌜certMapOk γk C hi Lb ∧ 2 ≤ γk.log0.length⌝) $$ [HC Hhi] with #Hinv
+  · inext
+    iexists _, (kvModel γk A).length, A
+    iframe HC Hhi HL
+    ipureintro
+    refine ⟨?_, h2⟩
+    intro n l hn
+    rw [GMap.lookup_insert_Some] at hn
+    rcases hn with ⟨rfl, rfl⟩ | ⟨-, hn⟩
+    · exact ⟨Nat.le_refl _, rfl, hlen, A, List.prefix_refl _, rfl⟩
+    · simp at hn
+  imodintro
+  iunfold kvCertInv
+  iframe Hinv
+  iunfold kvCert
+  iright; iexact Hc
+
+/-- (Restart S6 B2, P3) **The restarted storage's snapshot, once** (`rnSnapOnce_of_tok`'s restart
+form): `MemoryStorage.Snapshot()` on the storage `bootstrap` rebuilt from the WAL's records `σ` answers
+the records' snapshot, at the index `σ.b = |A.take σ.b|` and the base's term, its conf state the voters
+after `A` (`epCsAt`). OPEN: the proof opens `memStorInv` for `memStorAt` as `rnSnapOnce_of_tok` does
+and reads the snapshot's justification (`MemJust.SV`) of the restarted storage; it may need a premise
+from `NodeStartSpecR`'s post (`memStorMeta`, a compaction bound `memCompacted γs σ.b`): a form. -/
+theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
+    (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0) (hb : σ.b ≤ A.length) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ walSnapCert γ.node.cl σ -∗
+      srvRaftLogInv γr -∗ srvRLogLb γr A -∗
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗
+        rnSnapOnceR (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs
+          (W64 (A.take σ.b).length) σ.base.term' γr A := by
+  sorry
+
 end lemmas
 
 section kit

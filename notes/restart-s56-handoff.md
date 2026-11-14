@@ -48,72 +48,83 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## B2 proof in progress (2026-11-14, the B2 proof agent): next agent starts here
+## B2 proof in progress (2026-11-14, second B2 proof agent): next agent starts here
 
-Branch `restart-s56` (commits after `b2015769d0`); **not landable** (two `sorry`s: tcb --check).
-Files: `E/NewServerR.lean` (the skeleton restored from `c081768592`, statement unchanged) and the new
-`E/NewServerRFacts.lean` (the proof's sub-facts; imported by `NewServerR`). Check loop:
-`/shared/tmp/restart-s56/lc.sh --fast --split -a Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean`
-(`etc/lean-check.py` under the 64G cap; the daemon stays in the scope). Each check of the current
-prefix: ~35s. The lean worker sat at 3 GB after the store section.
+Branch `restart-s56`; **not landable** (four `sorry`s: tcb --check). Files: `E/NewServerR.lean`
+(`NewServer.wp_proofR`, statement unchanged; one new callee hypothesis `h30 : auth.NewAuthStore.spec`)
+and `E/NewServerRFacts.lean` (sub-facts; now imports `AuthSrv`). Check loop:
+`/shared/tmp/restart-s56/b2tail/chk.sh -a` (= `lc.sh --fast --split -q -a` on `NewServerR.lean`,
+filtered by `/shared/tmp/restart-s56/b2tail/err.py`: each message's header and its goal's tail; `N=60`
+for more lines). **Always `-a`**: without it an edit in the middle reports "stopped when the edited
+declaration was done, 0 errors" while later blocks still fail. A full check of the file: ~50-120 s.
 
-**Done, checked (0 errors up to the `sorry`, `NewServerR.lean:587`):** `intro` (binder names as in
-`wp_proofG`, plus `ρo S σ i A D mb M`, `HrN` (restartNames), `Hfnc Hdwd`; no `ctxs γd Hcon Hauthcfg
-Hbcf`), `wp_start`, the image (`icases` of `srvDiskImageAt`: `Hvac HrS %Himr #HA %Himp ⟨%u,#Hmvi⟩
-%Hbl #Hconf %Hcsm Hwsi Hrauth Hfiles Hpath Hsdimg`; `Himg : imageRestAt ρo.rd.kv γ.boot i A D`,
-`Hist`, `HiA : uint.nat i = A.length`, `#HA0 : srvRLogLb ⟨γ,[],0⟩ A`), `wal.stopImage_elim`, the
-contract's antecedents (`restart_clusterVerLogOk`; clause (G) by `restart_peerURLs`, **sorried**),
-the contract call and its error branch, `iNamed Hb` (bootOkR's rows), `restart_idx` (`Hba Hac Hblc`),
-`wal.restartOk_facts` (`Hwrf`), `wal.restartOk_start` at `l₀ = srvLE ⟨γ,[],0⟩ (A.take σ.b)` (gives
-back `Hwsi`, the image's WAL slot), G's lines 486-514 verbatim, `raftNode_of_RestartNode` (cs from
-`Hrest`, `Hmb : mb = simple γ.cfg` by `srv_confAt_eq_simple`, `Hclu`/`Hrf` from `srvClusterOk`,
-`peersCtx pv []` from `peersNil`), its post as G's less `#Hsfresh`; G's lines 547-683 (perl
-`on`/`cmp` → `false`); `boot_storageR` at `kvModel ρ.rd.kv A`, `crevOf ρ.rd.kv A`, `u` (from the
-image's `mvccImage` through `restartNames_kvModel`/`restartNames_crevOf`); G's 699-721 (to
-`rw [Hbe0]`); **the lessor call** (`h24` at `recs` from `imageLeasesAt_recs`, `reqOf := tableReq
-(appliedTable ρ.rd A)` (`tableReq_le_recs`), `Lr := (appliedTable ρ.rd A).ids`; the guard premise from
-`restart_noGrant`, **sorried**), its post named as G's plus `#HlReq` (the requested TTLs) and
-`⟨%ls, %Hls, Hl0⟩` (`lessorAt γl 0 (recMap (recs.zip ls), ∅, recTTLs cfg.MinLeaseTTL' recs)`, for
-specR's `srvInvAt`). `Hrbo` is now `rbOwnIn … ((rbData d.P D).insert "lease" ((rbData d.P D).lookup
-"lease").getD ∅)`.
-
-**The goal at the `sorry`:** right after `NewLessor` (G line 771, `rw [List.map_nil]` and the
-`Hrbo` rewrite by `hLe`: both gone at a restart).
+**Done, checked (0 errors; `sorry` at `NewServerR.lean:2019`):** everything of `wp_proofG`'s tail up to
+its post (`unfold srvBuiltG`, G line ~2420), adapted:
+- the lessor's aftermath: `γlt` at `(appliedTable ρ.rd A).ids`, no `lessorAt_empty` (the recovered
+  snapshot `HlAt0`, NewLessor's), `Hrbo` normalized to `(rbData d.P D).insert "lease" ((D.lookup
+  "lease").getD ∅)` (the lessor's post unfolds `rbData`'s lookup to `Option.filter`);
+- `mvcc.api.New.spec` at the image's state `srvApi.stAt (kvModel A) (crevOf A)`, `u` general (an
+  unfinished compaction resumed through the unset hook, `Hhk0`/`Hupre`/`Hupost`, `commitReq_true`),
+  `Ls = (appliedTable ρ.rd A).ids`, no item (`LogNoLease` from `kv_log_plain`); the store invariant by
+  the new `restartStore_holds` (Facts; `bootStore_holds`' restart form);
+- the auth store: the mode `off` from `hTP`'s `M.isOn = false` (`isOn_false_iff`), the kit
+  `authStoreKitR` (Facts: `authStoreKit`'s body copied, the auth bucket `∅ ∨ authBoot`, built by
+  `authStoreKitR_off` from `h30` with HS1's second disjunct), its premise by `imageRestAt_auth` (Facts);
+  `restoreAlarms` by `imageRestAt_alarm` (Facts); no `restBootBk_of_fresh` (the buckets after the
+  constructors stay `(((((rbData d.P D).insert lease (D's)).insert auth authBoot).insert authUsers
+  ∅).insert authRoles ∅).insert alarm ∅`: relate them to `restModel … A` at `srvRest`);
+- the compactor's branch dead (`exact absurd hcmpT (by decide)`), the `cmp` reader branch dead;
+- the node's names: `Hrnames` has 17 parts at a restart (`Hrnt0 Hrnc0 Hrns0` added);
+  `srvRestartRows` used right after (`HsTA` to the installer, `Hwpend` kept for the post). **Its text
+  parses as `(|==> rnSnapTermAbove γn) ∗ srvWinPend s γr γn`** (the `|==>` binds tighter than `∗`):
+  harmless for the proof, but the trusted row is not what its docstring says (report to 81);
+- the snapshot directory from the image (`Hsdimg`: `ssₒ γd γt ct`, `snapDirInv_ss_congr` with `Hssp`,
+  `Hsloc`), the counter `Hγt : monoNatAuthOwn γt 1 ct` with `ct ≤ i + 1`, in `HsnapB : srvSnapOwn s cil E
+  ρ.rd γA (W64 0 + W64 |A|)` (route (C); was `srvSnapBoot`);
+- the read names: `γk.hi` updated to `|kvModel A|`; the writer's facts at `kvModel A`; the indices by
+  the new `srvIndices_allocR` (Facts: the ghost applied index at `i`, `appliedLogAt γr i (kvModel A)`;
+  Go's atomic fields stay 0, the invariant asks `v ≤ a`); the certificates by the new
+  `kvCertInv_allocR` (Facts: `hi = |kvModel A|`, `#HkcA : kvCert ρ.rd.kv (kvModel A)`);
+- `bootKVOf false` → `restartKV ρ.rd.kv A` everywhere (the environment `srvErM`);
+- `run`'s snapshot: `HlastT : lastTermIs (A.take σ.b) σ.base.term'` (`restart_lastTerm`) and
+  `HsnapR` (`restart_snapOnceR`, Facts, **sorried**), in place of `srvBuildGap`/`Hsnone`;
+- `lease.srvInvAt false s E m (recMap (recs.zip ls), ∅, recTTLs minTTLsecs recs)` (`HLsrv`, from
+  `HlAt0`); no `leaseTTLRowR`; the post's existentials end with `at₀ := σ.base.term'`; `HBF` dropped.
 
 **Next, in order:**
-1. (Done but for these:) G 771-799 after the lessor: no `rw [List.map_nil]`/`hLe`; the live set's
-   ghost variable `γlt` at `(appliedTable ρ.rd A).ids` (not `[]`); **no `lessorAt_empty`** (`Hl0` is
-   the history's first snapshot; `Hlrdinv` as G); `Hlnil` as G at `false`. Notes on the call, kept:
-   `NewLessor.spec` at the image's `lease` bucket, as
-   `EtcdServer__applySnapshot.lean:119-160` does for `Recover`: `bkRestAtL` (`Himg.2.2`, at
-   `ρo.rd.kv`: move to `ρ.rd` by `HrN`'s `kvCongr`, c0/ch0/log0) → `imageLeasesAt_of_bkRestAtL d` →
-   `imageLeasesAt_recs` gives `recs`, the perm to `(appliedTable ρ.rd A).ids` (= `Lr`), and the TTL
-   bound for `reqOf := tableReq (appliedTable ρ.rd A)` (`tableReq_of_mem`). Keep `∃ ls, lessorAt γl 0
-   (recMap …)` from the post (G drops it and allocates `lessorAt_empty`; R uses NewLessor's for
-   specR's `srvInvAt`, so do not call `lessorAt_empty`). `hDl`/`HDr`/`restBootBk_of_fresh` (G 1096)
-   do not exist at a restart: the rest buckets are `imageRestAt`'s. The `GA` premise
-   `□ [∗list] id ∈ recs.map (·.1), GA id` with `GA := fun _ => True`. `Hrbo` after: `rbOwnIn … (r.insert
-   "lease" ((r.lookup "lease").getD ∅))` (no `hLe` rewrite).
-2. Then paste G from 771 on (the auth token provider: `hTP` at `false`, the `Hauthcfg` premise is
-   `fun h => absurd h (by decide)`) and continue by errors. Places known to differ (G line numbers,
-   `NewServer.lean`): the snapshot directory 1230-1261 (`Hsdimg`: `snapDirInv_ss_congr` with `Hssp`,
-   the counter `c ≤ i + 1`; no `snapDir_init`, no `Hsdo`/`Hsdir`); `Hsnone`/`srvBuildGap` 1613 (gone:
-   `rnSnapOnceR` at `|P|` for `srvBuiltRestartR`, P3); the apply rows at `[]` 2212-2359 (`Hlog0`,
-   `Hthr` at `γA.m0.1 = i`, `srvAppliedOwn`/`appliedLogAt` at `g₀ = i`: P3 says a new allocation at
-   `i`); `leasesLive` (G's tail, `iexists []`): the image's leases, items empty by `LogNoLease
-   (kvModel A)` (`SnapApplyWalk.lean:617-626`); `cases on`/`cases cmp` lines (5 of them: `cases
-   false` fails, delete); the compaction branch (`hCmpS`, `Hcon`; G 1780-1800, 1844-1847) is dead.
-   The post: `srvBuiltR` (= `srvBuiltRC .off`) directly, not `srvBuiltG`+`srvBuildGap`; HBr by P3
-   (`/shared/tmp/restart-s56/p3-rows.md`); `Hwpend`/`rnSnapTermAbove` from `Hrows`
-   (`srvRestartRows`, at `γrn`, needs `Hrnames`); no `leaseTTLRowR`.
-3. Open sub-facts (sorried or to state in `NewServerRFacts.lean`): `restart_peerURLs` (P5, ~250
-   lines; also gives `srvApRes`'s members at `A`), `restart_noGrant` (no grant in a non-granting
-   cluster, from the KV invariant), `u = false` (if the store's later uses need it),
-   the read names at `g₀ = i`, the authStoreKit widening (or a direct `Or.inr`).
+1. The post. `wp_proofG`'s assembly from `unfold srvBuiltG` on is in the block comment after the proof
+   (and `/shared/tmp/restart-s56/b2tail/post-tail.lean.txt`). Retarget it at `unfold srvBuiltR
+   srvBuiltRC` (rows: `AuthCompRows.lean:203`). Differences from `srvBuiltG` (ServerOn.lean:163):
+   `srvFieldsBuilt` (not `NA`), `srvReadBuilt` (not `NK`), `srvKVInvsC .off` (not `srvKVInvsM`),
+   no `Hua`/`Hsnapb`/`Hloop`/`Happly` at top level: they go into `HBr : srvBuiltRestartR .off s γA cil b
+   E ρ.rd γrn 0 σ.base.term' 0 (restartKV ρ.rd.kv A)` with `P := A.take σ.b` (`List.take_prefix`,
+   `HlastT`), `⟨msR, HmsR, HsnapR⟩` (rewrite `γrn.node.reg`, `γrn.γs` by `Hrn1`, `Hrn8`; `γrn.a0` by
+   `Hrna0`; `|A.take σ.b|`), `Hloop`/`Happly` (at `A.take σ.b` already), `applyBuiltR .off … A (W64
+   |P|)` (P3's table, `/shared/tmp/restart-s56/p3-rows.md`: `applyThread` at `γA.m0.1 = i` from
+   `bootOkR`'s `Hthr`/`Hm0` and `loopOk` since `|P| ≤ i`; `srvAppliedOwn`/`appliedLogAt` at `i` from
+   `Haown`/`Hal0`; `kvRunM false ρ.rd 0 0 A x₀` = `kvRun` from `Hkhi2` (now at `|kvModel A|`),
+   `#HkcA`, `HAr`, `x₀.chain = ch0`, `x₀.crev = crevOf`; `srvRest E ρ.rd A`: at `lg = false` the
+   bucket map above as `restModel 0 boot A` through `imageRestAt`'s `bkRestAtL` (`Himg`), at `lg = true`
+   the leased arm (`ltHalf` from `HltS`, `srvGrantable`, `srvReqs` from `#HlReq`, `srvEver` from
+   `HlEv : leaseEver γl (recs.map (·.1))`); `srvApRes s ρ.rd A` needs P5), and `HsnapB`. `HEr`'s
+   `uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = 0`; `Hwpend` from `srvRestartRows`. The lessor's
+   `leasesLive` (G's tail, `iexists []`): `iexists (appliedTable ρ.rd A).ids`, the items empty by
+   `hpi`/`LogNoLease`, `Hlown : leaseOwn γl Lr (pendItems … )` already at `∅` (`rw [hpi]`), `Hlt1`.
+   The spec's lease existential: `iexists recs, ls, minTTLsecs`, `HLsrv`, `Hls`, and `hrecs` at `D`
+   by `rbData_real_lookup d D _ (by decide)`.
+2. The sub-facts (`NewServerRFacts.lean`, all `sorry`): `restart_peerURLs` (P5, ~250 lines; also gives
+   `srvApRes`'s members at `A`), `restart_noGrant`, `restart_snapOnceR` (new: open `memStorInv` for
+   `memStorAt` as `rnSnapOnce_of_tok` does, `MemoryStorage.Snapshot.spec` at the restarted storage's
+   justification; may need `memStorMeta`/`memCompacted γs σ.b` from `NodeStartSpecR`'s post: a form).
+3. When no `sorry` is left: link (`etc/gen-link.py --server`, `etc/link-lean-first-server.txt`; the new
+   callee `h30` is `NewAuthStore`'s axiom, already in Link), measure the full compile's peak, full
+   build, tcb --check, gen-interface, gates; STOP before landing (CP3).
 
-Forms so far (questions.md): the instance `bootstrapRestartContract_persistent` (local, in
-`NewServerR.lean`: `iNamed` needs it), `restartNames_crevOf`, `restartNames_bkRestAtL`,
-`tableReq_le_recs` (proved), the file `NewServerRFacts.lean`.
+Forms this session (questions.md): `restartStore_holds`, `srvIndices_allocR`, `kvCertInv_allocR`,
+`imageRestAt_auth`/`imageRestAt_alarm` (the P7 probes), `authStoreKitR`/`authStoreKitR_off` (a copy of
+`authStoreKit` widened to `authBoot`; cleanup: widen `authStoreKit` itself once `NewServer.lean` is
+rebuilt anyway), `restart_snapOnceR` (stated, sorry), `wp_proofR`'s extra hypothesis `h30`, the
+private helpers of `NewServer.lean` copied into `NewServerR.lean`.
 
 ## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
 
