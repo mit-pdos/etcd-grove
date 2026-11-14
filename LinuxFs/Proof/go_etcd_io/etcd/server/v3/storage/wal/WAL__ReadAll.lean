@@ -297,7 +297,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
   imodintro
-  obtain ⟨hpre1, hle1, hd1, -, hab, hex, hwr, hgs, htm, -, hold, hin1, hnm1, hcur1, hcoh1⟩ := hcm
+  obtain ⟨hpre1, hle1, hd1, -, hab, hex, hwr, hgs, htm, -, hold, hin1, hnm1, hcur1, hcoh1, hsyn1⟩ := hcm
   have hR0 := readFiles_ok' walCodec_ok hU hab hex hwr kk gs hgs hgne (fs.map (·.bs))
     (decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1))
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Hdenv
@@ -494,7 +494,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           · iPkgInit
           wp_apply (wp_ZeroToEnd R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr gl.om.size gl.om.size
             hwrS hwrT) $$ [$HareaK $Herrs $Htw] as %ez Hz
-          icases Hz with (⟨%hez, %sz', %hsz', Htw⟩ | %hez)
+          icases Hz with (⟨%hez, %sz', %hsz', Htw⟩ | ⟨%hez, -⟩)
           rotate_left
           · -- `ZeroToEnd`'s error
             rcases ez with ei | _
@@ -527,7 +527,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           wp_apply (wp_FdatasyncP R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata
             lay.cuts lay.wr sz' gl.om.size hwrT) $$ [$HareaK $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
           ihave Hgh := Hgh $$ Hcf
-          icases Hz with (⟨%hef, Htw, #Hsyn⟩ | %hef)
+          icases Hz with (⟨%hef, Htw, #Hsyn⟩ | ⟨%hef, -⟩)
+          ihave Htw := walTailW_mono fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr sz' []
+            TailMetaS TailMeta (fun _ _ h => h.meta) $$ Htw
           rotate_left
           · -- the fdatasync's error
             have hez : errnoErr ef ≠ GoInterface.nil := WalFs.errnoErr_ne ef hef

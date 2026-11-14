@@ -12,7 +12,9 @@ makes the zeros known from the size on, `OsMeta.synced_zf_size`; `os.zeroToEnd_c
 resizes leave), knowing the candidates past the size `m` knew and, if `m` knew zeros from at least its
 size, zeros from the page cache known zero on (`ZteMeta`), its least crash size at most `min m.lo o` (`wal-tc19`:
 the WAL's handle's `LoWr`); its half of the bytes from `o` to the end, a zero run (`osZerosA`). On an error: some
-offset, its half of the `OsMeta` of some size `w ≥ o` and of `w - o` bytes from `o`. Both with `K`.
+offset, its half of the `OsMeta` of some size `w ≥ o` and of `w - o` bytes from `o`, whose values are the bytes' it started with (nothing changed, or a
+truncate announced that did not land) or all zero (the truncate landed: none, or the growth's zeros; W4c U5,
+fifth session: `Close` of the failed `ReadAll`'s handle needs the zero length word at `o`). Both with `K`.
 The update's owner holds the other halves (it committed each step's outcome).
 The supplies are told the caller's properties of the states they start from (`os.truncSup`'s,
 `fallocSup`'s `P`; `wal-tc19`): `P` for the truncate to `o`, of `m` and of every state at most `m`'s size
@@ -63,7 +65,8 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specAu : Prop :=
             osMeta d.ino (DFrac.own (1 : Qp).half) m' ∗
             osZerosA d.ino o.toNat (m.size - o.toNat) (DFrac.own (1 : Qp).half)) ∨
        (⌜err ≠ interface.nil⌝ ∗ ∃ (o' : w64) (m' : OsMeta) (ys : List ByteG),
-          ⌜o.toNat ≤ m'.size ∧ m'.maps = m.maps ∧ ys.length = m'.size - o.toNat⌝ ∗
+          ⌜o.toNat ≤ m'.size ∧ m'.maps = m.maps ∧ ys.length = m'.size - o.toNat ∧
+            (ys.map Prod.fst = xs.map Prod.fst ∨ ∀ y ∈ ys, y.1 = 0)⌝ ∗
           os.ownOff f o' ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m' ∗
           osBytes d.ino o.toNat (DFrac.own (1 : Qp).half) ys)) }}
 

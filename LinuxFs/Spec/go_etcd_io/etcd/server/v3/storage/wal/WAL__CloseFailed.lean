@@ -4,10 +4,12 @@
 back), `w.sync()` of the tail, each lock closed, `w.dirFile` closed; the tail unregistered, the segments'
 halves, the directory claim's half and the pipeline names back to `walInv`'s parked state, the lock token
 back from the ghost handle (`walReadFailed`), with the half of the call permission the handle and its
-pipeline held (the client holds the other half since `Open`). Whatever `Close` answers, as
-`Close.specOpening` (the sync's error returns before the locks; the token comes back, the halves being
-ghost). The tester's `restartRead` (`examples/etcd/wal/wal.go`, `w.Close()` after a failed `ReadAll`, then
-`Repair`, which takes the token) is its client.
+pipeline held (the client holds the other half since `Open`). On an error the token may be lost (W4c U5,
+fifth session; ledger 2026-11-14, "`WAL.Close.specFailed`'s post"): after `ReadAll`'s `ZeroToEnd` or its
+fdatasync failed, the tail may be left in a resize window, which only `Close`'s own fdatasync closes; if
+that fails, the tail cannot be put back. The tester's `restartRead` (`examples/etcd/wal/wal.go`, `w.Close()`
+after a failed `ReadAll`; a non-nil answer fails the read, a nil one is followed by `Repair`, which takes the
+token) is its client.
 
 **Stated, not proved** (W4c U5, fourth session; `notes/wal-fsext-w4c-plan.md`, the U5 log): its proof needs
 `walReadFailedF`'s body to keep what every error exit of `ReadAll` holds, and two steps the invariant has no
@@ -44,7 +46,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specFailed (Mr : WalMarsh
       WalFs.walAreaOk walCodec Mr R jr r ∗ walReadFailedF w dir }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
-  {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half }}
+  {{ (err : GoInterface), RET #err;
+      (WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
