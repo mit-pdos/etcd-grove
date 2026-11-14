@@ -222,7 +222,8 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       walOpenW (W := W) w (child r nm) ⊢
     ∃ γ, walHandleIn (W := W) P Mr w (child r nm)
       (createHS md g.ino (createStream Mr md).length γ g.om.size) TailMetaW
-      (fun R' q' => iprop(⌜R' = R ∧ q' = q⌝)) (some (child r nm)) (fun R' dq' => R' = R ∧ dq' = DFrac.own q) := by
+      (fun f' R' q' => iprop(⌜f' = f ∧ R' = R ∧ q' = q⌝)) (some (child r nm))
+      (fun R' dq' => R' = R ∧ dq' = DFrac.own q) := by
   iintro ⟨Hpre, Henc, Hf, Hfd, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
     Hst, #Hsp, Hdec, Hrc, Hfpf, #Hpipe, Hmain, Htc, #Henv, #Hcrc, #Hpkg, Hopen⟩
   iunfold walPreIn at Hpre
@@ -269,7 +270,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       WalOut.empty.create g.ino J walTmps (child r nm) from rfl]
     iframe Hk Hn Hp Hsi Hperm Hdfd Ho Hnf Htf
     isplitr
-    · ipureintro; exact ⟨rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, rfl, rfl⟩
     ipureintro
     exact ⟨walNameP_walFileName 0 0, hj0, ⟨pd, hname⟩, fun _ h => h, walTmps_not_wal,
       ⟨0, 0, rfl, by decide⟩, fun b n hb _ => Or.inl (hj1 b n hb)⟩

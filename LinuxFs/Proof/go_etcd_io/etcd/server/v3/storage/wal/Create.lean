@@ -130,13 +130,13 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
     obtain ⟨_hcq, hnm⟩ := hnm
     try wp_auto
     -- `pdir, perr := fileutil.OpenDir(filepath.Dir(w.dir))`
-    icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ $$ Hw with ⟨Hdir, Hw⟩
+    icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
     try wp_auto
     wp_apply wp_Dir (child r nm) as %pd %hpd
     rw [dir_child_model hrc hnmO] at hpd
     subst pd
     ihave Hw := Hw $$ Hdir
-    icases walOpenWFU_permAcc P Mr $w (child r nm) _ _ $$ Hw with ⟨Hperm, Hw⟩
+    icases walOpenWFU_permAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hperm, Hw⟩
     wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half.half $$ [Hp Hperm]
       as %pf %perr ⟨Hp, Hperm, Hod⟩
     · iframe; iframe #
@@ -192,7 +192,7 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
     -- the WAL (`walInv_named`), and the name is registered now (`walInv_register`; design P,
     -- `notes/wal-units/create.md`), the handle sealed (`walOpenWFU_seal`)
     obtain ⟨hnc, ex, Ex, hlw, hEx⟩ := hnm
-    icases walOpenWFU_seal P Mr $w (child r nm) _ _ $$ Hw with ⟨Hnf, Hw⟩
+    icases walOpenWFU_seal P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hnf, Hw⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod walInv_named walCodec Mr R jr r (child r nm) nm s' (walDurFresh md) (.only [nm]) (DFrac.own c)
@@ -908,7 +908,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     unfold renameWALPost
     icases Hpost with ⟨Hp, Hpost⟩
     icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, %hfpn, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
-        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm, Hcp⟩ | ⟨%herr, %x, %qd, %hqd, HUH, Hw, Hpw, Hcp⟩ |
+        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm, Hcp⟩ | ⟨%herr, %x, %qd, %tf, %hqd, HUH, Hw, Hll2, Hpw, Hcp⟩ |
       ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
     · -- committed, `w` returned: the name registered, the handle minted and assembled
       -- (`create_ghost`, `create_handleIn`: the handle before naming)
@@ -964,7 +964,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       · iframe; iframe #
       icases HhIn with ⟨%γt, HhIn⟩
       imod (receipt_zero (GF := GF)) with Hr0
-      ihave Hw := walOpenWFU_intro P Mr wl (child r nm) R d
+      ihave Hw := walOpenWFU_intro P Mr wl (child r nm) R d f
         (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size)
         (createHS_done md i _ γt _) hmd $$ [HhIn Hr0]
       · iframe

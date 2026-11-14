@@ -37,17 +37,23 @@ rename; design P, `notes/wal-units/create.md`), whatever `err` (the directory's 
 everything else); or, the sync failed (`Close` returns before it unlocks), the lock token still held
 (`walLockedTok`: `WAL.sync.specC`'s error arm), which `Create` needs to merge `nm.tmp`'s claim back to the
 area, with the names fragment (`Create` then registers the name, which still holds the WAL). The `dir`
-field comes back with the free token (`cleanupWAL` reads `w.dir` after `Close`, for the rename). -/
+field comes back with the free token (`cleanupWAL` reads `w.dir` after `Close`, for the rename). And the
+tail's `*os.File` (pinned to `tf`, `Create`'s segment file): closed (fd `-1`) after a successful sync, open
+with its fd when the sync failed (`Close` returned before closing the locks); `Create`'s deferred
+`f.Close()` runs on it. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
-  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (Rp : Roots) (qp : Qp),
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w dir Rp qp ∗ WalFs.walPurgeW w dir }}
+  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (Rp : Roots) (qp : Qp) (tf : Loc),
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w dir Rp qp tf ∗ WalFs.walPurgeW w dir }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
       (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTokX ∗
         WalFs.walNamesFrag (some dir) ∗ osCallPerm (1 : Qp).half ∗
-        ∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir)) }}
+        (∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∗
+        ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
+        ∃ (fd : w64) (nmf : GoString) (d : OsFd),
+          os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) }}
 
 end spec
 

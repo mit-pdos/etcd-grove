@@ -37,10 +37,11 @@ tail's size grown to cover them if they pass it), the tail fdatasynced: the hist
 the lock token (`walLockedTok`: `Close` returns before it unlocks, and `Create`'s cleanup must still merge
 `nm.tmp`'s claim back, which needs a token excluding the free one; ledger 2026-11-14) and the names
 fragment (`walNamesFrag nf`: `Create`'s pending registration, which its cleanup completes when nothing was
-renamed; `notes/wal-units/create.md`). -/
+renamed; `notes/wal-units/create.md`), and the tail's open file and fd with the naming fact at them (the
+handle before naming pins the file: `Create`'s deferred `f.Close()` closes it). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
-    (nmd : Roots → Qp → IProp GF) (nf : Option GoString),
+    (nmd : Loc → Roots → Qp → IProp GF) (nf : Option GoString),
   h.rest = 0 →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleC P Mr w dir j h TailMetaW nmd nf }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
@@ -49,7 +50,9 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
           TailMetaS nmd nf ∗
           WalFs.walSyncedLb dir h.H.length) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag nf) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag nf ∗
+        ∃ (f : Loc) (fd : w64) (name : GoString) (d : OsFd) (R : Roots) (q : Qp),
+          nmd f R q ∗ os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) }}
 
 end spec
 

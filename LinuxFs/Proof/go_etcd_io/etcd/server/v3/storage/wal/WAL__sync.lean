@@ -253,7 +253,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
           locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
           ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walOpenW (W := W) w dir) }} := by
+        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walOpenW (W := W) w dir ∗
+          ∃ rd : Bool, os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨h.ino, rd, true⟩) }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -271,21 +272,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     iintro H; iframe H; ipureintro; exact Nat.le_trans hoff (Nat.le_max_left _ _)) $$ Htw
   ihave Hws := wal.tailWriterW Mr R jr r f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz $$ Harea
   wp_apply (wp_flush e (wal.fileWi f)
-      (walTailWS (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz) (fun _ _ => iprop(True))
+      (walTailWS (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz) (tailWB f fd name h.ino)
       (tailOkW Mr h.H h.md h.cuts h.o0) h.out h.pend (h.crc Mr)
       (fun _ _ hp hy => tailOkW_prefix hp hy) hokW) $$ [Hws]
       [Henc Htw] as %err ⟨Henc, Hres⟩
   · iexact Hws
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, -⟩)
+  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, HB⟩)
   rotate_left
-  · -- the flush failed
+  · -- the flush failed: the tail's file and fd back (`tailWB`)
     rcases err with ei | _
     rotate_left
     · exact absurd rfl Herr
     wp_auto
     iapply HΦ
-    iright; iframe Hopen; ipureintro; exact Herr
+    unfold tailWB
+    iright; iframe Hopen HB; ipureintro; exact Herr
   subst Herr
   iunfold walTailWS at Htw
   icases Htw with ⟨Htw, %hbx⟩
@@ -339,7 +341,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     wp_apply Hhspec
     try wp_auto
     iapply HΦ
-    icases Hsy with (⟨%H0, Htw, #HS⟩ | ⟨%H0, -⟩)
+    icases Hsy with (⟨%H0, Htw, #HS⟩ | ⟨%H0, Htw⟩)
     · ileft
       isplitr
       · ipureintro; subst H0; rfl
@@ -350,7 +352,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · iright
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
-      iapply (walOpenW_cut (W := W) w dir).2; iframe
+      unfold walTailW
+      icases Htw with ⟨Hf, ⟨%rd, Hfd⟩, -⟩
+      isplitl [Hoc Hpk Hcf]
+      · iapply (walOpenW_cut (W := W) w dir).2; iframe
+      iexists rd; iframe Hf Hfd
   · try wp_auto
     wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl took
     · iframe
@@ -358,7 +364,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     wp_apply Hhspec
     try wp_auto
     iapply HΦ
-    icases Hsy with (⟨%H0, Htw, #HS⟩ | ⟨%H0, -⟩)
+    icases Hsy with (⟨%H0, Htw, #HS⟩ | ⟨%H0, Htw⟩)
     · ileft
       isplitr
       · ipureintro; subst H0; rfl
@@ -369,7 +375,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · iright
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
-      iapply (walOpenW_cut (W := W) w dir).2; iframe
+      unfold walTailW
+      icases Htw with ⟨Hf, ⟨%rd, Hfd⟩, -⟩
+      isplitl [Hoc Hpk Hcf]
+      · iapply (walOpenW_cut (W := W) w dir).2; iframe
+      iexists rd; iframe Hf Hfd
 
 /-- See the file header: `wp_core` over the handle (`walHandleIn`), the tail's `TailMetaS` weakened to
 `TailMeta`. -/
@@ -396,7 +406,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof [os.file.FieldAs
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen⟩)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen, Htf⟩)
   · ileft
     iframe HS
     isplitr
@@ -439,7 +449,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen⟩)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen, Htf⟩)
   · ileft
     iframe HS
     isplitr
@@ -457,9 +467,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
     isplitr
     · ipureintro; exact H0
     unfold walDirH
-    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, -, -, -, Hnf, -⟩
+    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
     iframe Hnf
-    iapply walOpenW_lockedTok $$ Hopen
+    isplitl [Hopen]
+    · iapply walOpenW_lockedTok $$ Hopen
+    icases Htf with ⟨%rd, Hf, Hfd⟩
+    iexists f, fd, name, ⟨h.ino, rd, true⟩, Rd, qd
+    iframe Hnmd Hf Hfd
 
 /-- **`WAL.sync.specCut`**: `sync.spec` at a handle whose size is its write position
 (`h.sz = o0 + |out|`, `cut`'s truncate), so the size after the flush is the stream's end

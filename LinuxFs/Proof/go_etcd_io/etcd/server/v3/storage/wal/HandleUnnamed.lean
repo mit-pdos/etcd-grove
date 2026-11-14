@@ -46,10 +46,10 @@ abbrev WalPbIn.NilLaw (P : WalPbIn GF) : Prop := ⊢ P.hsIn null hsZero
 
 /-- **The handle before naming, from its state** (`Create`'s arm 1: `walOpenWFU` is sealed). -/
 theorem walOpenWFU_intro (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) (h : WalHS) (hD : h.Done) (hmd : h.md.length < 2 ^ 41) :
-    walHandleIn (W := W) P Mr w dir h TailMetaW (fun R q => iprop(⌜R = Rp ∧ q = qp⌝)) (some dir)
-        (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⧗ h.pc ⊢
-      walOpenWFU (W := W) P Mr w dir Rp qp := by
+    (qp : Qp) (tf : Loc) (h : WalHS) (hD : h.Done) (hmd : h.md.length < 2 ^ 41) :
+    walHandleIn (W := W) P Mr w dir h TailMetaW (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
+        (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⧗ h.pc ⊢
+      walOpenWFU (W := W) P Mr w dir Rp qp tf := by
   iintro ⟨Hh, Hr⟩
   unfold walOpenWFU
   iexists h
@@ -86,37 +86,39 @@ theorem walPipeH_mono (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (pp pp' : 
 /-- **The handle's names fragment out**, and back (another one) with the naming fact changed along a
 wand and the pipeline's pin weakened (`walDirH_split`, `walPipeH_mono`). -/
 theorem walHandleIn_split (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
-    (tm : Fs.OsMeta → List Fs.ByteG → Prop) (A B : Roots → Qp → IProp GF) (nf : Option GoString)
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop) (A B : Loc → Roots → Qp → IProp GF) (nf : Option GoString)
     (pp pp' : Roots → DFrac → Prop) (hpp : ∀ R dq, pp R dq → pp' R dq) :
     ⊢ walHandleIn (W := W) P Mr w dir h tm A nf pp -∗
       walNamesFrag (W := W) nf ∗ ∀ nf' : Option GoString, walNamesFrag (W := W) nf' -∗
-        (∀ R q, A R q -∗ B R q) -∗ walHandleIn (W := W) P Mr w dir h tm B nf' pp' := by
+        (∀ f R q, A f R q -∗ B f R q) -∗ walHandleIn (W := W) P Mr w dir h tm B nf' pp' := by
   iintro Hh
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, H20, H21,
     H22, H23, H24, H25, H26, Hpipe, Hr⟩
-  icases walDirH_split dir j dfd h.ino name h.pc A B nf $$ Hd with ⟨Hnf, Hd⟩
+  icases walDirH_split dir j dfd h.ino name h.pc (A f) (B f) nf $$ Hd with ⟨Hnf, Hd⟩
   iframe Hnf
   iintro %nf' Hnf' Hw
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
   iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25
     H26 Hr
   isplitl [Hd Hnf' Hw]
-  · iapply Hd $$ Hnf' Hw
+  · iapply Hd $$ Hnf'
+    iintro %R %q
+    iapply Hw
   iapply walPipeH_mono fp dir j h.pc pp pp' hpp $$ Hpipe
 
 /-- **The handle sealed at `Create`'s success exit**: the pending names fragment `some dir` out (for the
 registration, `walInv_register`, which returns `none`), and with `none` and the naming `walNamed dir`
 (`walInv_named`), the client handle; the pins forgotten. -/
 theorem walOpenWFU_seal (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp -∗ walNamesFrag (W := W) (some dir) ∗
+    (qp : Qp) (tf : Loc) :
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ walNamesFrag (W := W) (some dir) ∗
       (walNamesFrag (W := W) none -∗ walNamed (W := W) dir -∗ walOpenWF (W := W) P Mr w dir) := by
   iintro H
   unfold walOpenWFU
   icases H with ⟨%h, Hh, %hD, %hmd, Hr⟩
-  icases walHandleIn_split P Mr w dir h TailMetaW _ (fun _ _ => walNamed (W := W) dir) (some dir) _
+  icases walHandleIn_split P Mr w dir h TailMetaW _ (fun _ _ _ => walNamed (W := W) dir) (some dir) _
     (fun _ _ => True) (fun _ _ _ => trivial) $$ Hh with ⟨Hnf, Hh⟩
   iframe Hnf
   iintro Hnf #Hn
@@ -125,17 +127,17 @@ theorem walOpenWFU_seal (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoSt
   iframe Hr
   isplitl [Hh Hnf]
   · iapply Hh $$ Hnf
-    iintro %R %q -
+    iintro %f %R %q -
     iexact Hn
   ipureintro; exact ⟨hD, hmd⟩
 
 /-- **The `dir` field of the handle before naming, lent** (`Create` reads `w.dir` after `renameWAL`). -/
 theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp -∗
+    (qp : Qp) (tf : Loc) :
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
       (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir -∗
-        walOpenWFU (W := W) P Mr w dir Rp qp) := by
+        walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
   iintro H
   unfold walOpenWFU
   icases H with ⟨%h, Hh, Hr⟩
@@ -151,9 +153,9 @@ theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
 
 /-- **The handle's quarter of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
 theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp -∗ osCallPerm (1 : Qp).half.half ∗
-      (osCallPerm (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp) := by
+    (qp : Qp) (tf : Loc) :
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ osCallPerm (1 : Qp).half.half ∗
+      (osCallPerm (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
   iintro H
   unfold walOpenWFU
   icases H with ⟨%h, Hh, Hr⟩
@@ -194,8 +196,8 @@ theorem walPurgeW_fresh_lbs (w : Loc) (dir : GoString) (s : AbsDiskState) (d : W
 
 /-- **The handle before naming holds the lock token** (`create_areaBack`'s `T`). -/
 theorem walOpenWFU_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
-    (Rp : Roots) (qp : Qp) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp -∗ walUnlockedTok (W := W) -∗ False := by
+    (Rp : Roots) (qp : Qp) (tf : Loc) :
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ walUnlockedTok (W := W) -∗ False := by
   iintro H Hu
   unfold walOpenWFU
   icases H with ⟨%h, Hh, -⟩

@@ -50,7 +50,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofTail [os.fi
     omega
   ihave #Hwr := wal.tailWriterW (W := W) Mr R jr r f fd name dir γ i H md cuts o0 sz $$ Harea
   ihave #Hsp := wp_encode e (wal.fileWi f) (walTailWS (W := W) f fd name dir γ i H md cuts o0 sz)
-    (fun _ _ => iprop(True)) (tailOkW Mr H md cuts o0) out pend c rp t d hrs
+    (tailWB f fd name i) (tailOkW Mr H md cuts o0) out pend c rp t d hrs
     (fun _ _ hp hy => tailOkW_prefix hp hy) hok $$ Hwr
   wp_apply Hsp $$ [Henc HW Hrec] as %err ⟨%pend', Henc, Hro, Hres⟩
   · iframe Henv Henc Hrec

@@ -479,8 +479,8 @@ tests it, S/wal.go:968). With `tm := TailMetaW`, the tail in a resize window (`c
 truncate and its fdatasync, `WAL.sync.specCut`). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
-    (nmd : Roots → Qp → IProp GF := fun _ _ => walNamed (W := W) dir) (nf : Option GoString := none)
-    (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
+    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir)
+    (nf : Option GoString := none) (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (lg df sp e fp lt f : Loc) (mds locks : GoSlice) (lfs : List Loc) (fd dfd : w64)
       (name dnm : GoString) (j : Ino) (rc : GoFunc),
@@ -502,7 +502,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc nmd nf ∗
+    walDirH (W := W) dir j dfd h.ino name h.pc (nmd f) nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
@@ -536,12 +536,14 @@ registered** (`walDirH`'s `nf := some dir`: `Create`'s pending registration, `wa
 of `notes/wal-units/create.md`): the program's half of the name's claim is `Create`'s, but for the two
 paths to `dir` it made with its spine law, the handle's (`walDirH`'s, roots `Rp`, fraction `qp`) and the
 pipeline's (the same), **pinned** here so that `Close.specU` gives them back and `Create`'s cleanup has
-the whole half again for its rename. The parent directory's fsync, its close, then the naming
+the whole half again for its rename; and the tail's `*os.File` pinned to `tf` (`Create`'s segment file,
+whose deferred `f.Close()` runs after the cleanup: `Close.specU` returns it, closed or open). The parent directory's fsync, its close, then the naming
 (`walInv_named`) and the registration (`walInv_register`) are left (`walOpenWFU_seal`). Sealed; its laws
 in `HandleUnnamed.lean`. -/
 @[no_expose] def walOpenWFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) : IProp GF :=
-  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW (fun R q => iprop(⌜R = Rp ∧ q = qp⌝))
+    (qp : Qp) (tf : Loc) : IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW
+      (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
       (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⌜h.Done⌝ ∗
     ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
 
