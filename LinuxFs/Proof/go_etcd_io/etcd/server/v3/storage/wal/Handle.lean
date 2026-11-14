@@ -244,21 +244,23 @@ directory's path and the shared invariant of its roots, half of the call permiss
 pipeline holds the other, plan §11), the directory's open fd `dfd` (`w.dirFile`, which `cut`
 fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` holding the tail's
 inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it: `walFileName sq ix`, its
-sequence below `2^64 - 1`, which `cut` increments), the largest `.wal` name of the directory (the
+sequence below `2^63 + k`, `k` the files the handle's pipeline has handed over (`WalHS.pc`): each `cut`
+increments both, so with `cut.spec`'s `pc + 2 < 2^63` the incremented sequence does not wrap; a
+producer at `k = 0` gives a sequence below `2^63`), the largest `.wal` name of the directory (the
 invariant's: the last segment's, `WalAbsD.names`; stable while the handle holds half the claim). The
 claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims) and no `.wal`
 name (`DirKeysOk`'s: `cut`'s rename target is in the claim, `os.Rename.specFileSnc`'s `N'.Mem bt`);
 the WAL is named (`walNamed`, persistent: `walCut_osAUnc`'s `walCutP` takes it); the record of what
 the handle holds out of the parked state (`walOutFrag`: the tail, the directory's claim, the
 pipeline's names; W1 log, tenth session). -/
-def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) : IProp GF :=
+def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
     walNamed (W := W) dir ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
       (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
-      (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq + 1 < 2 ^ 64) ∧
+      (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k) ∧
       ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝)
 
 /-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The metadata slice is
@@ -294,7 +296,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out ∗
-    walDirH (W := W) dir j dfd h.ino name ∗
+    walDirH (W := W) dir j dfd h.ino name h.pc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗

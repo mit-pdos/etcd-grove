@@ -97,20 +97,30 @@ instance walAreaOk_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
     Persistent (walAreaOk (L := L) (W := W) C Mr R jr r) := by
   unfold walAreaOk; infer_instance
 
+/-- The claims of a list tagged with the name `b` (the program's claims under `b`, `walAreaRes`). -/
+def clOf (cl : List (GoString × Claim)) (b : GoString) : List Claim :=
+  (cl.filter (fun c => decide (c.1 = b))).map (·.2)
+
+/-- **A temporary directory's entry, as `Create` can work with it** (`walAreaRes`): nothing, or a
+directory whose every whole claim among `cl` (the claims under it) holds only files. -/
+def TmpOk (cl : List Claim) (e : Option Node) : Prop :=
+  e = none ∨ ∃ J, e = some (.dir J) ∧ ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur
+
 /-- **The program's part of the WAL area's directory `jr`** (exclusive): its half of the claim on
 names `N` containing every WAL name and every name `nm.<sfx>` of one (`Create`'s `nm.tmp`, the cleanup's
-`nm.broken.<time>`; the invariant holds the other half), and the whole claims of every directory under
-a non-WAL name of `N`; a WAL name's temporary directory `nm.tmp` (a leftover of a `Create` a crash
-interrupted) holds only files (`FilesOnly`: the WAL creates nothing else there), so that `Create`'s
+`nm.broken.<time>`; the invariant holds the other half), and, for each non-WAL name `b` of `N`, the whole
+claims of every directory under it (`SubCover`; each claim tagged with the name it is under, so that a
+function working on `b`'s subtree takes and gives back `b`'s claims only: W4 log, eleventh session); a
+WAL name's temporary directory `nm.tmp` (a leftover of a `Create` a crash interrupted) holds nothing or a
+directory of files only (`TmpOk`: the WAL creates nothing else there), so that `Create`'s
 `os.RemoveAll(nm.tmp)` (`os.RemoveAll.specDirS`) applies. -/
 def walAreaRes (jr : Ino) : IProp GF :=
-  iprop(∃ (N : NameSet) (h : NamesH) (cl : List Claim),
+  iprop(∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)),
     osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ ⌜∀ nm, walNameOk nm → N.Mem nm⌝ ∗
     ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
-    osClaims L (cl.map (fun c => (c, DFrac.own 1))) ∗
-    ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover cl (h.cur !! b)⌝ ∗
-    ⌜∀ nm J, walNameOk nm → h.cur !! tmpName nm = some (.dir J) →
-      ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝)
+    osClaims L (cl.map (fun c => (c.2, DFrac.own 1))) ∗
+    ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover (clOf cl b) (h.cur !! b)⌝ ∗
+    ⌜∀ nm, walNameOk nm → TmpOk (clOf cl (tmpName nm)) (h.cur !! tmpName nm)⌝)
 
 end res
 

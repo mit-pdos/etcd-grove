@@ -326,10 +326,12 @@ instance walCreating_timeless (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) 
     Timeless (walCreating (W := W) dir N h J) := by
   unfold walCreating; infer_instance
 
-/-- **The authority of the WAL directories' claim keys** (the invariant's, `DirKeysOk`). -/
+/-- **The authority of the WAL directories' claim keys** (the invariant's, `DirKeysOk`), with a
+copy of every key (persistent), so that a holder of the lock finds the key of a WAL keyed earlier in
+the generation (`walDirKeysAuth_get`: `Open`'s pin, after a `Close`). -/
 def walDirKeysAuth (K : GMap GoString (Fs.Ino × List GoString)) : IProp GF :=
   letI := walAllG (W := W)
-  ghostMapAuth W.γdk 1 K
+  iprop(ghostMapAuth W.γdk 1 K ∗ [∗map] dir ↦ x ∈ K, dir ↪[W.γdk]□ x)
 
 instance walDirKeysAuth_timeless (K : GMap GoString (Fs.Ino × List GoString)) :
     Timeless (walDirKeysAuth (W := W) K) := by
@@ -633,7 +635,7 @@ theorem walDirKey_lookup (K : GMap GoString (Fs.Ino × List GoString)) (dir : Go
     ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir j X -∗ ⌜K !! dir = some (j, X)⌝ := by
   unfold walDirKeysAuth walDirKey
   letI := walAllG (W := W)
-  iintro Ha Hk
+  iintro ⟨Ha, -⟩ Hk
   iapply ghost_map_lookup $$ Ha Hk
 
 /-- **A new directory key** (`Create`'s commit, `ReadAll`), the directory without one. -/
@@ -643,8 +645,24 @@ theorem walDirKey_insert (K : GMap GoString (Fs.Ino × List GoString)) (dir : Go
       walDirKeysAuth (W := W) (<[dir := (j, X)]> K) ∗ walDirKey (W := W) dir j X := by
   unfold walDirKeysAuth walDirKey
   letI := walAllG (W := W)
-  iintro Ha
-  iapply ghost_map_insert_persist dir (j, X) hK $$ Ha
+  iintro ⟨Ha, Hm⟩
+  imod ghost_map_insert_persist dir (j, X) hK $$ Ha with ⟨Ha, #Hk⟩
+  imodintro
+  iframe Ha Hk
+  iapply (BigSepM.bigSepM_insert (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
+    iprop(k ↪[W.γdk]□ x)) hK).2
+  iframe Hk Hm
+
+/-- **A key of the generation, found in the authority** (its copy). -/
+theorem walDirKeysAuth_get (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
+    (X : List GoString) (hK : K !! dir = some (j, X)) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKeysAuth (W := W) K ∗ walDirKey (W := W) dir j X := by
+  unfold walDirKeysAuth walDirKey
+  letI := walAllG (W := W)
+  iintro ⟨Ha, #Hm⟩
+  iframe Ha Hm
+  iapply (BigSepM.bigSepM_lookup (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
+    iprop(k ↪[W.γdk]□ x)) hK) $$ Hm
 
 theorem walSyncedLb_mono (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
     ⊢@{IProp GF} walSyncedLb (W := W) dir n -∗ walSyncedLb (W := W) dir n' := by
@@ -858,7 +876,9 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
       iframe Hh Hhd Hhp
       ipureintro; intro k _; exact ⟨rfl, rfl, rfl⟩
     · ipureintro; exact hk
-  · ileft; ipureintro; rfl
+  · isplitr
+    · ileft; ipureintro; rfl
+    · iapply BigSepM.bigSepM_empty.2; iempintro
 
 end init
 

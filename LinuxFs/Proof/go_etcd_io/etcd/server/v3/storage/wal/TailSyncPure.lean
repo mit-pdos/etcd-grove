@@ -241,8 +241,8 @@ theorem dirKeysOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hex : SegExact g0)
     (h : DirKeysOk C Mr jr s Ls cl n K none) :
     DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := syncLay lay pre g0]> Ls) cl n K none := by
-  obtain ⟨h1, h2⟩ := h
-  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_, h3.insert hl rfl⟩
   · obtain ⟨lay1, hj, hl1, rest⟩ := h1 dir' j X hk
     by_cases e : dir' = dir
     · subst e; rw [hl] at hl1; cases hl1

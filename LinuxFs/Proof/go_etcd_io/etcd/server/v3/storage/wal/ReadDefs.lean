@@ -18,7 +18,11 @@ do not depend on their bodies.
 * `walReadTie dir write fs lfs`: the decoder's files are the WAL's segments from the opened one on,
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
   that the directory's names cannot change either (no atomic readdir needed); in write mode each
-  lock is `fileutil.lockedFile` of its file.
+  lock is `fileutil.lockedFile` of its file. And what the pin returns for the put-back
+  (`walInvBody_unpin`, `OpenUnpin.lean`; 2026-11-14): the record of what is out (`walOutFrag`: the
+  segments' inodes, the directory's claim key, in write mode the pipeline names of `dir`), the holder's
+  empty half of the tails' authority (`walTailsFrag ∅`: `ReadAll` registers the tail with it), the
+  WAL's key (`walDirKey`), the segments' inodes distinct and each of its bytes' size.
 * `walReadH write w dir s`: the struct's fields as `openAtIndex` leaves them: `lg`, `dir`, `start`,
   the decoder (`ownDecoder` live at offset 0, CRC 0, over `fs`), `locks`, `readClose` (`nil` in write
   mode), the pipeline (write mode: `walPipeH fp dir j 0`, at some directory inode `j`; read mode: `nil`), the zero fields
@@ -81,6 +85,9 @@ def walReadTie (dir : GoString) (write : Bool) (fs : List (DecFile GF)) (lfs : L
     IProp GF :=
   iprop(∃ (j : Ino) (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+    walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
+    walTailsFrag (W := W) ∅ ∗ walDirKey (W := W) dir j X ∗
+    ⌜(gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length)⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
