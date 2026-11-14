@@ -714,6 +714,33 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
       (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
       (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c $$ HU
+    -- the spine law's fractions: `d` twice of the area's spine and of the new name's claim
+    obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common (e + a').half.half (1 : Qp).half.half
+    have hd : d + (d + (b1 + b1)) = (1 : Qp).half := by
+      rw [Qp.ext_iff] at hd2 ⊢
+      simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
+      grind
+    icases (osPathS_frac R r (e + a').half (e + a').half jr).1 $$ [Hp] with ⟨Hp, Hq⟩
+    · rw [Qp.half_add_half]; iexact Hp
+    icases (osPathS_frac R r (e + a').half.half (e + a').half.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
+    · rw [Qp.half_add_half]; iexact Hq
+    icases (osPathS_frac R r d a1 jr).1 $$ [Hq1] with ⟨Hd1, Ha1⟩
+    · rw [hd1]; iexact Hq1
+    icases (osPathS_frac R r d a1 jr).1 $$ [Hq2] with ⟨Hd2, Ha2⟩
+    · rw [hd1]; iexact Hq2
+    ihave HSp : createSp Mr R jr r d $$ [Hd1 Hd2]
+    · unfold createSp; iframe; iframe #
+    -- `logDirPath := w.dir`
+    iunfold walPreIn at Hpre
+    icases Hpre with ⟨%locks, Hlgf, #Hzap', Hdirf, Hmdf, #Hmds, Huns, #Hmu', Henti, Hsnapi, Hencf,
+      %hen, Hlocks, Hls, Hcap, #Hlt⟩
+    try wp_auto
+    ihave Hpre : walPreIn wl lg (child r nm) mp md enc lf f snapi' enti'
+        $$ [Hlgf Hdirf Hmdf Huns Henti Hsnapi Hencf Hlocks Hls Hcap]
+    · iunfold walPreIn
+      iexists locks
+      iframe; iframe #
+      ipureintro; exact hen
     sorry)
 
 end proof
