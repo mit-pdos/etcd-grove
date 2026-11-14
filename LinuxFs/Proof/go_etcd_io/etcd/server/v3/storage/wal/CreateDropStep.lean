@@ -204,7 +204,7 @@ theorem walUnlocked_out (o : WalOut) :
     ⊢@{IProp GF} walOutAuth (W := W) o -∗ walUnlockedTok (W := W) -∗
       ⌜o = WalOut.empty⌝ ∗ walOutAuth (W := W) o ∗ walUnlockedTok (W := W) := by
   unfold walUnlockedTok
-  iintro Ha ⟨Ht, Hf, Hc, Ho⟩
+  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf⟩
   icases walOut_agree (W := W) o _ $$ Ha Ho with %ho
   iframe
   ipureintro; exact ho

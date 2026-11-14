@@ -128,7 +128,7 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ := by
   letI := walAllG (W := W)
   unfold walTailsRes
-  iintro ⟨%T, HTa, HTm⟩ Hk
+  iintro ⟨%T, HTa, %HTo, HTm⟩ Hk
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -145,6 +145,8 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iframe Hk
   iexists T
   iframe HTa
+  isplitr
+  · ipureintro; exact HTo
   iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
@@ -217,7 +219,9 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     isplitl [Htlc Hv']
     · iapply (show walTailsRes (W := W) C Mr s (<[dir := lay]> Ls) F ⊢ walTailsRes (W := W) C Mr s Ls F by rw [eL])
       iapply Htlc $$ %lay %g0 %F [] [Hv']
-      · ipureintro; exact ⟨hg, hZB.1, hZB.2, fun _ _ _ _ _ _ => rfl⟩
+      · ipureintro
+        exact ⟨hg, hZB.1, hZB.2, fun _ _ _ _ _ _ => rfl, fun i hi =>
+          if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩⟩
       · rw [← htg]; iexact Hv'
     isplitr
     · ipureintro; exact Hab
@@ -281,7 +285,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       · ipureintro
         exact ⟨by simp [syncLay], hZ,
           TailBound.congr (d := { d with m := d.H.length }) rfl rfl (tailBound_sync habs hs htail),
-          fun _ _ _ _ _ _ => rfl⟩
+          fun _ _ _ _ _ _ => rfl, fun i hi => if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩⟩
       · have e : tailG d (syncLay lay pre g0) (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
           rw [htg]; rfl
         rw [e]; iexact Hv'

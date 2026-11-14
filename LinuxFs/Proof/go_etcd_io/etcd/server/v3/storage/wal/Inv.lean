@@ -167,6 +167,57 @@ theorem TailBound.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : 
     simp [segRecs, histM, hH, hmd]
   unfold TailBound; rw [e]; exact h
 
+/-- **A change in flight only on a registered tail** (`walTailsRes`'s pure part): a segment with a
+change in flight (`F`) is the last segment of a WAL whose open handle has a tail record (`T`). A change
+starts only through the tail's access (`walInvBody_tail`, `TailAcc.lean`), which needs the tail's key.
+With the program's half of the tails' authority empty (`walTailsFrag ∅`, the lock token's: no tail
+registered), no change is in flight (`walTailsRes_none`), so a holder of what is out with no tail
+record can put back every segment it took, the WAL's last one too. -/
+def TailsOnly {G : Type} (T : GMap GoString G) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) : Prop :=
+  ∀ i, F !! i ≠ none → ∃ dir γ lay g, T !! dir = some γ ∧ Ls !! dir = some lay ∧
+    lay.segs.getLast? = some g ∧ g.ino = i
+
+theorem TailsOnly.none_of_empty {G : Type} {Ls : GMap GoString WalLay} {F : GMap Ino SegFl}
+    (h : TailsOnly (∅ : GMap GoString G) Ls F) : ∀ i, F !! i = none := by
+  intro i
+  refine Classical.byContradiction fun hi => ?_
+  obtain ⟨dir, γ, -, -, hT, -⟩ := h i hi
+  simp at hT
+
+/-- Fewer changes in flight, the layouts and tails unchanged. -/
+theorem TailsOnly.mono_F {G : Type} {T : GMap GoString G} {Ls : GMap GoString WalLay}
+    {F F' : GMap Ino SegFl} (h : TailsOnly T Ls F) (hF : ∀ i, F' !! i ≠ none → F !! i ≠ none) :
+    TailsOnly T Ls F' := fun i hi => h i (hF i hi)
+
+/-- **A registered WAL's layout replaced** (its tail's steps, a cut): the changes in flight are on its
+new last segment `g` or were in flight before off its old last segment `g0`. -/
+theorem TailsOnly.insert {G : Type} {T : GMap GoString G} {Ls : GMap GoString WalLay}
+    {F F' : GMap Ino SegFl} {dir : GoString} {lay lay' : WalLay} {g0 g : SegG} {γ : G}
+    (h : TailsOnly T Ls F) (hT : T !! dir = some γ) (hl : Ls !! dir = some lay)
+    (hg0 : lay.segs.getLast? = some g0) (hg : lay'.segs.getLast? = some g)
+    (hF : ∀ i, F' !! i ≠ none → i = g.ino ∨ (F !! i ≠ none ∧ i ≠ g0.ino)) :
+    TailsOnly T (<[dir := lay']> Ls) F' := by
+  intro i hi
+  rcases hF i hi with rfl | ⟨hFi, hne⟩
+  · exact ⟨dir, γ, lay', g, hT, GMap.lookup_insert _ _ _, hg, rfl⟩
+  · obtain ⟨d2, γ2, l2, g2, hT2, hl2, hg2, hi2⟩ := h i hFi
+    by_cases hd : d2 = dir
+    · subst hd
+      rw [hl] at hl2; cases hl2
+      rw [hg0] at hg2; cases hg2
+      exact absurd hi2.symm hne
+    · exact ⟨d2, γ2, l2, g2, hT2, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)]; exact hl2, hg2, hi2⟩
+
+/-- **A new WAL's layout** (`Create`'s commit): no tail of it registered. -/
+theorem TailsOnly.insert_new {G : Type} {T : GMap GoString G} {Ls : GMap GoString WalLay}
+    {F F' : GMap Ino SegFl} {dir : GoString} {lay : WalLay}
+    (h : TailsOnly T Ls F) (hLd : Ls !! dir = none) (hF : ∀ i, F' !! i ≠ none → F !! i ≠ none) :
+    TailsOnly T (<[dir := lay]> Ls) F' := by
+  intro i hi
+  obtain ⟨d2, γ2, l2, g2, hT2, hl2, hg2, hi2⟩ := h i (hF i hi)
+  have hd : d2 ≠ dir := by rintro rfl; rw [hLd] at hl2; cases hl2
+  exact ⟨d2, γ2, l2, g2, hT2, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)]; exact hl2, hg2, hi2⟩
+
 /-- **`Create`'s part of the invariant** (W4, framed apart from `WalsOk`): a claim of the area
 directory among `cl` holds every WAL name, so that a claim the program holds on a WAL name is known
 to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes it reasons about. -/
@@ -429,13 +480,14 @@ instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L
   · infer_instance
   · split <;> infer_instance
 
-/-- **The open handles' tails** (W6): the tails' authority, and for each directory with an open
-handle, its WAL and layout, the last segment, F-Z, the record boundary (`TailBound`), and the
-invariant's half of the tail. -/
+/-- **The open handles' tails** (W6): the invariant's half of the tails' authority, a change in
+flight only on a registered tail (`TailsOnly`), and for each directory with an open handle, its WAL
+and layout, the last segment, F-Z, the record boundary (`TailBound`), and the invariant's half of the
+tail. -/
 def walTailsRes (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ T : GMap GoString GName, walTailsAuth (W := W) T ∗
+  iprop(∃ T : GMap GoString GName, walTailsAuth (W := W) T ∗ ⌜TailsOnly T Ls F⌝ ∗
     [∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
         TailBound C Mr d lay⌝ ∗
@@ -463,9 +515,11 @@ theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) 
     walTailsRes (W := W) C Mr s Ls F ⊢ walTailsRes (W := W) C Mr s' Ls F := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, Hm⟩
+  iintro ⟨%T, Ha, %Ho, Hm⟩
   iexists T
   iframe Ha
+  isplitr
+  · ipureintro; exact Ho
   iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
   intro dir γ
   iintro ⟨%d, %lay, %g, %hp, Hv⟩
@@ -636,6 +690,23 @@ theorem walTmpParked_put (Ls : GMap GoString WalLay) (T : List GoString) (dir : 
   have e : (k ∈ T.filter (· ≠ dir)) ↔ k ∈ T := by simp [hkd]
   simp only [propext e]
   exact .rfl
+
+/-- **No change in flight while no tail is registered** (the program's half of the tails' authority
+empty: the lock token's, or a holder's of what is out with no tail record). -/
+theorem walTailsRes_none (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
+    (F : GMap Ino SegFl) :
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ -∗
+      ⌜∀ i, F !! i = none⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) ∅ := by
+  unfold walTailsRes
+  iintro ⟨%T, Ha, %Ho, Hm⟩ Hf
+  icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
+  subst hT
+  iframe Hf
+  isplitr
+  · ipureintro; exact Ho.none_of_empty
+  iexists ∅
+  iframe Ha Hm
+  ipureintro; exact Ho
 
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
 (`walParkAuth b`, `Ghost.lean`) and the record of what is out (`walOutAuth o`, gap A: its other half
