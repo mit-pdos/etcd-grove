@@ -291,6 +291,18 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   invalidating. (bbolt's bucket handles, 2026-11-12, the user: "it was unobservable state. It
   introduced a redundancy in the specs which we found was not necessary by instead using
   ownership"; `notes/specs-only/ledger.md`.)
+- **No unobservable state in an operational semantics either, and no histories.** A trusted
+  semantics (a GooseLang extension's state and steps) and the specs over it hold only what some
+  operation can observe; past operations are unobservable, so no "everything ever written" in the
+  state or in a spec's resources. Design a trusted semantics to be audited against the real system
+  (each field and each outcome justified by what Linux and Go do), never for proof convenience:
+  what a proof needs beyond the observable state goes in ghost state, or in a proved library on top
+  of the specs. When a design departs from what the user asked for, say so before building on it.
+  (The TCP extension, 2026-11-14: its streams were "every byte ever sent" and a read count, where
+  the user had asked for the unread bytes; the user: "make sure the semantics is not designed for
+  proof convenience. It should be easy to audit, and as a general principle, operational semantics
+  and specs should avoid unobservable state (e.g., the past operations are unobservable)";
+  `notes/net-tcp.md`.)
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)
