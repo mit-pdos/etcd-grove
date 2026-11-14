@@ -36,6 +36,7 @@ public import Spec.fmt.SprintfWalName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePre
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateRename
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.AreaPath
 
 @[expose] public section
 
@@ -716,15 +717,19 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
       (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
       (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c $$ HU
-    -- the spine law's fractions: `d` twice of the area's spine and of the new name's claim
-    obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common (e + a').half.half (1 : Qp).half.half
+    -- the spine law's fractions: `d` twice of the area's spine (the invariant's lend,
+    -- `walInv_areaPath`: one spine stays with the pipeline) and of the new name's claim
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_areaPath walCodec Mr R jr r $$ Hinv Hnc with ⟨Hnc, %qa, Hq⟩
+    iframe Hnc
+    imodintro
+    obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common qa.half (1 : Qp).half.half
     have hd : d + (d + (b1 + b1)) = (1 : Qp).half := by
       rw [Qp.ext_iff] at hd2 ⊢
       simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
       grind
-    icases (osPathS_frac R r (e + a').half (e + a').half jr).1 $$ [Hp] with ⟨Hp, Hq⟩
-    · rw [Qp.half_add_half]; iexact Hp
-    icases (osPathS_frac R r (e + a').half.half (e + a').half.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
+    icases (osPathS_frac R r qa.half qa.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
     · rw [Qp.half_add_half]; iexact Hq
     icases (osPathS_frac R r d a1 jr).1 $$ [Hq1] with ⟨Hd1, Ha1⟩
     · rw [hd1]; iexact Hq1
@@ -755,7 +760,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
         createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
-      (e + a').half (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _ hOk
+      (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _ hOk
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
