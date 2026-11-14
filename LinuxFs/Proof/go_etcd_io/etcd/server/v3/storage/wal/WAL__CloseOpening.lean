@@ -92,7 +92,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
     %lfs, %fp, %rc, %j, Hdecf, Hdec, #Hdenv, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
     %Hfs, #Hlks⟩, Hlocks, Hls, Hcap, Hrc, Hfp, ⟨%hrc, Hpipe⟩, He, Hst, Hmd, Henti, Hsnapi, Hns,
     #Hmu, #Henv, #Hcrc⟩
-  obtain ⟨hgs0, hnd, hsz, -, hlast⟩ := Hgs
+  obtain ⟨hgs0, hnd, hsz, -, hlast, -⟩ := Hgs
   obtain ⟨hfl, hll, hfll, hfk⟩ := Hfs
   ihave #Harea2 := Harea
   iunfold WalFs.walAreaOk at Harea2
