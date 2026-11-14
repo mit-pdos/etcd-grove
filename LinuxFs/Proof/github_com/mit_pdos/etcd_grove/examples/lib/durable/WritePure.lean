@@ -76,6 +76,21 @@ def renPhys (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
     ht := p.ht.log x (renEnt f p c.i s) (GMap.delete f.tb p.ht.cur),
     nc := p.nc, cands := p.cands ++ [c], alt := a }
 
+@[simp] theorem renPhys_hb (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
+    (x s : Nat) :
+    (renPhys f p c a x s).hb = p.hb.log x (renFileEnt f.J f.tb f.J f.b c.i p.hb s)
+      (<[f.b := .file c.i]> p.hb.cur) := rfl
+@[simp] theorem renPhys_ht (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
+    (x s : Nat) :
+    (renPhys f p c a x s).ht = p.ht.log x (renFileEnt f.J f.tb f.J f.b c.i p.hb s)
+      (GMap.delete f.tb p.ht.cur) := rfl
+@[simp] theorem renPhys_nc (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
+    (x s : Nat) : (renPhys f p c a x s).nc = p.nc := rfl
+@[simp] theorem renPhys_cands (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
+    (x s : Nat) : (renPhys f p c a x s).cands = p.cands ++ [c] := rfl
+@[simp] theorem renPhys_alt (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
+    (x s : Nat) : (renPhys f p c a x s).alt = a := rfl
+
 theorem renEnt_writes (f : DFile) (p : DurPhys) (i : Ino) (s : Nat) :
     (renEnt f p i s).op.Writes f.J f.b := by
   left
