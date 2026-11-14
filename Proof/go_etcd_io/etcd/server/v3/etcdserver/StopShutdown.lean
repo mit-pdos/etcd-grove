@@ -111,7 +111,8 @@ def applyResStopR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List Entry
     srvRestR B.E C.γr rp A ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
+    -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g` (until then Go's `ai`)
+    srvSnapOwn C.s C.ci B.E C.γr B.γ g ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
       uint.Z g ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at' ∧
@@ -734,10 +735,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hconf
   -- (restart S6a) the snapshot directory: the apply thread's counter, at most past the ghost index
-  have hai0g : uint.nat ai0g ≤ uint.nat ai := by
-    have e1 := hp.2.1
-    have e2 := hp.2.2.2.2.2.1
-    word
+  -- (route (C), 2026-11-13: `srvSnapOwn` is at the ghost index `ai`; until then at Go's `ai0g ≤ ai`)
   -- (restart S6a-2) its paths the data directory's: the snapshotter's (`srvSnapRO`'s, from
   -- `bootOk`'s `Hssp`) at the configuration's `DataDir`, which is the stop's `dd`
   icombine Hdd1 Hddo gives %hddo

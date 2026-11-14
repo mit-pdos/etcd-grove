@@ -106,6 +106,9 @@ theorem EtcdServer.start.wp_proof
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   wp_start as ⟨%hC, Hb, #Hlnil⟩
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
+  iunfold isServerBuiltC at Hb
+  icases Hb with ⟨Hb, Hskeep⟩
+  iunfold srvBuiltRC at Hb
   iNamed Hb
   irename Hcancel => Hcancel0
   ihave #Hfb' := Hfb
@@ -440,14 +443,18 @@ theorem EtcdServer.start.wp_proof
   -- (restart S4) the restart point: `P`, the storage's snapshot at `|P|`, the tokens at `P`, the apply
   -- thread's resources at the backend's ghost log `γn.a0`, Go's index `|P|`
   iunfold srvBuiltRestartR at HBr
-  icases HBr with ⟨%P, %HPa, ⟨%ms, #Hms, Hsnap⟩, Hloop, Happly, Happ⟩
+  icases HBr with ⟨%P, %HPa, ⟨%ms, #Hms, Hsnap⟩, Hloop, Happly, Happ, Hso⟩
   iunfold applyBuiltR at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo,
     ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA, Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
   -- the read side, from the component's row (`acRes_read`)
   icases acRes_read C s E ua sa₀ hm $$ Hres with ⟨Hres, #HaR⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
-  icases srvSnapOwn_of_boot s ci E γr γ (W64 P.length) $$ Hsnapb with ⟨Hso, #Hsnapb⟩
+  -- (restart S6, CP2: from the restart point's `srvSnapOwn`, route (C) at the ghost index
+  -- `ai₀ + |γn.a0| = g₀`)
+  icases srvSnapOwn_ro s ci E γr γ _ $$ Hso with ⟨Hso, #Hsnapb⟩
+  have hg₀ : ai₀ + W64 γn.a0.length = g₀ := by obtain ⟨-, -, h⟩ := Hlo; word
+  rw [hg₀]
   ihave Hstart : srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw γn.a0 (W64 P.length) $$
       [Hth Hbe Hca Halg Hbm Hrdk Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
   · iunfold srvRestartAtR

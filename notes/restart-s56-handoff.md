@@ -48,7 +48,92 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## Phase B progress (2026-11-13, the Phase B agent): next agent starts here
+## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here
+
+81 decided route (C) for finding 1 (`questions.md`; freeze package §11.1a, superseding (A)).
+- **Done, commit `033c31e5fd`**: `srvSnapOwn`'s index is the apply thread's ghost index `g`
+  (`c ≤ g + 1`): `applyAll.specBatch` (pre `g`, post `g'`; `snapRm_raise` takes the ghost bound and
+  `ai ≤ g`), `applyAll.specSnapM` (pre `g`; `snapDir_take` from `hgi : g < sv.Index`), `applyResR`,
+  `applyResStopR` (the stop's image bound now direct), `srvRestartAtR` (at `g₀`), `srvBuiltRestartR`'s
+  row at `ai₀ + W64 |γn.a0|` (`start` rewrites it to `applyBuiltR`'s `g₀`). `applyRes`/`applyStart`
+  (InvRunRes) and `applyResOn`/`applyStartOn` (RunOn) unchanged: their `ai` is the ghost index. No
+  trusted text changed. Targeted build clean (`/shared/tmp/restart-s56/routeC/targeted.log`).
+- Merged `lean` (570cea0725, k8s 7f-3b mvcc); STATUS entry added (ten kept, oldest to status-history).
+- Verified (after the merge): full build clean, 17479 jobs (`/shared/tmp/restart-s56/routeC/full.log`);
+  `tcb-report --check` matches the baseline (870 axioms, 4 sorries; `routeC/tcb.log`); `gen-interface
+  --check` clean for every `etc/api` list. Gates and landing: by `etc/land.sh` (`routeC/land.log`).
+- **For B2**: the restart's `srvBuiltRestartR` row is `srvSnapOwn … (0 + W64 |A|)`, i.e. `c ≤ |A| + 1 =
+  i + 1` with the image's `c ≤ i + 1` (`uint.Z i = |A|`, the image's) -- no WAL link needed.
+
+## Route (A) for finding 1: superseded by route (C) (2026-11-13, the CP2-fix agent)
+
+81 approved route (A) (and the forms; the obsolete generator is deleted). Before any edit, reading
+the sites showed (A) is not the small change §11.1 estimated:
+1. `applyAll` raises the counter to Go's new applied index `ai'` after **every** batch
+   (`EtcdServer__applyAll.lean:172`, `snapRm_raise`, for a possible `snapshot`'s `Release`), not only
+   when a disk snapshot is taken: in the ghost state `c` tracks the applied index, so `c - 1 ≤ WAL
+   base` is false. (A) must first move the raise into `snapshot.spec` (the counter's authority in
+   and out, raised after `SaveSnap`), and through `snapshotIfNeededAndCompactRaftLog.spec`.
+2. The stop cannot compare: `Close` consumes `walRecs` (the trusted `isWalStorage` law), inside the
+   raft loop's `onStop` (`raftNode__onStop.lean:73`), and `rnWalClosed` is the opaque `walFiles`. The
+   apply thread's `walBaseLb` would have to be handed to `onStop` through `raftNode.stop`'s
+   protocol (`rnWalTokA`/`rnStopClaim`/`rnDurInv`) to get `⌜k ≤ σ.b⌝` into the stop's escrow.
+Proposed instead, route (C): index `srvSnapOwn`'s bound by the apply thread's **ghost** index `g`
+(`c ≤ g + 1`) in place of Go's `ai`. Every use holds: `applySnapshot` already has the snapshot strictly
+above `g` (`applyAll.specSnapM`'s `uint.Z g < uint.Z sv.Index`, `hgi`), so `snapDir_take`'s `c ≤ j`
+follows; `applyAll`'s raise to `max c ai'` stays `≤ g' + 1` (`ai' ≤ g'`); the stop's image already
+uses the ghost index (`c ≤ i + 1`, `i` the ghost index); at a restart `g₀ = |A| = i`, so the image's
+bound is exactly what `start` needs: B2 provable with the image unchanged, no WAL link, no raft-loop
+change, nothing trusted. Cost: `srvSnapOwn`'s index argument moves from Go's `ai` to `g` at its uses
+(SnapRO, applyAll, ApplyAllSnap, InvRunRes's `applyRes`, `srvRestartAtR`, `srvBuiltRestartR`'s row at
+`ai₀ + |γn.a0|`, start, run, RunOn, StopShutdown). **Waiting for 81's decision: (C) or (A) with the
+two extensions above.**
+
+## CP2 review fixes (2026-11-13, the CP2-fix agent)
+
+81's decisions on the CP2 review (journal `wf_1e0c6340-ec5`); texts old → new in
+`/shared/tmp/restart-s56/freeze-package.md` §11. **STOP for 81's re-review.**
+- Finding 1 (BLOCKER), `start`'s side done: `srvBuiltRestartR` holds `srvSnapOwn s ci E γr γ (W64
+  P.length)` (the counter at most `|P| + 1`); `isServerBuiltC` lost `Hsnapb`; `srvBuiltRestartR_first`
+  takes `srvSnapBoot`; `srvSnapOwn_ro` (SnapRO); `start` adapted. **Open, decision needed**: B2 needs
+  `c ≤ σ.b + 1` from the image, which gives `c ≤ i + 1`; recommended route (A) in §11.1 (`srvSnapOwn`
+  carries `walBaseLb w (c - 1)`, the image gains `c ≤ σ.b + 1`, ~8 proof files).
+- Finding 2 (MAJOR): `lease.srvInvAt on s E m σ₀` (LeaseApi, sealed), `lease.srvInv := srvInvAt … (∅,∅,∅)`;
+  `specR`'s post at the recovered snapshot of the image's `lease` bucket.
+- Minors: (a) contract docstring "The WAL's read facts" + `walReadFacts`' docstring; (b) interface note
+  row I4 corrected (I4 unchanged); (c) `major.minor.0` (contract docstring, `clusterImageOk_restModel`'s
+  docstring); (d)-(f) freeze §1, §8, §11.4; (g) `srvBuiltRC` (AuthCompRows) is the one text,
+  `isServerBuiltC := srvBuiltRC ∗ "Hskeep" ∷ slot`, `srvBuiltR := srvBuiltRC .off` (the CP2 pitfall
+  about the generator is obsolete).
+- B2 additions: §11.4 (HS1's `Or.inr` or a widened `authStoreKit`; S8's `memberBuiltR` over `srvBuiltR`
+  and `srvInvAt`; finding 1's image half first).
+- Builds (at `48858f7fb4`): targeted and full clean (17479 jobs), tcb --check matches (870, 4),
+  gen-interface --check clean: `/shared/tmp/restart-s56/cp2fix/{targeted,full,tcb}.log`.
+
+## CP2 (2026-11-13, the CP2 agent): next agent starts here
+
+- **CP2 texts in tracked files, commit `fbc609c3d1`** (on `0032b2e8f4`): `wal.restartOk` (sealed,
+  defined) with `walReadFacts` (I1-I4), laws `wal.restartOk_facts`/`_start`, `walReadFacts_F3`,
+  `durAgrees_prefix` (`E/WalApi.lean`); `bootOkR`'s `"Hwal" ∷ wal.restartOk cfg id cid bw.w' σ` and
+  `%Hraft` over `rnRestartCfg`; the restart contract's antecedent `clusterVerLogOk L` (81's decision 1:
+  derived, no world assumption) and its docstring "The cluster version"; `srvRestartRows`
+  (`E/InvRestart.lean`); HS1 (`Spec/.../auth/NewAuthStore.lean`, axiom restated) with `authStoreKit_off`'s
+  `Or.inl`; `boot_storageR` (`E/BootStore.lean`, P2); new `E/BuiltRestart.lean` (`restartKV`, `srvBuiltR`
+  generated from `isServerBuiltC .off` less `Hskeep` by `/shared/tmp/restart-s56/cp2/gen_builtR.py`,
+  `srvBuiltR_C`, P6's `restart_cs_bound`/`restart_idx`, `restart_clusterVerLogOk`); `NewServer.specR`
+  (`SE/NewServer.lean`, not linked, not proved).
+- Targeted build clean (`/shared/tmp/restart-s56/cp2/targeted.log`); full build clean (17479 jobs), tcb --check matches (870, 4):
+  `/shared/tmp/restart-s56/cp2/full.log`; tcb: see the CP2 report.
+- **Freeze package: `/shared/tmp/restart-s56/freeze-package.md`** (T1-T6, H10, world assumptions, exported
+  statements). STOP: 81 runs the reviews (spec-reviewer on specR/srvBuiltR/srvRestartRows; axiom skill on
+  HS1 and bootOkR's slot).
+- After approval (B2): `NewServer.wp_proofB` over `SrvBoot`; NodeStart's `Hbc` from I3 (`wal.restartOk_facts`)
+  instead of `σ.b ≤ |A₀| ≤ σ.commit` (interface §4; not done in CP2); P5's phase-2 RestConf invariant for
+  the contract's clause (G); P3's rows (`/shared/tmp/restart-s56/p3-rows.md`), the lease-granting `srvRest`
+  branch the largest unknown; apply `restart_clusterVerLogOk` at the contract call.
+- (Obsolete since the CP2 fixes: `srvBuiltR` is `srvBuiltRC .off`, no generator.)
+
+## Phase B progress (2026-11-13, the Phase B agent)
 
 - **Step 1 (forms) done, commit `800a0789bc`**: `lateWBR` deleted (`bootOkR`'s `Hnew` at `fun _ =>
   mvcc.api.mvccW d.gx`); `srvDiskImageAt γ ρ id dd S σ i A D m M` holds the old body verbatim,
@@ -67,9 +152,9 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   (`uint.Z cv.MaxSizePerMsg' ≤ 2^20`), which `rnRestartCfg` needs: `bootOkR`'s text must take
   `rnRestartCfg bv cv lok pv` (contract text: in the CP2 package; Go evidence as `rnStartCfg.maxMsg`'s
   docstring, both constructions call `raftConfig`, `TestMaxSizePerMsg`).
-- **Probes not yet checked by Lean**: `Scratch/S56Probe.lean`'s P1/P2/P6 sections were written while the
-  build ran and never elaborated. First thing: `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json
-  etc/lean-check.py -a Scratch/S56Probe.lean` (under the 64G cap) and fix.
+- **Probes checked**: `etc/lean-check.py -a Scratch/S56Probe.lean`: 0 errors, no `sorryAx` (P1's
+  `restartOkD_start`, P2's `probe_P2_boot_storageR`, P6, P7). Pitfall: `$$ [H1 H2]` with persistent
+  hypotheses opens a framing side goal; write `$$ [$H1 $H2]`.
 - CP2 package draft (incomplete): `/shared/tmp/restart-s56/freeze-package.md` (HS1, the `bootOkR` slot +
   `rnRestartCfg`, srvRestartRows, H10's `cl.Recover` check done by reading, world assumptions). Missing:
   `NewServer.specR`'s Lean text, `srvBuiltR`, the A2 texts in tracked files, spec-reviewer, axiom skill.

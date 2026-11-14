@@ -345,7 +345,8 @@ instance lessorLookupOk_persistent (lp : Loc) : Persistent (lessorLookupOk (GF :
 /-- **The removal fact of the member's snapshot directory** (restart S6a, 2026-11-13, decided by
 etcd-grove-81 (b′); `snapDirInv`'s `Rm`): a `.snap.db` file of index `j` may be gone once the
 member-level removal counter `γm` is past `j` (at least `j + 1`). The apply thread holds the
-counter's authority at most its applied index plus one (`srvSnapOwn`): `applySnapshot(i)` raises it
+counter's authority at most its ghost applied index plus one (`srvSnapOwn`; restart S6's CP2 route
+(C), 2026-11-13: the ghost index `g`, until then Go's applied index `ai ≤ g`): `applySnapshot(i)` raises it
 to `i + 1` when it takes the file out (`snapDir_take`; its own `Release` then removes the files below
 `i`), and `snapshot`'s `Release` at the applied index `ai` raises it to `ai`. The counter is the
 member's, not an incarnation's: the directory's invariant is allocated once, at the first start, and
@@ -419,11 +420,13 @@ theorem snapDir_take (ss : Loc) (γd γm : GName)
     iframe Hf Himg
 
 /-- (restart S6a) **The removal facts below `ai`, from the counter's authority** (`snapshot`'s
-`Release` at the applied index `ai`): the counter, at most `ai + 1`, raised to at least `ai`, stays at
-most `ai + 1` and is past every `j < ai`. -/
-theorem snapRm_raise (γm : GName) (ai : w64) (c : Nat) (hc : c ≤ uint.nat ai + 1) :
+`Release` at the applied index `ai`): the counter, at most `g + 1` for the ghost index `g ≥ ai`
+(restart S6's CP2 route (C), 2026-11-13; until then `g = ai`), raised to at least `ai`, stays at most
+`g + 1` and is past every `j < ai`. -/
+theorem snapRm_raise (γm : GName) (ai g : w64) (c : Nat) (hc : c ≤ uint.nat g + 1)
+    (hag : uint.nat ai ≤ uint.nat g) :
     ⊢ monoNatAuthOwn (GF := GF) γm 1 c ==∗
-      ∃ c' : Nat, ⌜c' ≤ uint.nat ai + 1⌝ ∗ monoNatAuthOwn γm 1 c' ∗ monoNatLbOwn γm (uint.nat ai) := by
+      ∃ c' : Nat, ⌜c' ≤ uint.nat g + 1⌝ ∗ monoNatAuthOwn γm 1 c' ∗ monoNatLbOwn γm (uint.nat ai) := by
   iintro Hγm
   imod (mono_nat_own_update (max c (uint.nat ai)) (Nat.le_max_left _ _)) $$ Hγm with ⟨Hγm, #Hlb⟩
   imodintro
@@ -627,7 +630,11 @@ def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyN
 /-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
 `notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the member's removal counter
 `γm`, the counter's authority at most `ai + 1` (restart S6a; until then the snapshot-taken counter
-`γt` at most `ai`: `specSnapM`'s `hnt`) and the backend's own resources
+`γt` at most `ai`: `specSnapM`'s `hnt`) and the backend's own resources. (Restart S6, CP2 route (C),
+2026-11-13, decided by etcd-grove-81) Its users take `ai` the apply thread's **ghost** applied index
+`g` (`srvAppliedOwn`), not Go's `ep.appliedi ≤ g`: inside a restart window the two differ, and a
+restart gets the bound from the stop's image at the ghost index (`c ≤ i + 1`, `i = |A| = g₀`); every
+raise stays below it (`applySnapshot(j)` at `j > g`, `snapshot`'s `Release(ai')` at `ai' ≤ g'`)
 (`srvSnapRes`; until J8a-6, 2026-11-01, also the reader-slot stock for the installs'
 `AddPeer`s). `run`'s loop invariant holds it (`applyRes`), at the current backend's environment
 `E`; `applyAll` passes it through a batch. The transport's live state is `srvApRes`'s (J-T). -/
@@ -664,6 +671,22 @@ theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (�
     iexists γm, 0
     iframe Hro Ha Hres
     ipureintro; exact Nat.zero_le _
+  · iexists γm; iexact Hro
+
+/-- (Restart S6, CP2) **The persistent bundle of the apply thread's resources** (`start`'s, for
+`run`, from `isServerBuiltC`'s restart point since CP2). -/
+theorem srvSnapOwn_ro (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
+    (ai : w64) :
+    srvSnapOwn (GF := GF) s ci E γr γA ai ⊢
+      srvSnapOwn s ci E γr γA ai ∗ ∃ γm : GName, srvSnapRO s ci E γr γm := by
+  iintro H
+  iunfold srvSnapOwn at H
+  icases H with ⟨%γm, %c, #Hro, %Hc, Ha, Hres⟩
+  isplitl [Ha Hres]
+  · iunfold srvSnapOwn
+    iexists γm, c
+    iframe Hro Ha Hres
+    ipureintro; exact Hc
   · iexists γm; iexact Hro
 
 /-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second

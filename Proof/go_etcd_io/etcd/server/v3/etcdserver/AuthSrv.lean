@@ -343,7 +343,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
     isplitr
     · iapply zapLoggerOk_orNil; iexact Hlg
-    ipureintro; exact ⟨Htp, Hfit, Hab, Hr⟩
+    ipureintro; exact ⟨Htp, Hfit, Hab, Or.inl Hr.1, Hr.2⟩
   iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
