@@ -2,7 +2,7 @@
 `wal.Create` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`; spec
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
-proved up to the frontier `sorry` (the W4 log, eleventh session, says where). Lean-first.
+proved up to the frontier `sorry` after the call of `renameWAL` (the W4 log, eighteenth session, says what is left). Lean-first.
 -/
 module
 
@@ -33,6 +33,9 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import LinuxFs.Proof.os.MkdirAllParts
 public import Spec.fmt.SprintfWalName
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePre
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateRename
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
 
 @[expose] public section
 
@@ -248,6 +251,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       iframe
       ipureintro; intro hc; cases hc
     subst herr
+    obtain ⟨hJs1, hJs2, hJs3, hJfr⟩ := hJs
+    replace hJs : hT2.cur !! tmpName nm = some (Node.dir J) ∧ hT2.next ≤ n0 ∧ hJ.cur = ∅ :=
+      ⟨hJs1, hJs2, hJs3⟩
     try wp_auto
     -- `p := filepath.Join(tmpdirpath, walName(0, 0))`
     wp_func_call
@@ -635,6 +641,123 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       create_seg_exit
     subst hse
     try wp_auto
+    -- `J`'s claims: merged after the segment's create, split off the pipeline's names
+    imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2.2 hJfr (walNameP_walFileName 0 0)
+      CoPset.subseteq_top $$ Hsi HJr Ho with ⟨%hJ', HJx, HTmps, %hJf⟩
+    obtain ⟨hJval, hJcur⟩ := hJf
+    imod osNames_coh R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, %hJcoh⟩
+    imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, #HlbJ⟩
+    imod osNames_rekey R J ((NameSet.except []).diff walTmps) (.except walTmps) _ (fun _ => Iff.rfl)
+      CoPset.subseteq_top $$ Hsi HJx
+      with HJx
+    -- the minting: the creating claim `.only [nm, nm.tmp]`, the token
+    have hNnm' : (N.diff [tmpName nm]).Mem nm :=
+      (NameSet.mem_diff _ _ _).2 ⟨hNnm, by simpa using (tmpName_ne nm).symm⟩
+    have hNt' : ¬ (N.diff [tmpName nm]).Mem (tmpName nm) := fun hm =>
+      ((NameSet.mem_diff _ _ _).1 hm).2 (List.mem_singleton_self _)
+    have hDe : (N.diff [tmpName nm]).diff [nm] ≠ .only [] := by
+      apply nameSet_ne_empty (b := nm ++ go!"." ++ go!"a")
+      have hl : ∀ t : GoString, t.length ≠ (nm ++ go!"." ++ go!"a").length → nm ++ go!"." ++ go!"a" ≠ t :=
+        fun t ht he => ht (by rw [he])
+      refine (NameSet.mem_diff _ _ _).2 ⟨(NameSet.mem_diff _ _ _).2 ⟨hok.2.1 nm _ hnm, ?_⟩, ?_⟩
+      · simp only [List.mem_singleton]
+        exact hl _ (by simp [tmpName])
+      · simp only [List.mem_singleton]
+        exact hl _ (by simp)
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_mint walCodec Mr R jr r (child r nm) nm (tmpName nm) (N.diff [tmpName nm])
+      (h.restrict jr (N.diff [tmpName nm])) hT3 J walTmps
+      (hJ'.restrict J ((NameSet.except []).diff walTmps)) ⊤ CoPset.subseteq_top walN_osShN_top hnm
+      hNnm' hNt' hDe (tmpName_not_walName nm) (tmpName_walNameP nm) (walNameOk_not_tmps hnm)
+      walTmps_not_wal $$ Hinv Hsi Hnc Hu HN HT HJx with ⟨Hnc, %hC, Hcr, HNr, HC, HJx, %hCf⟩
+    iframe Hnc
+    imodintro
+    imod create_J_ne R jr J [nm, tmpName nm] nm _ _ hC _ (by simp) (walNameOk_not_tmps hnm)
+      CoPset.subseteq_top $$ Hsi HC HJx with ⟨%hJjr, HC, HJx⟩
+    imod osNames_next R jr _ _ _ CoPset.subseteq_top $$ Hsi HC with ⟨HC, #HlbC⟩
+    ihave #Hlb : osLogLb (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) $$ []
+    · rcases Nat.le_total hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next with hle | hle
+      · rw [Nat.max_eq_right hle]; iexact HlbJ
+      · rw [Nat.max_eq_left hle]; iexact HlbC
+    have hctmp : hC.cur !! tmpName nm = some (.dir J) := by
+      have := congrArg (fun x : NamesH => x.cur !! tmpName nm) hCf.1
+      simp only [NamesH.restrict] at this
+      rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), restrictN_lookup _ _ _ (by simp [NameSet.Mem]),
+        hJs.1] at this
+      exact this
+    have hcnm : hC.cur !! nm = none := by
+      have := congrArg (fun x : NamesH => x.cur !! nm) hCf.2.1
+      have hm : ((N.diff [tmpName nm]).inter [nm]).Mem nm := (NameSet.mem_inter _ _ _).2 ⟨hNnm', by simp⟩
+      simp only [NamesH.restrict] at this
+      rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hNnm', hnmA] at this
+      exact this
+    have hm2c : m2.cut = none := by
+      rw [hgrow.1]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
+    have hout : [] ++ ys1 ++ ys2 ++ pend2 ++
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model = createStream Mr md := by
+      rw [hFr]
+      simp only [List.nil_append] at hys1 ⊢
+      rw [show ys1 ++ ys2 ++ pend2 = ys1 ++ (ys2 ++ pend2) by simp, hys2, ← List.append_assoc, hys1]
+    have hokS' : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS := by
+      rw [← hout]; exact hokS
+    -- `J`'s claim: half to the update, half kept (the handle's)
+    icases (osNames_frac J (.except walTmps) (1 : Qp).half (1 : Qp).half _).1 $$ [HJx] with ⟨HJh, HJx⟩
+    · rw [Qp.half_add_half]; iexact HJx
+    -- the update (`createFresh_osAUnc`), its result with the invariant (`createU`)
+    ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau HJh HmS HbS]
+    · unfold walCreateP createSeg
+      rw [show i = (openFd i (walOpenFlag false ||| W64 524288)).ino from rfl]
+      iframe
+    ihave HU : createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createSeg i mS ysS) none $$ [HP]
+    · unfold createU; simp only [walCreateQ]; iframe Hinv HP
+    ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
+      (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
+      (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c $$ HU
+    -- the spine law's fractions: `d` twice of the area's spine and of the new name's claim
+    obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common (e + a').half.half (1 : Qp).half.half
+    have hd : d + (d + (b1 + b1)) = (1 : Qp).half := by
+      rw [Qp.ext_iff] at hd2 ⊢
+      simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
+      grind
+    icases (osPathS_frac R r (e + a').half (e + a').half jr).1 $$ [Hp] with ⟨Hp, Hq⟩
+    · rw [Qp.half_add_half]; iexact Hp
+    icases (osPathS_frac R r (e + a').half.half (e + a').half.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
+    · rw [Qp.half_add_half]; iexact Hq
+    icases (osPathS_frac R r d a1 jr).1 $$ [Hq1] with ⟨Hd1, Ha1⟩
+    · rw [hd1]; iexact Hq1
+    icases (osPathS_frac R r d a1 jr).1 $$ [Hq2] with ⟨Hd2, Ha2⟩
+    · rw [hd1]; iexact Hq2
+    ihave HSp : createSp Mr R jr r d $$ [Hd1 Hd2]
+    · unfold createSp; iframe; iframe #
+    -- `logDirPath := w.dir`
+    iunfold walPreIn at Hpre
+    icases Hpre with ⟨%locks, Hlgf, #Hzap', Hdirf, Hmdf, #Hmds, Huns, #Hmu', Henti, Hsnapi, Hencf,
+      %hen, Hlocks, Hls, Hcap, #Hlt⟩
+    try wp_auto
+    ihave Hpre : walPreIn wl lg (child r nm) mp md enc lf f snapi' enti'
+        $$ [Hlgf Hdirf Hmdf Huns Henti Hsnapi Hencf Hlocks Hls Hcap]
+    · iunfold walPreIn
+      iexists locks
+      iframe; iframe #
+      ipureintro; exact hen
+    -- `w.renameWAL(tmpdirpath)`: the commit
+    have hOk : RenameWALOk R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC
+        (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) (DFrac.own d)
+        (createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+          (createSeg i mS ysS))
+        (createSp Mr R jr r d) (createSpR jr J nm (b1 + b1)) :=
+      ⟨hin, hdl, hnmO, tmpName_nameOk hnmO, tmpName_ne nm, by simp [NameSet.Mem],
+        by simp [NameSet.Mem], hctmp, hcnm,
+        create_spine Mr R jr J r nm hC md Q _ _ _ d (b1 + b1) hd hnm hnmO,
+        createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
+          (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c⟩
+    wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
+      (e + a').half (DFrac.own d) wl lg mp md enc lf f snapi' enti' _ _ _ hOk
+      $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile] as %w' %err Hpost
+    · iframe; iframe #
     sorry)
 
 end proof

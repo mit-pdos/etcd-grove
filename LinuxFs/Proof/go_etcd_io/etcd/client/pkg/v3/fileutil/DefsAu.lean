@@ -87,7 +87,7 @@ theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size �
     (hle : w ≤ max m.size tg) :
     fallocDoneH (GF := GF) i m tg w ⊢ preGrownH i m w := by
   unfold fallocDoneH preGrownH
-  iintro ⟨%tc, %rz, Hm, Hz⟩
+  iintro ⟨%tc, %rz, -, Hm, Hz⟩
   iexists (rsPost false m tg w).withTc tc rz
   iframe
   ipureintro
@@ -124,7 +124,7 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
 theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
     os.ftDoneH (GF := GF) p m tg zs ⊢ preGrownH p m tg := by
   unfold os.ftDoneH preGrownH
-  iintro ⟨%hzs, ⟨%tc, %rz, Hm⟩, Hb⟩
+  iintro ⟨%hzs, ⟨%tc, %rz, -, Hm⟩, Hb⟩
   iexists (rsPost true m tg tg).withTc tc rz
   iframe Hm
   isplitr
@@ -140,7 +140,7 @@ theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
 theorem ftUndoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) :
     os.ftUndoneH (GF := GF) p m tg [] ⊢ preGrownH p m m.size := by
   unfold os.ftUndoneH preGrownH
-  iintro ⟨⟨%tc, %rz, Hm⟩, -⟩
+  iintro ⟨⟨%tc, %rz, -, Hm⟩, -⟩
   iexists _
   iframe Hm
   isplitr
