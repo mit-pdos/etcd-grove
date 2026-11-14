@@ -81,13 +81,13 @@ abbrev WalDecEnvSupply : Prop :=
 
 /-- The program's area claim back. -/
 theorem walAreaRes_close (jr : Ino) (N : NameSet) (h : NamesH) (cl : List (GoString × Claim))
-    (hok : AreaOk N h cl) :
-    osNames (L := hG.goose_localGS) jr N (DFrac.own (1 : Qp).half) h ∗
+    (Wn : List GoString) (hok : AreaOk N h cl Wn) :
+    osNames (L := hG.goose_localGS) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
       osClaims hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) ⊢
       walAreaRes (L := hG.goose_localGS) jr := by
   unfold walAreaRes
-  iintro ⟨Hn, Hc⟩
-  iexists N, h, cl
+  iintro ⟨Hn, Hs, Hc⟩
+  iexists N, h, cl, Wn
   iframe
   ipureintro; exact ⟨hok.1, hok.2.1, hok.2.2.1, hok.2.2.2⟩
 
@@ -155,18 +155,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
   icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
-  icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, HN, %hok, Hcl⟩
+  icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
   have hnm := hin.1
-  have hNnm : N.Mem nm := hok.1 nm hnm
   ihave %hlgn := zapLoggerOk_ne_null lg $$ Hzap
   try wp_auto
   rw [decide_eq_false hlgn]
   try wp_auto
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAt walCodec Mr R jr r (hpin R jr r) dir nm N _ h write s.1 Q hin hNnm
-    $$ Hinv Hsi Hnc Hu Hau HN with ⟨Hnc, HN, %o, HQ, Hcase⟩
-  icases Hcase with (⟨⟨%ho, %hcn⟩, Hu⟩ | ⟨%ho, %d, Hpin⟩)
+  imod walInv_openAt walCodec Mr R jr r (hpin R jr r) dir nm N _ h Wn write s.1 Q hin (hok.1 nm hnm)
+    $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
+  icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%ho, %d, Hpin⟩)
   · -- no WAL: `selectWALFiles` fails on the missing directory
     subst ho
     imodintro
@@ -197,8 +196,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     try wp_auto
     iapply HΦ
     iframe Hp
-    isplitl [HN Hcl]
-    · iapply walAreaRes_close jr N h cl hok; iframe
+    isplitl [HN Hsf Hcl]
+    · iapply walAreaRes_close jr N h cl Wn hok; iframe
     iexists none
     iframe HQ
     ileft
@@ -251,8 +250,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       try wp_auto
       iapply HΦ
       iframe Hp
-      isplitl [HN Hcl]
-      · iapply walAreaRes_close jr N h cl hok; iframe
+      isplitl [HN Hsf Hcl]
+      · iapply walAreaRes_close jr N h cl Wn hok; iframe
       iexists o
       iframe HQ
       ileft
@@ -304,8 +303,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       try wp_auto
       iapply HΦ
       iframe Hp
-      isplitl [HN Hcl]
-      · iapply walAreaRes_close jr N h cl hok; iframe
+      isplitl [HN Hsf Hcl]
+      · iapply walAreaRes_close jr N h cl Wn hok; iframe
       iexists o
       iframe HQ
       ileft
@@ -366,8 +365,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       try wp_auto
       iapply HΦ
       iframe Hp
-      isplitl [HN Hcl]
-      · iapply walAreaRes_close jr N h cl hok; iframe
+      isplitl [HN Hsf Hcl]
+      · iapply walAreaRes_close jr N h cl Wn hok; iframe
       iexists o
       iframe HQ
       iright
@@ -455,8 +454,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       try wp_auto
       iapply HΦ
       iframe Hp
-      isplitl [HN Hcl]
-      · iapply walAreaRes_close jr N h cl hok; iframe
+      isplitl [HN Hsf Hcl]
+      · iapply walAreaRes_close jr N h cl Wn hok; iframe
       iexists o
       iframe HQ
       iright

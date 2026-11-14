@@ -54,21 +54,22 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- See the file header. -/
 theorem create_abortTmp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (nm : GoString) (hT : NamesH)
-    (hok : AreaOk N h cl) (hnm : walNameOk nm) (hself : h.restrict jr N = h) :
+    (Wn : List GoString) (hok : AreaOk N h cl Wn) (hnm : walNameOk nm) (hNm : N.Mem nm) (hself : h.restrict jr N = h) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
       osNames (L := hG.goose_localGS) jr (N.diff [tmpName nm]) (DFrac.own (1 : Qp).half)
         (h.restrict jr (N.diff [tmpName nm])) -∗
       tmpDirH jr (tmpName nm) hT -∗
       osClaims hG.goose_localGS
-        ((cl.filter (fun c => decide (c.1 ≠ tmpName nm))).map (fun c => (c.2, DFrac.own 1))) ={⊤}=∗
+        ((cl.filter (fun c => decide (c.1 ≠ tmpName nm))).map (fun c => (c.2, DFrac.own 1))) -∗
+      walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walUnlockedTok (W := W) ∗
         walAreaRes (L := hG.goose_localGS) jr := by
-  iintro #Hinv #Hsi Hnc Hu HN Ht Hcl
+  iintro #Hinv #Hsi Hnc Hu HN Ht Hcl Hsf
   unfold tmpDirH
   icases Ht with ⟨HT, Hs⟩
   have hNnm : (N.diff [tmpName nm]).Mem nm :=
-    (NameSet.mem_diff _ _ _).2 ⟨hok.1 nm hnm, by simpa using (tmpName_ne nm).symm⟩
+    (NameSet.mem_diff _ _ _).2 ⟨hNm, by simpa using (tmpName_ne nm).symm⟩
   imod walInv_mergeIn C Mr R jr r (N.diff [tmpName nm]) (.only [tmpName nm]) N
     (h.restrict jr (N.diff [tmpName nm])) hT nm (tmpName nm) (walUnlockedTok (W := W))
     walUnlockedTok_excl ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm (by simp [NameSet.Mem])
@@ -88,9 +89,9 @@ theorem create_abortTmp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     exact e
   imodintro
   iframe Hnc Hu
-  iapply area_give N N h h' cl jr (tmpName nm) hok (fun _ => Iff.rfl) (tmpName_not_walName nm)
+  iapply area_give N N h h' cl jr (tmpName nm) Wn hok (fun _ => Iff.rfl) (tmpName_not_walName nm)
     (fun b hb _ => abort_cur N h h' jr (tmpName nm) hself hself' hm.1 b hb)
-  iframe HN Hcl
+  iframe HN Hcl Hsf
   rw [htc]
   iexact Hs
 

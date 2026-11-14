@@ -103,21 +103,21 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
   icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -⟩
-  icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, HN, %hok, Hcl⟩
+  icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
   have hnm := hin.1
-  have hNnm : N.Mem nm := hok.1 nm hnm
   have hNt : N.Mem (tmpName nm) := areaOk_tmp hok hnm
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   imod osNames_self R jr N _ h CoPset.subseteq_top $$ Hsi HN with ⟨HN, %hself⟩
-  imod walInv_absent walCodec Mr R jr r N _ h (child r nm) nm md Q hin hNnm $$ Hinv Hsi Hnc Hau HN
-    with ⟨Hnc, Hau, HN, %hnmA⟩
+  imod walInv_absent walCodec Mr R jr r N _ h Wn (child r nm) nm md Q hin (hok.1 nm hnm)
+    $$ Hinv Hsi Hnc Hau HN Hsf with ⟨Hnc, Hau, HN, Hsf, %hnmA⟩
+  obtain ⟨hNnm, hnmA⟩ := hnmA
   imod walInv_drop walCodec Mr R jr r N h nm (tmpName nm) ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm hNt
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm) $$ Hinv Hsi Hnc Hu HN
     with ⟨Hnc, Hu, HN, HT⟩
   iframe Hnc
   imodintro
-  icases area_takeTmp N h cl nm hok hnm $$ Hcl with ⟨Hts, Hcl⟩
+  icases area_takeTmp N h cl nm Wn hok hnm $$ Hcl with ⟨Hts, Hcl⟩
   have hTt : (h.restrict jr (N.inter [tmpName nm])).cur !! tmpName nm = h.cur !! tmpName nm := by
     simp only [NamesH.restrict]
     rw [restrictN_lookup _ _ _ ((NameSet.mem_inter _ _ _).2 ⟨hNt, List.mem_singleton_self _⟩)]
@@ -142,7 +142,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     icases Ht with ⟨%hT1, Ht⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod create_abortTmp walCodec Mr R jr r N h cl nm hT1 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+    imod create_abortTmp walCodec Mr R jr r N h cl nm hT1 Wn hok hnm hNnm hself
+      $$ Hinv Hsi Hnc Hu HN Ht Hcl Hsf
       with ⟨Hnc, Hu, Hres⟩
     iframe Hnc
     imodintro
@@ -182,7 +183,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       icases Ht with ⟨%hT3, Ht⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod create_abortTmp walCodec Mr R jr r N h cl nm hT3 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+      imod create_abortTmp walCodec Mr R jr r N h cl nm hT3 Wn hok hnm hNnm hself
+        $$ Hinv Hsi Hnc Hu HN Ht Hcl Hsf
         with ⟨Hnc, Hu, Hres⟩
       iframe Hnc
       imodintro
@@ -284,7 +286,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       icases Ht with ⟨%hT4, Ht⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+      imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself
+        $$ Hinv Hsi Hnc Hu HN Ht Hcl Hsf
         with ⟨Hnc, Hu, Hres⟩
       iframe Hnc
       imodintro
