@@ -41,7 +41,7 @@ abbrev DB.init.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗
           db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗
           osMeta (GF := GF) i (DFrac.own 1)
-            ({ m with size := max m.size 16384 } : OsMeta).synced ∗
+            ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced ∗
           osBytes (GF := GF) i 0 (DFrac.own 1) (initFile xs)) ∨
        (⌜err ≠ interface.nil⌝ ∗ ∃ (sz : w64) (m' : OsMeta),
           db.[DB, go!"filesz"] ↦ sz ∗ osMeta (GF := GF) i (DFrac.own 1) m')) }}

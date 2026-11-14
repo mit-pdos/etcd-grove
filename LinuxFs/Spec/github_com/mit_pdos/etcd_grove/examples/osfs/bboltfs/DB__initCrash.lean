@@ -25,7 +25,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 open Fs
 
 /-- The `OsMeta` after `init` (as `DB.init.spec`'s): synced, at the size `init` leaves. -/
-def initDoneMeta (m : OsMeta) : OsMeta := ({ m with size := max m.size 16384 } : OsMeta).synced
+def initDoneMeta (m : OsMeta) : OsMeta :=
+  ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced
 
 /-- The file as `Open` hands it to `init` (the state `⟨m, xs, 0, 0, .idle⟩`): its bytes `xs`, its
 size and crash bounds at most 1 GiB, and each meta slot known clean (its bytes' candidates, past

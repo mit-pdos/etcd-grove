@@ -323,7 +323,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
     as %n %err ⟨Hf, Hfirst, Hfd, Hc, %nn1, %m1, %bs1, %Hres, Hown⟩
   · iframe Hf Hfirst Hfd Hown Hc; iframe #
   rw [hw00] at Hres
-  obtain ⟨hR1, ⟨rfl, rfl, hsz1, hd1⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hR1, ⟨rfl, rfl, hnn1, hsz1, hd1⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -448,7 +448,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
     as %n2 %err2 ⟨Hf, Hbuf1, Hfd, Hc, %nn2, %m2, %bs2, %Hres2, Hown⟩
   · iframe Hf Hbuf1 Hfd Hown Hc; iframe #
   rw [hw4] at Hres2
-  obtain ⟨hR2, ⟨rfl, rfl, hsz2, hd2⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  obtain ⟨hR2, ⟨rfl, rfl, hnn2, hsz2, hd2⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
   · cases err2 with
     | nil => exact absurd rfl hne2
@@ -557,7 +557,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
     as %n3 %err3 ⟨Hf, Hbuf0, Hfd, Hc, %nn3, %m3, %bs3, %Hres3, Hown⟩
   · iframe Hf Hbuf0 Hfd Hown Hc; iframe #
   rw [hw0z] at Hres3
-  obtain ⟨hR3, ⟨rfl, rfl, hsz3, hd3⟩ | ⟨rfl, hne3⟩⟩ := Hres3
+  obtain ⟨hR3, ⟨rfl, rfl, hnn3, hsz3, hd3⟩ | ⟨rfl, hne3⟩⟩ := Hres3
   rotate_left
   · cases err3 with
     | nil => exact absurd rfl hne3
@@ -622,7 +622,15 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   rw [hsyn, hfst3]
   have hm3 : m3.synced = initDoneMeta m :=
     synced_eq _ _ (by rw [hm3s, hM2s]) (by rw [hm3m, hmaps]) (by rw [hR3.cut, ← hM2]; show m2.cut = _; rw [hR2.cut, ← hM1]; show m1.cut = _; rw [hR1.cut])
-      (by rw [hR3.cz, ← hM2]; show m2.cz = _; rw [hR2.cz, ← hM1]; show m1.cz = _; rw [hR1.cz])
+      (by
+        rw [hnn1] at hR1; rw [hnn2] at hR2; rw [hnn3] at hR3
+        have h1 : m1.cz = pwCz m 0 16384 16384 := by rw [hR1.cz_done, hF]
+        obtain ⟨z1, hz1, hz1s⟩ : ∃ z, M1.zf = some z ∧ M1.size ≤ z := hM1 ▸ synced_zf_ge _
+        have h2 : m2.cz = m1.cz := by
+          rw [hR2.cz_done, pwCz_eq_of_lt hz1 (by omega), ← hM1]; rfl
+        obtain ⟨z2, hz2, hz2s⟩ : ∃ z, M2.zf = some z ∧ M2.size ≤ z := hM2 ▸ synced_zf_ge _
+        rw [hR3.cz_done, pwCz_eq_of_lt hz2 (by omega), ← hM2]
+        show m2.cz = _; rw [h2, h1])
   have hfin : (initBytes ++ (xs.map Prod.fst).drop 16384).map durB = initFile xs := rfl
   rw [hm3, hfin]
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by

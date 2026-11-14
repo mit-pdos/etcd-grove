@@ -65,6 +65,82 @@ theorem WReach.cz {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {n
   | refl => exact Nat.le_refl _
   | step _ _ _ _ _ _ _ _ _ _ _ ih => exact Nat.le_trans ih (le_pwCz _ _ _ _)
 
+/-- A write that ends before the zeros known does not raise `cz`. -/
+theorem pwCz_eq_of_lt {m : OsMeta} {z off n k : Nat} (hz : m.zf = some z) (h : off + n < z) :
+    pwCz m off n k = m.cz := by
+  unfold pwCz; rw [hz]; dsimp only; rw [if_neg (by omega)]
+
+/-- A sync makes zeros known from at least the size. -/
+theorem synced_zf_ge (m : OsMeta) : ∃ z, m.synced.zf = some z ∧ m.synced.size ≤ z :=
+  ⟨_, rfl, by show m.size ≤ m.syncZ; unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega⟩
+
+/-- What a state the loop reached knows of the zeros: the start's zeros, or raised to the write's
+end; the page cache known zero as at the start or as one complete write of the data would leave
+it (`pwCz`), and the latter once all of the data is written. -/
+theorem WReach.czInv {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
+    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data nn m' bs') :
+    (m'.zf = m.zf ∨ m'.zf = m.zf.map (fun z => max z (off + data.length))) ∧
+    (m'.cz = m.cz ∨ m'.cz = pwCz m off data.length data.length) ∧
+    (nn = data.length → m'.cz = pwCz m off data.length data.length) := by
+  induction h with
+  | refl =>
+    refine ⟨.inl rfl, .inl rfl, fun h => ?_⟩
+    unfold pwCz; split
+    · rw [if_neg (by omega)]
+    · rfl
+  | @step nn0 m0 bs0 k nn' n zs _ hnn hk hn' _ _ _ ih =>
+    obtain ⟨hz, hc, hd⟩ := ih
+    have hl : (data.drop nn0).length = data.length - nn0 := List.length_drop
+    have hzf : (pwPostK true m0 (off + nn0) (data.drop nn0) k n).zf =
+        m0.zf.map (fun z => max z (off + data.length)) := by
+      simp only [pwPostK, pwPost, OsMeta.announce]
+      congr 1; funext z; rw [if_pos (by omega), show off + nn0 + (data.drop nn0).length =
+        off + data.length by omega]
+    have hcz : (pwPostK true m0 (off + nn0) (data.drop nn0) k n).cz =
+        pwCz m0 (off + nn0) (data.drop nn0).length k := rfl
+    rw [hzf, hcz]
+    refine ⟨.inr ?_, ?_⟩
+    · rcases hz with hz | hz <;> rw [hz] <;> cases m.zf <;> simp only [Option.map_none,
+        Option.map_some, Option.some.injEq] <;> omega
+    · have hL : 0 < data.length := by omega
+      have hQ : ∀ z0, m0.zf = some z0 → pwCz m0 (off + nn0) (data.drop nn0).length k =
+          if k = data.length - nn0 ∧ z0 ≤ off + data.length then
+            max m0.cz (pageEnd (off + data.length)) else m0.cz := by
+        intro z0 hz0; unfold pwCz; rw [hz0]; dsimp only
+        rw [show off + nn0 + (data.drop nn0).length = off + data.length by omega, hl]
+        split <;> split <;> first | rfl | (exfalso; omega)
+      generalize hP : pwCz m off data.length data.length = P at hc hd ⊢
+      cases hm : m.zf with
+      | none =>
+        rw [hm] at hz; simp only [Option.map_none] at hz
+        have hm0 : m0.zf = none := by rcases hz with hz | hz <;> exact hz
+        have hP' : P = m.cz := by rw [← hP]; unfold pwCz; rw [hm]
+        have hQ' : pwCz m0 (off + nn0) (data.drop nn0).length k = m0.cz := by unfold pwCz; rw [hm0]
+        rw [hQ']; omega
+      | some z =>
+        rw [hm] at hz; simp only [Option.map_some] at hz
+        obtain ⟨z0, hz0, hzz⟩ : ∃ z0, m0.zf = some z0 ∧ (z0 ≤ off + data.length ↔
+            z ≤ off + data.length) := by
+          rcases hz with hz | hz
+          · exact ⟨z, hz, Iff.rfl⟩
+          · exact ⟨_, hz, by omega⟩
+        have hP' : P = if z ≤ off + data.length then max m.cz (pageEnd (off + data.length))
+            else m.cz := by
+          rw [← hP]; unfold pwCz; rw [hm]; dsimp only
+          split <;> split <;> first | rfl | (exfalso; omega)
+        rw [hQ z0 hz0]
+        by_cases h1 : z ≤ off + data.length <;>
+          by_cases h2 : k = data.length - nn0 ∧ z0 ≤ off + data.length <;>
+          (first | rw [if_pos h1] at hP' | rw [if_neg h1] at hP') <;>
+          (first | rw [if_pos h2] | rw [if_neg h2]) <;> omega
+
+/-- **The page cache known zero after a `WriteAt` that wrote all of its data**: as one complete
+write of it leaves it (`pwCz`). -/
+theorem WReach.cz_done {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8}
+    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data data.length m' bs') :
+    m'.cz = pwCz m off data.length data.length :=
+  h.czInv.2.2 rfl
+
 /-- **A state the loop reached is one the write may pass through** (`WIn`), and the bytes written
 so far are inside it. -/
 theorem WReach.wIn {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
@@ -148,7 +224,8 @@ abbrev os.File.WriteAt.specCrashS : Prop :=
       mcellsAny m.maps off.toNat (off.toNat + data.length) ∗
       ∃ (nn : Nat) (m' : OsMeta) (bs' : List ByteG),
         ⌜WReach m bs off.toNat data nn m' bs' ∧
-          ((n = W64 data.length ∧ err = interface.nil ∧ off.toNat + data.length ≤ m'.size ∧
+          ((n = W64 data.length ∧ err = interface.nil ∧ nn = data.length ∧
+              off.toNat + data.length ≤ m'.size ∧
               ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
         csOwnF γ (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) }}

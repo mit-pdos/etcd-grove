@@ -673,3 +673,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   y = durB y.1`, `CloseHandle.lean`; `TailMetaS.of_sync` from `TailMeta m bs` to the synced pair). `WalCloseLaw`
   takes `TailMetaS`; `WAL.Close.wp_proof` unchanged.
 - **Decision.** Adopted (the coordinator's `TailSynced` decision, 2026-11-14).
+
+## 2026-11-14: minibolt's `DB.init.spec`/`DB.init.specCrash` (the part's example) -- the post's `cz`; `os.File.WriteAt.specCrashS` -- the bytes written
+
+- **Spec.** `LinuxFs/Spec/.../examples/osfs/bboltfs/DB__init.lean` (post: `({ m with size := max m.size 16384 }).synced`),
+  `DB__initCrash.lean` (`initDoneMeta`, the same); `LinuxFs/Spec/os/CrashSt.lean`'s `os.File.WriteAt.specCrashS`
+  (success post: the bytes written, the size, but not how far the loop got, `nn`).
+- **Defect.** Since `wal-save16` (the extension's `pwCz`) a complete `pwrite` whose end reaches the zeros known
+  raises `cz` to its end's page, so `init`'s first write (16384 bytes at 0) leaves `cz = pwCz m 0 16384 16384`,
+  not `m.cz`; the later metas' writes (inside the first four pages, below the zeros a sync made known from the
+  size on) leave it. The posts stated the old `cz`: false. `specCrash`'s proof also needs the loop's end state to
+  be a completed `WReach` (`nn = |data|`), which `specCrashS`'s success post did not say (its proof had it, `hfk`).
+- **Change (made).** Both posts' `OsMeta` is `({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 }).synced`;
+  `specCrashS`'s success post gains `nn = data.length` (proved; `WReach.czInv`/`WReach.cz_done`: a completed
+  `WriteAt`'s `cz` is one complete write's, `pwCz m off |data| |data|`; `pwCz_eq_of_lt`, `synced_zf_ge`, all in
+  `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
+- **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).
