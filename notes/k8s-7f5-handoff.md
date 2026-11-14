@@ -18,6 +18,15 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## For 7f-5a: klog's `printf` boundary is restricted (klog-args-fix, 2026-11-14)
+
+`klog.Errorf.wp_proof` and `klog.Verbose.Infof.wp_proof` now take the arguments' slice and
+`klog.argsOk f xs` (`Spec/k8s_io/klog/v2/Args.lean`), given back: Go refuted "any arguments"
+(`notes/klog-args-fix.md`). The watcher's `klog.Warningf("watch chan error: %v", err)` boundary takes
+the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`"): one error argument
+whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
+`itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
+
 ## START HERE (2026-11-14, seventh 7f-5 agent, final): 7f-3 LANDED; next 7f-5a-D, a fresh agent
 
 7f-3 is complete and landed (7f-3c approved by etcd-grove-81, including keeping `isRangeWatch`,

@@ -33,10 +33,21 @@ structure fmt.Directive where
   deriving DecidableEq, Repr
 
 /-- Where `fmt.fmtDirectivesAux` is inside a directive, after its `%`: reading the flags, the
-width, or the precision (after the `.`). -/
+width, or the precision (after the `.`); for the width and the precision, how many digits of the
+run have been read (klog-args-fix, 2026-11-14: a run of more than `fmt.maxNumDigits` is refused). -/
 inductive fmt.DirPhase where
-  | flags | width | prec
+  | flags | width (n : Nat) | prec (n : Nat)
   deriving DecidableEq, Repr
+
+/-- The longest width or precision digit run the parser accepts: 7 (klog-args-fix, the axiom
+review's MAJOR, 2026-11-14). Go's `parsenum` (go1.27.3 `fmt/print.go:350-362`) checks
+`tooLarge(num)` (`num > 1e6`) before adding each digit and gives up past it: `doPrintf` then writes
+`%!(NOVERB)`, stops, and prints every argument as `EXTRA` under `%v`, calling its `String()`/
+`Error()`, whatever its directive (`examples/premisefix/klogargs/fmtparse_test.go`). Before the
+`k`-th digit the value read has `k - 1` digits, at most `10^6 - 1` for `k ≤ 7`, so a run of at most
+7 digits never trips it; a longer one may (`%.00000001d` would not, but is refused too:
+conservative, rejecting more formats is sound). -/
+def fmt.maxNumDigits : Nat := 7
 
 /-- `fmt.fmtDirectives`' parser, structurally recursive over the bytes: `st = none` in literal
 text, `st = some (sharp, ph)` inside a directive, `sharp` saying whether the `#` flag was read and
@@ -59,22 +70,26 @@ def fmt.fmtDirectivesAux : Option (Bool × fmt.DirPhase) → GoString → Option
       if b = W8 35 then fmt.fmtDirectivesAux (some (true, .flags)) bs
       else if b = W8 43 ∨ b = W8 45 ∨ b = W8 48 ∨ b = W8 32 then
         fmt.fmtDirectivesAux (some (sharp, .flags)) bs
-      else if digit then fmt.fmtDirectivesAux (some (sharp, .width)) bs
-      else if b = W8 46 then fmt.fmtDirectivesAux (some (sharp, .prec)) bs
+      else if digit then fmt.fmtDirectivesAux (some (sharp, .width 1)) bs
+      else if b = W8 46 then fmt.fmtDirectivesAux (some (sharp, .prec 0)) bs
       else verb
-    | .width =>
-      if digit then fmt.fmtDirectivesAux (some (sharp, .width)) bs
-      else if b = W8 46 then fmt.fmtDirectivesAux (some (sharp, .prec)) bs
+    | .width n =>
+      if digit then
+        (if n < fmt.maxNumDigits then fmt.fmtDirectivesAux (some (sharp, .width (n + 1))) bs
+         else none)
+      else if b = W8 46 then fmt.fmtDirectivesAux (some (sharp, .prec 0)) bs
       else verb
-    | .prec =>
-      if digit then fmt.fmtDirectivesAux (some (sharp, .prec)) bs
+    | .prec n =>
+      if digit then
+        (if n < fmt.maxNumDigits then fmt.fmtDirectivesAux (some (sharp, .prec (n + 1))) bs
+         else none)
       else verb
 
 /-- The directives of a format string that consume an argument, in order (premise fixes 6, D):
 each `%`, then flags among `+ - # 0 space`, then decimal width, then `.` and decimal precision,
 then the verb; `%%` (after any flags, width, precision) and a trailing `%` consume none. `none`
 when a directive has a `*` width or precision or an argument index `[n]`, which these specs do not
-admit. Decidable: the callers' formats are literals. -/
+admit, or a width or precision of more than `fmt.maxNumDigits` digits (Go gives up on it). Decidable: the callers' formats are literals. -/
 def fmt.fmtDirectives (format : GoString) : Option (List fmt.Directive) :=
   fmt.fmtDirectivesAux none format
 
@@ -93,6 +108,11 @@ example : fmt.fmtDirectives go!"%[1]d" = none := by decide
 example : fmt.fmtDirectives go!"abc%" = some [] := by decide
 example : fmt.fmtDirectives go!"%5%%s" = some [⟨W8 115, false⟩] := by decide
 example : fmt.fmtDirectives go!"unexpected conf type %d" = some [⟨W8 100, false⟩] := by rfl
+example : fmt.fmtDirectives go!"%1234567d|%.9999999d" =
+    some [⟨W8 100, false⟩, ⟨W8 100, false⟩] := by decide
+example : fmt.fmtDirectives go!"rev %99999999d" = none := by decide
+example : fmt.fmtDirectives go!"rev %.99999999d" = none := by decide
+example : fmt.fmtDirectives go!"%000000000005d" = some [⟨W8 100, false⟩] := by decide
 
 /-- The verbs under which `fmt` calls an argument's `Error()`/`String()` (`handleMethods`):
 `v s x X q`. -/

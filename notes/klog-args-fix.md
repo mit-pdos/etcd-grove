@@ -83,6 +83,31 @@ concurrently throws there too. Not fixed here (outside the trust base); to fix b
 axioms (phase 4/5 of `notes/k8s-daemonset-plan.md`), with a `klog.argsOk`-like condition on the
 values.
 
+## The axiom review's MAJOR: the format parser (pre-existing, fixed here)
+
+etcd-grove-81's axiom review of this fix (2026-11-14; journal
+`.../subagents/workflows/wf_32c275a9-bb7/journal.jsonl`, Go test
+`/shared/tmp/coord-81/klog-review/review_test.go`) found one MAJOR, in `fmt.fmtDirectives`
+(`Spec/fmt/Errorf.lean`), which `klog.argsOk` and every `fmt.argsOk` user (`fmt.Errorf`, `Printf`,
+`ErrorfPlain`, `SprintfArgs`, `Duration.String`, `context.Err`, the cache's `Base.lean`) share: the
+width and precision phases read any digit run, but go1.27.3's `parsenum` (`fmt/print.go:350-362`)
+checks `tooLarge(num)` (`num > 1e6`) before adding each digit and gives up past it; `doPrintf` then
+writes `%!(NOVERB)`, stops, and prints every argument as `EXTRA` under `%v`, calling its `String()`.
+So `klog.Errorf("rev %99999999d", hangInt(5))` (a named integer, admitted under `%d` whatever its
+`String` does) met the pre and hangs, or with a nested-panicking `String` panics.
+
+**The fix (conservative):** `fmt.DirPhase.width`/`.prec` count the digits of the run, and a run of
+more than `fmt.maxNumDigits = 7` digits makes `fmt.fmtDirectives` `none`. Exact would be: before
+adding a digit, the value read so far `> 10^6`. A run of at most 7 digits never trips it (before the
+`k`-th digit the value has `k - 1 ≤ 6` digits, `≤ 999999`); the conservative bound also refuses a
+few formats Go accepts (`%.00000001d`), which is sound. Every caller's literal format still parses
+(the full build). Go tests `examples/premisefix/klogargs/fmtparse_test.go`: `TestWidthOverflowHangs`,
+`TestPrecisionOverflowHangs`, `TestWidthOverflowPanicEscapes`, `TestWidthOverflowNoVerb` (what Go
+prints), `TestSevenDigitWidth` (the bound's control). Checked and not a gap: an unknown verb (`%z`) of
+a named integer reaches `badVerb`, which prints under `%v` with `p.erroring` set, so `handleMethods`
+calls no method (`print.go:374-393, 614-617`; `TestBadVerbNoString`): `fmt.argOkAt`'s integer
+disjunct is right for every non-method verb.
+
 ## The callers
 
 | caller | arguments | discharged by |
