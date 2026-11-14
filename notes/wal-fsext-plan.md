@@ -541,7 +541,7 @@ Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
 `Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`); `hErrNotExist` dropped and the
 `os`/extension layer of its `ReadDir` hypotheses proved over the provisional `ENOENT` rule (`wal-enoent13`,
-W7-W12 log, second session); `ReadDir`'s loops and the names' bound proved (`wal-small14`, W7-W12 log, third session: `Readdirnames`' model assumes Go's `growslice` limit, pending review); left: `errors.IsPathErrnoNotExist.spec`. `ReleaseLockTo` proved; `Close` (append mode) stated and proved over `WAL.sync.specC` and the invariant law `WalCloseLaw`; `WAL.Close.specOpening` (`Open`'s hypothesis) still a hypothesis (`wal-close15`, W7-W12 log, fourth session); `WalCloseLaw` proved, `Close` (append mode) over `WAL.sync.specC` only; `specOpening`'s three gaps (the unregistered tail's fdatasync: `TailSynced` designed; the pipeline's directory inode in `walReadH`; an empty `gs`) and `Repair` stated, not proved (`wal-close16`, W7-W12 log, fifth session). `TailSynced` in the invariant, the idle tail's fdatasync proved (`walInvBody_syncIdle`, `wp_idleFsync`); `specOpening` waits for `walReadTie`'s last-name fact; `specNoDir` is over the pre-rename handle, for `wal-create14` (`wal-close17`, W7-W12 log, sixth session). Not yet stated (no `sorry`, no statement): `ValidSnapshotEntries`
+W7-W12 log, second session); `ReadDir`'s loops and the names' bound proved (`wal-small14`, W7-W12 log, third session: `Readdirnames`' model assumes Go's `growslice` limit, pending review); left: `errors.IsPathErrnoNotExist.spec`. `ReleaseLockTo` proved; `Close` (append mode) stated and proved over `WAL.sync.specC` and the invariant law `WalCloseLaw`; `WAL.Close.specOpening` (`Open`'s hypothesis) still a hypothesis (`wal-close15`, W7-W12 log, fourth session); `WalCloseLaw` proved, `Close` (append mode) over `WAL.sync.specC` only; `specOpening`'s three gaps (the unregistered tail's fdatasync: `TailSynced` designed; the pipeline's directory inode in `walReadH`; an empty `gs`) and `Repair` stated, not proved (`wal-close16`, W7-W12 log, fifth session). `TailSynced` in the invariant, the idle tail's fdatasync proved (`walInvBody_syncIdle`, `wp_idleFsync`); `specOpening` waits for `walReadTie`'s last-name fact; `specNoDir` is over the pre-rename handle, for `wal-create14` (`wal-close17`, W7-W12 log, sixth session). `Repair`'s laws L1 (the pin of the last segment, with `TailIdle`), L2 (its reader stops only at `wr`) and L5's unchanged case proved; L3 (the `.broken` file: the invariant must own the WAL directory's non-`.wal` files), L4, `openLast`'s spec and `Repair.wp_proof` open (`wal-repair18`, W7-W12 log, seventh session). Not yet stated (no `sorry`, no statement): `ValidSnapshotEntries`
 (§4.2's W7-W11), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session). `openAtIndex` and `OpenForRead` are proved, over two invariant hypotheses (`WalPinSized`: the segments' size bound; `WalDirPathLaw`: a path to the WAL directory, `wal-path13`'s to replace) and `WalDecEnvSupply` (`wal-read12`; W3/W5 log, twelfth session). `Open` is proved over `openAtIndex.spec`, `WalDirPathLaw`
 and the hypothesis `WAL.Close.specOpening` (W10's to discharge); `Open`'s success keeps the client's half of the call
@@ -4644,6 +4644,46 @@ sixteenth session).
   names). With `TailSynced`, L4's truncation keeps the tail synced after its fsync (bytes past `wr` cut, the rest
   durable).
 - Merged `origin/wal-int` (`wal-save15`'s W6 changes).
+
+**Seventh session (branch `wal-repair18`, 2026-11-14).** `wal.Repair`'s laws L1, L2 and L5's unchanged case proved
+(no `sorry`); `Repair.wp_proof`, `openLast`'s spec, L3, L4 and `WAL.Close.specOpening` (task 2) not made.
+
+- **L2, the reader of the last segment** (`RepairDecode.lean`, pure). `Repair`'s loop is `ReaderRun` on one file
+  (`decStep` folds in its `LastCRC`/`Validate`/`UpdateCRC`). `RepairFile C bs rs` (the file starts with the frames of
+  `rs`, a chain from CRC 0, nothing accepted at their end at the chain's CRC) and the loop invariant `RepairAt C rs off
+  c` (the decoder at the end of a prefix, at the chain's CRC after it): `repairAt_start`, `repairAt_ok` (a record step
+  keeps it, the file not dropped), `repairAt_stop` and `repairAt_fail` (a `goDecode` stop and a failed `proto.Unmarshal`,
+  `GoFail`, happen only at the end of the frames: the encoder's frames are `UFail`-free, `decFrame_ofFrame`), and
+  `walRepairFile`: the last segment of a WAL with `TailExact` and `wr = |stream|` (`TailIdle`) is a `RepairFile` whose
+  frames end at `wr`. A fresh decoder (CRC 0) agrees with the chain from the segment's start because every segment's
+  first record is a CRC record (`lastRecs_head`, `chainOk_crcHead`). So `LastOffset()` at `Repair`'s truncation is
+  `wr`: the truncation removes no record. **What the wp proof still needs for the `errors.Is(err,
+  io.ErrUnexpectedEOF)` test**: its answer on the readers' I/O errors must be `false` (else the truncation could be at
+  an offset below `wr`); with `wal-readall17`'s error evidence (`os.errnoPathErr`) this should now be provable from
+  `Errno.Is`, as `isEofOk`. On every decoder stop the answer may be anything (the stop is at `wr`).
+- **L1, the pin of the last segment** (`RepairPin.lean`): `walInvBody_pinIdle` (`walInvBody_pin` in read mode, plus the
+  WAL's `TailIdle` from `walTailsRes_idle`: a copy of the pin's proof, since `walInvBody_readIdle`'s layout cannot be
+  identified with the pin's from outside), `walInvBody_pinLast` (`k = walLastK`, the one segment `gL`, as
+  `walPinLast`), `walInv_openLast` (the update committed unchanged, as `walInv_openAt` with `write = false`), and
+  `walInv_unpinLast` (L5 when nothing changed: `walInv_unpin`, one segment, read mode).
+- **Name clash fixed**: `TailCrash.lean`'s `WalFs.lastRecs` renamed `lastSegRecs` (it clashed with `ReadAllDecode`'s
+  `WalFs.lastRecs`, so no module could import both the invariant's crash lemmas and `ReadAll`'s reader; `ReadAll.wp_proof`
+  would have met it too).
+- **L3 (the `.broken` file), design found**: the WAL directory's claim `(j, .except X)` already holds `<seg>.wal.broken`
+  (not a `.wal` name; `X` is `walTmps` in practice, but the invariant only says `X` holds no `.wal` name: add `∀ b ∈ X,
+  ¬ ".wal.broken" <:+ b` to `DirClaimOk`/`WalDirClaim`, or `X ⊆ walTmps`). Two obstacles: (1) the part's
+  `os.OpenFile` specs take `.only [b]` claims; the program holds half of a cofinite claim, so the create needs an
+  invariant step joining the halves at the open's atomic update (as `walInvBody_syncIdle` for the fsync), or an
+  `OpenFile` variant over a claim `N ∋ b`; (2) `O_TRUNC` on an existing `.broken` (a previous `Repair`'s) needs the whole
+  file (`trFile`): nobody owns non-segment files of a WAL directory today. **The invariant must own the files at the
+  claim's non-`.wal` names** (whole: meta and bytes), established at boot from the crash image and handed to the
+  program at the step. That is new invariant state (internal, not client-visible).
+- **L4 (truncate the unregistered tail at `wr`)**: not stated. With `TailIdle`, the bytes past `wr` are `old`'s; the
+  truncation opens a resize window on an unregistered tail (the invariant's `TailWin` needs `lo ≤ wr`, and `SegFl.OkR`
+  is only for registered tails, `TailsOnly`). Reuse of `wal-tc8`'s truncate supplies to check when it lands; else a
+  step lemma keeping the segment's halves joined over `Truncate` and `Fsync` (both by the program, the lock held).
+- **`io.Copy` of `*os.File`** (no trusted model): to be a hypothesis of the wp proof, §10.
+- **Task 2 (`specOpening`) not started**: `wal-readall17`'s three `walReadTie` facts landed during the session (merged).
 
 **W3/W5 log, thirteenth session (branch `wal-read13`, 2026-11-14).** `Open.wp_proof` proved (no `sorry`, `lake build`).
 - *Task 1, the call permission* (ledger 2026-11-14, "the call permission counted twice"): the sealed `walOpeningF`
