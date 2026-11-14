@@ -96,6 +96,15 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
 
 - **Landed** S7.4: `lean` `66859f329e` (2026-11-14; etcd-grove-81's go, forms accepted).
 
+- **S7.5 in progress** (2026-11-14, not landed): `X/etcd/restart1/` `Base`, `Defs` (`premises`,
+  `memberUp_splitStop`), `KV` (step d: `r1Inv` over `etcdKV` and a monotone counter at `γc`, half its authority
+  the driver's; `r1PutAu` carries the half at `i`, its result the half at `i + 1`; `r1ReadAu` after the lower
+  bound `NPuts`; `r1Inv_st` across the restart), `Requests` (`putRequestIs_alloc`, `rangeRequestIs_alloc`,
+  `traceutil.ctxTraceIs_bgFrom`, `bgCtx_facts`), `startMember` (b: `wp_proof`, `wp_proofRestart` with the rows
+  discharged inside by `srvRestartRows_single`; the spec takes no rows), `put` (c), `stop` (e;
+  `etcdstart.memberRestartRes_intro0` added to `StartRes`, an etcdstart API addition: regenerate its interface).
+  Commits `582a6bd5c4`, `97f5de66bb`, and the stop commit. Next: (f) `check`, (g) `Run`/`Main`, Freeze.
+
 ## Next, in order
 1. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
    theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then. Not started in Lean.
