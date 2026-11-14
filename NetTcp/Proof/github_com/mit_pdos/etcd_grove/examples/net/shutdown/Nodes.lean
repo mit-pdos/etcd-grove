@@ -3,13 +3,14 @@ The proofs of `examples/net/shutdown`'s functions, over the specs of `net` and `
 (hypotheses, linked in `Results.lean`) and the protocol of `Defs.lean`:
 
 * `acceptLoop`: `Accept`s through the listener's invariant (`loop_accept_au`), each accepted
-  connection's fresh end closed (`wire.owned_close_drop`), until a failure.
-* `readLoop`: `Read`s of the dialer's end through its invariant (`reader_read_au`), until an error.
+  connection's end closed (`acc_close_au`, its direction from `downInv`), until a failure.
+* `readLoop`: `Read`s of the dialer's end through its invariant and `downInv` (`reader_read_au`),
+  until an error.
 * `closeConn`: the first `Close` (`first_close_au`: the end is closed after it), then a `Write`,
   a `Read` and a second `Close`, each of which fails on the closed end (`closed_write_au`,
   `closed_read_au`, `closed_close_au`), so none of the panics is reached.
 * `Run`: `Listen`, the listener's invariant (`lisInv_alloc`), `acceptLoop` forked, the dial
-  (`wire.dial_au`, the deposit the acceptor's fresh end), the end's invariant (`endInv_alloc`),
+  (`wire.dial_au`, the deposit `shut_deposit`), the end's invariant (`endInv_alloc`),
   `readLoop` forked and `closeConn`; then the listener's `Close` (`lis_close_au`) and the last
   `Accept`, which fails since the listener is closed (`closed_accept_au`).
 * `Node`: `Run`, then `wire.Forever`.
@@ -17,7 +18,6 @@ The proofs of `examples/net/shutdown`'s functions, over the specs of `net` and `
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Defs
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
@@ -59,29 +59,29 @@ theorem lisInv_alloc' (l : w64) :
 
 /-- `endInv_alloc`, its update under a node's invariants. -/
 theorem endInv_alloc' (cn : Nat) :
-    tcpFreshEnd (G (GF := GF)) cn false ={⊤}=∗ ∃ γc, inv endN (endInv G cn γc) ∗
+    tcpFresh (G (GF := GF)) cn false ={⊤}=∗ ∃ γc, inv endN (endInv G cn γc) ∗
       half G γc false :=
   endInv_alloc cn
 
 theorem wp_acceptLoop
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (li : GoInterface) (l : w64) (γo : GName) :
+    (γm : GName) (li : GoInterface) (l : w64) (γo : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ net.isListener li l ∗
         tcpLisAt (extLocalGS tcpExt (L := hG.goose_localGS)) l addr ∗
-        inv addrN (addrInv addr (connProto (GF := GF))) ∗
+        inv addrN (addrInv addr (connProto (GF := GF) γm)) ∗ inv downN (downInv G γm) ∗
         inv lisN (lisInv G (extLocalGS tcpExt (L := hG.goose_localGS)) l γo) }}
       (App (Val (@! acceptLoop)) (Val #li))
     {{ RET #(); True }} := by
   unfold net.isListener
-  wp_start as ⟨⟨%t, %Ht, #Hlt⟩, #Hla, #Ha, #Hl⟩
+  wp_start as ⟨⟨%t, %Ht, #Hlt⟩, #Hla, #Ha, #Hdown, #Hl⟩
   subst Ht
   wp_auto
   wp_for
-  wp_apply wp_Accept t l addr iprop(True) (fun cn => connProto cn) $$ []
+  wp_apply wp_Accept t l addr iprop(True) (fun cn => connProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hproto⟩ | ⟨%Herr, -⟩)
   · iframe Hlt Hla
-    iapply loop_accept_au _ l γo $$ Ha Hl
+    iapply loop_accept_au γm _ l γo $$ Ha Hl
   · -- a connection: close it
     subst Herr
     unfold net.isConn
@@ -90,9 +90,9 @@ theorem wp_acceptLoop
     wp_auto
     wp_apply wp_Close t' cn true addr (fun _ => iprop(True)) $$ [Hproto] as %err' ⟨%ok', -, -⟩
     · iframe Hca
-      unfold connProto tcpFreshEnd
-      icases Hproto with ⟨Hend, Hout⟩
-      iapply wire.owned_close_drop cn true _ _ _ false $$ Hend Hout
+      unfold connProto
+      icases Hproto with ⟨Hend, #Hreg⟩
+      iapply acc_close_au γm cn _ $$ Hdown Hreg Hend
     (try wp_auto)
     wp_for_post
     iframe
@@ -105,13 +105,14 @@ theorem wp_acceptLoop
 
 theorem wp_readLoop
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
-    (c : GoInterface) (cn : Nat) (γc : GName) (eof : GoInterface) :
+    (γm : GName) (c : GoInterface) (cn : Nat) (γc : GName) (eof : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ net.isConn c cn false addr ∗
-        inv endN (endInv (G (GF := GF)) cn γc) ∗ globalAddr io.EOF ↦□ eof }}
+        inv downN (downInv (G (GF := GF)) γm) ∗ downReg G γm cn ∗
+        inv endN (endInv G cn γc) ∗ globalAddr io.EOF ↦□ eof }}
       (App (Val (@! readLoop)) (Val #c))
     {{ RET #(); True }} := by
   unfold net.isConn
-  wp_start as ⟨⟨%t, %Hct, #Hc⟩, #Hinv, #Heof⟩
+  wp_start as ⟨⟨%t, %Hct, #Hc⟩, #Hdown, #Hreg, #Hinv, #Heof⟩
   subst Hct
   wp_auto
   wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %buf ⟨Hbuf, -⟩
@@ -122,9 +123,10 @@ theorem wp_readLoop
     iexact Hbuf
   wp_for HI
   wp_apply wp_Read t cn false addr buf bs eof (fun _ => iprop(True)) $$ [Hbuf]
-    as %k %err ⟨%bs1, %code, %bs', -, Hbuf, -⟩
+    as %k %err ⟨%r, %bs', -, Hbuf, -⟩
   · iframe Hc Hbuf Heof
-    iapply reader_read_au cn γc buf.len $$ Hinv
+    simp only [Bool.not_false]
+    iapply reader_read_au γm cn γc buf.len.toNat $$ Hdown Hreg Hinv
   cases err with
   | nil =>
     -- no error: read again
@@ -144,13 +146,14 @@ theorem wp_closeConn
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (c : GoInterface) (cn : Nat) (γc : GName) (eof : GoInterface) :
+    (γm : GName) (c : GoInterface) (cn : Nat) (γc : GName) (eof : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ net.isConn c cn false addr ∗
-        inv endN (endInv (G (GF := GF)) cn γc) ∗ half G γc false ∗ globalAddr io.EOF ↦□ eof }}
+        inv downN (downInv (G (GF := GF)) γm) ∗ downReg G γm cn ∗
+        inv endN (endInv G cn γc) ∗ half G γc false ∗ globalAddr io.EOF ↦□ eof }}
       (App (Val (@! closeConn)) (Val #c))
     {{ RET #(); True }} := by
   unfold net.isConn
-  wp_start as ⟨⟨%t, %Hct, #Hc⟩, #Hinv, Hh, #Heof⟩
+  wp_start as ⟨⟨%t, %Hct, #Hc⟩, #Hdown, #Hreg, #Hinv, Hh, #Heof⟩
   subst Hct
   wp_auto
   wp_apply wp_Close t cn false addr (fun _ => half G γc true) $$ [Hh] as %err ⟨%ok, Hh, -⟩
@@ -172,14 +175,13 @@ theorem wp_closeConn
   wp_auto
   -- the `Read` fails
   wp_apply wp_Read t cn false addr buf _ eof
-      (fun res => iprop(half G γc true ∗ ⌜res = readRes [] 2⌝)) $$ [Hbuf Hh]
-    as %k' %err' ⟨%bs1, %code, %bs', ⟨Hh, %Hr⟩, Hbuf, %Hout⟩
+      (fun r => iprop(half G γc true ∗ ⌜r = .err⌝)) $$ [Hbuf Hh]
+    as %k' %err' ⟨%r, %bs', ⟨Hh, %Hr⟩, Hbuf, %Hout⟩
   · iframe Hc Hbuf Heof
-    iapply closed_read_au cn γc buf.len $$ Hinv Hh
-  obtain ⟨rfl, rfl⟩ := wire.readRes_inj Hr
-  rcases Hout with ⟨h0, -⟩ | ⟨h1, -⟩ | ⟨-, -, -, ⟨pe', rfl⟩, -⟩
-  · cases h0
-  · cases h1
+    simp only [Bool.not_false]
+    iapply closed_read_au γm cn γc buf.len.toNat $$ Hdown Hreg Hinv Hh
+  subst Hr
+  obtain ⟨-, ⟨pe', rfl⟩, -⟩ := Hout
   wp_auto
   -- the second `Close` fails
   wp_apply wp_Close t cn false addr (fun ok => iprop(half G γc true ∗ ⌜ok = false⌝)) $$ [Hh]
@@ -200,13 +202,14 @@ theorem wp_Run
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (eof : GoInterface) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ inv addrN (addrInv addr (connProto (GF := GF))) ∗
+    (γm : GName) (eof : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ inv addrN (addrInv addr (connProto (GF := GF) γm)) ∗
+        inv downN (downInv G γm) ∗
         tcpPlan G addr (extLocalGS tcpExt (L := hG.goose_localGS)).host ∗
         globalAddr io.EOF ↦□ eof }}
       (App (Val (@! Run)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Ha, #Hplan, #Heof⟩
+  wp_start as ⟨#Ha, #Hdown, #Hplan, #Heof⟩
   (try wp_auto)
   wp_apply wp_Listen addr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | %Herr)
   · -- listening
@@ -217,35 +220,34 @@ theorem wp_Run
     subst Ht
     wp_auto
     wp_apply wp_fork $$ []
-    · wp_apply wp_acceptLoop wp_Accept wp_Close _ l γo $$ []
-      · iframe Ha Hl Hla
+    · wp_apply wp_acceptLoop wp_Accept wp_Close γm _ l γo $$ []
+      · iframe Ha Hdown Hl Hla
         unfold net.isListener
         iexists t
         iframe Hlt
         ipureintro; rfl
       itrivial
     (try wp_auto)
-    wp_apply wp_Dial addr _ iprop(True) (fun cn => iprop(tcpFreshEnd G cn false ∗ True)) $$ []
-      as %c %err (⟨%Herr, %cn, #Hc, ⟨Hd, -⟩⟩ | ⟨%Herr, -⟩)
+    wp_apply wp_Dial addr _ iprop(True)
+        (fun cn => iprop(tcpFresh G cn false ∗ downReg G γm cn)) $$ []
+      as %c %err (⟨%Herr, %cn, #Hc, ⟨Hd, #Hreg⟩⟩ | ⟨%Herr, -⟩)
     · iframe Hplan
       isplit
       · itrivial
-      · iapply wire.dial_au addrN addr connProto (fun _ => iprop(True)) $$ Ha
+      · iapply wire.dial_au addrN addr (connProto γm) (downReg G γm) $$ Ha
         iintro %cn #Hat Ha'
-        imodintro
-        unfold connProto
-        iframe Ha'
+        iapply shut_deposit γm cn $$ Hdown Ha'
     · -- dialed: the reader, then the closes
       subst Herr
       imod endInv_alloc' cn $$ Hd with ⟨%γc, #He, Hh⟩
       wp_auto
       wp_apply wp_fork $$ []
-      · wp_apply wp_readLoop wp_Read c cn γc eof $$ []
-        · iframe Hc He Heof
+      · wp_apply wp_readLoop wp_Read γm c cn γc eof $$ []
+        · iframe Hc Hdown Hreg He Heof
         itrivial
       (try wp_auto)
-      wp_apply wp_closeConn wp_Read wp_Write wp_Close c cn γc eof $$ [Hh]
-      · iframe Hc He Hh Heof
+      wp_apply wp_closeConn wp_Read wp_Write wp_Close γm c cn γc eof $$ [Hh]
+      · iframe Hc Hdown Hreg He Hh Heof
       (try wp_auto)
       wp_apply wp_LClose t l addr (fun _ => half G γo false) $$ [Ho] as %e1 ⟨%o, Ho, -⟩
       · iframe Hlt Hla
@@ -254,7 +256,7 @@ theorem wp_Run
       wp_apply wp_Accept t l addr iprop(True) (fun _ => iprop(False)) $$ [Ho]
         as %c2 %e2 (⟨%He2, %cn2, -, Hf⟩ | ⟨%He2, -⟩)
       · iframe Hlt Hla
-        iapply closed_accept_au _ l γo $$ Ha Hl Ho
+        iapply closed_accept_au γm _ l γo $$ Ha Hl Ho
       · icases Hf with ⟨⟩
       · obtain ⟨pe, rfl⟩ := He2
         wp_auto
@@ -270,7 +272,7 @@ theorem wp_Run
       wp_apply wp_Accept t l addr iprop(True) (fun _ => iprop(False)) $$ [Ho]
         as %c2 %e2 (⟨%He2, %cn2, -, Hf⟩ | ⟨%He2, -⟩)
       · iframe Hlt Hla
-        iapply closed_accept_au _ l γo $$ Ha Hl Ho
+        iapply closed_accept_au γm _ l γo $$ Ha Hl Ho
       · icases Hf with ⟨⟩
       · obtain ⟨pe', rfl⟩ := He2
         wp_auto
@@ -302,16 +304,19 @@ theorem wp_Node
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ inv addrN (addrInv addr (connProto (GF := GF))) ∗
+    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
+    (γm : GName) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ shutInvs (GF := GF) γm ∗
         tcpPlan G addr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
       (App (Val (@! Node)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Ha, #Hplan⟩
+  wp_start as ⟨#Hinvs, #Hplan⟩
+  iunfold shutInvs at Hinvs
+  icases Hinvs with ⟨#Ha, #Hdown⟩
   icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
   (try wp_auto)
-  wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close eof $$ []
-  · iframe Ha Hplan Heof
+  wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close γm eof $$ []
+  · iframe Ha Hdown Hplan Heof
   (try wp_auto)
   wp_apply wp_Forever as ⟨⟩
 

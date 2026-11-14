@@ -7,9 +7,10 @@ start and after every crash. The plan has the node's address `Addr` at a host `h
 node's (it both listens at `Addr` and dials it). The network starts with no connection.
 
 The precondition of the boot program, over the local ghost state `L` of a generation of the node
-(`nodePre`), is the address's invariant (`wire.addrInv`, every dialer's deposit the acceptor's
-fresh end), the plan's entry for `Addr`, a fresh package state and the node's host. The global
-setup allocates the address's invariant from the network's start resources (`Addr`'s pending set,
+(`nodePre`), is the protocol's invariants (`shutInvs`: the address's, every dialer's deposit the
+acceptor's fresh end, and `downInv`, the acceptors' directions), the plan's entry for `Addr`, a
+fresh package state and the node's host. The global setup allocates `downInv` (no connection
+registered) and the address's invariant from the network's start resources (`Addr`'s pending set,
 empty); the listener's and the dialer's end's invariants are allocated inside `Run`, after its
 `Listen` and `Dial`. The first generation gets its host from its start resources; a crash keeps
 the host (`tcp_crashStart`), and the rest is persistent, so every generation's proof guarantees
@@ -105,7 +106,7 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics] [package_sem : Assu
 the address's invariant, the plan's entry for `Addr` (at `h`), a fresh package state, and that the
 node's host is `h`. -/
 def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (L : GooseLocalGS GF) : IProp GF :=
-  iprop(inv addrN (addrInv addr (connProto (Gg := G))) ∗ tcpPlan (extGlobalGS tcpExt) addr h ∗
+  iprop((∃ γm, shutInvs (Gg := G) γm) ∗ tcpPlan (extGlobalGS tcpExt) addr h ∗
     ownGoState (hG := L.goose_go_stateGS) ∅ ∗ ⌜(extLocalGS tcpExt (L := L)).host = h⌝)
 
 /-- `shutdown_crash_safety` for executions of fewer than `N` steps along which the node has fewer
@@ -144,7 +145,17 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => tcpPend (extGlobalGS tcpExt) a S) Hpe)
       $$ Hpends
-    imod wire.addrInv_alloc addrN addr (connProto (Gg := G)) $$ Hpend with #HaddrInv
+    -- the acceptors' directions (none yet), then the address's invariant
+    letI := (extGlobalGS tcpExt (G := G)).allG
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Unit) with ⟨%γm, Hm⟩
+    imod inv_alloc downN ⊤ (downInv (extGlobalGS tcpExt) γm) $$ [Hm] with #HdownInv
+    · inext
+      unfold downInv
+      iexists ∅
+      iframe Hm
+      iapply BigSepM.bigSepM_empty.2
+      iempintro
+    imod wire.addrInv_alloc addrN addr (connProto (Gg := G) γm) $$ Hpend with #HaddrInv
     imodintro
     simp only [system]
     unfold nodeStart
@@ -157,8 +168,11 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       rw [H0.packageState]
       imodintro
       simp only []
-      unfold nodePre
-      iframe Hgs Hp HaddrInv
+      unfold nodePre shutInvs
+      iframe Hgs Hp
+      isplitl []
+      · iexists γm
+        iframe HaddrInv HdownInv
       ipureintro; exact Hh.trans Hhost
     iempintro
   · -- every generation of the node: its boot program, and its next precondition
@@ -172,19 +186,22 @@ theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨#Ha, #Hplan, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs, %Hh⟩ _
     imodintro
     isplitl [Hgs]
     · iapply wp_boot Node _ (wp_Node net.Listen.wp_proof net.Listener.Accept.wp_proof
         net.Listener.Close.wp_proof net.Dial.wp_proof net.Conn.Read.wp_proof
-        net.Conn.Write.wp_proof net.Conn.Close.wp_proof wire.Forever.wp_proof) $$ [] Hgs
+        net.Conn.Write.wp_proof net.Conn.Close.wp_proof wire.Forever.wp_proof γm) $$ [] Hgs
       rw [Hh]
-      iframe Ha Hplan
+      iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
       iintro %L' _ Hcs Hgs'
       icases tcp_crashStart _ L' $$ Hcs with %Hhost'
       imodintro
-      iframe Hgs' Hplan Ha
+      iframe Hgs' Hplan
+      isplitl []
+      · iexists γm
+        iexact Hinvs
       ipureintro
       rw [Hhost']
       exact Hh
