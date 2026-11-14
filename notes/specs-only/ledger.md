@@ -744,6 +744,56 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
 - **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).
 
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's; a hypothesis of `wal.Create.wp_proof`) -- nothing about the new directory's history
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `fileutil.CreateDirAll.specTmp`
+  (not proved; `CreateDirAll.spec`, proved, is its `name`-absent case).
+- **Defect.** Too weak for `Create`'s commit: `walCreate_osAUnc`'s `hJC` asks that after **any** crash of `J`'s
+  claim (`hJ.valAfter J K`, every `K`) the only `.wal` file is the new segment's. The success post says only
+  `hJ.cur = ∅`; a history with older `.wal` values of `J`'s names (an inode reused, or an existing `nm.tmp`
+  emptied earlier in the generation) would make `hJC` false.
+- **Evidence.** `Create.wp_proof`'s commit (`wal-create16`): `createJ_*` (`CreateJ.lean`) derive `hJC`, `hsn` and
+  the layout's `walInos` from the merged claim of `J`, given that `J`'s claim, as `CreateDirAll` returns it, has
+  no name at any crash (`valAfter … = none`).
+- **Change (made).** The success post gains `∀ K b, hJ.valAfter J K b = none`. True of the directory `CreateDirAll`
+  creates (its `mkdir`'s claim, `TreeShared`'s `hJ.cur = ∅ ∧ hJ.next = x + 1`: a fresh inode, nothing logged on
+  it before the `mkdir`, which writes it empty), which the extension's `mkdir` law does not yet say (an allocator
+  fact: `st.fs.nextIno` above every inode the log writes): **obligation for the extension's owner** (the `mkdir`
+  law's post, then `CreateDirAll.spec`'s and `specTmp`'s). The existing-directory case of `specTmp` (an empty
+  leftover `nm.tmp` that `Exist` missed) needs an argument too: the leftover's history in the generation must not
+  hold a `.wal` value, or `walCreate_osAUnc`'s `hJC` be weakened to the crashes that keep `J`'s entries committed
+  before the rename (`syncDir(nm.tmp)`'s `osCommitLb`, `Create`'s `Hcm1`, unused so far), which needs the
+  invariant's commit bound compared with the program's. Open.
+- **Decision.** Made, minor and internal (`wal-create16`): a hypothesis's post strengthened; its truth is an
+  obligation recorded here and in the W4 log's eighteenth session.
+
+## 2026-11-14: `wal.WAL.renameWAL.spec` / `renameWALUnlock.spec` (internal, the part's) -- the error arms lose the lock file and the spines
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean` (`renameWALPost`, arms 3 and 4),
+  `WAL__renameWALUnlock.lean`; decisions (1) and 2b of the entries above.
+- **Defect.** Too weak for `Create`'s exits after the call (`wal-create16`, which reaches them: `Create` now calls
+  `renameWAL` with every `RenameWALOk` law discharged). On `renameWAL`'s error `Create` returns at once, and its
+  deferred `f.Close()` (`retErr ≠ nil`) runs on the lock file: arm 3 (`walPreIn … ∨ emp`) and arm 4 (nothing)
+  do not say whether `f` is still open (`os.ownFile`/`osFd`, as `Create` framed them around the call) or was
+  closed by `renameWALUnlock`'s `w.Close()` (then the deferred close is a second close of a closed `*os.File`,
+  which needs its own `os.File.Close` spec: `ErrClosed`, no effect; none exists). Arm 4 also drops the two spines
+  to `dir` that the spine law made (`osPathS R dir dq J`, fractions of the area's spine and of `nm`'s claim), so
+  `Create` cannot give back the area's spine fraction it lent (`osPathS R r (own qp) jr` in `Create.spec`'s post).
+- **Evidence.** `Create.wp_proof`'s frontier `sorry` after `renameWAL` (`Create.lean`); `renameWALPost`.
+- **Proposed change** (with (1), the pre carrying what `Close` consumes): the pre takes the encoder, the tail file
+  (`os.ownFile f fd …`, `osFd`, `os.ownOff`) and the tail's lock (`fileutil.lockedFile lt f` is in `walPreIn`);
+  arm 1 returns them; arms 3 and 4 return them open (the rename failed before `renameWALUnlock`'s `Close`, or
+  `OpenDir` failed after a committed rename) or a closed-file token for the deferred `f.Close()` (a spec
+  `os.File.Close.specClosed` to add: a closed `*os.File` returns an error and changes nothing); arm 4 returns the
+  two spines (`osPathS R dir dq J ∗ osPathS R dir dq J`, for `osPathS_unchild`). Arm 2 (the retry's reopen) as
+  decided in 2b: proved over `Create`'s held resources (`createU (some x)`: `walLockedTok`, `walOutFrag`,
+  `walNamesFrag (some dir)`, the segment's halves), its `Open`/`ReadAll` through variants of `walInv_openAt`
+  without the client's update (the open position of index 0 leaves `unl`, so no commit is needed; the
+  state from `walCreateQ`'s `walPast`), and its success arm adding `walLenLb w' dir 0 ∗ walSyncedLb dir 0`
+  (`Create.spec`'s success post). Not yet made.
+- **Decision.** Pending (`wal-create16` stopped at its budget; the next session makes it with `renameWAL`'s
+  re-proof).
+
 ## 2026-11-14: `os.File.Truncate.specAu` (the part's, `LinuxFs/Spec/os/File__TruncateAu.lean`) -- the outcome's `tc` domain
 
 - **Spec.** `os.ftDoneH`/`os.ftUndoneH`, the caller's halves of a truncate's outcome in `os.File.Truncate.specAu`'s
