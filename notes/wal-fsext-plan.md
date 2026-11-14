@@ -502,7 +502,7 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 `etc/gen-init.py --check` pass. The W1 layer (`Ghost`, `Inv`, `Crash`, `CrashPure`, ...), `CreateAu`'s update
 (both arms) and the pipeline have no `sorry`. The remaining `sorry`s of the track (declarations using one, by
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
-- `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
+- `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof` (`OpenForRead`, `openAtIndex` proved, `wal-read12`),
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
@@ -510,7 +510,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
-(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session). `openAtIndex` and `OpenForRead` are proved, over two invariant hypotheses (`WalPinSized`: the segments' size bound; `WalDirPathLaw`: a path to the WAL directory, `wal-path13`'s to replace) and `WalDecEnvSupply` (`wal-read12`; W3/W5 log, twelfth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -3532,3 +3532,32 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   `k` (`sq < 2^63 + k`, `wal-cut10`): `ReadAll`/`openAtIndex` establish the read tail's sequence number below
   `2^63` with `k = h.pc`; `wal-save11`'s handle facts (`h.cuts` increasing from the layout, the metadata's
   length bound) are `ReadAll`'s.
+
+**Twelfth session (branch `wal-read12`, 2026-11-14).** `openAtIndex` and `OpenForRead` proved (no `sorry`,
+`lake build` of `openAtIndex`); `Open`, `ReadAll` not started.
+- *New modules, proved*: `OpenAtPin.lean` (**`walInv_openAt`**: at `openAtIndex`'s first step, `walInv` opened,
+  the area read (`walInvBody_areaAt`), the client's update opened and committed (write mode `walInvBody_unl`), and
+  either `Q none` with the token and `h.cur !! nm = none`, or `walPinOut`: the pin's outputs from position
+  `walOpenK idx lay` (`walSearch` of the layout's names, which `selectWALFiles` then computes: `walOpenK_eq`));
+  `OpenAtSteps.lean` (`walInv_unpin`: the error arms' put-back at a step; `walInv_mintOpening`: write mode's
+  `walOpening` from the lock token, at the pipeline's call step); `OpenAtTail.lean` (`os.fileNamed`, `os.File.Name`
+  over it, `walOpenedFiles_last`: the tail's name and lock kept before the decoder takes the file's fd).
+- **Hypotheses of `openAtIndex.wp_proof`** (besides the callees' specs, listed in its signature; for the coordinator):
+  1. `WalPinSized walCodec Mr R jr r` (`OpenAtPin.lean`): `walInvBody_pin` plus **each segment's `|g.bs| + 2^12 <
+     2^62`** (`walDecFiles_mk`'s); the invariant does not hold a size bound. Fix: a framed pure conjunct (ext4's
+     maximum file size, 16 TiB, on every segment), or in `WalAbsD.metas`; then `WalPinSized` is `walInvBody_pin` with it.
+  2. `WalDirPathLaw walCodec Mr R jr r` (`OpenAtPin.lean`; the coordinator's interim law, finding G-spine): a holder
+     of `walDirKey dir j X`, at a program step, with the area's spine framed, gets `∃ q, osPathS R dir (own q) j`,
+     kept. Applied once (the pin's step); swap for `wal-path13`'s law there.
+  3. `WalDecEnvSupply` (`openAtIndex.lean`): `isPkgInit wal -∗ ∃ IoE eof ueof, decEnv IoE eof ueof ∗ ⌜pointer
+     errors ∈ IoE⌝` (needs Perennial's `errors.Is` for `isEofOk`; `io`'s variables).
+- **Statement changes** (ledger, 2026-11-14): `openAtIndex`/`Open`/`OpenForRead` take `NameOk nm` (an absent WAL:
+  `selectWALFiles.specAbsent`) and `dir.length < 2^59` (`openWALFiles`, `newFilePipeline`), as `Create`.
+  `OpenForRead.wp_proof` takes `openAtIndex.spec`.
+- **For `Open`/`ReadAll` (not done)**: (a) *call permission*: `Open` returns `osCallPerm ½` and its pipeline holds
+  the other half, but `walDirH` (the handle `ReadAll` returns) holds another `½`: `Open`'s success should keep its
+  half in `walOpeningF` (as `Create`'s post now does, ledger 2026-11-14), a statement change of `Open`; (b) `Open`'s
+  `OpenDir` error arm calls `w.Close()`, which has no spec (W10); (c) `ReadAll` gets the directory path from
+  `WalDirPathLaw` (its spec has the area spine and `walAreaOk`; the key is in `walReadTie`), the metadata bound
+  (`d.metadata.length < 2^41`) is not in `walInvBody` yet (`wal-save11`'s message: a framed conjunct).
+
