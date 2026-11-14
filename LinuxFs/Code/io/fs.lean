@@ -134,7 +134,9 @@ axiom ModeIrregular [GooseExts] [GoGlobalContext] : val
 
 axiom ModeType [GooseExts] [GoGlobalContext] : val
 
-axiom ModePerm [GooseExts] [GoGlobalContext] : val
+/-- Unix permission bits -/
+@[reducible] noncomputable def ModePerm [GooseExts] [GoGlobalContext] : val :=
+  #(W32 511)
 
 noncomputable def ErrInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"io/fs.ErrInvalid"
