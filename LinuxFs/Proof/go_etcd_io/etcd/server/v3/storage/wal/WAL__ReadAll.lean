@@ -23,6 +23,10 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllInv
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllExit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllEnd
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllReg
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
+public import LinuxFs.Spec.os.File__Fd
 public import LinuxFs.Proof.os.Off
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.bytes.Equal
@@ -170,7 +174,8 @@ theorem seekOff_ok (n : Nat) (h : n ≤ 0xffffffff000) :
 
 set_option maxHeartbeats 2000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.FieldAssumptions]
-    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [syscall.Assumptions]
+    [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr)
     (HsO : Loc → HardStateM → IProp GF) (hHs : WalHsOwn P U HsO)
     (wp_Decode : go_etcd_io.etcd.server.v3.storage.wal.decoder.Decode.spec (GF := GF) (hG := hG))
@@ -189,7 +194,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_EntTerm : WalPbIn.GetTermLaw (GF := GF) (hG := hG) P)
     (wp_CloneHs : WalPbIn.CloneHsLaw (GF := GF) (hG := hG) P)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
-    (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
+    (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
+    (wp_register : ∀ R jr r, WalFs.walInvRegisterTailLaw (hG := hG) (W := W) walCodec Mr R jr r)
+    (wp_ZeroToEnd : go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (hG := hG) (W := W) Mr)
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (W := W) P Mr := by
   intro R jr rt dir nm w s qp qc Q hin hcl
   wp_start as ⟨#Harea, Hp, Hperm, Hop, Hau⟩
@@ -212,6 +220,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   -- the look at the invariant before the loop: the records the decoder reads decode
   obtain ⟨hgne, hgnd, hgsz, hghd, hglast, hgdrop⟩ := Hgs
   obtain ⟨hfl, hll, hfll, hfk⟩ := Hfs
+  ihave #HareaK := Harea
   iunfold WalFs.walAreaOk at Harea
   icases Harea with ⟨#Hinv, -⟩
   icases ownDecoder_halves dec IoE eof fs 0 0#32 true gs hfl (fun k F g h1 h2 => by
@@ -219,13 +228,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_readFiles walCodec Mr R jr rt dir j X hj gs
-      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz
-      $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Htf, Hh, %d0, %lay, %kk, %hlook⟩
+  -- the look at the invariant registers the tail (`walInvRegisterTailLaw`)
+  obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
+  imod wp_register R jr rt dir j X hj gs glr
+      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr
+      $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Hh, %d0, %lay, %kk, %γt, Htf, Htk, Htv, %hlook⟩
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
   imodintro
-  obtain ⟨-, hab, hex, hwr, hgs⟩ := hlook
+  obtain ⟨-, hab, hex, hwr, hgs, htm⟩ := hlook
   have hR0 := readFiles_ok' walCodec_ok hU hab hex hwr kk gs hgs hgne (fs.map (·.bs))
     (decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1))
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Hdenv
@@ -274,7 +285,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   · -- the loop's exit
     dsimp only
     (try wp_auto)
-    simp only [intoVal_eq_iff, Bool.false_eq_true, decide_false, decide_true, ↓reduceIte]
+    simp only [intoVal_eq_iff, Bool.false_eq_true, decide_false, _root_.decide_true, ↓reduceIte]
     -- `w.tail() != nil` (write mode)
     obtain ⟨ls, lt, rfl⟩ : ∃ ls lt, lfs = ls ++ [lt] := by
       rcases List.eq_nil_or_concat lfs with h | ⟨L, b, h⟩
@@ -306,7 +317,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     wp_apply Hans as %b %hb
     subst hb
     by_cases heof : GoInterface.ok ei = eof
-    · simp only [heof, decide_true]
+    · simp only [heof, _root_.decide_true]
       (try wp_auto)
       -- the stop is `io.EOF`: the reader read every record (`rdLoop_stop`)
       ihave #Hde2 := Hdenv
@@ -327,7 +338,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           subst hsx
           obtain ⟨hR0r, hR0s⟩ := rdLoop_stop hL hgd
           obtain ⟨hR0o, hR0c⟩ := rdLoop_stop_end hL hgd (fun t h => by cases h)
-          simp only [decide_true]
+          simp only [_root_.decide_true]
           (try wp_auto)
           -- the decoder holds no file: every file's stream is in `Hleft`
           have hnil : fsD.drop k = [] := by
@@ -398,6 +409,47 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           wp_apply (os.File.Seek.wp_start fl fdl _ (DFrac.own 1) _ (W64 (off' : Int)) hfdl hso1 hso2)
             $$ [$Hfl $Hoffl] as ⟨Hfl, Hoffl⟩
           (try wp_auto)
+          -- `fileutil.ZeroToEnd(w.tail().File)`, on the registered tail
+          obtain rfl : gl = glr := Option.some.inj (hglast.symm.trans hglr)
+          subst hoffw
+          have hszb : gl.om.size ≤ 0xffffffff000 := by
+            have h2 : Fs.maxBytes = 0xffffffff000 := rfl; omega
+          have hwrT : lay.wr = (tailStream Mr d0.H d0.metadata lay.cuts).length := by
+            rw [tailStream_eq]; exact hwr
+          have hwrS : lay.wr ≤ gl.om.size := by have := hgsz gl hglm; omega
+          ihave Htw := walTailW_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay hfdl htm hszb
+            $$ [Hfl Hfdl Hoffl Htk Hml Hbyl Htv]
+          · iframe
+          wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+          · iframe
+          (try wp_auto)
+          wp_apply (wp_ZeroToEnd R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr gl.om.size
+            hwrS hwrT) $$ [$HareaK $Htw] as %ez Hz
+          icases Hz with (⟨%hez, %sz', %hsz', Htw⟩ | %hez)
+          rotate_left
+          · -- `ZeroToEnd`'s error
+            rcases ez with ei | _
+            rotate_left
+            · exact absurd rfl hez
+            dsimp only
+            (try wp_auto)
+            iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+            iintro %dq HQ Hfail
+            wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+            · ipureintro; trivial
+            iapply HΦ
+            iframe Hp Hperm
+            iexists dq
+            iframe HQ
+            ileft
+            isplitr
+            · ipureintro; simp
+            unfold walReadFailedF
+            iframe Hfail
+            iexists lg
+            iframe Hlg Hdir Hzap
+          subst hez
+          (try wp_auto)
           sorry
       · exact absurd hio hEu.2
       · exfalso
@@ -437,7 +489,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       generalize hgd : goDecode walCodec (List.map (fun x => x.bs) fsD) off c = gd
       rcases gd with ⟨r, fs', off', c'⟩ | ⟨sx, fs', off', c'⟩
       · icases Hm with ⟨%hok, Hr, Hdec⟩
-        simp only [decide_true, ↓reduceIte]
+        simp only [_root_.decide_true, ↓reduceIte]
         wp_auto
         wp_apply wp_GetType $$ Hr as Hr
         have hdec0 : ¬ (r.typ = crcType ∧ crcRecBad c' r) → RecDec U r ∧ RecMd d0.metadata r :=
