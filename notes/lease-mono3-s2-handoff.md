@@ -2,13 +2,12 @@
 
 Branch `lease-mono3-s2` (off `lean` `89ef103d5b`), worktree `/shared/etcd-grove-auth3`.
 
-- Done: the Scope, `notes/lease-mono3-plan.md`, "Step 2 Scope" (hard stop 1, at etcd-grove-81).
-- Next, in order (after the Scope's approval): the Go tests (S2.2's "Go test"); the server core
-  (`InvRequest.lean`, `NewServerAlloc.lean`, `ApplyCmpArm.lean`, `Restart.lean`); `leaseIdsApart`;
-  `Alloc3.lean`/`Alloc.lean`; `StartCluster` spec and proof; callers; interfaces; Freeze package
-  (hard stop 2); land via `etc/land.sh` only after 81's go (hard stop 3).
+- Done: Scope (approved by etcd-grove-81, `questions.md`); Go tests; the Lean change, full build green;
+  Freeze package (`notes/lease-mono3-plan.md`, "Step 2 Freeze package") at etcd-grove-81 (hard stop 2).
+- Next: review fixes; then merge `lean`, rebuild, `etc/land.sh` only after 81's go (hard stop 3).
 - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake build
-  --packages=/shared/tmp/manifest-ddc.json`; Go tests under `systemd-run --scope -q -p MemoryMax=32G`,
-  `GOWORK=off`.
-- Pitfalls: `KVNames` positional literals (`NewServerAlloc.lean:371,379`, `Restart.lean:200`) need the
-  new field; `kvInv_congr` needs `propext` for the `kvPfxOk` iff.
+  --packages=/shared/tmp/manifest-ddc.json` (a `KVNames` change rebuilds ~1600 modules, ~15 min).
+  Go tests: `systemd-run --scope -q -p MemoryMax=32G`, `GOWORK=off`; `TestGrantEveryMember` one run per
+  process (`go test -c`, then a loop).
+- Pitfalls: positional `KVNames` literals (grep `, .none⟩` / `γk.lm⟩`); `List.nodup_singleton` does not
+  exist here (`by simp`); a `pgrep -f` wait loop whose pattern is in its own command line never ends.

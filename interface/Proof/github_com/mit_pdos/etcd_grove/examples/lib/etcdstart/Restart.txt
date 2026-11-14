@@ -9,7 +9,8 @@ def etcdstart.restartReqNames (ρ : ReqNames) (applied committed notifier logs p
       fs := ρ.ids.fs, pend := ipend };
   have kv :=
     { st := ρ.rd.kv.st, c0 := ρ.rd.kv.c0, ch0 := ρ.rd.kv.ch0, log0 := ρ.rd.kv.log0, cok := cok, hi := hi, ids := ids,
-      hist := ρ.rd.kv.hist, cmp := ρ.rd.kv.cmp, rlog := ρ.rd.kv.rlog, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm };
+      hist := ρ.rd.kv.hist, cmp := ρ.rd.kv.cmp, rlog := ρ.rd.kv.rlog, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm,
+      gps := ρ.rd.kv.gps };
   { wait := ρ.wait,
     rd :=
       { applied := applied, committed := committed, notifier := notifier, logs := logs, pend := pend, raft := ρ.rd.raft,

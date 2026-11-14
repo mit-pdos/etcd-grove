@@ -197,13 +197,13 @@ def restartReqNames (ρ : ReqNames) (applied committed notifier logs pend cok hi
     (inc : Nat) : ReqNames :=
   let ids : IdNames := ⟨ρ.ids.issued, ρ.ids.cnt, slot, ρ.ids.pfx, ρ.ids.wn, inc, ρ.ids.fs, ipend⟩
   let kv : KVNames := ⟨ρ.rd.kv.st, ρ.rd.kv.c0, ρ.rd.kv.ch0, ρ.rd.kv.log0, cok, hi, ids, ρ.rd.kv.hist,
-    ρ.rd.kv.cmp, ρ.rd.kv.rlog, ρ.rd.kv.cret, ρ.rd.kv.lm⟩
+    ρ.rd.kv.cmp, ρ.rd.kv.rlog, ρ.rd.kv.cret, ρ.rd.kv.lm, ρ.rd.kv.gps⟩
   ⟨ρ.wait, ⟨applied, committed, notifier, logs, pend, ρ.rd.raft, kv⟩⟩
 
 theorem restartReqNames_restartNames (ρ : ReqNames)
     (applied committed notifier logs pend cok hi slot ipend : GName) (inc : Nat) :
     restartNames ρ (restartReqNames ρ applied committed notifier logs pend cok hi slot ipend inc) :=
-  ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by unfold kvPfx; rfl⟩, rfl, rfl⟩
+  ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Iff.rfl⟩, rfl, rfl⟩
 
 open Iris.ProofMode in
 /-- **A restarted incarnation's names, allocated** (restart S7.4): from the cluster's persistent

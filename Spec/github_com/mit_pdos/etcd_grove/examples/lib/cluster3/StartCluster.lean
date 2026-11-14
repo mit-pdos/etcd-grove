@@ -19,11 +19,13 @@ the start store). The clients are the caller's (`NewClient`).
 
 **The lease mode** (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §1, §4 and Q4; hub
 step 7's E2): the members' lessors in the mode `lm`, under the lease subsystem's premise at it
-(`lease.runCfg lm lm`, `alloc1`'s and `alloc3`'s); `lm ≠ .revocable` is a scope premise of the
-Scope's step 1 (§7: in the revocable mode the grant ids are collected at one prefix, `kvPfx`, which
-is one member's; step 2 makes it the members' and removes the premise); the lease reads' deployment
-premise `leasePeersOk` only in a mode that grants leases, so that no closed theorem at the mode
-`none` gains a premise. The success is `clusterUp … lm`: in a mode that grants leases every member
+(`lease.runCfg lm lm`, `alloc1`'s and `alloc3`'s); (step 2, 2026-11-14, "Step 2 Scope": until then
+the scope premise `lm ≠ .revocable`) in the revocable mode the members' ids apart
+(`leaseIdsApart`: distinct in their 15 low bits, so that the lease ids the members generate never
+collide, `issues/etcd-lease-id-mask-member-prefix.md`; checked per configuration by its Go
+`TestMemberIDs`); the lease reads' deployment premise `leasePeersOk` only in a mode that grants
+leases. Both premises are gated by the mode, so that no closed theorem at the mode `none` or `mono`
+gains a premise. The success is `clusterUp … lm`: in a mode that grants leases every member
 registers the lease specs in place of the KV ones, and there is no client `etcdKV`.
 -/
 module
@@ -62,9 +64,11 @@ abbrev StartCluster.spec : Prop :=
   N + 7 + bootWB ≤ backend.wbInit →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
-  -- (lease-mono3) the lease mode: the subsystem's premise at it, not revocable (a scope premise,
-  -- see the file header), and the lease reads' deployment premise in a mode that grants leases
-  lease.runCfg (GF := GF) lm lm → lm ≠ .revocable → (lm ≠ .none → leasePeersOk) →
+  -- (lease-mono3) the lease mode: the subsystem's premise at it, (step 2) in the revocable mode the
+  -- members' ids apart (see the file header), and the lease reads' deployment premise in a mode
+  -- that grants leases
+  lease.runCfg (GF := GF) lm lm → (lm = .revocable → leaseIdsApart [id₁, id₂, id₃]) →
+    (lm ≠ .none → leasePeersOk) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

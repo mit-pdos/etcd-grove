@@ -35620,3 +35620,27 @@ need from the auth store and the store, besides `NewServer` (S6, the entries abo
   claimed (`srvStop.scope`). Weaker precondition of the kit, so `authSrvTP false` says more (the axiom gives
   it); the mode `on`'s meaning is unchanged. `NewServer.wp_proofRG` uses `hTP`'s kit directly; the copy
   `authStoreKitR`/`authStoreKitR_off` (`NewServerRFacts.lean`) and `wp_proofRG`'s premise `h30` went.
+
+## lease-mono3 step 2: the revocable lease mode on several members (2026-11-14 · Scope approved by etcd-grove-81 · branch `lease-mono3-s2`)
+
+`notes/lease-mono3-plan.md`, "Step 2 Scope". Until now the revocable mode booted one member: the KV
+invariant's grant ids (`kvGrantIds`) were all of one prefix (`kvPfx`), and `kvCongr` made every
+member's names agree on it, while each member generates ids of its own prefix.
+- **The cluster's grant prefixes** are a field `KVNames.gps` (default `[]`), one for every member, and
+  `kvGrantIds` asks each grant id's prefix to be one of them, with `kvPfxOk`: in the revocable mode the
+  member's own prefix is in `gps` and `gps` is distinct after `LeaseGrant`'s mask (bit 63). The masked
+  ids are then distinct (`leaseIdMask_nodup_of_pfxs`). `kvPfxOk` reads the member's prefix, so
+  `kvCongr` asks it to hold of both names or neither (`kvInv_congr` rewrites by `propext`): the fact
+  rides in the shared invariant, so no statement between `memberBoot` and the commit (`NewServer.specG`,
+  `LeaseGrant`, `grantIdOwn`) changes.
+- **The premise** `leaseIdsApart ps` (`SrvRaftLog.lean`): the members' ids distinct in their 15 low bits,
+  the condition of `issues/etcd-lease-id-mask-member-prefix.md`. A separate premise of
+  `cluster3.StartCluster.spec` and `etcdstart.alloc3`, gated on the revocable mode, so no closed theorem
+  at `none`/`mono` gains one; not a `BootFacts` field (which would reach every three-member theorem).
+  Checked per configuration by the Go `TestMemberIDs` (member ids depend only on the configuration).
+- **Standalone lemmas** for auth3's start (auth-on-leases S4 builds on `alloc3On`, not `StartCluster`):
+  `idPfxsOf_mask_nodup`, `gpsOk_of_apart` (`srvClusterBoot_alloc`'s `hgps`), `kvPfxOk_of_apart`
+  (`srvMemberBoot_alloc`'s `hpo`), `idPfxOf_mem_idPfxsOf` (its `hpfx`), in `InvRequest.lean`.
+- **Rejected: the one-granting-member form** (all grants through member 1): with `kvCongr` and
+  `memberBoot`'s per-member prefix, members 2 and 3 could not be booted in the revocable mode at all,
+  and withholding their grant right needs a per-member guard in frozen server statements.

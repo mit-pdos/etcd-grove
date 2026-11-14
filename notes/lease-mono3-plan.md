@@ -852,3 +852,61 @@ most of etcdserver (a full build).
    three positional literals updated). Recommended: approve as one request with this Scope.
 4. **The grant test** (`TestGrantEveryMember`). Recommended: yes (half a day), so the claim that
    grants through followers work is tested where the premise holds.
+
+## Step 2 Freeze package (2026-11-14, session lease-mono3-s2)
+
+Scope approved by etcd-grove-81 (full form; `leaseIdsApart` a separate premise gated on the revocable
+mode; one hub request; `TestGrantEveryMember`, 20 runs). Everything proved: no `sorry`, axiom, opaque or
+trusted text added; `etc/tcb-report.py --check`: the trust base matches `etc/tcb-baseline.txt` (870
+axioms, 4 sorries).
+
+**Frozen and exported statements, old → new**
+
+| statement | old | new |
+|---|---|---|
+| `cluster3.StartCluster.spec` (FROZEN, hub step 7 E2) | premise `lm ≠ .revocable` | `(lm = .revocable → leaseIdsApart [id₁, id₂, id₃])`; docstring's lease-mode paragraph; post unchanged |
+| `etcdstart.alloc3`, `alloc3Http` (private) (etcdstart API) | `(hrev : lm ≠ .revocable)` | `(hap : lm = .revocable → leaseIdsApart [id₁, id₂, id₃])`; posts unchanged |
+| `etcdstart.memberBoot_of` (etcdstart API) | `(hrev : lm ≠ .revocable) (Hklg)` | `(Hklg) (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk)` |
+| `etcdstart.restartReqNames` (etcdstart API, definition) | the KV names' literal | keeps `gps := ρ.rd.kv.gps` (the new field) |
+| `KVNames` (wide fan-in record) | 12 fields | new last field `gps : List w64 := []`; the four positional literals (`NewServerAlloc`, `NewServerAllocOn` ×2, `WatchRun`'s `dummyWsPrm`, `Restart`) updated, meaning unchanged |
+
+Interfaces regenerated: `interface/…/etcdstart/Alloc3.txt`, `Restart.txt` (the diffs above, nothing
+else); the other API packages' interfaces unchanged (`--check`).
+
+**Internal (etcdserver; no API list)**
+- `InvRequest.lean`: `kvPfx` removed; `kvPfxOk` new; `kvGrantIds`' pure part `∀ u ∈ U, idPfx u ∈ γk.gps`
+  and `kvPfxOk γk`; `kvCongr`'s last field `γk.gps = γk'.gps ∧ (kvPfxOk γk ↔ kvPfxOk γk')`;
+  `kvGrantIds_nil` takes `kvPfxOk`; new `leaseIdMask_nodup_of_pfxs`, `idPfx_leaseIdMask`,
+  `list_inj_on_of_nodup_map`, `logRevGrantIds_nonRev`, `kvGrantIds_nodup_of` (the three nodup users).
+- **Standalone lemmas for a cluster's start** (auth3's included, per etcd-grove-81): `idPfxOf_mask_toNat`,
+  `idPfxsOf_mask_nodup` (`leaseIdsApart ps` → the members' prefixes distinct after the mask),
+  `idPfxOf_mem_idPfxsOf`, `gpsOk_of_apart` (`srvClusterBoot_alloc`'s `hgps`), `kvPfxOk_of_apart`
+  (`srvMemberBoot_alloc`'s `hpo`).
+- `SrvRaftLog.lean`: `leaseIdsApart` (its docstring cites the Go tests that check it per example).
+- `BuildAlloc.kvInv_alloc_boot`: premise `kvPfxOk γk`.
+- `NewServerAlloc.srvClusterBoot_alloc`: `(gps := [gp]) (hgps : lm = .revocable → gp ∈ gps ∧ (gps.map (· &&& leaseIdMask)).Nodup)`
+  (an auto-param at the defaults); post adds `γk.gps = gps`. `srvMemberBoot_alloc`: `hpfx` is
+  `γk.lm = .revocable → idPfxOf id ∈ γk.gps`, plus `hpo : kvPfxOk γk`.
+- Proofs: `alloc1` (`[gp]`), `alloc3` (`idPfxsOf [id₁, id₂, id₃]`), `StartCluster.wp_proof` (the revocable
+  case is the mono case), the callers (`fun h => nomatch h` for the new premise at `none`/`mono`:
+  leasecatchup, partition, putget3, restart, k8s compactor and etcd3). No closed theorem's statement
+  changes.
+
+**Go** (examples only; no code under verification changed)
+- `TestMemberIDs` (`examples/etcd/leasecatchup`, `examples/etcd/auth3`) also check the 15 low bits
+  distinct: leasecatchup `0x2995, 0x7fa9, 0x5839`, auth3 `0x5698, 0x0a21, 0x7ad2`.
+- `TestGrantEveryMember` (`examples/etcd/leasecatchup/leasecatchup_grant_test.go`, at `configAt(24600,
+  "lcgrant")`): 10 rounds of grants with no ID through each member, each ID's bits 48-62 its member's
+  15 low bits, all distinct, every member lists all 30, a revocation of member 1's first lease through a
+  follower other than member 1 removes it at every member. **20 of 20 runs passed**, each in its own
+  process under the 32G cap (leader member 1 ×11, 2 ×7, 3 ×2). One run per process: the members'
+  listeners outlive `HardStop`, so `-count=2` in one process fails to start the second cluster (a
+  harness limit, noted in the file).
+
+**Checks**: full `lake build` (17534 jobs, flock, 64G cap); `etc/tcb-report.py --check`;
+`etc/bounds-check.py --check` (351, baseline 351); `etc/api-check.py etc/api/etcdstart.txt --check`;
+`etc/gen-interface.py --check` for the six API packages after regenerating etcdstart's;
+`etc/issues-status.py --check`.
+
+**Issue**: `issues/etcd-lease-id-mask-member-prefix.md`'s "Proof" paragraph now names the premise
+(`blocks-proof: no`).

@@ -126,21 +126,29 @@ func memberIDsOf(t *testing.T, cfg cluster3.Config) []string {
 	return ids
 }
 
-// TestMemberIDs checks the premise on the member ids etcd computes for Main's cluster
-// (examples/etcd/partition's TestMemberIDs): their 16 low bits are distinct and not 0.
+// TestMemberIDs checks the premises on the member ids etcd computes for Main's cluster
+// (examples/etcd/partition's TestMemberIDs): their 16 low bits are distinct and not 0 (`BootFacts`),
+// and (lease-mono3 step 2) their 15 low bits are distinct (`leaseIdsApart`, which
+// cluster3.StartCluster's spec asks for in the revocable lease mode: the members' lease ids,
+// generated ids with bit 63 cleared, then never collide; issues/etcd-lease-id-mask-member-prefix.md).
 func TestMemberIDs(t *testing.T) {
 	seen := map[uint64]bool{}
+	seen15 := map[uint64]bool{}
 	for i, s := range memberIDs(t) {
 		id, err := strconv.ParseUint(s, 16, 64)
 		if err != nil {
 			t.Fatal(err)
 		}
 		low := id & 0xffff
-		t.Logf("member %d: id %s, low 16 bits %#x", i+1, s, low)
+		t.Logf("member %d: id %s, low 16 bits %#x, low 15 bits %#x", i+1, s, low, low&0x7fff)
 		if low == 0 || seen[low] {
 			t.Fatalf("member %d: low 16 bits %#x zero or repeated", i+1, low)
 		}
+		if seen15[low&0x7fff] {
+			t.Fatalf("member %d: low 15 bits %#x repeated", i+1, low&0x7fff)
+		}
 		seen[low] = true
+		seen15[low&0x7fff] = true
 	}
 }
 

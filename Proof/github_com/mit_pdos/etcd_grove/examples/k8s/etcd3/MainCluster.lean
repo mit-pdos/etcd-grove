@@ -106,7 +106,7 @@ theorem MainCluster.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, compaction off
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .none clusterCfg_ok Hbf
-      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
+      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (fun h => nomatch h)
       (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
