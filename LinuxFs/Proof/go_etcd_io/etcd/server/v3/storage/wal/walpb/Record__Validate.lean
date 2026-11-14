@@ -29,7 +29,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.wp_proof
     (HGetCrc : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.GetCrc.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.spec (GF := GF) (hG := hG) := by
   intro l r crc e X t
-  wp_start as ⟨#HE, #Hok, #HX, #Hn, Hr⟩
+  wp_start as ⟨#HE, #Hok, #HX, #Hn, #Ht, Hr⟩
   wp_auto
   wp_apply HGetCrc $$ Hr as Hr
   wp_if_destruct
@@ -52,11 +52,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.wp_proof
           rcases hii with h | h | h
           · cases h; exact Or.inr (by simp)
           · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_uint32 _)
-          · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_uint32 _)) $$ [Hsl2] as %err ⟨#Herr, #Hn'⟩
+          · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_uint32 _)) $$ [Hsl2] as %err ⟨#Herr, #Hn', #Ht'⟩
     · iframe
       iframe HX
-      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) t))).2
-      iframe Hok Hn
+      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) t ∗
+        errIsTerm (GoInterface.ok e)))).2
+      iframe Hok Hn Ht
     · iapply HΦ
       iframe
       iright
@@ -65,7 +66,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.wp_proof
       · iexists err
         isplitl []
         · ipureintro; rfl
-        · iframe Herr Hn'
+        · iframe Herr Hn' Ht'
 
 end proof
 

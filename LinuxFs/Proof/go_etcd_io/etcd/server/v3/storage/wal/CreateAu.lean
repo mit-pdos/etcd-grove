@@ -452,8 +452,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         iframe Hnms
         ipureintro
         exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
-          hlay, walsBounded_ins Hbd rfl
-            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, walDurFresh]⟩⟩
+          hlay, walsBounded_ins Hbd.1 rfl
+            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, walDurFresh]⟩, Hbd.2⟩
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]

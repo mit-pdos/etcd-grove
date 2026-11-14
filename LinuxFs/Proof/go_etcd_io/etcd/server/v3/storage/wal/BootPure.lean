@@ -35,10 +35,6 @@ open Iris Fs WalEnc
 section pure
 variable [GooseExts]
 
-/-- **Every durable directory is a root** of the shared mode's roots `R`. -/
-def DirsRoots (R : Roots) (s : AbsDiskState) : Prop :=
-  ∀ dd, s.dirs !! dd = some () → ∃ j, (dd, j) ∈ R
-
 /-- A root names its directory in every tree. -/
 theorem lookupH_root {R : Roots} (hR : RootsOk R) {r : GoString} {j : Ino} (hr : (r, j) ∈ R)
     (m : Tree) : lookupH R (m, []) r = some (.dir j) := by

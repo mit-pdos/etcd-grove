@@ -467,15 +467,15 @@ theorem decPost_fail (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
 
 /-! ### The answer of `errors.Is(err, io.EOF)` (`decAns`) -/
 
-/-- `decPost` from its body and the answer. -/
+/-- `decPost` from its body and the answers. -/
 theorem decPost_mk (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (eof ueof : GoInterface) (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) :
-    decAns eof err ∗ decPostB C d rp IoE eof ueof fs off c err ⊢
+    decUe err ∗ decAns eof err ∗ decPostB C d rp IoE eof ueof fs off c err ⊢
       decPost C d rp IoE eof ueof fs off c err := by
   unfold decPost
-  iintro ⟨#Ha, H⟩
+  iintro ⟨#Hu, #Ha, H⟩
   iframe
-  iexact Ha
+  iframe Ha Hu
 
 /-- `nil`'s answer. -/
 theorem decAns_nil (eof : GoInterface) : ⊢ decAns (GF := GF) eof GoInterface.nil := by

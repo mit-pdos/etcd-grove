@@ -526,6 +526,18 @@ def DirsAvoid (R : Roots) (jr : Ino) (s : AbsDiskState) : Prop :=
     (∀ j b, ¬ (j = jr ∧ AreaSlot b) → m1.entry j b = m2.entry j b) →
     lookupH R (m1, []) dd = lookupH R (m2, []) dd
 
+/-- **Every durable directory is a root** of the shared mode's roots `R` (the boot's, `BootPure.lean`:
+the area is durable as a root, and no step adds a durable directory, so the invariant keeps it; the
+crash boot reads it off `walInv_crash`). It gives `DirsOk` and `DirsAvoid` (`BootPure.dirsOk_roots`,
+`dirsAvoid_roots`). -/
+def DirsRoots (R : Roots) (s : AbsDiskState) : Prop :=
+  ∀ dd, s.dirs !! dd = some () → ∃ j, (dd, j) ∈ R
+
+/-- `DirsRoots` depends on the durable directories only. -/
+theorem DirsRoots.congr {R : Roots} {s s' : AbsDiskState} (h : DirsRoots R s) (e : s'.dirs = s.dirs) :
+    DirsRoots R s' := by
+  intro dd hd; rw [e] at hd; exact h dd hd
+
 /-- **A WAL directory's segments are at their names** (`ents` its entries): each segment's name
 is a `.wal` name, the entry at it the segment's file; every `.wal` entry is a file (W3/W5's gap 1:
 `Open` reads the names, `searchIndex` picks a file by them). -/
@@ -716,6 +728,14 @@ theorem walsBounded_upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalD
   cases hd : s.wal !! dir with
   | none => exact h
   | some d => exact walsBounded_insSame h rfl hd (hm d) (hH d)
+
+/-- `DirsRoots` across an update of one WAL (`absDiskUpd`: the durable directories kept). -/
+theorem DirsRoots.upd {R : Roots} {s : AbsDiskState} {dir : GoString} {f : WalDur → WalDur}
+    (h : DirsRoots R s) : DirsRoots R (absDiskUpd s dir f) := by
+  unfold absDiskUpd
+  cases s.wal !! dir with
+  | none => exact h
+  | some d => exact h
 
 /-- **The last segment synced** (`TailIdle`'s third part; the W7-W12 log, sixth session): every byte of
 the last segment durable, and zeros known (`OsMeta.zf`) only from its end on. Then an fdatasync of an
@@ -2031,7 +2051,8 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) C Mr s Ls F ∗
     ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl F ∗
     (∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝) ∗
-    ⌜WalsAt jr Ls cl⌝ ∗ walNamesRes (L := L) (W := W) R jr r Ls ∗ ⌜WalsBounded s⌝)
+    ⌜WalsAt jr Ls cl⌝ ∗ walNamesRes (L := L) (W := W) R jr r Ls ∗
+    ⌜WalsBounded s ∧ DirsRoots R s⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
@@ -2081,7 +2102,7 @@ theorem walInvBody_bounded (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Har, Hcl, Hcm, Hlays, Hok, Hco, HCR, Htl, Hab, Hnm, Hpk, Hdk,
     HAt, Hnms, %Hbd⟩
   isplitr
-  · ipureintro; exact Hbd
+  · ipureintro; exact Hbd.1
   iexists Ls, cl, n, F
   iframe
   ipureintro; exact Hbd
