@@ -45,6 +45,8 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadBridge
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndex
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairLocked
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairBrokenOpen
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairReg
 
 @[expose] public section
 
@@ -71,6 +73,29 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 theorem openFd_rdwr (i : Ino) : openFd i (W64 2 ||| W64 524288) = ⟨i, true, true⟩ := by
   unfold openFd; congr
 
+/-- **`Truncate` of a `*LockedFile`**: its embedded `*os.File`'s, any triple of it. -/
+theorem wp_lockedTrunc (lf f : Loc) (x : w64) (P : IProp GF) (Q : GoInterface → IProp GF)
+    (h : {{ P }} (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #x))
+      {{ (err : GoInterface), RET #err; Q err }}) :
+    {{ fileutil.lockedFile (GF := GF) lf f ∗ P }}
+      (App (Val (lf @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty @!!
+        go!"Truncate")) (Val #x))
+    {{ (err : GoInterface), RET #err; Q err }} := by
+  iintro %Φ ⟨#Hlf, HP⟩ HΦ
+  iunfold fileutil.lockedFile at Hlf
+  iStructNamed Hlf
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply h $$ HP as %err HQ
+  iapply HΦ $$ HQ
+
+/-- A `.wal` name's `.broken` name ends in `.wal.broken`. -/
+theorem repBroken_suffix_of {b : GoString} (h : walNameP b = true) : go!".wal.broken" <:+ repBroken b := by
+  unfold walNameP at h
+  obtain ⟨t, ht⟩ := of_decide_eq_true h
+  exact ⟨t, by rw [repBroken, ← ht, List.append_assoc]; rfl⟩
+
 set_option hygiene false in
 /-- **A `false` exit** with the segment's file and fd (`Hf`, `Hfd`): the deferred `f.Close()`, then the
 post with the token lost (`Repair.spec`'s `false` arm). Unhygienic: it names `Repair`'s hypotheses. -/
@@ -85,6 +110,15 @@ macro "repair_false" : tactic => `(tactic| (
     isplitr [HQ]
     · iright; ipureintro; rfl
     iexists o; iexact HQ))
+
+set_option hygiene false in
+/-- **A `false` exit after the `.broken` file's open** (`Hbf`, `Hbfd`): its deferred `bf.Close()` first,
+then `repair_false`. Unhygienic. -/
+macro "repair_false_bf" : tactic => `(tactic| (
+    wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd] as %cerr2 -
+    · iframe; iframe #
+    try wp_auto
+    repair_false))
 
 set_option hygiene false in
 /-- **The segment's stream out of the decoder** (`HS : walFileS …`). Unhygienic. -/
@@ -161,7 +195,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   iunfold walLastOpen at Hlo
   icases Hlo with ⟨%d, %lay, %X, %hj, %gL, %f, %fd, %qd, %hfacts, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj,
     Hpd, #Hlf, Hf, Hoff, Hfd⟩
-  obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd⟩ := hfacts
+  obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd, hgLok⟩ := hfacts
   rw [openFd_rdwr]
   try wp_auto
   -- `lg.Info("repairing", zap.String("path", f.Name()))`
@@ -407,8 +441,228 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       wp_for_post
       repair_false
     · -- `io.ErrUnexpectedEOF`, at the end of the frames: the copy, the truncate, the fsync
-      have hoff : off = lay.wr := by rw [hbu rfl, hrsw]
-      sorry
+      have hoff : off = (recFrames walCodec rs).length := hbu rfl
+      rw [decide_eq_true rfl]
+      try wp_auto
+      wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+      · iframe Hf Hlf
+      try wp_auto
+      -- the ghost steps: the `.broken` name not left out of the key's claim; the tail registered pending
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_keyExcl walCodec Mr R jr r ⊤ CoPset.subseteq_top dir lay.j X $$ Hinv Hnc Hkey
+        with ⟨Hnc, %hXb⟩
+      imod repair_register Mr R jr r dir d lay X hj gL rs habs hnd hsn hgL hSz hRF $$ Hinv Hnc Hkey Hj Htf Hm Hb
+        with ⟨Hnc, Hj, Hm, Hb, %γ, %H, %md, %cuts, %k, Htf, Hpt, Hv, ⟨%hwrS, %hTM⟩⟩
+      imodintro
+      iframe Hnc
+      rw [child_repBroken]
+      -- `createNewWALFile[*os.File](brokenName, true)`
+      have hbt : go!".wal.broken" <:+ repBroken gL.name := repBroken_suffix_of (hsn.1 gL hgLm).1
+      wp_apply (repair_brokenOpen wp_cNWF wp_OpenN walCodec Mr R jr r dir (DFrac.own qd) lay.j X hj
+          ⟨[gL.ino], [(lay.j, .except X)], []⟩ (repBroken gL.name) (repBroken_nameOk hgLok) hbt hXb
+          (by simp) (by simp [lendKey]))
+        $$ [Hpd Hperm Hj Ho] as %bf %bferr ⟨Hpd, Hperm, Hbo⟩
+      · iframe; iframe #
+      icases Hbo with (⟨%hbe, Hbo⟩ | %hbe)
+      rotate_left
+      · -- the open failed: `false`
+        rcases bferr with ei' | _
+        rotate_left
+        · exact absurd rfl hbe
+        try wp_auto
+        wp_apply wp_String as %f1 -
+        try wp_auto
+        wp_apply wp_Error as %f2 -
+        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl ⟨-, -⟩
+        try wp_auto
+        wp_apply wp_Warn lg _ _ $$ []
+        · iframe #
+        try wp_auto
+        wp_for_post
+        repair_false
+      subst hbe
+      iunfold repBrokenOk at Hbo
+      icases Hbo with ⟨%bfd, %bi, %hj', ⟨%hbfd, %hbi⟩, Hbf, Hboff, Hbfd, Htr, Hj, Ho⟩
+      try wp_auto
+      -- `f.Seek(0, io.SeekStart)`
+      wp_apply wp_lockedSeekStart lf f fd _ _ _ (W64 0) hfd (by decide) (by decide) $$ [Hf Hoff]
+        as ⟨Hf, Hoff⟩
+      · iframe Hf Hoff Hlf
+      try wp_auto
+      -- `io.Copy(bf, f)`
+      have hbw : (openFd bi (wal.walOpenFlag true ||| W64 0x80000)).writable = true := by
+        unfold openFd wal.walOpenFlag; simp only [↓reduceIte]; decide
+      have hm62 : gL.om.size < 2 ^ 62 := by omega
+      wp_apply (wp_Copy bf bfd (child dir (repBroken gL.name)) (openFd bi (wal.walOpenFlag true ||| W64 0x80000))
+          lf f fd (child dir gL.name) ⟨gL.ino, true, true⟩ (W64 0) (DFrac.own (1 : Qp).half)
+          (DFrac.own (1 : Qp).half) gL.om gL.bs hbw rfl hbfd hfd (by decide) (by simp) hSz.symm hm62)
+        $$ [Hbf Hbfd Hboff Htr Hf Hfd Hoff Hm Hb] as %cn %cerr ⟨Hbf, Hbfd, Hf, Hfd, Hm, Hb, Hcd, %od, %os', Hboff, Hoff, %hcp⟩
+      · iframe; iframe #
+      rcases cerr with ei' | _
+      · -- the copy failed: `false`
+        try wp_auto
+        wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+        · iframe Hf Hlf
+        wp_apply wp_String as %f1 -
+        try wp_auto
+        wp_apply wp_String as %f2 -
+        try wp_auto
+        wp_apply wp_Error as %f3 -
+        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl ⟨-, -⟩
+        try wp_auto
+        wp_apply wp_Warn lg _ _ $$ []
+        · iframe #
+        try wp_auto
+        wp_for_post
+        repair_false_bf
+      obtain ⟨hos, -⟩ := hcp rfl
+      try wp_auto
+      -- the `.broken` file given back
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      have hD : lendKey lay.j (repBroken gL.name) ∉
+          (⟨[gL.ino], [(lay.j, .except X)], []⟩ : WalOut).D := by simp [lendKey]
+      imod walInv_unlendOther walCodec Mr R jr r ⊤ CoPset.subseteq_top dir lay.j X hj' (DFrac.own (1 : Qp).half)
+          _ (repBroken gL.name) (.file bi) (walNameP_broken hbt) (by simp [WalOut.addClaim]) hbi
+        $$ Hinv Hnc Hkey Hj Ho [Hcd] with ⟨Hnc, Hj, Ho⟩
+      · simp only [tmpEnt]; iapply io.copyDst_trFile $$ Hcd
+      rw [WalOut.delClaim_addClaim _ _ hD]
+      imodintro
+      iframe Hnc
+      -- `f.Truncate(lastOffset)`, by the pending token
+      subst hoff
+      have hle : (recFrames walCodec rs).length ≤ gL.om.size := by
+        have := hRF.pre.length_le; simp only [segImg, List.length_map] at this; omega
+      wp_apply (wp_lockedTrunc lf f _ _ _
+          (wp_Trunc R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ gL.om.size k os' hle hwrS))
+        $$ [Hf Hfd Hoff Hpt Hm Hb Hv] as %terr Htr
+      · iframe Hok Hlf
+        iunfold walTailPO
+        iframe Hf Hoff Hpt
+        isplitl [Hfd]
+        · iexists true; iexact Hfd
+        iexists gL.om, gL.bs
+        iframe Hm Hb
+        isplitr
+        · ipureintro; exact ⟨rfl, hTM, hm62, hfd, hTM.loWr _⟩
+        iunfold tailVar at Hv; iexact Hv
+      icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, Hfd⟩, Hoff⟩)
+      rotate_left
+      · -- the truncate failed: `false`
+        rcases terr with ei' | _
+        rotate_left
+        · exact absurd rfl hte
+        try wp_auto
+        wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+        · iframe Hf Hlf
+        wp_apply wp_String as %f1 -
+        try wp_auto
+        wp_apply wp_Error as %f2 -
+        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl ⟨-, -⟩
+        try wp_auto
+        wp_apply wp_Warn lg _ _ $$ []
+        · iframe #
+        try wp_auto
+        wp_for_post
+        repair_false_bf
+      subst hte
+      try wp_auto
+      -- `fileutil.Fsync(f.File)`
+      wp_apply wp_Now as %t0 -
+      try wp_auto
+      iunfold walLockedTok at Hl
+      icases Hl with ⟨Htk, Hpk, Hcf⟩
+      wp_apply (wp_Fsync R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ k os' hwrS)
+        $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, Hfd⟩, Hoff, Hfr⟩
+      · iframe Htw Hcf Hok
+      icases Hfr with (⟨%hfe, Hkt, %m2, %bs2, Hm2, Hb2, %hTM2, Hv⟩ | %hfe)
+      rotate_left
+      · -- the fsync failed: `false`
+        rcases ferr with ei' | _
+        rotate_left
+        · exact absurd rfl hfe
+        try wp_auto
+        wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+        · iframe Hf Hlf
+        wp_apply wp_String as %f1 -
+        try wp_auto
+        wp_apply wp_Error as %f2 -
+        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl ⟨-, -⟩
+        try wp_auto
+        wp_apply wp_Warn lg _ _ $$ []
+        · iframe #
+        try wp_auto
+        wp_for_post
+        repair_false_bf
+      subst hfe
+      try wp_auto
+      -- `walFsyncSec.Observe(time.Since(start).Seconds())`
+      ihave #Henv := wal_encEnv $$ Hpkg
+      iunfold encEnv at Henv
+      icases Henv with ⟨-, -, -, #Htime, #Hmet⟩
+      iunfold wal.metricsInit at Hmet
+      icases Hmet with ⟨⟨%hs, #Hhs, #Hhspec⟩, -, -⟩
+      iunfold wal.histSpec at Hhspec
+      wp_apply wp_Since as %dur -
+      try wp_auto
+      haveI _hni : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
+      wp_pures
+      wp_apply (wp_Seconds dur) as %fl -
+      try wp_auto
+      wp_apply Hhspec
+      try wp_auto
+      -- `lg.Info("repaired", ...)`
+      wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+      · iframe Hf Hlf
+      wp_apply wp_String as %f1 -
+      try wp_auto
+      wp_apply wp_Error as %f2 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Info lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      wp_for_post
+      -- the put-back (L5's changed case), then the deferred closes
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      ihave Hv' : tailVar (W := W) γ ((H, md, cuts, (recFrames walCodec rs).length, gL.ino, none) : TailG)
+        $$ [Hv]
+      · iunfold tailVar; iexact Hv
+      imod walInv_repairPut Mr R jr r dir γ γ H md cuts _ m2 bs2 lay.j X hj' gL hTM2.2 hwrS
+        $$ Hinv Hnc Htf Hkt Hv' Hm2 Hb2 [Htk Hpk Hcf] Hnf Ho Hj Hkey with ⟨Hnc, Hu⟩
+      · iunfold walLockedTok; iframe
+      imodintro
+      iframe Hnc
+      wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd] as %cerr2 -
+      · iframe; iframe #
+      try wp_auto
+      wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+      · iframe; iframe #
+      try wp_auto
+      try imodintro
+      try wp_auto
+      iapply HΦ
+      iframe Hp Hres Hperm
+      isplitl [Hu]
+      · ileft; iexact Hu
+      iexists o; iexact HQ
 
 end proof
 

@@ -37,7 +37,7 @@ def walLastOpen (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (dir : G
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ TailIdle C Mr d lay ∧
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧ lay.segs.getLast? = some gL ∧
-      0 ≤ fd.toInt⌝ ∗
+      0 ≤ fd.toInt ∧ NameOk gL.name⌝ ∗
     walDirKey (W := W) dir lay.j X ∗ walLockedTok (W := W) ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨[gL.ino], [(lay.j, .except X)], []⟩ ∗

@@ -187,7 +187,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
       iexists d, lay, X, hj, gL, f, fd, qd
       iframe
       iframe #
-      ipureintro; exact ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd⟩
+      ipureintro; exact ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd, hbok⟩
     · -- the lock's open failed: the pin back
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc

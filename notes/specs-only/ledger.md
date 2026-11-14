@@ -1464,3 +1464,16 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   frames, where the stop is, `RepairAt`; `validSnapshotEntries`' error arm takes any error). `io.EOF`'s `false` follows
   from `wp_Is_leaf` where a caller needs it.
 - **Decision.** Made (internal; no ghost state; the hypotheses' strengthening is true of Go and of the models).
+
+## 2026-11-14: `openLast.spec` (internal, the part's) -- the last segment's name not known valid
+
+- **Spec.** `walLastOpen` (`LinuxFs/Proof/.../wal/OpenLastDefs.lean`), `openLast.spec`'s success arm: the pin of the
+  last segment `gL`, its file open at `child dir gL.name`, with pure facts on the layout.
+- **Defect.** Too weak for `wal.Repair`'s `createNewWALFile(f.Name() + ".broken", true)` (S/repair.go:62): the open
+  specs take `NameOk` of the created name, `repBroken gL.name`, which follows from `NameOk gL.name`; nothing in
+  `walLastOpen` gives it (the segments' facts say `.wal` suffix and the entries, not validity).
+- **Evidence.** `openLast.wp_proof` has it (`hbok`, from `ReadDir`'s output) and drops it; `Repair.wp_proof`'s
+  `io.ErrUnexpectedEOF` arm (`wal-repair26`).
+- **Change (made, `wal-repair26`).** `walLastOpen`'s pure facts add `NameOk gL.name` (last). A strengthening;
+  `Repair` is the only client.
+- **Decision.** Made (internal; no ghost state).
