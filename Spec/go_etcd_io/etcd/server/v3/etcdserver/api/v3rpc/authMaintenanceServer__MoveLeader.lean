@@ -32,19 +32,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- `ams.MoveLeader(ctx, r)`: the admin guard (`isPermitted`), then the embedded `maintenanceServer`'s `MoveLeader` (names
 only, taken as the guarded contract `guardedOk2`: callable only with the token
 `adminRes` of the request's auth info); the outcome `guardOut`: the inner call's
-answer, or `nil` and an error with `Pin` untouched. -/
+answer, or `nil` and an error with `Pin` untouched.
+(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
+store's published index: the guard's branch names its error before `togRPCError` and the admin class's reason (`adminWhy`). -/
 abbrev v3rpc.authMaintenanceServer.MoveLeader.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)
-    (Q : Loc → GoInterface → IProp GF),
+    (Q : Loc → GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
       v3rpc.guardedOk2 (adminRes E.authMode) Pin E.RD
         (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"MoveLeader" ms (GoInterface.ok ctx) r
         Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"MoveLeader"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOut Pin Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOutC Pin Q (adminWhy s E.authMode n (GoInterface.ok ctx)) resp err }}
 
 end spec
 

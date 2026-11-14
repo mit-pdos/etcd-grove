@@ -28,14 +28,28 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
 (`isReqAuthBound_{enLb,ctxLb,adminLb}`, `isAuthEnabled_ctxMLb`); `authed_served_of_frozen`,
 `admin_served_of_frozen` (`auth.authFrozenFrom`); Go tests `notes/auth-guard-scope/zz_guard_why_test.go`.
 
-## Next, in order
+## G3 (2026-11-14)
 
-1. G2 hard stop: report the six `specC`s (git diff of `Spec/`) to etcd-grove-81 for review.
-2. `isWatchPermitted` (after k8s 7f-3b lands, Scope §6): a pure strengthening with `permWhy`.
-3. G3: the guarded entry points (Scope §2.4) over the `specC`s: `MemberList`, `RemoveMember`, `kvServer.Compact`,
-   `ams.{Defragment,Hash,HashKV,MoveLeader,Downgrade,Snapshot,Status,Alarm}`; `guardOutC`. Check first that
-   `LinearizableReadNotify`'s and `raftRequest`'s errors are not auth error variables (G0's checks).
-4. G0's `served_of_frozen` (not needed by G1-G3; groundwork for G7).
+- `readErrIs_authErrVarIs` (`AuthWhy.lean`): the read path's errors are not auth error variables (message
+  cells; `DeadlineExceeded` by its type). The raft request's errors need no such check: every guarded
+  wrapper's guard branch is told apart by `Pin` (`guardOutC`, `guardOut1C`, `compactOutC`), and
+  `RemoveMember`'s by its own disjunct.
+- In place (one spec each, no caller in a proof but `etcd_compactHandlerOk`'s, which now takes `na = 0`):
+  `EtcdServer.{MemberList,RemoveMember}`, `v3rpc.kvServer.Compact`,
+  `v3rpc.authMaintenanceServer.{Defragment,Hash,HashKV,MoveLeader,Downgrade,Snapshot,Status,Alarm}`: a bound
+  `n`, `□ auth.authPubLbM E.authMode n` (the admin ones drop `srvAdminNilOk`), the guard's branch with its
+  reason; over the guards' `specC`. `v3rpc.togRPCError_out` keeps `grpcErrOut`.
+- `n` = the auth state the request saw: see the G3 report (the entry points take any `n`; the request
+  path above them, gRPC handlers and the client model, carries none, as for `Range`).
+
+## Follow-ups
+
+- (D22, decided by etcd-grove-81 2026-11-14) With auth off the admin guards' error may be `AuthInfoFromCtx`'s,
+  which `isReqAuth` (of `NewAuthStore`'s axiom) leaves free, so `adminWhy .off` is `True`. Discharging
+  `NewAuthStore`'s axiom by proof (D22) would give "no error with auth off" without new trust.
+- `isWatchPermitted` (after k8s 7f-3b), `served_of_frozen` for `permWhy` (G4).
+- The reason-free guard specs other than `EtcdServer.requireAuthInfo.spec` (kept for the lease entry points,
+  D5) have no caller left; delete them after review.
 
 ## Pitfalls
 

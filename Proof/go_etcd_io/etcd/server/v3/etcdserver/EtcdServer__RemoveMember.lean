@@ -28,17 +28,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.RemoveMember.wp_proof
-    (hChk : EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG))
+    (hChk : EtcdServer.checkMembershipOperationPermission.specC (GF := GF) (hG := hG))
     (hEnum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) := by
-  intro s E ctx cd id Pin Pm Qm Qin
-  wp_start as ⟨#Hau, #Hnil, #Hctx, #Hlib, HRD, HPin, HPm, #Hmay, #Hconf⟩
+  intro s E ctx cd id Pin Pm Qm Qin n
+  wp_start as ⟨#Hau, #Hlb, #Hctx, #Hlib, HRD, HPin, HPm, #Hmay, #Hconf⟩
   iunfold mayRemoveOk at Hmay
   iunfold configureRemoveOk at Hconf
   (try wp_auto)
-  wp_apply (hChk s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+  wp_apply (hChk s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
   · iframe #
-  ihave #Hout := adminOut_of_adminOutB _ _ _ _ $$ Hout
+  ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout
   icases Hout with ⟨#Herr, #Htok⟩
   (try wp_auto)
@@ -51,8 +51,10 @@ theorem EtcdServer.RemoveMember.wp_proof
     isplitr
     · ipureintro; intro h; cases h
     ileft
-    iframe HPm
-    iexact Herr
+    iframe HPm Herr
+    iunfold adminOutC at HoutC
+    icases HoutC with ⟨-, #Hw⟩
+    iapply Hw; intro h; cases h
   · (try wp_auto)
     wp_apply Hmay $$ [$HPm] as %errm Hqm
     (try wp_auto)

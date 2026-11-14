@@ -33,20 +33,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- `ams.Alarm(ctx, ar)`: `requireAuthInfo` when `ar.GetAction()` (`alarmActionOk`, names only)
 is `AlarmRequest_GET`, `isPermitted` otherwise, then the embedded `maintenanceServer`'s `Alarm`
 (names only, the guarded contract `guardedOk2` with the token `alarmTok` of the action); the
-outcome `guardOut`. -/
+outcome `guardOut`.
+(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
+store's published index: the guard's branch names its error before `togRPCError` and the class's reason (`alarmWhy`: authenticated for a get, admin otherwise). -/
 abbrev v3rpc.authMaintenanceServer.Alarm.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (ar : Loc) (act : w32) (Pin : IProp GF)
-    (Q : Loc → GoInterface → IProp GF),
+    (Q : Loc → GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       E.RD ∗ Pin ∗ v3rpc.alarmActionOk ar act ∗
       v3rpc.guardedOk2 (v3rpc.alarmTok E.authMode act) Pin E.RD
         (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Alarm" ms (GoInterface.ok ctx) ar
         Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Alarm"))
       (Val #(GoInterface.ok ctx))) (Val #ar))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOut Pin Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOutC Pin Q (v3rpc.alarmWhy s E.authMode n (GoInterface.ok ctx) act) resp err }}
 
 end spec
 

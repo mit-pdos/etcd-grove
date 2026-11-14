@@ -55,7 +55,8 @@ state, `ErrPermissionDenied` for one present there without the root role. With t
 from `n` on, auth enabled, a token in the context and every principal bound to it root, only
 `ErrInvalidAuthToken` remains (`admin_served_of_frozen`). With auth off, it says nothing of an error
 from `AuthInfoFromCtx`: the off store's request side (`isReqAuth`, of `NewAuthStore`'s axiom) does
-not say there is none. `IsAdminPermitted(nil)`'s clause (`srvAdminNilOk`) is not a premise:
+not say there is none (a follow-up of D22: discharging `NewAuthStore`'s axiom by proof would give "no
+error with auth off" without new trust; decided by etcd-grove-81, 2026-11-14). `IsAdminPermitted(nil)`'s clause (`srvAdminNilOk`) is not a premise:
 `srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). `spec` follows (`wp_proof`). -/
 abbrev EtcdServer.checkMembershipOperationPermission.specC : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))

@@ -780,46 +780,6 @@ theorem etcdserverpb.wp__Watch_Watch_Handler :
     EtcdGrove.etcdserverpb._Watch_Watch_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Watch_Watch_Handler.wp_proof grpc.GenericServerStream.wp_Recv grpc.GenericServerStream.wp_Send grpc.GenericServerStream.wp_Context
 
-theorem authMaintenanceServer.wp_isPermitted :
-    EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.wp_proof AuthAdmin.wp_isPermittedC
-
-theorem authMaintenanceServer.wp_requireAuthInfo :
-    EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof AuthAdmin.wp_requireAuthInfoC
-
-theorem authMaintenanceServer.wp_Alarm :
-    EtcdGrove.v3rpc.authMaintenanceServer.Alarm.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.Alarm.wp_proof authMaintenanceServer.wp_isPermitted authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
-
-theorem authMaintenanceServer.wp_Defragment :
-    EtcdGrove.v3rpc.authMaintenanceServer.Defragment.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.Defragment.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
-
-theorem authMaintenanceServer.wp_Downgrade :
-    EtcdGrove.v3rpc.authMaintenanceServer.Downgrade.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.Downgrade.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
-
-theorem authMaintenanceServer.wp_Hash :
-    EtcdGrove.v3rpc.authMaintenanceServer.Hash.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.Hash.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
-
-theorem authMaintenanceServer.wp_HashKV :
-    EtcdGrove.v3rpc.authMaintenanceServer.HashKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.HashKV.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
-
-theorem authMaintenanceServer.wp_MoveLeader :
-    EtcdGrove.v3rpc.authMaintenanceServer.MoveLeader.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.MoveLeader.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
-
-theorem authMaintenanceServer.wp_Snapshot :
-    EtcdGrove.v3rpc.authMaintenanceServer.Snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.Snapshot.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
-
-theorem authMaintenanceServer.wp_Status :
-    EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
-
 theorem authMaintenanceServer.wp_isPermittedC :
     EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.specC (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.wp_proofC AuthAdmin.wp_isPermittedC
@@ -827,6 +787,46 @@ theorem authMaintenanceServer.wp_isPermittedC :
 theorem authMaintenanceServer.wp_requireAuthInfoC :
     EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.wp_proofC AuthAdmin.wp_requireAuthInfoC
+
+theorem authMaintenanceServer.wp_Alarm :
+    EtcdGrove.v3rpc.authMaintenanceServer.Alarm.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Alarm.wp_proof authMaintenanceServer.wp_isPermittedC authMaintenanceServer.wp_requireAuthInfoC wp_togRPCError
+
+theorem authMaintenanceServer.wp_Defragment :
+    EtcdGrove.v3rpc.authMaintenanceServer.Defragment.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Defragment.wp_proof authMaintenanceServer.wp_isPermittedC wp_togRPCError
+
+theorem authMaintenanceServer.wp_Downgrade :
+    EtcdGrove.v3rpc.authMaintenanceServer.Downgrade.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Downgrade.wp_proof authMaintenanceServer.wp_isPermittedC wp_togRPCError
+
+theorem authMaintenanceServer.wp_Hash :
+    EtcdGrove.v3rpc.authMaintenanceServer.Hash.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Hash.wp_proof authMaintenanceServer.wp_isPermittedC wp_togRPCError
+
+theorem authMaintenanceServer.wp_HashKV :
+    EtcdGrove.v3rpc.authMaintenanceServer.HashKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.HashKV.wp_proof authMaintenanceServer.wp_isPermittedC wp_togRPCError
+
+theorem authMaintenanceServer.wp_MoveLeader :
+    EtcdGrove.v3rpc.authMaintenanceServer.MoveLeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.MoveLeader.wp_proof authMaintenanceServer.wp_isPermittedC wp_togRPCError
+
+theorem authMaintenanceServer.wp_Snapshot :
+    EtcdGrove.v3rpc.authMaintenanceServer.Snapshot.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Snapshot.wp_proof authMaintenanceServer.wp_isPermittedC wp_togRPCError
+
+theorem authMaintenanceServer.wp_Status :
+    EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfoC wp_togRPCError
+
+theorem authMaintenanceServer.wp_isPermitted :
+    EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.wp_proof AuthAdmin.wp_isPermittedC
+
+theorem authMaintenanceServer.wp_requireAuthInfo :
+    EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof AuthAdmin.wp_requireAuthInfoC
 
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
@@ -846,7 +846,7 @@ theorem wp_filterNoPut :
 
 theorem kvServer.wp_Compact :
     EtcdGrove.v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.kvServer.Compact.wp_proof AuthAdmin.wp_isPermitted wp_togRPCError header.wp_fill
+  EtcdGrove.v3rpc.kvServer.Compact.wp_proof AuthAdmin.wp_isPermittedC wp_togRPCError header.wp_fill
 
 theorem storage.wp_NewBackendQuota :
     EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=

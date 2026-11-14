@@ -1782,10 +1782,11 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
         iexact HaE
       simp only [Q]
       iframe
-  -- `kvServer.Compact`
+  -- `kvServer.Compact` (the auth bound `0`, `authPubLbM_zero`)
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna0
   iapply wp_fupd
   iapply (v3rpc.kvServer.wp_Compact p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n aa E
-    ci cd r Pin Q) $$ [Hrd Hlt Hlg Hsr Hid Hreq]
+    ci cd r Pin Q 0) $$ [Hrd Hlt Hlg Hsr Hid Hreq]
   · iframe #
     iframe Hrd
     isplitr
@@ -1794,6 +1795,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
     iframe
   inext
   iintro %resp %err ⟨Hrd, Hout, #HSe⟩
+  ihave Hout := v3rpc.compactOut_of_C _ _ _ _ _ _ _ _ $$ Hout
   iunfold v3rpc.compactOut at Hout
   icases Hout with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, Hro, Hlt, Hlg, Hsr⟩ |
     ⟨%Herr, (⟨Hlt, Hlg, Hsr⟩ | ⟨Hlt, Hlg, Hsr, -, -⟩)⟩)

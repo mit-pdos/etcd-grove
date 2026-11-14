@@ -34,7 +34,8 @@ carrying a token, the authenticated class's only reason left is `ErrInvalidAuthT
 root (`admin_served_of_frozen`). In the mode `any` every reason is `True`. In the mode `off` the
 request side's is `False` (the flag never reads `true`); the admin check's is `True`, because the
 off store's request side (`isReqAuth`, of `NewAuthStore`'s axiom) does not say that `AuthInfoFromCtx`
-returns no error with auth off.
+returns no error with auth off (a follow-up of D22, discharging that axiom by proof, would give it
+without new trust).
 
 The guards' outcomes with the reason (`authedOutC`, `adminOutC`) are what their specs state; a caller
 that needs no reason drops it (`authedOutB_of_C`, `adminOutB_of_C`). TLS identities are out of scope
@@ -335,6 +336,95 @@ theorem authErrOf_apart (e e' : auth.AuthErr) (m m' : GoString)
   injection Heq2 with Heq2
   ipureintro
   exact Hne (by rw [Heq1, Heq2, Hij])
+
+/-- An auth error variable's error is an `*errorString` whose cell holds one of the package's
+messages. -/
+theorem authErrVarIs_cell (err : GoInterface) (hne : err ≠ GoInterface.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢ authErrVarIs err -∗
+      ∃ (x : Loc) (m : GoString),
+        ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x ∧
+          m ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs.map Prod.snd⌝ ∗ EtcdGrove.errStrCell x m := by
+  iintro #Hpkg #Ha
+  iunfold authErrVarIs at Ha
+  icases Ha with (%Hn | ⟨%g, %e, %Hg, #Hge, %He⟩)
+  · exact absurd Hn hne
+  obtain ⟨⟨g', m⟩, hmem, rfl⟩ := List.mem_map.1 Hg.1
+  ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HVC⟩
+  ihave #Hc := EtcdGrove.errVarCells_mem hmem $$ HVC
+  iunfold EtcdGrove.errVarCell at Hc
+  icases Hc with ⟨%x, #Hx, #Hcell⟩
+  icombine Hge Hx gives %Heq
+  iexists x, m
+  iframe Hcell
+  ipureintro
+  refine ⟨?_, List.mem_map_of_mem (f := Prod.snd) hmem⟩
+  rw [He]; exact Heq
+
+/-- **The read path's errors are not auth error variables** (auth-guard-completeness G3, G0's check):
+`readErrIs`'s (a context error, `ErrStopped`, `ErrLeaderChanged`, `ErrTimeout`) and `authErrVarIs`'s
+are `errors.New` errors of different messages (or, for `DeadlineExceeded`, of another type). -/
+theorem readErrIs_authErrVarIs (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors ⊢
+      readErrIs err -∗ authErrVarIs err -∗ ⌜err = GoInterface.nil⌝ := by
+  iintro ⟨#Hpa, #Hpe⟩ #Hr #Ha
+  by_cases hne : err = GoInterface.nil
+  · ipureintro; exact hne
+  ihave ⟨%x, %m, ⟨%Hx, %Hm⟩, #Hcell⟩ := authErrVarIs_cell err hne $$ Hpa Ha
+  have hm : ∀ m', m' ∉ go_etcd_io.etcd.server.v3.auth.authErrTexts → m ≠ m' := by
+    intro m' h' heq; subst heq; apply h'
+    rw [← go_etcd_io.etcd.server.v3.auth.authErrMsgs_snd]; exact Hm
+  ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpe
+  icases Hei with ⟨-, -, #HEC⟩
+  -- the server's `errors.New` variable `X` of message `msg` is not `err`
+  have hvar : ∀ (X msg : GoString),
+      (X, msg) ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs →
+      msg ∉ go_etcd_io.etcd.server.v3.auth.authErrTexts →
+      (EtcdGrove.errVarCells (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs ⊢
+        globalAddr X ↦□ err -∗ EtcdGrove.errStrCell x m -∗ False) := by
+    intro X msg hX hmsg
+    iintro #HC #HX #Hc
+    ihave #HcX := EtcdGrove.errVarCells_mem hX $$ HC
+    iunfold EtcdGrove.errVarCell at HcX
+    icases HcX with ⟨%y, #Hy, #Hcy⟩
+    icombine HX Hy gives %Heq
+    rw [Hx] at Heq
+    injection Heq with Heq
+    injection Heq with _ Hv
+    have hxy : x = y := go.intoVal_inj (V := Loc) Hv
+    subst hxy
+    iunfold EtcdGrove.errStrCell at Hc Hcy
+    icombine Hc Hcy gives %Hmm
+    exact absurd Hmm (hm msg hmsg)
+  iunfold readErrIs at Hr
+  icases Hr with (%Hn | #Hc | #Hs | #Hl | #Ht)
+  · ipureintro; exact Hn
+  · iunfold context.isCtxErr at Hc
+    icases Hc with (⟨-, %y, %hy, #Hs⟩ | ⟨-, %hv⟩)
+    · rw [Hx] at hy
+      injection hy with hy
+      injection hy with _ Hv
+      have hxy : x = y := go.intoVal_inj (V := Loc) Hv
+      subst hxy
+      iunfold EtcdGrove.errStrCell at Hcell
+      icombine Hcell Hs gives %Hmm
+      exact absurd Hmm (hm _ (by decide))
+    · rw [Hx] at hv
+      injection hv with hv
+      injection hv with hty
+      simp [context.deadlineExceededError.ty] at hty
+  · iexfalso
+    iapply (hvar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped go!"etcdserver: server stopped"
+      (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; simp) (by decide)) $$ HEC Hs Hcell
+  · iexfalso
+    iapply (hvar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged go!"etcdserver: leader changed"
+      (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; simp) (by decide)) $$ HEC Hl Hcell
+  · iexfalso
+    iapply (hvar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout go!"etcdserver: request timed out"
+      (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; simp) (by decide)) $$ HEC Ht Hcell
 
 /-- **The authenticated-user check never refuses for permission**: `authedWhy`'s errors are
 `ErrUserEmpty` and `ErrInvalidAuthToken`, apart from `ErrPermissionDenied` (what excludes 3.6.9's

@@ -27,11 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.MemberList.wp_proof
-    (hReq : EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG))
+    (hReq : EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd r lin dq c g Q
-  wp_start as ⟨#Hq, #Hr, #Hctx, #Hlib, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
+  intro s E ρ γr ctx cd r lin dq c g Q n
+  wp_start as ⟨#Hq, #Hr, #Hlb, #Hctx, #Hlib, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
   ihave #Hau : srvAuthAt s E $$ []
   · iapply (srvAuthAt_of_views s E ρ γr); iframe #
   ihave #Hr' := Hr
@@ -55,9 +55,9 @@ theorem EtcdServer.MemberList.wp_proof
   (try wp_auto)
   cases lin
   · (try wp_auto)
-    wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout, -⟩
+    wp_apply (hReq s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC, -⟩
     · iframe #
-    ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
+    ihave #Hout := authedOut_of_C _ _ _ _ _ $$ HoutC
     iunfold authedOut at Hout
     icases Hout with ⟨#Herr, -, #Htok, -⟩
     (try wp_auto)
@@ -67,6 +67,11 @@ theorem EtcdServer.MemberList.wp_proof
       iframe HRD Hlin Herr
       isplitl [Hrr]
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
+      isplitr
+      · iintro %hne #_
+        iunfold authedOutC at HoutC
+        icases HoutC with ⟨-, #Hw⟩
+        iapply Hw $$ %hne
       iintro %h; cases h
     · (try wp_auto)
       wp_apply (membership.RaftCluster.Members.spec_static hMem vq.cluster) $$ [] as %sl ⟨%ms, Hms⟩
@@ -76,6 +81,8 @@ theorem EtcdServer.MemberList.wp_proof
       iframe HRD Hlin Herr
       isplitl [Hrr]
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
+      isplitr
+      · iintro %hne; exact absurd rfl hne
       iintro %_
       isplitl [Hms]
       · iexists ms; iexact Hms
@@ -95,13 +102,21 @@ theorem EtcdServer.MemberList.wp_proof
       iframe HRD Hlin Herr
       isplitl [Hrr]
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
+      isplitr
+      · iintro %hne #Hav
+        ihave #Hpa : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
+        · iPkgInit
+        ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
+        · iPkgInit
+        ihave %Hn := readErrIs_authErrVarIs _ $$ [$Hpa $Hpe] HrdE Hav
+        exact absurd Hn hne
       iintro %h; cases h
     · (try wp_auto)
       ihave Hri' : (readIndexOk γr c ∗ readServed γr c g) $$ [Hri]
       · iapply Hri; ipureintro; rfl
-      wp_apply (hReq s E ctx cd) $$ [$HRD] as %err2 ⟨HRD, #Hout, -⟩
+      wp_apply (hReq s E ctx cd n) $$ [$HRD] as %err2 ⟨HRD, #HoutC, -⟩
       · iframe #
-      ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
+      ihave #Hout := authedOut_of_C _ _ _ _ _ $$ HoutC
       iunfold authedOut at Hout
       icases Hout with ⟨#Herr2, -, #Htok, -⟩
       (try wp_auto)
@@ -111,6 +126,11 @@ theorem EtcdServer.MemberList.wp_proof
         iframe HRD Hlin Herr2
         isplitl [Hrr]
         · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
+        isplitr
+        · iintro %hne #_
+          iunfold authedOutC at HoutC
+          icases HoutC with ⟨-, #Hw⟩
+          iapply Hw $$ %hne
         iintro %h; cases h
       · (try wp_auto)
         wp_apply (membership.RaftCluster.Members.spec_static hMem vq.cluster) $$ [] as %sl ⟨%ms, Hms⟩
@@ -120,6 +140,8 @@ theorem EtcdServer.MemberList.wp_proof
         iframe HRD Hlin Herr2
         isplitl [Hrr]
         · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
+        isplitr
+        · iintro %hne; exact absurd rfl hne
         iintro %_
         isplitl [Hms]
         · iexists ms; iexact Hms

@@ -31,32 +31,34 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.authMaintenanceServer.HashKV.wp_proof
-    (hG0 : v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG))
+    (hG0 : v3rpc.authMaintenanceServer.isPermitted.specC (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.HashKV.spec (GF := GF) (hG := hG) := by
-  intro p ms aa s E ctx cd r Pin Q
-  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, #Hlib, HRD, HPin, #Hin⟩
+  intro p ms aa s E ctx cd r Pin Q n
+  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD, HPin, #Hin⟩
   ihave #Hams' := Hams
   iunfold v3rpc.amsIs at Hams'
   icases Hams' with ⟨%Hpn, #Hms, #Haaf⟩
   (try wp_auto)
-  wp_apply (hG0 p ms aa s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+  wp_apply (hG0 p ms aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
   · iframe #
+  ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout
   icases Hout with ⟨#Herr, #Htok⟩
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
-    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, -⟩
+    wp_apply (v3rpc.togRPCError_out hTog) $$ [] as %e ⟨%He, -, #Hgo⟩
     · iframe #
       iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
     (try wp_auto)
     iapply HΦ
     iframe HRD
-    iunfold v3rpc.guardOut
-    iright
-    iframe HPin
-    ipureintro; exact ⟨rfl, He⟩
+    iapply (v3rpc.guardOutC_guard Pin Q _ (GoInterface.ok ei) e (fun h => by cases h) He)
+    iframe HPin Hgo
+    iunfold adminOutC at HoutC
+    icases HoutC with ⟨-, #Hw⟩
+    iapply Hw; intro h; cases h
   · (try wp_auto)
     ispecialize Htok $$ %rfl
     icases Htok with ⟨%ai, #Htk⟩
@@ -67,7 +69,7 @@ theorem v3rpc.authMaintenanceServer.HashKV.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HRD
-    iunfold v3rpc.guardOut
+    iunfold v3rpc.guardOutC
     ileft
     iexact HQ
 

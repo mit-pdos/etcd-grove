@@ -32,18 +32,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- `ams.Snapshot(sr, srv)`: `isPermitted(srv.Context())` (the stream's context,
 `streamCtxOk`, names only), then the embedded `maintenanceServer`'s `Snapshot` (names only, the
 guarded contract `guardedSnapOk` with the token `adminRes`); the outcome `guardOut1`: the inner
-call's error, or an error with `Pin` untouched. -/
+call's error, or an error with `Pin` untouched.
+(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
+store's published index: the guard's branch names its error before `togRPCError` and the admin class's reason (`adminWhy`). -/
 abbrev v3rpc.authMaintenanceServer.Snapshot.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sr : Loc) (srv : GoInterface) (Pin : IProp GF)
-    (Q : GoInterface → IProp GF),
+    (Q : GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       E.RD ∗ Pin ∗ v3rpc.streamCtxOk srv ctx ∗
       v3rpc.guardedSnapOk (adminRes E.authMode) Pin E.RD ms sr srv Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Snapshot"))
       (Val #sr)) (Val #srv))
-  {{ (err : GoInterface), RET #err; E.RD ∗ v3rpc.guardOut1 Pin Q err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ v3rpc.guardOut1C Pin Q (adminWhy s E.authMode n (GoInterface.ok ctx)) err }}
 
 end spec
 

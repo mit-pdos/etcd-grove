@@ -32,12 +32,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
-    (hP : v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG))
-    (hR : v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG))
+    (hP : v3rpc.authMaintenanceServer.isPermitted.specC (GF := GF) (hG := hG))
+    (hR : v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Alarm.spec (GF := GF) (hG := hG) := by
-  intro p ms aa s E ctx cd ar act Pin Q
-  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, #Hlib, HRD, HPin, #Hact, #Hin⟩
+  intro p ms aa s E ctx cd ar act Pin Q n
+  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD, HPin, #Hact, #Hin⟩
   ihave #Hams' := Hams
   iunfold v3rpc.amsIs at Hams'
   icases Hams' with ⟨%Hpn, #Hms, #Haaf⟩
@@ -49,24 +49,27 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
   by_cases hact : a = W32 0
   · rw [_root_.decide_eq_true hact]
     (try wp_auto)
-    wp_apply (hR p ms aa s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+    wp_apply (hR p ms aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
     · iframe #
-    ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
+    ihave #Hout := authedOut_of_C _ _ _ _ _ $$ HoutC
     iunfold authedOut at Hout
     icases Hout with ⟨#Herr, -, #Htok, -⟩
     (try wp_auto)
     rcases err with ei | _
     · (try wp_auto)
-      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, -⟩
+      wp_apply (v3rpc.togRPCError_out hTog) $$ [] as %e ⟨%He, -, #Hgo⟩
       · iframe #
         iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
       (try wp_auto)
       iapply HΦ
       iframe HRD
-      iunfold v3rpc.guardOut
-      iright
-      iframe HPin
-      ipureintro; exact ⟨rfl, He⟩
+      iapply (v3rpc.guardOutC_guard Pin Q _ (GoInterface.ok ei) e (fun h => by cases h) He)
+      iframe HPin Hgo
+      unfold v3rpc.alarmWhy
+      simp only [hact, ↓reduceIte]
+      first | (iunfold authedOutC at HoutC) | (iunfold adminOutC at HoutC)
+      icases HoutC with ⟨-, #Hw⟩
+      iapply Hw; intro h; cases h
     · (try wp_auto)
       ispecialize Htok $$ %rfl
       icases Htok with ⟨%ai, #Htk⟩
@@ -79,28 +82,32 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRD
-      iunfold v3rpc.guardOut
+      iunfold v3rpc.guardOutC
       ileft
       iexact HQ
   · rw [_root_.decide_eq_false hact]
     (try wp_auto)
-    wp_apply (hP p ms aa s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+    wp_apply (hP p ms aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
     · iframe #
+    ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
     iunfold adminOut at Hout
     icases Hout with ⟨#Herr, #Htok⟩
     (try wp_auto)
     rcases err with ei | _
     · (try wp_auto)
-      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, -⟩
+      wp_apply (v3rpc.togRPCError_out hTog) $$ [] as %e ⟨%He, -, #Hgo⟩
       · iframe #
         iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
       (try wp_auto)
       iapply HΦ
       iframe HRD
-      iunfold v3rpc.guardOut
-      iright
-      iframe HPin
-      ipureintro; exact ⟨rfl, He⟩
+      iapply (v3rpc.guardOutC_guard Pin Q _ (GoInterface.ok ei) e (fun h => by cases h) He)
+      iframe HPin Hgo
+      unfold v3rpc.alarmWhy
+      simp only [hact, ↓reduceIte]
+      first | (iunfold authedOutC at HoutC) | (iunfold adminOutC at HoutC)
+      icases HoutC with ⟨-, #Hw⟩
+      iapply Hw; intro h; cases h
     · (try wp_auto)
       ispecialize Htok $$ %rfl
       icases Htok with ⟨%ai, #Htk⟩
@@ -113,7 +120,7 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRD
-      iunfold v3rpc.guardOut
+      iunfold v3rpc.guardOutC
       ileft
       iexact HQ
 
