@@ -167,7 +167,7 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   iintro Hb Htf Hk Hv Hm
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    HK, %HAt, Hnms⟩
+    HK, %HAt, Hnms, %Hbd⟩
   icases walTailsRes_close (W := W) walCodec Mr s Ls F dir γ γt _ $$ Htl Htf Hk Hv with
     ⟨%d, %lay, %g, %hp, Hclose⟩
   obtain ⟨hd, hl, hg, htg, hTO⟩ := hp
@@ -209,7 +209,7 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   · ipureintro; exact Hab
   isplitr
   · ipureintro; exact HNm
-  ipureintro; exact HAt
+  ipureintro; exact ⟨HAt, Hbd⟩
 
 /-- **`WalCloseLaw` proved** (see the file header). -/
 theorem walCloseLaw (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
