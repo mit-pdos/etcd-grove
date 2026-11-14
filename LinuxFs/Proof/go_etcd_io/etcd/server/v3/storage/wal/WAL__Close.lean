@@ -99,7 +99,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
   ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt0
   simp only [decide_eq_false hltn]
   (try wp_auto)
-  wp_apply (wp_syncC R jr r w dir j h hD.1) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
+  wp_apply (wp_syncC R jr r w dir j h _ hD.1) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
       Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp Hopen] as %err Hpost
   · iframe Harea
     iunfold walHandleC
@@ -107,7 +107,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Henv Hcrc Hwpk Hopen
     ipureintro; exact ⟨Hen, Hlt, Hpure⟩
-  icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | %Herr)
+  icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | ⟨%Herr, -⟩)
   rotate_left
   · -- the sync failed: returned before the locks
     rcases err with ei | _

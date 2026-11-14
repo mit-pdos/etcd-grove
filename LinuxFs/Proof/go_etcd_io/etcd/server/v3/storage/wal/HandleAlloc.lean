@@ -107,16 +107,18 @@ theorem walHandleP_openW (w : Loc) (dir : GoString) :
   · iexists γ; iframe Hd Hm
   · iexists γ; iframe Hd Hp
 
+variable {hlc : HasLC} [GooseExts] [GooseInterp] [G : GooseGlobalGS hlc GF]
+
 /-- The handles' authority is `walGhost`'s: taking it out and putting it back. -/
 theorem walGhost_handleAuth (s : AbsDiskState) :
     walGhost (W := W) s ⊣⊢ walHandleAuth (W := W) ∗
       (walHandleAuth (W := W) -∗ walGhost (W := W) s) := by
   constructor
   · unfold walGhost
-    iintro ⟨Hs, HP, Hh, %hk⟩
+    iintro ⟨Hs, HP, Hh, %hk, #Hst⟩
     iframe Hh
     iintro Hh
-    iframe Hs HP Hh
+    iframe Hs HP Hh Hst
     ipureintro; exact hk
   · iintro ⟨Hh, Hw⟩
     iapply Hw $$ Hh

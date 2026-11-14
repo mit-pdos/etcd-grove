@@ -60,8 +60,7 @@ theorem create_abortTmp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       osNames (L := hG.goose_localGS) jr (N.diff [tmpName nm]) (DFrac.own (1 : Qp).half)
         (h.restrict jr (N.diff [tmpName nm])) -∗
       tmpDirH jr (tmpName nm) hT -∗
-      osClaims hG.goose_localGS
-        ((cl.filter (fun c => decide (c.1 ≠ tmpName nm))).map (fun c => (c.2, DFrac.own 1))) -∗
+      areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) -∗
       walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walUnlockedTok (W := W) ∗
         walAreaRes (L := hG.goose_localGS) jr := by

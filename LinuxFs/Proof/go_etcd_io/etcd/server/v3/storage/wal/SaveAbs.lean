@@ -165,8 +165,8 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   obtain ⟨gl, hgl⟩ : ∃ g, lay.segs.getLast? = some g :=
     ⟨_, List.getLast?_eq_some_getLast h.nonempty⟩
   have hW := h.lastWin gl hgl
-  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne, hcp⟩ := h
-  refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne, hcp⟩
+  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne, hcp, hsn⟩ := h
+  refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne, hcp, hsn⟩
   · rw [histM_snoc]; exact walCutPos_snoc _ (hcs.1 b hb)
   · intro k g hk
     obtain ⟨sq, ix, hnm, hix, hb⟩ := hnb k g hk
@@ -287,7 +287,13 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have hlast' : (syncLay lay pre g0).segs.getLast? = some (syncTail g0) := by simp [syncLay]
   refine { names := ?_, cuts := ?_, nameBound := ?_, cut := h.cut, metas := ?_, intact := ?_,
            last := ?_, synced := ?_, lastSynced := ?_, fit := h.fit, tailStop := h.tailStop,
-           nonempty := ?_, cutPos := h.cutPos }
+           nonempty := ?_, cutPos := h.cutPos, seqName := fun k g hk => by
+             rw [syncLay_getElem? hs] at hk
+             obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hk
+             obtain ⟨ix, hn⟩ := h.seqName k g1 hg1
+             refine ⟨ix, ?_⟩
+             show _ = walFileName (lay.first + k) ix
+             split <;> simp [syncTail, hn] }
   · rw [hmapI, hmapN]; exact h.names
   · exact ⟨h.cuts.1, h.cuts.2.1, by rw [hlen]; exact h.cuts.2.2⟩
   · intro k g hk

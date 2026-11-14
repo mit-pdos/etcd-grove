@@ -904,6 +904,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   structurally; the spec needs only that `Errorf` returns a non-nil error).
 - **Status.** Not started.
 
+### Specs: `fmt`'s `ArgWf` for `[]string` and `fs.FileMode` arguments (2026-11-14, `wal-leaf5`)
+
+- **Missing.** Perennial's `fmt.Errorf` spec admits only basic arguments and arguments whose
+  `Error()`/`String()` has a spec: etcd's `fileutil.CreateDirAll` formats a `[]string` (`%q`) and
+  `CheckDirPermission` two `fs.FileMode`s (`%q`, `String()`, untranslated).
+- **Workaround here.** `LinuxFs/Spec/fmt/ErrorfStrs.lean` (`fmt.ErrorfStrs.spec`), proved over the model
+  (`LinuxFs/Proof/fmt/ErrorfStrs.lean`), the faithfulness argued in its header (as `fmt.ErrorfErrs`).
+- **Proposed.** `ArgWf` cases for a slice of basic values (printed structurally, its contents read: a
+  fraction held) and for a type whose `String()` is translated and specified (`FileMode.String`).
+- **Status.** Not started.
+
 ### Tactics: `wp_load` misses a field of a whole-struct points-to with a generic-struct field (2026-10-27, client-go listers)
 
 - **Missing.** With `s ↦{dq} (⟨ri⟩ : daemonSetLister)` in context (a struct whose one field is the
@@ -2550,3 +2561,15 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   landed), pending user review: goose translates all six unchanged (both assertions, the loop); full Perennial
   `lake build` passes. Regenerated with go1.26.10, keeping only `io`'s output (the other packages' regeneration differs
   from the committed output under every local toolchain).
+
+## 2026-11-14: `Sprintf`'s `%v` of a string (the WAL's `cleanupWAL`, branch `wal-create24`)
+
+- **Missing.** Perennial's `Sprintf` model (`SprintfOut`, `Perennial/Proof/fmt/Base.lean`) formats `%s` of a string
+  and `%v` of an integer; `%v` of a string falls to `other` (the rest of the output arbitrary). Go prints `%v` of a
+  string as `%s` (`fmt/print.go`, `printArg`'s `case string`, `fmtString`'s `case 'v'` without `#`). The WAL's
+  `cleanupWAL` names its target `Sprintf("%s.broken.%v", w.dir, time.Now().Format(...))`.
+- **Workaround here.** `fmt.SprintfBroken.spec` (`LinuxFs/Spec/fmt/SprintfBroken.lean`), a hypothesis of
+  `cleanupWAL`'s proof, pending the user; no axiom.
+- **Proposed.** `SimpleDirective`/`SprintfOut`: a constructor for `%v` of an interface holding a string, giving the
+  string, as `str` does for `%s` (and the trusted `Sprintf` model's verb table to match). General: every `%v` of a
+  string (error messages, names).

@@ -1146,6 +1146,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   from before a crash (the crash rebuild's file ownership: the deep part). Alternatively restrict `specTmp` to a
   directory with no `.touch` (`Create` cannot show it).
 - **Decision.** Open: the coordinator's call (the change reaches `walAreaRes` and the crash rebuild).
+  **Adopted** (the coordinator, decided; made on `wal-leaf5`), in its "only `.touch`'s" form: `tmpSub`'s
+  directory arm holds `WalFs.tmpEnt (hJ.cur !! .touch)` (nothing, or the file whole, `trFile i False`;
+  never a directory). Only `.touch`'s file, because it is the one a callee changes (the probe's
+  truncation); the other files of a temporary directory are only unlinked (`RemoveAll.specDirS`, which
+  takes no file), and holding them all whole would make `Create`'s unminting give back the new WAL's
+  first segment as a `trFile` (`walCreateP` holds its `OsMeta` and bytes but not `trFile`'s facts:
+  `ZfGe`, `cut = none` after the writes), for no consumer. Producers: `walAreaRes` (`areaCls`: each
+  tagged claim with `tmpClTouch`, the `.touch` of a whole claim under a WAL name's `nm.tmp`;
+  `area_takeTmp`/`area_give`), `RemoveAll`'s wrapper (`rmAllOut_tmpDirH`: the file if `.touch` is still
+  there), `TouchDirAll`'s error arms (`IsDirWriteable.spec`'s error post now gives the probe's file back,
+  over `os.WriteFile.specEmptyS`'s `crTr False o`), `Create`'s exits (the directory has no `.touch`:
+  `segClaim_back`, `create_Jback` keep the fact), and at boot the crash's `osFileStart`
+  (`osFileStart_trFile`, `Crash.lean`; the area's establishment is C6's).
 
 ## 2026-11-14: `decoder.Decode.spec`/`proto.UnmarshalWalRecord.spec` (internal, the part's) -- an empty metadata read back as `nil`
 
@@ -1234,6 +1247,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   sequence `first + k`, the invariant holding `⧖ |lay.cuts|` per WAL (deposited by `cut` after a counted step), or `⧖
   |d.H|` (deposited at `Save`'s commit; a crash keeps a prefix). No statement of `walDirH` changes. `ReadAll`'s `hsq`
   stays a marked `sorry` until it is made.
+  **2026-11-14 (`wal-readall28`): made, the alternative** (`⧖` of every history's length in the invariant's ghost
+  state, `walStepsLb`; `WalAbsD.seqName`; `notes/bounds-plan.md`, "Made"). No client-visible statement changed; the
+  `sorry` is gone.
 
 ## 2026-11-14: the resize supplies' `P` (internal, the part's) -- a growth's supply cannot bound the crash size
 
@@ -1283,6 +1299,39 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
   path only.
 
+## 2026-11-14: `wal.WAL.sync.specC` (internal, the part's) -- the error arm keeps the lock token; `WAL.Close.specU`
+
+- **Spec.** `WAL.sync.specC`'s error arm `⌜err ≠ nil⌝` (the handle and the lock token lost).
+- **Defect.** `Create`'s cleanup (`cleanupWAL` after a committed rename whose parent fsync failed) runs `w.Close()`;
+  when its `sync` fails, `Close` returns before unlocking, and `Create` must still merge `nm.tmp`'s claim back to
+  the area (`create_areaBack`, which needs a token excluding the free one): `walLockedTok`, which the failed
+  `sync` still holds (`walOpenW`: its flush failure leaves it, the fdatasync returns the pending-cut flag).
+- **Evidence.** `cleanupWAL`'s design (W4 log, twenty-fourth session, (b)); `wal-create23`.
+- **Change (made, `wal-create23`).** `sync.wp_core`'s error arm returns `walOpenW w dir`; `specC`'s error arm
+  `⌜err ≠ nil⌝ ∗ walLockedTok` (`walOpenW_lockedTok`); `sync.spec`/`specCut` unchanged (they drop it). New:
+  `WAL.Close.specU` (the cleanup's `Close`: over `walOpenWFU`, no update, the commit-free put-back
+  `walCloseLawU`), post `(walUnlockedTok ∗ osCallPerm 1) ∨ (⌜err ≠ nil⌝ ∗ walLockedTok)` (the left arm whatever
+  `err`: the directory's close failed after everything else).
+- *Obligation, not made*: `Create`'s deferred `f.Close()` after the cleanup needs the segment's lock file: closed
+  (`os.ownFile f (-1)`) when `Close` succeeded, open when its `sync` failed. Both need the handle's tail lock to be
+  `Create`'s `f` (`walOpenWFU` hides it: a parameter `lt`, from a copy of `walHandleIn` with `lt` free), and the
+  failed arm needs the tail file back from `sync`'s error arms (through `wp_tailWriteAtW`, `wp_tailWriteW`,
+  `wal.tailWriterW`'s `B`, `flush`), and `renameWALPost`'s arm 2 must return `walLockLeft f …` (the retry's
+  `w.Close()` closed it, or its `sync` failed and left it open).
+- **Decision.** Made (internal).
+
+## 2026-11-14: `time.Time.Format.spec` (trusted, an axiom) -- its result unconstrained; `cleanupWAL`'s rename
+
+- **Spec.** `time.Time.Format.spec` (`Spec/time/Time__Format.lean`, axiom `Proof/time/Time__Format.lean`): post `True`.
+- **Defect.** `cleanupWAL` renames the WAL to `fmt.Sprintf("%s.broken.%v", w.dir, time.Now().Format("20060102.150405.999999"))`;
+  with nothing known of the timestamp the target may hold `/` (a path under some other directory) or be any length,
+  and no `os.Rename` spec (nor ownership) covers an arbitrary target.
+- **Evidence.** `cleanupWAL`'s proof (`wal-create23`; W4 log, twenty-fifth session).
+- **Proposed change.** A spec of `Format` for that layout: the result's characters are digits and `.`, its length at
+  most 22 (Go's layout: `yyyymmdd.hhmmss` and a fraction of up to six digits, trailing zeros and a bare `.` dropped).
+  Until then `cleanupWAL`'s proof takes it as a callee hypothesis. Separately an `os.Rename` spec over `fsExt` for a
+  target name past 255 bytes (`ENAMETOOLONG`, nothing changed).
+- **Decision.** Pending the user (a trust-boundary change).
 ## 2026-11-14: `wal.ValidSnapshotEntries.spec` (the part's, W8) -- restated over `fsExt`
 
 - **Spec.** The main tree's axiom `Spec/.../wal/ValidSnapshotEntries.lean` (`walUnlockedTok` framed, the AU over

@@ -177,6 +177,18 @@ theorem getElem?_tail_cases {pre : List SegG} {g g' : SegG} {k : Nat}
     · cases h; exact ⟨by omega, rfl⟩
     · cases h
 
+/-- `WalAbsD.seqName` with the tail replaced by one of the same name. -/
+theorem seqName_tail {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
+    (h : ∀ k (g : SegG), lay.segs[k]? = some g → ∃ ix : Nat, g.name = walFileName (lay.first + k) ix)
+    (hs : lay.segs = pre ++ [g0]) (hname : g.name = g0.name) :
+    ∀ k (g' : SegG), (tailLay lay pre g wr').segs[k]? = some g' →
+      ∃ ix : Nat, g'.name = walFileName ((tailLay lay pre g wr').first + k) ix := by
+  intro k g' hk
+  rcases getElem?_tail_cases hk with ⟨hk1, hk2⟩ | ⟨rfl, rfl⟩
+  · exact h k g' (by rw [hs, List.getElem?_append_left hk1]; exact hk2)
+  · obtain ⟨ix, h1⟩ := h pre.length g0 (by rw [hs]; simp)
+    exact ⟨ix, by rw [hname]; exact h1⟩
+
 /-- **The static relation with the tail and the write position changed** (see the file header). -/
 theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 g : SegG} {wr' : Nat}
@@ -195,7 +207,7 @@ theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   obtain ⟨-, -, hl0, -, -, -, hzS, hzZ⟩ := (habs.last g0 hg0).1 hex0
   refine ⟨?_, ?_, ?_, habs.cut, ?_, ?_, ?_, habs.synced, habs.lastSynced, habs.fit, habs.tailStop,
-    by simp [tailLay], by simpa [tailLay] using habs.cutPos⟩
+    by simp [tailLay], by simpa [tailLay] using habs.cutPos, seqName_tail habs.seqName hs hname⟩
   · have h1 := habs.names.1; have h2 := habs.names.2
     rw [hs] at h1 h2
     simp only [tailLay, List.map_append, List.map_cons, List.map_nil] at h1 h2 ⊢

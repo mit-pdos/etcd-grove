@@ -68,6 +68,18 @@ def walCrashWal (W W' : WalGS GF) : IProp GF :=
   iprop(∃ s s' : AbsDiskState, ⌜walStCrash s s'⌝ ∗ walGhost (W := W) s ∗
     walOwn (W := W') s'.wal ∗ walPast (W := W') s')
 
+/-- **A crash keeps the WALs' step bound**: each history becomes an image of it, no longer
+(`walImg_length_le`); no WAL appears. -/
+theorem walsStepped_crash {s s' : AbsDiskState} {n : Nat} (hc : walStCrash s s')
+    (h : WalsStepped s n) : WalsStepped s' n := by
+  intro dir d' hd'
+  cases hd : s.wal !! dir with
+  | none => rw [hc.2.2.2 dir hd] at hd'; cases hd'
+  | some d =>
+    rcases hc.2.2.1 dir d hd with ⟨-, h0⟩ | ⟨I, k, hI, -, h1⟩
+    · rw [h0] at hd'; cases hd'
+    · rw [h1] at hd'; cases hd'; exact Nat.le_trans (walImg_length_le hI) (h dir d hd)
+
 theorem walsOk_nodup {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
     ((segsAll Ls).map (·.ino)).Nodup := h.2.2.1
@@ -105,6 +117,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, -, -, %HAt, -, %Hbd⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
+  icases walGhost_steps (W := W) s $$ Hg with ⟨Hg, #Hst⟩
   -- the tree: what the claims allow
   imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
     hE' $$ Hsh Hcr Hcl Hcm with ⟨%Hreg, Hcr, -⟩
@@ -122,7 +135,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk (fun _ _ hl => HAt.ne hl) Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
-  imod walGhost_init hPre s' hk' with
+  ihave #Hst' := walStepsLb_mono s s' (fun _ hn => walsStepped_crash hcrash hn) $$ Hst
+  imod walGhost_init hPre s' hk' $$ Hst' with
     ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo', Hnm', Hnw', Hnwf', Hlt'⟩
   imodintro
   iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
@@ -219,8 +233,8 @@ theorem walAbsD_restrictTmps {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay 
     {e : Ents} (h : WalAbsD C Mr d lay e) : WalAbsD C Mr d lay (restrictN (.except walTmps) e) := by
   have hw : walInos e = walInos (restrictN (.except walTmps) e) :=
     walInos_congr (fun b hb => (restrictN_lookup _ _ _ (walTmps_mem_wal hb)).symm)
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
-  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := h
+  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩
 
 /-- **What the invariant says of the WALs, at the start** (pure): from the start's static relation,
 claims with nothing logged on each WAL's area names (`harea`) and wholly on every directory at such
@@ -888,6 +902,24 @@ theorem walArea_crash_keep (r : GoString) :
   isplitl [HG HM']
   · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
   · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
+
+/-- **A file a crash kept is held whole once taken** (`osFileStart`, as a generation's `fileStart`
+gives it: `initMeta`, its bytes durable): `trFile i False`. What the boot program gives of a leftover
+file the WAL's temporary names hold: a pipeline's `N.tmp` (`walTmpsRes`'s `tmpEnt`) and a temporary
+directory's `.touch` (`walAreaRes`'s `tmpClTouch`, `wal-leaf5`: the area's establishment, C6, takes each
+such file from the crash's `crashRest`). -/
+theorem osFileStart_trFile (L : GooseLocalGS GF) (i : Ino) (f : Fs.OsFile) :
+    osFileStart (L := L) i f ⊢ trFile (hG := ⟨G, L⟩) i False := by
+  unfold osFileStart trFile
+  iintro ⟨Hm, Hb⟩
+  iexists initMeta f, f.contents.map durB
+  iframe Hm Hb
+  isplitl []
+  · unfold mcellsAny
+    exact BigSepM.bigSepM_empty.2
+  ipureintro
+  refine ⟨by simp [initMeta, contents_length], fun h => h.elim, rfl, rfl, Nat.le_refl _,
+    ⟨pageEnd f.size, rfl, le_pageEnd _⟩, fun h => h.elim⟩
 
 end crash
 

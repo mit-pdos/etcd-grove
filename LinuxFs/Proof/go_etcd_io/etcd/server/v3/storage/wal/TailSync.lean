@@ -247,7 +247,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     syncLay_any hC HW hd hl hs htail hZ hzf Hdko habs
   -- the ghost state at the synced state
   unfold walGhost
-  icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, Hh, %Hk0⟩
+  icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, Hh, %Hk0, #Hst⟩
   ihave HP := absPast_grow _ s (walSyncS s dir d) (absLe_sync hd hmH) $$ HP
   imod absPast_snap _ (walSyncS s dir d) $$ HP with ⟨HP, Hpast⟩
   imodintro
@@ -258,7 +258,9 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     · iframe HP Hh
       isplitl [HGs]
       · iexists G0; iframe HGs; ipureintro; exact walMapLe_sync hd hmH HG0
-      · ipureintro; exact walKeysInArea_sync hd Hk0
+      · isplitr
+        · ipureintro; exact walKeysInArea_sync hd Hk0
+        · iapply walStepsLb_mono _ _ (fun n hn => WalsStepped.insert (d' := { d with m := d.H.length }) hn rfl (hn dir d hd)) $$ Hst
     isplitr
     · ipureintro; exact Har
     isplitl [Hpre Hseg Hrest]

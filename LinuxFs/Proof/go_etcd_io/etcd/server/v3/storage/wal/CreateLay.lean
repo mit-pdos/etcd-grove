@@ -74,7 +74,16 @@ theorem createLay_abs (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk
   refine
     { names := ?_, cuts := ?_, nameBound := ?_, cut := ?_, metas := ?_, intact := ?_,
       last := ?_, synced := ?_, lastSynced := ?_, fit := ?_, tailStop := ?_, nonempty := ?_,
-      cutPos := ?_ }
+      cutPos := ?_, seqName := ?_ }
+  rotate_right
+  · intro k g' hk
+    simp only [createLay] at hk ⊢
+    cases k with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hk
+      subst hk
+      exact ⟨0, hname⟩
+    | succ k => simp at hk
   · simp [createLay, hents]
   · simp [createLay]
   · intro k g' hk
