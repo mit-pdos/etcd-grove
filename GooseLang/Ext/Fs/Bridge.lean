@@ -49,7 +49,7 @@ since the last sync** (below the crash's size: past it, the file of a crash hold
 theorem crash_byte {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat}
     (hc : CrashFile st i f f') (hb : b < f'.size) :
     (∃ s, (f'.cache b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ f'.cache b = 0) := by
-  obtain ⟨sz, img, -, hcand, rfl⟩ := hc
+  obtain ⟨sz, img, -, -, hcand, rfl⟩ := hc
   simp only [OsFile.ofDisk] at hb ⊢
   rw [diskByte_of_lt hb]; exact hcand b
 
@@ -67,7 +67,12 @@ sync, or the target of the change in flight. -/
 theorem crash_size {st : OsState} {i : Ino} {f f' : OsFile} (hc : CrashFile st i f f') :
     (f.sizeLo ≤ f'.size ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ f'.size) ∧
     (f'.size ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ f'.size ≤ c.target) := by
-  obtain ⟨sz, img, hsz, -, rfl⟩ := hc; exact hsz
+  obtain ⟨sz, img, hsz, -, -, rfl⟩ := hc; exact hsz
+
+/-- **A crash leaves no file larger than `maxBytes`** (the model's bound, `Impl.lean`). -/
+theorem crash_size_max {st : OsState} {i : Ino} {f f' : OsFile} (hc : CrashFile st i f f') :
+    f'.size ≤ maxBytes := by
+  obtain ⟨sz, img, -, hm, -, rfl⟩ := hc; exact hm
 
 /-! ## The file effects -/
 

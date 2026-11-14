@@ -149,7 +149,7 @@ theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
 /-- `OsWf` after the file `i` is replaced by `f'` (and the stamp perhaps advanced): the new file's
 sizes in order and its stamps at most the new one. -/
 theorem osWf_setFile {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
-    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi) (n : Nat)
+    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi ∧ f'.sizeHi ≤ maxBytes) (n : Nat)
     (hn : st.fs.stamp ≤ n) (hst : ∀ b p, p ∈ f'.cand b → p.2 ≤ n) (p : ProcState)
     (hp : p.fds = st.proc.fds ∧ p.maps = st.proc.maps)
     (hinfl : ∀ t c, p.inflight !! t = some c → ∃ c', st.proc.inflight !! t = some c' ∧ c'.ino = c.ino)
@@ -183,7 +183,7 @@ theorem osWf_setFile {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
 
 /-- `osWf_setFile` for a step that leaves the process alone and the stamp as it is. -/
 theorem osWf_setFile' {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
-    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi)
+    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi ∧ f'.sizeHi ≤ maxBytes)
     (hst : ∀ b p, p ∈ f'.cand b → p.2 ≤ st.fs.stamp) : OsWf (st.setFile i f') :=
   osWf_setFile hwf hf hsz st.fs.stamp (Nat.le_refl _) hst st.proc ⟨rfl, rfl⟩
     (fun t c h => ⟨c, h, rfl⟩) hwf.infl_one

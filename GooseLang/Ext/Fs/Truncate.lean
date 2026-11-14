@@ -456,6 +456,7 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
     (hland : (max m.size tg ≤ e ∧ e = rsHi tr m.size tg ∧ sz' = tg) ∨
       (m.size ≤ tg ∧ m.size ≤ e ∧ e ≤ tg ∧ sz' = e))
     (htr : tr = true → rsHi tr m.size tg ≤ e) (hkeep : keep = true → m.cut = none)
+    (hmax : sz' ≤ maxBytes)
     (Hr : HeapRendered st ((st.doneInflight t).setFile p (f.land c e sz')) h h')
     (Hfr : MapsFresh st ((st.doneInflight t).setFile p (f.land c e sz')) h) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
@@ -818,7 +819,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
     (hF : RsFacts st Γb Γm Γt t tr p tg m xs n c f) (e sz' : Nat)
     (hland : (max m.size tg ≤ e ∧ e = rsHi tr m.size tg ∧ sz' = tg) ∨
       (m.size ≤ tg ∧ m.size ≤ e ∧ e ≤ tg ∧ sz' = e))
-    (htr : tr = true → rsHi tr m.size tg ≤ e)
+    (htr : tr = true → rsHi tr m.size tg ≤ e) (hmax : sz' ≤ maxBytes)
     (Hr : HeapRendered st ((st.doneInflight t).setFile p (f.land c e sz')) h h')
     (Hfr : MapsFresh st ((st.doneInflight t).setFile p (f.land c e sz')) h) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
@@ -831,7 +832,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       (∃ Γb' Γm' Γf' Γt', osWorld (L := L) ((st.doneInflight t).setFile p (f.land c e sz'))
         Γb' Γm' Γf' Γt' h') ∗ rsDone (L := L) tr p tg sz' m n := by
   rw [← rsDoneK_false (xs := xs)]
-  exact resize_done_worldK false hwf hcoh hF e sz' hland htr (fun h => by cases h) Hr Hfr
+  exact resize_done_worldK false hwf hcoh hF e sz' hland htr (fun h => by cases h) hmax Hr Hfr
 
 /-- **A resize that did not land**: the change done, the file as its first step left it. -/
 theorem resize_undone_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)}
@@ -1023,8 +1024,8 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
     obtain ⟨m0, hm0⟩ := Hag l x hx
     rw [hm0]; rfl
-  have hwf1 : OsWf ((st.doneInflight t).setFile c.ino (f.land c c.hi c.target)) :=
-    osWf_setFile' (osWf_done (t := t) hwf) hF.hf
+  have hwf1 : c.target ≤ maxBytes → OsWf ((st.doneInflight t).setFile c.ino (f.land c c.hi c.target)) :=
+    fun htm => osWf_setFile' (osWf_done (t := t) hwf) hF.hf
       (by have := hwf.sizes c.ino f hF.hf; simp only [OsFile.land]; omega)
       (fun b p0 hp0 => hwf.stamps c.ino f b p0 hF.hf hp0)
   have hland' : (max m.size tg ≤ c.hi ∧ c.hi = rsHi true m.size tg ∧ tg = tg) ∨
@@ -1033,9 +1034,13 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
   imodintro
   isplitr
   · ipureintro
-    exact ⟨_, renderHeap ((st.doneInflight t).setFile c.ino (f.land c c.hi c.target)) h, _,
-      ⟨t, c, tg, f, rfl, hF.hct, hF.hckind, hF.hf, .inl ⟨rfl, rfl⟩⟩,
-      mapsFresh_same rfl, heapRendered_render hwf1 rfl Hh⟩
+    by_cases htm : c.target ≤ maxBytes
+    · exact ⟨_, renderHeap ((st.doneInflight t).setFile c.ino (f.land c c.hi c.target)) h, _,
+        ⟨t, c, tg, f, rfl, hF.hct, hF.hckind, hF.hf, .inl ⟨htm, rfl, rfl⟩⟩,
+        mapsFresh_same rfl, heapRendered_render (hwf1 htm) rfl Hh⟩
+    · exact ⟨_, renderHeap (st.doneInflight t) h, _,
+        ⟨t, c, tg, f, rfl, hF.hct, hF.hckind, hF.hf, .inr ⟨27, by decide, rfl, .inl rfl⟩⟩,
+        mapsFresh_same rfl, heapRendered_render (osWf_done hwf) rfl Hh⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -1046,9 +1051,9 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
   rw [hF.hct, Option.some.injEq] at hinfl; subst hinfl
   rw [hF.hckind] at hkind'; simp only [rsKind, if_true] at hkind'; injection hkind' with ho; subst ho
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
-  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | rfl⟩
-  · rw [hF.hctg] at Hr Hfr ⊢
-    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) hkeep Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+  rcases hres with ⟨htm, rfl, rfl⟩ | ⟨e, he, rfl, rfl | ⟨htm, rfl⟩⟩
+  · rw [hF.hctg] at Hr Hfr htm ⊢
+    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -1064,8 +1069,8 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
     · iapply (osWorld_unfold (L := L)).1 $$ Hw
     iapply wp_value'
     iapply HΦ; iright; iframe; ipureintro; exact he
-  · rw [hF.hctg] at Hr Hfr ⊢
-    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) hkeep Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+  · rw [hF.hctg] at Hr Hfr htm ⊢
+    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'

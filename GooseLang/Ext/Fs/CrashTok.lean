@@ -374,7 +374,7 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
     icases Hlh with ⟨Has, -⟩
     obtain ⟨hinit, hroots, hcr, hnamed⟩ := osCrash_rel htw.1 htw.2 hc
     have hdisk : ∀ i f, st'.fs.files !! i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
-      fun i f hf => (hinit.2.2.2.2.2.2.1 i f hf).2
+      fun i f hf => let ⟨img, sz, _, h⟩ := (hinit.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, h⟩
     imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
     unfold osStart osStartF treeStart bytesMap metaMap
     icases Hst with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
@@ -400,7 +400,7 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
     exact fun c hcm => osCrash_lb htw.2 hc c hcm
   · obtain ⟨hinit, hroots, hnamed, hS⟩ := osCrash_relS htw.1 htw.2 hc
     have hdisk : ∀ i f, st'.fs.files !! i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
-      fun i f hf => (hinit.2.2.2.2.2.2.1 i f hf).2
+      fun i f hf => let ⟨img, sz, _, h⟩ := (hinit.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, h⟩
     imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
     unfold osStart osStartF treeStart bytesMap metaMap
     icases Hst with ⟨⟨Hb, Hm, Hv⟩, Hd⟩

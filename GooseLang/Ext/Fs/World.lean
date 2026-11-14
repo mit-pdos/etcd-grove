@@ -327,7 +327,7 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
     obtain ⟨_, _, _, d, f, t, -, -, -, -, -, hf, -, -, -, h1, -⟩ := h
     rw [h1]; exact (treeFrame_stampFile _ _ _ f hf).trans (treeFrame_addInflight _ _ _)
   · -- PWriteFinish
-    obtain ⟨t, c, off, data, f, k, e, -, -, -, hf, -, -, -, h1, -⟩ := h
+    obtain ⟨t, c, off, data, f, k, e, -, -, -, hf, -, -, -, -, h1, -⟩ := h
     rw [h1]; exact (treeFrame_doneInflight st t).trans (treeFrame_setFile _ _ _ f hf)
   · -- Fstat
     obtain ⟨_, _, _, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
@@ -338,7 +338,7 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
     obtain ⟨t, c, sz, f, -, -, -, hf, hres⟩ := h
     have h0 := treeFrame_doneInflight st t
     have h1 := h0.trans (treeFrame_setFile _ c.ino (f.land c c.hi c.target) f hf)
-    rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, rfl | rfl⟩
+    rcases hres with ⟨-, rfl, -⟩ | ⟨-, -, -, rfl | ⟨-, rfl⟩⟩
     · exact h1
     · exact h0
     · exact h1
@@ -370,7 +370,7 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
   · -- FallocFinish
     obtain ⟨t, c, sz, f, -, -, -, hf, hres⟩ := h
     have h0 := treeFrame_doneInflight st t
-    rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, rfl | ⟨w, -, -, rfl⟩⟩
+    rcases hres with ⟨-, rfl, -⟩ | ⟨-, -, -, rfl | ⟨-, w, -, -, rfl⟩⟩
     · exact h0.trans (treeFrame_setFile _ _ _ f hf)
     · exact h0
     · exact h0.trans (treeFrame_setFile _ _ _ f hf)
