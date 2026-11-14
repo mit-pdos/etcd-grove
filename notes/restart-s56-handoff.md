@@ -48,7 +48,73 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here
+## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
+
+81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze
+package §11.6): `bootOkR` now has `bv.lg' = cfg.Logger'` in `%Hraft`, `"Hlate" ∷ mvcc.api.mvccWReg d.gx`
+and the last row `"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')`, all `bootOk`'s.
+**The skeleton `E/NewServerR.lean` is removed from the tree** so that no `sorry` lands: restore it first,
+`git show c081768592:Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean >
+Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean` (statement unchanged; body `sorry`). Then
+follow "B2 plan from the reading" below; with the three rows the boot section has what it needs from the
+contract (`Hrlg` → `Hrzl` as in G; `Hlate` straight to `boot_storageR`; `Hbfile` for `srvSnapRes`).
+Do not land while the file has a `sorry` (tcb --check).
+
+## B2 blocked on `bootOkR` (2026-11-14, the B2 agent; resolved above)
+
+Reading `wp_proofG` against `bootOkR` before any Lean (no edit to `E/NewServerR.lean`, still the skeleton
+`c081768592`): **three rows the restart proof needs are missing from the restart contract's `bootOkR`**
+(trusted text, `E/InvRestart.lean:404`). STOP for 81 (questions.md, "B2: bootOkR gaps").
+1. `%Hraft` lacks `bv.lg' = cfg.Logger'` (`bootOk`'s, premise-fixes-6). `NodeStartSpecR` takes
+   `#Hlgz : zapLoggerOk bv.lg'` (`newRaftNode` logs through `b.lg`); `rnRestartCfg` gives only
+   `bv.lg' ≠ null`, so no proof can give it. Go: `bootstrapRaftFromWAL` sets `lg: cfg.Logger`
+   (`server/etcdserver/bootstrap.go`, as `bootstrapRaftFromCluster`).
+2. No `"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')` (`bootOk`'s last row). specR's
+   post needs it: `srvBuiltR` → `HBr` (`srvBuiltRestartR`) → `srvSnapOwn` → `srvSnapRes`'s last conjunct,
+   at the backend `bootstrap` just opened (`d.γB` is fresh: the image cannot give it). Go: both paths
+   open the backend in the shared `bootstrapBackend(cfg, haveWAL)` at `cfg.BackendPath()`.
+3. `"Hlate" ∷ mvcc.lateReg d.gx`, where `boot_storageR` (mvcc's `etcdStorage_open.law`) takes
+   `mvcc.api.mvccWReg d.gx` (sealed `@[no_expose]`, by definition `lateReg`). Same meaning; either restate
+   the row in `bootOk`'s form or add an mvcc API law `lateReg gx ⊢ mvccWReg gx` (EtcdBackend.lean).
+Recommended: one restatement of `bootOkR` with all three in `bootOk`'s form (strengthens a premise of the
+unlinked `specR` only; no axiom; tcb count unchanged); then B2 proceeds.
+
+**B2 plan from the reading (for after the fix).** Write `wp_proofR` as a copy of `wp_proofG`'s body
+(`NewServer.lean:389-2682`) with `on`/`cmp` replaced by `false` (perl, not after `.`/before ` :=`: `.on γa`,
+`cmp :=`, `.cmp` are fields/constructors), the image binder `M` named `Mr` (the proof names an auth mode
+`M`), and the private helpers (`newServer_cmp_peek`, `rep_join`, `rep_cons1`, `mvccReaders_rep`,
+`rep_cast`) copied. Boot section (418-546 of G) replaced:
+- the image: `iunfold srvDiskImageAt at Himg`; `wal.stopImage_elim` (σ.b ≤ i ≤ commit, `StorageHolds`,
+  `walSnapCert`, a committed log), re-intro for `wal.restartOk_start`; `HρRaft`, `restartNames`
+  (`ρ.rd.raft = ρo.rd.raft`) give `pre = []`, `ai0 = 0`, `uint i = |A|`;
+- the contract (`HbootR` at `σ i A D Mr`): antecedent from the image, `Hbco`/`Hfnc`/`Hdwd`/`Hbwb`,
+  `Hdisk` (`dbOpensOk`, `walSaveOk`), `restart_clusterVerLogOk`; **clause (G)** (peer URLs at `A` the boot
+  log's) is P5's phase-2 RestConf invariant (~250 lines, not written); the existential at `ρo.rd.kv`
+  (`mvccImage` is persistent: keep it for `boot_storageR`);
+- the WAL: `wal.restartOk_start` at `l₀ = srvLE ⟨γ,[],0⟩ (A.take σ.b)` (committed: from `srvRLogLb`'s
+  `isCommittedLogLb`, prefix as in `NodeStart.lean:1147`);
+- the node: `raftNode_of_RestartNode` at `ctxs = []` (`pv = []`), `cs` from `Hrest`, `confStateIs cs
+  (simple γ.cfg)` from the image's `∀ cs, v3ConfStateIs D cs → confStateIs cs mb` and `mb = simple γ.cfg`
+  (`srv_confAt_simple_ind`, SrvRaftLog.lean:1082, and `confAt_agree`), F3 by `walReadFacts_F3`,
+  `restart_cs_bound`, `restart_idx`;
+- the store: `boot_storageR` at `kvModel ρo.rd.kv A`, `crevOf`, `u` (`u = false` at `cmp = false`: a
+  lemma from `imageStOk`/the log having no compaction, to find), `mvcc.api.New.spec` at
+  `stAt (kvModel A) crev`, `Ls = Lr` (the lease bucket's ids), its item premise from `LogNoLease
+  (kvModel A)` (the KV invariant's `plainLogM`, as `SnapApplyWalk.lean:599-608`);
+- the lessor: `NewLessor.spec` at the image's `lease` bucket records (`recs`, `reqOf` from the image),
+  `Lr`; its `lessorAt γl 0 (recMap …)` is specR's `srvInvAt` snapshot;
+- rest buckets: G's `hDl`/`HDr`/`restBootBk_of_fresh` (1096) replaced by `imageRestAt`'s buckets;
+- the snapshot directory (G 1230-1261): the image's `inv snapDirN …` via `snapDirInv_ss_congr` and
+  `Hssp`, its counter `c ≤ i + 1` for `srvSnapOwn` at `0 + W64 |A|`;
+- the post: `srvBuiltR` (= `srvBuiltRC .off`) directly, `HBr` from P3's rows
+  (`/shared/tmp/restart-s56/p3-rows.md`: `applyBuiltR` at `A`, `srvRest`'s leased arm the largest item,
+  `srvApRes` at `A` from P5's invariant, `rnSnapOnceR` at `|P|`: `NodeStartSpecR`'s post may need the
+  snapshot token, a form), `Hwpend` and the installer's `rnSnapTermAbove` from `srvRestartRows`; no
+  `leaseTTLRowR`, no auth-on conjunct; `lease.srvInvAt` at the recovered snapshot.
+Suggested order: P5's invariant and clause (G) first (a lemma file), then the boot section to the node,
+then the tail by `lean-check --fast --split` errors, sorried sub-facts as named lemmas in a separate file.
+
+## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here (CP2 landed)
 
 81 decided route (C) for finding 1 (`questions.md`; freeze package §11.1a, superseding (A)).
 - **Done, commit `033c31e5fd`**: `srvSnapOwn`'s index is the apply thread's ghost index `g`
@@ -61,7 +127,52 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 - Merged `lean` (570cea0725, k8s 7f-3b mvcc); STATUS entry added (ten kept, oldest to status-history).
 - Verified (after the merge): full build clean, 17479 jobs (`/shared/tmp/restart-s56/routeC/full.log`);
   `tcb-report --check` matches the baseline (870 axioms, 4 sorries; `routeC/tcb.log`); `gen-interface
-  --check` clean for every `etc/api` list. Gates and landing: by `etc/land.sh` (`routeC/land.log`).
+  --check` clean for every `etc/api` list.
+- **Landed: `lean` 77f542f56c** (`/shared/tmp/restart-s56/routeC/land2.log`, gates all passed). The
+  first land.sh failed two gates, both from `NewServer.specR` (CP2): bounds +6 (its copies of specG's
+  `threadBound`, `receiptBound` x2, `etcdMaxRequestBytesOk`, `maxTxnOpsOk`, the `srvServeRes`
+  replicate) and mode +3 (its auth-off literals); baselines raised and specR classified `lit-mode
+  unmoved` (commit 77f542f56c; `questions.md`, a form for 81's checkpoint review).
+
+### B2: decided by 81 (2026-11-14): the fallback, a separate `NewServer.wp_proofR`
+
+81 confirmed the gate baselines and decided D1's fallback (`notes/decisions.md`, "Restart S6 B2"):
+`NewServer.wp_proofR : NewServer.specR` in its own file `E/NewServerR.lean` (never in `NewServer.lean`,
+whose compile hit 80 GB; check peak memory, keep the 64G cap, 2^28 counts symbolic, no bare `iframe`
+over replicate lists), reusing `raftNode_of_RestartNode`, `wal.restartOk_start`, `boot_storageR`.
+Unlinked until done; land proof-only checkpoints via `land.sh` only when no `sorry` sits under a linked
+result **and** `tcb-report --check` matches (a `sorry` anywhere in the repo changes the baseline, so do
+not land a file with a `sorry`).
+- **Skeleton, commit below (not landed: it has a `sorry`)**: `E/NewServerR.lean`, `NewServer.wp_proofR`
+  with `wp_proofG`'s callee hypotheses at `authSrvTP false`/`uberKitM false`, the four compaction-only
+  ones dropped (`cmp = false`); body `sorry`. Imports `NewServer` (the public olean: proofs not loaded)
+  and `BuiltRestart`. Builds (1.7s). Next: `intro` `specR`'s binders, `wp_start`, `iNamed Hpre`, then
+  follow `wp_proofG` from line 418 with the restart's boot steps (B2 map below), checking with
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json etc/lean-check.py --fast --split
+  Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean` under the cap; measure the full compile's
+  peak (`etc/timed-build.py` + `etc/build-report.py`).
+- **Follow-up (proof cleanup, after `wp_proofR` is done):** factor the shared tail of `wp_proofG` and
+  `wp_proofR` into lemmas.
+
+### B2 map (for the next agent)
+
+`NewServer.wp_proofG` (`E/NewServer.lean:277`, ~2700 lines) uses the first-start boot rows in a few
+places only (line numbers at 77f542f56c):
+- 418-700: the bootstrap call (`Hboot`, 444-446: `Hrauth`, `Hwdf`), the WAL (`wal.bootOk_start`, 476),
+  the meta rows (`Hmeta`/`Hmsmeta`, `HmEmpty`, `Hm0`, `Hthr` 478-485), the node (`Hnboot`, `Hraft`,
+  `raftNode_of_StartNode`, 514-542), the store (`boot_storage`, 672-700, `HnoCmp` 688);
+- 1230-1261: the snapshot directory (`Hsdo`, `Hsdir`; at a restart: the image's invariant through
+  `snapDirInv_ss_congr` and `Hssp`, the image's counter for the `srvBuiltRestartR` row, route (C):
+  `c ≤ i + 1 = |A| + 1`);
+- 1613 (`Hsnone`), 1996-2019 (`Hrauth`'s later use), 2212-2359 (the apply rows at `[]`, `Hlog0`,
+  `Hthr`); `Hkvinv` 1578-2226 (unchanged text).
+The tail between is shared but runs in the context the boot built. Numbers for D1's fallback decision:
+a lemma-factored `wp_proofB` must thread the bootstrap's whole context (`bootOk` and `bootOkR` differ in
+~25 named rows); a separate `wp_proofR` copies ~2700 lines and adapts ~400. Recommendation to ask 81
+first: the fallback (separate `wp_proofR` reusing `raftNode_of_RestartNode`, `wal.restartOk_start`,
+`boot_storageR`), since the factoring would touch every step of the frozen first-start proof.
+- NodeStart's `Hbc` from I3: not needed for B2. `NodeStartSpecR`'s `σ.b ≤ |A₀| ≤ σ.commit` follows from
+  the image (`wal.stopImage`'s `σ.b ≤ i ≤ σ.commit`, `uint.Z i = |A|`, `A₀ = A`).
 - **For B2**: the restart's `srvBuiltRestartR` row is `srvSnapOwn … (0 + W64 |A|)`, i.e. `c ≤ |A| + 1 =
   i + 1` with the image's `c ≤ i + 1` (`uint.Z i = |A|`, the image's) -- no WAL link needed.
 

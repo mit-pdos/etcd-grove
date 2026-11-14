@@ -400,7 +400,9 @@ the whole-`bootOk` review, T1-B: until then `lateWB`, whose unregistered arm, an
 restart does not meet; then the alias `lateWBR`, deleted by restart S5, 2026-11-13). Kept as a first start's:
 the remotes (`Hrms0`: `bootstrapClusterWithWAL` sets none either), the directory's members (a
 static cluster, the plan's scope: the restart contract's premise). (2026-11-03, the whole-`bootOk`
-review: the write-back stock `bootLeft N`, the hooks stated once, as `bootOk`.) -/
+review: the write-back stock `bootLeft N`, the hooks stated once, as `bootOk`.) (Restart S6 B2, 2026-11-14,
+decided by etcd-grove-81: three rows copied from `bootOk`, which `NewServer.wp_proofR` needs: the
+wrapper's logger the configuration's, the backend file `bFile`, the registration as `mvccWReg`.) -/
 def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) (id : w64)
     (N : Nat) (dir : w64 → List GoString) (σ : StorContents) (i : w64) (L : List EntryModel)
     (D : backend.Data) (M : GMap Loc MemStorNamesRec) (b : Loc) : IProp GF :=
@@ -443,7 +445,10 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `examples/entsize`'s `TestMaxSizePerMsg`, in `etc/gates.sh`; `rnRestartCfg`'s `peersNil` is
     -- `pv = []`: [R2c] no peers, `bootstrapRaftFromWAL` sets none, so `newRaftNode` calls
     -- `RestartNode`, `len(b.peers) == 0`; `ps` is the cluster's members, `Hmembers`, not peers)
+    -- (restart S6 B2, 2026-11-14, decided by etcd-grove-81) the wrapper's logger the configuration's
+    -- (`bootOk`'s; Go: `bootstrapRaftFromWAL`'s `lg: cfg.Logger`), for `NodeStartSpecR`'s `zapLoggerOk`
     "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      bv.lg' = cfg.Logger' ∧
       cv.ID' = id ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
@@ -585,12 +590,17 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i⌝ ∗
     -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
     -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
-    "Hlate" ∷ mvcc.lateReg d.gx ∗
+    -- (restart S6 B2, 2026-11-14) in `bootOk`'s form, the sealed `mvccWReg` (by definition `lateReg`)
+    "Hlate" ∷ mvcc.api.mvccWReg d.gx ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir'))
+    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- (restart S6 B2, 2026-11-14) the backend's file at the backend path (`bootOk`'s; Go: both paths
+    -- open the backend in the shared `bootstrapBackend(cfg, haveWAL)` at `cfg.BackendPath()`), for
+    -- the snapshot path's `srvSnapRes`
+    "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir'))
     -- (R-D1, 2026-11-04) no row for the error paths' close: `bootstrappedServer.Close` is
     -- translated and proved (`bootstrappedServer.Close.spec`, one-shot: it takes the backend's whole
     -- open token), and `NewServer`'s proof reassembles what it takes; until then the opaque

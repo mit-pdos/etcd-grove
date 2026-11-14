@@ -35573,3 +35573,28 @@ block on every `ftruncate` (`ext4_block_truncate_page`, ordered), which the mode
 proof needs it after `ZeroToEnd`. Both are being implemented on the WAL track's branch `wal-p12` (merged
 into `wal-int`), not on `lean`, until the user reviews them. The bbolt port over `fsExt` (another session)
 should expect P1's change to `FileCrashedR`.
+
+## Restart S6 B2: a separate `NewServer.wp_proofR` (2026-11-14 · decided by etcd-grove-81 · branch `restart-s56`)
+
+Supersedes D1's single-proof plan (`/shared/tmp/restart-s56/plan.md` §2.1, "The proof": one
+`NewServer.wp_proofB` over `SrvBoot`, `wp_proofG` its `fresh` instance), taking the plan's own fallback.
+Why: `wp_proofG` (~2700 lines) uses the first-start boot rows in about 400 lines (the bootstrap call, the
+WAL, the node, the store, the snapshot directory, the apply rows at `[]`), but the shared tail runs in the
+context the boot builds, and `bootOk`/`bootOkR` differ in about 25 named rows: factoring would touch
+every step of the frozen first-start proof. Instead `NewServer.wp_proofR` proves `NewServer.specR` in its
+own file (`E/NewServerR.lean`: `NewServer.lean`'s compile has reached 80 GB, so the two do not share a
+module; the 64G cap, 2^28 counts symbolic, no bare `iframe` over replicate lists), reusing
+`raftNode_of_RestartNode`, `wal.restartOk_start` and `boot_storageR`; it stays unlinked until it has no
+`sorry`. Cost: the tail duplicated. Follow-up (proof cleanup): factor the shared tail of `wp_proofG` and
+`wp_proofR` into lemmas once both are done.
+
+**B2 contract rows** (2026-11-14, decided by etcd-grove-81). Reading `wp_proofG` against `bootOkR` found
+three rows the restart proof needs that the restart contract's post lacked; `bootOkR` (trusted) is restated
+once with all three copied from the reviewed `bootOk`: `%Hraft` gains `bv.lg' = cfg.Logger'` (Go:
+`bootstrapRaftFromWAL`'s `lg: cfg.Logger`; for `NodeStartSpecR`'s `zapLoggerOk bv.lg'`), the last row
+`"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')` (Go: the shared `bootstrapBackend(cfg,
+haveWAL)` at `cfg.BackendPath()`; for `srvSnapRes` in specR's post), and `"Hlate"` as `mvcc.api.mvccWReg d.gx`
+in place of `mvcc.lateReg d.gx` (same meaning; what `boot_storageR` takes). Why one restatement: each row is a
+copy of a reviewed `bootOk` row reached by the same Go code. Old → new text: the freeze package §11.6
+(`/shared/tmp/restart-s56/freeze-package.md`). The skeleton `E/NewServerR.lean` (its `sorry`) is kept off
+`lean` (removed from the tree at this checkpoint; restore it with `git show c081768592:<path>`).
