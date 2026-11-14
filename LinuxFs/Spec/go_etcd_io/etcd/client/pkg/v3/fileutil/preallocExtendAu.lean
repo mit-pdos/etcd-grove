@@ -29,16 +29,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. `P` is the supplies' property (`fallocSup`'s and `os.truncSup`'s), true of
+every state at most `sz` long whose least crash size is at most `m`'s (`wal-tc19`). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.specAu : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m : OsMeta) (o sz : w64)
-    (K : IProp GF),
+    (K : IProp GF) (P : OsMeta → Prop),
   0 ≤ fd.toInt → d.writable = true → m.maps = ∅ → 0 ≤ o.toInt → o.toInt ≤ 0xffffffff000 →
-  0 < sz.toInt → sz.toInt ≤ 0xffffffff000 → m.size ≤ sz.toNat →
+  0 < sz.toInt → sz.toInt ≤ 0xffffffff000 → m.size ≤ sz.toNat → (∀ m' : OsMeta, m'.lo ≤ m.lo → m'.size ≤ sz.toNat → P m') →
   {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
       os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
       osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own (1 : Qp).half) m ∗ K ∗
-      fallocSup (GF := GF) K d.ino sz.toNat ∗ os.truncSup (GF := GF) K d.ino sz.toNat }}
+      fallocSup (GF := GF) K d.ino sz.toNat P ∗ os.truncSup (GF := GF) K d.ino sz.toNat P }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend)) (Val #f))
       (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ os.ownOff f o ∗ osFd fd dq d ∗ K ∗

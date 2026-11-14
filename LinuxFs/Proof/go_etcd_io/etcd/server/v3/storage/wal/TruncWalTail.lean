@@ -117,7 +117,8 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
   · rw [hT, Nat.min_eq_right hwr]; iexact Hbd
   wp_apply wp_Truncate f fd name (DFrac.own 1) (W64 ((o0 : Int) + (out.length : Int))) (DFrac.own 1)
     ⟨i, rd, true⟩ m (bs.drop (o0 + out.length)) _ (fun m => LoWr m (o0 + out.length)) hfd rfl hI hmaps
-    (by rw [List.length_drop, hT]; omega) hlw $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
+    (by rw [List.length_drop, hT]; omega) hlw (fun m' h _ => .inr (by rw [hT] at h; omega))
+    $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
   · iframe; iframe #
   rw [hT]
   iapply HΦ

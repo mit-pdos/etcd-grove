@@ -30,7 +30,8 @@ page holding the old end, knowing the candidates past the old size `m` knew (`Pc
 from the page cache known zero on if `m` knew zeros from at least its size. -/
 theorem ftDoneH_shrunk (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (htg : tg ≤ m.size) :
     os.ftDoneH (GF := GF) p m tg zs ⊢ ∃ m1 : OsMeta,
-      ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd m.size ≤ m1.cz ∧ PcKeep m m1 ∧ (m.ZfGe → m1.ZeroPg)⌝ ∗
+      ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd m.size ≤ m1.cz ∧ PcKeep m m1 ∧ (m.ZfGe → m1.ZeroPg) ∧
+        m1.lo = min m.lo tg⌝ ∗
       osMeta p (DFrac.own (1 : Qp).half) m1 := by
   unfold os.ftDoneH
   iintro ⟨%hzs, ⟨%tc, %rz, %htc, Hm⟩, -⟩
@@ -40,13 +41,13 @@ theorem ftDoneH_shrunk (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (htg 
   have h := os.rsPost_cz_true m tg tg
   rw [Nat.max_eq_left htg] at h
   exact ⟨rfl, rsPost_maps true m tg tg, h, PcKeep.of_tc (tr := true) rfl rfl htc.1,
-    fun hz => OsMeta.zeroPg_rsPost_true hz tg⟩
+    fun hz => OsMeta.zeroPg_rsPost_true hz tg, by simp only [OsMeta.withTc_lo, rsPost, OsMeta.announce]⟩
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     (wp_Truncate : os.File.Truncate.specAu (GF := GF) (hG := hG))
     (wp_Preallocate : go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.specAu (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specAu (GF := GF) (hG := hG) := by
-  intro f fd name dqf dq d m o xs K hfd hwr hmaps ho0 hole hsz hxs
+  intro f fd name dqf dq d m o xs K P Q hfd hwr hmaps ho0 hole hsz hxs hP hPQ
   wp_start as ⟨#Hinv, #Herrs, Hf, Ho, Hfd, Hm, Hb, HK, #Hto, #Hts, #Hfs⟩
   have hoN : (o.toNat : Int) = o.toInt := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
@@ -74,7 +75,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
   obtain ⟨rfl, rfl⟩ := hn
   wp_auto
   have hmin : min m.size o.toNat = o.toNat := by omega
-  wp_apply wp_Truncate f fd name dqf o dq d m xs K (fun _ => True) hfd hwr ho0 hmaps (by omega) trivial
+  wp_apply wp_Truncate f fd name dqf o dq d m xs K P hfd hwr ho0 hmaps (by omega) hP
+    (fun m' h h' => (hPQ m' h (by omega)).1)
     $$ [Hf Hfd Hm Hb HK] as %err ⟨Hf, Hfd, HK, Hr, -⟩
   · rw [hmin]; iframe; iframe Hinv; iexact Hto
   icases Hr with (⟨%he, %zs, Hd⟩ | ⟨%he, Hd⟩)
@@ -114,8 +116,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega
   have hsN : (W64 (m.size : Int)).toNat = m.size := by
     simp only [BitVec.toNat_ofInt]; omega
-  wp_apply wp_Preallocate f fd name dqf dq d m1 (W64 m.size) (W64 m.size) true K hfd hwr
+  wp_apply wp_Preallocate f fd name dqf dq d m1 (W64 m.size) (W64 m.size) true K Q hfd hwr
     (by rw [hm1.2.1, hmaps]) (by omega) (by omega) (by omega) (by omega) (fun _ => by omega)
+    (fun m' h h' => (hPQ m' (by rw [← hm1.2.2.2.2.2]; exact h) (by rw [hsN] at h'; exact h')).2)
     $$ [Hf Ho Hfd Hm HK] as %err ⟨Hf, Ho, Hfd, HK, Hr⟩
   · iframe
     rw [hsN]
@@ -149,7 +152,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     iframe
     ipureintro
     exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hm1.2.2.1 hm'.2.2.1,
-      hm1.2.2.2.1.trans hm'.2.2.2.2.1 (by omega), fun hz => hm'.2.2.2.2.2 ⟨rfl, hm1.2.2.2.2 hz⟩⟩
+      hm1.2.2.2.1.trans hm'.2.2.2.2.1 (by omega), fun hz => hm'.2.2.2.2.2.2 ⟨rfl, hm1.2.2.2.2.1 hz⟩⟩
   · cases err with
     | nil => exact absurd rfl he
     | ok ie =>
