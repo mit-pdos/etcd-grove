@@ -358,7 +358,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         ipureintro; exact hlen0.symm
       imod walParked_cut Ls l1 l2 (j, NameSet.except X, hj1)
         (cutClaim j X hj1 tmp bt g.ino x s0) dir lay1 g0 g d.H.length wr F o hl1 hg0 hW3 hino
-        ⟨rfl, rfl⟩ hoD hF0.symm $$ Hpk Ho Hp0 with ⟨Hpk, Ho⟩
+        ⟨rfl, rfl⟩ hoD hF0.symm (fun b hb => GMap.lookup_insert_ne _ _ (fun e => by
+          subst e; rw [hbtw] at hb; cases hb)) $$ Hpk Ho Hp0 with ⟨Hpk, Ho⟩
       imod Hcl $$ [Hg Hl1 Hαn Hl2 Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp Hnms]
       · iexists s
         iexists <[dir := cutLay lay1 d.H.length g wr]> Ls,

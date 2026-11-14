@@ -42,7 +42,7 @@ theorem walParked_tailW (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GM
     walParkedIn (L := L) (W := W) Ls cl F g0.ino ⊢
       walParked (L := L) (W := W) (<[dir := tailLay lay pre g wr']> Ls) cl F' := by
   unfold walParkedIn walParked
-  iintro ⟨%b, %o, Ha, Hoa, %hp, Hs, Hc, Ht⟩
+  iintro ⟨%b, %o, Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩
   iexists b, o
   iframe Ha Hoa
   isplitr
@@ -63,7 +63,9 @@ theorem walParked_tailW (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GM
       unfold ParkedClaim; rw [walDirClaimOf_tail hl c]
     simp only [propext e]
     exact .rfl
+  isplitl [Ht]
   · iapply walTmpParked_insert Ls o.T dir lay (tailLay lay pre g wr') hl rfl $$ Ht
+  · iapply walOthersL_mono (fun c _ hc => ⟨(walDirClaimOf_tail hl c).1 hc, rfl⟩) $$ Hw
 
 /-- **The right to step a tail**: its key (`ok = none`), or the token of the tail lent to the
 invariant with its `old` `k` long, of kind `p` (`ok = some (k, p)`; `walLentTokB`, I3b, `wal-tc14`;

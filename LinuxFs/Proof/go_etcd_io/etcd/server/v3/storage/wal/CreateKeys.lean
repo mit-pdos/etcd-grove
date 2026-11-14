@@ -428,6 +428,66 @@ claim and its pipeline names, the handle's. -/
 def WalOut.create (o : WalOut) (i J : Ino) (X : List GoString) (dir : GoString) : WalOut :=
   ⟨i :: o.O, (J, NameSet.except X) :: o.D, dir :: o.T⟩
 
+/-- **A WAL directory's claim after the commit** (`walParked_create`'s others): one before, no claim
+of `cl` being one of `J`'s (`CreatingNew`). -/
+theorem walDirClaimOf_create {Ls : GMap GoString WalLay} {cl : List Claim}
+    {CR : GMap GoString (NameSet × NamesH × Ino)} {jr : Ino} {dir : GoString} {N : NameSet}
+    {J : Ino} {lay : WalLay} {c : Claim}
+    (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J) (hc : c ∈ cl) :
+    WalDirClaimOf (<[dir := lay]> Ls) c → WalDirClaimOf Ls c := by
+  classical
+  obtain ⟨-, hJc, -, b0, hb0, -⟩ := hnew
+  rintro ⟨dir', lay', hl', hj, X', hN, hX'⟩
+  by_cases hdd : dir' = dir
+  · subst hdd
+    rw [GMap.lookup_insert_eq] at hl'
+    simp only [Option.some.injEq] at hl'
+    subst hl'
+    refine (hJc c hc (hj.trans hlj) b0 (not_walTmps_of_wal hb0) ?_).elim
+    rw [hN]; intro hb; rw [hX' b0 hb] at hb0; cases hb0
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+    exact ⟨dir', lay', hl', hj, X', hN, hX'⟩
+
+/-- **The others after the commit**: as before (the area claim is no WAL directory's), `J`'s new
+claim holding none (`hJo`: no entry at a non-`.wal` name). -/
+theorem walOthersL_create (Ls : GMap GoString WalLay) (cl : List Claim) (D : List (Ino × NameSet))
+    (CR : GMap GoString (NameSet × NamesH × Ino)) (jr : Ino) (dir : GoString) (N : NameSet)
+    (h : NamesH) (h' : NamesH) (J : Ino) (X : List GoString) (hJ : NamesH) (lay : WalLay)
+    (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J)
+    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
+    walOthersL (L := L) Ls D cl ⊢
+      walOthersL (L := L) (<[dir := lay]> Ls) ((J, NameSet.except X) :: D)
+        (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) := by
+  classical
+  have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
+  have hn : ∀ (Ls' : GMap GoString WalLay) (h'' : NamesH), ¬ WalDirClaimOf Ls' (jr, N, h'') := by
+    rintro Ls' h'' ⟨-, -, -, -, X', hN, hX'⟩
+    apply hNb0
+    change (jr, N, h'').2.1.Mem b0
+    rw [hN]; intro hb; rw [hX' b0 hb] at hb0; cases hb0
+  unfold walOthersL
+  iintro H
+  iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+  isplitl [H]
+  · unfold replClaim
+    rw [BigSepL.bigSepL_map]
+    iapply BigSepL.bigSepL_mono (fun {i c} hci => ?_) $$ H
+    have hcm : c ∈ cl := List.mem_of_getElem? hci
+    by_cases h0 : c = (jr, N, h)
+    · rw [if_pos h0, if_neg (hn _ h'), h0, if_neg (hn _ h)]
+    · rw [if_neg h0]
+      by_cases hw : WalDirClaimOf (<[dir := lay]> Ls) c
+      · rw [if_pos hw, if_pos (walDirClaimOf_create hnew hlj hcm hw)]
+        unfold walOthers
+        rw [othersOf_congrD _ (fun b => lendKey_cons_except b)]
+      · rw [if_neg hw]; iintro -; iempintro
+  · iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)
+      (Φ := fun _ c => iprop(if WalDirClaimOf (<[dir := lay]> Ls) c then
+        walOthers (L := L) ((J, NameSet.except X) :: D) c.1 c.2.2.cur else emp))).2
+    split
+    · iapply walOthers_none (L := L) hJo
+    · iempintro
+
 /-- **The parked halves after the commit** (the record of what is out updated): the new segment's
 inode, `J`'s claim and the new WAL's pipeline names out (`WalOut.create`), the rest as before; the
 change in flight on the new segment, if any, dropped. -/
@@ -436,7 +496,8 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
     (CR : GMap GoString (NameSet × NamesH × Ino)) (jr : Ino) (dir : GoString) (N : NameSet)
     (h : NamesH) (h' : NamesH) (J : Ino) (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG)
     (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J) (hLd : Ls !! dir = none)
-    (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino) :
+    (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino)
+    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o ==∗
       walParked (L := L) (W := W) (<[dir := lay]> Ls)
         (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) (GMap.delete g.ino F) ∗
@@ -444,7 +505,7 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
   classical
   have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
   unfold walParked
-  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht⟩ Ho
+  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.create g.ino J X dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -506,7 +567,9 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp))).2
       rw [if_neg (fun hp => hp.2 (List.mem_cons_self ..))]
       iempintro
+  isplitl [Ht]
   · iapply walTmpParked_create Ls o'.T dir lay $$ Ht
+  · iapply walOthersL_create (L := L) Ls cl o'.D CR jr dir N h h' J X hJ lay hnew hlj hJo $$ Hw
 
 end iris
 

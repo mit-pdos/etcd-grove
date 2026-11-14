@@ -78,6 +78,12 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   · exact createJ_segsNamedC hw hcur'
   · exact hJm
   · exact hmd
+  · intro b hb
+    simp only [NamesH.restrict]
+    by_cases hm : ((NameSet.except []).diff walTmps).Mem b
+    · rw [restrictN_lookup _ _ _ hm, hcur, if_neg]
+      intro e; subst e; rw [walNameP_walFileName] at hb; cases hb
+    · exact restrictN_lookup_not _ _ _ hm
 
 end au
 
