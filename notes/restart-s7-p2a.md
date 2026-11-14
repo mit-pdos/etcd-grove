@@ -155,3 +155,15 @@ or the basic update.
   `snapTo_confAt` and `srv_confAt_eq_simple` with `γ.vs = [id]`. Est. 2-3 d.
 - (b) Have the raft API state the destination against a persistent, invariant-free fact. None exists: the
   committed memberships are known only through the cluster's and the server's invariants.
+
+## Rows restated, `srvRestartRows_single` (2026-11-14, etcd-grove-81's (a))
+
+- `srvRestartRows` is `|={⊤}=>`, its wand also taking the server's member id field (`srvMemberIDAddr s ↦□ id`:
+  a sent `MsgSnap`'s sender, `srvWinPend`'s `id`); `rnSnapTermAbove`'s wand and `srvWinPend`'s inner wand (with
+  `winNoMergedSendR`'s, which run builds from it) are `={⊤}=∗`. The users hold no invariant open there:
+  `rn_ready_recv` is `={⊤}=∗` and calls `rnRestartOk_snapTerm` first; `applyAll`'s merged-send check runs
+  inside a WP (goal checked with `etc/lean-check.py --goal`); `run` builds `winNoMergedSendR` from `Hwpend`'s
+  wand directly. `NewServer.wp_proofR` takes the rows after `memberID` is read-only.
+- `RestartRowsSingle.lean`: `srv_single_noSnap` (from `snapTo_confAt` and `srv_confAt_eq_simple`, with
+  `γ.vs = [id]`), `srv_single_noSnaps`, `srvRestartRows_single : γ.vs = [id] → srvRaftLogInv ⟨γ, [], 0⟩ ⊢
+  srvRestartRows γ id A σ`. No closed theorem supplies the premise; restart3's draft and S7.5 will.
