@@ -582,13 +582,16 @@ theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rp
     (hne : evs ≠ []) (hsnoc : evsOf (Dm ++ [m]) X = evsOf Dm X ++ evs)
     (h2 : evsOf Dm X ++ evs = mvcc.watchEvents L2 rg lo d) (hd : d ≤ L2.length ∨ d ≤ lo)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel)
-    (hr : r.events = List.zipWith evModelOf evs kvs) (hv : ¬ watchErr v) :
+    (hr : r.events.map EvModel.erasePk = List.zipWith evModelOf evs kvs) (hv : ¬ watchErr v)
+    (run : v3rpc.WRun GF) (hrW : run.W = V.W) :
     cur2Ok V γs rr Dm X rg lo c2 ∗ □ V.W.histLb L2 ∗ srvWLaws V.W ∗
       □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
-        mvcc.kvPtrFixed kv ev.kv) ⊢
+        mvcc.kvPtrFixed kv ev.kv) ∗ v3rpc.pkIs run.γpk X o.base.prevKV ∗
+      □ (∀ (k : Nat) (ev0 : mvcc.EvM) (e : EvModel), ⌜evs[k]? = some ev0⌝ → ⌜r.events[k]? = some e⌝ →
+        pkSent run X ev0 e.prevKv) ⊢
       ∃ c2' : w64, rawRespOk V.W o c2 c2' v r ∗
         cur2Ok V γs rr (Dm ++ [m]) X rg lo c2' := by
-  iintro ⟨#Hc, #HL2, #Hl, #Hkv⟩
+  iintro ⟨#Hc, #HL2, #Hl, #Hkv, #Hpk, #Hps⟩
   unfold cur2Ok
   icases Hc with ⟨⟨%L, %q, #HL, %Hq⟩, -⟩
   obtain ⟨hc2, h1, hlo, hq, hq63⟩ := Hq
@@ -608,26 +611,43 @@ theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rp
       htail, List.append_nil]
   iexists W64 (q' : Int)
   have hrevs : r.events.map EvModel.rev = evs.map (fun e => e.kv.modRev) := by
-    rw [hr]; exact zipWith_evModel_rev evs kvs hkl
+    have := congrArg (List.map EvModel.rev) hr
+    rw [List.map_map] at this
+    simp only [Function.comp_def, EvModel.erasePk_rev] at this
+    rw [this]; exact zipWith_evModel_rev evs kvs hkl
+  have hrl : r.events.length = evs.length := by
+    have := congrArg List.length hrevs; simpa using this
   isplitr
   · unfold rawRespOk
     iright; iright; iright
     isplitr
     · ipureintro
       refine ⟨hv, ?_, by omega, by omega, ?_⟩
-      · rw [hr]; intro h
-        have := congrArg List.length h
-        simp only [List.length_zipWith, List.length_nil] at this
-        exact hne (List.eq_nil_of_length_eq_zero (by omega))
+      · intro h
+        rw [h] at hrl
+        exact hne (List.eq_nil_of_length_eq_zero (by simp at hrl; omega))
       · rw [← List.getLast?_map, hrevs, List.getLast?_map]
         simpa using hlast
     iexists L2, kvs
     iframe HL2
+    have hmem : ∀ ev ∈ evs, ∃ j, 1 ≤ j ∧ j < L2.length ∧ ev.kv.modRev = W64 (j : Int) ∧
+        ev.prevKv = none ∧ L2.getD j [] ≠ [] := by
+      intro ev hev
+      rw [← hevs] at hev
+      obtain ⟨j, hj1, -, hj2, hj3, hj4, hj5⟩ := rangeLogEvents_mem L2 o _ _ ev hev
+      exact ⟨j, by omega, hj2, hj3, hj4, hj5⟩
     rw [hevs]
     isplitr
     · ipureintro; exact ⟨by omega, hkl, hr⟩
-    iintro !> %k %ev %kv %h1 %h2
-    iapply Hkv $$ %k %ev %kv %h1 %h2
+    isplitr
+    · iintro !> %k %ev %kv %h1 %h2
+      iapply Hkv $$ %k %ev %kv %h1 %h2
+    iintro !> %k %ev %e %h1 %h2
+    obtain ⟨j, hj1, hj2, hj3, hj4, hj5⟩ := hmem ev (List.mem_of_getElem? h1)
+    ihave #Hs := Hps $$ %k %ev %e %h1 %h2
+    irevert Hl HL2; rw [← hrW]; iintro #Hl' #HL2'
+    iapply pkSent_logOk run X o L2 ev e.prevKv j hj1 hj2 hj3 hj4 hj5
+    iframe #
   isplitr
   · iexists L2, q'
     isplitr
