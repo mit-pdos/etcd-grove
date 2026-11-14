@@ -509,7 +509,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
-`Exist` stated (`wal-small12`, W7-W12 log; proof in progress). Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
+`Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`). Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
 (§4.2's W7-W11), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
@@ -3423,3 +3423,14 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   the program's area claim gives the same directory; `osClaims_keys` the same key and history; a duplicate
   would be a third half), `walParked_putClaim`, `walParked_unlock`. This put-back argument is the one
   `openAtIndex`'s error arms and `Close` need (gap A's record says what is out, not that it is still in `cl`).
+- **Proved (no `sorry`)**: `ExistPure.lean` (a `.wal` name's extension; a read with a `.wal` name is
+  non-empty; `false` gives `wal.ExistFalseOk`), `ExistPin.lean` (`walInvBody_existAU`, `walInvBody_existPin`,
+  `walInvBody_existUnpin` and their program-step forms `walInv_existStart`/`walInv_existEnd`), `Exist.lean`
+  (`wal.Exist.wp_core`, generic in the linearization; **`wal.Exist.wp_proof`** and
+  **`wal.Exist.wp_specCreate`**). Hypotheses of both: `WithExt.spec` (proved), `fileutil.ReadDir.specAbsentIs`,
+  `fileutil.ReadDir.specChildIs`, `hErrNotExist`. `walInvBody_existUnpin` is the put-back `openAtIndex`'s error
+  arms and `Close` can reuse for a directory claim.
+- **Statement change (minor):** `wal.Exist.specCreate` (`CreateCallees.lean`) takes `NameOk nm` (both `ReadDir`
+  hypotheses need it; `walNameOk` allows a NUL byte); `Create.lean` passes its own `hnmO`. `wal-create12`: replace
+  the hypothesis `wp_Exist` by `wal.Exist.wp_specCreate C Mr wp_WithExt wp_RDabs wp_RDchild hErrNotExist`.
+- *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).
