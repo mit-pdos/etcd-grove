@@ -17,6 +17,7 @@ public import LinuxFs.Spec.go_uber_org.zap.Logger__Warn
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateTmp
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAbsent
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 
 @[expose] public section
 
@@ -45,11 +46,68 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_CDA : fileutil.CreateDirAll.specTmp (GF := GF) (hG := hG))
     (wp_String : zap.String.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
-    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (hErrExist : ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
+      ∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) :
     wal.Create.spec (GF := GF) C Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hr hmp
-  wp_start as ⟨#Hinit, #Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
+  intro lg R jr r dir nm mp md qp Q hin hnmO hr hmp
+  wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
+  wp_apply wp_with_defer as %defer Hdefer
+  try wp_auto
+  wp_apply wp_Exist R jr r dir nm qp hin $$ [Hp Hres Hperm Hu] as %bx ⟨Hp, Hres, Hperm, Hu⟩
+  · iframe; iframe #
+  ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
+  isimp only [isPkgInitDeps] at Hdeps
+  icases Hdeps with ⟨-, -, -, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
+  cases bx
+  rotate_left
+  · -- `Exist(dir)`: `os.ErrExist`, nothing done
+    ihave ⟨%ee, %hee, #Hee⟩ := hErrExist $$ Hos
+    try wp_auto
+    iapply HΦ
+    iframe
+    iright; ileft
+    iframe
+    ipureintro; exact hee
+  ihave %hlgn := zapLoggerOk_ne_null lg $$ Hzap
+  ihave %hrc := osPathS_cleanAbs' R r _ jr $$ Hp
+  have hdc := dir_child hin
+  subst hdc
+  try wp_auto
+  rw [decide_eq_false hlgn]
+  try wp_auto
+  wp_apply wp_Clean (child r nm) as %cr %hcr
+  rw [clean_child hrc hnmO] at hcr
+  subst hcr
+  try wp_auto
+  rw [tmp_path]
+  -- the claim on `nm.tmp`, off the area claim (`walInvBody_drop`), with what it holds
+  ihave #Hok' := Hok
+  iunfold WalFs.walAreaOk at Hok'
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, HN, %hok, Hcl⟩
+  have hnm := hin.1
+  have hNnm : N.Mem nm := hok.1 nm hnm
+  have hNt : N.Mem (tmpName nm) := areaOk_tmp hok hnm
+  iapply wp_notCrashed_acc _ _ rfl
+  iintro Hnc
+  imod walInv_absent C Mr R jr r N _ h (child r nm) nm md Q hin hNnm $$ Hinv Hsi Hnc Hau HN
+    with ⟨Hnc, Hau, HN, %hnmA⟩
+  imod walInv_drop C Mr R jr r N h nm (tmpName nm) ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm hNt
+    (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm) $$ Hinv Hsi Hnc Hu HN
+    with ⟨Hnc, Hu, HN, HT⟩
+  iframe Hnc
+  imodintro
+  icases area_takeTmp N h cl nm hok hnm $$ Hcl with ⟨Hts, Hcl⟩
+  have hTt : (h.restrict jr (N.inter [tmpName nm])).cur !! tmpName nm = h.cur !! tmpName nm := by
+    simp only [NamesH.restrict]
+    rw [restrictN_lookup _ _ _ ((NameSet.mem_inter _ _ _).2 ⟨hNt, List.mem_singleton_self _⟩)]
+  ihave Ht : tmpDirH jr (tmpName nm) (h.restrict jr (N.inter [tmpName nm])) $$ [HT Hts]
+  · unfold tmpDirH; rw [hTt]; iframe
+  wp_apply wp_existTmp wp_FExist r (tmpName nm) R jr qp _ 1 (tmpName_nameOk hnmO) $$ [Hp Ht Hperm]
+    as %bt ⟨Hp, Ht, Hperm⟩
+  · iframe; iframe #
   sorry
 
 end proof
