@@ -19,6 +19,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthnStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
+public import Proof.go_etcd_io.etcd.server.v3.auth.FreshCtx
+public import Proof.go_etcd_io.etcd.server.v3.auth.FreshAdmin
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__CheckPassword
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__GenTokenPrefix
@@ -148,6 +150,8 @@ theorem isReqAuth_of_authInv
 the token provider is ready (`auth.tpReady M`). -/
 theorem isReqAuthBound_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hCtxLb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAdminLbO : auth.authStore.IsAdminPermitted.specLbO (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       □ (auth.tpReady M -∗ isReqAuthBound (auth.authIface st) (auth.authRd st R M) M) := by
@@ -156,23 +160,50 @@ theorem isReqAuthBound_of_authInv
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
-  iintro !> %ctx %Φ !> ⟨#Hlib, #Hda, Hrd⟩ HΦ
-  ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
-  iunfold context.libCtxOk at Hlib
-  icases Hlib with ⟨#Hinc, -, -, -⟩
-  iunfold auth.authRd at Hrd
-  icases Hrd with ⟨Hen, Hca, HR⟩
-  iapply (hCtx st R M ctx) $$ [Hen]
-  · iframe; iframe #
-  iintro !> %a %err ⟨Hen, #Ha, #Herr, #Hb⟩
-  iapply HΦ
-  isplitl [Hen Hca HR]
-  · iunfold auth.authRd; iframe
   isplitr
-  · iapply authInfoRO_authInfoOpt a $$ Ha
+  · iintro !> %ctx %Φ !> ⟨#Hlib, #Hda, Hrd⟩ HΦ
+    ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
+    iunfold context.libCtxOk at Hlib
+    icases Hlib with ⟨#Hinc, -, -, -⟩
+    iunfold auth.authRd at Hrd
+    icases Hrd with ⟨Hen, Hca, HR⟩
+    iapply (hCtx st R M ctx) $$ [Hen]
+    · iframe; iframe #
+    iintro !> %a %err ⟨Hen, #Ha, #Herr, #Hb⟩
+    iapply HΦ
+    isplitl [Hen Hca HR]
+    · iunfold auth.authRd; iframe
+    isplitr
+    · iapply authInfoRO_authInfoOpt a $$ Ha
+    isplitr
+    · iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
+    iexact Hb
   isplitr
-  · iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
-  iexact Hb
+  -- (auth-guard-completeness G1) the guards' calls at a lower bound
+  · iintro !> %n %ctx %Φ !> ⟨#Hlb, #Hlib, #Hda, Hrd⟩ HΦ
+    ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
+    iunfold context.libCtxOk at Hlib
+    icases Hlib with ⟨#Hinc, -, -, -⟩
+    iunfold auth.authRd at Hrd
+    icases Hrd with ⟨Hen, Hca, HR⟩
+    iapply (hCtxLb st R M n ctx) $$ [Hen]
+    · iframe; iframe #
+    iintro !> %a %err ⟨Hen, #Ha, #Herr, #Hb, #Hz, #Hne⟩
+    iapply HΦ
+    isplitl [Hen Hca HR]
+    · iunfold auth.authRd; iframe
+    isplitr
+    · iapply authInfoRO_authInfoOpt a $$ Ha
+    isplitr
+    · iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
+    iframe Hb Hz Hne
+  · iintro !> %n %a %oinfo %dq %Φ !> ⟨#Hlb, Ha, Hrd⟩ HΦ
+    iapply (hAdminLbO st R M n a oinfo dq) $$ [Ha Hrd]
+    · iframe; iframe #
+    iintro !> %err ⟨Hrd, Ha, #Herr, #Hv⟩
+    iapply HΦ
+    iframe Hrd Ha Hv
+    iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
 
 /-- `isReqAuthBound` gives `isReqAuth`'s `AuthInfoFromCtx` clause (the binding dropped). -/
 theorem isReqAuthBound_ctx (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
@@ -183,7 +214,7 @@ theorem isReqAuthBound_ctx (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode
         {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
             applyErrIs err }}) := by
   iunfold isReqAuthBound
-  iintro ⟨%ai, %Hai, #H⟩
+  iintro ⟨%ai, %Hai, #H, -, -⟩
   iexists ai
   isplitr
   · ipureintro; exact Hai
@@ -228,7 +259,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
   · ihave #Hb' : isReqAuthBound st RD M $$ []
     · iapply Hb; ipureintro; rfl
     iunfold isReqAuthBound at Hb'
-    icases Hb' with ⟨%ai1, %Hai1, #H⟩
+    icases Hb' with ⟨%ai1, %Hai1, #H, -, -⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
     iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ

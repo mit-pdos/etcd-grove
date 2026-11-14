@@ -214,6 +214,8 @@ once its boot takes the store from `newAuthStore_boot`, and once the token provi
 (`auth.tpReady`, the token contract's `info` premise: auth-schema-fix S1 option A). -/
 theorem srvAuthBound_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hCtxLb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAdminLbO : auth.authStore.IsAdminPermitted.specLbO (GF := GF) (hG := hG))
     (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
     (hRD : E.RD = auth.authRd stp R E.authMode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
@@ -224,7 +226,7 @@ theorem srvAuthBound_of_authInv
   iexists auth.authIface stp
   iframe Hf
   rw [hRD]
-  ihave #HB := (isReqAuthBound_of_authInv hCtx stp R E.authMode) $$ [$Hpkg $Hinv]
+  ihave #HB := (isReqAuthBound_of_authInv hCtx hCtxLb hAdminLbO stp R E.authMode) $$ [$Hpkg $Hinv]
   iapply HB $$ Hrdy
 
 end proof

@@ -78,6 +78,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
+public import Proof.go_etcd_io.etcd.server.v3.auth.WhyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
@@ -2705,14 +2706,37 @@ E2c; in `on γa`, its user is one the token was issued to). Stated beside
 auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
 `isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). Its error is moreover `nil` or one of the auth
 package's error variables (`authApplyErrIs`, the real store's `auth.authErrIs`; the lease-expiry
-plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrLeaseNotFound`). -/
+plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrLeaseNotFound`).
+
+(auth-guard-completeness G1, 2026-11-14; `notes/auth-guard-scope.md`, §2.2) Also the two calls the
+guards make, read by a caller holding a lower bound `n` of the store's published index
+(`auth.authPubLbM`): `AuthInfoFromCtx` with why it gave no principal (`auth.noPrincipalFrom`: no token,
+or auth disabled at a state no older than `n`) or an error (`ErrInvalidAuthToken`, for a token the
+context carries: `auth.tokRefusedFrom`), of the store's `AuthInfoFromCtx.specLb`; and
+`IsAdminPermitted`, the auth info `nil` or not (`auth.authInfoAt`), with both halves of its verdict
+at states no older than `n` (`auth.adminVerdictFromO`), of the store's `IsAdminPermitted.specLbO`.
+Here rather than in the reader's `authStoreLbM` (the Scope's draft): `AuthInfoFromCtx` calls the
+token provider, ready only once the server has started (`auth.tpReady`), as this row is. -/
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ ctx : GoInterfaceOk,
       {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
+          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}) ∗
+    □ (∀ (n : Nat) (ctx : GoInterfaceOk),
+      {{ auth.authPubLbM M n ∗ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
+        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a ∗
+          (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
+          (∀ _ : err ≠ GoInterface.nil, auth.authErrOf .invalidAuthToken err ∗
+            auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}) ∗
+    □ (∀ (n : Nat) (a : Loc) (oinfo : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
+      {{ auth.authPubLbM M n ∗ auth.authInfoAt a dq oinfo ∗ RD }}
+        (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
+      {{ (err : GoInterface), RET #err; RD ∗ auth.authInfoAt a dq oinfo ∗ authApplyErrIs err ∗
+          auth.adminVerdictFromO M n oinfo err }}))
 
 instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
     Persistent (isReqAuthBound (GF := GF) st RD M) := by
