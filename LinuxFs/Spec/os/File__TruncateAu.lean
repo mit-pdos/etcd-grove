@@ -40,9 +40,11 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 /-- The caller's half of a resize of the unmapped file `p` from `m` to `tg` that landed
-(`os.ftDone`'s, the candidates `zs` of the bytes grown over). -/
+(`os.ftDone`'s, the candidates `zs` of the bytes grown over), its `OsMeta` up to the candidates it
+knows past the size (`rsPostK`: the update's owner, holding the other half, knows them). -/
 def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
-  iprop(⌜zs.length = tg - m.size⌝ ∗ osMeta p (DFrac.own (1 : Qp).half) (rsPost true m tg tg) ∗
+  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc, osMeta p (DFrac.own (1 : Qp).half)
+      ((rsPost true m tg tg).withTc tc)) ∗
     osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))))
 
 /-- The caller's half of a resize of `p` from `m` to `tg` that did not land (`os.ftUndone`'s, the

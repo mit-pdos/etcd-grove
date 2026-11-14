@@ -162,13 +162,16 @@ end after
 /-- What a crash did to a file the old generation knew as `m`, with the bytes of the runs `rs`
 (each `(off, dq, xs)`, the bytes `xs` from `off` on): if the new state has it, it is on disk, its
 size is within `m`'s crash bounds, each byte of a run below that size is one of the byte's crash
-candidates or, at or past `m.lo`, zero (writeback's zeroing, `CrashFile`), and the bytes from the
-zeros `m` knows on are zeros. -/
+candidates or, at or past `m.lo`, zero (writeback's zeroing, `CrashFile`), the bytes from the
+zeros `m` knows on are zeros, and each byte past the size whose candidates `m` knows (`tc`: the
+bytes a truncate cut off, a file on disk's) is one of them or, at or past `m.lo`, zero. -/
 def FileCrashedR (m : OsMeta) (rs : List (Nat × DFrac × List ByteG)) (fo : Option OsFile) : Prop :=
   ∀ f', fo = some f' → (∃ img, f' = OsFile.ofDisk img f'.size) ∧ m.lo ≤ f'.size ∧ f'.size ≤ m.hi ∧
     (∀ r ∈ rs, ∀ k (hk : k < r.2.2.length), r.1 + k < f'.size →
       (∃ s, (f'.cache (r.1 + k), s) ∈ (r.2.2[k]).2) ∨ (m.lo ≤ r.1 + k ∧ f'.cache (r.1 + k) = 0)) ∧
-    (∀ z, m.zf = some z → ∀ b, z ≤ b → b < f'.size → f'.cache b = 0)
+    (∀ z, m.zf = some z → ∀ b, z ≤ b → b < f'.size → f'.cache b = 0) ∧
+    (∀ b c, m.size ≤ b → m.tc !! b = some c → b < f'.size →
+      (∃ s, (f'.cache b, s) ∈ c) ∨ (m.lo ≤ b ∧ f'.cache b = 0))
 
 /-- The facts of a crash the restarted program learns of the file of inode `i`, taken with the old
 generation's `OsMeta` `m`, the bytes of the runs `rs` and the changes in flight `ts`: the crash
@@ -203,7 +206,8 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
   have hb : ∀ b, b < sz → (OsFile.ofDisk img sz).cache b = img b := fun b hb => by
     simp only [OsFile.ofDisk, diskByte]
     rw [if_pos (by simp only [pageIn, decide_eq_true_eq]; have := Nat.mul_div_le b 4096; omega)]
-  refine ⟨⟨img, rfl⟩, ?_, ?_, fun r hr k hk hks => ?_, fun z hz b hzb hbs => ?_⟩
+  refine ⟨⟨img, rfl⟩, ?_, ?_, fun r hr k hk hks => ?_, fun z hz b hzb hbs => ?_,
+    fun b cs hsb hc hbs => ?_⟩
   · show m.lo ≤ sz
     rcases hlo with h | ⟨t, c, ht, hci, h⟩
     · exact Nat.le_trans hok.lo h
@@ -225,6 +229,12 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
     · rw [(hok.zf z hz).2 b hzb, List.mem_singleton] at hs
       exact (Prod.mk.inj hs).1
     · exact h0
+  · simp only [OsFile.ofDisk] at hbs
+    rw [hb _ hbs]
+    rcases hcand b with ⟨s, hs⟩ | ⟨hl, h0⟩
+    · rw [hok.tail b cs (by rw [← hok.size]; exact hsb) hc] at hs
+      exact .inl ⟨s, hs⟩
+    · exact .inr ⟨Nat.le_trans hok.lo hl, h0⟩
 
 end Fs
 end Perennial

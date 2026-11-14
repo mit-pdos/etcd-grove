@@ -119,7 +119,7 @@ theorem fileOk_idle {Good : Option OsFile → Prop} {m m' : OsMeta} {bs bs' : Li
     (hlen : bs.length = m.size) : FileOk Good (m', bs', none) := by
   intro f hf
   apply hok
-  obtain ⟨hd, hlo, hhi, -, hz⟩ := hf f rfl
+  obtain ⟨hd, hlo, hhi, -, hz, -⟩ := hf f rfl
   have hl := hW.lo; have hh := hW.hi
   refine ⟨hd, by simp only [fMeta] at hlo; omega, by simp only [fMeta] at hhi; omega,
     fun b hb hbf => ?_, fun z hz0 b hb hbf => ?_⟩
@@ -151,7 +151,7 @@ theorem fileOk_flight {Good : Option OsFile → Prop} {m m' : OsMeta} {bs bs' : 
   intro f hf
   apply hok
   have hdl : 0 < data'.length := List.length_pos_iff.2 hne
-  obtain ⟨hdisk, hlo, hhi, -, hz⟩ := hf f rfl
+  obtain ⟨hdisk, hlo, hhi, -, hz, -⟩ := hf f rfl
   simp only [fMeta, cfMeta, announce_lo, announce_hi, announce_zf] at hlo hhi hz
   have hl := hW.lo; have hh := hW.hi; have h1 := hW.sz1; have h2 := hW.sz2
   have hlb := hW.len

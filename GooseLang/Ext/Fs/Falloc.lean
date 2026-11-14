@@ -132,13 +132,17 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
   · iintro %t %n - Hfd Ht
     iapply HΦ $$ Hfd Ht
 
-theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) (hgrow : m.size ≤ tg)
-    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+/-- The second step of `fallocate`'s growth; if `keep` (a file with no sync cut), the `OsMeta` it
+lands with knows the candidates of the bytes it announced past the new size (`rsPostK`: a partial
+growth's). -/
+theorem wp_osFallocFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat)
+    (hgrow : m.size ≤ tg) (hkeep : keep = true → m.cut = none) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ rsTok (L := L) false t p tg m [] n -∗
       (∀ e : w64,
-        ((⌜e = 0⌝ ∗ rsDone (L := L) false p tg tg m n) ∨
+        ((⌜e = 0⌝ ∗ rsDoneK (L := L) keep false p tg tg m [] n) ∨
          (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
-           ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) false p tg w m n))) -∗
+           ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDoneK (L := L) keep false p tg w m [] n))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
@@ -186,7 +190,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
   rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | ⟨w, hw1, hw2, rfl⟩⟩
   · rw [hF.hctg] at Hr Hfr ⊢
-    imod resize_done_world hwf hcoh hF c.hi tg hland' (fun h => by cases h) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun h => by cases h) hkeep Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -207,7 +211,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
   · have hlw : (max m.size tg ≤ w ∧ w = rsHi false m.size tg ∧ w = tg) ∨
         (m.size ≤ tg ∧ m.size ≤ w ∧ w ≤ tg ∧ w = w) := by
       rw [hF.hclo] at hw1; rw [hchi'] at hw2; right; omega
-    imod resize_done_world hwf hcoh hF w w hlw (fun h => by cases h) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_worldK keep hwf hcoh hF w w hlw (fun h => by cases h) hkeep Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -218,6 +222,19 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
     · ipureintro; exact he
     iright; iexists w; iframe; ipureintro
     rw [hF.hclo] at hw1; rw [hchi'] at hw2; omega
+/-- The second step of `fallocate`'s growth (`wp_osFallocFinishK` without the candidates past the
+new size). -/
+theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) (hgrow : m.size ≤ tg)
+    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ rsTok (L := L) false t p tg m [] n -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ rsDone (L := L) false p tg tg m n) ∨
+         (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
+           ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) false p tg w m n))) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
+  simp only [← rsDoneK_false (xs := [])]
+  exact wp_osFallocFinishK false t p tg m n hgrow (fun h => by cases h) hE Φ
 end specs
 
 end Fs

@@ -13,9 +13,10 @@ it there (`crashRestAt_take_tok`).
   the step and commits with the change's token (`rsTok`, outcome `(t, n)`), its `Q (t, n)` the
   caller's.
 * **The second step** (`wp_osFtruncateFinish_au`, `wp_osFallocFinish_au`): the update lends the token
-  and commits with what the step leaves (`rsOutT`/`rsOutF`, whole: the size landed, `rsDone`, with the
-  new bytes, zeros; or, on failure, maybe not, `rsUndone`), its `Q e` the caller's (typically its
-  halves back: the update's owner splits them).
+  and commits with what the step leaves (`rsOutT`/`rsOutF`, whole: the size landed, `rsDoneK`, with the
+  new bytes, zeros, and, for a file with no sync cut, the candidates of the bytes announced past the
+  new size in its `OsMeta`'s `tc`; or, on failure, maybe not, `rsUndone`), its `Q e` the caller's
+  (typically its halves back: the update's owner splits them).
 
 The files are unmapped (`m.maps = ∅`: no cells to lend). The whole-resource specs
 (`wp_osFtruncateStart`, ...) are the special case where the update lends nothing the caller lacks;
@@ -36,6 +37,56 @@ namespace Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
+/-! ## `OsMeta`s up to the candidates known past the size -/
+
+/-- `m` knowing the candidates `tc` past the size. A resize's outcome knows, for a file with no sync
+cut, the candidates of the bytes it announced past the new size (`rsPostK`); a client that does not
+need them holds its half of the `OsMeta` up to them (`os.ftDoneH`, `fallocDoneH`). -/
+def OsMeta.withTc (m : OsMeta) (tc : GMap Nat Cands) : OsMeta := { m with tc := tc }
+
+@[simp] theorem OsMeta.withTc_size (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).size = m.size := rfl
+@[simp] theorem OsMeta.withTc_lo (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).lo = m.lo := rfl
+@[simp] theorem OsMeta.withTc_hi (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).hi = m.hi := rfl
+@[simp] theorem OsMeta.withTc_maps (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).maps = m.maps := rfl
+@[simp] theorem OsMeta.withTc_zf (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).zf = m.zf := rfl
+@[simp] theorem OsMeta.withTc_cut (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).cut = m.cut := rfl
+@[simp] theorem OsMeta.withTc_cz (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).cz = m.cz := rfl
+@[simp] theorem OsMeta.withTc_dlo (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).dlo = m.dlo := rfl
+@[simp] theorem OsMeta.withTc_dhi (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).dhi = m.dhi := rfl
+@[simp] theorem OsMeta.withTc_tc (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).tc = tc := rfl
+
+theorem OsMeta.withTc_self (m : OsMeta) : m.withTc m.tc = m := rfl
+
+@[simp] theorem OsMeta.withTc_withTc (m : OsMeta) (t u : GMap Nat Cands) :
+    (m.withTc t).withTc u = m.withTc u := rfl
+
+theorem rsPostK_withTc (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
+    rsPostK keep tr m tg sz' n xs = (rsPost tr m tg sz').withTc (rsPostK keep tr m tg sz' n xs).tc :=
+  rfl
+
+theorem touch_withTc (m : OsMeta) (t : GMap Nat Cands) (lo hi : Nat) :
+    (m.withTc t).touch lo hi = (m.touch lo hi).withTc t := by
+  unfold OsMeta.touch
+  by_cases h1 : hi ≤ lo
+  · rw [if_pos h1, if_pos h1]
+  · rw [if_neg h1, if_neg h1]
+    by_cases h2 : m.dhi ≤ m.dlo
+    · rw [if_pos (show (m.withTc t).dhi ≤ (m.withTc t).dlo from h2), if_pos h2]; rfl
+    · rw [if_neg (show ¬ (m.withTc t).dhi ≤ (m.withTc t).dlo from h2), if_neg h2]; rfl
+
+theorem announce_withTc (m : OsMeta) (t : GMap Nat Cands) (lo hi tg : Nat) (u : GMap Nat Cands) :
+    ((m.withTc t).announce lo hi tg).withTc u = (m.announce lo hi tg).withTc u := by
+  unfold OsMeta.announce
+  rw [touch_withTc]; rfl
+
+/-- A resize's outcome depends on the candidates `m` knows past the size only through its own. -/
+theorem rsPost_withTc (tr : Bool) (m : OsMeta) (t : GMap Nat Cands) (tg sz' : Nat) (u : GMap Nat Cands) :
+    (rsPost tr (m.withTc t) tg sz').withTc u = (rsPost tr m tg sz').withTc u := by
+  unfold rsPost OsMeta.announce
+  rw [touch_withTc]; rfl
+
+@[simp] theorem synced_withTc (m : OsMeta) (t : GMap Nat Cands) : (m.withTc t).synced = m.synced := rfl
+
 section au
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
@@ -47,15 +98,16 @@ theorem mcellsAny_nomaps (lo hi : Nat) : ⊢ mcellsAny (GF := GF) (∅ : GMap Lo
 
 /-- What `ftruncate`'s second step leaves: on success the size landed; on failure it did or not. -/
 def rsOutT (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) (e : w64) : IProp GF :=
-  iprop((⌜e = 0⌝ ∗ rsDone (L := L) true p tg tg m n) ∨
-    (⌜e ≠ 0⌝ ∗ (rsDone (L := L) true p tg tg m n ∨ rsUndone (L := L) true p tg m xs n)))
+  iprop((⌜e = 0⌝ ∗ rsDoneK (L := L) m.cut.isNone true p tg tg m xs n) ∨
+    (⌜e ≠ 0⌝ ∗ (rsDoneK (L := L) m.cut.isNone true p tg tg m xs n ∨
+      rsUndone (L := L) true p tg m xs n)))
 
 /-- What `fallocate`'s second step leaves: on success the growth landed; on failure none of it, or a
 prefix (the size `w` between). -/
 def rsOutF (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) (e : w64) : IProp GF :=
-  iprop((⌜e = 0⌝ ∗ rsDone (L := L) false p tg tg m n) ∨
+  iprop((⌜e = 0⌝ ∗ rsDoneK (L := L) m.cut.isNone false p tg tg m [] n) ∨
     (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
-      ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) false p tg w m n)))
+      ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDoneK (L := L) m.cut.isNone false p tg w m [] n)))
 
 /-- **`ftruncate`'s first step, split**: the caller's halves of the `OsMeta` and of the bytes cut
 off, the update's halves lent at the step; the update commits with the token. -/
@@ -103,7 +155,7 @@ theorem wp_osFtruncateFinish_au (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs 
   iintro #Hinv Hau HΦ
   iapply wp_aunc_step "FtruncateFinish" _ _ _ _ Φ $$ Hau
   iintro Ht
-  iapply wp_osFtruncateFinish t p tg m xs n osN_sub_au $$ Hinv Ht
+  iapply wp_osFtruncateFinishK m.cut.isNone t p tg m xs n Option.isNone_iff_eq_none.1 osN_sub_au $$ Hinv Ht
   iintro %e Hr
   iright
   iexists e
@@ -149,7 +201,7 @@ theorem wp_osFallocFinish_au (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Na
   iintro #Hinv Hau HΦ
   iapply wp_aunc_step "FallocFinish" _ _ _ _ Φ $$ Hau
   iintro Ht
-  iapply wp_osFallocFinish t p tg m n hgrow osN_sub_au $$ Hinv Ht
+  iapply wp_osFallocFinishK m.cut.isNone t p tg m n hgrow Option.isNone_iff_eq_none.1 osN_sub_au $$ Hinv Ht
   iintro %e Hr
   iright
   iexists e

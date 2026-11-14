@@ -40,20 +40,21 @@ theorem os.ftDoneH_of (p : Ino) (m m0 : OsMeta) (tg : Nat) (zs : List Cands)
   unfold os.ftDoneH
   rw [hpost, hsz]
 
-/-- A further attempt after one that landed (from `rsPost true m tg tg`, nothing to cut off) leaves
-the landing from `m`, whatever its outcome. -/
-theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tg n : Nat) (e : w64) (zs : List Cands)
-    (hzs : zs.length = tg - m.size) :
-    os.truncOutH (GF := GF) p tg (rsPost true m tg tg) [] n e ∗
+/-- A further attempt after one that landed (from `rsPost true m tg tg` up to the candidates known
+past the size, nothing to cut off) leaves the landing from `m`, whatever its outcome. -/
+theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tc0 : GMap Nat Cands) (tg n : Nat) (e : w64)
+    (zs : List Cands) (hzs : zs.length = tg - m.size) :
+    os.truncOutH (GF := GF) p tg ((rsPost true m tg tg).withTc tc0) [] n e ∗
       osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))) ⊢
       os.ftDoneH p m tg zs := by
-  have hgo : ∀ zs' : List Cands, os.ftDoneH (GF := GF) p (rsPost true m tg tg) tg zs' ∗
+  have hgo : ∀ zs' : List Cands,
+      os.ftDoneH (GF := GF) p ((rsPost true m tg tg).withTc tc0) tg zs' ∗
       osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))) ⊢
       os.ftDoneH p m tg zs := by
     intro zs'
     unfold os.ftDoneH
-    iintro ⟨⟨-, Hm, -⟩, Hb⟩
-    rw [os.rsPost_rsPost]
+    iintro ⟨⟨-, ⟨%tc, Hm⟩, -⟩, Hb⟩
+    rw [rsPost_withTc, os.rsPost_rsPost]
     iframe
     ipureintro; exact hzs
   unfold os.truncOutH
@@ -63,7 +64,8 @@ theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tg n : Nat) (e : w64) (zs : L
   · iapply hgo zs' $$ [Hd Hb]; iframe
   · unfold os.ftUndoneH os.ftDoneH
     icases Hu with ⟨Hm, -⟩
-    rw [os.announce_rsPost]
+    simp only [OsMeta.withTc_size]
+    rw [← OsMeta.withTc_self (OsMeta.announce _ _ _ _), announce_withTc, os.announce_rsPost]
     iframe
     ipureintro; exact hzs
 
@@ -179,21 +181,22 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         · iright; unfold os.ftUndoneH; iexists xs1; iframe; ipureintro; exact hxs1.1
   · -- a further attempt after one that landed: a resize to the size the file has
     iunfold os.ftDoneH at Hd
-    icases Hd with ⟨%hzs, Hm, Hbs⟩
-    have hdsz : (rsPost true m sz.toNat sz.toNat).size = sz.toNat := rfl
-    have hdmaps : (rsPost true m sz.toNat sz.toNat).maps = m.maps := by simp [rsPost]
-    ihave Hb0 : osBytes d.ino (min (rsPost true m sz.toNat sz.toNat).size sz.toNat)
+    icases Hd with ⟨%hzs, ⟨%tc0, Hm⟩, Hbs⟩
+    have hdsz : ((rsPost true m sz.toNat sz.toNat).withTc tc0).size = sz.toNat := rfl
+    have hdmaps : ((rsPost true m sz.toNat sz.toNat).withTc tc0).maps = m.maps := by
+      simp [rsPost]
+    ihave Hb0 : osBytes d.ino (min ((rsPost true m sz.toNat sz.toNat).withTc tc0).size sz.toNat)
         (DFrac.own (1 : Qp).half) [] $$ []
     · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
-    ihave Hau := Hsup $$ %(rsPost true m sz.toNat sz.toNat) %([] : List ByteG)
+    ihave Hau := Hsup $$ %((rsPost true m sz.toNat sz.toNat).withTc tc0) %([] : List ByteG)
       %(by rw [hdsz]; simp) HK Hm Hb0
     unfold os.truncAuW
-    wp_apply wp_osFtruncateStart_auW fd sz dq d (rsPost true m sz.toNat sz.toNat) [] hwr hsz
-      (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hau
+    wp_apply wp_osFtruncateStart_auW fd sz dq d ((rsPost true m sz.toNat sz.toNat).withTc tc0) []
+      hwr hsz (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hau
       as %t %n %- Hosfd Hau
     wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
     ihave Hd : os.ftDoneH d.ino m sz.toNat zs $$ [Hr Hbs]
-    · iapply os.truncOutH_again _ m sz.toNat n e zs hzs $$ [Hr Hbs]; iframe
+    · iapply os.truncOutH_again _ m tc0 sz.toNat n e zs hzs $$ [Hr Hbs]; iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       wp_auto
