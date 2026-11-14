@@ -41,7 +41,7 @@ theorem ownBroadcastChan_dup_unknown (ch : Loc) (γ : ChanNames) (Q : IProp GF) 
 theorem go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.wp_proof
     (wp_run : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec (GF := GF) (hG := hG) := by
-  intro lg dir sz R dq j hsz0 hsz1 hdir
+  intro lg dir sz R dq j hsz0 hsz1 hdir hsz8
   wp_start as ⟨#Hlg, #Hos, #Hsi, #Hpkg, Hres, Hc⟩
   ihave %hlg := zapLoggerOk_ne_null lg $$ Hlg
   (try wp_auto)
@@ -84,7 +84,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.wp_proof
     isplitl []
     · iapply (show ownBroadcastChan dc γdc (dghostVar (GF := GF) γa DFrac.discard true) .Unknown ⊢
           ownBroadcastChan γ.dc γ.d (pipeClosedW γ) .Unknown from .rfl) $$ Hbcu
-    ipureintro; exact ⟨hsz0, hsz1, hdir⟩
+    ipureintro; exact ⟨hsz0, hsz1, hdir, hsz8⟩
   wp_apply wp_fork $$ [Hsnd Hprod count Hres Hc]
   · wp_apply wp_run «$r0_ptr» γ R dir dq j sz $$ [Hsnd Hprod count Hres Hc]
     · iframe Hfp

@@ -87,14 +87,18 @@ variable [os_sem : os.Assumptions]
 
 /-- **The `n`-th file of the pipeline of the directory `dir` (inode `j`), at `lf`**: a locked file
 on the name `pipeTmp n`, open write-only at offset 0, its `OsMeta` (no mappings) and its bytes
-whole, all zeros (`osZerosA`), and the whole claim on its name, which holds it. -/
+whole, all zeros (`osZerosA`), and the whole claim on its name, which holds it; no sync without its
+bytes (`OsMeta.cut` none), a crash's lower size bound at most the size, and the size a multiple of 8
+(the pipeline's size, `isFilePipe`: the headers' frames are 8-aligned, so the zeros after them are
+too). -/
 def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (i : Ino) (m : OsMeta) (h : NamesH),
     fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir (pipeTmp n)) (DFrac.own 1) ∗
     os.ownOff f (W64 0) ∗ osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag true ||| W64 0x80000)) ∗
     osMeta i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ∗
     osNames j (.only [pipeTmp n]) (DFrac.own 1) h ∗
-    ⌜0 ≤ fd.toInt ∧ m.maps = ∅ ∧ h.cur !! pipeTmp n = some (.file i)⌝)
+    ⌜0 ≤ fd.toInt ∧ m.maps = ∅ ∧ h.cur !! pipeTmp n = some (.file i) ∧
+      m.cut = none ∧ m.lo ≤ m.size ∧ m.size % 8 = 0⌝)
 
 /-- What the receiver of file `n` hands back: the claim on `pipeTmp (n + 1)`, and the bound. -/
 def pipeQ (j : Ino) (n : Nat) : IProp GF :=
@@ -142,7 +146,7 @@ def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DF
     ownBroadcastChan γ.dc γ.d (pipeClosedW γ) .Unknown ∗
     zapLoggerOk lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 61⌝)
+    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 61 ∧ sz.toInt % 8 = 0⌝)
 
 instance isFilePipe_persistent (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac)
     (j : Ino) (sz : w64) : Persistent (isFilePipe (GF := GF) fp γ R dir dq j sz) := by

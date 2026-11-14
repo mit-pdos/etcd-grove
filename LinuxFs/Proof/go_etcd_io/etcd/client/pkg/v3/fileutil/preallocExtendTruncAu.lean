@@ -84,7 +84,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
     iexists _
     iframe Hm
     isplitr
-    · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm⟩
+    · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm,
+        growMeta_announce ..⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
 

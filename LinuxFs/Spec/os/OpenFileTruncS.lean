@@ -41,12 +41,13 @@ variable [os.Assumptions]
 
 /-- The file `i`, held whole by its owner: its `OsMeta`, its bytes, the client's halves of its
 mapped cells (none: the file is not mapped, `m.maps = ∅`, as a file this process created and never
-mmapped; a truncation keeps the mappings); its size 0 if `P`. What an `O_TRUNC` open takes and
-gives. -/
+mmapped; a truncation keeps the mappings); its size 0 if `P`; no sync without its bytes (`OsMeta.cut`
+none) and a crash's lower size bound at most the size (a new file's `newMeta`; a truncation to 0 sets
+it to 0). What an `O_TRUNC` open takes and gives. -/
 def trFile (i : Ino) (P : Prop) : IProp GF :=
   iprop(∃ (m : OsMeta) (xs : List ByteG), osMeta i (DFrac.own 1) m ∗
     osBytes i 0 (DFrac.own 1) xs ∗ mcellsAny (GF := GF) m.maps 0 m.size ∗
-    ⌜xs.length = m.size ∧ (P → m.size = 0) ∧ m.maps = ∅⌝)
+    ⌜xs.length = m.size ∧ (P → m.size = 0) ∧ m.maps = ∅ ∧ m.cut = none ∧ m.lo ≤ m.size⌝)
 
 /-- The new file after an outcome. -/
 def crTr (P : Prop) : Option (Nat × Nat × Ino) → IProp GF

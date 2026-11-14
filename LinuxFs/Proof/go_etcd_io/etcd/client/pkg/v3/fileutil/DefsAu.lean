@@ -30,7 +30,7 @@ variable [sem : go.Semantics]
 its `OsMeta`'s half (of that size, `m`'s mappings, the page cache known zero past the size at least
 as far) and its half of the new bytes, zeros. -/
 def preGrownH (i : Ino) (m : OsMeta) (w : Nat) : IProp GF :=
-  iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz⌝ ∗
+  iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz ∧ GrowMeta m m'⌝ ∗
     osMeta i (DFrac.own (1 : Qp).half) m' ∗ osZerosA i m.size (w - m.size) (DFrac.own (1 : Qp).half))
 
 theorem osZerosA_nil (i : Ino) (lo : Nat) (dq : DFrac) : ⊢ osZerosA (GF := GF) i lo 0 dq := by
@@ -60,13 +60,13 @@ theorem preGrownH_same (i : Ino) (m : OsMeta) :
   iexists m
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _⟩
+  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _, GrowMeta.refl m⟩
   rw [Nat.sub_self]
   iapply osZerosA_nil
 
 /-- Two growths in a row are one. -/
 theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.size)
-    (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) (hcz : m.cz ≤ m1.cz) :
+    (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) (hcz : m.cz ≤ m1.cz) (hg : GrowMeta m m1) :
     osZerosA (GF := GF) i m.size (m1.size - m.size) (DFrac.own (1 : Qp).half) ∗ preGrownH i m1 w ⊢
       preGrownH i m w := by
   iintro ⟨Hz, Hg⟩
@@ -75,7 +75,7 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.
   iexists m'
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨hm'.1, hm'.2.1.trans hmaps, Nat.le_trans hcz hm'.2.2⟩
+  · ipureintro; exact ⟨hm'.1, hm'.2.1.trans hmaps, Nat.le_trans hcz hm'.2.2.1, hg.trans hm'.2.2.2⟩
   have hw : w - m.size = (m1.size - m.size) + (w - m1.size) := by omega
   rw [hw]
   iapply (osZerosA_add i m.size _ _ _).2
@@ -83,14 +83,14 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.
   iframe
 
 /-- A growth that landed with the size `w`: grown. -/
-theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) :
+theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size ≤ w ∨ w = tg) :
     fallocDoneH (GF := GF) i m tg w ⊢ preGrownH i m w := by
   unfold fallocDoneH preGrownH
   iintro ⟨Hm, Hz⟩
   iexists rsPost false m tg w
   iframe
   ipureintro
-  exact ⟨rfl, rsPost_maps .., os.le_rsPost_cz false m tg w⟩
+  exact ⟨rfl, rsPost_maps .., os.le_rsPost_cz false m tg w, growMeta_rsPost false m tg w hw⟩
 
 /-- A growth's outcome: grown to some `w` between the size and the target, all of it on success. -/
 theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : m.size ≤ tg) :
@@ -102,7 +102,7 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
   · iexists tg
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    iapply fallocDoneH_preGrownH $$ Hd
+    iapply fallocDoneH_preGrownH (hw := Or.inr rfl) $$ Hd
   · iexists m.size
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
@@ -110,13 +110,14 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
     iexists _
     iframe Hm
     isplitr
-    · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm⟩
+    · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm,
+        growMeta_announce ..⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
   · iexists w
     isplitr
     · ipureintro; exact ⟨hw.1, hw.2, fun h => absurd h he⟩
-    iapply fallocDoneH_preGrownH $$ Hd
+    iapply fallocDoneH_preGrownH (hw := Or.inl hw.1) $$ Hd
 
 /-- A truncate that landed, growing the file (`os.ftDoneH`): grown. -/
 theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
@@ -127,7 +128,8 @@ theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
   iframe Hm
   isplitr
   · ipureintro
-    exact ⟨rfl, rsPost_maps .., by simp only [rsPost, rsCz, ite_true]; omega⟩
+    exact ⟨rfl, rsPost_maps .., by simp only [rsPost, rsCz, ite_true]; omega,
+      growMeta_rsPost true m tg tg (Or.inr rfl)⟩
   iapply (osZerosA_unfold p m.size _ _).2
   iexists zs
   iframe Hb
@@ -141,7 +143,8 @@ theorem ftUndoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) :
   iexists _
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm⟩
+  · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm,
+      growMeta_announce ..⟩
   rw [Nat.sub_self]
   iapply osZerosA_nil
 
