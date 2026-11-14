@@ -14,8 +14,9 @@ none of them.
 * the request side (`reqSideWhy`, common to every class): `ErrUserEmpty` when the context carries no
   token, or when the flag also read `false` at such a state (the flag changed since `n`; unordered:
   for `requireAuthInfo` a race with `AuthDisable`,
-  `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`; for the admin check a race with
-  `AuthEnable`, `nonissues/etcd-admin-check-authenable-race.md`; `auth.noPrincipalFrom`);
+  `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`; for the admin check and the
+  watch's `isWatchPermitted` a race with `AuthEnable`, `nonissues/etcd-admin-check-authenable-race.md`;
+  `auth.noPrincipalFrom`);
   `ErrInvalidAuthToken` when the context carries a token (`auth.tokRefusedFrom`: only that; the token
   provider's contract says nothing of a token it refuses, and a live token may be refused, since the
   simple provider's keeper may delete it at any time in a model with no clock; token liveness is the
@@ -115,7 +116,10 @@ side gave (`AuthInfo{}` exactly when it gave none, or one bound to the request),
 at a state no older than `n` and `ErrUserEmpty` for revision `0`; `ErrAuthOldRevision` for a non-zero
 revision below a state's no older than `n`; or `ErrPermissionDenied` for a non-zero revision no lower
 than the revision read (a state no older than `n`) and a user absent, or without the root role and not
-covered, at such states (`auth.permRefusalFrom`, `store.go:869-899`); `True` in the modes `off` (as
+covered, at such states (`auth.permRefusalFrom`, `store.go:869-899`). The anonymous principal's
+`ErrUserEmpty` beside `auth.noPrincipalFrom`'s flag read `false` is the watch's race with `AuthEnable`
+(`AuthInfoFromCtx` reads `false`, `isOpPermitted` `true`: a valid-token client refused,
+`nonissues/etcd-admin-check-authenable-race.md`). `True` in the modes `off` (as
 `adminWhy`: the off store's request side leaves `AuthInfoFromCtx`'s error free; a follow-up of D22)
 and `any`. -/
 def permWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)

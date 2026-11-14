@@ -8,9 +8,13 @@ What the server keeps of its auth store's invariant for the apply thread, with a
   for its reader resource and the apply thread's family `auth.latestRes`
   (`apply.isAuthStoreL_of_authInv`); `NewAuthStore`'s construction gives it (`authStoreKit`'s
   post), the built part keeps it (`srvUberBase`);
-- **the range check at a reader's lower bound** (`authStoreLbM`, E3s): with auth on, the store's
-  `IsRangePermitted` with its verdict no older than any lower bound of the published index
-  (`apply.isAuthStoreRangeLb_of_authInv`); from the same construction, kept beside the above;
+- **the checks at a reader's lower bound** (`authStoreLbM`, E3s): with auth on, for any lower bound
+  of the published index, the store's `IsRangePermitted` with its verdict no older than it
+  (`apply.isAuthStoreRangeLb_of_authInv`), the lease checks' methods at such states (the lease-src
+  plan, 2026-11-02: `isAuthStoreLeaseLb`, `isAuthStoreLeaseLb_of_authInv`), and `IsRangePermitted`'s
+  refusal with why it refused, each error tied to its case (auth-guard-completeness, 2026-11-14:
+  `apply.isAuthStoreRangeLbR`, through `IsRangePermitted.specLbR`; the watch's `isWatchPermitted`);
+  from the same construction, kept beside the above;
 - **publication** (`authPublishM`, E3t): with auth on, the apply thread raising the published index
   to its history's latest one (E3j's `authPublishT`, of the store's invariant), from the same
   construction, kept beside the above; what it gets, a published index whose recorded state is

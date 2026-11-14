@@ -15,7 +15,7 @@ Scope: `notes/auth-guard-scope.md`; decisions: `questions.md`, section "auth-gua
   (`InvRequest.lean`) and their producer (`isReqAuthBound_of_authInv`, `AuthReqDerive.lean`; threaded through
   `srvAuthBound_of_authInv`, `authStoreKit_on`, `authSrvTP_on`, `Results.lean`'s `auth_ctx_lb`,
   `auth_admin_permitted_lbO`), `isReqAuth_ctxMLb`, the server's `EtcdServer.AuthInfoFromCtx.specLb`/`wp_proofLb`.
-- **G2** (except `isWatchPermitted`): `specC`/`wp_proofC` of `EtcdServer.requireAuthInfo`,
+- **G2** (`isWatchPermitted`: its own section below): `specC`/`wp_proofC` of `EtcdServer.requireAuthInfo`,
   `EtcdServer.checkMembershipOperationPermission`, `v3rpc.AuthAdmin.{isPermitted,requireAuthInfo}`,
   `v3rpc.authMaintenanceServer.{isPermitted,requireAuthInfo}`; linked (`etc/link-lean-first-{server,v3rpc}.txt`,
   `<fn>+C`, `EtcdServer__AuthInfoFromCtx+Lb`).
@@ -53,6 +53,23 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
   `n ≤ i ≤ j` for the authenticated class is not done: the store's freshness (`revFresh`) gives a flag
   read as some state's at an index at least the published one, not ordered with a later read's.
 
+## isWatchPermitted (2026-11-14; branch `auth-guards-watch`, on lean `008b848fbe`)
+
+- The store's refusal half, each error tied to its case: `auth.permRefusalFrom`/`permRefusalM`,
+  `isOpPermitted.specLbR`, `IsRangePermitted.specLbR` (`auth/FreshCheck.lean`, `auth/FreshWrap.lean`).
+- `apply.isAuthStoreRangeLbR` (`apply/AuthCheckTxnLb.lean`), a third row of `authStoreLbM`
+  (`StoreLatest.lean`), produced by `authStoreKit_on` (`AuthSrv.lean`), the only builder of `srvAuthLb`.
+  The exported results whose premises hold `srvAuthLb` now ask for this row too with auth on (listed in
+  STATUS's entry); `authStoreKit_on` supplies it.
+- `v3rpc.serverWatchStream.isWatchPermitted.spec`: on an error, `∃ info, permWhy … err info k e .read`
+  (`AuthWhy.lean`'s `permWhy`, now over `auth.permRefusalFrom`; `permWhy_of_reqSide`, `permWhy_anon`,
+  `permWhy_bound`, `permWhy_off`). `recvLoop` drops the reason.
+- The anonymous principal's `ErrUserEmpty` beside `noPrincipalFrom`'s flag read `false` is a race with
+  `AuthEnable` (`AuthInfoFromCtx` reads `false`, `isOpPermitted` `true`): added to
+  `nonissues/etcd-admin-check-authenable-race.md`.
+- Independent review (2026-11-14): PASS, no blocker or major; the four minor findings (the race, the
+  results' premises, these notes, stale docstrings) fixed in docs and records only.
+
 ## Follow-ups
 
 - (G3 review, etcd-grove-81 2026-11-14; needed for G7) The reason does not reach the gRPC error: `grpcErrMapOk`
@@ -60,9 +77,10 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
   of the guard's `e0`. Add the auth errors' entries (as `util.go` has them) to `grpcErrMapOk`.
 
 - (D22, decided by etcd-grove-81 2026-11-14) With auth off the admin guards' error may be `AuthInfoFromCtx`'s,
-  which `isReqAuth` (of `NewAuthStore`'s axiom) leaves free, so `adminWhy .off` is `True`. Discharging
+  which `isReqAuth` (of `NewAuthStore`'s axiom) leaves free, so `adminWhy .off` is `True`, and so is
+  `permWhy .off` (the watch's `isWatchPermitted` calls `AuthInfoFromCtx` too). Discharging
   `NewAuthStore`'s axiom by proof (D22) would give "no error with auth off" without new trust.
-- `isWatchPermitted` (after k8s 7f-3b), `served_of_frozen` for `permWhy` (G4).
+- `served_of_frozen` for `permWhy` (G4).
 - (decided by etcd-grove-81 2026-11-14) The ordered flag race: a store freshness invariant that follows the
   flag's latest index (`revFresh` gives only some state at an index at least the published one), so that
   `authedWhy` can require the `true` read at `i` and the `false` read at `j` with `n ≤ i ≤ j`.

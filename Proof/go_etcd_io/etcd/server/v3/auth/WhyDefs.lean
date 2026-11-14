@@ -39,7 +39,9 @@ read `false` at such a state (`AuthInfoFromCtx`'s own read, `store.go:1073`). A 
 second only beside a read of `true` at such a state too (`reqSideWhy`): together they say the flag
 changed since `n`, a race with `AuthDisable` (`requireAuthInfo` reads `true`, then `AuthInfoFromCtx`
 `false`: `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`) or with `AuthEnable` (the
-admin check: `AuthInfoFromCtx` reads `false`, then `IsAdminPermitted` `true`:
+admin check: `AuthInfoFromCtx` reads `false`, then `IsAdminPermitted` `true`; the watch's
+`isWatchPermitted`: `AuthInfoFromCtx` reads `false`, then `IsRangePermitted`'s `isOpPermitted` `true`
+(`store.go:864`), refusing the substituted `AuthInfo{}` with `ErrUserEmpty`; both in
 `nonissues/etcd-admin-check-authenable-race.md`). The two reads are not ordered here: the store's
 freshness (`revFresh`) gives each read's flag as some state's at an index at least the published one,
 not the later read's state as the later one. -/

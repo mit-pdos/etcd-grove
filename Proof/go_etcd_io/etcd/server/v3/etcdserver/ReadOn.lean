@@ -109,7 +109,10 @@ theorem isServerReadM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **The store's range check at a reader's lower bound, as the server keeps it** (the auth plan's
 E3s, 2026-10-27; persistent): the server's `authStore` field and `authStoreLbM` of it (with auth on,
-`IsRangePermitted`'s verdict no older than any lower bound of the published index). -/
+for any lower bound of the published index: `IsRangePermitted`'s verdict no older than it, the lease
+checks' methods at such states, and, auth-guard-completeness 2026-11-14, `IsRangePermitted`'s refusal
+with why it refused, `apply.isAuthStoreRangeLbR`). Its only builder, `authStoreKit_on`, supplies all
+three. -/
 def srvAuthLb (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au : GoInterface, srvAuthStoreAddr s ↦□ au ∗ authStoreLbM E.authMode au E.RD)
 

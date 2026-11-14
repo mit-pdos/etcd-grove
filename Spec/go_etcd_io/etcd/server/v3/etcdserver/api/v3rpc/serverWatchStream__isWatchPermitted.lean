@@ -45,7 +45,9 @@ lower-bound check (`srvAuthLb`, as `Range`'s), the class is at states no older t
 (auth-guard-completeness, 2026-11-14) On an error, why (`permWhy`, the RBAC class): with auth on, the
 request side's reasons, or, for the principal it gave (`AuthInfo{}` when none, or one bound to the
 stream's context), `isOpPermitted`'s refusal at states no older than `n`, each error tied to its case
-(`auth.permRefusalFrom`). -/
+(`auth.permRefusalFrom`). The anonymous principal's `ErrUserEmpty` covers a race with `AuthEnable`:
+`AuthInfoFromCtx` reads the flag `false` (`store.go:1073`), `isOpPermitted` then `true` (`store.go:864`),
+and a client with a valid token is refused (`nonissues/etcd-admin-check-authenable-race.md`). -/
 abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
