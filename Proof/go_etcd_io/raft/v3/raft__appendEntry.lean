@@ -302,7 +302,10 @@ theorem raft.appendEntry.wp_proof
     imod Hg with ⟨%tl, #Htl, Hfire⟩
     icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
     rw [← normalCount_stamp s.term li ents] at *
-    wp_apply wp_traceReplicate c r id s _ _ _ tl G1 $$ [$Hcl $Htl $Hown $Hfire] as ⟨Hcl, Hown, HG1⟩
+    -- (out_size C3) the stamped batch is held frozen and sized (`HclZ`); the hook reads it in
+    -- today's form
+    wp_apply wp_traceReplicate c r id s _ _ _ tl G1 $$ [$Htl $Hown $Hfire] as ⟨-, Hown, HG1⟩
+    · iapply entsPtsZ_entsPts $$ HclZ
     ihave Hphys := Hback $$ Hown
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises

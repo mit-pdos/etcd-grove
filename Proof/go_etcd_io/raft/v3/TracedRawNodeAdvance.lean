@@ -691,7 +691,7 @@ private theorem wp_step_pending_g
         exact absurd h.1 (by first | not_self | msg_ne)
       isplitl [Hmin]
       · isplitl [Hmin]
-        · iexact Hmin
+        · iapply msgIn_toC (movesB_false_of (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc))) _ _ _ $$ Hmin
         isplitr
         · iempintro
         isplitr
@@ -794,7 +794,7 @@ private theorem wp_step_pending_g
         exact absurd h.1 (by first | not_self | msg_ne)
       isplitl [Hmin]
       · isplitl [Hmin]
-        · iexact Hmin
+        · iapply msgIn_toC (movesB_false_of (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc))) _ _ _ $$ Hmin
         isplitr
         · iempintro
         isplitr
@@ -866,7 +866,7 @@ private theorem wp_step_pending_g
         exact absurd h.1 (by first | not_self | msg_ne)
       isplitl [Hmin]
       · isplitl [Hmin]
-        · iexact Hmin
+        · iapply msgIn_toC (movesB_false_of (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc))) _ _ _ $$ Hmin
         isplitr
         · iempintro
         isplitr
@@ -1187,7 +1187,7 @@ private theorem wp_step_snapack
       exact absurd h.1 (by first | not_self | msg_ne)
     isplitl [Hmin]
     · isplitl [Hmin]
-      · iexact Hmin
+      · iapply msgIn_toC (movesB_false_of (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc)) (by first | not_self | msg_ne | (intro Hc; simp [appendAckM, applyAckM, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader] at Hc))) _ _ _ $$ Hmin
       isplitr
       · iempintro
       isplitr

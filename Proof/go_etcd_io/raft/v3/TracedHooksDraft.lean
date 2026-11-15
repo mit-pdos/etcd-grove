@@ -266,7 +266,8 @@ abbrev raft.send.tracedSpec : Prop :=
     SendEvOf evt id s c mm e → TraceEv.Ok (elements c.incoming).length e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (out_size C3, `raft.send.spec`'s) held at a content, at the node's flag
+      "Hm" ∷ msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
       trCapB s.gh.tr γ r id c b Φ Λ ∗
       -- (review round 2's A4) the facts the send line keeps, the caller's

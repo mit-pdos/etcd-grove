@@ -114,6 +114,9 @@ abbrev StartNode.gatedSpec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
+  -- (raft-entsize §3, `StartNode.spec`'s) in a cluster with a bound on proposed data, a `MsgApp`'s
+  -- entries cut at `MaxSizePerMsg ≤ entsCutMax`
+  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
   cv.Applied' = W64 0 →
   csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →

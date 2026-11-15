@@ -257,31 +257,35 @@ theorem outboxRel_snoc (o : List Msg) (msgs msgsAA : List QMsg) (q : QMsg) (a : 
   iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2
   iframe H1 Hq
 
-/-- (2026-11-09, Q8 stage 1 slice 5) A queued message, lent out of its queue. -/
+/-- (2026-11-09, Q8 stage 1 slice 5) A queued message, lent out of its queue. (`lean` merge, stage
+2: the queue holds the message at a content, `msgOwnZ` (out_size C3), so what is lent is half of it in
+today's form, `msgOwnZ_read`; a hook only reads it.) -/
 theorem msgQs_lend (l : List QMsg) (as_ : List (Option Msg)) (q : QMsg) (h : q ∈ l) :
-    ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) q a) ⊢
-      msgOwn q.loc (DFrac.own 1) q.st ∗
-        (msgOwn q.loc (DFrac.own 1) q.st -∗ [∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) q a) := by
+    ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) sz q a) ⊢
+      msgOwn q.loc dqh q.st ∗
+        (msgOwn q.loc dqh q.st -∗ [∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) sz q a) := by
   obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 h
   refine (and_intro BigSepL2.bigSepL2_length .rfl).trans (pure_elim_left fun hlen => ?_)
   have hil : i < as_.length := by
     rw [← hlen]; exact (List.getElem?_eq_some_iff.1 hi).1
   obtain ⟨a, ha⟩ : ∃ a, as_[i]? = some a := ⟨as_[i], List.getElem?_eq_getElem hil⟩
   iintro H
-  icases BigSepL2.bigSepL2_lookup_acc (Φ := fun _ q a => msgQ (GF := GF) q a) hi ha $$ H with ⟨Hq, Hback⟩
+  icases BigSepL2.bigSepL2_lookup_acc (Φ := fun _ q a => msgQ (GF := GF) sz q a) hi ha $$ H with ⟨Hq, Hback⟩
   iunfold msgQ at Hq
   icases Hq with ⟨Hm, %Ha⟩
+  icases msgOwnZ_read sz q.loc q.st $$ Hm with ⟨Hm, Hmb⟩
   iframe Hm
   iintro Hm
   iapply Hback
   iunfold msgQ
-  iframe Hm
+  isplitl [Hm Hmb]
+  · iapply Hmb $$ Hm
   ipureintro; exact Ha
 
 /-- (2026-11-09, Q8 stage 1 slice 5) A message of either queue, lent out of the outbox. -/
 theorem outboxRel_lend (o : List Msg) (msgs msgsAA : List QMsg) (q : QMsg) (h : q ∈ msgs ++ msgsAA) :
-    outboxRel (GF := GF) o msgs msgsAA ⊢
-      msgOwn q.loc (DFrac.own 1) q.st ∗ (msgOwn q.loc (DFrac.own 1) q.st -∗ outboxRel o msgs msgsAA) := by
+    outboxRel (GF := GF) sz o msgs msgsAA ⊢
+      msgOwn q.loc dqh q.st ∗ (msgOwn q.loc dqh q.st -∗ outboxRel sz o msgs msgsAA) := by
   unfold outboxRel
   iintro ⟨%as1, %as2, %Ho, H1, H2⟩
   rcases List.mem_append.1 h with h | h
@@ -2930,7 +2934,7 @@ theorem ownRaftPhysC_misc (r : Loc) (id : w64) (s : NState) :
 theorem ownRaftPhysC_lq_lend (r : Loc) (id : w64) (s : NState) (l : Loc) (st : MsgSt)
     (h : (l, st) ∈ s.gh.lq) :
     ownRaftPhysCV (GF := GF) c V r id s ⊢
-      msgOwn l (DFrac.own 1) st ∗ (msgOwn l (DFrac.own 1) st -∗ ownRaftPhysCV c V r id s) := by
+      msgOwn l dqh st ∗ (msgOwn l dqh st -∗ ownRaftPhysCV c V r id s) := by
   iintro H
   iNamed_physC H
   icases outboxRel_lend s.outbox msgs msgsAA ⟨l, st⟩ (Hlq _ h) $$ Houtbox with ⟨Hm, Hb⟩

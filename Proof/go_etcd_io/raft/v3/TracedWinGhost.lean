@@ -258,11 +258,11 @@ theorem ghost_stepWin_entry (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     rw [toPState_becomeLeader]; simp
   have HLv : plogLastIndexZ (toPState (votedState s m)).base (toPState (votedState s m)).log =
       plogLastIndexZ (toPState s).base (toPState s).log := by rw [Hvs]
-  imod ownRaftGhost_step_win_entry γ id (toPState (votedState s m)) (prvalsMatch pvs) []
+  imod ownRaftGhost_step_win_entry γ c id (toPState (votedState s m)) (prvalsMatch pvs) []
       ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + 1)
       (by rw [HLv]; exact Hnw)
       (by rw [Hmt]; exact resetMatched_leader_ok id (votedState s m) Hid _ rfl rfl)
-      (by simp) (by simp) (by simp)
+      (by simp) (by simp) (by simp) (by simp)
       (by rw [HLv]; have := plogLastIndexZ_nonneg (toPState s).base (toPState s).log; omega)
     $$ Hrc Hp with Hg
   rw [← Hps]

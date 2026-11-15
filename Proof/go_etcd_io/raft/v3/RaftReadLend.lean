@@ -105,6 +105,8 @@ def raftNames0 [GooseExts] : RaftNames where
   reNoXfer := false
   reNoXfer_ok := fun h => by cases h
   reSnapOkRaw := fun _ _ => True
+  maxData := none
+  out := default
 
 /-! ## Out of the sealed struct -/
 
@@ -177,7 +179,7 @@ theorem ownRaftPhysCV_reconfigCore (c c' : CfgM) (V V' : GSet w64) (r : Loc) (id
   ihave Hr := Hback $$ %tv' Hf HfT HfV HfS HfL
   iapply ownRaftPhysCV_intro c' V' r id { s with progress := prs', prvals := pvs' }
       { rv with trk' := tv' } msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward Hmms HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Htl Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
     Hok Hnsl Hxf Hlq
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
@@ -196,7 +198,7 @@ theorem ownRaftPhysC_traceLoggerG (c : CfgM) (V : GSet w64) (r : Loc) (id : w64)
   isplitr
   · ipureintro; exact fun htr => Htl.untraced htr
   iapply ownRaftPhysCV_intro c V _ _ s _ msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward Hmms HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Htl Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
     Hgh_unst Hvoter Hprok Hnsl Hxf Hlq
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert

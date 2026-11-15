@@ -274,7 +274,8 @@ private theorem send_hookW (wp_traceSendMessage : traceSendMessage.spec (GF := G
       iintro ⟨HP, %Hφ⟩
       iexists c, id, { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } }
       iexists ownRaftPhysCV c c.voters r id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } }
-      iexists ⟨DFrac.own 1, DFrac.discard, false, st⟩
+      -- (`lean` merge, stage 2) half of the queued message, which the queue holds at a content
+      iexists ⟨dqh, DFrac.discard, false, st⟩
       iframe HP
       isplitr
       · iapply raftLend_self

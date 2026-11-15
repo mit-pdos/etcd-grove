@@ -776,10 +776,10 @@ witness `True`). -/
 theorem StartNode.spec_of_gatedSpec (h : StartNode.gatedSpec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-    H15 H16 Htlk HtrC
+    H15 H16 H17 Htlk HtrC
   iintro %Φ ⟨#Hpkg, Hc, #Hlg, #Hb, Hvac, HAU, Hrs, Hpeers, #Hctx⟩ HΦ
   iapply h γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
-    H15 H16 $$ [Hc Hvac HAU Hrs Hpeers]
+    H15 H16 H17 $$ [Hc Hvac HAU Hrs Hpeers]
   · iframe Hpkg Hc Hlg Hb Hvac HAU Hrs Hpeers Hctx
     iapply (startTrace_untraced γ N vs cv HtrC).2
     ipureintro; exact Htlk

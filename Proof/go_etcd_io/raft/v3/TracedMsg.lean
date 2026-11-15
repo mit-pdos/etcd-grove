@@ -350,7 +350,7 @@ theorem raftLend_self (c : CfgM) (r : Loc) (id : w64) (s : NState) :
 theorem msgLend_lq (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (st : MsgSt)
     (h : (ml, st) ∈ s.gh.lq) :
     ⊢ MsgLend (ownRaftPhysCV (GF := GF) c c.voters r id s) ml
-        (some ⟨DFrac.own 1, DFrac.discard, false, st⟩) := by
+        (some ⟨dqh, DFrac.discard, false, st⟩) := by
   unfold MsgLend
   imodintro
   iintro HP

@@ -271,7 +271,7 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List
     isplitr
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0) (Hxf.2.1 q Hq0)
-        (Hxf.2.2.1 q Hq0) (Hsn q List.mem_cons_self) Htr $$ Ho Hq Hxw
+        (Hxf.2.2.1 q Hq0) Htr (Hsn q List.mem_cons_self) $$ Ho Hq Hxw
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
         (fun q' hq' => Hsn q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
@@ -419,7 +419,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
             ihave #Ho' := bigSepL_wand_pers (durFrags (GF := GF) γ id W) (isMessage γ) o $$ Ho Hfr
             iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
               (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0)
-              (fun hs => absurd hs (resp_ne_MsgSnap _ Hresp)) Htr $$ Ho' Hqq Hxw
+              Htr (fun hs => absurd hs (resp_ne_MsgSnap _ Hresp)) $$ Ho' Hqq Hxw
           · iexact Htq
       · iapply ih Hsub' Hok' $$ Ho Hqc Hxw H Htk
     · simp only [selfmsgs, List.filter_cons, h, Bool.false_eq_true, ↓reduceIte]
