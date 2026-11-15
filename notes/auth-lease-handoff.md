@@ -277,6 +277,13 @@ puts and leased transactions in the auth-on apply thread (ledger 2026-11-15, opt
 - `plainReqL` widened back to Draft §1's text; §6's KV arm over `outcomeOn_of_kvOutLL` (session 5's lemmas:
   `backendLog_of_step`, `kvGrantedL_of_kvOutL`, `kvShapedL_of_logL`).
 
+**S3a2 (2026-11-15, session 7): Draft and Probe.** Draft `notes/auth-lease-s3a2-draft.md` (rev 1, commit `fd412d310d`).
+Probe `Scratch/S3a2Probe.lean` (untracked, checked with `etc/lean-check.py -a`, no `sorry`): `certPreT`, `mPreAt`,
+`putPre`/`txnPre` bundling `∃ T, certPreT … T ∗ mPreAt … T`, the backend `Put` with the witness taken in the live
+branch (`Put_wp_T`), the backend `Txn` over a strengthened `txn.Txn.specSole` wand (`Txn_wp_T`; finding: the wand
+must be told `PathsLeaseOk L`, a frozen `Spec/` text), `certPreW_innerT`, `certPreW_tie`. Review rounds:
+`/shared/tmp/auth-lease-s3a2/review-r*.md`. Next: the Freeze package (hard stop), then Draft §7's order.
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
