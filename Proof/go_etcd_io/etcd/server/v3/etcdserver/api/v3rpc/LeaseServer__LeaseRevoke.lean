@@ -28,23 +28,21 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.LeaseServer.LeaseRevoke.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E S ci cd r m
-  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr⟩
+  intro p s A cid mid on E ρ S ci cd r m Q
+  wp_start as ⟨#Hls, #HR, HS, #Hctx, #Hrc, #Hr, Hp⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
-  iunfold v3rpc.raftLessor at HL
-  icases HL with ⟨#HG, #HR⟩
-  iunfold v3rpc.lessorGrantOk at HG
-  iunfold v3rpc.lessorRevokeOk at HR
+  iunfold v3rpc.lessorRevokeOkM at HR
   wp_auto
-  wp_apply HR $$ [HS] as %resp %err ⟨HS, Hans⟩
+  wp_apply HR $$ %ci %cd %r %m %Q [HS Hp] as %resp %err ⟨HS, Hans, Hres⟩
   · iframe; iframe #
   iunfold v3rpc.leaseRevokeAns at Hans
   icases Hans with (⟨%Hok, Hh⟩ | #Hse)
@@ -64,7 +62,7 @@ theorem v3rpc.LeaseServer.LeaseRevoke.wp_proof
     ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
     iapply HΦ
     iframe HSn
-    iframe
+    iframe HS Hres
     iunfold v3rpc.leaseRevokeOut
     ileft
     isplitr
@@ -85,10 +83,12 @@ theorem v3rpc.LeaseServer.LeaseRevoke.wp_proof
       · iframe #
       iapply HΦ
       iframe HSn
-      iframe
-      iunfold v3rpc.leaseRevokeOut
-      iright
-      ipureintro; exact ⟨rfl, He⟩
+      iframe HS
+      isplitl []
+      · iunfold v3rpc.leaseRevokeOut
+        iright
+        ipureintro; exact ⟨rfl, He⟩
+      ileft; ipureintro; exact He
 
 end proof
 

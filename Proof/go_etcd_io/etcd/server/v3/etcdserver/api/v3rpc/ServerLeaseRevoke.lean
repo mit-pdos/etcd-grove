@@ -10,6 +10,7 @@ module
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseOn
 
 @[expose] public section
 
@@ -40,25 +41,27 @@ revokes leases (`srvRevokesLeases`), given the run's resource `S` lending the re
 revision reached (`leaseRevokedResp`'s `srvRevLb`), the four id fields
 from its `txn.respHdrOwn`; the error one the gRPC layer can take (`srvErrIs_of_applyErrIs`).
 Mode-gated: the ungated `lessorRevokeOk` (`raftLessor`'s conjunct, any lease mode) stays an
-undischarged premise of the client results. -/
+undischarged premise of the client results. (Auth-lease S3c, decision D6/C5′, 2026-11-15: at the
+environment's auth mode, the server's view `isServerReqM E.authOn` and the contract `lessorRevokeOkM
+E.authOn`, the client's update passed through and the result at the request context's token; the
+auth-off contract is its `_false` instance, `lessorRevokeOkM_false`.) -/
 theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvRevokesLeases E ρ) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorRevokeOk s E S := by
+      lessorRevokeOkM E.authOn s E ρ S := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
-  unfold lessorRevokeOk
-  iintro %ci %cd %r %id !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq⟩ HΦ
+  unfold lessorRevokeOkM
+  iintro %ci %cd %r %id %Q !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hp⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
-  -- auth off (the server's view `isServerReq`): the off permit, the off result
-  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
-  have hLR' := hLR s E ρ ci cd r id (fun _ => iprop(True))
-  rw [hoff, isServerReqM_false] at hLR'
-  wp_apply hLR' $$ [Hlt HRD] as %resp %err ⟨Hlt, HRD, Hans⟩
+  -- the permit at the server's context form (`hdrBoundM_tok`)
+  ihave Hp := leaseRevokePermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E (GoInterface.ok ci)) id Q
+    (fun hm => hdrBoundM_tok s E (GoInterface.ok ci) hm) $$ Hp
+  wp_apply (hLR s E ρ ci cd r id Q) $$ [Hlt HRD Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
     isplitr
     · ipureintro; exact h
@@ -66,13 +69,19 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
     · iunfold leaseRevokeReqRO
       iunfold leaseRevokeReqIs at Hreq
       iexact Hreq
-    iapply leaseRevokePermitM_false
+    iexact Hp
   ihave HSr := Hback $$ [Hlt HRD]
   · iframe Hlt HRD
   iapply HΦ
   iframe HSr
-  icases Hans with (⟨%He, Hresp, -, -⟩ | ⟨%He, #HaE⟩)
+  icases Hans with (⟨%He, Hresp, -, Hres⟩ | ⟨%He, #HaE⟩)
   · obtain ⟨rfl, hnn⟩ := He
+    isplitr [Hres]
+    rotate_left
+    · iright
+      cases hon : E.authOn
+      · iapply leaseRevokeResT_false
+      · iapply leaseRevokeResM_true_T s E ρ ci id Q $$ Hres
     iunfold leaseRevokedResp at Hresp
     icases Hresp with ⟨%hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown⟩
     iunfold txn.respHdrOwn at Hown
@@ -94,9 +103,27 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
       iframe Hc Hm Ht Hl
     ipureintro; exact Hrv0
   · obtain ⟨rfl, hne⟩ := He
-    iunfold leaseRevokeAns
-    iright
-    iapply srvErrIs_of_applyErrIs _ hne $$ HaE
+    isplitl
+    · iunfold leaseRevokeAns
+      iright
+      iapply srvErrIs_of_applyErrIs _ hne $$ HaE
+    ileft; ipureintro; exact hne
+
+/-- **`lessorRevokeOk_of_server` with auth off** (the server's view `isServerReq`), at the auth-off
+contract `lessorRevokeOk` (`lessorRevokeOkM_false`). -/
+theorem lessorRevokeOk_of_server_off (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvRevokesLeases E ρ) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorRevokeOk s E S := by
+  iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
+  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
+  have hthm := lessorRevokeOk_of_server hLR s E ρ S h
+  rw [hoff, isServerReqM_false] at hthm
+  iapply (lessorRevokeOkM_false s E ρ S).1
+  iapply hthm
+  iframe #
 
 end proof
 

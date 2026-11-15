@@ -213,14 +213,14 @@ theorem lessorRevokeOkM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S :
 theorem lessorGrantOkM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) :
     lessorGrantOkM (GF := GF) false s E ρ S ⊣⊢ lessorGrantOk s E S := by
   unfold lessorGrantOkM
-  rw [lessorGrantOkGM_false]
+  refine (lessorGrantOkGM_false s E ρ S _ _).trans ?_
   constructor
   · iintro #H
     unfold lessorGrantOk
     iintro %ci %cd %r %m !> %Φ ⟨HS, Hctx, Hrc, Hreq, Hid⟩ HΦ
     iunfold lessorGrantOkG at H
     wp_apply H $$ %ci %cd %r %m [HS Hctx Hrc Hreq Hid] as %resp %err ⟨HS, Hans, -⟩
-    · iframe; ipureintro; trivial
+    · iframe
     iapply HΦ
     iframe HS Hans
   · iintro #H
@@ -229,7 +229,7 @@ theorem lessorGrantOkM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : 
 theorem raftLessorM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) :
     raftLessorM (GF := GF) false s E ρ S ⊣⊢ raftLessor s E S := by
   unfold raftLessorM raftLessor
-  rw [lessorGrantOkM_false, lessorRevokeOkM_false]
+  exact sep_congr (lessorGrantOkM_false s E ρ S) (lessorRevokeOkM_false s E ρ S)
 
 /-- **The grant contract in the mode is monotone in its success fact and its filter**
 (`lessorGrantOkG_mono`'s). -/
@@ -240,7 +240,6 @@ theorem lessorGrantOkGM_mono (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
   iintro ⟨#HGG, #HL⟩
   unfold lessorGrantOkGM
   iintro %ci %cd %r %m %Q !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, %HR', Hp⟩ HΦ
-  iunfold lessorGrantOkGM at HL
   wp_apply HL $$ %ci %cd %r %m %Q [HS0 Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
   · iframe; ipureintro; exact hR m HR'
   iapply HΦ
