@@ -324,3 +324,9 @@ and `orDir` two distinct roots, both in the first tree; no oracle file nor its t
 shorter than `2^59`); `W1` (no CRC collision) as the crash premise (`hQ`); `BootFo` of the crashed tree until
 `walFoRes` lands (tcrash.md); `WalDecEnvSupply` and the Perennial-gap hypotheses of `S/Link.lean`; and, until
 step 2 above is done, `tReadsBackOk` of the restarted states.
+
+# Tenth session (branch `wal-c-tester3`, 2026-11-15): `tReadsBackOk` carried; `opOwnSnap`; `step`, `Boot`
+
+Base `origin/wal-int` (`9dcb7496e0`), merged again after `wal-c-create2` landed (`8d6f3670d8`, fast-forward,
+no repair). No axiom, no `sorry` added. Nothing trusted or generated edited, no Go changed. (Log in progress;
+see the final sections below.)
