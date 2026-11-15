@@ -3872,7 +3872,8 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S ci cd r m
       (fun _ => iprop(True))) $$ [HS]
   · iframe; iframe #
-    iapply leaseRevokePermitM_false
+    iunfold leaseRevokePermitM
+    itrivial
   inext
   iintro %resp %err ⟨HS, Hout, -, #HSe⟩
   iunfold v3rpc.leaseRevokeOut at Hout

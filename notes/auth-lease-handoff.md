@@ -372,6 +372,44 @@ carries `on → leasesNoExpiry`; `run` has `runCfg`, not `bootCfg`), the hub cha
 (`srvInvAt` drops `on`), C3 (`acLessor` deleted), C4 (auth-on lease registrations as an `Md` set), C5 (`…M` contracts
 beside the off ones), the `NewLessor` docstring wording (§6). No Lean outside `Scratch/` edited.
 
+## S3c Prove (2026-11-15, session 11): FROZEN at Draft rev 6 (tag `auth-lease-s3c-frozen`)
+
+Round 5 (`/shared/tmp/auth-lease-s3c/review-r5.md`) found no first-tier problem; etcd-grove-81's conditional decisions are in
+force (`questions.md`, "S3c Freeze"); ledger entry 2026-11-15 "auth on implies no lease granted". Done (commits
+`334a059cef`, `e08989808d`, `28abd867e1`, after lean `2dbf6503cc` merged):
+1. **Couplings (§1–§5):** C1 guard `srvGrantGuard := ⌜lg = true ∧ (on = true → leasesNoExpiry)⌝`, `srvGrantGuard_expired`
+   restated, `srvGrantGuard_expired_off` new, `_false` deleted; `lease.bootCfg`'s row `on = true → m = .revocable →
+   leasesNoExpiry` (hub), `bootCfg_mono` without `hon`, `bootCfg_auth` → `bootCfg_noExpiry`, `bootCfg_of_run`'s `hon`;
+   `lease.srvInvAt` without `srvLessorNil` (C2′: `on` unused), `_lessorNil` laws deleted; `srvLessorNil`, `srvLessorNilM`,
+   `lookupNil_of_guard`, `apply.lookupNil`, `acLessor` (C3 a) and their conjuncts deleted (apply specs, `srvUberOn`,
+   `srv_uberKVL(_on)`, server `Results`' `server_uber_kvl(_on)`, `Start`/`start`/`applyAll.spec`, `isServerRunC`,
+   `run_job_body`, `isServerBuilt_offC`); `revokeExpiredLeases.spec` takes `E.authOn = false`; `run`'s expiry arm from
+   `srvGrantGuard_expired_off`; `NewServer`'s guard by `bootCfg_noExpiry`; the mode-allow line `::srvLessorNilM::` gone.
+2. **C6:** `srvClusterBootOn_alloc` (+ `server_cluster_alloc_on`) takes `lm`/`gp`/`gps`/`hgps` (defaults), post `γk.lm = lm ∧
+   γk.ids.pfx = gp ∧ γk.gps = gps`; `MainAlloc`/`Alloc3On` derive `lg = false`.
+3. **§6 trusted docstrings** exactly as decided (`NewLessor.lean`, `LessorBackend.lean`); other docstrings restated.
+4. **D6, server and v3rpc layer:** new `v3rpc/LeaseOn.lean` (`leaseGrantResT`/`leaseRevokeResT`, `lessorGrantOkGM`/`lessorGrantOkM`/
+   `lessorRevokeOkM`/`raftLessorM`, `_false` bridges, `leaseGrantResM_true_T`/`leaseRevokeResM_true_T`, `lessorGrantOkGM_mono`);
+   `lessorGrantOkLive_of_server`/`lessorRevokeOk_of_server` at `isServerReqM E.authOn` and the `…M` contract, with `_off`
+   corollaries (form: the off discharges' texts kept under new names, used by `lessorGrantOkL_of_server` and v3rpc `Results`'
+   unchanged `lessorGrantOkLive_server`/`lessorRevokeOk_server`); new exported `lessorGrantOkLiveM_server`, `lessorRevokeOkM_server`;
+   `LeaseServer.LeaseGrant.spec`/`.LeaseRevoke.spec` at `on`, `ρ`, `Q`, the permit, the result (revoke narrowed to
+   `lessorRevokeOkM`); `quotaLeaseServer.LeaseGrant.spec` metadata-indexed (`grpcHandlerOwnOkMd`, error clause);
+   `quotaLease_grantHandlerOkMd_of` (plain `_of` its corollary), `quotaLease_revokeHandlerOkMd`; `srvAuthAt_of_viewsM` in
+   **`ReadOn.lean`** (form: `AuthGuard.lean`, the Draft's place, is imported by `ReqOn`/`ReadOn`, a cycle); client off callers
+   (`LeaseGrantServed.lean:142`, client `Results` `:3806`, `:3861`) at `on := false` with `ρ := ⟨γr.kv.st, γr⟩` (any wait name).
+
+**Left of S3c (next, in order):**
+1. client/v3 (Draft §7.2, §7.3, §7.5): `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` (beside `etcdPutSpecOn`,
+   `KVServiceOn.lean`); `etcdLeaseGrantHandlerOkMd`/`etcdLeaseRevokeHandlerOkMd` (`LeaseGrantServed.lean`, as
+   `etcd_leaseGrantHandlerOkGR`, `hNx`); `etcd_lease_auth_served_on` (`AuthnServedOn.lean`, after `etcd_kv_auth_served_on`, whose
+   proof shows the slot/method-list plumbing: `grpcHandlerOwnOkMd_frame`, `grpcMethodOkMd_slot`, `etcdGrpcSlot`).
+2. etcdstart: `grpcUpOn` keeps the Lease service (`grpcLeaseUp s C.A regs` conjunct), `grpcUpM_true`'s proof and docstring,
+   `auth/Run.lean:142`, `auth3/run.lean:140` destructurings; `gen-interface` of `etc/api/etcdstart.txt` (Defs.txt changes).
+3. `etc/mode-allow.txt`: the C5′ `pair` line(s) for the cleanup stage; mode/bounds gates; land-stop checks.
+4. Review r5 S5 (for etcd-grove-81, not applied): §6.2's trusted wording names only `NewServer`; the reviewer suggests
+   "`NewServer` and `NewServerR` take it through their boot slot". A trusted-text change: decide.
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
