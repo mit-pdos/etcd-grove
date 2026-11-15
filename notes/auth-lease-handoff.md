@@ -354,6 +354,14 @@ Decisions D1–D7 (`questions.md`, "S3b Freeze"; ledger 2026-11-15, S3b entries)
    `isServerReq_authOn`), `ServerKVOn` (`putPermitM_of_dep`/`txnPermitM_of_dep` left disjuncts; the extra conjuncts dropped),
    etcdstart `ServedLease`, `WorkAuth` (`grantedAt_kvGranted`). SpecPlan's `LeaseGrant`/`LeaseRevoke`/`Put` checked: an
    opaque-vocabulary statement S3b moves toward (the client's update fired at the commit); no defect found.
+7. Land-stop checks (2026-11-15): lean `7d9d727fba` merged (two merges: restart3 A1 and restart3-c); full build GREEN
+   under flock + 64G (`/shared/tmp/auth-lease-s3b/build4.log`, 17545 jobs); `tcb-report --check` 870 axioms, 4 sorries;
+   `gen-interface --check` passes on every `etc/api` list (no `interface/` file changed); bounds ok (351); mode gate:
+   the four new mode-indexed rows classified `model`, three LeaseReqOn lemmas `unmoved`, baselines raised (etcdserver
+   lit-mode 251→278, match-mode 78→82: the specs' `hdrBoundM`/`pubAfterM` flags, the permits' and results' bridges,
+   ReqOn's three new auth-on lemmas), for etcd-grove-81; no closed theorem statement changed (the diff under
+   `Proof/github_com` is two proof bodies: `WorkAuth.lean:330`, `ServedLease.lean:263, 321`). STOPPED before
+   `etc/land.sh`.
 
 ## Pitfalls
 
