@@ -40348,3 +40348,46 @@ deleted), so `kaDn` changes with it. The TLS fallback stays admitted (a certific
 change to Part B's frozen statements; the three check proofs use `principalBoundOn_of_ctxBound`
 (`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
 unchanged.
+
+## The `lean` merge, stage 2: both the trace mode and the sized contents (2026-11-15 · decided by the merging session; for the user's review before landing · branch `trace-check-merge-lean2`)
+
+`lean` (`dd068e790f`) merged into `trace-check` (`342e0068f3`; stage 1 had stopped at `63d962df7c`,
+before raft-entsize reached `lean`). 162 conflicted files. What was decided, where the two sides did
+not simply add up:
+
+- **Order of the two sides' additions.** Where both added a parameter, premise or conjunct at the same
+  place, trace-check's comes first, lean's second (`tr` then `md`; `htr` then `hmd`/`hsz`; `HpTL` then
+  `HpMSP`; `γ.reTrace = tr ∧ γ.maxData = md`). `memStorage_isStorage` is the exception the textual
+  merge produced and the build kept: `hsz` before `htr`.
+- **Restatements follow lean's statements.** trace-check's `X.untracedTriple` (the spec at an untraced
+  node), `X.tracedSpec`/`X.gatedSpec` and the bundles that restate `raft.Step`'s precondition take the
+  message and entries as lean's specs now do (`msgInC (s.gh.sn.sz && movesB m.Type')`, `msgOwnZ`,
+  `entsPtsZ`, the heartbeat contexts' bound, `m.Type' ≠ MsgSnap`, `StartNode`'s `MaxSizePerMsg` premise,
+  `RawNode.Ready`'s `entsROz`/`msgOwnZ`/`snapToOk`, `node.Step.tracedSpec` and `stepIn_intro` at a
+  content): lean's proofs, which use them, were written against those.
+- **A hook reads half of a message held at a content.** The outbox holds a queued message as `msgOwnZ`
+  (out_size C3), which cannot be lent whole in today's form and taken back at the same content; so
+  `msgQs_lend`, `outboxRel_lend`, `ownRaftPhysC_lq_lend`, `msgLend_lq` lend `msgOwn l dqh st`
+  (`msgOwnZ_read`), and `traceReceiveMessage.gatedTriple` takes the message at any fraction
+  (`msgPtsC ml dq dqe cap ms`): `Step` lends the half it reads through (`msgInC_halfD`/`_halfO`). The
+  hooks only read the message; `traceEvent`'s `MsgArg` was already generic in the fraction.
+- **Moved proofs.** trace-check had moved `node.run`, `StartNode` and `RawNode.Advance`'s proofs
+  (`node__run_gated.lean`, `TracedStartNode.lean`, `TracedRawNodeAdvance.lean`); lean's line changes to
+  the old files were ported there. In `TracedRawNodeAdvance`, `wp_raft_Step_adv` converts once
+  (`msgIn_toC`: no type `Advance` steps moves its objects), so its callers keep `msgIn`.
+- **S7.3 through the three-phase win.** `winPend` and `ownRaftGhost_step_win_entry` take the
+  configuration `c`, for lean's premise that a snapshot goes to a voter or learner of it.
+- **The traced cluster's bound.** `cluster_alloc_traced` takes `cluster_alloc`'s `md`; the trace check's
+  harness allocates at `none` with an unsized storage (`tcWorld`'s `maxData = none`, `repInfo`'s
+  `γs.sz = false`), so the size premises of the node API are vacuous there.
+- **Trust base.** `rnRestartCfg` (lean's restart S6, part of the restart's assumed boot facts) gains
+  `traceLogger : TraceLoggerOk cv.TraceLogger'`, which `RestartNode.spec` asks on trace-check; it is
+  `rnStartCfg.traceLogger`'s twin (Q1 of `notes/trace-validation-plan.md`, itself taken pending the
+  user's veto): both `b.config`s are built by `raftConfig`, which sets no trace logger. The repository's
+  axioms against `lean`'s: `raftpb.MessageType.String.wp_proof` gone (proved, Q9), none added.
+- **Not decided here.** `lean` after this merge verifies raft's `with_tla` build with a nil logger, not
+  the build etcd ships (`state_trace_nop.go`); the fork commit that puts the hooks under the `goose`
+  tag is still unpushed (`etc/fork-patches/`), so `etc/goose.py --check` fails for raft and the branch
+  cannot land until the user pushes it and moves the pin. Whether to cover both builds by one proof
+  (an internal assumptions class with the hooks' bodies as a disjunction, the closed theorems over the
+  generated class) is the user's open question.
