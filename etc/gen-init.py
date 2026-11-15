@@ -533,6 +533,29 @@ literal).''',
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
+# (v3, 2026-11-14) the part `NetTcp/`'s `net` (project nettcp, the TCP extension's): `errTimeout`
+# and `ErrClosed` translated, `errClosed` a trusted model that allocates its variable
+# (`NetTcp/TrustedCode/net.lean`); the rest trusted initializers that do nothing.
+NT_SPECIAL = {}
+NT_SPECIAL['net'] = dict(
+    doc='''Its fact (`Base.lean`'s `isInit`): `ErrClosed` and `errClosed` hold `poll.ErrNetClosing`,
+`errTimeout` a `*timeoutError`. Its initializer initializes its imports, allocates `errTimeout` and
+`ErrClosed` and runs their translated initializers (`&timeoutError{}`, `errClosed`), runs the
+trusted model of `errClosed`'s (which allocates it and stores `poll.ErrNetClosing`'s value) and the
+trusted initializers of its other variables (models in `TrustedCode/` that do nothing).''',
+    alloc_types=_ALLOC_ANY,
+    before={'errTimeout': ['(try wp_auto)', 'wp_alloc_anon', 'wp_auto']},
+    trusted={'errClosed': ['wp_call',
+                           'rw [show (go!"net.errClosed" : GoString) = errClosed by rfl]',
+                           'wp_apply wp_GlobalAlloc (V := _) errClosed _ as HerrClosed',
+                           '(try wp_auto)'],
+             },
+    finish=['ipersist HerrTimeout', 'ipersist HerrClosed', 'ipersist HErrClosed', 'iframe Hown',
+            'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'is_pkg_init_finish', 'unfold isInit closedErr', 'imodintro',
+            'iframe HErrClosed HerrClosed', 'iexists _', 'iexact HerrTimeout'],
+)
+
 # (2026-10-26) `ValidString` with its body: the tables it reads are translated
 SPECIAL['unicode.utf8'] = dict(
     doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
@@ -2893,6 +2916,83 @@ def dag_init():
 
 
 
+# The part `NetTcp/` (the TCP extension's `net` and the programs over it, `examples/net/`; project
+# nettcp): `net` is a Go path the main tree translates too (names only), so the part's packages'
+# initializers are generated as `LinuxFs/`'s, from the part's translation and instances, with the
+# imports of the part's modules prefixed, and a `PkgInitExt` without raft.
+NT_ROOT = 'NetTcp'
+NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
+    [f'github_com.mit_pdos.etcd_grove.examples.net.{p}' for p in
+     ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']]
+# Each example's nodes, a command each (`examples/net/<ex>/cmd/<node>`): the programs.
+NT_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
+            'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
+            'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
+            'shutdown': ['node']}
+NT_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
+            for ex, ns in NT_NODES.items() for n in ns]
+# The part's programs whose adequacy theorem needs the package table of their import closure (as
+# `PROGRAMS`): the root package and the table's file under `NT_ROOT`.
+NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}':
+               f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{ex}/cmd/{n}/PkgTable.lean'
+               for ex, ns in NT_NODES.items() for n in ns}
+
+
+# The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
+# translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
+NT_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
+
+
+def nt_prefix(txt, made=()):
+    """`txt` with its imports of the part's modules (those with a file under `NT_ROOT`, or among the
+    paths `made`, generated in the same run) prefixed."""
+    def imp(m):
+        x = m.group(2)
+        f = f'{NT_ROOT}/{x.replace(".", "/")}.lean'
+        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
+            x = f'{NT_ROOT}.{x}'
+        return m.group(1) + x
+    return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
+
+
+def nt_inits(ext_txt):
+    """The part's `Init.lean` files and `PkgInitExt.lean`."""
+    global inv, inst
+    saved = inv, inst
+    outs = []
+    try:
+        inv = inventory(f'{NT_ROOT}/Code')
+        inst = instances(f'{NT_ROOT}/Proof/')
+        # (v3, 2026-11-14) the main tree's `os` and the packages it imports, which `net` imports
+        # (`etc/goose.py`'s nettcp lean roots): their translations and instances are the main tree's
+        for p in NT_MAIN:
+            inv[p] = saved[0][p]
+            inst[p] = saved[1][p]
+        # their `Init.lean` copied into the part, over the part's `PkgInitExt` (the main tree's
+        # imports raft's translation, and declares the same names)
+        nt_main = [(f'{NT_ROOT}/{path}', txt) for path, txt in
+                   (gen(p, SPECIAL.get(p)) for p in NT_MAIN)]
+        made = {path for path, _ in nt_main}
+        outs += [(path, nt_prefix(txt, made)) for path, txt in nt_main]
+        for p in NT_PKGS:
+            if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
+                path, txt = gen(p, NT_SPECIAL.get(p, SPECIAL.get(p)))
+                outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
+        made = {path for path, _ in outs}
+        for p, path in NT_PROGRAMS.items():
+            path, txt = gen_table(p, path)
+            outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
+    finally:
+        inv, inst = saved
+    drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
+    ext = '\n'.join(l for l in ext_txt.split('\n') if not any(d in l for d in drop))
+    i = ext.index('\nmodule\n') + 1
+    note = (f'-- The copy for the part `{NT_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
+            f'-- the same, without raft, protobuf and the B-tree (which the part does not import).\n')
+    outs.append((f'{NT_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
+    return outs
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -2904,6 +3004,7 @@ def main(argv):
     outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init()]
+        outs += nt_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:
