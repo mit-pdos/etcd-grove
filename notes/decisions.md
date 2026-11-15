@@ -40385,9 +40385,20 @@ not simply add up:
   `rnStartCfg.traceLogger`'s twin (Q1 of `notes/trace-validation-plan.md`, itself taken pending the
   user's veto): both `b.config`s are built by `raftConfig`, which sets no trace logger. The repository's
   axioms against `lean`'s: `raftpb.MessageType.String.wp_proof` gone (proved, Q9), none added.
+- **The build translated is chosen by goose's `-tags`, not by a fork commit** (the user's, 2026-11-15:
+  "it doesn't make sense to change upstream packages just so goose translates it in a particular
+  way"). Perennial's goose, proofgen and modelcheck take `-tags a,b` (additional build tags; `goose`
+  stays; Perennial `dd93fc540`, `c6b39d4f8`). `etc/goose.py`'s `RAFT_TAGS = ["with_tla"]` goes to raft
+  and to every project whose packages reach that raft (a tag is a whole build's: a client loaded
+  without it would see `state_trace_nop.go`'s `TraceLogger`), not to the witness experiment's.
+  `etc/fork-patches/raft-trace-tags.patch` is gone, the tracecheck module's `go.mod` takes raft at the
+  pin, and `etc/goose.py --check` passes for every project with no translation changed. The Perennial
+  pin moved for it (`ddc0f0acc` to `c6b39d4f8`), bringing Perennial's `context` change (`isContext`'s
+  `"#HErrDone"` and `"#HParentCC"` continuations): `srvCtxWeak_of_isContext` re-proved and one intro
+  pattern, no statement changed. Perennial's `wp_WithCancel_ctx`/`wp_propagateCancel_ctx` (a child of
+  any `isContext` parent keeps `s.PDone ∨ PDone'`) are now available for the k8s 7f-5 workaround
+  (`notes/perennial-changes.md`); not used yet.
 - **Not decided here.** `lean` after this merge verifies raft's `with_tla` build with a nil logger, not
-  the build etcd ships (`state_trace_nop.go`); the fork commit that puts the hooks under the `goose`
-  tag is still unpushed (`etc/fork-patches/`), so `etc/goose.py --check` fails for raft and the branch
-  cannot land until the user pushes it and moves the pin. Whether to cover both builds by one proof
-  (an internal assumptions class with the hooks' bodies as a disjunction, the closed theorems over the
-  generated class) is the user's open question.
+  the build etcd ships (`state_trace_nop.go`). Whether to cover both builds by one proof (an internal
+  assumptions class with the hooks' bodies as a disjunction, the closed theorems over the generated
+  class) is the user's open question.

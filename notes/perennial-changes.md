@@ -19,6 +19,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ### `WithCancel` over a general `isContext` parent loses the parent's Done proposition (2026-11-14, k8s 7f-5a)
 
+**Status (2026-11-15): in Perennial** (`cbccb8321`, `2d8857406`: `wp_WithCancel_ctx`,
+`wp_propagateCancel_ctx`, `HParentCC`'s continuation with `□ (□ Pp -∗ s.PDone)`), and pinned here
+since the pin moved to `c6b39d4f8` for goose's `-tags` (branch `trace-check-merge-lean2`). The
+workaround below is still in place; nothing here uses the new lemmas yet.
+
 What is missing: Perennial's `context.WithCancel.spec` gives the child
 `PDone := parent.PDone ∨ PDone'` only for a parent that is itself a `*cancelCtx` made by `WithCancel`
 (`isCancelCtxCtx`). For any other `isContext` parent (a `*valueCtx` over one, a `*timerCtx`, a
