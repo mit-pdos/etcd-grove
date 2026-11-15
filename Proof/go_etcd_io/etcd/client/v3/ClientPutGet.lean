@@ -112,7 +112,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     ileft
     ihave #Hlb : monoNatLbOwn γf 1 $$ [Hp]
     · iunfold putReplied at Hp
-      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, #Hq⟩
+      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, ⟨%ltq, -, #Hq⟩⟩
       iexact Hq
     isplitr
     · ipureintro; exact Herr
@@ -236,7 +236,8 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
@@ -447,7 +448,8 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     iunfold putReplied at Hr
     icases Hr with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
     obtain ⟨-, hrev, -, -, -, -, hlen, hb⟩ := Hp
-    iexists m, kvStateOf y.log
+    icases HQ with ⟨%ltq, -, HQ⟩
+    iexists m, kvStateOf y.log ltq
     iframe Hm HQ
     ipureintro
     refine ⟨?_, ?_⟩
@@ -507,7 +509,8 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
       simp [txn.deleteOpOf, op_simps]
     have hop : op' = txn.deleteOpOf key [] false := Hz hnz
     subst hop
-    iexists m, kvStateOf y.log
+    icases HQ with ⟨%ltq, -, HQ⟩
+    iexists m, kvStateOf y.log ltq
     iframe Hm HQ
     ipureintro
     refine ⟨by rw [kvStateOf_kvs]; exact hdel, ?_, ?_⟩

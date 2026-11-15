@@ -651,12 +651,12 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     ihave %Hfl : ⌜t.linearizable = true → lf.length ≤ log.length⌝ $$ []
     · cases hlin : t.linearizable
       · ipureintro; intro h; cases h
-      · rw [hlin] at hser
+      · ihave #Himp' := Himp $$ %rfl
+        rw [hlin] at hser
         simp only [Bool.not_true] at hser
         simp only [hser, Bool.false_eq_true, ↓reduceIte]
         icases HQl with ⟨%ltq, -, #HQl⟩
-        ihave #Himp' := Himp $$ %rfl %(kvStateOf log ltq)
-        ihave %h := Himp' $$ HQl
+        ihave %h := Himp' $$ %(kvStateOf log ltq) HQl
         ipureintro; intro _
         simp only [kvStateOf_rev, kvStateOf_kvs] at h
         omega

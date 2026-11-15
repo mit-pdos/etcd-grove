@@ -350,10 +350,10 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
   ihave %Hfl : ⌜(opGetModel key gs).base.serializable = false →
       sint.Z lo ≤ (log.length : Int) - 1⌝ $$ []
   · by_cases hs : (rangeWireOf (opGetModel key gs)).base.serializable = false
-    · simp only [hs, Bool.false_eq_true, ↓reduceIte]
+    · ihave #Himp := HQf $$ %hs
+      simp only [hs, Bool.false_eq_true, ↓reduceIte]
       icases HQl with ⟨%ltq, -, #HQl⟩
-      ihave #Himp := HQf $$ %hs %(kvStateOf log ltq)
-      ihave %h := Himp $$ HQl
+      ihave %h := Himp $$ %(kvStateOf log ltq) HQl
       ipureintro; intro _
       simp only [kvStateOf_rev, kvStateOf_kvs] at h
       omega
