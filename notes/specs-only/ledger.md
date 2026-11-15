@@ -290,3 +290,29 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `□ Q (kvStateOf log lt)`, followed through v3rpc (`ServerKVOn`) and the client's KV results; (C) a
   transitional tie of the auth-on request side to the lease mode `none` until S3b. Not in Draft rev 5 §7.
 - **Decision.** Pending (etcd-grove-81; S3a stopped at this finding).
+
+## 2026-11-15: the latest track's certificate premise for a leased put or transaction -- unprovable at a dead lease (auth-lease S3a §6)
+
+- **Spec.** `apply.Apply.kvSpecL`, `apply.uberKVC`, `apply.uberApplier.Apply.kvSpecL`
+  (`apply/ApplyFnKVL.lean:73,110`, `apply/ApplyKVL.lean:54`; exported as `apply_*_kv_latest`): the premise
+  `certPreVW v3 E x.chain rq x.log (kvOutL …)`; through `certPreW_inner` (`apply/AuthApplyLatest.lean:238`, used by
+  the latest Put/Txn/Revoke) it becomes the class track's `certPre E c rq log` (`apply/Chain.lean:1532`): a
+  certificate `E.Nx` of the log after EVERY `chainStep backendStep` outcome.
+- **Defect.** `backendStep`'s put case (`apply/Chain.lean:209`, kept unchanged by S3a's N1 (ii′)) admits
+  `applied (log ++ [putChangeOf op …])` whatever the lease, and its transaction case an applied commit without
+  `PathsLeaseOk`. The model (`backendLog`) keeps the log for a put of a lease not live (`leaseMissingIn`) and for a
+  transaction whose path names one. With auth on, `E.Nx = kvNxOn` certifies only the models of committed raft logs,
+  so the server cannot give the certificate of that outcome: Draft §6's KV branch ("as today, S2's latest triple
+  ... no more `plainCover` discharge") is unprovable for an admitted leased put or leased transaction at the
+  revocable mode, which a concurrent revocation makes reachable (a put proposed with a lease revoked before it
+  applies). §3a's `leaseExactL` reaches the posts, not this premise. The backend's Put gets the certificate before
+  its lease check (`applierV3backend__Put.lean:88-95`) and uses it only in the live branch.
+- **Evidence.** `certPreW_inner`'s hypothesis `∀ oc, chainStep backendStep c rq log oc → X oc`; `kvNxOn`
+  (`KVApplyOn.lean`); `kv_certPreW_on` (`ApplyEntryOn.lean`), which needs every admitted outcome to be the model's
+  (`outcomeOn_of_kvOutLL` needs `leaseExactL` at the model's table, not available for the premise).
+- **Proposed change.** (1) Restrict the class track's certificate to lease-exact outcomes at the live set `T`
+  (`certPre` -> `certPreT … T`, outcomes with `leaseExactL T`; the class track's `leasesLive` at `T`, i.e. `kvOwnAt E
+  log T`, split at the top from the two `ltHalf`s; the backend Put/Txn take `E.Nx` in their live branch), and the
+  latest track's `X` with `leaseExactL T`; (2) `backendStep` over the live set (wider); (3) narrow S3a: no leased put
+  or transaction admitted (`plainReqL lm := plainReq`), leased puts moved to a later stage with (1).
+- **Decision.** Pending (etcd-grove-81; S3a §6 stopped at this finding).

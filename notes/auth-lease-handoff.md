@@ -185,6 +185,22 @@ Next (session 5), in order:
 5. The land-stop checks (below, "Build").
 
 
+**Session 5 (2026-11-15): STOPPED at a finding (ledger 2026-11-15, "the latest track's certificate premise for a
+leased put or transaction").** The KV branch of Draft §6 cannot be proved for an admitted leased put or leased
+transaction: the latest triples' premise `certPreVW … (kvOutL …)` becomes, through `certPreW_inner`, the class track's
+`certPre` over every `backendStep` outcome, and `backendStep` admits an applied put of a lease not live (and an applied
+transaction without `PathsLeaseOk`), whose log `kvNxOn` cannot certify. Options in the ledger entry ((1) the certificate
+at the live set `T`, recommended as its own reviewed change; (3) narrow S3a to no leased put/transaction). Waiting for
+etcd-grove-81. Done this session (pure, option-independent, checked with `etc/lean-check.py -a`, not yet in a full
+build): `leaseOk_of_leasePassedL`, `not_leaseOk_of_leaseRefusedL` (the bridge; no shape needed), `kvGrantedL_of_kvOutL`
+(every authKV kind), `backendTable_kv`, `chainTable_kv`, `backendLog_of_step` (a KV request's backend outcome is
+`backendLog` given `plainCover ∨ leaseExactL lt.ids`), `outcomeOn_of_kvOutLL` (at `plainReqL lm`), `revokeLog_eq_backendLog`
+(`liveSt` + `0 ∉ ids`), `outcomeOn_of_kvOutL_revoke` (KVOutcomeOn); `leaseShapedL_of_keysNE`, `kvShapedL_of_logL` (no
+`plainCover`; ApplyNormalOn). Not blocked by the finding, next whatever the decision: the grant arm and the revocation
+arm of `applyEntryNormal.wp_proofOn` (a revocation's certificate is the model's: `outcomeOn_of_kvOutL_revoke`; it needs
+`liveSt` of the model's state, `liveSt_kvRaftOfOn`, and `0 ∉` the table's ids, from `appliedTableM_ids_granted`-style
+facts), then the replay branch. The row `γr.kv.lg = false` stays until the KV arm covers the revocable mode.
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`

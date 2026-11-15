@@ -136,6 +136,66 @@ theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (log : m
     unfold plainCover at hpc; rw [hk] at hpc; exact hpc.elim
   · trivial
 
+/-- (auth-lease S3a §6) **A lease's keys are of the cache's shape** at a log whose leased keys are not
+empty (`keysNonEmpty`, Draft §1). -/
+theorem leaseShapedL_of_keysNE (M : auth.AuthMode) (hs : List auth.AuthState) (log : mvcc.Log)
+    (id : w64) (h : keysNonEmpty log) :
+    apply.leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) id :=
+  latestOk_all M hs _ (fun _ _ k hk => ⟨h k id hk, Or.inl rfl⟩)
+
+/-- **`kvShapedL` from the auth-on log's shapes and the keys' invariant** (Draft §3: `kvShapedL_of_log`
+without `plainCover`): the checked permissions from `kvShapeAll`, every lease's keys from
+`keysNonEmpty`; for any kind, a revocation's included. -/
+theorem kvShapedL_of_logL (M : auth.AuthMode) (hs : List auth.AuthState) (log : mvcc.Log)
+    (rq : apply.IRRModel) (hz : noZeroEnds rq) (ha : kvShapeAll rq) (hne : keysNonEmpty log) :
+    apply.kvShapedL M hs log rq := by
+  have hall : ∀ L : List apply.Perm3, (∀ x ∈ L, x ∈ reqPerms rq) →
+      apply.shapedL M hs L := by
+    intro L hL
+    exact latestOk_all M hs _ (fun _ _ x hx => ha x (hL x hx))
+  unfold apply.kvShapedL
+  split
+  · rename_i hk
+    intro o ho
+    apply hall
+    intro x hx
+    simp only [reqPerms, hk, ho]
+    exact hx
+  · rename_i hk
+    intro o ho
+    refine ⟨?_, leaseShapedL_of_keysNE M hs log _ hne⟩
+    apply hall
+    intro x hx
+    simp only [reqPerms, hk, ho]
+    exact hx
+  · rename_i hk
+    intro o ho
+    apply hall
+    intro x hx
+    simp only [reqPerms, hk, ho]
+    exact hx
+  · rename_i hk
+    intro t ht
+    refine ⟨?_, fun o _ => leaseShapedL_of_keysNE M hs log _ hne⟩
+    have hp : reqPerms rq = cmpPerms t.cmps ++ opsPerms t.thenOps ++ opsPerms t.elseOps := by
+      simp only [reqPerms, hk, ht]
+    have hz0 : endsOk (reqPerms rq) := hz
+    rw [hp] at hz0
+    have hz1 := endsOk_append _ _ hz0
+    have hz2 := endsOk_append _ _ hz1.1
+    apply latestOk_all M hs _
+    intro _ _ x hx
+    apply ha x
+    rw [hp]
+    simp only [List.mem_append]
+    rcases hx with hx | hx | hx
+    · exact Or.inl (Or.inl (cmps_may_mem _ x hz2.1 hx))
+    · exact Or.inl (Or.inr (ops_may_mem _ x hz2.2 hx))
+    · exact Or.inr (ops_may_mem _ x hz1.2 hx)
+  · intro id _
+    exact leaseShapedL_of_keysNE M hs log id hne
+  · trivial
+
 /-- **An entry at or below the start's consistent index leaves the mode-`on` model's state**
 (replayed: `dispatch` runs with `v3` false, `dispatchLog`'s first case). -/
 theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : OnState)
