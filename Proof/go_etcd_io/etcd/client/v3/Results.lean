@@ -3439,7 +3439,8 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
@@ -3473,7 +3474,8 @@ theorem client_get_value_rev (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
@@ -3508,7 +3510,8 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel hcount
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]

@@ -79,12 +79,21 @@ StartOn, RunOn, NewServer, EtcdServer__applySnapshot (SnapApplyPost), SnapSendBr
 ClientModel, EtcdServer__Put/DeleteRange/Txn. Edited, not yet checked: auth/MainAlloc, etcdstart/Alloc3On (alloc premises),
 server Results (`server_member_alloc_on` premises), KVLogOk, client WatchFire/Results/KVService, v3rpc ServerKV, InvRead.
 
-A full build was started 2026-11-15 04:00 (`/shared/tmp/auth-lease-s3a/build1.log`) to list the remaining failures
-(`lean-check` on the server `Results.lean` hung at line 1 for 30 min; prefer targeted `lake build` for the big modules).
-Also edited, unchecked: client KVService (`*_mono`, `*Ans_st`), WatchStateDefs, ServerKVPut, restart1/put.
-Next, in order: server Results, v3rpc ServerKVOn/Results, the client chain (KVService, ServerKVPut/Get/Txn, ClientPutGet,
-Results, ResultsOn, KVServiceOn, WatchFire users, kubernetes), examples (auth, auth3, etcdstart, restart1, watch, k8s,
-txnlin, partition). Then a full build (flock, 64G) to find the rest.
+**Where the port is (2026-11-15, end of session):** full builds `build1`–`build4` (`/shared/tmp/auth-lease-s3a/build*.log`,
+flock + 64G) leave, at the last one, failures only in the client chain: `client/v3/Results.lean` (and what imports it);
+`ServerKVGet`, `ServerKVTxn` fixed after `build4` (unbuilt). Everything else of the server, v3rpc, the auth
+examples and the snapshot path builds. Next:
+1. **`readQ_of_ansM` (client `Results.lean:1039`) needs the read side's guard** (rev 6's stronger guard `on = false ∨
+   lm = none → lt = []`): the row it reads, `rangeAnsOkM`/`txnReadAnsM` (`api/v3rpc/ServerKV.lean:214, 227`), gives only
+   `∃ L, srvRLogLb ∗ ⌜kvModelM on L = log⌝ ∗ □ Q L`. Plan: add `⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv
+   srvAuthSt0 L = []⌝` to both rows' `∃ L` (internal v3rpc vocabulary), proved where `ServerKVOn` builds them (it has
+   `isServerReadM`: `kv_log_plain_on` gives `plainLogOn γk.lm L`, then `kvLeasesOn_none`); then `readQ_of_ansM` takes
+   `lt := if on then kvLeasesOn … else []` (off: `kvStM false = kvStateOf (kvModel L)`, `lt = []`; on: `kvStOn`).
+   Update §14's table with the two rows (a meaning-preserving addition to internal rows; tell etcd-grove-81).
+2. Rebuild (full, flock + 64G); fix what remains in the client chain and the examples.
+3. Then steps 3–5 (§3a, §5 removing the TRANSITIONAL `γr.kv.lg = false` and every "TRANSITIONAL" site, §6), the
+   keys' invariant lemmas (`keysNonEmpty`, `keysLeasesLive` preservation), `appliedTableM` (§4) and its users, and the
+   land-stop checks (tcb 870/4, gen-interface with `Alloc3On.txt`, bounds, modes, closed statements, merge lean).
 
 Tools: `/shared/tmp/auth-lease-s3a/chk.sh FILE...` (lean-check in order, stops at the first file with errors;
 `LINES_SHOW=N`); `/shared/tmp/auth-lease-s3a/hg.py` (adds `kvInvOn`'s `HG` conjunct to open/close patterns).
