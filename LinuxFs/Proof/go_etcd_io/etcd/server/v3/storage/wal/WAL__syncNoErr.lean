@@ -71,7 +71,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
             (max h.sz (h.o0 + h.out.length + h.pend.length)) (h.out ++ h.pend) TailMetaS ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
           locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
-          ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝) }} := by
+          ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝ }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

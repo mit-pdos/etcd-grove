@@ -280,6 +280,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofNoErr [os.file.F
   -- the directory's `Close`
   wp_apply os.File.Close.wp_dirSNE hS0 df2 dfd2 dnm2 j ph $$ [Hdff Hdfd]
   · iframe; iexact Hosinv
+  iintro -
   (try wp_auto)
   wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
   (try wp_auto)

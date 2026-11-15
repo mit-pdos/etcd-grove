@@ -390,7 +390,13 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proofNE
       wp_auto
       unfold io.writerStreamPNE
       wp_apply Hw $$ %(out ++ ys) %_ %(List.take (sint.nat P) (List.drop k xs)) %_ %(hpc _ _ ⟨(xs.drop k).drop (sint.nat P), by rw [hys]; simp only [List.append_assoc, List.take_append_drop]⟩ hok) %(by
-          rw [← List.length_pos_iff, List.length_take]; sorry) [Hout H1] as %c %werr ⟨H1, Hres⟩
+          rw [← List.length_pos_iff, List.length_take]
+          have h1 : 1 ≤ sint.Z s'.len / sint.Z pB2 := by
+            rw [Int.le_ediv_iff_mul_le hpB2]; omega
+          have h2 : sint.Z pB2 ≤ sint.Z s'.len / sint.Z pB2 * sint.Z pB2 := by
+            have := Int.mul_le_mul_of_nonneg_right h1 (by omega : (0 : Int) ≤ sint.Z pB2)
+            omega
+          rw [hdk]; omega) [Hout H1] as %c %werr ⟨H1, Hres⟩
       · iframe
       icases Hres with (⟨%Hc, Hout⟩ | ⟨%Herr, Hbad⟩)
       rotate_left
@@ -443,7 +449,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proofNE
       wp_apply (ioutil.wp_Write_fits pw wi W B ok (out ++ ys ++ (List.take (sint.nat P) (List.drop k xs))) [] _ ((xs.drop k).drop (sint.nat P))
           dq (by rw [hdP]; omega) (by rw [List.length_nil, hdP]; omega)) $$ [Hw] [Hpw Hout H2]
           as %c2 %werr2 ⟨%Hc2, Hout, Hpw, H2⟩
-      · iexact Hw
+      · unfold io.writerStreamPNE; iexact Hw
       · iframe
       obtain ⟨rfl, hc2⟩ := Hc2
       iapply HΦ

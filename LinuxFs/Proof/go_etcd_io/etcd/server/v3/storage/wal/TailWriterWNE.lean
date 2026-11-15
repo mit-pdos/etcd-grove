@@ -381,15 +381,15 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
     try wp_auto
     by_cases he4 : e = W64 4
     · exact absurd (he00.trans he4) (by decide)
-    · rw [decide_eq_false he4]
-      wp_auto
+    · try rw [decide_eq_false he4]
+      try wp_auto
       have hnk := tw_addk nnv k (by omega)
       by_cases hfull : nnv.toNat + k = data.length
       · rw [decide_eq_true (show nnv + W64 (k : Int) = sl.len by
           rw [hsln]; exact (tw_full_iff nnv k data.length (by omega) hL63).2 hfull)]
         wp_auto
         by_cases he0 : e = W64 0
-        · rw [decide_eq_true he0]
+        · try rw [decide_eq_true he0]
           wp_auto
           have ew := tw_full _ _ _ _ _ _ hwb hfull hx1 hx2 hx3
           subst ew
@@ -411,7 +411,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
         wp_auto
         by_cases he0 : e = W64 0
         · -- a short write: the next attempt from `nn + k`
-          rw [decide_eq_true he0]
+          try rw [decide_eq_true he0]
           simp only [Bool.not_true]
           wp_pure
           obtain ⟨s1, s2, s3, s4, s5⟩ :=
