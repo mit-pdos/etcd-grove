@@ -57,6 +57,52 @@ relocation + `origin/lean` merged. Log of the session(s); the plan says what and
 - Trusted text: no conflict with `lean` (lean changed none of the layer's semantics); `wal-int`'s
   pending-review changes taken as they are (plan §3).
 
-### Build status / next
+7. **Build repairs** (`631d660dd2`, `adf063c95f`, `68969d455e`, `fc16855e12`): `GooseLang/Ext/Fs/Write.lean`
+   builds (checked); `os.WaCut` carries `PwCut`'s `maxBytes` part (`waCut_step` with `nn ≤ j`); the WAL's
+   `snapRoC`/`snapSize` renamed `walSnapRoC`/`walSnapSize` (raft's `PbContent` declares both); wal-int's
+   `mcells_congr` (⊣⊢) is `mcells_congr_iff`; `os.File.WriteAt.specExt`'s proof split to
+   `Proof/os/File__WriteAtExt.lean` (see Open); the part's extracts are main modules `<Source>Core.lean`
+   (`NodeApiVocabCore`, `CommitWitCore`, `WalRecsCore`, `InvPbCore`, `PbContentCore`, `PbContentOwnCore`,
+   `PbEntryTypeCore`), their sources import them, the WAL imports them (the whole sources brought clashing
+   names: `NodeApiVocab`'s `LogEntry` shadows `Fs.LogEntry` under `open Fs`); the Whole copies' drops applied
+   to the main specs (`time.Duration.Seconds{,_ptr}` without the server's `BaseApply`, zap's specs over zap's
+   `PkgInit` instead of the cache's `Base`, whose closure reached `cache`'s `chainEnd`).
+8. **Re-merge of `origin/wal-int`** `b46dd78a5d` (`403a7e7e88`): Create's cleanup (`cleanupWAL`), specgap;
+   `etc/wal-lean-remerge.py` carries `LinuxFs/` changes to the main tree (plan §7, "Procedure").
 
-(see the end of the session's report; updated below)
+### Build status (end of session 1)
+
+- `lake build GooseLang.Ext.Fs.Write`: OK (after the merge repair).
+- `lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`: **not reached**. Runs 3-5 found the errors
+  repaired above (each run builds ~3500 modules from the copied, older build); run 6 (after the extract
+  splits and the re-merge) failed only on **"no space left on device"** (the machine's disk: 482 of 484 GB
+  used; this worktree's `.lake` is 33 GB). The last real errors before the splits (`Cut`, `CreateNamedPure`:
+  `LogEntry`; `TailCrashPure`, `ReadAllDecode`: `chainEnd`) are what the splits/drops address; unverified.
+- Known not to build: `Proof/os/WriteChunks.lean` (`pwPost_chunk`'s `cz`/`rz` goals) and so
+  `Proof/os/File__WriteAtExt.lean` and the bbolt port's users of `specExt` (Open below).
+- Not attempted: the server (`etcdserver/Init.lean`'s regenerated call of the WAL's `wp_initialize'_lb`,
+  `BaseApply`), the bbolt port (`Proof/go_etcd_io/bbolt/`, over wal-int's `MetaOk`/`OsMeta` changes),
+  `WalTester/`, the main users of the dropped zap/time imports, a full build, `etc/gates.sh`,
+  `etc/tcb-report.py --check --update`, interfaces.
+
+### Open
+
+- **`os.File.WriteAt.specExt` under `cz`** (ledger 2026-11-15): lean's chunked `WriteAt` spec (bbolt port)
+  states the post `OsMeta` as `pwPost m off a j`, false once wal-int's `OsMeta.cz` (P1, pending the user's
+  review) remembers a chunk that landed whole; wal-int's own chunked spec (`specLong`) uses `os.pwPostE`.
+  Proposed: `specExt`'s post over `pwPostE` with an `E`, `WriteChunks`' chunk lemma as
+  `WriteLongStep.pwPostE_step` for `pwrite` anywhere, the six bbolt users re-proved. Coordinator's call.
+
+### Next steps
+
+1. Free disk (or build elsewhere), then `nice lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`
+   and fix what remains (expect more name clashes from main modules the part never imported: `.scr`-style
+   scan of top-level names; rename the WAL's).
+2. `WalTester/`: `lake build` its links (`--durable`; the tester has no Link yet on wal-int).
+3. The server: `Proof.go_etcd_io.etcd.server.v3.etcdserver.Init`, `BaseApply` and their importers (the WAL's
+   package fact is now the part's, with deps fileutil/crc/bufio/filepath).
+4. `specExt` (Open), then the bbolt port's `Link`, `osfs` (minibolt/crashlog/walfs over wal-int's `MetaOk`).
+5. The full niced `lake build`, `etc/gates.sh`, `etc/tcb-report.py --check --update` (−12 WAL axioms,
+   −`purgeRound`, the WAL's copied axioms now the originals), `etc/tcb-collections` (`wal-fsext`, a
+   `wal-tester`), `etc/gen-interface.py` for the changed APIs.
+6. Re-merge `origin/wal-int` again before landing (`etc/wal-lean-remerge.py b46dd78a5d`).

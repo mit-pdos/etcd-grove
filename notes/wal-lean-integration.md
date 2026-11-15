@@ -143,6 +143,16 @@ renames, git applies their edits of `LinuxFs/X` to `X` (`git merge -X find-renam
 merge's summary lists them); a generated file they change is regenerated. Once `wal-lean` lands, new WAL
 work branches off `lean`.
 
+**Procedure (used for `b46dd78a5d`, 2026-11-15).** `git -c merge.renameLimit=30000 merge --no-commit
+origin/wal-int`, then `python3 etc/wal-lean-remerge.py <the wal-int commit merged before>` (last: `b46dd78a5d`):
+each file `wal-int` changed under `LinuxFs/` is merged 3-way into its main-tree place (base: the previous
+`wal-int`'s, prefix dropped) and each new one written there; then regenerate the links (`etc/gen-link.py
+--walfs`, `--durable`) and resolve the notes. A new or changed `wal-int` file may need the renames this branch
+made: `Spec/Proof os/Rename` -> `os/RenameS` (the fsExt specs), the extracts' sources -> `<Source>Core`
+(`NodeApiVocabCore`, `CommitWitCore`, `WalRecsCore`, `InvPbCore`, `PbContentCore`, `PbContentOwnCore`,
+`PbEntryTypeCore`), `snapRoC` -> `walSnapRoC`, `snapSize` -> `walSnapSize` (the WAL's walpb snapshot), the part's
+`proto/PkgInit`, `raft/v3/{PkgInit,InitPb}` -> raft's `Base`/`Init`, `rootInit` -> raft's `isInitialized`.
+
 ## 8. Risks
 
 - **Name clashes** between hand-written part files and main modules that declare the same names
