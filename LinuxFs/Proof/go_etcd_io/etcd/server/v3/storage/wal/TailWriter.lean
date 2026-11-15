@@ -818,8 +818,8 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
       simp only []
       rw [List.append_nil]
       iframe Hf Ho Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m, bs
       iframe Hm Hb Hv
       ipureintro; exact ⟨hsz, hm, hsz62, hfd0, hm.loWr _⟩
@@ -849,8 +849,8 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
     iunfold walTailW
     simp only []
     iframe Hf Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     isplitl [Ho]
     · rw [show W64 ((o0 + out.length : Nat) : Int) + W64 (xs.length : Int) =
           W64 ((o0 : Int) + ((out ++ xs).length : Int)) by

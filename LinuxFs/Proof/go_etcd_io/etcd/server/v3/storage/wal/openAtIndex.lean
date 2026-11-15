@@ -184,12 +184,12 @@ theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : 
     fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
-        ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧
-          F.S = walFileS f fd (child dir g.name) (openFd g.ino (walReadFlag write)) g := by
+        ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
+          F.S = walFileS f fd (child dir g.name) (walSegFd write lo lk g.ino) g := by
   obtain ⟨h1, h2, h3⟩ := htie
   refine ⟨h1, hll, h2, fun k F g hF hg => ?_⟩
-  obtain ⟨hb, f, fd, hf, hS⟩ := h3 k F g hF hg
-  exact ⟨hb, hnm g (List.mem_of_getElem? hg), f, fd, hf, hS⟩
+  obtain ⟨hb, f, fd, lo, lk, hf, hS⟩ := h3 k F g hF hg
+  exact ⟨hb, hnm g (List.mem_of_getElem? hg), f, fd, lo, lk, hf, hS⟩
 
 theorem osCallPerm_halves' :
     osCallPerm (L := hG.goose_localGS) 1 ⊢

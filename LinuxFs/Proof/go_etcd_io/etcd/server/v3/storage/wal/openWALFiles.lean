@@ -504,8 +504,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
           iexists f, fd, rl, none, none
           iframe
           simp only [Bool.false_eq_true, ↓reduceIte, walReadFlag]
-          isplitl [Hfd]
-          · iexact Hfd
           isplitr
           · iapply fdLocks_unlocked <;> rfl
           isplitr
@@ -566,6 +564,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       wp_apply wp_TryLock (child d b) (W64 2) (W32 384) _ Unit _ _
           (walOpen_triple R d b dq j i N dqn h qc (W64 2)
             (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hbok hbN hbi)
+          (by decide)
         $$ [Hp Hn Hperm] as %lf %err ⟨Hpost, Herr⟩
       · isplitl []; · iexact Hinv
         isplitl []; · iexact Hfu

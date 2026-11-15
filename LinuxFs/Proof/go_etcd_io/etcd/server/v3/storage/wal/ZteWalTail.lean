@@ -317,8 +317,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
     unfold growTie
     icases HK with ⟨Hk, Hv⟩
     iframe Hof Hoff
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     isplitl [Hk]
     · rw [← walTailKeyL_some]; iexact Hk
     iexists m', bs.take o0 ++ zs.map (fun c => ((0 : w8), c))
@@ -352,8 +352,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
     icases HK with ⟨Hk, Hv⟩
     unfold walTailPE
     iframe Hof
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     isplitl [Hoff]
     · iexists o'; iexact Hoff
     isplitl [Hk]

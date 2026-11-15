@@ -30,17 +30,18 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 theorem wp_lockedClose (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) (lf f : Loc) (fd : w64)
     (name : GoString) (d : OsFd) :
     {{ osInv (GF := GF) ∗ fileutil.lockedFile lf f ∗ os.ownFile f fd name (DFrac.own 1) ∗
-        osFd fd (DFrac.own 1) d }}
+        osFd fd (DFrac.own 1) d ∗ fdLocks fd d }}
       (App (Val (lf @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty @!!
         go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err }} := by
-  iintro %Φ ⟨#Hinv, #Hlf, Hf, Hfd⟩ HΦ
+  iintro %Φ ⟨#Hinv, #Hlf, Hf, Hfd, Hlks⟩ HΦ
+  ihave Hlt := fdLocks_toks fd d $$ Hlks
   iunfold fileutil.lockedFile at Hlf
   iStructNamed Hlf
   wp_method_call
   wp_call
   (try wp_auto)
-  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd] as %err ⟨-, #Herr⟩
+  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, #Herr⟩
   · iframe; iexact Hinv
   iapply HΦ $$ Herr
 

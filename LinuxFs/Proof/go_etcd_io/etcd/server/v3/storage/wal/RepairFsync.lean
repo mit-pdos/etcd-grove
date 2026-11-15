@@ -232,8 +232,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_specRepTail (Mr : WalMar
   · iframe; iexact Harea
   iapply HΦ
   iframe Hcf Hf Hoff
-  isplitl [Hfd]
-  · iexists rd; iexact Hfd
+  isplitl [Hfd Hlkt]
+  · iexists rd, lo, lk; iframe
   icases Hr with (⟨%he, Hk, Hm, Hb⟩ | %he)
   · ileft
     isplitr

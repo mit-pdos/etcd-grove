@@ -165,12 +165,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     wp_apply +noauto wp_Lock (child dir gL.name) (W64 2) (W32 384) _ Unit _ _
         (walOpen_triple R dir gL.name (DFrac.own qd) lay.j gL.ino (.except X) (DFrac.own (1 : Qp).half)
           hj 1 (W64 2) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide)
-          hbok hbN hbi)
+          hbok hbN hbi) (by decide)
       $$ [Hpd Hj Hperm] as %lf %err Hpost
     · iframe; iframe #
     iunfold fileutil.lockPost at Hpost
     icases Hpost with ⟨%u, Hpost⟩
-    icases Hpost with (⟨%herr, ⟨Hpd, Hj, Hperm⟩, %f, %fd, %i, ⟨%hfd, %hi⟩, #Hlf, Hf, Hoff, Hfd⟩ |
+    icases Hpost with (⟨%herr, ⟨Hpd, Hj, Hperm⟩, %f, %fd, %i, %k, ⟨%hfd, %hi⟩, #Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ |
       ⟨⟨%herr, %hlf⟩, %bb, Hpd, Hj, Hperm⟩)
     · subst hi herr
       try wp_auto
@@ -184,7 +184,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
       isplitr
       · ipureintro; exact ⟨rfl, ho⟩
       iunfold walLastOpen
-      iexists d, lay, X, hj, gL, f, fd, qd
+      ihave Hfd := lkFd_open k gL.ino (W64 2) fd true true rfl rfl $$ [$Hfd $Hlk $Hkind]
+      icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
+      iexists d, lay, X, hj, gL, f, fd, qd, lo, lk
       iframe
       iframe #
       ipureintro; exact ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd, hbok⟩

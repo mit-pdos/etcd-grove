@@ -96,10 +96,10 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
   iapply HΦ
   iframe Hcf
   icases Hr with (⟨%he, Hm, Hb, #Hs⟩ | ⟨%he, Hm, Hb⟩)
-  · isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+  · isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr
@@ -107,10 +107,10 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
         exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2.1, LoWr.of_exact rfl rfl⟩
       · iapply tailVar_unfold $$ Hv
     · ileft; iframe Hs; ipureintro; exact he
-  · isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+  · isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m, bs
       iframe Hm Hb
       isplitr
@@ -161,10 +161,10 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
   · ileft
     isplitr
     · ipureintro; exact he
-    isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+    isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr
@@ -176,8 +176,8 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
     isplitr
     · ipureintro; exact he
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m, bs
       iframe Hm Hb
       isplitr

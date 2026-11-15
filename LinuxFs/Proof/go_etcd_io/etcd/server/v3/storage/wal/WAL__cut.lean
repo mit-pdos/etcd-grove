@@ -333,7 +333,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   (try wp_auto)
   -- step 5: the headers, on the owned `N.tmp`
   iunfold pipeFile at Hpf
-  icases Hpf with ⟨%f2, %fd2, %i2, %m2, %ht, #Hlf2, Hf2, Hoff2, Hfd2, Hm2, Hz2, Hn2, %hpf⟩
+  icases Hpf with ⟨%f2, %fd2, %i2, %m2, %ht, %lo2, %lk2, #Hlf2, Hf2, Hoff2, Hfd2, Hlks2, Hm2, Hz2, Hn2, %hpf⟩
   obtain ⟨hfd2, hmaps2, hcur2, hcut2, hlo2, hsz8, hszmax, hzp2⟩ := hpf
   wp_apply wp_slice_literal (V := Loc) [ntl]
   isplitr
@@ -380,16 +380,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [hTS]; exact cutHdrs_fit Mr h.md _ _ (by rw [← hst]; exact hmdsz)
   icases (osZerosA_unfold i2 0 m2.size (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
   ihave HW0 := os.fileW_start f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
-    (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 0 (zs2.map (fun c => ((0 : w8), c)))
+    (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2 0 (zs2.map (fun c => ((0 : w8), c)))
     hlo2 (Nat.zero_le _) (by simp [hzs2]) $$ [Hf2 Hfd2 Hoff2 Hm2 Hz2]
   · iframe
   ihave #Hws := os.File.writerStreamI wp_WriteAt f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
-    (DFrac.own 1) (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2
+    (DFrac.own 1) (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2
     (zs2.map (fun c => ((0 : w8), c))) (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length
-    hfd2 (by unfold openFd; dsimp only; decide) hmaps2 (by omega) $$ Hos
+    hfd2 rfl hmaps2 (by omega) $$ Hos
   ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
   ihave HW0' : os.fileWI f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
-    (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 (zs2.map (fun c => ((0 : w8), c))) []
+    (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))) []
     $$ [HW0]
   · iunfold os.fileWI; iframe; iframe #
   -- the headers' frames, record by record
@@ -470,7 +470,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
       ownEncoder e2 (wal.fileWi f2) (crcAfter walCodec c0 (cutHdrDs Mr h.md h.st)) pend3 ∗
       os.fileWI f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
-        (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 (zs2.map (fun c => ((0 : w8), c)))
+        (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c)))
         ([] ++ ys1 ++ ys2 ++ ys3) ∗
       ⌜ys3 ++ pend3 = pend2 ++ (if hsEmptyP h.st then [] else stateFrame Mr
         (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st)⌝) ∨ ⌜serr3 ≠ GoInterface.nil⌝
@@ -524,7 +524,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
     have := congrArg List.length hall; simp only [List.length_append] at this ⊢; omega
   have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
-    (DFrac.own 1) (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2
+    (DFrac.own 1) (⟨i2, false, true, lo2, lk2⟩ : OsFd) m2
     (zs2.map (fun c => ((0 : w8), c)))
   wp_apply (wp_syncPreL w lg dir mds h.md e2 (ls ++ [lt]) ntl f2 h.snapi h.enti _ _ _
       (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ([] ++ ys1 ++ ys2 ++ ys3) pend3 _
@@ -735,7 +735,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_method_call
   wp_call
   (try wp_auto)
-  wp_apply (wp_Close f2 fd2 _ _) $$ [Hf2 Hfd2] as %cerr -
+  ihave Hlt2 := fdLocks_toks fd2 _ $$ Hlks2
+  wp_apply (wp_Close f2 fd2 _ _) $$ [Hf2 Hfd2 Hlt2] as %cerr -
   · iframe; iframe #
   (try wp_auto)
   -- `fileutil.LockFile(fpath, O_WRONLY, PrivateFileMode)`
@@ -750,11 +751,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       (walOpen_triple Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)
         (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur))
         (1 : Qp).half.half (W64 1) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide)
-        (by decide) hbn hbX (GMap.lookup_insert _ _ _)))
+        (by decide) hbn hbX (GMap.lookup_insert _ _ _)) (by decide))
     $$ [Hpd Hcw Hperm] as %lf3 %lerr Hlp
   · iframe; iframe #
   iunfold fileutil.lockPost at Hlp
-  icases Hlp with ⟨%u, (⟨%hle, ⟨Hpd, Hcw, Hperm⟩, %f3, %fd3, %i3, ⟨%hfd3, %hi3⟩, #Hlf3, Hf3, Hoff3, Hfd3⟩ |
+  icases Hlp with ⟨%u, (⟨%hle, ⟨Hpd, Hcw, Hperm⟩, %f3, %fd3, %i3, %k3, ⟨%hfd3, %hi3⟩, #Hlf3, Hf3, Hoff3, Hfd3, Hlk3, #Hkind3⟩ |
     ⟨⟨%hle, -⟩, -⟩)⟩
   rotate_left
   · rcases lerr with ei | _
@@ -834,9 +835,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     exact tailMeta_synced _ _ (by simp [hysS]) (by rw [hokS.2.2.2.1]; exact hmaps2)
       (metaChain_zeroPg hokS.2.1 (Nat.zero_le _) hzp2).pageEnd_size
   have hgsz : g.bs.length ≤ 0xffffffff000 := by rw [hgbsL, hysS, hszS]; omega
-  have hfd3' : openFd g.ino (W64 1 ||| W64 524288) = ⟨g.ino, false, true, none, none⟩ := by
-    unfold openFd; congr 1
-  icases Hfdo with ⟨%rd, Hfdo⟩
+  icases Hfdo with ⟨%rd, %lo, %lk, Hfdo, Hlkto⟩
   iapply HΦ
   ileft
   isplitr
@@ -855,11 +854,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     Hlf3 Hfp Henv Hcrc Hwpk Henc3
   isplitr
   · ipureintro; exact he3
-  isplitl [Hf3 Hfd3 Hoff3 Htk HmG HbG Hv]
+  isplitl [Hf3 Hfd3 Hlk3 Hoff3 Htk HmG HbG Hv]
   · iunfold walTailW
     iframe Hf3 Htk
-    isplitl [Hfd3]
-    · iexists false; rw [hfd3'] at *; iexact Hfd3
+    isplitl [Hfd3 Hlk3]
+    · iexists false
+      iapply lkFd_open k3 g.ino (W64 1) fd3 false true rfl rfl
+      iframe Hfd3 Hlk3 Hkind3
     isplitl [Hoff3]
     · rw [show ((L : Nat) : Int) + ((([] : List w8).length : Nat) : Int) = ((0 : Nat) : Int) + ((L : Nat) : Int)
         by simp]
@@ -882,13 +883,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       cutDir_largest g.ino hlargest hlt⟩
   isplitr
   · ipureintro; simp
-  isplitl [Hlks Hf Hfdo]
+  isplitl [Hlks Hf Hfdo Hlkto]
   · simp only [List.dropLast_concat]
     iapply (BigSepL.bigSepL_snoc (Φ := fun _ lf => walLockH lf)).2
     iframe Hlks
     iunfold walLockH
     iexists f, fd, name, ⟨h1.ino, rd, true, lo, lk⟩
-    iframe Hltf Hf Hfdo
+    iframe Hltf Hf Hfdo Hlkto
   isplitl [Hmain Htm1 Htm2]
   · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp hfpn
     iframe Hisfp Hmain

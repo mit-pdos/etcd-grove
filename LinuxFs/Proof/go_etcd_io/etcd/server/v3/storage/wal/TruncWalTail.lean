@@ -130,8 +130,8 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
     icases Hd with ⟨-, ⟨%tc, %rz, %htc, Hm'⟩, -⟩
     icases HK with ⟨Hk, Hv⟩
     iframe Hof Hoff Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     iexists (rsPost true m (o0 + out.length) (o0 + out.length)).withTc tc rz, bs.take (o0 + out.length)
     iframe Hm' Hbt
     isplitr

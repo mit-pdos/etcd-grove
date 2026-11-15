@@ -654,7 +654,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           subst ew
           iapply HΦ
           iframe Hsl
-          isplitl [Hfd]
+          isplitl [Hfd Hlkt]
           · iexists inner; iframe; isplitl [] <;> iassumption
           ileft
           iframe Hosfd Hk Hv
@@ -672,7 +672,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
           iapply HΦ
           iframe Hsl
-          isplitl [Hfd]
+          isplitl [Hfd Hlkt]
           · iexists inner; iframe; isplitl [] <;> iassumption
           iright
           iframe Hosfd
@@ -706,7 +706,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
           iapply HΦ
           iframe Hsl
-          isplitl [Hfd]
+          isplitl [Hfd Hlkt]
           · iexists inner; iframe; isplitl [] <;> iassumption
           iright
           iframe Hosfd
@@ -868,18 +868,18 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
       isplitr
       · ipureintro; intro h; cases h
       unfold tailWB
-      iexists rd
-      iframe Hf Hfd
+      iexists rd, lo, lk
+      iframe Hf Hfd Hlkt
     · ileft
       isplitr
       · ipureintro; exact ⟨rfl, by rw [hn]; rfl⟩
       iunfold walTailWS
       rw [List.append_nil]
-      isplitl [Hf Ho Hk Hfd Hm Hb Hv]
+      isplitl [Hf Ho Hk Hfd Hlkt Hm Hb Hv]
       · iunfold walTailW
         iframe Hf Ho Hk
-        isplitl [Hfd]
-        · iexists rd; iexact Hfd
+        isplitl [Hfd Hlkt]
+        · iexists rd, lo, lk; iframe
         iexists m, bs
         iframe Hm Hb Hv
         ipureintro; exact ⟨hsz, hm, hsz62, hfd0, hlw⟩
@@ -913,12 +913,12 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
       rw [hres.2]; simp only [sint.Z]; rw [os.W64_nat_toInt xs.length (by omega)]
     iunfold walTailWS
     rw [List.length_append, ← Nat.add_assoc]
-    isplitl [Hf Hk Hfd Ho Hm Hb Hv]
+    isplitl [Hf Hk Hfd Hlkt Ho Hm Hb Hv]
     · iunfold walTailW
       rw [List.length_append, ← Nat.add_assoc]
       iframe Hf Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       isplitl [Ho]
       · rw [show W64 ((o0 + out.length : Nat) : Int) + W64 (xs.length : Int) =
             W64 ((o0 : Int) + ((out.length + xs.length : Nat) : Int)) by
@@ -936,8 +936,8 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
     isplitr
     · ipureintro; exact herr
     unfold tailWB
-    iexists rd
-    iframe Hf Hfd
+    iexists rd, lo, lk
+    iframe Hf Hfd Hlkt
 
 end tail
 

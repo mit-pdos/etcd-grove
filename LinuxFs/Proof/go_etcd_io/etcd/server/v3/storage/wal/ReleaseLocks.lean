@@ -50,11 +50,11 @@ instance walLockNamed_persistent (lf : Loc) : Persistent (walLockNamed (GF := GF
 theorem walLockH_named (lf : Loc) :
     walLockH (GF := GF) lf ⊢ walLockH lf ∗ walLockNamed lf := by
   unfold walLockH walLockNamed
-  iintro ⟨%f, %fd, %nm, %d, #Hl, Hf, Hfd⟩
+  iintro ⟨%f, %fd, %nm, %d, #Hl, Hf, Hfd, Hlks⟩
   ihave #Hn := os.ownFile_named f fd nm (DFrac.own 1) $$ Hf
-  isplitl [Hf Hfd]
+  isplitl [Hf Hfd Hlks]
   · iexists f, fd, nm, d
-    iframe Hl Hf Hfd
+    iframe Hl Hf Hfd Hlks
   · iexists f, nm
     iframe Hl Hn
 

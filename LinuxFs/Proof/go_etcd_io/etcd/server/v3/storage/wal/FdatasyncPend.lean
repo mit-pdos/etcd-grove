@@ -250,11 +250,11 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   · ileft
     isplitr
     · ipureintro; exact he
-    isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+    isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · unfold walTailW
       iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr
@@ -267,8 +267,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
     isplitr
     · ipureintro; exact he
     iframe Hf Hoff Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     iexists m, bs
     iframe Hm Hb
     isplitr

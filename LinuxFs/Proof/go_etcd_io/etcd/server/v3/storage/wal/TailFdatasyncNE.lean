@@ -106,8 +106,8 @@ theorem fileutil.Fdatasync.wp_tailNE [syscall.Assumptions]
   iapply HΦ
   iframe Hcf Hs
   iframe Hf Hoff Hk
-  isplitl [Hfd]
-  · iexists rd; iexact Hfd
+  isplitl [Hfd Hlkt]
+  · iexists rd, lo, lk; iframe
   iexists m.synced, (bs.map (fun x => durB x.1))
   iframe Hm Hb
   isplitr
@@ -145,8 +145,8 @@ theorem fileutil.Fdatasync.wp_tailWNE [syscall.Assumptions]
   iapply HΦ
   iframe Hcf Hs
   iframe Hf Hoff Hk
-  isplitl [Hfd]
-  · iexists rd; iexact Hfd
+  isplitl [Hfd Hlkt]
+  · iexists rd, lo, lk; iframe
   iexists m.synced, (bs.map (fun x => durB x.1))
   iframe Hm Hb
   isplitr

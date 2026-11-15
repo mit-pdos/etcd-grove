@@ -253,7 +253,7 @@ theorem walDecFile_ok
     · iframe; iexact Hinv
     try wp_auto
     iapply HΦ
-    isplitl [Hf Hfd Ho Hm Hbs]
+    isplitl [Hf Hfd Hlks Ho Hm Hbs]
     · iunfold walFileS; rw [← hino]; iframe; ipureintro; exact Hpre
     icases Hres with (⟨%fs, %Hok, Hfs⟩ | %Herr)
     · obtain ⟨rfl, rfl⟩ := Hok

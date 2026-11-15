@@ -73,8 +73,8 @@ theorem os.File.Truncate.wp_specRepTail (Mr : WalMarshal)
     icases HK with ⟨Hk, Hv⟩
     rw [walTailKeyL_some]
     iframe Hof Hoff Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     iexists (rsPost true m o0 o0).withTc tc rz, bs.take o0
     iframe Hm' Hbt
     isplitr
@@ -91,7 +91,7 @@ theorem os.File.Truncate.wp_specRepTail (Mr : WalMarshal)
     iframe Hof Hoff
     isplitr
     · ipureintro; exact he
-    iexists rd; iexact Hfd
+    iexists rd, lo, lk; iframe
 
 end proof
 

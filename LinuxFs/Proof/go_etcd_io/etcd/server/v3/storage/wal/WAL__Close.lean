@@ -183,7 +183,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
         rw [hdrop]
         icases Hlks with ⟨Hlf, Hlks⟩
         iunfold walLockH at Hlf
-        icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1⟩
+        icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1⟩
+        ihave Hlt1 := fdLocks_toks fd1 d1 $$ Hlks1
         ihave #Hlf3 := Hlf1
         iunfold fileutil.lockedFile at Hlf3
         ihave %hlfn := typedPointsto_not_null lf _ _ $$ Hlf3
@@ -193,7 +194,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
         wp_method_call
         wp_call
         (try wp_auto)
-        wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1] as %err1 ⟨-, #Herr⟩
+        wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, #Herr⟩
         · iframe; iexact Hosinv
         (try wp_auto)
         have hdk : decide (sint.nat (k + W64 1) < lfs2.length) = decide (sint.nat k < lfs2.length) := by

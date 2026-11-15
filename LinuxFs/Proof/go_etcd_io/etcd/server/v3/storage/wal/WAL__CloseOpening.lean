@@ -109,8 +109,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   icases Hl with ⟨Hlt, Hpf, Hcf⟩
   -- the files, out of the decoder
   ihave Hst0 := ownDecoder_streams dec IoE eof fs 0 0#32 true $$ Hdec
-  icases walTie_files dir (walReadFlag true) gs fs fls hfl hfll (fun k F g h1 h2 =>
-      let ⟨f, fd, h3, h4⟩ := (hfk k F g h1 h2).2.2; ⟨f, fd, h3, h4⟩) $$ Hst0 with ⟨Hsegs, Hfiles⟩
+  icases walTie_files dir true gs fs fls hfl hfll (fun k F g h1 h2 =>
+      let ⟨f, fd, lo, lk, h3, h4⟩ := (hfk k F g h1 h2).2.2; ⟨f, fd, lo, lk, h3, h4⟩) $$ Hst0 with ⟨Hsegs, Hfiles⟩
   obtain ⟨gs0, gL, rfl⟩ : ∃ gs0 gL, gs = gs0 ++ [gL] := by
     rcases List.eq_nil_or_concat gs with h | ⟨L, b, h⟩
     · exact absurd h hgs0
@@ -154,9 +154,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   simp only [decide_eq_false hltn]
   (try wp_auto)
   iunfold walTieFile at HfL
-  icases HfL with ⟨%fdL, HfL, HfdL⟩
+  icases HfL with ⟨%fdL, %loL, %lkL, HfL, HfdL, HlksL⟩
   wp_apply (wp_syncIdle R jr r w lg locks ls lt (fls.getD gs0.length null) fdL (child dir gL.name)
-      dir j X hj gL.name (openFd gL.ino (walReadFlag true)) gL.om gL.bs hbL hiL hlenL)
+      dir j X hj gL.name (walSegFd true loL lkL gL.ino) gL.om gL.bs hbL hiL hlenL)
       $$ [He Hns Hlg Hlocks Hls HfL HfdL Hn Htf Hcf HsL]
       as %err ⟨He, Hns, Hlg, Hlocks, Hls, HfL, HfdL, -, Hn, Htf, Hcf, Hsy⟩
   · iunfold segRes at HsL
@@ -203,10 +203,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   | nil =>
   wp_auto
   -- the locks' files
-  ihave HfL' : walFileAt (GF := GF) fls gs0.length $$ [HfL HfdL]
+  ihave HfL' : walFileAt (GF := GF) fls gs0.length $$ [HfL HfdL HlksL]
   · unfold walFileAt; iexists fdL, _, _; iframe
   ihave Hfiles := BigSepL.bigSepL_mono (PROP := IProp GF)
-    (fun {k g} _ => walTieFile_at (GF := GF) dir (walReadFlag true) fls k g) $$ Hfiles
+    (fun {k g} _ => walTieFile_at (GF := GF) dir true fls k g) $$ Hfiles
   ihave Hlh := walTie_locks (GF := GF) (gs0 ++ [gL]) (ls ++ [lt]) fls hll $$ [Hfiles HfL']
   · iframe Hlks
     iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
@@ -248,7 +248,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
       rw [hdrop]
       icases Hlks with ⟨Hlf, Hlks⟩
       iunfold walLockH at Hlf
-      icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1⟩
+      icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1⟩
+      ihave Hlt1 := fdLocks_toks fd1 d1 $$ Hlks1
       ihave #Hlf3 := Hlf1
       iunfold fileutil.lockedFile at Hlf3
       ihave %hlfn := typedPointsto_not_null lf _ _ $$ Hlf3
@@ -258,7 +259,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
       wp_method_call
       wp_call
       (try wp_auto)
-      wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1] as %err1 ⟨-, #Herr⟩
+      wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, #Herr⟩
       · iframe; iexact Hosinv
       (try wp_auto)
       cases err1 with

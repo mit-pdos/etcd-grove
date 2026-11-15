@@ -75,11 +75,11 @@ theorem WalFs.walOpenedFile_named (write : Bool) (dir b : GoString) (i : Ino) (f
         (if write then fileutil.lockedFile lf f else ⌜lf = null⌝)) := by
   unfold WalFs.walOpenedFile
   cases write <;> simp only [Bool.false_eq_true, ↓reduceIte] <;>
-  · iintro ⟨%f, %fd, %rl, Hf, Hfd, Ho, %hfd, %hfr, #Hrl, #Hl⟩
+  · iintro ⟨%f, %fd, %rl, %lo, %lk, Hf, Hfd, Hlks, Ho, %hfd, %hfr, #Hrl, #Hl⟩
     ihave #Hn := os.ownFile_named f fd (child dir b) (DFrac.own 1) $$ Hf
-    isplitl [Hf Hfd Ho]
-    · iexists f, fd, rl
-      iframe Hf Hfd Ho
+    isplitl [Hf Hfd Hlks Ho]
+    · iexists f, fd, rl, lo, lk
+      iframe Hf Hfd Hlks Ho
       isplitr
       · ipureintro; exact hfd
       isplitr

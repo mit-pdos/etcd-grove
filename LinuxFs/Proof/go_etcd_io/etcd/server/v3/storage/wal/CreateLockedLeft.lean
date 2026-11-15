@@ -44,8 +44,9 @@ theorem wp_lockedCloseLeft (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   wp_method_call
   wp_call
   (try wp_auto)
-  icases Hl with (⟨Hf, Hfd⟩ | Hf)
-  · wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd] as %err ⟨-, #Herr⟩
+  icases Hl with (⟨Hf, Hfd, Hlks⟩ | Hf)
+  · ihave Hlt := fdLocks_toks fd d $$ Hlks
+    wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, #Herr⟩
     · iframe; iexact Hinv
     iapply HΦ $$ Herr
   · wp_apply wp_CloseC f name $$ [Hos Hinv Hf] as %err ⟨-, #Herr⟩

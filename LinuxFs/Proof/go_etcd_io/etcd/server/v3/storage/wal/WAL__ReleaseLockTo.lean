@@ -258,7 +258,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       rw [hdrop]
       icases Hlks with ⟨Hlf, Hlks⟩
       iunfold walLockH at Hlf
-      icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1⟩
+      icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1⟩
+      ihave Hlt1 := fdLocks_toks fd1 d1 $$ Hlks1
       ihave #Hlf2 := Hlf1
       iunfold fileutil.lockedFile at Hlf2
       ihave %hlfn := typedPointsto_not_null lf _ _ $$ Hlf2
@@ -272,7 +273,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       wp_method_call
       wp_call
       (try wp_auto)
-      wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1] as %err1 -
+      wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 -
       · iframe; iexact Hosinv
       wp_for_post
       iframe
