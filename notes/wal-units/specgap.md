@@ -123,6 +123,11 @@ holds the token and its `walDiskAt` throughout, so `d` and `cut` are the same at
 
 ## 3. Go findings (to report; not written into `issues/` by this unit)
 
+Recorded 2026-11-15 (branch `wal-c-findings`): 1 reproduced under `-race` at upstream `main` and the
+fork, `issues/etcd-wal-sync-releaselockto-race.md` (with `fix.patch`); 3 reproduced (a purge with a
+short interval), `issues/etcd-storage-downgrade-reopen-purge-panic.md`; 2 by code reading only,
+`nonissues/etcd-bootstrap-repair-close-error-hang.md`. None is fixed or reported upstream.
+
 1. **`WAL.Sync` holds no lock** (`storage/wal/wal.go:994-996`), and `storage.Sync` takes only
    `st.mux.RLock` (`storage/storage.go`). Here is how the two calls can overlap:
    - Batch N: the raft loop hands it over and moves on once raft has advanced (`raftAdvancedC`).
