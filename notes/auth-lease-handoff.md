@@ -79,27 +79,47 @@ StartOn, RunOn, NewServer, EtcdServer__applySnapshot (SnapApplyPost), SnapSendBr
 ClientModel, EtcdServer__Put/DeleteRange/Txn. Edited, not yet checked: auth/MainAlloc, etcdstart/Alloc3On (alloc premises),
 server Results (`server_member_alloc_on` premises), KVLogOk, client WatchFire/Results/KVService, v3rpc ServerKV, InvRead.
 
-**Where the port is (2026-11-15, end of session):** full builds `build1`–`build4` (`/shared/tmp/auth-lease-s3a/build*.log`,
-flock + 64G) leave, at the last one, failures only in the client chain: `client/v3/Results.lean` (and what imports it);
-`ServerKVGet`, `ServerKVTxn` fixed after `build4` (unbuilt). Everything else of the server, v3rpc, the auth
-examples and the snapshot path builds. Next:
-1. **`readQ_of_ansM` (client `Results.lean:1039`) needs the read side's guard** (rev 6's stronger guard `on = false ∨
-   lm = none → lt = []`): the row it reads, `rangeAnsOkM`/`txnReadAnsM` (`api/v3rpc/ServerKV.lean:214, 227`), gives only
-   `∃ L, srvRLogLb ∗ ⌜kvModelM on L = log⌝ ∗ □ Q L`. Plan: add `⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv
-   srvAuthSt0 L = []⌝` to both rows' `∃ L` (internal v3rpc vocabulary), proved where `ServerKVOn` builds them (it has
-   `isServerReadM`: `kv_log_plain_on` gives `plainLogOn γk.lm L`, then `kvLeasesOn_none`); then `readQ_of_ansM` takes
-   `lt := if on then kvLeasesOn … else []` (off: `kvStM false = kvStateOf (kvModel L)`, `lt = []`; on: `kvStOn`).
-   Update §14's table with the two rows (a meaning-preserving addition to internal rows; tell etcd-grove-81).
-2. Rebuild (full, flock + 64G); fix what remains in the client chain and the examples.
-3. Then steps 3–5 (§3a, §5 removing the TRANSITIONAL `γr.kv.lg = false` and every "TRANSITIONAL" site, §6), the
-   keys' invariant lemmas (`keysNonEmpty`, `keysLeasesLive` preservation), `appliedTableM` (§4) and its users, and the
-   land-stop checks (tcb 870/4, gen-interface with `Alloc3On.txt`, bounds, modes, closed statements, merge lean).
+**Where it is (2026-11-15, session 2):** the full build is GREEN at `build9` (`/shared/tmp/auth-lease-s3a/build9.log`,
+flock + 64G, commit after `auth-lease S3a §3a`); `etc/tcb-report.py --check` at 870 axioms, 4 sorries (run at `build8`,
+before §3a; §3a adds no axiom). Done this session:
+1. **The read rows' guard** (handoff item 1, decided by etcd-grove-81): `⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv
+   srvAuthSt0 L = []⌝` inside the `∃ L` of `rangeAnsOkM`/`txnReadAnsM` (`ServerKV.lean`), proved in `ServerKVOn` by
+   `ReadOn.depQ_leases_none` (from `srvKVCoreM_leases_none`: `kv_log_plain_on` + `kvLeasesOn_none`; `iapply wp_fupd` before
+   the `wp_apply` so the post can be updated). `readQ_of_ansM` (client Results) takes the guard;
+   `rangeErrReply_of_errAt` became a fupd lemma over `srvKVCoreM E.authOn` (the error row `rangeErrAt` keeps its text).
+   §14's table has the two rows.
+2. **Client chain and examples** destructure the table (`ServerKVGet`, `ServerKVTxn`, `ClientPutGet`, `kubernetes/Defs`,
+   k8s `etcd3/Compact`, `partition/WatchWrites`, `txnlin/Calls`, `auth/WorkCalls`). Pitfall: `simp only [hs, …]` on an
+   Iris goal rewrites the context too: specialize `Himp $$ %hs` BEFORE the simp.
+3. **§3a**: `apply.leaseExactL`, `leaseExactL_rejected`, `leaseExactL_other`, `kvOwnAt`, `kvOwn_iff_at`, `kvOwn_of_at(P)`,
+   `kvOwn_atP`, `kvOwn_rejected`, `kvOwnAt_ltHalf` (Chain); `kvOwnAt_of_split`, `wSt_ne_false` (WriteLemmas). `kvPostF` and
+   `kvPostFL` carry `∃ L, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L`; the backend's Put (a dead lease's
+   commit refuted by two writer halves), Txn (`txn.Txn.spec`'s `PathsLeaseOk`/rejection), DeleteRange (trivial) prove it;
+   quota/capped/corrupt/auth pass it or reject (`kvOwn_rejected`); the class-track consumers (`apply/Results`,
+   `uberApplier__dispatch`) forget it (`kvOwn_of_atP`). The latest track: `dispatch.kvSpecL` gains `⌜v3 = true → E.lg =
+   true → leaseExactL T rq log o⌝` (from `kvOwnAt_ltHalf` at the caller's `ltHalf E T`), `uberApplier.Apply.kvSpecL`,
+   `uberKVC`, `apply.Apply.kvSpecL` gain `⌜∀ o b, out = .dispatched o b → v3 = true → E.lg = true → leaseExactL T rq x.log
+   o⌝`; `auth_pass_kvPostFL_nil` takes `dispatchKind rq = .leaseRevoke`. The server (`applyEntryNormal`) drops the new
+   conjunct for now (`%HXo, -, #Hdel`): §6 consumes it.
+4. **§4 started**: `appliedTableM`, `appliedTableM_false/true`, `appliedTableM_eq_model` in `KVModelM.lean` (checked with
+   lean-check, not yet in a full build; it rebuilds ~1270 modules). **Finding:** `srvRest` (`InvRest.lean`) is imported
+   by `KVAuthModel`, so it cannot read `kvLeasesOn`. Proposed form (to do): split `srvRest` into a table-generic
+   `srvRestT E γr T A` in `InvRest` (`srvRest E γr A := srvRestT E γr (appliedTable γr A) A`, so the off proofs are
+   untouched) and `srvRestM on E γr A := if on then srvRestT E γr (appliedTableM true γr A) A else srvRest E γr A` in a
+   module after `KVModelM`; `srvRestRp`/`imageLeasesAt` and the auth-on users take `srvRestM E.authOn` (Draft §4's
+   "`srvRest` and `srvRestAt`'s callers use `appliedTableM E.authOn`", in a Lean shape that fits the import order).
 
-Tools: `/shared/tmp/auth-lease-s3a/chk.sh FILE...` (lean-check in order, stops at the first file with errors;
-`LINES_SHOW=N`); `/shared/tmp/auth-lease-s3a/hg.py` (adds `kvInvOn`'s `HG` conjunct to open/close patterns).
-Lemmas added for the port: `kvLeasesOn_none`, `kvRaftOfOn_table_none`, `kvTable_plainOn_none`, `kvRaftOfOn_conf`,
-`kvLeasesOn_conf`, `leaseGrantedM_of_plainCover`, `kvGrantIds_snoc_keep`, `entryRevGrantId_nonGrant`; `kvAppliedM true`
-is `kvAppliedOn … (kvLeasesOn γk st₀ A)`.
+Next, in order:
+1. §4: `srvRestT`/`srvRestM` as above; `srvRestRp` (`ApplyRDefs.lean:64`) and `imageLeasesAt` (`ImageLeases.lean:51`) at
+   the mode; the auth-on users switch (with the TRANSITIONAL row still in place they only rewrite: `E.lg = false`).
+2. §5: drop `γr.kv.lg = false` from `srvKVInvsOn` (`KVApplyOn.lean:401`) and the TRANSITIONAL sites (`grep -rn
+   TRANSITIONAL Proof`: `ApplyAllSnap:279`, `ApplyEntryOn:151`, `EtcdServer__applyEntryNormal:1293, 1513`,
+   `MergedImageOn:88`, `SnapApplyPost:100` (`srvKVInvsM_lg`), `SnapRecvOn:537`), restate `specSnapM`'s `hnl` with
+   `keysLeasesLive` (frozen rev 5 text, §5's table); the keys' invariants' preservation (`keysNonEmpty`,
+   `keysLeasesLive`) in `kvInvOn`.
+3. §6: the mode-`on` apply proofs (grant, revocation arms; the KV branch over `kvOutL` + `leaseExactL`, no `plainCover`).
+4. The land-stop checks (handoff "Build"; tcb 870/4, gen-interface with `Alloc3On.txt`, bounds, modes, closed statements,
+   merge lean, no TRANSITIONAL markers).
 
 ## Pitfalls
 

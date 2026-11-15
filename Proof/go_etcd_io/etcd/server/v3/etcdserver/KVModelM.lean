@@ -51,6 +51,29 @@ theorem logShapeM_append (on : Bool) (lm : lease.Mode) (A B : List EntryModel) (
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)
 
+/-- **`srvRest`'s lease table in the auth mode `on`** (auth-lease S3a, Draft rev 5 §4): the off table
+`appliedTable` (`kvLeases` over the raft prefix and the applied entries, which ignores the auth layer)
+off; with auth on the mode-`on` model's table over the same entries (`kvLeasesOn … srvAuthSt0`), which
+keeps the table at a revocation the auth layer refused. -/
+def appliedTableM (on : Bool) (γr : ReadNames) (A : List EntryModel) : LeaseTable :=
+  if on then kvLeasesOn γr.kv srvAuthSt0 (γr.raft.pre ++ A) else appliedTable γr A
+
+theorem appliedTableM_false (γr : ReadNames) (A : List EntryModel) :
+    appliedTableM false γr A = appliedTable γr A := by
+  simp [appliedTableM]
+
+theorem appliedTableM_true (γr : ReadNames) (A : List EntryModel) :
+    appliedTableM true γr A = kvLeasesOn γr.kv srvAuthSt0 (γr.raft.pre ++ A) := by
+  simp [appliedTableM]
+
+/-- **The model's table and `srvRest`'s agree at an empty raft prefix** (Draft rev 5 §3, review r4 N1
+(a)): the mode-`on` model folds over the applied entries alone, `srvRest`'s table over the prefix and
+them. -/
+theorem appliedTableM_eq_model (γr : ReadNames) (A : List EntryModel) (h : γr.raft.pre = []) :
+    (appliedTableM true γr A).ids =
+      (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).2.2.ids := by
+  rw [appliedTableM_true, h, List.nil_append]; rfl
+
 /-- **The KV model of the committed log `L` in the auth mode `on`**: `kvModel` off, the mode-`on`
 model from the server's start state (`kvModelOn … srvAuthSt0`) on. -/
 def kvModelM (on : Bool) (γk : KVNames) (L : List EntryModel) : mvcc.Log :=
