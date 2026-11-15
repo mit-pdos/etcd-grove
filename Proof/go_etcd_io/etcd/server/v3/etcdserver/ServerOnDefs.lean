@@ -79,7 +79,7 @@ def appliedPubM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) : IP
   | false => iprop(True)
   | true => iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
       ⌜uint.Z i = uint.Z γr.raft.ai0 + A.length⌝ ∗
-      authPubAt E.authMode (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1)
+      authPubAt E.authMode (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1)
 
 instance appliedPubM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) :
     Persistent (appliedPubM (GF := GF) on E γr i) := by

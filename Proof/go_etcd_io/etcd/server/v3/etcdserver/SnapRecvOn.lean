@@ -100,7 +100,7 @@ theorem kvEntry_growsOkOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (lt : Leas
 
 /-- A mode-on plain entry's step of the mode-on model is restorable. -/
 theorem kvEntryOn_growsOk [GooseExts] (c₀ : w64) (ch : apply.Chain)
-    (s : auth.AuthState × mvcc.Log) (m : EntryModel) (hm : plainEntryOn m)
+    (s : OnState) (m : EntryModel) (hm : plainEntryOn m)
     (hl : mvcc.LogNoLease s.2) : growsOk s.2 (kvEntryOn c₀ ch s m).2 := by
   unfold kvEntryOn
   split
@@ -116,7 +116,7 @@ theorem kvEntryOn_growsOk [GooseExts] (c₀ : w64) (ch : apply.Chain)
 /-- **The mode-on model of a mode-on log, from a lease-free start, is restorable**
 (`kvRaftSt_restorable`'s). -/
 theorem kvRaftOfOn_restorable [GooseExts] (c₀ : w64) (ch : apply.Chain) :
-    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), plainLogOn A →
+    ∀ (s₀ : OnState) (A : List EntryModel), plainLogOn A →
       mvcc.LogNoLease s₀.2 →
       mvcc.LogNoLease (kvRaftOfOn c₀ ch s₀ A).2 ∧
         ∀ cs ∈ (kvRaftOfOn c₀ ch s₀ A).2.drop s₀.2.length, cs ≠ []
@@ -178,7 +178,7 @@ theorem kvModelOn_prefix [GooseExts] (γk : KVNames) (st₀ : auth.AuthState) {A
 theorem kvModelOn_split [GooseExts] (γk : KVNames) (st₀ : auth.AuthState) (A : List EntryModel)
     (h : γk.log0 = [[], []]) :
     [[], []] ++ (kvModelOn γk st₀ A).drop 2 = kvModelOn γk st₀ A := by
-  have hp : γk.log0 <+: kvModelOn γk st₀ A := kvRaftOfOn_extends γk.c0 γk.ch0 (st₀, γk.log0) A
+  have hp : γk.log0 <+: kvModelOn γk st₀ A := kvRaftOfOn_extends γk.c0 γk.ch0 (st₀, γk.log0, []) A
   rw [h] at hp
   obtain ⟨t, ht⟩ := hp
   rw [← ht]
@@ -497,7 +497,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   icases Himg with ⟨%γk', %hk', #Hdb⟩
   obtain ⟨h0', h1', h2'⟩ := hk'
   have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0) B =
-      kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) B := by
+      kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) B := by
     intro B; rw [h0', h1', h2', hc0, hch, hlog0]
   have hk : ∀ B, kvModelOn γk' srvAuthSt0 B = kvModelOn γr.kv srvAuthSt0 B := by
     intro B; unfold kvModelOn; rw [hR]
@@ -603,7 +603,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
 /-- **The apply thread's KV ghost state jumps to a longer committed log, in the mode `on`**
 (`kv_cert_jump`'s counterpart): certified, at the mode-on model's state after `A'`. -/
 theorem kv_cert_jumpOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
-    (hE : ↑kvcN ⊆ E) (A A' : List EntryModel) (s : auth.AuthState × mvcc.Log) (hA : A <+: A')
+    (hE : ↑kvcN ⊆ E) (A A' : List EntryModel) (s : OnState) (hA : A <+: A')
     (hlen : (kvModelOn γk st₀ A').length < 2 ^ 63) :
     ⊢ kvCertInvOn (GF := GF) γ γk st₀ -∗ kvAppliedLOn γ γk st₀ A s -∗ srvRLogLb γ A' ={E}=∗
       kvAppliedLOn γ γk st₀ A' (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') := by
@@ -611,7 +611,7 @@ theorem kv_cert_jumpOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   iunfold kvAppliedLOn at Ha
   icases Ha with ⟨#HA, Hhi, #Hc, %Hl⟩
   have hs2 : s.2 = kvModelOn γk st₀ A := by unfold kvModelOn; rw [Hl]
-  have hq : (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) A' :=
+  have hq : (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) A' :=
     rfl
   rw [hs2]
   have hpre : kvModelOn γk st₀ A <+: kvModelOn γk st₀ A' := kvModelOn_prefix γk st₀ hA

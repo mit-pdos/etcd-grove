@@ -122,8 +122,8 @@ theorem kvModelM_prefix (on : Bool) (γk : KVNames) (A B : List EntryModel) (h :
   cases on
   · exact kvRaftOf_prefix _ _ _ _ _ h
   · obtain ⟨D, rfl⟩ := h
-    show (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) A).2 <+:
-      (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) (A ++ D)).2
+    show (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) A).2 <+:
+      (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) (A ++ D)).2
     rw [kvRaftOfOn_append]
     exact kvRaftOfOn_extends _ _ D _
 

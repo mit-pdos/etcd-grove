@@ -55,11 +55,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The KV state of the committed log `L` in the auth mode `on`**: the mode-`on` model's, from
-the start's auth state `st₀` (`kvInvOn`'s ghost state). -/
-@[reducible] def kvStOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : KVState :=
-  kvStateOf (kvModelOn γk st₀ L)
-
 /-- **The deposits' state function in the auth mode `on`**: `kvStOff` at `false`, `kvStOn` from the
 server's start state `srvAuthSt0` at `true`. -/
 def kvStM (on : Bool) (γk : KVNames) : List EntryModel → KVState :=
@@ -409,7 +404,7 @@ def authFloorAt (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) : IPro
   match M with
   | .on γa => iprop(∃ (A : List EntryModel) (i : Nat), srvRLogLb γr.raft A ∗
       ⌜uint.Z c ≤ uint.Z γr.raft.ai0 + A.length ∧ i ≤ m⌝ ∗
-      auth.authStateAt γa i (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1)
+      auth.authStateAt γa i (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1)
   | _ => iprop(True)
 
 instance authFloorAt_persistent (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) :
@@ -567,7 +562,7 @@ theorem srvKVCoreM_fire (on : Bool)
     ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
     have HpL : L <+: kvModelOn γr.kv srvAuthSt0 Lf := by
       obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
-        (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+        (srvAuthSt0, γr.kv.log0, []) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
       rw [← hA]
       unfold kvModelOn
       rw [hAL]
@@ -746,7 +741,7 @@ theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
     (by simp only [kvStOn, kvModelOn,
-      kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
+      kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0, []) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
   imodintro
   inext
   iintro !>
@@ -906,7 +901,7 @@ theorem authFloor_of_pubFrom (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.A
   iunfold appliedPubM at Hpi
   icases Hpi with ⟨%A, #HA, %hA, #Hpa⟩
   ihave #Hpa' : authPubAt (GF := GF) (.on γa)
-      (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1 $$ []
+      (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1 $$ []
   · rw [← hM]; iexact Hpa
   iunfold authPubAt at Hpa'
   icases Hpa' with ⟨%i, #Hlb, #Hst⟩
@@ -991,7 +986,7 @@ theorem kv_read_logOn (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Lo
     iframe HA'
     ipureintro
     exact ⟨hA', by have := h.length_le; omega⟩
-  · have hk := kvRaftOfOn_prefix γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A' AR h
+  · have hk := kvRaftOfOn_prefix γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A' AR h
     have hk' : l <+: L₀ := by
       have hR2 : L₀ = kvModelOn γr.kv srvAuthSt0 AR := HR.2
       unfold kvModelOn at hR2

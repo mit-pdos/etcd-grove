@@ -237,7 +237,7 @@ theorem plainEntryOn_userAdd (m : EntryModel) (hm : plainEntryOn m) (h0 : m.typ 
     exact (ha u hu).1
 
 /-- A mode-on entry keeps the auth state well formed, its revision bumped at most once. -/
-theorem kvEntryOn_wf (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem kvEntryOn_wf (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hm : plainEntryOn m) (h : histWf s.1) :
     histWf (kvEntryOn c₀ ch s m).1 ∧ (kvEntryOn c₀ ch s m).1.revision ≤ s.1.revision + 1 := by
   unfold kvEntryOn
@@ -265,7 +265,7 @@ theorem list_snoc_ind {α : Type _} {P : List α → Prop} (h0 : P [])
 
 /-- **Along a mode-on log**, every recorded state of the history well formed, the last too, its
 revision at most the start's plus the log's length. -/
-theorem admStatesR_wf (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+theorem admStatesR_wf (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     (h₀ : histWf s₀.1) (A : List EntryModel) (hp : plainLogOn A) :
     (∀ x ∈ admStatesR c₀ ch s₀ A, histWf x) ∧ histWf (kvRaftOfOn c₀ ch s₀ A).1 ∧
       (kvRaftOfOn c₀ ch s₀ A).1.revision ≤ s₀.1.revision + A.length := by
@@ -309,11 +309,11 @@ theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 
   have h₀ : histWf (auth.bump auth.bootState) :=
     ⟨auth.permKeysOk_bump _ auth.bootState_permKeysOk, auth.authSmall_bump _ auth.bootState_small⟩
   obtain ⟨hall, hlast, hrev⟩ :=
-    admStatesR_wf γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0) h₀ A' hp
+    admStatesR_wf γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0, []) h₀ A' hp
   have hrev' : (srvAuthAtLog γk srvAuthSt0 A').revision ≤ A'.length + 1 := by
-    have h1 : (auth.bump auth.bootState, γk.log0).1.revision = 1 := rfl
+    have h1 : (auth.bump auth.bootState, γk.log0, []).1.revision = 1 := rfl
     rw [h1] at hrev
-    show (kvRaftOfOn γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0) A').1.revision ≤ A'.length + 1
+    show (kvRaftOfOn γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0, []) A').1.revision ≤ A'.length + 1
     omega
   refine ⟨?_, auth.permsFit_of_small _ hlast.2 (by omega), hlast.2, hrev'⟩
   intro x hx

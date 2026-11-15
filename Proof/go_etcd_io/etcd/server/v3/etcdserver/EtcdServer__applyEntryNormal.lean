@@ -154,7 +154,7 @@ theorem kvAppliedL_nx' (γ : ServerRaftNames) (γk : KVNames) (B : List EntryMod
 
 /-- `kvAppliedLOn`'s raft witness in the mode `on` (`kvNxOn`), the state kept. -/
 theorem kvAppliedLOn_nx (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
-    (B : List EntryModel) (s : auth.AuthState × mvcc.Log)
+    (B : List EntryModel) (s : OnState)
     (hk : mvcc.LogPutsLe etcdKeyMax (kvModelOn γk st₀ B)) :
     kvAppliedLOn (GF := GF) γ γk st₀ B s ⊢ kvAppliedLOn γ γk st₀ B s ∗ kvNxOn γ γk st₀ s.2 := by
   iintro H

@@ -27,11 +27,11 @@ section pure
 variable [GooseExts]
 
 /-- **The committed log's shapes in the auth mode `on`**: `logShape` off (in a cluster that grants
-leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn` on. -/
+leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn lm` on (auth-lease S3a: at the mode). -/
 def logShapeM (on : Bool) (lm : lease.Mode) (L : List EntryModel) : Prop :=
   match on with
   | false => logShape lm L
-  | true => logShapeOn L
+  | true => logShapeOn lm L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
 theorem logShapeM_cc (on : Bool) (lm : lease.Mode) (L : List EntryModel) (h : logShapeM on lm L) :
@@ -43,7 +43,7 @@ theorem logShapeM_cc (on : Bool) (lm : lease.Mode) (L : List EntryModel) (h : lo
 theorem logShapeM_false (lm : lease.Mode) (L : List EntryModel) : logShapeM false lm L = logShape lm L :=
   rfl
 
-theorem logShapeM_true (lm : lease.Mode) (L : List EntryModel) : logShapeM true lm L = logShapeOn L := rfl
+theorem logShapeM_true (lm : lease.Mode) (L : List EntryModel) : logShapeM true lm L = logShapeOn lm L := rfl
 
 theorem logShapeM_append (on : Bool) (lm : lease.Mode) (A B : List EntryModel) (h : logShapeM on lm (A ++ B)) :
     logShapeM on lm A := by

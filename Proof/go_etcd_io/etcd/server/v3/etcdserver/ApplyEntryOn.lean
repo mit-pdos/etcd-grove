@@ -84,7 +84,7 @@ state admits leaves the model's log after `m`, which has the mode's raft witness
 and mvcc's `certOk`, as `kv_certPre`). -/
 theorem kv_certPreW_on (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
     (st₀ : auth.AuthState) (hNx : E.Nx = kvNxOn γ γk st₀) (c₀ : w64)
-    (s : auth.AuthState × mvcc.Log) (m : EntryModel) (rq : apply.IRRModel)
+    (s : OnState) (m : EntryModel) (rq : apply.IRRModel)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : apply.needAdminPermission rq = false)
     (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainCover rq)
@@ -107,7 +107,7 @@ theorem kv_certPreW_on (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames
 /-- `kv_certPreW_on` with `v3` (`certPreVW`), the form `apply.Apply.kvSpecL` takes. -/
 theorem kv_certPreVW_on (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
     (st₀ : auth.AuthState) (hNx : E.Nx = kvNxOn γ γk st₀) (c₀ : w64)
-    (s : auth.AuthState × mvcc.Log) (m : EntryModel) (rq : apply.IRRModel)
+    (s : OnState) (m : EntryModel) (rq : apply.IRRModel)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : apply.needAdminPermission rq = false)
     (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainCover rq)

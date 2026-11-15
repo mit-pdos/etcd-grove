@@ -1813,7 +1813,7 @@ end kvLatest
 gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
 without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
 `txnVerdictOwn_of`). -/
-theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
+theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : OnState)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)

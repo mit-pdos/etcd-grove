@@ -44,7 +44,7 @@ theorem dispatchLog_kv (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable)
 header): for a plain KV request of the entry `m` above `c₀`, applied at the start chain with auth
 on and no alarm, whose checked permissions are the request's own, at the history `hs` whose latest
 state is the model's `s.1`: the log the outcome leaves is a successor of `outcomeOn`. -/
-theorem outcomeOn_of_authOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : EntryModel)
+theorem outcomeOn_of_authOutL (c₀ : w64) (s : OnState) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : apply.needAdminPermission rq = false)
@@ -276,53 +276,6 @@ theorem refusedMay_of_leaseRefusedL_none (M : auth.AuthMode) (hs : List auth.Aut
   | off => trivial
   | any => trivial
 
-/-- The lease `0` attaches no key in any state (`leaseItemsOf_ne_zero`). -/
-theorem leaseItemsOf_zero_none (log : mvcc.Log) :
-    ∀ k : GoString, (mvcc.leaseItemsOf (mvcc.stateAfter log)).lookup ⟨k⟩ ≠ some (W64 0) :=
-  fun k => mvcc.leaseItemsOf_ne_zero _ _
-
-mutual
-/-- A plain wire operation's puts have the lease `0` (`txn.opPlain` of its model). -/
-theorem opPutsW_plain : ∀ (op : txn.TxnOpW), txn.opPlain op.toOp → ∀ o ∈ apply.opPutsW op,
-    o.leaseID = W64 0
-  | .get _, _, o, ho => by simp [apply.opPutsW] at ho
-  | .delete _, _, o, ho => by simp [apply.opPutsW] at ho
-  | .put o', h, o, ho => by
-    simp only [apply.opPutsW, List.mem_singleton] at ho
-    subst ho
-    simp only [txn.TxnOpW.toOp, txn.putTxnOp] at h
-    by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;>
-      simp [h1, h2, txn.opPlain] at h
-    · simpa using h
-    · exact h
-  | .txn _ ts es, h, o, ho => by
-    simp only [txn.TxnOpW.toOp, txn.opPlain] at h
-    simp only [apply.opPutsW, List.mem_append] at ho
-    rcases ho with ho | ho
-    · exact opsPutsW_plain ts h.1 o ho
-    · exact opsPutsW_plain es h.2 o ho
-
-theorem opsPutsW_plain : ∀ (ops : List txn.TxnOpW), txn.opsPlain (txn.TxnOpW.toOps ops) →
-    ∀ o ∈ apply.opsPutsW ops, o.leaseID = W64 0
-  | [], _, o, ho => by simp [apply.opsPutsW] at ho
-  | op :: ops, h, o, ho => by
-    simp only [txn.TxnOpW.toOps, txn.opsPlain] at h
-    simp only [apply.opsPutsW, List.mem_append] at ho
-    rcases ho with ho | ho
-    · exact opPutsW_plain op h.1 o ho
-    · exact opsPutsW_plain ops h.2 o ho
-end
-
-/-- **A plain transaction's puts have the lease `0`** (auth-lease S2). -/
-theorem txnPutsW_plain (t : txn.TxnModelW) (h : txn.txnPlain t.toModel) :
-    ∀ o ∈ apply.txnPutsW t, o.leaseID = W64 0 := by
-  intro o ho
-  simp only [apply.txnPutsW, List.mem_append] at ho
-  simp only [txn.txnPlain, txn.TxnModelW.toModel] at h
-  rcases ho with ho | ho
-  · exact opsPutsW_plain _ h.1 o ho
-  · exact opsPutsW_plain _ h.2 o ho
-
 /-- **The dispatched outcome decided at the latest state, on the request's own permissions**:
 `kvOutL` (the dispatch's KV triple at the latest state, at the request's principal) is E2s's
 `authOutL` at the model's `reqPerms`, for a request without `"\x00"` range ends (a transaction's
@@ -383,7 +336,7 @@ dispatched outcome decided at the latest state (`kvOutL`, `apply.uberApplier.App
 plain KV request of the entry `m` above `c₀` at the start chain with auth on and no alarm, without
 `"\x00"` range ends, at the history `hs` whose latest state is the
 model's `s.1`, is `outcomeOn`'s (E2t's `kv_applied_out_on` hypothesis). -/
-theorem outcomeOn_of_kvOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : EntryModel)
+theorem outcomeOn_of_kvOutL (c₀ : w64) (s : OnState) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : apply.needAdminPermission rq = false)

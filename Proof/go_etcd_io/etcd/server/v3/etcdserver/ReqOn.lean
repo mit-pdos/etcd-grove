@@ -217,7 +217,7 @@ def modelOutM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryM
     (lb : mvcc.Log) (out : apply.ApplyOut) : Prop :=
   match on with
   | false => kvModel γk L = lb
-  | true => ∃ st, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L = (st, lb) ∧ authTie st rq out
+  | true => ∃ st, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L = (st, lb) ∧ authTie st rq out
 
 /-- **An admin result's tie as the proposer reports it, in the auth mode `on`** (E3x): `True` off;
 on, `adminTieAr` at the auth state the mode-`on` model of the committed prefix `L` reaches (the
@@ -227,7 +227,7 @@ def adminTieM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryM
   match on with
   | false => iprop(True)
   | true =>
-    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L).1
+    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L).1
     adminTieAr ar rq st (adminNext rq st) out
 
 instance adminTieM_persistent (on : Bool) (γk : KVNames) (rq : apply.IRRModel)
@@ -243,7 +243,7 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
   match on with
   | false => True
   | true =>
-    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L).1
+    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L).1
     apply.needAdminPermission rq = true → adminStepOk rq st (adminNext rq st)
 
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of

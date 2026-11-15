@@ -138,7 +138,7 @@ theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (log : m
 
 /-- **An entry at or below the start's consistent index leaves the mode-`on` model's state**
 (replayed: `dispatch` runs with `v3` false, `dispatchLog`'s first case). -/
-theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hv : ¬ uint.Z c₀ < uint.Z m.index) : kvEntryOn c₀ ch s m = s := by
   have hk : kvEntry c₀ ch [] s.2 m = s.2 := by
     unfold kvEntry
@@ -321,7 +321,7 @@ theorem adminKindOk_notPutget (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
 
 /-- **An entry that neither writes nor takes an admin step leaves the mode-`on` model's state**
 (a cluster request, `kvEntry_nonwrite`). -/
-theorem kvEntryOn_keep (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem kvEntryOn_keep (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hna : apply.needAdminPermission rq = false)
     (hw : ¬ writeKind (apply.dispatchKind rq)) : kvEntryOn c₀ ch s m = s := by
@@ -383,7 +383,7 @@ theorem applyStep_plain_false (rq : apply.IRRModel) (x x' : apply.ApplyKV)
   · exact hl
 
 /-- An entry with no data leaves the mode-`on` model's state. -/
-theorem kvEntryOn_nodata (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem kvEntryOn_nodata (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hd : m.data = []) : kvEntryOn c₀ ch s m = s := by
   unfold kvEntryOn
   rw [if_neg (fun h => h.2 hd), kvEntry_nonwrite c₀ ch [] s.2 m (Or.inl hd)]
@@ -405,7 +405,7 @@ theorem entryOkOn_of_shape (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape
 
 
 /-- A conf change leaves the mode-`on` model's state. -/
-theorem kvEntryOn_cc (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem kvEntryOn_cc (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (ht : m.typ ≠ W32 0) : kvEntryOn c₀ ch s m = s := by
   unfold kvEntryOn
   rw [if_neg (fun h => ht h.1), kvEntry_nonwrite c₀ ch [] s.2 m (Or.inr (Or.inl ht))]
@@ -473,7 +473,7 @@ theorem kvApplied_nextOn (γr : ReadNames) (A : List EntryModel) (m : EntryModel
       kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' st' ∗ kvLogAtM true γr i x'.log := by
   iintro H
   ihave ⟨#HB, %Hl⟩ : iprop(srvRLogLb γr.raft (A ++ [m]) ∗
-      ⌜(st', x'.log) = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) (A ++ [m])⌝) $$ [H]
+      ⌜(st', x'.log) = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) (A ++ [m])⌝) $$ [H]
   · iunfold kvAppliedLOn at H; icases H with ⟨#HB, -, -, %Hl⟩; iframe HB; ipureintro; exact Hl
   isplitl [H]
   · iunfold kvAppliedOn
@@ -513,9 +513,9 @@ theorem kv_certPre_keep (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVName
 
 /-- `kvAppliedLOn`'s certificate and model equation. -/
 theorem kvAppliedLOn_cert (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
-    (A : List EntryModel) (s : auth.AuthState × mvcc.Log) :
+    (A : List EntryModel) (s : OnState) :
     kvAppliedLOn (GF := GF) γ γk st₀ A s ⊢ kvAppliedLOn γ γk st₀ A s ∗ kvCert γk s.2 ∗
-      ⌜s = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) A⌝ := by
+      ⌜s = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) A⌝ := by
   iintro H
   iunfold kvAppliedLOn at H
   icases H with ⟨#HB, Hhi, #Hc, %Hl⟩

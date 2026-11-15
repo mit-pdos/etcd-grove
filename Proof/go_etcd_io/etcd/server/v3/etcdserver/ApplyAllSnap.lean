@@ -245,7 +245,7 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   icases Himg with ⟨%γk', %hk', #Hdb⟩
   obtain ⟨h0', h1', h2'⟩ := hk'
   have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0) B =
-      kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) B := by
+      kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) B := by
     intro B; rw [h0', h1', h2', hc0, hch, hlog0]
   have hk : ∀ B, kvModelOn γk' srvAuthSt0 B = kvModelOn γr.kv srvAuthSt0 B := by
     intro B; unfold kvModelOn; rw [hR]

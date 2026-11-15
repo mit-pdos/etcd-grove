@@ -675,7 +675,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     exact (hent n m hn).2.1
   have hok : plainLogOn (bootEntries bootLog) ∧
-      detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (bootEntries bootLog) ∧
+      detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
@@ -717,7 +717,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
       monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
-      ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
+      ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
         kvLogSmall γk L⌝ ∗
