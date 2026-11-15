@@ -153,6 +153,96 @@ share one rule, `LockStep st k fd d req nb`, for a request `req` (`some ex`: loc
 `locks_test.go` on configuration C (`run-models-on-c.sh -run TestLocks`, 2026-11-15, Linux
 7.0.0-1014-aws, a fresh ext4 loop mount that `check.sh` reports as C): all eight tests pass.
 
-## 4. Log
+## 4. Pending the user's review (the trusted change, in `notes/wal-fsext-models-review.md`'s style)
 
-(below, per session)
+Scope: `GooseLang/Ext/Fs/Impl.lean` (`OsFd.ofd`/`flk`, `LockKind`, `OsFd.lk`/`setLk`, `OsState.setFd`,
+`LockConflict`, `LockStep`, `flockReq`, `ofdReq`, `EAGAIN`, `F_OFD_SETLK[W]`, the `Flock` and `OfdLock`
+cases of `IsFsStep`, the header's **Locks** paragraph; `Open` builds its description with
+`OsFd.mk ... none none`), `LinuxFs/TrustedCode/syscall.lean` (`Flock.impl`'s docstring;
+`FcntlFlock.impl`: 37/38 read the description and pass its type, 6/7 panic) and
+`LinuxFs/TrustedCode/golang_org/x/sys/unix.lean` (`model.Flock_t`, `FcntlFlock.impl`, same). Go
+examples: `examples/osfs/semantics/locks_*.go` (indexed in `doc.go`), measured by `locks_test.go` on C.
+`Close`, `MachineCrash` and `FsInit` are unchanged: the locks are fields of the description.
+
+What to check:
+1. **Blocking requests may fail at any time** (any errno, no change), including while waiting: kept
+   because `ENOLCK`/`ENOMEM` at the call's entry cannot be excluded without an allocation assumption.
+   The [user] alternative (no failure while a conflicting lock is held, resting on `SA_RESTART`,
+   measured, and on no allocation failure at entry, assumed) would make a `LockFile` on a held lock
+   never return (the `Repair`-path hang); not taken.
+2. **`EAGAIN` only on a conflict, and only for a non-blocking request** (`LockStep`'s failure
+   premise `nb = true → e = EAGAIN → LockConflict`). Source: `posix_lock_inode`/`flock_lock_inode`;
+   measured.
+3. **Stuck cases** (misuse): re-locking a description (Linux accepts, `TestLocksOFDSameDescription`),
+   `F_WRLCK` on a non-writable fd and `F_RDLCK` on a non-readable one (Linux `EBADF`), another `how`
+   (Linux `EINVAL`, `LOCK_MAND` success), another `cmd`/`typ`. Panics in the models: byte ranges,
+   `l_pid ≠ 0`, `F_SETLK[W]`.
+4. **flock and OFD independent** on C (measured); NFS-like filesystems are outside C.
+5. **No `dup`**: each fd is its own description. True of every step; Go's `os` never dups a regular
+   file's fd.
+6. The model loads `Type`, `Whence`, `Start`, `Len`, `Pid` of `*lk` (not the padding): a concurrent
+   write of those fields is a race a proof must exclude (Linux copies the struct in).
+
+## 5. Log
+
+### Session 1 (2026-11-15)
+
+**Done** (branch `wal-c-locks`):
+- Design (§2), evidence (§3: `locks_*.go`, `locks_test.go`, all 8 tests pass on C), the semantics and
+  the trusted models (§4), committed `3ae8215f47`.
+- Ghost state and ext specs (untrusted): `lockCtx` (a fourth part of `osCtx`, ghost map `γlk`),
+  `LockWf`/`LockCoh`, `LockFrame` and `isFsStep_lockFrame` (every step but the lock calls and `Close`
+  keeps the locks' interpretation; the liftings `wp_os_step`, `wp_os_stepX`, `wp_fs_stepT`,
+  `wp_fs_stepM`, `wp_fs_stepTC`, `wp_fs_stepO` take `¬ LockOp o` with a default proof), `wp_os_stepL`
+  (the lifting of the lock calls and `Close`), `GooseLang/Ext/Fs/Locks.lean`: `osLock k i fd`
+  (exclusive: `osLock_excl`), `lockTok`, `lockToks`, `lockOut`, `wp_osLockStep`, `wp_osOfdLock`,
+  `wp_osFlock`, `wp_osClose` (now takes `lockToks fd d`; `emp` for an unlocked description,
+  `lockToks_unlocked`). `CommitMono.lean`: `lockStep_cases`, `lockStep_val`, `setLk_ino` etc. All of
+  `GooseLang/Ext/Fs` builds (1543 jobs, after merging `origin/wal-int`).
+- LinuxFs specs: `syscall.Flock.spec` (the lock rule, `lockOut`), `syscall.FcntlFlock.wp_lock` and
+  `unix.FcntlFlock.wp_lock` (whole-file description, `lockOut`), `os.File.Close.spec` (takes
+  `lockToks fd d`). `fileutil`: `lockPost`'s success now gives `osFd fd 1 (fileutil.lkFd k i flag) ∗
+  osLock k i fd ∗ fileutil.lockKind k` (`k` the kind the package's initializer chose, persistent);
+  `TryLockFile.spec`/`LockFile.spec` take `flag`'s write mode (`decide (... % 4 ≠ O_RDONLY) = true`;
+  `F_WRLCK` needs it); `fileutil.lockOut_split`. The package fact `fileutilInit` now records
+  `wrlck.Pid' = 0` (`etc/gen-init.py` updated, `Init.lean` regenerated, `--check` clean).
+- Clients repaired: the `os` proofs (`File.Close`, `StatS`, `RemoveAllLeaf`, `WriteFile*`, `CrashFile`'s
+  `fsStep_val`), `durable`, `crashlog`, `walfs` (`SegLog.wp_lockFile`: the OFD lock's real outcome; the
+  token goes to `Segment`'s closes), minibolt (`flock.spec`: the real outcome; `DB.close.spec(Crash)`
+  take `lockToks`; the `flock` token is kept with `rwR`'s half of `cls`, `clsOpen`, and given back at
+  `DB.Close`; the database's fd description is `⟨γ.ino, true, true, none, some true⟩`). All their
+  leaves build (`bboltfs` Link/Results, `walfs`/`crashlog` Results, `durable` Link, fileutil).
+
+**Not done: the WAL** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`) does not build: its
+proofs store descriptions as 3-field literals and `openFd` values and close locked files without
+tokens. The failures at its base (after the merge): `Handle.lean:405` (`∃ rd, osFd fd 1 ⟨i, rd,
+true⟩`), `closeAll.lean` (`rcFile`'s `Close` without `lockToks`), `PipeLemmas.lean` (`lockPost`'s new
+shape). Everything importing them is not yet checked. Plan for the repair (the next session):
+1. **Tail descriptions** (`walTailW`, `HandlePend` 107/120, `RepairTailDefs` 48, `TailWriterW` 836,
+   `WAL__sync` 257, `WAL__Close` 144, `WAL__CloseU` 153): `∃ (rd : Bool) (lo lf : Option Bool),
+   osFd fd 1 ⟨i, rd, true, lo, lf⟩ ∗ lockToks fd ⟨i, rd, true, lo, lf⟩`; uses `⟨i, rd, true⟩` →
+   `⟨i, rd, true, lo, lf⟩`, patterns `⟨%rd, Hfd⟩` → `⟨%rd, %lo, %lf, Hfd, Hlt⟩`; the closes give `Hlt`.
+2. **Generic closables** (`CloseDefs.rcFile`, `walClosable`, the locks list at CloseDefs:43): add
+   `lockToks fd d`; `closeAll`, `openWALFiles` (`walOpenedRc_rcFile`, `walRcLink_rcFile`),
+   `VseAttemptLemmas` carry it.
+3. **Locked segment files** (`walOpenedRc`/`walOpenedFile` in write mode, `ReadDefs` 76/86, `Pipe.pipeFile`,
+   `OpenLastDefs` 47, `Create`'s files): the description `fileutil.lkFd k i flag` (write mode) and
+   the token; a small lemma `lkFd k i fl = ⟨i, rd, wr, lo, lf⟩` (by `cases k`) lets the tail form of 1
+   absorb them (cut makes the pipeline's file the tail). Read-mode files stay `openFd` (no lock).
+4. `Repair`'s blocking `LockFile`: `lockPost` as above (it may return an error while the lock is held:
+   §2.4's option not taken).
+The client-facing WAL specs need not change: the tokens and descriptions are internal to the handle's
+predicates.
+
+**Next unit (purger, `ReleaseLockTo`, `Repair` path, `purgeRound`)**: with the WAL repaired, the WAL's
+invariant keeps, for each segment it may still read, the token `osLock k i fd` of the package's kind
+(`fileutil.lockKind k`); `ReleaseLockTo`'s closes give the tokens back to the ghost (released); the
+purger's `TryLockFile` success gives `osLock k i fd'`, and `osLock_excl` with the WAL's token shows the
+WAL no longer holds segment `i` (the kinds agree: both from `fileutil.lockKind`, whose agreement law
+`lockKind k1 ∗ lockKind k2 ⊢ ⌜k1 = k2⌝` still needs `functions` injectivity on the two names, or a
+restatement of `lockKind` by the stored function's identity). `purgeRound` then removes it under
+that knowledge. `Repair`'s `LockFile` on a lock the boot path left held: with §2.4's model it returns
+an error or waits; a proof of the hang would need the [user] option.
+
+**Decisions left for the user**: the whole trusted change (§4); §2.4's blocking option. **No new
+axiom**, no `sorry`. **No Go bug found.**
