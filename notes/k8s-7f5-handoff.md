@@ -27,6 +27,31 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, tenth 7f-5 agent, final): M1 LANDED (lean `2dbf6503cc`); 7f-5a-P steps 1-2a done
+
+- M1 landed via `etc/land.sh` (lean `2dbf6503cc`, gates all passed, `/shared/tmp/k8s7f5a-p/land.log`).
+- **Step 1** (`920165edf8`): `etcd3.toml` translates `parseEvent` and `watchChan.startWatching` with bodies;
+  `runtime.toml` adds `Decode` (body: `d.Decode(data, nil, nil)`); `etc/goose.py --project k8s-apiserver
+  --perennial /shared/perennial-ddc0f0acc` regenerated (`Code/` only, 2 files), `gen-init --check` ok.
+  `wait.Jitter` stays names-only: T5-d (an axiom, text reviewed in `notes/k8s-7f5-freeze.md`) and T5-f
+  (`klog.Warningf.spec`, `mvccpb.Event_EventType.String.spec`, the Draft's §5) are **not yet written as
+  axioms**: trusted text is a hard stop of this brief; ask 81 whether the reviewed texts may go in as is
+  (tcb then 870 → 873 or so, `--update` after its go).
+- **Step 2, first part** (the commit after `920165edf8`): `Proof/k8s_io/apiserver/pkg/storage/etcd3/WatchDefs.lean`
+  (namespace `k8s`) holds the Draft's pure part (§1 and the raw protocol), moved; the Draft imports it.
+  Laws proved: `kRawToEv_t` (no Error event), `kTail_of_raw`, `kRawIdealL_filterMap`, `kNonErr_filterMap`,
+  `kStreamOk_of_raw`, `kStreamSub_of_raw`.
+- **Next, step 2 rest:** transport along `kvSameHist` (`kvSameHist_at` exists in ListDefs; needs the
+  same for `changesAt`/`revEvents`, so `KTail`/`KRawTail` at `σ` hold at a longer `σ'`), prefix closure,
+  `inRange (pfx) (prefixEnd pfx) ↔ kInScope`, a client response (`watchStateRespOkP`: now one progress
+  case with `hdrRev ≤ σ.rev`) gives a `KRawTail` chunk and its `PrevKv` gives `kPrevAt`, the initial
+  events from `syncPaginated`'s pages. Then step 3 (leaves), 4 (channel ops, premise
+  `isContext wc.ctx { cd with PDone := cd.PDone ∨ kCancelPD γ cd }`), 5 (producer); stop before step 6.
+- Build: targeted `lake build --packages=/shared/tmp/manifest-ddc.json Proof.k8s_io.apiserver.pkg.storage.etcd3.WatchDefs`
+  under `systemd-run --scope -q -p MemoryMax=64G`; `etc/lean-check.py` with
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json`. goose: `--perennial /shared/perennial-ddc0f0acc`
+  (the worktree has no `.lake/packages/perennial`), GOWORK unset.
+
 ## START HERE (2026-11-15, tenth 7f-5 agent, later): M1 done on the branch; STOPPED before land.sh
 
 81 decided M1 (questions.md 2026-11-15): the client spec strengthened. Done (`0e0f6c771e`, lean
