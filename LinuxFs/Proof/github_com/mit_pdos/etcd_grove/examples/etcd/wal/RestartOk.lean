@@ -104,6 +104,12 @@ uses; see the file header). -/
 def tReadsBackOk (I : WalHist) : Prop :=
   ∀ cut s σ', walReadAllOk I cut s σ' → walReadsBack I
 
+/-- **The WAL state a candidate accounts for reads back where `ReadAll` succeeds**: it is an image of
+the candidate's history at its mark, which is disciplined (`tSim`, `ReadsBack.tSim_readsBack`). -/
+theorem tCandOk_readsBack {o : TOracle} {c : TCand} {d : WalDur} (hc : tCandOk o c d) :
+    tReadsBackOk (d.H.map WalOpG.toM) :=
+  tSim_readsBack hc.2.2.2.2.2.2 hc.1
+
 /-- **The restart's read is an image's** (`tCheckNext_of_read`'s core): the image `img` of the
 candidate's history whose model is the WAL's reads `c` from the purged prefix 0. -/
 theorem tRead_of_readAll {o : TOracle} {cd : TCand} {d : WalDur} {s : w64 × w64} {σ' : StorContents}
@@ -116,7 +122,7 @@ theorem tRead_of_readAll {o : TOracle} {cd : TCand} {d : WalDur} {s : w64 × w64
   obtain ⟨himg, -, -, -, -, hwf⟩ := hc
   obtain ⟨img, himgm, hI⟩ := tImgs_complete himg
   refine ⟨img, himgm, hI, ?_⟩
-  have hwi : tHistWf img := tHistWf_of_mem_tImgs hwf himgm
+  have hwi : tHistWf img := tHistWf_of_mem_tImgs hwf.1 himgm
   have hmax : ¬ walHasMaxIdx (d.H.map WalOpG.toM) := by rw [hI]; exact tHistWf_noMax hwi
   obtain ⟨σ0, h0, e1, e2, e3⟩ := walReadAllOk_read0 hpost hmax hb
   have hra := tRead_abs img
@@ -398,7 +404,8 @@ candidate `cd`'s history, the WAL's model, that reads `c` from the purged prefix
 `tCheckRestart o c` that accounts for the WAL state `d` as a running member's. -/
 theorem tRestart_ok {o : TOracle} {cd : TCand} {d : WalDur} {img : List TOp} {c : TContents}
     (hcd : cd ∈ o.cands) (hok : tCandOk o cd d) (himg : img ∈ tImgs (tCandHist o cd) (tCandMark o cd))
-    (hI : d.H.map WalOpG.toM = img.map absOp) (hr : tRead img = some c) :
+    (hI : d.H.map WalOpG.toM = img.map absOp) (hr : tRead img = some c)
+    (hsim : tSim (img.map absOp) img.length) :
     ∃ c' ∈ (tCheckRestart o c).cands, c'.h = img ∧ tMemOk (tCheckRestart o c) c' d ∧
       tMemHs (tCheckRestart o c) d ∧ tCandMark (tCheckRestart o c) c' = d.H.length ∧
       tCandOk (tCheckRestart o c) c' d := by
@@ -412,11 +419,13 @@ theorem tRestart_ok {o : TOracle} {cd : TCand} {d : WalDur} {img : List TOp} {c 
   have hlen : d.H.length = img.length := by
     have := congrArg List.length hI; simpa using this
   have hmem : tMemOk (tCheckRestart o c) c' d := by
-    refine ⟨rfl, hc', rfl, ?_, Nat.le_trans hpur hp, Nat.le_trans hcut hp, hu', hsz, ?_, Nat.zero_le _⟩
+    refine ⟨rfl, hc', rfl, ?_, Nat.le_trans hpur hp, Nat.le_trans hcut hp, hu', hsz, ?_, Nat.zero_le _, ?_⟩
     · show d.H.map WalOpG.toM = (c'.h ++ []).map absOp
       rw [List.append_nil, hh]; exact hI
     · show tHistWf (c'.h ++ [])
-      rw [List.append_nil, hh]; exact tHistWf_of_mem_tImgs hwf himg
+      rw [List.append_nil, hh]; exact tHistWf_of_mem_tImgs hwf.1 himg
+    · show tSim ((c'.h ++ []).map absOp) (c'.h.length + uint.nat (W64 0))
+      rw [List.append_nil, hh]; exact hsim
   have hmark : tCandMark (tCheckRestart o c) c' = d.H.length := by
     show c'.h.length + uint.nat (W64 0) = d.H.length
     rw [hh, hlen]; rfl

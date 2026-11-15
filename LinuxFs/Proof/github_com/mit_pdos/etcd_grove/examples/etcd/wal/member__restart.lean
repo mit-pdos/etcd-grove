@@ -41,7 +41,7 @@ theorem member.restart.wp_proof
     (wp_resume : member.resume.spec (GF := GF) (hG := hG))
     (wp_fits : fits.spec (GF := GF) (hG := hG)) :
     member.restart.spec (GF := GF) (hG := hG) := by
-  intro W e γ m lg w0 v o cd d qp t vo cm b l tm r rv hmn hf hpath hcr hcd hok hwf hrb
+  intro W e γ m lg w0 v o cd d qp t vo cm b l tm r rv hmn hf hpath hcr hcd hok hwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hlg, Hwd, Hop, Hw,
     Hov, Ht, Hv, Hc, Hb, Hl, Htm, Hr, Hrv, Hrep, Ho, Hwo, #Hsl, #Hnm⟩
   try wp_auto
@@ -55,7 +55,7 @@ theorem member.restart.wp_proof
     have h := hbf.1 rfl; unfold tOrRoom at h; simp at h; omega
   wp_auto
   wp_apply (wp_read W e γ lg m v o cd d qp hmn hf hpath hcr hcd hok (by have := (hwf.2 cd hcd).2; omega)
-      hrb hsm) $$ [Hh Hperm Hpath Hres Htok Hop Hov Hrep Ho Hwo]
+      (tCandOk_readsBack hok) hsm) $$ [Hh Hperm Hpath Hres Htok Hop Hov Hrep Ho Hwo]
     as %st %vc %w ⟨Hh, Hpath, Hres, Hop, %v1, %ls, %d1, Hov, Hrep, Ho, Hwo, %hd1, Hst⟩
   · iframe; iframe #
   obtain ⟨hls, hH, hcut, hok1⟩ := hd1
@@ -66,8 +66,9 @@ theorem member.restart.wp_proof
     icases Hst with ⟨Hp1, %c, #Hcr, %himg, Hwf, Hpw, #Hlen, #Hsl1, #Hnm1⟩
     obtain ⟨img, himgm, hI, hr⟩ := himg
     have hI1 : d1.H.map WalOpG.toM = img.map absOp := by rw [hH]; exact hI
+    obtain ⟨hsim, σ, hsa, hσb, hσl, hσc⟩ := tRestart_sim hok1 hI1 hr
     obtain ⟨c', hc', hh', hmem, hmhs, hmark, hcok⟩ :=
-      tRestart_ok (o := tWithOpens o ls) hcd hok1 himgm hI1 hr
+      tRestart_ok (o := tWithOpens o ls) hcd hok1 himgm hI1 hr hsim
     wp_if_destruct
     rotate_left
     · exact absurd trivial Hif
@@ -103,7 +104,7 @@ theorem member.restart.wp_proof
     wp_apply (wp_resume m vc c t vo cm b l tm) $$ [Ht Hv Hc Hb Hl Htm] as ⟨Ht, Hv, Hc, Hb, Hl, %tm', Htm, HM⟩
     · iframe; iframe #
     try wp_auto
-    have hwi : tHistWf img := tHistWf_of_mem_tImgs hok1.2.2.2.2.2 himgm
+    have hwi : tHistWf img := tHistWf_of_mem_tImgs hok1.2.2.2.2.2.1 himgm
     have hcw := tCheckWf_restart (tCheckWf_withOpens ls hwf) hsm2
     iapply HΦ
     simp only [↓reduceIte]
@@ -121,7 +122,9 @@ theorem member.restart.wp_proof
       iframe #
     iframe
     ipureintro
-    exact ⟨hmem, hmhs, tMemFields_read hwi hr, hcw⟩
+    refine ⟨hmem, hmhs, tMemFields_read hwi hr, hcw, σ, ?_, hσb, hσl, hσc⟩
+    show tSimAt ((c'.h ++ []).map absOp) c'.h.length σ
+    rw [List.append_nil, hh']; exact hsa
   · wp_if_destruct
     · exact absurd rfl hst
     iapply HΦ

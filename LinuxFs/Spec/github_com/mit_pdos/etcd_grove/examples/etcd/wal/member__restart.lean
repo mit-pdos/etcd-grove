@@ -11,8 +11,10 @@ from `c` (`tMemFields_read`), `tCheckWf` holds again (`tCheckWf_restart`). `fals
 member is down, also when either `fits` fails: the oracle would outgrow `durable`'s 1 GiB, U1 mismatch 2,
 decided 2026-11-15); the fields `restartRead` does not touch back.
 
-Premises: `restartRead.spec`'s but its room, and `checkRestart`'s on the oracle (`tCheckWf o`: every candidate
-well formed and short). (Until 2026-11-15 the room for the opens and the new oracle's size were premises; the
+Premises: `restartRead.spec`'s but its room and `tReadsBackOk` (which `tCandOk`'s `tSim` gives,
+`tCandOk_readsBack`; a premise until the tenth session), and `checkRestart`'s on the oracle (`tCheckWf o`:
+every candidate well formed and short). The post's `memLive` carries the fields' relation to the read
+image's discipline (`tMemSim`, `tRestart_sim`). (Until 2026-11-15 the room for the opens and the new oracle's size were premises; the
 two `fits` checks replace them.) Lean-first (no Rocq counterpart).
 -/
 module
@@ -45,7 +47,6 @@ abbrev member.restart.spec : Prop :=
     (d : WalDur) (qp : Qp) (t vo cm b l : w64) (tm r : Loc) (rv : rnd),
   m ≠ null → e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d →
   tCheckWf o →
-  tReadsBackOk (d.H.map WalOpG.toM) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗

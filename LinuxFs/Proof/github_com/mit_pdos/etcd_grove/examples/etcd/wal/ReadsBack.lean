@@ -193,8 +193,8 @@ then its torn `Save` (bad). -/
 def GoodImg (σ : StorContents) (I : WalHist) : Prop :=
   (∃ L σ'', L.map Prod.fst = I ∧ gFold σ L = some σ'' ∧ gKept σ''.commit L ∧ σ.commit ≤ σ''.commit) ∨
   (∃ L0 σ1 m es, I = L0.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es] ∧
-    gFold σ L0 = some σ1 ∧ σ1.commit < uint.nat m.Index' ∧ σ1.last < uint.nat m.Index' ∧ es ≠ [] ∧
-    ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index')
+    gFold σ L0 = some σ1 ∧ gKept σ1.commit L0 ∧ σ.commit ≤ σ1.commit ∧ σ1.commit < uint.nat m.Index' ∧
+    σ1.last < uint.nat m.Index' ∧ es ≠ [] ∧ ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index')
 
 theorem foldlM_take {α β : Type} (f : β → α → Option β) (l : List α) (k : Nat) {x y : β}
     (h : l.foldlM f x = some y) : ∃ y', (l.take k).foldlM f x = some y' := by
@@ -294,7 +294,7 @@ theorem TDisc.img {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') (h
             by simp [hm], gFold_snoc _ _ _ (gFold_snoc _ _ _ hg (gStep_snap hok false))
               (phantom_step σ1 hσ1), ?_, hc⟩
           exact gKept_append (gKept_append hk (gKept_false m)) (gKept_save _ _)
-        · refine Or.inr ⟨LB, σ1, m, es.take k, by simp [hm], hg, by omega, hl, hne,
+        · refine Or.inr ⟨LB, σ1, m, es.take k, by simp [hm], hg, hk, hc, by omega, hl, hne,
             fun e he => hes e (List.mem_of_mem_take he)⟩
 
 /-! ## The images of `tSim` -/
@@ -332,6 +332,34 @@ theorem remask_congr (c : Nat) {L L' : List (WalOp × Bool)} (h : L.map Prod.fst
       simp only [List.map_cons, List.cons.injEq] at h ⊢
       exact ⟨by rw [h.1], ih h.2⟩
 
+/-- **The torn `Save` after a received snapshot's record fails the restart's read too.** -/
+theorem walRead_bad {L : List (WalOp × Bool)} {σ1 : StorContents} (hL : gFold walFresh L = some σ1)
+    (hk : gKept σ1.commit L) {m : SnapshotMetadataM} (hc : σ1.commit < uint.nat m.Index')
+    (hl : σ1.last < uint.nat m.Index') {es : List EntryM} (hne : es ≠ [])
+    (hes : ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index') :
+    walRead (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) = none := by
+  have hhs : walLastHS (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) =
+      σ1.hs := by
+    rw [walLastHS_bad, walLastHS_eq, gFold_hs L hL]; rfl
+  have hcI : uint.nat (walLastHS (L.map Prod.fst ++
+      [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es])).Commit' = σ1.commit := by rw [hhs]; rfl
+  unfold walRead
+  rw [hcI, List.filter_append]
+  have hnc : ¬ uint.nat m.Index' ≤ σ1.commit := by omega
+  simp only [List.filter_cons, walKeep, hnc, decide_false, Bool.false_eq_true, ↓reduceIte, decide_true,
+    List.filter_nil]
+  obtain ⟨R1, hR1, hrel⟩ := gFold_remask σ1.commit L hL (SRel_refl _) hk
+  rw [remask_congr _ (L' := (L.map Prod.fst).map (fun o => (o, true))) (by simp [Function.comp_def])] at hR1
+  obtain ⟨hf, -⟩ := gFold_remask_filter σ1.commit (L.map Prod.fst)
+    (by simp [walFresh, StorContents.commit, StorContents.last]) hR1
+  rw [walFoldChkFrom_append, hf, Option.bind_some]
+  have hb : R1.b ≤ σ1.commit := by
+    refine walFoldChkFrom_b_le (fun m' hm' => ?_) (by simp [walFresh, StorContents.b]) hf
+    have := (List.mem_filter.1 hm').2
+    simpa [walKeep] using this
+  have hRl := SRel_last hrel
+  exact save_fail (by omega) _ hne hes
+
 /-- **A good image: its restart's guide succeeds** (re-marked by its own commit). -/
 theorem good_restart {L : List (WalOp × Bool)} {σ : StorContents} (hg : gFold walFresh L = some σ)
     (hk : gKept σ.commit L) :
@@ -344,11 +372,13 @@ theorem good_restart {L : List (WalOp × Bool)} {σ : StorContents} (hg : gFold 
 
 /-- **Every image at the mark: `ReadAll` fails on it, or its restart's guide succeeds.** -/
 theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : walImg H n I) :
-    (∀ cut s σ', ¬ walReadAllOk I cut s σ') ∨ ∃ σR, gFold walFresh (tRestartG I) = some σR := by
+    ((∀ cut s σ', ¬ walReadAllOk I cut s σ') ∧ walRead I = none) ∨
+      ∃ σR, gFold walFresh (tRestartG I) = some σR := by
   -- the part since the restart: the image of a disciplined history, or of one with a trailing record
   have key : ∀ (A B : WalHist) σA, A.length ≤ n → gFold walFresh (tRestartG A) = some σA →
       (∀ I', walImg B 0 I' → GoodImg σA I') → walImg (A ++ B) n I →
-      (∀ cut s σ', ¬ walReadAllOk I cut s σ') ∨ ∃ σR, gFold walFresh (tRestartG I) = some σR := by
+      ((∀ cut s σ', ¬ walReadAllOk I cut s σ') ∧ walRead I = none) ∨
+        ∃ σR, gFold walFresh (tRestartG I) = some σR := by
     intro A B σA hA hgA himg hI
     obtain ⟨I', rfl, hI'⟩ := walImg_append_mark hA hI
     have hcA := gFold_fresh_commit hgA
@@ -361,7 +391,8 @@ theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : wal
       obtain ⟨rfl, hk⟩ := he
       simp only [walKeep, decide_eq_true_eq] at hk
       omega
-    rcases himg I' hI' with ⟨L, σ'', hm, hg, hk, hc⟩ | ⟨L0, σ1, m, es, rfl, hg, hc, hl, hne, hes⟩
+    rcases himg I' hI' with ⟨L, σ'', hm, hg, hk, hc⟩ |
+      ⟨L0, σ1, m, es, rfl, hg, hk0, hc0, hc, hl, hne, hes⟩
     · right
       have hg' : gFold walFresh (tRestartG A ++ L) = some σ'' := by rw [gFold_append, hgA]; exact hg
       have hk' : gKept σ''.commit (tRestartG A ++ L) := gKept_append (gKept_mono hkA hc) hk
@@ -369,8 +400,11 @@ theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : wal
       rwa [List.map_append, tRestartG_fst, hm] at this
     · left
       have hg' : gFold walFresh (tRestartG A ++ L0) = some σ1 := by rw [gFold_append, hgA]; exact hg
-      have := readAll_bad hg' hc hl hne hes
-      rwa [List.map_append, tRestartG_fst, List.append_assoc] at this
+      have hk' : gKept σ1.commit (tRestartG A ++ L0) := gKept_append (gKept_mono hkA hc0) hk0
+      have h1 := readAll_bad hg' hc hl hne hes
+      have h2 := walRead_bad hg' hk' hc hl hne hes
+      rw [List.map_append, tRestartG_fst, List.append_assoc] at h1 h2
+      exact ⟨h1, h2⟩
   rcases hs with ⟨σ, A, B, σA, rfl, hA, hgA, hD⟩ | ⟨H0, σ, m, rfl, ⟨A, B, σA, rfl, hA, hgA, hD⟩, hl⟩
   · exact key A B σA hA hgA (fun I' h => hD.img (gFold_commitLe _ (by simp [walFresh,
       StorContents.commit, StorContents.last]) hgA) h) hI
@@ -389,7 +423,7 @@ theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : wal
 theorem tSim_readsBack {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : walImg H n I) :
     ∀ cut s σ', walReadAllOk I cut s σ' → walReadsBack I := by
   intro cut s σ' hok
-  rcases tSim_img hs hI with hbad | ⟨σR, hR⟩
+  rcases tSim_img hs hI with ⟨hbad, -⟩ | ⟨σR, hR⟩
   · exact absurd hok (hbad cut s σ')
   · exact (gFold_readsBack hR).1
 
@@ -398,10 +432,20 @@ at the image's length. -/
 theorem tSim_restart {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : walImg H n I)
     {cut : Nat} {s : w64 × w64} {σ' : StorContents} (hok : walReadAllOk I cut s σ') :
     ∃ σR, walRead I = some σR ∧ walReadsBack I ∧ tSimAt I I.length σR := by
-  rcases tSim_img hs hI with hbad | ⟨σR, hR⟩
+  rcases tSim_img hs hI with ⟨hbad, -⟩ | ⟨σR, hR⟩
   · exact absurd hok (hbad cut s σ')
   · obtain ⟨h1, h2⟩ := gFold_readsBack hR
     exact ⟨σR, h2, h1, I, [], σR, by simp, Nat.le_refl _, hR, .nil _⟩
+
+/-- **A restart from an image whose restart read succeeds** starts the discipline again from that read,
+at the image's length. -/
+theorem tSim_restartRead {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : walImg H n I)
+    {σ : StorContents} (hr : walRead I = some σ) : walReadsBack I ∧ tSimAt I I.length σ := by
+  rcases tSim_img hs hI with ⟨-, hbad⟩ | ⟨σR, hR⟩
+  · rw [hbad] at hr; cases hr
+  · obtain ⟨h1, h2⟩ := gFold_readsBack hR
+    rw [h2] at hr; cases hr
+    exact ⟨h1, I, [], σ, by simp, Nat.le_refl _, hR, .nil _⟩
 
 end pure
 
