@@ -426,6 +426,14 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     iframe Hnamed
     ipureintro; rfl))
 
+/-- The spine law's fractions (top-level: `grind` inside `wal.Create.wp_proof` produced a proof term the
+kernel rejects). -/
+theorem create_qp_twice {d b1 : Qp} (hd2 : d + b1 = (1 : Qp).half.half) :
+    d + (d + (b1 + b1)) = (1 : Qp).half := by
+  rw [Qp.ext_iff] at hd2 ⊢
+  simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
+  grind
+
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
 theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.NilLaw P)
@@ -1079,10 +1087,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     iframe Hnc
     imodintro
     obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common qa.half (1 : Qp).half.half
-    have hd : d + (d + (b1 + b1)) = (1 : Qp).half := by
-      rw [Qp.ext_iff] at hd2 ⊢
-      simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
-      grind
+    have hd : d + (d + (b1 + b1)) = (1 : Qp).half := create_qp_twice hd2
     icases (osPathS_frac R r qa.half qa.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
     · rw [Qp.half_add_half]; iexact Hq
     icases (osPathS_frac R r d a1 jr).1 $$ [Hq1] with ⟨Hd1, Ha1⟩

@@ -2033,3 +2033,19 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   Proved by the WAL layer (the creating update generalized; the invariant lets the commit replace an unnamed,
   empty WAL whose directory is not at its name). Alternatives in `notes/wal-units/tester.md`, eleventh session.
 - **Decision.** Proposed (unit `tester`); until then a hypothesis of `Boot`.
+
+## 2026-11-15: `wal.Create.spec` generalized (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`) -- the update from any view
+
+- **Spec.** `Create(lg, dir, md)`; follows the entry "the update from `walAbsent` only" above.
+- **Defect.** The update from `walAbsent dir` only was stronger than needed; and `wal.Exist.spec`'s
+  `false` arm, `ExistFalseOk o` (none or a fresh unnamed WAL), is weaker than what its proof shows
+  (`o = none`: with the lock token held every present WAL is registered and `Exist` finds its segment).
+- **Evidence.** `wal.Exist.wp_core`'s `b = false → od = none` (real state); `existFalseOk_of_le` only
+  produces `o = none`; `notes/wal-units/fresh.md`.
+- **Change made.** `Create.spec` takes `Pv : Option WalDur → Prop` and its update is from `∃∃ o,
+  walDirIs dir o ∗ ⌜Pv o⌝` (given back by the error arm that commits nothing); `Create` finds the real
+  state empty from its own `Exist` (`walAreaResFree`) and the lock token (`walCreating_absent`).
+  `Create.specFresh` is its instance at `ExistFalseOk`, proved (`wal.Create.wp_specFresh`), no longer a
+  hypothesis of `Boot`. Proposed, not made: `Exist.spec`'s `false` arm strengthened to `o = none`
+  (closes specgap P6).
+- **Decision.** Made (unit `fresh`, coordinator's option (a)); the `Exist` strengthening proposed.
