@@ -212,7 +212,7 @@ theorem watchChan.syncPaginated.wp_proof
   obtain ⟨hinS, hkpl, hkp⟩ := Hp
   ihave #Hsw' := Hsw
   iunfold storeWatchOk at Hsw'
-  icases Hsw' with ⟨%wp', %nf, %crv, %rse', #Hsw2, #Hwcl, -⟩
+  icases Hsw' with ⟨%wp', %nf, %crv, %rse', #Hsw2, #Hwcl, -, -, #Hwgr, -⟩
   ihave %Hwp := typedPointsto_agree_wand _ _ _ _ _ $$ Hsw1 Hsw2
   subst Hwp
   ihave #Hst' := Hst
@@ -388,6 +388,43 @@ theorem watchChan.syncPaginated.wp_proof
   wp_apply (wp_syncGet c γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
     $$ [] as %resp %gerr Hget
   · iframe #
+  (try wp_auto)
+  icases Hget with (⟨%Hge, %mm, %σ, Hm, #HQσ, %Hσ⟩ | ⟨%Hge, #Hce'⟩)
+  rotate_left
+  · -- the client's error: `interpretListError(err, true, preparedKey, wc.key)`
+    ihave #Hce2 := Hce'
+    iunfold kClientErr at Hce2
+    icases Hce2 with ⟨-, #Hse, -⟩
+    wp_apply (wp_RecordEtcdRequest _ c.gr gerr t0 (by cases recur <;> decide) Hutf.1 Hutf.2) $$ []
+    · iframe #
+    cases gerr with
+    | nil => exact absurd rfl Hge
+    | ok gi =>
+    (try wp_auto)
+    wp_apply (wp_interpretListError Obj c (GoInterface.ok gi) true pk kp
+        (fun _ => by simp [k8s_etcd3.encOkL, hkp, hkpk])) $$ [] as %e2 #He2
+    · iframe #
+    (try wp_auto)
+    wp_for_post
+    (try wp_auto)
+    iapply HΦ
+    iframe Hpe
+    iright
+    isplitr [Hir]
+    · iunfold listErrF at He2
+      icases He2 with (#Hc | ⟨%st, #Hst, %Hstp⟩)
+      · iapply (kErrOk_client wp_AsLeafTy wp_ECode wp_SCode) $$ Perr Hc
+      · iunfold apierrors.apiErrAt at Hst
+        icases Hst with ⟨%l, %hl, #Hl, -⟩
+        subst hl
+        iapply (kErrOk_statusError wp_AsLeafTy l st Hstp.2.2) $$ Perr Hl
+    iexists ir
+    iexact Hir
+  subst Hge
+  wp_apply (wp_RecordEtcdRequest _ c.gr GoInterface.nil t0 (by cases recur <;> decide) Hutf.1 Hutf.2)
+    $$ []
+  · iframe #
+    iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
   (try wp_auto)
   sorry
 
