@@ -40,8 +40,8 @@ theorem adminKindOk_kind [GooseExts] (rq : apply.IRRModel) (h : apply.adminKindO
   split at h <;> simp_all [writeKind]
 
 /-- A mode-on plain entry compacts nothing. -/
-theorem kvCrevEntry_plainOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (crev : Int)
-    (m : EntryModel) (h : plainEntryOn .none m) : kvCrevEntry c₀ ch crev m = crev := by
+theorem kvCrevEntry_plainOn [GooseExts] {lm : lease.Mode} (c₀ : w64) (ch : apply.Chain) (crev : Int)
+    (m : EntryModel) (h : plainEntryOn lm m) : kvCrevEntry c₀ ch crev m = crev := by
   unfold kvCrevEntry
   split
   · split
@@ -50,18 +50,24 @@ theorem kvCrevEntry_plainOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (crev : 
       split
       · rename_i rq hrq
         apply apply.dispatchCrev_nonCmp
-        rcases plainEntryOn_none m h ht hd rq hrq with hp | ⟨ha, -⟩
-        · exact plainReq_nonCmp rq hp.1
+        rcases h ht hd rq hrq with ((⟨hp, -⟩ | ⟨-, hg, -⟩ | ⟨-, hr, -⟩) | ⟨ha, -⟩)
+        · rcases hp with hp | ⟨-, -, -, hk | ⟨hk, -⟩⟩
+          · exact plainReq_nonCmp rq hp
+          · rw [hk]; decide
+          · rw [hk]; decide
+        · rw [hg]; decide
+        · rw [hr]; decide
         · exact (adminKindOk_kind rq ha).2
       · rfl
   · rfl
 
 /-- **A mode-on log has no compaction**: its compaction revision is the start's `-1`. -/
-theorem crevOf_plainOn [GooseExts] (γk : KVNames) (A : List EntryModel) (h : plainLogOn .none A) :
+theorem crevOf_plainOn [GooseExts] {lm : lease.Mode} (γk : KVNames) (A : List EntryModel)
+    (h : plainLogOn lm A) :
     crevOf γk A = -1 := by
   unfold crevOf kvCrevOf
   generalize hc : (-1 : Int) = c₀
-  have key : ∀ (B : List EntryModel), plainLogOn .none B →
+  have key : ∀ (B : List EntryModel), plainLogOn lm B →
       ∀ c, B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
     intro B
     induction B with

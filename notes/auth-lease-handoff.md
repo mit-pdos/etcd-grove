@@ -59,34 +59,36 @@ with `auth-lease-scope` merged).
 2. S4 with the client's leased put (`WithLease`, `Put`/`Txn` with a lease) and linearizable client specs of
    `Lease.Grant`/`Revoke` (F3).
 
-## S3a Prove: where it is (2026-11-15)
+## S3a Prove: where it is (2026-11-15, after rev 6)
 
-**Stopped** at a finding (ledger 2026-11-15, `questions.md`): the auth-on KV results stated at `kvStateOf log`
-(`EtcdServer.{Put,DeleteRange}.spec`, `Txn.spec`'s writing post, `client/v3/Results.readQ_of_ansM`) are
-unprovable once `kvInvOn` carries the table with the clients' half kept. Waiting for etcd-grove-81's decision.
+Rev 6 (§14) FROZEN with the stronger guard (etcd-grove-81); its frozen-text edits are made (`EtcdServer.{Put,
+DeleteRange}.spec`, `txnAppliedOk`, v3rpc `putApplied`/`deleteApplied`/`txnAppliedAns`, client `KVService` rows,
+`readQ_of_ansM`, `srvKVCoreM_fire` + `srvKVFacts_fire(0)`, `kvLogOkTo`). The tree does NOT build yet.
 
-Done (commits on `auth-lease` after `fd97b8466d`; the tree does NOT build past the files below):
-- `KVAuthModel`: `OnState`, `leaseOk`/`leaseGrantedM`/`kvGrantedL` (+ `_of_disabled`, `leaseOk_of_none`,
-  `leaseGrantedM_of_plainCover`), `kvEntryOn`/`kvRaftOfOn`/`kvOpOn` on the triple state with the `authKVKind` guard,
-  every old lemma ported (`kvEntryOn_of_granted` takes the grant only at `authKVKind`), `plainReqL`/`txnPlainL`
-  (`= txn.txnLeased`)/`plainReqL_none`, `plainEntryOn lm`/`plainLogOn lm`/`plainEntryOn_none`, `entryDetOn` at
-  `authKVKind`, `entryShapeOn lm`/`logShapeOn lm`, `kvModelOn` (`.2.1`), `kvLeasesOn`, `kvStOn` (moved from
-  `ReadOn`, with the table), `keysNonEmpty`, `keysLeasesLive` (defined; their preservation lemmas NOT yet proved),
-  `kvInvOn` as rev 5 §2, `kvInvOn_alloc` (+ `hln`, `hpo`), `kvGrantIds_snoc_keep`, `entryRevGrantId_nonGrant`,
-  `kvRaftOfOn_conf`/`kvLeasesOn_conf`, `adminKindOk_nonAuthKV`/`_nonGrant`, `plainReqL_nonGrant`.
-- `KVApplyOn`: `outcomeOn` (rev 5 §3), `kvAppliedLOn`/`kvAppliedOn … lt`, `srvKVInvsOn` with `γr.kv.lm = E.lm ∧
-  γr.raft.pre = []` and a TRANSITIONAL `γr.kv.lg = false` (remove at the §5 step), `kvModelOn_snoc_granted` for
-  every kind (no `plainCover`), `kvLeasesOn_snoc*`, `kvRaftOfOn_snoc_refused`, `kvTable_alarmChain_on`.
-- Checked with `etc/lean-check.py`: `KVAuthModel`, `KVApplyOn`, `KVModelM`, `KVReadOn`, `KVAuthShape`,
-  `ProposeOn`, `ServerOnDefs`, `ImageOn`, `ServerOn`, `NewServerAllocOn`, `AuthTie`, `AuthTieRead`.
-- `ReqOn`: `entryWitOn`/`modelOutM` at `∃ lt`; `grantedRes_applied` is where the finding shows (4 errors left).
+**Strategy: a transitional port first.** `srvKVInvsOn` keeps a TRANSITIONAL `γr.kv.lg = false` (beside the frozen
+`lm = E.lm ∧ pre = []`); the apply and snapshot proofs take `lm = none` from it (`KVNames.lm_of_lg_false
+Hrows.2.2.1`, marked "TRANSITIONAL until the §5 step") and keep their `plainCover` reasoning. Steps 3 (§3a
+`leaseExactL`/`kvOwnAt`/Chain's `kvPostF`), 4 (§5, drop the transitional row) and 5 (revocable-mode apply arms) come
+after the tree builds.
 
-Next, after the decision: `ReqOn`, `ReadOn`, then `/shared/tmp/rs56-order.txt`'s order (examples `auth/Hist`,
-`MainAlloc`, `SetupInv`, `WorkEnv`, `etcdstart/Alloc3On`, `auth3/AuthFixed`, `auth3/Main`; `AppliedOn`,
-`ApplyEntryOn`, `ApplyNormalOn`, `KVOutcomeOn`, `ApplyTieOn`, the snapshot files, `EtcdServer__*`, `NewServer`,
-`Results`, `RunOn`, `ClientModel`), then steps 2 (`appliedTableM`), 3 (`leaseExactL`, `kvOwnAt`, Chain's
-`kvPostF`), 4, 5. Scripts used: `/shared/tmp/auth-lease-s3a/hg.py` (adds the `HG` conjunct to `kvInvOn`'s
-open/close patterns).
+Checked clean with `etc/lean-check.py` (in order): KVAuthModel, KVApplyOn, KVModelM, KVReadOn, KVAuthShape, ProposeOn,
+ServerOnDefs, ImageOn, ServerOn, NewServerAllocOn, AuthTie, AuthTieRead, ReqOn, ReadOn, auth/Hist, KVOutcomeOn,
+ApplyEntryOn, ApplyTieOn, ApplyNormalOn, SnapRecvOn, MergedImageOn, SnapAuthRecover, AuthCompRows,
+Spec/EtcdServer__applyAll, ApplyAllSnap. Edited, not yet checked: auth/MainAlloc, etcdstart/Alloc3On (alloc premises),
+server Results (`server_member_alloc_on` premises), KVLogOk, client WatchFire/Results/KVService, v3rpc ServerKV, InvRead.
+
+Next, in order: ModeSpecs (`entryOkOn lm`), EtcdServer__Range, EtcdServer__apply, EtcdServer__applyEntryNormal,
+NewServer, RunOn, StartOn, StopShutdown, EtcdServer__run, SnapApply*/EtcdServer__applySnapshot, SnapSendBranch, server
+Results, ClientModel; EtcdServer__Put/DeleteRange/Txn proofs (the guard: `grantedRes_applied` gives `∃ lt, ⌜lm = none →
+lt = []⌝`; off, `lt = []`), v3rpc ServerKVOn/Results, the client chain (KVService, ServerKVPut/Get/Txn, ClientPutGet,
+Results, ResultsOn, KVServiceOn, WatchFire users, kubernetes), examples (auth, auth3, etcdstart, restart1, watch, k8s,
+txnlin, partition). Then a full build (flock, 64G) to find the rest.
+
+Tools: `/shared/tmp/auth-lease-s3a/chk.sh FILE...` (lean-check in order, stops at the first file with errors;
+`LINES_SHOW=N`); `/shared/tmp/auth-lease-s3a/hg.py` (adds `kvInvOn`'s `HG` conjunct to open/close patterns).
+Lemmas added for the port: `kvLeasesOn_none`, `kvRaftOfOn_table_none`, `kvTable_plainOn_none`, `kvRaftOfOn_conf`,
+`kvLeasesOn_conf`, `leaseGrantedM_of_plainCover`, `kvGrantIds_snoc_keep`, `entryRevGrantId_nonGrant`; `kvAppliedM true`
+is `kvAppliedOn … (kvLeasesOn γk st₀ A)`.
 
 ## Pitfalls
 

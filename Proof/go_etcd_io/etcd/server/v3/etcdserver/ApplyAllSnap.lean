@@ -55,7 +55,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The applied auth state is the applied log's** (`kvAppliedOn`'s model). -/
 theorem kvAppliedOn_sa (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyKV)
     (sa : auth.AuthState) :
-    kvAppliedOn (GF := GF) γr.raft γr.kv srvAuthSt0 A x sa ⊢
+    kvAppliedOn (GF := GF) γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ⊢
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ ⌜sa = srvAuthAtLog γr.kv srvAuthSt0 A⌝ := by
   iintro H
   iunfold kvAppliedOn at H
@@ -141,7 +141,7 @@ theorem snapRecv_imageR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i 
   have Hpl : plainLogM γr.kv.cmp γr.kv.lm A' := Hpl0.1
   have hnl : mvcc.LogNoLease (kvModel γr.kv A') := by
     have hl0 : mvcc.LogNoLease γr.kv.log0 := by
-      rw [hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+      rw [hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
       rcases hcs with rfl | rfl <;> simp at hc
     unfold kvModel; exact (kvRaftOf_restorable _ _ _ A' Hpl hl0).1
   -- the compaction revision's permit
@@ -239,12 +239,12 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   rw [srvRestRp_false E γr A r0 hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows⟩
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩
   obtain ⟨h0', h1', h2'⟩ := hk'
-  have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0) B =
+  have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0, []) B =
       kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) B := by
     intro B; rw [h0', h1', h2', hc0, hch, hlog0]
   have hk : ∀ B, kvModelOn γk' srvAuthSt0 B = kvModelOn γr.kv srvAuthSt0 B := by
@@ -275,7 +275,9 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
   -- (sweep repairs 1, S4) the committed log's cluster requests
   imod kv_log_verOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hver
-  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
+  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl'
+  -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
+  have Hpl : plainLogOn .none A' := by rw [← KVNames.lm_of_lg_false Hrows.2.2.1]; exact Hpl'
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
   iunfold srvRestOwnH at Hrest
@@ -304,10 +306,10 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   have hcrev : crevOf γr.kv A' = -1 := crevOf_plainOn γr.kv A' Hpl
   have hnl : mvcc.LogNoLease (kvModelOn γr.kv srvAuthSt0 A') := by
     have hl0 : mvcc.LogNoLease ([[], []] : mvcc.Log) := by
-      intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+      intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
       rcases hcs with rfl | rfl <;> simp at hc
     unfold kvModelOn; rw [hlog0]
-    exact (kvRaftOfOn_restorable _ _ (srvAuthSt0, [[], []]) A' Hpl hl0).1
+    exact (kvRaftOfOn_restorable _ _ (srvAuthSt0, [[], []], []) A' Hpl hl0).1
   imodintro
   isplitl [Hhi]
   · iunfold kvAppliedOn
@@ -935,7 +937,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   have Hcmf := Hcmlg.1
   -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise) auth on, the
   -- cluster grants none (`srvKVInvsOn`'s)
-  have hlgk : γr.kv.lg = false := Hcmlg.2
+  have hlgk : γr.kv.lg = false := Hcmlg.2.1
   -- the cluster runs auth on, the member's KV invariant says
   imod (kvInvOn_authOn γr.raft γr.kv srvAuthSt0) $$ HkI0 with %hao
   -- the applied auth state is the applied log's
@@ -1002,7 +1004,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   icases Hka with ⟨HkaL0, %Hch0⟩
   iunfold kvAppliedLOn at HkaL0
   icases HkaL0 with ⟨#HA0, Hhi0, #Hc0, %He0⟩
-  ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 A x (srvAuthAtLog γr.kv srvAuthSt0 A) $$ [Hhi0]
+  ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 A x (srvAuthAtLog γr.kv srvAuthSt0 A)
+      (kvLeasesOn γr.kv srvAuthSt0 A) $$ [Hhi0]
   · iunfold kvAppliedOn; iunfold kvAppliedLOn; iframe HA0 Hhi0 Hc0
     ipureintro; exact ⟨He0, Hch0⟩
   imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A $$ HkI0 Hrli HA0 with %HplA
@@ -1127,6 +1130,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   ihave #HkL : kvLogAtM true γr sv.Metadata'.Index' x'.log $$ []
   · iunfold kvLogAtM; iexists A'; iframe HA'; ipureintro; exact ⟨hiL, hxm⟩
   ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A')
+      (kvLeasesOn γr.kv srvAuthSt0 A')
     $$ [HkaL]
   · iunfold kvAppliedOn
     isplitl
@@ -1208,7 +1212,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       applyThread γ' stF -∗ applyBackend γ' ci b' -∗ ciApplying ci a t -∗ srvLgReader s -∗
       srvGoRes s -∗ mvcc.api.mvccReaders E'.γ 1 -∗
       srvApplyKVOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') -∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') -∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A')
+      (kvLeasesOn γr.kv srvAuthSt0 A') -∗
       srvRest E' γr A' -∗ Φ #()) $$ [HΦ Hbr HAR' Hao HWA HwalT Hso']
   · iintro %stF %HF Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hrdk HKV Hka HRS
     ihave Hcs : epConfState ep cs' $$ [Hcs]
@@ -1408,7 +1413,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             · iframe Hrli HA' Hsm Hct
             -- (#7-on's `merged_imageOn`) the image's certificate: the auth buckets the lent part's
             ihave Hmi : |={⊤}=> kvAppliedOn γr.raft γr.kv srvAuthSt0 A' x'
-                  (srvAuthAtLog γr.kv srvAuthSt0 A') ∗
+                  (srvAuthAtLog γr.kv srvAuthSt0 A') (kvLeasesOn γr.kv srvAuthSt0 A') ∗
                 □ (srvNet (GF := GF) γr.raft.raft).img sv.Metadata'.Index' Dm $$ [Hka]
             · iapply (merged_imageOn s γ' ci TM' E' ρ γr γa sv.Metadata'.Index' A' x' _ Dm hM'
                 hlenZ ⟨hc0, hlog0⟩ hcr)
