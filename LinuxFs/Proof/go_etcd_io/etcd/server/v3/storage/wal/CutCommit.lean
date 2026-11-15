@@ -135,14 +135,14 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     have hne : bt ≠ b := fun e => hw ((renFileEnt_writes _ _ _ _ _ _ _ _).2 ⟨rfl, Or.inr e.symm⟩)
     exact GMap.lookup_insert_ne _ _ hne
   -- the old static relation, over the claim's names
-  obtain ⟨la, nm, hja, hla, hin, hjr, hnm, ⟨Xa, hXa, hma, -⟩, habs, -⟩ := hW.1 dir d hd
+  obtain ⟨la, nm, hja, hla, hin, hjr, hnm, ⟨Xa, hXa, hma, -⟩, habs, ⟨⟨e0, hF⟩, -⟩⟩ := hW.1 dir d hd
   rw [hl] at hla
   cases hla
   have hjae := walClaim_eq hexcl1 hXa hma
   simp only [Prod.mk.injEq, true_and] at hjae
   rw [hjae.2] at habs
   have hnodup := (segsAll_nodup_iff Ls).1 hW.2.2.1
-  have hnd0 : (walInos hj.cur).Nodup := by rw [habs.names.1]; exact hnodup.1 dir lay hl
+  have hnd0 : (walInos hj.cur).Nodup := by rw [habs.names.1]; exact segsAll_nodup_segs hW.2.2.1 hl
   have hsn : SegsNamed lay.segs hj.cur := (hNm dir lay hl).1 hj ⟨X, hX, hcl, hcoh1⟩
   have hg0mem : g0 ∈ lay.segs := List.mem_of_getLast? hg0
   have hnm0e : nm0 = g0.name :=
@@ -189,12 +189,68 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     rw [hbs.1] at hy
     obtain ⟨a, -, rfl⟩ := List.mem_map.1 hy
     rfl
-  -- the cut WAL's crash condition, with the old layout as the alternative
-  have hok0 : CrashOk C Mr d lay cl n :=
-    (crashOkA_none_iff C Mr d lay cl n).1 (hDK.2.1 dir d lay hd hl (fun h => by cases h))
-  have hcr' := crashOkA_cut C Mr d lay hj.cur cl n X hj x (renFileEnt lay.j tmp lay.j bt g.ino hj s0)
-    (<[bt := Node.file g.ino]> hj.cur) bt g wr hok0 habs hexL habs' hmeta.2.2 hm hdur hdurg hwr hz hX hcl hcoh1
-    hcoh' hs hbt' hcur hothers (Or.inl (by rw [hjr]; exact Ne.symm hjjr))
+  -- the cut WAL's crash condition (of the full layout: the removed segments back), with the old full
+  -- layout as the alternative
+  have hpgf := pg_le_first habs hF
+  have hfirst : lay.first ≤ lay.cuts.length := by
+    have := habs.cuts.2.2; have := List.length_pos_iff.2 habs.nonempty; omega
+  have hFd : walFullD d lay.pg (cutLay lay d.H.length g wr) = walFullD d lay.pg lay := by
+    simp only [walFullD, cutLay]
+    rw [segStart_snoc (by omega)]
+  have hexF : TailExact (unpurge lay.pg lay) := fun g1 hg1 => by
+    rw [unpurge_getLast? _ habs.nonempty] at hg1; exact hexL g1 hg1
+  have hdurF : ∀ g' ∈ lay.pg ++ lay.segs, ∀ y ∈ g'.bs, y = durB y.1 := by
+    intro g' hg' y hy
+    rcases List.mem_append.1 hg' with hgp | hgs
+    · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hgp
+      have hk' : (unpurge lay.pg lay).segs[k]? = some lay.pg[k] := by
+        simp only [unpurge_segs]; rw [List.getElem?_append_left hk]; exact List.getElem?_eq_getElem hk
+      have hk1 : k + 1 < (unpurge lay.pg lay).segs.length := by
+        simp only [unpurge_segs, List.length_append]
+        have := List.length_pos_iff.2 habs.nonempty; omega
+      rw [hF.intact k _ hk1 hk'] at hy
+      obtain ⟨a, -, rfl⟩ := List.mem_map.1 hy
+      rfl
+    · exact hdur g' hgs y hy
+  have hok0 : CrashOk C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n :=
+    (crashOkA_none_iff _ _ _ _ _ _).1 (hDK.2.1 dir d lay hd hl (fun h => by cases h))
+  have hcr' := crashOkA_cutF C Mr d lay lay.pg e0 cl n X hj x (renFileEnt lay.j tmp lay.j bt g.ino hj s0)
+    (<[bt := Node.file g.ino]> hj.cur) bt g wr hok0 hF hexF habs' hmeta.2.2 hm hpgf hdurF hdurg hwr hz hX
+    hcl hcoh1 hcoh' hs hbt' hcur hothers (Or.inl (by rw [hjr]; exact Ne.symm hjjr))
+  -- the new full layout's static relation, over entries listing its segments
+  have hnodup' := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
+  have hpgw := pg_walNameP hF
+  have hnames' : ((lay.pg ++ (lay.segs ++ [g])).map (·.name)).Pairwise go.GoStringLt := by
+    have hF2 := hF.names.2
+    simp only [unpurge_segs] at hF2
+    rw [← List.append_assoc, List.map_append, List.pairwise_append]
+    refine ⟨hF2, by simp, fun a ha b hb => ?_⟩
+    simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
+    rw [hb, hgname]
+    obtain ⟨g', hg', rfl⟩ := List.mem_map.1 ha
+    rcases List.mem_append.1 hg' with hgp | hgs
+    · obtain ⟨gl, hgl⟩ := List.exists_mem_of_ne_nil _ habs.nonempty
+      rw [List.map_append, List.pairwise_append] at hF2
+      exact go.goStringLt_trans (hF2.2.2 _ (List.mem_map_of_mem hgp) _ (List.mem_map_of_mem hgl))
+        (hlt gl hgl)
+    · exact hlt g' hgs
+  obtain ⟨e0', he0', -⟩ := walInos_realize (lay.pg ++ (lay.segs ++ [g])) hnames' (by
+    intro g' hg'
+    rcases List.mem_append.1 hg' with hgp | hg'
+    · exact hpgw g' hgp
+    rcases List.mem_append.1 hg' with hgs | hgg
+    · exact (hsn.1 g' hgs).1
+    · simp only [List.mem_singleton] at hgg; rw [hgg, hgname]; exact hbtw)
+  have hF' := walAbsD_full_step (lay' := cutLay lay d.H.length g wr) habs hF habs' rfl rfl hnodup'
+    (fun i hi => segStart_snoc (by omega)) (fun i hi => segStream_snoc C Mr d (by omega))
+    (fun i hi => rfl) (Nat.le_refl _)
+    (fun b hb => by
+      simp only [cutLay, List.mem_append, List.mem_singleton] at hb
+      rcases hb with hb | rfl
+      · exact ⟨b, hb, Or.inl rfl⟩
+      · exact ⟨g0, hg0mem, Or.inr (by rw [hgname, ← hnm0e]; exact hbt.2.2.1)⟩)
+    he0'
+  simp only [cutLay_pg, hFd] at hF'
   have hWnew : WalsOk C Mr R jr s (<[dir := cutLay lay d.H.length g wr]> Ls)
       (replClaim (lay.j, NameSet.except X, hj) (lay.j, NameSet.except X, hj.log x
         (renFileEnt lay.j tmp lay.j bt g.ino hj s0) (<[bt := Node.file g.ino]> hj.cur)) cl) n := by
@@ -206,31 +262,38 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
       · subst hdd
         rw [hd] at hd'
         cases hd'
-        exact ⟨cutLay lay d.H.length g wr, nm, _, GMap.lookup_insert_eq .., hin, hjr, hnm,
-          ⟨X, hX, mem_replClaim_new hcl, hcoh'⟩, habs', some lay,
-          fun lay0 h => by cases h; exact altOk_cut C Mr d lay hj.cur _ g wr habs, hcr'⟩
-      · obtain ⟨lay', nm', hj', hl', hin', hjr', hnm', ⟨X', hX', hm', hc'⟩, habs'', alt, halt, hcr⟩ :=
+        refine ⟨cutLay lay d.H.length g wr, nm, _, GMap.lookup_insert_eq .., hin, hjr, hnm,
+          ⟨X, hX, mem_replClaim_new hcl, hcoh'⟩, habs', ?_⟩
+        unfold WalFullOk
+        simp only [cutLay_pg, hFd]
+        refine ⟨⟨e0', hF'⟩, some (unpurge lay.pg lay), fun lay0 h => ?_, hcr'⟩
+        cases h
+        exact ⟨⟨e0, hF⟩, rfl, rfl, rfl, ⟨[g], by simp [unpurge, cutLay]⟩, by simp [unpurge, cutLay]⟩
+      · obtain ⟨lay', nm', hj', hl', hin', hjr', hnm', ⟨X', hX', hm', hc'⟩, habs'', hfa, alt, halt, hcr⟩ :=
           h1 dir' d' hd'
         have hne := walsOk_dir_ne ⟨h1, h2, h3, h4, h5, h6⟩ hexcl1 hd hl rfl hdd hl'
+        have hjrne : lay'.jr ≠ lay.j := by rw [hjr']; exact Ne.symm hjjr
         refine ⟨lay', nm', hj', by rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hl', hin',
           hjr', hnm', ⟨X', hX', mem_replClaim_of_ne hm' (fun e => hne (by
-            simp only [Prod.mk.injEq] at e; exact e.1)), hc'⟩, habs'', alt, halt,
+            simp only [Prod.mk.injEq] at e; exact e.1)), hc'⟩, habs'', hfa, alt, halt,
           crashOkA_cut_other hcr (fun l0 h0 => ⟨(halt l0 h0).2.1, (halt l0 h0).2.2.1,
-            (halt l0 h0).2.2.2.1⟩) hne (by rw [hjr']; exact Ne.symm hjjr) hcl hcoh1 hs hbt' hcur
+            (halt l0 h0).2.2.2.1⟩) hne hjrne hcl hcoh1 hs hbt' hcur
             hothers⟩
     · have hdd : dir' ≠ dir := by
         intro e; rw [e, hd] at hn'; cases hn'
       rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]
       exact h2 dir' hn'
     · have hseg : ∀ dd ll, (<[dir := cutLay lay d.H.length g wr]> Ls) !! dd = some ll →
-          ∀ g' ∈ ll.segs, (dd = dir ∧ g' = g) ∨ ∃ ll', Ls !! dd = some ll' ∧ g' ∈ ll'.segs := by
+          ∀ g' ∈ ll.pg ++ ll.segs, (dd = dir ∧ g' = g) ∨ ∃ ll', Ls !! dd = some ll' ∧
+            g' ∈ ll'.pg ++ ll'.segs := by
         intro dd ll hll g' hg'
         by_cases hdd : dd = dir
         · rw [hdd, GMap.lookup_insert_eq] at hll
           cases hll
           simp only [cutLay, List.mem_append, List.mem_singleton] at hg'
-          rcases hg' with hg' | hg'
-          · exact Or.inr ⟨lay, by rw [hdd]; exact hl, hg'⟩
+          rcases hg' with hg' | hg' | hg'
+          · exact Or.inr ⟨lay, by rw [hdd]; exact hl, List.mem_append_left _ hg'⟩
+          · exact Or.inr ⟨lay, by rw [hdd]; exact hl, List.mem_append_right _ hg'⟩
           · exact Or.inl ⟨hdd, hg'⟩
         · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hll
           exact Or.inr ⟨ll, hll, hg'⟩
@@ -239,18 +302,20 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
       · by_cases hdd : dir' = dir
         · rw [hdd, GMap.lookup_insert_eq] at hl'
           cases hl'
-          simp only [cutLay, List.map_append, List.map_cons, List.map_nil]
-          refine List.nodup_append.2 ⟨hnodup.1 dir lay hl, by simp, fun a ha b hb => ?_⟩
+          simp only [cutLay, ← List.append_assoc, List.map_append, List.map_cons, List.map_nil]
+          refine List.nodup_append.2 ⟨by rw [← List.map_append]; exact hnodup.1 dir lay hl, by simp,
+            fun a ha b hb => ?_⟩
           simp only [List.mem_singleton] at hb
+          rw [← List.map_append] at ha
           obtain ⟨g', hg', rfl⟩ := List.mem_map.1 ha
-          rw [hb]; exact hino g' (mem_segsAll hl hg')
+          rw [hb]; exact hino g' (mem_segsAll_all hl hg')
         · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
           exact hnodup.1 dir' lay' hl'
       · rcases hseg d1 l1 hl1 g1 hg1 with ⟨e1, e1'⟩ | ⟨k1, hk1, hg1'⟩ <;>
           rcases hseg d2 l2 hl2 g2 hg2 with ⟨e2, e2'⟩ | ⟨k2, hk2, hg2'⟩
         · exact absurd (e1.trans e2.symm) hne'
-        · rw [e1']; exact (hino g2 (mem_segsAll hk2 hg2')).symm
-        · rw [e2']; exact hino g1 (mem_segsAll hk1 hg1')
+        · rw [e1']; exact (hino g2 (mem_segsAll_all hk2 hg2')).symm
+        · rw [e2']; exact hino g1 (mem_segsAll_all hk1 hg1')
         · exact hnodup.2 d1 d2 k1 k2 hne' hk1 hk2 g1 hg1' g2 hg2'
     · intro g' hg'
       obtain ⟨dd, ll, hll, hg''⟩ := segsAll_mem hg'
@@ -258,11 +323,12 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
       · rw [hdd, GMap.lookup_insert_eq] at hll
         cases hll
         simp only [cutLay, List.mem_append, List.mem_singleton] at hg''
-        rcases hg'' with hg'' | hg''
+        rcases hg'' with hg'' | hg'' | hg''
+        · exact h4 g' (mem_segsAll_pg hl hg'')
         · exact h4 g' (mem_segsAll hl hg'')
         · rw [hg'']; exact hmeta.2.1
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hll
-        exact h4 g' (mem_segsAll hll hg'')
+        exact h4 g' (mem_segsAll_all hll hg'')
   refine ⟨hWnew, walsCreateOk_cut hjjr hWC,
     creatingOk_cut hCO hjjr hcl ⟨_, walNameP_wal, except_mem_wal hX⟩,
     absentNone_cut hAN hjjr hcl hcoh1 hs hbt' hcur hothers,

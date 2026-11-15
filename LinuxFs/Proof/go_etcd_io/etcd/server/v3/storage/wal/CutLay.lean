@@ -282,6 +282,57 @@ theorem crashOkA_cut (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay
     have := hX b hbX
     rw [hb] at this; cases this
 
+/-- **The crash condition of the full layout from a cut's rename on** (`crashOkA_cut` for the layout with
+the removed segments `pg` back): a crash keeping the rename keeps every earlier entry of the claim, the
+removals too, so it lists the new layout's named segments: `CrashTo` of the new layout (`crashTo_synced`),
+hence of the full one (`crashTo_unpurge`); one dropping it is the old full layout's. -/
+theorem crashOkA_cutF (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (pg : List SegG)
+    (ents : Ents) (cl : List Claim) (n : Nat) (X : List GoString) (h : NamesH) (x : Nat)
+    (e : LogEntry) (c : Ents) (bt : GoString) (g : SegG) (wr : Nat)
+    (hok : CrashOk C Mr (walFullD d pg lay) (unpurge pg lay) cl n)
+    (habs : WalAbsD C Mr (walFullD d pg lay) (unpurge pg lay) ents) (hex : TailExact (unpurge pg lay))
+    (habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) c) (hexg : SegExact g) (hm : d.m = d.H.length)
+    (hpgf : pg.length ≤ lay.first)
+    (hdur : ∀ g ∈ pg ++ lay.segs, ∀ y ∈ g.bs, y = durB y.1) (hdurg : ∀ y ∈ g.bs, y = durB y.1)
+    (hwr : wr = (segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)).length)
+    (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr)
+    (hX : ∀ b ∈ X, walNameP b = false)
+    (hcl : (lay.j, NameSet.except X, h) ∈ cl) (hcoh : ClaimCoh h lay.j (.except X))
+    (hcoh' : ClaimCoh (h.log x e c) lay.j (.except X)) (hs : h.next ≤ e.start)
+    (hbt : ∀ b, (NameSet.except X).Mem b → e.op.Writes lay.j b → b = bt) (hcur : h.cur !! bt = none)
+    (hothers : ∀ c' ∈ cl, c' ≠ (lay.j, NameSet.except X, h) → c'.1 = lay.j →
+      ¬ c'.2.1.Mem bt)
+    (hjr : lay.jr ≠ lay.j ∨ lay.nm ≠ bt) :
+    CrashOkA C Mr (walFullD d pg lay) (unpurge pg (cutLay lay d.H.length g wr)) (some (unpurge pg lay))
+      (replClaim (lay.j, NameSet.except X, h) (lay.j, NameSet.except X, h.log x e c) cl) n := by
+  refine crashOkA_rename C Mr (walFullD d pg lay) (unpurge pg lay) (unpurge pg (cutLay lay d.H.length g wr))
+    ents cl n X h x e c bt hok habs hex hdur hcl hcoh hcoh' hs hbt hcur hothers hjr
+    ⟨[g], by simp [unpurge, cutLay]⟩ rfl (fun m' fo hf hn hnames hdir => ?_)
+  have hct : CrashTo C Mr d (cutLay lay d.H.length g wr) m' fo := by
+    refine crashTo_synced C Mr d _ c m' fo habs'
+      (fun g' hg' => by
+        simp only [cutLay, List.getLast?_append, List.getLast?_singleton, Option.some_or,
+          Option.some.injEq] at hg'
+        exact hg' ▸ hexg) hm (fun g' hg' => ?_)
+      (by simp only [cutLay, List.length_append, List.length_singleton]; exact hwr) ?_ ?_ ?_ hdir
+      (fun g' hg' => hf g' (by simp only [unpurge_segs]; exact List.mem_append_right _ hg'))
+      (fun g' hg' => hn g' (by simp only [unpurge_segs]; exact List.mem_append_right _ hg'))
+    · simp only [cutLay, List.mem_append, List.mem_singleton] at hg'
+      rcases hg' with hg' | rfl
+      · exact hdur g' (List.mem_append_right _ hg')
+      · exact hdurg
+    · intro b _ hb
+      simp only [cutLay, List.length_replicate] at hb ⊢
+      simp [List.getD_eq_getElem?_getD, List.getElem?_replicate, hb]
+    · simpa [cutLay] using hz
+    · show walInos (entsOf m' lay.j) = walInos c
+      refine walInos_congr (fun b hb => ?_)
+      rw [entsOf_lookup]
+      refine hnames b (fun hbX => ?_)
+      have := hX b hbX
+      rw [hb] at this; cases this
+  exact (crashTo_cut_iff _).2 (crashTo_unpurge pg (by simp [cutLay]; exact hpgf) hct)
+
 /-- **The layout before the cut is an alternative to the layout after it** (`AltOk`): the same WAL
 directory, its segments a strict prefix. -/
 theorem altOk_cut (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (ents : Ents)
