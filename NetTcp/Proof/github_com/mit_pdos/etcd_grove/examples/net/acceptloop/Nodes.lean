@@ -3,23 +3,24 @@ The proofs of `examples/net/acceptloop`'s functions, over the specs of `net` and
 (hypotheses, linked in `Results.lean`) and the protocol of `Defs.lean`:
 
 * `handle`: a full read of 1 byte (`wire.read_acc` on the up direction: what it read, the dialer
-  wrote), its echo (`server_write_au`, with the connection's token), and the close
+  wrote), its echo (a `Write`, Go's loop of steps: `server_write_acc`, each step extending the
+  server's written bytes, still a prefix of the request), and the close
   (`wire.close_drop_au`); as echo's `serveConn`.
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's
   protocol), which forks a `handle` per connection (`wp_fork`), handing it that connection's
   protocol; the loop keeps only the listener.
 * `CallOne id`: the dial (`wire.dial_both_au`, the registration `echo_register`), the write of
-  `[id]` (`wire.write_au` on the up direction), the full read of the reply (`wire.read_acc` on the
-  down direction), and the check: the reply is a prefix of `[id]` (`client_check`) of length 1, so
-  `resp[0] = id`.
+  `[id]` (`wire.writeP`/`wire.write_acc` on the up direction: on success all of it written), the
+  full read of the reply (`wire.read_acc` on the down direction), and the check: the reply is a
+  prefix of `[id]` (`client_check`) of length 1, so `resp[0] = id`.
 * `Call`: two forked `CallOne`s, each with copies of the persistent protocol and plan only (each
   owns the connection it dials, so nothing is shared between them), joined by a wait group:
   Perennial's join idiom (`sync.join`), its `Add(2)` by `wp_Add_many` (`Join.lean`), each
   goroutine's `Done` with `True`, the `Wait` with nothing to collect. The `sync` specs are
   hypotheses, as `net`'s.
-* `eof_init`, `ed_init`: `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values, from the package's
-  initialization (the commands' `main`s, `cmd/*/Main.lean`, call the bodies with them; `ReadFull`
-  and `Write` take the latter, the `Err` of a timeout).
+* `eof_init`: `io.EOF`'s value, from the package's initialization (the commands' `main`s,
+  `cmd/*/Main.lean`, call the bodies with it and with `poll.ErrDeadlineExceeded`'s, `wire.ed_init`,
+  which `ReadFull` and `Write` take, the `Err` of a timeout).
 
 Every failure is an `*OpError` (`net.resErr` of its kind, D14), so non-nil (`net.resErr_netErr`):
 each `err != nil` check sees it, whatever the kind; no proof distinguishes the kinds. The dial's
@@ -40,6 +41,7 @@ public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
 public import Perennial.Proof.io
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 
 @[expose] public section
 
@@ -83,7 +85,7 @@ theorem wp_handle
     {{ RET #(); True }} := by
   unfold net.isConn echoInvs connProto
   wp_start as ⟨⟨#HaddrInv, #HechoInv⟩, ⟨%t, %la, %ra, %Hct, #Hc⟩,
-    ⟨%γ, Hend, Htok, Hru, #Hlbu, #Hname⟩, #Heof, #Hed⟩
+    ⟨%γ, Hend, Hsv, Hru, #Hlbu, #Hname⟩, #Heof, #Hed⟩
   subst Hct
   ihave #Hup := dir_inv γm cn γ false $$ HechoInv Hname
   ihave #Hdown := dir_inv γm cn γ true $$ HechoInv Hname
@@ -125,11 +127,16 @@ theorem wp_handle
     subst Hgot
     wp_auto
     wp_apply wp_Write t cn true srvAddr la ra buf got (DFrac.own 1) ed
-        (fun _ _ => iprop(tcpEnd G cn true TcpEnd.fresh)) $$ [Hbuf Hend Htok]
-      as %n %err ⟨%k, %resw, Hend, Hbuf, -, -⟩
+        (srvP γ cn TcpEnd.fresh) $$ [Hbuf Hend Hsv]
+      as %n %err ⟨%w, %resw, HP, Hbuf, -, -⟩
     · iframe Hc Hbuf Hed
-      iapply server_write_au γm cn γ got got TcpEnd.fresh (List.prefix_refl _) $$ HechoInv Hname
-        Htok Hlb Hend
+      isplitl [Hend Hsv]
+      · unfold srvP
+        iframe Hend Hsv
+      iapply server_write_acc γm cn γ got got TcpEnd.fresh (List.prefix_refl _) $$ HechoInv Hname
+        Hlb
+    iunfold srvP at HP
+    icases HP with ⟨Hend, -⟩
     (try wp_auto)
     wp_apply wp_Close t cn true srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
       as %err' ⟨%res, -, -⟩
@@ -246,14 +253,16 @@ theorem wp_CallOne
     (try wp_auto)
     have Hset : (List.replicate 1 (zero_val w8)).set 0 id = [id] := rfl
     isimp only [Hset] at Hreq
-    wp_apply wp_Write t cn false srvAddr la ra req _ (DFrac.own 1) ed
-        (fun k res => iprop(tcpEnd G cn false TcpEnd.fresh ∗
-          sentAll (γ.dir false) ([] ++ [id].take k) ∗
-          ⌜∃ d d', WriteOutcome TcpEnd.fresh d [id] k res d'⌝))
-        $$ [Hreq Hend Hsu]
-      as %n %err ⟨%k, %resw, ⟨Hend, Hsu, %Hwr⟩, Hreq, %Hn, #HE⟩
+    wp_apply wp_Write t cn false srvAddr la ra req [id] (DFrac.own 1) ed
+        (wire.writeP (γ.dir false) cn false TcpEnd.fresh []) $$ [Hreq Hend Hsu]
+      as %n %err ⟨%w, %resw, HP, Hreq, %Hw, #HE⟩
     · iframe Hca Hreq Hed
-      iapply wire.write_au echoN cn false (γ.dir false) TcpEnd.fresh [] [id] $$ Hup Hend Hsu
+      isplitl [Hend Hsu]
+      · iapply wire.writeP_init
+        iframe Hend Hsu
+      iapply wire.write_acc echoN cn false (γ.dir false) TcpEnd.fresh [] [id] $$ Hup
+    iunfold wire.writeP at HP
+    icases HP with ⟨Hend, Hsu, -⟩
     icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
     cases resw with
     | some e =>
@@ -269,9 +278,8 @@ theorem wp_CallOne
       itrivial
     | none =>
     rw [Hne.1 rfl]
-    obtain ⟨d, d', Hwr⟩ := Hwr
-    have hk : k = 1 := wire.writeOutcome_ok Hwr
-    subst hk
+    have hw : w = [id] := Hw.2.2.1 rfl
+    subst hw
     wp_auto
     wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %buf ⟨Hbuf, -⟩
     · ipureintro; decide
@@ -312,8 +320,6 @@ theorem wp_CallOne
       subst Hgot
       imod client_check' γm cn γ _ got $$ HechoInv Hname Hsu Hlb with ⟨%Hpre, Hsu⟩
       have hs : got = [id] := by
-        simp only [List.take_of_length_le (by simp : List.length [id] ≤ 1)]
-          at Hpre
         exact Hpre.eq_of_length (by simpa using hsl)
       subst hs
       wp_auto
@@ -402,26 +408,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists _
   iexact Heof
-
-/-- `internal/poll`'s package fact, from its `isPkgInit`. -/
-theorem poll_isInit_access :
-    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
-      iprop((∃ e : GoInterface, globalAddr internal.poll.ErrNoDeadline ↦□ e) ∗
-        (∃ e : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)) := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
-
-/-- `poll.ErrDeadlineExceeded`'s value (`os.ErrDeadlineExceeded`, the `Err` of a timeout), from the
-package's initialization. -/
-theorem ed_init :
-    isPkgInit (PROP := IProp GF) pkg ⊢
-      ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
-  iintro #Hpkg
-  ihave #Hp : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
-  · iPkgInit
-  ihave Hi := poll_isInit_access $$ Hp
-  icases Hi with ⟨-, ⟨%ed, #Hed⟩⟩
-  iexists ed
-  iexact Hed
 
 end proof
 

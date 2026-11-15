@@ -1,8 +1,8 @@
 /-
 The proof of acceptloop's `server` command (`examples/net/acceptloop/cmd/server/main.go`): its
 `main` calls `acceptloop.Serve` (`wp_Serve`, `Nodes.lean`), with `io.EOF`'s and
-`poll.ErrDeadlineExceeded`'s values from the package's initialization (`eof_init`, `ed_init`).
-The command is the server node's program, a process of its own, in `Results.lean`.
+`poll.ErrDeadlineExceeded`'s values from the package's initialization (`eof_init`;
+`wire.ed_init`, from `wire`'s). The command is the server node's program, a process of its own, in `Results.lean`.
 -/
 module
 
@@ -19,7 +19,7 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
 open github_com.mit_pdos.etcd_grove.examples.net.wire (G)
-open github_com.mit_pdos.etcd_grove.examples.net.acceptloop (srvAddr echoInvs eof_init ed_init
+open github_com.mit_pdos.etcd_grove.examples.net.acceptloop (srvAddr echoInvs eof_init
   wp_Serve)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server
@@ -52,7 +52,10 @@ theorem wp_main
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop) $$ []
   · iPkgInit
   icases eof_init $$ Hal with ⟨%eof, #Heof⟩
-  icases ed_init $$ Hal with ⟨%ed, #Hed⟩
+  ihave #Hwire : (isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire) $$ []
+  · iPkgInit
+  icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof ed $$ []
   · iframe Hinvs Heof Hed

@@ -6,35 +6,38 @@ and a client goroutine calling on one each own that connection's halves only, so
 goroutines of the server's accept loop nor the client's two concurrent calls need anything more.
 
 * **Every connection** `cn` to `srvAddr` has ghost names `γ` (`connName γm cn γ`, persistent: the
-  ghost map `γm`): a token (`echoTok`, exclusive: the server's right to make its one write) and
-  the stream protocols of its two directions, `γ.dir false` (up, the dialer's bytes) and
-  `γ.dir true` (down, the acceptor's). All connections' state is in one invariant
-  (`echoState γm`): per connection both directions' `dirInv` bodies and its echo state
-  (`echoConn`): the acceptor's written bytes `Wd` (the writer's half `sentAll`, kept here so the
-  client can see it) are a prefix of a lower bound `si` of the dialer's (`sentLb`), or nothing
-  while the server still holds the token. Every resource the protocol moves is timeless; a
-  direction's invariant `inv echoN (dirInv cn s (γ.dir s))`, which `Stream.lean`'s updates take, is
-  derived from `echoState`'s (`dir_inv`, `inv_alter`).
+  ghost map `γm`): a ghost variable `γ.srv` (`srvW`, two halves: the bytes the acceptor's `Write`
+  has written so far, one half the server's) and the stream protocols of its two directions,
+  `γ.dir false` (up, the dialer's bytes) and `γ.dir true` (down, the acceptor's). All connections'
+  state is in one invariant (`echoState γm`): per connection both directions' `dirInv` bodies and
+  its echo state (`echoConn`): the acceptor's written bytes `Wd` (the writer's half `sentAll`, kept
+  here so the client can see it, and the other half of `srvW`) are a prefix of a lower bound `si`
+  of the dialer's (`sentLb`). Every resource the protocol moves is timeless; a direction's
+  invariant `inv echoN (dirInv cn s (γ.dir s))`, which `Stream.lean`'s updates take, is derived
+  from `echoState`'s (`dir_inv`, `inv_alter`).
 * **The dial** (`wire.dial_both_au`: the deposit made from both ends' fresh resources): the
   dialer registers the connection (`echo_register`: names, both directions' bodies, the echo
-  state) and deposits for the acceptor `connProto γm cn` (its end, the token, the up direction's
-  reader half), keeping its end, the up direction's writer half and the down direction's reader
-  half. A dial that fails leaving its connection abandoned (D16: the dialer's end closed, the up
-  direction shut and empty) registers it the same way (`echo_register_ab`, over
-  `echo_register_dir`, which takes the up direction in any state agreeing with nothing written,
-  `dirInv_body_alloc_of`), the dialer's halves dropped: a server that accepts it reads EOF and
-  never writes, and nothing it could write would break a check, since no client reads it.
+  state) and deposits for the acceptor `connProto γm cn` (its end, its half of `srvW`, the up
+  direction's reader half), keeping its end, the up direction's writer half and the down
+  direction's reader half. A dial that fails leaving its connection abandoned (D16: the dialer's
+  end closed, the up direction shut and empty) registers it the same way (`echo_register_ab`,
+  over `echo_register_dir`, which takes the up direction in any state agreeing with nothing
+  written, `wire.dirInv_body_alloc_of`), the dialer's halves dropped: a server that accepts it
+  reads EOF and never writes, and nothing it could write would break a check, since no client
+  reads it.
 
-The client's check (`client_check`): a reply it read is a prefix of the server's bytes, which are
-a prefix of the client's own. The token makes the server's one write start from nothing
-(`server_write_au`). Crashes change nothing here: the invariants are global, and a connection's
-protocol stays in the address's invariant until a server (of any incarnation) accepts it.
+The server's `Write` is a loop of steps (D2): each step (`server_write_au`, packaged as the
+accessor `net.Conn.Write.spec` takes, `server_write_acc`) extends `Wd` by the bytes it appended,
+which stay a prefix of the request it read, so of `si`; the server's half of `srvW` says `Wd` is
+what its earlier steps wrote. The client's check (`client_check`): a reply it read is a prefix of
+the server's bytes, which are a prefix of the client's own. Crashes change nothing here: the
+invariants are global, and a connection's protocol stays in the address's invariant until a server
+(of any incarnation) accepts it.
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Base
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Stream
-public import Perennial.Ghost.Token
 
 @[expose] public section
 
@@ -56,17 +59,18 @@ abbrev srvAddr : GoString := go!"127.0.0.1:7103"
 def addrN : Namespace := nroot.@"acceptloop_addr"
 def echoN : Namespace := nroot.@"acceptloop_conns"
 
-/-- The ghost names of a connection: its token, and the stream protocols of its directions (the
-up direction's writer `uw` and reader `ur`, the down direction's `dw` and `dr`). -/
+/-- The ghost names of a connection: the acceptor's written bytes `srv`, and the stream protocols
+of its directions (the up direction's writer `uw` and reader `ur`, the down direction's `dw` and
+`dr`). -/
 structure ConnG where
-  tok : GName
+  srv : GName
   uw : GName
   ur : GName
   dw : GName
   dr : GName
 deriving DecidableEq
 
-def ConnG.enc (γ : ConnG) := (γ.tok, γ.uw, γ.ur, γ.dw, γ.dr)
+def ConnG.enc (γ : ConnG) := (γ.srv, γ.uw, γ.ur, γ.dw, γ.dr)
 
 instance ConnG.countable : Pos.Countable ConnG :=
   .ofInjective (fun γ => Pos.Countable.encode γ.enc) (fun a b h => by
@@ -85,17 +89,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- The token of a connection: the server's right to make its one write. -/
-def echoTok (γ : GName) : IProp GF := @token GF (G (Gg := Gg)).allG γ
+/-- A half of the connection's ghost variable `γ`: the acceptor has written `W` (the server's
+half, and the echo state's). -/
+def srvW (γ : GName) (W : List w8) : IProp GF :=
+  @ghostVar GF (G (Gg := Gg)).allG _ _ γ (1 : Qp).half W
 
-instance echoTok_timeless (γ : GName) : Timeless (echoTok (Gg := Gg) γ) := by
-  unfold echoTok; letI := (G (Gg := Gg)).allG; infer_instance
+instance srvW_timeless (γ : GName) (W : List w8) : Timeless (srvW (Gg := Gg) γ W) := by
+  unfold srvW; letI := (G (Gg := Gg)).allG; infer_instance
 
 /-- The echo state of a connection with names `γ`: the acceptor's written bytes are a prefix of
-the dialer's, or nothing while the server holds the token. -/
+the dialer's. -/
 def echoConn (γ : ConnG) : IProp GF :=
-  iprop(∃ Wd : List w8, sentAll (Gg := Gg) (γ.dir true) Wd ∗
-    ((echoTok γ.tok ∗ ∃ si, sentLb (γ.dir false) si ∗ ⌜Wd <+: si⌝) ∨ ⌜Wd = []⌝))
+  iprop(∃ Wd : List w8, sentAll (Gg := Gg) (γ.dir true) Wd ∗ srvW γ.srv Wd ∗
+    ∃ si, sentLb (γ.dir false) si ∗ ⌜Wd <+: si⌝)
 
 instance echoConn_timeless (γ : ConnG) : Timeless (echoConn (Gg := Gg) γ) := by
   unfold echoConn; infer_instance
@@ -125,10 +131,11 @@ instance connName_timeless (γm : GName) (cn : Nat) (γ : ConnG) :
     Timeless (connName (Gg := Gg) γm cn γ) := by
   unfold connName; letI := (G (Gg := Gg)).allG; infer_instance
 
-/-- What the server gets when it accepts `cn`: its end, the token, and the up direction's reader
-half (with the lower bound `[]` of what was written, which its reads start from). -/
+/-- What the server gets when it accepts `cn`: its end, its half of the written bytes (nothing
+yet), and the up direction's reader half (with the lower bound `[]` of what was written, which its
+reads start from). -/
 def connProto (γm : GName) (cn : Nat) : IProp GF :=
-  iprop(∃ γ, tcpEnd G cn true TcpEnd.fresh ∗ echoTok γ.tok ∗ rcvdAll (γ.dir false) [] ∗
+  iprop(∃ γ, tcpEnd G cn true TcpEnd.fresh ∗ srvW γ.srv [] ∗ rcvdAll (γ.dir false) [] ∗
     sentLb (γ.dir false) [] ∗ connName γm cn γ)
 
 instance connProto_timeless (γm : GName) (cn : Nat) : Timeless (connProto (Gg := Gg) γm cn) := by
@@ -150,13 +157,6 @@ instance echoInvs_persistent (γm : GName) : Persistent (echoInvs (Gg := Gg) γm
 theorem echoInvs_elim (γm : GName) :
     echoInvs (Gg := Gg) γm ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗
       inv echoN (echoState (Gg := Gg) γm) := .rfl
-
-theorem echoTok_exclusive (γ : GName) :
-    echoTok (Gg := Gg) γ -∗ echoTok (Gg := Gg) γ -∗ False := by
-  unfold echoTok
-  letI := (G (Gg := Gg)).allG
-  iintro H1 H2
-  iapply token_exclusive $$ H1 H2
 
 /-- A direction's invariant, from the protocol's: its body is a part of `echoState`'s. -/
 theorem dir_inv (γm : GName) (cn : Nat) (γ : ConnG) (s : Bool) :
@@ -190,33 +190,6 @@ theorem dir_inv (γm : GName) (cn : Nat) (γ : ConnG) (s : Bool) :
     iapply Hback
     iframe Hu Hd He
 
-/-- A new direction's protocol state, from its resource in any state `d` that agrees with nothing
-written or read (`DirOk d [] []`: open and empty, or shut and empty): `wire.dirInv_body_alloc`
-for any such `d`, as the abandoned connection's shut direction needs (D16). -/
-theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
-    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
-  letI := (G (Gg := Gg)).allG
-  iintro Hd
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imodintro
-  iexists ⟨γw, γr⟩
-  unfold dirInv sentAll rcvdAll
-  isplitl [Hd Hw1 Hr1]
-  · iexists d, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact hd
-  iframe Hw2 Hr2
-
-/-- The up direction of an abandoned connection (D16): shut, and empty. -/
-theorem dirOk_abandoned : DirOk ⟨[], .fin⟩ [] [] := by
-  simp [DirOk]
-
 /-- The dialer's registration of its new connection `cn`, from its up direction in a state `d`
 that agrees with nothing written (fresh, or shut and empty for an abandoned dial) and the
 acceptor's fresh resources: its names, both directions and its echo state in the invariant; the
@@ -242,36 +215,38 @@ theorem echo_register_dir (γm : GName) (cn : Nat) (d : TcpDir) (hd : DirOk d []
     icases Hc with ⟨⟨%d', %W, %R, Hd', -⟩, -⟩
     icases tcpDir_excl _ cn false _ _ $$ Hdd Hd' with ⟨⟩
   | none =>
-    imod dirInv_body_alloc_of cn false d hd $$ Hdd with ⟨%γu, Hu, Hsu, Hru⟩
+    imod wire.dirInv_body_alloc_of cn false d hd $$ Hdd with ⟨%γu, Hu, Hsu, Hru⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdn, Hsd, Hrd⟩
-    imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
-    let γ : ConnG := ⟨γt, γu.w, γu.r, γd.w, γd.r⟩
+    imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γs, Hs⟩
+    icases (ghostVar_split_half γs 1 ([] : List w8)).mp $$ Hs with ⟨Hs1, Hs2⟩
+    let γ : ConnG := ⟨γs, γu.w, γu.r, γd.w, γd.r⟩
     have hu : γ.dir false = γu := rfl
     have hd : γ.dir true = γd := rfl
     ihave #Hlbu := wire.sentLb_get γu [] $$ Hsu
     ihave #Hlbd := wire.sentLb_get γd [] $$ Hsd
     imod ghost_map_insert_persist cn γ hm $$ Hm with ⟨Hm, #Hname⟩
-    imod Hclose $$ [Hm Hconns Hu Hdn Hsd] with -
+    imod Hclose $$ [Hm Hconns Hu Hdn Hsd Hs1] with -
     · inext
       iexists m.insert cn γ
       iframe Hm
       iapply (BigSepM.bigSepM_insert (show PartialMap.get? m cn = none by
         rw [gmap_get?_eq]; exact hm)).2
       iframe Hconns
-      unfold connBody echoConn
+      unfold connBody echoConn srvW
       rw [hu, hd]
       iframe Hu Hdn
       iexists []
-      iframe Hsd
-      iright
-      ipureintro; rfl
+      iframe Hsd Hs1
+      iexists []
+      iframe Hlbu
+      ipureintro; exact List.nil_prefix
     imodintro
     unfold connProto
-    isplitl [Hae Htok Hru]
+    isplitl [Hae Hs2 Hru]
     · iexists γ
-      unfold echoTok connName
+      unfold srvW connName
       rw [hu]
-      iframe Hae Htok Hru Hlbu Hname
+      iframe Hae Hs2 Hru Hlbu Hname
     · iexists γ
       unfold connName
       rw [hu, hd]
@@ -301,20 +276,21 @@ theorem echo_register_ab (γm : GName) (cn : Nat) :
       tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗ tcpDir G cn false ⟨[], .fin⟩ -∗
       tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
   iintro #Hinv - Hdd Ha
-  imod echo_register_dir γm cn _ dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imod echo_register_dir γm cn _ wire.dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
   imodintro
   iexact Hp
 
-/-- The server's one write on `cn`, of bytes `bs` that are a prefix of the dialer's (`si`), with
-the connection's token: the echo state's bytes were nothing, and are a prefix of `si` after. -/
-theorem server_write_au (γm : GName) (cn : Nat) (γ : ConnG) (bs si : List w8) (st : TcpEnd)
-    (hbs : bs <+: si) :
-    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ connName γm cn γ -∗ echoTok γ.tok -∗
-      sentLb (γ.dir false) si -∗ tcpEnd G cn true st -∗
+/-- One step of the server's `Write` on `cn` of bytes `bs`, a prefix of the dialer's (`si`), of
+the bytes `rs` it has not written yet (after `w`, which it has: its half of `srvW`): the echo
+state's bytes were `w`, and are `w ++ rs.take k`, still a prefix of `si`, after. -/
+theorem server_write_au (γm : GName) (cn : Nat) (γ : ConnG) (bs si w rs : List w8) (st : TcpEnd)
+    (hbs : bs <+: si) (hw : w ++ rs = bs) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ connName γm cn γ -∗ sentLb (γ.dir false) si -∗
+      srvW γ.srv w -∗ tcpEnd G cn true st -∗
       |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn true d ∗
-        ∀ k ok d', ⌜WriteOutcome st0 d bs k ok d'⌝ -∗ tcpEnd G cn true st0 -∗
-          tcpDir G cn true d' ={∅,⊤}=∗ tcpEnd G cn true st := by
-  iintro #Hinv #Hname Htok #Hsi Hend
+        ∀ k res d', ⌜WriteOutcome st0 d rs k res d'⌝ -∗ tcpEnd G cn true st0 -∗
+          tcpDir G cn true d' ={∅,⊤}=∗ tcpEnd G cn true st ∗ srvW γ.srv (w ++ rs.take k) := by
+  iintro #Hinv #Hname #Hsi Hsv Hend
   iinv Hinv with Hi Hclose
   unfold echoState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
@@ -324,9 +300,9 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : ConnG) (bs si : List w8) 
   icases (BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some γ by
     rw [gmap_get?_eq]; exact Hl)).1 $$ Hconns with ⟨Hc, Hback⟩
   unfold connBody echoConn
-  icases Hc with ⟨Hu, Hdn, %Wd, Hsd, Hcase⟩
-  icases Hcase with (⟨Htok', -⟩ | %HWd)
-  · icases echoTok_exclusive γ.tok $$ Htok Htok' with ⟨⟩
+  icases Hc with ⟨Hu, Hdn, %Wd, Hsd, Hsv', -⟩
+  unfold srvW
+  icases ghostVar_agree $$ Hsv' Hsv with %HWd
   subst HWd
   unfold dirInv
   icases Hdn with ⟨%d, %W, %R, Hd, Hw, Hr, %Hok⟩
@@ -334,30 +310,51 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : ConnG) (bs si : List w8) 
   iintro Hmask
   iexists st, d
   iframe Hend Hd
-  iintro %k %ok %d' %Hwr Hend Hd
+  iintro %k %res %d' %Hwr Hend Hd
   imod Hmask
-  imod wire.sentAll_app (γ.dir true) W [] (bs.take k) $$ Hw Hsd with ⟨%Heq, Hw, Hsd⟩
+  imod wire.sentAll_app (γ.dir true) W Wd (rs.take k) $$ Hw Hsd with ⟨%Heq, Hw, Hsd⟩
   subst Heq
-  imod Hclose $$ [Hm Hback Hu Hd Hw Hr Hsd Htok] with -
+  imod ghostVar_update_halves (W ++ rs.take k) $$ Hsv' Hsv with ⟨Hsv', Hsv⟩
+  imod Hclose $$ [Hm Hback Hu Hd Hw Hr Hsd Hsv'] with -
   · inext
     iexists m
     iframe Hm
     iapply Hback
     iframe Hu
     isplitl [Hd Hw Hr]
-    · iexists d', [] ++ bs.take k, R
+    · iexists d', W ++ rs.take k, R
       iframe Hd Hw Hr
       ipureintro; exact wire.dirOk_write Hok Hwr
-    iexists [] ++ bs.take k
-    iframe Hsd
-    ileft
-    iframe Htok
+    iexists W ++ rs.take k
+    iframe Hsd Hsv'
     iexists si
     iframe Hsi
     ipureintro
-    exact (List.take_prefix k bs).trans hbs
+    subst hw
+    exact ((List.prefix_append_right_inj W).2 (List.take_prefix k rs)).trans hbs
   imodintro
-  iexact Hend
+  iframe Hend Hsv
+
+/-- The server's writer predicate for its `Write` on `cn` (`net.Conn.Write.spec`'s `P`): its end,
+and its half of the written bytes, `w` (the `Write`'s bytes so far, the server's first). -/
+def srvP (γ : ConnG) (cn : Nat) (st : TcpEnd) (w : List w8) (_res : Option TcpErr) : IProp GF :=
+  iprop(tcpEnd G cn true st ∗ srvW (Gg := Gg) γ.srv w)
+
+/-- The accessor `net.Conn.Write.spec` takes, for the server's `Write` of `bs`, a prefix of the
+dialer's bytes: each step by `server_write_au`. -/
+theorem server_write_acc (γm : GName) (cn : Nat) (γ : ConnG) (bs si : List w8) (st : TcpEnd)
+    (hbs : bs <+: si) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ connName γm cn γ -∗ sentLb (γ.dir false) si -∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ srvP γ cn st w none -∗
+        |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn true d ∗
+          ∀ k res d', ⌜WriteOutcome st0 d rs k res d'⌝ -∗ tcpEnd G cn true st0 -∗
+            tcpDir G cn true d' ={∅,⊤}=∗ srvP γ cn st (w ++ rs.take k) res) := by
+  iintro #Hinv #Hname #Hsi
+  imodintro
+  iintro %w %rs %hw HP
+  unfold srvP
+  icases HP with ⟨Hend, Hsv⟩
+  iapply server_write_au γm cn γ bs si w rs st hbs hw $$ Hinv Hname Hsi Hsv Hend
 
 /-- The client's check: a reply it read (`resp`, a lower bound of the server's bytes) is a prefix
 of the client's own bytes `W`. -/
@@ -375,42 +372,23 @@ theorem client_check (γm : GName) (cn : Nat) (γ : ConnG) (W resp : List w8) :
   icases (BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some γ by
     rw [gmap_get?_eq]; exact Hl)).1 $$ Hconns with ⟨Hc, Hback⟩
   unfold connBody echoConn
-  icases Hc with ⟨Hu, Hdn, %Wd, Hsd, Hcase⟩
+  icases Hc with ⟨Hu, Hdn, %Wd, Hsd, Hsv, %si, #Hsi, %Hso⟩
   icases wire.sentLb_prefix (γ.dir true) Wd resp $$ Hsd Hresp with %Hrs
-  icases Hcase with (⟨Htk, %si, #Hsi, %Hso⟩ | %Hso)
-  · icases wire.sentLb_prefix (γ.dir false) W si $$ Hmy Hsi with %Hsio
-    imod Hclose $$ [Hm Hback Hu Hdn Hsd Htk] with -
-    · inext
-      iexists m
-      iframe Hm
-      iapply Hback
-      iframe Hu Hdn
-      iexists Wd
-      iframe Hsd
-      ileft
-      iframe Htk
-      iexists si
-      iframe Hsi
-      ipureintro; exact Hso
-    imodintro
-    iframe Hmy
-    ipureintro; exact Hrs.trans (Hso.trans Hsio)
-  · subst Hso
-    imod Hclose $$ [Hm Hback Hu Hdn Hsd] with -
-    · inext
-      iexists m
-      iframe Hm
-      iapply Hback
-      iframe Hu Hdn
-      iexists []
-      iframe Hsd
-      iright
-      ipureintro; rfl
-    imodintro
-    iframe Hmy
-    ipureintro
-    rw [List.prefix_nil.1 Hrs]
-    exact List.nil_prefix
+  icases wire.sentLb_prefix (γ.dir false) W si $$ Hmy Hsi with %Hsio
+  imod Hclose $$ [Hm Hback Hu Hdn Hsd Hsv] with -
+  · inext
+    iexists m
+    iframe Hm
+    iapply Hback
+    iframe Hu Hdn
+    iexists Wd
+    iframe Hsd Hsv
+    iexists si
+    iframe Hsi
+    ipureintro; exact Hso
+  imodintro
+  iframe Hmy
+  ipureintro; exact Hrs.trans (Hso.trans Hsio)
 
 end wps
 
