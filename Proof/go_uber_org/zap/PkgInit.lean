@@ -6,6 +6,15 @@ module
 
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.Proof.ProofPrelude
+public import Perennial.Proof.io
+public import Perennial.Proof.fmt
+public import Perennial.Proof.time
+public import Perennial.Proof.sync
+public import Perennial.Proof.strings
+public import Perennial.Proof.errors
+public import Perennial.Proof.sort
+public import Perennial.Proof.context
+public import Perennial.Proof.bytes
 
 @[expose] public section
 

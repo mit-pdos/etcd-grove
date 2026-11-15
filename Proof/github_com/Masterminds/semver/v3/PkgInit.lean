@@ -6,6 +6,15 @@ module
 
 public import GeneratedProof.github_com.Masterminds.semver.v3
 public import Perennial.Proof.ProofPrelude
+public import Perennial.Proof.io
+public import Perennial.Proof.fmt
+public import Perennial.Proof.time
+public import Perennial.Proof.sync
+public import Perennial.Proof.strings
+public import Perennial.Proof.errors
+public import Perennial.Proof.sort
+public import Perennial.Proof.context
+public import Perennial.Proof.bytes
 
 @[expose] public section
 

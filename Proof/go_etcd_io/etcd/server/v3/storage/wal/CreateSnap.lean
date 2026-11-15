@@ -71,7 +71,7 @@ theorem walSnapAt_lit (Mr : WalMarshal) (hMr : WalMarshalCreateOk Mr) (l pi pt :
   iunfold walSnapAt
   iexists snapC0
   isplitl
-  · iunfold snapRoC
+  · iunfold walSnapRoC
     iexists pi, pt, null
     simp only [snapC0, recCell, walCsOptRoC, snapHidden]
     isplitr

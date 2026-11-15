@@ -349,6 +349,14 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
   (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
   (`-lean-root go.etcd.io/raft/v3=`).
+- From the same fork (branch `goose-lean-walfs`, the WAL's fixes: `notes/wal-fsext-fork/README.md`),
+  etcd's real WAL with bodies over the per-byte file extension's `os`: `server/v3/storage/wal` (but
+  `version.go`, `metrics.go`), `wal/walpb`, `client/pkg/v3/fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`, and
+  the standard-library packages they call that Perennial does not translate (`bufio`'s `Reader`,
+  `path/filepath`'s lexical functions over `internal/filepathlite`, `hash/crc32` names only); its proofs
+  are `Proof/go_etcd_io/etcd/server/v3/storage/wal/` (`Link.lean`: `etc/gen-link.py --walfs`; trust
+  base `etc/tcb-collections/wal-fsext.txt`). Until 2026-11-15 in the part `LinuxFs/`, with the main
+  tree's names-only WAL beside it (`notes/wal-lean-integration.md`).
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,

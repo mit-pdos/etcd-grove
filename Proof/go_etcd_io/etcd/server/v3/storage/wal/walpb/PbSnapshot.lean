@@ -7,7 +7,7 @@ model; the pattern of `PbRecord.lean`).
   `Index`, `Term` nil or set, `ConfState` nil or a `raftpb.ConfState`'s content (`WalCsC`), the
   unknown fields of both levels. Its model is `SnapshotMetadataM` (`WalSnapC.model`: what the getters
   read, a nil conf state as the zero one).
-- `snapRoC l c`: a frozen `*walpb.Snapshot` holding exactly `c` (field-wise persistent points-tos, its
+- `walSnapRoC l c`: a frozen `*walpb.Snapshot` holding exactly `c` (field-wise persistent points-tos, its
   conf state frozen too, `walCsRoC`), each level's hidden fields (`state`, `sizeCache`,
   `unknownFields`) in an invariant (`snapHidden`, `walCsHidden`: the shape of raft's `pbMsg`, which
   the part cannot import; **at C6** the conf state the server passes is raft's own snapshot
@@ -126,7 +126,7 @@ instance walCsOptRoC_persistent (p : Loc) (o : Option WalCsC) :
   cases o <;> unfold walCsOptRoC <;> infer_instance
 
 /-- **A frozen `*walpb.Snapshot` at `l` holding exactly `c`.** -/
-def snapRoC (l : Loc) (c : WalSnapC) : IProp GF :=
+def walSnapRoC (l : Loc) (c : WalSnapC) : IProp GF :=
   iprop(∃ (pi pt pc : Loc),
     ⌜l ≠ null⌝ ∗
     l.[walpb.Snapshot, go!"Index"] ↦□ pi ∗ recCell pi c.index ∗
@@ -136,8 +136,8 @@ def snapRoC (l : Loc) (c : WalSnapC) : IProp GF :=
 
 set_option synthInstance.maxSize 512 in
 set_option synthInstance.maxHeartbeats 200000 in
-instance snapRoC_persistent (l : Loc) (c : WalSnapC) : Persistent (snapRoC (GF := GF) l c) := by
-  unfold snapRoC; infer_instance
+instance walSnapRoC_persistent (l : Loc) (c : WalSnapC) : Persistent (walSnapRoC (GF := GF) l c) := by
+  unfold walSnapRoC; infer_instance
 
 /-- A set cell's points-to. -/
 theorem recCell_of_eq_some {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
@@ -155,15 +155,15 @@ theorem walCsOptRoC_null (p : Loc) (o : Option WalCsC) :
     ipureintro; simp [Hn]
 
 /-- A frozen snapshot is not nil. -/
-theorem snapRoC_ne (l : Loc) (c : WalSnapC) : snapRoC (GF := GF) l c ⊢ ⌜l ≠ null⌝ := by
-  unfold snapRoC
+theorem snapRoC_ne (l : Loc) (c : WalSnapC) : walSnapRoC (GF := GF) l c ⊢ ⌜l ≠ null⌝ := by
+  unfold walSnapRoC
   iintro ⟨%pi, %pt, %pc, %Hn, -⟩
   ipureintro; exact Hn
 
 /-- A frozen snapshot's unknown fields are valid at both levels. -/
 theorem snapRoC_uf (l : Loc) (c : WalSnapC) :
-    snapRoC (GF := GF) l c ⊢ ⌜∀ p ∈ c.levels, ufWire p.1 p.2⌝ := by
-  unfold snapRoC snapHidden
+    walSnapRoC (GF := GF) l c ⊢ ⌜∀ p ∈ c.levels, ufWire p.1 p.2⌝ := by
+  unfold walSnapRoC snapHidden
   iintro ⟨%pi, %pt, %pc, -, -, -, -, -, -, Hc, -, %Hu⟩
   rcases hc : c.confState with _ | cs
   · iclear Hc
@@ -225,7 +225,7 @@ def walSnapTree (m : SnapshotMetadataM) : VTree :=
 def pbSnapM : PbModelC GF where
   ty := walpb.Snapshot.ty
   M := SnapshotMetadataM
-  ro l m := iprop(∃ c, snapRoC l c ∗ ⌜c.model = m⌝)
+  ro l m := iprop(∃ c, walSnapRoC l c ∗ ⌜c.model = m⌝)
   ro_persistent _ _ := inferInstance
   marshals _ := True
   wire m bs := snapDecode bs = some m
@@ -233,7 +233,7 @@ def pbSnapM : PbModelC GF where
   blank l := iprop(l ↦ (zero_val walpb.Snapshot))
   dec l m := iprop(∃ c, snapOwnC l c ∗ ⌜c.model = m⌝)
   C := WalSnapC
-  roC := snapRoC
+  roC := walSnapRoC
   roC_persistent _ _ := inferInstance
   modelOf := WalSnapC.model
   levels := WalSnapC.levels
@@ -258,7 +258,7 @@ def pbSnapC : PbTypeC GF where
 
 @[simp] theorem pbEncC_pbSnapC (c : WalSnapC) : pbEncC (pbSnapC (GF := GF)) c = snapEnc c := rfl
 @[simp] theorem pbSnapC_ty : (pbSnapC (GF := GF)).data.ty = walpb.Snapshot.ty := rfl
-@[simp] theorem pbSnapC_roC : (pbSnapC (GF := GF)).data.roC = snapRoC := rfl
+@[simp] theorem pbSnapC_roC : (pbSnapC (GF := GF)).data.roC = walSnapRoC := rfl
 @[simp] theorem pbSnapC_C : (pbSnapC (GF := GF)).data.C = WalSnapC := rfl
 @[simp] theorem pbSnapC_modelOf : (pbSnapC (GF := GF)).data.modelOf = WalSnapC.model := rfl
 @[simp] theorem pbSnapC_size : (pbSnapC (GF := GF)).data.size = snapSize := rfl
@@ -270,14 +270,14 @@ def pbSnapC : PbTypeC GF where
 /-- **`sp` points to a frozen `walpb.Snapshot` of metadata `md`, with `Index` and `Term` set, whose
 conf state is non-nil iff `cs` and whose encoding is `Mr.encSnap md`** (persistent). -/
 def walSnapAt (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (cs : Bool) : IProp GF :=
-  iprop(∃ c : WalSnapC, snapRoC sp c ∗
+  iprop(∃ c : WalSnapC, walSnapRoC sp c ∗
     ⌜c.model = md ∧ c.index = some md.Index' ∧ c.term = some md.Term' ∧
       cs = c.confState.isSome ∧ snapEnc c = Mr.encSnap md⌝)
 
 /-- **`sp` points to a frozen `walpb.Snapshot` whose getters read index and term `s`**
 (persistent). -/
 def walSnapIdTerm (sp : Loc) (s : w64 × w64) : IProp GF :=
-  iprop(∃ c : WalSnapC, snapRoC sp c ∗ ⌜(c.model.Index', c.model.Term') = s⌝)
+  iprop(∃ c : WalSnapC, walSnapRoC sp c ∗ ⌜(c.model.Index', c.model.Term') = s⌝)
 
 /-- **The pointers `ps` point to `walpb.Snapshot`s of indexes and terms `snaps`**, in order
 (persistent). -/

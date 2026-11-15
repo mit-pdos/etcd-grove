@@ -7,7 +7,7 @@ same index and term (and a conf state iff the original has one), which the calle
 What it stands for: `proto.ClonePb.spec` (the main tree's per-type trust boundary, over a registered
 message type, `pbModelOf`) at `walpb.Snapshot`, registered in the part since W6 (`pbSnapC`,
 `walpb/PbSnapshot.lean`): the clone is `snapOwnC` at the original's content, which the caller freezes
-(a lemma to write: `snapOwnC` to `snapRoC`, allocating the hidden fields' invariants). Until the part
+(a lemma to write: `snapOwnC` to `walSnapRoC`, allocating the hidden fields' invariants). Until the part
 has a copy of `ClonePb` and that lemma it is a hypothesis, recorded in the W3/W5 log. Lean-first.
 -/
 module

@@ -10,8 +10,8 @@ public import Code.path.filepath
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Code.errors
-public import Perennial.Code.syscall
-public import Perennial.Code.golang_org.x.sys.unix
+public import Code.syscall
+public import Code.golang_org.x.sys.unix
 public import Perennial.Code.strings
 public import Perennial.Code.time
 public import Perennial.Code.sort

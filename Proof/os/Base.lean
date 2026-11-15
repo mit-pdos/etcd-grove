@@ -44,14 +44,20 @@ def PwOut (m : OsMeta) (off : Nat) (data : List w8) (j : Nat) (xs ys : List Byte
 /-- What a `WriteAt` of `len` bytes at `off` may have landed: a page cut of the whole write
 (`PwCut`), or a whole number of 1 GiB chunks: Go's `poll.FD.Pwrite` writes at most `maxRW = 1 GiB`
 per `pwrite`, and a failed attempt after whole chunks leaves their prefix, which ends on a page
-boundary of the file only if `off` is on one. For `len ≤ 1 GiB` it is `PwCut` (`WaCut.pwCut`). -/
-def WaCut (off len j : Nat) : Prop := PwCut off len j ∨ j % 0x40000000 = 0
+boundary of the file only if `off` is on one. For `len ≤ 1 GiB` it is `PwCut` (`WaCut.pwCut`). And,
+as each attempt's (`PwCut`'s second part, the model's `maxBytes`), what landed ends at or below
+`maxBytes` unless it is empty (2026-11-15, the merge of lean's chunked `WriteAt` with the WAL's
+`maxBytes` bound: notes/wal-lean-integration.md). -/
+def WaCut (off len j : Nat) : Prop :=
+  ((j = 0 ∨ j = len ∨ (off + j) % osPageSize = 0) ∨ j % 0x40000000 = 0) ∧ (j = 0 ∨ off + j ≤ maxBytes)
 
 theorem WaCut.pwCut {off len j : Nat} (h : WaCut off len j) (hj : j ≤ len) (hl : len ≤ 0x40000000) :
     PwCut off len j := by
-  rcases h with h | h
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨?_, h2⟩
+  rcases h1 with h | h
   · exact h
-  · unfold PwCut; omega
+  · omega
 
 section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]

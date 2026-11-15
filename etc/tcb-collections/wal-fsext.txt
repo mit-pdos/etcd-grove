@@ -1,7 +1,7 @@
 # etcd's real WAL over the per-byte Linux file extension (`GooseLang/Ext/Fs`, notes/wal-fsext-plan.md,
-# section 8, "Links"), in the part LinuxFs/: the linked results of
-# LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean (`etc/gen-link.py --walfs`: the WAL's,
-# walpb's and fileutil's proofs and the part's `os`, `syscall`, `ioutil`, `crc`, ... they reach). The
+# section 8, "Links"; in the part LinuxFs/ until 2026-11-15): the linked results of
+# Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean (`etc/gen-link.py --walfs`: the WAL's,
+# walpb's and fileutil's proofs and the `os`, `syscall`, `ioutil`, `crc`, ... they reach). The
 # results' hypotheses (specs with no proof in the part, the laws of the client's protobuf model) are
 # in their statements and the Link's header, not here: `#print axioms` does not show them.
 #
@@ -11,7 +11,7 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/
+roots ^Proof/go_etcd_io/etcd/server/v3/storage/wal/Link\.lean
 axiom binary.ReadInt64LE.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof

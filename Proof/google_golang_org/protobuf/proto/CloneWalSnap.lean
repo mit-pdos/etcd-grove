@@ -65,11 +65,11 @@ theorem walCsOwnC_freeze (p : Loc) (o : Option WalCsC) :
     iframe #
     ipureintro; exact Hu
 
-/-- **A decoded `*walpb.Snapshot`, frozen** (`snapOwnC` to `snapRoC`: the field cells already
+/-- **A decoded `*walpb.Snapshot`, frozen** (`snapOwnC` to `walSnapRoC`: the field cells already
 persistent, the conf state frozen, both levels' hidden fields into the protobuf invariant). -/
 theorem snapOwnC_freeze (l : Loc) (c : WalSnapC) :
-    snapOwnC (GF := GF) l c ⊢ |={⊤}=> snapRoC l c := by
-  unfold snapOwnC snapRoC
+    snapOwnC (GF := GF) l c ⊢ |={⊤}=> walSnapRoC l c := by
+  unfold snapOwnC walSnapRoC
   iintro ⟨%v, Hl, #Hi, #Ht, Hc, Huf, %Hu⟩
   ihave ⟨Hl, %Hn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hl
   iStructNamed Hl

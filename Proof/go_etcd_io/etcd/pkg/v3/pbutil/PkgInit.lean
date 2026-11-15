@@ -6,6 +6,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.pbutil
 public import Perennial.Proof.ProofPrelude
+public import Proof.go_etcd_io.raft.v3.Base
 
 @[expose] public section
 

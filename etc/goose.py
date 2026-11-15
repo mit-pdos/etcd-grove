@@ -316,7 +316,10 @@ PROJECTS = [
                     # standard-library packages the WAL calls that Perennial does not translate:
                     # `bufio`'s Reader and `path/filepath`'s lexical functions (over
                     # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
-                    "bufio=", "path/filepath=", "internal/filepathlite="],
+                    "bufio=", "path/filepath=", "internal/filepathlite=",
+                    # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
+                    # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
+                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",

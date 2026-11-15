@@ -27,7 +27,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.wp_proof :
   wp_start as Hs
   iunfold walSnapIdTerm at Hs
   icases Hs with ⟨%c, Hs, %hs⟩
-  iunfold snapRoC at Hs
+  iunfold walSnapRoC at Hs
   icases Hs with ⟨%pi, %pt, %pc, %Hn, #Hi, Hci, -⟩
   wp_auto
   simp only [decide_eq_false Hn]

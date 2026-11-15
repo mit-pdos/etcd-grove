@@ -32,7 +32,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.wp_
   iunfold walSnapAt at Hs
   icases Hs with ⟨%c, Hs, %Hc⟩
   obtain ⟨Hm, Hi, Ht, Hcs, -⟩ := Hc
-  iunfold snapRoC at Hs
+  iunfold walSnapRoC at Hs
   icases Hs with ⟨%pi, %pt, %pc, %Hn, #Hpi, Hci, #Hpt, Hct, #Hpc, Hcc, -⟩
   ihave #Hci := recCell_of_eq_some pi Hi $$ Hci
   ihave #Hct := recCell_of_eq_some pt Ht $$ Hct

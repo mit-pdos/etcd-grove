@@ -170,8 +170,9 @@ durableExt] [go.IntoValInj GoString]`, which its specs take).
 read off each proof's binders, the specs with no proof are hypotheses of `links_pending`, and the
 non-spec premises are given by a table (`etc/link_bbolt.py`, whose docstring has the rules);
 `--bbolt --results` writes the `Results.lean` of its public results.
-`--walfs` links etcd's real WAL over the per-byte Linux file extension (the part `LinuxFs/`: `wal`,
-`walpb`, `fileutil` and the part's packages they call), with no list file either: the callees are
+`--walfs` links etcd's real WAL over the per-byte Linux file extension (`wal`, `walpb`, `fileutil`
+and the packages they call; `--durable`: `examples/lib/durable`'s, in the part `WalTester/`), with no
+list file either: the callees are
 read off the proofs' binders, the results are generic in the specs' model parameters (`P`, `Mr`,
 ...), and the specs with no proof and the premises on the parameters are each result's
 hypotheses (`etc/link_walfs.py`, whose docstring has the rules); `--walfs --check` compares the

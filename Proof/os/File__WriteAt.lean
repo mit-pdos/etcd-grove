@@ -506,11 +506,17 @@ theorem wa_toNat_add_W64 (off : w64) (nn : Nat) (h : off.toNat + nn < 2 ^ 63) :
   rw [this]; exact Nat.mod_eq_of_lt (by omega)
 
 /-- The bytes a write has landed after one more attempt, of the chunk `c` from `nn`, are a cut. -/
-theorem waCut_step (off len nn j c k : Nat) (hj : os.WaCut off len j)
+theorem waCut_step (off len nn j c k : Nat) (hj0 : os.WaCut off len j)
     (hcn : (off + nn) % osPageSize = 0 ∨ nn % 0x40000000 = 0)
-    (hc : c = min (len - nn) 0x40000000) (hk : k ≤ c) (hnl : nn < len)
-    (hpc : PwCut (off + nn) c k) : os.WaCut off len (max j (nn + k)) := by
-  unfold os.WaCut PwCut at *
+    (hc : c = min (len - nn) 0x40000000) (hk : k ≤ c) (hnl : nn < len) (hnj : nn ≤ j)
+    (hpc0 : PwCut (off + nn) c k) : os.WaCut off len (max j (nn + k)) := by
+  obtain ⟨hj, hjm⟩ := hj0
+  obtain ⟨hpc, hpm⟩ := hpc0
+  refine ⟨?_, ?_⟩
+  rotate_left
+  · rcases Nat.le_total j (nn + k) with h | h
+    · rw [Nat.max_eq_right h]; omega
+    · rw [Nat.max_eq_left h]; exact hjm
   unfold osPageSize at *
   rcases Nat.le_total j (nn + k) with h | h
   · rw [Nat.max_eq_right h]
@@ -593,8 +599,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
       (mj = pwPost m off.toNat a j ∧ m.lo ≤ m.size ∧ j ≤ a ∧ a ≤ data.length ∧
         min data.length 0x40000000 ≤ a ∧ a ≤ nn + 0x40000000 ∧ 0 < a) :=
     .inl ⟨hj0, hnn0, hmj⟩
-  have hcj : os.WaCut off.toNat data.length j := by
-    unfold os.WaCut PwCut; left; left; exact hj0
+  have hcj : os.WaCut off.toNat data.length j := ⟨Or.inl (Or.inl hj0), Or.inl hj0⟩
   have hcn : (off.toNat + nn) % osPageSize = 0 ∨ nn % 0x40000000 = 0 := by
     right; rw [hnn0]
   clear hmj hy hj0 hnn0 ha0
@@ -742,7 +747,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   have hJ : max j (nn + k) ≤ data.length := by omega
   have hnJ : nn ≤ max j (nn + k) := by omega
   have hcj' : os.WaCut off.toNat data.length (max j (nn + k)) :=
-    waCut_step _ _ _ _ _ _ hcj hcn hcdef hk hnl hpc
+    waCut_step _ _ _ _ _ _ hcj hcn hcdef hk hnl hnj hpc
   have hA : max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
       min data.length 0x40000000 ≤ nn + c ∧ 0 < nn + c := by omega
   have hinv' : ∀ nn', nn ≤ nn' → (max j (nn + k) = 0 ∧ nn' = 0 ∧
