@@ -101,20 +101,24 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The receive hook at `Step`'s entry**, gated: the caller's gate at the receipt's event
-(`recvGate`), the message as `Step` holds it. -/
+(`recvGate`), the message as `Step` holds it. (`lean` merge, stage 2) At any fraction of the message
+(`msgPtsC ml dq dqe cap ms`; until then `msgIn`, the whole struct): `Step` holds the message at a
+content (`msgInC`, out_size C3) and reads it through half of it (`msgInC_halfD`/`_halfO`), which is
+what it lends the hook; the hook only reads the message. -/
 abbrev traceReceiveMessage.gatedTriple : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dqe : DFrac) (ms : MsgSt) (Q : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
+    (ms : MsgSt) (Q : IProp GF),
   (s.gh.tr ≠ none → mtypeOf ms.msg.Type' ≠ some .snap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      msgIn ml dqe ms ∗ HookGateOpt s.gh.tr r (recvGate id s c ms) Q }}
+      msgPtsC ml dq dqe cap ms ∗ HookGateOpt s.gh.tr r (recvGate id s c ms) Q }}
     (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #ml))
-  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ msgIn ml dqe ms ∗ Q }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ msgPtsC ml dq dqe cap ms ∗ Q }}
 
 /-- `traceReceiveMessage.gatedTriple` from `traceReceiveMessage.spec` (as
 `traceReceiveMessage.tracedSpec_of_spec`). -/
 theorem traceReceiveMessage.gated (h : traceReceiveMessage.spec (GF := GF) (hG := hG)) :
     traceReceiveMessage.gatedTriple (GF := GF) (hG := hG) := by
-  intro c r id s ml dqe ms Q Hns
+  intro c r id s ml dq dqe cap ms Q Hns
   iintro %Φ ⟨#Hpkg, Hphys, Hm, Hg⟩ HΦ
   iunfold HookGateOpt at Hg
   imod Hg with ⟨%tl, #Htl, %Hok, Hfire⟩
@@ -133,18 +137,18 @@ theorem traceReceiveMessage.gated (h : traceReceiveMessage.spec (GF := GF) (hG :
   | some γd =>
     intro Hns Hok
     iapply h r ml tl (some γd) (recvGate id s c ms) Q
-      iprop(ownRaftPhysCV c c.voters r id s ∗ msgIn ml dqe ms) $$ [$Hpkg $Htl Hphys Hm $Hfire]
+      iprop(ownRaftPhysCV c c.voters r id s ∗ msgPtsC ml dq dqe cap ms) $$ [$Hpkg $Htl Hphys Hm $Hfire]
     · isplitr
       · ipureintro; exact Hok
       iapply (trOwn_some γd _).2
-      iexists c, id, s, iprop(ownRaftPhysCV c c.voters r id s ∗ msgIn ml dqe ms),
-        ⟨DFrac.own 1, dqe, needsCap ms.msg, ms⟩
+      iexists c, id, s, iprop(ownRaftPhysCV c c.voters r id s ∗ msgPtsC ml dq dqe cap ms),
+        ⟨dq, dqe, cap, ms⟩
       iframe Hphys Hm
       isplitr
       · iapply raftLend_sep
       isplitr
       · iapply msgLend_sep_some iprop(ownRaftPhysCV c c.voters r id s) ml
-          ⟨DFrac.own 1, dqe, needsCap ms.msg, ms⟩
+          ⟨dq, dqe, cap, ms⟩
       isplitr
       · ipureintro; exact ⟨Hns (by simp), rfl⟩
       iintro H; iexact H

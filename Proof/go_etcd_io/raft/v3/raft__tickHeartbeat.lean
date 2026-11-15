@@ -161,7 +161,8 @@ theorem raft.tickHeartbeat.wp_proof
         · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
         isplitl [Hmsg]
         · isplitl [Hmsg]
-          · iapply msgIn_toC (by decide) _ _ _ $$ Hmsg
+          · rw [show tickMsg MsgCheckQuorum id = { (zero_val MessageM) with Type' := W32 12, From' := id } from rfl]
+            iapply msgIn_toC (show movesB (W32 12) = false by decide) _ _ _ $$ Hmsg
           repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
           imodintro
           iintro %ty %Hty
@@ -345,7 +346,8 @@ theorem raft.tickHeartbeat.wp_proof
       · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
       isplitl [Hmsg]
       · isplitl [Hmsg]
-        · iapply msgIn_toC (by decide) _ _ _ $$ Hmsg
+        · rw [show tickMsg MsgBeat id = { (zero_val MessageM) with Type' := W32 1, From' := id } from rfl]
+          iapply msgIn_toC (show movesB (W32 1) = false by decide) _ _ _ $$ Hmsg
         repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
         imodintro
         iintro %ty %Hty

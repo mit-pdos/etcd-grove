@@ -126,7 +126,8 @@ theorem raft.tickElection.wp_proof
     · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
     isplitl [Hmsg]
     · isplitl [Hmsg]
-      · iapply msgIn_toC (by decide) _ _ _ $$ Hmsg
+      · rw [show tickMsg MsgHup id = { (zero_val MessageM) with Type' := W32 0, From' := id } from rfl]
+        iapply msgIn_toC (show movesB (W32 0) = false by decide) _ _ _ $$ Hmsg
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
       imodintro
       iintro %ty %Hty

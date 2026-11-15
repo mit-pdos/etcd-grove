@@ -359,7 +359,7 @@ theorem wp_Step_MsgProp
   wp_auto
   iunfold stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
-  wp_apply wp_traceReceiveMessage c r id s ml _ ⟨m, _, _, _, _⟩ _
+  wp_apply wp_traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _
       (fun _ h => (by rw [Hty]; w32_ne : m.Type' ≠ MsgSnap) (mtypeOf_Snap _ h))
     $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm
