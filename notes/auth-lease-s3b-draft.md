@@ -5,6 +5,10 @@
 lease entry's claim carries"), S3a2 Draft §4a (`authTie` option (b)). Probe: `Scratch/S3bProbe.lean` (untracked;
 copy `/shared/tmp/auth-lease-s3b/S3bProbe.lean`), §3.
 
+**FROZEN at revision 3 (etcd-grove-81, 2026-11-15; tag `auth-lease-s3b-frozen`)**: D1, D2, D3, D4, D7 as
+recommended; D5 margins as drafted (the grant's and the revocation's; the leased transaction's is superseded by D7);
+D6 in S3c (+2–3 days). `questions.md`, "S3b Freeze"; ledger 2026-11-15 (S3b).
+
 **Revision 3 (2026-11-15), the S3b Freeze package**: review round 2 (`/shared/tmp/auth-lease-s3b/review-r2.md`, fresh
 `spec-reviewer`) found **no first-tier point**; its second tier applied: S1' (`leaseGrantResM_true_id`, §4.2), S2'
 (D6's deposit for an id not yet known, §5), S3' (the docstrings list, §5), S4' (a leased transaction's liveness:
