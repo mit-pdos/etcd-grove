@@ -595,9 +595,40 @@ statement changes, the meaning of `statusErrOk` does):
 - rpctypes' and v3rpc's package-initializer axioms for the `ErrGRPC*` values
   (`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean`, `.../etcdserver/api/v3rpc/Init.lean`):
   `status.Error(...)` at init, never written.
-Go evidence to write with the package: for each producer, `reflect` check that the status pointer is
-not reachable for writing from outside grpc except by `*s = ...` on the pointer `GRPCStatus()` returns
-(i.e. by the program itself), and `TestE1Race` as the negative.
+**Go evidence (written 2026-11-15, sixteenth agent): `examples/premisefix/grpcstatusro/`** (main examples
+module, the etcd fork at the etcd pin, grpc v1.84.0; `GOWORK=off GOTOOLCHAIN=go1.27.3 go test -race`, 32G
+cap, all pass, `/shared/tmp/k8s7f5a-p3/e1.log`):
+- `nowrite_test.go` (static): type-checks from source every non-standard package depending on
+  `internal/status` in the closures of etcd's client, `etcdserver`, `v3rpc`, `rpctypes` and `cache` (37
+  packages) and of `k8s.io/apiserver/pkg/storage/etcd3` (11 k8s packages, the watcherctx module), and finds
+  no write to a `Status`, its `*spb.Status`, or an `Error`'s `*Status`: no assignment, `++`, range
+  assignment or `&` reaching the field `s`, no whole-struct write `*p = *q` of a `Status`/`Error`, no `&`
+  of an existing one, no `unsafe.Pointer` of one; the field `s` read only inside `internal/status`, in
+  `Code`, `Message`, `Proto` (clone), `Details`, `Error.Is` (`proto.Equal`), `RawStatusProto`,
+  `Error.Error`, `Error.GRPCStatus`; `RawStatusProto` called only twice, in the server's
+  `http2_server.go` (`writeEarlyAbort`, `writeStatus`), its result used only as `p.GetDetails()`,
+  `proto.Marshal(p)`, `pretty.ToJSON(p)`. `TestScannerDetects` is the negative control (a whole-struct
+  write, `&*s`, `unsafe.Pointer(s)` are reported). Not covered statically: generic code over a `*T`,
+  reflection (the race test below observes the running code).
+- `TestStatusErrorProducers`: `status.Error`/`Errorf`/`New(c, m).Err()` for every code: `nil` for OK,
+  else a `*status.Error` whose `GRPCStatus()` is one pointer, fresh per call, `Code() = c`, `Message() =
+  m`, unchanged after every read API (`FromError` (which returns the same pointer), `Code`, `Convert`, a
+  mutated `Proto()` clone, `Details`, `WithDetails`, `errors.Is`, `Error`, `rpctypes.Error`/`ErrorDesc`).
+  `TestNilStatusCode`: a nil `*Status`'s `Code()` is OK.
+- `TestErrGRPCInitializers`: rpctypes' `error.go` parsed: each of its 63 `ErrGRPC*` initializers is
+  `status.Error(codes.X, "lit")` (one more variable is an alias), the test's explicit list is the file's,
+  each status has that code and message, pairwise distinct pointers; the 57 values of `errStringToError`
+  are those variables; the 53 values of v3rpc's `toGRPCErrorMap` are those variables or
+  `ErrMemberNotEnoughStarted`/`ErrTooManyRequests` (EtcdErrors, no `GRPCStatus`).
+- `TestInvokerAndStreamErrors` (under `-race`): a real grpc server on `bufconn`; the errors of
+  `ClientConn.Invoke` and of a client stream's `RecvMsg`/`SendMsg` for every code, with details, for the
+  server's shared `ErrGRPC*` values, a cancelled/expired context (before and during the call), a closed
+  connection (`ErrClientConnClosing`, grpc's package-level `status.Error`, shared and never written) and
+  a stopped server (115 errors per run): `GRPCStatus()` fixed, `Code()` the expected code, read by four
+  goroutines concurrently (~35000 reads) while grpc runs and shuts down, with no race reported and the
+  codes unchanged at the end; `io.EOF` has no `GRPCStatus`.
+- `TestWholeStructWriteChangesCode`, the negative (the reviewer's point, sequential form of `TestE1Race`):
+  `*s = *status.New(...)` through the `GRPCStatus()` pointer changes `status.Code(err)`.
 
 **(e) What `kErrOk` then gets**: its `grpcError` conjunct (`s.Code()` returns) follows from (a) and
 (b) for any `statusErrOk` error; E1 as a separate text disappears.
@@ -608,9 +639,21 @@ not reachable for writing from outside grpc except by `*s = ...` on the pointer 
 'w'`, the result is `interface.mkOk (*errors.errorString) #p` for a fresh `p` (keeping
 `stringMethodSpec`). Go: `errorf` wraps whenever a directive's verb is `w`, including `%[1]w`, `%+w`,
 `%-5w`, even for a non-error argument (`fmt/print.go:1052,1146`; the reviewer's run gives
-`*fmt.wrapError` for all three), and otherwise returns `errors.New(s)` (`fmt/errors.go`). Go check to
-write: `reflect.TypeOf` of the watcher's two (`parseEvent`'s `%q %d %s`, `syncPaginated`'s no-verb) is
-`*errors.errorString`, and of the three `w` forms `*fmt.wrapError`.
+`*fmt.wrapError` for all three), and otherwise returns `errors.New(s)` (`fmt/errors.go`; `Errorf` also
+returns `errors.New(format)` when there is no argument and no `%`). (`%[1]w` is refused by
+`fmtDirectives` (`none`, an argument index), so the text claims nothing of it; `%+w`, `%-5w` parse as `w`
+directives and are excluded.) A `%w` with no argument left does not wrap (`missingArg` comes first,
+`print.go:1142-1146`): the premise is conservative there.
+
+**Go evidence (written 2026-11-15, sixteenth agent): `examples/premisefix/errorfwrap/`** (go1.27.3, all
+pass, `/shared/tmp/k8s7f5a-p3/e3.log`): `TestWatcherFormats` (parseEvent's `event.go:69`, syncPaginated's
+`watcher.go:354`, GetCurrentResourceVersion's `store.go:742`: `*errors.errorString`, fresh per call, and
+`fmtDirectives` of each has no `w`); `TestWVerbFormsWrap` (`%w`, `%[1]w`, `%+w`, `%-5w`, `%#w`, `% w`,
+`%05.2w`, `%w` of an int, two `%w`, `%[2]w`: a wrap with `Unwrap`); `TestMissingArgNoWrap`;
+`TestDirectivesPortExamples` (a Go transcription of `fmt.fmtDirectivesAux` gives the Lean file's 13
+examples); `TestNoWDirectiveGivesErrorString` (200000 random formats over verbs, flags, digits, `.`, `*`,
+`[`, `]`, `%`, `w`, a multi-byte rune and invalid UTF-8, 0-3 arguments of mixed types: all 117672 with
+`some ds` and no `w` give `*errors.errorString`; 39685 of the 54107 with a `w` directive wrap).
 
 ### 11.4 E2, E4, E5, E6 (proved specs)
 
@@ -623,3 +666,37 @@ write: `reflect.TypeOf` of the watcher's two (`parseEvent`'s `%q %d %s`, `syncPa
   (`watcher.go:456-460`).
 - E5: `interpretListError.spec` generalized over `paging` (one triple); the caller shows `encOkL`.
 - E6: the existing `NewTooLargeResourceVersionError` spec (`tooLargeErrIs`); `kErrOk` proved from it.
+
+### 11.5 T5-f's `Event_EventType.String` over the pointer receiver (DRAFT, trusted; not applied)
+
+Decided by the user (2026-11-15, via etcd-grove-81): step 7 does not wait for the parked goose change
+(`ptr_M_unfold` for an axiomatized value method, `notes/perennial-changes.md`); T5-f's axiom is restated
+over the pointer receiver, the form `parseEvent.wp_proof` already takes as a callee hypothesis
+(`Spec/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__StringPtr.lean`):
+
+```
+mvccpb.Event_EventType.StringPtr.spec : Prop :=
+  ∀ (l : Loc) (t : w32),
+  {{ isPkgInit mvccpb ∗ l ↦□ t }}
+    (l @!! PointerType Event_EventType.ty @!! "String") #()
+  {{ (s : GoString), RET #s; True }}
+```
+
+The change: the axiom `mvccpb.Event_EventType.StringPtr.wp_proof` in a new
+`Proof/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__StringPtr.lean`, with the header's "no proof derives
+this yet" replaced by the trust statement below; the value axiom `Event_EventType.String.wp_proof` (T5-f)
+is removed if nothing else uses it (today only the Draft's statement mentions it; to check at step 7), so
+the trust base trades one axiom for one. Why it is faithful: `String` is a value method (`kv.pb.go:50`);
+the method set of `*Event_EventType` contains it by Go's method-set rule ("the method set of a pointer to
+a defined type T is the set of all methods declared with receiver *T or T"), as the compiler's wrapper
+that reads `*l` and calls the value method: so the call reads the value at `l` (the read-only
+points-to), writes nothing, and returns what the value method returns, some string for every value
+(T5-f's claim, `TestEventTypeStringReturns`); a nil `l` panics, which `l ↦□ t` excludes. When the goose
+change lands, the pointer form becomes a theorem of the value axiom and this axiom goes.
+
+**Go evidence: `examples/premisefix/eventtypestr/`** (`-race`, go1.27.3, all pass,
+`/shared/tmp/k8s7f5a-p3/t5f.log`): `TestPtrStringIsValueString` (named, unknown, negative and extreme
+values: `p.String()`, through a `fmt.Stringer` holding `p`, a method value, the method expression
+`(*Event_EventType).String(p)`, and `(&e.Type).String()` on a `*mvccpb.Event` (parseEvent's shape) all
+equal `t.String()`, the value unchanged); `TestPtrStringReadsOnly` (8 goroutines calling `String` through
+one pointer while others read `*p`, no race reported); `TestPtrStringNil` (a nil pointer panics).

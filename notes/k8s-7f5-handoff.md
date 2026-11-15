@@ -27,6 +27,23 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, sixteenth 7f-5 agent): Go evidence for E1, E3 and T5-f-ptr written; review package with 81
+
+81's decisions (questions.md, sixteenth agent): previous forms accepted; `alive` stays a parameter until step 6;
+Go evidence for E1/E3 first, then 81 has the package reviewed (not applied until 81 says so). The user (via 81)
+added **T5-f over the pointer receiver** (`StringPtr` form as an axiom in place of waiting for the goose change),
+drafted in `notes/k8s-7f5a-draft.md` §11.5, same review package, not an axiom yet.
+
+- **Done:** `examples/premisefix/grpcstatusro/` (E1: static no-write scan of etcd's and k8s' closures, producers,
+  ErrGRPC* initializers, invoker/stream errors under `-race`, the negative), `examples/premisefix/errorfwrap/`
+  (E3: watcher formats, `w` forms, a Go port of `fmtDirectivesAux` + 200000-format differential test),
+  `examples/premisefix/eventtypestr/` (T5-f-ptr). All pass (`-race`, go1.27.3, 32G cap; logs
+  `/shared/tmp/k8s7f5a-p3/`). §11.2, §11.3 carry the evidence; §11.5 the T5-f-ptr draft.
+- Run: `cd examples && GOWORK=off GOTOOLCHAIN=go1.27.3 go test -race -count=1 ./premisefix/{grpcstatusro,errorfwrap,eventtypestr}/`
+  under `systemd-run --scope -q -p MemoryMax=32G` (TestNoStatusWriteK8s runs `go list` in `../watcherctx`).
+- **Next, in order (unchanged):** `kResInv_send_acc`, `kResInv_filter` (fifteenth agent's (1) below), E2/E4/E5
+  spec changes, step 5 with `-- pending E1`/`-- pending E3` hypotheses. STOP before step 6.
+
 ## START HERE (2026-11-15, fifteenth 7f-5 agent): send lemma, kResChan, Error step done; processor step next
 
 81's decisions (questions.md, fifteenth agent): E1-E6 reviewed (`notes/k8s-7f5a-draft.md` §11.1-11.4); E1 refuted
