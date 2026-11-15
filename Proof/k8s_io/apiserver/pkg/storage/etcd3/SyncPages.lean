@@ -17,6 +17,7 @@ recursive, the key alone with no option. Here:
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListPages
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.WatchProd
 
 @[expose] public section
 
@@ -149,6 +150,54 @@ theorem syncNext (s : KVStore) (kp st : GoString) (n : Nat) (hn : 0 < n)
     simp only [show n - 1 < n by omega, ↓reduceIte]
     exact List.getElem?_eq_getElem _
   · exact fromL_next s kp true st n hn (Nat.le_of_lt hm)
+
+/-- **A recursive page** (`WithLimit(10000)`, from a start key under the prefix): the first `10000`
+key-values of the scope from the start key, and `More` if there are more. -/
+theorem srvRangeOk_sync (kp start : GoString) (rev : w64) (s : KVStore) (kvs : List EtcdKv)
+    (more : Bool) (hst : kp <+: start)
+    (h : txn.srvRangeOk (pageOp kp start rev (W64 10000)) s.kvs kvs more) :
+    kvs = (fromL s kp true start).take 10000 ∧
+      more = decide (10000 < (fromL s kp true start).length) := by
+  have h1 := (srvRangeOk_page kp start rev (W64 10000) s kvs more hst (by decide) h).1
+  have h2 := srvRangeOk_page_more kp start rev (W64 10000) s kvs more hst (by decide) (by decide) h
+  have hl : limN (W64 10000) = 10000 := by decide
+  rw [pageKvsL_eq, hl] at h1
+  exact ⟨h1, h2⟩
+
+/-- The scope from the key itself, not recursive, is the key's key-values. -/
+theorem fromL_key (s : KVStore) (kp : GoString) :
+    fromL s kp false kp = s.kvs.filter (fun v => decide (v.key = kp)) := by
+  unfold fromL
+  apply List.filter_congr
+  intro v _
+  by_cases h : v.key = kp
+  · simp [kInScope, h, go.goStringLt_irrefl]
+  · simp [kInScope, h]
+
+/-- **What the page queues is a prefix of the initial raw events.** -/
+theorem queue_prefix {I K : List KRaw} {pg F : List EtcdKv} (h : I ++ F.map KRaw.kv = K)
+    (hp : pg <+: F) (j : Nat) (hj : j < pg.length) :
+    I ++ (pg.take j).map KRaw.kv ++ [KRaw.kv pg[j]] <+: K := by
+  rw [← h, List.append_assoc]
+  apply (List.prefix_append_right_inj I).2
+  have h1 : (pg.take j).map KRaw.kv ++ [KRaw.kv pg[j]] = (pg.take (j + 1)).map KRaw.kv := by
+    rw [List.take_succ, List.getElem?_eq_getElem hj, List.map_append]; rfl
+  rw [h1]
+  exact ((List.take_prefix _ _).trans hp).map _
+
+/-- The initial raw events are the start of the ideal raw stream (with initial events). -/
+theorem kInitRaws_prefix (inS : GoString → Bool) (m : KWatchMode) (σ : KVState) (st : Nat)
+    (hf : m.forceInit = true) : kInitRaws inS σ st <+: kRawIdealL inS m σ st [] := by
+  unfold kRawIdealL kInitRaws
+  rw [if_pos hf]
+  exact List.prefix_append _ _
+
+/-- The initial raw events, from the prepared key: its scope's key-values. -/
+theorem kInitRaws_fromL (kp : GoString) (recur : Bool) (σ : KVState) (st : Nat) :
+    kInitRaws (kInScope kp recur) σ st = (fromL (σ.at st) kp recur kp).map KRaw.kv := by
+  unfold kInitRaws
+  rw [fromL_kp]
+  rfl
 
 end pure
 

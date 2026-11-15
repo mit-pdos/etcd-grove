@@ -47,7 +47,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -125,6 +125,68 @@ theorem wp_optsOwn_append (sl sl2 : GoSlice) (gs : List (OpFull → OpFull)) (f 
       subst Hf' Hg'
       iexact Hf
     · simp at Hf'
+
+/-- `syncPaginated`'s options before a page: `syncGs` until the first page's revision is known,
+then `WithRev` of it. -/
+def syncGsOf (kp : GoString) (recur : Bool) (wr : w64) : List (OpFull → OpFull) :=
+  if wr = W64 0 then syncGs kp recur else syncGs kp true ++ [withRevM wr]
+
+/-- **One page: the client's `KV.Get`** of `pk` with the options `gs` (a linearizable range,
+unsorted), through the store's client (`kvObjAt` of its `*kv`), with the read update `Qr` at the
+members: `nil` and the reply `m` (its key-values' slice owned) at a state `σ` the update fired at,
+`m` the server's answer at `σ`; or a client error (`kClientErr`). -/
+theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] {Obj : Type}
+    (c : StoreCfg GF Obj) (γk : KVNames) (api : Loc) (ctx : GoInterfaceOk)
+    (cdw : context.ContextDesc (IProp GF)) (pk : GoString) (osl : GoSlice)
+    (gs : List (OpFull → OpFull)) (Qr : KVState → IProp GF)
+    (hsz : opSizeOk (opGetModel pk gs)) (hg : ¬ opGetPanics gs ∧ (opGetModel pk gs).t = W64 1)
+    (hser : (rangeWireOf (opGetModel pk gs)).base.serializable = false)
+    (hss : (opGetModel pk gs).base.sortSet = false) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        EtcdGrove.kvObjAt api (c.ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
+        ctxOk ctx cdw ∗ ctxErrClient ctx cdw ∗ optsAt osl gs ∗ readAus c γk Qr }}
+      (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+          go!"Get")) (Val #(GoInterface.ok ctx))) (Val #pk)) (Val #osl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsgO resp m ∗ □ Qr σ ∗
+          ⌜txn.srvRangeOk (rangeWireOf (opGetModel pk gs))
+              (σ.at (σ.readRev (rangeWireOf (opGetModel pk gs)).base.rev)).kvs m.kvs m.more ∧
+            m.hdr.revision = W64 (σ.rev : Int) ∧
+            σ.readRev (rangeWireOf (opGetModel pk gs)).base.rev ≤ σ.rev ∧ kvRevFits σ.rev⌝) ∨
+        (⌜err ≠ GoInterface.nil⌝ ∗ kClientErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hkv, #Hregs, #Hctx, #Hce, #Hopts, #Hra⟩ HΦ
+  imod (client.srvStart_alloc (GF := GF) c.ms) with #Hst
+  ihave #Hopts' := optsAt_res osl gs iprop(True) $$ Hopts
+  ihave #Hst' := client.srvStart_both c.ms $$ Hst
+  ihave #Hau := readAus_members c γk Qr (rangeWireOf (opGetModel pk gs)) hser $$ Hra
+  wp_apply (client.client_range_any api c.ms (W64 0) ctx cdw pk osl gs iprop(True) Qr [] hsz) $$ []
+    as %resp %err ⟨-, Hout, -⟩
+  · iframe #
+    isplitl []
+    · rw [hss]; iapply sortNamesIf_false
+    ipureintro; exact hg
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
+  · subst Herr
+    ihave Hs := kubernetes.rangeReply_state_at x.E x.γr (W64 0) x.cid x.mid _ [] Qr m hser $$ Hq
+    icases Hs with ⟨%σ, #HQ, %Hσ⟩
+    obtain ⟨hsel, -, hrevσ, hle, hb, -⟩ := Hσ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro
+    exact ⟨hsel, hrevσ, hle, hb⟩
+  · iright
+    iunfold kvErr at Hke
+    icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+    isplitr
+    · ipureintro; exact Herr
+    iunfold kClientErr
+    iframe Hse Hcl
+    ipureintro; exact ⟨Herr, Hce⟩
 
 theorem watchChan.syncPaginated.wp_proof
     (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG))
@@ -254,21 +316,78 @@ theorem watchChan.syncPaginated.wp_proof
       "opts" ∷ opts_ptr ↦ osl ∗ "metricsOp" ∷ metricsOp_ptr ↦ (if recur then go!"list" else go!"get") ∗
       "Hir" ∷ structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ ir ∗
       "Hps" ∷ kProdSt γ cd I ∗ "Hpe" ∷ dghostVar γ.prodEx (DFrac.own q) false ∗
-      "Hph" ∷ ((⌜wr = W64 0 ∧ pk = kp ∧ I = []⌝ ∗ optsOwn (GF := GF) osl (syncGs kp recur) ∗
-          readAus c γk (Q lbf)) ∨
+      "Ho" ∷ optsOwn (GF := GF) osl (syncGsOf kp recur wr) ∗
+      "%Hpk" ∷ ⌜kp <+: pk ∧ pk.length ≤ opKeyMax⌝ ∗
+      "#Hph" ∷ ((⌜wr = W64 0 ∧ pk = kp ∧ I = []⌝ ∗ readAus c γk (Q lbf)) ∨
         (∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗
           ⌜wr = W64 (σ0.rev : Int) ∧ ir = W64 (σ0.rev : Int) ∧ 0 < σ0.rev ∧ recur = true ∧
-            kStartOk m σ0 σ0.rev ∧ kvRevFits σ0.rev ∧ kp <+: pk ∧ pk.length ≤ opKeyMax ∧
-            I ++ (fromL (σ0.at σ0.rev) kp true pk).map KRaw.kv = kInitRaws inS σ0 σ0.rev⌝ ∗
-          optsOwn (GF := GF) osl (syncGs kp true ++ [withRevM wr]))) : IProp GF)
+            kStartOk m σ0 σ0.rev ∧ kvRevFits σ0.rev ∧
+            I ++ (fromL (σ0.at σ0.rev) kp true pk).map KRaw.kv = kInitRaws inS σ0 σ0.rev⌝)) :
+      IProp GF)
       $$ [preparedKey withRev lastKey getResp err opts metricsOp Hir Hps Hpe Ho]
   · iexists kp, W64 0, _, _, _, r0, osl, []
     iframe
+    isplitr
+    · ipureintro; exact ⟨List.prefix_refl _, hkpl⟩
     ileft
-    iframe Ho Hra
+    iframe Hra
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   wp_for HI
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
+  (try wp_auto)
+  obtain ⟨hkpk, hpkl⟩ := Hpk
+  icases optsOwn_optsAt _ _ $$ Ho with ⟨#HoAt, Ho⟩
+  ihave Hlbq : (|==> ∃ lbq : Nat, readAus c γk (Q lbq) ∗
+      ⌜(wr = W64 0 → lbq = lbf) ∧ (wr ≠ W64 0 → lbq = uint.nat wr)⌝ : IProp GF) $$ []
+  · icases Hph with (⟨%Hw, #Hra'⟩ | ⟨%lb0, %σ0, #HQ0, %Hp⟩)
+    · imodintro
+      iexists lbf
+      iframe Hra'
+      ipureintro
+      exact ⟨fun _ => rfl, fun h => absurd Hw.1 h⟩
+    · ihave Hra' := Hre $$ %lb0 %σ0 HQ0
+      imod Hra' with #Hra'
+      imodintro
+      iexists σ0.rev
+      iframe Hra'
+      ipureintro
+      obtain ⟨hw, -, hpos, -, -, hfit, -⟩ := Hp
+      refine ⟨fun h => ?_, fun _ => ?_⟩
+      · exfalso; rw [hw] at h; have := hfit.lt; word
+      · rw [hw]; have := hfit.lt; word
+  imod Hlbq with ⟨%lbq, #HraQ, %Hlbq⟩
+  have hsz : opSizeOk (opGetModel pk (syncGsOf kp recur wr)) := by
+    have hel : (prefixRangeEnd kp).length ≤ 2 ^ 27 := by
+      have := prefixRangeEnd_length_le kp
+      simp only [opKeyMax] at hkpl
+      omega
+    unfold syncGsOf syncGs
+    split <;> (try cases recur) <;> simp only [Bool.false_eq_true, ↓reduceIte, List.cons_append,
+      List.nil_append]
+    all_goals first
+      | exact opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0) (optsKeep_nil _ _ _) hpkl (by decide)
+      | exact opSizeOk_opGetModel (K := 2 ^ 27) (E := 2 ^ 27) (V := 0)
+          (optsKeep_cons (withLimitM_keep _) (optsKeep_cons (withRangeM_keep hel)
+            (optsKeep_nil _ _ _))) hpkl (by decide)
+      | exact opSizeOk_opGetModel (K := 2 ^ 27) (E := 2 ^ 27) (V := 0)
+          (optsKeep_cons (withLimitM_keep _) (optsKeep_cons (withRangeM_keep hel)
+            (optsKeep_cons (withRevM_keep _) (optsKeep_nil _ _ _)))) hpkl (by decide)
+  have hg : ¬ opGetPanics (syncGsOf kp recur wr) ∧ (opGetModel pk (syncGsOf kp recur wr)).t = W64 1 := by
+    unfold syncGsOf syncGs
+    split <;> (try cases recur) <;> simp only [Bool.false_eq_true, ↓reduceIte, List.cons_append,
+      List.nil_append]
+    all_goals first
+      | rfl
+      | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp [withRevM, withLimitM, withRangeM])
+  have hser : (rangeWireOf (opGetModel pk (syncGsOf kp recur wr))).base.serializable = false := by
+    unfold syncGsOf syncGs
+    split <;> (try cases recur) <;> rfl
+  have hss : (opGetModel pk (syncGsOf kp recur wr)).base.sortSet = false := by
+    unfold syncGsOf syncGs
+    split <;> (try cases recur) <;> rfl
+  wp_apply (wp_syncGet c γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
+    $$ [] as %resp %gerr Hget
+  · iframe #
   (try wp_auto)
   sorry
 
