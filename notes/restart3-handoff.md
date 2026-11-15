@@ -11,7 +11,7 @@ Plan: `notes/restart3-scope.md` (route (A), decided by the user 2026-11-15). Dec
   `Scratch/`, untracked): `R3A0ProbeKV.lean` (P1), `R3A0ProbeGuard.lean` (P2, P3).
 - Go probe of A-g: `notes/restart3-a0/ag-guard.patch` against the fork's `server/v3` (module cache copy at
   `/shared/tmp/restart3-a0/server`), restart3probe setting A, 6/6 (`/shared/tmp/restart3-a0/ag2-run-*.txt`).
-- `nonissues/etcd-backward-snapshot-install-after-window-merge.md` (index regenerated).
+- `nonissues/etcd-backward-snapshot-install-panics-watcher.md` (index regenerated).
 
 ## Next, in order (after etcd-grove-81's answer)
 1. If A-g: g0 the fork commit (guard + `ReportSnapshot`), Go tests, pin bump, `etc/goose.py --project etcd`

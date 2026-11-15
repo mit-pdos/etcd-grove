@@ -1,4 +1,7 @@
-# restart3 A0: the R2s-A Draft and probe (2026-11-15, for etcd-grove-81; DRAFT, nothing landed)
+# restart3 A0: the R2s-A Draft and probe (2026-11-15, for etcd-grove-81; DRAFT revision 1, nothing landed)
+
+Revision 1 applies review round 1 (`/shared/tmp/restart3-a0/review-r1.md`): M1 (A-g is graceful-only), M2 (the
+backward install can panic a catching-up watcher: confirmed by an mvcc test, the nonissue rewritten), m1-m9.
 
 Plan: `notes/restart3-scope.md` §2.3, stage A0. Route (A) and the go/no-go after A0 were decided by the user
 (2026-11-15); D-R3-2/3/4/6 by etcd-grove-81 (`questions.md`). Branch `restart3`, worktree
@@ -41,12 +44,20 @@ raft retries it after the window. With A-g every merged image is at its own raft
 ever ahead of its raft commit, and R2s-A's other pieces disappear: no certificate change, no receiver
 window, no change to the stop's WAL slot or the restart contract, no new raft law, no trusted text
 touched. The rows (`winNoMergedSendR`, `srvWinPend`, row 4, `srvRestartRows`) are deleted, because the
-guard refutes the in-window merge that they excluded (probe P2, checked; Go probe 6/6). **Recommended:
+guard refutes the in-window merge that they excluded (probe P2, checked; Go: a smoke test, 6/6, in which the
+guard never fired). **A-g is graceful-only** (review M1): after a crash the backend's consistent index can
+be above the WAL's commit, so a backward install is reachable with no window sender; restart3 covers
+graceful stops only (N2), and the crash case stays with a crash-model theorem (A-r covers both causes).
+**A finding on the way** (review M2, confirmed): Go itself can panic on a backward install, when a watch is
+catching up at that member (`nonissues/etcd-backward-snapshot-install-panics-watcher.md`, an mvcc test that
+panics; not yet reached through etcd's own paths). **Recommended:
 go on route (A) with A-g** (A1 est. 2-3 wk, the route 5.5-8 wk of work), which needs the user's approval
 of the fork change. B0 stays the fallback if the user rejects any fork change.
 
 ## 1. What is on `lean` (corrections to the plan's inputs)
 
+- **More `Hwpend` hubs** (review m1): `srvBuiltG` (`E/ServerOn.lean:186`), `isServerBuiltOn` (`E/StartOn.lean:95`),
+  used by the auth examples; `E/LeaseRun.lean:14` names `srvWinPend` in its header.
 - **`srvWinSupply` and `srvWinAdd` do not exist in Lean.** They are r2db's proposed Q33 redesign (`r2db
   §4.4-§4.5`), never built (CUT's R-2 discussion). Their "deletion" is a notes-only item: strike them from
   `notes/restart-scope.md` (R2s-A, S1) and `notes/restart3-scope.md` §2.3. What exists: `srvWinPend`
@@ -132,10 +143,15 @@ watchers are protected by `watchableStore.Restore`'s `restore` flag), but the pr
   (`applied_jump` only raises), which the R2s decision's "monotone applied index at Go's index" re-keys,
   but its logs are still the store's floors.
 
-So R2s-A needs either a store invariant whose floors survive a truncating restore (every floor client:
+Nor can the ghost stay ahead of the store (review m6): `mvccState γ σ` is the physical store, tied to `γs.slog`
+exactly (`KVStoreApi.lean:115-116`), and the floor read law (`:182`) is false of Go under a backward install
+(two serializable reads see the revision decrease). So A-u is not a re-proof but a weaker read guarantee.
+And Go itself can panic there (review M2): `watchableStore.Restore` marks only the synced watchers `restore`,
+so an unsynced watcher above the restored revision trips `chooseAll`'s panic (confirmed by
+`TestZZBackwardRestoreUnsyncedWatcher`, the nonissue's test). So R2s-A needs either a store invariant whose floors survive a truncating restore (every floor client:
 the read path's `kvReadAt`, the watch path's `histLb`, the applied logs, the cache's and k8s's watch
 results that rest on them), or an argument that the backward install never happens, which is false of Go.
-Recorded as `nonissues/etcd-backward-snapshot-install-after-window-merge.md` (behavior etcd does not
+Recorded as `nonissues/etcd-backward-snapshot-install-panics-watcher.md` (behavior etcd does not
 guarantee against; blocks this design, not the property).
 
 ### 2.3 Deletions (step 4)
@@ -201,14 +217,20 @@ if m.GetTerm() == apply.raftTerm && m.GetSnapshot().GetMetadata().GetIndex() <= 
     }
 }
 ```
-(the probe's copy: `/shared/tmp/restart3-a0/ag-guard.patch`, with a log line). The fork already carries two
-proof guards at this select (the term and the index). Liveness: without `ReportSnapshot`, raft's progress
+(the probe's copy: `/shared/tmp/restart3-a0/ag-guard.patch`, with a log line). The fork already carries two guards at
+this select: the index guard is for the proof; the term guard fixes a real bug
+(`issues/etcd-merged-snapshot-stale-term.md`). A-g would be a second change made for the proof. Liveness: without `ReportSnapshot`, raft's progress
 would stay in `StateSnapshot` (paused) until a leadership change; with it, the progress goes to
 `StateProbe` and raft resends a snapshot at a later heartbeat response, by then past the window (the
 window ends once the replay is applied). Upstream behavior is correct (§2.2); the change is for the proof
 only, so it is the user's to approve (D-A0-1).
 
-**Go evidence** (`/shared/tmp/restart3-a0/ag2-run-*.txt`): restart3probe setting A against the patched server
+**Considered and rejected (A-c, review m6):** stamp the merged snapshot at the consistent index instead of
+`ep.appliedi`: no deferral, but the snapshot's term and `ConfState` at `ci` are not known to the sender (the
+replayed entries are v2-only, its raft log may not hold them at a stamped index past its applied one, and
+raft's `isMessage_snap_recontent` needs `index ≤ ai`).
+
+**Go evidence, a smoke test only** (`/shared/tmp/restart3-a0/ag2-run-*.txt`): restart3probe setting A against the patched server
 (`go test -modfile` with a local replace of `server/v3`), 6 runs in separate processes, 32G cap,
 `GOWORK=off`: 6/6 pass the exact check (155 pairs, version 1, revision 156), a merged snapshot sent to and
 installed at the restarted member in every run, the guard never fired (no leader inside its window in
@@ -226,15 +248,19 @@ the window the guard holds: it defers exactly the in-window merges). From `hW` o
 unchanged (`hgai`, `hciE`, `mergedCreate_window`). The guard's true branch calls `EtcdServer.ReportSnapshot`
 (`SE/EtcdServer__ReportSnapshot.lean`, needs `srvProcOk γn s id γd`, persistent, which `NewServer` makes for
 the transport; it must reach `isServerApplyAll`: a hub row, a request to 82) or, if D-A0-2 chooses the
-silent drop, nothing. The message `m` (owned, `rnSnapMsg`) is dropped either way, as at the term guard.
+silent drop, nothing. The message `m` (owned, `rnSnapMsg`) is dropped either way, as at the term guard. With `srvSnapBagN` gone
+from `specBatch`, the merge receives through `isServerApplyAll`'s bag at its existential `γm` (`γm.node =
+γr.raft.raft`, `E/InvApplyAll.lean:131`; destructured as `-` today at `E/EtcdServer__applyAll.lean:107`), and
+`srv_sentSnap_pos` takes `γm.id` (review m3; not yet checked in Lean).
 
 Then the deletions of §2.3, all of them. Nothing of §2.1, §2.2, §2.5 is needed:
 - every merged image is at its own index (`ciEff = ai'` at the merge, as today), so `srvNet`, the snapshot
   directory, `specSnapM` and the receive path are unchanged;
-- no backend is ever ahead of its raft commit (an install sets it to the snapshot's index, which raft
+- **at a graceful stop and restart,** no backend is ever ahead of its raft commit (an install sets it to the snapshot's index, which raft
   committed; a restart's window has `|a0| ≤ commit0`), so `wal.stopImage`, `bootstrapRestartContract` and
   `rnRestartOk`'s `|a0| ≤ commit0` stay true as written;
-- no backward install exists (a snapshot is above the receiver's commit, hence above its backend).
+- no backward install exists on graceful runs (a snapshot is above the receiver's commit, hence above its
+  backend). After a crash it does (review M1): out of restart3's scope (N2).
 
 ### 3.3 Statements A-g changes, and trusted texts
 
@@ -246,6 +272,11 @@ Then the deletions of §2.3, all of them. Nothing of §2.1, §2.2, §2.5 is need
 | `NewServer.specR`, etcdstart `newServerMode/newServer/BuildServer.specRestart` (linked) | `Hrows` / `□ ∀ A σ, srvRestartRows` deleted |
 | `createMergedSnapshotMessage`'s spec | only its docstring (`rnSnapMsg`'s) |
 | the Goose translation of `server.go` | regenerated from the fork's new commit (`etc/goose.py --project etcd`) |
+| the hubs `srvBuiltG` (`ServerOn.lean:186`), `isServerBuiltOn` (`StartOn.lean:95`) (82) | `Hwpend` deleted |
+| `applyAll.wp_proofBatch`'s callee specs, the server's `Link.lean` and the proof's interface | gains `consistentIndex.ConsistentIndex.spec`, `raftpb.Message.GetTo.spec`, `EtcdServer.ReportSnapshot.spec` |
+| `applyAll_model` (`E/Results.lean:200-217`, exported) | restates `applyAll.spec`: text follows `specBatch`; docstring |
+| SpecPlan's `EtcdServer__applyAll.lean:25-30` (the guard "is the code's") | the window test added; a `notes/specs-only/ledger.md` entry first |
+| `examples/go.mod`'s replace of etcd (`etc/goose.py --check`) | bumped with the fork pin |
 | `etcd_restart1_safe`, every other closed theorem | unchanged |
 
 Trusted texts: none touched. Trust base: unchanged (no axiom, `sorry` or opaque). Interfaces to regenerate:
@@ -256,10 +287,10 @@ the server's and etcdstart's (rows gone).
 | Step | Work | Est. |
 |---|---|---|
 | g0 | the fork commit (guard + `ReportSnapshot`), its Go tests (restart3probe A, etcd's `server/etcdserver` unit tests, a forced in-window-leader run showing the guard and the retry), the pin bump and translation (`etc/goose.py`); the user pushes the fork | 2-3 d |
-| g1 | the merge branch over the guard (`wp_ci_get`, P2), `ReportSnapshot` (hub row `srvProcOk` in `isServerApplyAll`, via 82) | 3-4 d |
-| g2 | the deletions (§2.3) through the hubs, `run`, `NodeStartSpecR`, `newRaftNode`, `NewServer.specR`, etcdstart, restart1/restart3 drafts; two full builds (`InvRaftNode`: 1047 importers) | 3-5 d |
-| g3 | Freeze package (§3.3's table), interfaces, gates, tcb `--check` unchanged | 2-3 d |
-| | **A1-g total** | **2-3 wk** |
+| g1 | the merge branch over the guard (`wp_ci_get`, P2), `ReportSnapshot` (hub row `srvProcOk` in `isServerApplyAll`, via 82), the bag through `isServerApplyAll` (m3), the three new callees in `Link.lean` | 4-5 d |
+| g2 | the deletions (§2.3) through the five hubs, `run`, `NodeStartSpecR`, `newRaftNode`, `NewServer.specR`, etcdstart, restart1/restart3 drafts; two full builds (`InvRaftNode`: 1047 importers) | 3-5 d |
+| g3 | SpecPlan ledger entry and text; Freeze package (§3.3's table), interfaces, gates, tcb `--check` unchanged | 2-3 d |
+| | **A1-g total** | **2-3 wk** (+1-2 d for m1-m3) |
 
 ### 3.5 The whole route under A-g (est.)
 
@@ -283,8 +314,7 @@ path (`SnapRecvOn`, `MergedImageOn`, `ImageOn`, `ApplyAllSnap`, `SnapApplyWalk/P
   E.lm`, A1 deletes the window rows: different lines, a textual merge), `E/EtcdServer__applyAll.lean` (A1
   edits the merge branch, 380-480; they edit the snapshot branch and `logShapeOn` sites), `E/AuthCompRows.lean`
   (hubs: A1 deletes `Hwpend`, they may add lease rows; both via 82), `E/InvApplyAll.lean` (A1 adds
-  `srvProcOk` to `isServerApplyAll` if D-A0-2 (a)), `E/SnapSendBranch.lean` (A1 only drops the `t0`-bound
-  uses; they edit `:491, :873`). A1 sequenced after their landing, rebased: est. 0.5-1 d of merge work.
+  `srvProcOk` to `isServerApplyAll` if D-A0-2 (a)). `E/SnapSendBranch.lean` is not touched by A1 (review m4). A1 sequenced after their landing, rebased: est. 0.5-1 d of merge work.
 - **Under R2s-A/A-r** (for the record): both restate `specSnapM` and the image predicates. Compose by stating
   R2s-A's receiver over "the image's log" `A_j` (whatever its length) so that their `hnl` at `A'` reads at
   `A_j` unchanged; conflict points: `SE/EtcdServer__applySnapshot.lean` (premises and post), `SE/EtcdServer__applyAll.lean`'s
@@ -296,8 +326,9 @@ path (`SnapRecvOn`, `MergedImageOn`, `ImageOn`, `ApplyAllSnap`, `SnapApplyWalk/P
 
 - **R2s-A as recorded: no-go** (blocker §2.2; A-u 11-18 wk).
 - **Route (A) with A-g: go** (A1 2-3 wk), **if the user approves the fork change** (D-A0-1).
-- A-r: go by the rule (A1 5-8 wk + the receiver's change), dominated by A-g (also a fork change, larger,
-  and it changes two trusted texts).
+- A-r: go by the rule (A1 5-8 wk + the receiver's change). Larger than A-g and it changes two trusted texts,
+  but it also covers the crash cause of the backward install (review M1); A-g suffices for restart3's
+  graceful scope, and A-r (or a crash-time variant) belongs with a crash-model restart theorem.
 - If the user rejects any fork change: B0 (8.5-12.5 wk; reverses D2 (b), adds the no-downgrade text), the
   recorded fallback.
 
@@ -309,9 +340,11 @@ path (`SnapRecvOn`, `MergedImageOn`, `ImageOn`, `ApplyAllSnap`, `SnapApplyWalk/P
 - **D-A0-2.** On a deferred snapshot: (a) `ReportSnapshot(to, SnapshotFailure)` (liveness kept: raft
   retries; needs `srvProcOk` in `isServerApplyAll`, a hub row) or (b) drop silently as the term guard does
   (follower stuck in `StateSnapshot` until a leadership change; no hub change). *Recommended: (a).*
-- **D-A0-3.** Record the backward install as `nonissues/etcd-backward-snapshot-install-after-window-merge.md`
-  (`blocks-proof: no`: linearizable reads and watches unaffected; it blocks R2s-A's design, not a checked
-  property). *Recommended.*
+- **D-A0-3.** The finding `nonissues/etcd-backward-snapshot-install-panics-watcher.md` (a backward install
+  panics a catching-up watcher; mvcc test fails, not yet reached through etcd's paths; `blocks-proof: no`).
+  Write the integration test that would move it to `issues/` (a forced in-window leader and a lagging
+  second leader, or a crash between apply and the HardState save; est. 2-4 d), or leave it a nonissue.
+  *Recommended: leave it for now, revisit with the crash-model work.*
 - **D-A0-4.** Strike `srvWinSupply`/`srvWinAdd` from the restart notes (never built). *Recommended* (notes only).
 - **D-A0-5.** Supersede the R2s decision's receiver design (`decisions.md`, "R2s": "the KV ghost reset at an
   install") by this note's §2.2 finding, whatever D-A0-1 decides. *Recommended.*
