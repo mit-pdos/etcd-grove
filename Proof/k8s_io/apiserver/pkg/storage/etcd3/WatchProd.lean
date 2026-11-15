@@ -18,6 +18,7 @@ the raw event must enter `γ.raws` at the send's commit, not before: the produce
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.WatchRes
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -277,6 +278,79 @@ theorem kProd_queue (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
   iright; iexact Hc
 
 end inc
+
+/-! ## The producer's premises (the statements of `syncPaginated`, `sync`, `startWatching`) -/
+
+section prod
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] [Pos.Countable KRaw]
+
+/-- **A watch-list's initial raw events** at the start point `st` (`syncPaginated`'s pages):
+the key-values in scope of the store at `st`, in key order. -/
+def kInitRaws (inS : GoString → Bool) (σ : KVState) (st : Nat) : List KRaw :=
+  ((σ.at st).kvs.filter fun v => inS v.key).map KRaw.kv
+
+/-- **The watch channel's fields the producer reads, and its channels** (persistent; what
+`createWatchChan` and `run` set up, step 6): the watcher (the store's), the prepared key `kp`
+(`c.pathPrefix ++ k`; the scope `inS` is its `kInScope`), `recursive`, `progressNotify` and
+`recordTimestamps` off, `wc.ctx` (`WithCancel` of the require-leader context, with `kCdw`'s Done
+proposition, grpc's outgoing metadata and client errors), `wc.cancel` (whose proposition is
+`kCancelPD`), the size estimator function (the store's), the incoming channel (`kInElem`'s
+SPSC) with its block logger, and `resultChan` (`kResChan`). -/
+def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (ctx : GoInterfaceOk)
+    (kp : GoString) (recur : Bool) : IProp GF :=
+  iprop(∃ (wp chI chR lg : Loc) (cf rse : GoFunc) (γc : context.ContextNames),
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"watcher" wc ↦□ wp ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"watcher" sp ↦□ wp ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"key" wc ↦□ kp ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"recursive" wc ↦□ recur ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"progressNotify" wc ↦□ false ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"recordTimestamps" wc ↦□ false ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"ctx" wc ↦□ GoInterface.ok ctx ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"cancel" wc ↦□ cf ∗
+    context.cancelSpec cf γc (kCancelPD γ cd) ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"getResourceSizeEstimator" wc
+      ↦□ rse ∗
+    □ (∀ Φ : val → IProp GF,
+      WP (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!
+        go!"getResourceSizeEstimator")) (Val #())) {{ Φ }} -∗
+      WP (App (Val #rse) (Val #())) {{ Φ }}) ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"incomingEventChan" wc ↦□ chI ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"incomingEventLogger" wc ↦□ lg ∗
+    blockLoggerOk lg ∗
+    isSpsc γ.inc chI (kInElem γ cd inS m Q) (fun _ => iprop(True)) ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"resultChan" wc ↦□ chR ∗
+    kResChan c W γ cd sel emp inS m Q procd alive chR ∗
+    context.isContext ctx (kCdw γ cd) ∗ metadata.outgoingCtxOkC ctx ∗ ctxErrClient ctx (kCdw γ cd) ∗
+    ⌜inS = kInScope kp recur ∧ kp.length ≤ opKeyMax ∧ (recur = true → kp ≠ [])⌝)
+
+set_option synthInstance.maxSize 4096 in
+set_option synthInstance.maxHeartbeats 400000 in
+instance kWcProd_persistent (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj)
+    (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool)
+    (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName)
+    (ctx : GoInterfaceOk) (kp : GoString) (recur : Bool) :
+    Persistent (kWcProd wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur) := by
+  unfold kWcProd; infer_instance
+
+/-- **What `initialRev` holds when the producer starts** (`Watch`'s `getStartWatchResourceVersion`
+and `createWatchChan`): with initial events, the requested revision (`0` or positive, then checked
+by `startWatching` against `getCurrentStorageRV`); without, a positive requested revision, or (at
+`0`) the revision of a state the caller's read update fired at (`getCurrentStorageRV`'s). Its
+successor is a positive `int64` when it is the watch's start (`WithRev(initialRev + 1)`). -/
+def kStartPre (m : KWatchMode) (Q : Nat → KVState → IProp GF) (r0 : w64) : IProp GF :=
+  if m.forceInit then iprop(⌜uint.nat r0 = m.req ∧ uint.Z r0 < 2 ^ 63⌝)
+  else if 0 < m.req then iprop(⌜uint.nat r0 = m.req ∧ uint.Z r0 + 1 < 2 ^ 63⌝)
+  else iprop(∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗ ⌜r0 = W64 (σ0.rev : Int) ∧ kvRevFits σ0.rev⌝)
+
+end prod
 
 end k8s
 end EtcdGrove
