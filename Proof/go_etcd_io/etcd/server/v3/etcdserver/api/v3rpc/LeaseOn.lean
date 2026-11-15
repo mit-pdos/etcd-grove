@@ -127,7 +127,7 @@ theorem leaseRevokeResT_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok
 
 /-- **A grant's result with auth on, at the request context's token** (the server's `leaseGrantResM
 true` gives the response's `ID` and `leaseGrantResT` at it, by `hdrBoundM_tok`). -/
-theorem leaseGrantResM_true_T (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) :
     leaseGrantResM (GF := GF) true s E ρ ctx ttl resp Q ⊢
       ∃ id : w64, structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗
@@ -142,7 +142,7 @@ theorem leaseGrantResM_true_T (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx
   iapply hdrBoundM_tok s E (GoInterface.ok ctx) hm $$ Hb
 
 /-- **A revocation's result with auth on, at the request context's token.** -/
-theorem leaseRevokeResM_true_T (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseRevokeResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (id : w64) (Q : KVState → IProp GF) :
     leaseRevokeResM (GF := GF) true s E ρ ctx id Q ⊢
       leaseRevokeResT true s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) id Q := by

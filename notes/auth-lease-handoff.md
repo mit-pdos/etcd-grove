@@ -389,7 +389,7 @@ force (`questions.md`, "S3c Freeze"); ledger entry 2026-11-15 "auth on implies n
    γk.ids.pfx = gp ∧ γk.gps = gps`; `MainAlloc`/`Alloc3On` derive `lg = false`.
 3. **§6 trusted docstrings** exactly as decided (`NewLessor.lean`, `LessorBackend.lean`); other docstrings restated.
 4. **D6, server and v3rpc layer:** new `v3rpc/LeaseOn.lean` (`leaseGrantResT`/`leaseRevokeResT`, `lessorGrantOkGM`/`lessorGrantOkM`/
-   `lessorRevokeOkM`/`raftLessorM`, `_false` bridges, `leaseGrantResM_true_T`/`leaseRevokeResM_true_T`, `lessorGrantOkGM_mono`);
+   `lessorRevokeOkM`/`raftLessorM`, `_false` bridges, `leaseGrantResT_true`/`leaseRevokeResT_true`, `lessorGrantOkGM_mono`);
    `lessorGrantOkLive_of_server`/`lessorRevokeOk_of_server` at `isServerReqM E.authOn` and the `…M` contract, with `_off`
    corollaries (form: the off discharges' texts kept under new names, used by `lessorGrantOkL_of_server` and v3rpc `Results`'
    unchanged `lessorGrantOkLive_server`/`lessorRevokeOk_server`); new exported `lessorGrantOkLiveM_server`, `lessorRevokeOkM_server`;
