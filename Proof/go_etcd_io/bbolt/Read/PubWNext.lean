@@ -21,6 +21,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pubWNext
@@ -31,7 +33,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A writer's `Next`** at any fraction, over `next_w`/`next_we` (`hD1`: `gensOK`'s third clause;). -/
-theorem Cursor.Next.wp_writerW [HasExt osFsExt]
+theorem Cursor.Next.wp_writerW [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hnx : Cursor.next_w.specQ (GF := GF) (hG := hG))
     (hnxe : Cursor.next_we.specQ (GF := GF) (hG := hG))

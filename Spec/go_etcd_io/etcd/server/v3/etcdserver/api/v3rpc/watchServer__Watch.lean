@@ -52,7 +52,10 @@ pool, Scope r5 §4.3): the run returns what it holds. The send loop's reader tok
 borrows its own resources with its goroutine's thread token: the auth store's reader `R.E.RD` from a
 level-2 pool (`F₂ ∗ R.E.RD`: etcd's `I`, `F₂` its `leadTimeMu` reader) and a store reader token from a
 level-3 pool (`mvccReaders W.γm 1 ∗ F₃`: the run pool, `F₃` its `readMu` and `bemu` readers), both
-given back when it returns; so the levels need `4 ≤ threadBound`. -/
+given back when it returns; so the levels need `4 ≤ threadBound`. (k8s 7f-4 item 7) The stream's
+context is a weak one (`srvStreamIs`): its `Err()` is paid with `levelTok v3rpc.ctxErrLvl`, which
+the run lends the handler (given back) and each goroutine takes from its own thread token, so
+`5 ≤ threadBound`. -/
 abbrev v3rpc.watchServer.Watch.spec : Prop :=
   ∀ (p : Loc) (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) (st : GoInterface) (γs : v3rpc.StreamNames)
     (Up : Nat → v3rpc.WatchReqM → IProp GF) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
@@ -66,14 +69,14 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
       v3rpc.streamAuxTok γs ∗
-      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders ∧ 4 ≤ threadBound GF⌝ ∗
+      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders ∧ 5 ≤ threadBound GF⌝ ∗
       threadPool.isThreadPoolL N₂ 2 γ₂ iprop(F₂ ∗ R.E.RD) ∗
       threadPool.isThreadPoolL N₃ 3 γ₃ iprop(mvcc.api.mvccReaders W.γm 1 ∗ F₃) ∗
-      mvcc.api.mvccReaders W.γm 1 }}
+      mvcc.api.mvccReaders W.γm 1 ∗ levelTok v3rpc.ctxErrLvl }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
   {{ (err : GoInterface), RET #err; go_etcd_io.etcd.cache.v3.srvErrOk err ∗
       v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
-      mvcc.api.mvccReaders W.γm 1 }}
+      mvcc.api.mvccReaders W.γm 1 ∗ levelTok v3rpc.ctxErrLvl }}
 
 
 end spec

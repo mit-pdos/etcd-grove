@@ -132,7 +132,7 @@ theorem MainPartition.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in compaction mode
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Htb
-      HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
+      HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (fun h => nomatch h) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

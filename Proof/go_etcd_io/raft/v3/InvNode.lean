@@ -362,6 +362,28 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
     sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
   unfold sentMsg; exact ApiImpl.sentMsg_appFrom_impl γ N src st
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A message's `MsgSnap` facts, in the
+cluster `γ`** (persistent; raft's `snapToOk` at the cluster's raft names): a `MsgSnap` from node `id`
+is not to `id`, and, in raft's dynamic mode only, to a voter or learner of a committed log's
+configuration (in the static mode nothing more). Clients read it through
+`InvNodeRule.snapTo_confAt`. -/
+@[no_expose] def snapTo (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
+  snapToOk γ.raft id st
+
+instance snapTo_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
+    Persistent (snapTo (GF := GF) γ id st) := by
+  unfold snapTo; infer_instance
+
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A sent `MsgSnap`'s destination** (`snapToOk`):
+not its sender `src` (`send`'s panic), and, in raft's dynamic mode only, a voter or learner of a
+committed log's configuration (`snapDstOk`: the sender's tracker's when it sent it); see
+`InvNodeRule.snapTo_confAt`. -/
+theorem sentMsg_snapTo (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ snapTo γ src st := by
+  unfold sentMsg ApiImpl.sentMsg snapTo
+  iintro ⟨-, #H, -⟩
+  iapply isRaftMsg_snapTo $$ H
+
 /-- (raft-entsize [r3c], 2026-11-09) **A sent `MsgSnap` has no entries and no context**
 (`SentMsgShape`'s: raft builds it as `pb.Message{To, Type: MsgSnap, Snapshot}`,
 `maybeSendSnapshot`): what bounds the size of etcd's merged snapshot message, which keeps the rest
@@ -756,6 +778,8 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
   iprop(readyEnts γ rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
     ([∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts (`snapToOk`, `readyRest_snapTo`)
+    ([∗list] q ∈ ms, snapTo γ id q.st) ∗
     hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -844,7 +868,7 @@ theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
       readyRest γ N id rd st ce es h none ms ss := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   unfold readyRest readySnap
-  iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
+  iintro ⟨-, -, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
   ipureintro
   intro e0 he
   exact (Hb e0 he).2
@@ -875,13 +899,13 @@ theorem readyRest_indices (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
   cases L with
   | none =>
     unfold readySnap
-    iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
+    iintro ⟨-, -, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
     ipureintro
     intro e0 he
     exact (Hb e0 he).1
   | some l =>
     unfold readySnap
-    iintro ⟨-, -, -, -, -, -, ⟨%Hf, -⟩, -⟩
+    iintro ⟨-, -, -, -, -, -, -, ⟨%Hf, -⟩, -⟩
     ipureintro
     intro e0 he j e hj
     have HI := Hf.2.2.2.2.2.2.2.2.2
@@ -907,8 +931,22 @@ theorem readyRest_facts (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (
       ⌜ReadyRestFacts st ce es h L⌝ := by
   refine (persistent_entails_left ?_).trans .rfl
   unfold readyRest
-  iintro ⟨-, -, -, -, -, -, -, %H⟩
+  iintro ⟨-, -, -, -, -, -, -, -, %H⟩
   ipureintro; exact H
+
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `Ready`'s messages' `MsgSnap` facts**
+(`snapToOk`), at its receive, before the batch is durable: each `MsgSnap` is not to the node `id`
+and, in raft's dynamic mode only, to a voter or learner of a committed log's configuration; see
+`InvNodeRule.snapTo_confAt`. -/
+theorem readyRest_snapTo (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      [∗list] q ∈ ms, snapTo γ id q.st := by
+  refine (persistent_entails_left ?_).trans .rfl
+  unfold readyRest
+  iintro ⟨-, -, -, #H, -⟩
+  iexact H
 
 /-- (G4) **The hard state's commit index does not move back.** -/
 theorem readyRest_commit_mono (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -1331,10 +1369,10 @@ theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Name
       readyRest γ N id rd st ce es h L ms ss ∗
         ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
   unfold readyFits readyRest
-  iintro ⟨%Hf, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn, %Hrf⟩
+  iintro ⟨%Hf, Hes, Hm, Hms, #Hst, Hh, Hss, %Hx, Hsn, %Hrf⟩
   obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
   isplitl
-  · iframe Hes Hm Hms Hh Hss Hsn
+  · iframe Hes Hm Hms Hst Hh Hss Hsn
     ipureintro; exact ⟨⟨Lx, H1, Hhd, H3, HLx⟩, Hrf⟩
   · ipureintro
     intro e0 he0

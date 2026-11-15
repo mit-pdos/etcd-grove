@@ -177,6 +177,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   withTop_unfold : FuncUnfold withTop [] withTop.impl
   WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
   WithCreatedNotify_unfold : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
+  WithPrevKV_unfold : FuncUnfold WithPrevKV [] WithPrevKV.impl
   WithIgnoreLease_unfold : FuncUnfold WithIgnoreLease [] WithIgnoreLease.impl
   toLeaseTimeToLiveRequest_unfold : FuncUnfold toLeaseTimeToLiveRequest [] toLeaseTimeToLiveRequest.impl
   IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
@@ -382,6 +383,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.withTop_unfold
   Assumptions.WithProgressNotify_unfold
   Assumptions.WithCreatedNotify_unfold
+  Assumptions.WithPrevKV_unfold
   Assumptions.WithIgnoreLease_unfold
   Assumptions.toLeaseTimeToLiveRequest_unfold
   Assumptions.IsOptsWithPrefix_unfold

@@ -177,6 +177,23 @@ do not decode (it panics). Opaque, as mvcc's `kvEncode`: only the decoder's axio
 (`Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustUnmarshalMessage.lean`) says anything of it. -/
 opaque irrDecode : List w8 → Option IRRModel
 
+/-- The decoded request's strings that the auth store writes into a proto3 `string` field are
+valid UTF-8 (S0's F4, 2026-11-12): a `UserGrantRole`'s role, which `UserGrantRole` appends to the
+user's `Roles` (`authpb.User.roles`, a `repeated string`, which `UnsafePutUser`'s `Marshal`
+refuses otherwise). -/
+def irrUtf8 (rq : IRRModel) : Prop :=
+  ∀ ur, rq.authUserGrantRole = some ur → utf8Valid ur.2
+
+/-- **Trust boundary (the encoding): a decoded request's `UserGrantRole` role is valid UTF-8.**
+`AuthUserGrantRoleRequest.role` is a proto3 `string` field (`api/etcdserverpb/rpc.proto`), and
+protobuf-go (v2, the server pin's `etcdserverpb`) rejects on unmarshal a proto3 `string` that is
+not valid UTF-8, and `pbutil.MustUnmarshalMessage` then panics ("unmarshal should never fail"), so
+bytes `irrDecode` decodes (`some rq`: the decoder's axiom returns without panicking) hold only
+valid UTF-8 there. Go evidence: `TestAuthFixIrrDecodeRejectsInvalidUTF8` (the Freeze package of
+auth-schema-fix; `MustUnmarshalMessage` panics on an `InternalRaftRequest` whose
+`AuthUserGrantRole.role` is `"\xff"`, at the server pin). -/
+axiom irrDecode_utf8 (bs : List w8) (rq : IRRModel) (h : irrDecode bs = some rq) : irrUtf8 rq
+
 /-- **Trust boundary (semver).** Whether a version string parses (`semver.NewVersion` accepts
 it): `semver.MustParse` returns a version for it, and panics otherwise (its axiom,
 `Spec/github_com/Masterminds/semver/v3/MustParse.lean`). Opaque: the premise of a
@@ -561,13 +578,14 @@ theorem optReqIs_txnW (l : Loc) (rq : IRRModel) :
   | some tw => simp only [optReqIs, Option.map]; iapply txn.txnRequestIsW_plain
 
 /-- **The `*InternalRaftRequestWrapper` `r`** (not nil; `apply.Apply` builds it): its request
-`rq` and its `SkipRangeExecution` `skip`, read-only. -/
+`rq` and its `SkipRangeExecution` `skip`, read-only; (S0's F4) `rq` decoded, so its auth strings
+valid UTF-8 (`irrUtf8`, from `irrDecode_utf8`). -/
 def irrWrapperIs (r : Loc) (rq : IRRModel) (skip : Bool) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ ∃ p : Loc,
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper
       go!"InternalRaftRequest" r ↦□ p ∗ internalRaftRequestIs p rq ∗
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper
-      go!"SkipRangeExecution" r ↦□ skip)
+      go!"SkipRangeExecution" r ↦□ skip ∗ ⌜irrUtf8 rq⌝)
 
 instance irrWrapperIs_persistent (r : Loc) (rq : IRRModel) (skip : Bool) :
     Persistent (irrWrapperIs (GF := GF) r rq skip) := by

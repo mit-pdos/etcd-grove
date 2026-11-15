@@ -21,7 +21,7 @@ putget's, D19a's second kind):
   peer URL, the records `bootstrap` makes name it);
 * `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`, 2026-10-27);
 * putget's others: the raft wrapper's trust-boundary contracts (2026-10-30: no `rnStopOkStarted`),
-  `v3rpc.runsNoRequireLeader`.
+  (until 2026-11-13 also `v3rpc.runsNoRequireLeader`).
 -/
 module
 
@@ -152,11 +152,10 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
   unfold bootPremise; infer_instance
 
 /-- **The premises shared by the members** (putget's, but `bootstrap`'s contract): the raft
-wrapper's trust-boundary contracts and the deployment's
-`runsNoRequireLeader`. -/
+wrapper's trust-boundary contracts (until 2026-11-13 also the deployment's
+`runsNoRequireLeader`). -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    v3rpc.runsNoRequireLeader)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance

@@ -22,6 +22,8 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 # the cluster's allocation (one member, three members) and the closed theorems' adequacy
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
+# (auth3 A1, 2026-11-14) the three-member allocation with auth on
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 # the package's initialization

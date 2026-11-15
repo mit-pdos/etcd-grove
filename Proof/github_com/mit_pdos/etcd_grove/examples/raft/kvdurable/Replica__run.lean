@@ -275,7 +275,7 @@ theorem Replica.run.wp_proof
       ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G9 G10 G14 G17 Hin
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#HesO, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      icases Hrest with ⟨#HesO, Hmsl, Hmsok, -, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
@@ -1052,7 +1052,7 @@ theorem Replica.run.wp_proof
       ihave ⟨Hrest, %G7⟩ := readyRest_snap _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G7
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#HesO, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      icases Hrest with ⟨#HesO, Hmsl, Hmsok, -, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩

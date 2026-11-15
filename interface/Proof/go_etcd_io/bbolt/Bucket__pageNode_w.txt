@@ -2,8 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.pageNode_w.wp_proof [hos : HasExt osFsExt] (hpage : bbolt.Tx.page.spec) (hRP :
-    bbolt.internal.common.InBucket.RootPage.spec) : bbolt.Bucket.pageNode_w.spec
+theorem bbolt.Bucket.pageNode_w.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hpage : bbolt.Tx.page.spec) (hRP : bbolt.internal.common.InBucket.RootPage.spec) :
+    bbolt.Bucket.pageNode_w.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.pageNode_w.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (id : w64),
     X.t.bs !! bl = some B →
@@ -38,8 +39,9 @@ theorem bbolt.Bucket.pageNode_w.wp_proof [hos : HasExt osFsExt] (hpage : bbolt.T
                             (intoVal id))
                           {{ Φ }}
 
-theorem bbolt.Bucket.pageNode_w.wp_proofQ [hos : HasExt osFsExt] (hpage : bbolt.Tx.page.spec) (hRP :
-    bbolt.internal.common.InBucket.RootPage.spec) : bbolt.Bucket.pageNode_w.specQ
+theorem bbolt.Bucket.pageNode_w.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hpage : bbolt.Tx.page.spec) (hRP : bbolt.internal.common.InBucket.RootPage.spec) :
+    bbolt.Bucket.pageNode_w.specQ
   -- `Perennial.EtcdGrove.bbolt.Bucket.pageNode_w.specQ`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (id : w64),
     X.t.bs !! bl = some B →

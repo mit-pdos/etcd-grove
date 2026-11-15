@@ -57,10 +57,11 @@ abbrev Serve.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk cfg.Logger' ∗
       ⌜cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0 ∧
-        v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ E.authMode ≠ .any⌝ ∗
+        v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ E.authMode ≠ .any ∧
+        threadBound GF ≤ 2 ^ 28⌝ ∗
       netAddrFree (GF := GF) addr ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-      srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗ v3rpc.runsNoRequireLeader ∗
+      srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
         grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗

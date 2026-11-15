@@ -51,10 +51,10 @@ theorem rafthttp.streamReader.start.wp_proof
   wp_apply hBackground
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
-  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcf, #Hctx'⟩
+  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcf, #Hctx', #Hbgc⟩
   (try wp_auto)
   ipersist Hdone; ipersist Herrc; ipersist Hctx; ipersist Hcancel
-  ihave #Hfixed := srFixed_intro Rh lid pid γd cr ctx' _ $$ H0 Hctx Hctx'
+  ihave #Hfixed := srFixed_intro Rh lid pid γd cr ctx' _ $$ H0 Hctx Hctx' Hbgc
   wp_apply wp_fork $$ [Hdb]
   · (try wp_auto)
     wp_apply hRun Rh lid pid γd cr ty Hmem Hnp $$ [Hdb]

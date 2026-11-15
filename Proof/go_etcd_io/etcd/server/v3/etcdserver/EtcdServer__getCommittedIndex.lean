@@ -62,8 +62,8 @@ theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spe
   wp_auto
   iapply HΦ
   iframe Ho
-  iunfold committedAtLeast
-  iframe Hlb
+  ihave #Hc := committedAtLeast_of_lb γr _ $$ Hlb
+  iframe Hc
   ipureintro; exact Heq
 
 end proof

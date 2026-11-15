@@ -42,8 +42,7 @@ def mvcc.api.WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.api.isMvccWatchStream (interface.mkOk ty v) γ ι ∗
               mvcc.api.mvccReaders γ 1 ∗
-                (⌜ctx = interface.mk context.todoCtx.ty (intoVal (zero_val context.todoCtx))⌝ ∨
-                    context.isContext ctx cd ∗ trace.spanCtxOk ctx) ∗
+                (⌜ctx = interface.mk context.todoCtx.ty (intoVal (zero_val context.todoCtx))⌝ ∨ trace.spanCtxOk ctx) ∗
                   ownSlice key kk DFrac.discard ∗
                     ownSlice endk e DFrac.discard ∗
                       mvcc.filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ (⌜e ≠ [] ∧ ¬go.GoStringLt kk e⌝ ∨ au) -∗
@@ -157,7 +156,7 @@ def mvcc.api.wrespIs (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) 
   iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
       ∃ ps,
         ownSlice v.Events' ps DFrac.discard ∗
-          ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evIs x.fst x.snd)
+          ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evOwn x.fst x.snd)
 
 def mvcc.api.shapes.law : Prop :=
   (∀ (kv : GoInterface) (γ : mvcc.api.MvccName),

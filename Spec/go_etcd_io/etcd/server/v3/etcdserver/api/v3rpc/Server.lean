@@ -33,7 +33,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`Server(s, nil, nil, gopts...)`** (no TLS, no extra interceptor; `gopts` neutral options,
 read-only) returns a `*grpc.Server` being built (`grpcSrvNew`) with etcd's unary chain
 `[il, im, iu]` (`newLogUnaryInterceptor(s)`'s, grpc-prometheus's, `newUnaryInterceptor(s)`'s) and
-stream chain `[ims, is]` (grpc-prometheus's, `newStreamInterceptor(s)`'s), all transparent, and
+stream chain `[ims, is]` (grpc-prometheus's, transparent; `newStreamInterceptor(s)`'s, weakening the
+context, `srvStreamInterceptorWOk`), the unary interceptors transparent, and
 etcd's services registered: among them the KV service's `Put`, `Range`, `DeleteRange`, `Txn` on
 the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` stream on the
 `*watchServer` `pw` (`watchSReg`), and the Auth service's five admin methods on the `*AuthServer`
@@ -47,6 +48,8 @@ abbrev v3rpc.Server.spec : Prop :=
   v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
+  -- the thread bound etcd's stream interceptor's cancellable contexts need (k8s 7f-4 item 7)
+  threadBound GF ≤ 2 ^ 30 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗
@@ -69,7 +72,7 @@ abbrev v3rpc.Server.spec : Prop :=
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
       srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-      srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+      srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s }}
 
 end spec

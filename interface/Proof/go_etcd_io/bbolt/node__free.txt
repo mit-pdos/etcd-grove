@@ -2,24 +2,24 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem Perennial.osFd.congr_simp [HasExt osFsExt] [L : GooseLocalGS GF] (fd fd✝ : w64) (e_fd : fd =
-    fd✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (d d✝ : OsFd) (e_d : d = d✝) : osFd fd dq d = osFd fd✝
-    dq✝ d✝
+theorem bbolt.wdbW.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ : bbolt.BC) (e_K
+    : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb)
+    (e_w : w = w✝) : bbolt.wdbW K tx v w = bbolt.wdbW K✝ tx✝ v✝ w✝
 
-theorem bbolt.wdbW.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx tx✝ : Loc)
-    (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb) (e_w : w = w✝) :
-    bbolt.wdbW K tx v w = bbolt.wdbW K✝ tx✝ v✝ w✝
+theorem Perennial.Fs.osFd.congr_simp [ExtSemantics Fs.fsExt] [HasExt Fs.fsExt] [L : GooseLocalGS GF]
+    (fd fd✝ : w64) (e_fd : fd = fd✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (d d✝ : Fs.OsFd) (e_d : d =
+    d✝) : Fs.osFd fd dq d = Fs.osFd fd✝ dq✝ d✝
 
-theorem bbolt.wBytes.congr_simp [hos : HasExt osFsExt] (p p✝ : GoString) (e_p : p = p✝) (W W✝ : List
-    Nat) (e_W : W = W✝) (wb wb✝ : Nat → List w8) (e_wb : wb = wb✝) (size size✝ : Nat) (e_size : size
-    = size✝) : bbolt.wBytes p W wb size = bbolt.wBytes p✝ W✝ wb✝ size✝
+theorem bbolt.wBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ : bbolt.BFile)
+    (e_p : p = p✝) (W W✝ : List Nat) (e_W : W = W✝) (wb wb✝ : Nat → List w8) (e_wb : wb = wb✝) (size
+    size✝ : Nat) (e_size : size = size✝) : bbolt.wBytes p W wb size = bbolt.wBytes p✝ W✝ wb✝ size✝
 
-theorem bbolt.metaOsBytes.congr_simp [hos : HasExt osFsExt] (p p✝ : GoString) (e_p : p = p✝) (dq dq✝
-    : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C = C✝) : bbolt.metaOsBytes p dq C =
-    bbolt.metaOsBytes p✝ dq✝ C✝
+theorem bbolt.metaOsBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ :
+    bbolt.BFile) (e_p : p = p✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C
+    = C✝) : bbolt.metaOsBytes p dq C = bbolt.metaOsBytes p✝ dq✝ C✝
 
-theorem bbolt.node.free.wp_proof [hos : HasExt osFsExt] (hTxid :
-    bbolt.internal.common.Meta.Txid.spec) (hPage : bbolt.Tx.page.spec) (hFree :
+theorem bbolt.node.free.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hTxid
+    : bbolt.internal.common.Meta.Txid.spec) (hPage : bbolt.Tx.page.spec) (hFree :
     bbolt.internal.freelist.Interface.Free.spec) : bbolt.node.free.spec
   -- `Perennial.EtcdGrove.bbolt.node.free.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (bl n : Loc) (rn : bbolt.NRec),

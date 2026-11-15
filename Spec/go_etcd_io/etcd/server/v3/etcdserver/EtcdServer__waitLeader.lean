@@ -36,15 +36,19 @@ its peer URLs `urls` (read-only) and `nil`; or `nil` and `ErrStopped` or `ErrNoL
 (`RaftCluster.Member`: `m.Clone()`, a fresh copy, its `PeerURLs` slice copied too) or `nil`; while
 `nil` it waits an election on `time.After`, `s.stopping` (`ErrStopped`) or `ctx.Done()`
 (`ErrNoLeader`), then asks again; a member with no peer URL gives `ErrNoLeader`. The member is
-fresh and nothing writes it after, so it may be shared read-only. (k8s 7f-4, T-f) The context is a
-stream handler's weak one (`srvCtxWeak`, which every `isContext` is: `srvCtxWeak_of_isContext`): it
-only selects on `ctx.Done()` (fork `673da07c8f` `server/etcdserver/v3_server.go:785-803`), never
-calls `Err()`. -/
+fresh and nothing writes it after, so it may be shared read-only. (k8s 7f-4, T-f; since T-j
+`v3rpc.ctxDoneErr`, which every `srvCtxWeak` and every `isContext` is) The context may be a stream
+handler's weak one: it only selects on `ctx.Done()` (fork `673da07c8f` `server/etcdserver/v3_server.go:785-803`), never
+calls `Err()`. (k8s 7f-4, T-f') `ctxDoneErr`'s (before T-j `srvCtxWeak`'s) `Err` clauses take a level token
+(`levelTok v3rpc.ctxErrLvl`), which this call never needs, since it never calls `Err()`. (k8s 7f-4, Addendum T-j) The premise is
+`v3rpc.ctxDoneErr ctx cd` (weaker than `srvCtxWeak`: `v3rpc.ctxDoneErr_of_srvCtxWeak`), which
+`LeaseRenew`'s `context.WithTimeout` child also is (`v3rpc.wp_WithTimeout_weak`,
+`v3rpc.ctxDoneErr_of_child`): the call only selects on `ctx.Done()`. -/
 abbrev EtcdServer.waitLeader.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvCtxWeak ctx cd }}
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ v3rpc.ctxDoneErr ctx cd }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"waitLeader"))
       (Val #(GoInterface.ok ctx)))
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);

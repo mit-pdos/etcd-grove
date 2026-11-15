@@ -159,7 +159,7 @@ local macro "msg_live" : tactic => `(tactic| (
 set_option hygiene false in
 /-- A batch's end: flushed, its bytes counted, the counters reset. -/
 local macro "msg_flush" : tactic => `(tactic| (
-  (wp_apply hFlush (raftHttpNet Rh) _ wi a R γk _ _ rfl $$ [HWr] as HWr; iexact HWr)
+  (wp_apply hFlush (raftHttpNet Rh) _ wi a R γk (some _) _ rfl rfl $$ [HWr] as HWr; iexact HWr)
   (try wp_auto)
   wp_apply hIDStringPtr _ DFrac.discard pid $$ [] as %ps1 ⟨-, %Hps1⟩
   · iframe #
@@ -335,7 +335,7 @@ local macro "run_hb" : tactic => `(tactic| (
   | nil =>
     obtain ⟨bs, Hf, rfl⟩ := Hok rfl
     wp_auto
-    (wp_apply hFlush (raftHttpNet Rh) _ wi a R γk _ _ rfl $$ [HWr] as HWr; iexact HWr)
+    (wp_apply hFlush (raftHttpNet Rh) _ wi a R γk (some _) _ rfl rfl $$ [HWr] as HWr; iexact HWr)
     (try wp_auto)
     wp_apply hIDStringPtr _ DFrac.discard pid $$ [] as %ps1 ⟨-, %Hps1⟩
     · iframe #

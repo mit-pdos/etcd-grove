@@ -30,11 +30,11 @@ theorem rafthttp.addRemoteFromRequest.wp_proof
     rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG) := by
   intro Rh lid ti r R rd
   wp_start as ⟨#HR, %Hfrom, #HAR⟩
-  obtain ⟨f, Hf, Hfm, Hfne, Hfu⟩ := Hfrom
   iunfold http.reqAt at HR
-  icases HR with ⟨-, -, ⟨%hm, #HHm, #Hhs⟩, -, -, -⟩
+  icases HR with ⟨-, -, ⟨%hm, %hs, #HHm, #Hhs, %Hview⟩, -, -, -⟩
+  obtain ⟨f, Hf, Hfm, Hfne, Hfu⟩ := fromOkAt_view Rh lid R.hdr hs Hview Hfrom
   wp_auto
-  wp_apply hHeaderGetPtr _ hm R.hdr _ $$ []
+  wp_apply hHeaderGetPtr _ hm hs _ $$ []
   · iframe #
   ihave #Htyp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
   · iPkgInit
@@ -42,7 +42,7 @@ theorem rafthttp.addRemoteFromRequest.wp_proof
   obtain ⟨hfid, hferr⟩ := Hid f Hf
   subst hfid hferr
   wp_auto
-  wp_apply hHeaderGetPtr _ hm R.hdr _ $$ []
+  wp_apply hHeaderGetPtr _ hm hs _ $$ []
   · iframe #
   (try wp_auto)
   wp_if_destruct

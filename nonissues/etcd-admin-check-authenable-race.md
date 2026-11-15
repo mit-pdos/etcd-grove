@@ -25,6 +25,17 @@ auth flag on its own (`server/auth/store.go:1072-1074`, `916-918`).
 - With auth on at the second read, `IsAdminPermitted` checks that empty user (`ErrUserEmpty`) or the
   certificate's user.
 
+**The watch's permission check (added 2026-11-14):** the same race refuses a `Watch` create.
+`serverWatchStream.isWatchPermitted` calls `AuthInfoFromCtx` and then `IsRangePermitted`
+(`server/etcdserver/api/v3rpc/watch.go:240-248`), and `isOpPermitted` reads the flag again
+(`server/auth/store.go:864`).
+- With auth off at `AuthInfoFromCtx`'s read (`store.go:1073`), it returns no user from the token, and
+  `isWatchPermitted` substitutes the empty `AuthInfo{}` (or the TLS certificate's user, through the
+  server's fallback).
+- With auth on at `isOpPermitted`'s read, the empty `AuthInfo{}` (revision 0) is refused with
+  `ErrUserEmpty`, although the stream carried a valid token. The watch is not created; the client
+  sees a canceled create response and may retry.
+
 ## Proof
 
 No: the specs state the behavior. W0's `State.adminDenied who` (`api/v3/Model.lean`) admits a
@@ -33,7 +44,10 @@ no user (`ErrUserEmpty`) only. 2a's `V3rpc.adminDenied σ who tls` also admits t
 certificate's principal (under `--client-cert-auth`), and its law `adminDenied_of` gives W0's
 denial when `tls` is none or `who` (RR-grpc-auth RR2). `AuthAdmin.isPermitted.spec` returns that
 denial, and `kvServer.Compact` fires it as the model's
-compact answer.
+compact answer. The watch's check: `serverWatchStream.isWatchPermitted.spec`'s refusal reason
+`permWhy` admits the anonymous principal `AuthInfo{}` refused with `ErrUserEmpty` beside
+`auth.noPrincipalFrom`, whose second case is the flag read `false` at a state no older than the
+caller's bound (`AuthWhy.lean`).
 
 ## Notes
 

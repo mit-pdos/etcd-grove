@@ -41,8 +41,10 @@ theorem EtcdServer.UserAdd.wp_proof
   iunfold bcryptCostOk at Hcost
   ihave #Hopts' := Hopts
   iunfold auth.userOptsAt at Hopts'
-  icases Hopts' with (%Hon | ⟨%Honn, %ms, %uf, %sc, #Hom⟩)
-  · obtain ⟨rfl, rfl⟩ := Hon
+  icases Hopts' with ⟨%ou, -, Hopts'⟩
+  iunfold auth.userOptsIs at Hopts'
+  icases Hopts' with (%Hon | ⟨%Honn, %ms, %uf, %sc, %u, -, #Hom, -⟩)
+  · obtain ⟨rfl, rfl, -⟩ := Hon
     wp_auto
     wp_apply wp_string_to_bytes pw as %psl ⟨Hpsl, -⟩
     (try wp_auto)

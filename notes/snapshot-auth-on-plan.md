@@ -886,7 +886,11 @@ The theorem is safety only (no panic); that a snapshot is in fact sent is the Go
 `linkv3p`'s. Why not auth on in `linkv3p`: porcupine's model would need permissions (`authkv`'s
 model is the largest example proof), and simple tokens are each member's own while `linkv3p`
 picks a member per operation, so its proof would run through the client's re-authentication under
-partitions; Kubernetes, the main user, runs with auth off.
+partitions; Kubernetes, the main user, runs with auth off. (**Corrected 2026-11-14**,
+`notes/auth3-scope.md` §2.2: the token map is per member, but its contents are replicated: the
+`Authenticate` entry carries the token's prefix and every member that applies it assigns the same
+token. A member refuses a token only when it has not applied the entry, got past it by a snapshot,
+restarted, or let the token expire, so failover re-authenticates only in those cases.)
 
 ## Change log after the freeze
 

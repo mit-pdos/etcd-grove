@@ -8,6 +8,15 @@ theorem etcdstart.memberBoot_cmp [v3rpc_sem :
     w64) (cmp : Bool) (m : lease.Mode := lease.Mode.none) : etcdstart.memberBoot γ ctxs ρ E₀ Φs id
     cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ etcdstart.memberBoot γ ctxs ρ E₀ Φs id cmp m
 
+theorem etcdstart.srvLeaseRd_of_srvInv [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (E : apply.AEnv GF) (m :
+    lease.Mode) (on : Bool) : lease.srvInv on s E m ⊢ etcdstart.srvLeaseRd s E m
+
+theorem etcdstart.srvLeaseRd_of_srvInvAt [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (E : apply.AEnv GF) (on :
+    Bool) (σ₀ : lease.LSnap) : lease.srvInvAt on s E lease.Mode.none σ₀ ⊢ etcdstart.srvLeaseRd s E
+    lease.Mode.none
+
 def etcdstart.grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × GoFunc ×
     GoInterface)) : IProp GF :=
   iprop(∃ ql pl lcid lmid,
@@ -33,8 +42,7 @@ def etcdstart.memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
                       srvReadyCloser s ∗
                         srvNetMember γn s id τ ∗
                           srvTrTok γn τ ∗
-                            (if served = true then True
-                              else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+                            etcdstart.memberPeerServeRes γn τ served ∗
                               etcdstart.srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 def etcdstart.cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
@@ -56,7 +64,7 @@ theorem etcdstart.grpcLeaseUp_persistent (s : Loc) (A : v3rpc.KVAns GF) (regs : 
     GoFunc × GoInterface)) : Persistent (etcdstart.grpcLeaseUp s A regs)
 
 def etcdstart.srvLeaseRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) : IProp GF :=
-  iprop(∃ on, lease.srvInv on s E m)
+  iprop(∃ on, lease.srvInv on s E m ∨ ⌜m = lease.Mode.none⌝ ∗ ∃ σ₀, lease.srvInvAt on s E m σ₀)
 
 theorem etcdstart.commonPremises_persistent : Persistent etcdstart.commonPremises
 
@@ -106,7 +114,7 @@ def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
                       (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
                         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
-                            srvStreamInterceptorOk is iprop(True) ∗
+                            srvStreamInterceptorWOk is iprop(True) ∗
                               srvLgReader s ∗
                                 srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
@@ -148,8 +156,13 @@ def etcdstart.grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
                       (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
                         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
-                            srvStreamInterceptorOk is iprop(True) ∗
+                            srvStreamInterceptorWOk is iprop(True) ∗
                               srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr)
+
+theorem etcdstart.srvLeaseRd_srvInv [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (E : apply.AEnv GF) (m :
+    lease.Mode) (hm : m ≠ lease.Mode.none) : etcdstart.srvLeaseRd s E m ⊢ ∃ on, lease.srvInv on s E
+    m
 
 def etcdstart.memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (m : lease.Mode := lease.Mode.none) : IProp GF :=
@@ -176,7 +189,7 @@ theorem etcdstart.memberBootOn_cmp [v3rpc_sem :
     etcdstart.memberBootOn γ ctxs ρ E₀ Φs id cmp
 
 def etcdstart.commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗ v3rpc.runsNoRequireLeader)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 def etcdstart.bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) : IProp
@@ -205,6 +218,9 @@ def etcdstart.memberReadN : Nat :=
 def etcdstart.httpURL (host : GoString) : net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
     RawQuery' := [], RawPath' := [], RawFragment' := [], ForceQuery' := false, OmitHost' := false }
+
+def etcdstart.memberPeerServeRes (γn : NetNames GF) (τ : SrvTr GF) (served : Bool) : IProp GF :=
+  if served = true then iprop(True) else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ
 
 theorem etcdstart.memberUp_stop [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (hRS :
@@ -266,7 +282,7 @@ def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
                     (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
                       srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                         srvStreamInterceptorOk ims iprop(True) ∗
-                          srvStreamInterceptorOk is iprop(True) ∗
+                          srvStreamInterceptorWOk is iprop(True) ∗
                             srvLgReader s ∗
                               srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 

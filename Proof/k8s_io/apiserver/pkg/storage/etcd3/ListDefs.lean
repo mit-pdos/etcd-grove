@@ -152,6 +152,18 @@ def rangeStreamOff : IProp GF :=
 instance rangeStreamOff_persistent : Persistent (rangeStreamOff (GF := GF)) := by
   unfold rangeStreamOff; infer_instance
 
+/-- **The default gate has `WatchList` on** (k8s 7f-5, T5-c; persistent): the gate `DefaultFeatureGate`
+holds had `Set("WatchList=true")` succeed, so that a watch-list request gets its initial events and the
+initial-events-end bookmark (`watcher.go:193-243`). Producer: the driver's `watchList`, after
+`noStreaming`, before `etcd3.New`; its consumer is the store's watch (7f-5a). -/
+def watchListOn : IProp GF :=
+  iprop(∃ g : GoInterfaceOk,
+    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
+    k8sfeature.featureOn g go!"WatchList")
+
+instance watchListOn_persistent : Persistent (watchListOn (GF := GF)) := by
+  unfold watchListOn; infer_instance
+
 /-- **`newItemFunc` makes a fresh zero object** (persistent; Draft §3.2), as `NewFunc()` does
 (`ObjSpec.newObj`). -/
 def newItemOk (S : ObjSpec GF Obj) (f : GoFunc) : IProp GF :=

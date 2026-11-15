@@ -43,11 +43,15 @@ once and returns its result if it is a `Span`, else `noopSpanInstance`. `noopSpa
 returns `nil` (not a `Span`: the no-op span) or a span (`isSpan`), which is returned. The
 `isContext` arm alone (before the fix) was false: `isContext` specifies `Value` only at
 `&cancelCtxKey`, and a program's own context type can answer otel's key with a span whose `End`
-panics. -/
+panics. (k8s 7f-4, Addendum T-g, Q2; decided by etcd-grove-81, 2026-11-12) The second arm is
+`trace.spanCtxOk ctx` alone, without `isContext ctx cd`: `SpanFromContext` calls no other method of
+`ctx` (`examples/premisefix/streamctx` `TestSpanFromContextValueOnly`: a context whose `Deadline`,
+`Done` and `Err` panic works), and etcd's stream handlers pass a weak context (`srvCtxWeak`). The
+binder `cd` is kept, unused. -/
 abbrev trace.SpanFromContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace ∗
-      (⌜ctx = trace.todoCtx⌝ ∨ (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) }}
+      (⌜ctx = trace.todoCtx⌝ ∨ trace.spanCtxOk ctx) }}
     (App (Val (@! trace.SpanFromContext)) (Val #(GoInterface.ok ctx)))
   {{ (sp : GoInterface), RET #sp; trace.isSpan sp }}
 

@@ -18,13 +18,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic go_etcd_io.bbolt
 
 section cells
 set_option linter.unusedSectionVars false
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 omit hos in
@@ -123,18 +125,18 @@ section agree
 set_option linter.unusedSectionVars false
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable {s : Stuckness} {E : CoPset}
 
-theorem osBytes_cons' (p : GoString) (off : Nat) (dq : DFrac) (x : w8 × Bool)
-    (xs : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (x :: xs) ⊣⊢ osByte (GF := GF) p off dq x ∗ osBytes p (off + 1) dq xs := by
+theorem osBytes_cons' (p : BFile) (off : Nat) (dq : DFrac) (x : ByteG)
+    (xs : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (x :: xs) ⊣⊢ osByte (GF := GF) p.ino off dq x ∗ osBytes p.ino (off + 1) dq xs := by
   unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
 
-theorem osBytes_nil' (p : GoString) (off : Nat) (dq : DFrac) :
-    osBytes (GF := GF) p off dq [] ⊣⊢ emp := by
+theorem osBytes_nil' (p : BFile) (off : Nat) (dq : DFrac) :
+    osBytes (GF := GF) p.ino off dq [] ⊣⊢ emp := by
   unfold osBytes; exact bytesG_nil _ _ _ _
 
 omit hos in
@@ -148,13 +150,13 @@ theorem cellsR_cons' (base : Loc) (lo n : Nat) (vf : Nat → val) :
 
 /-- **Mapped cells `[lo, lo + xs.length)` hold the file's bytes `xs`**, of which the caller holds a
 fraction, given the file's `OsMeta` (around any step `e`). -/
-theorem cellsR_agree_bytes (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac)
+theorem cellsR_agree_bytes (e : Expr) (htv : toVal e = none) (p : BFile) (dqm : DFrac)
     (m : OsMeta) (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ∀ (xs : List (w8 × Bool)) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
-    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm (some m) -∗ osBytes (GF := GF) p lo dqb xs -∗
+    ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p.ino dqm m -∗ osBytes (GF := GF) p.ino lo dqb xs -∗
       cellsR (GF := GF) base lo xs.length vf -∗
-      (osMeta (GF := GF) p dqm (some m) -∗ osBytes (GF := GF) p lo dqb xs -∗
+      (osMeta (GF := GF) p.ino dqm m -∗ osBytes (GF := GF) p.ino lo dqb xs -∗
         cellsR (GF := GF) base lo xs.length (bytesVf lo (xs.map Prod.fst)) -∗
         WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
@@ -169,7 +171,7 @@ theorem cellsR_agree_bytes (e : Expr) (htv : toVal e = none) (p : GoString) (dqm
     icases (osBytes_cons' _ _ _ _ _).1 $$ Hb with ⟨Hx, Hb⟩
     simp only [List.length_cons]
     icases (cellsR_cons' _ _ _ _).1 $$ Hc with ⟨Hcx, Hc⟩
-    iapply osCell_agree e htv p dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
+    iapply osCell_agree e htv p.ino dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
       $$ Hinv Hm Hx Hcx
     iintro %Hv Hm Hx Hcx
     iapply cellsR_agree_bytes e htv p dqm m base len hb dqb hE Φ xs (lo + 1) vf (by omega)

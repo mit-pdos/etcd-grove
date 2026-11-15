@@ -60,7 +60,7 @@ theorem EtcdServer.setCommittedIndex.wp_proof :
   iapply HΦ
   iunfold srvCommittedOwn
   iframe Hown
-  iunfold committedAtLeast
+  iunfold committedAtLeast; ileft
   iexact Hlb
 
 end proof

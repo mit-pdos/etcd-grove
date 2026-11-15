@@ -78,8 +78,9 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
     (A₀ : List EntryModel) (r : apply.RestM),
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- the auth-on-only rows, both cases': one time receipt under the receipts' bound
-      (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗
+      -- the auth-on-only rows, both cases': one time receipt under the receipts' bound, and
+      -- (auth-schema-fix F1) three write-back tokens of the tie's backend, an admin step's
+      (if E.authOn then iprop(⧗ 1 ∗ apply.adminWTs E) else iprop(True)) ∗
       ⌜E.authOn = true → receiptBound GF ≤ 2 ^ 48⌝ ∗
       (if v3 then iprop(
         isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗

@@ -118,6 +118,10 @@ theorem mtypeOf_resp_ne_snap (t : w32) (H : RespType t) : mtypeOf t ≠ some .sn
 theorem resp_ne_MsgApp (t : w32) (H : RespType t) : t ≠ MsgApp := by
   rcases H with H | H | H <;> rw [H] <;> decide
 
+/-- (restart S7.3) A response is not a `MsgSnap`. -/
+theorem resp_ne_MsgSnap (t : w32) (H : RespType t) : t ≠ MsgSnap := by
+  rcases H with H | H | H <;> rw [H] <;> decide
+
 /-- The messages a `Ready` hands out at `readyDq` that are responses are at half. -/
 theorem readyDq_resp (st : MsgSt) (h : RespType st.msg.Type') :
     readyDq st = DFrac.own (1 : Qp).half := by
@@ -251,7 +255,9 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
     -- (raft-final, 2026-10-29: the design's §2.6) the queues' facts (`ownRaftPhys`'s `Hxf`), with
     -- the transfer records' witnesses (`xfW`)
-    (Hxf : XfOk id s (ms1 ++ ms2)) :
+    (Hxf : XfOk id s (ms1 ++ ms2))
+    -- (restart S7.3, 2026-11-14) its `MsgSnap`s not to the node
+    (Hsn : ∀ q ∈ l, SnapNotSelf id q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCerts γ (ms1 ++ ms2) -∗ xfW γ s -∗
       [∗list] q ∈ l, isRaftMsg γ id q.st := by
   induction l with
@@ -263,8 +269,9 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List
     isplitr
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0) (Hxf.2.1 q Hq0)
-        (Hxf.2.2.1 q Hq0) $$ Ho Hq Hxw
-    · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
+        (Hxf.2.2.1 q Hq0) (Hsn q List.mem_cons_self) $$ Ho Hq Hxw
+    · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
+        (fun q' hq' => Hsn q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
 /-- (2026-11-01, durability stage II (k), fix C) `outboxRelP_isRaftMsgs` of messages to others, from
 the outbox's messages to others' facts (a leader's, R9). -/
@@ -287,9 +294,60 @@ theorem outboxRelP_isRaftMsgs_ns (γ : RaftNames) (id : w64) (s : NState) (o : L
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg_gen γ id s o ms1 ms2 q (fun x => iprop(⌜x.dst ≠ id⌝ -∗ isMessage γ x))
         (fun x hx => by iintro #H; iapply H; ipureintro; rw [hx]; exact Hq1) Hp Hq0 Hns
-        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) $$ Ho Hq Hxw
+        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) (fun _ => Hq1) $$ Ho Hq Hxw
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
         (fun q' hq' => Hto q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
+
+/-- (restart S7.3, 2026-11-14) **The handed-out messages' `MsgSnap` facts** (`snapToOk`), from the
+outbox's snapshots' destination facts (`ownRaftGhost_snap_keep`: outright, not behind the batch's
+fragments) and the messages' destinations (not the node: `QOk`, `send`'s panic). -/
+theorem outboxRelP_snapTo (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2 : List QMsg)
+    (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
+    (Hto : ∀ q ∈ l, q.st.msg.To' ≠ id) :
+    ([∗list] x ∈ o, ⌜x.ty = .snap⌝ -∗ snapDstOk (GF := GF) γ x.dst) ⊢
+      [∗list] q ∈ l, snapToOk γ id q.st := by
+  obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
+  have hsub : ∀ q, q ∈ ms1 ++ ms2 → ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
+    intro q Hq
+    have hs : ∀ (l : List QMsg) (as_ : List (Option Msg)),
+        List.Forall₂ (fun q a => msgAbs q.st a) l as_ → q ∈ l →
+        ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ absList as_ := by
+      intro l as_ hf hm
+      induction hf with
+      | nil => cases hm
+      | @cons q' a' l' as' ha hf ih =>
+        rcases List.mem_cons.1 hm with rfl | hm
+        · refine ⟨a', ha, fun x hx => ?_⟩
+          cases a' with
+          | none => cases hx
+          | some y =>
+            simp only [Option.toList_some, List.mem_singleton] at hx
+            subst hx; simp [absList]
+        · obtain ⟨a, h1, h2⟩ := ih hm
+          refine ⟨a, h1, fun x hx => ?_⟩
+          have := h2 x hx
+          cases a' <;> simp_all [absList]
+    rcases List.mem_append.1 Hq with hm | hm
+    · obtain ⟨a, h1, h2⟩ := hs ms1 as1 Hf1 hm
+      exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_left _ (h2 x hx))⟩
+    · obtain ⟨a, h1, h2⟩ := hs ms2 as2 Hf2 hm
+      exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_right _ (h2 x hx))⟩
+  iintro #Hs
+  iapply BigSepL.bigSepL_forall_elim
+  iintro %k %q %Hk
+  have Hq : q ∈ l := List.mem_of_getElem? Hk
+  obtain ⟨a, Ha, Hin⟩ := hsub q (Hsub q Hq)
+  unfold snapToOk
+  iintro !> %Hty
+  isplitr
+  · ipureintro; exact Hto q Hq
+  rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, -, rfl⟩
+  · rw [Hty, mtypeOf_MsgSnap] at Hn; cases Hn
+  · rw [Hty, mtypeOf_MsgSnap] at Hty'; cases Hty'; exact absurd rfl Hne
+  · ihave #Hx := (BigSepL.bigSepL_mem (Φ := fun x => iprop(⌜x.ty = .snap⌝ -∗ snapDstOk (GF := GF) γ x.dst))
+      (Hin (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) (by simp))) $$ Hs
+    ihave #Hd := Hx $$ %rfl
+    iExactEq Hd; rfl
 
 /-- A hard state that may be `nil` and is not empty is a read-only one. -/
 theorem hsRO_of_hsOpt (p : Loc) (h : HardStateM)
@@ -349,7 +407,8 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
             iintro #Hfr %ty %Hty
             ihave #Ho' := bigSepL_wand_pers (durFrags (GF := GF) γ id W) (isMessage γ) o $$ Ho Hfr
             ihave #Hr := outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
-              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) $$ Ho' Hqq Hxw
+              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0)
+              (fun hs => absurd hs (resp_ne_MsgSnap _ Hresp)) $$ Ho' Hqq Hxw
             ihave H := isRaftMsg_isMessage γ id q.st ty Hty
               (fun hs => mtypeOf_resp_ne_snap _ Hresp (hs ▸ Hty)) $$ Hr
             rw [Hsm.2.2.2.2.1, Hsm.2.2.2.2.2.1]

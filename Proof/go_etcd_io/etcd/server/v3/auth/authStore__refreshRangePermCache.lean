@@ -126,7 +126,7 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
       dsimp only
       icases Huser with ⟨%ur, %Hur, Huser⟩
       iunfold ownUser at Huser
-      icases Huser with ⟨%ms, %nmsl, %pw, %rs, %o, %uf, %sc, Hu, #Hnm, -, -, -⟩
+      icases Huser with ⟨%ms, %nmsl, %pw, %rs, %o, %sc, Hu, #Hnm, -, -, -⟩
       obtain ⟨Hurn, -, -⟩ := Hur
       have Hbnd : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z usl.len := ⟨Hk.1, hlt⟩
       (try wp_auto)

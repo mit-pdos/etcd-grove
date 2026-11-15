@@ -634,7 +634,8 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     isplitr
     · ipureintro
       refine ⟨?_, hnp, by omega, ?_⟩
-      · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
+      · refine OpFull.isRangeWatchP_of ?_
+        unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
         exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
       · exact hsz
     isplitr
@@ -650,9 +651,10 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   iapply HΦ
   isplitr
   · unfold isEtcdWatchChan
-    iexists watchStateElem _ γw (opWatchModel key gs) (kmSeenQ γ l0) _
+    iexists watchStateElemP _ γw (opWatchModel key gs) (kmSeenQ γ l0) _
     iframe Hs
     iintro !> %i %v H
+    ihave H := watchStateElemP_elem _ γw (opWatchModel key gs) (kmSeenQ γ l0) _ i v $$ H
     imodintro
     iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr _ γw _ i v
       $$ [Hreach H]

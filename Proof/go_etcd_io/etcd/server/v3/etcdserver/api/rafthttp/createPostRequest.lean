@@ -89,14 +89,20 @@ theorem rafthttp.createPostRequest.wp_proof
     iunfold http.reqRest at Hrest
     iunfold http.reqRest
     iexact Hrest
-  wp_apply (hSetPeer req _ urls uvs) $$ [Hreq] as ⟨%hs, %Hhs, %Hpu, Hreq⟩
+  wp_apply (hSetPeer req _ urls uvs) $$ [Hreq] as ⟨%hs, %Hhs, %Hpu, %Hidem, Hreq⟩
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
   iexists hs
   iframe Hreq Hstr
   ipureintro
-  refine ⟨?_, Hpu⟩
+  refine ⟨?_, Hpu, ?_⟩
+  rotate_left
+  · apply Hidem
+    simp only
+    repeat (first
+      | exact http.noIdemKey_nil
+      | apply http.noIdemKey_hdrSet _ _ _ _ (by decide) (by decide))
   rw [Hhs _ (by decide)]
   simp only
   rw [http.hdrGet_hdrSet_ne _ _ _ _ (by decide), http.hdrGet_hdrSet_ne _ _ _ _ (by decide),

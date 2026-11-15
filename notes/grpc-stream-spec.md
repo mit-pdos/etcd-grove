@@ -73,8 +73,10 @@ SPSC channel idiom (`Perennial/Golang/Theory/Chan/Idioms/Spsc.lean`: `spscProduc
   `isGrpcRpc` is. One run slot per open stream (gRPC's `MaxConcurrentStreams`: the pool bound,
   as for unary runs).
 - **The transport's claims** (the trust boundary, as the unary axiom's): intact, ordered,
-  lossless delivery per direction while the stream lives; `Recv` returns `io.EOF` exactly when
-  the other side closed its direction and everything sent before was received; after an error,
+  lossless delivery per direction while the stream lives; `Recv` returns `io.EOF` only when
+  the other side closed its direction and everything sent before was received (2026-11-14: was
+  "exactly when"; the posts claim only this direction, and a client's `Recv` gets `io.EOF` only
+  once the handler returned `nil`, an error otherwise); after an error,
   nothing (a prefix may have been delivered); the server's run starts when the client's
   `NewStream` returns (the handler may be entered later, but no message is lost in between).
 
@@ -168,7 +170,8 @@ server end of the same stream, possibly with another context, or fails), `srvStr
 fresh raw end, both tokens at `[]`, `Spec γ Dn`, `S`; nothing returned), `isGrpcStream`,
 `isGrpcStream_intro` (since G2, `isGrpcStreamMd_intro`), `grpc_serveStream_rpcs`.
 
-**Axioms** (12, all at the boundary):
+**Axioms** (12 as built on 2026-10-15, all at the boundary; the first three items are superseded,
+see below):
 - `grpcStreamServerAt addr ics sregs` (opaque, exclusive): the server built with the stream chain
   `ics`, its streams `sregs = (full name, StreamDesc.Handler, service value)` registered (beside
   the unary `grpcServerAt`, whose arity is unchanged).
@@ -176,6 +179,14 @@ fresh raw end, both tokens at `[]`, `Spec γ Dn`, `S`; nothing returned), `isGrp
 - `grpc.serveStream`: from `grpcStreamServerAt`, `n` copies of `S` and `grpcStreamMethodOk` for each
   of the methods `ms` (distinct, registered), `grpcServesStream` for each; a run consumes a copy
   (a pool separate from the unary runs').
+- (Superseded by per-type stage B, B1b, 2026-11-11; this note brought up to date 2026-11-14.)
+  `grpcStreamServerAt addr sics sregs γ` is now a definition (persistent: `grpcAddrIs addr γ` and
+  Go's configuration `grpcSrvCfg γ c` with that stream chain and those registrations, made by
+  `grpc.start'`), and `grpc.serveStream` a theorem (`InvGrpcStream.lean`): from it and each
+  method's run contract `grpcStreamRunOk` (a run gets the fork's `threadTok` and a later credit
+  and returns an error grpc's `status` takes with the token), each method is registered at `addr`
+  (`isGrpcStreamMd`). No caller-chosen resource or count; `grpcServesStream` is gone. The runs on
+  real forks are the trusted `Serve` model's (`InvGrpcRun.lean`).
 - `grpc.ClientConn.NewStream.wp_proof`: on `grpcConn conn addr ics []`, `isGrpcStream addr method
   Up Spec`, `ctxOk`, a read-only `StreamDesc`, call options `callOptsOk`: a raw client end with
   both tokens at `[]` and `Spec γ Dn`, or a `nil` stream and `cliStreamErr`. Inside: etcd's

@@ -991,7 +991,7 @@ theorem node.run.wp_proof
     -- (2026-11-01, durability stage II (k)/(n)) the hand-out and the cut, inside the send's update
     imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
       CoPset.subseteq_top $$ Hhh Hsl Hfree Hrn
-      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, %Hrf⟩
+      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, %Hrf⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -1067,7 +1067,7 @@ theorem node.run.wp_proof
       unfold readyCut
       iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
       rw [Hgid]
-      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead
+      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss
       isplitr
       · ipureintro; rfl
       -- (2026-11-02, durability stage II (q)) the hand-out's `ReadyFacts`

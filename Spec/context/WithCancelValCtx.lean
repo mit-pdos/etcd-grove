@@ -5,7 +5,9 @@ only, whose `Done()` channel belongs to a `*cancelCtx` chain (`isContext`'s `HPa
 `valCtx` is none: its `Done()` is the package's never-closed `valCtxCh`, so Go's
 `propagateCancel` takes its last branch (a goroutine waiting on the parent's or the child's
 `Done()`), which Perennial's model does not cover. Its premise on `inctx` is `watchCtx` (2026-11-04,
-W1 of Q1 (b); `isContext` until then): the axiom's file says why any such context will do.
+W1 of Q1 (b); `isContext` until then): the axiom's file says why any such context will do. Since the
+context sweep's fixes (2026-11-13, `notes/ctx-sweep-fixes.md`) `watchCtx` includes `isContext`'s
+`Value(&cancelCtxKey)` triple, which `parentCancelCtx(&valCtx{inctx})` calls.
 Lean-first (no Rocq counterpart).
 -/
 module

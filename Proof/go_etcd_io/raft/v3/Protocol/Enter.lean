@@ -482,14 +482,17 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
     iintro %k %x %Hk
     have Hxd : x.dst = id := Hself x (List.mem_of_getElem? Hk)
     obtain ⟨j, Hj⟩ := List.mem_iff_getElem?.mp (Hsub.subset (List.mem_of_getElem? Hk))
-    ihave #Hw := outMsgOk_wand γ id s πc (virt V πc) x $$ []
-    · iapply BigSepL.bigSepL_lookup (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m) Hj
-        $$ Hout
+    ihave #Hx := BigSepL.bigSepL_lookup (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m) Hj
+      $$ Hout
+    iunfold outMsgOk at Hx
     unfold outMsgOk
-    iright
     rw [virt_nil]
-    iframe Hw
-    ipureintro; intro h; exact absurd Hxd h
+    -- (restart S7.3) a message with its facts outright keeps them; a waiting one keeps its wand
+    icases Hx with (#H | ⟨#Hw, -, %Hns⟩)
+    · ileft; iexact H
+    · iright
+      iframe Hw
+      ipureintro; exact ⟨fun h => absurd Hxd h, Hns⟩
   icases rdOwn_drain γ id s o' out Hp $$ Hrd with ⟨Hrd, Hcr, Htk⟩
   -- the slot: the batch queued in the free generation
   iunfold slotLive at Hlive

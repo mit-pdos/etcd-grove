@@ -17,6 +17,14 @@ outside Perennial's model whose `Done()` is one broadcast channel, such as k8s's
 Since premise fixes 8 (D5, approved by etcd-grove-81) its outgoing metadata is grpc's
 (`metadata.outgoingCtxOkC`, `"#HOut"`): `streamKeyFromCtx` reads it, and the stream context
 `WithCancel(&valCtx{ctx})` reaches it through `valCtx`'s promoted `Value`.
+
+Since the context sweep's fixes (2026-11-13, decided by etcd-grove-81; `notes/ctx-sweep-fixes.md`)
+it also has `isContext`'s `Value(&cancelCtxKey)` triple (`"#HCC"`: the call returns, and a
+`*cancelCtx` it returns is a valid one, `isCancelCtxAny`): `WithCancel(&valCtx{ctx})`'s
+`propagateCancel` calls `parentCancelCtx(&valCtx{ctx})`, which calls `ctx.Value(&cancelCtxKey)`
+(promoted) and dereferences a `*cancelCtx` it returns (go1.27.3 `context.go:388-392`). Without the
+clause, a context whose `Value` panics there, or returns a typed-nil `*cancelCtx`, met the premise and
+made the watch panic (`examples/premisefix/watchctx`).
 -/
 module
 
@@ -62,7 +70,11 @@ abbrev watchCtx (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) : IProp GF :=
           (if err = interface.nil then iprop(True) else isCtxErr err) -∗
           Φ #err) -∗
       WP (App (Val #(methods c.ty go!"Err" c.v)) (Val #())) {{ Φ }})) ∗
-  "#HOut" ∷ metadata.outgoingCtxOkC c)
+  "#HOut" ∷ metadata.outgoingCtxOkC c ∗
+  "#HCC" ∷
+    □ (∀ Φ : val → IProp GF, True -∗
+      ▷ (∀ v : GoInterface, isCancelCtxAny v -∗ Φ #v) -∗
+      WP (App (Val #(methods c.ty go!"Value" c.v)) (Val #cancelCtxKeyAny)) {{ Φ }}))
 
 instance watchCtx_persistent (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
     Persistent (watchCtx (GF := GF) c s) := by
@@ -81,7 +93,9 @@ theorem watchCtx_of_isContext (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
   · iexact HDone
   isplitr
   · iexact HErr
+  isplitr
   · iexact Ho
+  · iexact HValue
 
 /-- `watchCtx`'s outgoing-metadata clause. -/
 theorem watchCtx_outgoingC (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
@@ -90,6 +104,17 @@ theorem watchCtx_outgoingC (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
   unfold watchCtx
   iNamed H
   iexact HOut
+
+/-- `watchCtx`'s `Value(&cancelCtxKey)` clause (`isContext`'s `"#HValue"`). -/
+theorem watchCtx_cancelCtxKey (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
+    watchCtx (GF := GF) c s ⊢
+      □ (∀ Φ : val → IProp GF, True -∗
+        ▷ (∀ v : GoInterface, isCancelCtxAny v -∗ Φ #v) -∗
+        WP (App (Val #(methods c.ty go!"Value" c.v)) (Val #cancelCtxKeyAny)) {{ Φ }}) := by
+  iintro #H
+  unfold watchCtx
+  iNamed H
+  iexact HCC
 
 end defs
 

@@ -35328,6 +35328,60 @@ reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Rang
   is. The plan and its decisions stand; a resumption starts from `notes/wal-w4c-handoff.md`, "Paused
   2026-11-12".
 
+## Restart S6a: the snapshot directory's right, and the double rename (2026-11-13 · M1 approved by the user, M2 decided by the user, via etcd-grove-81 · branch `restart-s56`)
+
+The S6a axiom review (READY WITH CHANGES; `/shared/tmp/restart-s56/freeze-s6a.md` §3.2-review) found
+two majors, both older than S6a, which (b′)'s "one directory invariant per member" made central.
+
+- **M1: one invariant per directory is enforced by the trusted text, not by proof discipline.**
+  `SaveDBFrom`'s kept-file branch returns `snapSaved γd i` for whatever invariant it is given, and
+  `snapDir_init`/`snapDir_alloc` made an invariant over any snapshotter's paths from a fresh empty
+  ghost map: a second invariant over one directory (or a first one over a directory that already held
+  a `.snap.db`) gave `snapSaved` of an index it did not know, and `False`. **Decision (the user):** a
+  listed world assumption, `bootOk` (first start only, never `bootOkR`) gives
+  `snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir')`: at the first start the snapshot directory holds
+  no `.snap.db` file, and nothing outside the server's snapshotters writes `.snap.db` files there.
+  The right names, once, the ghost map of the files (`snap.snapDirIs p γd`, persistent; `snapDirOwn p`
+  is defined as `∀ γd, |==> snapDirIs p γd`, so no axiom: the environment gives it once).
+  `snapDir_alloc` is deleted (unused). In S6a-2 (`NewServer.lean`, after the auth fix): `snapDirInv`
+  holds `snapDirIs (snapDBPath ss) γd`, so every invariant `SaveDBFrom` and `Release` take is the
+  one the right named, and `snapDir_init` consumes the right (`/shared/tmp/restart-s56/m1-s6a2.patch`).
+  Form: the record sits inside the invariant rather than beside it in each axiom's precondition,
+  which encloses it the same way (no invariant without it) and leaves the axioms', the transport's
+  and `srvSnapRO`'s statements as they are. `purgeFile` needs nothing: it no longer removes
+  `.snap.db` files (sweep repairs 1, R1-3).
+- **M2: two saves of one index both rename** (*superseded* by "Restart S6a: SaveDBFrom links" below: the
+  justification's premise (1) is false) (`Exist` then `Rename`, no lock; the review's Go test:
+  both rename in 788, and in our rerun 2749, of 3000 iterations). **Decision (the user):** no code
+  change; `nonissues/etcd-snap-savedbfrom-concurrent-rename.md` records it with the test, and
+  `SaveDBFrom`'s docstring restates the justification of its ghost steps for a rename over an existing
+  file, including one `snapDir_take` already handed out: the stored image is a function of the index
+  and the file claims are data-level. The functionality of `img i` is the justification's premise,
+  not a Lean law (no lemma `img i D → img i D' → D = D'`).
+- **Minors.** m1: `snapDBPath`'s and `snapDBPathOf`'s index binder is `i`, and the docstrings say it
+  is the snapshot index (the member enters only through `dd`). m2: `snapDBPathOf`'s docstring states
+  the path-aliasing assumption (equal strings name one file), as for `backendPathOf`/`pathOwn`. m3:
+  no change; in S6a-2 the image's `c ≤ i + 1` stays tied to the graceful stop's index, and `specR`'s
+  restart configuration has `cfg.DataDir' = dd` at the image's `dd`.
+
+## Restart S6a: SaveDBFrom links (2026-11-13 · decided by the user via etcd-grove-81 · branch `restart-s56`)
+
+Supersedes the M2 decision above. Its justification of the axiom's ghost steps under a double rename
+assumed that the image certificate determines the data (`img i D ∧ img i D' → D = D'`). It does not:
+`srvImageM`'s `mvccImage` leaves the Key bucket's compaction progress, the compaction records and the
+resume flag free, and the term key is existential; in Go, `scheduleCompaction` deletes in committed
+batches without moving the applied index, so two merged snapshots at one index can carry different
+data (`/shared/tmp/restart-s56/s6a-imgfun-finding.md`). The second rename then left a file whose data
+is not the one `snapDirInv` records. No refutation was found (every reader sees the data only through
+the persistent `img` and then the file), but an unobservability argument would be informal and
+fragile. **Decision (the user):** fix it in the etcd fork: upamanyus/etcd@2eaeb872b
+(`goose-lean-snaplink`) links the temporary file to the path (`os.Link` never replaces) and takes
+`ErrExist` as the kept file, so exactly one save of an index puts its file in place and the axiom's
+ghost steps (add at the link, nothing at a kept file) are literally the code's. Cost: the pin bump
+(`etc/goose.py`, the examples' go.mod/go.sum); `db.go` is not translated, so no Lean changes; the
+docstring cites the commit; the nonissue is fixed in the fork (`blocks-proof: yes`). Not an upstream
+report: upstream shows no wrong result (both files are valid snapshots of the index).
+
 ## One file semantics, `fsExt`; power loss only (2026-11-13 · the user's decision)
 
 **Decision** (the user, 2026-11-12/13): every file-system proof runs over one trusted semantics, the
@@ -35370,3 +35424,238 @@ autonomously to keep making progress towards proving the wal specs"):**
 - Rejected: keeping `absDiskExt` as a trusted layer and proving a refinement of `fsExt` into it (a
   second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
   `fsExt` (the user: not wanted).
+
+## `trace.otelSpan` narrowed to providers of otel's own components (2026-11-13 · approved by etcd-grove-81 · branch `otelspan-narrow`)
+
+The context sweep's minors (a) and (b) (`notes/ctx-sweep-fixes.md`; the refutation, the producers and
+the evidence in `notes/otelspan-narrow.md`). otel's SDK passes the caller's context to the provider's
+sampler, ID generator and span processors, and, with `OTEL_GO_X_OBSERVABILITY`, to the global
+`MeterProvider`'s instruments; `trace.otelSpan` admitted any provider, so user components reading a key
+of their own refuted `tracing.Start.spec`. Approved by etcd-grove-81:
+
+1. **The docstring of the existing opaque is narrowed, rather than a provider-configuration opaque
+   added**: the same restriction in one place, no new opaque, no Lean statement changed. Admitted:
+   `AlwaysSample`, `NeverSample`, `TraceIDRatioBased`, `ParentBased` over these; the default ID
+   generator; the Batch and Simple span processors.
+2. **Minor (b) gets a clause**: with the observability metrics on, the global `MeterProvider` is otel's
+   default or `metric/noop` (kube-apiserver installs the latter at init; etcd sets none). A user
+   `MeterProvider` receives the span's start context, also in `End`.
+3. **The processors' exporters return** (`ExportSpans`, `Shutdown`): the Simple processor exports inside
+   `End`, so a panicking exporter would refute "`End` returns", beyond the context keys.
+
+## auth-schema-fix (2026-11-12 · decided by etcd-grove-81 under the user's delegation; forms decided by the agent, reviewed at checkpoint (`questions.md`) · branch `auth-schema-fix`; the trusted text re-reviewed by etcd-grove-81, READY WITH CHANGES, applied below, `/shared/tmp/auth-safe/freeze-fix.md`)
+
+The auth results (`srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`, `authkv_Main`) took
+two false premises: `auth.ValidSpec` (`notes/auth-validspec-false.md`) and `authSchemaSrv`, refuted
+four ways by S0 (`notes/auth-schema-srv-refuted.md`, F1-F4). Both are fixed; no closed theorem's
+statement changes.
+
+**F1, the write-back budget.** `authSchemaSrv` handed the store two write-back tokens
+(`ownToks d.γB.wb 2`) for every batch it would ever commit. **Decision:** a write-back token
+parameter `Wb` on the auth backend's write contracts (`authBatchTxLk(R)`, `authBatchTxOk(R)`,
+`authWBackendOk(R)`, `authBackendReads`, `authWR`): a batch `Unlock` costs `Wb ∗ Wb`, `ForceCommit`
+and `CreateAuthBuckets` one, `GetAllRoles` (a batch) two; at the server `Wb := backend.wbTok d.γB`,
+and `authSchemaSrv` drops the token bag. The tokens come from receipts: three per applied entry in
+`EtcdServer.apply`'s loop (`apply.adminWTs E`, threaded down the admin chain to the store call;
+the step contracts at `Wb := bkWTFor E`), two at boot in `NewServer`.
+
+**F2-F3.** The bucket lend is a read-only observation (an abstract `RL` with a law against the batch
+lock's `rbOwn`, no write authority); `GetAllRoles` lists only `auth.roleListed` names (non-empty,
+below `[0xff]`, Go's range).
+
+**F4, UTF-8 role names.** `UnsafePutUser`'s trusted text takes `∀ x ∈ ur.roles, utf8Valid x` (proto3
+`string` field: marshalling invalid UTF-8 fails). **Decision:** the invariant `auth.rolesUtf8` lives in
+the fuel's `authSmall` (kept by every `StepSmall`; `stepOk` gives it), and a role reaches the store
+only through `UserGrantRole`, whose name comes from the decoded request: the NEW axiom
+`apply.irrDecode_utf8` (`etcdserver/apply/InvRequest.lean`: a decoded `InternalRaftRequest`'s
+`AuthUserGrantRole.role` is valid UTF-8; Go evidence `/shared/tmp/auth-safe/fix-tests/irr_utf8_test.go`,
+`MustUnmarshalMessage` panics otherwise), carried by `irrWrapperIs`'s `⌜irrUtf8 rq⌝`. Only the
+grant's role is stated: `User.name`/`Role.name` are `bytes`. Results' `apply_UserGrantRole_fuel`
+gains `utf8Valid role`. Rejected: bundling it with `permKeysOk` in `authHist` (same invariant, about
+three times the pass-through sites).
+
+**S1, the token provider.** `ValidSpec` claimed `isValidSimpleToken` returns for every context; a nil
+context panics. The info clause takes `auth.ctxDoneRecv ci` (hlc-generic; `isReqAuth` keeps
+`ctxDoneAny`, converted by a law). The route 81 chose first (authSrvTP's pre carries the waiter
+contract, discharged by `NewServer`) fails: the waiter closure reads `srv.applyWait`, set only in
+`start`. **Decision (option A):** `auth.tpReady M`, a persistent one-shot at `AuthNames.rdy` (other
+modes `True`), joins the info clause; `NewServer` allocates `srvTpInv` (pending, or shot with the
+field's persistent points-to and its `isWaitTime`) and proves the closure's contract; `start` fires
+it after setting `applyWait`. Deviation from the plan (accepted by etcd-grove-81): `isReqAuth` and
+`isReqAuthBound` keep their definitions; holders from before `start` carry
+`□ (auth.tpReady M -∗ …)`, discharged by `start`, which leaves v3rpc's watch handler and the
+off-mode `NewAuthStore` axiom untouched. `ValidSpec` deleted; `authSrvTP_on` and its results drop
+`hValid`; `token_simple_new`/`_ok` take `M`; `srv_auth_bound_of_inv` gains `tpReady`.
+
+**The axiom re-review's changes (2026-11-13, decided by etcd-grove-81; READY WITH CHANGES, no
+blocker).**
+- *M1, unknown fields (trusted tightening).* `auth.ownUser`/`auth.ownRole` (the messages
+  `UnsafePutUser`/`UnsafePutRole` take, and `GetUser`/`GetRole` return) and `ownUserX`/`ownRoleX`
+  (what `proto.UnmarshalUser`/`UnmarshalRole` return) now fix the message's `unknownFields` to nil
+  (it was an unconstrained, unowned existential). protobuf-go's `Marshal` copies unknown fields into
+  the encoding unchecked, so a message stored with garbage there makes the next read panic
+  (`lg.Panic` on the failed `Unmarshal`); etcd builds its user and role messages fresh or decodes
+  them from its own bytes, and `Unmarshal` resets the target (Go test
+  `/shared/tmp/auth-safe/fix-tests/zz_authfix_unknown_test.go`, `TestAuthFixUnknownFields`). Not
+  constrained: the `Options` message's and the permissions' unknown fields (a client's
+  `UserAddOptions` may carry valid unknown fields, which round-trip; the permissions are built fresh,
+  but no spec lets a client write their unknown fields either). The same convention (internal
+  protobuf fields unconstrained) holds elsewhere, sound while no spec lets a client write them.
+- *m1, non-empty names.* Both put clauses take `0 < name.length` (bbolt's `Put` refuses an empty key,
+  fatal in the backend's `unsafePut`; `backend.batchTxBuffered.UnsafePut.spec` takes `0 < kb.length`).
+  The store meets it: `UserAdd`/`RoleAdd` check the name (`ErrUserEmpty`/`ErrRoleEmpty`), the other
+  puts write a stored record's name, which `auth.namesOk` (new, `Model.lean`) says is non-empty;
+  `namesOk` is a field of the fuel's `authSmall` (kept by every `StepSmall`, the model's
+  `userAddF`/`roleAddF` refusing the empty name) and `stepOk` gives it at the found state, as F4's
+  `rolesUtf8`. `stepOk` (a premise of the exported `apply_*_step` results) is stronger; no closed
+  statement changes.
+- *m2, for D22 (plan item).* The write contract `authBatchTxLkR` allows any number of
+  `UnsafePut*`/`UnsafeDelete*` in one batch, but the backend's `UnsafePut` needs `pend + 1 < 2^58`
+  and its `Unlock` `pend + hookMax < 2^58` (Go has no panic there: `pending` is an `int`). D22's
+  derivation of the contract from the backend's specs therefore needs a per-batch count: each
+  admin step's batch makes at most a bounded number of puts except `RoleDelete`, which puts back
+  every user holding the role, at most the number of users, itself bounded by the revision (each
+  user was added by one revision-bumping step, at most `receiptBound ≤ 2^48` of them). Plan: D22
+  states the bound as a `Lock()`-time budget in the contract (a pending count below
+  `2^58 - hookMax` threaded through the put clauses, met by the store from `authSmall`'s revision
+  bound), or charges a time receipt per put. Not needed by any result today: the contract is
+  trusted until D22.
+
+**The review's MAJ-1/MAJ-2 (2026-11-13, decided by etcd-grove-81; `notes/auth-unknown-fields-nested.md`).**
+M1 above left the nested messages' unknown fields free, which was wrong both ways: garbage there is
+stored and makes the next read panic (MAJ-1, the permissions and `Options`), and a client's valid
+unknown fields in `Options` round-trip, so one `UserRec` had two encodings and no `userEncode` could
+meet both `authBucketsAre` and `UnmarshalUser.spec` (MAJ-2). Go tests:
+`/shared/tmp/coord-81/authfix-review/r3/server/storage/schema/zz_review_{garbage,optsuf}_test.go`.
+- *MAJ-1, stored permissions (trusted tightening).* New `auth.ownPermS` (`Buckets.lean`): as
+  `ownPermW` with `unknownFields` nil; `ownRole` holds its permissions as `ownPermS`, and `ownPermX`
+  (`ownRoleX`'s, what `UnmarshalRole` returns) fixes `unknownFields` nil too (`ownPermX_persist`
+  gives `ownPermS`). `ownPermW` stays the request's permission (`roleGrantPermissionReqIs`, the
+  client's `InvAuthConn`/`PerTypeAuth`), whose unknown fields a decoded request may fill: fixing them
+  there would make the decode claims false. `RoleGrantPermission` builds `newPerm` fresh (store.go),
+  which gives `ownPermS`; `ownPermS_W` weakens a stored permission to `ownPermW` where a lemma reads
+  one (`wp_permW_key`) and for `RoleGet`'s reply (`roleGetOut` unchanged). `Requests.lean`'s header no
+  longer says the store puts the request's permission in "as it is" (it copies three fields).
+- *MAJ-2, the Options' unknown fields part of the record (trusted change).* `UserRec` gains
+  `optsUF : Option GoString` (none: nil `Options`, encoded without field 4; `some u`: a message whose
+  unknown fields are `u`) and `optsOk : userOptsUfOk optsUF` (`u` is `ufWire userOptsSchema u`,
+  `userOptsSchema = [(1, [0])]`: what protobuf-go's decoder leaves, so Unmarshal∘Marshal keeps it).
+  The validity is a field of the record (a proof), so every record is valid and `UnmarshalUser.spec`
+  stays true for every `x` without a new premise. `userOptsIs o b ou` (new) ties the message at `o`
+  to `NoPassword = b` and the bytes `ou` (`uf ↦*□ u`); `ownUser`/`ownUserX` use it with the record's
+  `optsUF`. The request side keeps `userOptsAt o b`, now `∃ ou, ⌜userOptsUfOk ou⌝ ∗ userOptsIs o b ou`
+  (through it the axiom `pbutil.MustUnmarshalMessage.wp_proof`, its text unchanged, claims more: its
+  IRR case returns `internalRaftRequestIs`, which unfolds through `irrField AuthUserAdd` and
+  `apply.authUserAddIs` to `userOptsAt`, so the raft entry's decode now claims the `Options`' unknown
+  fields valid wire format; true of protobuf-go's decoder, `internal/impl/decode.go` copying an
+  unknown field verbatim after a minimal `AppendTag`, `UfWire.lean`; Go test
+  `/shared/tmp/coord-81/authfix-rereview/r-ufwire/server/storage/schema/zz_rereview_ufwire_test.go`).
+  The gRPC side is proved, not assumed: clients build theirs fresh (`some []`, `userOptsUfOk_empty`)
+  and the receive predicate's satisfiability is a theorem. `UserAdd` stores the request's `Options` (its `ou`) or a fresh empty one
+  (`some []`); the other puts copy the stored record (`{ ur with … }`). The `Option` is needed: a nil
+  and an empty `Options` are different bytes (Go test). `userEncode : UserRec → GoString` keeps its
+  type. No spec of the store's methods changes (the model keeps no user fields but roles).
+  Go control: `/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go`
+  (`TestAuthFixOptionsUnknownRoundTrip`: valid unknown fields survive the raft entry, `UserAdd`, the
+  read and every later put, the read does not panic, re-encoding a read user gives the stored
+  bytes; nil vs empty `Options` differ; `UserAdd` with nil `Options` stores an empty one.
+  `TestAuthFixGrantPermissionFresh`: a request's permission with unknown fields is stored without).
+
+## `fsExt`: bytes past an unaligned EOF — a soundness gap (P1) and a precision gap (P2) (2026-11-13 · found by the WAL track; fixes pending the user's review)
+
+`notes/axiom-review/eof-page.md` (Linux v7.0 ext4 source and 15 scenarios measured on configuration C):
+**P1, soundness:** writeback zeroes the EOF page past the size, in the page cache and on disk
+(`fs/ext4/page-io.c:476-483`); a power loss can leave `00` where `GooseLang/Ext/Fs/Impl.lean`'s crash rule
+allows only the stale byte or the written one (measured: `pl-wb-zero`). The model excludes a real outcome,
+so the crash theorems over `fsExt` on `lean` (minibolt, crashlog, walfs) rest on a false semantics there.
+Fix: a byte at or past `sizeLo` may also come back zero. **P2, precision:** ext4 zeroes the rest of the EOF
+block on every `ftruncate` (`ext4_block_truncate_page`, ordered), which the model does not capture; the WAL
+proof needs it after `ZeroToEnd`. Both are being implemented on the WAL track's branch `wal-p12` (merged
+into `wal-int`), not on `lean`, until the user reviews them. The bbolt port over `fsExt` (another session)
+should expect P1's change to `FileCrashedR`.
+
+## Restart S6 B2: a separate `NewServer.wp_proofR` (2026-11-14 · decided by etcd-grove-81 · branch `restart-s56`)
+
+Supersedes D1's single-proof plan (`/shared/tmp/restart-s56/plan.md` §2.1, "The proof": one
+`NewServer.wp_proofB` over `SrvBoot`, `wp_proofG` its `fresh` instance), taking the plan's own fallback.
+Why: `wp_proofG` (~2700 lines) uses the first-start boot rows in about 400 lines (the bootstrap call, the
+WAL, the node, the store, the snapshot directory, the apply rows at `[]`), but the shared tail runs in the
+context the boot builds, and `bootOk`/`bootOkR` differ in about 25 named rows: factoring would touch
+every step of the frozen first-start proof. Instead `NewServer.wp_proofR` proves `NewServer.specR` in its
+own file (`E/NewServerR.lean`: `NewServer.lean`'s compile has reached 80 GB, so the two do not share a
+module; the 64G cap, 2^28 counts symbolic, no bare `iframe` over replicate lists), reusing
+`raftNode_of_RestartNode`, `wal.restartOk_start` and `boot_storageR`; it stays unlinked until it has no
+`sorry`. Cost: the tail duplicated. Follow-up (proof cleanup): factor the shared tail of `wp_proofG` and
+`wp_proofR` into lemmas once both are done.
+
+**B2 contract rows** (2026-11-14, decided by etcd-grove-81). Reading `wp_proofG` against `bootOkR` found
+three rows the restart proof needs that the restart contract's post lacked; `bootOkR` (trusted) is restated
+once with all three copied from the reviewed `bootOk`: `%Hraft` gains `bv.lg' = cfg.Logger'` (Go:
+`bootstrapRaftFromWAL`'s `lg: cfg.Logger`; for `NodeStartSpecR`'s `zapLoggerOk bv.lg'`), the last row
+`"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')` (Go: the shared `bootstrapBackend(cfg,
+haveWAL)` at `cfg.BackendPath()`; for `srvSnapRes` in specR's post), and `"Hlate"` as `mvcc.api.mvccWReg d.gx`
+in place of `mvcc.lateReg d.gx` (same meaning; what `boot_storageR` takes). Why one restatement: each row is a
+copy of a reviewed `bootOk` row reached by the same Go code. Old → new text: the freeze package §11.6
+(`/shared/tmp/restart-s56/freeze-package.md`). The skeleton `E/NewServerR.lean` (its `sorry`) is kept off
+`lean` (removed from the tree at this checkpoint; restore it with `git show c081768592:<path>`).
+
+**`srvRestartRows`' parse** (2026-11-14, decided by etcd-grove-81 on the B2 reviewer's finding). The row's
+text `|==> rnSnapTermAbove γn ∗ srvWinPend s γr γn` parsed as `(|==> rnSnapTermAbove γn) ∗ srvWinPend …`
+(`|==>` binds tighter than `∗`), not the docstring's "a ghost update gives both rows". Restated old → new as
+`|==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn)`: implied by the old text, so a weaker premise on
+`NewServer.specR`'s caller (safe); the freeze package §11.7.
+
+## Restart S5: the constructors at a restart (2026-11-14 · HS1 approved at CP2, the rest forms decided by the agent, reviewed by etcd-grove-81 · branch `restart-s56`)
+
+S5 of `notes/restart-scope.md` (`/shared/tmp/restart-s56/plan.md` §1): what a restart's constructors
+need from the auth store and the store, besides `NewServer` (S6, the entries above).
+- **HS1** (CP2, 2026-11-13): `auth.NewAuthStore.spec`'s precondition (the axiom `auth.NewAuthStore.wp_proof`)
+  takes the auth bucket empty (a first start) or at `authBoot` (a restart: what a first start leaves,
+  `authRevision = 1`, no `authEnabled` key). Weaker precondition, so a stronger axiom, re-attacked with the
+  `axiom` skill at CP2. The users' and roles' buckets stay empty (the restart scope is auth off).
+- **`lateWBR` deleted** (Phase B): `bootOkR`'s `Hnew` takes the first start's `mvcc.api.mvccW d.gx`.
+- **`authStoreKit` widened** (2026-11-14, a form): the kit's triple takes the auth bucket empty or, *in the
+  mode `off` only*, at `authBoot` (`∅ ∨ (M = .off ∧ authBoot)`). Not `∅ ∨ authBoot` for every mode: the mode
+  `on`'s proof (`authStoreKit_on`, through `authSchemaSrv`) needs the bucket empty, and no auth-on restart is
+  claimed (`srvStop.scope`). Weaker precondition of the kit, so `authSrvTP false` says more (the axiom gives
+  it); the mode `on`'s meaning is unchanged. `NewServer.wp_proofRG` uses `hTP`'s kit directly; the copy
+  `authStoreKitR`/`authStoreKitR_off` (`NewServerRFacts.lean`) and `wp_proofRG`'s premise `h30` went.
+
+## lease-mono3 step 2: the revocable lease mode on several members (2026-11-14 · Scope approved by etcd-grove-81 · branch `lease-mono3-s2`)
+
+`notes/lease-mono3-plan.md`, "Step 2 Scope". Until now the revocable mode booted one member: the KV
+invariant's grant ids (`kvGrantIds`) were all of one prefix (`kvPfx`), and `kvCongr` made every
+member's names agree on it, while each member generates ids of its own prefix.
+- **The cluster's grant prefixes** are a field `KVNames.gps` (default `[]`), one for every member, and
+  `kvGrantIds` asks each grant id's prefix to be one of them, with `kvPfxOk`: in the revocable mode the
+  member's own prefix is in `gps` and `gps` is distinct after `LeaseGrant`'s mask (bit 63). The masked
+  ids are then distinct (`leaseIdMask_nodup_of_pfxs`). `kvPfxOk` reads the member's prefix, so
+  `kvCongr` asks it to hold of both names or neither (`kvInv_congr` rewrites by `propext`): the fact
+  rides in the shared invariant, so no statement between `memberBoot` and the commit (`NewServer.specG`,
+  `LeaseGrant`, `grantIdOwn`) changes.
+- **The premise** `leaseIdsApart ps` (`SrvRaftLog.lean`): the members' ids distinct in their 15 low bits,
+  the condition of `issues/etcd-lease-id-mask-member-prefix.md`. A separate premise of
+  `cluster3.StartCluster.spec` and `etcdstart.alloc3`, gated on the revocable mode, so no closed theorem
+  at `none`/`mono` gains one; not a `BootFacts` field (which would reach every three-member theorem).
+  Checked per configuration by the Go `TestMemberIDs` (member ids depend only on the configuration).
+- **Standalone lemmas** for auth3's start (auth-on-leases S4 builds on `alloc3On`, not `StartCluster`):
+  `idPfxsOf_mask_nodup`, `gpsOk_of_apart` (`srvClusterBoot_alloc`'s `hgps`), `kvPfxOk_of_apart`
+  (`srvMemberBoot_alloc`'s `hpo`), `idPfxOf_mem_idPfxsOf` (its `hpfx`), in `InvRequest.lean`.
+- **Rejected: the one-granting-member form** (all grants through member 1): with `kvCongr` and
+  `memberBoot`'s per-member prefix, members 2 and 3 could not be booted in the revocable mode at all,
+  and withholding their grant right needs a per-member guard in frozen server statements.
+## `leaseCheckFrom` drops the empty-user disjunct (2026-11-14 · Q3 and CP0, decided by etcd-grove-81 · branch `auth-lease`, S1)
+
+**Cause.** `leaseCheckFrom` (Part B of the lease-keys plan, frozen 2026-10-31) named its principal through
+`infoBoundM`, which with auth on admits the empty user unbound: `doSerialize`'s stand-in for a context
+without a user. The lease checks have no such case: each returns `ErrUserEmpty` for a `nil` auth info
+(`v3_server.go:585, 617, 764`; the auth-lease Scope's E2), so the post was weaker than the code, and the
+posts of `LeaseLeases`/`LeaseRenew` did not say "authenticated" (GHSA-q8m4's lease rows).
+
+**Decision.** `leaseCheckFrom`'s principal is `□ (⌜E.authOn = true⌝ → principalBound s E.authMode ctx (some info))`;
+the keep-alive stream's `v3rpc.leaseCheckT` the same over the token (`v3rpc.principalBoundT`, new; `infoBoundTM`
+deleted), so `kaDn` changes with it. The TLS fallback stays admitted (a certificate's common name may be empty,
+`auth/store.go:1040-1043`). The ledger entry is `notes/specs-only/ledger.md`, 2026-11-14. This is the only
+change to Part B's frozen statements; the three check proofs use `principalBoundOn_of_ctxBound`
+(`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
+unchanged.

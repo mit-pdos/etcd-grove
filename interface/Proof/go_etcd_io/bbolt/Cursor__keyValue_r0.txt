@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.keyValue_r0.wp_proof [hos : HasExt osFsExt] (hCnt :
-    bbolt.internal.common.Page.Count.spec) : bbolt.Cursor.keyValue_r0.spec
+theorem bbolt.Cursor.keyValue_r0.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hCnt : bbolt.internal.common.Page.Count.spec) : bbolt.Cursor.keyValue_r0.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.keyValue_r0.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (els : List go_etcd_io.bbolt.elemRef) (e : go_etcd_io.bbolt.elemRef)

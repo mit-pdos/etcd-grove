@@ -46,7 +46,7 @@ abbrev applierV3backend.UserAdd.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userAddReqIs r name ∗
-        auth.userAddSure r ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.stepOf (auth.userAddF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -65,7 +65,7 @@ abbrev applierV3backend.RoleAdd.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleAddReqIs r name ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.stepOf (auth.roleAddF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -83,9 +83,10 @@ abbrev applierV3backend.UserGrantRole.fuelSpec : Prop :=
     (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (hs : List auth.AuthState) (user role : GoString),
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → user.length ≤ backend.maxKeySize →
+    utf8Valid role →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userGrantRoleReqIs r user role ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.userGrantRoleR user role) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -104,7 +105,7 @@ abbrev applierV3backend.RoleGrantPermission.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleGrantPermissionReqIs r name w ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.roleGrantPermissionR name w) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -122,7 +123,7 @@ abbrev applierV3backend.AuthEnable.fuelSpec : Prop :=
     (hs : List auth.AuthState),
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-        apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         (□ ∀ en : Bool, auth.capNextM (.on γa) hs (auth.stepOf (auth.authEnableF en))) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -146,7 +147,7 @@ theorem applierV3backend.UserAdd.wp_fuel
     (h : applierV3backend.UserAdd.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -155,7 +156,7 @@ theorem applierV3backend.UserAdd.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userAdd name hn) Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout⟩
   rw [hM]
@@ -168,7 +169,7 @@ theorem applierV3backend.RoleAdd.wp_fuel
     (h : applierV3backend.RoleAdd.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.RoleAdd.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -177,7 +178,7 @@ theorem applierV3backend.RoleAdd.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.roleAddF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleAdd name) Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout⟩
   rw [hM]
@@ -189,8 +190,8 @@ theorem applierV3backend.RoleAdd.wp_fuel
 theorem applierV3backend.UserGrantRole.wp_fuel
     (h : applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.UserGrantRole.fuelSpec (GF := GF) (hG := hG) := by
-  intro E γa W p r log Pre Q Post info hs user role hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  intro E γa W p r log Pre Q Post info hs user role hM hb hn hu8
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -198,7 +199,7 @@ theorem applierV3backend.UserGrantRole.wp_fuel
   icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.userGrantRoleR user role) :=
-    hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userGrantRole user role) Hfk Hlt
+    hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userGrantRole user role hu8) Hfk Hlt
   have hroles : ∀ (sta : auth.AuthState) (u : auth.User), auth.histLast E.authMode hs sta →
       sta.users !! user = some u → u.length < 2 ^ 62 := by
     intro sta u hl hu
@@ -206,11 +207,11 @@ theorem applierV3backend.UserGrantRole.wp_fuel
     obtain ⟨h1, h2⟩ := auth.fuelOk_last γa hs k sta Hfk hl
     have := h2.roles user u hu
     omega
-  iapply (h E W p r log Pre Q Post info hs user role hn hroles hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs user role hn hroles hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout⟩
   rw [hM]
-  ihave Hout := auth.adminOut_fu γa hs _ _ err (auth.stepSmall_userGrantRole user role) $$ [Hf Hout]
+  ihave Hout := auth.adminOut_fu γa hs _ _ err (auth.stepSmall_userGrantRole user role hu8) $$ [Hf Hout]
   · iframe
   iapply HΦ
   iframe; iframe #
@@ -219,7 +220,7 @@ theorem applierV3backend.RoleGrantPermission.wp_fuel
     (h : applierV3backend.RoleGrantPermission.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.RoleGrantPermission.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name w hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -228,7 +229,7 @@ theorem applierV3backend.RoleGrantPermission.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.roleGrantPermissionR name w) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleGrantPermission name w) Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name w hn hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs name w hn hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout⟩
   rw [hM]
@@ -242,7 +243,7 @@ theorem applierV3backend.AuthEnable.wp_fuel
     (h : applierV3backend.AuthEnable.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p log Pre Q Post info hs hM hb
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, Hrc, HW, Hw1, Hw2, Hw3, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -252,7 +253,7 @@ theorem applierV3backend.AuthEnable.wp_fuel
   have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authEnableF en)) :=
     fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_authEnable en) Hfk Hlt
   have hon : E.authMode.isOn = true := by rw [hM]; rfl
-  iapply (h E W p log Pre Q Post info hs hon hok) $$ [Ho HW Htt Hpre]
+  iapply (h E W p log Pre Q Post info hs hon hok) $$ [Ho HW Hw1 Hw2 Hw3 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout⟩
   rw [hM] at *
@@ -279,7 +280,7 @@ abbrev applierV3backend.UserDelete.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userDeleteReqIs r name ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         (□ ∀ en : Bool, auth.capNextM (.on γa) hs (auth.stepOf (auth.userDeleteF en name))) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -299,7 +300,7 @@ abbrev applierV3backend.UserChangePassword.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userChangePasswordReqIs r name ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.stepOf (auth.userChangePasswordF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -319,7 +320,7 @@ abbrev applierV3backend.UserRevokeRole.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userRevokeRoleReqIs r name role ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         (□ ∀ en : Bool, auth.capNextM (.on γa) hs (auth.stepOf (auth.userRevokeRoleF en name role))) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -340,7 +341,7 @@ abbrev applierV3backend.RoleRevokePermission.fuelSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗
         auth.roleRevokePermissionReqIs r role key rangeEnd ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.roleRevokePermissionR role key rangeEnd) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -360,7 +361,7 @@ abbrev applierV3backend.RoleDelete.fuelSpec : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleDeleteReqIs r role ∗
-        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         (□ ∀ en : Bool, auth.capNextM (.on γa) hs (auth.stepOf (auth.roleDeleteF en role))) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -379,7 +380,7 @@ abbrev applierV3backend.AuthDisable.fuelSpec : Prop :=
     (hs : List auth.AuthState),
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-        apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗
+        apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         (□ ∀ en : Bool, auth.capNextM (.on γa) hs (auth.stepOf (auth.authDisableF en))) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -403,7 +404,7 @@ theorem applierV3backend.UserDelete.wp_fuel
     (h : applierV3backend.UserDelete.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.UserDelete.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name hM hb
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -412,7 +413,7 @@ theorem applierV3backend.UserDelete.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.userDeleteF en name)) :=
     fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userDelete en name) Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs name hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout⟩
   rw [hM] at *
@@ -425,7 +426,7 @@ theorem applierV3backend.UserChangePassword.wp_fuel
     (h : applierV3backend.UserChangePassword.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.UserChangePassword.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -434,7 +435,7 @@ theorem applierV3backend.UserChangePassword.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userChangePassword name) Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout⟩
   rw [hM]
@@ -448,7 +449,7 @@ theorem applierV3backend.UserRevokeRole.wp_fuel
     (h : applierV3backend.UserRevokeRole.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.UserRevokeRole.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs name role hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -459,7 +460,7 @@ theorem applierV3backend.UserRevokeRole.wp_fuel
       auth.stepOk E.authMode hs (auth.stepOf (auth.userRevokeRoleF en name role)) :=
     fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userRevokeRole en name role)
       Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs name role hn hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs name role hn hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout⟩
   rw [hM] at *
@@ -473,7 +474,7 @@ theorem applierV3backend.RoleRevokePermission.wp_fuel
     (h : applierV3backend.RoleRevokePermission.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.RoleRevokePermission.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs role key rangeEnd hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -483,7 +484,7 @@ theorem applierV3backend.RoleRevokePermission.wp_fuel
   have hok : auth.stepOk E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleRevokePermission role key rangeEnd)
       Hfk Hlt
-  iapply (h E W p r log Pre Q Post info hs role key rangeEnd hn hok) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs role key rangeEnd hn hok) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout⟩
   rw [hM]
@@ -497,7 +498,7 @@ theorem applierV3backend.RoleDelete.wp_fuel
     (h : applierV3backend.RoleDelete.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.RoleDelete.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p r log Pre Q Post info hs role hM hb
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -511,7 +512,7 @@ theorem applierV3backend.RoleDelete.wp_fuel
     intro s hl n hn
     rw [hM] at hl
     exact (auth.fuelOk_last γa hs k s Hfk hl).2.names n hn
-  iapply (h E W p r log Pre Q Post info hs role hok hnames) $$ [Hr Ho HW Htt Hpre]
+  iapply (h E W p r log Pre Q Post info hs role hok hnames) $$ [Hr Ho HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout⟩
   rw [hM] at *
@@ -524,7 +525,7 @@ theorem applierV3backend.AuthDisable.wp_fuel
     (h : applierV3backend.AuthDisable.stepSpec (GF := GF) (hG := hG)) :
     applierV3backend.AuthDisable.fuelSpec (GF := GF) (hG := hG) := by
   intro E γa W p log Pre Q Post info hs hM hb
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, Hrc, HW, Hw1, Hw2, Hw3, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -533,7 +534,7 @@ theorem applierV3backend.AuthDisable.wp_fuel
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authDisableF en)) :=
     fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_authDisable en) Hfk Hlt
-  iapply (h E W p log Pre Q Post info hs hok) $$ [Ho HW Htt Hpre]
+  iapply (h E W p log Pre Q Post info hs hok) $$ [Ho HW Hw1 Hw2 Hw3 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, %He, HW, %en, #Hv, Hout⟩
   rw [hM] at *

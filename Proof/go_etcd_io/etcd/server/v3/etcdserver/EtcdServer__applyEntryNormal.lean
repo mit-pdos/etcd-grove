@@ -1270,7 +1270,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   cases v3
   · -- (R2d'a, Q23 (a)) a replay: v2-only, the rest buckets at the backend's log
     simp only [Bool.false_eq_true, ↓reduceIte]
-    wp_start as ⟨#Hsrv, #Hewo, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, #Hcm, HRS, #HA0, %HmA,
+    wp_start as ⟨#Hsrv, #Hewo, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, Hawt, #Hcm, HRS, #HA0, %HmA,
       %Hpo⟩
     obtain ⟨Hp, Hok, Htyp, Hci, Hrb, Hxch, Hmem⟩ := Hpo
     have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
@@ -1423,19 +1423,19 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           iunfold srvEver; iexists U; iframe HEv; ipureintro; exact HUok
         tailR
       · -- an admin request: the auth row's admin steps (`adminEntryOn`), nothing applied
-        icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %hs, %HPk, #Hasf, #Hlend,
+        icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc, #Hasf, #Hlend,
           #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
-        ihave #HUA := srvUberOn_adm s E γa ua stl bel T Pk hM HPk $$ []
-        · iframe Huon Hb Hasf Hsteps
+        ihave #HUA := srvUberOn_adm s E γa ua stl bel T Pk Wb hM HPk $$ []
+        · iframe Huon Hb Hasf Hwbc Hsteps
         iapply wp_fupd
         (try wp_auto)
         wp_apply hAd fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none γa stl
-          bel T Pk sa _ hs hM hns HPk $$ [HKV Htk Htt HRD Hfu Htie HT Htp HRS Hlc]
+          bel T Pk Wb sa _ hs hM hns HPk $$ [HKV Htk Htt HRD Hfu Htie HT Htp HRS Hlc Hawt]
           as %ar %id ⟨HRD, Htt, Hrt, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, -, -, -, HRS, HT,
             Htp, %hs', %sa', Hfu, Htie, %Hsa', -, -⟩
         · simp only [↓reduceIte, Bool.false_eq_true]
-          iframe HUA Hwok' HRD He HKV Htk Htt HT Htp Hwba Hlend HRS Hlc
+          iframe HUA Hwok' HRD He HKV Htk Htt HT Htp Hwba Hlend HRS Hlc Hawt
           isplitr
           · simp only [waitRegdOpt]; itrivial
           isplitr
@@ -1468,7 +1468,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · rw [HEo.1]; iexact HFS
         tailR
   simp only [↓reduceIte]
-  wp_start as ⟨#Hsrv, #Hlnil, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, Hao, #HLv,
+  wp_start as ⟨#Hsrv, #Hlnil, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, Hawt, Hao, #HLv,
     #Hcm, Hka, HRS, %Hmc, #HAm, %HkA', %Hvi, %Hpo, Hv3, Htok⟩
   have HkA : uint.Z v = uint.Z γr.raft.ai0 + A.length ∧
       true = decide (uint.Z γr.kv.c0 < uint.Z m.index) :=
@@ -1688,7 +1688,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · simp only [↓reduceIte]; iexact HSp
         by_cases hkv : apply.isKVKind (apply.dispatchKind rq) = true
         · -- a KV request: the latest-state triple (`kvSpecL`), the verdict at the row's history
-          icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %hs, %HPk, #Hasf,
+          icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc, #Hasf,
             #Hlend, #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
           ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM T $$ []
           · iframe Huon Hb Hlnil
@@ -1864,12 +1864,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iframe Hst' Happ' Hbe'
             ipureintro; exact Hf'
           obtain ⟨hkv', hfl⟩ := adminKindOk_kinds rq hadm
-          icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %hs, %HPk, #Hasf, #Hlend,
+          icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc, #Hasf, #Hlend,
             #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
           ihave Hx := apply.adminExtra_authenticate E γa rq hs _ am (ciEff γ st.k) hka ham $$ [HSpA Hfr]
           · iframe HSpA Hfr
-          ihave #HUA := srvUberOn_adm s E γa ua stl bel T Pk hM HPk $$ []
-          · iframe Huon Hb Hasf Hsteps
+          ihave #HUA := srvUberOn_adm s E γa ua stl bel T Pk Wb hM HPk $$ []
+          · iframe Huon Hb Hasf Hwbc Hsteps
           (try wp_auto)
           wp_apply hAd fv.lg e m ua fv.w true E
               iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
@@ -1880,11 +1880,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
                 applyBackend γ ci b) x rq id0 RD
               (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
-              bel T Pk sa _ hs hM hns HPk $$ [Hst Happ Hbe HKV Htt HRD Hfu Htie HT Htp HRS Hlc Hhk Hx]
+              bel T Pk Wb sa _ hs hM hns HPk $$ [Hst Happ Hbe HKV Htt HRD Hfu Htie HT Htp HRS Hlc Hawt Hhk Hx]
               as %ar %id ⟨HRD, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
                 HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, HAu0⟩
           · simp only [↓reduceIte]
-            iframe HUA Hwok' HRD He HKV Htt HT Htp Hwba Hlend HRS Hlc Hhk
+            iframe HUA Hwok' HRD He HKV Htt HT Htp Hwba Hlend HRS Hlc Hawt Hhk
             isplitr
             · iunfold entryRegd at Hreg
               ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -1930,10 +1930,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         icases HtokA with ⟨Htok, -⟩
         have hna := adminKindOk_needAdmin rq hadm hka
         obtain ⟨hkv', hfl⟩ := adminKindOk_kinds rq hadm
-        icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %hs, %HPk, #Hasf, #Hlend,
+        icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc, #Hasf, #Hlend,
           #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
-        ihave #HUA := srvUberOn_adm s E γa ua stl bel T Pk hM HPk $$ []
-        · iframe Huon Hb Hasf Hsteps
+        ihave #HUA := srvUberOn_adm s E γa ua stl bel T Pk Wb hM HPk $$ []
+        · iframe Huon Hb Hasf Hwbc Hsteps
         -- (H5) the cap raised to the log with `m`, and the step's cap permission
         have hsaA : srvAuthAtLog γr.kv (auth.bump auth.bootState) A = sa := by
           unfold srvAuthAtLog; rw [show auth.bump auth.bootState = srvAuthSt0 from rfl, ← Hxl]
@@ -1959,11 +1959,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
-            bel T Pk sa _ hs hM hns HPk $$ [Hst Happ Hbe HKV Htt HRD Hfu Htie HT Htp HRS Hlc Hhk Hx]
+            bel T Pk Wb sa _ hs hM hns HPk $$ [Hst Happ Hbe HKV Htt HRD Hfu Htie HT Htp HRS Hlc Hawt Hhk Hx]
             as %ar %id ⟨HRD, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
               HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, -⟩
         · simp only [↓reduceIte]
-          iframe HUA Hwok' HRD He HKV Htt HT Htp Hwba Hlend HRS Hlc Hhk
+          iframe HUA Hwok' HRD He HKV Htt HT Htp Hwba Hlend HRS Hlc Hawt Hhk
           isplitr
           · iunfold entryRegd at Hreg
             ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -2072,19 +2072,19 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     rw [hon]
     cases v3
     · simp only [srvApplyKVM_true, entryOkM_true, Bool.false_eq_true, ↓reduceIte] at hOn ⊢
-      iintro %Φ ⟨#Hpkg, Hr, %Hrb, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS,
+      iintro %Φ ⟨#Hpkg, ⟨Hr, Hawt⟩, %Hrb, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS,
         #HA0, %HmA, %Hpo⟩ HΦ
-      iapply hOn $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr HRS] HΦ
-      iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hcm HRS HA0
+      iapply hOn $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt HRS] HΦ
+      iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hcm HRS HA0
       ipureintro
       exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, Hrb trivial,
         Hpo.2.2.2.2.1 trivial, Hpo.2.2.2.2.2⟩
     · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
         ↓reduceIte] at hOn ⊢
-      iintro %Φ ⟨#Hpkg, Hr, %Hrb, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao,
+      iintro %Φ ⟨#Hpkg, ⟨Hr, Hawt⟩, %Hrb, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao,
         Hlog, #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
-      iapply hOn $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
-      iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+      iapply hOn $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hka HRS Hv3 Htok] HΦ
+      iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
       ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, Hrb trivial⟩
 
 end proof

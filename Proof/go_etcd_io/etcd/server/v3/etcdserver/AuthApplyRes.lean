@@ -46,8 +46,8 @@ thread (`applyBuiltNA`, then `srvApplyKV`). -/
 def authApplyRes (M : auth.AuthMode) (stl : Loc) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : auth.AuthBkNames)
-      (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f (auth.authWTok T) ∗ auth.authWHeld γa T ∗
+      (be : GoInterface) (Wb : IProp GF), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
+      auth.authWBackendOk be (.on γa) P f (auth.authWTok T) Wb ∗ auth.authWHeld γa T ∗
       (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗
       auth.tpAdmin stl (.on γa))
   | _ => iprop(True)
@@ -66,8 +66,8 @@ server's start, the store's history `[bootState, bump bootState]` (`authStoreKit
 def authApplyResAt (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : auth.AuthBkNames)
-      (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f (auth.authWTok T) ∗ auth.authWHeld γa T ∗
+      (be : GoInterface) (Wb : IProp GF), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
+      auth.authWBackendOk be (.on γa) P f (auth.authWTok T) Wb ∗ auth.authWHeld γa T ∗
       (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗
       auth.tpAdmin stl (.on γa) ∗
       ⌜hs.getLast? = some st⌝)
@@ -112,8 +112,8 @@ theorem authApplyRes_of_At (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
   cases M with
   | on γa =>
     unfold authApplyResAt authApplyRes
-    iintro ⟨%hs, %P, %f, %T, %be, Ho, HX, Hw, HT, Hlife, Hpt, Htp, -⟩
-    iexists hs, P, f, T, be
+    iintro ⟨%hs, %P, %f, %T, %be, %Wb, Ho, HX, Hw, HT, Hlife, Hpt, Htp, -⟩
+    iexists hs, P, f, T, be, Wb
     iframe Ho HX Hw HT Hlife Hpt Htp
   | off => unfold authApplyResAt authApplyRes; iintro -; itrivial
   | any => unfold authApplyResAt authApplyRes; iintro -; itrivial

@@ -117,7 +117,7 @@ theorem srvAuthLeaseLb_of_server (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     iexists au
     iframe Ha
     iintro !> %n #Hn
-    ihave ⟨-, #HL⟩ := Hlb $$ Hn
+    ihave ⟨-, #HL, -⟩ := Hlb $$ Hn
     iexact HL
 
 end proof

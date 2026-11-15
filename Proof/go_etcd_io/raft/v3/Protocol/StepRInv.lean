@@ -1144,7 +1144,7 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
       (ih1 (fun r1 m hm => hK r1 m (List.mem_append_left _ hm)) H)
   | higherTerm => exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
   | campaign r peers cl _ _ hs hg _ _ => exact RInv_campaign id _ H hs hg
-  | win r mt ms h1 _ h3 _ _ _ => exact RInv_win id mt _ H h1 (by omega)
+  | win r mt ms h1 _ h3 _ _ _ _ => exact RInv_win id mt _ H h1 (by omega)
   | appAccept m r lastnewi es' h1 _ _ _ _ _ h7 h8 =>
     exact RInv_appAccept m lastnewi es' _ H h7 h8 (hK r m List.mem_cons_self h1 H)
   | heartbeat m r _ _ _ _ _ h6 => exact RInv_heartbeat m.src m.commit _ H h6

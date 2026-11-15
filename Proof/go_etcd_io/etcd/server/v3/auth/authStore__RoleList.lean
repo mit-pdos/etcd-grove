@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.RoleList.wp_proof :
     auth.authStore.RoleList.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r
-  wp_start as ⟨#Hinv, Hown, HWR, Hcs⟩
+  intro st R M P f T Wb hs Pre Q Post r
+  wp_start as ⟨#Hinv, Hown, HWR, Hw1, Hw2, Hcs⟩
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
@@ -41,14 +41,14 @@ theorem auth.authStore.RoleList.wp_proof :
   subst Hbi
   (try wp_auto)
   wp_bind (App (Val #(methods bi.ty go!"GetAllRoles" bi.v)) (Val #()))
-  iapply HGA $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
+  iapply HGA $$ %hs %Pre %Q %Post [$Hcs $HT $Hw1 $Hw2 $Hown]
   inext
   iintro %s ⟨HPost, HT, Hown, %sta, %Hl, Hus⟩
   iunfold rolesOut at Hus
   icases Hus with ⟨%us, %names, Hs, %Hn, Hmsgs⟩
   obtain ⟨Hlen, Hnd, Hmem⟩ := Hn
   ihave Hmsgs := rolesOut_names sta (us.zip names)
-    (fun x hx => (Hmem x.2).1 (List.of_mem_zip hx).2) $$ Hmsgs
+    (fun x hx => ((Hmem x.2).1 (List.of_mem_zip hx).2).1) $$ Hmsgs
   imod Hmsgs with #Hmsgs
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   (try wp_auto)

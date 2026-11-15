@@ -9,7 +9,7 @@ rights) at the receipt bound `n + 1` and a thread bound at least `n + 2` of an e
 steps from one thread (`realThreadsBelow_of_one`): `n + 2` for `init_adequate`, `max (n + 2)
 srvLevelK` for the etcd lemmas (revoke-open, 2026-11-06: the server's revocation uses
 `srvRevokeK` levels of a thread token, `srvRevokeLevels`; per-type stage B2, 2026-11-11, r5 §3.3:
-written with `srvLevelK`, the levels a serving member uses, defined as `srvRevokeK`); the package
+written with `srvLevelK`, the levels a serving member uses, `srvRevokeK + 1` since k8s 7f-4); the package
 state empty (`IsInit`), from which the right to initialize (`ownInitializing`); the package's initializer, then the program's body; and
 `UnrecoveredPanic`'s exclusion of a final `PanicV` turned into `isPanic = false`.
 
@@ -199,7 +199,7 @@ rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' data dire
 (`dataDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvLevelK` (until then
 `n + 2`): the revocation's goroutines use `srvRevokeK` levels of a thread token
 (`srvRevokeLevels`), and (per-type stage B2, r5 §3.3) a serving member's gRPC runs `srvLevelK`
-(`srvLevels`; the same number, `srvLevelK := srvRevokeK`). -/
+(`srvLevels`; one more, `srvLevelK := srvRevokeK + 1`: a stream run's level 4, k8s 7f-4). -/
 theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)

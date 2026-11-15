@@ -24,7 +24,8 @@ variable [sem : go.Semantics]
 at `path` with that body (and some headers): `NewRequest` does not fail (`http.NewRequest_spec`),
 so its `lg.Panic` is dead; `X-Server-From` the sender's id, and (D22 J-T, W8) `X-PeerURLs` the
 transport's URLs' strings (`setPeerURLsHeader`). (premise-fixes-4) Of a path starting with `/`
-(`http.NewRequest_spec`'s; the callers' are constants). -/
+(`http.NewRequest_spec`'s; the callers' are constants). (http-boundary-fix, 2026-11-14) No
+idempotency key (`http.noIdemKey`): Go never replays the `POST`. -/
 abbrev rafthttp.createPostRequest.spec : Prop :=
   ∀ (lg : Loc) (u : net.url.URL) (path : GoString) (body : GoInterface) (K : http.Body)
     (ct : GoString) (urls : GoSlice) (uvs : List net.url.URL)
@@ -38,7 +39,7 @@ abbrev rafthttp.createPostRequest.spec : Prop :=
         http.reqOwn req ⟨go!"POST", u.Host', path, hdrs, K.bytes⟩ ∗ http.reqStream req K ∗
         ⌜http.hdrGet hdrs go!"X-Server-From" = types.idStr fr ∧
           (uvs ≠ [] → (∀ u ∈ uvs, http.urlRootPlain u) →
-            http.hdrGet hdrs go!"X-PeerURLs" = peerURLsHdr uvs)⌝ }}
+            http.hdrGet hdrs go!"X-PeerURLs" = peerURLsHdr uvs) ∧ http.noIdemKey hdrs⌝ }}
 
 end spec
 

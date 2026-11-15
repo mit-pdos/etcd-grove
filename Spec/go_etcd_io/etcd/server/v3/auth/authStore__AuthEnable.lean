@@ -28,15 +28,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.AuthEnable()`** in a mode that may refuse (`M.isOn`: in `off` auth is never enabled),
 from the admin side's authority `hs`: having read the flag `en` (under `enabledMu`), the step
 `authEnableF en` (already enabled, nothing; no root user or no root role, refused; else enabled,
-the flag set, the token provider enabled, the cache refreshed and the revision as stored). -/
+the flag set, the token provider enabled, the cache refreshed and the revision as stored). Three
+write-back tokens `Wb`: two spent by the batch transaction's `Unlock`, one by `ForceCommit`
+(auth-schema-fix F1). -/
 abbrev auth.authStore.AuthEnable.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (authEnableF en))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
-  {{ (err : GoInterface), RET #err; tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ (err : GoInterface), RET #err; tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
       ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (authEnableF en)) noExtra err }}
 
 end spec

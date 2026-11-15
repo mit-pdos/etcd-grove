@@ -152,7 +152,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (∃ (pw : Loc) (ims is : GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
           ⌜v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E⌝ ∗
           grpcStreamServerAt addr [ims, is] sregs γ ∗ v3rpc.isWatchServer pw R ∗
-          srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+          srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
           srvRevokeBuilt s E ∗ srvRunPool s E γr) ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
@@ -194,9 +194,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   ihave #HaLL := srvAuthLeaseLb_of_server s E γr (Or.inl hM) $$ []
   · iframe #
   icases v3rpc.srvHeaderFacts_server E.authOn s E ρ $$ HreqM with ⟨%cs, %ms, #Hhf⟩
-  iunfold srvLeaseRd at Hlr
-  icases Hlr with ⟨%on, #Hli⟩
-  ihave ⟨#Hlrd, #Hpool⟩ := lease.srvInv_lessorRd on s E m $$ Hli
+  ihave ⟨#Hlrd, #Hpool⟩ := srvLeaseRd_lessorRd s E m $$ Hlr
   ihave #HLR := v3rpc.raftLeaseRead_server s E ρ γr (mvcc.api.mvccLeases E.γ) cs ms HT
       (Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))) hP $$ []
   · iframe #
@@ -260,6 +258,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   | mono =>
     -- the monotone mode: the lease reads and the grant at the lessor's history
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
+    icases srvLeaseRd_srvInv s E .mono (by decide) $$ Hlr with ⟨%on, #Hli⟩
     ihave #HGL := v3rpc.lessorGrantOkL_server s E ρ iprop(client.etcdRunSlot s E γr ∗ levelTok 0)
         ⟨hlg, Hoff⟩ (by rw [hm]; decide) on $$ []
     · iframe #
@@ -317,6 +316,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   | revocable =>
     -- the revocable mode: the lease reads and the live grant
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
+    icases srvLeaseRd_srvInv s E .revocable (by decide) $$ Hlr with ⟨%on, #Hli⟩
     ihave #HGL := v3rpc.lessorGrantOkLive_server s E ρ
         iprop(client.etcdRunSlot s E γr ∗ levelTok 0) ⟨hlg, Hoff⟩ (fun q => q.2 = W64 0)
         (fun _ h _ => h) $$ []

@@ -5,6 +5,7 @@ public import Spec.go_etcd_io.raft.v3.limitSize
 public import Spec.google_golang_org.protobuf.proto.SizePb
 public import Proof.go_etcd_io.raft.v3.PbEntryType
 public import Proof.go_etcd_io.raft.v3.MsgOut
+public import Proof.go_etcd_io.raft.v3.LimitSizeLemmas
 
 @[expose] public section
 
@@ -14,18 +15,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-
-/-- The sizes of a prefix one entry longer. -/
-theorem entrySize_sum_take_succ [GooseExts] (cs : List EntryC) (i : Nat) (c : EntryC)
-    (h : cs[i]? = some c) :
-    ((cs.take (i + 1)).map entrySize).sum = ((cs.take i).map entrySize).sum + entrySize c := by
-  rw [List.take_add_one, h]
-  simp
-
-/-- A `uint64` sum that does not wrap, of a running sum and a non-negative `int` size. -/
-theorem w64_add_exact (acc ni : w64) (a e : Nat) (Ha : uint.nat acc = a) (Hni : sint.Z ni = e)
-    (he : e < 2 ^ 63) (h : a + e < 2 ^ 64) : uint.nat (acc + ni) = a + e := by
-  word
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

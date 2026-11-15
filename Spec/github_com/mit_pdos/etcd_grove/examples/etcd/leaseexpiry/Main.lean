@@ -51,8 +51,9 @@ abbrev Main.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
-  -- (revoke-open, 2026-11-06) the revocation's goroutines' levels 0–3 (`srvRevokeLevels`)
-  threadBound GF ≤ 2 ^ 28 → srvRevokeLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
+  -- (revoke-open, 2026-11-06) the revocation's goroutines' levels 0–3, and (k8s 7f-4) a stream
+  -- run's level 4 (`srvLevels`)
+  threadBound GF ≤ 2 ^ 28 → srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
     receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →

@@ -43,8 +43,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserRevokeRole.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name role en sc0
-  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post r name role en sc0
+  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .invalidAuthMgmt $$ Hpkg with ⟨%eIAM, #HeIAM⟩
   icases authErrVar_of_init .roleNotGranted $$ Hpkg with ⟨%eRNG, #HeRNG⟩
@@ -146,7 +146,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_if_destruct
   · -- no such user
     ihave %Hnone := userOut_null st0 name $$ Hu
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -177,7 +177,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   obtain ⟨Hlook, Hurn, Hurr, Hsorted⟩ := Hur
   iunfold ownUser at Hu
-  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
@@ -272,7 +272,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
       apply hlen_iff.mp
       have h1 := Hsll.1; have h2 := Hrl.1
       first | (rw [h1, h2]; word) | (revert Hif; word) | omega
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -311,14 +311,19 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   have hsorted' : roles'.Pairwise go.GoStringLt := by rw [hroles']; exact (Hurr ▸ Hsorted).filter _
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #uu))
   iapply HPutU $$ %st0 %Post %uu
-    %({ name := ur.name, password := ur.password, roles := roles', noPassword := ur.noPassword } : UserRec)
+    %({ ur with roles := roles' } : UserRec)
     [HL Huu]
   · iframe HL
     isplitl [Huu]
     · iunfold ownUser
-      iexists zeroValDef, unm, upw, sl, uo, slice.nil, (0 : w32)
+      iexists zeroValDef, unm, upw, sl, uo, (0 : w32)
       iframe Huu Hunm Hupw Hsl' Huo
-    ipureintro; exact ⟨hsorted', by rw [Hurn]; exact Hnamelen⟩
+    ipureintro
+    refine ⟨hsorted', by
+        rw [Hurn]; exact List.length_pos_iff.2 ((Hok en st0 Hl0).2.2.2.1 name (by rw [Hlook]; rfl)),
+      by rw [Hurn]; exact Hnamelen, fun x hx => ?_⟩
+    rw [hroles'] at hx
+    exact (Hok en st0 Hl0).2.2.1 name roles Hlook x (Hurr ▸ (List.mem_filter.1 hx).1)
   inext
   iintro ⟨HL, Huu⟩
   (try wp_auto)
@@ -329,12 +334,12 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     simp only [userRevokeRoleF, hnr, Hlook, this, if_false, if_true, hroles', Hurr]
   ihave HL : Lk (putUser st0 name roles') Post $$ [HL]
   · iExactEq HL; rw [Hurn]
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
-  have Hfit' := Hfit _ _ rfl hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+  have Hfit' := (Hfit _ _ rfl hstep).1
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (userRevokeRoleF en name role) st0 (bump (putUser st0 name roles')) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
-  wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 name roles') Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk (putUser st0 name roles') Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -368,7 +373,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_apply h_Strings _ _ as %f2 -
   (try wp_auto)
   iunfold ownUser at Huu
-  icases Huu with ⟨%ums', %unm', %upw', %url', %uo', %uuf', %usc', Huu, -, -, -, -⟩
+  icases Huu with ⟨%ums', %unm', %upw', %url', %uo', %usc', Huu, -, -, -, -⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Huu
   icases typedPointsto_split _ _ _ $$ Huu with Huu
   simp only [TypedPointsto.typedPointstoDef]
@@ -393,7 +398,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 name roles')]) [HL $Hown]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 name roles')]) [HL $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL

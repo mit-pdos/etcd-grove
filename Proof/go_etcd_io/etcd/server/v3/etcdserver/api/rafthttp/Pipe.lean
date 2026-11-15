@@ -152,10 +152,13 @@ def fromOkAt (Rh : RaftHttp GF) (rid : w64) (hs : List (GoString × GoString)) :
 /-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`
 (stage A of the per-type models: of a wire content of it, `MsgEnc`; raft-entsize §4, 2026-11-10:
 of bounded size when the payload's messages are, `MsgEncSz`), not a snapshot (which goes by `SendSnapshot`), without responses, for the member owning the
-request's host, (stage 6d) from another member (`fromOkAt`); with `□ N.P st` and its deposit. -/
+request's host, (stage 6d) from another member (`fromOkAt`); with `□ N.P st` and its deposit;
+(http-boundary-fix, 2026-11-14) without an idempotency key (`http.noIdemKey`: a `POST` Go never
+replays, whose handler receives the ticket, `http.reqTicketOnce`). -/
 def pipeReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
   iprop(∃ st : MsgSt, ⌜MsgWireOk st R.body ∧ MsgEncSz Rh.γn.N.Sz st R.body ∧ st.msg.To' = Rh.owner R.host ∧
-      st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧ fromOkAt Rh (Rh.owner R.host) R.hdr⌝ ∗
+      st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧ fromOkAt Rh (Rh.owner R.host) R.hdr ∧
+      http.noIdemKey R.hdr⌝ ∗
     □ Rh.γn.N.P st ∗ pipeDeposit Rh.γn.N γk st)
 
 instance pipeReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
@@ -268,6 +271,119 @@ theorem pipe_withdraw (N : NetPayload GF) (γk : GName) (st : MsgSt) (E : CoPset
     iexact HO
   · iexfalso
     iapply http.reqTicket_excl γk $$ [$Ht $Ht']
+
+/-- (http-boundary-fix, independent review, 2026-11-14) A member id's string is a header value Go
+carries unchanged. -/
+theorem idStr_hdrValOk (id : w64) : http.hdrValOk (types.idStr id) := by
+  apply http.hdrValOk_of_bytes
+  intro c hc
+  unfold types.idStr at hc
+  obtain ⟨d, hd, rfl⟩ := types.hexNatF_digits _ _ c hc
+  rcases types.hexDigit_range d hd with h | h
+  · left; omega
+  · right; left; omega
+
+/-- The first byte of strings joined by a separator: the first string's, if it is not empty. -/
+theorem intercalate_head? (sep p : GoString) (ps : List GoString) (hp : p ≠ []) :
+    (sep.intercalate (p :: ps)).head? = p.head? := by
+  cases ps with
+  | nil => simp
+  | cons b l =>
+    rw [List.intercalate_cons_of_ne_nil (List.cons_ne_nil _ _), List.append_assoc, List.head?_append]
+    cases p with
+    | nil => exact absurd rfl hp
+    | cons c cs => rfl
+
+/-- The last byte of strings joined by a separator: the last string's, if it is not empty. -/
+theorem intercalate_getLast? (sep : GoString) (ss : List GoString) (hne : ss ≠ [])
+    (hl : ss.getLast hne ≠ []) : (sep.intercalate ss).getLast? = (ss.getLast hne).getLast? := by
+  induction ss with
+  | nil => exact absurd rfl hne
+  | cons a l ih =>
+    cases l with
+    | nil => simp
+    | cons b l' =>
+      have hl' : (b :: l').getLast (List.cons_ne_nil _ _) ≠ [] := by
+        rw [List.getLast_cons (List.cons_ne_nil _ _)] at hl; exact hl
+      have ih' := ih (List.cons_ne_nil _ _) hl'
+      rw [List.intercalate_cons_of_ne_nil (List.cons_ne_nil _ _),
+        List.getLast_cons (List.cons_ne_nil _ _), List.getLast?_append, ih']
+      cases h' : ((b :: l').getLast (List.cons_ne_nil _ _)).getLast? with
+      | none => exact absurd (List.getLast?_eq_none_iff.1 h') hl'
+      | some c => rfl
+
+/-- A plain peer URL string starts with `h`. -/
+theorem plainPeerURL_head? (s : GoString) (h : types.plainPeerURL s) : s.head? = some (W8 104) := by
+  obtain ⟨hp, -⟩ := h
+  obtain ⟨t, rfl⟩ := List.isPrefixOf_iff_prefix.1 hp
+  rfl
+
+/-- A list whose elements past `i` meet `P`, with one there, ends with an element meeting `P`. -/
+theorem getLast?_of_drop {α} (P : α → Prop) (t : List α) (i : Nat) (hi : i + 1 < t.length)
+    (hd : ∀ c ∈ t.drop (i + 1), P c) : ∃ c, t.getLast? = some c ∧ P c := by
+  have hne : t.drop (i + 1) ≠ [] := by
+    intro h0; have := congrArg List.length h0; simp at this; omega
+  obtain ⟨c, hc⟩ : ∃ c, (t.drop (i + 1)).getLast? = some c := by
+    cases h' : (t.drop (i + 1)).getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 h') hne
+    | some c => exact ⟨c, rfl⟩
+  refine ⟨c, ?_, hd c (List.mem_of_getLast? hc)⟩
+  rw [List.getLast?_drop] at hc
+  split at hc
+  · simp at hc
+  · exact hc
+
+/-- A plain peer URL string ends with a digit. -/
+theorem plainPeerURL_getLast? (s : GoString) (h : types.plainPeerURL s) :
+    ∃ c, s.getLast? = some c ∧ types.digitByte c := by
+  obtain ⟨-, hi, -, hd⟩ := h.2
+  obtain ⟨c, hc, hdc⟩ := getLast?_of_drop _ _ _ hi hd
+  refine ⟨c, ?_, hdc⟩
+  rw [List.getLast?_drop] at hc
+  split at hc
+  · simp at hc
+  · exact hc
+
+/-- (http-boundary-fix, independent review, 2026-11-14) **A sender's peer URLs header, as the
+handler reads it**: the server trims the client's value (`http.reqHdrView`), which a list of plain
+peer URLs neither starts nor ends with a space. -/
+theorem peerURLsHdrOk_view (Rh : RaftHttp GF) (f : w64) (H hs : List (GoString × GoString))
+    (Hv : http.reqHdrView H hs) (h : peerURLsHdrOk Rh f H) : peerURLsHdrOk Rh f hs := by
+  unfold peerURLsHdrOk at *
+  rw [Hv _ (by decide)]
+  suffices hv : http.owsTrim (http.hdrGet H go!"X-PeerURLs") = http.hdrGet H go!"X-PeerURLs" by
+    rw [hv]; exact h
+  generalize http.hdrGet H go!"X-PeerURLs" = v at h ⊢
+  obtain ⟨hne, hpl, -⟩ := h
+  have hv : v = go!",".intercalate (_root_.Perennial.strings.split v go!",") :=
+    (_root_.Perennial.strings.intercalate_split v _).symm
+  apply http.owsTrim_ends
+  · intro c hc
+    rw [hv] at hc
+    cases hs' : _root_.Perennial.strings.split v go!"," with
+    | nil => exact absurd hs' hne
+    | cons p ps =>
+      have hp := hpl p (by rw [hs']; simp)
+      rw [hs', intercalate_head? _ _ _ (by intro h0; rw [h0] at hp; revert hp; decide),
+        plainPeerURL_head? _ hp] at hc
+      cases hc; decide
+  · intro c hc
+    rw [hv] at hc
+    have hq := hpl _ (List.getLast_mem hne)
+    obtain ⟨d, hd, hdd⟩ := plainPeerURL_getLast? _ hq
+    rw [intercalate_getLast? _ _ hne (by intro h0; rw [h0] at hd; simp at hd), hd] at hc
+    cases hc
+    unfold http.owsByte types.digitByte at *
+    apply decide_eq_false
+    rintro (e | e) <;> subst e <;> revert hdd <;> decide
+
+/-- (http-boundary-fix, independent review, 2026-11-14) **A request's sender, as the handler reads
+its headers** (`http.reqHdrView`). -/
+theorem fromOkAt_view (Rh : RaftHttp GF) (rid : w64) (H hs : List (GoString × GoString))
+    (Hv : http.reqHdrView H hs) (h : fromOkAt Rh rid H) : fromOkAt Rh rid hs := by
+  obtain ⟨f, hf, hm, hne, hu⟩ := h
+  refine ⟨f, ?_, hm, hne, peerURLsHdrOk_view Rh f H hs Hv hu⟩
+  rw [Hv _ (by decide), hf, http.owsTrim_ok _ (idStr_hdrValOk f)]
 
 end lemmas
 

@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -281,18 +281,22 @@ PROJECTS = [
         # Then (WAL W4a.2, 2026-11-12) 0b50f0426 on `goose-lean-exist`: a cut names its segment
         # max(w.enti, the highest snapshot index saved or read)+1, so that Open at a snapshot of the
         # WAL starts at or before its record (the same nonissue).
+        # Then (restart S6a, 2026-11-13) 2eaeb872b on `goose-lean-snaplink` (on 0b50f0426):
+        # `SaveDBFrom` links its file into place (`os.Link`), so that of two concurrent saves of one
+        # index exactly one puts its file in place and the other keeps it
+        # (nonissues/etcd-snap-savedbfrom-concurrent-rename.md; the user's decision via etcd-grove-81).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="0b50f04262d971553fc559f2f030c16a95904298",
+        rev="2eaeb872bce9661d984e00005793fa01ae24834f",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
-                    "net=", "hash=", "path=", "internal/bytealg=",
+                    "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
@@ -504,13 +508,18 @@ PROJECTS = [
             # transport.TLSInfo's crypto/tls types, crypto/tls listed above), so that those
             # structs are translated (NewServer splits the configuration; unit N4, 2026-10-17)
             "net/url",
+            # types only (k8s 7f-4, Addendum T-h0): the context keys net/http's client reads
+            # (`httptrace.clientEventContextKey`, `nettrace.TraceKey`,
+            # `nettrace.LookupIPAltResolverKey`), named by `leasehttp.RenewHTTP.spec`'s premise
+            "net/http/httptrace",
+            "internal/nettrace",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
-               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
+               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
@@ -598,55 +607,40 @@ PROJECTS = [
     ),
     Project(
         name="bboltfs",
-        # This repository's translations of `os`, `syscall`, `golang.org/x/sys/unix`, `io/fs`,
-        # `internal/poll` and `internal/syscall/unix` (not Perennial's, whose `os.toml` trusts
-        # nothing): the constants and types their users need, and the functions they call trusted
-        # (`TrustedCode/os.lean`, `TrustedCode/syscall.lean`, `TrustedCode/golang_org/x/sys/unix.lean`),
-        # translated twice:
-        # * into the main tree, configured by `Code/**.toml`, modeled by the first Linux file extension
-        #   `osFsExt` (`GooseLang/Ext/OsFs`, path-keyed): real bbolt's (project bbolt) and the other
-        #   projects' `os`;
-        # * into the part `LinuxFs/` (`LinuxFs/Code/**.toml`), modeled by the per-byte extension
-        #   `fsExt` (`GooseLang/Ext/Fs`, notes/fs-semantics-v2.md), with minibolt and its programs
-        #   (`examples/osfs/bboltfs`), the extension's acceptance test.
-        # The two coexist until real bbolt is ported onto `fsExt` (branch `bbolt-port-wip`,
-        # notes/bbolt-port-plan.md). (`io/fs`: the types `os` names; `internal/poll`,
-        # `internal/syscall/unix`: what `os`'s translated initializer reads.) A package of the
+        # minibolt and its programs (`examples/osfs/bboltfs`), the acceptance test of the Linux file
+        # extension fsExt (GooseLang/Ext/Fs, notes/fs-semantics-v2.md). Its `os`, `syscall` and
+        # `golang.org/x/sys/unix` are this repository's translations, not Perennial's (whose
+        # `os.toml` trusts nothing): the constants and types minibolt needs, and the functions it
+        # calls trusted, modeled by the extension's operations (TrustedCode/os.lean,
+        # TrustedCode/syscall.lean, TrustedCode/golang_org/x/sys/unix.lean). A package of the
         # examples' Go module (examples/go.mod).
         repo=None,
         rev=None,
         local=os.path.join("examples", "osfs", "bboltfs"),
+        # (`io/fs`, which Perennial does not translate: the types `os` names, `FileInfo`,
+        # `FileMode` and `PathError`, the errors the models return)
+        # (`internal/poll` and `internal/syscall/unix`, 2026-11-07: what `os`'s translated
+        # initializer reads; Perennial's import its own `syscall`)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
                     "io/fs=", "internal/poll=", "internal/syscall="],
-        packages=["os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
+        packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
                   "internal/syscall/unix"],
-        owned=["os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
+               "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
                os.path.join("internal", "poll"), os.path.join("internal", "syscall")],
-        parts=[Part(
-            root="LinuxFs",
-            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
-                        "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
-                        "internal/syscall=LinuxFs"],
-            packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
-                      "internal/syscall/unix"],
-            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
-                   "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
-                   os.path.join("internal", "poll"), os.path.join("internal", "syscall")])],
     ),
     Project(
         name="crashlog",
-        # the smallest crash-safe program over the per-byte Linux file extension
-        # (`examples/osfs/crashlog`): a commit flag guarding 8 bytes of data, proved crash-safe end to
-        # end (LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/). In the part
-        # `LinuxFs/`: its `os` and `syscall` are project bboltfs's translations there, which own them.
-        # A package of the examples' Go module (examples/go.mod).
+        # the smallest crash-safe program over the Linux file extension (`examples/osfs/crashlog`): a
+        # commit flag guarding 8 bytes of data, proved crash-safe end to end
+        # (Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/). Its `os` and `syscall` are
+        # project bboltfs's translations (the same lean roots), which own them; only the package
+        # itself is translated here. A package of the examples' Go module (examples/go.mod).
         repo=None,
         rev=None,
         local=os.path.join("examples", "osfs", "crashlog"),
-        root="LinuxFs",
-        lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
-                    "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
-                    "internal/syscall=LinuxFs"],
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs=", "internal/poll=", "internal/syscall="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "crashlog")],
     ),
@@ -654,15 +648,13 @@ PROJECTS = [
         name="walfs",
         # the WAL's file-system calls (`examples/osfs/walfs`, notes/walfs-ext-plan.md): a segment
         # committed by rename (segdir.go), a directory made to appear by rename (dirswap.go), a
-        # segment's own calls (seglog.go). In the part `LinuxFs/`, as crashlog. A package of the
-        # examples' Go module.
+        # segment's own calls (seglog.go). Its `os`, `syscall` and `golang.org/x/sys/unix` are
+        # project bboltfs's translations, as for crashlog. A package of the examples' Go module.
         repo=None,
         rev=None,
         local=os.path.join("examples", "osfs", "walfs"),
-        root="LinuxFs",
-        lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
-                    "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
-                    "internal/syscall=LinuxFs"],
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
@@ -979,6 +971,21 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth")],
     ),
     Project(
+        name="auth3",
+        # authkv with three members (notes/auth3-scope.md, A1): three members started in-process
+        # with auth on, each serving its raft handler on its own peer listener, then authkv's run
+        # (auth.Run) through the first, every client on it. A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root) and examples/etcd/auth.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "auth3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth3")],
+    ),
+    Project(
         name="cachekv",
         # watchkv with the watch read through etcd's cache: one member started in-process, as in
         # putget, a cache of the prefix over the client, a cache watch from revision 2, writer
@@ -1020,6 +1027,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
+    ),
+    Project(
+        name="restart1",
+        # The one-member restart example (restart S7, notes/restart-s7-scope.md): one member started
+        # in-process, Puts of distinct keys through its own API, a graceful stop (HardStop) and a
+        # start again on its data directory (the WAL replayed past a snapshot record), and a
+        # Range through the restarted member's API checked exactly. A package of the examples' Go
+        # module (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "restart1"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart1")],
     ),
     Project(
         name="etcd-wal",
@@ -1146,7 +1169,10 @@ PROJECTS = [
                     "golang.org/x/time=", "container/heap=", "github.com/go-logr=",
                     # pflag, names only: `FlagSet`, which featuregate's `MutableFeatureGate.AddFlag`
                     # names (so that goose translates the interface: the driver's noStreaming)
-                    "github.com/spf13="],
+                    "github.com/spf13=",
+                    # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
+                    # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
+                    "runtime/trace="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -1288,6 +1314,8 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
+            "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
             # types and names only: what the DaemonSet controller and its example name beyond the
             # above (project k8s-daemonset translates the controller; notes/k8s-daemonset-goose.md),
@@ -1337,6 +1365,7 @@ PROJECTS = [
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
+               os.path.join("runtime", "trace"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

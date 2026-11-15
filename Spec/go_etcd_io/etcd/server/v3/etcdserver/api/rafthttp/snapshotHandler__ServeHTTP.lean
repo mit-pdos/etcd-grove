@@ -61,7 +61,7 @@ abbrev rafthttp.snapshotHandler.ServeHTTP.spec : Prop :=
   R.host = a → R.path = snapPath →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
     snapHandlerOk Rh a γd Rs h -∗
-    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicket γk -∗
+    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicketOnce R γk -∗
     http.reqBody (raftHttpNet Rh) a R γk rd -∗
     http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk none [] -∗
     http.respHdrs (GoInterface.ok wi) [] -∗ Rs -∗

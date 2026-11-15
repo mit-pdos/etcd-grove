@@ -28,15 +28,15 @@ the user read from the backend (`GetUser`: the latest state's), `ErrAuthFailed` 
 no-password user; else a token from the provider's `assign` for the user (its error, or a response
 holding a token issued to the user: `authenticated`). -/
 abbrev auth.authStore.Authenticate.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      enabledRd st M ∗ authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+      enabledRd st M ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       authnCtx M ctx }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
       (Val #ctx)) (Val #username)) (Val #password))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗
-      authOwn M hs ∗ authWR st M P f T ∗ authenticated M hs username resp err }}
+      authOwn M hs ∗ authWR st M P f T Wb ∗ authenticated M hs username resp err }}
 
 end spec
 

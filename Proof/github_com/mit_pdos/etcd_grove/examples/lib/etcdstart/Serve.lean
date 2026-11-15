@@ -44,8 +44,8 @@ theorem Serve.wp_proof
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
   intro CS s addr E ρ γr cfg Q
-  wp_start as ⟨#Hzlg, %Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
-  obtain ⟨Htos, Hwpi, Hms, Hbuq, Hany⟩ := Hpure
+  wp_start as ⟨#Hzlg, %Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, Hlg3, Hbemu, Hgo, HG⟩
+  obtain ⟨Htos, Hwpi, Hms, Hbuq, Hany, Htb⟩ := Hpure
   ihave #Hwp := srvServeFacts_interval s E cfg $$ Hsf
   -- `io.EOF`, from its package's fact; the imports' package facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -75,7 +75,7 @@ theorem Serve.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
-  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
+  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq (by omega)) $$ [Hlg3 Hbemu Hgo]
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, #Has, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,

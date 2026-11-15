@@ -226,7 +226,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   icases Hopts' with ⟨#HlgN, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
-  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩
+  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip, %Hutf8⟩
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hipn, #FID, ⟨%lHd, #FHd, #HHd⟩, ⟨%lRa, #FRa, #HRa⟩, ⟨%lPu, #FPu, #HPu⟩,

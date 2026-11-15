@@ -68,13 +68,19 @@ theorem alloc1 (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List
     intro h; apply Hlow; rw [h]; decide
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFacts γs.slog
   imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot (fun _ => γs.slog) reg Hrb Hrb2 Hbc (by simp)
-      (by simp) (by simpa using Hid0.symm) cmp cret lm (idPfxOf (W16 (uint.Z id)))) $$ Hmarsh
+      (by simp) (by simpa using Hid0.symm) cmp cret lm (idPfxOf (W16 (uint.Z id)))
+      [idPfxOf (W16 (uint.Z id))] (fun _ => ⟨List.mem_singleton_self _, (by simp)⟩))
+      $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
-  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok (fun _ => hgp)) $$ Hkv Hp [Hwn]
+  -- (lease-mono3 step 2) one member: the grant prefixes its own
+  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok
+      (fun _ => by rw [hgps]; exact List.mem_singleton_self _)
+      (fun _ => ⟨by rw [hgp, hgps]; exact List.mem_singleton_self _,
+        by rw [hgps]; exact (by simp)⟩)) $$ Hkv Hp [Hwn]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hklg', hwn', hfs', hinc'⟩ := Hρ

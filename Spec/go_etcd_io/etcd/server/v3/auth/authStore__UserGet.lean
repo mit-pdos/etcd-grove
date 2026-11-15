@@ -29,12 +29,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 backend's `GetUser` (a read transaction: the hook does not run) and the reply of the latest state
 (`userGetOut`); the authority and the write resource kept. -/
 abbrev auth.authStore.UserGet.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (r : Loc) (name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      userGetReqIs r name ∗ authOwn M hs ∗ authWR st M P f T }}
+      userGetReqIs r name ∗ authOwn M hs ∗ authWR st M P f T Wb }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserGet")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T Wb ∗
       ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userGetOut sta name resp err }}
 
 end spec

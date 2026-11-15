@@ -54,8 +54,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 /-! ## Pure models -/
 
 instance EvModel.countable : Pos.Countable EvModel :=
-  .ofInjective (fun e => Pos.Countable.encode (e.typ, e.key, e.kv, e.rev))
-    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
+  .ofInjective (fun e => Pos.Countable.encode (e.typ, e.key, e.kv, e.rev, e.prevKv))
+    (by rintro ⟨a, b, c, d, p⟩ ⟨a', b', c', d', p'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 instance RespModel.countable : Pos.Countable RespModel :=
   .ofInjective (fun r => Pos.Countable.encode (r.events, r.compactRev, r.canceled, r.created, r.hdrRev))

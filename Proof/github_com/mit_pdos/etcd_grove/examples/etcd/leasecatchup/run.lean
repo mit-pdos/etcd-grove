@@ -80,7 +80,7 @@ theorem run.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in the monotone lease mode
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .mono clusterCfg_ok Hbf
-      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms (lease.runCfg_mono HnE) (by decide)
+      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms (lease.runCfg_mono HnE) (fun h => nomatch h)
       (fun _ => HlP))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #

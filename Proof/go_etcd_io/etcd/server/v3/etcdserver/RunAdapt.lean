@@ -9,9 +9,11 @@ loop's lock and one of `bemu`) at level 3.
 * `srvRunBundle s E γr`: the run's level 0 (which the lease handlers' level-0 pools take) and the
   three pools' resources, which the handlers are proved against
   (`grpcMethodOkMd` at this resource).
+* `srvStreamBundle s E γr`: a stream run's bundle, `srvRunBundle`'s with the run's level 4, which a
+  stream handler lends a weak context's `Err()` (k8s 7f-4, Freeze addendum T-f').
 * `srvRunOk_of_pools`, `srvStreamRunOk_of_pools`: a handler proved at the bundle meets grpc's run
   contract, from the built part (`srvRevokeBuilt`: levels 1 and 2) and the run pool (`srvRunPool`,
-  level 3), given `srvLevels` (levels 0-3 of a token exist).
+  level 3), given `srvLevels` (levels 0-4 of a token exist).
 -/
 module
 
@@ -39,6 +41,12 @@ variable [sem : go.Semantics]
 lease pools) and the loans of its levels 1, 2 and 3. -/
 def srvRunBundle (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(levelTok 0 ∗ srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD) ∗
+    (mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s))
+
+/-- **A gRPC stream run's bundle** (see the file header): `srvRunBundle`'s parts and the run's
+level 4 (`v3rpc.ctxErrLvl`). -/
+def srvStreamBundle (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(levelTok 0 ∗ levelTok 4 ∗ srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD) ∗
     (mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s))
 
 end defs
@@ -158,7 +166,7 @@ theorem srvRunOk_of_pools {Req Rep : ProtoMsg GF} (s : Loc) (E : apply.AEnv GF) 
 theorem srvStreamRunOk_of_pools {Req Rep : StreamMsg GF} (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (mh : val) (srv : GoInterface) (sics : List GoFunc)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) (HL : srvLevels (GF := GF)) :
-    □ grpcStreamMethodOk mh srv sics (srvRunBundle s E γr) Up Spec ∗ srvRevokeBuilt s E ∗
+    □ grpcStreamMethodOk mh srv sics (srvStreamBundle s E γr) Up Spec ∗ srvRevokeBuilt s E ∗
       srvRunPool s E γr ⊢
     grpcStreamRunOk mh srv sics Up Spec := by
   iintro ⟨#Hm, #Hb, #Hr⟩
@@ -167,7 +175,7 @@ theorem srvStreamRunOk_of_pools {Req Rep : StreamMsg GF} (s : Loc) (E : apply.AE
   icases Hr with ⟨%γ₃, #H3⟩
   iapply (grpcStreamRunOk_of_pools mh srv sics Up Spec _ _ _ raftPoolN srvRevokeInnerN srvRunN
     γ₁ γ₂ γ₃ (by have := HL; unfold srvLevels srvLevelK srvRevokeK at this; omega))
-  unfold srvRunBundle
+  unfold srvStreamBundle
   iframe #
 
 end adapt

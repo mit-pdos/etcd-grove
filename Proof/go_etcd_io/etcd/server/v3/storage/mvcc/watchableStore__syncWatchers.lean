@@ -892,7 +892,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       icases (BigSepM.bigSepM_delete (by rw [gmap_get?_eq]; exact hPBrk)).1 $$ Hrem
         with ⟨⟨%Hebnn, HB⟩, Hrem⟩
       iunfold mvcc.ownEventBatch at HB
-      icases HB with ⟨%sl, %eps, Heb, Hsl, Hcap, %Heplen, #HevB⟩
+      icases HB with ⟨%sl, %eps, Heb, Hsl, Hcap, %Heplen, HevB⟩
       simp only at Heplen ⊢
       obtain ⟨fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
       have fc := hcp0
@@ -921,7 +921,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
                 · rw [← h]; exact hev
                 · exact h.subset hev)
         wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw C.length _ eps B.evs (DFrac.own 1) [] 1 none iprop(True))
-          $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
+          $$ [Hchf Hlv Ha Hsl HevB] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
           isplitr
@@ -952,6 +952,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         rw [if_neg hBne]
         cases b
         · simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hsl with ⟨Hsl, HevB⟩
           wp_auto
           wp_apply wp_mapInsert $$ Hvm as Hvm
           (try wp_auto)
@@ -996,7 +997,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           have e2 : (v.step key r' (.victim B) st' (evsw, C.length)).Wu = GMap.delete key v.Wu := rfl
           rw [e1, e2, GMap.fmap_insert]
           iframe Hst Hmem Hsynced Hun Hvm Hrem Hwbm w s curRev compactionRev victims wb
-          isplitl [Hbv Heb Hsl Hcap]
+          isplitl [Hbv Heb Hsl Hcap HevB]
           · iapply (BigSepM.bigSepM_insert (by rw [gmap_get?_eq]; exact hPBv0)).2
             iframe Hbv
             isplitr
@@ -1091,7 +1092,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
                 · rw [← h]; exact hev
                 · exact h.subset hev)
         wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw M _ eps B.evs (DFrac.own 1) [] 1 none iprop(True))
-          $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
+          $$ [Hchf Hlv Ha Hsl HevB] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
           isplitr
@@ -1122,6 +1123,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         rw [if_neg hBne]
         cases b
         · simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hsl with ⟨Hsl, HevB⟩
           wp_auto
           wp_apply wp_mapInsert $$ Hvm as Hvm
           (try wp_auto)
@@ -1166,7 +1168,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           have e2 : (v.step key r' (.victim B) st' (evsw, M)).Wu = GMap.delete key v.Wu := rfl
           rw [e1, e2, GMap.fmap_insert]
           iframe Hst Hmem Hsynced Hun Hvm Hrem Hwbm w s curRev compactionRev victims wb
-          isplitl [Hbv Heb Hsl Hcap]
+          isplitl [Hbv Heb Hsl Hcap HevB]
           · iapply (BigSepM.bigSepM_insert (by rw [gmap_get?_eq]; exact hPBv0)).2
             iframe Hbv
             isplitr

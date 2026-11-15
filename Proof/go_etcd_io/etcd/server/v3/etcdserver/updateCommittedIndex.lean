@@ -159,7 +159,7 @@ theorem updateCommittedIndex.wp_proof
       have h0 : sv.Metadata'.Index' = W64 0 := by
         have : ¬ (uint.Z (W64 0) < uint.Z sv.Metadata'.Index') := by simpa using Hif
         word
-      rw [h0]; iunfold committedAtLeast
+      rw [h0]; iunfold committedAtLeast; ileft
       rw [show uint.nat (W64 0) = 0 from rfl]
       iexact H0
   -- `ap.snapshot != nil`: never (no snapshot)
@@ -180,7 +180,7 @@ theorem updateCommittedIndex.wp_proof
         rw [hl] at h
         simp only [Option.map_some, Option.some.injEq] at h
         rw [h]
-        iunfold committedAtLeast
+        iunfold committedAtLeast; ileft
         rw [show uint.nat (W64 0) = 0 from rfl]
         iexact H0
     · subst h; simp only [List.getLast?_nil]; itrivial

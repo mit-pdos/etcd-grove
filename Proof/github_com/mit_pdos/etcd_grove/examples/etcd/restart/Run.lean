@@ -136,7 +136,10 @@ theorem Run.wp_proof
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    -- (restart S7.4, 2026-11-14) `NewServer.specR`'s restart-only rows: restart3's open row, false on a
+    -- disclosed class with three members (`srvWinPend`'s docstring); R2s-A (route B) removes it
+    (hRows : ∀ (γ : SrvRaft) (id : w64), ⊢ □ (∀ A σ, srvRestartRows (GF := GF) γ id A σ)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HLv HwbN Hp Hms hAs
   obtain ⟨Hbf, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
@@ -150,7 +153,7 @@ theorem Run.wp_proof
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
   ihave #Hcom' := Hcom
   iunfold etcdstart.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -236,7 +239,7 @@ theorem Run.wp_proof
   imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.toBootCore
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
       (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁)
-      (some clientAddr₂) (some clientAddr₃) .none lease.runCfg_none (by decide))
+      (some clientAddr₂) (some clientAddr₃) .none lease.runCfg_none (fun h => nomatch h))
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
     Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd⟩
@@ -250,6 +253,13 @@ theorem Run.wp_proof
   -- (R2c-4) members 2 and 3 out of compaction mode (their boot bundles'): their stops' scope
   icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₂ with ⟨%hc₂, Hmb₂⟩
   icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₃ with ⟨%hc₃, Hmb₃⟩
+  -- (restart S7.4) the cluster's persistent facts at members 2's and 3's names, for their restarts
+  icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₂ with ⟨#Hrfs₂, Hmb₂⟩
+  icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₃ with ⟨#Hrfs₃, Hmb₃⟩
+  -- (restart S7.4) `ETCD_VERIFY` off, kept from member 2's fresh bundle for the restarts
+  icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfr₂ with ⟨#Hvoff, Hfr₂⟩
+  ihave #Hrows₂ := hRows { γ with reg := reg₂ } id₂
+  ihave #Hrows₃ := hRows { γ with reg := reg₃ } id₃
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
   have hd₂ : go!"http://" ++ peerAddr₂ ∈ dir3 id₁ id₂ id₃ id₂ := by simp [dir3, hn12.symm]
@@ -342,7 +352,7 @@ theorem Run.wp_proof
   · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient m₁ s₁ pl₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
-      HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq (ThreadBoundLe.le (GF := GF) (2 ^ 28)))
     $$ [Hm₁ Hac₁ Hlg3 Hbemu Hgo Hstk] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg

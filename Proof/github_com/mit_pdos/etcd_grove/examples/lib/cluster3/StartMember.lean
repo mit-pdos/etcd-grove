@@ -103,7 +103,7 @@ theorem StartMember.wp_proof
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfresh with ⟨Hcaddr, Hfresh⟩
   ihave #Hcom' := Hcom
   iunfold etcdstart.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -⟩
   ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂
       (GMap.insert cfg.Name1' sl₁ ∅)), sl ↦*□ initURLs3 cfg k $$ []
   · iapply (BigSepM.bigSepM_insert (by
@@ -187,7 +187,7 @@ theorem StartMember.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
   ihave #Hwpi := srvServeFacts_interval srv E cfg $$ Hsf
-  wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
+  wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq (by omega)) $$ [Hlg3 Hbemu Hgo]
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,

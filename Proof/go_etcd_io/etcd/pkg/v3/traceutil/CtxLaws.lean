@@ -59,11 +59,13 @@ theorem traceutil.ctxTraceIs_cancelCtx_background (c : Loc) :
   ipureintro; left; rfl
 
 /-- **`WithCancel(Background())`, carrying no trace** (M2's freeze repair): `context.WithCancelBackground`'s
-statement (`Spec/context/WithCancelBackground.lean`) and `traceutil.ctxTraceIs ctx' none`, proved from
+statement (`Spec/context/WithCancelBackground.lean`) but for its `context.bgCancelChild` conjunct (k8s 7f-4,
+Addendum T-i; no caller of this lemma sends an HTTP request on the context), and `traceutil.ctxTraceIs ctx' none`, proved from
 Perennial's `WithCancel` (`wp_WithCancel_gen`, whose post gives the new context's parent field) and
 `ctxTraceIs_cancelCtx_background`, and (R8, 2026-11-07) no span either (`trace.spanCtxOk`,
-`trace.spanCtxOk_cancelCtx_background`: what `EtcdServer.Compact` takes); the auto-compactor's constructors use it in place of the
-trust-boundary axiom `context.WithCancelBackground.wp_proof`. (Sweep repairs 1, B2) Its start time too
+`trace.spanCtxOk_cancelCtx_background`: what `EtcdServer.Compact` takes); the auto-compactor's constructors use it in place of
+`context.WithCancelBackground.wp_proof` (a trust-boundary axiom when this lemma was written, proved the same
+way since k8s 7f-4's Addendum T-i). (Sweep repairs 1, B2) Its start time too
 (`context.startTimeOk`: `nil`, by Perennial's `ctxValueFrom`). -/
 theorem traceutil.wp_WithCancelBackground_noTrace :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context }}

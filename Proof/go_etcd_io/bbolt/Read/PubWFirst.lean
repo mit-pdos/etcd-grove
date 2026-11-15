@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pubWFirst
@@ -30,7 +32,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A writer's `First`** at any fraction, over `first_w` (`hD1`: `gensOK`'s third clause). -/
-theorem Cursor.First.wp_writerW [HasExt osFsExt]
+theorem Cursor.First.wp_writerW [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hfirst : Cursor.first_w.specQ (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)

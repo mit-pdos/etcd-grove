@@ -10,10 +10,13 @@ server's specs are stated over what they need of that client, as hypotheses (axi
 `lockClientOk` (the session's client contract and, for every prefix, the mutex's client
 contracts, `concurrency.isEtcdSessionClient`/`isEtcdMutexClient`) and `unlockKVOk` (the client's
 `Delete` on one key returns a response whose header is readable, and on success the delete's
-result `deleteResult`). Each handler's class is the requests those calls send: the KV requests on
-keys under `name/` and the lease's (`Lock`), the delete of the request's key (`Unlock`), as the
-context's principal (the in-process client passes the request's context to the server's handlers,
-whose A1/A2 statements check it).
+result `deleteResult`). Each handler's calls are those requests: the KV requests on keys under
+`name/` and the lease's (`Lock`), the delete of the request's key (`Unlock`), each with the request's
+context. (2026-11-14) Nothing here states on whose authority the server checks them: the contracts
+name no principal. The in-process client passes the request's context to the server's unary
+handlers, but not to its watches: they share one stream, opened with the first waiting caller's
+context, so a waiting `Lock`'s watch is checked as another user (etcd-io/etcd#17502,
+`issues/etcd-v3election-shared-watch-wrong-user.md`).
 -/
 module
 

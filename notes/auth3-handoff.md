@@ -1,0 +1,74 @@
+# auth3 handoff (a three-member etcd_auth_safe, A1 landed; A2 in progress)
+
+Plan: `notes/auth3-scope.md` (decisions in its §6). Worktree `/shared/etcd-grove-auth3`, branch
+`auth3-a1` (the Scope landed from `auth3-scope`: lean 7245799336). Coordinator etcd-grove-81; rules
+`/shared/tmp/coord-81/common-rules.md`.
+
+## Done
+- Scope and the non-issue landed (lean 7245799336).
+- S0 / CP0: (1) `alloc3On` composes three times (`lib/etcdstart/Alloc3On.lean`, built, no sorry);
+  (2) a follower's apply of an `Authenticate` entry gets `tokPrefixOk` from the log: `kvInvOn`'s
+  log invariant `plainLogOn` (`KVAuthModel.lean`, `plainEntryOn`: every logged admin entry is
+  `adminKindOk`, whose `.authenticate` clause is `tokPrefixOk`), member-independent;
+  (3) `Authenticate` does NOT give `authPubLb`: the server's answer (`authnAns`,
+  `AuthnServedOn.lean`) and the client's `etcdAuthenticateSpec` carry only `tokIssued`, so A2's
+  route (i) needs a server law too (Q2, for A2).
+- S1 (A1), all built, no sorry:
+  - Go: `examples/etcd/auth3/{auth3.go,auth3_test.go}` (tests pass, 32G cap, GOWORK=off);
+    authkv's `Main` body after the start moved into the exported `auth.Run(s, addr, lg)`
+    (`newUserClient` takes the address): the Go-level form of Q6 (a Lean lemma cannot be shared
+    across packages' code). FLAGGED for CP1: authkv's Go program changed (behaviour-preserving).
+  - Translation: `etc/goose.py` project `auth3`, `etc/gen-init.py` (auth3 Init/PkgTable).
+  - Lean: `auth/Run.lean` (Spec + Proof, from `Main.wp_proof`), `auth/Main.lean` shortened,
+    `Work`/`WorkCalls`/`newUserClient` take the address; `auth3/{Defs,startMember,Main,MainLinked,
+    Adequacy,Results}.lean`; `etcd_auth3_safe`.
+  - Gates touched: bounds and mode baselines raised (new specs with threadBound/receiptBound;
+    auth3's startMember `specM true`), `etc/mode-allow.txt`, `etc/import-all.txt` (Alloc3On),
+    `etc/api/etcdstart.txt` (+Alloc3On, interface generated), `etc/tcb-collections/auth3.txt`.
+
+- CP1 reviewed by etcd-grove-81 (no BLOCKER/MAJOR; the auth.Run refactor and the baselines
+  accepted); minors M1 (followers' state not observed; history covers member 1's applied writes,
+  every committed write), M2 (snapshot installs covered by the proof, not reached by the run), M4
+  (the collection's one exception, `auth.NewAuthStore.wp_proof`, explained), M5 (Go test
+  `TestFollowersApplied`: a test-only copy of Main exposing the servers; the followers reach member
+  1's applied index with its auth revision, users and keys) applied.
+
+## Follow-ups
+- Move `Run.spec` (and auth3's specs) to `threadTok` per the bounds plan (`notes/bounds-plan.md`):
+  today `Run.spec` takes `threadBound`/`receiptBound`, which raised auth's bounds baseline +1/+1
+  (accepted by etcd-grove-81 as debt).
+
+## Next, in order
+1. Land A1 (81's go). Then STOP: A2 waits for 81's and the user's decision.
+
+## Build
+`flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
+--packages=/shared/tmp/manifest-ddc.json build`; land with `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
+PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh` (unwrapped, GOWORK not exported).
+
+## A2 (approved by the user 2026-11-14 via etcd-grove-81; branch `auth3-a2`)
+
+- S0 / CP1 (code reading, nothing built or changed): Q2(i) is NO. `EtcdServer.Authenticate.spec`'s
+  post, `authnAns`, `etcdAuthenticateSpec` carry only `tokIssued`; `raftRequest`'s `pubAfterM` (the
+  state after the entry, published) is dropped in `Authenticate`'s proof, and even with it the
+  entry's position relative to the set-up's log `Lset` is not known (the model's `Authenticate`
+  records no "auth enabled"), so it would not give `setupSt`. Writes (`writeGrantOn`) have the same
+  ordering gap. A linearizable `Range` has the ordering (the read index) but (a) its post drops
+  `authPubLbM m` (the proof holds it, `EtcdServer__Range.lean` `HnAlb`) and (b) its bound comes only
+  from `committedAtLeast γr c`, the member's own `s.committedIndex`, which a client of member k
+  cannot raise past 0. Route (ii) needs both.
+- CP1 approved by etcd-grove-81 (2026-11-14): route (ii) with L1 and L2; L2 disjunctive; the `ileft`s in
+  other examples allowed (restartCheck.lean minimal); in-place strengthening, `auth3Addrs` grows.
+- Done (branch `auth3-a2`):
+  - L2: `committedAtLeast` (InvRequest.lean) = member's committed index lb OR a committed raft log at
+    least that long (docstring says why sound); `committedAtLeast_of_lb`, `committedAtLeast_of_rlog`;
+    `ileft` at every introduction site (server, read loop, client, examples).
+  - L1: `EtcdServer.Range.spec`'s success post and `v3rpc.rangeAuthed` carry `authPubLbM E.authMode m`.
+  - `SetUp.spec` post also gives a committed log `Lc` with state `setupSt r` (internal, stronger post).
+  - `etcdstart.sameCluster` and `alloc3On`'s post (`sameCluster ρ₁ ρ₂`, `ρ₁ ρ₃`).
+  - auth3: `AuthFixed.lean` (`akAuthFixed_barrier`, `*_same` transfers), `barrier`, `newUserClient`
+    (copy), `run` (with `serve_member`, the thread token handed back through `grpcUpOn`'s
+    `srvGoRes`), `Main`, `MainLinked`, `Adequacy` (auth3Addrs + client bundles), `Results` docstring.
+  - Go: `run`/`barrier`/`newUserClient` in auth3.go (Serve on all three, barrier per member, u@2,
+    v@3, anon@1, bad@2); auth3_test.go checks refusals and the anonymous watch at every member.
+- Freeze passed (etcd-grove-81, 2026-11-14); docstring fixes applied; landed via etc/land.sh.

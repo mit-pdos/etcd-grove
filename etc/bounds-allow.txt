@@ -104,3 +104,15 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/(call|Apply|
 # so its spec takes `⌜4 ≤ threadBound⌝` (`srvLevelK`), beside the reader bound it had; the served
 # theorems discharge it from `srvLevels`, which adequacy fixes (`srvLevels_of_max`).
 spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/watchServer__Watch\.lean$
+
+# k8s 7f-4 (for etcd-grove-81's review; follow-up: hold the bound in the owner's handle). etcd's
+# require-leader wrapper: `newCancellableContext` builds the wrapper's `RWMutex` reader pool
+# (`init_RWMutex_threadPoolL`, needs `threadBound GF ≤ 2 ^ 30`), the lock's owner, as etcd3's `New`;
+# `newStreamInterceptor` -> `Server` -> etcdstart's `Serve` -> restart's `serveClient` carry the bound
+# down to it from the adequacy theorem's constants (as etcd3's driver, above). `sendLoop` lends level 4
+# of its thread token for the stream context's `Err` (`5 ≤ threadBound`, `srvLevelK`), as `Watch`'s.
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(newCancellableContext|newStreamInterceptor|Server|serverWatchStream__sendLoop)\.lean$
+# (k8s 7f-4, Addendum T-k, for etcd-grove-81's review) `LeaseServer.LeaseKeepAlive`'s loop goroutine lends level 4
+# of its own thread token to the renewals (`levelTok v3rpc.ctxErrLvl`, `threadTok_lend4`), as `sendLoop`'s.
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseKeepAlive\.lean$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/(lib/etcdstart/Serve|etcd/restart/serveClient)\.lean$

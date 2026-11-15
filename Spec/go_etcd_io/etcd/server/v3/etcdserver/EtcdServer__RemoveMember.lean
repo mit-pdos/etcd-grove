@@ -6,6 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -33,18 +34,21 @@ reconfiguration check) and `configure(ctx, &cc)` with the remove-node configurat
 `id`; the two callees are names only, taken as contracts (`AuthGuard.lean`): `mayRemoveOk` over
 the caller's `Pm`, answering `Qm`; `configureRemoveOk` with the token `adminRes` of the request's
 auth info, over the caller's `Pin`, answering `Qin`. The result is `configure`'s, or an error with
-`Pin` kept (the guard's error, `applyErrIs`, or the check's `Qm err`). -/
+`Pin` kept (the guard's error, `applyErrIs`, or the check's `Qm err`).
+(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
+store's published index: the guard's error is refused for the admin class's reason (`adminWhy`). -/
 abbrev EtcdServer.RemoveMember.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64) (Pin Pm : IProp GF) (Qm : GoInterface → IProp GF)
-    (Qin : GoSlice → GoInterface → IProp GF),
+    (Qin : GoSlice → GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗ Pm ∗
+      srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗ Pm ∗
       mayRemoveOk s id Pm Qm ∗ configureRemoveOk s E ctx id Pin Qm Qin }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RemoveMember"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗
-      (Qin sl err ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Pin ∗ ((applyErrIs err ∗ Pm) ∨ Qm err))) }}
+      (Qin sl err ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Pin ∗
+        ((applyErrIs err ∗ adminWhy s E.authMode n (GoInterface.ok ctx) err ∗ Pm) ∨ Qm err))) }}
 
 end spec
 

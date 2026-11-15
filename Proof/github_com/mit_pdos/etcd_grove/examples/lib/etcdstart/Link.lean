@@ -110,6 +110,18 @@ theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.BuildServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.BuildServer.wp_proof wp_newServer
 
+theorem wp_newServerModeRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.newServerMode.specRestart (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.newServerMode.wp_proofRestart mvcc.api.mvccApi_names_nonempty_law_holds features.wp_NewDefaultServerFeatureGate wp_NewServerR
+
+theorem wp_newServerRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.newServer.specRestart (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.newServer.wp_proofRestart wp_newServerModeRestart
+
+theorem wp_BuildServerRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.BuildServer.specRestart (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.BuildServer.wp_proofRestart wp_newServerRestart
+
 theorem wp_Collect :
     EtcdGrove.etcdstart.Collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Collect.wp_proof client.v3.WatchResponse.wp_Err

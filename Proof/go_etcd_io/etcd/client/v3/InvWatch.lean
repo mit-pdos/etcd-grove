@@ -589,13 +589,13 @@ instance watchSrvFacts_persistent (V : WEnv GF) : Persistent (watchSrvFacts V) :
   unfold watchSrvFacts; infer_instance
 
 /-- The create request `toPB` builds from a watch request's fields: the key and range end, the
-start revision, the progress flag, no filter, no previous key-values, the automatic id, no
-fragments; the ghost fields `sr` and (G2, 2026-10-30) `bound`, the client's bound on the auth
-store's published index (`WsPrm.bd`). -/
-def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) (bd : Nat) :
+start revision, the progress flag, no filter, the previous key-values flag `pk` (k8s 7f-3c:
+`WithPrevKV`), the automatic id, no fragments; the ghost fields `sr` and (G2, 2026-10-30) `bound`,
+the client's bound on the auth store's published index (`WsPrm.bd`). -/
+def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) (bd : Nat) (pk : Bool) :
     v3rpc.CreateReqM :=
   { key := key, rangeEnd := ed, startRev := rv, progressNotify := pn, filters := [],
-    prevKv := false, watchId := W64 0, fragment := false, sr := sr, bound := bd }
+    prevKv := pk, watchId := W64 0, fragment := false, sr := sr, bound := bd }
 
 /-! ## One watch: its request and its substream -/
 
@@ -686,12 +686,12 @@ theorem cplCond_iff {sr : Bool} {o : OpFull} {rev : w64} :
 abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
 
 /-- **The request is one of the contract's** (pure): a range watch from `rev ≥ 0`
-(`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's, its key as
+(`isRangeWatchP`: k8s 7f-3c, `WithPrevKV` allowed; `OpWatch` not panicking) whose `watchRequest` fields are the model's, its key as
 the server reads it (G2, 2026-10-30: `P.o` is the range the watch's events are of,
 `OpFull.watchNorm`, an empty request key read as `"\x00"`), its key and range end fitting a gRPC
 message (2026-10-30: the creates `run` sends, `cliStreamIs`; from `watcher.Watch`'s `opSizeOk`). -/
 def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
-  P.o.isRangeWatch P.rev = true ∧ ¬ P.o.watchPanics ∧ 0 ≤ sint.Z P.rev ∧
+  P.o.isRangeWatchP P.rev = true ∧ ¬ P.o.watchPanics ∧ 0 ≤ sint.Z P.rev ∧
     (if P.key = [] then [W8 0] else P.key) = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧
     P.cn = P.o.base.createdNotify ∧ P.pn = P.o.base.progressNotify ∧
     P.key.length + P.ed.length ≤ 2 ^ 30
@@ -699,8 +699,8 @@ def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
 /-- **A watch's creates fit a gRPC message** (2026-10-30): the create `toPB` builds from the
 watch's request, at any start revision (a resume's), below `grpcMsgMax`. -/
 theorem wsReqOk_wire {pfx : GoString} {P : WsPrm GF} (h : wsReqOk pfx P) (rv : w64) (pn sr : Bool)
-    (bd : Nat) :
-    v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd)) < grpcMsgMax := by
+    (bd : Nat) (pk : Bool) :
+    v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd pk)) < grpcMsgMax := by
   obtain ⟨-, -, -, -, -, -, -, h⟩ := h
   simp only [v3rpc.watchReqWireLen, createOf, List.length_nil]
   unfold wireSlack grpcMsgMax; omega
@@ -775,6 +775,15 @@ theorem isRangeWatch_watchNorm (o : OpFull) (rev : w64) :
     o.watchNorm.isRangeWatch rev = o.isRangeWatch rev := by
   unfold OpFull.watchNorm; split <;> rfl
 
+/-- The same of `isRangeWatchP`. -/
+theorem isRangeWatchP_watchNorm (o : OpFull) (rev : w64) :
+    o.watchNorm.isRangeWatchP rev = o.isRangeWatchP rev := by
+  unfold OpFull.watchNorm; split <;> rfl
+
+/-- The normalization keeps the previous key-values flag. -/
+theorem watchNorm_prevKV (o : OpFull) : o.watchNorm.base.prevKV = o.base.prevKV := by
+  unfold OpFull.watchNorm; split <;> rfl
+
 /-- **The member `V` is at** (G2): with one member, it is member `0`. -/
 theorem watchConnFacts_one (V : WEnv GF) :
     watchConnFacts V ⊢ ⌜V.nm = 1 → (V.mem 0).2 = V.R⌝ := by
@@ -830,7 +839,7 @@ promises completeness), with the row `Au` when it has events (G2: `wsRow`); (C3'
 its compaction revision the permit of the KV names `γk`. -/
 def outcElem (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
     (Au : IProp GF) : Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
-  watchStateElem γk { γ with cur := γ.cur2 } o Q Au
+  watchStateElemP γk { γ with cur := γ.cur2 } o Q Au
 
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
 contract's SPSC channel (its row `Au`), with the consumer's resources (`Watch` returns them). -/
@@ -843,8 +852,8 @@ def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (Q : KVState → IP
     ⌜γ.cpl = cplCond sr o rev⌝)
 
 /-- **The read-only fields of a `watchRequest`** at `l` (all but `rev` and `retc`), at the watch's
-values: the context, the key and range end, the flags (`fragment` and `prevKV` false: the
-contract's options), the filters' slice (nil: no filter). -/
+values: the context, the key and range end, the flags (`fragment` false; k8s 7f-3c: `prevKV` the
+watch's, `P.o.base.prevKV`), the filters' slice (nil: no filter). -/
 def wrRO (l : Loc) (P : WsPrm GF) : IProp GF :=
   iprop(structFieldRef go_etcd_io.etcd.client.v3.watchRequest go!"ctx" l ↦□
       (interface.ok P.ctx : GoInterface) ∗
@@ -856,7 +865,7 @@ def wrRO (l : Loc) (P : WsPrm GF) : IProp GF :=
     structFieldRef go_etcd_io.etcd.client.v3.watchRequest go!"watchBufLogEnabled" l ↦□ P.wbl ∗
     structFieldRef go_etcd_io.etcd.client.v3.watchRequest go!"filters" l ↦□ P.flt ∗
     P.flt ↦*□ ([] : List w32) ∗
-    structFieldRef go_etcd_io.etcd.client.v3.watchRequest go!"prevKV" l ↦□ false)
+    structFieldRef go_etcd_io.etcd.client.v3.watchRequest go!"prevKV" l ↦□ P.o.base.prevKV)
 
 instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
   unfold wrRO; infer_instance
@@ -865,13 +874,14 @@ instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
 K2e-7, D47): unless the watch promises no completeness (`cpl` false), the server-level contract
 (`rawRespOk`, at the dispatching member's watch facts: some, so that the facts read no member) from
 the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
-read update fired at it (`□ P.Q σ`, `watchStateRespOk` at the same positions: `cmpl_step`). -/
+read update fired at it (`□ P.Q σ`, `watchStateRespOkP` at the same positions: `cmpl_step`), and
+(k8s 7f-3c) the events' `PrevKv` fields read-only (`eventsPkAt`). -/
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
     monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗
     (∃ γst : v3rpc.SrvW GF, rawRespOk γst P.o h2B h2A v r) ∗
-    ∃ σ : KVState, □ P.Q σ ∗ watchStateRespOk P.o σ h2B h2A v r)
+    ∃ σ : KVState, □ P.Q σ ∗ watchStateRespOkP P.o σ h2B h2A v r ∗ eventsPkAt v.Events' r.events)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
@@ -1054,12 +1064,12 @@ theorem wsIs_bd (V : WEnv GF) (P : WsPrm GF) :
   iframe Hc Hb
 
 /-- **A watch's creates fit a gRPC message** (`wsReqOk_wire`). -/
-theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : Nat) :
-    wsIs V P ⊢ ⌜v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd)) < grpcMsgMax⌝ := by
+theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : Nat) (pk : Bool) :
+    wsIs V P ⊢ ⌜v3rpc.watchReqWireLen (.create (createOf P.key P.ed rv pn sr bd pk)) < grpcMsgMax⌝ := by
   iintro #H
   iunfold wsIs at H
   icases H with ⟨-, -, -, -, -, -, %Hok, -⟩
-  ipureintro; exact wsReqOk_wire Hok.2.1 rv pn sr bd
+  ipureintro; exact wsReqOk_wire Hok.2.1 rv pn sr bd pk
 
 /-- **A watch's row from its create's check** (G2; `wsRow_of_authed`), at the watch's key and
 range end as its request has them. -/

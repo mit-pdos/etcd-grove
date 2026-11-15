@@ -18,6 +18,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
@@ -102,7 +104,7 @@ end pure
 section rb
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -151,7 +153,7 @@ theorem wdbOK_rolledBack_f (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
 
 omit sem in
 /-- **`wdb_rollback'`, flagged.** -/
-theorem wdb_rollback_f (p : GoString) (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
+theorem wdb_rollback_f (p : BFile) (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
     (bs : Nat → List w8) (F : GMap Nat (List w8))
     (hok : wdbOK' fr w) (hF : fbRel w F) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hpa : ∀ pd, w.fl.pending !! W64 ((w.C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,

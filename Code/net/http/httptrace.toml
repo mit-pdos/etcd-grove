@@ -1,0 +1,7 @@
+# Types only (k8s 7f-4, Addendum T-h0): the context keys net/http's client reads, which
+# `leasehttp.RenewHTTP.spec`'s premise names (`http.netCtxOk`).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

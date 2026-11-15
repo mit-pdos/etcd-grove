@@ -28,7 +28,7 @@ it); the channel's names and the first revision `lo` the watcher watches from.
 **Per channel** (`watchChanInv`, `inv watchN`, the cache's `InvWatcher` as template): the channel,
 the log of every response sent (`RespM`, with the watcher sent for as ghost data), the consumer's
 received prefix (half of `recv`, the other half the consumer's: `watchConsumer`), the values in
-flight, the list of registered watchers (half of `regl`, the other half the stream's close right
+flight (with their events' `PrevKv` fields, owned: `respsPk`, k8s 7f-3b), the list of registered watchers (half of `regl`, the other half the stream's close right
 `CR`, which the close deposits; every response sent is for one of them) and, per registered watcher, its deliveries: the segments of its delivered events, each
 filtered by some predicate its filters implement (sent unless all its events were filtered
 out), and whether it is live (an open channel) or cancelled (a closed channel has no live
@@ -323,7 +323,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- The filter `f` (a `FilterFunc`) decides the predicate `p` on events. -/
 def filterSpec (f : GoFunc) (p : EvM → Bool) : IProp GF :=
   iprop(□ ∀ (e : Loc) (ev : EvM),
-    {{ evIs e ev }} (App (Val #f) (Val #e)) {{ (b : Bool), RET #b; ⌜b = p ev⌝ }})
+    {{ evRd e ev }} (App (Val #f) (Val #e)) {{ (b : Bool), RET #b; ⌜b = p ev⌝ }})
 
 instance filterSpec_persistent (f : GoFunc) (p : EvM → Bool) :
     Persistent (filterSpec (GF := GF) f p) := by
@@ -363,14 +363,34 @@ theorem watcherFilters_ok (γw : WatcherNames) (fcs : GoSlice) :
 /-! ## Responses -/
 
 /-- The `WatchResponse` value `v` is the response `r`: its id, revision and compaction revision,
-its events a read-only slice of `r`'s events (`evIs` each). -/
+its events a read-only slice of `r`'s events (`evRd` each: their fields but `PrevKv`, which the
+response owns, `respPk`). -/
 def respIs (v : WatchResponse) (r : RespM) : IProp GF :=
   iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
     ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
-      [∗list] x ∈ ps.zip r.evs, evIs x.1 x.2)
+      [∗list] x ∈ ps.zip r.evs, evRd x.1 x.2)
 
 instance respIs_persistent (v : WatchResponse) (r : RespM) : Persistent (respIs (GF := GF) v r) := by
   unfold respIs; infer_instance
+
+/-- **The `PrevKv` fields of the response `v`'s events, owned** (k8s 7f-3b): the watcher's copies'
+(`evPk`), which the channel hands to the receiver with the response. -/
+def respPk (v : WatchResponse) (r : RespM) : IProp GF :=
+  iprop(∃ ps : List Loc, v.Events' ↦*□ ps ∗ [∗list] x ∈ ps.zip r.evs, evPk x.1 x.2)
+
+/-- A response without events owns nothing. -/
+theorem respPk_nil (v : WatchResponse) (r : RespM) (h : r.evs = []) (ps : List Loc) :
+    (v.Events' ↦*□ ps : IProp GF) ⊢ respPk v r := by
+  iintro #Hs
+  iunfold respPk
+  iexists ps
+  iframe Hs
+  rw [h, List.zip_nil_right]
+  iapply BigSepL.bigSepL_nil.2; iempintro
+
+/-- The in-flight responses' `PrevKv` fields (the channel invariant's). -/
+def respsPk (vs : List WatchResponse) (rs : List RespM) : IProp GF :=
+  iprop([∗list] x ∈ vs.zip rs, respPk x.1 x.2)
 
 /-- The values `vs` are the responses `rs`, pointwise. -/
 def respsIs (vs : List WatchResponse) (rs : List RespM) : IProp GF :=
@@ -1016,6 +1036,7 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "%Hpre" ∷ ⌜recv <+: sent⌝ ∗
     "%Hinfl" ∷ ⌜chanInflight s = some vs⌝ ∗
     "#Hvs" ∷ respsIs vs (sent.drop recv.length) ∗
+    "Hpk" ∷ respsPk vs (sent.drop recv.length) ∗
     "#Hok" ∷ □ ([∗list] r ∈ sent, respOk r) ∗
     "Hregl" ∷ ghostVar γc.regl (1 : Qp).half L ∗
     "Hcl" ∷ (if chanIsClosed s then ghostVar γc.regl (1 : Qp).half L else iprop(True)) ∗

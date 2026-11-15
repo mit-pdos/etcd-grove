@@ -6,7 +6,8 @@ module
 public import Spec.go_etcd_io.raft.v3.entsSize
 public import Spec.google_golang_org.protobuf.proto.SizePb
 public import Proof.go_etcd_io.raft.v3.PbEntryType
-public import Proof.go_etcd_io.raft.v3.limitSize
+public import Proof.go_etcd_io.raft.v3.MsgOut
+public import Proof.go_etcd_io.raft.v3.LimitSizeLemmas
 
 @[expose] public section
 

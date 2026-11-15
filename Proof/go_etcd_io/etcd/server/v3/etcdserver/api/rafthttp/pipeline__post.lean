@@ -78,9 +78,13 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_apply hBackground
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
-  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx, #Hbgc⟩
   (try wp_auto)
-  wp_apply hWithContext req _ (.fixed bs) ctx' $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
+  wp_apply hWithContext req _ (.fixed bs) ctx' $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr, #Hrctx⟩
+  ihave #Hrbg : http.reqCtxBg req' $$ []
+  · iunfold http.reqCtxBg
+    iexists ctx'
+    iframe #
   (try wp_auto)
   ipersist done
   ipersist cancel
@@ -146,8 +150,9 @@ theorem rafthttp.pipeline.post.wp_proof
     iexists st
     iframe #
     ipureintro
-    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
-      by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
+    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, ⟨lid, Hfrom.1, Hmem.1,
+      by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2.1 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩,
+      Hfrom.2.2⟩
   iunfold pipeReg at Hreg
   ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2
   ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []
@@ -158,7 +163,7 @@ theorem rafthttp.pipeline.post.wp_proof
   · ipureintro
     simp only [raftHttpNet, raftProto, snapStreamed]
     exact fun h => absurd h.2 (by decide)
-  wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hpr]
+  wp_apply HRT $$ [$Hreq $Hstr $Hrbg $Hso $Htk $Hpa $Hpr]
     as %resp %rerr ⟨Hreq, Hres⟩
   (try wp_auto)
   -- `done <- struct{}{}`: the future fulfilled

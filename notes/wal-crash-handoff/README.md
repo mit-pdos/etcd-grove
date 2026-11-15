@@ -33,3 +33,23 @@ Start here:
   `0b50f0426` segment naming; F-Z/F-N1/F-N2 earlier. bbolt: `c5a6065`, `ea4cab5` (pushed), `4f08974e`
   (local, incomplete; see `rung3/`).
 - The restart track's Scope: `notes/restart-scope.md` (copied from scratch, 2026-11-12).
+
+## Restart S6 and the snapshot directory (2026-11-13, etcd-grove-81)
+
+Restart S6 (branch `restart-s56`, worktree `/shared/etcd-grove-rs56`, not yet landed) owns new state over
+the old file layer (`osFsExt`), which the fsExt decision retires; whoever retargets bbolt and the
+snapshotter onto `fsExt` should carry it over:
+- **The member's snapshot-directory invariant** (`snapDirInv`, `Proof/.../rafthttp/Net.lean`) is now
+  allocated once, at the first start, and reused at a restart through the image; removed snapshots are
+  counted by a member-level counter (`snapRmM`). It holds `fileHolds` of the `<i>.snap.db` files.
+- **A first-start token** in `bootOk` (approved by the user, 2026-11-13, as a listed world assumption):
+  `snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir')` (at the first start the snapshot directory holds no
+  `.snap.db`, and nothing outside the server's snapshotters writes `.snap.db` there), and the path
+  equation `snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'` in `bootOk` and `bootOkR`
+  (`snapDBPathOf` an opaque). Under `fsExt` these become facts about the directory's real files.
+- **Fork fix** `2eaeb872b` (`goose-lean-snaplink`, pushed): `SaveDBFrom` links the temp file into place
+  and keeps an existing one, so two concurrent saves of one index (which can hold different data while a
+  compaction is half done) no longer overwrite each other; `nonissues/etcd-snap-savedbfrom-concurrent-rename.md`.
+- The axioms `snap.Snapshotter.SaveDBFrom`, `Release` and `EtcdServer.purgeFile` keep their statements;
+  their file-level facts are the natural targets for proved specs over `fsExt`.
+Details: `notes/restart-s56-handoff.md` and `notes/decisions.md` "Restart S6a" on that branch (land with S6).

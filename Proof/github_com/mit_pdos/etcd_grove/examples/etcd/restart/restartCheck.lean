@@ -68,7 +68,7 @@ theorem restartCheck.wp_proof
     Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HLv HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
     Hpe Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨#Hzlg, Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
-    #Hcci, #Hnet⟩
+    #Hcci, #Hnet, #Hrfs, #Hvoff, #Hrows⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -144,7 +144,7 @@ theorem restartCheck.wp_proof
   icases Hst with ⟨HmR, -, -, -⟩
   ihave #Hcm := Hcom
   iunfold etcdstart.commonPremises at Hcm
-  icases Hcm with ⟨-, -, -, #Hnrl⟩
+  icases Hcm with ⟨-, -, -⟩
   -- `serveClient(mR, client)`, with etcd's KV calls registered at the address
   haveI := Hms
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -152,7 +152,7 @@ theorem restartCheck.wp_proof
   · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient mR sR plR caddr E' { ρ' with wait := γw } ρ'.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt caddr E' { ρ' with wait := γw } ρ'.rd cid mid)
-      HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq (ThreadBoundLe.le (GF := GF) (2 ^ 28)))
     $$ [HmR Hca Hlg3 Hbemu Hgo Hstk] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid' %mid' %R Hg
@@ -213,7 +213,7 @@ theorem restartCheck.wp_proof
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
     as %gresp %gerr Hget
   · iframe #
-    iunfold committedAtLeast
+    iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl
   -- `gcancel()`
   (try wp_auto)

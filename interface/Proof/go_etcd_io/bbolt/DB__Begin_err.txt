@@ -2,25 +2,28 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.isBolt.congr_simp [HasExt osFsExt] (db db✝ : Loc) (e_db : db = db✝) (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) : bbolt.isBolt db γ = bbolt.isBolt db✝ γ✝
+theorem bbolt.isBolt.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (db db✝ :
+    Loc) (e_db : db = db✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) : bbolt.isBolt db γ = bbolt.isBolt
+    db✝ γ✝
 
-theorem bbolt.rdTxK_reg [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q :
-    Qp) (T : bbolt.TxView) (v : bbolt.View) : bbolt.rdTxK K tx src q T v ⊢ bbolt.rdTxK K tx src q T
-    v ∗ ∃ r, bbolt.reg tx K.B r ∗ ⌜r.db = K.db⌝
+theorem bbolt.rdTxK_reg [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (K : bbolt.BC)
+    (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) : bbolt.rdTxK K tx
+    src q T v ⊢ bbolt.rdTxK K tx src q T v ∗ ∃ r, bbolt.reg tx K.B r ∗ ⌜r.db = K.db⌝
 
-theorem bbolt.wp_logger_ne_discard (lg : GoInterface) (hty : bbolt.logPtrTyped lg) : ⊢ ∀ Φ,
-    isPkgInit pkg_id.go_etcd_io.bbolt ∗ bbolt.boltLogger lg -∗ (▷ ∀ b, True -∗ Φ (intoVal b)) -∗ WP
-    ((Convert go.untypedBool go.bool) ((GoUnOp GoNot go.bool) (intoVal lg
-    =⟨go_etcd_io.bbolt.Logger.ty⟩ ![go_etcd_io.bbolt.Logger.ty] (intoVal (globalAddr
+theorem bbolt.wp_logger_ne_discard [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (lg : GoInterface) (hty :
+    bbolt.logPtrTyped lg) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.bbolt ∗ bbolt.boltLogger lg -∗ (▷ ∀
+    b, True -∗ Φ (intoVal b)) -∗ WP ((Convert go.untypedBool go.bool) ((GoUnOp GoNot go.bool)
+    (intoVal lg =⟨go_etcd_io.bbolt.Logger.ty⟩ ![go_etcd_io.bbolt.Logger.ty] (intoVal (globalAddr
     go_etcd_io.bbolt.discardLogger))))) {{ Φ }}
 
-theorem bbolt.rdTxK_boltTx [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (T : bbolt.TxView) (v :
-    bbolt.View) (hro : T.rw = false) : K.full ∗ bbolt.rdTxK K tx bbolt.PairSrc.loan 1 T v ⊢
-    bbolt.txDBDef K.B K.N tx K.db ∗ bbolt.boltTxDef K.B K.N tx 1 T
+theorem bbolt.rdTxK_boltTx [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (K :
+    bbolt.BC) (tx : Loc) (T : bbolt.TxView) (v : bbolt.View) (hro : T.rw = false) : K.full ∗
+    bbolt.rdTxK K tx bbolt.PairSrc.loan 1 T v ⊢ bbolt.txDBDef K.B K.N tx K.db ∗ bbolt.boltTxDef K.B
+    K.N tx 1 T
 
-theorem bbolt.DB.Begin_err.wp_proof [hos : HasExt osFsExt] (wp_beginTx : bbolt.DB.beginTx.spec)
-    (wp_beginRWTx : bbolt.DB.beginRWTx.spec) : bbolt.DB.Begin_err.spec
+theorem bbolt.DB.Begin_err.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (wp_beginTx : bbolt.DB.beginTx.spec) (wp_beginRWTx : bbolt.DB.beginRWTx.spec) :
+    bbolt.DB.Begin_err.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Begin_err.spec`, unfolded:
   ∀ (db : Loc) (γ : bbolt.BoltName) (w : Bool) (Q : bbolt.Data → IProp GF),
     ⊢

@@ -65,7 +65,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
-       etc/gen-link.py --bboltfs > LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
@@ -526,8 +526,8 @@ LEAN_FIRST = {
     "--bboltfs": ("link-lean-first-bboltfs.txt",
                   "github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs",
                   "github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions",
-                  "minibolt's proofs (`examples/osfs/bboltfs`: the page and meta helpers of `page.go`; "
-                  "the part `LinuxFs/`)", ["", "LinuxFs"]),
+                  "minibolt's proofs (`examples/osfs/bboltfs`: the page and meta helpers of `page.go`)",
+                  [""]),
     "--common": ("link-lean-first-common.txt",
                  "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart",
                  "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions",

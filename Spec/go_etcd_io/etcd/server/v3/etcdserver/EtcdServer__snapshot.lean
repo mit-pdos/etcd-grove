@@ -47,16 +47,18 @@ the apply thread's state as the old `spec` said; the storage's stored snapshot p
   (`snapshotCert_make`): `ep.confState` the voters' (`epCsCfg`), the frozen entry of term `at'`
   (`srvFrozenTerm`), `ai` positive, fewer than `2^61` voters;
 * `verifyConsistentIndexIsLatest`'s check: the consistent index at least `ai`;
-* with `toDisk`, the disk's storage (`srvSnapDisk`: `SaveSnap`, and `Release`'s directory at a
-  removal fact the applied index past `j` gives) with the applied index at least `ai`, and
-  `Release` not failing (`storage.releaseOk`, as `applySnapshot`'s `snapOpensOk`).
+* with `toDisk`, the disk's storage (`srvSnapDisk`: `SaveSnap`) with the applied index at least
+  `ai`, `Release`'s directory (`srvSnapDir`, restart S6a: at the member's removal counter `γm`, at
+  least `ai`, which gives the removal facts below `ai`; until then a part of `srvSnapDisk`, the facts
+  from the applied index), and `Release` not failing (`storage.releaseOk`, as `applySnapshot`'s
+  `snapOpensOk`).
 The applier row is `spec`'s, `srvApplyKVCore` (E3p; merged onto lean 2026-10-27). -/
 abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
     (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
-    (γn : RNNames),
+    (γn : RNNames) (γm : GName),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
   -- fewer than `2^61` (`SnapListsOk`)
@@ -71,6 +73,8 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
       srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       srvSnapStor ms γs γr nk ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      -- (restart S6a) `Release`'s directory, its removal counter at least `ai`
+      srvSnapDir s γm ∗ monoNatLbOwn γm (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
       epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvWTPool E γp ∗

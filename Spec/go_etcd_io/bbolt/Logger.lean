@@ -10,7 +10,7 @@ public import GeneratedProof.go_etcd_io.bbolt
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.fmt.Base
 public import Spec.fmt.ErrorOk
-public import GooseLang.Ext.OsFs.Specs
+public import GooseLang.Ext.Fs.Specs
 
 @[expose] public section
 
@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section vocab
@@ -28,7 +30,7 @@ variable [go_gctx : GoGlobalContext]
 /- The vocabulary is over OsFs's semantics (round 11: the default `osFs_semantics`, D22): each
 predicate takes the instance in its signature (round 10), and the laws, which use the
 predicates, take this section variable. -/
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

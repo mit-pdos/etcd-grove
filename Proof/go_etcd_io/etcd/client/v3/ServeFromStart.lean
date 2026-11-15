@@ -8,8 +8,8 @@
   fields) and `srvWatchBuilt` (the watchable store with its watch-token pool, which `NewServer`
   allocates), at the answers `etcd_kv_started` takes
   (`srvKVAns s E ρ γr 0 [] .none`). Two premises no construction gives, stated as such:
-  `v3rpc.eofVar` (`io.EOF`'s value: Perennial's `io` fact does not keep it, D19j) and
-  `runsNoRequireLeader` (no client asks for a leader on a stream), and the tracer options' slice.
+  `v3rpc.eofVar` (`io.EOF`'s value: Perennial's `io` fact does not keep it, D19j) (and until
+  2026-11-13 `runsNoRequireLeader`), and the tracer options' slice.
   The rest of `watch.go`'s package variables (`watchVars`) comes from `isPkgInit v3rpc` (D19j,
   2026-10-18: until then the premise `watchVars`). (`membership.localKept`, the local member stays in the cluster, was
   a third until 2026-10-18: now the cluster's own fact, `localKept_of_isRaftCluster`.)
@@ -59,11 +59,11 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         srvWatchBuilt s E ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
+        v3rpc.eofVar ∗
         cfg.TracerOptions' ↦*□ tos ⊢
       |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
-  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Htos⟩
   imod (auth.modeTag_alloc (GF := GF) E.authMode) with ⟨%tag, #Htag⟩
   ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
@@ -130,10 +130,10 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         isServerReqM on s E ρ ∗ isServerReadM on s E γr ∗ srvAuthLb s E ∗ v3rpc.raftKV s A ∗
         srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
+        v3rpc.eofVar ∗
         cfg.TracerOptions' ↦*□ tos ⊢
       |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗ ⌜C.A = A ∧ C.E = E⌝ := by
-  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hlb, #Hkv, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hlb, #Hkv, #Hf, #Hwb, #Hv3, #Heof, #Htos⟩
   imod (auth.modeTag_alloc (GF := GF) E.authMode) with ⟨%tag, #Htag⟩
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
   · iframe #

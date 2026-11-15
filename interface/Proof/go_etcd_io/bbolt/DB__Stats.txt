@@ -2,12 +2,14 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.statSlot.congr_simp [HasExt osFsExt] (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ :
-    Option (Loc × bbolt.Data)) : a✝ = a✝¹ → bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹
+theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.Data)) : a✝ = a✝¹ → bbolt.statSlot
+    γ a✝ = bbolt.statSlot γ✝ a✝¹
 
 theorem bbolt.DB.Stats.wp_proof : bbolt.DB.Stats.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Stats.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (db : Loc) (γ : bbolt.BoltName) (o : Option (Loc × bbolt.Data)),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (db : Loc) (γ : bbolt.BoltName)
+    (o : Option (Loc × bbolt.Data)),
     ⊢
       ∀ Φ,
         bbolt.isBolt db γ ∗ bbolt.statSlot γ o -∗

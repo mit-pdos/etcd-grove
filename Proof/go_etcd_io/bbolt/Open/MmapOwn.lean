@@ -22,12 +22,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section own
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -45,32 +47,32 @@ slots. On success the mapping `base`/`L` (`mmapSize`'s of the larger of the file
 bytes (as bytes at a half), the rest any values. On an error (`fmt` formats it) nothing is mapped
 in the fields (OsFs may keep a leaked mapping). -/
 abbrev DB.mmapUnlocked.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
-    (m : OsMeta) (xs : List (w8 × Bool)) (minsz : w64),
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
+    (m : OsMeta) (xs : List ByteG) (minsz : w64),
   db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 →
   (mf = W64 0 ∨ mf = W64 0x8000) →
   (8192 ≤ m.size → metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096)) ∨
     metaValid (metaOf (bytesAt (xs.map Prod.fst) 4096 4096))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       mmapOwnFix (GF := GF) db lg mf mx dq ∗
-      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ osMeta p (DFrac.own 1) (some m) ∗
-      osBytes p 0 (DFrac.own 1) xs ∗
+      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osBytes p.ino 0 (DFrac.own 1) xs ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
   {{ (err : GoInterface), RET #err; mmapOwnFix db lg mf mx dq ∗
-      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ osBytes p 0 (DFrac.own 1) xs ∗
+      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (L : Nat),
           ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧
             8192 ≤ m.size⌝ ∗
           mapFields db (DFrac.own 1) (some (base, L)) ∗ db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
-          osMeta p (DFrac.own 1) (some { m with maps := GMap.singleton base L }) ∗
+          osMeta p.ino (DFrac.own 1) { m with maps := GMap.singleton base L } ∗
           bytesPointsto base (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
           ∃ vf, cellsR base m.size (L - m.size) vf) ∨
        (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
           mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-          ∃ m' : OsMeta, osMeta p (DFrac.own 1) (some m'))) }}
+          ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
 
 theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hFileSize : DB.fileSize.spec (GF := GF) (hG := hG))
@@ -98,7 +100,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   · iframe #
   try wp_auto
   wp_apply hFileSize db f fd p dq (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨p, true, true⟩ m rfl hsz $$ [Hfile Hfo Hfd Hosm]
+    ⟨p.ino, true, true⟩ m rfl hsz $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   cases lg with
@@ -352,11 +354,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     rw [hnszE, show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by
       rw [loc_add_assoc]; rfl]
     iframe
-    isplitr
-    · ipureintro; exact hL'p.2.2.1
-    isplitr
-    · ipureintro; exact hbpos
-    ipureintro; exact hL'p.2.2.2
+    ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
 
 end own
 

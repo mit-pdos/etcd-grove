@@ -15,6 +15,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
@@ -39,7 +41,7 @@ the freelist back (`freelist.Rollback`, `store_rollback`), reloads it if mapped 
 synced freelist page, or `NoSyncReload(db.freepages())`, a read transaction on the spare pair),
 and closes. The transaction is done. -/
 abbrev Tx.rollback.spec : Prop :=
-  ∀ [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb),
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb),
   rbOK X ws w →
   {{ wtxEnd (GF := GF) K tx r X ws w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"rollback")) (Val #()))

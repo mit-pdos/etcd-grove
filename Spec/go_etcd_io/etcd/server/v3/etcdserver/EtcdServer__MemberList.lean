@@ -6,6 +6,7 @@ auth plan's A2 (2026-10-23), vocabulary `AuthGuard.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.context.LibKeys
 @[expose] public section
@@ -33,13 +34,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 the committed index `c` the caller knew of, the reader slot `srvReadReader`, the saved predicate
 `g`); then the authenticated-user guard; then the cluster's `Members()`. On `nil`: the members
 (`membersAt`), the guard's token `authedRes`, and with `r.Linearizable` the read index
-(`readIndexOk`, `readServed`). -/
+(`readIndexOk`, `readServed`).
+(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `n` of the auth
+store's published index: an error that is one of the auth package's variables is the guard's, refused
+for the authenticated class's reason (`authedWhy`; the read path's errors are not auth variables,
+`readErrIs_authErrVarIs`). -/
 abbrev EtcdServer.MemberList.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (lin : Bool) (dq : DFrac) (c : w64)
-    (g : GName) (Q : List EntryModel → IProp GF),
+    (g : GName) (Q : List EntryModel → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗
+      isServerReq s E ρ ∗ isServerRead s E γr ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
       kvDep γr.kv Q }}
@@ -48,6 +53,7 @@ abbrev EtcdServer.MemberList.spec : Prop :=
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ applyErrIs err ∗
+      (∀ _ : err ≠ GoInterface.nil, authErrVarIs err -∗ authedWhy E.authMode n (GoInterface.ok ctx) err) ∗
       (∀ _ : err = GoInterface.nil, (∃ ms : List Loc, membership.membersAt sl ms) ∗
         (∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo, authedRes E.authMode ai) ∗
         (∀ _ : lin = true, readIndexOk γr c ∗ readServed γr c g)) }}

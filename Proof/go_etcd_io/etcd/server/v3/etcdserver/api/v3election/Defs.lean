@@ -10,9 +10,12 @@ session over the request's lease (`session`), and an election on the request's n
 (`ResumeElection`, `Proclaim`, `Resign`): the client's `concurrency` package, proved. So its specs
 are stated over what they need of that client, a hypothesis (axiom-free): `electionClientOk`, the
 session's client contract and, for every prefix, the election's (`isEtcdMutexClient`). Each
-handler's class is that of the requests those calls send: KV requests on keys under `name/` (a
-campaign, the leader's lookup), or on the request's leader key (a proclamation, a resignation), and
-the lease's, as the context's principal.
+handler's calls are those requests: KV requests on keys under `name/` (a campaign, the leader's
+lookup), or on the request's leader key (a proclamation, a resignation), and the lease's, each with
+the request's context. (2026-11-14) Nothing here states on whose authority the server checks them:
+`electionClientOk` names no principal. At the pin a campaign's watch is not checked as the caller:
+the in-process client's watches share one stream opened with the first waiting caller's context
+(etcd-io/etcd#17502, `issues/etcd-v3election-shared-watch-wrong-user.md`).
 -/
 module
 

@@ -63,6 +63,7 @@ theorem shouldStream.wp_proof : shouldStream.spec (GF := GF) (hG := hG) := by
       · (try wp_auto)
         wp_apply Hen as %b Hb
         · ipureintro; decide
+        icases Hb with ⟨Hb, -⟩
         ihave %hb := Hb $$ Hoff
         subst hb
         (try wp_auto)
@@ -72,6 +73,7 @@ theorem shouldStream.wp_proof : shouldStream.spec (GF := GF) (hG := hG) := by
       (try wp_auto)
       wp_apply Hen as %b Hb
       · ipureintro; decide
+      icases Hb with ⟨Hb, -⟩
       ihave %hb := Hb $$ Hoff
       subst hb
       (try wp_auto)

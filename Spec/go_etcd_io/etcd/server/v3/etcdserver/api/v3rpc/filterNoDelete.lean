@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`filterNoDelete(e)`**: the event is a delete (the filter drops it). -/
 abbrev v3rpc.filterNoDelete.spec : Prop :=
   ∀ (e : Loc) (ev : mvcc.EvM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ mvcc.evIs e ev }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ mvcc.evRd e ev }}
     (App (Val (@! v3rpc.filterNoDelete)) (Val #e))
   {{ (b : Bool), RET #b; ⌜b = ev.del⌝ }}
 

@@ -126,7 +126,7 @@ theorem v3rpc.wp_WithCancel_cancelCtx (parent : GoInterfaceOk) (s : ContextDesc 
           { s with PDone := iprop(True), Done_gn := γ' } ∗
         ctxValueFrom parent
           (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c) ∗
-        ctxField c ↦□ (interface.ok parent : GoInterface) }} := by
+        ctxField c ↦□ (interface.ok parent : GoInterface) ∗ isCancelCtxOf c γ' iprop(True) }} := by
   have childCancelSpec_cancelCtx := childCancelSpec_cancelCtx_of (GF := GF) cancelCtx.wp_cancel
   have isContext_cancelCtx := isContext_cancelCtx_of (GF := GF) cancelCtx.wp_Done cancelCtx.wp_Err
       cancelCtx.wp_Value sync.atomic.Value.wp_Load
@@ -157,7 +157,9 @@ theorem v3rpc.wp_WithCancel_cancelCtx (parent : GoInterfaceOk) (s : ContextDesc 
     iframe #
   isplitl []
   · iapply ctxValueFrom_cancel c parent; iexact Hf
+  isplitl []
   · iexact Hf
+  · iexact Hc
 
 end proofs
 

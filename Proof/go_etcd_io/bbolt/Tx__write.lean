@@ -36,12 +36,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -66,16 +68,16 @@ abbrev Tx.write.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      osMeta K.p (DFrac.own 1) (some om) ∗ wrSlots b K.p (bufSlots bufs) wb }}
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      osMeta K.p.ino (DFrac.own 1) om ∗ wrSlots b K.p (bufSlots bufs) wb }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗ tx.[Tx, go!"db"] ↦{dq} K.db ∗
       (∃ pml' : Loc, tx.[Tx, go!"pages"] ↦ pml' ∗ pml' ↦$ (∅ : GMap w64 Loc)) ∗
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      (∃ om' : OsMeta, osMeta K.p (DFrac.own 1) (some om') ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
       ∃ wb' : Nat → List w8, ⌜∀ s ∈ bufSlots bufs, (wb' s).length = 4096⌝ ∗
         ((⌜err = interface.nil⌝ ∗ ⌜∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
@@ -88,7 +90,7 @@ end spec
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -106,7 +108,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))
-    (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (hWriteAt : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write.spec (GF := GF) (hG := hG) := by
@@ -243,7 +245,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   try wp_auto
   ihave IH : (∃ (j : w64) (pv : Loc) (om' : OsMeta),
       "i" ∷ i_ptr ↦ j ∗ "p" ∷ p_ptr ↦ pv ∗ "Hst" ∷ statsTok r sm q ∗
-      "Hm" ∷ osMeta K.p (DFrac.own 1) (some om') ∗
+      "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om' ∗
       "Hdone" ∷ ([∗list] e ∈ L'.take (sint.nat j), pgDone b K.p e) ∗
       "Htodo" ∷ ([∗list] e ∈ L'.drop (sint.nat j), pgRest b K.p e) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ L'.length ∧ om'.size = om.size ∧
@@ -299,17 +301,17 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rw [← hclen]
     have hcne : c.2.2 ≠ [] := List.ne_nil_of_length_pos (by omega)
     icases Read.bytesPointsto_bounds _ _ _ hcne $$ Hpb with ⟨Hpb, %Hcb⟩
-    ihave Hd1 : osBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
+    ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
     · iapply (osBytes_nil' (GF := GF) K.p _ _).2; iempintro
     ihave Hd2 : bytesPointsto (GF := GF) (b +ₗ ((4096 * c.1.toNat : Nat) : Int))
         (DFrac.own (1 : Qp).half) (c.2.2.take 0) $$ []
     · rw [List.take_zero]; unfold bytesPointsto; iempintro
-    ihave IH2 : (∃ (w : Nat) (ysd : List (w8 × Bool)) (om2 : OsMeta),
+    ihave IH2 : (∃ (w : Nat) (ysd : List ByteG) (om2 : OsMeta),
         "rem" ∷ rem_ptr ↦ W64 ((c.2.2.length - w : Nat) : Int) ∗
         "offset" ∷ offset_ptr ↦ W64 ((4096 * c.1.toNat + w : Nat) : Int) ∗
         "written" ∷ written_ptr ↦ W64 ((w : Nat) : Int) ∗ "Hst" ∷ statsTok r sm q ∗
-        "Hm" ∷ osMeta K.p (DFrac.own 1) (some om2) ∗
-        "Hd1" ∷ osBytes K.p (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
+        "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om2 ∗
+        "Hd1" ∷ osBytes K.p.ino (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
         "Hd2" ∷ bytesPointsto (b +ₗ ((4096 * c.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half)
           (c.2.2.take w) ∗
         "Hro" ∷ oAny K.p (4096 * c.1.toNat + w) (c.2.2.length - w) ∗
@@ -392,22 +394,25 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have h0 : 0 ≤ (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toInt := by
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
-      wp_apply hWriteAt f fd K.p (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p, true, true⟩ 1 om2 xs rfl h0
-        (by rw [hcl]; omega) (by rw [hcl, htn]; omega) (by rw [hcl, htn]; omega) (fun _ => rfl)
-        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %ys, %hh, %Hjj, Hm, Hys, Hc, Herr⟩
+      wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om2 xs rfl h0
+        (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn, hmin2]; omega)
+        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
         rw [htn, hmin2, ← fileOwn_eq]
         iframe
-      obtain ⟨hjjle, hysp, -, -, hres⟩ := Hjj
+      obtain ⟨hjja, hale, -, hysp, -, hres⟩ := Hjj
+      have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       have hsize : pwSize om2.size (4096 * c.1.toNat + w) jj = om2.size :=
         pwSize_inside _ _ _ cs (by rw [hcl] at hjjle; exact hjjle) (by omega)
-      rw [hsize, hmin2, hcl]
+      have hpi := pwPost_inside om2 (4096 * c.1.toNat + w) cs aa jj
+        (by rw [hcl] at hjjle; exact hjjle) (by omega)
+      rw [hmin2, hcl]
       have hyl : ys.length = cs := by
         have := congrArg List.length hysp
         simp only [List.length_map] at this
-        rw [this, pwBytes_length, hsize, hcl]; omega
+        rw [this, pwValsG_length, hsize, hcl, hmin2]; omega
       ihave Hc : cAny b (4096 * c.1.toNat + w) cs $$ [Hc]
       · rw [Hom2m, hmaps]; iapply (mcells_single b l _ cs (by omega)).1; iexact Hc
       cases err with
@@ -450,7 +455,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         isplitl [Hpg Hpl']
         · iexists pl'; iframe
         isplitl [Hm]
-        · iexists _; iframe Hm; ipureintro; exact ⟨Hom2s, Hom2m⟩
+        · iexists _; iframe Hm; ipureintro; exact ⟨hpi.1.trans Hom2s, hpi.2.trans Hom2m⟩
         iexists wb'
         isplitr
         · ipureintro; exact Hwb'
@@ -468,7 +473,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         subst jj
         have hys : ys.map Prod.fst = bytesAt c.2.2 w cs := by
           rw [hysp]
-          have := pwBytes_inside_fst om2.size (4096 * c.1.toNat + w) (bytesAt c.2.2 w cs) cs xs
+          have := pwValsG_inside om2.size (4096 * c.1.toNat + w) (bytesAt c.2.2 w cs) cs xs
             (by rw [hcl]; omega) (by rw [hcl]; exact Hxl) (Or.inr hcl.symm)
           rw [this, if_neg (by omega)]
         try wp_auto
@@ -476,11 +481,10 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         icases Hc with ⟨%vf, Hc⟩
         ihave Hc : cellsR b (4096 * c.1.toNat + w) ys.length vf $$ [Hc]
         · rw [hyl]; iexact Hc
-        have hbm : ({ om2 with hi := hh } : OsMeta).maps !! b = some l := by
-          show om2.maps !! b = some l
-          rw [Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
+        have hbm : (pwPost om2 (4096 * c.1.toNat + w) aa cs).maps !! b = some l := by
+          rw [hpi.2, Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
         have hyl' : 4096 * c.1.toNat + w + ys.length ≤ l := by rw [hyl]; omega
-        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) { om2 with hi := hh } b l hbm
+        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) (pwPost om2 (4096 * c.1.toNat + w) aa cs) b l hbm
           (DFrac.own 1) (by simp) _ ys (4096 * c.1.toNat + w) vf hyl' $$ Hos Hm Hys Hc
         iintro Hm Hys Hc
         icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
@@ -493,8 +497,8 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           have := congrArg List.length Hysd; simp only [List.length_map, List.length_take] at this
           omega
         ihave Hpb := Hpbb $$ Hck
-        ihave Hd1 : osBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys) $$ [Hd1 Hys]
-        · iapply (osBytes_take_drop (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys)
+        ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys) $$ [Hd1 Hys]
+        · iapply (osBytes_take_drop (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys)
             ysd.length (by simp)).2
           rw [List.take_left, List.drop_left, hyd]
           iframe
@@ -535,11 +539,11 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             word
           rw [fileOwn_eq]
           iframe
-          iexists j + W64 1, c.2.1, { om2 with hi := hh }
+          iexists j + W64 1, c.2.1, (pwPost om2 (4096 * c.1.toNat + w) aa cs)
           rw [hj1]
           iframe
           ipureintro
-          exact ⟨by word, by omega, Hom2s, Hom2m⟩
+          exact ⟨by word, by omega, hpi.1.trans Hom2s, hpi.2.trans Hom2m⟩
         · have hnend : w + cs < c.2.2.length := by
             have h := Hif
             refine Classical.byContradiction fun hc => h ?_
@@ -559,10 +563,10 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           wp_for_post
           rw [fileOwn_eq]
           iframe
-          iexists w + cs, ysd ++ ys, { om2 with hi := hh }
+          iexists w + cs, ysd ++ ys, (pwPost om2 (4096 * c.1.toNat + w) aa cs)
           iframe
           ipureintro
-          exact ⟨hnend, hfst, Hom2s, Hom2m⟩
+          exact ⟨hnend, hfst, hpi.1.trans Hom2s, hpi.2.trans Hom2m⟩
   · have Hjl : sint.nat j = L'.length := by have := Hsll.1; word
     obtain ⟨-, -, Hom's, Hom'm⟩ := Hj
     rw [Hjl, List.take_length, List.drop_length]
@@ -576,7 +580,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     focus
       -- `NoSync` off: the sync
       try wp_auto
-      wp_apply hSync K.db f fd K.p om' dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
+      wp_apply hSync K.db f fd K.p K.p.ino om' dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
         as %e2 ⟨Hf, Hfo, Hfd, ⟨%m', Hm, %Hm'⟩, Hr⟩
       · iframe #; iframe
       icases Hr with (%He | ⟨%He, #Hfe⟩)
@@ -627,13 +631,13 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iexact Hwr
       subst He
       try wp_auto
-      ihave Hm : (∃ om'' : OsMeta, osMeta K.p (DFrac.own 1) (some om'') ∗
+      ihave Hm : (∃ om'' : OsMeta, osMeta K.p.ino (DFrac.own 1) om'' ∗
           ⌜om''.size = om.size ∧ om''.maps = om.maps⌝ : IProp GF) $$ [Hm]
       · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans Hom's, Hm'.2.trans Hom'm⟩
     rotate_left
     focus
       try wp_auto
-      ihave Hm : (∃ om'' : OsMeta, osMeta K.p (DFrac.own 1) (some om'') ∗
+      ihave Hm : (∃ om'' : OsMeta, osMeta K.p.ino (DFrac.own 1) om'' ∗
           ⌜om''.size = om.size ∧ om''.maps = om.maps⌝ : IProp GF) $$ [Hm]
       · iexists om'; iframe; ipureintro; exact ⟨Hom's, Hom'm⟩
     all_goals

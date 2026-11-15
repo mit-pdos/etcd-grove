@@ -47,6 +47,36 @@ Two related gaps of this repository's own translations, not Perennial's: the mai
 - **Proposed (general; record only).** `wp_slice_copy`'s post with `n = W64 (min …)` (or
   `0 ≤ sint.Z n` beside the existing fact).
 - **Status.** Recorded only.
+### `WithCancel` over a general `isContext` parent loses the parent's Done proposition (2026-11-14, k8s 7f-5a)
+
+What is missing: Perennial's `context.WithCancel.spec` gives the child
+`PDone := parent.PDone ∨ PDone'` only for a parent that is itself a `*cancelCtx` made by `WithCancel`
+(`isCancelCtxCtx`). For any other `isContext` parent (a `*valueCtx` over one, a `*timerCtx`, a
+wrapper whose `parentCancelCtx` succeeds), `wp_WithCancel_any` gives `PDone := True`: an observer of
+the child's closed Done channel learns nothing of why it closed.
+
+What Go does: the child's Done channel is closed by its own cancel function, or by
+`propagateCancel`: if the parent is already done (its Done channel closed), at once; otherwise
+`parentCancelCtx(parent)` finds the `*cancelCtx` `p` whose Done channel is the parent's (it checks
+`pdone == done` against `parent.Done()`), the child goes into `p.children`, and `p.cancel` closes
+`p.done` (the parent's Done channel) before it cancels its children. So whenever the child is closed
+by propagation, the parent's Done channel is already closed, and the parent's `isContextDone` gives
+`□ parent.PDone`.
+
+What the model should give: `wp_WithCancel` for any `isContext parent s` (with `HParentCC`) and any
+`PDone'`, the child `isContext` at `{ s with PDone := s.PDone ∨ PDone', Done_gn := γ' }`, its cancel
+needing `□ PDone'`. The missing link is in `isContext`'s `HParentCC`: it gives `isCancelCtx p` with an
+unknown Done proposition and channel. Strengthen it to say `p`'s Done channel is the parent's `ch`
+(or that `p`'s proposition gives `s.PDone`), true of every context the model makes (`*cancelCtx`,
+`*timerCtx`, value links over them), so that the children `p` cancels can be given
+`□ s.PDone`.
+
+Who needs it: the etcd3 watcher (k8s 7f-5a): `wc.ctx = WithCancel(WithRequireLeader(ctx))`, and the
+store watch's spec states the no-gap prefix unless the watch is cancelled, which a dropped event
+must witness from `wc.ctx`'s closed Done channel (`notes/k8s-7f5a-draft.md` §4, `kCancelPD`, §6
+risks). Workaround: none yet. If this is not in Perennial by 7f-5a-P's step 4 (the channel
+operations), a clearly marked local trust-boundary axiom with a Go test, a stop for etcd-grove-81's
+axiom review. Status: proposal, not yet on a Perennial branch.
 
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
@@ -116,6 +146,28 @@ every branch, `default` included); not yet reported upstream.
   For 7f-4 (`notes/k8s-7f4-rebaseline.md`, R-1): grpc's run context gives its library facts only in
   the WP form (`grpcRunCtx`), which does not cross `WithCancel`; the re-baseline proposes the chain
   form in grpc's model.
+
+### The context model over an error predicate (2026-11-13, k8s 7f-4 Addendum T-h; option (a) of P-RL2)
+
+- **Missing.** Perennial's `*cancelCtx` model (`Perennial/Proof/context/Base.lean`: `cancelCtxInv`'s
+  `Herr`, `childCancelSpec`, `isContextDef`'s `#HErr`/`#HErrDone`; `cancelCtx.cancel.spec`,
+  `timerCtx.cancel.spec`; about 45 uses of `isCtxErr` in 12 files) fixes a context's error to
+  `isTypedErr ∧ isCtxErr` (`Canceled` or `DeadlineExceeded`). Go's derived contexts store whatever
+  their parent's `Err()` returns (`propagateCancel`'s already-done arm, `context.go:487`), so a child
+  of a context whose `Err` returns another error (etcd's require-leader wrapper: `ErrGRPCNoLeader`)
+  is outside the model. The general form: `isContext` and the cancelCtx invariants parametrized by
+  the predicate `E` the errors satisfy (`isCtxErr` by default), `WithCancel`/`WithDeadline`/
+  `WithTimeout` over a parent at `E` giving a child at `E ∨ isCtxErr`, and a `Value` clause that
+  speaks of the found `*cancelCtx` at `E`.
+- **Needed by.** `LeaseRenew`'s `WithTimeout` over the keep-alive stream's context (k8s 7f-4).
+- **Workaround here.** The trust-boundary axiom `v3rpc.wp_WithTimeout_weak` (Addendum T-h of
+  `notes/k8s-7f4-freeze.md`; written in Addendum T-j,
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WithTimeoutWeak.lean`), to delete when this
+  lands (its uses then follow from the general `WithTimeout` at `E := isCtxErr ∨ noLeaderErr`); with
+  it the opaque `context.madeCancelCtx` and its trusted law `madeCancelCtx_of_isCancelCtx`
+  (`Proof/context/MadeCancelCtx.lean`), which `v3rpc.ctxDoneErr`'s `Value`/parent-cancel clauses then
+  state as the general model's `*cancelCtx` at `E`.
+- **Status.** Proposed (decided by etcd-grove-81, 2026-11-13); not started.
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 

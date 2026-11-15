@@ -1233,6 +1233,26 @@ def OpFull.isRangeWatch (rev : w64) (o : OpFull) : Bool :=
     o.base.filterPut = false ∧ o.base.filterDelete = false)
 
 omit EM in
+/-- A watch of the range of `o` from revision `rev`, with `WithPrevKV` allowed (k8s 7f-3a/3c,
+`clientv3.Watcher`'s `Watch`): as `isRangeWatch`, without `o.base.prevKV = false`. -/
+def OpFull.isRangeWatchP (rev : w64) (o : OpFull) : Bool :=
+  decide (o.t = W64 1 ∧ o.base.rev = rev ∧ o.base.fragment = false ∧
+    o.base.filterPut = false ∧ o.base.filterDelete = false)
+
+omit EM in
+/-- The old condition is the new one without `WithPrevKV`. -/
+theorem OpFull.isRangeWatch_eq (rev : w64) (o : OpFull) :
+    o.isRangeWatch rev = (o.isRangeWatchP rev && !o.base.prevKV) := by
+  unfold OpFull.isRangeWatch OpFull.isRangeWatchP
+  cases o.base.prevKV <;> simp [and_left_comm]
+
+omit EM in
+/-- A range watch without `WithPrevKV` is one with it allowed. -/
+theorem OpFull.isRangeWatchP_of {rev : w64} {o : OpFull} (h : o.isRangeWatch rev = true) :
+    o.isRangeWatchP rev = true := by
+  rw [OpFull.isRangeWatch_eq] at h; simp only [Bool.and_eq_true] at h; exact h.1
+
+omit EM in
 /-- A delete event's `*KeyValue` `l`: its `Value` (some byte slice) and `Lease` fields can be read
 (read-only). -/
 def delKvAt (l : Loc) : IProp GF :=

@@ -48,13 +48,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **The `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds** from the WAL's records `σ` and
 the backend's conf state `cs`, detached (no raft ghost yet): the storage's detached token at the
 base and `walSnapCS σ cs` (`memStorFresh`), the hard state `σ.hs`, the compaction point and the
-dummy entry at the base, the stored snapshot's lower bound there, the entries `σ.ents` owned above
-the base, the end after them. -/
+dummy entry at the base, the stored snapshot not yet opened for writes, `walSnapCS σ cs` (the token
+`memSnapNone`, whose index lower bound is the base; restart S6 B2, 2026-11-14, approved by etcd-grove-81:
+until then the opened snapshot's lower bound `memSnapLb γs σ.b`, so that `run`'s `Snapshot()` could not
+be shown to answer the WAL's snapshot; `memSnapNone_open` gives it back), the entries `σ.ents` owned
+above the base, the end after them. -/
 def memStorRestarted (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) :
     IProp GF :=
   iprop(memStorFresh ms γs σ.b (walSnapCS σ cs) ∗ memStorMeta ms γs σ.hs ∗
     memCompacted γs σ.b ∗ memLog γs σ.b DFrac.discard [memDummy (walSnapCS σ cs)] ∗
-    memSnapLb γs σ.b ∗
+    memSnapNone γs (walSnapCS σ cs) ∗
     memLog γs (σ.b + 1) (DFrac.own 1) σ.ents ∗ memEnd γs (σ.last + 1))
 
 end defs

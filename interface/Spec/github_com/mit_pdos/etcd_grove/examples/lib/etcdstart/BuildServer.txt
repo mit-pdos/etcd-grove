@@ -88,7 +88,7 @@ def etcdstart.BuildServer.specRestart : Prop :=
                               storage.diskOk →
                                 ⊢
                                   ∀ Φ,
-                                    isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                    (isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
                                         zapLoggerOk lg ∗
                                           threadTok ∗
                                             ownSlice peer [etcdstart.httpURL peerAddr] DFrac.discard ∗
@@ -97,7 +97,10 @@ def etcdstart.BuildServer.specRestart : Prop :=
                                                   etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
                                                     etcdstart.commonPremises ∗
                                                       context.isClosedchanInit ∗
-                                                        etcdstart.memberRestartRes name { } γn γ ρ id ∗ netHttpOk γn id -∗
+                                                        etcdstart.memberRestartRes name { } γn γ ρ id ∗
+                                                          netHttpOk γn id ∗
+                                                            etcdstart.memberRestartFacts γ ρ id ∗
+                                                              envVerifyOff ∗ □ ∀ A σ, srvRestartRows γ id A σ) -∗
                                       (▷
                                           ∀ s err,
                                             (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨

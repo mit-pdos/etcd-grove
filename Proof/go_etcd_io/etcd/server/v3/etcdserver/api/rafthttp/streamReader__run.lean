@@ -113,7 +113,7 @@ theorem rafthttp.streamReader.run.wp_proof
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
   icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
-    #Hlid, #Hps, #Hpsok, -, -, -, -, #Hmu, #Hctxf, #Hctx⟩
+    #Hlid, #Hps, #Hpsok, -, -, -, -, #Hmu, #Hctxf, #Hctx, #Hbgc⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hdial' := Hdial
   iunfold srDial at Hdial'

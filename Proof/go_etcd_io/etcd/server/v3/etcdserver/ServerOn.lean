@@ -102,7 +102,10 @@ def srvReqBuiltM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : 
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ v.cca ∗
     srvCfgFieldAddr s go!"ElectionTicks" ↦□ v.electionTicks ∗
     srvCfgFieldAddr s go!"TickMs" ↦□ v.tickMs ∗
-    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth E.RD ∗
+    -- (auth-schema-fix S1 option A) the store's request side once the token provider is ready
+    -- (`start` fires it, `srvTpPend_fire`)
+    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗
+    □ (auth.tpReady E.authMode -∗ isReqAuth v.auth E.RD) ∗
     structFieldRef EtcdServer go!"memberID" s ↦□ v.memberID ∗
     srvAtomicU64 (structFieldRef EtcdServer go!"lead" s) ∗
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
@@ -205,6 +208,8 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hwci" ∷ waitClosecInit ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
+    -- (auth-schema-fix S1 option A) the right to fire the token provider's readiness
+    "Htpp" ∷ srvTpPend s E.authMode ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
     "Hstop" ∷ (∃ c : Loc, srvStopAddr s ↦ c) ∗
     "Hstopping" ∷ (∃ c : Loc, srvStoppingAddr s ↦ c) ∗

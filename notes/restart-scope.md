@@ -165,7 +165,7 @@ HS1 (`auth.NewAuthStore.spec` over `authBoot`, `NewAuthStore.lean:127`; trusted,
 refutation), Q37 (a) (no lease-TTL row after a restart). The week-8 guard of r2db §13 applies
 (B5 deferred, `NewServer.specRestart` stated not linked). **Waits for pf8** (§5).
 
-### S7. R2s-A: follow the merged snapshot; `Hwpend` removed (6-9 wk work, 5-7 on its path, est.)
+### R2s-A (named S7 here until 2026-11-14; "S7" is now restart1, `notes/restart-s7-scope.md`): follow the merged snapshot; `Hwpend` removed (6-9 wk work, 5-7 on its path, est.)
 r2db §14: the snapshot certificate at a consistent index `j ≥` its raft index (`srvNet`'s `img`,
 `sentMsg_snapshot`, `srvSnapRO`), `applyAll`'s merged send inside a window (`winNoMergedSendR`
 deleted), the receiver's `applySnapshot` of an image above the snapshot's index followed by S4's
@@ -317,9 +317,10 @@ Raft's own crash durability is already proved (`kvdurable_porcupine_safe`). Esti
 | S4 hubs at `snap0`, `run` | 1-2 wk | S1, S3's probe | after S1 |
 | S5 HS1, `lateWBR` | 0.5-1 wk | pf8 (`NewAuthStore.lean`) | after pf8 |
 | S6 `NewServer` both boots | 2.5-3.5 wk | S2, S3, S4, S5, **pf8** | after pf8 |
-| S7 R2s-A | 6-9 wk (5-7 path) | S3's probe; step 3 after S4 | steps 1-2 after the probe |
+| S7 (restart1): one-member closed restart theorem `etcd_restart1_safe` (`notes/restart-s7-scope.md`, approved 2026-11-14) | 7-10 wk | S6 | now (S7.0, S7.1) |
+| R2s-A (was S7 here until 2026-11-14) | 6-9 wk (5-7 path) | S3's probe; step 3 after S4 | steps 1-2 after the probe |
 | S8 etcdstart, links, F4 | 1-2 wk | S6 | — |
-| S9 `restart3_safe` | 2-3 wk | S7, S8, per-type stage B | — |
+| S9 `restart3_safe` | 2-3 wk | R2s-A, S8, per-type stage B | — |
 | S10 schedule theorem | 5-8 wk | S9, stage B (grpc `Stop`) | Go driver and test now |
 | S11 `#Hmembers` | 1 wk | pf8 | after pf8 |
 | S12 crash (R6) | 3-6 months | everything above | separate Scope |

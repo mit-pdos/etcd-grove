@@ -2,8 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.pageNode_d.wp_proof [hos : HasExt osFsExt] (hpage : bbolt.Tx.page.spec) (hRP :
-    bbolt.internal.common.InBucket.RootPage.spec) : bbolt.Bucket.pageNode_d.spec
+theorem bbolt.Bucket.pageNode_d.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hpage : bbolt.Tx.page.spec) (hRP : bbolt.internal.common.InBucket.RootPage.spec) :
+    bbolt.Bucket.pageNode_d.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.pageNode_d.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (id : w64)
     (pg : List w8),
@@ -31,13 +32,14 @@ theorem bbolt.Bucket.pageNode_d.wp_proof [hos : HasExt osFsExt] (hpage : bbolt.T
                                       (intoVal id))
                                     {{ Φ }}
 
-theorem bbolt.Bucket.pageNode_d.wp_proofQ [hos : HasExt osFsExt] (hpage : bbolt.Tx.page.spec) (hRP :
-    bbolt.internal.common.InBucket.RootPage.spec) (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m :
-    Bool) (q : Qp) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (id : w64) (pg : List w8) (hbs :
-    X.t.bs !! bl = none) (hd : X.t.deadB !! bl = some B) (hlive : ¬bl ∈ X.liveB) (htx : B.bv.tx' =
-    tx) (hnil : B.bv.nodes' = null) (h0 : B.ib.root' ≠ W64 0) (hpg : X.v.pages !! BitVec.toNat id =
-    some pg) (hpmn : X.t.pm !! id = none) (h16 : 16 ≤ pg.length) (hpid : bbolt.pageId pg =
-    BitVec.toNat id) (hfl : bbolt.pageFlags pg = bbolt.branchPageFlag ∨ bbolt.pageFlags pg =
-    bbolt.leafPageFlag) : ⊢ ∀ Φ, bbolt.wtxWQ K tx r m q X -∗ ▷ (bbolt.wtxWQ K tx r m q X -∗ Φ
-    (intoVal (bbolt.pageLoc X.v (BitVec.toNat id)), intoVal null)) -∗ WP ((intoVal (methods
-    go_etcd_io.bbolt.Bucket.ty.PointerType go!"pageNode" (intoVal bl))) (intoVal id)) {{ Φ }}
+theorem bbolt.Bucket.pageNode_d.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hpage : bbolt.Tx.page.spec) (hRP : bbolt.internal.common.InBucket.RootPage.spec) (K :
+    bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (X : bbolt.WX) (bl : Loc) (B :
+    bbolt.BRec) (id : w64) (pg : List w8) (hbs : X.t.bs !! bl = none) (hd : X.t.deadB !! bl = some
+    B) (hlive : ¬bl ∈ X.liveB) (htx : B.bv.tx' = tx) (hnil : B.bv.nodes' = null) (h0 : B.ib.root' ≠
+    W64 0) (hpg : X.v.pages !! BitVec.toNat id = some pg) (hpmn : X.t.pm !! id = none) (h16 : 16 ≤
+    pg.length) (hpid : bbolt.pageId pg = BitVec.toNat id) (hfl : bbolt.pageFlags pg =
+    bbolt.branchPageFlag ∨ bbolt.pageFlags pg = bbolt.leafPageFlag) : ⊢ ∀ Φ, bbolt.wtxWQ K tx r m q
+    X -∗ ▷ (bbolt.wtxWQ K tx r m q X -∗ Φ (intoVal (bbolt.pageLoc X.v (BitVec.toNat id)), intoVal
+    null)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"pageNode" (intoVal
+    bl))) (intoVal id)) {{ Φ }}

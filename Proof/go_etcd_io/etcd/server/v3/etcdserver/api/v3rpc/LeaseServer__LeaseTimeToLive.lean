@@ -44,7 +44,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S ci cd r dq v n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hpub, #Hllb, Hr⟩
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hnet, #Hcause, #Hpub, #Hllb, Hr⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
