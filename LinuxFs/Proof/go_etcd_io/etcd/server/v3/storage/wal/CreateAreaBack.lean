@@ -150,7 +150,7 @@ theorem create_areaBack (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   iframe Hnc Ht
   iapply area_give (N.diff [nm]) (N.diff [nm]) h h' cl jr (tmpName nm) (nm :: Wn) (areaOk_reg hok hnm)
     (fun _ => Iff.rfl) (tmpName_not_walName nm)
-    (fun b hb hw => areaBack_cur N h h' jr nm (tmpName nm) hself hself' hm.1 hnm b hb hw)
+    (fun b hb hw _ => areaBack_cur N h h' jr nm (tmpName nm) hself hself' hm.1 hnm b hb hw)
   iframe HN Hcl Hsf
   rw [htc]
   simp only [tmpSub]

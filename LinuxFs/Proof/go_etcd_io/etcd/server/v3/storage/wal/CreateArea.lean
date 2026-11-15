@@ -88,7 +88,7 @@ theorem areaOk_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Cla
     (tmp : GoString) (ct : List Claim) (Wn : List GoString) (hok : AreaOk N h cl Wn)
     (hN : ∀ b, N'.Mem b ↔ N.Mem b)
     (htN : ¬ walNameOk tmp)
-    (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → h'.cur !! b = h.cur !! b)
+    (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → ¬ BrokenSlot b → h'.cur !! b = h.cur !! b)
     (hct : SubCover ct (h'.cur !! tmp) ∧ TmpOk ct (h'.cur !! tmp)) :
     AreaOk N' h' (cl.filter (fun c => decide (c.1 ≠ tmp)) ++ ct.map (fun c => (tmp, c))) Wn := by
   obtain ⟨h1, h2, h3, h4⟩ := hok
@@ -112,13 +112,13 @@ theorem areaOk_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Cla
   · intro b hb hbn hbb
     by_cases hbt : b = tmp
     · subst hbt; rw [hclt]; exact hct.1
-    · rw [hcl b hbt, hcur b hbt hbn]; exact h3 b ((hN b).1 hb) hbn hbb
+    · rw [hcl b hbt, hcur b hbt hbn hbb]; exact h3 b ((hN b).1 hb) hbn hbb
   · intro nm hn
     have hnt : ¬ walNameOk (tmpName nm) := by
       intro hw; apply hw.2.2; simp [tmpName]
     by_cases hbt : tmpName nm = tmp
     · rw [hbt, hclt]; exact hct.2
-    · rw [hcl _ hbt, hcur _ hbt hnt]; exact h4 nm hn
+    · rw [hcl _ hbt, hcur _ hbt hnt (tmpName_not_broken hn)]; exact h4 nm hn
 
 end pure
 
@@ -253,7 +253,7 @@ theorem area_takeTmp (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) 
 theorem area_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim)) (jr : Ino)
     (tmp : GoString) (Wn : List GoString) (hok : AreaOk N h cl Wn) (hN : ∀ b, N'.Mem b ↔ N.Mem b)
     (htN : ¬ walNameOk tmp)
-    (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → h'.cur !! b = h.cur !! b) :
+    (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → ¬ BrokenSlot b → h'.cur !! b = h.cur !! b) :
     osNames (L := hG.goose_localGS) jr N' (DFrac.own (1 : Qp).half) h' ∗ walSplitFrag (W := W) Wn ∗
       tmpSub (h'.cur !! tmp) ∗
       areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmp))) ⊢

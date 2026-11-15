@@ -129,12 +129,12 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
     "(" fC:tacticSeq ")" : tactic => `(tactic| (
     wp_apply wp_cleanupWAL R jr r nm $w lg R d $tf
       (createFr R jr r nm (DFrac.own (e + a')) N h c hn cl Wn)
-      (createFin R jr r nm (DFrac.own (e + a')) $tf N cl Wn) hnmO
+      (createFin R jr r nm (e + a') $tf N h cl Wn) hnmO
       $$ [Hw Hpw Hcp Hp HNr Hnm Hcl Hsf'] as %cerr Hcr
     · iframe; iframe #
       isplitl [Hp HNr Hnm Hcl Hsf']
       · unfold createFr; iframe
-      iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hself hNnm _hcq hnm.1
+      iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hNnm hnmO _hcq hnm.1
         $$ Hok
     icases Hcr with (⟨%hce, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd'⟩ |
       ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | Hfin)
@@ -242,7 +242,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
         · iframe; iframe #
         iapply wp_notCrashed_acc _ _ rfl
         iintro Hnc
-        imod create_cleanBack walCodec Mr R jr r nm N cl Wn ht hht $$ Hinv Hsi Hnc HaL Htmp
+        imod create_cleanBack walCodec Mr R jr r nm N h cl Wn ht hok hin.1 hself hht $$ Hinv Hsi Hnc HaL Htmp
           with ⟨Hnc, Hres⟩
         iframe Hnc
         imodintro

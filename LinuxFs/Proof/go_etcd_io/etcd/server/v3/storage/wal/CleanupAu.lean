@@ -120,6 +120,23 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
+/-- **An `osAUnc` committed with no effect** (as `WAL__renameWAL.lean`'s `osAUnc_none`, which is a
+proof file's): the update's input giving its output for `none`, its result `Q none`. -/
+theorem osAUnc_none' {A : Type} (α : IProp GF) (β Q : Option A → IProp GF) (hb : α ⊢ β none) :
+    ⊢ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ osAUnc α β Q ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ Q none := by
+  iintro Hnc Hau
+  ihave Hacc := osAUnc_unfold α β Q $$ Hau
+  unfold osAUncPre
+  imod (fupd_mask_subseteq (show osAuMask ⊆ (⊤ : CoPset) from fun _ _ => CoPset.mem_full)) with Hmc
+  imod Hacc $$ Hnc with ⟨Hα, Hnc, Hcl⟩
+  icases Hcl with ⟨-, Hco⟩
+  ihave Hβ := hb $$ Hα
+  imod Hco $$ %none Hβ with HQ
+  imod Hmc
+  imodintro
+  iframe
+
 /-- What the cleanup's update holds: the pin and the pending registration. -/
 def cleanP (dir : GoString) (N : NameSet) (h : NamesH) (jr : Ino) : IProp GF :=
   iprop(walCleanPin (W := W) N h jr ∗ walNamesFrag (W := W) (some dir))

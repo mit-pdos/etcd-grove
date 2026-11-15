@@ -151,7 +151,7 @@ theorem create_abortTmpH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   imodintro
   iframe Hnc Hu
   iapply area_give N N h h' cl jr (tmpName nm) Wn hok (fun _ => Iff.rfl) (tmpName_not_walName nm)
-    (fun b hb _ => hcb b hb)
+    (fun b hb _ _ => hcb b hb)
   iframe HN Hcl Hsf
   rw [htc]
   iexact Hs
