@@ -299,7 +299,7 @@ half, and all of it while there is no mapping). -/
 def mapRest (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (q : Qp) : MapSt → IProp GF
   | some (base, len, γm) => iprop(⌜0 < base.addr⌝ ∗ ghostVar γm q.half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
       os.ownFile (GF := GF) f fd p (DFrac.own q.half) ∗
-      osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true⟩)
+      osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true, none, none⟩)
   | none => emp
 
 instance mapInv_persistent (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName) :
@@ -362,8 +362,8 @@ theorem mapBody_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString)
     haveI := ghostVar_half_fractional (GF := GF) γm ()
     haveI : Fractional (fun q : Qp => os.ownFile (GF := GF) f fd p (DFrac.own q.half)) :=
       fractional_half_of (ownFile_fractional (GF := GF) f fd p)
-    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true⟩) :=
-      fractional_half_of (osFd_fractional (GF := GF) fd ⟨γ.ino, true, true⟩)
+    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true, none, none⟩) :=
+      fractional_half_of (osFd_fractional (GF := GF) fd ⟨γ.ino, true, true, none, none⟩)
     haveI : Persistent (mapInv (GF := GF) γ γ.ino base len γm) := by unfold mapInv; infer_instance
     infer_instance
 
@@ -433,7 +433,7 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
   iprop(∃ (mxc tail : List ByteG) (fsz : Nat),
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, none⟩ ∗
     osMeta (GF := GF) γ.ino (DFrac.own 1) m ∗
     osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail ∗
@@ -447,7 +447,7 @@ def writerExtra (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8
     (hwm : Nat) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩)
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, none⟩)
 
 /-- `rwlock`'s resource (see the file header): the writer's part of an open database, with a
 mapping or, after a failed remap, without one (and the handle failed); or, once closed, the

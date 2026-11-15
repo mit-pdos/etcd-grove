@@ -102,20 +102,20 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     iframe Hh
     iright; ipureintro; exact he
   (try wp_auto)
-  wp_apply wp_lockFile wp_Fd f fd (child dir logB) (DFrac.own 1) (DFrac.own 1) ⟨i, true, true⟩
+  wp_apply wp_lockFile wp_Fd f fd (child dir logB) (DFrac.own 1) (DFrac.own 1) ⟨i, true, true, none, none⟩
     $$ [Hos Hf Hfd] as %err ⟨Hf, Hfd⟩
   · iframe; iexact Hos
   cases err with
   | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
   | nil =>
   (try wp_auto)
   wp_apply os.File.Seek.wp_end f fd (child dir logB) (DFrac.own 1) (W64 0) (DFrac.own 1)
-    (DFrac.own 1) ⟨i, true, true⟩ newMeta hfd0 (by decide) $$ [Hos Hf Ho Hfd Hm]
+    (DFrac.own 1) ⟨i, true, true, none, none⟩ newMeta hfd0 (by decide) $$ [Hos Hf Ho Hfd Hm]
     as %e0 %err ⟨Hf, Hfd, Hm, Hr⟩
   · iframe; iexact Hos
   icases Hr with (⟨%hr, Ho⟩ | ⟨%herr, Ho⟩)
@@ -124,7 +124,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl herr
     | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
@@ -137,7 +137,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   · unfold mcellsAny; rw [show newMeta.maps = ∅ from rfl]
     iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply golang_org.x.sys.unix.Fallocate.wp_grow fd (W64 0) (W64 65536) (DFrac.own 1)
-      ⟨i, true, true⟩ newMeta rfl (by decide) (by decide)
+      ⟨i, true, true, none, none⟩ newMeta rfl (by decide) (by decide)
     $$ [Hos Hfd Hm Hc0] as %e1 ⟨Hfd, %n1, Hr⟩
   · iframe; iexact Hos
   icases Hr with (⟨%he1, Hg⟩ | ⟨%he1, -⟩)
@@ -145,7 +145,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   · rw [show errnoErr e1 = interface.mkOk syscall.Errno.ty #e1 from if_neg he1]
     dsimp only
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
@@ -184,7 +184,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   · unfold mcellsAny; rw [hmaps0]
     iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply os.File.Write.wp_spec wp_WriteAt f fd (child dir logB) (DFrac.own 1) sl dataC dqs (W64 0)
-      (DFrac.own 1) ⟨i, true, true⟩ (rsPost false newMeta 65536 65536) (List.replicate (min 8 65536) xb)
+      (DFrac.own 1) ⟨i, true, true, none, none⟩ (rsPost false newMeta 65536 65536) (List.replicate (min 8 65536) xb)
       hfd0 rfl (by decide) (by simp only [rsPost]; decide) (by decide) (by decide)
       (by rw [List.length_replicate]; simp only [rsPost]; decide) (by decide)
     $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %Hres, Hm, Hys, -⟩, Ho⟩
@@ -192,7 +192,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   cases err with
   | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
@@ -209,14 +209,14 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply wp_Fd f fd (child dir logB) (DFrac.own 1) $$ Hf as Hf
   (try wp_auto)
   wp_apply golang_org.x.sys.unix.Fallocate.wp_keep fd (W64 0) (W64 65536) (DFrac.own 1)
-      ⟨i, true, true⟩ rfl (by decide) (by decide) $$ [Hos Hfd] as %e2 Hfd
+      ⟨i, true, true, none, none⟩ rfl (by decide) (by decide) $$ [Hos Hfd] as %e2 Hfd
   · iframe; iexact Hos
   by_cases he2 : e2 = 0
   rotate_left
   · rw [show errnoErr e2 = interface.mkOk syscall.Errno.ty #e2 from if_neg he2]
     dsimp only
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
@@ -236,7 +236,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   have hall : (ys ++ List.replicate (65536 - 8) xb).length =
       (pwPost (rsPost false newMeta 65536 65536) (W64 0).toNat dataC.length dataC.length).size := by
     rw [List.length_append, hyl, List.length_replicate]; simp only [pwPost, rsPost, pwSize, dataC]; decide
-  wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨i, true, true⟩ _ 0 _ (OsMeta.covers_whole _ hall)
+  wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨i, true, true, none, none⟩ _ 0 _ (OsMeta.covers_whole _ hall)
       $$ [Hos Hfd Hm Hb] as %e3 ⟨Hfd, Hr⟩
   · iframe; iexact Hos
   icases Hr with (⟨%he3, Hm, Hb⟩ | ⟨%he3, -, -⟩)
@@ -244,7 +244,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   · rw [show errnoErr e3 = interface.mkOk syscall.Errno.ty #e3 from if_neg he3.1]
     dsimp only
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
@@ -256,7 +256,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (by decide) $$ [Hf Ho] as ⟨Hf, Ho⟩
   · iframe
   (try wp_auto)
-  wp_apply wp_Close f fd (child dir logB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+  wp_apply wp_Close f fd (child dir logB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
   · iframe; iexact Hos
   (try wp_auto)
   iapply HΦ
@@ -282,10 +282,10 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (bs : List ByteG) (hfd0 : 0 ≤ fd.toInt) (hmaps : m.maps = ∅) (hsz : m.size = 0x10000)
     (hbl : bs.length = 0x10000) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f (W64 8) ∗
-        osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗ osMeta (GF := GF) i (DFrac.own 1) m ∗
+        osFd (GF := GF) fd dq ⟨i, true, true, none, none⟩ ∗ osMeta (GF := GF) i (DFrac.own 1) m ∗
         osBytes (GF := GF) i 0 (DFrac.own 1) bs }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.ZeroToEnd)) (Val #f))
-    {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq ⟨i, true, true⟩ ∗
+    {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq ⟨i, true, true, none, none⟩ ∗
         (∃ o, os.ownOff f o) ∗
         ((⌜err = interface.nil⌝ ∗ ∃ m', ⌜8 ≤ m'.size ∧ m'.size < 2 ^ 62⌝ ∗
             osMeta i (DFrac.own 1) m' ∗ osBytes i 0 (DFrac.own 1) (bs.take 8)) ∨
@@ -295,7 +295,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply os.File.Seek.wp_cur f fd name dqf (W64 8) hfd0 (by decide) (by decide) $$ [Hf Ho] as ⟨Hf, Ho⟩
   · iframe
   (try wp_auto)
-  wp_apply os.File.Seek.wp_end f fd name dqf (W64 8) dq (DFrac.own 1) ⟨i, true, true⟩ m
+  wp_apply os.File.Seek.wp_end f fd name dqf (W64 8) dq (DFrac.own 1) ⟨i, true, true, none, none⟩ m
     hfd0 (by rw [hsz]; decide) $$ [Hos Hf Ho Hfd Hm] as %lenf %err ⟨Hf, Hfd, Hm, Hr⟩
   · iframe; iexact Hos
   icases Hr with (⟨%hr, Ho⟩ | ⟨%herr, Ho⟩)
@@ -317,7 +317,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   have hmax8 : max m.size (W64 8).toNat = 0x10000 := by rw [hsz]; decide
   ihave Hc8 : mcellsAny (GF := GF) m.maps (min m.size (W64 8).toNat) (rsHi true m.size (W64 8).toNat) $$ []
   · unfold mcellsAny; rw [hmaps]; iapply BigSepM.bigSepM_empty.2; iempintro
-  wp_apply os.File.Truncate.wp_proof f fd name dqf (W64 8) dq ⟨i, true, true⟩ m (bs.drop 8)
+  wp_apply os.File.Truncate.wp_proof f fd name dqf (W64 8) dq ⟨i, true, true, none, none⟩ m (bs.drop 8)
       hfd0 rfl (by decide) (by simp [hbl, hsz])
     $$ [Hos Hf Hfd Hm Hbr Hc8] as %err ⟨Hf, Hfd, Hr, -⟩
   · iframe; iframe #; rw [hmin]; iexact Hbr
@@ -347,7 +347,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
       (rsPost true m (W64 8).toNat (W64 8).toNat).size
       (max (rsPost true m (W64 8).toNat (W64 8).toNat).size ((W64 0).toNat + (W64 0x10000).toNat)) $$ []
   · unfold mcellsAny; rw [hmaps2]; iapply BigSepM.bigSepM_empty.2; iempintro
-  wp_apply golang_org.x.sys.unix.Fallocate.wp_grow fd (W64 0) (W64 0x10000) dq ⟨i, true, true⟩
+  wp_apply golang_org.x.sys.unix.Fallocate.wp_grow fd (W64 0) (W64 0x10000) dq ⟨i, true, true, none, none⟩
       (rsPost true m (W64 8).toNat (W64 8).toNat) rfl (by decide) (by decide)
     $$ [Hos Hfd Hm Hc0] as %e1 ⟨Hfd, %n1, Hr⟩
   · iframe; iexact Hos
@@ -504,7 +504,7 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     iapply HΦ
     itrivial
   obtain ⟨rfl, hfdr⟩ := herr
-  rw [show openFd i (W64 0 ||| W64 524288) = ⟨i, true, false⟩ by
+  rw [show openFd i (W64 0 ||| W64 524288) = ⟨i, true, false, none, none⟩ by
     simp [openFd, O_WRONLY, O_RDONLY]]
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := w8) (W64 8)) as %buf ⟨Hbuf, -⟩
@@ -512,21 +512,21 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply wp_readFull f fd (child dir logB) (DFrac.own 1) buf
       (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0) (DFrac.own 1) dqm dqb
-      ⟨i, true, false⟩ m bs hfdr rfl (by decide) (by decide)
+      ⟨i, true, false, none, none⟩ m bs hfdr rfl (by decide) (by decide)
       (by rw [List.length_replicate]; exact hsz) (by rw [List.length_replicate, hbl]; rfl)
       (by decide) $$ [Hos Hf Ho Hbuf Hfd Hm Hb] as %err ⟨Hf, Hfd, Hm, Hb, -, -⟩
   · iframe; iexact Hos
   cases err with
   | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, false⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, false, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply HΦ
     itrivial
   | nil =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨i, true, false⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨i, true, false, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     iapply HΦ
@@ -672,14 +672,14 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
       | nil => exact absurd rfl herr
       | ok ie =>
       (try wp_auto)
-      wp_apply wp_Close f fd (child dir logB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+      wp_apply wp_Close f fd (child dir logB) ⟨k, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
       · iframe; iexact Hos
       (try wp_auto)
       iapply HΦ
       itrivial
     subst herr
     (try wp_auto)
-    wp_apply wp_Close f fd (child dir logB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    wp_apply wp_Close f fd (child dir logB) ⟨k, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; iexact Hos
     (try wp_auto)
     wp_apply wp_Reread wp_Close R hR dir j hrj _ V' k hk1 (DFrac.own 1) (DFrac.own 1) m' (bs.take 8)

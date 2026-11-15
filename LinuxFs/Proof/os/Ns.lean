@@ -277,7 +277,7 @@ theorem os.OpenFile.wp_nsRO (p : GoString) (perm : w32) (q : Qp) (R : Roots) (V 
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osTree (DFrac.own q) R V ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
-            osFd fd (DFrac.own 1) ⟨i, true, false⟩) ∨
+            osFd fd (DFrac.own 1) ⟨i, true, false, none, none⟩) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hinv, Hh⟩
   iloeb as IH generalizing Hh HΦ
@@ -293,7 +293,7 @@ theorem os.OpenFile.wp_nsRO (p : GoString) (perm : w32) (q : Qp) (R : Roots) (V 
   · subst he0
     rw [decide_eq_true rfl]
     rw [if_pos (show W64 0 = (0 : w64) from rfl),
-      show openFd i flRO = ⟨i, true, false⟩ by simp [openFd, O_WRONLY, O_RDONLY]]
+      show openFd i flRO = ⟨i, true, false, none, none⟩ by simp [openFd, O_WRONLY, O_RDONLY]]
     wp_auto
     iStructNamed inner
     iapply wp_fupd

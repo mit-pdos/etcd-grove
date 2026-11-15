@@ -288,10 +288,10 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (bs : List ByteG) (V : Hist)
     (hsz : 8 < m.size) (hv : ∀ k < 8, (bs[k]?).map Prod.fst = dataC[k]?) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
-        osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+        osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
         cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.check)) (Val #f))
-    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
         cfOwn p R γ (some (i, m, bs, none)) V }} := by
   wp_start as ⟨#Hos, Hf, Hfd, Hown⟩
   icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf⟩
@@ -304,7 +304,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   have h8 : sint.nat (W64 8) = 8 := rfl
   wp_apply wp_ReadAt f fd p (DFrac.own 1) buf (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0)
       (DFrac.own 1) (DFrac.own (1 : Qp).half)
-      (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ m (bs.take 8) rfl (by decide)
+      (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩ m (bs.take 8) rfl (by decide)
       (by rw [List.length_replicate, h8]; decide)
       (by rw [List.length_replicate, h8]; decide)
       (by rw [List.length_replicate, h8]; simp; omega)
@@ -349,10 +349,10 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (hflag : m.size ≤ 8 ∨ bs[8]? = some (durB 0)) :
     {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN p R γ Good ∗
         os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
-        osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+        osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
         cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.commit)) (Val #f))
-    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
         ∃ s' V', cfOwn p R γ s' V' }} := by
   wp_start as ⟨#Hos, #Hinv, Hf, Hfd, Hown⟩
   icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, Hr, Ht, %Hwf⟩
@@ -364,7 +364,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   wp_apply wp_newData as %sl Hsl
   (try wp_auto)
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
-      ⟨i, true, true⟩ logN p R γ Good m bs V rfl (by decide) (Nat.zero_le _) (by decide)
+      ⟨i, true, true, none, none⟩ logN p R γ Good m bs V rfl (by decide) (Nat.zero_le _) (by decide)
       (by decide) (by decide) logN_disj
       (crash_W1 m bs hhi hlen (by omega) hflag) $$ [Hos Hinv Hf Hsl Hfd Hown]
     as %n %err ⟨Hf, Hsl, Hfd, %m1, %bs1, %Hres, Hown⟩
@@ -387,7 +387,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   -- the data made durable
   have hlen1 : bs1.length = m1.size := hN1.len
   have hbd1 : m1.size < 2 ^ 62 := by have := hN1.sz2; simp only [wT] at this; omega
-  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true⟩ logN p R γ Good m1 bs1 V logN_disj
+  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true, none, none⟩ logN p R γ Good m1 bs1 V logN_disj
       (crash_synced m1 bs1 hlen1 hsz1 hbd1 hv1) $$ [Hos Hinv Hfd Hown]
     as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
@@ -414,7 +414,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     refine ⟨bs1[k].1, by rw [List.getElem?_map, List.getElem?_eq_getElem hk']; rfl, ?_⟩
     have := hv1 k hk; rw [List.getElem?_eq_getElem hk'] at this; exact this.symm
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) _ [W8 1] (DFrac.own 1) (W64 8) (DFrac.own 1)
-      ⟨i, true, true⟩ logN p R γ Good m1.synced (bs1.map (fun x => durB x.1)) V rfl (by decide)
+      ⟨i, true, true, none, none⟩ logN p R γ Good m1.synced (bs1.map (fun x => durB x.1)) V rfl (by decide)
       (show 8 ≤ m1.synced.size from hsz2) (by decide) (by decide) (by decide) logN_disj
       (crash_W2 _ _ hsz2 (show 8 ≤ m1.synced.lo from hsz2) (by rw [List.length_map]; exact hlen1) (show m1.size < _ by omega)
         (show m1.size < _ by omega) hv2) $$ [Hos Hinv Hf Hsl2 Hfd Hown]
@@ -446,7 +446,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     cases h : bs1[k]? with
     | none => rw [h] at this; exact this
     | some x => rw [h] at this; exact this
-  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true⟩ logN p R γ Good m3 bs3 V logN_disj
+  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true, none, none⟩ logN p R γ Good m3 bs3 V logN_disj
       (crash_synced m3 bs3 hlen3 (by omega) hbd3 hv3') $$ [Hos Hinv Hfd Hown]
     as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
@@ -467,7 +467,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   icases (osBytes_take_drop i 0 9 _ (bs3.map (fun x => durB x.1)) (by omega)).1 $$ Hb with ⟨Hb9, Hbr⟩
   have h9 : sint.nat (W64 9) = 9 := rfl
   wp_apply wp_ReadAt f fd p (DFrac.own 1) buf (List.replicate (sint.nat (W64 9)) (zero_val w8))
-      (W64 0) (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true⟩
+      (W64 0) (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩
       m3.synced ((bs3.map (fun x => durB x.1)).take 9) rfl (by decide)
       (by rw [List.length_replicate, h9]; decide)
       (by rw [List.length_replicate, h9]; decide)
@@ -527,16 +527,16 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (hg : GoodImg (bs.map Prod.fst)) :
     {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN p R γ Good ∗
         os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
-        osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+        osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
         cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.run)) (Val #f))
-    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
         ∃ s' V', cfOwn p R γ s' V' }} := by
   wp_start as ⟨#Hos, #Hinv, Hf, Hfd, Hown⟩
   icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf⟩
   have hlen : bs.length = m.size := Hwf.1.1
   wp_auto
-  wp_apply wp_Stat f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ m
+  wp_apply wp_Stat f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩ m
       $$ [Hos Hf Hfd Hm] as %fi %err ⟨Hf, Hfd, Hm, Hfi⟩
   · iframe; iframe #
   icases Hfi with ⟨(⟨%fs, %Hfi, Hfs⟩ | %Hfi), -, -⟩
@@ -568,7 +568,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     icases (osBytes_take_drop i (0 + 8) 1 _ (bs.drop 8) (by simp; omega)).1 $$ Hb8 with ⟨Hb1, Hb9⟩
     have h1 : sint.nat (W64 1) = 1 := rfl
     wp_apply wp_ReadAt f fd p (DFrac.own 1) buf (List.replicate (sint.nat (W64 1)) (zero_val w8))
-        (W64 8) (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ m
+        (W64 8) (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩ m
         ((bs.drop 8).take 1) rfl (by decide)
         (by rw [List.length_replicate, h1]; decide)
         (by rw [List.length_replicate, h1]; decide)
@@ -687,8 +687,8 @@ theorem wp_Boot (wp_OpenFileC : os.OpenFile.specCrash (GF := GF) (hG := hG))
       hhi hbd hcl hgi $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, -⟩
   · iframe; iframe #
   (try wp_auto)
-  wp_apply wp_Close f fd _ ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %_e -
-  · iframe; iframe #
+  wp_apply wp_Close f fd _ ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %_e -
+  · iframe; iframe #; iapply lockToks_unlocked <;> rfl
   (try wp_auto)
   iapply HΦ
   itrivial

@@ -237,7 +237,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
   · iexact Hf
   (try wp_auto)
   have Hsz0 : 0 < (sz).toInt := by simp only [sint.Z] at Hsz2; omega
-  wp_apply wp_Mmap fd (W64 0) sz _ _ _ ⟨γ.ino, true, true⟩ dbCrashN p R γc Good dbOk
+  wp_apply wp_Mmap fd (W64 0) sz _ _ _ ⟨γ.ino, true, true, none, none⟩ dbCrashN p R γc Good dbOk
       { m with maps := ∅ } bs 8192 (4096 * hwm) rfl rfl Hsz0 (by decide) (by left; decide) dbCrashN_disj
       (fun base => writer_okS (m := { m with maps := ∅ }) 8192 (4096 * hwm) hl (by omega) hsz (hcc1 ∅) _)
     $$ [Hfd Hown] as %sl %e ⟨Hfd, Hres⟩

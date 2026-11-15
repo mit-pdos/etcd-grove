@@ -194,7 +194,7 @@ abbrev os.OpenFile.specCrashS : Prop :=
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
       (∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ (s = none ∨ sIno s = some i)⌝ ∗
-          os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+          os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
           csOwn (child d b) R γ (csOpenSt j b V i s).1 (csOpenSt j b V i s).2) ∨
       (⌜err ≠ interface.nil ∧ f = null⌝ ∗ (csOwn (child d b) R γ s V ∨
           ∃ i : Ino, csOwn (child d b) R γ (csOpenSt j b V i s).1 (csOpenSt j b V i s).2)) }}

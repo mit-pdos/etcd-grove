@@ -430,7 +430,7 @@ theorem wp_dsCreate (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option I
       (∀ fd : w64, ∀ e : w64, ghostVar (GF := GF) γ (1 : Qp).half ko -∗
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create J segB i, V.2.length⟩) ∗
-            osMeta (GF := GF) i (DFrac.own 1) newMeta ∗ osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osMeta (GF := GF) i (DFrac.own 1) newMeta ∗ osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osTree (GF := GF) (DFrac.own (1 : Qp).half) R V ∨ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create J segB i, V.2.length⟩) ∗
             osMeta (GF := GF) i (DFrac.own 1) newMeta))) -∗
@@ -709,7 +709,7 @@ theorem wp_dsOpenCreate (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino)
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ghostVar γ (1 : Qp).half ko ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗
             os.ownFile f fd (child (child dir wtB) segB) (DFrac.own 1) ∗
-            osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗ osMeta i (DFrac.own 1) newMeta ∗
+            osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗ osMeta i (DFrac.own 1) newMeta ∗
             osTree (DFrac.own (1 : Qp).half) R (V.push ⟨.create J segB i, V.2.length⟩)) ∨
          (⌜err ≠ interface.nil⌝ ∗ ∃ V', osTree (DFrac.own (1 : Qp).half) R V' ∗
             ⌜V'.now.entry j walB = none⌝)) }} := by
@@ -800,7 +800,7 @@ theorem wp_dsOpenCreate (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino)
     · subst he0
       rw [decide_eq_true rfl]
       ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩
         by rw [openFd_rw]; split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
@@ -1020,7 +1020,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   · unfold mcellsAny; rw [show newMeta.maps = ∅ from rfl]
     iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply wp_WriteAt f fd (child (child dir wtB) segB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0)
-      (DFrac.own 1) ⟨i, true, true⟩ newMeta [] rfl (by decide) (by decide) (by decide)
+      (DFrac.own 1) ⟨i, true, true, none, none⟩ newMeta [] rfl (by decide) (by decide) (by decide)
       (by decide) (by decide) (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
     as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
@@ -1030,8 +1030,8 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl hne
     | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e -
-    · iframe; iexact Hos
+    wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e -
+    · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -1040,7 +1040,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     rw [hys.1]; rfl
   (try wp_auto)
   -- `f.Sync()`
-  wp_apply wp_Sync f fd (child (child dir wtB) segB) (DFrac.own 1) (DFrac.own 1) ⟨i, true, true⟩ _
+  wp_apply wp_Sync f fd (child (child dir wtB) segB) (DFrac.own 1) (DFrac.own 1) ⟨i, true, true, none, none⟩ _
       0 ys (OsMeta.covers_whole _ hysl) $$ [Hos Hf Hfd Hm Hys] as %err ⟨Hf, Hfd, Hr, -⟩
   · iframe; iexact Hos
   icases Hr with (⟨%he, Hm, Hys⟩ | ⟨%he, -, -⟩)
@@ -1049,15 +1049,15 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl he
     | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
-    · iframe; iexact Hos
+    wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
+    · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     itrivial
   subst he
   (try wp_auto)
-  wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
-  · iframe; iexact Hos
+  wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
+  · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
   (try wp_auto)
   -- the file, durable, goes into the invariant under the key `i`
   generalize hV4 : V3.push ⟨.create J segB i, V3.2.length⟩ = V4

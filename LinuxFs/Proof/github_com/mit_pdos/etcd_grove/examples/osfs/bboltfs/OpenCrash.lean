@@ -494,7 +494,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ b : Bool, valid_ptr ↦ b ∗
       ⌜(b = true → committedImg F) ∧ (b = false → noValid F)⌝ ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
       csOwnF (GF := GF) γc (some (i, ⟨m0, F.map durB, 0, 0, .idle⟩)) ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
@@ -505,7 +505,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   · icases (csOwn_idle00 i γc m0 (F.map durB)).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
     icases (osBytes_take_drop i _ (F.map durB) 8192 (by omega)).1 $$ Hb with ⟨HX, HXr⟩
     wp_apply wp_readPageSize db f DFrac.discard fd path (DFrac.own 1) (DFrac.own 1)
-        (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ m0
+        (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩ m0
         ((F.map durB).take 8192) rfl (by rw [List.length_take]; omega) (by omega)
         $$ [Hf Hfdo Hm HX]
       as %ps %ok %err3 ⟨-, Hf, Hfdo, Hm, HX, %Hrd⟩
@@ -592,7 +592,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
       db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗
       csOwnF (GF := GF) γc (some (i, ⟨m', bs, 0, 0, .idle⟩)) ∗ ⌜openReady m' bs t vo n⌝ ∗
       db_ptr ↦ db ∗ os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨

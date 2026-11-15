@@ -260,15 +260,15 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   have h8 : sint.nat (W64 8) = 8 := rfl
   wp_apply wp_ReadAt f fd (child w segB) (DFrac.own 1) buf
       (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0) (DFrac.own 1)
-      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, false⟩ m bs rfl (by decide)
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, false, none, none⟩ m bs rfl (by decide)
       (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; decide)
       (by rw [List.length_replicate, h8]; simp; omega)
       (by rw [List.length_replicate, h8]; exact hbl) $$ [Hos Hf Hbuf Hfd Hm Hb]
     as %n %err ⟨Hf, Hfd, Hm, Hb, %vs', Hbuf, %Hres, -⟩
   · iframe; iexact Hos
   (try wp_auto)
-  wp_apply wp_Close f fd (child w segB) ⟨i, true, false⟩ $$ [Hos Hf Hfd] as %e -
-  · iframe; iexact Hos
+  wp_apply wp_Close f fd (child w segB) ⟨i, true, false, none, none⟩ $$ [Hos Hf Hfd] as %e -
+  · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
   obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
   · (try wp_auto)
     wp_apply wp_dataOk buf (DFrac.own 1) vs' (by rw [hvs', hbv]) $$ [Hbuf] as Hbuf

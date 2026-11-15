@@ -339,7 +339,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       try wp_auto
       wp_apply wp_osFdKind fd (DFrac.own 1) _ CoPset.subseteq_top $$ Hos Hfd as Hfd
       wp_apply wp_osClose fd _ CoPset.subseteq_top $$ [Hfd] as %ec -
-      · iframe; iframe #
+      · iframe; iframe #; iapply lockToks_unlocked <;> rfl
       wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' as %pe Hpe
       try wp_auto
       iapply HΦ

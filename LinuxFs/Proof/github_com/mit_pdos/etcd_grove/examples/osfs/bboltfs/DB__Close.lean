@@ -135,7 +135,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     · iframe
     dsimp only [mapSlice, mapPtr0, mapPtr1, mapLen]
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd p
-        ⟨γ.ino, true, true⟩ γ.ino m (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
+        ⟨γ.ino, true, true, none, none⟩ γ.ino m (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
       as %errc ⟨Hd, Hdsz, H0, H1, -, -, -⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try simp only [↓reduceIte])
@@ -202,7 +202,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hbase
     wp_apply wp_close db (DFrac.own 1) ⟨base, W64 len, W64 len⟩ (W64 len) (base +ₗ 16)
-        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true⟩ γ.ino m (fun _ => rfl)
+        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true, none, none⟩ γ.ino m (fun _ => rfl)
         $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells]
       as %errc ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun, %Herr⟩, -, -⟩
     · iframe; iframe #

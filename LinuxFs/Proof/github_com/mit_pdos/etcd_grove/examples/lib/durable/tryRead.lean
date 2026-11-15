@@ -119,7 +119,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
           | ok ie =>
           (try wp_auto)
           wp_apply wp_Close fl fd (child f.d f.b) (openFd c.i flRO) $$ [Hinv Hf Hfd] as %e3 -
-          · iframe; iframe #
+          · iframe; iframe #; iapply lockToks_unlocked <;> rfl
           (try wp_auto)
           iapply HΦ
           iframe Hperm
@@ -157,7 +157,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
           | ok ie =>
           (try wp_auto)
           wp_apply wp_Close fl fd (child f.d f.b) (openFd c.i flRO) $$ [Hinv Hf Hfd] as %e3 -
-          · iframe; iframe #
+          · iframe; iframe #; iapply lockToks_unlocked <;> rfl
           (try wp_auto)
           iapply HΦ
           iframe Hperm
@@ -176,7 +176,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
         wp_apply wp_bytes_to_string buf c.v (DFrac.own 1) $$ Hbuf as Hbuf
         (try wp_auto)
         wp_apply wp_Close fl fd (child f.d f.b) (openFd c.i flRO) $$ [Hinv Hf Hfd] as %e3 -
-        · iframe; iframe #
+        · iframe; iframe #; iapply lockToks_unlocked <;> rfl
         (try wp_auto)
         iapply HΦ
         iframe Hperm

@@ -70,7 +70,7 @@ variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- `openLast`'s read-write open gives a readable and writable fd. -/
-theorem openFd_rdwr (i : Ino) : openFd i (W64 2 ||| W64 524288) = ⟨i, true, true⟩ := by
+theorem openFd_rdwr (i : Ino) : openFd i (W64 2 ||| W64 524288) = ⟨i, true, true, none, none⟩ := by
   unfold openFd; congr
 
 /-- **`Truncate` of a `*LockedFile`**: its embedded `*os.File`'s, any triple of it. -/
@@ -242,7 +242,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   have hlen : gL.bs.length + 2 ^ 12 < 2 ^ 62 := by
     have h2 : Fs.maxBytes = 0xffffffff000 := rfl; omega
   ihave #HdF := walDecFile_ok wp_Stat wp_Size wp_FName wp_IsEof wp_Term IoE hIo eof hIoEof rl f fd
-    (child dir gL.name) ⟨gL.ino, true, true⟩ gL hfd rfl rfl hSz hlen
+    (child dir gL.name) ⟨gL.ino, true, true, none, none⟩ gL hfd rfl rfl hSz hlen
     $$ []
   · iframe #
   wp_apply wp_slice_literal (V := GoInterface)
@@ -251,7 +251,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   · ipureintro; rfl
   iintro %rsl ⟨Hrsl, -⟩
   try wp_auto
-  generalize hF : walDecFile (GF := GF) rl f fd (child dir gL.name) ⟨gL.ino, true, true⟩ gL = F at *
+  generalize hF : walDecFile (GF := GF) rl f fd (child dir gL.name) ⟨gL.ino, true, true, none, none⟩ gL = F at *
   wp_apply wp_NewDecoder _ [F] IoE eof $$ [Hrsl Hf Hfd Hoff Hm Hb] as %dI ⟨%dec, %hdI, Hrsl, Hdec⟩
   · iframe #
     isplitl [Hrsl]
@@ -499,7 +499,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         unfold openFd wal.walOpenFlag; simp only [↓reduceIte]; decide
       have hm62 : gL.om.size < 2 ^ 62 := by omega
       wp_apply (wp_Copy bf bfd (child dir (repBroken gL.name)) (openFd bi (wal.walOpenFlag true ||| W64 0x80000))
-          lf f fd (child dir gL.name) ⟨gL.ino, true, true⟩ (W64 0) (DFrac.own (1 : Qp).half)
+          lf f fd (child dir gL.name) ⟨gL.ino, true, true, none, none⟩ (W64 0) (DFrac.own (1 : Qp).half)
           (DFrac.own (1 : Qp).half) gL.om gL.bs hbw rfl hbfd hfd (by decide) (by simp) hSz.symm hm62)
         $$ [Hbf Hbfd Hboff Htr Hf Hfd Hoff Hm Hb] as %cn %cerr ⟨Hbf, Hbfd, Hf, Hfd, Hm, Hb, Hcd, %od, %os', Hboff, Hoff, %hcp⟩
       · iframe; iframe #

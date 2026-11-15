@@ -1181,11 +1181,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd' nmf d' $$ [Hf' Hfd'] as %cerr' -
          · iframe; iframe #
            iunfold walLockLeft; ileft; iframe)
-        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f (-1 : w64) nmf ⟨0, false, false⟩ $$ [Hf']
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f (-1 : w64) nmf ⟨0, false, false, none, none⟩ $$ [Hf']
            as %cerr' -
          · iframe; iframe #
            iunfold walLockLeft; iright; iframe)
-        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f (-1 : w64) nmf ⟨0, false, false⟩ $$ [Hf']
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f (-1 : w64) nmf ⟨0, false, false, none, none⟩ $$ [Hf']
            as %cerr' -
          · iframe; iframe #
            iunfold walLockLeft; iright; iframe)

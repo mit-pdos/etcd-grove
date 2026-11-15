@@ -100,7 +100,7 @@ theorem os.WriteFile.wp_proofEmptyS (wp_Open : os.OpenFile.specCreateTruncS (GF 
       · simp only [crIno] at hio; rw [hnone] at hio; cases hio
       · rfl
     wp_apply wp_Close f fd (child d b) _ $$ [Hf Hfd] as %e1 ⟨-, -⟩
-    · iframe; iassumption
+    · iframe; isplitr; iassumption; iapply lockToks_unlocked <;> rfl
     cases e1 <;> cases e <;> wp_auto <;>
       (iapply HΦ; iframe; ipureintro; intro _; exact hsome)
   · obtain ⟨herr, rfl⟩ := herr

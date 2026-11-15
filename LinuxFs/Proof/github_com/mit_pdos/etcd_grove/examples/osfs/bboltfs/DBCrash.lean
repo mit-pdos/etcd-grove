@@ -136,7 +136,7 @@ def writerFileC (γc : GName) (i : Ino) (db f : Loc) (fd : w64) (p : GoString) (
   iprop(∃ fsz : Nat,
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩ ∗
     csOwnF (GF := GF) γc (some (i, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧
       (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩))) ∧

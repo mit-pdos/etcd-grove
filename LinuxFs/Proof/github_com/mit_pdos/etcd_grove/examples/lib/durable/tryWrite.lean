@@ -149,7 +149,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
     -- the write failed: the file closed, the temporary kept
     (try wp_auto)
     wp_apply wp_Close fl fd f.tmp _ $$ [Hinv Hf Hfd] as %e2 -
-    · iframe; iframe #
+    · iframe; iframe #; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     iframe Hperm
@@ -175,7 +175,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
     | ok ie =>
     (try wp_auto)
     wp_apply wp_Close fl fd f.tmp _ $$ [Hinv Hf Hfd] as %e3 -
-    · iframe; iframe #
+    · iframe; iframe #; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     iframe Hperm
@@ -189,7 +189,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   subst he2
   (try wp_auto)
   wp_apply wp_Close fl fd f.tmp _ $$ [Hinv Hf Hfd] as %e3 -
-  · iframe; iframe #
+  · iframe; iframe #; iapply lockToks_unlocked <;> rfl
   have htr2 := htr1.1.synced
   have hby : ys.map (fun x => durB x.1) = data.map durB := by rw [← hys, List.map_map]; rfl
   rw [hby] at htr2

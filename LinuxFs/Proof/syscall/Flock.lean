@@ -23,9 +23,9 @@ variable [sem : go.Semantics]
 variable [syscall.Assumptions]
 
 theorem syscall.Flock.wp_proof : syscall.Flock.spec (GF := GF) (hG := hG) := by
-  intro fd how dq d
-  wp_start as ⟨#Hinv, Hfd⟩
-  wp_apply wp_osFlock fd how dq d CoPset.subseteq_top $$ Hinv Hfd as %e Hfd
+  intro fd how d req nb hhow hfree
+  wp_start as ⟨#Hinv, Hfd, Ht⟩
+  wp_apply wp_osFlock fd how d req nb CoPset.subseteq_top hhow hfree $$ Hinv Hfd Ht as %e Hfd
   iapply wp_errno
   iapply HΦ
   iframe

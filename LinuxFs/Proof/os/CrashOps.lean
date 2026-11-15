@@ -270,7 +270,7 @@ theorem wp_osOpenCreate_cf (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
         ((∃ i, ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗
             cfOwn (L := L) (child d b) R γ (some (i, newMeta, [], none))
               (V.push ⟨.create j b i, V.2.length⟩) ∗
-            osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osFd (L := L) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (cfOwn (L := L) (child d b) R γ none V ∨ ∃ i,
             cfOwn (L := L) (child d b) R γ (some (i, newMeta, [], none))
               (V.push ⟨.create j b i, V.2.length⟩)))) -∗

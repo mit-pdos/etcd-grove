@@ -97,6 +97,15 @@ theorem lockStep_cases [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKin
     · exact .inl rfl
     · exact .inr ⟨_, rfl⟩
 
+/-- A lock call's step returns an errno. -/
+theorem lockStep_val [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind} {fd : w64}
+    {d : OsFd} {req : Option Bool} {nb : Bool} {e' : Expr} {st' : OsState}
+    (h : LockStep st k fd d req nb e' st') : (toVal e').isSome := by
+  unfold LockStep at h
+  split at h
+  · rcases h with ⟨-, ⟨-, -, rfl⟩ | ⟨e, -, -, -, rfl⟩⟩ <;> rfl
+  · rcases h with ⟨-, rfl⟩ | ⟨e, -, rfl, -⟩ <;> rfl
+
 theorem setLk_ino (d : OsFd) (k : LockKind) (x : Option Bool) : (d.setLk k x).ino = d.ino := by
   cases k <;> rfl
 theorem setLk_readable (d : OsFd) (k : LockKind) (x : Option Bool) :

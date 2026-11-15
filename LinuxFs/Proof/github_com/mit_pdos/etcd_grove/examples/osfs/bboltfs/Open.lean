@@ -73,7 +73,7 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         ((∃ (fd : w64) (i : Ino) (m : OsMeta),
             ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ lookupH R V' (child d b) = some (.file i) ∧
               lookupH R V' d = some (.dir j)⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
             osMeta i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) ∨
          (⌜err ≠ interface.nil ∧ f = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }} := by
   iintro %Φ ⟨#Hos, Ht, Hf⟩ HΦ
@@ -216,7 +216,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ b : Bool, valid_ptr ↦ b ∗
       validSt (GF := GF) i t vo n m b ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd (child d nm) (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗ osMeta (GF := GF) i (DFrac.own 1) m ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗ osMeta (GF := GF) i (DFrac.own 1) m ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
@@ -225,7 +225,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     with [Hst valid db Hf Hfdo Hm dataref datasz meta0 meta1 «$res0» «$res1»]
   · icases openSt_metas i t vo n m (by omega) $$ Hst with ⟨%X, HX, %HXl, HXs⟩
     wp_apply wp_readPageSize db f DFrac.discard fd (child d nm) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-        (DFrac.own 1) ⟨i, true, true⟩ m X rfl HXl (by omega) $$ [Hf Hfdo Hm HX]
+        (DFrac.own 1) ⟨i, true, true, none, none⟩ m X rfl HXl (by omega) $$ [Hf Hfdo Hm HX]
       as %ps %ok %err3 ⟨-, Hf, Hfdo, Hm, HX, %Hrd⟩
     · iframe; iframe #
     cases err3 with
@@ -313,7 +313,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗ osMeta (GF := GF) i (DFrac.own 1) m' ∗
       dbStoredAt (GF := GF) i t vo n m' ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd (child d nm) (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨

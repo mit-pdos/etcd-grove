@@ -204,8 +204,8 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
       (openFd i (W64 0x80000)) m CoPset.subseteq_top
     rw [hino] at hF
     wp_apply hF $$ Hos Hfd Hm as %sz %ez %hz Hfd Hm
-    wp_apply wp_osClose fd _ CoPset.subseteq_top $$ [Hos Hfd] as %e2 -
-    · iframe; iexact Hos
+    wp_apply wp_osClose fd (openFd i (W64 0x80000)) CoPset.subseteq_top $$ [Hos Hfd] as %e2 -
+    · iframe Hos Hfd; iapply lockToks_unlocked <;> rfl
     by_cases hz4 : ez = W64 4
     · rw [decide_eq_true hz4]
       wp_auto

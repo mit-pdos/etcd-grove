@@ -54,7 +54,7 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- The write-mode open flags give a writable fd. -/
-theorem openFd_write (i : Ino) : openFd i (walReadFlag true) = ⟨i, true, true⟩ := by
+theorem openFd_write (i : Ino) : openFd i (walReadFlag true) = ⟨i, true, true, none, none⟩ := by
   unfold openFd walReadFlag; simp only [↓reduceIte]; congr <;> decide
 
 /-- **The read tail as the handle's tail** (`walTailW`), at its write position `lay.wr` with
