@@ -6,18 +6,20 @@ The proofs of `examples/net/halfclose`'s functions, over the specs of `net` and 
   read and an accessor per `Read` (as `wire.ReadFull`'s spec): whatever it returns, the caller has
   `P` of the bytes it returns.
 * `prefixOf`: returns whether `a` is a prefix of `b`.
-* `serveConn`: `readAll` (`server_read_acc`); on EOF, the write back of what it read
-  (`server_write_au`: a prefix of what it read); the close (`hc_close_au`).
+* `serveConn`: `readAll` (`server_read_acc`); on EOF, the write back of what it read, a loop of
+  steps (`server_write_acc`: each step's bytes extend a prefix of what it read); the close
+  (`hc_close_au`).
 * `Serve`: `Listen` (of the plan's own address at the node's host, `listenAt_self`), then the
   accept loop (`wire.accept_lis_au`: each accepted connection's protocol, an abandoned dial's too).
 * `Call`: the dial (`dial_both_au`, the deposits `hc_deposit` and, for an abandoned connection,
-  `hc_deposit_ab`), the write of `"hello"`
-  (`client_write_au`), the shutdown of the write side (`hc_closeWrite_au`), `readAll`
+  `hc_deposit_ab`), the write of `"hello"`, a loop of steps (`client_write_acc`: each step's bytes
+  extend a prefix of `"hello"`; a failing step's error ends the call), the shutdown of the write side (`hc_closeWrite_au`), `readAll`
   (`client_read_acc`), and the check: the response is a prefix of `"hello"` (`client_check`), so
   `prefixOf` returns `true` and the panic is unreachable.
 * `eof_init`: `io.EOF`'s value, from the package's initialization (what the commands' `main`s,
-  `cmd/{server,client}/Main.lean`, pass to `Serve` and `Call`); `ed_init`: `poll.ErrDeadlineExceeded`'s,
-  which the `Read` and `Write` specs name, from `internal/poll`'s package fact.
+  `cmd/{server,client}/Main.lean`, pass to `Serve` and `Call`); `poll.ErrDeadlineExceeded`'s, which
+  the `Read` and `Write` specs name, from `internal/poll`'s package fact (`wire.ed_of_poll`; the
+  package imports `net`, not `wire`).
 
 A failure's error is an `*OpError` (`net.resErr`, of any kind, D14), never `nil` and never `io.EOF`
 (`net.resErr_netErr`): the code's `err != nil` and `err == io.EOF` tests need nothing more.
@@ -25,6 +27,7 @@ A failure's error is an `*OpError` (`net.resErr`, of any kind, D14), never `nil`
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.Defs
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -100,26 +103,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : halfclose.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
-
-/-- `internal/poll`'s package fact, from its initialization. -/
-theorem poll_access :
-    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
-      (∃ e : GoInterface, globalAddr internal.poll.ErrNoDeadline ↦□ e) ∗
-      (∃ e : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ e) := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
-
-/-- `poll.ErrDeadlineExceeded`'s value (the `Err` of a deadline's failure, which the `Read` and
-`Write` specs name), from the package's initialization (`net` imports `internal/poll`). -/
-theorem ed_init :
-    isPkgInit (PROP := IProp GF) pkg ⊢ ∃ ed : GoInterface,
-      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
-  iintro #Hpkg
-  ihave #Hp : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
-  · iPkgInit
-  ihave #Hf := poll_access $$ Hp
-  icases Hf with ⟨-, ⟨%ed, #Hed⟩⟩
-  iexists ed
-  iexact Hed
 
 /-- `append(data, buf[:k]...)`: the first `k` bytes of `buf` appended to `data`, `buf` kept. -/
 theorem wp_append_prefix (dsl buf : GoSlice) (data bs : List w8) (k : w64)
@@ -348,7 +331,9 @@ theorem wp_serveConn
   wp_start as ⟨⟨#HaddrInv, #HhcInv⟩, ⟨%t, %la, %ra, %Hct, #Hc⟩, ⟨%ns, Hend, Hr, Hw, #Hname⟩,
     #Heof⟩
   subst Hct
-  icases ed_init $$ Hpkg with ⟨%ed, #Hed⟩
+  ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
+  · iPkgInit
+  icases wire.ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
   ihave #Hacc := server_read_acc γm cn ns TcpEnd.fresh $$ [HhcInv Hname]
   · iframe HhcInv Hname
   wp_auto
@@ -380,14 +365,16 @@ theorem wp_serveConn
     itrivial
   · -- EOF: write back what was read, then close
     wp_auto
+    ihave #Hwacc := server_write_acc γm cn ns TcpEnd.fresh data $$ [HhcInv Hname]
+    · iframe HhcInv Hname
     wp_apply wp_Write t cn true srvAddr la ra sl data (DFrac.own 1) ed
-        (fun k res => iprop(tcpEnd G cn true TcpEnd.fresh ∗ sentAll ns.d ([] ++ data.take k) ∗
-          rcvdAll ns.u data ∗ ⌜∃ d d', WriteOutcome TcpEnd.fresh d data k res d'⌝))
-        $$ [Hd Hend Hw Hr]
-      as %n %err ⟨%k, %res, ⟨Hend, -, -, -⟩, Hd, -⟩
-    · iframe Hc Hd Hed
-      iapply server_write_au γm cn ns TcpEnd.fresh [] data data (by simp) $$ HhcInv Hname Hend
-        Hw Hr
+        (fun w _ => srvW ns cn TcpEnd.fresh data w) $$ [Hd Hend Hw Hr]
+      as %n %err ⟨%w, %res, HW, Hd, -⟩
+    · iframe Hc Hd Hed Hwacc
+      unfold srvW
+      iframe Hend Hw Hr
+    unfold srvW
+    icases HW with ⟨Hend, -, -⟩
     (try wp_auto)
     wp_apply wp_Close t cn true srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
       as %err' ⟨%res', -, -⟩
@@ -466,7 +453,9 @@ theorem wp_Call
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
   icases hcInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HhcInv⟩
-  icases ed_init $$ Hpkg with ⟨%ed, #Hed⟩
+  ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
+  · iPkgInit
+  icases wire.ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Dial srvAddr h iprop(True) (fun cn => clientProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcp⟩ | ⟨-, %xa, #Hxa, HE⟩)
@@ -487,12 +476,16 @@ theorem wp_Call
     wp_auto
     wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
     (try wp_auto)
+    ihave #Hwacc := client_write_acc γm cn ns TcpEnd.fresh $$ [HhcInv Hname]
+    · iframe HhcInv Hname
     wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
-        (fun k res => iprop(tcpEnd G cn false TcpEnd.fresh ∗ sentAll ns.u ([] ++ hello.take k) ∗
-          ⌜∃ d d', WriteOutcome TcpEnd.fresh d hello k res d'⌝)) $$ [Hsl Hend Hw]
-      as %n %err ⟨%k, %res, ⟨Hend, -, -⟩, Hsl, -, HE⟩
-    · iframe Hca Hsl Hed
-      iapply client_write_au γm cn ns TcpEnd.fresh [] hello (by simp) $$ HhcInv Hname Hend Hw
+        (fun w _ => cliW ns cn TcpEnd.fresh w) $$ [Hsl Hend Hw]
+      as %n %err ⟨%w, %res, HW, Hsl, -, HE⟩
+    · iframe Hca Hsl Hed Hwacc
+      unfold cliW
+      iframe Hend Hw
+    unfold cliW
+    icases HW with ⟨Hend, -⟩
     icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Herr
     cases res
     case some e =>
