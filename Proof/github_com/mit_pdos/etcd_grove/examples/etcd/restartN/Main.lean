@@ -34,7 +34,9 @@ theorem Main.wp_proof
   wp_start as ⟨Hss, Htok, #Hprem⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
+  (try wp_auto)
   wp_apply wp_NewNop as %lg #Hlgz
+  (try wp_auto)
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   wp_apply (wp_Run k lg N ids ps ctxs boot hk Hlen Hbf HLv HwbN Haf Hbuq Hdbo) $$ [Hss Htok]
   · iframe; iframe #

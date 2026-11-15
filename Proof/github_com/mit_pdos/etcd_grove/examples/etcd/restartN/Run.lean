@@ -590,7 +590,78 @@ theorem Run.wp_proof
   · iframe; iframe #
   rw [Hρr]
   (try wp_auto)
-  sorry
+  -- the `N2` puts, the counter's half passed along
+  ihave HI : (∃ j : w64, "i" ∷ i_ptr ↦ j ∗ "%Hj" ∷ ⌜5 ≤ sint.Z j ∧ sint.Z j ≤ 25⌝ ∗
+      "Htok" ∷ threadTok ∗ "Hssl" ∷ ssl ↦* zs.map (·.1) ∗
+      "Hd" ∷ monoNatAuthOwn γc (1 : Qp).half (sint.nat j) : IProp GF)
+      $$ [i Htok Hd Hssl]
+  · iexists W64 5; iframe; ipureintro; constructor <;> word
+  wp_for HI
+  wp_if_destruct
+  · have h25 : sint.Z j < 25 := by
+      have := Hif; simp only [show sint.Z (W64 25) = 25 by rfl] at this
+      first | exact this | exact of_decide_eq_true (go.intoVal_inj this)
+    obtain ⟨hj1, hj1a, hj1b⟩ := L1 5 25 j rfl rfl (by omega) Hj.1 h25 (by omega)
+    (try wp_auto)
+    (try simp only [Hb0, _root_.and_self, ↓reduceIte])
+    wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ _ p0.1.1 Hb0.1 $$ [Hssl] as Hssl
+    · iframe Hssl; ipureintro; simp [hz0]
+    (try wp_auto)
+    wp_apply (wp_put' wp_put p0.1.1 Ea₀ { p0.2.2.ρ with wait := γw₀ } γc j (by omega)
+        (by simp only [r3NPuts]; omega) HEa₀ HLv) $$ [Htok Hd] as %perr ⟨Htok, Hput⟩
+    · iframe; iframe #
+    icases Hput with (⟨%Hperr, Hd⟩ | %Hperr)
+    rotate_left
+    · cases perr with
+      | nil => exact absurd rfl Hperr
+      | ok ei => ?_
+      wp_auto
+      wp_for_post
+      iapply HΦ; itrivial
+    subst Hperr
+    wp_auto
+    wp_for_post
+    iframe
+    iexists j + W64 1
+    iframe
+    rw [hj1]
+    iframe
+    ipureintro; exact ⟨hj1a, hj1b⟩
+  have hj25 : sint.nat j = r3NPuts := by
+    have h25 : ¬ sint.Z j < 25 := by
+      have := Hif; simp only [show sint.Z (W64 25) = 25 by rfl] at this
+      first | exact this | exact fun h => this (by rw [decide_eq_true h])
+    simp only [r3NPuts]; exact L3 25 j rfl (by omega) h25 Hj.2
+  rw [hj25]
+  ihave #Hlb := monoNatLbOwn_get γc _ r3NPuts $$ Hd
+  -- `sR, err := restartMember(mems[j], cluster, lg)`
+  ihave %Hmll3 := ownSlice_len $$ Hmsl2
+  have Hbj2 : 0 ≤ sint.Z (W64 (jn : Int)) ∧ sint.Z (W64 (jn : Int)) < sint.Z msl2.len := by
+    obtain ⟨h1, h2⟩ := Hmll3; simp only [List.length_map, hzk] at h1; rw [hjz]; constructor <;> word
+  (try simp only [Hbj2, _root_.and_self, ↓reduceIte])
+  wp_apply wp_load_slice_index _ (sint.Z (W64 (jn : Int))) _ _ z.2 Hbj2.1 $$ [Hmsl2] as Hmsl2
+  · iframe Hmsl2; ipureintro; rw [hjz]; simp [Hjz.2]
+  (try wp_auto)
+  wp_apply (wp_restartMember N z.2 γS x.Name' x.Peer' x.Client' cl lg M (iuOf (members k))
+      (urlsN (members k) x) ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids) id
+      { γ with reg := reg } ρ γn HwbN hvs hrule hboot (by simp [LogEntry.toEntries, hblen]; omega)
+      hγn1 hγn2 Hdok hd Hbc ⟨rfl, rfl, Hdom', rfl⟩ Haf Hbuq Hdbo) $$ [Htok Hrec Hrr] as %sR %err Hr
+  · iframe; iframe #
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ', %E₀', %Hρ', HupR⟩)
+  · cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; itrivial
+  subst Herr
+  wp_auto
+  -- `check(sR)`, under the invariant at the restarted names
+  ihave #HinvR : r3Inv ρ'.rd.kv γc $$ []
+  · rw [r3Inv_st ρ'.rd.kv γk (by rw [restartNames_st Hρ', hst]) γc]
+    iexact Hinv
+  wp_apply (wp_check sR ρ' E₀' lg γn id γc HLv) $$ [HupR] as %b -
+  · iframe; iframe #
+  iapply HΦ; itrivial
 
 end proof
 
