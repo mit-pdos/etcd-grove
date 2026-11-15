@@ -116,3 +116,10 @@ status-history (A1's S7.4 line kept). Full build green (flock, 64G; `/shared/tmp
 `etc/gates.sh`: build, links, tcb (870/4), collections (57 match), gen-init, bounds 351, mode 417, api, interfaces,
 import-all ok; goose and the Go gates (pbschema, entsize, featuregate, premisefix, k8s) fail on go.sum only (the
 unpushed fork `6e8f0c004`), as expected (`/shared/tmp/restart3-merge/gates-1.log`).
+
+### Landing A1 (2026-11-15)
+Merged lean `17d12658f5` (auth-lease S3a2) and origin/lean `e3b1f66570` (kvnet, proof-cleanup skill): conflicts only in
+STATUS "Last updated" (one copy of each entry, ten newest kept) and status-history (append-only). go.sum of `examples`,
+`examples/k8s/{compactor,etcd3}` at the pushed fork `6e8f0c004` (hashes from `go mod download`); `etc/featuregate-allow.txt`
+paths at the new pseudo-version; `etc/goose.py --check` passes (`/shared/tmp/restart3-land/goose-check.log`). Full build
+green (`/shared/tmp/restart3-land/build-a1.log`). STATUS entry for A1 added. Then `etc/land.sh`.
