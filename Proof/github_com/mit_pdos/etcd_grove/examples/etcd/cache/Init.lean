@@ -42,6 +42,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.fmt.Assumptions]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [_root_.Perennial.log.NewModel]
 

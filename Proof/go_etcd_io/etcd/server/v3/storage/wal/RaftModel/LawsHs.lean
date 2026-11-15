@@ -1,7 +1,7 @@
 /-
 **The raftpb instance's hard-state laws** (W4c U4 b of `notes/wal-fsext-w4c-plan.md`, "W4c U4 log"):
 `WalPbIn.NilLaw`, `ZeroLaw`, `MustSyncLaw` (raft's `MustSync`, `rawnode.go:191`), `IsEmptyLaw` (raft's
-`IsEmptyHardState`, `node.go:122`, over the part's raft root fact `rootInit`: `emptyState`), and
+`IsEmptyHardState`, `node.go:122`, over raft's package fact `isInitialized`: `emptyState`), and
 `WalHsOwn`'s `zero`, `getCommit`, `freeze` of `walRaftHsO`. (`WalHsOwn.unmarshal`, `reset`,
 `MarshalHsLaw` and `CloneHsLaw` need a trusted model of `raftpb.HardState` the part does not have:
 the U4 log.) Lean-first.
@@ -122,7 +122,7 @@ theorem walRaftP_isEmpty : WalPbIn.IsEmptyLaw (walRaftP (GF := GF)) := by
   intro hp hs
   simp only [walRaftP]
   wp_start as #Hh
-  ihave #Hr : (rootInit : IProp GF) $$ []
+  ihave #Hr : (go_etcd_io.raft.v3.isInitialized : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   ihave ⟨%es, #Hg, #Ges⟩ := rootInit_hsGet $$ Hr
   ihave #G := walHsIn_hsGet hp hs $$ Hh

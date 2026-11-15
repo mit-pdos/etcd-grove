@@ -14,7 +14,7 @@ module
 
 public import WalTester.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.wal
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
-public import Proof.go_etcd_io.raft.v3.PkgInit
+public import Proof.go_etcd_io.raft.v3.Base
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.PkgInit
 
 @[expose] public section

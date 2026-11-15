@@ -33,6 +33,7 @@ public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
 public import Proof.google_golang_org.grpc.status.ErrDesc
+public import Proof.go_uber_org.zap.PkgInit
 
 @[expose] public section
 
@@ -609,18 +610,6 @@ instance logutil_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
   build_get_is_pkg_init_wf
 
--- zap imports zapcore (translated since the merge with the server's names-only zap).
-instance zapcore_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
-  define_is_pkg_init iprop(True)
-instance zapcore_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
-  build_get_is_pkg_init_wf
-
-instance zap_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap :=
-  define_is_pkg_init iprop(True)
-instance zap_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
-  build_get_is_pkg_init_wf
 
 -- protobuf's `proto` (`clientv3.cloneCompare` calls `proto.Clone`; names only; `protoreflect`,
 -- which it imports, is above `authpb`).

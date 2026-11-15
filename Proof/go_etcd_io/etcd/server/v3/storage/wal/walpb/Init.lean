@@ -14,7 +14,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
-public import Proof.go_etcd_io.raft.v3.InitPb
+public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 public import Perennial.Proof.errors.NewVar

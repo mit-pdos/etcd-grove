@@ -7,14 +7,14 @@ public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import GeneratedProof.go_uber_org.zap
-public import GeneratedProof.golang_org.x.sys.unix
+public import Perennial.GeneratedProof.golang_org.x.sys.unix
 public import Perennial.GeneratedProof.io
 public import GeneratedProof.io.fs
 public import GeneratedProof.os
 public import GeneratedProof.path.filepath
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strings
-public import GeneratedProof.syscall
+public import Perennial.GeneratedProof.syscall
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.pkg.v3.fileutil

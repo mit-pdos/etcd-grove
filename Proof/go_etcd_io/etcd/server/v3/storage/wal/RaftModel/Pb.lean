@@ -14,15 +14,14 @@ getters' specs over them.
   cells, raft's `emptyState` leaves them nil).
 - `walHsO p h`: the owned `*raftpb.HardState` at `walHsCanon h`, its hidden fields owned (`hsOwnC`).
 - `hsGet p h`: what the getters read (`nil` and the zero state, or frozen cells of model `h`): raft's
-  `emptyState` (`rootInit`) is one (`rootInit_hsGet`).
+  `emptyState` (raft's package fact, `isInitialized`) is one (`rootInit_hsGet`).
 Lean-first.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Marshal
 public import Proof.go_etcd_io.raft.v3.PbEntryType
-public import Proof.go_etcd_io.raft.v3.PkgInit
-
+public import Proof.go_etcd_io.raft.v3.Base
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -139,9 +138,12 @@ theorem walHsIn_hsGet (l : Loc) (h : HardStateM) : walHsIn (GF := GF) l h ⊢ hs
 
 /-- **Raft's `emptyState`** (its package fact) reads as the zero state. -/
 theorem rootInit_hsGet :
-    rootInit (GF := GF) ⊢ ∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ hsGet es hsZero := by
-  unfold rootInit
-  iintro ⟨%es, #Hg, %Hn, #HT, #HV, #HC, -⟩
+    go_etcd_io.raft.v3.isInitialized (GF := GF) ⊢
+      ∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ hsGet es hsZero := by
+  iintro Hi
+  unfold go_etcd_io.raft.v3.isInitialized
+  iNamed Hi
+  icases emptyState with ⟨%es, #Hg, %Hn, #HT, #HV, #HC, -⟩
   iexists es
   iframe Hg
   unfold hsGet

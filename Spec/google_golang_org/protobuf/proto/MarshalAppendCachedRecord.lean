@@ -7,7 +7,7 @@ Lean-first; **pending the user's review**.
 module
 
 public import Proof.google_golang_org.protobuf.proto.InvProto
-public import Proof.google_golang_org.protobuf.proto.PkgInit
+public import Proof.go_etcd_io.raft.v3.Base
 public import Code.go_etcd_io.etcd.server.v3.storage.wal.walpb
 
 @[expose] public section

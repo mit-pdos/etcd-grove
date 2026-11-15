@@ -13,8 +13,7 @@ has a copy of `ClonePb` and that lemma it is a hypothesis, recorded in the W3/W5
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
-public import Proof.google_golang_org.protobuf.proto.PkgInit
-
+public import Proof.go_etcd_io.raft.v3.Base
 @[expose] public section
 
 noncomputable section

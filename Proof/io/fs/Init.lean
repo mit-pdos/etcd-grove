@@ -4,7 +4,7 @@ Package initialization of `io.fs`
 
 Its fact (`Proof/os/PkgInit.lean`): its five error variables, which `os`'s initializer
 copies, hold some error for good, `ErrExist` a non-nil one, `ErrNotExist` an `*errorString`, `ErrClosed` one `fmt`
-formats (the part only). Its initializer copies internal/oserror's errors into them
+formats. Its initializer copies internal/oserror's errors into them
 (`errInvalid()`, ...) and makes `SkipDir` and `SkipAll` (`errors.New`).
 -/
 module

@@ -33,7 +33,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
-public import Proof.go_etcd_io.raft.v3.InitPb
 public import Proof.go_uber_org.zap.Init
 public import Proof.hash.Init
 public import Proof.hash.crc32.Init
@@ -102,6 +101,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.storage.wal
 
@@ -128,7 +128,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoFunc) openWALFilesFn _ as HopenWALFilesFn
   wp_apply wp_GlobalAlloc (V := w64) SegmentSizeBytes _ as HSegmentSizeBytes
   wp_apply wp_GlobalAlloc (V := GoInterface) errBadWALName _ as HerrBadWALName
-  wp_apply (_root_.Perennial.go_etcd_io.raft.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd23⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
+      EtcdGrove.ExternalInit.go_etcd_io_raft_v3 _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd23⟩
   wp_apply (_root_.Perennial.hash.crc32.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd22⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
       EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd21⟩

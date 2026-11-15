@@ -4,7 +4,7 @@ Package initialization of `os`
 
 Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
 initializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an
-`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's; the part only). `os` is this repository's translation (project bboltfs's): its
+`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's). `os` is this repository's translation (project bboltfs's): its
 initializer initializes its imports and runs its variables' translated initializers (`errors.New`
 errors, io/fs's and internal/poll's error variables, `sync.OnceValue`, function values) and the
 trusted models of the standard streams' (`TrustedCode/os.lean`: `Stdin`, `Stdout` nothing, `Stderr`

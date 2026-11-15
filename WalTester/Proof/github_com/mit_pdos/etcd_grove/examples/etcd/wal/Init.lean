@@ -7,16 +7,16 @@ variable).
 -/
 module
 
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgInit
+public import WalTester.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgInit
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Perennial.Proof.os.Link
 public import Perennial.Proof.strings.Link
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
-public import Proof.go_etcd_io.raft.v3.InitPb
+public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.os.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -42,6 +42,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [_root_.Perennial.log.NewModel]
 
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.wal
 
@@ -66,7 +67,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.github_com_goose_lang_primitive _root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
       EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.os _root_.Perennial.os.initialize'
+      EtcdGrove.ExternalInit.os _root_.Perennial.os.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish

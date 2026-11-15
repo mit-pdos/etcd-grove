@@ -11,7 +11,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
-public import Proof.google_golang_org.protobuf.proto.PkgInit
+public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncDecoder
 
 @[expose] public section

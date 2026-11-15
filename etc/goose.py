@@ -147,18 +147,6 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
-        # (WAL over fsExt, 2026-11-13) raft's root package in the part `LinuxFs/`, for the WAL there
-        # (project etcd's part): `IsEmptyHardState`, `MustSync` and what they read with bodies, the
-        # rest names only (LinuxFs/Code/go_etcd_io/raft/v3.toml); raftpb is the main tree's.
-        parts=[Part(
-            root="LinuxFs",
-            lean_roots=["go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
-                        "go.etcd.io/raft/v3/confchange=", "go.etcd.io/raft/v3/quorum=",
-                        "go.etcd.io/raft/v3/tracker=", "google.golang.org=",
-                        "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
-                        "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs"],
-            packages=["."],
-            owned=[os.path.join("go_etcd_io", "raft", "v3")])],
     ),
     Project(
         name="bbolt",
@@ -297,11 +285,15 @@ PROJECTS = [
         # `SaveDBFrom` links its file into place (`os.Link`), so that of two concurrent saves of one
         # index exactly one puts its file in place and the other keeps it
         # (nonissues/etcd-snap-savedbfrom-concurrent-rename.md; the user's decision via etcd-grove-81).
+        # Then (the WAL over fsExt, 2026-11-14) branch `goose-lean-walfs` (on 2eaeb872b), head
+        # 3df9b265f: the WAL's local fixes 0001-0005 (notes/wal-fsext-fork/README.md: `NewFileReader`'s
+        # Stat, `Create`'s cleanup, the byte-mix tests, `N.tmp` opened with `O_TRUNC`, `Create`'s
+        # parent close).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="2eaeb872bce9661d984e00005793fa01ae24834f",
+        rev="3df9b265f7e7fd752cd85e7a8191a824f632313d",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -319,7 +311,12 @@ PROJECTS = [
                     "github.com/grpc-ecosystem=",
                     # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
                     # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
-                    "encoding/base64="],
+                    "encoding/base64=",
+                    # (the WAL over fsExt, 2026-11-15: notes/wal-lean-integration.md) the
+                    # standard-library packages the WAL calls that Perennial does not translate:
+                    # `bufio`'s Reader and `path/filepath`'s lexical functions (over
+                    # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
+                    "bufio=", "path/filepath=", "internal/filepathlite="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -409,11 +406,16 @@ PROJECTS = [
             # v3.7 retarget, 2026-10-16: `newRaftNode`'s dead logger branch, the WAL
             # `bootstrappedRaft.newRaftNode` wraps)
             "go.etcd.io/etcd/client/pkg/v3/logutil",
+            # (the WAL over fsExt, 2026-11-13; in the main tree since 2026-11-15) the real WAL with
+            # bodies (wal.toml: but version.go and metrics.go, names only), `walpb`, `fileutil`,
+            # `pkg/v3/ioutil` (PageWriter) and `pkg/v3/crc`, and the standard-library packages they
+            # call that nothing else translates (`hash/crc32` names only; `bufio`'s `Reader` and
+            # `path/filepath`'s lexical functions, over `internal/filepathlite`, with bodies)
             "go.etcd.io/etcd/server/v3/storage/wal",
-            # types and names only (WAL W4a, 2026-11-11): the WAL's record types (`walpb.Snapshot`,
-            # which the read path's specs name) and `fileutil` (`TouchDirAll`, the WAL tester's call)
             "go.etcd.io/etcd/server/v3/storage/wal/walpb",
             "go.etcd.io/etcd/client/pkg/v3/fileutil",
+            "go.etcd.io/etcd/pkg/v3/crc",
+            "hash/crc32", "bufio", "path/filepath", "internal/filepathlite",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
@@ -538,7 +540,8 @@ PROJECTS = [
                os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
-               os.path.join("github_com", "grpc_ecosystem")],
+               os.path.join("github_com", "grpc_ecosystem"),
+               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
@@ -550,39 +553,6 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3",
             "go.etcd.io/etcd/server/v3",
         ],
-        # (WAL over fsExt, 2026-11-13: notes/decisions.md, "One file semantics, `fsExt`") the real
-        # WAL with bodies, in the part `LinuxFs/` over its `os` (LinuxFs/Code/**.toml): `wal` (but
-        # version.go and metrics.go, names only), `walpb`, `fileutil`, `pkg/v3/ioutil` (PageWriter)
-        # and `pkg/v3/crc`, and the standard-library packages they call that nothing translates
-        # (`hash/crc32` names only; `bufio`'s `Reader` and `path/filepath`'s lexical functions, over
-        # `internal/filepathlite`, with bodies: the WAL leaf specs, 2026-11-13). The rest is the main tree's (the empty
-        # root): raftpb, zap, protobuf, prometheus, semver, `pkg/v3/pbutil`, `client/pkg/v3/verify`,
-        # `hash`; none of them reaches the main tree's `os`. raft's root package (`IsEmptyHardState`,
-        # `MustSync`) is project raft's part copy in `LinuxFs/` (the main tree's imports its `os`). The
-        # main tree's names-only WAL (above) stays: the server uses it; the part's declares the same
-        # names, so nothing outside `LinuxFs/` imports it.
-        parts=[Part(
-            root="LinuxFs",
-            lean_roots=["go.etcd.io/etcd=", "go.etcd.io/etcd/server/v3/storage/wal=LinuxFs",
-                        "go.etcd.io/etcd/client/pkg/v3/fileutil=LinuxFs",
-                        "go.etcd.io/etcd/pkg/v3/ioutil=LinuxFs", "go.etcd.io/etcd/pkg/v3/crc=LinuxFs",
-                        "go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
-                        "google.golang.org=", "go.uber.org=", "github.com/prometheus/client_golang=",
-                        "github.com/Masterminds/semver=", "hash=", "hash/crc32=LinuxFs",
-                        "bufio=LinuxFs", "path/filepath=LinuxFs", "internal/filepathlite=LinuxFs",
-                        "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
-                        "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs"],
-            packages=["go.etcd.io/etcd/server/v3/storage/wal",
-                      "go.etcd.io/etcd/server/v3/storage/wal/walpb",
-                      "go.etcd.io/etcd/client/pkg/v3/fileutil", "go.etcd.io/etcd/pkg/v3/ioutil",
-                      "go.etcd.io/etcd/pkg/v3/crc", "hash/crc32", "bufio", "path/filepath",
-                      "internal/filepathlite"],
-            owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal"),
-                   os.path.join("go_etcd_io", "etcd", "client", "pkg", "v3", "fileutil"),
-                   os.path.join("go_etcd_io", "etcd", "pkg", "v3", "ioutil"),
-                   os.path.join("go_etcd_io", "etcd", "pkg", "v3", "crc"),
-                   os.path.join("hash", "crc32"), "bufio", os.path.join("path", "filepath"),
-                   os.path.join("internal", "filepathlite")])],
     ),
     Project(
         name="kv",
@@ -637,14 +607,16 @@ PROJECTS = [
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")],
         # (2026-11-14, W4c U2: notes/wal-fsext-w4c-plan.md) translated with its bodies into the part
-        # `LinuxFs/` too, over the part's `os` (fsExt) and `path/filepath`, where its specs are
-        # proved (no trusted function: `LinuxFs/Code/.../examples/lib/durable.toml` absent)
+        # `WalTester/` too (until 2026-11-15 `LinuxFs/`), over the main tree's `os` (fsExt) and
+        # `path/filepath`, where its specs are proved (no trusted function:
+        # `WalTester/Code/.../examples/lib/durable.toml` absent); the main tree's stays trusted over
+        # `durableExt` for kvdurable, kvfile and etcdstart (notes/wal-lean-integration.md)
         parts=[Part(
-            root="LinuxFs",
-            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
-                        "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
-                        "internal/syscall=LinuxFs", "path/filepath=LinuxFs",
-                        "internal/filepathlite=LinuxFs"],
+            root="WalTester",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
+                        "github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                        "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                        "internal/filepathlite="],
             packages=["."],
             owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
@@ -1067,34 +1039,26 @@ PROJECTS = [
         # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
         # restart's read against the crash-aware WAL spec, with its reference state in a durable
         # file (lib/durable). A package of the examples' Go module (examples/go.mod); its imports
-        # are the etcd project's translations (`wal`, `walpb`, `fileutil` names-only). Its crash
+        # are the etcd project's translations (`wal`, `walpb`, `fileutil` with bodies). Its crash
         # driver (`*_test.go`, `crashtest/`) is Go-only.
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "wal"),
-        # `os` and `io/fs` are this repository's (as the etcd project's), so that the translation
-        # and the WAL's specs can be imported together
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
+        # (2026-11-14, W4c U1: notes/wal-fsext-w4c-plan.md) translated with its bodies (`purgeRound`
+        # too) over the per-byte file extension's `os`, the WAL, `fileutil`, `walpb` (the main tree's)
+        # and `lib/durable` with bodies, all in the part `WalTester/` (until 2026-11-15 `LinuxFs/`;
+        # `WalTester/Code/.../examples/etcd/wal.toml` absent: every function translated): the main
+        # tree's `lib/durable` is the trusted one (notes/wal-lean-integration.md). The absDisk
+        # tester's main-tree translation retired with it (2026-11-15).
+        root="WalTester",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/etcd/wal=WalTester",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                    "internal/filepathlite="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
-        # (2026-11-14, W4c U1: notes/wal-fsext-w4c-plan.md) translated with its bodies (`purgeRound`
-        # too) into the part `LinuxFs/` as well, over the part's `os` (fsExt), WAL, `fileutil`,
-        # `walpb` and `lib/durable` (raftpb, zap, protobuf the main tree's), where its proof moves
-        # (`LinuxFs/Code/.../examples/etcd/wal.toml` absent: every function translated). The main
-        # tree's translation stays until U8 retires it.
-        parts=[Part(
-            root="LinuxFs",
-            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "go.etcd.io/etcd=",
-                        "go.etcd.io/etcd/server/v3/storage/wal=LinuxFs",
-                        "go.etcd.io/etcd/client/pkg/v3/fileutil=LinuxFs",
-                        "go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
-                        "go.uber.org=", "google.golang.org=",
-                        "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
-                        "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs",
-                        "path/filepath=LinuxFs", "internal/filepathlite=LinuxFs"],
-            packages=["."],
-            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")])],
     ),
     Project(
         name="porcupine",

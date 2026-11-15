@@ -24,7 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Metrics
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.PbRecord
-public import Proof.google_golang_org.protobuf.proto.PkgInit
+public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalPbWire
 
 @[expose] public section

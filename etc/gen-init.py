@@ -105,10 +105,8 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
-# (WAL W4c, 2026-11-12) the WAL robustness tester (examples/etcd/wal): no package variables, its
-# fact `True` (`Base.lean`), so no `SPECIAL`; `fileutil` and `walpb` (names-only, facts `True`, their
-# own `Base.lean`) join the closure through it
-ROOTS.append('github_com.mit_pdos.etcd_grove.examples.etcd.wal')
+# (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
+# `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -513,20 +511,21 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
-# (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) the part's `io/fs` and
-# `os` record `ErrExist`'s error non-nil (`LinuxFs/Proof/os/PkgInit.lean`); the main tree's are unchanged.
-# (2026-11-14, `wal.Exist`'s `errors.Is(err, os.ErrNotExist)`) the part's `os` also records
+# (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
+# `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the
+# main tree's: `SPECIAL['os']`, `SPECIAL['io.fs']` below).
+# (2026-11-14, `wal.Exist`'s `errors.Is(err, os.ErrNotExist)`) `os` also records
 # `ErrNotExist`'s error (some error, for good).
 # (2026-11-14, `WAL.Close` of a nil `dirFile`: the nil-receiver `(*File).Close` returns `os.ErrInvalid`,
-# `LinuxFs/Spec/os/File__CloseNil.lean`) the part's `os` also records `ErrInvalid`'s error.
+# `Spec/os/File__CloseNil.lean`) `os` also records `ErrInvalid`'s error.
 _lfs_fs_ex = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard)'
 _lfs_fs_ex_nn = ('(∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr '
                  '_root_.Perennial.io.fs.ErrExist) e DFrac.discard)')
 # (2026-11-14, the closed-file `(*os.File).Close` returns `&PathError{"close", name, ErrClosed}`,
-# `LinuxFs/Spec/os/File__CloseClosed.lean`) the part's `io/fs` and `os` record `ErrClosed`'s error as
+# `Spec/os/File__CloseClosed.lean`) `io/fs` and `os` record `ErrClosed`'s error as
 # one `fmt` formats (`fmtErrorOk`: internal/oserror's `errors.New`, `errorString_fmtErrorOk`).
 # (2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' `errors.Is(err, os.ErrNotExist)` on errors with `errIsTerm`,
-# a pointer target) the part's `io/fs` and `os` record `ErrNotExist`'s error as an `*errorString`
+# a pointer target) `io/fs` and `os` record `ErrNotExist`'s error as an `*errorString`
 # (internal/oserror's `errors.New`).
 _lfs_fs_ne = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard)'
 _lfs_fs_ne_ptr = ('(∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) (interface.mkOk '
@@ -536,13 +535,13 @@ _lfs_fs_cl_ok = ('(∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto
                  '_root_.Perennial.io.fs.ErrClosed) e DFrac.discard)')
 LFS_IOFS = dict(SPECIAL['io.fs'])
 LFS_IOFS['doc'] = SPECIAL['io.fs']['doc'].replace('hold some error for good.',
-    'hold some error for good, `ErrExist` a non-nil one, `ErrNotExist` an `*errorString`, `ErrClosed` one `fmt`\nformats (the part only).')
+    'hold some error for good, `ErrExist` a non-nil one, `ErrNotExist` an `*errorString`, `ErrClosed` one `fmt`\nformats.')
 LFS_IOFS['imports'] = SPECIAL['io.fs']['imports'] + ['Proof.errors.ErrorStringOk']
 # (`is_pkg_init_finish` proves the pure conjunct and frames `ErrClosed`'s `fmtErrorOk`)
 LFS_IOFS['finish'] = ['ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl'] + SPECIAL['io.fs']['finish']
 LFS_OS = dict(SPECIAL['os'])
 LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
-    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's; the part only).")
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's).")
 LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
                                     .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace(_lfs_fs_ne, _lfs_fs_ne_ptr).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
                                    for l in SPECIAL['os']['before']['dirBufPool']]}
@@ -589,7 +588,7 @@ leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated 
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
-    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.errors.ErrIsTerm'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm'],
     alloc_types={'ErrCRCMismatch': 'GoInterface'},
     before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
                                'try wp_auto']},
@@ -608,7 +607,7 @@ LFS_SPECIAL['go_etcd_io.etcd.client.pkg.v3.fileutil'] = dict(
 `init` function (lock_linux.go), which probes OFD locks with `F_OFD_GETLK` on fd 0 and switches both
 functions to OFD's on success: the probe's errno is any (`syscall.FcntlFlock.wp_getlk`), so either
 outcome.''',
-    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.syscall.FileOps'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.syscall.FileOps'],
     vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
     alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
                  'ErrLocked': 'GoInterface'},
@@ -672,7 +671,7 @@ translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbIn
 crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
 function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
 says returns.''',
-    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.hash.crc32.MakeTable', 'LinuxFs.Proof.errors.ErrIsTerm'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.hash.crc32.MakeTable', 'Proof.errors.ErrIsTerm'],
     custom={'walFsyncSec': _walMetric('walFsyncSec', 'histSpec'),
             'walWriteSec': _walMetric('walWriteSec', 'histSpec'),
             'walWriteBytes': _walMetric('walWriteBytes', 'gaugeAddSpec')},
@@ -712,33 +711,12 @@ imports.''',
 )
 LFS_SPECIAL['io.fs'] = LFS_IOFS
 LFS_SPECIAL['os'] = LFS_OS
-LFS_SPECIAL['go_etcd_io.raft.v3'] = dict(
-    doc='''Its fact (`rootInit`, `PkgInit.lean`): `emptyState` holds a pointer to a zero `HardState`,
-its cells `nil` for good, its hidden fields in the `protobuf` invariant. Its initializer initializes
-its imports, runs the untranslated initializers of its other variables (`X.init`, axioms of the
-translation), which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
-translated `emptyState = &pb.HardState{}`.''',
-    alloc_types={'emptyState': 'Loc'},
-    finish=['ihave %HesNN := typedPointsto_not_null $$ «$r0»',
-            'icases typedPointsto_split _ _ _ $$ «$r0» with Hes',
-            'simp only [TypedPointsto.typedPointstoDef]',
-            'icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩',
-            'ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []',
-            '· iapply ownSlice_nil',
-            'imod inv_alloc (nroot.@"protobuf") ⊤',
-            '    iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),',
-            '      _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗',
-            '        _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))',
-            '    $$ [Hst Heuf Hesc Hnil] with #HesPb',
-            '· inext',
-            '  iexists _, _, _',
-            '  iframe Hst Hesc Heuf Hnil',
-            'ipersist HemptyState', 'ipersist HeT', 'ipersist HeV', 'ipersist HeC',
-            'iframe Hown', 'imodintro', 'isplitr',
-            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
-            'unfold rootInit', 'iexists _', 'iframe HemptyState HeT HeV HeC HesPb',
-            'ipureintro; exact HesNN'],
-)
+# (2026-11-15, the WAL in the main tree: notes/wal-lean-integration.md) the part `LinuxFs/`'s
+# configurations are the main tree's (its raft root, names-only, went: the WAL imports the main raft);
+# `examples/lib/durable` with bodies is the part `WalTester/`'s (`WT_SPECIAL`, `wt_inits`)
+WT_SPECIAL = {'github_com.mit_pdos.etcd_grove.examples.lib.durable':
+              LFS_SPECIAL.pop('github_com.mit_pdos.etcd_grove.examples.lib.durable')}
+SPECIAL.update(LFS_SPECIAL)
 
 SPECIAL['internal.poll'] = dict(
     doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
@@ -2353,8 +2331,6 @@ RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft
 # (`os` was here until 2026-11-03: Perennial b3e996d84 translates some of its initializers, and bbolt
 # imports it too; its `wp_initialize'` is generated, `Proof/os/Init.lean`, `SPECIAL['os']`.)
 # (`strconv` was here until Perennial translated it, 24bef275e: its `wp_initialize'` is Perennial's.)
-# Set while the part `LinuxFs/`'s files are generated (`lfs_inits`).
-LFS_MODE = False
 
 def plain(ns):
     return ns.replace('«', '').replace('»', '')
@@ -2372,10 +2348,6 @@ def closure(p):
 
 def init_module(q):
     d = inv[q]
-    if LFS_MODE and q in RAFT_INIT:
-        # (WAL package init, 2026-11-13) the part's raft root (generated) and its copy of the main
-        # tree's raft packages' and `proto`'s (`lfs_raft_initpb`)
-        return 'Proof.go_etcd_io.raft.v3.' + ('Init' if q == 'go_etcd_io.raft.v3' else 'InitPb')
     if q in RAFT_INIT:
         return 'Proof.go_etcd_io.raft.v3.Init'
     if q == 'k8s_io.utils.third_party.forked.golang.btree':
@@ -2414,8 +2386,6 @@ def pre_res(p):
 
 def external(q):
     """`q`'s `wp_initialize'` is not generated here (Perennial's, raft's, the B-tree's)."""
-    if LFS_MODE and q == 'go_etcd_io.raft.v3':
-        return False
     return (q in RAFT_INIT or q == 'k8s_io.utils.third_party.forked.golang.btree' or
             (inv[q]['perennial'] and q not in PERENNIAL_HERE))
 
@@ -2489,8 +2459,7 @@ def gen(p, cfg=None):
     inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else 'Proof.' + imods[0][0].replace('/', '.')
     cl = closure(p)
     needs_ctx = 'context' in cl
-    # (the part's raft root is names-only: no `log.New` model)
-    needs_raft = 'go_etcd_io.raft.v3' in cl and not LFS_MODE
+    needs_raft = 'go_etcd_io.raft.v3' in cl
     pk = pkginfo_imports(p)
     items = exec_order(p)
     opq = [x for (kind, x) in items if kind == 'opaque' and x not in newvars and x not in custom]
@@ -2617,7 +2586,7 @@ def gen(p, cfg=None):
     A('variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]')
     A('variable [sem : go.Semantics]')
     A(f'variable [package_sem : _root_.Perennial.{p}.Assumptions]')
-    _SP = {**SPECIAL, **LFS_SPECIAL} if LFS_MODE else SPECIAL
+    _SP = {**SPECIAL, **WT_SPECIAL}
     vs = list(cfg.get('vars', []))
     for q in sorted(cl):
         for v in _SP.get(q, {}).get('vars', []):
@@ -2803,7 +2772,9 @@ by the proof; it stays so that the statement is unchanged.
 
 
 def gen_ext():
-    exts = sorted({x for p in packages() for x in inv[p]['imports'] if external(x)})
+    exts = {x for p in packages() for x in inv[p]['imports'] if external(x)}
+    wt = wt_inventory()
+    exts = sorted(exts | {x for p in WT_PKGS for x in wt[p]['imports'] if x in inv and external(x)})
     mods = sorted({code_module(q) for q in exts})
     L = [EXT_DOC, 'module', '', 'public import Proof.runtime.PkgInit']
     L += [f'public import {m}' for m in mods]
@@ -3129,125 +3100,47 @@ def dag_init():
 
 
 
-# The part `LinuxFs/` (the per-byte Linux file extension's `os`, `syscall`, `golang.org/x/sys/unix`,
-# `io/fs`, `internal/poll` and `internal/syscall/unix`, and the programs over it; project bboltfs's
-# part, projects crashlog and walfs): the same Go paths as the main tree's (the first extension's),
-# translated into a module root of its own. Its packages' initializers are generated as the main
-# tree's, from the part's translation (`LFS_ROOT/Code`) and instances (`LFS_ROOT/Proof`), with the
-# imports of the part's modules prefixed; its `PkgInitExt` is the main tree's without raft (whose
-# translation imports the main tree's `os`).
-LFS_ROOT = 'LinuxFs'
-LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 'golang_org.x.sys.unix',
-            'bufio', 'internal.filepathlite', 'path.filepath',
-            # (WAL W6, 2026-11-13) the WAL's page writer, and `verify` (main tree's translation, which
-            # it imports: its main instance is in the backend's `Base`, over the main `os`, so the part
-            # has its own, `LFS_MAIN_CODE`)
-            'go_etcd_io.etcd.client.pkg.v3.verify', 'go_etcd_io.etcd.pkg.v3.ioutil',
-            # (WAL package init, 2026-11-13) the WAL (`PkgInit.lean`: its fact) and its import closure
-            # not yet here: its part-translated imports, raft's root package (names-only, the part's;
-            # raftpb, quorum, tracker, confchange and proto: `InitPb.lean`, `lfs_raft_initpb`), and the
-            # main-tree translations below them (`LFS_MAIN_CODE`), whose main `Init.lean`s import the
-            # main tree's raft through `PkgInitExt`
-            'hash', 'hash.crc32', 'go_etcd_io.etcd.pkg.v3.crc', 'go_etcd_io.etcd.client.pkg.v3.fileutil',
-            'google_golang_org.protobuf.internal.pragma', 'google_golang_org.protobuf.reflect.protoreflect',
-            'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.runtime.protoimpl',
-            'go_etcd_io.etcd.server.v3.storage.wal.walpb', 'go_etcd_io.raft.v3', 'go_uber_org.zap.zapcore',
-            'go_uber_org.zap', 'github_com.Masterminds.semver.v3', 'github_com.prometheus.client_golang.prometheus',
-            'go_etcd_io.etcd.pkg.v3.pbutil', 'go_etcd_io.etcd.server.v3.storage.wal',
-            # (W4c U2, 2026-11-14) `examples/lib/durable` over the part's `os` (its fact: `mu` a
-            # mutex guarding nothing, `PkgInit.lean`)
-            'github_com.mit_pdos.etcd_grove.examples.lib.durable',
-            # (W4c U1, 2026-11-14) the WAL robustness tester (`examples/etcd/wal`) over the part's
-            # WAL (its fact `True`, `PkgInit.lean`)
-            'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
-# Packages of `LFS_PKGS` translated in the main tree only (no `os` below them): the part's `Init.lean`
-# is generated from the main translation, over the part's instance.
-LFS_MAIN_CODE = {'go_etcd_io.etcd.client.pkg.v3.verify', 'hash', 'google_golang_org.protobuf.internal.pragma',
-                 'google_golang_org.protobuf.reflect.protoreflect', 'google_golang_org.protobuf.internal.impl',
-                 'google_golang_org.protobuf.runtime.protoimpl', 'go_uber_org.zap.zapcore', 'go_uber_org.zap',
-                 'github_com.Masterminds.semver.v3', 'github_com.prometheus.client_golang.prometheus',
-                 'go_etcd_io.etcd.pkg.v3.pbutil'}
+# The part `WalTester/` (notes/wal-lean-integration.md): the WAL tester and `examples/lib/durable` with
+# its bodies, whose Go path the main tree's trusted `durable` has too. Their initializers are generated
+# as the main tree's, from the part's translation (`WT_ROOT/Code`, over the main tree's for the rest)
+# and instances (`WT_ROOT/Proof`, over the main tree's), with the imports of the part's modules
+# prefixed. The Perennial packages only they import join the main `PkgInitExt` (`gen_ext`).
+WT_ROOT = 'WalTester'
+WT_PKGS = ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
+           'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
 
 
-def lfs_prefix(txt, part_mods=()):
-    """`txt` with its imports of the part's modules (those with a file under `LFS_ROOT`, or among
-    `part_mods`, the ones generated with it) prefixed."""
-    def imp(m):
-        x = m.group(2)
-        if (os.path.exists(f'{LFS_ROOT}/{x.replace(".", "/")}.lean') or x in part_mods
-                or x == 'Proof.runtime.PkgInitExt'):
-            x = f'{LFS_ROOT}.{x}'
-        return m.group(1) + x
-    return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
+def wt_inventory():
+    """The part's translation over the main tree's."""
+    out = inventory(f'{WT_ROOT}/Code')
+    for q, d in inv.items():
+        out.setdefault(q, d)
+    return out
 
 
-LFS_RAFT_INITPB_DOC = """/-
-The `wp_initialize'` of `raftpb`, `quorum`, `tracker`, `confchange` and protobuf-go's `proto` for the
-part `LinuxFs/`: the copy of `Proof/go_etcd_io/raft/v3/Init.lean`'s (from `section init_lc` to `end
-init2`; see its header), which the part cannot import (it imports the main tree's raft root package
-and `os`), over the part's instances (`LinuxFs/Proof/go_etcd_io/raft/v3/PkgInit.lean`). Generated by
-`etc/gen-init.py` (`lfs_raft_initpb`); do not edit.
--/"""
-
-
-def lfs_raft_initpb():
-    """The part's copy of the main raft `Init.lean`'s theorems on raft's packages and `proto`."""
-    src = open('Proof/go_etcd_io/raft/v3/Init.lean').read()
-    i = src.index('\nnamespace Perennial\n') + 1
-    j = src.index('\nend init2\n') + len('\nend init2\n')
-    mods = ['LinuxFs.Proof.go_etcd_io.raft.v3.PkgInit', 'Perennial.Proof.strconv.Link',
-            'Perennial.Proof.strings.Link', 'Perennial.Proof.slices.Link', 'Perennial.Proof.fmt.Link',
-            'Perennial.Proof.math.Link', 'Perennial.Proof.cmp.Link', 'Perennial.Proof.errors.Link',
-            'Proof.google_golang_org.protobuf.internal.pragma.Init',
-            'Proof.google_golang_org.protobuf.reflect.protoreflect.Init',
-            'Proof.google_golang_org.protobuf.runtime.protoimpl.Init']
-    txt = (LFS_RAFT_INITPB_DOC + '\nmodule\n\n' + ''.join(f'public import {m}\n' for m in mods) +
-           '\n@[expose] public section\n\nset_option linter.iris.style.nameCheck false\n'
-           'set_option linter.unusedSectionVars false\n\nnoncomputable section\n\n' +
-           src[i:j] + '\nend Perennial\n')
-    return 'Proof/go_etcd_io/raft/v3/InitPb.lean', txt
-
-
-def lfs_inits(ext_txt):
-    """The part's `Init.lean` files and `PkgInitExt.lean`."""
-    global inv, inst, LFS_MODE
+def wt_inits():
+    """The part's `Init.lean` files."""
+    global inv, inst
     saved = inv, inst
     raw = []
-    extra = []  # (WAL leaf specs, 2026-11-13) Perennial packages only the part's import
-    # (WAL package init, 2026-11-13) the main tree's raft root is not the part's (its `ExternalInit`
-    # goes); raft's other packages and `proto` are the main tree's (theirs stay)
-    ext = '\n'.join(l for l in ext_txt.split('\n')
-                    if not l.endswith('public import Code.go_etcd_io.raft.v3')
-                    and '| go_etcd_io_raft_v3 :' not in l)
     try:
-        main_inv = inv
-        inv = inventory(f'{LFS_ROOT}/Code')
-        for q in main_inv:
-            inv.setdefault(q, main_inv[q])
-        inst = instances(f'{LFS_ROOT}/Proof/')
-        LFS_MODE = True
-        for p in LFS_PKGS:
-            if os.path.exists(f'{LFS_ROOT}/Code/{dirof(p)}.lean') or p in LFS_MAIN_CODE:
-                raw.append(gen(p, LFS_SPECIAL.get(p, SPECIAL.get(p))))
-                for x in inv[p]['imports']:
-                    if external(x) and f'| {ext_ctor(x)} :' not in ext and x not in [q for q, _ in extra]:
-                        extra.append((x, code_module(x)))
-        raw.append(lfs_raft_initpb())
+        inv = wt_inventory()
+        inst = {**inst, **{k: [(f'{WT_ROOT}/' + f, fact) for f, fact in v]
+                           for k, v in instances(f'{WT_ROOT}/Proof/').items()}}
+        for p in WT_PKGS:
+            raw.append(gen(p, WT_SPECIAL.get(p, SPECIAL.get(p))))
     finally:
         inv, inst = saved
-        LFS_MODE = False
     part_mods = {path[:-len('.lean')].replace('/', '.') for path, _ in raw}
-    outs = [(f'{LFS_ROOT}/{path}', lfs_prefix(txt, part_mods)) for path, txt in raw]
-    for q, m in sorted(extra):
-        ext = ext.replace('\npublic import Proof.runtime.PkgInit\n',
-                          f'\npublic import Proof.runtime.PkgInit\npublic import {m}\n', 1)
-        ext = ext.replace(' : GoString → val → Prop where\n',
-                          f" : GoString → val → Prop where\n  | {ext_ctor(q)} : ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize'\n", 1)
-    i = ext.index('\nmodule\n') + 1
-    note = (f'-- The copy for the part `{LFS_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
-            f'-- the same, without raft\'s root package (whose translation imports the main tree\'s `os`).\n')
-    outs.append((f'{LFS_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
-    return outs
+
+    def imp(m):
+        x = m.group(2)
+        if x.startswith(f'Proof.{WT_ROOT}.'):
+            x = x[len('Proof.'):]
+        elif os.path.exists(f'{WT_ROOT}/{x.replace(".", "/")}.lean') or x in part_mods:
+            x = f'{WT_ROOT}.{x}'
+        return m.group(1) + x
+    return [(f'{WT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
 def main(argv):
@@ -3261,6 +3154,7 @@ def main(argv):
     outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init()]
+        outs += wt_inits()
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

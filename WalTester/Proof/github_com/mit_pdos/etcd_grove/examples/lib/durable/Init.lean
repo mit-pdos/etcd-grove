@@ -8,10 +8,10 @@ imports.
 -/
 module
 
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.PkgInit
+public import WalTester.github_com.mit_pdos.etcd_grove.examples.lib.durable.PkgInit
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.os.Link
 public import Perennial.Proof.sync.Link
-public import Proof.os.Init
 public import Proof.path.filepath.Init
 public import Proof.runtime.PkgInitExt
 
@@ -56,7 +56,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.path.filepath.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.os _root_.Perennial.os.initialize'
+      EtcdGrove.ExternalInit.os _root_.Perennial.os.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   imod sync.init_Mutex iprop(True) ⊤ (globalAddr mu) $$ Hmu [] with #HM
