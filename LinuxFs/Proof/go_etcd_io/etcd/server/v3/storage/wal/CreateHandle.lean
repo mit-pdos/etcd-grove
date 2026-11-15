@@ -141,11 +141,12 @@ lock token; the name **not** registered (design P, `notes/wal-units/create.md`: 
 dir` goes into the handle, and `createSpR`'s claim fraction `c` stays `Create`'s, with `qh + (qh + c) =
 ½` for the two pinned paths); `createUH qh x` the residue. -/
 theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : NamesH)
-    (md : List w8) (Q : IProp GF) (J : Ino) (hJ : NamesH) (g : SegG) (Wn : List GoString) (c qh : Qp)
+    (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (J : Ino) (hJ : NamesH) (g : SegG)
+    (Wn : List GoString) (c qh : Qp)
     (x : Nat × Nat) (w : Loc) (hc : qh + (qh + c) = (1 : Qp).half) :
     ⊢ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      createU (W := W) Mr R jr r nm hC md Q J hJ g (some x) -∗
-      createSpR (hG := hG) jr J nm c x -∗ walSplitFrag (W := W) Wn ={⊤}=∗
+      createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) -∗
+      createSpR (hG := hG) jr J nm c x ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ createUH (W := W) jr J r nm md Q Wn qh x ∗
       walInv (W := W) walCodec Mr R jr r ∗ walHandleP (W := W) w (child r nm) .append ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
@@ -153,11 +154,11 @@ theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) 
       walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
       walNamesFrag (W := W) (some (child r nm)) ∗
       walDirKey (W := W) (child r nm) J walTmps := by
-  iintro Hnc HU HSpR Hsf
+  iintro Hnc HU HSpR
   unfold createU
   icases HU with ⟨#Hinv, -, HQ⟩
   simp only [walCreateQ]
-  icases HQ with ⟨HQ, Hm, Hb, Hlt, Ho, Htr, Hnf, #Hk, %s', #Hpast, %hs'⟩
+  icases HQ with ⟨HQ, Hsf, Hm, Hb, Hlt, Ho, Htr, Hnf, #Hk, %s', #Hpast, %hs'⟩
   unfold createSpR
   icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt, %hlw, #Hlog⟩
   imod walInv_mintAppend walCodec Mr R jr r w (child r nm) $$ Hinv Hnc Hlt with ⟨Hnc, Hh⟩

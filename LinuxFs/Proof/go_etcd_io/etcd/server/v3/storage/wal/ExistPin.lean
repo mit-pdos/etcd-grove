@@ -88,7 +88,7 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
       walUnlockedTok (W := W) ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗
       walSplitFrag (W := W) Wn ∗
-      ((⌜s.wal !! dir = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
+      ((⌜s.wal !! dir = none ∧ N.Mem nm ∧ h.cur !! nm = none ∧ nm ∉ Wn⌝ ∗ walUnlockedTok (W := W)) ∨
        (⌜s.wal !! dir ≠ none⌝ ∗ ∃ (J : Ino) (X : List GoString) (hj : NamesH) (q1 q2 : Qp) (hn : NamesH),
           ⌜hn.cur !! nm = some (.dir J) ∧ (∀ b ∈ X, walNameP b = false) ∧
             ∃ b, walNameP b = true ∧ (hj.cur !! b).isSome⌝ ∗
@@ -105,7 +105,8 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   have hin' : InArea s.area dir nm := by rw [hr]; exact hin
   cases hsd : s.wal !! dir with
   | none =>
-    have hN' : N.Mem nm := hN.resolve_right (split_absent hwo hW hin' hsd)
+    have hnW : nm ∉ Wn := split_absent hwo hW hin' hsd
+    have hN' : N.Mem nm := hN.resolve_right hnW
     imod osClaims_keys R jr N _ h _ (nameSet_ne_empty hN') hE $$ Hsi H Hcl with ⟨H, Hcl, %hkeys⟩
     obtain ⟨N1, h1, hm1, hN1⟩ := hwc nm hin.1
     obtain ⟨rfl, rfl⟩ := hkeys ((jr, N1, h1), _) (List.mem_map_of_mem hm1) rfl nm hN' hN1
@@ -118,7 +119,7 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
       ipureintro; exact ⟨hr, hwo, hwc, hab, hwn, hAt, Hbd⟩
     ileft
     iframe Hu
-    ipureintro; exact ⟨rfl, hN', hnone⟩
+    ipureintro; exact ⟨rfl, hN', hnone, hnW⟩
   | some d =>
     obtain ⟨lay, nm', hj, hl, hin2, -, hnm', hc, habs, -⟩ := hwo.1 dir d hsd
     have e : nm' = nm := List.append_cancel_left (hin2.2.symm.trans hin'.2)
@@ -244,7 +245,7 @@ theorem walInv_existStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
       walUnlockedTok (W := W) ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗
       walSplitFrag (W := W) Wn ∗ ∃ od, Lin od ∗
-      ((⌜od = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
+      ((⌜od = none ∧ N.Mem nm ∧ h.cur !! nm = none ∧ nm ∉ Wn⌝ ∗ walUnlockedTok (W := W)) ∨
        (⌜od ≠ none⌝ ∗ ∃ (J : Ino) (X : List GoString) (hj : NamesH) (q1 q2 : Qp) (hn : NamesH),
           ⌜hn.cur !! nm = some (.dir J) ∧ (∀ b ∈ X, walNameP b = false) ∧
             ∃ b, walNameP b = true ∧ (hj.cur !! b).isSome⌝ ∗
@@ -259,7 +260,7 @@ theorem walInv_existStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
       walSplitFrag (W := W) Wn ∗ walUnlockedTok (W := W))
     iprop(osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
       ∃ od, Lin od ∗
-      ((⌜od = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
+      ((⌜od = none ∧ N.Mem nm ∧ h.cur !! nm = none ∧ nm ∉ Wn⌝ ∗ walUnlockedTok (W := W)) ∨
        (⌜od ≠ none⌝ ∗ ∃ (J : Ino) (X : List GoString) (hj : NamesH) (q1 q2 : Qp) (hn : NamesH),
           ⌜hn.cur !! nm = some (.dir J) ∧ (∀ b ∈ X, walNameP b = false) ∧
             ∃ b, walNameP b = true ∧ (hj.cur !! b).isSome⌝ ∗

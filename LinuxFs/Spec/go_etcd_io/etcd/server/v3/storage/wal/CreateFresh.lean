@@ -1,20 +1,12 @@
 /-
-**A hypothesis** (not proved, not an axiom): `wal.Create(lg, dir, md)` as `Create.lean`'s spec, its
-update taken from any state `Exist`'s `false` arm allows (`wal.ExistFalseOk`: no WAL, or a fresh,
-unnamed one), not only from `walAbsent dir`. The tester's `Boot` (W4c U5, B3) needs it: `Boot` calls
-`Create` after `Exist` returned `false`, and the WAL may then be a fresh, unnamed one, which a crash
-keeps (`AbsDisk/Impl.lean`'s `walCrash` keeps `named = false`: a WAL that survived a kill between
-`Create`'s rename and its parent's fsync may survive the next crash too) and `Create`'s cleanup after
-a failed fsync may have moved aside (`cleanupWAL`, no fsync).
-
-Why it is true of the Go code: `Create` calls `Exist(dir)` first and returns `os.ErrExist`, before
-any effect, when it finds a `.wal` file; a fresh WAL whose directory is at `dir` holds its first
-segment (F-N1), so `Create` proceeds only when the unnamed WAL's directory is not at `dir` (moved
-aside, or its rename lost), and then `renameWAL`'s `RemoveAll(dir)` and the rename of `dir.tmp` put the
-new fresh WAL in place, as from an absent one. Proving it is the WAL layer's (`Create.lean`'s proof
-with the creating update generalized to `ExistFalseOk`; the invariant must allow the commit to
-replace an unnamed, empty WAL whose directory is not at its name). The stronger `Create.spec`
-(`o = none`) is the special case. Lean-first.
+`wal.Create(lg, dir, md)` from any state `Exist`'s `false` arm allows (`wal.ExistFalseOk`: no WAL, or a
+fresh, unnamed one): `Create.lean`'s spec at the client's view predicate `Pv := wal.ExistFalseOk`. The
+tester's `Boot` (W4c U5, B3) calls `Create` after `Exist` returned `false`. Until 2026-11-15 a hypothesis
+(`Create.spec` then took its update from `walAbsent dir` only); now **proved**, a corollary of
+`Create.spec` (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/CreateFresh.lean`,
+`wal.Create.wp_specFresh`), whose update starts from any view of `dir`: `Create` commits only when the
+real state has no WAL there (its own `Exist` check, the lock token held), so the view is `none` at the
+commit (`notes/wal-units/fresh.md`). Lean-first.
 -/
 module
 

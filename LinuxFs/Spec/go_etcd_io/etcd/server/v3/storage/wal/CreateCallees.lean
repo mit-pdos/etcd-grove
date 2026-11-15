@@ -7,9 +7,12 @@ The callee specs `wal.Create`'s proof takes as hypotheses that no other spec sta
   claim on the name `b` of `j` (its history `h`), `b` holding nothing or a directory of files only, whose
   whole claim is held too: what `Create` keeps of its temporary directory `nm.tmp` (a leftover's,
   `walAreaRes`), and what `RemoveAll`/`CreateDirAll` leave of it.
-* **`wal.Exist.specCreate`** (W12 states `Exist` over `walDirIs`; `Create` needs only that it
-  returns): `Exist(dir)` with `Create`'s resources, unchanged (and `NameOk nm`, which `ReadDir`'s specs
-  need of the name it reads; `walNameOk` allows a NUL byte). Proved: `wal.Exist.wp_specCreate`.
+* **`wal.Exist.specCreate`** (W12 states `Exist` over `walDirIs`): `Exist(dir)` with `Create`'s
+  resources, unchanged (and `NameOk nm`, which `ReadDir`'s specs need of the name it reads; `walNameOk`
+  allows a NUL byte); on `false`, the name free in the area (`walAreaResFree`: in the program's claim,
+  nothing there, not registered), what `Create` starts from whatever its client's view of `dir`
+  (`notes/wal-units/fresh.md`; until then `Create` read the absence off a `walAbsent` update). Proved:
+  `wal.Exist.wp_specCreate`.
 * **`fileutil.CreateDirAll.specTmp`**: `CreateDirAll.spec` (proved, `name` absent) extended to a
   `name` holding a directory of files (a leftover `nm.tmp` that `Exist` missed, a `Stat` error, or
   that `RemoveAll` returned `nil` on, `ENOENT` with no effect: `os.RemoveAll.specDirS`'s header), and
@@ -36,6 +39,7 @@ module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.CreateDirAll
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateFree
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 
 @[expose] public section
@@ -63,7 +67,8 @@ abbrev wal.Exist.specCreate [go_etcd_io.etcd.server.v3.storage.wal.Assumptions] 
       WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
       WalFs.walUnlockedTok }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
-  {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+  {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗
+      ((⌜b = true⌝ ∗ walAreaRes jr) ∨ (⌜b = false⌝ ∗ WalFs.walAreaResFree jr nm)) ∗ osCallPerm 1 ∗
       WalFs.walUnlockedTok }}
 
 /-- See the file header. -/
