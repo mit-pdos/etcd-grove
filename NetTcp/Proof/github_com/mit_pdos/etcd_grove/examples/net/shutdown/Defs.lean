@@ -25,9 +25,11 @@ and the per-address protocol (`wire/Addr.lean`):
   that, once `true`, says the end is closed. The main thread's first `Close` sets it
   (`first_close_au`: a close leaves the end closed, whatever it returns), and nothing reopens an
   end (a read does not change the end's state, a write or a close of a closed end neither), so the
-  `Write`, the `Read` and the second `Close` after it fail (`closed_write_au`, `closed_read_au`,
+  `Write`, the `Read` and the second `Close` after it fail (`closed_write_acc`, `closed_read_au`,
   `closed_close_au`): on a closed end, `WriteOutcome`, `ReadOutcome` and `CloseOutcome` give only
-  the failure `closed` (D14; D17: the first `Close`, of the open end, succeeds).
+  the failure `closed` (D14; D17: the first `Close`, of the open end, succeeds). The `Write` is
+  Go's loop of steps (D2): its writer predicate `closedW` says no step ran or one failed with
+  `closed`, so its first step, on the closed end, fails and ends it with nothing written.
 -/
 module
 
@@ -476,13 +478,25 @@ theorem first_close_au (cn : Nat) (γc : GName) :
   imodintro
   iexact Hh
 
-/-- A `Write` after the close: it fails. -/
-theorem closed_write_au (cn : Nat) (γc : GName) (bs : List w8) :
-    ⊢ inv endN (endInv (G (Gg := Gg)) cn γc) -∗ half G γc true -∗
-      |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
-        ∀ k res d', ⌜WriteOutcome st d bs k res d'⌝ -∗ tcpEnd G cn false st -∗
-          tcpDir G cn false d' ={∅,⊤}=∗ half G γc true ∗ ⌜res = some .closed⌝ := by
-  iintro #Hinv Hh
+/-- The writer predicate of the `Write` after the close (`net.Conn.Write.spec`'s `P w res`): the
+main thread's half of `γc` (`true`), and either no step has run yet (nothing written, no result)
+or a step failed with `closed`. -/
+def closedW (γc : GName) (w : List w8) (res : Option TcpErr) : IProp GF :=
+  iprop(half (G (Gg := Gg)) γc true ∗ ⌜(res = none ∧ w = []) ∨ res = some .closed⌝)
+
+/-- The accessor of a `Write` after the close (`net.Conn.Write.spec`'s, one use per step): the
+end is closed, so a step fails with `closed` (`writeOutcome_of_closed`) and changes nothing. -/
+theorem closed_write_acc (cn : Nat) (γc : GName) (bs : List w8) :
+    ⊢ inv endN (endInv (G (Gg := Gg)) cn γc) -∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ closedW γc w none -∗
+        |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
+          ∀ k res d', ⌜WriteOutcome st d rs k res d'⌝ -∗ tcpEnd G cn false st -∗
+            tcpDir G cn false d' ={∅,⊤}=∗ closedW γc (w ++ rs.take k) res) := by
+  iintro #Hinv
+  imodintro
+  iintro %w %rs %_ HP
+  unfold closedW
+  icases HP with ⟨Hh, -⟩
   iinv Hinv with Hi Hclose
   unfold endInv
   icases Hi with ⟨%st, %d, %b, >Hend, >Hd, >Hh', >%Hb⟩
@@ -502,7 +516,7 @@ theorem closed_write_au (cn : Nat) (γc : GName) (bs : List w8) :
     ipureintro; intro _; exact hc
   imodintro
   iframe Hh
-  ipureintro; exact writeOutcome_of_closed hc Hwr
+  ipureintro; exact Or.inr (writeOutcome_of_closed hc Hwr)
 
 /-- A second `Close`: it fails. -/
 theorem closed_close_au (cn : Nat) (γc : GName) :

@@ -1,7 +1,8 @@
 /-
 The proof of `examples/net/shutdown/cmd/node`, the node's command: its `main` calls `shutdown.Run`
-(`shutdown.wp_Run`), with the package's `isPkgInit` from the command's and the values of `io.EOF` and
-`poll.ErrDeadlineExceeded` from the package's (`shutdown.eof_init`, `shutdown.ed_init`).
+(`shutdown.wp_Run`), with the package's `isPkgInit` from the command's, `io.EOF`'s value from the
+package's (`shutdown.eof_init`) and `poll.ErrDeadlineExceeded`'s from `internal/poll`'s
+(`wire.ed_of_poll`).
 -/
 module
 
@@ -17,8 +18,8 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G)
-open github_com.mit_pdos.etcd_grove.examples.net.shutdown (addr shutInvs wp_Run eof_init ed_init)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G ed_of_poll)
+open github_com.mit_pdos.etcd_grove.examples.net.shutdown (addr shutInvs wp_Run eof_init)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.shutdown.cmd.node
 
@@ -53,7 +54,9 @@ theorem wp_main
   iunfold shutInvs at Hinvs
   icases Hinvs with ⟨#Ha, #Hdown⟩
   icases eof_init $$ Hp with ⟨%eof, #Heof⟩
-  icases ed_init $$ Hp with ⟨%ed, #Hed⟩
+  ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
+  · iPkgInit
+  icases ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close γm eof ed $$ []
   · iframe Ha Hdown Hplan Heof Hed

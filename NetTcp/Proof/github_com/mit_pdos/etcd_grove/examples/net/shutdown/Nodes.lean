@@ -7,8 +7,11 @@ The proofs of `examples/net/shutdown`'s functions, over the specs of `net` and `
 * `readLoop`: `Read`s of the dialer's end through its invariant and `downInv` (`reader_read_au`),
   until an error.
 * `closeConn`: the first `Close` (`first_close_au`: the end is closed after it), then a `Write`,
-  a `Read` and a second `Close`, each of which fails on the closed end (`closed_write_au`,
-  `closed_read_au`, `closed_close_au`), so none of the panics is reached.
+  a `Read` and a second `Close`, each of which fails on the closed end (`closed_write_acc`, the
+  `Write`'s per-step accessor over the writer predicate `closedW`; `closed_read_au`,
+  `closed_close_au`), so none of the panics is reached. The `Write` of one byte ends with an error:
+  its result is `none` only once every byte is written (`net.Conn.Write.spec`), and its first step,
+  on the closed end, fails with `closed`.
 * `Run`: `Listen` (of `Addr` itself, `listenAt_self`, from the plan's entry in the network's ghost
   state), the listener's invariant (`lisInv_alloc`), `acceptLoop` forked, the dial
   (`wire.dial_au`, the deposit `shut_deposit`), the end's invariant (`endInv_alloc`),
@@ -17,13 +20,15 @@ The proofs of `examples/net/shutdown`'s functions, over the specs of `net` and `
 
 Each `err != nil` check follows from the failure's error being a non-nil `*OpError`
 (`net.resErr_netErr`), whatever its kind; `Read` and `Write` take `poll.ErrDeadlineExceeded`'s
-value (`ed_init`, from the package's initialization, as `io.EOF`'s, `eof_init`).
+value (`wire.ed_of_poll`, from `internal/poll`'s initialization; `io.EOF`'s from `io`'s,
+`eof_init`).
 
 The node's command (`cmd/node`, whose `main` calls `Run`) is proved in `cmd/node/Main.lean`.
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Defs
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -174,11 +179,21 @@ theorem wp_closeConn
   · ipureintro; decide
   (try wp_auto)
   -- the `Write` fails
-  wp_apply wp_Write t cn false addr la ra buf _ (DFrac.own 1) ed
-      (fun _ res => iprop(half G γc true ∗ ⌜res = some .closed⌝)) $$ [Hbuf Hh]
-    as %n %err ⟨%k, %resw, ⟨Hh, %Hres⟩, Hbuf, %Hn, #Herr⟩
+  wp_apply wp_Write t cn false addr la ra buf _ (DFrac.own 1) ed (closedW γc) $$ [Hbuf Hh]
+    as %n %err ⟨%w, %resw, Hw, Hbuf, %Hn, #Herr⟩
   · iframe Hc Hbuf Hed
-    iapply closed_write_au cn γc _ $$ Hinv Hh
+    isplitl [Hh]
+    · unfold closedW
+      iframe Hh
+      ipureintro; exact Or.inl ⟨rfl, rfl⟩
+    iapply closed_write_acc cn γc _ $$ Hinv
+  unfold closedW
+  icases Hw with ⟨Hh, %Hres⟩
+  -- no step succeeds on the closed end, and the one byte is not written without one
+  replace Hres : resw = some .closed := by
+    rcases Hres with ⟨rfl, rfl⟩ | h
+    · exact absurd (Hn.2.2.1 rfl) (by simp)
+    · exact h
   subst Hres
   icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
   obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
@@ -317,23 +332,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists _
   iexact Heof
-
-/-- `poll.ErrDeadlineExceeded`'s value (the `Err` of a deadline's failure, which the `Read` and
-`Write` specs name), from the package's initialization. -/
-theorem ed_init :
-    isPkgInit (PROP := IProp GF) pkg ⊢
-      ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
-  iintro #Hpkg
-  ihave #Hp : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
-  · iPkgInit
-  have hacc : isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
-      (∃ e : GoInterface, globalAddr internal.poll.ErrNoDeadline ↦□ e) ∗
-      (∃ e : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ e) := by
-    with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
-  ihave #Hi := hacc $$ Hp
-  icases Hi with ⟨-, ⟨%ed, #Hed⟩⟩
-  iexists ed
-  iexact Hed
 
 end proof
 
