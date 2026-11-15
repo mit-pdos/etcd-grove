@@ -1,12 +1,15 @@
 package driver
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
 )
 
@@ -33,10 +36,10 @@ func self(t *testing.T) Command {
 	return Command{Path: exe, Env: []string{"KVNET_NODE=1"}}
 }
 
-// round runs one round of crash mode crash and fails t unless porcupine answers Ok and nothing
-// else failed.
-func round(t *testing.T, crash string) {
-	cfg := RandomConfig(crash)
+// round runs one round of crash mode crash (with the network's faults if netns) and fails t
+// unless porcupine answers Ok and nothing else failed.
+func round(t *testing.T, crash string, netns bool) {
+	cfg := RandomConfig(crash, netns)
 	if testing.Short() {
 		cfg.Clients, cfg.Ops = 3, 30
 	}
@@ -49,7 +52,8 @@ func round(t *testing.T, crash string) {
 		dump = c.Dump()
 	}
 	c.Stop()
-	t.Logf("%+v, %d proposers, %d x %d operations: %v\n  %v", cfg.Options, cfg.Proposers, cfg.Clients, cfg.Ops, res.Check, &c.Stats)
+	t.Logf("%+v, %d proposers, %d x %d operations: %v\n  %v\n  network: %s", cfg.Options, cfg.Proposers,
+		cfg.Clients, cfg.Ops, res.Check, &c.Stats, c.NetStats())
 	if res.Err != nil {
 		t.Fatalf("%v\n%s", res.Err, dump)
 	}
@@ -61,7 +65,7 @@ func round(t *testing.T, crash string) {
 // TestKill runs a round whose crashes are kills (SIGKILL, then a sync of the replica's
 // filesystem).
 func TestKill(t *testing.T) {
-	round(t, CrashKill)
+	round(t, CrashKill, false)
 }
 
 // TestPower runs a round whose crashes are kills and power losses, every replica on a disk of
@@ -71,8 +75,43 @@ func TestPower(t *testing.T) {
 	if os.Getenv("KVNET_POWER") == "" {
 		t.Skip("set KVNET_POWER=1 to run (needs sudo: loop and dm-flakey devices)")
 	}
-	if err := PowerAvailable(); err != nil {
+	if err := robust.PowerAvailable(); err != nil {
 		t.Skip("power losses unavailable:", err)
 	}
-	round(t, CrashMixed)
+	round(t, CrashMixed, false)
+}
+
+// TestNetns runs a round on machines that are network namespaces, with the network's faults
+// (partitions, resets, delay, loss, duplication, reordering) and kills and power losses. It needs
+// sudo without a password, and runs only with KVNET_NETNS set: the test binary runs again as root
+// (robust.RerunAsRoot), and the replicas run as root in their namespaces.
+func TestNetns(t *testing.T) {
+	if os.Getenv("KVNET_NETNS") == "" {
+		t.Skip("set KVNET_NETNS=1 to run (needs sudo: network namespaces, iptables, tc, disks)")
+	}
+	if !robust.IsRoot() {
+		var out bytes.Buffer
+		args := []string{"-test.run=^TestNetns$", "-test.v", "-test.count=1", "-test.timeout=20m"}
+		if testing.Short() {
+			args = append(args, "-test.short")
+		}
+		err := robust.RerunAsRoot(args, []string{"KVNET_NETNS=1"}, &out)
+		for _, l := range strings.Split(out.String(), "\n") {
+			if strings.TrimSpace(l) != "" {
+				t.Log(l)
+			}
+		}
+		if err != nil {
+			t.Fatalf("as root: %v", err)
+		}
+		return
+	}
+	if err := robust.NetnsAvailable(); err != nil {
+		t.Skip("network namespaces unavailable:", err)
+	}
+	crash := CrashKill
+	if robust.PowerAvailable() == nil {
+		crash = CrashMixed
+	}
+	round(t, crash, true)
 }

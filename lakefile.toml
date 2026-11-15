@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan", "Robustness"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -65,6 +65,16 @@ globs = ["SpecPlan.+"]
 [[lean_lib]]
 name = "Bbolt"
 globs = ["Bbolt.+"]
+
+# Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
+# every run of its nodes (the real programs) with crashes, the network's faults and any clients,
+# under assumptions on the environment's events only, leaves the nodes fine and satisfies a
+# guarantee on the observed trace (e.g. linearizability) -- generic over the programs, the
+# extensions and the network. Used by the examples' statements (raft/kvnet); its Go counterpart is
+# the test harness examples/lib/robust.
+[[lean_lib]]
+name = "Robustness"
+globs = ["Robustness.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false

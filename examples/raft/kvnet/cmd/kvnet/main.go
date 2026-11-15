@@ -7,19 +7,24 @@
 //	kvnet check [-rounds N] [-crash kill|power|mixed] [-clients C] [-ops O] ...
 //
 // runs N rounds of the test (package driver), each on a fresh cluster of random options, every
-// replica a process of this program. -crash power and mixed make power losses: every replica on
-// an ext4 filesystem of its own on a dm-flakey device, which needs sudo without a password (the
-// default, auto, is mixed if that is available and kill otherwise).
+// replica a process of this program on a machine of its own. -net netns makes the machines network
+// namespaces joined by a router, with the network's faults (partitions, resets, delay, loss,
+// duplication, reordering: examples/lib/robust); it needs root, and the command runs itself again
+// by sudo -n if it is not. -crash power and mixed make power losses: every replica on an ext4
+// filesystem of its own on a dm-flakey device, which needs sudo without a password. The defaults,
+// auto, are netns and mixed if sudo is available, local and kill otherwise.
 package main
 
 import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet/driver"
 )
@@ -53,15 +58,38 @@ func check(args []string) int {
 	pause := fs.Duration("pause", 150*time.Millisecond, "average pause between crashes (0: none)")
 	downtime := fs.Duration("downtime", 50*time.Millisecond, "a crashed replica stays down a random time below it")
 	final := fs.Bool("final", true, "crash the whole cluster at once at the end")
-	faults := fs.Bool("faults", true, "the transport drops, delays, duplicates messages and cuts connections")
+	netMode := fs.String("net", "auto", "the machines: netns (network namespaces with network faults; root), local (one loopback address, no network faults), or auto")
+	netPause := fs.Duration("netpause", 100*time.Millisecond, "average pause between network faults (0: none)")
+	netHold := fs.Duration("nethold", 200*time.Millisecond, "how long a network fault lasts, on average")
 	keep := fs.Bool("keep", false, "keep a failed round's work directory (logs, files)")
 	clock := fs.String("clock", "counter", "the trace's clock: counter or monotonic")
 	fs.Parse(args)
 
+	nm := *netMode
+	if nm == "auto" {
+		nm = "netns"
+		if !robust.IsRoot() {
+			if _, err := exec.Command("sudo", "-n", "true").CombinedOutput(); err != nil {
+				fmt.Printf("no sudo (%v): local network, no network faults\n", err)
+				nm = "local"
+			}
+		}
+	}
+	if nm == "netns" && !robust.IsRoot() {
+		// the whole check as root: the namespaces, the dialing threads, the replicas
+		if err := robust.RerunAsRoot(append([]string{"check", "-net", "netns"}, args...), nil, os.Stdout); err != nil {
+			if e, ok := err.(*exec.ExitError); ok {
+				return e.ExitCode()
+			}
+			fmt.Println(err)
+			return 1
+		}
+		return 0
+	}
 	mode := *crash
 	if mode == "auto" {
 		mode = driver.CrashMixed
-		if err := driver.PowerAvailable(); err != nil {
+		if err := robust.PowerAvailable(); err != nil {
 			fmt.Printf("power losses unavailable (%v): kills only\n", err)
 			mode = driver.CrashKill
 		}
@@ -73,16 +101,14 @@ func check(args []string) int {
 	}
 	cmd := driver.Command{Path: self, Args: []string{"node"}}
 	for i := 1; i <= *rounds; i++ {
-		cfg := driver.RandomConfig(mode)
+		cfg := driver.RandomConfig(mode, nm == "netns")
+		cfg.NetPause, cfg.NetHold = *netPause, *netHold
 		cfg.Clients, cfg.Ops, cfg.CrashPause, cfg.Downtime, cfg.FinalCrash = *clients, *ops, *pause, *downtime, *final
 		if *proposers != 0 {
 			cfg.Proposers = *proposers
 		}
 		if *voters != 0 {
 			cfg.Voters = *voters
-		}
-		if !*faults {
-			cfg.Faults = kvnet.Faults{}
 		}
 		c := lintest.CounterClock()
 		if *clock == "monotonic" {
@@ -102,10 +128,10 @@ func check(args []string) int {
 		if cl != nil {
 			cl.Stop()
 		}
-		fmt.Printf("round %d: %+v, crashes %s, %d proposers, %d clients x %d operations: porcupine %v (%v)\n",
-			i, cfg.Options, mode, cfg.Proposers, cfg.Clients, cfg.Ops, res.Check, time.Since(start).Round(time.Millisecond))
+		fmt.Printf("round %d: %+v, crashes %s, network %s, %d proposers, %d clients x %d operations: porcupine %v (%v)\n",
+			i, cfg.Options, mode, nm, cfg.Proposers, cfg.Clients, cfg.Ops, res.Check, time.Since(start).Round(time.Millisecond))
 		if cl != nil {
-			fmt.Printf("  %v\n", &cl.Stats)
+			fmt.Printf("  %v\n  network: %s\n", &cl.Stats, cl.NetStats())
 		}
 		if res.Err != nil || res.Check != porcupine.Ok {
 			if res.Err != nil {

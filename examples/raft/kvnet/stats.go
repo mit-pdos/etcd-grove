@@ -27,8 +27,6 @@ const (
 	StMsgsSent
 	StMsgsReceived
 	StMsgsDropped
-	StMsgsDelayed
-	StMsgsDuplicated
 	StDials
 	StConnErrors
 	StBadFrames
@@ -42,7 +40,7 @@ var StatNames = [NumStats]string{
 	"conf changes proposed", "conf changes applied", "conf changes rejected", "joint entered",
 	"restarts from a snapshot", "restarts applied below the snapshot", "entries skipped",
 	"file writes", "leader sent first", "commit-only unwritten",
-	"messages sent", "messages received", "messages dropped", "messages delayed", "messages duplicated",
+	"messages sent", "messages received", "messages dropped",
 	"dials", "connection errors", "bad frames",
 }
 

@@ -1,4 +1,4 @@
-package driver
+package robust
 
 import (
 	"os"
@@ -15,12 +15,12 @@ func TestPowerLoss(t *testing.T) {
 	if err := PowerAvailable(); err != nil {
 		t.Skip("power losses unavailable:", err)
 	}
-	d, err := newDisk(t.TempDir(), "kvnet-disktest")
+	d, err := NewDisk(t.TempDir(), "robust-disktest")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer d.destroy()
-	synced := filepath.Join(d.mnt, "synced")
+	defer d.Destroy()
+	synced := filepath.Join(d.Mnt, "synced")
 	f, err := os.Create(synced)
 	if err != nil {
 		t.Fatal(err)
@@ -28,26 +28,26 @@ func TestPowerLoss(t *testing.T) {
 	f.WriteString("synced")
 	f.Sync()
 	f.Close()
-	if err := syncfs(d.mnt); err != nil { // the directory entry
+	if err := SyncFS(d.Mnt); err != nil { // the directory entry
 		t.Fatal(err)
 	}
-	durable.Write(filepath.Join(d.mnt, "durable"), "durable")
-	if err := os.WriteFile(filepath.Join(d.mnt, "unsynced"), []byte("unsynced"), 0o644); err != nil {
+	durable.Write(filepath.Join(d.Mnt, "durable"), "durable")
+	if err := os.WriteFile(filepath.Join(d.Mnt, "unsynced"), []byte("unsynced"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(synced, []byte("overwritten"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := d.powerLoss(); err != nil {
+	if err := d.PowerLoss(); err != nil {
 		t.Fatal(err)
 	}
 	if b, err := os.ReadFile(synced); err != nil || string(b) != "synced" {
 		t.Errorf("the synced file after the power loss: %q, %v (want \"synced\": its overwrite was never synced)", b, err)
 	}
-	if b, err := os.ReadFile(filepath.Join(d.mnt, "durable")); err != nil || string(b) != "durable" {
+	if b, err := os.ReadFile(filepath.Join(d.Mnt, "durable")); err != nil || string(b) != "durable" {
 		t.Errorf("durable.Write's file after the power loss: %q, %v", b, err)
 	}
-	if _, err := os.Stat(filepath.Join(d.mnt, "unsynced")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(d.Mnt, "unsynced")); !os.IsNotExist(err) {
 		t.Errorf("the unsynced file survived the power loss: %v", err)
 	}
 }
