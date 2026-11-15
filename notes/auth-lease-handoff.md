@@ -399,6 +399,13 @@ force (`questions.md`, "S3c Freeze"); ledger entry 2026-11-15 "auth on implies n
    **`ReadOn.lean`** (form: `AuthGuard.lean`, the Draft's place, is imported by `ReqOn`/`ReadOn`, a cycle); client off callers
    (`LeaseGrantServed.lean:142`, client `Results` `:3806`, `:3861`) at `on := false` with `ρ := ⟨γr.kv.st, γr⟩` (any wait name).
 
+**Checks (2026-11-15):** full build GREEN (`/shared/tmp/auth-lease-s3c/build3.log`, flock + 64G, 17546 jobs);
+`tcb-report --check` 870 axioms, 4 sorries (matches lean's baseline); bounds ok (351); mode gate: every finding classified
+(the C5′ `pair` line, the client's auth-off callers as `bridge`), `gen-interface --check` passes on every `etc/api` list; baselines to raise for etcd-grove-81: v3rpc lit-mode 21→33
+(the `…M` contracts' `_false`/`_true` bridges and the discharges' `hdrBoundM true` flags), client/v3 lit-mode 22→23; etcdserver
+lit-mode 278→276, match-mode 82→81 (decreases); closed examples: proof bodies only (`auth/startServer`, `auth3/startMember`,
+`auth/MainAlloc`, `etcdstart/{Alloc3On,Start,StartStop}`).
+
 **Left of S3c (next, in order):**
 1. client/v3 (Draft §7.2, §7.3, §7.5): `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` (beside `etcdPutSpecOn`,
    `KVServiceOn.lean`); `etcdLeaseGrantHandlerOkMd`/`etcdLeaseRevokeHandlerOkMd` (`LeaseGrantServed.lean`, as
