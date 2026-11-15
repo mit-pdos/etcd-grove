@@ -7,6 +7,11 @@ changed definition old → new, the lemmas it moves, what S3b/S3c take from it. 
 survey of the auth-on side's "no lease" dependencies (summarized in `/shared/tmp/auth-lease/s3-scope-gap.md`'s
 addendum), S2's apply layer (on lean, `c3da59fa29`).
 
+**Revision 7 (2026-11-15, §15) — decided by etcd-grove-81 (option (3) of the ledger entry "the latest track's
+certificate premise for a leased put or transaction")**: S3a admits no leased put or leased transaction
+(`plainReqL lm := plainReq`); leased puts move to stage S3a2. §1's `plainReqL` text is superseded by §15; the rest
+of §0–§14 unchanged.
+
 **Revision 6 (2026-11-15, §14) — FROZEN (etcd-grove-81; the stronger guard `⌜E.authOn = false ∨ γ.kv.lm =
 .none → lt = []⌝` in place of `G`'s, wherever §14 writes the guard)**: the Prove step found the auth-on KV results stated at
 `kvStateOf log` unprovable with the table in `kvInvOn` (ledger 2026-11-15); etcd-grove-81 decided (A), restating
@@ -553,3 +558,25 @@ wrappers missing) and S1, S3–S6 applied above; S2 open; claims (1), (3), (4) c
 
 **Not covered here:** S3b's leased puts (their `kvOpStep (.put o)` with `o.leaseID ≠ 0` reads the table; the
 results above already carry it).
+
+## 15. Revision 7: no leased put or transaction in S3a (decided (3) by etcd-grove-81, 2026-11-15)
+
+**Finding** (S3a Prove, session 5; ledger 2026-11-15, "the latest track's certificate premise for a leased put or
+transaction"). The latest triples' premise `certPreVW … (kvOutL …)` is, through `certPreW_inner`, the class track's
+`certPre` over every `backendStep` outcome; `backendStep` admits an applied put of a lease not live and an applied
+transaction without `PathsLeaseOk`, whose logs `kvNxOn` cannot certify (the model keeps the log there). §6's KV
+branch is therefore unprovable for an admitted leased put or leased transaction in the revocable mode, reachable by a
+revocation committed between a leased put's proposal and its application.
+
+**The narrowing.** §1's `plainReqL lm rq` (a plain request, or at `revocable` a put with any lease or a transaction
+plain but for its puts' leases) becomes `plainReq rq` at every lease mode (`plainReqL_iff`; the lease mode stays an
+argument for S3a2). With it no key is ever attached to a lease in the auth-on model, so a revocation deletes no key
+(`revokeLog_eq_backendLog` at the model's `liveSt`), and §6's KV branch is S2's latest triple at `plainCover`, in every
+lease mode. §6's grant and revocation arms, the replay branch, `keysNonEmpty`/`keysLeasesLive` (now about a log with no
+leased key) and §5's snapshot path are unchanged in text. No exported or closed statement changes (`plainEntryOn`'s
+text is unchanged; its meaning narrows at `revocable`, which no closed theorem runs with auth on).
+
+**S3a2 (its own stage, with a Freeze).** The class track's certificate at the live set `T` (`certPreT … T`: outcomes
+with `apply.leaseExactL T`), the backend's `Put`/`Txn` taking the certificate only when the lease is live, the latest
+track's `X` with `leaseExactL T` (`apply_*_kv_latest` change), and `plainReqL` widened back to §1's text. S3b's
+leased put waits on it.

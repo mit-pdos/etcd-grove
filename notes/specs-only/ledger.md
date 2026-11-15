@@ -315,4 +315,5 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   log T`, split at the top from the two `ltHalf`s; the backend Put/Txn take `E.Nx` in their live branch), and the
   latest track's `X` with `leaseExactL T`; (2) `backendStep` over the live set (wider); (3) narrow S3a: no leased put
   or transaction admitted (`plainReqL lm := plainReq`), leased puts moved to a later stage with (1).
-- **Decision.** Pending (etcd-grove-81; S3a §6 stopped at this finding).
+- **Decision.** (3) now, then (1) as its own stage S3a2 (etcd-grove-81, 2026-11-15): Draft rev 7, §15; `plainReqL lm :=
+  plainReq`.

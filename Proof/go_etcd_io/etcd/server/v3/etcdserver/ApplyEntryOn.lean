@@ -148,12 +148,12 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   icases Hinvs' with ⟨-, -, -, -, -, -, %HNx, %Hrows⟩
   imod kv_applied_step_on E γr st₀ A m x st _ hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hdet, -, hch⟩ := Hp
-  -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
-  have hlm : γr.kv.lm = .none := KVNames.lm_of_lg_false Hrows.2.1
-  have Hpl0 : plainEntryOn .none m := by rw [← hlm]; exact Hpl
+  -- (auth-lease S3a rev 7) a KV request of the auth-on log is plain at every lease mode
   have hpz : plainCover rq ∧ noZeroEnds rq ∧ kvShapeAll rq := by
-    rcases plainEntryOn_none m Hpl0 ht hd rq hdec with h | h
-    · exact ⟨h.1.1, h.2⟩
+    rcases Hpl ht hd rq hdec with ((⟨h1, h2, h3⟩ | h | h) | h)
+    · exact ⟨((plainReqL_iff _ rq).1 h1).1, h2, h3⟩
+    · exfalso; rw [h.2.1] at hk; simp [apply.isKVKind] at hk
+    · exfalso; rw [h.2.1] at hk; simp [apply.isKVKind] at hk
     · exfalso
       obtain ⟨h, -⟩ := h
       unfold apply.adminKindOk at h
