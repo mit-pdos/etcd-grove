@@ -200,7 +200,7 @@ def plainReqL (lm : lease.Mode) (rq : apply.IRRModel) : Prop :=
 
 **The certificate the server gives** (`kv_certPreW_on`, `kv_certPreVW_on`, `ApplyEntryOn.lean:85-121`, internal):
 `plainCover rq` becomes `plainReqL γk.lm rq` with `keysNonEmpty`, and the certificate is at
-`kvOutLT E … (s.2.2.ids)`. For an outcome meeting it: when `E.lg = true`, `outcomeOn_of_kvOutLL` with
+`kvOutLT E.authMode E.lg … (s.2.2.ids)`. For an outcome meeting it: when `E.lg = true`, `outcomeOn_of_kvOutLL` with
 `leaseExactL s.2.2.ids`; when `E.lg = false`, `γk.lm = E.lm = .none` (`srvKVInvsOn`, `AEnv.lm_of_lg_false`), so
 `plainReqL .none` gives `plainCover` (`outcomeOn_of_kvOutLL`'s left disjunct). The server's `T` is `srvRestM`'s
 `srvIds E (appliedTableM true γr A).ids` (`InvRest.lean:896`: the table's ids when `E.lg`, else `[]`); under the
@@ -321,7 +321,7 @@ the auth-off examples go through `certPre`, which does not change. No `interface
    not told the lease check" (written before the edit, decision pending the Freeze).
 3. Latest: `putPreW`/`txnPreW`, `certPreW_innerT`, `AuthApplyLatestPut`/`Txn`. `kvOutLT` and the four triples
    (`DispatchKVL`, `ApplyKVL`, `ApplyFnKVL`, `UberKit`/`UberOn` instantiations).
-4. Server: `plainReqL` widened, `plainOrCmpGL`, the lemma variants and sites of §4. `kv_certPreW_on` and
+4. Server: `plainReqL` widened, the case split, the lemmas restated over their facts and the sites of §4. `kv_certPreW_on` and
    `kv_entry_pre_on` at `kvOutLT`. The KV arm and the replay branch of `wp_proofOn`. `Results`.
 5. Literal-mode reduction (§5).
 6. Land-stop checks: merge lean, a full build (flock, 64G), `tcb-report --check` (870/4 unchanged),
