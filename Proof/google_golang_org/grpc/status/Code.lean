@@ -20,7 +20,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary**: `status.Code` of an error grpc accepts returns. -/
+/-- **Trust boundary**: `status.Code` of an error grpc accepts returns. Latent assumption: nobody
+writes the `*Status` that the error's `GRPCStatus()` returns concurrently (true today only because no
+sorry-free proof can write a `*Status`; `notes/axiom-review/grpc-status-immutability.md`). -/
 axiom status.Code.wp_proof : status.Code.spec (GF := GF) (hG := hG)
 
 end proof
