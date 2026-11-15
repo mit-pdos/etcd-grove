@@ -71,7 +71,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe #
   try wp_auto
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨K.p.ino, true, true⟩ w.m rfl (hok.2.2.2.2.2.2.2.2.2.2.2.2.1) $$ [Hfile Hfo Hfd Hosm]
+    (dbFd K.p.ino) w.m rfl (hok.2.2.2.2.2.2.2.2.2.2.2.2.1) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   have hrefl : wdbGrown w { w with m := w.m, W := w.W, wb := w.wb } :=
@@ -195,7 +195,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       (min w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) (DFrac.own 1) [] $$ []
   · iapply growBytes_nil
   wp_apply hTruncate w.f w.fd K.p.path (DFrac.own 1) (growSizeOf (W64 (mapLen w.ms : Int)) sz)
-    (DFrac.own 1) ⟨K.p.ino, true, true⟩ w.m [] (wdbOK'_fd fr w hok) rfl hS0
+    (DFrac.own 1) (dbFd K.p.ino) w.m [] (wdbOK'_fd fr w hok) rfl hS0
     (by simp only [List.length_nil]; omega)
     $$ [Hfo Hfd Hosm Hnil Htail] as %e ⟨Hfo, Hfd, Htr, #HeOk⟩
   · rw [← fileOwn_eq]; iframe; iframe #
@@ -227,7 +227,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     icases hGrown $$ [Htr Hrest] with ⟨Hosm, Hz, Htail⟩
     · iframe
     wp_auto
-    wp_apply hSync w.f w.fd K.p.path (DFrac.own 1) (DFrac.own 1) ⟨K.p.ino, true, true⟩
+    wp_apply hSync w.f w.fd K.p.path (DFrac.own 1) (DFrac.own 1) (dbFd K.p.ino)
       (rsPost true w.m S.toNat S.toNat) $$ [Hfo Hfd Hosm] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
     · rw [← fileOwn_eq]; iframe; iframe #
     ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
@@ -235,7 +235,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     have hfin : ∀ m' : OsMeta, m'.size = S.toNat → m'.maps = w.m.maps →
         growCloser (GF := GF) fr K tx v w -∗
         K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-        osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+        osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
         K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
         ([∗list] s ∈ wSlots (min w.m.size (mapLen w.ms) / 4096) w.C w.fl,
           ∃ vf, cellsR (GF := GF) v.base (4096 * s) 4096 vf) -∗

@@ -53,9 +53,9 @@ metadata `m'` of the same size. -/
 theorem wdbCore_file_acc (B : BNs) (db : Loc) (p : BFile) (w : WDb) :
     wdbCore (GF := GF) B db p w ⊢
       db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd p.path (DFrac.own 1) ∗
-      osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) w.m ∗
+      osFd w.fd (DFrac.own 1) (dbFd p.ino) ∗ osMeta p.ino (DFrac.own 1) w.m ∗
       (∀ m' : OsMeta, ⌜m'.size = w.m.size⌝ -∗ db.[DB, go!"file"] ↦ w.f -∗
-        fileOwn w.f w.fd p.path (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ -∗
+        fileOwn w.f w.fd p.path (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) (dbFd p.ino) -∗
         osMeta p.ino (DFrac.own 1) m' -∗ wdbCore B db p { w with m := m' }) := by
   unfold wdbCore wdbCoreG
   iintro ⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hop, Hwa, Hrw, Hf, Hp, Hds, Hmf, Hom, Hfo, Hfd, Hmq,

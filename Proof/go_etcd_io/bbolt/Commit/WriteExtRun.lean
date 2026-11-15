@@ -457,7 +457,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
       wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om2 xs rfl h0
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) (dbFd K.p.ino) om2 xs rfl h0
         (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn]; omega)
         $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %EE, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #

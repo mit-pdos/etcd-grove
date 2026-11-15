@@ -7,6 +7,9 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SyncNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleRoom
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
+public import Perennial.Proof.sync.Results
 
 @[expose] public section
 
@@ -34,15 +37,24 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proofNoErr (P : WalPbI
   intro hS0 R jr r w dir n k
   wp_start as ⟨#Harea, Hw, #Hn⟩
   icases (walOpenWFR_iff P Mr w dir k).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
+  -- (fork 0006) `Sync` takes `w.mu` around `sync`, as `WAL.Sync.wp_proof`
+  icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, -⟩
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
     with ⟨Hnc, Hh, %hn⟩
   imodintro
   iframe Hnc
-  wp_auto
+  (try wp_auto)
   wp_apply (wp_sync hS0 R jr r w dir h hD.1 (by omega)) $$ [Hh] as %err Hpost
   · iframe Harea Hh
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+  (try wp_auto)
   icases Hpost with ⟨%Herr, Hh, #Hs⟩
   iapply HΦ
   isplitr

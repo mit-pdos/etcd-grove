@@ -25,6 +25,29 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
+
+- **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`
+  (`DB.close.spec_owned`, internal), `Inv/Locks.lean` (`wdbCoreG`: the descriptor and the `path` field), the
+  internal specs naming the database's descriptor (`fdatasync.spec`, `Tx.write` ext, the remaps', `Open/Core`'s,
+  `DB.loadFreelist`'s pre).
+- **Defect.** Unprovable after the merge of `wal-int` `7fe119fb19` (the file-lock semantics, pending the
+  user's review): `OsFd` gains lock fields (`ofd`, `flk`), `syscall.Flock` changes them (`lockOut`) and
+  `os.File.Close.spec` takes the description's lock tokens (`lockToks`). bbolt's `flock` kept the
+  descriptor unchanged, and `close` had no token for `funlock`/`Close`.
+- **Evidence.** The full build: `Proof/go_etcd_io/bbolt/Inv/Locks.lean:293` (`⟨p.ino, true, true⟩`: 3 of
+  `OsFd.mk`'s 5 fields), then `Open/Flock.lean`, `Open/Close.lean`, `Open.lean` against the new
+  `syscall.Flock.spec`/`os.File.Close.spec`.
+- **Change (made).** As minibolt's on `wal-int`: `flock.spec` takes `d.flk = none` and returns, on `nil`, the
+  descriptor `d.setLk .flock (some ex)` with its `lockTok`, on an error `d` unchanged; `close.spec_owned`'s file
+  takes `lockToks fd d` (its `funlock` passes the `flock` token through, `File.Close` gets both); the database's
+  descriptor after `Open`'s `flock` is `dbFd i` (`⟨i, true, true, none, some true⟩`); its token rides with the
+  `path` field in the writer's core (`dbPathLk db p fd`, `wdbCoreG`), which only `Open`, `close`, `loadFreelist`
+  and the remaps touch. No exported statement changed (`Open.spec`, `DB.Close.spec` unchanged).
+- **Decision.** Repair made on `wal-lean` (session 3, `notes/wal-units/lean-integration.md`), following the
+  coordinator's instruction ("rebuild bbolt and repair as minibolt was"); stands or falls with the lock
+  semantics' review.
+
 ## 2026-11-15: the etcd examples' closed theorems -- over no file extension, but `fileutil`'s initializer needs one
 
 - **Spec.** The closed theorems of the etcd and Kubernetes examples (`Proof/.../examples/{etcd,k8s}/*/Adequacy.lean`

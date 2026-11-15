@@ -68,7 +68,7 @@ abbrev Tx.write.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (dbFd K.p.ino) ∗
       osMeta K.p.ino (DFrac.own 1) om ∗ wrSlots b K.p (bufSlots bufs) wb }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗ tx.[Tx, go!"db"] ↦{dq} K.db ∗
@@ -76,7 +76,7 @@ abbrev Tx.write.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (dbFd K.p.ino) ∗
       (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
       ∃ wb' : Nat → List w8, ⌜∀ s ∈ bufSlots bufs, (wb' s).length = 4096⌝ ∗
@@ -395,7 +395,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
       wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om2 xs rfl h0
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) (dbFd K.p.ino) om2 xs rfl h0
         (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn, hmin2]; omega)
         $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %EE, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
