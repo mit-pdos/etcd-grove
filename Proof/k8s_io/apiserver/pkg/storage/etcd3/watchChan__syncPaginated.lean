@@ -561,6 +561,32 @@ theorem watchChan.syncPaginated.wp_proof
     iexact Hir
   rw [decide_eq_false hbad]
   (try wp_auto)
+  -- queue the page's key-values
+  rename_i igo
+  irename : (igo ↦ zero_val w64 : IProp GF) => Higo
+  ihave #Hspsc' := Hspsc
+  iunfold isSpsc at Hspsc'
+  icases Hspsc' with ⟨#Hchan, -⟩
+  ihave HJ : (∃ (j k : w64) (kvl : Loc) (lkv : GoSlice) (ps' : List Loc),
+      "i" ∷ i_ptr ↦ j ∗ "Higo" ∷ igo ↦ k ∗ "kv" ∷ kv_ptr ↦ kvl ∗ "lastKey" ∷ lastKey_ptr ↦ lkv ∗
+      "Hsl2" ∷ sl2 ↦* ps' ∗
+      "Hps" ∷ kProdSt γ cd (I ++ (mm.kvs.take (sint.nat j)).map KRaw.kv) ∗
+      "Hpe" ∷ dghostVar γ.prodEx (DFrac.own q) false ∗
+      "#Hlk" ∷ (⌜sint.nat j = 0⌝ ∨ ∃ kv : EtcdKv,
+        ⌜mm.kvs[sint.nat j - 1]? = some kv⌝ ∗ lkv ↦*□ kv.key) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ mm.kvs.length ∧ ps'.length = ps.length ∧
+        (∀ k, sint.nat j ≤ k → ps'[k]? = ps[k]?)⌝ : IProp GF)
+      $$ [i Higo kv lastKey Hsl2 Hps Hpe]
+  · iexists W64 0, _, _, _, ps
+    iframe i Higo kv lastKey Hsl2 Hpe
+    isplitl [Hps]
+    · iExactEq Hps
+      simp [sint.nat]
+    isplitr
+    · ileft; ipureintro; rfl
+    ipureintro
+    exact ⟨by decide, by simp, rfl, fun _ _ => rfl⟩
+  wp_for HJ
   sorry
 
 end proof
