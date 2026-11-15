@@ -235,17 +235,17 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
   have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl
   iintro #Hk #Hl #Hau #Hpos #Hraw
   -- the update fired at some witnessed log
-  imod srvKVFacts_fire0 V γ hst Q $$ [Hk Hau] with ⟨%C0, #HQ0⟩
+  imod srvKVFacts_fire0 V γ hst Q $$ [Hk Hau] with ⟨%C0, %lt0, #HQ0⟩
   · iframe #
   unfold client.rawRespOk
   icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, (%Hle | ⟨%L, #HL, %HLp⟩)⟩ |
     ⟨%Hev, %L, %kvs, #HL, %HLe, #Hkv, #Hpk⟩)
-  · imodintro; iexists kvStateOf C0; iframe HQ0
+  · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; ileft; iframe Hse; ipureintro; exact Herr
     iapply respPkOk_nil; rw [Herr.2]; exact rangeEvents_same _ _ _
-  · imodintro; iexists kvStateOf C0; iframe HQ0
+  · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; iright; ileft; ipureintro; exact Hne
@@ -254,7 +254,7 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
     obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
     iunfold posQ at Hpos
     icases Hpos with (%Hst | ⟨%σ', #HQ', %Hσ'⟩)
-    · imodintro; iexists kvStateOf C0; iframe HQ0
+    · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
       unfold watchStateRespOkP
       isplitr
       · unfold watchStateRespOk; iright; iright; ileft; ipureintro
@@ -272,15 +272,15 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
         unfold KVState.rangeEvents; rw [hn']; simp
       iapply respPkOk_nil
       rw [hc', hn']; exact rangeEvents_same _ _ _
-  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, #HQ, %HLC⟩
+  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, %ltC, #HQ, %HLC⟩
     · iframe #
     ihave %Hlk := client.srvWLaws_model V.W L $$ [$Hl $HL]
-    imodintro; iexists kvStateOf C; iframe HQ
+    imodintro; iexists kvStateOf C ltC; iframe HQ
     obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
     obtain ⟨hpl, hnone⟩ := HLp
     have hCl := HLC.length_le
-    have hnone' : (kvStateOf C).rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] := by
-      rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
+    have hnone' : (kvStateOf C ltC).rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] := by
+      rw [rangeEvents_kvStateOf C (lt := ltC) o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
       exact hnone
     unfold watchStateRespOkP
@@ -290,17 +290,17 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
       · rw [kvStateOf_rev]; omega
       · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2.1 Hlk.2.1 (by simp only [hn]; omega) Hlk.2.2.2
     iapply respPkOk_nil; rw [hc']; exact hnone'
-  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, #HQ, %HLC⟩
+  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, %ltC, #HQ, %HLC⟩
     · iframe #
     obtain ⟨hv, hne, hc0, hcc, hlast⟩ := Hev
     obtain ⟨hcl, hkl, hre⟩ := HLe
     have hCl := HLC.length_le
-    have hevs : (kvStateOf C).rangeEvents o (sint.nat c + 1) (sint.nat c' + 1) =
+    have hevs : (kvStateOf C ltC).rangeEvents o (sint.nat c + 1) (sint.nat c' + 1) =
         rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1) := by
-      rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
+      rw [rangeEvents_kvStateOf C (lt := ltC) o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
     ihave %Hlk := client.srvWLaws_model V.W L $$ [$Hl $HL]
-    imodintro; iexists kvStateOf C; iframe HQ
+    imodintro; iexists kvStateOf C ltC; iframe HQ
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; iright; iright; iright

@@ -393,7 +393,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             wp_auto_lc 3
             iunfold entryWitOn at HeW
             icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew, #HpA⟩
-            obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
+            obtain ⟨hlk, het, hdecw, hidw, ltw, hlbw⟩ := Hew
             have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
             subst hidd
             ihave %Hdd := idClaimAny_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
@@ -442,7 +442,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hg Hv
             isplitr
             · ipureintro
-              refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ?_, Hst.2.2.2.2⟩
+              refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ltw, ?_, Hst.2.2.2.2⟩
               rw [Hst.2.2.1]; exact hlbw
             -- (E3x) the admin result's tie, at the state the entry met
             isplitr

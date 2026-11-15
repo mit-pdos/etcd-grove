@@ -216,7 +216,7 @@ theorem revEvents_setupPut_put (σ : KVState) (r m : Nat) (hok : kvLogOkTo σ r)
   rcases Nat.eq_zero_or_pos m with rfl | hm0
   · unfold KVState.revEvents KVState.changesAt at hev
     rw [if_pos (by omega), mvcc.evsOfRevM_nil] at hev; cases hev
-  have hrev : σ.revEvents m = (kvStateOf σ.log).revEvents m := by rw [← he]
+  have hrev : σ.revEvents m = (kvStateOf σ.log σ.leases).revEvents m := by rw [← he]
   rw [hrev, revEvents_kvStateOf σ.log m hm0 (by omega)] at hev
   have hsort := mvcc.stateAt_sorted σ.log (m - 1)
   have hpre : σ.log.take (r + 1) <+: σ.log := List.take_prefix _ _

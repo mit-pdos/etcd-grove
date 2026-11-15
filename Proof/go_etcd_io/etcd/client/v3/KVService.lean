@@ -1825,7 +1825,13 @@ theorem rangeAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c
   unfold rangeAns rangeStOk
   iintro ⟨%x, -, H⟩
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, #Hc, %Hk, %Hl, -, ⟨%lt, -, HQ⟩⟩
+  icases H with ⟨%l, #Hc, %Hk, %Hl, -, HQ⟩
+  ihave ⟨%lt, HQ⟩ : iprop(∃ lt : LeaseTable,
+      if o.base.serializable then iprop(True) else □ Q (kvStateOf l lt)) $$ [HQ]
+  · cases hser : o.base.serializable
+    · simp only [hser, Bool.false_eq_true, ↓reduceIte]
+      icases HQ with ⟨%lt, -, #HQ⟩; iexists lt; iexact HQ
+    · iexists []; simp only [↓reduceIte]; itrivial
   ihave %Hlk := srvLogCert_logOk _ _ hrb $$ Hc
   obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
   have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
@@ -1926,7 +1932,13 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
       rw [hlog]; try exact List.prefix_refl _
   · -- read-only
     simp only [↓reduceIte]
-    icases H with ⟨%log, #Hc, %Hk, %Hp, -, ⟨%lt, -, HQ⟩⟩
+    icases H with ⟨%log, #Hc, %Hk, %Hp, -, HQ⟩
+    ihave ⟨%lt, HQ⟩ : iprop(∃ lt : LeaseTable,
+        if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log lt)) $$ [HQ]
+    · cases hser : txn.txnSerializable t
+      · simp only [hser, Bool.false_eq_true, ↓reduceIte]
+        icases HQ with ⟨%lt, -, #HQ⟩; iexists lt; iexact HQ
+      · iexists []; simp only [↓reduceIte]; itrivial
     ihave %Hl := srvLogCert_logOk _ _ hrb $$ Hc
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
     have hr : ((kvStateOf log lt).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
