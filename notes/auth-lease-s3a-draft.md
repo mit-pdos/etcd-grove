@@ -423,3 +423,19 @@ changes** (none of the changed names in any example's `Results`, `Adequacy*` or 
 diff `Alloc3On.txt`); N2, N4, N5 resolved. Its first-tier F1 (the conjunct to the server), F2 (`srvRestRp`,
 `imageLeasesAt` on the off table) and F3 (`hnl`'s text, `keysLeasesLive`) and its second-tier points are applied
 in revision 4 above; no round has reviewed revision 4's fixes yet.
+
+## 13. Review round 4 (fresh `spec-reviewer`, `/shared/tmp/auth-lease/s3a-review-r4.md`): one first-tier finding
+
+Round 3's F1–F3 resolved (the layer posts' conjunct by `ltHalf_agree` at `E.lg`; `srvRestRp` already takes `E`,
+`imageLeasesAt` gains the mode, `srvEver` needs no change; `hnl`'s text matches `Restore`'s premise through
+`SnapApplyWalk.lean:601-608`/`SnapApplyPost.lean:166`); no closed statement changes. **New N1 (first tier):** §3a's
+determination step compares the model's table (folded over `A`, `KVApplyOn.lean:282-285`) with
+`appliedTableM true` (folded over `γr.raft.pre ++ A`); they agree only when `γr.raft.pre = []`, which is a premise
+of `applyAll.spec` and `specSnapM` (`hpre0`) but not visibly of `applyEntryNormal.spec`, `apply`'s spec or
+`srvKVInvsOn`. Options: (a) **recommended**: `γr.raft.pre = []` in `srvKVInvsOn` beside `γr.kv.lm = E.lm` (an
+internal definition S3a changes anyway; the starts already prove it), with the bridge lemma `pre = [] →
+(appliedTableM true γr A).ids = (kvRaftOfOn … A).2.2.ids`; (b) a premise of the auth-on `applyEntryNormal`/`apply`
+specs (frozen `Spec/` text). Second tier (to apply): `hnl`'s key-length bound derivable inside `specSnapM`'s proof
+(`ServerOnDefs.lean:293`; closes §8's Probe item); a named lemma that the table is empty at the mode `none`; §0 to
+say S3a touches `NewServer` only for the `lm` (and `pre`) tie; §3a to separate text-changing posts from
+meaning-changing ones.
