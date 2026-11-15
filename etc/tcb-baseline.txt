@@ -464,15 +464,6 @@ axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom etcd_wal.tSaltOf_tEntData._native.bv_decide.ax_1_7
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_11
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_16
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_21
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_26
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_31
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_36
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_41
-axiom etcd_wal.u64Acc_step._native.bv_decide.ax_1_6
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fields.Everything.wp_proof

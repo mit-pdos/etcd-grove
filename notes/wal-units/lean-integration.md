@@ -340,3 +340,69 @@ trusted WAL specs, which `wal-int` never ran `lean`'s gates on; not papered over
    protobuf specs).
 3. A re-merge of `origin/wal-int` if it moves again (`etc/wal-lean-remerge.py 7fe119fb19`).
 4. `notes/STATUS.md` (the coordinator integrates), the session registry.
+
+## Session 4 (2026-11-15)
+
+Setup: a fresh worktree (local branch `wal-lean-s4`, pushing to `origin/wal-lean`: session 3's worktree still
+holds `wal-lean`), session 3's `.lake` copied from its worktree.
+
+### The three failing gates
+
+- **pbschema.** The WAL's two schemas join `pbSchemaOf`'s table (`PbSchema.lean`, which now imports walpb's
+  `Code`): `walpb.Record ↦ WalEnc.recSchema`, `walpb.Snapshot ↦ WalEnc.walSnapSchema`, both moved there from
+  `WalPbWire`/`WalPbSnapWire` (same names and lists; `record.proto:8-12`, `:15-20` at the pin `e115818f5`), and
+  the WAL's `walCsSchema` (raft's `csSchema` word for word) replaced by `csSchema`. `examples/pbschema`'s
+  descriptor test knows the two roots (`known`); it walks `Snapshot.conf_state` to `raftpb.ConfState`.
+  `etc/pbschema-check.py` step 6 runs `examples/stdlib/walpb`'s encoder, schema and `MarshalAppend` tests (6).
+  Result: `pbschema: ok (10 schemas, roots raftpb.Entry, raftpb.Message, walpb.Record, walpb.Snapshot ...)`.
+  `pbMsg` of a walpb type (none exists) reads the real schema instead of `[]`: trusted text, for review.
+- **model-param** (the 6 findings):
+  - "not a constant at bound variables" (`pbRecordC_reg`, `pbSnapC_reg`): the WAL's instances are defined over
+    `{hlc : HasLC}` (their specs, `UnmarshalWalRecord`, `Record.Reset`, ..., are stated at a generic `hlc`), so
+    the registration applies them to `HasLC.hasLC`. `etc/ModelParamCheck.lean`'s `closedApp` now accepts
+    `Iris.HasLC.hasLC` as a key/value argument, as `regShape` already did for the registry's arguments (the
+    heap's later-credit flag, fixed). Restating the instances at `hasLC` would have changed seven spec
+    statements; the checker change admits nothing a user can choose.
+  - rule 1 (`MarshalAppendCachedRecord`'s `C`/`M`): the premise is now keyed by `I.data.ty`
+    (`pbModelOf GF I.data.ty = some I → I.data.ty = walpb.Record.ty → ...`, the same statement; ledger).
+  - rule 7: `pbEntryC_sat` (with `optCell_freeze`, `bytesC_freeze`, `treeWp_entryTree`) moved from
+    `PbEntryType` into `PbEntryTypeCore`, the registration's module; and new `pbRecordM_sat`, `pbSnapM_sat`
+    (with `recCell_freeze`, `recBytesOwn_of`, `treeWp_walCs`), proved (axioms: Lean's three only).
+  - `MIN_REGS` 36 -> 38.
+- **axiom-tok**: one `entry` (`io.ReadFull.wp_proof`, `3:E:produced1/consumed0`) and one `trunc`
+  (`proto.MarshalAppendCachedRecord.wp_proof`, stuck at `ownSlice` as `MarshalAppendPb`'s listed walk), each
+  with its reason in `etc/axiom-tok-allow.txt` (**for the user's review**; the `trunc` is an exception to the
+  ratchet's "none may be added"). The `io.ReadFull` spec was not changed: `E` is persistent evidence the
+  caller's reader gave, passed through; consuming it would be meaningless. Selftest: 0 failures.
+
+### The native axioms
+
+`u64Acc` and its lemmas moved to `WalTester/.../wal/U64Acc.lean` (shared by `DecRep` and `FromRaft`), proved bit
+by bit (`BitVec.getLsbD`, `omega`), the masks by `decide +kernel`; `tSaltOf_tEntData` by a fold lemma
+(`tSalt_fold`) over `u64Acc_step'`. No `bv_decide` left in the tester: the nine `etcd_wal.*._native.bv_decide`
+axioms are gone (tcb baseline and `wal-tester` collection updated).
+
+### Re-merges of `origin/wal-int`
+
+`dbd4495eb5` (`adeabfb2e4`), `32d1f57a80` (`8613a6b7e3`), `95c0f4e3f0` (`685ff8d336`): `etc/wal-lean-remerge.py`
+clean for every file but the links (regenerated: `--walfs`, `--durable`, `--wal-tester`) and the ledger (both
+sides' entries kept). Next base: `95c0f4e3f0`.
+
+### Build and gates
+
+Full niced `lake build` after the last re-merge: OK (18424 jobs). `etc/gates.sh`: everything passed but tcb,
+collections (the nine native axioms gone: updated), axiom-tok (entries above), model-param (`MIN_REGS`) and the
+raft interface (regenerated: `PbEntryType`/`PbEntryTypeCore`); all fixed after, gates re-run below.
+
+TCB against `origin/lean`: removed `wal.opaqueInitsOk` (the names-only WAL's); added the bodied WAL's package
+inits (`bufio`, `hash.crc32`, `path.filepath` `opaqueInitsOk`, `walFsyncSec_init`, `walWriteBytes_init`,
+`walWriteSec_init`, `walpb.initFuncsOk`/`opaqueInitsOk`) and its trust-boundary specs (`binary.ReadInt64LE`,
+`fmt.SprintfWalName`/`SscanfWalName`, `io.ReadFull`, `proto.MarshalAppendCachedRecord`, `pbRecordC_reg`,
+`pbSnapC_reg`, `recEncC_ok`, `snapEncC_ok`); no native axiom; 4 sorries (lean's).
+
+### What is left before `etc/land.sh`
+
+1. The user's review: the trusted changes pending on this branch (session 3's list), the two `pbSchemaOf`
+   entries, and the two axiom-tok allow lines above.
+2. A re-merge if `wal-int` moves again (`etc/wal-lean-remerge.py 95c0f4e3f0`).
+3. `notes/STATUS.md` (the coordinator), the session registry.
