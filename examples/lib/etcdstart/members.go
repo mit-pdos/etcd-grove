@@ -17,14 +17,14 @@ type Member struct {
 	Client string
 }
 
-// Members returns the k members of a new cluster named prefix: member i (from 0) is named
-// prefix-i, with peer address 127.0.0.1:(peerBase+i) and client address 127.0.0.1:(clientBase+i),
+// Members returns the k members of a new cluster named pfx: member i (from 0) is named
+// pfx-i, with peer address 127.0.0.1:(peerBase+i) and client address 127.0.0.1:(clientBase+i),
 // the numbers in decimal (strconv.FormatUint).
-func Members(prefix string, k uint64, peerBase uint64, clientBase uint64) []Member {
+func Members(pfx string, k uint64, peerBase uint64, clientBase uint64) []Member {
 	ms := make([]Member, k)
 	for i := uint64(0); i < k; i++ {
 		ms[i] = Member{
-			Name:   prefix + "-" + strconv.FormatUint(i, 10),
+			Name:   pfx + "-" + strconv.FormatUint(i, 10),
 			Peer:   "127.0.0.1:" + strconv.FormatUint(peerBase+i, 10),
 			Client: "127.0.0.1:" + strconv.FormatUint(clientBase+i, 10),
 		}

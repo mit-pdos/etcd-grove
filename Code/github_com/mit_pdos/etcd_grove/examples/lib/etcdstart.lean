@@ -870,13 +870,13 @@ noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- Members returns the k members of a new cluster named prefix: member i (from 0) is named
-    prefix-i, with peer address 127.0.0.1:(peerBase+i) and client address 127.0.0.1:(clientBase+i),
+/-- Members returns the k members of a new cluster named pfx: member i (from 0) is named
+    pfx-i, with peer address 127.0.0.1:(peerBase+i) and client address 127.0.0.1:(clientBase+i),
     the numbers in decimal (strconv.FormatUint).
 
     go: members.go:23:6 -/
 noncomputable def Members.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "prefix"
+  (LamV "pfx"
   (Lam "k"
   (Lam "peerBase"
   (Lam "clientBase"
@@ -885,7 +885,7 @@ noncomputable def Members.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "clientBase" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "clientBase"))
   (Let "peerBase" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "peerBase"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k"))
-  (Let "prefix" (App (Val (GoInstruction (GoAlloc go.string))) (Var "prefix"))
+  (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType Member.ty)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")))
   (Let "ms" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Member.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -901,7 +901,7 @@ noncomputable def Members.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")))))) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "prefix")) (Val #(go!"-")))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx")) (Val #(go!"-")))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
   (Let "$a1" (Val #(W64 10))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"127.0.0.1:")) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "peerBase")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))))
