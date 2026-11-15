@@ -361,6 +361,58 @@ theorem monoList_lb_idx_all {A : Type} [Pos.Countable A] (γ : GName) (l : List 
     iintro %k %x %h
     iapply monoListIdxOwn_get k x h $$ H
 
+/-- Elements at every index of `L` below a lower bound `l` at least as long: `L` is a prefix of `l`. -/
+theorem monoList_idx_prefix {A : Type} [Pos.Countable A] (γ : GName) (l : List A) (L : List A) :
+    L.length ≤ l.length →
+      monoListLbOwn (GF := GF) γ l ⊢ ([∗list] j ↦ x ∈ L, monoListIdxOwn γ j x) -∗ ⌜L <+: l⌝ := by
+  induction hn : L.length generalizing L with
+  | zero =>
+    intro _
+    rw [List.length_eq_zero_iff.1 hn]
+    iintro _ _; ipureintro; exact List.nil_prefix
+  | succ n ih =>
+    intro hlen
+    have hne : L ≠ [] := by intro h; subst h; simp at hn
+    rw [← List.dropLast_concat_getLast hne]
+    generalize L.getLast hne = a
+    have hn' : L.dropLast.length = n := by simp [List.length_dropLast, hn]
+    generalize L.dropLast = L' at hn' ⊢
+    iintro #Hlb Hbig
+    icases BigSepL.bigSepL_snoc.1 $$ Hbig with ⟨Hbig, Ha⟩
+    ihave %Hp := ih L' hn' (by omega) $$ Hlb Hbig
+    ihave %Hg := mono_list_lb_idx_lookup γ l L'.length a (by omega) $$ Hlb Ha
+    ipureintro
+    rw [List.prefix_iff_eq_take] at Hp ⊢
+    rw [List.length_append, List.length_singleton, List.take_add_one, ← Hp, Hg]
+    rfl
+
+/-- **A received element's raw events and `kResInv`'s**: a lower bound `raws` of the same length as
+the element's `raws'` (the processing goroutine's count, `procd`) is `raws'`, and the element's
+indices give the lower bound `raws' ++ [r]`. -/
+theorem monoList_idx_lb_snoc {A : Type} [Pos.Countable A] (γ : GName) (raws raws' : List A) (r : A)
+    (hlen : raws.length = raws'.length) :
+    monoListLbOwn (GF := GF) γ raws ⊢ ([∗list] j ↦ x ∈ raws' ++ [r], monoListIdxOwn γ j x) -∗
+      ⌜raws = raws'⌝ ∗ monoListLbOwn γ (raws' ++ [r]) := by
+  iintro #Hlb #Hbig
+  ihave Hr : monoListIdxOwn γ raws'.length r $$ [Hbig]
+  · icases BigSepL.bigSepL_snoc.1 $$ Hbig with ⟨-, Ha⟩
+    iexact Ha
+  iunfold monoListIdxOwn at Hr
+  icases Hr with ⟨%l, %Hl, #Hl⟩
+  have hll : (raws' ++ [r]).length ≤ l.length := by
+    have := (List.getElem?_eq_some_iff.1 Hl).1
+    simp; omega
+  ihave %Hp := monoList_idx_prefix γ l (raws' ++ [r]) hll $$ Hl Hbig
+  ihave #Hlb' := monoListLbOwn_le (raws' ++ [r]) Hp $$ Hl
+  ihave %Hc := mono_list_lb_valid γ raws (raws' ++ [r]) $$ Hlb Hlb'
+  isplitr
+  · ipureintro
+    rcases Hc with Hc | Hc
+    · rw [List.prefix_iff_eq_take] at Hc
+      rw [Hc, hlen]; simp
+    · have := Hc.length_le; simp at this; omega
+  · iexact Hlb'
+
 /-- **The ghost step of an Error event** (`sendError`, from either goroutine): a running producer
 (`kResAlive`) sends an Error event `v` (type `ERROR`, a failure status): the element is `kResElem`'s
 at the next index (its model `⟨4, z, 0, false⟩`; the stream facts are the raw events' so far, the
