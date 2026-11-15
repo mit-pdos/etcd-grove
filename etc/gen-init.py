@@ -63,6 +63,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the clusterN Scope (2026-11-15): putget3 with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN',
+         # txnlinfaultsN (2026-11-15, notes/txnlinfaultsN-plan.md): partition with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
          'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
          # restart S7 (2026-11-14, notes/restart-s7-scope.md): one member stopped and restarted
@@ -2632,6 +2634,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':

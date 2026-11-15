@@ -6,7 +6,7 @@
 //
 // Main calls the examples' shared start (examples/lib/etcdstart): Members (member i is named
 // putgetN-i, its peer address 127.0.0.1:(24000+i), its client address 127.0.0.1:(25000+i)),
-// StartMembers (StartMember per member: etcdserver.NewServer over bootstrap's contract, the
+// StartMembers (per member: etcdserver.NewServer over bootstrap's contract, without snapshots, the
 // member's raft handler served on its peer URL's listener, (*EtcdServer).Start), then, for the
 // first member only, what putget does: Serve, NewClient, the client's Put and Get, each in a
 // context with the examples' request timeout. An error from any step ends Main without a check,
@@ -42,7 +42,8 @@ const Token = "putgetN-1405"
 func Main(k uint64) {
 	lg := zap.NewNop()
 	ms := etcdstart.Members("putgetN", k, PeerBase, ClientBase)
-	srvs, err := etcdstart.StartMembers(ms, Token, lg)
+	srvs, err := etcdstart.StartMembers(ms, Token, etcdstart.NoSnapCount, etcdstart.NoSnapCatchUp,
+		lg)
 	if err != nil {
 		return
 	}

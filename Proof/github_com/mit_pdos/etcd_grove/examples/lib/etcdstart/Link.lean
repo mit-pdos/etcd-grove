@@ -199,7 +199,7 @@ theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartMembers.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.StartMembers.wp_proof wp_StartMember
+  EtcdGrove.etcdstart.StartMembers.wp_proof wp_NewMember EtcdServer.wp_Start
 
 theorem wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartPeriodicServer.spec (GF := GF) (hG := hG) :=

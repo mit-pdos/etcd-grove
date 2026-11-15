@@ -39,7 +39,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev StartMembers.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (token : GoString) (msl : GoSlice) (lg : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (token : GoString) (snapCount catchUp : w64)
+    (msl : GoSlice) (lg : Loc)
     (xs : List (GMember × MemberG GF)) (ps : List w64) (bootLog : List EntryM)
     (ctxs : List (List w8)) (dir : w64 → List GoString)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
@@ -56,8 +57,9 @@ abbrev StartMembers.spec : Prop :=
       zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗ commonPremises ∗
       context.isClosedchanInit ∗
       [∗list] x ∈ xs, memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn lm x }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers))
-      (Val #msl)) (Val #token)) (Val #lg))
+    (App (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers))
+      (Val #msl)) (Val #token)) (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (ssl : GoSlice) (err : GoInterface), RET (PairV #ssl #err); threadTok ∗
       (⌜err ≠ GoInterface.nil⌝ ∨
         (⌜err = GoInterface.nil⌝ ∗ ∃ ss : List Loc, ssl ↦* ss ∗
