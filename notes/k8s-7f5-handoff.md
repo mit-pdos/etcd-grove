@@ -46,9 +46,26 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   and `PUT`) now translated with bodies (`Code/go_etcd_io/etcd/api/v3/mvccpb.toml`, `etc/goose.py --project
   etcd --perennial /shared/perennial-ddc0f0acc`): `parseEvent` calls it, and it was names-only. `PUT` was an
   axiom, now a def: check `tcb --check`. This rebuilds most of the tree.
-- **Step 3 files** (Spec + Proof each; proofs may hold `sorry` while in progress, check before commit):
-  `progressNotifyEvent`, `parseKV`, `parseEvent` (spec only so far), `isInitialEventsEndBookmarkRequired`,
-  `areInitialEventsRequired`.
+- **Step 3, proved** (`d801decb87`, Spec + Proof each, no `sorry`): `progressNotifyEvent`, `parseKV`,
+  `isInitialEventsEndBookmarkRequired`, `areInitialEventsRequired` (pattern: `featuresInit` → `featureGateOk`'s
+  `Enabled` triple, `watchListOn`'s gate agreed by `typedPointsto_agree_wand`; `cases sie`, `sendInitIs`
+  unfolded, `typedPointsto_not_null`; a byte-slice key to `storageKey`: `wp_bytes_to_string`).
+- **Next, in order:** (1) `parseEvent`: its spec is written, uncommitted, at
+  `Spec/k8s_io/apiserver/pkg/storage/etcd3/parseEvent.lean` (pre: the cache's `EtcdGrove.eventAt p e`,
+  `eventIs e ev`, the `PrevKv` field, `prevKvOk o σ ev e.prevKv`; post: an owned `kEvIs σ x (.ev ev)`, or
+  `err ≠ nil ∧ e.prevKv = null ∧ ¬ v3rpc.evIsCreate ev` with `kFmtErr err`). Its callees need specs first:
+  `mvccpb.Event.IsCreate` and the four getters (`Event.GetType`, `Event.GetKv`, `KeyValue.GetCreateRevision`,
+  `KeyValue.GetModRevision`), one Spec/Proof pair each under `Spec/go_etcd_io/etcd/api/v3/mvccpb/` (now
+  translated); `time.Now` (`time.wp_Now`), `fmt.Errorf` (`fmt_args_ok`; `%q` of the key string, `%d` of
+  the int64, `%s` of `Event_EventType.String()` reached through the pointer method rule on the field's address,
+  T5-f's axiom). (2) The rest of the step-3 list (Draft §6): `decodeObj`, `prepareObjs`,
+  `transformIfCorruptObjectError`, `filter`, `acceptAll`, `transform`, `isCancelError`, `logWatchChannelErr`,
+  `interpretWatchError`, `transformErrorToEvent`, `newBlockLogger`, `recordWait`,
+  `getStartWatchResourceVersion`, `WatchInitialized`, `watchContext`. Then steps 4, 5 (stop before 6).
+- Checks owed before any land: `etc/gen-init.py --check` (mvccpb's translation changed; its initializer did
+  not), `etc/goose.py --check`, full build (the mvccpb change rebuilds most of the tree: a lean-check of one
+  leaf took 22 min the first time), `tcb --check` (`PUT` went from an axiom to a definition).
+- The Draft's header still describes the moved vocabulary; fix it when the triple moves to `Spec/`.
 
 ## START HERE (2026-11-15, tenth 7f-5 agent, final): M1 LANDED (lean `2dbf6503cc`); 7f-5a-P steps 1-2a done
 
