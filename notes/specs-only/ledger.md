@@ -1967,3 +1967,37 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
 - **Change (made).** As listed; `Create` registers before it names. No client-facing spec changed.
 - **Decision.** The coordinator's (decisions 1 and 2 of session 3); made, every importer rebuilt, both `sorry`s
   proved.
+
+## 2026-11-15: the conf-state half of "canonical contents only (P5)" above -- withdrawn: the restarted server's `ep.confState` has `AutoLeave` set
+
+- **Spec.** The entry above (`WAL.SaveSnapshot.spec`'s `walSnapAt`/`walCsCanon`), and the SpecPlan's
+  `confStateFull` for `ep.confState` (`ApiApply.lean`'s `applyThread`, `raftNode__ApplyConfChange`,
+  `EtcdServer__createMergedSnapshotMessage`, `EtcdServer__snapshot`).
+- **Defect.** None: the reported one does not exist. `buildConfStateFromV3store`'s `ConfState` (`AutoLeave` nil)
+  reaches the apply thread only through the `MemoryStorage`: `bwal.MemoryStorage()` → `ApplySnapshot`
+  (`EnsureSnapshot`, then `proto.Clone`), and `run`'s `ep.confState` is `raftStorage.Snapshot()`'s
+  (`EnsureSnapshot` again, a clone). `CreateSnapshot` clones it, so `SaveSnap` hands the WAL a full conf state.
+- **Evidence.** `bootstrap.go:107-115, 571, 741-753`; raft `storage.go:119-126, 208-214, 218-237, 243-262`;
+  `server.go:755, 803-809, 1175, 2053, 2132`. Measured against the pinned raft (`565c2bd`): bootstrap's `cs`
+  has `AutoLeave` nil, `MemoryStorage.Snapshot()`'s and `CreateSnapshot`'s have it set
+  (`notes/wal-units/autoleave.md`).
+- **Proposed change.** None to the specs. P5 stays for entries only. The user's decision of 2026-11-15
+  (generalize, do not insist on `AutoLeave`) was taken on the false reading: reopened as options in
+  `notes/wal-units/autoleave.md` (recommended: keep the specs).
+- **Decision.** Proposed (unit `autoleave`).
+
+## 2026-11-15: `applyInit_ep.spec` (`SpecPlan/.../etcdserver/ApiApply.lean:724`) -- `ep.confState` from nowhere
+
+- **Spec.** `applyInit_ep.spec`: `applyInit s γ p c ∗ ep's five fields ↦ … ∗ ep.confState ↦ cs ⊢ |==> applyThread s γ ep p`.
+- **Defect.** Unprovable: `applyThread`'s realization holds `ep.confState` as a `RaftPb.confStateFull` listing the
+  configuration at the consistent index (`confAt γ.raft ci m`), but `cs` is arbitrary and nothing is given about
+  it. `run` has the `MemoryStorage` snapshot's `snapshotPts` (step 1) and drops it (step 5).
+- **Evidence.** `ApiApply.lean:51, 97, 724-732`; `EtcdServer__run.lean` steps 1 and 5; Go `server.go:755, 803-809`.
+  That the snapshot's conf state lists the configuration at `c` is bootstrap's doing (rebuilt from the backend,
+  at `c`; `bootstrap.go:107-115`), which no SpecPlan statement carries to `run`.
+- **Proposed change.** `applyInit_ep` also takes the conf state's holding, `RaftPb.confStateFull cs dq csm`
+  (from `MemoryStorage.Snapshot`'s `snapshotPts` by `snapshotPts_unfold`), and a tie of `csm` to the configuration
+  at `c`: either `applyInit` gains the membership (`applyInit s γ p c m`, with `⌜csm.Is m⌝` here; `start`'s
+  `srvRunTok_intro` and `NewServer` supply `m` from bootstrap), or `applyInit` holds the `MemoryStorage`
+  snapshot's model and the law takes `snapshotPts` itself. For batch 2d/2e's owners.
+- **Decision.** Proposed (unit `autoleave`, found while answering where `ep.confState` comes from).
