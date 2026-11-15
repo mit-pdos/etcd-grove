@@ -232,7 +232,7 @@ LEAN_FIRST = {
     "--server": ("link-lean-first-server.txt",
                  "go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage "
                  "go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 "
-                 "go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
+                 "_root_.Perennial.go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
                  "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
                  "The etcd server's proofs (the consistent index and the apply thread)",
                  [""]),
@@ -269,7 +269,7 @@ LEAN_FIRST = {
     # the server's apply package (etcd's server/v3/etcdserver/apply), over the txn package
     "--apply": ("link-lean-first-apply.txt",
                 "go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.server.v3.etcdserver.txn "
-                "go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3 "
+                "go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3 "
                 "go_uber_org",
                 "go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions",
                 "The server's `apply` package's proofs (etcd's `server/v3/etcdserver/apply`) and the "
@@ -278,7 +278,7 @@ LEAN_FIRST = {
     # path; its assumptions include the server's
     "--v3rpc": ("link-lean-first-v3rpc.txt",
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver "
-                "go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3",
+                "go_etcd_io.etcd.api.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3",
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions",
                 "The gRPC KV service's proofs (etcd's `server/v3/etcdserver/api/v3rpc`) and the "
                 "functions they call", [""]),
