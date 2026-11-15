@@ -43,9 +43,9 @@ theorem walsOk_segs_size {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     cases e : s.wal !! dir with
     | none => rw [h.2.1 dir e] at hl; cases hl
     | some d => exact ⟨d, rfl⟩
-  obtain ⟨lay', nm, hj, hl', -, -, -, -, habs, -⟩ := h.1 dir d hd
+  obtain ⟨lay', nm, hj, hl', -, -, -, -, -, ⟨⟨e0, hF⟩, -⟩⟩ := h.1 dir d hd
   rw [hl] at hl'; cases hl'
-  exact (habs.metas g hg').1
+  exact (hF.metas g hg').1
 
 theorem filter_del_cons (l L : List Ino) (i : Ino) :
     (l.filter (· ≠ i)).filter (fun x => decide (x ∉ L)) = l.filter (fun x => decide (x ∉ i :: L)) := by

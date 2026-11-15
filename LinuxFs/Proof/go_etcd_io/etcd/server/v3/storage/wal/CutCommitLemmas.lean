@@ -66,7 +66,7 @@ theorem walsOk_dir_ne {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
   have : g.ino ∈ lay'.segs.map (·.ino) := by
     rw [← hn2, hn1]; exact List.mem_map_of_mem hg
   obtain ⟨g', hg', e⟩ := List.mem_map.1 this
-  exact ((segsAll_nodup_iff Ls).1 hW.2.2.1).2 dir dir' lay lay' (Ne.symm hne) hl hl' g hg g' hg' e.symm
+  exact segsAll_nodup_ne hW.2.2.1 (Ne.symm hne) hl hl' hg hg' e.symm
 
 /-- The segments named below the last one's name. -/
 theorem pairwise_last_name {segs : List SegG} {g0 : SegG}
@@ -138,6 +138,28 @@ theorem dirsOk_cut {R : Roots} {s : AbsDiskState} {cl : List Claim} {n : Nat} {j
     exact ⟨J, lookupH_treeDel hJ⟩
   · exact hdo dd hdd m' hr'
 
+/-- `SegsNamedC` with removed segments put in front: `.wal` names whose files no crash lists (their
+inodes not the named segments'). -/
+theorem segsNamedC_pg {pg segs : List SegG} {ents : Ents} (h : SegsNamedC segs ents)
+    (hw : ∀ g ∈ pg, walNameP g.name = true) (hni : ∀ g ∈ pg, g.ino ∉ segs.map (·.ino)) :
+    SegsNamedC (pg ++ segs) ents := by
+  refine ⟨fun g hg => ?_, h.2.1, fun i hi => ?_⟩
+  · rcases List.mem_append.1 hg with hp | hs
+    · exact ⟨hw g hp, fun hi => absurd (h.2.2 _ hi) (hni g hp)⟩
+    · exact h.1 g hs
+  · rw [List.map_append]; exact List.mem_append_right _ (h.2.2 i hi)
+
+/-- The removed segments' names are `.wal` names (the full layout's sequence names). -/
+theorem pg_walNameP {C : WalCodec} {Mr : WalMarshal} {dF : WalDur} {lay : WalLay} {e0 : Ents}
+    (hF : WalAbsD C Mr dF (unpurge lay.pg lay) e0) : ∀ g ∈ lay.pg, walNameP g.name = true := by
+  intro g hg
+  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hg
+  obtain ⟨ix, hix⟩ := hF.seqName k lay.pg[k]
+    (by simp only [unpurge_segs]; rw [List.getElem?_append_left hk]; exact List.getElem?_eq_getElem hk)
+  rw [hix]; unfold walNameP walFileName
+  simp only [decide_eq_true_eq]
+  exact List.suffix_append _ _
+
 /-- **The segments at their names after the commit**: the cut WAL's, its new segment at `bt` in the
 new claim, and after a crash either as the new claim has them (the rename kept) or as before, the
 new segment's file at no `.wal` name (dropped: `SegsNamedC`'s last clause); the others' as before
@@ -192,11 +214,23 @@ theorem walsNamed_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
         rw [he.2.2]; exact hsn'
       · exact absurd (except_mem_wal hX') (hexcl _ hm' hne rfl _ walNameP_wal)
     · obtain ⟨K, hK⟩ := (regionCrashed_iff _ _ _).1 hr
-      show SegsNamedC (lay.segs ++ [g]) (entsOf m' lay.j)
+      show SegsNamedC (lay.pg ++ (lay.segs ++ [g])) (entsOf m' lay.j)
+      obtain ⟨lay0, -, -, hl0, -, -, -, -, -, ⟨⟨e0, hF⟩, -⟩⟩ := hW.1 dir' d hd
+      rw [hl] at hl0; cases hl0
+      have hpgw := pg_walNameP hF
+      have hpgi : ∀ g' ∈ lay.pg, g'.ino ∉ (lay.segs ++ [g]).map (·.ino) := by
+        intro g' hg' hi
+        rw [List.map_append] at hi
+        rcases List.mem_append.1 hi with hi | hi
+        · have h := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+          rw [List.map_append] at h
+          exact (List.nodup_append.1 h).2.2 _ (List.mem_map_of_mem hg') _ hi rfl
+        · simp only [List.map_cons, List.map_nil, List.mem_singleton] at hi
+          exact hino g' (mem_segsAll_pg hl hg') hi
       by_cases hx : K x
       · obtain ⟨hold, -⟩ := regionCrashedK_kept cl n m' K lay.j _ hj x e _ bt hK hx hcl hcoh hs hbt
           hcur hothers
-        refine segsNamedC_congr_ents (fun b hb => ?_) (hsn'.crash (fun i hi => ?_))
+        refine segsNamedC_pg (segsNamedC_congr_ents (fun b hb => ?_) (hsn'.crash (fun i hi => ?_))) hpgw hpgi
         · have hbX : (NameSet.except X).Mem b := fun h => by rw [hX b h] at hb; cases hb
           rw [entsOf_entry, hK.2.2 _ (mem_replClaim_new hcl) b hbX]
           refine (hcoh'.2 K (fun xe hxe => ?_) b hbX).symm
@@ -211,14 +245,19 @@ theorem walsNamed_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
         obtain ⟨h1, h2, h3⟩ := (hNm dir' lay hl).2 m' hr'
         refine ⟨fun g' hg' => ?_, h2, fun i hi => ?_⟩
         · rcases List.mem_append.1 hg' with hg' | hg'
-          · exact h1 g' hg'
+          · exact h1 g' (List.mem_append_left _ hg')
+          rcases List.mem_append.1 hg' with hg' | hg'
+          · exact h1 g' (List.mem_append_right _ hg')
           · simp only [List.mem_singleton] at hg'
             rw [hg']
             refine ⟨hgname ▸ hbtw, fun hi => ?_⟩
             obtain ⟨g'', hg'', e''⟩ := List.mem_map.1 (h3 _ hi)
-            exact absurd e'' (hino g'' (mem_segsAll hl hg''))
+            exact absurd e'' (hino g'' (mem_segsAll_all hl hg''))
         · obtain ⟨g'', hg'', rfl⟩ := List.mem_map.1 (h3 i hi)
-          exact List.mem_map.2 ⟨g'', List.mem_append_left _ hg'', rfl⟩
+          refine List.mem_map.2 ⟨g'', ?_, rfl⟩
+          rcases List.mem_append.1 hg'' with hg'' | hg''
+          · exact List.mem_append_left _ hg''
+          · exact List.mem_append_right _ (List.mem_append_left _ hg'')
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
     have hjne : lay'.j ≠ lay.j := walsOk_dir_ne hW hexcl hd hl rfl hdd hl'
     obtain ⟨h1, h2⟩ := hNm dir' lay' hl'
@@ -322,9 +361,10 @@ theorem dirKeysOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl''
     obtain ⟨la, -, -, hla, -, hjr', -, -, -, -⟩ := hW.1 dir' d' hd'
     rw [hl''] at hla; cases hla
+    have hjne := walsOk_dir_ne hW hexcl hd hl rfl hdd hl''
+    have hjrne : lay''.jr ≠ lay.j := by rw [hjr']; exact Ne.symm hjjr
     exact crashOkA_cut_other (hDK.2.1 dir' d' lay'' hd' hl'' (fun h => by cases h))
-      (fun _ h => by cases h) (walsOk_dir_ne hW hexcl hd hl rfl hdd hl'')
-      (by rw [hjr']; exact Ne.symm hjjr) hcl hcoh hs hbt hcur hothers
+      (fun _ h => by cases h) hjne hjrne hcl hcoh hs hbt hcur hothers
 
 end pure
 

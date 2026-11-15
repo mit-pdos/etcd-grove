@@ -86,18 +86,19 @@ theorem walsOk_append {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (hZ : TailZeros lay)
     (hfit : RecsFit C (recsOfSegs C Mr d.metadata
       (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts)))
-    (hok : CrashOk C Mr d lay cl n) :
+    (hok : CrashOk C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n) :
     WalsOk C Mr R jr (walAppS s dir d o) Ls cl n := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hW
   refine ⟨fun dir' d' hd' => ?_, fun dir' hn => ?_, h3, h4, fun dir' nm hin hn => ?_, h6⟩
   · by_cases e : dir' = dir
     · subst e
       rw [walAppS_lookup] at hd'; cases hd'
-      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, -⟩ := h1 dir' d hd
+      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, ⟨⟨e0, hF⟩, -⟩⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       subst e
       exact ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, walAbsD_snoc o habs (fun _ => hZ) hfit,
-        crashOkW_of_crashOk (crashOk_snoc o hok)⟩
+        ⟨e0, walAbsD_snoc (d := walFullD d lay1.pg lay1) o hF (fun _ => hZ) hfit⟩,
+        crashOkW_of_crashOk (crashOk_snoc (d := walFullD d lay1.pg lay1) o hok)⟩
     · rw [walAppS_lookup_ne s dir d o e] at hd'
       exact h1 dir' d' hd'
   · have e : dir' ≠ dir := by rintro rfl; rw [walAppS_lookup] at hn; cases hn
@@ -119,7 +120,7 @@ theorem dirKeysOk_append {C : WalCodec} {Mr : WalMarshal} {jr : Ino}
   by_cases e : dir' = dir
   · subst e
     rw [walAppS_lookup] at hd'; cases hd'
-    exact crashOkA_snoc o (h2 dir' d lay' hd hl' hc)
+    exact crashOkA_snoc (d := walFullD d lay'.pg lay') o (h2 dir' d lay' hd hl' hc)
   · rw [walAppS_lookup_ne s dir d o e] at hd'
     exact h2 dir' d' lay' hd' hl' hc
 
