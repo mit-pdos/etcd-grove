@@ -2079,7 +2079,12 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   arm gives nothing, and the spec is itself unproved (`walReadFailedF` is a stub).
 - **Proposed change.** `Close.specFailed`'s error arm gives those resources (a `walCloseLeft`); with it, the server's
   restart (C6) composes `Close.specFailed` and `Repair.specHeld` on this path.
-- **Decision.** Proposed.
+- **Decision.** Made (unit `locks`, session 3; the coordinator's approval, internal): the post is
+  `(walUnlockedTok ∗ osCallPerm ½) ∨ (⌜err ≠ nil⌝ ∗ walCloseLeft R dir)` (`CloseLeft.lean`: the shared invariant
+  and a path to `dir`, the claim's half at the layout's names with `Repair.specHeld`'s facts, the last segment's
+  lock and `lockKind`, the call permission's half); the composition `wal.Repair.wp_afterCloseFailed`
+  (`CloseFailedRepair.lean`, proved over `Repair.specHeld`). The tester's `restartRead` drops the new resources.
+  `Close.specFailed` itself is still unproved (`walReadFailedF` a stub).
 
 ## 2026-11-15: the no-error WAL specs (unit `noioerr`, second session) -- `EFBIG` at `maxBytes` needs room
 
