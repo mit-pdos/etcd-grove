@@ -403,7 +403,7 @@ def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) : IProp GF :=
   letI := walAllG (W := W)
   iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
-    fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗
+    fdLocksW fd ⟨i, rd, true, lo, lk⟩) ∗
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
@@ -437,6 +437,65 @@ def walLockH (lf : Loc) (np : GoString → Prop := walSegName) : IProp GF :=
     fileutil.lockedFile lf f ∗ os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗
       fdLocks fd d ∗ ⌜np nm⌝)
 
+/-- **A non-tail lock, on the segment named `bn` of inode `i`** (unit `locks`, session 5): `walLockH`
+with the file's name `child pd bn` (Go's `f.Name()`, the path the segment was opened at; `bn` its base
+name, the directory's entry), the description on `i`, and an exclusive lock held (`LockFile`/`TryLockFile`'s
+success, `lkFd_lk`): what the purge law needs (`fdLocks_excl`). -/
+def walLockHI (lf : Loc) (bn : GoString) (i : Ino) : IProp GF :=
+  iprop(∃ (f : Loc) (fd : w64) (pd : GoString) (d : OsFd),
+    fileutil.lockedFile lf f ∗ os.ownFile f fd (child pd bn) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗
+      fdLocks fd d ∗ ⌜walSegName (child pd bn) ∧ d.ino = i ∧ ∃ k, d.lk k = some true⌝)
+
+theorem walLockHI_H (lf : Loc) (bn : GoString) (i : Ino) : walLockHI (GF := GF) lf bn i ⊢ walLockH lf := by
+  unfold walLockHI walLockH
+  iintro ⟨%f, %fd, %pd, %d, Hl, Hf, Hfd, Hk, %h⟩
+  iexists f, fd, child pd bn, d
+  iframe Hl Hf Hfd Hk
+  ipureintro; exact h.1
+
+theorem walLocksHI_H (lfs : List Loc) (ls : List (GoString × Ino)) :
+    ([∗list] lf; l ∈ lfs; ls, walLockHI (GF := GF) lf l.1 l.2) ⊢ [∗list] lf ∈ lfs, walLockH (GF := GF) lf := by
+  induction lfs generalizing ls with
+  | nil =>
+    iintro -
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    iempintro
+  | cons x xs ih =>
+    cases ls with
+    | nil =>
+      iintro H
+      ihave %h := BigSepL2.bigSepL2_length $$ H
+      simp at h
+    | cons l ls =>
+      iintro ⟨Hx, Hxs⟩
+      iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+      isplitl [Hx]
+      · iapply walLockHI_H $$ Hx
+      · iapply ih $$ Hxs
+
+/-- **The handle's locked range** (unit `locks`, session 5; the handle's half of the tie, the invariant's
+being `walLksAuth`'s `b ≤ unl`): over the directory's names `hj`, the cuts, the tail's `.wal` name `nm0`, the
+non-tail locks' base names and inodes `ls` (oldest first) and the registered position `b`: the locked
+segments are the last ones by sequence (the tail's sequence is the number of cuts, the non-tail locks' the
+`|ls|` before it, each lock's name at its inode), every other `.wal` name has a smaller sequence, and the first
+locked segment starts at or before `b` (so every segment not locked ends at or before `b`). -/
+def LkRel (hj : NamesH) (cuts : List Nat) (nm0 : GoString) (ls : List (GoString × Ino)) (b : Nat) : Prop :=
+  ls.length ≤ cuts.length ∧ cuts.length < 2 ^ 64 ∧ (∃ ix, nm0 = walFileName cuts.length ix) ∧
+  (∀ k l, ls[k]? = some l → hj.cur !! l.1 = some (.file l.2) ∧
+    ∃ ix, l.1 = walFileName (cuts.length - ls.length + k) ix) ∧
+  (∀ nm n, hj.cur !! nm = some n → walNameP nm = true → nm ≠ nm0 → nm ∉ ls.map (·.1) →
+    ∃ sq ix, nm = walFileName sq ix ∧ sq < cuts.length - ls.length) ∧
+  segStart cuts (cuts.length - ls.length) ≤ b
+
+/-- **The handle's locks and its registered range** (in `walDirH`): the lock holder's half of the tails'
+authority with `dir`'s tail registered (`γt`) and its locked range registered (`b`), the non-tail locks
+(`lfs`, `walLockHI`), and `LkRel`. -/
+def walDirLks (dir : GoString) (hj : NamesH) (nm0 : GoString) (lfs : List Loc) (cuts : List Nat) :
+    IProp GF :=
+  iprop(∃ (γt : GName) (b : Nat) (ls : List (GoString × Ino)),
+    walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
+    ([∗list] lf; l ∈ lfs; ls, walLockHI lf l.1 l.2) ∗ ⌜LkRel hj cuts nm0 ls b⌝)
+
 /-- **The handle's share of its WAL directory `j`** (W2's `cut`, its rename; the directory-claim map,
 `notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the
 invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's half of that claim
@@ -462,13 +521,14 @@ W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they retu
 `nmd` is the naming fact, `walNamed dir` by default; `emp` in the handle before naming
 (`walOpenWFU`: `Create` between its commit and the parent's fsync). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+    (lfs : List Loc) (cuts : List Nat)
     (nmd : Roots → Qp → IProp GF := fun _ _ => walNamed (W := W) dir) (nf : Option GoString := none) :
     IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗ osDirFdS dfd j ph ∗
     nmd R q ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
-    (∃ γt : GName, walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))) ∗
+    walDirLks (W := W) dir hj nm0 lfs cuts ∗
     walNamesFrag (W := W) nf ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∃ pd, name = child pd nm0) ∧
       (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
@@ -511,10 +571,10 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc (nmd f) nf ∗
+    walDirH (W := W) dir j dfd h.ino name h.pc lfs.dropLast h.cuts (nmd f) nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
-    ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
+    (True : IProp GF) ∗
     fileutil.lockedFile lt f ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc pp ∗
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗

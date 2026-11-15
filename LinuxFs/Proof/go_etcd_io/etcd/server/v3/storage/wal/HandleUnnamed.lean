@@ -59,10 +59,10 @@ theorem walOpenWFU_intro (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
 /-- **The directory share's names fragment out**, and back (another one) with the naming fact changed
 along a wand. -/
 theorem walDirH_split (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
-    (A B : Roots → Qp → IProp GF) (nf : Option GoString) :
-    ⊢ walDirH (W := W) dir j dfd ino name k A nf -∗
+    (lfs : List Loc) (cuts : List Nat) (A B : Roots → Qp → IProp GF) (nf : Option GoString) :
+    ⊢ walDirH (W := W) dir j dfd ino name k lfs cuts A nf -∗
       walNamesFrag (W := W) nf ∗ ∀ nf' : Option GoString, walNamesFrag (W := W) nf' -∗
-        (∀ R q, A R q -∗ B R q) -∗ walDirH (W := W) dir j dfd ino name k B nf' := by
+        (∀ R q, A R q -∗ B R q) -∗ walDirH (W := W) dir j dfd ino name k lfs cuts B nf' := by
   iintro Hd
   unfold walDirH
   icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩
@@ -96,7 +96,7 @@ theorem walHandleIn_split (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, H20, H21,
     H22, H23, H24, H25, H26, Hpipe, Hr⟩
-  icases walDirH_split dir j dfd h.ino name h.pc (A f) (B f) nf $$ Hd with ⟨Hnf, Hd⟩
+  icases walDirH_split dir j dfd h.ino name h.pc lfs.dropLast h.cuts (A f) (B f) nf $$ Hd with ⟨Hnf, Hd⟩
   iframe Hnf
   iintro %nf' Hnf' Hw
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc

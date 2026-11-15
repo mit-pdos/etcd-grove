@@ -126,7 +126,8 @@ half of the tails' authority with `dir ↦ γ`, the tail's key, and the program'
 `t`. -/
 def walTailReg (dir : GoString) (t : TailG) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ γ : GName, walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
+  iprop(∃ γ : GName, walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName))
+      (<[dir := 0]> (∅ : GMap GoString Nat)) ∗
     walTailKey (W := W) dir γ ∗ ghostVar γ (1 : Qp).half t)
 
 /-- **What `Create` gets from the rename's update**: with no effect, what it held; after the commit,
@@ -455,6 +456,9 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           by rw [hsegs]; rfl, hZ0, hTB⟩ $$ Htl Htf with ⟨%γt, Htl, Htf, Htk, Htv⟩
       have hdF : (GMap.delete g.ino F) !! g.ino = none := GMap.lookup_delete_eq _ _
       isimp only [hdF] at Htv
+      -- the new WAL's locked range registered at 0 (unit `locks`, session 5)
+      imod walGhost_lksSet (createSt s dir md) _ ∅ (<[dir := 0]> ∅)
+        (LksOk.single (d := walDurFresh md) (by simp [createSt]) (Nat.zero_le _)) $$ Hg Htf with ⟨Hg, Htf⟩
       imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp Hnms]
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,

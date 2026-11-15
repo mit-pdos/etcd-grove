@@ -1292,6 +1292,36 @@ theorem walArea_ghost (s : AbsDiskState) (r : GoString) :
   icases walPast_ghost_le $$ Hc Hp with %Hle
   ipureintro; rw [Hle.1, hp]
 
+/-- **Setting the locked ranges, from `walGhost`** (`walLks_set` with the invariant's half out of
+`walGhost`). -/
+theorem walGhost_lksSet (s : AbsDiskState) (T : GMap GoString GName) (Lk Lk' : GMap GoString Nat)
+    (h : LksOk s Lk') :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walTailsFrag (W := W) T Lk ==∗
+      walGhost (W := W) s ∗ walTailsFrag (W := W) T Lk' := by
+  unfold walGhost
+  iintro ⟨Hm, Hp, ⟨Hh, Hl⟩, Hk, Hs⟩ Hf
+  imod walLks_set s T Lk Lk' h $$ Hl Hf with ⟨Hl, Hf⟩
+  imodintro
+  iframe Hf Hm Hp Hh Hl Hk Hs
+
+/-- **The locked ranges agree, from `walGhost`.** -/
+theorem walGhost_lksAgree (s : AbsDiskState) (T : GMap GoString GName) (Lk : GMap GoString Nat) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walTailsFrag (W := W) T Lk -∗
+      ⌜LksOk s Lk⌝ ∗ walGhost (W := W) s ∗ walTailsFrag (W := W) T Lk := by
+  unfold walGhost
+  iintro ⟨Hm, Hp, ⟨Hh, Hl⟩, Hk, Hs⟩ Hf
+  icases walLks_agree s T Lk $$ Hl Hf with ⟨%h, Hl, Hf⟩
+  iframe Hf Hm Hp Hh Hl Hk Hs
+  ipureintro; exact h
+
+/-- One registered range, at most its WAL's `unl`. -/
+theorem LksOk.single {s : AbsDiskState} {dir : GoString} {d : WalDur} {b : Nat}
+    (hd : s.wal !! dir = some d) (hb : b ≤ d.unl) : LksOk s (<[dir := b]> (∅ : GMap GoString Nat)) := by
+  intro dir' b' h
+  by_cases e : dir' = dir
+  · subst e; rw [GMap.lookup_insert_eq] at h; cases h; exact ⟨d, hd, hb⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e), GMap.lookup_empty] at h; cases h
+
 theorem walGhost_keys (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ ⌜walKeysInArea s⌝ := by
   unfold walGhost

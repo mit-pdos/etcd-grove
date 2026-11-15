@@ -868,6 +868,7 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
       isplitr
       · ipureintro; intro h; cases h
       unfold tailWB
+      ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
       iexists rd, lo, lk
       iframe Hf Hfd Hlkt
     · ileft
@@ -936,6 +937,7 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
     isplitr
     · ipureintro; exact herr
     unfold tailWB
+    ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
     iexists rd, lo, lk
     iframe Hf Hfd Hlkt
 

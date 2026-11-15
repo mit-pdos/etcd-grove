@@ -50,6 +50,7 @@ public import LinuxFs.Spec.os.File__SyncS
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.LockRange
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleRoom
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutPipe
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
@@ -195,10 +196,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iexists lg, df, sp, e, fp, lt, f, mds, locks, ls ++ [lt], fd, dfd, name, dnm, j, rc
     rw [show WalHS.crc Mr { h with sz := h.o0 + h.out.length } = WalHS.crc Mr h from rfl]
     simp only
+    rw [List.dropLast_concat]
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
-    rw [List.dropLast_concat]
-    iframe Hlks
     ipureintro
     exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, hidx, hidx1⟩
   icases Hsy with (⟨%he, Hh, #Hsyn⟩ | %he)
@@ -864,7 +864,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iframe Hf3 Htk
     isplitl [Hfd3 Hlk3]
     · iexists false
-      iapply lkFd_open k3 g.ino (W64 1) fd3 false true rfl rfl
+      iapply lkFd_openW k3 g.ino (W64 1) fd3 false true rfl rfl
       iframe Hfd3 Hlk3 Hkind3
     isplitl [Hoff3]
     · rw [show ((L : Nat) : Int) + ((([] : List w8).length : Nat) : Int) = ((0 : Nat) : Int) + ((L : Nat) : Int)
@@ -876,26 +876,26 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     · ipureintro; exact ⟨hgmeta.1, htm, by omega, hfd3, htm.loWr _⟩
     iunfold tailVar at Hv
     iexact Hv
-  isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout Htf Hnf]
+  ihave Hlt0 := walLockHI_ofTail (W := W) lt f fd pd nm0 _ rd lo lk sq ix hnm0 $$ [Hltf Hf Hfdo Hlkto]
+  · iframe Hltf Hfdo Hlkto; rw [← hname]; iexact Hf
+  isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout Htf Hnf Hlt0]
   · iunfold walDirH
     iexists Rd, qd, X, (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)),
       bt, ph
     iframe Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed
     rw [walOut_cut]
-    iframe Hout Htf Hnf
+    iframe Hout Hnf
+    isplitl [Htf Hlt0]
+    · simp only [List.dropLast_concat]
+      iapply walDirLks_cut dir hj
+        (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)) nm0 bt ls lt
+        _ _ _ g.ino sq ix _ hnm0c hnm0 hsq hbt.symm rfl
+      iframe Htf Hlt0
     ipureintro
     exact ⟨hbtw, GMap.lookup_insert _ _ _, ⟨_, rfl⟩, htmps, hXw, ⟨sq + 1, _, hbt.symm, by omega⟩,
       cutDir_largest g.ino hlargest hlt⟩
   isplitr
   · ipureintro; simp
-  isplitl [Hlks Hf Hfdo Hlkto]
-  · simp only [List.dropLast_concat]
-    iapply (BigSepL.bigSepL_snoc (Φ := fun _ lf => walLockH lf)).2
-    iframe Hlks
-    iunfold walLockH
-    iexists f, fd, name, ⟨h1.ino, rd, true, lo, lk⟩
-    iframe Hltf Hf Hfdo Hlkto
-    ipureintro; exact ⟨pd, sq, ix, by rw [hname, hnm0]⟩
   isplitl [Hmain Htm1 Htm2]
   · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp hfpn
     iframe Hisfp Hmain
