@@ -48,9 +48,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proof
-    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG) := by
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proofNE
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specGNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.specNE (GF := GF) (hG := hG) := by
   intro w e wi W B ok out pend c prev hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, Hwe, He, Hout⟩
@@ -73,6 +73,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proof
   iapply HΦ
   iexists pend'
   iframe Hwe He Hr
+
+/-- `saveCrc.spec`: `specNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proof
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specGNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG) := by
+  intro w e wi W B ok out pend c prev hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.wp_proofNE wp_encode w e wi W B ok out pend
+    c prev hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
 
 end proof
 

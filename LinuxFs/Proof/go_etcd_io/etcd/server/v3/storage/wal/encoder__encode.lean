@@ -45,7 +45,7 @@ theorem enc_ok_frame {ok : List w8 → Prop} (out pend : List w8) (x : WalRec)
       (recEnc (recOf x) ++ List.replicate (framePad (recEnc (recOf x)).length) (0#8))) := by
   simpa only [WalEnc.frame, walRecEnc, List.append_assoc] using h
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofG
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
     (wp_CrcWrite : go_etcd_io.etcd.pkg.v3.crc.digest.Write.spec (GF := GF) (hG := hG))
@@ -54,8 +54,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofG
     (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG))
     (wp_MarshalAppend : proto.MarshalAppendCachedRecord.spec (GF := GF) (hG := hG))
     (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
-    (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG) := by
+    (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specGNE (GF := GF) (hG := hG) := by
   intro e wi W B ok out pend c rp t d hsz hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout, Hr⟩
@@ -281,6 +281,26 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofG
       simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
       exact Hr
 
+/-- `encode.specG`: `specGNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofG
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_CrcWrite : go_etcd_io.etcd.pkg.v3.crc.digest.Write.spec (GF := GF) (hG := hG))
+    (wp_Sum32 : go_etcd_io.etcd.pkg.v3.crc.digest.Sum32.spec (GF := GF) (hG := hG))
+    (wp_Size : proto.SizePb.spec (GF := GF) (hG := hG))
+    (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG))
+    (wp_MarshalAppend : proto.MarshalAppendCachedRecord.spec (GF := GF) (hG := hG))
+    (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
+    (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG) := by
+  intro e wi W B ok out pend c rp t d hsz hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE wp_Lock wp_Unlock
+    wp_CrcWrite wp_Sum32 wp_Size wp_Marshal wp_MarshalAppend wp_pad wp_write
+    e wi W B ok out pend c rp t d hsz hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
+
 /-- `encode` over a length-bounded stream: `specG`'s instance (`io.writerStream_P`). -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
@@ -291,7 +311,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG))
     (wp_MarshalAppend : proto.MarshalAppendCachedRecord.spec (GF := GF) (hG := hG))
     (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
-    (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG)) :
+    (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.specNE (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG) := by
   intro e wi W B lim out pend c rp t d hsz hlim
   iintro #Hw
