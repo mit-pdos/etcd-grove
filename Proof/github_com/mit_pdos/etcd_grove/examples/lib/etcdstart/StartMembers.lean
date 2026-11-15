@@ -33,19 +33,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
 
-theorem drop_cons_of_getElem? {α : Type _} (l : List α) (n : Nat) (x : α) (h : l[n]? = some x) :
-    l.drop n = x :: l.drop (n + 1) := by
-  obtain ⟨hn, rfl⟩ := List.getElem?_eq_some_iff.1 h
-  exact List.drop_eq_getElem_cons hn
-
-theorem set_replicate_snoc {α : Type _} (l : List α) (n : Nat) (z a : α) (h : l.length < n) :
-    (l ++ List.replicate (n - l.length) z).set l.length a =
-      (l ++ [a]) ++ List.replicate (n - (l.length + 1)) z := by
-  rw [List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.append_assoc]
-  obtain ⟨d, hd⟩ : ∃ d, n - l.length = d + 1 := ⟨n - l.length - 1, by omega⟩
-  rw [hd, show n - (l.length + 1) = d by omega, List.replicate_succ]
-  rfl
-
 theorem StartMembers.wp_proof (wp_StartMember : StartMember.spec (GF := GF) (hG := hG)) :
     StartMembers.spec (GF := GF) (hG := hG) := by
   intro CS N token msl lg xs ps bootLog ctxs dir Φs γn lm Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc

@@ -16,6 +16,7 @@ clusterN Scope, `notes/clusterN-scope.md`, 2026-11-15). Lean-first (no Rocq coun
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.strconv.FormatUintDefs
 public import Proof.unicode.utf8.Valid
 
@@ -113,6 +114,19 @@ theorem take_succ_names (ms : List GMember) (j : Nat) (m : GMember) (h : ms[j]? 
     n ∈ (ms.take (j + 1)).map (·.Name') ↔ n ∈ (ms.take j).map (·.Name') ∨ n = m.Name' := by
   rw [List.take_succ, h]
   simp [or_comm, eq_comm]
+
+theorem drop_cons_of_getElem? {α : Type _} (l : List α) (n : Nat) (x : α) (h : l[n]? = some x) :
+    l.drop n = x :: l.drop (n + 1) := by
+  obtain ⟨hn, rfl⟩ := List.getElem?_eq_some_iff.1 h
+  exact List.drop_eq_getElem_cons hn
+
+theorem set_replicate_snoc {α : Type _} (l : List α) (n : Nat) (z a : α) (h : l.length < n) :
+    (l ++ List.replicate (n - l.length) z).set l.length a =
+      (l ++ [a]) ++ List.replicate (n - (l.length + 1)) z := by
+  rw [List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.append_assoc]
+  obtain ⟨d, hd⟩ : ∃ d, n - l.length = d + 1 := ⟨n - l.length - 1, by omega⟩
+  rw [hd, show n - (l.length + 1) = d by omega, List.replicate_succ]
+  rfl
 
 /-! ## Decimal digits -/
 
@@ -277,6 +291,16 @@ theorem memberUp_tok (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
   iexists E, cfg, γw
   iframe
   ipureintro; exact HEc
+
+/-- **What `StartMembers` takes per member** (`StartMember`'s resources): `bootstrap`'s contract
+at the member's name, URLs and id, its `memberBoot`, its network's HTTP side and its fresh bundle. -/
+def memberPre (N : Nat) (token : GoString) (ms : List GMember) (ps : List w64)
+    (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
+    (x : GMember × MemberG GF) : IProp GF :=
+  iprop(bootPremise N ps bootLog ctxs dir token x.1.Name' (urlsN ms x.1) x.2.id ∗
+    memberBoot x.2.γ ctxs x.2.ρ x.2.E Φs x.2.id (m := lm) ∗ netHttpOk γn x.2.id ∗
+    memberFreshRes x.1.Name' ⟨some x.1.Peer', none⟩ γn)
 
 end defs
 
