@@ -27,6 +27,29 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, eleventh 7f-5 agent): 7f-5a-P step 2 done, step 3 started
+
+- **Step 2 rest** (`601ff6080f`, `WatchDefs.lean` §"Along one history"): `kvSameHist_changesAt`/`_revEvents`,
+  `kRangeEvsL_hist`/`_mem`, `kRawRevOk` (an etcd event's mod revision ≤ the state's: `transform` reads the
+  same at a longer state, `kRawToEv_hist`, `kRawToEv_filterMap_hist`), `kRawTail_hist`, `kRawIdealL_hist`,
+  `kRawStreamRel_hist` (any relation), `kRawStreamSub_revOk`, `kRawStreamOk_sub`, prefix closure
+  (`kRawStreamOk_prefix`, `kRawStreamSub_prefix`, `kRawStreamSub_sublist`), **segments** `KRawSeg σ inS c c' s`
+  (the raw events between two cursors: `kRawSeg_tail`, `_append`, `_chg1` (a response's events),
+  `_bm1` (a progress notification), `_hist`, `_le`), `inRange_scope` (the client range is `kInScope`;
+  needs a non-empty key when recursive), `rangeEvents_scope`. The initial events from pages: use
+  `ListPages.lean`'s `fromL`/`fromL_next`/`fromL_kp` in step 5 (syncPaginated's pages are `pageOp`'s up
+  to the option order).
+- **The Draft's §2/§4 vocabulary moved to `WatchDefs.lean`** (namespace `k8s`; the Draft keeps only the
+  triple). `eventAt σ p r := ∃ ev, p ↦□ ev ∗ kEvIs σ ev r` (`kEvIs` the old match, so leaf specs hand an
+  owned `p ↦ ev ∗ kEvIs σ ev r`). New `kFmtErr err` (what `fmt.Errorf` gives).
+- **Translation:** `Event.IsCreate` (mvccpb, with `GetType`/`GetKv`/`GetCreateRevision`/`GetModRevision`
+  and `PUT`) now translated with bodies (`Code/go_etcd_io/etcd/api/v3/mvccpb.toml`, `etc/goose.py --project
+  etcd --perennial /shared/perennial-ddc0f0acc`): `parseEvent` calls it, and it was names-only. `PUT` was an
+  axiom, now a def: check `tcb --check`. This rebuilds most of the tree.
+- **Step 3 files** (Spec + Proof each; proofs may hold `sorry` while in progress, check before commit):
+  `progressNotifyEvent`, `parseKV`, `parseEvent` (spec only so far), `isInitialEventsEndBookmarkRequired`,
+  `areInitialEventsRequired`.
+
 ## START HERE (2026-11-15, tenth 7f-5 agent, final): M1 LANDED (lean `2dbf6503cc`); 7f-5a-P steps 1-2a done
 
 - M1 landed via `etc/land.sh` (lean `2dbf6503cc`, gates all passed, `/shared/tmp/k8s7f5a-p/land.log`).
