@@ -35456,3 +35456,22 @@ semantics being added on `wal-c-locks`). In Iris, `FsStepSat (NoIoErr S)` with `
 **Open** (`notes/wal-units/noioerr.md`): the Iris specs so far take every inode covered; restricting to the
 WAL's files needs a data-step lifting that sees the tree. Recommended for the server's theorem: every
 inode of the roots' trees (the roots being the data directory), pending the user.
+
+## fsExt: file locks per open file description (2026-11-15 · the user's approval of the lock semantics in principle, and their decision on blocking locks · branch `wal-c-locks`)
+
+`fsExt` keeps, in each open file description (`OsFd`), its OFD lock (`ofd`) and its `flock` lock (`flk`);
+`LockStep` is the one rule of both calls; `close` and a crash release them (design, evidence, review list:
+`notes/wal-units/locks.md` §2-§4). The trusted change is approved in principle and pending the user's review
+of its text (`notes/wal-units/locks.md` §4).
+
+**Blocking locks may fail at any time** (the user, 2026-11-15): a blocking `F_OFD_SETLKW`/`flock` may return any
+errno with no change, even while another description holds the lock; no assumption that a waiting lock never
+fails is added. Consequence for etcd's boot path (`openWALFromSnapshot` ignores a failed `w.Close()` and calls
+`Repair`, whose `openLast` takes a blocking `LockFile` on the still-held last segment,
+`nonissues/etcd-bootstrap-repair-close-error-hang.md`): both outcomes are covered by partial correctness: no
+return while the lock is held, or an error, and `Repair` returns `false` (`wal.Repair.specHeld`,
+`openLast.specHeld`, proved over `fileutil.lockPost_held`).
+
+**`purgeRound` returns to the tester** (approved by the user with the lock semantics, "use that to prove the
+code that we can't yet reason about"): not done in unit `locks`, session 2; what it needs is in
+`notes/wal-units/locks.md`, session 2.

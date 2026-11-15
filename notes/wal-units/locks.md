@@ -246,3 +246,60 @@ an error or waits; a proof of the hang would need the [user] option.
 
 **Decisions left for the user**: the whole trusted change (§4); §2.4's blocking option. **No new
 axiom**, no `sorry`. **No Go bug found.**
+
+### Session 2 (2026-11-15)
+
+**1. The WAL repaired** (builds: the WAL `Link`, the tester's `Link`/`Main`/`Boot`, `durable`'s `Link`, after
+merging `origin/wal-int` at `ba70ab7e55`):
+- `LockLemmas.lean` (new): `fdKindOk d` (each exclusive lock `d` holds is of `fileutil`'s kind, persistent),
+  `fdLocks fd d := lockToks fd d ∗ fdKindOk d` (what every WAL file predicate holds with `osFd fd 1 d`),
+  `fdLocks_unlocked`/`fdLocks_openFd`/`fdLocks_toks`, `lkFd_eta`/`lkFd_ino`/`lkFd_lk`/`lkFd_toks`/`lkFd_locks`,
+  `lkFd_open` (a `LockFile`/`TryLockFile` success as a literal description with its `fdLocks`).
+- Descriptions as literals, not `lkFd` (whose projections are stuck on the kind): the tail
+  `∃ rd lo lk, osFd fd 1 ⟨i, rd, true, lo, lk⟩ ∗ fdLocks fd ⟨…⟩`; `openWALFiles`' segments `walSegFd write lo lk i
+  := ⟨i, true, write, lo, lk⟩` (read mode unlocked); `pipeFile`, `wp_createTmp`, `wp_createSeg`, `walLastOpen`
+  as `⟨i, _, true, lo, lk⟩` with `fdLocks`. `walFileS`, `wal.rcFile`, `walClosable`, `walLockH`, `walTieFile`,
+  `walFileAt` carry `fdLocks`. Every `Close` of a WAL file passes `fdLocks_toks`. The internal callee specs that
+  name such files changed with them (ledger, 2026-11-15, "the WAL's internal file predicates"); no client-facing
+  WAL spec changed.
+
+**2. The law** (`LinuxFs/Proof/.../fileutil/LockKind.lean`): `fileutil.lockKind_agree : lockKind k1 ∗ lockKind
+k2 ⊢ ⌜k1 = k2⌝`, proved: the persistent points-tos agree, and `fileutil.lockFn_inj` (the two lock functions'
+values differ: `FuncUnfold` makes each value its body, and `simp` separates the bodies). No restatement needed.
+
+**3. The purger** (partial): `fdLocks_excl` (`LockLemmas.lean`): `fdLocks fd d ∗ osLock k' d.ino fd' ∗
+lockKind k' ⊢ False` when `d.lk k = some true`: whoever gets a segment's lock (of `fileutil`'s kind) knows no
+locked WAL file description is on it. **Not done**: the WAL-level statement (the handle's locked segments
+exposed, `ReleaseLockTo`'s `unl` tied to them) and `ReleaseLockTo`'s re-proof. What it needs: `walLockH` (and
+the tail) record the segment's inode and that the description is locked (`walSegFd true lo lk` with
+`lo = some true ∨ lk = some true`, kept from `lkFd_open`), the handle's predicate the segments from `unl` on
+as those inodes, and a law on the sealed `walOpenWF` (`walOpenWF ∗ osLock k' i fd' ∗ lockKind k' ⊢ ⌜i` not a
+segment the handle still needs`⌝`); `ReleaseLockTo` then re-proved with `unl` meaning "every record from there
+on is in a file whose lock the handle holds".
+
+**4. `purgeRound`: not restored.** Its Go is in `bb9a9866b6^:examples/etcd/wal/wal.go`. Restoring the call in
+`opOwnSnap` without a proof of `purgeRound` would put an unproved function under the tester's closed result.
+The proof needs more than item 3's law: `purgeRound` opens (`TryLockFile`) and removes (`os.Remove`) segment
+files in the WAL directory while the handle is open, but the directory's name claim is split between the
+handle and `walInv` (`walDirKey`, `osNames` halves) and the invariant has no law letting a third party open or
+remove a segment name, nor a ghost step raising `pur`/moving `cut` over `fsExt` (`walPurge_step` in
+`WalDisk.lean` is over the main tree's absDisk extension). That law (a purge right `walPurgeW` over `fsExt`:
+the claim on a segment name below `unl` lent to whoever holds its lock, the removal recorded as `pur := max pur
+unl`) is the next unit, with item 3's WAL-level statement.
+
+**5. The boot path** (the user's decision, 2026-11-15: the lock model as it is; `notes/decisions.md`, "fsExt:
+file locks per open file description"): proved over the current model, both outcomes:
+- `fileutil.lockPost_held` (`LockKind.lean`): with `osLock k i fd ∗ lockKind k` held, `LockFile`/`TryLockFile`'s
+  post on a file at `i` has no success arm (an error, the open's resources, the held lock kept). A blocking
+  call that never returns satisfies any post (partial correctness).
+- `openLast.specHeld` (spec in `Spec/.../openLast.lean`, proof `openLastHeld.lean`): with the directory claim's
+  share the failed handle holds (path, `osNames j (.except X)` at the layout's names, the last segment `gL`)
+  and `gL`'s held lock: only an error, nothing changed.
+- `wal.Repair.specHeld` (spec in `Spec/.../Repair.lean`, proof `RepairHeld.lean`): `false`, nothing changed.
+- **What is left for the caller**: `WAL.Close.specFailed`'s error arm must give those resources (ledger,
+  2026-11-15, "`WAL.Close.specFailed`'s error arm for the boot path's `Repair`"); `Close.specFailed` is itself
+  unproved (`walReadFailedF` a stub), and `openWALFromSnapshot` is not translated in the part. The error path
+  of `Repair` goes through; nothing in it needed an assumption.
+
+**Decisions left for the user**: the trusted change's text (§4); the proposed `Close.specFailed` strengthening.
+**No new axiom, no `sorry`. No Go bug found.**

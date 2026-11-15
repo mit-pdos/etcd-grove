@@ -2049,3 +2049,28 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   hypothesis of `Boot`. Proposed, not made: `Exist.spec`'s `false` arm strengthened to `o = none`
   (closes specgap P6).
 - **Decision.** Made (unit `fresh`, coordinator's option (a)); the `Exist` strengthening proposed.
+
+## 2026-11-15: the WAL's internal file predicates and callee specs -- the lock semantics (unit `locks`, session 2)
+
+- **Spec.** Internal to the part's WAL: the tail (`walTailW`, `walTailP`, `RepairTailDefs`, `tailWB`, `WAL.sync`'s
+  error post), `walLockH`, `wal.rcFile`, `walClosable`, `walFileS`, `walOpenedFile`, `pipeFile`, `walLastOpen`,
+  `walLockLeft`/`walLockIn` (`WAL__renameWAL`), the leftover-file posts of `WAL__syncC`, `WAL__cleanupWAL`,
+  `WAL__CloseU`, and `RepairCallees` (`Truncate.specRepTail`, `Fsync.specRepTail`).
+- **Defect.** Stated over 3-field descriptions and unlocked fds: false once `fsExt` has lock state (a locked
+  segment's description has a lock field; `os.File.Close` takes its tokens).
+- **Evidence.** The lock semantics (`notes/wal-units/locks.md` §2); the WAL did not build after it.
+- **Change.** Each file a WAL predicate holds carries `fdLocks fd d` (its tokens, `lockToks`, and `fdKindOk d`:
+  each lock it holds is of `fileutil`'s kind); the tail's description is `⟨i, rd, true, lo, lk⟩`; a segment opened
+  by `openWALFiles` is `walSegFd write lo lk i`. No client-facing WAL spec changed.
+- **Decision.** Made (unit `locks`, session 2).
+
+## 2026-11-15: `WAL.Close.specFailed`'s error arm for the boot path's `Repair` (P7, continued)
+
+- **Spec.** `Sp/WAL__CloseFailed.lean` (error arm `⌜err ≠ nil⌝`), `wal.Repair.specHeld` (new, proved).
+- **Defect.** With the lock model, `Repair` on the held lock is provable (`Repair.specHeld`: `false`, nothing
+  changed), but it needs what the failed handle still holds: the directory claim's share at the layout's names
+  and the last segment's lock token (`osLock k gL.ino fd`, `fileutil.lockKind k`). `Close.specFailed`'s error
+  arm gives nothing, and the spec is itself unproved (`walReadFailedF` is a stub).
+- **Proposed change.** `Close.specFailed`'s error arm gives those resources (a `walCloseLeft`); with it, the server's
+  restart (C6) composes `Close.specFailed` and `Repair.specHeld` on this path.
+- **Decision.** Proposed.
