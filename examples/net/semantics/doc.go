@@ -4,7 +4,7 @@
 // AcceptStep, DialStep, LisClose and the node crash; each operation's outcome
 // is a relation there: ReadOutcome, WriteOutcome, CloseOutcome,
 // CloseWriteOutcome, DeadlineOutcome, LisCloseOutcome, ListenAt), and of the
-// trusted net models (NetTcp/TrustedCode/net.lean), numbered D1-D21 as in
+// trusted net models (NetTcp/TrustedCode/net.lean), numbered D1-D22 as in
 // Impl.lean's header:
 //
 //	D1  ReadStep         D8   DialStep              D15 a Write is a loop of steps (WriteOutcome)
@@ -17,6 +17,8 @@
 //	                                             D19 DialTimeout (TrustedCode/net.lean)
 //	                                             D20 PlanWellFormed (Deploy.lean)
 //	                                             D21 wildcard Listen (ListenAt)
+//	                                             D22 steps: every operation may stutter
+//	                                                 (waiting); invalid uses panic (TcpStep)
 //
 // Each test is one behavior: its doc comment says the decision it supports or
 // refutes, what Linux and Go do, and why (the kernel or Go code path). Every
@@ -119,8 +121,8 @@
 //	                                  around an Errno; the OpError's Source and Addr per operation
 //	(Timeout of sys errors)      D14  an Errno's Timeout/Temporary: ETIMEDOUT, EAGAIN true (syscall_unix.go documented model.errFlag (arbitrary)
 //	                                  Errno.Timeout), so OpError.Timeout is arbitrary for sys errors
-//	TestZeroValues               D12  a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket          measured   (model: stuck, id 0 names nothing)
-//	                                  touched
+//	TestZeroValues               D12,D22 a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket       measured   model.einval (the models' id-0 check,
+//	                                  touched                                                                         before the extension: net.lean)
 //
 // Addresses (addr_test.go, v3_test.go; Deploy.lean):
 //
@@ -144,6 +146,17 @@
 //	TestWriteToKilledPeer        D2,D10 a Write after the FIN succeeds (lost); after the RST: EPIPE      measured   WriteOutcome (cut)
 //	TestServerKilledBeforeReply  D1,D10,D11 the client reads EOF, no bytes, no error                     measured   ReadOutcome (break)
 //	TestKilledListener           D7,D8,D10 the queued connection is reset; Dial then refused             measured   AcceptStep, DialStep
+//
+// Steps (D22; Impl.lean's header has the table of every operation's outcomes in every state):
+//
+//	(the stutter convention)     D22  every operation may take a step that changes nothing; a blocked     documented TcpStep, IsTcpStep, OrInvalid;
+//	                                  Read, Accept, Write step is that stutter until an outcome decides            Tests.lean: isTcpStep_total,
+//	                                  it; every state has an outcome besides it; an argument the                   isTcpStep_result
+//	                                  extension cannot use (an address outside the plan: D13; an id
+//	                                  naming nothing) panics (GooseLang's stuck Panic). The convention
+//	                                  of Perennial's Grove extension (Perennial/GooseLang/Ext/Grove/
+//	                                  Impl.lean, GroveStep); no Go behavior of its own: a stutter is
+//	                                  never a call's last step
 //
 // Network faults, in network namespaces (netns_test.go; NETTCP_NETNS=1, re-run as root by sudo -n;
 // client, router and server namespaces, the faults in the router's FORWARD chain):
@@ -218,6 +231,16 @@
 // or a Close made between two steps applies at the next one (D15); the
 // counterexample's translation and proof were removed, its program and test
 // kept.
+//
+// v3.2 (2026-11-15, the user's decision; D22): every operation may stutter, as
+// in Perennial's Grove extension, which is how a blocked call is modeled (the
+// relations' own waits went: ReadRes.wait, AcceptStep's waiting clause, a
+// Write step counting nothing of a non-empty buffer), and every state has an
+// outcome besides the stutter: an invalid use (Listen or Dial outside the
+// plan, an id naming nothing, an argument of another shape, an unknown
+// operation) panics, where v3.1 was stuck. The zero values are now modeled as
+// Go has them (TestZeroValues: the models return the bare syscall.EINVAL
+// before calling the extension).
 //
 // Also measured, the fork window (child_test.go, forkMu): while a process
 // forks (os/exec), the child holds a copy of every fd until its exec, so a

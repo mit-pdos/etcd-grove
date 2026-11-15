@@ -8,11 +8,13 @@ example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
 (`notes/net-tcp-v3-plan.md` for v3, D14-D21).
 
-**Version v3.1** (2026-11-14). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
+**Version v3.2** (2026-11-15). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
 v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write
 nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14-D21), v3.1 (a
 `Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
-at its start; the v3 review's R1, `notes/axiom-review/tcp-semantics.md`).
+at its start; the v3 review's R1, `notes/axiom-review/tcp-semantics.md`), v3.2 (every operation may
+stutter, which is how waiting is modeled, and an invalid use panics: D22, the convention of
+Perennial's Grove extension).
 
 **State: only what a program can observe.** The global state (`TcpGlobal`) is the deployment's
 plan (each address the program may use, and the host that may listen at it) and the connections.
@@ -27,18 +29,19 @@ address and whether it is open). Nothing records past operations.
 
 **Handles.** A connection end is named by a 64-bit id, `2 c + s` for the connection `c` and the
 side `s` (0 the dialer, 1 the acceptor); a listener by a 64-bit id of its node. An operation on an
-id that names nothing is stuck. The trusted models pass the ids the extension returned, which a Go
-program cannot forge (they are inside `net`'s unexported structs, and the heap does not survive a
-crash), or the id 0 of a zero-value `TCPConn` or `TCPListener` (`var c net.TCPConn`), which names
-nothing: no connection is numbered 0 and no listener has id 0 (`DialStep`, `ListenStep`), so a
-program using a zero value is stuck, never proved (Go's methods return `EINVAL` there:
-`TestZeroValues`).
+id that names nothing panics (D22). The trusted models pass only ids the extension returned, which
+a Go program cannot forge (they are inside `net`'s unexported structs, and the heap does not
+survive a crash): a zero-value `TCPConn` or `TCPListener` (`var c net.TCPConn`) holds the id 0,
+which names nothing (no connection is numbered 0 and no listener has id 0: `DialStep`,
+`ListenStep`), and the models check for it before calling the extension, returning Go's bare
+`syscall.EINVAL` as Go's methods do (`c.ok()`, `l.ok()`: `TestZeroValues`;
+`NetTcp/TrustedCode/net.lean`, `model.einval`).
 
 **Each operation's outcome is a pure relation** on one end's state and one direction
 (`ReadOutcome`, `WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`); the step
-(`TcpStep`) looks the connection up, takes an outcome, and writes it back. A `Write` is several
-steps (D2, D15), the others one. Results are pairs, as
-goose returns a Go function's results.
+(`TcpStep`) looks the connection up, takes an outcome, and writes it back; or it stutters (D22).
+A `Write` is several steps (D2, D15), the others one. Results are pairs, as goose returns a Go
+function's results.
 
 **Errors (D14).** Every failure has a kind (`TcpErr`), which the trusted models turn into Go's error
 value: `closed`, an operation on the caller's own closed end or listener (Go's `poll.FD` refuses it
@@ -51,14 +54,14 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
 * D1 `"Read"` of `n` bytes at an end, from the direction towards it (`ReadOutcome`): on a closed
   end, `closed`. Otherwise: `n = 0` returns nothing at once; else the first `k` unread bytes,
   `1 ≤ k ≤ n` (as many as arrived: any number); EOF once nothing is unread and the writer is done
-  (`fin` or `cut`); after a cut, also a `sys` error; it waits while the direction is open and
-  empty; with a read deadline set, a `timeout` that changes nothing (`ReadAvail`). And at any read,
+  (`fin` or `cut`); after a cut, also a `sys` error; with a read deadline set, a `timeout` that
+  changes nothing (`ReadAvail`); until one of these, it waits (a stutter, D22). And at any read,
   the connection may break: the direction becomes `cut`, keeping a prefix of its unread bytes,
   and the read answers as on the broken direction (bytes, EOF or an error). EOF does not say the
   writer finished cleanly: a cut that kept every byte reads as EOF, and that is what the death of
   the writer's process looks like (its kernel's FIN, or a reset whose error another call took).
-  A read blocked when another goroutine closes the end returns `closed`: the read waits, the close
-  steps, the read then steps on a closed end.
+  A read blocked when another goroutine closes the end returns `closed`: the read stutters, the
+  close steps, the read then steps on a closed end.
 * D2 `"Write"`: one step of a `Write` (`WriteOutcome`). Go's `(*poll.FD).Write`
   (`internal/poll/fd_unix.go`) is a loop: `writeLock` (`ErrNetClosing` once the end is closing),
   `prepareWrite` (that, or the deadline), then `write(2)` of the bytes not yet written and, while
@@ -67,11 +70,12 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   the extension's `"Write"` of the bytes `rs` not yet written, on the end's state and the direction
   from it at that step: on a closed end, `closed`, nothing written. Into a direction the end shut
   (`fin`): `sys` (`EPIPE`), or `timeout` with a write deadline set. Into an open direction: the
-  first `k` bytes of `rs` appended, any `k ≤ |rs|` (all of them; a part, the buffer full; none, a
-  wait), with no failure; or a `sys` failure, nothing appended, the connection broken (`cut`, its
-  unread bytes kept); or, with a write deadline set, a `timeout`, nothing appended. Into a cut
-  direction: the bytes are discarded, any `k ≤ |rs|` counted (a dead peer, before this kernel
-  knows), or `sys`, or `timeout` with a write deadline set. A failing step appends nothing (a
+  first `k` bytes of `rs` appended, any `1 ≤ k ≤ |rs|` (all of them; a part, the buffer full), with
+  no failure (`k = 0` only for an empty `rs`: a step that would count nothing is a wait, a stutter,
+  D22); or a `sys` failure, nothing appended, the connection broken (`cut`, its unread bytes kept);
+  or, with a write deadline set, a `timeout`, nothing appended. Into a cut direction: the bytes are
+  discarded, any `1 ≤ k ≤ |rs|` counted (a dead peer, before this kernel knows; `0` for an empty
+  `rs`), or `sys`, or `timeout` with a write deadline set. A failing step appends nothing (a
   system call writes or fails); `write(2)` of a TCP socket never returns 0 for bytes (Linux's
   `tcp_sendmsg_locked` fails when it copied nothing), so Go's `io.ErrUnexpectedEOF` is not modeled.
   `Write` returns `(nn, nil)` once its steps counted `nn = len(b)` with no failure, and `(nn, err)`
@@ -89,17 +93,19 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   on a closed end; otherwise the deadline is set if the time is not Go's zero time (`timeIsZero`,
   Go's `Time.IsZero`) and cleared if it is. Deadline values are not modeled: with a deadline set,
   any operation of that kind may time out.
-* D6 `"Listen"` of an address `a` (`ListenAt`, D21 for the wildcards): stuck unless `a` is in the
-  plan with this node's host. A new open listener at `a`; or a `sys` failure, which is the only
-  outcome if this node already has an open listener at `a` (`EADDRINUSE`).
+* D6 `"Listen"` of an address `a` (`ListenAt`, D21 for the wildcards): a panic (D22) unless `a` is
+  in the plan with this node's host. A new open listener at `a`; or a `sys` failure, which is the
+  only outcome if this node already has an open listener at `a` (`EADDRINUSE`).
 * D7 `"Accept"` of a listener `l`: only `closed` once `l` is closed. Otherwise a connection dialed
-  to `l`'s address and not yet accepted, now accepted; or a `sys` failure; or it waits. Pending
+  to `l`'s address and not yet accepted, now accepted; or a `sys` failure; until one of these, it
+  waits (a stutter, D22). Pending
   connections belong to the address, not to a listener, because a node's step sees only its own
   local state and the network (Perennial's step relation): a `Dial` cannot see whether another node
   listens, and a crash cannot reset connections. So a connection dialed when no listener was open,
   or before the listening node's crash, may be accepted later: more than Linux, which refuses or
   resets it, an outcome the dialer sees as a failure or a cut, which the model also allows.
-* D8 `"Dial"` of `a`: stuck unless `a` is in the plan. A new connection to `a`, not yet accepted,
+* D8 `"Dial"` of `a`: a panic (D22) unless `a` is in the plan. A new connection to `a`, not yet
+  accepted,
   both ends fresh and both directions open and empty; or a `sys` failure (refused, unreachable);
   or (D16) a `sys` failure that leaves a connection to `a`, pending, whose dialer's end is closed
   and whose direction from it is `fin` and empty (`TcpConn.abandoned`): Go's `connect` gives up
@@ -133,9 +139,9 @@ measured in `examples/net/semantics/`.
 **What is not modeled** (D12). Memory exhaustion in the kernel (`ENOMEM`/`ENOBUFS`: a failure of a
 live connection that is not a cut, and the bare `Errno` of a failed `epoll_ctl` registration in
 `Accept` or `Dial`), as the file extensions' allocation failures. Addresses are the plan's strings
-and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string is stuck.
+and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string panics (D22).
 Port `0`, TLS, UDP, Unix sockets, the deadlines' values, keepalives, the listeners' deadlines: not
-modeled (the methods are not modeled either, so a program calling them is stuck).
+modeled (the methods are not modeled either, so a program calling them is stuck: no model, no proof).
 
 * D14 the error kinds (above).
 * D15 a `Write` is a loop of steps (D2): a `Close` of its end, or a deadline set, by another
@@ -152,8 +158,40 @@ modeled (the methods are not modeled either, so a program calling them is stuck)
 * D20 the plan's well-formedness (D13, `Deploy.lean`).
 * D21 wildcard `Listen` (`ListenAt`): `":p"`, `"0.0.0.0:p"`, `"[::]:p"` (not themselves plan
   addresses) listen at the plan address with the port `p`, which must be at this node's host and
-  the plan's only address with that port (stuck otherwise): on one machine a wildcard listener
-  takes every local address with its port (`TestAddressAliases`, `TestWildcardListen`).
+  the plan's only address with that port (a panic otherwise, D22): on one machine a wildcard
+  listener takes every local address with its port (`TestAddressAliases`, `TestWildcardListen`).
+* D22 **Steps: every operation may stutter, which is how waiting is modeled; invalid uses panic**
+  (`TcpStep`, `IsTcpStep`). The convention of Perennial's Grove extension (`Perennial/GooseLang/
+  Ext/Grove/Impl.lean`, `GroveStep`): any call of the extension may take a step that changes nothing
+  and leaves the call as it was (`e' = ExternalOp tcpExt.name op (Val v)`), in every state. A
+  blocked `Read`, `Accept` or `Write` step is that stutter, repeated until an outcome rule decides
+  it: the relations have no wait of their own. A stutter is never a call's last step, so it adds no
+  result Go does not return; it lets a proof of a call that may block go by Löb induction
+  (`Specs.lean`, `wp_tcp_op`) instead of showing that the call can step. So every state needs an
+  outcome rule besides the stutter (else a program could stutter there forever, and a safety
+  theorem would hide what the real program does next): for an argument the extension cannot use,
+  the outcome is `Panic` (GooseLang's builtin panic, stuck and not recoverable, `wp_PanicOp`; not
+  `go.panic`'s, which `recover` catches), so a proof must show that the program never makes the
+  call. Every state, by operation (`Tests.lean`'s `isTcpStep_total`: every operation in every state
+  has an outcome that is not a stutter):
+
+  | operation | argument, state | outcomes besides the stutter |
+  |---|---|---|
+  | `Listen` | `#a`, `ListenAt plan host a a0` | D6: a new open listener at `a0`, or `sys` (only `sys` with one open at `a0`) |
+  | `Listen` | `#a`, no such `a0`: not a plan address at this host, another node's, a wildcard whose port is not unique, any other string | `Panic` (a violation of the deployment, D13) |
+  | `Dial` | `#a`, a plan address | D8, D16: a new connection, `sys`, or `sys` leaving it abandoned |
+  | `Dial` | `#a`, not a plan address | `Panic` (D13) |
+  | `Accept` | `#l`, a listener of this node | D7: `closed` if it is closed; if open, `sys` or a pending connection accepted |
+  | `LisClose` | `#l`, a listener of this node | D9: `LisCloseOutcome` (success if open, `closed` if not) |
+  | `Accept`, `LisClose` | `#l`, no listener `l` of this node (`0` among them) | `Panic` (unreachable: the models check for `0`, and ids are unforgeable) |
+  | `Read` | `(#e, #n)`, `e` an end of a connection | D1: `ReadOutcome`, never empty (`closed`; `n = 0`; else a cut, then bytes or EOF) |
+  | `Write` | `(#e, #bs)`, `e` an end of a connection | D2: `WriteOutcome`, never empty (`closed`; `sys` into `fin` or `cut`; a cut of an open direction) |
+  | `Close`, `CloseWrite` | `#e`, `e` an end of a connection | D3, D4: `CloseOutcome`, `CloseWriteOutcome` (one each) |
+  | `SetDeadline` | `(#e, (#kind, (#wall, #ext)))`, `e` an end of a connection | D5: `DeadlineOutcome` (one) |
+  | `Read` ... `SetDeadline` | `e` names no end of a connection (`0` among them) | `Panic` (unreachable: as `Accept`'s) |
+  | `AnyBool`, `AnyString`, `AnyW64`, `AnyErrno` | `#()` | a value |
+  | each of the above | an argument of another shape | `Panic` (unreachable: the models pass these shapes) |
+  | any other name | any | `Panic` (unreachable: the models call only these) |
 -/
 module
 
@@ -299,12 +337,11 @@ def errCode : Option TcpErr → w64
 
 /-! ## The outcomes of the operations on an end -/
 
-/-- What a read returns: bytes, EOF, an error; or it waits. -/
+/-- What a read returns: bytes, EOF, an error. (A read that waits stutters, D22.) -/
 inductive ReadRes where
   | bytes (bs : List w8)
   | eof
   | err (e : TcpErr)
-  | wait
 deriving DecidableEq
 
 /-- A read of `n > 0` bytes at an open end in state `st`, from the direction `d` as it is: its
@@ -315,8 +352,6 @@ def ReadAvail (st : TcpEnd) (d : TcpDir) (n : Nat) (r : ReadRes) (d' : TcpDir) :
     d' = { d with bytes := d.bytes.drop k }) ∨
   -- EOF: nothing unread, and the writer is done
   (d.bytes = [] ∧ d.status ≠ .open ∧ r = .eof ∧ d' = d) ∨
-  -- it waits: nothing unread, and the writer may write more
-  (d.bytes = [] ∧ d.status = .open ∧ r = .wait ∧ d' = d) ∨
   -- an error, once the connection broke
   (d.status = .cut ∧ r = .err .sys ∧ d' = d) ∨
   -- a timeout
@@ -335,7 +370,9 @@ def ReadOutcome (st : TcpEnd) (d : TcpDir) (n : Nat) (r : ReadRes) (d' : TcpDir)
 
 /-- D2. One step of a `Write`, of the bytes `rs` not yet written, at an end in state `st`, into the
 direction `d` from it: the count `k` it adds, its result `res` (`none`: no failure, the `Write` goes
-on unless it has written everything; else the failure's kind) and the direction after, `d'`. -/
+on unless it has written everything; else the failure's kind) and the direction after, `d'`. A
+step that does not fail counts at least one byte unless `rs` is empty (`1 ≤ k ∨ rs = []`): one
+that would count none is a wait, a stutter (D22). -/
 def WriteOutcome (st : TcpEnd) (d : TcpDir) (rs : List w8) (k : Nat) (res : Option TcpErr)
     (d' : TcpDir) : Prop :=
   if st.closed then k = 0 ∧ res = some .closed ∧ d' = d
@@ -343,11 +380,12 @@ def WriteOutcome (st : TcpEnd) (d : TcpDir) (rs : List w8) (k : Nat) (res : Opti
   | .fin => k = 0 ∧ d' = d ∧ (res = some .sys ∨ (st.wdl = true ∧ res = some .timeout))
   | .cut =>
     -- discarded
-    d' = d ∧ ((k ≤ rs.length ∧ res = none) ∨
+    d' = d ∧ ((k ≤ rs.length ∧ (1 ≤ k ∨ rs = []) ∧ res = none) ∨
       (k = 0 ∧ (res = some .sys ∨ (st.wdl = true ∧ res = some .timeout))))
   | .open =>
-    -- the first `k` bytes (all, some, or none: a wait)
-    (k ≤ rs.length ∧ res = none ∧ d' = { d with bytes := d.bytes ++ rs.take k }) ∨
+    -- the first `k` bytes (all, or some: the buffer full)
+    (k ≤ rs.length ∧ (1 ≤ k ∨ rs = []) ∧ res = none ∧
+      d' = { d with bytes := d.bytes ++ rs.take k }) ∨
     -- the connection breaks
     (k = 0 ∧ res = some .sys ∧ d' = { d with status := .cut }) ∨
     -- a timeout
@@ -419,18 +457,16 @@ variable [GooseExts] [GoGlobalContext]
 (`0` bytes, `TcpErr.code` an error, `4` EOF). -/
 def readRes (bs : List w8) (code : w64) : val := PairV (#bs) (#code)
 
-/-- The value of a read's result `r` (`op` itself if it waits). -/
-def ReadRes.toExpr (op : Expr) : ReadRes → Expr
-  | .bytes bs => Val (readRes bs 0)
-  | .eof => Val (readRes [] 4)
-  | .err e => Val (readRes [] e.code)
-  | .wait => op
+/-- The value of a read's result `r`. -/
+def ReadRes.toVal : ReadRes → val
+  | .bytes bs => readRes bs 0
+  | .eof => readRes [] 4
+  | .err e => readRes [] e.code
 
 /-- `"Read"` of `n` bytes at the end `s` of `c`. -/
-def ReadStep (op : Expr) (c : Nat) (s : Bool) (n : w64) (g : TcpGlobal) (e' : Expr)
-    (g' : TcpGlobal) : Prop :=
+def ReadStep (c : Nat) (s : Bool) (n : w64) (g : TcpGlobal) (e' : Expr) (g' : TcpGlobal) : Prop :=
   ∃ cn r d', g.conns !! c = some cn ∧ ReadOutcome (cn.endSt s) (cn.out (!s)) n.toNat r d' ∧
-    e' = r.toExpr op ∧ g' = g.setConn c (cn.setOut (!s) d')
+    e' = Val r.toVal ∧ g' = g.setConn c (cn.setOut (!s) d')
 
 /-- `"Write"` of `bs` at the end `s` of `c`: one step of a `Write` (D2), `bs` the bytes it has not
 written yet. -/
@@ -471,12 +507,11 @@ def DialStep (a : GoString) (g : TcpGlobal) (e' : Expr) (g' : TcpGlobal) : Prop 
    -- D16: a failure that leaves the connection, abandoned
    (∃ c, NewConn g c ∧ e' = Val (failV .sys) ∧ g' = g.setConn c (TcpConn.abandoned a)))
 
-/-- D7. `"Accept"` of `l`, for the listener `(a, isOpen)`. -/
-def AcceptStep (op : Expr) (a : GoString) (isOpen : Bool) (g : TcpGlobal) (e' : Expr)
-    (g' : TcpGlobal) : Prop :=
+/-- D7. `"Accept"` of `l`, for the listener `(a, isOpen)` (a wait is a stutter, D22). -/
+def AcceptStep (a : GoString) (isOpen : Bool) (g : TcpGlobal) (e' : Expr) (g' : TcpGlobal) :
+    Prop :=
   (isOpen = false ∧ e' = Val (failV .closed) ∧ g' = g) ∨
   (isOpen = true ∧ e' = Val (failV .sys) ∧ g' = g) ∨
-  (isOpen = true ∧ e' = op ∧ g' = g) ∨
   (isOpen = true ∧ ∃ c cn, g.conns !! c = some cn ∧ cn.addr = a ∧ cn.accepted = false ∧
     2 * c + 1 < 2 ^ 64 ∧
     e' = Val (PairV (#(endId c true)) (#(W64 0))) ∧
@@ -493,34 +528,74 @@ def ListenStep (a : GoString) (g : TcpGlobal) (L : TcpLocal) (e' : Expr) (L' : T
 def LisCloseOutcome (isOpen : Bool) (res : Option TcpErr) (isOpen' : Bool) : Prop :=
   if isOpen then res = none ∧ isOpen' = false else res = some .closed ∧ isOpen' = false
 
-/-- The step relation of the TCP extension, for a node with local state `L` on the network `g`. -/
+/-- D22. An invalid use: a panic (GooseLang's builtin one, stuck: `wp_PanicOp`), nothing
+changed. -/
+def Invalid (L : TcpLocal) (g : TcpGlobal) (e' : Expr) (L' : TcpLocal) (g' : TcpGlobal) : Prop :=
+  e' = Panic "net: invalid use of the TCP extension" ∧ L' = L ∧ g' = g
+
+/-- D22. An operation whose argument is valid when `valid` holds: its `step`, or, if `valid` does
+not hold, a panic. -/
+def OrInvalid (valid step : Prop) (L : TcpLocal) (g : TcpGlobal) (e' : Expr) (L' : TcpLocal)
+    (g' : TcpGlobal) : Prop :=
+  step ∨ (¬ valid ∧ Invalid L g e' L' g')
+
+/-- D22. The id `e` is the end `s` of the connection `c`, which exists. -/
+def EndOf (g : TcpGlobal) (e : w64) (c : Nat) (s : Bool) : Prop :=
+  IsEnd e c s ∧ (g.conns !! c).isSome
+
+/-- The outcome rules of the TCP extension (all but the stutter), for a node with local state `L`
+on the network `g`: each operation's step on a valid argument, else a panic (D22, its table). -/
+def IsTcpStep (op : String) (v : val) (L : TcpLocal) (g : TcpGlobal) (e' : Expr) (L' : TcpLocal)
+    (g' : TcpGlobal) : Prop :=
+  match op with
+  | "Listen" => OrInvalid (∃ a a0 : GoString, v = #a ∧ ListenAt g.plan L.host a a0)
+      (∃ a : GoString, v = #a ∧ ListenStep a g L e' L' ∧ g' = g) L g e' L' g'
+  | "Accept" => OrInvalid (∃ (l : w64) (x : GoString × Bool), v = #l ∧ L.lis !! l = some x)
+      (∃ (l : w64) (a : GoString) (o : Bool), v = #l ∧ L.lis !! l = some (a, o) ∧
+        AcceptStep a o g e' g' ∧ L' = L) L g e' L' g'
+  | "LisClose" => OrInvalid (∃ (l : w64) (x : GoString × Bool), v = #l ∧ L.lis !! l = some x)
+      (∃ (l : w64) (a : GoString) (o : Bool) (res : Option TcpErr) (o' : Bool),
+        v = #l ∧ L.lis !! l = some (a, o) ∧ g' = g ∧ LisCloseOutcome o res o' ∧
+        e' = Val (#(errCode res)) ∧ L' = { L with lis := L.lis.insert l (a, o') }) L g e' L' g'
+  | "Dial" => OrInvalid (∃ a : GoString, v = #a ∧ (g.plan !! a).isSome)
+      (∃ a : GoString, v = #a ∧ DialStep a g e' g' ∧ L' = L) L g e' L' g'
+  | "Read" => OrInvalid
+      (∃ (e n : w64) (c : Nat) (s : Bool), v = PairV (#e) (#n) ∧ EndOf g e c s)
+      (∃ (e n : w64) (c : Nat) (s : Bool), v = PairV (#e) (#n) ∧ IsEnd e c s ∧
+        ReadStep c s n g e' g' ∧ L' = L) L g e' L' g'
+  | "Write" => OrInvalid
+      (∃ (e : w64) (bs : List w8) (c : Nat) (s : Bool), v = PairV (#e) (#bs) ∧ EndOf g e c s)
+      (∃ (e : w64) (bs : List w8) (c : Nat) (s : Bool), v = PairV (#e) (#bs) ∧
+        IsEnd e c s ∧ WriteStep c s bs g e' g' ∧ L' = L) L g e' L' g'
+  | "Close" => OrInvalid (∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ EndOf g e c s)
+      (∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ IsEnd e c s ∧ CloseStep c s g e' g' ∧
+        L' = L) L g e' L' g'
+  | "CloseWrite" => OrInvalid (∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ EndOf g e c s)
+      (∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ IsEnd e c s ∧
+        CloseWriteStep c s g e' g' ∧ L' = L) L g e' L' g'
+  | "SetDeadline" => OrInvalid
+      (∃ (e kind wall ext : w64) (c : Nat) (s : Bool),
+        v = PairV (#e) (PairV (#kind) (PairV (#wall) (#ext))) ∧ EndOf g e c s)
+      (∃ (e kind wall ext : w64) (c : Nat) (s : Bool),
+        v = PairV (#e) (PairV (#kind) (PairV (#wall) (#ext))) ∧ IsEnd e c s ∧
+        SetDeadlineStep c s kind (!timeIsZero wall ext) g e' g' ∧ L' = L) L g e' L' g'
+  | "AnyBool" => OrInvalid (v = #())
+      (v = #() ∧ (∃ b : Bool, e' = Val (#b)) ∧ L' = L ∧ g' = g) L g e' L' g'
+  | "AnyString" => OrInvalid (v = #())
+      (v = #() ∧ (∃ str : GoString, e' = Val (#str)) ∧ L' = L ∧ g' = g) L g e' L' g'
+  | "AnyW64" => OrInvalid (v = #())
+      (v = #() ∧ (∃ n : w64, e' = Val (#n)) ∧ L' = L ∧ g' = g) L g e' L' g'
+  | "AnyErrno" => OrInvalid (v = #())
+      (v = #() ∧ (∃ n : w64, n ≠ 0 ∧ e' = Val (#n)) ∧ L' = L ∧ g' = g) L g e' L' g'
+  | _ => Invalid L g e' L' g'
+
+/-- The step relation of the TCP extension, for a node with local state `L` on the network `g`
+(D22): the operation stutters (nothing changes, the call stays as it was), or it takes one of its
+outcome rules (`IsTcpStep`). The heap does not change. -/
 def TcpStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (L : TcpLocal) (g : TcpGlobal)
     (e' : Expr) (h' : GMap Loc (NonAtomic val)) (L' : TcpLocal) (g' : TcpGlobal) : Prop :=
-  h' = h ∧
-  match op with
-  | "Listen" => ∃ a : GoString, v = #a ∧ ListenStep a g L e' L' ∧ g' = g
-  | "Accept" => ∃ (l : w64) (a : GoString) (o : Bool), v = #l ∧ L.lis !! l = some (a, o) ∧
-      AcceptStep (ExternalOp tcpExt.name "Accept" (Val v)) a o g e' g' ∧ L' = L
-  | "LisClose" => ∃ (l : w64) (a : GoString) (o : Bool) (res : Option TcpErr) (o' : Bool),
-      v = #l ∧ L.lis !! l = some (a, o) ∧ g' = g ∧ LisCloseOutcome o res o' ∧
-      e' = Val (#(errCode res)) ∧ L' = { L with lis := L.lis.insert l (a, o') }
-  | "Dial" => ∃ a : GoString, v = #a ∧ DialStep a g e' g' ∧ L' = L
-  | "Read" => ∃ (e n : w64) (c : Nat) (s : Bool), v = PairV (#e) (#n) ∧ IsEnd e c s ∧
-      ReadStep (ExternalOp tcpExt.name "Read" (Val v)) c s n g e' g' ∧ L' = L
-  | "Write" => ∃ (e : w64) (bs : List w8) (c : Nat) (s : Bool), v = PairV (#e) (#bs) ∧
-      IsEnd e c s ∧ WriteStep c s bs g e' g' ∧ L' = L
-  | "Close" => ∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ IsEnd e c s ∧ CloseStep c s g e' g' ∧
-      L' = L
-  | "CloseWrite" => ∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ IsEnd e c s ∧
-      CloseWriteStep c s g e' g' ∧ L' = L
-  | "SetDeadline" => ∃ (e kind wall ext : w64) (c : Nat) (s : Bool),
-      v = PairV (#e) (PairV (#kind) (PairV (#wall) (#ext))) ∧ IsEnd e c s ∧
-      SetDeadlineStep c s kind (!timeIsZero wall ext) g e' g' ∧ L' = L
-  | "AnyBool" => v = #() ∧ (∃ b : Bool, e' = Val (#b)) ∧ L' = L ∧ g' = g
-  | "AnyString" => v = #() ∧ (∃ str : GoString, e' = Val (#str)) ∧ L' = L ∧ g' = g
-  | "AnyW64" => v = #() ∧ (∃ n : w64, e' = Val (#n)) ∧ L' = L ∧ g' = g
-  | "AnyErrno" => v = #() ∧ (∃ n : w64, n ≠ 0 ∧ e' = Val (#n)) ∧ L' = L ∧ g' = g
-  | _ => False
+  h' = h ∧ ((e' = ExternalOp tcpExt.name op (Val v) ∧ L' = L ∧ g' = g) ∨
+    IsTcpStep op v L g e' L' g')
 
 end step
 

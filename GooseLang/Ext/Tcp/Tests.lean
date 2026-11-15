@@ -4,10 +4,14 @@ for each row of `examples/net/semantics/doc.go`, an `example` that the outcome r
 exclude) the outcome the row's Go test measured (or the source it cites documents, or the row
 assumes); the comment names the Go test. Excluded outcomes are tested as well: a timeout without a
 deadline, a short successful write, data after the end's own close, a read past what was written.
+And D22 (v3.2): every operation may stutter in every state, every state has an outcome that is not a
+stutter (`isTcpStep_total`, `isTcpStep_result`), invalid uses panic, and the waits v3.1's relations
+had (a blocked `Read`, `Accept`, a `Write` step counting nothing) are stutters.
 -/
 module
 
 public import GooseLang.Ext.Tcp.Deploy
+public import Perennial.Golang.Defn.PostLang
 
 namespace Perennial
 namespace Tcp
@@ -26,7 +30,7 @@ private def b3 : List w8 := [97, 98, 99]
 
 private theorem readAvail_bytes {st : TcpEnd} {d d' : TcpDir} {n : Nat} {bs : List w8}
     (h : ReadAvail st d n (.bytes bs) d') : bs.length ≤ n ∧ bs <+: d.bytes ∧ bs ≠ [] := by
-  rcases h with ⟨k, h1, h2, h3, h4, -⟩ | ⟨-, -, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩ <;>
+  rcases h with ⟨k, h1, h2, h3, h4, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩ <;>
     try cases h
   cases h4
   refine ⟨by rw [List.length_take]; omega, List.take_prefix _ _, ?_⟩
@@ -56,7 +60,7 @@ private theorem readOutcome_timeout {st : TcpEnd} {d d' : TcpDir} {n : Nat}
   · split at h
     · cases h.1
     · rcases h with h | ⟨k, -, h⟩ <;>
-      rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨h, -, -⟩ <;>
+      rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨h, -, -⟩ <;>
         first | exact h | cases h
 
 /-! ## Reads (D1) -/
@@ -79,10 +83,9 @@ example : ¬ ReadOutcome st0 ⟨b3, .open⟩ 3 (.bytes [98]) ⟨[97, 99], .open�
 example : ReadOutcome stR ⟨b3, .open⟩ 0 (.bytes []) ⟨b3, .open⟩ := by
   simp [ReadOutcome, st0, stR, stC, TcpEnd.fresh, b3]
 
-/-- `TestReadEmptyBuffer` (excluded): an empty read does not time out or wait. -/
+/-- `TestReadEmptyBuffer` (excluded): an empty read does not time out (nor wait: it has its
+outcome at once, `isTcpStep_total`). -/
 example : ¬ ReadOutcome stR ⟨b3, .open⟩ 0 (.err .timeout) ⟨b3, .open⟩ := by
-  simp [ReadOutcome, st0, stR, stC, TcpEnd.fresh, b3]
-example : ¬ ReadOutcome st0 ⟨[], .open⟩ 0 .wait ⟨[], .open⟩ := by
   simp [ReadOutcome, st0, stR, stC, TcpEnd.fresh, b3]
 
 /-- `TestReadEOFAfterFin`, `TestKilledWriterFin`: EOF once nothing is unread after a FIN or a
@@ -134,11 +137,11 @@ private theorem writeOutcome_timeout {st : TcpEnd} {d d' : TcpDir} {rs : List w8
     · rcases h.2.2 with h | ⟨h, -⟩
       · cases h
       · exact h
-    · rcases h.2 with ⟨-, h⟩ | ⟨-, h | ⟨h, -⟩⟩
+    · rcases h.2 with ⟨-, -, h⟩ | ⟨-, h | ⟨h, -⟩⟩
       · cases h
       · cases h
       · exact h
-    · rcases h with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩
+    · rcases h with ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩
       · cases h
       · cases h
       · exact h
@@ -150,8 +153,8 @@ private theorem writeOutcome_closed {st : TcpEnd} {d d' : TcpDir} {rs : List w8}
   · assumption
   · split at h
     · rcases h.2.2 with h | ⟨-, h⟩ <;> cases h
-    · rcases h.2 with ⟨-, h⟩ | ⟨-, h | ⟨-, h⟩⟩ <;> cases h
-    · rcases h with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩ <;> cases h
+    · rcases h.2 with ⟨-, -, h⟩ | ⟨-, h | ⟨-, h⟩⟩ <;> cases h
+    · rcases h with ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩ <;> cases h
 
 private theorem writeOutcome_fail {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
     {e : TcpErr} (h : WriteOutcome st d rs k (some e) d') : k = 0 := by
@@ -160,10 +163,10 @@ private theorem writeOutcome_fail {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {
   · exact h.1
   · split at h
     · exact h.1
-    · rcases h.2 with ⟨-, h⟩ | ⟨h, -⟩
+    · rcases h.2 with ⟨-, -, h⟩ | ⟨h, -⟩
       · cases h
       · exact h
-    · rcases h with ⟨-, h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩
+    · rcases h with ⟨-, -, h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩
       · cases h
       · exact h
       · exact h
@@ -176,11 +179,13 @@ example : WriteOutcome stW ⟨[], .open⟩ [] 0 (some .timeout) ⟨[], .open⟩ 
 example : WriteOutcome st0 ⟨[], .cut⟩ [] 0 (some .sys) ⟨[], .cut⟩ := by unfold WriteOutcome; decide
 example : WriteOutcome st0 ⟨[], .fin⟩ [] 0 (some .sys) ⟨[], .fin⟩ := by unfold WriteOutcome; decide
 
-/-- A step appends the first `k` bytes, any `k` up to all of them (none: a wait), with no failure;
-never more than it was given, never others. -/
+/-- A step appends the first `k` bytes, any `k` from one up to all of them, with no failure; never
+more than it was given, never others; one that would count none of a non-empty `rs` is a wait, a
+stutter (D22), not an outcome (below, `write_wait`). -/
 example : WriteOutcome st0 ⟨[], .open⟩ b3 3 none ⟨b3, .open⟩ := by unfold WriteOutcome; decide
 example : WriteOutcome st0 ⟨[], .open⟩ b3 1 none ⟨[97], .open⟩ := by unfold WriteOutcome; decide
-example : WriteOutcome st0 ⟨[], .open⟩ b3 0 none ⟨[], .open⟩ := by unfold WriteOutcome; decide
+example : ¬ WriteOutcome st0 ⟨[], .open⟩ b3 0 none ⟨[], .open⟩ := by unfold WriteOutcome; decide
+example : ¬ WriteOutcome st0 ⟨[], .cut⟩ b3 0 none ⟨[], .cut⟩ := by unfold WriteOutcome; decide
 example : ¬ WriteOutcome st0 ⟨[], .open⟩ [97] 2 none ⟨[97], .open⟩ := by
   unfold WriteOutcome; decide
 example : ¬ WriteOutcome st0 ⟨[], .open⟩ b3 1 none ⟨[98], .open⟩ := by
@@ -312,6 +317,239 @@ example : ¬ ReadOutcome st0 ((TcpConn.abandoned go!"a").out false) 4 (.bytes [9
 none of them success's. -/
 example : [errCode none, TcpErr.closed.code, TcpErr.timeout.code, TcpErr.sys.code] =
     [W64 0, W64 1, W64 2, W64 3] := rfl
+
+/-! ## Steps (D22): stutters, every state's outcome, panics
+
+Every operation may stutter in every state; every state has an outcome rule that is not a stutter
+(`isTcpStep_total`, and `isTcpStep_result`: an outcome rule returns a value or panics), so no
+program can stutter where Go would go on; an invalid use panics; the waits of v3.1's relations are
+stutters, followed by the outcome that ends them. -/
+
+section steps
+variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj]
+
+private theorem readOutcome_total (st : TcpEnd) (d : TcpDir) (n : Nat) :
+    ∃ r d', ReadOutcome st d n r d' := by
+  unfold ReadOutcome
+  split
+  · exact ⟨_, _, rfl, rfl⟩
+  · split
+    · exact ⟨_, _, rfl, rfl⟩
+    · exact ⟨.eof, ⟨d.bytes.take 0, .cut⟩,
+        .inr ⟨0, Nat.zero_le _, .inr (.inl ⟨by simp, by simp, rfl, rfl⟩)⟩⟩
+
+private theorem writeOutcome_total (st : TcpEnd) (d : TcpDir) (bs : List w8) :
+    ∃ k res d', WriteOutcome st d bs k res d' := by
+  unfold WriteOutcome
+  split
+  · exact ⟨_, _, _, rfl, rfl, rfl⟩
+  · split
+    · exact ⟨0, some .sys, _, rfl, rfl, .inl rfl⟩
+    · exact ⟨0, some .sys, _, rfl, .inr ⟨rfl, .inl rfl⟩⟩
+    · exact ⟨0, some .sys, _, .inr (.inl ⟨rfl, rfl, rfl⟩)⟩
+
+private theorem orInvalid_total {valid : Prop} {step : Expr → TcpLocal → TcpGlobal → Prop}
+    {L : TcpLocal} {g : TcpGlobal} (h : valid → ∃ e' L' g', step e' L' g') :
+    ∃ e' L' g', OrInvalid valid (step e' L' g') L g e' L' g' := by
+  by_cases hv : valid
+  · obtain ⟨e', L', g', hs⟩ := h hv
+    exact ⟨e', L', g', .inl hs⟩
+  · exact ⟨_, _, _, .inr ⟨hv, rfl, rfl, rfl⟩⟩
+
+/-- D22: every operation, in every state and on every argument, has an outcome rule (besides the
+stutter): a step, or a panic. -/
+theorem isTcpStep_total (op : String) (v : val) (L : TcpLocal) (g : TcpGlobal) :
+    ∃ e' L' g', IsTcpStep op v L g e' L' g' := by
+  unfold IsTcpStep
+  split
+  · apply orInvalid_total
+    rintro ⟨a, a0, rfl, hla⟩
+    exact ⟨_, _, _, a, rfl, ⟨a0, hla, .inl ⟨rfl, rfl⟩⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨l, ⟨a, o⟩, rfl, hl⟩
+    cases o
+    · exact ⟨_, _, _, l, a, false, rfl, hl, .inl ⟨rfl, rfl, rfl⟩, rfl⟩
+    · exact ⟨_, _, _, l, a, true, rfl, hl, .inr (.inl ⟨rfl, rfl, rfl⟩), rfl⟩
+  · apply orInvalid_total
+    rintro ⟨l, ⟨a, o⟩, rfl, hl⟩
+    exact ⟨_, _, _, l, a, o, if o then none else some .closed, false, rfl, hl, rfl,
+      by cases o <;> simp [LisCloseOutcome], rfl, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨a, rfl, ha⟩
+    exact ⟨_, _, _, a, rfl, ⟨ha, .inl ⟨rfl, rfl⟩⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨e, n, c, s, rfl, hE, hc⟩
+    obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
+    obtain ⟨r, d', hr⟩ := readOutcome_total (cn.endSt s) (cn.out (!s)) n.toNat
+    exact ⟨_, _, _, e, n, c, s, rfl, hE, ⟨cn, r, d', hcn, hr, rfl, rfl⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨e, bs, c, s, rfl, hE, hc⟩
+    obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
+    obtain ⟨k, res, d', hw⟩ := writeOutcome_total (cn.endSt s) (cn.out s) bs
+    exact ⟨_, _, _, e, bs, c, s, rfl, hE, ⟨cn, k, res, d', hcn, hw, rfl, rfl⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨e, c, s, rfl, hE, hc⟩
+    obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
+    have : CloseOutcome (cn.endSt s) (cn.out s)
+        (if (cn.endSt s).closed then some .closed else none)
+        (if (cn.endSt s).closed then cn.endSt s else { cn.endSt s with closed := true })
+        (if (cn.endSt s).closed then cn.out s else (cn.out s).shut) := by
+      unfold CloseOutcome; split <;> simp_all
+    exact ⟨_, _, _, e, c, s, rfl, hE, ⟨cn, _, _, _, hcn, this, rfl, rfl⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨e, c, s, rfl, hE, hc⟩
+    obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
+    have : CloseWriteOutcome (cn.endSt s) (cn.out s)
+        (if (cn.endSt s).closed then some .closed else none)
+        (if (cn.endSt s).closed then cn.out s else (cn.out s).shut) := by
+      unfold CloseWriteOutcome; split <;> simp_all
+    exact ⟨_, _, _, e, c, s, rfl, hE, ⟨cn, _, _, hcn, this, rfl, rfl⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨e, kind, wall, ext, c, s, rfl, hE, hc⟩
+    obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
+    have : ∃ res st', DeadlineOutcome (cn.endSt s) kind (!timeIsZero wall ext) res st' := by
+      unfold DeadlineOutcome; split
+      · exact ⟨_, _, rfl, rfl⟩
+      · exact ⟨_, _, rfl, rfl⟩
+    obtain ⟨res, st', hd⟩ := this
+    exact ⟨_, _, _, e, kind, wall, ext, c, s, rfl, hE, ⟨cn, res, st', hcn, hd, rfl, rfl⟩, rfl⟩
+  · exact orInvalid_total fun hv => ⟨_, _, _, hv, ⟨true, rfl⟩, rfl, rfl⟩
+  · exact orInvalid_total fun hv => ⟨_, _, _, hv, ⟨[], rfl⟩, rfl, rfl⟩
+  · exact orInvalid_total fun hv => ⟨_, _, _, hv, ⟨W64 0, rfl⟩, rfl, rfl⟩
+  · exact orInvalid_total fun hv => ⟨_, _, _, hv, ⟨W64 1, by decide, rfl⟩, rfl, rfl⟩
+  · exact ⟨_, _, _, rfl, rfl, rfl⟩
+
+/-- The panic of an invalid use. -/
+private abbrev panicE : Expr := Panic "net: invalid use of the TCP extension"
+
+private theorem orInvalid_result {valid step : Prop} {L L' : TcpLocal} {g g' : TcpGlobal}
+    {e' : Expr} (hs : step → ∃ w, e' = Val w) (h : OrInvalid valid step L g e' L' g') :
+    (∃ w, e' = Val w) ∨ e' = panicE := by
+  rcases h with h | ⟨-, rfl, -, -⟩
+  · exact .inl (hs h)
+  · exact .inr rfl
+
+/-- D22: an outcome rule returns a value, or panics: it is never a stutter (whose expression is the
+call, an `ExternalOp`), so a state's outcome (`isTcpStep_total`) decides the call. -/
+theorem isTcpStep_result {op : String} {v : val} {L L' : TcpLocal} {g g' : TcpGlobal} {e' : Expr}
+    (h : IsTcpStep op v L g e' L' g') : (∃ w, e' = Val w) ∨ e' = panicE := by
+  unfold IsTcpStep at h
+  split at h
+  · refine orInvalid_result ?_ h
+    rintro ⟨a, -, ⟨a0, -, ⟨rfl, -⟩ | ⟨-, l, -, -, rfl, -⟩⟩, -⟩ <;> exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨l, a, o, -, -, ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, c, cn, -, -, -, -, rfl, -⟩, -⟩ <;>
+      exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨l, a, o, res, o', -, -, -, -, rfl, -⟩; exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨a, -, ⟨-, ⟨rfl, -⟩ | ⟨c, -, rfl, -⟩ | ⟨c, -, rfl, -⟩⟩, -⟩ <;> exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨e, n, c, s, -, -, ⟨cn, r, d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨e, bs, c, s, -, -, ⟨cn, k, res, d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨e, c, s, -, -, ⟨cn, res, st', d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨e, c, s, -, -, ⟨cn, res, d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨e, kind, wall, ext, c, s, -, -, ⟨cn, res, st', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+  · exact orInvalid_result (fun ⟨_, ⟨_, hb⟩, _⟩ => ⟨_, hb⟩) h
+  · exact orInvalid_result (fun ⟨_, ⟨_, hb⟩, _⟩ => ⟨_, hb⟩) h
+  · exact orInvalid_result (fun ⟨_, ⟨_, hb⟩, _⟩ => ⟨_, hb⟩) h
+  · exact orInvalid_result (fun ⟨_, ⟨_, _, hb⟩, _⟩ => ⟨_, hb⟩) h
+  · exact .inr h.1
+
+/-- D22: every operation stutters, in every state, on every argument. -/
+example (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (L : TcpLocal) (g : TcpGlobal) :
+    TcpStep op v h L g (ExternalOp tcpExt.name op (Val v)) h L g := ⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩
+
+private def gA : TcpGlobal := ⟨planA, ∅⟩
+private def LA : TcpLocal := ⟨go!"h", ∅⟩
+
+/-- D22, D13: `Listen` of an address that is not the plan's at this host panics, and only panics
+(besides the stutter): another host's address, an address not in the plan. -/
+example (e' : Expr) (L' : TcpLocal) (g' : TcpGlobal)
+    (h : IsTcpStep "Listen" (#go!"127.0.0.1:7101") ⟨go!"g", ∅⟩ gA e' L' g') : e' = panicE := by
+  rcases h with ⟨a, ha, ⟨a0, hla, -⟩, -⟩ | ⟨-, h, -⟩
+  · obtain rfl := go.intoVal_inj (V := GoString) ha
+    obtain ⟨hp, rfl | ⟨hn, -⟩⟩ := hla
+    · simp [gA, planA_lookup] at hp
+    · simp [gA, planA_lookup] at hn
+  · exact h
+example (e' : Expr) (L' : TcpLocal) (g' : TcpGlobal)
+    (h : IsTcpStep "Dial" (#go!"127.0.0.2:7101") LA gA e' L' g') : e' = panicE := by
+  rcases h with ⟨a, ha, ⟨hp, -⟩, -⟩ | ⟨-, h, -⟩
+  · obtain rfl := go.intoVal_inj (V := GoString) ha
+    simp only [gA, planA, GMap.ofList] at hp
+    rw [GMap.lookup_insert_ne _ _ (by decide)] at hp; cases hp
+  · exact h
+
+/-- D22: an operation on an id that names nothing (here `0`, the zero value's, which the models
+never pass: they return `syscall.EINVAL` first, `NetTcp/TrustedCode/net.lean`'s `model.einval`)
+panics, and only panics; so does a listener id with no listener. -/
+example (n : w64) (e' : Expr) (L' : TcpLocal) (g' : TcpGlobal)
+    (h : IsTcpStep "Read" (PairV (#(W64 0)) (#n)) LA gA e' L' g') : e' = panicE := by
+  rcases h with ⟨e, n', c, s, -, -, ⟨cn, -, -, hcn, -⟩, -⟩ | ⟨-, h, -⟩
+  · simp [gA] at hcn
+  · exact h
+example (e' : Expr) (L' : TcpLocal) (g' : TcpGlobal)
+    (h : IsTcpStep "Accept" (#(W64 0)) LA gA e' L' g') : e' = panicE := by
+  rcases h with ⟨l, a, o, -, hl, -⟩ | ⟨-, h, -⟩
+  · simp [LA] at hl
+  · exact h
+
+/-- D22: an operation the extension does not have panics. -/
+example (v : val) (e' : Expr) (L' : TcpLocal) (g' : TcpGlobal)
+    (h : IsTcpStep "Send" v LA gA e' L' g') : e' = panicE := h.1
+/-- D22: a blocked `Accept` (D7) stutters, then accepts the connection when it is pending (the
+behavior of v3.1's wait clause). -/
+example (cn : TcpConn) (hca : cn.addr = go!"127.0.0.1:7101") (hacc : cn.accepted = false)
+    (h0 : GMap Loc (NonAtomic val)) :
+    let L : TcpLocal := ⟨go!"h", (∅ : GMap w64 (GoString × Bool)).insert (W64 5)
+      (go!"127.0.0.1:7101", true)⟩
+    let g : TcpGlobal := ⟨planA, (∅ : GMap Nat TcpConn).insert 1 cn⟩
+    TcpStep "Accept" (#(W64 5)) h0 L g (ExternalOp tcpExt.name "Accept" (Val (#(W64 5)))) h0 L g ∧
+    TcpStep "Accept" (#(W64 5)) h0 L g (Val (PairV (#(endId 1 true)) (#(W64 0)))) h0 L
+      (g.setConn 1 { cn with accepted := true }) := by
+  refine ⟨⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩, rfl, .inr (.inl ⟨W64 5, go!"127.0.0.1:7101", true, rfl,
+    GMap.lookup_insert _ _ _, .inr (.inr ⟨rfl, 1, cn, GMap.lookup_insert _ _ _, hca, hacc,
+      by decide, rfl, rfl⟩), rfl⟩)⟩
+
+/-- D22: a blocked `Read` (D1, nothing unread, the writer open) stutters, then returns the bytes
+once they are written; it has no outcome of its own while it waits but a break (EOF or an error)
+or, with a read deadline, a timeout. -/
+example : ReadOutcome st0 ⟨b3, .open⟩ 3 (.bytes b3) ⟨[], .open⟩ := by
+  unfold ReadOutcome
+  simp only [st0, TcpEnd.fresh, Bool.false_eq_true, ↓reduceIte, show (3 : Nat) ≠ 0 by decide]
+  exact .inl (.inl ⟨3, by decide, by decide, by decide, rfl, rfl⟩)
+example (r : ReadRes) (d' : TcpDir) (h : ReadOutcome st0 ⟨[], .open⟩ 3 r d') :
+    d'.status = .cut ∧ (r = .eof ∨ r = .err .sys) := by
+  unfold ReadOutcome at h
+  simp only [st0, TcpEnd.fresh, Bool.false_eq_true, ↓reduceIte,
+    show (3 : Nat) ≠ 0 by decide] at h
+  rcases h with h | ⟨k, hk, h⟩
+  · rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ <;> simp_all
+  · obtain rfl : k = 0 := by simpa using hk
+    rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨h, -⟩
+    · simp at hk; omega
+    · exact ⟨rfl, .inl rfl⟩
+    · exact ⟨rfl, .inr rfl⟩
+    · simp [st0, TcpEnd.fresh] at h
+
+/-- D22: a `Write` step that would count none of its bytes (a full buffer) is a stutter, not an
+outcome; an empty one finishes with `0`. -/
+example (h0 : GMap Loc (NonAtomic val)) (cn : TcpConn) (hd : cn.up = ⟨[], .open⟩)
+    (he : cn.dEnd = st0) :
+    let g : TcpGlobal := ⟨planA, (∅ : GMap Nat TcpConn).insert 1 cn⟩
+    TcpStep "Write" (PairV (#(endId 1 false)) (#b3)) h0 LA g
+        (ExternalOp tcpExt.name "Write" (Val (PairV (#(endId 1 false)) (#b3)))) h0 LA g ∧
+      ¬ WriteOutcome (cn.endSt false) (cn.out false) b3 0 none (cn.out false) ∧
+      WriteOutcome (cn.endSt false) (cn.out false) [] 0 none (cn.out false) := by
+  refine ⟨⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩, ?_, ?_⟩ <;>
+    simp only [TcpConn.endSt, TcpConn.out, hd, he] <;> unfold WriteOutcome <;> decide
+
+end steps
 
 /-! ## The deployment (D13, D20): `Deploy.lean`'s examples. -/
 
