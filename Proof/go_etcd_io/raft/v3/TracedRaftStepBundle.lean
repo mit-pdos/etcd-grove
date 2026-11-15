@@ -566,7 +566,10 @@ abbrev raft.Step.tracedTriple : Prop :=
       "Hghost" ∷ ownStepGhost γ md c id s ∗
       "#Hxfer" ∷ □ (⌜m.Type' = MsgTransferLeader ∧ m.Term' ≠ W64 0⌝ -∗ isLeader γ id m.Term') ∗
       "Hm" ∷ (
-         "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+         -- (out_size C3, `raft.Step.spec`'s) at its content, sized under the node's flag for the
+         -- types whose objects the step moves
+         "Hmsg_in" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+                       (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                        ⟨m, ents, sn, ctx, rs⟩ ∗
          "Hents" ∷ (if m.Type' = MsgProp then
                       iprop((∃ cs, ccEntsOk ents cs) ∗ [∗list] e ∈ ents, entTk γ e) else emp) ∗
