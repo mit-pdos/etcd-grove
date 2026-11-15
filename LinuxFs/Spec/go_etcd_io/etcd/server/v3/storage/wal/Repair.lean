@@ -12,6 +12,8 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
+public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenLastDefs
 public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
@@ -57,6 +59,30 @@ abbrev wal.Repair.spec (Mr : WalMarshal) : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
   {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
       (WalFs.walUnlockedTok ∨ ⌜b = false⌝) ∗ ∃ o : Option WalDur, Q o }}
+
+/-- **`Repair(lg, dir)` while the last segment's lock is held** through another open file description
+(2026-11-15, the lock semantics; `notes/wal-units/locks.md`, item 5; the user's decision of 2026-11-15: the
+lock model as it is, a blocking lock may fail at any time): etcd's `openWALFromSnapshot` ignores a failed
+`w.Close()` (whose sync failed before the locks were released) and calls `Repair`, whose `openLast` takes a
+blocking `fileutil.LockFile` on the last segment. Its two outcomes are covered: it never returns while the
+lock is held (any post holds), or it fails and `Repair` returns `false` (`openLast.specHeld`). With the
+directory claim's share the failed handle holds (a path to `dir`, `osNames j (.except X)` at the
+layout's names, the segments `segs` in name order, the last `gL`) and the held lock: `false`, nothing
+changed, the share and the held lock kept. -/
+abbrev wal.Repair.specHeld : Prop :=
+  ∀ (lg : Loc) (R : Roots) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
+    (segs : List SegG) (gL : SegG) (qd : Qp) (dqn : DFrac) (k : LockKind) (fd : w64),
+  (∀ b ∈ X, walNameP b = false) → SegsNamed segs hj.cur → walInos hj.cur = segs.map (·.ino) →
+  (segs.map (·.ino)).Nodup → (segs.map (·.name)).Pairwise (fun a b => go.GoStringLt a b) →
+  (∀ g ∈ segs, ∃ sq ix : Nat, g.name = walFileName sq ix) → segs.getLast? = some gL →
+  dir.length < 2 ^ 59 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
+      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R dir (DFrac.own qd) j ∗
+      osCallPerm (GF := GF) 1 ∗ osNames (GF := GF) j (.except X) dqn hj ∗
+      osLock (GF := GF) k gL.ino fd ∗ fileutil.lockKind (GF := GF) k }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
+  {{ (b : Bool), RET #b; ⌜b = false⌝ ∗ osPathS R dir (DFrac.own qd) j ∗ osCallPerm 1 ∗
+      osNames j (.except X) dqn hj ∗ osLock k gL.ino fd }}
 
 end spec
 

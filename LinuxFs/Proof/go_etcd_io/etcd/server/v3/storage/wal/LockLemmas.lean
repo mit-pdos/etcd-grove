@@ -10,6 +10,7 @@ generic file predicates (the tail, `walLockH`, `wal.rcFile`, `walFileS`) hold `o
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockKind
 
 @[expose] public section
 
@@ -129,6 +130,34 @@ theorem lkFd_open (k : LockKind) (i : Ino) (fl : w64) (fd : w64) (rd wr : Bool)
   rw [e]
   iexists d.ofd, d.flk
   iframe
+
+/-- **The purger's law** (2026-11-15, the lock semantics): a WAL file's description `d` that holds an
+exclusive lock (of any kind; `fdKindOk` makes it `fileutil`'s) on the file `i`, and a lock of `fileutil`'s
+kind on `i` that someone else got (`TryLockFile`/`LockFile`'s `osLock k' i fd'` and `lockKind k'`), cannot
+coexist: whoever gets a segment's lock knows that no file the WAL keeps (`walLockH`, the tail, `walFileS`)
+holds it. -/
+theorem fdLocks_excl [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+    (fd fd' : w64) (d : OsFd) (k k' : LockKind) (hk : d.lk k = some true) :
+    fdLocks (GF := GF) fd d ∗ osLock (GF := GF) k' d.ino fd' ∗ fileutil.lockKind (GF := GF) k' ⊢ False := by
+  unfold fdLocks fdKindOk
+  iintro ⟨⟨Ht, #Hok⟩, Hl, #Hk'⟩
+  ihave #Hk := Hok $$ %k %hk
+  ihave %he := fileutil.lockKind_agree k k' $$ [Hk Hk']
+  · iframe #
+  subst he
+  have ht : lockTok (GF := GF) k fd d ⊢ osLock (GF := GF) k d.ino fd := (lockTok_some k fd d hk).1
+  unfold lockToks
+  cases k with
+  | ofd =>
+    icases Ht with ⟨Ht, -⟩
+    ihave Ht := ht $$ Ht
+    iapply osLock_excl $$ [Ht Hl]
+    iframe
+  | flock =>
+    icases Ht with ⟨-, Ht⟩
+    ihave Ht := ht $$ Ht
+    iapply osLock_excl $$ [Ht Hl]
+    iframe
 
 end lemmas
 

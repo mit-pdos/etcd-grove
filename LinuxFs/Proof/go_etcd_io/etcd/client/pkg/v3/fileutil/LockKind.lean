@@ -54,6 +54,36 @@ theorem fileutil.lockKind_agree (k1 k2 : LockKind) :
   ipureintro
   rw [h1, h2, fileutil.lockFn_inj o1 o2 Heq]
 
+/-- **A lock call on a file whose lock is held returns only an error** (2026-11-15, the lock semantics;
+`notes/wal-units/locks.md`, item 5): with an exclusive lock of `fileutil`'s kind on `i` held through
+another description (`osLock k i fd`), `LockFile`/`TryLockFile`'s post (`lockPost`) on a file the open
+leaves at `i` (`C`) has no success arm. Partial correctness covers the other outcome of a blocking
+`LockFile`, which never returns while the lock is held: either way, a caller that sees it return sees an
+error and the open's resources (the file it opened closed, unlocked). The held lock is kept. -/
+theorem fileutil.lockPost_held {X : Type} (A : X → Bool → IProp GF) (C : X → Ino → Prop)
+    (path : GoString) (flag : w64) (lf : Loc) (err : GoInterface) (k : LockKind) (i : Ino) (fd : w64)
+    (hC : ∀ x i', C x i' → i' = i) :
+    fileutil.lockPost (GF := GF) A C path flag lf err ∗ osLock (GF := GF) k i fd ∗
+        fileutil.lockKind (GF := GF) k ⊢
+      ⌜err ≠ interface.nil ∧ lf = null⌝ ∗ (∃ (x : X) (b : Bool), A x b) ∗ osLock (GF := GF) k i fd := by
+  unfold fileutil.lockPost
+  iintro ⟨⟨%x, Hp⟩, Hl, #Hk⟩
+  icases Hp with (⟨%he, -, %f, %fd', %i', %k', %hc, -, -, -, -, Hl', #Hk'⟩ | ⟨%he, %b, HA⟩)
+  · obtain ⟨-, hci⟩ := hc
+    have := hC x i' hci
+    subst this
+    ihave %hk := fileutil.lockKind_agree k k' $$ [Hk Hk']
+    · iframe #
+    subst hk
+    iexfalso
+    iapply osLock_excl $$ [Hl Hl']
+    iframe
+  · iframe Hl
+    isplitr
+    · ipureintro; exact he
+    iexists x, b
+    iexact HA
+
 end law
 
 end EtcdGrove
