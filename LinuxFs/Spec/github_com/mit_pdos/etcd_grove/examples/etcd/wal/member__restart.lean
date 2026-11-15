@@ -7,7 +7,8 @@ read is an image's, `tRestart_ok`), `fits(m.o, 0)`, the new oracle stored (`stor
 `true`: the running member (`memLive`, the form the operations take) at the new oracle `o''` (`tCheckRestart`
 of `o` with the restart's opens, at the read `c`), with `Open`'s half of the call permission: its candidate is
 the image the WAL's model holds and accounts for the WAL (`tRestart_ok`), the raft-like fields are `resume`'s
-from `c` (`tMemFields_read`), `tCheckWf` holds again (`tCheckWf_restart`). `false`: the read failed (the
+from `c` (`tMemFields_read`), `tCheckWf` holds again (`tCheckWf_restart`), and the new oracle is small
+(`fits(m.o, 0)`: `tOrSmall`, which `Boot`'s final `close` needs). `false`: the read failed (the
 member is down, also when either `fits` fails: the oracle would outgrow `durable`'s 1 GiB, U1 mismatch 2,
 decided 2026-11-15); the fields `restartRead` does not touch back.
 
@@ -44,8 +45,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- See the file header. -/
 abbrev member.restart.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m lg w0 : Loc) (v : oracle) (o : TOracle) (cd : TCand)
-    (d : WalDur) (qp : Qp) (t vo cm b l : w64) (tm r : Loc) (rv : rnd),
-  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d →
+    (od : Option WalDur) (qp : Qp) (t vo cm b l : w64) (tm r : Loc) (rv : rnd),
+  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → cd ∈ o.cands → (∀ d, od = some d → tCandOk o cd d) →
   tCheckWf o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
@@ -58,13 +59,14 @@ abbrev member.restart.spec : Prop :=
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w0 ∗ m.[member, go!"o"] ↦ v ∗
       m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗
       m.[member, go!"base"] ↦ b ∗ m.[member, go!"last"] ↦ l ∗ m.[member, go!"terms"] ↦ tm ∗
-      m.[member, go!"r"] ↦ r ∗ r ↦ rv ∗ oracleRep v o ∗ tOrOwn γ o none ∗ tWalOwn γ (some d) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o cd) ∗ WalFs.walNamed (W := W) (tWalDir e.area) }}
+      m.[member, go!"r"] ↦ r ∗ r ↦ rv ∗ oracleRep v o ∗ tOrOwn γ o none ∗ tWalOwn γ od ∗
+      tRelW (W := W) e.area o cd }}
     (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"restart")) (Val #()))
   {{ (ok : Bool), RET #ok;
       osPathS (GF := GF) e.R (e.area) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
       m.[member, go!"lg"] ↦ lg ∗ m.[member, go!"walDir"] ↦ tWalDir e.area ∗
-      if ok then ∃ o'' : TOracle, ⌜∃ (ls : List w64) (c : TContents), o'' = tCheckRestart (tWithOpens o ls) c⌝ ∗
+      if ok then ∃ o'' : TOracle, ⌜(∃ (ls : List w64) (c : TContents), o'' = tCheckRestart (tWithOpens o ls) c) ∧
+          tOrSmall o''⌝ ∗
         memLive W e γ m (1 : Qp).half o''
       else DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗
         ∃ v' : oracle, m.[member, go!"o"] ↦ v' }}

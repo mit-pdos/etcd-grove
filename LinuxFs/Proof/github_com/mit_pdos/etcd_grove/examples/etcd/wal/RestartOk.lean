@@ -54,6 +54,18 @@ def tWithOpens (o : TOracle) (l : List w64) : TOracle := { o with opens := o.ope
 theorem tWithOpens_nil (o : TOracle) : tWithOpens o [] = o := by
   cases o; simp [tWithOpens]
 
+theorem tPre_withOpens {o : TOracle} (l : List w64) (h : tPre o) : tPre (tWithOpens o l) := by
+  cases o; exact h
+
+theorem tWithOpens_created (o : TOracle) (l : List w64) : (tWithOpens o l).created = o.created := rfl
+
+/-- The WAL states before and after a restart's step, related by `P`, reflexively: none, or the same. -/
+theorem tOdRel_refl {o : TOracle} {cd : TCand} {od : Option WalDur} (hok : ∀ d, od = some d → tCandOk o cd d) :
+    Option.Rel (fun d d' => d'.H = d.H ∧ d'.cut = d.cut ∧ tCandOk o cd d') od od := by
+  cases od with
+  | none => exact Option.Rel.none
+  | some d => exact Option.Rel.some ⟨rfl, rfl, hok d rfl⟩
+
 theorem tWithOpens_add (o : TOracle) (l : List w64) (a : w64) :
     tAddOpen (tWithOpens o l) a = tWithOpens o (l ++ [a]) := by
   simp [tAddOpen, tWithOpens, List.append_assoc]

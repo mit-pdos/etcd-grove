@@ -33,6 +33,16 @@ theorem tCheckWf_step {o : TOracle} (hw : tCheckWf o) (hr : tOrRoom o 256) (h : 
     tCheckWf (tSaveO o h es) :=
   tCheckWf_saveO hw h es hes ht (tOrSmall_of_room (tOrRoom_saveO (tOrRoom_mono hr (by omega)) h))
 
+/-- **A save within `step`'s room leaves a small oracle.** -/
+theorem tOrSmall_saveO_room {o : TOracle} (hr : tOrRoom o 256) (h : THs) {es : List TEnt}
+    (hl : es.length ≤ 4) : tOrSmall (tSaveO o h es) :=
+  tOrSmall_of_room (tOrRoom_saveO (tOrRoom_mono hr (by omega)) h)
+
+/-- **An oracle grown by at most `step`'s room is small.** -/
+theorem tOrSmall_grow {o o' : TOracle} {k : Nat} (hr : tOrRoom o 256)
+    (h : (tEncodeOracle o').length ≤ (tEncodeOracle o).length + k) (hk : k ≤ 256) : tOrSmall o' := by
+  unfold tOrRoom at hr; unfold tOrSmall; omega
+
 end pure
 
 section rep

@@ -41,9 +41,9 @@ theorem member.restart.wp_proof
     (wp_resume : member.resume.spec (GF := GF) (hG := hG))
     (wp_fits : fits.spec (GF := GF) (hG := hG)) :
     member.restart.spec (GF := GF) (hG := hG) := by
-  intro W e γ m lg w0 v o cd d qp t vo cm b l tm r rv hmn hf hpath hcr hcd hok hwf
+  intro W e γ m lg w0 v o cd od qp t vo cm b l tm r rv hmn hf hpath hcd hok hwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hlg, Hwd, Hop, Hw,
-    Hov, Ht, Hv, Hc, Hb, Hl, Htm, Hr, Hrv, Hrep, Ho, Hwo, #Hsl, #Hnm⟩
+    Hov, Ht, Hv, Hc, Hb, Hl, Htm, Hr, Hrv, Hrep, Ho, Hwo, #HrW⟩
   try wp_auto
   wp_apply (wp_fits v o (W64 16) (by word)) $$ [$Hrep] as %bf ⟨Hrep, %hbf⟩
   cases bf
@@ -54,16 +54,22 @@ theorem member.restart.wp_proof
   have hsm : (tEncodeOracle o).length + 16 ≤ 0x40000000 := by
     have h := hbf.1 rfl; unfold tOrRoom at h; simp at h; omega
   wp_auto
-  wp_apply (wp_read W e γ lg m v o cd d qp hmn hf hpath hcr hcd hok (by have := (hwf.2 cd hcd).2; omega)
-      (tCandOk_readsBack hok) hsm) $$ [Hh Hperm Hpath Hres Htok Hop Hov Hrep Ho Hwo]
-    as %st %vc %w ⟨Hh, Hpath, Hres, Hop, %v1, %ls, %d1, Hov, Hrep, Ho, Hwo, %hd1, Hst⟩
+  wp_apply (wp_read W e γ lg m v o cd od qp hmn hf hpath hcd hok (by have := (hwf.2 cd hcd).2; omega)
+      (fun d hd => tCandOk_readsBack (hok d hd)) hsm) $$ [Hh Hperm Hpath Hres Htok Hop Hov Hrep Ho Hwo]
+    as %st %vc %w ⟨Hh, Hpath, Hres, Hop, %v1, %ls, %od1, Hov, Hrep, Ho, Hwo, %hd1, Hst⟩
   · iframe; iframe #
-  obtain ⟨hls, hH, hcut, hok1⟩ := hd1
+  obtain ⟨hls, hrel⟩ := hd1
   try wp_auto
   by_cases hst : st = W64 0
   · subst hst
     simp only [↓reduceIte]
-    icases Hst with ⟨Hp1, %c, #Hcr, %himg, Hwf, Hpw, #Hlen, #Hsl1, #Hnm1⟩
+    icases Hst with ⟨Hp1, %c, %d, %hod, #Hcr, %himg, Hwf, Hpw, #Hlen, #Hsl1, #Hnm1⟩
+    subst hod
+    obtain ⟨d1, hd1, hH, hcut, hok1⟩ : ∃ d1, od1 = some d1 ∧ d1.H = d.H ∧ d1.cut = d.cut ∧
+        tCandOk (tWithOpens o ls) cd d1 := by
+      cases hrel with
+      | some h => exact ⟨_, rfl, h⟩
+    subst hd1
     obtain ⟨img, himgm, hI, hr⟩ := himg
     have hI1 : d1.H.map WalOpG.toM = img.map absOp := by rw [hH]; exact hI
     obtain ⟨hsim, σ, hsa, hσb, hσl, hσc⟩ := tRestart_sim hok1 hI1 hr
@@ -111,7 +117,7 @@ theorem member.restart.wp_proof
     iframe
     iexists tCheckRestart (tWithOpens o ls) c
     isplitr
-    · ipureintro; exact ⟨ls, c, rfl⟩
+    · ipureintro; exact ⟨⟨ls, c, rfl⟩, hsm2⟩
     iunfold memLive
     iexists w, v2, tCheckRestart (tWithOpens o ls) c, c', d1, tResumeTerm c, c.hs.vote', tResumeCommit c,
       c.baseIdx, tResumeLast c, tm', tResumeTerms c, r, rv

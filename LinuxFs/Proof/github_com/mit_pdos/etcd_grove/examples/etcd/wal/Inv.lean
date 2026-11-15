@@ -180,6 +180,39 @@ instance tRelI_timeless (area : GoString) (o : TOracle) (od : Option WalDur) :
     Timeless (tRelI (W := W) (GF := GF) area o od) := by
   unfold tRelI; split <;> infer_instance
 
+/-- **What the restart takes of the WAL side, for the member's candidate `cd`** (`restartRead`'s and
+`restart`'s premise, B1 of the tenth session): after `Create` returned, `cd`'s mark synced and the WAL
+named (`tRelI`'s facts); before, the oracle fresh up to its opens (`Boot`'s restart from an oracle stored
+before `created`). With `cd ∈ o.cands` and `tCandOk o cd d` it gives `tRelI` (`tRelI_of_relW`). -/
+def tRelW (area : GoString) (o : TOracle) (cd : TCand) : IProp GF :=
+  if o.created then
+    iprop(WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o cd) ∗ WalFs.walNamed (W := W) (tWalDir area))
+  else iprop(⌜tPre o⌝)
+
+instance tRelW_persistent (area : GoString) (o : TOracle) (cd : TCand) :
+    Persistent (tRelW (W := W) (GF := GF) area o cd) := by
+  unfold tRelW; split <;> infer_instance
+
+open Iris.ProofMode in
+theorem tRelI_of_relW (area : GoString) (o : TOracle) (cd : TCand) (d : WalDur)
+    (hcd : cd ∈ o.cands) (hok : tCandOk o cd d) :
+    tRelW (W := W) (GF := GF) area o cd ⊢ tRelI (W := W) area o (some d) := by
+  unfold tRelW tRelI
+  cases hcr : o.created with
+  | true =>
+    simp only [ite_true]
+    iintro ⟨#Hsl, #Hnm⟩
+    iexists d, cd
+    iframe Hsl Hnm
+    ipureintro; exact ⟨rfl, hcd, hok⟩
+  | false =>
+    simp only [Bool.false_eq_true, ite_false]
+    iintro %hpre
+    ipureintro
+    have : cd = tCand0 := by simpa [tPre_cands hpre] using hcd
+    subst this
+    exact ⟨hpre, Or.inr ⟨d, rfl, hok⟩⟩
+
 /-- **The pending oracle's relation**: while a `Write` is pending, the oracle before it accounts for
 the WAL too. -/
 def tRelA (area : GoString) (oa : Option TOracle) (od : Option WalDur) : IProp GF :=

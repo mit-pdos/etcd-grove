@@ -4,7 +4,8 @@ one random operation: `opEntries`, `opResend`, `opCommit`, `opTerm`, `opOwnSnap`
 followed by `restart`, or nothing. Stated over the running member (`memLive`, the form the operations leave): at
 `Open`'s half of the call permission (`restart` needs the whole one, with `close`'s half), with what `restart`
 needs beside it (the logger, the WAL directory field, the area's path and resources), which come back. `true`:
-the running member at some oracle; `false` (a WAL call failed, a restart's read failed, or the oracle is full):
+the running member at some oracle, small (`tOrSmall`: the operations stay within `fits`' room; `Boot`'s
+final `close` stores it); `false` (a WAL call failed, a restart's read failed, or the oracle is full):
 nothing more. Lean-first (no Rocq counterpart).
 -/
 module
@@ -42,7 +43,7 @@ abbrev member.step.spec : Prop :=
   {{ (b : Bool), RET #b;
       osPathS (GF := GF) e.R (e.area) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
       m.[member, go!"lg"] ↦ lg ∗ m.[member, go!"walDir"] ↦ tWalDir e.area ∗
-      if b then ∃ o' : TOracle, memLive W e γ m (1 : Qp).half o' else True }}
+      if b then ∃ o' : TOracle, memLive W e γ m (1 : Qp).half o' ∗ ⌜tOrSmall o'⌝ else True }}
 
 end spec
 

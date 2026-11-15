@@ -329,12 +329,34 @@ def tCandOk (o : TOracle) (c : TCand) (d : WalDur) : Prop :=
   d.pur ≤ uint.nat c.pur ∧ d.cut ≤ uint.nat c.pur ∧ d.unl ≤ max (uint.nat c.unl) (tOpensBound o c) ∧
   d.sized = true ∧ tHistWf (tCandHist o c) ∧ tSim ((tCandHist o c).map absOp) (tCandMark o c)
 
-/-- **Before `Create` returned** (`¬ created`): the oracle is fresh (its file is written only once
-`created` holds) and the WAL is absent or `Create`'s fresh one, which a crash between `Create`'s
-commit and the store of `created` leaves. -/
+/-- The fresh oracle's one candidate (`freshOracle`: `cand{h: []}`). -/
+def tCand0 : TCand := ⟨[], W64 0, W64 0⟩
+
+/-- **The fresh oracle up to its pending opens**: what the oracle is before `Create` returned, or
+during a restart that began from the fresh oracle (`Boot`'s `restart()` with a WAL that `Create`
+committed and a crash kept before `created` was stored: `restartRead` appends the opens and stores it). -/
+def tPre (o : TOracle) : Prop := { o with opens := [] } = tFreshOracle
+
+theorem tPre_fresh : tPre tFreshOracle := rfl
+
+/-- **Before `Create` returned** (`¬ created`): the oracle is fresh up to its pending opens (its file is
+written only once `created` holds, or by a restart's `restartRead` before an `Open`), and the WAL is
+absent or accounted for by the fresh oracle's candidate (`Create`'s fresh WAL, which a crash between
+`Create`'s commit and the store of `created` leaves; its unlock position raised by the opens). -/
 def tPreOk (o : TOracle) (od : Option WalDur) : Prop :=
-  o = tFreshOracle ∧
-    (od = none ∨ ∃ d, od = some d ∧ d.H = [] ∧ d.unl = 0 ∧ d.pur = 0 ∧ d.cut = 0 ∧ d.sized = true)
+  tPre o ∧ (od = none ∨ ∃ d, od = some d ∧ tCandOk o tCand0 d)
+
+theorem tPre_cands {o : TOracle} (h : tPre o) : o.cands = [tCand0] := by
+  have := congrArg TOracle.cands h; simpa [tFreshOracle, tCand0] using this
+
+theorem tPre_synced {o : TOracle} (h : tPre o) : o.synced = W64 0 := by
+  have := congrArg TOracle.synced h; simpa [tFreshOracle] using this
+
+theorem tPre_created {o : TOracle} (h : tPre o) : o.created = false := by
+  have := congrArg TOracle.created h; simpa [tFreshOracle] using this
+
+theorem tPre_mark {o : TOracle} (h : tPre o) : tCandMark o tCand0 = 0 := by
+  simp [tCandMark, tCand0, tPre_synced h]
 
 /-! ## Paths -/
 

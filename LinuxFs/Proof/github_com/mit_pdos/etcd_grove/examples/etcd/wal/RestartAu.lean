@@ -64,12 +64,23 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev walOpenRaise (s : w64 × w64) (d : WalDur) : WalDur :=
   { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) }
 
+/-- **`tRelW` survives appended opens** (the mark and `created` unchanged, `tPre` kept). -/
+theorem tRelW_withOpens (W : WalGS GF) (area : GoString) (o : TOracle) (cd : TCand) (l : List w64) :
+    tRelW (W := W) (GF := GF) area o cd ⊢ tRelW (W := W) area (tWithOpens o l) cd := by
+  unfold tRelW
+  rw [tWithOpens_created]
+  cases o.created with
+  | true => simp only [ite_true, tCandMark_withOpens]; iintro H; iexact H
+  | false =>
+    simp only [Bool.false_eq_true, ite_false]
+    iintro %h; ipureintro; exact tPre_withOpens l h
+
 /-- **An update over the WAL directory, committed with the state unchanged** (`ValidSnapshotEntries`,
 `Repair`). -/
-theorem tInv_dirAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) :
-    TInv (W := W) e γ ∗ tWalOwn γ (some d) ⊢
+theorem tInv_dirAu (W : WalGS GF) (e : TEnv) (γ : TGS) (od : Option WalDur) :
+    TInv (W := W) e γ ∗ tWalOwn γ od ⊢
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs (W := W) (tWalDir e.area) o }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDirIs (W := W) (tWalDir e.area) o, COMM ⌜o = some d⌝ ∗ tWalOwn γ (some d) }> := by
+        <{ WalFs.walDirIs (W := W) (tWalDir e.area) o, COMM ⌜o = od⌝ ∗ tWalOwn γ od }> := by
   iintro ⟨#Hinv, Hwo⟩
   iauintro
   unfold atomic_acc
@@ -78,24 +89,24 @@ theorem tInv_dirAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) :
   imod Hi
   iunfold TInvBody at Hi
   icases Hi with ⟨%s, %o1, %oa, %od1, Hs, %hfile, Ho1, Hwd, Hw1, #Hr1, #Ha1⟩
-  ihave %hag := tWalOwn_agree γ (some d) od1 $$ Hwo Hw1
-  subst hag
+  ihave %hag := tWalOwn_agree γ od od1 $$ Hwo Hw1
+  subst od1
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iexists some d
+  iexists od
   iframe Hwd
   isplit
   · iintro Hwd
     imod Hclose2 with -
     imod Hclose $$ [Hs Ho1 Hwd Hw1] with -
-    · inext; iunfold TInvBody; iexists s, o1, oa, some d; iframe; iframe #; ipureintro; exact hfile
+    · inext; iunfold TInvBody; iexists s, o1, oa, od; iframe; iframe #; ipureintro; exact hfile
     imodintro
     iframe
   · iintro Hwd
     imod Hclose2 with -
     imod Hclose $$ [Hs Ho1 Hwd Hw1] with -
-    · inext; iunfold TInvBody; iexists s, o1, oa, some d; iframe; iframe #; ipureintro; exact hfile
+    · inext; iunfold TInvBody; iexists s, o1, oa, od; iframe; iframe #; ipureintro; exact hfile
     imodintro
     iframe
     ipureintro; rfl
@@ -138,20 +149,19 @@ theorem tInv_readAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) (P : WalDu
     iframe
     ipureintro; rfl
 
-/-- **`Open`'s update, committed with the unlock position raised**: the stored oracle `o1` (created, no
-`Write` pending) accounts for the raised state through the member's candidate `cd` (`tCandOk o1 cd`
-of the raised state), whose mark is synced; both halves of the WAL state move. -/
+/-- **`Open`'s update, committed with the unlock position raised**: the stored oracle `o1` (no `Write`
+pending) accounts for the raised state through the member's candidate `cd` (`tCandOk o1 cd` of the
+raised state, `tRelW`: created with `cd`'s mark synced, or fresh up to its opens); both halves of the WAL
+state move. -/
 theorem tInv_openAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (cd : TCand) (d : WalDur)
-    (s : w64 × w64) (hcr : o1.created = true) (hcd : cd ∈ o1.cands)
+    (s : w64 × w64) (hcd : cd ∈ o1.cands)
     (hok : tCandOk o1 cd (walOpenRaise s d)) :
-    TInv (W := W) e γ ∗ tOrOwn γ o1 none ∗ tWalOwn γ (some d) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o1 cd) ∗
-      WalFs.walNamed (W := W) (tWalDir e.area) ⊢
+    TInv (W := W) e γ ∗ tOrOwn γ o1 none ∗ tWalOwn γ (some d) ∗ tRelW (W := W) e.area o1 cd ⊢
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs (W := W) (tWalDir e.area) o }> @ WalFs.walAuMask, ∅
         <{ WalFs.walDirIs (W := W) (tWalDir e.area) (o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) })),
           COMM ⌜o = some d⌝ ∗ tOrOwn γ o1 none ∗ tWalOwn γ (some (walOpenRaise s d)) }> := by
-  iintro ⟨#Hinv, Ho, Hwo, #Hsl, #Hnm⟩
+  iintro ⟨#Hinv, Ho, Hwo, #HrW⟩
   iauintro
   unfold atomic_acc
   iunfold TInv at Hinv
@@ -189,11 +199,8 @@ theorem tInv_openAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (cd : TC
       isplitl [Hwd]
       · isimp only [Option.map_some] at Hwd; iexact Hwd
       isplitl
-      · iunfold tRelI
-        simp only [hcr, ↓reduceIte]
-        iexists walOpenRaise s d, cd
-        iframe #
-        ipureintro; exact ⟨rfl, hcd, hok⟩
+      · iapply tRelI_of_relW e.area o1 cd (walOpenRaise s d) hcd hok
+        iexact HrW
       · iunfold tRelA; iempintro
     imodintro
     iframe

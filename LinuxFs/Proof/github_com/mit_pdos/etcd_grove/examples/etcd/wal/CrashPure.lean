@@ -43,21 +43,13 @@ theorem tCandOk_crash {o : TOracle} {c : TCand} {d : WalDur} {I : List (WalOpG W
   · exact Nat.le_trans (Nat.le_trans hk (Nat.min_le_left _ _)) hpur
   · exact Nat.le_trans (Nat.min_le_left _ _) hunl
 
-/-- **`Create`'s fresh WAL survives the crash** (or vanishes): its crash image is empty, and the
-clamped positions stay 0. -/
+/-- **A WAL the fresh oracle accounts for survives the crash** (or vanishes): its crash image, at the
+fresh candidate's mark 0, is accounted for by the same candidate. -/
 theorem tPreOk_crash {o : TOracle} {d : WalDur} {I : List (WalOpG WalEnt)} {k : Nat}
-    (hd : d.H = [] ∧ d.unl = 0 ∧ d.pur = 0 ∧ d.cut = 0 ∧ d.sized = true)
-    (hI : walImg d.H 0 I) (hk : k ≤ min d.pur I.length) (ho : o = tFreshOracle) :
-    tPreOk o (some { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }) := by
-  obtain ⟨hH, hu, hp, -, hs⟩ := hd
-  have hI0 : I = [] := by
-    have := walImg_length_le hI
-    rw [hH] at this
-    exact List.eq_nil_of_length_eq_zero (Nat.le_zero.mp this)
-  refine ⟨ho, Or.inr ⟨_, rfl, hI0, ?_, ?_, ?_, hs⟩⟩
-  · simp only [hu, Nat.zero_min]
-  · simp only [hp, Nat.zero_min]
-  · rw [hp, Nat.zero_min] at hk; exact Nat.le_zero.mp hk
+    (hpre : tPre o) (hok : tCandOk o tCand0 d)
+    (hI : walImg d.H 0 I) (hk : k ≤ min d.pur I.length) :
+    tPreOk o (some { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }) :=
+  ⟨hpre, Or.inr ⟨_, rfl, tCandOk_crash hok (by rw [tPre_mark hpre]; exact hI) hk⟩⟩
 
 end pure
 

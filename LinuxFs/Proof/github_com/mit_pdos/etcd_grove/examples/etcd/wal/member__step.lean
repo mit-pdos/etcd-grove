@@ -84,16 +84,20 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     · obtain ⟨rfl, -⟩ := hb
       simp only [↓reduceIte]
       iexists o
-      iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv2 hok hhs hfl hwf hms
-      iframe; iunfold memFields; iframe
+      isplitl
+      · iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv2 hok hhs hfl hwf hms
+        iframe; iunfold memFields; iframe
+      · ipureintro; exact hsm
     · cases b
       · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
       · simp only [↓reduceIte]
         obtain ⟨h1, h2, h3, h4, h5⟩ := hfx
         iexists _
-        iapply memLive_post W e γ m w o c _ (hardState.mk t vo cm') es t vo cm' bs l' tm M' r rv2
-          ⟨hfl.1, tTermsFrom_ok h4 hfl⟩ (tCheckWf_step hwf hroom _ h2 (fun x hx => (h3 x hx).1) hfl.1) h5
-        iframe; iframe #; iunfold memFields; iframe
+        isplitl
+        · iapply memLive_post W e γ m w o c _ (hardState.mk t vo cm') es t vo cm' bs l' tm M' r rv2
+            ⟨hfl.1, tTermsFrom_ok h4 hfl⟩ (tCheckWf_step hwf hroom _ h2 (fun x hx => (h3 x hx).1) hfl.1) h5
+          iframe; iframe #; iunfold memFields; iframe
+        · ipureintro; exact tOrSmall_saveO_room hroom _ h2
   try wp_auto
   wp_if_destruct
   · -- opResend
@@ -109,16 +113,20 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     · subst hb
       simp only [↓reduceIte]
       iexists o
-      iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv1 hok hhs hfl hwf hms
-      iframe; iunfold memFields; iframe
+      isplitl
+      · iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv1 hok hhs hfl hwf hms
+        iframe; iunfold memFields; iframe
+      · ipureintro; exact hsm
     · cases b
       · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
       · simp only [↓reduceIte]
         obtain ⟨h1, h2, h3, h4, h5⟩ := hfx
         iexists _
-        iapply memLive_post W e γ m w o c _ (hardState.mk t' vo cm) es t' vo cm bs l' tm M' r rv1
-          (h4 hfl) (tCheckWf_step hwf hroom _ (by omega) h3 (h4 hfl).1) h5
-        iframe; iframe #; iunfold memFields; iframe
+        isplitl
+        · iapply memLive_post W e γ m w o c _ (hardState.mk t' vo cm) es t' vo cm bs l' tm M' r rv1
+            (h4 hfl) (tCheckWf_step hwf hroom _ (by omega) h3 (h4 hfl).1) h5
+          iframe; iframe #; iunfold memFields; iframe
+        · ipureintro; exact tOrSmall_saveO_room hroom _ (by omega)
   try wp_auto
   wp_if_destruct
   · -- opCommit
@@ -134,15 +142,19 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     · obtain ⟨rfl, -⟩ := hb
       simp only [↓reduceIte]
       iexists o
-      iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv2 hok hhs hfl hwf hms
-      iframe; iunfold memFields; iframe
+      isplitl
+      · iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv2 hok hhs hfl hwf hms
+        iframe; iunfold memFields; iframe
+      · ipureintro; exact hsm
     · cases b
       · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
       · simp only [↓reduceIte]
         iexists _
-        iapply memLive_post W e γ m w o c _ (hardState.mk t vo cm') [] t vo cm' bs l tm M r rv2
-          hfl (tCheckWf_step hwf hroom _ (by simp) (by simp) hfl.1) hfx.2.2
-        iframe; iframe #; iunfold memFields; iframe
+        isplitl
+        · iapply memLive_post W e γ m w o c _ (hardState.mk t vo cm') [] t vo cm' bs l tm M r rv2
+            hfl (tCheckWf_step hwf hroom _ (by simp) (by simp) hfl.1) hfx.2.2
+          iframe; iframe #; iunfold memFields; iframe
+        · ipureintro; exact tOrSmall_saveO_room hroom _ (by simp)
   try wp_auto
   wp_if_destruct
   · -- opTerm
@@ -158,10 +170,12 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
     · simp only [↓reduceIte]
       iexists _
-      iapply memLive_post W e γ m w o c _ (hardState.mk (tNextTerm t) vo' cm) [] (tNextTerm t) vo' cm bs l
-        tm M r rv2 ⟨tNextTerm_lt hfl.1, hfl.2⟩ (tCheckWf_step hwf hroom _ (by simp) (by simp)
-          (tNextTerm_lt hfl.1)) hfx
-      iframe; iframe #; iunfold memFields; iframe
+      isplitl
+      · iapply memLive_post W e γ m w o c _ (hardState.mk (tNextTerm t) vo' cm) [] (tNextTerm t) vo' cm bs l
+          tm M r rv2 ⟨tNextTerm_lt hfl.1, hfl.2⟩ (tCheckWf_step hwf hroom _ (by simp) (by simp)
+            (tNextTerm_lt hfl.1)) hfx
+        iframe; iframe #; iunfold memFields; iframe
+      · ipureintro; exact tOrSmall_saveO_room hroom _ (by simp)
   try wp_auto
   wp_if_destruct
   · -- opOwnSnap
@@ -177,8 +191,8 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     cases b
     · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
     · simp only [↓reduceIte]
-      icases Hpost with ⟨%o', Hlive, -⟩
-      iexists o'; iexact Hlive
+      icases Hpost with ⟨%o', Hlive, %hlen⟩
+      iexists o'; iframe Hlive; ipureintro; exact tOrSmall_grow hroom hlen (by omega)
   try wp_auto
   wp_if_destruct
   · -- opRecvSnap
@@ -194,8 +208,8 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     cases b
     · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
     · simp only [↓reduceIte]
-      icases Hpost with ⟨%o', Hlive, -⟩
-      iexists o'; iexact Hlive
+      icases Hpost with ⟨%o', Hlive, %hlen⟩
+      iexists o'; iframe Hlive; ipureintro; exact tOrSmall_grow hroom hlen (by omega)
   have hsyn : tOrSmall (tSynced o) := by unfold tOrSmall; rw [tEncodeOracle_synced]; exact hsm
   have hl : o.since.length < 2 ^ 64 := by omega
   try wp_auto
@@ -213,13 +227,15 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     · simp only [↓reduceIte]
       icases Hpost with ⟨Hrep, H11, H14, #Hll, #Hsl⟩
       iexists tSynced o
-      iapply memLive_intro W e γ m w v' (tSynced o) (tSynced o) c d _ t vo cm bs l tm M r rv1
-        (tMemOk_synced hok hl) hhs hfl (tCheckWf_synced hwf hl) (tMemSim_congr (tSynced_hist o c) hms)
-      iframe
-      isplitl [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
-      · iunfold memSaveRes; iframe; iframe H1 H2 H3 H4 H13 H15 Hll
-        rw [tSynced_mark o c hl, ← tMemOk_len hok]; iexact Hsl
-      iunfold memFields; iframe
+      isplitl
+      · iapply memLive_intro W e γ m w v' (tSynced o) (tSynced o) c d _ t vo cm bs l tm M r rv1
+          (tMemOk_synced hok hl) hhs hfl (tCheckWf_synced hwf hl) (tMemSim_congr (tSynced_hist o c) hms)
+        iframe
+        isplitl [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
+        · iunfold memSaveRes; iframe; iframe H1 H2 H3 H4 H13 H15 Hll
+          rw [tSynced_mark o c hl, ← tMemOk_len hok]; iexact Hsl
+        iunfold memFields; iframe
+      · ipureintro; exact hsyn
   try wp_auto
   wp_if_destruct
   · -- close, then restart
@@ -236,12 +252,16 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     icases Hpost with ⟨Hrep, H11, H12, Htok, H6b, #Hsl⟩
     try wp_auto
     ihave Hperm := osCallPerm_join2 $$ [$H6 $H6b]
-    wp_apply (wp_restart W e γ m lg null v' (tSynced o) c d qp t vo cm bs l tm r rv1 hmn hf hpath hok.1
-        hok.2.1 (tMemOk_candOk hok hl) (tCheckWf_synced hwf hl))
+    ihave #HrW : tRelW (W := W) e.area (tSynced o) c $$ []
+    · iunfold tRelW
+      simp only [show (tSynced o).created = true from hok.1, ↓reduceIte]
+      rw [tSynced_mark o c hl, ← tMemOk_len hok]
+      iframe #
+    wp_apply (wp_restart W e γ m lg null v' (tSynced o) c (some d) qp t vo cm bs l tm r rv1 hmn hf hpath
+        hok.2.1 (fun d' hd' => by cases hd'; exact tMemOk_candOk hok hl) (tCheckWf_synced hwf hl))
       $$ [H5 Hperm Hpth Hares Htok Hlg Hwd H7 H8 H9 Ht Hv Hc Hb Hl Htm Hr Hrv Hrep H11 H12]
       as %ok Hpost
-    · iframe; iframe H1 H2 H3 H4 H13 H15 Hzap
-      rw [tSynced_mark o c hl, ← tMemOk_len hok]; iexact Hsl
+    · iframe; iframe H1 H2 H3 H4 H13 Hzap HrW
     icases Hpost with ⟨Hpth, Hares, Hlg, Hwd, Hpost⟩
     try wp_auto
     iapply HΦ
@@ -249,8 +269,8 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     cases ok
     · simp only [Bool.false_eq_true, ↓reduceIte]; ipureintro; trivial
     · simp only [↓reduceIte]
-      icases Hpost with ⟨%o'', -, Hlive⟩
-      iexists o''; iexact Hlive
+      icases Hpost with ⟨%o'', %ho'', Hlive⟩
+      iexists o''; iframe Hlive; ipureintro; exact ho''.2
   -- nothing
   try wp_auto
   iapply HΦ
@@ -259,8 +279,10 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
   iexists o
   ihave Hres : memSaveRes W e γ m w v o os c d (1 : Qp).half $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
   · iunfold memSaveRes; iframe; iframe #
-  iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv1 hok hhs hfl hwf hms
-  iframe; iunfold memFields; iframe
+  isplitl
+  · iapply memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv1 hok hhs hfl hwf hms
+    iframe; iunfold memFields; iframe
+  · ipureintro; exact hsm
 
 end proof
 
