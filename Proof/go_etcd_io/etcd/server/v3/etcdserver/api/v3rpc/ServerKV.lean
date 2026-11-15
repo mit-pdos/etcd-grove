@@ -210,7 +210,8 @@ log of at least two revisions, the header's revision `r` its last, after the rea
 serializable, the log extending the log applied through an index at least `c` (`readLogOk`,
 2026-10-13, unit 4b), the log extending the floor `F` (the vertical slice's unit V2), and
 (2026-10-14, unit T1) a linearizable read's log the mode's KV model (`kvModelM on`; the auth
-component's stage 4) of a committed raft log at which the read's update gave `□ Q`. -/
+component's stage 4) of a committed raft log at which the read's update gave `□ Q`; (auth-lease S3a, rev 6) with auth on at the
+lease mode `none`, that raft log's lease table empty (the read side of rev 6's guard). -/
 def rangeAnsOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (resp : Loc) (r : w64) (Q : List EntryModel → IProp GF) : IProp GF :=
   iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
@@ -218,7 +219,8 @@ def rangeAnsOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F :
       F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
-      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗
+        ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ ∗ □ Q L) ∗
     (∃ crev : Int, txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true))
 
 /-- **A successful read-only `Txn` of `t`, at the handler's level, in the auth mode `on`**
@@ -231,7 +233,8 @@ def txnReadAnsM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F :
       F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     (if txn.txnSerializable t then iprop(True) else
-      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗
+        ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ ∗ □ Q L) ∗
     txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)

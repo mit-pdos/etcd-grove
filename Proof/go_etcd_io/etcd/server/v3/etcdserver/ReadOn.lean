@@ -479,6 +479,42 @@ theorem srvKVCoreM_of_readM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
   iapply srvKVInvsM_core on s E γr $$ Hkvi
 
+/-- **With auth on at the lease mode `none`, a committed raft log's lease table is empty** (auth-lease
+S3a, rev 6: the read side of the guard `on = false ∨ lm = none → lt = []`; `kv_log_plain_on`,
+`kvLeasesOn_none`). -/
+theorem srvKVCoreM_leases_none (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (L : List EntryModel) :
+    ⊢ srvKVCoreM on E γr -∗ srvRLogLb γr.raft L ={⊤}=∗
+      ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ := by
+  cases on
+  · iintro - - !>; ipureintro; intro h; cases h
+  · rw [srvKVCoreM_true]
+    iintro ⟨#HkI, -, #HrI, -⟩ #HL
+    imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 L $$ HkI HrI HL with %Hpc
+    imodintro; ipureintro
+    intro _ hlm
+    exact kvLeasesOn_none _ _ _ (hlm ▸ Hpc.1)
+
+/-- **A read deposit's result row with the guard** (`srvKVCoreM_leases_none` under the row's
+serializable branch): what `rangeAnsOkM`/`txnReadAnsM` take from `rangeReadOkM`'s. -/
+theorem depQ_leases_none (on b : Bool) (E : apply.AEnv GF) (γr : ReadNames) (log : mvcc.Log)
+    (Q : List EntryModel → IProp GF) :
+    ⊢ srvKVCoreM on E γr -∗
+      (if b then iprop(True) else
+        ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ={⊤}=∗
+      (if b then iprop(True) else
+        ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗
+          ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ ∗ □ Q L) := by
+  cases b
+  · simp only [Bool.false_eq_true, ite_false]
+    iintro #Hc ⟨%L, #HL, %Hm, #HQ⟩
+    imod srvKVCoreM_leases_none on E γr L $$ Hc HL with %Hg
+    imodintro
+    iexists L
+    iframe HL HQ
+    ipureintro; exact ⟨Hm, Hg⟩
+  · simp only [ite_true]
+    iintro - - !>; itrivial
+
 /-- **A read update fired at a certified log, in either auth mode** (G2's follow-up, 2026-10-30;
 until then `client.watch_fire`, auth off only): with the KV core in the mode `on` and a log `L`
 with the store's witness (`E.Nx L`), the caller's persistent read update of `γ`'s state (the KV

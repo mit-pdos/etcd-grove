@@ -1066,18 +1066,22 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
+  iapply wp_fupd
   wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
     as %resp %err ⟨Hrc, Hres⟩
   · iframe #; iframe Hrc
     isplitr
     · simp only [traceutil.ownTraceOpt]; itrivial
     ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
-  iapply HΦ
-  iunfold kvAnswer
+  ihave #Hcore := srvKVCoreM_of_readM E.authOn s E γr $$ Hsrd
   icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, #HrO, -⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOkM at Hok'
     icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hres, Hown⟩
+    imod depQ_leases_none E.authOn o.base.serializable E γr log _ $$ Hcore HQl with HQl
+    imodintro
+    iapply HΦ
+    iunfold kvAnswer
     ihave #Hres' := Hres
     icases Hres' with ⟨%crev, Hres'⟩
     iunfold txn.rangeResult at Hres'
@@ -1114,6 +1118,9 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     rw [hon]
     rw [← Htok hon]; iapply infoBoundM_tok $$ Hib
   · obtain ⟨rfl, Hne⟩ := Hre
+    imodintro
+    iapply HΦ
+    iunfold kvAnswer
     iright
     isplitr
     · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
@@ -1244,6 +1251,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   · -- a read-only transaction: read locally
     ihave #Hdep' := kvDep_of_depM E.authOn s E ρ γr tok d $$ Hdep
     simp only [hro, ↓reduceIte] at hT
+    iapply wp_fupd
     wp_apply hT $$ [Hlt Hcred Hrc] as %resp %err ⟨Hlt, Hrc, Hcred, Hres⟩
     · iframe #; iframe Hlt Hcred Hrc
       isplitr
@@ -1252,12 +1260,15 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       first
         | exact fun _ => ⟨hg hro, Hany⟩
         | exact ⟨fun _ => ⟨hg hro, Hany⟩, fun h => by cases h⟩
-    iapply HΦ
-    iunfold kvAnswer
+    ihave #Hcore := srvKVCoreM_of_readM E.authOn s E γr $$ Hsrd
     icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hne, #HaE, -⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnReadOkM at Hok'
       icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hresp, Hown⟩
+      imod depQ_leases_none E.authOn (txn.txnSerializable t) E γr log _ $$ Hcore HQl with HQl
+      imodintro
+      iapply HΦ
+      iunfold kvAnswer
       ihave #Hresp' := Hresp
       iunfold txn.txnResponseIs at Hresp'
       icases Hresp' with ⟨-, #Hf⟩
@@ -1292,7 +1303,10 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact Hm
       rw [hon, ← Htok hon]
       iapply infoBoundM_tok $$ Hib
-    · iright
+    · imodintro
+      iapply HΦ
+      iunfold kvAnswer
+      iright
       isplitr
       · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
       isplitr

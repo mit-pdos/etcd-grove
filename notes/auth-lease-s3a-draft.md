@@ -486,6 +486,7 @@ the statement does not name (the client's `Q` gets the state it fired at; nothin
 | `EtcdServer.DeleteRange.spec`'s success post | `Spec/…/EtcdServer__DeleteRange.lean:59` | `Q (kvStateOf x.log)` | `G x.log` |
 | `txnAppliedOk` (`EtcdServer.Txn.spec`'s writing post, by name) | `Proof/…/etcdserver/InvRead.lean:235` | `Q (kvStateOf x.log)` | `G x.log` |
 | `putApplied`, `deleteApplied`, `txnAppliedAns` (v3rpc rows) | `Proof/…/api/v3rpc/ServerKV.lean:122, 152, 269` | `Q (kvStateOf x.log)` | `G x.log` |
+| `rangeAnsOkM`, `txnReadAnsM` (v3rpc rows, internal; added by etcd-grove-81's decision, 2026-11-15) | `ServerKV.lean:214, 227` | `∃ L, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L` | the same with `⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝` inside the `∃ L` (proved in `ServerKVOn` from `kv_log_plain_on` and `kvLeasesOn_none`, `ReadOn.depQ_leases_none`) |
 | `rangeDepQM on` (v3rpc) | `ServerKV.lean:300` | unchanged text (`□ Q (kvStM on γk L)`); its meaning on through `kvStOn` (below) | — |
 | client `putReplied`, `deleteReplied`, `txnReplied` (writing), `rangeReplyOk`, `rangeErrReply`, `txnReplied` (read) | `Proof/…/client/v3/KVService.lean:240, 350, 492, 224, 329, 409` | `Q (kvStateOf x.log)` / `□ Q (kvStateOf log)` | `G x.log` / `∃ lt, ⌜E.authOn = false → lt = []⌝ ∗ □ Q (kvStateOf log lt)` |
 | `readQ_of_ansM` (client `Results`) | `client/v3/Results.lean:1039-1046` | `□ Q (kvStateOf log)` | `∃ lt, ⌜on = false → lt = []⌝ ∗ □ Q (kvStateOf log lt)` |
