@@ -94,13 +94,13 @@ theorem fileutil.Fdatasync.wp_tailNE [syscall.Assumptions]
         walCutFrag (W := W) none ∗ walSyncedLb (W := W) dir H.length }} := by
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailW
-  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   wp_auto
   wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tailNE hS Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1.win hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hp.2.1.win hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as ⟨Hfd, Hk, Hv, Hcf, Hm, Hb, #Hs⟩
   · iframe; iexact Harea
   iapply HΦ
@@ -133,13 +133,13 @@ theorem fileutil.Fdatasync.wp_tailWNE [syscall.Assumptions]
         walSyncedLb (W := W) dir H.length }} := by
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailW
-  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   wp_auto
   wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tailNE hS Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as ⟨Hfd, Hk, Hv, Hcf, Hm, Hb, #Hs⟩
   · iframe; iexact Harea
   iapply HΦ

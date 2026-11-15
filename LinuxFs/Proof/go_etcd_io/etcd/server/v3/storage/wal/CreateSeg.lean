@@ -92,11 +92,11 @@ theorem wp_createSeg [os.file.FieldAssumptions]
           (Val #(child dir b))) (Val #false))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
         osPathS R dir dq j ∗ osCallPerm qc ∗ ∃ o, crOut j b h (DFrac.own 1) o ∗ crMeta o ∗
-        ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino),
+        ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (lo lk : Option Bool),
             ⌜0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
-            osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 0x80000))) ∨
+            osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocks fd ⟨i, false, true, lo, lk⟩) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   iintro %Φ ⟨#Hos, #Hpkg, #Hsi, Hp, Hperm, Hn⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_create
@@ -143,7 +143,7 @@ theorem wp_createSeg [os.file.FieldAssumptions]
   wp_apply wp_create (child dir b) false _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
     as %lf %err Hpost
   unfold fileutil.lockPost
-  icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %hc, Hlf, Hf, Hoff, Hfd⟩ | ⟨%he, %ok, HA⟩)⟩
+  icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
   · simp only [A]
     icases HA with ⟨Hp, Hperm, Ho, Hm⟩
     iapply HΦ
@@ -153,7 +153,9 @@ theorem wp_createSeg [os.file.FieldAssumptions]
     ileft
     isplitr
     · ipureintro; exact he
-    iexists f, fd, i
+    ihave Hfd := lkFd_open k i _ fd false true rfl rfl $$ [$Hfd $Hlk $Hkind]
+    icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
+    iexists f, fd, i, lo, lk
     iframe
     ipureintro; exact hc
   · simp only [A]

@@ -33,7 +33,7 @@ variable [sem : go.Semantics]
 def walLastOpen (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (dir : GoString) (lf : Loc) :
     IProp GF :=
   iprop(∃ (d : WalDur) (lay : WalLay) (X : List GoString) (hj : NamesH) (gL : SegG) (f : Loc)
-      (fd : w64) (qd : Qp),
+      (fd : w64) (qd : Qp) (lo lk : Option Bool),
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ TailIdle C Mr d lay ∧
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧ lay.segs.getLast? = some gL ∧
@@ -44,7 +44,8 @@ def walLastOpen (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (dir : G
     segRes (L := hG.goose_localGS) gL ∗ osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS (L := hG.goose_localGS) R dir (DFrac.own qd) lay.j ∗
     fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir gL.name) (DFrac.own 1) ∗
-    os.ownOff f (W64 0) ∗ osFd (L := hG.goose_localGS) fd (DFrac.own 1) (openFd gL.ino (W64 2 ||| W64 0x80000)))
+    os.ownOff f (W64 0) ∗ osFd (L := hG.goose_localGS) fd (DFrac.own 1) ⟨gL.ino, true, true, lo, lk⟩ ∗
+    fdLocks (GF := GF) fd ⟨gL.ino, true, true, lo, lk⟩)
 
 end defs
 

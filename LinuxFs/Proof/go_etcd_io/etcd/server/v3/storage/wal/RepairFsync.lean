@@ -219,7 +219,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_specRepTail (Mr : WalMar
   intro R jr r f fd name dir γ i H md cuts o0 k off hS
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailPO
-  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   obtain ⟨hmsz, hmz, hsz62, hfd, -⟩ := hp
   iapply Fs.wp_osMeta_zfGe _ _ rfl i _ m $$ Hm
   iintro %hzf Hm
@@ -227,7 +227,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_specRepTail (Mr : WalMar
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply WalFs.os.File.Sync.wp_tailR Mr R jr r dir γ k H md cuts o0 m bs f fd name (DFrac.own 1)
-    (DFrac.own 1) ⟨i, rd, true⟩ hmz (by omega) hzf hS $$ [Harea Hf Hfd Hk Hv Hcf Hm Hb]
+    (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hmz (by omega) hzf hS $$ [Harea Hf Hfd Hk Hv Hcf Hm Hb]
     as %err ⟨Hf, Hfd, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ

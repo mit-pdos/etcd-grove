@@ -45,7 +45,8 @@ def walTailPO (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GNam
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (k : Nat) (p : Bool)
     (off : w64) (tm : Fs.OsMeta → List Fs.ByteG → Prop) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ rd : Bool, osFd fd (DFrac.own 1) ⟨i, rd, true⟩) ∗
+  iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
+    fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗
     os.ownOff f off ∗ walLentTokB (W := W) dir γ k p ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗

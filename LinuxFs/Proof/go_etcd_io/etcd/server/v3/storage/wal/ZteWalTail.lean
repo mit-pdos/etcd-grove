@@ -260,7 +260,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
   iintro %Φ ⟨#Harea, #Herr, Hw⟩ HΦ
   unfold walTailP
   rw [show ((o0 : Int) + (([] : List w8).length : Int)) = (o0 : Int) by simp]
-  icases Hw with ⟨Hof, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hof, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   obtain ⟨hmsz, ⟨⟨hlen, hmaps, hlo, hhi⟩, hz⟩, hsz62, hfd, hlw⟩ := hp
   simp only [List.length_nil, Nat.add_zero] at hlw
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0, i, none) : TailG) $$ [Hv]
@@ -294,7 +294,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
   · unfold growTie; rw [walTailKeyL_some]; iframe
   ihave Hbd : osBytes i (W64 (o0 : Int)).toNat (DFrac.own (1 : Qp).half) (bs.drop o0) $$ [Hbd]
   · iapply (osBytes_off_eq hT.symm) $$ Hbd
-  wp_apply wp_zte f fd name (DFrac.own 1) (DFrac.own 1) ⟨i, rd, true⟩ m (W64 (o0 : Int)) (bs.drop o0)
+  wp_apply wp_zte f fd name (DFrac.own 1) (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ m (W64 (o0 : Int)) (bs.drop o0)
       (growTie (W := W) dir γ k H md cuts o0 i) (fun m => LoWr m o0)
       (fun m' => m'.lo ≤ o0 ∧ m'.size ≤ m.size)
       hfd rfl hmaps hI (by rw [hT]; omega) hmx' (by rw [List.length_drop, hT]; omega) hlw

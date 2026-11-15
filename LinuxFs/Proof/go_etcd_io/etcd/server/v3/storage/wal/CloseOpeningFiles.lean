@@ -81,7 +81,7 @@ theorem walTie_files (dir : GoString) (flag : w64) :
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H with ⟨⟨%r, Hs⟩, H⟩
     rw [hS]
     unfold walFileS
-    icases Hs with ⟨-, Hf, Hfd, -, Hm, Hb⟩
+    icases Hs with ⟨-, Hf, Hfd, Hlks, -, Hm, Hb⟩
     icases ih $$ H with ⟨Hsg, Hfs⟩
     isplitl [Hm Hb Hsg]
     · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2

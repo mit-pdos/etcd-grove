@@ -448,7 +448,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           rw [hfsI]
           icases (BigSepL.bigSepL_snoc (PROP := IProp GF)).1 $$ Hleft with ⟨Hleft, ⟨%ql, Hsl⟩⟩
           iunfold walFileS at Hsl
-          icases Hsl with ⟨⟨%hql, %hfdl⟩, Hfl, Hfdl, Hoffl, Hml, Hbyl⟩
+          icases Hsl with ⟨⟨%hql, %hfdl⟩, Hfl, Hfdl, Hlksl, Hoffl, Hml, Hbyl⟩
           -- `w.tail().Seek(w.decoder.LastOffset(), io.SeekStart)`
           wp_apply (wp_LastOffset dec IoE eof _ off' c' _) $$ [$Hdec] as Hdec
           (try wp_auto)

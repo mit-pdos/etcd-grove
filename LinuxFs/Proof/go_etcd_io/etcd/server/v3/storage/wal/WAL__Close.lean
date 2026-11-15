@@ -128,7 +128,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     He, %Hen2, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt2, Hlks, #Hltf2, Hfp, #Henv2, #Hcrc2, #Hwpk2,
     Hopen, %Hpure2⟩
   unfold walTailW
-  icases Htw with ⟨Hf2, ⟨%rd2, Hfd2⟩, Hoff2, Hk2, %m2, %bs2, Hm2, Hb2, %hp2, Hv2⟩
+  icases Htw with ⟨Hf2, ⟨%rd2, %lo2, %lk2, Hfd2, Hlkt2⟩, Hoff2, Hk2, %m2, %bs2, Hm2, Hb2, %hp2, Hv2⟩
   unfold walDirH
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout,
     ⟨%γt, Htf⟩, Hnf, %hdh⟩
@@ -141,8 +141,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
       "i" ∷ i_ptr ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗ "Hls" ∷ locks2 ↦* lfs2 ∗
       "Hlks" ∷ ([∗list] lf ∈ lfs2.dropLast.drop (sint.nat k), walLockH lf) ∗
       "Htf" ∷ (if decide (sint.nat k < lfs2.length) then
-          os.ownFile f2 fd2 name2 (DFrac.own 1) ∗ osFd fd2 (DFrac.own 1) ⟨h.ino, rd2, true⟩ else emp) ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ lfs2.length⌝) $$ [i l Hls Hlks Hf2 Hfd2]
+          os.ownFile f2 fd2 name2 (DFrac.own 1) ∗ osFd fd2 (DFrac.own 1) ⟨h.ino, rd2, true, lo2, lk2⟩ ∗
+            fdLocks fd2 ⟨h.ino, rd2, true, lo2, lk2⟩ else emp) ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ lfs2.length⌝) $$ [i l Hls Hlks Hf2 Hfd2 Hlkt2]
   · iexists W64 0, _
     simp only [named]
     iframe

@@ -42,7 +42,7 @@ public import LinuxFs.Proof.os.Off
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Spec.go_uber_org.zap.Defs
-public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.LockLemmas
 public import Perennial.Ghost.GhostVar
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 
@@ -402,7 +402,8 @@ def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ rd : Bool, osFd fd (DFrac.own 1) ⟨i, rd, true⟩) ∗
+  iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
+    fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
@@ -426,7 +427,8 @@ def walPipeH (fp : Loc) (dir : GoString) (j : Ino) (k : Nat)
 returns) and its open file, whole. -/
 def walLockH (lf : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (nm : GoString) (d : OsFd),
-    fileutil.lockedFile lf f ∗ os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d)
+    fileutil.lockedFile lf f ∗ os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗
+      fdLocks fd d)
 
 /-- **The handle's share of its WAL directory `j`** (W2's `cut`, its rename; the directory-claim map,
 `notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the

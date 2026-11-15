@@ -182,10 +182,10 @@ theorem wp_createTmp [os.file.FieldAssumptions]
           (Val #(child dir b))) (Val #true))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
         osPathS R dir dq j ∗ osCallPerm (1 : Qp).half.half ∗
-        ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (h : NamesH),
+        ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (h : NamesH) (lo lk : Option Bool),
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
-            osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag true ||| W64 0x80000)) ∗
+            osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocks fd ⟨i, false, true, lo, lk⟩ ∗
             trFile i True ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
             ⌜0 ≤ fd.toInt ∧ h.cur !! b = some (.file i)⌝) ∨
          (⌜err ≠ interface.nil⌝ ∗ tmpClaim j b)) }} := by
@@ -242,7 +242,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
     wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
       as %lf %err Hpost
     unfold fileutil.lockPost
-    icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %hc, Hlf, Hf, Hoff, Hfd⟩ | ⟨%he, %ok, HA⟩)⟩
+    icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
     · simp only [A]
       icases HA with ⟨Hp, Hperm, Ho, Htr⟩
       iapply HΦ
@@ -260,6 +260,9 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         simp only [crOut, crTr]
         icases Ho with ⟨-, -, Hn⟩
         iexists f, fd, i, _
+        ihave Hfd := lkFd_open k i _ fd false true rfl rfl $$ [$Hfd $Hlk $Hkind]
+        icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
+        iexists lo, lk
         iframe
         ipureintro; exact ⟨hfd, by simp [NamesH.log]⟩
     · simp only [A]
@@ -332,7 +335,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
       wp_apply wp_create (child dir b) true _ _ A (fun _ i' => i' = i) hT
         $$ [$Hos $Hpkg $Hsi $Hp $Hn $Hperm $Hent] as %lf %err Hpost
       unfold fileutil.lockPost
-      icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %hc, Hlf, Hf, Hoff, Hfd⟩ | ⟨%he, %ok, HA⟩)⟩
+      icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
       · simp only [A]
         icases HA with ⟨Hp, Hn, Hperm, Htr⟩
         obtain ⟨hfd, rfl⟩ := hc
@@ -342,6 +345,9 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         isplitr
         · ipureintro; exact he
         iexists f, fd, i', h
+        ihave Hfd := lkFd_open k i' _ fd false true rfl rfl $$ [$Hfd $Hlk $Hkind]
+        icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
+        iexists lo, lk
         iframe
         ipureintro; exact ⟨hfd, hcur⟩
       · simp only [A]

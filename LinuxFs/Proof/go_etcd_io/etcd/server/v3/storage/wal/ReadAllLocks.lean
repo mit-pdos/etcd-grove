@@ -97,7 +97,7 @@ theorem readAll_splitLeft (dir : GoString) :
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HL with ⟨#Hl0, HL⟩
     rw [hS]
     unfold walFileS
-    icases H0 with ⟨-, Hfile, Hfd, -, Hm, Hb⟩
+    icases H0 with ⟨-, Hfile, Hfd, Hlks, -, Hm, Hb⟩
     ihave HL' : [∗list] k ↦ lf ∈ ls', fileutil.lockedFile lf (fls'.getD k null) $$ [HL]
     · iapply (BigSepL.bigSepL_mono (fun {k x} _ => ?_)) $$ HL
       simp only [List.getD_cons_succ]

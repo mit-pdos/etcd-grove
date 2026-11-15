@@ -796,7 +796,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
   iintro !> %out %p %xs %dqp %hok
   iintro !> %Φ ⟨HW, Hp⟩ HΦ
   iunfold walTailW at HW
-  icases HW with ⟨Hf, ⟨%rd, Hfd⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
+  icases HW with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
   obtain ⟨hsz, hm, hsz62, hfd0, -⟩ := hmb
   obtain ⟨hpre, hle⟩ := hok
   simp only [List.length_append] at hle
@@ -834,7 +834,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
     rw [← e1, ← ht, List.append_assoc, List.drop_left]
     exact List.prefix_append _ _
   wp_apply (wp_tailWrite Mr R jr r dir γ H md cuts f fd name (DFrac.own 1) p xs dqp
-      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true⟩ m bs hfd0
+      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ m bs hfd0
       rfl (by rw [hoI]; omega) hoN hn (by omega) (by rw [hoI]; omega) hS hm)
     $$ [Harea Hf Ho Hp Hfd Hk Hv Hm Hb] as %n %err ⟨Hf, Hp, Hres⟩
   · unfold tailVar; iframe; iexact Harea

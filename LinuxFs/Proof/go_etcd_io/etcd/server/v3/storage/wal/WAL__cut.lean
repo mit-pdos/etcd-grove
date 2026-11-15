@@ -887,7 +887,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iapply (BigSepL.bigSepL_snoc (Φ := fun _ lf => walLockH lf)).2
     iframe Hlks
     iunfold walLockH
-    iexists f, fd, name, ⟨h1.ino, rd, true⟩
+    iexists f, fd, name, ⟨h1.ino, rd, true, lo, lk⟩
     iframe Hltf Hf Hfdo
   isplitl [Hmain Htm1 Htm2]
   · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp hfpn

@@ -657,7 +657,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     subst he
     ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
     · iframe
-    icases Hcs with (⟨%herr, %f, %fd, %i, %hfi, #Hlf, Hf, Hoff, Hfd⟩ | %herr)
+    icases Hcs with (⟨%herr, %f, %fd, %i, %lo, %lk, %hfi, #Hlf, Hf, Hoff, Hfd, Hlks⟩ | %herr)
     rotate_left
     · -- the create failed: the segment's claim back, the deferred `RemoveAll(nm.tmp)`, the abort
       cases err
@@ -713,11 +713,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     wp_call
     try wp_auto
     have hnsz : Fs.newMeta.size ≤ 0xffffffff000 := by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
-    have hino : (openFd i (wal.walOpenFlag false ||| W64 524288)).ino = i := rfl
-    ihave Hm : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) Fs.newMeta $$ [Hm]
+    have hino : (⟨i, false, true, lo, lk⟩ : OsFd).ino = i := rfl
+    ihave Hm : osMeta (⟨i, false, true, lo, lk⟩ : OsFd).ino (DFrac.own 1) Fs.newMeta $$ [Hm]
     · rw [hino]; iexact Hm
     wp_apply (os.File.Seek.wp_end f fd _ (DFrac.own 1) (W64 0) (DFrac.own 1) (DFrac.own 1)
-      (openFd i (wal.walOpenFlag false ||| W64 524288)) Fs.newMeta hfi.1 hnsz) $$ [$Hf $Hoff $Hfd $Hm] as %n %err ⟨Hf, Hfd, Hm, Hsk⟩
+      (⟨i, false, true, lo, lk⟩ : OsFd) Fs.newMeta hfi.1 hnsz) $$ [$Hf $Hoff $Hfd $Hm] as %n %err ⟨Hf, Hfd, Hm, Hsk⟩
     · iframe #
     icases Hsk with (⟨%hn, Hoff⟩ | ⟨%herr, Hoff⟩)
     rotate_left
@@ -745,11 +745,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     ihave #Hmet := wal.walInit_metrics $$ Hwi
     ihave #Hseg := wal.walInit_segSize $$ Hwi
     try wp_auto
-    have hwr : (openFd i (wal.walOpenFlag false ||| W64 524288)).writable = true := by
-      simp only [openFd]; unfold wal.walOpenFlag O_RDONLY; decide
-    ihave Hm : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) Fs.newMeta $$ [Hm]
+    have hwr : (⟨i, false, true, lo, lk⟩ : OsFd).writable = true := by
+      rfl
+    ihave Hm : osMeta (⟨i, false, true, lo, lk⟩ : OsFd).ino (DFrac.own 1) Fs.newMeta $$ [Hm]
     · rw [hino]; iexact Hm
-    wp_apply wp_Prealloc f fd _ (DFrac.own 1) (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288))
+    wp_apply wp_Prealloc f fd _ (DFrac.own 1) (DFrac.own 1) (⟨i, false, true, lo, lk⟩ : OsFd)
       Fs.newMeta _ (W64 64000000) true hfi.1 hwr (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes,
         OsFile.ofDisk]) (by simp)
       (by simp) (by decide) (by decide)
@@ -818,21 +818,21 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       hgrow.2.1 (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
     have hmaps2 : m2.maps = ∅ := by
       rw [hm2maps]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
-    ihave Hm2 : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) m2 $$ [Hm2]
+    ihave Hm2 : osMeta (⟨i, false, true, lo, lk⟩ : OsFd).ino (DFrac.own 1) m2 $$ [Hm2]
     · rw [hino]; iexact Hm2
-    ihave Hz2 : osBytes (openFd i (wal.walOpenFlag false ||| W64 524288)).ino 0 (DFrac.own 1)
+    ihave Hz2 : osBytes (⟨i, false, true, lo, lk⟩ : OsFd).ino 0 (DFrac.own 1)
         (zs2.map (fun c => ((0 : w8), c))) $$ [Hz2]
     · rw [hino, ← hnm0]; iexact Hz2
     ihave HW0 := os.fileW_start f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
-      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 0 (zs2.map (fun c => ((0 : w8), c)))
+      (⟨i, false, true, lo, lk⟩ : OsFd) m2 0 (zs2.map (fun c => ((0 : w8), c)))
       hlo2 (Nat.zero_le _) (by simp [hzs2, hm2s, hnm0]) $$ [Hf Hfd Hoff Hm2 Hz2]
     · iframe
     ihave #Hws := os.File.writerStreamI wp_WriteAt f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
-      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c)))
+      (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c)))
       (createStream Mr md).length hfi.1 hwr hmaps2 (by omega) $$ Hosi
     ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
     ihave HW0' : os.fileWI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
-      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c))) [] $$ [HW0]
+      (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))) [] $$ [HW0]
     · iunfold os.fileWI; iframe; iframe #
     -- `saveCrc(0)`
     rw [show (W32 0) = 0#32 from rfl] at *
@@ -912,7 +912,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     · iPkgInit
     have hlen1 := congrArg List.length hys1
     have hlen2 := congrArg List.length hys2
-    have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288)) m2
+    have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (⟨i, false, true, lo, lk⟩ : OsFd) m2
       (zs2.map (fun c => ((0 : w8), c)))
     wp_apply (wp_SaveSnapPre wl lg (child r nm) mp md enc lf f (W64 0) (W64 0) _ _ _
         (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
@@ -930,7 +930,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       rcases serr3 with ei | _
       rotate_left
       · exact absurd rfl he3
-      ihave Hff : (os.ownFile f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288))) $$ [HBW]
+      ihave Hff : (os.ownFile f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (⟨i, false, true, lo, lk⟩ : OsFd)) $$ [HBW]
       · icases HBW with (⟨%a3, %b3, HB⟩ | ⟨%o3, HW⟩)
         · iunfold os.fileBI at HB
           icases HB with ⟨HB, -⟩
@@ -1056,7 +1056,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau HJh HmS HbS]
     · unfold walCreateP createSeg
-      rw [show i = (openFd i (walOpenFlag false ||| W64 524288)).ino from rfl]
+      rw [show i = (⟨i, false, true, lo, lk⟩ : OsFd).ino from rfl]
       iframe
     ihave HU : createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
         (createSeg i mS ysS) none $$ [HP]
@@ -1165,7 +1165,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         · rw [restrictN_lookup_not _ _ _ hm] at hb; cases hb
       ihave HhIn := create_handleIn P Mr hMr wl lg r nm mp md enc lf f fd
         (child (child r (tmpName nm)) (walFileName 0 0)) (child r (tmpName nm))
-        (openFd i (wal.walOpenFlag false ||| W64 524288)) _ (createSeg i mS ysS) jr J
+        (⟨i, false, true, lo, lk⟩ : OsFd) _ (createSeg i mS ysS) jr J
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
         (DFrac.own d) sz rfl hwr hoffE hmp rfl htmS hL hszS hj0 hj1 hfpn
         hfi.1 rfl rfl $$ [Hpre Henc Hf Hfd Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose

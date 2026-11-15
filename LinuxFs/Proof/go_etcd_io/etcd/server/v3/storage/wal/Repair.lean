@@ -133,7 +133,7 @@ macro "repair_open" : tactic => `(tactic| (
     rw [← hF]
     simp only [walDecFile]
     iunfold walFileS at HS
-    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hoff, Hm, Hb⟩))
+    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hlks, Hoff, Hm, Hb⟩))
 
 /-- See the file header. -/
 theorem wal.Repair.wp_proof (Mr : WalMarshal)
@@ -554,7 +554,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         isplitr
         · ipureintro; exact ⟨rfl, hTM, hm62, hfd, hTM.loWr _⟩
         iunfold tailVar at Hv; iexact Hv
-      icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, Hfd⟩, Hoff⟩)
+      icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff⟩)
       rotate_left
       · -- the truncate failed: `false`
         rcases terr with ei' | _
@@ -584,7 +584,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       iunfold walLockedTok at Hl
       icases Hl with ⟨Htk, Hpk, Hcf⟩
       wp_apply (wp_Fsync R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ k os' hwrS)
-        $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, Hfd⟩, Hoff, Hfr⟩
+        $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hfr⟩
       · iframe Htw Hcf Hok
       icases Hfr with (⟨%hfe, Hkt, %m2, %bs2, Hm2, Hb2, %hTM2, Hv⟩ | %hfe)
       rotate_left

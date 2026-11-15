@@ -154,22 +154,22 @@ theorem ownFbrs_halves (IoE : GoInterface → Prop) (eof : GoInterface) :
     icases Hf with ⟨%b, %fi, %err, #Hfb, #Hdf, Hb, %herr, #Hans, Hfi⟩
     icases bufio.ownReader_open b fr _ _ r $$ Hb with ⟨%q, HS, Hbk⟩
     iunfold walFileS at HS
-    icases HS with ⟨%hpre, Hf, Hfd, Hoff, Hm, Hby⟩
+    icases HS with ⟨%hpre, Hf, Hfd, Hlks, Hoff, Hm, Hby⟩
     isplitl [Hm Hby Hgs]
     · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
       iframe Hm Hby
       iexact Hgs
     · iintro Hall
       icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ Hall with ⟨⟨Hm, Hby⟩, Hgs⟩
-      isplitl [Hf Hfd Hoff Hm Hby Hbk Hfi]
+      isplitl [Hf Hfd Hlks Hoff Hm Hby Hbk Hfi]
       · iunfold ownFbr
         iexists b, fi, err
         iframe Hfb Hdf Hans Hfi
-        isplitl [Hf Hfd Hoff Hm Hby Hbk]
+        isplitl [Hf Hfd Hlks Hoff Hm Hby Hbk]
         · iapply Hbk
           iunfold walFileS
           dsimp only
-          iframe Hf Hfd Hoff Hm Hby
+          iframe Hf Hfd Hlks Hoff Hm Hby
           ipureintro; exact hpre
         · ipureintro; exact herr
       · iapply Hsb $$ Hgs
