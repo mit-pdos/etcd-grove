@@ -109,9 +109,20 @@ before §3a; §3a adds no axiom). Done this session:
    module after `KVModelM`; `srvRestRp`/`imageLeasesAt` and the auth-on users take `srvRestM E.authOn` (Draft §4's
    "`srvRest` and `srvRestAt`'s callers use `appliedTableM E.authOn`", in a Lean shape that fits the import order).
 
+5. **§4's split done** (approved by etcd-grove-81 as a form, §14 row): `srvRestT`, `srvRest_eq_T` (`rfl`),
+   `srvRestT_lg_false` (InvRest); `srvRestM on` (`srvRest` off, `srvRestT … (appliedTableM true γr A)` on),
+   `srvRestM_false` (`rfl`), `srvRestM_lg_false`, `srvRestRpM on`, `srvRestRpM_false`, `srvRestRpM_lg_false` (ApplyRDefs);
+   `imageLeasesAtT`, `imageLeasesAt_eq_T` (ImageLeases). Full build `build10` at `f0b7821df7`.
+
 Next, in order:
-1. §4: `srvRestT`/`srvRestM` as above; `srvRestRp` (`ApplyRDefs.lean:64`) and `imageLeasesAt` (`ImageLeases.lean:51`) at
-   the mode; the auth-on users switch (with the TRANSITIONAL row still in place they only rewrite: `E.lg = false`).
+1. §4's statement switch (with §5): `EtcdServer.applyEntryNormal.spec` (`Spec/…/EtcdServer__applyEntryNormal.lean:91, 118`),
+   `applyAll.spec` (`EtcdServer__applyAll.lean:281`), `ModeSpecs.applyEntryNormal.specOn` (`ModeSpecs.lean:152, 177`), the
+   run loop's rows (`RunOn.lean:62, 81`, `AuthCompRows.lean:130, 172, 310, 332`) take `srvRestM E.authOn` / `srvRestM true`;
+   `srvRestRp` in the specs → `srvRestRpM E.authOn`; `specSnapM`'s `hlease` → an `imageLeasesAtM` (define it where
+   `appliedTableM` is visible, e.g. ApplyRDefs or the applySnapshot spec's imports, as `imageLeasesAtT γr (appliedTableM
+   on γr A') …`). Off branches are `rfl` (`srvRestM_false`); while the TRANSITIONAL row stands the on branches rewrite by
+   `srvRestM_lg_false` (`E.lg = false`: the on server's `γr.kv.lg = false` and the tie `γr.kv.lg = E.lg`, `InvApplier.lean:714`
+   / `AuthCompRows.lean:998` gives it only off: check where the on tie comes from).
 2. §5: drop `γr.kv.lg = false` from `srvKVInvsOn` (`KVApplyOn.lean:401`) and the TRANSITIONAL sites (`grep -rn
    TRANSITIONAL Proof`: `ApplyAllSnap:279`, `ApplyEntryOn:151`, `EtcdServer__applyEntryNormal:1293, 1513`,
    `MergedImageOn:88`, `SnapApplyPost:100` (`srvKVInvsM_lg`), `SnapRecvOn:537`), restate `specSnapM`'s `hnl` with
