@@ -445,7 +445,7 @@ theorem watchChan.syncPaginated.wp_proof
        I ++ (fromL (σ0.at σ0.rev) kp recur pk).map KRaw.kv = kInitRaws inS σ0 σ0.rev ∧
        kStartOk m σ0 σ0.rev ∧ kvRevFits σ0.rev ∧
        ((wr = W64 0 ∧ σ0.rev = σ.rev) ∨
-         (wr = W64 (σ0.rev : Int) ∧ ir = W64 (σ0.rev : Int) ∧ recur = true)) ∧
+         (wr = W64 (σ0.rev : Int) ∧ ir = W64 (σ0.rev : Int) ∧ recur = true ∧ 0 < σ0.rev)) ∧
        (∀ v ∈ (σ0.at σ0.rev).kvs, 0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ σ0.rev ∧
          v.key.length < opKeyMax)⌝ : IProp GF) $$ []
   · icases Hph with (⟨%Hw, -⟩ | ⟨%lb0', %σ0, #HQ0, %Hp⟩)
@@ -510,7 +510,7 @@ theorem watchChan.syncPaginated.wp_proof
       iexists lb0', σ0
       iframe HQ0
       ipureintro
-      refine ⟨hk ▸ List.take_prefix _ _, fun h => ?_, fun h => ?_, hI, hst0, hfit0, Or.inr ⟨hw, hir, rfl⟩,
+      refine ⟨hk ▸ List.take_prefix _ _, fun h => ?_, fun h => ?_, hI, hst0, hfit0, Or.inr ⟨hw, hir, rfl, hpos⟩,
         fun v hv => ⟨(hwh0 σ0.rev (Nat.le_refl _) v hv).2.1, (hwh0 σ0.rev (Nat.le_refl _) v hv).2.2,
           (hks0 σ0.rev (Nat.le_refl _)).2 v hv⟩⟩
       · rw [hm] at h; rw [hk]; exact List.take_of_length_le (by simpa using h)
@@ -672,7 +672,144 @@ theorem watchChan.syncPaginated.wp_proof
     intro k hk
     rw [List.getElem?_set_ne (by simp only [sint.nat, sint.Z] at hk hj0 ⊢; omega)]
     exact hpse k (by omega)
-  sorry
+  -- the page is queued
+  obtain ⟨hj0, hjk, -, -⟩ := Hj
+  have Hif' : ¬ sint.Z j < sint.Z sl2.len := by
+    first | exact Hif | (intro h; apply Hif; simp [h])
+  have hjl : sint.nat j = mm.kvs.length := by
+    have h1 := Hsll.1
+    rw [Hlen] at h1
+    simp only [sint.nat, sint.Z] at h1 hj0 hjk Hif' ⊢
+    omega
+  (try simp only [show decide (sint.Z j < sint.Z sl2.len) = false from decide_eq_false Hif',
+    _root_.decide_true, ↓reduceIte])
+  iunfold hdrFull at Hhf
+  icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
+  -- `initialRev` is the first page's revision
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ getResp_ptr ↦ resp ∗ wc_ptr ↦ wc ∗
+      structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦
+        W64 (σ0.rev : Int)))) $$ [Hir getResp wc]
+  · rcases hph with ⟨hw, he⟩ | ⟨hw, hir, -, hpos⟩
+    · subst hw
+      rw [decide_eq_true rfl]
+      (try wp_auto)
+      rw [hrevσ, he]
+      iframe
+      ipureintro; rfl
+    · have hwne : wr ≠ W64 0 := by
+        rw [hw]; intro h
+        have := hfit0.lt
+        apply Nat.ne_of_gt hpos
+        word
+      rw [decide_eq_false hwne]
+      (try wp_auto)
+      rw [hir]
+      iframe
+      ipureintro; rfl
+  iintro %v ⟨%hv, getResp, wc, Hir⟩
+  subst hv
+  (try wp_auto)
+  have hmemF : ∀ v ∈ mm.kvs, v ∈ (σ0.at σ0.rev).kvs := fun v hv =>
+    (List.mem_filter.1 (hpre.subset hv)).1
+  cases hmm : mm.more
+  · -- no more: the initial raw events are queued
+    (try wp_auto)
+    wp_for_post
+    (try wp_auto)
+    iapply HΦ
+    iframe Hpe
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists lb0, σ0
+    iframe HQ0 Hir
+    isplitr
+    · ipureintro; exact ⟨hst0, hfit0⟩
+    iExactEq Hps
+    rw [hjl, List.take_length, hnm hmm, hI]
+  -- more: the next page, from the last key and `"\x00"`, at the first page's revision
+  obtain ⟨hlen10, hlt, hrec⟩ := hmo hmm
+  subst hrec
+  icases Hlk with (%h0 | ⟨%kvl, %hkvl, #Hksl'⟩)
+  · exfalso; rw [hjl, hlen10] at h0; cases h0
+  rw [hjl, hlen10] at hkvl
+  have hkvlm : kvl ∈ mm.kvs := List.mem_of_getElem? hkvl
+  have hσpos : 0 < σ0.rev := by
+    have := hwh0 kvl (hmemF kvl hkvlm); omega
+  have hfit0' := hfit0.lt
+  have hσne : W64 (σ0.rev : Int) ≠ W64 0 := by intro h; apply Nat.ne_of_gt hσpos; word
+  (try wp_auto)
+  wp_apply (wp_bytes_to_string lkv kvl.key) $$ [$Hksl'] as -
+  (try wp_auto)
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ withRev_ptr ↦ W64 (σ0.rev : Int) ∗
+      getResp_ptr ↦ resp ∗
+      ∃ osl' : GoSlice, opts_ptr ↦ osl' ∗ optsOwn (GF := GF) osl' (syncGsOf kp true (W64 (σ0.rev : Int))))))
+    $$ [withRev opts Ho getResp]
+  · rcases hph with ⟨hw, he⟩ | ⟨hw, hir, -, -⟩
+    · subst hw
+      rw [decide_eq_true rfl]
+      (try wp_auto)
+      rw [hrevσ, ← he]
+      wp_apply wp_WithRev as %f3 #Hf3
+      wp_apply (wp_slice_literal (V := GoFunc) [f3])
+      isplitr
+      · ipureintro; rfl
+      iintro %sl3 ⟨Hsl3, -⟩
+      (try wp_auto)
+      wp_apply (wp_optsOwn_append _ _ _ f3 (withRevM (W64 (σ0.rev : Int)))) $$ [Ho Hsl3] as %o3 Ho3
+      · iframe Ho Hsl3 Hf3
+      (try wp_auto)
+      iframe
+      isplitr
+      · ipureintro; rfl
+      iExactEq Ho3
+      unfold syncGsOf
+      rw [if_neg hσne, if_pos rfl]
+    · have hwne : wr ≠ W64 0 := by rw [hw]; exact hσne
+      rw [decide_eq_false hwne]
+      (try wp_auto)
+      rw [← hw]
+      iframe
+      ipureintro; rfl
+  iintro %v ⟨%hv, withRev, getResp, %osl', opts, Ho⟩
+  subst hv
+  (try wp_auto)
+  wp_for_post
+  obtain ⟨kv', hlast, hnext⟩ := syncNext (σ0.at σ0.rev) kp pk 10000 (by decide) hlt
+  have hkvs : mm.kvs = (fromL (σ0.at σ0.rev) kp true pk).take 10000 := by
+    obtain ⟨t, ht⟩ := hpre
+    rw [← ht, List.take_append_of_le_length (by omega), List.take_of_length_le (by omega)]
+  have hkv' : kv' = kvl := by
+    rw [← hkvs, List.getLast?_eq_getElem?, hlen10] at hlast
+    rw [hlast] at hkvl; cases hkvl; rfl
+  subst hkv'
+  have hkey := hwh0 kv' (hmemF kv' hkvlm)
+  have hpref : kp <+: kv'.key := by
+    have := (List.mem_filter.1 (hpre.subset hkvlm)).2
+    simp only [kInScope, ↓reduceIte, Bool.and_eq_true, decide_eq_true_eq] at this
+    exact this.1
+  iframe
+  iexists kv'.key ++ [W8 0], W64 (σ0.rev : Int), lkv, resp, GoInterface.nil, W64 (σ0.rev : Int), osl',
+    I ++ mm.kvs.map KRaw.kv
+  iframe
+  isplitl [Hps]
+  · iExactEq Hps
+    rw [hjl, List.take_length]
+  isplitr
+  · ipureintro
+    refine ⟨hpref.trans (List.prefix_append _ _), ?_⟩
+    simp only [List.length_append, List.length_cons, List.length_nil]
+    omega
+  iright
+  iexists lb0, σ0
+  iframe HQ0
+  ipureintro
+  refine ⟨rfl, rfl, hσpos, rfl, hst0, hfit0, ?_⟩
+  rw [hnext, List.append_assoc, ← List.map_append, hkvs, List.take_append_drop]
+  rw [hinS] at hI ⊢
+  exact hI
 
 end proof
 
