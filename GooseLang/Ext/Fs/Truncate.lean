@@ -372,7 +372,8 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
       (∀ f, st.file d.ino = some f → f.size = m.size) → IsFsStep op v st e' st' →
       ∃ f t, st.file d.ino = some f ∧ st.proc.inflight !! t = none ∧ e' = Val (osTokV t) ∧
         st' = startState st d.ino f (OsChange.ofResize d.ino f tg tr) t)
-    (hlen : xs.length = m.size - tg) (Φ : val → IProp GF) :
+    (hlen : xs.length = m.size - tg) (Φ : val → IProp GF)
+    (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
       osBytes (L := L) d.ino (min m.size tg) (DFrac.own 1) xs -∗
       mcellsAny m.maps (min m.size tg) (rsHi tr m.size tg) -∗
@@ -380,7 +381,7 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
         rsTok tr t d.ino tg m xs n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm Hbs Hc HΦ
-  iapply wp_os_step op _ Φ hv hE hop $$ Hinv
+  iapply wp_os_step op _ Φ hv hE hop hl $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩

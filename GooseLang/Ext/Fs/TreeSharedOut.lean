@@ -91,7 +91,7 @@ theorem osOutFd_nonneg (fd : w64) : osOutFd (L := L) fd ⊢ ⌜0 ≤ fd.toInt⌝
 /-- **The lifting of any operation, with the outside fds' interpretation too** (`wp_fs_stepM`'s
 continuation also gets and gives back `ofdCtx`). -/
 theorem wp_fs_stepO (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) :
+    (hE : ↑osN ⊆ E) (hl : ¬ LockOp o := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ treeCtx (gooseOsGS (L := L)) st -∗
           ofdCtx (gooseOsGS (L := L)) st ={E \ ↑osN, ∅}=∗
@@ -106,7 +106,7 @@ theorem wp_fs_stepO (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   iintro %h %σ %g Hheap Hl -
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof, Hlk⟩
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -131,12 +131,13 @@ theorem wp_fs_stepO (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
   imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
+  ihave Hlk := lockCtx_frame _ (isFsStep_lockFrame Hst.1 hl) $$ Hlk
   imodintro
   iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv Hn Hof]
+  isplitl [HAb HAm HAf HAt Htok Hv Hn Hof Hlk]
   · iapply (os_local_ctx_eq σ').mpr
     unfold osCtx osCtxF
-    iframe Hn Hof
+    iframe Hn Hof Hlk
     iexists Γb', Γm', Γf', Γt'
     iframe
     ipureintro; exact Hwc'

@@ -1,8 +1,8 @@
 /-
-WP specs of the Linux file extension's data operations (`Impl.lean`): `close`, `flock`, `FdKind` of a
+WP specs of the Linux file extension's data operations (`Impl.lean`): `FdKind` of a
 file's fd, `fstat`, `pread`, `fsync`, `mmap`, `munmap`, loads of mapped cells. `pwrite` is in
-`Write.lean`, `ftruncate` in `Truncate.lean`/`TruncateShrink.lean`, `fallocate` and the OFD lock in
-`Falloc.lean`; the resources and the step lemma in `World.lean`. Untrusted.
+`Write.lean`, `ftruncate` in `Truncate.lean`/`TruncateShrink.lean`, `fallocate` in `Falloc.lean`, `close`
+and the locks in `Locks.lean`; the resources and the step lemma in `World.lean`. Untrusted.
 
 **Resources** (`World.lean`): `osByte i b dq (x, c)`, `osBytes i off dq xs`, `osMeta i dq m`,
 `osFd fd dq d`, `osInv`; a mapped cell's other half is the client's, an ordinary heap points-to.
@@ -43,53 +43,6 @@ theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf 
     fds := rfl
     meta_some := fun p m h => by
       obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h; exact ⟨f, hf, hm.fds X⟩ }
-
-/-- `close(fd)`, with the whole fd. Whatever the errno, the fd is gone. -/
-theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
-    {{ osInv (L := L) ∗ osFd (L := L) fd (DFrac.own 1) d }}
-      (ExternalOp fsExt.name "Close" (Val (#fd))) @ s; E
-    {{ (e : w64), RET #e; True }} := by
-  iintro %Φ ⟨#Hinv, Hfd⟩ HΦ
-  iapply wp_os_step "Close" (#fd) Φ (by simp) hE (by simp [DataOp]) $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %h Hw
-  unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
-  obtain ⟨hwf, hcoh⟩ := Hwc
-  unfold osFd
-  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
-  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
-  have hwf' : ∀ X : GMap w64 OsFd, (∀ fd d, X !! fd = some d → st.proc.fds !! fd = some d) →
-      OsWf (st.setProc { st.proc with fds := X }) := fun X hX =>
-    osWf_fds hwf X (fun fd d h => hwf.fds fd d (hX fd d h))
-  have hdel : ∀ fd' d', (GMap.delete fd st.proc.fds) !! fd' = some d' → st.proc.fds !! fd' = some d' := by
-    intro fd' d' h; rw [GMap.lookup_delete_iff] at h; split at h
-    · cases h
-    · exact h
-  imodintro
-  isplitr
-  · ipureintro
-    exact ⟨_, h, (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds }),
-      ⟨fd, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same (hwf' _ hdel) rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) Hag⟩
-  inext
-  iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  simp only [IsFsStep] at Hst
-  obtain ⟨fd', e, d', hv, hfd', rfl, rfl⟩ := Hst
-  cases go.intoVal_inj hv
-  imod gFdElem_delete _ _ _ _ _ $$ HAf Hfd with HAf
-  imod cells_same hwf (hwf' _ hdel) Hr Hfr rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) $$ [Hσ Hcells]
-    with ⟨Hσ, Hcells⟩
-  · iframe
-  imodintro
-  iexists Γb, Γm, (GMap.delete fd Γf), Γt
-  iframe
-  isplitr
-  · ipureintro; refine ⟨hwf' _ hdel, ?_⟩; rw [hcoh.fds]; exact osCoh_fds hcoh _
-  iapply wp_value'
-  iapply HΦ
-  itrivial
 
 /-- A read that returns all it reached: a successful outcome. -/
 theorem full_read (r : List w8) : ∃ k, k ≤ r.length ∧ (0 < k ∨ r = []) ∧
@@ -193,41 +146,6 @@ theorem statSees_gt {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γ
     | write off data => simp only [hkk] at hnr hlo; omega
     | truncate sz' => have := le_pageEnd (max ti.m0.size sz'); simp only [hkk] at hnr hlo; omega
     | falloc sz' => simp only [hkk] at hnr hlo; omega
-
-/-- `flock(fd, how)`: any errno. -/
-theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
-      (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd HΦ
-  iapply wp_os_step "Flock" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %h Hw
-  unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
-  obtain ⟨hwf, hcoh⟩ := Hwc
-  unfold osFd
-  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
-  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
-  imodintro
-  isplitr
-  · ipureintro
-    exact ⟨_, h, st, ⟨fd, how, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same hwf rfl rfl Hag⟩
-  inext
-  iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  simp only [IsFsStep] at Hst
-  obtain ⟨fd', how', e, d', hv, -, rfl, rfl⟩ := Hst
-  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
-  · iframe
-  imodintro
-  iexists Γb, Γm, Γf, Γt
-  iframe
-  isplitr
-  · ipureintro; exact ⟨hwf, hcoh⟩
-  iapply wp_value'
-  iapply HΦ $$ Hfd
 
 /-- `FdKind(fd)` of a file's fd: `0`. -/
 theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :

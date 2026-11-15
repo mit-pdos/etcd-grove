@@ -33,7 +33,7 @@ theorem flCreat_ok : OpenFlagsOk flCreat.toNat := by
 
 /-- The fd an open with the flags `fl` gives on the file `i`. -/
 def openFd (i : Ino) (fl : w64) : OsFd :=
-  ⟨i, decide (fl.toNat % 4 ≠ O_WRONLY), decide (fl.toNat % 4 ≠ O_RDONLY)⟩
+  ⟨i, decide (fl.toNat % 4 ≠ O_WRONLY), decide (fl.toNat % 4 ≠ O_RDONLY), none, none⟩
 
 theorem fsTreeWf_metaEnd {st : OsState} (hw : FsTreeWf st) (k : Nat) : FsTreeWf (st.metaEnd k) :=
   ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩
@@ -596,7 +596,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 q -∗
       (∀ fd : w64, ∀ e : w64, ⌜RootsOk R⌝ -∗
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i, osTree (L := L) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
-            osMeta (L := L) i (DFrac.own 1) newMeta ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osMeta (L := L) i (DFrac.own 1) newMeta ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osTree (L := L) (DFrac.own 1) R V ∨ ∃ i,
             osTree (L := L) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
             osMeta (L := L) i (DFrac.own 1) newMeta))) -∗
@@ -696,7 +696,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     obtain ⟨rfl, rfl⟩ := heffect st1 tgt heff
     obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds } := by
+        fds := <[fd := ⟨st.fs.nextIno, true, true, none, none⟩]> (createdSt st k' j b s0).proc.fds } := by
       rw [hst]; simp [O_WRONLY, O_RDONLY]
     subst hst''
     imod hghost $$ HAm HAd Hh with ⟨HAm, HAd, Hh, Hm⟩
@@ -704,14 +704,14 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
       $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     · unfold osWorld; rw [hcvC]; iframe; ipureintro; exact ⟨hwfC, hcohC⟩
     imod osWorld_addFd (st := createdSt st k' j b s0) (filesSame_refl _) (fd := fd)
-      (d := ⟨st.fs.nextIno, true, true⟩) hfdn hfd0 ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
+      (d := ⟨st.fs.nextIno, true, true, none, none⟩) hfdn hfd0 ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
     have hw' : FsTreeWf ((createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds }) := by
+        fds := <[fd := ⟨st.fs.nextIno, true, true, none, none⟩]> (createdSt st k' j b s0).proc.fds }) := by
       refine ⟨hwC.roots, hwC.hist, hwC.dfds, fun fd' _ => ?_, hwC.files_lt⟩
       show (createdSt st k' j b s0).proc.dfds !! fd' = none
       rw [hdfC]; simp
     have hc' := hcC.congr (st' := (createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds }) rfl rfl rfl rfl
+        fds := <[fd := ⟨st.fs.nextIno, true, true, none, none⟩]> (createdSt st k' j b s0).proc.fds }) rfl rfl rfl rfl
     ihave Hn := treeWorld_mk (st := st) (by rfl) hw' hc' $$ HAd HAdf HAc Hrd Hcr
     imodintro
     iexists Γb, _, _, Γt, _, ∅, ∅
