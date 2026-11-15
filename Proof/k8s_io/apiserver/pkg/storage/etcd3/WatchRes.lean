@@ -274,6 +274,126 @@ theorem kResChan_nc (c : StoreCfg GF Obj) (γ : KWatchNames)
 
 end chan
 
+/-! ## `kResInv`'s ghost steps -/
+
+section steps
+variable [GooseExts]
+variable {Obj : Type}
+
+/-- The events sent have types at most 4: the non-error ones are transforms (`kRawToEv_t`). -/
+theorem kEvs_types (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z : Obj) (σ : KVState)
+    (evs : List (KWEv Obj)) (raws : List KRaw)
+    (h : kNonErr evs = raws.filterMap (kRawToEv dec sel emp z σ)) : ∀ e ∈ evs, e.t ≤ 4 := by
+  intro e he
+  by_cases ht : e.t = 4
+  · omega
+  · have hm : e ∈ kNonErr evs := by unfold kNonErr; simp [List.mem_filter, he, ht]
+    rw [h, List.mem_filterMap] at hm
+    obtain ⟨r, -, hr⟩ := hm
+    have := kRawToEv_t dec sel emp z σ r e hr
+    omega
+
+/-- An Error event leaves the non-error part unchanged. -/
+theorem kNonErr_append_err (evs : List (KWEv Obj)) (e : KWEv Obj) (h : e.t = 4) :
+    kNonErr (evs ++ [e]) = kNonErr evs := by
+  unfold kNonErr; simp [List.filter_append, h]
+
+end steps
+
+section stepsI
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] [Pos.Countable KRaw]
+
+/-- A lower bound of a mono list gives each of its elements at its index. -/
+theorem monoList_lb_idx_all {A : Type} [Pos.Countable A] (γ : GName) (l : List A) :
+    monoListLbOwn (GF := GF) γ l ⊢ [∗list] j ↦ a ∈ l, monoListIdxOwn γ j a :=
+  by
+    iintro #H
+    iapply BigSepL.bigSepL_forall_elim
+    iintro %k %x %h
+    iapply monoListIdxOwn_get k x h $$ H
+
+/-- **The ghost step of an Error event** (`sendError`, from either goroutine): a running producer
+(`kResAlive`) sends an Error event `v` (type `ERROR`, a failure status): the element is `kResElem`'s
+at the next index (its model `⟨4, z, 0, false⟩`; the stream facts are the raw events' so far, the
+Error event adding nothing to the non-error part), and `kResInv` takes the event. -/
+theorem kResInv_err_acc (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (q : Qp)
+    (v : k8s_io.apimachinery.pkg.watch.Event) (hv : v.Type' = go!"ERROR") :
+    ⊢ statusFailureAt v.Object' -∗ kResAlive alive q -∗
+      (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive) ==∗
+      ∃ sent : List k8s_io.apimachinery.pkg.watch.Event, spscProducer γ.res sent ∗
+        kResElem c W γ cd sel emp inS m Q (sent.length : Int) v ∗
+        (spscProducer γ.res (sent ++ [v]) ==∗
+          (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive) ∗ kResAlive alive q ∗ emp) := by
+  iintro Hst HT HX
+  unfold kResInv
+  icases HX with (HI | HC)
+  · icases HI with ⟨%sent, %evs, %raws, %σ, Hp, Hauth, %Hlen, Hprocd, #Hlb, %Heq, #Hf⟩
+    let e : KWEv Obj := ⟨4, c.S.zero, 0, false⟩
+    have he4 : e.t = 4 := rfl
+    have Heq' : kNonErr (evs ++ [e]) = raws.filterMap (kRawToEv c.S.dec sel emp c.S.zero σ) := by
+      rw [kNonErr_append_err evs e he4, Heq]
+    have Hty : ∀ x ∈ evs ++ [e], x.t ≤ 4 := kEvs_types _ _ _ _ _ _ _ Heq'
+    imod monoListAuthOwn_update_app [e] $$ Hauth with ⟨Hauth, #Hlb'⟩
+    imodintro
+    iexists sent
+    isplitl [Hp]
+    · iexact Hp
+    isplitr [Hauth Hprocd HT]
+    · unfold kResElem
+      iexists e, evs
+      isplitl [Hst]
+      · unfold wevAt
+        simp only [he4, ↓reduceIte]
+        isplitr
+        · ipureintro; exact hv
+        · iexact Hst
+      isplitr
+      · ipureintro; simp [Hlen]
+      isplitr
+      · iapply monoList_lb_idx_all $$ Hlb'
+      icases Hf with (%Hnil | ⟨%lb, %lb0, %st, %σ0, #HQ, #HQ0, %Hst0, %Hsub, #Hok⟩)
+      · ileft; ipureintro
+        rw [Heq', Hnil]; rfl
+      · iright
+        iexists lb, lb0, st, σ, σ0
+        isplitr; · iexact HQ
+        isplitr; · iexact HQ0
+        isplitr; · ipureintro; exact Hst0
+        isplitr
+        · ipureintro
+          exact kStreamSub_of_raw _ _ _ _ _ _ _ _ _ _ Hsub Heq' Hty
+        icases Hok with (%Hok | #Hc)
+        · ileft; ipureintro
+          exact kStreamOk_of_raw _ _ _ _ _ _ _ _ _ _ Hok Heq' Hty
+        · iright; iexact Hc
+    · iintro Hp
+      imodintro
+      isplitl [Hp Hauth Hprocd]
+      · ileft
+        iexists sent ++ [v], evs ++ [e], raws, σ
+        isplitl [Hp]; · iexact Hp
+        isplitl [Hauth]; · iexact Hauth
+        isplitr; · ipureintro; simp [Hlen]
+        isplitl [Hprocd]; · iexact Hprocd
+        isplitr; · iexact Hlb
+        isplitr; · ipureintro; exact Heq'
+        iexact Hf
+      isplitl [HT]
+      · iexact HT
+      · iempintro
+
+  · iexfalso
+    iapply kResAlive_closed $$ [$HT $HC]
+end stepsI
+
 end k8s
 end EtcdGrove
 end Perennial
