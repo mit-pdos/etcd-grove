@@ -27,6 +27,19 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, tenth 7f-5 agent): re-review fixes M2/m1/m2 done; STOPPED on M1 (client spec)
+
+Branch `k8s-7f5` fast-forwarded to lean `7d9d727fba` (it already contained the branch); full build
+17553 jobs (`/shared/tmp/k8s7f5a-p/full1.log`). 81's decisions on the independent re-review are in
+questions.md (2026-11-15). Done in the Draft (`Draft7f5a.lean`, built; `notes/k8s-7f5a-draft.md` §10;
+ledger entry 2026-11-15): M2 (`KWatchNames.procEx`, `kProcExited`, `kCancelPD` with it, `kInElem`'s
+third disjunct), m1 (error arm), m2 (`kStartOk`: `m.req ≤ st`, the `1` from the caller's `Q`);
+`notes/perennial-changes.md`'s `WithCancel` entry has 81's decision (a) and a design sketch (to go to
+81 as the Perennial proposal). **STOPPED:** M1's local fix does not serve 7f-6 (questions.md OPEN
+entry); waiting on 81 for the client-spec strengthening. **Next, on 81's answer:** M1's fix, then
+7f-5a-P steps 1-5 (Draft §6); steps 4-5 take `isContext wc.ctx { cd with PDone := cd.PDone ∨
+kCancelPD γ cd }` as a premise; stop before step 6.
+
 ## START HERE (2026-11-14, ninth 7f-5 agent): review fixes of the 7f-5a Draft done; STOPPED for 81's re-review
 
 81 accepted D1-D7 and decided the review's fixes (questions.md, 2026-11-14). Done on `k8s-7f5`

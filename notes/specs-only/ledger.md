@@ -370,3 +370,26 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   direction, (c) the iff for requests without a leased put: S3a2 Draft §4a.
 - **Decision.** (b) (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 3): the iff at the model's `kvGrantedL`,
   `authTie` gaining `lb`.
+
+## 2026-11-15: the 7f-5a Draft's store watch (independent re-review: M1, M2, m1, m2)
+
+- **Spec.** `Draft.store.Watch.spec` and its vocabulary (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean`,
+  unlinked; `notes/k8s-7f5a-draft.md` §10), before 7f-5a-P moves it to `Spec/`.
+- **Defects.** (M1) the client may deliver a progress notification at the watch's start, `hdrRev = c` with
+  `c + 1 = rev`, with no bound by a fired state (`watchStateRespOk`, `WatchStateDefs.lean:125-128`); the producer
+  queues it as a bookmark, which `KRawTail.bm`/`KTail.bm` (`p ≤ σ.rev`) cannot hold. (M2) `kCancelPD` lacked the
+  processing goroutine's own cancel (its `sendError`'s deferred `wc.cancel()`, watcher.go:559-562, 796).
+  (m1) the post's error arm said only `err ≠ nil`. (m2) `kStartOk`'s `max m.req 1 ≤ st` needs `1 ≤ σ0.rev` in
+  the legacy case, which neither `kvWf` nor a firing gives.
+- **Evidence.** The re-review (etcd-grove-81, 2026-11-15); Go: watcher.go as cited; for M1, the driver check
+  `watchOkL` rejects any event above the configuration's revision (`KWatch.lean:209`), and 7f-6's traffic draws
+  future resource versions for legacy watches (`notes/k8s-7f-scope.md` §1), so a bookmark at a future start is
+  one the consumer cannot accept; etcd does not send one (`progressIfSync` returns unless `rev ≥ w.startRev`,
+  `server/storage/mvcc/watchable_store.go:539`): the client spec is looser than etcd.
+- **Changes.** (M2) `kProcExited` set before the processor's `sendError`; `kCancelPD` gains it; `kInElem`'s no-gap
+  fact gains it as a third disjunct (the processor refutes it). (m1) error arm `err ≠ nil ∧ sie = some false ∧
+  uint.nat n = 0`. (m2) `kStartOk`'s watch-list arm `st = σ0.rev ∧ m.req ≤ st` (the `1` from the caller's `Q`).
+  (M1) OPEN: the Draft-local fix (`bm` admitting `p = c` unbounded) does not serve the consumer (above); the
+  alternative is the client's `watchStateRespOk` start disjunct gaining `hdrRev ≤ σ.rev` (an exported client
+  spec), a stop for etcd-grove-81.
+- **Decision.** M2, m1, m2: decided by etcd-grove-81 (2026-11-15; m2's form chosen by the agent). M1: open.
