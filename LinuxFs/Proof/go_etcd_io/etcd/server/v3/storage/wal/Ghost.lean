@@ -429,6 +429,13 @@ theorem walCrashTok_excl :
   iprop(∃ γ : GName, walHandleDir (W := W) w dir γ ∗ γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗
     walLockedTok (W := W))
 
+/-- **The key of the cleanup's pin in the creating map** (`walCreatingAuth`'s third case; W4,
+`notes/wal-units/create.md`, session 4): no WAL directory (`child r nm` is not empty). `Create`'s
+cleanup after its commit pins there the area claim its `cleanupWAL` renames in (`nm` onto
+`nm.broken.<time>`), so that the rename's update, opened inside the `os` step, finds the invariant's
+half of it, as the commit's update finds the creating entry's. -/
+def cleanKey : GoString := []
+
 /-- **The authority of the WALs being created** (the invariant's): each directory `Create` works on,
 with the names `N` and history `h` of the area directory's claim it renames in. **At most one**, and
 while there is one the invariant holds the free lock token (`walUnlockedTok`: the parking flag stays
@@ -437,16 +444,22 @@ while there is one the invariant holds the free lock token (`walUnlockedTok`: th
 takes the lock, or the abort, which gives it back free with nothing out). So the map is empty wherever
 a program holds the lock token, free or taken: at the minting (no other entry, so none with the same
 directory, `CreatingNew`), at the drop, and at `Close`'s unparking (W4 log, eighth and tenth
-sessions; the tenth moved the token from the taken one to the free one, for the abort). -/
+sessions; the tenth moved the token from the taken one to the free one, for the abort). **The
+cleanup's pin** (`cleanKey ↦ (N, h, jr)`, W4 session 4): the same at most one entry, with the free token
+less its names fragment (`walUnlockedTokX`: the cleanup's `Create` holds the pending registration's
+`walNamesFrag (some dir)`), deposited by `walCreating_mintC` and given back by `walCreating_deleteC`. -/
 def walCreatingAuth (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) : IProp GF :=
   letI := walAllG (W := W)
   iprop(ghostMapAuth W.γcr 1 CR ∗
     (⌜CR = ∅⌝ ∨ ⌜∃ d x, CR = <[d := x]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))⌝ ∗
-      walUnlockedTok (W := W)))
+      walUnlockedTok (W := W) ∨
+     ⌜∃ x, CR = <[cleanKey := x]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))⌝ ∗
+      walUnlockedTokX (W := W)))
 
 instance walCreatingAuth_timeless (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) :
     Timeless (walCreatingAuth (W := W) CR) := by
-  unfold walCreatingAuth walUnlockedTok walParkFrag walCutFrag walOutFrag walTailsFrag walNamesFrag
+  unfold walCreatingAuth walUnlockedTok walUnlockedTokX walParkFrag walCutFrag walOutFrag walTailsFrag
+    walNamesFrag
   infer_instance
 
 /-- **`Create` of `dir` is renaming in the area claim of names `N`, history `h`** (exclusive, the
@@ -455,7 +468,18 @@ opened at the rename's step, where the file system's shared invariant cannot be 
 claim keys, finds it; `J` is the new WAL's directory, renamed in. -/
 def walCreating (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) : IProp GF :=
   letI := walAllG (W := W)
-  dir ↪[W.γcr] (N, h, J)
+  iprop(dir ↪[W.γcr] (N, h, J) ∗ ⌜dir ≠ cleanKey⌝)
+
+/-- **The cleanup's pin** (exclusive, the cleanup's `Create`'s; W4 session 4): the creating map's entry
+at `cleanKey`, the area claim of names `N`, history `h` its rename works in (`J` is `jr`, by
+convention). -/
+def walCleanPin (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) : IProp GF :=
+  letI := walAllG (W := W)
+  cleanKey ↪[W.γcr] (N, h, J)
+
+instance walCleanPin_timeless (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    Timeless (walCleanPin (W := W) N h J) := by
+  unfold walCleanPin; infer_instance
 
 instance walCreating_timeless (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
     Timeless (walCreating (W := W) dir N h J) := by
@@ -796,18 +820,49 @@ theorem walLockedTok_excl :
   iintro ⟨H1, -⟩ ⟨H2, -⟩
   iapply token_exclusive $$ H1 H2
 
+/-- The free lock token against the free token less its names fragment (one token). -/
+theorem walUnlockedTok_exclX :
+    ⊢@{IProp GF} walUnlockedTok (W := W) -∗ walUnlockedTokX (W := W) -∗ False := by
+  unfold walUnlockedTok walUnlockedTokX
+  letI := walAllG (W := W)
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iapply token_exclusive $$ H1 H2
+
+/-- The taken lock token against the free token less its names fragment (one token). -/
+theorem walLockedTok_exclX :
+    ⊢@{IProp GF} walLockedTok (W := W) -∗ walUnlockedTokX (W := W) -∗ False := by
+  unfold walLockedTok walUnlockedTokX
+  letI := walAllG (W := W)
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iapply token_exclusive $$ H1 H2
+
+/-- The free token less its names fragment, twice (one token). -/
+theorem walUnlockedTokX_exclX :
+    ⊢@{IProp GF} walUnlockedTokX (W := W) -∗ walUnlockedTokX (W := W) -∗ False := by
+  unfold walUnlockedTokX
+  letI := walAllG (W := W)
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iapply token_exclusive $$ H1 H2
+
+/-- The free lock token gives the free token less its names fragment. -/
+theorem walUnlockedTok_toX :
+    walUnlockedTok (W := W) ⊢ walUnlockedTokX (W := W) := by
+  iintro Hu
+  icases (walUnlockedTokX_join (W := W)).2 $$ Hu with ⟨Hx, -⟩
+  iexact Hx
+
 /-- **Minting `Create`'s creating token** (W4 log, eighth and tenth sessions): with the lock token
 free (`walUnlockedTok`), the creating map is empty (a non-empty one holds that token); the token is
 deposited with the map's one entry `dir ↦ (N, h, J)`. -/
 theorem walCreating_mint (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))
-    (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) (hdk : dir ≠ cleanKey) :
     ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walUnlockedTok (W := W) ==∗
       ⌜CR = ∅⌝ ∗
       walCreatingAuth (W := W) (<[dir := (N, h, J)]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))) ∗
       walCreating (W := W) dir N h J := by
   unfold walCreatingAuth
   iintro ⟨Ha, Hor⟩ Hu
-  icases Hor with (%hCR | ⟨-, Hl⟩)
+  icases Hor with (%hCR | ⟨-, Hl⟩ | ⟨-, Hl⟩)
   · subst hCR
     unfold walCreating
     letI := walAllG (W := W)
@@ -816,12 +871,16 @@ theorem walCreating_mint (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)
     iframe Ht
     isplitr
     · ipureintro; rfl
-    iframe Ha
-    iright
-    iframe Hu
-    ipureintro; exact ⟨dir, (N, h, J), rfl⟩
+    isplitl [Ha Hu]
+    · iframe Ha
+      iright; ileft
+      iframe Hu
+      ipureintro; exact ⟨dir, (N, h, J), rfl⟩
+    · ipureintro; exact hdk
   · iexfalso
     iapply walUnlockedTok_excl $$ Hl Hu
+  · iexfalso
+    iapply walUnlockedTok_exclX $$ Hu Hl
 
 /-- The creating token's entry in the authority. -/
 theorem walCreating_lookup (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) (dir : GoString)
@@ -830,10 +889,21 @@ theorem walCreating_lookup (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.In
       ⌜CR !! dir = some (N, h, J)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h J := by
   unfold walCreatingAuth walCreating
   letI := walAllG (W := W)
-  iintro ⟨Ha, Hor⟩ Ht
+  iintro ⟨Ha, Hor⟩ ⟨Ht, %hdk⟩
   icases ghost_map_lookup $$ Ha Ht with %H
   iframe Ha Ht Hor
-  ipureintro; exact H
+  isplitr
+  · ipureintro; exact H
+  ipureintro; exact hdk
+
+/-- A creating token's directory is not the cleanup's key. -/
+theorem walCreating_ne (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreating (W := W) dir N h J -∗
+      ⌜dir ≠ cleanKey⌝ ∗ walCreating (W := W) dir N h J := by
+  unfold walCreating
+  iintro ⟨Ht, %hdk⟩
+  iframe Ht
+  isplitr <;> ipureintro <;> exact hdk
 
 /-- **Deleting the creating token's entry** (`Create`'s commit, or its abort before the rename):
 the map's one entry, so the map is empty again; the lock token back, with the empty record of what is
@@ -844,10 +914,15 @@ theorem walCreating_delete (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.In
       ⌜GMap.delete dir CR = ∅⌝ ∗ walCreatingAuth (W := W) (GMap.delete dir CR) ∗ walUnlockedTok (W := W) := by
   unfold walCreatingAuth walCreating
   letI := walAllG (W := W)
-  iintro ⟨Ha, Hor⟩ Ht
+  iintro ⟨Ha, Hor⟩ ⟨Ht, %hdk⟩
   icases ghost_map_lookup $$ Ha Ht with %Hl
-  icases Hor with (%hCR | ⟨%hs, Hk⟩)
+  icases Hor with (%hCR | ⟨%hs, Hk⟩ | ⟨%hs, -⟩)
   · subst hCR; simp at Hl
+  rotate_left
+  · exfalso
+    obtain ⟨x, rfl⟩ := hs
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hdk)] at Hl
+    simp at Hl
   · obtain ⟨d, x, rfl⟩ := hs
     have hd : d = dir := by
       by_cases hne : d = dir
@@ -864,6 +939,92 @@ theorem walCreating_delete (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.In
     isplitr
     · ipureintro; rfl
     ileft; ipureintro; rfl
+
+/-- **Minting the cleanup's pin** (W4 session 4, `cleanKey`): with the free token less its names
+fragment (the cleanup's `Create`'s), the creating map is empty (a non-empty one holds the lock
+token); the token is deposited with the map's one entry `cleanKey ↦ (N, h, J)`. -/
+theorem walCreating_mintC (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))
+    (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walUnlockedTokX (W := W) ==∗
+      ⌜CR = ∅⌝ ∗
+      walCreatingAuth (W := W) (<[cleanKey := (N, h, J)]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))) ∗
+      walCleanPin (W := W) N h J := by
+  unfold walCreatingAuth
+  iintro ⟨Ha, Hor⟩ Hu
+  icases Hor with (%hCR | ⟨-, Hl⟩ | ⟨-, Hl⟩)
+  · subst hCR
+    unfold walCleanPin
+    letI := walAllG (W := W)
+    imod ghost_map_insert (γ := W.γcr) cleanKey (N, h, J) (by rfl) $$ Ha with ⟨Ha, Ht⟩
+    imodintro
+    iframe Ht
+    isplitr
+    · ipureintro; rfl
+    iframe Ha
+    iright; iright
+    iframe Hu
+    ipureintro; exact ⟨(N, h, J), rfl⟩
+  · iexfalso
+    iapply walUnlockedTok_exclX $$ Hl Hu
+  · iexfalso
+    iapply walUnlockedTokX_exclX $$ Hl Hu
+
+/-- **Deleting the cleanup's pin**: the map's one entry, so the map is empty again; the deposited
+token back. -/
+theorem walCreating_deleteC (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))
+    (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walCleanPin (W := W) N h J ==∗
+      ⌜GMap.delete cleanKey CR = ∅⌝ ∗ walCreatingAuth (W := W) (GMap.delete cleanKey CR) ∗
+        walUnlockedTokX (W := W) := by
+  unfold walCreatingAuth walCleanPin
+  letI := walAllG (W := W)
+  iintro ⟨Ha, Hor⟩ Ht
+  icases ghost_map_lookup $$ Ha Ht with %Hl
+  have key : ∀ d (x : Fs.NameSet × Fs.NamesH × Fs.Ino),
+      (<[d := x]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))) !! cleanKey = some (N, h, J) →
+      d = cleanKey ∧ GMap.delete cleanKey (<[d := x]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))) = ∅ := by
+    intro d x hl
+    have hd : d = cleanKey := by
+      by_cases hne : d = cleanKey
+      · exact hne
+      · rw [GMap.lookup_insert_ne _ _ hne] at hl
+        simp at hl
+    subst hd
+    exact ⟨rfl, GMap.delete_insert _ _ _ (by rfl)⟩
+  icases Hor with (%hCR | ⟨%hs, Hk⟩ | ⟨%hs, Hk⟩)
+  · subst hCR; simp at Hl
+  · obtain ⟨d, x, rfl⟩ := hs
+    obtain ⟨-, he⟩ := key d x Hl
+    imod ghost_map_delete $$ Ha Ht with Ha
+    imodintro
+    rw [he]
+    iframe Ha
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ileft; ipureintro; rfl
+    iapply walUnlockedTok_toX $$ Hk
+  · obtain ⟨x, rfl⟩ := hs
+    obtain ⟨-, he⟩ := key cleanKey x Hl
+    imod ghost_map_delete $$ Ha Ht with Ha
+    imodintro
+    rw [he]
+    iframe Ha Hk
+    isplitr
+    · ipureintro; rfl
+    ileft; ipureintro; rfl
+
+/-- The cleanup's pin's entry in the authority. -/
+theorem walCleanPin_lookup (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) (N : Fs.NameSet)
+    (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walCleanPin (W := W) N h J -∗
+      ⌜CR !! cleanKey = some (N, h, J)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCleanPin (W := W) N h J := by
+  unfold walCreatingAuth walCleanPin
+  letI := walAllG (W := W)
+  iintro ⟨Ha, Hor⟩ Ht
+  icases ghost_map_lookup $$ Ha Ht with %H
+  iframe Ha Ht Hor
+  ipureintro; exact H
 
 /-- The pending-cut flag's halves agree. -/
 theorem walCut_agree (c c' : Option GoString) :

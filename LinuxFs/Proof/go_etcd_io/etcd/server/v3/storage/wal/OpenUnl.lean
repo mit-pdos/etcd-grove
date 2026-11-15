@@ -169,6 +169,8 @@ theorem walInvBody_unl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     (fun _ hn => hn.upd (fun _ => rfl))
     $$ Hg HM with ⟨%hM, Hg, HM, #Hp⟩
   ihave Htl := walTailsRes_unl (W := W) C Mr s Ls F dir p $$ Htl
+  ihave Hnms := walNamesRes_congr R jr r Ls s (unlSt s dir p)
+    (namedSub_upd s dir _ (fun _ => rfl)) $$ Hnms
   imodintro
   iframe HM Hp
   isplitr

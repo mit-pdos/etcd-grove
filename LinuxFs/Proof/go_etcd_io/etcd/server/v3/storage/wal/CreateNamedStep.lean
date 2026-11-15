@@ -55,15 +55,16 @@ theorem walInv_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
     (hl : LastWrite h jr nm x e Es) (hx : x < n) (hJ : Es !! nm = some (.dir J)) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPast (W := W) s0 -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walNamed (W := W) dir := by
-  iintro #Hinv #Hsi Hnc #Hp H #Hc
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walNamed (W := W) dir ∗
+        walNamesFrag (W := W) none := by
+  iintro #Hinv #Hsi Hnc #Hp H #Hc Hnf
   iapply walInv_stepS C Mr R jr r
     iprop(osSharedInv (L := L) R ∗ walPast (W := W) s0 ∗ osNames (L := L) jr N dq h ∗
-      osCommitLb (L := L) n)
-    iprop(osNames (L := L) jr N dq h ∗ walNamed (W := W) dir)
+      osCommitLb (L := L) n ∗ walNamesFrag (W := W) none)
+    iprop(osNames (L := L) jr N dq h ∗ walNamed (W := W) dir ∗ walNamesFrag (W := W) none)
     ⊤ CoPset.subseteq_top (fun s => by
-      iintro Hb ⟨#Hsi, #Hp, H, #Hc⟩
+      iintro Hb ⟨#Hsi, #Hp, H, #Hc, Hnf⟩
       iunfold walInvBody at Hb
       icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, Hrest⟩
       icases walPast_ghost_le s s0 $$ Hg Hp with %Hle
@@ -71,13 +72,13 @@ theorem walInv_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
       ihave Hb : walInvBody (L := L) (W := W) C Mr R jr r s $$ [Hg Hrest]
       · unfold walInvBody; iexists Ls, cl, n0, F; iframe
       imod walInvBody_named C Mr R jr r s dir nm d N dq h x e Es J n hd hin hN hl hx hJ
-        walN_osShN_top $$ Hb Hsi H Hc with ⟨Hb, H, #Hnm⟩
+        walN_osShN_top $$ Hb Hsi H Hc Hnf with ⟨Hb, H, #Hnm, Hnf⟩
       imodintro
       isplitl [Hb]
       · iexists _; iexact Hb
-      iframe H Hnm)
-    $$ Hinv Hnc [H]
-  iframe H; iframe #
+      iframe H Hnm Hnf)
+    $$ Hinv Hnc [H Hnf]
+  iframe H Hnf; iframe #
 
 end iris
 

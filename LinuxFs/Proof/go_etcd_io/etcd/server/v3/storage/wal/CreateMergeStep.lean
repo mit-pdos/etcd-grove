@@ -241,15 +241,19 @@ theorem osClaims_excl (R : Roots) (cl : List Claim) (j : Ino) (N : NameSet) (h :
 /-- **The creating map is empty where the program holds a lock token** (free or taken: a non-empty
 map holds the free one). -/
 theorem walCreating_empty (CR : GMap GoString (NameSet × NamesH × Ino)) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) :
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) :
     ⊢ walCreatingAuth (W := W) CR -∗ T -∗ ⌜CR = ∅⌝ ∗ walCreatingAuth (W := W) CR ∗ T := by
   unfold walCreatingAuth
   iintro ⟨Ha, Hor⟩ Hk
-  icases Hor with (%hCR | ⟨-, Hu⟩)
+  icases Hor with (%hCR | ⟨-, Hu⟩ | ⟨-, Hu⟩)
   · iframe Ha Hk
     isplitr
     · ipureintro; exact hCR
     · ileft; ipureintro; exact hCR
+  · iexfalso
+    ihave Hu := walUnlockedTok_toX $$ Hu
+    ihave Hx := hT $$ Hk Hu
+    iexact Hx
   · iexfalso
     ihave Hx := hT $$ Hk Hu
     iexact Hx
@@ -275,7 +279,7 @@ name (`b1`, `b2`, the second not the first's), so each is the invariant's other 
 `osClaims_keys`); the program holds a lock token (`T`), so the creating map is empty. -/
 theorem walInvBody_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (N1 N2 N : NameSet) (h1 h2 : NamesH) (b1 b2 : GoString) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) {Em : CoPset}
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) {Em : CoPset}
     (hb1 : walNameOk b1) (hN1 : N1.Mem b1) (hb2 : walNameOk b2) (hN2 : N2.Mem b2)
     (hb21 : ¬ N1.Mem b2) (hN : ∀ b, N.Mem b ↔ N1.Mem b ∨ N2.Mem b) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗ T -∗
@@ -371,7 +375,7 @@ claim** (see the file header): the area claim holds the WAL name `b1`, so it is 
 half; the whole claim is none of the invariant's. -/
 theorem walInvBody_mergeIn (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (N1 N2 N : NameSet) (h1 h2 : NamesH) (b1 b2 : GoString) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) {Em : CoPset}
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) {Em : CoPset}
     (hb1 : walNameOk b1) (hN1 : N1.Mem b1) (hN2 : N2.Mem b2)
     (hno : ∀ b, N2.Mem b → ¬ walNameOk b) (hN : ∀ b, N.Mem b ↔ N1.Mem b ∨ N2.Mem b)
     (hE : ↑osShN ⊆ Em) :

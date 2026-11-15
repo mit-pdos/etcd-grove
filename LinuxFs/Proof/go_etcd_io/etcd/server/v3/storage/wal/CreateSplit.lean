@@ -102,7 +102,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 to `D'`, the same names; the program holds a lock token (`T`), so the creating map is empty. -/
 theorem walInvBody_rekey (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (D D' : NameSet) (hD : NamesH) (nm : GoString) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) {Em : CoPset}
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) {Em : CoPset}
     (hnm : walNameOk nm) (hDnm : D.Mem nm) (hS : D.Same D') (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗ T -∗
       osNames (L := L) jr D (DFrac.own (1 : Qp).half) hD ={Em}=∗
@@ -169,7 +169,7 @@ theorem walInvBody_rekey (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 token `T` in place of the free one; see the file header). -/
 theorem walInvBody_dropT (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (N : NameSet) (h : NamesH) (nm b : GoString) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) {Em : CoPset}
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) {Em : CoPset}
     (hnm : walNameOk nm) (hNnm : N.Mem nm) (hb : N.Mem b) (hbw : walNameP b = false)
     (hbn : ¬ walNameOk b) (hbs : AreaSlot b) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
@@ -266,7 +266,8 @@ fraction `q` of a claim on the name alone (the invariant's other half, `osClaims
 WAL's directory, `WalsAt`) given to the invariant. -/
 theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s s0 : AbsDiskState) (dir nm : GoString) (Wn : List GoString) (q : Qp) (hn : NamesH) {Em : CoPset}
-    (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none) (hE : ↑osShN ⊆ Em) :
+    (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none) (hE : ↑osShN ⊆ Em)
+    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗ walPast (W := W) s0 -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
       osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={Em}=∗
@@ -292,7 +293,7 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     simp only at e1 e2
     rw [e1, e2] at hm; exact hm
   unfold walNamesRes
-  icases Hnms with ⟨%o, %Wn', Ha, Hs, %hf, Hsp, Hl⟩
+  icases Hnms with ⟨%o, %Wn', Ha, Hs, %hf, -, Hsp, Hl⟩
   icases walNames_agree (W := W) o (some dir) $$ Ha Hf with %ho
   subst ho
   icases walSplit_agree (W := W) Wn' Wn $$ Hs Hsf with %hW
@@ -329,6 +330,8 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     · by_cases e : dir' = dir
       · subst e; rw [hl] at hl'; cases hl'; rw [hnm']; exact List.mem_cons_self ..
       · exact List.mem_cons_of_mem _ (hf.2 dir' lay' hl' (by simpa using Ne.symm e))
+  isplitr
+  · ipureintro; intro dir' d ho; cases ho
   iapply (BigSepL.bigSepL_cons (Φ := fun _ x => nameShare (L := L) jr Ls x)).2
   iframe Hl
   unfold nameShare
@@ -336,8 +339,9 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iframe H
   ipureintro
   refine ⟨hnok, hin.1, fun dir2 lay2 hl2 he2 => ?_⟩
-  have := hAt.at hl2 hm (by rw [he2]; exact hnmM)
-  rw [he2] at this; exact this
+  obtain ⟨J, hJ⟩ := hJ
+  subst he2
+  exact hAt.at_dir hl2 hm hnmM hJ
 
 /-- `nm.tmp` dropped off `.only [nm, nm.tmp]` leaves the names of `.only [nm]`. -/
 theorem only_diff_same (nm tmp : GoString) (hne : tmp ≠ nm) :
@@ -354,7 +358,7 @@ theorem only_diff_same (nm tmp : GoString) (hne : tmp ≠ nm) :
 program's half of the creating claim `(jr, .only [nm, nm.tmp], h)` becomes its half of a claim on `nm`
 alone (the invariant's the other half) and the whole claim on `nm.tmp`. -/
 theorem walInv_splitNew (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (nm tmp : GoString) (h : NamesH) (T : IProp GF) (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False)
+    (nm tmp : GoString) (h : NamesH) (T : IProp GF) (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False)
     (hnm : walNameOk nm) (hne : tmp ≠ nm) (htw : walNameP tmp = false) (htn : ¬ walNameOk tmp)
     (hts : AreaSlot tmp) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
@@ -391,7 +395,8 @@ theorem walInv_splitNew (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
 /-- **The new WAL registered, at a program step** (`walInvBody_register`). -/
 theorem walInv_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s0 : AbsDiskState) (dir nm : GoString) (Wn : List GoString) (q : Qp) (hn : NamesH)
-    (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none) :
+    (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none)
+    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPast (W := W) s0 -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
@@ -405,7 +410,7 @@ theorem walInv_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     iprop(walNamesFrag (W := W) none ∗ walSplitFrag (W := W) (nm :: Wn))
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨#Hsi, #Hp, Hf, Hsf, H⟩
-      iapply walInvBody_register C Mr R jr r s s0 dir nm Wn q hn hin hnok hs0 walN_osShN_top
+      iapply walInvBody_register C Mr R jr r s s0 dir nm Wn q hn hin hnok hs0 walN_osShN_top hJ
         $$ Hb Hsi Hp Hf Hsf H)
     $$ Hinv Hnc [Hf Hsf H]
   iframe Hf Hsf H

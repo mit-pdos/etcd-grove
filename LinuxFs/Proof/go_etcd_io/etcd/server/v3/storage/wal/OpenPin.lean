@@ -38,7 +38,7 @@ theorem walDirAt_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     (hN : N.Mem nm) :
     (s.wal !! dir = none → h.cur !! nm = none) ∧
     ∀ d, s.wal !! dir = some d → ∃ lay, Ls !! dir = some lay ∧ lay.nm = nm ∧
-      h.cur !! nm = some (.dir lay.j) := by
+      (h.cur !! nm = some (.dir lay.j) ∨ h.cur !! nm = none) := by
   refine ⟨fun hd => (han dir nm hin hd).1 N h hc hN, fun d hd => ?_⟩
   obtain ⟨lay, nm', -, hl, hin', -, hnm, -⟩ := hok.1 dir d hd
   have e : nm' = nm := by

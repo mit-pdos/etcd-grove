@@ -58,7 +58,7 @@ theorem walsAt_drop {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {N 
   refine ⟨hA.ne hl, fun N' h' hc hN' => ?_⟩
   rcases mem_dropClaims hc with he | ⟨hc', -⟩
   · cases he
-    show restrictN (N.diff [b]) h.cur !! lay.nm = _
+    show restrictN (N.diff [b]) h.cur !! lay.nm = _ ∨ restrictN (N.diff [b]) h.cur !! lay.nm = none
     rw [restrictN_lookup _ _ _ hN']
     exact hA.at hl hm ((NameSet.mem_diff N [b] lay.nm).1 hN').1
   · exact hA.at hl hc' hN'
@@ -271,9 +271,10 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms, %Hbd⟩
   unfold walCreatingAuth
   icases HCRa with ⟨HCRa, Hor⟩
-  icases Hor with (%hCR0 | ⟨-, Hl⟩)
+  icases Hor with (%hCR0 | ⟨-, Hl⟩ | ⟨-, Hl⟩)
   rotate_left
   · iexfalso; iapply walUnlockedTok_excl $$ Hl Hu
+  · iexfalso; iapply walUnlockedTok_exclX $$ Hu Hl
   subst hCR0
   unfold walParked
   icases Hpk with ⟨%bp, %o, Hpa, Hoa, %hOD, Hsegs, Hpc, Htp, How⟩

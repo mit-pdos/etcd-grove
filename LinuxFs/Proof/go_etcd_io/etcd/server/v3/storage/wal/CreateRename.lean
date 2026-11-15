@@ -170,12 +170,12 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   unfold renDirOut claimOut logOut osLogged
   icases Hout with ⟨⟨-, -, -, #Hlg⟩, Hn⟩
   have hT : ⊢ createU (W := W) Mr R jr r nm hC md Q J hJ g (some (x, s)) -∗
-      walUnlockedTok (W := W) -∗ False := by
+      walUnlockedTokX (W := W) -∗ False := by
     unfold createU
     iintro ⟨-, -, HQ⟩ Hu
     unfold walCreateQ
     icases HQ with ⟨-, -, -, Hl, -⟩
-    iapply walLockedTok_unlocked_excl $$ Hl Hu
+    iapply walLockedTok_exclX $$ Hl Hu
   imod walInv_splitNew walCodec Mr R jr r nm (tmpName nm) _ _ hT hnm (tmpName_ne nm)
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm)
     $$ Hinv Hsi Hnc HU Hn with ⟨Hnc, HU, Hnm, Htmp⟩

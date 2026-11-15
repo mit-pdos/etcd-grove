@@ -381,6 +381,7 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       rw [GMap.lookup_insert_eq] at hl'
       cases hl'
       rw [hlay.2.1, GMap.lookup_insert_eq, hlay.2.2]
+      exact Or.inl rfl
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
       obtain ⟨h1, h2⟩ := hnms dir' lay' hdd hl'
       rw [GMap.lookup_insert_ne _ _ (Ne.symm h1), GMap.lookup_delete_ne _ (Ne.symm h2)]

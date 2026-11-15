@@ -89,7 +89,7 @@ theorem walInv_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
     (hJ : NamesH) (E : CoPset) (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E \ ↑walN)
     (hnm : walNameOk nm) (hNnm : N.Mem nm) (hNt : ¬ N.Mem tmp) (hDe : N.diff [nm] ≠ .only [])
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (hXnm : nm ∉ X)
-    (hX : ∀ b ∈ X, walNameP b = false) (hXt : ∀ b ∈ X, b ∈ walTmps) :
+    (hX : ∀ b ∈ X, walNameP b = false) (hXt : ∀ b ∈ X, b ∈ walTmps) (hdk : dir ≠ cleanKey) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗
       walUnlockedTok (W := W) -∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h -∗
@@ -118,7 +118,7 @@ theorem walInv_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
     E hE (fun s => by
       iintro Hb ⟨#Hsi, Hu, H, HT, HJ⟩
       imod walInvBody_mint C Mr R jr r s dir nm tmp N h hT J X hJ hnm hNnm hNt hDe htmp htw hXnm hX hXt
-        hE' $$ Hb Hsi Hu H HT HJ with ⟨%hC, Hb, Ht, HD, HC, HJ, %hp⟩
+        hE' hdk $$ Hb Hsi Hu H HT HJ with ⟨%hC, Hb, Ht, HD, HC, HJ, %hp⟩
       imodintro
       iframe Hb
       iexists hC
@@ -146,7 +146,7 @@ theorem walInv_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
 /-- The merge of two area claims (`walInvBody_merge2`), as an update of the invariant. -/
 theorem walInv_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (N1 N2 N : NameSet) (h1 h2 : NamesH) (b1 b2 : GoString) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) (E : CoPset) (hE : ↑walN ⊆ E)
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) (E : CoPset) (hE : ↑walN ⊆ E)
     (hE' : ↑osShN ⊆ E \ ↑walN)
     (hb1 : walNameOk b1) (hN1 : N1.Mem b1) (hb2 : walNameOk b2) (hN2 : N2.Mem b2)
     (hb21 : ¬ N1.Mem b2) (hN : ∀ b, N.Mem b ↔ N1.Mem b ∨ N2.Mem b) :
@@ -182,7 +182,7 @@ theorem walInv_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
 of the invariant. -/
 theorem walInv_mergeIn (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (N1 N2 N : NameSet) (h1 h2 : NamesH) (b1 b2 : GoString) (T : IProp GF)
-    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) (E : CoPset) (hE : ↑walN ⊆ E)
+    (hT : ⊢ T -∗ walUnlockedTokX (W := W) -∗ False) (E : CoPset) (hE : ↑walN ⊆ E)
     (hE' : ↑osShN ⊆ E \ ↑walN)
     (hb1 : walNameOk b1) (hN1 : N1.Mem b1) (hN2 : N2.Mem b2)
     (hno : ∀ b, N2.Mem b → ¬ walNameOk b) (hN : ∀ b, N.Mem b ↔ N1.Mem b ∨ N2.Mem b) :

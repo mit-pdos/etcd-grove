@@ -68,7 +68,7 @@ theorem walInvBody_nameClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   icases walDirKey_lookup (W := W) K dir j X $$ HKa Hk with %hK
   obtain ⟨lay, -, hl, rfl, -⟩ := HDK.1 dir j X hK
   unfold walNamesRes
-  icases Hnms with ⟨%o, %Wn, Ha, Hs, %hf, Hsp, Hl⟩
+  icases Hnms with ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hsp, Hl⟩
   icases walNames_agree (W := W) o none $$ Ha Hf with %ho
   subst ho
   have hm : lay.nm ∈ Wn := hf.2 dir lay hl (by simp)
@@ -114,6 +114,8 @@ theorem walInvBody_nameClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     · ipureintro; exact HAt
     isplitr
     · ipureintro; exact hf
+    isplitr
+    · ipureintro; exact hun
     ispecialize Hl $$ %(lay.nm)
     rw [hset]
     iapply Hl
