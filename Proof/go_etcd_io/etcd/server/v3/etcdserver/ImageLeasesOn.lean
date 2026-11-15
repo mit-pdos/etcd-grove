@@ -99,9 +99,7 @@ theorem kvRaftOfOn_table_mono (c0 : w64) (ch : apply.Chain) :
         · rw [hb]; exact List.mem_append_left _ hp
         · exfalso
           rcases hpl m List.mem_cons_self ht hd rq hdec with ((⟨h1, -, -⟩ | h | h) | h)
-          · rcases h1 with h1 | ⟨h1, -⟩
-            · have := h1.2; rw [hk] at this; simp [putgetKind] at this
-            · cases h1
+          · have := h1.2; rw [hk] at this; simp [putgetKind] at this
           · rw [h.2.1] at hk; cases hk
           · cases h.1
           · have := h.1; unfold apply.adminKindOk at this; rw [hk] at this; exact this

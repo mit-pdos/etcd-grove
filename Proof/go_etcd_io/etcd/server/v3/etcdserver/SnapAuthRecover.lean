@@ -231,10 +231,8 @@ theorem plainEntryOn_userAdd {lm : lease.Mode} (m : EntryModel) (hm : plainEntry
       u.name.length ≤ backend.maxKeySize := by
   intro u hu hk
   rcases hm h0 hd rq hdec with ((⟨hp, -⟩ | ⟨-, hg, -⟩ | ⟨-, hr, -⟩) | ⟨ha, -⟩)
-  · rcases hp with ⟨-, hp⟩ | ⟨-, -, -, hp | ⟨hp, -⟩⟩
-    · rw [hk] at hp; simp [putgetKind] at hp
-    · rw [hk] at hp; cases hp
-    · rw [hk] at hp; cases hp
+  · obtain ⟨-, hp⟩ := hp
+    rw [hk] at hp; simp [putgetKind] at hp
   · rw [hk] at hg; cases hg
   · rw [hk] at hr; cases hr
   · unfold apply.adminKindOk at ha

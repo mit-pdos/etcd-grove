@@ -38,6 +38,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
@@ -63,6 +64,16 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex go_
 
 section lemmas
 variable [GooseExts]
+
+/-- (auth-lease S3a rev 7) **A non-admin entry of the auth-on log at the lease mode `lm`** is one the
+generic apply arms cover (`plainOrCmpG lm`: plain, an admitted grant or revocation) and no admin one. -/
+theorem plainOrCmpG_of_entryOn (lm : lease.Mode) (rq : apply.IRRModel)
+    (h : (plainReqL lm rq ∧ noZeroEnds rq ∧ kvShapeAll rq) ∨ grantPropOk lm rq ∨ revokePropOk lm rq) :
+    plainOrCmpG lm rq ∧ ¬ apply.adminKindOk rq := by
+  rcases h with ⟨⟨hp, hpk⟩, -, -⟩ | hg | hr
+  · exact ⟨Or.inl (Or.inl hp), fun h => adminKindOk_notPutget rq h hpk⟩
+  · exact ⟨Or.inr (Or.inl hg), fun h => adminKindOk_nonGrant rq h hg.2.1⟩
+  · exact ⟨Or.inr (Or.inr hr), fun h => adminKindOk_nonRevoke rq h hr.2.1⟩
 
 /-- **`Apply`'s rest image at `v3 = false`** (R2d'a A3, DRAFT): the request's attribute write
 (`restAfter … false`), whatever the outcome, for a request of a committed entry's shape. -/
@@ -1116,7 +1127,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut) (sa'' : auth.AuthState),
       srvApplyKVOn s E ρ.wait x'' sa'' ∗ ⌜entryStep m true x x'' out'⌝ ∗
       entryDelivered ρ.wait m ot out' ∗ srvAppliedPre γr v m.index x''.log ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x'' sa'' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRest E γr (A ++ [m]))
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x'' sa'' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRestM true E γr (A ++ [m]))
       $$ [HKV Hua Hbo HRD HRA HAR Hrdat Hpre Hka HRS]
   · iexists x', out, $sa'
     iframe Hpre Hka HRS
@@ -1290,16 +1301,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     have ⟨hNxP, hNxT, hCpP, hCpT⟩ := HwOk
     -- the committed entry's shape (the KV invariant's, `kv_log_plain_on`)
     imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 A₀ $$ HkI HrI HA0 with %Hpc0
-    -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
-    have Hpe : plainEntryOn .none m := by
-      rw [← KVNames.lm_of_lg_false Hrows.2.1]; exact Hpc0.1 m HmA
-    have hElm : E.lm = .none := by rw [← Hrows.2.2.1]; exact KVNames.lm_of_lg_false Hrows.2.1
-    have HElg : E.lg = false := by rw [apply.AEnv.lg_eq, hElm]; rfl
-    have hRp : ∀ A r, srvRestRpM (GF := GF) true E γr A r = srvRestRp E γr A r :=
-      fun A r => srvRestRpM_lg_false true E γr A r HElg
-    irevert HRS HΦ
-    simp only [hRp]
-    iintro HRS HΦ
+    -- (auth-lease S3a rev 7) the entry at the environment's lease mode (`srvKVInvsOn`'s `lm = E.lm`)
+    have Hpe : plainEntryOn E.lm m := by
+      obtain ⟨-, -, hlmE, -⟩ := Hrows; rw [← hlmE]; exact Hpc0.1 m HmA
     have Hch : x.chain = apply.alarmChain true false false := Hxch.trans Hpc0.2.2
     imod srvApplyKVOn_writer hPers hReach s E γr srvAuthSt0 ρ.wait x sa $$ Hkvi HKV with
       ⟨HKV, #Hcx, -, -, %Hwf⟩
@@ -1323,7 +1327,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       · iexists x, apply.ApplyOut.skipped
         iframe HKV
         ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
-      ihave HRS : srvRestRp E γr A₀ (restEntryV2 m r) $$ [HRS]
+      ihave HRS : srvRestRpM true E γr A₀ (restEntryV2 m r) $$ [HRS]
       · rw [restEntryV2_nodata m r Htyp hnil]; iexact HRS
       wp_apply hN fv.firstCommit
       · iexact Hnot
@@ -1359,7 +1363,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       icombine Hw Hw' gives %Hweq
       subst Hweq
       -- the rest buckets at the backend's table: `apply.Apply`'s image, half and ids
-      ihave ⟨HRS, HEv⟩ := (srvRestRp_eq_at E γr A₀ r).1 $$ HRS
+      ihave ⟨HRS, HEv⟩ := (srvRestRpM_eq_at true E γr A₀ r).1 $$ HRS
       ihave ⟨%f, %Hfb, HRS, HLt, #HGI, #HRq⟩ := (srvRestAt_open E _ _).1 $$ HRS
       ihave ⟨%U, HEv, %HUok⟩ := srvEver_open E A₀ $$ HEv
       -- (strict M1) the tie's backend's tokens, the thread's token
@@ -1369,10 +1373,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       · iframe Hwt Hrt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
       · iunfold apply.applyTok; iexact Hmr
-      rcases plainEntryOn_none m Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
-      · -- a plain request: `apply.Apply`, nothing written
-        have hrq' : apply.rqOk .none x.log rq := by
-          rw [← hElm]; exact hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
+      rcases Hpe Htyp hdata rq hdec with hpl0 | ⟨hadm, hns⟩
+      · -- a plain request, a grant or a revocation: `apply.Apply`, nothing written
+        obtain ⟨hpl, hnadm⟩ := plainOrCmpG_of_entryOn E.lm rq hpl0
+        have hrq' : apply.rqOk E.lm x.log rq := hrq.resolve_right hnadm
         ihave #Hcp : apply.certPreV false E x.chain rq x.log $$ []
         · simp only [apply.certPreV, Bool.false_eq_true, ↓reduceIte]; itrivial
         ihave HFSE : E.FS $$ [HFS]
@@ -1393,13 +1397,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           have hin := ((Hat Htyp hdata rq hdec) hk).2 a ha'
           have hin' : a.memberID ∈ γr.raft.raft.cfg := by rw [← Hrd]; exact hin
           exact Hmem _ hin'
-        have hpl : plainOrCmpG E.lm rq := Or.inl (Or.inl hp)
-        ihave Hrv : apply.revokeOwn E rq $$ []
-        · rw [apply.revokeOwn_nonRevoke E rq (plainOrCmpG_rev .none rq (Or.inl (Or.inl hp)))]; itrivial
+        ihave ⟨Hrv, Hrdb⟩ := revokeOwn_take E rq hpl $$ [Hrdat]
+        · iframe Hrdat HGI
         wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none x.log
           _ _ U $$ [HKV Htk Htt HRD HFSE HSpF HRS HLt HEv Hrv]
-          as %ar %id ⟨HRD, HFS, Htt, Hrt, -, #Har, -, %Hid, %x', %out, HKV, HLt, HEv, -, HRS, %Hgo,
+          as %ar %id ⟨HRD, HFS, Htt, Hrt, -, #Har, -, %Hid, %x', %out, HKV, HLt, HEv, Hrv, HRS, %Hgo,
             -, -, %Hstep0, -, -, -⟩
         · iframe Happl Hwok' HRD He HKV Htk Htt Hcp HFSE HSpF HRS HLt HEv HGf Hrv Hgpq
           isplitr
@@ -1410,9 +1413,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           iframe Hcx
           iframe Hcpq
           ipureintro
-          exact ⟨hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, fun h => absurd h (by decide),
+          exact ⟨hdec, hid, hrq', HaOn ▸ hdk, fun h => absurd h (by decide),
             by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
         have Hstep := Hstep0.1
+        ihave Hrdat := Hrdb $$ Hrv
         ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
         ihave Hbo := Hbo $$ HplB Hrt
         iunfold apply.applyTok at Htt
@@ -1422,8 +1426,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         rw [restOutA_false E.lm rq x x' out _ t _ hpl Hstep,
           apply.restLeasesWith_comm (apply.restAfter rq false) (apply.restAfter_restGrantT rq false),
           ← restEntryV2_req m rq r Htyp hdata hdec]
-        ihave HRS : srvRestRp E γr A₀ (restEntryV2 m r) $$ [HRS HLt HEv]
-        · iapply (srvRestRp_eq_at E γr A₀ _).2
+        ihave HRS : srvRestRpM true E γr A₀ (restEntryV2 m r) $$ [HRS HLt HEv]
+        · iapply (srvRestRpM_eq_at true E γr A₀ _).2
           isplitl [HRS HLt]
           · iapply (srvRestAt_open E _ _).2
             iexists f
@@ -1464,9 +1468,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hadm
         have hR : restEntryV2 m r = r := by
           rw [restEntryV2_req m rq r Htyp hdata hdec, apply.restAfter_other rq _ _ h1 h2]
-        ihave HRS : srvRestRp E γr A₀ (restEntryV2 m r) $$ [HRS HLt HEv]
+        ihave HRS : srvRestRpM true E γr A₀ (restEntryV2 m r) $$ [HRS HLt HEv]
         · rw [hR]
-          iapply (srvRestRp_eq_at E γr A₀ _).2
+          iapply (srvRestRpM_eq_at true E γr A₀ _).2
           isplitl [HRS HLt]
           · iapply (srvRestAt_open E _ _).2
             iexists f
@@ -1516,16 +1520,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
   icases Hkvi' with ⟨#HkI', -, #HrI', -, -, -, -, %Hrows'⟩
-  -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
-  have hlm' : γr.kv.lm = .none := KVNames.lm_of_lg_false Hrows'.2.1
-  have hElm : E.lm = .none := by rw [← Hrows'.2.2.1]; exact hlm'
-  have HElg : E.lg = false := by rw [apply.AEnv.lg_eq, hElm]; rfl
-  have hR : ∀ A, srvRestM (GF := GF) true E γr A = srvRest E γr A :=
-    fun A => srvRestM_lg_false true E γr A HElg
-  irevert HRS HΦ
-  simp only [hR]
-  iintro HRS HΦ
-  have Hpe : plainEntryOn .none m := by rw [← hlm']; exact Hpe
+  -- (auth-lease S3a rev 7) the entry at the environment's lease mode (`srvKVInvsOn`'s `lm = E.lm`)
+  have hlmE : γr.kv.lm = E.lm := Hrows'.2.2.1
+  have Hpe : plainEntryOn E.lm m := by rw [← hlmE]; exact Hpe
   imod (kvInvOn_keysA γr srvAuthSt0 (A ++ [m])) $$ HkI' HrI' HAm with %HkeysA
   icases kvAppliedLOn_nx _ _ _ _ _ HkeysA $$ Hka with ⟨Hka, #Hkc⟩
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
@@ -1578,11 +1575,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
           entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRest E γr (A ++ [m]))
+          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRestM true E γr (A ++ [m]))
           $$ [HKV Hpre Hka HRS]
       · iexists x, apply.ApplyOut.skipped, sa
         iframe HKV Hpre Hka
-        ihave HRS := srvRest_nodata E γr A m Htyp hnil $$ HRS
+        ihave HRS := srvRestM_nodata E γr A m Htyp hnil $$ HRS
         iframe HRS
         isplitr
         · ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
@@ -1678,12 +1675,20 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       · iapply isPkgInit_access $$ Papp
       icases Hai with ⟨-, -, #Hev⟩
       hook_pre
-      ihave ⟨%f, %Hfb, HRS, HLt, #HGI, #HRq, HEv⟩ := srvRest_open E γr A $$ HRS
-      rcases plainEntryOn_none m Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, hz, hsa⟩ | ⟨hadm, hns⟩
+      ihave ⟨%f, %Hfb, HRS, HLt, #HGI, #HRq, HEv⟩ := srvRestM_open true E γr A $$ HRS
+      rcases Hpe Htyp hdata rq hdec with ((⟨⟨hp, hpk⟩, hz, hsa⟩ | hgr | hgr) | ⟨hadm, hns⟩)
+      rotate_left
+      · -- (auth-lease S3a, TRANSITIONAL until the grant arm) a grant: excluded by `γr.kv.lg = false`
+        exfalso
+        exact grantPropOk_false rq (by rw [← KVNames.lm_of_lg_false Hrows'.2.1, hlmE]; exact hgr)
+      · -- (auth-lease S3a, TRANSITIONAL until the revocation arm) a revocation: excluded likewise
+        exfalso
+        exact revokePropOk_none rq (by rw [← KVNames.lm_of_lg_false Hrows'.2.1, hlmE]; exact hgr)
+      rotate_left
       · have hna := plainCover_needAdmin rq hp hpk
         icases HtokA with ⟨Htok, -⟩
-        have hrq' : apply.rqOk .none x.log rq := by
-          rw [← hElm]; exact hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
+        have hrq' : apply.rqOk E.lm x.log rq :=
+          hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
         ihave #Hgpq := srvGrantIf_permP E rq (Or.inl hp) $$ HGI
         -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`
         ihave HFSE : E.FS $$ [HFS]
@@ -1787,7 +1792,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave HFS : srvFS s $$ [HFS]
           · rw [← HEo.1]; iexact HFS
           ihave HEv := srvEver_snoc E A m $$ HEv
-          ihave HRS := srvRest_applyP0 E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
+          ihave HRS := srvRestM_applyP0 E γr A m rq true x x' out f Htyp hdata hdec HkA.2
             (Or.inl hp) Hstep0.1 Hfb $$ [HLt HRS HEv]
           · iframe HGI HRq HLt HRS HEv
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
@@ -1840,7 +1845,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             · iexact Hlgnn
             iframe Hst Happ Hbe HcF
             iframe Hcpq
-            ipureintro; exact ⟨hpre, hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, fun _ => apply.cmpAdmit_nonCmp _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
+            ipureintro; exact ⟨hpre, hdec, hid, hrq', HaOn ▸ hdk, fun _ => apply.cmpAdmit_nonCmp _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
           have hkeep := applyStep_keep rq true x x' out hp hw Hstep0.1
           have hc' := hkeep.2
           have hmod : (sa, x'.log, kvLeasesOn γr.kv srvAuthSt0 A) = kvEntryOn γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m := by
@@ -1852,7 +1857,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           · rw [← HEo.1]; iexact HFS
           ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
           ihave HEv := srvEver_grant E A m rq true out U Htyp hdata hdec (fun hk => absurd hk (plainOrCmp_nonLease rq (Or.inl hp)).1) HUok $$ HEv
-          ihave HRS := srvRest_applyP E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
+          ihave HRS := srvRestM_applyP E γr A m rq true x x' out f Htyp hdata hdec HkA.2
             (Or.inl hp) Hstep0.1 Hfb $$ [HLt HRS HEv]
           · iframe HGI HRq HLt HRS HEv
             isplitl []
@@ -1942,8 +1947,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HAR := Hcl $$ %hs' %sa Hfu Htie %Hsa'.1 HT Htp
-          ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS HLt HEv]
-          · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HRq HEv; iexists f; iframe HRS; ipureintro; exact Hfb
+          ihave HRS : srvRestM true E γr (A ++ [m]) $$ [HRS HLt HEv]
+          · iapply srvRestM_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRestM_close true; iframe HLt HGI HRq HEv; iexists f; iframe HRS; ipureintro; exact Hfb
           ihave #Hnn : iprop(⌜ar = null⌝ ∨ ∃ err : GoInterface,
               structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
               notNoSpaceErr err) $$ [HNS]
@@ -2023,8 +2028,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
         · rw [← hsa]; iexact HtA0
         ihave HAR := Hcl $$ %hs' %sa' Hfu Htie %Hsa'.1 HT Htp
-        ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS HLt HEv]
-        · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HRq HEv; iexists f; iframe HRS; ipureintro; exact Hfb
+        ihave HRS : srvRestM true E γr (A ++ [m]) $$ [HRS HLt HEv]
+        · iapply srvRestM_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRestM_close true; iframe HLt HGI HRq HEv; iexists f; iframe HRS; ipureintro; exact Hfb
         ihave #Hnn : iprop(⌜ar = null⌝ ∨ ∃ err : GoInterface,
             structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
             notNoSpaceErr err) $$ [HNS]

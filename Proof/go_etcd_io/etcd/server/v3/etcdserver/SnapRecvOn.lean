@@ -51,10 +51,7 @@ theorem kvCrevEntry_plainOn [GooseExts] {lm : lease.Mode} (c₀ : w64) (ch : app
       · rename_i rq hrq
         apply apply.dispatchCrev_nonCmp
         rcases h ht hd rq hrq with ((⟨hp, -⟩ | ⟨-, hg, -⟩ | ⟨-, hr, -⟩) | ⟨ha, -⟩)
-        · rcases hp with hp | ⟨-, -, -, hk | ⟨hk, -⟩⟩
-          · exact plainReq_nonCmp rq hp
-          · rw [hk]; decide
-          · rw [hk]; decide
+        · exact plainReq_nonCmp rq hp
         · rw [hg]; decide
         · rw [hr]; decide
         · exact (adminKindOk_kind rq ha).2
