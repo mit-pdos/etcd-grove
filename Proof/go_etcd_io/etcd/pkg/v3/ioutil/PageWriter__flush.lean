@@ -40,6 +40,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
   simp only [ioutil.wmBytes] at hpBle hbbw hlen
   have hbl : sint.Z buf.len = 131072 + sint.Z pB := by
     have := Hblen.1; word
+  have h00 : sint.Z (W64 0) = 0 := rfl
   wp_auto
   wp_if_destruct
   · iapply HΦ
@@ -55,7 +56,10 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     dsimp only
     iframe
     ipureintro
-    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle hoff0 hoff1 (by word) (by word) hlen, by simp⟩
+    -- not `word`: its `bv_normalize` fallback realizes `Iris.HasLC.enumToBitVec` here (the context's
+    -- `hlc`), which clashes with another module's realization when both are imported (tcb-report)
+    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle hoff0 hoff1 (by rw [h00]; decide)
+      (by rw [h00]; decide) hlen, by simp⟩
   · have hbblen : sint.Z bb ≤ sint.Z buf.len := by
       have := Int.emod_nonneg (sint.Z off + sint.Z bb) (by omega : sint.Z pB ≠ 0)
       have := Int.emod_lt_of_pos (sint.Z off + sint.Z bb) hpB
@@ -82,8 +86,9 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     dsimp only
     iframe
     ipureintro
-    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle (by omega) (by omega) (by word) (by word) hlen,
-      by simp⟩
+    -- not `word` (see above)
+    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle (by omega) (by omega) (by rw [h00]; decide)
+      (by rw [h00]; decide) hlen, by simp⟩
 
 end proof
 
