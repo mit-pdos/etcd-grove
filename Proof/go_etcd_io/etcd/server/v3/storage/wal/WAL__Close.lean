@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleaseAu
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -125,13 +126,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
   iunfold walHandleC at Hh
   icases Hh with ⟨%lg2, %df2, %sp2, %e2, %lt2, %f2, %mds2, %locks2, %lfs2, %fd2, %dfd2, %name2, %dnm2,
     %rc2, Hlg, #Hzap2, Hdir, Hdf, Hdff, Hmd, #Hmds2, Hsp, #Hst2, Hdec, Hrc, Hns, #Hmu2, Henti, Hsnapi,
-    He, %Hen2, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt2, Hlks, #Hltf2, Hfp, #Henv2, #Hcrc2, #Hwpk2,
+    He, %Hen2, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt2, -, #Hltf2, Hfp, #Henv2, #Hcrc2, #Hwpk2,
     Hopen, %Hpure2⟩
   unfold walTailW
   icases Htw with ⟨Hf2, ⟨%rd2, %lo2, %lk2, Hfd2, Hlkt2⟩, Hoff2, Hk2, %m2, %bs2, Hm2, Hb2, %hp2, Hv2⟩
-  unfold walDirH
+  unfold walDirH walDirLks
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout,
-    ⟨%γt, Htf⟩, Hnf, %hdh⟩
+    ⟨%γt, %bL, %lsI, Htf, HlksI, %hlkr⟩, Hnf, %hdh⟩
+  ihave Hlks := walLocksHI_H _ _ $$ HlksI
+  ihave Hlkt2 := fdLocksW_locks _ _ $$ Hlkt2
   ihave %Hll2 := ownSlice_len _ _ _ $$ Hls
   have hlen2 : 0 < lfs2.length := by
     obtain ⟨ls2, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt2; simp
@@ -307,6 +310,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
   icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLaw (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
     b (pipeTmp (np + 1)) Q hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc
     Hout Htf Hnf Hopen Hpw Hsy Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩

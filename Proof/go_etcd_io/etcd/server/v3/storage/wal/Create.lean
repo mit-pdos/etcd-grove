@@ -87,6 +87,7 @@ set_option hygiene false in
 segment's claim merged back, the abort), at the deferred calls; unhygienic: it names `Create`'s
 hypotheses. -/
 macro "create_seg_exit" : tactic => `(tactic| (
+    ihave Hlks := fdLocksW_locks _ _ $$ Hlks
     wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd Hlks] as %cerr -
     · iframe; iframe #
     imod segClaim_back R J (walFileName 0 0) hJ (some (x0, s0, i)) hJs.2 CoPset.subseteq_top

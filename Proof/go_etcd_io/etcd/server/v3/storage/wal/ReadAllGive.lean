@@ -123,10 +123,10 @@ theorem walTailsRes_lookupR (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   ipureintro; exact hp
 
 /-- **The holder's half of the tails' authority bounds what is in flight** (`TailsOnly`). -/
-theorem walTailsRes_only (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
+theorem walTailsRes_only {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) (T' : GMap GoString GName) :
-    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) T' -∗
-      ⌜TailsOnly T' Ls F⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) T' := by
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) T' Lk -∗
+      ⌜TailsOnly T' Ls F⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) T' Lk := by
   unfold walTailsRes
   iintro ⟨%T, Ha, %Ho, %Hi, Hm, HL⟩ Hf
   icases walTails_agree (W := W) T T' $$ Ha Hf with %hT
@@ -139,16 +139,16 @@ theorem walTailsRes_only (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
   ipureintro; exact ⟨Ho, Hi⟩
 
 /-- **The non-tail segments given back** (see the file header). -/
-theorem walInvBody_readGive (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInvBody_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (γt : GName) (tg : TailG) (S : List SegG) (o : WalOut)
     (j : Ino) (X : List GoString) (hS : ∀ g ∈ S, g.om.size = g.bs.length)
     (hfl : tg.2.2.2.2.2 = none) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailsFrag (W := W) (<[dir := γt]> ∅) -∗
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailsFrag (W := W) (<[dir := γt]> ∅) Lk -∗
       walTailKey (W := W) dir γt -∗ tailVar (W := W) γt tg -∗ walDirKey (W := W) dir j X -∗
       walOutFrag (W := W) o -∗ ([∗list] g ∈ S, segRes (L := L) g) ==∗
       ⌜(∃ d, s.wal !! dir = some d ∧ d.H = tg.1 ∧ d.metadata = tg.2.1) ∧ WalsBounded s ∧
         (∀ b ∈ X, walNameP b = false)⌝ ∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walTailsFrag (W := W) (<[dir := γt]> ∅) ∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walTailsFrag (W := W) (<[dir := γt]> ∅) Lk ∗
       walTailKey (W := W) dir γt ∗ tailVar (W := W) γt tg ∗
       walOutFrag (W := W) ⟨o.O.filter (fun x => decide (x ∉ S.map (·.ino))), o.D, o.T⟩ := by
   iintro Hb Htf Hk Hv #Hkey Ho HS
@@ -209,18 +209,18 @@ theorem walInvBody_readGive (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   ipureintro; exact ⟨HAt, Hbd⟩
 
 /-- **`walInvBody_readGive` at a program step** (`notCrashed`). -/
-theorem walInv_readGive (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInv_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γt : GName) (tg : TailG) (S : List SegG) (o : WalOut)
     (j : Ino) (X : List GoString) (hS : ∀ g ∈ S, g.om.size = g.bs.length)
     (hfl : tg.2.2.2.2.2 = none) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walTailsFrag (W := W) (<[dir := γt]> ∅) -∗
+      walTailsFrag (W := W) (<[dir := γt]> ∅) Lk -∗
       walTailKey (W := W) dir γt -∗ tailVar (W := W) γt tg -∗ walDirKey (W := W) dir j X -∗
       walOutFrag (W := W) o -∗ ([∗list] g ∈ S, segRes (L := L) g) ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗
       ⌜(∃ s d, s.wal !! dir = some d ∧ d.H = tg.1 ∧ d.metadata = tg.2.1 ∧ WalsBounded s) ∧
         (∀ b ∈ X, walNameP b = false)⌝ ∗
-      walTailsFrag (W := W) (<[dir := γt]> ∅) ∗
+      walTailsFrag (W := W) (<[dir := γt]> ∅) Lk ∗
       walTailKey (W := W) dir γt ∗ tailVar (W := W) γt tg ∗
       walOutFrag (W := W) ⟨o.O.filter (fun x => decide (x ∉ S.map (·.ino))), o.D, o.T⟩ := by
   iintro #Hinv Hnc Htf Hk Hv #Hkey Ho HS

@@ -59,12 +59,13 @@ theorem readAll_splitLeft (dir : GoString) :
     ∀ (fsI : List (DecFile GF)) (gs : List SegG) (fls ls : List Loc),
       fsI.length = gs.length → ls.length = fsI.length →
       (∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F → gs[k]? = some g →
-        ∃ (f : Loc) (fd : w64) (d : OsFd), fls[k]? = some f ∧
-          F.S = walFileS f fd (child dir g.name) d g) →
+        ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
+          F.S = walFileS f fd (child dir g.name) (walSegFd true lo lk g.ino) g) →
       (∀ g ∈ gs, ∃ sq ix : Nat, g.name = walFileName sq ix) →
       ([∗list] y ∈ fsI, ∃ q, y.S q) ∗
         ([∗list] k ↦ lf ∈ ls, fileutil.lockedFile lf (fls.getD k null)) ⊢
-      ([∗list] g ∈ gs, segRes (L := hG.goose_localGS) g) ∗ [∗list] lf ∈ ls, walLockH lf
+      ([∗list] g ∈ gs, segRes (L := hG.goose_localGS) g) ∗
+        [∗list] lf; l ∈ ls; gs.map (fun g => (g.name, g.ino)), walLockHI lf l.1 l.2
   | [], gs, fls, ls, hl, hls, _, _ => by
     have hg : gs = [] := List.eq_nil_of_length_eq_zero (by simp at hl; omega)
     have hl' : ls = [] := List.eq_nil_of_length_eq_zero (by simpa using hls)
@@ -72,7 +73,7 @@ theorem readAll_splitLeft (dir : GoString) :
     iintro -
     isplitl
     · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
-    · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+    · simp only [List.map_nil]; iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2; iempintro
   | F :: fsI, gs, fls, ls, hl, hls, hk, hgn => by
     obtain ⟨g, gs', rfl⟩ : ∃ g gs', gs = g :: gs' := by
       cases gs with
@@ -82,7 +83,7 @@ theorem readAll_splitLeft (dir : GoString) :
       cases ls with
       | nil => simp at hls
       | cons lf ls' => exact ⟨lf, ls', rfl⟩
-    obtain ⟨f, fd, d, hf0, hS⟩ := hk 0 F g rfl rfl
+    obtain ⟨f, fd, lo, lk, hf0, hS⟩ := hk 0 F g rfl rfl
     obtain ⟨f0, fls', rfl⟩ : ∃ f0 fls', fls = f0 :: fls' := by
       cases fls with
       | nil => simp at hf0
@@ -91,8 +92,8 @@ theorem readAll_splitLeft (dir : GoString) :
     subst hf0
     have ih := readAll_splitLeft dir fsI gs' fls' ls' (by simpa using hl) (by simpa using hls)
       (fun k F' g' h1 h2 => by
-        obtain ⟨f', fd', d', h3, h4⟩ := hk (k + 1) F' g' (by simpa using h1) (by simpa using h2)
-        exact ⟨f', fd', d', by simpa using h3, h4⟩)
+        obtain ⟨f', fd', lo', lk', h3, h4⟩ := hk (k + 1) F' g' (by simpa using h1) (by simpa using h2)
+        exact ⟨f', fd', lo', lk', by simpa using h3, h4⟩)
       (fun g' hg' => hgn g' (List.mem_cons_of_mem _ hg'))
     iintro ⟨HF, HL⟩
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HF with ⟨⟨%q, H0⟩, HF⟩
@@ -100,7 +101,7 @@ theorem readAll_splitLeft (dir : GoString) :
     rw [hS]
     unfold walFileS
     icases H0 with ⟨-, Hfile, Hfd, Hlks, -, Hm, Hb⟩
-    ihave Hlks := fdLocksW_locks _ _ $$ Hlks
+    ihave ⟨Hlks, %hex⟩ := fdLocksW_excl fd _ rfl $$ Hlks
     ihave HL' : [∗list] k ↦ lf ∈ ls', fileutil.lockedFile lf (fls'.getD k null) $$ [HL]
     · iapply (BigSepL.bigSepL_mono (fun {k x} _ => ?_)) $$ HL
       simp only [List.getD_cons_succ]
@@ -112,17 +113,18 @@ theorem readAll_splitLeft (dir : GoString) :
       iframe HS
       unfold segRes
       iframe Hm Hb
-    · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+    · simp only [List.map_cons]
+      iapply (BigSepL2.bigSepL2_cons (PROP := IProp GF)).2
       iframe HLk
-      unfold walLockH
-      iexists f0, fd, child dir g.name, d
+      unfold walLockHI
+      iexists f0, fd, dir, walSegFd true lo lk g.ino
       iframe Hfile Hfd Hlks
       simp only [List.getD_cons_zero]
       isplitr
       · iexact Hl0
       · ipureintro
         obtain ⟨sq, ix, hn⟩ := hgn g List.mem_cons_self
-        exact ⟨dir, sq, ix, by rw [hn]⟩
+        exact ⟨⟨dir, sq, ix, by rw [hn]⟩, rfl, hex⟩
 
 end handle
 

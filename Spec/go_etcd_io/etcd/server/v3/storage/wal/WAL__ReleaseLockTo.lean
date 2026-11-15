@@ -29,10 +29,11 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 /-- **`w.ReleaseLockTo(a)`** (S/wal.go:1009-1050): unlocks the files before the lock just before the
 first lock named `≥ a` (only the tail stays when none is) and closes them; with a synced snapshot
 record of index `a` (at position `i < n`), the update raises the WAL's `unl` mark to
-`walReleasePos H a` (the main tree's axiom: every record from there on stays in a locked file).
-**`unl` is bookkeeping here** (plan §6 Q1, locks deferred: `fsExt` has no lock state, so nothing
-reads the mark yet; the raise commits at the call's first step, right after `w.mu.Lock()`, whatever
-the outcome, as the axiom's error arm already allowed, and `walInvBody_unl` takes any mark). An error
+`walReleasePos H a` (the main tree's axiom: every record from there on stays in a locked file). The
+raise commits at the call's first step, right after `w.mu.Lock()`, whatever the outcome, as the axiom's
+error arm already allowed; the handle raises its registered locked range with it (unit `locks`, session
+5: `walInv_releaseLks`), and the locks it closes are of segments ending at or before the new mark
+(`cutStart_le_releasePos`), which is what a purger relies on (`walDirLks`, `walLksAuth`). An error
 (a lock's file name `parseWALName` rejects, before any close) keeps the handle as well: nothing was
 closed. The closed locks' fds go with them. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (P : WalPbIn GF) (Mr : WalMarshal) :

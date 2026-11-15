@@ -357,6 +357,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
       · iapply (walOpenW_cut (W := W) w dir).2; iframe
+      ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
       iexists rd, lo, lk; iframe Hf Hfd Hlkt
   · try wp_auto
     wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl took
@@ -380,6 +381,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
       · iapply (walOpenW_cut (W := W) w dir).2; iframe
+      ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
       iexists rd, lo, lk; iframe Hf Hfd Hlkt
 
 /-- See the file header: `wp_core` over the handle (`walHandleIn`), the tail's `TailMetaS` weakened to

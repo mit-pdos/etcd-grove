@@ -111,7 +111,7 @@ def walLockLeft (f : Loc) (fd : w64) (fname : GoString) (d : OsFd) : IProp GF :=
 def walLockIn (e f : Loc) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64) :
     IProp GF :=
   iprop(ownEncoder e (wal.fileWi f) c [] ∗ os.ownFile f fd fname (DFrac.own 1) ∗
-    osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ os.ownOff f off)
+    osFd fd (DFrac.own 1) d ∗ fdLocksW fd d ∗ os.ownOff f off)
 
 /-- **`renameWAL`'s post** (see the file header). -/
 def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r dir : GoString)

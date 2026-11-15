@@ -151,6 +151,17 @@ theorem fdLocksW_ro (fd : w64) (d : OsFd) (h : d.writable = false) :
     fdLocks (GF := GF) fd d ⊢ fdLocksW fd d :=
   fdLocksW_of fd d (fun h' => by rw [h] at h'; cases h')
 
+/-- A writable description's `fdLocksW`: its `fdLocks`, and an exclusive lock held. -/
+theorem fdLocksW_excl (fd : w64) (d : OsFd) (hw : d.writable = true) :
+    fdLocksW (GF := GF) fd d ⊢ fdLocks fd d ∗ ⌜∃ k, d.lk k = some true⌝ := by
+  unfold fdLocksW
+  iintro ⟨H, %hh⟩
+  iframe H
+  ipureintro
+  rcases hh hw with h | h
+  · exact ⟨.ofd, h⟩
+  · exact ⟨.flock, h⟩
+
 /-- A writable description's lock, out of its `fdLocksW`. -/
 theorem fdLocksW_held (fd : w64) (d : OsFd) (h : d.writable = true) :
     fdLocksW (GF := GF) fd d ⊢ ∃ k, osLock (GF := GF) k d.ino fd ∗ fileutil.lockKind (GF := GF) k := by

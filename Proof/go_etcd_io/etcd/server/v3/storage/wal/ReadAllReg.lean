@@ -62,7 +62,7 @@ nothing written: the decoder's stream state of the last file, the registration's
 theorem walTailW_ofRead (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) (g : SegG) (d : WalDur)
     (lay : WalLay) (lo lk : Option Bool) (hfd : 0 ≤ fd.toInt) (hm : TailMeta g.om g.bs) (hsz : g.om.size ≤ 0xffffffff000) :
     os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (walSegFd true lo lk g.ino) ∗
-      fdLocks fd (walSegFd true lo lk g.ino) ∗ os.ownOff f (W64 (lay.wr : Int)) ∗ walTailKey (W := W) dir γ ∗
+      fdLocksW fd (walSegFd true lo lk g.ino) ∗ os.ownOff f (W64 (lay.wr : Int)) ∗ walTailKey (W := W) dir γ ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay g.ino none)) ⊢
     walTailW (W := W) f fd name dir γ g.ino d.H d.metadata lay.cuts lay.wr g.om.size [] := by

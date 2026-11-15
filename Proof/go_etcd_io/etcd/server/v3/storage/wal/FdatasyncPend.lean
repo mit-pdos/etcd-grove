@@ -254,8 +254,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
     · unfold walTailW
       iframe Hf Hoff Hk
       isplitl [Hfd Hlkt]
-      · ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
-        iexists rd, lo, lk; iframe
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr

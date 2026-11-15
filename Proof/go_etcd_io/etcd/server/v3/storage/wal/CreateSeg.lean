@@ -96,7 +96,7 @@ theorem wp_createSeg [os.file.FieldAssumptions]
             ⌜0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
-            osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocks fd ⟨i, false, true, lo, lk⟩) ∨
+            osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocksW fd ⟨i, false, true, lo, lk⟩) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   iintro %Φ ⟨#Hos, #Hpkg, #Hsi, Hp, Hperm, Hn⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_create
@@ -153,7 +153,7 @@ theorem wp_createSeg [os.file.FieldAssumptions]
     ileft
     isplitr
     · ipureintro; exact he
-    ihave Hfd := lkFd_open k i _ fd false true rfl rfl $$ [$Hfd $Hlk $Hkind]
+    ihave Hfd := lkFd_openW k i _ fd false true rfl rfl $$ [$Hfd $Hlk $Hkind]
     icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
     iexists f, fd, i, lo, lk
     iframe
