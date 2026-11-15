@@ -341,6 +341,299 @@ theorem kStreamSub_of_raw (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z :
 
 end laws
 
+/-! ## Along one history, prefixes, segments and the client's range (step 2) -/
+
+section hist
+variable [GooseExts]
+variable {Obj : Type}
+
+theorem kvSameHist_symm {σ σ' : KVState} (h : kvSameHist σ σ') : kvSameHist σ' σ :=
+  ⟨h.1.symm, h.2.1.symm, h.2.2.symm⟩
+
+theorem getElem?_of_prefix {α : Type} {l l' : List α} (h : l <+: l') (i : Nat) (hi : i < l.length) :
+    l[i]? = l'[i]? := by
+  have h1 := List.getElem?_take_of_lt (l := l) (Nat.lt_succ_self i)
+  have h2 := List.getElem?_take_of_lt (l := l') (Nat.lt_succ_self i)
+  rw [← h1, ← h2, take_of_prefix h (i + 1) (by omega)]
+
+/-- Two states of one history have the same changes at every revision both keep. -/
+theorem kvSameHist_changesAt (σ σ' : KVState) (r : Nat) (h : kvSameHist σ σ') (hr : r ≤ σ.rev)
+    (hr' : r ≤ σ'.rev) : σ.changesAt r = σ'.changesAt r := by
+  obtain ⟨hc, -, hp⟩ := h
+  unfold KVState.changesAt
+  rw [hc]
+  unfold KVState.rev at hr hr'
+  split
+  · rfl
+  · congr 1
+    rcases hp with hp | hp
+    · exact getElem?_of_prefix hp _ (by omega)
+    · exact (getElem?_of_prefix hp _ (by omega)).symm
+
+/-- ... and the same events. -/
+theorem kvSameHist_revEvents (σ σ' : KVState) (r : Nat) (h : kvSameHist σ σ') (hr : r ≤ σ.rev)
+    (hr' : r ≤ σ'.rev) : σ.revEvents r = σ'.revEvents r := by
+  unfold KVState.revEvents
+  rw [kvSameHist_at σ σ' (r - 1) h (by omega) (by omega), kvSameHist_changesAt σ σ' r h hr hr']
+
+/-- ... and the same events in a range of revisions both keep. -/
+theorem kRangeEvsL_hist (σ σ' : KVState) (inS : GoString → Bool) (lo hi : Nat)
+    (h : kvSameHist σ σ') (hh : hi ≤ σ.rev + 1) (hh' : hi ≤ σ'.rev + 1) :
+    kRangeEvsL σ inS lo hi = kRangeEvsL σ' inS lo hi := by
+  unfold kRangeEvsL
+  congr 2
+  apply List.map_congr_left
+  intro m hm
+  rw [List.mem_range'_1] at hm
+  exact kvSameHist_revEvents σ σ' m h (by omega) (by omega)
+
+/-- An event of a range of revisions is in scope, of one of them, at its mod revision. -/
+theorem kRangeEvsL_mem {σ : KVState} {inS : GoString → Bool} {lo hi : Nat} {ev : mvcc.EvM}
+    (h : ev ∈ kRangeEvsL σ inS lo hi) :
+    inS ev.kv.key = true ∧ ∃ r, lo ≤ r ∧ r < hi ∧ ev.kv.modRev = W64 (r : Int) := by
+  unfold kRangeEvsL at h
+  rw [List.mem_filter] at h
+  obtain ⟨h, hs⟩ := h
+  refine ⟨hs, ?_⟩
+  simp only [List.mem_flatten, List.mem_map, List.mem_range'_1] at h
+  obtain ⟨l, ⟨r, hr, rfl⟩, hev⟩ := h
+  exact ⟨r, hr.1, by omega, mvcc.evsOfRevM_modRev_sm r _ (KVStore.kvs_sorted _) _ ev hev⟩
+
+theorem sint_nat_W64_le (r : Nat) : sint.nat (W64 (r : Int)) ≤ r := by
+  have h2 : sint.nat (W64 (r : Int)) = (sint.Z (W64 (r : Int))).toNat := rfl
+  rw [h2]
+  by_cases hr : r < 2 ^ 63
+  · have : sint.Z (W64 (r : Int)) = r := by word
+    omega
+  · have : sint.Z (W64 (r : Int)) < 2 ^ 63 := by word
+    omega
+
+/-- **A raw event's revision is kept by the state** (an etcd event's mod revision at most the
+state's revision, so the key's record before it is the same in every longer state of the history). -/
+def kRawRevOk (σ : KVState) : KRaw → Prop
+  | .ev e => sint.nat e.kv.modRev ≤ σ.rev
+  | _ => True
+
+theorem kRawRevOk_mono {σ σ' : KVState} (hle : σ.rev ≤ σ'.rev) {x : KRaw} (h : kRawRevOk σ x) :
+    kRawRevOk σ' x := by
+  cases x with
+  | ev e => simp only [kRawRevOk] at h ⊢; omega
+  | _ => trivial
+
+/-- **`transform` reads the same at a longer state of the history.** -/
+theorem kRawToEv_hist (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z : Obj) (σ σ' : KVState)
+    (h : kvSameHist σ σ') (hle : σ.rev ≤ σ'.rev) (x : KRaw) (hx : kRawRevOk σ x) :
+    kRawToEv dec sel emp z σ x = kRawToEv dec sel emp z σ' x := by
+  cases x with
+  | ev e =>
+    simp only [kRawRevOk] at hx
+    simp only [kRawToEv, kEvOfL, kPrevAt]
+    rw [kvSameHist_at σ σ' _ h (by omega) (by omega)]
+  | kv v => rfl
+  | bm r a => rfl
+
+theorem kRawToEv_filterMap_hist (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z : Obj)
+    (σ σ' : KVState) (h : kvSameHist σ σ') (hle : σ.rev ≤ σ'.rev) (raws : List KRaw)
+    (hx : ∀ x ∈ raws, kRawRevOk σ x) :
+    raws.filterMap (kRawToEv dec sel emp z σ) = raws.filterMap (kRawToEv dec sel emp z σ') := by
+  induction raws with
+  | nil => rfl
+  | cons x xs ih =>
+    rw [List.filterMap_cons, List.filterMap_cons,
+      kRawToEv_hist dec sel emp z σ σ' h hle x (hx x List.mem_cons_self),
+      ih fun y hy => hx y (List.mem_cons_of_mem _ hy)]
+
+theorem kRawEvs_revOk {σ : KVState} {inS : GoString → Bool} {lo hi : Nat} (hh : hi ≤ σ.rev + 1) :
+    ∀ x ∈ (kRangeEvsL σ inS lo hi).map KRaw.ev, kRawRevOk σ x := by
+  intro x hx
+  obtain ⟨ev, hev, rfl⟩ := List.mem_map.1 hx
+  obtain ⟨-, r, -, hr, hm⟩ := kRangeEvsL_mem hev
+  simp only [kRawRevOk, hm]
+  have := sint_nat_W64_le r
+  omega
+
+/-- A raw tail's events are kept by its state. -/
+theorem kRawTail_revOk {σ : KVState} {inS : GoString → Bool} {c : Nat} {full : List KRaw}
+    (h : KRawTail σ inS c full) : ∀ x ∈ full, kRawRevOk σ x := by
+  induction h with
+  | nil c => intro x hx; cases hx
+  | chg c r rest hcr hr _ ih =>
+    intro x hx
+    rcases List.mem_append.1 hx with hx | hx
+    · exact kRawEvs_revOk (by omega) x hx
+    · exact ih x hx
+  | bm c p rest _ _ _ _ ih =>
+    intro x hx
+    rcases List.mem_cons.1 hx with rfl | hx
+    · trivial
+    · exact ih x hx
+
+/-- **A raw tail is one at a longer state of the history.** -/
+theorem kRawTail_hist {σ σ' : KVState} (h : kvSameHist σ σ') (hle : σ.rev ≤ σ'.rev)
+    {inS : GoString → Bool} {c : Nat} {full : List KRaw} (ht : KRawTail σ inS c full) :
+    KRawTail σ' inS c full := by
+  induction ht with
+  | nil c => exact KRawTail.nil c
+  | chg c r rest hcr hr _ ih =>
+    rw [kRangeEvsL_hist σ σ' inS (c + 1) (r + 1) h (by omega) (by omega)]
+    exact KRawTail.chg c r rest hcr (by omega) ih
+  | bm c p rest hcp hp hnone _ ih =>
+    rw [kRangeEvsL_hist σ σ' inS (c + 1) (p + 1) h (by omega) (by omega)] at hnone
+    exact KRawTail.bm c p rest hcp (by omega) hnone ih
+
+theorem kRawIdealL_hist {σ σ' : KVState} (h : kvSameHist σ σ') (hle : σ.rev ≤ σ'.rev)
+    (inS : GoString → Bool) (m : KWatchMode) (st : Nat) (hst : m.forceInit = true → st ≤ σ.rev)
+    (full : List KRaw) : kRawIdealL inS m σ st full = kRawIdealL inS m σ' st full := by
+  unfold kRawIdealL
+  split
+  · rename_i hf
+    rw [kvSameHist_at σ σ' st h (hst hf) (by have := hst hf; omega)]
+  · rfl
+
+theorem kRawIdealL_revOk {σ : KVState} {inS : GoString → Bool} (m : KWatchMode) {st : Nat}
+    {full : List KRaw} (ht : KRawTail σ inS st full) :
+    ∀ x ∈ kRawIdealL inS m σ st full, kRawRevOk σ x := by
+  intro x hx
+  unfold kRawIdealL at hx
+  split at hx
+  · rcases List.mem_append.1 hx with hx | hx
+    · obtain ⟨v, -, rfl⟩ := List.mem_map.1 hx; trivial
+    · rcases List.mem_append.1 hx with hx | hx
+      · split at hx
+        · rcases List.mem_singleton.1 hx with rfl; trivial
+        · cases hx
+      · exact kRawTail_revOk ht x hx
+  · exact kRawTail_revOk ht x hx
+
+/-- **The raw stream's relation holds at a longer state of the history** (any relation). -/
+theorem kRawStreamRel_hist {R : List KRaw → List KRaw → Prop} {inS : GoString → Bool}
+    {m : KWatchMode} {σ σ' : KVState} (h : kvSameHist σ σ') (hle : σ.rev ≤ σ'.rev) {st : Nat}
+    {raws : List KRaw} (hr : kRawStreamRel R inS m σ st raws) : kRawStreamRel R inS m σ' st raws := by
+  obtain ⟨hst, full, ht, hR⟩ := hr
+  refine ⟨fun hf => by have := hst hf; omega, full, kRawTail_hist h hle ht, ?_⟩
+  rw [← kRawIdealL_hist h hle inS m st hst full]
+  exact hR
+
+/-- The raw events of a subsequence are kept by its state. -/
+theorem kRawStreamSub_revOk {inS : GoString → Bool} {m : KWatchMode} {σ : KVState} {st : Nat}
+    {raws : List KRaw} (h : kRawStreamSub inS m σ st raws) : ∀ x ∈ raws, kRawRevOk σ x := by
+  obtain ⟨-, full, ht, hs⟩ := h
+  exact fun x hx => kRawIdealL_revOk m ht x (hs.subset hx)
+
+theorem kRawStreamOk_sub {inS : GoString → Bool} {m : KWatchMode} {σ : KVState} {st : Nat}
+    {raws : List KRaw} (h : kRawStreamOk inS m σ st raws) : kRawStreamSub inS m σ st raws := by
+  obtain ⟨hst, full, ht, hp⟩ := h
+  exact ⟨hst, full, ht, hp.sublist⟩
+
+/-- **Prefix closure**, for a relation closed under taking a prefix of its left side. -/
+theorem kRawStreamRel_prefix {R : List KRaw → List KRaw → Prop}
+    (hR : ∀ a b c : List KRaw, R (a ++ b) c → R a c) {inS : GoString → Bool} {m : KWatchMode}
+    {σ : KVState} {st : Nat} {raws rs : List KRaw} (h : kRawStreamRel R inS m σ st (raws ++ rs)) :
+    kRawStreamRel R inS m σ st raws := by
+  obtain ⟨hst, full, ht, hr⟩ := h
+  exact ⟨hst, full, ht, hR _ _ _ hr⟩
+
+theorem kRawStreamOk_prefix {inS : GoString → Bool} {m : KWatchMode} {σ : KVState} {st : Nat}
+    {raws rs : List KRaw} (h : kRawStreamOk inS m σ st (raws ++ rs)) :
+    kRawStreamOk inS m σ st raws :=
+  kRawStreamRel_prefix (R := (· <+: ·)) (fun a b _ hr => (List.prefix_append a b).trans hr) h
+
+theorem kRawStreamSub_prefix {inS : GoString → Bool} {m : KWatchMode} {σ : KVState} {st : Nat}
+    {raws rs : List KRaw} (h : kRawStreamSub inS m σ st (raws ++ rs)) :
+    kRawStreamSub inS m σ st raws :=
+  kRawStreamRel_prefix (R := List.Sublist) (fun a b _ hr => (List.sublist_append_left a b).trans hr) h
+
+/-- A subsequence of a subsequence. -/
+theorem kRawStreamSub_sublist {inS : GoString → Bool} {m : KWatchMode} {σ : KVState} {st : Nat}
+    {raws raws' : List KRaw} (hs : List.Sublist raws raws') (h : kRawStreamSub inS m σ st raws') :
+    kRawStreamSub inS m σ st raws := by
+  obtain ⟨hst, full, ht, hr⟩ := h
+  exact ⟨hst, full, ht, hs.trans hr⟩
+
+/-! ### Segments: the raw events between two cursors -/
+
+/-- **The raw events of a watch between the cursors `c` and `c'`** (`KRawTail`, ending exactly at
+`c'`): the producer's queue between two client responses. -/
+inductive KRawSeg (σ : KVState) (inS : GoString → Bool) : Nat → Nat → List KRaw → Prop
+  | nil (c : Nat) : KRawSeg σ inS c c []
+  | chg (c r c' : Nat) (rest : List KRaw) : c < r → r ≤ σ.rev → KRawSeg σ inS r c' rest →
+      KRawSeg σ inS c c' ((kRangeEvsL σ inS (c + 1) (r + 1)).map KRaw.ev ++ rest)
+  | bm (c p c' : Nat) (rest : List KRaw) : c ≤ p → p ≤ σ.rev →
+      kRangeEvsL σ inS (c + 1) (p + 1) = [] → KRawSeg σ inS p c' rest →
+      KRawSeg σ inS c c' (KRaw.bm p false :: rest)
+
+theorem kRawSeg_le {σ : KVState} {inS : GoString → Bool} {c c' : Nat} {s : List KRaw}
+    (h : KRawSeg σ inS c c' s) : c ≤ c' := by
+  induction h with
+  | nil => exact Nat.le_refl _
+  | chg _ _ _ _ h1 _ _ ih => omega
+  | bm _ _ _ _ h1 _ _ _ ih => omega
+
+/-- A segment followed by a tail from its end is a tail. -/
+theorem kRawSeg_tail {σ : KVState} {inS : GoString → Bool} {c c' : Nat} {s t : List KRaw}
+    (h : KRawSeg σ inS c c' s) (ht : KRawTail σ inS c' t) : KRawTail σ inS c (s ++ t) := by
+  induction h with
+  | nil => exact ht
+  | chg c r c' rest hcr hr _ ih => rw [List.append_assoc]; exact KRawTail.chg c r _ hcr hr (ih ht)
+  | bm c p c' rest hcp hp hn _ ih => exact KRawTail.bm c p _ hcp hp hn (ih ht)
+
+theorem kRawSeg_append {σ : KVState} {inS : GoString → Bool} {c m c' : Nat} {s t : List KRaw}
+    (h : KRawSeg σ inS c m s) (ht : KRawSeg σ inS m c' t) : KRawSeg σ inS c c' (s ++ t) := by
+  induction h with
+  | nil => exact ht
+  | chg c r m rest hcr hr _ ih => rw [List.append_assoc]; exact KRawSeg.chg c r c' _ hcr hr (ih ht)
+  | bm c p m rest hcp hp hn _ ih => exact KRawSeg.bm c p c' _ hcp hp hn (ih ht)
+
+/-- A response's events, the whole revisions `(c, r]`. -/
+theorem kRawSeg_chg1 {σ : KVState} {inS : GoString → Bool} {c r : Nat} (hcr : c < r)
+    (hr : r ≤ σ.rev) : KRawSeg σ inS c r ((kRangeEvsL σ inS (c + 1) (r + 1)).map KRaw.ev) := by
+  have := KRawSeg.chg c r r [] hcr hr (KRawSeg.nil (σ := σ) (inS := inS) r)
+  rwa [List.append_nil] at this
+
+/-- A progress notification at `p`. -/
+theorem kRawSeg_bm1 {σ : KVState} {inS : GoString → Bool} {c p : Nat} (hcp : c ≤ p)
+    (hp : p ≤ σ.rev) (hn : kRangeEvsL σ inS (c + 1) (p + 1) = []) :
+    KRawSeg σ inS c p [KRaw.bm p false] :=
+  KRawSeg.bm c p p [] hcp hp hn (KRawSeg.nil p)
+
+theorem kRawSeg_hist {σ σ' : KVState} (h : kvSameHist σ σ') (hle : σ.rev ≤ σ'.rev)
+    {inS : GoString → Bool} {c c' : Nat} {s : List KRaw} (hs : KRawSeg σ inS c c' s) :
+    KRawSeg σ' inS c c' s := by
+  induction hs with
+  | nil c => exact KRawSeg.nil c
+  | chg c r c' rest hcr hr _ ih =>
+    rw [kRangeEvsL_hist σ σ' inS (c + 1) (r + 1) h (by omega) (by omega)]
+    exact KRawSeg.chg c r c' rest hcr (by omega) ih
+  | bm c p c' rest hcp hp hnone _ ih =>
+    rw [kRangeEvsL_hist σ σ' inS (c + 1) (p + 1) h (by omega) (by omega)] at hnone
+    exact KRawSeg.bm c p c' rest hcp (by omega) hnone ih
+
+/-! ### The client watch's range is the scope -/
+
+/-- **The client watch's range is the watch's scope**: `WithPrefix` of a non-empty prepared key
+(`GetPrefixRangeEnd`) for a recursive watch, the key alone otherwise. -/
+theorem inRange_scope (kp : GoString) (recur : Bool) (hp : recur = true → kp ≠ []) (k : GoString) :
+    EtcdGrove.inRange kp (if recur then prefixRangeEnd kp else []) k =
+      kInScope kp recur k := by
+  cases recur
+  · simp [EtcdGrove.inRange, kInScope]
+  · simp only [ite_true, kInScope]
+    have := concurrency.inRange_prefix kp k (hp rfl)
+    cases hb : EtcdGrove.inRange kp (prefixRangeEnd kp) k
+    · rw [hb] at this; simp only [Bool.false_eq_true, false_iff] at this; simp [this]
+    · rw [hb] at this; simp only [true_iff] at this; simp [this]
+
+/-- The client watch's events of a range of revisions are the scope's. -/
+theorem rangeEvents_scope (σ : KVState) (o : OpFull) (inS : GoString → Bool)
+    (h : ∀ k, EtcdGrove.inRange o.key o.base.rangeEnd k = inS k) (lo hi : Nat) :
+    σ.rangeEvents o lo hi = kRangeEvsL σ inS lo hi := by
+  unfold KVState.rangeEvents kRangeEvsL
+  apply List.filter_congr
+  intro ev _
+  exact h _
+
+end hist
+
 end k8s
 end EtcdGrove
 end Perennial
