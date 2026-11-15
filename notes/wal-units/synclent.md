@@ -32,7 +32,20 @@ flight: the record's `none`) has F-Z or `TailPend` (`walLentRes_lookup`). Its fd
   (new spec file `Spec/…/wal/FdatasyncLentE.lean`, `Fdatasync.specWalLentE`).
 - `WAL__syncLentE.lean`: **`WAL.sync.wp_proofLentE`** (`WAL.sync.specLentE`, statement unchanged).
 
-**Linked**: see "Build" below.
+**Linked** (`etc/gen-link.py --walfs`, `--durable`, `--wal-tester`): the WAL `Link` gains `wp_FdatasyncWalLentE`
+and `wp_syncLentE`; `WAL.wp_CloseFailed` loses its hypothesis `h_wal_WAL_syncLentE` (234 results, 188 with no
+hypothesis); the tester's `Link` no longer takes `h_wal_WAL_syncLentE` (5 results). `durable`'s `Link` unchanged.
+
+**Build**: `lake build` of the WAL `Link`, `durable`'s `Link` and the tester's `Link`: success.
+`etc/tcb-collections/linuxfs.txt` not rerun (needs a full build of the roots).
+
+**Remarks**:
+- `syncLay_anyE` takes F-Z or `TailPend` (`walLentRes_lookup`'s); the F-Z case reuses `syncLay_any` (the
+  `WinZero` it needs from the invariant, not the handle), so the handle needs only the length word.
+- `Fdatasync.specWalLentE`'s success returns the token with an existential `k'` and the synced halves with
+  `TailMetaR ∧ zf ≥ size ∧ every byte durable` (what `walInvBody_untailL` takes), the offset unknown.
+
+**Left**: nothing in this unit; no `sorry`, no axiom.
 
 **Statement changes**: none (the client-facing specs unchanged; `WAL.sync.specLentE` as stated by `closefailed`).
 

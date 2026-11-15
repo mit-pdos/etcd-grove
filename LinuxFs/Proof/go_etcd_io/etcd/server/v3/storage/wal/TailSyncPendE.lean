@@ -175,10 +175,6 @@ theorem walTailsRes_cutPE (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
     iframe Hv'
     ipureintro; exact ⟨hd, hl, hg, hz0, hB⟩
 
-/-- **The fdatasync of a lent tail on the invariant** (`walInvBody_sync` by the lent token of kind
-`false`): on success, given also the handle's zeros from `wr` on (`WinZero`), the invariant at the synced
-state, the layout `syncLay_anyP`'s (F-Z), and the key out (`walTailsRes_cutP`); on failure everything
-back, the token out. -/
 /-- **The fdatasync of a lent tail `ZeroToEnd` left partway on the invariant** (`walInvBody_syncP` from the
 handle's zero length word at `wr`, the token kept; see the file header). -/
 theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)

@@ -206,7 +206,6 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalLentE
   · iright
     isplitr
     · ipureintro; exact he
-    unfold walTailPE
     iframe Hf Hoff Hk
     isplitl [Hfd Hlkt]
     · iexists rd, lo, lk; iframe

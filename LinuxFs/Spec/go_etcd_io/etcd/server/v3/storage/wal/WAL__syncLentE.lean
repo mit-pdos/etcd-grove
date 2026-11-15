@@ -2,10 +2,10 @@
 `(*wal.WAL).sync` (S/wal.go:976-1001) of a failed `ReadAll`'s handle whose tail `ZeroToEnd` left in an unknown
 state (`walFailLent`'s `walTailPE` form; `WAL.Close.specFailed`): as `WAL.sync.specLent`.
 
-**Stated, not proved** (unit `closefailed`; a hypothesis of `WAL.Close.wp_proofFailed`): its proof needs an
-invariant step for the fdatasync of a lent tail with a torn frame past `wr` (`syncLayP`, W4c U5 log, fifth
-session, "E6"), then an `Fdatasync.specWalLentE` over it, then the put-back by the lent token
-(`walInvBody_untailL`, `p = false`). Lean-first.
+Stated by unit `closefailed`; **proved** by unit `synclent` (`WAL.sync.wp_proofLentE`, `WAL__syncLentE.lean`):
+the fdatasync over the invariant step `walInvBody_syncPE` (the synced layout `syncLay_anyE`'s: F-Z, or
+`syncLayP` for a torn frame past `wr`; the token kept, `Fdatasync.specWalLentE`), then the put-back by the lent
+token (`walInv_untailLent`, over `walInvBody_untailL`, `p = false`). Lean-first.
 -/
 module
 

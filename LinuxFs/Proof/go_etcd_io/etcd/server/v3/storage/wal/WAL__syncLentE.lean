@@ -10,6 +10,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLentE
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.FdatasyncLentE
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailSyncPendE
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.LockLemmas
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllReg
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import LinuxFs.Spec.go_uber_org.zap.Logger__Warn
 public import LinuxFs.Spec.go_uber_org.zap.Duration

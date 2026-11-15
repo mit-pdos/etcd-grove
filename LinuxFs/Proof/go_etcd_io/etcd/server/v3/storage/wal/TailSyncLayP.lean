@@ -43,7 +43,7 @@ def syncLayP (lay : WalLay) (pre : List SegG) (g : SegG) : WalLay :=
 theorem syncOldP_length (old : List w8) (wr : Nat) (bs : List ByteG) :
     ((old ++ List.replicate wr 0).take wr ++ (bs.drop wr).map Prod.fst).length =
       wr + (bs.length - wr) := by
-  simp <;> omega
+  simp
 
 theorem syncOldP_getD_lt (old : List w8) (wr : Nat) (t : List w8) (b : Nat) (hb : b < wr) :
     ((old ++ List.replicate wr 0).take wr ++ t).getD b 0 = old.getD b 0 := by
@@ -58,7 +58,7 @@ theorem syncOldP_getD_lt (old : List w8) (wr : Nat) (t : List w8) (b : Nat) (hb 
 theorem syncOldP_getD_ge (old : List w8) (wr : Nat) (bs : List ByteG) (b : Nat) (hb : wr ≤ b) :
     ((old ++ List.replicate wr 0).take wr ++ (bs.drop wr).map Prod.fst).getD b 0 =
       (bs.getD b (0, [])).1 := by
-  have hl : ((old ++ List.replicate wr 0).take wr).length = wr := by simp; omega
+  have hl : ((old ++ List.replicate wr 0).take wr).length = wr := by simp
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl, List.getElem?_map,
     List.getElem?_drop, show wr + (b - wr) = b by omega, List.getD_eq_getElem?_getD]
   cases bs[b]? <;> rfl
@@ -146,7 +146,8 @@ theorem walAbsD_syncP {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
           rcases h.low g0 hg0 b y hb0 hbw with ⟨-, hB⟩ | ⟨-, -, hW⟩
           · exact byteOk_sync hB (fun _ => decide_eq_true hbw)
           · simp [ByteOk, hbw, hW.1]
-        · rw [syncOldP_getD_ge _ _ _ _ (by omega), List.getD_eq_getElem?_getD, hb0, Option.getD_some]
+        · rw [syncOldP_getD_ge _ _ _ _ (by omega),
+            show g0.bs.getD b (0, []) = y by rw [List.getD_eq_getElem?_getD, hb0]; rfl]
           exact byteOk_durB (decide_eq_false hbw) (decide_eq_false hbw)
     · rw [List.take_append_of_le_length (by simp; omega), List.take_take,
         Nat.min_eq_left h6, List.take_append_of_le_length h3]
@@ -163,6 +164,11 @@ theorem walAbsD_syncP {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     exact hlw j hj
   · simp [syncLayP, syncLay]
 
+
+/-- `syncLayP` keeps the inodes. -/
+theorem syncLayP_inos (lay : WalLay) (pre : List SegG) (g0 : SegG) (hs : lay.segs = pre ++ [g0]) :
+    (syncLayP lay pre g0).segs.map (·.ino) = lay.segs.map (·.ino) :=
+  syncLay_inos lay pre g0 hs
 
 /-- **`TailPend` after the fdatasync** (the handle's zero length word at `wr`). -/
 theorem tailPend_syncP {lay : WalLay} {pre : List SegG} {g0 : SegG} (hP : TailPend lay)
@@ -283,7 +289,8 @@ theorem crashOk_syncP {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
       max (syncLayP lay pre g0).so (syncLayP lay pre g0).z0 ≤ z := by
     intro z hz
     simp only [syncTail, OsMeta.synced, Option.some.injEq] at hz
-    have h1 := OsMeta.size_le_syncZ g0.om
+    have h1 : g0.om.size ≤ g0.om.syncZ := by
+      unfold OsMeta.syncZ; have := le_pageEnd g0.om.size; split <;> omega
     have h2 := (habs0.metas g0 (List.mem_of_getLast? hg0)).1
     obtain ⟨-, -, -, h4, -⟩ := habs0.lastWin g0 hg0
     have h5 := hP0.1
@@ -318,7 +325,7 @@ theorem walsOk_syncP {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     by_cases e : dir' = dir
     · subst e
       rw [GMap.lookup_insert] at h; cases h
-      exact ⟨lay, hl, by rw [syncLay_inos lay pre g0 hs]; exact List.Sublist.refl _⟩
+      exact ⟨lay, hl, by rw [syncLayP_inos lay pre g0 hs]; exact List.Sublist.refl _⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h
       exact ⟨lay', h, List.Sublist.refl _⟩
   refine ⟨fun dir' d' hd' => ?_, fun dir' hn => ?_, segsAll_nodup_sub h3 hsub, fun g' hg' => ?_,
