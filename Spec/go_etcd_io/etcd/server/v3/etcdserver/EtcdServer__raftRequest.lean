@@ -38,7 +38,8 @@ the mode `E.authOn`; the mode-off form, `specOff`, is a
 corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): over
 `processInternalRaftRequestOnce.spec`; the success post at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`appliedOkM`, `modelOutM`: in the mode `on`
-the auth state the entry met and the auth layer's verdict the model's grant there). (Sweep repairs 1,
+the auth state the entry met and the auth layer's verdict the model's grant there, its outcome
+lease-exact at the model's table). (Sweep repairs 1,
 B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
 `Value(StartTimeKey{})` is type-asserted from).  (Sweep repairs 1,
 B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's

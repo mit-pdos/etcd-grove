@@ -388,12 +388,12 @@ local macro "piro_tail" : tactic => `(tactic| (
           · -- the mode on: `resultΨOn`, the mode-`on` model and the auth layer's verdict
             rw [resultΨM_true]
             iunfold resultΨOn at Hres
-            icases Hres with ⟨%ar, %lb, %st, %Hx, HTr, Hri, #HeW⟩
+            icases Hres with ⟨%ar, %lb, %st, %ltw, %Hx, HTr, Hri, #HeW⟩
             subst Hx
             wp_auto_lc 3
             iunfold entryWitOn at HeW
             icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew, #HpA⟩
-            obtain ⟨hlk, het, hdecw, hidw, ltw, hlbw⟩ := Hew
+            obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
             have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
             subst hidd
             ihave %Hdd := idClaimAny_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim

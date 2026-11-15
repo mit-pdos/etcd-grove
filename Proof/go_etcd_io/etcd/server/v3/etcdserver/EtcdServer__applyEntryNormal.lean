@@ -1072,7 +1072,7 @@ local macro "trig_on" : tactic => `(tactic| (
   cases hd'
   rw [resultΨM_true]
   iunfold resultΨOn
-  iexists ar, x.log, sa
+  iexists ar, x.log, sa, (kvLeasesOn γr.kv srvAuthSt0 A)
   isplitr
   · ipureintro; rfl
   isplitl [HTr]
@@ -1174,14 +1174,14 @@ local macro "tail_on" sa':term:max lt':term:max : tactic => `(tactic| (
   -- auth state and the log the entry met
   ihave #Hcl0a : idClaimAny ρ.ids id m.data γf $$ []
   · iunfold idClaimAny; iexists k0; iexact Hcl0
-  ihave #HeW : iprop(entryWitOn E.authMode ρ rq x.log sa) $$ []
+  ihave #HeW : iprop(entryWitOn E.authMode ρ rq x.log sa (kvLeasesOn γr.kv srvAuthSt0 A)) $$ []
   · iunfold entryWitOn
     iexists A ++ [m], A.length, m, id, γf
     simp only [ReqNames.raft, ReqNames.kv, Hrd]
     iframe HAm Hcl0a
     isplitr
     · ipureintro
-      refine ⟨by simp, Htyp, hdec, hid, kvLeasesOn γr.kv srvAuthSt0 A, ?_⟩
+      refine ⟨by simp, Htyp, hdec, hid, ?_⟩
       rw [List.take_left' rfl, ← Hxl]
     have htk : (A ++ [m]).take (A.length + 1) = A ++ [m] := List.take_of_length_le (by simp)
     rw [htk, ← Hafter]
@@ -1767,7 +1767,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         have hmod : (sa, x'.log, kvTable γr.kv.c0 x.chain (kvLeasesOn γr.kv srvAuthSt0 A) m) =
             kvEntryOn γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m := by
           rw [hkeepM, hkeep.2]
-        have Htie : authTie sa x.log rq out := authTie_nonKV sa x.log rq out hkv'
+        have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
+          authTie_nonAuthKV sa x.log _ rq out (by rw [hg.1]; rfl)
         ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
         · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
         ihave HFS : srvFS s $$ [HFS]
@@ -1911,7 +1912,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         obtain ⟨hc', o, bo, lt'', hout, hmod, hob⟩ := revokeOn_after γr.kv.c0 sa
           (kvLeasesOn γr.kv srvAuthSt0 A) x x' m rq out Htyp hdata hdec hv hr γa hs Hhl
           (noZeroEnds_revoke rq hk) hlive h0 Hdet Hch Hstep0.1 HXo'
-        have Htie : authTie sa x.log rq out := authTie_nonKV sa x.log rq out hkv'
+        have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
+          authTie_of_kvOutL γa hs sa Hhl rq x.log _ out (noZeroEnds_revoke rq hk) HXo'
+            (fun o _ _ => leaseExact_revoke rq hk _ x.log o)
         ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
         · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
         iunfold auth.latestResC at HL
@@ -2083,7 +2086,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             · right; rw [hTids hg]; exact HXe o b h rfl hg
           obtain ⟨hc', hmod⟩ := kvOn_after_kv γr.kv.lm γr.kv.c0 sa _ x x' m rq out Htyp hdata hdec hv hna hkv hpK
             γa hs Hhl hz Hdet Hch Hstep0.1 HXL
-          have Htie : authTie sa x.log rq out := authTie_of_kvOutL γa hs sa Hhl rq x.log out hz HXo'
+          have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
+            authTie_of_kvOutL γa hs sa Hhl rq x.log _ out hz HXo' (fun o b h => (HXL o b h).2)
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           iunfold auth.latestResC at HL
@@ -2154,7 +2158,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           have hc' := hkeep.2
           have hmod : (sa, x'.log, kvLeasesOn γr.kv srvAuthSt0 A) = kvEntryOn γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m := by
             rw [hkeepM, hkeep.1]
-          have Htie : authTie sa x.log rq out := authTie_nonKV sa x.log rq out hkv'
+          have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
+            authTie_nonAuthKV sa x.log _ rq out (by
+              unfold apply.authKVKind; rw [hkv']
+              have hk := hpk; unfold putgetKind at hk
+              rcases hk with hk | hk | hk | hk | hk <;> rw [hk] <;> rfl)
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HFS : srvFS s $$ [HFS]
@@ -2247,7 +2255,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           have hw : ¬ writeKind (apply.dispatchKind rq) := by rw [hka]; simp [writeKind]
           have hmod : (sa, x'.log, kvLeasesOn γr.kv srvAuthSt0 A) = kvEntryOn γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m := by
             rw [hl', kvEntryOn_keep γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq Htyp hdata hdec hna hw]
-          have Htie : authTie sa x.log rq out := authTie_nonKV sa x.log rq out hkv'
+          have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
+            authTie_nonAuthKV sa x.log _ rq out (adminKindOk_nonAuthKV rq hadm)
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HAR := Hcl $$ %hs' %sa Hfu Htie %Hsa'.1 HT Htp
@@ -2324,7 +2333,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           rw [hl']
           exact outcomeOn_eq γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) (sa', x.log, kvLeasesOn γr.kv srvAuthSt0 A) m Hdet
             (outcomeOn_of_adminStateR γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq sa' Htyp hdata hdec hv hna hR)
-        have Htie : authTie sa x.log rq out := authTie_nonKV sa x.log rq out hkv'
+        have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
+          authTie_nonAuthKV sa x.log _ rq out (adminKindOk_nonAuthKV rq hadm)
         -- (E3x) the result's tie at the model's step
         have hsa : sa' = adminNext rq sa :=
           (Prod.mk.inj (hmod.trans (kvEntryOn_admin γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq Htyp hdata
