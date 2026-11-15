@@ -76,19 +76,27 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
-  wp_apply (hLG s E ρ ci cd r m.1 m.2 h (hR m HRm)) $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
+  -- auth off (the server's view `isServerReq`): the off permit, the off result
+  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
+  have hLG' := hLG s E ρ ci cd r m.1 m.2 (fun _ _ => iprop(True))
+  rw [hoff, isServerReqM_false] at hLG'
+  wp_apply hLG' $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
-    iunfold leaseGrantReqOwn
-    iunfold leaseGrantReqIs at Hreq
-    iunfold leaseGrantReqIdOwn at Hid
-    icases Hreq with ⟨%Hrn, #Httl⟩
-    iframe Httl Hid
-    ipureintro; exact Hrn
+    isplitr
+    · ipureintro; exact ⟨h, hR m HRm⟩
+    isplitl [Hid]
+    · iunfold leaseGrantReqOwn
+      iunfold leaseGrantReqIs at Hreq
+      iunfold leaseGrantReqIdOwn at Hid
+      icases Hreq with ⟨%Hrn, #Httl⟩
+      iframe Httl Hid
+      ipureintro; exact Hrn
+    iapply leaseGrantPermitM_false
   ihave HSr := Hback $$ [Hlt HRD]
   · iframe Hlt HRD
   iapply HΦ
   iframe HSr
-  icases Hans with (⟨%He, Hresp⟩ | ⟨%He, #HaE⟩)
+  icases Hans with (⟨%He, Hresp, -, -⟩ | ⟨%He, #HaE⟩)
   · obtain ⟨rfl, hnn⟩ := He
     iunfold leaseGrantedResp at Hresp
     icases Hresp with ⟨%id, %ttl, %e, %i, %hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown, #Hid', %Hid0,

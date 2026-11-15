@@ -414,3 +414,59 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `cmpl_prog` keep the log; `raw_to_state` fires at a state through it; the readers lose a case.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15): strengthen, land as its own unit before 7f-5a-P; no closed
   theorem statement changes, tcb stays 870/4; upstream's traffic kept.
+
+## 2026-11-15: the server's lease requests with auth on (auth-lease S3b; Draft `notes/auth-lease-s3b-draft.md` rev 3)
+
+One entry for the frozen texts S3b changes (Draft §6's table); the evidence of each is the Draft's section.
+
+- **Spec.** `EtcdServer.LeaseGrant.spec`, `EtcdServer.LeaseRevoke.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`),
+  `srvGrantsLeases`/`srvRevokesLeases`, `reqPropOkOn`, `putPermitOn`/`txnPermitOn`/`txnPermitM` (`ProposeOn`, `ReqOn`).
+- **Defect.** No proposer of a grant, a revocation, a leased put or a leased transaction with auth on: the two lease
+  specs and `srvGrants/RevokesLeases` require auth off, `reqPropOkOn` has no lease form, `putPermitOn` requires lease 0
+  and `txnPermitM` `txnPlain`, though Go serves all four with auth on (`v3_server.go` `LeaseGrant`/`LeaseRevoke`,
+  `requireAuthInfo` at `:447`; the apply side admits them since S3a/S3a2).
+- **Proposed change.** Draft §1, §2, §4.2, §4.3: the auth-off conjuncts dropped; the specs at `isServerReqM E.authOn`
+  with the client's update (`leaseGrantPermitM`/`leaseRevokePermitM`) and, on success, `authedOutB` and
+  `leaseGrantResM`/`leaseRevokeResM`; `reqPropOkOn`'s write disjunct at `plainReqL lm ∨ grantPropOk lm ∨ revokePropOk lm`,
+  `rqShape lm`, `grantIdOwn`; the permits' lease disjuncts at the revocable mode.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3b Freeze); D6: the v3rpc lease handlers' contracts and
+  etcdstart's registrations at the mode in S3c.
+
+## 2026-11-15: authTie says nothing of revocations or of a leased put's lease (auth-lease S3b D1)
+
+- **Spec.** `authTie` and its carriers `resultIsWOn`, `entryWitOn`, `resultΨOn`, `modelOutM` (`ReqOn.lean`; frozen at
+  S3a2 rev 6), read by `processInternalRaftRequestOnce.spec`/`raftRequest.spec` through `appliedOkM`.
+- **Defect.** Guarded by `isKVKind` (excludes `.leaseRevoke`): a successful revocation cannot be shown granted. It
+  carries no liveness: a successful leased put cannot be shown to have met a live lease (`backendStep` admits an
+  applied put of a dead lease; the lease exactness is dropped at the KV arm).
+- **Evidence.** Draft §3; probe `Scratch/S3bProbe.lean` (`authTieB_of_kvOutL`, `kvGrantedL_of_tieB`, `leaseLive_of_tieB`).
+- **Proposed change.** Guard `authKVKind`; the post gains `plainCover rq ∨ apply.leaseExactL lt.ids rq lb o`; `authTie`
+  gains the model's table `lt`, threaded through the carriers.
+- **Decision.** D1 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: grantedAt is the permission check only (auth-lease S3b D2)
+
+- **Spec.** `grantedAt`, `grantedAt_iff` (`ProposeOn.lean`), hence `writeGrantG`/`grantedRes` and the posts of
+  `Put`/`DeleteRange`/`Txn.spec`.
+- **Defect.** `kvGranted` omits the lease part of the model's verdict (`kvEntryOn`'s guard is `kvGrantedL`): a client's
+  update cannot be refuted for a put permitted on its key but refused for its lease's keys (`etcd_authlease_safe`
+  checks 2, 3, 5).
+- **Proposed change.** `grantedAt` at `kvGrantedL … (leaseItemsOf (stateAfter (kvModelOn …)))`; `grantedAt_plain` keeps
+  the old meaning for every request without a lease part.
+- **Decision.** D2 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: Put.spec's success does not say the lease was live (auth-lease S3b D3)
+
+- **Spec.** `EtcdServer.Put.spec` (frozen `Spec/` text), with the exported `put_applied`.
+- **Defect.** The success's client result `Q (kvStateOf x.log lt)` does not exclude the state where `kvOpStep (.put op)`
+  is `leaseMissing`'s identity, though Go's success means the lease was found (`checkLease`, `put.go:71`).
+- **Proposed change.** The success post's pure conjunct gains `¬ (kvStateOf x.log lt).leaseMissing op.leaseID`.
+- **Decision.** D3 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: txnAppliedOk does not say a leased transaction's leases were live (auth-lease S3b D7)
+
+- **Spec.** `txnAppliedOk` (`InvRead.lean`, the writing post of `EtcdServer.Txn.spec`; frozen).
+- **Defect.** As D3's for a transaction: a committed transaction's executed path's leases were live (`checkTxn`), the
+  post does not say so.
+- **Proposed change.** The pure conjunct gains `l ≠ x.log → txn.PathsLeaseOk (stateAfter x.log) lt.ids (t'.branch …)`.
+- **Decision.** D7 approved (etcd-grove-81, 2026-11-15).

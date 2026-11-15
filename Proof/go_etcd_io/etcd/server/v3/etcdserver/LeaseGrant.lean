@@ -3,8 +3,7 @@
 the vocabulary of `EtcdServer.LeaseGrant`'s triple. Lean-first (no Rocq counterpart).
 
 A cluster **grants leases** (`srvGrantsLeases`) when its KV names say so (`KVNames.lg`: its lessor
-monotone, `NewServer`'s `NewLessor` call) and auth is off (the grant guard `srvGrantGuard`); the
-deployment premise `lease.leasesNoExpiry` (no lease expires: the expiry loop sends nothing) is
+monotone, `NewServer`'s `NewLessor` call; auth-lease S3b: in either auth mode); the deployment premise `lease.leasesNoExpiry` (no lease expires: the expiry loop sends nothing) is
 `NewServer`'s, for a cluster that grants. There a grant the server answers is in the lessor's history
 (`lease.leaseGrantedAt`), so every later `Leases()` lists it (`lease.leaseGrantedAt_listed`).
 -/
@@ -33,15 +32,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The cluster grants leases** (see the file header): two scope restrictions, the KV names' `lg`
-(the cluster's requests may grant leases: its lessor monotone) and auth off (required: the grant
-guard `srvGrantGuard` is `False` with auth on, whose layer rests on the lessor finding no lease,
-`srvLessorNil`). (The review's S1, 2026-11-02: until then also the deployment premise
-`lease.leasesNoExpiry`, which only the apply thread's grant needs: it is `NewServer`'s row
-`ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`, so a result over this spec is conditional
-on it through `NewServer`.) -/
+/-- **The cluster grants leases** (see the file header): the KV names' `lg` (the cluster's requests
+may grant leases: its lessor monotone). (Auth-lease S3b, 2026-11-15: until then also auth off; the
+auth-on request side is `LeaseGrant.spec`'s at `isServerReqM E.authOn`, and a built auth-on server
+still grants none until S3c's `srvGrantGuard`.) (The review's S1, 2026-11-02: until then also the
+deployment premise `lease.leasesNoExpiry`, which only the apply thread's grant needs: it is
+`NewServer`'s row `ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`, so a result over this
+spec is conditional on it through `NewServer`.) -/
 def srvGrantsLeases (E : apply.AEnv GF) (ρ : ReqNames) : Prop :=
-  ρ.rd.kv.lg = true ∧ E.authOn = false
+  ρ.rd.kv.lg = true
 
 /-- **A decoded `*pb.LeaseGrantRequest` `r`**: its `TTL` read-only, its `ID` owned
 (`LeaseGrant` writes a fresh id there when it is `0`, `v3_server.go:436-439`); not `null` (amendment

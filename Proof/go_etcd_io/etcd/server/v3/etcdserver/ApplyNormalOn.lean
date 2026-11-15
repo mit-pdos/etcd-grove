@@ -311,24 +311,36 @@ theorem chainStep_quota_not_auth (rq : apply.IRRModel) (log : mvcc.Log) (o : app
   simp only [apply.chainStep, apply.backendStep] at h
   split at h <;> simp_all
 
-/-- **The auth layer's verdict is the model's** (`authTie`, for the waiter): a KV request's
-dispatched outcome decided at the latest state `st` of `hs` (`kvOutL`, `apply.Apply.kvSpecL`'s
-post), on its own permissions (`noZeroEnds`): the auth layer's rejection exactly when `st` does
-not grant it at the log's lease items (`kvGrantedL`; auth-lease S3a2 §4a (b): no `plainCover`). -/
+/-- **The auth layer's verdict is the model's** (`authTie`, for the waiter): a request of a kind the
+auth layer checks (`authKVKind`: a KV request or a revocation), dispatched to an outcome decided at the
+latest state `st` of `hs` (`kvOutL`, `apply.Apply.kvSpecL`'s post), on its own permissions
+(`noZeroEnds`): the auth layer's rejection exactly when `st` does not grant it at the log's lease items
+(`kvGrantedL`; auth-lease S3a2 §4a (b): no `plainCover`); (auth-lease S3b) and the outcome lease-exact
+at the model's table `lt`, or the request without a lease part (`hex`: the KV arm's `kvOn_after_kv`
+premise, a revocation's by `leaseExactL`'s `True`). -/
 theorem authTie_of_kvOutL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
-    (hl : hs.getLast? = some st) (rq : apply.IRRModel) (log : mvcc.Log) (out : apply.ApplyOut)
-    (hz : noZeroEnds rq)
+    (hl : hs.getLast? = some st) (rq : apply.IRRModel) (log : mvcc.Log) (lt : LeaseTable)
+    (out : apply.ApplyOut) (hz : noZeroEnds rq)
     (h : ∀ o b, out = .dispatched o b →
-      apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq log o) :
-    authTie st log rq out := by
+      apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq log o)
+    (hex : ∀ o b, out = .dispatched o b → plainCover rq ∨ apply.leaseExactL lt.ids rq log o) :
+    authTie st log lt rq out := by
   intro _ o skip hout
+  refine ⟨?_, hex o skip hout⟩
   rcases kvGrantedL_of_kvOutL γa hs st hl _ rq log o hz (h o skip hout) with ⟨rfl, hr⟩ | ⟨hc, hg⟩
   · exact ⟨fun _ => hr, fun _ => rfl⟩
   · exact ⟨fun hr => absurd hr (chainStep_quota_not_auth rq log o hc), fun hn => absurd hg hn⟩
 
-/-- A request of no KV kind has its verdict tied vacuously. -/
-theorem authTie_nonKV (st : auth.AuthState) (lb : mvcc.Log) (rq : apply.IRRModel) (out : apply.ApplyOut)
-    (hk : apply.isKVKind (apply.dispatchKind rq) = false) : authTie st lb rq out := by
+/-- A revocation's outcome is lease-exact at any table (`leaseExactL` reads only puts and
+transactions). -/
+theorem leaseExact_revoke (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .leaseRevoke)
+    (ids : List w64) (log : mvcc.Log) (o : apply.Outcome) : plainCover rq ∨ apply.leaseExactL ids rq log o := by
+  right; unfold apply.leaseExactL; rw [hk]; trivial
+
+/-- A request of a kind the auth layer does not check has its verdict tied vacuously. -/
+theorem authTie_nonAuthKV (st : auth.AuthState) (lb : mvcc.Log) (lt : LeaseTable) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (hk : apply.authKVKind (apply.dispatchKind rq) = false) :
+    authTie st lb lt rq out := by
   intro h; rw [hk] at h; cases h
 
 theorem ite_eq_iff_or {α : Sort _} {c : Prop} [Decidable c] {a b k : α} :

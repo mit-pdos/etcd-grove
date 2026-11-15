@@ -389,7 +389,7 @@ theorem putPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     iunfold putPermitOn
     isplitr
     · ipureintro
-      refine ⟨hl, fun hk => ?_⟩
+      refine ⟨Or.inl hl, fun hk => ?_⟩
       simp [putReqOk, putCheck, hk] at hc
     iexact H
 
@@ -434,7 +434,7 @@ theorem txnPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro ⟨%L₀, #HL₀, Hau⟩
   iunfold txnPermitM
   isplitr
-  · ipureintro; exact ⟨hp, hz, hs⟩
+  · ipureintro; exact ⟨Or.inl hp, hz, hs⟩
   isplitr
   · ipureintro; exact hsh
   iexists L₀
@@ -485,9 +485,12 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, Hcok,
-    Hrcpt, %Hwf, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    Hrcpt, %Hwf, ⟨%ltq, %Hltq, HQv⟩, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
+    -- (auth-lease S3b D3) the success's lease liveness: the handler's answer does not carry it
+    ihave HQv : iprop(∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ opDepQ d (kvStateOf x.log lt)) $$ [HQv]
+    · iexists ltq; iframe HQv; ipureintro; exact Hltq.1
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     icases Hpo with ⟨#Hresp, -⟩
     ihave #Hresp' := Hresp
@@ -1189,7 +1192,10 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%tw, %hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
-        Hcok, Hrcpt, %Hwf, HQv⟩
+        Hcok, Hrcpt, %Hwf, ⟨%ltq, %Hltq, HQv⟩⟩
+      -- (auth-lease S3b D7) the transaction's lease liveness: the handler's answer does not carry it
+      ihave HQv : iprop(∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ opDepQ d (kvStateOf x.log lt)) $$ [HQv]
+      · iexists ltq; iframe HQv; ipureintro; exact Hltq.1
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩

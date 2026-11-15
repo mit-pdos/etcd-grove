@@ -11,7 +11,8 @@ the match reduces), so nothing mode-off changes:
 - `resultΨM`: the result the proposer expects, `resultΨ` off, `resultΨOn` on: the result with the
   auth state `st` and the log `lb` the entry met (`entryWitOn`: the mode-`on` model of the raft
   prefix before it is `(st, lb)`) and **the auth layer's verdict the model's** (`authTie`: a KV
-  request was rejected by the auth layer exactly when `st` does not grant it at `lb`'s lease items, `kvGrantedL`), which the apply thread
+  request or a revocation was rejected by the auth layer exactly when `st` does not grant it at `lb`'s lease
+  items, `kvGrantedL`, and (auth-lease S3b) its outcome is lease-exact at the model's table `lt`), which the apply thread
   in the mode `on` hands over (E2t/E2y's `outcomeOn`). `reqWaitRM`, `waitInvM`, `srvReqFieldsAtM`,
   `isServerReqM`: the wait's registration and the proposer's view over it and `kvInvM` (E2w).
 - `resPostM`: the applied result as `processInternalRaftRequestOnce.spec` reports it with auth on.
@@ -81,15 +82,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The auth layer's verdict is the model's** (`authTie st lb rq out`): an application of the KV
-request `rq` dispatched to the outcome `o` was rejected by the auth layer exactly when the model's
+/-- **The auth layer's verdict is the model's** (`authTie st lb lt rq out`): an application of the
+request `rq` of a kind the auth layer checks (`authKVKind`: a KV request or, auth-lease S3b, a
+revocation) dispatched to the outcome `o` was rejected by the auth layer exactly when the model's
 auth state `st` (the state the entry met) does not grant it at the lease items of the log `lb` the
 entry met (`kvGrantedL`: the permission check and, auth-lease S3a2 §4a option (b), the lease check of
-a leased put's keys). What the apply thread in the mode `on` knows of every KV entry it applies (E2t's
-`outcomeOn`, at the apply layer E2y's `outcomeOn_of_kvOutL`), handed to the proposer with the result. -/
-def authTie (st : auth.AuthState) (lb : mvcc.Log) (rq : apply.IRRModel) (out : apply.ApplyOut) : Prop :=
-  apply.isKVKind (apply.dispatchKind rq) = true → ∀ o skip, out = .dispatched o skip →
-    (o = .rejected .auth ↔ ¬ kvGrantedL st (mvcc.leaseItemsOf (mvcc.stateAfter lb)) rq)
+a leased put's keys); and (auth-lease S3b) the outcome is lease-exact at the model's table `lt` before
+the entry (`apply.leaseExactL`: an applied put's lease was live, a transaction's executed path's
+leases were), unless the request has no lease part (`plainCover`). What the apply thread in the mode
+`on` knows of every such entry it applies (E2t's `outcomeOn`, at the apply layer E2y's
+`outcomeOn_of_kvOutL`), handed to the proposer with the result. -/
+def authTie (st : auth.AuthState) (lb : mvcc.Log) (lt : LeaseTable) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) : Prop :=
+  apply.authKVKind (apply.dispatchKind rq) = true → ∀ o skip, out = .dispatched o skip →
+    (o = .rejected .auth ↔ ¬ kvGrantedL st (mvcc.leaseItemsOf (mvcc.stateAfter lb)) rq) ∧
+    (plainCover rq ∨ apply.leaseExactL lt.ids rq lb o)
 
 /-- **An `Authenticate` entry's response** (C1's A2, 2026-10-28): unless the entry is not an
 `Authenticate` or was not dispatched, the result at `ar` holds the response (`Resp`, a pointer to
@@ -145,11 +152,11 @@ admin request's result without error the model's step from `st` succeeding, `adm
 A3) an `Authenticate`'s response, owned, `authnArM`; the lease-grant plan's 2.6, a grant's answer,
 `grantArM`; the lease-expiry plan's X6, a revocation's, `revokeArM`). -/
 def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
-    (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) : IProp GF :=
+    (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) (lt : LeaseTable) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
-        out.waived = false ∧ authTie st lb rq out⌝ ∗
+        out.waived = false ∧ authTie st lb lt rq out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       E.Nx y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
@@ -159,8 +166,8 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
 theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
-    (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) :
-    resultIsWOn (GF := GF) E γr rq F ar lb st ⊢ resultIsW E γr rq F ar lb := by
+    (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) (lt : LeaseTable) :
+    resultIsWOn (GF := GF) E γr rq F ar lb st lt ⊢ resultIsW E γr rq F ar lb := by
   iunfold resultIsWOn
   iunfold resultIsW
   iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, #Hrc, %Hwf, Hg, Hv⟩
@@ -173,30 +180,30 @@ theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRMod
   ipureintro; exact Hwf
 
 /-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
-the mode-`on` model of the raft prefix before it is `(st, lb)`, the auth state and the log the
-entry met; (the auth plan's E3t, 2026-10-27) and the auth state after it, the model's of the prefix
+the mode-`on` model of the raft prefix before it is `(st, lb, lt)`, the auth state, the log and
+(auth-lease S3b) the table the entry met; (the auth plan's E3t, 2026-10-27) and the auth state after it, the model's of the prefix
 through it, published (`authPubAt M`: a reader holding it is checked at states no older). -/
 def entryWitOn (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log)
-    (st : auth.AuthState) : IProp GF :=
+    (st : auth.AuthState) (lt : LeaseTable) : IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
     srvRLogLb ρ.raft L ∗ idClaimAny ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧
-      ∃ lt, kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take m) = (st, lb, lt)⌝ ∗
+      kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take m) = (st, lb, lt)⌝ ∗
     authPubAt M (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take (m + 1))).1)
 
 instance entryWitOn_persistent (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel)
-    (lb : mvcc.Log) (st : auth.AuthState) :
-    Persistent (entryWitOn (GF := GF) M ρ rq lb st) := by
+    (lb : mvcc.Log) (st : auth.AuthState) (lt : LeaseTable) :
+    Persistent (entryWitOn (GF := GF) M ρ rq lb st lt) := by
   unfold entryWitOn; infer_instance
 
 /-- **The result the proposer expects in the mode `on`** (`resultΨ`'s, with `resultIsWOn` and
 `entryWitOn` at the auth state and the log the entry met, with the state after it published). -/
 def resultΨOn (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (x : GoInterface) : IProp GF :=
-  iprop(∃ (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState),
+  iprop(∃ (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) (lt : LeaseTable),
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    apply.resTrace ar ∗ resultIsWOn E ρ.rd rq F ar lb st ∗ entryWitOn E.authMode ρ rq lb st)
+    apply.resTrace ar ∗ resultIsWOn E ρ.rd rq F ar lb st lt ∗ entryWitOn E.authMode ρ rq lb st lt)
 
 /-- **The result the proposer expects, in the auth mode `on`**: `resultΨ` off, `resultΨOn` on. -/
 def resultΨM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) :
@@ -213,13 +220,14 @@ theorem resultΨM_true (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel)
 
 /-- **What the proposer learns of the model at the entry its result is of**, the outcome `out` met
 at the log `lb` after the committed prefix `L`: off, `lb` the mode-off model of `L`; on, `(st, lb)`
-the mode-`on` model of `L` and the auth layer's verdict the model's grant at `st` (`authTie`). -/
+the mode-`on` model of `L` and the auth layer's verdict the model's grant at `st`, the outcome
+lease-exact at the model's table `lt` (`authTie`). -/
 def modelOutM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
     (lb : mvcc.Log) (out : apply.ApplyOut) : Prop :=
   match on with
   | false => kvModel γk L = lb
   | true => ∃ st lt, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L = (st, lb, lt) ∧
-      authTie st lb rq out
+      authTie st lb lt rq out
 
 /-- **An admin result's tie as the proposer reports it, in the auth mode `on`** (E3x): `True` off;
 on, `adminTieAr` at the auth state the mode-`on` model of the committed prefix `L` reaches (the
@@ -662,8 +670,40 @@ theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
   ileft
   iexists op, Q, γc, L₀
   iframe HL₀ Hau
+  isplitr
+  · ipureintro
+    exact ⟨Or.inl (plainReqL_of_plainReq _ _ ⟨hp.1, putgetKind_header _ _ hp.2⟩), hop, hz,
+      rqShape_mono _ _ hs, ha, rfl⟩
+  rw [grantIdOwn_withHeader]
+  iapply grantIdOwn_plain γk rq hp
+
+/-- **A mode-`on` write proposal's permission at any header, the lease forms included**
+(auth-lease S3b; `reqPropOkM_true_write` at `writePropOk`: a leased put or transaction, a grant
+with its id's claim right, a revocation). -/
+theorem reqPropOkM_true_writeL (γ : ServerRaftNames) (γk : KVNames)
+    (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (op : KVOp)
+    (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel) (hp : writePropOk γk.lm rq)
+    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape γk.lm rq) (ha : kvShapeAll rq) :
+    srvReqLogLb (GF := GF) γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk srvAuthSt0 Gb rq L₀) Q ∗
+        grantIdOwn γk rq ⊢
+      reqPropOkM true γ γk Gb rq
+        (fun hm => grantedRes γk srvAuthSt0 (apply.withHeader rq hm) γc Q) := by
+  iintro ⟨#HL₀, Hau, Hgo⟩
+  iunfold reqPropOkM
+  isplitl
+  rotate_left
+  · ipureintro
+    exact attrIdOk_of_kind _ _ (fun h => by unfold reqKVOp at hop; rw [h] at hop; simp at hop)
+  iintro %hm
+  iunfold reqPropOkOn
+  iright
+  ileft
+  iexists op, Q, γc, L₀
+  iframe HL₀ Hau
+  rw [grantIdOwn_withHeader]
+  iframe Hgo
   ipureintro
-  exact ⟨⟨hp.1, putgetKind_header _ _ hp.2⟩, hop, hz, hs, ha, rfl⟩
+  exact ⟨hp, hop, hz, hs, ha, rfl⟩
 
 /-- **A mode-`on` write-free proposal's permission at any header** (`reqPropOkM true`'s first
 case). -/
@@ -890,11 +930,12 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **What a put of `op` needs in the mode `on`** (`putPermit`'s, and a key not empty: the
 permission cache decides the put's check, `kvShapeAll`; the gRPC layer refuses an empty key,
-`ErrGRPCEmptyKey`). The client's update is told its grant when it fires (`writeGrantG`, at the
-caller's binding `Gb` and its lower bound `L₀` of the requested log; the auth-mode merge's step 5). -/
+`ErrGRPCEmptyKey`; auth-lease S3b: the lease `0`, or any lease at the revocable lease mode). The
+client's update is told its grant when it fires (`writeGrantG`, at the caller's binding `Gb` and its
+lower bound `L₀` of the requested log; the auth-mode merge's step 5), the lease part included. -/
 def putPermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜op.leaseID = W64 0 ∧ op.key ≠ []⌝ ∗ ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
+  iprop(⌜(op.leaseID = W64 0 ∨ γk.lm = .revocable) ∧ op.key ≠ []⌝ ∗ ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
     kvAu1G γk (kvOpStep (.put op)) (writeGrantG γk srvAuthSt0 Gb (irrPut op) L₀) Q)
 
 /-- **A put's result in the mode `on`** at the header `hm` the server stamps and the committed log
@@ -905,6 +946,43 @@ def putQhOn (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp G
 
 theorem irrPut_kind (op : OpFull) : apply.dispatchKind (irrPut op) = .put := by
   simp [apply.dispatchKind, irrPut, apply.irrEmpty]
+
+/-- A put's shape at any lease mode (its `rqOk` is `putOk`, lease-free). -/
+theorem rqShape_put (lm : lease.Mode) (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .put) :
+    rqShape lm rq := by
+  refine ⟨fun on => ⟨by rw [hk]; decide, by rw [hk]; intro h; cases h⟩, fun log hs => ?_⟩
+  unfold rqSmall at hs
+  unfold apply.rqOk
+  rw [hk] at hs ⊢
+  exact hs
+
+/-- A transaction's shape at any lease mode, from its transaction's (`txn.TxnPre_of` needs only
+`txnShape`). -/
+theorem rqShape_txnL (lm : lease.Mode) (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .txn)
+    (ht : ∀ t, rq.txn = some t → txn.txnShape t) : rqShape lm rq := by
+  refine ⟨fun on => ⟨by rw [hk]; decide, by rw [hk]; intro h; cases h⟩, fun log hs => ?_⟩
+  unfold rqSmall at hs
+  unfold apply.rqOk
+  rw [hk] at hs ⊢
+  intro t ht'
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
+
+/-- A grant's shape where the mode admits it. -/
+theorem rqShape_grant (lm : lease.Mode) (rq : apply.IRRModel) (hg : grantPropOk lm rq) :
+    rqShape lm rq := by
+  refine ⟨fun on => ⟨by rw [hg.2.1]; decide, by rw [hg.2.1]; intro h; cases h⟩, fun log _ => ?_⟩
+  exact (apply.rqOk_leaseGrant _ _ _ hg.2.1).2 hg
+
+/-- A revocation's shape where the mode admits it. -/
+theorem rqShape_revoke (lm : lease.Mode) (rq : apply.IRRModel) (hr : revokePropOk lm rq) :
+    rqShape lm rq := by
+  obtain ⟨hlm, hk⟩ := hr
+  subst hlm
+  refine ⟨fun on => ⟨by rw [hk.1]; decide, by rw [hk.1]; intro h; cases h⟩, fun log hs => ?_⟩
+  unfold rqSmall at hs
+  unfold apply.rqOk
+  rw [hk.1] at hs ⊢
+  exact ⟨hk, hs⟩
 
 /-- **A put's permission in the mode `on` is its proposal's** (`putPermit_reqPropOk`'s). -/
 theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
@@ -918,20 +996,26 @@ theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     (fun σ => writeGrantG_mono γk srvAuthSt0 Gb Gb' _ L₀ σ hb) $$ Hau
   obtain ⟨Hl, Hk⟩ := Hlk
   have hk := irrPut_kind op
-  have hpl : plainCover (irrPut op) := by
-    unfold plainCover
-    rw [hk]
-    refine ⟨by simp [apply.noSideEffect, irrPut, apply.irrEmpty],
-      by simp [apply.needAdminPermission, irrPut, apply.irrEmpty], ?_⟩
-    intro op' hop'
-    simp only [irrPut, Option.some.injEq] at hop'
-    subst hop'
-    exact Hl
-  have hp : plainReq (irrPut op) := ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩
+  have hns : apply.noSideEffect (irrPut op) = false := by simp [apply.noSideEffect, irrPut, apply.irrEmpty]
+  have hna : apply.needAdminPermission (irrPut op) = false := by
+    simp [apply.needAdminPermission, irrPut, apply.irrEmpty]
+  -- a plain put (lease `0`), or (auth-lease S3b) a leased one at the revocable mode
+  have hp : writePropOk γk.lm (irrPut op) := by
+    rcases Hl with Hl | Hl
+    · have hpl : plainCover (irrPut op) := by
+        unfold plainCover
+        rw [hk]
+        refine ⟨hns, hna, ?_⟩
+        intro op' hop'
+        simp only [irrPut, Option.some.injEq] at hop'
+        subst hop'
+        exact Hl
+      exact Or.inl (plainReqL_of_plainReq _ _ ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩)
+    · exact Or.inl (Or.inr ⟨Hl, hns, hna, Or.inl hk⟩)
   have hop : reqKVOp (irrPut op) = some (.put op) := by unfold reqKVOp; rw [hk]; rfl
   have hz : irrNoZeroEnd (irrPut op) := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
-  have hs : rqShape .none (irrPut op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have hs : rqShape γk.lm (irrPut op) := rqShape_put _ _ hk
   have ha : kvShapeAll (irrPut op) := by
     intro x hx
     have hr : reqPerms (irrPut op) = apply.putPerms op := by unfold reqPerms; rw [hk]; rfl
@@ -944,41 +1028,185 @@ theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
   have hq : putQhOn (GF := GF) γk op γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrPut op) hm) γc Q := rfl
   rw [hq]
-  iapply reqPropOkM_true_write γ γk Gb' (irrPut op) (.put op) Q γc L₀ hp hop hz hs ha $$ [$HL₀ $Hau]
+  ihave Hgo := grantIdOwn_nonGrant (GF := GF) γk (irrPut op) (by rw [hk]; decide)
+  iapply reqPropOkM_true_writeL γ γk Gb' (irrPut op) (.put op) Q γc L₀ hp hop hz hs ha
+    $$ [$HL₀ $Hau $Hgo]
 
-/-- **An applied plain write was granted** at the committed log before its entry (`grantedAt`):
-the auth layer's verdict is the model's grant there (`modelOutM true`'s tie). -/
-theorem grantedAt_of_applied (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
-    (lb log' : mvcc.Log) (skip : Bool)
-    (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
-    (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
+/-- **A request of a kind the auth layer checks, dispatched to an outcome other than its
+rejection, was granted** at the committed log before its entry (`grantedAt`, the lease part
+included): the auth layer's verdict is the model's grant there (`modelOutM true`'s tie; auth-lease
+S3b: a revocation included). -/
+theorem grantedAt_of_dispatched (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
+    (lb : mvcc.Log) (o : apply.Outcome) (skip : Bool)
+    (hkv : apply.authKVKind (apply.dispatchKind rq) = true) (hne : o ≠ .rejected .auth)
+    (h : modelOutM true γk rq L lb (.dispatched o skip)) :
     grantedAt γk srvAuthSt0 rq L := by
   obtain ⟨st, lt, hst, htie⟩ := h
-  have hg : kvGranted st rq := by
-    have := htie hkv _ _ rfl
-    exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 (fun hg => hn hg.1))
-  unfold grantedAt; rw [hst]; exact hg
+  have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
+  have hg : kvGrantedL st (mvcc.leaseItemsOf (mvcc.stateAfter lb)) rq :=
+    Classical.byContradiction fun hn => hne ((htie hkv o skip rfl).1.2 hn)
+  unfold grantedAt; rw [hst, hlb]; exact hg
+
+/-- **An applied write was granted** at the committed log before its entry (`grantedAt`): the
+auth layer's verdict is the model's grant there (`modelOutM true`'s tie; auth-lease S3b: at every
+kind the auth layer checks, a revocation included). -/
+theorem grantedAt_of_applied (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
+    (lb log' : mvcc.Log) (skip : Bool)
+    (hkv : apply.authKVKind (apply.dispatchKind rq) = true)
+    (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
+    grantedAt γk srvAuthSt0 rq L :=
+  grantedAt_of_dispatched γk rq L lb _ skip hkv (fun h => apply.Outcome.noConfusion h) h
+
+/-- An applied outcome without `ErrNoSpace` is the backend's, through any chain (v3rpc
+`ClientModel`'s `chainStep_applied_false`, restated where the server needs it). -/
+theorem chainStep_applied_backend : ∀ (c : apply.Chain) {rq : apply.IRRModel} {log l : mvcc.Log},
+    apply.chainStep apply.backendStep c rq log (.applied l false) →
+      apply.backendStep rq log (.applied l false)
+  | .backend, _, _, _, h => h
+  | .corrupt c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · cases h
+    · exact chainStep_applied_backend c h
+  | .capped c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · cases h
+    · split at h
+      · rcases h with h | h
+        · cases h
+        · exact chainStep_applied_backend c h
+      · exact chainStep_applied_backend c h
+  | .auth _ c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · rcases h with ⟨-, h⟩ | h
+      · cases h
+      · exact chainStep_applied_backend c h
+    · exact chainStep_applied_backend c h
+  | .quota c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    exact chainStep_applied_backend c h
+
+/-- **A put applied without an error had its lease live at the model's table** (auth-lease S3b,
+`EtcdServer.Put.spec`'s `¬ leaseMissing`): the applied outcome is the backend's, a commit of one
+change, which the tie's lease exactness excludes at a lease not in the table. -/
+theorem leaseLive_of_tie (st : auth.AuthState) (lb : mvcc.Log) (lt : LeaseTable) (op : OpFull)
+    (hm : apply.HeaderModel) (c : apply.Chain) (l : mvcc.Log) (skip : Bool)
+    (ht : authTie st lb lt (apply.withHeader (irrPut op) hm) (.dispatched (.applied l false) skip))
+    (hd : apply.dispatchStep c (apply.withHeader (irrPut op) hm) true lb (.applied l false)) :
+    ¬ (kvStateOf lb lt).leaseMissing op.leaseID := by
+  have hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
+    simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
+  have hput : (apply.withHeader (irrPut op) hm).put = some op := rfl
+  rintro ⟨hl0, hdead⟩
+  obtain ⟨-, hex⟩ := ht (by rw [hk]; rfl) _ _ rfl
+  have hb : apply.backendStep (apply.withHeader (irrPut op) hm) lb (.applied l false) := by
+    unfold apply.dispatchStep at hd
+    rw [hk] at hd
+    simp only [apply.preV3Kind, apply.storeKind, Bool.false_eq_true, _root_.false_or,
+      ↓reduceIte, true_or] at hd
+    exact chainStep_applied_backend c hd
+  have hl : l ≠ lb := by
+    unfold apply.backendStep at hb
+    rw [hk] at hb
+    obtain ⟨op', hop', hb⟩ := hb
+    rcases hb with ⟨-, h⟩ | ⟨-, -, h⟩ | ⟨-, h⟩
+    · cases h
+    · cases h
+    · cases h
+      intro h'
+      have := congrArg List.length h'
+      simp at this
+  rcases hex with hpc | hlx
+  · unfold plainCover at hpc
+    rw [hk] at hpc
+    exact hl0 (hpc.2.2 op hput)
+  · unfold apply.leaseExactL at hlx
+    rw [hk] at hlx
+    exact hl ((hlx op hput).1 ⟨hl0, hdead⟩)
+
+mutual
+/-- A plain operation's lease is `0`, live at any table. -/
+theorem pathLeaseOk_of_plain (s0 : List EtcdKv) (ids : List w64) :
+    ∀ op : TxnOp, txn.opPlain op → txn.PathLeaseOk s0 ids op
+  | .get _, _ => trivial
+  | .put _ _ _, h => Or.inl h
+  | .putIgnVal _ l, h => by simp only [txn.opPlain] at h; subst h; exact Or.inl rfl
+  | .putKeep _ _, h => h.elim
+  | .delete _, _ => trivial
+  | .txn cs ts es, h => by
+    simp only [txn.PathLeaseOk]
+    split
+    · exact pathsLeaseOk_of_plain s0 ids ts h.1
+    · exact pathsLeaseOk_of_plain s0 ids es h.2
+
+/-- `pathLeaseOk_of_plain` along a path. -/
+theorem pathsLeaseOk_of_plain (s0 : List EtcdKv) (ids : List w64) :
+    ∀ ops : List TxnOp, txn.opsPlain ops → txn.PathsLeaseOk s0 ids ops
+  | [], _ => trivial
+  | op :: ops, h => ⟨pathLeaseOk_of_plain s0 ids op h.1, pathsLeaseOk_of_plain s0 ids ops h.2⟩
+end
+
+/-- A plain transaction's executed path names lease `0` only. -/
+theorem txnPathsLeaseOk_of_plain (s0 : List EtcdKv) (ids : List w64) (t : TxnModel) (b : Bool)
+    (h : txn.txnPlain t) : txn.PathsLeaseOk s0 ids (t.branch b) := by
+  unfold TxnModel.branch
+  cases b
+  · exact pathsLeaseOk_of_plain s0 ids _ h.2
+  · exact pathsLeaseOk_of_plain s0 ids _ h.1
+
+/-- **A transaction that committed had its executed path's leases live at the model's table**
+(auth-lease S3b D7, `txnAppliedOk`'s liveness): the tie's lease exactness, or every lease `0` when
+the request has no lease part. -/
+theorem txnLeaseLive_of_tie (st : auth.AuthState) (lb : mvcc.Log) (lt : LeaseTable)
+    (tw : txn.TxnModelW) (hm : apply.HeaderModel) (o : apply.Outcome) (skip : Bool)
+    (ht : authTie st lb lt (apply.withHeader (irrTxn tw) hm) (.dispatched o skip))
+    (hne : o.logAfter lb ≠ lb) :
+    txn.PathsLeaseOk (mvcc.stateAfter lb) lt.ids
+      (tw.toModel.branch (txn.txnOk (mvcc.stateAfter lb) tw.toModel)) := by
+  have hk : apply.dispatchKind (apply.withHeader (irrTxn tw) hm) = .txn := by
+    simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
+  have htx : (apply.withHeader (irrTxn tw) hm).txn = some tw.toModel := by
+    simp [apply.withHeader, irrTxn_txn]
+  obtain ⟨-, hex⟩ := ht (by rw [hk]; rfl) _ _ rfl
+  rcases hex with hpc | hlx
+  · unfold plainCover at hpc
+    rw [hk] at hpc
+    exact txnPathsLeaseOk_of_plain _ _ _ _ (hpc.2.2 _ htx)
+  · unfold apply.leaseExactL at hlx
+    rw [hk] at hlx
+    exact (hlx _ htx).1 hne
 
 /-- **A KV write applied without an error was granted, so its client's result is there** (the
 mode-`on` success): the apply thread's outcome `.applied` is not the auth layer's rejection, so the
 model's auth state the entry met grants it (`authTie`), and `grantedRes` gives the result at the
-state of the log the entry met. -/
+state of the log the entry met, with the model's table (auth-lease S3b: the table returned). -/
 theorem grantedRes_applied (γk : KVNames) (rq : apply.IRRModel) (γc : GName)
     (Q : KVState → IProp GF) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
-    (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
+    (hkv : apply.authKVKind (apply.dispatchKind rq) = true)
     (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
     grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢
-      ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) := by
+      ⌜γk.lm = .none → kvLeasesOn γk srvAuthSt0 L = []⌝ ∗
+        kvRes γc Q (kvStateOf lb (kvLeasesOn γk srvAuthSt0 L)) := by
   have hga := grantedAt_of_applied γk rq L lb log' skip hkv h
   obtain ⟨st, lt, hst, -⟩ := h
   have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
   unfold grantedRes
   rw [hlb]
   iintro (⟨%Hg, H⟩ | %Hn)
-  · iexists kvLeasesOn γk srvAuthSt0 L
-    iframe H
+  · iframe H
     ipureintro; exact Hg.2
   · exact absurd hga Hn
+
+/-- The table `modelOutM true` names is the model's (`kvLeasesOn`). -/
+theorem modelOutM_true_table (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
+    (lb : mvcc.Log) (out : apply.ApplyOut) (h : modelOutM true γk rq L lb out) :
+    authTie (srvAuthAtLog γk srvAuthSt0 L) lb (kvLeasesOn γk srvAuthSt0 L) rq out := by
+  obtain ⟨st, lt, hst, htie⟩ := h
+  have h1 : srvAuthAtLog γk srvAuthSt0 L = st := by unfold srvAuthAtLog; rw [hst]
+  have h2 : kvLeasesOn γk srvAuthSt0 L = lt := by unfold kvLeasesOn; rw [hst]
+  rw [h1, h2]; exact htie
 
 
 /-- A put's permission at a binding admitting more is one at a binding admitting less
@@ -1001,7 +1229,9 @@ theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState →
     (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (h : modelOutM true γk (apply.withHeader (irrPut op) hm) L lb
       (.dispatched (.applied log' false) skip)) :
-    putQhOn (GF := GF) γk op γc Q hm L ⊢ ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) :=
+    putQhOn (GF := GF) γk op γc Q hm L ⊢
+      ⌜γk.lm = .none → kvLeasesOn γk srvAuthSt0 L = []⌝ ∗
+        kvRes γc Q (kvStateOf lb (kvLeasesOn γk srvAuthSt0 L)) :=
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrPut_kind]; rfl) h
 
@@ -1110,10 +1340,11 @@ theorem deletePermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
 2026-10-27): `txnPermit`'s, and every permission the transaction's checks need of the shape the
 permission cache decides (`kvShapeAll`: its comparisons' and operations' keys and range ends), for
 whichever wire transaction of `t` the request holds (E3e: a put's `PrevKv` read is of its key and
-its write's range end, so the shape is `t`'s). -/
+its write's range end, so the shape is `t`'s); (auth-lease S3b) plain, or, at the revocable lease mode,
+plain but for its puts' leases (`txnPlainL`), the update told the lease part of its grant. -/
 def txnPermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗
+  iprop(⌜(txn.txnPlain t ∨ (γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗
     ⌜∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.txn t)) (fun σ => iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
@@ -1145,26 +1376,34 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
       · ipureintro; rfl
       iapply writeGrantG_mono γk srvAuthSt0 Gb Gb' _ L₀ σ hb $$ Hg) $$ Hau
   have hk := irrTxn_kind tw
-  have hpl : plainCover (irrTxn tw) := by
-    unfold plainCover
-    rw [hk]
-    refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
-      by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
-    intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.1
-  have hp : plainReq (irrTxn tw) := ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩
+  have hns : apply.noSideEffect (irrTxn tw) = false := by simp [apply.noSideEffect, irrTxn, apply.irrEmpty]
+  have hna : apply.needAdminPermission (irrTxn tw) = false := by
+    simp [apply.needAdminPermission, irrTxn, apply.irrEmpty]
+  -- a plain transaction, or (auth-lease S3b) one with leased puts at the revocable mode
+  have hp : writePropOk γk.lm (irrTxn tw) := by
+    rcases Ht.1 with Hp | ⟨Hl, Hp⟩
+    · have hpl : plainCover (irrTxn tw) := by
+        unfold plainCover
+        rw [hk]
+        refine ⟨hns, hna, ?_⟩
+        intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Hp
+      exact Or.inl (plainReqL_of_plainReq _ _ ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩)
+    · refine Or.inl (Or.inr ⟨Hl, hns, hna, Or.inr ⟨hk, fun t' h => ?_⟩⟩)
+      simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Hp
   have hop : reqKVOp (irrTxn tw) = some (.txn tw.toModel) := by unfold reqKVOp; rw [hk]; rfl
   have hz : irrNoZeroEnd (irrTxn tw) := by
     refine ⟨?_, ?_, ?_⟩
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
-  have hs : rqShape .none (irrTxn tw) := rqShape_of_txn _ hpl hk (fun t' h => by
+  have hs : rqShape γk.lm (irrTxn tw) := rqShape_txnL _ _ hk (fun t' h => by
     simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2)
   have hq : txnQhOn (GF := GF) γk tw γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn tw) hm) γc Q := rfl
   rw [hq]
-  iapply reqPropOkM_true_write γ γk Gb' (irrTxn tw) (.txn tw.toModel) Q γc L₀ hp hop hz hs (Ha tw rfl)
-    $$ [$HL₀ $Hau]
+  ihave Hgo := grantIdOwn_nonGrant (GF := GF) γk (irrTxn tw) (by rw [hk]; decide)
+  iapply reqPropOkM_true_writeL γ γk Gb' (irrTxn tw) (.txn tw.toModel) Q γc L₀ hp hop hz hs (Ha tw rfl)
+    $$ [$HL₀ $Hau $Hgo]
 
 
 /-- `putPermitOn_mono` for a writing transaction. -/
@@ -1191,13 +1430,15 @@ theorem txnPermitOn_mono (γ : ServerRaftNames) (γk : KVNames)
   iexact Hau
 
 /-- **What a writing transaction `t` needs, in the auth mode `on`**: `txnPermit`'s (plain, no zero
-range end, its shape), and with auth on (`⌜on = true⌝ → …`) every permission of the wire
+range end, its shape; auth-lease S3b: with auth on at the revocable lease mode, plain but for its puts'
+leases), and with auth on (`⌜on = true⌝ → …`) every permission of the wire
 transaction of the shape the permission cache decides (`kvShapeAll`) and the update's grant under
 the caller's binding `Gb` (`writeGrantG`) told at the log `L₀` the caller saw. Off, it is
 `txnPermit` (`txnPermitM_false`, `txnPermit_of_false`); on, `txnPermitOn` (`txnPermitM_true`). -/
 def txnPermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗
+  iprop(⌜(txn.txnPlain t ∨ (on = true ∧ γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧
+      txn.txnShape t⌝ ∗
     ⌜on = true → ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.txn t)) (fun σ => iprop(⌜on = true⌝ → ∃ tw : txn.TxnModelW,
@@ -1212,7 +1453,7 @@ theorem txnPermitM_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.Head
   imod srvReqLogLb_nil γ with #HL
   imodintro
   isplitr
-  · ipureintro; exact Ht
+  · ipureintro; exact ⟨Or.inl Ht.1, Ht.2⟩
   isplitr
   · ipureintro; intro h; cases h
   iexists []
@@ -1226,7 +1467,11 @@ theorem txnPermit_of_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.He
   unfold txnPermit txnPermitM kvOpAu1
   iintro ⟨%Ht, -, %L₀, -, Hau⟩
   isplitr
-  · ipureintro; exact Ht
+  · ipureintro
+    refine ⟨?_, Ht.2⟩
+    rcases Ht.1 with h | ⟨h, -⟩
+    · exact h
+    · cases h
   have hG : kvAu1G (GF := GF) γk (kvOpStep (.txn t)) (fun σ => iprop(⌜false = true⌝ →
       ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantG γk srvAuthSt0 Gb (irrTxn tw) L₀ σ)) Q ⊢
       kvAu1 γk (kvOpStep (.txn t)) Q := by
@@ -1243,7 +1488,11 @@ theorem txnPermitM_true (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.Heade
   constructor
   · iintro ⟨%Ht, %Ha, %L₀, #HL₀, Hau⟩
     isplitr
-    · ipureintro; exact Ht
+    · ipureintro
+      refine ⟨?_, Ht.2⟩
+      rcases Ht.1 with h | ⟨-, h⟩
+      · exact Or.inl h
+      · exact Or.inr h
     isplitr
     · ipureintro; exact Ha rfl
     iexists L₀
@@ -1251,7 +1500,11 @@ theorem txnPermitM_true (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.Heade
     iapply (kvAu1G_mono γk _ _ _ Q (fun σ => by iintro H %_; iexact H)) $$ Hau
   · iintro ⟨%Ht, %Ha, %L₀, #HL₀, Hau⟩
     isplitr
-    · ipureintro; exact Ht
+    · ipureintro
+      refine ⟨?_, Ht.2⟩
+      rcases Ht.1 with h | h
+      · exact Or.inl h
+      · exact Or.inr ⟨rfl, h⟩
     isplitr
     · ipureintro; intro _; exact Ha
     iexists L₀
@@ -1263,7 +1516,9 @@ theorem txnQhOn_res (γk : KVNames) (tw : txn.TxnModelW) (γc : GName) (Q : KVSt
     (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (h : modelOutM true γk (apply.withHeader (irrTxn tw) hm) L lb
       (.dispatched (.applied log' false) skip)) :
-    txnQhOn (GF := GF) γk tw γc Q hm L ⊢ ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) :=
+    txnQhOn (GF := GF) γk tw γc Q hm L ⊢
+      ⌜γk.lm = .none → kvLeasesOn γk srvAuthSt0 L = []⌝ ∗
+        kvRes γc Q (kvStateOf lb (kvLeasesOn γk srvAuthSt0 L)) :=
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrTxn_kind]; rfl) h
 

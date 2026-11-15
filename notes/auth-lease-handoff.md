@@ -53,8 +53,19 @@ with `auth-lease-scope` merged).
      layer triples; the apply thread's model (`outcomeOn`, `kvAppliedOn`, the S2 `plainCover` lemmas restated);
      (4) the snapshot path (§5, its frozen `hnl` text); (5) `applyEntryNormal.wp_proofOn`/`apply.wp_proofOn`, the
      examples' proofs. `KVAuthModel` rebuilds ~1500 modules: full builds under the flock.
-   - **S3b**: the request side (grant, revoke, leased put with auth on).
+   - **S3b**: the request side (grant, revoke, leased put with auth on). **Draft** (2026-11-15):
+     `notes/auth-lease-s3b-draft.md` (statements old → new, §6; decisions D1–D5, §7); probe `Scratch/S3bProbe.lean`
+     (untracked; copy `/shared/tmp/auth-lease-s3b/S3bProbe.lean`, checked clean: the widened `authTie`, applied ⇒
+     `kvGrantedL`, an applied put's lease live); reviews `/shared/tmp/auth-lease-s3b/review-r*.md`. No frozen text edited. **Rev 3 = the S3b Freeze package**
+     (round 2: no first-tier finding); STOPPED for etcd-grove-81's decisions D1–D7 (questions.md). After the Freeze:
+     the Draft's §8 order of work (est. 5–8 days).
    - **S3c**: the couplings and `NewServer`; the `lease.bootCfg` hub change and the `NewLessor` docstring (hard stops).
+     **Plus (S3b decision D6, etcd-grove-81, 2026-11-15; +2–3 days):** the gRPC lease handlers' contracts at the mode
+     (v3rpc `lessorGrantOkG`/`lessorRevokeOk` at `isServerReqM E.authOn` with the client's lease deposit, `KVDep.lease`/
+     `LeaseDep` as S3b Draft §5 sketches; `lessor*_of_server`, `ServerLeaseGrant`/`ServerLeaseRevoke`, v3rpc `Results`'
+     `lessor*_server`) and etcdstart's lease registrations at auth on (`etcdLeaseServedAt` at `etcdModelOfServer E γr
+     E.authOn`), beside the couplings `etcdLeaseServedAt`'s revocable branch needs. Until then those callers stay at
+     auth off (they hold `isServerReq` and pass the off permits).
    - The auth-on snapshot path carries the leases (F2 (a)); the latest track gains a lease-exact outcome (F1 (ii)).
 2. S4 with the client's leased put (`WithLease`, `Put`/`Txn` with a lease) and linearizable client specs of
    `Lease.Grant`/`Revoke` (F3).
@@ -316,6 +327,42 @@ one `Spec/` change is the approved txn wand; `grep TRANSITIONAL` empty. STOPPED 
 Next: S3b (the proposers of a leased put with auth on; `grantedAt` → `kvGrantedL` via `kvGrantedL_of_tie`-style use of
 `authTie`'s converse).
 
+## S3b Prove (2026-11-15, session 9): FROZEN at Draft rev 3 (etcd-grove-81; tag `auth-lease-s3b-frozen`)
+
+Decisions D1–D7 (`questions.md`, "S3b Freeze"; ledger 2026-11-15, S3b entries). Done (commits after `76a28d8669`):
+1. `ReqOn`: `authTie st lb lt rq out` (guard `authKVKind`, the lease-exact disjunct), `resultIsWOn`/`entryWitOn` (+ `lt`),
+   `resultΨOn` (`∃ … lt`), `modelOutM true`; `grantedAt_of_dispatched`, `grantedAt_of_applied` (at `authKVKind`),
+   `modelOutM_true_table`, `chainStep_applied_backend`, `leaseLive_of_tie` (D3), `txnLeaseLive_of_tie` (D7),
+   `pathLeaseOk_of_plain`/`txnPathsLeaseOk_of_plain`; `grantedRes_applied`/`putQhOn_res`/`txnQhOn_res` return the model's
+   table; `putPermitOn`/`txnPermitOn`/`txnPermitM` widened; `rqShape_put`/`rqShape_txnL`/`rqShape_grant`/`rqShape_revoke`;
+   `reqPropOkM_true_writeL`.
+2. `ProposeOn`: `grantedAt` at `kvGrantedL` (D2), `grantedAt_iff` restated, `grantedAt_kvGranted`, `grantedAt_plain`,
+   `grantedAt_grant`, `writeGrantG_granted`; `reqPropOkOn`'s write form at `writePropOk lm` (`plainReqL ∨ grantPropOk ∨
+   revokePropOk`), `rqShape lm`, `grantIdOwn`; `kv_prop_au_on`'s write branch (`commitOkOn_L`, `kvGrantIds_snoc`, a grant
+   never refused).
+3. New `LeaseReqOn.lean`: `leaseGrantPermitM`/`leaseRevokePermitM` (+ `_false`/`_true`/`_mono`), `grantQhOn`/`revokeQhOn`,
+   `leaseGrantPermit_reqPropOk`/`leaseRevokePermit_reqPropOk`, `leaseGrantResM`/`leaseRevokeResM` (+ laws),
+   `leaseGrantedRespAt`, `leaseGrantedResp_iff_at`, `leaseGrantResM_true_id`, `authedOutB_ctx`. `InvProposer`:
+   `irrLeaseGrant`, `irrLeaseRevoke`.
+4. `ApplyNormalOn`: `authTie_of_kvOutL` (+ `lt`, `hex`), `leaseExact_revoke`, `authTie_nonAuthKV`; the apply arms of
+   `applyEntryNormal.wp_proofOn` (KV arm's `hex` from `HXL`, the revocation arm by `authTie_of_kvOutL`, the others
+   vacuous); `processInternalRaftRequestOnce` destructures the table.
+5. Specs: `Put.spec` (D3), `LeaseGrant.spec`, `LeaseRevoke.spec` (both at `isServerReqM E.authOn`, the permit, `authedOutB`,
+   the result), `txnAppliedOk` (D7), `srvGrantsLeases`/`srvRevokesLeases` (auth-off conjunct dropped); proofs: `Put`, `Txn`,
+   `DeleteRange`, `LeaseGrant`, `LeaseRevoke` (a mode split after `requireAuthInfo`, whose error is returned with auth on).
+6. Callers: `revokeExpiredLeases` (off permit), v3rpc `ServerLeaseGrant`/`ServerLeaseRevoke` (off instance by
+   `isServerReq_authOn`), `ServerKVOn` (`putPermitM_of_dep`/`txnPermitM_of_dep` left disjuncts; the extra conjuncts dropped),
+   etcdstart `ServedLease`, `WorkAuth` (`grantedAt_kvGranted`). SpecPlan's `LeaseGrant`/`LeaseRevoke`/`Put` checked: an
+   opaque-vocabulary statement S3b moves toward (the client's update fired at the commit); no defect found.
+7. Land-stop checks (2026-11-15): lean `7d9d727fba` merged (two merges: restart3 A1 and restart3-c); full build GREEN
+   under flock + 64G (`/shared/tmp/auth-lease-s3b/build4.log`, 17545 jobs); `tcb-report --check` 870 axioms, 4 sorries;
+   `gen-interface --check` passes on every `etc/api` list (no `interface/` file changed); bounds ok (351); mode gate:
+   the four new mode-indexed rows classified `model`, three LeaseReqOn lemmas `unmoved`, baselines raised (etcdserver
+   lit-mode 251→278, match-mode 78→82: the specs' `hdrBoundM`/`pubAfterM` flags, the permits' and results' bridges,
+   ReqOn's three new auth-on lemmas), for etcd-grove-81; no closed theorem statement changed (the diff under
+   `Proof/github_com` is two proof bodies: `WorkAuth.lean:330`, `ServedLease.lean:263, 321`). STOPPED before
+   `etc/land.sh`.
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
@@ -350,6 +397,9 @@ under `flock /shared/tmp/etcd-grove-build.lock`. `TMPDIR=/shared/tmp`.
   `srvRestM true`, `srvRestRM true`, `srvRestRpM true`, `kvModelM`/`kvStM` at literals; S3a2 should try to reduce the
   literal-`true` uses (state the auth-on arms' lemmas at `srvRestT` and the slot's `C.isOn`).
 
+- **The literal-mode count is growing** (decided by etcd-grove-81, 2026-11-15: S3b's raise accepted, etcdserver lit-mode
+  251→278, match-mode 78→82, the lease permits' and results' flags and bridges and three auth-on lemmas): reducing the
+  literal-mode uses (below) is due before the count grows further.
 - **S3a2 §5 not reached** (lit-mode 251, aim 200): the remaining literal uses are the auth-on arms of
   `applyEntryNormal.wp_proofOn`/`apply.wp_proofOn` (classified `unmoved`/`model`), `RestOn`'s lemmas true only of the
   auth-on table (`appliedTableM_true_*`, `srvRestM_keep`, `srvRestM_applyP0`/`_applyP`, which read the model's table) and
