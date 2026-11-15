@@ -1,5 +1,5 @@
 /-
-The trust boundary: `fmt.Errorf` of a format without `%w` is `errors.New` of its message
+The trust boundary: `fmt.Errorf` of a format without a `w` verb is `errors.New` of its message
 (`Spec/fmt/ErrorfPlain.lean`).
 -/
 module
@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 /-- **Trust boundary** (rafthttp stage 5e-3): `fmt.Errorf` (`fmt/errors.go`) formats its
 arguments as `Sprintf` does (calling the `Error()`/`String()` methods `fmt.argsOk` gives) and,
-with no `%w` verb, returns `errors.New(s)`. -/
+when no directive of the format has verb `w` (`fmt.fmtDirectives`; 2026-11-15, errorfplain-fix,
+in place of no `%w` infix, which `%+w` escapes), returns `errors.New(s)`. -/
 axiom fmt.ErrorfPlain.wp_proof : fmt.ErrorfPlain.spec (GF := GF) (hG := hG)
 
 end proof
