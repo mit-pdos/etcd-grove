@@ -21,6 +21,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSteps
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenPinTake
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
 import all LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 import all LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 
@@ -340,6 +341,68 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
   ipureintro; exact ⟨hwr, segs, gLL, hcl, hgLL⟩
 
 end intro
+
+section streams
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics] [bufio_sem : _root_.Perennial.bufio.Assumptions]
+
+/-- The loop's streams: those it left behind (`fs.take (kD + k)`) and the decoder's (`fsD.drop k`). -/
+theorem streams_loop (fs fsD : List (DecFile GF)) (kD k : Nat) (h : fsD = fs.drop kD) :
+    ([∗list] F ∈ fs.take (kD + k), ∃ q, F.S q) ∗ ([∗list] F ∈ fsD.drop k, ∃ q, F.S q) ⊢
+      [∗list] F ∈ fs, ∃ q, F.S q := by
+  subst h
+  rw [List.drop_drop]
+  have e := (BigSepL.bigSepL_append (Φ := fun _ (F : DecFile GF) => iprop(∃ q, F.S q))
+    (l₁ := fs.take (kD + k)) (l₂ := fs.drop (kD + k)))
+  rw [List.take_append_drop] at e
+  iintro ⟨H1, H2⟩
+  iapply e.2
+  iframe
+
+/-- Every file's stream, out of the decoder's post (any of its arms). -/
+theorem decPostB_streams (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface)
+    (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) :
+    decPostB C d rp IoE eof ueof fs off c err ⊢ [∗list] F ∈ fs, ∃ q, F.S q := by
+  have hm : ∀ k, ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ([∗list] F ∈ fs.drop k, ∃ q, F.S q) ⊢
+      [∗list] F ∈ fs, ∃ q, F.S q := fun k => by
+    have := streams_loop (GF := GF) fs fs 0 k (by simp)
+    simpa using this
+  unfold decPostB
+  iintro (⟨%k, Hk, Hm⟩ | ⟨-, -, -, %k, %off', %c', Hk, Hd⟩ | ⟨%k, %s, %off', %c', -, Hk, Hd⟩)
+  · iapply hm k
+    iframe Hk
+    split
+    · icases Hm with ⟨-, -, Hd⟩
+      iapply ownDecoder_streams $$ Hd
+    · icases Hm with ⟨-, -, Hd⟩
+      iapply ownDecoder_streams $$ Hd
+  · iapply hm k
+    iframe Hk
+    iapply ownDecoder_streams $$ Hd
+  · iapply hm k
+    iframe Hk
+    iapply ownDecoder_streams $$ Hd
+
+/-- The loop's streams at its exit: those it left behind (`fs.take kD`) and the decoder's post's. -/
+theorem streams_loop0 (fs fsD : List (DecFile GF)) (kD : Nat) (h : fsD = fs.drop kD) :
+    ([∗list] F ∈ fs.take kD, ∃ q, F.S q) ∗ ([∗list] F ∈ fsD, ∃ q, F.S q) ⊢
+      [∗list] F ∈ fs, ∃ q, F.S q := by
+  have := streams_loop (GF := GF) fs fsD kD 0 h
+  simpa using this
+
+/-- Per-file facts of a list, for a prefix of it. -/
+theorem prefix_facts {α β : Type _} {fs fsI X : List α} {gs gs0 Y : List β} (P : Nat → α → β → Prop)
+    (hfs : fs = fsI ++ X) (hgs : gs = gs0 ++ Y)
+    (h : ∀ k F g, fs[k]? = some F → gs[k]? = some g → P k F g) :
+    ∀ k F g, fsI[k]? = some F → gs0[k]? = some g → P k F g := by
+  intro k F g h1 h2
+  apply h k F g
+  · rw [hfs, List.getElem?_append_left (List.getElem?_eq_some_iff.1 h1).1]; exact h1
+  · rw [hgs, List.getElem?_append_left (List.getElem?_eq_some_iff.1 h2).1]; exact h2
+
+end streams
 
 section exits
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
