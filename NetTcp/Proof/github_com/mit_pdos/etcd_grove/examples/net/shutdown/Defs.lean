@@ -388,7 +388,7 @@ theorem end_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) (P : IProp 
     ⊢ inv downN (downInv (G (Gg := Gg)) γm) -∗ downReg G γm cn -∗ inv endN (endInv G cn γc) -∗
       P -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn true d ∗
-        ∀ r d', ⌜ReadOutcome st d n r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st -∗
+        ∀ r d', ⌜ReadOutcome st d n r d'⌝ -∗ tcpEnd G cn false st -∗
           tcpDir G cn true d' ={∅,⊤}=∗ Q r := by
   iintro #Hdown #Hreg #Hinv HP
   iinv Hinv with Hi Hclose
@@ -405,7 +405,7 @@ theorem end_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) (P : IProp 
   imod Hclose' $$ [Hd] with -
   · iexists d'
     iexact Hd
-  icases (HQ st b r Hb ⟨d, d', Hrd.1⟩) $$ [HP Hh] with ⟨HQr, Hh⟩
+  icases (HQ st b r Hb ⟨d, d', Hrd⟩) $$ [HP Hh] with ⟨HQr, Hh⟩
   · iframe HP Hh
   imod Hclose $$ [Hend Hdd Hh] with -
   · inext
@@ -419,7 +419,7 @@ theorem end_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) (P : IProp 
 theorem reader_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) :
     ⊢ inv downN (downInv (G (Gg := Gg)) γm) -∗ downReg G γm cn -∗ inv endN (endInv G cn γc) -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn true d ∗
-        ∀ r d', ⌜ReadOutcome st d n r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st -∗
+        ∀ r d', ⌜ReadOutcome st d n r d'⌝ -∗ tcpEnd G cn false st -∗
           tcpDir G cn true d' ={∅,⊤}=∗ True := by
   iintro #Hdown #Hreg #Hinv
   have HQ : ∀ (st : TcpEnd) (b : Bool) (r : ReadRes), (b = true → st.closed = true) →
@@ -436,7 +436,7 @@ theorem closed_read_au (γm : GName) (cn : Nat) (γc : GName) (n : Nat) :
     ⊢ inv downN (downInv (G (Gg := Gg)) γm) -∗ downReg G γm cn -∗ inv endN (endInv G cn γc) -∗
       half G γc true -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn true d ∗
-        ∀ r d', ⌜ReadOutcome st d n r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st -∗
+        ∀ r d', ⌜ReadOutcome st d n r d'⌝ -∗ tcpEnd G cn false st -∗
           tcpDir G cn true d' ={∅,⊤}=∗ half G γc true ∗ ⌜r = .err .closed⌝ := by
   iintro #Hdown #Hreg #Hinv Hh
   have HQ : ∀ (st : TcpEnd) (b : Bool) (r : ReadRes), (b = true → st.closed = true) →
