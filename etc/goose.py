@@ -702,13 +702,8 @@ PROJECTS = [
                   "./preface/cmd/server",
                   "./preface/cmd/client",
                   "./preface/cmd/junk",
-                  "./shutdown/cmd/node",
-                  # the counterexample of notes/axiom-review/tcp-semantics.md, v3 (a deadline set
-                  # during a Write)
-                  "../axiomcx/tcp-writedeadline"],
-        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net"),
-               os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "axiomcx",
-                            "tcp_writedeadline")],
+                  "./shutdown/cmd/node"],
+        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
     ),
     Project(
         name="durablekv",

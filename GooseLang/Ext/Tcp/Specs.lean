@@ -219,8 +219,35 @@ theorem writeOutcome_total (st : TcpEnd) (d : TcpDir) (bs : List w8) :
   · exact ⟨_, _, _, rfl, rfl, rfl⟩
   · split
     · exact ⟨0, some .sys, _, rfl, rfl, .inl rfl⟩
-    · exact ⟨_, none, _, rfl, .inl ⟨rfl, rfl⟩⟩
-    · exact ⟨_, none, _, .inl ⟨rfl, rfl, rfl⟩⟩
+    · exact ⟨0, none, _, rfl, .inl ⟨Nat.zero_le _, rfl⟩⟩
+    · exact ⟨0, none, _, .inl ⟨Nat.zero_le _, rfl, rfl⟩⟩
+
+/-- A step of a `Write` counts at most the bytes it was given. -/
+theorem writeOutcome_le {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
+    {res : Option TcpErr} (h : WriteOutcome st d rs k res d') : k ≤ rs.length := by
+  unfold WriteOutcome at h
+  split at h
+  · rw [h.1]; exact Nat.zero_le _
+  · split at h
+    · rw [h.1]; exact Nat.zero_le _
+    · rcases h.2 with ⟨h, -⟩ | ⟨h, -⟩ <;> omega
+    · rcases h with ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩ <;> omega
+
+/-- A failing step of a `Write` counts nothing. -/
+theorem writeOutcome_fail {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
+    {e : TcpErr} (h : WriteOutcome st d rs k (some e) d') : k = 0 := by
+  unfold WriteOutcome at h
+  split at h
+  · exact h.1
+  · split at h
+    · exact h.1
+    · rcases h.2 with ⟨-, h⟩ | ⟨h, -⟩
+      · cases h
+      · exact h
+    · rcases h with ⟨-, h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩
+      · cases h
+      · exact h
+      · exact h
 
 theorem closeOutcome_total (st : TcpEnd) (d : TcpDir) :
     ∃ res st' d', CloseOutcome st d res st' d' := by
@@ -589,7 +616,8 @@ theorem wp_tcp_Read (c : Nat) (s : Bool) (a : GoString) (n : w64) (Φ : val → 
     obtain ⟨hr, rfl⟩ := ReadRes.toExpr_val Hw (fun _ h => by cases h)
     iapply Hk $$ %r %d' %(And.intro Hr hr) Hend Hdir
 
-/-- D2. `Write` of `bs` at the end `s` of `c`, into the direction from it (`WriteOutcome`). -/
+/-- D2. One step of a `Write`, of the bytes `bs` not yet written, at the end `s` of `c`, into the
+direction from it (`WriteOutcome`). -/
 theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : List w8) (Φ : val → IProp GF) :
     tcpConnAt tcpG c a -∗
     (|={E,∅}=> ∃ st d, tcpEnd tcpG c s st ∗ tcpDir tcpG c s d ∗

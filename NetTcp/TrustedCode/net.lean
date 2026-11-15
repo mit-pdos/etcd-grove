@@ -58,12 +58,13 @@ when registering a new socket with the poller fails (`ENOMEM`, `ENOSPC` of `epol
 modeled (D12).
 
 **Faithfulness.** Each model is the Go function with its system calls replaced by the extension's
-operations (`Impl.lean` says why each operation's outcomes are those of Linux). Go's `Read` and
-`Write` loop over `read(2)`/`write(2)` (`poll.FD`, `EINTR` and `EAGAIN` handled by the poller): a
-`Read` returns once at least one byte has arrived, a `Write` once every byte is in the kernel or on
-an error, as the extension's operations do. Less defined than Go (a panic, or stuck, which a proof
-must rule out): a network other than `"tcp"`; a nil receiver (a nil dereference, where Go returns
-`EINVAL`).
+operations (`Impl.lean` says why each operation's outcomes are those of Linux). Go's `Read` loops
+over `read(2)` (`poll.FD`, `EINTR` and `EAGAIN` handled by the poller) and returns once at least one
+byte has arrived, as the extension's `Read` does; Go's `Write` loops over `write(2)` until every
+byte is in the kernel or an error, and so does its model (`conn.Write.impl`, `model.writeLoop`),
+each `write(2)` with its wait one step of the extension (D2). Less defined than Go (a panic, or
+stuck, which a proof must rule out): a network other than `"tcp"`; a nil receiver (a nil
+dereference, where Go returns `EINVAL`).
 -/
 module
 
@@ -392,15 +393,29 @@ noncomputable def conn.Read.impl : val :=
     else if: Snd "r" =⟨go.uint64⟩ #(W64 4) then (#(W64 0), ![go.error] (GlobalVarAddr io.EOF #()))
     else (#(W64 0), model.connErr #(go!"read") "c" (Snd "r") #(go!"read"))
 
-/-- `(*conn).Write(b []byte) (int, error)` (`net.go`, `poll.FD.Write`): `write(2)` through the
-poller, looping until every byte is written or an error: the extension's `Write` of `b`'s bytes.
-An error is `&OpError{Op: "write", ...}` with the count written. -/
+/-- Go's loop in `(*poll.FD).Write` (`internal/poll/fd_unix.go`; `Impl.lean`, D2), from `nn` bytes
+of `b` written, for the `*conn` `c`: a `write(2)` of `b[nn:]` with its wait, the extension's `Write`
+of those bytes (one step: the count it adds and its result's code), until a step fails or `nn` is
+`len(b)`: `(nn, nil)` then, else `(nn, err)` with `err` the `&OpError{Op: "write", ...}` of the
+failing step's kind. (Go tests `nn == len(p)` before the error, returning `nn, err` there: `err` is
+nil but for an empty `b`, whose one step's error both return.) `b`'s bytes are read at each step,
+as `write(2)` reads them; Go's `maxRW` chunks (1 GiB) are among a step's outcomes (any prefix). -/
+noncomputable def model.writeLoop : val :=
+  rec: "write" "c" "b" "nn" :=
+    let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
+    let: "r" := ExternalOp Tcp.tcpExt.name "Write" (model.connId "c",
+      Convert (go.GoType.SliceType go.byte) go.string
+        (Slice (go.GoType.SliceType go.byte) ("b", "nn", "len"))) in
+    let: "nn" := "nn" +⟨go.int⟩ Fst "r" in
+    if: Snd "r" ≠⟨go.uint64⟩ #(W64 0) then
+      ("nn", model.connErr #(go!"write") "c" (Snd "r") #(go!"write"))
+    else if: "nn" =⟨go.int⟩ "len" then ("nn", #GoInterface.nil)
+    else "write" "c" "b" "nn"
+
+/-- `(*conn).Write(b []byte) (int, error)` (`net.go`, `fd_posix.go`, `poll.FD.Write`): Go's loop
+from nothing written (`model.writeLoop`). -/
 noncomputable def conn.Write.impl : val :=
-  λ: "c" "b",
-    let: "r" := ExternalOp Tcp.tcpExt.name "Write"
-      (model.connId "c", Convert (go.GoType.SliceType go.byte) go.string "b") in
-    if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (Fst "r", #GoInterface.nil)
-    else (Fst "r", model.connErr #(go!"write") "c" (Snd "r") #(go!"write"))
+  λ: "c" "b", model.writeLoop "c" "b" #(W64 0)
 
 /-- `(*conn).Close() error` (`net.go`, `fd_posix.go`): `close(2)` of the socket (a second close
 is `ErrNetClosing`): the extension's `Close`. -/

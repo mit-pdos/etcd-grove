@@ -7,7 +7,7 @@
 // trusted net models (NetTcp/TrustedCode/net.lean), numbered D1-D21 as in
 // Impl.lean's header:
 //
-//	D1  ReadStep         D8   DialStep              D15 the Write/Close race (WriteOutcome)
+//	D1  ReadStep         D8   DialStep              D15 a Write is a loop of steps (WriteOutcome)
 //	D2  WriteStep        D9   LisClose              D16 abandoned dials (DialStep, TcpConn.abandoned)
 //	D3  CloseStep        D10  crash (a node's listeners go; connections untouched)
 //	D4  CloseWriteStep   D11  process exit: as a crash, for the peers
@@ -55,17 +55,24 @@
 //	                                  the reads are the bytes then EOF, no error (peer Closed: d fin)
 //	TestWriteAfterPeerClose      D2   a Write after the peer's FIN succeeds, bytes lost; after the RST    measured   WriteOutcome (cut)
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
-//	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: sys, cut)
+//	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: steps, then sys, cut)
 //
 // Writes (write_test.go, v3_test.go):
 //
-//	TestEmptyWrite               D2   an empty Write: (0, nil) live; (0, timeout) with an expired         measured   WriteOutcome
-//	                                  write deadline; (0, ECONNRESET) then (0, EPIPE) after a RST;
-//	                                  (0, EPIPE) after CloseWrite
-//	TestWriteCloseRace           D15  a Write blocked when another goroutine Closes the end: 0 < k < len, measured   WriteOutcome (open: closed)
-//	                                  ErrClosed; the peer reads exactly k bytes, then EOF
-//	(short Write)                D2   a Write returns k < len only with an error (poll.FD.Write returns  documented WriteOutcome (k = len on success)
-//	                                  nn, err once nn == len(p), err nil there: internal/poll/fd_unix.go)
+//	TestEmptyWrite               D2   an empty Write (one step): (0, nil) live; (0, timeout) with an      measured   WriteOutcome
+//	                                  expired write deadline; (0, ECONNRESET) then (0, EPIPE) after a
+//	                                  RST; (0, EPIPE) after CloseWrite
+//	TestWriteCloseRace           D15  a Write blocked when another goroutine Closes the end: 0 < k < len, measured   WriteOutcome (steps, Close,
+//	                                  ErrClosed; the peer reads exactly k bytes, then EOF                            then closed), CloseOutcome
+//	TestWriteDeadlineSetDuring   D2,D15 a Write blocked when another goroutine sets its deadline, after  measured   WriteOutcome (steps, SetDeadline,
+//	                                  the peer read some of it: 0 < n < len, os.ErrDeadlineExceeded;                 then timeout), DeadlineOutcome
+//	                                  the peer reads exactly n bytes, then EOF (REFUTED v3's one-step
+//	                                  Write; allowed since v3.1)
+//	(the Write loop)             D2   poll.FD.Write is writeLock, prepareWrite, then write(2) of p[nn:]   documented conn.Write.impl (a step per
+//	                                  until nn == len(p), waitWrite on EAGAIN: each write(2) with its                write(2)), WriteOutcome
+//	                                  wait a step; a short Write only with an error (nn, err; err nil
+//	                                  once nn == len(p) but for an empty p); a failing write(2) writes
+//	                                  nothing (internal/poll/fd_unix.go; Linux tcp_sendmsg_locked)
 //
 // Close, CloseWrite (close_test.go, v3_test.go):
 //
@@ -83,7 +90,7 @@
 //
 //	TestReadDeadlineLosesNothing D1,D5 a timeout consumes no byte (expired: timeout even with bytes);   measured   ReadAvail (timeout), DeadlineOutcome
 //	                                  time.Time{} clears it; no timeout without a deadline
-//	TestWriteDeadlinePrefix      D2,D5 a Write past its deadline: 0 < n < len, timeout; exactly n bytes measured   WriteOutcome (open: timeout)
+//	TestWriteDeadlinePrefix      D2,D5 a Write past its deadline: 0 < n < len, timeout; exactly n bytes measured   WriteOutcome (steps, then timeout)
 //	                                  reach the peer, the connection stays usable
 //
 // Listeners, Dial (listen_test.go, v3_test.go):
@@ -143,7 +150,7 @@
 //
 //	TestTimeoutOnBreak           D1,D2,D14 a partition, the kernel gives up (TCP_USER_TIMEOUT 2s, a     measured   ReadOutcome (break), WriteOutcome
 //	                                  Read or a 16 MiB Write blocked; keepalive 1s/1s/2 idle): ETIMEDOUT            (open: sys, cut), TcpErr.sys,
-//	                                  as *OpError > *os.SyscallError > Errno, Timeout() and Temporary()               model.errFlag (arbitrary for sys)   
+//	                                  as *OpError > *os.SyscallError > Errno, Timeout() and Temporary()               model.errFlag (arbitrary for sys)
 //	                                  true, not ErrDeadlineExceeded; the Write (110048, ETIMEDOUT); bytes
 //	                                  written before lost; then EOF, EOF, EPIPE, EPIPE; the peer, healed:
 //	                                  Write nil, then ECONNRESET, EOF, EPIPE
@@ -195,6 +202,22 @@
 // listener succeeds (D17); the addresses (D18); DialTimeout (D19, both timeout
 // shapes); the plan's well-formedness as a decidable premise (D20); wildcard
 // listens (D21).
+//
+// The third refutation (2026-11-14, the v3 review's R1). v3's Write was one
+// step, and WriteOutcome let it time out only with the write deadline set at
+// that step; Go's Write is a loop of write(2) calls that checks the deadline
+// in each wait, so a deadline set while it blocks, after the peer read some
+// of its bytes, makes it return (n, os.ErrDeadlineExceeded): excluded, since
+// the bytes the peer read were appended by the Write's one step, before the
+// deadline was set. TestWriteDeadlineSetDuring measures it, and
+// examples/axiomcx/tcp-writedeadline panics in 99 of 100 runs and had a closed
+// no-panic theorem from the semantics (writedeadline_safety). Fixed the same
+// day (v3.1): the trusted conn.Write.impl is Go's loop, each write(2) with its
+// wait one step of the extension's "Write" (WriteOutcome, on the bytes not yet
+// written: some appended, or a failure appending nothing), so a deadline set
+// or a Close made between two steps applies at the next one (D15); the
+// counterexample's translation and proof were removed, its program and test
+// kept.
 //
 // Also measured, the fork window (child_test.go, forkMu): while a process
 // forks (os/exec), the child holds a copy of every fd until its exec, so a

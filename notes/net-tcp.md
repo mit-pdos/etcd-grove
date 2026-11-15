@@ -86,6 +86,10 @@ ports outside the ephemeral range, and the target configuration (Linux 7.0 defau
 - **v2.1 (2026-11-14)**: the soundness review (`notes/axiom-review/tcp-semantics.md`) refuted v2
   with a proved counterexample (an empty `Write` could only succeed), and found id 0 naming a
   connection end and the deployment unstated; all fixed.
+- **v3 (2026-11-14)**: Go's error values and D14-D21 (`notes/net-tcp-v3-plan.md`).
+- **v3.1 (2026-11-14/15)**: the v3 review refuted the one-step `Write` (a deadline set while it
+  blocks makes Go's `Write` time out after the peer read some of it): a `Write` is now Go's loop of
+  steps, each `write(2)` with its wait one extension step (D2, D15; E11).
 
 ## The resources and specs
 

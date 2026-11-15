@@ -1,11 +1,18 @@
 /-
 `c.Write(b)` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`connAt`, with the end's
-addresses `la`, `ra`), through the interface (`conn.Write.impl`, promoted): `b`'s bytes read (any
-fraction), then the extension's `Write`, whose outcome (`WriteOutcome`,
-`GooseLang/Ext/Tcp/Impl.lean`, D2, D15) the caller takes by a logically atomic update over the end's
-state and the direction from it (`tcpEnd`, `tcpDir`). Its result `Q k res` is handed back with what
-the call returns: `(k, nil)` if all was written (`res = none`), else `(k, err)` with the
-`*OpError{Op: "write", Source: la, Addr: ra}` of the failure's kind (`resErr`, D14). Proved in
+addresses `la`, `ra`), through the interface (`conn.Write.impl`, promoted): Go's loop of steps (D2,
+D15, `GooseLang/Ext/Tcp/Impl.lean`), each the extension's `Write` of the bytes not yet written. The
+caller makes the steps through a writer predicate `P w res` (`w`: the bytes this call has written
+so far, a prefix of `b`'s `bs`; `res`: the last step's result, `none` while no step failed; `P []
+none` given) and an accessor (persistent: it is used once per step), which opens the end's state and
+the direction from it (`tcpEnd`, `tcpDir`) for a step on the bytes `rs` not yet written
+(`w ++ rs = bs`) and closes them at what the step left (`WriteOutcome`), giving `P` of the bytes
+written then and the step's result. `b`'s bytes are read (any fraction) and kept.
+
+It returns `(len w, nil)` once every byte is written (`res = none`, `w = bs`), else `(len w, err)`
+at the first failing step, `err` the `*OpError{Op: "write", Source: la, Addr: ra}` of the failure's
+kind (`resErr`, D14): fewer bytes than asked only with an error, and an error with every byte
+written only for an empty `b` (whose one step may fail). Proved in
 `NetTcp/Proof/net/Conn__Write.lean`.
 -/
 module
@@ -31,15 +38,18 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 /-- See the file header. -/
 abbrev Conn.Write.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (b : GoSlice)
-    (bs : List w8) (dq : DFrac) (ed : GoInterface) (Q : Nat → Option TcpErr → IProp GF),
+    (bs : List w8) (dq : DFrac) (ed : GoInterface) (P : List w8 → Option TcpErr → IProp GF),
   {{ connAt (GF := GF) t cn s a la ra ∗ b ↦*{dq} bs ∗
-      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
-      (|={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d ∗
-        ∀ k res d', ⌜WriteOutcome st d bs k res d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗
-          tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q k res) }}
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] none ∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ P w none -∗
+        |={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d ∗
+          ∀ k res d', ⌜WriteOutcome st d rs k res d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗
+            tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ P (w ++ rs.take k) res) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Write" #t)) (Val #b))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      ∃ k res, Q k res ∗ b ↦*{dq} bs ∗ ⌜n = BitVec.ofNat 64 k⌝ ∗
+      ∃ w res, P w res ∗ b ↦*{dq} bs ∗
+        ⌜w <+: bs ∧ n = BitVec.ofNat 64 w.length ∧ (res = none → w = bs) ∧
+          (w = bs → res = none ∨ bs = [])⌝ ∗
         resErr res go!"write" la ra (some ed) (· = go!"write") err }}
 
 end spec

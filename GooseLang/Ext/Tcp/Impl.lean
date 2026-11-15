@@ -8,6 +8,12 @@ example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
 (`notes/net-tcp-v3-plan.md` for v3, D14-D21).
 
+**Version v3.1** (2026-11-14). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
+v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write
+nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14-D21), v3.1 (a
+`Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
+at its start; the v3 review's R1, `notes/axiom-review/tcp-semantics.md`).
+
 **State: only what a program can observe.** The global state (`TcpGlobal`) is the deployment's
 plan (each address the program may use, and the host that may listen at it) and the connections.
 A connection (`TcpConn`) has the address it was dialed to, whether it has been accepted, two ends
@@ -30,7 +36,8 @@ program using a zero value is stuck, never proved (Go's methods return `EINVAL` 
 
 **Each operation's outcome is a pure relation** on one end's state and one direction
 (`ReadOutcome`, `WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`); the step
-(`TcpStep`) looks the connection up, takes an outcome, and writes it back. Results are pairs, as
+(`TcpStep`) looks the connection up, takes an outcome, and writes it back. A `Write` is several
+steps (D2, D15), the others one. Results are pairs, as
 goose returns a Go function's results.
 
 **Errors (D14).** Every failure has a kind (`TcpErr`), which the trusted models turn into Go's error
@@ -52,20 +59,25 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   the writer's process looks like (its kernel's FIN, or a reset whose error another call took).
   A read blocked when another goroutine closes the end returns `closed`: the read waits, the close
   steps, the read then steps on a closed end.
-* D2 `"Write"` of `bs` at an end, into the direction from it (`WriteOutcome`): on a closed end,
-  `closed`, writing nothing. Into a direction the end shut (`fin`): nothing written, a `sys` error
-  (`EPIPE`), or `timeout` with a write deadline set (Go checks the deadline before `write(2)`).
-  Into an open direction: all of `bs` appended; or a prefix of it, shorter (or nothing), appended,
-  the connection broken (`cut`) and a `sys` error; or, with a write deadline set, a prefix,
-  shorter (or nothing), appended and a `timeout`, the direction still open; or (D15) a prefix,
-  shorter (or nothing), appended and `closed`, the direction still open: a `Write` blocked for
-  buffer space returns what it wrote with `ErrNetClosing` when another goroutine closes the end
-  (`poll.FD.Write`'s `waitWrite`), and is linearized just before that close, which it cannot see
-  (`TestWriteCloseRace`). Into a cut direction: the bytes are discarded, with success or a failure
-  of any kind (a `timeout` only with a write deadline), a prefix counted. Go's `Write` returns fewer
-  bytes than asked only with an error (`poll.FD.Write` returns `nn, err` once `nn == len(p)`, `err`
-  nil there); it may fail having written nothing even when asked for nothing (Go makes the system
-  call for an empty buffer too, and the deadline check comes first: `TestEmptyWrite`).
+* D2 `"Write"`: one step of a `Write` (`WriteOutcome`). Go's `(*poll.FD).Write`
+  (`internal/poll/fd_unix.go`) is a loop: `writeLock` (`ErrNetClosing` once the end is closing),
+  `prepareWrite` (that, or the deadline), then `write(2)` of the bytes not yet written and, while
+  some remain, again; when the socket's buffer is full (`EAGAIN`) it first waits (`waitWrite`:
+  `ErrNetClosing`, or the deadline). The trusted `conn.Write.impl` is that loop, each iteration
+  the extension's `"Write"` of the bytes `rs` not yet written, on the end's state and the direction
+  from it at that step: on a closed end, `closed`, nothing written. Into a direction the end shut
+  (`fin`): `sys` (`EPIPE`), or `timeout` with a write deadline set. Into an open direction: the
+  first `k` bytes of `rs` appended, any `k ≤ |rs|` (all of them; a part, the buffer full; none, a
+  wait), with no failure; or a `sys` failure, nothing appended, the connection broken (`cut`, its
+  unread bytes kept); or, with a write deadline set, a `timeout`, nothing appended. Into a cut
+  direction: the bytes are discarded, any `k ≤ |rs|` counted (a dead peer, before this kernel
+  knows), or `sys`, or `timeout` with a write deadline set. A failing step appends nothing (a
+  system call writes or fails); `write(2)` of a TCP socket never returns 0 for bytes (Linux's
+  `tcp_sendmsg_locked` fails when it copied nothing), so Go's `io.ErrUnexpectedEOF` is not modeled.
+  `Write` returns `(nn, nil)` once its steps counted `nn = len(b)` with no failure, and `(nn, err)`
+  at its first failing step: fewer bytes than asked only with an error. An empty `b` takes one step
+  (Go makes the system call for an empty buffer too, after the deadline check: `TestEmptyWrite`),
+  which may fail. A step with no write deadline set does not time out.
 * D3 `"Close"` of an end (`CloseOutcome`): `closed` if it is closed already; otherwise (D17) the
   end is closed and its direction, if open, becomes `fin`, with success: `poll.FD.Close` fails only
   when the fd is closing already (`increfAndClose`), and the system call's error is that of
@@ -126,7 +138,10 @@ Port `0`, TLS, UDP, Unix sockets, the deadlines' values, keepalives, the listene
 modeled (the methods are not modeled either, so a program calling them is stuck).
 
 * D14 the error kinds (above).
-* D15 the `Write`/`Close` race (D2).
+* D15 a `Write` is a loop of steps (D2): a `Close` of its end, or a deadline set, by another
+  goroutine while it waits applies at its next step, which fails (`closed`; `timeout`) after the
+  bytes the earlier steps wrote, which the peer may have read (`TestWriteCloseRace`,
+  `TestWriteDeadlineSetDuring`).
 * D16 abandoned dials (D8).
 * D17 `Close` of an open end or listener succeeds (D3, D9).
 * D18 addresses (`LocalAddr`, `RemoteAddr`, `TCPListener.Addr`): non-nil `*TCPAddr`s fixed at the
@@ -318,30 +333,25 @@ def ReadOutcome (st : TcpEnd) (d : TcpDir) (n : Nat) (r : ReadRes) (d' : TcpDir)
     -- the connection breaks now
     (∃ k, k ≤ d.bytes.length ∧ ReadAvail st ⟨d.bytes.take k, .cut⟩ n r d')
 
-/-- D2, D15. A write of `bs` at an end in state `st`, into the direction `d` from it: the count `k`
-it returns, its result `res` (`none` for success, else the failure's kind), and the direction
-after, `d'`. A failure counts a prefix, shorter than `bs` (or nothing). -/
-def WriteOutcome (st : TcpEnd) (d : TcpDir) (bs : List w8) (k : Nat) (res : Option TcpErr)
+/-- D2. One step of a `Write`, of the bytes `rs` not yet written, at an end in state `st`, into the
+direction `d` from it: the count `k` it adds, its result `res` (`none`: no failure, the `Write` goes
+on unless it has written everything; else the failure's kind) and the direction after, `d'`. -/
+def WriteOutcome (st : TcpEnd) (d : TcpDir) (rs : List w8) (k : Nat) (res : Option TcpErr)
     (d' : TcpDir) : Prop :=
   if st.closed then k = 0 ∧ res = some .closed ∧ d' = d
   else match d.status with
   | .fin => k = 0 ∧ d' = d ∧ (res = some .sys ∨ (st.wdl = true ∧ res = some .timeout))
   | .cut =>
     -- discarded
-    d' = d ∧ ((k = bs.length ∧ res = none) ∨
-      ((k < bs.length ∨ k = 0) ∧
-        (res = some .sys ∨ res = some .closed ∨ (st.wdl = true ∧ res = some .timeout))))
+    d' = d ∧ ((k ≤ rs.length ∧ res = none) ∨
+      (k = 0 ∧ (res = some .sys ∨ (st.wdl = true ∧ res = some .timeout))))
   | .open =>
-    -- all of it
-    (k = bs.length ∧ res = none ∧ d' = { d with bytes := d.bytes ++ bs }) ∨
-    -- a prefix, and the connection breaks
-    ((k < bs.length ∨ k = 0) ∧ res = some .sys ∧ d' = ⟨d.bytes ++ bs.take k, .cut⟩) ∨
-    -- a prefix, and a timeout
-    (st.wdl = true ∧ (k < bs.length ∨ k = 0) ∧ res = some .timeout ∧
-      d' = { d with bytes := d.bytes ++ bs.take k }) ∨
-    -- D15: a prefix, and the end closed by another goroutine (the close steps next)
-    ((k < bs.length ∨ k = 0) ∧ res = some .closed ∧
-      d' = { d with bytes := d.bytes ++ bs.take k })
+    -- the first `k` bytes (all, some, or none: a wait)
+    (k ≤ rs.length ∧ res = none ∧ d' = { d with bytes := d.bytes ++ rs.take k }) ∨
+    -- the connection breaks
+    (k = 0 ∧ res = some .sys ∧ d' = { d with status := .cut }) ∨
+    -- a timeout
+    (st.wdl = true ∧ k = 0 ∧ res = some .timeout ∧ d' = d)
 
 /-- `d` shut by its writer, if it is open. -/
 def TcpDir.shut (d : TcpDir) : TcpDir :=
@@ -422,7 +432,8 @@ def ReadStep (op : Expr) (c : Nat) (s : Bool) (n : w64) (g : TcpGlobal) (e' : Ex
   ∃ cn r d', g.conns !! c = some cn ∧ ReadOutcome (cn.endSt s) (cn.out (!s)) n.toNat r d' ∧
     e' = r.toExpr op ∧ g' = g.setConn c (cn.setOut (!s) d')
 
-/-- `"Write"` of `bs` at the end `s` of `c`. -/
+/-- `"Write"` of `bs` at the end `s` of `c`: one step of a `Write` (D2), `bs` the bytes it has not
+written yet. -/
 def WriteStep (c : Nat) (s : Bool) (bs : List w8) (g : TcpGlobal) (e' : Expr) (g' : TcpGlobal) :
     Prop :=
   ∃ cn k res d', g.conns !! c = some cn ∧ WriteOutcome (cn.endSt s) (cn.out s) bs k res d' ∧

@@ -222,14 +222,16 @@ func TestSyscallErrors(t *testing.T) {
 	}
 }
 
-// TestWriteCloseRace (D15, Impl.lean WriteOutcome's last disjunct). A Write
-// blocked for buffer space (64 MiB to a peer that does not read yet) when
-// another goroutine Closes the same end returns 0 < k < len with
-// net.ErrClosed, and the peer reads exactly those k bytes, then io.EOF: Go's
-// poll.FD.Write loops over write(2), and its waitWrite, woken by the Close
-// (pd.evict), returns ErrNetClosing with the count so far; the socket is
-// closed (FIN after the bytes) when the Write releases it. (Ported from
-// dsverify-lab harness/netsem/write_close_race.go.) Measured.
+// TestWriteCloseRace (D15: a Write is a loop of steps, Impl.lean WriteOutcome;
+// v3 had a disjunct for it). A Write blocked for buffer space (64 MiB to a
+// peer that does not read yet) when another goroutine Closes the same end
+// returns 0 < k < len with net.ErrClosed, and the peer reads exactly those k
+// bytes, then io.EOF: Go's poll.FD.Write loops over write(2), and its
+// waitWrite, woken by the Close (pd.evict), returns ErrNetClosing with the
+// count so far; the socket is closed (FIN after the bytes) when the Write
+// releases it. In the model the Write's earlier steps append the k bytes, the
+// Close shuts the direction after them, and the next step fails closed.
+// (Ported from dsverify-lab harness/netsem/write_close_race.go.) Measured.
 func TestWriteCloseRace(t *testing.T) {
 	t.Parallel()
 	d, a := pair(t)

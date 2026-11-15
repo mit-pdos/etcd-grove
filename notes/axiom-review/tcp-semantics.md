@@ -427,6 +427,26 @@ project `nettcp` (`etc/goose.py`, `etc/gen-init.py`), as the v2 review's were, k
 and its test. Reads need no change: a timed-out `Read` consumes nothing, so its step can be placed
 after a concurrent `SetDeadline`.
 
+### Applied (2026-11-14/15; semantics v3.1)
+
+The first fix, the faithful one (the user's choice): a `Write` is Go's loop. `WriteOutcome` (D2) is
+now one step of it, one `write(2)` with its wait, on the bytes `rs` not yet written: on a closed end
+`closed`; into a shut direction `sys` or (a write deadline set) `timeout`; into an open one the
+first `k ≤ |rs|` bytes appended with no failure (all, some, or none: a wait), or `sys` appending
+nothing and cutting the direction, or (a write deadline set) `timeout` appending nothing; into a
+cut one any `k ≤ |rs|` counted and discarded, or `sys`, or `timeout` with a deadline. The trusted
+`conn.Write.impl` is the loop (`model.writeLoop`: the extension's `"Write"` of `b[nn:]` until a step
+fails or `nn = len(b)`), so a timeout needs the deadline set at the step that times out, as in Go,
+and the bytes of the earlier steps are what the peer may already have read. D15 is now "a `Write` is
+a loop of steps": v3's clause for the `Write`/`Close` race (a prefix with `closed`, the end not
+closed) is gone, the race being a `Close` between two steps (`TestWriteCloseRace` still allowed).
+`TestWriteDeadlineSetDuring` is in `examples/net/semantics/write_test.go` (allowed), with its
+`doc.go` row and `Tests.lean` examples (the trace step, `SetDeadline`, timing-out step; a step with
+no deadline cannot time out). `writedeadline_safety` no longer holds: the counterexample's
+translation and proof were taken out of project `nettcp` (`etc/goose.py`, `etc/gen-init.py`), its
+program and test kept in `examples/axiomcx/tcp-writedeadline`. `net.Conn.Write.spec` is over a
+writer predicate and a per-step accessor (`notes/net-tcp-v3-plan.md`, E11).
+
 ### Findings that are not refutations
 
 - **N1. Stale pending connections across a crash** (above): the model lets a restarted node accept

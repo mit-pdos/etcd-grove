@@ -118,46 +118,123 @@ example : ReadOutcome stR ⟨b3, .open⟩ 4 (.err .timeout) ⟨b3, .open⟩ := b
 example : ¬ ReadOutcome st0 ⟨b3, .open⟩ 4 (.err .timeout) ⟨b3, .open⟩ := fun h => by
   have := readOutcome_timeout h; simp [st0, TcpEnd.fresh] at this
 
-/-! ## Writes (D2, D15) -/
+/-! ## Writes (D2, D15)
 
-/-- `TestEmptyWrite`: an empty write succeeds on a live end, times out with a deadline, fails
-after a reset or one's own `CloseWrite`. -/
+`WriteOutcome` is one step of a `Write` (one `write(2)`, with its wait); `conn.Write.impl` loops
+over the steps and returns `(nn, nil)` only once they have counted every byte
+(`net.Conn.Write.spec`'s post: `res = none → w = bs`), so a short successful `Write` is excluded
+there, not here. -/
+
+private theorem writeOutcome_timeout {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
+    (h : WriteOutcome st d rs k (some .timeout) d') : st.wdl = true := by
+  unfold WriteOutcome at h
+  split at h
+  · cases h.2.1
+  · split at h
+    · rcases h.2.2 with h | ⟨h, -⟩
+      · cases h
+      · exact h
+    · rcases h.2 with ⟨-, h⟩ | ⟨-, h | ⟨h, -⟩⟩
+      · cases h
+      · cases h
+      · exact h
+    · rcases h with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩
+      · cases h
+      · cases h
+      · exact h
+
+private theorem writeOutcome_closed {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
+    (h : WriteOutcome st d rs k (some .closed) d') : st.closed = true := by
+  unfold WriteOutcome at h
+  split at h
+  · assumption
+  · split at h
+    · rcases h.2.2 with h | ⟨-, h⟩ <;> cases h
+    · rcases h.2 with ⟨-, h⟩ | ⟨-, h | ⟨-, h⟩⟩ <;> cases h
+    · rcases h with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩ <;> cases h
+
+private theorem writeOutcome_fail {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
+    {e : TcpErr} (h : WriteOutcome st d rs k (some e) d') : k = 0 := by
+  unfold WriteOutcome at h
+  split at h
+  · exact h.1
+  · split at h
+    · exact h.1
+    · rcases h.2 with ⟨-, h⟩ | ⟨h, -⟩
+      · cases h
+      · exact h
+    · rcases h with ⟨-, h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩
+      · cases h
+      · exact h
+      · exact h
+
+/-- `TestEmptyWrite`: an empty write (one step) succeeds on a live end, times out with a deadline,
+fails after a reset or one's own `CloseWrite`. -/
 example : WriteOutcome st0 ⟨[], .open⟩ [] 0 none ⟨[], .open⟩ := by unfold WriteOutcome; decide
 example : WriteOutcome stW ⟨[], .open⟩ [] 0 (some .timeout) ⟨[], .open⟩ := by
   unfold WriteOutcome; decide
 example : WriteOutcome st0 ⟨[], .cut⟩ [] 0 (some .sys) ⟨[], .cut⟩ := by unfold WriteOutcome; decide
 example : WriteOutcome st0 ⟨[], .fin⟩ [] 0 (some .sys) ⟨[], .fin⟩ := by unfold WriteOutcome; decide
 
-/-- `TestPartialWriteOnReset`: a write cut by a reset counts a prefix, with `sys`. -/
-example : WriteOutcome st0 ⟨[], .open⟩ b3 1 (some .sys) ⟨[97], .cut⟩ := by
+/-- A step appends the first `k` bytes, any `k` up to all of them (none: a wait), with no failure;
+never more than it was given, never others. -/
+example : WriteOutcome st0 ⟨[], .open⟩ b3 3 none ⟨b3, .open⟩ := by unfold WriteOutcome; decide
+example : WriteOutcome st0 ⟨[], .open⟩ b3 1 none ⟨[97], .open⟩ := by unfold WriteOutcome; decide
+example : WriteOutcome st0 ⟨[], .open⟩ b3 0 none ⟨[], .open⟩ := by unfold WriteOutcome; decide
+example : ¬ WriteOutcome st0 ⟨[], .open⟩ [97] 2 none ⟨[97], .open⟩ := by
+  unfold WriteOutcome; decide
+example : ¬ WriteOutcome st0 ⟨[], .open⟩ b3 1 none ⟨[98], .open⟩ := by
   unfold WriteOutcome; decide
 
-/-- `TestWriteDeadlinePrefix`: past a write deadline, a prefix and a timeout, the direction open;
-never a timeout without a deadline. -/
-example : WriteOutcome stW ⟨[], .open⟩ b3 2 (some .timeout) ⟨[97, 98], .open⟩ := by
+/-- `TestPartialWriteOnReset`: a `Write` cut by a reset counts what its earlier steps wrote, with
+`sys`: a step appends `[97]`, the next fails, the connection broken. A failing step appends
+nothing. -/
+example : WriteOutcome st0 ⟨[], .open⟩ b3 1 none ⟨[97], .open⟩ ∧
+    WriteOutcome st0 ⟨[97], .open⟩ [98, 99] 0 (some .sys) ⟨[97], .cut⟩ := by
   unfold WriteOutcome; decide
-example : ¬ WriteOutcome st0 ⟨[], .open⟩ b3 2 (some .timeout) ⟨[97, 98], .open⟩ := by
+example : ¬ WriteOutcome st0 ⟨[], .open⟩ b3 1 (some .sys) ⟨[97], .cut⟩ := by
   unfold WriteOutcome; decide
+example (st : TcpEnd) (d d' : TcpDir) (rs : List w8) (k : Nat) (e : TcpErr)
+    (h : WriteOutcome st d rs k (some e) d') : k = 0 := writeOutcome_fail h
 
-/-- `TestWriteCloseRace` (D15): a write blocked when another goroutine closes the end counts a
-prefix, with `closed`, the direction still open (the close steps next). -/
-example : WriteOutcome st0 ⟨[], .open⟩ b3 2 (some .closed) ⟨[97, 98], .open⟩ := by
+/-- `TestWriteDeadlinePrefix`: past a write deadline, a step appends some bytes, the next times
+out, the direction open; a step with no write deadline set never times out. -/
+example : WriteOutcome stW ⟨[], .open⟩ b3 2 none ⟨[97, 98], .open⟩ ∧
+    WriteOutcome stW ⟨[97, 98], .open⟩ [99] 0 (some .timeout) ⟨[97, 98], .open⟩ := by
   unfold WriteOutcome; decide
+example (d d' : TcpDir) (rs : List w8) (k : Nat) :
+    ¬ WriteOutcome st0 d rs k (some .timeout) d' := fun h => by
+  have := writeOutcome_timeout h; simp [st0, TcpEnd.fresh] at this
 
-/-- Excluded: a short successful write (`poll.FD.Write` returns `nil` only once every byte is
-written); a write on one's own closed end that writes something. -/
-example : ¬ WriteOutcome st0 ⟨[], .open⟩ b3 2 none ⟨[97, 98], .open⟩ := by
-  unfold WriteOutcome; decide
-example : ¬ WriteOutcome stC ⟨[], .open⟩ b3 1 (some .closed) ⟨[97], .open⟩ := by
+/-- `TestWriteDeadlineSetDuring` (D15, the v3 review's R1): a step with no deadline set appends
+`[97]` (which the peer may read), another goroutine sets the write deadline, the next step times
+out. -/
+example : WriteOutcome st0 ⟨[], .open⟩ b3 1 none ⟨[97], .open⟩ ∧
+    DeadlineOutcome st0 (W64 2) true none stW ∧
+    WriteOutcome stW ⟨[97], .open⟩ [98, 99] 0 (some .timeout) ⟨[97], .open⟩ := by
+  unfold WriteOutcome DeadlineOutcome; decide
+
+/-- `TestWriteCloseRace` (D15): a step appends `[97, 98]`, another goroutine closes the end (the
+direction shut after those bytes), the next step fails `closed`; `closed` never on a live end, and a
+step on a closed end writes nothing. -/
+example : WriteOutcome st0 ⟨[], .open⟩ b3 2 none ⟨[97, 98], .open⟩ ∧
+    CloseOutcome st0 ⟨[97, 98], .open⟩ none stC ⟨[97, 98], .fin⟩ ∧
+    WriteOutcome stC ⟨[97, 98], .fin⟩ [99] 0 (some .closed) ⟨[97, 98], .fin⟩ := by
+  unfold WriteOutcome CloseOutcome; decide
+example (d d' : TcpDir) (rs : List w8) (k : Nat) :
+    ¬ WriteOutcome st0 d rs k (some .closed) d' := fun h => by
+  have := writeOutcome_closed h; simp [st0, TcpEnd.fresh] at this
+example : ¬ WriteOutcome stC ⟨[], .open⟩ b3 1 none ⟨[97], .open⟩ := by
   unfold WriteOutcome; decide
 
 /-- `TestWriteAfterPeerClose`, `TestWriteToKilledPeer`, `TestResetErrorTakenByWrite`: into a cut
-direction, the bytes are lost, with success or `sys`. -/
+direction, the bytes are lost, counted, or the step fails `sys`. -/
 example : WriteOutcome st0 ⟨[], .cut⟩ b3 3 none ⟨[], .cut⟩ := by unfold WriteOutcome; decide
 example : WriteOutcome st0 ⟨[], .cut⟩ b3 0 (some .sys) ⟨[], .cut⟩ := by unfold WriteOutcome; decide
 
-/-- `TestCloseWrite`: after one's own `CloseWrite`, a write fails (`EPIPE`), writing nothing. -/
+/-- `TestCloseWrite`: after one's own `CloseWrite`, a step fails (`EPIPE`), writing nothing. -/
 example : ¬ WriteOutcome st0 ⟨[], .fin⟩ b3 3 none ⟨b3, .fin⟩ := by unfold WriteOutcome; decide
+example : ¬ WriteOutcome st0 ⟨[], .fin⟩ b3 0 none ⟨[], .fin⟩ := by unfold WriteOutcome; decide
 
 /-! ## Close, CloseWrite (D3, D4, D17) -/
 

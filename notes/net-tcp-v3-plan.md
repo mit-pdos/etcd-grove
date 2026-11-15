@@ -52,6 +52,23 @@ Every decision keeps our rules: only observable state, auditable, sound against 
   certify an admitted verdict in Lean (the search outputs its witness, a `lake exe` replays it
   through decidable versions of the outcome relations, proved equivalent).
 
+- **E11. A `Write` is Go's loop of steps** (2026-11-14, after the v3 review refuted v3's one-step
+  `Write`: `notes/axiom-review/tcp-semantics.md`, R1; the user's choice of the faithful fix, v3.1).
+  The extension's `"Write"` is one `write(2)` with its wait, on the bytes not yet written
+  (`WriteOutcome`, D2): some bytes appended with no failure, or a failure appending nothing; the
+  trusted `conn.Write.impl` loops over it as `poll.FD.Write` does (`model.writeLoop`), returning
+  `(nn, nil)` once `nn = len(b)`, else the failing step's error. A deadline set or a `Close` made
+  by another goroutine between two steps applies at the next one (D15, replacing E2's clause:
+  `TestWriteCloseRace`, `TestWriteDeadlineSetDuring`). Into a cut direction a failure is `sys` or
+  `timeout` (with a deadline), no longer `closed` (E2's departure below): `closed` needs the end
+  closed, a step of its own. `net.Conn.Write.spec` takes a writer predicate `P w res` (`P [] none`)
+  and a persistent accessor per step (`w ++ rs = bs`), as `wire.ReadFull`'s spec does, and returns
+  `∃ w res, P w res` with `w <+: bs`, the count `len w`, `res = none → w = bs` and
+  `w = bs → res = none ∨ bs = []` (an empty `b`'s one step may fail); the result index lets a
+  client tie the error's kind to the failing step (shutdown's `closed`). `wire.write_au` is one step
+  (each step's bytes extend the writer's `sentAll`), `wire.writeP`/`write_acc` the predicate and
+  accessor for an end its thread owns.
+
 ## Phase 1 as done (2026-11-14), and where it departs from the decisions
 
 Done: `Impl.lean` (D14-D21), `Deploy.lean`, `Tests.lean`, `NetTcp/TrustedCode/net.lean` and the

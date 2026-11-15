@@ -14,8 +14,13 @@ unread bytes (`tcpDir`, the semantics' state) by an invariant (`dirInv`).
 
 The histories `W` and `R` are the proofs' bookkeeping: the semantics and the `net` specs have only
 the unread bytes (`notes/net-tcp.md`). The atomic updates of the operations, for an end its thread
-owns (`tcpEnd`): `write_au`, `read_au` (and `read_acc`, the accessor `wire.ReadFull`'s spec takes),
-`close_au`, `closeWrite_au`; their pure parts are `dirOk_write`, `dirOk_read`, `dirOk_shut`.
+owns (`tcpEnd`): `write_au` (one step of a `Write`: each step's bytes extend the writer's
+`sentAll`), with `writeP`/`write_acc` (the writer predicate and accessor `net.Conn.Write.spec`
+takes, `writeP_init`), `read_au` (and `read_acc`, the accessor `wire.ReadFull`'s spec takes),
+`close_au`, `closeWrite_au`; their pure parts are `dirOk_write`, `dirOk_read`, `dirOk_shut`. A
+direction's protocol starts from its resource with nothing written or read
+(`dirInv_body_alloc_of`, `dirInv_body_alloc`, `dirInv_alloc`): a fresh direction, or the shut
+empty one of an abandoned dial (`dirOk_empty`, `dirOk_abandoned`).
 -/
 module
 
@@ -53,6 +58,13 @@ theorem dirOk_prefix {d : TcpDir} {W R : List w8} (h : DirOk d W R) : R <+: W :=
 theorem dirOk_fresh : DirOk TcpDir.fresh [] [] := by
   simp [DirOk, TcpDir.fresh]
 
+/-- A direction with nothing in it agrees with nothing written or read, whatever its status. -/
+theorem dirOk_empty (st : TcpStatus) : DirOk ⟨[], st⟩ [] [] := by
+  cases st <;> simp [DirOk]
+
+/-- The direction from an abandoned dial's dialer (D16: shut and empty). -/
+theorem dirOk_abandoned : DirOk ⟨[], .fin⟩ [] [] := dirOk_empty .fin
+
 theorem dirOk_cut {d : TcpDir} {W R : List w8} (k : Nat) (h : DirOk d W R) :
     DirOk ⟨d.bytes.take k, .cut⟩ W R := by
   simp only [DirOk, ↓reduceIte]
@@ -83,55 +95,26 @@ theorem dirOk_read {st : TcpEnd} {d d' : TcpDir} {W R : List w8} {n : Nat} {r : 
       · exact dirOk_avail h hr
       · exact dirOk_avail (dirOk_cut k h) hr
 
-/-- A write keeps `DirOk`, the writer having written what it appended. -/
-theorem dirOk_write {st : TcpEnd} {d d' : TcpDir} {W R bs : List w8} {k : Nat}
-    {res : Option TcpErr} (h : DirOk d W R) (hw : WriteOutcome st d bs k res d') :
-    DirOk d' (W ++ bs.take k) R := by
+/-- A step of a `Write` keeps `DirOk`, the writer having written what it appended. -/
+theorem dirOk_write {st : TcpEnd} {d d' : TcpDir} {W R rs : List w8} {k : Nat}
+    {res : Option TcpErr} (h : DirOk d W R) (hw : WriteOutcome st d rs k res d') :
+    DirOk d' (W ++ rs.take k) R := by
   unfold WriteOutcome at hw
   split at hw
   · obtain ⟨rfl, -, rfl⟩ := hw; simpa using h
-  · rename_i hnc
-    split at hw
-    · rename_i hfin
-      obtain ⟨rfl, rfl, -⟩ := hw; simpa using h
+  · split at hw
+    · obtain ⟨rfl, rfl, -⟩ := hw; simpa using h
     · rename_i hcut
       obtain ⟨rfl, -⟩ := hw
       simp only [DirOk, hcut, ↓reduceIte] at h ⊢
       exact h.trans (List.prefix_append W _)
     · rename_i hopen
       simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte] at h
-      rcases hw with ⟨rfl, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩
-      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, List.take_length, ← List.append_assoc, h]
-      · simp only [DirOk, ↓reduceIte, ← List.append_assoc, h]
+      rcases hw with ⟨-, -, rfl⟩ | ⟨rfl, -, rfl⟩ | ⟨-, rfl, -, rfl⟩
+      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, ← List.append_assoc, h]
+      · simp only [DirOk, ↓reduceIte, List.take_zero, List.append_nil, h]
         exact List.prefix_refl _
-      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, ← List.append_assoc, h]
-      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, ← List.append_assoc, h]
-
-/-- A write that returns success wrote all of it. -/
-theorem writeOutcome_ok {st : TcpEnd} {d d' : TcpDir} {bs : List w8} {k : Nat}
-    (hw : WriteOutcome st d bs k none d') : k = bs.length := by
-  unfold WriteOutcome at hw
-  split at hw
-  · cases hw.2.1
-  · split at hw
-    · rcases hw.2.2 with h | ⟨-, h⟩ <;> cases h
-    · rcases hw.2 with ⟨h, -⟩ | ⟨-, h⟩
-      · exact h
-      · rcases h with h | h | ⟨-, h⟩ <;> cases h
-    · rcases hw with ⟨h, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩
-      · exact h
-      all_goals cases h
-
-/-- A write returns at most what it was given. -/
-theorem writeOutcome_le {st : TcpEnd} {d d' : TcpDir} {bs : List w8} {k : Nat}
-    {res : Option TcpErr} (hw : WriteOutcome st d bs k res d') : k ≤ bs.length := by
-  unfold WriteOutcome at hw
-  split at hw
-  · rw [hw.1]; exact Nat.zero_le _
-  · split at hw
-    · rw [hw.1]; exact Nat.zero_le _
-    · rcases hw.2 with ⟨h, -⟩ | ⟨h, -⟩ <;> omega
-    · rcases hw with ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩ <;> omega
+      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, List.take_zero, List.append_nil, h]
 
 theorem dirOk_shut {d : TcpDir} {W R : List w8} (h : DirOk d W R) : DirOk d.shut W R := by
   unfold TcpDir.shut
@@ -300,12 +283,12 @@ theorem sentLb_valid (γ : DirNames) (W1 W2 : List w8) :
   iintro H1 H2
   iapply mono_list_lb_valid γ.w W1 W2 $$ H1 H2
 
-/-- A new direction's protocol state, from its fresh resource: the invariant's body (to put in a
-protocol's own invariant, as when a dialer's deposit must stay timeless) and the writer's and
-reader's halves, nothing written or read. -/
-theorem dirInv_body_alloc (c : Nat) (s : Bool) :
-    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗
-      rcvdAll γ [] := by
+/-- A direction's protocol state, from its resource, for a direction that agrees with nothing
+written or read (`DirOk d [] []`: nothing in it, `dirOk_empty`; a fresh one, or the shut one of an
+abandoned dial, D16): the invariant's body (to put in a protocol's own invariant, as when a dialer's
+deposit must stay timeless) and the writer's and reader's halves, nothing written or read. -/
+theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
+    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
   letI := (G (Gg := Gg)).allG
   iintro Hd
   imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
@@ -319,10 +302,16 @@ theorem dirInv_body_alloc (c : Nat) (s : Bool) :
   iexists ⟨γw, γr⟩
   unfold dirInv sentAll rcvdAll
   isplitl [Hd Hw1 Hr1]
-  · iexists TcpDir.fresh, [], []
+  · iexists d, [], []
     iframe Hd Hw1 Hr1
-    ipureintro; exact dirOk_fresh
+    ipureintro; exact hd
   iframe Hw2 Hr2
+
+/-- A new direction's protocol state, from its fresh resource (`dirInv_body_alloc_of`). -/
+theorem dirInv_body_alloc (c : Nat) (s : Bool) :
+    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗
+      rcvdAll γ [] :=
+  dirInv_body_alloc_of c s TcpDir.fresh dirOk_fresh
 
 /-- A new direction's protocol, from its fresh resource: its invariant, nothing written or read. -/
 theorem dirInv_alloc (N : Namespace) (E : CoPset) (c : Nat) (s : Bool) :
@@ -360,14 +349,15 @@ theorem sentAll_app (γ : DirNames) (W W' x : List w8) :
 
 /-! ## The atomic updates, for an end its thread owns -/
 
-/-- A write at the end `s` of `c` (its state `st` the thread's) into the direction from it, whose
-writer has written `W`: it has then written `W ++ bs.take k`. -/
-theorem write_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEnd) (W bs : List w8) :
+/-- One step of a `Write` at the end `s` of `c` (its state `st` the thread's), of the bytes `rs`
+it has not written yet, into the direction from it, whose writer has written `W`: it has then
+written `W ++ rs.take k`. -/
+theorem write_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEnd) (W rs : List w8) :
     ⊢ inv N (dirInv (Gg := Gg) c s γ) -∗ tcpEnd G c s st -∗ sentAll γ W -∗
       |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c s d ∗
-        ∀ k ok d', ⌜WriteOutcome st0 d bs k ok d'⌝ -∗ tcpEnd G c s st0 -∗ tcpDir G c s d'
-          ={∅,⊤}=∗ tcpEnd G c s st ∗ sentAll γ (W ++ bs.take k) ∗
-            ⌜∃ d d', WriteOutcome st d bs k ok d'⌝ := by
+        ∀ k ok d', ⌜WriteOutcome st0 d rs k ok d'⌝ -∗ tcpEnd G c s st0 -∗ tcpDir G c s d'
+          ={∅,⊤}=∗ tcpEnd G c s st ∗ sentAll γ (W ++ rs.take k) ∗
+            ⌜∃ d d', WriteOutcome st d rs k ok d'⌝ := by
   iintro #Hinv Hend Hw
   iinv Hinv with Hi Hclose
   unfold dirInv
@@ -378,16 +368,62 @@ theorem write_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpE
   iframe Hend Hd
   iintro %k %ok %d' %Hwr Hend Hd
   imod Hmask
-  imod sentAll_app γ W' W (bs.take k) $$ Hw' Hw with ⟨%Heq, Hw', Hw⟩
+  imod sentAll_app γ W' W (rs.take k) $$ Hw' Hw with ⟨%Heq, Hw', Hw⟩
   subst Heq
   imod Hclose $$ [Hd Hw' Hr] with -
   · inext
-    iexists d', W' ++ bs.take k, R
+    iexists d', W' ++ rs.take k, R
     iframe Hd Hw' Hr
     ipureintro; exact dirOk_write Hok Hwr
   imodintro
   iframe Hend Hw
   ipureintro; exact ⟨d, d', Hwr⟩
+
+/-- The writer predicate of `net.Conn.Write.spec` for an end its thread owns, whose writer had
+written `W` before the `Write`: its state, the `Write`'s bytes `w` so far extending what it has
+written, and its last step's result `res`: a failure is one a step at the thread's state gives. -/
+def writeP (γ : DirNames) (c : Nat) (s : Bool) (st : TcpEnd) (W w : List w8) (res : Option TcpErr) :
+    IProp GF :=
+  iprop(tcpEnd G c s st ∗ sentAll (Gg := Gg) γ (W ++ w) ∗
+    ⌜∀ e, res = some e → ∃ d rs d', WriteOutcome st d rs 0 (some e) d'⌝)
+
+theorem writeP_init (γ : DirNames) (c : Nat) (s : Bool) (st : TcpEnd) (W : List w8) :
+    tcpEnd G c s st ∗ sentAll (Gg := Gg) γ W ⊢ writeP γ c s st W [] none := by
+  unfold writeP
+  rw [List.append_nil]
+  iintro ⟨Hend, Hw⟩
+  iframe Hend Hw
+  ipureintro; intro e h; cases h
+
+/-- The accessor `net.Conn.Write.spec` takes, for `writeP`: each step's bytes extend the writer's
+`sentAll` (`write_au`). -/
+theorem write_acc (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEnd)
+    (W bs : List w8) :
+    inv N (dirInv (Gg := Gg) c s γ) ⊢
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ writeP γ c s st W w none -∗
+        |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c s d ∗
+          ∀ k res d', ⌜WriteOutcome st0 d rs k res d'⌝ -∗ tcpEnd G c s st0 -∗
+            tcpDir G c s d' ={∅,⊤}=∗ writeP γ c s st W (w ++ rs.take k) res) := by
+  iintro #Hinv
+  imodintro
+  iintro %w %rs %- HP
+  unfold writeP
+  icases HP with ⟨Hend, Hw, -⟩
+  imod write_au N c s γ st (W ++ w) rs $$ Hinv Hend Hw with ⟨%st0, %d, Hend, Hd, Hk⟩
+  imodintro
+  iexists st0, d
+  iframe Hend Hd
+  iintro %k %res %d' %Hwr Hend Hd
+  imod Hk $$ %k %res %d' %Hwr Hend Hd with ⟨Hend, Hw, %Hst⟩
+  imodintro
+  rw [List.append_assoc]
+  iframe Hend Hw
+  ipureintro
+  intro e he
+  subst he
+  obtain ⟨d0, d0', h0⟩ := Hst
+  obtain rfl := writeOutcome_fail h0
+  exact ⟨d0, rs, d0', h0⟩
 
 /-- A read at the end `s` of `c` (its state `st` the thread's) from the direction towards it,
 whose reader has read `R`: it has then read `R ++ r.got`, which the writer has written. -/
