@@ -63,29 +63,6 @@ def srvRestRp (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r 
     IProp GF :=
   if E.lg then iprop(srvRestAt E (appliedTable γr A₀) r ∗ srvEver E A₀) else E.RO r
 
-/-- **`srvRest` in the auth mode `on`** (auth-lease S3a, Draft rev 5 §4; the split decided by
-etcd-grove-81 as a form): the off `srvRest`, and with auth on `srvRestT` at the mode-`on` model's
-table (`appliedTableM true`). -/
-def srvRestM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
-  match on with
-  | false => srvRest E γr A
-  | true => srvRestT E γr (appliedTableM true γr A) A
-
-theorem srvRestM_false (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
-    srvRestM (GF := GF) false E γr A = srvRest E γr A := rfl
-
-/-- In a cluster that grants none, the mode does not matter. -/
-theorem srvRestM_lg_false (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel)
-    (h : E.lg = false) : srvRestM (GF := GF) on E γr A = srvRest E γr A := by
-  cases on
-  · rfl
-  · unfold srvRestM; rw [srvRest_eq_T]; exact srvRestT_lg_false E γr _ _ A h
-
-/-- `srvRestRp` in the auth mode `on` (Draft rev 5 §4, review r3 F2). -/
-def srvRestRpM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM) :
-    IProp GF :=
-  if E.lg then iprop(srvRestAt E (appliedTableM on γr A₀) r ∗ srvEver E A₀) else E.RO r
-
 theorem srvRestRpM_false (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM) :
     srvRestRpM (GF := GF) false E γr A₀ r = srvRestRp E γr A₀ r := by
   unfold srvRestRpM srvRestRp; rw [appliedTableM_false]
@@ -107,6 +84,12 @@ def restReplay (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) : apply.
 def srvRestR (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
     IProp GF :=
   if G.length < rp.A₀.length then srvRestRp E γr rp.A₀ (restReplay γr rp G) else srvRest E γr G
+
+/-- `srvRestR` in the auth mode `on` (auth-lease S3a, Draft rev 5 §4, the `srvRestM` form): the replay
+arm at `srvRestRpM on`, past the window `srvRestM on`. -/
+def srvRestRM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
+    IProp GF :=
+  if G.length < rp.A₀.length then srvRestRpM on E γr rp.A₀ (restReplay γr rp G) else srvRestM on E γr G
 
 /-- **The batch over Go's log** (R2d' A5; `kvBatch`'s window form): Go's log through the batch
 and the backend's log committed, Go's start index at most `|G|` and Go's index `ai` at `G`; the
@@ -188,6 +171,35 @@ theorem srvRestR_in (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : 
     (h : G.length < rp.A₀.length) :
     srvRestR E γr rp G = srvRestRp E γr rp.A₀ (restReplay γr rp G) := by
   unfold srvRestR; rw [if_pos h]
+
+theorem srvRestRM_false (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
+    srvRestRM (GF := GF) false E γr rp G = srvRestR E γr rp G := by
+  unfold srvRestRM srvRestR; rw [srvRestRpM_false, srvRestM_false]
+
+theorem srvRestRM_lg_false (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt)
+    (G : List EntryModel) (h : E.lg = false) : srvRestRM (GF := GF) on E γr rp G = srvRestR E γr rp G := by
+  unfold srvRestRM srvRestR; rw [srvRestRpM_lg_false on E γr _ _ h, srvRestM_lg_false on E γr _ h]
+
+theorem srvRestRM_first (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (G : List EntryModel) :
+    srvRestRM (GF := GF) on E γr RestartPt.first G = srvRestM on E γr G := by
+  unfold srvRestRM; simp [RestartPt.first]
+
+theorem srvRestRM_past (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt)
+    (G : List EntryModel) (h : rp.A₀.length ≤ G.length) : srvRestRM (GF := GF) on E γr rp G = srvRestM on E γr G := by
+  unfold srvRestRM; rw [if_neg (by omega)]
+
+theorem srvRestRM_in (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : List EntryModel)
+    (h : G.length < rp.A₀.length) :
+    srvRestRM (GF := GF) on E γr rp G = srvRestRpM on E γr rp.A₀ (restReplay γr rp G) := by
+  unfold srvRestRM; rw [if_pos h]
+
+/-- The replay arm at the model's image is `srvRestM`. -/
+theorem srvRestRpM_model (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    srvRestRpM (GF := GF) on E γr A (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) =
+      srvRestM on E γr A := by
+  cases on
+  · rw [srvRestRpM_false, srvRestM_false]; unfold srvRestRp srvRest; rfl
+  · rfl
 
 /-- The replay arm at the model's image is `srvRest`. -/
 theorem srvRestRp_model (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
@@ -404,6 +416,80 @@ theorem srvRestRp_close (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   iframe H1 H2 H3 H4
   ipureintro; exact Hf
 
+
+open Iris.ProofMode in
+/-- (auth-lease S3a, the mode's table) **The replay arm as `srvRest`'s two parts** (R2d'a A3; `srvRest_eq_at`'s form): the rest
+buckets at the backend's table and the image, and the ids ever. -/
+theorem srvRestRpM_eq_at (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    srvRestRpM (GF := GF) on E γr A r ⊣⊢ srvRestAt E (appliedTableM on γr A) r ∗ srvEver E A := by
+  unfold srvRestRpM
+  cases h : E.lg
+  · have hat : srvRestAt (GF := GF) E (appliedTableM on γr A) r = E.RO r := by
+      unfold srvRestAt; rw [h]; rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    rw [hat]
+    constructor
+    · iintro H; iframe H; iapply srvEver_false E A h
+    · iintro ⟨H, -⟩; iexact H
+  · simp only [↓reduceIte]
+    exact .rfl
+
+open Iris.ProofMode in
+/-- (auth-lease S3a, the mode's table) **The replay arm's `E.RO`** (R2d'a A4): the rest resource at an image whose members are
+the arm's image's, given back unchanged (what a replayed `AddNode` takes, `applyConfChange.spec`'s `v3 = false` case). -/
+theorem srvRestRpM_ro (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    srvRestRpM (GF := GF) on E γr A r ⊢ ∃ rs : apply.RestM, E.RO rs ∗ ⌜rs.mem = r.mem⌝ ∗
+      (E.RO rs -∗ srvRestRpM on E γr A r) := by
+  unfold srvRestRpM
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro H
+    iexists r
+    iframe H
+    isplitr
+    · ipureintro; rfl
+    iintro H; iexact H
+  · simp only [↓reduceIte]
+    iintro ⟨H, HU⟩
+    ihave ⟨%f, %Hf, H1, H2, H3, H4⟩ := (srvRestAt_open E _ _).1 $$ H
+    iexists apply.restLeasesWith f (srvIds E (appliedTableM on γr A).ids) r
+    iframe H1
+    isplitr
+    · ipureintro; exact apply.restLeasesWith_mem _ _ _
+    iintro H1
+    iframe HU
+    iapply (srvRestAt_open E _ _).2
+    iexists f
+    iframe H1 H2 H3 H4
+    ipureintro; exact Hf
+
+/-- (auth-lease S3a, the mode's table) **The replay arm opened** (`srvRest_open`'s form at an image `r`). -/
+theorem srvRestRpM_open (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    srvRestRpM on E γr A r ⊢ ∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq (appliedTableM on γr A) f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E (appliedTableM on γr A).ids) r) ∗
+      apply.ltHalf E (srvIds E (appliedTableM on γr A).ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTableM on γr A) ∗ srvEver E A := by
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRestRpM_eq_at on E γr A r).1 $$ H
+  ihave ⟨%f, %Hf, H1, H2, H3, H4⟩ := (srvRestAt_open E _ _).1 $$ H
+  iexists f
+  iframe H1 H2 H3 H4 HU
+  ipureintro; exact Hf
+
+/-- `srvRest_close` at an image `r` (`srvRestRp`). -/
+theorem srvRestRpM_close (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    (∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq (appliedTableM on γr A) f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E (appliedTableM on γr A).ids) r) ∗
+      apply.ltHalf E (srvIds E (appliedTableM on γr A).ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTableM on γr A) ∗ srvEver E A) ⊢
+      srvRestRpM on E γr A r := by
+  iintro ⟨%f, %Hf, H1, H2, H3, H4, HU⟩
+  iapply (srvRestRpM_eq_at on E γr A r).2
+  iframe HU
+  iapply (srvRestAt_open E _ _).2
+  iexists f
+  iframe H1 H2 H3 H4
+  ipureintro; exact Hf
 
 theorem ghostOf_length (rp : RestartPt) (G : List EntryModel) :
     (ghostOf rp G).length = G.length + (rp.A₀.length - G.length) := by

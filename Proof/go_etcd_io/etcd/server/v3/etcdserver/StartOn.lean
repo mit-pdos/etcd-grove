@@ -62,7 +62,7 @@ def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKVOn`'s)
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunOn γr ai₀ c₀ [] x₀ ∗
-    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
+    srvRestM true E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
 /-- **`start`'s construction premise in the mode `on`** (`isServerBuilt` with the mode-`on` rows:
 `srvReqBuiltM true`, `srvKVInvsM true`, `srvCM true`, `applyBuiltOn`). -/
@@ -235,7 +235,9 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   · ipureintro; exact Hmidc
   isplitr
   · ipureintro; exact Hbound
+  ihave %Hrw := srvKVInvsM_rows true s E γr $$ Hkvi
   unfold applyBuiltNAM applyBuiltNAOn applyBuiltOn
+  rw [srvRestM_nil true E γr (Hrw rfl).2]
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
   iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hfs

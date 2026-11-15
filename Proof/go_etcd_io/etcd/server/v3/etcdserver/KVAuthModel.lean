@@ -839,6 +839,317 @@ def keysLeasesLive (s : OnState) : Prop :=
   ∀ (k : GoString) (id : w64), mvcc.leaseItemsOf (mvcc.stateAfter s.2.1) !! ⟨k⟩ = some id →
     id ∈ s.2.2.ids
 
+/-- Every key-value of the state `s` has lease `0` or one of `ids`. -/
+def liveSt (ids : List w64) (s : List EtcdKv) : Prop :=
+  ∀ kv ∈ s, kv.lease = W64 0 ∨ kv.lease ∈ ids
+
+theorem liveSt_mono {ids ids' : List w64} (h : ∀ i ∈ ids, i ∈ ids') {s : List EtcdKv}
+    (hs : liveSt ids s) : liveSt ids' s :=
+  fun kv hk => (hs kv hk).imp_right (h _)
+
+theorem liveSt_applyChange {ids : List w64} {s : List EtcdKv} (hs : liveSt ids s) (r : w64)
+    (c : mvcc.Change) (hc : ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0 ∨ l ∈ ids) :
+    liveSt ids (mvcc.applyChange r s c) := by
+  cases c with
+  | put k v l =>
+    intro kv hkv
+    simp only [mvcc.applyChange, putKv] at hkv
+    rcases btInsert_mem hkv with rfl | h
+    · split <;> exact hc k v l rfl
+    · exact hs kv h
+  | del k =>
+    intro kv hkv
+    exact hs kv (List.mem_filter.1 hkv).1
+
+theorem liveSt_applyChanges {ids : List w64} (r : w64) :
+    ∀ (cs : List mvcc.Change) {s : List EtcdKv}, liveSt ids s →
+      (∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0 ∨ l ∈ ids) →
+      liveSt ids (mvcc.applyChanges r s cs)
+  | [], _, hs, _ => hs
+  | c :: cs, s, hs, hc => by
+    unfold mvcc.applyChanges
+    rw [List.foldl_cons]
+    exact liveSt_applyChanges r cs (liveSt_applyChange hs r c (hc c (by simp)))
+      (fun c' h => hc c' (by simp [h]))
+
+theorem liveSt_findKey {ids : List w64} {s : List EtcdKv} (hs : liveSt ids s) (k : GoString) :
+    ((mvcc.findKey k s).map EtcdKv.lease).getD (W64 0) = W64 0 ∨
+      ((mvcc.findKey k s).map EtcdKv.lease).getD (W64 0) ∈ ids := by
+  cases hf : mvcc.findKey k s with
+  | none => left; rfl
+  | some kv => exact hs kv (List.mem_of_find?_eq_some hf)
+
+/-- Deletions alone keep it. -/
+theorem liveSt_dels {ids : List w64} {s : List EtcdKv} (hs : liveSt ids s) (r : w64)
+    (cs : List mvcc.Change) (hd : ∀ c ∈ cs, ∃ k, c = .del k) : liveSt ids (mvcc.applyChanges r s cs) :=
+  liveSt_applyChanges r cs hs (fun c hc k v l he => by
+    obtain ⟨k', rfl⟩ := hd c hc; cases he)
+
+mutual
+theorem liveSt_srvOp (s0 : List EtcdKv) (ids : List w64) (r : w64) :
+    ∀ (s : List EtcdKv) (op : TxnOp), liveSt ids s → txn.PathLeaseOk s0 ids op →
+      liveSt ids (mvcc.applyChanges r s (txn.srvOp s0 r s op).1)
+  | s, .get o, hs, _ => by simpa [txn.srvOp, mvcc.applyChanges] using hs
+  | s, .put k v l, hs, hp => by
+    simp only [txn.srvOp]
+    exact liveSt_applyChanges r _ hs (fun c hc k' v' l' he => by
+      simp only [List.mem_singleton] at hc; subst hc; cases he; exact hp)
+  | s, .putKeep k v, hs, _ => by
+    simp only [txn.srvOp]
+    exact liveSt_applyChanges r _ hs (fun c hc k' v' l' he => by
+      simp only [List.mem_singleton] at hc; subst hc; cases he; exact liveSt_findKey hs k)
+  | s, .putIgnVal k lo, hs, hp => by
+    simp only [txn.srvOp]
+    refine liveSt_applyChanges r _ hs (fun c hc k' v' l' he => ?_)
+    simp only [List.mem_singleton] at hc; subst hc; cases he
+    cases lo with
+    | none => exact liveSt_findKey hs k
+    | some l => exact hp
+  | s, .delete o, hs, _ => by
+    simp only [txn.srvOp]
+    exact liveSt_dels hs r _ (fun c hc => by
+      obtain ⟨v, -, rfl⟩ := List.mem_map.1 hc; exact ⟨_, rfl⟩)
+  | s, .txn cs ts es, hs, hp => by
+    rw [txn.srvOp_txn]
+    simp only [txn.PathLeaseOk] at hp
+    cases hc : cs.all (cmpHolds s0)
+    · rw [hc] at hp; simp only [Bool.false_eq_true, ↓reduceIte]
+      exact liveSt_srvOps s0 ids r s es hs hp
+    · rw [hc] at hp; simp only [↓reduceIte]
+      exact liveSt_srvOps s0 ids r s ts hs hp
+
+theorem liveSt_srvOps (s0 : List EtcdKv) (ids : List w64) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), liveSt ids s → txn.PathsLeaseOk s0 ids ops →
+      liveSt ids (mvcc.applyChanges r s (txn.srvOps s0 r s ops).1)
+  | s, [], hs, _ => by simpa [txn.srvOps, mvcc.applyChanges] using hs
+  | s, op :: ops, hs, hp => by
+    rw [txn.srvOps_cons]
+    simp only [txn.PathsLeaseOk] at hp
+    rw [txn.applyChanges_append]
+    exact liveSt_srvOps s0 ids r _ ops (liveSt_srvOp s0 ids r s op hs hp.1) hp.2
+end
+
+theorem liveSt_commitLog {ids : List w64} {log : mvcc.Log} (hs : liveSt ids (mvcc.stateAfter log))
+    (cs : List mvcc.Change) (h : liveSt ids (mvcc.applyChanges (W64 log.length) (mvcc.stateAfter log) cs)) :
+    liveSt ids (mvcc.stateAfter (mvcc.commitLog log cs)) := by
+  unfold mvcc.commitLog
+  split
+  · exact hs
+  · rw [txn.stateAfter_snoc]; exact h
+
+/-- A revocation's deletions leave only key-values of the state with another lease. -/
+theorem revoke_mem (r : w64) (s : List EtcdKv) (id : w64) :
+    ∀ kv ∈ mvcc.applyChanges r s (revokeChanges s id), kv ∈ s ∧ kv.lease ≠ id := by
+  intro kv hkv
+  have hm : revokeChanges s id = ((s.filter (fun v => v.lease = id)).map EtcdKv.key).map mvcc.Change.del := by
+    unfold revokeChanges; rw [List.map_map]; rfl
+  rw [hm, txn.applyChanges_dels] at hkv
+  obtain ⟨hin, hk⟩ := List.mem_filter.1 hkv
+  refine ⟨hin, fun he => ?_⟩
+  have : kv.key ∈ (s.filter (fun v => v.lease = id)).map EtcdKv.key :=
+    List.mem_map.2 ⟨kv, List.mem_filter.2 ⟨hin, by simp [he]⟩, rfl⟩
+  simp [this] at hk
+
+/-- The table without `id` keeps the leases of a state whose key-values avoid `id`. -/
+theorem liveSt_revoke (lt : LeaseTable) (id : w64) (s : List EtcdKv) (hs : liveSt lt.ids s)
+    (s' : List EtcdKv) (h : ∀ kv ∈ s', kv ∈ s ∧ kv.lease ≠ id) :
+    liveSt (LeaseTable.ids (lt.filter (fun p => decide (p.fst ≠ id)))) s' := by
+  intro kv hkv
+  obtain ⟨hin, hne⟩ := h kv hkv
+  rcases hs kv hin with h0 | hl
+  · exact Or.inl h0
+  · right
+    unfold LeaseTable.ids at hl ⊢
+    obtain ⟨p, hp, hpe⟩ := List.mem_map.1 hl
+    exact List.mem_map.2 ⟨p, List.mem_filter.2 ⟨hp, by simp [hpe, hne]⟩, hpe⟩
+
+open Classical in
+/-- **The backend keeps the keys' leases live** (`backendLog`/`backendTable`). -/
+theorem liveSt_backend (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log)
+    (hs : liveSt lt.ids (mvcc.stateAfter log)) :
+    liveSt (backendTable rq lt).ids (mvcc.stateAfter (backendLog lt rq log)) := by
+  unfold backendLog backendTable
+  cases hk : apply.dispatchKind rq <;> simp only [] <;> try exact hs
+  case put =>
+    cases hop : rq.put with
+    | none => exact hs
+    | some op =>
+      simp only []
+      split
+      · exact hs
+      · rename_i hm
+        split
+        · exact hs
+        · rw [txn.stateAfter_snoc]
+          refine liveSt_applyChanges _ _ hs (fun c hc k v l he => ?_)
+          simp only [List.mem_singleton] at hc; subst hc
+          unfold txn.putChangeOf at he; cases he
+          unfold txn.putLeaseOf
+          split
+          · exact liveSt_findKey hs op.key
+          · unfold leaseMissingIn at hm
+            by_cases h0 : op.leaseID = W64 0
+            · left; exact h0
+            · right; exact Classical.byContradiction (fun hn => hm ⟨h0, hn⟩)
+  case deleteRange =>
+    cases hop : rq.deleteRange with
+    | none => exact hs
+    | some op =>
+      exact liveSt_commitLog hs _ (liveSt_dels hs _ _ (fun c hc => by
+        unfold txn.delChanges at hc; obtain ⟨v, -, rfl⟩ := List.mem_map.1 hc; exact ⟨_, rfl⟩))
+  case txn =>
+    cases hop : rq.txn with
+    | none => exact hs
+    | some t =>
+      simp only []
+      split
+      · rename_i hok
+        exact liveSt_commitLog hs _ (liveSt_srvOps _ _ _ _ _ hs hok.2)
+      · exact hs
+  case leaseGrant =>
+    cases hop : rq.leaseGrant with
+    | none => exact hs
+    | some g =>
+      simp only []
+      split
+      · exact liveSt_mono (fun i hi => by
+          unfold LeaseTable.ids at hi ⊢; rw [List.map_append, List.mem_append]; exact Or.inl hi) hs
+      · exact hs
+  case leaseRevoke =>
+    cases hop : rq.leaseRevoke with
+    | none => exact hs
+    | some id =>
+      simp only []
+      split
+      · rename_i hin
+        refine liveSt_revoke lt id (mvcc.stateAfter log) hs _ ?_
+        unfold mvcc.commitLog
+        split
+        · rename_i h0
+          intro kv hkv
+          refine ⟨hkv, fun he => ?_⟩
+          have : mvcc.Change.del kv.key ∈ revokeChanges (mvcc.stateAfter log) id :=
+            List.mem_map.2 ⟨kv, List.mem_filter.2 ⟨hkv, by simp [he]⟩, rfl⟩
+          rw [h0] at this; cases this
+        · rw [txn.stateAfter_snoc]
+          exact revoke_mem _ _ _
+      · exact hs
+
+/-- A request other than a revocation only grows the chain's table. -/
+theorem chainTable_sup (rq : apply.IRRModel) (hk : apply.dispatchKind rq ≠ .leaseRevoke) :
+    ∀ (c : apply.Chain) (lt : LeaseTable), ∀ i ∈ lt.ids, i ∈ (chainTable c rq lt).ids
+  | .backend, lt, i, hi => by
+    simp only [chainTable]
+    unfold backendTable
+    cases hk' : apply.dispatchKind rq <;> simp only [] <;> try exact hi
+    case leaseGrant =>
+      cases rq.leaseGrant with
+      | none => exact hi
+      | some g =>
+        simp only []
+        split
+        · unfold LeaseTable.ids at hi ⊢; rw [List.map_append, List.mem_append]; exact Or.inl hi
+        · exact hi
+    case leaseRevoke => exact absurd hk' hk
+  | .auth _ c, lt, i, hi => by simp only [chainTable]; exact chainTable_sup rq hk c lt i hi
+  | .quota c, lt, i, hi => by simp only [chainTable]; exact chainTable_sup rq hk c lt i hi
+  | .capped c, lt, i, hi => by
+    simp only [chainTable]; split
+    · exact hi
+    · exact chainTable_sup rq hk c lt i hi
+  | .corrupt c, lt, i, hi => by
+    simp only [chainTable]; split
+    · exact hi
+    · exact chainTable_sup rq hk c lt i hi
+
+theorem liveSt_chain (rq : apply.IRRModel) :
+    ∀ (c : apply.Chain) (lt : LeaseTable) (log : mvcc.Log), liveSt lt.ids (mvcc.stateAfter log) →
+      liveSt (chainTable c rq lt).ids (mvcc.stateAfter (chainLog c rq lt log))
+  | .backend, lt, log, hs => liveSt_backend lt rq log hs
+  | .auth _ c, lt, log, hs => by simp only [chainTable, chainLog]; exact liveSt_chain rq c lt log hs
+  | .quota c, lt, log, hs => by simp only [chainTable, chainLog]; exact liveSt_chain rq c lt log hs
+  | .capped c, lt, log, hs => by
+    simp only [chainTable, chainLog]; split
+    · exact hs
+    · exact liveSt_chain rq c lt log hs
+  | .corrupt c, lt, log, hs => by
+    simp only [chainTable, chainLog]; split
+    · exact hs
+    · exact liveSt_chain rq c lt log hs
+
+theorem liveSt_dispatch (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
+    (log : mvcc.Log) (hs : liveSt lt.ids (mvcc.stateAfter log)) :
+    liveSt (dispatchTable c rq v3 lt).ids (mvcc.stateAfter (dispatchLog c rq v3 lt log)) := by
+  unfold dispatchLog dispatchTable
+  split
+  · exact hs
+  · split
+    · exact liveSt_chain rq c lt log hs
+    · rename_i hst
+      refine liveSt_mono (chainTable_sup rq (fun h => hst (by rw [h]; rfl)) c lt) hs
+
+theorem liveSt_kvEntry (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log) (m : EntryModel)
+    (hs : liveSt lt.ids (mvcc.stateAfter log)) :
+    liveSt (kvTable c₀ ch lt m).ids (mvcc.stateAfter (kvEntry c₀ ch lt log m)) := by
+  unfold kvEntry kvTable
+  by_cases ht : m.typ = W32 0
+  · simp only [ht, ↓reduceIte]
+    by_cases hd : m.data = []
+    · simp only [hd, ↓reduceIte]; exact hs
+    · simp only [hd, ↓reduceIte]
+      cases apply.irrDecode m.data with
+      | none => exact hs
+      | some rq => exact liveSt_dispatch ch rq _ lt log hs
+  · simp only [ht, ↓reduceIte]; exact hs
+
+/-- **The mode-`on` step keeps the keys' leases live.** -/
+theorem liveSt_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel)
+    (hs : liveSt s.2.2.ids (mvcc.stateAfter s.2.1)) :
+    liveSt (kvEntryOn c₀ ch s m).2.2.ids (mvcc.stateAfter (kvEntryOn c₀ ch s m).2.1) := by
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · exact hs
+      · split
+        · exact hs
+        · exact liveSt_kvEntry c₀ ch s.2.2 s.2.1 m hs
+    · exact hs
+  · exact liveSt_kvEntry c₀ ch s.2.2 s.2.1 m hs
+
+theorem liveSt_kvRaftOfOn (c₀ : w64) (ch : apply.Chain) :
+    ∀ (A : List EntryModel) (s : OnState), liveSt s.2.2.ids (mvcc.stateAfter s.2.1) →
+      liveSt (kvRaftOfOn c₀ ch s A).2.2.ids (mvcc.stateAfter (kvRaftOfOn c₀ ch s A).2.1)
+  | [], s, hs => hs
+  | m :: A, s, hs => liveSt_kvRaftOfOn c₀ ch A (kvEntryOn c₀ ch s m) (liveSt_kvEntryOn c₀ ch s m hs)
+
+theorem keysLeasesLive_of_liveSt (s : OnState) (h : liveSt s.2.2.ids (mvcc.stateAfter s.2.1)) :
+    keysLeasesLive s := by
+  intro k id hk
+  have hk' : ((mvcc.findKey k (mvcc.stateAfter s.2.1)).bind mvcc.kvLease) = some id := hk
+  cases hf : mvcc.findKey k (mvcc.stateAfter s.2.1) with
+  | none => rw [hf] at hk'; cases hk'
+  | some kv =>
+    rw [hf] at hk'
+    simp only [Option.bind_some, mvcc.kvLease] at hk'
+    split at hk'
+    · cases hk'
+    · rename_i h0
+      cases hk'
+      rcases h kv (List.mem_of_find?_eq_some hf) with hz | hin
+      · exact absurd hz h0
+      · exact hin
+
+/-- **The keys' leases are live in the mode-`on` model of any log** from a start whose log attaches
+no key to a lease (auth-lease S3a, Draft rev 5 §1/§5): a leased put applies only at a live lease, a
+revocation deletes its keys with its id, a refused request changes neither. -/
+theorem keysLeasesLive_kvRaftOfOn (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState) (log₀ : mvcc.Log)
+    (A : List EntryModel) (h : mvcc.LogNoLease log₀) :
+    keysLeasesLive (kvRaftOfOn c₀ ch (st₀, log₀, []) A) :=
+  keysLeasesLive_of_liveSt _ (liveSt_kvRaftOfOn c₀ ch A _
+    (fun kv hkv => Or.inl (mvcc.stateAfter_leaseZero log₀ h kv hkv)))
+
+
 /-- At the lease mode `none`, an entry of the mode-`on` log is what it was (no lease request). -/
 theorem plainEntryOn_none (m : EntryModel) (h : plainEntryOn .none m) :
     m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
@@ -1732,6 +2043,29 @@ theorem kv_log_plain_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
     exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
   · intro m _ hd _ h; exact absurd hd h
   · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
+
+/-- **The mode-`on` KV invariant's start log attaches no key to a lease** (`kvInvOn`'s `LogNoLease γk.log0`,
+the keys' invariants' base, auth-lease S3a). -/
+theorem kvInvOn_log0 (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ ={⊤}=∗ ⌜mvcc.LogNoLease γk.log0⌝ := by
+  iintro #Hinv
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
+  imodintro
+  ipureintro; exact Hok.2.2.2.2.2.1.2
+
+/-- **The keys' leases are live in the model of a committed log** (auth-lease S3a, Draft rev 5 §5:
+`specSnapM`'s `hnl` at auth on). -/
+theorem kvInvOn_keysLive (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (B : List EntryModel) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ ={⊤}=∗
+      ⌜keysLeasesLive (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) B)⌝ := by
+  iintro #Hinv
+  imod (kvInvOn_log0 γ γk st₀) $$ Hinv with %h0
+  imodintro; ipureintro
+  exact keysLeasesLive_kvRaftOfOn _ _ _ _ B h0
 
 end lemmas
 

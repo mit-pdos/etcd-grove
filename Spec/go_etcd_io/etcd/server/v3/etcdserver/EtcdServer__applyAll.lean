@@ -94,7 +94,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗
       appliedLogAt γr g x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
-      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
+      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestRM C.isOn E γr rp A ∗
       kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
       -- (R2d' A7) no merged snapshot send while the window is left (`winNoMergedSend`)
       winNoMergedSendR γr.raft.raft s γn.t0 T (rp.A₀.drop (A ++ unapplied ai ms).length) rt ∗ T ∗
@@ -135,7 +135,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVC C s E' ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr g' x'.log ∗
           kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' ∗
-          srvRestR E' γr rp (A ++ unapplied ai ms)) ∗
+          srvRestRM C.isOn E' γr rp (A ++ unapplied ai ms)) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTokA γn (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end (route (C): at the ghost index `g'`)
         srvSnapOwn s ci E' γr γ' g' ∗
@@ -243,7 +243,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
       srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗ appliedLogAt γr g x.log ∗
-      srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestRp E γr A r0 ∗
+      srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestRpM E.authOn E γr A r0 ∗
       srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
       rnWalTokA γn (srvRAddr s) q ∗
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
@@ -278,7 +278,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
         srvWTTaken γp.cnt w ∗
         (∃ x' : apply.ApplyKV, srvApplyKVM E.authOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗
           appliedLogAt γr sv.Metadata'.Index' x'.log ∗
-          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A') ∗
+          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRestM E.authOn E' γr A') ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTokA γn (srvRAddr s) q ∗
         srvSnapOwn s ci E' γr γ' sv.Metadata'.Index' ∗
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧

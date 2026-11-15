@@ -149,7 +149,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
         srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvWT E ∗ srvFS s ∗
         ⧗ 1 ∗ apply.adminWTs E ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-        kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
+        kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ srvRestM true E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
@@ -162,7 +162,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
       else iprop(
         isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
         applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗
-        srvWT E ∗ srvFS s ∗ ⧗ 1 ∗ apply.adminWTs E ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+        srvWT E ∗ srvFS s ∗ ⧗ 1 ∗ apply.adminWTs E ∗ committedAtLeast γr m.index ∗ srvRestRpM true E γr A₀ r ∗
         srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOkOn E.lm x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
@@ -174,14 +174,14 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
           entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRest E γr (A ++ [m])) ∗
+          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRestM true E γr (A ++ [m])) ∗
         (ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩) ∗
         srvTokRights E m.index)
       else iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKVOn s E ρ.wait x' sa ∗
           ⌜entryStep m false x x' out⌝) ∗
-        srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st)) }}
+        srvRestRpM true E γr A₀ (restEntryV2 m r) ∗ applyThread γ st)) }}
 
 /-- **`specOff`**, `spec` with auth off (the auth-mode merge's corollary). -/
 theorem EtcdServer.applyEntryNormal.spec_off
@@ -196,7 +196,7 @@ theorem EtcdServer.applyEntryNormal.spec_off
   have := h s γ ci TM E ρ b e m st v3 x γr ot v A srvAuthSt0 A₀ r (by rw [hm]; simp)
   rw [hoff] at this
   cases v3
-  · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, Bool.false_eq_true,
+  · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, srvRestRpM_false, Bool.false_eq_true,
       ↓reduceIte] at this ⊢
     iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0, %HmA,
       %Hpo⟩ HΦ
@@ -206,7 +206,7 @@ theorem EtcdServer.applyEntryNormal.spec_off
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, fun h => absurd h (by simp), Hpo.2.2.2.2⟩
   · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
-      entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at this ⊢
+      entryOkM_false, hT, srvRestM_false, Bool.false_eq_true, ↓reduceIte] at this ⊢
     iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
     iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]

@@ -114,6 +114,32 @@ before §3a; §3a adds no axiom). Done this session:
    `srvRestM_false` (`rfl`), `srvRestM_lg_false`, `srvRestRpM on`, `srvRestRpM_false`, `srvRestRpM_lg_false` (ApplyRDefs);
    `imageLeasesAtT`, `imageLeasesAt_eq_T` (ImageLeases). Full build `build10` at `f0b7821df7`.
 
+**Session 3 (2026-11-15):** the statement switch is DONE (commit after `82b6add2a9`, full build `build12`, `/shared/tmp/auth-lease-s3a/build12.log`):
+- Defs: `srvRestM`/`srvRestRpM` moved to `KVModelM` (the snapshot files do not import `ApplyRDefs`); `srvRestRM on`
+  (ApplyRDefs); `imageLeasesAtM on` (SnapApplyDefs); M laws in KVModelM (`srvRestT_eq_at`, `srvRestM_eq_at/_open/_close/
+  _snoc`, `appliedTableM_cc`, `srvRestM_nil`, `leaseItems_of_noLease`) and ApplyRDefs (`srvRestRM_*`, `srvRestRpM_eq_at/
+  _ro/_open/_close/_model`); `srvKVInvsM_rows` (ServerOnDefs).
+- Statements at the mode: the five specs (applyEntryNormal, applyEntries, apply, applyAll specBatch/specSnapM,
+  applySnapshot specSnapM incl. `hlease : imageLeasesAtM E.authOn` and the frozen rev-5 `hnl`), ModeSpecs.specOn, the
+  run/start rows (RunOn, StartOn, AuthCompRows), `srvSnapAppliedG on`, `SnapImageFactsOn.nolease/.hlease` (rev-5 §5).
+  The start rows convert at `isServerBuilt_of_gapOn` by `srvRestM_nil` (empty prefix), not transitional.
+- `EtcdServer.apply.wp_proofOn` is ported to the M laws for real (no transitional step).
+- **§5 started:** `keysLeasesLive_kvRaftOfOn` (KVAuthModel; needs only `LogNoLease log0`: `backendLog` enforces the
+  live set, so no admission premise), with `liveSt` and its laws through `applyChange(s)`, `srvOps`, `backendLog`,
+  the chain, `dispatchLog`, `kvEntry`, `kvEntryOn`; `kvInvOn_log0`, `kvInvOn_keysLive` (what the callers of
+  `specSnapM` need for the new `hnl`). `keysNonEmpty`'s preservation NOT done (needs `kvShapeAll`'s put-key shape).
+- TRANSITIONAL sites now (each marked "TRANSITIONAL until the §5 step"): `isServerC_restM` (AuthCompRows) used by
+  applyAll's merged send; the `srvRestM_lg_false`/`srvRestRpM_lg_false` conversions in ApplyAllSnap (on branch:
+  `snapRecv_imageOnR`, merged send), EtcdServer__applyEntryNormal (both on branches: `irevert HRS HΦ; simp only [hR]`),
+  SnapApplyPost (`HrestM`), EtcdServer__run/StopShutdown/NewServerR (the run and stop rows at `srvRestRM K.isOn`, off by `srvRestRM_false`: not transitional), EtcdServer__applySnapshot (lg = false branch: `Hnil` derives `LogNoLease` of the auth-on
+  image from `kvInvOn_log0` + `kvRaftOfOn_restorable` at lease mode none; `hleaseI` to the off table), SnapRecvOn and
+  ApplyAllSnap (`SnapImageFactsOn` built from the lease-free image); plus the older ones (`grep -rn TRANSITIONAL Proof`).
+
+Next (session 4), in order: (a) `keysNonEmpty` preserved; (b) restate the snapshot consumers' `hnl` (SnapApplyWalk,
+SnapApplyPost `srvSnapApplied_of_walk`, SnapApplyKV, SnapApplyKVLemmas `leasesKnown_noLease`) from `LogNoLease` to the
+keys-live form, with `store.Restore.spec`'s pending items (`store__Restore.lean:156-158`); (c) drop `γr.kv.lg = false` from
+`srvKVInvsOn` and replace each TRANSITIONAL conversion by the M laws (the on apply arms then meet `E.lg = true`: §6).
+
 Next, in order:
 1. §4's statement switch (with §5): `EtcdServer.applyEntryNormal.spec` (`Spec/…/EtcdServer__applyEntryNormal.lean:91, 118`),
    `applyAll.spec` (`EtcdServer__applyAll.lean:281`), `ModeSpecs.applyEntryNormal.specOn` (`ModeSpecs.lean:152, 177`), the

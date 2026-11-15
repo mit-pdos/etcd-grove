@@ -137,7 +137,7 @@ def applyResR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryMode
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ mvcc.api.mvccReaders B.E.γ 1 ∗
     srvApplyKVC K C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr g ∗ appliedLogAt C.γr g x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ (ghostOf rp A) x sa ∗
-    srvRestR B.E C.γr rp A ∗ srvApRes C.s C.γr (ghostOf rp A) ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
+    srvRestRM K.isOn B.E C.γr rp A ∗ srvApRes C.s C.γr (ghostOf rp A) ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
@@ -352,8 +352,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
           (ghostOf rp (A ++ unapplied ai ce)) x' sa' ⊢
         kvAppliedM K.isOn C.γr.raft C.γr.kv srvAuthSt0 (ghostOf rp (A ++ ce)) x' sa' from by rw [hun]) $$ Hka
     ipureintro; exact Hkc
-  ihave HRS : iprop(srvRestR E' C.γr rp (A ++ ce)) $$ [HRS]
-  · iapply (show srvRestR (GF := GF) E' C.γr rp (A ++ unapplied ai ce) ⊢ srvRestR E' C.γr rp (A ++ ce)
+  ihave HRS : iprop(srvRestRM K.isOn E' C.γr rp (A ++ ce)) $$ [HRS]
+  · iapply (show srvRestRM (GF := GF) K.isOn E' C.γr rp (A ++ unapplied ai ce) ⊢ srvRestRM K.isOn E' C.γr rp (A ++ ce)
       from by rw [hun]) $$ HRS
   ihave HAR : iprop(srvApRes C.s C.γr (ghostOf rp (A ++ ce))) $$ [HAR]
   · iapply (show srvApRes (GF := GF) C.s C.γr (ghostOf rp (A ++ unapplied ai ce)) ⊢
@@ -452,19 +452,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The rest buckets at an image of the ghost log**: inside the window (Go's log a prefix
 of the backend's) the replay's image of `A₀`, past it the model of Go's log; either way its members
 have the model's ids. -/
-theorem srvRestR_img (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (A : List EntryModel)
+theorem srvRestR_img (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (A : List EntryModel)
     (h : A <+: rp.A₀ ∨ rp.A₀ <+: A) :
     ∃ r0 : apply.RestM, (∀ k, (r0.mem !! k).isSome =
         ((restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ ghostOf rp A)).mem !! k).isSome) ∧
-      srvRestR E γr rp A = srvRestRp E γr (ghostOf rp A) r0 := by
+      srvRestRM on E γr rp A = srvRestRpM on E γr (ghostOf rp A) r0 := by
   by_cases hl : A.length < rp.A₀.length
   · have hp : A <+: rp.A₀ := h.resolve_right (fun h' => by have := h'.length_le; omega)
     refine ⟨restReplay γr rp A, ?_, ?_⟩
     · intro k; rw [ghostOf_in rp A hp]; exact restReplay_memKeys γr rp A k
-    · rw [srvRestR_in E γr rp A hl, ghostOf_in rp A hp]
+    · rw [srvRestRM_in on E γr rp A hl, ghostOf_in rp A hp]
   · have hp : rp.A₀.length ≤ A.length := by omega
     refine ⟨restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ ghostOf rp A), fun _ => rfl, ?_⟩
-    rw [srvRestR_past E γr rp A hp, ghostOf_past rp A hp, srvRestRp_model]
+    rw [srvRestRM_past on E γr rp A hp, ghostOf_past rp A hp, srvRestRpM_model]
 
 /-- **The start chain's auth layer is the component's** (`kvInv_ch0_off`/`kvInvOn_ch0` over the
 server's view). -/
@@ -589,8 +589,8 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   -- (R2d'a task 4) the rest buckets at an image of the ghost log with the model's ids
   ihave %HpA := srvRLogLb_prefix C.γr.raft A rp.A₀ $$ [HlbA HlbA0]
   · rw [← hρ]; iframe HlbA HlbA0
-  obtain ⟨r0, hids, hRS⟩ := srvRestR_img B.E C.γr rp A HpA
-  ihave HRS : srvRestRp B.E C.γr (ghostOf rp A) r0 $$ [HRS]
+  obtain ⟨r0, hids, hRS⟩ := srvRestR_img K.isOn B.E C.γr rp A HpA
+  ihave HRS : srvRestRpM K.isOn B.E C.γr (ghostOf rp A) r0 $$ [HRS]
   · rw [← hRS]; iexact HRS
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
@@ -670,8 +670,8 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   · rw [kvRunM_split, hgA, ← hon]
     iframe Hka
     ipureintro; exact Hkc
-  ihave HRS : srvRestR E' C.γr rp A'' $$ [HRS]
-  · rw [srvRestR_past E' C.γr rp A'' hpast]; iexact HRS
+  ihave HRS : srvRestRM K.isOn E' C.γr rp A'' $$ [HRS]
+  · rw [srvRestRM_past K.isOn E' C.γr rp A'' hpast]; iexact HRS
   ihave HAR : srvApRes C.s C.γr (ghostOf rp A'') $$ [HAR]
   · rw [hgA]; iexact HAR
   ihave #Hcv'' : epCsAt C.ρ.raft (ghostOf rp A'') cs' $$ []
@@ -713,17 +713,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The rest buckets at the restart's start**: `srvRest` at the backend's log is `srvRestR` at
 Go's handed log `P` (`rp = ⟨|P|, A₀⟩`; inside the window, the replay arm at the model's image). -/
-theorem srvRestR_start (E : apply.AEnv GF) (γr : ReadNames) (P A₀ : List EntryModel)
-    (hP : P <+: A₀) : srvRest (GF := GF) E γr A₀ = srvRestR E γr ⟨P.length, A₀⟩ P := by
+theorem srvRestR_start (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (P A₀ : List EntryModel)
+    (hP : P <+: A₀) : srvRestM (GF := GF) on E γr A₀ = srvRestRM on E γr ⟨P.length, A₀⟩ P := by
   by_cases h : P.length < A₀.length
-  · rw [srvRestR_in _ _ _ _ h]
+  · rw [srvRestRM_in _ _ _ _ _ h]
     unfold restReplay
     simp only [List.drop_length, List.foldl_nil]
-    rw [srvRestRp_model]
+    rw [srvRestRpM_model]
   · have hl := hP.length_le
     have he : P = A₀ := hP.eq_of_length (by omega)
     subst he
-    rw [srvRestR_past _ _ _ _ (Nat.le_refl _)]
+    rw [srvRestRM_past _ _ _ _ _ (Nat.le_refl _)]
 
 /-- (restart S4) **Go's start index `|P|`**, the storage snapshot's, is `ai₀ + |P|` at `ai₀ = 0`: room
 past the backend's log `A₀` (row 6) and `P <+: A₀`. -/
@@ -765,7 +765,7 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
   iunfold applyResR
   iexists ⟨C.γ, TM, C.E, C.b⟩, st₀, ai, at', a, t, cs, C.x₀, sa₀, g₀
   simp only [hgh]
-  rw [← srvRestR_start _ _ P A₀ hP]
+  rw [← srvRestR_start K.isOn _ _ P A₀ hP]
   isplitr
   · ipureintro; exact beSucc_refl C.γ C.E
   ihave Hcs : epConfState C.ep cs $$ [Hcsa]

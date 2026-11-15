@@ -85,7 +85,7 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗
       srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗ appliedLogAt γr g x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ srvFS s ∗
-      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
+      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestRM E.authOn E γr rp A ∗
       kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
       dvView ρ.raft dv (ghostOf rp A) ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       srvApRes s γr (ghostOf rp A) ∗ srvTokRights E (ciEff γ st.k) }}
@@ -102,7 +102,7 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr g' x'.log ∗
           kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' ∗
-          srvRestR E γr rp (A ++ unapplied ai ms)) ∗
+          srvRestRM E.authOn E γr rp (A ++ unapplied ai ms)) ∗
         ⌜uint.Z g' = uint.Z γr.raft.ai0 + (ghostOf rp (A ++ unapplied ai ms)).length ∧
           loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧

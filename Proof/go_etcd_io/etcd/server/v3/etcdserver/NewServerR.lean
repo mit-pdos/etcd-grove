@@ -2355,6 +2355,7 @@ theorem NewServer.wp_proofRG
       simp [Hc0, HρRaft]
     isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe HltS HlEv]
     · -- the rest buckets at the image's log (`srvRest_restart`)
+      simp only [AuthC.isOn, srvRestM_false]
       iapply (srvRest_restart _ ρ.rd A D d M hMo bc.cl' (srvObjsOn alst astl lp bc.cl' d.be)
         (W64 0) γ.boot rfl hpre Hc0 (by rw [HρRaft]) HbkR
         (fun h => Hng h))

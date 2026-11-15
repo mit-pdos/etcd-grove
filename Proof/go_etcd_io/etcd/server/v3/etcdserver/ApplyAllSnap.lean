@@ -331,9 +331,15 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
     pre := hAA'
     len := by omega
     hst := hst
-    nolease := hnl
+    nolease := fun k id hk => (leaseItems_of_noLease _ hnl k id hk).elim
     hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
-    hlease := imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
+    hlease := by
+      -- (auth-lease S3a, TRANSITIONAL until the §5 step) at the lease mode `none` both tables are empty
+      have hT : appliedTableM true γr A' = appliedTable γr A' := by
+        rw [appliedTableM_true, hpre0, List.nil_append, kvLeasesOn_none _ _ A' Hpl]
+        unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]
+      rw [hT, ← imageLeasesAt_eq_T]
+      exact imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
     halarm := (image_leaseAlarmNA d hrest').2
     hauthI := authBucketsAt_rbData d D _ hauth
     hmemb := image_membBucketsNA d hrest'
@@ -427,7 +433,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     have hon : E.authOn = false := by simp [apply.AEnv.authOn, hM]
     have hoffE : E.authMode = .off := hM
     rw [hon] at hch ⊢
-    simp only [srvApplyKVM_false, kvAppliedM_false, isServerM_false]
+    simp only [srvApplyKVM_false, kvAppliedM_false, isServerM_false, srvRestRpM_false, srvRestM_false]
     wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
       #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
       #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
@@ -545,10 +551,10 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) hstp (Nat.le_refl _) Hif.halarm halbi
         Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
         cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq
-        Hif.pre (by rw [Hoff]; exact Hif.hA') Hif.hlease
+        Hif.pre (by rw [Hoff]; exact Hif.hA') (by rw [Hoff, imageLeasesAtM_false]; exact Hif.hlease)
         (by rw [hraft]) Hmo (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
     rw [Hoff] at hS
-    simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM, kvModelM_false] at hS
+    simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM, kvModelM_false, srvRestRpM_false] at hS
     -- (sweep repairs 1, W2) the payload at the storage's WAL (`rnWalTokA_loc`)
     icases rnWalTokA_loc γn (srvRAddr s) q _ $$ HwalT Hstp with ⟨HwalT, %Hwl⟩
     ihave #Hnc2' : isNotify2 γnc nc (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
@@ -995,9 +1001,14 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   -- the image's facts (`snapRecv_imageOn`): its committed log `A'` extending `A`
   have hai0 : uint.Z ag = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word
+  -- (auth-lease S3a, TRANSITIONAL until the §5 step) a cluster that grants none: the mode's table is moot
+  ihave HRS : srvRestRp E γr A r0 $$ [HRS]
+  · rw [← srvRestRpM_lg_false true E γr A r0 HElg]; iexact HRS
   imod snapRecv_imageOnR γr.raft.raft γr E sv.Metadata'.Index' ag D d A x cl _ _ hkb hraft hc0 hch
       hlog0 hai0 hgi hboot hRO HElg r0 hids $$ Hkvi Himg Hka HRS Hrc
     with ⟨Hka, HRS, %A', %u, #HA', %Hif, #Him0, #HCp0⟩
+  ihave HRS : srvRestRpM true E γr A r0 $$ [HRS]
+  · rw [srvRestRpM_lg_false true E γr A r0 HElg]; iexact HRS
   -- the applied log's model and compaction revision (`-1`, a mode-on log compacts nothing; the
   -- apply thread's too, `srvApplyKVOn_crev`)
   iunfold kvAppliedOn at Hka
@@ -1059,7 +1070,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) hstp (Nat.le_refl _) Hif.halarm
       halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq
-      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (by rw [hraft]) Hmo hany
+      Hif.pre (by rw [hon]; exact Hif.hA') (by rw [hon]; exact Hif.hlease) (by rw [hraft]) Hmo hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI,
         by have := Hif.len; omega⟩)
       γnc
@@ -1214,7 +1225,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       srvApplyKVOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') -∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A')
       (kvLeasesOn γr.kv srvAuthSt0 A') -∗
-      srvRest E' γr A' -∗ Φ #()) $$ [HΦ Hbr HAR' Hao HWA HwalT Hso']
+      srvRestM true E' γr A' -∗ Φ #()) $$ [HΦ Hbr HAR' Hao HWA HwalT Hso']
   · iintro %stF %HF Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hrdk HKV Hka HRS
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
@@ -1365,6 +1376,12 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
             ihave HthT : apply.applyTok (GF := GF) E' $$ [Hrdk]
             · iunfold apply.applyTok; iexact Hrdk
+            -- (auth-lease S3a, TRANSITIONAL until the §5 step) a cluster that grants none: the
+            -- window at the off table
+            have HE'lg : E'.lg = false := by
+              obtain ⟨-, p, P, f, cc, RO, RW, hE⟩ := hbs; rw [hE]; exact HElg
+            ihave HRS : srvRest E' γr A' $$ [HRS]
+            · rw [← srvRestM_lg_false true E' γr A' HE'lg]; iexact HRS
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe true
                 s γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci'
                 auth.authBkts (authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A'))
@@ -1386,6 +1403,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             · iunfold srvGoRes; iframe HgrW HgT
             imod Hback $$ %Dm HRS' HQd Hbeo
               with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
+            ihave HRS : srvRestM true E' γr A' $$ [HRS]
+            · rw [srvRestM_lg_false true E' γr A' HE'lg]; iexact HRS
             ihave HKV := HKVk $$ HKVc HAr
             iunfold apply.applyTok at HthT
             irename HthT => Hrdk

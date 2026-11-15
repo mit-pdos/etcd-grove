@@ -201,6 +201,15 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   iunfold srvAtomicsM at Hat3
   icases Hat3 with ⟨-, -, #Hkvi⟩
   ihave ⟨#HkS, -⟩ := srvKVInvsM_kvStoreInvW E.authOn s E γr $$ Hkvi
+  -- (auth-lease S3a, TRANSITIONAL until the §5 step) with auth on, a cluster that grants none
+  ihave %Hlg0 := srvKVInvsM_lg E.authOn s E γr $$ Hkvi
+  ihave %Hrows0 := srvKVInvsM_rows E.authOn s E γr $$ Hkvi
+  have HrestM : ∀ (E' : apply.AEnv GF), E'.lm = E.lm → srvRestM (GF := GF) E.authOn E' γr A' = srvRest E' γr A' := by
+    intro E' hlm
+    cases hon : E.authOn
+    · rfl
+    · apply srvRestM_lg_false
+      rw [apply.AEnv.lg_eq, hlm, ← (Hrows0 hon).1]; exact Hlg0 hon
   haveI := Hp.1
   ihave #HisM' : mvcc.api.isMvcc (GF := GF) E.kv E.γ $$ []
   · iunfold srvApi.kvStoreInvG at HkS; icases HkS with ⟨#H, -⟩; iexact H
@@ -272,6 +281,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
       snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1, Hx'.2.2, Hx'.2.1, hcov⟩
   iunfold epConfState
   simp only [snapE_authMode]
+  rw [HrestM (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be) rfl]
   iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HSCs Hbo Hγt Hpath Hbf Htl
   -- the KV, the store's handle kept by the restore
   iexists E.kv

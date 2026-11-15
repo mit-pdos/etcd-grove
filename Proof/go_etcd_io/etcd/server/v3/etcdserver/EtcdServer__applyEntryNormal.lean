@@ -1294,6 +1294,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     have Hpe : plainEntryOn .none m := by
       rw [← KVNames.lm_of_lg_false Hrows.2.1]; exact Hpc0.1 m HmA
     have hElm : E.lm = .none := by rw [← Hrows.2.2.1]; exact KVNames.lm_of_lg_false Hrows.2.1
+    have HElg : E.lg = false := by rw [apply.AEnv.lg_eq, hElm]; rfl
+    have hRp : ∀ A r, srvRestRpM (GF := GF) true E γr A r = srvRestRp E γr A r :=
+      fun A r => srvRestRpM_lg_false true E γr A r HElg
+    irevert HRS HΦ
+    simp only [hRp]
+    iintro HRS HΦ
     have Hch : x.chain = apply.alarmChain true false false := Hxch.trans Hpc0.2.2
     imod srvApplyKVOn_writer hPers hReach s E γr srvAuthSt0 ρ.wait x sa $$ Hkvi HKV with
       ⟨HKV, #Hcx, -, -, %Hwf⟩
@@ -1513,6 +1519,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
   have hlm' : γr.kv.lm = .none := KVNames.lm_of_lg_false Hrows'.2.1
   have hElm : E.lm = .none := by rw [← Hrows'.2.2.1]; exact hlm'
+  have HElg : E.lg = false := by rw [apply.AEnv.lg_eq, hElm]; rfl
+  have hR : ∀ A, srvRestM (GF := GF) true E γr A = srvRest E γr A :=
+    fun A => srvRestM_lg_false true E γr A HElg
+  irevert HRS HΦ
+  simp only [hR]
+  iintro HRS HΦ
   have Hpe : plainEntryOn .none m := by rw [← hlm']; exact Hpe
   imod (kvInvOn_keysA γr srvAuthSt0 (A ++ [m])) $$ HkI' HrI' HAm with %HkeysA
   icases kvAppliedLOn_nx _ _ _ _ _ HkeysA $$ Hka with ⟨Hka, #Hkc⟩
@@ -2062,7 +2074,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     have h := h s γ ci TM E ρ b e m st v3 x γr ot v A A₀ r hoff
     rw [hoff]
     cases v3
-    · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, Bool.false_eq_true,
+    · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, srvRestRpM_false, Bool.false_eq_true,
         ↓reduceIte] at h ⊢
       iintro %Φ ⟨#Hpkg, -, -, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0,
         %HmA, %Hpo⟩ HΦ
@@ -2070,7 +2082,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hcm HRS HA0
       ipureintro; exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, Hpo.2.2.2.2.2⟩
     · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
-        entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at h ⊢
+        entryOkM_false, hT, srvRestM_false, Bool.false_eq_true, ↓reduceIte] at h ⊢
       iintro %Φ ⟨#Hpkg, -, -, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
         #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, -⟩ HΦ
       iapply h $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]

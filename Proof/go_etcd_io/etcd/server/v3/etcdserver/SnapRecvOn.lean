@@ -292,11 +292,15 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
   len : uint.Z i = A'.length
   /-- the image's state reachable, its history short (the sender's writer's facts) -/
   hst : imageStOk (kvModelOn γr.kv srvAuthSt0 A') (crevOf γr.kv A')
-  /-- the image's history attaches no lease to a key (`kvRaftOfOn_restorable`) -/
-  nolease : mvcc.LogNoLease (kvModelOn γr.kv srvAuthSt0 A')
+  /-- (auth-lease S3a, Draft rev 5 §5) a key the image's history attaches to a lease attaches it to a live
+  one of the mode's table (`keysLeasesLive`; until then no key had a lease, `kvRaftOfOn_restorable`) -/
+  nolease : ∀ (k : GoString) (id : w64),
+    mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM true γr.kv A')) !! ⟨k⟩ = some id →
+      id ∈ (appliedTableM true γr A').ids
   hmetaI : ∃ t : w64, metaIs D (i, t)
-  /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) -/
-  hlease : imageLeasesAt γr d.P D A'
+  /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty; auth-lease S3a, Draft rev 5
+  §4: at the mode's table, `imageLeasesAtM true`) -/
+  hlease : imageLeasesAtT γr (appliedTableM true γr A') d.P D A'
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   /-- the auth buckets hold the state after the image's log -/
   hauthI : authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData d.P D)
@@ -589,9 +593,15 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     pre := hAA'
     len := by omega
     hst := hst
-    nolease := hnl
+    nolease := fun k id hk => (leaseItems_of_noLease _ hnl k id hk).elim
     hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
-    hlease := imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
+    hlease := by
+      -- (auth-lease S3a, TRANSITIONAL until the §5 step) at the lease mode `none` both tables are empty
+      have hT : appliedTableM true γr A' = appliedTable γr A' := by
+        rw [appliedTableM_true, hpre0, List.nil_append, kvLeasesOn_none _ _ A' Hpl]
+        unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]
+      rw [hT, ← imageLeasesAt_eq_T]
+      exact imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
     halarm := (image_leaseAlarmNA d hrest').2
     hauthI := authBucketsAt_rbData d D _ hauth
     hmemb := image_membBucketsNA d hrest'

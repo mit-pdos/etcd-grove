@@ -127,7 +127,7 @@ def applyBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     -- (the lease-expiry merge) the lessor's range deleter (`applyBuilt`'s, `applyBuiltOn`'s)
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
-    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
+    srvRestM C.isOn E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
 
 /-- **`Hsnap`'s restart form** (R2d'a A9; `rnSnapOnce`'s, `InvRunRes.lean:334`): `run`'s one call of
 the raft storage's `Snapshot()` (`server.go:760` at `673da07c8`) answers a snapshot at index `i` and
@@ -169,7 +169,7 @@ def applyBuiltR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     revAuth E x₀.log ∗
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
-    srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
+    srvRestM C.isOn E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
 
 /-- **The built restart form** (restart S4, 2026-11-12; `/shared/tmp/restart-s4/plan.md` §1.3, D1):
 `isServerBuiltC`'s start conjuncts at the restart point. `P`, the log raft handed before this
@@ -307,7 +307,7 @@ def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVC C s E γw x₀ srvAuthSt0 ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗ srvRest E γr [] ∗
+    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗ srvRestM C.isOn E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
     srvSnapOwn s ci E γr γ ai₀)
@@ -329,7 +329,7 @@ def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
     applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVC C s E γw x₀ sa₀ ∗
     srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
-    srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
+    srvRestM C.isOn E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g₀` (until then Go's `ai`)
     srvSnapOwn s ci E γr γ g₀)
 
@@ -550,7 +550,7 @@ theorem applyBuilt_C (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E
   unfold applyBuilt applyBuiltC
   simp only [← hT, ← kvAuthM_eq]
   dsimp only [AuthC.isOn, AuthC.mode, kvAuthM, kvRunM] at hC ⊢
-  simp only [srvTokRights, hC]
+  simp only [srvTokRights, hC, srvRestM_false]
   constructor
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hfor, Hakv⟩, Hra,
       Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs⟩
@@ -714,7 +714,7 @@ theorem applyStart_C (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E
   unfold applyStart applyStartC
   simp only [← hT]
   dsimp only [AuthC.isOn, kvRunM]
-  simp only [srvTokRights, hC]
+  simp only [srvTokRights, hC, srvRestM_false]
   constructor
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hrdk, Hkv, Hao, Hal, Hkr, Hrest, Hap,
       Hfs, Hso⟩
@@ -1006,6 +1006,30 @@ theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     iunfold isServerM at H
     icases H with ⟨%h, -⟩
     ipureintro; exact ⟨h, fun h' => by cases h'⟩
+
+/-- (auth-lease S3a, TRANSITIONAL until the §5 step) **The rest buckets at the mode's table are the off
+table's** at a server of the view: off by definition, on in a cluster that grants none
+(`srvKVInvsOn`'s transitional `γr.kv.lg = false`, the lease mode the environment's). -/
+theorem isServerC_restM (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜∀ A, srvRestM K.isOn E γr A = srvRest E γr A⌝ := by
+  refine (isServerM_C (GF := GF) K s γ ci TM E ρ γr).2.trans ?_
+  cases K with
+  | off => iintro -; ipureintro; intro A; rfl
+  | on γa =>
+    iintro H
+    simp only [AuthC.isOn]
+    iunfold isServerM at H
+    icases H with ⟨-, -, -, #Hat, -⟩
+    iunfold srvAtomicsM at Hat
+    icases Hat with ⟨-, -, #HkM⟩
+    ihave #Hkvi := srvKVInvsM_true s E γr $$ HkM
+    iunfold srvKVInvsOn at Hkvi
+    icases Hkvi with ⟨-, -, -, -, -, -, -, %Hrows⟩
+    ipureintro
+    intro A
+    apply srvRestM_lg_false
+    rw [apply.AEnv.lg_eq, ← Hrows.2.2.1]; exact Hrows.2.1
 
 theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :

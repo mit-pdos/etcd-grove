@@ -133,6 +133,12 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         · rfl
         · rw [Hon hao] at hklg; cases hklg
       have ekv : srvKVInvsM (GF := GF) E.authOn s E γr = srvKVInvs E γr := by rw [hon]; rfl
+      -- (auth-lease S3a) auth off: the premises at the off table
+      have hnl : mvcc.LogNoLease (kvModelM E.authOn γr.kv A') := by
+        have := hnl; rw [hon] at this ⊢; simpa using this
+      rw [hon, imageLeasesAtM_false] at hleaseI
+      ihave HRS : srvRestRp E γr A r0 $$ [HRS]
+      · rw [← srvRestRpM_false, ← hon]; iexact HRS
       ihave #HkO : srvKVInvs E γr $$ []
       · rw [← ekv]; iexact HkM
       iunfold srvKVInvs at HkO
@@ -280,7 +286,8 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     icases Hsrv4 with ⟨-, -, -, #Hat4, -, -, -⟩
     iunfold srvAtomicsM at Hat4
     icases Hat4 with ⟨-, -, #HkM⟩
-    ihave Hnil : |={⊤}=> ⌜(appliedTable γr A').ids = []⌝ $$ []
+    ihave Hnil : |={⊤}=> ⌜(appliedTable γr A').ids = [] ∧ (appliedTableM E.authOn γr A').ids = [] ∧
+        mvcc.LogNoLease (kvModelM E.authOn γr.kv A')⌝ $$ []
     · by_cases hon : E.authOn = true
       · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr =
             iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s) := by rw [hon]; rfl
@@ -290,9 +297,15 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         iunfold srvKVInvsOn at HkO
         icases HkO with ⟨#HkI, -, #HrI, -⟩
         imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HAlb with %Hpl
+        -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`: no leased key
+        imod (kvInvOn_log0 γr.raft γr.kv srvAuthSt0) $$ HkI with %Hl0
         imodintro; ipureintro
-        unfold appliedTable kvLeases
-        rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' (hlm0 ▸ Hpl)]; rfl
+        refine ⟨?_, ?_, ?_⟩
+        · unfold appliedTable kvLeases
+          rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' (hlm0 ▸ Hpl)]; rfl
+        · rw [hon, appliedTableM_true, hpre0, List.nil_append, kvLeasesOn_none _ _ A' (hlm0 ▸ Hpl)]; rfl
+        · rw [hon, kvModelM_true]; unfold kvModelOn
+          exact (kvRaftOfOn_restorable _ _ (srvAuthSt0, γr.kv.log0, []) A' (hlm0 ▸ Hpl) Hl0).1
       · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr = srvKVInvs E γr := by
           rw [show E.authOn = false by simpa using hon]; rfl
         ihave #HkO : srvKVInvs E γr $$ []
@@ -302,9 +315,19 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HAlb with %Hpl0
         imodintro; ipureintro
         have Hpl' : plainLogM γr.kv.cmp .none A' := hlm0 ▸ Hpl0.1
-        unfold appliedTable kvLeases
-        rw [hpre0, List.nil_append, kvTableOf_plainM _ _ _ A' Hpl']; rfl
-    imod Hnil with %hTnil
+        have h1 : (appliedTable γr A').ids = [] := by
+          unfold appliedTable kvLeases
+          rw [hpre0, List.nil_append, kvTableOf_plainM _ _ _ A' Hpl']; rfl
+        have hoff : E.authOn = false := by simpa using hon
+        refine ⟨h1, by rw [hoff, appliedTableM_false]; exact h1, ?_⟩
+        have := hnl; rw [hoff] at this ⊢; simpa using this
+    imod Hnil with %Hnil3
+    obtain ⟨hTnil, hTnilM, hnl⟩ := Hnil3
+    have hleaseI : imageLeasesAt γr d.P D A' := by
+      obtain ⟨f, hf, hb⟩ := hleaseI
+      refine ⟨f, ?_, ?_⟩
+      · exact leaseTTLsGeReq_of_ids_nil hTnil f
+      · rw [hb, hTnilM, hTnil]
     have hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ :=
       imageLeasesAt_nil hTnil hleaseI
     ihave #Hlrev2 : lease.lessorRevocable (mvcc.api.mvccLeases E.γ) $$ []
@@ -313,7 +336,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         rw [apply.AEnv.lm_of_lg_false hlgE]; rfl
       rw [← heq]; iexact Hlrev
     ihave HRS : E.RO r0 $$ [HRS]
-    · rw [← srvRestRp_false E γr A r0 Hlg0]; iexact HRS
+    · rw [← srvRestRp_false E γr A r0 Hlg0, ← srvRestRpM_lg_false E.authOn E γr A r0 Hlg0]; iexact HRS
     have hbe0 : backend.bktEnts (((backend.rbData d.P D).lookup go!"lease").getD ∅) =
         ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
       rw [hlease]
