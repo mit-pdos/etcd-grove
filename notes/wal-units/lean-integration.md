@@ -386,7 +386,9 @@ axioms are gone (tcb baseline and `wal-tester` collection updated).
 
 `dbd4495eb5` (`adeabfb2e4`), `32d1f57a80` (`8613a6b7e3`), `95c0f4e3f0` (`685ff8d336`): `etc/wal-lean-remerge.py`
 clean for every file but the links (regenerated: `--walfs`, `--durable`, `--wal-tester`) and the ledger (both
-sides' entries kept). Next base: `95c0f4e3f0`.
+sides' entries kept). After the gates, `16f1121760` (`da161b2497`, locks session 6: `PurgeCrash`, `PurgeRegion`,
+`PurgeSafe`, `os/RemoveN`, `os/UnlinkN`, all new files no link reaches): clean, links unchanged, full `lake
+build` OK (18430 jobs), `tcb-report --check` matches. Next base: `16f1121760`.
 
 ### Build and gates
 
@@ -411,5 +413,5 @@ inits (`bufio`, `hash.crc32`, `path.filepath` `opaqueInitsOk`, `walFsyncSec_init
 
 1. The user's review: the trusted changes pending on this branch (session 3's list), the two `pbSchemaOf`
    entries, and the two axiom-tok allow lines above.
-2. A re-merge if `wal-int` moves again (`etc/wal-lean-remerge.py 95c0f4e3f0`).
+2. A re-merge if `wal-int` moves again (`etc/wal-lean-remerge.py 16f1121760`).
 3. `notes/STATUS.md` (the coordinator), the session registry.
