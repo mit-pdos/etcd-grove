@@ -84,6 +84,7 @@ public import Proof.fmt.SprintfNamed
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getNewItemFunc
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.growSlice
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.handleCompactedErrorForPaging
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.interpretListError
 public import Proof.encoding.json.Marshal
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Get
@@ -597,9 +598,13 @@ theorem wp_growSlice :
     EtcdGrove.k8s.growSlice.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.growSlice.wp_proof reflect.Value.wp_Cap reflect.Value.wp_Len reflect.Value.wp_Type reflect.Value.wp_Set
 
+theorem wp_handleCompactedErrorForPaging :
+    EtcdGrove.k8s.handleCompactedErrorForPaging.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.handleCompactedErrorForPaging.wp_proof storage.wp_EncodeContinue apierrors.wp_NewResourceExpired
+
 theorem wp_interpretListError :
     EtcdGrove.k8s.interpretListError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.interpretListError.wp_proof apierrors.wp_NewResourceExpired
+  EtcdGrove.k8s.interpretListError.wp_proof apierrors.wp_NewResourceExpired wp_handleCompactedErrorForPaging
 
 theorem labels.Set.wp_Get :
     EtcdGrove.labels.Set.Get.spec (GF := GF) (hG := hG) :=
