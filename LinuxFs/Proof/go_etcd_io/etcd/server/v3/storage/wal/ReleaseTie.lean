@@ -140,7 +140,7 @@ theorem walInvBody_handleLook (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   rw [hl] at hl'; cases hl'
   icases walGhost_lksAgree s T Lk $$ Hg Htf with ⟨%hlks, Hg, Htf⟩
   have hsn : SegsNamed lay.segs hj0.cur := (HNm dir lay hl).1 hj0 hWDC
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl
+  have hnd : (lay.segs.map (·.ino)).Nodup := segsAll_nodup_segs HW.2.2.1 hl
   iframe Hn Htk Hv Htf
   isplitr
   · ipureintro

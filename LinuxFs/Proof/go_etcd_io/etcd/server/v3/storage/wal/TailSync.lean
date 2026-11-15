@@ -313,7 +313,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     · ipureintro; exact ⟨absentNone_sync Hab.1, dirsAvoid_sync Hab.2⟩
     isplitr
     · ipureintro
-      exact walsNamed_relay hl hs hLs hLj rfl rfl HNm
+      exact walsNamed_relay hl hs hLs hLj rfl rfl rfl HNm
     isplitl [Hpk]
     · iapply walParked_relay Ls cl dir lay Lw pre g0 (syncTail g0) hl hs hLs hLj
         rfl (by simp [syncTail]) $$ Hpk

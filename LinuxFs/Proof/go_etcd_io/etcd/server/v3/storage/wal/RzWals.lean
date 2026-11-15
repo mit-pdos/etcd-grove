@@ -65,23 +65,32 @@ theorem crashOkW_tailA {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     rw [hs, List.map_append, List.nodup_append] at hnd
     exact hnd.2.2 g'.ino (List.mem_map_of_mem hg'p) g0.ino (by simp) he
 
-/-- **`WalsOk` with a WAL's tail replaced, the crash step given.** -/
+/-- **The crash step of the full layout** (the removed segments `pg` in front of the named ones). -/
+def TailCrashStepF (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (pre : List SegG)
+    (g0 g : SegG) (wr' : Nat) (cl : List Claim) (n : Nat) : Prop :=
+  ∀ ents : Ents, WalAbsD C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) ents →
+    ((lay.pg ++ lay.segs).map (·.ino)).Nodup →
+    TailCrashStep C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) (lay.pg ++ pre) g0 g wr' cl n
+
+/-- **`WalsOk` with a WAL's tail replaced, the crash step given** (of the full layout). -/
 theorem walsOk_tailA {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
     {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
-    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hcut : g.om.cut = none)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hname : g.name = g0.name)
+    (hcut : g.om.cut = none)
     (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents)
-    (hstep : TailCrashStep C Mr d lay pre g0 g wr' cl n) :
+    (hstep : TailCrashStepF C Mr d lay pre g0 g wr' cl n) :
     WalsOk C Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl n := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hW
   have hsub : ∀ dir' lay', (<[dir := tailLay lay pre g wr']> Ls) !! dir' = some lay' →
-      ∃ lay1, Ls !! dir' = some lay1 ∧ (lay'.segs.map (·.ino)).Sublist (lay1.segs.map (·.ino)) := by
+      ∃ lay1, Ls !! dir' = some lay1 ∧
+        ((lay'.pg ++ lay'.segs).map (·.ino)).Sublist ((lay1.pg ++ lay1.segs).map (·.ino)) := by
     intro dir' lay' h
     by_cases e : dir' = dir
     · subst e
       rw [GMap.lookup_insert] at h; cases h
-      refine ⟨lay, hl, ?_⟩
+      refine ⟨lay, hl, sub_pg rfl ?_⟩
       rw [hs]; simp [tailLay, hino]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h
       exact ⟨lay', h, List.Sublist.refl _⟩
@@ -92,9 +101,15 @@ theorem walsOk_tailA {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, hcr⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       rw [e] at hjr hnm hc habs hcr
-      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
-      exact ⟨tailLay lay pre g wr', nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc, habs' _ habs,
-        crashOkW_tailA hnd hs hstep hcr⟩
+      have hnd := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
+      obtain ⟨⟨e0, hF⟩, hcrF⟩ := hcr
+      have hF' := walAbsD_full_tail habs hF (habs' _ habs) hs hino hname hnd rfl rfl (Nat.le_refl _)
+      refine ⟨tailLay lay pre g wr', nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc, habs' _ habs, ?_⟩
+      unfold WalFullOk
+      simp only [tailLay_pg]
+      refine ⟨⟨e0, hF'⟩, ?_⟩
+      rw [← tailLay_unpurge]
+      exact crashOkW_tailA hnd (by simp [hs]) (hstep e0 hF hnd) hcrF
     · obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
   · have e : dir' ≠ dir := by rintro rfl; rw [hd] at hn; cases hn
@@ -104,19 +119,20 @@ theorem walsOk_tailA {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     · subst e
       rw [GMap.lookup_insert] at hl'; cases hl'
       simp only [tailLay, List.mem_append, List.mem_singleton] at hg''
-      rcases hg'' with hg'' | rfl
+      rcases hg'' with hg'' | hg'' | rfl
+      · exact h4 g' (mem_segsAll_pg hl hg'')
       · exact h4 g' (mem_segsAll hl (by rw [hs]; exact List.mem_append_left _ hg''))
       · exact hcut
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-      exact h4 g' (mem_segsAll hl' hg'')
+      exact h4 g' (mem_segsAll_all hl' hg'')
 
-/-- **The directory keys with a tail replaced, the crash step given.** -/
-theorem dirKeysOk_tailA {C : WalCodec} {Mr : WalMarshal} {jr : Ino}
+/-- **The directory keys with a tail replaced, the crash step given** (of the full layout). -/
+theorem dirKeysOk_tailA {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
     {K : GMap GoString (Ino × List GoString)} {c : Option GoString} {dir : GoString}
     {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
-    (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
-    (hstep : TailCrashStep C Mr d lay pre g0 g wr' cl n)
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hstep : TailCrashStepF C Mr d lay pre g0 g wr' cl n)
     (h : DirKeysOk C Mr jr s Ls cl n K c) :
     DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c := by
   obtain ⟨h1, h2, h3⟩ := h
@@ -130,7 +146,12 @@ theorem dirKeysOk_tailA {C : WalCodec} {Mr : WalMarshal} {jr : Ino}
     · subst e
       rw [GMap.lookup_insert] at hl'; cases hl'
       rw [hd] at hd'; cases hd'
-      exact hstep none (fun la h => by cases h) (h2 dir' d lay hd hl hc)
+      obtain ⟨lay1, nm, hj, hl1, -, -, -, -, -, ⟨⟨e0, hF⟩, -⟩⟩ := hW.1 dir' d hd
+      rw [hl] at hl1; cases hl1
+      have hnd := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+      simp only [tailLay_pg]
+      rw [← tailLay_unpurge]
+      exact hstep e0 hF hnd none (fun la h => by cases h) (h2 dir' d lay hd hl hc)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
       exact h2 dir' d' lay' hd' hl' hc
 

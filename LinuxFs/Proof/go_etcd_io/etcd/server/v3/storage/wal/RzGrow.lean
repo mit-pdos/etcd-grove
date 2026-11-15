@@ -529,13 +529,13 @@ theorem rzGrow_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzSeg g0 tr tg k) lay.wr]> Ls) cl n K c) := by
   obtain ⟨ents, habs⟩ := habs
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
   have hg0 : g0 ∈ lay.segs := by rw [hs]; simp
   obtain ⟨hsz, hcut, hlo0, -, -⟩ := habs.metas g0 hg0
-  have hstep := tailCrashStep_rzGrow (C := C) (Mr := Mr) (d := d) (cl := cl) (k := n) (tr := tr)
-    hnd hs hsz.symm (by omega) hgrow htg hk htcz
-  refine ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
-    fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+  have hstep : TailCrashStepF C Mr d lay pre g0 (rzSeg g0 tr tg k) lay.wr cl n :=
+    fun e0 hF hndF => tailCrashStep_rzGrow (C := C) (Mr := Mr) (cl := cl) (k := n) (tr := tr)
+      hndF (by simp [hs]) hsz.symm (by omega) hgrow htg hk htcz
+  refine ⟨walsOk_tailA hW hd hl hs rfl rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
+    fun K c h => dirKeysOk_tailA hW hd hl hstep h⟩
   exact walAbsD_rzStart h hs hwr hlo htg (segBytesX_rzGrow hk hgrow htg hsz.symm htcz.1)
 
 /-- **A growth's landing**: `WalsOk` and the directory keys of the layout with the tail landed
@@ -554,12 +554,12 @@ theorem rzLandG_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     WalsOk C Mr R jr s (<[dir := tailLay lay pre (rzLandG g0 tr tg w k zs) lay.wr]> Ls) cl n ∧
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzLandG g0 tr tg w k zs) lay.wr]> Ls) cl n K c) := by
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
-  have hstep := tailCrashStep_rzLandG (C := C) (Mr := Mr) (d := d) (cl := cl) (k := n)
-    hnd hs hlen hgrow hw hzl hzf hzs
-  refine ⟨walsOk_tailA hW hd hl hs rfl ?_
+  have hstep : TailCrashStepF C Mr d lay pre (rzSeg g0 tr tg k) (rzLandG g0 tr tg w k zs) lay.wr cl n :=
+    fun e0 hF hndF => tailCrashStep_rzLandG (C := C) (Mr := Mr) (cl := cl) (k := n)
+      hndF (by simp [hs]) hlen hgrow hw hzl hzf hzs
+  refine ⟨walsOk_tailA hW hd hl hs rfl rfl ?_
     (fun ents h => walAbsD_rzLandG h hs hlen hgrow hw hzl hcut hlo hold hzf hzs) hstep,
-    fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+    fun K c h => dirKeysOk_tailA hW hd hl hstep h⟩
   simp [rzLandG, rsPostK, rsPost, OsMeta.announce, hcut]
 
 end grow

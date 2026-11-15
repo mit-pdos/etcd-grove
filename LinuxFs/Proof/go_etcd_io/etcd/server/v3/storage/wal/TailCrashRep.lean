@@ -498,6 +498,13 @@ end crash
 section pure
 variable [GooseExts]
 
+/-- `RepOld` reads the layout's segments only through its last one. -/
+theorem repOld_unpurge {lay : WalLay} (pg : List SegG) (hne : lay.segs ≠ []) :
+    RepOld (unpurge pg lay) ↔ RepOld lay := by
+  unfold RepOld
+  rw [unpurge_getLast? pg hne]
+  rfl
+
 /-- **The truncate's start at `wr` from a `RepOld` tail is a crash step** (`crashOkA_tailRep`; `RepOld`
 of the announced tail by `repOld_rzCands` over `segBytesX_rzSeg`). -/
 theorem tailCrashStep_rzStartR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
@@ -538,17 +545,20 @@ theorem rzStart_pureR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {
   rcases hZR with hZ | ⟨hR, hS⟩
   · exact rzStart_pure hC hW hd hl hs habs hcut hZ hB hk htcz hlo
   obtain ⟨ents, habs⟩ := habs
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
   obtain ⟨hsz, -, -, hhi, -⟩ := habs.metas g0 (by rw [hs]; simp)
   obtain ⟨-, -, -, hwb, -⟩ := habs.lastWin g0 (by rw [hs]; simp)
   have habs' : ∀ ents', WalAbsD C Mr d lay ents' →
       WalAbsD C Mr d (tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr) ents' := fun ents' h =>
     walAbsD_rzStart h hs (Nat.le_refl _) (Nat.min_le_right _ _) (by omega)
       (segBytesX_rzSeg hk (by omega) hsz.symm (by omega) htcz.1)
-  have hstep := tailCrashStep_rzStartR (cl := cl) (k := n) hC habs (habs' ents habs) hR hS hnd hs
-    hsz.symm htcz hk
-  exact ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) habs' hstep,
-    fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+  have hstep : TailCrashStepF C Mr d lay pre g0 (rzSeg g0 true lay.wr k) lay.wr cl n := by
+    intro e0 hF hndF
+    have hF' := walAbsD_full_tail habs hF (habs' ents habs) hs rfl rfl hndF rfl rfl (Nat.le_refl _)
+    rw [← tailLay_unpurge] at hF'
+    exact tailCrashStep_rzStartR (cl := cl) (k := n) hC hF hF' ((repOld_unpurge _ habs.nonempty).2 hR)
+      hS hndF (by simp [hs]) hsz.symm htcz hk
+  exact ⟨walsOk_tailA hW hd hl hs rfl rfl (by simp [rzSeg, hcut]) habs' hstep,
+    fun K c h => dirKeysOk_tailA hW hd hl hstep h⟩
 
 /-- **The truncate's first step at the write position, by the tail's right** (`walTail_truncSup`'s start;
 the W7-W12 log, thirteenth session): F-Z by the key; F-Z or `TailPend` lent (`rzStart_pureP`); F-Z or

@@ -79,7 +79,7 @@ theorem dirKeysOk_cutSynced {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : I
             rw [hlt, Option.some_or] at hg0
             cases hg0
             exact List.mem_of_getLast? hlt
-        have hnd := ((segsAll_nodup_iff Ls).1 hok.2.2.1).1 dir lay hl
+        have hnd := segsAll_nodup_segs hok.2.2.1 hl
         rw [← ht, List.map_append] at hnd
         exact (List.nodup_append.1 hnd).2.2 _ (List.mem_map_of_mem hg') _
           (List.mem_map_of_mem hg0t) hgi

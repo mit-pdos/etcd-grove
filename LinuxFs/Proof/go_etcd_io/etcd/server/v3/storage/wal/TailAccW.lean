@@ -224,16 +224,21 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   -- the other segments' parts, unchanged
   have hpre_ne : ∀ g' ∈ pre, g'.ino ≠ g0.ino := by
     intro g' hg' he
-    have h := hnd.1 dir lay hl
+    have h := segsAll_nodup_segs hW3 hl
     rw [hs, List.map_append, List.nodup_append] at h
     exact h.2.2 g'.ino (List.mem_map_of_mem hg') g0.ino (by simp) he
-  have hrest_ne : ∀ g' ∈ segsAll (Iris.Std.delete Ls dir), g'.ino ≠ g0.ino := by
+  have hrest_ne : ∀ g' ∈ segsAll (<[dir := { lay with segs := [] }]> Ls), g'.ino ≠ g0.ino := by
     intro g' hg' he
     obtain ⟨dir', lay', hl', hg''⟩ := segsAll_mem hg'
-    change GMap.delete dir Ls !! dir' = some lay' at hl'
-    have hne : dir' ≠ dir := by rintro rfl; rw [GMap.lookup_delete_eq] at hl'; cases hl'
-    have hl'' : Ls !! dir' = some lay' := by rwa [GMap.lookup_delete_ne _ (Ne.symm hne)] at hl'
-    exact hnd.2 dir' dir lay' lay hne hl'' hl g' hg'' g0 hg0m he
+    by_cases hne : dir' = dir
+    · subst hne
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      simp only [List.append_nil] at hg''
+      have h := hnd.1 dir' lay hl
+      rw [List.map_append, List.nodup_append] at h
+      exact h.2.2 g'.ino (List.mem_map_of_mem hg'') g0.ino (List.mem_map_of_mem hg0m) he
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)] at hl'
+      exact hnd.2 dir' dir lay' lay hne hl' hl g' hg'' g0 (List.mem_append_right _ hg0m) he
   ihave Hrest := laysResF_congr (L := L) F F' _ (fun g' hg' => hF' _ (hrest_ne g' hg')) $$ Hrest
   ihave Hpre : [∗list] g' ∈ pre, segResF (L := L) F' g' $$ [Hpre]
   · iapply BigSepL.bigSepL_mono (fun {k g'} hk => ?_) $$ Hpre
@@ -244,16 +249,13 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   isplitr
   · ipureintro; exact Har
   isplitl [Hpre Hseg Hrest]
-  · iapply (laysResF_map (L := L) F' _).2
-    iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-      iprop([∗list] g ∈ lay.segs, segResF (L := L) F' g))).2
-    isplitl [Hpre Hseg]
-    · simp only [tailLay]
-      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-      iframe Hpre
-      iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
-      iexact Hseg
-    · iapply (laysResF_map (L := L) F' _).1 $$ Hrest
+  · iapply laysResF_put (L := L) F' Ls dir lay (tailLay lay pre g wr') rfl
+    iframe Hrest
+    simp only [tailLay]
+    iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+    iframe Hpre
+    iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+    iexact Hseg
   isplitr
   · ipureintro; exact hW'
   isplitr
@@ -300,7 +302,8 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       obtain ⟨hd', hl', hg', hZ', hB'⟩ := hp'
       have hg'm : g' ∈ lay'.segs := List.mem_of_getLast? hg'
       have he : F' !! g'.ino = F !! g'.ino :=
-        hF' _ (hnd.2 k dir lay' lay hne hl' hl g' hg'm g0 hg0m)
+        hF' _ (hnd.2 k dir lay' lay hne hl' hl g' (List.mem_append_right _ hg'm) g0
+          (List.mem_append_right _ hg0m))
       iexists d', lay', g'
       rw [he]
       iframe Hv''

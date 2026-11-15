@@ -223,7 +223,7 @@ theorem walsOk_drop {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s :
   refine ⟨fun dir d hd' => ?_, hnone, hnd, hcut, ?_, ?_⟩
   · obtain ⟨lay, nm, hj, hl, hia, hjr, hnm, hwd, hab, hco⟩ := hw dir d hd'
     refine ⟨lay, nm, hj, hl, hia, hjr, hnm, walDirClaim_drop hnW hl hwd, hab,
-      crashOkW_drop hd hbw ?_ hco⟩
+      hco.1, crashOkW_drop hd hbw ?_ hco.2⟩
     rintro ⟨-, h2⟩
     exact hbn (h2 ▸ hnm ▸ hia.1)
   · intro dir nm hia hn m' hr J hJ

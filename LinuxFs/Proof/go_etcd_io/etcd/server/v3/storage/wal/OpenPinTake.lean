@@ -176,7 +176,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     mem_segsAll hl (List.mem_of_mem_drop hg)
   have hnd : ((lay.segs.drop (k lay)).map (·.ino)).Nodup := by
     rw [List.map_drop]
-    exact (((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl).sublist (List.drop_sublist _ _)
+    exact (segsAll_nodup_segs HW.2.2.1 hl).sublist (List.drop_sublist _ _)
   imod walParked_takeSegs (L := L) (W := W) Ls cl ∅ WalOut.empty (lay.segs.drop (k lay)) hS
     (fun _ _ h => by cases h) hnd $$ Hpk Ho with ⟨Hpk, Ho, HS, -⟩
   -- the directory's claim
@@ -197,7 +197,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ (lay.segs.map (·.ino)).Nodup ∧
       SegsNamed lay.segs hj.cur := by
     rw [hnm]
-    exact ⟨hA, hjr, hX, hcoh, habs, ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl,
+    exact ⟨hA, hjr, hX, hcoh, habs, segsAll_nodup_segs HW.2.2.1 hl,
       (HNm dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩⟩
   cases write with
   | false =>

@@ -53,10 +53,10 @@ theorem rzStart_pure {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr]> Ls) cl n K c) := by
   obtain ⟨ents, habs⟩ := habs
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
-  have hstep := tailCrashStep_rzStart (cl := cl) (k := n) hC habs hZ hB hnd hs hk htcz hlo
-  refine ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
-    fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+  have hstep : TailCrashStepF C Mr d lay pre g0 (rzSeg g0 true lay.wr k) lay.wr cl n :=
+    fun e0 hF hndF => tailCrashStep_rzStart (cl := cl) (k := n) hC hF hZ hB hndF (by simp [hs]) hk htcz hlo
+  refine ⟨walsOk_tailA hW hd hl hs rfl rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
+    fun K c h => dirKeysOk_tailA hW hd hl hstep h⟩
   obtain ⟨hsz, -, -, hhi, -⟩ := h.metas g0 (by rw [hs]; simp)
   obtain ⟨-, -, -, hwb, -⟩ := h.lastWin g0 (by rw [hs]; simp)
   exact walAbsD_rzStart h hs (Nat.le_refl _) (Nat.min_le_right _ _) (by omega)
@@ -74,10 +74,11 @@ theorem rzLand_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     WalsOk C Mr R jr s (<[dir := tailLay lay pre (rzLand g0 lay.wr k) lay.wr]> Ls) cl n ∧
       (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzLand g0 lay.wr k) lay.wr]> Ls) cl n K c) := by
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
-  have hstep := tailCrashStep_rzLand (C := C) (Mr := Mr) (d := d) (cl := cl) (k := n) hnd hs hlen hwr hhi
-  refine ⟨walsOk_tailA hW hd hl hs rfl ?_ (fun ents h => walAbsD_rzLand h hs hlen hwr hcut hhi) hstep,
-    fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+  have hstep : TailCrashStepF C Mr d lay pre (rzSeg g0 true lay.wr k) (rzLand g0 lay.wr k) lay.wr cl n :=
+    fun e0 hF hndF => tailCrashStep_rzLand (C := C) (Mr := Mr) (cl := cl) (k := n) hndF (by simp [hs])
+      hlen hwr hhi
+  refine ⟨walsOk_tailA hW hd hl hs rfl rfl ?_ (fun ents h => walAbsD_rzLand h hs hlen hwr hcut hhi) hstep,
+    fun K c h => dirKeysOk_tailA hW hd hl hstep h⟩
   simp [rzLand, rsPostK, rsPost, OsMeta.announce, hcut]
 
 end pure

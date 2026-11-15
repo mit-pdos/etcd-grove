@@ -343,7 +343,7 @@ theorem walsOk_syncP {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, -⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       rw [e] at hjr hnm hc habs
-      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
+      have hnd : (lay.segs.map (·.ino)).Nodup := segsAll_nodup_segs h3 hl
       exact ⟨syncLayP lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
         walAbsD_syncP habs hs htail hP hlw,
         ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
@@ -394,7 +394,7 @@ theorem dirKeysOk_syncP {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       obtain ⟨lay1, nm1, hj1, hl1, -, -, -, -, habs, -⟩ := hW.1 dir' d hd
       rw [hl] at hl1; cases hl1
       have hnd : (lay.segs.map (·.ino)).Nodup :=
-        ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+        segsAll_nodup_segs hW.2.2.1 hl
       have hok := (crashOkA_none_iff _ _ _ _ _ _).1 (h2 dir' d lay hd hl (by simp))
       exact (crashOkA_none_iff _ _ _ _ _ _).2 (crashOk_syncP habs hs htail hP hlw hnd hzf hok)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'

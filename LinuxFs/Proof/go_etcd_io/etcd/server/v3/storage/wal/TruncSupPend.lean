@@ -82,17 +82,19 @@ theorem rzStart_pureP {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {
   rcases hZP with hZ | ⟨hP, hS⟩
   · exact rzStart_pure hC hW hd hl hs habs hcut hZ hB hk htcz hlo
   obtain ⟨ents, habs⟩ := habs
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
   obtain ⟨hsz, -, -, hhi, -⟩ := habs.metas g0 (by rw [hs]; simp)
   obtain ⟨-, -, -, hwb, -⟩ := habs.lastWin g0 (by rw [hs]; simp)
   have habs' : ∀ ents', WalAbsD C Mr d lay ents' →
       WalAbsD C Mr d (tailLay lay pre (rzSeg g0 true lay.wr k) lay.wr) ents' := fun ents' h =>
     walAbsD_rzStart h hs (Nat.le_refl _) (Nat.min_le_right _ _) (by omega)
       (segBytesX_rzSeg hk (by omega) hsz.symm (by omega) htcz.1)
-  have hstep := tailCrashStep_rzStartP (cl := cl) (k := n) habs (habs' ents habs) hP hS hnd hs
-    hsz.symm htcz
-  exact ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) habs' hstep,
-    fun K c h => dirKeysOk_tailA hd hl hstep h⟩
+  have hstep : TailCrashStepF C Mr d lay pre g0 (rzSeg g0 true lay.wr k) lay.wr cl n := by
+    intro e0 hF hndF
+    have hF' := walAbsD_full_tail habs hF (habs' ents habs) hs rfl rfl hndF rfl rfl (Nat.le_refl _)
+    rw [← tailLay_unpurge] at hF'
+    exact tailCrashStep_rzStartP (cl := cl) (k := n) hF hF' hP hS hndF (by simp [hs]) hsz.symm htcz
+  exact ⟨walsOk_tailA hW hd hl hs rfl rfl (by simp [rzSeg, hcut]) habs' hstep,
+    fun K c h => dirKeysOk_tailA hW hd hl hstep h⟩
 
 end pure
 

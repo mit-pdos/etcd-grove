@@ -237,7 +237,7 @@ theorem walInvBody_readState (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   subst hF'
   have hid : TailIdle C Mr d lay := hidle dir d lay hd hl
   have hsn : SegsNamed lay.segs hj0.cur := (HNm dir lay hl).1 hj0 hWDC
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl
+  have hnd : (lay.segs.map (·.ino)).Nodup := segsAll_nodup_segs HW.2.2.1 hl
   obtain ⟨kk, hkk⟩ := hdrop
   have hn : (lay.segs.drop kk).map (·.name) = gs.map (·.name) := by
     rw [List.map_drop, ← walNames_segs hsn habs.names.1 hnd habs.names.2]; exact hkk
