@@ -107,3 +107,61 @@ Edits:
   (raft untouched, so as not to rebuild raft's importers).
 - SpecPlan: ledger entry 2026-11-15 (`applyAll.spec` sketch), `SpecPlan/.../EtcdServer__applyAll.lean` sketch text.
 Build log: `/shared/tmp/restart3-a1/build-g2-*.log`.
+
+## C-stages (2026-11-15; branch `restart3-c` off `1e218a9004`, so A1 (`restart3`) lands alone)
+
+The A1 Freeze package is approved by etcd-grove-81 (all 19 rows); A1 lands once the user pushes `6e8f0c004`
+(then goose --check, go.sum, merge lean, hard stop before land.sh). The worktree is on `restart3-c`; check out
+`restart3` to land A1.
+
+### C1 done (`98b2f8f7af`)
+- `examples/etcd/restart/restart3.go` rewritten in place (project `restart3` of `etc/goose.py`, package `restart`):
+  `build` x3 (BuildServer at SnapCount = SnapCatchUp = 1), `newMember` (listen, serve a `raftSwap` holding the
+  built incarnation's `RaftHandler()`, `Start`), N1 = 5 in-process `Put`s through member 1, the follower stopped
+  (member 3, or member 2 if 3 leads; `stop`: wait `AppliedIndex() >= NBoot`, `HardStop`), N2 = 20 `Put`s,
+  `restartMember` (build on the data directory, `sw.set(RaftHandler())`, `Start`), `check` (wait `Leader() != 0`,
+  linearizable `Range` of ["k","l"), exactly N1+N2 pairs at version 1, revision 1+N1+N2). No gRPC served; the
+  address is never closed or re-listened (D-R3-4). Each incarnation is built before its handler is served or
+  swapped, so `raftSwap.h` is never unset (no `http.NotFoundHandler` needed).
+- `restart3_test.go`: `TestMemberIDs`, `TestRun` (restart1's counting core, plus merged snapshots sent/installed and
+  compactions). 20/20 under the 32G cap, each in its own process, a merged snapshot sent and installed after the
+  restart in every run (`/shared/tmp/restart3-c/v2/run-*.txt`).
+- Go runs need the unpushed fork: `go test -modfile=/shared/tmp/restart3-c/alt.mod` (examples/go.mod at
+  `2eaeb872b` with `server/v3` replaced by `/shared/tmp/restart3-a0/etcd-fork/server`, at `6e8f0c004`), `GOWORK=off
+  GOFLAGS=-mod=mod`.
+- Translation: `etc/goose.py --project restart3 --src etcd=/shared/tmp/restart3-a0/etcd-fork`, with examples/go.mod
+  and go.sum TEMPORARILY replaced by `alt.mod`/`alt.sum` (goose's package loader cannot resolve `6e8f0c004` without
+  sums; GOFLAGS=-modfile breaks goose's own build in workspace mode), then restored from
+  `/shared/tmp/restart3-c/go.{mod,sum}.keep`. Redo with the real go.mod once the fork is pushed.
+- **The Lean drafts under `{Spec,Proof}/github_com/mit_pdos/etcd_grove/examples/etcd/restart/` still state the old
+  gRPC workload and no longer match the translation: they do not build. C2 replaces them.**
+
+### C2 plan (next): the example proofs, restart1's generalized
+- Specs (`Spec/.../examples/etcd/restart/`): `build.spec` (= `etcdstart.BuildServer.spec`/`specRestart` at the
+  token `restart3`), `newMember.spec` (Listen + Serve of a `raftSwap` + `Start`, from the old `startMember.wp_proof`
+  lines 79-130), `restartMember.spec`, `put.spec`, `stop.spec`, `check.spec`, `Run.spec`, `Main.spec`; delete
+  `serveClient`, `restartCheck`.
+- Proofs: restart1's `KV.lean` (`r1Inv`, the counter, `r1ReadAu`), `Requests.lean` (`putRequestIs_alloc`,
+  `rangeRequestIs_alloc`, `bgCtx_facts`), `put.lean`, `check.lean`, `stop.lean` carry over with the cluster's
+  `kvInv` (shared through `restartNames`) and N = N1 + N2 = 25 keys; `Run.lean` from putget3's three-member start
+  (`etcdstart.alloc3`-style ghost setup) plus restart1's stop/restart steps (`memberUp_splitStop`,
+  `memberBoot_restartFacts`, `memberFreshRes_verify`); the old draft `restart/Run.lean` has the three-member
+  restart's resource plumbing (`Hrfs₂/₃`, `Hvoff`).
+- Read path: the `Range` at the restarted member goes through the read index (`MsgReadIndex` to the leader), the
+  multi-voter path already proved (Scope §4).
+
+### C3 plan: the swap handler, no trusted text
+`raftSwap.ServeHTTP.spec` must give `http.handlerOk (raftHttpNet (netRh γn)) a Rs_sw sw` for ONE `Rs_sw` across
+incarnations, while each incarnation's `RaftHandler()` is `handlerOk … (srvServeRes γn τ) h` at its own names.
+Sketch: the mutex's invariant holds the current incarnation `k`, `sw.h ↦ h_k`, `handlerOk … (srvServeRes γn_k τ_k)
+h_k` (persistent), and a pool of the current incarnation's `srvServeRes` copies; `Rs_sw` is a slot token
+(`httpProcSlots` of them, allocated by `newMember`). `ServeHTTP`: lock, read `h`, trade the slot token for one copy
+of the current pool, unlock, call `h`, then return the copy to its incarnation's pool (an old incarnation's pool
+after a swap is garbage) and get the token back. Invariant: size(pool_cur) = httpProcSlots − inflight_cur ≥ free
+tokens. `set` (at the restart) installs the new incarnation with the `httpProcSlots` fresh copies that
+`BuildServer.specRestart`'s serve bundle gives (`HServeR`). Old invocations in flight keep the stopped
+incarnation's copy (Scope §2.2 (i)-(ii)): check that `HardStop`'s post leaves `srvServeRes` copies usable by an
+in-flight handler run (`EtcdServer__HardStop.lean:24-27`), and that the transport tolerates the wasted delivery.
+Est. 0.5-1 wk.
+
+### Then C4 (hard stop before linking): the statement of `etcd_restart3_safe` and its premises in plain words.
