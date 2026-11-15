@@ -2403,20 +2403,20 @@ theorem server_raft_request :
 (`authRaftOk_on`): a success is the request applied at the committed prefix before its entry, the
 auth state after it published, its step determinate there. Every callee linked. -/
 theorem server_auth_enable_on : EtcdServer.AuthEnable.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.AuthEnable.wp_proofOn server_raft_request
+  EtcdServer.AuthEnable.spec_on EtcdServer.wp_AuthEnable server_raft_request
 
 theorem server_user_add_on : EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.UserAdd.wp_proofOn bcrypt.wp_GenerateFromPassword server_raft_request
+  EtcdServer.UserAdd.spec_on EtcdServer.wp_UserAdd server_raft_request
 
 theorem server_role_add_on : EtcdServer.RoleAdd.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.RoleAdd.wp_proofOn server_raft_request
+  EtcdServer.RoleAdd.spec_on EtcdServer.wp_RoleAdd server_raft_request
 
 theorem server_user_grant_role_on : EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.UserGrantRole.wp_proofOn server_raft_request
+  EtcdServer.UserGrantRole.spec_on EtcdServer.wp_UserGrantRole server_raft_request
 
 theorem server_role_grant_permission_on :
     EtcdServer.RoleGrantPermission.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.RoleGrantPermission.wp_proofOn server_raft_request
+  EtcdServer.RoleGrantPermission.spec_on EtcdServer.wp_RoleGrantPermission server_raft_request
 
 /-- **`Authenticate` with auth on** (C1's A4, 2026-10-31): the read index, then the retry loop of
 `CheckPassword`, `GenTokenPrefix` and one proposal in the mode `on` (`server_raft_request`); on

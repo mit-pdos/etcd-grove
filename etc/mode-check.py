@@ -19,7 +19,7 @@ and per package, so that the refactor's progress is tracked and no new divergenc
 a file is its directory without the `Spec`/`Proof` level.
 
 Each finding is classified in `etc/mode-allow.txt` (`KIND CLASS REGEX  # why`, the regex searched in
-`FILE::DECLARATION::TEXT`; the classes: model, flag, corollary, pair, bridge, unmoved); a finding
+`FILE::DECLARATION::TEXT`; the classes: model, flag, corollary, pair, bridge, members, unmoved); a finding
 that no line classifies fails the check. The counts are checked against `etc/mode-baseline.txt`,
 which may only go down: a ratchet (every later stage of the refactor lowers it).
 
@@ -56,7 +56,7 @@ SCOPE = [
     "github_com/mit_pdos/etcd_grove/examples",
 ]
 KIND_NAMES = ["match-mode", "twin", "lit-mode"]
-CLASSES = ["model", "flag", "corollary", "pair", "bridge", "unmoved"]
+CLASSES = ["model", "flag", "corollary", "pair", "bridge", "members", "unmoved"]
 
 DECL = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable|partial|unsafe)\s+)*"
                   r"(def|abbrev|instance|theorem|lemma|structure|inductive|opaque|axiom|class)\b\s*([^\s:(\[{]*)",
