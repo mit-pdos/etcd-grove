@@ -82,3 +82,24 @@ then the Freeze package (hard stop).
   1210-1452 → `T := iprop(True)`); then row 4, `rnSnapMsg`'s bound, `srvRestartRows` (list above); then a full
   build (flock, 64G), interfaces (server, etcdstart, raft untouched), SpecPlan ledger entry, tcb `--check`
   (unchanged expected), the Freeze package (hard stop).
+
+### A1 g2 (2026-11-15, second agent)
+Edits (uncommitted until the build passes; then one commit "restart3 A1 g2"):
+- `srvWinPend` (`InvRun.lean`) and `srvWinPend_first` deleted; the `Hwpend` row out of `isServerRunC`,
+  `isServerBuiltC` (`AuthCompRows`), `srvApplyAllBuilt`/`InvStart`, `InvBuild`, `srvBuiltG` (`ServerOn`),
+  `isServerBuiltOn` (`StartOn`); the positional patterns in `AuthCompRows`, `BuildGap`, `StartOn`, `ModeSpecs`,
+  `EtcdServer__start`, `NewServer`, `NewServerR`.
+- `EtcdServer__run`: no `token γwp` (the saved props are `applyResR ∗ nodeRunning`); `run_job_body` lost its
+  `T` binder (internal); `Hbagn` replaced by `HmidN0 : srvMemberIDAddr s ↦□ γn.id` (for the stop's cleanup).
+- `winNoMergedSendR`, `winNoMergedSendR_nil`, `srvSnapBagN` deleted (`ApplyRDefs`).
+- Row 4: `rnSnapTermAbove`, `rnSnapTermOk(_cons)`, `rnRestartOk_snapTerm` deleted (`InvRaftNode`);
+  `rnRestartOk`'s restart disjunct loses it; `rnRawMsgs` loses `⌜rnSnapTermOk γ ms⌝`; `rnMsgOk_of_api` loses the
+  premise; `rnSnapMsg`'s pure is `⌜Type' = MsgSnap⌝` (the `t0 < Term'` bound gone); `NodeStartSpecR`'s installer
+  loses `rnSnapTermAbove γw`. `RNNames.t0` kept (read only by `rnRestartOk`'s first disjunct `t0 = 0`).
+- `srvRestartRows` (`InvRestart`) deleted, `RestartRowsSingle.lean` deleted (git rm); `NewServer.specR`'s
+  `Hrows`; etcdstart `newServer/newServerMode/BuildServer.specRestart`'s `□ ∀ A σ, srvRestartRows`; restart
+  (3-member draft) `startMember/restartCheck` specs and `Run.wp_proof`'s `hRows`; restart1's proof.
+- Not touched: `Proof/go_etcd_io/raft/v3/InvNodeRule.lean:455`'s docstring still names `srvRestartRows_single`
+  (raft untouched, so as not to rebuild raft's importers).
+- SpecPlan: ledger entry 2026-11-15 (`applyAll.spec` sketch), `SpecPlan/.../EtcdServer__applyAll.lean` sketch text.
+Build log: `/shared/tmp/restart3-a1/build-g2-*.log`.

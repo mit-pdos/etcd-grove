@@ -2,7 +2,7 @@
 **The restart window's vocabulary** (R2d' probe, A3–A5, 2026-11-06; `notes/restart-plan.md`,
 "R2d' Scope (approved 2026-11-06)" and the R2d'a sections). Written as the probe's draft; since the
 swap batches (R2d'a, 2026-11-06/07) frozen specs are written in its definitions (`srvRestR`,
-`srvRestRp`, `kvBatchR`, `winNoMergedSendR`, `srvSnapBagN`: `applyAll.specBatch`/`specSnapM`,
+`srvRestRp`, `kvBatchR`: `applyAll.specBatch`/`specSnapM`,
 `applyEntries.specBatch`, `applySnapshot.specSnapM`, `apply.spec`, `applyEntryNormal.spec`), so
 changing one is a spec change.
 Lean-first (no Rocq counterpart).
@@ -23,8 +23,8 @@ the ghost log `ghostOf rp G` (`RestReplay.lean`) while Go's rows walk `G`.
   the model's past the window.
 * a replayed conf change is `applyConfChange.spec`'s `v3 = false` case (swap batch 1, 2026-11-06),
   a replayed normal entry `applyEntryNormal.spec`'s (Q23 (a), 2026-11-06).
-* `winNoMergedSendR`, `srvSnapBagN`: `applyAll.specBatch`'s window rows (moved from `RunR.lean` by
-  swap batch 3, 2026-11-06, for the spec's text).
+* (restart3 A1, 2026-11-15) `winNoMergedSendR` and `srvSnapBagN`, `applyAll.specBatch`'s window rows,
+  deleted: the fork's window guard defers a merge inside the replay window (A-g).
 -/
 module
 
@@ -94,44 +94,6 @@ def kvBatchR (γr : ReadNames) (c ai : w64) (rp : RestartPt) (G ms : List EntryM
 instance kvBatchR_persistent (γr : ReadNames) (c ai : w64) (rp : RestartPt) (G ms : List EntryModel) :
     Persistent (kvBatchR (GF := GF) γr c ai rp G ms) := by
   unfold kvBatchR; infer_instance
-
-open go_etcd_io.raft.v3 in
-/-- **No merged snapshot send while a window is left** (from `r2d-prime`'s
-`winNoMergedSend`, `ApplyWindow.lean:277`): with entries `R` of the window left after the batch,
-the message the batch takes from this member's bag (`msgOwn m 1`, sent from the server's
-`memberID`) is not a `MsgSnap` at the batch's raft term `rt` (Go merges only one at `rt`,
-`server.go:1018`). (R2d'a A10 item 5, approved by 82: narrowed to `t0 < rt`, `Hwpend`'s guard) Only
-for a term above the start term `t0`: at `rt ≤ t0` the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s
-bound), so not at `rt`. (A10 item 4) Persistent, over a resource `T` it borrows and gives back
-(`Hwpend`'s window token, which the batch's `applyAll.specBatch` takes and returns: the loop keeps
-it across the window's batches). -/
-def winNoMergedSendR (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (R : List EntryModel)
-    (rt : w64) : IProp GF :=
-  letI := srvStor (GF := GF) γ
-  iprop(⌜R = []⌝ ∨
-    □ (⌜uint.Z t0 < uint.Z rt⌝ -∗ T -∗ ∀ (id : w64) (m : Loc) (st : MsgSt),
-      srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st ={⊤}=∗
-        ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ T))
-
-instance winNoMergedSendR_persistent (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF)
-    (R : List EntryModel) (rt : w64) : Persistent (winNoMergedSendR (GF := GF) γ s t0 T R rt) := by
-  unfold winNoMergedSendR; infer_instance
-
-theorem winNoMergedSendR_nil (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (rt : w64) :
-    ⊢ winNoMergedSendR (GF := GF) γ s t0 T [] rt := by
-  unfold winNoMergedSendR
-  ileft; ipureintro; rfl
-
-/-- (R2d'a A10 item 5) **The raft node's `MsgSnap` bag, at the server** (persistent; `isServerRunC`'s
-`#Hmid` and `#Hrn`'s): the server's member id the node's, and `msgSnapC` the node's bag of
-`rnSnapMsg γn`, whose `MsgSnap`s are above `γn.t0`. `applyAll`'s merged-send case receives through
-it at `rt ≤ γn.t0` (`isServerApplyAll`'s bag names are existential). -/
-def srvSnapBagN (s : Loc) (γn : RNNames) : IProp GF :=
-  iprop(srvMemberIDAddr s ↦□ γn.id ∗
-    (∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗ isRNMsgSnapC γn msc))
-
-instance srvSnapBagN_persistent (s : Loc) (γn : RNNames) : Persistent (srvSnapBagN (GF := GF) s γn) := by
-  unfold srvSnapBagN; infer_instance
 
 end defs
 

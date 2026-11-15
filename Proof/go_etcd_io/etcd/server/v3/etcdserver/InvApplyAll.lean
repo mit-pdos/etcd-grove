@@ -128,7 +128,7 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- raft loop's `processMessages`); until then it never delivered (D19p: `□ (∀ m, P m -∗ False)`);
     -- (2026-10-31, S1) the raft node's, of the server's raft names (until then any `P`);
     -- (R2d'a A7, 2026-11-06, DRAFT; `r2d-freeze1`'s F2) its node's id the server's member id
-    -- (`winNoMergedSendR`: this member's sends); (restart3 A1, 2026-11-15, D-A0-2) the wrapper's node
+    -- (this member's sends); (restart3 A1, 2026-11-15, D-A0-2) the wrapper's node
     -- and its inbound methods (`rnStepIfc`, `srvProcOk`'s), which `ReportSnapshot` of a deferred or
     -- dropped merged snapshot reads
     (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗

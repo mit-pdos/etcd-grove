@@ -58,11 +58,10 @@ resources and the scope as premises). The `errorc` path stays closed.
 is replayed through the window `(|P|, |A₀|]` (a first start is `A₀ = P = []`).
 
 **The restart-only premises** (`notes/restart-plan.md`, "R2d'a restart-only premises"; each
-proved or vacuous at a first start; R2s removes 1; S1, 2026-11-11: rows 2-3 replaced by two facts):
-* `srvWinPend` (`isServerRunC`'s `Hwpend`, A7): no merged snapshot sent at a new raft term while the
-  replay window is pending. **False whenever the restarted member is later elected and snapshots a
-  follower** (its `n` is free and its token never consumed; corrected 2026-11-07); R2d'b restates
-  it, R2s removes it (by following the merged snapshot in the ghost).
+proved or vacuous at a first start; S1, 2026-11-11: rows 2-3 replaced by two facts):
+* (restart3 A1, 2026-11-15; until then `srvWinPend`, `isServerRunC`'s `Hwpend`, row 1, false whenever
+  the restarted member was later elected and snapshotted a follower) deleted: the fork's merge defers a
+  merged snapshot inside the replay window (`applyAll.specBatch`).
 * (S1; until then `rnWinInstallAbove`, row 2, a premise) a snapshot a `Ready` installs inside the
   window is above the backend's log: **derived** (`rnRestartOk_winAbove`), from raft's (a snapshot
   is above the hard state's commit, `readyRest_snap`), the loop's fact below and the names' fact.
@@ -75,8 +74,7 @@ proved or vacuous at a first start; R2s removes 1; S1, 2026-11-11: rows 2-3 repl
   commit never below the restored one, proved through the loop (`readyRest_commit_mono`), and `0 ≤ _`
   at a first start; at a restart R2d'b's `RestartNode` gives it (the driver starts at the restored
   hard state, whose commit is `commit0`). Crash-proof.
-* `rnSnapTermAbove` (`rnRestartOk`'s): every `MsgSnap` a `Ready` carries has a term above the
-  incarnation's start term.
+* (restart3 A1, 2026-11-15; until then `rnSnapTermAbove`, row 4) no bound on the `MsgSnap`s' terms.
 * `ai₀ + |A₀| + 1 < 2^64` (`srvRunRestartR`'s): room past the replayed log (S4: `start` derives it
   from the `srvRLogLb` row below, `srvRunRows_of_rn`).
 * every entry of `A₀` has `typ` 0 or 1 (`EntryNormal`/`EntryConfChange`, no `EntryConfChangeV2`;

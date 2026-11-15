@@ -782,8 +782,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
           iintro %m HP
           iunfold rnSnapMsg at HP
-          icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
-          obtain ⟨Hty, -⟩ := Htyb
+          icases HP with ⟨%sm, Hm, %Hty, #Hsm, -, #Huf⟩
           rw [Hγm]
           letI := srvStor (GF := GF) γr.raft.raft
           ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
@@ -1337,8 +1336,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
-        obtain ⟨Hty, -⟩ := Htyb
+        icases HP with ⟨%sm, Hm, %Hty, #Hsm, -, #Huf⟩
         rw [Hγm]
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm

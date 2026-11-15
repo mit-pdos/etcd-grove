@@ -52,8 +52,9 @@ set_option maxHeartbeats 4000000 in
 until then `ApplyAllR.lean`'s `wp_proofBatchR`; the first-start proof deleted): one proof over the
 slot `C` (the auth component's stage 2c), its rows at the mode's (`AuthCompRows`' bridges), over
 `applyEntries.specBatch`, the merged snapshot's window lent the component's buckets (`acRes_lend`;
-none off) and its image certified by `merged_imageC`; the merged send refuted while a window is left
-(`winNoMergedSendR`). -/
+none off) and its image certified by `merged_imageC`; (restart3 A1, 2026-11-15) the merge only past
+the window, by the fork's guard (`wp_ci_get`), a deferred or dropped merge reported (`ReportSnapshot`);
+until then the merged send refuted while a window was left (`winNoMergedSendR`). -/
 theorem EtcdServer.applyAll.wp_proofBatch
     (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
     (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
@@ -398,8 +399,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
-        obtain ⟨Hty, Hsbt⟩ := Htyb
+        icases HP with ⟨%sm, Hm, %Hty, #Hsm, -, #Huf⟩
         rw [Hγb]
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm

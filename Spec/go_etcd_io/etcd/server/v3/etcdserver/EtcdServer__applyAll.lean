@@ -46,7 +46,7 @@ consistent index equal to it at the start (the window's `ciJ`), the KV model, `e
 A1, 2026-11-15) No window row: the fork's merge defers a merged snapshot inside the window
 (`ep.appliedi < ConsistentIndex()`, reporting it failed, D-A0-1), so the merge happens only past it; until
 then `winNoMergedSendR` over a borrowed `T` and the raft node's bag `srvSnapBagN` excluded the in-window
-merge (false of Go: `srvWinPend`'s docstring). Go's rows (`ep.appliedi`, `loopOk`, the snapshot
+merge (false of Go at a restarted leader). Go's rows (`ep.appliedi`, `loopOk`, the snapshot
 state, the frozen terms, `dvRes`) at Go's log `A`. A first start (`rp = RestartPt.first`, `g = ai`) is
 the old text: `ghostOf_first`, `srvRestR_first`, `kvBatchR_first` (at `ai0 = 0`). -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=

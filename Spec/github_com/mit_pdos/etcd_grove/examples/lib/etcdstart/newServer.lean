@@ -119,8 +119,7 @@ abbrev newServer.specRestart : Prop :=
       bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      memberRestartFacts γ ρ id ∗ envVerifyOff ∗
-      □ (∀ A σ, srvRestartRows γ id A σ) }}
+      memberRestartFacts γ ρ id ∗ envVerifyOff }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))

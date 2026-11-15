@@ -221,12 +221,6 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- conjuncts are `HBr`'s)
     "%HEr" ∷ ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
-    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
-    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
-    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
-    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
@@ -383,12 +377,6 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- or a restart (S4: at any WAL snapshot index, Go's start log `P`): the backend's ghost log
     -- `A₀ = γn.a0`, the storage's snapshot's conf state at it, the apply thread's ghost rows at it
     "HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ ρ.wait ∗
-    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
-    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
-    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
-    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
@@ -668,14 +656,14 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     dsimp only [AuthC.isOn, srvKVInvsM] at hK
     unfold isServerBuiltM isServerBuilt isServerBuiltC srvBuiltRC
     simp only [AuthC.isOn, srvReqBuiltM_false, srvAppliedInvM_false, srvCM_false]
-    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
     obtain ⟨h1, h2, h3, h4⟩ := HEr
     ihave Happ := hA.1 $$ Happ
     ihave HBr := srvBuiltRestartR_first .off s γ ci b E γr γn ai₀ at₀ c₀ x₀ h4 h3.2.2
       (by have := h3.1; have := h3.2.2; subst ai₀; word) $$ [Hsnap Hloop Happly Happ Hsnapb]
     · iframe Hsnap Hloop Happly Happ Hsnapb
     iframe Hsk
-    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok
+    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok
     isplitr
     · iapply hK.1 $$ Hkvi
     ipureintro; exact ⟨h1, h2, h3⟩
@@ -684,14 +672,14 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     dsimp only [AuthC.isOn] at hK
     unfold isServerBuiltM isServerBuiltOn isServerBuiltC srvBuiltRC
     simp only [AuthC.isOn]
-    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
     obtain ⟨h1, h2, h3, h4⟩ := HEr
     ihave Happ := hA.1 $$ Happ
     ihave HBr := srvBuiltRestartR_first (.on γa) s γ ci b E γr γn ai₀ at₀ c₀ x₀ h4 h3.2.2
       (by have := h3.1; have := h3.2.2; subst ai₀; word) $$ [Hsnap Hloop Happly Happ Hsnapb]
     · iframe Hsnap Hloop Happly Happ Hsnapb
     iframe Hsk
-    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok
+    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok
     isplitr
     · iapply hK.1 $$ Hkvi
     ipureintro; exact ⟨h1, h2, h3⟩
@@ -1072,7 +1060,7 @@ theorem srvRunRows_of_rn (E : RNEnv GF) (γn : RNNames) (r : Loc) :
   iunfold isRaftNode at Hrn
   iNamed Hrn
   iunfold rnRestartOk at Hrok
-  icases Hrok with (%h0 | ⟨%hr, #Hlb, -⟩)
+  icases Hrok with (%h0 | ⟨%hr, #Hlb⟩)
   · ipureintro
     rw [h0.1]
     simp
