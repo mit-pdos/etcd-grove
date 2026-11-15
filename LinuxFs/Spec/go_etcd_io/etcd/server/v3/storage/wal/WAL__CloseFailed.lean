@@ -16,8 +16,7 @@ after a failed `ReadAll`; a non-nil answer fails the read, a nil one is followed
 token) is its client.
 
 **Proved** (unit `closefailed`, `WAL.Close.wp_proofFailed`), over `WAL.sync.specIdleF` and `WAL.sync.specLent`
-(proved) and `WAL.sync.specLentE` (stated, not proved: the fdatasync of the tail `ZeroToEnd` left unknown needs
-the invariant step `syncLayP`). `walReadFailedF`'s body: what each of `ReadAll`'s ten error exits leaves, the tail
+and `WAL.sync.specLentE` (all proved; `specLentE` by unit `synclent`, over the invariant step `syncLayP`). `walReadFailedF`'s body: what each of `ReadAll`'s ten error exits leaves, the tail
 put back (`walFailIdle`) or lent (`walFailLent`). `walCloseLeft dir` (no roots parameter: the path's roots are
 existential). Lean-first.
 -/
