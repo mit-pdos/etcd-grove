@@ -209,3 +209,15 @@ Next (C4, after etcd-grove-81's answer on the statement): `PkgTable.lean`/`Init`
 `restart3GF`, `restart3Names`, `restart3Addrs` = the three peer addresses), `Results.lean` with
 `etcd_restart3_safe`, a tcb collection `etc/tcb-collections/restart3.txt`, `etc/link-*` lists if needed,
 then a full build (flock, 64G), tcb `--check`, interfaces.
+
+### C4 done (2026-11-15): at the hard stop before landing
+Review fixes (etcd-grove-81): Results docstring (fork `6e8f0c004`, D-A0-1; conditional claim; "if Main returns
+it returns unit"; "member 3, or member 2 if member 3 sees itself as leader"); stale spec headers (stop/check/put);
+`srvLevels` and `N + 7 + bootWB ≤ wbInit` are discharged in `Adequacy.lean` (`srvLevels_of_max HT`; `unfold bootWB
+backend.wbInit; omega` from `Hn`), as restart1's: no new premise. Added: `PkgTable.lean` (gen-init `PROGRAMS`),
+`MainLinked.lean`, `Adequacy.lean`, `Results.lean` (`etcd_restart3_safe`), `etc/tcb-collections/restart3.txt`
+(530 axioms, 0 sorries; a subset of putget3's 640; restart1's 508 plus the 22 HTTP/net boundary axioms putget3
+already has). Full build (flock, 64G) passes (`/shared/tmp/restart3-c/build-c4.log`); `tcb-report.py --check`:
+unchanged (870 axioms, 4 sorries); restart1 and putget3 collections unchanged; interfaces clean.
+Left before landing: the user's approval of the statement; the fork push, then goose with the real go.mod
+(`goose --check`, go.sum), A1 lands first; STATUS.md entry at landing.
