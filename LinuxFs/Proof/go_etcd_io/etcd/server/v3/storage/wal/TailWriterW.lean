@@ -654,7 +654,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           subst ew
           iapply HΦ
           iframe Hsl
-          isplitl [Hfd Hlkt]
+          isplitl [Hfd]
           · iexists inner; iframe; isplitl [] <;> iassumption
           ileft
           iframe Hosfd Hk Hv
@@ -672,7 +672,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
           iapply HΦ
           iframe Hsl
-          isplitl [Hfd Hlkt]
+          isplitl [Hfd]
           · iexists inner; iframe; isplitl [] <;> iassumption
           iright
           iframe Hosfd
@@ -706,7 +706,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
           iapply HΦ
           iframe Hsl
-          isplitl [Hfd Hlkt]
+          isplitl [Hfd]
           · iexists inner; iframe; isplitl [] <;> iassumption
           iright
           iframe Hosfd

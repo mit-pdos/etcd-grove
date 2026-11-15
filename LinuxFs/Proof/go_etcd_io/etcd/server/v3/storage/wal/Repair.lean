@@ -544,7 +544,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         have := hRF.pre.length_le; simp only [segImg, List.length_map] at this; omega
       wp_apply (wp_lockedTrunc lf f _ _ _
           (wp_Trunc R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ gL.om.size k os' hle hwrS))
-        $$ [Hf Hfd Hoff Hpt Hm Hb Hv] as %terr Htr
+        $$ [Hf Hfd Hlks Hoff Hpt Hm Hb Hv] as %terr Htr
       · iframe Hok Hlf
         iunfold walTailPO
         iframe Hf Hoff Hpt

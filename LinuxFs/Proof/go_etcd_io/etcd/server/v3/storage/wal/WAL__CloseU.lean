@@ -249,7 +249,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
         subst hlt2
         rw [decide_eq_true hkl]
         simp only [ite_true]
-        icases Htf with ⟨Hf2, Hfd2⟩
+        icases Htf with ⟨Hf2, Hfd2, Hlks2⟩
+        ihave Hlt2c := fdLocks_toks fd2 _ $$ Hlks2
         ihave #Hlt3 := Hltf2
         iunfold fileutil.lockedFile at Hlt3
         ihave %hlfn := typedPointsto_not_null lf _ _ $$ Hlt3
@@ -259,7 +260,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
         wp_method_call
         wp_call
         (try wp_auto)
-        wp_apply wp_Close f2 fd2 name2 _ $$ [Hf2 Hfd2] as %err1 ⟨Hclf, #Herr⟩
+        wp_apply wp_Close f2 fd2 name2 _ $$ [Hf2 Hfd2 Hlt2c] as %err1 ⟨Hclf, #Herr⟩
         · iframe; iexact Hosinv
         (try wp_auto)
         have hdk : decide (sint.nat (k + W64 1) < lfs2.length) = false := by

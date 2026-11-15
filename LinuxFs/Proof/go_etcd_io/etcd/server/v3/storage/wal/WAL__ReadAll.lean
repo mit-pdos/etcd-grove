@@ -282,7 +282,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   iunfold WalFs.walAreaOk at Harea
   icases Harea with ⟨#Hinv, #HosI, #Hsi, -⟩
   icases ownDecoder_halves dec IoE eof fs 0 0#32 true gs hfl (fun k F g h1 h2 => by
-      obtain ⟨-, -, f, fd, -, hS⟩ := hfk k F g h1 h2
+      obtain ⟨-, -, f, fd, lo, lk, -, hS⟩ := hfk k F g h1 h2
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
