@@ -27,7 +27,27 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
-## START HERE (2026-11-15, twelfth 7f-5 agent, later): 81 decided A-C; B and C done in the tree (build pending)
+## START HERE (2026-11-15, twelfth 7f-5 agent, final): A-C done and built; prepareObjs proved; next `transform`
+
+- Full build after B/C: green but for the draft then in `watchChan__prepareObjs` (`/shared/tmp/k8s7f5a-p2/full2.log`;
+  the only other break, `validateRevisions`' `simp only [eventAt]`, fixed); `gen-interface --check` of every
+  `etc/api` list: no change. `watchChan.prepareObjs` proved since (`ab00296694`; callees `decodeObj`,
+  `acceptAll`; `ObjCodec.dec_nil`/`ne_nil_of_dec` give the non-empty previous value).
+- **Next, in order:** `watchChan.transform` (spec written, `Spec/.../etcd3/watchChan__transform.lean`; proof: cases
+  on `r` as in `prepareObjs`; bookmark: `newItemOk`'s zero object, the versioner's `UpdateObject` at `W64 r`,
+  `watchContractOk`'s annotate when `ann`; `.kv`/`.ev`: `filter`/`acceptAll` specs and `kRawToEv`/`kEvOfL` by
+  `simp` with `kDec_some`'s `hko`; the revision premise turns `W64 (sint.nat rev)` back into `rev`; `recordTimestamps
+  ↦□ false` skips the wrap). Then the error/logging leaves, `getStartWatchResourceVersion`, `WatchInitialized`,
+  `watchContext`, `newBlockLogger`/`recordWait` (a mutex: a lock invariant over the logger's fields, `klog.V(3).InfoS`
+  and the clock's `Now`/`Sub` at the trust boundary: check what specs exist before designing), then steps 4-5.
+  Step 4's `select` send/`ctx.Done()` pattern: `client/v3/watchGRPCStream__unicastResponse.lean`
+  (`chan.wp_select_blocking`, `sspsc_send_au`).
+- Pitfalls added: in the `.ev` cases `simp only [hc, ↓reduceIte]` on the goal rewrites the hypotheses' facts too
+  (then `rw [Hdel]`, not `rw [Hdel, hc.1]`); `rw [← Hrev]` after the `simp` of the post, not before (it rewrites
+  `e.kv.modRev` inside the conditions); `omit [DecidableEq Obj] in` for `Contract.lean` lemmas used over a
+  spec's `Obj`.
+
+## (superseded) twelfth 7f-5 agent, later: 81 decided A-C; B and C done in the tree (build pending)
 
 - **(A)** goose proposal written: `notes/perennial-changes.md`, "Goose: the pointer method of an axiomatized value
   method"; `StringPtr.spec` stays a callee hypothesis of `parseEvent.wp_proof` until the pin moves (step 7).
