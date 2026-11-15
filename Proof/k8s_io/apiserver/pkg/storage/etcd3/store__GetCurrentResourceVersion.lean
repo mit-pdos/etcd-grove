@@ -91,7 +91,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
   wp_apply (wp_RecordEtcdRequest go!"getCurrentResourceVersion" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
   · iexact Hse
-  icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, -, -⟩)
+  icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, %Hcerr, -⟩)
   · -- the client read the state σ
     subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
@@ -102,7 +102,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     · have hz : (W64 (σ.rev : Int)) = W64 0 := by rw [h0]; rfl
       rw [hz]
       (try wp_auto)
-      wp_apply (wp_Errorf _ slice.nil [] (DFrac.own 1)) $$ [] as %e -
+      wp_apply (wp_Errorf _ slice.nil [] (DFrac.own 1)) $$ [] as %e ⟨-, #Hes, %Hem, %Hep⟩
       · iframe #
         isplitl
         · iapply ownSlice_nil
@@ -110,8 +110,15 @@ theorem store.GetCurrentResourceVersion.wp_proof
       (try wp_auto)
       iapply HΦ
       ileft
-      ipureintro
-      simp
+      isplitr
+      · ipureintro; simp
+      iright
+      unfold kFmtErr
+      iexists e
+      isplitr; · ipureintro; rfl
+      isplitr; · iexact Hes
+      isplitr; · ipureintro; exact Hem
+      ipureintro; exact Hep
     · have hnz : (W64 (σ.rev : Int)) ≠ W64 0 := by
         intro h; apply h0; have := congrArg (fun w : w64 => w.toNat) h; simp at this; omega
       (try wp_auto)
@@ -134,8 +141,12 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (try wp_auto)
     iapply HΦ
     ileft
-    ipureintro
-    exact Hgerr
+    isplitr
+    · ipureintro; exact Hgerr
+    ileft
+    isplitr
+    · ipureintro; exact Hcerr
+    iexact Hse
 
 end proof
 
