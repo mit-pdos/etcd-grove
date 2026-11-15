@@ -74,7 +74,19 @@ No axiom, no `sorry`, no change to `Inv.lean`, the lock threading, or the fds of
 (`LinuxFs/Proof/.../examples/etcd/wal/`) linked, the WAL's and `durable`'s results taken from their
 `Link.lean`s as they are (not re-linked; their hypotheses become the caller's). A binder `∀ W : WalGS GF,
 S (W := W) …` is given `fun W : WalGS GF => …`, and a hypothesis reached through it that mentions `W`
-becomes `∀ W : WalGS GF, …`. 65 results, 53 closed. Collection `etc/tcb-collections/wal-tester.txt`.
+becomes `∀ W : WalGS GF, …`. A linked result is generic in its section's `[W : WalGS GF]`, so it is used only
+for the specs the tester takes under `∀ W`; the others (`walpb` getters, `durable`) are re-linked from their
+proofs. 96 results. Collection `etc/tcb-collections/wal-tester.txt` (its baseline lines not written:
+`etc/tcb-report.py` refuses to run until every root module of the repository is built, ~760 modules stale in
+this worktree; run `--collection etc/tcb-collections/wal-tester.txt --check --update` at integration).
+
+Linking the tester for the first time imported its modules together, which showed name clashes (each pair
+had never met in one importer): `tU64_length`, `tHsBytes_length` (identical in `DecRep` and `OrLen`: moved to
+`Defs.lean`), `tOpBytes_length` and `tEntBytes_length` (different statements: `DecRep`'s renamed `…_ge`,
+`decoder__ops` follows), `candsElems_snoc` (identical in `DecRep` and `CandsLemmas`: `DecRep` imports
+`CandsLemmas`), `tSaveSnap_ents_sub` (different: `walFold`'s renamed `tSaveSnap_ents_mem`), and the WAL's
+`walGhost_named` (`NamedView`'s, the tester session's, renamed `walGhost_raiseNamed`; `CutAuLemmas` has the
+other).
 
 `etcd_wal.wp_Main`'s hypotheses (the leftover specs and premises):
 - the client's protobuf laws on `walRaftP`/`walRaftMr` (`WalPbIn.*Law`: CloneHs, GetIndex, GetTerm,
@@ -90,7 +102,16 @@ becomes `∀ W : WalGS GF, …`. 65 results, 53 closed. Collection `etc/tcb-coll
   `walRaftP`): `ValidSnapshotEntries`' result is generic in a model its spec does not fix
   (`validSnapshotEntries.specPinned`'s), so the link keeps it a parameter; instantiate `P := walRaftP`.
 
-The trust-base report: see the end of this file.
+**Trust base** (`#print axioms` of `walTester.etcd_wal.wp_Main`, `lake env lean`; `etc/tcb-report.py` could
+not run, above): no `sorryAx`. Besides Lean's three and 1168 generated type axioms (`zero_val`/`underlying` of
+the translations' axiomatized types), the axioms are the WAL's (as `wal-fsext.txt`: `binary.ReadInt64LE`,
+`fmt.SprintfWalName`, `fmt.SscanfWalName`, `io.ReadFull`, `pbRecordC_reg`, `pbSnapC_reg`, `proto.ClonePb`,
+`proto.MarshalAppendCachedRecord`, `proto.MarshalPb`, `proto.SizePb`, `proto.UnmarshalPb`, `recEncC_ok`,
+`snapEncC_ok`, `strings.HasSuffix`, `time.Duration.Seconds(_ptr)`, the `zap` ones), Perennial's
+`errors.As.wp_proof` and `time.Now.wp_proof`, the tester's `entryEncC_ok`, and nine `_native.bv_decide`
+auxiliary axioms of the tester's `tSaltOf_tEntData` and `u64Acc_step` (`bv_decide`'s native-code
+certificates: they trust the compiler; replacing them by `bv_decide`'s kernel mode, or `decide`, would drop
+them). `wal.wp_Create`/`wp_CreateFresh`: the WAL's list, no `sorryAx`.
 
 ## Decisions left for the user / coordinator
 

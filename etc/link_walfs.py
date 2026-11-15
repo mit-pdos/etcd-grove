@@ -132,7 +132,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 """,
     "OPENS": ("open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode\n"
-              "open github_com.mit_pdos.etcd_grove.examples.etcd.wal Fs WalFs\n"),
+              "open github_com.mit_pdos.etcd_grove.examples.etcd.wal Fs WalEnc WalFs\n"),
     "what": ("The WAL tester (`examples/etcd/wal`, the part `LinuxFs/`; `notes/wal-fsext-w4c-plan.md`, W4c "
              "U5), every proof instantiated with its callees' results: the tester's own, and the WAL's and "
              "`durable`'s linked results (their `Link.lean`s, used as they are). The callees are read off "
@@ -318,11 +318,19 @@ def main(root, perennial, argv0, check=False, cfg=None):
         x["ext"] = x["mod"] in ext_links
         cands.setdefault(c[0], []).append(x)
 
+    # the specs a non-linked proof takes under `∀ W : WalGS GF` (the WAL's at every generation): a
+    # linked result (`EXT_LINKS`) is generic in its section's `[W : WalGS GF]`, so it can be given only
+    # there; elsewhere (a `walpb` getter's spec, which no `W` is in scope for) the spec is re-linked
+    fw_specs = {b[2] for xs in cands.values() for x in xs if not x["ext"]
+                for b in x["binders"] if b[0] == "spec" and b[5]}
+
     def pick(s, xs):
         base, suf = re.match(r"(.*)\.spec([\w']*)$", s).groups()
         ext = [x for x in xs if x["ext"]]
-        if ext:
+        rest = [x for x in xs if not x["ext"]]
+        if ext and (s in fw_specs or not rest):
             return ext[0]
+        xs = rest
         named = [x for x in xs if x["name"] == f"{base}.wp_proof{suf}"]
         return named[0] if named else min(xs, key=lambda x: (len(x["binders"]), x["name"]))
 
@@ -568,7 +576,8 @@ def main(root, perennial, argv0, check=False, cfg=None):
 
     # the section's instances: the linked proofs' own and their modules' `variable` lines
     insts = []
-    for s in order:
+    exts = sorted(s for s, h in how.items() if h[0] == "result" and h[1]["ext"])
+    for s in order + exts:
         x = how[s][1]
         groups = [h for h in x["hyps"] if h.startswith("[")]
         for line in varlines.get(x["mod"], []):

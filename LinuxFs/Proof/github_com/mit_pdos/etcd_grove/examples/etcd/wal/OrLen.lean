@@ -39,11 +39,6 @@ def tOpLen (o : TOp) : Nat := 56 + 32 * o.ents.length
 /-- **Room for `n` more bytes**: the oracle's encoding grown by `n` stays within 1 GiB. -/
 def tOrRoom (o : TOracle) (n : Nat) : Prop := (tEncodeOracle o).length + n ≤ 0x40000000
 
-theorem tU64_length (x : w64) : (tU64 x).length = 8 := by simp [tU64]
-
-theorem tHsBytes_length (h : THs) : (tHsBytes h).length = 24 := by
-  simp [tHsBytes, tU64_length]
-
 theorem tEntBytes_length (e : TEnt) : (tEntBytes e).length = 32 := by
   simp [tEntBytes, tU64_length]
 
