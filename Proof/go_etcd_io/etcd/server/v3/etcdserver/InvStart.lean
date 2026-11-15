@@ -34,6 +34,7 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 
@@ -160,8 +161,10 @@ raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d'a A7,
-    -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
+    -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s); (restart3 A1,
+    -- 2026-11-15) the wrapper's node and its inbound methods, for `ReportSnapshot`
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+      rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
     -- (2026-10-31, S1) the started transport, of the server's network

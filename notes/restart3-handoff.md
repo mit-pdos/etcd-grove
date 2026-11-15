@@ -34,3 +34,34 @@ Plan: `notes/restart3-scope.md` (route (A), decided by the user 2026-11-15). Dec
   under the 32G cap; `ZZ_EXPECT_DEFER=1` for the A-g run (step 2).
 - The fork clone for A1: `/shared/tmp/restart3-a0/etcd-fork` (branch `restart3-ag` off `goose-lean` `2eaeb872b`),
   the A-g change applied, not committed (after step 2).
+
+## A1 in progress (2026-11-15; uncommitted work is described here until committed)
+Decisions: D-A0-6 yes (ReportSnapshot on every drop); fork commit `6e8f0c004` (clone
+`/shared/tmp/restart3-a0/etcd-fork`, branch `restart3-ag`), NOT pushed (the user is offline); etcd-grove-81:
+proceed with A1 on `--src`, bump the pins on this branch, `goose --check` after the push.
+
+Done on the branch (A1 g0-g1, partly):
+- `etc/goose.py` etcd rev `6e8f0c004…`, `examples/go.mod`, `examples/k8s/{compactor,etcd3}/go.mod` replaces
+  `v3.0.0-20261115042120-6e8f0c004c15` (go.sum not updated: needs the pushed commit).
+- Translation regenerated with `etc/goose.py --project etcd --src etcd=/shared/tmp/restart3-a0/etcd-fork`
+  (only `Code/go_etcd_io/etcd/server/v3/etcdserver.lean` changed: the merge select).
+- `EtcdServer.ReportSnapshot.spec` precondition: the wrapper's node and `rnStepIfc` (was `srvProcOk`);
+  proof and `NetBridge` adapted.
+- `isServerApplyAll`'s bag row and `srvApplyAllBuilt` (InvStart) gain `rnNodeAddr ↦□ rnNodeIface γm ∗
+  rnStepIfc γm …` (the "srvProcOk hub row", reduced; Freeze item); `NewServer`/`NewServerR` supply it
+  (`HNodeC`, `HstepI`).
+- `applyAll.specBatch`: `winNoMergedSendR`, `T`, `srvSnapBagN` deleted. Proof: new callees `hCI`, `hGTo`,
+  `hRSn`; the merge receives through `isServerApplyAll`'s bag (`γm`); the window guard via `wp_ci_get` and
+  `stLoaded_ciEff`/`stLoaded_pending` (new, `InvServer.lean`); drop branches call `ReportSnapshot`.
+- `ApplyAllSnap.lean` (`wp_proofSnapM`, both modes): the guard read (refuted: `ciEff = Index`), drop branches
+  report.
+- `run_job_body`: no window rows; keeps a framed `T` (the run passes `token γwp` until `srvWinPend` goes).
+
+Next, in order: get `EtcdServer__applyAll` building (build log `/shared/tmp/restart3-a0/build-a1-2.log`);
+`Link.lean` (gen-link: applyAll's three new callees); then g2 deletions: `srvWinPend` (+ `token γwp`
+threading in `EtcdServer__run`), hubs `AuthCompRows` (2), `InvStart`, `InvBuild`, `ServerOn`, `StartOn`,
+`BuiltRestart`, `NewServer(R)`; row 4 (`rnRestartOk`, `NodeStartSpecR`, `newRaftNode`, `processMessages`),
+`rnSnapMsg`'s `t0` bound; `srvRestartRows` (`InvRestart`, `NewServerR` spec, etcdstart `BuildServer/newServer/
+newServerMode.specRestart`, restart1 `startMember`, `RestartRowsSingle.lean` deleted, restart3 drafts);
+`winNoMergedSendR`/`srvSnapBagN` defs (`ApplyRDefs`); Results docstring; SpecPlan ledger + text; interfaces;
+then the Freeze package (hard stop).

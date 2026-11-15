@@ -23,6 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
@@ -127,8 +128,11 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- raft loop's `processMessages`); until then it never delivered (D19p: `□ (∀ m, P m -∗ False)`);
     -- (2026-10-31, S1) the raft node's, of the server's raft names (until then any `P`);
     -- (R2d'a A7, 2026-11-06, DRAFT; `r2d-freeze1`'s F2) its node's id the server's member id
-    -- (`winNoMergedSendR`: this member's sends)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
+    -- (`winNoMergedSendR`: this member's sends); (restart3 A1, 2026-11-15, D-A0-2) the wrapper's node
+    -- and its inbound methods (`rnStepIfc`, `srvProcOk`'s), which `ReportSnapshot` of a deferred or
+    -- dropped merged snapshot reads
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+      rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
     (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg) ∗

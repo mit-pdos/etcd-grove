@@ -285,11 +285,17 @@ PROJECTS = [
         # `SaveDBFrom` links its file into place (`os.Link`), so that of two concurrent saves of one
         # index exactly one puts its file in place and the other keeps it
         # (nonissues/etcd-snap-savedbfrom-concurrent-rename.md; the user's decision via etcd-grove-81).
+        # Then (restart3 A1, 2026-11-15) 6e8f0c004 (branch `restart3-ag`, on 2eaeb872b; to be pushed
+        # to `goose-lean`): `applyAll`'s merge defers a merged snapshot inside the replay window
+        # (`ep.appliedi < ConsistentIndex()`) and reports every dropped `MsgSnap` failed
+        # (`ReportSnapshot`), so that a merged image is always at its own index and a dropped one
+        # does not leave the follower in `StateSnapshot` (notes/restart3-a0-draft.md §3, §8; D-A0-1,
+        # approved by the user via etcd-grove-81; D-A0-6).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="2eaeb872bce9661d984e00005793fa01ae24834f",
+        rev="6e8f0c004c15d59f9fa03fa646965ab3df63e359",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

@@ -2085,7 +2085,7 @@ theorem NewServer.wp_proofRG
     iframe NHmsc Hinfl
     isplitr
     · iexists γrn
-      iframe NHmsci
+      iframe NHmsci HNodeC HstepI
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
       rw [hidr, ← Hid]; iexact memberID

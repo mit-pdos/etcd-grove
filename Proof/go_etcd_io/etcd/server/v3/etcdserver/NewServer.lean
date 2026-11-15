@@ -2200,7 +2200,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe NHmsc Hinfl
     isplitr
     · iexists γrn
-      iframe NHmsci
+      iframe NHmsci HNodeC HstepI
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
       have hidr : γrn.id = id := by rw [Hrn5, Hrid]
