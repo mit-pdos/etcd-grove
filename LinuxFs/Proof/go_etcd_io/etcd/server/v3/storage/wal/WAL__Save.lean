@@ -427,7 +427,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     iapply HΦ
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
-    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc'⟩ := hh'
+    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', -⟩ := hh'
       ileft
       isplitr
       · ipureintro; exact herr

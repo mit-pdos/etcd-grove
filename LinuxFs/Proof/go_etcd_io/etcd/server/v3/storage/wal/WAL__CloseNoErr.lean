@@ -150,7 +150,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofNoErr [os.file.F
         rw [hdrop]
         icases Hlks with ⟨Hlf, Hlks⟩
         iunfold walLockH at Hlf
-        icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1⟩
+        icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1, -⟩
         ihave Hlt1 := fdLocks_toks fd1 d1 $$ Hlks1
         ihave #Hlf3 := Hlf1
         iunfold fileutil.lockedFile at Hlf3

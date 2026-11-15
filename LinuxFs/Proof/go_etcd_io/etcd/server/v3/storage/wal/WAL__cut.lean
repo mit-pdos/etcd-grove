@@ -50,6 +50,7 @@ public import LinuxFs.Spec.os.File__SyncS
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleRoom
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutPipe
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
 public import LinuxFs.Spec.os.File__Name
@@ -844,7 +845,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   isplitl
   rotate_left
   · isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    · ipureintro
+      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+      simp only [List.length_nil, Nat.add_zero]
+      rw [← hL, hTS]
+      exact cutHdrs_room Mr h.md _ _ (by rw [← hst]; exact hmdsz)
     · iexact Hsyn
   iunfold walHandleIn
   iexists lg, df, sp, e3, fp, lf3, f3, mds, locks'', ls ++ [lt] ++ [lf3], fd3, dfd, child dir bt, dnm, j, rc
@@ -890,6 +895,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iunfold walLockH
     iexists f, fd, name, ⟨h1.ino, rd, true, lo, lk⟩
     iframe Hltf Hf Hfdo Hlkto
+    ipureintro; exact ⟨pd, sq, ix, by rw [hname, hnm0]⟩
   isplitl [Hmain Htm1 Htm2]
   · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp hfpn
     iframe Hisfp Hmain

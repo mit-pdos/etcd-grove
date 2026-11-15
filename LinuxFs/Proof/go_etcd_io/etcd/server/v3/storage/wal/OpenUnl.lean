@@ -166,7 +166,7 @@ theorem walInvBody_unl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, %Hbd⟩
   imod walGhost_upd (W := W) s (unlSt s dir p) M (absLe_unlSt s dir p) (walKeysInArea_upd s dir _)
-    (fun _ hn => hn.upd (fun _ => rfl))
+    (fun _ hn => hn.upd (fun _ => rfl)) (unlMono_upd s dir _ (fun _ => Nat.le_max_left _ _))
     $$ Hg HM with ⟨%hM, Hg, HM, #Hp⟩
   ihave Htl := walTailsRes_unl (W := W) C Mr s Ls F dir p $$ Htl
   ihave Hnms := walNamesRes_congr R jr r Ls s (unlSt s dir p)

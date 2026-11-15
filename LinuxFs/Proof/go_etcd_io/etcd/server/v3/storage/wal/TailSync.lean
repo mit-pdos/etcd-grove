@@ -247,7 +247,11 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     syncLay_any hC HW hd hl hs htail hZ hzf Hdko habs
   -- the ghost state at the synced state
   unfold walGhost
-  icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, Hh, %Hk0, #Hst⟩
+  icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, ⟨Hh0, Hlk⟩, %Hk0, #Hst⟩
+  ihave Hh : iprop(walHandleAuth (W := W) ∗ walLksAuth (W := W) (walSyncS s dir d)) $$ [Hh0 Hlk]
+  · iframe Hh0
+    iapply walLksAuth_mono s (walSyncS s dir d)
+      (unlMono_insert s dir _ (fun d' h => by rw [hd] at h; cases h; exact Nat.le_refl _)) $$ Hlk
   ihave HP := absPast_grow _ s (walSyncS s dir d) (absLe_sync hd hmH) $$ HP
   imod absPast_snap _ (walSyncS s dir d) $$ HP with ⟨HP, Hpast⟩
   imodintro

@@ -48,6 +48,23 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (P : WalPbIn
       go!"ReleaseLockTo")) (Val #a))
   {{ (err : GoInterface), RET #err; walOpenWF P Mr w dir ∗ ∃ d : WalDur, Q d }}
 
+/-- **`w.ReleaseLockTo(a)` returns `nil`** (unit `noioerr`): `ReleaseLockTo.spec` with `err = nil`. Its
+only error is `parseWALName` rejecting a lock's file name, and every lock of the handle is a segment's
+(`walLockH`'s `walSegName`, the tail's `walDirH`), so the arm is unreachable; the locks' `Close` errors
+are ignored by the code (S/wal.go:1013-1053). No I/O premise. -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specNoErr (P : WalPbIn GF)
+    (Mr : WalMarshal) : Prop :=
+  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (a t : w64) (i n : Nat)
+    (cs : ConfStateM) (Q : WalDur → IProp GF),
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ WalFs.walSyncedLb dir n ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩) ∧ i < n⌝ }>
+        @ walAuMask, ∅
+        <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
+          COMM Q d }> }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
+      go!"ReleaseLockTo")) (Val #a))
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walOpenWF P Mr w dir ∗ ∃ d : WalDur, Q d }}
+
 end spec
 
 end EtcdGrove

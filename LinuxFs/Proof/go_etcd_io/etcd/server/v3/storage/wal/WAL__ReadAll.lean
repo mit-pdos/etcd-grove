@@ -831,8 +831,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             ihave #HlkL : [∗list] k ↦ lf ∈ ls, fileutil.lockedFile lf (fls.getD k null) $$ [Hlks]
             · icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hlks with ⟨H1, -⟩
               iexact H1
+            have hgnL : ∀ g ∈ gs.take fsI.length, ∃ sq ix : Nat, g.name = walFileName sq ix := by
+              intro g hg
+              obtain ⟨k, hk⟩ := List.getElem?_of_mem (List.mem_of_mem_take hg)
+              rw [← hgs, List.getElem?_drop] at hk
+              obtain ⟨sq, ix, hn, -⟩ := hab.nameBound _ g hk
+              exact ⟨sq, ix, hn⟩
             icases readAll_splitLeft (W := W) dir fsI (gs.take fsI.length) fls ls
-              (by simp; omega) hlsl hkL $$ [Hleft HlkL]
+              (by simp; omega) hlsl hkL hgnL $$ [Hleft HlkL]
               with ⟨HS, Hlh⟩
             · iframe Hleft HlkL
             have hSz : ∀ g ∈ gs.take fsI.length, g.om.size = g.bs.length :=

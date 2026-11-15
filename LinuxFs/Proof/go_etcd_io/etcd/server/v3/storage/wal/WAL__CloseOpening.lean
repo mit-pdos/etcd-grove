@@ -215,7 +215,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   (try wp_auto)
   ihave IH : iprop(∃ (k : w64) (lv : Loc),
       "i" ∷ i_ptr ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗ "Hls" ∷ locks ↦* (ls ++ [lt]) ∗
-      "Hlks" ∷ ([∗list] lf ∈ (ls ++ [lt]).drop (sint.nat k), walLockH lf) ∗
+      "Hlks" ∷ ([∗list] lf ∈ (ls ++ [lt]).drop (sint.nat k), walLockH lf (fun _ => True)) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ (ls ++ [lt]).length⌝) $$ [i l Hls Hlh]
   · iexists W64 0, _
     simp only [named]
@@ -248,7 +248,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
       rw [hdrop]
       icases Hlks with ⟨Hlf, Hlks⟩
       iunfold walLockH at Hlf
-      icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1⟩
+      icases Hlf with ⟨%f1, %fd1, %nm1, %d1, #Hlf1, Hf1, Hfd1, Hlks1, -⟩
       ihave Hlt1 := fdLocks_toks fd1 d1 $$ Hlks1
       ihave #Hlf3 := Hlf1
       iunfold fileutil.lockedFile at Hlf3

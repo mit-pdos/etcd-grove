@@ -28,7 +28,9 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 truncated at the encoder's offset and synced, a new segment named after the history's last index
 started at the history's length (`cuts ++ [|H|]`), its headers (`Crc`, the metadata,
 `State(w.state)`) encoded and synced, the directory fsynced; the history synced (`walSyncedLb
-|H|`). The new handle's tail is the new segment (inode, ghost names and encoder offset fresh).
+|H|`). The new handle's tail is the new segment (inode, ghost names and encoder offset fresh), its
+stream (the headers) ending below `2 ^ 43` (the room a no-error spec needs, `walFreshRoom`; unit
+`noioerr`).
 *Error*: the handle lost. The bound on the pipeline's count (`h.pc`, the files the handle's pipeline
 has handed over since this `Open`/`Create`, `walPipeH`): its `count` is a Go `int`, and its
 `count % 2` (the next file's name) is a signed remainder (`Pipe.lean`); the caller supplies it
@@ -52,7 +54,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr :
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ h' : WalHS, walHandleIn P Mr w dir h' ∗
           ⌜h'.H = h.H ∧ h'.md = h.md ∧ h'.cuts = h.cuts ++ [h.H.length] ∧ h'.rest = 0 ∧ h'.st = h.st ∧
-            h'.enti = h.enti ∧ h'.snapi = h.snapi ∧ h'.pc = h.pc + 1⌝ ∗ WalFs.walSyncedLb dir h.H.length) ∨
+            h'.enti = h.enti ∧ h'.snapi = h.snapi ∧ h'.pc = h.pc + 1 ∧
+            h'.o0 + h'.out.length + h'.pend.length ≤ 2 ^ 43⌝ ∗ WalFs.walSyncedLb dir h.H.length) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
