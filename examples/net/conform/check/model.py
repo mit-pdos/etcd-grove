@@ -203,10 +203,9 @@ def read_outcome(st, d, n, r, d2, keep=None):
 def write_outcome(st, d, rs, k, res, d2):
     """[Lean: WriteOutcome st d rs k res d'] D2, D15: ONE STEP of a Write, of the bytes `rs` it has
     not written yet; `k` the count it adds, `res` None (the Write goes on unless it has written
-    everything) or the failure's kind. The trusted `conn.Write.impl` loops over these steps (Go's
-    `poll.FD.Write`): the call returns (the steps' total, nil) once it is len(b), else (the total,
-    err) at its first failing step. (Transcribed from the working tree's Impl.lean of the change
-    that made Write a loop, before it was committed.)"""
+    everything) or the failure's kind. The trusted `conn.Write.impl` loops over these steps
+    (net.lean's `model.writeLoop`, Go's `poll.FD.Write`): the call returns (the steps' total, nil)
+    once it is len(b), else (the total, err) at its first failing step. (v3.1, b334f68554.)"""
     if st.closed:
         return k == 0 and res == CLOSED and d2 == d
     if d.status == FIN:

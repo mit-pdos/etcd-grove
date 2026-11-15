@@ -15,10 +15,10 @@ D16's abandoned dials, D17, D21's wildcards, and (v3.1) a `Write` that is a loop
 (below); the witness replay through Lean is the next step, and is what will make an ADMITTED
 verdict trustworthy.
 
-**The model transcribed** is Impl.lean of the working tree on 2026-11-14 that made `Write` a loop of
-steps (D2/D15 rewritten after the v3 axiom review, `notes/axiom-review/tcp-semantics.md`), with
-`net.lean`'s new `conn.Write.impl` loop, before that change was committed: re-check `model.py`'s
-`write_outcome` against the committed Lean (the only relation it changed).
+**The model transcribed** is Impl.lean v3.1 (b334f68554: `Write` a loop of steps, D2/D15 rewritten
+after the v3 axiom review, `notes/axiom-review/tcp-semantics.md`), with `net.lean`'s
+`model.writeLoop` (`conn.Write.impl`). `write_outcome` was first transcribed from that change's
+working tree and checked against the commit: the same text (and v3.1 changed no other relation).
 
 | file | what |
 |---|---|
@@ -334,7 +334,7 @@ plan, no connections, each node's `TcpLocal` with its host and no listeners).
 | `ReadRes`, `readRes`'s EOF code | `R_BYTES`, `R_EOF`, `R_ERR`, `R_WAIT`, `EOF_CODE` | |
 | `ReadAvail` | `read_avail` | its `∃ k` at k = the bytes' length |
 | `ReadOutcome` | `read_outcome` | the cut's `∃ k` given (`keep`) or at its only candidate; tested against every k |
-| `WriteOutcome` | `write_outcome` | one step (the Write loop); transcribed from the uncommitted working tree |
+| `WriteOutcome` | `write_outcome` | one step of the Write loop (v3.1) |
 | `TcpDir.shut`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`, `timeIsZero` | `shut`, `close_outcome`, `close_write_outcome`, `deadline_outcome`, `time_is_zero` | |
 | `stripPrefix`, `wildPort`, `portOf`, `ListenAt` | `strip_prefix`, `wild_port`, `port_of`, `listen_at`, `listen_resolve` | `listen_resolve`: the unique a0 (`listenAt_unique`) |
 | `ReadStep`, `WriteStep`, `CloseStep`, `CloseWriteStep`, `SetDeadlineStep` | `read_step`, `write_step`, `close_step`, `close_write_step`, `set_deadline_step` | e' as its value |
@@ -343,7 +343,7 @@ plan, no connections, each node's `TcpLocal` with its host and no listeners).
 | `tcp_semantics.crash` | `crash` | |
 | `isDigit`, `digitsVal`, `decNat`, `splitBy`, `parseAddr`, `addrOk`, `keysDistinct`, `PlanWellFormed` | `is_digit`, `digits_val`, `dec_nat`, `split_by`, `parse_addr`, `addr_ok`, `keys_distinct`, `plan_well_formed` | |
 | net.lean: `model.kindErr`, `model.connErr`, `model.opError`, `model.errFlag`, each `*.impl`'s Op, Source, Addr, Syscall | `mapping.py`: `err_kind`, `map_call`, `GO_OP`, `SYSCALL`, `SOURCE_NIL` | read backwards: a Go value to the extension's result |
-| net.lean: `conn.Write.impl`'s loop | `lazy.write`, `replay.py`'s Write steps | count the sum, error the failing step's |
+| net.lean: `model.writeLoop` (`conn.Write.impl`) | `lazy.write`, `replay.py`'s Write steps | count the sum, error the failing step's |
 
 ## Tests (`test_check.py`, 77 tests, about 15 s; `go test ./net/conform/check` runs them)
 
