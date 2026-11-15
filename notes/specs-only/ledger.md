@@ -2001,3 +2001,18 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   `srvRunTok_intro` and `NewServer` supply `m` from bootstrap), or `applyInit` holds the `MemoryStorage`
   snapshot's model and the law takes `snapshotPts` itself. For batch 2d/2e's owners.
 - **Decision.** Proposed (unit `autoleave`, found while answering where `ep.confState` comes from).
+## 2026-11-15: error-free WAL specs under `NoIoErr` (unit `noioerr`) -- three obstacles
+
+- **Spec.** The planned `WAL.SaveSnapshot`/`ReleaseLockTo`/`Close`/`Create` `.specNoErr` variants (none
+  stated yet); `encoder.flush.specP`, `encoder.encode.specG`; `os.File.Write.wp_empty`.
+- **Defect.** (1) `flush.specP`'s error arm is `B out pend` for any `pend`: with nothing pending (no write
+  made, Go's `PageWriter.flush` returns `0, nil`) the spec still allows an error, so an error-free `sync`
+  cannot be derived from it; `encode.specG`'s error arm likewise allows `b = []`. (2) An empty
+  `(*os.File).Write`'s errno is arbitrary with no `fsExt` step (trusted model), which `NoIoErr` cannot
+  exclude. (3) `ReleaseLockTo`'s only error is `parseWALName` on a lock's name, which the handle does not
+  record as a WAL name: not an I/O error.
+- **Evidence.** `notes/wal-units/noioerr.md`, "What is left".
+- **Proposed change.** (1) Add "`pend = [] → err = nil`" to `flush.specP` (and "nothing written → `nil`" to
+  `encode.specG`), proved from the page writer. (2) For the user (trusted model). (3) A handle fact: each
+  lock's name is `walName seq idx`.
+- **Decision.** Proposed.
