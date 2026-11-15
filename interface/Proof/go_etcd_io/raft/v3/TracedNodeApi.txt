@@ -3,24 +3,26 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Step.tracedSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) (c : MsgC)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     st.msg.To' = id →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              isNode n γ N id ∗
-                nodeCtx ctx cd ∗
-                  sentMsg γ N src st ∗
-                    msgPtsC ml (DFrac.own 1) (DFrac.own 1) true
-                        { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∗
-                      msgCredits γ N st ∗ snapLocalMsg γ id st ∗ trTok γ st -∗
-            (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-              WP
-                (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))
-                    (intoVal (GoInterface.ok ctx)))
-                  (intoVal ml))
-                {{ Φ }}
+      c.model = { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } →
+        c.csUfNil →
+          (∀ (b : Nat), γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    isNode n γ N id ∗
+                      nodeCtx ctx cd ∗
+                        sentMsg γ N src st ∗
+                          msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
+                            msgCredits γ N st ∗ snapLocalMsg γ id st ∗ trTok γ st -∗
+                  (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+                    WP
+                      (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))
+                          (intoVal (GoInterface.ok ctx)))
+                        (intoVal ml))
+                      {{ Φ }}
 
 theorem isReadyChan_recvAu.tracedSpec_proof [package_sem : Assumptions] :
     isReadyChan_recvAu.tracedSpec
@@ -115,38 +117,42 @@ def StartNode.tracedSpec : Prop :=
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      cv.Applied' = W64 0 →
-                        csm.Voters' = [] →
-                          csm.VotersOutgoing' = [] →
-                            csm.Learners' = [] →
-                              csm.LearnersNext' = [] →
-                                csm.AutoLeave' = false →
-                                  vs = List.map Peer.ID' pv →
-                                    ⊢
-                                      ∀ Φ,
-                                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                            typedPointsto c cv (DFrac.own 1) ∗
-                                              isLogger lok ∗
-                                                nodeBoot γ N vs ctxs cv.ID' ∗
-                                                  nodeVacant γ cv.ID' ∗
-                                                    AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
-                                                          <{ raftState γ cv.ID' S, COMM Q }> ∗
-                                                      restartStorage γ (GoInterface.ok si)
-                                                          { hs := hsZero, snap := none,
-                                                            base := { term' := W64 0, index' := W64 0 }, ents := [] }
-                                                          csm 0 F ∗
-                                                        ownSlice peers pv dq ∗ peersCtx pv ctxs ∗ startTraceC γ N vs cv -∗
-                                          (▷
-                                              ∀ nd,
-                                                (∃ n K,
-                                                    ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                      nodeStartedFresh n γ N vs ctxs cv.ID' ∗
-                                                        isNode n γ N cv.ID' ∗
-                                                          nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si) K) ∗
-                                                            nodeConfig n γ N
-                                                                { applied := 0,
-                                                                  membership := Membership.simple (listToSet vs) } ∗
-                                                              nodeRunning n γ N 1 ∗
-                                                                Q ∗ F K ∗ ownSlice peers pv dq ∗ startDone γ cv.ID') -∗
-                                                  Φ (intoVal nd)) -∗
-                                            WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers)) {{ Φ }}
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
+                        cv.Applied' = W64 0 →
+                          csm.Voters' = [] →
+                            csm.VotersOutgoing' = [] →
+                              csm.Learners' = [] →
+                                csm.LearnersNext' = [] →
+                                  csm.AutoLeave' = false →
+                                    vs = List.map Peer.ID' pv →
+                                      ⊢
+                                        ∀ Φ,
+                                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                              typedPointsto c cv (DFrac.own 1) ∗
+                                                isLogger lok ∗
+                                                  nodeBoot γ N vs ctxs cv.ID' ∗
+                                                    nodeVacant γ cv.ID' ∗
+                                                      AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N,
+                                                            ∅ <{ raftState γ cv.ID' S, COMM Q }> ∗
+                                                        restartStorage γ (GoInterface.ok si)
+                                                            { hs := hsZero, snap := none,
+                                                              base := { term' := W64 0, index' := W64 0 }, ents := [] }
+                                                            csm 0 F ∗
+                                                          ownSlice peers pv dq ∗
+                                                            peersCtx pv ctxs ∗ startTraceC γ N vs cv -∗
+                                            (▷
+                                                ∀ nd,
+                                                  (∃ n K,
+                                                      ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                        nodeStartedFresh n γ N vs ctxs cv.ID' ∗
+                                                          isNode n γ N cv.ID' ∗
+                                                            nodeDriver n γ N
+                                                                (NodeDriverState.init (GoInterface.ok si) K) ∗
+                                                              nodeConfig n γ N
+                                                                  { applied := 0,
+                                                                    membership := Membership.simple (listToSet vs) } ∗
+                                                                nodeRunning n γ N 1 ∗
+                                                                  Q ∗ F K ∗ ownSlice peers pv dq ∗ startDone γ cv.ID') -∗
+                                                    Φ (intoVal nd)) -∗
+                                              WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers))
+                                                {{ Φ }}
