@@ -516,6 +516,51 @@ theorem watchChan.syncPaginated.wp_proof
       · rw [hm] at h; rw [hk]; exact List.take_of_length_le (by simpa using h)
       · rw [hm] at h; have h' := of_decide_eq_true h; rw [hk]
         exact ⟨by simp only [List.length_take]; omega, h', rfl⟩
+  obtain ⟨hpre, hnm, hmo, hI, hst0, hfit0, hph, hwh0⟩ := HP
+  ihave %Hsll := ownSlice_len _ _ _ $$ Hsl2
+  (try wp_auto)
+  -- `len(getResp.Kvs) == 0 && getResp.More`: an error
+  wp_bind (If _ _ (Val #false))
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = #(decide (sl2.len = W64 0 ∧ mm.more = true))⌝ ∗
+      getResp_ptr ↦ resp))) $$ [getResp]
+  · by_cases h0 : sl2.len = W64 0
+    · rw [decide_eq_true h0]
+      (try wp_auto)
+      iframe
+      ipureintro; simp [h0]
+    · rw [decide_eq_false h0]
+      (try wp_auto)
+      iframe
+      ipureintro
+      rw [show decide (sl2.len = W64 0 ∧ mm.more = true) = false from decide_eq_false (fun h => h0 h.1)]
+  iintro %v ⟨%hv, getResp⟩
+  subst hv
+  by_cases hbad : sl2.len = W64 0 ∧ mm.more = true
+  · rw [decide_eq_true hbad]
+    (try wp_auto)
+    wp_apply (wp_ErrorfPlain _ slice.nil [] (DFrac.own 1) (by refine ⟨_, rfl, ?_⟩; decide)) $$ []
+      as %x ⟨-, %msg, -, -, #HE⟩
+    · iframe #
+      isplitl
+      · iapply ownSlice_nil
+      fmt_args_intro; itrivial
+    (try wp_auto)
+    wp_for_post
+    (try wp_auto)
+    iapply HΦ
+    iframe Hpe
+    iright
+    isplitr [Hir]
+    · iapply (kErrOk_errorString wp_AsLeafTy x) $$ Perr
+      unfold fmt.stringMethodSpec
+      iintro !> %Φ' HΦ'
+      iapply HE
+      inext
+      iapply HΦ'
+    iexists ir
+    iexact Hir
+  rw [decide_eq_false hbad]
+  (try wp_auto)
   sorry
 
 end proof
