@@ -27,6 +27,44 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, fifteenth 7f-5 agent): send lemma, kResChan, Error step done; processor step next
+
+81's decisions (questions.md, fifteenth agent): E1-E6 reviewed (`notes/k8s-7f5a-draft.md` §11.1-11.4); E1 refuted
+as written and folded, with the latent `*Status` immutability assumption of `status.FromError`/`status.Code`
+(`notes/axiom-review/grpc-status-immutability.md`, docstring pointers on both axioms, approved), into the E1
+trusted-text package; E1 package and E3 DRAFTED in §11.2-11.3 for 81's review (not applied); E2, E4, E5 are
+proved-spec changes, ledger entries written (2026-11-15 E2/E4/E5), specs NOT yet changed; E6 reachable: use the
+existing `NewTooLargeResourceVersionError` spec.
+
+- **Done** (`Proof/k8s_io/apiserver/pkg/storage/etcd3/WatchRes.lean`, lean-checked in full, no `sorry`):
+  `spsc_send_au_inv` (local copy of `spsc_send_au` over `inv nroot (spscInv γ P R ∗ X)`; accessor
+  `Hacc : T -∗ X ==∗ ∃ sent, spscProducer γ sent ∗ P sent.length v ∗ (spscProducer γ (sent ++ [v]) ==∗ X ∗ T ∗ Q)`,
+  closed states refuted by `Hnc : □ (T -∗ X -∗ ∃ sent, spscProducer γ sent)`), `spsc_send_commit_inv` (the
+  `Hsend` form of sendEvent/sendError, with `T ∗ Q`); `kResAlive alive q` / `kResClosed alive` (a new ghost
+  name `alive`: each sending goroutine holds a fraction of `false`; `run` gathers them after `Wait()`, sets `true`
+  and swaps `kResInv` for `kResClosed` to take the token for `close`), `kResChan … procd alive ch` (`isChan ∗ inv
+  nroot (spscInv γ.res (kResElem …) True ∗ (kResInv … ∨ kResClosed alive))`), `kResChan_isSpsc` (`inv_split_l`),
+  `kResChan_nc`; **the Error step** `kResInv_err_acc` (the accessor for any Error event with `statusFailureAt`);
+  pure: `kEvs_types`, `kNonErr_append_err`/`_ev`, **`kRes_step_pure`** (the processor's step at the later of
+  `kResInv`'s σ and the element's σr: new equation, element facts carried; `oe = none` is the filtered case);
+  `monoList_lb_idx_all`, `monoList_idx_prefix`, `monoList_idx_lb_snoc` (kResInv's `raws` lb and the element's
+  indices, same length via `procd`: `raws = raws'` and lb `raws' ++ [r]`).
+- **Next, in order:** (1) the processor's Iris step `kResInv_send_acc` (and `kResInv_filter`, a plain ghost update
+  without a send): inputs the processor's `dghostVar procd ½ n`, the element (`kInElem` at `n`: idx bigsep,
+  `□ Q lb σr`, `□ Q lb0 σ0`, `kStartOk`, `kRawStreamSub`, `kRawStreamOk ∨ kCancelled ∨ kProcExited`), its
+  `dghostVar γ.procEx (own q') false` (refutes `kProcExited`), `wevAt v e` with `kRawToEv σr r = some e`, and the
+  `Q` history premise (`Q lb σ ∗ Q lb' σ' ⊢ kvSameHist`); steps: `monoList_idx_lb_snoc` (raws = raws'),
+  `kRes_step_pure`, pick `□ Q` of the chosen σ', update `procd` halves to `n+1`, `monoListAuthOwn_update_app [e]`,
+  build `kResElem` as in `kResInv_err_acc`. (2) E2, E4, E5 spec changes (ledger done). (3) step 5 with
+  `-- pending E1`/`-- pending E3` hypotheses (E4 needed: `watcher.go:456-460`; E6 at `:462-464`). STOP before step 6.
+- Not merged: `lean` (46 commits ahead at b6b1684acd); wait for 81's word on the e9e6351d9 pin bump, then merge and
+  use `/shared/tmp/manifest-e9e.json`.
+- Pitfalls: `isplitr` with no list sends ALL spatial hypotheses to the right goal (pure-left splits are fine; use
+  `isplitl [H]` to keep H on the left); `unfold X` in an Iris goal unfolds X in every hypothesis too (use
+  `iunfold X at H`); `statusFailureAt` has no `Persistent` instance; `List.reverseRecOn` does not exist here
+  (induct on the length, `List.dropLast_concat_getLast`); `BigSepL.bigSepL_intro` needs `Intuitionistic`, which a
+  mono-list lb does not get: use `bigSepL_forall_elim`.
+
 ## START HERE (2026-11-15, fourteenth 7f-5 agent): error leaves done; step 4 in progress
 
 81's decisions (questions.md, 2026-11-15, fourteenth agent): InfoS stays a callee hypothesis (Go test
