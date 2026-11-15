@@ -69,6 +69,16 @@ theorem tCheckWf_synced {o : TOracle} (hw : tCheckWf o) (hl : o.since.length < 2
   show uint.nat (W64 o.since.length) ≤ o.since.length
   rw [uint_nat_W64_of_lt' _ hl]; exact Nat.le_refl _
 
+/-- **A snapshot's append keeps `tCheckWf`**, its oracle within 1 GiB. -/
+theorem tCheckWf_snapO1 {o : TOracle} (hw : tCheckWf o) {idx term : w64} (hi : uint.nat idx < 2 ^ 63)
+    (ht : uint.nat term < 2 ^ 63) (hs : tOrSmall (tSnapO1 o idx term)) : tCheckWf (tSnapO1 o idx term) := by
+  refine ⟨?_, fun cd hcd => ⟨?_, tOrSmall_hist_lt hs hcd⟩⟩
+  · show uint.nat o.synced ≤ (o.since ++ [tSnapOp idx term]).length
+    simp only [List.length_append, List.length_singleton]; have := hw.1; omega
+  · show tHistWf (cd.h ++ (o.since ++ [tSnapOp idx term]))
+    rw [← List.append_assoc]
+    exact tHistWf_snoc (hw.2 cd hcd).1 (tSnapOp_wf hi ht)
+
 /-- **A snapshot keeps `tCheckWf`**, its oracle within 1 GiB. -/
 theorem tCheckWf_snapO {o : TOracle} (hw : tCheckWf o) {idx term : w64} (hi : uint.nat idx < 2 ^ 63)
     (ht : uint.nat term < 2 ^ 63) (hs : tOrSmall (tSnapO1 o idx term)) : tCheckWf (tSnapO o idx term) := by

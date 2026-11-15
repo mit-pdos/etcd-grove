@@ -1967,3 +1967,69 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
 - **Change (made).** As listed; `Create` registers before it names. No client-facing spec changed.
 - **Decision.** The coordinator's (decisions 1 and 2 of session 3); made, every importer rebuilt, both `sorry`s
   proved.
+
+## 2026-11-15: the conf-state half of "canonical contents only (P5)" above -- withdrawn: the restarted server's `ep.confState` has `AutoLeave` set
+
+- **Spec.** The entry above (`WAL.SaveSnapshot.spec`'s `walSnapAt`/`walCsCanon`), and the SpecPlan's
+  `confStateFull` for `ep.confState` (`ApiApply.lean`'s `applyThread`, `raftNode__ApplyConfChange`,
+  `EtcdServer__createMergedSnapshotMessage`, `EtcdServer__snapshot`).
+- **Defect.** None: the reported one does not exist. `buildConfStateFromV3store`'s `ConfState` (`AutoLeave` nil)
+  reaches the apply thread only through the `MemoryStorage`: `bwal.MemoryStorage()` → `ApplySnapshot`
+  (`EnsureSnapshot`, then `proto.Clone`), and `run`'s `ep.confState` is `raftStorage.Snapshot()`'s
+  (`EnsureSnapshot` again, a clone). `CreateSnapshot` clones it, so `SaveSnap` hands the WAL a full conf state.
+- **Evidence.** `bootstrap.go:107-115, 571, 741-753`; raft `storage.go:119-126, 208-214, 218-237, 243-262`;
+  `server.go:755, 803-809, 1175, 2053, 2132`. Measured against the pinned raft (`565c2bd`): bootstrap's `cs`
+  has `AutoLeave` nil, `MemoryStorage.Snapshot()`'s and `CreateSnapshot`'s have it set
+  (`notes/wal-units/autoleave.md`).
+- **Proposed change.** None to the specs. P5 stays for entries only. The user's decision of 2026-11-15
+  (generalize, do not insist on `AutoLeave`) was taken on the false reading: reopened as options in
+  `notes/wal-units/autoleave.md` (recommended: keep the specs).
+- **Decision.** Proposed (unit `autoleave`).
+
+## 2026-11-15: `applyInit_ep.spec` (`SpecPlan/.../etcdserver/ApiApply.lean:724`) -- `ep.confState` from nowhere
+
+- **Spec.** `applyInit_ep.spec`: `applyInit s γ p c ∗ ep's five fields ↦ … ∗ ep.confState ↦ cs ⊢ |==> applyThread s γ ep p`.
+- **Defect.** Unprovable: `applyThread`'s realization holds `ep.confState` as a `RaftPb.confStateFull` listing the
+  configuration at the consistent index (`confAt γ.raft ci m`), but `cs` is arbitrary and nothing is given about
+  it. `run` has the `MemoryStorage` snapshot's `snapshotPts` (step 1) and drops it (step 5).
+- **Evidence.** `ApiApply.lean:51, 97, 724-732`; `EtcdServer__run.lean` steps 1 and 5; Go `server.go:755, 803-809`.
+  That the snapshot's conf state lists the configuration at `c` is bootstrap's doing (rebuilt from the backend,
+  at `c`; `bootstrap.go:107-115`), which no SpecPlan statement carries to `run`.
+- **Proposed change.** `applyInit_ep` also takes the conf state's holding, `RaftPb.confStateFull cs dq csm`
+  (from `MemoryStorage.Snapshot`'s `snapshotPts` by `snapshotPts_unfold`), and a tie of `csm` to the configuration
+  at `c`: either `applyInit` gains the membership (`applyInit s γ p c m`, with `⌜csm.Is m⌝` here; `start`'s
+  `srvRunTok_intro` and `NewServer` supply `m` from bootstrap), or `applyInit` holds the `MemoryStorage`
+  snapshot's model and the law takes `snapshotPts` itself. For batch 2d/2e's owners.
+- **Decision.** Proposed (unit `autoleave`, found while answering where `ep.confState` comes from).
+## 2026-11-15: error-free WAL specs under `NoIoErr` (unit `noioerr`) -- three obstacles
+
+- **Spec.** The planned `WAL.SaveSnapshot`/`ReleaseLockTo`/`Close`/`Create` `.specNoErr` variants (none
+  stated yet); `encoder.flush.specP`, `encoder.encode.specG`; `os.File.Write.wp_empty`.
+- **Defect.** (1) `flush.specP`'s error arm is `B out pend` for any `pend`: with nothing pending (no write
+  made, Go's `PageWriter.flush` returns `0, nil`) the spec still allows an error, so an error-free `sync`
+  cannot be derived from it; `encode.specG`'s error arm likewise allows `b = []`. (2) An empty
+  `(*os.File).Write`'s errno is arbitrary with no `fsExt` step (trusted model), which `NoIoErr` cannot
+  exclude. (3) `ReleaseLockTo`'s only error is `parseWALName` on a lock's name, which the handle does not
+  record as a WAL name: not an I/O error.
+- **Evidence.** `notes/wal-units/noioerr.md`, "What is left".
+- **Proposed change.** (1) Add "`pend = [] → err = nil`" to `flush.specP` (and "nothing written → `nil`" to
+  `encode.specG`), proved from the page writer. (2) For the user (trusted model). (3) A handle fact: each
+  lock's name is `walName seq idx`.
+- **Decision.** Proposed.
+
+## 2026-11-15: `wal.Create.spec` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`) -- the update from `walAbsent` only
+
+- **Spec.** `Create(lg, dir, md)`: `AU <{ walAbsent dir }> … <{ walDiskAt dir (walDurFresh md), COMM Q }>`.
+- **Defect.** Too strong a precondition for its clients: after `Exist` answers `false`, the state is
+  `ExistFalseOk` (none, or a fresh unnamed WAL), and a generation may start with a fresh unnamed WAL (the
+  trusted `walCrash` keeps `named = false`; `Create` failed after its rename, `cleanupWAL`'s move aside not
+  fsynced). The tester's `Boot` then calls `Create` and cannot give `walAbsent` (the tenth session's B3, whose
+  premise "a crash maps an unnamed WAL to absent" is false).
+- **Evidence.** `LinuxFs/GooseLang/Ext/AbsDisk/Impl.lean:230-236` (`walCrash`); `Exist.lean`'s `ExistFalseOk`;
+  `examples/etcd/wal/wal.go` `Boot`; S/wal.go `Create` (its `Exist` check before any effect, `renameWAL`'s
+  `RemoveAll`).
+- **Proposed change.** The update from `∃∃ o, walDirIs dir o ∗ ⌜wal.ExistFalseOk o⌝` (`wal.Create.specFresh`,
+  stated as a hypothesis in `CreateFresh.lean`, taken by `Boot.wp_proof`); `Create.spec` is its `o = none` case.
+  Proved by the WAL layer (the creating update generalized; the invariant lets the commit replace an unnamed,
+  empty WAL whose directory is not at its name). Alternatives in `notes/wal-units/tester.md`, eleventh session.
+- **Decision.** Proposed (unit `tester`); until then a hypothesis of `Boot`.

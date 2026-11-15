@@ -6,6 +6,7 @@ commit advanced to some `cm'` in `(cm, l]`, then `save` of the member's hard sta
 module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.MemberRep
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.MemberSim
 
 @[expose] public section
 
@@ -29,9 +30,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- See the file header. -/
 abbrev member.opCommit.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand)
-    (d : WalDur) (qc : Qp) (t vo cm l : w64) (r : Loc) (rv : rnd),
-  e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat t < 2 ^ 63 →
-  (∀ h : THs, tOrSmall (tSaveO1 o h []) ∧ tOrSmall (tSynced (tSaveO1 o h []))) →
+    (d : WalDur) (qc : Qp) (t vo cm l bs : w64) (r : Loc) (rv : rnd),
+  e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat t < 2 ^ 63 → tMemSim o c bs l cm →
+  (∀ h : THs, tOrSmall (tSaveO1 o h []) ∧ tOrSmall (tSynced (tSaveO1 o h []))) → tCheckWf o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc ∗
       m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗
@@ -42,7 +43,8 @@ abbrev member.opCommit.spec : Prop :=
       m.[member, go!"r"] ↦ r ∗ (∃ rv' : rnd, r ↦ rv') ∗
       ((⌜b = true ∧ uint.nat l ≤ uint.nat cm⌝ ∗ m.[member, go!"commit"] ↦ cm ∗
           memSaveRes W e γ m w v o os c d qc) ∨
-        (∃ cm' : w64, ⌜uint.nat cm < uint.nat cm' ∧ uint.nat cm' ≤ uint.nat l⌝ ∗
+        (∃ cm' : w64, ⌜uint.nat cm < uint.nat cm' ∧ uint.nat cm' ≤ uint.nat l ∧
+            tMemSim (tSaveO o (hardState.mk t vo cm') []) c bs l cm'⌝ ∗
           m.[member, go!"commit"] ↦ cm' ∗
           memSavePost W e γ m w o c qc (hardState.mk t vo cm') [] b)) }}
 

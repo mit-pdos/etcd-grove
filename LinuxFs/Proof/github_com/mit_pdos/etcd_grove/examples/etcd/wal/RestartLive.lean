@@ -95,6 +95,63 @@ theorem tMemFields_read {img : List TOp} {c : TContents} (hw : tHistWf img) (hr 
   · exact tResumeTerms_ok_gen _ _ (tTermsOk_insert tTermsOk_empty _ _ (tRead_baseTerm hw hr))
       (tRead_ents_wf hw hr)
 
+/-- `resume`'s last index, as the last entry's. -/
+theorem tResumeLast_eq (l : List TEnt) (x : w64) :
+    l.foldl (fun _ e => e.index') x = (l.getLast?.map (·.index')).getD x := by
+  induction l generalizing x with
+  | nil => rfl
+  | cons a l ih =>
+    rw [List.foldl_cons, ih]
+    cases l with
+    | nil => rfl
+    | cons b l => simp [List.getLast?_eq_getLast (List.cons_ne_nil b l)]
+
+/-- **After a restart, the member's fields are the disciplined history's fold**: the image read,
+disciplined from its own read (`ReadsBack.tSim_restartRead`), with `resume`'s fields. -/
+theorem tRestart_sim {o : TOracle} {cd : TCand} {d : WalDur} {img : List TOp} {c : TContents}
+    (hok : tCandOk o cd d) (hI : d.H.map WalOpG.toM = img.map absOp) (hr : tRead img = some c) :
+    tSim (img.map absOp) img.length ∧ ∃ σ, tSimAt (img.map absOp) img.length σ ∧
+      σ.b = uint.nat c.baseIdx ∧ σ.last = uint.nat (tResumeLast c) ∧ σ.commit = uint.nat (tResumeCommit c) := by
+  have hw : walImg ((tCandHist o cd).map absOp) (tCandMark o cd) (img.map absOp) := hI ▸ hok.1
+  have ha := tRead_abs img
+  rw [hr, Option.map_some] at ha
+  obtain ⟨σ, hσ, hpc⟩ := Option.map_eq_some_iff.1 ha.symm
+  obtain ⟨-, hsa⟩ := tSim_restartRead hok.2.2.2.2.2.2 hw hσ
+  rw [List.length_map] at hsa
+  have hcl := tSimAt_commitLe hsa
+  have hwf : walEntsWf σ := walReadCut_wf (k := 0) (by rw [walReadCut_zero]; exact hσ)
+  simp only [projC, absC, Prod.mk.injEq] at hpc
+  obtain ⟨hhs, hbi, -, hents⟩ := hpc
+  have hb : σ.b = uint.nat c.baseIdx := by simp only [StorContents.b, hbi]
+  have hlast : σ.last = uint.nat (tResumeLast c) := by
+    unfold tResumeLast
+    rw [tResumeLast_eq]
+    cases hl : c.ents.getLast? with
+    | none =>
+      have : c.ents = [] := List.getLast?_eq_none_iff.1 hl
+      simp only [StorContents.last, hents, this, List.map_nil, List.length_nil, Option.map_none,
+        Option.getD_none, hb, Nat.add_zero]
+    | some e =>
+      simp only [Option.map_some, Option.getD_some]
+      have hne : c.ents ≠ [] := by intro h0; rw [h0] at hl; cases hl
+      have hlen : 0 < c.ents.length := by
+        cases h : c.ents with
+        | nil => exact absurd h hne
+        | cons _ _ => simp
+      have hx : c.ents[c.ents.length - 1]? = some e := by
+        rw [List.getLast?_eq_getElem?] at hl; exact hl
+      have hx' : σ.ents[c.ents.length - 1]? = some (absEnt e) := by
+        rw [hents, List.getElem?_map, hx]; rfl
+      have := hwf _ _ hx'
+      have hl2 : σ.ents.length = c.ents.length := by rw [hents, List.length_map]
+      simp only [StorContents.last]
+      show σ.b + σ.ents.length = uint.nat (absEnt e).Index'
+      omega
+  refine ⟨tSimAt_tSim hsa, σ, hsa, hb, hlast, ?_⟩
+  have hc : σ.commit = uint.nat c.hs.commit' := by simp only [StorContents.commit, hhs]; rfl
+  unfold tResumeCommit
+  rw [if_neg (by omega)]; exact hc
+
 end pure
 
 end etcd_wal

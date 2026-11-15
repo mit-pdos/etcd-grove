@@ -82,7 +82,8 @@ macro "save_main" : tactic => `(tactic| (
       iframe Hes
       ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     · iexact Hop
-  ihave #Hrel := tRelI_save1 W e.area o c d h es hok.1 hok.2.1 (tCandOk_save1 hok h es hes ht)
+  ihave #Hrel := tRelI_save1 W e.area o c d h es hok.1 hok.2.1 (tCandOk_save1 hok h es hes ht hsim)
+    (tCheckWf_saveO1 hcwf h es hes ht hsm1)
     $$ [Hsl Hnm]
   · isplitl []
     · iexact Hsl
@@ -150,7 +151,7 @@ macro "save_main" : tactic => `(tactic| (
     wp_apply wp_toHS as %hp #Hhp
     try wp_auto
     imod ownSlice_persist $$ Hrs with #Hrs
-    ihave Hau := tInv_saveAu W e γ o c d h es hok hes ht $$ [Hwo Ho]
+    ihave Hau := tInv_saveAu W e γ o c d h es hok hes ht hsim $$ [Hwo Ho]
     · iframe; iframe #
     obtain ⟨hidx, henc⟩ := tEnts_saveOk es hes
     wp_apply (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) hp (absHs h) rs ls
@@ -169,7 +170,7 @@ macro "save_main" : tactic => `(tactic| (
       have hms : tMustSync v.lastHS' h (sint.nat esl.len) = tMustSync o.lastHS h es.length := by
         rw [Hf.2.2, ← Hlen.1]
       rw [hms]
-      have hd' := tMemOk_save1 hok h es hes ht
+      have hd' := tMemOk_save1 hok h es hes ht hsim
       have hsv : tSaveO o h es = { (if tMustSync o.lastHS h es.length then tSynced (tSaveO1 o h es)
           else tSaveO1 o h es) with lastHS := tPhsNext o.lastHS h } := by
         unfold tSaveO; simp only [hne, Bool.false_eq_true, ↓reduceIte]
@@ -208,7 +209,8 @@ macro "save_main" : tactic => `(tactic| (
         ihave ⟨%hl, Hrep1⟩ := oracleRep_synced _ _ $$ Hrep1
         ihave #Hsy := Hsync $$ [] 
         · ipureintro; exact (tMustSync_iff hhs h es).1 hMS
-        ihave #Hrel2 := tRelI_synced W e.area (tSaveO1 o h es) c (tSaveD d h es) hd' hl $$ [Hsy Hnm]
+        ihave #Hrel2 := tRelI_synced W e.area (tSaveO1 o h es) c (tSaveD d h es) hd' hl
+          (tCheckWf_saveO1 hcwf h es hes ht hsm1) $$ [Hsy Hnm]
         · isplitl []
           · rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]; iexact Hsy
           · iexact Hnm
@@ -268,7 +270,7 @@ theorem member.save.wp_proof
     (wp_Save : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
     member.save.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc h esl es hf hok hhs hes ht hsm1 hsm2
+  intro W e γ m w v o os c d qc h esl es hf hok hhs hes ht hsm1 hsm2 hsim hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Hes, #Harea, Hwf,
     #Hnm, #Hsl, #Hll⟩
   ihave %Hlen := ownSlice_len $$ Hes

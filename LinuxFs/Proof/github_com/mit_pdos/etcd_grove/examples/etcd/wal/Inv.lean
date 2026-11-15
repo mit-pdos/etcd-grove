@@ -34,6 +34,7 @@ The main tree's `TInvBody`/`TInv`/`TBoot` (over `absDiskExt`'s `walDirIs`/`walAr
 module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Defs
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Check
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Defs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
@@ -164,11 +165,12 @@ instance walDirIs_timeless' (dir : GoString) (o : Option WalDur) :
   unfold WalFs.walDirIs; infer_instance
 
 /-- **What the WAL side knows of the oracle `o`**, by its phase: after `Create` returned, some
-candidate accounts for the WAL (`tCandOk`), whose mark is synced and whose entry is durable; before,
-`tPreOk`. -/
+candidate accounts for the WAL (`tCandOk`), whose mark is synced and whose entry is durable, and the
+oracle is well formed for `checkRestart` (`tCheckWf`: every stored oracle is a running member's, which
+`memLive` keeps so; the next incarnation's `restart` of the loaded oracle needs it); before, `tPreOk`. -/
 def tRelI (area : GoString) (o : TOracle) (od : Option WalDur) : IProp GF :=
   if o.created then
-    iprop(∃ (d : WalDur) (c : TCand), ⌜od = some d ∧ c ∈ o.cands ∧ tCandOk o c d⌝ ∗
+    iprop(∃ (d : WalDur) (c : TCand), ⌜od = some d ∧ c ∈ o.cands ∧ tCandOk o c d ∧ tCheckWf o⌝ ∗
       WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area))
   else iprop(⌜tPreOk o od⌝)
 
@@ -179,6 +181,49 @@ instance tRelI_persistent (area : GoString) (o : TOracle) (od : Option WalDur) :
 instance tRelI_timeless (area : GoString) (o : TOracle) (od : Option WalDur) :
     Timeless (tRelI (W := W) (GF := GF) area o od) := by
   unfold tRelI; split <;> infer_instance
+
+open Iris.ProofMode in
+/-- A created oracle the invariant relates is well formed. -/
+theorem tRelI_checkWf (area : GoString) (o : TOracle) (od : Option WalDur) (hcr : o.created = true) :
+    tRelI (W := W) (GF := GF) area o od ⊢ ⌜tCheckWf o⌝ := by
+  unfold tRelI
+  simp only [hcr, ite_true]
+  iintro ⟨%d, %c, %h, -, -⟩
+  ipureintro; exact h.2.2.2
+
+/-- **What the restart takes of the WAL side, for the member's candidate `cd`** (`restartRead`'s and
+`restart`'s premise, B1 of the tenth session): after `Create` returned, `cd`'s mark synced and the WAL
+named (`tRelI`'s facts); before, the oracle fresh up to its opens (`Boot`'s restart from an oracle stored
+before `created`). With `cd ∈ o.cands` and `tCandOk o cd d` it gives `tRelI` (`tRelI_of_relW`). -/
+def tRelW (area : GoString) (o : TOracle) (cd : TCand) : IProp GF :=
+  if o.created then
+    iprop(⌜tCheckWf o⌝ ∗ WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o cd) ∗
+      WalFs.walNamed (W := W) (tWalDir area))
+  else iprop(⌜tPre o⌝)
+
+instance tRelW_persistent (area : GoString) (o : TOracle) (cd : TCand) :
+    Persistent (tRelW (W := W) (GF := GF) area o cd) := by
+  unfold tRelW; split <;> infer_instance
+
+open Iris.ProofMode in
+theorem tRelI_of_relW (area : GoString) (o : TOracle) (cd : TCand) (d : WalDur)
+    (hcd : cd ∈ o.cands) (hok : tCandOk o cd d) :
+    tRelW (W := W) (GF := GF) area o cd ⊢ tRelI (W := W) area o (some d) := by
+  unfold tRelW tRelI
+  cases hcr : o.created with
+  | true =>
+    simp only [ite_true]
+    iintro ⟨%hw, #Hsl, #Hnm⟩
+    iexists d, cd
+    iframe Hsl Hnm
+    ipureintro; exact ⟨rfl, hcd, hok, hw⟩
+  | false =>
+    simp only [Bool.false_eq_true, ite_false]
+    iintro %hpre
+    ipureintro
+    have : cd = tCand0 := by simpa [tPre_cands hpre] using hcd
+    subst this
+    exact ⟨hpre, Or.inr ⟨d, rfl, hok⟩⟩
 
 /-- **The pending oracle's relation**: while a `Write` is pending, the oracle before it accounts for
 the WAL too. -/
@@ -260,6 +305,27 @@ def TBoot (e : TEnv) : IProp GF :=
     WalFs.dirDurable (W := W) (e.area) ∗ WalFs.walAreaRes (W := W) e.jr ∗ WalFs.walUnlockedTok (W := W) ∗
     DurFs.durInv γ.γd e.orFile ∗ DurFs.durHandle γ.γd e.orFile e.R ∗ osCallPerm 1 ∗
     WalFs.walCrashTok (W := W) ∗ DurFs.durCrashTok γ.γd)
+
+/-- **The program's part of `TBoot`** at its witnesses (the WAL names `W`, the ghost names `γ`, the oracle
+`o`, the WAL state `od`): `TBoot` without the crash tokens. -/
+def TRun (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Option WalDur) : IProp GF :=
+  iprop(TInv (W := W) e γ ∗ tOrOwn γ o none ∗ tWalOwn γ od ∗
+    WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
+    WalFs.dirDurable (W := W) (e.area) ∗ WalFs.walAreaRes (W := W) e.jr ∗ WalFs.walUnlockedTok (W := W) ∗
+    DurFs.durInv γ.γd e.orFile ∗ DurFs.durHandle γ.γd e.orFile e.R ∗
+    osCallPerm 1)
+
+open Iris.ProofMode in
+/-- **`TBoot` is the program's part and the crash tokens.** -/
+theorem TBoot_run (e : TEnv) :
+    TBoot (L := L) e ⊣⊢ ∃ (W : WalGS GF) (γ : TGS) (o : TOracle) (od : Option WalDur),
+      TRun W e γ o od ∗ WalFs.walCrashTok (W := W) ∗ DurFs.durCrashTok γ.γd := by
+  unfold TBoot TRun
+  constructor
+  · iintro ⟨%W, %γ, %o, %od, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12⟩
+    iexists W, γ, o, od; iframe
+  · iintro ⟨%W, %γ, %o, %od, ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩, H11, H12⟩
+    iexists W, γ, o, od; iframe
 
 end boot
 

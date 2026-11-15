@@ -74,10 +74,11 @@ theorem tHistWf_snoc {H : List TOp} {op : TOp} (h1 : tHistWf H) (h2 : tOpWf op) 
 
 /-- **The appended oracle accounts for the WAL before the call** (the first store's relation). -/
 theorem tCandOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d) (h : THs)
-    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) :
+    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63)
+    (hs : tSim ((tCandHist (tSaveO1 o h es) c).map absOp) (tCandMark o c)) :
     tCandOk (tSaveO1 o h es) c d := by
-  obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10⟩ := hok
-  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, ?_⟩
+  obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10, -⟩ := hok
+  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, ?_, hs⟩
   · rw [tSaveO1_hist, h4]
     refine ⟨(tCandHist o c).length, ?_, ?_, Or.inl ?_⟩
     · unfold tCandMark tCandHist tSaveO1
@@ -89,19 +90,15 @@ theorem tCandOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d
 
 /-- **The appended oracle's candidate is the WAL after the save's update.** -/
 theorem tMemOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d) (h : THs)
-    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) :
+    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63)
+    (hs : tSim ((tCandHist (tSaveO1 o h es) c).map absOp) (tCandMark o c)) :
     tMemOk (tSaveO1 o h es) c (tSaveD d h es) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hok
-  refine ⟨h1, h2, h3, ?_, h5, h6, h7, h8, ?_, ?_⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, -⟩ := hok
+  refine ⟨h1, h2, h3, ?_, h5, h6, h7, h8, ?_, ?_, hs⟩
   · rw [tSaveD_hist, h4, tSaveO1_hist, List.map_append, List.map_singleton]
   · rw [tSaveO1_hist]; exact tHistWf_snoc h9 (tSaveOp_wf h es hes ht)
   · show uint.nat o.synced ≤ (o.since ++ [tSaveOp h es]).length
     simp only [List.length_append, List.length_singleton]; omega
-
-theorem absHs_phsNext (p h : THs) : absHs (tPhsNext p h) = phsNext (absHs p) (absHs h) := by
-  rcases h with ⟨t, v, cm⟩
-  unfold tPhsNext phsNext tHsEmpty absHs
-  by_cases h1 : t = 0#64 <;> by_cases h2 : v = 0#64 <;> by_cases h3 : cm = 0#64 <;> simp [h1, h2, h3]
 
 theorem walLastHS_snoc (H : List WalOp) (h : HardStateM) (es : List EntryM) :
     walLastHS (H ++ [WalOpG.save h es]) = phsNext (walLastHS H) h := by
