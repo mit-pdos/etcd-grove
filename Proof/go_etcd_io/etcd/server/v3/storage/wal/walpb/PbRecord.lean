@@ -203,5 +203,103 @@ axiom pbRecordC_reg [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] :
     pbModelOf GF walpb.Record.ty = some (pbRecordC (GF := GF))
 
+/-! ## `Sat` (the model-param gate's rule 7) -/
+
+section sat
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+
+/-- A stored cell, frozen, at some presence. -/
+theorem recCell_freeze {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (x : V) :
+    (⌜p = null ∧ x = zero_val V⌝ ∨ p ↦ x : IProp GF) ⊢
+      |==> ∃ o : Option V, recCell p o ∗ ⌜o.getD (zero_val V) = x⌝ := by
+  iintro (%H | H)
+  · imodintro; iexists none
+    unfold recCell
+    isplitl
+    · ipureintro; exact H.1
+    · ipureintro; exact H.2.symm
+  · imod (typedPointsto_dfractional (GF := GF) p x).dfractional_persist _ $$ H with #H
+    imodintro; iexists (some x)
+    unfold recCell
+    isplitl
+    · iexact H
+    · ipureintro; rfl
+
+/-- An owned `bytes` field at some nil-ness. -/
+theorem recBytesOwn_of (ds : GoSlice) (xs : List w8) (h : xs = [] → ds = slice.nil) :
+    (ds ↦* xs : IProp GF) ⊢ ∃ o : Option (List w8), recBytesOwn ds o ∗ ⌜o.getD [] = xs⌝ := by
+  iintro H
+  by_cases hx : xs = []
+  · subst hx
+    iexists none
+    unfold recBytesOwn
+    isplitl
+    · ipureintro; exact h rfl
+    · ipureintro; rfl
+  · ihave %Hlen := ownSlice_len _ _ _ $$ H
+    iexists (some xs)
+    unfold recBytesOwn
+    isplitl
+    · isplitr
+      · ipureintro
+        intro hn; subst hn
+        apply hx; apply List.eq_nil_of_length_eq_zero
+        rw [Hlen.1]; rfl
+      · iexact H
+    · ipureintro; rfl
+
+/-- **`pbRecordM`'s decoded model is satisfiable** by the generic store. -/
+theorem pbRecordM_sat : (pbRecordM (GF := GF)).Sat := by
+  refine ⟨⟨walpb.Record, inferInstance, inferInstance,
+    (inferInstance : IntoValTyped walpb.Record walpb.Record.ty), fun l => .rfl⟩, ?_⟩
+  intro r l
+  simp only [pbRecordM]
+  iintro Hl
+  iapply wp_fupd
+  iapply (storeInto_wp_typed (V := walpb.Record) (ty := walpb.Record.ty) l (zero_val walpb.Record))
+  simp only [recTree, treeWp, treeWpL]
+  iapply treeWp_cell
+  iintro %pt Hpt
+  isplitr
+  · ipureintro; exact isPanic_intoVal pt
+  iapply treeWp_cell
+  iintro %pc Hpc
+  isplitr
+  · ipureintro; exact isPanic_intoVal pc
+  iapply treeWp_bytes
+  iintro %ds %Hds Hs -
+  isplitr
+  · ipureintro; exact isPanic_intoVal ds
+  simp [litBody, strctKes, kesσ, envσ]
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iframe Hl
+  iintro Hl
+  imod recCell_freeze pt r.typ $$ Hpt with ⟨%o1, #c1, %h1⟩
+  imod recCell_freeze pc r.crc $$ Hpc with ⟨%o2, #c2, %h2⟩
+  icases recBytesOwn_of ds r.data Hds.2 $$ Hs with ⟨%o3, Hb, %h3⟩
+  ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
+  imodintro
+  iexists ⟨o1, o2, o3, []⟩
+  unfold recOwnC
+  isplitl
+  · iexists _
+    iframe Hl c1 c2 Hb
+    isplitl
+    · iexact Hnil
+    · ipureintro; exact ufWire_nil _
+  · ipureintro
+    rcases r with ⟨t, k, d⟩
+    simp only [RecC.model] at h1 h2 h3 ⊢
+    rw [← h1, ← h2, ← h3]; rfl
+
+end sat
+
 end EtcdGrove
 end Perennial

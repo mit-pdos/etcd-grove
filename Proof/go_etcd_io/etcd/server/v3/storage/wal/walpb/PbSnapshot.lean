@@ -305,5 +305,117 @@ axiom pbSnapC_reg [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] :
     pbModelOf GF walpb.Snapshot.ty = some (pbSnapC (GF := GF))
 
+/-! ## `Sat` (the model-param gate's rule 7) -/
+
+section sat
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+
+/-- **A conf state's store**: a fresh pointer to an owned conf state at a content of model `cs`. -/
+theorem treeWp_walCs (cs : ConfStateM) (Φ : val → IProp GF) :
+    (∀ p : Loc, ∀ c : WalCsC, walCsOwnC p (some c) -∗ ⌜c.model = cs⌝ -∗ Φ #p) ⊢
+      treeWp (walCsTree cs) Φ := by
+  iintro H
+  unfold walCsTree
+  iapply (treeWp_ptr_fupd (V := raftpb.ConfState))
+  simp only [treeWp, treeWpL]
+  iapply treeWp_bytes
+  iintro %sv %Hsv Hsv -
+  isplitr
+  · ipureintro; exact isPanic_intoVal sv
+  iapply treeWp_bytes
+  iintro %sl %Hsl Hsl -
+  isplitr
+  · ipureintro; exact isPanic_intoVal sl
+  iapply treeWp_bytes
+  iintro %so %Hso Hso -
+  isplitr
+  · ipureintro; exact isPanic_intoVal so
+  iapply treeWp_bytes
+  iintro %sn %Hsn Hsn -
+  isplitr
+  · ipureintro; exact isPanic_intoVal sn
+  iapply treeWp_cell
+  iintro %pa Hpa
+  isplitr
+  · ipureintro; exact isPanic_intoVal pa
+  simp [litBody, strctKes, kesσ, envσ]
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iintro %p Hp
+  imod recCell_freeze pa cs.AutoLeave' $$ Hpa with ⟨%oa, #ca, %ha⟩
+  ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
+  imodintro
+  have hm : WalCsC.model ⟨cs.Voters', cs.Learners', cs.VotersOutgoing', cs.LearnersNext', oa, []⟩ =
+      cs := by
+    rcases cs with ⟨a, b, c, d, e⟩
+    simp only [WalCsC.model] at ha ⊢
+    rw [← ha]; rfl
+  ihave Hc : walCsOwnC p
+      (some ⟨cs.Voters', cs.Learners', cs.VotersOutgoing', cs.LearnersNext', oa, []⟩) $$
+      [Hp Hsv Hsl Hso Hsn]
+  · unfold walCsOwnC
+    iexists _
+    iframe Hp Hsv Hsl Hso Hsn ca
+    isplitl
+    · iexact Hnil
+    · ipureintro; exact ufWire_nil _
+  iapply H $$ %p %_ Hc %hm
+
+/-- **`pbSnapM`'s decoded model is satisfiable** by the generic store. -/
+theorem pbSnapM_sat : (pbSnapM (GF := GF)).Sat := by
+  refine ⟨⟨walpb.Snapshot, inferInstance, inferInstance,
+    (inferInstance : IntoValTyped walpb.Snapshot walpb.Snapshot.ty), fun l => .rfl⟩, ?_⟩
+  intro m l
+  simp only [pbSnapM]
+  iintro Hl
+  iapply wp_fupd
+  iapply (storeInto_wp_typed (V := walpb.Snapshot) (ty := walpb.Snapshot.ty) l
+    (zero_val walpb.Snapshot))
+  simp only [walSnapTree, treeWp, treeWpL]
+  iapply treeWp_cell
+  iintro %pi Hpi
+  isplitr
+  · ipureintro; exact isPanic_intoVal pi
+  iapply treeWp_cell
+  iintro %pt Hpt
+  isplitr
+  · ipureintro; exact isPanic_intoVal pt
+  iapply treeWp_walCs
+  iintro %pc %cc Hc %Hcc
+  isplitr
+  · ipureintro; exact isPanic_intoVal pc
+  simp [litBody, strctKes, kesσ, envσ]
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iframe Hl
+  iintro Hl
+  imod recCell_freeze pi m.Index' $$ Hpi with ⟨%o1, #c1, %h1⟩
+  imod recCell_freeze pt m.Term' $$ Hpt with ⟨%o2, #c2, %h2⟩
+  ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
+  imodintro
+  iexists ⟨o1, o2, some cc, []⟩
+  unfold snapOwnC
+  isplitl
+  · iexists _
+    iframe Hl c1 c2 Hc
+    isplitl
+    · iexact Hnil
+    · ipureintro; exact ufWire_nil _
+  · ipureintro
+    rcases m with ⟨cs, i, t⟩
+    simp only [WalSnapC.model] at h1 h2 ⊢
+    rw [← h1, ← h2, Option.map_some, Option.getD_some, Hcc]; rfl
+
+end sat
+
 end EtcdGrove
 end Perennial
