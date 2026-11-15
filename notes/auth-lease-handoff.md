@@ -79,6 +79,9 @@ StartOn, RunOn, NewServer, EtcdServer__applySnapshot (SnapApplyPost), SnapSendBr
 ClientModel, EtcdServer__Put/DeleteRange/Txn. Edited, not yet checked: auth/MainAlloc, etcdstart/Alloc3On (alloc premises),
 server Results (`server_member_alloc_on` premises), KVLogOk, client WatchFire/Results/KVService, v3rpc ServerKV, InvRead.
 
+A full build was started 2026-11-15 04:00 (`/shared/tmp/auth-lease-s3a/build1.log`) to list the remaining failures
+(`lean-check` on the server `Results.lean` hung at line 1 for 30 min; prefer targeted `lake build` for the big modules).
+Also edited, unchecked: client KVService (`*_mono`, `*Ans_st`), WatchStateDefs, ServerKVPut, restart1/put.
 Next, in order: server Results, v3rpc ServerKVOn/Results, the client chain (KVService, ServerKVPut/Get/Txn, ClientPutGet,
 Results, ResultsOn, KVServiceOn, WatchFire users, kubernetes), examples (auth, auth3, etcdstart, restart1, watch, k8s,
 txnlin, partition). Then a full build (flock, 64G) to find the rest.
