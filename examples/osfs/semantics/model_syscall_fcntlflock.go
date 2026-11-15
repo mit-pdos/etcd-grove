@@ -9,13 +9,15 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// syscall.FcntlFlock: the lock commands as unix.FcntlFlock, and the
+// syscall.FcntlFlock: the OFD lock commands as unix.FcntlFlock, and the
 // F_OFD_GETLK query on any fd (trusted model; a draft pending review,
-// 2026-11-13).
+// 2026-11-13; the lock commands revised 2026-11-15, locks_ofd.go).
 //
-// Decision: F_SETLK, F_SETLKW, F_OFD_SETLK and F_OFD_SETLKW are the
-// extension's OfdLock (any errno, no lock state; stuck on an fd that is not a
-// file's), as unix.FcntlFlock's model. F_OFD_GETLK, on any fd (one the process
+// Decision: F_OFD_SETLK and F_OFD_SETLKW read the whole description and, for
+// a whole-file lock with l_pid 0, are the extension's OfdLock with the lock's
+// type (locks_ofd.go; stuck on an fd that is not a file's), as
+// unix.FcntlFlock's model; F_SETLK and F_SETLKW panic
+// (locks_posix_not_modelled.go). F_OFD_GETLK, on any fd (one the process
 // opened or not), takes no extension step and returns nil or any errno. It
 // reads the whole description at entry, and on success writes the whole
 // description back: arbitrary values in Type, Whence, Start, Len and Pid
@@ -24,8 +26,7 @@ import (
 // of the padding may be reverted: the model makes any concurrent access a
 // race); on failure the description is unchanged. A
 // nil description is stuck (Linux: EFAULT). Other commands panic (not
-// modelled). The lock state stays unmodelled (the user's decision is pending,
-// notes/wal-fsext-plan.md Q1).
+// modelled).
 //
 // Lean: LinuxFs/TrustedCode/syscall.lean: FcntlFlock.impl, model.Flock_t;
 // Impl.lean: OfdLock.
@@ -51,6 +52,6 @@ func OFDGetlk(dir string) {
 	}
 	f, _ := os.Create(dir + "/LOCK")
 	lk := syscall.Flock_t{Type: syscall.F_WRLCK}
-	syscall.FcntlFlock(f.Fd(), unix.F_OFD_SETLK, &lk) // any errno
+	syscall.FcntlFlock(f.Fd(), unix.F_OFD_SETLK, &lk) // locks_ofd.go
 	f.Close()
 }
