@@ -84,7 +84,11 @@ then the Freeze package (hard stop).
   (unchanged expected), the Freeze package (hard stop).
 
 ### A1 g2 (2026-11-15, second agent)
-Edits (uncommitted until the build passes; then one commit "restart3 A1 g2"):
+Committed `374df0d887` (edits), then the etcdstart interfaces; full build passes (`/shared/tmp/restart3-a1/build-g2-2.log`);
+`etc/tcb-report.py --check` unchanged (870 axioms, 4 sorries), restart1 collection unchanged (508, 0); interfaces:
+only etcdstart's changed (absdisk, backend, bbolt, mvcc, raft clean). Freeze package: Draft §9 (HARD STOP; waiting for
+etcd-grove-81). Next after review: goose --check and go.sum once the fork is pushed; then the C-stages.
+Edits:
 - `srvWinPend` (`InvRun.lean`) and `srvWinPend_first` deleted; the `Hwpend` row out of `isServerRunC`,
   `isServerBuiltC` (`AuthCompRows`), `srvApplyAllBuilt`/`InvStart`, `InvBuild`, `srvBuiltG` (`ServerOn`),
   `isServerBuiltOn` (`StartOn`); the positional patterns in `AuthCompRows`, `BuildGap`, `StartOn`, `ModeSpecs`,

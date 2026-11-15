@@ -410,3 +410,39 @@ drops is what lets the follower recover.
 
 Next: the user pushes `6e8f0c004` to `goose-lean` (fast-forward from `2eaeb872b`); then A1's g0 (pin bump in
 `etc/goose.py` and `examples/go.mod`, translation, `etc/goose.py --check`).
+
+## 9. The A1 Freeze package (2026-11-15; hard stop for etcd-grove-81)
+
+Branch `restart3` (worktree `/shared/etcd-grove-auth3`), commits `a7664b099b`, `3e2cf89fec`, `8f3676d5d6` (g0-g1),
+`374df0d887` (g2 deletions, SpecPlan ledger), the interfaces commit after it. Full build passes (flock, 64G cap;
+`/shared/tmp/restart3-a1/build-g2-2.log`). The fork commit `6e8f0c004` is not pushed: the translation came from
+`etc/goose.py --project etcd --src etcd=/shared/tmp/restart3-a0/etcd-fork`; `goose --check` and the `go.sum`
+updates wait for the push.
+
+Every frozen, exported or hub statement changed, old → new:
+
+| # | Statement (file) | Old | New |
+|---|---|---|---|
+| 1 | `isServerApplyAll`'s bag row (`InvApplyAll.lean`, hub; also `srvApplyAllBuilt`, `InvStart.lean`) — **the reduced `srvProcOk` row** | `∃ γm, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc` | same `∗ rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)` (the two pieces of `srvProcOk` that `ReportSnapshot` reads; supplied by `NewServer`/`NewServerR` from the wrapper, `HNodeC`, `HstepI`) |
+| 2 | `EtcdServer.ReportSnapshot.spec` (proved) | `∀ γn γd s id x st`, pre `isPkgInit ∗ srvProcOk γn s id γd` | `∀ (γ : RNNames) s x st`, pre `isPkgInit ∗ rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ)`: weaker precondition (a part of `srvProcOk`), same post; `NetBridge` destructures `srvProcOk` for it |
+| 3 | `EtcdServer.applyAll.specBatch` (frozen) | binder `(T : IProp GF)`; pre `… ∗ winNoMergedSendR γr.raft.raft s γn.t0 T (rp.A₀.drop …) rt ∗ T ∗ srvSnapBagN s γn ∗ …`; post `… ∗ T ∗ …` | no `T`, no window rows: weaker precondition, post minus `T`. Docstring: the fork's guard |
+| 4 | `applyAll.wp_proofBatch`'s callee specs (server `Link.lean`, `etc/link-lean-first-server.txt`) | — | `+ consistentIndex.ConsistentIndex.spec`, `raftpb.Message.GetTo.spec`, `EtcdServer.ReportSnapshot.spec` |
+| 5 | `applyAll_model` (`Results.lean`, exported) | restates `applyAll.spec` | text unchanged (follows `specBatch`); docstring updated |
+| 6 | `isServerRunC`, `isServerBuiltC` (`AuthCompRows.lean`), `srvApplyAllBuilt` (`InvStart`), `InvBuild`'s row, `srvBuiltG` (`ServerOn`), `isServerBuiltOn` (`StartOn`) — hubs; `EtcdServer.run.spec` through `isServerRunC` | `"Hwpend" ∷ srvWinPend s γr γn ∗` | row deleted; `srvWinPend`, `srvWinPend_first` deleted (`InvRun.lean`) |
+| 7 | `rnRestartOk` (`InvRaftNode.lean`, in `isRaftNode`) | restart disjunct `⌜pre = [] ∧ snap0 ≤ |a0| ≤ commit0⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnSnapTermAbove γ` | `⌜…⌝ ∗ srvRLogLb γ.srv γ.a0` (row 4 gone); `rnSnapTermAbove`, `rnSnapTermOk(_cons)`, `rnRestartOk_snapTerm` deleted. First disjunct unchanged (`t0 = 0` kept; `RNNames.t0` kept, now read only there) |
+| 8 | `rnSnapMsg` (`InvRaftNode.lean`) | `⌜Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z Term'⌝` | `⌜Type' = MsgSnap⌝` |
+| 9 | `rnRawMsgs` (`InvRaftNode.lean`, in `rnReadyData`) | `… ∗ ⌜rnSnapTermOk γ ms⌝` | conjunct deleted; `rnMsgOk_of_api` loses the premise |
+| 10 | `NodeStartSpecR` (`NodeStart.lean`; `bootstrappedRaft.newRaftNode` at a restart) | installer `… -∗ srvRdCtxInv … -∗ rnSnapTermAbove γw -∗ rnFixed …` | `rnSnapTermAbove γw -∗` deleted (weaker). `newRaftNode.spec`/`bootstrappedRaft.newRaftNode.spec` texts unchanged |
+| 11 | `NewServer.specR` (`Spec/.../NewServerR.lean`) | `"Hrows" ∷ srvRestartRows γ id A σ ∗` | deleted; `srvRestartRows` deleted (`InvRestart.lean`), `RestartRowsSingle.lean` deleted |
+| 12 | etcdstart `newServerMode.specRestart`, `newServer.specRestart`, `BuildServer.specRestart` (linked; interfaces regenerated) | `… ∗ envVerifyOff ∗ □ (∀ A σ, srvRestartRows γ id A σ)` | `… ∗ envVerifyOff` |
+| 13 | restart (3-member draft) `startMember.specRestart`, `restartCheck.spec`, `Run.wp_proof` | the same `□ ∀ A σ, srvRestartRows` premise; `Run.wp_proof`'s hypothesis `hRows` | deleted |
+| 14 | restart1 `startMember.wp_proofRestart` | discharged the rows (`srvRestartRows_single`) | nothing to discharge; spec text: docstring only |
+| 15 | the restart contracts: `bootstrapRestartContract` (trusted), `wal.stopImage` (sealed), `srvDiskImageAt` | — | **unchanged** |
+| 16 | `etcd_restart1_safe` and every other closed theorem | — | **text unchanged**; `etcd_restart1.premises` untouched (the rows were never its premise) |
+| 17 | `createMergedSnapshotMessage`'s spec | — | unchanged (only `rnSnapMsg`'s meaning, row 8) |
+| 18 | The translation `Code/go_etcd_io/etcd/server/v3/etcdserver.lean`; `etc/goose.py` etcd rev; `examples/{,k8s/compactor/,k8s/etcd3/}go.mod` replaces | `2eaeb872b` | `6e8f0c004` (only the merge select changed) |
+| 19 | SpecPlan `EtcdServer__applyAll.lean` | sketch: the guard "is the code's" | sketch names the window test and `ReportSnapshot`; statement unchanged; ledger entry 2026-11-15 |
+
+Trust base: no axiom, `sorry`, opaque or trusted text added or changed (§ result of `etc/tcb-report.py --check` in
+the report). Left out on purpose: `Proof/go_etcd_io/raft/v3/InvNodeRule.lean:455`'s docstring still names
+`srvRestartRows_single` (editing it would rebuild raft's importers; to fix with the next raft change).
