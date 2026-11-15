@@ -33,10 +33,15 @@ with `auth-lease-scope` merged).
 
 ## Next, in order
 
-1. S3 (the auth-on server with leases): a gap found at its start, reported to the coordinator: no path admits a
-   put with a lease (`plainCover`, `putPermit`/`putPermitOn` require lease `0`; no `clientv3.WithLease` spec):
-   `/shared/tmp/auth-lease/s3-scope-gap.md`. The S3 Freeze package waits for that decision.
-2. S4 as the Scope (with the client's leased put if option (a)).
+1. S3, revised (etcd-grove-81, 2026-11-15, option (a) of `/shared/tmp/auth-lease/s3-scope-gap.md`; 18–28 days),
+   in three Freeze packages:
+   - **S3a** (now): the model and the apply thread: the triple state with the lease table, the client's half kept in
+     `kvInvOn`, the auth-on table for `srvRest`, `authKVKind` in the three places, admission of grants, revocations and
+     leased puts at the revocable mode. Design: `notes/auth-lease-s3a-draft.md`.
+   - **S3b**: the request side (grant, revoke, leased put with auth on).
+   - **S3c**: the couplings and `NewServer`; the `lease.bootCfg` hub change and the `NewLessor` docstring (hard stops).
+   - The auth-on snapshot path takes an explicit lease-free premise (`E.lg = false`), a follow-up.
+2. S4 with the client's leased put (`WithLease`, `Put`/`Txn` with a lease).
 
 ## Pitfalls
 
