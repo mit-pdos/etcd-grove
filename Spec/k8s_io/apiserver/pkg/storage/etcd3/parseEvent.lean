@@ -1,6 +1,7 @@
 /-
 `parseEvent(e)` (`k8s.io/apiserver/pkg/storage/etcd3/event.go:66-84`) of a delivered watch event
-`e` that is the state's event `ev` (`eventIs`) with its `PrevKv` pointer read at the state `σ`
+`e` (non-nil, with a non-nil `Kv`: etcd's events always are, `mvcc.evRd`) that is the state's event
+`ev` (`eventIs`) with its `PrevKv` pointer read at the state `σ`
 (`prevKvOk`): a fresh `*event`, owned, holding `ev` (`kEvIs`'s `.ev` case: its previous value the
 key's record before, for an event that is not a create), or, only for a non-create event without
 `PrevKv` (Q5, `issues/etcd-watch-prevkv-before-created.md`), an error `fmt.Errorf` made. Proved
@@ -32,7 +33,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 abbrev parseEvent.spec : Prop :=
   ∀ (p : Loc) (e : EvModel) (ev : mvcc.EvM) (o : OpFull) (σ : KVState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      EtcdGrove.eventAt p e ∗ eventIs e ev ∗
+      ⌜p ≠ null ∧ e.kv ≠ null⌝ ∗ EtcdGrove.eventAt p e ∗ eventIs e ev ∗
       structFieldRef mvccpb.Event go!"PrevKv" p ↦□ e.prevKv ∗ prevKvOk o σ ev e.prevKv }}
     (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.parseEvent)) (Val #p))
   {{ (q : Loc) (err : GoInterface), RET (PairV #q #err);
