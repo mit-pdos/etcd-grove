@@ -138,6 +138,12 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `etc/specs-build-all.sh`), imports only the shared translations (`GeneratedProof`, `GooseLang`) and
   Perennial, and nothing outside it imports it (its namespaces are the main tree's). No `Link`/`Results`:
   the trust-base and verified-code scripts see nothing of it.
+- `Robustness/` (lean_lib `Robustness`): the generic statement of robustness theorems (runs of a
+  deployment's real programs with crashes, the network's faults and arbitrary clients; assumptions on
+  the environment's events only; guarantees on the observed trace, e.g. `LinearizableTrace`), and
+  `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
+  kernel and the harness, never by the program): `notes/robustness.md`. A program's statement lives
+  with its proofs (`Proof/.../examples/raft/kvnet/Robust.lean`).
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 

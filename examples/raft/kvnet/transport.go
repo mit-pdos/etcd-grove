@@ -9,16 +9,6 @@ import (
 	pb "go.etcd.io/raft/v3/raftpb"
 )
 
-// Faults are the faults the transport adds to the real network's (a connection refused while
-// its target is down, reset when it crashes, a frame half written): each a probability 1/n, 0
-// for none.
-type Faults struct {
-	Drop      uint64 // a message dropped before it is sent
-	Delay     uint64 // a message sent later, after a random delay below 20ms (reordered)
-	Duplicate uint64 // a message sent twice
-	Cut       uint64 // the connection closed after a message is written (the next one redials)
-}
-
 // queueLen bounds the messages waiting for a peer's connection: one more is dropped (raft
 // retransmits).
 const queueLen = 256
@@ -43,22 +33,22 @@ type peer struct {
 }
 
 // Transport sends a node's messages to its peers, each over a TCP connection of its own (helloPeer),
-// and hands the messages its listener receives to the node. A message is sent at most once
-// (twice if Faults duplicates it), never retried: raft retransmits what matters. The node learns
+// and hands the messages its listener receives to the node. A message is sent at most once,
+// never retried: raft retransmits what matters. It makes no fault of its own: the network's are
+// the environment's (examples/lib/robust). The node learns
 // of a message dropped (ReportUnreachable) and of each snapshot's fate (ReportSnapshot, after its
 // frame is written or dropped).
 type Transport struct {
-	id     uint64
-	node   raft.Node
-	faults Faults
-	stats  *Stats
-	peers  map[uint64]*peer // every other replica the program knows, read-only once started
+	id    uint64
+	node  raft.Node
+	stats *Stats
+	peers map[uint64]*peer // every other replica the program knows, read-only once started
 }
 
 // newTransport is the transport of node id, whose peers' addresses are addrs (by id; its own
-// included, and left out: raft never sends to itself), with the faults f.
-func newTransport(id uint64, addrs map[uint64]string, f Faults, stats *Stats) *Transport {
-	t := &Transport{id: id, faults: f, stats: stats, peers: make(map[uint64]*peer)}
+// included, and left out: raft never sends to itself).
+func newTransport(id uint64, addrs map[uint64]string, stats *Stats) *Transport {
+	t := &Transport{id: id, stats: stats, peers: make(map[uint64]*peer)}
 	for pid, addr := range addrs {
 		if pid != id {
 			t.peers[pid] = &peer{id: pid, addr: addr, queue: make(chan *pb.Message, queueLen)}
@@ -75,34 +65,16 @@ func (t *Transport) start(node raft.Node) {
 	}
 }
 
-// chance is true with probability 1/n, never if n is 0.
-func chance(n uint64) bool {
-	return n != 0 && oneIn(n)
-}
-
 // Send hands each of ms to its peer's sender, without waiting; one to an unknown peer, or one
 // whose peer's queue is full, is dropped.
 func (t *Transport) Send(ms []*pb.Message) {
 	for _, m := range ms {
 		p, ok := t.peers[m.GetTo()]
-		if !ok || chance(t.faults.Drop) {
+		if !ok {
 			t.dropped(m)
 			continue
 		}
-		if chance(t.faults.Delay) {
-			t.stats.add(StMsgsDelayed)
-			delay := time.Duration(below(20)) * time.Millisecond
-			go func() {
-				time.Sleep(delay)
-				t.enqueue(p, m)
-			}()
-			continue
-		}
 		t.enqueue(p, m)
-		if chance(t.faults.Duplicate) {
-			t.stats.add(StMsgsDuplicated)
-			t.enqueue(p, m)
-		}
 	}
 }
 
@@ -168,10 +140,6 @@ func (t *Transport) runPeer(p *peer) {
 		if m.GetType() == pb.MsgSnap {
 			t.stats.add(StSnapshotsSent)
 			t.node.ReportSnapshot(m.GetTo(), raft.SnapshotFinish)
-		}
-		if chance(t.faults.Cut) {
-			c.Close()
-			c = nil
 		}
 	}
 }

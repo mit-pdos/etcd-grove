@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan", "Robustness"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -65,6 +65,32 @@ globs = ["SpecPlan.+"]
 [[lean_lib]]
 name = "Bbolt"
 globs = ["Bbolt.+"]
+
+# Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
+# every run of its nodes (the real programs) with crashes, the network's faults and any clients,
+# under assumptions on the environment's events only, leaves the nodes fine and satisfies a
+# guarantee on the observed trace (e.g. linearizability) -- generic over the programs, the
+# extensions and the network. Used by the examples' statements (raft/kvnet); its Go counterpart is
+# the test harness examples/lib/robust.
+[[lean_lib]]
+name = "Robustness"
+globs = ["Robustness.+"]
+
+# The TCP extension's `net` (`GooseLang/Ext/Tcp`, notes/net-tcp.md) with the programs proved over
+# it (examples/net/), in a parallel tree with the same layout
+# (NetTcp/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
+# nettcp): the main tree's `net` is names only, with the axioms etcd's server proofs use, so the
+# two declare the same names; nothing outside NetTcp imports it.
+[[lean_lib]]
+name = "NetTcp"
+globs = ["NetTcp.+"]
+
+# The Lean certification of the TCP conformance checker's witnesses
+# (examples/net/conform/check/README.md, "Certification in Lean"): replays a witness and the run's
+# traced calls through the proved deciders of GooseLang/Ext/Tcp/Decide.lean.
+[[lean_exe]]
+name = "nettcp-replay"
+root = "GooseLang.Ext.Tcp.Replay"
 
 [leanOptions]
 linter.unusedSectionVars = false

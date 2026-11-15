@@ -1,12 +1,17 @@
-// Package driver runs kvnet's test: a cluster of replicas of kvnet's store, each in a process of
-// its own, connected by TCP on the loopback interface; clients running random Puts, Gets and Reads
-// over TCP while proposers reconfigure the cluster, leadership is disrupted, and replicas crash
+// Package driver runs kvnet's test over the robustness harness (examples/lib/robust): a cluster of
+// replicas of kvnet's store, each a process of the unchanged program on a machine of its own (a
+// network namespace, as root; one loopback address otherwise), connected by TCP through the
+// harness's network; clients, each operation from one of several client machines, running random
+// Puts, Gets and Reads while proposers reconfigure the cluster, leadership is disrupted, the
+// network fails (partitions both ways or one way, by drops or by resets; delay, loss,
+// duplication, reordering of packets: robust.NetNemesis, in the namespace mode) and replicas crash
 // for real -- the process killed with SIGKILL, and either its filesystem synced before it
 // restarts (the restart Linux file extension's semantics allows: notes/decisions.md, "One file
-// semantics, fsExt; power loss only") or its machine's disk losing power (disk: every replica on a
-// filesystem of its own, which loses what was not durable); then porcupine's check of the trace,
-// a check that the members converge, and a power loss of the whole cluster at once, after which
-// the store must still hold everything it held.
+// semantics, fsExt; power loss only") or its machine's disk losing power (robust.Disk: every
+// replica on a filesystem of its own, which loses what was not durable); then porcupine's check of
+// the trace, a check that the members converge, and a power loss of the whole cluster at once,
+// after which the store must still hold everything it held. Every fault is the environment's:
+// the replicas' code has none.
 //
 // The driver is the test's harness, not part of the program meant to be verified (that is kvnet's
 // replica, against any client): it holds the clients' operation ids and read sequence numbers,
@@ -17,17 +22,16 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
 	pb "go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"
@@ -50,6 +54,13 @@ const maxReplicas = 9
 // opTimeout is how long a client waits for an answer at one replica before it tries another.
 const opTimeout = 300 * time.Millisecond
 
+// replicaPort is the port a replica listens at on its machine (namespace mode): outside Linux's
+// ephemeral range, as the TCP semantics' deployment asks (branch net-tcp, Deploy.lean, D20).
+const replicaPort = "7001"
+
+// clientMachines is how many machines the clients' operations come from (namespace mode).
+const clientMachines = 4
+
 // Crash modes.
 const (
 	CrashKill  = "kill"  // SIGKILL, then syncfs of the replica's filesystem, then restart
@@ -69,14 +80,16 @@ type Config struct {
 	Downtime     time.Duration // a crashed replica stays down a random time below it
 	Crash        string        // CrashKill, CrashPower or CrashMixed (the last two need root: disk)
 	FinalCrash   bool          // the whole cluster crashes at once at the end (in the crash mode)
-	Faults       kvnet.Faults  // the transport's, on top of the real network's
+	Netns        bool          // machines are network namespaces (needs root), with network faults
+	NetPause     time.Duration // between two network faults, on average (0: none; needs Netns)
+	NetHold      time.Duration // how long a network fault lasts, on average
 	Deadline     time.Duration // the run fails if the clients are not done by then (0: none)
 }
 
 // RandomConfig is a run of random options (kvnet.RandomOptions), 4 clients of 100 operations,
-// one to three proposers, disruptions, crashes in the given mode, the transport's faults, and the
-// final crash.
-func RandomConfig(crash string) Config {
+// one to three proposers, disruptions, crashes in the given mode, network faults if netns, and
+// the final crash.
+func RandomConfig(crash string, netns bool) Config {
 	return Config{
 		Options:      kvnet.RandomOptions(),
 		Clients:      4,
@@ -88,7 +101,9 @@ func RandomConfig(crash string) Config {
 		Downtime:     50 * time.Millisecond,
 		Crash:        crash,
 		FinalCrash:   true,
-		Faults:       kvnet.Faults{Drop: 20, Delay: 8, Duplicate: 32, Cut: 64},
+		Netns:        netns,
+		NetPause:     100 * time.Millisecond,
+		NetHold:      200 * time.Millisecond,
 		Deadline:     5 * time.Minute,
 	}
 }
@@ -132,22 +147,15 @@ type Command struct {
 	Env  []string
 }
 
-// proc is one incarnation of a replica: its process, closed exited when it ends, and whether the
-// driver killed it.
-type proc struct {
-	cmd     *exec.Cmd
-	exited  chan struct{}
-	killed  atomic.Bool
-	logFile *os.File
-}
-
-// replica is a replica the cluster started: its id, its directory (a disk's mount, in the power
-// modes), its disk (nil but in the power modes), its current incarnation and how many it had.
+// replica is a replica the cluster started: its id, its machine, its directory (a disk's mount,
+// in the power modes), its disk (nil but in the power modes), its current incarnation's process
+// and how many it had.
 type replica struct {
 	id    uint64
+	m     *robust.Machine
 	dir   string
-	disk  *disk
-	p     *proc
+	disk  *robust.Disk
+	p     *robust.Proc
 	count int
 }
 
@@ -158,6 +166,12 @@ type Cluster struct {
 	work  string
 	addrs map[uint64]string
 	Stats Stats
+
+	net      *robust.Network
+	machines map[uint64]*robust.Machine // the replicas', by id
+	clients  []*robust.Machine          // the clients' operations come from these
+	control  *robust.Machine            // the driver's status, reconfiguration, disruption requests
+	nemesis  *robust.NetNemesis         // nil without network faults
 
 	nextOp, nextRead atomic.Uint64
 
@@ -174,12 +188,12 @@ type Cluster struct {
 	failErr  error
 }
 
-// freeAddrs are n addresses free now, all on one random loopback address 127.a.b.c other than
+// freeAddrs are n addresses free now, all on the local network's loopback address ip, 127.a.b.c other than
 // 127.0.0.1. Not on 127.0.0.1: a connection's source address is 127.0.0.1 (the loopback route's),
 // so no connection's source port can take a replica's address while the replica is down, and its
 // next incarnation always gets to listen there. (Another process could still listen on the same
 // random address and port: a replica that cannot listen fails the round.)
-func freeAddrs(n int) (map[uint64]string, error) {
+func freeAddrs(ip string, n int) (map[uint64]string, error) {
 	addrs := make(map[uint64]string)
 	var ls []net.Listener
 	defer func() {
@@ -187,7 +201,6 @@ func freeAddrs(n int) (map[uint64]string, error) {
 			l.Close()
 		}
 	}()
-	ip := fmt.Sprintf("127.%d.%d.%d", 1+below(254), below(256), 1+below(254))
 	for id := uint64(1); id <= uint64(n); id++ {
 		l, err := net.Listen("tcp", ip+":0")
 		if err != nil {
@@ -200,17 +213,21 @@ func freeAddrs(n int) (map[uint64]string, error) {
 }
 
 // Start starts a cluster of cfg.Voters replicas (ids 1 to cfg.Voters), each a process started
-// by cmd, with their files, logs and disks in the directory work (which must exist).
+// by cmd on a machine of its own, with their files, logs and disks in the directory work (which
+// must exist).
 func Start(cfg Config, cmd Command, work string) (*Cluster, error) {
-	addrs, err := freeAddrs(maxReplicas)
-	if err != nil {
-		return nil, err
-	}
 	if err := os.MkdirAll(filepath.Join(work, "logs"), 0o755); err != nil {
 		return nil, err
 	}
-	c := &Cluster{cfg: cfg, cmd: cmd, work: work, addrs: addrs, replicas: make(map[uint64]*replica),
+	c := &Cluster{cfg: cfg, cmd: cmd, work: work, addrs: make(map[uint64]string),
+		machines: make(map[uint64]*robust.Machine), replicas: make(map[uint64]*replica),
 		nextID: cfg.Voters + 1, failed: make(chan struct{})}
+	if err := c.makeNetwork(); err != nil {
+		if c.net != nil {
+			c.net.Close()
+		}
+		return nil, err
+	}
 	for id := uint64(1); id <= cfg.Voters; id++ {
 		if _, err := c.add(id); err != nil {
 			c.Stop()
@@ -218,6 +235,74 @@ func Start(cfg Config, cmd Command, work string) (*Cluster, error) {
 		}
 	}
 	return c, nil
+}
+
+// makeNetwork makes the machines: one per replica the cluster may start, the clients' and the
+// control's; and the replicas' addresses (a port of their machine's address in the namespace
+// mode, free ports of one loopback address otherwise).
+func (c *Cluster) makeNetwork() error {
+	if !c.cfg.Netns {
+		c.net = robust.LocalNetwork()
+	} else {
+		n, err := robust.NewNetwork(fmt.Sprintf("kvn%d", os.Getpid()%100000))
+		if err != nil {
+			return err
+		}
+		c.net = n
+	}
+	for id := uint64(1); id <= maxReplicas; id++ {
+		m, err := c.net.AddMachine(fmt.Sprintf("replica-%d", id))
+		if err != nil {
+			return err
+		}
+		c.machines[id] = m
+	}
+	if c.cfg.Netns {
+		for id, m := range c.machines {
+			c.addrs[id] = m.IP + ":" + replicaPort
+		}
+	} else {
+		addrs, err := freeAddrs(c.machines[1].IP, maxReplicas)
+		if err != nil {
+			return err
+		}
+		c.addrs = addrs
+	}
+	nclients := 1
+	if c.cfg.Netns {
+		nclients = clientMachines
+	}
+	for i := 0; i < nclients; i++ {
+		m, err := c.net.AddMachine(fmt.Sprintf("client-%d", i))
+		if err != nil {
+			return err
+		}
+		c.clients = append(c.clients, m)
+	}
+	m, err := c.net.AddMachine("control")
+	if err != nil {
+		return err
+	}
+	c.control = m
+	if c.cfg.Netns && c.cfg.NetPause != 0 {
+		var ms []*robust.Machine
+		for id := uint64(1); id <= maxReplicas; id++ {
+			ms = append(ms, c.machines[id])
+		}
+		c.nemesis = &robust.NetNemesis{Net: c.net, Machines: append(ms, c.clients...),
+			Pause: c.cfg.NetPause, Hold: c.cfg.NetHold}
+	}
+	return nil
+}
+
+// request sends one request from the machine m (kvnet.RequestVia).
+func (c *Cluster) request(m *robust.Machine, id uint64, kind byte, timeout, total time.Duration, payload []byte) ([]byte, bool) {
+	return kvnet.RequestVia(m.Dial, c.addrs[id], kind, timeout, total, payload)
+}
+
+// client is a random client machine.
+func (c *Cluster) client() *robust.Machine {
+	return c.clients[below(uint64(len(c.clients)))]
 }
 
 // fail records the run's first failure and wakes everything that waits on the cluster.
@@ -240,13 +325,13 @@ func (c *Cluster) Err() error {
 
 // add makes replica id's directory (on a disk of its own in the power modes) and starts it.
 func (c *Cluster) add(id uint64) (*replica, error) {
-	r := &replica{id: id, dir: filepath.Join(c.work, "replica-"+fmt.Sprint(id))}
+	r := &replica{id: id, m: c.machines[id], dir: filepath.Join(c.work, "replica-"+fmt.Sprint(id))}
 	if c.cfg.Crash != CrashKill {
-		d, err := newDisk(c.work, fmt.Sprintf("kvnet-%d-%d", os.Getpid(), id))
+		d, err := robust.NewDisk(c.work, fmt.Sprintf("kvnet-%d-%d", os.Getpid(), id))
 		if err != nil {
 			return nil, err
 		}
-		r.disk, r.dir = d, d.mnt
+		r.disk, r.dir = d, d.Mnt
 	} else if err := os.MkdirAll(r.dir, 0o755); err != nil {
 		return nil, err
 	}
@@ -254,7 +339,7 @@ func (c *Cluster) add(id uint64) (*replica, error) {
 	// meets one without a process
 	if err := c.start(r); err != nil {
 		if r.disk != nil {
-			r.disk.destroy()
+			r.disk.Destroy()
 		}
 		return nil, err
 	}
@@ -279,24 +364,18 @@ func (c *Cluster) start(r *replica) error {
 	}
 	fmt.Fprintf(lf, "=== incarnation %d\n", count)
 	args := append(append([]string(nil), c.cmd.Args...), kvnet.NodeArgs(kvnet.NodeConfig{
-		ID: r.id, Dir: r.dir, Addrs: c.addrs, Opts: c.cfg.Options, Faults: c.cfg.Faults})...)
-	cmd := exec.Command(c.cmd.Path, args...)
-	cmd.Env = append(os.Environ(), c.cmd.Env...)
-	cmd.Stdout, cmd.Stderr = lf, lf
-	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
-	if err := cmd.Start(); err != nil {
+		ID: r.id, Dir: r.dir, Addrs: c.addrs, Opts: c.cfg.Options})...)
+	p, err := r.m.Start(c.cmd.Path, args, c.cmd.Env, lf, func(err error) {
+		c.fail(fmt.Errorf("replica %d (incarnation %d) exited on its own (%v); its log %s:\n%s",
+			r.id, count, err, logPath, tail(logPath, 40)))
+	})
+	if err != nil {
 		lf.Close()
 		return err
 	}
-	p := &proc{cmd: cmd, exited: make(chan struct{}), logFile: lf}
 	go func() {
-		err := cmd.Wait()
+		<-p.Exited()
 		lf.Close()
-		if !p.killed.Load() {
-			c.fail(fmt.Errorf("replica %d (incarnation %d) exited on its own (%v); its log %s:\n%s",
-				r.id, count, err, logPath, tail(logPath, 40)))
-		}
-		close(p.exited)
 	}()
 	c.mu.Lock()
 	r.p = p
@@ -316,7 +395,7 @@ func tail(path string, n int) string {
 
 // status asks replica id for its status.
 func (c *Cluster) status(id uint64, timeout time.Duration) (kvnet.Status, bool) {
-	b, ok := kvnet.Request(c.addrs[id], kvnet.ReqStatus, timeout, nil)
+	b, ok := c.request(c.control, id, kvnet.ReqStatus, timeout, timeout+500*time.Millisecond, nil)
 	if !ok {
 		return kvnet.Status{}, false
 	}
@@ -326,23 +405,12 @@ func (c *Cluster) status(id uint64, timeout time.Duration) (kvnet.Status, bool) 
 // kill kills r's incarnation and waits for its process to end, after reading its counters (best
 // effort: a replica that does not answer at once keeps them).
 func (c *Cluster) kill(r *replica) {
-	if b, ok := kvnet.RequestWithin(c.addrs[r.id], kvnet.ReqStatus, 20*time.Millisecond, 20*time.Millisecond, nil); ok {
+	if b, ok := c.request(c.control, r.id, kvnet.ReqStatus, 20*time.Millisecond, 20*time.Millisecond, nil); ok {
 		if s, ok := kvnet.GetStatus(b); ok {
 			c.Stats.addNode(s.Stats)
 		}
 	}
-	r.p.killed.Store(true)
-	r.p.cmd.Process.Kill()
-	<-r.p.exited
-}
-
-// syncfs makes durable everything of dir's filesystem (syncfs(2), by sync -f): the restart the
-// file semantics allows after a kill.
-func syncfs(dir string) error {
-	if out, err := exec.Command("sync", "-f", dir).CombinedOutput(); err != nil {
-		return fmt.Errorf("sync -f %s: %v: %s", dir, err, out)
-	}
-	return nil
+	r.p.Kill()
 }
 
 // down takes r down after its kill: a power loss of its disk, or a sync of its filesystem, by
@@ -351,10 +419,10 @@ func (c *Cluster) down(r *replica) error {
 	power := c.cfg.Crash == CrashPower || (c.cfg.Crash == CrashMixed && oneIn(2))
 	if power {
 		c.Stats.PowerLosses.Add(1)
-		return r.disk.powerLoss()
+		return r.disk.PowerLoss()
 	}
 	c.Stats.Kills.Add(1)
-	return syncfs(r.dir)
+	return robust.SyncFS(r.dir)
 }
 
 // crash crashes replica id (kill, down) and restarts it after a random downtime.
@@ -460,7 +528,7 @@ func (c *Cluster) aborted() bool {
 func (c *Cluster) do(kind byte, key, val string) string {
 	op := kvnet.EncodeOp(c.nextOp.Add(1), kind, key, val)
 	for !c.aborted() {
-		if v, ok := kvnet.Request(c.addrs[c.randomMember()], kvnet.ReqPropose, opTimeout, op); ok {
+		if v, ok := c.request(c.client(), c.randomMember(), kvnet.ReqPropose, opTimeout, opTimeout+500*time.Millisecond, op); ok {
 			return string(v)
 		}
 		c.Stats.Retries.Add(1)
@@ -479,7 +547,7 @@ func (c *Cluster) Get(key string) string { return c.do(kvnet.OpGet, key, "") }
 func (c *Cluster) Read(key string) string {
 	for !c.aborted() {
 		req := kvnet.EncodeRead(c.nextRead.Add(1), key)
-		if v, ok := kvnet.Request(c.addrs[c.randomMember()], kvnet.ReqRead, opTimeout, req); ok {
+		if v, ok := c.request(c.client(), c.randomMember(), kvnet.ReqRead, opTimeout, opTimeout+500*time.Millisecond, req); ok {
 			return string(v)
 		}
 		c.Stats.Retries.Add(1)
@@ -574,7 +642,7 @@ func (c *Cluster) Reconfigure(pause time.Duration, stop <-chan struct{}) {
 	for !c.sleep(pause, stop) {
 		cc := c.randomChange(c.conf())
 		c.Stats.ConfProposed.Add(1)
-		kvnet.Request(c.addrs[c.randomID()], kvnet.ReqConf, opTimeout, kvnet.PutConfChange(nil, cc))
+		c.request(c.control, c.randomID(), kvnet.ReqConf, opTimeout, opTimeout+500*time.Millisecond, kvnet.PutConfChange(nil, cc))
 	}
 }
 
@@ -583,7 +651,7 @@ func (c *Cluster) Reconfigure(pause time.Duration, stop <-chan struct{}) {
 func (c *Cluster) Disrupt(pause time.Duration, stop <-chan struct{}) {
 	for !c.sleep(pause, stop) {
 		c.Stats.Disruptions.Add(1)
-		kvnet.Request(c.addrs[c.randomID()], kvnet.ReqDisrupt, opTimeout, kvnet.EncodeDisrupt(below(3), c.randomID()))
+		c.request(c.control, c.randomID(), kvnet.ReqDisrupt, opTimeout, opTimeout+500*time.Millisecond, kvnet.EncodeDisrupt(below(3), c.randomID()))
 	}
 }
 
@@ -709,7 +777,8 @@ func (c *Cluster) Dump() string {
 	return s
 }
 
-// Stop kills every replica, reading their counters first, and removes the disks.
+// Stop kills every replica, reading their counters first, and removes the disks and the
+// network.
 func (c *Cluster) Stop() {
 	c.crashMu.Lock()
 	defer c.crashMu.Unlock()
@@ -718,9 +787,18 @@ func (c *Cluster) Stop() {
 			c.kill(r)
 		}
 		if r.disk != nil {
-			r.disk.destroy()
+			r.disk.Destroy()
 		}
 	}
+	c.net.Close()
+}
+
+// NetStats describes the network faults made, if any.
+func (c *Cluster) NetStats() string {
+	if c.nemesis == nil {
+		return "no network faults"
+	}
+	return c.nemesis.Stats.String()
 }
 
 // Result is a run's outcome: porcupine's answer on the clients' trace, and the first failure
@@ -761,6 +839,13 @@ func Run(cfg Config, cmd Command, work string, clock lintest.Clock) (Result, *Cl
 	}
 	if cfg.CrashPause != 0 {
 		spawn(func() { c.Crash(cfg.CrashPause, stop) })
+	}
+	if c.nemesis != nil {
+		spawn(func() {
+			if err := c.nemesis.Run(stop); err != nil {
+				c.fail(fmt.Errorf("the network nemesis: %v", err))
+			}
+		})
 	}
 	if cfg.Deadline != 0 {
 		done := make(chan struct{})

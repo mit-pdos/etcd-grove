@@ -1,7 +1,9 @@
 # kvnet: kvdurable over a real network, with real crashes (2026-11-15)
 
-**Status:** test only, not translated, not verified. The proof waits for a network semantics (the user's,
-in progress) and a process-level adequacy theorem. Branch `kvnet`.
+**Status:** test only, not translated, not verified. Its statement is stated (2026-11-15, branch
+`robustness`): `kvnetRobust`, over the Lean library `Robustness` (`notes/robustness.md`). The proof waits
+for a network semantics (the user's, branch `net-tcp`) and an adequacy theorem for `Robustness.Run`.
+Branch `kvnet`; its test now runs over the harness `examples/lib/robust` (branch `robustness`).
 
 ## What it is
 
@@ -18,8 +20,9 @@ reconfigurations and disruptions are kvdurable's, unchanged where they could be:
 - `wire.go`, `transport.go`: frames (8-byte length, body) and the messages encoded by hand (`putMsg`/`getMsg`,
   over storage.go's `putEntry`/`putSnapshot`: no `proto.Marshal`, as kvdurable's `copyMsg`); one TCP
   connection per peer, dialed when needed; a message that cannot be written is dropped and reported
-  (`ReportUnreachable`, `ReportSnapshot`), never retried. On top of the real faults, the transport drops,
-  delays, duplicates and cuts at random (`Faults`).
+  (`ReportUnreachable`, `ReportSnapshot`), never retried. (Until 2026-11-15 the transport also dropped,
+  delayed, duplicated and cut at random, `Faults`; gone: every network fault is now the environment's,
+  made by the kernel in the harness's router namespace, `notes/robustness.md`.)
 - `node.go`, `client.go`: the process (`RunNode`: listen, start from the file as kvdurable's
   `Cluster.start`, serve), and the client protocol (one request frame, one response frame per connection:
   propose, read, conf change, disrupt, status).
@@ -84,3 +87,13 @@ combination, and reports it (`stranded learners`).
 - Not Goose-checked yet: `stats.go` uses an array of atomics, `args.go` the `flag` package (the latter
   is only the process's command line; the proof would start from `StartNode`/`RunNode` with a
   `NodeConfig`).
+
+## Over the robustness harness (2026-11-15, branch `robustness`)
+
+The driver runs every replica on a machine of its own of `examples/lib/robust` (a network namespace;
+one loopback address without root), clients' operations from four client machines, and, in the
+namespace mode, `robust.NetNemesis`: partitions (both ways or one way, drops or resets, a machine
+isolated) and netem link faults (delay, jitter, loss, duplication, reordering), concurrently with the
+crashes. `cmd/kvnet check` re-runs itself as root (`sudo -n`) for it; `KVNET_NETNS=1 go test
+./raft/kvnet/driver -run TestNetns`. Ten rounds: porcupine `Ok` and convergence in each
+(`notes/robustness.md`, "Results").
