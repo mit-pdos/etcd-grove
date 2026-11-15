@@ -271,7 +271,7 @@ theorem EtcdServer.DeleteRange.wp_proof
       rw [Hrq] at Hmo
       iunfold deleteQhOn at HQq
       icases grantedRes_applied ρ.kv _ γc Q Lq x.log log' skip
-        (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq with ⟨%lt, %Hlt, #HQr⟩
+        (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq with ⟨%Hlt, #HQr⟩
       have Hga := grantedAt_of_applied ρ.kv _ Lq x.log log' skip
         (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo
       rw [← Hrq] at Hga
@@ -291,7 +291,7 @@ theorem EtcdServer.DeleteRange.wp_proof
       · isplitr
         · ipureintro; exact Hwf
         isplitl [HQ]
-        · iexists lt; iframe HQ; ipureintro
+        · iexists kvLeasesOn ρ.kv srvAuthSt0 Lq; iframe HQ; ipureintro
           rintro (h | h)
           · cases h
           · exact Hlt h

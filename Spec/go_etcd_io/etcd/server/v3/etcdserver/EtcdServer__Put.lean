@@ -28,14 +28,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.Put(ctx, r)`**, any goroutine, **in the environment's auth mode** (`E.authOn`; the
 auth-mode merge's step 5, 2026-10-29), at a context, for a put request `r` holding `op`, with one id
 credit and a reader slot of `s.leadTimeMu`, the put's permission (`putPermitM`: off, the lease `0`
-and the client's update fired at most once, `kvOpAu1`; on, also the key not empty, and the update
-told its grant at the client's lower bound of the requested log, `writeGrantG`, under the binding of
-the header to the context): success, the apply package's answer to the put (`putOutcomeIs`, no
+and the client's update fired at most once, `kvOpAu1`; on, the key not empty, the lease `0` or the
+lease mode revocable (auth-lease S3b), and the update told its grant at the client's lower bound of
+the requested log, `writeGrantG`, under the binding of the header to the context): success, the apply package's answer to the put (`putOutcomeIs`, no
 error: applied, `putModel`'s, at the log `x.log` the entry met) of the request with the header the
 server set (`hm`), dispatched at `x` to `x'` (`applyStep`), the response header's id fields owned
 (`appliedHdr`), with mvcc's certificate of the log after, the token of the revision it appended
 (`revMinted`), the log after applied through an index of the committed log (`appliedWit`), and `Q`
-of the state the update fired at; with auth on, the header bound to the context (`hdrBoundM`) and
+of the state the update fired at, one at which the put's lease is not missing (auth-lease S3b D3:
+the update's step committed the put, not `leaseMissing`'s identity); with auth on, the header bound to the context (`hdrBoundM`) and
 the grant at the committed log `L` before the entry (`grantedAt`), the auth state after it
 published (`pubAfterM`). Failure: no response and an error the gRPC layer can take
 (`applyErrIs`): the apply's (`appliedErr`, at a header bound to the context with auth on), or the
@@ -60,7 +61,8 @@ abbrev EtcdServer.Put.spec : Prop :=
           srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
           E.Nx x'.log ∗
           ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
-          (∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)) ∗
+          (∃ lt, ⌜(E.authOn = false ∨ ρ.kv.lm = .none → lt = []) ∧
+              ¬ (kvStateOf x.log lt).leaseMissing op.leaseID⌝ ∗ Q (kvStateOf x.log lt)) ∗
           hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
           □ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrPut op) hm) L⌝ ∗
             pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L)) ∨

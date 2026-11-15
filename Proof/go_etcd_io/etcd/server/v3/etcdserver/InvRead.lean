@@ -219,7 +219,9 @@ certificate of the log after; and (unit V2) `x.log` extends the floor `F`; and (
 caller's certificate of the log after (`certOk`) and `Q` of the state of the log the entry met
 (the transaction's update fired there, at most once: not persistent since 2026-10-20, linkv-txn
 stage A); and (linkv-txn stage B1) its ranges run (`skip = false`). Strict M1: the floor
-`kvLogLb` and the witness `E.Nx` of the log after (`resultIsW`'s). -/
+`kvLogLb` and the witness `E.Nx` of the log after (`resultIsW`'s). (Auth-lease S3b D7) A transaction
+that committed (`l ≠ x.log`) did so at a state where every lease its executed path names is live at
+the table `lt` (`PathsLeaseOk`, `kvOpStep (.txn t)`'s guard). -/
 def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (resp : Loc) : IProp GF :=
   iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
@@ -232,7 +234,9 @@ def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnMo
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
     srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
     E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
-    (∃ lt, ⌜E.authOn = false ∨ γw.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
+    (∃ lt : LeaseTable, ⌜(E.authOn = false ∨ γw.kv.lm = .none → lt = []) ∧
+        (l ≠ x.log → txn.PathsLeaseOk (mvcc.stateAfter x.log) lt.ids
+          (t'.branch (txn.txnOk (mvcc.stateAfter x.log) t')))⌝ ∗ Q (kvStateOf x.log lt)))
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied); of the wire

@@ -17,7 +17,7 @@ lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/KVServiceOn\.lean::etcdRangeSpe
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
 lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$
 
-match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM|kvNxM)::
+match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM|kvNxM|leaseGrantPermitM|leaseRevokePermitM|leaseGrantResM|leaseRevokeResM)::
 
 # the resource rows and the mode-level vocabulary still over `on`/`M` (stage 3: over the slot,
 # or left over `M` as the auth package's verdict vocabulary)
@@ -108,6 +108,7 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR\.lean::N
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerRFacts\.lean::srvIndices_allocR::  # 2 (restart S6 B2, D1: the restart's indices at specR's auth-off scope)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReadOn\.lean::  # 7
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn\.lean::  # 12
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseReqOn\.lean::(leaseGrantPermit_reqPropOk|leaseRevokePermit_reqPropOk|leaseGrantResM_true_id)::  # 4 (auth-lease S3b: the lease permits' auth-on proposals and the grant result's id law, as ReqOn's putPermitOn_reqPropOk)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/RunOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOn\.lean::  # 3 (the other 4 moved to ServerOnDefs.lean)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOnDefs\.lean::(kvLogsPubM|kvLogsPubM_iff|srvKVInvsM_uberOn)::  # 4, moved from ServerOn.lean (mvcc-api, 2026-11-07)

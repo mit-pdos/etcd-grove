@@ -971,14 +971,19 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
       imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
+      (try isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hnp)
+      ihave Hnp := txnPermit_of_false _ _ _ _ _ $$ Hnp
+      iunfold txnPermit at Hnp
+      icases Hnp with ⟨%Htp, Hnp⟩
       wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
           F rfl (apply.irrDepthOk_irrTxn (Hdpt hro)) (by simp [apply.dispatchKind, irrTxn, apply.irrEmpty])
           $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
       · iframe # Hlt Hard Hcred
         isplitl [Hnp]
-        · (try isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hnp)
-          iapply txnPermit_reqPropOk ρ.kv tw Q γc
-          iapply txnPermit_of_false $$ Hnp
+        · iapply txnPermit_reqPropOk ρ.kv tw Q γc
+          iunfold txnPermit
+          iframe Hnp
+          ipureintro; exact Htp
         iexists _; iexact Header
       (try wp_auto)
       icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -1029,7 +1034,21 @@ theorem EtcdServer.Txn.wp_proof
         rotate_left
         · isplitr
           · ipureintro; exact Hwf
-          rw [Hxlb, ← HLlb]; iexists []; iframe HQ; ipureintro; intro _; rfl
+          -- (auth-lease S3b D7) a plain transaction's path names lease `0` only
+          have hz : irrNoZeroEnd (irrTxn tw) := by
+            refine ⟨?_, ?_, ?_⟩
+            · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+            · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+            · intro t'' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Htp.2.1
+          have ht' : t' = tw.toModel := by
+            have := Hwire.2.2.2 hz
+            subst this
+            simp [apply.withHeader, irrTxn] at Ht'
+            exact Ht'.symm
+          rw [Hxlb, ← HLlb]; iexists []; iframe HQ; ipureintro
+          refine ⟨fun _ => rfl, fun _ => ?_⟩
+          rw [ht']
+          exact txnPathsLeaseOk_of_plain _ _ _ _ Htp.1
         ipureintro
         refine ⟨trivial, Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
         have := Hwire.2.2.2 hz
@@ -1202,7 +1221,10 @@ theorem EtcdServer.Txn.wp_proof
           ipureintro; exact Hn
         wp_auto_lc 1
         -- the transaction's result, with its token: granted at the state its entry met
-        icases txnQhOn_res ρ.kv tw γc Q hm Lq x.log log' skip Hmo $$ HQq with ⟨%lt, %Hlt, #HQr⟩
+        icases txnQhOn_res ρ.kv tw γc Q hm Lq x.log log' skip Hmo $$ HQq with ⟨%Hlt, #HQr⟩
+        -- (auth-lease S3b D7) a committed transaction's leases live at the model's table (`authTie`)
+        have Hlive := fun hne => txnLeaseLive_of_tie _ x.log _ tw hm _ skip
+          (modelOutM_true_table ρ.kv _ Lq x.log _ Hmo) hne
         imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
         (try wp_auto)
         wp_apply HEnd
@@ -1233,10 +1255,15 @@ theorem EtcdServer.Txn.wp_proof
         rotate_left
         · isplitr
           · ipureintro; exact Hwf
-          iexists lt; iframe HQ; ipureintro
-          rintro (h | h)
-          · simp_all
-          · exact Hlt h
+          have ht' : t' = tw.toModel := by
+            simp [apply.withHeader, irrTxn] at Ht'
+            exact Ht'.symm
+          iexists kvLeasesOn ρ.kv srvAuthSt0 Lq; iframe HQ; ipureintro
+          refine ⟨?_, fun hne => ?_⟩
+          · rintro (h | h)
+            · simp_all
+            · exact Hlt h
+          · rw [ht']; exact Hlive hne
         ipureintro
         refine ⟨trivial, Hwire, Ht', fun _ => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
         simp [apply.withHeader, irrTxn] at Ht'

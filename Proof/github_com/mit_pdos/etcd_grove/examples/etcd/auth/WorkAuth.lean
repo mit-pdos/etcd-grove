@@ -327,7 +327,7 @@ theorem akGranted_of_writeGrantG (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthN
   · iframe Hb Hseen Htls
   imodintro
   ipureintro
-  exact ⟨r, hm, by rw [← hr]; exact (grantedAt_iff _ _ _ _).1 hgr, Hu⟩
+  exact ⟨r, hm, by rw [← hr]; exact grantedAt_kvGranted hgr, Hu⟩
 
 /-- **A write of `who`'s, told its grant, was granted at `setupSt`** (layer 2): the grant
 (`clientGrant` at the set-up's log `Lset`) of an attempt of a context with `who`'s outgoing
