@@ -27,6 +27,31 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, twelfth 7f-5 agent): step 3 partly done; STOPPED on three decisions (A-C)
+
+- **Proved** (Spec + Proof each, lean-checked, no `sorry` but the hypotheses noted): `mvccpb.Event.IsCreate`,
+  `Event.GetType`, `Event.GetKv`, `KeyValue.GetCreateRevision`, `KeyValue.GetModRevision`
+  (`Spec|Proof/go_etcd_io/etcd/api/v3/mvccpb/`, premise `p ≠ null`); `parseEvent` (premise `p ≠ null ∧
+  e.kv ≠ null`; callees `IsCreate`, EtcdGrove's `fmt.Errorf.spec`, and `mvccpb.Event_EventType.StringPtr.spec`,
+  a new spec with no proof yet: (A)); `decodeObj` (premise `S.decode d = some o`); `watchChan.filter`,
+  `watchChan.acceptAll` (over `internalPred ↦□ p ∗ selPredOk`). Commits `f92d9cc133` and the next one.
+- **Decisions asked of 81** (questions.md, 2026-11-15 twelfth agent): (A) discharging `StringPtr.spec` (goose
+  emits no `ptr_M_unfold` for an axiomatized value method); (B) `EtcdGrove.eventAt` should carry `ev ≠ null ∧
+  e.kv ≠ null` so that `startWatching` can call `parseEvent` (step 5); (C) empty stored values: `kvWfHist`
+  does not exclude a decodable empty value, for which `prepareObjs`/`transform` differ from `kEvOfL`
+  (prevValue dropped, `filter(nil)`): `prepareObjs`'s and `transform`'s specs wait on it.
+- **Next, in order (after 81's answers):** `prepareObjs` (premise: the event's values decode, from `kvWfHist`
+  and (C); its error paths, hence `transformIfCorruptObjectError`, are then unreachable), `transform` (versioner
+  `UpdateObject` of `newFunc()`'s object, `AnnotateInitialEventsEndBookmark` from `watchContractOk`; the
+  `recordTimestamps` wrap is off by premise), then `isCancelError`, `logWatchChannelErr`, `interpretWatchError`,
+  `transformErrorToEvent`, `newBlockLogger`, `recordWait`, `getStartWatchResourceVersion`, `WatchInitialized`,
+  `watchContext`; steps 4, 5 as below.
+- Pitfalls: `wp_if_destruct`'s first goal is not always the true branch (read the `Hif` it adds); `wp_auto`
+  after a `wp_apply` whose post was a value fails with "no progress"/"not a WP": use `(try wp_auto)`;
+  `fmt_args_intro` only rewrites the slice literal's index 1 (for three arguments add
+  `rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl]` first); `versionerOk`/`watchContractOk`/`selPredOk`
+  have no `Persistent` instance on the name: `unfold` them before `wp_start` and destructure there.
+
 ## START HERE (2026-11-15, eleventh 7f-5 agent): 7f-5a-P step 2 done, step 3 started
 
 - **Step 2 rest** (`601ff6080f`, `WatchDefs.lean` §"Along one history"): `kvSameHist_changesAt`/`_revEvents`,
