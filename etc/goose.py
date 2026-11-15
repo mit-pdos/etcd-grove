@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, txnlinfaultsN, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -995,6 +995,24 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putgetN")],
+    ),
+    Project(
+        name="txnlinfaultsN",
+        # linkv3p (examples/etcd/partition) with any number of members (notes/txnlinfaultsN-plan.md):
+        # Main(k, clients, ops, sched) starts k members in-process (etcdstart.Members,
+        # etcdstart.StartMembers), each serving its gRPC API (etcdstart.Serve) behind a bridge
+        # (cluster3.StartBridge), k clients of every bridge, cluster3's partitioner on the schedule
+        # and partition's Check (txnlin's workload). A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd, partition, cluster3, lintest and porcupine
+        # projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "txnlinfaultsN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlinfaultsN")],
     ),
     Project(
         name="restart3",
