@@ -426,6 +426,96 @@ theorem watchChan.syncPaginated.wp_proof
   · iframe #
     iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
   (try wp_auto)
+  iunfold rangeRespMsgO at Hm
+  icases Hm with ⟨Hrecv, Hown⟩
+  iunfold rangeRespRecv at Hrecv
+  icases Hrecv with ⟨%Hnn, %h, #Hh, #Hhf, #Hmore, #Hcount⟩
+  iunfold rangeRespKvsOwn at Hown
+  icases Hown with ⟨%sl2, %ps, #Hkvf2, Hsl2, #Hkvs⟩
+  iunfold txn.kvsIs at Hkvs
+  icases Hkvs with ⟨%Hlen, #Hall⟩
+  obtain ⟨hsel, hrevσ, hle', hfitσ⟩ := Hσ
+  ihave %HwfQ := hQ lbq σ $$ HQσ
+  obtain ⟨hlbq, -, hwh, hks⟩ := HwfQ
+  ihave ⟨%lb0, %σ0, #HQ0, %HP⟩ : (∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗
+      ⌜mm.kvs <+: fromL (σ0.at σ0.rev) kp recur pk ∧
+       (mm.more = false → mm.kvs = fromL (σ0.at σ0.rev) kp recur pk) ∧
+       (mm.more = true → mm.kvs.length = 10000 ∧
+         10000 < (fromL (σ0.at σ0.rev) kp recur pk).length ∧ recur = true) ∧
+       I ++ (fromL (σ0.at σ0.rev) kp recur pk).map KRaw.kv = kInitRaws inS σ0 σ0.rev ∧
+       kStartOk m σ0 σ0.rev ∧ kvRevFits σ0.rev ∧
+       ((wr = W64 0 ∧ σ0.rev = σ.rev) ∨
+         (wr = W64 (σ0.rev : Int) ∧ ir = W64 (σ0.rev : Int) ∧ recur = true)) ∧
+       (∀ v ∈ (σ0.at σ0.rev).kvs, 0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ σ0.rev ∧
+         v.key.length < opKeyMax)⌝ : IProp GF) $$ []
+  · icases Hph with (⟨%Hw, -⟩ | ⟨%lb0', %σ0, #HQ0, %Hp⟩)
+    · obtain ⟨hw0, hpk0, hI0⟩ := Hw
+      subst hw0 hpk0 hI0
+      have hlb : lbq = lbf := Hlbq.1 rfl
+      subst hlb
+      iexists lbq, σ
+      iframe HQσ
+      ipureintro
+      have hrr : σ.readRev (opGetModel pk (syncGsOf pk recur (W64 0))).base.rev = σ.rev := by
+        have : (opGetModel pk (syncGsOf pk recur (W64 0))).base.rev = W64 0 := by
+          cases recur <;> rfl
+        rw [this]; unfold KVState.readRev; simp
+      rw [hrr] at hsel
+      have hst' : kStartOk m σ σ.rev := by
+        unfold kStartOk; rw [if_pos hf]; exact ⟨rfl, by omega⟩
+      have hwh' : ∀ v ∈ (σ.at σ.rev).kvs, 0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ σ.rev ∧
+          v.key.length < opKeyMax := fun v hv =>
+        ⟨(hwh σ.rev (Nat.le_refl _) v hv).2.1, (hwh σ.rev (Nat.le_refl _) v hv).2.2,
+          (hks σ.rev (Nat.le_refl _)).2 v hv⟩
+      cases recur
+      · have hw : rangeWireOf (opGetModel pk (syncGsOf pk false (W64 0))) =
+            rangeWireOf (opGetModel pk []) := rfl
+        rw [hw] at hsel
+        obtain ⟨hk, hm⟩ := srvRangeOk_key0 pk _ _ _ hsel
+        rw [← fromL_key] at hk
+        refine ⟨hk ▸ List.prefix_refl _, fun _ => hk, fun (h : mm.more = true) => (by rw [hm] at h; cases h), ?_, hst',
+          hfitσ, Or.inl ⟨rfl, rfl⟩, hwh'⟩
+        rw [List.nil_append, hinS, kInitRaws_fromL]
+      · have hw : rangeWireOf (opGetModel pk (syncGsOf pk true (W64 0))) =
+            pageOp pk pk (W64 0) (W64 10000) := rfl
+        rw [hw] at hsel
+        obtain ⟨hk, hm⟩ := srvRangeOk_sync pk pk _ _ _ _ (List.prefix_refl _) hsel
+        refine ⟨hk ▸ List.take_prefix _ _, fun h => ?_, fun h => ?_, ?_, hst', hfitσ,
+          Or.inl ⟨rfl, rfl⟩, hwh'⟩
+        · rw [hm] at h; rw [hk]; exact List.take_of_length_le (by simpa using h)
+        · rw [hm] at h; have h' := of_decide_eq_true h; rw [hk]
+          exact ⟨by simp only [List.length_take]; omega, h', rfl⟩
+        · rw [List.nil_append, hinS, kInitRaws_fromL]
+    · obtain ⟨hw, hir, hpos, hrec, hst0, hfit0, hI⟩ := Hp
+      subst hrec
+      have hfit0' := hfit0.lt
+      have hwne : wr ≠ W64 0 := by rw [hw]; intro h; apply Nat.ne_of_gt hpos; word
+      have hlb : lbq = σ0.rev := by rw [Hlbq.2 hwne, hw]; word
+      subst hlb
+      ihave %Hh := hH _ _ σ0 σ $$ [HQ0 HQσ]
+      · iframe HQ0 HQσ
+      ihave %Hw0 := hQ _ _ $$ HQ0
+      obtain ⟨-, -, hwh0, hks0⟩ := Hw0
+      have hat : σ.at σ0.rev = σ0.at σ0.rev := (kvSameHist_at σ0 σ σ0.rev Hh (Nat.le_refl _) hlbq).symm
+      have hrr : σ.readRev (opGetModel pk (syncGsOf kp true wr)).base.rev = σ0.rev := by
+        have : (opGetModel pk (syncGsOf kp true wr)).base.rev = wr := by
+          unfold syncGsOf; rw [if_neg hwne]; rfl
+        rw [this, hw]; unfold KVState.readRev
+        split <;> word
+      rw [hrr, hat] at hsel
+      have hwire : rangeWireOf (opGetModel pk (syncGsOf kp true wr)) = pageOp kp pk wr (W64 10000) := by
+        unfold syncGsOf; rw [if_neg hwne]; rfl
+      rw [hwire] at hsel
+      obtain ⟨hk, hm⟩ := srvRangeOk_sync kp pk _ _ _ _ hkpk hsel
+      iexists lb0', σ0
+      iframe HQ0
+      ipureintro
+      refine ⟨hk ▸ List.take_prefix _ _, fun h => ?_, fun h => ?_, hI, hst0, hfit0, Or.inr ⟨hw, hir, rfl⟩,
+        fun v hv => ⟨(hwh0 σ0.rev (Nat.le_refl _) v hv).2.1, (hwh0 σ0.rev (Nat.le_refl _) v hv).2.2,
+          (hks0 σ0.rev (Nat.le_refl _)).2 v hv⟩⟩
+      · rw [hm] at h; rw [hk]; exact List.take_of_length_le (by simpa using h)
+      · rw [hm] at h; have h' := of_decide_eq_true h; rw [hk]
+        exact ⟨by simp only [List.length_take]; omega, h', rfl⟩
   sorry
 
 end proof
