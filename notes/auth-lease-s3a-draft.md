@@ -7,6 +7,10 @@ changed definition old → new, the lemmas it moves, what S3b/S3c take from it. 
 survey of the auth-on side's "no lease" dependencies (summarized in `/shared/tmp/auth-lease/s3-scope-gap.md`'s
 addendum), S2's apply layer (on lean, `c3da59fa29`).
 
+**Revision 3 (2026-11-15)**: N1 decided by etcd-grove-81, (ii′): the lease-exact conjunct goes in the class
+track's `kvPostF`, proved by the backend's `Put`/`Txn` and passed through the quota, capped and corrupt layers;
+`backendStep` unchanged (§3a, §7's class-track list).
+
 **Revision 2 (2026-11-15)**: review round 2's N2–N5 and second-tier points applied (§3, §3a, §5, §6, §7, §8);
 N1 (§3a's source of the lease-exact facts: the class track) waits for etcd-grove-81's re-decision (§11).
 
@@ -184,9 +188,14 @@ is right as stated and, with `kvOutL`, determines `backendLog` in every case, `n
   `srvIds`'s live set where `E.lg`, unconstrained (and harmless) at the mode `none`. `kvPostFL` gains `∃ L, ⌜apply.leaseExactL L rq log oc⌝ ∗
   kvOwnAt E (oc.logAfter log) L` in place of its `kvOwn E (oc.logAfter log)` (a put or a transaction leaves the
   live set as it was). `ltHalf E L` ties `L` to `srvRest`'s auth-on table (§4).
-- Proved from: `txn.Put.spec`'s and `checkLease.spec`'s exactness in the live set (`applierV3backend__Put.lean:
-  97-170` splits on it); the transaction's from the txn specs, already lease-exact for `txnLeased` transactions
-  and proved (review r2, answering r1 S6). **How the latest layer gets them: §11 (N1).**
+- **Where it comes from (N1, (ii′)):** the class track's `kvPostF` (`apply/Chain.lean:1629`) gets the same
+  conjunct: its `kvOwn E (oc.logAfter log)` becomes `∃ L, ⌜apply.leaseExactL L rq log oc⌝ ∗ kvOwnAt E
+  (oc.logAfter log) L`. The backend's `Put`/`Txn` prove it (`txn.Put.spec`'s and `checkLease.spec`'s exactness in
+  the live set, `applierV3backend__Put.lean:97-170`; the txn specs, lease-exact for `txnLeased` transactions,
+  review r2), `DeleteRange` trivially (`leaseExactL`'s `_ => True`, the live set kept); the quota, capped and
+  corrupt layers pass it through (their rejections leave the log, `leaseExactL`'s put arm holds of a log kept,
+  the txn arm's applied case is vacuous); the auth layer's latest triples lift it (`auth_pass_kvPostFL` keeps the
+  conjunct; `auth_reject_kvPostFL`'s rejection: `.rejected .auth`, the log kept). `backendStep` is unchanged.
 - Changes to S2's latest statements (a Freeze item): `kvPostFL`'s body, `apply.kvOwn`'s split (`kvOwnAt`, its
   laws `kvOwn_lend`, `kvOwn_rd`, `mPreRest_lend` restated), the latest triples' posts through `kvPostFL`
   (`Put`/`Txn`/`DeleteRange`/`LeaseRevoke.specL`, `applierKVL`, the four layer triples); the class track and
@@ -272,8 +281,28 @@ S3 26–40 stays the coordinator's figure, at its upper half). Unchecked (r2): w
 - `Results.lean` (server): `kv_outcome_on_latest`, `apply_kv_entry_pre_on`, `apply_kv_after_on`,
   `server_apply_not_nospace_on` (premise `plainCover` → the admission), `server_cluster_alloc_on`,
   `server_member_alloc_on` (`kvInvOn`'s body).
-- The latest track (§3a): `apply.kvOwn` (split into `kvOwnAt`), `kvPostFL`'s body, new `apply.leaseExactL`;
-  through them the latest triples' posts (S2's statements, re-frozen here).
+- The latest track (§3a): `kvPostFL`'s body, new `apply.kvOwnAt` (with `kvOwn ⊣⊢ ∃ L, kvOwnAt`, `kvOwn`'s body
+  kept) and `apply.leaseExactL`; through them the latest triples' posts (S2's statements, re-frozen here).
+- **The class track (N1, (ii′)), every statement it changes:**
+  - `apply.kvPostF`'s body (`apply/Chain.lean:1629`): `kvOwn E (oc.logAfter log)` → `∃ L, ⌜leaseExactL L rq log oc⌝
+    ∗ kvOwnAt E (oc.logAfter log) L`. (`kvPost`, the floor-free post of `LeaseRevoke`, unchanged: a revocation's
+    exactness is the model's invariant, §5.)
+  - Through it, the meaning (not the text) of the 14 `Spec/` triples whose post is `kvPostF`:
+    `applierV3backend.{Put,DeleteRange,Txn}.spec`, `quotaApplierV3.{Put,Txn}.spec`,
+    `applierV3Capped.{Put,Txn}.spec`, `applierV3Corrupt.{Put,DeleteRange,Txn}.spec`,
+    `authApplierV3.{Put,DeleteRange,Txn}.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/`), and of
+    `apply.applierTriples` (`Chain.lean:2005-2023`, the KV clauses), which `applierSpec`, `uberApplier.dispatch.spec`
+    and every chain contract read.
+  - `apply/Results.lean`'s `chain_put`, `chain_deleteRange`, `chain_txn` (their statements over `kvPostF`; `chain_range`
+    unchanged).
+  - The proofs re-checked: the 14 triples' proofs, `newQuotaApplierV3`, `newApplierV3Capped`,
+    `uberApplier__dispatch` (it unfolds `kvPostF` for the KV kinds), `AuthLemmas` (`auth_pass_kvPostF`,
+    `auth_reject_kvPostF`), `kvPostF_backend`, and the server's readers of the dispatch post (the auth-off apply
+    arm, which drops the new conjunct).
+  - Not in any `interface/` file (no `etc/api` list covers the apply package or the server).
+- **Closed statements: none change.** No `examples/` or `Proof/github_com/` file mentions `kvPostF`, `kvPost`,
+  `applierTriples` or `kvInvOn`'s body in a statement: the closed theorems (`etcd_*_safe`) are adequacy statements
+  over the Go programs' executions, unchanged in text and in meaning; authkv and auth3 run the lease mode `none`.
 - The snapshot path (§5): **`EtcdServer.applySnapshot.specSnapM`'s `LogNoLease` premise** (a `Spec/` statement)
   replaced at auth on by `keysLeasesLive`; the on image predicates (`imageRestAtOn`, `dbImageOn`,
   `SnapImageFactsOn`) at the table. (`applyAll.specSnapM`'s `lg = false` was already removed on 2026-11-05,
@@ -330,7 +359,7 @@ beyond `lm = none` (S2); `keysNonEmpty` derived, relying on `txn = txnW.toModel`
 backend specs cover leased transaction puts (S6, uncertain; the `checkTxn` lease path was proved for lease-0
 workloads).
 
-## 11. Review round 2 (fresh `spec-reviewer`, `/shared/tmp/auth-lease/s3a-review-r2.md`): N1 needs a re-decision
+## 11. Review round 2 (fresh `spec-reviewer`, `/shared/tmp/auth-lease/s3a-review-r2.md`): N1, decided (ii′)
 
 N2–N5 and the second-tier points are applied above. **N1:** §3a cannot be proved with the class track untouched.
 The auth applier's latest `Put`/`Txn` triples reach the inner applier only through `applierSpec` →
