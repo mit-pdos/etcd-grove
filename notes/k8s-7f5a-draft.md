@@ -542,3 +542,84 @@ not translated): reached only by `validateMinimumResourceVersion`'s callers, not
 `sendError` under 7f-5a's premises (the watch path has no minimum RV check); listed because §5 did.
 Candidate post: `tooLargeErrIs err` with a `Failure` status (`NewTimeoutError` is translated).
 Drop it if step 5 confirms it unreachable.
+
+### 11.1 The review of E1-E6 and 81's decisions (2026-11-15)
+
+Review: `/shared/tmp/claude-0/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/tasks/ae2c182bd754ca744.output`
+(final report). E1 refuted as written (`{{True}} Code #s` over any `Loc`: `*s = *status.New(...)` races
+with the read); E2 fine with two gaps; E3, E4, E5 fixed; E6 reachable (`watcher.go:462-464`). The
+review also exposed a latent assumption of two existing axioms, `status.FromError` and `status.Code`
+(`notes/axiom-review/grpc-status-immutability.md`), folded into E1's package below. Proved-spec changes
+(E2, E4, E5) are made with ledger entries; trusted texts (E1's package, E3) are drafted here, one package
+for 81's review, not applied; step 5 takes them as `-- pending E1`/`-- pending E3` hypotheses.
+
+### 11.2 The E1 package (DRAFT, trusted text; not applied)
+
+**New opaque vocabulary** (in `Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusCode`):
+`grpcStatusRO (s : Loc) (c : w32) : IProp GF`, persistent: "`s` is a `*Status` nobody writes, whose
+code is `c`". Opaque because grpc's `Status` is an axiomatized type (no points-to can be stated).
+
+**(a) `grpcErrMethodsOk`'s `GRPCStatus` conjunct** gains the returned status's facts:
+```
+(⌜methodSet e.ty !! "GRPCStatus" = some (Signature [] false [*internal/status.Status])⌝ →
+  ∃ s : Loc, (□ ∀ Φ, ▷ Φ #s -∗ WP (methods e.ty "GRPCStatus" e.v) #() {{ Φ }}) ∗
+    grpcStatusRO s (statusCode (GoInterface.ok e)))
+```
+Docstring (`Base.lean:325`) corrected: grpc's `*Status` is not immutable in Go (a whole-struct
+assignment `*s = *t` from any package copies its unexported fields); the fact is a guarantee of the
+producer that built `s` fresh and never handed out a way to write it.
+
+**(b) The `Status` methods over `grpcStatusRO`** (replaces E1; an axiom in
+`Proof/google_golang_org/grpc/status/StatusRO.lean`):
+`∀ s c, {{ grpcStatusRO s c }} (s @!! *Status @!! "Code") #() {{ RET #c; True }}` (Go:
+`if s == nil || s.s == nil { return codes.OK }; return codes.Code(s.s.Code)`: a read of a status
+nobody writes; for `s = nil` the producer states `c = OK`). `Proto()`, `Message()` as needed by
+(c) only (not exported unless a proof needs them).
+
+**(c) `status.FromError.spec` and `status.Code.spec`**: statements unchanged (they take `statusErrOk
+err`, which now carries `grpcStatusRO s (statusCode e)` for an error with `GRPCStatus`); the
+docstrings say that `FromError`/`Code` read the returned `*s` through `Proto()`/`Code()`, justified by
+`grpcStatusRO`, and the pointer added today to the axiom-review note goes away.
+
+**(d) The producers that build a status fresh** (each trusted text whose post gives `statusErrOk` of
+an error with a `GRPCStatus` method now also promises `grpcStatusRO` of its status, through (a); no
+statement changes, the meaning of `statusErrOk` does):
+- `status.Error.spec`, `status.Errorf.spec` (`Proof/google_golang_org/grpc/status/Error.lean`,
+  `Errorf.lean`): `&Error{s: New(c, msg)}`, `s` fresh, `*Error.GRPCStatus` returns `e.s` (never
+  written after); the code is `c`, so the post may also say `statusCode err = c` (optional).
+- grpc's invoker and stream texts (`Proof/google_golang_org/grpc/InvGrpc.lean`: `grpcInvokerOk`'s
+  attempt error, `grpcDecOk` (`toRPCErr`'s `*status.Error`), `ctxErrsErr` (context errors: no
+  `GRPCStatus`, unaffected); `InvGrpcStream.lean`: `cliStreamErr`, the `RecvMsg`/`SendMsg`/`Send`
+  error arms at lines 434, 477, 543): grpc builds each `*status.Error` with `status.New`/`Err()` or
+  `FromContextError`, fresh per error; `io.EOF`, `io.ErrUnexpectedEOF` have no `GRPCStatus`.
+- rpctypes' and v3rpc's package-initializer axioms for the `ErrGRPC*` values
+  (`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean`, `.../etcdserver/api/v3rpc/Init.lean`):
+  `status.Error(...)` at init, never written.
+Go evidence to write with the package: for each producer, `reflect` check that the status pointer is
+not reachable for writing from outside grpc except by `*s = ...` on the pointer `GRPCStatus()` returns
+(i.e. by the program itself), and `TestE1Race` as the negative.
+
+**(e) What `kErrOk` then gets**: its `grpcError` conjunct (`s.Code()` returns) follows from (a) and
+(b) for any `statusErrOk` error; E1 as a separate text disappears.
+
+### 11.3 The E3 text (DRAFT, trusted; not applied)
+
+`fmt.Errorf.spec` gains, in its post: when `fmt.fmtDirectives format = some ds ∧ ∀ d ∈ ds, d.verb ≠
+'w'`, the result is `interface.mkOk (*errors.errorString) #p` for a fresh `p` (keeping
+`stringMethodSpec`). Go: `errorf` wraps whenever a directive's verb is `w`, including `%[1]w`, `%+w`,
+`%-5w`, even for a non-error argument (`fmt/print.go:1052,1146`; the reviewer's run gives
+`*fmt.wrapError` for all three), and otherwise returns `errors.New(s)` (`fmt/errors.go`). Go check to
+write: `reflect.TypeOf` of the watcher's two (`parseEvent`'s `%q %d %s`, `syncPaginated`'s no-verb) is
+`*errors.errorString`, and of the three `w` forms `*fmt.wrapError`.
+
+### 11.4 E2, E4, E5, E6 (proved specs)
+
+- E2: `WatchResponse.Err()`'s post gives `clientErr err ∗ statusErrOk err` of a non-nil result (four
+  cases: `v3rpc.Error(closeErr)`, `ErrCompacted`, `v3rpc.Error(status.Error(FailedPrecondition,
+  reason))`, `ErrFutureRev`). Gaps to find or derive: `eofIs e → clientErr e`; `isLeafError` of a
+  `*status.Error` (method-set fact).
+- E4: `GetCurrentResourceVersion`'s error arm: `(clientErr err ∗ statusErrOk err) ∨` the E3 form (its
+  own `fmt.Errorf("the current resource version must be greater than 0")`); reachable from `sendError`
+  (`watcher.go:456-460`).
+- E5: `interpretListError.spec` generalized over `paging` (one triple); the caller shows `encOkL`.
+- E6: the existing `NewTooLargeResourceVersionError` spec (`tooLargeErrIs`); `kErrOk` proved from it.
