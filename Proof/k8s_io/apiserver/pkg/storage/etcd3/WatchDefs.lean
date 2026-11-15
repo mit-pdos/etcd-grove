@@ -1025,6 +1025,41 @@ def kResInv [Pos.Countable Obj] [Pos.Countable KRaw] (c : StoreCfg GF Obj) (γ :
       ∃ (lb lb0 st : Nat) (σ0 : KVState), □ Q lb σ ∗ □ Q lb0 σ0 ∗ ⌜kStartOk m σ0 st⌝ ∗
         ⌜kRawStreamSub inS m σ st raws⌝ ∗ (⌜kRawStreamOk inS m σ st raws⌝ ∨ kCancelled γ cd)))
 
+/-! ## The block loggers (`block_logger.go`) -/
+
+/-- **A clock whose `Now()` returns** (persistent; `clock.RealClock`'s, `RealClock.Now.spec`). -/
+def clockNowOk (ck : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ t : time.Time, Φ #t) -∗
+    WP (App (Val #(methods ck.ty go!"Now" ck.v)) (Val #())) {{ Φ }})
+
+instance clockNowOk_persistent (ck : GoInterfaceOk) : Persistent (clockNowOk (GF := GF) ck) := by
+  unfold clockNowOk; infer_instance
+
+/-- The fields of a `*blockLogger` its mutex protects. -/
+def blockLoggerInv (l : Loc) : IProp GF :=
+  iprop(∃ (lt : time.Time) (ec : w64) (tw : time.Duration),
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"lastLogTime" l ↦ lt ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"eventCount" l ↦ ec ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"timeWaiting" l ↦ tw)
+
+/-- **A block logger** (persistent; `newBlockLogger`'s result): its configuration read-only, a clock
+whose `Now()` returns, and its mutex guarding the counters (`blockLoggerInv`). -/
+def blockLoggerOk (l : Loc) : IProp GF :=
+  iprop(□ ∃ (iv th : w64) (msg ot : GoString)
+      (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (ck : GoInterfaceOk),
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"interval" l ↦□ iv ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"threshold" l ↦□ th ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"msg" l ↦□ msg ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"objectType" l ↦□ ot ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"groupResource" l ↦□ gr ∗
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"clock" l ↦□
+      GoInterface.ok ck ∗ clockNowOk ck ∗
+    sync.isMutex (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"mu" l)
+      (blockLoggerInv l))
+
+instance blockLoggerOk_persistent (l : Loc) : Persistent (blockLoggerOk (GF := GF) l) := by
+  unfold blockLoggerOk; infer_instance
+
 end defs
 
 end k8s
