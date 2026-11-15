@@ -348,3 +348,40 @@ path (`SnapRecvOn`, `MergedImageOn`, `ImageOn`, `ApplyAllSnap`, `SnapApplyWalk/P
 - **D-A0-4.** Strike `srvWinSupply`/`srvWinAdd` from the restart notes (never built). *Recommended* (notes only).
 - **D-A0-5.** Supersede the R2s decision's receiver design (`decisions.md`, "R2s": "the KV ghost reset at an
   install") by this note's §2.2 finding, whatever D-A0-1 decides. *Recommended.*
+
+## 7. After the checkpoint (2026-11-15): decisions, the integration test (D-A0-3)
+
+Decisions (`questions.md`): D-A0-1 approved by the user (route (A) via A-g); D-A0-2 `ReportSnapshot` (the
+`srvProcOk` hub row in the A1 Freeze package); D-A0-3 the integration test now (the user); D-A0-4/5 yes.
+
+**The test** (`nonissues/etcd-backward-snapshot-install-panics-watcher/inwindow_merge_test.go`, run in a copy of
+etcd at `2eaeb872bc` built with `gofail enable`, `/shared/tmp/restart3-a0/etcd`; logs `it-run{1..5}.log`):
+- **Reached, graceful**: a restarted leader merges a snapshot inside its replay window; the follower installs it
+  at raft index 217 with its backend at consistent index 467, re-applies 218..467 v2-only and serves all 455
+  keys (run 5, PASS). This is the harness for A-g's guard-firing run (step 2).
+- **Not reached**: the backward install and the watcher panic (the nonissue's "Why not an issue" gives the
+  reason: the second, older sender must pass the fork's term guard with a stale commit, which needs an electorate
+  without the first leader's term entries; est. 2-4 d more with about seven members and a delayed leader send).
+  The finding stays in `nonissues/`. The crash path reaches the receiver state more directly; not tried.
+- **Timing lessons**: ticks share the raft loop with `Ready` processing, so `raftBeforeSave` sleeps slow elections
+  as much as handouts (run 3: ElectionTicks 50 made the election come after the whole handout); a leader merges
+  only at the end of a batch handed out at its term, so the follower must be connected once the leader applies
+  past its commit at election (run 2 connected it earlier, and no merged snapshot was ever sent).
+
+**Observation (to confirm in step 2): the fork's term guard can wedge a follower.** In run 2 the leader's
+`MsgSnap` reached the apply loop at a batch handed out before its election; the term guard dropped it silently,
+raft's progress for the follower stayed in `StateSnapshot`, and the follower got no snapshot for the rest of the
+run (about 30 s, while the same leader led). Upstream has no such guard (the proposed upstream fix in
+`issues/etcd-merged-snapshot-stale-term.md` drops only a message older than the applied term, after raft has
+left it). Liveness only (`blocks-proof: no`). Proposed with the A-g commit: `ReportSnapshot(to, SnapshotFailure)`
+on every drop at this select (the term and index guards too), so raft probes again (D-A0-6).
+
+**No existing closed theorem has premises under which a backward install is reachable** (written confirmation
+for etcd-grove-81). A backward install needs a receiver whose backend is ahead of its raft commit. On graceful
+runs that state arises only from a merged snapshot made inside the sender's replay window, which needs a sender
+that restarted. Every closed theorem other than `etcd_restart1_safe` starts each member once and never restarts
+one (no replay window: `RestartPt.first`, the merge at `ciEff = ai'`), and none models a crash. `etcd_restart1_safe`
+restarts its single member, but a single voter sends no `MsgSnap` at all (the P2-a law `snapTo`: a `MsgSnap`'s
+destination is a committed voter other than the sender), so it has no merge and no install. In the proof, the
+only install is `applyAll.specSnapM`, whose premise `uint.Z g < uint.Z sv.Index` (A8, derived from
+`rnRestartOk_winAbove`) is a forward install.

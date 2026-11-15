@@ -25,3 +25,12 @@ Plan: `notes/restart3-scope.md` (route (A), decided by the user 2026-11-15). Dec
 - Go probe against a patched fork: `go test -modfile=/shared/tmp/restart3-a0/alt.mod` (a copy of
   `examples/go.mod` with `server/v3` replaced by the local copy), `GOWORK=off`, 32G cap; one run per process.
 - `notes/status-history.md` is append-only (check `wc -l` against lean before a commit).
+
+## 2026-11-15 after the checkpoint
+- Decisions D-A0-1..5 recorded (`questions.md`). Step 1 (integration test) done: in-window merge reached on a
+  graceful path, backward install not reached (Draft §7, the nonissue). Harness: `/shared/tmp/restart3-a0/etcd`
+  (etcd at `2eaeb872bc`, `gofail enable`d, the test in `tests/integration/zz_backward_install_test.go`), run with
+  `cd tests && GOWORK=off GOPROXY=off GOFLAGS=-mod=mod go test ./integration/ -run TestZZBackwardInstall -v`
+  under the 32G cap; `ZZ_EXPECT_DEFER=1` for the A-g run (step 2).
+- The fork clone for A1: `/shared/tmp/restart3-a0/etcd-fork` (branch `restart3-ag` off `goose-lean` `2eaeb872b`),
+  the A-g change applied, not committed (after step 2).

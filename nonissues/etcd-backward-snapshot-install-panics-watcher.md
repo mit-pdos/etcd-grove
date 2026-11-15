@@ -52,9 +52,24 @@ snapshot's database unconditionally (`:1068`). `watchableStore.Restore` sets `re
 watcher above the current revision (`watcher_group.go:244-250`). The first run was found by the review of
 the Q16-3 design (`notes/decisions.md`, "R2s: snapshots across windows", F1).
 
-**Why not an issue:** the test calls `Restore` with an older backend directly; no test yet reaches the
-backward install through etcd's own paths (a forced in-window leader plus a lagging second leader, or a
-crash between apply and the HardState save). Writing that integration test would move this to `issues/`.
+**Why not an issue:** the backward install was not reached through etcd's own paths (D-A0-3's attempt,
+2026-11-15). Half of it was: `TestZZBackwardInstallWatcherPanic` in
+[`inwindow_merge_test.go`](etcd-backward-snapshot-install-panics-watcher/inwindow_merge_test.go) (five members,
+graceful stops and restarts only, timing steered by gofail sleeps and `CutPeer`, built with `gofail enable` at
+`2eaeb872bc`) makes a restarted leader merge a snapshot inside its replay window, and the follower installs
+it with its raft log at the snapshot's index and its backend ahead: run of 2026-11-15, `applied snapshot
+… "incoming-leader-snapshot-index": 217`, `restored mvcc store {"consistent-index": 467}`, after which the
+follower re-applies 218..467 v2-only and serves all 455 keys. The second half needs a second leader whose
+backend is below 467 and whose merge passes the fork's term guard (`m.Term == raftTerm`): its handed-out
+batches of the new term must start below 467, so it must win an election knowing a commit below 467. With
+the full log it learns the commit from any leader; so it must win with a log the first leader's term
+entries never reached, from an electorate disjoint from a majority that holds them: not possible with the
+first leader's term entries committed, and avoiding their replication needs the first leader elected and
+then cut off before its first append (a gofail delay on the leader's send, about seven members, est. 2-4 d).
+On upstream etcd (no term guard) the second leader merges at any batch end, which is easier; that was not
+tried (the hold). **The crash path** reaches the receiver state more directly (a backend above the WAL's
+commit after a power loss, then any normal leader's snapshot between the two), not tried either. The panic
+itself is shown only by calling `Restore` with an older backend.
 
 ## Proof
 
