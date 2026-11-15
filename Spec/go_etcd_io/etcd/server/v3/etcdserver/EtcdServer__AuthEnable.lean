@@ -42,26 +42,6 @@ abbrev EtcdServer.AuthEnable.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}
 
-/-- **`s.AuthEnable(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
-with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`);
-the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
-`L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
-its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
-auth history (`histAu`) if its entry is recorded; else the apply thread's error, or the request
-perhaps proposed. -/
-abbrev EtcdServer.AuthEnable.specOn : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF))
-    (Q : List auth.AuthState → IProp GF) (r : Loc) (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜r ≠ null⌝ ∗
-      adminPreOn s E ρ ctx cd F
-        (adminHistAu s E ρ ctx irrAuthEnable Q) }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthEnable"))
-      (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
-      authEntryOut (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Q)
-        etcdserverpb.AuthEnableResponse.ty) resp err }}
-
 end spec
 
 end EtcdGrove

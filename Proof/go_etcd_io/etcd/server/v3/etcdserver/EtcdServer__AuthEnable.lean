@@ -99,24 +99,6 @@ theorem EtcdServer.AuthEnable.wp_proof : EtcdServer.AuthEnable.spec (GF := GF) (
       ipureintro; exact ⟨rfl, He⟩
     · exact absurd rfl He
 
-/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
-theorem EtcdServer.AuthEnable.wp_proofOn
-    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
-    EtcdServer.AuthEnable.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd Qa r F
-  let Hh := adminHistAu (GF := GF) s E ρ ctx irrAuthEnable Qa
-  wp_start_folded as ⟨%Hr, HP⟩
-  ihave #Hc : authRaftOk s ctx irrAuthEnable etcdserverpb.AuthEnableResponse.ty (adminPreOn s E ρ ctx cd F Hh)
-      (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty) $$ []
-  · iapply authRaftOk_on hRR s E ρ ctx cd irrAuthEnable F _ _ Qa _ rfl rfl adminPropOk_authEnable
-      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
-  wp_apply EtcdServer.AuthEnable.wp_proof s ctx r (adminPreOn s E ρ ctx cd F Hh)
-      (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty) $$ [HP] as %resp %err H
-  · iframe # HP
-    ipureintro; exact Hr
-  iapply HΦ
-  iexact H
-
 end proof
 
 end EtcdGrove

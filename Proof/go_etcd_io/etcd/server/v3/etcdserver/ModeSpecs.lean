@@ -32,6 +32,11 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthEnable
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserAdd
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleAdd
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGrantRole
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGrantPermission
 
 @[expose] public section
 
@@ -622,6 +627,243 @@ theorem isServerBuilt_offC (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iframe Hb'
 
 end merged
+
+/-! ## The admin proposers with auth on (the mode-cleanup stage, 2026-11-15)
+
+`AuthEnable`, `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`: each function's one spec is
+the mode-free `spec` (the contract `authRaftOk` passed through); `specOn` is its instance at
+`raftRequest.spec` with auth on (`authRaftOk_on`), a corollary (`spec_on`; until 2026-11-15 the
+functions' `wp_proofOn`, in their proof files). No mode-indexed form: with auth off an admin request is
+outside the KV model (`reqPropOk` admits KV requests only). -/
+
+section admin
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+set_option linter.unusedSimpArgs false
+
+/-- **`s.AuthEnable(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`);
+the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
+`L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
+its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
+auth history (`histAu`) if its entry is recorded; else the apply thread's error, or the request
+perhaps proposed. -/
+abbrev EtcdServer.AuthEnable.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF))
+    (Q : List auth.AuthState → IProp GF) (r : Loc) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜r ≠ null⌝ ∗
+      adminPreOn s E ρ ctx cd F
+        (adminHistAu s E ρ ctx irrAuthEnable Q) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthEnable"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
+      authEntryOut (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Q)
+        etcdserverpb.AuthEnableResponse.ty) resp err }}
+
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
+theorem EtcdServer.AuthEnable.spec_on
+    (h : EtcdServer.AuthEnable.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
+    EtcdServer.AuthEnable.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd Qa r F
+  let Hh := adminHistAu (GF := GF) s E ρ ctx irrAuthEnable Qa
+  wp_start_folded as ⟨%Hr, HP⟩
+  ihave #Hc : authRaftOk s ctx irrAuthEnable etcdserverpb.AuthEnableResponse.ty (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd irrAuthEnable F _ _ Qa _ rfl rfl adminPropOk_authEnable
+      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
+  wp_apply h s ctx r (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty) $$ [HP] as %resp %err H
+  · iframe # HP
+    ipureintro; exact Hr
+  iapply HΦ
+  iexact H
+
+/-- **`s.UserAdd(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`,
+for a name of at most `maxKeySize` bytes, its password choice sure by `spec`); the outcome: the
+hashing's error before any proposal (`applyErrIs`, `adminPreOn` back), or `authEntryOut` of `userAddOutOn`: on
+success, the request applied at the committed prefix `L` before its entry (`appliedOkM true`), the
+auth state after it published (`pubAfterM true`) and its step determinate there (`adminQh`), with
+(5b) the result `Q` of its client's update of the auth history (`userAddHistAu`) if its entry is
+recorded; else the apply thread's error, or the request perhaps proposed. -/
+abbrev EtcdServer.UserAdd.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (Q : List auth.AuthState → IProp GF) (ast : GoInterfaceOk)
+    (r : Loc) (name pw hpw : GoString) (o : Loc) (b : Bool) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
+      bcryptCostOk ast ∗
+      ⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" r ↦□ name ∗
+      structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ pw ∗
+      structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ hpw ∗
+      structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ auth.userOptsAt o b ∗
+      ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Q) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserAdd"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+        adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Q)) ∨
+      (applyErrIs err ∗ authEntryOut (userAddOutOn s E ρ ctx F name b Q) resp err) }}
+
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`, for every model of the
+request). -/
+theorem EtcdServer.UserAdd.spec_on
+    (h : EtcdServer.UserAdd.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
+    EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd Qa ast r name pw hpw o b F
+  wp_start_folded as ⟨#Hast, #Hcost, %Hrnn, #HN, Hpw, Hhpw, #Ho, #Hopts, %Hn, HP⟩
+  ihave #Hc : □ (∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
+      authRaftOk s ctx (irrUserAdd m) etcdserverpb.AuthUserAddResponse.ty
+        (adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
+        (userAddOutOn s E ρ ctx F name b Qa)) $$ []
+  · imodintro
+    iintro %m %Hm
+    obtain ⟨Hmn, Hmb, Hms⟩ := Hm
+    iapply authRaftOk_on hRR s E ρ ctx cd (irrUserAdd m) F _ _ Qa _ rfl rfl
+      (adminPropOk_userAdd m (Hmn ▸ Hn) Hms) (irrNoZeroEnd_admin _ rfl rfl rfl) rfl
+      (by
+        unfold userAddHistAu
+        iintro #Hu
+        iapply Hu
+        ipureintro; exact ⟨Hmn, Hmb, Hms⟩)
+    iintro %l %err H
+    iunfold userAddOutOn
+    iexists m
+    iframe H
+    ipureintro; exact ⟨Hmn, Hmb, Hms⟩
+  wp_apply h s ctx ast r name pw hpw o b
+      (adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
+      (userAddOutOn s E ρ ctx F name b Qa) $$ [Hpw Hhpw HP] as %resp %err H
+  · iframe # Hpw Hhpw HP
+    ipureintro; exact Hrnn
+  iapply HΦ
+  iexact H
+
+/-- **`s.RoleAdd(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`, for a name of at most `maxKeySize` bytes);
+the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
+`L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
+its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
+auth history (`histAu`) if its entry is recorded; else the apply thread's error, or the request
+perhaps proposed. -/
+abbrev EtcdServer.RoleAdd.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF))
+    (Q : List auth.AuthState → IProp GF) (r : Loc) (name : GoString) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      adminPreOn s E ρ ctx cd F
+        (adminHistAu s E ρ ctx (irrRoleAdd name) Q) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleAdd"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
+      authEntryOut (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Q)
+        etcdserverpb.AuthRoleAddResponse.ty) resp err }}
+
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
+theorem EtcdServer.RoleAdd.spec_on
+    (h : EtcdServer.RoleAdd.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
+    EtcdServer.RoleAdd.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd Qa r name F
+  let Hh := adminHistAu (GF := GF) s E ρ ctx (irrRoleAdd name) Qa
+  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
+  ihave #Hc : authRaftOk s ctx (irrRoleAdd name) etcdserverpb.AuthRoleAddResponse.ty (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd (irrRoleAdd name) F _ _ Qa _ rfl rfl (adminPropOk_roleAdd name Hn)
+      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
+  wp_apply h s ctx r name (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty) $$ [HP] as %resp %err H
+  · iframe # HP
+  iapply HΦ
+  iexact H
+
+/-- **`s.UserGrantRole(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`, for a user name of at most `maxKeySize` bytes);
+the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
+`L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
+its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
+auth history (`histAu`) if its entry is recorded; else the apply thread's error, or the request
+perhaps proposed. -/
+abbrev EtcdServer.UserGrantRole.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF))
+    (Q : List auth.AuthState → IProp GF) (r : Loc) (user role : GoString) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗
+      adminPreOn s E ρ ctx cd F
+        (adminHistAu s E ρ ctx (irrUserGrantRole user role) Q) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserGrantRole"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
+      authEntryOut (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Q)
+        etcdserverpb.AuthUserGrantRoleResponse.ty) resp err }}
+
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
+theorem EtcdServer.UserGrantRole.spec_on
+    (h : EtcdServer.UserGrantRole.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
+    EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd Qa r user role F
+  let Hh := adminHistAu (GF := GF) s E ρ ctx (irrUserGrantRole user role) Qa
+  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
+  ihave #Hc : authRaftOk s ctx (irrUserGrantRole user role) etcdserverpb.AuthUserGrantRoleResponse.ty (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd (irrUserGrantRole user role) F _ _ Qa _ rfl rfl (adminPropOk_userGrantRole user role Hn)
+      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
+  wp_apply h s ctx r user role (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ [HP] as %resp %err H
+  · iframe # HP
+  iapply HΦ
+  iexact H
+
+/-- **`s.RoleGrantPermission(ctx, r)` with auth on** (the auth plan's E3z, 2026-10-27; `AdminOn.lean`): `spec`
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`, for a role name of at most `maxKeySize` bytes);
+the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
+`L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
+its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
+auth history (`histAu`) if its entry is recorded; else the apply thread's error, or the request
+perhaps proposed. -/
+abbrev EtcdServer.RoleGrantPermission.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF))
+    (Q : List auth.AuthState → IProp GF) (r : Loc) (name : GoString) (w : Option auth.PermW) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      adminPreOn s E ρ ctx cd F
+        (adminHistAu s E ρ ctx (irrRoleGrantPermission name w) Q) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleGrantPermission"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
+      authEntryOut (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Q)
+        etcdserverpb.AuthRoleGrantPermissionResponse.ty) resp err }}
+
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
+theorem EtcdServer.RoleGrantPermission.spec_on
+    (h : EtcdServer.RoleGrantPermission.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
+    EtcdServer.RoleGrantPermission.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd Qa r name w F
+  let Hh := adminHistAu (GF := GF) s E ρ ctx (irrRoleGrantPermission name w) Qa
+  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
+  ihave #Hc : authRaftOk s ctx (irrRoleGrantPermission name w) etcdserverpb.AuthRoleGrantPermissionResponse.ty (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
+  · iapply authRaftOk_on hRR s E ρ ctx cd (irrRoleGrantPermission name w) F _ _ Qa _ rfl rfl (adminPropOk_roleGrantPermission name w Hn)
+      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
+  wp_apply h s ctx r name w (adminPreOn s E ρ ctx cd F Hh)
+      (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ [HP] as %resp %err H
+  · iframe # HP
+  iapply HΦ
+  iexact H
+
+end admin
 
 end EtcdGrove
 end Perennial

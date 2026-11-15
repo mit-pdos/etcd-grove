@@ -7,6 +7,9 @@
 #   corollary `ModeSpecs.lean`'s restatements of the merged specs at a mode
 #   pair      the off/on pairs kept by the Freeze (D4: `Serve`; `Txn` merged in stage 4)
 #   bridge    a row at a literal mode is its twin (`X_false`, `X_true`, ... and the `_on`/`_off` laws)
+#   members   not an auth mode: client/v3's members specs (D44, `kv.X.specM`, `txn.Commit.specM`: a
+#             `*kv` of the members `ms`, `isKV`, beside `spec`'s one KV); the name's `M` is the members
+#             (decided by etcd-grove-81, 2026-11-15, the mode-cleanup stage)
 #   unmoved   not yet over the slot: a later stage moves it (the M rows and corollaries go in stage 3)
 # A finding no line classifies fails `--check`; classify a new one only with its reason.
 
@@ -67,27 +70,15 @@ match-mode unmoved ::srvTokRights::
 match-mode unmoved ::srvUberRowM::
 match-mode unmoved ::uberKitM::
 
+# (mode-cleanup, 2026-11-15) client/v3's members specs (D44): not mode twins
+twin members ^Proof/go_etcd_io/etcd/client/v3/KVMembers\.lean::(kv\.(Do|Put|Get|Delete)|txn\.Commit)\.specM::
+
 # the twins kept until stage 3 (D3: the M specs, the admin and apply-path `specOn`s)
-twin unmoved ::EtcdServer\.AuthEnable\.specOn::
-twin unmoved ::EtcdServer\.AuthEnable\.wp_proofOn::
-twin unmoved ::EtcdServer\.RoleAdd\.specOn::
-twin unmoved ::EtcdServer\.RoleAdd\.wp_proofOn::
-twin unmoved ::EtcdServer\.RoleGrantPermission\.specOn::
-twin unmoved ::EtcdServer\.RoleGrantPermission\.wp_proofOn::
-twin unmoved ::EtcdServer\.UserAdd\.specOn::
-twin unmoved ::EtcdServer\.UserAdd\.wp_proofOn::
-twin unmoved ::EtcdServer\.UserGrantRole\.specOn::
-twin unmoved ::EtcdServer\.UserGrantRole\.wp_proofOn::
-twin unmoved ::EtcdServer\.apply\.wp_proofOn::
+twin unmoved ::EtcdServer\.apply\.wp_proofOn::  # (mode-cleanup, 2026-11-15) a second proof; the merge is a proposed stage of its own (notes/mode-cleanup-handoff.md)
 twin unmoved ::EtcdServer\.applyEntries\.wp_proofOn::
-twin unmoved ::EtcdServer\.applyEntryNormal\.wp_proofOn::
-twin unmoved ::NewServer\.specM::
-twin unmoved ::NewServer\.wp_proofM::
-twin unmoved ::kv\.Delete\.specM::
-twin unmoved ::kv\.Do\.specM::
-twin unmoved ::kv\.Get\.specM::
-twin unmoved ::kv\.Put\.specM::
-twin unmoved ::txn\.Commit\.specM::
+twin unmoved ::EtcdServer\.applyEntryNormal\.wp_proofOn::  # (mode-cleanup, 2026-11-15) a second proof; the merge is a proposed stage of its own (notes/mode-cleanup-handoff.md)
+twin unmoved ::NewServer\.specM::  # (mode-cleanup, 2026-11-15, decided by etcd-grove-81) left: a merge puts the auth-on construction premises (hD22, authSrvTP, uberKitM) on the auth-off closed theorems
+twin unmoved ::NewServer\.wp_proofM::  # (mode-cleanup, 2026-11-15, decided by etcd-grove-81) left: a merge puts the auth-on construction premises (hD22, authSrvTP, uberKitM) on the auth-off closed theorems
 
 # literal modes in proofs and results not yet over the slot (per file: count at the Freeze)
 lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2

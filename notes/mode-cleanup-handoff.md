@@ -12,50 +12,54 @@ statement changed, trust base 870/4, no trusted text.
   it at its `on`) and `start`'s proof. Twins etcdserver 16 → 14. No exported statement changed (`spec`
   unfolds to the same proposition; `server_*` results name `spec` only).
 
-## Not merged, and why (checkpoint 1, for etcd-grove-81)
+- **Batch 2: the five admin `specOn` corollaries moved into `ModeSpecs.lean`** (decided by etcd-grove-81,
+  2026-11-15, item 1): `EtcdServer.{AuthEnable,UserAdd,RoleAdd,UserGrantRole,RoleGrantPermission}.specOn`
+  (texts unchanged) and their proofs as `X.spec_on (h : X.spec) (hRR : raftRequest.spec) : X.specOn` (until
+  then `wp_proofOn` in the proof files, proved from `wp_proof`; UserAdd's `bcrypt` premise now through `h`);
+  the exported `server_*_on` keep their statements (`X.spec_on EtcdServer.wp_X server_raft_request`).
+  `AdminOn.lean` no longer imports `ModeSpecs` (it used nothing of it; `SDRun` in its place), so `ModeSpecs`
+  can import the five Spec files. Twins etcdserver 14 → 4.
+- **`members` class** (item 2): client/v3's `kv.*.specM`/`txn.Commit.specM` (D44) classified `members` in
+  `etc/mode-allow.txt` (new class in `etc/mode-check.py`); count unchanged (5).
 
-- **The five admin `specOn`/`wp_proofOn` (AuthEnable, UserAdd, RoleAdd, UserGrantRole,
-  RoleGrantPermission; 10 twin findings).** `spec` is already mode-free (a contract `authRaftOk` passed
-  through); `specOn` is its instance at `authRaftOk_on` (auth on), proved from `wp_proof` (no second proof
-  of the code). No mode-indexed statement exists: with auth off an admin request is outside the KV model
-  (`reqPropOk` admits KV requests only), so a merged form would say less than `spec` or add a case that is
-  false. They are corollaries; option: move them to `ModeSpecs.lean` (names and texts unchanged, the
-  exported `server_*_on` unchanged). Not done: it lowers the count by relocation, which the brief forbids
-  without a decision.
-- **`NewServer.specM`/`wp_proofM` (2).** `specM on = specG on false`; `spec = ∀ cmp, specG false cmp`. A
-  merged `∀ on cmp, specG on cmp` linked once would put the auth-on construction's premises
-  (`authSrvTP`, `uberKitM`, D22's trusted `authSchemaSrv`, which `server_new_auth_on` takes as `hD22`) on
-  `wp_NewServer` and every auth-off closed theorem. Changes what they say: left.
-- **`apply.wp_proofOn`, `applyEntryNormal.wp_proofOn` (2).** One spec each already (`ModeSpecs` has the
-  corollaries); the twins are second proofs. `apply`'s off/on proofs are ~1000 lines each, 334 differing
-  lines, over ~25 lemma pairs (`srvApplyKV_writer`/`srvApplyKVOn_writer`, `kv_applied_step`/`_on`,
-  `kvApplied_next`/`On`, `srvRestR*`/`srvRestRM*`, `waitInv`/`waitInvM`, …; the off proof's KV model is
-  over the log, the on proof's over the triple state). Merging = M-forms of those lemmas first, then one
-  proof over `E.authOn`; `applyEntryNormal`'s on proof also has the admin arms (600 vs 1100 lines).
-  Estimate 1–2 weeks for `apply` alone; proposed as its own stage.
-- **client/v3 `kv.{Do,Put,Get,Delete}.specM`, `txn.Commit.specM` (5).** Not auth-mode twins: `M` is the
-  members (D44: a `*kv` of the members `ms`, `isKV`; `spec` is one KV, `isKv`). Nothing to merge; the gate's
-  name pattern catches them. Options: a `members` class in `etc/mode-allow.txt`, or a rename (changes
-  `LinkMembers`'s linked statements' names).
-- **C5′ pair (`lessorGrantOkG`/`lessorGrantOk`/`lessorRevokeOk`/`raftLessor` beside the `…M` forms).**
-  Merging changes either the seven exported client results' texts (`raftLessor s E S` →
-  `raftLessorM false s E ρ S`, +7 lit-mode) or the bodies of the four definitions they are written in
-  (to the `…M` form at `false`; equivalent by the `_false` laws, not by `rfl`). Both change exported
-  text: needs a decision. The pair is not counted by the gate.
-- **The `unmoved` match-mode and lit-mode findings in definitions** (`isServerBuiltM`/`isServerBuiltOn`,
-  `applyBuiltOn`, `isServerReqM`'s `srvReqFieldsAtM`, the `…On` aliases): reached by exported results
-  (fingerprint: e.g. `server_built_gap_on` states `isServerBuiltM`); a uniform body changes their text.
-  The lemma findings (`reqPropOkM_true_*`, `LeaseReqOn`'s, `grantedAt_of_*`, …) are auth-on facts (the
-  `true` forms of `reqPropOkM`, `modelOutM`, `kvModelOn`): not true at both modes as stated.
+## Not merged, and why
 
-## Next, in order
+- **`NewServer.specM`/`wp_proofM` (2)** — left (decided by etcd-grove-81, item 3). A merged
+  `∀ on cmp, specG on cmp` linked once would put the auth-on construction's premises (`authSrvTP`,
+  `uberKitM`, D22's trusted `authSchemaSrv`, `server_new_auth_on`'s `hD22`) on `wp_NewServer` and every
+  auth-off closed theorem.
+- **`apply.wp_proofOn`, `applyEntryNormal.wp_proofOn` (2): a proposed stage of its own, 1–2 weeks**
+  (item 4, to be scheduled by etcd-grove-81). One spec each already; the twins are second proofs.
+  `apply`'s off/on proofs are ~1000 lines each, 334 differing lines, over ~25 lemma pairs
+  (`srvApplyKV_writer`/`srvApplyKVOn_writer`, `kv_applied_step`/`_on`, `kvApplied_next`/`On`,
+  `srvRestR*`/`srvRestRM*`, `waitInv`/`waitInvM`, …: the off KV model over the log, the on one over the
+  triple state). Plan: M-forms of the lemma pairs, then one proof over `E.authOn`; `applyEntryNormal`'s on
+  proof also has the admin arms (600 vs 1100 lines) and holds 29 of the remaining unmoved lit-mode
+  findings; `applyAll.wp_proofSnapM`/`snapRecv_imageR`/`snapRecv_imageOnR` (8 more) are the same kind.
+- **`isServerBuiltM` (item 5, studied, not done).** Its two bodies differ beyond the mode-indexed rows:
+  `applyBuilt`/`applyBuiltOn` hold `srvAuthApplyRes` vs `srvAuthApplyResB … srvAuthSt0` (the latter with
+  the backend tie and the write lens), `srvUberBase` on only, `kvRun` vs `kvRunOn` (with `∃ st`, not
+  `kvRunM`'s `st`), `srvTokRights` on only (keyed on `E.authMode`, so not `True` at `on = false` without a
+  premise). A uniform body needs new mode rows (`srvAuthApplyResM`, a match; an `on`-guarded
+  `srvTokRights`, `srvUberRowM`), so the match moves rather than goes: net −1 match / −5 lit at best,
+  +1 match, and the `rfl` laws `isServerBuiltM_false/_true` (11 uses) become `⊣⊢` laws with a premise on
+  `E.authMode`, with 20 `isServerBuiltOn` uses in `start`, `AuthCompRows`, `AppliedOn` and the closed
+  examples' proofs to redo. Judged not worth it in this stage.
+- **C5′ pair (`lessorGrantOkG`/`lessorGrantOk`/`lessorRevokeOk`/`raftLessor` beside the `…M`)** — studied,
+  not done. Defining the old four from the `…M` at `false` needs a `ReqNames` the old contracts do not have
+  (`∀ ρ`, whose discharge goes back through the `_false` laws: circular), and replacing them at their uses
+  changes the seven exported client results' texts (+7 lit-mode). Not counted by the gate either way; the
+  S3c Draft's own plan (§7.1) merges it when S4 reworks the client results: recommended there.
+- **The remaining definition findings** (`isServerReqM`'s `srvReqFieldsAtM`, the `…On` aliases in v3rpc,
+  `memberUpOn`, `Authenticate.spec`, …) are in exported or closed texts, or rows whose two modes are
+  different models; the lemma findings (`reqPropOkM_true_*`, `LeaseReqOn`'s, `grantedAt_of_*`, `ReadOn`'s)
+  are auth-on facts, not true at both modes as stated. `NewServer.specR`/`wp_proofRG`/`srvIndices_allocR`
+  (14) are the frozen restart, scoped to auth off.
 
-1. etcd-grove-81's decisions on the items above.
-2. If the admin corollaries may move: move them to `ModeSpecs.lean` (import check: `ModeSpecs` must
-   import `AdminOn` and the five Spec files; no cycle with `Results`).
-3. If definition bodies under exported results may change when proved equivalent at each mode: the
-   `…M` rows with a `match` (`isServerBuiltM`, …) one by one, each with `X_false`/`X_true` kept as
-   propositional laws.
+## Next
+
+1. The proposed `apply`/`applyEntryNormal` proof-merge stage (above).
+2. The C5′ pair with S4.
 
 ## Build and checks
 
