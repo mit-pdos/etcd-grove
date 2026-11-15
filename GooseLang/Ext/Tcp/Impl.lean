@@ -186,7 +186,7 @@ modeled (the methods are not modeled either, so a program calling them is stuck:
   | `Accept`, `LisClose` | `#l`, no listener `l` of this node (`0` among them) | `Panic` (unreachable: the models check for `0`, and ids are unforgeable) |
   | `Read` | `(#e, #n)`, `e` an end of a connection | D1: `ReadOutcome`, never empty (`closed`; `n = 0`; else a cut, then bytes or EOF) |
   | `Write` | `(#e, #bs)`, `e` an end of a connection | D2: `WriteOutcome`, never empty (`closed`; `sys` into `fin` or `cut`; a cut of an open direction) |
-  | `Close`, `CloseWrite` | `#e`, `e` an end of a connection | D3, D4: `CloseOutcome`, `CloseWriteOutcome` (one each) |
+  | `Close`, `CloseWrite` | `#e`, `e` an end of a connection | D3, D4: `CloseOutcome` (one outcome), `CloseWriteOutcome` (on an open end: success or `sys`) |
   | `SetDeadline` | `(#e, (#kind, (#wall, #ext)))`, `e` an end of a connection | D5: `DeadlineOutcome` (one) |
   | `Read` ... `SetDeadline` | `e` names no end of a connection (`0` among them) | `Panic` (unreachable: as `Accept`'s) |
   | `AnyBool`, `AnyString`, `AnyW64`, `AnyErrno` | `#()` | a value |

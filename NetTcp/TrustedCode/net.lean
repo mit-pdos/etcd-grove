@@ -67,8 +67,9 @@ over `read(2)` (`poll.FD`, `EINTR` and `EAGAIN` handled by the poller) and retur
 byte has arrived, as the extension's `Read` does; Go's `Write` loops over `write(2)` until every
 byte is in the kernel or an error, and so does its model (`conn.Write.impl`, `model.writeLoop`),
 each `write(2)` with its wait one step of the extension (D2). Less defined than Go (a panic, or
-stuck, which a proof must rule out): a network other than `"tcp"`; a nil receiver (a nil
-dereference, where Go returns `EINVAL`); a call of the extension with an argument it cannot use
+stuck, which a proof must rule out): a network other than `"tcp"`; a nil receiver (stuck: a nil
+dereference; Go panics too for a nil `*TCPConn`, and returns `EINVAL` for a nil `*TCPListener`:
+v3.2 review, N1); a call of the extension with an argument it cannot use
 (`Impl.lean`, D22: a `Listen` or `Dial` of an address outside the plan, D13).
 -/
 module
