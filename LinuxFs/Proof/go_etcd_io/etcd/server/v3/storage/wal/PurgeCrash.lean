@@ -105,6 +105,47 @@ theorem crashTo_cut_iff {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {F : WalLa
     {fo : Ino → Option Fs.OsFile} (c : Nat) :
     CrashTo C Mr { d with cut := c } F m' fo ↔ CrashTo C Mr d F m' fo := Iff.rfl
 
+/-! ## The static relation of the full layout
+
+The invariant keeps, besides `WalAbsD d lay ents` (the directory as it is), the static relation of the full
+layout `unpurge pg lay` for the WAL with `cut` at its first segment (`walFullD`), over the entries with the
+removed-not-durable names back: what the crash proof's `crashTo_start` and the crash step lemmas take, applied
+to the full layout instead of `lay`. -/
+
+/-- The WAL with its read position at the full layout's first segment. -/
+def walFullD (d : WalDur) (pg : List SegG) (lay : WalLay) : WalDur :=
+  { d with cut := segStart lay.cuts (lay.first - pg.length) }
+
+/-- `WalAbsD` reads `pur` only as an upper bound on `cut`. -/
+theorem WalAbsD.pur_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) {P : Nat} (hp : d.pur ≤ P) :
+    WalAbsD C Mr { d with pur := P } lay ents :=
+  { h with cut := ⟨h.cut.1, fun hf => Nat.le_trans (h.cut.2 hf) hp⟩ }
+
+/-- With nothing removed, the full layout is the layout. -/
+theorem walAbsD_full_nil {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr (walFullD d [] lay) (unpurge [] lay) ents := by
+  rw [unpurge_nil]
+  show WalAbsD C Mr { d with cut := segStart lay.cuts (lay.first - 0) } lay ents
+  rw [Nat.sub_zero, ← h.cut.1]
+  exact h
+
+/-- **A purge keeps the full layout's static relation** (the full layout does not move,
+`unpurge_purge`; `pur` only rises). -/
+theorem walAbsD_full_purge {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents0 : Ents}
+    {pg : List SegG} {g0 : SegG} {gs : List SegG} (p : Nat)
+    (h : WalAbsD C Mr (walFullD d pg lay) (unpurge pg lay) ents0) (hs : lay.segs = g0 :: gs)
+    (hf : pg.length ≤ lay.first) :
+    WalAbsD C Mr (walFullD (walPurgeD d lay p) (pg ++ [g0]) (purgeLay lay))
+      (unpurge (pg ++ [g0]) (purgeLay lay)) ents0 := by
+  rw [unpurge_purge pg lay g0 gs hs hf]
+  have e : walFullD (walPurgeD d lay p) (pg ++ [g0]) (purgeLay lay) =
+      { walFullD d pg lay with pur := max d.pur p } := by
+    simp only [walFullD, walPurgeD, purgeLay, List.length_append, List.length_singleton]
+    congr 2; omega
+  rw [e]
+  exact h.pur_mono (Nat.le_max_left _ _)
+
 /-- **A crash that keeps the removal of the full layout's `t`-th segment**: `CrashTo` of the crash `m''`
 with that segment's name back (whose WAL directory lists the segments from `t` on) gives `CrashTo` of `m'`
 (listing them from `t + 1` on, the WAL directory at the same place), the segment ending at or before
