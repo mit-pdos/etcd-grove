@@ -69,3 +69,14 @@ statement changed, trust base 870/4, no trusted text.
   (`LAKE_OPTS=--packages=… .claude/skills/proof-perf/fingerprint.py -o …`, `--diff`).
 - `etc/mode-check.py --check [--update]`, `etc/tcb-report.py --check`, `etc/bounds-check.py --check`,
   `etc/gen-interface.py etc/api/<pkg>.txt --check`.
+
+## Land-stop checks (2026-11-15, after merging lean `65fc1c4813`)
+
+Full build green (17582 jobs, flock + 64G, `/shared/tmp/mode-cleanup/build3.log`); `tcb-report --check` 870 axioms,
+4 sorries; `gen-interface --check` clean on every `etc/api` list; bounds ok (363, lean's baseline); mode ok (447).
+Fingerprint against lean `9cf04e8ec0` (before the merge; `/shared/tmp/mode-cleanup/fp-diff-final.txt`): `AppliedIndex.spec`
+changed (the merged triple), `AppliedIndex.specM` removed, `UserAdd.specOn` differs only by an auxiliary proof constant's
+name (`processInternalRaftRequestOnce.specOff._proof_1`, the elaborator's shared copy of the same proof); no root theorem
+changed. Counts (before → after): twin etcdserver 16 → 4, client/v3 5 → 5 (now class `members`); every other kind
+and package unchanged (etcdserver lit 276, match 81; client/v3 lit 25; v3rpc lit 33; apply match 4; examples lit
+7/6/6). Next: `etc/land.sh` when etcd-grove-81 says lean is free.
