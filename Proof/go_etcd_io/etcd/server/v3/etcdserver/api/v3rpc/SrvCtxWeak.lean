@@ -269,12 +269,24 @@ theorem srvCtxWeak_of_isContext (c : GoInterfaceOk) (s : context.ContextDesc (IP
     · itrivial
     iintro !> %err - -
     iapply HΦ $$ Ht
-  iintro !> %Φ #Hcl Ht HΦ
-  iapply HErrDone $$ Hcl
-  iintro !> %err %Hty #He
-  iapply HΦ $$ [] [] Ht
-  · ipureintro; exact context.isTypedErr_ne_nil Hty
-  ileft; iexact He
+  isplitl []
+  · iintro !> %Φ #Hcl Ht HΦ
+    iapply HErrDone $$ Hcl
+    iintro !> %err %Hty #He -
+    iapply HΦ $$ [] [] Ht
+    · ipureintro; exact context.isTypedErr_ne_nil Hty
+    ileft; iexact He
+  icases HParentCC with ⟨%Hsty, #HPar⟩
+  isplitr
+  · ipureintro; exact Hsty
+  iintro !> %ch %cch %Φ Hd Hcc %Hne HΦ
+  iapply HPar $$ Hd Hcc
+  · ipureintro; exact Hne
+  iintro !> %p %γp %Pp #Hp -
+  iapply HΦ
+  unfold _root_.Perennial.context.isCancelCtx
+  iexists γp, Pp
+  iexact Hp
 
 /-- **A weak context is a `ctxDoneErr`** (by `context.madeCancelCtx_of_isCancelCtx`). -/
 theorem v3rpc.ctxDoneErr_of_srvCtxWeak (c : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) :

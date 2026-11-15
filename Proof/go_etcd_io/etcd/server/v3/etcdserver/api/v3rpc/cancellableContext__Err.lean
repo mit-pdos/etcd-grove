@@ -75,7 +75,7 @@ theorem v3rpc.cancellableContext.Err.wp_proof :
       (try simp only [Bool.false_eq_true, ↓reduceIte])
       itrivial
     · (try simp only [↓reduceIte])
-      wp_apply HErrDone $$ [Hb] as %err %Hty #Hce
+      wp_apply HErrDone $$ [Hb] as %err %Hty #Hce -
       · iexact Hb
       wp_apply (sync.RWMutex.wp_RUnlock (v3rpc.ccLockF l) (v3rpc.ccReasonP l (GoInterface.ok e)))
         $$ [Hlk Hr] as Hslot
