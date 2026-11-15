@@ -456,7 +456,7 @@ arrives, and `revokeExpiredLeases` (and `WithRoot`, auth off only) needs it. Pro
 `_noExpiry`; `NewServer`'s guard at a granting cluster in either auth mode (`newServer_guard`), `NewServerR`'s at auth
 off (`newServerR_guard`); the guard at auth off equivalent to today's (`guard_off`). Not probed: C6 (§4a), the
 monotone mode at auth on (§2), D6 (§7: definitions over existing vocabulary; the Prove step's risk is the handlers'
-and the quota wrapper's metadata proofs and `srvAuthAtM`).
+the quota wrapper's metadata spec and `srvAuthAt_of_viewsM`).
 
 ## 10. Statements this changes (for the Freeze)
 
