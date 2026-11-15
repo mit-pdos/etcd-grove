@@ -26,6 +26,7 @@ module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalHistLemmas
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.ReadsBack
 
 @[expose] public section
 
@@ -230,6 +231,13 @@ def tU64 (x : w64) : List w8 := (List.range 8).map (fun i : Nat => W8 (uint.Z (x
 /-- `putHS`'s bytes. -/
 def tHsBytes (h : THs) : List w8 := tU64 h.term' ++ tU64 h.vote' ++ tU64 h.commit'
 
+/-- (shared by `DecRep` and `OrLen`, which both declared it) -/
+theorem tU64_length (x : w64) : (tU64 x).length = 8 := by simp [tU64]
+
+/-- (shared by `DecRep` and `OrLen`) -/
+theorem tHsBytes_length (h : THs) : (tHsBytes h).length = 24 := by
+  simp [tHsBytes, tU64_length]
+
 /-- An entry's bytes in `putOps`. -/
 def tEntBytes (e : TEnt) : List w8 := tU64 e.index' ++ tU64 e.term' ++ tU64 e.size' ++ tU64 e.salt'
 
@@ -321,18 +329,41 @@ def tOpensBound (o : TOracle) (c : TCand) : Nat :=
 /-- **The WAL state `d` is accounted for by candidate `c`** (plan §2.3): its history is an image of
 `c`'s at `c`'s mark (one shape for the running history, a pending `Save` not yet applied, and a
 crash image); its purge and read positions at most `c.pur`; its unlock position at most `c.unl` or
-what the pending `Open`s raise it to; sized; `c`'s history well formed. -/
+what the pending `Open`s raise it to; sized; `c`'s history well formed and disciplined since its last
+restart (`tSim`, `ReadsBack.lean`: so every image at the mark reads back where `ReadAll` succeeds). -/
 def tCandOk (o : TOracle) (c : TCand) (d : WalDur) : Prop :=
   walImg ((tCandHist o c).map absOp) (tCandMark o c) (d.H.map WalOpG.toM) ∧
   d.pur ≤ uint.nat c.pur ∧ d.cut ≤ uint.nat c.pur ∧ d.unl ≤ max (uint.nat c.unl) (tOpensBound o c) ∧
-  d.sized = true ∧ tHistWf (tCandHist o c)
+  d.sized = true ∧ tHistWf (tCandHist o c) ∧ tSim ((tCandHist o c).map absOp) (tCandMark o c)
 
-/-- **Before `Create` returned** (`¬ created`): the oracle is fresh (its file is written only once
-`created` holds) and the WAL is absent or `Create`'s fresh one, which a crash between `Create`'s
-commit and the store of `created` leaves. -/
+/-- The fresh oracle's one candidate (`freshOracle`: `cand{h: []}`). -/
+def tCand0 : TCand := ⟨[], W64 0, W64 0⟩
+
+/-- **The fresh oracle up to its pending opens**: what the oracle is before `Create` returned, or
+during a restart that began from the fresh oracle (`Boot`'s `restart()` with a WAL that `Create`
+committed and a crash kept before `created` was stored: `restartRead` appends the opens and stores it). -/
+def tPre (o : TOracle) : Prop := { o with opens := [] } = tFreshOracle
+
+theorem tPre_fresh : tPre tFreshOracle := rfl
+
+/-- **Before `Create` returned** (`¬ created`): the oracle is fresh up to its pending opens (its file is
+written only once `created` holds, or by a restart's `restartRead` before an `Open`), and the WAL is
+absent or accounted for by the fresh oracle's candidate (`Create`'s fresh WAL, which a crash between
+`Create`'s commit and the store of `created` leaves; its unlock position raised by the opens). -/
 def tPreOk (o : TOracle) (od : Option WalDur) : Prop :=
-  o = tFreshOracle ∧
-    (od = none ∨ ∃ d, od = some d ∧ d.H = [] ∧ d.unl = 0 ∧ d.pur = 0 ∧ d.cut = 0 ∧ d.sized = true)
+  tPre o ∧ (od = none ∨ ∃ d, od = some d ∧ tCandOk o tCand0 d)
+
+theorem tPre_cands {o : TOracle} (h : tPre o) : o.cands = [tCand0] := by
+  have := congrArg TOracle.cands h; simpa [tFreshOracle, tCand0] using this
+
+theorem tPre_synced {o : TOracle} (h : tPre o) : o.synced = W64 0 := by
+  have := congrArg TOracle.synced h; simpa [tFreshOracle] using this
+
+theorem tPre_created {o : TOracle} (h : tPre o) : o.created = false := by
+  have := congrArg TOracle.created h; simpa [tFreshOracle] using this
+
+theorem tPre_mark {o : TOracle} (h : tPre o) : tCandMark o tCand0 = 0 := by
+  simp [tCandMark, tCand0, tPre_synced h]
 
 /-! ## Paths -/
 

@@ -31,12 +31,14 @@ variable [GooseExts]
 theorem uint_nat_W64_of_lt' (n : Nat) (h : n < 2 ^ 64) : uint.nat (W64 n) = n := by word
 
 /-- **The open WAL's state `d` is candidate `c`'s history** of the created oracle `o`, with `c`'s
-bounds, no pending `Open`, the synced mark within `since`. -/
+bounds, no pending `Open`, the synced mark within `since`, the history disciplined since the last
+restart (`tSim`). -/
 def tMemOk (o : TOracle) (c : TCand) (d : WalDur) : Prop :=
   o.created = true ∧ c ∈ o.cands ∧ o.opens = [] ∧
   d.H.map WalOpG.toM = (tCandHist o c).map absOp ∧
   d.pur ≤ uint.nat c.pur ∧ d.cut ≤ uint.nat c.pur ∧ d.unl ≤ uint.nat c.unl ∧ d.sized = true ∧
-  tHistWf (tCandHist o c) ∧ uint.nat o.synced ≤ o.since.length
+  tHistWf (tCandHist o c) ∧ uint.nat o.synced ≤ o.since.length ∧
+  tSim ((tCandHist o c).map absOp) (tCandMark o c)
 
 /-- The oracle with every operation since the last restart synced (`m.o.synced = len(m.o.since)`). -/
 def tSynced (o : TOracle) : TOracle := { o with synced := W64 o.since.length }
@@ -52,10 +54,13 @@ theorem tSynced_mark (o : TOracle) (c : TCand) (hl : o.since.length < 2 ^ 64) :
 
 theorem tMemOk_synced {o : TOracle} {c : TCand} {d : WalDur} (h : tMemOk o c d)
     (hl : o.since.length < 2 ^ 64) : tMemOk (tSynced o) c d := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, -⟩ := h
-  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, ?_⟩
-  show uint.nat (W64 o.since.length) ≤ o.since.length
-  rw [uint_nat_W64_of_lt' _ hl]; exact Nat.le_refl _
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · show uint.nat (W64 o.since.length) ≤ o.since.length
+    rw [uint_nat_W64_of_lt' _ hl]; exact Nat.le_refl _
+  · rw [tSynced_hist]
+    refine tSim_mark ?_ h11
+    rw [tSynced_mark o c hl]; unfold tCandMark tCandHist; simp only [List.length_append]; omega
 
 /-- The WAL's history length is the candidate's. -/
 theorem tMemOk_len {o : TOracle} {c : TCand} {d : WalDur} (h : tMemOk o c d) :
@@ -67,8 +72,9 @@ theorem tMemOk_len {o : TOracle} {c : TCand} {d : WalDur} (h : tMemOk o c d) :
 history. -/
 theorem tMemOk_candOk {o : TOracle} {c : TCand} {d : WalDur} (h : tMemOk o c d)
     (hl : o.since.length < 2 ^ 64) : tCandOk (tSynced o) c d := by
+  have hs := (tMemOk_synced h hl).2.2.2.2.2.2.2.2.2.2
   obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, -⟩ := h
-  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, h9⟩
+  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, h9, hs⟩
   rw [tSynced_hist, tSynced_mark o c hl, h4]
   refine ⟨(tCandHist o c).length, Nat.le_refl _, by rw [List.length_map]; exact Nat.le_refl _, Or.inl ?_⟩
   rw [← List.length_map (f := absOp), List.take_length]

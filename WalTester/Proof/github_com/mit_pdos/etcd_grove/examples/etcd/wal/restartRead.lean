@@ -58,20 +58,20 @@ theorem restartRead.wp_proof
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_fromRaft : fromRaft.spec (GF := GF) (hG := hG)) :
     restartRead.spec (GF := GF) (hG := hG) := by
-  intro W e γ lg m v o cd d qp hmn hf hpath hcr hcd hok hlen hrb hroom
+  intro W e γ lg m v o cd od qp hmn hf hpath hcd hok hlen hrb hroom
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hop, Hov, Hrep, Ho,
-    Hwo, #Hsl, #Hnm⟩
+    Hwo, #HrW⟩
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
   wp_auto
   icases Hdeps with ⟨-, -, -, #Hwpkg, #Hwpbpkg, -, -⟩
   wp_apply (wp_vse W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
-      (fun od => iprop(⌜od = some d⌝ ∗ tWalOwn γ (some d))) hia hnm hca hdl)
+      (fun od1 => iprop(⌜od1 = od⌝ ∗ tWalOwn γ od)) hia hnm hca hdl)
       $$ [Hzap Harea Hpath Hres Hperm Htok Hwo]
-    as %sl %err ⟨Hpath, Hres, Hperm, Htok, %od, ⟨%hod, Hwo⟩, Hvs⟩
+    as %sl %err ⟨Hpath, Hres, Hperm, Htok, %od1, ⟨%hod, Hwo⟩, Hvs⟩
   · iframe; iframe #
-    iapply tInv_dirAu W e γ d
+    iapply tInv_dirAu W e γ od
     iframe; iframe #
   subst hod
   cases err with
@@ -85,13 +85,15 @@ theorem restartRead.wp_proof
     rw [tWithOpens_nil]
     iframe
     isplitr
-    · ipureintro; exact ⟨by simp, rfl, rfl, hok⟩
+    · ipureintro; exact ⟨by simp, tOdRel_refl hok⟩
     rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
     itrivial
   | nil =>
-  icases Hvs with (%Herr | ⟨%d0, %ps, %hd0, #Hsl0, #Hps⟩)
+  icases Hvs with (%Herr | ⟨%d, %ps, %hd0, #Hsl0, #Hps⟩)
   · exact absurd rfl Herr
-  cases hd0
+  subst hd0
+  have hok := hok d rfl
+  have hrb := hrb d rfl
   wp_auto
   wp_if_destruct
   · simp only [readFail]
@@ -102,7 +104,7 @@ theorem restartRead.wp_proof
     rw [tWithOpens_nil]
     iframe
     isplitr
-    · ipureintro; exact ⟨by simp, rfl, rfl, hok⟩
+    · ipureintro; exact ⟨by simp, Option.Rel.some ⟨rfl, rfl, hok⟩⟩
     rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
     itrivial
   -- the newest valid pair
@@ -231,13 +233,8 @@ theorem restartRead.wp_proof
     isplitl []
     · iexact Hsince
     · iexact Hs1
-  ihave #Hrel1 : tRelI (W := W) e.area (tWithOpens o (l ++ [pr.1])) (some dc) $$ []
-  · iunfold tRelI
-    simp only [show (tWithOpens o (l ++ [pr.1])).created = true from hcr, ↓reduceIte]
-    iexists dc, cd
-    rw [show tCandMark (tWithOpens o (l ++ [pr.1])) cd = tCandMark o cd from rfl]
-    iframe #
-    ipureintro; exact ⟨rfl, hcd, hok1⟩
+  ihave #HrW1 := tRelW_withOpens W e.area o cd (l ++ [pr.1]) $$ HrW
+  ihave #Hrel1 := tRelI_of_relW e.area (tWithOpens o (l ++ [pr.1])) cd dc hcd hok1 $$ HrW1
   wp_apply (wp_store W e γ _ (tWithOpens o l) (tWithOpens o (l ++ [pr.1])) (some dc) 1 hf hsm1)
     $$ [Hh Hperm Hrep1 Ho Hwo] as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
@@ -251,16 +248,13 @@ theorem restartRead.wp_proof
   have hlen1 : (tCandHist (tWithOpens o l) cd).length < 2 ^ 63 := hlen
   have hok2 : tCandOk (tWithOpens o (l ++ [pr.1])) cd (walOpenRaise pr dc) := by
     rw [← tWithOpens_add]; exact tCandOk_open pr.1 hokl hlen1
-  ihave #Hsl1 : WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark (tWithOpens o (l ++ [pr.1])) cd)
-    $$ []
-  · rw [show tCandMark (tWithOpens o (l ++ [pr.1])) cd = tCandMark o cd from rfl]; iexact Hsl
   wp_apply (wp_open W lg e.R e.jr e.area (tWalDir e.area) go!"wal" «$a2_ptr» pr qp
       (fun od => iprop(⌜od = some dc⌝ ∗ tOrOwn γ (tWithOpens o (l ++ [pr.1])) none ∗
         tWalOwn γ (some (walOpenRaise pr dc)))) hia hnm hca hdl)
       $$ [Hpath Hres Hperm Htok Ho Hwo]
     as %w %err2 ⟨Hpath, Hres, %od, ⟨%hod, Ho, Hwo⟩, Hr⟩
   · iframe; iframe #
-    iapply tInv_openAu W e γ (tWithOpens o (l ++ [pr.1])) cd dc pr hcr hcd hok2
+    iapply tInv_openAu W e γ (tWithOpens o (l ++ [pr.1])) cd dc pr hcd hok2
     iframe; iframe #
   subst hod
   have hll3 : (l ++ [pr.1]).length ≤ 2 := by simp only [List.length_append, List.length_singleton]; omega
@@ -275,7 +269,7 @@ theorem restartRead.wp_proof
       iapply HΦ
       iframe
       isplitr
-      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      · ipureintro; exact ⟨hll3, Option.Rel.some ⟨hdH, hdcut, hok2⟩⟩
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
   cases err2 with
@@ -313,7 +307,7 @@ theorem restartRead.wp_proof
       iapply HΦ
       iframe
       isplitr
-      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      · ipureintro; exact ⟨hll3, Option.Rel.some ⟨hdH, hdcut, hok2⟩⟩
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     | nil =>
@@ -331,7 +325,7 @@ theorem restartRead.wp_proof
       iapply HΦ
       iframe
       isplitr
-      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      · ipureintro; exact ⟨hll3, Option.Rel.some ⟨hdH, hdcut, hok2⟩⟩
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     wp_auto
@@ -341,7 +335,7 @@ theorem restartRead.wp_proof
         hia hnm hca hdl) $$ [Hpath Hres Hperm Htok Hwo]
       as %b ⟨Hpath, Hres, Hperm, Htok, %od, ⟨%hod, Hwo⟩⟩
     · iframe; iframe #
-      iapply tInv_dirAu W e γ (walOpenRaise pr dc)
+      iapply tInv_dirAu W e γ (some (walOpenRaise pr dc))
       iframe; iframe #
     cases b
     · -- `Repair` failed: the read fails
@@ -352,7 +346,7 @@ theorem restartRead.wp_proof
       iapply HΦ
       iframe
       isplitr
-      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      · ipureintro; exact ⟨hll3, Option.Rel.some ⟨hdH, hdcut, hok2⟩⟩
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     icases Htok with (Htok | %hb)
@@ -456,12 +450,14 @@ theorem restartRead.wp_proof
   rw [hH1] at hI
   iframe
   isplitr
-  · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+  · ipureintro; exact ⟨hll3, Option.Rel.some ⟨hdH, hdcut, hok2⟩⟩
   simp only [↓reduceIte]
   rw [hH1] at *
   iframe
-  iexists ⟨⟨σ.hs.Term', σ.hs.Vote', σ.hs.Commit'⟩, pr.1, pr.2, σ.ents.map tFromRaft⟩
+  iexists ⟨⟨σ.hs.Term', σ.hs.Vote', σ.hs.Commit'⟩, pr.1, pr.2, σ.ents.map tFromRaft⟩, d
   iframe #
+  isplitr
+  · ipureintro; rfl
   isplitl []
   · iunfold contentsRep
     iframe #

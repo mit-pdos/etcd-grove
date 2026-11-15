@@ -49,7 +49,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
         WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
         WalFs.walUnlockedTok ∗ A }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
-    {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+    {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗
+        ((⌜b = true⌝ ∗ walAreaRes jr) ∨ (⌜b = false⌝ ∗ WalFs.walAreaResFree jr nm)) ∗ osCallPerm 1 ∗
         WalFs.walUnlockedTok ∗ ∃ od, Lin od ∗ ⌜b = false → od = none⌝ }} := by
   wp_start as ⟨#Hok, Hp, Hres, Hperm, Hu, HA⟩
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
@@ -77,7 +78,7 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
   iframe Hnc
   imodintro
   icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %J, %X, %hj, %q1, %q2, %hn, %hp, Hn1, Hsp, #Hk, Hl, Htf, Ho, HJ⟩)
-  · obtain ⟨hod, hNnm, hnone⟩ := hc
+  · obtain ⟨hod, hNnm, hnone, hnW⟩ := hc
     wp_apply wp_RDabs r nm _ [g] [go!".wal"] _ R jr _ 1 N _ h rfl hnmO hNnm hnone
       $$ [Hp Hperm HN Hosl] as %rs %err ⟨Hp, Hperm, HN, Hosl, %herr, %bn, #Herr⟩
     · iframe; iframe #
@@ -97,7 +98,12 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
     iapply HΦ
     iframe Hp Hperm Hu
     isplitl [HN Hsf Hc]
-    · iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+    · cases bn
+      · ileft; isplitr; · ipureintro; rfl
+        iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+      · iright; isplitr; · ipureintro; rfl
+        iunfold WalFs.walAreaResFree; iexists N, h, cl, Wn; iframe
+        ipureintro; exact ⟨a1, a2, a3, a4, hNnm, hnone, hnW⟩
     iexists od; iframe HL; ipureintro; intro _; exact hod
   · obtain ⟨hJ, hX, b0, hb0w, hb0s⟩ := hp
     wp_apply wp_RDchild r nm _ [g] [go!".wal"] _ R jr _ (.only [nm]) _ hn J 1 (.except X) _ hj rfl hnmO
@@ -130,7 +136,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       iapply HΦ
       iframe Hp Hperm Hu
       isplitl [HN Hsf Hc]
-      · iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+      · ileft; isplitr; · ipureintro; rfl
+        iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
       iexists od; iframe HL; ipureintro; intro hc; cases hc
     · ihave ⟨%ee, #Hee⟩ := os.errNotExist_of_pkgInit $$ Hos
       cases err with
@@ -145,7 +152,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       iapply HΦ
       iframe Hp Hperm Hu
       isplitl [HN Hsf Hc]
-      · iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
+      · ileft; isplitr; · ipureintro; rfl
+        iunfold walAreaRes; iexists N, h, cl, Wn; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
       iexists od; iframe HL; ipureintro; intro hc; cases hc
 
 /-- **`wal.Exist.spec`**: the core with the client's update committed unchanged
@@ -164,6 +172,10 @@ theorem wal.Exist.wp_proof (C : WalCodec) (Mr : WalMarshal)
   iintro %b ⟨Hp, Hres, Hperm, Hu, %od, ⟨%o, HQ, %ho⟩, %hb⟩
   iapply HΦ
   iframe
+  isplitl [Hres]
+  · icases Hres with (⟨-, Hres⟩ | ⟨-, Hres⟩)
+    · iexact Hres
+    · iapply walAreaResFree_res; iexact Hres
   ipureintro
   intro hf
   exact existFalseOk_of_le ho (hb hf)

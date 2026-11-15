@@ -24,7 +24,7 @@ tree's). Inside:
    `_keep` lemmas of `S/Crash.lean`): after `Create` the accounting candidate's `walSyncedLb` and
    `walNamed` of the old generation give the crashed state (an image at the candidate's mark) and the
    same facts in the new generation (`WalFs.walDiskAt_crash_keep`), so `tRelI` is rebuilt with the same
-   candidate (`tCandOk_crash`); before, the WAL is absent or `Create`'s fresh one (`tPreOk_crash`).
+   candidate (`tCandOk_crash`); before, the WAL is absent or accounted for by the fresh oracle's candidate (`tPreOk_crash`).
    This is how the new generation gets `walSyncedLb`/`walNamed` back: from the crash view, not from
    `walStart`/`walPast`.
 4. `crashRest_treeS`: the new generation's tree, whole.
@@ -96,7 +96,7 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
   | true =>
     simp only [tRelI, hcr, ite_true]
     icases HR with ⟨%d, %c, %hdc, #Hsy, #Hnm⟩
-    obtain ⟨hod, hcm, hok⟩ := hdc
+    obtain ⟨hod, hcm, hok, hw⟩ := hdc
     subst hod
     have hk := WalFs.walDiskAt_crash_keep W W' (tWalDir area) d (tCandMark o c)
     unfold WalFs.walDiskAt at hk
@@ -107,7 +107,7 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
     iframe Hw'
     iexists _, c
     iframe Hsy' Hnm'
-    ipureintro; exact ⟨rfl, hcm, tCandOk_crash hok hI hk⟩
+    ipureintro; exact ⟨rfl, hcm, tCandOk_crash hok hI hk, hw⟩
   | false =>
     simp only [tRelI, hcr, Bool.false_eq_true, ite_false]
     icases HR with %hpre
@@ -132,7 +132,7 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
       · obtain ⟨hI, hk⟩ := hIk
         iexists some { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }
         iframe Hw'
-        ipureintro; exact tPreOk_crash hd hI hk hfresh
+        ipureintro; exact tPreOk_crash hfresh hd hI hk
 
 /-- **The oracle a crash keeps accounts for the WAL**: the file's oracle after the crash is the
 oracle or the pending one, whose relations the invariant holds. -/

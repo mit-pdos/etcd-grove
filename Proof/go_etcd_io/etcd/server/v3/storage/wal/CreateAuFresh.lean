@@ -34,7 +34,8 @@ claim `(jr, .only [nm, nm.tmp], hC)` holding `J` at `nm.tmp`; `J`'s claim off th
 program's commit bound `m`; the segment after its header
 stream and fdatasync (`hok`, over the preallocated `m2`); the log bound `lb` past both claims. -/
 theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
-    (md : List w8) (Q : IProp GF) (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
+    (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (hnW : nm ∉ Wn)
+    (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
     (m2 mS : OsMeta) (zs2 : List Cands) (ysS : List ByteG) (lb : Nat)
     (hin : InArea r (child r nm) nm) (hnm : walNameOk nm) (hMr : WalMarshalCreateOk Mr)
     (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
@@ -46,11 +47,11 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
     (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) (hm2m : m2.maps = ∅) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗ osCommitLb m -∗
-      walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
+      walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) -∗
       osAUnc (osNames jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC)
         (renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC (DFrac.own (1 : Qp).half) lb)
-        (walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
+        (walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)
           (createTailG Mr md jr nm J (createSeg i mS ysS))) := by
   obtain ⟨⟨hbs1, hbs2⟩, hmeta, hzf, hne, hz, hdur⟩ :=
@@ -58,7 +59,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   have hw : walNameP (createSeg i mS ysS).name = true := walNameP_walFileName 0 0
   have hcur' : ∀ b, hJ'.cur !! b =
       if b = (createSeg i mS ysS).name then some (.file (createSeg i mS ysS).ino) else none := hcur
-  apply walCreate_osAUnc walCodec Mr R jr r (child r nm) nm (tmpName nm) md Q _ hC J walTmps _
+  apply walCreate_osAUnc walCodec Mr R jr r (child r nm) nm (tmpName nm) md Q Pv Wn hnW _ hC J walTmps _
     (createLay jr nm J (createSeg i mS ysS) (createStream Mr md).length) (createSeg i mS ysS) lb
     hin (tmpName_ne nm) (by simp [NameSet.Mem]) (by simp [NameSet.Mem]) hctmp
     (tmpName_not_walName nm) (tmpName_walNameP nm) (tmpName_areaSlot hnm) hJjr hlb hJlb

@@ -3,7 +3,7 @@
 oracle's `since` and stored (`tSnapO1`), `w.SaveSnapshot(&walpb.Snapshot{Index, Term, ConfState:
 {Voters: [1], AutoLeave: new(bool)}})` (its update committed on the tester's invariant), then the mark moved
 to the end and stored (`SaveSnapshot` syncs): `true`, `memOpPost` at `tSnapO o idx term`; `false`,
-`SaveSnapshot` failed (the member stops). As `member.save.spec`, over `memSaveRes`. Proved
+`SaveSnapshot` failed (the member stops). As `member.save.spec`, over `memSaveRes`, with its premise `tSim` of the appended history. Proved
 (`member__saveSnap.lean`) since the conf state is raft's canonical form (`AutoLeave` set; the user's
 decision of 2026-11-15, U1 mismatch 3): its object is `walSnapCanon (absSnapMd idx term)`, whose encoding is
 `walRaftMr`'s (`SnapAu.walSnapAt_litCs`). Lean-first (no Rocq counterpart).
@@ -37,6 +37,7 @@ abbrev member.saveSnap.spec : Prop :=
     (d : WalDur) (qc : Qp) (idx term : w64),
   e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat idx < 2 ^ 63 → uint.nat term < 2 ^ 63 →
   tOrSmall (tSnapO1 o idx term) →
+  tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c) → tCheckWf o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc }}
     (App (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"saveSnap")) (Val #idx)) (Val #term))

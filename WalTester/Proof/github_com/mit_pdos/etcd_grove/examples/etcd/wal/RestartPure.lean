@@ -108,7 +108,7 @@ theorem tCandOk_open {o : TOracle} {c : TCand} {d : WalDur} (a : w64) (hc : tCan
   apply Nat.max_le.2
   refine ⟨Nat.le_trans hunl (Nat.max_le.2 ⟨Nat.le_max_left _ _, Nat.le_trans hob1 (Nat.le_max_right _ _)⟩), ?_⟩
   obtain ⟨img, himgm, hI⟩ := tImgs_complete himg
-  have hwi : tHistWf img := tHistWf_of_mem_tImgs hwf himgm
+  have hwi : tHistWf img := tHistWf_of_mem_tImgs hwf.1 himgm
   have hil : img.length < 2 ^ 64 := by
     have := walImg_length_le himg
     rw [hI, List.length_map, List.length_map] at this
@@ -197,7 +197,7 @@ theorem tCheckNext_of_read {o : TOracle} {cd : TCand} {d : WalDur} {s : w64 × w
     (hents : c.ents = σ'.ents.map tFromRaft) : tCheckNext o c ≠ [] := by
   obtain ⟨himg, -, -, -, -, hwf⟩ := hc
   obtain ⟨img, himgm, hI⟩ := tImgs_complete himg
-  have hwi : tHistWf img := tHistWf_of_mem_tImgs hwf himgm
+  have hwi : tHistWf img := tHistWf_of_mem_tImgs hwf.1 himgm
   have hmax : ¬ walHasMaxIdx (d.H.map WalOpG.toM) := by rw [hI]; exact tHistWf_noMax hwi
   obtain ⟨σ0, h0, e1, e2, e3⟩ := walReadAllOk_read0 hpost hmax hb
   have hra := tRead_abs img

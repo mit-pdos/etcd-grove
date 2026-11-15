@@ -176,7 +176,9 @@ list file either: the callees are
 read off the proofs' binders, the results are generic in the specs' model parameters (`P`, `Mr`,
 ...), and the specs with no proof and the premises on the parameters are each result's
 hypotheses (`etc/link_walfs.py`, whose docstring has the rules); `--walfs --check` compares the
-output with the committed `Link.lean`.
+output with the committed `Link.lean`. `--durable` is the same over `examples/lib/durable`;
+`--wal-tester` over the WAL tester (`examples/etcd/wal`), given the WAL's and `durable`'s linked
+results as they are (`link_walfs.TESTER`: a binder `∀ W : WalGS GF, ...` gets `fun W => ...`).
 
 A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
 second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
@@ -633,7 +635,7 @@ for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
-if sys.argv[1:2] in (["--walfs"], ["--durable"]):
+if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
     # etcd's WAL over the per-byte Linux file extension: the callees read off the proofs' binders,
     # the results generic in the model parameters (`etc/link_walfs.py`); `--check` compares
     sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -642,7 +644,7 @@ if sys.argv[1:2] in (["--walfs"], ["--durable"]):
     import proof_roots  # noqa: E402  (Perennial's checkout as Lake resolves it)
     link_walfs.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
-                    cfg=link_walfs.DURABLE if sys.argv[1] == "--durable" else None)
+                    cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
     sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
