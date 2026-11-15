@@ -223,7 +223,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
     (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) (Hboot : γ.reBoot ≠ []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        msgIn ml DFrac.discard st ∗
+        msgInC (γ.maxData.isSome && movesB st.msg.Type') ml DFrac.discard st ∗
         □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
           isMessage γ (absMsg ty st.msg st.ents st.ctx)) ∗
         rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ £ 1 ∗
@@ -283,6 +283,12 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   icases ownStepGhost_dlv_terms γ _ cf id s rs.delivered
     (by have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega) Hac0 $$ Hdeliv Hghost
     with ⟨%Hdag, Hghost⟩
+  -- (out_size C3) the node's flag is the cluster's (`certLink`)
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, -⟩
+  ihave Hm : msgInC (s.gh.sn.sz && movesB m.Type') ml DFrac.discard ⟨m, ents, sn, ctx, rsp⟩ $$ [Hm]
+  · rw [Hszl]; iexact Hm
   -- (slice 25n) the capability, open; the bundle's premises from the node's state
   have Htr : s.gh.tr = some γd := Hgtr.trans HtrG
   icases (rnTrace_some γ rnv.raft' id cf rs.delivered s γd Htr).1 $$ Hrntr with
@@ -518,6 +524,8 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
       (fun h => absurd h (by hup_ne)) ⟨Hsno.1, Hsno.2, fun h => absurd h (by hup_ne)⟩ $$ Hpre
     with ⟨%R, HG, Hgates, Hclose⟩
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
+  -- (out_size C3) `MsgHup` is not moved: at the trivial content (`msgIn_toC`)
+  ihave Hm := msgIn_toC (b := s.gh.sn.sz) (show movesB (W32 0) = false by decide) _ _ _ $$ Hm
   wp_apply wp_raft_Step cf _ γ _ id s ml ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
     [] [] none [] R
     (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
@@ -1136,7 +1144,7 @@ theorem wp_rn_raft_Step_net_g (wp_raft_Step : raft.Step.spec (GF := GF) (hG := h
     (Htr : γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        msgIn ml DFrac.discard st ∗
+        msgInC (γ.maxData.isSome && movesB st.msg.Type') ml DFrac.discard st ∗
         □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
           isLeader γ id st.msg.Term') ∗
         □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
