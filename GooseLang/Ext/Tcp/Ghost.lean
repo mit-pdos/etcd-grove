@@ -147,7 +147,8 @@ def PendOk (g : TcpGlobal) (pm : GMap GoString (GSet Nat)) : Prop :=
   (∀ a, (pm !! a).isSome = (g.plan !! a).isSome) ∧
   (∀ a S c, pm !! a = some S →
     (c ∈ S ↔ ∃ cn, g.conns !! c = some cn ∧ cn.addr = a ∧ cn.accepted = false)) ∧
-  (∀ c cn, g.conns !! c = some cn → (g.plan !! cn.addr).isSome = true ∧ 2 * c + 1 < 2 ^ 64)
+  (∀ c cn, g.conns !! c = some cn →
+    (g.plan !! cn.addr).isSome = true ∧ c ≠ 0 ∧ 2 * c + 1 < 2 ^ 64)
 
 /-- The interpretation of the network. -/
 def tcpCtx (hG : TcpGS GF) (g : TcpGlobal) : IProp GF :=
@@ -184,10 +185,10 @@ def tcpDir (hG : TcpGS GF) (c : Nat) (s : Bool) (d : TcpDir) : IProp GF :=
   letI := hG.allG
   iprop(∃ γ, tcpNames hG c γ ∗ ghostVar (γ.q s) (1 : Qp).half d ∗ token (γ.tk s))
 
-/-- `c` was dialed to `a` (and its ends' ids are in range). -/
+/-- `c` was dialed to `a` (and its ends' ids are in range, and not `0`). -/
 def tcpConnAt (hG : TcpGS GF) (c : Nat) (a : GoString) : IProp GF :=
   letI := hG.allG
-  iprop(∃ γ, tcpNames hG c γ ∗ ⌜γ.addr = a ∧ 2 * c + 1 < 2 ^ 64⌝)
+  iprop(∃ γ, tcpNames hG c γ ∗ ⌜γ.addr = a ∧ c ≠ 0 ∧ 2 * c + 1 < 2 ^ 64⌝)
 
 /-- The connections dialed to `a` and not yet accepted are `S`. -/
 def tcpPend (hG : TcpGS GF) (a : GoString) (S : GSet Nat) : IProp GF :=

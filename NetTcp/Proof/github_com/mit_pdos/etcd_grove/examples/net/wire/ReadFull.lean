@@ -86,7 +86,7 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       imodintro
       iframe HP
       ipureintro
-      exact readOutcome_got_le Hrd.1
+      exact readOutcome_got_le Hrd
     have hdl : (bsn.drop (sint.nat k)).length = sint.nat buf.len - sint.nat k := by
       rw [List.length_drop, Hbl, Hlen0.1]
     have hsl : (slice.slice buf w8 k buf.len).len = buf.len - k := rfl
@@ -178,9 +178,6 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       ipureintro
       refine ⟨Hbl, ⟨bsn.drop (sint.nat k), by rw [← Hgt, List.take_append_drop]⟩, ?_⟩
       intro h; cases h
-    | wait =>
-      simp only [net.ReadErr]
-      iexfalso; iexact HE
   · -- the loop ends: `buf` is full
     obtain ⟨Hk0, Hkl, Hbl, Hgl, Hgt⟩ := Hinv
     have hk : sint.Z k = sint.Z buf.len := by omega

@@ -40,7 +40,7 @@ abbrev ReadFull.spec : Prop :=
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] ∗
       □ (∀ (got : List w8) (m : Nat), P got -∗
         |={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn (!s) d ∗
-          ∀ r d', ⌜ReadOutcome st d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗
+          ∀ r d', ⌜ReadOutcome st d m r d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗
             tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn (!s) d' ={∅,⊤}=∗ P (got ++ r.got)) }}
     (App (App (Val (@! wire.ReadFull)) (Val #c)) (Val #buf))
   {{ (ok : Bool), RET #ok; ∃ (got bs' : List w8), P got ∗ buf ↦* bs' ∗

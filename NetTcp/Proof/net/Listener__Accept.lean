@@ -37,6 +37,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
   ihave #Ht2 := Ht
   iStructNamed Ht2
   wp_auto
+  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Accept l a $$ Hla
   imod HQ with ⟨%o, %S, Hl, Hpend, HQ⟩

@@ -39,7 +39,9 @@ theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
+  ihave %Hne := tcpConnAt_endId_ne _ cn a s $$ Hat
   (try wp_auto)
+  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Close cn s a $$ Hat
   imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩

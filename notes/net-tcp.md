@@ -29,7 +29,7 @@ grpc-go), each verified end to end with a distributed adequacy theorem.
 | the soundness reviews (v2, v3) | `notes/axiom-review/tcp-semantics.md` |
 | what we took from dsverify-lab's model, and why | `notes/net-tcp-v3-plan.md`, `notes/net-tcp-dsverify-survey.md` |
 
-## The semantics (v3.1, 2026-11-15)
+## The semantics (v3.2, 2026-11-15)
 
 **Only observable state** (the user, 2026-11-14: "make sure the semantics is not designed for proof
 convenience. It should be easy to audit, and as a general principle, operational semantics and
@@ -38,7 +38,7 @@ specs should avoid unobservable state (e.g., the past operations are unobservabl
 connections; a connection is its address, whether accepted, two ends (`TcpEnd`: `closed`, a read
 deadline, a write deadline) and two directions (`TcpDir`: the unread bytes, oldest first, and a
 status `open | fin | cut`). A node's local state is its host and its listeners. No history.
-Decisions D1–D21 are in `Impl.lean`'s header, each with its Go test (`examples/net/semantics/doc.go`,
+Decisions D1–D22 are in `Impl.lean`'s header, each with its Go test (`examples/net/semantics/doc.go`,
 every row classed measured, documented with a citation, or assumed, and naming its Lean definition
 and its `Tests.lean` example).
 
@@ -85,8 +85,20 @@ covered by cuts. For the same reason (a step sees only its own node and the netw
 connections belong to the address, not to a listener, and `Dial` does not check for a listener:
 more behaviors than Linux (which refuses or resets), each sound.
 
+**Steps** (D22, v3.2; the user's decision, Perennial's Grove convention): every operation may
+stutter (nothing changes, the call stays as it was), which is how a blocked `Read`, `Accept` or
+`Write` step is modeled; the relations have no wait of their own (a non-failing `Write` step counts
+at least one byte unless none remain). Every state has an outcome besides the stutter (else a
+program could stutter forever where Go goes on): an argument the extension cannot use panics
+(GooseLang's stuck builtin `Panic`): `Listen` or `Dial` outside the plan (a violation of D13), an
+id naming nothing, another argument shape, an unknown operation. `Impl.lean`'s header has the table
+of every operation in every state; `Tests.lean`'s `isTcpStep_total` checks that no state lacks an
+outcome. The specs handle the stutter once, by Löb induction (`wp_tcp_op`, as Perennial's
+`wp_GroveOp`).
+
 **Handles**: ids inside `net`'s unexported structs; id 0 (a zero-value `TCPConn`/`TCPListener`)
-names nothing, so a program using one is stuck (Go returns `EINVAL`).
+names nothing, and the models check for it first, returning Go's bare `syscall.EINVAL`
+(`model.einval`, `TestZeroValues`).
 
 **The deployment** (D13) every theorem assumes: a closed world (nothing outside the system uses the
 plan's addresses; prose only), plan addresses that are canonical IPv4 `a.b.c.d:p` with a port
@@ -116,6 +128,12 @@ checked by `decide`), and the target configuration (Linux 7.0 defaults, Go 1.27.
 - **v3.1 (2026-11-14/15)**: the v3 review refuted the one-step `Write` (a deadline set while it
   blocks makes Go's `Write` time out after the peer read some of it): a `Write` is now Go's loop of
   steps, each `write(2)` with its wait one extension step (D2, D15; E11).
+- **v3.2 (2026-11-15)**: every operation may stutter (the waiting), invalid uses panic, every state
+  has an outcome (D22; E12, the user's decision: "having an obligation to show `∃ e', e ⇝ e'` is a
+  sort-of bogus way of encoding that a program doesn't do something invalid"); the zero values
+  return `EINVAL` as Go's do. The extension's and `net`'s specs and `wire` adapted (statements
+  unchanged but `ReadRes.wait` gone from `Conn.Read.spec`); the seven examples' proofs are being
+  redone over it.
 
 ## The resources and specs
 
@@ -135,7 +153,8 @@ predicate of the bytes it read (the buffer's contents) and a per-`Read` accessor
 
 ## The examples
 
-All seven are proved end to end over v3.1 (`lake build`, 2026-11-15), each `<ex>_crash_safety` over
+All seven were proved end to end over v3.1 (`lake build`, 2026-11-15; over v3.2 they are being
+redone), each `<ex>_crash_safety` over
 `goose_dist_crash_adequacy` with no `sorry` and no axiom of this repository, under the plan premise
 `PlanWellFormed pl` (D20); `#print axioms` lists Lean's three, the translation's axiomatized Go types
 (since v3 also `os.Process`/`os.processHandle` and the value `os.blockSize`, from the `os` translation

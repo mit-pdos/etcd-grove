@@ -9,10 +9,12 @@ and the direction it reads or writes are taken by an atomic update, so that a pr
 in an invariant shared by the threads that use the end (a reader and a writer, as grpc's and
 net/http's connections have) or by both ends' nodes (a direction is written by one end and read by
 the other). So are `Dial`'s and `Accept`'s, over the address's pending set (`tcpPend`), which a
-program keeps in an invariant with its per-address protocol. An operation that may wait (`Read`,
-`Accept`) uses its update only at the step that decides (`wp_tcp_endOp`). Each takes
+program keeps in an invariant with its per-address protocol. Every operation may stutter (D22: a
+wait), which one rule handles for all, by Löb induction (`wp_tcp_op`, as Perennial's Grove specs
+do), so an update is opened only at the step that decides; the panics of invalid uses are excluded
+there by the resources (the connection or listener exists, the address is the plan's). Each takes
 `tcpConnAt c a` (persistent, from `Dial` or `Accept`): the connection exists, and its ends' ids are
-in range. Results are the values the step returns: a failure's kind as its code (`errCode`,
+in range and not `0`. Results are the values the step returns: a failure's kind as its code (`errCode`,
 `TcpErr.code`, `failV`); a `Dial` that fails may leave its connection, abandoned (D16), whose
 resources (the acceptor's end fresh, the dialer's closed with its direction shut) the caller's
 update gets as a successful dial's.
@@ -111,7 +113,7 @@ theorem pendOk_setConn {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat}
 /-- A dial keeps `PendOk`, the new connection pending at its address. -/
 theorem pendOk_dial {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {a h : GoString}
     {S : GSet Nat} {cn : TcpConn} (hp : PendOk g pm) (hc : g.conns !! c = none)
-    (hb : 2 * c + 1 < 2 ^ 64) (ha : g.plan !! a = some h) (hS : pm !! a = some S)
+    (h0 : c ≠ 0) (hb : 2 * c + 1 < 2 ^ 64) (ha : g.plan !! a = some h) (hS : pm !! a = some S)
     (hca : cn.addr = a) (hacc : cn.accepted = false) :
     PendOk (g.setConn c cn) (pm.insert a (S ∪ {[c]})) := by
   obtain ⟨h1, h2, h3⟩ := hp
@@ -139,7 +141,7 @@ theorem pendOk_dial {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {a
     by_cases hkc : c = k
     · subst hkc
       simp only [↓reduceIte, Option.some.injEq] at hk; subst hk
-      exact ⟨by simp [hca, ha], hb⟩
+      exact ⟨by simp [hca, ha], h0, hb⟩
     · simp only [hkc, ↓reduceIte] at hk; exact h3 k cn₁ hk
 
 /-- An accept keeps `PendOk`, the connection no longer pending. -/
@@ -178,49 +180,9 @@ theorem pendOk_accept {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} 
 end algebra
 
 
-/-! ## Every operation has an outcome -/
+/-! ## Outcome laws -/
 
 section outcomes
-
-theorem readOutcome_total (st : TcpEnd) (d : TcpDir) (n : Nat) :
-    ∃ r d', ReadOutcome st d n r d' := by
-  unfold ReadOutcome
-  split
-  · exact ⟨_, _, rfl, rfl⟩
-  · split
-    · exact ⟨_, _, rfl, rfl⟩
-    · exact ⟨.err .sys, ⟨d.bytes.take 0, .cut⟩,
-        .inr ⟨0, Nat.zero_le _, .inr (.inr (.inr (.inl ⟨rfl, rfl, rfl⟩)))⟩⟩
-
-theorem readAvail_wait {st : TcpEnd} {d d' : TcpDir} {n : Nat}
-    (h : ReadAvail st d n .wait d') : d' = d ∧ d.status = .open := by
-  rcases h with ⟨_, _, _, _, h, _⟩ | ⟨_, _, h, _⟩ | ⟨_, h1, _, h⟩ | ⟨_, h, _⟩ | ⟨_, h, _⟩
-  · cases h
-  · cases h
-  · exact ⟨h, h1⟩
-  · cases h
-  · cases h
-
-theorem readOutcome_wait {st : TcpEnd} {d d' : TcpDir} {n : Nat}
-    (h : ReadOutcome st d n .wait d') : d' = d := by
-  unfold ReadOutcome at h
-  split at h
-  · cases h.1
-  · split at h
-    · cases h.1
-    · rcases h with h | ⟨k, -, h⟩
-      · exact (readAvail_wait h).1
-      · cases (readAvail_wait h).2
-
-theorem writeOutcome_total (st : TcpEnd) (d : TcpDir) (bs : List w8) :
-    ∃ k res d', WriteOutcome st d bs k res d' := by
-  unfold WriteOutcome
-  split
-  · exact ⟨_, _, _, rfl, rfl, rfl⟩
-  · split
-    · exact ⟨0, some .sys, _, rfl, rfl, .inl rfl⟩
-    · exact ⟨0, none, _, rfl, .inl ⟨Nat.zero_le _, rfl⟩⟩
-    · exact ⟨0, none, _, .inl ⟨Nat.zero_le _, rfl, rfl⟩⟩
 
 /-- A step of a `Write` counts at most the bytes it was given. -/
 theorem writeOutcome_le {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
@@ -241,36 +203,17 @@ theorem writeOutcome_fail {st : TcpEnd} {d d' : TcpDir} {rs : List w8} {k : Nat}
   · exact h.1
   · split at h
     · exact h.1
-    · rcases h.2 with ⟨-, h⟩ | ⟨h, -⟩
+    · rcases h.2 with ⟨-, -, h⟩ | ⟨h, -⟩
       · cases h
       · exact h
-    · rcases h with ⟨-, h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩
+    · rcases h with ⟨-, -, h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩
       · cases h
       · exact h
       · exact h
-
-theorem closeOutcome_total (st : TcpEnd) (d : TcpDir) :
-    ∃ res st' d', CloseOutcome st d res st' d' := by
-  unfold CloseOutcome
-  split
-  · exact ⟨_, _, _, rfl, rfl, rfl⟩
-  · exact ⟨_, _, _, rfl, rfl, rfl⟩
-
-theorem closeWriteOutcome_total (st : TcpEnd) (d : TcpDir) :
-    ∃ res d', CloseWriteOutcome st d res d' := by
-  unfold CloseWriteOutcome
-  split
-  · exact ⟨_, _, rfl, rfl⟩
-  · exact ⟨_, _, .inl ⟨rfl, rfl⟩⟩
-
-theorem deadlineOutcome_total (st : TcpEnd) (kind : w64) (set : Bool) :
-    ∃ res st', DeadlineOutcome st kind set res st' := by
-  unfold DeadlineOutcome
-  split
-  · exact ⟨_, _, rfl, rfl⟩
-  · exact ⟨_, _, rfl, rfl⟩
 
 end outcomes
+
+
 
 
 /-! ## Opening the network -/
@@ -445,6 +388,19 @@ theorem tcpDir_excl (hG : TcpGS GF) (c : Nat) (s : Bool) (d d' : TcpDir) :
   subst Heq
   iapply token_exclusive $$ Htk Htk'
 
+
+/-- A connection's ends have nonzero ids (no connection is numbered `0`): a zero-value `TCPConn`'s
+id `0` is none of them. -/
+theorem tcpConnAt_endId_ne (hG : TcpGS GF) (c : Nat) (a : GoString) (s : Bool) :
+    tcpConnAt hG c a ⊢ ⌜endId c s ≠ 0⌝ := by
+  letI := hG.allG
+  unfold tcpConnAt
+  iintro ⟨%γ, -, %h⟩
+  ipureintro
+  obtain ⟨-, h0, hb⟩ := h
+  intro he
+  exact h0 (endId_inj (s' := false) hb (by decide) (by rw [he]; rfl)).1
+
 end laws
 
 /-! ## The specs -/
@@ -474,147 +430,130 @@ theorem pair_w64_inj {e e' n n' : w64} (h : PairV (#e) (#n) = PairV (#e') (#n'))
   obtain ⟨h1, h2⟩ := val.PairV.inj h
   exact ⟨go.intoVal_inj h1, go.intoVal_inj h2⟩
 
-/-- An operation on the end `s` of `c` and the direction from its end `t`, whose step takes an
-outcome of `Out` (the end's state and the direction before, the result, the end's state and the
-direction after) and writes the connection back; its result is a value, or the operation itself
-(it waits, changing nothing). The update is opened only when the operation returns. -/
-theorem wp_tcp_endOp (o : String) (v : val) (hv : v.isPanic = false) (c : Nat) (s t : Bool)
-    (Out : TcpEnd → TcpDir → Expr → TcpEnd → TcpDir → Prop)
-    (Hstep : ∀ (h : GMap Loc (NonAtomic val)) (σ : TcpLocal) (g : TcpGlobal) (e' : Expr)
-        (h' : GMap Loc (NonAtomic val)) (σ' : TcpLocal) (g' : TcpGlobal), 2 * c + 1 < 2 ^ 64 →
-      ExtSemantics.step (E := tcpExt) o v h σ g e' h' σ' g' →
-        h' = h ∧ σ' = σ ∧ ∃ cn st' d', g.conns !! c = some cn ∧
-          Out (cn.endSt s) (cn.out t) e' st' d' ∧ g' = g.setConn c ((cn.setEnd s st').setOut t d'))
-    (Hex : ∀ (h : GMap Loc (NonAtomic val)) (σ : TcpLocal) (g : TcpGlobal) (cn : TcpConn),
-        2 * c + 1 < 2 ^ 64 → g.conns !! c = some cn →
-      ∃ e' g', ExtSemantics.step (E := tcpExt) o v h σ g e' h σ g')
-    (Hwait : ∀ st d st' d', Out st d (ExternalOp tcpExt.name o (Val v)) st' d' →
-      st' = st ∧ d' = d)
-    (Hval : ∀ st d e' st' d', Out st d e' st' d' →
-      e' = ExternalOp tcpExt.name o (Val v) ∨ ∃ w, e' = Val w)
-    (a : GoString) (Φ : val → IProp GF) :
-    tcpConnAt tcpG c a -∗
-    (|={E,∅}=> ∃ st d, tcpEnd tcpG c s st ∗ tcpDir tcpG c t d ∗
-      ∀ w st' d', ⌜Out st d (Val w) st' d'⌝ -∗ tcpEnd tcpG c s st' -∗ tcpDir tcpG c t d'
-        ={∅,E}=∗ Φ w) -∗
+/-- D22. The lifting rule of the extension's operations: a WP of an operation from its outcome
+rules (`IsTcpStep`), each with the node's and the network's interpretations; its stutters
+(`TcpStep`'s other case) are handled here, by Löb induction, as Perennial's `wp_GroveOp` does. -/
+theorem wp_tcp_op (o : String) (v : val) (hv : v.isPanic = false) (Φ : val → IProp GF) :
+    ▷ (∀ σ g e' σ' g', ⌜IsTcpStep o v σ g e' σ' g'⌝ -∗ tcpLocalCtx (tcpL (L := L)) σ -∗
+        tcpCtx (tcpG (G := G)) g ={E}=∗
+        tcpLocalCtx (tcpL (L := L)) σ' ∗ tcpCtx (tcpG (G := G)) g' ∗ WP e' @ sk; E {{ Φ }}) ⊢
     WP (ExternalOp tcpExt.name o (Val v)) @ sk; E {{ Φ }} := by
-  letI := (tcpG (G := G)).allG
   iloeb as IH
-  iintro #Hat HAU
-  ihave #Hat' := Hat
-  unfold tcpConnAt
-  icases Hat' with ⟨%γ, #Hγ, %Hγa⟩
+  iintro HΦ
   iapply wp_extStep o v Φ hv
   iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
   icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
-  icases tcpCtx_lookup _ g c γ $$ Hg Hγ with ⟨%Hcn, Hg⟩
-  obtain ⟨cn0, hcn0⟩ := Hcn
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hclose
   isplitr
   · ipureintro
-    obtain ⟨e', g', hst⟩ := Hex h σ g cn0 Hγa.2 hcn0
-    exact ⟨e', h, σ, g', hst⟩
+    exact ⟨_, h, σ, g, (show TcpStep o v h σ g _ h σ g from ⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩)⟩
   inext
   iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, rfl, cn, st', d', hcn, Hout, rfl⟩ := Hstep h σ g e' h' σ' g' Hγa.2 Hst
+  obtain ⟨rfl, Hcase⟩ := (show TcpStep o v h σ g e' h' σ' g' from Hst)
   imod Hclose
-  rcases Hval _ _ _ _ _ Hout with Hw | ⟨w, rfl⟩
-  · -- it waits: nothing changes
-    subst Hw
-    obtain ⟨rfl, rfl⟩ := Hwait _ _ _ _ Hout
-    rw [setEnd_endSt_self, setOut_out_self, setConn_self hcn]
+  rcases Hcase with ⟨rfl, rfl, rfl⟩ | Hop
+  · -- a stutter
     imodintro
-    iframe Hheap Hl
+    iframe Hheap
+    isplitl [Hl]
+    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
     isplitl [Hg]
     · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
-    iapply IH $$ Hat HAU
-  · -- it returns `w`
-    imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
-    icases tcpCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn1, %hcn1, Hcc, Hgclose⟩
-    rw [hcn] at hcn1
-    cases hcn1
-    icases connCtx_acc γ cn s t $$ Hcc with ⟨%Haddr, Hv, Hq, Hcclose⟩
-    icases tcpEnd_open _ c s st γ $$ Hγ Hend with Hv'
-    icases tcpDir_open _ c t d γ $$ Hγ Hdir with ⟨Hq', Htk⟩
-    icases ghostVar_agree $$ Hv' Hv with %Hst
-    icases ghostVar_agree $$ Hq' Hq with %Hd
-    subst Hst Hd
-    imod ghostVar_update_halves st' $$ Hv' Hv with ⟨Hv', Hv⟩
-    imod ghostVar_update_halves d' $$ Hq' Hq with ⟨Hq', Hq⟩
-    imod Hk $$ %w %st' %d' %Hout [Hv'] [Hq' Htk] with HΦ
-    · iapply tcpEnd_intro $$ Hγ Hv'
-    · iapply tcpDir_intro $$ Hγ Hq' Htk
-    imodintro
-    iframe Hheap Hl
-    isplitr [HΦ]
-    · iapply (tcp_global_ctx_eq _).mpr
-      iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
-      iapply Hcclose $$ Hv Hq
-    iapply wp_value'
+    iapply IH
+    inext
     iexact HΦ
+  · imod HΦ $$ %_ %_ %_ %_ %_ %Hop Hl Hg with ⟨Hl, Hg, Hwp⟩
+    imodintro
+    iframe Hheap Hwp
+    isplitl [Hl]
+    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
+    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
 
-/-- The value a returning read gives (a waiting read gives none: `wait` maps to an error's). -/
-def ReadRes.toVal : ReadRes → val
-  | .bytes bs => readRes bs 0
-  | .eof => readRes [] 4
-  | .err e => readRes [] e.code
-  | .wait => readRes [] 3
+/-- An operation on the end `s` of `c` and the direction from its end `t`, whose outcome rule on
+the connection (when it exists) takes an outcome of `Out` (the end's state and the direction
+before, the result, the end's state and the direction after) and writes the connection back. The
+update is opened only at the outcome (a stutter, a wait, does not open it: `wp_tcp_op`). -/
+theorem wp_tcp_endOp (o : String) (v : val) (hv : v.isPanic = false) (c : Nat) (s t : Bool)
+    (Out : TcpEnd → TcpDir → val → TcpEnd → TcpDir → Prop)
+    (Hstep : ∀ (σ : TcpLocal) (g : TcpGlobal) (e' : Expr) (σ' : TcpLocal) (g' : TcpGlobal)
+        (cn0 : TcpConn), 2 * c + 1 < 2 ^ 64 → g.conns !! c = some cn0 →
+      IsTcpStep o v σ g e' σ' g' →
+        σ' = σ ∧ ∃ cn st' d' w, g.conns !! c = some cn ∧ Out (cn.endSt s) (cn.out t) w st' d' ∧
+          e' = Val w ∧ g' = g.setConn c ((cn.setEnd s st').setOut t d'))
+    (a : GoString) (Φ : val → IProp GF) :
+    tcpConnAt tcpG c a -∗
+    (|={E,∅}=> ∃ st d, tcpEnd tcpG c s st ∗ tcpDir tcpG c t d ∗
+      ∀ w st' d', ⌜Out st d w st' d'⌝ -∗ tcpEnd tcpG c s st' -∗ tcpDir tcpG c t d'
+        ={∅,E}=∗ Φ w) -∗
+    WP (ExternalOp tcpExt.name o (Val v)) @ sk; E {{ Φ }} := by
+  letI := (tcpG (G := G)).allG
+  iintro #Hat HAU
+  ihave #Hat' := Hat
+  unfold tcpConnAt
+  icases Hat' with ⟨%γ, #Hγ, %Hγa⟩
+  iapply wp_tcp_op o v hv Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  icases tcpCtx_lookup _ g c γ $$ Hg Hγ with ⟨%Hcn, Hg⟩
+  obtain ⟨cn0, hcn0⟩ := Hcn
+  obtain ⟨rfl, cn, st', d', w, hcn, Hout, rfl, rfl⟩ := Hstep σ g e' σ' g' cn0 Hγa.2.2 hcn0 Hst
+  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
+  icases tcpCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn1, %hcn1, Hcc, Hgclose⟩
+  rw [hcn] at hcn1
+  cases hcn1
+  icases connCtx_acc γ cn s t $$ Hcc with ⟨%Haddr, Hv, Hq, Hcclose⟩
+  icases tcpEnd_open _ c s st γ $$ Hγ Hend with Hv'
+  icases tcpDir_open _ c t d γ $$ Hγ Hdir with ⟨Hq', Htk⟩
+  icases ghostVar_agree $$ Hv' Hv with %Hst
+  icases ghostVar_agree $$ Hq' Hq with %Hd
+  subst Hst Hd
+  imod ghostVar_update_halves st' $$ Hv' Hv with ⟨Hv', Hv⟩
+  imod ghostVar_update_halves d' $$ Hq' Hq with ⟨Hq', Hq⟩
+  imod Hk $$ %w %st' %d' %Hout [Hv'] [Hq' Htk] with HΦ
+  · iapply tcpEnd_intro $$ Hγ Hv'
+  · iapply tcpDir_intro $$ Hγ Hq' Htk
+  imodintro
+  iframe Hl
+  isplitr [HΦ]
+  · iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
+    iapply Hcclose $$ Hv Hq
+  iapply wp_value'
+  iexact HΦ
 
 /-- The bytes a read returned (none for EOF or an error). -/
 def ReadRes.got : ReadRes → List w8
   | .bytes bs => bs
   | _ => []
 
-theorem ReadRes.toExpr_val {e0 : Expr} {r : ReadRes} {w : val} (h : Val w = r.toExpr e0)
-    (hop : ∀ w', e0 ≠ Val w') : r ≠ .wait ∧ w = r.toVal := by
-  cases r with
-  | bytes bs => exact ⟨by simp, by simpa [ReadRes.toExpr, ReadRes.toVal] using h⟩
-  | eof => exact ⟨by simp, by simpa [ReadRes.toExpr, ReadRes.toVal] using h⟩
-  | err e => exact ⟨by simp, by simpa [ReadRes.toExpr, ReadRes.toVal] using h⟩
-  | wait => exact absurd h.symm (hop w)
-
 /-- D1. `Read` of `n` bytes at the end `s` of `c`, from the direction towards it
 (`ReadOutcome`). -/
 theorem wp_tcp_Read (c : Nat) (s : Bool) (a : GoString) (n : w64) (Φ : val → IProp GF) :
     tcpConnAt tcpG c a -∗
     (|={E,∅}=> ∃ st d, tcpEnd tcpG c s st ∗ tcpDir tcpG c (!s) d ∗
-      ∀ r d', ⌜ReadOutcome st d n.toNat r d' ∧ r ≠ .wait⌝ -∗ tcpEnd tcpG c s st -∗
+      ∀ r d', ⌜ReadOutcome st d n.toNat r d'⌝ -∗ tcpEnd tcpG c s st -∗
         tcpDir tcpG c (!s) d' ={∅,E}=∗ Φ r.toVal) -∗
     WP (ExternalOp tcpExt.name "Read" (Val (PairV (#(endId c s)) (#n)))) @ sk; E {{ Φ }} := by
   iintro #Hat HAU
   iapply wp_tcp_endOp "Read" (PairV (#(endId c s)) (#n)) (by simp) c s (!s)
-    (fun st d e' st' d' => st' = st ∧ ∃ r, ReadOutcome st d n.toNat r d' ∧
-      e' = r.toExpr (ExternalOp tcpExt.name "Read" (Val (PairV (#(endId c s)) (#n)))))
-    ?_ ?_ ?_ ?_ a Φ $$ Hat
-  · intro h σ g e' h' σ' g' hb hst
-    obtain ⟨rfl, e0, n0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, r, d', hcn, hout, rfl, rfl⟩, rfl⟩ := hst
-    obtain ⟨he, rfl⟩ := pair_w64_inj hv
-    obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
-    exact ⟨rfl, rfl, cn, cn.endSt s, d', hcn, ⟨rfl, r, hout, rfl⟩, by rw [setEnd_endSt_self]⟩
-  · intro h σ g cn hb hcn
-    obtain ⟨r, d', hr⟩ := readOutcome_total (cn.endSt s) (cn.out (!s)) n.toNat
-    exact ⟨_, _, rfl, endId c s, n, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, r, d', hcn, hr, rfl, rfl⟩, rfl⟩
-  · rintro st d st' d' ⟨hst, r, hr, he⟩
-    cases r with
-    | wait => exact ⟨hst, readOutcome_wait hr⟩
-    | bytes => cases he
-    | eof => cases he
-    | err => cases he
-  · rintro st d e' st' d' ⟨-, r, -, rfl⟩
-    cases r with
-    | wait => exact .inl rfl
-    | bytes bs => exact .inr ⟨_, rfl⟩
-    | eof => exact .inr ⟨_, rfl⟩
-    | err e => exact .inr ⟨_, rfl⟩
+    (fun st d w st' d' => st' = st ∧ ∃ r, ReadOutcome st d n.toNat r d' ∧ w = r.toVal)
+    ?_ a Φ $$ Hat
+  · intro σ g e' σ' g' cn0 hb hcn0 hst
+    rcases hst with ⟨e0, n0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, r, d', hcn, hout, rfl, rfl⟩, rfl⟩ |
+      ⟨hnv, -⟩
+    · obtain ⟨he, rfl⟩ := pair_w64_inj hv
+      obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
+      exact ⟨rfl, cn, cn.endSt s, d', r.toVal, hcn, ⟨rfl, r, hout, rfl⟩, rfl,
+        by rw [setEnd_endSt_self]⟩
+    · exact absurd ⟨endId c s, n, c, s, rfl, ⟨hb, rfl⟩, by simp [hcn0]⟩ hnv
   · imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
     imodintro
     iexists st, d
     iframe Hend Hdir
     iintro %w %st' %d' %Hout Hend Hdir
-    obtain ⟨rfl, r, Hr, Hw⟩ := Hout
-    obtain ⟨hr, rfl⟩ := ReadRes.toExpr_val Hw (fun _ h => by cases h)
-    iapply Hk $$ %r %d' %(And.intro Hr hr) Hend Hdir
+    obtain ⟨rfl, r, Hr, rfl⟩ := Hout
+    iapply Hk $$ %r %d' %Hr Hend Hdir
 
 /-- D2. One step of a `Write`, of the bytes `bs` not yet written, at the end `s` of `c`, into the
 direction from it (`WriteOutcome`). -/
@@ -626,30 +565,25 @@ theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : List w8) (Φ : va
     WP (ExternalOp tcpExt.name "Write" (Val (PairV (#(endId c s)) (#bs)))) @ sk; E {{ Φ }} := by
   iintro #Hat HAU
   iapply wp_tcp_endOp "Write" (PairV (#(endId c s)) (#bs)) (by simp) c s s
-    (fun st d e' st' d' => st' = st ∧ ∃ k res, WriteOutcome st d bs k res d' ∧
-      e' = Val (PairV (#(BitVec.ofNat 64 k)) (#(errCode res))))
-    ?_ ?_ ?_ ?_ a Φ $$ Hat
-  · intro h σ g e' h' σ' g' hb hst
-    obtain ⟨rfl, e0, bs0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, k, res, d', hcn, hout, rfl, rfl⟩, rfl⟩ := hst
-    obtain ⟨h1, h2⟩ := val.PairV.inj hv
-    have he : endId c s = e0 := go.intoVal_inj h1
-    obtain rfl : bs = bs0 := go.intoVal_inj h2
-    obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
-    exact ⟨rfl, rfl, cn, cn.endSt s, d', hcn, ⟨rfl, k, res, hout, rfl⟩, by rw [setEnd_endSt_self]⟩
-  · intro h σ g cn hb hcn
-    obtain ⟨k, res, d', hw⟩ := writeOutcome_total (cn.endSt s) (cn.out s) bs
-    exact ⟨_, _, rfl, endId c s, bs, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, k, res, d', hcn, hw, rfl, rfl⟩, rfl⟩
-  · rintro st d st' d' ⟨-, k, res, -, he⟩
-    cases he
-  · rintro st d e' st' d' ⟨-, k, res, -, rfl⟩
-    exact .inr ⟨_, rfl⟩
+    (fun st d w st' d' => st' = st ∧ ∃ k res, WriteOutcome st d bs k res d' ∧
+      w = PairV (#(BitVec.ofNat 64 k)) (#(errCode res)))
+    ?_ a Φ $$ Hat
+  · intro σ g e' σ' g' cn0 hb hcn0 hst
+    rcases hst with ⟨e0, bs0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, k, res, d', hcn, hout, rfl, rfl⟩, rfl⟩ |
+      ⟨hnv, -⟩
+    · obtain ⟨h1, h2⟩ := val.PairV.inj hv
+      have he : endId c s = e0 := go.intoVal_inj h1
+      obtain rfl : bs = bs0 := go.intoVal_inj h2
+      obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
+      exact ⟨rfl, cn, cn.endSt s, d', _, hcn, ⟨rfl, k, res, hout, rfl⟩, rfl,
+        by rw [setEnd_endSt_self]⟩
+    · exact absurd ⟨endId c s, bs, c, s, rfl, ⟨hb, rfl⟩, by simp [hcn0]⟩ hnv
   · imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
     imodintro
     iexists st, d
     iframe Hend Hdir
     iintro %w %st' %d' %Hout Hend Hdir
-    obtain ⟨rfl, k, res, Hw, Hv⟩ := Hout
-    cases Hv
+    obtain ⟨rfl, k, res, Hw, rfl⟩ := Hout
     iapply Hk $$ %k %res %d' %Hw Hend Hdir
 
 /-- D3. `Close` of the end `s` of `c` (`CloseOutcome`). -/
@@ -661,27 +595,21 @@ theorem wp_tcp_Close (c : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF)
     WP (ExternalOp tcpExt.name "Close" (Val (#(endId c s)))) @ sk; E {{ Φ }} := by
   iintro #Hat HAU
   iapply wp_tcp_endOp "Close" (#(endId c s)) (by simp) c s s
-    (fun st d e' st' d' => ∃ res, CloseOutcome st d res st' d' ∧ e' = Val (#(errCode res)))
-    ?_ ?_ ?_ ?_ a Φ $$ Hat
-  · intro h σ g e' h' σ' g' hb hst
-    obtain ⟨rfl, e0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, res, st', d', hcn, hout, rfl, rfl⟩, rfl⟩ := hst
-    have he : endId c s = e0 := go.intoVal_inj hv
-    obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
-    exact ⟨rfl, rfl, cn, st', d', hcn, ⟨res, hout, rfl⟩, rfl⟩
-  · intro h σ g cn hb hcn
-    obtain ⟨res, st', d', hc⟩ := closeOutcome_total (cn.endSt s) (cn.out s)
-    exact ⟨_, _, rfl, endId c s, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, res, st', d', hcn, hc, rfl, rfl⟩, rfl⟩
-  · rintro st d st' d' ⟨res, -, he⟩
-    cases he
-  · rintro st d e' st' d' ⟨res, -, rfl⟩
-    exact .inr ⟨_, rfl⟩
+    (fun st d w st' d' => ∃ res, CloseOutcome st d res st' d' ∧ w = #(errCode res))
+    ?_ a Φ $$ Hat
+  · intro σ g e' σ' g' cn0 hb hcn0 hst
+    rcases hst with ⟨e0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, res, st', d', hcn, hout, rfl, rfl⟩, rfl⟩ |
+      ⟨hnv, -⟩
+    · have he : endId c s = e0 := go.intoVal_inj hv
+      obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
+      exact ⟨rfl, cn, st', d', _, hcn, ⟨res, hout, rfl⟩, rfl, rfl⟩
+    · exact absurd ⟨endId c s, c, s, rfl, ⟨hb, rfl⟩, by simp [hcn0]⟩ hnv
   · imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
     imodintro
     iexists st, d
     iframe Hend Hdir
     iintro %w %st' %d' %Hout Hend Hdir
-    obtain ⟨res, Hc, Hv⟩ := Hout
-    cases Hv
+    obtain ⟨res, Hc, rfl⟩ := Hout
     iapply Hk $$ %res %st' %d' %Hc Hend Hdir
 
 /-- D4. `CloseWrite` of the end `s` of `c` (`CloseWriteOutcome`). -/
@@ -693,28 +621,23 @@ theorem wp_tcp_CloseWrite (c : Nat) (s : Bool) (a : GoString) (Φ : val → IPro
     WP (ExternalOp tcpExt.name "CloseWrite" (Val (#(endId c s)))) @ sk; E {{ Φ }} := by
   iintro #Hat HAU
   iapply wp_tcp_endOp "CloseWrite" (#(endId c s)) (by simp) c s s
-    (fun st d e' st' d' => st' = st ∧ ∃ res, CloseWriteOutcome st d res d' ∧
-      e' = Val (#(errCode res)))
-    ?_ ?_ ?_ ?_ a Φ $$ Hat
-  · intro h σ g e' h' σ' g' hb hst
-    obtain ⟨rfl, e0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, res, d', hcn, hout, rfl, rfl⟩, rfl⟩ := hst
-    have he : endId c s = e0 := go.intoVal_inj hv
-    obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
-    exact ⟨rfl, rfl, cn, cn.endSt s, d', hcn, ⟨rfl, res, hout, rfl⟩, by rw [setEnd_endSt_self]⟩
-  · intro h σ g cn hb hcn
-    obtain ⟨res, d', hc⟩ := closeWriteOutcome_total (cn.endSt s) (cn.out s)
-    exact ⟨_, _, rfl, endId c s, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, res, d', hcn, hc, rfl, rfl⟩, rfl⟩
-  · rintro st d st' d' ⟨-, res, -, he⟩
-    cases he
-  · rintro st d e' st' d' ⟨-, res, -, rfl⟩
-    exact .inr ⟨_, rfl⟩
+    (fun st d w st' d' => st' = st ∧ ∃ res, CloseWriteOutcome st d res d' ∧
+      w = #(errCode res))
+    ?_ a Φ $$ Hat
+  · intro σ g e' σ' g' cn0 hb hcn0 hst
+    rcases hst with ⟨e0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, res, d', hcn, hout, rfl, rfl⟩, rfl⟩ |
+      ⟨hnv, -⟩
+    · have he : endId c s = e0 := go.intoVal_inj hv
+      obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
+      exact ⟨rfl, cn, cn.endSt s, d', _, hcn, ⟨rfl, res, hout, rfl⟩, rfl,
+        by rw [setEnd_endSt_self]⟩
+    · exact absurd ⟨endId c s, c, s, rfl, ⟨hb, rfl⟩, by simp [hcn0]⟩ hnv
   · imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
     imodintro
     iexists st, d
     iframe Hend Hdir
     iintro %w %st' %d' %Hout Hend Hdir
-    obtain ⟨rfl, res, Hc, Hv⟩ := Hout
-    cases Hv
+    obtain ⟨rfl, res, Hc, rfl⟩ := Hout
     iapply Hk $$ %res %d' %Hc Hend Hdir
 
 /-- D5. `SetDeadline` of the deadlines of kind `kind` of the end `s` of `c`, to the time whose
@@ -732,22 +655,14 @@ theorem wp_tcp_SetDeadline (c : Nat) (s : Bool) (a : GoString) (kind wall ext : 
   ihave #Hat' := Hat
   unfold tcpConnAt
   icases Hat' with ⟨%γ, #Hγ, %Hγa⟩
-  iapply wp_extStep "SetDeadline" _ Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
+  iapply wp_tcp_op "SetDeadline" _ (by simp) Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
   icases tcpCtx_lookup _ g c γ $$ Hg Hγ with ⟨%Hcn, Hg⟩
   obtain ⟨cn0, hcn0⟩ := Hcn
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro
-    obtain ⟨res, st', hd⟩ := deadlineOutcome_total (cn0.endSt s) kind (!timeIsZero wall ext)
-    exact ⟨_, h, σ, _, rfl, endId c s, kind, wall, ext, c, s, rfl, ⟨Hγa.2, rfl⟩,
-      ⟨cn0, res, st', hcn0, hd, rfl, rfl⟩, rfl⟩
-  inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, e0, kind0, wall0, ext0, c0, s0, hv, ⟨hb0, he0⟩,
-    ⟨cn, res, st', hcn, hout, rfl, rfl⟩, rfl⟩ := Hst
+  obtain ⟨e0, kind0, wall0, ext0, c0, s0, hv, ⟨hb0, he0⟩,
+    ⟨cn, res, st', hcn, hout, rfl, rfl⟩, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨endId c s, kind, wall, ext, c, s, rfl, ⟨Hγa.2.2, rfl⟩, by simp [hcn0]⟩
   obtain ⟨h1, h2⟩ := val.PairV.inj hv
   obtain ⟨h2, h3⟩ := val.PairV.inj h2
   obtain ⟨h3, h4⟩ := val.PairV.inj h3
@@ -755,8 +670,7 @@ theorem wp_tcp_SetDeadline (c : Nat) (s : Bool) (a : GoString) (kind wall ext : 
   obtain rfl : kind = kind0 := go.intoVal_inj h2
   obtain rfl : wall = wall0 := go.intoVal_inj h3
   obtain rfl : ext = ext0 := go.intoVal_inj h4
-  obtain ⟨rfl, rfl⟩ := endId_inj Hγa.2 hb0 (he.trans he0)
-  imod Hclose
+  obtain ⟨rfl, rfl⟩ := endId_inj Hγa.2.2 hb0 (he.trans he0)
   imod HAU with ⟨%st, Hend, Hk⟩
   icases tcpCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn1, %hcn1, Hcc, Hgclose⟩
   rw [hcn] at hcn1
@@ -769,10 +683,9 @@ theorem wp_tcp_SetDeadline (c : Nat) (s : Bool) (a : GoString) (kind wall ext : 
   imod Hk $$ %res %st' %hout [Hv'] with HΦ
   · iapply tcpEnd_intro $$ Hγ Hv'
   imodintro
-  iframe Hheap Hl
+  iframe Hl
   isplitr [HΦ]
-  · iapply (tcp_global_ctx_eq _).mpr
-    have hset : cn.setEnd s st' = (cn.setEnd s st').setOut s (cn.out s) := by
+  · have hset : cn.setEnd s st' = (cn.setEnd s st').setOut s (cn.out s) := by
       rw [show cn.out s = (cn.setEnd s st').out s by simp, setOut_out_self]
     rw [hset]
     iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
@@ -780,45 +693,34 @@ theorem wp_tcp_SetDeadline (c : Nat) (s : Bool) (a : GoString) (kind wall ext : 
   iapply wp_value'
   iexact HΦ
 
-
 /-- `AnyBool`: an arbitrary boolean. -/
 theorem wp_tcp_AnyBool (Φ : val → IProp GF) :
     (∀ b : Bool, Φ (#b)) -∗ WP (ExternalOp tcpExt.name "AnyBool" (Val (#()))) @ sk; E {{ Φ }} := by
   iintro HΦ
-  iapply wp_extStep "AnyBool" (#()) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro; exact ⟨_, h, σ, g, rfl, rfl, ⟨true, rfl⟩, rfl, rfl⟩
+  iapply wp_tcp_op "AnyBool" (#()) (by simp) Φ
   inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, -, ⟨b, rfl⟩, rfl, rfl⟩ := Hst
-  imod Hclose
-  imodintro
-  iframe Hheap Hl Hg
-  iapply wp_value'
-  iapply HΦ
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  rcases Hst with ⟨-, ⟨b, rfl⟩, rfl, rfl⟩ | ⟨hnv, -⟩
+  · imodintro
+    iframe Hl Hg
+    iapply wp_value'
+    iapply HΦ
+  · exact absurd rfl hnv
 
 /-- `AnyString`: an arbitrary string. -/
 theorem wp_tcp_AnyString (Φ : val → IProp GF) :
     (∀ str : GoString, Φ (#str)) -∗
       WP (ExternalOp tcpExt.name "AnyString" (Val (#()))) @ sk; E {{ Φ }} := by
   iintro HΦ
-  iapply wp_extStep "AnyString" (#()) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro; exact ⟨_, h, σ, g, rfl, rfl, ⟨[], rfl⟩, rfl, rfl⟩
+  iapply wp_tcp_op "AnyString" (#()) (by simp) Φ
   inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, -, ⟨str, rfl⟩, rfl, rfl⟩ := Hst
-  imod Hclose
-  imodintro
-  iframe Hheap Hl Hg
-  iapply wp_value'
-  iapply HΦ
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  rcases Hst with ⟨-, ⟨str, rfl⟩, rfl, rfl⟩ | ⟨hnv, -⟩
+  · imodintro
+    iframe Hl Hg
+    iapply wp_value'
+    iapply HΦ
+  · exact absurd rfl hnv
 
 /-- The plan has `a` at `h` (the context is kept). -/
 theorem tcpCtx_plan (hG : TcpGS GF) (g : TcpGlobal) (a h : GoString) :
@@ -874,33 +776,23 @@ theorem wp_tcp_Listen (a a0 : GoString) (Φ : val → IProp GF) :
     WP (ExternalOp tcpExt.name "Listen" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (tcpL (L := L)).allG
   iintro %Hla HΦ
-  iapply wp_extStep "Listen" (#a) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
-  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  iapply wp_tcp_op "Listen" (#a) (by simp) Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
   icases tcpCtx_plan_eq _ g $$ Hg with ⟨%Hpln, Hg⟩
   unfold tcpLocalCtx
   icases Hl with ⟨%Hhost, Hlis, Hat⟩
   have Hla' : ListenAt g.plan σ.host a a0 := by rw [Hpln, Hhost]; exact Hla
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro
-    exact ⟨_, h, σ, g, rfl, a, rfl, ⟨a0, Hla', .inl ⟨rfl, rfl⟩⟩, rfl⟩
-  inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, a', Hv, ⟨a1, Hla1, Hcase⟩, rfl⟩ := Hst
+  obtain ⟨a', Hv, ⟨a1, Hla1, Hcase⟩, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, a0, rfl, Hla'⟩
   obtain rfl := go.intoVal_inj (V := GoString) Hv
   obtain rfl := listenAt_unique Hla' Hla1
-  imod Hclose
   rcases Hcase with ⟨rfl, rfl⟩ | ⟨-, l, hl0, hl, rfl, rfl⟩
   · icases HΦ with ⟨HΦ, -⟩
     imodintro
-    iframe Hheap
     isplitl [Hlis Hat]
-    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis Hat; ipureintro; exact Hhost
-    isplitl [Hg]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    · iframe Hlis Hat; ipureintro; exact Hhost
+    iframe Hg
     iapply wp_value'
     iexact HΦ
   · have hla : (lisAddrs σ.lis).lookup l = none := by rw [lisAddrs_lookup, hl]; rfl
@@ -908,14 +800,11 @@ theorem wp_tcp_Listen (a a0 : GoString) (Φ : val → IProp GF) :
     imod ghost_map_insert_persist l a0 hla $$ Hat with ⟨Hat, #Hla⟩
     icases HΦ with ⟨-, HΦ⟩
     imodintro
-    iframe Hheap
     isplitl [Hlis Hat]
-    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx
-      simp only
+    · simp only
       rw [lisAddrs_insert]
       iframe Hlis Hat; ipureintro; exact Hhost
-    isplitl [Hg]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iframe Hg
     iapply wp_value'
     iapply HΦ $$ %l %hl0 [Hel]
     · unfold tcpLis; iexact Hel
@@ -955,29 +844,20 @@ theorem wp_tcp_LisClose (l : w64) (a : GoString) (Φ : val → IProp GF) :
     WP (ExternalOp tcpExt.name "LisClose" (Val (#l))) @ sk; E {{ Φ }} := by
   letI := (tcpL (L := L)).allG
   iintro #Hla HAU
-  iapply wp_extStep "LisClose" (#l) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  iapply wp_tcp_op "LisClose" (#l) (by simp) Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
   imod HAU with ⟨%o, Hel, Hk⟩
   ihave %Hll := tcpLocal_lookup _ σ l a o $$ Hl Hel
-  unfold tcpLocalCtx tcpLis
-  icases Hl with ⟨%Hhost, Hlis, Hat⟩
-  iapply fupd_mask_intro (by simp)
-  iintro Hclose
-  isplitr
-  · ipureintro
-    exact ⟨_, h, { σ with lis := σ.lis.insert l (a, false) }, g, rfl, l, a, o,
-      if o then none else some .closed, false, rfl, Hll, rfl,
-      by cases o <;> simp [LisCloseOutcome], rfl, rfl⟩
-  inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, l0, a0, o0, res, o', Hv, Hl0, rfl, Hout, rfl, rfl⟩ := Hst
+  obtain ⟨l0, a0, o0, res, o', Hv, Hl0, rfl, Hout, rfl, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨l, (a, o), rfl, Hll⟩
   obtain rfl := go.intoVal_inj (V := w64) Hv
   rw [Hll] at Hl0
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
   have ho' : o' = false := by unfold LisCloseOutcome at Hout; split at Hout <;> exact Hout.2
   subst ho'
-  imod Hclose
+  unfold tcpLocalCtx tcpLis
+  icases Hl with ⟨%Hhost, Hlis, Hat⟩
   imod ghost_map_update (a, false) $$ Hlis Hel with ⟨Hlis, Hel⟩
   imod Hk $$ %res %Hout Hel with HΦ
   have hsame : lisAddrs (σ.lis.insert l (a, false)) = lisAddrs σ.lis := by
@@ -988,10 +868,9 @@ theorem wp_tcp_LisClose (l : w64) (a : GoString) (Φ : val → IProp GF) :
     · subst_vars; rw [Hll]; rfl
     · rfl
   imodintro
-  iframe Hheap Hg
+  iframe Hg
   isplitl [Hlis Hat]
-  · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx
-    simp only
+  · simp only
     rw [hsame]
     iframe Hlis Hat; ipureintro; exact Hhost
   iapply wp_value'
@@ -1005,7 +884,7 @@ def tcpFresh (hG : TcpGS GF) (c : Nat) (s : Bool) : IProp GF :=
 /-- A new connection `cn` numbered `c`, dialed to the plan address `a`: the network with it, `c`
 pending at `a`, and its ends' and directions' resources. -/
 theorem tcpCtx_dial (hG : TcpGS GF) (g : TcpGlobal) (a h : GoString) (c : Nat) (cn : TcpConn)
-    (S : GSet Nat) (ha : g.plan !! a = some h) (hc : g.conns !! c = none)
+    (S : GSet Nat) (ha : g.plan !! a = some h) (hc : g.conns !! c = none) (h0 : c ≠ 0)
     (hb : 2 * c + 1 < 2 ^ 64) (hca : cn.addr = a) (hacc : cn.accepted = false) :
     tcpCtx hG g -∗ tcpPend hG a S ==∗
       ⌜c ∉ S⌝ ∗ tcpCtx hG (g.setConn c cn) ∗ tcpPend hG a (S ∪ {[c]}) ∗ tcpConnAt hG c a ∗
@@ -1042,7 +921,7 @@ theorem tcpCtx_dial (hG : TcpGS GF) (g : TcpGlobal) (a h : GoString) (c : Nat) (
     iframe Hn Hpm Hpl
     isplitr
     · ipureintro
-      refine ⟨fun k => ?_, pendOk_dial Hpok hc hb ha HS hca hacc, Hpln⟩
+      refine ⟨fun k => ?_, pendOk_dial Hpok hc h0 hb ha HS hca hacc, Hpln⟩
       simp only [GMap.lookup_insert_eq_iff]
       by_cases hk : c = k
       · subst hk; simp
@@ -1065,7 +944,7 @@ theorem tcpCtx_dial (hG : TcpGS GF) (g : TcpGlobal) (a h : GoString) (c : Nat) (
     have hkc : c ≠ k := by rintro rfl; rw [gmap_get?_eq] at Hk; rw [hc] at Hk; cases Hk
     simp [GMap.lookup_insert_eq_iff, hkc, Hγ']
   isplitr
-  · unfold tcpConnAt tcpNames; iexists γ; iframe Hγ; ipureintro; exact ⟨rfl, hb⟩
+  · unfold tcpConnAt tcpNames; iexists γ; iframe Hγ; ipureintro; exact ⟨rfl, h0, hb⟩
   unfold tcpEnd tcpDir tcpNames
   simp only [γ, ConnNames.v, ConnNames.q, ConnNames.tk]
   isplitl [Hv0]; · iexists γ; iframe Hγ Hv0
@@ -1089,33 +968,24 @@ theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
     WP (ExternalOp tcpExt.name "Dial" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (tcpG (G := G)).allG
   iintro #Hp HΦ
-  iapply wp_extStep "Dial" (#a) Φ (by simp)
-  iintro %hh %σ %g Hheap Hl Hg
-  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
-  icases tcpCtx_plan _ g a _ $$ Hg Hp with %Hpa
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro
-    exact ⟨_, hh, σ, g, rfl, a, rfl, ⟨by simp [Hpa], .inl ⟨rfl, rfl⟩⟩, rfl⟩
+  iapply wp_tcp_op "Dial" (#a) (by simp) Φ
   inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, a0, Hv, ⟨-, Hcase⟩, rfl⟩ := Hst
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  icases tcpCtx_plan _ g a _ $$ Hg Hp with %Hpa
+  obtain ⟨a0, Hv, ⟨-, Hcase⟩, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, rfl, by simp [Hpa]⟩
   obtain rfl := go.intoVal_inj (V := GoString) Hv
-  imod Hclose
-  rcases Hcase with ⟨rfl, rfl⟩ | ⟨c, ⟨-, hc, hb⟩, rfl, rfl⟩ | ⟨c, ⟨-, hc, hb⟩, rfl, rfl⟩
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨c, ⟨hc0, hc, hb⟩, rfl, rfl⟩ | ⟨c, ⟨hc0, hc, hb⟩, rfl, rfl⟩
   · -- a failure
     icases HΦ with ⟨HΦ, -⟩
     imodintro
-    iframe Hheap Hl
-    isplitl [Hg]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iframe Hl Hg
     iapply wp_value'
     iexact HΦ
   · -- a new connection `c`
     icases HΦ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
-    imod tcpCtx_dial _ g a _ c (TcpConn.fresh a) S Hpa hc hb rfl rfl $$ Hg Hpend
+    imod tcpCtx_dial _ g a _ c (TcpConn.fresh a) S Hpa hc hc0 hb rfl rfl $$ Hg Hpend
       with ⟨%HcS, Hg, Hpend, #Hat, He0, Hd0, He1, Hd1⟩
     simp only [TcpConn.fresh, TcpConn.endSt, TcpConn.out]
     icases Hk $$ %c %HcS Hpend Hat [He1 Hd1] with Hk
@@ -1124,15 +994,13 @@ theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
     imod Hk $$ [He0 Hd0] with HΦ
     · unfold tcpFresh; iframe He0 Hd0
     imodintro
-    iframe Hheap Hl
-    isplitr [HΦ]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iframe Hl Hg
     iapply wp_value'
     iexact HΦ
   · -- a failure that leaves the connection `c`, abandoned
     icases HΦ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
-    imod tcpCtx_dial _ g a _ c (TcpConn.abandoned a) S Hpa hc hb rfl rfl $$ Hg Hpend
+    imod tcpCtx_dial _ g a _ c (TcpConn.abandoned a) S Hpa hc hc0 hb rfl rfl $$ Hg Hpend
       with ⟨%HcS, Hg, Hpend, #Hat, He0, Hd0, He1, Hd1⟩
     simp only [TcpConn.abandoned, TcpConn.endSt, TcpConn.out]
     icases Hk $$ %c %HcS Hpend Hat [He1 Hd1] with Hk
@@ -1140,9 +1008,7 @@ theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
     icases Hk with ⟨-, Hk⟩
     imod Hk $$ He0 Hd0 with HΦ
     imodintro
-    iframe Hheap Hl
-    isplitr [HΦ]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iframe Hl Hg
     iapply wp_value'
     iexact HΦ
 
@@ -1155,11 +1021,12 @@ theorem connCtx_addr [AllG GF] (γ : ConnNames) (cn : TcpConn) :
   iintro ⟨%H, -, -⟩
   ipureintro; exact H
 
+
 /-- D7. `Accept` of the listener `l` at `a`, by a logically atomic update over its state and the
 address's pending set: a failure (both unchanged), `closed` if the listener is closed and `sys` if
 it is open; or, only if the listener is open, a connection `c` pending at `a`, now accepted (taken
-out of the pending set). The update is opened only at the step that decides (the accept may first
-wait). -/
+out of the pending set). The update is opened only at the step that decides (a wait is a stutter,
+`wp_tcp_op`). -/
 theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     tcpLisAt (tcpL (L := L)) l a -∗
     (|={E,∅}=> ∃ o S, tcpLis (tcpL (L := L)) l a o ∗ tcpPend tcpG a S ∗
@@ -1170,29 +1037,18 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
           Φ (PairV (#(endId c true)) (#(W64 0)))))) -∗
     WP (ExternalOp tcpExt.name "Accept" (Val (#l))) @ sk; E {{ Φ }} := by
   letI := (tcpG (G := G)).allG
-  iloeb as IH
   iintro #Hla HAU
-  iapply wp_extStep "Accept" (#l) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  iapply wp_tcp_op "Accept" (#l) (by simp) Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
   ihave %Hll := tcpLisAt_lookup _ σ l a $$ Hl Hla
   obtain ⟨o, Hll⟩ := Hll
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro
-    cases o
-    · exact ⟨_, h, σ, g, rfl, l, a, false, rfl, Hll, .inl ⟨rfl, rfl, rfl⟩, rfl⟩
-    · exact ⟨_, h, σ, g, rfl, l, a, true, rfl, Hll, .inr (.inl ⟨rfl, rfl, rfl⟩), rfl⟩
-  inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, l0, a0, o0, Hv, Hl0, Hcase, rfl⟩ := Hst
+  obtain ⟨l0, a0, o0, Hv, Hl0, Hcase, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨l, (a, o), rfl, Hll⟩
   obtain rfl := go.intoVal_inj (V := w64) Hv
   rw [Hll] at Hl0
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
-  imod Hclose
-  rcases Hcase with ⟨ho, rfl, rfl⟩ | ⟨ho, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ |
-      ⟨ho, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
+  rcases Hcase with ⟨ho, rfl, rfl⟩ | ⟨ho, rfl, rfl⟩ | ⟨ho, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
   · -- a failure, the listener closed
     imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
     icases tcpLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
@@ -1203,11 +1059,7 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     subst ho
     simp only [Bool.false_eq_true, ↓reduceIte]
     imodintro
-    iframe Hheap
-    isplitl [Hl]
-    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
-    isplitl [Hg]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iframe Hl Hg
     iapply wp_value'
     iexact HΦ
   · -- a failure, the listener open
@@ -1218,36 +1070,24 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     icases HΦ with ⟨HΦ, -⟩
     imod HΦ $$ Hel Hpend with HΦ
     subst ho
-    simp only [Bool.false_eq_true, ↓reduceIte]
+    simp only [↓reduceIte]
     imodintro
-    iframe Hheap
-    isplitl [Hl]
-    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
-    isplitl [Hg]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iframe Hl Hg
     iapply wp_value'
     iexact HΦ
-  · -- it waits
-    imodintro
-    iframe Hheap
-    isplitl [Hl]
-    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
-    isplitl [Hg]
-    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
-    iapply IH $$ Hla HAU
   · -- the connection `c`
     imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
     icases tcpLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
     rw [Hll] at Hll'
     obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
     icases HΦ with ⟨-, Hk⟩
-    icases (tcp_global_ctx_eq _).mp $$ Hg with Hg
     unfold tcpCtx
     icases Hg with ⟨%nm, %pm, Hn, Hpm, Hpl, %Hpure, Hconns⟩
     obtain ⟨Hdom, Hpok, Hpln⟩ := Hpure
     unfold tcpPend
     icases ghost_map_lookup $$ Hpm Hpend with %HS
     have hcS : c ∈ S := (Hpok.2.1 a S c HS).2 ⟨cn, hcn, haddr, hacc⟩
+    have hc0 : c ≠ 0 := (Hpok.2.2 c cn hcn).2.1
     imod ghost_map_update (S \ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
     icases BigSepM.bigSepM_insert_acc hcn $$ Hconns with ⟨⟨%γ, %Hγ, #Hn', Hcc⟩, Hcl⟩
     icases connCtx_addr γ cn $$ Hcc with %Haddr
@@ -1258,15 +1098,11 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
       unfold tcpNames
       iframe Hn'
       ipureintro
-      exact ⟨Haddr.trans haddr, hb⟩
+      exact ⟨Haddr.trans haddr, hc0, hb⟩
     imodintro
-    iframe Hheap
-    isplitl [Hl]
-    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
+    iframe Hl
     isplitr [HΦ]
-    · iapply (tcp_global_ctx_eq _).mpr
-      unfold tcpCtx
-      iexists nm, pm.insert a (S \ {[c]})
+    · iexists nm, pm.insert a (S \ {[c]})
       rw [setConn_plan, setConn_conns]
       iframe Hn Hpm Hpl
       isplitr
@@ -1292,40 +1128,30 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
 theorem wp_tcp_AnyW64 (Φ : val → IProp GF) :
     (∀ n : w64, Φ (#n)) -∗ WP (ExternalOp tcpExt.name "AnyW64" (Val (#()))) @ sk; E {{ Φ }} := by
   iintro HΦ
-  iapply wp_extStep "AnyW64" (#()) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro; exact ⟨_, h, σ, g, rfl, rfl, ⟨W64 0, rfl⟩, rfl, rfl⟩
+  iapply wp_tcp_op "AnyW64" (#()) (by simp) Φ
   inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, -, ⟨n, rfl⟩, rfl, rfl⟩ := Hst
-  imod Hclose
-  imodintro
-  iframe Hheap Hl Hg
-  iapply wp_value'
-  iapply HΦ
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  rcases Hst with ⟨-, ⟨n, rfl⟩, rfl, rfl⟩ | ⟨hnv, -⟩
+  · imodintro
+    iframe Hl Hg
+    iapply wp_value'
+    iapply HΦ
+  · exact absurd rfl hnv
 
 /-- `AnyErrno`: an arbitrary nonzero word. -/
 theorem wp_tcp_AnyErrno (Φ : val → IProp GF) :
     (∀ n : w64, ⌜n ≠ 0⌝ -∗ Φ (#n)) -∗
       WP (ExternalOp tcpExt.name "AnyErrno" (Val (#()))) @ sk; E {{ Φ }} := by
   iintro HΦ
-  iapply wp_extStep "AnyErrno" (#()) Φ (by simp)
-  iintro %h %σ %g Hheap Hl Hg
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  isplitr
-  · ipureintro; exact ⟨_, h, σ, g, rfl, rfl, ⟨W64 1, by decide, rfl⟩, rfl, rfl⟩
+  iapply wp_tcp_op "AnyErrno" (#()) (by simp) Φ
   inext
-  iintro %e' %h' %σ' %g' %Hst _
-  obtain ⟨rfl, -, ⟨n, hn, rfl⟩, rfl, rfl⟩ := Hst
-  imod Hclose
-  imodintro
-  iframe Hheap Hl Hg
-  iapply wp_value'
-  iapply HΦ $$ %n %hn
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  rcases Hst with ⟨-, ⟨n, hn, rfl⟩, rfl, rfl⟩ | ⟨hnv, -⟩
+  · imodintro
+    iframe Hl Hg
+    iapply wp_value'
+    iapply HΦ $$ %n %hn
+  · exact absurd rfl hnv
 
 end lifting
 

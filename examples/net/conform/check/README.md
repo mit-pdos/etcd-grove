@@ -9,7 +9,8 @@ it, and outputs a **witness** of an admitted run that a later step replays throu
 with Lowe's memo, lazy breaks, lazy prefixes, components, ends paired by 4-tuple;
 `notes/net-tcp-dsverify-survey.md` §2) to our model: pending connections belong to an address, a
 cut is per direction, crashes are node-local, errors have kinds and Go shapes, `CloseWrite`,
-D16's abandoned dials, D17, D21's wildcards, and (v3.1) a `Write` that is a loop of steps.
+D16's abandoned dials, D17, D21's wildcards, (v3.1) a `Write` that is a loop of steps, and (v3.2,
+D22) waits as stutters, which leave no step.
 
 **Nothing here is proved.** `model.py` is a hand transcription of Impl.lean, the rest is tested
 (below). An ADMITTED verdict is then **certified in Lean** ("Certification in Lean"): the witness
@@ -21,6 +22,10 @@ the Lean definitions, not on this directory's transcription of them.
 after the v3 axiom review, `notes/axiom-review/tcp-semantics.md`), with `net.lean`'s
 `model.writeLoop` (`conn.Write.impl`). `write_outcome` was first transcribed from that change's
 working tree and checked against the commit: the same text (and v3.1 changed no other relation).
+v3.2 (D22): `read_avail`'s wait and `accept_step`'s are gone (a wait is a stutter, never a
+witness step: the search already listed none), and `write_outcome`'s non-failing step counts at
+least one byte unless none remain (the search already never made a zero step of a non-empty
+`rs`); the stutter and the panics of invalid uses are not transcribed (no traced call is one).
 
 | file | what |
 |---|---|
@@ -320,8 +325,8 @@ Read's EOF):
 
 Listener ids are numbered from 1 per node (never reused; Impl's `l ≠ 0 ∧ L.lis !! l = none`). A
 Write call is one `Write` step per step of its loop; the call's count is the sum of its steps' `k`,
-its error the last step's. Waiting steps (a Read or Accept that waits, a Write step of 0 bytes into an
-open direction) change nothing and are not listed. The replay checks the steps through `model.py`;
+its error the last step's. Waiting (a Read or Accept that waits, a Write step that writes nothing yet)
+is the model's stutter (D22), which changes nothing and is not listed. The replay checks the steps through `model.py`;
 the Lean replay checks them through proved deciders of Impl.lean's relations, and against the run's
 calls (next section).
 
@@ -488,7 +493,7 @@ call's `b[nn:]`. All 19 are rejected where expected.
 | `TcpGlobal`, `TcpGlobal.setConn`, `TcpLocal` | `TcpGlobal`, `.set_conn`, `TcpLocal` | dicts, copied on update |
 | `endId`, `IsEnd` | `end_id`, `is_end`, `decode_end` | |
 | `TcpErr`, `TcpErr.code`, `errCode` | `CLOSED/TIMEOUT/SYS`, `ERR_CODE`, `err_code` | |
-| `ReadRes`, `readRes`'s EOF code | `R_BYTES`, `R_EOF`, `R_ERR`, `R_WAIT`, `EOF_CODE` | |
+| `ReadRes`, `readRes`'s EOF code | `R_BYTES`, `R_EOF`, `R_ERR`, `EOF_CODE` | |
 | `ReadAvail` | `read_avail` | its `∃ k` at k = the bytes' length |
 | `ReadOutcome` | `read_outcome` | the cut's `∃ k` given (`keep`) or at its only candidate; tested against every k |
 | `WriteOutcome` | `write_outcome` | one step of the Write loop (v3.1) |

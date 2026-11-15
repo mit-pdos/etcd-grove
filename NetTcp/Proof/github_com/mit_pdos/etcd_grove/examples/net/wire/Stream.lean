@@ -77,8 +77,7 @@ theorem dirOk_cut {d : TcpDir} {W R : List w8} (k : Nat) (h : DirOk d W R) :
 
 theorem dirOk_avail {st : TcpEnd} {d d' : TcpDir} {W R : List w8} {n : Nat} {r : ReadRes}
     (h : DirOk d W R) (hr : ReadAvail st d n r d') : DirOk d' W (R ++ r.got) := by
-  rcases hr with ⟨k, -, -, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ |
-    ⟨-, rfl, rfl⟩
+  rcases hr with ⟨k, -, -, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
   · simp only [ReadRes.got, DirOk, List.append_assoc, List.take_append_drop] at h ⊢
     exact h
   all_goals simpa [ReadRes.got] using h
@@ -110,7 +109,7 @@ theorem dirOk_write {st : TcpEnd} {d d' : TcpDir} {W R rs : List w8} {k : Nat}
       exact h.trans (List.prefix_append W _)
     · rename_i hopen
       simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte] at h
-      rcases hw with ⟨-, -, rfl⟩ | ⟨rfl, -, rfl⟩ | ⟨-, rfl, -, rfl⟩
+      rcases hw with ⟨-, -, -, rfl⟩ | ⟨rfl, -, rfl⟩ | ⟨-, rfl, -, rfl⟩
       · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, ← List.append_assoc, h]
       · simp only [DirOk, ↓reduceIte, List.take_zero, List.append_nil, h]
         exact List.prefix_refl _
@@ -145,8 +144,7 @@ theorem readOutcome_got_le {st : TcpEnd} {d : TcpDir} {m : Nat} {r : ReadRes} {d
     (h : ReadOutcome st d m r d') : r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
   have hav : ∀ d0, ReadAvail st d0 m r d' → r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
     intro d0 h
-    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ |
-      ⟨-, rfl, -⟩
+    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩
     · refine ⟨by simp only [ReadRes.got, List.length_take]; omega, ?_⟩
       intro h
       have h' := congrArg (fun r => r.got.length) h
@@ -167,8 +165,7 @@ theorem readOutcome_bytes_pos {st : TcpEnd} {d d' : TcpDir} {n : Nat} {bs : List
     (h : ReadOutcome st d n (.bytes bs) d') (hn : 0 < n) : 1 ≤ bs.length := by
   have hav : ∀ (d0 : TcpDir), ReadAvail st d0 n (.bytes bs) d' → 1 ≤ bs.length := by
     intro d0 hr
-    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩ |
-      ⟨-, hr, -⟩
+    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩ | ⟨-, hr, -⟩
     · cases hr; simp only [List.length_take]; omega
     all_goals cases hr
   unfold ReadOutcome at h
@@ -431,9 +428,9 @@ theorem read_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEn
     (n : Nat) :
     ⊢ inv N (dirInv (Gg := Gg) c (!s) γ) -∗ tcpEnd G c s st -∗ rcvdAll γ R -∗
       |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c (!s) d ∗
-        ∀ r d', ⌜ReadOutcome st0 d n r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G c s st0 -∗ tcpDir G c (!s) d'
+        ∀ r d', ⌜ReadOutcome st0 d n r d'⌝ -∗ tcpEnd G c s st0 -∗ tcpDir G c (!s) d'
           ={∅,⊤}=∗ tcpEnd G c s st ∗ rcvdAll γ (R ++ r.got) ∗ sentLb γ (R ++ r.got) ∗
-            ⌜∃ d d', ReadOutcome st d n r d' ∧ r ≠ .wait⌝ := by
+            ⌜∃ d d', ReadOutcome st d n r d'⌝ := by
   iintro #Hinv Hend Hr
   iinv Hinv with Hi Hclose
   unfold dirInv
@@ -449,7 +446,7 @@ theorem read_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEn
   icases ghostVar_agree $$ Hr' Hr with %Heq
   subst Heq
   imod ghostVar_update_halves (R' ++ r.got) $$ Hr' Hr with ⟨Hr', Hr⟩
-  have Hok' := dirOk_read Hok Hrd.1
+  have Hok' := dirOk_read Hok Hrd
   ihave #Hlb : (sentLb (Gg := Gg) γ (R' ++ r.got) : IProp GF) $$ [Hw]
   · unfold sentLb
     iapply monoListLbOwn_le _ (dirOk_prefix Hok')
@@ -474,7 +471,7 @@ theorem read_acc (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpE
     inv N (dirInv (Gg := Gg) c (!s) γ) ⊢
       □ (∀ (got : List w8) (m : Nat), readP γ c s st R0 got -∗
         |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c (!s) d ∗
-          ∀ r d', ⌜ReadOutcome st0 d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G c s st0 -∗
+          ∀ r d', ⌜ReadOutcome st0 d m r d'⌝ -∗ tcpEnd G c s st0 -∗
             tcpDir G c (!s) d' ={∅,⊤}=∗ readP γ c s st R0 (got ++ r.got)) := by
   iintro #Hinv
   imodintro

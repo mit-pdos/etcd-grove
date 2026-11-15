@@ -33,7 +33,8 @@ It prints CERTIFIED, or NOT CERTIFIED with the first failing step (or the plan, 
 accepts, the plan is `PlanWellFormed` and the steps are an execution (`Exec`) of the extension's
 step relation (`tcp_semantics.step`, that is `TcpStep`, at each node's local state; or
 `tcp_semantics.crash`) from the initial state, each step's event the operation, argument and result
-it gives (`WOp.toEv`). It rests on the deciders' `↔` lemmas (`Decide.lean`) and on the replay's state
+it gives (`WOp.toEv`; each an outcome rule, `IsTcpStep`, never a stutter: a call that waits leaves
+no witness step for its stutters, D22). It rests on the deciders' `↔` lemmas (`Decide.lean`) and on the replay's state
 standing for the model's (`World.global`, `World.loc`: association lists for `GMap`s). **What is
 checked but not proved**: parts (c) and (d), `checkCalls`, a direct program over the witness and the
 calls whose correctness is by reading (it states what it checks, step by step). **What stays
@@ -255,8 +256,7 @@ def WOp.toEv (node : String) : WOp → Ev
   | .dial a code _ endv => .step node "Dial" (#a) (Val (idRes code endv))
   | .read _ _ endv n code data _ =>
     .step node "Read" (PairV (#(bv endv)) (#(bv n)))
-      ((readResOf code (hexBytes data)).toExpr
-        (ExternalOp tcpExt.name "Read" (Val (PairV (#(bv endv)) (#(bv n))))))
+      (Val (readResOf code (hexBytes data)).toVal)
   | .write _ _ endv data k code =>
     .step node "Write" (PairV (#(bv endv)) (#(hexBytes data)))
       (Val (PairV (#(bv k)) (#(errCode (errOf code)))))
@@ -469,15 +469,15 @@ theorem loc_of {w : World} {n : String} {L : CLocal} (h : alGet w.locs n = some 
 
 theorem mstep_same {w : World} {n : String} {op : String} {v : val} {e' : Expr} {g' : TcpGlobal}
     {L : CLocal} (hL : alGet w.locs n = some L)
-    (hs : ∀ hp, TcpStep op v hp L.abs w.global e' hp L.abs g') :
+    (hs : IsTcpStep op v L.abs w.global e' L.abs g') :
     MStep w.global w.loc (.step n op v e') g' w.loc :=
-  MStep.step (loc_of hL) hs (loc_of hL) (fun _ _ => rfl)
+  MStep.step (loc_of hL) (fun _ => ⟨rfl, .inr hs⟩) (loc_of hL) (fun _ _ => rfl)
 
 theorem mstep_set {w : World} {n : String} {op : String} {v : val} {e' : Expr} {L L' : CLocal}
     (hL : alGet w.locs n = some L)
-    (hs : ∀ hp, TcpStep op v hp L.abs w.global e' hp L'.abs w.global) :
+    (hs : IsTcpStep op v L.abs w.global e' L'.abs w.global) :
     MStep w.global w.loc (.step n op v e') (w.setLoc n L').global (w.setLoc n L').loc :=
-  MStep.step (loc_of hL) hs (by rw [World.loc_setLoc]; simp)
+  MStep.step (loc_of hL) (fun _ => ⟨rfl, .inr hs⟩) (by rw [World.loc_setLoc]; simp)
     (fun m hm => by rw [World.loc_setLoc]; simp [Ne.symm hm])
 
 theorem lookup_conns {w : World} {c : Nat} {cn : TcpConn} (h : alGet w.conns c = some cn) :
@@ -526,15 +526,15 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     · cases h
       rename_i hc
       subst hc
-      exact mstep_same hL fun hp => ⟨rfl, a, rfl, ⟨a0, listenAtB_iff.mp hla, Or.inl ⟨rfl, rfl⟩⟩,
-        rfl⟩
+      exact mstep_same hL (Or.inl ⟨a, rfl, ⟨a0, listenAtB_iff.mp hla, Or.inl ⟨rfl, rfl⟩⟩,
+        rfl⟩)
     split at h
     case isFalse => cases h
     rename_i hc3 hc
     obtain ⟨rfl, hne, hnone, hall⟩ := hc
     cases h
-    refine mstep_set hL fun hp => ⟨rfl, a, rfl, ⟨a0, listenAtB_iff.mp hla, Or.inr ⟨?_, bv lis, hne,
-      ?_, rfl, ?_⟩⟩, rfl⟩
+    refine mstep_set hL (Or.inl ⟨a, rfl, ⟨a0, listenAtB_iff.mp hla, Or.inr ⟨?_, bv lis, hne,
+      ?_, rfl, ?_⟩⟩, rfl⟩)
     · intro l hl
       simp only [CLocal.abs] at hl
       rw [ofList_lookup] at hl
@@ -564,15 +564,15 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
       rename_i hok
       obtain ⟨ho, ha, hacc, hlt, he⟩ := hok
       cases h
-      refine mstep_same hL fun hp => ⟨rfl, bv lis, a, o, rfl, hlis', ?_, rfl⟩
-      refine Or.inr (Or.inr (Or.inr ⟨ho, conn, cn, lookup_conns hcn, ha, hacc, hlt, ?_, ?_⟩))
+      refine mstep_same hL (Or.inl ⟨bv lis, a, o, rfl, hlis', ?_, rfl⟩)
+      refine Or.inr (Or.inr ⟨ho, conn, cn, lookup_conns hcn, ha, hacc, hlt, ?_, ?_⟩)
       · simp [idRes, he]
       · exact World.global_setConn _ _ _
     · split at h
       case isFalse => cases h
       rename_i hc0 hc
       cases h
-      refine mstep_same hL fun hp => ⟨rfl, bv lis, a, o, rfl, hlis', ?_, rfl⟩
+      refine mstep_same hL (Or.inl ⟨bv lis, a, o, rfl, hlis', ?_, rfl⟩)
       rcases hc with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · exact Or.inl ⟨rfl, rfl, rfl⟩
       · exact Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)
@@ -588,8 +588,8 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     case isFalse => cases h
     rename_i hok
     cases h
-    refine mstep_set hL fun hp => ⟨rfl, bv lis, a, o, errOf code, false, rfl, ?_, rfl,
-      lisCloseOutcomeB_iff.mp (by simp_all), rfl, ?_⟩
+    refine mstep_set hL (Or.inl ⟨bv lis, a, o, errOf code, false, rfl, ?_, rfl,
+      lisCloseOutcomeB_iff.mp (by simp_all), rfl, ?_⟩)
     · simp only [CLocal.abs]; rw [ofList_lookup]; exact hlis
     · simp only [CLocal.abs, ofList_alSet]
   | dial a code conn endv =>
@@ -608,7 +608,7 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
       rename_i hc
       subst hc
       cases h
-      exact mstep_same hL fun hp => ⟨rfl, a, rfl, ⟨hplan', Or.inl ⟨rfl, rfl⟩⟩, rfl⟩
+      exact mstep_same hL (Or.inl ⟨a, rfl, ⟨hplan', Or.inl ⟨rfl, rfl⟩⟩, rfl⟩)
     · rename_i c
       split at h
       case isFalse => cases h
@@ -621,16 +621,16 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
       · rename_i hok
         obtain ⟨rfl, he⟩ := hok
         cases h
-        refine mstep_same hL fun hp => ⟨rfl, a, rfl, ⟨hplan', Or.inr (Or.inl ⟨c, hnew', ?_,
-          World.global_setConn _ _ _⟩)⟩, rfl⟩
+        refine mstep_same hL (Or.inl ⟨a, rfl, ⟨hplan', Or.inr (Or.inl ⟨c, hnew', ?_,
+          World.global_setConn _ _ _⟩)⟩, rfl⟩)
         simp [idRes, he]
       · split at h
         case isFalse => cases h
         rename_i hc
         subst hc
         cases h
-        exact mstep_same hL fun hp => ⟨rfl, a, rfl, ⟨hplan', Or.inr (Or.inr ⟨c, hnew', rfl,
-          World.global_setConn _ _ _⟩)⟩, rfl⟩
+        exact mstep_same hL (Or.inl ⟨a, rfl, ⟨hplan', Or.inr (Or.inr ⟨c, hnew', rfl,
+          World.global_setConn _ _ _⟩)⟩, rfl⟩)
   | read conn side endv n code data keep =>
     simp only [step] at h
     obtain ⟨L, cn, hL, hcn, hE, h⟩ := withConn_ok h
@@ -643,8 +643,8 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     case isFalse => cases h
     rename_i hcode ho
     cases h
-    refine mstep_same hL fun hp => ⟨rfl, bv endv, bv n, conn, side, rfl, hE, ⟨cn, _, _,
-      lookup_conns hcn, readOutcomeB_iff.mp ho, ?_, World.global_setConn _ _ _⟩, rfl⟩
+    refine mstep_same hL (Or.inl ⟨bv endv, bv n, conn, side, rfl, hE, ⟨cn, _, _,
+      lookup_conns hcn, readOutcomeB_iff.mp ho, ?_, World.global_setConn _ _ _⟩, rfl⟩)
     simp only [hexBytes_of hbs]
   | write conn side endv data k code =>
     simp only [step] at h
@@ -656,8 +656,8 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     case isFalse => cases h
     rename_i hok
     cases h
-    refine mstep_same hL fun hp => ⟨rfl, bv endv, rs, conn, side, ?_, hE, ⟨cn, k, errOf code, _,
-      lookup_conns hcn, writeOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩, rfl⟩
+    refine mstep_same hL (Or.inl ⟨bv endv, rs, conn, side, ?_, hE, ⟨cn, k, errOf code, _,
+      lookup_conns hcn, writeOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩, rfl⟩)
     simp only [hexBytes_of hrs]
   | close conn side endv code =>
     simp only [step] at h
@@ -666,8 +666,8 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     case isFalse => cases h
     rename_i hok
     cases h
-    exact mstep_same hL fun hp => ⟨rfl, bv endv, conn, side, rfl, hE, ⟨cn, errOf code, _, _,
-      lookup_conns hcn, closeOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩, rfl⟩
+    exact mstep_same hL (Or.inl ⟨bv endv, conn, side, rfl, hE, ⟨cn, errOf code, _, _,
+      lookup_conns hcn, closeOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩, rfl⟩)
   | closeWrite conn side endv code =>
     simp only [step] at h
     obtain ⟨L, cn, hL, hcn, hE, h⟩ := withConn_ok h
@@ -675,9 +675,9 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     case isFalse => cases h
     rename_i hok
     cases h
-    exact mstep_same hL fun hp => ⟨rfl, bv endv, conn, side, rfl, hE, ⟨cn, errOf code, _,
+    exact mstep_same hL (Or.inl ⟨bv endv, conn, side, rfl, hE, ⟨cn, errOf code, _,
       lookup_conns hcn, closeWriteOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩,
-      rfl⟩
+      rfl⟩)
   | setDeadline conn side endv kind wall ext code =>
     simp only [step] at h
     obtain ⟨L, cn, hL, hcn, hE, h⟩ := withConn_ok h
@@ -685,9 +685,9 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     case isFalse => cases h
     rename_i hok
     cases h
-    exact mstep_same hL fun hp => ⟨rfl, bv endv, bv kind, bv wall, bv ext, conn, side, rfl, hE,
+    exact mstep_same hL (Or.inl ⟨bv endv, bv kind, bv wall, bv ext, conn, side, rfl, hE,
       ⟨cn, errOf code, _, lookup_conns hcn, deadlineOutcomeB_iff.mp (by simp_all), rfl,
-        World.global_setConn _ _ _⟩, rfl⟩
+        World.global_setConn _ _ _⟩, rfl⟩)
 
 /-- **The replay is sound**: if it accepts the steps from `w`, they are an execution of the model
 (`Exec`) from the state `w` stands for to the one it computes, with the events the steps stand

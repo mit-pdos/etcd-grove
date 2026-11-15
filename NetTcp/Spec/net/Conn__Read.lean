@@ -45,7 +45,6 @@ def ReadErr (r : ReadRes) (eof la ra ed err : GoInterface) : IProp GF :=
   | .bytes _ => iprop(⌜err = interface.nil⌝)
   | .eof => iprop(⌜err = eof⌝)
   | .err k => resErr (some k) go!"read" la ra (some ed) (· = go!"read") err
-  | .wait => iprop(False)
 
 /-- See the file header. -/
 abbrev Conn.Read.spec : Prop :=
@@ -54,7 +53,7 @@ abbrev Conn.Read.spec : Prop :=
   {{ connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       (|={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn (!s) d ∗
-        ∀ r d', ⌜ReadOutcome st d b.len.toNat r d' ∧ r ≠ .wait⌝ -∗
+        ∀ r d', ⌜ReadOutcome st d b.len.toNat r d'⌝ -∗
           tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn (!s) d' ={∅,⊤}=∗ Q r) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Read" #t)) (Val #b))
   {{ (k : w64) (err : GoInterface), RET (PairV #k #err);

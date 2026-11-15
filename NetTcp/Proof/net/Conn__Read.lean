@@ -39,7 +39,9 @@ theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
+  ihave %Hne := tcpConnAt_endId_ne _ cn a s $$ Hat
   (try wp_auto)
+  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Read cn s a b.len $$ Hat
   imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
@@ -49,9 +51,7 @@ theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
   iintro %r %d' %Hr Hend Hdir
   imod Hk $$ %r %d' %Hr Hend Hdir with HQ
   imodintro
-  obtain ⟨-, hw⟩ := Hr
   cases r with
-  | wait => exact absurd rfl hw
   | bytes bs =>
     simp only [ReadRes.toVal]
     unfold readRes

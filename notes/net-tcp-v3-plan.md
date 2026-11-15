@@ -68,6 +68,28 @@ Every decision keeps our rules: only observable state, auditable, sound against 
   client tie the error's kind to the failing step (shutdown's `closed`). `wire.write_au` is one step
   (each step's bytes extend the writer's `sentAll`), `wire.writeP`/`write_acc` the predicate and
   accessor for an end its thread owns.
+- **E12. Every operation may stutter; invalid uses panic** (2026-11-15, the user's decision, v3.2;
+  D22). Perennial's Grove convention (`GroveStep`): `TcpStep` is "a stutter (state unchanged, the
+  call left as it was), or one of the outcome rules" (`IsTcpStep`). The user's reasoning: "having
+  an obligation to show `∃ e', e ⇝ e'` is a sort-of bogus way of encoding that a program doesn't do
+  something invalid. Instead, buggy code should just reduce to, e.g., a panic." So the relations'
+  own waits go (`ReadRes.wait`, `AcceptStep`'s waiting clause, a `Write` step counting nothing of a
+  non-empty `rs`: a non-failing step now counts `1 ≤ k ≤ |rs|`, or `0` of an empty `rs`), and
+  every state has an outcome besides the stutter, else a program could stutter forever where Go
+  goes on (unsound for a safety theorem): an argument the extension cannot use panics
+  (`OrInvalid`, GooseLang's stuck builtin `Panic`, not `go.panic`'s recoverable one): `Listen` or
+  `Dial` outside the plan (D13), an id naming nothing, another argument shape, an unknown
+  operation; `Impl.lean`'s header has the table, `Tests.lean`'s `isTcpStep_total` and
+  `isTcpStep_result` check it. The zero values are modeled as Go has them: the `net` models check
+  for id 0 first and return the bare `syscall.EINVAL` (`model.einval`, `TestZeroValues`), so the
+  extension never sees id 0. The specs keep their shapes: the stutter is handled once, by Löb
+  induction (`wp_tcp_op`, as `wp_GroveOp`), the totality lemmas are gone (`wp_tcp_endOp` needs
+  none), `ReadRes.wait` left `Conn.Read.spec`'s update (`⌜ReadOutcome st d n r d'⌝` alone) and
+  `ReadErr`; `Listen.spec`/`Dial.spec` keep their premises (`ListenAt`, a plan address), which now
+  exclude the panic; `tcpConnAt` says the connection's number is not 0 (for the models' id-0
+  check). Departure from the Grove convention: an unknown operation name panics (Grove's has no
+  step), and the stutter is allowed for every name (simpler to read; harmless, since a name with
+  no rule panics).
 
 ## Phase 1 as done (2026-11-14), and where it departs from the decisions
 

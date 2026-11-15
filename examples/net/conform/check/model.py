@@ -1,5 +1,5 @@
 """A literal transcription of the TCP extension's semantics, `GooseLang/Ext/Tcp/Impl.lean` (v3,
-D1-D21), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
+D1-D22, v3.2), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
 definition names the Lean definition it transcribes (`[Lean: Name]`), keeps its case order and its
 conjuncts, and says where it departs from a word-for-word reading. Read it side by side with
 Impl.lean; the README's table maps every Lean name to its function here.
@@ -137,14 +137,14 @@ def err_code(res):
 
 
 # ---------------------------------------------------------------------------------------------
-# Read results [Lean: ReadRes]: ("bytes", bs) | ("eof",) | ("err", e) | ("wait",)
+# Read results [Lean: ReadRes]: ("bytes", bs) | ("eof",) | ("err", e). (v3.2, D22: a read that
+# waits stutters; no result of its own.)
 
 def R_BYTES(bs):
     return ("bytes", bytes(bs))
 
 
 R_EOF = ("eof",)
-R_WAIT = ("wait",)
 
 
 def R_ERR(e):
@@ -164,9 +164,6 @@ def read_avail(st, d, n, r, d2):
             return True
     # EOF: nothing unread, and the writer is done
     if d.bytes == b"" and d.status != OPEN and r == R_EOF and d2 == d:
-        return True
-    # it waits: nothing unread, and the writer may write more
-    if d.bytes == b"" and d.status == OPEN and r == R_WAIT and d2 == d:
         return True
     # an error, once the connection broke
     if d.status == CUT and r == R_ERR(SYS) and d2 == d:
@@ -205,19 +202,22 @@ def write_outcome(st, d, rs, k, res, d2):
     not written yet; `k` the count it adds, `res` None (the Write goes on unless it has written
     everything) or the failure's kind. The trusted `conn.Write.impl` loops over these steps
     (net.lean's `model.writeLoop`, Go's `poll.FD.Write`): the call returns (the steps' total, nil)
-    once it is len(b), else (the total, err) at its first failing step. (v3.1, b334f68554.)"""
+    once it is len(b), else (the total, err) at its first failing step. (v3.1, b334f68554.) A step
+    that does not fail counts at least one byte unless `rs` is empty (v3.2, D22: one that would
+    count none is a wait, a stutter)."""
     if st.closed:
         return k == 0 and res == CLOSED and d2 == d
     if d.status == FIN:
         return k == 0 and d2 == d and (res == SYS or (st.wdl and res == TIMEOUT))
     if d.status == CUT:
         # discarded
-        return d2 == d and ((k <= len(rs) and res is None) or
+        return d2 == d and ((k <= len(rs) and (1 <= k or rs == b"") and res is None) or
                             (k == 0 and (res == SYS or (st.wdl and res == TIMEOUT))))
     # .open
     return (
-        # the first k bytes (all, some, or none: a wait)
-        (k <= len(rs) and res is None and d2 == d._replace(bytes=d.bytes + rs[:k])) or
+        # the first k bytes (all, or some: the buffer full)
+        (k <= len(rs) and (1 <= k or rs == b"") and res is None and
+         d2 == d._replace(bytes=d.bytes + rs[:k])) or
         # the connection breaks
         (k == 0 and res == SYS and d2 == d._replace(status=CUT)) or
         # a timeout
@@ -305,11 +305,14 @@ def listen_resolve(plan, host, a):
 
 # ---------------------------------------------------------------------------------------------
 # The step relation. An expression e' is represented by its value: a pair (word, code) for the
-# operations that return one (`PairV`), a code for those that return a word, a ReadRes for Read
-# (with "wait" for `e' = op`), "wait" for a waiting Accept.
+# operations that return one (`PairV`), a code for those that return a word, a ReadRes for Read.
+# A stutter (`TcpStep`'s other case, D22: `e' = op`, nothing changed) is not a step of a trace: a
+# call that waits leaves none, so none is transcribed; nor are the panics of invalid uses
+# (`IsTcpStep`'s `OrInvalid`), which no traced call makes (an argument outside them has no step
+# here).
 
 def read_step(c, s, n, g, r, g2, keep=None):
-    """[Lean: ReadStep op c s n g e' g'] (e' = r.toExpr op, r given)."""
+    """[Lean: ReadStep c s n g e' g'] (e' = Val r.toVal, r given)."""
     cn = g.conns.get(c)
     if cn is None:
         return False
@@ -395,13 +398,11 @@ def dial_step(a, g, e2, g2):
 
 
 def accept_step(a, is_open, g, e2, g2):
-    """[Lean: AcceptStep op a isOpen g e' g'] D7 (e2 = "wait" for `e' = op`). The `∃ c cn`: the
+    """[Lean: AcceptStep a isOpen g e' g'] D7. The `∃ c cn`: the
     only candidate is the connection that g2 has accepted and g has not."""
     if not is_open and e2 == fail_v(CLOSED) and g2 == g:
         return True
     if is_open and e2 == fail_v(SYS) and g2 == g:
-        return True
-    if is_open and e2 == "wait" and g2 == g:
         return True
     if is_open:
         for c, cn in g.conns.items():
@@ -437,7 +438,8 @@ def lis_close_outcome(is_open, res, is_open2):
 
 
 def tcp_step(op, v, L, g, e2, L2, g2, keep=None):
-    """[Lean: TcpStep op v h L g e' h' L' g'] (the heap, unchanged, left out; `v` the argument as
+    """[Lean: TcpStep op v h L g e' h' L' g', its outcome rules on valid arguments: IsTcpStep's
+    steps, not the stutter nor the panics, D22] (the heap, unchanged, left out; `v` the argument as
     a Python value: Listen, Dial an address; Accept, LisClose a listener id; Read (e, n); Write
     (e, bs); Close, CloseWrite e; SetDeadline (e, kind, wall, ext)). The operations "AnyBool",
     "AnyString", "AnyW64", "AnyErrno" are not steps of a trace (they are the trusted models'

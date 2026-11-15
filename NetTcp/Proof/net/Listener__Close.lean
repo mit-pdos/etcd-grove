@@ -37,6 +37,7 @@ theorem Listener.Close.wp_proof : Listener.Close.spec (GF := GF) (hG := hG) := b
   ihave #Ht2 := Ht
   iStructNamed Ht2
   wp_auto
+  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_LisClose l a $$ Hla
   imod HAU with ⟨%o, Hl, Hk⟩

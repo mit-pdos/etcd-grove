@@ -95,7 +95,6 @@ def readAvailB (st : TcpEnd) (d : TcpDir) (n : Nat) (r : ReadRes) (d' : TcpDir) 
        decide (bs = d.bytes.take bs.length) && dirEqB d' { d with bytes := d.bytes.drop bs.length }
    | _ => false) ||
   (decide (d.bytes = [] ∧ d.status ≠ .open ∧ r = .eof) && dirEqB d' d) ||
-  (decide (d.bytes = [] ∧ d.status = .open ∧ r = .wait) && dirEqB d' d) ||
   (decide (d.status = .cut ∧ r = .err .sys) && dirEqB d' d) ||
   (decide (st.rdl = true ∧ r = .err .timeout) && dirEqB d' d)
 
@@ -114,7 +113,6 @@ theorem readAvailB_iff {st : TcpEnd} {d : TcpDir} {n : Nat} {r : ReadRes} {d' : 
       rw [hl]; exact ⟨h1, h2, h3, rfl, h5⟩
   | eof => simp [dirEqB_iff, and_assoc]
   | err e => simp [dirEqB_iff, and_assoc]
-  | wait => simp [dirEqB_iff, and_assoc]
 
 /-- The prefix a cut at a read keeps, as the read's result `r` and the direction after, `d'`,
 determine it: the bytes returned and those left, nothing for EOF, else the bytes left. -/
@@ -130,8 +128,7 @@ theorem cut_unique {st : TcpEnd} {d : TcpDir} {n k : Nat} {r : ReadRes} {d' : Tc
     k = cutKeep r d' := by
   have hl : (d.bytes.take k).length = k := by simp [List.length_take]; omega
   unfold ReadAvail at h
-  rcases h with ⟨j, -, -, hj, rfl, rfl⟩ | ⟨hb, -, rfl, rfl⟩ | ⟨-, hs, -, -⟩ | ⟨-, rfl, rfl⟩ |
-    ⟨-, rfl, rfl⟩
+  rcases h with ⟨j, -, -, hj, rfl, rfl⟩ | ⟨hb, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
   · simp only [cutKeep]
     have := List.take_append_drop j (d.bytes.take k)
     have h2 := congrArg List.length this
@@ -141,7 +138,6 @@ theorem cut_unique {st : TcpEnd} {d : TcpDir} {n k : Nat} {r : ReadRes} {d' : Tc
   · simp only at hb
     simp only [cutKeep]
     rw [hb] at hl; simp at hl; omega
-  · simp at hs
   · simp only [cutKeep]; exact hl.symm
   · simp only [cutKeep]; exact hl.symm
 
@@ -191,10 +187,11 @@ def writeOutcomeB (st : TcpEnd) (d : TcpDir) (rs : List w8) (k : Nat) (res : Opt
   else match d.status with
   | .fin => decide (k = 0) && (dirEqB d' d &&
       decide (res = some .sys ∨ (st.wdl = true ∧ res = some .timeout)))
-  | .cut => dirEqB d' d && ((lenGe rs k && decide (res = none)) ||
+  | .cut => dirEqB d' d && ((lenGe rs k && (decide (1 ≤ k ∨ rs = []) && decide (res = none))) ||
       decide (k = 0 ∧ (res = some .sys ∨ (st.wdl = true ∧ res = some .timeout))))
   | .open =>
-    (lenGe rs k && (decide (res = none) && dirAppEqB d' d (rs.take k))) ||
+    (lenGe rs k && (decide (1 ≤ k ∨ rs = []) && (decide (res = none) &&
+      dirAppEqB d' d (rs.take k)))) ||
     ((decide (k = 0) && (decide (res = some .sys) && dirEqB d' { d with status := .cut })) ||
      (decide (st.wdl = true) && (decide (k = 0) && (decide (res = some .timeout) && dirEqB d' d))))
 

@@ -35,13 +35,16 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, Hsl, #Hed, HP, #Hacc⟩
   wp_method_call
   (try unfold conn.Write.impl)
+  (try unfold model.connId)
   (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
   icases ownSlice_len b dq bs $$ Hsl with %Hlen
   icases ownSlice_wf b dq bs $$ Hsl with %Hwf
+  ihave %Hne := tcpConnAt_endId_ne _ cn a s $$ Hat
   (try wp_auto)
+  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
   -- the loop's invariant: `nn` bytes written, `nn = 0` or fewer than all
   obtain ⟨nn, hnn⟩ : ∃ nn : w64, nn = W64 0 := ⟨_, rfl⟩
   rw [← hnn]

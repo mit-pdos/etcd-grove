@@ -39,7 +39,9 @@ theorem Conn.SetDeadline.wp_proof : Conn.SetDeadline.spec (GF := GF) (hG := hG) 
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
+  ihave %Hne := tcpConnAt_endId_ne _ cn a s $$ Hat
   (try wp_auto)
+  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_SetDeadline cn s a (W64 0) tm.wall' tm.ext' $$ Hat
   imod HAU with ⟨%st, Hend, Hk⟩

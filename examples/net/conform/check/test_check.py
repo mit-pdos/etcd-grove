@@ -60,7 +60,7 @@ def all_dirs(maxlen=3, alphabet=b"ab"):
 
 
 ENDS = [M.TcpEnd(c, r, w) for c in (False, True) for r in (False, True) for w in (False, True)]
-READ_RESULTS = [M.R_BYTES(b""), M.R_BYTES(b"a"), M.R_BYTES(b"ab"), M.R_BYTES(b"b"), M.R_EOF, M.R_WAIT,
+READ_RESULTS = [M.R_BYTES(b""), M.R_BYTES(b"a"), M.R_BYTES(b"ab"), M.R_BYTES(b"b"), M.R_EOF,
                 M.R_ERR(M.SYS), M.R_ERR(M.TIMEOUT), M.R_ERR(M.CLOSED)]
 
 
@@ -110,6 +110,12 @@ class ModelTest(unittest.TestCase):
         c = M.TcpDir(b"", CUT)
         self.assertTrue(M.write_outcome(st0, c, b"ab", 2, None, c))
         self.assertTrue(M.write_outcome(st0, c, b"ab", 0, M.SYS, c))
+        # v3.2 (D22): a step that counts none of a non-empty rs is a wait (a stutter), no outcome;
+        # an empty rs's one step finishes with 0
+        self.assertFalse(M.write_outcome(st0, o, b"ab", 0, None, o))
+        self.assertFalse(M.write_outcome(st0, c, b"ab", 0, None, c))
+        self.assertTrue(M.write_outcome(st0, o, b"", 0, None, o))
+        self.assertTrue(M.write_outcome(st0, c, b"", 0, None, c))
         self.assertFalse(M.write_outcome(st0, c, b"ab", 0, M.CLOSED, c))  # closed: a closed end only
         self.assertFalse(M.write_outcome(st0, f, b"", 0, None, f))  # an empty Write's step, after CloseWrite
 
