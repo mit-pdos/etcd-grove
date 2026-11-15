@@ -39,6 +39,7 @@ theorem apply.applierV3Corrupt.Put.wp_proof :
   icases Hpre with ⟨%Hk, -, -, Hm⟩
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
+  ihave Hkv := apply.kvOwn_rejected E log rq .corrupt (by decide) $$ Hkv
   wp_auto
   iapply HΦ
   iframe Htt

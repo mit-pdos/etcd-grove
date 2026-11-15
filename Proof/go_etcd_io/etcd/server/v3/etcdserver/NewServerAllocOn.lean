@@ -197,8 +197,12 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         unfold SrvRaft.cfg
         rw [hvs]
         exact hcc e (by rw [← hbt]; exact he))
-      rfl rfl (by simp [γk, γk0]) (mvcc.LogPutsLe.empties _) hao
-      ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩)
+      rfl rfl (by simp [γk, γk0])
+      (by intro cs hcs; simp only [γk, γk0, List.mem_cons, List.not_mem_nil, or_false] at hcs
+          rcases hcs with rfl | rfl <;> simp)
+      (mvcc.LogPutsLe.empties _) hao
+      ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩
+      (fun h => by simp [γk, γk0] at h))
     $$ [HL] [Hstv] Hh with ⟨#Hkv, Hetcd, Hhv⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv
@@ -246,16 +250,23 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
 /-- **The mode-`on` KV invariant reads only the cluster's KV names** (`kvInv_congr`'s). -/
 theorem kvInvOn_congr (γs : ServerRaftNames) (γk γk' : KVNames) (st₀ : auth.AuthState)
     (h : γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
-      γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.hist = γk'.hist) :
+      γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.hist = γk'.hist ∧
+      -- (auth-lease S3a) the lease mode, the grant prefixes and their condition (`kvGrantIds`)
+      γk.lm = γk'.lm ∧ γk.gps = γk'.gps ∧ (kvPfxOk γk ↔ kvPfxOk γk')) :
     kvInvOn (GF := GF) γs γk st₀ = kvInvOn γs γk' st₀ := by
-  obtain ⟨h1, h2, h3, h4, h6, h7, h8⟩ := h
-  unfold kvInvOn kvWorkOn entryClaim kvModelOn idRegdAt idWaitIs admStates kvLogSmall
-  rw [h1, h2, h3, h4, h6, h7, h8]
+  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11⟩ := h
+  unfold kvInvOn kvWorkOn kvGrantIds idUnclaimed entryClaim kvModelOn kvLeasesOn idRegdAt idWaitIs
+    admStates kvLogSmall
+  rw [propext h11, h1, h2, h3, h4, h6, h7, h8, h9, h10]
 
 /-- **A member's names and share in the mode `on`** (`srvMemberBoot_alloc`'s): the mode-`on` KV
 invariant at its names, as `NewServer.specM true`'s `kvInvM true`. -/
 theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
-    (cok : GName) :
+    (cok : GName)
+    -- (auth-lease S3a, as `srvMemberBoot_alloc`'s since lease-mono3 step 2: `kvInvOn` keeps the grant
+    -- ids' claim rights) in the revocable mode the member's prefix is one of the cluster's grant
+    -- prefixes, and the cluster's names meet the grant prefixes' condition
+    (hpfx : γk.lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
       (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
@@ -288,7 +299,8 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
   · dsimp only
     rw [kvInvM_true, kvInvOn_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩ γk srvAuthSt0
-      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+        ⟨fun _ => hpo, fun _ h => ⟨hpfx h, (hpo h).2⟩⟩⟩]
     iexact Hkv
   isplitl [Hp Hsl Hpend]
   · iunfold idShare

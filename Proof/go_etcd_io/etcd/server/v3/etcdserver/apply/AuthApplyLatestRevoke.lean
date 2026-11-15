@@ -87,7 +87,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.auth_pass_kvPostFL_nil (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
     (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
     (log : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) (X : apply.Outcome → Prop)
-    (hX : ∀ oc, apply.chainStep apply.backendStep c rq log oc → X oc) :
+    (hX : ∀ oc, apply.chainStep apply.backendStep c rq log oc → X oc)
+    (hk : dispatchKind rq = .leaseRevoke) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       apply.kvPost E c inner info' rq log R Pre Post -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
@@ -98,6 +99,8 @@ theorem apply.auth_pass_kvPostFL_nil (E : apply.AEnv GF) (on : Bool) (c : apply.
   iunfold apply.kvPost at Hpost
   iunfold apply.kvPostFL
   icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -, -⟩
+  ihave Hkv := apply.kvOwn_atP E _ _
+    (fun L => apply.leaseExactL_other L rq log oc (by rw [hk]; decide) (by rw [hk]; decide)) $$ Hkv
   iexists oc
   iframe HR Hkv HPP
   isplitr
@@ -195,7 +198,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
     isplitr
     · ipureintro; exact Hk.1
     iapply Hlc; rfl
-  iapply apply.auth_pass_kvPostFL_nil E E.authOn c p (.ok bi) info info' rq log _ Pre Post _ Hpass
+  iapply apply.auth_pass_kvPostFL_nil E E.authOn c p (.ok bi) info info' rq log _ Pre Post _ Hpass Hk.2.1
     $$ Happ Hpost Hinfo Hrc Hrl
 
 end proof

@@ -779,7 +779,7 @@ theorem kvLogOk_rev (σ : KVState) (h : kvLogOk σ) : σ.rev = σ.changes.length
 
 theorem kvLogOk_kvs (σ : KVState) (h : kvLogOk σ) : σ.kvs = stateAfter σ.log := by
   have he := h.1
-  have : σ.kvs = (kvStateOf σ.log).kvs := by rw [← he]
+  have : σ.kvs = (kvStateOf σ.log σ.leases).kvs := by rw [← he]
   rw [this, kvStateOf_kvs]
 
 /-- **A floor from what the caller knows** (`etcdReached lo`): changes the client saw, `lo` of

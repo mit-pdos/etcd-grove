@@ -44,7 +44,7 @@ theorem dispatchLog_kv (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable)
 header): for a plain KV request of the entry `m` above `c₀`, applied at the start chain with auth
 on and no alarm, whose checked permissions are the request's own, at the history `hs` whose latest
 state is the model's `s.1`: the log the outcome leaves is a successor of `outcomeOn`. -/
-theorem outcomeOn_of_authOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : EntryModel)
+theorem outcomeOn_of_authOutL (c₀ : w64) (s : OnState) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : apply.needAdminPermission rq = false)
@@ -52,37 +52,47 @@ theorem outcomeOn_of_authOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m :
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (oc : apply.Outcome)
     (h : apply.authOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq
-      s.2 (reqPerms rq) oc) :
-    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) := by
+      s.2.1 (reqPerms rq) oc) :
+    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) := by
   have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
   have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
     rintro ⟨-, h⟩; rw [hna] at h; cases h
+  have hak : apply.authKVKind (apply.dispatchKind rq) = true := apply.authKVKind_of_isKVKind _ hk
   unfold outcomeOn
   rw [if_pos hm, hdec]
   simp only
   rw [if_neg hna']
   rcases h with ⟨rfl, hr⟩ | ⟨hc, hpass⟩
-  · -- refused at the latest state: the log kept
+  · -- refused at the latest state: the state kept
     have hng := not_kvGranted_of_refusedL γa hs s.1 hl rq (reqPerms rq) (fun _ hx => hx) hr
-    rw [if_pos ⟨hk, hng⟩]
+    rw [if_pos ⟨hak, fun h => hng h.1⟩]
     rfl
   · -- granted at the latest state: the inner chain's write, the model's
     have hg := kvGranted_of_passedL γa hs s.1 hl rq hpass
-    have hng : ¬ (apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq) := by
-      rintro ⟨-, hn⟩; exact hn hg
+    have hng : ¬ (apply.authKVKind (apply.dispatchKind rq) = true ∧
+        ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq) := by
+      rintro ⟨-, hn⟩; exact hn ⟨hg, leaseGrantedM_of_plainCover _ _ _ hp⟩
     rw [if_neg hng]
-    have hlog : oc.logAfter s.2 = chainLog (.quota .backend) rq [] s.2 := by
-      rcases chainStep_plain [] (.quota .backend) rq s.2 oc hp hc with h | ⟨-, hx⟩
+    have hlog : oc.logAfter s.2.1 = chainLog (.quota .backend) rq s.2.2 s.2.1 := by
+      rcases chainStep_plain s.2.2 (.quota .backend) rq s.2.1 oc hp hc with h | ⟨-, hx⟩
       · exact h
       · exact absurd hx (by decide)
-    have hkv : kvEntry c₀ (apply.alarmChain true false false) [] s.2 m =
-        chainLog (.quota .backend) rq [] s.2 := by
+    have hkv : kvEntry c₀ (apply.alarmChain true false false) s.2.2 s.2.1 m =
+        chainLog (.quota .backend) rq s.2.2 s.2.1 := by
       unfold kvEntry
       rw [if_pos ht, if_neg hd, hdec]
       simp only [decide_eq_true hv]
-      rw [dispatchLog_kv _ rq [] s.2 hk]
+      rw [dispatchLog_kv _ rq s.2.2 s.2.1 hk]
       rfl
-    rw [hlog, hkv]
+    have htb : kvTable c₀ (apply.alarmChain true false false) s.2.2 m = s.2.2 := by
+      unfold kvTable
+      rw [if_pos ht, if_neg hd, hdec]
+      simp only
+      unfold dispatchTable
+      split
+      · rfl
+      · exact chainTable_plain rq s.2.2 hp _
+    rw [hlog, hkv, htb]
 
 /-! ## The dispatched outcome's verdict on the request's own permissions (E2y) -/
 
@@ -276,53 +286,6 @@ theorem refusedMay_of_leaseRefusedL_none (M : auth.AuthMode) (hs : List auth.Aut
   | off => trivial
   | any => trivial
 
-/-- The lease `0` attaches no key in any state (`leaseItemsOf_ne_zero`). -/
-theorem leaseItemsOf_zero_none (log : mvcc.Log) :
-    ∀ k : GoString, (mvcc.leaseItemsOf (mvcc.stateAfter log)).lookup ⟨k⟩ ≠ some (W64 0) :=
-  fun k => mvcc.leaseItemsOf_ne_zero _ _
-
-mutual
-/-- A plain wire operation's puts have the lease `0` (`txn.opPlain` of its model). -/
-theorem opPutsW_plain : ∀ (op : txn.TxnOpW), txn.opPlain op.toOp → ∀ o ∈ apply.opPutsW op,
-    o.leaseID = W64 0
-  | .get _, _, o, ho => by simp [apply.opPutsW] at ho
-  | .delete _, _, o, ho => by simp [apply.opPutsW] at ho
-  | .put o', h, o, ho => by
-    simp only [apply.opPutsW, List.mem_singleton] at ho
-    subst ho
-    simp only [txn.TxnOpW.toOp, txn.putTxnOp] at h
-    by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;>
-      simp [h1, h2, txn.opPlain] at h
-    · simpa using h
-    · exact h
-  | .txn _ ts es, h, o, ho => by
-    simp only [txn.TxnOpW.toOp, txn.opPlain] at h
-    simp only [apply.opPutsW, List.mem_append] at ho
-    rcases ho with ho | ho
-    · exact opsPutsW_plain ts h.1 o ho
-    · exact opsPutsW_plain es h.2 o ho
-
-theorem opsPutsW_plain : ∀ (ops : List txn.TxnOpW), txn.opsPlain (txn.TxnOpW.toOps ops) →
-    ∀ o ∈ apply.opsPutsW ops, o.leaseID = W64 0
-  | [], _, o, ho => by simp [apply.opsPutsW] at ho
-  | op :: ops, h, o, ho => by
-    simp only [txn.TxnOpW.toOps, txn.opsPlain] at h
-    simp only [apply.opsPutsW, List.mem_append] at ho
-    rcases ho with ho | ho
-    · exact opPutsW_plain op h.1 o ho
-    · exact opsPutsW_plain ops h.2 o ho
-end
-
-/-- **A plain transaction's puts have the lease `0`** (auth-lease S2). -/
-theorem txnPutsW_plain (t : txn.TxnModelW) (h : txn.txnPlain t.toModel) :
-    ∀ o ∈ apply.txnPutsW t, o.leaseID = W64 0 := by
-  intro o ho
-  simp only [apply.txnPutsW, List.mem_append] at ho
-  simp only [txn.txnPlain, txn.TxnModelW.toModel] at h
-  rcases ho with ho | ho
-  · exact opsPutsW_plain _ h.1 o ho
-  · exact opsPutsW_plain _ h.2 o ho
-
 /-- **The dispatched outcome decided at the latest state, on the request's own permissions**:
 `kvOutL` (the dispatch's KV triple at the latest state, at the request's principal) is E2s's
 `authOutL` at the model's `reqPerms`, for a request without `"\x00"` range ends (a transaction's
@@ -383,7 +346,7 @@ dispatched outcome decided at the latest state (`kvOutL`, `apply.uberApplier.App
 plain KV request of the entry `m` above `c₀` at the start chain with auth on and no alarm, without
 `"\x00"` range ends, at the history `hs` whose latest state is the
 model's `s.1`, is `outcomeOn`'s (E2t's `kv_applied_out_on` hypothesis). -/
-theorem outcomeOn_of_kvOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : EntryModel)
+theorem outcomeOn_of_kvOutL (c₀ : w64) (s : OnState) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : apply.needAdminPermission rq = false)
@@ -391,10 +354,349 @@ theorem outcomeOn_of_kvOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : E
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq)
     (oc : apply.Outcome)
-    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2 oc) :
-    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
+    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2.1 oc) :
+    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) :=
   outcomeOn_of_authOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl oc
-    (authOutL_of_kvOutL _ hs _ rq s.2 oc hz hp h)
+    (authOutL_of_kvOutL _ hs _ rq s.2.1 oc hz hp h)
+
+/-! ## The lease verdict and the lease-exact outcome (auth-lease S3a §6, Draft rev 5 §3, §3a) -/
+
+/-- **The lease check passed at the latest state is the model's `leaseOk` there** (`KVAuthBridge`'s
+`leaseOk_iff`, its pass half): no shape needed, `granted1` at `(k, [], .write)` is `leaseOk`'s clause. -/
+theorem leaseOk_of_leasePassedL (γa : auth.AuthNames) (hs : List auth.AuthState) (stl : auth.AuthState)
+    (hl : hs.getLast? = some stl) (a : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (h : apply.leasePassedL (.on γa) hs (auth.authInfoM a) I id) : leaseOk stl a I id := by
+  rcases h stl hl with h | h
+  · exact Or.inr (Or.inl h)
+  · by_cases hen : stl.enabled = false
+    · exact Or.inl hen
+    · refine Or.inr (Or.inr fun k hk => ?_)
+      rcases h k hk with h' | h'
+      · exact absurd h' hen
+      · exact h'
+
+/-- **The lease check refused at the latest state is the model's `¬ leaseOk` there** (the refusal half). -/
+theorem not_leaseOk_of_leaseRefusedL (γa : auth.AuthNames) (hs : List auth.AuthState)
+    (stl : auth.AuthState) (hl : hs.getLast? = some stl) (a : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (h : apply.leaseRefusedL (.on γa) hs (auth.authInfoM a) I id) : ¬ leaseOk stl a I id := by
+  obtain ⟨hna, k, hk, hng⟩ := h stl hl
+  rintro (hen | had | hall)
+  · exact hng (Or.inl hen)
+  · exact hna had
+  · exact hng (Or.inr (hall k hk))
+
+/-- **`kvOutL` is the model's verdict `kvGrantedL` at the latest state** (Draft §3: for every
+admitted kind, the lease part included, at the log's lease items): a refusal is the auth layer's
+rejection of a request `kvGrantedL` refuses, a pass the inner chain's outcome of one it grants. -/
+theorem kvGrantedL_of_kvOutL (γa : auth.AuthNames) (hs : List auth.AuthState) (stl : auth.AuthState)
+    (hl : hs.getLast? = some stl) (ci : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log)
+    (oc : apply.Outcome) (hz : noZeroEnds rq)
+    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) ci rq log oc) :
+    (oc = .rejected .auth ∧ ¬ kvGrantedL stl (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) ∨
+      (apply.chainStep apply.backendStep ci rq log oc ∧
+        kvGrantedL stl (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) := by
+  unfold apply.kvOutL at h
+  split at h
+  · rename_i hk
+    obtain ⟨o, ho, e, he, h⟩ := h
+    have hm : o.base.rangeEnd ≠ [W8 0] := hz (o.key, o.base.rangeEnd, .read) (by simp [reqPerms, hk, ho])
+    rw [authEndOf_eq _ _ he hm] at h
+    have hp : reqPerms rq = [(o.key, o.base.rangeEnd, .read)] := by simp [reqPerms, hk, ho]
+    have hlg : leaseGrantedM stl (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq := by
+      unfold leaseGrantedM; rw [hk]; trivial
+    rcases h with ⟨rfl, hr⟩ | ⟨hc, hpa⟩
+    · exact Or.inl ⟨rfl, fun hg => not_kvGranted_of_refusedL γa hs stl hl rq _
+        (fun x hx => by rw [hp]; exact hx) hr hg.1⟩
+    · exact Or.inr ⟨hc, kvGranted_of_passedL γa hs stl hl rq (by rw [hp]; exact hpa), hlg⟩
+  · rename_i hk
+    obtain ⟨o, ho, h⟩ := h
+    have hp : reqPerms rq = apply.putPerms o := by simp [reqPerms, hk, ho]
+    rcases h with ⟨rfl, hr | ⟨id, hid, hr⟩⟩ | ⟨hc, hpa, hlp⟩
+    · exact Or.inl ⟨rfl, fun hg => not_kvGranted_of_refusedL γa hs stl hl rq _
+        (fun x hx => by rw [hp]; exact hx) hr hg.1⟩
+    · rw [List.mem_singleton.1 hid] at hr
+      refine Or.inl ⟨rfl, fun hg => ?_⟩
+      have h2 := hg.2
+      unfold leaseGrantedM at h2; rw [hk] at h2
+      exact not_leaseOk_of_leaseRefusedL γa hs stl hl _ _ _ hr (h2 o ho)
+    · refine Or.inr ⟨hc, kvGranted_of_passedL γa hs stl hl rq (by rw [hp]; exact hpa), ?_⟩
+      unfold leaseGrantedM; rw [hk]
+      intro o' ho'
+      rw [ho] at ho'; cases ho'
+      exact leaseOk_of_leasePassedL γa hs stl hl _ _ _ (hlp _ (List.mem_singleton.2 rfl))
+  · rename_i hk
+    obtain ⟨o, ho, e, he, h⟩ := h
+    have hm : o.base.rangeEnd ≠ [W8 0] := hz (o.key, o.base.rangeEnd, .write) (by simp [reqPerms, hk, ho])
+    rw [authEndOf_eq _ _ he hm] at h
+    have hp : reqPerms rq = (o.key, o.base.rangeEnd, .write) ::
+        if o.base.prevKV then [(o.key, o.base.rangeEnd, .read)] else [] := by simp [reqPerms, hk, ho]
+    have hlg : leaseGrantedM stl (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq := by
+      unfold leaseGrantedM; rw [hk]; trivial
+    rcases h with ⟨rfl, hr⟩ | ⟨hc, hpa⟩
+    · exact Or.inl ⟨rfl, fun hg => not_kvGranted_of_refusedL γa hs stl hl rq _
+        (fun x hx => by rw [hp]; exact hx) hr hg.1⟩
+    · exact Or.inr ⟨hc, kvGranted_of_passedL γa hs stl hl rq (by rw [hp]; exact hpa), hlg⟩
+  · rename_i hk
+    obtain ⟨t, htx, h⟩ := h
+    obtain ⟨hr, hpa⟩ := txnVerdictOwn_of (.on γa) hs rq hz hk t htx
+    unfold apply.txnOutLL at h
+    rcases h with ⟨rfl, h | ⟨o, ho, h⟩⟩ | ⟨hc, ⟨L, hL, h⟩, hlp⟩
+    · exact Or.inl ⟨rfl, fun hg => not_kvGranted_of_refusedL γa hs stl hl rq _
+        (fun x hx => hx) (hr h) hg.1⟩
+    · refine Or.inl ⟨rfl, fun hg => ?_⟩
+      have h2 := hg.2
+      unfold leaseGrantedM at h2; rw [hk] at h2
+      exact not_leaseOk_of_leaseRefusedL γa hs stl hl _ _ _ h (h2 t htx o ho)
+    · refine Or.inr ⟨hc, kvGranted_of_passedL γa hs stl hl rq (hpa L hL h), ?_⟩
+      unfold leaseGrantedM; rw [hk]
+      intro t' ht' o ho
+      rw [htx] at ht'; cases ht'
+      exact leaseOk_of_leasePassedL γa hs stl hl _ _ _ (hlp o ho)
+  · rename_i hk
+    obtain ⟨id, hid, h⟩ := h
+    have hp : reqPerms rq = [] := by simp [reqPerms, hk]
+    rcases h with ⟨rfl, hr | ⟨id', hid', hr⟩⟩ | ⟨hc, -, hlp⟩
+    · exfalso
+      obtain ⟨x, hx, -⟩ := hr stl hl
+      exact List.not_mem_nil hx
+    · rw [List.mem_singleton.1 hid'] at hr
+      refine Or.inl ⟨rfl, fun hg => ?_⟩
+      have h2 := hg.2
+      unfold leaseGrantedM at h2; rw [hk] at h2
+      exact not_leaseOk_of_leaseRefusedL γa hs stl hl _ _ _ hr (h2 id hid)
+    · refine Or.inr ⟨hc, fun x hx => by rw [hp] at hx; exact absurd hx List.not_mem_nil, ?_⟩
+      unfold leaseGrantedM; rw [hk]
+      intro id' hid'
+      rw [hid] at hid'; cases hid'
+      exact leaseOk_of_leasePassedL γa hs stl hl _ _ _ (hlp _ (List.mem_singleton.2 rfl))
+  · exact h.elim
+
+/-- A KV kind changes no table. -/
+theorem backendTable_kv (rq : apply.IRRModel) (lt : LeaseTable)
+    (hk : apply.isKVKind (apply.dispatchKind rq) = true) : backendTable rq lt = lt := by
+  unfold backendTable
+  split <;> simp_all [apply.isKVKind]
+
+theorem chainTable_kv (rq : apply.IRRModel) (lt : LeaseTable)
+    (hk : apply.isKVKind (apply.dispatchKind rq) = true) :
+    ∀ c : apply.Chain, chainTable c rq lt = lt := by
+  intro c
+  induction c with
+  | backend => exact backendTable_kv rq lt hk
+  | corrupt c ih => simp only [chainTable]; split <;> simp [ih]
+  | capped c ih => simp only [chainTable]; split <;> simp [ih]
+  | auth _ c ih => simp only [chainTable]; exact ih
+  | quota c ih => simp only [chainTable]; exact ih
+
+/-- **The backend's outcome of a KV request of the auth-on log is the model's** (`backendLog`), at
+the table `lt`: a plain request's always (`plainCover`), a leased put's or transaction's when the
+outcome is lease-exact at `lt`'s ids (`apply.leaseExactL`, Draft §3a). -/
+theorem backendLog_of_step (lm : lease.Mode) (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log)
+    (oc : apply.Outcome) (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainReqL lm rq)
+    (hex : plainCover rq ∨ apply.leaseExactL lt.ids rq log oc) (hb : apply.backendStep rq log oc) :
+    oc.logAfter log = backendLog lt rq log := by
+  have hpc : plainReqL lm rq → apply.dispatchKind rq = .txn → ∀ t, rq.txn = some t → txn.txnLeased t := by
+    rintro ⟨hc, -⟩ hkt t htt
+    unfold plainCover at hc; rw [hkt] at hc; exact txn.txnLeased_of_plain t (hc.2.2 t htt)
+  unfold apply.backendStep at hb
+  unfold backendLog
+  split at hb
+  · rename_i hkd
+    obtain ⟨op, hop, hb⟩ := hb
+    rw [hkd, hop]
+    simp only
+    have hex' : (op.leaseID ≠ W64 0 ∧ op.leaseID ∉ lt.ids → oc.logAfter log = log) ∧
+        (oc = .rejected .backend → (op.leaseID ≠ W64 0 ∧ op.leaseID ∉ lt.ids) ∨
+          (txn.needsPrev op = true ∧ mvcc.findKey op.key (mvcc.stateAfter log) = none)) := by
+      rcases hex with hc | he
+      · have h0 : op.leaseID = W64 0 := by unfold plainCover at hc; rw [hkd] at hc; exact hc.2.2 op hop
+        refine ⟨fun h => absurd h0 h.1, fun hr => ?_⟩
+        rcases hb with ⟨h1, -⟩ | ⟨h1, h2, -⟩ | ⟨-, rfl⟩
+        · exact absurd h0 h1
+        · exact Or.inr ⟨h1, h2⟩
+        · cases hr
+      · unfold apply.leaseExactL at he; rw [hkd] at he; exact he op hop
+    rcases hb with ⟨-, rfl⟩ | ⟨h1, h2, rfl⟩ | ⟨h1, rfl⟩
+    · rcases hex'.2 rfl with hm | ⟨h1, h2⟩
+      · rw [if_pos (show leaseMissingIn lt op.leaseID from hm)]; rfl
+      · by_cases hm : leaseMissingIn lt op.leaseID
+        · rw [if_pos hm]; rfl
+        · rw [if_neg hm, if_pos (by simp [h1, h2])]; rfl
+    · by_cases hm : leaseMissingIn lt op.leaseID
+      · rw [if_pos hm]; rfl
+      · rw [if_neg hm, if_pos (by simp [h1, h2])]; rfl
+    · by_cases hm : leaseMissingIn lt op.leaseID
+      · have := hex'.1 hm
+        simp [apply.Outcome.logAfter] at this
+      · rw [if_neg hm, if_neg]
+        · rfl
+        · intro hc
+          simp only [Bool.and_eq_true, Option.isNone_iff_eq_none] at hc
+          have := h1 hc.1
+          rw [hc.2] at this; cases this
+  · rename_i hkd
+    obtain ⟨op, hop, rfl⟩ := hb
+    rw [hkd, hop]; rfl
+  · rename_i hkd
+    subst hb
+    rw [hkd]; rfl
+  · rename_i hkd
+    obtain ⟨t, htt, hb⟩ := hb
+    rw [hkd, htt]
+    simp only
+    have hl := hpc hp hkd t htt
+    have hex' : (oc.logAfter log ≠ log → txn.PathsLeaseOk (mvcc.stateAfter log) lt.ids
+          (t.branch (txn.txnOk (mvcc.stateAfter log) t))) ∧
+        (oc = .rejected .backend → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+          (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+          txn.PathsLeaseOk (mvcc.stateAfter log) lt.ids (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) := by
+      rcases hex with hc | he
+      · have hpl : txn.txnPlain t := by unfold plainCover at hc; rw [hkd] at hc; exact hc.2.2 t htt
+        refine ⟨fun _ => ?_, fun hr hc' => ?_⟩
+        · unfold TxnModel.branch; split
+          · exact txn.pathsLeaseOk_plain _ _ _ hpl.1
+          · exact txn.pathsLeaseOk_plain _ _ _ hpl.2
+        · rcases hb with ⟨-, hn⟩ | ⟨rfl, -⟩
+          · exact hn hpl hc'.1
+          · cases hr
+      · unfold apply.leaseExactL at he; rw [hkd] at he
+        exact ⟨(he t htt).1, (he t htt).2 hl⟩
+    rcases hb with ⟨rfl, -⟩ | ⟨rfl, -, hig⟩
+    · rw [if_neg (hex'.2 rfl)]; rfl
+    · by_cases hch : mvcc.commitLog log
+          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = log
+      · split <;> (simp only [apply.Outcome.logAfter]; try exact hch)
+      · rw [if_pos ⟨hig, hex'.1 (by simpa [apply.Outcome.logAfter] using hch)⟩]; rfl
+  · rename_i hkd; rw [hkd] at hk; simp [apply.isKVKind] at hk
+  · rename_i hkd; rw [hkd] at hk; simp [apply.isKVKind] at hk
+  · rename_i hkd; rw [hkd] at hk; simp [apply.isKVKind] at hk
+  · rename_i hkd; exfalso
+    simp only [apply.isKVKind] at hk
+    rename_i h1 h2 h3 h4 h5 h6 h7
+    cases h : apply.dispatchKind rq <;> simp_all
+
+/-- **The apply thread's KV outcome is the mode-`on` model's, at the lease mode `lm`** (Draft §3,
+§6: `outcomeOn_of_kvOutL` at `plainReqL lm` with the lease verdict): a KV request of the auth-on log
+at the lease mode `lm`, its dispatched outcome decided at the latest state (`kvOutL`), and lease-exact
+at the model's table when not plain (`leaseExactL`, Draft §3a). -/
+theorem outcomeOn_of_kvOutLL (lm : lease.Mode) (c₀ : w64) (s : OnState) (m : EntryModel)
+    (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
+    (hna : apply.needAdminPermission rq = false)
+    (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainReqL lm rq)
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
+    (hz : noZeroEnds rq) (oc : apply.Outcome)
+    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2.1 oc)
+    (hex : plainCover rq ∨ apply.leaseExactL s.2.2.ids rq s.2.1 oc) :
+    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) := by
+  have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
+  have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
+    rintro ⟨-, h⟩; rw [hna] at h; cases h
+  have hak : apply.authKVKind (apply.dispatchKind rq) = true := apply.authKVKind_of_isKVKind _ hk
+  unfold outcomeOn
+  rw [if_pos hm, hdec]
+  simp only
+  rw [if_neg hna']
+  rcases kvGrantedL_of_kvOutL γa hs s.1 hl _ rq s.2.1 oc hz h with ⟨rfl, hng⟩ | ⟨hc, hg⟩
+  · rw [if_pos ⟨hak, hng⟩]
+    rfl
+  · rw [if_neg (fun h => h.2 hg)]
+    have hlog : oc.logAfter s.2.1 = backendLog s.2.2 rq s.2.1 :=
+      backendLog_of_step lm s.2.2 rq s.2.1 oc hk hp hex hc
+    have hkv : kvEntry c₀ (apply.alarmChain true false false) s.2.2 s.2.1 m =
+        backendLog s.2.2 rq s.2.1 := by
+      unfold kvEntry
+      rw [if_pos ht, if_neg hd, hdec]
+      simp only [decide_eq_true hv]
+      rw [dispatchLog_kv _ rq s.2.2 s.2.1 hk]
+      rfl
+    have htb : kvTable c₀ (apply.alarmChain true false false) s.2.2 m = s.2.2 := by
+      unfold kvTable
+      rw [if_pos ht, if_neg hd, hdec]
+      simp only
+      unfold dispatchTable
+      split
+      · rfl
+      · exact chainTable_kv rq s.2.2 hk _
+    rw [hlog, hkv, htb]
+
+/-- **A revocation's backend outcome is the model's** at a table whose ids are not `0` and cover the
+leases of the log's keys (`liveSt`, the keys' leases live, Draft §1): `revokeLog` deletes the lease's
+keys, none when the lease is not live. -/
+theorem revokeLog_eq_backendLog (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log) (id : w64)
+    (hk : apply.dispatchKind rq = .leaseRevoke) (hid : rq.leaseRevoke = some id)
+    (hlive : liveSt lt.ids (mvcc.stateAfter log)) (h0 : W64 0 ∉ lt.ids) :
+    apply.revokeLog log id = backendLog lt rq log := by
+  unfold backendLog
+  rw [hk, hid]
+  simp only
+  by_cases hin : id ∈ lt.ids
+  · rw [if_pos hin]
+    have hne : id ≠ W64 0 := fun h => h0 (h ▸ hin)
+    unfold apply.revokeLog mvcc.leaseDels mvcc.leaseDelKeys revokeChanges
+    rw [if_neg hne, List.map_map]
+    rfl
+  · rw [if_neg hin]
+    have hnil : mvcc.leaseDels (mvcc.stateAfter log) id = [] := by
+      unfold mvcc.leaseDels mvcc.leaseDelKeys
+      split
+      · rfl
+      · rename_i hne
+        rw [List.filter_eq_nil_iff.2]
+        · rfl
+        intro v hv hc
+        have hc' : v.lease = id := by simpa using hc
+        rcases hlive v hv with h | h
+        · exact hne (hc' ▸ h)
+        · exact hin (hc' ▸ h)
+    unfold apply.revokeLog
+    rw [hnil]
+    unfold mvcc.commitLog
+    simp
+
+open Classical in
+/-- **The apply thread's revocation outcome is the mode-`on` model's** (Draft §6: the revocation
+decided at the latest state, `kvOutL`'s revocation case): refused there, the state kept; granted, the
+model's write (the lease's keys deleted, none if it is not live) and its table. -/
+theorem outcomeOn_of_kvOutL_revoke (c₀ : w64) (s : OnState) (m : EntryModel)
+    (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
+    (hna : apply.needAdminPermission rq = false) (hk : apply.dispatchKind rq = .leaseRevoke)
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
+    (hz : noZeroEnds rq) (hlive : liveSt s.2.2.ids (mvcc.stateAfter s.2.1)) (h0 : W64 0 ∉ s.2.2.ids)
+    (oc : apply.Outcome)
+    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2.1 oc) :
+    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1,
+      if oc = .rejected .auth then s.2.2 else kvTable c₀ (apply.alarmChain true false false) s.2.2 m) := by
+  have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
+  have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
+    rintro ⟨-, h⟩; rw [hna] at h; cases h
+  have hak : apply.authKVKind (apply.dispatchKind rq) = true := by rw [hk]; rfl
+  unfold outcomeOn
+  rw [if_pos hm, hdec]
+  simp only
+  rw [if_neg hna']
+  rcases kvGrantedL_of_kvOutL γa hs s.1 hl _ rq s.2.1 oc hz h with ⟨rfl, hng⟩ | ⟨hc, hg⟩
+  · rw [if_pos ⟨hak, hng⟩, if_pos rfl]
+    rfl
+  · rw [if_neg (fun h => h.2 hg)]
+    have hc' : apply.backendStep rq s.2.1 oc := hc
+    unfold apply.backendStep at hc'
+    rw [hk] at hc'
+    obtain ⟨id, hid, rfl⟩ := hc'
+    have hkv : kvEntry c₀ (apply.alarmChain true false false) s.2.2 s.2.1 m =
+        backendLog s.2.2 rq s.2.1 := by
+      unfold kvEntry
+      rw [if_pos ht, if_neg hd, hdec]
+      simp only [decide_eq_true hv]
+      unfold dispatchLog
+      rw [hk]
+      rfl
+    rw [if_neg (fun h => by cases h)]
+    simp only [apply.Outcome.logAfter]
+    rw [hkv, ← revokeLog_eq_backendLog s.2.2 rq s.2.1 id hk hid hlive h0]
 
 end pure
 

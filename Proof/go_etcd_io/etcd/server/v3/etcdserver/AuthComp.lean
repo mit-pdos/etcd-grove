@@ -77,12 +77,12 @@ def acOpenQ : AuthC → Qp
   | .off => (1 : Qp).half
   | .on _ => (1 : Qp).half.half
 
-/-- **The KV modes the component admits**: every one off; on, no compaction and no lease grant.
-Stage 2's `srvKVInvsC` carries `⌜acModesOk C E.cmp γr.kv.lg⌝` (today `srvKVInvsOn`'s last
-conjunct). -/
+/-- **The KV modes the component admits**: every one off; on, no compaction (auth-lease S3a §6: lease
+grants admitted, the grant flag unconstrained; until then `lg = false` too).
+Stage 2's `srvKVInvsC` carries `⌜acModesOk C E.cmp γr.kv.lg⌝` (`srvKVInvsOn`'s compaction row). -/
 def acModesOk : AuthC → Bool → Bool → Prop
   | .off => fun _ _ => True
-  | .on _ => fun cmp lg => cmp = false ∧ lg = false
+  | .on _ => fun cmp _ => cmp = false
 
 /-- **The rest resource's buckets**: the tracked buckets neither the cluster's nor the
 component's. -/

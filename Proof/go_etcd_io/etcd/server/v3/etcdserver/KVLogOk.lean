@@ -57,7 +57,7 @@ def KVState.log (σ : KVState) : mvcc.Log := [] :: σ.changes
 
 /-- **`σ` is a well-formed small log's state through revision `r`** (see the file header). -/
 def kvLogOkTo (σ : KVState) (r : Nat) : Prop :=
-  σ = kvStateOf σ.log ∧ r ≤ σ.rev ∧ r + 1 < 2 ^ 63 ∧
+  σ = kvStateOf σ.log σ.leases ∧ r ≤ σ.rev ∧ r + 1 < 2 ^ 63 ∧
     mvcc.LogWf' (σ.log.take (r + 1)) ∧ txn.LogSmall (σ.log.take (r + 1)) ∧
     -- (2026-10-30, `notes/keylen.md`) its keys short
     mvcc.LogPutsLe etcdKeyMax (σ.log.take (r + 1))
@@ -68,7 +68,7 @@ def kvLogOk (σ : KVState) : Prop := kvLogOkTo σ σ.rev
 /-! ## From the server's logs -/
 
 /-- A log whose revision `0` has no change is its state's log. -/
-theorem kvStateOf_log (l : mvcc.Log) (h : l[0]? = some []) : (kvStateOf l).log = l := by
+theorem kvStateOf_log (l : mvcc.Log) {lt : LeaseTable} (h : l[0]? = some []) : (kvStateOf l lt).log = l := by
   cases l with
   | nil => simp at h
   | cons c l =>
@@ -80,8 +80,8 @@ theorem kvStateOf_log (l : mvcc.Log) (h : l[0]? = some []) : (kvStateOf l).log =
 of `C`, through any revision `r` of its prefix `l`. -/
 theorem kvLogOkTo_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' l)
     (hs : txn.LogSmall l) (hl : l.length < 2 ^ 63) {r : Nat} (hr : r < l.length)
-    (hk : mvcc.LogPutsLe etcdKeyMax l) :
-    kvLogOkTo (kvStateOf C) r := by
+    (hk : mvcc.LogPutsLe etcdKeyMax l) {lt : LeaseTable} :
+    kvLogOkTo (kvStateOf C lt) r := by
   have hne : l ≠ [] := by intro h; subst h; simp at hr
   have h0 : C[0]? = some [] := by
     obtain ⟨t, rfl⟩ := hp
@@ -91,7 +91,7 @@ theorem kvLogOkTo_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' l)
   have ht : C.take (r + 1) = l.take (r + 1) := by
     obtain ⟨t, rfl⟩ := hp; exact List.take_append_of_le_length (by omega)
   have htl : l.take (r + 1) <+: l := List.take_prefix _ _
-  refine ⟨by rw [kvStateOf_log C h0], ?_, by omega, ?_, ?_, ?_⟩
+  refine ⟨by rw [kvStateOf_log C h0]; rfl, ?_, by omega, ?_, ?_, ?_⟩
   · rw [kvStateOf_rev]; omega
   · rw [kvStateOf_log C h0, ht]; exact logWf'_of_prefix htl hw
   · rw [kvStateOf_log C h0, ht]; exact logSmall_of_prefix htl hs
@@ -99,8 +99,8 @@ theorem kvLogOkTo_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' l)
 
 /-- **A well-formed small log's state is well formed.** -/
 theorem kvLogOk_of (l : mvcc.Log) (hw : mvcc.LogWf' l) (hs : txn.LogSmall l)
-    (hl : l.length < 2 ^ 63) (hne : l ≠ []) (hk : mvcc.LogPutsLe etcdKeyMax l) :
-    kvLogOk (kvStateOf l) := by
+    (hl : l.length < 2 ^ 63) (hne : l ≠ []) (hk : mvcc.LogPutsLe etcdKeyMax l) {lt : LeaseTable} :
+    kvLogOk (kvStateOf l lt) := by
   unfold kvLogOk
   rw [kvStateOf_rev]
   exact kvLogOkTo_of_prefix (List.prefix_refl l) hw hs hl
@@ -110,7 +110,7 @@ theorem kvLogOk_of (l : mvcc.Log) (hw : mvcc.LogWf' l) (hs : txn.LogSmall l)
 write met, the certified log after it extending it). -/
 theorem kvLogOk_of_prefix {l C : mvcc.Log} (hp : l <+: C) (hw : mvcc.LogWf' C)
     (hs : txn.LogSmall C) (hl : C.length < 2 ^ 63) (hne : l ≠ [])
-    (hk : mvcc.LogPutsLe etcdKeyMax C) : kvLogOk (kvStateOf l) :=
+    (hk : mvcc.LogPutsLe etcdKeyMax C) {lt : LeaseTable} : kvLogOk (kvStateOf l lt) :=
   kvLogOk_of l (logWf'_of_prefix hp hw) (logSmall_of_prefix hp hs)
     (by have := hp.length_le; omega) hne (hk.prefix hp)
 

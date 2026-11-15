@@ -757,6 +757,22 @@ theorem srvRest_false (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
     srvRest E γr A = E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
   unfold srvRest; rw [h]; rfl
 
+/-- **`srvRest` at a given lease table `T`** (auth-lease S3a, Draft rev 5 §4, form decided by
+etcd-grove-81: the table a parameter, since `InvRest` is below the mode-`on` model; `srvRestM` in
+`ApplyRDefs` instantiates it at `appliedTableM`). -/
+def srvRestT (E : apply.AEnv GF) (γr : ReadNames) (T : LeaseTable) (A : List EntryModel) : IProp GF :=
+  if E.lg then
+    iprop(srvRestAt E T (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) ∗ srvEver E A)
+  else E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
+
+theorem srvRest_eq_T (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    srvRest E γr A = srvRestT E γr (appliedTable γr A) A := rfl
+
+/-- At `E.lg = false` the table does not matter. -/
+theorem srvRestT_lg_false (E : apply.AEnv GF) (γr : ReadNames) (T T' : LeaseTable) (A : List EntryModel)
+    (h : E.lg = false) : srvRestT E γr T A = srvRestT E γr T' A := by
+  unfold srvRestT; rw [h]; rfl
+
 open Iris.ProofMode in
 /-- **The receive side's refutation of the leased arm** (2.9, S-A; the lease-expiry plan's X2,
 2026-11-04, mode-generic): a revocable lessor (`applySnapshot`'s pre) whose mode is `decide (m =

@@ -221,3 +221,22 @@ already has). Full build (flock, 64G) passes (`/shared/tmp/restart3-c/build-c4.l
 unchanged (870 axioms, 4 sorries); restart1 and putget3 collections unchanged; interfaces clean.
 Left before landing: the user's approval of the statement; the fork push, then goose with the real go.mod
 (`goose --check`, go.sum), A1 lands first; STATUS.md entry at landing.
+
+### lean merged into `restart3` (2026-11-15, lean `b7e3cf342a`, auth-lease S3a)
+Conflicts: `EtcdServer__applyAll.lean` (A1's `T`-less step end and `st4` kept, at S3a's `srvRestRM C.isOn` /
+`srvRestRM_past`; S3a's `srvRestM` mode switches around `mergedCreate_window` auto-merged), STATUS "Last updated"
+(union of both sides' ten, newest ten kept; http-boundary moved to status-history, S7.4 already there),
+status-history (A1's S7.4 line kept). Full build green (flock, 64G; `/shared/tmp/restart3-merge/build-1.log`);
+`etc/gates.sh`: build, links, tcb (870/4), collections (57 match), gen-init, bounds 351, mode 417, api, interfaces,
+import-all ok; goose and the Go gates (pbschema, entsize, featuregate, premisefix, k8s) fail on go.sum only (the
+unpushed fork `6e8f0c004`), as expected (`/shared/tmp/restart3-merge/gates-1.log`).
+
+### `restart3` (with lean `b7e3cf342a`) merged into `restart3-c` (2026-11-15)
+Only conflict: this handoff (both sides' sections kept). One fix: `restart/put.lean` destructs `wp_Put`'s post at
+S3a's `∃ lt, ⌜…⌝ ∗ Q` (as lean's `restart1/put.lean`). Full build green (`/shared/tmp/restart3-merge/build-c2.log`);
+`etc/gates.sh` (`/shared/tmp/restart3-merge/gates-c2.log`): tcb 870/4, collections 58 match (restart3 530/0 =
+restart1's 508 plus 22 HTTP/net axioms, a subset of putget3's 640), links, gen-init, mode 417, api, interfaces ok;
+goose and the Go gates fail on go.sum only (unpushed fork). **bounds FAILS: 356 vs 351**, `stock` 5 in
+`examples/etcd/restart` (`Swap.lean` 250/280/282/491, `Spec/.../raftSwap.lean` 63: the swap's pool of `srvServeRes`
+copies and slot tokens), from C3, not the merge; needs an allow entry (the swap owns the pool) or a rework, decided
+by etcd-grove-81, before landing.

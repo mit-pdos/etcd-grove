@@ -2226,13 +2226,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         · iexact HkvSG
         ipureintro
         -- (#7-on) auth on, the compaction mode off (`specG`'s `cmp = true → on = false`)
-        -- (the lease-grant merge) and a cluster that grants no lease (`specG`'s `on → lg = false`)
         have hcf : cmp = false := by
           cases hc : cmp
           · rfl
           · exact absurd (Hcon hc) (by decide)
         refine ⟨⟨⟨fun _ => inferInstance, fun _ => inferInstance, fun _ => inferInstance,
-          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, Hlgon rfl⟩
+          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, by first | trivial | rfl, by simp [HρRaft]⟩
         all_goals first | exact True.intro | rfl | exact hcf
       · iapply srvUberOn_of_kit hKit
         iPkgInit

@@ -60,6 +60,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
   wp_if_destruct
   · -- the request costs: `ErrNoSpace`
     icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
+    ihave Hkv := apply.kvOwn_rejected E log rq .noSpace (by decide) $$ Hkv
     iapply HΦ
     iframe Htt
     isplitl

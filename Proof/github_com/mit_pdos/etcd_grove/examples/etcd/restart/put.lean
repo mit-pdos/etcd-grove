@@ -178,7 +178,7 @@ theorem put.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe Htok
-  icases Hout with (⟨%Herr, %hm, %x, %x', %o, %skip, %Hst, -, -, -, -, -, -, -, -, HQ, -, -⟩ |
+  icases Hout with (⟨%Herr, %hm, %x, %x', %o, %skip, %Hst, -, -, -, -, -, -, -, -, ⟨%lt, -, HQ⟩, -, -⟩ |
     ⟨⟨-, %Herr⟩, -⟩)
   · ileft; iframe HQ; ipureintro; exact Herr
   · iright; ipureintro; exact Herr

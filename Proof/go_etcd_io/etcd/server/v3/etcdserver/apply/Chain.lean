@@ -232,6 +232,48 @@ def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
   | .none => False
   | _ => o = .applied log false ∨ o = .rejected .backend
 
+/-- **The lease exactness of a put's or a transaction's outcome at the live set `ids`** (auth-lease
+S3a, Draft rev 5 §3a, F1 (ii)): `backendStep` lets a put with a lease be rejected whatever the lease
+and a transaction be applied without `PathsLeaseOk`; against the lessor's live set before the request,
+a put of a dead lease commits nothing and a put is rejected by the backend only for a dead lease or a
+missing previous key-value; an applied transaction's path names live leases only, and a leased
+transaction rejected by the backend fails `checkTxn`'s checks. -/
+def leaseExactL (ids : List w64) (rq : IRRModel) (log : mvcc.Log) (oc : Outcome) : Prop :=
+  match dispatchKind rq with
+  | .put => ∀ op, rq.put = some op →
+      ((op.leaseID ≠ W64 0 ∧ op.leaseID ∉ ids) → oc.logAfter log = log) ∧
+      (oc = .rejected .backend → (op.leaseID ≠ W64 0 ∧ op.leaseID ∉ ids) ∨
+        (txn.needsPrev op = true ∧ mvcc.findKey op.key (mvcc.stateAfter log) = none))
+  | .txn => ∀ t, rq.txn = some t →
+      (oc.logAfter log ≠ log → txn.PathsLeaseOk (mvcc.stateAfter log) ids
+        (t.branch (txn.txnOk (mvcc.stateAfter log) t))) ∧
+      (txn.txnLeased t → oc = .rejected .backend → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+        (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+        txn.PathsLeaseOk (mvcc.stateAfter log) ids (t.branch (txn.txnOk (mvcc.stateAfter log) t))))
+  | _ => True
+
+/-- A rejection by a layer above the backend is lease-exact (the log kept). -/
+theorem leaseExactL_rejected (ids : List w64) (rq : IRRModel) (log : mvcc.Log) (r : RejectKind)
+    (hr : r ≠ .backend) : leaseExactL ids rq log (.rejected r) := by
+  unfold leaseExactL
+  split
+  · intro op _
+    refine ⟨fun _ => rfl, fun h => ?_⟩
+    cases h; exact absurd rfl hr
+  · intro t _
+    refine ⟨fun h => absurd rfl h, fun _ h => ?_⟩
+    cases h; exact absurd rfl hr
+  · trivial
+
+/-- A request other than a put and a transaction is lease-exact. -/
+theorem leaseExactL_other (ids : List w64) (rq : IRRModel) (log : mvcc.Log) (oc : Outcome)
+    (hp : dispatchKind rq ≠ .put) (ht : dispatchKind rq ≠ .txn) : leaseExactL ids rq log oc := by
+  unfold leaseExactL
+  split
+  · rename_i h; exact absurd h hp
+  · rename_i h; exact absurd h ht
+  · trivial
+
 /-! ## The per-request premises -/
 
 /-- A put's premise at the sole writer's log: room for one more revision. -/
@@ -876,6 +918,78 @@ the auth store's reader resource (`E.RD`). The thread's tokens are not in it: th
 take `applyTok E` beside it. -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD)
+
+/-- **The apply thread's KV resources with the live set `L` exposed** (auth-lease S3a, Draft rev 5 §3a):
+`kvOwn`'s, `leasesLive`'s live set named (`kvOwn_iff_at`). -/
+def kvOwnAt (E : AEnv GF) (log : mvcc.Log) (L : List w64) : IProp GF :=
+  iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗
+    (txn.leasesKnown L (mvcc.stateAfter log) ∗
+      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗ ltHalf E L) ∗
+    E.RD)
+
+open Iris.ProofMode in
+/-- **`kvOwn` is `kvOwnAt` at some live set** (Draft rev 5 §3a's law). -/
+theorem kvOwn_iff_at (E : AEnv GF) (log : mvcc.Log) : kvOwn E log ⊣⊢ ∃ L, kvOwnAt E log L := by
+  constructor
+  · unfold kvOwn leasesLive kvOwnAt
+    iintro ⟨Hw, Hbk, ⟨%L, Hk, Hu, Hlt⟩, Hrd⟩
+    iexists L
+    iframe
+  · unfold kvOwn leasesLive kvOwnAt
+    iintro ⟨%L, Hw, Hbk, ⟨Hk, Hu, Hlt⟩, Hrd⟩
+    iframe Hw Hbk Hrd
+    iexists L
+    iframe
+
+open Iris.ProofMode in
+/-- `kvOwnAt` with a pure fact about its live set forgets to `kvOwn`. -/
+theorem kvOwn_of_atP (E : AEnv GF) (log : mvcc.Log) (P : List w64 → Prop) :
+    (∃ L, ⌜P L⌝ ∗ kvOwnAt E log L) ⊢ kvOwn E log := by
+  iintro ⟨%L, -, H⟩
+  iapply (kvOwn_iff_at E log).2
+  iexists L; iexact H
+
+open Iris.ProofMode in
+/-- `kvOwn` with any fact its live set meets, at every live set. -/
+theorem kvOwn_atP (E : AEnv GF) (log : mvcc.Log) (P : List w64 → Prop) (hP : ∀ L, P L) :
+    kvOwn E log ⊢ ∃ L, ⌜P L⌝ ∗ kvOwnAt E log L := by
+  iintro H
+  ihave ⟨%L, H⟩ := (kvOwn_iff_at E log).1 $$ H
+  iexists L
+  iframe H
+  ipureintro; exact hP L
+
+open Iris.ProofMode in
+/-- `kvOwnAt` forgets its live set (`kvOwn_iff_at`). -/
+theorem kvOwn_of_at (E : AEnv GF) (log : mvcc.Log) (L : List w64) : kvOwnAt E log L ⊢ kvOwn E log := by
+  iintro H
+  iapply (kvOwn_iff_at E log).2
+  iexists L; iexact H
+
+open Iris.ProofMode in
+/-- **`kvOwnAt`'s live set is the caller's half's** (in a cluster that grants leases): the other half
+of the live set `T` (`ltHalf E T`) agrees with `kvOwnAt`'s; both given back. -/
+theorem kvOwnAt_ltHalf (E : AEnv GF) (log : mvcc.Log) (L T : List w64) :
+    kvOwnAt E log L ∗ ltHalf E T ⊢ ⌜E.lg = true → L = T⌝ ∗ kvOwnAt E log L ∗ ltHalf E T := by
+  unfold kvOwnAt ltHalf
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨H, -⟩
+    isplitl []
+    · ipureintro; intro h'; cases h'
+    iframe H
+    try itrivial
+  · simp only [↓reduceIte]
+    iintro ⟨⟨Hw, Hbk, ⟨Hk, Hu, Hlt⟩, Hrd⟩, HT⟩
+    icombine Hlt HT gives %H
+    iframe Hw Hbk Hk Hu Hlt Hrd HT
+    ipureintro; intro _; exact H.2
+
+/-- `kvOwn` at a rejection above the backend: lease-exact at its live set. -/
+theorem kvOwn_rejected (E : AEnv GF) (log : mvcc.Log) (rq : IRRModel) (r : RejectKind)
+    (hr : r ≠ .backend) :
+    kvOwn E log ⊢ ∃ L, ⌜leaseExactL L rq log (.rejected r)⌝ ∗ kvOwnAt E log L :=
+  kvOwn_atP E log _ (fun L => leaseExactL_rejected L rq log r hr)
 
 open Iris.ProofMode in
 /-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
@@ -1625,11 +1739,13 @@ def floorOkO (F log : mvcc.Log) (oc : Outcome) : Prop :=
   ∀ (l : mvcc.Log) (b : Bool), oc = .applied l b → F <+: log
 
 /-- The postcondition of a KV method on `rq` with a floor `F` (unit V2): `kvPost`'s, the outcome
-meeting the floor. -/
+meeting the floor; (auth-lease S3a, Draft rev 5 §3a, N1 (ii′)) the thread's resources at a live set
+`L` against which the outcome is lease-exact (`leaseExactL`, `kvOwnAt`). -/
 def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
+    chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
     chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `Put(r)`'s precondition: `r` is `rq`'s put `o`. -/
@@ -1720,7 +1836,8 @@ theorem chainResAny_backend {a : GoInterface} : ⊢ chainResAny (GF := GF) .back
 theorem kvPostF_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
     {rq : IRRModel} {log F : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF} :
     (∃ oc : Outcome, ⌜chainStep backendStep .backend rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
-      kvOwn E (oc.logAfter log) ∗ chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
+      (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
+      chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
       kvPostF E .backend a info rq log F R Pre Post := by
   iintro ⟨%oc, %H, HR, Hkv, Hres, HPP⟩
   unfold kvPostF

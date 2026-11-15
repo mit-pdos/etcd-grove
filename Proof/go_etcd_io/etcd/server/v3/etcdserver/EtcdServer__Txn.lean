@@ -1029,7 +1029,7 @@ theorem EtcdServer.Txn.wp_proof
         rotate_left
         · isplitr
           · ipureintro; exact Hwf
-          rw [Hxlb, ← HLlb]; iexact HQ
+          rw [Hxlb, ← HLlb]; iexists []; iframe HQ; ipureintro; intro _; rfl
         ipureintro
         refine ⟨trivial, Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
         have := Hwire.2.2.2 hz
@@ -1202,7 +1202,7 @@ theorem EtcdServer.Txn.wp_proof
           ipureintro; exact Hn
         wp_auto_lc 1
         -- the transaction's result, with its token: granted at the state its entry met
-        ihave #HQr := txnQhOn_res ρ.kv tw γc Q hm Lq x.log log' skip Hmo $$ HQq
+        icases txnQhOn_res ρ.kv tw γc Q hm Lq x.log log' skip Hmo $$ HQq with ⟨%lt, %Hlt, #HQr⟩
         imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
         (try wp_auto)
         wp_apply HEnd
@@ -1233,7 +1233,10 @@ theorem EtcdServer.Txn.wp_proof
         rotate_left
         · isplitr
           · ipureintro; exact Hwf
-          iexact HQ
+          iexists lt; iframe HQ; ipureintro
+          rintro (h | h)
+          · simp_all
+          · exact Hlt h
         ipureintro
         refine ⟨trivial, Hwire, Ht', fun _ => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
         simp [apply.withHeader, irrTxn] at Ht'

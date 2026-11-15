@@ -51,7 +51,7 @@ theorem watcher.Watch.wp_proof
   icases Hf0 with ⟨-, #Hcf0⟩
   ihave ⟨#Hmf0, -⟩ := watchConnFacts_cur V $$ Hcf0
   ihave #Hkf0 := watchMemberFacts_kv V $$ Hmf0
-  imod srvKVFacts_fire0 V γ Hkst.symm Q $$ [Hkf0 Hau] with ⟨%C0, #HQ0⟩
+  imod srvKVFacts_fire0 V γ Hkst.symm Q $$ [Hkf0 Hau] with ⟨%C0, %lt0, #HQ0⟩
   · iframe #
   -- (G2) the watch's events are of its range with an empty key read as `"\x00"`, which the
   -- server registers exactly
@@ -383,7 +383,7 @@ theorem watcher.Watch.wp_proof
         ipersist HRevision
         imod monoListAuthOwn_update_app (GF := GF) [rev - W64 1] $$ Ha with ⟨Ha, #Hlb⟩
         ihave #Hi1 := monoListIdxOwn_get (GF := GF) 1 (rev - W64 1) rfl $$ Hlb
-        ihave Hel := outcElem_canceled V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0) 0
+        ihave Hel := outcElem_canceled V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0 lt0) 0
           (rev - W64 1) ⟨«$v0_ptr», slice.nil, 0, true, false, GoInterface.ok i, []⟩ ⟨rfl, rfl, rfl, rfl, Hhn⟩ $$ [HRevision]
         · rw [Hc2.1]
           iframe #
@@ -450,7 +450,7 @@ theorem watcher.Watch.wp_proof
       ipersist HRevision
       imod monoListAuthOwn_update_app (GF := GF) [rev - W64 1] $$ Ha with ⟨Ha, #Hlb⟩
       ihave #Hi1 := monoListIdxOwn_get (GF := GF) 1 (rev - W64 1) rfl $$ Hlb
-      ihave Hel := outcElem_canceled V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0) 0
+      ihave Hel := outcElem_canceled V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0 lt0) 0
         (rev - W64 1) ⟨«$v0_ptr», slice.nil, 0, true, false, GoInterface.ok i, []⟩ ⟨rfl, rfl, rfl, rfl, Hhn⟩ $$ [HRevision]
       · rw [Hc2.1]
         iframe #

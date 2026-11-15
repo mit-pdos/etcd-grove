@@ -438,11 +438,11 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, hser, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%log, -, %Hlk, %Hp, -, #HQ⟩
+      icases Hr with ⟨%log, -, %Hlk, %Hp, -, ⟨%ltq, -, #HQ⟩⟩
       obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
-      have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := client.kvStateOf_rev_succ _ hlen
-      have hs : (kvStateOf log).kvs = mvcc.stateAfter log := kvStateOf_kvs _
-      iexists m, kvStateOf log
+      have hr : ((kvStateOf log ltq).rev + 1 : Nat) = log.length := client.kvStateOf_rev_succ _ hlen
+      have hs : (kvStateOf log ltq).kvs = mvcc.stateAfter log := kvStateOf_kvs _
+      iexists m, kvStateOf log ltq
       iframe Hm HQ
       ipureintro
       rw [hr, hs]
@@ -489,13 +489,13 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, %Hlk, HQ⟩
+      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, %Hlk, ⟨%ltq, -, HQ⟩⟩
       obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
       have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e tw Htw)
       subst ht hsk
-      have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
-      have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _
-      iexists m, kvStateOf y.log
+      have hr : ((kvStateOf y.log ltq).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
+      have hs : (kvStateOf y.log ltq).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _
+      iexists m, kvStateOf y.log ltq
       iframe Hm HQ
       ipureintro
       rw [hr, hs]

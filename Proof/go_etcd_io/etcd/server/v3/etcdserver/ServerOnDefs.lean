@@ -79,7 +79,7 @@ def appliedPubM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) : IP
   | false => iprop(True)
   | true => iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
       ⌜uint.Z i = uint.Z γr.raft.ai0 + A.length⌝ ∗
-      authPubAt E.authMode (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1)
+      authPubAt E.authMode (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1)
 
 instance appliedPubM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) :
     Persistent (appliedPubM (GF := GF) on E γr i) := by
@@ -315,6 +315,16 @@ theorem srvKVInvsM_keysA (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNa
 theorem srvKVInvsM_true (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true s E γr ⊢ srvKVInvsOn E γr srvAuthSt0 := by
   unfold srvKVInvsM; iintro ⟨#H, -⟩; iexact H
+
+/-- **`srvKVInvsOn`'s rows** (auth-lease S3a, Draft rev 5 §3): with auth on, the model's lease mode the
+environment's and the raft prefix empty. -/
+theorem srvKVInvsM_rows (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) on s E γr ⊢ ⌜on = true → γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝ := by
+  cases on
+  · iintro -; ipureintro; intro h; cases h
+  · unfold srvKVInvsM srvKVInvsOn
+    iintro ⟨⟨-, -, -, -, -, -, -, %h⟩, -⟩
+    ipureintro; intro _; exact ⟨h.2.1, h.2.2⟩
 
 /-- `srvKVInvsM true`'s uber-applier contracts. -/
 theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :

@@ -181,7 +181,7 @@ theorem rangeEvents_take (σ : KVState) (o : OpFull) (pfx : GoString) (hp : pfx 
     σ.rangeEvents o lo hi = watchEvents (σ.log.take (r + 1)) (pfxRange pfx) lo hi := by
   obtain ⟨hl, -⟩ := kvLogOkTo_len h
   have hr := h.2.1
-  have h1 := rangeEvents_kvStateOf σ.log o lo hi h0 (by omega)
+  have h1 := rangeEvents_kvStateOf σ.log (lt := σ.leases) o lo hi h0 (by omega)
   rw [← h.1] at h1
   rw [h1, ← rangeLogEvents_prefix (List.take_prefix (r + 1) σ.log) o
     (by rw [List.length_take]; omega)]

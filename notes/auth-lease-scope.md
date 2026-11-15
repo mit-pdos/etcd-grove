@@ -401,6 +401,11 @@ Freeze, Prove. **Hard stops:** the Freeze package. `kvPostFL` and `apply_txn_lat
 **S6 (optional, later):** the TOCTOU fix (3 to 5 days). Needs the user's filing decision, a fork
 commit and the axiom post of §2.4.
 
+**Revised 2026-11-15 (etcd-grove-81):** S3 is 26 to 40 agent-days (18 to 28 before S3a review r1), in three Freeze packages (S3a model and apply
+thread, S3b request side, S3c couplings and `NewServer`): no path admitted a put with a lease (`plainCover`,
+`putPermit`/`putPermitOn`, no `clientv3.WithLease` spec), so leased puts are folded into S3 (server) and S4 (client);
+`notes/auth-lease-handoff.md`.
+
 **Total S0–S4:** 25 to 38 agent-days. The S3 range is the widest: the auth-on model's lemmas
 (`KVAuthModel.lean` is 1405 lines) all take the third component.
 

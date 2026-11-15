@@ -89,25 +89,6 @@ theorem snap_bkG (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams) (D 
 
 end snapLeases
 
-section kvLeases
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-open Iris.ProofMode in
-/-- With auth on, a cluster grants no lease (`srvKVInvsOn`'s). -/
-theorem srvKVInvsM_lg (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVInvsM (GF := GF) on s E γr ⊢ ⌜on = true → γr.kv.lg = false⌝ := by
-  cases on
-  · iintro -; ipureintro; intro h; cases h
-  · unfold srvKVInvsM srvKVInvsOn
-    iintro ⟨⟨-, -, -, -, -, -, %h⟩, -⟩
-    ipureintro; intro _; exact h.2.2
-
-end kvLeases
-
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -152,9 +133,11 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
     (quota : w64) (wad : time.Duration)
     (A' : List EntryModel)
     -- (strict M1) the KV at the applied `A`'s model, the image's committed log extending it, its
-    -- history attaching no lease (`specSnapM`'s `hxA`, `hAA'`, `hnl`)
+    -- history attaching a key only to a lease of the snapshot's table (`specSnapM`'s `hxA`, `hAA'`,
+    -- `hnl`; auth-lease S3a §5: the mode's table, `appliedTableM E.authOn`)
     (hxA : x.log = kvModelM E.authOn γr.kv A) (hAA' : A <+: A')
-    (hnl : mvcc.LogNoLease (kvModelM E.authOn γr.kv A'))
+    (hnl : ∀ (k : GoString) (id : w64), mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM E.authOn γr.kv A'))
+      !! ⟨k⟩ = some id → id ∈ srvIds E (appliedTableM E.authOn γr A').ids)
     -- (P6.2, 2026-11-03, F9) the rest model's members the image's
     (hmem : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     (hany : E.authMode ≠ .any)
@@ -163,15 +146,15 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
     -- the records' requests the table's; the image's lease bucket the table's records at `f`
     (Lr : List w64) (recs : List (w64 × w64 × w64)) (U : List w64) (reqOf : w64 → w64)
     (f : w64 → w64)
-    (hLr : Lr = srvIds E (appliedTable γr A').ids)
+    (hLr : Lr = srvIds E (appliedTableM E.authOn γr A').ids)
     (hUok : srvEverOk E A' (U ++ recs.map (·.1)))
     (hbkG : ∀ n, membership.clusterBkts n ∨ restSet E.authMode n →
-      (apply.restLeasesWith f (srvIds E (appliedTable γr A').ids)
+      (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A').ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup n =
       (<[go!"alarm" := ∅]> (<[go!"lease" := ((backend.rbData d.P D).lookup go!"lease").getD ∅]>
         (backend.rbData d.P D))).lookup n)
-    (hf : E.lg = true → leaseTTLsGeReq (appliedTable γr A') f)
-    (hreqT : E.lg = true → ∀ p ∈ appliedTable γr A', ∃ x ∈ recs, x.1 = p.1 ∧ reqOf x.1 = p.2) :
+    (hf : E.lg = true → leaseTTLsGeReq (appliedTableM E.authOn γr A') f)
+    (hreqT : E.lg = true → ∀ p ∈ appliedTableM E.authOn γr A', ∃ x ∈ recs, x.1 = p.1 ∧ reqOf x.1 = p.2) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
@@ -224,7 +207,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   have hxl : x.log.length ≤ (kvModelM E.authOn γr.kv A').length := by
     rw [hxA]; exact (srvApi.kvModelM_prefix E.authOn γr.kv A A' hAA').length_le
   ihave HKV' := snap_applyKV s γ ci E ρ γr π0 d.P d' g up' opts' w0 RD0 al ast lp cl x A'
-      (srvIds E (appliedTable γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl $$
+      (srvIds E (appliedTableM E.authOn γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl $$
       [Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hrt Hra Hauar
         Hwok HRD0]
   · iframe #; iframe Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl'
@@ -232,7 +215,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   -- (S2–S4, Probe 4) the table's requests, from the records' (`hreqT`)
-  ihave #HRqT : srvReqsIf E (appliedTable γr A') $$ []
+  ihave #HRqT : srvReqsIf E (appliedTableM E.authOn γr A') $$ []
   · unfold srvReqsIf
     cases hl : E.lg
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -250,7 +233,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
     iframe HEv
     ipureintro; exact hUok
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci g d'.γB d' γr al ast lp
-    cl _ memI A' rfl f hbkG hmem hf
+    cl _ memI A' rfl f E.authOn hbkG hmem hf
     $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HEv]
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HGI HRqT HEv
   -- step 7: the rest, framed

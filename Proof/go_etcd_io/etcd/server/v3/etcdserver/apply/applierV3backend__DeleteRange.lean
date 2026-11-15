@@ -140,12 +140,12 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact ⟨Herr, h2, by unfold apply.delOk at hlen; omega⟩
     isplitl [Hw Hbk Hhk Htie Hown Hrdo Hrvk Hard HltL]
-    · iapply (apply.kvOwn_of_split E _ B c)
-      iframe Hw Htie
-      iunfold apply.kvRest
-      iframe Hbk Hhk Hard
-      iunfold apply.leasesLive
-      iexists L
+    · iexists L
+      isplitl []
+      · ipureintro
+        exact apply.leaseExactL_other L rq log _ (by rw [hk]; decide) (by rw [hk]; decide)
+      iapply (apply.kvOwnAt_of_split E _ B c L)
+      iframe Hw Htie Hbk Hhk Hard
       isplitr [Hown Hrdo Hrvk HltL]
       · iapply apply.leasesKnown_commit_delete $$ Hknown
       iunfold EtcdGrove.lease.lessorUser

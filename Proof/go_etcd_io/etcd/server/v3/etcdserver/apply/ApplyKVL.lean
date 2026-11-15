@@ -79,7 +79,8 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
       apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
       apply.applyAuthRes E.authMode x.chain rq v3 out ∗ L hs ∗
       ⌜∀ o, out = .dispatched o skip → v3 = true →
-        apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ }}
+        apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ ∗
+      ⌜∀ o b, out = .dispatched o b → v3 = true → E.lg = true → apply.leaseExactL T rq x.log o⌝ }}
 
 end defs
 
@@ -151,6 +152,7 @@ theorem apply.uberApplier.Apply.wp_kvL
         (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
         apply.resTrace ar ∗ L hs ∗
         ⌜v3 = true → apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ ∗
+        ⌜v3 = true → E.lg = true → apply.leaseExactL T rq x.log o⌝ ∗
         apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Htt HFS HSp HRO HLt Hrv HL] as %ar Hpost
   · iframe Hw Ha Hkv Htt HFS HSp HRO HLt Hrv HL
@@ -169,7 +171,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     simp only []
     iframe Htt Hrt Hres HFS Hrv Hra
     iexact HB
-  icases Hpost with (⟨⟨Htt, Hrt, HFS, Hrv, Hra, %a', %c', %o, Ha', #Hs'', Hkv, HLt, HRO, HPP, %Hst, #Hcls, Htr, HL, %HXo, Hres⟩, #Hadm⟩ |
+  icases Hpost with (⟨⟨Htt, Hrt, HFS, Hrv, Hra, %a', %c', %o, Ha', #Hs'', Hkv, HLt, HRO, HPP, %Hst, #Hcls, Htr, HL, %HXo, %HXe, Hres⟩, #Hadm⟩ |
     ⟨%Hna, ⟨Ha, Hkv, Htt, HFS, -, HRO, HLt, Hrv, HL⟩, Hrej⟩)
   · obtain ⟨-, -, -, ha, hc⟩ := id Hst
     subst ha hc
@@ -187,11 +189,17 @@ theorem apply.uberApplier.Apply.wp_kvL
     · ipureintro
       exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1, (apply.dispatchCrev_nonCmp _ _ _ _
         (fun h => by simp [apply.authKVKind, apply.isKVKind, h] at Hkk)).symm⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
+    isplitr
+    · ipureintro
+      intro o' ho' hv
+      injection ho' with ho'
+      subst ho'
+      exact HXo hv
     ipureintro
-    intro o' ho' hv
+    intro o' b ho' hv
     injection ho' with ho'
     subst ho'
-    exact HXo hv
+    exact HXe hv
   · iunfold apply.rejectResultIs at Hrej
     icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeI⟩
     ipersist Hv
@@ -227,8 +235,12 @@ theorem apply.uberApplier.Apply.wp_kvL
     isplitr
     · simp only [apply.applyAuthRes]
       itrivial
+    isplitr
+    · ipureintro
+      intro o' ho'
+      cases ho'
     ipureintro
-    intro o' ho'
+    intro o' b ho'
     cases ho'
 
 end proof

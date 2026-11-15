@@ -174,11 +174,14 @@ theorem apply.applierV3backend.Put.wp_proof
       · ipureintro; exact Hrn
       ileft; iexact He
     isplitl [Hw0 Hbk Hhk Htie Hu Hard HltL]
-    · iapply (apply.kvOwn_of_split E log B c)
-      iframe Hw0 Htie
-      iunfold apply.kvRest
-      iframe Hbk Hhk Hard
-      iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
+    · iexists L
+      isplitl []
+      · ipureintro
+        simp only [apply.leaseExactL, hk]
+        intro op hop; rw [hput] at hop; cases hop
+        exact ⟨fun _ => rfl, fun _ => Or.inl ⟨Hnl, Hnin⟩⟩
+      iapply (apply.kvOwnAt_of_split E log B c L)
+      iframe Hw0 Htie Hbk Hhk Hard Hknown Hu HltL
     iright; iexact HPre
   · subst Hσ
     rcases apply.putPend_cases o log c with ⟨hn, hf, hp⟩ | ⟨hn, hp⟩
@@ -200,11 +203,14 @@ theorem apply.applierV3backend.Put.wp_proof
           · ipureintro; exact Hrn
           iright; iexact He
         isplitl [Hw' Hbk Hhk Htie Hu Hard HltL]
-        · iapply (apply.kvOwn_of_split E log B c)
-          iframe Hw' Htie
-          iunfold apply.kvRest
-          iframe Hbk Hhk Hard
-          iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
+        · iexists L
+          isplitl []
+          · ipureintro
+            simp only [apply.leaseExactL, hk]
+            intro op hop; rw [hput] at hop; cases hop
+            exact ⟨fun _ => rfl, fun _ => Or.inr ⟨hn, hf⟩⟩
+          iapply (apply.kvOwnAt_of_split E log B c L)
+          iframe Hw' Htie Hbk Hhk Hard Hknown Hu HltL
         ileft; iexact HPost
       · exfalso
         have := Hnps hn
@@ -220,6 +226,16 @@ theorem apply.applierV3backend.Put.wp_proof
         have := hn Hnp
         simp only [srvApi.stAt] at Hfk
         rw [Hfk] at this; simp at this
+      -- the lease live: a dead one left the writer's half at `log` (`Hw0`)
+      by_cases hl : o.leaseID = W64 0 ∨ o.leaseID ∈ L
+      rotate_left
+      · try isimp only [show decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) = false from decide_eq_false hl,
+          Bool.false_eq_true, ↓reduceIte] at Hw0
+        iexfalso
+        iapply (apply.wSt_ne_false E.γs log
+          (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) c c
+          (fun h => by have := congrArg List.length h; simp at this))
+        iframe Hw0 Hw'
       iexists (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
       isplitr
       · ipureintro
@@ -232,12 +248,14 @@ theorem apply.applierV3backend.Put.wp_proof
       isplitl []
       · ipureintro; exact ⟨Herr, h2, by omega⟩
       isplitl [Hw' Hbk Hhk Htie Hu Hard HltL]
-      · iapply (apply.kvOwn_of_split E _ B c)
-        iframe Hw' Htie
-        iunfold apply.kvRest
-        iframe Hbk Hhk Hard
-        iunfold apply.leasesLive
-        iexists L
+      · iexists L
+        isplitl []
+        · ipureintro
+          simp only [apply.leaseExactL, hk]
+          intro op hop; rw [hput] at hop; cases hop
+          exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩
+        iapply (apply.kvOwnAt_of_split E _ B c L)
+        iframe Hw' Htie Hbk Hhk Hard
         isplitr [Hu HltL]
         · iapply apply.leasesKnown_putChange
           iframe #

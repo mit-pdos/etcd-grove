@@ -216,10 +216,11 @@ theorem rangeReply_state_at (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w
   iunfold rangeReplyOk at H
   icases H with ⟨%l, -, %Hlk, %Hl, -, #HQ⟩
   simp only [hs, Bool.false_eq_true, ↓reduceIte]
+  icases HQ with ⟨%ltq, -, #HQ⟩
   obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
   have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
   have hn : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by unfold sint.nat; word
-  have hRR : (kvStateOf l).readRev o.base.rev =
+  have hRR : (kvStateOf l ltq).readRev o.base.rev =
       sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev) := by
     unfold KVState.readRev mvcc.rangeRev
     rw [kvStateOf_rev, hrev]
@@ -234,7 +235,7 @@ theorem rangeReply_state_at (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w
     · simp only [h0, ↓reduceIte]
       show (sint.Z o.base.rev).toNat ≤ l.length - 1
       omega
-  iexists kvStateOf l
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   rw [hRR, kvStateOf_at_kvs l _ hRle]
@@ -260,7 +261,8 @@ theorem rangeErrReply_future (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F 
   obtain ⟨-, hlen, hlen', -, -, hfut⟩ := Hl
   unfold rangeFutureAt at hfut
   have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   rw [kvStateOf_rev]
