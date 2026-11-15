@@ -1743,3 +1743,202 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Made (internal). The law's proof (`create_cleanupLaw`, `sorry`) is blocked on two invariant
   changes (a pin for the rename's area claim; the moved-aside step with the pending WAL known unnamed):
   `notes/wal-units/create.md`, session 3; left to the coordinator.
+
+## Proposed by specgap (2026-11-15; unit `specgap`, `notes/wal-units/specgap.md`; nothing made)
+
+Draft entries, in priority order, from comparing the part's `fsExt` WAL specs with what etcd's server needs
+(SpecPlan's storage and boot specs, `examples/specreq/etcdserverboot/`, the Go at `0b50f0426`). Each waits for the
+coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`,
+`S/` = `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`, `SP/` = `SpecPlan/Spec/go_etcd_io/etcd/server/v3/`,
+`RI` = `notes/wal-crash-handoff/restart-wal-interface.md`; Go paths are in the fork's server module.
+
+## 2026-11-15: the server's storage specs (`SP/storage/storage__{Save,SaveSnap,Sync,Release,Close}.lean`) and etcd's `lg.Panic` on WAL errors -- `diskOk` cannot refute an `fsExt` error arm (P1)
+
+- **Spec.** `SP/storage/storage__*.lean` (`RET #GoInterface.nil` under `⌜diskOk⌝`); the part's `wal.Create.spec`,
+  `WAL.{Save,SaveSnapshot,Close,ReleaseLockTo}.spec` (honest error arms).
+- **Defect.** SpecPlan too strong over `fsExt`: every system call may fail with any errno (`GooseLang/Ext/Fs/Impl.lean`,
+  "Environmental failure"), so the WAL's error arms are reachable and a pure premise `⌜diskOk⌝` refutes none of them.
+  Where the server `Fatal`s (raft loop `etcdserver/raft.go:257,264,279`; `openWALFromSnapshot`) honest arms are
+  enough. Where it `lg.Panic`s, a no-panic theorem is false in the model: `bootstrapNewWAL`'s `Create`
+  (`bootstrap.go:719`), `snapshot()`'s `SaveSnap`/`Release` (`server.go:2147,2151`), `applySnapshot`'s `Release`
+  (`:1111`), `onStop`'s `Close` (`raft.go:441`), and `Reopen` (`storage/wal/wal.go:284`).
+- **Evidence.** The Go sites above; `notes/wal-fsext-plan.md` §5 Q6 ("the server keeps `walSaveOk` as its own premise
+  at C6"), which no Iris proof can use against an error the spec returns.
+- **Proposed change.** [user] One of: (a) a failure ledger in `fsExt` (a ghost flag set by any failing call; the
+  adequacy theorem conditioned on it staying unset), a trusted change; (b) fork changes `lg.Panic` → `lg.Fatal` at the
+  five sites; (c) a closed theorem that exempts a panic after an I/O error. Then SpecPlan's storage specs get error
+  arms (handle lost) and `diskOk` keeps only what (a) makes checkable.
+- **Decision.** Proposed.
+
+## 2026-11-15: the part's `WAL.{Save,SaveSnapshot,ReleaseLockTo,Sync}.spec` -- an exclusive handle, but the server calls them concurrently under a read lock (P2)
+
+- **Spec.** `Sp/WAL__{Save,SaveSnapshot,ReleaseLockTo,Sync}.lean` (each takes `walOpenWF P Mr w dir`, exclusive);
+  `SP/storage/Api.lean` (`isStorage` persistent, `storageOpen` fractional).
+- **Defect.** Too weak for the server. `storage`'s methods take `st.mux.RLock` (`storage/storage.go`). The raft loop
+  (`Save`, `SaveSnap`, `Sync`) and the apply thread (`snapshot()`'s `SaveSnap`/`Release`, `applySnapshot`'s
+  `Release`) call them concurrently, and the WAL serializes them with `w.mu`. No client can thread an exclusive
+  handle through read locks. `WAL.Sync` takes no lock at all (`wal.go:994`), and races with `ReleaseLockTo`'s write
+  of `w.locks` (`wal.go:1039`), which `sync()`'s `tail()` reads: a candidate Go data race (specgap §3.1).
+- **Evidence.** `etcdserver/raft.go:257-279`, `server.go:1111,2147-2151`, `server.go:990-1002` (the apply thread
+  snapshots after `raftAdvancedC`, while the raft loop moves on to the next `Ready`).
+- **Proposed change.** A shared-handle layer: `walOpenS w dir q` (fractional), with the handle in `w.mu`'s invariant.
+  `Save`/`SaveSnapshot`/`ReleaseLockTo` take a fraction (their AUs already commit right after `w.mu.Lock()`), and
+  `Close` takes all. For `Sync`: a fork fix (`Sync` takes `w.mu`) [user: the fork], after a `-race` test; or
+  `storage.Sync` takes the write lock (also a Go change).
+- **Decision.** Proposed.
+
+## 2026-11-15: `walAreaOk`/`walAreaRes`/`AreaSlot`/`walBoot0`/`walBootCrash` (the part's) -- the area's slots and root do not fit etcd's member directory (P3)
+
+- **Spec.** `S/Inv.lean:518` (`AreaSlot`: every `walNameOk` name and `nm.<sfx>`), `S/CreateDefs.lean:146`
+  (`walAreaRes`), `S/Boot0.lean:89` (`hr`: the area a root; `hslots`), `S/BootCrash.lean:395` (`bootWals`),
+  `DirsRoots`.
+- **Defect.** Too strong for the server (W4c U1 mismatches 1 and 4):
+  - `snap` is a slot, so `member/snap` (created by `bootstrapSnapshot`'s `TouchDirAll`, `bootstrap.go:211`, before
+    the WAL) breaks `hslots`; `walBootCrash` would take it for a WAL; and the invariant holds half the area's claim
+    on it.
+  - The area must be an existing root, yet the first start creates `member/` (`bootstrap.go:68`) and probes
+    `DataDir` above it (`:64`).
+  - Durable directories must be roots, so `member/snap` cannot be durable.
+  - `IsDirWriteable(WALDir)` (`:85`) writes `member/wal/.touch`, whose claim the invariant owns (`walOthersL`).
+- **Evidence.** The definitions above; `GooseLang/Ext/AbsDisk/Paths.lean:34` (`walNameOk`); `notes/wal-fsext-w4c-plan.md`
+  U1 log, mismatches 1 and 4; U3 log, premise 3.
+- **Proposed change.** `AreaSlot` and `walAreaRes` take the WAL's name `nm` (slots `nm`, `nm.<sfx>`); every other
+  name of the area goes to the client at boot. Allow a durable directory below a root through spine claims (or make
+  the data directory the root, the area below it). Add a law lending a WAL directory's `.touch` to a client probe.
+  World premises of the server's closed theorem: the data directory exists, clean and absolute; `DedicatedWALDir = ""`.
+- **Decision.** Proposed (statement changes to the WAL's client vocabulary: the coordinator's; the boot premises: the
+  user's at C6's closed theorem).
+
+## 2026-11-15: the part's `wal.{Exist,ValidSnapshotEntries,Open,OpenForRead,Repair}.spec` -- `osCallPerm 1` with no directory operation (P4)
+
+- **Spec.** `Sp/{Exist,ValidSnapshotEntries,Open,OpenForRead,Repair}.lean` (each takes `osCallPerm 1`).
+- **Defect.** Too strong for the server. Once bbolt runs over `fsExt`, the backend's commit goroutine holds a share
+  of the permission from `bootstrapBackend` on, and the server calls VSE (`recoverSnapshot`, inside
+  `bootstrapBackend`), `Open`, `Repair` and `Create` after the backend is open. Only `Create` does a directory
+  operation (a rename, `mkdir`, `RemoveAll`).
+- **Evidence.** `bootstrap.go:77-89, 451, 675, 689, 717`; `LinuxFs/Spec/os/{Rename,Mkdir,RemoveAll}.lean` (the
+  operations that need `osCallPerm 1`).
+- **Proposed change.** The five take `osCallPerm q` for any `q` (`Open`: a third or a quarter each to the pipeline
+  and the handle, the rest back). `Create` keeps `1`: the server must make the backend quiescent at
+  `bootstrapNewWAL`, by a backend-side protocol returning its share, or by a fork reordering [user].
+- **Decision.** Proposed.
+
+## 2026-11-15: the part's `WAL.Save.spec`/`WAL.SaveSnapshot.spec` (through `walEntsIn`, `walSnapAt`, `Mr`) -- canonical contents only; raft's entries and the restarted server's conf state are not canonical (P5)
+
+- **Spec.** `Sp/WAL__Save.lean` (`walEntsIn P`, `Mr.encEntry`), `Sp/WAL__SaveSnapshot.lean` (`walSnapAt Mr sp md cs`:
+  bytes `= Mr.encSnap md`), U4's instance `S/RaftModel/{Codec,Pb}.lean` (`walCsCanon`: `AutoLeave` set).
+- **Defect.** Too strong for the server:
+  - Entries: already recorded by U4b (`notes/wal-fsext-w4c-plan.md`, U4 b log, task 4). Raft's entries keep the
+    proposal's presence.
+  - New here, the conf state: after a restart `ep.confState` is `buildConfStateFromV3store`'s
+    `ConfState{Voters, Learners}`, with `AutoLeave` nil (`bootstrap.go:145`, `server.go:804`). The apply thread's
+    first `snapshot()` before any conf change saves it (`CreateSnapshot(…, ep.confState, …)`, `storage.SaveSnap`
+    → `walpb.Snapshot{ConfState: …}`). Its bytes are not `walCsCanon`'s, so `walSnapAt` fails.
+- **Evidence.** The Go above; `walSnapCanon`/`walCsCanon` (`S/RaftModel/Codec.lean:42`).
+- **Proposed change.** [user: the representation] `Mr.encEntry`/`Mr.encSnap` (or `P.entIn` and `walSnapAt`) over
+  wire contents (`EntryC`, `WalSnapC`), the history keeping only what readers decode (the index and term for
+  snapshots). Narrow alternative for the conf state: a fork fix setting `AutoLeave` in `buildConfStateFromV3store`.
+- **Decision.** Proposed.
+
+## 2026-11-15: the part's `wal.Create.spec` (with `wal.Exist.spec`) -- `Exist`'s `false` does not give `Create`'s `walAbsent` (P6)
+
+- **Spec.** `Sp/Create.lean` (AU from `walAbsent dir`), `Sp/Exist.lean` (`b = false → ExistFalseOk o`: none, or fresh
+  and unnamed).
+- **Defect.** Too weak, composed: `bootstrap` calls `Create` exactly when `Exist` returned `false`
+  (`bootstrap.go:77` → `bootstrapNewWAL`). A fresh unnamed WAL survives a crash (`walCrash` keeps `named = false`
+  images), so `ExistFalseOk`'s second case cannot be excluded at a boot, and `Create`'s AU cannot be fired.
+- **Evidence.** `GooseLang/Ext/AbsDisk/Impl.lean:223` (`walCrash`); the two specs.
+- **Proposed change.** `Create`'s AU starts from `walDirIs dir o ∗ ⌜ExistFalseOk o⌝` (an existing fresh WAL at `dir`
+  makes `Create`'s own `Exist` check return `ErrExist`, uncommitted; a moved-aside one is replaced). Alternatively,
+  `Exist`'s `false` gives `o = none` once the ENOENT model fix lands and the moved-aside state is in the invariant
+  (the `create` unit's cleanup design).
+- **Decision.** Proposed.
+
+## 2026-11-15: the part's `WAL.Close.specFailed` with `wal.Repair.spec` -- `openWALFromSnapshot` ignores `Close`'s error, then needs the token (P7)
+
+- **Spec.** `Sp/WAL__CloseFailed.lean` (`(walUnlockedTok ∗ osCallPerm ½) ∨ ⌜err ≠ nil⌝`), `Sp/Repair.lean` (takes the
+  token).
+- **Defect.** The server's restart cannot be proved on this path: after a failed `ReadAll` it calls `w.Close()`,
+  ignores the error, and calls `wal.Repair` (`bootstrap.go:683-689`). On `err ≠ nil` the token is lost. In Go,
+  `Close` returns before unlocking (`wal.go:1053-1066`) and `Repair`'s blocking `LockFile` hangs: a hang, which
+  only a lock model could show.
+- **Evidence.** The Go above; ledger 2026-11-14, "`WAL.Close.specFailed` … the token back whatever `Close` answers".
+- **Proposed change.** [user] Either the lock model (Q1), with `Repair` not needing the token; or a fork fix:
+  `openWALFromSnapshot` `Fatal`s on `Close`'s error (specgap §3.2, to report).
+- **Decision.** Proposed.
+
+## 2026-11-15: the server's purge (`SP/etcdserver/EtcdServer__purgeFile.lean`) and `storage.MinimalEtcdVersion` -- no `fsExt` statement without locks (P8)
+
+- **Spec.** `SP/etcdserver/EtcdServer__purgeFile.lean`, `SP/storage/storage__MinimalEtcdVersion.lean`; the part's
+  `WAL.ReleaseLockTo.spec` (`unl` bookkeeping).
+- **Defect.** `purgeFile` (`fileutil.PurgeFileWithDoneNotify`, `server.go:608`) deletes the oldest unlocked
+  segments. `fsExt` has no lock state, so neither the purge nor `ReleaseLockTo`'s `unl` has content (`RI` gate 8).
+  `Reopen` (`MinimalEtcdVersion`) releases every lock while the purge runs (suspected window, specgap §3.3).
+- **Proposed change.** [user, `notes/wal-fsext-plan.md` §5 Q1] The lock model. Until then C6 states the purge as a
+  hypothesis or drops it from the closed theorem.
+- **Decision.** Proposed.
+
+## 2026-11-15: the part's `WAL.ReleaseLockTo.spec` -- the post does not exclude an error, and the server panics on one (P9)
+
+- **Spec.** `Sp/WAL__ReleaseLockTo.lean` (post `walOpenWF ∗ ∃ d, Q d` for every `err`).
+- **Defect.** Too weak: `storage.Release`'s callers `lg.Panic` on any error (`server.go:1111,2151`). The only error
+  is `parseWALName` rejecting a lock's file name, which the invariant rules out (every lock is a segment at a
+  `walNameStr` name).
+- **Proposed change.** Post `⌜err = GoInterface.nil⌝ ∗ walOpenWF ∗ ∃ d, Q d` (the proof's error exit refuted by
+  `WalDirClaim`).
+- **Decision.** Proposed (internal strengthening; no client yet).
+
+## 2026-11-15: the part's `WAL.ReadAll.spec` -- the hard state and the entries come back read-only, and `ForceNewCluster` mutates them (P10)
+
+- **Spec.** `Sp/WAL__ReadAll.lean` (`P.hsIn hp σ.hs`, `sl ↦*□ esL`).
+- **Defect.** Too weak for `bootstrapWALFromSnapshot`'s `ForceNewCluster` path: `bwal.st.Commit = …`
+  (`bootstrap.go:640,787`), and `append(wal.ents, ents...)` (`:781`) may write into the slice's capacity. `ReadAll`'s
+  `state` is a fresh unmarshalled object (`w.state` is a clone, `wal.go:649`), so the client may own it.
+- **Proposed change.** The success arm gives `HsO hp σ.hs` (owned; `WalHsOwn.freeze` turns it into `P.hsIn`) and the
+  slice's ownership with its capacity.
+- **Decision.** Proposed (low priority: `ForceNewCluster` only).
+
+## 2026-11-15: `SP/storage/wal/Api.lean` (`Wal.Recs`, `walRecs`, `walWriting`, `walCreating`, `walPurgeRight`) and `SP/storage/storage__Close.lean` -- the trusted record model against the proved WAL (P11)
+
+- **Spec.** SpecPlan's WAL vocabulary and its crash laws (`walRecs_crash`, `walWriting_crash`, `walCreating_crash`);
+  `storage.Close.spec` (returns `walPurgeRight`).
+- **Defect.** The model is trusted, yet the WAL is now proved. Its σ-level `Recs` updated by `save` is not
+  compositional for the real read (`RI` §2: `walKeep` uses the history's final commit). `walWriting` and
+  `walCreating` are two-step shapes that `fsExt`'s single commit replaces. `Close` returning the purge right is
+  stronger than any user needs, and `fsExt` consumes it.
+- **Proposed change.** `walRecs wd R := ∃ d, walDiskAt wd d ∗ ⌜view d = R⌝`, `walWriting` a mark below `|H|`, and
+  `walCreating md := walDiskAt wd (walDurFresh md)` (`named = false`). The crash laws become lemmas: `walImg` with
+  the invariant "every op past the mark is a commit-only `Save` or the write in flight" gives `Recs.crashed` and
+  `crashedMid`. `storage.Close` consumes `walPurgeRight`. Coordinated with P1 (error arms).
+- **Decision.** Proposed.
+
+## 2026-11-15: `SP/storage/storage__Save.lean`, `storage__SaveSnap.lean` -- missing the WAL's premises (P12)
+
+- **Spec.** As named, against `Sp/WAL__Save.lean`, `WAL__SaveSnapshot.lean`.
+- **Defect.** SpecPlan too weak in its premises: the WAL needs every entry index `< 2^64-1`, every encoding
+  `< 2^40`, the snapshot's index `< 2^64-1`, and its conf state set unless the index is 0. Raft's room fact and
+  proposal limits must supply them, and a received snapshot's index has no bound yet (`RI` gate 5).
+- **Proposed change.** Add them as premises of `storage.Save`/`SaveSnap`, discharged in `raftNode.start` from raft's
+  invariants.
+- **Decision.** Proposed.
+
+## 2026-11-15: the part's WAL -- no specs of `WAL.LatestSnapshotEntry`, `WAL.Reopen`, `wal.MinimalEtcdVersion` (P13)
+
+- **Spec.** None yet; `SP/storage/storage__MinimalEtcdVersion.lean` is the user.
+- **Defect.** `storage.MinimalEtcdVersion` (downgrade, `schema.UnsafeMigrate`) calls them. `LatestSnapshotEntry`
+  calls `ValidSnapshotEntries`, whose spec takes `walUnlockedTok`, which the open handle holds.
+- **Proposed change.** A VSE spec over an open handle (the handle pins the segments), then the three. Low priority.
+- **Decision.** Proposed.
+
+## 2026-11-15: `SP/storage/storage__MinimalEtcdVersion.lean` -- no panic under `diskOk`, false while the purge runs
+
+- **Spec.** `storage.MinimalEtcdVersion.spec` (SpecPlan): returns without panicking under `diskOk`.
+- **Defect.** `MinimalEtcdVersion` reopens the WAL (`w.Reopen`), releasing every segment lock, while the server's
+  purge (`fileutil.PurgeFileWithDoneNotify`, `--max-wals`) may delete or lock segments the reopen needs; the
+  reopen then panics.
+- **Evidence.** `issues/etcd-storage-downgrade-reopen-purge-panic.md` (test reproduces the panic 5/5 at upstream
+  main `260e4e0457aa`, 3/3 at the fork `3df9b265f`).
+- **Proposed change.** Either the spec takes "no purge runs" (a premise the server's downgrade path would have
+  to establish), or the fork reads the entries through `wal.OpenForRead` instead of reopening (the issue's
+  proposed fix, untested), after which the spec stands.
+- **Decision.** Proposed (with specgap's P8, the lock model, and P13).
