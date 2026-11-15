@@ -1,0 +1,12 @@
+# putgetN (examples/etcd/putgetN; the clusterN Scope, 2026-11-15): putget3 with any number of members,
+# `Main(k)` for every 1 <= k <= 1000. The results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/Results.lean: `putgetN_Main` and the closed
+# theorem `etcd_putgetN_safe`/`etcd_putgetN_adequate`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/putgetN.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/putgetN.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/putgetN.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/Results\.lean$

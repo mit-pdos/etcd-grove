@@ -206,6 +206,98 @@ theorem loopback_plainEndpoint (p : w64) : plainEndpoint (go!"127.0.0.1:" ++ dec
     have := congrArg List.head? ht
     simp at this
 
+/-! ## The program's addresses and data directories (`etcd_adequate_members`' premises) -/
+
+/-- **The program's addresses**: the members' peer addresses and member `0`'s client address. -/
+def putgetNAddrs (k : Nat) : List GoString :=
+  (members k).map (·.Peer') ++ ((members k).take 1).map (·.Client')
+
+/-- **The program's data directories**: the members' `putgetN-i.etcd`. -/
+def putgetNDirs (k : Nat) : List GoString := (members k).map (fun m => m.Name' ++ go!".etcd")
+
+/-- The program's start bundles, as `etcd_adequate_members` takes them. -/
+def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
+  (startOf (members k)).map (fun m => (m.1, ⟨some m.2.1, m.2.2⟩))
+
+theorem startOf_names (ms : List GMember) : (startOf ms).map (·.1) = ms.map (·.Name') := by
+  cases ms with
+  | nil => rfl
+  | cons m r => simp [startOf, Function.comp_def]
+
+theorem flat_none (r : List GMember) :
+    ((r.map (fun m => (m.Name', m.Peer', (none : Option GoString)))).map
+      (fun m => (m.1, (⟨some m.2.1, m.2.2⟩ : MemberAddrs)))).flatMap (fun m => m.2.addrs) =
+      r.map (·.Peer') := by
+  induction r with
+  | nil => rfl
+  | cons a r ih => simp only [List.map_cons, List.flatMap_cons, ih]; rfl
+
+theorem putgetNAddrs_perm (k : Nat) :
+    ((startAddrs k).flatMap (fun m => m.2.addrs) ++ []).Perm (putgetNAddrs k) := by
+  unfold startAddrs putgetNAddrs
+  rw [List.append_nil]
+  generalize members k = ms
+  cases ms with
+  | nil => exact List.Perm.refl _
+  | cons m r =>
+    simp only [startOf, List.map_cons, List.flatMap_cons, flat_none, List.take_succ_cons,
+      List.take_zero, List.map_nil]
+    show (m.Peer' :: m.Client' :: r.map (·.Peer')).Perm (m.Peer' :: (r.map (·.Peer') ++ [m.Client']))
+    exact List.Perm.cons _ (List.perm_middle.trans (by simp)).symm
+
+theorem putgetNDirs_perm (k : Nat) :
+    ((startAddrs k).map (fun m => memberDataDir m.1)).Perm (putgetNDirs k) := by
+  unfold startAddrs putgetNDirs
+  rw [List.map_map]
+  have := congrArg (List.map (fun n => n ++ go!".etcd")) (startOf_names (members k))
+  simp only [List.map_map] at this
+  rw [show ((fun m : GoString × MemberAddrs => memberDataDir m.1) ∘
+      fun m : GoString × GoString × Option GoString => (m.1, (⟨some m.2.1, m.2.2⟩ : MemberAddrs))) =
+      (fun n => n ++ go!".etcd") ∘ (·.1) from rfl, this]
+  rfl
+
+theorem putgetNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (putgetNDirs k).Nodup := by
+  unfold putgetNDirs
+  rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
+    ← List.map_map]
+  exact (members_names_nodup k hk).map (fun a b h => List.append_cancel_right h)
+
+theorem member_port (k : Nat) (m : GMember) (hm : m ∈ members k) :
+    ∃ i, i < k ∧ m.Peer' = go!"127.0.0.1:" ++ decStr (W64 ((24000 + i : Nat) : Int)) ∧
+      m.Client' = go!"127.0.0.1:" ++ decStr (W64 ((25000 + i : Nat) : Int)) := by
+  obtain ⟨i, hi, rfl⟩ := members_mem k m hm
+  refine ⟨i, hi, ?_, ?_⟩ <;> simp only [memberAt] <;> congr 2 <;> apply BitVec.eq_of_toNat_eq <;>
+    simp [W64] <;> omega
+
+theorem putgetNAddrs_lit (k : Nat) (hk : k ≤ 1000) : ∀ a ∈ putgetNAddrs k, netAddrLit a = true := by
+  intro a ha
+  unfold putgetNAddrs at ha
+  rcases List.mem_append.1 ha with h | h
+  · obtain ⟨m, hm, rfl⟩ := List.mem_map.1 h
+    obtain ⟨i, hi, hp, -⟩ := member_port k m hm
+    rw [hp]; exact netAddrLit_loopback _ (by simp [W64]; omega) (by simp [W64]; omega)
+  · obtain ⟨m, hm, rfl⟩ := List.mem_map.1 h
+    obtain ⟨i, hi, -, hc⟩ := member_port k m (List.mem_of_mem_take hm)
+    rw [hc]; exact netAddrLit_loopback _ (by simp [W64]; omega) (by simp [W64]; omega)
+
+theorem putgetNAddrs_nodup (k : Nat) (hk : k ≤ 1000) : (putgetNAddrs k).Nodup := by
+  unfold putgetNAddrs
+  rw [List.nodup_append]
+  refine ⟨members_peers_nodup k hk, ?_, ?_⟩
+  · cases members k with
+    | nil => simp
+    | cons m r => simp
+  · intro a ha b hb e
+    subst e
+    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ha
+    obtain ⟨m', hm', he⟩ := List.mem_map.1 hb
+    obtain ⟨i, hi, hp, -⟩ := member_port k m hm
+    obtain ⟨j, hj, -, hc⟩ := member_port k m' (List.mem_of_mem_take hm')
+    rw [hp, hc] at he
+    have := congrArg BitVec.toNat (decStr_inj (List.append_cancel_left he))
+    simp [W64] at this
+    omega
+
 end pure
 
 end etcd_putgetN
