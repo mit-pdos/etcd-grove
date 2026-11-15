@@ -306,6 +306,11 @@ under `flock /shared/tmp/etcd-grove-build.lock`. `TMPDIR=/shared/tmp`.
 
 ## Left (follow-ups)
 
+- **The auth-on lease table's literal modes** (mode-gate raise accepted by etcd-grove-81, 2026-11-15): S3a raised the
+  mode baselines (etcdserver lit-mode 156→252, match-mode 76→78, client/v3 lit-mode 18→22) with `appliedTableM true`,
+  `srvRestM true`, `srvRestRM true`, `srvRestRpM true`, `kvModelM`/`kvStM` at literals; S3a2 should try to reduce the
+  literal-`true` uses (state the auth-on arms' lemmas at `srvRestT` and the slot's `C.isOn`).
+
 - **The empty-prefix fact ties the auth-on server to fresh starts** (S3a rev 5, `srvKVInvsOn`'s `γr.raft.pre = []`):
   an auth-on restart (future work) has to revisit it (the model's table folds over the applied entries, `srvRest`'s
   over the raft prefix and them).
