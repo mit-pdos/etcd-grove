@@ -278,15 +278,18 @@ theorem restartRead.wp_proof
   wp_auto
   -- `ReadAll`
   have hnp1 : some pr = walNewestPair (walValidSnaps ((walOpenRaise pr dc).H.map WalOpG.toM)
-      (walOpenRaise pr dc).cut) := by
-    simp only [walOpenRaise, hdH, hdcut]; exact hnp.symm
+      (walOpenRaise pr dc).cut) ∧
+      walOpenPos ((walOpenRaise pr dc).H.map WalOpG.toM) pr.1 ≤ (walOpenRaise pr dc).unl := by
+    refine ⟨by simp only [walOpenRaise, hdH, hdcut]; exact hnp.symm, ?_⟩
+    simp only [walOpenRaise]; exact Nat.le_max_right _ _
   wp_apply (wp_readAll W e.R e.jr e.area (tWalDir e.area) go!"wal" w pr qp (1 : Qp).half
       (fun dd => iprop(⌜dd = walOpenRaise pr dc⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc)))) hia hca)
       $$ [Hpath Hph Hopening Hwo]
     as %mdp %hp %esl %err3 ⟨Hpath, Hph, %dd, ⟨%hdd, Hwo⟩, Hr3⟩
   · iframe; iframe #
     iapply tInv_readAu W e γ (walOpenRaise pr dc)
-      (fun dd => some pr = walNewestPair (walValidSnaps (dd.H.map WalOpG.toM) dd.cut)) hnp1
+      (fun dd => some pr = walNewestPair (walValidSnaps (dd.H.map WalOpG.toM) dd.cut) ∧
+        walOpenPos (dd.H.map WalOpG.toM) pr.1 ≤ dd.unl) hnp1
     iframe; iframe #
   subst hdd
   icases Hr3 with (⟨%herr3, Hfail⟩ | ⟨%herr3, %σ, %esL, %hra, #Hhs, #Hesl, #Hents, -, Hwf, #Hnm2, #Hsl2,

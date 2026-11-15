@@ -101,6 +101,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     iright; iright; ileft
     iunfold walLockIn at Hlk
     icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩
+    ihave Hlks := fdLocksW_locks _ _ $$ Hlks
     iframe
     isplitr
     · ipureintro; intro hc; cases hc
@@ -180,6 +181,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     iexists x
     iunfold walLockIn at Hlk
     icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩
+    ihave Hlks := fdLocksW_locks _ _ $$ Hlks
     iframe
     unfold walLockLeft
     ileft; iframe

@@ -39,6 +39,10 @@ files `Open` selected (`decoder.Decode` to `io.EOF`; a torn or corrupt tail is a
 (`ZeroToEnd`) and fdatasync it (F-Z, needed under power loss: plan §2.4 item 2), fsync the WAL
 directory and the area (F-N4: `walNamed`), and make the encoder at the decoder's CRC.
 
+The atomic precondition's second premise (unit `locks`, session 5; ledger 2026-11-15): the WAL's `unl` is
+at least `walOpenPos` at `s`, as `Open(s)`'s update left it (the client, which did that `Open`, knows it): the
+handle registers the read segments' range at it (`walDirLks`, the purge's tie).
+
 *Success*: the read is `walReadAllOk` of the history (the fold from a position between the read
 position and `walOpenPos`, at the fixed base `s`); the handle appends (`walOpenWF`), the history is
 synced (`walSyncedLb`) and named (`walNamed`), the handle's length fact and purge right. *Error*
@@ -56,7 +60,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm qc ∗
       walOpeningF w dir s ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗
-          ⌜some s = walNewestPair (walValidSnaps (d.H.map WalOpG.toM) d.cut)⌝ }> @ walAuMask, ∅
+          ⌜some s = walNewestPair (walValidSnaps (d.H.map WalOpG.toM) d.cut) ∧
+            walOpenPos (d.H.map WalOpG.toM) s.1 ≤ d.unl⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir d, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"ReadAll"))
       (Val #()))

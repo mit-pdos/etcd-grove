@@ -36,6 +36,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllIdx
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllGive
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Steps
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllLocks
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.LockRange
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllFail
@@ -292,6 +293,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
   imod walInv_readCommitReg walCodec Mr R jr rt w dir s j X hj gs glr
       (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr _ Q
+      (fun dc' d' lay' kk' hp' hle' hab' hdrop' => by
+        have h1 := absD_segStart_le_openPos hab' hdrop' hgne hghd
+        simp only [histM] at h1
+        rw [← hle'.1] at h1
+        rw [← hle'.2.1]
+        exact Nat.le_trans h1 hp'.2)
       $$ Hinv Hsi Hnc Hk Hn Htf Hnf Hh Hgh Hau
     with ⟨Hnc, Hn, Hnf, Hh, Hgh, %dc, %d0, %lay, %kk, %γt, %s1, %nmw, %qn, %hnw, HQ, #Hp1, #Hlen,
       Hnw, #Hlbw, Htf, Htk, Htv, %hcm⟩
@@ -517,8 +524,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hsz0 : ∀ g ∈ gs0, g.om.size = g.bs.length := fun g hg => hgsz g (List.mem_append_left _ hg)
             have hls0 : ls.length = gs0.length := by rw [hlsl, hfI]
             have hfll0 : gs0.length ≤ fls.length := by rw [hfll]; simp
-            iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
-            iintro %dq HQ Hfail
+            iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
+            iintro %dq HQ Htf Hfail
             ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ fsI γt
                 d0.H d0.metadata lay.cuts lay.wr gl.om.size gl.om.size fdl lay.segs gl hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0
                 hwrT hclo1 rfl $$ [Hfail Hlg Hdir Hlocks Hls Hfp Hpipe Hns Hdff Hdf Hdfs Hph Hn Hout Hnf Hleft Htf He Htw]
@@ -570,8 +577,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hsz0 : ∀ g ∈ gs0, g.om.size = g.bs.length := fun g hg => hgsz g (List.mem_append_left _ hg)
             have hls0 : ls.length = gs0.length := by rw [hlsl, hfI]
             have hfll0 : gs0.length ≤ fls.length := by rw [hfll]; simp
-            iapply readAll_failWpQ walCodec Mr R jr rt w dir s Q dc _ _ rfl $$ Hinv Hgh HQ
-            iintro %dq HQ Hfail
+            iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
+            iintro %dq HQ Htf Hfail
             ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ fsI γt
                 d0.H d0.metadata lay.cuts lay.wr sz' gl.om.size fdl lay.segs gl hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0
                 hwrT hclo1 rfl $$ [Hfail Hlg Hdir Hlocks Hls Hfp Hpipe Hns Hdff Hdf Hdfs Hph Hn Hout Hnf Hleft Htf He Htw]
@@ -776,7 +783,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               rw [rdRest_start, decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1), hgs]
             have hfold := rdLoop_fold_eof hL hR0r hmt
             rw [hR0eq1] at hfold
-            obtain ⟨σ, hσ, hrσ⟩ := readAll_success1 hU hab hex hwr hgs hgne hghd hpre1 hle1 hfold
+            obtain ⟨σ, hσ, hrσ⟩ := readAll_success1 hU hab hex hwr hgs hgne hghd hpre1.1 hle1 hfold
             simp only [Prod.mk.injEq] at hrσ
             obtain ⟨hmdσ, hhsσ, hentsσ⟩ := hrσ
             (try wp_auto)
@@ -820,14 +827,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               rw [hl, List.dropLast_concat]
             have hkL : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F →
                 (gs.take fsI.length)[k]? = some g →
-                ∃ (f : Loc) (fd : w64) (d : OsFd), fls[k]? = some f ∧
-                  F.S = walFileS f fd (child dir g.name) d g := by
+                ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
+                  F.S = walFileS f fd (child dir g.name) (walSegFd true lo lk g.ino) g := by
               intro k F g h1 h2
               have hk : k < fsI.length := (List.getElem?_eq_some_iff.1 h1).1
               have h1' : fs[k]? = some F := by rw [hfsI, List.getElem?_append_left hk]; exact h1
               have h2' : gs[k]? = some g := by rw [List.getElem?_take, if_pos hk] at h2; exact h2
               obtain ⟨f, fd, lo, lk, h3, h4⟩ := (hfk k F g h1' h2').2.2
-              exact ⟨f, fd, _, h3, h4⟩
+              exact ⟨f, fd, lo, lk, h3, h4⟩
             ihave #HlkL : [∗list] k ↦ lf ∈ ls, fileutil.lockedFile lf (fls.getD k null) $$ [Hlks]
             · icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hlks with ⟨H1, -⟩
               iexact H1
@@ -924,6 +931,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               have hRB' := hRB.receiptBound_le
               simp only at hstl
               exact ⟨lay.cuts.length, ix, hix, by omega⟩
+            have hcl64 : lay.cuts.length < 2 ^ 64 := by
+              have hlg : lay.segs.getLast? = some gl := by
+                rw [← hgs, List.getLast?_drop] at hglast
+                split at hglast
+                · cases hglast
+                · exact hglast
+              obtain ⟨-, hle⟩ := hab.tailSeq gl hlg
+              have hRB' := hRB.receiptBound_le
+              simp only at hstl
+              omega
             -- the metadata slice non-nil
             ihave %hmdvl := ownSlice_len mdv _ _ $$ Hmdv
             have hmdvn : mdv ≠ slice.nil := by
@@ -964,7 +981,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 iframe Hm Hby Hv
                 ipureintro
                 exact ⟨hp.1, hp.2.1.win, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2⟩
-              isplitl [Hn Hpd Hph Hdfs Hout Htf Hnf]
+              isplitl [Hn Hpd Hph Hdfs Hout Htf Hnf Hlh]
               · unfold walDirH
                 iexists R, qd, Xd, hj, gl.name, DirPhS.idle
                 iframe Hkd Hn Hpd Hsi Hph Hdfs Hnamed Hnf
@@ -972,14 +989,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 · iapply walOutFrag_eq' (W := W) $$ Hout
                   ipureintro
                   rw [filter_out_take hgsI hgnd]
-                isplitl [Htf]
-                · iexists γt; iexact Htf
+                isplitl [Htf Hlh]
+                · unfold walDirLks
+                  rw [List.dropLast_concat]
+                  iexists γt, segStart lay.cuts (lay.first + kk),
+                    (gs.take fsI.length).map (fun g => (g.name, g.ino))
+                  iframe Htf Hlh
+                  ipureintro
+                  exact LkRel_read hab hclo1.2.1 hclo1.2.2.2.1 (hgs.trans hgsI) hcl64
                 ipureintro
                 exact ⟨hwn, hglc, ⟨dir, rfl⟩, hXt, hXw, hsq, fun b n hb hbw => walNames_last_max hlastG b n hb hbw⟩
               isplitr
               · ipureintro; simp
-              isplitl [Hlh]
-              · rw [List.dropLast_concat]; iexact Hlh
               ipureintro
               refine ⟨walHS_split_read Mr _ rfl rfl rfl hwrT, hfdl, ?_, ?_, ⟨fun _ => hix1, hix2⟩, hix3 hnmx⟩
               · simp only [List.length_nil, Nat.add_zero]; exact hsz'.1

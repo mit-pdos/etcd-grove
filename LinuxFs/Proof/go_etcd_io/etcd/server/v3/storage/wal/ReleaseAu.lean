@@ -65,6 +65,31 @@ theorem walInv_unlAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
   iexists dc
   iexact HQ
 
+/-- **The locked ranges set to `Lk'`**, at a ghost step, `walInv` opened: `Lk'` within the `unl`s of every
+state (`∅`: `Close` dropping its range; unit `locks`, session 5). -/
+theorem walInv_lksSet (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (T : GMap GoString GName) (Lk Lk' : GMap GoString Nat) (h : ∀ s, LksOk s Lk') :
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
+      walTailsFrag (W := W) T Lk ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ walTailsFrag (W := W) T Lk' := by
+  iintro #Hinv Hnc Hf
+  imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
+  iunfold walInvBody at Hb
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  imod walGhost_lksSet s T Lk Lk' (h s) $$ Hg Hf with ⟨Hg, Hf⟩
+  imod Hcl $$ [Hg Hrest] with -
+  · iexists s; unfold walInvBody; iexists Ls, cl, n, F; iframe
+  imodintro
+  iframe Hnc Hf
+
+/-- `walInv_lksSet` to `∅`. -/
+theorem walInv_lksDrop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (T : GMap GoString GName) (Lk : GMap GoString Nat) :
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
+      walTailsFrag (W := W) T Lk ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ walTailsFrag (W := W) T ∅ :=
+  walInv_lksSet C Mr R jr r T Lk ∅ LksOk.empty
+
 end iris
 
 end WalFs

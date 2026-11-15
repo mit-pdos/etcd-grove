@@ -42,26 +42,27 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
   [W : WalGS GF]
 
 /-- **A registered, not yet zeroed tail unregistered** (see the file header). -/
-theorem walInv_untailPend (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInv_untailPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (wr : Nat) (ino : Ino) (m : OsMeta) (bs : List ByteG)
     (hTM : TailMetaR m bs ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ ∀ y ∈ bs, y = Fs.durB y.1)
     (hwr : wr = (tailStream Mr H md cuts).length) :
     ⊢ walInv (L := L) (W := W) walCodec Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walTailsFrag (W := W) (<[dir := γ]> ∅) -∗ walPendTok (W := W) dir γ k -∗
+      walTailsFrag (W := W) (<[dir := γ]> ∅) Lk -∗ walPendTok (W := W) dir γ k -∗
       tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs
       ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗ walTailsFrag (W := W) ∅ ∗
         osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs := by
   iintro #Hinv Hnc Htf Htk Hv Hm Hb
   iapply walInv_step walCodec Mr R jr r
-    iprop(walTailsFrag (W := W) (<[dir := γ]> ∅) ∗ walPendTok (W := W) dir γ k ∗
+    iprop(walTailsFrag (W := W) (<[dir := γ]> ∅) Lk ∗ walPendTok (W := W) dir γ k ∗
       tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) ∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs)
     iprop(walTailsFrag (W := W) ∅ ∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs)
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨Htf, Htk, Hv, Hm, Hbs⟩
+      imod walInvBody_lksSet (L := L) walCodec Mr R jr r s _ Lk ∅ (LksOk.empty s) $$ Hb Htf with ⟨Hb, Htf⟩
       imod walInvBody_untailL Mr R jr r s dir γ γ k true H md cuts wr ino m bs hTM hwr
         $$ Hb Htf Htk Hv Hm Hbs with ⟨%d, -, Hb, Htf, Hm, Hbs⟩
       imodintro
@@ -70,25 +71,26 @@ theorem walInv_untailPend (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   iframe
 
 /-- **A synced tail unregistered by its key** (see the file header). -/
-theorem walInv_untailKey (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInv_untailKey {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (wr : Nat) (ino : Ino) (m : OsMeta) (bs : List ByteG) (hTM : TailMetaS m bs)
     (hwr : wr = (tailStream Mr H md cuts).length) :
     ⊢ walInv (L := L) (W := W) walCodec Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walTailsFrag (W := W) (<[dir := γ]> ∅) -∗ walTailKey (W := W) dir γ -∗
+      walTailsFrag (W := W) (<[dir := γ]> ∅) Lk -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs
       ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗ walTailsFrag (W := W) ∅ ∗
         osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs := by
   iintro #Hinv Hnc Htf Htk Hv Hm Hb
   iapply walInv_step walCodec Mr R jr r
-    iprop(walTailsFrag (W := W) (<[dir := γ]> ∅) ∗ walTailKey (W := W) dir γ ∗
+    iprop(walTailsFrag (W := W) (<[dir := γ]> ∅) Lk ∗ walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) ∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs)
     iprop(walTailsFrag (W := W) ∅ ∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m ∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs)
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨Htf, Htk, Hv, Hm, Hbs⟩
+      imod walInvBody_lksSet (L := L) walCodec Mr R jr r s _ Lk ∅ (LksOk.empty s) $$ Hb Htf with ⟨Hb, Htf⟩
       imod walInvBody_untail Mr R jr r s dir γ γ H md cuts wr ino m bs hTM hwr
         $$ Hb Htf Htk Hv Hm Hbs with ⟨%d, -, Hb, Htf, Hm, Hbs⟩
       imodintro
@@ -426,7 +428,7 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 /-- **An exit of `ReadAll` before `ZeroToEnd`** (see the file header): every file's stream and the tail
 registered, not yet zeroed; the tail unregistered (`walInv_untailPend`), the update committed unchanged and
 the ghost handle failed (`readAll_failWpQ`), the handle `walReadFailedF` (idle). -/
-theorem readAll_failPend (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString)
+theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString)
     (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur) (e : Expr) (Φ : val → IProp GF)
     (h : toVal e = none) (lg : Loc) (locks : GoSlice) (lfs fls : List Loc) (fp : Loc) (j : Ino)
     (X : List GoString) (hj : NamesH) (gs : List SegG) (fs : List (DecFile GF)) (df : Loc) (dfd : w64)
@@ -457,7 +459,7 @@ theorem readAll_failPend (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       ([∗list] k ↦ lf ∈ lfs, fileutil.lockedFile lf (fls.getD k null)) -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ (null : Loc) -∗
       ([∗list] F ∈ fs, ∃ q, F.S q) -∗
-      walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗ walPendTok (W := W) dir γt k -∗
+      walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) Lk -∗ walPendTok (W := W) dir γt k -∗
       (letI := walAllG (W := W); ghostVar γt (1 : Qp).half (tailG d0 lay gl.ino none)) -∗
       (∀ d, Q d -∗ walReadFailedF Mr w dir -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
   iintro #Hinv Hgh HQ Hlg #Hz Hdir Hlocks Hls Hfp Hpipe Hns #Hmu #Henv Hdff Hdf Hdfs Hph Hn Hout Hnf #Hk
@@ -510,7 +512,7 @@ files' streams, the tail's pieces (`walTailW … TailMetaS` unfolded: its file, 
 the encoder (nil, or `!match`'s over the tail); the tail unregistered by its key (`walInv_untailKey`), the
 update committed unchanged and the ghost handle failed (`readAll_failWpQ`), the handle `walReadFailedF`
 (idle). -/
-theorem readAll_failSynced (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString)
+theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString)
     (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur) (e : Expr) (Φ : val → IProp GF)
     (h : toVal e = none) (lg : Loc) (locks : GoSlice) (ls : List Loc) (lt : Loc) (fls : List Loc) (fp : Loc)
     (j : Ino) (X : List GoString) (hj : NamesH) (gs0 : List SegG) (gl : SegG) (fsI : List (DecFile GF))
@@ -539,10 +541,10 @@ theorem readAll_failSynced (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
       walNamesFrag (W := W) none -∗ walDirKey (W := W) dir j X -∗
       ([∗list] k ↦ lf ∈ ls ++ [lt], fileutil.lockedFile lf (fls.getD k null)) -∗
       ([∗list] F ∈ fsI, ∃ q, F.S q) -∗
-      walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗
+      walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) Lk -∗
       os.ownFile (fls.getD gs0.length null) fdl (child dir gl.name) (DFrac.own 1) -∗
       (∃ (rd : Bool) (lo lk : Option Bool), osFd fdl (DFrac.own 1) ⟨gl.ino, rd, true, lo, lk⟩ ∗
-        fdLocks fdl ⟨gl.ino, rd, true, lo, lk⟩) -∗
+        fdLocksW fdl ⟨gl.ino, rd, true, lo, lk⟩) -∗
       walTailKey (W := W) dir γt -∗
       osMeta gl.ino (DFrac.own (1 : Qp).half) m -∗ osBytes gl.ino 0 (DFrac.own (1 : Qp).half) bs -∗
       (letI := walAllG (W := W); ghostVar γt (1 : Qp).half ((H, md, cuts, o0 + ([] : List w8).length, gl.ino, none) : TailG)) -∗
@@ -551,6 +553,7 @@ theorem readAll_failSynced (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
       (∀ d, Q d -∗ walReadFailedF Mr w dir -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
   iintro #Hinv Hgh HQ Hlg #Hz Hdir Hlocks Hls Hfp Hpipe Hns #Hmu #Henv Hdff Hdf Hdfs Hph Hn Hout Hnf #Hk
     #Hlks Hst Htf Hft ⟨%rd, %lo, %lk, Hfdt, Hlkt⟩ Hkey Hm Hb Hv He Henc Hcont
+  ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
   iapply wp_notCrashed_acc _ _ h
   iintro Hnc
   imod walInv_untailKey (L := hG.goose_localGS) Mr R jr r dir γt H md cuts (o0 + ([] : List w8).length) gl.ino

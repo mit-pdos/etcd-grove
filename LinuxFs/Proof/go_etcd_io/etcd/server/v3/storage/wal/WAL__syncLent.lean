@@ -97,7 +97,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLent [os.file.Fie
     isplitr
     · ipureintro; exact WalFs.errnoErr_zero
     isplitl [Hfd Hlkt]
-    · iexists _; iframe Hfd Hlkt; ipureintro; rfl
+    · ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt
+      iexists _; iframe Hfd Hlkt; ipureintro; rfl
     iexists ⟨name, i, m, bs⟩
     unfold segRes
     iframe Hm Hb

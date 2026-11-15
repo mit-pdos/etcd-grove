@@ -206,7 +206,9 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
     (hdrop : ∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name))
     (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) (hgl : gs.getLast? = some gl)
-    (Pre : WalDur → Prop) (Q : WalDur → IProp GF) :
+    (Pre : WalDur → Prop) (Q : WalDur → IProp GF)
+    (hPre : ∀ dc d lay kk, Pre dc → walDurLe dc d → WalAbsD C Mr d lay hj0.cur → lay.segs.drop kk = gs →
+      segStart lay.cuts (lay.first + kk) ≤ d.unl) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
@@ -227,7 +229,8 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
         Q dc ∗ walPast (W := W) s ∗ walLenLb (W := W) w dir dc.H.length ∗
         osNames (L := hG.goose_localGS) jr (.only [nm]) (DFrac.own q) hn ∗
         osLogLb (L := hG.goose_localGS) hn.next ∗
-        walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
+        walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName))
+          (<[dir := segStart lay.cuts (lay.first + kk)]> (∅ : GMap GoString Nat)) ∗
         walPendTok (W := W) dir γ lay.old.length ∗
         (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay gl.ino none)) ∗
         ⌜Pre dc ∧ walDurLe dc d ∧ s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧
@@ -265,6 +268,11 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   imod Hcommit $$ [HM] with HQ
   · iexists M; iframe HM; ipureintro; exact HMd
+  -- the read segments' range registered (unit `locks`, session 5)
+  have hbu : segStart lay.cuts (lay.first + kk) ≤ d.unl :=
+    hPre dc d lay kk hpre hle hrs.2.2.1 hrs.2.2.2.2.2.1
+  imod walInvBody_lksSet (L := hG.goose_localGS) C Mr R jr r s _ ∅ _ (LksOk.single hrs.1 hbu)
+    $$ Hb Htf with ⟨Hb, Htf⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   ihave ⟨Ho, #Hlen⟩ := walOpening_lenLb (W := W) w dir sn s d dc.H.length hrs.1

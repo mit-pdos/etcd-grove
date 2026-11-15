@@ -13,6 +13,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutLay
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleasePos
 
 @[expose] public section
 
@@ -34,6 +35,27 @@ theorem walFileName_ne_of_seq {a b ix ix' : Nat} (hab : a ≠ b) (ha : a < 2 ^ 6
   have := walFileName_seq_mod h
   rw [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
   exact hab this
+
+/-- `%016x` is injective modulo `2 ^ 64`. -/
+theorem hex16_inj {a b : Nat} (h : hex16 a = hex16 b) : a % 2 ^ 64 = b % 2 ^ 64 := by
+  rw [hex16_mod a, hex16_mod b, hex16_hexPad, hex16_hexPad] at h
+  have h16 : ∀ n, n % 2 ^ 64 < 16 ^ 16 := fun n => lt_of_lt_of_eq (Nat.mod_lt _ (by decide)) (by decide)
+  rcases Nat.lt_trichotomy (a % 2 ^ 64) (b % 2 ^ 64) with hl | he | hl
+  · have := hexPad_lt 16 _ _ hl (h16 b); rw [h] at this; exact absurd this (go.goStringLt_irrefl _)
+  · exact he
+  · have := hexPad_lt 16 _ _ hl (h16 a); rw [h] at this; exact absurd this (go.goStringLt_irrefl _)
+
+/-- **Equal segment names**: equal sequence numbers and indices, modulo `2 ^ 64`. -/
+theorem walFileName_inj {a b ix ix' : Nat} (h : walFileName a ix = walFileName b ix') :
+    a % 2 ^ 64 = b % 2 ^ 64 ∧ ix % 2 ^ 64 = ix' % 2 ^ 64 := by
+  refine ⟨walFileName_seq_mod h, ?_⟩
+  unfold walFileName at h
+  have hl : ∀ n, (hex16 n).length = 16 := fun n => by simp [hex16]
+  simp only [List.append_assoc] at h
+  have h1 := List.append_inj h (by rw [hl, hl])
+  have h2 := List.append_inj h1.2 (by rfl)
+  have h3 := List.append_inj h2.2 (by rw [hl, hl])
+  exact hex16_inj h3.1
 
 /-- **`cut`'s step on the locked range**: the old tail `nm0` (inode `ino`) becomes the last non-tail lock,
 the renamed segment `bt` (sequence one more) the tail, one more cut. -/
@@ -80,6 +102,99 @@ theorem LkRel_cut {hj hj' : NamesH} {cuts : List Nat} {nm0 bt : GoString} {ls : 
       segStart_snoc (by omega)]
     exact h6
 
+/-- A segment start past the first segment is a cut of the layout, a cut position of the history, at
+most its length. -/
+theorem absD_segStart_cut {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) {k : Nat} (hk0 : 0 < k) (hk : k ≤ lay.cuts.length) :
+    walCutPos (histM d) (segStart lay.cuts k) ∧ segStart lay.cuts k ≤ d.H.length := by
+  have hmem : segStart lay.cuts k ∈ lay.cuts := by
+    unfold segStart
+    obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
+    rw [List.getD_cons_succ, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
+    exact List.getElem_mem _
+  have hc := h.cuts.1 _ hmem
+  refine ⟨hc, ?_⟩
+  rcases hc with h0 | ⟨hh, es, hb, -⟩
+  · omega
+  · have := (List.getElem?_eq_some_iff.1 hb).1
+    simp only [histM, List.length_map] at this; omega
+
+/-- **The first read segment starts at or before `walOpenPos`** (`ReadAll`'s registration): the segments
+from `kk` on, the first named at most `a`. -/
+theorem absD_segStart_le_openPos {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} (h : WalAbsD C Mr d lay ents) {kk : Nat} {gs : List SegG} (hgs : lay.segs.drop kk = gs)
+    (hne : gs ≠ []) {a : w64}
+    (hhd : ∀ g, gs.head? = some g → ∀ sq ix : Nat, g.name = walFileName sq ix → ix < 2 ^ 64 →
+      ix ≤ uint.nat a) :
+    segStart lay.cuts (lay.first + kk) ≤ walOpenPos (histM d) a := by
+  obtain ⟨g, hg⟩ : ∃ g, lay.segs[kk]? = some g := by
+    cases e : lay.segs[kk]? with
+    | none => rw [List.getElem?_eq_none_iff] at e; rw [List.drop_eq_nil_of_le e] at hgs; exact absurd hgs.symm hne
+    | some g => exact ⟨g, rfl⟩
+  have hkk : kk < lay.segs.length := (List.getElem?_eq_some_iff.1 hg).1
+  have hhead : gs.head? = some g := by rw [← hgs, List.head?_drop]; exact hg
+  obtain ⟨sq, ix, hn, hix, hb⟩ := h.nameBound kk g hg
+  have hia := hhd g hhead sq ix hn hix
+  have hcl := h.cuts.2.2
+  apply cutStart_le_openPos (ix := ix)
+  rcases Nat.eq_zero_or_pos (lay.first + kk) with h0 | h0
+  · left; rw [h0]; rfl
+  · right
+    obtain ⟨hcp, hle⟩ := absD_segStart_cut h h0 (by omega)
+    exact ⟨hcp, by simpa [histM] using hle, hb h0, hia⟩
+
+/-- **`ReadAll`'s locked range**: the segments from `kk` on locked (the last the tail), the range registered at
+the first one's start. -/
+theorem LkRel_read {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {hj : NamesH} {kk : Nat}
+    {gs0 : List SegG} {gl : SegG} (h : WalAbsD C Mr d lay hj.cur) (hsn : SegsNamed lay.segs hj.cur)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hgs : lay.segs.drop kk = gs0 ++ [gl])
+    (hcl : lay.cuts.length < 2 ^ 64) :
+    LkRel hj lay.cuts gl.name (gs0.map (fun g => (g.name, g.ino))) (segStart lay.cuts (lay.first + kk)) := by
+  have hlen : lay.segs.length = kk + gs0.length + 1 := by
+    have := congrArg List.length hgs
+    simp only [List.length_drop, List.length_append, List.length_singleton] at this
+    have hkk : kk < lay.segs.length := by
+      rcases Nat.lt_or_ge kk lay.segs.length with h1 | h1
+      · exact h1
+      · rw [List.drop_eq_nil_of_le h1] at hgs; simp at hgs
+    omega
+  have hc := h.cuts.2.2
+  have hfk : lay.first + kk = lay.cuts.length - gs0.length := by omega
+  have hseg : ∀ k, lay.segs[kk + k]? = (gs0 ++ [gl])[k]? := by
+    intro k; rw [← hgs, List.getElem?_drop]
+  have hlg : lay.segs.getLast? = some gl := by
+    rw [List.getLast?_eq_getElem?, show lay.segs.length - 1 = kk + gs0.length by omega, hseg]
+    simp
+  simp only [LkRel, List.length_map]
+  refine ⟨by omega, hcl, (h.tailSeq gl hlg).1, fun k l hk => ?_, fun nm n hn hw hne hnl => ?_, ?_⟩
+  · rw [List.getElem?_map] at hk
+    cases hgk : gs0[k]? with
+    | none => rw [hgk] at hk; cases hk
+    | some g =>
+      rw [hgk] at hk; simp only [Option.map_some, Option.some.injEq] at hk; subst hk
+      have hk' : k < gs0.length := (List.getElem?_eq_some_iff.1 hgk).1
+      have hsg : lay.segs[kk + k]? = some g := by
+        rw [hseg, List.getElem?_append_left hk']; exact hgk
+      refine ⟨(hsn.1 g (List.mem_of_getElem? hsg)).2, ?_⟩
+      obtain ⟨ix, hix⟩ := h.seqName (kk + k) g hsg
+      exact ⟨ix, by rw [hix, ← Nat.add_assoc, hfk]⟩
+  · obtain ⟨g', hg', rfl⟩ := walName_seg hsn h.names.1 hnd hw hn
+    obtain ⟨k', hk'⟩ := List.getElem?_of_mem hg'
+    rcases Nat.lt_or_ge k' kk with hlt | hge
+    · obtain ⟨ix, hix⟩ := h.seqName k' g' hk'
+      exact ⟨lay.first + k', ix, hix, by omega⟩
+    · exfalso
+      have e : lay.segs[kk + (k' - kk)]? = some g' := by rw [show kk + (k' - kk) = k' by omega]; exact hk'
+      rw [hseg] at e
+      rcases Nat.lt_or_ge (k' - kk) gs0.length with h1 | h1
+      · rw [List.getElem?_append_left h1] at e
+        exact hnl (List.mem_map.2 ⟨(g'.name, g'.ino), List.mem_map.2 ⟨g', List.mem_of_getElem? e, rfl⟩, rfl⟩)
+      · rw [List.getElem?_append_right h1] at e
+        have : k' - kk - gs0.length = 0 := by
+          have := (List.getElem?_eq_some_iff.1 e).1; simp at this; omega
+        rw [this] at e; simp at e; subst e; exact hne rfl
+  · exact Nat.le_of_eq (by rw [hfk])
+
 end pure
 
 section iris
@@ -89,17 +204,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
-
-/-- A writable description's `fdLocksW`: its `fdLocks`, and an exclusive lock held. -/
-theorem fdLocksW_excl (fd : w64) (d : OsFd) (hw : d.writable = true) :
-    fdLocksW (GF := GF) fd d ⊢ fdLocks fd d ∗ ⌜∃ k, d.lk k = some true⌝ := by
-  unfold fdLocksW
-  iintro ⟨H, %hh⟩
-  iframe H
-  ipureintro
-  rcases hh hw with h | h
-  · exact ⟨.ofd, h⟩
-  · exact ⟨.flock, h⟩
 
 /-- **The old tail as a non-tail lock** (`cut`): its lock, its file at `child pd bn` (`bn` a segment's
 name), its writable locked description on `i`. -/

@@ -19,6 +19,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadState
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtPin
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleaseAu
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllExit
 
@@ -221,6 +222,24 @@ theorem readAll_failWpQ (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   imodintro
   iframe Hnc
   iapply Hk $$ HQ Hf
+
+/-- `readAll_failWpQ` with the read segments' range dropped (unit `locks`, session 5): the lent tail's
+exits (E6, E7), whose failed handle keeps the tail registered with no range. -/
+theorem readAll_failWpQL (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (w : Loc) (dir : GoString) (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur)
+    (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) (T : GMap GoString GName) (Lk : GMap GoString Nat) :
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn -∗ Q dc -∗
+      walTailsFrag (W := W) T Lk -∗
+      (∀ d, Q d -∗ walTailsFrag (W := W) T ∅ -∗ walReadFailed (W := W) w dir -∗ WP e {{ Φ }}) -∗
+      WP e {{ Φ }} := by
+  iintro #Hinv Ho HQ Htf Hk
+  iapply wp_notCrashed_acc _ _ h
+  iintro Hnc
+  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
+  imod walInv_lksDrop (L := hG.goose_localGS) C Mr R jr r T Lk $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
+  imodintro
+  iframe Hnc
+  iapply Hk $$ HQ Htf Hf
 
 end wp
 

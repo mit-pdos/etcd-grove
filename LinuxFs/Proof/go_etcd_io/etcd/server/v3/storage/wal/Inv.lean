@@ -2094,6 +2094,21 @@ instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   haveI := walNamesRes_timeless (L := L) (W := W) R jr r
   unfold walInvBody laysResF osClaims; infer_instance
 
+/-- **Setting the locked ranges** (unit `locks`, session 5) inside the invariant's contents: to any `Lk'`
+within the `unl`s of `s` (`walGhost_lksSet`). -/
+theorem walInvBody_lksSet (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (T : GMap GoString GName) (Lk Lk' : GMap GoString Nat) (h : LksOk s Lk') :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailsFrag (W := W) T Lk ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walTailsFrag (W := W) T Lk' := by
+  iintro Hb Hf
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  imod walGhost_lksSet s T Lk Lk' h $$ Hg Hf with ⟨Hg, Hf⟩
+  imodintro
+  iframe Hf
+  iexists Ls, cl, n, F
+  iframe
+
 /-- **The WAL invariant** of the area `r`, the directory `jr` under the roots `R`: its contents, or,
 once `walInv_crash` has taken them, the generation's `crashed` (Perennial's crash token,
 `Perennial/GooseLang/CrashToken.lean`, which the crash adequacy theorem gives the crash obligation)
