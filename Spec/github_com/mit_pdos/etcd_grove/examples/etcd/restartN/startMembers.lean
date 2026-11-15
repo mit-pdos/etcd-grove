@@ -1,7 +1,11 @@
 /-
 `startMembers(ms, lg)` (`examples/etcd/restartN/restartN.go`; `notes/restartN-plan.md`): the members `ms`
-of a new cluster started in order, each peer address served through the member's `raftSwap`.
-Lean-first (no Rocq counterpart).
+of a new cluster started in order. **The start mirrors `etcdstart.StartMembers`' steps** (the initial
+cluster's map, then per member: the server built at the token and snapshot settings, its peer address
+listened on and served, the server started) **but serves each member's peer address through the member's
+`raftSwap`** (restart3's `newMember`) instead of its raft handler directly, so that a stopped member's
+restarted incarnation can be served at the same address without closing or re-listening it (decided by
+etcd-grove-81, 2026-11-15). Lean-first (no Rocq counterpart).
 
 **The triple:** `etcdstart.StartMembers.spec`'s (each member `m` paired with its ghost names `g`,
 `xs : List (GMember × MemberG)`, at one cluster, the members' names distinct and valid UTF-8, each

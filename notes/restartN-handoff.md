@@ -10,11 +10,17 @@ Decisions: `questions.md` (worktree-local, gitignored).
   proofs over restartN's names (`stop` takes `k`); `restart/Swap.lean` and `restart/KV.lean` imported (`open etcd_restart`).
 - S3 (`16b006c49c`..`e9159a1d85`): `startMembers` spec/proof, `Run` and `Main` specs and proofs. Targeted build green.
 
+## Decided (etcd-grove-81, 2026-11-15)
+Q2 (local startMembers with raftSwap), Q3 (N1 for the two candidates), Q4 (name `etcd_restartN_safe`) approved. Q1 (the
+range of `k`) is with the user, with the statement.
+
+## Prepared (independent of the range)
+`etc/gen-init.py` (restartN in ROOTS and PROGRAMS; `PkgTable.lean`, `Init.lean` generated, `--check` clean),
+`MainLinked.lean` (`etcd_restartN.wp_Main`); targeted build green (`/shared/tmp/restartN/build-link.log`).
+
 ## Next, in order
-1. HARD STOP (current): the statement (`notes/restartN-draft.md`). Do not link before etcd-grove-81's answer.
-2. Link: `etc/gen-init.py` (restartN in ROOTS/PROGRAMS: `PkgTable.lean`, `Init.lean`), `MainLinked.lean` (as restart3's,
-   with `etcdstart.wp_Members`, `startMembers.wp_proof (build.wp_proof ...) (newMember.wp_proof ...)`, and putgetN's
-   `rafthttp.bootCfg_of_le` for `hbcfg`), `Adequacy.lean` (putgetN's `etcd_adequate_members` with
+1. HARD STOP (current): wait for the range of `k` (Q1).
+2. Link: `Adequacy.lean` (putgetN's `etcd_adequate_members` with
    `ms = startAddrs k`, `restartNAddrs_perm/_nodup/_lit`, `restartNDirs_perm/_nodup`; restart3's GF), `Results.lean`,
    collection `etc/tcb-collections/restartN.txt` (expect restart3's 530), interfaces, bounds (likely + a few
    `spec-thread` in `startMembers`/`Run`, as putgetN), STATUS entry, gates; then the hard stop before land.sh.
