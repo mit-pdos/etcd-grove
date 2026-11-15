@@ -189,8 +189,10 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
+  icases walCreating_ne dir N h J $$ Htok with ⟨%hdk, Htok⟩
   have hco := Hcro
-  obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
+  obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew0⟩ := Hcro dir N h J Hcr
+  have hnew := hnew0 hdk
   obtain ⟨l1, l2, hcl, hl1, hl2⟩ := honce
   subst hcl
   icases (osClaims_split _ _ _ _).1 $$ Hcl0 with ⟨Hl1, Hα, Hl2⟩
@@ -351,7 +353,9 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         rw [hl'] at hl2; cases hl2
         have e : dir' = dir := by rw [hin2.2, hin'.2, ← hnm2, he, hlay.2.1]
         subst e; rw [hLd] at hl'; cases hl'
-      imod walNamesRes_addWal R jr r Ls dir lay hLd hnewNm $$ Hnms Hnf with ⟨Hnms, Hnf⟩
+      imod walNamesRes_addWal R jr r Ls s (createSt s dir md) dir lay hLd hnewNm
+        (fun d hd => by simp only [createSt, GMap.lookup_insert_eq, Option.some.injEq] at hd; subst hd; rfl)
+        $$ Hnms Hnf with ⟨Hnms, Hnf⟩
       have hnmc : ∀ nm' hn, walNameOk nm' → (jr, NameSet.only [nm'], hn) ∈ l1 ++ (jr, N, h) :: l2 →
           (jr, NameSet.only [nm'], hn) ∈ createClaims (l1 ++ (jr, N, h) :: l2) jr N h x
             (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J) J X hJ := by
@@ -430,7 +434,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         isplitl [Hcra]
         · iexists GMap.delete dir CR
           iframe Hcra
-          ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
+          ipureintro; exact creatingOk_create hco Hcr hnmN hJjr hdk
         isplitl [Htl]
         · iexact Htl
         isplitr

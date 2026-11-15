@@ -327,7 +327,9 @@ theorem walInvBody_syncP (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots
     · ipureintro
       exact walsAt_insert hl hLnm hLj HAt
     isplitl [Hnms]
-    · iapply walNamesRes_insert _ _ _ _ _ _ Lw hl hLnm hLj $$ Hnms
+    · ihave Hnms := walNamesRes_congr R jr r Ls s (walSyncS s dir d)
+        (namedSub_ins s dir d _ hd rfl) $$ Hnms
+      iapply walNamesRes_insert _ _ _ _ _ _ Lw hl hLnm hLj $$ Hnms
     ipureintro; exact ⟨walsBounded_insSame Hbd.1 rfl hd rfl rfl, Hbd.2⟩
   · unfold walPast; iexact Hpast
 

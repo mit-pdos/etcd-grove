@@ -546,7 +546,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     dsimp only [Function.comp]
     iexact Hs
   isplitr
-  · ipureintro; exact fun b hb hnw => bootCls_subCover hwf hr b hb hnw
+  · ipureintro; exact fun b hb hnw _ => bootCls_subCover hwf hr b hb hnw
   · ipureintro; exact fun nm h => bootCls_tmpOk hfo nm h
 
 end boot

@@ -216,7 +216,7 @@ theorem walInvBody_unpinX (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
       ([∗list] g ∈ segsAll Ls, segRes (L := L) g) -∗
       (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) CR⌝) -∗
       walTailsRes (W := W) C Mr s Ls ∅ -∗ walDirKeysAuth (W := W) K -∗ walCutAuth (W := W) cp -∗
-      walNamesRes (L := L) (W := W) R jr r Ls -∗
+      walNamesRes (L := L) (W := W) R jr r Ls s -∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTokX (W := W) := by
     rw [hcl] at HDK HAt HNm Hab
     iintro Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca HN

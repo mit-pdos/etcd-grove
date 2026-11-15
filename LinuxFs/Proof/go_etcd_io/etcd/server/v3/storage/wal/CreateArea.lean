@@ -31,7 +31,7 @@ section pure
 /-- The pure facts of `walAreaRes` (`Wn` the split names). -/
 def AreaOk (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (Wn : List GoString) : Prop :=
   (∀ nm, walNameOk nm → N.Mem nm ∨ nm ∈ Wn) ∧ (∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)) ∧
-  (∀ b, N.Mem b → ¬ walNameOk b → SubCover (clOf cl b) (h.cur !! b)) ∧
+  (∀ b, N.Mem b → ¬ walNameOk b → ¬ BrokenSlot b → SubCover (clOf cl b) (h.cur !! b)) ∧
   (∀ nm, walNameOk nm → TmpOk (clOf cl (tmpName nm)) (h.cur !! tmpName nm))
 
 theorem clOf_append (l1 l2 : List (GoString × Claim)) (b : GoString) :
@@ -109,10 +109,10 @@ theorem areaOk_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Cla
     rw [List.map_map]
     exact List.map_id' _
   refine ⟨fun nm hn => (h1 nm hn).imp_left (hN _).2, fun nm sfx hn => (hN _).2 (h2 nm sfx hn), ?_, ?_⟩
-  · intro b hb hbn
+  · intro b hb hbn hbb
     by_cases hbt : b = tmp
     · subst hbt; rw [hclt]; exact hct.1
-    · rw [hcl b hbt, hcur b hbt hbn]; exact h3 b ((hN b).1 hb) hbn
+    · rw [hcl b hbt, hcur b hbt hbn]; exact h3 b ((hN b).1 hb) hbn hbb
   · intro nm hn
     have hnt : ¬ walNameOk (tmpName nm) := by
       intro hw; apply hw.2.2; simp [tmpName]
@@ -221,6 +221,7 @@ theorem area_takeTmp (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) 
   have hnt : ¬ walNameOk (tmpName nm) := by
     intro hw; apply hw.2.2; simp [tmpName]
   have hsc := hok.2.2.1 (tmpName nm) (by have := hok.2.1 nm go!"tmp" hnm; simpa [tmpName] using this) hnt
+    (tmpName_not_broken hnm)
   have htm := hok.2.2.2 nm hnm
   unfold areaCls
   iintro ⟨H, Hf⟩

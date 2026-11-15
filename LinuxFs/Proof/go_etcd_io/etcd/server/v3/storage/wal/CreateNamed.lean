@@ -265,10 +265,10 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hl : LastWrite h jr nm x e E) (hx : x < n) (hJ : E !! nm = some (.dir J))
     (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n ={Em}=∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r (setNamed s dir) ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir := by
-  iintro Hb #Hsh Hn #Hc
+        walNamed (W := W) dir ∗ walNamesFrag (W := W) none := by
+  iintro Hb #Hsh Hn #Hc Hnf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -288,7 +288,9 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
     (absLe_setNamed s dir) (walKeysInArea_upd s dir _) (fun _ hn => hn.upd (fun _ => rfl)) $$ Hg with
     ⟨Hg, #Hp⟩
+  icases walNamesRes_none R jr r Ls s (setNamed s dir) $$ Hnms Hnf with ⟨Hnms, Hnf⟩
   imodintro
+  iframe Hnf
   isplitl [Hg Hcl Hlays Hcr Htl Hpk Hdk Hcp Hnms]
   · iexists Ls, cl, max n0 n, F
     iframe Hg Hcl Hlays

@@ -75,32 +75,35 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **The program's split names agree with the invariant's**, and are present WALs' names. -/
 theorem walNamesRes_splitOk (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
-    (Wn : List GoString) :
-    ⊢ walNamesRes (L := L) (W := W) R jr r Ls -∗ walSplitFrag (W := W) Wn -∗
-      walNamesRes (L := L) (W := W) R jr r Ls ∗ walSplitFrag (W := W) Wn ∗
+    (Wn : List GoString) {s : AbsDiskState} :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walSplitFrag (W := W) Wn -∗
+      walNamesRes (L := L) (W := W) R jr r Ls s ∗ walSplitFrag (W := W) Wn ∗
       ⌜∀ nm ∈ Wn, ∃ dir lay, Ls !! dir = some lay ∧ lay.nm = nm⌝ := by
   iintro Hn Hf
   unfold walNamesRes
-  icases Hn with ⟨%o, %Wn', Ha, Hs, %hf, Hsp, Hl⟩
+  icases Hn with ⟨%o, %Wn', Ha, Hs, %hf, %hun, Hsp, Hl⟩
   icases walSplit_agree (W := W) Wn' Wn $$ Hs Hf with %he
   subst he
   iframe Hf
   isplitl
-  · iexists o, Wn'; iframe; ipureintro; exact hf
+  · iexists o, Wn'; iframe; isplitr
+    · ipureintro; exact hf
+    ipureintro; exact hun
   ipureintro; exact hf.1
 
 /-- **A present WAL's name claim lent** (see the file header), with no pending registration. -/
 theorem walNamesRes_lendAt (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
-    (dir : GoString) (lay : WalLay) (nm : GoString) (hl : Ls !! dir = some lay) (hnm : lay.nm = nm) :
-    ⊢ walNamesRes (L := L) (W := W) R jr r Ls -∗ walNamesFrag (W := W) none -∗
-      walNamesRes (L := L) (W := W) R jr r Ls ∗ walNamesFrag (W := W) none ∗
+    (dir : GoString) (lay : WalLay) (nm : GoString) (hl : Ls !! dir = some lay) (hnm : lay.nm = nm)
+    {s : AbsDiskState} :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) none -∗
+      walNamesRes (L := L) (W := W) R jr r Ls s ∗ walNamesFrag (W := W) none ∗
       ∃ (q1 q2 : Qp) (hn : NamesH), osNames (L := L) jr (.only [nm]) (DFrac.own q1) hn ∗
         osPathS (L := L) R r (DFrac.own q2) jr ∗
         ⌜NameOk nm ∧ hn.cur !! nm = some (.dir lay.j)⌝ := by
   subst hnm
   iintro Hn Hf
   unfold walNamesRes
-  icases Hn with ⟨%o, %Wn, Ha, Hs, %hf, ⟨%qs, Hsp⟩, Hl⟩
+  icases Hn with ⟨%o, %Wn, Ha, Hs, %hf, %hun, ⟨%qs, Hsp⟩, Hl⟩
   icases walNames_agree (W := W) o none $$ Ha Hf with %ho
   subst ho
   have hm : lay.nm ∈ Wn := hf.2 dir lay hl (by simp)
@@ -122,6 +125,8 @@ theorem walNamesRes_lendAt (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
     iframe Ha Hs
     isplitr
     · ipureintro; exact hf
+    isplitr
+    · ipureintro; exact hun
     isplitr [Hl Hn]
     · iexists qs.half; iexact Hsp
     ispecialize Hl $$ %(lay.nm)

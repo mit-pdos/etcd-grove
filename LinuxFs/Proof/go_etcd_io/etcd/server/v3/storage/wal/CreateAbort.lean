@@ -71,7 +71,7 @@ theorem create_abortTmp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (NameSet.mem_diff _ _ _).2 ⟨hNm, by simpa using (tmpName_ne nm).symm⟩
   imod walInv_mergeIn C Mr R jr r (N.diff [tmpName nm]) (.only [tmpName nm]) N
     (h.restrict jr (N.diff [tmpName nm])) hT nm (tmpName nm) (walUnlockedTok (W := W))
-    walUnlockedTok_excl ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm (by simp [NameSet.Mem])
+    walUnlockedTok_exclX ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm (by simp [NameSet.Mem])
     (fun b hb => by simp only [NameSet.Mem, List.mem_singleton] at hb; subst hb; exact tmpName_not_walName nm)
     (fun b => by
       rw [NameSet.mem_diff]
