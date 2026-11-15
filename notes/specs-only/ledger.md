@@ -330,7 +330,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `:256`. Probe: `Scratch/S3a2Probe.lean` (`Txn_wp_T` over a local copy of the strengthened spec).
 - **Proposed change.** The wand's premise `⌜PathsIgnOk … br ∧ PathsLeaseOk (stateAfter log) L br⌝` (a weaker
   obligation on the caller); `txn.Txn`'s proof passes `⟨Hign, Hlok⟩`; `TxnSpecs.lean`/`clients-txn.md` §8 updated.
-- **Decision.** Pending: the S3a2 Freeze (etcd-grove-81).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 2): the wand gains
+  `PathsLeaseOk (stateAfter log) L br`; `clients-txn.md` §8's frozen text noted as changed by this entry.
 
 ## 2026-11-15: authTie at a leased request -- false in the refused-implies-not-permitted direction (auth-lease S3a2 §4a)
 
@@ -345,4 +346,5 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** (b) the iff at `kvGrantedL st (leaseItemsOf (stateAfter lb)) rq`, `authTie` gaining the log
   `lb` (recommended since S3a2 Draft rev 5, review r4; probed `Scratch/S3a2ProbeTie.lean`); alternatives (a) one
   direction, (c) the iff for requests without a leased put: S3a2 Draft §4a.
-- **Decision.** Pending: the S3a2 Freeze (etcd-grove-81).
+- **Decision.** (b) (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 3): the iff at the model's `kvGrantedL`,
+  `authTie` gaining `lb`.

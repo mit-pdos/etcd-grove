@@ -5,6 +5,11 @@
 (decision: (3) in S3a, then (1) as S3a2), `notes/auth-lease-s3a-draft.md` §3a, §6, §15. Evidence: the probe
 `Scratch/S3a2Probe.lean` (untracked; §2), the code read below.
 
+**FROZEN at revision 6 (etcd-grove-81, 2026-11-15; tag `auth-lease-s3a2-frozen`).** Decisions: (1) the certificate
+at the live set as in §1–§3; (2) `txn.Txn.specSole`'s write wand gains `PathsLeaseOk L` (ledger 2026-11-15,
+`clients-txn.md` §8 noted); (3) `authTie` option (b), gaining `lb`; (4) the four exported server results at
+`plainReqL .revocable`; (5) no auth-on copies of lemmas, `plainOrCmpG` unchanged. Aim: etcdserver lit-mode ≤ 200 (§5).
+
 **Revision 6 (2026-11-15), the S3a2 Freeze package**: review round 5 (`/shared/tmp/auth-lease-s3a2/review-r5.md`)
 found **no first-tier point**; its second-tier S1–S6 applied (§4, §4a, §6, §7; the probes copied to
 `/shared/tmp/auth-lease-s3a2/S3a2Probe{,Tie}.lean`). Probes: `Scratch/S3a2Probe.lean` (§1–§3, backend Put/Txn) and
