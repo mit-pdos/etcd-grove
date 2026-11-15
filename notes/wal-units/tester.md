@@ -325,8 +325,124 @@ shorter than `2^59`); `W1` (no CRC collision) as the crash premise (`hQ`); `Boot
 `walFoRes` lands (tcrash.md); `WalDecEnvSupply` and the Perennial-gap hypotheses of `S/Link.lean`; and, until
 step 2 above is done, `tReadsBackOk` of the restarted states.
 
-# Tenth session (branch `wal-c-tester3`, 2026-11-15): `tReadsBackOk` carried; `opOwnSnap`; `step`, `Boot`
+# Tenth session (branch `wal-c-tester3`, 2026-11-15): `tReadsBackOk` carried; `opOwnSnap`; `step`
 
-Base `origin/wal-int` (`9dcb7496e0`), merged again after `wal-c-create2` landed (`8d6f3670d8`, fast-forward,
-no repair). No axiom, no `sorry` added. Nothing trusted or generated edited, no Go changed. (Log in progress;
-see the final sections below.)
+Base `origin/wal-int` (`9dcb7496e0`), merged again after `wal-c-create2` landed (`8d6f3670d8`, a fast-forward:
+nothing to repair) and after the notes-only `23c56c7a32`/`be30c5013c`. No axiom, no `sorry` added, nothing
+trusted or generated edited, no Go changed. `#print axioms` of `member.step`, `member.opOwnSnap`,
+`member.restart`: no `sorryAx` (only the generated type axioms every tester proof shows).
+
+## 1. `tReadsBackOk` carried by the tester's invariant (option (a), done)
+
+The weak form, as the coordinator decided: wherever `ReadAll` succeeds on an image of a candidate's history at
+its mark, the image reads back (`walReadsBack`). Proved for every image, through an invariant every operation
+keeps. No counterexample: the eighth session's bad image (a received snapshot's record, then its `Save` torn) is
+exactly the case where `ReadAll` and `walRead` both fail.
+
+- **`TP/SimFold.lean`** (pure, WAL-generic): two folds of one history, the *guide* (`gFold`: applies the records
+  a list marks, checks commit ≤ last index and every snapshot record's admissibility `gSnapOk`: below the
+  base, at or below the commit, or at or above the last index) and any fold applying at least its records
+  (`remask c`). `gFold_remask`: the second follows the first (`SRel`: same hard state, a base at least the
+  guide's, the guide's entries above it). `gFold_readsBack`: a guide marked by the history's own last commit is
+  `walRead`'s fold, so `walReadsBack`. `readAll_bad`: the torn `Save` after a received record above the commit
+  and the last index fails `ReadAll` from **every** position (`fold_bound`: at the fixed base `B` the fold's last
+  index stays `≤ max B` the guide's).
+- **`TP/ReadsBack.lean`**: `TDisc σ B σ'`, the raft discipline of the operations since the last restart (a
+  `Save` whose fold succeeds, commit ≤ last index, commit not going down, entries above the old commit; an own
+  snapshot at or below the commit; a received one above the last index immediately followed by its `Save` with
+  commit at least its index and entries above it). **`tSimAt H n σ`**: `H = A ++ B`, `|A| ≤ n`, `A` the image
+  the last restart read (its guide re-marked by its own commit succeeds, to `σA`), `B` disciplined from `σA` to
+  `σ`. **`tSim H n`**: that, or such a history followed by a received record whose `Save` has not come.
+  Results: `tSim_readsBack` (every image at the mark: `ReadAll`'s success gives `walReadsBack`), `tSim_img`,
+  `walRead_bad`, `tSim_restart`/`tSim_restartRead` (an image whose read succeeds starts `tSimAt I |I|` at its
+  `walRead`), the steps `tSimAt_save/_own/_recv`, `tSim_snapT`, `tSim_mark`, `tSimAt_nil`. Why the decomposition:
+  a restart may read past a received record whose `Save` a crash lost (the record stays in the WAL above the
+  commit, and is applied once the commit passes it); the guide is the member's view, which ignores it.
+- **Carried**: `tCandOk` and `tMemOk` (`Defs.lean`, `Member.lean`) gain a last conjunct `tSim ((tCandHist o c).map
+  absOp) (tCandMark o c)`, so `TInv`'s `tRelI` carries it across operations and crashes (`tCandOk_crash` keeps
+  the candidate). `tCandOk_readsBack` (`RestartOk.lean`): `tCandOk o c d → tReadsBackOk (d.H.map toM)`.
+- **`TP/MemberSim.lean`**: `tMemSim o c bs l cm` (the history disciplined since the last restart, at `|c.h|`, up
+  to a fold whose base, last index and commit are the member's fields), carried by `memLive`; one lemma per kind
+  of operation giving `save`/`saveSnap`'s new `tSim` premise and the new `tMemSim` (`tMemSim_save` for
+  consecutive entries above the base and the commit, `tMemSim_own`, `tMemSim_recv`), `tConsec`, and
+  `tMemSim_last_lt` (the last index below `2^63`, which `opOwnSnap`'s snapshot index needs).
+- **Each operation keeps it**: `save`, `saveSnap` (take the premise), `opTerm`, `opCommit`, `opEntries`
+  (its loop now tracks the entries' consecutive indices from `lo > max(commit, base)`), `opResend` (from
+  `last + 1`), `opRecvSnap`, `opOwnSnap` (below), `sync`/`close` (`tMemOk_synced`: the mark only grows).
+- **The restart establishes it**: `tRestart_sim` (`RestartLive.lean`): the image read is disciplined from its own
+  `walRead`, and `resume`'s fields are that fold's (`walEntsWf`: the last entry's index is the last index; the
+  read commit is within it). The **first boot** has `tSimAt_nil` (used by `Boot`, not written).
+
+### Statement changes (all tester-internal; ledger not needed: no statement was false, only strengthened)
+
+- `tCandOk`, `tMemOk`: the `tSim` conjunct (above). `tHistWf` users take `.1` of the old last conjunct.
+- `member.save.spec`, `member.saveSnap.spec`: premise `tSim` of the appended history (`tCandOk_save1`,
+  `tMemOk_save1`, `tInv_saveAu`, `tCandOk_snap1`, `tMemOk_snap1`, `tInv_snapAu` take it).
+- `member.opTerm/opCommit/opEntries/opResend.spec`: the member's `base`/`last` values and premise `tMemSim o c bs
+  l cm`; their true arms add `tMemSim` at the new oracle and fields.
+- `memLive`: the conjunct `tMemSim o c bs l cm`.
+- **`member.restart.spec` loses its `tReadsBackOk` premise** (derived, `tCandOk_readsBack`); `tRestart_ok`
+  takes the new candidate's `tSim`.
+
+## 2. `member.opOwnSnap` (done)
+
+`TS/member__opOwnSnap.lean`: `{memLive o ∗ tOrRoom o 56} opOwnSnap {b; if b then ∃ o', memLive o' ∗ |enc o'| ≤
+|enc o| + 56 else True}`. Proof `TP/member__opOwnSnap.lean` over `rnd.choose`, `saveSnap`, `copyOps`,
+`nameBound`, `storeOracle`, `WAL.ReleaseLockTo`. New: `TP/OwnSnapPure.lean` (`tRaiseCand`, `tRaiseNames`: the
+candidates loop; the encoding's length unchanged; `tMemOk/tMemHs/tCheckWf/tMemSim_raise`; `tReleaseD`,
+`tMemOk_release`: `walReleasePos ≤ walOpenPos ≤ walNameBound … false = tNameBound ≤` the raised bound),
+`TP/OwnSnapAu.lean` (`tInv_releaseAu`, `ReleaseLockTo`'s update on `TInv`, the record at `|hist|` before the
+snapshot's append, `< ` the synced mark). The loop's invariant: `tRaisePre o a k` (the first `k` candidates
+raised).
+
+## 3. `member.step` (done)
+
+`TS/member__step.lean`: `{memLive ½ o ∗ zapLoggerOk lg ∗ m.lg ↦ lg ∗ m.walDir ↦ tWalDir area ∗ osPathS ∗
+walAreaRes} step {b; osPathS ∗ walAreaRes ∗ m.lg ∗ m.walDir ∗ if b then ∃ o', memLive ½ o' else True}`, premises
+`m ≠ null`, `e.orFile.Ok`, `tWalPathsOk area`. At `Open`'s half of the call permission (`memLive`'s `qc = ½`):
+`close` returns the other half, joined for `restart`'s `osCallPerm 1`. `fits(m.o, 256)` gives each operation's
+room. Helpers `TP/StepLive.lean` (`memFields`, `memLive_intro`, `memLive_post`, `tCheckWf_step`,
+`osCallPerm_join2`).
+
+## 4. `Boot`, `Main`: not written; three open points found
+
+`Boot`'s callees all have specs (`loadOracle`, `wal.Exist`, `wal.Create`, `freshOracle`, `storeOracle`,
+`member.resume`, `member.restart`, `member.step`, `rnd.choose`, `member.close`, `newRnd`, zap's `NewNop`), but:
+
+- **(B1) A not-created oracle with an existing WAL** (a crash after `Create` committed and before the store of
+  `created`): `Boot` calls `restart()` with the fresh oracle. Go is fine (`checkRestart` reads the empty history
+  and returns a created oracle), but `restartRead.spec`/`member.restart.spec` require `o.created = true`, because
+  the oracle stored before each `Open` (the fresh one with `opens = [idx]`) must satisfy `tRelI`, whose
+  not-created branch is `tPreOk` (`o = tFreshOracle`). **Options**: (a, recommended) generalize the not-created
+  branch to `tPreOk o od ∨ (the candidate relation)`, or `tPreOk` up to `opens` (`{o with opens := []} =
+  tFreshOracle`), and drop `created` from `restartRead`/`restart`/`tInv_openAu` (their tRelI cases), the crash's
+  `tRel_crash`/`tPreOk_crash`; the fresh oracle's candidate `⟨[], 0, 0⟩` accounts for `Create`'s fresh WAL
+  (`walImg [] 0 []`, `tSimAt_nil`). About one session. Not a user decision (tester-internal invariant).
+- **(B2) The panic** ("the WAL vanished after `wal.Create` returned"): from `Exist = false` (`ExistFalseOk od`:
+  none, or empty and unnamed) and `o.created` (`tRelI`: `od = some d`, `walNamed`), a lemma that `walNamed dir`
+  (a `walPast` lower bound) and `walDirIs dir (some d)` give `d.named = true` (WalFs; check `Ghost.lean`'s
+  `walPast` monotonicity).
+- **(B3) `Create`'s AU needs `walAbsent` (`od = none`)**, while `ExistFalseOk`/`tPreOk` allow `od = some d` empty
+  and unnamed (`tPreOk`'s second branch, a crash after `Create`'s commit). Whether that state survives a crash
+  boot (or `walBootCrash` maps an unnamed WAL to none) decides whether `Boot` needs a `Create` spec from an
+  empty unnamed WAL (the `wal-c-create*` unit's ground).
+
+## For the closed theorem (not stated: the user's hard stop)
+
+Premises as far as this session sees them (unchanged from the ninth but for `tReadsBackOk`, now proved):
+- the world premises of `tBoot0`/`tBootCrash`: `RootsOk R`; `area`, `orDir` two distinct roots of the first tree;
+  no oracle file nor its temporary at the first boot; `ReceiptBoundLe GF (2^62)`; `e.orFile.Ok`; `tWalPathsOk
+  area` (`area` clean and absolute, `area/wal` shorter than `2^59`);
+- `W1` (no CRC collision) as the crash premise (`hQ`), `AbsDiskGpreS GF`, `(orDir, jo) ∈ R`;
+- `BootFo` of the crashed tree until `walFoAres` lands (tcrash.md);
+- `WalDecEnvSupply` and the Perennial-gap hypotheses of `S/Link.lean` (`errors.*`, `fmt.ErrorfErrsNot`,
+  `filepathlite.IsAbs`), `proto.UnmarshalWalRecordE`, the model laws (U4);
+- **no `tReadsBackOk` premise** (this session).
+
+## Next steps (in order)
+
+1. (B1): generalize `tRelI`'s not-created branch, drop `created` from `restartRead`/`restart`.
+2. (B2), (B3); then `Boot.spec`/`wp_proof` (first start: `Exist`, `Create`, fresh oracle with the empty
+   candidate, `resume` of the zero contents into `memLive` with `tSimAt_nil`; restart path; the `step` loop with
+   `memLive ½`; the final `close`), over `TBoot` minus the crash tokens (which the crash condition keeps).
+3. `Main` = `Boot(area, orDir, 0, 40)`, then the U7 statement (the user's).
