@@ -250,3 +250,9 @@ STATUS "Last updated" (one copy of each entry, ten newest kept) and status-histo
 `examples/k8s/{compactor,etcd3}` at the pushed fork `6e8f0c004` (hashes from `go mod download`); `etc/featuregate-allow.txt`
 paths at the new pseudo-version; `etc/goose.py --check` passes (`/shared/tmp/restart3-land/goose-check.log`). Full build
 green (`/shared/tmp/restart3-land/build-a1.log`). STATUS entry for A1 added. Then `etc/land.sh`.
+
+### Landing `restart3-c` (2026-11-15)
+Merged lean `bf5cefbcaf` (A1 landed; only conflict this handoff). The statement of `etcd_restart3_safe` approved by
+the user, 2026-11-15, via etcd-grove-81 (Results' module docstring says so). Full build green
+(`/shared/tmp/restart3-land/build-c.log`); `etc/tcb-report.py --check` 870/4; restart3 collection 530/0. STATUS entry
+added. Then `etc/land.sh`.

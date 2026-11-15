@@ -1,6 +1,6 @@
 /-
 **restart3's results** (restart3 C4, 2026-11-15): `restart3_Main` (`MainLinked.lean`'s `wp_Main`) and the
-closed theorem `etcd_restart3_safe` (statement for the user's approval, via etcd-grove-81), with
+closed theorem `etcd_restart3_safe` (statement approved by the user, 2026-11-15, via etcd-grove-81), with
 `#print axioms` of each.
 -/
 module
