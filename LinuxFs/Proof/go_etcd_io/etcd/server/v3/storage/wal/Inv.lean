@@ -77,17 +77,19 @@ def DirsOk (R : Roots) (s : AbsDiskState) (cl : List Claim) (n : Nat) : Prop :=
   ∀ dd, s.dirs !! dd = some () → ∀ m', RegionCrashed cl n m' →
     ∃ J, lookupH R (m', []) dd = some (.dir J)
 
-/-- All the named segments of the layouts. -/
-def segsAll (Ls : GMap GoString WalLay) : List SegG := (toList Ls).flatMap (fun kv => kv.2.segs)
+/-- All the segments of the layouts: the named ones, and those removed since the last sync of their
+directory (`WalLay.pg`, which a crash may bring back: unit `locks`, session 7). -/
+def segsAll (Ls : GMap GoString WalLay) : List SegG := (toList Ls).flatMap (fun kv => kv.2.pg ++ kv.2.segs)
 
 /-- **What the invariant says of the WALs** (pure): each WAL of `s` has a layout, its directory at
 its name in the area, its directory's claim among `cl` (`WalDirClaim`) with the static relation
-over the directory's names, and its crash condition (`CrashOkW`). -/
+over the directory's names, and its crash condition, stated on the layout as of the directory's last
+sync (`WalFullOk`: the segments removed since put back). -/
 def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
   (∀ dir d, s.wal !! dir = some d → ∃ lay nm hj, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
     lay.jr = jr ∧ lay.nm = nm ∧ WalDirClaim lay.j hj cl ∧
-    WalAbsD C Mr d lay hj.cur ∧ CrashOkW C Mr d lay cl n) ∧
+    WalAbsD C Mr d lay hj.cur ∧ WalFullOk C Mr d lay cl n) ∧
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
   ((segsAll Ls).map (·.ino)).Nodup ∧ (∀ g ∈ segsAll Ls, g.om.cut = none) ∧
   AbsentOk s jr cl n ∧ DirsOk R s cl n
@@ -451,7 +453,8 @@ X, hj)` (`X` holding no `.wal` name) occurs once among the claims, coherent, and
 `j` holds a `.wal` name (the shared invariant's `NamesCoh.disj`, recorded where the key is made: an
 update's opening, inside an `os` call's, cannot open that invariant). And every WAL but the one whose
 cut's rename is pending (`c`, `walCutAuth`; the lock token holds `none`) has no alternative layout
-(`CrashOkA … none`, i.e. `CrashOk`): a cut's rename needs it of its WAL. And every WAL's directory claim is once and
+(`CrashOkA … none`, i.e. `CrashOk`, of the layout as of the directory's last sync, as `WalFullOk`): a
+cut's rename needs it of its WAL. And every WAL's directory claim is once and
 exclusive (`DirClaimsOk`, gap C). -/
 def DirKeysOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat)
@@ -460,7 +463,7 @@ def DirKeysOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
     (∀ b ∈ X, walNameP b = false) ∧ ClaimOnce (j, .except X, hj) cl ∧ ClaimCoh hj j (.except X) ∧
     ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b) ∧
   (∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → c ≠ some dir →
-    CrashOkA C Mr d lay none cl n) ∧
+    CrashOkA C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) none cl n) ∧
   DirClaimsOk jr Ls cl
 
 theorem walNameP_dotWal : walNameP go!".wal" = true := by decide
@@ -561,13 +564,14 @@ def SegsNamedC (segs : List SegG) (ents : Ents) : Prop :=
   ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)
 
 /-- **Every WAL's segments are at their names** (framed; W3/W5): now, in every claim of its
-directory the invariant holds (`WalDirClaim`), and after every crash the claims allow. Established
+directory the invariant holds (`WalDirClaim`), and after every crash the claims allow (with the
+segments removed since the directory's last sync, which a crash may bring back). Established
 at the start (`WalsStart`'s, from the crash: `walCrash_pure`); `cut`'s rename and `Create` must keep
 it. -/
 def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
   ∀ dir lay, Ls !! dir = some lay →
     (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
-    ∀ m', RegionCrashed cl n m' → SegsNamedC lay.segs (entsOf m' lay.j)
+    ∀ m', RegionCrashed cl n m' → SegsNamedC (lay.pg ++ lay.segs) (entsOf m' lay.j)
 
 theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents)
     (hsub : ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)) : SegsNamedC segs ents :=
@@ -889,7 +893,7 @@ def segRes (g : SegG) : IProp GF :=
 
 /-- The invariant's halves of every named segment of every WAL. -/
 def laysRes (Ls : GMap GoString WalLay) : IProp GF :=
-  iprop([∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.segs, segRes (L := L) g)
+  iprop([∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.pg ++ lay.segs, segRes (L := L) g)
 
 theorem laysRes_list (Ls : GMap GoString WalLay) :
     laysRes (L := L) Ls ⊣⊢ [∗list] g ∈ segsAll Ls, segRes (L := L) g := by

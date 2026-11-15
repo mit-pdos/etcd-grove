@@ -35,6 +35,7 @@ the alternative dropped (`crashOk_of_alt`).
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeFull
 
 @[expose] public section
 
@@ -134,6 +135,29 @@ def CrashOkW (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : 
   ∃ alt : Option WalLay, (∀ lay0, alt = some lay0 → AltOk C Mr d lay lay0) ∧
     CrashOkA C Mr d lay alt cl n
 
+/-- **What the invariant says of a WAL's crashes, purges pending** (unit `locks`, session 7): stated on
+the layout as of the last directory sync (`unpurge lay.pg lay`, the removed-not-durable segments back),
+for the WAL with `cut` at that layout's first segment (`walFullD`): its static relation over some entries
+(the directory's `.wal` entries as of that sync) and the crash condition. With nothing removed
+(`lay.pg = []`) it is `CrashOkW d lay` (`walFullOk_nil`). -/
+def WalFullOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : List Claim)
+    (n : Nat) : Prop :=
+  (∃ ents0, WalAbsD C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) ents0) ∧
+    CrashOkW C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n
+
+/-- With nothing removed, the full layout's condition is the layout's. -/
+theorem walFullOk_nil {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {cl : List Claim} {n : Nat} (hpg : lay.pg = []) (habs : WalAbsD C Mr d lay ents) :
+    WalFullOk C Mr d lay cl n ↔ CrashOkW C Mr d lay cl n := by
+  unfold WalFullOk
+  rw [hpg, walFullD_nil habs.cut.1, unpurge_nil hpg]
+  exact ⟨fun h => h.2, fun h => ⟨⟨ents, habs⟩, h⟩⟩
+
+theorem walFullOk_of_nil {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {cl : List Claim} {n : Nat} (hpg : lay.pg = []) (habs : WalAbsD C Mr d lay ents)
+    (h : CrashOkW C Mr d lay cl n) : WalFullOk C Mr d lay cl n :=
+  (walFullOk_nil hpg habs).2 h
+
 theorem crashOkA_none_iff (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay)
     (cl : List Claim) (n : Nat) : CrashOkA C Mr d lay none cl n ↔ CrashOk C Mr d lay cl n := by
   constructor
@@ -184,6 +208,13 @@ def cutLay (lay : WalLay) (b : Nat) (g : SegG) (wr : Nat) : WalLay :=
     wr := wr
     so := wr
     z0 := 0 }
+
+theorem cutLay_unpurge (pg : List SegG) (lay : WalLay) (b : Nat) (g : SegG) (wr : Nat) :
+    cutLay (unpurge pg lay) b g wr = unpurge pg (cutLay lay b g wr) := by
+  simp [cutLay, unpurge, List.append_assoc]
+
+@[simp] theorem cutLay_pg (lay : WalLay) (b : Nat) (g : SegG) (wr : Nat) :
+    (cutLay lay b g wr).pg = lay.pg := rfl
 
 end cut
 

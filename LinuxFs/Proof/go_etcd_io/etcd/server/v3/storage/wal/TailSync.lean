@@ -76,16 +76,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 the last replaced (`Φ g0 ⊢ Φ g`). -/
 theorem segsAll_sep_relay (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (dir : GoString)
     (lay lay' : WalLay) (pre : List SegG) (g0 g : SegG) (hl : Ls !! dir = some lay)
-    (hs : lay.segs = pre ++ [g0]) (hs' : lay'.segs = pre ++ [g]) (hΦ : Φ g0 ⊢ Φ g) :
+    (hs : lay.segs = pre ++ [g0]) (hs' : lay'.segs = pre ++ [g]) (hpg : lay'.pg = lay.pg)
+    (hΦ : Φ g0 ⊢ Φ g) :
     ([∗list] x ∈ segsAll Ls, Φ x) ⊢ [∗list] x ∈ segsAll (<[dir := lay']> Ls), Φ x := by
   refine (segsAll_sep_map Φ Ls).1.trans ?_
   refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] x ∈ lay.segs, Φ x)) hl).1.trans ?_
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x)) hl).1.trans ?_
   refine Entails.trans ?_ (segsAll_sep_map Φ _).2
   refine Entails.trans ?_ (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] x ∈ lay.segs, Φ x))).2
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x))).2
   refine sep_mono ?_ .rfl
-  rw [hs, hs']
+  rw [hs, hs', hpg, ← List.append_assoc, ← List.append_assoc]
   refine (BigSepL.bigSepL_append (PROP := IProp GF)).1.trans ?_
   refine Entails.trans ?_ (BigSepL.bigSepL_append (PROP := IProp GF)).2
   refine sep_mono .rfl ?_

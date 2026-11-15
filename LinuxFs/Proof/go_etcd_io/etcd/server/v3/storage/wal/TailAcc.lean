@@ -177,23 +177,62 @@ theorem walTailKey_lookup (T : GMap GoString GName) (dir : GoString) (γ : GName
   unfold walTailsAuth walTailKey
   exact ghost_map_lookup
 
-/-- The segments' parts, the layout of `dir` apart. -/
+/-- The segments' parts, the named segments of the layout of `dir` apart (its removed ones, `pg`, stay
+in the rest: `laysResF_put` puts them back with new named segments). -/
 theorem laysResF_del (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
     (hl : Ls !! dir = some lay) :
     laysResF (L := L) F Ls ⊣⊢ ([∗list] g ∈ lay.segs, segResF (L := L) F g) ∗
-      laysResF (L := L) F (Iris.Std.delete Ls dir) := by
-  refine (laysResF_map (L := L) F Ls).trans ?_
-  refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] g ∈ lay.segs, segResF (L := L) F g)) hl).trans ?_
-  exact sep_congr .rfl (laysResF_map (L := L) F _).symm
+      laysResF (L := L) F (<[dir := { lay with segs := [] }]> Ls) := by
+  constructor
+  · iintro Hl
+    ihave Hl := (laysResF_map (L := L) F Ls).1 $$ Hl
+    icases (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g)) hl).1 $$ Hl with ⟨Hs, Hl⟩
+    icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hp, Hs⟩
+    iframe Hs
+    iapply (laysResF_map (L := L) F _).2
+    iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).2
+    simp only [List.append_nil]
+    iframe Hp Hl
+  · iintro ⟨Hs, Hl⟩
+    ihave Hl := (laysResF_map (L := L) F _).1 $$ Hl
+    icases (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).1 $$ Hl with ⟨Hp, Hl⟩
+    iapply (laysResF_map (L := L) F Ls).2
+    iapply (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g)) hl).2
+    iframe Hl
+    iapply BigSepL.bigSepL_append.2
+    simp only [List.append_nil]
+    iframe Hs Hp
+
+/-- **The layout of `dir` put back** with new named segments (its removed ones unchanged). -/
+theorem laysResF_put (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
+    (hpg : lay'.pg = lay.pg) :
+    ([∗list] g ∈ lay'.segs, segResF (L := L) F g) ∗
+      laysResF (L := L) F (<[dir := { lay with segs := [] }]> Ls) ⊢
+      laysResF (L := L) F (<[dir := lay']> Ls) := by
+  iintro ⟨Hs, Hl⟩
+  ihave Hl := (laysResF_map (L := L) F _).1 $$ Hl
+  iapply (laysResF_map (L := L) F _).2
+  icases (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).1 $$ Hl with ⟨Hp, Hl⟩
+  iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).2
+  iframe Hl
+  iapply BigSepL.bigSepL_append.2
+  simp only [List.append_nil, hpg]
+  iframe Hs
+  iexact Hp
 
 /-- The segments of every layout, layout by layout (any `Φ`). -/
 theorem segsAll_sep_map (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) :
-    ([∗list] g ∈ segsAll Ls, Φ g) ⊣⊢ [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.segs, Φ g := by
+    ([∗list] g ∈ segsAll Ls, Φ g) ⊣⊢ [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.pg ++ lay.segs, Φ g := by
   unfold segsAll
   rw [BigSepL.bigSepL_flatMap (PROP := IProp GF)]
   exact (BigSepM.bigSepM_toList (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] g ∈ lay.segs, Φ g)) (m := Ls)).symm
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, Φ g)) (m := Ls)).symm
 
 /-- **A resource per segment, with a tail replaced** (`Φ g0 ⊢ Φ g`). -/
 theorem segsAll_sep_tail (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (dir : GoString)
@@ -203,13 +242,13 @@ theorem segsAll_sep_tail (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (d
       [∗list] x ∈ segsAll (<[dir := tailLay lay pre g wr']> Ls), Φ x := by
   refine (segsAll_sep_map Φ Ls).1.trans ?_
   refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] x ∈ lay.segs, Φ x)) hl).1.trans ?_
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x)) hl).1.trans ?_
   refine Entails.trans ?_ (segsAll_sep_map Φ _).2
   refine Entails.trans ?_ (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] x ∈ lay.segs, Φ x))).2
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x))).2
   refine sep_mono ?_ .rfl
   simp only [tailLay]
-  rw [hs]
+  rw [hs, ← List.append_assoc, ← List.append_assoc]
   refine (BigSepL.bigSepL_append (PROP := IProp GF)).1.trans ?_
   refine Entails.trans ?_ (BigSepL.bigSepL_append (PROP := IProp GF)).2
   refine sep_mono .rfl ?_

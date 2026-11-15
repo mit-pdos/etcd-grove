@@ -33,7 +33,7 @@ variable [GooseExts]
 /-- **The fresh WAL's layout**: the area's inode `jr`, the name `nm`, the directory `J`, the one
 segment `g`, its stream `L` bytes long, written and synced. -/
 def createLay (jr : Ino) (nm : GoString) (J : Ino) (g : SegG) (L : Nat) : WalLay :=
-  ⟨jr, nm, J, [], 0, [g], List.replicate g.bs.length 0, L, L, 0⟩
+  ⟨jr, nm, J, [], 0, [g], List.replicate g.bs.length 0, L, L, 0, []⟩
 
 /-- The fresh WAL's records are the header records from CRC 0. -/
 theorem create_recsOfSegs (Mr : WalMarshal) (md : List w8) :

@@ -39,6 +39,13 @@ def syncLayW (lay : WalLay) (pre : List SegG) (g : SegG) : WalLay :=
   { syncLay lay pre g with
     old := (lay.old ++ List.replicate lay.wr 0).take lay.wr ++ List.replicate (g.bs.length - lay.wr) 0 }
 
+theorem syncLayW_unpurge (pg : List SegG) (lay : WalLay) (pre : List SegG) (g : SegG) :
+    syncLayW (unpurge pg lay) (pg ++ pre) g = unpurge pg (syncLayW lay pre g) := by
+  simp [syncLayW, syncLay, unpurge, List.append_assoc]
+
+@[simp] theorem syncLayW_pg (lay : WalLay) (pre : List SegG) (g : SegG) :
+    (syncLayW lay pre g).pg = lay.pg := rfl
+
 theorem syncOld_length (old : List w8) (wr k : Nat) :
     ((old ++ List.replicate wr 0).take wr ++ List.replicate k (0 : w8)).length = wr + k := by
   simp <;> omega
