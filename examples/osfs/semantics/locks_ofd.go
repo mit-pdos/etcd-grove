@@ -53,7 +53,7 @@ func OFDLocks(dir string) {
 	_ = syscall.FcntlFlock(a.Fd(), unix.F_OFD_SETLK, &lk) // nil, or an errno and no lock
 	lk2 := lk
 	_ = syscall.FcntlFlock(b.Fd(), unix.F_OFD_SETLK, &lk2) // if a holds it: an errno (EAGAIN, ...)
-	a.Close()                                             // releases a's lock
+	a.Close()                                              // releases a's lock
 	lk3 := lk
 	_ = syscall.FcntlFlock(b.Fd(), unix.F_OFD_SETLK, &lk3) // may succeed now
 	b.Close()
