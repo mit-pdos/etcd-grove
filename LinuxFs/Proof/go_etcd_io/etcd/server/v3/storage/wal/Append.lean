@@ -147,6 +147,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   imod walGhost_updR s (walAppS s dir d o) M (absLe_append o hd) (walKeysInArea_append o hd) _
     (fun n hn => (hn.mono (Nat.le_max_left _ _)).insert rfl
       (by simp only [List.length_append, List.length_singleton]; exact Nat.le_max_right _ _))
+    (unlMono_insert s dir _ (fun d' h => by rw [hd] at h; cases h; exact Nat.le_refl _))
     $$ Hst Hg HM
     with ⟨%HMs, Hg, HM, #Hp⟩
   imodintro
