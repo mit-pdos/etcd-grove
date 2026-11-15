@@ -1694,3 +1694,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (`∃ x qd, ⌜dq = own qd⌝ ∗ UH x ∗ walOpenWFU P Mr w' dir R qd`). `Create` registers the name at its success
   exit, after the parent's close (`walInv_named`, `walInv_register`, `walOpenWFU_seal`).
 - **Decision.** Made (internal: no client spec moves; `Create.spec` unchanged).
+
+## 2026-11-15: `WAL.cleanupWAL.spec` (new, internal, the part's) and `wal.Create.wp_proof`'s callees (unit `create`, session 3)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cleanupWAL.lean` (new); the binders of
+  `wal.Create.wp_proof` (`LinuxFs/Proof/.../wal/Create.lean`).
+- **Defect.** `Create`'s error exits after its commit run the deferred `cleanupWAL`, which had no spec.
+- **Evidence.** S/wal.go `cleanupWAL` (the fork's fix: it returns its error); `Create`'s deferred closure.
+- **Change (made).** `cleanupWAL.spec` over the handle before naming (`walOpenWFU`), with a caller law
+  (`cleanupLaw`) for the rename (`os.Rename.specDirAnySnc`'s precondition at the timestamp, and a continuation
+  from its post, both with `notCrashed`); three outcomes (sync failed; `Close` returned an error; the law's
+  `Fin err`). Proved over `Close.specU`, `time.Now`, `time.Time.Format.specBroken`, `fmt.SprintfBroken.spec`,
+  `os.Rename.specDirAnySnc`, zap. `wal.Create.wp_proof` takes `cleanupWAL.spec` and `fmt.ErrorfAny.spec` (both
+  proved; in the Link `wal.wp_Create` now reaches the pending hypotheses `h_fmt_SprintfBroken` and
+  `h_time_Time_FormatBroken`). `Create.spec` unchanged.
+- **Decision.** Made (internal). The law's proof (`create_cleanupLaw`, `sorry`) is blocked on two invariant
+  changes (a pin for the rename's area claim; the moved-aside step with the pending WAL known unnamed):
+  `notes/wal-units/create.md`, session 3; left to the coordinator.

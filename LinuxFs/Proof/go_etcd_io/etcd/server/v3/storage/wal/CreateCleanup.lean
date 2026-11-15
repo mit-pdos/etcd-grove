@@ -12,8 +12,17 @@ the area less `nm.tmp` (`createAreaL`), from which, with `nm.tmp`'s claim merged
 (`create_cleanBack`).
 
 * `create_cleanupLaw`: the rename's law (`cleanupLaw`): `nm`'s claim merged back into the area
-  claim (the program's half whole again from the pinned paths), the rename in it, the invariant's half
-  of it through the update; `createFin` after any outcome.
+  claim (the program's half whole again from the pinned paths: `os.osPathS_unchild` twice,
+  `walInv_merge2`), the rename in it, the invariant's half of it through the update; `createFin` after
+  any outcome. **`sorry`**: the update cannot be built over the invariant as it is (W4 log, this unit's
+  session 3, `notes/wal-units/create.md`): its opening runs inside the `os` step, with the shared
+  invariant's namespace already open (`osAuMask` excludes `osShN`), so it cannot find the invariant's
+  half of the area claim through `osClaims_keys` as the program's steps do; `Create`'s commit found its
+  claim through the creating map (`CreatingOk`), which has no entry for the area claim. And a rename
+  that took effect needs the moved-aside step (`WalsAt`'s exception, the pending WAL known unnamed,
+  `walAreaRes`'s exception for the broken name). Both are invariant changes, left as a design.
+* `create_cleanBack`: **`sorry`** with it (`createAreaL` is to carry what the outcome left of the area
+  claim; its pure facts depend on that design).
 -/
 module
 

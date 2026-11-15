@@ -116,8 +116,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   · iframe
   rw [Qp.half_add_half]
   iunfold cleanupLaw at Hlaw
-  imod Hlaw $$ %ts %hts Hfr Hu Hnf Hpaths Htf with
-    ⟨%J, %N, %qd, %h, %q, %rr, %lb, %Qr, %hp, Hp, Hlb, HN, Hau, Hk⟩
+  iapply wp_notCrashed_acc _ _ rfl
+  iintro Hnc
+  imod Hlaw $$ %ts %hts Hfr Hu Hnf Hpaths Htf Hnc with
+    ⟨Hnc, %J, %N, %qd, %h, %q, %rr, %lb, %Qr, %hp, Hp, Hlb, HN, Hau, Hk⟩
+  iframe Hnc
+  imodintro
   obtain ⟨hN1, hN2, hJ, hq⟩ := hp
   have hne : nm ≠ brokenName nm ts := fun he => by
     have := congrArg List.length he
@@ -125,7 +129,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   wp_apply wp_Rename r nm (brokenName nm ts) jr J N R qd h q rr lb Qr hnmO
     (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, Hout⟩
   · iframe; iframe #
-  imod Hk $$ %rerr Hp Hperm Hout with Hfin
+  iapply wp_notCrashed_acc _ _ rfl
+  iintro Hnc
+  imod Hk $$ %rerr Hnc Hp Hperm Hout with ⟨Hnc, Hfin⟩
+  iframe Hnc
+  imodintro
   try wp_auto
   rcases rerr with ei | _
   · -- the rename failed (or took effect and failed): logged, its error returned

@@ -36,7 +36,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- **The cleanup's rename, as the caller's law provides it** at the timestamp `ts`: from what a
 successful `Close` returned (`walUnlockedTokX`, the names fragment, the two pinned paths, the tail
-file closed) and the frame `Fr`, the precondition of `os.Rename.specDirAnySnc` of `r/nm` onto
+file closed) and the frame `Fr`, with the generation's `notCrashed` (for steps of the WAL invariant), the precondition of `os.Rename.specDirAnySnc` of `r/nm` onto
 `r/nm.broken.<ts>` (the area's path, a claim on both names holding the WAL's directory `J` at `nm`,
 the update for the rest of it) and what to do with its outcome (`Fin err`, the call permission and
 the area's path given back to it). -/
@@ -45,19 +45,22 @@ def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (
   iprop(∀ ts : GoString, ⌜∀ c ∈ ts, c ∈ timeStampChars⌝ -∗ Fr -∗ walUnlockedTokX (W := W) -∗
     walNamesFrag (W := W) (some (child r nm)) -∗
     (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) -∗
-    (∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ={⊤}=∗
-    ∃ (J : Ino) (N : NameSet) (qd : Qp) (h : NamesH) (q rr : Qp) (lb : Nat)
+    (∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) -∗
+    notCrashed (hC := hG.goose_localGS.goose_crashGS) ={⊤}=∗
+    notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ ∃ (J : Ino) (N : NameSet) (qd : Qp) (h : NamesH) (q rr : Qp) (lb : Nat)
       (Qr : Option (Nat × Nat) → IProp GF),
       ⌜N.Mem nm ∧ N.Mem (brokenName nm ts) ∧ h.cur !! nm = some (.dir J) ∧ q + rr = 1⌝ ∗
       osPathS R r (DFrac.own qd) jr ∗ osLogLb lb ∗ osNames jr N (DFrac.own q) h ∗
       osAUnc (osNames jr N (DFrac.own rr) h)
         (renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own rr) lb) Qr ∗
-      ∀ err : GoInterface, osPathS R r (DFrac.own qd) jr -∗ osCallPerm 1 -∗
+      ∀ err : GoInterface, notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
+        osPathS R r (DFrac.own qd) jr -∗ osCallPerm 1 -∗
         ((⌜err ≠ interface.nil ∧ os.renameErrOk err⌝ ∗ osNames jr N (DFrac.own q) h ∗
             osAUnc (osNames jr N (DFrac.own rr) h)
               (renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own rr) lb) Qr) ∨
           ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Qr o ∗
-            renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own q) lb o) ={⊤}=∗ Fin err)
+            renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own q) lb o) ={⊤}=∗
+        notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ Fin err)
 
 /-- **`w.cleanupWAL(lg)`** of the handle before naming of the WAL directory `r/nm` (see the file
 header), the caller holding the other half of the call permission (the rename needs it whole) and the
