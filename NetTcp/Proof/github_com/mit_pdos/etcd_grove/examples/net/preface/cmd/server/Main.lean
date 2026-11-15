@@ -1,7 +1,7 @@
 /-
 The proof of `examples/net/preface/cmd/server`'s `main`, preface's server node: `preface.Serve`
 (`wp_Serve`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the package's initialization
-(`eof_init`, `ed_init`).
+(`eof_init`, `wire.ed_init`).
 -/
 module
 
@@ -52,7 +52,10 @@ theorem wp_main
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface) $$ []
   · iPkgInit
   icases preface.eof_init $$ Hpf with ⟨%eof, #Heof⟩
-  icases preface.ed_init $$ Hpf with ⟨%ed, #Hed⟩
+  ihave #Hwire : (isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire) $$ []
+  · iPkgInit
+  icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply preface.wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close wp_SetDeadline wp_Now
     wp_Add γm eof ed $$ []
