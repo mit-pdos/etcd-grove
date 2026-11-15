@@ -2001,6 +2001,15 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           -- (the auth-on snapshot plan's Prove step) the checks take the write token too
           ihave HL : auth.latestResC stl (.on γa) T hs $$ [HL HT]
           · iunfold auth.latestResC; iframe HL; simp only [auth.authWHeldM]; iexact HT
+          -- the model's state at the entry: its leased keys not empty (`kvShapedL_of_logL`)
+          imod (kvInvOn_log0 γr.raft γr.kv srvAuthSt0) $$ HkI' with %Hln0
+          imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 (A ++ [m]) $$ HkI' HrI' HAm with %HpcA
+          have hne : keysNonEmpty x.log := by
+            have h := keysNonEmpty_kvRaftOfOn γr.kv.lm γr.kv.c0 γr.kv.ch0 srvAuthSt0 γr.kv.log0 A
+              (fun m' hm' => HpcA.1 m' (List.mem_append_left _ hm')) Hln0
+            have hSm : (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) =
+                kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A := Hxl
+            rw [← hSm] at h; exact h
           have hpK : plainReqL γr.kv.lm rq := by rw [hlmE]; exact hpL
           have hlmK : E.lg = false → γr.kv.lm = .none := fun hg => by
             rw [hlmE]; exact apply.AEnv.lm_of_lg_false hg
@@ -2153,7 +2162,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
           ihave HEv := srvEver_grant E A m rq true out U Htyp hdata hdec (fun hk => absurd hk (plainOrCmp_nonLease rq (Or.inl hp)).1) HUok $$ HEv
           ihave HRS := srvRestM_applyP E γr A m rq true x x' out f Htyp hdata hdec HkA.2
-            (Or.inl (Or.inl hp)) Hstep0.1 Hfb $$ [HLt HRS HEv]
+            (Or.inl hp) Hstep0.1 Hfb $$ [HLt HRS HEv]
           · iframe HGI HRq HLt HRS HEv
             isplitl []
             · iapply grantReqA_nonGrant E rq true out (plainOrCmp_nonLease rq (Or.inl hp)).1

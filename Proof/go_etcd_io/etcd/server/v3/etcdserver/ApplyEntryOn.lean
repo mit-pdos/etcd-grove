@@ -87,6 +87,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+variable [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] in
 open Iris.ProofMode in
 /-- **`kvOutLT`'s certificate at another live set that agrees when leases are granted** (auth-lease S3a2 §4:
 the model's table and the server's `srvIds`). -/
@@ -99,9 +100,10 @@ theorem certPreVW_kvOutLT_tie (E : apply.AEnv GF) (v3 : Bool) (c : apply.Chain) 
   · simp only [apply.certPreVW, Bool.false_eq_true, ↓reduceIte]; exact .rfl
   · simp only [apply.certPreVW, ↓reduceIte]
     iapply apply.certPreW_mono
-    intro oc ⟨hx, hl⟩
-    exact ⟨hx, fun hg => (h hg) ▸ hl hg⟩
+    intro oc hy
+    exact ⟨hy.1, fun hg => (h hg) ▸ hy.2 hg⟩
 
+variable [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] in
 open Iris.ProofMode in
 /-- **`kvOutL`'s certificate is `kvOutLT`'s** (fewer outcomes; auth-lease S3a2: the revocation's). -/
 theorem certPreVW_kvOutLT_other (E : apply.AEnv GF) (v3 : Bool) (c : apply.Chain) (rq : apply.IRRModel)
@@ -113,8 +115,8 @@ theorem certPreVW_kvOutLT_other (E : apply.AEnv GF) (v3 : Bool) (c : apply.Chain
   · simp only [apply.certPreVW, Bool.false_eq_true, ↓reduceIte]; exact .rfl
   · simp only [apply.certPreVW, ↓reduceIte]
     iapply apply.certPreW_mono
-    intro oc ⟨hx, -⟩
-    exact hx
+    intro oc hy
+    exact hy.1
 
 /-- **The certificates a KV entry's latest-state outcomes need, in the mode `on`** (see the file
 header): for a plain KV request of the entry `m` above `c₀`, at the start chain with auth on and

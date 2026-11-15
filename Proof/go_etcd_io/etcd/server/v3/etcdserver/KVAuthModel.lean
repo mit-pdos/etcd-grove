@@ -834,6 +834,13 @@ theorem kvCover_of_plainReqL (lm : lease.Mode) (rq : apply.IRRModel) (h : plainR
   · unfold kvCover; rw [hk]; exact ⟨hns, hna⟩
   · unfold kvCover; rw [hk]; exact ⟨hns, hna⟩
 
+/-- A request of the auth-on log is no compaction. -/
+theorem plainReqL_nonCmp (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) :
+    apply.dispatchKind rq ≠ .compaction := by
+  have hk := (plainReqL_facts lm rq h).2.2
+  unfold putgetKind at hk
+  rcases hk with hk | hk | hk | hk | hk <;> rw [hk] <;> decide
+
 /-- A request of the auth-on log is plain, or a put or a transaction (a KV kind). -/
 theorem plainReqL_cases (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) :
     plainReq rq ∨ (apply.dispatchKind rq = .put ∨ apply.dispatchKind rq = .txn) := by
