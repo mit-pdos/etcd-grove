@@ -27,6 +27,31 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, thirteenth 7f-5 agent): step 3 leaves done but the error leaves; STOPPED on the error design (E1-E6) and InfoS
+
+- **Proved** (Spec + Proof each, lean-checked, targeted `lake build` green, no `sorry`): `watchChan.transform`
+  (`29741e6a08`; callees `prepareObjs`, `filter`, `acceptAll`); `flowcontrol.initializationSignalFrom`,
+  `flowcontrol.WatchInitialized` (new `Spec|Proof/k8s_io/apiserver/pkg/util/flowcontrol/`; over T5-b's
+  `valueAt … initSignalRes`); `watcher.getStartWatchResourceVersion` (the `getCurrentStorageRV` call as a WP
+  premise with a caller-chosen post `R`); `store.watchContext` (any triple of `WithRequireLeader(ctx)` is one of
+  it); `newBlockLogger`, `blockLogger.recordWait` (`d1e55060b8`; WatchDefs gained `clockNowOk`,
+  `blockLoggerInv` (lastLogTime/eventCount/timeWaiting under `mu`), `blockLoggerOk` (persistent, stated under
+  `□`: the instance search failed on the bare `∃`, cause not found).
+- **Candidate text, not an axiom:** `Spec/k8s_io/klog/v2/Verbose__InfoS.lean` (`klog.Verbose.InfoS.spec`,
+  restricted to keys/values of type string/int/Duration/GroupResource), a callee hypothesis of
+  `recordWait.wp_proof` (as `StringPtr.spec` for `parseEvent`). Needs 81's axiom review before step 7.
+- **Not done, blocked (decision asked, questions.md):** `isCancelError`, `logWatchChannelErr`,
+  `interpretWatchError`, `transformErrorToEvent`, hence step 4's `sendError` and step 5. The Draft (§5,
+  "expected to need no new text") is wrong here: see questions.md, 2026-11-15 thirteenth agent, E1-E6.
+- **Not started:** step 4 (`queueEvent`, `sendEvent` could go now: they need only `recordWait`, `time.Now/Since`
+  and the select pattern of `watchGRPCStream__unicastResponse.lean`; `sendError` waits on E1-E6), step 5.
+- Pitfalls: `--goal L` shows the state *before* line L; a WP hypothesis (not a triple) is applied with
+  `wp_bind (App (Val _) (Val _)); iapply (wp_wand) $$ [H]`; `wp_apply X ?_ $$ …` leaves the pure `?_` goal first
+  (no `rotate_left`); a slice literal's list is `[..].set (sint.nat (W64 (0+1))) …`: rewrite each index by `rfl`
+  then `List.set_cons_succ/zero`; never `pkill -f` a pattern that occurs in your own command line (it kills the
+  shell); the lean-check server can sit at "line 1" for 40 min when an import fails to build: build the import with
+  `lake build` to see the error.
+
 ## START HERE (2026-11-15, twelfth 7f-5 agent, final): A-C done and built; prepareObjs proved; next `transform`
 
 - Full build after B/C: green but for the draft then in `watchChan__prepareObjs` (`/shared/tmp/k8s7f5a-p2/full2.log`;
