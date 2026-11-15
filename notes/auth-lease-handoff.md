@@ -406,16 +406,24 @@ force (`questions.md`, "S3c Freeze"); ledger entry 2026-11-15 "auth on implies n
 lit-mode 278→276, match-mode 82→81 (decreases); closed examples: proof bodies only (`auth/startServer`, `auth3/startMember`,
 `auth/MainAlloc`, `etcdstart/{Alloc3On,Start,StartStop}`).
 
-**Left of S3c (next, in order):**
-1. client/v3 (Draft §7.2, §7.3, §7.5): `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` (beside `etcdPutSpecOn`,
-   `KVServiceOn.lean`); `etcdLeaseGrantHandlerOkMd`/`etcdLeaseRevokeHandlerOkMd` (`LeaseGrantServed.lean`, as
-   `etcd_leaseGrantHandlerOkGR`, `hNx`); `etcd_lease_auth_served_on` (`AuthnServedOn.lean`, after `etcd_kv_auth_served_on`, whose
-   proof shows the slot/method-list plumbing: `grpcHandlerOwnOkMd_frame`, `grpcMethodOkMd_slot`, `etcdGrpcSlot`).
-2. etcdstart: `grpcUpOn` keeps the Lease service (`grpcLeaseUp s C.A regs` conjunct), `grpcUpM_true`'s proof and docstring,
-   `auth/Run.lean:142`, `auth3/run.lean:140` destructurings; `gen-interface` of `etc/api/etcdstart.txt` (Defs.txt changes).
-3. `etc/mode-allow.txt`: the C5′ `pair` line(s) for the cleanup stage; mode/bounds gates; land-stop checks.
-4. Review r5 S5 (for etcd-grove-81, not applied): §6.2's trusted wording names only `NewServer`; the reviewer suggests
-   "`NewServer` and `NewServerR` take it through their boot slot". A trusted-text change: decide.
+**Session 12 (2026-11-15): S3c's Prove finished** (lean `fa4909047e` merged, clean; commit `c15150ec34` and the
+land-stop commit):
+1. client/v3: `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` and the handler lemmas `etcdLeaseGrantHandlerOkMd`/
+   `etcdLeaseRevokeHandlerOkMd` in `LeaseGrantServed.lean` (form: not `KVServiceOn.lean`, which does not import the
+   lease modules; the handler lemmas mode-generic, at `E.authOn`, no `hγa`: no literal mode); `etcdLeaseMethodsOn` and
+   `etcd_lease_auth_served_on` in `AuthnServedOn.lean` (the Draft §7.3 statement; the lessor contracts at
+   `S := etcdKVSlot s E γr`, the run slot `etcdGrpcSlot`); `etcd_leaseGrantMethodOkMd`/`etcd_leaseRevokeMethodOkMd` (client
+   `Results.lean`, the plain revoke one now their corollary).
+2. `Spec/…/etcdserverpb/_Lease_LeaseRevoke_Handler.lean` at the metadata form (`GrpcSpecMd`, `grpcHandlerOkMd`, `Ψe`;
+   proof `wp_unaryHandlerMd`), as `LeaseGrant`'s and `Range`'s: the auth-on revoke spec reads the run's metadata (form:
+   a stronger internal spec, its one caller adapted).
+3. etcdstart: `grpcUpOn` gains `grpcLeaseUp s C.A regs`; `grpcUpM_true` keeps it (`leaseServerAt_revR`); the closed
+   examples' destructurings (`auth/Run.lean`, `auth3/run.lean`, proof bodies).
+4. r5 S5 applied (decided by etcd-grove-81): `leasesNoExpiry`'s docstring names `NewServer` and `NewServerR`.
+5. Land-stop checks: see the report / STATUS entry.
+
+**Left (after S3c):** S4 (client library, read handlers at auth on, `memberBootOn`'s `lg = false`, the closed
+theorem); the cleanup stage (the C5′ pair, the literal modes).
 
 ## Pitfalls
 
