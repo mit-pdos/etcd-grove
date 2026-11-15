@@ -248,7 +248,7 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
   icases Htlc with ⟨Htlc, -⟩
   have hmH : d.m ≤ d.H.length := habs.synced.1
   -- the synced layout: `syncLay_any`'s (F-Z), or `syncLayP` (`TailPend`)
-  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLZ, hLB, hLW, hLK⟩ :=
+  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLpg, hLZ, hLB, hLW, hLK⟩ :=
     syncLay_anyE hC HW hd hl hs htail hZP hlw hzf Hdko habs
   have e : tailG d Lw (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
     rw [htg]; unfold tailG; rw [hLc, hLw]; rfl
@@ -280,18 +280,15 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
     isplitr
     · ipureintro; exact Har
     isplitl [Hpre Hseg Hrest]
-    · iapply (laysResF_map (L := L) F _).2
-      iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-        iprop([∗list] g ∈ lay.segs, segResF (L := L) F g))).2
-      isplitl [Hpre Hseg]
-      · rw [hLs]
-        iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-        iframe Hpre
-        iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
-        unfold segResF
-        rw [show F !! (syncTail g0).ino = none from hF]
-        iexact Hseg
-      · iapply (laysResF_map (L := L) F _).1 $$ Hrest
+    · iapply laysResF_put (L := L) F Ls dir lay Lw hLpg
+      iframe Hrest
+      rw [hLs]
+      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+      iframe Hpre
+      iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+      unfold segResF
+      rw [show F !! (syncTail g0).ino = none from hF]
+      iexact Hseg
     isplitr
     · ipureintro; exact hLW
     isplitr
@@ -316,9 +313,9 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
     · ipureintro; exact ⟨absentNone_sync Hab.1, dirsAvoid_sync Hab.2⟩
     isplitr
     · ipureintro
-      exact walsNamed_relay hl hs hLs hLj rfl rfl rfl HNm
+      exact walsNamed_relay hl hs hLs hLj rfl rfl hLpg HNm
     isplitl [Hpk]
-    · iapply walParked_relay Ls cl dir lay Lw pre g0 (syncTail g0) hl hs hLs hLj
+    · iapply walParked_relay Ls cl dir lay Lw pre g0 (syncTail g0) hl hs hLs hLj hLpg
         rfl (by simp [syncTail]) $$ Hpk
     isplitl [Hdk Hcp]
     · iexists K, none

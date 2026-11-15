@@ -426,15 +426,15 @@ theorem syncLay_anyE {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hK : DirKeysOk C Mr jr s Ls cl n K none)
     (habs : WalAbsD C Mr d lay ents) :
     ∃ L : WalLay, L.segs = pre ++ [syncTail g0] ∧ L.j = lay.j ∧ L.nm = lay.nm ∧
-      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ (TailZeros L ∨ TailPend L) ∧
+      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ L.pg = lay.pg ∧ (TailZeros L ∨ TailPend L) ∧
       TailBound C Mr { d with m := d.H.length } L ∧
       WalsOk C Mr R jr (walSyncS s dir d) (<[dir := L]> Ls) cl n ∧
       DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := L]> Ls) cl n K none := by
   by_cases hz : TailZeros lay
-  · obtain ⟨L, h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := syncLay_any hC hW hd hl hs htail hz hzf hK habs
-    exact ⟨L, h1, h2, h3, h4, h5, Or.inl h6, h7, h8, h9⟩
+  · obtain ⟨L, h1, h2, h3, h4, h5, h5', h6, h7, h8, h9⟩ := syncLay_any hC hW hd hl hs htail hz hzf hK habs
+    exact ⟨L, h1, h2, h3, h4, h5, h5', Or.inl h6, h7, h8, h9⟩
   · have hP : TailPend lay := hZ.resolve_left hz
-    exact ⟨syncLayP lay pre g0, rfl, rfl, rfl, rfl, rfl, Or.inr (tailPend_syncP hP hlw),
+    exact ⟨syncLayP lay pre g0, rfl, rfl, rfl, rfl, rfl, rfl, Or.inr (tailPend_syncP hP hlw),
       tailBound_syncP habs hs htail,
       walsOk_syncP hW hd hl hs htail hP hlw hzf
         ((crashOkA_none_iff _ _ _ _ _ _).1 (hK.2.1 dir d lay hd hl (by simp))),

@@ -56,9 +56,12 @@ theorem dirKeysOk_cutSynced {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : I
     cases hd'
     rw [he, hl] at hl'
     cases hl'
-    obtain ⟨lay1, -, -, hl1, -, -, -, -, -, alt, halt, hcr⟩ := hok.1 dir d hd
+    obtain ⟨lay1, nmA, hjA, hl1, hinA, hjrA, hnmA, hwdA, habs, hfo⟩ := hok.1 dir d hd
+    obtain ⟨-, alt, halt, hcr⟩ := hfo
     rw [hl] at hl1
     cases hl1
+    have hg0F : (unpurge lay.pg lay).segs.getLast? = some g0 := by
+      rw [unpurge_getLast? _ habs.nonempty]; exact hg0
     obtain ⟨-, -, -, -, -, hX, -⟩ := hk.1 dir lay.j X hK
     have hbtX : bt ∉ X := fun h => by rw [hX bt h] at hwal; cases hwal
     cases alt with
@@ -72,19 +75,19 @@ theorem dirKeysOk_cutSynced {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : I
         have htne : t ≠ [] := by
           intro h0; rw [h0, List.append_nil] at ht; rw [ht] at hlen; exact Nat.lt_irrefl _ hlen
         have hg0t : g0 ∈ t := by
-          rw [← ht, List.getLast?_append] at hg0
+          rw [← ht, List.getLast?_append] at hg0F
           cases hlt : t.getLast? with
           | none => exact absurd (List.getLast?_eq_none_iff.1 hlt) htne
           | some a =>
-            rw [hlt, Option.some_or] at hg0
-            cases hg0
+            rw [hlt, Option.some_or] at hg0F
+            cases hg0F
             exact List.mem_of_getLast? hlt
-        have hnd := segsAll_nodup_segs hok.2.2.1 hl
-        rw [← ht, List.map_append] at hnd
+        have hnd := ((segsAll_nodup_iff Ls).1 hok.2.2.1).1 dir lay hl
+        rw [show lay.pg ++ lay.segs = (unpurge lay.pg lay).segs from rfl, ← ht, List.map_append] at hnd
         exact (List.nodup_append.1 hnd).2.2 _ (List.mem_map_of_mem hg') _
           (List.mem_map_of_mem hg0t) hgi
-      exact (crashOkA_none_iff C Mr d lay cl n).2
-        (crashOk_dirSync C Mr d lay lay0 cl n X hj x e c bt g0.ino hA (crashOkA_mono hn hcr) hcl
+      exact (crashOkA_none_iff _ _ _ _ _ _).2
+        (crashOk_dirSync C Mr _ _ lay0 cl n X hj x e c bt g0.ino hA (crashOkA_mono hn hcr) hcl
           hx hw hbtX hwal hc hi)
   · exact crashOkA_mono hn (hk.2.1 dir' d' lay' hd' hl' (fun h => he (Option.some.inj h).symm))
 

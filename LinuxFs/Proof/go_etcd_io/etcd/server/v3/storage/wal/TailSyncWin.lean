@@ -473,19 +473,19 @@ theorem syncLay_any {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hK : DirKeysOk C Mr jr s Ls cl n K none)
     (habs : WalAbsD C Mr d lay ents) :
     ∃ L : WalLay, L.segs = pre ++ [syncTail g0] ∧ L.j = lay.j ∧ L.nm = lay.nm ∧
-      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ TailZeros L ∧
+      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ L.pg = lay.pg ∧ TailZeros L ∧
       TailBound C Mr { d with m := d.H.length } L ∧
       WalsOk C Mr R jr (walSyncS s dir d) (<[dir := L]> Ls) cl n ∧
       DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := L]> Ls) cl n K none := by
   have hok : CrashOk C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n :=
     (crashOkA_none_iff _ _ _ _ _ _).1 (hK.2.1 dir d lay hd hl (by simp))
   by_cases hex : SegExact g0
-  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
+  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
       walsOk_sync hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_sync hC hW hd hl hs htail hZ hzf hex hK⟩
   · have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
     have hwz := habs.winZero g0 hg0 hex hZ
-    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ,
+    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ,
       tailBound_syncW habs hs htail,
       walsOk_syncW hC hW hd hl hs htail (Or.inl hZ) hzf hex hwz hok,
       dirKeysOk_syncW hC hW hd hl hs htail (Or.inl hZ) hzf hex hwz hK⟩

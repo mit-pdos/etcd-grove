@@ -347,18 +347,15 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     isplitr
     · ipureintro; exact Har
     isplitl [Hpre Hseg Hrest]
-    · iapply (laysResF_map (L := L) ∅ _).2
-      iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-        iprop([∗list] g ∈ lay.segs, segResF (L := L) ∅ g))).2
-      isplitl [Hpre Hseg]
-      · simp only [syncLay]
-        iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-        iframe Hpre
-        iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
-        unfold segResF
-        rw [he0]
-        iexact Hseg
-      · iapply (laysResF_map (L := L) ∅ _).1 $$ Hrest
+    · iapply laysResF_put (L := L) ∅ Ls dir lay (syncLay lay pre g0) rfl
+      iframe Hrest
+      simp only [syncLay]
+      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+      iframe Hpre
+      iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+      unfold segResF
+      rw [he0]
+      iexact Hseg
     isplitr
     · ipureintro; exact walsOk_syncIdle HW hd hl hs hid hok
     isplitr
@@ -387,7 +384,7 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     isplitr
     · ipureintro; exact walsNamed_relay hl hs rfl rfl rfl rfl rfl HNm
     isplitl [Hpk]
-    · iapply walParked_relay Ls cl dir lay (syncLay lay pre g0) pre g0 (syncTail g0) hl hs rfl rfl
+    · iapply walParked_relay Ls cl dir lay (syncLay lay pre g0) pre g0 (syncTail g0) hl hs rfl rfl rfl
         rfl (by simp [syncTail]) $$ Hpk
     isplitl [Hdk Hcp]
     · iexists K, none
