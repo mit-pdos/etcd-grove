@@ -202,8 +202,10 @@ Not started: `wal-c-locks` also edits `Create.lean`, `CreateHandle.lean`, `Creat
 
 ### Build
 
-`lake build` of every module touched (2026-11-15): see the session's final report for the exact list.
-No `sorry`, no axiom.
+`lake build` of the WAL's `Link` and the tester's `Link` (2026-11-15; every module touched is below them),
+no error, no `sorry`, no axiom. Also `WAL.Sync.specNoErr` (`WAL__SyncNoErr.lean`: the room `k` kept) and
+`SaveSnapshot.specNoErr` returning `walOpenWFR … k` from `walOpenWFR … (k + |encSnap md| + 64)` (option 1's
+shape). `etc/gen-link.py --wal-tester`/`--durable` outputs unchanged.
 
 ### Next steps
 
