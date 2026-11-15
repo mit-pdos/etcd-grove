@@ -165,3 +165,28 @@ in-flight handler run (`EtcdServer__HardStop.lean:24-27`), and that the transpor
 Est. 0.5-1 wk.
 
 ### Then C4 (hard stop before linking): the statement of `etcd_restart3_safe` and its premises in plain words.
+
+### C2/C3 in progress (2026-11-15, third agent; branch `restart3-c`)
+Committed `25dc487833` (wip; the branch does not build yet, as decided). Done:
+- `Proof/.../restart/Swap.lean` (checked with `etc/lean-check.py -a`, 0 errors): the swap's ghost state, no
+  trusted text. `SwNames` = slot map `g`, current incarnation `cur`, slot count `n` (a FIELD: see pitfall);
+  per-incarnation invariant `swIncInv γn n c b τ` (slot j: copy ∗ `swTokB b j`, or `swTokA c j`); global
+  `swGInv` (cur half, slot authority, per slot `swObl c j (m !! j)`: `A_j` unless busy with `c`); moves
+  `sw_alloc` (newMember), `sw_enter` (needs £1), `sw_exit` (no £: works under ▷ with timeless tokens),
+  `sw_install` (set). No freshness of incarnation names needed.
+- `Defs.lean`: listener-close parts gone; `swLock`, `swapOk` (with ⌜γS.n = httpProcSlots⌝), `memberRec`.
+- `KV.lean`: `r3Inv`/`r3PutAu`/`r3ReadAu`/`r3Ok_get` at 25 puts over restart1's pure lemmas.
+- Specs: `build` (`spec`/`specRestart`), `newMember` (`newMember.spec`, `restartMember.spec`), `raftSwap`
+  (`ServeHTTP.spec` in `http.handlerOk`'s invocation form, `set.spec`); `put`/`check`/`stop` copied from
+  restart1 (stop generalized over `name`, NBoot 3; check's constants 11 → 25), not yet checked.
+- Proofs: `build.lean` written (not checked); `raftSwap.lean` being written.
+- Old drafts `serveClient`, `restartCheck`, `startMember` (spec+proof) deleted; `Init.lean` regenerated.
+Next: raftSwap proofs; newMember/restartMember proofs (template: etcdstart `NewMember.lean`, old draft
+`startMember.lean` in git history `1e218a9004`); put/stop/check checks; Run (three members: putget3 `Main.lean`
+for alloc3/StartMember plumbing, `dir3_ok`/`dir3_host`/`dir3_dirsOk` to copy for restart's addresses; the old
+draft Run.lean has `leadInv_memberID_of_req`; the stopped member chosen at run time: `wp_bind` the `If` and
+prove it with a post naming the chosen member, to keep one copy of the tail); Main; then C4 hard stop.
+Pitfall (2026-11-15): a lemma instantiated at a NUMERAL slot count whose statement has
+`[∗list] j ∈ List.range n` made the IPM materialize the list (15 GB RSS in `imod`, killed). Keep `List.range`
+over a variable (`γS.n`); only `List.replicate httpProcSlots` reaches concrete proofs (as in etcdstart).
+Run lean-check under `systemd-run --scope -q -p MemoryMax=…` to be safe.

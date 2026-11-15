@@ -111,6 +111,11 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
     Persistent (premises (GF := GF) N id₁ id₂ id₃ ps ctxs boot) := by
   unfold premises; infer_instance
 
+/-- A handler's contract is persistent (its body is). -/
+instance handlerOk_persistent' (H : http.HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) :
+    Persistent (http.handlerOk H a Rs h) := by
+  unfold http.handlerOk; infer_instance
+
 /-- **The swap's lock invariant** (`Swap.lean`): the handler `sw.h` of the current incarnation, a
 handler of the member's peer address `a` lending its incarnation's resource, and the mutex's view of
 the current incarnation. -/
@@ -124,7 +129,7 @@ global invariant, at `http.Serve`'s slot count. -/
 def swapOk (sw : Loc) (γS : SwNames) (γn : NetNames GF) (a : GoString) : IProp GF :=
   iprop(⌜γS.n = http.httpProcSlots⌝ ∗ ∃ mu : Loc,
     structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap go!"mu" sw ↦□ mu ∗
-    isMutex mu (swLock sw γS γn a) ∗ swGInv γS)
+    sync.isMutex mu (swLock sw γS γn a) ∗ swGInv γS)
 
 instance swapOk_persistent (sw : Loc) (γS : SwNames) (γn : NetNames GF) (a : GoString) :
     Persistent (swapOk sw γS γn a) := by
