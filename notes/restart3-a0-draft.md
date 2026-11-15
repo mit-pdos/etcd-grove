@@ -1,0 +1,317 @@
+# restart3 A0: the R2s-A Draft and probe (2026-11-15, for etcd-grove-81; DRAFT, nothing landed)
+
+Plan: `notes/restart3-scope.md` §2.3, stage A0. Route (A) and the go/no-go after A0 were decided by the user
+(2026-11-15); D-R3-2/3/4/6 by etcd-grove-81 (`questions.md`). Branch `restart3`, worktree
+`/shared/etcd-grove-auth3`, off `lean` `c3da59fa29`.
+
+Inputs read: `notes/restart3-scope.md`, `notes/restart-scope.md` (R2s-A, S8-S10), `notes/decisions.md` ("R2s",
+"D21" M0-M6), `notes/restart-s7-{scope,probe,p2a,freeze,handoff}.md`, branch `r2db`'s `notes/r2db-scope.md`
+(§10, §12, §14), and the code: `InvApplyAll.lean` (`srvNet`), `rafthttp/Net.lean` (`NetPayload`,
+`netSnapBundle`, `snapDirInv`), `InvImage.lean`/`ImageOn.lean` (`dbImage`, `srvImageM`), `ApplyRDefs.lean`
+(`winNoMergedSendR`), `InvRun.lean` (`srvWinPend`), `InvRaftNode.lean` (`rnSnapTermAbove`, `rnRestartOk`,
+`rnSnapMsg`), `InvRestart.lean` (`srvDiskImageAt`, `bootstrapRestartContract`, `srvRestartRows`), `WalApi.lean`
+(`wal.stopImage`), `KVStoreApi.lean`/`KVStoreCore.lean` (the server's KV store invariant), `InvRequest.lean`
+(the applied index), `Spec/.../EtcdServer__applyAll.lean` (`specBatch`, `specSnapM`) and its proof's merge
+branch, `EtcdServer__run.lean` (`applyResR`, `run_job_snapC`). Go: etcd at the fork pin `2eaeb872bc`
+(`server/etcdserver/server.go`, `snapshot_merge.go`).
+
+Abbreviations as in the Scope: `E/` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/`, `SE/` = its `Spec/`
+twin. Estimates are marked (est.).
+
+---
+
+## 0. Result in one paragraph
+
+**R2s-A as recorded hits a blocker.** Following the merged snapshot in the ghost (`decisions.md`, "R2s")
+needs the receiver to install an image that is *older* than its current backend: a member whose backend
+is ahead of its raft commit (after an install from a restarted leader still inside its replay window)
+can then accept another leader's snapshot at an index between its commit and its backend's consistent
+index, and Go moves the backend backward and re-applies (the Q16-3 review's F1 run, `decisions.md`
+"R2s"). The R2s decision planned "the KV ghost reset at an install". But the server's KV store invariant,
+restated over mvcc's API on 2026-11-06 (strict M1, after the R2s decision), keeps the store's log as the
+authority of a **monotone list** whose fragments (`kvLogLb`) are persistent floors held by readers,
+watchers and the writer itself, and its restore builder restores only **to an extension**
+(`KVStoreApi.lean:114-120, 176-180`). A backward restore cannot re-establish it (probe P1, checked).
+Making it possible means re-founding every floor client of the store (reads, watches, the applied
+index's `appliedMonoMap`): est. +6-10 wk on top of the Scope's 5-8, with no design yet. **So A1 as
+recorded is a no-go by D-R3-2's rule.** Two variants of route (A) avoid the backward install, both by a
+change to the goose fork of etcd. The small one, **A-g**, defers a merged snapshot while the leader is
+inside its own replay window (`ep.appliedi < ConsistentIndex()`), reporting the snapshot failed so that
+raft retries it after the window. With A-g every merged image is at its own raft index, no backend is
+ever ahead of its raft commit, and R2s-A's other pieces disappear: no certificate change, no receiver
+window, no change to the stop's WAL slot or the restart contract, no new raft law, no trusted text
+touched. The rows (`winNoMergedSendR`, `srvWinPend`, row 4, `srvRestartRows`) are deleted, because the
+guard refutes the in-window merge that they excluded (probe P2, checked; Go probe 6/6). **Recommended:
+go on route (A) with A-g** (A1 est. 2-3 wk, the route 5.5-8 wk of work), which needs the user's approval
+of the fork change. B0 stays the fallback if the user rejects any fork change.
+
+## 1. What is on `lean` (corrections to the plan's inputs)
+
+- **`srvWinSupply` and `srvWinAdd` do not exist in Lean.** They are r2db's proposed Q33 redesign (`r2db
+  §4.4-§4.5`), never built (CUT's R-2 discussion). Their "deletion" is a notes-only item: strike them from
+  `notes/restart-scope.md` (R2s-A, S1) and `notes/restart3-scope.md` §2.3. What exists: `srvWinPend`
+  (`E/InvRun.lean:62`, the hubs' `Hwpend`: `E/AuthCompRows.lean:229, 391`, `E/InvStart.lean:287`,
+  `E/InvBuild.lean:335`), `winNoMergedSendR` (`E/ApplyRDefs.lean:108`, `SE/EtcdServer__applyAll.lean:100`),
+  row 4 `rnSnapTermAbove` (`E/InvRaftNode.lean:464`, inside `rnRestartOk:494-498`), `rnSnapMsg`'s `t0`
+  bound (`E/InvRaftNode.lean:203-208`), and `srvRestartRows` (`E/InvRestart.lean:714`, a premise of
+  `NewServer.specR` and, through `□ ∀ A σ`, of etcdstart's `newServerMode/newServer/BuildServer.specRestart`).
+- **"The raft API law, a snapshot's index above the receiver's commit" already exists**: `readyRest_snap`
+  (`Proof/go_etcd_io/raft/v3/InvNode.lean:969`, `hardState.Commit' < snapIdx`), used by
+  `rnRestartOk_winAbove` (`E/InvRaftNode.lean:542`). R2s-A would need it against Go's applied index (`ai ≤
+  commit < snapIdx`), derivable with the loop's commit fact (`rnLoopTokP`); no raft interface diff.
+- **The only consumer of row 4** is `winNoMergedSendR`'s `rt ≤ t0` arm (`E/EtcdServer__applyAll.lean:410-414`,
+  through `rnSnapMsg`'s bound); row 1's only consumer is `winNoMergedSendR`'s right disjunct, supplied by
+  `run` from `Hwpend`. So whatever discharges the in-window merge deletes all four.
+
+## 2. R2s-A as recorded (the Draft the brief asked for)
+
+### 2.1 The certificate at a consistent index `j ≥ i` (step 1)
+
+`srvNet`'s image certificate (`E/InvApplyAll.lean:94`, `img := fun i D => srvImageM γ.authOn γ i D`) becomes
+```lean
+def srvImageGe (on : Bool) (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF :=
+  iprop(∃ j : w64, ⌜uint.Z i ≤ uint.Z j⌝ ∗ srvImageM on γ j D)
+-- srvNet γ := { …, img := fun i D => srvImageGe γ.authOn γ i D, … }
+```
+`srvImageM on γ j D` already says `D`'s consistent index is `j` and `D` is the image of a committed prefix
+of length `j` (`dbImage`'s `srvRLogLb γ A`, `uint.Z j = |A|`), so the certificate needs nothing else.
+Probe P3 (checked): the definition is a valid `NetPayload.img` and today's certificate gives it at `j = i`
+(`probe_P3_ofEq`). Every place the certificate is named changes with it: `srvNet` (exported: its `Freeze`),
+`srvDiskImageAt`'s snapshot directory (`snapDirInv … (srvImageM γ.authOn γ)`, `E/InvRestart.lean:188`, the
+restart contract's image), `srvSnapRO`'s directory (`E/SnapRO.lean:442`), the receiver's
+`snapRecv_image`/`snapRecv_imageOn` (`SnapRecvFacts.lean`, `SnapRecvOn.lean:477`). The trust-boundary texts
+that carry it (`Snapshotter.SaveDBFrom`, `Transport.Start`/`SendSnapshot` through `netSnapBundle`,
+`OpenSnapshotBackend`) are generic in `img`: their text does not change, the instance's meaning does, hence
+the re-attack (§2.5).
+
+**The sender** (step 2). `applyAll`'s merged-send branch at a pending window: Go merges at `snapi =
+ep.appliedi` (`ai`, inside the window `ai < ai₀ + |A₀|`) a backend whose consistent index is the window's
+`ciEff ≥ ai₀ + |A₀|` (`kvBatchR`), so the image is `srvImageM … (ai₀ + |ghostOf rp A|) D` (the ghost log is
+the backend's log, committed: `srvRLogLb γr.raft rp.A₀`), and the certificate `srvImageGe … ai D` at `j =
+|ghostOf|`. What `mergedCreate_window` (`SnapSendBranch.lean`) proves at `hciE : ciEff = ai'` must be
+redone at `ciEff = ai₀ + |ghostOf rp A|`, with the rest buckets at the replay arm (`srvRestRp … A₀ r`):
+the image's rest buckets are the backend's, `bkRestAtL` of `pre ++ A₀`, while the in-memory members are
+`restReplay`'s; `imageRestAt` reads only the backend. `winNoMergedSendR` and its `T`, `srvSnapBagN` leave
+`specBatch`.
+
+### 2.2 The receiver: an image above the snapshot index, then the replay window (step 3)
+
+Go (`server.go:1021-1180` at `2eaeb872bc`): `applySnapshot` panics unless `Index > ep.appliedi`, opens the
+snapshot's `.snap.db` (consistent index `j ≥ Index`), sets `ep.appliedi = Index`, and the entries
+`(Index, j]` are then replayed v2-only by the consistent-index guard (`shouldApplyV3`). That is a restart
+point at the install: `rp' = ⟨b := Index - ai₀, A₀ := A_j⟩` (`RestReplay.lean:56`), Go's log `A'` of length
+`Index`, the ghost log `ghostOf rp' A' = A_j`. Draft of `applyAll.specSnapM`'s change
+(`SE/EtcdServer__applyAll.lean:198-305`):
+
+- premises: drop `uint.Z g < uint.Z sv.Index` (A8) in favour of `uint.Z ai < uint.Z sv.Index` (Go's guard,
+  from `readyRest_snap` and the loop's commit fact); the payload's certificate `srvImageGe`;
+- post: `epAppliedI ↦ sv.Index` (unchanged), the ghost applied index `g' = j`, `kvAppliedM … A_j`,
+  `srvRestR E' γr rp' A'`, `kvBatchR`-style facts at `rp'` (`ai₀ + |A_j| ≤ ciEff' = j`), `srvSnapOwn … g'`;
+  `run`'s loop invariant `applyResR K C rp A` with `rp` existential (`E/EtcdServer__run.lean:130`);
+  `run_job_snapC`'s `hwin` premise dropped.
+- `applySnapshot.specSnapM` (`SE/EtcdServer__applySnapshot.lean`): the image at `j`, its post's `A'` the
+  image's log `A_j` (today: of length `Index`).
+
+**The blocker: `j` can be below the receiver's ghost index.** With window senders, a receiver's backend
+can be ahead of its raft commit (`j > Index`), and then a second snapshot from a member without a window,
+at an index in `(commit, j)`, is accepted by raft (`raft.go:1877`) and by Go (`Index > ep.appliedi`), and
+Go restores the older image (F1: backend 100 → 70, then 71..100 re-applied v3). Go is correct (linearizable
+reads cannot see it: a read's index is at least the leader's commit, which covers 100 once a read saw it;
+watchers are protected by `watchableStore.Restore`'s `restore` flag), but the proof cannot follow:
+
+- the server's store invariant `kvStoreInv` (`KVStoreApi.lean:114-120`) holds `monoListAuthOwn γs.slog 1
+  σ.log`, its floors `kvLogLb γs L = monoListLbOwn γs.slog L` are persistent, the writer mints one at every
+  state (`kvAus.law`'s last clause), and the restore builder is "a restore to an extension" (`log <+:
+  log'`, `KVStoreApi.lean:176-180`; `restoreArgs.law`'s `A <+: A'`). Probe P1 (checked,
+  `Scratch/R3A0ProbeKV.lean`): `probe_P1_floor` (the authority extends every floor),
+  `probe_P1_noBackward` (a log not extending a floor is refuted), `probe_P1_writerFloor` (the floor at the
+  writer's log exists before any restore). The notified log `γs.nlog` (watchers' `histLb`) is a monotone
+  list too.
+- the applied index's invariant (`srvAppliedBody`, `InvRequest.lean:2340-2350`) keeps `appliedMonoMap M`
+  and `srvApi.kvLogLb E.γs L` of the applied log: the ghost applied index and its logs cannot go backward
+  (`applied_jump` only raises), which the R2s decision's "monotone applied index at Go's index" re-keys,
+  but its logs are still the store's floors.
+
+So R2s-A needs either a store invariant whose floors survive a truncating restore (every floor client:
+the read path's `kvReadAt`, the watch path's `histLb`, the applied logs, the cache's and k8s's watch
+results that rest on them), or an argument that the backward install never happens, which is false of Go.
+Recorded as `nonissues/etcd-backward-snapshot-install-after-window-merge.md` (behavior etcd does not
+guarantee against; blocks this design, not the property).
+
+### 2.3 Deletions (step 4)
+
+`winNoMergedSendR` (+ `winNoMergedSendR_nil`, its `T` and `srvSnapBagN` in `specBatch`), `srvWinPend` (+
+`srvWinPend_first`, the hubs' `Hwpend`), row 4 `rnSnapTermAbove` (out of `rnRestartOk`; `NodeStartSpecR`'s
+installer, `newRaftNode.lean`), `rnSnapMsg`'s `t0` bound (`processMessages`), `srvRestartRows` (+
+`RestartRowsSingle.lean`), the `□ ∀ A σ, srvRestartRows` premise of `newServerMode/newServer/BuildServer.specRestart`
+and of restart1's/restart3's drafts. `srvWinSupply`/`srvWinAdd`: notes only (§1).
+
+### 2.4 Frozen or exported statements R2s-A changes
+
+| Statement | Change |
+|---|---|
+| `srvNet` (`E/InvApplyAll.lean:94`, exported through `isServerApplyAll`, the transport axioms' instance) | `img` → `srvImageGe` |
+| `EtcdServer.applyAll.specBatch` (`SE/EtcdServer__applyAll.lean:54`, frozen) | `winNoMergedSendR … ∗ T ∗ srvSnapBagN` deleted; `T` binder deleted |
+| `EtcdServer.applyAll.specSnapM` (same file, frozen) | §2.2: A8 → Go's guard, post at `rp'` |
+| `EtcdServer.applySnapshot.specSnapM` (`SE/EtcdServer__applySnapshot.lean`, frozen) | the image at `j`; post's log `A_j` |
+| `EtcdServer.run` spec (`SE/EtcdServer__run.lean`), `isServerRunC`/`isServerBuiltC` (`E/AuthCompRows.lean`, hubs: requests to 82) | `Hwpend` deleted |
+| `rnRestartOk`, `isRaftNode` (`E/InvRaftNode.lean`, 1047 importers), `NodeStartSpecR`, `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec` | row 4 deleted; R2s-A: `\|a0\| ≤ commit0` weakened (a stop after an install from a window sender has `i > σ.commit`) |
+| `NewServer.specR` (`SE/NewServerR.lean:107`), etcdstart `newServerMode/newServer/BuildServer.specRestart` | `Hrows` deleted |
+| `wal.stopImage` (sealed) and `bootstrapRestartContract` (trusted) | §2.5 |
+| `srvDiskImageAt`/`srvDiskImage` (`E/InvRestart.lean:150-200`) | the directory's certificate `srvImageGe`; `wal.stopImage`'s new form |
+| `etcd_restart1_safe` | its rows are discharged inside, but its premise `bootstrapRestartContract` changes (§2.5, item 2: weaker) |
+
+### 2.5 Trusted texts R2s-A touches (each a hard stop)
+
+1. **The snapshot slot re-attack**: the axioms generic in `img` (`snap.Snapshotter.SaveDBFrom`, the
+   transport's `Start`/`SendSnapshot`, `storage.OpenSnapshotBackend`) at the new instance, and
+   `membership.clusterImageOk_restModel` (reached by the receiver's snapshot arm at `A_j`): an `axiom`-skill
+   attack, no text change expected.
+2. **The stop's WAL slot inside `bootstrapRestartContract`**: `wal.stopImage`'s `σ.b ≤ i ≤ σ.commit` →
+   `σ.b ≤ i ∧ ∃ p, σ.b ≤ p ≤ σ.commit ∧ confAt cl p m` (the R2s decision's finding 2; `etcd` itself expects
+   `consistent_index > Commit` after such an install, `bootstrap.go:613-621`); the contract's
+   `⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ …⌝` (`E/InvRestart.lean:661`) the same, and `rnRestartOk`'s
+   `|a0| ≤ commit0` with `rnRestartOk_winAbove` re-derived from the configuration point. The contract is a
+   premise of `etcd_restart1_safe`: its text changes (a weaker premise).
+3. **The raft API law**: none new (§1, `readyRest_snap`).
+
+### 2.6 Estimate of R2s-A as recorded
+
+The Scope's 5-8 wk did not include the store invariant. Variant **A-u** (keep upstream's behavior, re-found
+the floors): +6-10 wk (est.; no design: each floor client must tolerate a truncation to a committed
+prefix, the watch path's proof of `watchableStore.Restore`'s `restore` flag included), so **A1 11-18 wk:
+no-go**. Variant **A-r** (a fork change on the receiver: when the snapshot's index is at or below the
+consistent index, keep the backend, which is a committed prefix extending the snapshot, release the
+`.snap.db`, and set `ep.appliedi = Index`): no backward install, the rest of R2s-A as drafted above, A1 5-8
+wk plus the receiver's change (est.).
+
+## 3. Variant A-g: no merged snapshot inside the sender's window (recommended)
+
+### 3.1 The Go change (the goose fork, `server/etcdserver/server.go:1013`, the merge's select)
+
+```go
+if m.GetTerm() == apply.raftTerm && m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi {
+    if ep.appliedi < s.consistIndex.ConsistentIndex() {
+        // inside the replay window the backend is ahead of the applied index: a merged snapshot
+        // would carry an image newer than its index; let raft retry it after the window
+        s.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
+    } else {
+        merged := s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi, ep.confState)
+        s.sendMergedSnap(merged)
+    }
+}
+```
+(the probe's copy: `/shared/tmp/restart3-a0/ag-guard.patch`, with a log line). The fork already carries two
+proof guards at this select (the term and the index). Liveness: without `ReportSnapshot`, raft's progress
+would stay in `StateSnapshot` (paused) until a leadership change; with it, the progress goes to
+`StateProbe` and raft resends a snapshot at a later heartbeat response, by then past the window (the
+window ends once the replay is applied). Upstream behavior is correct (§2.2); the change is for the proof
+only, so it is the user's to approve (D-A0-1).
+
+**Go evidence** (`/shared/tmp/restart3-a0/ag2-run-*.txt`): restart3probe setting A against the patched server
+(`go test -modfile` with a local replace of `server/v3`), 6 runs in separate processes, 32G cap,
+`GOWORK=off`: 6/6 pass the exact check (155 pairs, version 1, revision 156), a merged snapshot sent to and
+installed at the restarted member in every run, the guard never fired (no leader inside its window in
+this program). A forced in-window leader (r2db §12's run 8 harness) would show the guard firing and the
+retry; that is A1's first step (§3.4).
+
+### 3.2 The proof change
+
+At the merge (`E/EtcdServer__applyAll.lean:466-480`), the guard's read is `wp_ci_get` (`E/InvServer.lean:187`,
+`applyThread γ st''` and `applyBackend`, both in context, `st''.pending = false` from `loopOk`), returning
+`ciEff γ st''.k`. When the guard is false, the window is over: probe P2 (checked,
+`Scratch/R3A0ProbeGuard.lean`) `probe_P2_guard` (`ai₀ + |A₀| ≤ ciEff st ≤ ciEff st''` and `¬ ai' < ciEff st''`
+give `|A₀| ≤ |A ++ un|`, which is `hW`), `probe_P2_ghost` (then `ghostOf_past`), and `probe_P2_guard_in` (inside
+the window the guard holds: it defers exactly the in-window merges). From `hW` on, the existing branch is
+unchanged (`hgai`, `hciE`, `mergedCreate_window`). The guard's true branch calls `EtcdServer.ReportSnapshot`
+(`SE/EtcdServer__ReportSnapshot.lean`, needs `srvProcOk γn s id γd`, persistent, which `NewServer` makes for
+the transport; it must reach `isServerApplyAll`: a hub row, a request to 82) or, if D-A0-2 chooses the
+silent drop, nothing. The message `m` (owned, `rnSnapMsg`) is dropped either way, as at the term guard.
+
+Then the deletions of §2.3, all of them. Nothing of §2.1, §2.2, §2.5 is needed:
+- every merged image is at its own index (`ciEff = ai'` at the merge, as today), so `srvNet`, the snapshot
+  directory, `specSnapM` and the receive path are unchanged;
+- no backend is ever ahead of its raft commit (an install sets it to the snapshot's index, which raft
+  committed; a restart's window has `|a0| ≤ commit0`), so `wal.stopImage`, `bootstrapRestartContract` and
+  `rnRestartOk`'s `|a0| ≤ commit0` stay true as written;
+- no backward install exists (a snapshot is above the receiver's commit, hence above its backend).
+
+### 3.3 Statements A-g changes, and trusted texts
+
+| Statement | Change |
+|---|---|
+| `EtcdServer.applyAll.specBatch` (frozen) | `winNoMergedSendR … ∗ T ∗ srvSnapBagN` deleted, binder `T` deleted (weaker precondition, same post minus `T`) |
+| `EtcdServer.run`'s spec, `isServerRunC`/`isServerBuiltC` (hubs, 82) | `Hwpend` deleted; `isServerApplyAll` gains `srvProcOk` (if D-A0-2 (a)) |
+| `rnRestartOk`/`isRaftNode`, `rnSnapMsg`, `NodeStartSpecR`, `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec` | row 4 and the `t0` bound deleted |
+| `NewServer.specR`, etcdstart `newServerMode/newServer/BuildServer.specRestart` (linked) | `Hrows` / `□ ∀ A σ, srvRestartRows` deleted |
+| `createMergedSnapshotMessage`'s spec | only its docstring (`rnSnapMsg`'s) |
+| the Goose translation of `server.go` | regenerated from the fork's new commit (`etc/goose.py --project etcd`) |
+| `etcd_restart1_safe`, every other closed theorem | unchanged |
+
+Trusted texts: none touched. Trust base: unchanged (no axiom, `sorry` or opaque). Interfaces to regenerate:
+the server's and etcdstart's (rows gone).
+
+### 3.4 A1 under A-g (est.)
+
+| Step | Work | Est. |
+|---|---|---|
+| g0 | the fork commit (guard + `ReportSnapshot`), its Go tests (restart3probe A, etcd's `server/etcdserver` unit tests, a forced in-window-leader run showing the guard and the retry), the pin bump and translation (`etc/goose.py`); the user pushes the fork | 2-3 d |
+| g1 | the merge branch over the guard (`wp_ci_get`, P2), `ReportSnapshot` (hub row `srvProcOk` in `isServerApplyAll`, via 82) | 3-4 d |
+| g2 | the deletions (§2.3) through the hubs, `run`, `NodeStartSpecR`, `newRaftNode`, `NewServer.specR`, etcdstart, restart1/restart3 drafts; two full builds (`InvRaftNode`: 1047 importers) | 3-5 d |
+| g3 | Freeze package (§3.3's table), interfaces, gates, tcb `--check` unchanged | 2-3 d |
+| | **A1-g total** | **2-3 wk** |
+
+### 3.5 The whole route under A-g (est.)
+
+A1-g 2-3 wk + C1 (restart3's Go, workload of §4 of the Scope, counting test, translation) 3-4 d + C2
+(example proofs) 1.5-2 wk + C3 (handler swap, D-R3-4) 0.5-1 wk + C4 (link, Freeze of the theorem) 1 wk =
+**5.5-8 wk of work**, about 4.5-6.5 wk of calendar (C1-C3 in parallel with g1-g3: restart3's `startMember`
+needs only the rows' deletion, g2). Against the Scope's route (A) 10-14 wk and B0 8.5-12.5 wk.
+
+The theorem in plain words is the Scope's §2.1, of the fork with the guard: leaders compact, the stopped
+member is caught up by a snapshot, it replays its WAL past a snapshot record; what the fork adds is that a
+leader still replaying its own WAL defers a snapshot until it is past the replay.
+
+## 4. Composition with the auth-on-leases restatement (`/shared/etcd-grove-rs56`, branch `auth-lease`)
+
+That agent restates `EtcdServer.applySnapshot.specSnapM` (its `LogNoLease` premise `hnl` replaced at auth on by
+"every leased key's lease is in the image's table", `auth-lease-s3a-draft.md` §5) and the auth-on snapshot
+path (`SnapRecvOn`, `MergedImageOn`, `ImageOn`, `ApplyAllSnap`, `SnapApplyWalk/Post/KV`).
+
+- **Under A-g** the receive path, the images and `specSnapM` are untouched by restart3. Conflict points:
+  `SE/EtcdServer__applyAll.lean` (both edit `specBatch`'s precondition: they `logShapeM true → logShapeOn
+  E.lm`, A1 deletes the window rows: different lines, a textual merge), `E/EtcdServer__applyAll.lean` (A1
+  edits the merge branch, 380-480; they edit the snapshot branch and `logShapeOn` sites), `E/AuthCompRows.lean`
+  (hubs: A1 deletes `Hwpend`, they may add lease rows; both via 82), `E/InvApplyAll.lean` (A1 adds
+  `srvProcOk` to `isServerApplyAll` if D-A0-2 (a)), `E/SnapSendBranch.lean` (A1 only drops the `t0`-bound
+  uses; they edit `:491, :873`). A1 sequenced after their landing, rebased: est. 0.5-1 d of merge work.
+- **Under R2s-A/A-r** (for the record): both restate `specSnapM` and the image predicates. Compose by stating
+  R2s-A's receiver over "the image's log" `A_j` (whatever its length) so that their `hnl` at `A'` reads at
+  `A_j` unchanged; conflict points: `SE/EtcdServer__applySnapshot.lean` (premises and post), `SE/EtcdServer__applyAll.lean`'s
+  `specSnapM`, `SnapRecvOn.lean` (`snapRecv_imageOn` at `j`), `MergedImageOn.lean` (the window sender's image),
+  `ImageOn.lean` (unchanged shape, used at `j`), `SnapApplyPost.lean` (`srvSnapApplied_of_walk`'s indices),
+  `ApplyAllSnap.lean` (`applyAll.wp_proofSnapM`), `InvApplyAll.lean` (`srvNet`). Every one a real conflict.
+
+## 5. Go/no-go (D-R3-2's rule: no-go if A1 > 9 wk or a blocker)
+
+- **R2s-A as recorded: no-go** (blocker §2.2; A-u 11-18 wk).
+- **Route (A) with A-g: go** (A1 2-3 wk), **if the user approves the fork change** (D-A0-1).
+- A-r: go by the rule (A1 5-8 wk + the receiver's change), dominated by A-g (also a fork change, larger,
+  and it changes two trusted texts).
+- If the user rejects any fork change: B0 (8.5-12.5 wk; reverses D2 (b), adds the no-downgrade text), the
+  recorded fallback.
+
+## 6. Decisions needed
+
+- **D-A0-1 (user).** Route (A) via A-g: the goose fork's merge defers a merged snapshot while
+  `ep.appliedi < ConsistentIndex()` (the leader's replay window). *Recommended.* Alternatives: A-r (receiver
+  change), A-u (no fork change, no-go by the rule), B0.
+- **D-A0-2.** On a deferred snapshot: (a) `ReportSnapshot(to, SnapshotFailure)` (liveness kept: raft
+  retries; needs `srvProcOk` in `isServerApplyAll`, a hub row) or (b) drop silently as the term guard does
+  (follower stuck in `StateSnapshot` until a leadership change; no hub change). *Recommended: (a).*
+- **D-A0-3.** Record the backward install as `nonissues/etcd-backward-snapshot-install-after-window-merge.md`
+  (`blocks-proof: no`: linearizable reads and watches unaffected; it blocks R2s-A's design, not a checked
+  property). *Recommended.*
+- **D-A0-4.** Strike `srvWinSupply`/`srvWinAdd` from the restart notes (never built). *Recommended* (notes only).
+- **D-A0-5.** Supersede the R2s decision's receiver design (`decisions.md`, "R2s": "the KV ghost reset at an
+  install") by this note's §2.2 finding, whatever D-A0-1 decides. *Recommended.*
