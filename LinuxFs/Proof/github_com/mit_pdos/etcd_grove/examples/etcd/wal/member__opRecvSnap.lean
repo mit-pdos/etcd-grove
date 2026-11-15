@@ -43,7 +43,7 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
   iunfold memLive at Hlive
   icases Hlive with ⟨%w, %v, %os, %c, %d, %t, %vo, %cm, %bs, %l, %tm, %M, %r, %rv, Hres, Ht, Hv, Hc, Hb,
     Hl, Htm, HM, Hr, Hrv, Hpw, %Hfacts⟩
-  obtain ⟨hok, hhs, hfl, hwf⟩ := Hfacts
+  obtain ⟨hok, hhs, hfl, hwf, hms⟩ := Hfacts
   wp_auto
   wp_if_destruct
   · iapply HΦ
@@ -53,14 +53,17 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     · iunfold memLive
       iexists w, v, os, c, d, t, vo, cm, bs, l, tm, M, r, rv
       iframe
-      ipureintro; exact ⟨hok, hhs, hfl, hwf⟩
+      ipureintro; exact ⟨hok, hhs, hfl, hwf, hms⟩
     · ipureintro; omega
   wp_apply wp_choose $$ [$Hrv] as %k ⟨⟨%rv1, Hrv⟩, %hk⟩
   rw [if_neg (by decide)] at hk
   ihave ⟨Hres, #Hpers⟩ := memSaveRes_pers W e γ m w v o os c d qc $$ Hres
   have hs63 : uint.nat (l + W64 1 + k) < 2 ^ 63 := by word
+  have hls : uint.nat l < uint.nat (l + W64 1 + k) := by word
   wp_apply (wp_saveSnap W e γ m w v o os c d qc (l + W64 1 + k) t hf hok hhs hs63 hfl.1
-    (tOrRoom_snap hroom (by omega) _ _)) $$ [$Hres] as %b1 Hpost1
+    (tOrRoom_snap hroom (by omega) _ _)
+    (tMemSim_recv hms hls (hardState.mk t vo (l + W64 1 + k)) [] rfl (tConsec_nil _) (l + W64 1 + k)
+      (by simp)).1) $$ [$Hres] as %b1 Hpost1
   cases b1
   · try wp_auto
     iapply HΦ
@@ -86,11 +89,13 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
       "%Hi" ∷ ⌜uint.nat (l + W64 1 + k) + 1 ≤ uint.nat i ∧
         uint.nat i ≤ uint.nat (l + W64 1 + k) + uint.nat kk + 1 ∧
         es.length = uint.nat i - (uint.nat (l + W64 1 + k) + 1) ∧ (∀ x ∈ es, tEntWf x) ∧
-        tTermsFrom t ∅ M'⌝ : IProp GF) $$ [i es Hesl0 Hcap0 Hmp Hl Hrv]
+        tTermsFrom t ∅ M' ∧ tConsec (uint.nat (l + W64 1 + k) + 1) es ∧
+        uint.nat l' = uint.nat (l + W64 1 + k) + es.length⌝ : IProp GF) $$ [i es Hesl0 Hcap0 Hmp Hl Hrv]
   · iexists _, esl0, [], _, _, rv2
     iframe
     ipureintro
-    refine ⟨by word, by word, by simp only [List.length_nil]; word, by simp, tTermsFrom_insert (tTermsFrom_refl t ∅) _⟩
+    refine ⟨by word, by word, by simp only [List.length_nil]; word, by simp,
+      tTermsFrom_insert (tTermsFrom_refl t ∅) _, tConsec_nil _, by simp⟩
   wp_for HI
   by_cases hle : uint.Z i ≤ uint.Z (l + W64 1 + k + kk)
   · simp only [hle, _root_.decide_true, ↓reduceIte]
@@ -108,10 +113,11 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     iexists i + W64 1, esl2, es ++ [entry.mk i t sz x], <[i := t]> M', i, rvz
     iframe
     ipureintro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := Hi
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hi
     have hi1 : uint.nat (i + W64 1) = uint.nat i + 1 := by word
     refine ⟨by omega, by word, by simp only [List.length_append, List.length_singleton]; omega, ?_,
-      tTermsFrom_insert h5 i⟩
+      tTermsFrom_insert h5 i, tConsec_snoc h6 _ (by simp only; omega),
+      by simp only [List.length_append, List.length_singleton]; omega⟩
     intro y hy
     rcases List.mem_append.1 hy with hy | hy
     · exact h4 y hy
@@ -120,7 +126,8 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
       exact ⟨by simp; omega, by simp; omega, by simp; word, by simpa using hfl.1⟩
   · simp only [hle, decide_false, _root_.decide_true, Bool.false_eq_true, ↓reduceIte, val_false_ne_true,
       not_false_eq_true]
-    obtain ⟨h1, h2, h3, h4, h5⟩ := Hi
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hi
+    have hstep := tMemSim_recv (t := t) hms hls (hardState.mk t vo (l + W64 1 + k)) es rfl h6 l' h7
     have hesl : es.length ≤ 2 := by
       have : uint.nat i = uint.nat (l + W64 1 + k) + uint.nat kk + 1 := by word
       omega
@@ -134,7 +141,7 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     iunfold memSaveRes at Hres1
     icases Hres1 with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
     wp_apply (wp_save W e γ m w v1 _ os1 c d1 qc (hardState.mk t vo (l + W64 1 + k)) esl es hf Hok1.1
-      Hok1.2 h4 hfl.1 hsv.1 hsv.2) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b2 Hpost2
+      Hok1.2 h4 hfl.1 hsv.1 hsv.2 hstep.2.1) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b2 Hpost2
     · iframe
       iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
     cases b2
@@ -182,7 +189,7 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
         iexact H16
       ipureintro
       exact ⟨tMemOk_synced Hok2.1 (by omega), Hok2.2, ⟨hfl.1, tTermsFrom_ok h5 ⟨hfl.1, tTermsOk_empty⟩⟩,
-        tCheckWf_synced hcw (by omega)⟩
+        tCheckWf_synced hcw (by omega), tMemSim_congr (tSynced_hist _ c) hstep.2.2⟩
     · ipureintro
       rw [tEncodeOracle_synced]
       omega
