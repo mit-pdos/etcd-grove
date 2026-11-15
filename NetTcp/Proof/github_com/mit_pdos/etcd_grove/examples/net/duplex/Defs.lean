@@ -478,7 +478,7 @@ theorem cli_read_acc (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
     ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn true γ.down) -∗
       □ (∀ (got : List w8) (m : Nat), cliP γ R0 got -∗
         |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn true d ∗
-          ∀ r d', ⌜ReadOutcome st d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st -∗
+          ∀ r d', ⌜ReadOutcome st d m r d'⌝ -∗ tcpEnd G cn false st -∗
             tcpDir G cn true d' ={∅,⊤}=∗ cliP γ R0 (got ++ r.got)) := by
   iintro #Hcli #Hdir
   imodintro
@@ -503,7 +503,7 @@ theorem cli_read_acc (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
   icases ghostVar_agree $$ Hr' Hr with %Heq
   subst Heq
   imod ghostVar_update_halves (R0 ++ got ++ r.got) $$ Hr' Hr with ⟨Hr', Hr⟩
-  have Hok' := wire.dirOk_read Hok Hrd.1
+  have Hok' := wire.dirOk_read Hok Hrd
   ihave #Hlb : (sentLb (Gg := Gg) γ.down (R0 ++ got ++ r.got) : IProp GF) $$ [Hwa]
   · unfold sentLb
     iapply monoListLbOwn_le _ (wire.dirOk_prefix Hok')

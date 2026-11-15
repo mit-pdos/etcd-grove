@@ -89,11 +89,11 @@ theorem read_au' (N : Namespace) (c : Nat) (γ : wire.DirNames) (st : TcpEnd) (R
     ⊢ inv N (dirInv (Gg := hG.goose_globalGS) c false γ) -∗ tcpEnd (G (GF := GF)) c true st -∗
       rcvdAll (Gg := hG.goose_globalGS) γ R -∗
       |={⊤,∅}=> ∃ st0 d, tcpEnd G c true st0 ∗ tcpDir G c false d ∗
-        ∀ r d', ⌜ReadOutcome st0 d n r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G c true st0 -∗
+        ∀ r d', ⌜ReadOutcome st0 d n r d'⌝ -∗ tcpEnd G c true st0 -∗
           tcpDir G c false d' ={∅,⊤}=∗ tcpEnd G c true st ∗
             rcvdAll (Gg := hG.goose_globalGS) γ (R ++ r.got) ∗
             sentLb (Gg := hG.goose_globalGS) γ (R ++ r.got) ∗
-            ⌜∃ d d', ReadOutcome st d n r d' ∧ r ≠ .wait⌝ :=
+            ⌜∃ d d', ReadOutcome st d n r d'⌝ :=
   wire.read_au N c true γ st R n
 
 /-- A server-side close, its end's state dropped. -/
@@ -151,12 +151,12 @@ theorem wp_serveConn
       (fun r => iprop(tcpEnd G cn true TcpEnd.fresh ∗
         rcvdAll (Gg := hG.goose_globalGS) γ.up (R ++ r.got) ∗
         sentLb (Gg := hG.goose_globalGS) γ.up (R ++ r.got) ∗
-        ⌜∃ d d', ReadOutcome TcpEnd.fresh d buf.len.toNat r d' ∧ r ≠ .wait⌝)) $$ [Hbuf Hend Hr]
+        ⌜∃ d d', ReadOutcome TcpEnd.fresh d buf.len.toNat r d'⌝)) $$ [Hbuf Hend Hr]
     as %k %err ⟨%r, %bs', ⟨Hend, Hr, #Hlb2, %Hro⟩, Hbuf, %Hout, Herr⟩
   · iframe Hc Hbuf Heof Hed
     simp only [Bool.not_true]
     iapply read_au' srvN cn γ.up TcpEnd.fresh R buf.len.toNat $$ HdU Hend Hr
-  obtain ⟨d, d', Hro, Hnw⟩ := Hro
+  obtain ⟨d, d', Hro⟩ := Hro
   have Hgl := (wire.readOutcome_got_le Hro).1
   rw [Hbn16] at Hgl
   cases r with
@@ -272,7 +272,6 @@ theorem wp_serveConn
     (try wp_auto)
     iapply HΦ
     itrivial
-  | wait => exact absurd rfl Hnw
 
 theorem wp_Serve
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
