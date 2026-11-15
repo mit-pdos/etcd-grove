@@ -51,9 +51,144 @@ theorem watchChan.prepareObjs.wp_proof
     simp only [kCurObj, kOldObj, kObjOpt]
     iframe; ipureintro; simp
   | kv v =>
-    sorry
+    unfold kEvIs
+    icases Hx with ⟨%Hx, #Hval, %Hpv⟩
+    obtain ⟨Hk, Hrev, -, Hdel, Hpn, -⟩ := Hx
+    obtain ⟨d, st, o, hfs, hdo, hko⟩ := kDec_some (C := S.toObjCodec) hdec
+    wp_auto
+    rw [Hpn, Hdel]
+    wp_auto
+    wp_apply Hfrom $$ [$Hval] as %dsl %st' %terr Htr
+    rw [hfs]
+    icases Htr with ⟨%Hte, #Hdsl⟩
+    obtain ⟨rfl, -⟩ := Hte
+    wp_auto
+    wp_apply wp_decodeObj Obj S W codec vi dsl d o x.rev' hdo $$ [] as %cur %derr ⟨%Hde, Hcur⟩
+    · iframe #
+    subst Hde
+    wp_auto
+    rw [Hpv]
+    have h0 : decide (sint.Z (W64 0) < sint.Z (slice.nil : GoSlice).len) = false := by
+      simp [slice.nil]
+    rw [h0]
+    wp_auto
+    iapply HΦ
+    simp only [kCurObj, kOldObj, kObjOpt, kRawRev, hko]
+    rw [← Hrev]
+    iframe
   | ev e =>
-    sorry
+    obtain ⟨hdc, hdp⟩ := hdec
+    by_cases hc : e.del = false ∧ e.kv.createRev = e.kv.modRev
+    · -- a create: the previous value is `nil`
+      unfold kEvIs
+      simp only [hc, _root_.and_self, ↓reduceIte]
+      icases Hx with ⟨%Hx, #Hval, %Hpv⟩
+      obtain ⟨Hk, Hrev, Hdel, Hcr, Hpn⟩ := Hx
+      obtain ⟨d, st, o, hfs, hdo, hko⟩ := kDec_some (C := S.toObjCodec) (hdc hc.1)
+      wp_auto
+      rw [Hpn]
+      wp_auto
+      rw [Hdel]
+      wp_auto
+      wp_apply Hfrom $$ [$Hval] as %dsl %st' %terr Htr
+      rw [hfs]
+      icases Htr with ⟨%Hte, #Hdsl⟩
+      obtain ⟨rfl, -⟩ := Hte
+      wp_auto
+      wp_apply wp_decodeObj Obj S W codec vi dsl d o x.rev' hdo $$ [] as %cur %derr ⟨%Hde, Hcur⟩
+      · iframe #
+      subst Hde
+      wp_auto
+      rw [Hpv]
+      have h0 : decide (sint.Z (W64 0) < sint.Z (slice.nil : GoSlice).len) = false := by
+        simp [slice.nil]
+      rw [h0]
+      wp_auto
+      iapply HΦ
+      simp only [kCurObj, kOldObj, kObjOpt, kRawRev, hc, hko, _root_.and_self, ↓reduceIte,
+        Bool.false_eq_true]
+      rw [← Hrev]
+      iframe
+    · -- not a create: the previous value is the key's record before
+      unfold kEvIs
+      simp only [hc, ↓reduceIte]
+      icases Hx with ⟨%Hx, #Hval, %pr, %Hpr, #Hpvs⟩
+      obtain ⟨Hk, Hrev, Hdel, Hcr, Hpn⟩ := Hx
+      obtain ⟨d2, st2, o2, hfs2, hdo2, hko2⟩ := kDec_some (C := S.toObjCodec) (hdp hc pr Hpr)
+      have hne : pr.value ≠ [] := S.toObjCodec.ne_nil_of_dec _ (hdp hc pr Hpr)
+      ihave %Hlen := ownSlice_len _ _ _ $$ Hpvs
+      have hpos : decide (sint.Z (W64 0) < sint.Z x.prevValue'.len) = true := by
+        have : 0 < pr.value.length := List.length_pos_iff.mpr hne
+        simp only [decide_eq_true_eq]; rw [show sint.Z (W64 0) = 0 from rfl]; word
+      wp_auto
+      rw [Hpn]
+      wp_auto
+      cases hd : e.del with
+      | true =>
+        rw [Hdel, hd]
+        wp_auto
+        rw [hpos]
+        wp_auto
+        try rw [Hdel, hd]
+        try wp_auto
+        wp_apply Hfrom $$ [$Hpvs] as %dsl2 %st2 %terr2 Htr2
+        rw [hfs2]
+        icases Htr2 with ⟨%Hte2, #Hdsl2⟩
+        obtain ⟨rfl, -⟩ := Hte2
+        wp_auto
+        wp_apply wp_decodeObj Obj S W codec vi dsl2 d2 o2 x.rev' hdo2 $$ [] as %old %derr2 ⟨%Hde2, Hold⟩
+        · iframe #
+        subst Hde2
+        wp_auto
+        iapply HΦ
+        simp only [kCurObj, kOldObj, kObjOpt, kRawRev, hd, hko2, Hpr, ↓reduceIte, true_or,
+          Option.bind_some, Bool.true_eq_false, false_and]
+        rw [← Hrev]
+        iframe
+      | false =>
+        obtain ⟨d, st, o, hfs, hdo, hko⟩ := kDec_some (C := S.toObjCodec) (hdc hd)
+        have hcr : e.kv.createRev ≠ e.kv.modRev := fun h => hc ⟨hd, h⟩
+        rw [Hdel, hd]
+        wp_auto
+        wp_apply Hfrom $$ [$Hval] as %dsl %st' %terr Htr
+        rw [hfs]
+        icases Htr with ⟨%Hte, #Hdsl⟩
+        obtain ⟨rfl, -⟩ := Hte
+        wp_auto
+        wp_apply wp_decodeObj Obj S W codec vi dsl d o x.rev' hdo $$ [] as %cur %derr ⟨%Hde, Hcur⟩
+        · iframe #
+        subst Hde
+        wp_auto
+        rw [hpos]
+        wp_auto
+        try rw [Hdel, hd]
+        try wp_auto
+        wp_apply wp_acceptAll Obj S wc p sel emp $$ []
+        · iframe #
+        cases he : emp with
+        | true =>
+          wp_auto
+          iapply HΦ
+          simp only [kCurObj, kOldObj, kObjOpt, kRawRev, hd, hcr, _root_.and_false, hko, ↓reduceIte,
+            Bool.false_eq_true, Bool.true_eq_false, or_self]
+          rw [← Hrev]
+          iframe
+        | false =>
+          wp_auto
+          wp_apply Hfrom $$ [$Hpvs] as %dsl2 %st2 %terr2 Htr2
+          rw [hfs2]
+          icases Htr2 with ⟨%Hte2, #Hdsl2⟩
+          obtain ⟨rfl, -⟩ := Hte2
+          wp_auto
+          wp_apply wp_decodeObj Obj S W codec vi dsl2 d2 o2 x.rev' hdo2 $$ [] as %old %derr2 ⟨%Hde2, Hold⟩
+          · iframe #
+          subst Hde2
+          wp_auto
+          iapply HΦ
+          simp only [kCurObj, kOldObj, kObjOpt, kRawRev, hd, hcr, _root_.and_false, hko, hko2, Hpr, ↓reduceIte,
+            Bool.false_eq_true, _root_.or_true, Option.bind_some]
+          rw [← Hrev]
+          iframe
 
 end proof
 

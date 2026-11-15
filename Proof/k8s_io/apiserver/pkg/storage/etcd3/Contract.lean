@@ -106,6 +106,7 @@ def ObjCodec.dec (C : ObjCodec Obj) : Dec Obj := fun v =>
   | none => none
   | some (d, st) => (C.decode d).map fun o => (o, !st && decide (C.encode o = d))
 
+omit [DecidableEq Obj] in
 /-- An empty stored value does not decode (`ObjCodec.fromS_nil_decode`). -/
 theorem ObjCodec.dec_nil (C : ObjCodec Obj) : C.dec [] = none := by
   unfold ObjCodec.dec
@@ -113,6 +114,7 @@ theorem ObjCodec.dec_nil (C : ObjCodec Obj) : C.dec [] = none := by
   | none => rfl
   | some p => simp [C.fromS_nil_decode p.1 p.2 h]
 
+omit [DecidableEq Obj] in
 /-- A stored value that decodes is not empty. -/
 theorem ObjCodec.ne_nil_of_dec (C : ObjCodec Obj) (v : GoString) (h : C.dec v ≠ none) : v ≠ [] := by
   rintro rfl; exact h C.dec_nil
