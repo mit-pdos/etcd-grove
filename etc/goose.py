@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, txnlinfaultsN, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, txnlinfaultsN, authN, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -1034,6 +1034,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putgetN")],
+    ),
+    Project(
+        name="authN",
+        # auth3 with any number of members (notes/authN-plan.md): Main(k) starts k members
+        # in-process with auth on (etcdstart.Members, etcdstart.StartMembersAuth), each serving its
+        # raft handler on its own peer listener and its gRPC API, then authkv's set-up, barriers,
+        # workloads and checks across them (run). A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root) and examples/etcd/auth.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "authN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authN")],
     ),
     Project(
         name="txnlinfaultsN",
