@@ -32,21 +32,26 @@ func Members(pfx string, k uint64, peerBase uint64, clientBase uint64) []Member 
 	return ms
 }
 
-// StartMembers starts the members ms of a new cluster with token token: the initial cluster's
-// map (each member's name to its one peer URL http://Peer), then StartMember for each member, in
-// order. It returns the started servers, in the members' order, or the first error (the members
-// started before it keep running).
-func StartMembers(ms []Member, token string, lg *zap.Logger) ([]*etcdserver.EtcdServer, error) {
+// StartMembers starts the members ms of a new cluster with token token and the snapshot settings
+// snapCount and catchUp (NewMember's; NoSnapCount and NoSnapCatchUp for an example that does not
+// exercise snapshots): the initial cluster's map (each member's name to its one peer URL
+// http://Peer), then, for each member in order, NewMember and the server started (StartMember's
+// steps, at the given snapshot settings). It returns the started servers, in the members' order,
+// or the first error (the members started before it keep running).
+func StartMembers(ms []Member, token string, snapCount uint64, catchUp uint64,
+	lg *zap.Logger) ([]*etcdserver.EtcdServer, error) {
 	cluster := types.URLsMap{}
 	for _, m := range ms {
 		cluster[m.Name] = types.URLs{{Scheme: "http", Host: m.Peer}}
 	}
 	srvs := make([]*etcdserver.EtcdServer, len(ms))
 	for j, m := range ms {
-		s, err := StartMember(m.Name, cluster[m.Name], m.Peer, m.Client, cluster, token, lg)
+		s, err := NewMember(m.Name, cluster[m.Name], m.Peer, m.Client, cluster, token, snapCount,
+			catchUp, lg)
 		if err != nil {
 			return nil, err
 		}
+		s.Start()
 		srvs[j] = s
 	}
 	return srvs, nil

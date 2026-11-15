@@ -922,20 +922,26 @@ noncomputable def Members.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType Member.ty)))) (Pair (Var "ms") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Member.ty)))) (Var "$res0"))))))))
 
-/-- StartMembers starts the members ms of a new cluster with token token: the initial cluster's
-    map (each member's name to its one peer URL http://Peer), then StartMember for each member, in
-    order. It returns the started servers, in the members' order, or the first error (the members
-    started before it keep running).
+/-- StartMembers starts the members ms of a new cluster with token token and the snapshot settings
+    snapCount and catchUp (NewMember's; NoSnapCount and NoSnapCatchUp for an example that does not
+    exercise snapshots): the initial cluster's map (each member's name to its one peer URL
+    http://Peer), then, for each member in order, NewMember and the server started (StartMember's
+    steps, at the given snapshot settings). It returns the started servers, in the members' order,
+    or the first error (the members started before it keep running).
 
-    go: members.go:39:6 -/
+    go: members.go:41:6 -/
 noncomputable def StartMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "token"
+  (Lam "snapCount"
+  (Lam "catchUp"
   (Lam "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "catchUp" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "catchUp"))
+  (Let "snapCount" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapCount"))
   (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
   (Let "ms" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Member.ty)))) (Var "ms"))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue []))
@@ -971,8 +977,10 @@ noncomputable def StartMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Client"))) (Var "m")))
   (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve StartMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a6" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
+  (Let "$a7" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
+  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -982,9 +990,12 @@ noncomputable def StartMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -1025,8 +1036,8 @@ noncomputable def StartMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Member.ty))) (Pair (Var "m") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Pair (Var "cluster") (Var "$r0")))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Pair (Var "cluster") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))
 
 /-- Gen picks a key of keys and a value, from a small set.
 

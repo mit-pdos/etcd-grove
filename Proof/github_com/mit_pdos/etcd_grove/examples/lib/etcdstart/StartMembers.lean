@@ -7,12 +7,14 @@ are their names, each slice the member's one peer URL (`iuOf`; the names are dis
 read-only from then on. The second starts the members in order: after `j` members, the servers'
 slice holds their servers (each with its `memberUp`, the thread token lent out) and zeros, and the
 members still to start keep their `memberPre`; each iteration looks the member's peer URLs up in the
-map and calls `StartMember` with the thread token, taken back out of the started member's
+map and calls `NewMember` (at the given snapshot settings) and `Start` with the thread token, taken back out of the started member's
 `memberUp` (`memberUp_tok`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
 
 @[expose] public section
 
@@ -33,9 +35,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
 
-theorem StartMembers.wp_proof (wp_StartMember : StartMember.spec (GF := GF) (hG := hG)) :
+theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := hG))
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMembers.spec (GF := GF) (hG := hG) := by
-  intro CS N token msl lg xs ps bootLog ctxs dir Φs γn lm Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
+  intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn lm Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
     Hnd Hutf Hx Haf Hbuq Hdbo
   wp_start as ⟨#Hlg, Htok, #Hms, #Hcom, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms
@@ -170,12 +173,14 @@ theorem StartMembers.wp_proof (wp_StartMember : StartMember.spec (GF := GF) (hG 
       iunfold memberPre at Hx1
       icases Hx1 with ⟨#Hbp, Hmb, #Hnet, Hfr⟩
       obtain ⟨h1, h2, h3, h4, h5⟩ := Hx xj hxj
-      wp_apply (wp_StartMember N xj.1.Name' xj.1.Peer' xj.1.Client' token sl pm lg M
+      -- `NewMember(m.Name, cluster[m.Name], m.Peer, m.Client, cluster, token, snapCount, catchUp,
+      -- lg)`
+      wp_apply (wp_NewMember N xj.1.Name' xj.1.Peer' xj.1.Client' token snapCount catchUp sl pm lg M
           (iuOf (xs.map (·.1))) (urlsN (xs.map (·.1)) xj.1) ps bootLog ctxs dir xj.2.id xj.2.γ
-          xj.2.ρ xj.2.E Φs γn lm Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
+          xj.2.ρ xj.2.E Φs γn false lm Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
           ⟨rfl, rfl, Hdom, rfl⟩ hutf Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
       · iframe; iframe #
-      icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup⟩)
+      icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
       · cases err with
         | nil => exact absurd rfl Herr
         | ok ei => ?_
@@ -185,6 +190,11 @@ theorem StartMembers.wp_proof (wp_StartMember : StartMember.spec (GF := GF) (hG 
         iframe
         ileft; ipureintro; exact Herr
       subst Herr
+      (try wp_auto)
+      -- `s.Start()`
+      wp_apply (wp_Start_built wp_Start s xj.2.ρ xj.2.E lg γn xj.2.id N _ HrbN lm Hrb48)
+        $$ [Hmb Htok] as Hup
+      · iframe
       (try wp_auto)
       icases memberUp_tok _ _ _ _ _ _ _ $$ Hup with ⟨Htok, Hup⟩
       ihave %Hsll := ownSlice_len $$ Hssl
