@@ -315,6 +315,108 @@ theorem tMemSim_recv {o : TOracle} {c : TCand} {bs l cm : w64} (hm : tMemSim o c
     · omega
   · rw [hc2, hhc]
 
+/-! ## The last index is below `2^63` -/
+
+/-- Every index the history records is below `B`. -/
+def walIdxLt (B : Nat) (H : WalHist) : Prop :=
+  ∀ o ∈ H, match o with
+    | .save _ es => ∀ e ∈ es, uint.nat e.Index' < B
+    | .snap m => uint.nat m.Index' < B
+
+theorem save_last_lt {B : Nat} {σ σ' : StorContents} {h : HardStateM} {es : List EntryM}
+    (hl : σ.last < B) (hes : ∀ e ∈ es, uint.nat e.Index' < B)
+    (hf : walFoldChkFrom σ [.save h es] = some σ') : σ'.last < B := by
+  rw [walFoldChkFrom_save1] at hf
+  obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.1 hf
+  simp only [StorContents.last, StorContents.b] at hl ⊢
+  rcases readEnts_last hx with ⟨-, rfl⟩ | ⟨e, hle, hbd⟩
+  · exact hl
+  · have := hes e (List.mem_of_getLast? hle)
+    simp only [StorContents.b] at hbd
+    omega
+
+theorem snap_last_lt {B : Nat} {σ : StorContents} {m : SnapshotMetadataM} (hl : σ.last < B)
+    (hm : uint.nat m.Index' < B) : (walSaveSnap σ m).last < B := by
+  by_cases hg : uint.nat m.Index' < σ.b
+  · rw [walSaveSnap_noop hg]; exact hl
+  · simp only [StorContents.last, walSaveSnap_b hg, walSaveSnap_ents hg]
+    simp only [StorContents.last] at hl
+    split
+    · simp only [List.length_drop]; omega
+    · simp only [List.length_nil]; omega
+
+theorem gFold_last_lt {B : Nat} : ∀ (L : List (WalOp × Bool)) {G G' : StorContents}, G.last < B →
+    walIdxLt B (L.map Prod.fst) → gFold G L = some G' → G'.last < B := by
+  intro L
+  induction L with
+  | nil => intro G G' hl _ h; cases h; exact hl
+  | cons x L ih =>
+    intro G G' hl hb h
+    obtain ⟨o, b⟩ := x
+    simp only [gFold, Option.bind_eq_some_iff] at h
+    obtain ⟨G2, hst, h⟩ := h
+    have hb' : walIdxLt B (L.map Prod.fst) := fun o' ho' => hb o' (by simp [ho'])
+    have ho := hb o (by simp)
+    refine ih ?_ hb' h
+    cases o with
+    | save hs es =>
+      cases b with
+      | false => cases hst
+      | true =>
+        simp only [gStep] at hst
+        split at hst
+        · next G3 hg3 =>
+          split at hst
+          · cases hst; exact save_last_lt hl ho hg3
+          · cases hst
+        · cases hst
+    | snap m =>
+      simp only [gStep] at hst
+      split at hst
+      · cases hst; split
+        · exact snap_last_lt hl ho
+        · exact hl
+      · cases hst
+
+theorem TDisc.last_lt {B : Nat} {σ σ' : StorContents} {H : WalHist} (hD : TDisc σ H σ')
+    (hl : σ.last < B) (hb : walIdxLt B H) : σ'.last < B := by
+  induction hD with
+  | nil => exact hl
+  | @save σ1 σ2 B0 h es _ hd ih =>
+    exact save_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.save h es) (by simp)) hd.1
+  | @own σ1 B0 m _ _ ih =>
+    exact snap_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.snap m) (by simp))
+  | @recv σ1 σ2 B0 m h es _ _ hd _ _ ih =>
+    exact save_last_lt (snap_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.snap m) (by simp)))
+      (hb (.save h es) (by simp)) hd.1
+
+theorem tSimAt_last_lt {B : Nat} {H : WalHist} {n : Nat} {σ : StorContents} (hs : tSimAt H n σ)
+    (hb : walIdxLt B H) (hB : 0 < B) : σ.last < B := by
+  obtain ⟨A, B0, σA, rfl, -, hg, hD⟩ := hs
+  have hA : σA.last < B := gFold_last_lt _ (by simp [walFresh, StorContents.last, StorContents.b]; omega)
+    (by rw [tRestartG_fst]; exact fun o ho => hb o (List.mem_append_left _ ho)) hg
+  exact hD.last_lt hA (fun o ho => hb o (List.mem_append_right _ ho))
+
+theorem tHistWf_idxLt {h : List TOp} (hw : tHistWf h) : walIdxLt (2 ^ 63) (h.map absOp) := by
+  intro o ho
+  obtain ⟨op, hop, rfl⟩ := List.mem_map.1 ho
+  have hwf := hw op hop
+  unfold absOp
+  cases hs : op.snap
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    intro e he
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.1 he
+    exact (hwf.2.1 hs x hx).2.2.1
+  · simp only [↓reduceIte]
+    exact (hwf.1 hs).1
+
+/-- **The member's last index is below `2^63`** (every index its history records is). -/
+theorem tMemSim_last_lt {o : TOracle} {c : TCand} {bs l cm : w64} (h : tMemSim o c bs l cm)
+    (hw : tHistWf (tCandHist o c)) : uint.nat l < 2 ^ 63 := by
+  obtain ⟨σ, hs, -, hl, -⟩ := h
+  rw [← hl]
+  exact tSimAt_last_lt hs (tHistWf_idxLt hw) (by decide)
+
 end pure
 
 end etcd_wal
