@@ -38,6 +38,8 @@ theorem Main.wp_proof
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   wp_apply (wp_Run lg N id₁ id₂ id₃ ps ctxs boot Hbf HLv HwbN Haf Hbuq Hdbo) $$ [Hs₁ Hs₂ Hs₃ Htok]
   · iframe; iframe #
+  iintro %b -
+  wp_auto
   iapply HΦ; itrivial
 
 end proof

@@ -155,6 +155,7 @@ def stopCand (N : Nat) (m s : Loc) (γn : NetNames GF) (γ : SrvRaft) (ρ₁ : R
       ρ.rd.kv.st = ρ₁.rd.kv.st ∧ srvStop.scope E⌝ ∗
     memberRec m γS γn name peerAddr client ∗ srvAppliedInv s E ρ.rd ∗
     srvDataDir s (name ++ go!".etcd") ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
+    netHttpOk γn id ∗
     etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) token name
       (urlsOk peerAddr client) id ∗
     etcdstart.memberRestartFacts { γ with reg := reg } ρ id)
@@ -442,6 +443,7 @@ theorem Run.wp_proof
       iunfold stopCand
       iexists name₂, peerAddr₂, clientAddr₂, id₂, reg₂, ρ₂, Ea₂, dd₂, γS₂
       iframe Hrec₂ Hsr₂ Hrds₂
+      iframe Hnet₂
       iframe #
       ipureintro
       exact ⟨hd₂, hUok _ _, hst₂, HE₂.2, by rw [HE₂.1.2.2.2, hc₂]⟩
@@ -452,12 +454,85 @@ theorem Run.wp_proof
       iunfold stopCand
       iexists name₃, peerAddr₃, clientAddr₃, id₃, reg₃, ρ₃, Ea₃, dd₃, γS₃
       iframe Hrec₃ Hsr₃ Hrds₃
+      iframe Hnet₃
       iframe #
       ipureintro
       exact ⟨hd₃, hUok _ _, hst₃, HE₃.2, by rw [HE₃.1.2.2.2, hc₃]⟩
   iintro %v ⟨%Hv, %mm, %ss, Hm, Hs, Hc⟩
   subst Hv
-  sorry
+  wp_auto
+  iunfold stopCand at Hc
+  icases Hc with ⟨%name, %peerAddr, %client, %id, %reg, %ρ, %E, %dd, %γS, ⟨%hd, %hU, %hst, %hsc⟩,
+    Hrec, #Hai, #Hdd, Hsr, Hrds, #Hnet, #HbR, #Hrfs⟩
+  -- `stop(s)`
+  ihave %Hρr : ⌜ρ.rd.raft.raft = { γ with reg := reg }⌝ $$ []
+  · ihave #Hf := Hrfs
+    iunfold etcdstart.memberRestartFacts at Hf
+    icases Hf with ⟨%Hρ, -⟩
+    ipureintro; rw [Hρ.1]
+  have Hb3 : ρ.rd.raft.raft.boot.length ≤ 3 := by
+    rw [Hρr]; show γ.boot.length ≤ 3; rw [hboot]; exact hb3
+  wp_apply (wp_stop ss E E ρ id dd γn name Hb3 hsc) $$ [Hsr Hrds] as Hrr
+  · iframe; iframe #
+  rw [Hρr]
+  (try wp_auto)
+  -- the `N2` puts, the counter's half passed along
+  ihave HI : (∃ j : w64, "i" ∷ i_ptr ↦ j ∗ "%Hj" ∷ ⌜5 ≤ sint.Z j ∧ sint.Z j ≤ 25⌝ ∗
+      "Htok" ∷ threadTok ∗ "Hd" ∷ monoNatAuthOwn γc (1 : Qp).half (sint.nat j) : IProp GF)
+      $$ [i Htok Hd]
+  · iexists W64 5; iframe; ipureintro; constructor <;> word
+  wp_for HI
+  wp_if_destruct
+  · wp_apply (wp_put' wp_put s₁ Ea₁ { ρ₁ with wait := γw₁ } γc j (by have := Hj.1; omega)
+        (by have := Hif; simp only [show sint.Z (W64 25) = 25 by rfl] at this; simp only [r3NPuts]; omega)
+        HE₁.2 HLv) $$ [Htok Hd] as %perr ⟨Htok, Hput⟩
+    · iframe; iframe #
+    icases Hput with (⟨%Hperr, Hd⟩ | %Hperr)
+    rotate_left
+    · cases perr with
+      | nil => exact absurd rfl Hperr
+      | ok ei => ?_
+      wp_auto
+      wp_for_post
+      iapply HΦ; itrivial
+    subst Hperr
+    wp_auto
+    wp_for_post
+    iframe
+    iexists j + W64 1
+    iframe
+    have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by
+      have := Hif; simp only [show sint.Z (W64 25) = 25 by rfl] at this
+      unfold sint.nat; word
+    rw [hj1]
+    iframe
+    ipureintro; constructor <;> word
+  have hj25 : sint.nat j = r3NPuts := by
+    have := Hif; simp only [show sint.Z (W64 25) = 25 by rfl] at this
+    simp only [r3NPuts]; unfold sint.nat; word
+  rw [hj25]
+  ihave #Hlb := monoNatLbOwn_get γc _ r3NPuts $$ Hd
+  -- `sR, err := restartMember(m, cluster, lg)`
+  wp_apply (wp_restartMember N mm γS name peerAddr client pm lg M initURLs3 (urlsOk peerAddr client) ps
+      (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id { γ with reg := reg } ρ γn HwbN hvs hrule
+      hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd
+      (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) hU Haf Hbuq Hdbo) $$ [Htok Hrec Hrr] as %sR %err Hr
+  · iframe; iframe #
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ', %E₀', %Hρ', HupR⟩)
+  · cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; itrivial
+  subst Herr
+  wp_auto
+  -- `check(sR)`, under the invariant at the restarted names
+  ihave #HinvR : r3Inv ρ'.rd.kv γc $$ []
+  · rw [← r3Inv_st ρ₁.rd.kv ρ'.rd.kv (hst.symm.trans (restartNames_st Hρ').symm) γc]
+    iexact Hinv
+  wp_apply (wp_check sR ρ' E₀' lg γn id γc HLv) $$ [HupR] as %b -
+  · iframe; iframe #
+  iapply HΦ; itrivial
 
 end proof
 
