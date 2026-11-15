@@ -757,7 +757,7 @@ theorem RunConcurrent.wp_proof
             · iPkgInit
             try wp_auto
             wp_apply context.wp_Background
-            wp_apply wp_WT _ $$ [$Hcx $Hcc] as %ctx %cd %cancel ⟨#Hcancel, #Hctx⟩
+            wp_apply wp_WT _ $$ [$Hcx $Hcc] as %ctx %cd %cancel ⟨#Hcancel, #Hctx, -⟩
             try wp_auto
             wp_apply wp_Itoa kk $$ [$Hsc'] as %str %Hstr
             try wp_auto

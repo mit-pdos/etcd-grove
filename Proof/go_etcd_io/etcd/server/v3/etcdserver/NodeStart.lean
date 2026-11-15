@@ -484,7 +484,7 @@ theorem srvMem_bootStorage
   imodintro
   isplitr
   · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K htr (fun _ => hsz) $$ Hinv' Hreg
+      ms γs γr.cl K (fun _ => hsz) htr $$ Hinv' Hreg
   iframe HFK
   iunfold storHolds
   have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
@@ -579,7 +579,8 @@ theorem srvMem_restartStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
-    (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit) (hsz : γs.sz = true) :
+    (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit)
+    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
@@ -660,7 +661,7 @@ theorem srvMem_restartStorage
   imodintro
   isplitr
   · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K (fun _ => hsz) $$ Hinv' Hreg
+      ms γs γr.cl K (fun _ => hsz) htr $$ Hinv' Hreg
   iframe HFK
   iunfold storHolds
   simp only [Nat.sub_self, List.take_zero, List.drop_zero]
@@ -1094,6 +1095,11 @@ theorem raftNode_of_RestartNode
   iNamed Hpre
   obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb⟩ := Hraft
   have Hbc : σ.b ≤ σ.commit := Nat.le_trans Hba Hac
+  -- the cluster untraced (`srvClusterOk`'s, in the server's raft-log invariant)
+  ihave %HtrC : ⌜Cluster.trace γr.cl = none⌝ $$ []
+  · iunfold srvRaftLogInv at Hlinv
+    icases Hlinv with ⟨-, #Hclok, -⟩
+    iapply srvClusterOk_untraced (⟨γr, [], W64 0⟩ : ServerRaftNames) $$ Hclok
   -- the configuration at the backend's index the voters' (Q39)
   imod srv_confAt_eq_simple ⟨γr, [], W64 0⟩ (srvLE ⟨γr, [], W64 0⟩ A₀) A₀.length m
       (by simp [srvLE]) ⊤ (by simp) (by simp) $$ [$Hlinv $Hconf] with %Hm
@@ -1113,7 +1119,7 @@ theorem raftNode_of_RestartNode
   ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs σ cs 0
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
-        memSnapNone γs (walSnapCS σ cs))) Hbc Hγsz
+        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz
       $$ [Hfresh Hmeta Hents Hend Hval Hsn]
   · iframe Hreg Hlock Hval
     isplitl [Hfresh Hmeta Hents Hend Hsn]
@@ -1129,7 +1135,7 @@ theorem raftNode_of_RestartNode
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
     isplitr
-    · ipureintro; exact ⟨Hhb, Hwal⟩
+    · ipureintro; exact ⟨Hhb, Hwal, HtrC⟩
     simp only [rnBootPre]
     isplitr
     · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩
@@ -1217,7 +1223,7 @@ theorem raftNode_of_RestartNode
   iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsnone Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
-      (wp_ReportSnapshot γw.node)
+      (wp_ReportSnapshot γw.node) (by rw [Hwnode]; exact HtrC)
     iframe Hpkg Hisnode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2

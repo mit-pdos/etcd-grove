@@ -132,7 +132,7 @@ theorem Cluster.send.wp_proof
             iexact Hcx
           try wp_auto
           wp_apply context.wp_Background
-          wp_apply wp_WT _ $$ [$Hcx $Hcci] as %ctx %cd %cancel ⟨#Hcancel, #Hctx⟩
+          wp_apply wp_WT _ $$ [$Hcx $Hcci] as %ctx %cd %cancel ⟨#Hcancel, #Hctx, -⟩
           try wp_auto
           ihave #Hloc := snapLocalMsg_noDir (GF := GF) W.cl st.msg.To'
             (by rw [Hpure.2.2.2.1]) st
