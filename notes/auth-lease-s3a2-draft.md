@@ -5,7 +5,12 @@
 (decision: (3) in S3a, then (1) as S3a2), `notes/auth-lease-s3a-draft.md` §3a, §6, §15. Evidence: the probe
 `Scratch/S3a2Probe.lean` (untracked; §2), the code read below.
 
-**Revision 4 (2026-11-15), the S3a2 Freeze package candidate**: review round 3
+**Revision 5 (2026-11-15), the S3a2 Freeze package**: review round 4 (`/shared/tmp/auth-lease-s3a2/review-r4.md`)
+found nothing false; its only first-tier point (F1) was conditional on option (c) for `authTie`. Rev 5 recommends
+option (b) instead (r4 S1: stronger, reuses the model's `kvGrantedL`, no new definition, needed by S3b), probes it
+(`Scratch/S3a2ProbeTie.lean`, checked clean), completes §6 (r4 S2, S3) and records (c)'s fix should (c) be chosen.
+
+**Revision 4 (2026-11-15)**: review round 3
 (`/shared/tmp/auth-lease-s3a2/review-r3.md`) found one first-tier point, F1: the auth-on KV arm's `authTie`
 (handed to the proposer) is false of an admitted leased request. Rev 4 adds §4a (`authTie` restated; **a decision
 for etcd-grove-81**, options (a)–(c), recommended (c)), §6's coupling rows, §0's correction, and the second-tier
@@ -285,7 +290,7 @@ Options:
   converse also for unleased requests.
 - (b) exact: `o = .rejected .auth ↔ ¬ kvGrantedL st (leaseItemsOf (stateAfter lb)) rq`; needs the log `lb` in
   `authTie`'s signature, so `resultIsWOn`'s and `modelOutM`'s texts change (they have `lb` in scope).
-- (c) **recommended**: exact for requests without a leased put, and the one direction for those with one, signature
+- (c) exact for requests without a leased put, and the one direction for those with one, signature
   unchanged:
   ```lean
   (¬ kvGranted st rq → o = .rejected .auth) ∧
@@ -294,7 +299,22 @@ Options:
   (`hasLeasedPut rq`: a put with `leaseID ≠ 0`, or a transaction one of whose puts has one — S2's lease-id list of
   `authOutLL`/`txnPutsW` holding a nonzero id; new pure definition). At lease mode `none` (every closed theorem with
   auth on) no admitted request has a leased put, so it means what the iff means today; the proposer keeps exactly
-  what it uses. Proof: `authTie_of_kvOutL` over `kvOutL`'s verdict and S3a's `leaseOk` bridge.
+  what it uses. Proof: `authTie_of_kvOutL` over `kvOutL`'s verdict and S3a's `leaseOk` bridge, at lease `0` by
+  `leaseItemsOf_zero_none`. **If (c) is chosen** (review r4 F1): `hasLeasedPut` must be defined by
+  `leaseGrantedM`'s match (`rq.put`, `rq.txnW` with `txnPutsW`: every put of **both** branches, nested included, as Go's
+  `checkTxnPermission` → `checkTxnReqsPermission` checks Success and Failure, `apply/auth.go:121-188`), not over the
+  executed branch, or (c) is false.
+
+**Recommended (rev 5): (b)** (review r4 S1). It implies (a) and (c); it is the model's own verdict (`outcomeOn`'s
+`kvGrantedL`), so no new definition and no disjunction; S3b's leased-put proposer needs "applied ⇒ `kvGrantedL`"
+(its `grantedAt`, `ProposeOn.lean:136`, moves to `kvGrantedL`), which only (b) gives. Cost: `authTie st lb rq out`
+gains the log `lb`; `resultIsWOn` and `modelOutM` pass the `lb` they already bind (internal bodies, no `Spec/`
+text). **Probed** (`Scratch/S3a2ProbeTie.lean`, `etc/lean-check.py -a`, no `sorry`): `authTieL_of_kvOutL` from
+`kvGrantedL_of_kvOutL` (S3a session 5) with `noZeroEnds` only (no `plainCover`); `authTie_dir_of_L` (today's used
+direction, for `grantedAt_of_applied`); `kvGrantedL_of_tie` (S3b's direction). The one reader of `authTie` is
+`grantedAt_of_applied` (`ReqOn.lean:950`; review r4: `AuthTie`, `KVApplyOn`, `NewServer`, `SnapAuthRecover` and the
+auth example name only `authTieN`/`authTieReadMask`). The docstrings calling the verdict "the model's grant"
+(`processInternalRaftRequestOnce:56`, `raftRequest:40`, `ReqOn.lean`) stay accurate under (b).
 
 Either option is a text change of a statement the apply thread hands the request side (through
 `resultIsWOn`/`modelOutM`, in meaning `resultΨOn` and `processInternalRaftRequestOnce`'s spec); no closed theorem
@@ -319,7 +339,8 @@ step of §7, after the KV arm. Target: etcdserver `lit-mode` ≤ 200, measured a
 ## 6. Statements this changes (for the Freeze)
 
 **Text changes:**
-- `apply/Chain.lean`: the bodies of `putPre` and `txnPre` (§1). New: `certPreT`, `leasesLiveAt`, `mPreAt` and their
+- `apply/Chain.lean`: the bodies of `putPre` and `txnPre` (§1); `mPre`, `leasesLive` and `kvOwnAt` redefined over
+  `mPreAt`/`leasesLiveAt` (equivalent bodies, §1; review r4 S3). New: `certPreT`, `leasesLiveAt`, `mPreAt` and their
   laws.
 - `apply/AuthApplyLatest.lean`: the bodies of `putPreW` and `txnPreW` (§3). New: `certPreW_innerT`, `certPreW_tie`.
 - `apply/DispatchKVL.lean`: new `kvOutLT`. The certificate premise of `uberApplier.dispatch.kvSpecL`,
@@ -340,8 +361,10 @@ step of §7, after the KV arm. Target: etcdserver `lit-mode` ≤ 200, measured a
   exported `apply_put_latest`, `apply_txn_latest` (`Results.lean:1548, 1552`), `server_uber_kvl`,
   `server_uber_kvl_on` (`:1747, :1760`, through `uberKVL` → `applierKVL`) (review r1 F1).
 - Through `uberKVC`'s text: `srvUberOn`, `srvKVInvsM true` and the auth slot's `acInv` (the predicates containing it).
-- Through `authTie`: `resultIsWOn`, `modelOutM` (text unchanged under (a)/(c), changed under (b)), `resultΨOn`,
-  `EtcdServer.processInternalRaftRequestOnce`'s spec (review r3 F1).
+- Through `authTie`: `resultIsWOn`, `modelOutM` (bodies pass `lb` under (b); unchanged text under (a)/(c)),
+  `resultΨOn`, `resPostM`, `appliedOkM`, `isServerM true`/`isServerReqM true` (through the wait's `resultΨM`),
+  `EtcdServer.processInternalRaftRequestOnce.spec`, `EtcdServer.raftRequest.spec`, `applyEntryNormal.spec`
+  (review r3 F1, r4 S2). Under (b) these posts get stronger; under (a)/(c) weaker (no reader uses the lost part).
 - Through `kvInvOn`/`NewServer.specM true` (lease mode `none` in all, so unchanged in effect; review r3 S3):
   `server_new_auth_on`, `server_cluster_alloc_on`, `server_member_alloc_on`, etcdstart's `kvInvOn_reg`.
 - `plainEntryOn`/`plainLogOn` and therefore `kvInvOn`: they admit more at `revocable`, and at `none` they are
@@ -359,8 +382,7 @@ step of §7, after the KV arm. Target: etcdserver `lit-mode` ≤ 200, measured a
   modes. Text unchanged in all of them; every one becomes stronger or stays (a holder of `applierSpec` gets triples
   with weaker premises).
 
-**Not changed in text:** `backendStep` (`Chain.lean:209`), `certPre`, `kvPostF`, `kvPostFL`, `leaseExactL`, `kvOwn`,
-`kvOwnAt`, `dispatch.spec` (class), every auth-off statement, the snapshot path, `srvKVInvsOn`, `kvInvOn`'s body (the
+**Not changed in text:** `backendStep` (`Chain.lean:209`), `certPre`, `kvPostF`, `kvPostFL`, `leaseExactL`, `kvOwn`, `dispatch.spec` (class), every auth-off statement, the snapshot path, `srvKVInvsOn`, `kvInvOn`'s body (the
 auth-off statements and the class `dispatch.spec` change in meaning only through `applierSpec`, above).
 
 **Closed theorems: none change.** No file under `Proof/github_com/` mentions `putPre`, `txnPre`, `certPre*`,
@@ -416,3 +438,10 @@ First tier F1: `authTie` false at an admitted leased request (→ §4a, decision
 rev 4. Confirmed: the class and latest tracks (bundled `∃ T` pinned by `lessorUser`, backend Put/Txn,
 `certPreW_innerT`, `certPreW_tie`, the `E.lg` guard), the server certificate at both `E.lg`, §4's exported results
 (old hypotheses imply the new), the txn wand change, no closed theorem / `interface/` / `etc/api` change.
+
+## 11. Review round 4 (fresh `spec-reviewer`, `/shared/tmp/auth-lease-s3a2/review-r4.md`)
+
+Nothing false in rev 4. F1 (first tier only under option (c)): `hasLeasedPut` must range over both transaction
+branches; moot under (b), recorded in §4a. S1 (choose (b)), S2 (`authTie`'s carriers), S3 (§6 vs §1), S4 (probe §4a),
+N1 applied in rev 5. Confirmed: the txn wand change, the class and latest tracks, the server's admission and
+certificate, §4's new hypotheses follow from the old, no closed theorem / `interface/` / `etc/api` change.

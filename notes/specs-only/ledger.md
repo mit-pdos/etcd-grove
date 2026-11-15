@@ -342,6 +342,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   is false.
 - **Evidence.** S3a2 review r3 F1 (`/shared/tmp/auth-lease-s3a2/review-r3.md`); the example: key `a` permitted, the
   lease carrying `b` not.
-- **Proposed change.** (c) `(¬ kvGranted st rq → o = .rejected .auth) ∧ (o = .rejected .auth → ¬ kvGranted st rq ∨
-  apply.hasLeasedPut rq)` (recommended; (a) one direction; (b) the iff at `kvGrantedL` with the log): S3a2 Draft §4a.
+- **Proposed change.** (b) the iff at `kvGrantedL st (leaseItemsOf (stateAfter lb)) rq`, `authTie` gaining the log
+  `lb` (recommended since S3a2 Draft rev 5, review r4; probed `Scratch/S3a2ProbeTie.lean`); alternatives (a) one
+  direction, (c) the iff for requests without a leased put: S3a2 Draft §4a.
 - **Decision.** Pending: the S3a2 Freeze (etcd-grove-81).
