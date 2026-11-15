@@ -490,3 +490,36 @@ One entry for the frozen texts S3b changes (Draft §6's table); the evidence of 
 - **Proposed change.** A field `dec_nil : ObjCodec.dec [] = none` (Kubernetes codecs reject empty data), discharged
   for the examples' codec.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15, (C)).
+
+## 2026-11-15: the client watch's close error has no known dynamic type (k8s 7f-5a-P, E2)
+
+- **Spec.** `WatchResponse.Err.spec` (`Spec/go_etcd_io/etcd/client/v3/WatchResponse__Err.lean`; proved).
+- **Defect.** Its post gives a non-nil error only nil-iff and `errStrOk`; the etcd3 watcher's `sendError` needs
+  its type facts (`kErrOk`: `etcdError`/`grpcError`/`APIStatus` assertions, comparability).
+- **Evidence.** `client/v3/watch.go:123-135`: `v3rpc.Error(closeErr)`, `ErrCompacted`, `v3rpc.Error(status.Error(
+  FailedPrecondition, reason))`, `ErrFutureRev`; `rpctypes.Error`'s post keeps `clientErr`; the close error's
+  sources carry it (`cliStreamErr`, `errorsNewOk`, `ctxErrClientAllW`), but for `io.EOF` (`eofIs` only) and
+  `*status.Error`'s `isLeafError` (gaps). Review: `notes/k8s-7f5a-draft.md` §11.1.
+- **Proposed change.** The post gains `clientErr err ∗ statusErrOk err` of a non-nil result (only conjuncts added;
+  its six callers untouched; no `Results`/`Adequacy*`/`MainLinked` names it).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, E2).
+
+## 2026-11-15: GetCurrentResourceVersion's error arm is bare (k8s 7f-5a-P, E4)
+
+- **Spec.** `store.GetCurrentResourceVersion.spec` (proved).
+- **Defect.** Its error arm is `err ≠ nil` only; `startWatching` hands it to `sendError` (`watcher.go:456-460`, when
+  `initialRev > 0 ∧ forceInitialEvents`), which needs `kErrOk`.
+- **Evidence.** `store.go:741-742`: the client `Get`'s error, or `fmt.Errorf("the current resource version must be
+  greater than 0")`; both branches in the proof.
+- **Proposed change.** The arm gains `(clientErr err ∗ statusErrOk err) ∨ kFmtErr err` (the E3 form, an
+  `*errors.errorString`, once E3's text is approved).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, E4).
+
+## 2026-11-15: interpretListError is specified only when not paging (k8s 7f-5a-P, E5)
+
+- **Spec.** `interpretListError.spec` (proved; `paging` fixed to `false`).
+- **Defect.** `syncPaginated` calls it with `paging = true`.
+- **Evidence.** `errors.go:66-89`: paging and `ErrCompacted` go to `handleCompactedErrorForPaging` (`EncodeContinue`,
+  whose error branch calls the untranslated `HandleError`, avoided when the caller shows `encOkL`).
+- **Proposed change.** One triple over any `paging` (premise `paging = true → encOkL …` of the keys), post `listErr c e`.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, E5).
