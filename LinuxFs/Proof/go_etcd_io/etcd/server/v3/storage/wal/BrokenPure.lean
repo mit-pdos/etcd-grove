@@ -250,7 +250,8 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     absentNone_cut hAN hjjr hcl hcoh1 hs hbt hcur hothers, fun dir' lay' hl' => ?_, ?_, ?_⟩
   · -- `WalsOk`'s layouts
     obtain ⟨la, nm, hj2, hla, hin, hjr', hnm, hwd, habs, hcr⟩ := hW.1 dir' d' hd'
-    have hcr' := crashOkW_nonwal hcr (hljr dir' d' la hd' hla) H
+    have hjrne := hljr dir' d' la hd' hla
+    have hcr' : WalFullOk C Mr d' la _ n := ⟨hcr.1, crashOkW_nonwal hcr.2 hjrne H⟩
     by_cases hlaj : la.j = lay.j
     · obtain ⟨X2, hX2, hm2, -⟩ := hwd
       rw [hlaj] at hm2
