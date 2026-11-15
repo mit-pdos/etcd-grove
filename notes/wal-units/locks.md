@@ -609,7 +609,8 @@ every earlier removal, the same `Follows` argument). The invariant change:
 ### Session 7 (2026-11-15, branch `wal-c-purge4`, base `origin/wal-int` `16f1121760`)
 
 **Done: item 1, the invariant change** (session 6's plan, with one deviation below). Built with `lake build`:
-the WAL `Link`; the tester's and `durable`'s `Link`s: see the end of this entry. No new axiom, no `sorry`,
+the WAL `Link`, the tester's `Link`, `Main` and `Boot`, `durable`'s `Link`, and the unlinked `Purge*` files
+(`PurgeCrash`, `PurgeSafe`, `PurgeRegion`, the new `PurgeFull`). No new axiom, no `sorry`,
 nothing trusted changed, no Go changed, no client-facing spec changed (so no ledger entry: no statement was
 found false; the internal lemma statements below changed with the invariant).
 
