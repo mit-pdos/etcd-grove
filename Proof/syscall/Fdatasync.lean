@@ -13,18 +13,19 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [syscall.Assumptions]
 
 theorem syscall.Fdatasync.wp_proof : syscall.Fdatasync.spec (GF := GF) (hG := hG) := by
-  intro fd dq d m lo xs
+  intro fd dq d m lo xs hcov
   wp_start as ⟨#Hinv, Hfd, Hm, Hbs⟩
-  wp_apply wp_osFsync fd dq d m lo xs CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
+  wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
   iapply wp_errno
   iapply HΦ
   iframe

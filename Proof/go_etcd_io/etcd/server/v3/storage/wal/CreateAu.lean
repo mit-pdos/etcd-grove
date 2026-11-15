@@ -1,0 +1,475 @@
+/- Lean-first (no Rocq counterpart).
+
+# `Create`'s client update at the rename (W4, `notes/wal-fsext-plan.md`, "W4 implementation log")
+
+`walCreate_osAUnc`: the atomic update `Create` gives `os.Rename.specDirSnc` for `renameWAL`'s rename of
+`nm.tmp` (the directory `J`, the fresh WAL's one segment `g` in it, synced) onto the WAL-less name `nm`
+of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating dir N h J` token names.
+
+* *Opening* (with the generation's `notCrashed`): opens `walInv`, finds the claim among the
+  invariant's (`CreatingOk`: once in its claims), hands out the invariant's half of it, and opens the
+  client's update (`walAbsent dir`).
+* *Abort*, or a commit with no effect: both closed again; the program's resources back.
+* *Commit*: the rename logged at `x` by a call begun at `s0 ≥ lb` (`renDirOut`). The client's update
+  commits to `walDiskAt dir (walDurFresh md)` (the real WAL state `createSt`, `walGhost_upd`); the
+  invariant takes the logged claim's half, half of `J`'s claim, the segment's halves (its inode none of
+  the layouts', `laysResF_ino_ne`), the new layout `lay`, and the creating entry is deleted; its pure
+  facts are `walsOk_create`'s, at the invariant's commit bound raised to the program's `osCommitLb m`
+  (`m` past `J`'s entries: every crash the claims then allow keeps them, so `J`'s names after a crash
+  are its names now, `ClaimCoh`; `walsNamed_create`). The program gets the client's `Q`, the segment's other halves, and a past
+  state with the fresh WAL in `dir`.
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAuLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateKeys
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamed
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailReg
+
+@[expose] public section
+
+noncomputable section
+
+set_option autoImplicit false
+
+namespace Perennial
+namespace EtcdGrove
+namespace WalFs
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
+
+section pure
+variable [GooseExts]
+
+/-- Replacing a claim found once. -/
+theorem replClaim_split {c c' : Claim} {l1 l2 : List Claim} (h1 : c ∉ l1) (h2 : c ∉ l2) :
+    replClaim c c' (l1 ++ c :: l2) = l1 ++ c' :: l2 := by
+  classical
+  unfold replClaim
+  rw [List.map_append, List.map_cons, if_pos rfl]
+  have e : ∀ l : List Claim, c ∉ l → l.map (fun x => if x = c then c' else x) = l := by
+    intro l hl
+    induction l with
+    | nil => rfl
+    | cons y ys ih =>
+      rw [List.map_cons, if_neg (fun (e : y = c) => hl (e ▸ List.mem_cons_self ..)),
+        ih (fun hm => hl (List.mem_cons_of_mem _ hm))]
+  rw [e l1 h1, e l2 h2]
+
+end pure
+
+section iris
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+  [W : WalGS GF]
+
+theorem osClaims_append (l1 l2 : List (Claim × DFrac)) :
+    osClaims L (l1 ++ l2) ⊣⊢ osClaims L l1 ∗ osClaims L l2 := by
+  unfold osClaims; exact BigSepL.bigSepL_append
+
+/-- The claims with one taken out (all at fraction `dq`). -/
+theorem osClaims_split (l1 l2 : List Claim) (c : Claim) (dq : DFrac) :
+    osClaims L ((l1 ++ c :: l2).map (fun c => (c, dq))) ⊣⊢
+      osClaims L (l1.map (fun c => (c, dq))) ∗ osNames (L := L) c.1 c.2.1 dq c.2.2 ∗
+        osClaims L (l2.map (fun c => (c, dq))) := by
+  rw [List.map_append, List.map_cons]
+  refine (osClaims_append (L := L) _ _).trans ?_
+  exact sep_congr .rfl (osClaims_cons L _ _)
+
+/-- The claims after the commit: the replaced one's new fraction, `J`'s appended. -/
+theorem osClaims_create (l1 l2 : List Claim) (c c' cJ : Claim) (dq : DFrac) (hl1 : c ∉ l1)
+    (hl2 : c ∉ l2) :
+    osClaims L (l1.map (fun c => (c, dq))) ∗ osNames (L := L) c'.1 c'.2.1 dq c'.2.2 ∗
+        osClaims L (l2.map (fun c => (c, dq))) ∗ osNames (L := L) cJ.1 cJ.2.1 dq cJ.2.2 ⊢
+      osClaims L ((replClaim c c' (l1 ++ c :: l2) ++ [cJ]).map (fun c => (c, dq))) := by
+  rw [replClaim_split hl1 hl2, List.map_append, List.map_cons, List.map_nil]
+  iintro ⟨H1, Hc, H2, HJ⟩
+  iapply (osClaims_append (L := L) _ _).2
+  isplitl [H1 Hc H2]
+  · iapply (osClaims_split (L := L) _ _ _ _).2
+    iframe H1 Hc H2
+  · iapply (osClaims_cons L _ _).2
+    iframe HJ
+    unfold osClaims
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+
+end iris
+
+section au
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
+
+/-- **What `Create` holds for the rename's update**: the creating token, the client's update, and
+what the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (its `OsMeta`, its
+bytes). The lock token (its parking flag `false`: the new WAL's segment and directory claim stay out,
+the handle's) is the invariant's while the creating entry exists (`walCreatingAuth`); the commit
+gives it back. -/
+def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
+    (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : IProp GF :=
+  iprop(walCreating (W := W) dir N h J ∗
+    (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
+    osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
+    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs)
+
+/-- **The new WAL's tail registered** (`Create`'s commit, W4 log, twenty-third session): the program's
+half of the tails' authority with `dir ↦ γ`, the tail's key, and the program's half of its tail record
+`t`. -/
+def walTailReg (dir : GoString) (t : TailG) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(∃ γ : GName, walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
+    walTailKey (W := W) dir γ ∗ ghostVar γ (1 : Qp).half t)
+
+/-- **What `Create` gets from the rename's update**: with no effect, what it held; after the commit,
+the client's `Q`, the segment's halves the invariant did not take, a past state with the fresh
+WAL in `dir`, the lock token, the record of what is out (the new WAL's segment, directory claim and
+pipeline names: `WalOut.create`, the handle's to carry), the new WAL's tail registered at the commit
+(`walTailReg dir t`, `t` the tail record: the commit is the one step that knows the fresh WAL's
+layout, which the handle's encoder and offset must match; W4 log, twenty-third session), and the new
+WAL's directory key (`walDirKey dir J X`: the invariant holds the other half of `J`'s claim, once). -/
+def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
+    (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) (t : TailG) : Option (Nat × Nat) → IProp GF
+  | none => walCreateP (W := W) dir N h md Q J X hJ g
+  | some _ => iprop(Q ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
+      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗ walLockedTok (W := W) ∗
+      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailReg (W := W) dir t ∗
+      walNamesFrag (W := W) (some dir) ∗
+      walDirKey (W := W) dir J X ∗
+      ∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! dir = some (walDurFresh md)⌝)
+
+/-- **`Create`'s update for `os.Rename.specDirSnc`** (see the file header). The program's premises:
+`dir = r/nm`, `tmp` (`nm.tmp`) holding `J` in the claim, both names of the claim; `J ≠ jr`; the call's
+log bound `lb` past both claims' last entries; the new layout `lay` of `jr`, `nm`, `J` with the one
+segment `g` (nonempty), its static relation over `J`'s names, every byte durable and zeros known only
+past its end (`hzf`, `TailSynced`: its `OsMeta` synced, `TailMeta`), the stream then
+zeros; the segment at its name in `J` (`hsn`), and the same of `J`'s names in the form a crash's
+names take (`hJC`: every `.wal` entry a file, the segment's file only at its name), which `J`'s names
+are after any crash keeping `J`'s entries, as every crash does once the commit bound `m` (the
+program's `osCommitLb m`) is past them (`hJm`). -/
+theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir nm tmp : GoString) (md : List w8) (Q : IProp GF) (N : NameSet) (h : NamesH) (J : Ino)
+    (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG) (lb : Nat)
+    (hin : InArea r dir nm) (hne : tmp ≠ nm) (hnmN : N.Mem nm) (htmpN : N.Mem tmp)
+    (hctmp : h.cur !! tmp = some (.dir J))
+    (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (htmpS : AreaSlot tmp) (hJjr : J ≠ jr)
+    (hlb : h.next ≤ lb) (hJlb : hJ.next ≤ lb)
+    (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) (hsegs : lay.segs = [g]) (hbs : g.bs ≠ [])
+    (hJcoh : ClaimCoh hJ J (.except X)) (hX : ∀ b ∈ X, walNameP b = false) (hXt : X = walTmps)
+    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
+    (hdur : ∀ y ∈ g.bs, y = durB y.1) (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
+    (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
+    (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) (hZ0 : TailZeros lay)
+    (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
+    (hTB : TailBound C Mr (walDurFresh md) lay)
+    (hcut : g.om.cut = none) (hmaps : g.om.maps = ∅) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
+    (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
+    (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
+    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
+    ⊢ walInv (W := W) C Mr R jr r -∗ osCommitLb m -∗
+      walCreateP (W := W) dir N h md Q J X hJ g -∗
+      osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
+        (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
+        (walCreateQ (W := W) dir N h md Q J X hJ g (tailG (walDurFresh md) lay g.ino none)) := by
+  have hex : TailExact lay := fun g1 hg1 => by
+    rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1; exact hg1 ▸ hgx
+  iintro #Hinv #Hcmm HP
+  iapply osAUnc_coiter _ _ _ (walCreateP (W := W) dir N h md Q J X hJ g) $$ [] HP
+  iintro !> HP
+  unfold osAUncPre
+  iintro Hnc
+  imod walInv_open C Mr R jr r osAuMask walN_sub_au $$ Hinv Hnc with ⟨Hb, Hnc, Hcl⟩
+  rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
+  icases Hb with ⟨%s, Hb⟩
+  unfold walCreateP
+  icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
+  icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
+  have hco := Hcro
+  obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
+  obtain ⟨l1, l2, hcl, hl1, hl2⟩ := honce
+  subst hcl
+  icases (osClaims_split _ _ _ _).1 $$ Hcl0 with ⟨Hl1, Hα, Hl2⟩
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_nil] at Hacc
+  icases Hacc with ⟨Hab0, Hcla⟩
+  imodintro
+  isplitl [Hα]
+  · iexact Hα
+  iframe Hnc
+  isplit
+  · -- abort
+    iintro Hα
+    icases Hcla with ⟨Hab, -⟩
+    imod Hab $$ Hab0 with Hau
+    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
+    · iexists s
+      iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
+      iframe Hg Hcm Hlays Htl Hpk
+      isplitr
+      · ipureintro; exact Har
+      isplitl [Hl1 Hα Hl2]
+      · iapply (osClaims_split _ _ _ _).2
+        iframe Hl1 Hα Hl2
+      isplitr
+      · ipureintro; exact Hok
+      isplitr
+      · ipureintro; exact Hco
+      isplitl [Hcra]
+      · iexists CR
+        iframe Hcra
+        ipureintro; exact hco
+      isplitr
+      · ipureintro; exact Han
+      isplitr
+      · ipureintro; exact Hnm
+      isplitl [Hdk Hcp]
+      · iexists K, cp
+        iframe Hdk Hcp
+        ipureintro; exact Hdko
+      iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
+    imodintro
+    dsimp only
+    iframe Htok Hau HJ Hm Hbs
+  · -- commit
+    iintro %o Hβ
+    rcases o with _ | ⟨x, s0⟩
+    · -- no effect: as the abort
+      unfold renDirOut
+      simp only [logOut, claimOut]
+      icases Hβ with ⟨-, Hα⟩
+      icases Hcla with ⟨Hab, -⟩
+      imod Hab $$ Hab0 with Hau
+      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
+      · iexists s
+        iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
+        iframe Hg Hcm Hlays Htl Hpk
+        isplitr
+        · ipureintro; exact Har
+        isplitl [Hl1 Hα Hl2]
+        · iapply (osClaims_split _ _ _ _).2
+          iframe Hl1 Hα Hl2
+        isplitr
+        · ipureintro; exact Hok
+        isplitr
+        · ipureintro; exact Hco
+        isplitl [Hcra]
+        · iexists CR
+          iframe Hcra
+          ipureintro; exact hco
+        isplitr
+        · ipureintro; exact Han
+        isplitr
+        · ipureintro; exact Hnm
+        isplitl [Hdk Hcp]
+        · iexists K, cp
+          iframe Hdk Hcp
+          ipureintro; exact Hdko
+        iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
+      imodintro
+      dsimp only [walCreateQ, walCreateP]
+      iframe Htok Hau HJ Hm Hbs
+    · -- the commit, at the commit bound raised to `m`
+      have Hok := walsOk_mono (Nat.le_max_left n m) Hok
+      have Han := And.intro (absentNone_mono (Nat.le_max_left n m) Han.1) Han.2
+      have Hnm := walsNamed_mono (Nat.le_max_left n m) Hnm
+      have Hdko := dirKeysOk_mono (Nat.le_max_left n m) Hdko
+      ihave #Hcm' : osCommitLb (max n m) $$ []
+      · rcases Nat.le_total n m with hle | hle
+        · rw [Nat.max_eq_right hle]; iexact Hcmm
+        · rw [Nat.max_eq_left hle]; iexact Hcm
+      unfold renDirOut
+      simp only [logOut, claimOut]
+      icases Hβ with ⟨⟨%hls, Hlog⟩, Hα⟩
+      unfold osLogged
+      icases Hlog with ⟨%hsx, -, -⟩
+      simp only [renDirEnt] at hsx
+      icases Hcla with ⟨-, Hco⟩
+      isimp only [tforall_nil, Std.Tele.app, ULift.down] at Hco
+      -- the client's map: `dir` holds no WAL
+      irevert Hab0
+      dsimp only [Std.Tele.app]
+      iintro Hab0
+      unfold walAbsent walDirIs
+      icases Hab0 with ⟨%M, HM, %HMd⟩
+      icases walOwn_agree s M $$ Hg HM with %HMs
+      have hMd : M !! dir = none := (walOptLe_none_iff _).1 HMd
+      have hsd : s.wal !! dir = none := by
+        have := HMs dir; rw [hMd] at this; exact (walOptLe_none_iff _).1 this
+      have hLd : Ls !! dir = none := Hok.2.1 dir hsd
+      -- the new segment is none of the layouts'
+      obtain ⟨y, ys, hgbs⟩ : ∃ y ys, g.bs = y :: ys := by
+        cases hb : g.bs with
+        | nil => exact absurd hb hbs
+        | cons y ys => exact ⟨y, ys, rfl⟩
+      rw [hgbs]
+      icases laysResF_ino_ne F Ls g.ino g.om y ys $$ Hlays Hm Hbs with ⟨%hino, Hlays, Hm, Hbs⟩
+      -- the pure facts after the commit
+      have hin' : InArea s.area dir nm := Har ▸ hin
+      have hothers : ∀ c' ∈ l1 ++ (jr, N, h) :: l2, c' ≠ (jr, N, h) → c'.1 = jr →
+          ¬ c'.2.1.Mem nm ∧ ¬ c'.2.1.Mem tmp := fun c' hc' hne' hj =>
+        ⟨hexcl c' hc' hne' hj nm hnmN, hexcl c' hc' hne' hj tmp htmpN⟩
+      have hdisj : ∀ g1 ∈ lay.segs, ∀ g' ∈ segsAll Ls, g1.ino ≠ g'.ino := by
+        rw [hsegs]; intro g1 hg1 g' hg'
+        rw [List.mem_singleton] at hg1; subst hg1
+        exact (hino g' hg').symm
+      have hdur' : ∀ g1 ∈ lay.segs, ∀ y ∈ g1.bs, y = durB y.1 := by
+        rw [hsegs]; intro g1 hg1
+        rw [List.mem_singleton] at hg1; subst hg1
+        exact hdur
+      obtain ⟨hok', han'⟩ := walsOk_create (x := x) (st := s0) Hok Han.1 hsd hin' hc hcoh
+        (Nat.le_trans hlb hls) hsx hne hnmN htmpN hctmp hothers htmp htw hJjr hlay hJcoh
+        (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz (by rw [hsegs]; simp)
+        hdisj (by rw [hsegs]; simpa using hcut) Han.2 htmpS
+      -- the ghost state, the client's commit, the creating entry
+      imod walGhost_upd s (createSt s dir md) M (absLe_createSt hsd)
+        (walKeysInArea_createSt hin') (fun n hn => hn.insert rfl (by simp [walDurFresh])) $$ Hg HM with
+        ⟨-, Hg, HM, #Hp⟩
+      imod Hco $$ [HM] with HQ
+      · unfold walDiskAt walDirIs
+        iexists (createSt s dir md).wal
+        iframe HM
+        ipureintro
+        simp only [createSt, GMap.lookup_insert_eq]
+        exact walDurLe_refl _
+      imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
+      imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, Htf, Hnf, -⟩
+      -- the new WAL's name: committed, its registration pending (G-spine)
+      have hnewNm : ∀ dir' lay', Ls !! dir' = some lay' → lay'.nm ≠ lay.nm := by
+        intro dir' lay' hl' he
+        obtain ⟨d', hd'⟩ : ∃ d', s.wal !! dir' = some d' := by
+          cases h' : s.wal !! dir' with
+          | none => rw [Hok.2.1 dir' h'] at hl'; cases hl'
+          | some d' => exact ⟨d', rfl⟩
+        obtain ⟨l2, nm2, -, hl2, hin2, -, hnm2, -⟩ := Hok.1 dir' d' hd'
+        rw [hl'] at hl2; cases hl2
+        have e : dir' = dir := by rw [hin2.2, hin'.2, ← hnm2, he, hlay.2.1]
+        subst e; rw [hLd] at hl'; cases hl'
+      imod walNamesRes_addWal R jr r Ls dir lay hLd hnewNm $$ Hnms Hnf with ⟨Hnms, Hnf⟩
+      have hnmc : ∀ nm' hn, walNameOk nm' → (jr, NameSet.only [nm'], hn) ∈ l1 ++ (jr, N, h) :: l2 →
+          (jr, NameSet.only [nm'], hn) ∈ createClaims (l1 ++ (jr, N, h) :: l2) jr N h x
+            (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J) J X hJ := by
+        intro nm' hn _ hm
+        unfold createClaims replClaim
+        refine List.mem_append_left _ (List.mem_map.2 ⟨_, hm, ?_⟩)
+        rw [if_neg]
+        intro e
+        simp only [Prod.mk.injEq] at e
+        obtain ⟨-, rfl, -⟩ := e
+        simp only [NameSet.Mem, List.mem_singleton] at hnmN htmpN
+        exact hne (htmpN.trans hnmN.symm)
+      icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
+      icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
+      have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
+        GMap.lookup_delete_ne _ (Ne.symm (hino g' hg'))
+      -- the new WAL's key, its segment and directory claim out of the parked halves
+      have hKd : K !! dir = none := by
+        cases e : K !! dir with
+        | none => rfl
+        | some v =>
+          obtain ⟨lay1, -, hl1, -⟩ := Hdko.1 dir v.1 v.2 e
+          rw [hLd] at hl1; cases hl1
+      imod walDirKey_insert K dir J X hKd $$ Hdk with ⟨Hdk, #Hkey⟩
+      imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
+        (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
+        hsegs hino hJo $$ Hpk Ho with ⟨Hpk, Ho⟩
+      have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
+      have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
+      -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)
+      ihave Htl := walTailsRes_create C Mr s Ls F (GMap.delete g.ino F) dir md lay hsd hF hLd (Or.inl hZ0)
+        (fun i hi => by
+          by_cases e : i = g.ino
+          · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
+          · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail, fun g1 hg1 => by
+            rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
+            exact hg1 ▸ ⟨hdur, hzf⟩,
+          ((habs.last g (by rw [hsegs]; rfl)).1 hgx).so_eq hdur, fun g1 hg1 => by
+            rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
+            exact hg1 ▸ hmaps⟩ $$ Htl
+      imod walTailsRes_register C Mr (createSt s dir md) (<[dir := lay]> Ls) (GMap.delete g.ino F) dir
+        (walDurFresh md) lay g ⟨by simp [createSt], by simp,
+          by rw [hsegs]; rfl, hZ0, hTB⟩ $$ Htl Htf with ⟨%γt, Htl, Htf, Htk, Htv⟩
+      have hdF : (GMap.delete g.ino F) !! g.ino = none := GMap.lookup_delete_eq _ _
+      isimp only [hdF] at Htv
+      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp Hnms]
+      · iexists (createSt s dir md)
+        iexists <[dir := lay]> Ls,
+          createClaims (l1 ++ (jr, N, h) :: l2) jr N h x (renDirEnt jr tmp nm J s0)
+            (renCur N h tmp nm J) J X hJ, max n m, GMap.delete g.ino F
+        iframe Hg Hcm'
+        isplitr
+        · ipureintro; exact Har
+        isplitl [Hl1 Hα Hl2 HJ]
+        · unfold createClaims
+          iapply osClaims_create l1 l2 (jr, N, h) (jr, N, h.log x (renDirEnt jr tmp nm J s0)
+            (renCur N h tmp nm J)) (J, NameSet.except X, hJ) _ hl1 hl2
+          dsimp only [renCur]
+          iframe Hl1 Hα Hl2 HJ
+        isplitl [Hlays Hm1 Hb1]
+        · iapply laysResF_insert _ Ls dir lay hLd
+          isplitl [Hm1 Hb1]
+          · rw [hsegs]
+            iapply BigSepL.bigSepL_singleton.2
+            unfold segResF
+            rw [GMap.lookup_delete_eq]
+            dsimp only
+            unfold segRes
+            rw [hgbs]
+            iframe Hm1 Hb1
+          · iapply laysResF_congr F _ Ls hF $$ Hlays
+        isplitr
+        · ipureintro; exact hok'
+        isplitr
+        · ipureintro; exact walsCreateOk_create Hco
+        isplitl [Hcra]
+        · iexists GMap.delete dir CR
+          iframe Hcra
+          ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
+        isplitl [Htl]
+        · iexact Htl
+        isplitr
+        · ipureintro; exact ⟨han', Han.2⟩
+        isplitr
+        · ipureintro
+          exact walsNamed_create (x := x) (st := s0) Hok Hnm hnew hc hcoh (Nat.le_trans hlb hls) hne
+            hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC hJcoh
+            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _))
+        isplitl [Hpk]
+        · unfold createClaims; iexact Hpk
+        isplitl [Hdk Hcp]
+        · iexists <[dir := (J, X)]> K, cp
+          iframe Hdk Hcp
+          ipureintro
+          exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin'
+            hc hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
+            (Nat.le_trans hJlb hls) hX hXt habs hex hdur' htail hold0 hz
+        iframe Hnms
+        ipureintro
+        exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
+          hlay, walsBounded_ins Hbd.1 rfl
+            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, walDurFresh]⟩, Hbd.2⟩
+      imodintro
+      dsimp only [walCreateQ]
+      rw [hgbs]
+      iframe HQ Hm2 Hb2 Hkey
+      iframe HLk Ho Hnf
+      isplitl [Htf Htk Htv]
+      · unfold walTailReg; iexists γt; iframe
+      iexists (createSt s dir md)
+      iframe Hp
+      ipureintro
+      simp only [createSt, GMap.lookup_insert_eq]
+
+end au
+
+end WalFs
+end EtcdGrove
+end Perennial
+
+end

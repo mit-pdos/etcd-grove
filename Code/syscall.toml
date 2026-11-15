@@ -11,10 +11,12 @@ translate = ["!*", "Errno", "LOCK_SH", "LOCK_EX", "LOCK_NB", "LOCK_UN", "PROT_RE
   "Stdin", "Stdout", "Stderr",
   "errEAGAIN", "errEINVAL", "errENOENT",
   "errors", "signals", "_",
-  "SYS_FCNTL", "EAGAIN", "EINVAL", "ENOENT"]
+  "SYS_FCNTL", "EAGAIN", "EINVAL", "ENOENT",
+  # the WAL's lock type (examples/osfs/walfs)
+  "F_WRLCK"]
 imports = ["!*", "sync"]
-# The functions minibolt calls, modeled by the Linux file extension osFsExt
-# (TrustedCode/syscall.lean, GooseLang/Ext/OsFs/Impl.lean).
+# The functions minibolt calls, modeled by the Linux file extension fsExt
+# (TrustedCode/syscall.lean, GooseLang/Ext/Fs/Impl.lean).
 trusted = ["Fdatasync", "Flock",
   # (2026-11-04) `Errno`'s `Error()`, so that an errno error is one `fmt` formats (`fmtErrorOk`,
   # Spec/fmt/ErrorOk.lean): some string. Translatable since 2026-11-07 (its body reads the `errors`
@@ -25,7 +27,10 @@ trusted = ["Fdatasync", "Flock",
   # Case 33; TrustedCode/syscall.lean): `runtime_envs` (a linkname, no Go body) an arbitrary
   # `[]string`; `init.0` (the RLIMIT_NOFILE raise through raw `prlimit`) a no-op, `exec` being
   # outside what Perennial models
-  "runtime_envs", "init.0"]
+  "runtime_envs", "init.0",
+  # (2026-11-13, the WAL over fsExt; drafts pending the user's review) fileutil's calls
+  # (preallocate_unix.go, lock_linux.go): as golang.org/x/sys/unix's models, plus F_OFD_GETLK
+  "Fallocate", "FcntlFlock"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the initializers build
 # `mmapper` and `sync.Pool` literals

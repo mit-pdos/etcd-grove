@@ -311,9 +311,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   SysvShmDesc_instance : SysvShmDesc.TypeAssumptions
   IPMIReq_instance : IPMIReq.TypeAssumptions
   IPMIRecv_instance : IPMIRecv.TypeAssumptions
+  FcntlFlock_unfold : FuncUnfold FcntlFlock [] FcntlFlock.impl
   Mmap_unfold : FuncUnfold Mmap [] Mmap.impl
   Munmap_unfold : FuncUnfold Munmap [] Munmap.impl
   Madvise_unfold : FuncUnfold Madvise [] Madvise.impl
+  Fallocate_unfold : FuncUnfold Fallocate [] Fallocate.impl
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
 
 attribute [instance] Assumptions.CPUSet_instance
@@ -607,9 +609,11 @@ attribute [instance] Assumptions.CPUSet_instance
   Assumptions.SysvShmDesc_instance
   Assumptions.IPMIReq_instance
   Assumptions.IPMIRecv_instance
+  Assumptions.FcntlFlock_unfold
   Assumptions.Mmap_unfold
   Assumptions.Munmap_unfold
   Assumptions.Madvise_unfold
+  Assumptions.Fallocate_unfold
   Assumptions.import_syscall_Assumption
 
 end golang_org.x.sys.unix

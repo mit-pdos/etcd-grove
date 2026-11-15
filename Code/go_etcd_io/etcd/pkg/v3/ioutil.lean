@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.io
+public import Code.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -44,8 +45,6 @@ attribute [irreducible] limitedBufferReader.ty
 noncomputable def defaultBufferBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.defaultBufferBytes"
 
-axiom defaultBufferBytes.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrShortRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.ErrShortRead"
 
@@ -68,48 +67,70 @@ noncomputable def NewLimitedBufferReader [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def WriteAndSyncFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.WriteAndSyncFile"
 
-/-- NewLimitedBufferReader returns a reader that reads from the given reader
-    but limits the amount of data returned to at most n bytes.
+/-- NewPageWriter creates a new PageWriter. pageBytes is the number of bytes
+    to write per page. pageOffset is the starting offset of io.Writer.
 
-    go: reader.go:22:6 -/
-noncomputable def NewLimitedBufferReader.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "r"
-  (Lam "n"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
+    go: pagewriter.go:45:6 -/
+noncomputable def NewPageWriter.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "pageBytes"
+  (Lam "pageOffset"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PageWriter.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType PageWriter.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
-  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType limitedBufferReader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoAlloc limitedBufferReader.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
-  (App (Val (GoInstruction (CompositeLiteral limitedBufferReader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"r")) (ElementExpression _root_.Perennial.io.Reader.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))]))))))
+  (Let "pageOffset" (App (Val (GoInstruction (GoAlloc go.int))) (Var "pageOffset"))
+  (Let "pageBytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "pageBytes"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc PageWriter.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "pageOffset"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.int))) (Var "pageBytes"))
+  (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (GlobalVarAddr defaultBufferBytes))) (Val #()))) (App (Val (GoInstruction (GoLoad go.int))) (Var "pageBytes")))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (GlobalVarAddr defaultBufferBytes))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral PageWriter.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"w")) (ElementExpression _root_.Perennial.io.Writer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"pageOffset")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"pageBytes")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v3"))), (KeyedElement (some (KeyField go!"bufWatermarkBytes")) (ElementExpression go.int (Var "$v4")))]))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.io.Reader.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType PageWriter.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "pageBytes")) (Val #(W64 0))))
+  (Let "$a1" (Val #(go!"invalid pageBytes (%d) value, it must be greater than 0"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "pageBytes")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "$res0")))))))
 
-/-- go: reader.go:34:31 -/
-noncomputable def limitedBufferReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "r"
+/-- go: pagewriter.go:56:23 -/
+noncomputable def PageWriter.Write.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "pw"
   (Lam "p"
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$res0" (Var "n")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "$res1" (Var "err")
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r"))
+  (Let "pw" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
-  (Let "np" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))) (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageOffset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))))))
+  (Let "slack" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType PageWriter.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "werr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "werr"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -117,21 +138,242 @@ noncomputable def limitedBufferReader.Read.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r")))))))
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "werr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))))
+  (Let "pages" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "pages")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Writer.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "werr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "pages")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "p") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "werr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "werr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "werr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "pages") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType PageWriter.ty) go!"Flush"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "slack")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "slack")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))
+  (Let "partial" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "slack"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "slack"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "partial"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "p") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "slack"))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "slack")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "partial"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "slack") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "partial") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "slack") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufWatermarkBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
+/-- Flush flushes buffered data.
+
+    go: pagewriter.go:102:23 -/
+noncomputable def PageWriter.Flush.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "pw"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "pw" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType PageWriter.ty) go!"flush"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- go: pagewriter.go:107:23 -/
+noncomputable def PageWriter.flush.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "pw"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "pw" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Writer.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageOffset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"pageOffset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef PageWriter.ty go!"bufferedBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PageWriter.ty)))) (Var "pw")))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
-  pkgImportedPkgs := [pkg_id.io]
+  pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
 axiom «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -142,14 +384,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 131072))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val ErrExpectEOF.init) (Val #())))))
   (App (Val doExecute)
   (App (Val ErrShortRead.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val defaultBufferBytes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultBufferBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.io.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultBufferBytes go.int)) (Val #()))))))))
 
 structure PageWriter [GooseExts] where
   mk ::
@@ -198,6 +447,9 @@ class PageWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_bufWatermarkBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"bufWatermarkBytes") (PairV #x #y) (Val #(({ x with bufWatermarkBytes' := y } : PageWriter)))
   method_set : go.MethodSetIs PageWriter.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PageWriter.ty) [(go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"go.etcd.io/etcd/pkg/v3/ioutil.flush", (some (go.signature.Signature [] false [go.int, go.error])))]
+  ptr_Flush_unfold : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"Flush" PageWriter.Flush.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"Write" PageWriter.Write.impl
+  ptr_flush_unfold : MethodUnfold (go.GoType.PointerType PageWriter.ty) go!"flush" PageWriter.flush.impl
 
 attribute [instance] PageWriter.TypeAssumptions.type_repr
   PageWriter.TypeAssumptions.underlying
@@ -215,6 +467,9 @@ attribute [instance] PageWriter.TypeAssumptions.type_repr
   PageWriter.TypeAssumptions.set_bufWatermarkBytes
   PageWriter.TypeAssumptions.method_set
   PageWriter.TypeAssumptions.ptr_method_set
+  PageWriter.TypeAssumptions.ptr_Flush_unfold
+  PageWriter.TypeAssumptions.ptr_Write_unfold
+  PageWriter.TypeAssumptions.ptr_flush_unfold
 
 structure ReaderAndCloser [GooseExts] where
   mk ::
@@ -247,14 +502,6 @@ class ReaderAndCloser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_Closer : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Closer), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Closer") (PairV #x #y) (Val #(({ x with Closer' := y } : ReaderAndCloser)))
   method_set : go.MethodSetIs ReaderAndCloser.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReaderAndCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  Close_unfold : MethodUnfold ReaderAndCloser.ty go!"Close" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Closer"))) (Var "$r"))))
-  Read_unfold : MethodUnfold ReaderAndCloser.ty go!"Read" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Reader"))) (Var "$r"))))
-  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Close" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Closer.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Closer"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Read" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Reader"))) (Var "$r")))))
 
 attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.underlying
@@ -264,10 +511,6 @@ attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.set_Closer
   ReaderAndCloser.TypeAssumptions.method_set
   ReaderAndCloser.TypeAssumptions.ptr_method_set
-  ReaderAndCloser.TypeAssumptions.Close_unfold
-  ReaderAndCloser.TypeAssumptions.Read_unfold
-  ReaderAndCloser.TypeAssumptions.ptr_Close_unfold
-  ReaderAndCloser.TypeAssumptions.ptr_Read_unfold
 
 structure exactReadCloser [GooseExts] where
   mk ::
@@ -347,7 +590,6 @@ class limitedBufferReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_n : ∀ (x : limitedBufferReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : limitedBufferReader)))
   method_set : go.MethodSetIs limitedBufferReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitedBufferReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType limitedBufferReader.ty) go!"Read" limitedBufferReader.Read.impl
 
 attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.underlying
@@ -357,22 +599,23 @@ attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.set_n
   limitedBufferReader.TypeAssumptions.method_set
   limitedBufferReader.TypeAssumptions.ptr_method_set
-  limitedBufferReader.TypeAssumptions.ptr_Read_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PageWriter_instance : PageWriter.TypeAssumptions
   ReaderAndCloser_instance : ReaderAndCloser.TypeAssumptions
   exactReadCloser_instance : exactReadCloser.TypeAssumptions
   limitedBufferReader_instance : limitedBufferReader.TypeAssumptions
-  NewLimitedBufferReader_unfold : FuncUnfold NewLimitedBufferReader [] NewLimitedBufferReader.impl
+  NewPageWriter_unfold : FuncUnfold NewPageWriter [] NewPageWriter.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
 
 attribute [instance] Assumptions.PageWriter_instance
   Assumptions.ReaderAndCloser_instance
   Assumptions.exactReadCloser_instance
   Assumptions.limitedBufferReader_instance
-  Assumptions.NewLimitedBufferReader_unfold
+  Assumptions.NewPageWriter_unfold
   Assumptions.import_io_Assumption
+  Assumptions.import_verify_Assumption
 
 end go_etcd_io.etcd.pkg.v3.ioutil
 

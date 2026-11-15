@@ -1959,8 +1959,6 @@ axiom Stat_t.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom Dirent.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Flock_t.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 axiom DmNameList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom RawSockaddrNFCLLCP.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -4659,7 +4657,8 @@ axiom FALLOC_FL_COLLAPSE_RANGE [GooseExts] [GoGlobalContext] : val
 
 axiom FALLOC_FL_INSERT_RANGE [GooseExts] [GoGlobalContext] : val
 
-axiom FALLOC_FL_KEEP_SIZE [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def FALLOC_FL_KEEP_SIZE [GooseExts] [GoGlobalContext] : val :=
+  #(1 : Int)
 
 axiom FALLOC_FL_NO_HIDE_STALE [GooseExts] [GoGlobalContext] : val
 
@@ -5035,9 +5034,11 @@ axiom F_NOTIFY [GooseExts] [GoGlobalContext] : val
 
 axiom F_OFD_GETLK [GooseExts] [GoGlobalContext] : val
 
-axiom F_OFD_SETLK [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def F_OFD_SETLK [GooseExts] [GoGlobalContext] : val :=
+  #(37 : Int)
 
-axiom F_OFD_SETLKW [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def F_OFD_SETLKW [GooseExts] [GoGlobalContext] : val :=
+  #(38 : Int)
 
 axiom F_OK [GooseExts] [GoGlobalContext] : val
 
@@ -25061,9 +25062,35 @@ axiom Dirent : Type
 axiom Dirent.zero_val : ZeroVal Dirent
 attribute [instance] Dirent.zero_val
 
-axiom Flock_t : Type
-axiom Flock_t.zero_val : ZeroVal Flock_t
-attribute [instance] Flock_t.zero_val
+structure Flock_t [GooseExts] where
+  mk ::
+  Type' : w16
+  Whence' : w16
+  Start' : w64
+  Len' : w64
+  Pid' : w32
+  «_#5'» : (GoArray w8 4)
+
+noncomputable instance Flock_t.zero_val [GooseExts] : ZeroVal Flock_t :=
+  ⟨Flock_t.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Flock_t.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Type" go.int16),
+(go.field_decl.FieldDecl go!"Whence" go.int16),
+(go.field_decl.FieldDecl go!"Start" go.int64),
+(go.field_decl.FieldDecl go!"Len" go.int64),
+(go.field_decl.FieldDecl go!"Pid" go.int32),
+(go.field_decl.FieldDecl go!"_#5" (go.GoType.ArrayType 4 go.byte))]
+
+@[irreducible] noncomputable def Flock_t.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Flock_t.fieldsUnsealed
+
+noncomputable instance equals_unfold_Flock_t [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Flock_t.fields Flock_t.fieldsUnsealed :=
+  ⟨by unfold Flock_t.fields; rfl⟩
+
+@[reducible] noncomputable def Flock_t.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Flock_t.fields)
 
 axiom DmNameList : Type
 axiom DmNameList.zero_val : ZeroVal DmNameList

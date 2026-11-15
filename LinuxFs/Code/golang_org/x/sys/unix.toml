@@ -1,9 +1,0 @@
-# Project bboltfs's `golang.org/x/sys/unix` (etc/goose.py): names only, but the functions minibolt
-# (examples/osfs/bboltfs) calls, modeled by the Linux file extension osFsExt
-# (TrustedCode/golang_org/x/sys/unix.lean, GooseLang/Ext/OsFs/Impl.lean).
-translate = ["!*",
-  # the WAL's (examples/osfs/walfs): fallocate's mode, OFD locks
-  "FALLOC_FL_KEEP_SIZE", "F_OFD_SETLK", "F_OFD_SETLKW", "Flock_t"]
-# syscall.Errno (unix.Errno is an alias of it), the errors the models return
-imports = ["!*", "syscall"]
-trusted = ["Mmap", "Munmap", "Madvise", "Fallocate", "FcntlFlock"]
