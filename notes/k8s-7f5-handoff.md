@@ -40,9 +40,11 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   `transformErrorToEvent` (post: the event and the status owned; the caller persists the status for
   `statusFailureAt`), `logWatchChannelErr` proved, no new text. `StatusError.Status` translated with its
   body (`errors.toml`; rebuilds most of the tree).
-- **Step 4, written:** `Spec/.../watchChan__queueEvent.lean` (generic in the SPSC protocol and in `cdw`),
-  `watchChan__sendEvent.lean`, `watchChan__sendError.lean` (an abstract send commit `£1∗£1∗£1 -∗ ∀ Φ, ▷ (Q -∗ Φ)
-  -∗ sendAu γch v Φ`, and for sendError `context.cancelSpec cf γc Pc ∗ □ Pc`); proofs: see the commits after.
+- **Step 4, proved** (`549e1d6d6b`, `ab9ba4fa16`; targeted `lake build` green, 7458 jobs,
+  `/shared/tmp/k8s7f5a-p2/build-step4.log`): `watchChan.queueEvent` (generic in the SPSC protocol and in `cdw`),
+  `watchChan.sendEvent`, `watchChan.sendError` (an abstract send commit `£1∗£1∗£1 -∗ ∀ Φ, ▷ (Q -∗ Φ) -∗
+  sendAu γch v Φ`; sendError also `context.cancelSpec cf γc Pc ∗ □ Pc`). Not yet: the `resultChan` protocol
+  lemma that discharges the abstract commit (below), and `kResInv`'s ghost steps (send, filter, error).
 - **Finding (design, not a Draft statement): `resultChan`'s two producers cannot use `spsc_send_au`.** It takes
   the producer token and `P sent.length v` before the send, and every invariant is at `nroot` (`isSpsc` too),
   so `kResInv` cannot be opened at the commit. Route (no Draft or Perennial change): allocate ONE invariant
@@ -50,9 +52,16 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   and prove a local send lemma (a copy of `spsc_send_au`'s proof, `Spsc.lean:405`, taking the token and the
   element's `P` from `kResInv` inside the opened invariant). That lemma discharges sendEvent/sendError's
   abstract commit (`Hsend`). Not written yet.
-- **Next:** the step-4 proofs (pattern: `Reflector__startResync.lean` for `HDone` + `wp_select_blocking`,
-  `watchGRPCStream__unicastResponse.lean` for the send clause and `wp_auto_lc 3`); the combined-invariant send
-  lemma; then step 5. Pitfalls: `cases h : go.typeSetContains …` also rewrites the Iris hypotheses' premises
+- **Next, in order:** (1) the combined-invariant send lemma (`spsc_send_au_inv`, a local copy of
+  `Spsc.lean:405-532` with the token and `P` taken from `X` at the SndPending/RcvPending/Buffered commits and
+  the closed states refuted by `X`'s token; notes/perennial-changes.md entry has the statement) and `kResChan`
+  (`isChan ∗ inv nroot (spscInv γ.res (kResElem …) R ∗ kResInv …)`, `inv_split_l` for the consumer's `isSpsc`);
+  (2) `kResInv`'s ghost steps as lemmas: a processor send (raws ++ [r], evs ++ [e], `kStreamSub_of_raw`, pick
+  the larger-revision `σ` by `kRawStreamRel_hist`), a filtered raw event (raws ++ [r] only), an Error event
+  (evs ++ [err]); (3) step 5 (`sync`/`syncPaginated`, `startWatching`; `kErrOk` of each error it sends needs
+  E2-E5, §11: STOP there for 81 if a text is needed). Proof patterns: `Reflector__startResync.lean`
+  (`HDone` + `wp_select_blocking`), `watchGRPCStream__unicastResponse.lean` (send clause); credits: `wp_apply_core
+  time.wp_Now; iintro %t -; wp_auto_lc 3` (a `wp_apply` already runs `wp_auto`, leaving no pure step). Pitfalls: `cases h : go.typeSetContains …` also rewrites the Iris hypotheses' premises
   (then `Hcode $$ %trivial`); `wp_method_call` rewrites the first `methods` in the goal, Iris context included
   (clear hypotheses mentioning other methods first); a `fmt.argOk` hypothesis is not persistent (`ihave H`, and
   name it in `wp_apply … $$ [$Hsl H]`); `--goal L` needs a column inside the tactic (`L:2`).

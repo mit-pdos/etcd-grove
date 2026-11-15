@@ -2355,3 +2355,17 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
   and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
 - **Status.** Recorded only.
+
+## The SPSC idiom has no send for a producer token kept in another invariant (2026-11-15, branch `k8s-7f5`)
+
+`spsc_send_au` (`Golang/Theory/Chan/Idioms/Spsc.lean`) takes `spscProducer γ sent ∗ P sent.length v`
+before the send, and `isSpsc` puts its invariant at `nroot`, so no other invariant can be open at the
+commit. A channel with two producers that alternate under a protocol (the etcd3 watcher's `resultChan`:
+`sendEvent` from the processing goroutine, `sendError` from either goroutine) cannot keep the token in
+its own invariant and still expose `isSpsc` to its consumer. Local workaround (7f-5a-P, not yet written):
+one invariant `inv nroot (spscInv γ P R ∗ X)`, the consumer's `isSpsc` by Iris's `inv_split_l`, and a
+local copy of `spsc_send_au` whose token and element resource come from `X` at the commit (an accessor
+`X ==∗ ∃ sent, spscProducer γ sent ∗ P sent.length v ∗ (spscProducer γ (sent ++ [v]) ==∗ X ∗ Q)`, plus
+`X ⊢ ∃ sent, spscProducer γ sent ∗ (spscProducer γ sent -∗ X)` to refute the closed states). General
+fix to propose on its own: that lemma in `Spsc.lean` (`spsc_send_au_inv`), or `isSpsc` with a namespace
+parameter.
