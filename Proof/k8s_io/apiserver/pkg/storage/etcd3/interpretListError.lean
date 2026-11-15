@@ -57,7 +57,7 @@ theorem interpretListError.wp_proof
     iintro #H
     iunfold listErrF
     ileft
-    iapply kClientErr_unkErr $$ H
+    iexact H
   by_cases hty : ii.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
   · have hv := (hcl.2 ii rfl).2.1
     unfold errors.AsTypeTyped at hv

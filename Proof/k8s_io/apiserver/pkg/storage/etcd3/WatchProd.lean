@@ -329,7 +329,7 @@ def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatch
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"resultChan" wc ↦□ chR ∗
     kResChan c W γ cd sel emp inS m Q procd alive chR ∗
     context.isContext ctx (kCdw γ cd) ∗ metadata.outgoingCtxOkC ctx ∗ ctxErrClient ctx (kCdw γ cd) ∗
-    ⌜inS = kInScope kp recur ∧ kp.length ≤ opKeyMax ∧ (recur = true → kp ≠ [])⌝)
+    ⌜inS = kInScope kp recur ∧ kp.length ≤ opKeyMax ∧ kp ≠ []⌝)
 
 set_option synthInstance.maxSize 4096 in
 set_option synthInstance.maxHeartbeats 400000 in

@@ -47,3 +47,11 @@ exploitable: the E1 package must land first.
 `statusCode`, `Message()` returns `errDesc`), supplied by the producers that build a status fresh
 (`status.Error.spec`, the invoker and stream texts); `FromError` and `Code` take them from their
 premise; `Base.lean`'s docstring corrected.
+
+## Resolved (2026-11-15, k8s 7f-5a-P step 5, E1)
+
+`grpcErrMethodsOk`'s `GRPCStatus` conjunct now gives `grpcStatusRO s (statusCode e)` (opaque, persistent:
+a non-nil `*Status` never written after, `Proof/google_golang_org/grpc/status/StatusRO.lean`), which the
+producers' trusted texts promise and `FromError`/`Code` take through `statusErrOk`; their docstrings say so.
+`(*Status).Code()` of such a status is the new axiom `status.Status.Code.wp_proof`. Go evidence:
+`examples/premisefix/grpcstatusro`; approved by etcd-grove-81 with fixes 1-5 (`notes/k8s-7f5a-draft.md` §11.2).
