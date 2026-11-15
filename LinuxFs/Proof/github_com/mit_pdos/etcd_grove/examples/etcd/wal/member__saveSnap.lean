@@ -39,7 +39,7 @@ theorem member.saveSnap.wp_proof
     (wp_SaveSnapshot : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
     member.saveSnap.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc idx term hf hok hhs hi ht hsm1
+  intro W e γ m w v o os c d qc idx term hf hok hhs hi ht hsm1 hsim
   wp_start as Hres
   iunfold memSaveRes at Hres
   icases Hres with ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
@@ -78,7 +78,7 @@ theorem member.saveSnap.wp_proof
       iframe Hnil
       ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     · iexact Hop
-  ihave #Hrel := tRelI_snap1 W e.area o c d idx term hok.1 hok.2.1 (tCandOk_snap1 hok hi ht)
+  ihave #Hrel := tRelI_snap1 W e.area o c d idx term hok.1 hok.2.1 (tCandOk_snap1 hok hi ht hsim)
     $$ [Hsl Hnm]
   · isplitl []
     · iexact Hsl
@@ -99,7 +99,7 @@ theorem member.saveSnap.wp_proof
   try wp_auto
   imod walSnapAt_litCs «$a0_ptr» pi pt «$r0_ptr» «$v1_ptr» _ _ _ _ _ idx term $$ «$a0» Hpi Hpt «$r0» Hsv
     «$v1» with #Hsnap
-  ihave Hau := tInv_snapAu W e γ o c d idx term hok hi ht $$ [Hwo Ho]
+  ihave Hau := tInv_snapAu W e γ o c d idx term hok hi ht hsim $$ [Hwo Ho]
   · iframe; iframe #
   wp_apply (wp_SaveSnapshot W e.R e.jr e.area w (tWalDir e.area) «$a0_ptr» (absSnapMd idx term) true true
       _) $$ [Hwf Hau]
@@ -113,7 +113,7 @@ theorem member.saveSnap.wp_proof
   · subst Herr
     subst d0
     try wp_auto
-    have hd' := tMemOk_snap1 hok hi ht
+    have hd' := tMemOk_snap1 hok hi ht hsim
     ihave ⟨%hl, Hrep1⟩ := oracleRep_synced _ _ $$ Hrep1
     ihave #Hrel2 := tRelI_synced W e.area (tSnapO1 o idx term) c (tSnapD d idx term) hd' hl $$ [Hsy Hnm]
     · isplitl []

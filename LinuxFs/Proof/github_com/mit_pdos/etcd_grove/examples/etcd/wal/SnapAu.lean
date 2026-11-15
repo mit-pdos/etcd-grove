@@ -47,10 +47,11 @@ theorem tSnapO1_mark (o : TOracle) (c : TCand) (idx term : w64) :
 
 /-- **The appended oracle accounts for the WAL before the call.** -/
 theorem tCandOk_snap1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d) {idx term : w64}
-    (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63) :
+    (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63)
+    (hs : tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c)) :
     tCandOk (tSnapO1 o idx term) c d := by
-  obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10⟩ := hok
-  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, ?_⟩
+  obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10, -⟩ := hok
+  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, ?_, hs⟩
   · rw [tSnapO1_hist, h4]
     refine ⟨(tCandHist o c).length, ?_, ?_, Or.inl ?_⟩
     · unfold tCandMark tCandHist tSnapO1
@@ -62,10 +63,11 @@ theorem tCandOk_snap1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d
 
 /-- **The appended oracle's candidate is the WAL after the snapshot record.** -/
 theorem tMemOk_snap1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d) {idx term : w64}
-    (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63) :
+    (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63)
+    (hs : tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c)) :
     tMemOk (tSnapO1 o idx term) c (tSnapD d idx term) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hok
-  refine ⟨h1, h2, h3, ?_, h5, h6, h7, h8, ?_, ?_⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, -⟩ := hok
+  refine ⟨h1, h2, h3, ?_, h5, h6, h7, h8, ?_, ?_, hs⟩
   · rw [tSnapD_hist, h4, tSnapO1_hist, List.map_append, List.map_singleton]
   · rw [tSnapO1_hist]; exact tHistWf_snoc h9 (tSnapOp_wf hi ht)
   · show uint.nat o.synced ≤ (o.since ++ [tSnapOp idx term]).length
@@ -137,7 +139,8 @@ theorem tRelI_snap1 (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (
 
 /-- **`SaveSnapshot`'s update, committed on the tester's invariant.** -/
 theorem tInv_snapAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCand) (d : WalDur)
-    (idx term : w64) (hok : tMemOk o c d) (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63) :
+    (idx term : w64) (hok : tMemOk o c d) (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63)
+    (hs : tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c)) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ (tSnapO1 o idx term) none ∗
       WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
       WalFs.walNamed (W := W) (tWalDir e.area) ⊢
@@ -177,12 +180,12 @@ theorem tInv_snapAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
   · iintro Hwd
     iunfold tWalOwn at Hwo
     imod ghostVar_update_halves (some (tSnapD d idx term)) γ.γw _ _ $$ Hwo Hw1 with ⟨Hwo, Hw1⟩
-    have hok' := tMemOk_snap1 hok hi ht
+    have hok' := tMemOk_snap1 hok hi ht hs
     ihave #Hrel := tRelI_snap1 W e.area o c (tSnapD d idx term) idx term hok.1 hok.2.1
       (by
         have h2 := tMemOk_candOk0 hok'
-        obtain ⟨h21, h22, h23, -, h25, h26⟩ := h2
-        exact ⟨h21, h22, h23, Nat.le_trans hok'.2.2.2.2.2.2.1 (Nat.le_max_left _ _), h25, h26⟩)
+        obtain ⟨h21, h22, h23, -, h25, h26, h27⟩ := h2
+        exact ⟨h21, h22, h23, Nat.le_trans hok'.2.2.2.2.2.2.1 (Nat.le_max_left _ _), h25, h26, h27⟩)
       $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl

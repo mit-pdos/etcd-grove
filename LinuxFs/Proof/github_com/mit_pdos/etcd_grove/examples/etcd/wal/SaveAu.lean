@@ -29,8 +29,8 @@ variable [GooseExts]
 
 /-- **A running member's WAL is accounted for by its candidate** (at the candidate's own mark). -/
 theorem tMemOk_candOk0 {o : TOracle} {c : TCand} {d : WalDur} (h : tMemOk o c d) : tCandOk o c d := by
-  obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10⟩ := h
-  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, h9⟩
+  obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+  refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, h9, h11⟩
   rw [h4]
   refine ⟨(tCandHist o c).length, ?_, by rw [List.length_map]; exact Nat.le_refl _, Or.inl ?_⟩
   · unfold tCandMark tCandHist; simp only [List.length_append]; omega
@@ -68,7 +68,8 @@ theorem tRelI_save1 (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (
 /-- **`Save`'s update, committed on the tester's invariant.** -/
 theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCand) (d : WalDur)
     (h : THs) (es : List TEnt) (hok : tMemOk o c d) (hes : ∀ x ∈ es, tEntWf x)
-    (ht : uint.nat h.term' < 2 ^ 63) :
+    (ht : uint.nat h.term' < 2 ^ 63)
+    (hs : tSim ((tCandHist (tSaveO1 o h es) c).map absOp) (tCandMark o c)) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ (tSaveO1 o h es) none ∗
       WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
       WalFs.walNamed (W := W) (tWalDir e.area) ⊢
@@ -108,12 +109,12 @@ theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
   · iintro Hwd
     iunfold tWalOwn at Hwo
     imod ghostVar_update_halves (some (tSaveD d h es)) γ.γw _ _ $$ Hwo Hw1 with ⟨Hwo, Hw1⟩
-    have hok' := tMemOk_save1 hok h es hes ht
+    have hok' := tMemOk_save1 hok h es hes ht hs
     ihave #Hrel := tRelI_save1 W e.area o c (tSaveD d h es) h es hok.1 hok.2.1
       (by
         have h2 := tMemOk_candOk0 hok'
-        obtain ⟨h21, h22, h23, -, h25, h26⟩ := h2
-        exact ⟨h21, h22, h23, Nat.le_trans hok'.2.2.2.2.2.2.1 (Nat.le_max_left _ _), h25, h26⟩)
+        obtain ⟨h21, h22, h23, -, h25, h26, h27⟩ := h2
+        exact ⟨h21, h22, h23, Nat.le_trans hok'.2.2.2.2.2.2.1 (Nat.le_max_left _ _), h25, h26, h27⟩)
       $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl

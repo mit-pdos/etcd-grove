@@ -26,6 +26,7 @@ module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgInit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.WalHistLemmas
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.ReadsBack
 
 @[expose] public section
 
@@ -321,11 +322,12 @@ def tOpensBound (o : TOracle) (c : TCand) : Nat :=
 /-- **The WAL state `d` is accounted for by candidate `c`** (plan §2.3): its history is an image of
 `c`'s at `c`'s mark (one shape for the running history, a pending `Save` not yet applied, and a
 crash image); its purge and read positions at most `c.pur`; its unlock position at most `c.unl` or
-what the pending `Open`s raise it to; sized; `c`'s history well formed. -/
+what the pending `Open`s raise it to; sized; `c`'s history well formed and disciplined since its last
+restart (`tSim`, `ReadsBack.lean`: so every image at the mark reads back where `ReadAll` succeeds). -/
 def tCandOk (o : TOracle) (c : TCand) (d : WalDur) : Prop :=
   walImg ((tCandHist o c).map absOp) (tCandMark o c) (d.H.map WalOpG.toM) ∧
   d.pur ≤ uint.nat c.pur ∧ d.cut ≤ uint.nat c.pur ∧ d.unl ≤ max (uint.nat c.unl) (tOpensBound o c) ∧
-  d.sized = true ∧ tHistWf (tCandHist o c)
+  d.sized = true ∧ tHistWf (tCandHist o c) ∧ tSim ((tCandHist o c).map absOp) (tCandMark o c)
 
 /-- **Before `Create` returned** (`¬ created`): the oracle is fresh (its file is written only once
 `created` holds) and the WAL is absent or `Create`'s fresh one, which a crash between `Create`'s

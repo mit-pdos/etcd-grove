@@ -6,7 +6,9 @@ committed on the tester's invariant: the WAL state `d` moves to `tSaveD d h es`)
 syncs (`walMustSync` on the member's `lastHS`, which is the WAL's last hard state, `tMemHs`), the mark
 moved and stored, and `lastHS` advanced. `true`: the oracle `tSaveO o h es` (Go's), the handle, the WAL
 state `d'` its candidate (`tMemOk`, `tMemHs`), the candidate's mark synced, the handle's history
-written to `d'`'s length (`walLenLb`, which `sync` takes; the caller's for `d` before). `false`: `Save` failed (the
+written to `d'`'s length (`walLenLb`, which `sync` takes; the caller's for `d` before). Premise
+`tSim` of the appended history (the caller's raft discipline, `ReadsBack.lean`: the tester's invariant
+carries it so that a restart's history reads back; tenth session). `false`: `Save` failed (the
 handle is lost; the member stops). The stored oracle is the program's but for `lastHS` (not stored
 until the next store), hence `∃ os`. Touches the member's fields `orPath`, `w`, `o`. The client's call
 permission `qc` (for `storeOracle`) as in `member.sync.spec`. Lean-first (no Rocq counterpart).
@@ -42,6 +44,7 @@ abbrev member.save.spec : Prop :=
     (d : WalDur) (qc : Qp) (h : THs) (esl : GoSlice) (es : List TEnt),
   e.orFile.Ok → tMemOk o c d → tMemHs o d → (∀ x ∈ es, tEntWf x) → uint.nat h.term' < 2 ^ 63 →
   tOrSmall (tSaveO1 o h es) → tOrSmall (tSynced (tSaveO1 o h es)) →
+  tSim ((tCandHist (tSaveO1 o h es) c).map absOp) (tCandMark o c) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
