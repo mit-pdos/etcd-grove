@@ -43,7 +43,7 @@ theorem v3rpc.serverWatchStream.close.wp_proof
     #Hinv, -⟩
   ihave %Hsh := hShapes.2.2.2 r.ws r.W.γm r.ι $$ Hwstream
   obtain ⟨ty, v, hws, -, -, -, -, -, hClose, -⟩ := Hsh
-  ihave Hau := v3rpc.close_au (v3rpc.cancelQ r.γs) hP r.ι r.γreg r.γtok r.γcl $$ [Htok]
+  ihave Hau := v3rpc.close_au (v3rpc.cancelQ r.γs) hP r.ι r.γreg r.γtok r.γpk r.γcl $$ [Htok]
   · iunfold v3rpc.wsInv at Hinv; iframe Hinv Htok
   rw [hws]
   ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []

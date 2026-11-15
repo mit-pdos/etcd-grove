@@ -111,7 +111,8 @@ def applyResStopR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List Entry
     srvRestR B.E C.γr rp A ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
+    -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g` (until then Go's `ai`)
+    srvSnapOwn C.s C.ci B.E C.γr B.γ g ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
       uint.Z g ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at' ∧
@@ -370,6 +371,9 @@ abbrev stopCleanupImage.spec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerC K C.s C.γ C.ci TM C.E C.ρ C.γr ∗
         isRaftNode Er C.rn (srvRAddr C.s) ∗
+        -- (restart S6a) the member id is the raft node's (`isServerRunC`'s `Hmid`): the image's
+        -- snapshot directory is at raft's names for it
+        srvMemberIDAddr C.s ↦□ C.rn.id ∗
         srvRunFieldsAt C.s C.γr γg γcx v SP ∗
         applyResStopR K C rp A ∗
         srvStop.cleanupPart C.s C.E ∗ srvStop.censusPart C.s C.E ∗ srvStop.imagePart C.s cfg C.rn ∗
@@ -381,7 +385,9 @@ abbrev stopCleanupImage.spec : Prop :=
           ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧
             (C.rn.pre ++ ghostOf rp A).length ≤ σ.commit⌝ ∗
           -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (`raftNode.stop`'s)
-          walSnapCert C.rn.node.cl σ) ∗
+          walSnapCert C.rn.node.cl σ ∗
+          -- (restart S6) the committed log the durable state agrees with (`raftNode.stop`'s)
+          (∃ l', isCommittedLogLb C.rn.node.cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝)) ∗
         srvWTPool C.E C.wt ∗ isServerApplyAll C.s C.γr ∗ £ 2 ∗
         -- (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts, and `Wait` returned
         dghostVar C.wt.reg DFrac.discard (some γg.run) ∗ goWaited γg }}
@@ -420,8 +426,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
   intro K C rp A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
-  iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
-    ⟨%S, %σ, Hrst, Hwc, %hσ, #Hσc⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hmidr, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
+    ⟨%S, %σ, Hrst, Hwc, %hσ, #Hσc, #Hdag⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
   cases K with
   | on γa =>
@@ -496,7 +502,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- the snapshot path's resources at the current backend: its stop channels at the store's write
   -- invariant, the constructors' half of the open token, the backend's file and its directory entry
   iunfold srvSnapOwn at Hso
-  icases Hso with ⟨%γt, %nt, -, -, -, Hsr⟩
+  icases Hso with ⟨%γm, %cm, #Hsro, %hcm, Hγm, Hsr⟩
+  -- (restart S6a) the member's snapshot directory, at raft's names for the member
+  iunfold srvSnapRO at Hsro
+  icases Hsro with ⟨%cfgs, %sso, %-, %-, %-, %γdo, %idm, %-, %-, %-, %-, %-, %-, %-, %Hsrop,
+    -, -, #Hddo, -, -, -, -, -, -, -, -, -, -, #Hmidm, #Hsdinv, -⟩
+  icombine Hmidr Hmidm gives %hidm
+  have hloc : C.γr.raft.raft.snapLoc C.rn.id = some γdo := by
+    rw [hidm]; exact Hsrop.2.2.2.2.2.1
   iunfold srvSnapRes at Hsr
   icases Hsr with ⟨%d2, %al2, %dd2, %hd2, #Hsch, Hhalf, -, #Hdd2, Hpath, #Hbf⟩
   have hd2' : d2 = d := srvBkTie_inj d2 d (hd2.symm.trans hBT)
@@ -698,6 +711,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iapply HΦ
   iunfold srvDiskImage
   iexists S, σ, ai, G, D, Membership.simple C.γr.raft.raft.cfg, M
+  iunfold srvDiskImageAt
   rw [hρ] at *
   iunfold srvFiles
   rw [← hwd, ← hγ]
@@ -706,7 +720,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   have h3 := hσ.2.2
   rw [hpre] at h2 h3
   ihave Hσc := wal.stopImage_intro _ S σ ai hσ.1 (by simp at h2; omega) (by simp at h3; omega)
-    $$ Hσc
+    $$ [Hσc Hdag]
+  · iframe Hσc Hdag
   iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw Hσc
   isplitr
   · ipureintro; exact ⟨rfl, hc0'⟩
@@ -715,8 +730,24 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     exact ⟨by rw [hk0.2]; exact h1, himg⟩
   isplitr
   · iexists u'; iexact Him'
-  ipureintro
-  exact ⟨by rw [HbL]; omega, hconf⟩
+  isplitr
+  · ipureintro; rw [HbL]; omega
+  isplitr
+  · ipureintro; exact hconf
+  -- (restart S6a) the snapshot directory: the apply thread's counter, at most past the ghost index
+  -- (route (C), 2026-11-13: `srvSnapOwn` is at the ghost index `ai`; until then at Go's `ai0g ≤ ai`)
+  -- (restart S6a-2) its paths the data directory's: the snapshotter's (`srvSnapRO`'s, from
+  -- `bootOk`'s `Hssp`) at the configuration's `DataDir`, which is the stop's `dd`
+  icombine Hdd1 Hddo gives %hddo
+  have hsp : snap.snapDBPath sso = snap.snapDBPathOf dd := by
+    rw [hddo]; exact Hsrop.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  iexists sso, γdo, γm, cm
+  isplitr
+  · ipureintro; exact ⟨hloc, hsp, by omega⟩
+  isplitr
+  · rw [show (fun j : w64 => monoNatLbOwn (GF := GF) γm (uint.nat j + 1)) = snapRmM γm from rfl]
+    iexact Hsdinv
+  iexact Hγm
 
 end proof
 

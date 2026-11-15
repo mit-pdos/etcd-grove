@@ -2157,6 +2157,9 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
   iprop(readyEntsU γ rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
     ([∗list] q ∈ ms, msgOutU γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts (`snapToOk`: not to the node, to a
+    -- voter or learner of a committed log's configuration), before the batch is durable
+    ([∗list] q ∈ ms, snapToOk γ.raft id q.st) ∗
     hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -2769,7 +2772,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   iframe Hrc' Htok
   iintro %rd ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, Hcut⟩
   iunfold readyCut at Hcut
-  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, %Hrf⟩
+  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, #Hmss, %Hrf⟩
+  ihave #Hmss' : iprop([∗list] q ∈ ms, snapToOk γ.raft γn.id q.st) $$ []
+  · rw [← Hγr]; iexact Hmss
   ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx
   subst Hx
   cases L with
@@ -2840,7 +2845,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · iexists sts; iframe Hsts Hrs
     isplitl [Hes Hout Hmsgs Hmo Hhs]
     · unfold readyRest
-      iframe HesO Hmsgs Hmo Hhs Hss
+      iframe HesO Hmsgs Hmo Hhs Hss Hmss'
       isplitr
       · ipureintro
         refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
@@ -2965,7 +2970,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · iexists sts; iframe Hsts Hrs
     isplitl [Hes Hmsgs Hmo Hhs Hsnap Hrng]
     · unfold readyRest
-      iframe HesO Hmsgs Hmo Hhs Hss
+      iframe HesO Hmsgs Hmo Hhs Hss Hmss'
       isplitr
       · ipureintro
         refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
@@ -3665,7 +3670,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   icases Hsent with ⟨-, #Hraft, #Hlb, -, #Hpool, -⟩
   ihave #Hdat := isRaftMsg_dat γ.raft src st $$ Hraft
   iunfold isRaftMsg at Hraft
-  icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw⟩
+  icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw, -⟩
   have Hrs : st.resps = [] := Hsh.2.2.2.2.2.2.2
   have Hst : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
     cases st; simp only at Hrs ⊢; rw [Hrs]

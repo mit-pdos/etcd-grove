@@ -7,8 +7,7 @@ Lean-first.
 module
 
 public import Spec.os.RenameAbsentSrc
-public import Proof.os.Rename
-
+public import Proof.os.RenameS
 @[expose] public section
 
 noncomputable section

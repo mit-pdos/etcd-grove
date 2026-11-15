@@ -16,6 +16,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section model
@@ -54,7 +56,7 @@ namespace Spill
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

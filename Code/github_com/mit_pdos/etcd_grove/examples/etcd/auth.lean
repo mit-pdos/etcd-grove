@@ -120,6 +120,9 @@ noncomputable def LastIn [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Main"
 
+noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Run"
+
 /-- Principals is the principals: the users u and v, the client with no token (anon) and the one
     with a token no provider issued (bad).
 
@@ -230,12 +233,13 @@ noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
-/-- newUserClient connects a client that authenticates as user name with password pw (clientv3.New
-    calls Authenticate when it dials, and the token is sent with every request).
+/-- newUserClient connects a client of addr that authenticates as user name with password pw
+    (clientv3.New calls Authenticate when it dials, and the token is sent with every request).
 
     go: authkv.go:123:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "name"
+  (LamV "addr"
+  (Lam "name"
   (Lam "pw"
   (Lam "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
@@ -244,7 +248,8 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "pw" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pw"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (Let "__p" (Let "$a0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
+  (Let "__p" (Let "$a0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
   (Let "$v1" (Val #(W64 2000000000))
   (Let "$v2" (Val #(W64 2000000000))
@@ -265,8 +270,8 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- InRange reports whether key k is in [lo, hi), the range role r is granted.
 
@@ -1532,10 +1537,9 @@ noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Pair (Var "e") (Var "$value"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")))))
 
-/-- Main starts the member, sets up and enables auth, runs the four principals' workloads at once,
-    then checks the history through root's watch, and u's watch of [lo, hi).
+/-- Main starts the member, then runs the set-up, the workloads and the checks through it (Run).
 
-    go: authkv.go:379:6 -/
+    go: authkv.go:378:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1554,23 +1558,66 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve Run []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))
+
+/-- Run serves the started member s's gRPC API at addr, sets up and enables auth through a client
+    of addr, runs the four principals' workloads at once through clients of addr, then checks the
+    history through root's watch, and u's watch of [lo, hi). It is Main after the member's start,
+    shared with examples/etcd/auth3, whose first member it runs on.
+
+    go: authkv.go:391:6 -/
+noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "addr"
+  (Lam "lg"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"root"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val rootPw))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve newUserClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
+  (Let "$a1" (Val #(go!"root"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val rootPw))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve newUserClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1579,10 +1626,11 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"u"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val uPw))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve newUserClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
+  (Let "$a1" (Val #(go!"u"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val uPw))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve newUserClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1591,10 +1639,11 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"v"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val vPw))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve newUserClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
+  (Let "$a1" (Val #(go!"v"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val vPw))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve newUserClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1892,9 +1941,9 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0"))))))))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1908,23 +1957,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
@@ -1990,6 +2024,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   CheckHistory_unfold : FuncUnfold CheckHistory [] CheckHistory.impl
   LastIn_unfold : FuncUnfold LastIn [] LastIn.impl
   Main_unfold : FuncUnfold Main [] Main.impl
+  Run_unfold : FuncUnfold Run [] Run.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -2021,6 +2056,7 @@ attribute [instance] Assumptions.Principals_unfold
   Assumptions.CheckHistory_unfold
   Assumptions.LastIn_unfold
   Assumptions.Main_unfold
+  Assumptions.Run_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption

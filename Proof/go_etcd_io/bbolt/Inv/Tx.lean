@@ -23,12 +23,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section tx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -373,7 +375,7 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
 `isBoltCore` in place of `isBolt`, its pair's source `src` (a pool loan carries the pool). -/
 def rdTx (B : BNs) (N : Namespace) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) :
     IProp GF :=
-  iprop(∃ (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (r : TxReg) (c : TxViewC) (v : View)
+  iprop(∃ (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (r : TxReg) (c : TxViewC) (v : View)
       (mv : Meta) (k : Nat),
     ⌜T = TxView.ofC c ∧ r.db = db ∧ r.rw = false ∧ r.src = src⌝ ∗ reg tx B r ∗
     isBoltCoreP B N db p sp t0 ∗ ghostVar r.n.v q.half (c, TxX.rd v mv k) ∗
@@ -386,7 +388,7 @@ def rdTx (B : BNs) (N : Namespace) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxVi
 `rdTx` with a pool loan, and the database. -/
 def boltTxDef (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView) : IProp GF :=
   if T.rw then
-    iprop(∃ (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (r : TxReg) (c : TxViewC) (X : WX),
+    iprop(∃ (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (r : TxReg) (c : TxViewC) (X : WX),
       ⌜T = TxView.ofC c ∧ r.db = db ∧ r.rw = true⌝ ∗ reg tx B r ∗ isBoltP B N db p sp t0 ∗
       ghostVar r.n.v q.half (c, TxX.wr X) ∗ ghostVar r.n.ex q () ∗ wtxFrac B tx r q T X)
   else iprop(∃ db : Loc, rdTx B N tx .loan q T ∗ isBoltDef B N db)
@@ -508,7 +510,7 @@ private instance reg_persistent_l (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-private instance isBoltP_persistent_l (B : BNs) (N : Namespace) (db : Loc) (p : GoString)
+private instance isBoltP_persistent_l (B : BNs) (N : Namespace) (db : Loc) (p : BFile)
     (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
@@ -743,7 +745,7 @@ private instance reg_persistent_tf (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-private instance isBoltP_persistent_tf (B : BNs) (N : Namespace) (db : Loc) (p : GoString)
+private instance isBoltP_persistent_tf (B : BNs) (N : Namespace) (db : Loc) (p : BFile)
     (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 

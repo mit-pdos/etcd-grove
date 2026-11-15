@@ -132,6 +132,18 @@ func TestNoStreaming(t *testing.T) {
 	}
 }
 
+// TestWatchListOn: the switch Main makes after noStreaming turns WatchList on and keeps
+// EtcdRangeStream off (one Set per feature: notes/k8s-7f5-scope.md, T5-c).
+func TestWatchListOn(t *testing.T) {
+	if !noStreaming() || !watchList() {
+		t.Fatal("a Set failed")
+	}
+	if !utilfeature.DefaultFeatureGate.Enabled(features.WatchList) ||
+		utilfeature.DefaultFeatureGate.Enabled(features.EtcdRangeStream) {
+		t.Fatal("WatchList off or EtcdRangeStream on after the switches")
+	}
+}
+
 // histList is a history's stores, by revision.
 func histList(h *hnode) []mstore {
 	var out []mstore

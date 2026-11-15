@@ -408,11 +408,13 @@ instance storageReq_persistent (B : MvccStorage) (Pk X Y : IProp GF) :
     Persistent (storageReq (GF := GF) B Pk X Y) := by
   unfold storageReq; infer_instance
 
-/-- The `WatchResponse` value `v` is the response `r`. -/
+/-- The `WatchResponse` value `v` is the response `r`; its events are the receiver's own copies
+(`evOwn`: their fields read-only, their `PrevKv` fields owned; k8s 7f-3b, `newWatcherBatch` copies
+each event per watcher, and v3rpc's `sendWatch` writes `PrevKv`). -/
 def wrespIs (v : WatchResponse) (r : WResp) : IProp GF :=
   iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
     ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
-      [∗list] x ∈ ps.zip r.evs, evIs x.1 x.2)
+      [∗list] x ∈ ps.zip r.evs, evOwn x.1 x.2)
 
 /-- A compaction's channel: receiving on it does not panic. -/
 def compactChanOk (ch : GoChan) : IProp GF :=

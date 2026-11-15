@@ -23,8 +23,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutCrash
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamed
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Crash
-public import Spec.os.Rename
-
+public import Spec.os.RenameS
 @[expose] public section
 
 noncomputable section

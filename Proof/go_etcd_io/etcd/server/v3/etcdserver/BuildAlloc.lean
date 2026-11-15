@@ -113,7 +113,9 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
     (hlog : γk.log0 ≠ []) (hln : mvcc.LogNoLease γk.log0) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
     (hrl : γk.rlog = γs.raft.log) (hao : γs.raft.authOn = false)
-    (hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61) :
+    (hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61)
+    -- (lease-mono3 step 2) the grant prefixes' condition of the names
+    (hpo : kvPfxOk γk) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvModelSt γk (bootEntries γs.raft.boot)) ={E}=∗
       kvInv γs γk ∗
@@ -215,7 +217,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
       rw [ht]; decide
     isplitr
     rotate_left
-    · iapply kvGrantIds_nil γk _ (logRevGrantIds_none _ _ hconf)
+    · iapply kvGrantIds_nil γk _ (logRevGrantIds_none _ _ hconf) hpo
     iunfold kvWork
     iframe Hcl
     ipureintro

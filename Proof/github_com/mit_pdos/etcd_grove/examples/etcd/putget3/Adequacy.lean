@@ -23,7 +23,7 @@ package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
   which gives the write-back budget `n + 7 ≤ backend.wbInit`);
 * the semantics, as putget's;
 * triples of functions the program calls, with fresh resources (`etcd_putget3.premises`: `bootstrap`'s
-  contract for each member, the raft wrapper's names-only contracts, `Stop` of a started node,
+  contract for each member, the raft wrapper's names-only contracts, `Stop` of a started node; until 2026-11-13 also
   `runsNoRequireLeader`), at every ghost-state instance;
 * (until 2026-10-20 also putget's two marked hypotheses, `EofFromIoInit` and
   `ClosedchanFromContextInit`, now theorems of `io`'s and `context`'s package facts).

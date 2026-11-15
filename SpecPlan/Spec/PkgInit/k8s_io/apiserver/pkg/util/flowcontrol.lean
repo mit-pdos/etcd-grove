@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apiserver.pkg.util.flowcontrol
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 noncomputable section

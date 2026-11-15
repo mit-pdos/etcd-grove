@@ -41,7 +41,6 @@ Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept Perennial.EtcdGrove.readyVa
 Proof.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint Perennial.EtcdGrove.lj_flags  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint Perennial.EtcdGrove.lj_step_del  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint Perennial.EtcdGrove.lj_step_keep  # exposed by a proof file (theorem)
-Proof.go_etcd_io.raft.v3.confchange.Changer__apply Perennial.EtcdGrove.fmt.argsOk.eq_def  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.confchange.Changer__apply Perennial.EtcdGrove.wp_remove_work  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.confchange.Restore Perennial.EtcdGrove.RestoreAt  # exposed by a proof file (def)
 Proof.go_etcd_io.raft.v3.confchange.Restore Perennial.EtcdGrove.ccState_flags  # exposed by a proof file (theorem)

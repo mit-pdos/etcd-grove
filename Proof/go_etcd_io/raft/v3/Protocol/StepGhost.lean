@@ -1172,16 +1172,41 @@ theorem snapOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
         exact ⟨Hidx, uint_Z_inj.mp (by rw [Hwf k e He Hr]; omega)⟩
   · ipureintro; exact Hidx
 
+/-- (restart S7.3, 2026-11-14) **The step's configuration is a committed log's**: from the
+reconfiguration state of the step (`dynEnv`: dynamically, the configuration of the full log's prefix
+through an index at most the commit index) and the node's committed prefix (`cprefix`), at its full
+prefix `fp`. -/
+theorem cfgCommitted_of_env (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (fp : List EntryM)
+    (Hfp : FullOk s.base fp) :
+    ⊢ dynEnv (GF := GF) γ id c s -∗ logRecs γ base0 fp -∗ isCommitted γ (cprefix fp s) -∗
+      cfgCommitted γ c := by
+  iintro #Henv #Hfr #Hcm
+  unfold dynEnv
+  icases Henv with (%HC | ⟨%Hdyn, %fpR, %a, %M, %HR, #HrR, #HMR⟩)
+  · unfold cfgCommitted; ileft; ipureintro; exact HC.2.2
+  · icases FullOk_unique γ s.base fpR fp HR.1 Hfp $$ HrR Hfr with %Heq
+    subst Heq
+    unfold cfgCommitted; iright
+    iexists (fpR ++ s.log).take (uint.Z a).toNat, M
+    isplitr
+    · iapply isCommitted_mono γ ((fpR ++ s.log).take (uint.Z a).toNat) (cprefix fpR s)
+        (take_prefix_le _ _ _ (Int.toNat_le_toNat HR.2.2.1)) $$ Hcm
+    isplitr; · iexact HMR
+    ipureintro; exact HR.2.2.2.1
+
 /-- What a leader's broadcast carries, from what the leader holds. -/
 theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
-    (fp : List EntryM) :
+    (fp : List EntryM) (c : CfgM) :
     PlogWfR s.base s.log →
     ReplOk id s m → id ≠ W64 0 →
     -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp`'s I1 at its `Commit`
     (γ.reDyn ≠ none → m.ty = .app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) →
     -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
     (m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
-    ⊢ isLeader (GF := GF) γ id s.term -∗
+    -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the step's configuration,
+    -- a committed log's (`cfgCommitted`)
+    (m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
+    ⊢ cfgCommitted (GF := GF) γ c -∗ isLeader γ id s.term -∗
       leadPrefix γ id s.term s.base s.log -∗
       lpfull γ id s.term s.base s.log fp -∗
       logRecs γ s.base s.log -∗
@@ -1189,8 +1214,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       isMessage γ m := by
-  intro Hr Hok Hid Hi1 Htr
-  iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
+  intro Hr Hok Hid Hi1 Htr Hdc
+  iintro #Hcc #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
   icases Hlf2 with ⟨%F0, -, #Hfr, %Hfull⟩
@@ -1237,7 +1262,9 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
         (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
     isplitr
     · ipureintro; exact Hid
-    ipureintro; exact ⟨Hdst, Htr'⟩
+    isplitr
+    · ipureintro; exact ⟨Hdst, Htr'⟩
+    iapply snapDstOk_of_cfg γ c m.dst (Hdc Hty) $$ Hcc
 
 /-- A full log at its commit index has the history of an acknowledgement there, at any
 term at least the commit fact's. -/

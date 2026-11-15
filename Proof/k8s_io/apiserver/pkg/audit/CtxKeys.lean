@@ -17,7 +17,18 @@ so that grpc's vocabulary does not import k8s.
   2026-11-13, decided by etcd-grove-81, `notes/ctx-sweep-fixes.md`: without it a context whose
   `Value` panics there refuted `tracing.Start.spec`, `examples/premisefix/k8sctx`'s
   `TestStartRuntimeTraceKeyPanics`.)
-* `k8sctx.k8sCtxOk ctx`: the three facts and `context.libCtxOk ctx` (otel's span key among them).
+* `flowcontrol.initSignalKeyAny`: the apiserver flowcontrol package's
+  `priorityAndFairnessInitializationSignalKey` (`priorityAndFairnessKeyType(0)`), read by
+  `utilflowcontrol.WatchInitialized(ctx)` (`apf_context.go:42-53`: `ctx.Value(key).(InitializationSignal)`,
+  then `Signal()` on a non-nil one), which the etcd3 store's `Watch` calls on the caller's goroutine
+  (`watcher.go:158`): nil, or not an `InitializationSignal` (`flowcontrol.initSignalRes`), so that
+  `WatchInitialized` calls nothing. (k8s 7f-5, T5-b, decided by etcd-grove-81, Q3: the narrow choice,
+  what the driver and the cacher's reflector pass; APF's own `*initializationSignal`, which
+  kube-apiserver's APF filter stores for a watch request that bypasses the cache, is not admitted.
+  Without it a context panicking at that key, or holding a foreign signal whose `Signal` panics, met
+  `k8sCtxOk` and made `Watch` panic: `examples/premisefix/watcherctx`'s
+  `TestWatchInitializedKeyPanics`, `TestWatchInitializedForeignSignal`.)
+* `k8sctx.k8sCtxOk ctx`: the four facts and `context.libCtxOk ctx` (otel's span key among them).
 
 Producers: the same as `libCtxOk`'s (`k8sCtxOk_of_nil`, `k8sCtxOk_background`, `k8sCtxOk_todo`,
 `k8sCtxOk_bgFrom`).
@@ -28,6 +39,7 @@ public import Proof.context.LibKeys
 public import GeneratedProof.k8s_io.utils.trace
 public import GeneratedProof.runtime.trace
 public import Code.k8s_io.apiserver.pkg.audit
+public import Code.k8s_io.apiserver.pkg.util.flowcontrol
 
 @[expose] public section
 
@@ -79,13 +91,29 @@ def rtrace.taskRes (v : GoInterface) : Prop :=
   ∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
     vi.ty = go.GoType.PointerType _root_.Perennial.runtime.trace.Task.ty → vi.v ≠ #null
 
+/-- The apiserver flowcontrol package's `priorityAndFairnessInitializationSignalKey` as `ctx.Value`
+takes it (`Convert priorityAndFairnessKeyType go.any`). -/
+abbrev flowcontrol.initSignalKeyAny : GoInterface :=
+  interface.mkOk k8s_io.apiserver.pkg.util.flowcontrol.priorityAndFairnessKeyType.ty
+    k8s_io.apiserver.pkg.util.flowcontrol.priorityAndFairnessInitializationSignalKey
+
+/-- (k8s 7f-5, T5-b) What `utilflowcontrol.WatchInitialized` accepts at its key, so that it calls
+nothing: nil, or a value whose dynamic type is not in `InitializationSignal`'s type set (the
+assertion `.(InitializationSignal)` fails; Perennial's `typeSetContains`, as `TypeAssert2` decides). -/
+def flowcontrol.initSignalRes (v : GoInterface) : Prop :=
+  v = GoInterface.nil ∨ ∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
+    go.typeSetContains vi.ty k8s_io.apiserver.pkg.util.flowcontrol.InitializationSignal.ty = false
+
 /-- **A context's Kubernetes values are well formed** (persistent): its audit key answers, its
-`utiltrace` trace is one `utiltrace` made, its `runtime/trace` task is not a nil `*Task`, and its
-libraries' values are (`libCtxOk`). -/
+`utiltrace` trace is one `utiltrace` made, its `runtime/trace` task is not a nil `*Task`, its APF
+initialization signal is nil or not a signal (k8s 7f-5, T5-b), and its libraries' values are
+(`libCtxOk`). -/
 def k8sctx.k8sCtxOk (ctx : GoInterfaceOk) : IProp GF :=
   iprop(context.valueAt ctx audit.auditKeyAny (fun _ => True) ∗
     context.valueAt ctx utiltrace.traceKeyAny utiltrace.traceRes ∗
-    context.valueAt ctx rtrace.traceKeyAny rtrace.taskRes ∗ context.libCtxOk ctx)
+    context.valueAt ctx rtrace.traceKeyAny rtrace.taskRes ∗
+    context.valueAt ctx flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)) ∗
+    context.libCtxOk ctx)
 
 instance k8sctx.k8sCtxOk_persistent (ctx : GoInterfaceOk) :
     Persistent (k8sctx.k8sCtxOk (GF := GF) ctx) := by
@@ -101,9 +129,9 @@ instance k8sctx.spanCtx_persistent (ctx : GoInterface) :
     Persistent (k8sctx.spanCtx (GF := GF) ctx) := by
   unfold k8sctx.spanCtx; infer_instance
 
-/-- The three keys. -/
+/-- The four keys. -/
 abbrev k8sctx.k8sKeys : List GoInterface :=
-  [audit.auditKeyAny, utiltrace.traceKeyAny, rtrace.traceKeyAny]
+  [audit.auditKeyAny, utiltrace.traceKeyAny, rtrace.traceKeyAny, flowcontrol.initSignalKeyAny]
 
 end defs
 
@@ -117,14 +145,14 @@ theorem k8sctx.libCtxOk_of_k8sCtxOk (ctx : GoInterfaceOk) :
     k8sctx.k8sCtxOk (GF := GF) ctx ⊢ context.libCtxOk ctx := by
   iintro #H
   unfold k8sctx.k8sCtxOk
-  icases H with ⟨-, -, -, #H⟩
+  icases H with ⟨-, -, -, -, #H⟩
   iexact H
 
 theorem k8sctx.spanCtx_of_k8sCtxOk (ctx : GoInterfaceOk) :
     k8sctx.k8sCtxOk (GF := GF) ctx ⊢ k8sctx.spanCtx (GoInterface.ok ctx) := by
   iintro #H
   unfold k8sctx.k8sCtxOk context.libCtxOk
-  icases H with ⟨-, #Ht, -, -, -, -, #Hs⟩
+  icases H with ⟨-, #Ht, -, -, -, -, -, #Hs⟩
   unfold k8sctx.spanCtx
   iexists ctx
   iframe #
@@ -158,6 +186,10 @@ theorem k8sctx.k8sCtxOk_of_nil (ctx : GoInterfaceOk) :
   · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
     · intro v hv vi h; subst hv; cases h
     iapply H; ipureintro; simp
+  isplitl []
+  · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
+    · intro v hv; left; exact hv
+    iapply H; ipureintro; simp
   iapply context.libCtxOk_of_nil
   imodintro
   iintro %k %hk
@@ -170,10 +202,11 @@ theorem k8sctx.k8sKeys_notIntPtr (k : GoInterface) (hk : k ∈ k8sctx.k8sKeys �
   rcases hk with hk | hk
   · intro ki h
     simp only [k8sctx.k8sKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl | rfl <;> simp only [GoInterface.ok.injEq] at h <;> subst h
+    rcases hk with rfl | rfl | rfl | rfl <;> simp only [GoInterface.ok.injEq] at h <;> subst h
     · unfold k8s_io.apiserver.pkg.audit.key.ty; simp
     · unfold k8s_io.utils.trace.ContextTraceKey.ty; simp
     · unfold _root_.Perennial.runtime.trace.traceContextKey.ty; simp
+    · unfold k8s_io.apiserver.pkg.util.flowcontrol.priorityAndFairnessKeyType.ty; simp
   · exact context.libKeys_notIntPtr k hk
 
 theorem k8sctx.k8sCtxOk_of_ctxValueNil (ctx : GoInterfaceOk) :

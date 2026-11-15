@@ -20,7 +20,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAuFresh
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSplit
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSteps
 public import Proof.os.SharedAu
-public import Spec.os.Rename
+public import Spec.os.RenameS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamedPure
 
 @[expose] public section

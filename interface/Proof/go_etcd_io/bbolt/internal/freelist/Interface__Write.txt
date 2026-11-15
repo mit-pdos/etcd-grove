@@ -2,11 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.freelist.Interface.Write.wp_proof [hos : HasExt osFsExt] (hFC : ∀ (I :
-    bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreeCountSpec) (hFP : ∀ (I : bbolt.FLImpl) (a : Loc),
-    I.IsImpl a → I.FreePageIdsSpec) (hMerge : bbolt.Mergepgids.spec) (hSF :
-    bbolt.internal.common.Page.SetFlags.spec) (hSC : bbolt.internal.common.Page.SetCount.spec) (hUA
-    : bbolt.internal.common.UnsafeAdd.spec) : bbolt.internal.freelist.Interface.Write.spec
+theorem bbolt.internal.freelist.Interface.Write.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos :
+    HasExt Fs.fsExt] (hFC : ∀ (I : bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreeCountSpec) (hFP : ∀
+    (I : bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreePageIdsSpec) (hMerge : bbolt.Mergepgids.spec)
+    (hSF : bbolt.internal.common.Page.SetFlags.spec) (hSC :
+    bbolt.internal.common.Page.SetCount.spec) (hUA : bbolt.internal.common.UnsafeAdd.spec) :
+    bbolt.internal.freelist.Interface.Write.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.Write.spec`, unfolded:
   ∀ (fli : GoInterface) (fl : bbolt.FLPg) (p : Loc) (hdr : go_etcd_io.bbolt.internal.common.Page) (R : Nat),
     8 * (fl.allIds.length + 1) ≤ R →

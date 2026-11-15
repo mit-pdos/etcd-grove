@@ -41,7 +41,6 @@ abbrev serveClient.spec : Prop :=
       m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk s pl) ∗
       netAddrFree (GF := GF) addr ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗
-      v3rpc.runsNoRequireLeader ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
         etcdstart.grpcUp s E ρ γr gs lis addr cid mid R ={⊤}=∗

@@ -9,7 +9,8 @@
   (`v3rpc.ccField l ↦□ c`), so a WP fact of `c.Value` is one of the wrapper's
   (`v3rpc.valueAt_cc`); `c`'s come from `ci`'s chain forms (`context.libCtxOkC`,
   `trace.spanCtxOkC`, which grpc's model gives of a stream's run context, `srvRawStreamIs`) through
-  `ctxValueFrom ci c` (`v3rpc.wp_WithCancel_cancelCtx`): `v3rpc.wrapperLibCtx`.
+  `ctxValueFrom ci c` (`v3rpc.wp_WithCancel_cancelCtx`): `v3rpc.wrapperLibCtx`; and nothing at
+  net/http's keys, in the chain form (`http.netCtxOkC`, Addendum T-h0): `v3rpc.wrapperNetCtx`.
 -/
 module
 
@@ -17,6 +18,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WrapperMd
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.context.LibKeysChain
+public import Proof.net.http.NetCtx
 public import Proof.go_opentelemetry_io.otel.trace.Defs
 
 @[expose] public section
@@ -183,6 +185,36 @@ theorem v3rpc.wrapperLibCtx (l : Loc) (c ci : GoInterfaceOk) :
   isplitl []
   · iapply v3rpc.libCtxOk_cc; iframe #
   · iapply v3rpc.spanCtxOk_cc; iframe #
+
+/-- **etcd's stream wrapper holds nothing at net/http's keys** (Addendum T-h0), in the chain form:
+from `ci`'s (`srvRawStreamIs`'s `http.netCtxOkC ci`) through the `WithCancel` child `c`
+(`ctxValueFrom ci c`) and the wrapper's promoted `Value` (`v3rpc.valueAt_cc`); the wrapper's type is
+one `context.value()` does not special-case, so its `Value` is what the chain calls
+(`http.netCtxOkC_raw`). -/
+theorem v3rpc.wrapperNetCtx (l : Loc) (c ci : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (v3rpc.ccField l ↦□ (GoInterface.ok c) : IProp GF) ∗
+      _root_.Perennial.context.ctxValueFrom ci c ∗ http.netCtxOkC ci ⊢
+      http.netCtxOkC (v3rpc.ccCtx l) := by
+  iintro ⟨#Hpkg, #Hf, #Hfrom, #Hnet⟩
+  ihave #Hc := http.netCtxOkC_from ci c $$ [$Hfrom $Hnet]
+  ihave #Hw := http.netCtxOk_of_netCtxOkC c $$ [$Hpkg $Hc]
+  iapply http.netCtxOkC_raw
+  · simp only [v3rpc.ccCtx, _root_.Perennial.context.valueSpecialTypes, List.mem_cons,
+      List.not_mem_nil, or_false, not_or]
+    unfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext.ty
+      _root_.Perennial.context.valueCtx.ty _root_.Perennial.context.cancelCtx.ty
+      _root_.Perennial.context.withoutCancelCtx.ty _root_.Perennial.context.timerCtx.ty
+      _root_.Perennial.context.backgroundCtx.ty _root_.Perennial.context.todoCtx.ty
+    simp
+  iunfold http.netCtxOk at Hw
+  icases Hw with ⟨#H1, #H2, #H3⟩
+  iunfold http.netCtxOk
+  isplitl []
+  · iapply v3rpc.valueAt_cc; iframe #
+  isplitl []
+  · iapply v3rpc.valueAt_cc; iframe #
+  · iapply v3rpc.valueAt_cc; iframe #
 
 end laws
 

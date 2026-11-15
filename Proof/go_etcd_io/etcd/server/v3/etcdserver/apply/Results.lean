@@ -20,6 +20,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyAdminL
 
 @[expose] public section
 
@@ -647,6 +648,53 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
 #print axioms Perennial.EtcdGrove.apply.apply_readonly_no_write
 #print axioms Perennial.EtcdGrove.apply.apply_rejected_no_write
 #print axioms Perennial.EtcdGrove.apply.apply_no_v3_no_write
+
+/-! ## Why the apply layer refused (auth-guard-completeness G4, 2026-11-14)
+
+The apply thread's checks are exact at the latest state of the admin side's history `hs`
+(`authOutL`, `adminRejL`: the auth plan's E2s, E3c). Restated in the reason form the guards' specs
+use (`notes/auth-guard-scope.md`, §2.5): a refusal names a refusing state, here the latest one, so
+no lower bound is needed. -/
+
+/-- **An admin request refused at apply names why** (`authApplierV3.Apply`'s `needAdminPermission`
+check, `apply_apply_admin_latest`'s `adminRejL`): at the latest state auth is enabled and the
+request's principal is unnamed, absent, or not root (`auth.adminRefused`, the guards' admin
+reason, at that state for both reads). -/
+theorem admin_rejected_why [GooseExts] (M : auth.AuthMode) (hs : List auth.AuthState) (rq : IRRModel)
+    (h : adminRejL M hs rq) :
+    latestOk M hs (fun stl => auth.adminRefused stl stl (some (auth.authInfoM (principalOf rq)))) := by
+  refine latestOk_mono M hs _ _ (fun stl hn => ?_) h
+  unfold auth.adminOk at hn
+  unfold auth.adminRefused
+  refine ⟨?_, fun a u ha hu hsu hr => hn (Or.inr ⟨a, u, ha, hu, hsu, hr⟩)⟩
+  cases he : stl.enabled
+  · exact absurd (Or.inl he) hn
+  · rfl
+
+/-- **A KV request refused by the auth layer at apply names why** (`authOutL`, the auth applier's
+KV methods at the latest state, `apply_put_latest` and its siblings): with an inner chain that never
+answers the auth layer's rejection (`hc`; the quota applier over the backend's,
+`kv_rejected_why_quota`), a `.rejected .auth` outcome has one of the checked permissions refused at
+the latest state (`refusedL`). -/
+theorem kv_rejected_why [GooseExts] (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
+    (c : Chain) (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3)
+    (hc : ¬ chainStep backendStep c rq log (.rejected .auth))
+    (h : authOutL M hs ai c rq log perms (.rejected .auth)) : refusedL M hs ai perms := by
+  rcases h with ⟨-, hr⟩ | ⟨hch, -⟩
+  · exact hr
+  · exact absurd hch hc
+
+theorem kv_rejected_why_quota [GooseExts] (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
+    (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3)
+    (h : authOutL M hs ai (.quota .backend) rq log perms (.rejected .auth)) : refusedL M hs ai perms := by
+  refine kv_rejected_why M hs ai _ rq log perms ?_ h
+  intro hs'
+  simp only [chainStep, backendStep] at hs'
+  split at hs' <;> simp_all
+
+#print axioms Perennial.EtcdGrove.apply.admin_rejected_why
+#print axioms Perennial.EtcdGrove.apply.kv_rejected_why
+#print axioms Perennial.EtcdGrove.apply.kv_rejected_why_quota
 
 /-! ## Unit 0: the trust boundary and the callees linked elsewhere -/
 

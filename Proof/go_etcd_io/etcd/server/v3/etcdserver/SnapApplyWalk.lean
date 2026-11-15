@@ -107,7 +107,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (hRel : storage.storage.Release.spec (GF := GF) (hG := hG))
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
+    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
@@ -185,7 +185,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-       inv snapDirN (snapDirInv ss γd img (srvSnapRm γt γr)) ∗ monoNatAuthOwn γt 1 nt ∗
+       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗ monoNatAuthOwn γt 1 nt ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
@@ -712,15 +712,14 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iframe #; inext; iexact Hbm
   (try wp_auto)
   -- `s.r.storage.Release(snapshot)`: the snapshot's index taken, the older files released
-  imod (mono_nat_own_update (uint.nat sv.Metadata'.Index') (by word)) $$ Hγt with ⟨Hγt, #Htk⟩
-  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (srvSnapRm γt γr) hstp
+  -- (restart S6a) the removal counter at the index plus one (`snapRmM`)
+  imod (mono_nat_own_update (uint.nat sv.Metadata'.Index' + 1) (by word)) $$ Hγt with ⟨Hγt, #Htk⟩
+  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (snapRmM γt) hstp
     $$ [] as %rerr ⟨-, -, %Hrerr⟩
   · iframe #
     iintro !> %j %hj
-    iunfold srvSnapRm
-    ileft
-    iunfold snapTakenLb
-    iapply monoNatLbOwn_le (uint.nat j) (by word) $$ Htk
+    iunfold snapRmM
+    iapply monoNatLbOwn_le (uint.nat j + 1) (by word) $$ Htk
   have hrerr : rerr = GoInterface.nil := by
     rcases Hrerr with h | h
     · exact h

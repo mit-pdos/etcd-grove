@@ -41,6 +41,18 @@ def PwOut (m : OsMeta) (off : Nat) (data : List w8) (j : Nat) (xs ys : List Byte
     ∃ c0 extra, ys[i].2 = c0 ++ extra ∧ extra ≠ [] ∧ (∀ q ∈ extra, q.1 = data.getD i 0) ∧
       ∀ (h : i < xs.length), c0 = xs[i].2
 
+/-- What a `WriteAt` of `len` bytes at `off` may have landed: a page cut of the whole write
+(`PwCut`), or a whole number of 1 GiB chunks: Go's `poll.FD.Pwrite` writes at most `maxRW = 1 GiB`
+per `pwrite`, and a failed attempt after whole chunks leaves their prefix, which ends on a page
+boundary of the file only if `off` is on one. For `len ≤ 1 GiB` it is `PwCut` (`WaCut.pwCut`). -/
+def WaCut (off len j : Nat) : Prop := PwCut off len j ∨ j % 0x40000000 = 0
+
+theorem WaCut.pwCut {off len j : Nat} (h : WaCut off len j) (hj : j ≤ len) (hl : len ≤ 0x40000000) :
+    PwCut off len j := by
+  rcases h with h | h
+  · exact h
+  · unfold PwCut; omega
+
 section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]

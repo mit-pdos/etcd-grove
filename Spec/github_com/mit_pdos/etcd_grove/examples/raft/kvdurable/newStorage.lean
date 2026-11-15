@@ -36,7 +36,7 @@ abbrev newStorage.spec : Prop :=
       s.[KStorage, go!"MemoryStorage"] ↦ ms ∗ s.[KStorage, go!"boot"] ↦□ bp ∗
       s.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip imgEmpty ∗
       memStorLock ms γs ∗ memLog γs 0 DFrac.discard [zero_val EntryM] ∗ memEnd γs 1 ∗
-      memSnapNone γs ∗ memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+      memSnapNone γs memSnapEmpty ∗ memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memStorFresh ms γs 0 memSnapEmpty }}
 
 end spec

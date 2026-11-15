@@ -812,6 +812,8 @@ def readyCut (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QM
     softStateIs rd.SoftState' ss ∗
     ([∗list] q ∈ ms, □ (durFrags γ.raft γ.id W -∗ isRaftMsg γ.raft γ.id q.st)) ∗
     □ (⌜roleAfter x.2 ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
+    -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, outright (`snapToOk`)
+    ([∗list] q ∈ ms, snapToOk γ.raft γ.id q.st) ∗
     -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within, of the recorded
     -- durable state, the hard state `p` last handed out and the committed log `d` handed out
     -- (`ReadyFacts`, `ownRawNodeReady_handout`'s)

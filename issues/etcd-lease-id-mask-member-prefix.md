@@ -50,11 +50,15 @@ member whose ID agrees with its own in those bits, and the lessor rejects a gran
 
 ## Proof
 
-no: in the revocable mode the proof boots a single member (`srvMemberBoot_alloc`'s `hpfx`,
-`kvGrantIds`' one prefix, `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean`), and in
-the monotone mode an id collision is the `ErrLeaseExists` the specs allow. A multi-member revocable
-cluster (the lease plan's step 2) would need a premise that the members' ids differ in the low
-15 bits, or a per-prefix ever-set.
+no: the proof records it as a premise. In the revocable lease mode a cluster of several members
+takes `leaseIdsApart` (the members' ids distinct in their 15 low bits,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/SrvRaftLog.lean`; lease-mono3 step 2, 2026-11-14:
+`cluster3.StartCluster.spec`'s premise in that mode, `etcdstart.alloc3`'s), which makes the
+members' grant prefixes distinct after the mask (`kvPfxOk`, `kvGrantIds`,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean`). A member id depends only on the
+configuration, so each example's Go `TestMemberIDs` checks it (`examples/etcd/leasecatchup`,
+`examples/etcd/auth3`). (Until then the revocable mode booted a single member.) In the monotone mode
+an id collision is the `ErrLeaseExists` the specs allow.
 
 ## Fix
 

@@ -33,8 +33,8 @@ theorem auth.authStore.AuthDisable.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post en sc0
-  wp_start as ⟨#Hinv, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post en sc0
+  wp_start as ⟨#Hinv, Hown, HWR, Hw1, Hw2, Hw3, Htpa, Hcs, %Hok, #Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
@@ -121,12 +121,12 @@ theorem auth.authStore.AuthDisable.wp_tie
   iintro HL
   (try wp_auto)
   have hstep : authDisableF true st0 = .next (bump { st0 with enabled := false }) := rfl
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
   have Hoff : M = .off → ({ st0 with enabled := false } : AuthState).enabled = false := fun _ => rfl
   ihave #Hcap1 := Hcap $$ %true
   ihave #Hcn := capNextM_step M hs (authDisableF true) st0 (bump { st0 with enabled := false }) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
-  wp_apply (h_commitRevision st R M P f T ti Lk { st0 with enabled := false } Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk { st0 with enabled := false } Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     exact ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2), Hoff⟩
@@ -134,7 +134,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump { st0 with enabled := false }]) [HL $Hown]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump { st0 with enabled := false }]) [HL $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL
@@ -142,7 +142,7 @@ theorem auth.authStore.AuthDisable.wp_tie
     ipureintro; exact Hl1
   (try wp_auto)
   wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-  iapply HFC $$ HT
+  iapply HFC $$ [$HT $Hw3]
   inext
   iintro HT
   (try wp_auto)

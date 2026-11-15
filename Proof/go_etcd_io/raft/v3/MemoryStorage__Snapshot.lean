@@ -34,7 +34,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs J o c bb esu
+  intro ms γs J o c tt esu
   wp_start as ⟨Hat, #Hc, Hnone, #Hesu⟩
   icases memStorAt_split ms γs J o emp $$ Hat with ⟨#Hlock, Hjc, Hho⟩
   iunfold memStorLock at Hlock
@@ -65,7 +65,8 @@ theorem MemoryStorage.Snapshot.wp_proof
   icases Hhome with ⟨Hhk, %sp, %sv', Hsnapshot, Hsnap, Hsxh, #Hval⟩
   icases ghostVar_agree γs.sx _ _ _ _ $$ Hsx_inv Hsxh with %Hag
   subst Hag
-  icases memSnapNone_empty γs bb sv $$ [$Hnone $Hsn_inv] with ⟨Hnone, %Hbe⟩
+  icases Hsn_inv with ⟨%s1, Hs1, #Hor⟩
+  icases memSnapNone_eq γs tt sv s1 $$ [$Hnone $Hs1 $Hor] with ⟨Hnone, Hs1, %Hbe⟩
   wp_auto
   wp_apply wp_EnsureSnapshot.1 sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
   · simp only [snapOpt]; iexact Hsnap
@@ -80,7 +81,7 @@ theorem MemoryStorage.Snapshot.wp_proof
   · iapply memValAt_new $$ Hval
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hs1 Hlk]
   · unfold memstorageInv
     iexists p, ents, M, sv
     simp only [named]

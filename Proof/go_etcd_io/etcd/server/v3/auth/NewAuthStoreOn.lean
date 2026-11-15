@@ -11,7 +11,9 @@ tracked buckets, D22; and the admin clauses `isAuthStoreAdmin` of the store: `Ha
 `Authenticate`, `UserGet`, `RoleGet` and the lists). `newAuthStore_on` is the constructor's own
 code, proved: `NewAuthStore(lg, be, tp, cost)` on an `AuthBackend` `be` meeting the store's backend
 contracts (`authBackendOk`, the read side; `authWBackendOk`, the write side, S4; and
-`CreateAuthBuckets`, one transaction), a token provider meeting its contract with its admin
+`CreateAuthBuckets`, one transaction), four write-back tokens `Wb` (one spent by
+`CreateAuthBuckets`, two by the batch transaction's `Unlock`, one by `ForceCommit`: auth-schema-fix
+F1), a token provider meeting its contract with its admin
 resource (`tokenProviderOkA`, S5d), and the admin side's authority at a history `hs` (both halves of
 its latest state's ghost variable), returns a store whose invariant (`authInv`) holds in the mode
 `on γa`, with the admin side's write resource (`authWR`), the provider's share (`tpAdmin`), the
@@ -198,13 +200,13 @@ theorem slots_rd (n : Nat) (st : Loc) (R : IProp GF) (γa : AuthNames) :
 /-- **The admin side's write resource at the backend `be` the store's field holds** (the auth
 plan's E2i, 2026-10-26: `newAuthStore_on`'s post, so that the server's `authBeOn` can name the
 backend; `authWR` forgets it, `authWRAt_authWR`). -/
-def authWRAt (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+def authWRAt (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (be : AuthBackend) : IProp GF :=
-  iprop((aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗ T ∗
+  iprop((aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T Wb) ∗ T ∗
     enabledHalf st M ∗ cacheHalf st M)
 
-theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
-    (be : AuthBackend) : authWRAt (GF := GF) st M P f T be ⊢ authWR st M P f T := by
+theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (be : AuthBackend) : authWRAt (GF := GF) st M P f T Wb be ⊢ authWR st M P f T Wb := by
   iintro H
   iunfold authWRAt at H
   icases H with ⟨⟨Hbe, #Hok⟩, HT, Hen, Hca⟩
@@ -241,7 +243,7 @@ theorem newAuthStore_on
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γa : AuthNames)
-    (γc : AuthBkNames) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF)
+    (γc : AuthBkNames) (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF)
     (hs : List AuthState)
     (stl : AuthState) (hlast : hs.getLast? = some stl) (hfit : permsFit stl)
     (hempty : ∃ s ∈ hs, s.users = ∅)
@@ -250,15 +252,15 @@ theorem newAuthStore_on
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) γc ∗
         authBkCur γa (1 : Qp).half γc ∗ authCur γc 1 ∗
-        authWBackendOkR ab (.on γa) P f T ∗
-        □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
+        authWBackendOkR ab (.on γa) P f T Wb ∗
+        □ ({{ T ∗ Wb }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
-        T ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
+        T ∗ Wb ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
         authOwn (.on γa) hs ∗ authStoreInit γa hs stl ∗ capNext (.on γa) hs (bump stl) }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List AuthState),
-        ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗ authWRAt stp (.on γa) P f T ab ∗
+        ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗ authWRAt stp (.on γa) P f T Wb ab ∗
         tpAdmin stp (.on γa) ∗ Post ∗ authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
         -- (authkv's Main, 2026-10-30) the cost field, read-only (`BcryptCost()`'s)
@@ -267,10 +269,10 @@ theorem newAuthStore_on
         authRdTotal γa N ∗
         ([∗list] _x ∈ List.replicate N (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨#Hlgz, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
+  wp_start as ⟨#Hlgz, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hw1, Hw2, Hw3, Hw4, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
   iunfold authStoreInit at Hcur
   icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, Hrdt, ⟨%b0, Hfe⟩, %v0, Hfc⟩
-  ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
+  ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T Wb $$ HwokR
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -332,7 +334,7 @@ theorem newAuthStore_on
       try (iexists _; iframe)
   -- `CreateAuthBuckets()`, one transaction
   wp_bind (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
-  iapply HCreate $$ HT
+  iapply HCreate $$ [$HT $Hw1]
   inext
   iintro HT
   (try wp_auto)
@@ -517,7 +519,7 @@ theorem newAuthStore_on
   · -- revision `0` (the buckets were empty): the first revision committed
     have h0 : st0.revision = 0 := by rw [← hxr]; rfl
     (try wp_auto)
-    wp_apply (h_commit «$r0_ptr» R (.on γa) P f T ti Lk st0 Post hs st0) $$ [HL Hown]
+    wp_apply (h_commit «$r0_ptr» R (.on γa) P f T Wb ti Lk st0 Post hs st0) $$ [HL Hown]
       as ⟨%rev, %Hrev, HL, Hown⟩
     · iframe #; iframe
       ipureintro
@@ -566,13 +568,13 @@ theorem newAuthStore_on
   (try wp_auto)
   -- `tx.Unlock()`, `be.ForceCommit()`
   wp_bind (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
-  iapply HUnlock $$ %sta %Post %hs' [$HL $Hown]
+  iapply HUnlock $$ %sta %Post %hs' [$HL $Hown $Hw2 $Hw3]
   · ipureintro; exact Hsta.1
   inext
   iintro ⟨HPost, HT, Hown⟩
   (try wp_auto)
   wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-  iapply HFC $$ HT
+  iapply HFC $$ [$HT $Hw4]
   inext
   iintro HT
   (try wp_auto)

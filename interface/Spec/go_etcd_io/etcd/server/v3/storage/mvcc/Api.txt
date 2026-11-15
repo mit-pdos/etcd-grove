@@ -156,7 +156,7 @@ def mvcc.api.wrespIs (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) 
   iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
       ∃ ps,
         ownSlice v.Events' ps DFrac.discard ∗
-          ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evIs x.fst x.snd)
+          ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evOwn x.fst x.snd)
 
 def mvcc.api.shapes.law : Prop :=
   (∀ (kv : GoInterface) (γ : mvcc.api.MvccName),

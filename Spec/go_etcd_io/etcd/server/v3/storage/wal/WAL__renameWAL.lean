@@ -65,8 +65,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
-public import Spec.os.Rename
-
+public import Spec.os.RenameS
 @[expose] public section
 
 noncomputable section

@@ -97,6 +97,39 @@ instance v3rpc.ccHandle_persistent (l : Loc) (c1 : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : Persistent (v3rpc.ccHandle l c1 cd) := by
   unfold v3rpc.ccHandle; infer_instance
 
+/-- (TRUSTED; k8s 7f-4, Addendum T-k, producer (c), with (b) folded in) **etcd's `*cancellableContext`
+keeps its parent's causes**: the wrapper `l` (`ccHandle`) whose `Context` field holds the `*cancelCtx`
+`c` whose parent field holds `ci` (`ctxField c ↦□ ci`, `newCancellableContext.spec`'s post), with
+`ctxCauseOk ci`, has `ctxCauseOk`. Its soundness rests on `cancellableContext` being unexported and
+`newCancellableContext` (`interceptor.go:278-284`) being the only writer of its `Context` field: the
+field's type (`*cancelCtx`) alone does not exclude a `WithCancelCause` child, whose cause is the
+caller's.
+
+**Why it is faithful** (fork `673da07c8f` `server/etcdserver/api/v3rpc/interceptor.go:265-304`;
+go1.27.3 `src/context/context.go`). The wrapper's `Context` field is written once, by
+`newCancellableContext`, with `context.WithCancel(parent)`'s result (the type is unexported, and
+`ccHandle`'s `↦□` is read-only), so `c` is a `*cancelCtx` `withCancel` allocated, not one embedded in a
+`*timerCtx` or made by `WithCancelCause`. Its `cause` field is set only by its `cancel`: with `Canceled`
+by the wrapper's `cancel()` (`Cancel`), else, by `propagateCancel` over `ci`, with `Cause(ci)` (`ci`
+already done, or `ci`'s `AfterFunc` or the watching goroutine) or with the found `*cancelCtx`'s
+`cause` (its `children` entry), each a cause error by `ctxCauseOk ci` (i)/(iii). The wrapper's
+`Value(&cancelCtxKey)` is promoted from `c`'s and returns `c`, so (i) is `c`'s field. Its `Err()` is
+`cancelReason` if non-nil, else `c.Err()`; `cancelReason` is only ever `nil` or `ErrGRPCNoLeader`'s value
+(`ccHandle`'s lock guard: the field is owned by the lock's invariant, `v3rpc.ccReasonP`, `reasonOk`;
+`Cancel`'s callers pass `nil` or `rpctypes.ErrGRPCNoLeader`), and `c.Err()` returns a non-nil error
+only once `c.Done()` is closed (it loads `err` atomically, then waits on `<-c.Done()`, go1.27.3
+`:464-471`), which `cancel` does under `c.mu` after it assigned `cause` (`:446-457, 550-575`), and
+`Cause` reads `cause` under `c.mu` after that `Err()` returned; so (ii): `Err()` non-nil while `c.cause` is `nil` is `cancelReason`, `ErrGRPCNoLeader`
+(`Cancel` stores the reason before it calls `cancel()`). Go evidence: `examples/premisefix/streamctx`
+`TestCauseCancellable` (`Cause` of the wrapper, and of a `WithTimeout`/`WithCancelCause` child of it,
+after `Cancel(ErrGRPCNoLeader)`, after the run context's cancel, and in the window between the reason
+and the cancel). -/
+axiom v3rpc.ctxCauseOk_cancellable (l c : Loc) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) :
+    v3rpc.ccHandle l (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c) cd ∗
+      _root_.Perennial.context.ctxField c ↦□ (interface.ok ci : GoInterface) ∗ v3rpc.ctxCauseOk ci ⊢
+      v3rpc.ctxCauseOk (v3rpc.ccCtx l)
+
 end defs
 
 end EtcdGrove

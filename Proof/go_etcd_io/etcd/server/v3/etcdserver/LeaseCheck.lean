@@ -6,7 +6,8 @@
 goroutine: they read the auth store as a reader with a lower bound `n` of its published index
 (`auth.authPubLbM`, as the read path's checks, `apply/AuthCheckTxnLb.lean`) and the lessor as a
 reader with a lower bound `m` of its history (`lease.lessorLb`, `lease/InvLessor.lean`). A passed check
-says, of the principal the request carries (`infoBoundM`): auth disabled at a state no older than
+says, of the principal the request carries (with auth on, bound to the context: `principalBound`):
+auth disabled at a state no older than
 `n`, or the principal an admin at one, or the permission (`IsPutPermitted` for a renewal,
 `IsRangePermitted` for the others) of every key of the lease at an index no older than `m`, each at a
 state no older than `n`.
@@ -96,13 +97,16 @@ instance leaseKeysVerdictFrom_persistent (M : auth.AuthMode) (n : Nat)
   unfold leaseKeysVerdictFrom; infer_instance
 
 /-- **What a passed lease check establishes** of the request at `ctx` on the server `s`, for the
-keys `K` (persistent): auth disabled at a state no older than `n`; or the request's principal
-(`infoBoundM`: with auth on, the empty user or one bound to the context's token) an admin at such a
-state, or `K info` (the keys' verdicts). -/
+keys `K` (persistent): auth disabled at a state no older than `n`; or the request's principal, with
+auth on bound to the context (`principalBound`: the user its token was issued to, or the server's TLS
+fallback, whose certificate's common name may be empty), an admin at such a state, or `K info` (the
+keys' verdicts). (auth-lease S1, 2026-11-14: until then `infoBoundM`, which with auth on also admitted
+the empty user unbound; every lease check refuses a context without a user, `ErrUserEmpty`.) -/
 def leaseCheckFrom (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat)
     (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) : IProp GF :=
   iprop(auth.enabledVerdictFrom E.authMode n false ∨
-    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, infoBoundM E.authOn s E ctx info ∗
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
+      □ (⌜E.authOn = true⌝ → principalBound s E.authMode ctx (some info)) ∗
       (adminVerdictFrom E.authMode n info GoInterface.nil ∨ K info))
 
 instance leaseCheckFrom_persistent (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat)
@@ -111,6 +115,38 @@ instance leaseCheckFrom_persistent (s : Loc) (E : apply.AEnv GF) (ctx : GoInterf
   unfold leaseCheckFrom; infer_instance
 
 end defs
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+open Iris.ProofMode
+
+/-- **The checked principal, bound to the context with auth on** (`principalBound`; auth-lease S1,
+the lease checks' `leaseCheckFrom`): `infoBoundM_of_ctxBound` without the empty user. -/
+theorem principalBoundOn_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (a : Loc) (user : GoString) (rev : w64) :
+    (⌜on = true⌝ → ctxBoundOrTLS s E.authMode ctx a) ∗ authInfoIs a user rev ⊢
+      □ (⌜on = true⌝ → principalBound (GF := GF) s E.authMode ctx (some ⟨user, rev⟩)) := by
+  iintro ⟨Hb, #Hai⟩
+  cases on
+  · iintro !> %h; cases h
+  · ihave #Hb' := Hb $$ %rfl
+    iintro !> %-
+    iapply principalBound_of_ctxBoundOrTLS s E.authMode ctx a user rev $$ [$Hb' $Hai]
+
+/-- `principalBound` depends on the context only through its incoming metadata. -/
+theorem principalBound_ctx (s : Loc) (M : auth.AuthMode) (c c' : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (h : metadata.incomingOf c = metadata.incomingOf c') :
+    principalBound (GF := GF) s M c (some info) ⊢ principalBound s M c' (some info) := by
+  have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
+  unfold principalBound; rw [ht]
+
+end lemmas
 
 end EtcdGrove
 end Perennial

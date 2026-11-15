@@ -5,8 +5,8 @@
 theorem bbolt.decode_zero_page : decode (List.replicate 16 0) = { id' := W64 0, flags' := W16 0,
     count' := W16 0, overflow' := W32 0 }
 
-theorem bbolt.Bucket.write.wp_proof (hSize : bbolt.node.size.spec) (hWrite : bbolt.node.write.spec)
-    : bbolt.Bucket.write.spec
+theorem bbolt.Bucket.write.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (hSize :
+    bbolt.node.size.spec) (hWrite : bbolt.node.write.spec) : bbolt.Bucket.write.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.write.spec`, unfolded:
   ∀ (b ibp : Loc) (ib : go_etcd_io.bbolt.internal.common.InBucket) (n : Loc) (nv : go_etcd_io.bbolt.node)
     (ins : List go_etcd_io.bbolt.internal.common.Inode) (ms : List bbolt.InodeM) (dqb dq dqi : DFrac)

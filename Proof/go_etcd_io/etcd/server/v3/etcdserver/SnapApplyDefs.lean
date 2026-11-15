@@ -231,7 +231,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be) ∗
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d') ∗ srvBemuReaderAt s E.γbe ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
-    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
+    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
     lease.leaseOwn (mvccLeases E.γ) Lr ∅ ∗ lease.lessorRdOf (mvccLeases E.γ) ∗
     lease.leaseRevokers (mvccLeases E.γ) Lr ∗
@@ -311,7 +311,7 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     -- (the mvcc merge) `lean`'s `srvKVCloserW s E'` was here: over the API the close right is the
     -- apply thread's `mvccOpen` (`srvApplyKVM`'s `cmpOwn`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
-    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
+    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝))

@@ -20,8 +20,9 @@ queues are persistent facts (`upClosed γ L`: the client closed the up queue aft
 `NewStream` assert, read them against grpc's `stream.go`/`server.go` and HTTP/2): while the
 stream lives, each direction delivers the messages intact (the codec's copy of a message `send`
 holds at `m` is one `recv` holds at `m`, the `StreamMsg` instance's wire model), in order, without
-loss or duplication; a receive returns `io.EOF` exactly when the other side closed its direction
-and everything it sent before was received; a send that fails may or may not have delivered its
+loss or duplication; a receive returns `io.EOF` only when the other side closed its direction
+and everything it sent before was received (2026-11-14: was "exactly when"; the posts claim only
+this direction: a client's receive gets `io.EOF` only once the handler returned `nil`); a send that fails may or may not have delivered its
 message (the sender's token is at the old or the new list, which one being the transport's
 knowledge, so the two ends never disagree); after an error nothing more is promised. The server's
 run starts when the client's `NewStream` returns (the handler may be entered later; no message is
@@ -78,6 +79,7 @@ public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.io
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
+public import Proof.net.http.NetCtx
 
 @[expose] public section
 
@@ -408,7 +410,15 @@ child (`ctxValueFrom`): grpc's run context is a chain of `*valueCtx` links (`New
 etcd's configuration: the server's options are etcd's own (`v3rpc/grpc.go`), with no
 `GRPCAdditionalServerOptions` (`server/embed/etcd.go:789`, appended by `v3rpc.Server`) adding stream
 interceptors or stats handlers, as in the etcd binary (`etcdmain` never sets it): such an option
-could wrap the stream in a non-pointer value or store values at grpc's or otel's keys. -/
+could wrap the stream in a non-pointer value or store values at grpc's or otel's keys. (k8s 7f-4,
+Addendum T-h0) `ci` holds nothing at net/http's keys (`http.netCtxOkC`, the chain form:
+`httptrace`'s `clientEventContextKey{}`, `nettrace.TraceKey{}`, `nettrace.LookupIPAltResolverKey{}`,
+which a `*http.Transport` reads of a request's context): those keys are unexported types of the
+standard library, stored only by `httptrace.WithClientTrace`, by `net`'s tests, and by `net`'s
+`Dialer.DialContext` on a context it derives internally (go1.27.3 `net/dial.go:539`, never the
+caller's), which neither grpc's server, otelgrpc's stats handler nor etcd's interceptors call; the run context's
+chain holds only grpc's, otel's and the transport's links (`TestRunCtxChain`). (k8s 7f-4, Addendum
+T-k) `ci`'s causes are context errors (`v3rpc.ctxCauseOk ci`, a part of `grpcRunCtx ci`). -/
 def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
@@ -432,7 +442,8 @@ def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
-    context.isContext ci cd ∗ grpcRunCtx ci ∗ context.libCtxOkC ci ∗ trace.spanCtxOkC ci)
+    context.isContext ci cd ∗ grpcRunCtx ci ∗ context.libCtxOkC ci ∗ trace.spanCtxOkC ci ∗
+    http.netCtxOkC ci)
 
 instance srvRawStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -444,7 +455,10 @@ instance srvRawStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Re
 trusted: a definition, with the law `srvRawStreamIsW_of_raw` from grpc's raw end): `srvRawStreamIs`'s
 `RecvMsg`, `SendMsg` and `Context` clauses, with the context `ci` a handler's weak one
 (`srvCtxWeak ci cd`: its `Err()` any value before `Done`, a context error or etcd's no-leader error
-after) whose library values and span are well formed (`context.libCtxOk ci`, `trace.spanCtxOk ci`):
+after) whose library values and span are well formed (`context.libCtxOk ci`, `trace.spanCtxOk ci`)
+and which holds nothing at net/http's keys (`http.netCtxOkC ci`, the chain form, which a
+`WithTimeout` child keeps; Addendum T-h0) and whose causes are context errors or etcd's no-leader
+error (`v3rpc.ctxCauseOk ci`; Addendum T-k):
 what etcd's stream interceptor passes its handler when the client requires a leader (a
 `serverStreamWithCtx` over the stream, its `Context()` a `cancellableContext`), and what the
 generated handler and the stream handlers take (`srvStreamIs_of_raw`, `grpcStreamHandlerOk`). -/
@@ -471,7 +485,8 @@ def srvRawStreamIsW (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
-    srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci)
+    srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ http.netCtxOkC ci ∗
+    v3rpc.ctxCauseOk ci)
 
 instance srvRawStreamIsW_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -488,10 +503,11 @@ theorem srvRawStreamIsW_of_raw (st : GoInterface) (γ : StreamNames) (Req Rep : 
     srvRawStreamIs st γ Req Rep Up Dn ci cd ⊢ srvRawStreamIsW st γ Req Rep Up Dn ci cd := by
   iintro #H
   iunfold srvRawStreamIs at H
-  icases H with ⟨%si, %Hst, -, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, -⟩
+  icases H with ⟨%si, %Hst, -, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, -, -, #Hnet⟩
   ihave #Hw := srvCtxWeak_of_isContext ci cd $$ Hctx
   ihave #Hl := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hs := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hcause := ctxCauseOk_of_runCtx ci $$ Hrc
   iunfold srvRawStreamIsW
   iexists si
   iframe #
@@ -508,7 +524,9 @@ a message `Rep.send l m` with the handler's content `Dn j m` for its position `j
 sender's token (or fails, the message delivered or not: the token at the old or the new list);
 and whose `Context()` returns the run's context `ci`, a weak one (`srvCtxWeak ci cd`, k8s 7f-4 item
 7: etcd's stream interceptor may pass a `cancellableContext`) with its library values and span well
-formed (`context.libCtxOk ci`, `trace.spanCtxOk ci`). Derived from the raw end with a weak context
+formed (`context.libCtxOk ci`, `trace.spanCtxOk ci`), nothing at net/http's keys in the chain form
+(`http.netCtxOkC ci`, the raw end's) and its causes context errors or etcd's no-leader error
+(`v3rpc.ctxCauseOk ci`, Addendum T-k). Derived from the raw end with a weak context
 (`srvStreamIs_of_raw`, over `srvRawStreamIsW`). -/
 def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -533,46 +551,14 @@ def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
-    srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci)
+    srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ http.netCtxOkC ci ∗
+    v3rpc.ctxCauseOk ci)
 
 instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) :
     Persistent (srvStreamIs st γ Req Rep Up Dn ci cd) := by
   unfold srvStreamIs; infer_instance
-
-/-- (TEMPORARY, k8s 7f-4 item 7: until step 5 re-proves `LeaseKeepAlive` over the weak end; nothing
-produces it) `srvStreamIs` with grpc's strong run context, as it was before item 7. -/
-def srvStreamIsStrong (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ L : List Req.M,
-      {{ srvRecvTok (Req := Req) γ L }}
-        (App (Val #(methods si.ty go!"Recv" si.v)) (Val #()))
-      {{ (req : Loc) (err : GoInterface), RET (PairV #req #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : Req.M, Req.recv req m ∗ Up L.length m ∗
-            srvRecvTok (Req := Req) γ (L ++ [m])) ∨
-          (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
-            upClosed (Req := Req) γ L) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            srvRecvTok (Req := Req) γ L) }}) ∗
-    □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
-      {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
-        (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
-      {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ ∃ L' : List Rep.M,
-            ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
-      {{ RET #(GoInterface.ok ci); True }}) ∗
-    context.isContext ci cd ∗ grpcRunCtx ci)
-
-instance srvStreamIsStrong_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) :
-    Persistent (srvStreamIsStrong st γ Req Rep Up Dn ci cd) := by
-  unfold srvStreamIsStrong; infer_instance
 
 /-! ## The client end -/
 
@@ -683,7 +669,7 @@ theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
       (google_golang_org.grpc.GenericServerStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Dn ci cd := by
   iintro ⟨#Hf, #Hraw, #Hown⟩
   iunfold srvRawStreamIsW at Hraw
-  icases Hraw with ⟨%si, %Hst, #HRecv, #HSend, #HCtx, #Hctx, #Hrc⟩
+  icases Hraw with ⟨%si, %Hst, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #Hrs, #Hnet, #Hcause⟩
   subst Hst
   unfold srvStreamIs
   iexists _
@@ -906,7 +892,7 @@ a handler `h`, it either calls `h` once on the same service value and a server e
 same stream with the same context (the same queues, tokens, contents and context `ci`, its
 descriptor possibly another: grpc-prometheus wraps `ss` in a counting `monitoredServerStream`
 whose `Context()` is `ss.Context()`; etcd's `newStreamInterceptor` passes `ss` unchanged when the
-client does not require a leader, `runsNoRequireLeader`; G2, 2026-10-30: until then the handler's
+client does not require a leader; G2, 2026-10-30: until then the handler's
 context was any, which a metadata-indexed stream spec cannot use) and returns its result, or returns a non-nil error without calling `h`; `R` comes back either way. The caller
 gives both continuations (`∧`: one is taken). The handler returns an `error` value (a
 deferred-call wrapper needs this, as `srvInterceptorOk` does) that grpc's `status` takes

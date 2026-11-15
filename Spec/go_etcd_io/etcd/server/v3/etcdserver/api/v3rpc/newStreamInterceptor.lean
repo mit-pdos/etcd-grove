@@ -42,8 +42,8 @@ leader, on a `serverStreamWithCtx` whose context is a `cancellableContext` over
 metadata), removed and cancelled when the handler returns. Premises: `newUnaryInterceptor.spec`'s
 (the member id, `lead`, the cluster with the local member kept), `monitorLeader.spec`'s
 (`GoAttach`'s slots, returned; the `stopping` channel; the two configuration fields),
-`newCancellableContext.spec`'s bound on threads, and `runsNoRequireLeader` (unused since item 7;
-deleted at step 6). -/
+and `newCancellableContext.spec`'s bound on threads (`runsNoRequireLeader`, unused since item 7, deleted
+at step 6). -/
 abbrev v3rpc.newStreamInterceptor.spec : Prop :=
   ∀ (s c ch : Loc) (mid tm et : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -52,7 +52,7 @@ abbrev v3rpc.newStreamInterceptor.spec : Prop :=
       membership.isRaftCluster c ∗ membership.localKept c ∗
       srvGoRes s ∗ srvLgReader s ∗ srvStoppingAddr s ↦□ ch ∗ stopChan ch ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ tm ∗ cfgElectionTicksAddr (srvCfgAddr s) ↦□ et ∗
-      v3rpc.runsNoRequireLeader ∗ ⌜threadBound GF ≤ 2 ^ 30⌝ }}
+      ⌜threadBound GF ≤ 2 ^ 30⌝ }}
     (App (Val (@! v3rpc.newStreamInterceptor)) (Val #s))
   {{ (ic : GoFunc), RET #ic;
       srvStreamInterceptorWOk ic iprop(True) ∗ srvGoRes s ∗ srvLgReader s }}

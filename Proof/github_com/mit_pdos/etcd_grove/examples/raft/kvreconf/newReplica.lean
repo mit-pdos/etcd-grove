@@ -77,7 +77,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     $$ Hsdc Hsdoc with ⟨%γsd, -, #HsdH, HsdP, HsdC⟩
   -- the stored snapshot opened for the two writers (`run`'s `ApplySnapshot`, the snapshot
   -- goroutine's `CreateSnapshot`/`Compact`)
-  imod memSnapNone_open γs $$ Hsnap with #HsnLb
+  imod memSnapNone_open_empty γs $$ Hsnap with #HsnLb
   try wp_auto
   wp_apply wp_Clone.1 cs0 DFrac.discard (bootCS vs) $$ [$Hproto $Hcs0] as %csp ⟨-, Hcsp⟩
   try wp_auto

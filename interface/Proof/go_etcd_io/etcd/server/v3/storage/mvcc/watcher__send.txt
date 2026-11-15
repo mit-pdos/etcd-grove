@@ -6,9 +6,6 @@ theorem mvcc.keptPairs_all (fs : List (mvcc.EvM → Bool)) (es : List Loc) (evm 
     Nat) (hl : es.length = evm.length) (hm : es.length ≤ m) : mvcc.keptPairs fs es evm m =
     List.filter (fun x => fs.all fun p => !p x.snd) (es.zip evm)
 
-theorem mvcc.evIs_filter (p : Loc × mvcc.EvM → Bool) (l : List (Loc × mvcc.EvM)) : ([∗list] x ∈ l,
-    mvcc.evIs x.fst x.snd) ⊢ [∗list] x ∈ List.filter p l, mvcc.evIs x.fst x.snd
-
 def mvcc.keptPairs (fs : List (mvcc.EvM → Bool)) (es : List Loc) (evm : List mvcc.EvM) (m : Nat) :
     List (Loc × mvcc.EvM) :=
   List.filter (fun x => fs.all fun p => !p x.snd) (List.take m (es.zip evm))
@@ -31,7 +28,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec) : mvcc.watcher
                         (if evm = [] then True
                           else monoListAuthOwn γw.evs (Qp.half 1) evsw ∗ mvcc.evsWf γ r γw.lo (evsw ++ evm) d) ∗
                           ownSlice wr.Events' es dq ∗
-                            ([∗list] x ∈ es.zip evm, mvcc.evIs x.fst x.snd) ∗
+                            ([∗list] x ∈ es.zip evm, mvcc.evOwn x.fst x.snd) ∗
                               mvcc.covPre γ γw.wc wr.Revision' cs ∗
                                 mvcc.covAuth qa cs ∗
                                   mvcc.notifiedLent γ nl ∗
@@ -56,7 +53,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec) : mvcc.watcher
                 typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcher go!"ch" w) ch
                       (DFrac.own qc) ∗
                     dghostVar γw.live (DFrac.own ql) true ∗
-                      (if b = true then ownSlice wr.Events' es DFrac.discard else ownSlice wr.Events' es dq) ∗
+                      (if b = true then ownSlice wr.Events' es DFrac.discard
+                        else ownSlice wr.Events' es dq ∗ [∗list] x ∈ es.zip evm, mvcc.evOwn x.fst x.snd) ∗
                         (if evm = [] then True
                           else monoListAuthOwn γw.evs (Qp.half 1) (if b = true then evsw ++ evm else evsw)) ∗
                           mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗ CS -∗

@@ -34,6 +34,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
+
 namespace internal
 namespace common
 

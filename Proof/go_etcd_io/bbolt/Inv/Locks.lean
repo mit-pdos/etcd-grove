@@ -26,12 +26,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI go_etcd_io.bbolt
 
 section locks
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -70,9 +72,18 @@ def metaCellsQ (q : Qp) (ms : MapSt) (C : CommitSt) : IProp GF :=
       bytesPointsto (base +ₗ (4096 : Int)) (DFrac.own q) C.m1)
   | none => iprop(emp)
 
-/-- A share of the meta slots' page-cache bytes, holding `C`'s metas (clean or not). -/
-def metaOsBytes (p : GoString) (dq : DFrac) (C : CommitSt) : IProp GF :=
-  iprop(∃ xs : List (w8 × Bool), osBytes p 0 dq xs ∗ ⌜xs.map Prod.fst = C.m0 ++ C.m1⌝)
+/-- **The database's file** (the port onto the per-byte extension, 2026-11-12): its path (`db.path`,
+the `*os.File`'s name, `fileOwn`) and its inode (every file resource: `osMeta`, `osBytes`, `osFd`).
+One record, so that the invariants keep one file parameter. -/
+structure BFile where
+  path : GoString
+  ino : Ino
+deriving Inhabited
+
+/-- A share of the meta slots' page-cache bytes, holding `C`'s metas (their crash candidates
+any). -/
+def metaOsBytes (p : BFile) (dq : DFrac) (C : CommitSt) : IProp GF :=
+  iprop(∃ xs : List ByteG, osBytes p.ino 0 dq xs ∗ ⌜xs.map Prod.fst = C.m0 ++ C.m1⌝)
 
 /-- The `*os.File` `f` is open on `fd`, named `name` (`os.ownFile`'s body, `fileOwn_eq`). -/
 def fileOwn (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
@@ -134,7 +145,7 @@ closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots
 bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
 reader part, and, while open, the committed state's well-formedness; the txids are at least 1
 (U3 finding 6: `ReleasePendingPages` computes `t - 1` of each, which wraps at 0). -/
-def metaR (B : BNs) (db : Loc) (p : GoString) : IProp GF :=
+def metaR (B : BNs) (db : Loc) (p : BFile) : IProp GF :=
   iprop(∃ (C : CommitSt) (F : GMap Nat w64) (cl : Bool) (fli : GoInterface) (wa : GoFunc),
     ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
     ghostVar B.cls (1 : Qp).half cl ∗
@@ -206,12 +217,12 @@ def wCells (ms : MapSt) (W : List Nat) : IProp GF :=
 
 /-- The writer's page-cache bytes of the `W` slots inside the file (`osBytes` whole), the partial
 last slot's too (batch 9: a file truncated to `growSize + AllocSize` need not end on a page). -/
-def wBytes (p : GoString) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IProp GF :=
+def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IProp GF :=
   iprop([∗list] s ∈ W, if 4096 * (s + 1) ≤ size then
-    iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp))
 
@@ -265,7 +276,7 @@ def wdbOK (w : WDb) : Prop :=
 `wdbLive`), and its share `mq` of the mapping fields (½ idle; ¼ live, the writer's fractions
 holding the other quarter, `wtxFrac`); its half of `db.ops.writeAt` is the file's `WriteAt`
 method value (batch 37, U10: `Open` sets `db.ops.writeAt = db.file.WriteAt`). -/
-def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (mq : Qp) (w : WDb) :
+def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w : WDb) :
     IProp GF :=
   iprop(
     ghostVar B.cur (1 : Qp).half.half w.C ∗
@@ -275,11 +286,11 @@ def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (mq : Qp)
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
       methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p ∗
+    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p.path ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own mq) w.ms ∗
-    osMeta p (DFrac.own 1) (some w.m) ∗ fileOwn w.f w.fd p (DFrac.own 1) ∗
-    osFd w.fd (DFrac.own 1) ⟨p, true, true⟩ ∗
+    osMeta p.ino (DFrac.own 1) w.m ∗ fileOwn w.f w.fd p.path (DFrac.own 1) ∗
+    osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
     wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
     (match w.junk with
@@ -287,26 +298,26 @@ def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (mq : Qp)
      | none => iprop(emp)))
 
 /-- The idle writer side's core: no `rwtx`, no live writer. -/
-def wdbCore (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
+def wdbCore (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
   wdbCoreG B db p null wIdle (1 : Qp).half w
 
 /-- **The writer side's resources** (design §3.5): `wdbCore`, its quarter of the data, the
 freelist object but its reader part, the spare reader-token pair, and the receipts
 `⧗ (C.txid - t0)`. -/
-def wdbOwn (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
+def wdbOwn (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
   iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
     flPgOwn w.fli w.fl ∗ sparePair B db sp ∗ receipt (w.C.txid - t0))
 
 /-- **A live writer's database side** (in its exclusive part, `txExcl`): `db.rwtx` is the
 transaction `tx`, the store's writer state `ws`; its quarter of the data is in `wtxFrac`. -/
-def wdbLive (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
+def wdbLive (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
     (w : WDb) : IProp GF :=
   iprop(wdbCoreG B db p tx ws (1 : Qp).half.half w ∗ flPgOwn w.fli w.fl ∗ sparePair B db sp ∗
     receipt (w.C.txid - t0))
 
 /-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` and the
 data's quarter, with no freelist (`fl = ∅`, `db.freelist` nil). -/
-def wdbOpen (B : BNs) (db : Loc) (p : GoString) (w : WDb) : IProp GF :=
+def wdbOpen (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
   iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
     ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
@@ -323,7 +334,7 @@ def closedR (B : BNs) (db : Loc) : IProp GF :=
     (∃ wa : GoFunc, (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa))
 
 /-- **`rwlock`'s resource**: the writer's database side while idle, or closed. -/
-def rwR (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) : IProp GF :=
+def rwR (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) : IProp GF :=
   iprop((∃ w : WDb, wdbOwn B db p sp t0 w ∗ ⌜wdbOK w⌝ ∗ ghostVar B.cls (1 : Qp).half false) ∨
     closedR B db)
 

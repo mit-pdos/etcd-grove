@@ -63,6 +63,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
          'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
+         # restart S7 (2026-11-14, notes/restart-s7-scope.md): one member stopped and restarted
+         'github_com.mit_pdos.etcd_grove.examples.etcd.restart1',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv',
@@ -82,6 +84,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # the auth3 Scope's A1 (2026-11-14): authkv with three members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
          # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
@@ -355,7 +359,7 @@ And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program 
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
 `"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
-extensions `osFsExt` and `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
 packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).''',
     pre=['namespace runtime', '',
@@ -964,7 +968,7 @@ untranslated `init` functions the trust-boundary axiom `initFuncsOk` says return
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
     doc='''Its fact (`featuresInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a gate with
 the specs of `k8sfeature.featureGateOk` (`util/feature/Gate.lean`: `Enabled` of the queried
-features, `Set` of one to `false`). Its initializer initializes its import (`util/feature`, whose
+features, `Set` of one to its `k8sSetValue`). Its initializer initializes its import (`util/feature`, whose
 fact gives the gate) and runs its variable's untranslated initializer (`opaqueInitsOk`) and its
 untranslated `init` (`kube_features.go:347-350`, `DefaultMutableFeatureGate.AddVersioned(...)` and
 `zpagesfeatures.AddFeatureGates(...)` under `runtime.Must`), whose trust-boundary axiom
@@ -2840,6 +2844,8 @@ def gen_ext():
 # D19r, 2026-10-18): the root package and the module of the generated table.
 PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.restart1':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
@@ -2866,6 +2872,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.auth':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.auth3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
@@ -3253,7 +3261,6 @@ def main(argv):
     outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init()]
-        outs += lfs_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

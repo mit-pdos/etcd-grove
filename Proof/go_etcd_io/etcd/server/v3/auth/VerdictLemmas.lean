@@ -41,7 +41,7 @@ theorem userOut_null (st : AuthState) (name : GoString) :
   | some roles =>
     iintro ⟨%ur, -, Hu⟩
     iunfold ownUser at Hu
-    icases Hu with ⟨%s1, %n, %pw, %rl, %o, %uf, %sc, Hp, -⟩
+    icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hp
     exact absurd rfl Hnn
 

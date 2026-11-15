@@ -26,6 +26,38 @@ namespace EtcdGrove
 
 open Iris Iris.BI
 
+section recv
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **A channel a receive may complete on with any outcome** (the index waiter's: etcd's
+`wait.WaitTime`'s, closed once the index is applied; a context's Done channel): a receive's atomic
+update for any postcondition that holds of every outcome. (Moved here from `TokenSimple.lean` by
+auth-schema-fix S1, 2026-11-12, for `auth.ctxDoneRecv`.) -/
+def auth.anyRecv (ch : Loc) : IProp GF :=
+  iprop(∃ γ : ChanNames, isChan ch γ Unit ∗
+    □ (∀ Φ : Unit → Bool → IProp GF, (∀ v ok, Φ v ok) -∗ recvAu γ Unit Φ))
+
+instance auth.anyRecv_persistent (ch : Loc) : Persistent (auth.anyRecv (GF := GF) ch) := by
+  unfold auth.anyRecv; infer_instance
+
+/-- **`ctx.Done()` returns nil or a channel a receive may complete on with any outcome**
+(persistent; generic in the later credits, as the auth store's invariant and the token provider's
+contract are: the contract's `info` premise; auth-schema-fix S1, decided by etcd-grove-81,
+2026-11-12). `auth.ctxDoneAny` (at `HasLC.hasLC`, over Perennial's contexts) gives it
+(`auth.ctxDoneRecv_of_ctxDoneAny`). -/
+def auth.ctxDoneRecv (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(□ {{ True }} (App (Val #(methods ctx.ty go!"Done" ctx.v)) (Val #()))
+    {{ (ch : GoChan), RET #ch; ⌜ch = chan.nil⌝ ∨ auth.anyRecv ch }})
+
+instance auth.ctxDoneRecv_persistent (ctx : GoInterfaceOk) :
+    Persistent (auth.ctxDoneRecv (GF := GF) ctx) := by
+  unfold auth.ctxDoneRecv; infer_instance
+
+end recv
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -62,6 +94,30 @@ theorem auth.ctxDoneAny_of_isContext (ctx : GoInterfaceOk) (s : context.ContextD
   iright
   iexists s, γch
   iexact Hd
+
+/-- **`ctxDoneAny` gives `ctxDoneRecv`**: a context's Done channel is a channel a receive may
+complete on with any outcome (`isContextDone_is_chan`, `isContextDone_receive`). -/
+theorem auth.ctxDoneRecv_of_ctxDoneAny (ctx : GoInterfaceOk) :
+    auth.ctxDoneAny ctx ⊢ auth.ctxDoneRecv (GF := GF) ctx := by
+  iintro #H
+  unfold auth.ctxDoneRecv
+  iintro !> %Φ !> - HΦ
+  unfold auth.ctxDoneAny
+  iapply H $$ []
+  · itrivial
+  iintro !> %ch Hch
+  iapply HΦ
+  icases Hch with (%Hnil | ⟨%s, %γch, #Hd⟩)
+  · ileft; ipureintro; exact Hnil
+  iright
+  unfold auth.anyRecv
+  iexists γch
+  isplitr
+  · iapply context.isContextDone_is_chan $$ Hd
+  iintro !> %Ψ HΨ
+  iapply context.isContextDone_receive _ _ _ _ $$ Hd
+  iintro -
+  iapply HΨ
 
 end defs
 

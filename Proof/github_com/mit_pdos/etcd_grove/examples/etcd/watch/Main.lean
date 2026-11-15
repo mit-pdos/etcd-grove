@@ -107,7 +107,7 @@ theorem Main.wp_proof
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
   -- packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -388,7 +388,7 @@ theorem Main.wp_proof
     · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by decide⟩
+      refine ⟨OpFull.isRangeWatchP_of ?_, hnp, by decide⟩
       unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
       exact ⟨ht, hr, hpv, hfr, hfp, hfd⟩
     iintro !> %h

@@ -33,6 +33,237 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Handoff point (2026-11-13, end of the tenth agent's context): step 6 done; 7f-5's Scope next
+
+Step 5 landed (lean `edd43a9b44`). Step 6 (`runsNoRequireLeader` deleted; freeze note "Step 6", the 18 closed
+theorems) built, gated (tcb and every collection unchanged), merged with `merge-origin-1113` (origin's
+bbolt port), being landed by the tenth agent (see the report). **Next (81's instruction):** 7f-5 — draft
+its Scope from `notes/k8s-7f-scope.md` §9 (7f-5a: the etcd3 watcher's serial branch, `store.Watch.spec`,
+`k8sWatch`, the trust specs; 7f-5b the concurrent branch), as `notes/k8s-7f5-scope.md`, and STOP for 81's
+review before any Lean. Check first what 7f-5a depends on: 7f-3 (`WithPrevKV` through the watch stack;
+its status: not in STATUS), 7c-3, 7e-1, sweep repairs B5.
+
+## Tenth agent, continued (2026-11-13): T-k landed (lean `3d0966ffdc`); step 5's LeaseKeepAlive over the weak end
+
+`e13ec16980`: `LeaseServer.LeaseKeepAlive`/`leaseKeepAlive` take grpc's weak stream end (`srvStreamIs`, which
+gains `http.netCtxOkC ci`, carried from `srvRawStreamIsW` by `srvStreamIs_of_raw`); `srvStreamIsStrong`
+deleted (MINOR f's temporary state gone: the premises now come from the weak end); the loop's context
+`Err()` (stream-error logging) and `LeaseKeepAlive`'s `Err()` after `Done` are paid with the level token
+(`LeaseKeepAlive.spec` takes and returns `levelTok v3rpc.ctxErrLvl`, as `Watch.spec`). Proofs only: no
+axiom, opaque or trusted text changed. **Next:** step 6 (deleting `runsNoRequireLeader`) is a hard stop:
+report to 81 before starting it.
+
+## Tenth agent (2026-11-13): T-k written and built; STOPPED for 81's axiom review
+
+`684f8ffda2` (Lean), `236001ff3b` (Go evidence), merged with lean `709538af50` (the CI layout fix).
+Addendum T-k4 of `notes/k8s-7f4-freeze.md` has the texts as written: the opaque `v3rpc.ctxCauseOk`
+(`SrvCtxWeak.lean`), (a) `grpcRunCtx`'s fifth part, **(b) folded into (c)** `v3rpc.ctxCauseOk_cancellable`
+(`InvCancellable.lean`; deviation toward soundness, for the review), (d) `Tracer.Start`'s wand, (e)
+`wp_WithTimeout_weak`; `RenewHTTP`/`leaseTimeToLive` take it; `LeaseRenew` on `wp_WithTimeout_weak`
+(default arm reachable, logged); `raftLeaseRenew`, `leaseKeepAlive` (level token), `LeaseKeepAlive`
+(`5 ≤ threadBound`), the `LeaseTimeToLive` chain. Checks: T-k4's "Checks run, T-k".
+**Next, after the review:** tcb/collections `--update` (the new axiom `v3rpc.ctxCauseOk_cancellable`,
+reached by the roots through the stream path, and `wp_WithTimeout_weak` now reached by `LeaseRenew`);
+land via `etc/land.sh` on 81's go; then `LeaseKeepAlive`/`leaseKeepAlive` over the weak stream end (drop
+`srvStreamIsStrong`: `srvStreamIs` now carries `ctxCauseOk`); stop before step 6.
+T-k reviewed by 81 (no BLOCKER/MAJOR; MINORs fixed, freeze note "T-k review"). Known temporary state
+(review MINOR f): `LeaseKeepAlive`/`leaseKeepAlive`'s new premises (`5 ≤ threadBound`, the level token,
+`ctxCauseOk` through `srvStreamIsStrong`'s `grpcRunCtx`) have no producer yet; the chain still starts from
+`srvStreamIsStrong`, produced by nothing, until it is re-proved over the weak end. Step 6 (deleting
+`runsNoRequireLeader`) stays a hard stop: report before starting it.
+Pitfalls: in `renew_forward` (a `hygiene false` macro) errors are reported at the macro's call site;
+to see a goal inside it, insert `fail "DBG"` and check with `etc/lean-check.py -q -a`. Goose
+evaluates call arguments before the receiver (`s.Logger().Warn(.., zap.Error(err))`: `zap.Error`,
+the slice literal, then `Logger()`).
+
+## Handoff point (2026-11-13, end of the ninth agent's context): T-j landed; T-k designed, not in Lean
+
+Landed: lean `0b2a6e3247` (T-j with the review's minors; tcb baseline 867 axiom lines, 4 sorries).
+**T-k** (the T-j review's MAJ-1, `RenewHTTP` refuted through `context.Cause`; also
+`leaseTimeToLive`, by the sweep): `notes/renewhttp-cause-refuted.md`, audit rows, Go tests
+(`TestRenewHTTPCausePanics`, `TestLeaseTimeToLiveFollowerCausePanics`), the sweep table and the proposed
+texts in Addendum T-k of `notes/k8s-7f4-freeze.md` (T-k0..T-k3). **Waiting for 81's decisions T-k3 1-3.**
+**Next, in order:** write T-k2's texts in Lean as decided (opaque `v3rpc.ctxCauseOk` in `SrvCtxWeak.lean`;
+grpc's `grpcRunCtx`/`srvRawStreamIs` claims; laws (b), (c); `Tracer.Start`'s wand; `wp_WithTimeout_weak`'s
+premise/post; `RenewHTTP`/`leaseTimeToLive` premises; `LeaseRenew` on `wp_WithTimeout_weak` with
+`srvCtxWeak ∗ levelTok v3rpc.ctxErrLvl ∗ ctxCauseOk`, `raftLeaseRenew`, `leaseKeepAlive` via
+`srvStreamIsStrong`; the LeaseTimeToLive chain); build; tcb `--check` (report, no update); axiom-tok
+(entry for `wp_WithTimeout_weak`'s level token once reached); model-param; gen-interface; STOP for 81's
+axiom review. Nothing else may rely on `RenewHTTP.spec` beyond `LeaseRenew` until T-k lands. Then
+`LeaseKeepAlive`/`leaseKeepAlive` over the weak end (drop `srvStreamIsStrong`); stop before step 6.
+Pitfall: `httptest.Server.Close` waits for handlers; a handler blocking on `r.Context().Done()` can hang
+it (the transport need not close the connection on cancel): bound it with `time.After`.
+
+## Ninth agent (2026-11-13): Addendum T-j written and built; STOPPED for 81's axiom review
+
+`43357ed9bc` (+ the notes commit after it): `context.madeCancelCtx` (opaque, `Proof/context/MadeCancelCtx.lean`)
+and the trusted law `madeCancelCtx_of_isCancelCtx`; `v3rpc.ctxDoneErr`/`ctxChildErr` and laws
+(`SrvCtxWeak.lean`); the local axiom `v3rpc.wp_WithTimeout_weak` (`v3rpc/WithTimeoutWeak.lean`);
+`waitLeader`/`RenewHTTP` on `ctxDoneErr` (RenewHTTP keeps `netCtxOk`). **Finding T-j0**: T-h2's
+`ctxDoneErr` without `#HParentCC` makes `RenewHTTP` panic via `propagateCancel`'s afterFuncer arm
+(`TestRenewHTTPAfterFuncPanics`); `ctxDoneErr` keeps `#HParentCC` over `madeCancelCtx`. Checks: Addendum
+T-j "Checks run, T-j" (tcb: one NEW axiom line, not updated). **Next, after the review:** tcb/collection
+`--update`; `LeaseRenew` on `wp_WithTimeout_weak` (premise `srvCtxWeak ∗ levelTok`, T-h4: the default arm
+becomes reachable), `LeaseKeepAlive`/`leaseKeepAlive` over the weak stream end (drop `srvStreamIsStrong`),
+axiom-tok entry for `wp_WithTimeout_weak`; stop before step 6.
+
+## Handoff point (2026-11-13, end of the eighth agent's context): T-i landed; LeaseKeepAlive next
+
+Landed: lean `7b414c87f3` (T-i with the review's m1-m7: `etc/bgcancel-check.py` in `etc/gates.sh`;
+`issues/etcd-timeout-transport-rw-timeouts-unused.md`; baselines without
+`context.WithCancelBackground.wp_proof`, 866 axiom lines). Nothing unlanded on the branch.
+
+**Next, in order** (81: "LeaseKeepAlive with T-h5's option (A); its trusted texts stop for my review"):
+1. Trusted texts, as a new Addendum (T-j) in `notes/k8s-7f4-freeze.md`, written in Lean, built, then
+   **STOP for 81's review** before any proof relies on them (T-h2 and T-h5 of the freeze note give the
+   design):
+   - `context.madeCancelCtx c` (new opaque, trusted: "allocated by `context`'s constructors, fields
+     written only by `context`'s code") and the trusted law `madeCancelCtx_of_isCancelCtx`
+     (Perennial's `isCancelCtx` holds only of the constructors' contexts);
+   - `v3rpc.ctxDoneErr c s` (`SrvCtxWeak.lean`): `srvCtxWeak` without `#HParentCC`, `#HValue` at
+     `&cancelCtxKey` returning nil, another dynamic type, or a `*cancelCtx` with `madeCancelCtx`
+     (option (A); NOT T-h2's `#HValueAny`, refuted by `TestRenewHTTPNilCancelCtxPanics`);
+     `v3rpc.ctxChildErr` (no token, `Err` nil or `isCtxErr ∨ noLeaderErr`); laws
+     `ctxDoneErr_of_srvCtxWeak` (needs `madeCancelCtx_of_isCancelCtx`), `ctxDoneErr_of_child`;
+   - the marked local axiom `v3rpc.wp_WithTimeout_weak` (new `v3rpc/WithTimeoutWeak.lean`, header
+     "TRUST BOUNDARY, local, delete when notes/perennial-changes.md's 'context model over an error
+     predicate' lands"): T-h2's statement, its post also `madeCancelCtx` of the child's embedded
+     `*cancelCtx` via `ctxChildErr`; no netCtxOk wand needed (`ctxValueFrom parent ctx'` carries the
+     chain form, T-h as written);
+   - `waitLeader.spec`/`RenewHTTP.spec` move to `ctxDoneErr` (weaker premises); Go evidence: the
+     existing `TestWithTimeoutWeak`, `TestNoLeaderTyped`, `TestRenewHTTPNilCancelCtxPanics` in
+     `examples/premisefix/streamctx`, plus a test that a `madeCancelCtx`-shaped value (a real child)
+     is fine.
+   Gates for the review: build, `tcb-report --check` (report, no `--update`), collections, axiom-tok
+   (entries for the new axiom's level token, as T-f'), model-param, gen-interface `--check`.
+2. After the review: `LeaseKeepAlive`/`leaseKeepAlive` re-proved over the weak stream end (drop the
+   temporary `srvStreamIsStrong`), `LeaseRenew` on `wp_WithTimeout_weak`; stop before step 6 (a hard
+   stop; report the closed theorems it reaches).
+
+Build: targeted `lake build --packages=/shared/tmp/manifest-ddc.json <modules>` under
+`systemd-run --scope -q -p MemoryMax=64G`, then the full one with `etc/timed-build.py` under
+`flock /shared/tmp/etcd-grove-build.lock`; land only via `etc/land.sh` (GOWORK unset), after 81's go.
+
+## Eighth agent (2026-11-13): T-h0 + T-h6 landed; T-i written; STOPPED for 81's axiom review
+
+Landed: lean `9c583ebbcf` (T-h0 + T-h6 with the T-h review's minors m1-m4, `ee11f69d91`; merged with
+ctx-sweep fixes). **T-i** (`47ef0d7df0`, Addendum T-i of `notes/k8s-7f4-freeze.md`,
+`notes/roundtripper-ctx-refuted.md`, audit row, Go tests `examples/premisefix/rtctx`): `http.WithContext_ok`
+with rafthttp's round trippers refuted; fix: `WithContext_spec`'s post `http.reqCtx r' ctx` (opaque,
+persistent), `roundTripperOk`'s `RoundTrip` takes `http.reqCtxBg r` (`context.bgCancelChild`,
+`Proof/context/BgCancel.lean`: a `*cancelCtx` whose parent field is `Background()`), `netErr`'s
+docstring names `context.Canceled`; `context.WithCancelBackground.spec`'s post gains `bgCancelChild` and
+its axiom is now a proof (trust base: one axiom fewer); `srFixed` carries `bgCancelChild`.
+**Next, after 81's review of T-i:** tcb/collection baselines (`--check --update`, axiom removed),
+land; then T-h5 (`ctxDoneErr`, `ctxChildErr`, `wp_WithTimeout_weak` with option (A)) with
+LeaseKeepAlive.
+
+## Seventh agent (2026-11-13): T-h0's fix written; T-h5 soundness finding; STOPPED for 81
+
+Done (each lean-checked `-a`, 0 errors): `da77c070e5` T-h0's fix (handoff steps 1, 2, 4's `RenewHTTP`
+part, 6, 7: `Proof/net/http/NetCtx.lean`; `srvRawStreamIs`/`srvRawStreamIsW`/`srvStreamIsStrong` gain
+`http.netCtxOkC ci`; `v3rpc.wrapperNetCtx`; `RenewHTTP.spec` takes `http.netCtxOk`; `Tracer.Start.spec`'s
+post a **chain-form** wand; `LeaseRenew.spec`, `raftLeaseRenew` take `http.netCtxOkC`), `00ce547d39`
+(`TestRunCtxChain` checks the keys). `etc/goose.py --check` passes. **T-h5** (freeze note): T-h2's
+`ctxDoneErr` `#HValueAny` would make `RenewHTTP` false (typed-nil `*cancelCtx`,
+`TestRenewHTTPNilCancelCtxPanics`); `ctxDoneErr`/`ctxChildErr`/`wp_WithTimeout_weak`/`waitLeader` NOT
+written. Recommended: land T-h0's fix alone; the rest with option (A) at LeaseKeepAlive.
+Build of T-h0 (`00ce547d39`): full build green (20261113-011402). Then 81 added the sweep's two
+findings: (1) **done**, `9212d8cdea` T-h6 (`leaseTimeToLive` takes `http.netCtxOk`; `grpcRunCtx` gains
+it, `netCtxOk_of_runCtx`; LeaseTimeToLive's specs/contract carry it; `examples/etcd/lease/ctxsweep_test.go`;
+`notes/leasetimetolive-value-refuted.md`; audit row). (2) **NEXT, not started**: `http.WithContext_ok`
+with `rafthttp.NewRoundTripper`/`newStreamRoundTripper` (`roundTripperOk`): record the request's context
+(`reqCtx` in `reqOwn` or a persistent `reqCtxIs`), `WithContext_spec` takes `isContext ∗ http.netCtxOk`
+(or a Background chain: every caller passes `WithCancel(Background())`; `http.netCtxOkC` of a child of
+Background: `ctxValue_background` + `http.netCtxOkC_from`), `roundTripperOk`'s `RoundTrip` uses it; widen
+`netErr`/`errStrOk` if the done-context error comes back. Findings: 81's workflow journal
+`/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_91727eee-383/journal.jsonl`
+(search `WithContext_ok`). Record it in `notes/` (as `leasetimetolive-value-refuted.md`), Addendum T-h
+(a T-h7 section), audit row. Then build, tcb --check (report, no --update; collections only after
+81's review), axiom-tok, model-param, gen-interface --check, goose --check; STOP for 81's axiom review.
+Gates script: `/shared/tmp/k8s7f4/gates/run.sh` (outputs in its directory).
+Checks on `6d7f05f9aa` (T-h0 + T-h6): full build green (20261113-012612, 17567 jobs); `tcb-report --check`
+matches the baseline (867 axioms, 4 sorries: no axiom added or removed, only restated); every collection
+matches; axiom-tok ok (813 walked, 779 pass, 34 by an entry) and selftest; model-param, errdesc ok;
+gen-interface --check on every API list: no diff; goose --check ok; Go tests pass
+(`examples/premisefix/streamctx`, `examples/etcd/lease` T-h6 test).
+Pitfall: inside `local macro` tactic quotations (`renew_forward`), `ihave #X := lemma $$ [...]` names do
+not resolve later (hygiene); use the `ihave #X : P $$ []` form and `$Name` is an antiquotation there.
+
+## Handoff point (2026-11-13, end of the sixth agent's context): T-h decided; Lean texts next
+
+81 decided T-h (questions.md, 2026-11-13): T-h0 a refutation of the landed `RenewHTTP.spec`, fix
+`http.netCtxOk ctx` (the three keys hold nil) with T-a's chain form extended to the three keys; T-h1/T-h2
+accepted (`ctxDoneErr` for `waitLeader`/`RenewHTTP`, `ctxChildErr` for the child, the marked axiom
+`v3rpc.wp_WithTimeout_weak`); `isTypedErr` NOT added. Wider context-key sweep: 81's own task, not here.
+T-h lands on its own after 81's axiom review, before LeaseKeepAlive's proofs.
+
+Done since: `3c58faced3` translates `net/http/httptrace` and `internal/nettrace` types only
+(`etc/goose.py` project etcd, lean-root `internal/nettrace=`; `Code/net/http/httptrace.lean`
+`net.http.httptrace.clientEventContextKey`, `Code/internal/nettrace.lean` `nettrace.TraceKey`,
+`nettrace.LookupIPAltResolverKey`, namespaces under `Perennial`; check the exact names); `6988f81872`
+`notes/renewhttp-value-refuted.md` and the audit row. Go tests in `36088aebf6`.
+
+**Next, in order (Lean texts of T-h; nothing written yet):**
+1. Keys and `http.netCtxOk` (new `Proof/net/http/NetCtx.lean` or beside `Proof/context/LibKeys.lean`):
+   `httptrace.clientEventKeyAny := interface.mkOk clientEventContextKey.ty #(zero_val ..)` (as
+   `metadata.mdIncomingKeyAny`), likewise the two nettrace keys; `http.netCtxOk ctx :=
+   valueAt ctx k₁ (· = nil) ∗ valueAt ctx k₂ (· = nil) ∗ valueAt ctx k₃ (· = nil)`; the chain form
+   `http.netCtxOkC ctx` (`ctxValue ctx kᵢ (· = nil)`), law `netCtxOk_of_netCtxOkC` (as
+   `context.libCtxOk_of_libCtxOkC`, `context.valueAt_of_ctxValue`), `netCtxOkC_from` over
+   `ctxValueFrom` (the keys are not `*int`: `notIntPtrKey`).
+2. grpc's raw stream end (trusted, `InvGrpcStream.lean:435`): `srvRawStreamIs` gains `http.netCtxOkC ci`
+   beside `context.libCtxOkC ci` (docstring: grpc's chain holds only grpc's, otel's and the transport's
+   keys, `TestRunCtxChain`); `srvRawStreamIsW` its weak copy likewise (non-trusted, law
+   `srvRawStreamIsW_of_raw`), the wrapper's carry as `v3rpc.wrapperLibCtx` (`WithCancel` child by
+   `ctxValueFrom`, the promoted `Value`).
+3. `v3rpc.ctxDoneErr`, `v3rpc.ctxChildErr` (in `v3rpc/SrvCtxWeak.lean`; text in the freeze note, T-h2),
+   laws `ctxDoneErr_of_srvCtxWeak`, `ctxDoneErr_of_child`, and `srvCtxWeak_of_isContext` already gives
+   the first from `isContext`.
+4. `waitLeader.spec`, `RenewHTTP.spec` on `ctxDoneErr ctx cd`; `RenewHTTP.spec` also `http.netCtxOk ctx`.
+5. The axiom (new `Proof/.../v3rpc/WithTimeoutWeak.lean`, header "TRUST BOUNDARY, local, delete when
+   notes/perennial-changes.md's 'context model over an error predicate' lands"): T-h2's statement, and
+   in the post also `□ (http.netCtxOk parent -∗ http.netCtxOk ctx')` (Go: `timerCtx.Value` at another key
+   walks to `parent.Value`), so that `LeaseRenew` keeps the WP form through it.
+6. `Tracer.Start.spec`'s post gains `□ (http.netCtxOk ctx -∗ http.netCtxOk ctx')` (a `WithValue` at the
+   span key; stronger post of an axiom: list it in T-h).
+7. Callers in this landing (LeaseRenew stays on `isContext` until LeaseKeepAlive): `LeaseRenew.spec`
+   gains `http.netCtxOk ctx` (internal; its callers: `raftLeaseRenew` contract
+   (`InvLeaseKeepAlive.lean:140`) gains it, `raftLeaseRenew_of_server` (`ServerLeaseRead.lean`)
+   threads it); its proof: `WithTimeout` stays Perennial's (`isContext ctx1`), `netCtxOk cctx` needs
+   Perennial's `wp_WithTimeout`'s `ctxValueFrom` plus the chain form: simplest is to take
+   `http.netCtxOkC ctx` in `LeaseRenew.spec` instead and carry it through `Tracer.Start`
+   (`ctxValue` across a `WithValue` at another key: `context.ctxValue_valueCtx`/`ctxValue_other`, if
+   Tracer.Start's post gives the link; otherwise the WP wand of step 6 with a WP-form premise and
+   step 5's wand once LeaseRenew uses the weak axiom). Decide by what Tracer.Start's post exposes.
+   `RenewHTTP`'s and `waitLeader`'s proofs-of-use: `ctxDoneErr_of_srvCtxWeak (srvCtxWeak_of_isContext ..)`.
+8. Build (targeted, then full), `etc/tcb-report.py --check` (expect: the new axiom
+   `v3rpc.wp_WithTimeout_weak` in the baseline diff only if a root reaches it; it is not used yet, so
+   likely NEW only in the repository axiom list), axiom-tok (new entries for the changed axioms'
+   level-token binders if it asks), gen-interface (`etc/api/*.txt`), goose --check, the Go tests.
+   Report the tcb diff WITHOUT `--update`. **STOP for 81's axiom review.** Then land T-h alone.
+9. After that: LeaseKeepAlive (`LeaseRenew` over `srvCtxWeak ∗ levelTok 4` with the axiom and the
+   reachable default arm: `errors.IsStatusErr.spec` for `ErrGRPCNoLeader` vs `Canceled`/
+   `DeadlineExceeded`, the zap warn, `ErrCanceled`), `raftLeaseRenew`, `leaseKeepAlive`/`LeaseKeepAlive`
+   over the weak end (the forked loop lends level 4 from its own thread token, `threadTok_lend4`),
+   drop `srvStreamIsStrong`; stop before step 6.
+
+## Sixth agent, continued (2026-11-13): landed; Addendum T-h written; STOPPED for 81's axiom review
+
+**Landed: lean `bc86a6f6aa`** (`etc/land.sh`, all gates, after 81 accepted the bounds-allow entries).
+81 decided option (c) for `WithTimeout` (questions.md). Writing it found (freeze note, Addendum T-h):
+T-h0, a **refutation of the landed `leasehttp.RenewHTTP.spec`** (a context whose `Value` at net/http's
+`httptrace` key panics meets `isContext`/`srvCtxWeak`; `TestRenewHTTPValuePanics`); T-h1, the child
+of a weak parent cannot be `srvCtxWeak` (its `#HValue`/`#HParentCC` would claim Perennial's cancelCtx
+invariant of a `*cancelCtx` storing `ErrGRPCNoLeader`); T-h2 the proposed texts (`ctxDoneErr`,
+`ctxChildErr`, the axiom `v3rpc.wp_WithTimeout_weak`, `waitLeader`/`RenewHTTP` premises,
+`isTypedErr` recommended not added); T-h3 Go tests (`TestWithTimeoutWeak`, `TestNoLeaderTyped`);
+T-h4 `LeaseRenew`'s default arm reachable. `notes/perennial-changes.md`: "The context model over an
+error predicate". **No Lean written for T-h.** Next after 81's review: the Lean texts, then
+`LeaseRenew` (over `srvCtxWeak ∗ levelTok 4`, the axiom, the default arm's log), `raftLeaseRenew`,
+`leaseKeepAlive`/`LeaseKeepAlive` over the weak end (the forked loop lends level 4 from its own
+thread token, `threadTok_lend4`, as Watch's recvLoop), drop `srvStreamIsStrong`; stop before step 6.
+
 ## Sixth agent (2026-11-12): the T-g review applied, landing; LeaseKeepAlive's `WithTimeout` blocked
 
 81's decisions on the T-g review (READY WITH CHANGES; questions.md): done in `7e10aa6b66` (M1: the

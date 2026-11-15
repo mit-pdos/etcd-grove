@@ -119,6 +119,7 @@ theorem apply.Apply.wp_proof
     · ipureintro; exact Hwn
     iexists raftReq_ptr
     iframe #
+    ipureintro; exact apply.irrDecode_utf8 _ rq Hdec
   subst Hui
   generalize hsk : (!need && !decide (lt = null)) = sk
   have hskt : sk = true → rq.txn.isSome = true := by

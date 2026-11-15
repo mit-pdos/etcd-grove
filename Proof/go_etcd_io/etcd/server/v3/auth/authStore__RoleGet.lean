@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.RoleGet.wp_proof :
     auth.authStore.RoleGet.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs r name
+  intro st R M P f T Wb hs r name
   wp_start as ⟨#Hinv, Hreq, Hown, HWR⟩
   iunfold roleGetReqIs at Hreq
   icases Hreq with ⟨%Hr, #Hname⟩
@@ -73,7 +73,7 @@ theorem auth.authStore.RoleGet.wp_proof :
   icases Hro' with ⟨%ps, %rr, %Hrr, Hro⟩
   obtain ⟨Hlook, Hrrn, Hrrp⟩ := Hrr
   iunfold ownRole at Hro
-  icases Hro with ⟨%rms, %rnm, %rkp, %pl, %ruf, %rsc, Hrp, #Hrnm, #Hrkp, %Hpl, Hperms⟩
+  icases Hro with ⟨%rms, %rnm, %rkp, %pl, %rsc, Hrp, #Hrnm, #Hrkp, %Hpl, Hperms⟩
   icases typedPointsto_split _ _ _ $$ Hrp with Hrp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hrp
@@ -135,9 +135,10 @@ theorem auth.authStore.RoleGet.wp_proof :
   iright
   iexists pl, rr.perms
   simp only [List.nil_append]
-  iframe Hsl Hperms
-  ipureintro
-  exact ⟨Hpl, Hrrp⟩
+  iframe Hsl
+  isplitr
+  · ipureintro; exact ⟨Hpl, Hrrp⟩
+  iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermS_W (GF := GF) x.1 x.2)) $$ Hperms
 
 end proof
 

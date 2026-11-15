@@ -976,7 +976,7 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
   have hser := txnSerializable_wire b.model
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   ihave #Hc0 : committedAtLeast γr (W64 0) $$ []
-  · unfold committedAtLeast
+  · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   -- the update: a writing transaction's, a linearizable read-only one's read update, or none

@@ -17,6 +17,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -26,12 +28,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-private instance isBoltP_persistent_sz [HasExt osFsExt] (B : BNs) (N : Namespace) (db : Loc)
-    (p : GoString) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
+private instance isBoltP_persistent_sz [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (db : Loc)
+    (p : BFile) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
-private instance isBoltCoreP_persistent_sz [HasExt osFsExt] (B : BNs) (N : Namespace) (db : Loc)
-    (p : GoString) (sp : Loc) (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
+private instance isBoltCoreP_persistent_sz [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (db : Loc)
+    (p : BFile) (sp : Loc) (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
   unfold isBoltCoreP dblAt t0At dbFixed dbLogger; infer_instance
 
 private instance reg_persistent_sz (tx : Loc) (B : BNs) (r : TxReg) :
@@ -43,7 +45,7 @@ private instance viewOf_persistent_sz (r : TxReg) (v : View) :
   unfold viewOf; infer_instance
 
 /-- What `Tx.Size` reads of a transaction: its meta copy, its database and the page size. -/
-theorem boltTxDef_size_acc [HasExt osFsExt] (B : BNs) (N : Namespace) (tx : Loc) (q : Qp)
+theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (tx : Loc) (q : Qp)
     (T : TxView) :
     boltTxDef (GF := GF) B N tx q T ⊢ ∃ (m : Loc) (mv : internal.common.Meta) (db : Loc)
       (dq dq' : DFrac), tx.[Tx, go!"meta"] ↦{dq} m ∗ m ↦{dq} mv ∗ tx.[Tx, go!"db"] ↦{dq'} db ∗
@@ -102,7 +104,7 @@ theorem boltTxDef_size_acc [HasExt osFsExt] (B : BNs) (N : Namespace) (tx : Loc)
 
 theorem Tx.Size.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG)) :
     Tx.Size.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ q T
+  intro _ _ _ tx γ q T
   wp_start as Ht
   unfold boltTx
   icases boltTxDef_size_acc _ _ tx q T $$ Ht with ⟨%m, %mv, %db, %dq, %dq', Hm, Hmv, Hdb, #Hps, #Hpk, Hcl⟩

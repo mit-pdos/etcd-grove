@@ -34,8 +34,8 @@ theorem auth.authStore.RoleAdd.wp_tieB
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post r name b0 sc0 be
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .roleEmpty $$ Hpkg with ⟨%eRE, #HeRE⟩
   icases authErrVar_of_init .roleAlreadyExist $$ Hpkg with ⟨%eRAE, #HeRAE⟩
   simp only [AuthErr.var]
@@ -118,7 +118,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   · -- an existing role
     ihave Hrl' := roleOut_some _ st0 name Hif $$ Hrl
     icases Hrl' with ⟨%ps, %rr, %Hrr, -⟩
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -152,7 +152,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   let rrN : RoleRec := ⟨name, []⟩
   ihave Hnr : ownRole «$r0_ptr» rrN $$ [«$r0»]
   · iunfold ownRole
-    iexists _, _, _, [], _, _
+    iexists _, _, _, [], _
     iframe «$r0»
     isplitr
     · iexact Hnsl
@@ -163,16 +163,16 @@ theorem auth.authStore.RoleAdd.wp_tieB
     · simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #«$r0_ptr»))
   iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN %rrN.toRole [$HL $Hnr]
-  · ipureintro; exact ⟨Hlen, List.Perm.refl _⟩
+  · ipureintro; exact ⟨(List.length_pos_iff.2 hname), Hlen, List.Perm.refl _⟩
   inext
   iintro ⟨HL, -⟩
   (try wp_auto)
   have hstep : roleAddF name st0 = .next (bump (putRole st0 name [])) := by
     simp [roleAddF, hname, Hnone]
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
   ihave #Hcn := capNextM_step M hs (roleAddF name) st0 (bump (putRole st0 rrN.name rrN.toRole)) Hl0
     (by rw [hstep]; simp [rrN, RoleRec.toRole]) $$ Hcap
-  wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 rrN.name rrN.toRole) Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk (putRole st0 rrN.name rrN.toRole) Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putRole _ _ _ (Hpk st0 Hl0 h1 h2) (by simp [rrN, RoleRec.toRole]), ?_⟩
@@ -196,7 +196,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 rrN.name rrN.toRole)]) [HL $Hown]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 rrN.name rrN.toRole)]) [HL $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL; rfl

@@ -72,7 +72,7 @@ theorem Main.wp_proof
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
       go!"putgetc" go!"putgetc"
@@ -232,7 +232,7 @@ theorem Main.wp_proof
       gctx gcd go!"k" go!"v" slice.nil []
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
-    iunfold committedAtLeast
+    iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl
   -- `gcancel()`
   (try wp_auto)

@@ -9,28 +9,10 @@ Lean-first (no Rocq counterpart).
   ls l`) over a wrapper `l` with its handle (`v3rpc.ccHandle`, `InvCancellable.lean`; k8s 7f-4): the
   interceptor's require-leader branch inserts such keys, and the monitor cancels each
   (`l.Cancel(ErrGRPCNoLeader)`) and waits for its context's `Done`.
-* `v3rpc.runsNoRequireLeader` (persistent; **a premise about the deployment**): no client of the
-  server asks for a leader on a stream. For every run context grpc gives a handler (`isContext ci
-  cd ∗ grpcRunCtx ci`), `metadata.FromIncomingContext(ci)` meets its generic triple
-  (`metadata.FromIncomingContext.spec`: no metadata, or a fresh map of non-empty fresh slices),
-  and in the map the key `rpctypes.MetadataRequireLeaderKey` (`"hasleader"`, the value `kl` of
-  the package variable) has no value or one whose first element is not
-  `rpctypes.MetadataHasLeader` (`"true"`, the value `hl`): the condition of the interceptor's
-  `if ks := md[MetadataRequireLeaderKey]; len(ks) > 0 && ks[0] == MetadataHasLeader` is false.
-  The slice's clients (the recipes, the cache) never call `clientv3.WithRequireLeader`, which is
-  what puts the pair in a stream's outgoing metadata; the premise is to be discharged by the
-  client-side derivation (W-C). It is deliberately weak: a `hasleader` key with another value is
-  allowed, and the API-version and metrics paths are proved for any metadata.
-
-Why the require-leader branch is excluded rather than proved (`notes/decisions.md`, "The stream
-interceptor's require-leader premise"): it wraps the stream in a `serverStreamWithCtx` whose
-context is `newCancellableContext(ss.Context())`, which the handler would need as a run context
-(`isContext ∗ grpcRunCtx`): (1) Perennial's `WithCancel` over a general `isContext` parent
-(`wp_WithCancel_any`; the strong `context.WithCancel.spec` needs a `*cancelCtx` parent) relates
-the child's `Value` to nothing of the parent's, so `grpcRunCtx` does not transfer; (2)
-`cancellableContext.Err()` returns the stored reason after `Cancel`'s unlock and before
-`c.cancel()`, a non-nil `Err()` while `Done()` is open, against `context.Context`'s contract, so
-the wrapper is not an `isContext` (`issues/etcd-stream-interceptor-err-before-done.md`).
+(k8s 7f-4, step 6, the user's decision of 2026-11-08) The deployment premise `v3rpc.runsNoRequireLeader`
+(no client asks for a leader on a stream), which excluded the interceptor's require-leader branch, is
+deleted: the branch is proved (the wrapper's handle, `srvCtxWeak`, the weak stream end
+`srvRawStreamIsW`; `notes/k8s-7f4-freeze.md`), so the closed theorems no longer assume it.
 -/
 module
 
@@ -82,26 +64,6 @@ def v3rpc.streamsMapIs (smap : Loc) : IProp GF :=
 instance v3rpc.streamsMapIs_persistent (smap : Loc) :
     Persistent (v3rpc.streamsMapIs (GF := GF) smap) := by
   unfold v3rpc.streamsMapIs; infer_instance
-
-/-- **No stream asks for a leader** (persistent; a premise about the deployment, see the file
-header): at every run context, `metadata.FromIncomingContext` gives no metadata, or metadata in
-which the require-leader key's values (if any) do not start with `"true"`. -/
-def v3rpc.runsNoRequireLeader : IProp GF :=
-  iprop(□ ∀ (kl hl : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ kl -∗
-    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ hl -∗
-    context.isContext ci cd -∗ grpcRunCtx ci -∗
-    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata }}
-      (App (Val (@! google_golang_org.grpc.metadata.FromIncomingContext))
-        (Val #(GoInterface.ok ci)))
-    {{ (md : GoMap) (ok : Bool), RET (PairV #md #ok);
-        ⌜ok = false⌝ ∨ ∃ m : GMap GoString GoSlice, md ↦$ m ∗
-          [∗map] k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ ∗
-            ⌜k = kl → vs.head? ≠ some hl⌝ }})
-
-instance v3rpc.runsNoRequireLeader_persistent :
-    Persistent (v3rpc.runsNoRequireLeader (GF := GF)) := by
-  unfold v3rpc.runsNoRequireLeader; infer_instance
 
 end defs
 

@@ -7,7 +7,7 @@ the `W` slots).
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.GrowPure
-public import GooseLang.Ext.OsFs.Truncate
+public import GooseLang.Ext.Fs.Truncate
 
 @[expose] public section
 
@@ -17,12 +17,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 omit hos in
@@ -162,31 +164,49 @@ theorem grow_cells_in (C : CommitSt) (fl : FLPg) (b : Loc) (L lo k : Nat) (hlo :
 
 omit go_gctx in
 /-- A file's page-cache bytes, cut in two. -/
-theorem growBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
-      osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
+theorem growBytes_app (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
+      osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 omit go_gctx in
-theorem growBytes_nil (p : GoString) (off : Nat) (dq : DFrac) :
-    ⊢ osBytes (GF := GF) p off dq [] := by
+theorem growBytes_nil (p : BFile) (off : Nat) (dq : DFrac) :
+    ⊢ osBytes (GF := GF) p.ino off dq [] := by
   unfold osBytes; exact (bytesG_nil _ _ _ _).2
+
+/-- Bytes of the file `p` from `off` whose values are `n` zeros (their crash candidates any). -/
+def zBytes (p : BFile) (off n : Nat) : IProp GF :=
+  iprop(∃ xs : List ByteG, osBytes p.ino off (DFrac.own 1) xs ∗
+    ⌜xs.map Prod.fst = List.replicate n (0 : w8)⌝)
+
+omit go_gctx in
+/-- Zero bytes, cut in two. -/
+theorem zBytes_app (p : BFile) (off a b : Nat) :
+    zBytes (GF := GF) p off (a + b) ⊢ zBytes (GF := GF) p off a ∗ zBytes (GF := GF) p (off + a) b := by
+  unfold zBytes
+  iintro ⟨%xs, H, %hx⟩
+  have hl : xs.length = a + b := by simpa using congrArg List.length hx
+  have hs := growBytes_app (GF := GF) p off (DFrac.own 1) (xs.take a) (xs.drop a)
+  rw [List.take_append_drop, List.length_take, Nat.min_eq_left (by omega)] at hs
+  icases hs.1 $$ H with ⟨H1, H2⟩
+  isplitl [H1]
+  · iexists xs.take a; iframe H1; ipureintro
+    rw [List.map_take, hx, List.take_replicate, Nat.min_eq_left (by omega)]
+  · iexists xs.drop a; iframe H2; ipureintro
+    rw [List.map_drop, hx, List.drop_replicate, Nat.add_sub_cancel_left]
 
 /-- The new zeros of slot `s` after the file grew from `size`: from `size` or the slot's start, to
 its end. -/
-def zSlot (p : GoString) (size s : Nat) : IProp GF :=
-  osBytes p (max size (4096 * s)) (DFrac.own 1)
-    (List.replicate (4096 * (s + 1) - max size (4096 * s)) ((0 : w8), false))
+def zSlot (p : BFile) (size s : Nat) : IProp GF :=
+  zBytes p (max size (4096 * s)) (4096 * (s + 1) - max size (4096 * s))
 
 omit go_gctx in
 /-- New zeros from `size` (or slot `j`'s start) to the end of slot `j + k - 1`, by slot. -/
-theorem zeros_split (p : GoString) (size : Nat) :
+theorem zeros_split (p : BFile) (size : Nat) :
     ∀ (k j : Nat), size / 4096 ≤ j →
-      osBytes (GF := GF) p (max size (4096 * j)) (DFrac.own 1)
-        (List.replicate (4096 * (j + k) - max size (4096 * j)) ((0 : w8), false)) ⊢
+      zBytes (GF := GF) p (max size (4096 * j)) (4096 * (j + k) - max size (4096 * j)) ⊢
       [∗list] s ∈ List.range' j k, zSlot (GF := GF) p size s
   | 0, j, _ => by
-    rw [show 4096 * (j + 0) - max size (4096 * j) = 0 by omega, List.replicate_zero]
     iintro -
     simp only [List.range'_zero]
     iapply BigSepL.bigSepL_nil.2; iempintro
@@ -194,24 +214,22 @@ theorem zeros_split (p : GoString) (size : Nat) :
     have hM : max size (4096 * (j + 1)) = 4096 * (j + 1) := by omega
     rw [show 4096 * (j + (k + 1)) - max size (4096 * j) =
       (4096 * (j + 1) - max size (4096 * j)) +
-        (4096 * ((j + 1) + k) - max size (4096 * (j + 1))) by omega,
-      ← List.replicate_append_replicate, List.range'_succ]
-    refine (growBytes_app p _ _ _ _).1.trans ?_
+        (4096 * ((j + 1) + k) - max size (4096 * (j + 1))) by omega, List.range'_succ]
+    refine (zBytes_app p _ _ _).trans ?_
     refine Entails.trans ?_ BigSepL.bigSepL_cons.2
     refine sep_mono .rfl ?_
-    rw [List.length_replicate,
-      show max size (4096 * j) + (4096 * (j + 1) - max size (4096 * j)) =
+    rw [show max size (4096 * j) + (4096 * (j + 1) - max size (4096 * j)) =
         max size (4096 * (j + 1)) by omega]
     exact zeros_split p size k (j + 1) (by omega)
 
 /-- **The writer's page-cache bytes after the file grew from `size` to `S`** (whole pages): the
 new zeros join the `W` slots reaching past the old end (`growWb`), given that the partial last
 page's bytes are the file's whole. -/
-theorem wBytes_grow (p : GoString) (W : List Nat) (wb : Nat → List w8) (size S : Nat)
+theorem wBytes_grow (p : BFile) (W : List Nat) (wb : Nat → List w8) (size S : Nat)
     (hn : W.Nodup) (hS : S % 4096 = 0) (hle : size ≤ S)
     (hp : ∀ s ∈ W, 4096 * s < size → size < 4096 * (s + 1) → size - 4096 * s ≤ (wb s).length) :
     wBytes (GF := GF) p W wb size ∗
-      osBytes (GF := GF) p size (DFrac.own 1) (List.replicate (S - size) ((0 : w8), false)) ⊢
+      zBytes (GF := GF) p size (S - size) ⊢
     wBytes (GF := GF) p W (growWb wb size) S := by
   have hz := zeros_split (GF := GF) p size (S / 4096 - size / 4096) (size / 4096) (Nat.le_refl _)
   rw [show max size (4096 * (size / 4096)) = size by omega,
@@ -228,10 +246,10 @@ theorem wBytes_grow (p : GoString) (W : List Nat) (wb : Nat → List w8) (size S
   refine (sep_mono .rfl (hz.trans (hsub.trans hite))).trans ?_
   unfold wBytes
   refine (BigSepL.bigSepL_sep_eqv_symm (Φ := fun _ s => iprop(if 4096 * (s + 1) ≤ size then
-      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp)))
     (Ψ := fun _ s => iprop(if q s then zSlot (GF := GF) p size s else iprop(emp)))).1.trans ?_
@@ -245,29 +263,29 @@ theorem wBytes_grow (p : GoString) (W : List Nat) (wb : Nat → List w8) (size S
   · have hq : q s = true := by simp only [q]; simp; omega
     simp only [h1, h2, hq, ↓reduceIte]
     by_cases h3 : 4096 * s < size
-    · simp only [h3, ↓reduceIte, zSlot, show max size (4096 * s) = size by omega]
-      iintro ⟨⟨%xs, Hx, %hx⟩, Hz⟩
+    · simp only [h3, ↓reduceIte, zSlot, zBytes, show max size (4096 * s) = size by omega]
+      iintro ⟨⟨%xs, Hx, %hx⟩, %zs, Hz, %hz⟩
       have hlen : xs.length = size - 4096 * s := by
         have := congrArg List.length hx
         rw [List.length_map, List.length_take] at this
         have := hp s hs h3 (by omega)
         omega
-      iexists xs ++ List.replicate (4096 * (s + 1) - size) ((0 : w8), false)
+      iexists xs ++ zs
       isplitl
       · iapply (growBytes_app p _ _ _ _).2
         iframe Hx
         rw [hlen, show 4096 * s + (size - 4096 * s) = size by omega]
         iexact Hz
       · ipureintro
-        simp only [growWb, h1, ↓reduceIte, List.map_append, hx, List.map_replicate]
+        simp only [growWb, h1, ↓reduceIte, List.map_append, hx, hz]
         congr 2
         omega
-    · simp only [h3, ↓reduceIte, zSlot, show max size (4096 * s) = 4096 * s by omega]
-      iintro ⟨-, Hz⟩
-      iexists List.replicate (4096 * (s + 1) - 4096 * s) ((0 : w8), false)
+    · simp only [h3, ↓reduceIte, zSlot, zBytes, show max size (4096 * s) = 4096 * s by omega]
+      iintro ⟨-, %zs, Hz, %hz⟩
+      iexists zs
       iframe Hz
       ipureintro
-      simp only [growWb, h1, ↓reduceIte, List.map_replicate,
+      simp only [growWb, h1, ↓reduceIte, hz,
         show size - 4096 * s = 0 by omega, List.take_zero, List.nil_append]
       congr 1
       omega

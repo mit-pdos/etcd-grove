@@ -109,7 +109,7 @@ theorem Main.wp_proof
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (compactkvDir id)
       go!"compactkv" go!"compactkv"
@@ -427,7 +427,7 @@ theorem Main.wp_proof
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
         as %gresp %gerr Hget
     · iframe #
-      iunfold committedAtLeast
+      iunfold committedAtLeast; ileft
       iExactEq Hc0; rfl
     (try wp_auto)
     wp_apply Hgcancel
@@ -706,7 +706,7 @@ theorem Main.wp_proof
       isplitr
       · ipureintro
         refine ⟨?_, ?_, by decide, ?_⟩
-        · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatch, OpFull.newOp,
+        · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatchP, OpFull.newOp,
             OpModel.zero]
         · simp [opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit, withRevM,
             OpFull.newOp, OpModel.zero]

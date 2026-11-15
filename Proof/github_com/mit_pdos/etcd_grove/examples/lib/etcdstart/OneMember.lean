@@ -6,7 +6,7 @@ The one-member examples (`putget`, `compacted`, `compactwatch`, `lease`, `leaseg
 `cache`, `txnlin`, `k8s/etcd3`) each defined the same two things, at their own configuration: `BootFacts`, `bootstrap`'s result for
 the member as Go computes it, and `premises`, the named Iris premises of their `Main` (`bootstrap`'s
 contract at the configuration, `proto.Marshal`'s at the bootstrap log, the raft wrapper's
-trust-boundary contracts, the deployment's `runsNoRequireLeader`; `compactwatch/Defs.lean`'s
+trust-boundary contracts (until 2026-11-13 also the deployment's `runsNoRequireLeader`); `compactwatch/Defs.lean`'s
 header says what each is). Here they are once, at the shared start's configuration of the member
 `name` and its two addresses (`cfgOk name name`, `urls1`, `Defs.lean`; the directory `dir1`), with
 `kvModel_boot`. Since 2026-11-04 (the user's request) the one-member examples' own names are
@@ -102,8 +102,7 @@ def premises (name peer client : GoString)
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (dir1 peer id)) ∗
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    v3rpc.runsNoRequireLeader)
+    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 instance premises_persistent (name peer client : GoString) (N : Nat) (id : w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

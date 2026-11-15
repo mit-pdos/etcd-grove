@@ -20,12 +20,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section fsz
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -55,14 +57,14 @@ theorem errorf_fmtErrorOk (ii : GoInterfaceOk) :
 
 /-- **`db.fileSize()`**: the file's size (`OsMeta`'s), or an error. -/
 abbrev DB.fileSize.spec : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqf dqo dqd dqm : DFrac) (d : OsFd) (m : OsMeta),
-  d.path = p → m.size < 2 ^ 63 →
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqf dqo dqd dqm : DFrac) (d : OsFd) (m : OsMeta),
+  d.ino = p.ino → m.size < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd d ∗
-      osMeta p dqm (some m) ∗ db.[DB, go!"pageSize"] ↦□ W64 4096 }}
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dqo ∗ osFd fd dqd d ∗
+      osMeta p.ino dqm m ∗ db.[DB, go!"pageSize"] ↦□ W64 4096 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"fileSize")) (Val #()))
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd d ∗ osMeta p dqm (some m) ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dqo ∗ osFd fd dqd d ∗ osMeta p.ino dqm m ∗
       ((⌜err = interface.nil ∧ r = W64 (m.size : Int) ∧ 8192 ≤ m.size⌝) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err)) }}
 
@@ -71,12 +73,14 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     DB.fileSize.spec (GF := GF) (hG := hG) := by
   intro db f fd p dqf dqo dqd dqm d m hp hsz
+  rcases p with ⟨pp, pi⟩
+  dsimp only at hp ⊢
   subst hp
   wp_start as ⟨#Hos, Hf, Hfo, Hfd, Hm, #Hps⟩
   wp_auto
-  wp_apply hStat f fd d.path dqo dqd dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, -⟩
+  wp_apply hStat f fd pp dqo dqd dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, -⟩
   · rw [← fileOwn_eq]; iframe; iframe #
-  ihave Hfo : fileOwn f fd d.path dqo $$ [Hfo]
+  ihave Hfo : fileOwn f fd pp dqo $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
   try wp_auto
   icases Hr with (⟨%fs, %Hfs, Hst⟩ | %Hfs)

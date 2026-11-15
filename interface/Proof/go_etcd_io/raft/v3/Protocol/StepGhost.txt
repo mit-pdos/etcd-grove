@@ -73,6 +73,10 @@ theorem snapOk_message [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s 
 
 theorem bnd_le (s : PState) (kl : Option w64) : bnd s kl ≤ uint.Z s.term + 1
 
+theorem cfgCommitted_of_env [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (c : CfgM) (s :
+    PState) (fp : List EntryM) (Hfp : FullOk s.base fp) : ⊢ dynEnv γ id c s -∗ logRecs γ base0 fp -∗
+    isCommitted γ (cprefix fp s) -∗ cfgCommitted γ c
+
 theorem ownLogGhost_learn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) (ldr : w64) (q : GSet w64) : s.role ≠ Role.leader → ⊢ isWin γ ldr
     s.term q -∗ ⌜s.vote = W64 0 → ¬id ∈ q⌝ -∗ ownLogGhost γ id s kl W -∗ ownLogGhost γ id s (some
@@ -155,12 +159,12 @@ theorem ownLogGhost_recs [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ⌜LogOk s⌝ ∗ logRecs γ s.base s.log
 
 theorem replOk_message [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
-    (fp : List EntryM) : PlogWfR s.base s.log → ReplOk id s m → id ≠ W64 0 → (γ.reDyn ≠ none → m.ty
-    = MsgType.app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) → (m.ty = MsgType.snap → ∀ (T :
-    GSet w64), γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) → ⊢ isLeader γ id s.term -∗ leadPrefix γ
-    id s.term s.base s.log -∗ lpfull γ id s.term s.base s.log fp -∗ logRecs γ s.base s.log -∗
-    commitIn γ (fp ++ s.log) s.commit s.term -∗ baseOk γ s.base -∗ isCommitted γ (cprefix fp s) -∗
-    isMessage γ m
+    (fp : List EntryM) (c : CfgM) : PlogWfR s.base s.log → ReplOk id s m → id ≠ W64 0 → (γ.reDyn ≠
+    none → m.ty = MsgType.app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) → (m.ty = MsgType.snap
+    → ∀ (T : GSet w64), γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) → (m.ty = MsgType.snap → m.dst ∈
+    c.voters ∪ c.learners) → ⊢ cfgCommitted γ c -∗ isLeader γ id s.term -∗ leadPrefix γ id s.term
+    s.base s.log -∗ lpfull γ id s.term s.base s.log fp -∗ logRecs γ s.base s.log -∗ commitIn γ (fp
+    ++ s.log) s.commit s.term -∗ baseOk γ s.base -∗ isCommitted γ (cprefix fp s) -∗ isMessage γ m
 
 theorem ownLogGhost_ack_agree [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (id : w64) (s :
     PState) (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (i : w64) : γ.reSlot

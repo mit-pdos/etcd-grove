@@ -47,22 +47,19 @@ parent's). Producers: `k8sCtxOk_of_nil` (the key added to `k8sKeys`), hence `k8s
 `k8sCtxOk_todo`, `k8sCtxOk_bgFrom`, `k8sCtxOk_of_ctxValueNil` (`k8sKeys_notIntPtr`: the key's type is
 not `*int`). No new opaque: the fact is pure over translated types.
 
-The sweep's two smaller gaps of the same axiom (MINOR, pre-existing) are not fixed here, recorded for
-a later decision (etcd-grove-81): (a) the SDK passes `ctx` to the provider's configured components, its
-`Sampler` (`ShouldSample(SamplingParameters{ParentContext: ctx})`), its `IDGenerator`
-(`NewIDs(ctx)`, `NewSpanID(ctx, tid)`) and every registered `SpanProcessor.OnStart(ctx, span)` (sdk/trace
-v1.47.0 `tracer.go`, `newSpan` and `Start`), and `trace.otelSpan` admits a span of any SDK provider
-configuration, so a user sampler, ID generator or processor reading `ctx.Value(myKey{})` meets
-`k8sCtxOk` and makes `tracing.Start` panic (the axiom review's scratch
+The sweep's two smaller gaps of the same axiom (MINOR, pre-existing) were recorded here for a later
+decision and are now fixed (2026-11-13, decided by etcd-grove-81; `notes/otelspan-narrow.md`): (a)
+the SDK passes `ctx` to the provider's configured `Sampler`, `IDGenerator` and every
+`SpanProcessor.OnStart` (sdk/trace v1.47.0 `tracer.go`, `newSpan` and `Start`), and `trace.otelSpan`
+admitted a span of any SDK provider configuration, so a user component reading `ctx.Value(myKey{})`
+met `k8sCtxOk` and made `tracing.Start` panic (the axiom review's scratch
 `/shared/tmp/coord-81/ctxfix-review/k8sctx/review_test.go`, `TestReviewSamplerReadsKey`,
-`TestReviewProcessorReadsKey`). No closed theorem reaches it (their contexts come from `Background`,
-whose span is the no-op one), nor does kube-apiserver's own provider (component-base's `NewProvider`:
-`ParentBased(TraceIDRatioBased)`, the default ID generator, a Batch processor, none reading `ctx`); it
-does refute `tracing.Start.spec` and the store specs as written. Fix later: narrow `trace.otelSpan` to
-providers with otel's own samplers, its default ID generator and its Batch/Simple processors, or a
-provider-configuration opaque. (b) with
-`OTEL_GO_X_OBSERVABILITY` set the SDK passes `ctx` to metric instruments (an SDK meter provider reads
-only otel's span key).
+`TestReviewProcessorReadsKey`); (b) with `OTEL_GO_X_OBSERVABILITY` set the SDK passes `ctx` to the
+global `MeterProvider`'s instruments. The fix narrows `trace.otelSpan`'s trusted text to providers
+built from otel's own samplers, its default ID generator and its Batch/Simple processors, and, under
+the observability metrics, otel's default or no-op global `MeterProvider` (what kube-apiserver and
+etcd build); Go evidence `examples/premisefix/k8sctx/otelprovider_test.go`. No closed theorem was
+reached, and no statement changed.
 
 ## 2. `context.WithCancelValCtx.wp_proof`: `&cancelCtxKey`
 

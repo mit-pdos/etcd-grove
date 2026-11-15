@@ -19,7 +19,11 @@ takes whole. Here:
   (`netAddrFree a`) and the right to serve it with its protocol (`httpProtoOwn a P`). The protocol
   stays the address's (`httpProtoAt a P` is persistent): a later listener at `a` serves the same
   protocol. `Serve` then returns (its accept fails); the handlers it started keep running and keep
-  what they borrowed.
+  what they borrowed, and (http-boundary-fix, second review, 2026-11-14) so do its connections: a
+  client's keep-alive connection to the old `Serve` keeps starting new runs of the OLD handler
+  after the close, also once a new listener at the same address serves another handler
+  (`examples/premisefix/httpkeepalive`). A restart's review must account for those runs (the
+  restart-boundary note of `notes/axiom-review/http-boundary-fix.md`).
 -/
 module
 

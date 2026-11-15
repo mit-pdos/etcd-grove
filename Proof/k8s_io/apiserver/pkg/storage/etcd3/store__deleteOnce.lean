@@ -141,7 +141,13 @@ theorem store.deleteOnce.wp_proof
       (try wp_auto)
       wp_apply wp_V as %vb -
       (try wp_auto)
-      wp_apply wp_Infof
+      -- the key: a `string`
+      wp_apply wp_Infof _ _ _ _ _ $$ [$Hasl] as -
+      · iframe #
+        klog_args_intro
+        isplitl []
+        · iapply klog.argOkAt_string
+        itrivial
       (try wp_auto)
       wp_apply (wp_stateFrom Obj sp c (GoInterface.ok ci) resp.KV' (mvcc.findKey key σ.kvs)
           resp.Revision' key v p false hdk) $$ [] as %st' %err' Hsr

@@ -28,12 +28,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section body
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -69,10 +71,10 @@ theorem BC.core_mmapFields (K : BC) :
 
 /-- The writer side's file, for `fileSize`, and back. -/
 theorem wdbW'_file_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbW' (GF := GF) fr K tx v w ⊢ (K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
-        osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some w.m)) ∗
-      ((K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
-        osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some w.m)) -∗
+    wdbW' (GF := GF) fr K tx v w ⊢ (K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) ∗
+        osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗ osMeta K.p.ino (DFrac.own 1) w.m) ∗
+      ((K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) ∗
+        osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗ osMeta K.p.ino (DFrac.own 1) w.m) -∗
         wdbW' fr K tx v w) ∗
       ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ := by
   unfold wdbW' wdbLive wdbCoreG
@@ -230,7 +232,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   icases wdbW'_file_acc fr K tx X.v w $$ Hdb with ⟨⟨Hfile, Hfo, Hfd, Hosm⟩, Hdbback, %Hwok⟩
   obtain ⟨hok, hms, hv⟩ := Hwok
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨K.p, true, true⟩ w.m rfl (wdbOK'_size_lt fr w hok) $$ [Hfile Hfo Hfd Hosm]
+    ⟨K.p.ino, true, true⟩ w.m rfl (wdbOK'_size_lt fr w hok) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   cases lg with

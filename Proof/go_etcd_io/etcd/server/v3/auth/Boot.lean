@@ -45,7 +45,8 @@ theorem bootState_permsFit : permsFit bootState := by
 
 /-- The boot state is small (`Fuel.lean`, the auth plan's E2l). -/
 theorem bootState_small : authSmall bootState := by
-  refine ⟨?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;> simp [bootState, permsOn]
+  refine ⟨?_, ?_, ?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;>
+    simp [bootState, permsOn, rolesUtf8, namesOk]
 
 section ghost
 variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
@@ -54,8 +55,8 @@ variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 `γf`: the admin side's authority, the other half of the latest state's ghost variable (the store's
 revision invariant takes it, `newAuthStore_on`) and the batch lock's half of the history at the
 boot state (the backend's, `authSchemaBoot`). -/
-theorem authBoot_alloc (γt γf : GName) :
-    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗
+theorem authBoot_alloc (γt γf γy : GName) :
+    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗
       authOwn (GF := GF) (.on γa) [bootState] ∗ authStoreInit γa [bootState] bootState ∗
       authLockI (.on γa) bootState ∗ capAuth γa [bootState, bump bootState] ∗
       capNext (.on γa) [bootState] (bump bootState) ∗
@@ -64,7 +65,7 @@ theorem authBoot_alloc (γt γf : GName) :
       (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
       authPubQ γa (1 : Qp).half 0 := by
   iintro
-  imod (authHist_alloc (GF := GF) γt γf [bootState] bootState [bootState, bump bootState]
+  imod (authHist_alloc (GF := GF) γt γf γy [bootState] bootState [bootState, bump bootState]
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
     with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl, Hbk, Hsucc, Hrt⟩
   imodintro
@@ -114,14 +115,14 @@ header): for any auth names with the token names `γt`, `γf`, the batch lock's 
 at the boot state makes schema's auth backend `ab` (`bi`) meet the store's backend contracts for
 those names: the read side for the reader resource `R`, the write side (`authWBackendOkR`) at the
 batch lock's contract `P f` with the write token `T`, and `CreateAuthBuckets` as one transaction
-keeping `T`. The read side is of fresh backend names `γc`, with their whole currency (the auth-on
+keeping `T` and spending one write-back token `Wb` (auth-schema-fix F1). The read side is of fresh backend names `γc`, with their whole currency (the auth-on
 snapshot plan's Prove step, 2026-11-03: the read contract is per backend). -/
 def authSchemaBoot (ab : GoInterface) (bi : GoInterfaceOk) (γt γf : GName) (R P : IProp GF)
-    (f : GoFunc) (T : IProp GF) : IProp GF :=
+    (f : GoFunc) (T Wb : IProp GF) : IProp GF :=
   iprop(∀ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ -∗ authLockI (.on γa) bootState -∗
     |==> ((∃ γc : AuthBkNames, authBackendOk ab R (.on γa) γc ∗ authCur γc 1) ∗
-      authWBackendOkR ab (.on γa) P f T ∗
-      □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
+      authWBackendOkR ab (.on γa) P f T Wb ∗
+      □ ({{ T ∗ Wb }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
         {{ RET #(); T }})))
 
 /-- **The token provider `tp`'s contract for any names with its token names** `γt`, `γf`
@@ -153,7 +154,10 @@ set_option maxRecDepth 16384 in
 header): the names allocated over the boot state, the store's invariant, the admin side's write
 resource, the provider's share and the admin side's authority at the history `[bootState, bump
 bootState]` (the constructor's `commitRevision` of the revision `0`), with the names' token parts
-the provider's. -/
+the provider's and the readiness cell at the caller's `γy` (auth-schema-fix S1: the token
+provider's request side waits for its shot, `tpReady`; a caller holding a readiness invariant at
+`γy` can use the store's request side, the S1 re-review's M1). It takes four write-back tokens `Wb` (`CreateAuthBuckets` one, the batch
+transaction's `Unlock` two, `ForceCommit` one: auth-schema-fix F1). -/
 theorem newAuthStore_boot
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Int : zap.Int'.spec (GF := GF) (hG := hG))
@@ -161,24 +165,25 @@ theorem newAuthStore_boot
     (h_commit : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
-    (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γt γf : GName)
-    (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF) :
+    (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γt γf γy : GName)
+    (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
-        ⌜ab = GoInterface.ok bi⌝ ∗ authSchemaBoot ab bi γt γf R P f T ∗
-        T ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderBoot tp γt γf A ∗ A }}
+        ⌜ab = GoInterface.ok bi⌝ ∗ authSchemaBoot ab bi γt γf R P f T Wb ∗
+        T ∗ Wb ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (γa : AuthNames) (stp : Loc),
-        ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗
-        authWR stp (.on γa) P f T ∗ tpAdmin stp (.on γa) ∗ Post ∗
+        ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗ ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗
+        authWR stp (.on γa) P f T Wb ∗ tpAdmin stp (.on γa) ∗ Post ∗
         authOwn (.on γa) [bootState, bump bootState] ∗ capAuth γa [bootState, bump bootState] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start_folded as ⟨#Hlg, %Hab, HD, HT, Hcs, #Htp, HA⟩
+  wp_start_folded as ⟨#Hlg, %Hab, HD, HT, Hw1, Hw2, Hw3, Hw4, Hcs, #Htp, HA⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
-  imod (authBoot_alloc (GF := GF) γt γf) with
-    ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn, ⟨%γ0, Hbk⟩, -, -⟩
+  imod (authBoot_alloc (GF := GF) γt γf γy) with
+    ⟨%γa, %Hγ3, Hown, Hcur, HI, Hcap, #Hcn, ⟨%γ0, Hbk⟩, -, -⟩
+  have Hγ : γa.tok = γt ∧ γa.fresh = γf := ⟨Hγ3.1, Hγ3.2.1⟩
   iunfold authSchemaBoot at HD
   ihave HD' := HD $$ %γa [] HI
   · ipureintro; exact Hγ
@@ -190,10 +195,10 @@ theorem newAuthStore_boot
   ihave #HtpA := Htp $$ %γa []
   · ipureintro; exact Hγ
   wp_apply (newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg ab tp cost bi
-      γa γc R P f T A Pre Q Post [bootState] bootState rfl bootState_permsFit
+      γa γc R P f T Wb A Pre Q Post [bootState] bootState rfl bootState_permsFit
       ⟨bootState, List.mem_singleton_self _, rfl⟩ (Int.toNat sync.rwmutex.actualMaxReaders)
       (Nat.le_refl _))
-      $$ [$Hpkg $Hrd Hbk $Hcu $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
+      $$ [$Hpkg $Hrd Hbk $Hcu $Hw $Hcr $HT $Hw1 $Hw2 $Hw3 $Hw4 $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, -, -, Hslots⟩
   · iframe; isplitr
     · iexact Hlg
@@ -205,11 +210,11 @@ theorem newAuthStore_boot
     · exact absurd rfl h0
     · simpa using h1
   subst Hhs'
-  ihave HWR := authWRAt_authWR stp (.on γa) P f T ab $$ HWR
+  ihave HWR := authWRAt_authWR stp (.on γa) P f T Wb ab $$ HWR
   iapply HΦ
   iexists γa, stp
   iframe Hinv HWR HtpAd HPost Hown' Hslots Hcap
-  ipureintro; exact ⟨Hγ, Hst⟩
+  ipureintro; exact ⟨Hγ3, Hst⟩
 
 end proof
 

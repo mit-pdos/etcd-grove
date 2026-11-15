@@ -174,6 +174,43 @@ theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : 
 
 /-! ### Messages -/
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A snapshot's destination is tracked**:
+statically nothing (the tracked bound is `isMessage`'s own clause); dynamically a voter or learner
+of the configuration `c` of a committed log `L` under recorded decisions (`CfgAt`): the sender's
+tracker's configuration when it sent it (`maybeSendSnapshot` sends only to a peer of its progress
+map, whose ids are the configuration's). Raft v3 (`565c2bd`) sets the tracker only through
+`switchToConfig`, called from `newRaft` (`raft.go:479`, `Storage.InitialState`'s `ConfState`),
+`appliedSnap` (`raft.go:787`, an applied snapshot's certified configuration) and `applyConfChange`
+(`raft.go:1971`, the committed conf entries the application applies, `ApplyConfChange`'s `DynCCPre`);
+`restore` does not touch it. -/
+def snapDstOk (γ : RaftNames) (d : w64) : IProp GF :=
+  iprop(⌜γ.reDyn = none⌝ ∨ ∃ (L : List EntryM) (M : DecMap) (c : CfgM),
+    isCommitted γ L ∗ decLb γ M ∗ ⌜CfgAt γ M L c ∧ d ∈ c.voters ∪ c.learners⌝)
+
+instance snapDstOk_persistent (γ : RaftNames) (d : w64) :
+    Persistent (snapDstOk (GF := GF) γ d) := by
+  unfold snapDstOk; infer_instance
+
+/-- (restart S7.3) **A configuration of a committed log** (dynamically; statically nothing): what a
+sender knows of its tracker's configuration `c` (`cfgCommitted_of_env`), from which a snapshot to a
+voter or learner of `c` has `snapDstOk`. -/
+def cfgCommitted (γ : RaftNames) (c : CfgM) : IProp GF :=
+  iprop(⌜γ.reDyn = none⌝ ∨ ∃ (L : List EntryM) (M : DecMap),
+    isCommitted γ L ∗ decLb γ M ∗ ⌜CfgAt γ M L c⌝)
+
+instance cfgCommitted_persistent (γ : RaftNames) (c : CfgM) :
+    Persistent (cfgCommitted (GF := GF) γ c) := by
+  unfold cfgCommitted; infer_instance
+
+theorem snapDstOk_of_cfg (γ : RaftNames) (c : CfgM) (d : w64) (h : d ∈ c.voters ∪ c.learners) :
+    cfgCommitted (GF := GF) γ c ⊢ snapDstOk γ d := by
+  unfold cfgCommitted snapDstOk
+  iintro (%H | ⟨%L, %M, #HL, #HM, %HC⟩)
+  · ileft; ipureintro; exact H
+  · iright; iexists L, M, c
+    iframe HL HM
+    ipureintro; exact ⟨HC, h⟩
+
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
   match m.ty with
   | .vote =>
@@ -236,7 +273,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       ⌜m.src ≠ W64 0⌝ ∗
       -- (D19p, 2026-10-18) to another node, both ids within the tracked bound (`reTracked`):
       -- a leader sends a snapshot only to a peer its tracker holds (`maybeSendSnapshot`)
-      ⌜m.dst ≠ m.src ∧ ∀ T, γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝)
+      ⌜m.dst ≠ m.src ∧ ∀ T, γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝ ∗
+      -- (restart S7.3, 2026-11-14) in the dynamic mode, to a voter or learner of a committed
+      -- log's configuration (`snapDstOk`)
+      snapDstOk γ m.dst)
   | .propose =>
       -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
       -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,
@@ -2355,7 +2395,13 @@ maps `W` (R7: also the queued batch's promises), the latter only as R9 allows. -
 def outMsgOk (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
     (m : Msg) : IProp GF :=
   iprop(isMessage γ m ∨
-    (□ (durFrags γ id W -∗ isMessage γ m)) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝)
+    (□ (durFrags γ id W -∗ isMessage γ m)) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝ ∗
+    -- (restart S7.3, 2026-11-14) a message waiting for the fragments is no snapshot (the
+    -- waiting ones are a follower's responses, a candidate's vote requests and a leader's
+    -- self-addressed `MsgAppResp`, `outMsgOk_self`), so a snapshot's
+    -- destination fact (`snapDstOk`) is the outright message's, never behind the fragments
+    -- (`outMsgOk_snapDst`)
+    ⌜m.ty ≠ .snap⌝)
 
 instance outMsgOk_persistent (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
     (W : DurMaps) (m : Msg) : Persistent (outMsgOk (GF := GF) γ id s πc W m) := by
@@ -2428,7 +2474,7 @@ theorem outMsgOk_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : Li
     outMsgOk (GF := GF) γ id s πc W m ⊢ outMsgOk γ id s' πc' W' m := by
   intro Hle Hp
   unfold outMsgOk
-  iintro (#H | ⟨#H, %Hd⟩)
+  iintro (#H | ⟨#H, %Hd, %Hns⟩)
   · ileft; iexact H
   · iright
     isplitl
@@ -2436,7 +2482,7 @@ theorem outMsgOk_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : Li
       iintro #Hf
       iapply H
       iapply durFrags_mono γ id W W' Hle $$ Hf
-    · ipureintro; exact fun h => Hp (Hd h)
+    · ipureintro; exact ⟨fun h => Hp (Hd h), Hns⟩
 
 /-- The same for the whole outbox. -/
 theorem outbox_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : List Prom)
@@ -2454,21 +2500,42 @@ theorem outMsgOk_intro (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom
 
 /-- A message to the node itself whose facts wait for the maps' fragments. -/
 theorem outMsgOk_self (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
-    (m : Msg) (Hd : m.dst = id) :
+    (m : Msg) (Hd : m.dst = id) (Hns : m.ty ≠ .snap) :
     □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
   unfold outMsgOk
   iintro #H; iright
   isplitl; · iexact H
-  ipureintro; exact fun h => absurd Hd h
+  ipureintro; exact ⟨fun h => absurd Hd h, Hns⟩
 
 /-- A message waiting for the maps' fragments, as R9 allows. -/
 theorem outMsgOk_pend (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
-    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) :
+    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) (Hns : m.ty ≠ .snap) :
     □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
   unfold outMsgOk
   iintro #H; iright
   isplitl; · iexact H
-  ipureintro; exact Hp
+  ipureintro; exact ⟨Hp, Hns⟩
+
+/-- (restart S7.3) **A snapshot's destination fact, out of a message's facts**: the `.snap`
+clause's `snapDstOk`. -/
+theorem isMessage_snapDst (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
+    isMessage (GF := GF) γ m ⊢ snapDstOk γ m.dst := by
+  unfold isMessage
+  rw [Hty]
+  dsimp only
+  iintro ⟨-, -, -, -, -, #Hd⟩
+  iexact Hd
+
+/-- (restart S7.3) **A queued snapshot's destination fact, outright** (see `outMsgOk`): from the
+message's facts when they hold outright; a message waiting for the fragments is no snapshot. It
+reads no fragment (`durFrags`). -/
+theorem outMsgOk_snapDst (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) (Hty : m.ty = .snap) :
+    outMsgOk (GF := GF) γ id s πc W m ⊢ snapDstOk γ m.dst := by
+  unfold outMsgOk
+  iintro (#H | ⟨-, -, %Hns⟩)
+  · iapply isMessage_snapDst γ m Hty $$ H
+  · exact absurd Hty Hns
 
 theorem EvsOk_mono (T T' : w64) (W : DurMaps) :
     uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' W := by
@@ -2902,7 +2969,7 @@ theorem outMsgOk_wand (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
     (m : Msg) :
     outMsgOk (GF := GF) γ id s πc W m ⊢ □ (durFrags γ id W -∗ isMessage γ m) := by
   unfold outMsgOk
-  iintro (#H | ⟨#H, %_⟩)
+  iintro (#H | ⟨#H, %_, %_⟩)
   · imodintro; iintro -; iexact H
   · iexact H
 
@@ -2911,7 +2978,7 @@ theorem outMsgOk_leader (γ : RaftNames) (id : w64) (s : PState) (πc : List Pro
     (m : Msg) (Hrole : s.role = .leader) :
     outMsgOk (GF := GF) γ id s πc W m ⊢ ⌜m.dst ≠ id⌝ -∗ isMessage γ m := by
   unfold outMsgOk
-  iintro (#H | ⟨#_, %Hp⟩) %Hd
+  iintro (#H | ⟨#_, %Hp, %_⟩) %Hd
   · iexact H
   · exact absurd Hrole (Hp Hd).1
 

@@ -19,17 +19,19 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section wroll
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 omit go_gctx sem in
-private theorem pagesInv_timeless_w (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+private theorem pagesInv_timeless_w (B : BNs) (p : BFile) : Timeless (pagesInv (GF := GF) B p) := by
   have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
@@ -38,7 +40,7 @@ private theorem pagesInv_timeless_w (B : BNs) (p : GoString) : Timeless (pagesIn
     intro σ W; unfold bytesWit; split <;> infer_instance
   have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
     intro s bs
-    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p off dq xs) := fun _ _ _ => by
+    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p.ino off dq xs) := fun _ _ _ => by
       unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
     unfold osSlot; infer_instance
   unfold pagesInv
@@ -66,7 +68,7 @@ theorem FLPg.rollback_pending_none (fl : FLPg) (txid : w64) :
   · unfold FLPg.rollbackEntry; simp
 
 section store
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 omit sem in
@@ -209,7 +211,7 @@ freelist rolled back, the slots leaving the store (`store_rollback`'s `S`, B3: a
 freelist page) joining the `W` slots with their cells and page-cache bytes (`slotsOwn`), the rest
 unchanged; `wdbOK` kept (`wdbOK_rolledBack`, `wjoin`: the slots were pending, so below the
 high-water mark, inside the mapping and the file). `hbs`: `store_rollback`'s. -/
-theorem wdb_rollback (p : GoString) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
+theorem wdb_rollback (p : BFile) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
     (hok : wdbOK w) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (hpend : ∀ b l, w.ms = some (b, l) → ∀ s ∈ pendSlots w.fl, 2 ≤ s ∧ s < l / 4096)

@@ -151,13 +151,18 @@ on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes
 theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) (cmp : Bool) (cret : Nat := 0) (lm : lease.Mode := .none) (gp : w64 := 0) :
+    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) (cmp : Bool) (cret : Nat := 0) (lm : lease.Mode := .none) (gp : w64 := 0)
+    -- (lease-mono3 step 2, 2026-11-14) the cluster's grant prefixes `gps`, with the prefix `gp`
+    -- among them and distinct after `LeaseGrant`'s mask in the revocable mode (`kvPfxOk`)
+    (gps : List w64 := [gp])
+    (hgps : lm = .revocable → gp ∈ gps ∧ (gps.map (· &&& leaseIdMask)).Nodup :=
+      by first | exact fun h => nomatch h | exact fun _ => ⟨List.mem_singleton_self _, (by simp)⟩) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm ∧ γk.ids.pfx = gp⌝ ∗
+          γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInv ⟨γ, [], W64 0⟩ γk ∗
         (if γk.lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γ.boot))) ∗
@@ -276,7 +281,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     rw [hvs, hbt]; exact ⟨Hne, Hnd, hboot⟩
   -- the KV invariant at the bootstrap log
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain false false false, [[], []], 0, 0,
-    ⟨issued, cnt, 0, gp, wn, 0, fs, 0⟩, 0, cmp, γ.log, cret, lm⟩
+    ⟨issued, cnt, 0, gp, wn, 0, fs, 0⟩, 0, cmp, γ.log, cret, lm, gps⟩
   imod ghostVar_alloc (GF := GF) (kvModelSt γk0 (bootEntries γ.boot)) with ⟨%γst, Hstv⟩
   let γk : KVNames := { γk0 with st := γst }
   have hm : kvModelSt γk (bootEntries γ.boot) = kvModelSt γk0 (bootEntries γ.boot) := rfl
@@ -291,7 +296,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
       (by intro cs hcs c hc; simp only [γk, γk0, List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
           rcases hcs with rfl | rfl <;> simp at hc)
       (mvcc.LogPutsLe.empties _) rfl hao
-      ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩)
+      ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩ hgps)
     $$ [HL] [Hstv] with ⟨#Hkv, Hetcd⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv
@@ -304,7 +309,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   iframe Hsrl Hkv Hetcd Hcl H0 Hpm Hrc
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitl [Hps Hfs Hsd Hboots Hslots]
   · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
     ihave Hbc : iprop([∗list] id ∈ ps, ((nodeBoot γ.cl srvClusterN ps ctxs id ∗
@@ -343,7 +348,11 @@ certificate map `cok` (the member's store's), its id names (the cluster's claims
 prefix); with its read names' fresh rows (`srvReadNamesFreshNK`), the KV invariant at its names
 (`kvInv_congr`) and its share of the claims (`idShare`, from its prefix's entry). -/
 theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
-    (cok : GName) (hpfx : γk.lm = .revocable → γk.ids.pfx = idPfxOf (W16 (uint.Z id))) :
+    (cok : GName)
+    -- (lease-mono3 step 2, 2026-11-14; until then `γk.ids.pfx = idPfxOf id`, one member's) in the
+    -- revocable mode the member's prefix is one of the cluster's grant prefixes, and the cluster's
+    -- names meet the grant prefixes' condition
+    (hpfx : γk.lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk) :
     ⊢ kvInv (GF := GF) ⟨γ, [], W64 0⟩ γk -∗
       (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
@@ -368,7 +377,7 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
   iexists ⟨0, ⟨γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog,
-      γk.cret, γk.lm⟩⟩⟩
+      γk.cret, γk.lm, γk.gps⟩⟩⟩
   isplitr
   · ipureintro
     exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
@@ -376,11 +385,9 @@ theorem srvMemberBoot_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w
   · dsimp only
     rw [kvInv_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog,
-      γk.cret, γk.lm⟩ γk
-      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by
-        unfold kvPfx; dsimp only; split
-        · next h => exact (hpfx h).symm
-        · rfl⟩]
+      γk.cret, γk.lm, γk.gps⟩ γk
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+        ⟨fun _ => hpo, fun _ h => ⟨hpfx h, (hpo h).2⟩⟩⟩]
     iexact Hkv
   isplitl [Hp Hsl Hpend]
   · iunfold idShare

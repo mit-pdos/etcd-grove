@@ -141,7 +141,8 @@ def applyResR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryMode
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
+    -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g` (until then Go's `ai`)
+    srvSnapOwn C.s C.ci B.E C.γr B.γ g ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
       uint.Z g ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at' ∧
@@ -1107,7 +1108,7 @@ theorem EtcdServer.run.wp_proofG
         ihave #Hlb := monoNatLbOwn_get γr.committed _ _ $$ Hown
         ihave #Hca : iprop(committedAtLeast γr ci') $$ []
         · iapply committedAtLeast_le γr cci ci' (by word)
-          iunfold committedAtLeast
+          iunfold committedAtLeast; ileft
           iexact Hlb
         (try wp_auto)
         iapply HΦ'
@@ -1620,16 +1621,17 @@ theorem EtcdServer.run.wp_proofG
     rw [← hST]
     (try wp_auto)
     wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
-      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert, -⟩
+      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert, #Hdag⟩
     -- the records' commit at least the ghost log: `|A₀|` and `|A|` from `raftNode.stop` (S1: until
     -- then `|A₀|` from the restart data's false row 3, `rnRestartOk_commit`)
     ihave Hrst : iprop(∃ (S : RaftState) (σ : StorContents), raftState γn.node.cl γn.id S ∗
         rnWalClosed γn (srvRAddr s) σ ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ (γn.pre ++ A).length ∧
           (γn.pre ++ ghostOf ⟨P.length, A₀⟩ A).length ≤ σ.commit⌝ ∗
-        walSnapCert γn.node.cl σ) $$ [HrS Hwc]
+        walSnapCert γn.node.cl σ ∗
+        (∃ l', isCommittedLogLb γn.node.cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝)) $$ [HrS Hwc]
     · iexists S, σ
-      iframe HrS Hwc Hwcert
+      iframe HrS Hwc Hwcert Hdag
       ipureintro
       have hp0 : γn.pre = [] := Hc0a.2.1
       have hc1 := Hsh.2.2.1
@@ -1637,12 +1639,16 @@ theorem EtcdServer.run.wp_proofG
       refine ⟨Hsh.1, Hsh.2.1, ?_⟩
       simp only [ghostOf, hp0, List.nil_append, List.length_append, List.length_drop] at hc1 ⊢
       omega
-    -- `s.Cleanup()`: the backend closed, the image at the ghost log
+    -- `s.Cleanup()`: the backend closed, the image at the ghost log; (restart S6a) the member id the
+    -- raft node's (`srvSnapBagN`'s)
+    ihave #Hbg := Hbagn
+    iunfold srvSnapBagN at Hbg
+    icases Hbg with ⟨#HmidN, -⟩
     (try wp_auto)
     wp_apply hCl C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
         ⟨P.length, A₀⟩ A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
-      $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
+      $$ [$Hpkg $Hsrv $Hrn $HmidN $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
         Hlc2 Hlc3 $HWreg $Hgw] as Himg
     · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
     -- `close(s.done)`, the image escrowed (`srvDoneInv`)

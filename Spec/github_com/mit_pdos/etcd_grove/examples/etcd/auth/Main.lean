@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (`examples/etcd/auth/etcd_auth.go`; the auth plan's E2b, D-AU5): one etcd member started in
+`Main()` (`examples/etcd/auth/authkv.go`; the auth plan's E2b, D-AU5): one etcd member started in
 process with the simple token provider (on `authkv`'s ports), a client with no user name that
 sets up the auth state and enables auth (`SetUp`: root with the root role, role `r` granted
 `READWRITE` on `[a, b)`, users `u` with `r` and `v` with no role), clients that authenticate as
@@ -12,18 +12,21 @@ watch of every key from revision `1` read up to it and the history's check (`Che
 **The triple** (the closed theorem's form, as watchkv's): from the package's `isPkgInit`, the
 right to listen on the client address `127.0.0.1:23916`, the main thread's token and `Main`'s
 named premises (`etcd_auth.premises`, putget's at authkv's configuration), `Main()` does not panic
-and returns `Ok` (`0`: every check ran and passed), `Failed` (`1`: a step of the set-up failed) or
+and returns `Ok` (`0`: every check ran and passed), `Failed` (`1`: the server's start, `Serve`,
+a client's creation, a step of the set-up or root's last put failed) or
 `WatchEnded` (`2`: a watch ended before it reported what it was read for). Not panicking is the
 auth result (`notes/decisions.md`, "E2b of the auth plan"): every request the auth state
-(`etcd_auth.setupSt`) refuses its principal returned an error, every reply holds only keys its
-principal may read (`u`'s ranges, transactions and watch), and every write of the history up to
+(`etcd_auth.setupSt`) refuses its principal returned an error (read protection is shown by these
+refusals: every read of `v`, the client with no token and the bad token's is refused), every reply
+holds only keys of what was asked (`u`'s ranges, transactions and watch: range semantics, not auth
+evidence, since `u` reads only inside `[a, b)`), and every write of the history up to
 `z/end` is one its principal was permitted (`etcd_auth.permittedK`, the model's verdict at
 `setupSt`: `granted_setupSt_iff`), but the set-up's puts (`x/<who>/d` with the value `setup`,
 `SetupWrite`), which the check admits at any revision.
 
-The premises are watchkv's for the server's start, stated before the proof: an auth-enabled
-server's proof may need others (the client's auth contract, `ClientAuth.lean`, and what E2a's
-`NewAuthStore` gives).
+The premises are watchkv's for the server's start, stated before the proof, which needed no other
+(2026-10-31); the member's start with auth on is `startServer`'s spec, whose proof takes D22's
+`authSchemaSrv` (`Results.lean`'s `authkv_startServer`; the closed theorem `etcd_auth_safe`).
 -/
 module
 

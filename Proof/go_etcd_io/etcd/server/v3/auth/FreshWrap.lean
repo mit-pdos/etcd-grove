@@ -86,6 +86,19 @@ abbrev auth.authStore.IsRangePermitted.specLb : Prop :=
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
       re ↦*{de} e ∗ authErrIs err ∗ permVerdictFrom M n info k e .read err }}
 
+/-- `IsRangePermitted.specLb` with the refusal half, each error tied to its case (`permRefusalM`;
+auth-guard-completeness, `isWatchPermitted`). -/
+abbrev auth.authStore.IsRangePermitted.specLbR : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (n : Nat) (a : Loc) (info : AuthInfo) (dq : DFrac)
+    (key re : GoSlice) (k e : List w8) (dk de : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
+      authPubLbM M n }}
+    (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsRangePermitted")) (Val #a)) (Val #key)) (Val #re))
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
+      re ↦*{de} e ∗ authErrIs err ∗ permVerdictFrom M n info k e .read err ∗
+      permRefusalM M n info k e .read err }}
+
 /-- `as.IsDeleteRangePermitted(authInfo, key, rangeEnd)` read by a reader with the lower bound `n`:
 the verdict on the write at states no older than `n`. -/
 abbrev auth.authStore.IsDeleteRangePermitted.specLb : Prop :=
@@ -150,6 +163,29 @@ theorem auth.authStore.IsRangePermitted.wp_lb
   iframe
   iExactEq Hv
   all_goals simp [permOp]
+
+theorem auth.authStore.IsRangePermitted.wp_lbR
+    (h_isOpPermitted : auth.authStore.isOpPermitted.specLbR (GF := GF)) :
+    auth.authStore.IsRangePermitted.specLbR (GF := GF) := by
+  intro st R M n a info dq key re k e dk de
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, #Hlb⟩
+  ihave %Hann := typedPointsto_not_null $$ Ha
+  iStructNamed Ha
+  wp_auto
+  wp_apply (h_isOpPermitted st R M n info key re k e dk de
+      (W32 0)) $$ [$Hinv $Hrd $Hk $He $Hlb] as %err ⟨Hrd, Hk, He, Herr, #Hv, #Hr⟩
+  · ipureintro; exact ⟨by simp [permTypOk], Hlen⟩
+  ihave Ha : a ↦{dq} info $$ [Username Revision]
+  · iapply typedPointsto_combine a info dq Hann
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  iapply HΦ
+  iframe
+  isplitl []
+  · iExactEq Hv
+    all_goals simp [permOp]
+  · iExactEq Hr
+    all_goals simp [permOp]
 
 theorem auth.authStore.IsDeleteRangePermitted.wp_lb
     (h_isOpPermitted : auth.authStore.isOpPermitted.specLb (GF := GF)) :

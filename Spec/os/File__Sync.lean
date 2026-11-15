@@ -5,7 +5,10 @@
 extension's `Fsync` (`wp_osFsync`), retried on `EINTR`, which `Fsync` never returns, so the loop
 runs once. The bytes given hold every byte `m` says may not be durable (`m.Covers`). On success
 the size and every byte are durable (`OsMeta.synced`, each byte its value alone, `durB`); on
-failure nothing changes (no failed writeback: the semantics' rule). Proved in
+failure nothing changes (no failed writeback: the semantics' rule). `os.File.Sync.specB` is the
+byte-less variant (`wp_osFsyncB`), for a client that holds none of the bytes (bbolt's `DB.grow`): on
+success the `OsMeta` is `m.bsynced c` for some change number `c` (size and mappings unchanged), on
+failure nothing changes. Proved in
 `Proof/os/File__Sync.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -44,6 +47,17 @@ abbrev os.File.Sync.spec : Prop :=
           osBytes d.ino lo (DFrac.own 1) (xs.map (fun x => durB x.1))) ∨
        (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗
           osBytes d.ino lo (DFrac.own 1) xs)) ∗
+      fmtErrorOkOrNil err }}
+
+/-- The byte-less variant (see the file header). -/
+abbrev os.File.Sync.specB : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m : OsMeta),
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
+      osMeta (GF := GF) d.ino (DFrac.own 1) m }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ c, osMeta d.ino (DFrac.own 1) (m.bsynced c)) ∨
+       (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m)) ∗
       fmtErrorOkOrNil err }}
 
 end spec

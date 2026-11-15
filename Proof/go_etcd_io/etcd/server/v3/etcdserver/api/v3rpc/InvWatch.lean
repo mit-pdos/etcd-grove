@@ -257,25 +257,28 @@ theorem upOk_watchUp (R : WSrv GF) : ⊢ upOk (GF := GF) R.E.authMode (watchUp R
   unfold watchUp
   iexact H
 
-/-- **What `sws.mu` guards** at the fraction `q`: the three maps, `prevKV` and `fragment` empty
-(the client asks for neither: `watchReqOk`). -/
-def swsMu (pm vm fm : Loc) (q : Qp) : IProp GF :=
+/-- **What `sws.mu` guards** at the fraction `q`: the three maps, `fragment` empty (the client
+asks for none: `watchReqOk`), and (k8s 7f-3b) each entry of `prevKV` `true`, for a watcher that
+asked for previous key-values (`pkIs`: `recvLoop` records `creq.PrevKv`). -/
+def swsMu (pm vm fm : Loc) (γpk : GName) (q : Qp) : IProp GF :=
   iprop(∃ (PM VM FM : GMap w64 Bool),
     ownMap pm (DFrac.own q) PM ∗ ownMap vm (DFrac.own q) VM ∗ ownMap fm (DFrac.own q) FM ∗
-    ⌜∀ id, VM !! id = none ∧ FM !! id = none⌝)
+    ⌜∀ id, FM !! id = none⌝ ∗
+    □ (∀ (id : w64) (b : Bool), ⌜VM !! id = some b⌝ -∗ ⌜b = true⌝ ∗ pkIs γpk id true))
 
-instance swsMu_fractional (pm vm fm : Loc) : Fractional (swsMu (GF := GF) pm vm fm) where
+instance swsMu_fractional (pm vm fm : Loc) (γpk : GName) :
+    Fractional (swsMu (GF := GF) pm vm fm γpk) where
   fractional q1 q2 := by
     unfold swsMu
     constructor
-    · iintro ⟨%PM, %VM, %FM, HP, HV, HF, %Hn⟩
+    · iintro ⟨%PM, %VM, %FM, HP, HV, HF, %Hn, #Hvm⟩
       icases ((ownMap_fractional (GF := GF) pm PM).fractional q1 q2).1 $$ HP with ⟨HP1, HP2⟩
       icases ((ownMap_fractional (GF := GF) vm VM).fractional q1 q2).1 $$ HV with ⟨HV1, HV2⟩
       icases ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).1 $$ HF with ⟨HF1, HF2⟩
       isplitl [HP1 HV1 HF1]
-      · iexists PM, VM, FM; iframe; ipureintro; exact Hn
-      · iexists PM, VM, FM; iframe; ipureintro; exact Hn
-    · iintro ⟨⟨%PM, %VM, %FM, HP, HV, HF, %Hn⟩, ⟨%PM', %VM', %FM', HP', HV', HF', -⟩⟩
+      · iexists PM, VM, FM; iframe; iframe #; ipureintro; exact Hn
+      · iexists PM, VM, FM; iframe; iframe #; ipureintro; exact Hn
+    · iintro ⟨⟨%PM, %VM, %FM, HP, HV, HF, %Hn, #Hvm⟩, ⟨%PM', %VM', %FM', HP', HV', HF', -, -⟩⟩
       ihave %Ha := ownMap_agree pm _ _ PM PM' $$ [$HP $HP']
       ihave %Hb := ownMap_agree vm _ _ VM VM' $$ [$HV $HV']
       ihave %Hc := ownMap_agree fm _ _ FM FM' $$ [$HF $HF']
@@ -287,7 +290,7 @@ instance swsMu_fractional (pm vm fm : Loc) : Fractional (swsMu (GF := GF) pm vm 
       · iapply ((ownMap_fractional (GF := GF) vm VM).fractional q1 q2).2; iframe
       isplitl [HF HF']
       · iapply ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).2; iframe
-      ipureintro; exact Hn
+      iframe #; ipureintro; exact Hn
 
 section api
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
@@ -313,6 +316,8 @@ structure WRun (GF : BundledGFunctors) where
   ι : mvcc.api.WsName
   γreg : GName
   γtok : GName
+  /-- (k8s 7f-3b) each registered watcher's previous key-value request (`pkIs`) -/
+  γpk : GName
   γr : GName
   γcl : GName
   γa : GName
@@ -326,13 +331,18 @@ structure WRun (GF : BundledGFunctors) where
 
 /-- The run's ghost names its stream's auxiliary name publishes (`ι` is not a `GName`, and no
 client needs it). -/
-def auxOf (r : WRun GF) : List GName := [r.γreg, r.γtok, r.γr, r.γa]
+def auxOf (r : WRun GF) : List GName := [r.γreg, r.γtok, r.γr, r.γa, r.γpk]
 
 theorem auxOf_inj {r r' : WRun GF} (h : auxOf r = auxOf r') :
     r.γreg = r'.γreg ∧ r.γtok = r'.γtok ∧ r.γr = r'.γr ∧ r.γa = r'.γa := by
   unfold auxOf at h
   simp only [List.cons.injEq, and_true] at h
-  exact h
+  exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1⟩
+
+theorem auxOf_inj_pk {r r' : WRun GF} (h : auxOf r = auxOf r') : r.γpk = r'.γpk := by
+  unfold auxOf at h
+  simp only [List.cons.injEq, and_true] at h
+  exact h.2.2.2.2
 
 /-- **v3rpc's invariant of a run** (shared by `recvLoop`, `sendLoop`, `close`; the draft's
 `wsInv`, `WatchApi.lean`'s `wsInvG` at the run's names): the stream's state `S`; the registry agrees
@@ -340,7 +350,7 @@ with `S` (every watcher's `RegInfo`, its discarded entries kept, so the snapshot
 id tokens minted for exactly `S`'s ids); every watcher unfiltered; every watcher not live was
 cancelled at the client's request (`cancelQ`: the reason today's `Ψ`/`rsnFor` carried); the stream
 open, or the close token deposited. -/
-abbrev wsInv (r : WRun GF) : IProp GF := wsInvG r.ι r.γreg r.γtok r.γcl (cancelQ r.γs)
+abbrev wsInv (r : WRun GF) : IProp GF := wsInvG r.ι r.γreg r.γtok r.γpk r.γcl (cancelQ r.γs)
 
 /-! ## The per-message stream spec (the draft's §4) -/
 
@@ -353,8 +363,70 @@ abbrev rcvSnap (r : WRun GF) (rs : List mvcc.api.WResp) (σ : mvcc.api.MvccState
     (S : mvcc.api.StreamState) : IProp GF :=
   rcvSnapG r.W r.γreg (cancelQ r.γs) rs σ S
 
+/-- **An event the send loop sent for the event `ev0` of mvcc's response of the watcher `id`**
+(persistent; k8s 7f-3b, `watch.go:442-455`): `ev0` itself, or `ev0` with a previous key-value `kv`
+written (`events[i].PrevKv = r.KVs[0]`) for a watcher that asked for them (`pkIs`), `ev0` not a
+create: the key's record at the revision before `ev0`'s in a certified log `L` (the store's range
+of the key at `ModRevision - 1`), `L`'s revision `1` empty (a range at revision `0` reads the
+current revision: an event at revision `1` would read the wrong one, and there is none). -/
+def pkWritten (r : WRun GF) (id : w64) (ev0 ev : mvcc.EvM) : IProp GF :=
+  iprop(⌜ev = ev0⌝ ∨ ∃ (kv : EtcdKv) (L : mvcc.Log),
+    ⌜ev = { ev0 with prevKv := some kv } ∧ ¬ evIsCreate ev0 ∧ 1 < L.length ∧ L.getD 1 [] = [] ∧
+      sint.Z ev0.kv.modRev - 1 < L.length ∧
+      (2 ≤ sint.Z ev0.kv.modRev →
+        mvcc.findKey ev0.kv.key (mvcc.stateAt L (sint.nat ev0.kv.modRev - 1)) = some kv)⌝ ∗
+    □ r.W.histLb L ∗ pkIs r.γpk id true)
+
+instance pkWritten_persistent (r : WRun GF) (id : w64) (ev0 ev : mvcc.EvM) :
+    Persistent (pkWritten (GF := GF) r id ev0 ev) := by
+  unfold pkWritten; infer_instance
+
+/-- **The events `evs` the send loop sent for mvcc's response `x`** (persistent; k8s 7f-3b): one for
+each of `x`'s, each `pkWritten`. -/
+def evsSentOk (r : WRun GF) (x : mvcc.api.WResp) (evs : List mvcc.EvM) : IProp GF :=
+  iprop(⌜evs.length = x.evs.length⌝ ∗
+    □ ∀ (k : Nat) (ev0 ev : mvcc.EvM), ⌜x.evs[k]? = some ev0⌝ -∗ ⌜evs[k]? = some ev⌝ -∗
+      pkWritten r x.id ev0 ev)
+
+instance evsSentOk_persistent (r : WRun GF) (x : mvcc.api.WResp) (evs : List mvcc.EvM) :
+    Persistent (evsSentOk (GF := GF) r x evs) := by
+  unfold evsSentOk; infer_instance
+
+/-- A sent event is mvcc's up to its previous key-value. -/
+theorem pkWritten_shape (r : WRun GF) (id : w64) (ev0 ev : mvcc.EvM) :
+    pkWritten (GF := GF) r id ev0 ev ⊢ ⌜ev.del = ev0.del ∧ ev.kv = ev0.kv⌝ := by
+  unfold pkWritten
+  iintro (%h | ⟨%kv, %L, %h, -⟩)
+  · subst h; ipureintro; exact ⟨rfl, rfl⟩
+  · rw [h.1]; ipureintro; exact ⟨rfl, rfl⟩
+
+/-- The events sent are mvcc's up to their previous key-values (what a reader of their other
+fields, `mvcc.evRd`, sees). -/
+theorem evsSentOk_rd (r : WRun GF) (x : mvcc.api.WResp) (evs : List mvcc.EvM) :
+    evsSentOk (GF := GF) r x evs ⊢ ⌜evs.length = x.evs.length⌝ ∗
+      □ ∀ (k : Nat) (ev ev0 : mvcc.EvM), ⌜evs[k]? = some ev⌝ -∗ ⌜x.evs[k]? = some ev0⌝ -∗
+        ⌜ev.del = ev0.del ∧ ev.kv = ev0.kv⌝ := by
+  unfold evsSentOk
+  iintro ⟨%Hl, #H⟩
+  isplitr
+  · ipureintro; exact Hl
+  iintro !> %k %ev %ev0 %h %h0
+  ihave Hw := H $$ %k %ev0 %ev %h0 %h
+  iapply pkWritten_shape $$ Hw
+
+/-- mvcc's events, sent as they are. -/
+theorem evsSentOk_same (r : WRun GF) (x : mvcc.api.WResp) : ⊢ evsSentOk (GF := GF) r x x.evs := by
+  unfold evsSentOk
+  isplitr
+  · ipureintro; rfl
+  iintro !> %k %ev0 %ev %h0 %h
+  unfold pkWritten
+  ileft; ipureintro
+  rw [h0] at h; exact (Option.some.inj h).symm
+
 /-- **A response of the mvcc watch stream sent at position `j`**: the response of the `n`-th
-received response `x` (after `pre`), its header's revision `x`'s, its id (unless `-1`) live after
+received response `x` (after `pre`), its events `x`'s as sent (`evsSentOk`, k8s 7f-3b), its
+header's revision `x`'s, its id (unless `-1`) live after
 the `j` responses `L` sent before it; the received list's lower bound and the snapshot at
 `pre ++ [x]`; for a `-1` response, every id live after `L` is a watcher of the snapshot's `S` (its
 created response was sent before the receive, so it registered before the snapshot); if `x` has
@@ -364,7 +436,7 @@ events received; no response before it came from `n`; what was forwarded before 
 def mvccOk (r : WRun GF) (j : Nat) (m : WatchRespM) : IProp GF :=
   iprop(∃ (n : Nat) (x : mvcc.api.WResp) (pre : List mvcc.api.WResp) (L : List WatchRespM)
       (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState),
-    ⌜m = mvccResp n x m.hdr ∧ m.hdr.revision = x.rev ∧ L.length = j ∧ pre.length = n ∧
+    ⌜m = mvccResp n x m.hdr m.evs ∧ m.hdr.revision = x.rev ∧ L.length = j ∧ pre.length = n ∧
       (x.id ≠ W64 (-1) → idLive L x.id) ∧
       (x.id = W64 (-1) → ∀ X, idLive L X → X ≠ W64 (-1) → (S.ws !! X).isSome) ∧
       (x.evs ≠ [] → sentEvsOf L x.id ++ [x] =
@@ -372,20 +444,21 @@ def mvccOk (r : WRun GF) (j : Nat) (m : WatchRespM) : IProp GF :=
       (∀ m' ∈ L, ∀ y, m'.src ≠ some (n, y)) ∧ fwdIdx L n x ∧
       (∀ X, fwdEvs L pre x X)⌝ ∗
     monoListLbOwn r.γs.down L ∗ rcvLb r.γr (pre ++ [x]) ∗
-    rcvSnap r (pre ++ [x]) σ S)
+    rcvSnap r (pre ++ [x]) σ S ∗ evsSentOk r x m.evs)
 
 /-- **The watcher a created response names**: for a create request `c` answered by a registered
 response `m`, its registry entry (the range of the request and the response's id; its first
 revision the start revision, or for `0` the length of a certified notified log, `σ.log` at the
 registration with nothing pending), its id token, the request's authorization (unchanged, at the
 server's auth tag), and the stream's sent count at the registration (`wsSentLb ι k`, what the send
-loop's drain matches; the client needs only `RegInfo.k`). -/
+loop's drain matches; the client needs only `RegInfo.k`), and (k8s 7f-3b) whether it asked for
+previous key-values (`pkIs`, the request's `prev_kv`). -/
 def ctrlWatcher (r : WRun GF) (tok : Option GoString) (req : WatchReqM) (m : WatchRespM) :
     IProp GF :=
   match req with
   | .create c => if m.canceled then iprop(True) else
       iprop(∃ i : RegInfo, ⌜createRangeOk c m.watchId i.rg⌝ ∗ regIs r.γreg m.watchId i ∗
-        idTok r.γtok m.watchId ∗ mvcc.api.wsSentLb r.ι i.k ∗
+        idTok r.γtok m.watchId ∗ pkIs r.γpk m.watchId c.prevKv ∗ mvcc.api.wsSentLb r.ι i.k ∗
         (if c.startRev = W64 0 then ∃ Lr : mvcc.Log, r.W.histLb Lr ∗ ⌜i.lo = Lr.length⌝
          else iprop(⌜i.lo = sint.nat c.startRev⌝)) ∗
         watchAuthed r.srv.tag r.srv.s tok c.bound c.key c.rangeEnd)
@@ -476,7 +549,7 @@ def swsIs (sws : Loc) (r : WRun GF) (Up : Nat → WatchReqM → IProp GF)
     srvWOk r.W r.srv.wsl wsN ∗
     isSpsc r.γctrl r.ctrl (ctrlP r ci) (fun _ => iprop(True)) ∗
     ownBroadcastChan r.cc r.γcc iprop(True) .Unknown ∗
-    sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm))
+    sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm r.γpk))
 
 /-- `swsIs` is persistent (its mvcc parts by the API's `persistent.law`). -/
 theorem swsIs_persistent (hP : mvcc.api.persistent.law (GF := GF)) (sws : Loc) (r : WRun GF)

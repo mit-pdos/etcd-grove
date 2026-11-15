@@ -7,10 +7,35 @@ import (
 	"time"
 
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 )
+
+// TestMemberIDs checks the premise on the member id etcd computes for Main's one-member cluster
+// (from the peer URL and the cluster token; examples/etcd/putget3's TestMemberIDs, `BootFacts`):
+// its 16 low bits are not 0.
+func TestMemberIDs(t *testing.T) {
+	urls, err := types.NewURLsMap("authkv=http://" + peerAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), "authkv", urls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := cl.MemberIDs()
+	if len(ids) != 1 {
+		t.Fatalf("got %d members", len(ids))
+	}
+	low := uint64(ids[0]) & 0xffff
+	t.Logf("member %x: low 16 bits %#x", uint64(ids[0]), low)
+	if low == 0 {
+		t.Fatalf("member %x: low 16 bits zero", uint64(ids[0]))
+	}
+}
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
 // relative); the checks must pass. Then it asks the member Main left running, as each principal,

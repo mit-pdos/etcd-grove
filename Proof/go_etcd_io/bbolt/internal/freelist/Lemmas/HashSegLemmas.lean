@@ -17,6 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+
 /-- Two sets with the same elements are equal. -/
 theorem unit_map_eq {M1 M2 : GMap w64 Unit} (h : ∀ x, (M1 !! x).isSome ↔ (M2 !! x).isSome) :
     M1 = M2 := by

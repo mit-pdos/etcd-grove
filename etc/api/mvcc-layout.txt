@@ -462,7 +462,6 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__delete Perennial.EtcdGr
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__delete Perennial.EtcdGrove.watcherSet.delete.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union Perennial.EtcdGrove.mvcc.watcherSet.union.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union Perennial.EtcdGrove.watcherSet.union.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.evIs_filter  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs  # exposed by a proof file (def)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs_all  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs_snd  # exposed by a proof file (theorem)

@@ -49,7 +49,7 @@ theorem apply.authApplierV3.Apply.wp_proof
   icases Ht with ⟨-, -, -, -, -, -, -, -, -, -, #HApplyI, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
-  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩
+  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip, %Hutf8⟩
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hipn, -, ⟨%hl, #HH, #Hhdr⟩, -⟩

@@ -491,8 +491,7 @@ def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
     srvCfgFieldAddr s go!"Metrics" ↦□ C.mt ∗
     srvCfgFieldAddr s go!"EnableDistributedTracing" ↦□ C.tr ∗
     srvCfgFieldAddr s go!"TracerOptions" ↦□ C.tsl ∗ C.tsl ↦*□ C.tos ∗
-    srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ C.mcs ∗
-    v3rpc.runsNoRequireLeader)
+    srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ C.mcs)
 
 instance v3rpc.grpcCfgOk_persistent (s : Loc) (C : v3rpc.GrpcCfg GF) :
     Persistent (v3rpc.grpcCfgOk s C) := by

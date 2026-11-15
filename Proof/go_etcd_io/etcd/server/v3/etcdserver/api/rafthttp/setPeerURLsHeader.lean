@@ -47,6 +47,8 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
       exfalso
       apply hne
       exact List.length_eq_zero_iff.1 (by rw [Hul.1]; rfl)
+    isplitr
+    · ipureintro; exact id
     iunfold http.reqOwn
     iexists hm
     iframe; iframe #
@@ -148,6 +150,9 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
         have hjl : j < uvs.length := (List.getElem?_eq_some_iff.1 hj).1
         exact Hk4 j v (by unfold sint.nat at *; word) hj (hall v (List.mem_of_getElem? hj))
     rw [hxs]
+  isplitr
+  · ipureintro; intro h
+    exact http.noIdemKey_hdrSet _ _ _ h (by decide) (by decide)
   iunfold http.reqOwn
   iexists hm
   iframe; iframe #

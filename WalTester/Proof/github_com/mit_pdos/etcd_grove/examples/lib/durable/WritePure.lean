@@ -15,7 +15,7 @@ The physical states after `tryWrite`'s steps and the invariant's facts (`DurOk`)
 module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Defs
-public import Spec.os.Rename
+public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.TreeSharedCoh
 public import Spec.os.File__WriteAt
 public import Spec.os.File__Sync

@@ -17,18 +17,20 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- A key of the dirty pages, before `tx.write`'s first loop: its buffer, and its slots. -/
-def wrKey (b : Loc) (p : GoString) (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (k : w64) :
+def wrKey (b : Loc) (p : BFile) (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (k : w64) :
     IProp GF :=
   iprop((∃ pl, ⌜pm !! k = some pl⌝ ∗ ∃ bs, ⌜bufs !! k = some bs⌝ ∗
       bytesPointsto pl (DFrac.own 1) bs) ∗
@@ -56,12 +58,12 @@ theorem wr_keys_le (keys : List w64) (lim : Nat) (hnd : keys.Nodup)
   simpa using this
 
 /-- A page interrupted by a failed write: its slots, holding anything. -/
-theorem cur_any (b : Loc) (p : GoString) (k c' w cs r : Nat) (ysd ys : List (w8 × Bool))
+theorem cur_any (b : Loc) (p : BFile) (k c' w cs r : Nat) (ysd ys : List ByteG)
     (P : List w8) (hysd : ysd.length = w) (hP : P.length = w) (hys : ys.length = cs)
     (htot : w + cs + r = 4096 * c') :
-    osBytes (GF := GF) p (4096 * k) (DFrac.own 1) ysd ∗
+    osBytes (GF := GF) p.ino (4096 * k) (DFrac.own 1) ysd ∗
       bytesPointsto (b +ₗ ((4096 * k : Nat) : Int)) (DFrac.own (1 : Qp).half) P ∗
-      osBytes p (4096 * k + w) (DFrac.own 1) ys ∗ cAny b (4096 * k + w) cs ∗
+      osBytes p.ino (4096 * k + w) (DFrac.own 1) ys ∗ cAny b (4096 * k + w) cs ∗
       oAny p (4096 * k + w + cs) r ∗ cAny b (4096 * k + w + cs) r ⊢
       [∗list] s ∈ List.range' k c', slotAny b p s := by
   iintro ⟨H1, H2, H3, H4, H5, H6⟩
@@ -89,7 +91,7 @@ def pgBuf (e : w64 × Loc × List w8) : IProp GF :=
     bytesPointsto (e.2.1 +ₗ 16) (DFrac.own 1) (e.2.2.drop 16))
 
 /-- The written pages, as their buffers and their slots. -/
-theorem done_split (b : Loc) (p : GoString) (L : List (w64 × Loc × List w8)) :
+theorem done_split (b : Loc) (p : BFile) (L : List (w64 × Loc × List w8)) :
     ([∗list] e ∈ L, e.2.1 ↦ pageHdr e.2.2) ∗ ([∗list] e ∈ L, pgDone (GF := GF) b p e) ⊢
       ([∗list] e ∈ L, pgBuf e) ∗
       [∗list] e ∈ L, [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2),
@@ -107,7 +109,7 @@ theorem done_split (b : Loc) (p : GoString) (L : List (w64 × Loc × List w8)) :
   ipureintro; exact Hp
 
 /-- The written pages' slots, holding anything. -/
-theorem sd_any (b : Loc) (p : GoString) (L : List (w64 × Loc × List w8))
+theorem sd_any (b : Loc) (p : BFile) (L : List (w64 × Loc × List w8))
     (hl : ∀ e ∈ L, e.2.2.length = 4096 * (1 + pageOverflow e.2.2)) :
     ([∗list] e ∈ L, [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2),
         slotDone (GF := GF) b p s (pageChunk e.2.2 (s - e.1.toNat))) ⊢

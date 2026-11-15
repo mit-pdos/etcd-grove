@@ -19,6 +19,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -28,9 +30,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Bucket.Cursor.wp_proof (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG)) :
+theorem Bucket.Cursor.wp_proof (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG)) :
     Bucket.Cursor.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ q T b n m
+  intro _ _ _ tx γ q T b n m
   iintro %Φ ⟨Ht, #Hb, %Hm⟩ HΦ
   unfold boltTx boltBkt boltCur boltTxDef boltBktDef boltCurDef at *
   icases Hb with ⟨%r', #Hreg', #Hbtx, #Hh, Hrb⟩

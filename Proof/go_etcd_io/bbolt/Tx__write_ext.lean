@@ -17,12 +17,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -33,7 +35,7 @@ theorem Tx.write_ext.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))
-    (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (hWriteAt : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) :=

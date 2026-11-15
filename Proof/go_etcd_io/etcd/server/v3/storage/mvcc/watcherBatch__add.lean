@@ -28,7 +28,7 @@ theorem mvcc.watcherBatch.add.wp_proof
     (hAdd : mvcc.eventBatch.add.spec (GF := GF) (hG := hG)) :
     mvcc.watcherBatch.add.spec (GF := GF) (hG := hG) := by
   intro wb Bm w e ev
-  wp_start as ⟨HB, #He⟩
+  wp_start as ⟨HB, He⟩
   iunfold mvcc.ownWatcherBatch at HB
   icases HB with ⟨%PB, Hm, %HBm, Hbs⟩
   wp_auto

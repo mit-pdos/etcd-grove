@@ -35,7 +35,7 @@ public import Proof.os.File__Sync
 public import Proof.os.File__SyncS
 public import Proof.os.File__WriteAt
 public import Proof.os.OpenFileTruncS
-public import Proof.os.Rename
+public import Proof.os.RenameS
 public import Proof.os.fileStat__Size
 public import Proof.path.filepath.Base
 public import Proof.path.filepath.Clean

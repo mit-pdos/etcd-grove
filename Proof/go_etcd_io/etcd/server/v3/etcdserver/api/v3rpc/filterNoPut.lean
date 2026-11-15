@@ -30,9 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.filterNoPut.wp_proof : v3rpc.filterNoPut.spec (GF := GF) (hG := hG) := by
   intro e ev
   wp_start as #Hev
-  iunfold mvcc.evIs at Hev
-  icases Hev with ⟨%p, %q, %st, %uf, %sc, %Hn, #He, -, -⟩
-  icases mvcc.event_fields _ _ _ $$ He with ⟨#HT, -, -⟩
+  iunfold mvcc.evRd at Hev
+  icases Hev with ⟨%p, %st, %uf, %sc, %Hn, -, #HT, -, -, -, -⟩
   wp_auto
   iapply HΦ
   ipureintro

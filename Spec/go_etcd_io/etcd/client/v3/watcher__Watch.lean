@@ -44,6 +44,14 @@ that the create request the watch sends stays below the bound the stream's `Send
 sweep's fixes, 2026-11-13, `notes/ctx-sweep-fixes.md`) `Value(&cancelCtxKey)` as `isContext` says
 (it returns, and a `*cancelCtx` it returns is a valid one): `newWatcherGRPCStream` runs
 `WithCancel(&valCtx{ctx})` on the caller's goroutine, whose `parentCancelCtx` calls it.
+
+**`WithPrevKV`** (k8s 7f-3c, `notes/k8s-7f3a-draft.md` S1, S6): the watch may ask for previous
+key-values (`isRangeWatchP`; the other options that change which events are sent, fragments and the
+filters, stay excluded), and each delivered event's `PrevKv` field is readable (`respAtP`) and its
+pointer `prevKvOk` of the state's event it is (`watchStateRespOkP`): `nil` without `WithPrevKV`;
+with it, `nil` (always admitted: `issues/etcd-watch-prevkv-before-created.md`), or, for an event
+that is not a create, a `*KeyValue` holding the key's record at the revision before the event's.
+The old element (`watchStateElem`) follows from the new (`watchStateElemP_elem`).
 -/
 module
 
@@ -83,7 +91,7 @@ abbrev watcher.Watch.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
       EtcdGrove.context.watchCtx ctx ctx_desc ∗ optsAt opts_sl opts ∗
-      ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
+      ⌜(opWatchModel key opts).isRangeWatchP rev = true ∧ ¬ opWatchPanics key opts ∧
         1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
@@ -91,7 +99,7 @@ abbrev watcher.Watch.spec : Prop :=
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
         go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
-      isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
+      isSpsc γw.spsc ch (watchStateElemP V.kv γw (opWatchModel key opts).watchNorm Q
         iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
           (GoInterface.ok ctx) n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
         (fun _ => iprop(True)) ∗

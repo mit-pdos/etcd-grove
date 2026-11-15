@@ -190,7 +190,7 @@ public import Proof.os.OpenFileTruncSN
 public import Proof.os.Remove
 public import Proof.os.RemoveAll
 public import Proof.os.RemoveAllAbsentN
-public import Proof.os.Rename
+public import Proof.os.RenameS
 public import Proof.os.StatAbove
 public import Proof.os.WriteFile
 public import Proof.os.WriteFileTrunc

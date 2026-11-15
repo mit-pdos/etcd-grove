@@ -12,11 +12,11 @@ records); `StartMember` for each member, the thread token passed along (`memberS
 address (the bridge owned, its address serving the member's, `forwards`) and the bridges' slice;
 `clusterUp`. Every step's error ends with `ok = false`.
 
-(lease-mono3's pass 2(a), 2026-11-06, `notes/lease-mono3-plan.md`) One proof for the modes `none`
-and `mono` (the revocable mode is excluded by the scope premise): `alloc3` and `StartMember` at the
-mode, each member's registrations kept whole (`servedRegs`, from `memberServed` to `memberAt`), and
-the client's `etcdKV`
-(`alloc3`'s `if`) in the mode `none` only, as `clusterAt`'s `match`.
+(lease-mono3's pass 2(a), 2026-11-06, `notes/lease-mono3-plan.md`; step 2, 2026-11-14: every mode,
+until then not the revocable one, a scope premise) One proof for every lease mode: `alloc3` and
+`StartMember` at the mode (in the revocable mode with the members' ids apart, `leaseIdsApart`),
+each member's registrations kept whole (`servedRegs`, from `memberServed` to `memberAt`), and the
+client's `etcdKV` (`alloc3`'s `if`) in the mode `none` only, as `clusterAt`'s `match`.
 -/
 module
 
@@ -57,9 +57,8 @@ theorem StartCluster.wp_proof
     (hne : mvcc.api.names_nonempty.law) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf
-    Hdbo Hms Hrun Hrev HlP
-  -- (lease-mono3) the mode `none` or `mono`: `alloc3` at it, `StartMember` at it, `etcdKV` in the
-  -- mode `none` only
+    Hdbo Hms Hrun Hap HlP
+  -- (lease-mono3) the mode: `alloc3` at it, `StartMember` at it, `etcdKV` in the mode `none` only
   wp_start as ⟨#Hzlg, Hstart, Htok, #Hprem⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   -- the members' start bundles (to `alloc3`) and the bridges' listen rights (to `StartBridge`)
@@ -126,7 +125,7 @@ theorem StartCluster.wp_proof
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.toBootCore (dir3 cfg id₁ id₂ id₃)
       cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega)
-      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') lm Hrun Hrev
+      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') lm Hrun Hap
       cmp 0)
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Hfr₁⟩, Hmb₂,
@@ -307,13 +306,12 @@ theorem StartCluster.wp_proof
     ipureintro; exact ⟨⟨reg₃, hr₃⟩, hc₃, hch₃, hl₃, off₃⟩
   -- (lease-mono3) the client's `etcdKV` in the mode `none` only
   cases lm with
-  | revocable => exact absurd rfl Hrev
   | none =>
     dsimp only
     isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
     iframe Hetcd
     ipureintro; exact ⟨hst₂, hst₃, hcmp₁, hcret₁⟩
-  | mono =>
+  | mono | revocable =>
     dsimp only
     isplitl []; · itrivial
     ipureintro; exact ⟨hst₂, hst₃, hcmp₁, hcret₁⟩

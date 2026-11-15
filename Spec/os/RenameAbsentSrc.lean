@@ -9,8 +9,7 @@ Lean-first.
 -/
 module
 
-public import Spec.os.Rename
-
+public import Spec.os.RenameS
 @[expose] public section
 
 noncomputable section

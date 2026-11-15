@@ -176,7 +176,7 @@ local macro "txn_close_err" : tactic => `(tactic| (
   (try rw [hro]); (try simp only [↓reduceIte])
   iframe Hcred
   iright
-  iframe HeE
+  iframe HeE HeW
   ipureintro; intro h; cases h))
 
 set_option hygiene false in
@@ -312,12 +312,16 @@ local macro "txn_tail" : tactic => `(tactic| (
       · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply checkErrIs_applyErrIs $$ Hvars Hce
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          · unfold txnWhyOut; iright; iright; ileft; iexact Hce
           replace Hnull := Hnull.1
           txn_ret_null
           txn_close_err
         · cases Hn
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply applyErrIs_ctxErrorf _ Hleaf $$ He HCtxE
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          · unfold txnWhyOut; iright; iright; iright; iexact He
           txn_ret_rd
           txn_close_err
       · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
@@ -385,6 +389,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
         · iapply authApplyErrIs_apply _ $$ HsE
+        ihave #HeW := txnWhyOut_off s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok sei) hon
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -449,25 +454,32 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv)) ∨
        (mvcc.ctxErrorf errv ∗ txn.roTxnRespRd respv ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) ∗
-      (∃ te, traceutil.ownTrace trc te)) (fun info => txnClassFrom (.on γa) nA info t) trc false)
+      (∃ te, traceutil.ownTrace trc te)) (fun info => txnClassFrom (.on γa) nA info t)
+      (fun info err => iprop(∃ x : apply.Perm3, ⌜apply.txnMay tw x⌝ ∗
+        auth.permRefusalM (.on γa) nA info x.1 x.2.1 .read err)) trc false n)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.RD (.on γa) nA a info dq r tw) $$ [Ha Hard]
-        as %cerr ⟨Ha, Hard, #HcE0, -, -, #Hcl, -⟩
+      wp_apply (hCTA w.auth w.lessor E.RD (.on γa) nA
+          (fun info k e err => auth.permRefusalM (.on γa) nA info k e .read err) a info dq r tw) $$ [Ha Hard]
+        as %cerr ⟨Ha, Hard, #HcE0, -, -, #Hcl, Hrf⟩
       · iframe # Ha Hard
         ipureintro; exact apply.readonlyW_of_txnReadonly tw (by rw [Htw]; exact hro)
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
       iframe Ha Hard HcE0
-      iintro %Hn
-      ihave ⟨%L, %HL, #Hv⟩ := Hcl $$ %Hn
-      iunfold txnClassFrom
-      iexists tw, L
-      iframe Hv
-      ipureintro; exact ⟨Htw, HL⟩
+      isplitr [Hrf]
+      · iintro %Hn
+        ihave ⟨%L, %HL, #Hv⟩ := Hcl $$ %Hn
+        iunfold txnClassFrom
+        iexists tw, L
+        iframe Hv
+        ipureintro; exact ⟨Htw, HL⟩
+      · iintro %hne
+        ihave ⟨%x, %hx, -, Hw⟩ := Hrf $$ %hne
+        iexists x; iframe Hw; ipureintro; exact hx
     isplitr
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
@@ -555,19 +567,23 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #respv) P) ∗
       (P -∗ srvLgReader s -∗ Φ (PairV #rr #re)))) at (exceptionDo _) with [-defer trace]
   · icases Hds with ⟨Hard, (⟨%Hs0, #Hcls, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, #Hrc, %Hlog, Hres, Hown⟩ |
-      ⟨%Hs0, #HsE, Hg⟩)⟩
+      ⟨%Hs0, #HsE, HsW, Hg⟩)⟩
     · subst Hs0
       wp_auto_lc 6
       rcases errv with ei | _
       · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply checkErrIs_applyErrIs $$ Hvars Hce
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          · unfold txnWhyOut; iright; iright; ileft; iexact Hce
           replace Hnull := Hnull.1
           txn_ret_null
           txn_close_err
         · cases Hn
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply applyErrIs_ctxErrorf _ Hleaf $$ He HCtxE
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          · unfold txnWhyOut; iright; iright; iright; iexact He
           txn_ret_rd
           txn_close_err
       · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
@@ -632,6 +648,12 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
         · iapply authApplyErrIs_apply _ $$ HsE
+        ihave #HsW1 := txnWhy_of_serialWhy s E.authMode γa hM n nA HnA _ t tw Htw (GoInterface.ok sei)
+          (by intro h; cases h) $$ HsW
+        ihave #HsW2 := txnWhy_ctx s E.authMode n _ (GoInterface.ok ctx) t (GoInterface.ok sei)
+          (by rw [Hinc2, Hinc1]) $$ HsW1
+        ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok sei) $$ []
+        · unfold txnWhyOut; ileft; iexact HsW2
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -708,7 +730,7 @@ theorem EtcdServer.Txn.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG))
-    (hLb : apply.CheckTxnAuth.specLb (GF := GF) (hG := hG)) :
+    (hLb : apply.CheckTxnAuth.specLbW (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r t Q Qr ot te F n
   wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hlib, #Hspc, #Hct, Hto, #Hrt, %Hro2, %Hdpt, #HF, Hnp⟩
@@ -828,7 +850,7 @@ theorem EtcdServer.Txn.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw, -⟩
   · iframe Htr Hlib; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
@@ -1270,7 +1292,7 @@ theorem EtcdServer.Txn.wp_proof
               □ (if txn.txnSerializable t then iprop(True) else
                 ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF)) ∨
            (∃ rei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗
-              applyErrIs (GoInterface.ok rei) ∗ «$res0_ptr» ↦ Loc.null ∗
+              applyErrIs (GoInterface.ok rei) ∗ readErrIs (GoInterface.ok rei) ∗ «$res0_ptr» ↦ Loc.null ∗
               «$res1_ptr» ↦ (GoInterface.ok rei : GoInterface)))))
         at (if: _ then _ else _) with [trace Hrr Hown0 Hnp «$res0» «$res1»]
       · cases hs : txn.txnSerializable t
@@ -1297,7 +1319,7 @@ theorem EtcdServer.Txn.wp_proof
             iframe trace Hrr Hown0
             iright
             iexists rei
-            iframe HrE «$res0» «$res1»
+            iframe HrE HrdE «$res0» «$res1»
             ipureintro; rfl
           | nil =>
             ihave #Hri' := Hri $$ %rfl
@@ -1332,7 +1354,7 @@ theorem EtcdServer.Txn.wp_proof
           isplitr
           · iexact Hc0
           isplitr <;> imodintro <;> itrivial
-      iintro ⟨trace, Hrr, Hown0, (⟨%Hv, «$res0», «$res1», %logR, ⟨%HlR, %HFR⟩, #HcR, #HriO, #HwO⟩ | ⟨%rei, %Hv, #HrE, «$res0», «$res1»⟩)⟩
+      iintro ⟨trace, Hrr, Hown0, (⟨%Hv, «$res0», «$res1», %logR, ⟨%HlR, %HFR⟩, #HcR, #HriO, #HwO⟩ | ⟨%rei, %Hv, #HrE, #HrdE, «$res0», «$res1»⟩)⟩
       · subst Hv
         wp_auto
         txn_tail
@@ -1348,7 +1370,8 @@ theorem EtcdServer.Txn.wp_proof
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright
-        iframe HrE
+        ihave #HrW := txnWhyOut_read s E.authMode n (GoInterface.ok ctx) t _ $$ HrdE
+        iframe HrE HrW
         ipureintro; intro h; cases h
 
     · -- auth on
@@ -1365,13 +1388,14 @@ theorem EtcdServer.Txn.wp_proof
       icases Hnp with ⟨#HaLb, #Hpub, Hnp⟩
       ihave #⟨%tw, %Htw, #HrtW⟩ := txn.txnRequestIs_W _ t $$ Hrt
       -- (E3v) the store's range check at a reader's lower bound (E3s), and `n` in the mode
+      ihave #HaLbS := HaLb
       iunfold srvAuthLb at HaLb
       icases HaLb with ⟨%au, #Hauf2, #HLb⟩
       icombine Hauf Hauf2 gives %Hau2
       subst Hau2
       ihave #HLb' : iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
-          apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) $$ []
-      · iapply authStoreLbM_range γa w.auth E.RD
+          apply.isAuthStoreRangeLbR w.auth E.RD (.on γa) n) $$ []
+      · iapply authStoreLbM_rangeR γa w.auth E.RD
         rw [← hM]; iexact HLb
       ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
       · rw [← hM]; iexact Hpub
@@ -1394,7 +1418,7 @@ theorem EtcdServer.Txn.wp_proof
               □ (∃ nA : Nat, ⌜n ≤ nA⌝ ∗ auth.authPubLbM (.on γa) nA ∗
                 (if txn.txnSerializable t then iprop(True) else authFloorAt (.on γa) γr c nA))) ∨
            (∃ rei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗
-              applyErrIs (GoInterface.ok rei) ∗ «$res0_ptr» ↦ Loc.null ∗
+              applyErrIs (GoInterface.ok rei) ∗ readErrIs (GoInterface.ok rei) ∗ «$res0_ptr» ↦ Loc.null ∗
               «$res1_ptr» ↦ (GoInterface.ok rei : GoInterface)))))
         at (if: _ then _ else _) with [trace Hrr Hown0 Hnp «$res0» «$res1»]
       · cases hs : txn.txnSerializable t
@@ -1421,7 +1445,7 @@ theorem EtcdServer.Txn.wp_proof
             iframe trace Hrr Hown0
             iright
             iexists rei
-            iframe HrE «$res0» «$res1»
+            iframe HrE HrdE «$res0» «$res1»
             ipureintro; rfl
           | nil =>
             ihave #Hri' := Hri $$ %rfl
@@ -1471,10 +1495,11 @@ theorem EtcdServer.Txn.wp_proof
           iframe Hpub'
           ipureintro; exact Nat.le_refl _
       iintro ⟨trace, Hrr, Hown0, (⟨%Hv, «$res0», «$res1», %logR, ⟨%HlR, %HFR⟩, #HcR, #HriO, #HwO,
-        ⟨%nA, %HnA, #HnAlb, #Hfl⟩⟩ | ⟨%rei, %Hv, #HrE, «$res0», «$res1»⟩)⟩
+        ⟨%nA, %HnA, #HnAlb, #Hfl⟩⟩ | ⟨%rei, %Hv, #HrE, #HrdE, «$res0», «$res1»⟩)⟩
       · subst Hv
         -- (E3s, E3u) the store's range check at the bound `nA ≥ n`
         ihave #HauR := HLb' $$ %nA HnAlb
+        ihave #HauW := apply.isAuthStoreRangeLbW_of_LbR _ _ _ _ $$ HauR
         wp_auto
         txn_tailOnR
       · -- the read index's error: returned
@@ -1489,7 +1514,8 @@ theorem EtcdServer.Txn.wp_proof
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright
-        iframe HrE
+        ihave #HrW := txnWhyOut_read s E.authMode n (GoInterface.ok ctx) t _ $$ HrdE
+        iframe HrE HrW
         ipureintro; intro h; cases h
 
 

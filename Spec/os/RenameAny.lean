@@ -15,7 +15,7 @@ directory; onto a file or a non-empty directory the call fails with no effect). 
 -/
 module
 
-public import Spec.os.Rename
+public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.TreeSharedRenameAny
 
 @[expose] public section

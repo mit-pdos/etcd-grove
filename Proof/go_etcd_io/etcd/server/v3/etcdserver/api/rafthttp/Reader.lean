@@ -55,7 +55,8 @@ def srLockInv (cr : Loc) : IProp GF :=
     cr.[rafthttp.streamReader, go!"closer"] ↦ c ∗ (⌜c = GoInterface.nil⌝ ∨ http.respCloser c))
 
 /-- **A stream reader's fixed fields** (persistent) of the local member `lid`, reading from `pid`:
-its logger (a zap logger), peer id, transport (with `lid`), peer status, mutex, context, and the peer's
+its logger (a zap logger), peer id, transport (with `lid`), peer status, mutex, context (a `*cancelCtx`
+child of `Background()`, `context.bgCancelChild`: k8s 7f-4, Addendum T-i), and the peer's
 receive channels (bags of received messages, `netRecv`: what `Process` takes, `γd` the local
 snapshot directory). -/
 def srFixed (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) : IProp GF :=
@@ -68,7 +69,8 @@ def srFixed (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) : IProp 
     cr.[rafthttp.streamReader, go!"recvc"] ↦□ rc ∗ isChanBag γr rc (netRecv Rh.γn lid γd) ∗
     cr.[rafthttp.streamReader, go!"propc"] ↦□ pc ∗ isChanBag γp pc (netRecv Rh.γn lid γd) ∗
     sync.isMutex (cr.[rafthttp.streamReader, go!"mu"]) (srLockInv cr) ∗
-    cr.[rafthttp.streamReader, go!"ctx"] ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd)
+    cr.[rafthttp.streamReader, go!"ctx"] ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗
+    context.bgCancelChild ctx)
 
 set_option synthInstance.maxHeartbeats 2000000 in
 set_option synthInstance.maxSize 16384 in

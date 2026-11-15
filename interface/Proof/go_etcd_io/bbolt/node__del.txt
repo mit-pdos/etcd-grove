@@ -2,8 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.node.del.wp_proof [hos : HasExt osFsExt] (hK : bbolt.internal.common.Inode.Key.spec)
-    (hS : sort.Search.spec) (hC : bytes.Compare.spec) (hE : bytes.Equal.spec) : bbolt.node.del.spec
+theorem bbolt.node.del.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hK :
+    bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) (hE :
+    bytes.Equal.spec) : bbolt.node.del.spec
   -- `Perennial.EtcdGrove.bbolt.node.del.spec`, unfolded:
   ∀ (v : bbolt.View) (n bl : Loc) (r : bbolt.NRec) (qv : Qp) (key : GoSlice) (kb : List w8) (kr : bbolt.KeyR),
     r.capOwn = true →

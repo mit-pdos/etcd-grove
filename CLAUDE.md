@@ -130,25 +130,13 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
   --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
-- `LinuxFs/` is another: the per-byte Linux file extension's `os`, `syscall`,
-  `golang.org/x/sys/unix`, `io/fs`, `internal/poll` and `internal/syscall/unix` (their trusted models
-  over `fsExt`, `GooseLang/Ext/Fs`, and their specs and proofs) and the programs proved over it
-  (`examples/osfs/{bboltfs,crashlog,walfs}`: minibolt, crashlog, walfs). The main tree's `os`, ... are
-  the first extension's (`osFsExt`, `GooseLang/Ext/OsFs`, path-keyed), which real bbolt's proof uses,
-  so the part declares the same names and nothing outside it imports it. It also holds etcd's real
-  WAL with bodies (`wal`, `walpb`, `fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`; names-only `hash/crc32`,
-  `bufio`, `path/filepath`; raft's root package), over the part's `os` (the main tree's names-only
-  WAL stays, for the server). The WAL vocabulary its proofs are stated in (`WalHist`, `WalEnc*`,
-  `WalReadAllPost`, `AbsDisk`, `PbModel`, the `proto` specs, ...) reaches the main raft root and `os`,
-  so the part has generated copies of those modules at `LinuxFs/<path>` (same names, imports pointed
-  at the part's; extracts of single declarations where the module is heavy): `etc/gen-part-copies.py`
-  (`--check`), never edited by hand. Translated by project
-  bboltfs's part, projects crashlog and walfs and projects etcd's and raft's parts
-  (`LinuxFs/Code/**.toml`); package initializers by
-  `etc/gen-init.py` (`LFS_PKGS`, and a `PkgInitExt` without raft). Links: `etc/gen-link.py
-  --bboltfs`; trust base: `etc/tcb-collections/linuxfs.txt`. Temporary: once real bbolt is ported
-  onto `fsExt` (branch `bbolt-port-wip`, `notes/bbolt-port-plan.md`), the part becomes the main
-  tree's `os` and the first extension goes.
+- `WalTester/` is another: etcd's WAL tester (`examples/etcd/wal`, project `etcd-wal`) and the library it
+  keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
+  and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
+  `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
+  two translations"). Its modules declare the main `durable`'s names, so nothing outside it imports it;
+  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
+  ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one

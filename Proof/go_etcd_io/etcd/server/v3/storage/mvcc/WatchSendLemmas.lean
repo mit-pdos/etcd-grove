@@ -194,21 +194,6 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
       ipureintro; exact hk
     iapply delivsCut_snoc γ r γw.lo D (evm, kept) (evsw ++ evm) d (by simp [HD1]) $$ [$HDc $Hwf2]
 
-/-- An event's key-value's mod revision, read-only. -/
-theorem evIs_modRev (e : Loc) (ev : EvM) :
-    evIs (GF := GF) e ev ⊢ ∃ p : Loc,
-      e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦□ p ∗
-      p.[go_etcd_io.etcd.api.v3.mvccpb.KeyValue, go!"ModRevision"] ↦□ ev.kv.modRev := by
-  iintro #H
-  iunfold evIs at H
-  icases H with ⟨%p, %q, %st, %uf, %sc, %Hnn, #Hev, #Hkv, -⟩
-  iunfold kvPtrFixed at Hkv
-  icases Hkv with ⟨%ks, %vs, %kst, %kuf, %ksc, -, -, #Hk⟩
-  icases event_fields _ _ _ $$ Hev with ⟨-, #HevK, -⟩
-  icases kv_fields _ _ _ $$ Hk with ⟨-, #HkM⟩
-  iexists p
-  iframe HevK HkM
-
 theorem mem_filtered {fs : List (EvM → Bool)} {evm : List EvM} {ev : EvM}
     (h : ev ∈ filtered fs evm) : ev ∈ evm := (List.mem_filter.1 h).1
 
@@ -287,6 +272,22 @@ theorem respsIs_snoc (vs : List WatchResponse) (sent : List RespM) (k : Nat)
     simp only [List.length_singleton, Nat.lt_one_iff] at hi1
     simp only [hi1, List.getElem_singleton]
     iexact Hv
+
+/-- One more response sent: its events' `PrevKv` fields in flight after the others'. -/
+theorem respsPk_snoc (vs : List WatchResponse) (sent : List RespM) (k : Nat)
+    (hk : k ≤ sent.length) (v : WatchResponse) (r : RespM) :
+    respsIs (GF := GF) vs (sent.drop k) ∗ respsPk vs (sent.drop k) ∗ respPk v r ⊢
+      respsPk (vs ++ [v]) ((sent ++ [r]).drop k) := by
+  rw [List.drop_append_of_le_length hk]
+  iintro ⟨#Hvs, Hpk, Hv⟩
+  iunfold respsIs at Hvs
+  icases Hvs with ⟨%Hlen, -⟩
+  iunfold respsPk at Hpk
+  iunfold respsPk
+  rw [List.zip_append Hlen]
+  simp only [List.zip_cons_cons, List.zip_nil_left]
+  iapply BigSepL.bigSepL_snoc.2
+  iframe Hpk Hv
 
 end mvcc
 

@@ -219,7 +219,8 @@ theorem rafthttp.snapshotSender.send.wp_proof
   · iapply raftProto_req_of_snap _ _ _ rfl rfl
     iunfold snapReq
     ipureintro
-    exact ⟨lid, Hfrom.1, Hmem.1, by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
+    exact ⟨⟨lid, Hfrom.1, Hmem.1, by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2.1 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩,
+      Hfrom.2.2⟩
   wp_apply hPost Rh s pid req _ γk (snapPre bs) (snapPhi bs (fun t => backend.boltImage t D)) rfl
       Hu.2 $$ [$Hreq $Hstr $Htk] as %err #Herr
   · iframe #

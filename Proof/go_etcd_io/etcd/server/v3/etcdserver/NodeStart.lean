@@ -583,28 +583,30 @@ theorem srvMem_restartStorage
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
       (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗
-      (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗ F K) ⊢
+      (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗
+        memSnapNone γs (walSnapCS σ cs) -∗ F K) ⊢
       restartStorage γr.cl (memStorIface ms) σ cs A F := by
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro ⟨#Hreg, #Hl, Hrest, Hval, HF⟩
   iunfold memStorRestarted at Hrest
-  icases Hrest with ⟨Hfresh, Hmeta, #Hc, #He0, #Hslb, Hents, Hend⟩
+  icases Hrest with ⟨Hfresh, Hmeta, #Hc, #He0, Hsn, Hents, Hend⟩
   ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
   unfold restartStorage
   iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
   iexists iprop(memStorFresh ms γs σ.b (walSnapCS σ cs) ∗ memStorMeta ms γs σ.hs ∗
     memLog γs (σ.b + 1) (DFrac.own 1) σ.ents ∗ memEnd γs (σ.last + 1) ∗
-    (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗
-    (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗ F K))
+    (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗ memSnapNone γs (walSnapCS σ cs) ∗
+    (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗
+      memSnapNone γs (walSnapCS σ cs) -∗ F K))
   iexists σ.b
   isplitr
   · ipureintro; rfl
   isplitr
   · ipureintro; exact ⟨Nat.le_refl _, Hbc⟩
-  isplitl [Hfresh Hmeta Hents Hend Hval HF]
-  · iframe Hfresh Hmeta Hents Hend Hval HF
+  isplitl [Hfresh Hmeta Hents Hend Hval Hsn HF]
+  · iframe Hfresh Hmeta Hents Hend Hval Hsn HF
   isplitr
   · -- FirstIndex: the base plus one (detached: compacted at most at the base)
     iintro !> %Φ ⟨Hfresh, HR⟩ HΦ
@@ -623,7 +625,7 @@ theorem srvMem_restartStorage
     iapply HΦ
     iframe Hfresh Hmeta Hents Hend HR
   -- InitialState: detached; its continuation attaches the storage at raft's key
-  iintro !> %Φ ⟨Hfresh, Hmeta, Hents, Hend, Hval, HF⟩ HΦ
+  iintro !> %Φ ⟨Hfresh, Hmeta, Hents, Hend, Hval, Hsn, HF⟩ HΦ
   wp_apply wp_InitialState ms γs σ.hs σ.b (walSnapCS σ cs) $$ [$Hinit $Hmeta $Hfresh]
     as %hp %csp ⟨#Hhs, Hmeta, Hfresh, #Hcs⟩
   iapply HΦ $$ %hp %csp %true
@@ -653,7 +655,7 @@ theorem srvMem_restartStorage
     with #Hinv
   ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
   · unfold memStorInv; iexact Hinv
-  ihave HFK := HF $$ %K Hinv' Hmeta
+  ihave HFK := HF $$ %K Hinv' Hmeta Hsn
   imodintro
   isplitr
   · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
@@ -1044,6 +1046,9 @@ abbrev NodeStartSpecR : Prop :=
             rnTransportAddr a ↦□ tr) ∗
           b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
           memStorInv bv.storage' γs γr.cl γw.key ∗ memStorMeta bv.storage' γs σ.hs ∗
+          -- (restart S6 B2, 2026-11-14) the storage's snapshot not yet opened for writes, the WAL's
+          -- (which `run`'s `Snapshot()` answers: `restart_snapOnceR`)
+          memSnapNone γs (walSnapCS σ cs) ∗
           rnStopClaim γw }}
 
 set_option maxHeartbeats 0 in
@@ -1096,7 +1101,7 @@ theorem raftNode_of_RestartNode
     with Hval
   ihave %Hlt := restart_lastTerm γr A₀ σ Hba Hterm $$ [$HA0 $Hcert]
   iunfold memStorRestarted at Hrest
-  icases Hrest with ⟨Hfresh, Hmeta, #Hcp, #He0, #Hslb, Hents, Hend⟩
+  icases Hrest with ⟨Hfresh, Hmeta, #Hcp, #He0, Hsn, Hents, Hend⟩
   ihave #Hfz : srvFrozenTerms γs 1 (A₀.take σ.b) $$ []
   · have hlen : (A₀.take σ.b).length = σ.b := by simp; omega
     iapply srvFrozenTerms_restart γs (A₀.take σ.b) (memDummy (walSnapCS σ cs)) Hlt
@@ -1104,16 +1109,18 @@ theorem raftNode_of_RestartNode
     iframe Hcp He0
   ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs σ cs 0
-      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs)) Hbc Hγsz
-      $$ [Hfresh Hmeta Hents Hend Hval]
+      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
+        memSnapNone γs (walSnapCS σ cs))) Hbc Hγsz
+      $$ [Hfresh Hmeta Hents Hend Hval Hsn]
   · iframe Hreg Hlock Hval
-    isplitl [Hfresh Hmeta Hents Hend]
+    isplitl [Hfresh Hmeta Hents Hend Hsn]
     · iunfold memStorRestarted
-      iframe Hfresh Hmeta Hcp He0 Hslb Hents Hend
-    iintro %K Hi Hm
-    iframe Hi Hm
+      iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
+    iintro %K Hi Hm Hn
+    iframe Hi Hm Hn
   wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv [] ctxs
-    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs))
+    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
+      memSnapNone γs (walSnapCS σ cs)))
     (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
@@ -1135,7 +1142,7 @@ theorem raftNode_of_RestartNode
     · iExactEq HrS; rfl
     iExactEq Hconf; rfl
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti,
-    %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
+    %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
@@ -1204,7 +1211,7 @@ theorem raftNode_of_RestartNode
     refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;>
       rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
+  iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsnone Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node)

@@ -249,7 +249,7 @@ theorem openStorage.wp_proof
     iStructNamedPrefix «$r0» "S"
     imod kdStor_register stp ms γs ⊤ CoPset.subseteq_top Hsz $$ HsInv SMemoryStorage with #Hrec
     imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Sboot with #Sboot
-    imod memSnapNone_open γs $$ Hnone with #Hlb0
+    imod memSnapNone_open_empty γs $$ Hnone with #Hlb0
     ihave #Hinit := isInitialized_access $$ Hraft
     iunfold isInitialized at Hinit
     iNamed Hinit

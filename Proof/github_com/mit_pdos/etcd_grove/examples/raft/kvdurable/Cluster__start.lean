@@ -197,7 +197,7 @@ theorem Cluster.start.wp_proof
     | none =>
       simp only [kdFileVal, Option.isSome_none, Option.map_none]
       imod kdStor_register s0 ms0 γs0 ⊤ (fun _ _ => CoPset.mem_full) Hsz0 $$ HstorInv HmsF0 with #Hrec0
-      imod memSnapNone_open γs0 $$ Hsn0 with #Hslb0
+      imod memSnapNone_open_empty γs0 $$ Hsn0 with #Hslb0
       try wp_auto
       isplitr
       · ipureintro; first | rfl | trivial
@@ -263,11 +263,9 @@ theorem Cluster.start.wp_proof
   icases Hrec' with ⟨#Hmsf, -⟩
   try wp_auto
   wp_apply wp_MSnapshot ms γs (kdJ γ.r.cluster γ.files) (some (uint.nat F.prev, kdFreshSnap F))
-    (uint.nat F.prev) false _ $$ [$Hraft Hfresh $Hcmp $ErrSnapUnavail]
+    (uint.nat F.prev) none _ $$ [$Hraft Hfresh $Hcmp $ErrSnapUnavail]
     as %snap %err ⟨-, %Herr, %sv, Hsn, %Hsv, Hfr⟩
-  · isplitl [Hfresh]
-    · rw [memStorAt_some]; iframe Hl Hfresh
-    · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+  · rw [memStorAt_some]; iframe Hl Hfresh
   icases Hfr with ⟨%Hsveq, Hfresh⟩
   subst Hsveq
   obtain ⟨HWf, Hp61, Hlen, Hidx, Hpsi, Hsil, Hpc, Hcl, Hterm⟩ := _root_.id HFok

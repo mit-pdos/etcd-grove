@@ -148,7 +148,7 @@ theorem v3rpc.Server.wp_proof
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, #Hlg0n, #Hlg, #Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
-    #Htos, #Hmcs, #Hnrl⟩
+    #Htos, #Hmcs⟩
   ihave #Hlg0o := zapLoggerOk_orNil _ $$ Hlg0n
   -- the six `ServiceDesc`s: `v3rpc`'s package fact (item 8)
   ihave #Hdescs : (v3rpc.svcDescsOk : IProp GF) $$ []

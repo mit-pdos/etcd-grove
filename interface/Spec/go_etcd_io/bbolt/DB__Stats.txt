@@ -3,7 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.DB.Stats.spec : Prop :=
-  ∀ [inst : HasExt osFsExt] (db : Loc) (γ : bbolt.BoltName) (o : Option (Loc × bbolt.Data)),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (db : Loc) (γ : bbolt.BoltName)
+    (o : Option (Loc × bbolt.Data)),
     ⊢
       ∀ Φ,
         bbolt.isBolt db γ ∗ bbolt.statSlot γ o -∗

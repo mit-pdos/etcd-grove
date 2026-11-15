@@ -45,7 +45,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveState
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeG
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.filePipeline__Open
-public import Spec.os.Rename
+public import Spec.os.RenameS
 public import Spec.os.File__SyncS
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail

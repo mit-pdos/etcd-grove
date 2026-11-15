@@ -85,7 +85,7 @@ theorem Main.wp_proof
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id)
       go!"leaseexpiry" go!"leaseexpiry"
@@ -149,8 +149,7 @@ theorem Main.wp_proof
   -- the lessor's facts the argument uses: its reader invariant and its empty first snapshot, and
   -- the lease-TTL row of the first start
   ihave #HLR' := HLR
-  iunfold etcdstart.srvLeaseRd at HLR'
-  icases HLR' with ⟨%on, #Hsi⟩
+  icases etcdstart.srvLeaseRd_srvInv srv E .revocable (by decide) $$ HLR' with ⟨%on, #Hsi⟩
   ihave #Hfirst := lease.srvInv_first on srv E .revocable $$ Hsi
   ihave #Hlrd := lease.srvInv_lessorRd on srv E .revocable $$ Hsi
   icases Hlrd with ⟨#Hslr, -⟩

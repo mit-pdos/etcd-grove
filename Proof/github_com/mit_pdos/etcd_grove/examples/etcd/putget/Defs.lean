@@ -30,7 +30,8 @@ triple of a function the program calls, D19a's second kind):
   gone, since proved where the ticker is made: Perennial's `time` specs are
   `newRaftNode`'s proof's callees; premise-fixes-4, 2026-11-10: `rnSetLoggerOk` gone, false in the
   model, raft's `SetLogger` proved over the package initialization);
-* `v3rpc.runsNoRequireLeader` (no client stream asks for a leader: a fact of the deployment).
+* (until 2026-11-13, k8s 7f-4 step 6) `v3rpc.runsNoRequireLeader` (no client stream asks for a leader),
+  deleted: the require-leader branch is proved.
 
 What were package-fact premises until D19r was carried out are gone: `rnRaftStatusOk` and
 `waitClosecInit` are now `etcdserver`'s and `pkg/wait`'s facts; `io.EOF` and `context`'s

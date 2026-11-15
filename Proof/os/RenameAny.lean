@@ -7,8 +7,7 @@ directory). Lean-first (no Rocq counterpart).
 module
 
 public import Spec.os.RenameAny
-public import Proof.os.Rename
-
+public import Proof.os.RenameS
 @[expose] public section
 
 noncomputable section

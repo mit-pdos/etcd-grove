@@ -42,14 +42,6 @@ theorem keptPairs_succ (fs : List (EvM → Bool)) (es : List Loc) (evm : List Ev
   simp only [Option.toList_some, List.filter_append, List.filter_cons, List.filter_nil]
   try (split <;> simp_all)
 
-theorem evIs_filter (p : Loc × EvM → Bool) (l : List (Loc × EvM)) :
-    ([∗list] x ∈ l, evIs (GF := GF) x.1 x.2) ⊢ [∗list] x ∈ l.filter p, evIs x.1 x.2 := by
-  refine intuitionistic_alias.trans ?_
-  apply BigSepL.bigSepL_intro
-  intro k x hx
-  have hm : x ∈ l := (List.mem_filter.1 (List.mem_of_getElem? hx)).1
-  exact intuitionistically_elim.trans (BigSepL.bigSepL_mem hm)
-
 theorem keptPairs_all (fs : List (EvM → Bool)) (es : List Loc) (evm : List EvM) (m : Nat)
     (hl : es.length = evm.length) (hm : es.length ≤ m) :
     keptPairs fs es evm m = (es.zip evm).filter (fun x => fs.all (fun p => !p x.2)) := by
@@ -75,10 +67,11 @@ end mvcc
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
   intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs qa nl CS
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, Hnl, #Hra, %Hnle, %Hown,
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, Hes, #Hcov, Hca, Hnl, #Hra, %Hnle, %Hown,
     Hidp, #Hidc,
     %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
+  icases (mvcc.evOwns_split _ 1).1 $$ Hes with ⟨#Hes, HesP⟩
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
   icases Hfix' with ⟨%Hwnn, %ks, %ens, #Hkey, #Hks, #Hend, #Hens, #HstartRev, #Hidf, #Hfcs⟩
@@ -94,11 +87,13 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
   wp_join iprop(∃ (evs2 : GoSlice) (es2 : List Loc) (dq2 : DFrac),
       "w" ∷ w_ptr ↦ w ∗
       "wr" ∷ wr_ptr ↦ { wr with Events' := evs2 } ∗ "Hsl2" ∷ evs2 ↦*{dq2} es2 ∗
-      "#Hes2" ∷ ([∗list] x ∈ es2.zip (mvcc.filtered fs evm), mvcc.evIs x.1 x.2) ∗
+      "#Hes2" ∷ ([∗list] x ∈ es2.zip (mvcc.filtered fs evm), mvcc.evRd x.1 x.2) ∗
       "%Hl2" ∷ ⌜es2.length = (mvcc.filtered fs evm).length⌝ ∗
+      "%Hz2" ∷ ⌜es2.zip (mvcc.filtered fs evm) =
+        (es.zip evm).filter (fun x => fs.all (fun p => !p x.2))⌝ ∗
       "Hback" ∷ ((evs2 ↦*{dq2} es2 -∗ wr.Events' ↦*{dq} es) ∧
         (evs2 ↦*□ es2 -∗ |==> wr.Events' ↦*□ es))) with [w wr Hsl]
-    as ⟨%evs2, %es2, %dq2, w, wr, Hsl2, #Hes2, %Hl2, Hback⟩
+    as ⟨%evs2, %es2, %dq2, w, wr, Hsl2, #Hes2, %Hl2, %Hz2, Hback⟩
   · have hfps : fps = [] := by
       have h0 : fcs.len = W64 0 := by simpa using Hif
       apply List.eq_nil_of_length_eq_zero; rw [Hfcsl.1, h0]; rfl
@@ -112,6 +107,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
     · iexact wr
     isplitr
     · ipureintro; exact Hlen
+    isplitr
+    · ipureintro; subst hfs; exact (List.filter_eq_self.2 (fun _ _ => rfl)).symm
     isplit
     · iintro H; iexact H
     · iintro H; imodintro; iexact H
@@ -143,7 +140,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
       · iframe Hsl; ipureintro; exact Hen
       have hzip : (es.zip evm)[sint.nat n]? = some (en, evn) := by
         rw [List.getElem?_zip_eq_some]; exact ⟨Hen, Hevn⟩
-      ihave #He : mvcc.evIs en evn $$ []
+      ihave #He : mvcc.evRd en evn $$ []
       · iapply (BigSepL.bigSepL_lookup hzip) $$ Hes
       wp_join iprop(∃ (b : Bool), "filtered" ∷ filtered_ptr ↦ b ∗ "Hsl" ∷ wr.Events' ↦*{dq} es ∗
           "wr" ∷ wr_ptr ↦ wr ∗ "Higo" ∷ igo ↦ n ∗
@@ -258,10 +255,12 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         rw [← mvcc.keptPairs_snd fs es evm Hlen, ← List.unzip_fst, ← List.unzip_snd, List.zip_unzip]
       rw [hz]
       isplitr
-      · iapply mvcc.evIs_filter $$ Hes
+      · iapply mvcc.bigSepL_filter_drop $$ Hes
       isplitr
       · ipureintro
         rw [← mvcc.keptPairs_snd fs es evm Hlen, List.length_map, List.length_map]
+      isplitr
+      · ipureintro; rfl
       isplit
       · iintro -; iexact Hsl
       · iintro -
@@ -295,9 +294,9 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         · iframe Hsl2; ipureintro; exact Hen
         have hzip : (es2.zip (mvcc.filtered fs evm))[sint.nat n]? = some (en, evn) := by
           rw [List.getElem?_zip_eq_some]; exact ⟨Hen, Hevn⟩
-        ihave #He : mvcc.evIs en evn $$ []
+        ihave #He : mvcc.evRd en evn $$ []
         · iapply (BigSepL.bigSepL_lookup hzip) $$ Hes2
-        icases mvcc.evIs_modRev en evn $$ He with ⟨%p, #HK, #HM⟩
+        icases mvcc.evRd_modRev en evn $$ He with ⟨%p, #HK, #HM⟩
         have hge := Hstart Hsp evn (mvcc.mem_filtered (List.mem_of_getElem? Hevn))
         wp_auto
         rw [_root_.decide_eq_false (show ¬ sint.Z evn.kv.modRev < sint.Z r.startRev by omega)]
@@ -347,7 +346,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)] else []) = sent := by
       rw [hds]; simp
     irevert Hws; rw [hsent]; iintro Hws
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl Hapi Hpk] with -
     · inext
       iunfold mvcc.watchChanInv
       iexists s, sent, recv, vs, L
@@ -475,6 +474,15 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                   sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩] := by
                 rw [hsend]; rfl
               irevert Hws; rw [hs2]; iintro Hws
+              ihave Hrpk : mvcc.respPk { wr with Events' := evs2 }
+                  ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ $$ [HesP]
+              · iunfold mvcc.respPk
+                iexists es2
+                iframe Hsl2p
+                simp only
+                rw [Hz2]
+                iapply mvcc.bigSepL_filter_drop $$ HesP
+              ihave Hpk' := mvcc.respsPk_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hpk $Hrpk]
               ihave #Hvs' := mvcc.respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
               icases Hback with ⟨-, Hb⟩
               imod Hb $$ Hsl2p with #Hsl
@@ -505,7 +513,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 rfl rfl Hidx rfl hrev0 (fun ev hev => Hrevle ev (mvcc.mem_filtered hev))
                 $$ [$Hapi $Hws $Hreg $Hok' $Hrf $Hrt $Hmeta $Hfix $Hsf $Hrc $Hcov] with ⟨Hapi, Hws, Hreg⟩
               imod Hmask with -
-              imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
+              imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi Hpk'] with -
               · inext
                 iunfold mvcc.watchChanInv
                 iexists _, sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩], recv,
@@ -521,6 +529,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 · ipureintro; simp_all [EtcdGrove.chanInflight]
                 isplitr
                 · iexact Hvs'
+                isplitl [Hpk']
+                · iexact Hpk'
                 isplitr
                 · iintro !>
                   iapply BigSepL.bigSepL_snoc.2
@@ -565,6 +575,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         iapply HΦ
         simp only [Bool.false_eq_true, ↓reduceIte]
         iframe Hch Hlive Hsl Hevs Hca Hnl Hidp
+        iapply (mvcc.evOwns_split _ 1).2
+        iframe Hes HesP
 
 end proof
 

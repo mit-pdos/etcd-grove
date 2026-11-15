@@ -29,7 +29,7 @@ snapshot is due, `snapshot` and `compactRaftLog`; the applied index, term and co
 the backend are left as they are, the protocol's state keeps `loopOk` and `ciEff`. The applier row
 in the environment's auth mode (`srvApplyKVM E.authOn`, the model's auth state `sa` on; `specOff`
 and `specOn` its corollaries), kept. It takes what `snapshot` takes (`isServerM`, `srvSnapDisk`,
-`appliedAtLeast`, the server's KV over the store, `srvSnapStor`, the consistent index past `ai`,
+`appliedAtLeast`, `srvSnapDir` with the removal counter at least `ai` (restart S6a), the server's KV over the store, `srvSnapStor`, the consistent index past `ai`,
 `releaseOk`, `walSaveOk`, the WAL's open token) and the node's applied index past `ai`
 (`compactRaftLog`'s).
 
@@ -42,7 +42,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : WTNames) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
-    (sa : auth.AuthState) (q : Qp) (γn : RNNames),
+    (sa : auth.AuthState) (q : Qp) (γn : RNNames) (γm : GName),
   loopOk γ st ai →
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing
@@ -56,6 +56,8 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   γn.node = γr.raft.raft → γr.raft.pre = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      -- (restart S6a) `snapshot`'s `Release`'s directory, its removal counter at least `ai`
+      srvSnapDir s γm ∗ monoNatLbOwn γm (uint.nat ai) ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvSnapStor ms γs γr nk ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
