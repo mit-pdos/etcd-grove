@@ -35671,3 +35671,14 @@ revocation family; the server-side readers of the latest verdict take the auth-o
 lease), discharged inside the proofs (`authOutL_of_kvOutL`, `kvShapedL_of_log`, `authTie_of_kvOutL`), until S3's
 model has a lease table; `LeaseRevoke.specL`'s floor is `[]`; the class and latest tracks stay separate. No
 closed theorem's statement changed; `srvLessorNil` stays a premise of `srv_uberKVL{,_on}` (unused) until S3.
+
+## `fmt.ErrorfPlain`: no `w` directive, not no `%w` infix (2026-11-15 · decided by etcd-grove-81 · branch `errorfplain-fix`)
+
+The axiom's premise `¬ List.IsInfix go!"%w" format` was a byte search, and `%+w`, `%-5w`, `% w`, `%#w`,
+`%05.2w` escape it while Go wraps at each (`notes/axiom-review/errorfplain.md`, `examples/axiomcx/errorfplain`).
+The premise is now stated on the same parse `fmt.argsOk` reads: `fmt.fmtDirectives format = some ds` with no
+directive of verb `w` (E3's text, `notes/k8s-7f5a-draft.md` §11.3, tested by `examples/premisefix/errorfwrap`).
+Stating it on the parse rather than on the bytes means the premise and `argsOk` cannot disagree on what a
+directive is; a format the parser refuses (`*`, `[n]`, a long digit run) is excluded, conservatively. The post
+is unchanged. Kept as its own axiom rather than derived from `fmt.Errorf.spec`: E3 is not yet applied there
+(k8s 7f-5a); once it is, `ErrorfPlain` can become a corollary and the axiom go.
