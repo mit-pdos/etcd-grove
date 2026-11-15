@@ -5,7 +5,9 @@ status, `statusFailureAt`) on `resultChan`, or gives up once `wc.ctx` is done; i
 `wc.cancel()` (deferred). Stated over an error the watcher's error paths accept (`kErrOk`), the cancel
 function's spec (`context.cancelSpec`, with its proposition `Pc` given: the caller has set its part of
 `kCancelPD` first), the channel and an abstract send commit for any Error event (`Hsend`, as in
-`sendEvent`'s spec), and any context descriptor `cdw` of `wc.ctx`: `Q` (sent), or the commit unused.
+`sendEvent`'s spec), offered as an Iris conjunction with the resources `S` it captures (step 5: so that a
+sender gets them back when nothing is sent), and any context descriptor `cdw` of `wc.ctx`: `Q` (sent),
+or `S` (nothing sent).
 Proved (k8s 7f-5a-P step 4). Lean-first (no Rocq counterpart).
 -/
 module
@@ -33,20 +35,18 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 /-- See the file header. -/
 abbrev watchChan.sendError.spec : Prop :=
   ∀ (wc ch : Loc) (ctx : GoInterfaceOk) (cdw : context.ContextDesc (IProp GF)) (γch : ChanNames)
-    (cf : GoFunc) (γc : context.ContextNames) (Pc : IProp GF) (err : GoInterface) (Q : IProp GF),
+    (cf : GoFunc) (γc : context.ContextNames) (Pc : IProp GF) (err : GoInterface) (S Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"resultChan" wc ↦□ ch ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"ctx" wc ↦□ GoInterface.ok ctx ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"cancel" wc ↦□ cf ∗
       context.cancelSpec cf γc Pc ∗ □ Pc ∗ context.isContext ctx cdw ∗ kErrOk err ∗
       isChan ch γch k8s_io.apimachinery.pkg.watch.Event ∗
-      (∀ v : k8s_io.apimachinery.pkg.watch.Event, ⌜v.Type' = go!"ERROR"⌝ -∗ statusFailureAt v.Object' -∗
+      (S ∧ ∀ v : k8s_io.apimachinery.pkg.watch.Event, ⌜v.Type' = go!"ERROR"⌝ -∗ statusFailureAt v.Object' -∗
         £ 1 ∗ £ 1 ∗ £ 1 -∗ ∀ Φ : IProp GF, ▷ (Q -∗ Φ) -∗ sendAu γch v Φ) }}
     (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
       go!"sendError")) (Val #err))
-  {{ RET #(); Q ∨
-      (∀ v : k8s_io.apimachinery.pkg.watch.Event, ⌜v.Type' = go!"ERROR"⌝ -∗ statusFailureAt v.Object' -∗
-        £ 1 ∗ £ 1 ∗ £ 1 -∗ ∀ Φ : IProp GF, ▷ (Q -∗ Φ) -∗ sendAu γch v Φ) }}
+  {{ RET #(); Q ∨ S }}
 
 end spec
 

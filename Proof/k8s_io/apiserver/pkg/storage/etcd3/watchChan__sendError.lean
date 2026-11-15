@@ -31,7 +31,7 @@ theorem watchChan.sendError.wp_proof
     (wp_isCancelError : isCancelError.spec (GF := GF) (hG := hG))
     (wp_transformErrorToEvent : transformErrorToEvent.spec (GF := GF) (hG := hG)) :
     watchChan.sendError.spec (GF := GF) (hG := hG) := by
-  intro wc ch ctx cdw γch cf γc Pc err Q
+  intro wc ch ctx cdw γch cf γc Pc err S Q
   wp_start as ⟨#Hch, #Hctxf, #Hcf, #Hcancel, #HPc, #Hctx, #Hok, #Hchan, Hsend⟩
   iunfold context.cancelSpec at Hcancel
   wp_apply wp_with_defer as %defer defer
@@ -47,7 +47,8 @@ theorem watchChan.sendError.wp_proof
     wp_auto
     iapply HΦ
     iright
-    iexact Hsend
+    icases Hsend with ⟨HS, -⟩
+    iexact HS
   wp_auto
   wp_apply wp_transformErrorToEvent $$ [$Hok] as %p ⟨%ev, %sp, %st, Hp, Hsp, %Hevf⟩
   ipersist Hsp
@@ -71,6 +72,7 @@ theorem watchChan.sendError.wp_proof
     · ipureintro; exact ⟨rfl, rfl⟩
     isplit
     · iexact Hchan
+    icases Hsend with ⟨-, Hsend⟩
     iapply Hsend $$ %ev %Hevf.1 Hsf [$Hlc1 $Hlc2 $Hlc3]
     inext
     iintro HQ
@@ -101,7 +103,8 @@ theorem watchChan.sendError.wp_proof
     wp_auto
     iapply HΦ
     iright
-    iexact Hsend
+    icases Hsend with ⟨HS, -⟩
+    iexact HS
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

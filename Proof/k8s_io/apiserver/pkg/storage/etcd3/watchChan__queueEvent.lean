@@ -30,10 +30,11 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem watchChan.queueEvent.wp_proof
     (wp_recordWait : blockLogger.recordWait.spec (GF := GF) (hG := hG)) :
     watchChan.queueEvent.spec (GF := GF) (hG := hG) := by
-  intro wc ch lg ctx cdw γc P R sent e
-  wp_start as ⟨#Hch, #Hctxf, #Hlg, #Hbl, #Hctx, #Hspsc, Hprod, HP⟩
+  intro wc ch lg ctx cdw γch e S Q
+  wp_start as ⟨#Hch, #Hctxf, #Hlg, #Hbl, #Hctx, #Hchan, Hsend⟩
   ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
+  (try wp_auto)
   wp_apply wp_with_defer as %defer defer
   wp_apply_core time.wp_Now
   iintro %t -
@@ -43,17 +44,15 @@ theorem watchChan.queueEvent.wp_proof
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
-    iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, ch, γc.chanName, e
+    iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, ch, γch, e
     isplit
     · ipureintro; exact ⟨rfl, rfl⟩
     isplit
-    · ihave #H := Hspsc
-      unfold isSpsc
-      icases H with ⟨$, -⟩
-    iapply spsc_send_au γc ch P R sent e _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod HP]
-    · iframe
+    · iexact Hchan
+    icases Hsend with ⟨-, Hsend⟩
+    iapply Hsend $$ [$Hlc1 $Hlc2 $Hlc3]
     inext
-    iintro Hprod
+    iintro HQ
     wp_auto
     wp_apply time.wp_Since as %d -
     (try wp_auto)
@@ -61,7 +60,7 @@ theorem watchChan.queueEvent.wp_proof
     (try wp_auto)
     iapply HΦ
     ileft
-    iexact Hprod
+    iexact HQ
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -72,6 +71,7 @@ theorem watchChan.queueEvent.wp_proof
     · iapply context.isContextDone_is_chan $$ Hdone
     iapply context.isContextDone_receive _ _ _ _ $$ Hdone
     iintro ⟨#Hpd, -⟩
+    icases Hsend with ⟨HS, -⟩
     wp_auto
     wp_apply time.wp_Since as %d -
     (try wp_auto)
