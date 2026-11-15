@@ -233,7 +233,8 @@ theorem flat_none (r : List GMember) :
   | cons a r ih => simp only [List.map_cons, List.flatMap_cons, ih]; rfl
 
 theorem putgetNAddrs_perm (k : Nat) :
-    ((startAddrs k).flatMap (fun m => m.2.addrs) ++ []).Perm (putgetNAddrs k) := by
+    ((startAddrs k).flatMap (fun (m : GoString × MemberAddrs) => m.2.addrs) ++ []).Perm
+      (putgetNAddrs k) := by
   unfold startAddrs putgetNAddrs
   rw [List.append_nil]
   generalize members k = ms
@@ -246,7 +247,8 @@ theorem putgetNAddrs_perm (k : Nat) :
     exact List.Perm.cons _ (List.perm_middle.trans (by simp)).symm
 
 theorem putgetNDirs_perm (k : Nat) :
-    ((startAddrs k).map (fun m => memberDataDir m.1)).Perm (putgetNDirs k) := by
+    ((startAddrs k).map (fun (m : GoString × MemberAddrs) => memberDataDir m.1)).Perm
+      (putgetNDirs k) := by
   unfold startAddrs putgetNDirs
   rw [List.map_map]
   have := congrArg (List.map (fun n => n ++ go!".etcd")) (startOf_names (members k))
@@ -260,7 +262,7 @@ theorem putgetNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (putgetNDirs k).Nodup :=
   unfold putgetNDirs
   rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact (members_names_nodup k hk).map (fun a b h => List.append_cancel_right h)
+  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
 
 theorem member_port (k : Nat) (m : GMember) (hm : m ∈ members k) :
     ∃ i, i < k ∧ m.Peer' = go!"127.0.0.1:" ++ decStr (W64 ((24000 + i : Nat) : Int)) ∧
