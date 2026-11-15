@@ -231,6 +231,13 @@ def tU64 (x : w64) : List w8 := (List.range 8).map (fun i : Nat => W8 (uint.Z (x
 /-- `putHS`'s bytes. -/
 def tHsBytes (h : THs) : List w8 := tU64 h.term' ++ tU64 h.vote' ++ tU64 h.commit'
 
+/-- (shared by `DecRep` and `OrLen`, which both declared it) -/
+theorem tU64_length (x : w64) : (tU64 x).length = 8 := by simp [tU64]
+
+/-- (shared by `DecRep` and `OrLen`) -/
+theorem tHsBytes_length (h : THs) : (tHsBytes h).length = 24 := by
+  simp [tHsBytes, tU64_length]
+
 /-- An entry's bytes in `putOps`. -/
 def tEntBytes (e : TEnt) : List w8 := tU64 e.index' ++ tU64 e.term' ++ tU64 e.size' ++ tU64 e.salt'
 

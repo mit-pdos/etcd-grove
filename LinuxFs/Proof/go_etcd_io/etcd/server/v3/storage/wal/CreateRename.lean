@@ -62,15 +62,16 @@ theorem osAUnc_mono {A : Type} (α : IProp GF) (β Q Q' : A → IProp GF) :
 
 /-- **`Create`'s result of the rename's update**: `walCreateQ`, with the WAL invariant. -/
 def createU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : NamesH) (md : List w8)
-    (Q : IProp GF) (J : Ino) (hJ : NamesH) (g : SegG) (o : Option (Nat × Nat)) : IProp GF :=
+    (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (J : Ino) (hJ : NamesH) (g : SegG) (o : Option (Nat × Nat)) : IProp GF :=
   iprop(walInv (W := W) walCodec Mr R jr r ∗
     (∃ m : Nat, ⌜∀ xe ∈ hJ.ents, xe.1 < m⌝ ∗ osCommitLb m) ∗
-    walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps hJ g
+    walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps hJ g
       (createTailG Mr md jr nm J g) o)
 
 /-- **The aborted result rebuilds the update** (`RenameWALOk`'s last conjunct), over the fresh layout. -/
 theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
-    (md : List w8) (Q : IProp GF) (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
+    (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (hnW : nm ∉ Wn)
+    (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
     (m2 mS : OsMeta) (zs2 : List Cands) (ysS : List ByteG) (lb : Nat)
     (hin : InArea r (child r nm) nm) (hnm : walNameOk nm) (hMr : WalMarshalCreateOk Mr)
     (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
@@ -80,20 +81,20 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
     (hcur : ∀ b, hJ'.cur !! b = if b = walFileName 0 0 then some (.file i) else none)
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
     (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) (hm2m : m2.maps = ∅) :
-    ⊢ createU (W := W) Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+    ⊢ createU (W := W) Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
         (createSeg i mS ysS) none -∗
       osAUnc (osNames jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC)
         (renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC (DFrac.own (1 : Qp).half) lb)
-        (createU (W := W) Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createU (W := W) Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
           (createSeg i mS ysS)) := by
-  rw [show createU (W := W) Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+  rw [show createU (W := W) Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
       (createSeg i mS ysS) none = iprop(walInv (W := W) walCodec Mr R jr r ∗
         (∃ m : Nat, ⌜∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents, xe.1 < m⌝ ∗
           osCommitLb m) ∗
-        walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
+        walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)) from rfl]
   iintro ⟨#Hinv, ⟨%m, %hJm, #Hcm⟩, HP⟩
-  ihave Hau := createFresh_osAUnc Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd hmdne
+  ihave Hau := createFresh_osAUnc Mr R jr r nm md Q Pv Wn hnW hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd hmdne
     hctmp hJjr hlb hJlb hJcoh m hJm hcur hok hm2s hm2c hm2m $$ Hinv Hcm HP
   iapply osAUnc_mono $$ [] Hau
   iintro !> %o HQ
@@ -151,15 +152,15 @@ def createUH (jr J : Ino) (r nm : GoString) (md : List w8) (Q : IProp GF) (Wn : 
 /-- **The spine law** (`RenameWALOk`'s third conjunct) of `Create`'s choices: `d + (d + c)` the
 program's half of the new name's claim. -/
 theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString) (hC : NamesH)
-    (md : List w8) (Q : IProp GF) (hJ : NamesH) (g : SegG) (lb : Nat) (d c : Qp)
+    (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (hJ : NamesH) (g : SegG) (lb : Nat) (d c : Qp)
     (hd : d + (d + c) = (1 : Qp).half) (hnm : walNameOk nm) (hnmO : NameOk nm) :
     ⊢ ∀ x : Nat × Nat, createSp (W := W) Mr R jr r d -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      createU (W := W) Mr R jr r nm hC md Q J hJ g (some x) -∗
+      createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) -∗
       renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC
         (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-      createU (W := W) Mr R jr r nm hC md Q J hJ g (some x) ∗
+      createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       createSpR (hG := hG) jr J nm c x := by
@@ -169,12 +170,12 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   obtain ⟨x, s⟩ := x
   unfold renDirOut claimOut logOut osLogged
   icases Hout with ⟨⟨-, -, -, #Hlg⟩, Hn⟩
-  have hT : ⊢ createU (W := W) Mr R jr r nm hC md Q J hJ g (some (x, s)) -∗
+  have hT : ⊢ createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some (x, s)) -∗
       walUnlockedTokX (W := W) -∗ False := by
     unfold createU
     iintro ⟨-, -, HQ⟩ Hu
     unfold walCreateQ
-    icases HQ with ⟨-, -, -, Hl, -⟩
+    icases HQ with ⟨-, -, -, -, Hl, -⟩
     iapply walLockedTok_exclX $$ Hl Hu
   imod walInv_splitNew walCodec Mr R jr r nm (tmpName nm) _ _ hT hnm (tmpName_ne nm)
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm)

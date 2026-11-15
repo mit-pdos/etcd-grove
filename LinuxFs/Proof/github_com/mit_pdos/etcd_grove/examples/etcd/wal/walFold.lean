@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 
-theorem tSaveSnap_ents_sub (c : TContents) (idx term : w64) (e : TEnt)
+theorem tSaveSnap_ents_mem (c : TContents) (idx term : w64) (e : TEnt)
     (he : e ∈ (tSaveSnap c idx term).ents) : e ∈ c.ents := by
   unfold tSaveSnap at he
   split at he
@@ -119,7 +119,7 @@ theorem walFold.wp_proof (wp_walSaveSnap : walSaveSnap.spec (GF := GF) (hG := hG
       iexists i + W64 1, sv', _
       iframe
       ipureintro
-      refine ⟨fun e he => Hsub e (tSaveSnap_ents_sub _ _ _ e he), by word, by word⟩
+      refine ⟨fun e he => Hsub e (tSaveSnap_ents_mem _ _ _ e he), by word, by word⟩
   · wp_end
 
 end proof

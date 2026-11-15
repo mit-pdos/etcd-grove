@@ -10,6 +10,7 @@ methods' proofs need: the byte-by-byte decoding of `tU64`, and offsets through `
 module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Rep
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.CandsLemmas
 
 @[expose] public section
 
@@ -25,11 +26,6 @@ open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.wal
 
 section pure
 variable [GooseExts]
-
-theorem tU64_length (x : w64) : (tU64 x).length = 8 := by simp [tU64]
-
-theorem tHsBytes_length (h : THs) : (tHsBytes h).length = 24 := by
-  simp [tHsBytes, tU64_length]
 
 /-- The `i`-th byte of `tU64 x`. -/
 theorem tU64_getElem? (x : w64) (i : Nat) (hi : i < 8) :
@@ -84,10 +80,10 @@ theorem flatMap_length_ge {α : Type} (l : List α) (f : α → List w8) (n : Na
     rw [List.flatMap_cons, List.length_append, List.length_cons, Nat.mul_succ]
     have := hf x; omega
 
-theorem tOpBytes_length (o : TOp) : 8 ≤ (tOpBytes o).length := by
+theorem tOpBytes_length_ge (o : TOp) : 8 ≤ (tOpBytes o).length := by
   simp [tOpBytes, tU64_length]
 
-theorem tEntBytes_length (e : TEnt) : 8 ≤ (tEntBytes e).length := by
+theorem tEntBytes_length_ge (e : TEnt) : 8 ≤ (tEntBytes e).length := by
   simp [tEntBytes, tU64_length]
 
 end pure
@@ -131,30 +127,6 @@ theorem decRep_acc (d : Loc) (bs : List w8) (k : Nat) :
   isplitl []
   · iexact Hsl
   ipureintro; exact Hb
-
-/-- The Go candidates `vs` are `cs`: appending one. -/
-theorem candsElems_snoc (vs : List cand) (cs : List TCand) (v : cand) (c : TCand) :
-    candsElems (GF := GF) vs cs ∗ candRep v c ⊢ candsElems (vs ++ [v]) (cs ++ [c]) := by
-  unfold candsElems
-  iintro ⟨⟨%hl, #Hall⟩, #Ho⟩
-  isplitr
-  · ipureintro; simp [hl]
-  imodintro
-  iintro %i %v' %o' %hi
-  obtain ⟨h1, h2⟩ := hi
-  by_cases hlt : i < vs.length
-  · rw [List.getElem?_append_left hlt] at h1
-    rw [List.getElem?_append_left (by omega)] at h2
-    iapply Hall; ipureintro; exact ⟨h1, h2⟩
-  · rw [List.getElem?_append_right (by omega)] at h1
-    rw [List.getElem?_append_right (by omega)] at h2
-    have : i - vs.length = 0 := by
-      have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
-    rw [this] at h1
-    rw [show i - cs.length = 0 by omega] at h2
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
-    subst h1 h2
-    iexact Ho
 
 theorem candsElems_nil : ⊢ candsElems (GF := GF) [] [] := by
   unfold candsElems

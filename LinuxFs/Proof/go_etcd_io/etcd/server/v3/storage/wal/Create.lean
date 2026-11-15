@@ -426,6 +426,14 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     iframe Hnamed
     ipureintro; rfl))
 
+/-- The spine law's fractions (top-level: `grind` inside `wal.Create.wp_proof` produced a proof term the
+kernel rejects). -/
+theorem create_qp_twice {d b1 : Qp} (hd2 : d + b1 = (1 : Qp).half.half) :
+    d + (d + (b1 + b1)) = (1 : Qp).half := by
+  rw [Qp.ext_iff] at hd2 ⊢
+  simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
+  grind
+
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
 theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.NilLaw P)
@@ -465,7 +473,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_cleanupWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr)
     (wp_ErrorfAny : fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp hmd hmdne hMr
+  intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -478,6 +486,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
+    icases Hres with (⟨-, Hres⟩ | ⟨%hb, -⟩)
+    rotate_left
+    · cases hb
     ihave ⟨%ee, %hee, #Hee⟩ := os.errExist_of_pkgInit $$ Hos
     try wp_auto
     iapply HΦ
@@ -501,15 +512,18 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
   icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -⟩
-  icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
+  -- `Exist`'s `false`: `nm` free in the area (in the claim, absent, not registered)
+  icases Hres with (⟨%hb, -⟩ | ⟨-, Hres⟩)
+  · cases hb
+  iunfold WalFs.walAreaResFree at Hres
+  icases Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %a1, %a2, Hcl, %a3, %a4, %hfree⟩
+  have hok : AreaOk N h cl Wn := ⟨a1, a2, a3, a4⟩
+  obtain ⟨hNnm, hnmA, hnW⟩ := hfree
   have hnm := hin.1
   have hNt : N.Mem (tmpName nm) := areaOk_tmp hok hnm
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   imod osNames_self R jr N _ h CoPset.subseteq_top $$ Hsi HN with ⟨HN, %hself⟩
-  imod walInv_absent walCodec Mr R jr r N _ h Wn (child r nm) nm md Q hin (hok.1 nm hnm)
-    $$ Hinv Hsi Hnc Hau HN Hsf with ⟨Hnc, Hau, HN, Hsf, %hnmA⟩
-  obtain ⟨hNnm, hnmA⟩ := hnmA
   imod walInv_drop walCodec Mr R jr r N h nm (tmpName nm) ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm hNt
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm) $$ Hinv Hsi Hnc Hu HN
     with ⟨Hnc, Hu, HN, HT⟩
@@ -1053,16 +1067,16 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases (osNames_frac J (.except walTmps) (1 : Qp).half (1 : Qp).half _).1 $$ [HJx] with ⟨HJh, HJx⟩
     · rw [Qp.half_add_half]; iexact HJx
     -- the update (`createFresh_osAUnc`), its result with the invariant (`createU`)
-    ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
-        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau HJh HmS HbS]
+    ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau Hsf HJh HmS HbS]
     · unfold walCreateP createSeg
       rw [show i = (⟨i, false, true, lo, lk⟩ : OsFd).ino from rfl]
       iframe
-    ihave HU : createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+    ihave HU : createU Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
         (createSeg i mS ysS) none $$ [HP]
     · unfold createU; simp only [walCreateQ]; iframe Hinv HP
       iexists _; iframe Hcm1; ipureintro; exact hJlt
-    ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
+    ihave Hau := createU_none Mr R jr r nm md Q Pv Wn hnW hC J hJ' i m2 mS zs2 ysS
       (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hmdne hctmp hJjr
       (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2 $$ HU
     -- the spine law's fractions: `d` twice of the area's spine (the invariant's lend,
@@ -1073,10 +1087,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     iframe Hnc
     imodintro
     obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common qa.half (1 : Qp).half.half
-    have hd : d + (d + (b1 + b1)) = (1 : Qp).half := by
-      rw [Qp.ext_iff] at hd2 ⊢
-      simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
-      grind
+    have hd : d + (d + (b1 + b1)) = (1 : Qp).half := create_qp_twice hd2
     icases (osPathS_frac R r qa.half qa.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
     · rw [Qp.half_add_half]; iexact Hq
     icases (osPathS_frac R r d a1 jr).1 $$ [Hq1] with ⟨Hd1, Ha1⟩
@@ -1099,13 +1110,13 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     -- `w.renameWAL(tmpdirpath)`: the commit
     have hOk : RenameWALOk R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC
         (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) (DFrac.own d)
-        (createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createU Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
           (createSeg i mS ysS))
         (createSp Mr R jr r d) (createSpR jr J nm (b1 + b1)) :=
       ⟨hin, hdl, hnmO, tmpName_nameOk hnmO, tmpName_ne nm, by simp [NameSet.Mem],
         by simp [NameSet.Mem], hctmp, hcnm,
-        create_spine Mr R jr J r nm hC md Q _ _ _ d (b1 + b1) hd hnm hnmO,
-        createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hmdne hctmp hJjr
+        create_spine Mr R jr J r nm hC md Q Pv Wn _ _ _ d (b1 + b1) hd hnm hnmO,
+        createU_none Mr R jr r nm md Q Pv Wn hnW hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hmdne hctmp hJjr
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
@@ -1128,8 +1139,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       obtain rfl : enti' = W64 0 := by rcases hs2 with h | h <;> rw [h] <;> rfl
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod create_ghost Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
-        (createSeg i mS ysS) Wn (b1 + b1) d x wl hd $$ Hnc HU HSpR Hsf
+      imod create_ghost Mr R jr r nm hC md Q Pv J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createSeg i mS ysS) Wn (b1 + b1) d x wl hd $$ Hnc HU HSpR
         with ⟨Hnc, HUH, -, Hh, Hm, Hb, Ho, Htr, Hnf, #Hk⟩
       iframe Hnc
       imodintro
@@ -1209,7 +1220,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       icases HU with ⟨-, -, HP⟩
       simp only [walCreateQ]
       unfold walCreateP
-      icases HP with ⟨Hcr, Hau, HJh, -, -⟩
+      icases HP with ⟨Hcr, Hau, Hsf, HJh, -, -⟩
       have hfoJ : FilesOnly (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur :=
         filesOnly_restrictN _ _ (fun c n hc => by
           rw [hJcur] at hc
@@ -1288,7 +1299,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     unfold createU
     icases HU with ⟨-, -, HQ⟩
     unfold walCreateQ
-    icases HQ with ⟨HQ, -, -, Hlt, -, -, Hnf, -, %s', Hpast, %hs'⟩
+    icases HQ with ⟨HQ, Hsf, -, -, Hlt, -, -, Hnf, -, %s', Hpast, %hs'⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn (b1 + b1) hn hin hnmO

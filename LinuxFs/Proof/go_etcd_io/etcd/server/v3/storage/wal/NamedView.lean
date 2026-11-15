@@ -8,7 +8,7 @@ The program's view of a WAL (`walDirIs dir (some d)`) is a lower bound of the re
 unnamed state, and `walNamed` separately; a crash keeps the view's `named`). `walNamed dir` says some
 past state of the generation had the WAL named, so the real state now has it named too (`absLe`), and
 the view may be raised to it: `walDirIs_named`, at the WAL invariant (`walInv_open`, with the step's
-`notCrashed`), over the ghost lemma `walGhost_named`.
+`notCrashed`), over the ghost lemma `walGhost_raiseNamed`.
 
 The tester's `Boot` raises its view before `Exist` (when its oracle says `Create` returned), so that
 `Exist`'s `false` arm (`ExistFalseOk` of the view: none, or empty and unnamed) contradicts it: the
@@ -53,7 +53,7 @@ variable {GF : BundledGFunctors} [W : WalGS GF] {hlc : HasLC} [GooseExts] [Goose
 
 /-- **The view raised to named, at the ghost state**: `walNamed dir` and the ghost state `s` give the
 real WAL in `dir` named, so the program's map may mark it named. -/
-theorem walGhost_named (s : AbsDiskState) (dir : GoString) (d : WalDur) :
+theorem walGhost_raiseNamed (s : AbsDiskState) (dir : GoString) (d : WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walDirIs (W := W) dir (some d) -∗ walNamed (W := W) dir ==∗
       walGhost (W := W) s ∗ walDirIs (W := W) dir (some { d with named := true }) := by
   iintro Hc Hd #Hn
@@ -102,7 +102,7 @@ theorem walDirIs_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   imod walInv_open C Mr R jr r E hE $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hclose⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
-  imod walGhost_named s dir d $$ Hg Hd Hn with ⟨Hg, Hd⟩
+  imod walGhost_raiseNamed s dir d $$ Hg Hd Hn with ⟨Hg, Hd⟩
   imod Hclose $$ [Hg Hrest] with -
   · iexists s, Ls, cl, n, F; iframe Hg; iexact Hrest
   imodintro

@@ -72,7 +72,7 @@ theorem decoder.ops.wp_proof (wp_u64 : decoder.u64.spec (GF := GF) (hG := hG))
   rw [tU64_length] at h2
   wp_start as Hd
   icases decRep_len d bs k $$ Hd with ⟨Hd, %Hb⟩
-  have hhl := flat_len_bound bs (k + 8) h tOpBytes r tOpBytes_length h2 Hb.2
+  have hhl := flat_len_bound bs (k + 8) h tOpBytes r tOpBytes_length_ge h2 Hb.2
   wp_auto
   wp_apply wp_u64 d bs k _ _ h1 $$ Hd as Hd
   wp_apply +noauto (wp_slice_make2 (V := walOp) (W64 0)) as %h0 ⟨Hh0, Hh0cap⟩
@@ -122,7 +122,7 @@ theorem decoder.ops.wp_proof (wp_u64 : decoder.u64.spec (GF := GF) (hG := hG))
     wp_apply wp_u64 d bs (k' + 8 + 24 + 8) _ _ e4 $$ Hd as Hd
     wp_apply wp_u64 d bs (k' + 8 + 24 + 8 + 8) _ _ e5 $$ Hd as Hd
     simp only [snap_dec]
-    have hel := flat_len_bound bs _ oo.ents tEntBytes R tEntBytes_length e6 Hb.2
+    have hel := flat_len_bound bs _ oo.ents tEntBytes R tEntBytes_length_ge e6 Hb.2
     wp_apply +noauto (wp_slice_make2 (V := entry) (W64 0)) as %e0 ⟨He0, He0cap⟩
     · ipureintro; word
     simp only [List.replicate_zero]
