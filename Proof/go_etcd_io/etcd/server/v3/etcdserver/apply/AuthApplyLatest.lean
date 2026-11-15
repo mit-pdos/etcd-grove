@@ -10,8 +10,8 @@ inner chain's outcome, with every checked permission granted there (`passedL`), 
 
 The checked permissions are the model's with the range end as the check saw it (`authEndOf`:
 equal unless the request's `RangeEnd` is a non-`nil` empty slice). A `Put`'s lease check
-(`checkLeasePuts`) is ruled out by the premise `lookupNil` (the lessor finds no lease): with a
-lease, its keys' checks can refuse beyond the request's own permissions.
+(`checkLeasePuts`) is decided at the latest state over the lease owner's resource (auth-lease S2;
+until then ruled out by a premise "the lessor finds no lease", `lookupNil`, deleted in S3c).
 -/
 module
 
@@ -139,16 +139,6 @@ def rangePostL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
     (X : Outcome → Prop) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ X oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
     kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ chainClass E.authMode info c rq oc)
-
-/-- **The lessor finds no lease** (`Lookup` returns `nil`): a premise of the `Put`'s exact verdict
-(see the file header). -/
-def lookupNil (le : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
-    □ (∀ id : w64, {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; ⌜l = null⌝ }}))
-
-instance lookupNil_persistent (le : GoInterface) : Persistent (lookupNil (GF := GF) le) := by
-  unfold lookupNil; infer_instance
 
 /-- **The certificates of the outcomes `X` admits** (`certPre`'s, for the outcomes of `c` meeting
 `X` only; the auth plan's E3f): with the verdict at the latest state, a KV request the auth layer

@@ -78,9 +78,7 @@ theorem wp_Start_builtR (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   have hm : E.authMode = AuthC.off.mode := authMode_off_of E HE.2.1
   wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, -, Hgo, Hlg3, Hsr, -, Hright⟩
   · iframe; iframe #
-    isplitr
-    · ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
-    iapply acLessor_off
+    ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
   iunfold srvStartReaders at Hsr
   icases Hsr with ⟨Hrslots, -⟩
   -- (per-type stage B2) the run pool's share of the read loop's slots

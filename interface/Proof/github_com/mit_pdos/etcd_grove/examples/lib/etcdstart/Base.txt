@@ -18,10 +18,11 @@ def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.isPkgInit_in
                           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
                             isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
                               isPkgInit pkg_id.go_etcd_io.etcd.server.v3.features ∗
-                                isPkgInit pkg_id.context ∗
-                                  isPkgInit pkg_id.sync ∗
-                                    isPkgInit pkg_id.github_com.goose_lang.primitive ∗
-                                      isPkgInit pkg_id.go_etcd_io.etcd.api.v3.mvccpb ∗ True),
+                                isPkgInit pkg_id.strconv ∗
+                                  isPkgInit pkg_id.context ∗
+                                    isPkgInit pkg_id.sync ∗
+                                      isPkgInit pkg_id.github_com.goose_lang.primitive ∗
+                                        isPkgInit pkg_id.go_etcd_io.etcd.api.v3.mvccpb ∗ True),
     isPkgInitDef := iprop(True) }
 
 def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.get_isPkgInit_wf_inst :
@@ -42,7 +43,8 @@ def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.get_isPkgIni
                           GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver get_is_pkg_init ∧
                             GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc get_is_pkg_init ∧
                               GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.features get_is_pkg_init ∧
-                                GetIsPkgInitProp pkg_id.context get_is_pkg_init ∧
-                                  GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧
-                                    GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive get_is_pkg_init ∧
-                                      GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.mvccpb get_is_pkg_init ∧ True }
+                                GetIsPkgInitProp pkg_id.strconv get_is_pkg_init ∧
+                                  GetIsPkgInitProp pkg_id.context get_is_pkg_init ∧
+                                    GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧
+                                      GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive get_is_pkg_init ∧
+                                        GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.mvccpb get_is_pkg_init ∧ True }

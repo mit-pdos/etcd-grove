@@ -191,7 +191,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     -- (2026-11-03, R2b-1 stage 5) a fresh start's log, the context's raft names `γn` (the WAL's)
     (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        acLessor K C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
+        isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
           iprop(nodeAppliedLb C.ρ.raft.raft.cl nk (uint.nat C.ai₀ + (A ++ ce).length) ∗ nodeCommitLb C.ρ.raft.raft.cl nk (uint.nat C.ai₀ + (A ++ ce).length) ∗
@@ -214,7 +214,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
   simp only [EtcdServer.applyAll.specBatch] at hAA
   rw [hR]
-  iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
+  iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
@@ -320,7 +320,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
         by rw [hun]; simp [rnLogOf]⟩
     rw [hun]
     iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok
-    iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
+    iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
     iframe
     iunfold srvGoRes
     iframe
@@ -328,7 +328,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     · iexact Hdvr
     iExactEq Hrh; cases dv <;> rfl
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
@@ -1462,7 +1462,9 @@ theorem EtcdServer.run.wp_proofG
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
     iintro %ls ⟨%Hnx, #Hls⟩
-    ihave %Hg := srvGrantGuard_expired E.lg E.authMode.isOn ls $$ Hls
+    -- (auth-lease S3c) auth off from the payload's `¬ leasesNoExpiry` and the slice's guard
+    ihave %Hg := srvGrantGuard_expired_off E.lg E.authMode.isOn ls $$ []
+    · iframe Hls; ipureintro; exact Hnx
     ihave %Hlgt := isServerC_lg C s γ ci TM E ρ γr $$ Hsrv
     have hCoff : C.isOn = false := by
       have h2 := Hg.2
@@ -1491,7 +1493,7 @@ theorem EtcdServer.run.wp_proofG
       (try wp_auto)
       wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ [Htok] as Htok
       · iframe #; iframe Htok
-        ipureintro; exact ⟨hlm, hlev⟩
+        ipureintro; exact ⟨hlm, hlev, Hg.2⟩
       (try wp_auto)
       wp_for_post
       iframe

@@ -7,12 +7,17 @@
 #   corollary `ModeSpecs.lean`'s restatements of the merged specs at a mode
 #   pair      the off/on pairs kept by the Freeze (D4: `Serve`; `Txn` merged in stage 4)
 #   bridge    a row at a literal mode is its twin (`X_false`, `X_true`, ... and the `_on`/`_off` laws)
+#   members   not an auth mode: client/v3's members specs (D44, `kv.X.specM`, `txn.Commit.specM`: a
+#             `*kv` of the members `ms`, `isKV`, beside `spec`'s one KV); the name's `M` is the members
+#             (decided by etcd-grove-81, 2026-11-15, the mode-cleanup stage)
 #   unmoved   not yet over the slot: a later stage moves it (the M rows and corollaries go in stage 3)
 # A finding no line classifies fails `--check`; classify a new one only with its reason.
 
 * corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
 lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
 lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/KVServiceOn\.lean::etcdRangeSpecE_M::  # (k8s 7e-1, registration (A), etcd-grove-81 2026-11-10) the client-side Range registration `etcdRangeSpecE` (auth off) gives the server's `etcdRangeSpecM false`: a bridge at its literal, as etcdRangeSpecM_false
+lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/Results\.lean::(etcd_leaseRevokeHandlerOk|etcd_leaseGrantHandlerOk)::  # (auth-lease S3c, Draft §10) the auth-off client results instantiate the lease handler specs (at the mode since S3c) at a literal `false` through the `_false` bridges
+* pair ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(LeaseOn|InvLease)\.lean::(lessorGrantOkGM|lessorGrantOkM|lessorRevokeOkM|raftLessorM|lessorGrantOkG|lessorGrantOk|lessorRevokeOk|raftLessor)::  # (auth-lease S3c, decision C5′, etcd-grove-81 2026-11-15) the lease contracts at the mode beside the auth-off ones, for the cleanup stage to merge
 
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
 lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$
@@ -59,36 +64,21 @@ match-mode unmoved ::snapRestImgM::
 match-mode unmoved ::srvApplyKVM::
 match-mode unmoved ::srvAuthBoundM::
 match-mode unmoved ::srvKVInvsM::
-match-mode unmoved ::srvLessorNilM::
 match-mode unmoved ::srvOpenQ::
 match-mode unmoved ::srvSnapAppliedM::
 match-mode unmoved ::srvTokRights::
 match-mode unmoved ::srvUberRowM::
 match-mode unmoved ::uberKitM::
 
+# (mode-cleanup, 2026-11-15) client/v3's members specs (D44): not mode twins
+twin members ^Proof/go_etcd_io/etcd/client/v3/KVMembers\.lean::(kv\.(Do|Put|Get|Delete)|txn\.Commit)\.specM::
+
 # the twins kept until stage 3 (D3: the M specs, the admin and apply-path `specOn`s)
-twin unmoved ::EtcdServer\.AppliedIndex\.specM::
-twin unmoved ::EtcdServer\.AppliedIndex\.wp_proofM::
-twin unmoved ::EtcdServer\.AuthEnable\.specOn::
-twin unmoved ::EtcdServer\.AuthEnable\.wp_proofOn::
-twin unmoved ::EtcdServer\.RoleAdd\.specOn::
-twin unmoved ::EtcdServer\.RoleAdd\.wp_proofOn::
-twin unmoved ::EtcdServer\.RoleGrantPermission\.specOn::
-twin unmoved ::EtcdServer\.RoleGrantPermission\.wp_proofOn::
-twin unmoved ::EtcdServer\.UserAdd\.specOn::
-twin unmoved ::EtcdServer\.UserAdd\.wp_proofOn::
-twin unmoved ::EtcdServer\.UserGrantRole\.specOn::
-twin unmoved ::EtcdServer\.UserGrantRole\.wp_proofOn::
-twin unmoved ::EtcdServer\.apply\.wp_proofOn::
+twin unmoved ::EtcdServer\.apply\.wp_proofOn::  # (mode-cleanup, 2026-11-15) a second proof; the merge is a proposed stage of its own (notes/mode-cleanup-handoff.md)
 twin unmoved ::EtcdServer\.applyEntries\.wp_proofOn::
-twin unmoved ::EtcdServer\.applyEntryNormal\.wp_proofOn::
-twin unmoved ::NewServer\.specM::
-twin unmoved ::NewServer\.wp_proofM::
-twin unmoved ::kv\.Delete\.specM::
-twin unmoved ::kv\.Do\.specM::
-twin unmoved ::kv\.Get\.specM::
-twin unmoved ::kv\.Put\.specM::
-twin unmoved ::txn\.Commit\.specM::
+twin unmoved ::EtcdServer\.applyEntryNormal\.wp_proofOn::  # (mode-cleanup, 2026-11-15) a second proof; the merge is a proposed stage of its own (notes/mode-cleanup-handoff.md)
+twin unmoved ::NewServer\.specM::  # (mode-cleanup, 2026-11-15, decided by etcd-grove-81) left: a merge puts the auth-on construction premises (hD22, authSrvTP, uberKitM) on the auth-off closed theorems
+twin unmoved ::NewServer\.wp_proofM::  # (mode-cleanup, 2026-11-15, decided by etcd-grove-81) left: a merge puts the auth-on construction premises (hD22, authSrvTP, uberKitM) on the auth-off closed theorems
 
 # literal modes in proofs and results not yet over the slot (per file: count at the Freeze)
 lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 2

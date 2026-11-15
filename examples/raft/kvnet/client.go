@@ -45,8 +45,22 @@ func Request(addr string, kind byte, timeout time.Duration, payload []byte) ([]b
 // RequestWithin is Request, waiting at most total for the whole exchange (for a best-effort
 // request that must not hold its caller up).
 func RequestWithin(addr string, kind byte, timeout, total time.Duration, payload []byte) ([]byte, bool) {
+	return RequestVia(DialTCP, addr, kind, timeout, total, payload)
+}
+
+// A Dialer connects to a replica's address: from the client's machine (a test harness's client
+// runs on a machine of its own: robust.Machine.Dial).
+type Dialer func(addr string, timeout time.Duration) (net.Conn, error)
+
+// DialTCP dials from this process's own network.
+func DialTCP(addr string, timeout time.Duration) (net.Conn, error) {
+	return net.DialTimeout("tcp", addr, timeout)
+}
+
+// RequestVia is RequestWithin over connections dial makes.
+func RequestVia(dial Dialer, addr string, kind byte, timeout, total time.Duration, payload []byte) ([]byte, bool) {
 	deadline := time.Now().Add(total)
-	c, err := net.DialTimeout("tcp", addr, min(dialTimeout, total))
+	c, err := dial(addr, min(dialTimeout, total))
 	if err != nil {
 		return nil, false
 	}

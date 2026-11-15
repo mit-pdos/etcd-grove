@@ -48,8 +48,8 @@ to the waiter (`srvAppliedPre`). **The KV model**: the apply thread at the mode'
 committed raft log `A` through `v` (`kvAppliedM E.authOn`, from the server's start state
 `srvAuthSt0`), at `A ++ [m]` after, the entry above the start's consistent index `c0`; the voters
 members of the rest state at `A` (`srvMemCover`: with `entryWaitOk`'s `attrEntryOk`, `dispatch`'s
-`restReqOk`; the cluster-rows stage, 2026-11-02). **With auth on** (only): the server's lessor finds
-no lease (`srvLessorNilM`), one time receipt (an admin step's cost) under the receipts' bound, and
+`restReqOk`; the cluster-rows stage, 2026-11-02). **With auth on** (only; auth-lease S3c: until then also
+the server's lessor finding no lease, `srvLessorNilM`): one time receipt (an admin step's cost) under the receipts' bound, and
 the rights to issue tokens at the consistent index (`srvTokRights`, `True` off), at the entry's
 index after it. The receipt and the bound are both cases' (R2d'a swap batch 4, 2026-11-07: one
 `if E.authOn` and one `receiptBound` premise, outside the `if v3`; until then each case had its
@@ -83,7 +83,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       (if E.authOn then iprop(⧗ 1 ∗ apply.adminWTs E) else iprop(True)) ∗
       ⌜E.authOn = true → receiptBound GF ≤ 2 ^ 48⌝ ∗
       (if v3 then iprop(
-        isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗
+        isServerM E.authOn s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
         srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvWT E ∗
         srvFS s ∗ srvAppliedOwn γr v ∗

@@ -59,13 +59,12 @@ func RandomOptions() Options {
 
 // NodeConfig is what a replica's process is started with: its id, the directory of its durable
 // file, the address of every replica the cluster may start (its own included: it listens there),
-// the cluster's options and the transport's faults.
+// and the cluster's options.
 type NodeConfig struct {
-	ID     uint64
-	Dir    string
-	Addrs  map[uint64]string
-	Opts   Options
-	Faults Faults
+	ID    uint64
+	Dir   string
+	Addrs map[uint64]string
+	Opts  Options
 }
 
 // itoa is n in decimal.
@@ -169,7 +168,7 @@ func StartNode(cfg NodeConfig) *Node {
 	if rafted < index {
 		stats.add(StRestartsAppliedBelow)
 	}
-	t := newTransport(cfg.ID, cfg.Addrs, cfg.Faults, stats)
+	t := newTransport(cfg.ID, cfg.Addrs, stats)
 	node := raft.RestartNode(&raft.Config{
 		ID:                       cfg.ID,
 		ElectionTick:             10,

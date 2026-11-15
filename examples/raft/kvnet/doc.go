@@ -17,20 +17,25 @@
 //   - Messages go over TCP (Transport): one connection per peer, dialed when needed, one frame
 //     per message (a length, then the message encoded by hand, putMsg: no proto.Marshal); a
 //     message that cannot be written is dropped and reported to raft (ReportUnreachable,
-//     ReportSnapshot), never retried. On top of the real network's faults (a connection refused
-//     while its target is down, reset when it crashes, a frame half written), the transport may
-//     drop, delay, duplicate messages and cut connections at random (Faults).
+//     ReportSnapshot), never retried. The transport makes no fault of its own: the network's (a
+//     connection refused while its target is down, reset when it crashes or by a middlebox,
+//     stalled by a partition, a frame half written, packets delayed, lost, duplicated, reordered)
+//     are the test environment's (examples/lib/robust).
 //   - Clients are other processes: a request is one frame on a connection of its own, answered by
 //     one frame (ReqPropose, ReqRead, ReqConf, ReqDisrupt, ReqStatus). The clients choose the
 //     operations' ids and the reads' sequence numbers, and never reuse one.
 //
-// The crashes the test makes (package driver): a replica's process is killed (SIGKILL) at any
-// point of its work, and then either its filesystem is synced before it restarts (the restart the
+// The faults the test makes (package driver, over the harness examples/lib/robust), all from
+// outside the program: every replica on a machine of its own (a network namespace), the network
+// partitioned (both ways or one way, by drops or resets) and degraded (delay, loss, duplication,
+// reordering) by the kernel in a router namespace; a replica's process killed (SIGKILL) at any
+// point of its work, and then either its filesystem synced before it restarts (the restart the
 // Linux file extension's semantics allows: notes/decisions.md, "One file semantics, fsExt; power
-// loss only"), or its machine's disk loses power (an ext4 filesystem of its own on a dm-flakey
+// loss only"), or its machine's disk losing power (an ext4 filesystem of its own on a dm-flakey
 // device that drops what was not durable). At the end, the whole cluster crashes at once.
 //
 // Not yet verified: the proof waits for a semantics of the network (net.Listen, Accept,
-// DialTimeout, a Conn's Read, Write, deadlines and Close) and of processes
-// (notes/kvnet.md).
+// DialTimeout, a Conn's Read, Write, deadlines and Close; branch net-tcp). Its statement is
+// stated: Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean's kvnetRobust,
+// over the Lean library Robustness (notes/robustness.md).
 package kvnet

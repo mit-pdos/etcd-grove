@@ -14,14 +14,13 @@ func NodeArgs(cfg NodeConfig) []string {
 	for id, a := range cfg.Addrs {
 		addrs = append(addrs, fmt.Sprintf("%d=%s", id, a))
 	}
-	o, f := cfg.Opts, cfg.Faults
+	o := cfg.Opts
 	return []string{
 		"-id", itoa(cfg.ID), "-dir", cfg.Dir, "-addrs", strings.Join(addrs, ","),
 		"-voters", itoa(o.Voters), fmt.Sprintf("-prevote=%v", o.PreVote),
 		fmt.Sprintf("-checkquorum=%v", o.CheckQuorum), fmt.Sprintf("-stepdown=%v", o.StepDownOnRemoval),
 		"-maxsize", itoa(o.MaxSizePerMsg), "-maxcommitted", itoa(o.MaxCommittedSizePerReady),
 		"-maxinflight", strconv.Itoa(o.MaxInflightMsgs),
-		"-drop", itoa(f.Drop), "-delay", itoa(f.Delay), "-dup", itoa(f.Duplicate), "-cut", itoa(f.Cut),
 	}
 }
 
@@ -39,10 +38,6 @@ func ParseNodeArgs(args []string) (NodeConfig, error) {
 	fs.Uint64Var(&cfg.Opts.MaxSizePerMsg, "maxsize", 0, "raft's MaxSizePerMsg")
 	fs.Uint64Var(&cfg.Opts.MaxCommittedSizePerReady, "maxcommitted", 0, "raft's MaxCommittedSizePerReady")
 	fs.IntVar(&cfg.Opts.MaxInflightMsgs, "maxinflight", 256, "raft's MaxInflightMsgs")
-	fs.Uint64Var(&cfg.Faults.Drop, "drop", 0, "drop a message one time in N (0: never)")
-	fs.Uint64Var(&cfg.Faults.Delay, "delay", 0, "delay a message one time in N")
-	fs.Uint64Var(&cfg.Faults.Duplicate, "dup", 0, "duplicate a message one time in N")
-	fs.Uint64Var(&cfg.Faults.Cut, "cut", 0, "close a connection after a message one time in N")
 	if err := fs.Parse(args); err != nil {
 		return cfg, err
 	}

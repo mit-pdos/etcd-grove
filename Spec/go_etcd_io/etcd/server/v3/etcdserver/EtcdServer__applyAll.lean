@@ -34,8 +34,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.applyAll(ep, ap)` on a batch of entries** (the auth component's stage 2, 2026-11-04: one
 statement in both auth modes, over the component `C`, the environment's): the server's view, the
 applier row and the model in the component (`isServerC`, `srvApplyKVC` at the model's auth state
-`sa`, `kvAppliedM C.isOn`), the entries' shapes in the mode (`logShapeM`), the lessor finding no
-lease with auth on (`acLessor`), the rights to issue tokens at the consistent index (`acTok`) and the
+`sa`, `kvAppliedM C.isOn`), the entries' shapes in the mode (`logShapeM`) (until auth-lease S3c,
+2026-11-15, also the lessor finding no lease with auth on, `acLessor`), the rights to issue tokens at the consistent index (`acTok`) and the
 receipts' bound (strict M1, 2026-11-06: in both modes). **At a restart point** (R2d'a swap batch 3, 2026-11-06: until then
 the first-start form, now the instance at `rp = RestartPt.first`; the restart form was `RunR.lean`'s
 `applyAll.specBatchR`): `server.go:984-1030` at the pin `673da07c8` (`applySnapshot`,
@@ -70,7 +70,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
         (A ++ unapplied ai ms).length ≤ n⌝ ∗
-      isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
+      isServerC C s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
       -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
@@ -123,7 +123,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗

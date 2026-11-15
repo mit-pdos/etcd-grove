@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseOn
 
 @[expose] public section
 
@@ -61,26 +62,29 @@ run's resource `S` lending the request path's readers (`EtcdServer.LeaseGrant.sp
 (`srvAuthAt`, amendment (G): from both server views, `srvAuthAt_of_views`). The
 header's answer (`leaseHdrAns`): the revision reached (`leaseGrantedResp`'s `srvRevLb`), the four id fields from its `txn.respHdrOwn`; the error one the
 gRPC layer can take (`srvErrIs_of_applyErrIs`). (E3, 2026-11-04) For the requests of a filter `R`
-that, in the revocable lease mode, has only `ID = 0` (`EtcdServer.LeaseGrant.spec`'s premise). -/
+that, in the revocable lease mode, has only `ID = 0` (`EtcdServer.LeaseGrant.spec`'s premise).
+(Auth-lease S3c, decision D6/C5′, 2026-11-15: at the environment's auth mode, the server's view
+`isServerReqM E.authOn` and the contract `lessorGrantOkGM E.authOn`, the client's update passed
+through and the result at the request context's token; the auth-off contract is its `_false`
+instance.) -/
 theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ)
     (R : w64 × w64 → Prop) (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkG s E S (grantLiveG E) R := by
+      lessorGrantOkGM E.authOn s E ρ S (grantLiveG E) R := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
-  unfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hid, %HRm⟩ HΦ
+  unfold lessorGrantOkGM
+  iintro %ci %cd %r %m %Q !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hid, %HRm, Hp⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
-  -- auth off (the server's view `isServerReq`): the off permit, the off result
-  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
-  have hLG' := hLG s E ρ ci cd r m.1 m.2 (fun _ _ => iprop(True))
-  rw [hoff, isServerReqM_false] at hLG'
-  wp_apply hLG' $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
+  -- the permit at the server's context form (`hdrBoundM_tok`)
+  ihave Hp := leaseGrantPermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E (GoInterface.ok ci)) m.1 Q
+    (fun hm => hdrBoundM_tok s E (GoInterface.ok ci) hm) $$ Hp
+  wp_apply (hLG s E ρ ci cd r m.1 m.2 Q) $$ [Hlt HRD Hid Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
     isplitr
     · ipureintro; exact ⟨h, hR m HRm⟩
@@ -91,12 +95,12 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       icases Hreq with ⟨%Hrn, #Httl⟩
       iframe Httl Hid
       ipureintro; exact Hrn
-    iapply leaseGrantPermitM_false
+    iexact Hp
   ihave HSr := Hback $$ [Hlt HRD]
   · iframe Hlt HRD
   iapply HΦ
   iframe HSr
-  icases Hans with (⟨%He, Hresp, -, -⟩ | ⟨%He, #HaE⟩)
+  icases Hans with (⟨%He, Hresp, -, Hres⟩ | ⟨%He, #HaE⟩)
   · obtain ⟨rfl, hnn⟩ := He
     iunfold leaseGrantedResp at Hresp
     icases Hresp with ⟨%id, %ttl, %e, %i, %hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown, #Hid', %Hid0,
@@ -105,7 +109,7 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
     icases Hown with ⟨%h', #Hh', %Hnn', %c, %mm, %t, %l, Hc, Hm, Ht, Hl⟩
     icombine Hh Hh' gives %Hhh
     subst Hhh
-    isplitl
+    isplitl [Hc Hm Ht Hl]
     · iunfold leaseGrantAns
       ileft
       isplitr
@@ -128,16 +132,40 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
     iright
     iexists id
     iframe Hid'
-    iunfold grantLiveG
-    icases Hgr with ⟨%l, #Hgl, #Hgreq⟩
-    iexists i, l
-    iframe Hgl Hgreq
+    isplitr [Hres]
+    · iunfold grantLiveG
+      icases Hgr with ⟨%l, #Hgl, #Hgreq⟩
+      iexists i, l
+      iframe Hgl Hgreq
+    cases hon : E.authOn
+    · iapply leaseGrantResT_false
+    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ ci m.1 resp Q $$ Hres
+      icombine Hid' Hid2 gives %Hii
+      subst Hii
+      iexact HT
   · obtain ⟨rfl, hne⟩ := He
     isplitl
     · iunfold leaseGrantAns
       iright
       iapply srvErrIs_of_applyErrIs _ hne $$ HaE
     ileft; ipureintro; exact hne
+
+/-- **`lessorGrantOkLive_of_server` with auth off** (the server's view `isServerReq`), at the auth-off
+contract `lessorGrantOkG` (`lessorGrantOkGM_false`). -/
+theorem lessorGrantOkLive_of_server_off (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ)
+    (R : w64 × w64 → Prop) (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorGrantOkG s E S (grantLiveG E) R := by
+  iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
+  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
+  have hthm := lessorGrantOkLive_of_server hLG s E ρ S h R hR
+  rw [hoff, isServerReqM_false] at hthm
+  iapply (lessorGrantOkGM_false s E ρ S (grantLiveG E) R).1
+  iapply hthm
+  iframe #
 
 /-- **The server's `LeaseGrant` meets `lessorGrantOkL`** (the grant at the lessor's history) in a
 cluster that grants leases, (the lease-expiry plan's X2, 2026-11-04) in the monotone lease mode
@@ -153,7 +181,7 @@ theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (h
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorGrantOkL s E S := by
   iintro ⟨#Hpkg, #Hli, #Hq, #Hau, #Hcred, #HS⟩
-  ihave #HL := lessorGrantOkLive_of_server hLG s E ρ S h (fun _ => True)
+  ihave #HL := lessorGrantOkLive_of_server_off hLG s E ρ S h (fun _ => True)
       (fun _ _ hr => absurd hr hlm) $$ []
   · iframe #
   unfold lessorGrantOkL

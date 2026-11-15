@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, txnlinfaultsN, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -665,6 +665,45 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
     Project(
+        name="nettcp",
+        # The TCP extension's `net` and the programs proved over it (`examples/net/`,
+        # notes/net-tcp.md): this repository's translation of `net` (the interfaces; `conn`, `TCPConn`,
+        # `TCPListener`, `OpError` and the functions the examples call trusted,
+        # `NetTcp/TrustedCode/net.lean`, over `tcpExt`, `GooseLang/Ext/Tcp`), and the examples'
+        # packages. In the part `NetTcp/` (configured by `NetTcp/Code/**.toml`): the main tree's
+        # `net` is names only, with the axioms etcd's server proofs use, so the part declares the
+        # same names and nothing outside it imports it. A package of the examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "net"),
+        root="NetTcp",
+        # (v3, 2026-11-14) `os`, `syscall`, `internal/poll`, `io/fs`, `internal/syscall` are the
+        # main tree's, as every project's (`net`'s errors are their values: `*os.SyscallError`,
+        # `poll.ErrNetClosing`, `poll.ErrDeadlineExceeded`).
+        lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp", "os=", "syscall=",
+                    "io/fs=", "internal/poll=", "internal/syscall="],
+        packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
+                  "./shutdown", "./preface",
+                  # each node a command of its example, its own process (examples/net/README.md)
+                  "./echo/cmd/server",
+                  "./echo/cmd/client",
+                  "./echo/cmd/junk",
+                  "./framed/cmd/server",
+                  "./framed/cmd/client",
+                  "./framed/cmd/junk",
+                  "./acceptloop/cmd/server",
+                  "./acceptloop/cmd/client",
+                  "./duplex/cmd/server",
+                  "./duplex/cmd/client",
+                  "./halfclose/cmd/server",
+                  "./halfclose/cmd/client",
+                  "./preface/cmd/server",
+                  "./preface/cmd/client",
+                  "./preface/cmd/junk",
+                  "./shutdown/cmd/node"],
+        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
+    ),
+    Project(
         name="durablekv",
         # kv made durable (`examples/raft/kvfile`): each replica's raft state in a file of the
         # durable package, rewritten whole before the messages that depend on it are sent;
@@ -980,6 +1019,39 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putget3")],
+    ),
+    Project(
+        name="putgetN",
+        # putget3 with any number of members (notes/clusterN-scope.md): Main(k) starts k members
+        # in-process (etcdstart.Members, etcdstart.StartMembers), each serving its raft handler on
+        # its own peer listener, a client's Put and Get through the first. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd project's translations
+        # (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "putgetN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putgetN")],
+    ),
+    Project(
+        name="txnlinfaultsN",
+        # linkv3p (examples/etcd/partition) with any number of members (notes/txnlinfaultsN-plan.md):
+        # Main(k, clients, ops, sched) starts k members in-process (etcdstart.Members,
+        # etcdstart.StartMembers), each serving its gRPC API (etcdstart.Serve) behind a bridge
+        # (cluster3.StartBridge), k clients of every bridge, cluster3's partitioner on the schedule
+        # and partition's Check (txnlin's workload). A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd, partition, cluster3, lintest and porcupine
+        # projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "txnlinfaultsN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlinfaultsN")],
     ),
     Project(
         name="restart3",

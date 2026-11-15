@@ -197,8 +197,7 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   concurrent readers, which no etcd process reaches: the clause takes no slot. (The auth plan's
   E3zb, 2026-10-28) A lease it returns has the grant guard `GA` of its id: every lease of the map
   was granted (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke` and `Recover`, which empties
-  the map), and the lock's acquisition is the step that strips the guard's agreement's later (a
-  server whose guard is `False`, `srvGrantGuard`, finds no lease: `lookupNil_of_guard`).
+  the map), and the lock's acquisition is the step that strips the guard's agreement's later.
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
   2026-10-17: the store's and the apply thread's lease owner each hold one).
 * (lease-keys Part B, 2026-10-31) **The readers' model** (`lessorRdInv`, in `lessorInv`), ghost

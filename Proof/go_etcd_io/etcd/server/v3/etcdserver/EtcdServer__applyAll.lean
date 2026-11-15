@@ -93,14 +93,12 @@ theorem EtcdServer.applyAll.wp_proofBatch
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
     q γn rt n rp g
   simp only [srvRunH_applyAll_specBatch]
-  wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
+  wp_start as ⟨%hP, #HsrvC, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
   ihave #Hsrv := (isServerM_C C s γ ci TM E ρ γr).2 $$ HsrvC
-  ihave #HlnilM : srvLessorNilM C.isOn s $$ []
-  · rw [srvLessorNilM_eq]; iexact Hlnil
   ihave HKV := (srvApplyKVM_C C s E ρ.wait x sa).2 $$ HKV
   ihave HtokR : srvTokRights E (ciEff γ st.k) $$ [HtokR]
   · rw [srvTokRights_eq C E _ hM]; iexact HtokR
@@ -247,7 +245,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       ihave HKV := (srvApplyKVM_C C s E ρ.wait x' sa').1 $$ HKV
       iapply HΦ
       iexists γ, TM, E, b, st', ai', at', a', t', cs', g'
-      iframe HsrvC Hlnil
+      iframe HsrvC
       isplitr
       · ipureintro; exact beSucc_refl γ E
       iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hmr Hbr HAR Hrun
@@ -352,7 +350,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     · rw [HF.2, ← srvTokRights_eq C E _ hM]; iexact HtokR
     iapply HΦ
     iexists γ, TM, E, b, stF, ai', at', a', t', cs', g'
-    iframe HsrvC Hlnil
+    iframe HsrvC
     isplitr
     · ipureintro; exact beSucc_refl γ E
     iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hmr Hbr HAR Hrun

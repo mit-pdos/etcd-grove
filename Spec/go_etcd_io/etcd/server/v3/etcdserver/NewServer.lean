@@ -142,8 +142,8 @@ the one written-out triple (step 6 of `notes/spec-first-plan.md`'s hubs, 2026-11
 `NewServer.spec` and `NewServer.specM` were full copies of it at fixed modes, each about 200 lines,
 and every change to the construction was made three times; they are its instances below). The
 compaction mode `cmp` (the KV admits compaction requests) and the compactor by its slot
-(`v3compactor.bootCfg`: off in either mode, or on in compaction mode), compaction with auth off. With auth on, the simple token provider and a cluster that grants
-no lease; the KV invariant, the raft environment and the built part are the mode's (`kvInvM on`,
+(`v3compactor.bootCfg`: off in either mode, or on in compaction mode), compaction with auth off. With auth on, the simple token provider (and,
+auth-lease S3c, 2026-11-15, in a granting cluster no lease expiring; until then no lease granted); the KV invariant, the raft environment and the built part are the mode's (`kvInvM on`,
 `srvErM on`, `srvBuiltG on`, `ServerOn.lean`; at `on = false` today's: `kvInvM_false`, ...). With auth
 on, the proof (`NewServer.wp_proofG`) takes the auth store's construction as the contract
 `authSrvTP true` (`AuthSrv.lean`). -/
@@ -233,7 +233,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
   -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease subsystem's boot
   -- premise at the mode `m` (`lease.bootCfg`, `LeaseApi.lean`): the KV names' grant flag the mode's,
-  -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring (and
+  -- in a granting cluster no lease expiring, in either auth mode (auth-lease S3c, 2026-11-15: until
+  -- then with auth on no lease granted, lease-grant 2.13) (and
   -- until the lease-expiry plan's S2–S4, 2026-11-05, the open cases, `srvGrantOpen`; lease-grant
   -- D2); until 2026-11-12 also the lessor's checkpointer's effects (the opaque `ckptEffectsOk`,
   -- `NewLessor`'s premise; D14e, unit N4), deleted: no checkpointer is installed (`Hlcp`), so it
@@ -370,8 +371,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (until per-type stage B3, 2026-11-11, also 64 of the store's reader tokens for the
           -- watch service, `srvWatchReaders`: the watch loops borrow the run pool)
           -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease
-          -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): with auth on its lessor finding no
-          -- lease (E3zb, lease-grant D1), the peers' round tripper and the lessor's reader side (K7),
+          -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): (until auth-lease S3c, 2026-11-15,
+          -- with auth on its lessor finding no lease, E3zb) the peers' round tripper and the lessor's reader side (K7),
           -- the lessor's reader pool (the lease-src plan); until then four conjuncts here
           lease.srvInv on srv E m ∗
           -- (2026-11-05, the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part at

@@ -32,20 +32,27 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 meets `Spec` with the resource `S` (`grpcHandlerOwnOk`: it may write the decoded request, whose
 owned part `Req.recvOwn` it is handed; the lease-grant plan, 2026-11-02), for the server `s`: the quota check, then
 `ls.LeaseGrant(ctx, r)`: `S` and the check's reader slots (`quotaRd`; per-type stage B3: the inner call takes the check's `lgMu` reader with `S`, in turn) come back, and on success the
-response is `ls.LeaseGrant`'s (at some `m'` with `Φ m'`); as `quotaKVServer.Put`. -/
+response is `ls.LeaseGrant`'s (at some `m'` with `Φ m'`); as `quotaKVServer.Put`. (Auth-lease S3c,
+Draft §7.4, 2026-11-15: metadata-indexed, as `quotaKVServer.Put.spec`, with its error clause: the
+spec `Spec` at the run's incoming metadata, `grpcHandlerOwnOkMd`; the plain form is its instance at
+`GrpcSpec.md`, `quotaLease_grantHandlerOk_of`.) -/
 abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
-  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
-    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (q s : Loc) (ls : GoInterfaceOk)
+    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      v3rpc.quotaLeaseServerAt q ls s ∗ grpcHandlerOwnOk #(methods ls.ty go!"LeaseGrant" ls.v) iprop(S ∗ srvLgReader s) Spec ∗
+      v3rpc.quotaLeaseServerAt q ls s ∗
+      grpcHandlerOwnOkMd #(methods ls.ty go!"LeaseGrant" ls.v) iprop(S ∗ srvLgReader s) Spec ∗
       S ∗ v3rpc.quotaRd s ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗ Spec m Φ }}
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
+      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

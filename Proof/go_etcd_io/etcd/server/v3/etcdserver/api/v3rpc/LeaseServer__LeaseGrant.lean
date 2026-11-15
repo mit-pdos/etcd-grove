@@ -28,21 +28,22 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E S G R ci cd r m
-  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid, %HR⟩
+  intro p s A cid mid on E ρ S G R ci cd r m Q
+  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid, %HR, Hp⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
-  iunfold v3rpc.lessorGrantOkG at HL
+  iunfold v3rpc.lessorGrantOkGM at HL
   wp_auto
-  wp_apply HL $$ [HS Hid] as %resp %err ⟨HS, Hans, Hg⟩
-  · iframe; iframe #; try (ipureintro; exact HR)
+  wp_apply HL $$ %ci %cd %r %m %Q [HS Hid Hp] as %resp %err ⟨HS, Hans, Hg⟩
+  · iframe; iframe #; ipureintro; exact HR
   iunfold v3rpc.leaseGrantAns at Hans
   icases Hans with (⟨%Hok, Hh, #Hf⟩ | #Hse)
   · obtain ⟨He, Hrn⟩ := Hok

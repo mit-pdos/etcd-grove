@@ -207,9 +207,9 @@ theorem EtcdServer.apply.wp_proofOff
     intro k; unfold srvTokRights; rw [hm]
   rw [hoff, logShapeM_false] at hEok
   rw [hoff]
-  simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT,
+  simp only [isServerM_false, srvApplyKVM_false, kvAppliedM_false, hT,
     srvRunH_apply_spec, srvRestRM_false]
-  wp_start as ⟨#Hsrv, -, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, #Hcv0, Hlr, Hgr, Hrdk, HKV, Hao, #Hlog0, #Hbc,
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, #Hcv0, Hlr, Hgr, Hrdk, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, %Hg0, Hdv, #Hdvr, Hrun, HAR, -⟩
   -- the post in the off rows (the token rights `True`, the auth state unconstrained)
   ihave HΦ : ∀ (appliedt appliedi : w64) (shouldStop : Bool),
@@ -1252,11 +1252,11 @@ theorem EtcdServer.apply.wp_proofOn
     hok hEok hdv
   obtain ⟨γa, hM⟩ := hP
   have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
-  -- the mode on: the rows at `true` (`srvLessorNil`, `srvApplyKVOn`, `kvAppliedOn`)
+  -- the mode on: the rows at `true` (`srvApplyKVOn`, `kvAppliedOn`)
   rw [hAuthOn, logShapeM_true] at hEok
   rw [hAuthOn]
-  simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, srvRunH_apply_spec]
-  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, #Hcv0, Hlr, Hgr, Hrdk, HKV, Hao, #Hlog0, #Hbc,
+  simp only [srvApplyKVM_true, kvAppliedM_true, srvRunH_apply_spec]
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, #Hcv0, Hlr, Hgr, Hrdk, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, %Hg0, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
   ihave #Hsrv0 := Hsrv
   ihave #Pmem : isPkgInit (PROP := IProp GF)
@@ -1602,7 +1602,7 @@ theorem EtcdServer.apply.wp_proofOn
             $$ [Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hao Hka HRS Hr2 Hawt HtokR]
           as ⟨Hbe, Hlr, Hgr, Hrdk, Hfs, ⟨%x1, %out1, %sa1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost, HtokR⟩
         · (try rw [ite_eq_left rfl])
-          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hr2 Hawt Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hr2 Hawt Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
           isplitr
           · iexact Hreg
           isplitr
