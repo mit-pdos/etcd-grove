@@ -4,7 +4,7 @@ unchanged, so that the read side, `ReadOn`, does not import the built part and t
 `BuildGap`, `BuildAlloc`): the applied index's invariant in the auth mode `on`
 (`kvLogAtM`, `kvLogsOkM`, `appliedPubM`, `kvLogsPubM`, `srvAppliedBodyM`, `srvAppliedInvM`, with
 `kvLogsPubM_ok` and `appliedLogAt_kvLogAtM`, from `AppliedOn`), the server's uber-applier's auth
-layer and contracts (`srvUberBase`, `srvLessorNil`, `srvUberOn`) and the KV invariants of the mode
+layer and contracts (`srvUberBase`, `srvUberOn`) and the KV invariants of the mode
 (`srvKVInvsM`), and the certificates' invariant of the mode (`kvCertInvM`). `ServerOn` imports it; its text and the names are `ServerOn`'s.
 
 Lean-first (no Rocq counterpart).
@@ -241,17 +241,11 @@ instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF)
     Persistent (srvUberBase s ua E) := by
   unfold srvUberBase; infer_instance
 
-/-- **The server's lessor finds no lease** (persistent; a named premise, see `UberOn.lean`). -/
-def srvLessorNil (s : Loc) : IProp GF :=
-  iprop(∃ le : GoInterface, srvLessorAddr s ↦□ le ∗ apply.lookupNil le)
-
-instance srvLessorNil_persistent (s : Loc) : Persistent (srvLessorNil (GF := GF) s) := by
-  unfold srvLessorNil; infer_instance
-
 /-- (step 6 of the auth-mode merge, 2026-10-30) **The server's uber-applier's latest-state `Apply`
 contracts, with auth on** (persistent): for every environment with auth on and every uber-applier
 the server holds (`applySnapshot` replaces it) with its base applier's auth layer (`srvUberBase`),
-its KV contract (`apply.uberKVC`) given that the lessor finds no lease, and its admin contract
+its KV contract (`apply.uberKVC`; until auth-lease S3c, 2026-11-15, given that the lessor finds no
+lease, `srvLessorNil`, which the KV triples no longer read since S2), and its admin contract
 (`apply.uberAdmC`) at every admin row's store, backend and write token. Whoever constructs the
 uber-applier establishes its contract: `NewServer` with auth on (`uberKitM`); `applyEntryNormal`
 reads it (`srvKVInvsM_uberOn`). (Strict M1, 2026-11-06: the admin contract at the environment's
@@ -260,7 +254,7 @@ batch lock invariant, one for every backend of the epoch, `⌜E.Pk = fun _ => Pk
 def srvUberOn (s : Loc) : IProp GF :=
   iprop(□ ∀ (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface), ⌜E.authMode = .on γa⌝ →
     srvUberBase s ua E -∗
-    (∀ γc : auth.AuthBkNames, srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+    (∀ γc : auth.AuthBkNames, ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc)) ∗
     (∀ (stl bel : Loc) (T : auth.AuthBkNames) (Pk Wb : IProp GF), ⌜E.Pk = fun _ => Pk⌝ -∗
         □ (apply.bkWTFor E -∗ Wb) -∗
@@ -331,17 +325,16 @@ theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true s E γr ⊢ srvUberOn s := by
   unfold srvKVInvsM; iintro ⟨-, #H⟩; iexact H
 
-/-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`), given that the
-lessor finds no lease. -/
+/-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`). -/
 theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
     (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
-    srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvLessorNil s ⊢
+    srvUberOn (GF := GF) s ∗ srvUberBase s ua E ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) := by
-  iintro ⟨#H, #Hb, #Hln⟩
+  iintro ⟨#H, #Hb⟩
   iunfold srvUberOn at H
   ihave ⟨#Hkv, -⟩ := H $$ %E %γa %ua %hM Hb
-  iapply Hkv $$ %γc Hln
+  iapply Hkv $$ %γc
 
 /-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
 row's store, backend and write token. -/

@@ -6,7 +6,8 @@ instance rather than a twin shape (`notes/decisions.md`, "The auth component").
 
 * `AuthC`: `auth.AuthMode` without `.any`, which no server spec admits;
 * sealed: `acRes` (the apply thread's auth part, today's `kvAuthM`), `acInv`, `acTok`, `acPub`,
-  `acRead`, `acLessor`, `acCost`, `acSnapKit`, `acSnapOk`;
+  `acRead`, `acCost`, `acSnapKit`, `acSnapOk` (`acLessor`, the lessor finding no lease with auth
+  on, deleted by auth-lease S3c, decision C3 (a), 2026-11-15);
 * public (pure, read outside the slot): `acBkts`, `acImg`, `acOpenQ`, `acModesOk`,
   `restSetC`;
 * the laws: the bridges to today's mode-indexed names (stage 2 rewrites with them, then deletes
@@ -142,10 +143,6 @@ side bound to the request context's token. -/
   | .off => srvAuthLb s E
   | .on _ => iprop(srvAuthLb s E ∗ □ (auth.tpReady E.authMode -∗ srvAuthBound s E))
 
-/-- **The lessor premise** (persistent): nothing off; on, the lessor finds no lease. -/
-@[no_expose] def acLessor (C : AuthC) (s : Loc) : IProp GF :=
-  srvLessorNilM C.isOn s
-
 /-- **The time receipt an entry's application costs the component**: nothing off; one on. -/
 @[no_expose] def acCost (C : AuthC) : IProp GF :=
   match C with
@@ -180,9 +177,6 @@ instance acPub_timeless (C : AuthC) (st : auth.AuthState) :
 instance acRead_persistent (C : AuthC) (s : Loc) (E : apply.AEnv GF) :
     Persistent (acRead (GF := GF) C s E) := by
   cases C <;> unfold acRead <;> infer_instance
-
-instance acLessor_persistent (C : AuthC) (s : Loc) : Persistent (acLessor (GF := GF) C s) := by
-  unfold acLessor; infer_instance
 
 instance acSnapKit_persistent (C : AuthC) (ast : Loc) (RD : IProp GF) :
     Persistent (acSnapKit (GF := GF) C ast RD) := by
@@ -220,9 +214,6 @@ theorem kvAuthM_eq (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterface)
 theorem srvTokRights_eq (C : AuthC) (E : apply.AEnv GF) (k : w64) (hC : E.authMode = C.mode) :
     srvTokRights E k = acTok C k := by
   cases C <;> simp only [srvTokRights, acTok, hC, AuthC.mode]
-
-theorem srvLessorNilM_eq (C : AuthC) (s : Loc) : srvLessorNilM (GF := GF) C.isOn s = acLessor C s := by
-  dsimp only [acLessor, AuthC.mode, AuthC.isOn]
 
 theorem snapAuthResM_eq (C : AuthC) (s ast : Loc) (RD : IProp GF) (γr : ReadNames)
     (A' : List EntryModel) : snapAuthResM C.mode s ast RD γr A' = acSnapOk C s ast RD γr A' := by
@@ -266,10 +257,6 @@ theorem acInv_on (C : AuthC) (γa : auth.AuthNames) (hM : C = .on γa) (s : Loc)
     acInv C s E γr ⊣⊢ authHistTie E γr srvAuthSt0 ∗ srvUberOn s := by
   subst hM; exact .rfl
 
-theorem acLessor_on (C : AuthC) (γa : auth.AuthNames) (hM : C = .on γa) (s : Loc) :
-    acLessor (GF := GF) C s ⊣⊢ srvLessorNil s := by
-  subst hM; exact .rfl
-
 theorem acCost_on (C : AuthC) (γa : auth.AuthNames) (hM : C = .on γa) :
     acCost (GF := GF) C ⊣⊢ ⧗ 1 := by
   subst hM; exact .rfl
@@ -288,9 +275,6 @@ theorem acRes_off (s : Loc) (E : apply.AEnv GF) (ua : GoInterface) (st : auth.Au
 theorem acInv_off (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     ⊢ acInv (GF := GF) .off s E γr := by
   dsimp only [acInv, AuthC.mode, AuthC.isOn]; itrivial
-
-theorem acLessor_off (s : Loc) : ⊢ acLessor (GF := GF) .off s := by
-  dsimp only [acLessor, AuthC.mode, AuthC.isOn]; simp only [srvLessorNilM]; itrivial
 
 /-- Off, the token rights are nothing (whatever the environment). -/
 theorem acTok_off (k : w64) : acTok (GF := GF) .off k = iprop(True) := by

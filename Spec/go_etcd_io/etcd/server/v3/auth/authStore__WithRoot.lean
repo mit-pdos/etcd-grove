@@ -31,8 +31,9 @@ store's own vocabulary, what `IsAuthEnabled.spec` gives of the real store and th
 
 Two departures, both deliberate. (1) A restriction of scope: the mode is `off`, so the root-token
 branch (`store.go:1180-1212`, a derived context with the root's token) is not proved; the one caller,
-the server's expiry revocation, runs with auth off (`srvGrantGuard`, the slice's grant guard;
-auth-lease S3b dropped the auth-off half of `srvRevokesLeases`). Extending it is a change of the
+the server's expiry revocation, runs with auth off (the premise of `revokeExpiredLeases`, from the
+slice's guard and the payload's `¬ leasesNoExpiry`, auth-lease S3c; S3b dropped the auth-off half of
+`srvRevokesLeases`). Extending it is a change of the
 spec (the post gains the token branch). (2) It takes the implementation's own call, `IsAuthEnabled`'s
 contract at `st`'s method, not an API predicate of the store: an implementation that read
 `as.enabled` under `enabledMu` itself would not meet it. The reason: in the mode `off` the server's

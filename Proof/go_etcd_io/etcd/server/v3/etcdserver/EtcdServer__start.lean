@@ -104,7 +104,7 @@ theorem EtcdServer.start.wp_proof
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  wp_start as ⟨%hC, Hb, #Hlnil⟩
+  wp_start as ⟨%hC, Hb⟩
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
   iunfold isServerBuiltC at Hb
   icases Hb with ⟨Hb, Hskeep⟩
@@ -643,7 +643,7 @@ theorem EtcdServer.start.wp_proof
       iframe Htok
       iunfold isServerRunC
       iframe
-      iframe Hrf Hrvk Hsa Hsrv Hrn Hlnil Hmid HmetaSnap
+      iframe Hrf Hrvk Hsa Hsrv Hrn Hmid HmetaSnap
       isplitr
       · ipureintro; exact ⟨hm, hRB⟩
       isplitr

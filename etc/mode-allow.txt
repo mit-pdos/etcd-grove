@@ -59,7 +59,6 @@ match-mode unmoved ::snapRestImgM::
 match-mode unmoved ::srvApplyKVM::
 match-mode unmoved ::srvAuthBoundM::
 match-mode unmoved ::srvKVInvsM::
-match-mode unmoved ::srvLessorNilM::
 match-mode unmoved ::srvOpenQ::
 match-mode unmoved ::srvSnapAppliedM::
 match-mode unmoved ::srvTokRights::

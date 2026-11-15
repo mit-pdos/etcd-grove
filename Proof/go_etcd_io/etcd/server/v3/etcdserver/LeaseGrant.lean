@@ -34,8 +34,8 @@ variable [sem : go.Semantics]
 
 /-- **The cluster grants leases** (see the file header): the KV names' `lg` (the cluster's requests
 may grant leases: its lessor monotone). (Auth-lease S3b, 2026-11-15: until then also auth off; the
-auth-on request side is `LeaseGrant.spec`'s at `isServerReqM E.authOn`, and a built auth-on server
-still grants none until S3c's `srvGrantGuard`.) (The review's S1, 2026-11-02: until then also the
+auth-on request side is `LeaseGrant.spec`'s at `isServerReqM E.authOn`; since S3c a built auth-on
+server grants too, its grant guard `srvGrantGuard` carrying `leasesNoExpiry` at auth on.) (The review's S1, 2026-11-02: until then also the
 deployment premise `lease.leasesNoExpiry`, which only the apply thread's grant needs: it is
 `NewServer`'s row `ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`, so a result over this
 spec is conditional on it through `NewServer`.) -/

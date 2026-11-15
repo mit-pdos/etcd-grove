@@ -72,8 +72,11 @@ apply plus the TTL, and `Promote`, `Demote`, `Renew`, checkpoints and `minLeaseT
 later, `lessor.go:301-303, 480-553`). What a theorem taking it says nothing of: runs longer than a granted lease's TTL, runs
 whose clock jumps, and a lessor promoted with leases whose expiry has already passed. The
 trust-boundary `NewLessor` states it in the payload of `expiredC` (`lessorExpiredC`): a slice sent
-refutes it. `NewServer` takes it (gated on the cluster granting leases, `KVNames.lg = true`, review
-S1) for its apply thread, the one place a grant is minted. -/
+refutes it. `NewServer` takes it through its boot slot `lease.bootCfg`: in the monotone lease mode
+(which `run` keeps, `lease.runCfg`), and (auth-lease S3c, 2026-11-15) with auth on in either granting
+mode, which the lessor's grant guard `srvGrantGuard` carries to every lease `expiredC` can deliver, so
+that `run`'s expiry arm revokes with auth off only (`revokeExpiredLeases`). (Until 2026-11-04 gated on
+the cluster granting leases, `KVNames.lg = true`, review S1.) -/
 opaque leasesNoExpiry : Prop
 
 -- `Mode`: `InvLessor.lean` (moved 2026-11-04, X7 option (iii): `KVNames` and `AEnv` name it).

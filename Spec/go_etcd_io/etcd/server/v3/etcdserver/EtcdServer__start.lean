@@ -30,8 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.start()`** in both auth modes (the auth component's stage 2, 2026-11-04; until then `spec`
 with auth off and `specOn` with auth on, now `specOff`/`specOn`, `ModeSpecs.lean`'s corollaries):
-from the construction premise in the component `C` (`isServerBuiltC`) and the lessor finding no
-lease (`acLessor C`), in the environment's mode, it sets the snapshot defaults, the wait registries
+from the construction premise in the component `C` (`isServerBuiltC`; until auth-lease S3c,
+2026-11-15, also the lessor finding no lease, `acLessor C`), in the environment's mode, it sets the snapshot defaults, the wait registries
 (`w`, `applyWait`), the channels `done`, `stop`, `stopping`, the server's context, the read loop's
 `*Read` and the leader-change notifier, sets up `GoAttach`'s protocol, and starts `run`
 (`isServerRunC C`, with the write budget `srvWTPool E` made of the `N` write tokens, D19b: under
@@ -55,7 +55,7 @@ abbrev EtcdServer.start.spec : Prop :=
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
-      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ acLessor C s }}
+      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗

@@ -5,8 +5,7 @@ E3zb, 2026-10-28). Lean-first (no Rocq counterpart).
 The steps (`etcdstart.StartServer`'s, `etcdstart.newServer`'s and `etcdstart.wp_Start_built`'s, with auth on):
 the peer URL slice and the cluster's map `{authkv ↦ peer}` (read-only from here on, D19r (F)); the
 configuration's client URLs and feature gate; `NewServer` with auth on (`NewServer.specM true`: the
-simple provider, the TTL `300`), whose post gives the mode `.on γa`, the lessor finding no lease
-(`srvLessorNil`) and the built part with auth on (`isServerBuilt_of_gapM true`); on success
+simple provider, the TTL `300`), whose post gives the mode `.on γa` and the built part with auth on (`isServerBuilt_of_gapM true`); on success
 `s.Start()` at the auth slot's `on γa` (`Start.spec`). An error of `NewServer` returns it, with the thread token.
 -/
 module
@@ -149,8 +148,6 @@ theorem startServer.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Herr
   wp_auto
-  -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
-  ihave #HLnil := lease.srvInv_lessorNil true srv E .none rfl $$ Hlsrv
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on (at the boot state `x₀` and the read loop's
@@ -173,16 +170,14 @@ theorem startServer.wp_proof
     iframe Hmf Hfgc
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
-  -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row, the lessor's
+  -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row
   have hB := isServerBuiltM_C (GF := GF) (.on γa) srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
     (W64 0) x₀ N hγa
-  have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_true] at hB
   ihave Hsb := hB $$ [Hsb Hkeep]
   · iframe Hsb
     iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
-  ihave #HLnil := hL.2 $$ HLnil
   have h' := wp_Start srv γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
   simp only [AuthC.isOn] at h'
   wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩

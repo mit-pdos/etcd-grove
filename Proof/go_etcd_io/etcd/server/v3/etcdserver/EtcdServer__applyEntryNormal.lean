@@ -1486,7 +1486,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · rw [HEo.1]; iexact HFS
         tailR
   simp only [↓reduceIte]
-  wp_start as ⟨#Hsrv, #Hlnil, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, Hawt, Hao, #HLv,
+  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, Hawt, Hao, #HLv,
     #Hcm, Hka, HRS, %Hmc, #HAm, %HkA', %Hvi, %Hpo, Hv3, Htok⟩
   have HkA : uint.Z v = uint.Z γr.raft.ai0 + A.length ∧
       true = decide (uint.Z γr.kv.c0 < uint.Z m.index) :=
@@ -1836,7 +1836,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc,
           #Hasf, #Hlend, #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
         ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM T $$ []
-        · iframe Huon Hb Hlnil
+        · iframe Huon Hb
         icombine Hasf Hasf' gives %Hst
         have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
         subst Hst'
@@ -1995,7 +1995,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc, #Hasf,
             #Hlend, #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
           ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM T $$ []
-          · iframe Huon Hb Hlnil
+          · iframe Huon Hb
           icombine Hasf Hasf' gives %Hst
           have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
           subst Hst'
@@ -2400,9 +2400,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       iapply h $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs HRS] HΦ
       iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hcm HRS HA0
       ipureintro; exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, Hpo.2.2.2.2.2⟩
-    · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
+    · simp only [isServerM_false, srvApplyKVM_false, kvAppliedM_false,
         entryOkM_false, hT, srvRestM_false, Bool.false_eq_true, ↓reduceIte] at h ⊢
-      iintro %Φ ⟨#Hpkg, -, -, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
+      iintro %Φ ⟨#Hpkg, -, -, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
         #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, -⟩ HΦ
       iapply h $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
       · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
@@ -2425,12 +2425,12 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ipureintro
       exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, Hrb trivial,
         Hpo.2.2.2.2.1 trivial, Hpo.2.2.2.2.2⟩
-    · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
+    · simp only [srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
         ↓reduceIte] at hOn ⊢
-      iintro %Φ ⟨#Hpkg, ⟨Hr, Hawt⟩, %Hrb, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao,
+      iintro %Φ ⟨#Hpkg, ⟨Hr, Hawt⟩, %Hrb, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao,
         Hlog, #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
       iapply hOn $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hka HRS Hv3 Htok] HΦ
-      iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+      iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
       ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, Hrb trivial⟩
 
 end proof
