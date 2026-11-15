@@ -97,14 +97,14 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 open Iris.ProofMode in
-/-- With auth on, a cluster grants no lease (`srvKVInvsOn`'s). -/
+/-- With auth on, a cluster grants no lease (`srvKVInvsOn`'s; auth-lease S3a: its TRANSITIONAL row, until the §5 step). -/
 theorem srvKVInvsM_lg (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) on s E γr ⊢ ⌜on = true → γr.kv.lg = false⌝ := by
   cases on
   · iintro -; ipureintro; intro h; cases h
   · unfold srvKVInvsM srvKVInvsOn
     iintro ⟨⟨-, -, -, -, -, -, %h⟩, -⟩
-    ipureintro; intro _; exact h.2.2
+    ipureintro; intro _; exact h.2.2.1
 
 end kvLeases
 

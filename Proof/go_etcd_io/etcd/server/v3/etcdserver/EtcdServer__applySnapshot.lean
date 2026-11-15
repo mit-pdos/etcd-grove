@@ -291,7 +291,8 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         icases HkO with ⟨#HkI, -, #HrI, -⟩
         imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HAlb with %Hpl
         imodintro; ipureintro
-        unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]; rfl
+        unfold appliedTable kvLeases
+        rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' (hlm0 ▸ Hpl)]; rfl
       · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr = srvKVInvs E γr := by
           rw [show E.authOn = false by simpa using hon]; rfl
         ihave #HkO : srvKVInvs E γr $$ []

@@ -1009,17 +1009,24 @@ theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
 
 theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ (K.isOn = false → γr.kv.lm = E.lm)⌝ := by
+    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ γr.kv.lm = E.lm⌝ := by
   refine (isServerM_C (GF := GF) K s γ ci TM E ρ γr).2.trans ?_
   cases K with
   | off =>
     refine (isServer_lm s γ ci TM E ρ γr).trans ?_
-    iintro %h; ipureintro; exact ⟨h.1, fun _ => h.2⟩
+    iintro %h; ipureintro; exact h
   | on γa =>
+    -- (auth-lease S3a) on, `srvKVInvsOn`'s lease-mode row
     iintro H
+    simp only [AuthC.isOn]
     iunfold isServerM at H
-    icases H with ⟨%h, -⟩
-    ipureintro; exact ⟨h, fun h' => by cases h'⟩
+    icases H with ⟨%h, -, -, #Hat, -⟩
+    iunfold srvAtomicsM at Hat
+    icases Hat with ⟨-, -, #HkM⟩
+    ihave #Hkvi := srvKVInvsM_true s E γr $$ HkM
+    iunfold srvKVInvsOn at Hkvi
+    icases Hkvi with ⟨-, -, -, -, -, -, -, %Hrows⟩
+    ipureintro; exact ⟨h, Hrows.2.2.1⟩
 
 /-- **A first start's `applyStartC` is the restart form at `A₀ = []`** (Go's index `ai₀`). -/
 theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)

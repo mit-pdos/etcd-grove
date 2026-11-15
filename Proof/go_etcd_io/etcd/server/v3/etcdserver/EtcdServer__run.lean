@@ -243,9 +243,10 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     rw [hun]
     cases hK : K.isOn
     · rw [hK, logShapeM_false] at hok
-      rw [logShapeM_false, ← Hlgt.2 hK, ← Hlgt.1]
+      rw [logShapeM_false, ← Hlgt.2, ← Hlgt.1]
       exact ((logShape_append _ A ce).1 hok).2
     · rw [hK] at hok
+      rw [logShapeM_true, ← Hlgt.2, ← Hlgt.1]
       exact fun m hm => hok m (List.mem_append_right A hm)
   have hb1 : uint.Z ai + 1 < 2 ^ 64 := by
     have h1 := hidx.1
