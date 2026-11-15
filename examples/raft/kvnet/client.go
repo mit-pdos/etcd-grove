@@ -31,16 +31,27 @@ func EncodeDisrupt(what, to uint64) []byte {
 	return putUint64(putUint64(nil, what), to)
 }
 
+// requestMargin is how much longer than a request's timeout its client waits for the answer
+// (the replica answers once the timeout is over, at the latest).
+const requestMargin = 500 * time.Millisecond
+
 // Request sends one request of kind to the replica at addr, with the given timeout (the
 // replica's, for its answer), and returns its answer; false if it has none, or the replica cannot
 // be reached, or does not answer within the timeout and a margin.
 func Request(addr string, kind byte, timeout time.Duration, payload []byte) ([]byte, bool) {
-	c, err := net.DialTimeout("tcp", addr, dialTimeout)
+	return RequestWithin(addr, kind, timeout, timeout+requestMargin, payload)
+}
+
+// RequestWithin is Request, waiting at most total for the whole exchange (for a best-effort
+// request that must not hold its caller up).
+func RequestWithin(addr string, kind byte, timeout, total time.Duration, payload []byte) ([]byte, bool) {
+	deadline := time.Now().Add(total)
+	c, err := net.DialTimeout("tcp", addr, min(dialTimeout, total))
 	if err != nil {
 		return nil, false
 	}
 	defer c.Close()
-	c.SetDeadline(time.Now().Add(timeout + 500*time.Millisecond))
+	c.SetDeadline(deadline)
 	req := putUint64([]byte{kind}, uint64(timeout/time.Millisecond))
 	req = append(req, payload...)
 	if !writeAll(c, []byte{helloClient}) || !writeFrame(c, req) {

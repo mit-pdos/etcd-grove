@@ -47,7 +47,7 @@ var StatNames = [NumStats]string{
 }
 
 // Stats counts what an incarnation exercised, for the tests' coverage report (the driver reads
-// them over the client protocol, reqStats); the store does not read them.
+// them over the client protocol, ReqStatus); the store does not read them.
 type Stats struct {
 	c [NumStats]atomic.Uint64
 }

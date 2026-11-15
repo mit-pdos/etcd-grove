@@ -102,8 +102,10 @@ type Stats struct {
 	Retries         atomic.Uint64
 	ConfProposed    atomic.Uint64
 	Disruptions     atomic.Uint64
-	mu              sync.Mutex
-	Node            [kvnet.NumStats]uint64
+	// StrandedLearners is how many learners the last convergence check let lag (Cluster.stranded)
+	StrandedLearners atomic.Uint64
+	mu               sync.Mutex
+	Node             [kvnet.NumStats]uint64
 }
 
 func (s *Stats) addNode(v [kvnet.NumStats]uint64) {
@@ -117,9 +119,9 @@ func (s *Stats) addNode(v [kvnet.NumStats]uint64) {
 func (s *Stats) String() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return fmt.Sprintf("replicas started %d, kills %d, power losses %d, client retries %d, conf changes sent %d, disruptions %d\n  replicas: %s",
+	return fmt.Sprintf("replicas started %d, kills %d, power losses %d, client retries %d, conf changes sent %d, disruptions %d, stranded learners %d\n  replicas: %s",
 		s.ReplicasStarted.Load(), s.Kills.Load(), s.PowerLosses.Load(), s.Retries.Load(), s.ConfProposed.Load(),
-		s.Disruptions.Load(), kvnet.FormatStats(s.Node))
+		s.Disruptions.Load(), s.StrandedLearners.Load(), kvnet.FormatStats(s.Node))
 }
 
 // A Command says how to start a replica's process: the program, the arguments before the node's
@@ -172,7 +174,11 @@ type Cluster struct {
 	failErr  error
 }
 
-// freeAddrs are n addresses of the loopback interface free now.
+// freeAddrs are n addresses free now, all on one random loopback address 127.a.b.c other than
+// 127.0.0.1. Not on 127.0.0.1: a connection's source address is 127.0.0.1 (the loopback route's),
+// so no connection's source port can take a replica's address while the replica is down, and its
+// next incarnation always gets to listen there. (Another process could still listen on the same
+// random address and port: a replica that cannot listen fails the round.)
 func freeAddrs(n int) (map[uint64]string, error) {
 	addrs := make(map[uint64]string)
 	var ls []net.Listener
@@ -181,8 +187,9 @@ func freeAddrs(n int) (map[uint64]string, error) {
 			l.Close()
 		}
 	}()
+	ip := fmt.Sprintf("127.%d.%d.%d", 1+below(254), below(256), 1+below(254))
 	for id := uint64(1); id <= uint64(n); id++ {
-		l, err := net.Listen("tcp", "127.0.0.1:0")
+		l, err := net.Listen("tcp", ip+":0")
 		if err != nil {
 			return nil, err
 		}
@@ -243,23 +250,34 @@ func (c *Cluster) add(id uint64) (*replica, error) {
 	} else if err := os.MkdirAll(r.dir, 0o755); err != nil {
 		return nil, err
 	}
+	// started before it is listed, so that a crash (which picks among the listed replicas) never
+	// meets one without a process
+	if err := c.start(r); err != nil {
+		if r.disk != nil {
+			r.disk.destroy()
+		}
+		return nil, err
+	}
 	c.mu.Lock()
 	c.replicas[id] = r
 	c.mu.Unlock()
 	c.Stats.ReplicasStarted.Add(1)
-	return r, c.start(r)
+	return r, nil
 }
 
 // start starts r's next incarnation. A process that ends without the driver killing it (a panic:
 // raft's, or the store's on a file it cannot read) fails the run.
 func (c *Cluster) start(r *replica) error {
+	c.mu.Lock()
 	r.count++
+	count := r.count
+	c.mu.Unlock()
 	logPath := filepath.Join(c.work, "logs", fmt.Sprintf("replica-%d.log", r.id))
 	lf, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(lf, "=== incarnation %d\n", r.count)
+	fmt.Fprintf(lf, "=== incarnation %d\n", count)
 	args := append(append([]string(nil), c.cmd.Args...), kvnet.NodeArgs(kvnet.NodeConfig{
 		ID: r.id, Dir: r.dir, Addrs: c.addrs, Opts: c.cfg.Options, Faults: c.cfg.Faults})...)
 	cmd := exec.Command(c.cmd.Path, args...)
@@ -276,7 +294,7 @@ func (c *Cluster) start(r *replica) error {
 		lf.Close()
 		if !p.killed.Load() {
 			c.fail(fmt.Errorf("replica %d (incarnation %d) exited on its own (%v); its log %s:\n%s",
-				r.id, r.count, err, logPath, tail(logPath, 40)))
+				r.id, count, err, logPath, tail(logPath, 40)))
 		}
 		close(p.exited)
 	}()
@@ -308,8 +326,10 @@ func (c *Cluster) status(id uint64, timeout time.Duration) (kvnet.Status, bool) 
 // kill kills r's incarnation and waits for its process to end, after reading its counters (best
 // effort: a replica that does not answer at once keeps them).
 func (c *Cluster) kill(r *replica) {
-	if s, ok := c.status(r.id, 20*time.Millisecond); ok {
-		c.Stats.addNode(s.Stats)
+	if b, ok := kvnet.RequestWithin(c.addrs[r.id], kvnet.ReqStatus, 20*time.Millisecond, 20*time.Millisecond, nil); ok {
+		if s, ok := kvnet.GetStatus(b); ok {
+			c.Stats.addNode(s.Stats)
+		}
 	}
 	r.p.killed.Store(true)
 	r.p.cmd.Process.Kill()
@@ -575,9 +595,29 @@ func (c *Cluster) Crash(pause time.Duration, stop <-chan struct{}) {
 	}
 }
 
+// stranded says whether s, the status of a learner of the configuration of top (the replica that
+// has applied the most), may be stuck for good behind top: with PreVote and CheckQuorum both off, a
+// learner that took a higher term (from a removed voter still campaigning in its old
+// configuration) ignores the leader's messages without answering, and never campaigns itself
+// (nonissues/raft-learner-stranded-higher-term.md). Raft's liveness, not the store's safety.
+func (c *Cluster) stranded(top, s kvnet.Status, id uint64) bool {
+	return !c.cfg.PreVote && !c.cfg.CheckQuorum && s.Term > top.Term && hasID(top.Conf.GetLearners(), id)
+}
+
+// hasID says whether id is in ids.
+func hasID(ids []uint64, id uint64) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
+}
+
 // agree is Converged's check, once: the members of the configuration of the replica that has
-// applied the most agree with it on the applied index, the configuration and the store contents.
-// It returns that replica's status.
+// applied the most agree with it on the applied index, the configuration and the store contents,
+// but for a learner stuck behind it in the way raft allows (stranded), which it counts in
+// Stats.StrandedLearners. It returns that replica's status.
 func (c *Cluster) agree() (kvnet.Status, error) {
 	var top kvnet.Status
 	var topID uint64
@@ -597,10 +637,15 @@ func (c *Cluster) agree() (kvnet.Status, error) {
 	}
 	cs := top.Conf
 	members := append(append(append([]uint64(nil), cs.GetVoters()...), cs.GetVotersOutgoing()...), cs.GetLearners()...)
+	stranded := uint64(0)
 	for _, id := range members {
 		s, ok := got[id]
 		if !ok {
 			return top, fmt.Errorf("member %d does not answer", id)
+		}
+		if s.Index != top.Index && c.stranded(top, s, id) {
+			stranded++
+			continue
 		}
 		if s.Index != top.Index {
 			return top, fmt.Errorf("replica %d applied %d, member %d applied %d", topID, top.Index, id, s.Index)
@@ -612,6 +657,7 @@ func (c *Cluster) agree() (kvnet.Status, error) {
 			return top, fmt.Errorf("replicas %d and %d differ at index %d: %v, %v", topID, id, s.Index, top.Contents, s.Contents)
 		}
 	}
+	c.Stats.StrandedLearners.Store(stranded)
 	return top, nil
 }
 
@@ -649,13 +695,16 @@ func (c *Cluster) Converged(timeout time.Duration) (kvnet.Status, error) {
 func (c *Cluster) Dump() string {
 	s := ""
 	for _, r := range c.all() {
+		c.mu.Lock()
+		count := r.count
+		c.mu.Unlock()
 		st, ok := c.status(r.id, opTimeout)
 		if !ok {
-			s += fmt.Sprintf("%d: no answer (incarnation %d)\n", r.id, r.count)
+			s += fmt.Sprintf("%d: no answer (incarnation %d)\n", r.id, count)
 			continue
 		}
 		s += fmt.Sprintf("%d: role %d term %d lead %d commit %d applied %d cfg %v (incarnation %d)\n",
-			r.id, st.Role, st.Term, st.Lead, st.Commit, st.Index, st.Conf, r.count)
+			r.id, st.Role, st.Term, st.Lead, st.Commit, st.Index, st.Conf, count)
 	}
 	return s
 }

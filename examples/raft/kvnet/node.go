@@ -118,6 +118,8 @@ func RunNode(cfg NodeConfig) {
 	for {
 		c, err := l.Accept()
 		if err != nil {
+			// out of file descriptors, say: wait instead of spinning
+			time.Sleep(10 * time.Millisecond)
 			continue
 		}
 		go n.serve(c)
@@ -312,8 +314,7 @@ type Status struct {
 
 // status is the replica's Status now.
 func (n *Node) status() Status {
-	kv, index, cs := n.r.contents()
-	contents, _, _ := getMap(kv)
+	contents, index, cs := n.r.contents()
 	st := n.r.node.Status()
 	return Status{Index: index, Conf: cs, Contents: contents, Lead: st.Lead, Term: st.HardState.GetTerm(),
 		Role: uint64(st.RaftState), Commit: st.HardState.GetCommit(), Stats: n.stats.Snapshot()}

@@ -479,17 +479,14 @@ func (r *Replica) read(seq uint64, key string, timeout time.Duration) (string, b
 	}
 }
 
-// conf is the replica's configuration and its applied index.
-func (r *Replica) conf() (*pb.ConfState, uint64) {
+// contents is a copy of the store's contents and its applied index and configuration, read at
+// once.
+func (r *Replica) contents() (map[string]string, uint64, *pb.ConfState) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.cs, r.index
-}
-
-// contents is the store's contents (encoded by putMap) and its applied index and configuration,
-// read at once.
-func (r *Replica) contents() ([]byte, uint64, *pb.ConfState) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return putMap(nil, r.kv), r.index, r.cs
+	m := make(map[string]string)
+	for k, v := range r.kv {
+		m[k] = v
+	}
+	return m, r.index, r.cs
 }

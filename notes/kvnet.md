@@ -54,6 +54,22 @@ reconfigurations and disruptions are kvdurable's, unchanged where they could be:
 - Single-replica power losses mid-run did not expose that mutant on their own in the run tried (the
   final whole-cluster crash did): a weaker durability bug may need more rounds, or the final crash.
 
+## Review (2026-11-15)
+
+A code review of the branch found no protocol-level bug in the replica (wire format, transport, run loop,
+durability). Fixed in the driver and node: a crash could pick a replica the driver had listed before its
+process existed (nil panic in the driver); the incarnation count was read without the lock; the replicas'
+addresses were on 127.0.0.1, where a connection's source port could take a down replica's port (now one
+random 127.a.b.c per run: connections' source address is 127.0.0.1, checked); the counters' read before a
+kill could wait 0.5 s (`RequestWithin`); `Accept` errors spun; small simplifications (`Replica.contents`
+copies the map, no sender for the node's own id, `Replica.conf` removed). Kept: `model.go` copies
+kvdurable's model, like `storage.go` and `codec.go`, so the package stands alone.
+
+A stress round then failed the convergence check on raft's liveness, not the store's: with PreVote and
+CheckQuorum off, a learner that adopted a removed voter's higher term ignores the leader for good
+(`nonissues/raft-learner-stranded-higher-term.md`). The check now lets such a learner lag in that option
+combination, and reports it (`stranded learners`).
+
 ## For the proof
 
 - Network operations used: `net.Listen`, `Listener.Accept`, `net.DialTimeout`, `Conn.Read`, `Conn.Write`,

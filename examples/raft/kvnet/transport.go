@@ -52,20 +52,22 @@ type Transport struct {
 	node   raft.Node
 	faults Faults
 	stats  *Stats
-	peers  map[uint64]*peer // every address the program knows, read-only once started
+	peers  map[uint64]*peer // every other replica the program knows, read-only once started
 }
 
 // newTransport is the transport of node id, whose peers' addresses are addrs (by id; its own
-// included), with the faults f; it starts a goroutine per peer.
+// included, and left out: raft never sends to itself), with the faults f.
 func newTransport(id uint64, addrs map[uint64]string, f Faults, stats *Stats) *Transport {
 	t := &Transport{id: id, faults: f, stats: stats, peers: make(map[uint64]*peer)}
 	for pid, addr := range addrs {
-		t.peers[pid] = &peer{id: pid, addr: addr, queue: make(chan *pb.Message, queueLen)}
+		if pid != id {
+			t.peers[pid] = &peer{id: pid, addr: addr, queue: make(chan *pb.Message, queueLen)}
+		}
 	}
 	return t
 }
 
-// start starts the senders, once the node exists.
+// start starts the senders, a goroutine per peer, once the node exists.
 func (t *Transport) start(node raft.Node) {
 	t.node = node
 	for _, p := range t.peers {
