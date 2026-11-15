@@ -240,3 +240,6 @@ goose and the Go gates fail on go.sum only (unpushed fork). **bounds FAILS: 356 
 `examples/etcd/restart` (`Swap.lean` 250/280/282/491, `Spec/.../raftSwap.lean` 63: the swap's pool of `srvServeRes`
 copies and slot tokens), from C3, not the merge; needs an allow entry (the swap owns the pool) or a rework, decided
 by etcd-grove-81, before landing.
+Decided by etcd-grove-81 (2026-11-15): an owner entry in `etc/bounds-allow.txt` (the swap owns its `srvServeRes`/
+slot-token pool, like the reader pools); `etc/bounds-check.py --check`: ok (351, baseline 351).
+Left before landing: the fork push, goose with the real go.mod and go.sum, `restart3` (A1) lands first.
