@@ -143,6 +143,37 @@ theorem tInv_rel (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Option
   imodintro
   iframe; iframe #
 
+/-- **What the restart takes of the relation**: a candidate accounting for the WAL, if there is one,
+the oracle well formed, and `tRelW` (created: the mark synced and the WAL named; else fresh up to the
+opens, with the fresh candidate). -/
+theorem tRelI_relW (W : WalGS GF) (area : GoString) (o : TOracle) (od : Option WalDur) :
+    tRelI (W := W) area o od ⊢ ∃ cd : TCand,
+      ⌜cd ∈ o.cands ∧ (∀ d, od = some d → tCandOk o cd d) ∧ tCheckWf o⌝ ∗ tRelW (W := W) area o cd := by
+  unfold tRelI tRelW
+  cases hcr : o.created with
+  | true =>
+    simp only [ite_true]
+    iintro ⟨%d, %c, %h, #Hsl, #Hnm⟩
+    obtain ⟨hod, hc, hok, hw⟩ := h
+    iexists c
+    isplitr
+    · ipureintro
+      refine ⟨hc, fun d' hd' => ?_, hw⟩
+      rw [hod] at hd'; cases hd'; exact hok
+    · iframe #; ipureintro; exact hw
+  | false =>
+    simp only [Bool.false_eq_true, ite_false]
+    iintro %h
+    obtain ⟨hpre, hod⟩ := h
+    iexists tCand0
+    isplitr
+    · ipureintro
+      refine ⟨by rw [tPre_cands hpre]; simp, fun d' hd' => ?_, tCheckWf_pre hpre⟩
+      rcases hod with h | ⟨d, h, hok⟩
+      · rw [h] at hd'; cases hd'
+      · rw [h] at hd'; cases hd'; exact hok
+    · ipureintro; exact hpre
+
 /-- **The view raised to named** (B2): with the oracle created, its relation gives a candidate `c`
 accounting for the WAL `d`, whose view becomes named (`walDirIs_named`); both halves of the WAL state
 move, the relation re-established with the same candidate (`tCandOk` does not read `named`). -/
