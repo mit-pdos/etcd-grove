@@ -363,6 +363,15 @@ Decisions D1–D7 (`questions.md`, "S3b Freeze"; ledger 2026-11-15, S3b entries)
    `Proof/github_com` is two proof bodies: `WorkAuth.lean:330`, `ServedLease.lean:263, 321`). STOPPED before
    `etc/land.sh`.
 
+## S3c Draft (2026-11-15, session 10)
+
+Draft `notes/auth-lease-s3c-draft.md` (rev 1, commit `64326e6fff`); probe `Scratch/S3cProbe.lean` (untracked; copy
+`/shared/tmp/auth-lease-s3c/S3cProbe.lean`, clean: the guard C1, run's expiry arm, the new `bootCfg` and its laws,
+`NewServer`/`NewServerR`'s guard). Reviews `/shared/tmp/auth-lease-s3c/review-r*.md`. Decisions asked: C1 (the guard
+carries `on → leasesNoExpiry`; `run` has `runCfg`, not `bootCfg`), the hub change (`bootCfg`'s row, Scope text), C2
+(`srvInvAt` drops `on`), C3 (`acLessor` deleted), C4 (auth-on lease registrations as an `Md` set), C5 (`…M` contracts
+beside the off ones), the `NewLessor` docstring wording (§6). No Lean outside `Scratch/` edited.
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
