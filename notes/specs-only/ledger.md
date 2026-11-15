@@ -426,3 +426,22 @@ One entry for the frozen texts S3b changes (Draft §6's table); the evidence of 
   post does not say so.
 - **Proposed change.** The pure conjunct gains `l ≠ x.log → txn.PathsLeaseOk (stateAfter x.log) lt.ids (t'.branch …)`.
 - **Decision.** D7 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: auth on implies no lease granted (auth-lease S3c; Draft `notes/auth-lease-s3c-draft.md` rev 6)
+
+One entry for the frozen, exported and hub texts S3c changes (Draft §10's table); the evidence of each is the Draft's section.
+
+- **Spec.** `srvGrantGuard` (+ `_expired`), `lease.bootCfg` (hub) and its laws, `lease.srvInvAt`'s body, `srvUberOn`,
+  `srv_uberKVL(_on)` and the exported `server_uber_kvl(_on)`, the apply specs' `srvLessorNilM` premise, the auth component's
+  `acLessor` (frozen, 2026-11-04) in `Start`/`start`/`applyAll.spec`, `isServerRunC`, `isServerBuilt_offC`;
+  `EtcdServer.revokeExpiredLeases.spec`; `srvClusterBootOn_alloc` (+ exported restatement); etcdstart's `grpcUpOn`; the v3rpc
+  lease handlers' specs and `quotaLeaseServer.LeaseGrant.spec`.
+- **Defect.** Four couplings make "auth on" imply "no lease granted" (the guard `False` at auth on, `bootCfg`'s `on → m =
+  none`, `srvInvAt`'s `srvLessorNil`, the apply specs' `srvLessorNilM`), though Go serves grants with auth on and the apply
+  layer no longer reads `srvLessorNil` since S2 (`UberOn.lean:134`); the gRPC lease contracts are auth off only (S3b D6).
+- **Proposed change.** Draft §1–§7: C1 guard `⌜lg = true ∧ (on = true → leasesNoExpiry)⌝`; `bootCfg`'s row `on = true → m =
+  revocable → leasesNoExpiry`; `srvLessorNil(M)`, `acLessor` and their conjuncts deleted; `revokeExpiredLeases.spec` takes
+  `E.authOn = false`; the auth-on allocation at a lease mode (C6); the `…M` contracts beside today's (C5′) and the auth-on
+  `Md` registrations (C4, C7, C8).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3c Freeze, conditional on review round 5, which found no
+  first-tier problem).
