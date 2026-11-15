@@ -794,21 +794,60 @@ theorem txnPlainL_of_plain (t : TxnModel) (h : txn.txnPlain t) : txnPlainL t :=
 /-- A leased transaction of the auth-on log is one of the txn specs' (`txn.txnLeased`). -/
 theorem txnLeased_of_txnPlainL (t : TxnModel) (h : txnPlainL t) : txn.txnLeased t := h
 
-/-- **A request of the auth-on log at the lease mode `lm`** (auth-lease S3a; narrowed by rev 7, Draft §15,
-decided by etcd-grove-81, 2026-11-15): a plain request (`plainReq`) at every lease mode. A put with a lease
-and a leased transaction (`txnPlainL`) are not admitted until stage S3a2 (the class track's certificate at the
-live set: `backendStep` admits an applied put of a lease not live, whose log no certificate covers; ledger
-2026-11-15). The lease mode stays an argument for that stage. -/
-def plainReqL (_lm : lease.Mode) (rq : apply.IRRModel) : Prop := plainReq rq
+/-- **A request of the auth-on log at the lease mode `lm`** (auth-lease S3a): a plain request
+(`plainReq`), or, at the revocable mode, a put with any lease or a transaction plain but for its puts'
+leases (`txnPlainL`), as `plainCover` otherwise (no side-effect-free field, no admin field). -/
+def plainReqL (lm : lease.Mode) (rq : apply.IRRModel) : Prop :=
+  plainReq rq ∨ (lm = .revocable ∧ apply.noSideEffect rq = false ∧
+    apply.needAdminPermission rq = false ∧
+    (apply.dispatchKind rq = .put ∨
+      (apply.dispatchKind rq = .txn ∧ ∀ t, rq.txn = some t → txnPlainL t)))
 
 /-- At the lease mode `none` a request of the auth-on log is a plain one. -/
-theorem plainReqL_none (rq : apply.IRRModel) : plainReqL .none rq ↔ plainReq rq := Iff.rfl
-
-/-- (Rev 7) At every lease mode a request of the auth-on log is a plain one. -/
-theorem plainReqL_iff (lm : lease.Mode) (rq : apply.IRRModel) : plainReqL lm rq ↔ plainReq rq := Iff.rfl
+theorem plainReqL_none (rq : apply.IRRModel) : plainReqL .none rq ↔ plainReq rq := by
+  unfold plainReqL
+  constructor
+  · rintro (h | ⟨h, -⟩)
+    · exact h
+    · cases h
+  · exact Or.inl
 
 theorem plainReqL_of_plainReq (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReq rq) :
-    plainReqL lm rq := h
+    plainReqL lm rq := Or.inl h
+
+/-- (auth-lease S3a2 §4) **What the apply arms read of a request of the auth-on log**: no side-effect-free
+field, no admin field, a kind the proposers send (`putgetKind`); a plain request's or a leased one's. -/
+theorem plainReqL_facts (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) :
+    apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
+      putgetKind (apply.dispatchKind rq) := by
+  rcases h with ⟨hc, hk⟩ | ⟨-, hns, hna, hk | ⟨hk, -⟩⟩
+  · refine ⟨?_, ?_, hk⟩ <;> unfold plainCover at hc <;>
+      rcases hk with hk | hk | hk | hk | hk <;> rw [hk] at hc <;> simp only at hc <;>
+      first | exact hc.1 | exact hc.2.1 | exact hc.2
+  · exact ⟨hns, hna, Or.inl hk⟩
+  · exact ⟨hns, hna, Or.inr (Or.inr (Or.inl hk))⟩
+
+/-- A request of the auth-on log is covered (`kvCover`). -/
+theorem kvCover_of_plainReqL (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) : kvCover rq := by
+  rcases h with ⟨hc, -⟩ | ⟨-, hns, hna, hk | ⟨hk, -⟩⟩
+  · exact kvCover_of_plainCover rq hc
+  · unfold kvCover; rw [hk]; exact ⟨hns, hna⟩
+  · unfold kvCover; rw [hk]; exact ⟨hns, hna⟩
+
+/-- A request of the auth-on log is plain, or a put or a transaction (a KV kind). -/
+theorem plainReqL_cases (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) :
+    plainReq rq ∨ (apply.dispatchKind rq = .put ∨ apply.dispatchKind rq = .txn) := by
+  rcases h with h | ⟨-, -, -, hk | ⟨hk, -⟩⟩
+  · exact Or.inl h
+  · exact Or.inr (Or.inl hk)
+  · exact Or.inr (Or.inr hk)
+
+/-- The widest lease mode admits every request of the auth-on log. -/
+theorem plainReqL_revocable (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) :
+    plainReqL .revocable rq := by
+  rcases h with h | ⟨-, h⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨rfl, h⟩
 
 /-- **An entry of the mode-`on` log at the lease mode `lm`** (auth-lease S3a): a normal entry with data
 decodes to a request of the auth-on log (`plainReqL lm`), with (E3o) no range end `"\x00"` and its checks
@@ -1507,8 +1546,10 @@ theorem plainReq_authKV (rq : apply.IRRModel) (h : plainReq rq) :
 /-- A request of the auth-on log is no grant. -/
 theorem plainReqL_nonGrant (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReqL lm rq) :
     apply.dispatchKind rq ≠ .leaseGrant := by
-  obtain ⟨-, hk⟩ := h
-  rcases hk with hk | hk | hk | hk | hk <;> rw [hk] <;> decide
+  rcases h with ⟨-, hk⟩ | ⟨-, -, -, hk | ⟨hk, -⟩⟩
+  · rcases hk with hk | hk | hk | hk | hk <;> rw [hk] <;> decide
+  · rw [hk]; decide
+  · rw [hk]; decide
 
 /-- **At the lease mode `none`, an entry of the mode-`on` log changes no table** (a plain request, or an
 admin one, which is no write). -/

@@ -303,7 +303,8 @@ abbrev txn.api.Txn.specSole : Prop :=
       txn.api.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
       (if txn.txnReadonly t then iprop(True)
        else iprop(∀ σ : MvccState,
-         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+           txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
          Qr σ -∗ txn.api.txnBeginAU γ log t Qw)) }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))

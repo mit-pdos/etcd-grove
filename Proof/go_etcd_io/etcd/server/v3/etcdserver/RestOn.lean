@@ -131,7 +131,7 @@ theorem srvRestM_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index))
-    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out)
+    (hp : plainOrCmp rq ∨ kvCover rq) (hs : apply.applyStep rq v3 x x' out)
     (hfb : E.lg = true → leaseTTLsGeReq (appliedTableM true γr A) f) :
     srvGrantIf E ∗ srvReqsIf E (appliedTableM true γr A) ∗
       apply.ltHalf E (srvIds E (appliedTableM true γr A).ids) ∗
@@ -140,8 +140,15 @@ theorem srvRestM_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ∗
       srvEver E (A ++ [m]) ⊢
       srvRestM true E γr (A ++ [m]) := by
-  have hk := plainOrCmp_nonLease rq hp
-  rw [restOut_plainOrCmp rq v3 x x' out _ hp hs]
+  have hk : apply.dispatchKind rq ≠ .leaseGrant ∧ apply.dispatchKind rq ≠ .leaseRevoke := by
+    rcases hp with hp | hp
+    · exact plainOrCmp_nonLease rq hp
+    · unfold kvCover at hp
+      constructor <;> intro h <;> rw [h] at hp <;> exact hp.elim
+  rw [show apply.restOut rq v3 out _ = _ from by
+    rcases hp with hp | hp
+    · exact restOut_plainOrCmp rq v3 x x' out _ hp hs
+    · exact restOut_plain rq v3 x x' out _ hp hs]
   apply srvRestM_keep E γr A m (appliedTableM_true_nonLease γr A m rq ht hd hdec hk.1 hk.2)
     (apply.restAfter rq v3) (fun id t r => apply.restAfter_restGrantT rq v3 id t r) _ f hfb
   rw [← List.append_assoc, restModel_append, restEntry_normal _ _ rq _ ht hd hdec, ← hv3]
@@ -166,7 +173,7 @@ theorem srvRestM_applyP (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   rw [apply.grantIdsA_nonGrant _ _ _ _ hk]
   simp only [apply.grantRestA_nonGrant _ _ _ _ _ hk]
   iintro ⟨#HG, #HQ, -, -, HL, ⟨%t, -, HR⟩, HU⟩
-  iapply srvRestM_applyP0 E γr A m rq v3 x x' out f ht hd hdec hv3 hp hs hfb
+  iapply srvRestM_applyP0 E γr A m rq v3 x x' out f ht hd hdec hv3 (Or.inl hp) hs hfb
   iframe HG HQ HL HR HU
 
 end arm

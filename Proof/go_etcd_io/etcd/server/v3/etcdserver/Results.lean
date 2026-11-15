@@ -1810,20 +1810,23 @@ end kvLatest
 
 /-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2v/E2y,
 `KVOutcomeOn.lean`): the dispatched verdict at the latest state (`kvOutL`, `apply_apply_kv_latest`)
-gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
-without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
-`txnVerdictOwn_of`). -/
+gives E2t's `outcomeOn`, for a KV request of the auth-on log at the start chain with auth on and no alarm
+(auth-lease S3a2: a leased put or transaction too, at the widest lease mode, its outcome lease-exact at the
+model's table), without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since
+E3e, `txnVerdictOwn_of`). -/
 theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : OnState)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)
-    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
+    (hp : plainReqL .revocable rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq) (oc : EtcdGrove.apply.Outcome)
     (h : EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-      (.quota .backend) rq s.2.1 oc) :
+      (.quota .backend) rq s.2.1 oc)
+    (hex : plainCover rq ∨ EtcdGrove.apply.leaseExactL s.2.2.ids rq s.2.1 oc) :
     outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) :=
-  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h
+  outcomeOn_of_kvOutLL .revocable c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h hex
 
 #print axioms Perennial.EtcdGrove.auth_user_add_tie_sure
 #print axioms Perennial.EtcdGrove.apply_applier_kv_latest
@@ -2435,12 +2438,12 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
     (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log, kvLeasesOn γr.kv st₀ A) m).2.1.length < 2 ^ 63) :
     ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st (kvLeasesOn γr.kv st₀ A) -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainCover rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
+      ⌜plainReqL γr.kv.lm rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
         entryDetOn γr.kv.c0 (st, x.log, kvLeasesOn γr.kv st₀ A) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
         noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
       EtcdGrove.apply.certPreVW true E x.chain rq x.log
-        (EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-          (.quota .backend) rq x.log) ∗
+        (EtcdGrove.apply.kvOutLT (.on γa) E.lg hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
+          (.quota .backend) rq x.log (kvLeasesOn γr.kv st₀ A).ids) ∗
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log, kvLeasesOn γr.kv st₀ A) m) :=
   kv_entry_pre_on E γr st₀ A m x st rq ht hd hdec hv hk γa hs hl hlen
 
@@ -2451,7 +2454,8 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (lt : LeaseTable)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (out : EtcdGrove.apply.ApplyOut)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : EtcdGrove.apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : EtcdGrove.apply.needAdminPermission rq = false)
-    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
+    (hp : plainReqL .revocable rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
     (hz : noZeroEnds rq)
     (hdet : entryDetOn c₀ (st, x.log, lt) m)
@@ -2459,9 +2463,9 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (lt : LeaseTable)
     (hstep : EtcdGrove.apply.applyStep rq true x x' out)
     (hout : ∀ o b, out = .dispatched o b →
       EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-        (.quota .backend) rq x.log o) :
+        (.quota .backend) rq x.log o ∧ (plainCover rq ∨ EtcdGrove.apply.leaseExactL lt.ids rq x.log o)) :
     x'.chain = x.chain ∧ (st, x'.log, lt) = kvEntryOn c₀ x.chain (st, x.log, lt) m :=
-  kvOn_after_kv c₀ st lt x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
+  kvOn_after_kv .revocable c₀ st lt x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
 
 end applyEntryOn
 
@@ -2489,9 +2493,10 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 
 /-- **`apply.Apply`'s result with auth on is not `ErrNoSpace`'s** (the auth plan's E3i,
 `NoSpaceDeadOn.lean`): `applyEntryNormal`'s NOSPACE branch is dead for a covered entry at the
-start's chain with auth on, the auth layer's refusal included. -/
+start's chain with auth on, the auth layer's refusal included; (auth-lease S3a2) a leased put or transaction
+of the auth-on log too (`plainReqL .revocable`, the widest mode). -/
 theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : EtcdGrove.apply.ApplyKV)
-    (ar : Loc) (out : EtcdGrove.apply.ApplyOut) (hp : plainCover rq)
+    (ar : Loc) (out : EtcdGrove.apply.ApplyOut) (hp : plainReqL .revocable rq)
     (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
     (hs : EtcdGrove.apply.applyStep rq true x x' out) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
@@ -2500,7 +2505,7 @@ theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : Etcd
       (⌜ar = null⌝ ∨ ∃ err : GoInterface,
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) :=
-  applyResultIs_notNoSpaceOn rq x x' ar out hp hch hs
+  applyResultIs_notNoSpaceOn rq x x' ar out (kvCover_of_plainReqL _ rq hp) hch hs
 
 /-- **`apply.Apply`'s result on an admitted admin entry with auth on is not `ErrNoSpace`'s** (the
 auth plan's E3j, `NoSpaceDeadAdminOn.lean`): with `apply.Apply.adminSpecL`'s postcondition (the

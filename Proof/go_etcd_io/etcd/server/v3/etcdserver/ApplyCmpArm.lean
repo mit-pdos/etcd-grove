@@ -46,7 +46,7 @@ theorem restOut_plainOrCmp (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.Apply
     (h : apply.applyStep rq v3 x x' out) :
     apply.restOut rq v3 out r = apply.restAfter rq v3 r := by
   rcases hp with hp | hc
-  · exact restOut_plain rq v3 x x' out r hp h
+  · exact restOut_plain rq v3 x x' out r (kvCover_of_plainCover rq hp) h
   · cases out with
     | skipped => exact absurd h.1 (by rw [hc.2.1]; decide)
     | rejected => exact absurd h.1 (by rw [hc.2.2]; decide)
@@ -205,13 +205,14 @@ theorem restOut_revoke (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
   | dispatched o skip => rfl
 
 theorem restOut_plainOrCmpG (lm : lease.Mode) (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
-    (out : apply.ApplyOut) (r : apply.RestM) (hp : plainOrCmpG lm rq)
+    (out : apply.ApplyOut) (r : apply.RestM) (hp : plainOrCmpG lm rq ∨ kvCover rq)
     (h : apply.applyStep rq v3 x x' out) :
     apply.restOut rq v3 out r = apply.restAfter rq v3 r := by
-  rcases hp with hp | hg | hr
+  rcases hp with (hp | hg | hr) | hc
   · exact restOut_plainOrCmp rq v3 x x' out r hp h
   · exact restOut_grant rq v3 x x' out r hg.2 h
   · exact restOut_revoke rq v3 x x' out r hr.2 h
+  · exact restOut_plain rq v3 x x' out r hc h
 
 /-- **A lease-free state has no lease's keys** (`leaseDels` is `[]`). -/
 theorem leaseDels_leaseZero (s : List EtcdKv) (hs : mvcc.LeaseZero s) (id : w64) :
@@ -704,7 +705,7 @@ theorem srvRest_applyPG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
       srvRest E γr (A ++ [m]) :=
   have hp' : plainOrCmpG E.lm rq := by rcases hp with h | h; exact Or.inl h; exact Or.inr (Or.inl h)
   srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch (plainOrCmpG_rev _ rq hp)
-    (plainOrCmpG_grant _ rq hp') (fun r => restOut_plainOrCmpG E.lm rq v3 x x' out r hp' hs) hs hfb
+    (plainOrCmpG_grant _ rq hp') (fun r => restOut_plainOrCmpG E.lm rq v3 x x' out r (Or.inl hp') hs) hs hfb
 
 /-- A revocation is no cluster request (its rest effect, `restAfter`, the identity). -/
 theorem dispatchKind_leaseRevoke_noCluster (rq : apply.IRRModel)
@@ -879,15 +880,17 @@ open Iris.ProofMode in
 /-- **What `applyEntryNormal` hands `Apply` for a revocation** (`revokeOwn`): the applier row's
 range deleter and, in the revocable mode, the revocable lessor (`srvGrantIf`'s mode); with the
 deleter back from `Apply`'s post. Nothing for another request. -/
-theorem revokeOwn_take [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmpG E.lm rq) :
+theorem revokeOwn_take [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (E : apply.AEnv GF) (rq : apply.IRRModel)
+    (hp : plainOrCmpG E.lm rq ∨ kvCover rq) :
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗ srvGrantIf E ⊢
       apply.revokeOwn E rq ∗ (apply.revokeOwn E rq -∗ (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ)) := by
   by_cases hk : apply.dispatchKind rq = .leaseRevoke
   · have hr : revokePropOk E.lm rq := by
-      rcases hp with hp | hg | hr
+      rcases hp with (hp | hg | hr) | hc
       · exact absurd hk (plainOrCmp_nonLease rq hp).2
       · rw [hg.2.1] at hk; cases hk
       · exact hr
+      · exfalso; unfold kvCover at hc; rw [hk] at hc; exact hc
     have hlg : E.lg = true := apply.AEnv.lg_true_of_lm (by rw [hr.1]; decide)
     unfold apply.revokeOwn apply.rdHeld srvGrantIf srvGrantable
     rw [if_pos hk, hlg]
@@ -1314,7 +1317,7 @@ theorem applyResultIs_notNoSpace_M (rq : apply.IRRModel) (x x' : apply.ApplyKV) 
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) := by
   rcases hp with hp | hc
-  · exact applyResultIs_notNoSpace rq x x' ar out hp hch hs
+  · exact applyResultIs_notNoSpace rq x x' ar out (kvCover_of_plainCover rq hp) hch hs
   iintro #Hv H
   cases out with
   | skipped => exact absurd hs.1 (by rw [hc.2.1]; decide)

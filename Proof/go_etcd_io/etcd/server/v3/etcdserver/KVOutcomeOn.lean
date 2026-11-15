@@ -498,8 +498,10 @@ theorem backendLog_of_step (lm : lease.Mode) (lt : LeaseTable) (rq : apply.IRRMo
     (hex : plainCover rq ∨ apply.leaseExactL lt.ids rq log oc) (hb : apply.backendStep rq log oc) :
     oc.logAfter log = backendLog lt rq log := by
   have hpc : plainReqL lm rq → apply.dispatchKind rq = .txn → ∀ t, rq.txn = some t → txn.txnLeased t := by
-    rintro ⟨hc, -⟩ hkt t htt
-    unfold plainCover at hc; rw [hkt] at hc; exact txn.txnLeased_of_plain t (hc.2.2 t htt)
+    rintro (⟨hc, -⟩ | ⟨-, -, -, hk' | ⟨-, ht⟩⟩) hkt t htt
+    · unfold plainCover at hc; rw [hkt] at hc; exact txn.txnLeased_of_plain t (hc.2.2 t htt)
+    · rw [hk'] at hkt; cases hkt
+    · exact ht t htt
   unfold apply.backendStep at hb
   unfold backendLog
   split at hb

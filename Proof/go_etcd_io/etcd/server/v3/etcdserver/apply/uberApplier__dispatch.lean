@@ -487,9 +487,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     · iframe Htt HF
-      iunfold apply.putPre
-      isplitr
-      · ipureintro; exact ⟨hs, hk, hok⟩
+      iapply (apply.putPre_of_mPre (h := ⟨hs, hk, hok⟩))
       iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
@@ -533,9 +531,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     · iframe Htt HF
-      iunfold apply.txnPre
-      isplitr
-      · ipureintro; exact ⟨hs, hk, hok x hs⟩
+      iapply (apply.txnPre_of_mPre (h := ⟨hs, hk, hok x hs⟩))
       iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩

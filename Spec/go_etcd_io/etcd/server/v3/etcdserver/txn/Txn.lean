@@ -33,7 +33,7 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 the read transaction at the caller's read update, whose commit the caller gives with the pin
 (`σ.log = log`) and `Qr σ`; for a request that writes, once the checks passed, txn turns `Qr σ`
 into the write updates by the caller's wand, told that the checks passed (the paths find their
-previous key-values, `PathsIgnOk`) (`txnBeginAU`: the begin, with the pin again, then the commit
+previous key-values, `PathsIgnOk`, and name live leases of `L`, `PathsLeaseOk`) (`txnBeginAU`: the begin, with the pin again, then the commit
 of the run's changes). Either one of `checkTxn`'s errors (no response, no trace, nothing
 written, `Pre`, `Qr σ` back), or the
 server's transaction at `log` (`srvRunTxn`), its response with header revision `writeRev log chs`,
@@ -44,7 +44,8 @@ state. The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The wand's `PathsIgnOk`: decided by
-the coordinator, 2026-11-06, `clients-txn.md` §8.) -/
+the coordinator, 2026-11-06, `clients-txn.md` §8; its `PathsLeaseOk`: auth-lease S3a2, approved by etcd-grove-81,
+2026-11-15, ledger 2026-11-15 "txn.Txn's write wand is not told the lease check".) -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (q : Qp)
@@ -61,7 +62,8 @@ abbrev txn.Txn.specSole : Prop :=
       txn.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
       (if txn.txnReadonly t then iprop(True)
        else iprop(∀ σ : MvccState,
-         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+           txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
          Qr σ -∗ txn.txnBeginAU γ log t Qw)) }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))

@@ -44,11 +44,11 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.applyTok at Htt
   icases Htt with Hmr
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
-  iunfold apply.mPre at Hpre
+  icases Hpre with ⟨%Hrq, #Hr, %L, #Hcp, Hpre⟩
+  iunfold apply.mPreAt at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
-  iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
+  iunfold apply.leasesLiveAt at Hlive
+  icases Hlive with ⟨#Hknown, Hu, HltL⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -82,7 +82,8 @@ theorem apply.applierV3backend.Txn.wp_proof
   -- the write updates, given once the checks passed
   ihave Hwand : iprop(if txn.txnReadonly t then iprop(True) else
       iprop(∀ σ : MvccState,
-        ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+        ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+          txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
         (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ -∗
         txn.txnBeginAU E.γ log t (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
           srvApi.wSt E.γs (mvcc.commitLog log (txn.txnChs log t)) c)))) $$ []
@@ -97,9 +98,16 @@ theorem apply.applierV3backend.Txn.wp_proof
       isplitr
       · ipureintro; rfl
       iapply apply.commitAU_of_auEnd
-      ihave Hnx := apply.certPre_backend_applied E rq log _ false
-        (by unfold apply.backendStep; rw [hk]
-            exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩) $$ Hcp
+      iunfold apply.certPreT at Hcp
+      ihave Hnx := Hcp $$ %(apply.Outcome.applied (mvcc.commitLog log
+          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false) %(by
+        refine ⟨?_, ?_⟩
+        · simp only [apply.chainStep]; unfold apply.backendStep; rw [hk]
+          exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig.1⟩⟩
+        · simp only [apply.leaseExactL, hk]
+          intro t' ht'; rw [ht] at ht'; cases ht'
+          exact ⟨fun _ => hig.2, fun _ h => by cases h⟩)
+      simp only [apply.Outcome.logAfter]
       ihave He := HauE $$ %log %c %_ Hw Hnx
       iapply apply.auEnd_wand $$ He
       iintro HY
