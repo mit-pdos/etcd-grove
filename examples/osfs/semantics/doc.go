@@ -60,11 +60,21 @@
 //	meta_enoent.go                ENOENT only for a missing path     ENOENT, Open, DirReadNext (pending review)
 //	                              or a removed directory
 //
+// File locks (2026-11-15, the user's approval of lock state; pending review,
+// notes/wal-units/locks.md; locks_test.go holds their measurements):
+//
+//	locks_ofd.go                  OFD locks per description          OsFd.ofd, LockConflict, LockStep, OfdLock
+//	locks_flock.go                flock locks per description        OsFd.flk, LockStep, flockReq, Flock
+//	locks_flock_vs_ofd.go         the two kinds are independent      LockKind, OsFd.lk, LockConflict
+//	locks_blocking.go             blocking requests wait (or fail)   LockStep (nb)
+//	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit (unchanged)
+//	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
+//
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
 // models_test.go holds their measurements, run on C by run-models-on-c.sh):
 //
 //	model_syscall_fallocate.go    syscall.Fallocate as unix's        syscall.lean: Fallocate.impl
-//	model_syscall_fcntlflock.go   lock commands; F_OFD_GETLK on any  syscall.lean: FcntlFlock.impl
+//	model_syscall_fcntlflock.go   OFD commands; F_OFD_GETLK on any   syscall.lean: FcntlFlock.impl
 //	model_os_close_nil.go         nil *File Close: ErrInvalid        os.lean: File.Close.impl
 //	model_os_close_twice.go       closed *File Close: ErrClosed      os.lean: File.Close.impl
 //	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode

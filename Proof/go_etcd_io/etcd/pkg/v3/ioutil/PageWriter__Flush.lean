@@ -22,9 +22,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.wp_proof
-    (wp_flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG) := by
+theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.wp_proofNE
+    (wp_flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG) := by
   intro pw wi W B ok out pend hpc hok
   iintro #Hw
   wp_start as ⟨Hpw, Hout⟩
@@ -37,6 +37,16 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.wp_proof
   icases Hres with (⟨⟨%h, -⟩, H⟩ | ⟨%h, H⟩)
   · ileft; iframe; ipureintro; exact h
   · iright; iframe; ipureintro; exact h
+
+/-- `Flush.spec`: `specNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.wp_proof
+    (wp_flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG) := by
+  intro pw wi W B ok out pend hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.wp_proofNE wp_flush pw wi W B ok out pend hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
 
 end proof
 

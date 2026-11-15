@@ -106,6 +106,14 @@ with no claim on what that makes durable, and closes).
   model). A cell past EOF or under an in-flight change holds a hole (`osHole`), never a byte, so a
   Go load of it is stuck.
 
+**Locks** (2026-11-15, the user's approval of lock state; **pending the user's review**,
+`notes/wal-units/locks.md`). Whole-file OFD (`fcntl(F_OFD_SETLK[W])`) and `flock` locks, held per
+open file description (`OsFd.ofd`, `OsFd.flk`), so two opens in one process conflict; the two kinds
+are independent; a lock goes with its description at its `close` and at a crash. A request succeeds
+only with no conflicting lock on another description (a blocking one waits for that), and may fail
+with any errno and no change, `EAGAIN` from a non-blocking one only on a conflict (`LockStep`).
+Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted models panic).
+
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
 cells of every mapping show the file; a removed mapping's cells are gone; every other cell is
 unchanged.
@@ -236,12 +244,38 @@ landed all it announced (changes on a file never overlap in time: at most one is
 short landing's state (a prefix of the change new, the rest as before) is no stamp's. -/
 def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (·.1)).getD 0
 
-/-- An open file description: its file and access mode. (The file offset of `Seek`/`Write`/`Read`
-is the Go model's, `TrustedCode/os.lean`: every step here is positional.) -/
+/-- An open file description: its file, access mode, and the whole-file locks it holds. (The file
+offset of `Seek`/`Write`/`Read` is the Go model's, `TrustedCode/os.lean`: every step here is
+positional.) No step duplicates an fd (no `dup`, `fork` or fd passing), so each fd is its own
+description, and the description's locks live in it: its `close` releases them (`Close` removes the
+entry) and a crash does (the process's state is gone). **Locks** (2026-11-15, the user's approval of
+lock state, I5; the semantics **pending the user's review**, `notes/wal-units/locks.md`): `ofd`, its
+OFD lock (`fcntl(F_OFD_SETLK[W])`), and `flk`, its `flock` lock, each `none`, `some false` (shared)
+or `some true` (exclusive); the two kinds are independent (Linux keeps them on separate lists:
+`examples/osfs/semantics/locks_flock_vs_ofd.go`). Every `open` gives a description with none. -/
 structure OsFd where
   ino : Ino
   readable : Bool
   writable : Bool
+  ofd : Option Bool := none
+  flk : Option Bool := none
+
+/-- The two kinds of lock: OFD (`fcntl`) and `flock`. -/
+inductive LockKind where
+  | ofd
+  | flock
+  deriving DecidableEq
+
+/-- The lock of kind `k` the description holds. -/
+def OsFd.lk (d : OsFd) : LockKind → Option Bool
+  | .ofd => d.ofd
+  | .flock => d.flk
+
+/-- The description with its lock of kind `k` set to `x`. -/
+def OsFd.setLk (d : OsFd) (k : LockKind) (x : Option Bool) : OsFd :=
+  match k with
+  | .ofd => { d with ofd := x }
+  | .flock => { d with flk := x }
 
 /-- What an in-flight change does: a `pwrite` of `data` at `off`, a resize to `sz` by `ftruncate`
 (`truncate`), or one by `fallocate`'s growth (`falloc`). -/
@@ -344,6 +378,10 @@ def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
 
 def EINTR : w64 := 4
+/-- `EAGAIN` (= `EWOULDBLOCK`): what a non-blocking lock request returns on a conflict (`LockStep`). -/
+def EAGAIN : w64 := 11
+def F_OFD_SETLK : Nat := 37
+def F_OFD_SETLKW : Nat := 38
 /-- `ENOENT`: what a failing `open(2)` returns only for a path that does not resolve, and a failing
 `getdents64` only for a removed directory (`IsFsStep`'s `"Open"` and `"DirReadNext"`). -/
 def ENOENT : w64 := 2
@@ -698,6 +736,63 @@ abbrev OpenOutside (v : val) (st : OsState) (e' : Expr) (st' : OsState) : Prop :
     ((∃ fd : w64, FdFree st fd ∧ st' = (st.metaEnd t).addOfd fd ∧ e' = osRes (#fd) 0) ∨
      (∃ e : w64, e ≠ 0 ∧ st' = st.metaEnd t ∧ e' = osRes (#(-1 : w64)) e))
 
+/-! ### Locks (`notes/wal-units/locks.md`; pending the user's review) -/
+
+/-- `st` with the fd `fd`'s description replaced by `d`. -/
+def OsState.setFd (st : OsState) (fd : w64) (d : OsFd) : OsState :=
+  st.setProc { st.proc with fds := <[fd := d]> st.proc.fds }
+
+/-- A lock request of kind `k` through the fd `fd`, on the file `i`, exclusive iff `ex`, conflicts:
+another fd (another description) of the file holds a lock of the same kind that is exclusive, or
+any lock of that kind if the request is exclusive. The kinds are independent
+(`examples/osfs/semantics/locks_flock_vs_ofd.go`). -/
+def LockConflict (st : OsState) (k : LockKind) (fd : w64) (i : Ino) (ex : Bool) : Prop :=
+  ∃ fd' d', st.proc.fds !! fd' = some d' ∧ fd' ≠ fd ∧ d'.ino = i ∧
+    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true)
+
+/-- **The lock rule**, of a request of kind `k` through the fd `fd` (description `d`): `req` is
+`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking.
+* A lock, only on a description with no lock of the kind (re-locking, a conversion included, is
+  stuck: Linux accepts it; etcd never does it): success (errno 0) only when there is no conflict
+  (`LockConflict`), and the description holds the lock; or any nonzero errno and **no change**,
+  `EAGAIN` from a non-blocking request only on a conflict. A blocking request so takes no successful
+  step while another description holds a conflicting lock: it waits, or fails (any errno, at any
+  time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
+* An unlock: success, the description's lock of the kind gone (none before: no change); or any
+  nonzero errno, the lock gone or kept.
+Measured on C (`examples/osfs/semantics/locks_ofd.go`, `locks_flock.go`, `locks_blocking.go`,
+`locks_test.go`); `fs/locks.c` (`posix_lock_inode`, `flock_lock_inode`: `-EAGAIN` only on a conflict
+when the request may not sleep, the lock inserted only on success). -/
+def LockStep (st : OsState) (k : LockKind) (fd : w64) (d : OsFd) (req : Option Bool) (nb : Bool)
+    (e' : Expr) (st' : OsState) : Prop :=
+  match req with
+  | some ex => d.lk k = none ∧
+      ((¬ LockConflict st k fd d.ino ex ∧ st' = st.setFd fd (d.setLk k (some ex)) ∧
+          e' = Val (#(0 : w64))) ∨
+       (∃ e : w64, e ≠ 0 ∧ (nb = true → e = EAGAIN → LockConflict st k fd d.ino ex) ∧ st' = st ∧
+          e' = Val (#e)))
+  | none => (st' = st.setFd fd (d.setLk k none) ∧ e' = Val (#(0 : w64))) ∨
+      (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.setFd fd (d.setLk k none)))
+
+/-- `flock`'s `how`: `LOCK_SH` (1), `LOCK_EX` (2) or `LOCK_UN` (8), with or without `LOCK_NB` (4), as
+a request (`LockStep`: `some ex` a lock, exclusive iff `ex`; `none` an unlock) and whether it is
+non-blocking; `none` for any other `how`. -/
+def flockReq (how : Nat) : Option (Option Bool × Bool) :=
+  let nb := decide (how / 4 % 2 = 1)
+  match how - (if nb then 4 else 0) with
+  | 1 => some (some false, nb)
+  | 2 => some (some true, nb)
+  | 8 => some (none, nb)
+  | _ => none
+
+/-- An OFD lock's type: `F_RDLCK` (0), `F_WRLCK` (1), `F_UNLCK` (2), as a request (`LockStep`). -/
+def ofdReq (typ : Nat) : Option (Option Bool) :=
+  match typ with
+  | 0 => some (some false)
+  | 1 => some (some true)
+  | 2 => some none
+  | _ => none
+
 open Classical in
 /-- The steps of the operations; the heap is `HeapRendered` (`FsStep`). Each case is a disjunction:
 the success branch and its premises, then the failure branch (any nonzero errno). -/
@@ -732,7 +827,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
           OpenEffect st0 p acc creat trunc start st1 tgt ∧ FdFree st fd ∧
           st' = (match tgt with
             | .file i => st1.setProc { st1.proc with
-                fds := <[fd := ⟨i, acc ≠ O_WRONLY, acc ≠ O_RDONLY⟩]> st1.proc.fds }
+                fds := <[fd := OsFd.mk i (acc ≠ O_WRONLY) (acc ≠ O_RDONLY) none none]> st1.proc.fds }
             | .dir j => st1.setProc { st1.proc with
                 dfds := <[fd := ⟨j, .idle⟩]> st1.proc.dfds }) ∧
           e' = osRes (#fd) 0) ∨
@@ -806,10 +901,13 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       st.file d.ino = some f ∧
       (st' = st.setFile d.ino (f.synced (InflightAt st d.ino ·)) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e ≠ EINTR ∧ e' = Val (#e) ∧ st' = st)
-  /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`. Trivial: the lock state is not modelled, so the
-  errno is anything; only the fd must be open. -/
-  | "Flock" => ∃ (fd how e : w64) (d : OsFd), v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧
-      st' = st ∧ e' = Val (#e)
+  /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`, for `how` `LOCK_SH`, `LOCK_EX` or `LOCK_UN`, with or
+  without `LOCK_NB` (`flockReq`): the lock rule `LockStep` on the description's `flock` lock. Any other
+  `how` is stuck (Linux: `EINVAL`, or `LOCK_MAND`'s success with no lock). No access mode needed.
+  `examples/osfs/semantics/locks_flock.go` (pending the user's review). -/
+  | "Flock" => ∃ (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool),
+      v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ flockReq how.toNat = some (req, nb) ∧
+      LockStep st .flock fd d req nb e' st'
   /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno. -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = st.setProc { st.proc with fds := GMap.delete fd st.proc.fds } ∧ e' = Val (#e)
@@ -992,10 +1090,17 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "FallocKeep" => ∃ (fd off len e : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (#len)) ∧
       FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧ 0 < len.toInt ∧ st' = st ∧ e' = Val (#e)
-  /- `fcntl(fd, F_OFD_SETLK[W], ...)`: `(#fd, #cmd) ↦ #errno`. Trivial, as `Flock`: the lock state
-  is not modelled, so the errno is anything. -/
-  | "OfdLock" => ∃ (fd cmd e : w64) (d : OsFd), v = PairV (#fd) (#cmd) ∧ FdOpen st fd d ∧
-      st' = st ∧ e' = Val (#e)
+  /- `fcntl(fd, cmd, {typ, whole file})` for `cmd` `F_OFD_SETLK` (37, non-blocking) or `F_OFD_SETLKW`
+  (38, blocking), `typ` `F_RDLCK` (0), `F_WRLCK` (1) or `F_UNLCK` (2): `(#fd, (#cmd, #typ)) ↦ #errno`
+  (the trusted models pass only whole-file requests with `l_pid` 0): the lock rule `LockStep` on the
+  description's OFD lock. `F_WRLCK` needs a writable fd and `F_RDLCK` a readable one (the other case
+  is stuck; Linux: `EBADF`). `examples/osfs/semantics/locks_ofd.go`, `locks_blocking.go` (pending the
+  user's review). -/
+  | "OfdLock" => ∃ (fd cmd typ : w64) (d : OsFd) (req : Option Bool),
+      v = PairV (#fd) (PairV (#cmd) (#typ)) ∧ FdOpen st fd d ∧
+      (cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) ∧ ofdReq typ.toNat = some req ∧
+      (req = some true → d.writable) ∧ (req = some false → d.readable) ∧
+      LockStep st .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK)) e' st'
   | _ => False
 
 /-- The cells a new mapping takes are free, in `(0, maxAddr]`. -/

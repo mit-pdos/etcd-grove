@@ -833,7 +833,8 @@ def walTailWS (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GNam
 /-- **What a failed write on the tail leaves of it**: its open file and fd (`Create`'s cleanup closes
 it, its deferred `f.Close()` after a `Close` whose sync failed; unit `create`, `notes/wal-units/create.md`). -/
 def tailWB (f : Loc) (fd : w64) (name : GoString) (i : Ino) (_ _ : List w8) : IProp GF :=
-  iprop(∃ rd : Bool, os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, rd, true⟩)
+  iprop(∃ (rd : Bool) (lo lk : Option Bool), os.ownFile f fd name (DFrac.own 1) ∗
+    osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗ fdLocks fd ⟨i, rd, true, lo, lk⟩)
 
 /-- **The tail's writer, from inside the file** (`wal.tailWriter` over `wp_tailWriteW`): the tail file
 `f` of inode `i`, written from the encoder's start `o0`, is a guarded stream of its intended bytes
@@ -852,7 +853,7 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
   iunfold walTailWS at HW
   icases HW with ⟨HW, %hob⟩
   iunfold walTailW at HW
-  icases HW with ⟨Hf, ⟨%rd, Hfd⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
+  icases HW with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
   obtain ⟨hsz, hm, hsz62, hfd0, hlw⟩ := hmb
   obtain ⟨hpre, hle⟩ := hok
   simp only [List.length_append] at hle
@@ -867,18 +868,18 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
       isplitr
       · ipureintro; intro h; cases h
       unfold tailWB
-      iexists rd
-      iframe Hf Hfd
+      iexists rd, lo, lk
+      iframe Hf Hfd Hlkt
     · ileft
       isplitr
       · ipureintro; exact ⟨rfl, by rw [hn]; rfl⟩
       iunfold walTailWS
       rw [List.append_nil]
-      isplitl [Hf Ho Hk Hfd Hm Hb Hv]
+      isplitl [Hf Ho Hk Hfd Hlkt Hm Hb Hv]
       · iunfold walTailW
         iframe Hf Ho Hk
-        isplitl [Hfd]
-        · iexists rd; iexact Hfd
+        isplitl [Hfd Hlkt]
+        · iexists rd, lo, lk; iframe
         iexists m, bs
         iframe Hm Hb Hv
         ipureintro; exact ⟨hsz, hm, hsz62, hfd0, hlw⟩
@@ -895,7 +896,7 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
     exact List.prefix_append _ _
   have hin : o0 + out.length ≤ m.size := by rw [hsz]; exact Nat.le_max_right _ _
   wp_apply (wp_tailWriteW Mr R jr r dir γ H md cuts f fd name (DFrac.own 1) p xs dqp
-      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true⟩ m bs hfd0
+      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ m bs hfd0
       rfl (by rw [hoI]; omega) hoN hn hin (by rw [hoI]; omega) hS hm hlw)
     $$ [Harea Hf Ho Hp Hfd Hk Hv Hm Hb] as %n %err ⟨Hf, Hp, Hres⟩
   · unfold tailVar; iframe; iexact Harea
@@ -912,12 +913,12 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
       rw [hres.2]; simp only [sint.Z]; rw [os.W64_nat_toInt xs.length (by omega)]
     iunfold walTailWS
     rw [List.length_append, ← Nat.add_assoc]
-    isplitl [Hf Hk Hfd Ho Hm Hb Hv]
+    isplitl [Hf Hk Hfd Hlkt Ho Hm Hb Hv]
     · iunfold walTailW
       rw [List.length_append, ← Nat.add_assoc]
       iframe Hf Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       isplitl [Ho]
       · rw [show W64 ((o0 + out.length : Nat) : Int) + W64 (xs.length : Int) =
             W64 ((o0 : Int) + ((out.length + xs.length : Nat) : Int)) by
@@ -935,8 +936,8 @@ theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots)
     isplitr
     · ipureintro; exact herr
     unfold tailWB
-    iexists rd
-    iframe Hf Hfd
+    iexists rd, lo, lk
+    iframe Hf Hfd Hlkt
 
 end tail
 

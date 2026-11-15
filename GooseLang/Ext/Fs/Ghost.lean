@@ -262,11 +262,18 @@ instance DirPh.countable : Pos.Countable DirPh :=
       cases a <;> cases b <;> simp_all [DirPh.enc])
 
 instance OsFd.countable : Pos.Countable OsFd :=
-  Pos.Countable.ofInjective (fun d => Pos.Countable.encode (d.ino, d.readable, d.writable))
+  Pos.Countable.ofInjective
+    (fun d => Pos.Countable.encode (d.ino, d.readable, d.writable, d.ofd, d.flk))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3⟩ := h; subst h1 h2 h3; rfl)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h; subst h1 h2 h3 h4 h5; rfl)
+
+instance LockKind.countable : Pos.Countable LockKind :=
+  Pos.Countable.ofInjective (fun k => Pos.Countable.encode (k = LockKind.ofd : Bool))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all)
 
 def OsChangeKind.enc : OsChangeKind → (Nat × List w8) ⊕ (Bool × Nat)
   | .write off data => .inl (off, data)
@@ -649,6 +656,9 @@ structure OsGS (GF : BundledGFunctors) where
   /-- The fds of directories outside the roots' trees (`ProcState.ofds`, `w64 ↦ Unit`), each held
   whole by its owner (`osOutFd`). -/
   γo : GName
+  /-- The exclusive locks (`LockKind × Ino ↦ w64`: the fd holding an exclusive lock of the kind on
+  the file), each held whole by its owner (`osLock`; `lockCtx`). -/
+  γlk : GName
 
 /-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
 
@@ -1275,9 +1285,60 @@ theorem ofdCtx_step [GooseExts] [GoGlobalContext] (hL : OsGS GF) {o : String} {v
     imod gAuth_insert hL _ _ fd () hfree.2.2.2 $$ Ha with ⟨Ha, -⟩
     imodintro; iframe Ha; ipureintro; exact hd'
 
-/-- The interpretation of the state `st`: its files, its tree, and the outside fds. -/
+/-- At most one description holds a lock of a kind on a file when one holds an exclusive lock of
+that kind on it (what the lock rule keeps: `LockStep`). -/
+def LockWf (st : OsState) : Prop :=
+  ∀ k fd1 d1 fd2 d2, st.proc.fds !! fd1 = some d1 → st.proc.fds !! fd2 = some d2 → fd1 ≠ fd2 →
+    d1.ino = d2.ino → d1.lk k = some true → d2.lk k = none
+
+/-- The exclusive locks' ghost map `Λ` mirrors the state: `(k, i) ↦ fd` exactly when the fd `fd` holds
+an exclusive lock of kind `k` on the file `i`. -/
+def LockCoh (st : OsState) (Λ : GMap (LockKind × Ino) w64) : Prop :=
+  ∀ k i fd, Λ !! (k, i) = some fd ↔ ∃ d, st.proc.fds !! fd = some d ∧ d.ino = i ∧ d.lk k = some true
+
+/-- The interpretation of the locks: the exclusive locks' authoritative map. -/
+def lockCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(∃ Λ : GMap (LockKind × Ino) w64, ⌜LockWf st ∧ LockCoh st Λ⌝ ∗ gAuth hL hL.γlk Λ)
+
+theorem lockCtx_frame (hL : OsGS GF) {st st' : OsState} (h : LockFrame st st') :
+    lockCtx hL st ⊢ lockCtx hL st' := by
+  unfold lockCtx
+  iintro ⟨%Λ, %hw, Ha⟩
+  iexists Λ
+  iframe Ha
+  ipureintro
+  obtain ⟨hwf, hcoh⟩ := hw
+  have nl : ∀ (d : OsFd) k, d.ofd = none ∧ d.flk = none → d.lk k = none := by
+    intro d k hn; cases k
+    · exact hn.1
+    · exact hn.2
+  have hl : ∀ fd d k, st'.proc.fds !! fd = some d → d.lk k ≠ none →
+      st.proc.fds !! fd = some d := by
+    intro fd d k hd hk
+    rcases h fd with he | ⟨-, hn'⟩
+    · rw [← he]; exact hd
+    · exact absurd (nl d k (hn' d hd)) hk
+  have hl' : ∀ fd d k, st.proc.fds !! fd = some d → d.lk k ≠ none →
+      st'.proc.fds !! fd = some d := by
+    intro fd d k hd hk
+    rcases h fd with he | ⟨hn, -⟩
+    · rw [he]; exact hd
+    · exact absurd (nl d k (hn d hd)) hk
+  refine ⟨fun k fd1 d1 fd2 d2 h1 h2 hne hino hk => ?_, fun k i fd => ?_⟩
+  · have h1' := hl fd1 d1 k h1 (by rw [hk]; simp)
+    rcases h fd2 with he | ⟨-, hn'⟩
+    · exact hwf k fd1 d1 fd2 d2 h1' (by rw [← he]; exact h2) hne hino hk
+    · exact nl d2 k (hn' d2 h2)
+  · rw [hcoh k i fd]
+    constructor
+    · rintro ⟨d, hd, hi, hk⟩
+      exact ⟨d, hl' fd d k hd (by rw [hk]; simp), hi, hk⟩
+    · rintro ⟨d, hd, hi, hk⟩
+      exact ⟨d, hl fd d k hd (by rw [hk]; simp), hi, hk⟩
+
+/-- The interpretation of the state `st`: its files, its tree, the outside fds, and the locks. -/
 def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(osCtxF hL st ∗ treeCtx hL st ∗ ofdCtx hL st)
+  iprop(osCtxF hL st ∗ treeCtx hL st ∗ ofdCtx hL st ∗ lockCtx hL st)
 
 /-- The start resources for a state with no fd, change or mapping: every file and byte, whole, and
 the half of the cells' view that the invariant takes (`osInv_alloc`). -/
@@ -1423,11 +1484,12 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, Halog, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γg, Hag, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 Unit) with ⟨%γo, Hao, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap (LockKind × Ino) w64) with ⟨%γlk, Halk, -⟩
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm, γs, γdfS, γcS, γperm, γn, γlen,
-    γlog, γg, γo⟩ : OsGS GF)
-  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog Hag Hao]
-  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit ofdCtx
+    γlog, γg, γo, γlk⟩ : OsGS GF)
+  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog Hag Hao Halk]
+  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit ofdCtx lockCtx
     isplitl [Hab Ham Haf Hat Hv1]
     · iexists (bytesMap st), (metaMap st), ∅, ∅
       rw [cellView_of_maps_empty (by rw [hproc]; rfl),
@@ -1454,7 +1516,13 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       rw [show st.proc.ofds = ∅ by rw [hproc]; rfl]
       unfold gAuth
       iframe Hao
-      ipureintro; intro fd hfd; simp [hproc, ProcState.empty] at hfd
+      isplitr
+      · ipureintro; intro fd hfd; simp [hproc, ProcState.empty] at hfd
+      iexists ∅
+      iframe Halk
+      ipureintro
+      refine ⟨fun k fd1 d1 _ _ h1 => by simp [hproc, ProcState.empty] at h1, fun k i fd => ?_⟩
+      simp [hproc, ProcState.empty]
   · unfold osStart osStartF treeStart gElem gVar histMap
     ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := (st.fs.roots,
           ((st.fs.treeDur, ([] : List LogEntry)) : Hist))]} : GMap Unit (Roots × Hist)),

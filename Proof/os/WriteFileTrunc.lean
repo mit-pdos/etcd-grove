@@ -48,7 +48,7 @@ theorem os.WriteFile.wp_proofTruncS (wp_Close : os.File.Close.spec (GF := GF) (h
       $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl⟩
     · iframe
     wp_apply wp_Close f fd (child d b) _ $$ [Hf Hfd] as %e1 ⟨-, -⟩
-    · iframe; iassumption
+    · iframe; isplitr; iassumption; iapply lockToks_unlocked <;> rfl
     cases e1 <;> cases e <;> wp_auto <;> (iapply HΦ; iframe)
   · obtain ⟨herr, rfl⟩ := herr
     cases err with

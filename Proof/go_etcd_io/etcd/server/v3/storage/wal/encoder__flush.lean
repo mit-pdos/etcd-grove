@@ -25,11 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofPNE
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
-    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG) := by
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG) := by
   intro e wi W B ok out pend c hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout⟩
@@ -63,11 +63,24 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP
   ipureintro
   exact ⟨Hb, Hus⟩
 
+/-- `flush.specP`: `specPNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG) := by
+  intro e wi W B ok out pend c hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofPNE wp_Lock wp_Unlock wp_Flush
+    e wi W B ok out pend c hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
+
 /-- `flush` over a length-bounded stream: `specP`'s instance (`io.writerStream_P`). -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
-    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) := by
   intro e wi W B lim out pend c hlim
   iintro #Hw

@@ -7,7 +7,15 @@ unchanged at the first step, with the pin of the WAL's last segment (`walInv_ope
 success the pin, a path to the WAL directory and the last segment's file opened read-write and locked
 (`walLastOpen`); on an error (no WAL: the directory's read fails; the lock's open fails) the pin put back
 and the token returned. The update's result `o` is the client's `Q o`; a success had a WAL (`o ≠ none`).
-Lean-first.
+
+`openLast.specHeld` (2026-11-15, the lock semantics; `notes/wal-units/locks.md`, item 5): the path where
+the last segment's lock is still held through another open file description (a WAL handle whose `Close`
+failed before its locks were released, `openWALFromSnapshot`'s ignored `w.Close()`): with the directory
+claim's share that handle holds (a path to `dir`, `osNames j (.except X)` at the layout's names: the
+segments `segs` named in name order, the last `gL`), and the held lock `osLock k gL.ino fd` of
+`fileutil`'s kind, `openLast` returns only an error (`LockFile`'s success is excluded,
+`fileutil.lockPost_held`; a blocking `LockFile` that never returns satisfies any post); nothing changes,
+the held lock is kept. Lean-first.
 -/
 module
 
@@ -15,6 +23,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenLastDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
 
 @[expose] public section
 
@@ -47,6 +56,23 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openLast.spec (Mr : WalMarshal) : P
       walAreaRes jr ∗ osCallPerm 1 ∗ ∃ o : Option WalDur, Q o ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok) ∨
        (⌜err = GoInterface.nil ∧ o ≠ none⌝ ∗ walLastOpen walCodec Mr R jr dir lf)) }}
+
+/-- See the file header (`specHeld`). -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.openLast.specHeld : Prop :=
+  ∀ (lg : Loc) (R : Roots) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
+    (segs : List SegG) (gL : SegG) (qd : Qp) (dqn : DFrac) (k : LockKind) (fd : w64),
+  (∀ b ∈ X, walNameP b = false) → SegsNamed segs hj.cur → walInos hj.cur = segs.map (·.ino) →
+  (segs.map (·.ino)).Nodup → (segs.map (·.name)).Pairwise (fun a b => go.GoStringLt a b) →
+  (∀ g ∈ segs, ∃ sq ix : Nat, g.name = walFileName sq ix) → segs.getLast? = some gL →
+  dir.length < 2 ^ 59 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
+      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R dir (DFrac.own qd) j ∗
+      osCallPerm (GF := GF) 1 ∗ osNames (GF := GF) j (.except X) dqn hj ∗
+      osLock (GF := GF) k gL.ino fd ∗ fileutil.lockKind (GF := GF) k }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.openLast)) (Val #lg)) (Val #dir))
+  {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); ⌜err ≠ GoInterface.nil⌝ ∗
+      osPathS R dir (DFrac.own qd) j ∗ osCallPerm 1 ∗ osNames j (.except X) dqn hj ∗
+      osLock k gL.ino fd }}
 
 end spec
 

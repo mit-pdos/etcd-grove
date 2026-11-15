@@ -70,7 +70,7 @@ variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- `openLast`'s read-write open gives a readable and writable fd. -/
-theorem openFd_rdwr (i : Ino) : openFd i (W64 2 ||| W64 524288) = ⟨i, true, true⟩ := by
+theorem openFd_rdwr (i : Ino) : openFd i (W64 2 ||| W64 524288) = ⟨i, true, true, none, none⟩ := by
   unfold openFd; congr
 
 /-- **`Truncate` of a `*LockedFile`**: its embedded `*os.File`'s, any triple of it. -/
@@ -100,7 +100,7 @@ set_option hygiene false in
 /-- **A `false` exit** with the segment's file and fd (`Hf`, `Hfd`): the deferred `f.Close()`, then the
 post with the token lost (`Repair.spec`'s `false` arm). Unhygienic: it names `Repair`'s hypotheses. -/
 macro "repair_false" : tactic => `(tactic| (
-    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd Hlks] as %cerr -
     · iframe; iframe #
     try wp_auto
     try imodintro
@@ -115,7 +115,7 @@ set_option hygiene false in
 /-- **A `false` exit after the `.broken` file's open** (`Hbf`, `Hbfd`): its deferred `bf.Close()` first,
 then `repair_false`. Unhygienic. -/
 macro "repair_false_bf" : tactic => `(tactic| (
-    wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd] as %cerr2 -
+    wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd Hblt] as %cerr2 -
     · iframe; iframe #
     try wp_auto
     repair_false))
@@ -133,7 +133,7 @@ macro "repair_open" : tactic => `(tactic| (
     rw [← hF]
     simp only [walDecFile]
     iunfold walFileS at HS
-    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hoff, Hm, Hb⟩))
+    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hlks, Hoff, Hm, Hb⟩))
 
 /-- See the file header. -/
 theorem wal.Repair.wp_proof (Mr : WalMarshal)
@@ -194,10 +194,9 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     iexists o; iexact HQ
   subst herr
   iunfold walLastOpen at Hlo
-  icases Hlo with ⟨%d, %lay, %X, %hj, %gL, %f, %fd, %qd, %hfacts, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj,
-    Hpd, #Hlf, Hf, Hoff, Hfd⟩
+  icases Hlo with ⟨%d, %lay, %X, %hj, %gL, %f, %fd, %qd, %lo, %lk, %hfacts, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj,
+    Hpd, #Hlf, Hf, Hoff, Hfd, Hlks⟩
   obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd, hgLok⟩ := hfacts
-  rw [openFd_rdwr]
   try wp_auto
   -- `lg.Info("repairing", zap.String("path", f.Name()))`
   wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
@@ -242,7 +241,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   have hlen : gL.bs.length + 2 ^ 12 < 2 ^ 62 := by
     have h2 : Fs.maxBytes = 0xffffffff000 := rfl; omega
   ihave #HdF := walDecFile_ok wp_Stat wp_Size wp_FName wp_IsEof wp_Term IoE hIo eof hIoEof rl f fd
-    (child dir gL.name) ⟨gL.ino, true, true⟩ gL hfd rfl rfl hSz hlen
+    (child dir gL.name) ⟨gL.ino, true, true, lo, lk⟩ gL hfd rfl rfl hSz hlen
     $$ []
   · iframe #
   wp_apply wp_slice_literal (V := GoInterface)
@@ -251,8 +250,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   · ipureintro; rfl
   iintro %rsl ⟨Hrsl, -⟩
   try wp_auto
-  generalize hF : walDecFile (GF := GF) rl f fd (child dir gL.name) ⟨gL.ino, true, true⟩ gL = F at *
-  wp_apply wp_NewDecoder _ [F] IoE eof $$ [Hrsl Hf Hfd Hoff Hm Hb] as %dI ⟨%dec, %hdI, Hrsl, Hdec⟩
+  generalize hF : walDecFile (GF := GF) rl f fd (child dir gL.name) ⟨gL.ino, true, true, lo, lk⟩ gL = F at *
+  wp_apply wp_NewDecoder _ [F] IoE eof $$ [Hrsl Hf Hfd Hlks Hoff Hm Hb] as %dI ⟨%dec, %hdI, Hrsl, Hdec⟩
   · iframe #
     isplitl [Hrsl]
     · have e : [F].map (fun F => GoInterface.ok F.fr) =
@@ -395,7 +394,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     · iframe
     imodintro
     iframe Hnc
-    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd Hlks] as %cerr -
     · iframe; iframe #
     try wp_auto
     try imodintro
@@ -488,6 +487,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       subst hbe
       iunfold repBrokenOk at Hbo
       icases Hbo with ⟨%bfd, %bi, %hj', ⟨%hbfd, %hbi⟩, Hbf, Hboff, Hbfd, Htr, Hj, Ho⟩
+      ihave Hblt : lockToks bfd (openFd bi (wal.walOpenFlag true ||| W64 0x80000)) $$ []
+      · iapply lockToks_unlocked <;> rfl
       try wp_auto
       -- `f.Seek(0, io.SeekStart)`
       wp_apply wp_lockedSeekStart lf f fd _ _ _ (W64 0) hfd (by decide) (by decide) $$ [Hf Hoff]
@@ -499,7 +500,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         unfold openFd wal.walOpenFlag; simp only [↓reduceIte]; decide
       have hm62 : gL.om.size < 2 ^ 62 := by omega
       wp_apply (wp_Copy bf bfd (child dir (repBroken gL.name)) (openFd bi (wal.walOpenFlag true ||| W64 0x80000))
-          lf f fd (child dir gL.name) ⟨gL.ino, true, true⟩ (W64 0) (DFrac.own (1 : Qp).half)
+          lf f fd (child dir gL.name) ⟨gL.ino, true, true, lo, lk⟩ (W64 0) (DFrac.own (1 : Qp).half)
           (DFrac.own (1 : Qp).half) gL.om gL.bs hbw rfl hbfd hfd (by decide) (by simp) hSz.symm hm62)
         $$ [Hbf Hbfd Hboff Htr Hf Hfd Hoff Hm Hb] as %cn %cerr ⟨Hbf, Hbfd, Hf, Hfd, Hm, Hb, Hcd, %od, %os', Hboff, Hoff, %hcp⟩
       · iframe; iframe #
@@ -543,18 +544,18 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         have := hRF.pre.length_le; simp only [segImg, List.length_map] at this; omega
       wp_apply (wp_lockedTrunc lf f _ _ _
           (wp_Trunc R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ gL.om.size k os' hle hwrS))
-        $$ [Hf Hfd Hoff Hpt Hm Hb Hv] as %terr Htr
+        $$ [Hf Hfd Hlks Hoff Hpt Hm Hb Hv] as %terr Htr
       · iframe Hok Hlf
         iunfold walTailPO
         iframe Hf Hoff Hpt
-        isplitl [Hfd]
-        · iexists true; iexact Hfd
+        isplitl [Hfd Hlks]
+        · iexists true, lo, lk; iframe
         iexists gL.om, gL.bs
         iframe Hm Hb
         isplitr
         · ipureintro; exact ⟨rfl, hTM, hm62, hfd, hTM.loWr _⟩
         iunfold tailVar at Hv; iexact Hv
-      icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, Hfd⟩, Hoff⟩)
+      icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff⟩)
       rotate_left
       · -- the truncate failed: `false`
         rcases terr with ei' | _
@@ -584,7 +585,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       iunfold walLockedTok at Hl
       icases Hl with ⟨Htk, Hpk, Hcf⟩
       wp_apply (wp_Fsync R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ k os' hwrS)
-        $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, Hfd⟩, Hoff, Hfr⟩
+        $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff, Hfr⟩
       · iframe Htw Hcf Hok
       icases Hfr with (⟨%hfe, Hkt, %m2, %bs2, Hm2, Hb2, %hTM2, Hv⟩ | %hfe)
       rotate_left
@@ -651,10 +652,10 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       · iunfold walLockedTok; iframe
       imodintro
       iframe Hnc
-      wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd] as %cerr2 -
+      wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd Hblt] as %cerr2 -
       · iframe; iframe #
       try wp_auto
-      wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+      wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd Hlks] as %cerr -
       · iframe; iframe #
       try wp_auto
       try imodintro

@@ -45,7 +45,7 @@ abbrev os.OpenFile.spec : Prop :=
     (App (App (App (Val (@! os.OpenFile)) (Val #path)) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osTree (DFrac.own q) R V ∗
       ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd path (DFrac.own 1) ∗
-          osFd fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+          osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
        ⌜err ≠ interface.nil ∧ f = null⌝) ∗
       fmtErrorOkOrNil err }}
 
@@ -59,7 +59,7 @@ abbrev os.OpenFile.specCreate : Prop :=
       ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗
           osTree (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
           osMeta i (DFrac.own 1) newMeta ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
-          osFd fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+          osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
       (⌜err ≠ interface.nil ∧ f = null⌝ ∗ (osTree (DFrac.own 1) R V ∨ ∃ i : Ino,
           osTree (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
           osMeta i (DFrac.own 1) newMeta))) ∗

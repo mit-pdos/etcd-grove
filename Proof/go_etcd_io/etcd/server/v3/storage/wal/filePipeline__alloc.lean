@@ -80,7 +80,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   (try wp_auto)
   wp_apply wp_createTmp wp_create wp_open R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
     $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hc] as %lf %e ⟨Hp, Hperm, Hr⟩
-  icases Hr with (⟨%he, %f, %fd, %i, %h, #Hlf, Hf, Hoff, Hfd, Htr, Hn, %hfi⟩ | ⟨%he, Hc⟩)
+  icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc⟩)
   · subst he
     (try wp_auto)
     iunfold fileutil.lockedFile at Hlf
@@ -92,11 +92,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
     have hm0 := hm0 trivial
     obtain ⟨hfd, hcur⟩ := hfi
     wp_apply wp_Preallocate f fd (child dir (pipeTmp n)) (DFrac.own 1) (DFrac.own 1)
-      (openFd i (wal.walOpenFlag true ||| W64 0x80000)) m (W64 0) sz true hfd (by unfold openFd; dsimp only; decide) hmaps
+      (⟨i, false, true, lo, lk⟩ : OsFd) m (W64 0) sz true hfd rfl hmaps
       (by decide) (by decide) hsz.1 hsz.2.1 (fun _ => by rw [hm0]; omega)
       $$ [$Hos $Hf $Hoff $Hfd Hm] as %e ⟨Hf, Hoff, Hfd, Hpost⟩
     · iapply (show osMeta (GF := GF) i (DFrac.own 1) m ⊢
-        osMeta (openFd i (wal.walOpenFlag true ||| W64 0x80000)).ino (DFrac.own 1) m from .rfl) $$ Hm
+        osMeta (⟨i, false, true, lo, lk⟩ : OsFd).ino (DFrac.own 1) m from .rfl) $$ Hm
     simp only [preallocPost, ite_true]
     icases Hpost with ⟨%w, %hw, Hg⟩
     iunfold preGrown at Hg
@@ -114,7 +114,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       rw [show W64 (n : Int) + W64 1 = W64 ((n : Int) + 1) by apply BitVec.eq_of_toNat_eq; simp [W64]; omega]
       iframe Hcnt
       iunfold pipeFile
-      iexists f, fd, i, m', h
+      iexists f, fd, i, m', h, lo, lk
       iunfold fileutil.lockedFile
       iframe
       isplitl []
@@ -148,7 +148,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       wp_method_call
       wp_call
       (try wp_auto)
-      wp_apply wp_Close f fd _ _ $$ [$Hos $Hf $Hfd] as %ce -
+      ihave Hlt := fdLocks_toks fd _ $$ Hlks
+      wp_apply wp_Close f fd _ _ $$ [$Hos $Hf $Hfd $Hlt] as %ce -
       (try wp_auto)
       iapply HΦ
       iunfold pipeRes

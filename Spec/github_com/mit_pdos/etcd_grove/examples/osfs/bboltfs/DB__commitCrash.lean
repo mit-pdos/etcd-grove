@@ -34,7 +34,7 @@ def writerStC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString
     (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st m bs ∗ clsOpen (GF := GF) γ fd ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
@@ -47,7 +47,7 @@ def writerStFC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStrin
     (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFileC (GF := GF) γc γ.ino db f fd p mp true hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    writerFileC (GF := GF) γc γ.ino db f fd p mp true hwm st m bs ∗ clsOpen (GF := GF) γ fd ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗

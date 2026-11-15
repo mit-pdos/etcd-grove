@@ -98,7 +98,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       iintro ⟨#Hcl, -⟩
       (try wp_auto)
       iunfold pipeFile at Hfile
-      icases Hfile with ⟨%f, %fd, %i, %m, %h, #Hlf, Hf, Hoff, Hfd, Hm, Hz, Hn, %hpf⟩
+      icases Hfile with ⟨%f, %fd, %i, %m, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Hm, Hz, Hn, %hpf⟩
       obtain ⟨hfd, hmaps, hcur, hcut, hlo, -, -, hzp⟩ := hpf
       iunfold fileutil.lockedFile at Hlf
       iStructNamed Hlf
@@ -116,7 +116,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       wp_method_call
       wp_call
       (try wp_auto)
-      wp_apply wp_Close f fd _ _ $$ [$Hos $Hf $Hfd] as %ce -
+      ihave Hlt := fdLocks_toks fd _ $$ Hlks
+      wp_apply wp_Close f fd _ _ $$ [$Hos $Hf $Hfd $Hlt] as %ce -
       (try wp_auto)
       wp_for_post
       wp_apply wp_spsc_close γ.e γ.ec (pipeErrP R dir dq j) (pipeErrR γ R dir dq j)

@@ -52,6 +52,67 @@ theorem openEffect_committed {st : OsState} {p : GoString} {acc : Nat} {creat tr
   · obtain ⟨-, j, b, -, rfl, -⟩ := h
     rfl
 
+/-! ## Locks -/
+
+/-- The fd entry `o` holds no lock (or is no fd). -/
+def NoLock (o : Option OsFd) : Prop := ∀ d, o = some d → d.ofd = none ∧ d.flk = none
+
+/-- `st'` has `st`'s descriptions but for some that hold no lock in either (a new fd, unlocked; a
+closed one that was unlocked): what every step but the lock calls and `Close` keeps
+(`isFsStep_lockFrame`), and so the locks' interpretation (`lockCtx_frame`). -/
+def LockFrame (st st' : OsState) : Prop :=
+  ∀ fd, st'.proc.fds !! fd = st.proc.fds !! fd ∨
+    (NoLock (st.proc.fds !! fd) ∧ NoLock (st'.proc.fds !! fd))
+
+/-- The operations that change a description's locks or remove a description. -/
+def LockOp (o : String) : Prop := o = "Flock" ∨ o = "OfdLock" ∨ o = "Close"
+
+theorem lockFrame_refl (st : OsState) : LockFrame st st := fun _ => .inl rfl
+
+theorem lockFrame_trans {st st' st'' : OsState} (h1 : LockFrame st st') (h2 : LockFrame st' st'') :
+    LockFrame st st'' := by
+  intro fd
+  rcases h2 fd with h2 | ⟨h2a, h2b⟩
+  · rcases h1 fd with h1 | h1
+    · exact .inl (h2.trans h1)
+    · rw [h2]; exact .inr h1
+  · rcases h1 fd with h1 | ⟨h1a, -⟩
+    · exact .inr ⟨h1 ▸ h2a, h2b⟩
+    · exact .inr ⟨h1a, h2b⟩
+
+theorem lockFrame_of_fds {st st' : OsState} (h : st'.proc.fds = st.proc.fds) : LockFrame st st' :=
+  fun fd => .inl (by rw [h])
+
+/-- A lock call's step leaves the state as it was or sets the description's lock of its kind. -/
+theorem lockStep_cases [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind} {fd : w64}
+    {d : OsFd} {req : Option Bool} {nb : Bool} {e' : Expr} {st' : OsState}
+    (h : LockStep st k fd d req nb e' st') : st' = st ∨ ∃ x, st' = st.setFd fd (d.setLk k x) := by
+  unfold LockStep at h
+  split at h
+  · rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩
+    · exact .inr ⟨_, rfl⟩
+    · exact .inl rfl
+  · rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩
+    · exact .inr ⟨_, rfl⟩
+    · exact .inl rfl
+    · exact .inr ⟨_, rfl⟩
+
+/-- A lock call's step returns an errno. -/
+theorem lockStep_val [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind} {fd : w64}
+    {d : OsFd} {req : Option Bool} {nb : Bool} {e' : Expr} {st' : OsState}
+    (h : LockStep st k fd d req nb e' st') : (toVal e').isSome := by
+  unfold LockStep at h
+  split at h
+  · rcases h with ⟨-, ⟨-, -, rfl⟩ | ⟨e, -, -, -, rfl⟩⟩ <;> rfl
+  · rcases h with ⟨-, rfl⟩ | ⟨e, -, rfl, -⟩ <;> rfl
+
+theorem setLk_ino (d : OsFd) (k : LockKind) (x : Option Bool) : (d.setLk k x).ino = d.ino := by
+  cases k <;> rfl
+theorem setLk_readable (d : OsFd) (k : LockKind) (x : Option Bool) :
+    (d.setLk k x).readable = d.readable := by cases k <;> rfl
+theorem setLk_writable (d : OsFd) (k : LockKind) (x : Option Bool) :
+    (d.setLk k x).writable = d.writable := by cases k <;> rfl
+
 section
 variable [GooseExts] [GoGlobalContext]
 
@@ -69,6 +130,12 @@ theorem isFsStep_commitGrows {o : String} {v : val} {st st' : OsState} {e' : Exp
       · rw [openEffect_committed he]; exact hy
     · rcases hc with ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩ <;> exact hy
   all_goals (try simp only [] at h)
+  all_goals first
+    | (obtain ⟨_, _, _, _, _, -, -, -, hl⟩ := h
+       rcases lockStep_cases hl with rfl | ⟨x, rfl⟩ <;> exact hy)
+    | (obtain ⟨_, _, _, _, _, -, -, -, -, -, -, hl⟩ := h
+       rcases lockStep_cases hl with rfl | ⟨x, rfl⟩ <;> exact hy)
+    | skip
   all_goals (grind [OsState.commitAll, openEffect_committed, committed_setFile,
     committed_stampFile, committed_setProc, committed_metaEnd, committed_metaDo, committed_takeIno,
     committed_doneInflight, committed_addInflight, OsState.delOfd])
@@ -126,6 +193,14 @@ theorem procSub_metaDo (st : OsState) (o : MetaOp) (s : Nat) : ProcSub st (st.me
   rw [GMap.lookup_fmap] at h'
   cases hq : st.proc.dfds !! fd <;> simp_all
 
+theorem procSub_setFd (st : OsState) (fd : w64) (d d0 : OsFd) (h0 : st.proc.fds !! fd = some d0) :
+    ProcSub st (st.setFd fd d) := by
+  refine ⟨rfl, fun fd' h => ?_, fun _ h => h⟩
+  by_cases hq : fd = fd'
+  · subst hq; rw [h0]; simp
+  · have : (<[fd := d]> st.proc.fds) !! fd' ≠ none := h
+    rwa [GMap.lookup_insert_ne _ _ hq] at this
+
 theorem procSub_openEffect {st : OsState} {p : GoString} {acc : Nat} {creat trunc : Bool}
     {start : Nat} {st1 : OsState} {tgt : Node} (h : OpenEffect st p acc creat trunc start st1 tgt) :
     ProcSub st st1 := by
@@ -139,6 +214,59 @@ theorem procSub_openEffect {st : OsState} {p : GoString} {acc : Nat} {creat trun
   · obtain ⟨-, j, b, -, rfl, -⟩ := h
     exact procSub_trans (procSub_trans (procSub_setFile _ _ _) (procSub_takeIno _))
       (procSub_metaDo _ _ _)
+
+theorem lockFrame_insert {st st' : OsState} {fd : w64} {d : OsFd}
+    (h : st'.proc.fds = <[fd := d]> st.proc.fds) (hfree : st.proc.fds !! fd = none)
+    (hd : d.ofd = none ∧ d.flk = none) : LockFrame st st' := by
+  intro fd'
+  rw [h]
+  by_cases hq : fd = fd'
+  · subst hq; rw [GMap.lookup_insert, hfree]
+    refine .inr ⟨fun d' h' => (by cases h'), fun d' h' => ?_⟩
+    cases h'; exact hd
+  · rw [GMap.lookup_insert_ne _ _ hq]; exact .inl rfl
+
+section
+variable [GooseExts] [GoGlobalContext]
+
+theorem openEffect_fds {st : OsState} {p : GoString} {acc : Nat} {creat trunc : Bool}
+    {start : Nat} {st1 : OsState} {tgt : Node} (h : OpenEffect st p acc creat trunc start st1 tgt) :
+    st1.proc.fds = st.proc.fds := by
+  unfold OpenEffect at h
+  split at h
+  · rw [h.2.2.2.1]
+  · obtain ⟨⟨f, -, rfl⟩, -⟩ := h
+    split <;> rfl
+  · obtain ⟨-, j, b, -, rfl, -⟩ := h
+    rfl
+
+/-- **Every step but the lock calls and `Close` keeps the descriptions, and opens only unlocked
+ones.** -/
+theorem isFsStep_lockFrame {o : String} {v : val} {st st' : OsState} {e' : Expr}
+    (h : IsFsStep o v st e' st') (ho : ¬ LockOp o) : LockFrame st st' := by
+  unfold IsFsStep at h
+  split at h
+  · rcases h with ⟨p, fl, t, start, -, -, -, -, -, hc⟩ | ⟨p, fl, t, start, -, -, -, -, -, hc⟩
+    · dsimp only at hc
+      rcases hc with ⟨st1, tgt, fd, he, hfree, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩
+      · have h1 : st1.proc.fds = st.proc.fds := (openEffect_fds he).trans rfl
+        cases tgt with
+        | file i =>
+          exact lockFrame_insert (d := OsFd.mk i _ _ none none) (by rw [← h1]; rfl) hfree.2.1
+            ⟨rfl, rfl⟩
+        | dir j => exact lockFrame_of_fds h1
+      · exact lockFrame_of_fds rfl
+      · exact lockFrame_of_fds ((openEffect_fds he).trans rfl)
+    · rcases hc with ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩ <;> exact lockFrame_of_fds rfl
+  all_goals (try simp only [] at h)
+  all_goals first
+    | (exfalso; apply ho; simp [LockOp]; done)
+    | (apply lockFrame_of_fds
+       grind [OsState.setProc, OsState.setFile, OsState.stampFile, OsState.takeIno,
+        OsState.metaEnd, OsState.metaDo, OsState.doneInflight, OsState.addInflight,
+        OsState.commitAll, OsState.delOfd, OsState.addOfd])
+
+end
 
 section
 variable [GooseExts] [GoGlobalContext]
@@ -197,6 +325,14 @@ theorem isFsStep_ofd {o : String} {v : val} {st st' : OsState} {e' : Expr}
       · exact keep (procSub_metaEnd st t)
   all_goals (try simp only [] at h)
   all_goals first
+    | (obtain ⟨_, _, _, _, _, -, hd, -, hl⟩ := h
+       rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
+       · exact keep (procSub_refl _)
+       · exact keep (procSub_setFd _ _ _ _ hd))
+    | (obtain ⟨_, _, _, _, _, -, hd, -, -, -, -, hl⟩ := h
+       rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
+       · exact keep (procSub_refl _)
+       · exact keep (procSub_setFd _ _ _ _ hd))
     | exact absurd rfl ho
     | (apply keep
        grind [procSub_refl, procSub_trans, procSub_setFile, procSub_stampFile, procSub_takeIno,

@@ -203,7 +203,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     walPreIn w lg (child r nm) mds md e lt f (W64 0) (W64 0) ∗
       ownEncoder e (wal.fileWi f) (hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
         (Mr.encSnap snapC0.model)) [] ∗
-      os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ os.ownOff f off ∗
+      os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ os.ownOff f off ∗
       walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       walDirKey (W := W) (child r nm) J walTmps ∗
@@ -225,7 +225,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       (createHS md g.ino (createStream Mr md).length γ g.om.size) TailMetaW
       (fun f' R' q' => iprop(⌜f' = f ∧ R' = R ∧ q' = q⌝)) (some (child r nm))
       (fun R' dq' => R' = R ∧ dq' = DFrac.own q) := by
-  iintro ⟨Hpre, Henc, Hf, Hfd, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
+  iintro ⟨Hpre, Henc, Hf, Hfd, Hlks, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
     Hst, #Hsp, Hdec, Hrc, Hfpf, #Hpipe, Hmain, Htc, #Henv, #Hcrc, #Hpkg, Hopen⟩
   iunfold walPreIn at Hpre
   icases Hpre with ⟨%locks, Hlg, #Hzap, Hdir, Hmd, #Hmds, Hns, #Hmu, Henti, Hsnapi, He, %hen, Hlocks, Hls,
@@ -244,13 +244,13 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
   · simp only [recBytes]; iframe Hmds; ipureintro; exact hmds
   isplitr
   · ipureintro; exact hen
-  isplitl [Hf Hfd Hoff Htk Hm Hb Hv]
+  isplitl [Hf Hfd Hlks Hoff Htk Hm Hb Hv]
   · unfold walTailW
     iframe Hf Htk
-    isplitl [Hfd]
-    · iexists d.readable
-      rw [show (⟨g.ino, d.readable, true⟩ : OsFd) = d by cases d; simp_all]
-      iexact Hfd
+    isplitl [Hfd Hlks]
+    · iexists d.readable, d.ofd, d.flk
+      rw [show (⟨g.ino, d.readable, true, d.ofd, d.flk⟩ : OsFd) = d by cases d; simp_all]
+      iframe
     isplitl [Hoff]
     · rw [show (((createStream Mr md).length : Int) + (([] : List w8).length : Int)) =
           ((createStream Mr md).length : Int) by simp]

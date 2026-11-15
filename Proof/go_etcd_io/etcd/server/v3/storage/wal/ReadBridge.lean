@@ -144,7 +144,7 @@ theorem walDecFile_ok
     imodintro
     iintro %Φ ⟨%Hrx, HS, Hp⟩ HΦ
     iunfold walFileS at HS
-    icases HS with ⟨⟨%Hpre, %Hfdn⟩, Hf, Hfd, Ho, Hm, Hbs⟩
+    icases HS with ⟨⟨%Hpre, %Hfdn⟩, Hf, Hfd, Hlks, Ho, Hm, Hbs⟩
     ihave #Hrl2 := Hrl
     iStructNamed Hrl2
     wp_method_call
@@ -238,7 +238,7 @@ theorem walDecFile_ok
     imodintro
     iintro %Φ HS HΦ
     iunfold walFileS at HS
-    icases HS with ⟨%Hpre, Hf, Hfd, Ho, Hm, Hbs⟩
+    icases HS with ⟨%Hpre, Hf, Hfd, Hlks, Ho, Hm, Hbs⟩
     ihave #Hrl2 := Hrl
     iStructNamed Hrl2
     wp_method_call
@@ -253,7 +253,7 @@ theorem walDecFile_ok
     · iframe; iexact Hinv
     try wp_auto
     iapply HΦ
-    isplitl [Hf Hfd Ho Hm Hbs]
+    isplitl [Hf Hfd Hlks Ho Hm Hbs]
     · iunfold walFileS; rw [← hino]; iframe; ipureintro; exact Hpre
     icases Hres with (⟨%fs, %Hok, Hfs⟩ | %Herr)
     · obtain ⟨rfl, rfl⟩ := Hok

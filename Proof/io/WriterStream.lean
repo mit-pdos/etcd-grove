@@ -72,6 +72,38 @@ instance io.writerStreamP_persistent (wi : GoInterfaceOk) (ok : List w8 → Prop
     Persistent (io.writerStreamP wi ok W B) := by
   unfold io.writerStreamP; infer_instance
 
+/-- **A guarded stream writer called only with bytes** (unit `noioerr`, 2026-11-15): `io.writerStreamP`
+for the calls with a non-empty `xs`, nothing said of an empty `Write`. A client that never hands its
+writer an empty slice (the page writer: `flush` writes only a non-empty buffer, `Write` only whole
+pages) is specified over it, so that a writer whose empty `Write` may fail for no reason (`*os.File`:
+the trusted model's empty-write branch draws an arbitrary errno with no `fsExt` step,
+`os.File.Write.wp_empty`) can still be one whose every call succeeds (`B` false: the tail's writer under
+`NoIoErr`). `io.writerStreamP_NE`: every guarded stream is one. -/
+def io.writerStreamPNE (wi : GoInterfaceOk) (ok : List w8 → Prop) (W : List w8 → IProp GF)
+    (B : List w8 → List w8 → IProp GF) : IProp GF :=
+  iprop(□ ∀ (out : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac),
+    ⌜ok (out ++ xs)⌝ → ⌜xs ≠ []⌝ →
+    {{ W out ∗ p ↦*{dq} xs }}
+      (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err); p ↦*{dq} xs ∗
+        ((⌜err = GoInterface.nil ∧ sint.Z n = xs.length⌝ ∗ W (out ++ xs)) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ B out xs)) }})
+
+instance io.writerStreamPNE_persistent (wi : GoInterfaceOk) (ok : List w8 → Prop)
+    (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) :
+    Persistent (io.writerStreamPNE wi ok W B) := by
+  unfold io.writerStreamPNE; infer_instance
+
+/-- Every guarded stream writer is one called only with bytes. -/
+theorem io.writerStreamP_NE (wi : GoInterfaceOk) (ok : List w8 → Prop) (W : List w8 → IProp GF)
+    (B : List w8 → List w8 → IProp GF) :
+    io.writerStreamP wi ok W B ⊢ io.writerStreamPNE wi ok W B := by
+  unfold io.writerStreamP io.writerStreamPNE
+  iintro #Hw
+  imodintro
+  iintro %out %p %xs %dq %hok %_
+  iapply Hw $$ %out %p %xs %dq %hok
+
 /-- `io.writerStream` is the guarded stream of the length bound. -/
 theorem io.writerStream_P (wi : GoInterfaceOk) (lim : Nat) (W : List w8 → IProp GF)
     (B : List w8 → List w8 → IProp GF) :

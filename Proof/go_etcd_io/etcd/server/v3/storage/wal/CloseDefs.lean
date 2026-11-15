@@ -6,7 +6,7 @@ What `closeAll` (S/wal.go:1187-1199) closes: `wal.rcFile rc`, an `io.ReadCloser`
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.LockLemmas
 
 @[expose] public section
 
@@ -30,7 +30,7 @@ def wal.rcFile (rc : GoInterface) : IProp GF :=
       ∃ lf : Loc, ⌜rc = interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) #lf⌝ ∗
         fileutil.lockedFile lf f) ∗
-    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d)
+    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d)
 
 /-- **A file `openWALFiles` opened, closable again** (the closer's precondition, per reader): the reader
 `fr` a `*fileReader` over the `*os.File` `f`, the file and its fd whole (any name and fd state), in write
@@ -40,7 +40,7 @@ def wal.walClosable (write : Bool) (fr : GoInterfaceOk) (lf : Loc) : IProp GF :=
     ⌜GoInterface.ok fr = interface.mkOk
       (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty) #rl⌝ ∗
     rl ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f ∗
-    os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗
+    os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗ fdLocks fd fl ∗
     (if write then fileutil.lockedFile lf f else iprop(True)))
 
 /-- **The closer `openWALFiles` returns** (`func() error { return closeAll(lg, rcs...) }`, S/wal.go:494):

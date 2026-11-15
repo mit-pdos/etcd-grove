@@ -9,11 +9,11 @@ do not depend on their bodies.
 **The bodies** (2026-11-13, branch `wal-read2`; the plan's W3/W5 log, "Decisions" 2):
 * `walOpenedFile write dir b i fr lf`: a file `openWALFiles` opened, the name `b` of `dir`, inode
   `i`: its `*os.File` (fd whole, `O_RDWR` in write mode, `O_RDONLY` in read mode, `O_CLOEXEC`
-  added by `os.OpenFile`), offset 0, its `fileutil.FileReader` (`*fileReader{f}`) and its lock
+  added by `os.OpenFile`; in write mode locked, `walSegFd`, with its locks, `fdLocks`), offset 0, its `fileutil.FileReader` (`*fileReader{f}`) and its lock
   (`TryLockFile`'s `*LockedFile` in write mode, nil in read mode).
 * `walFileS f fd i g r`: the stream state of such a file read as the segment `g` (`DecFile.S`, what
   the `os.File`-as-`io.Reader` bridge takes, `ReadBridge.lean`): `r` a prefix of the bytes, the
-  file, the fd (non-negative: `Seek` needs it), the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
+  file, the fd (non-negative: `Seek` needs it) and its locks (`fdLocks`), the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
 * `walReadTie dir write s j fs lfs`: the decoder's files are the WAL's segments from the opened one on
   (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none; in write mode the last one at the
@@ -69,11 +69,17 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 `os.OpenFile` passes them (`O_CLOEXEC` added). -/
 def walReadFlag (write : Bool) : w64 := (if write then W64 2 else W64 0) ||| W64 0x80000
 
+/-- The description of a segment file `openWALFiles` opened: readable, writable in write mode
+(`O_RDWR`; `O_RDONLY` in read mode), its locks `lo`/`lk` (2026-11-15, the lock semantics: in write mode
+`TryLockFile`'s exclusive lock, whose token and kind `fdLocks` holds). -/
+def walSegFd (write : Bool) (lo lk : Option Bool) (i : Ino) : OsFd := ⟨i, true, write, lo, lk⟩
+
 /-- See the file header. -/
 def walOpenedFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceOk) (lf : Loc) :
     IProp GF :=
-  iprop(∃ (f : Loc) (fd : w64) (rl : Loc),
-    os.ownFile f fd (child dir b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (walReadFlag write)) ∗
+  iprop(∃ (f : Loc) (fd : w64) (rl : Loc) (lo lk : Option Bool),
+    os.ownFile f fd (child dir b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (walSegFd write lo lk i) ∗
+    fdLocks fd (walSegFd write lo lk i) ∗
     os.ownOff f (W64 0) ∗ ⌜0 ≤ fd.toInt⌝ ∗
     ⌜GoInterface.ok fr = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty) #rl⌝ ∗
     rl ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f ∗
@@ -83,7 +89,8 @@ def walOpenedFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceO
 def walFileS (f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) (r : List w8) :
     IProp GF :=
   iprop(⌜r <+: g.bs.map Prod.fst ∧ 0 ≤ fd.toInt⌝ ∗
-    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗ os.ownOff f (W64 r.length) ∗
+    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗ fdLocks fd fl ∗
+    os.ownOff f (W64 r.length) ∗
     osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
 /-- See the file header. -/
@@ -101,8 +108,8 @@ def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : 
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
-        ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧
-          F.S = walFileS f fd (child dir g.name) (openFd g.ino (walReadFlag write)) g⌝ ∗
+        ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
+          F.S = walFileS f fd (child dir g.name) (walSegFd write lo lk g.ino) g⌝ ∗
     [∗list] k ↦ lf ∈ lfs, if write then fileutil.lockedFile lf (fls.getD k null) else ⌜lf = null⌝)
 
 /-- **The fields of a handle `Open` made** (draft, see the file header): the logger, the

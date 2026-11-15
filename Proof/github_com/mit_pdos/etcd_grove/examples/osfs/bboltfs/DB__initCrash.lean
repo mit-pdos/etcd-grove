@@ -316,7 +316,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   · iempintro
 
   have hW1 := initW1_obl (i := i) hI hsz hF hFz'
-  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨i, true, true⟩ N P R γ Good
+  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, some true⟩ N P R γ Good
       dbOk m xs 0 0 rfl hw0' (by rw [hw00]; omega) (by rw [hw00, hF]; omega)
       (by rw [hF]; omega) (by rw [hF]; omega) hN (.inr (Nat.zero_le _)) (by rw [hw00]; exact hW1)
       $$ [Hinv Hcs Hf Hfirst Hfd Hown Hc]
@@ -369,7 +369,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
       hB13
   ihave Hown := (show csOwnF (GF := GF) γ (some (i, ⟨m1, bs1, 0, 0, .idle⟩)) ⊢
       csOwnF (GF := GF) γ (some (i, ⟨m1, [] ++ ([] ++ bs1), 0, 0, .idle⟩)) from .rfl) $$ Hown
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ N P R γ Good dbOk m1 [] [] bs1 0 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ N P R γ Good dbOk m1 [] [] bs1 0 0
       rfl rfl (by simp) hN hS1 $$ [Hinv Hcs Hfd Hown] as %e ⟨Hfd, Hs⟩
   · iframe Hfd Hown; iframe #
   icases Hs with (⟨%He, Hown⟩ | ⟨%He, Hown⟩)
@@ -441,7 +441,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
     (fun _ => by rw [hslotD D1 1 (fun k hk => by rw [hDs1 k hk])]; exact hinit 1 (by omega))
     (.inl ⟨rfl, hzero B1 hB1z 0 (by omega)⟩) hB13
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 4096) (W64 8192)) D1
-      (DFrac.own 1) (W64 4096) dq ⟨i, true, true⟩ N P R γ Good dbOk M1 (B1.map durB) 0 0
+      (DFrac.own 1) (W64 4096) dq ⟨i, true, true, none, some true⟩ N P R γ Good dbOk M1 (B1.map durB) 0 0
       rfl hw4' (by rw [hw4, ← hmid1.len]; simp; omega) (by rw [hw4]; omega)
       (by omega) (by omega) hN (.inr (Nat.zero_le _)) (by rw [hw4]; exact hW2)
       $$ [Hinv Hcs Hf Hbuf1 Hfd Hown Hc]
@@ -514,7 +514,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
     exact midS_okS hmid2 hP2 (.inl hB2z0) hB23
   ihave Hown := (show csOwnF (GF := GF) γ (some (i, ⟨m2, bs2, 0, 0, .idle⟩)) ⊢
       csOwnF (GF := GF) γ (some (i, ⟨m2, [] ++ ([] ++ bs2), 0, 0, .idle⟩)) from .rfl) $$ Hown
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ N P R γ Good dbOk m2 [] [] bs2 0 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ N P R γ Good dbOk m2 [] [] bs2 0 0
       rfl rfl (by simp) hN hS2 $$ [Hinv Hcs Hfd Hown] as %e ⟨Hfd, Hs⟩
   · iframe Hfd Hown; iframe #
   icases Hs with (⟨%He, Hown⟩ | ⟨%He, Hown⟩)
@@ -550,7 +550,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
     (fun _ => by rw [hslotD D0 0 (fun k hk => by rw [hDs0 k hk])]; exact hinit 0 (by omega))
     (.inr ⟨rfl, by rw [hB2s1, hinit 1 (by omega)]; exact initMeta_valid 1⟩) hB23
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 0) (W64 4096)) D0
-      (DFrac.own 1) (W64 0) dq ⟨i, true, true⟩ N P R γ Good dbOk M2 (B2.map durB) 0 0
+      (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, some true⟩ N P R γ Good dbOk M2 (B2.map durB) 0 0
       rfl hw0z' (by rw [hw0z]; omega) (by rw [hw0z]; omega)
       (by omega) (by omega) hN (.inr (Nat.zero_le _)) (by rw [hw0z]; exact hW3)
       $$ [Hinv Hcs Hf Hbuf0 Hfd Hown Hc]
@@ -603,7 +603,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
         Option.getD_some, List.getD_eq_getElem?_getD]
   ihave Hown := (show csOwnF (GF := GF) γ (some (i, ⟨m3, bs3, 0, 0, .idle⟩)) ⊢
       csOwnF (GF := GF) γ (some (i, ⟨m3, [] ++ ([] ++ bs3), 0, 0, .idle⟩)) from .rfl) $$ Hown
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ N P R γ Good dbOk m3 [] [] bs3 0 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ N P R γ Good dbOk m3 [] [] bs3 0 0
       rfl rfl (by simp) hN hS3 $$ [Hinv Hcs Hfd Hown] as %e ⟨Hfd, Hs⟩
   · iframe Hfd Hown; iframe #
   icases Hs with (⟨%He, Hown⟩ | ⟨%He, Hown⟩)

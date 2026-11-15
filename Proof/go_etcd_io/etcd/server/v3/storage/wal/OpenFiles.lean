@@ -43,13 +43,14 @@ def WalDecTie (dir : GoString) (write : Bool) (gs : List SegG) (fs : List (DecFi
     (fls : List Loc) : Prop :=
   fs.length = gs.length ∧ fls.length = gs.length ∧
     ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
-      F.bs = g.bs.map (·.1) ∧ ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧
-        F.S = walFileS f fd (child dir g.name) (openFd g.ino (walReadFlag write)) g
+      F.bs = g.bs.map (·.1) ∧ ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
+        F.S = walFileS f fd (child dir g.name) (walSegFd write lo lk g.ino) g
 
 theorem walDecTie_cons {dir : GoString} {write : Bool} {g : SegG} {gs : List SegG}
     {F : DecFile GF} {fs : List (DecFile GF)} {f : Loc} {fls : List Loc} (fd : w64)
+    (lo lk : Option Bool)
     (hF : F.bs = g.bs.map (·.1) ∧
-      F.S = walFileS f fd (child dir g.name) (openFd g.ino (walReadFlag write)) g)
+      F.S = walFileS f fd (child dir g.name) (walSegFd write lo lk g.ino) g)
     (h : WalDecTie dir write gs fs fls) : WalDecTie dir write (g :: gs) (F :: fs) (f :: fls) := by
   obtain ⟨h1, h2, h3⟩ := h
   refine ⟨by simp [h1], by simp [h2], fun k F' g' hF' hg' => ?_⟩
@@ -57,11 +58,11 @@ theorem walDecTie_cons {dir : GoString} {write : Bool} {g : SegG} {gs : List Seg
   | zero =>
     simp only [List.getElem?_cons_zero, Option.some.injEq] at hF' hg'
     subst hF' hg'
-    exact ⟨hF.1, f, fd, rfl, hF.2⟩
+    exact ⟨hF.1, f, fd, lo, lk, rfl, hF.2⟩
   | succ k =>
     simp only [List.getElem?_cons_succ] at hF' hg'
-    obtain ⟨hb, f', fd', hf', hS⟩ := h3 k F' g' hF' hg'
-    exact ⟨hb, f', fd', by simpa using hf', hS⟩
+    obtain ⟨hb, f', fd', lo', lk', hf', hS⟩ := h3 k F' g' hF' hg'
+    exact ⟨hb, f', fd', lo', lk', by simpa using hf', hS⟩
 
 /-- The reader `fr` is a `*fileReader` over the `*os.File` `f` (persistent): what rebuilds
 `wal.walClosable` from a stream's file (`openWALFiles`' closer). -/
@@ -120,22 +121,22 @@ theorem walDecFiles_mk
     · iframe Hinv Heof Hos Heofa Hh
       iexact Hop
     unfold walOpenedFile
-    icases H0 with ⟨%f, %fd, %rl, Hf, Hfd, Ho, %hfd0, %hfr, #Hrl, Hlk⟩
-    iexists walDecFile rl f fd (child dir g.name) (openFd g.ino (walReadFlag write)) g :: fs, f :: fls
+    icases H0 with ⟨%f, %fd, %rl, %lo, %lk, Hf, Hfd, Hlks, Ho, %hfd0, %hfr, #Hrl, Hlk⟩
+    iexists walDecFile rl f fd (child dir g.name) (walSegFd write lo lk g.ino) g :: fs, f :: fls
     have hfr' : fr = ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty, #rl⟩ := by
       have := hfr; unfold interface.mkOk at this; cases this; rfl
     isplitr
     · ipureintro
-      refine ⟨walDecTie_cons fd ⟨rfl, rfl⟩ Ht.1, ?_⟩
+      refine ⟨walDecTie_cons fd lo lk ⟨rfl, rfl⟩ Ht.1, ?_⟩
       simp only [List.map_cons, Ht.2, hfr']
       rfl
-    isplitl [Hfs Hf Hfd Ho Hh0]
+    isplitl [Hfs Hf Hfd Hlks Ho Hh0]
     · iapply BigSepL.bigSepL_cons.2
       iframe Hfs
       isplitr
       · iapply (walDecFile_ok wp_Stat wp_Size wp_Name wp_IsEof wp_Term IoE hIo eof hIoEof rl f fd (child dir g.name)
-          (openFd g.ino (walReadFlag write)) g hfd0 rfl ?_ hsz1 hlen1)
-        · cases write <;> rfl
+          (walSegFd write lo lk g.ino) g hfd0 rfl ?_ hsz1 hlen1)
+        · rfl
         · iframe Hinv Heof Hos Heofa Hrl
       simp only [walDecFile]
       iunfold walFileS

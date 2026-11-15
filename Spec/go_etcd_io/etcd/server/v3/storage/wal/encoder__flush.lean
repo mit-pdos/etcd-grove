@@ -53,6 +53,19 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP : Prop :=
         ownEncoder e wi c [] ∗
         ((⌜err = GoInterface.nil⌝ ∗ W (out ++ pend)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
 
+/-- `specP` over a writer called only with bytes (`io.writerStreamPNE`, unit `noioerr`): with nothing pending no `Write` is made, so a writer whose every non-empty `Write` succeeds makes `flush` succeed. -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE : Prop :=
+  ∀ (e : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
+    (ok : List w8 → Prop) (out pend : List w8) (c : w32),
+  (∀ xs ys, xs <+: ys → ok ys → ok xs) → ok (out ++ pend) →
+  ⊢ io.writerStreamPNE wi ok W B -∗
+    {{ encEnv ∗ ownEncoder e wi c pend ∗ W out }}
+      (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.encoder.ty @!!
+        go!"flush")) (Val #()))
+    {{ (err : GoInterface), RET #err;
+        ownEncoder e wi c [] ∗
+        ((⌜err = GoInterface.nil⌝ ∗ W (out ++ pend)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
+
 end spec
 
 end EtcdGrove

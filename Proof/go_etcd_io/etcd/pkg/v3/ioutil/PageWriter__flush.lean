@@ -21,8 +21,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
-    go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec (GF := GF) (hG := hG) := by
+/-- `flush.specNE`: the writer is called only in the branch of a non-empty buffer. -/
+theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proofNE :
+    go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.specNE (GF := GF) (hG := hG) := by
   intro pw wi W B ok out pend hpc hok
   iintro #Hw
   wp_start as ⟨Hpw, Hout⟩
@@ -67,8 +68,9 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by refine ⟨by decide, ?_, ?_⟩ <;> word))]
     icases (ownSlice_split_all bb buf _ bs ⟨hbb0, hbblen⟩).1 $$ Hbuf with ⟨Hb1, Hb2⟩
     wp_auto
-    unfold io.writerStreamP
-    wp_apply Hw $$ %out %_ %_ %_ %hok [Hout Hb1] as %n %err ⟨Hb1, Hres⟩
+    unfold io.writerStreamPNE
+    wp_apply Hw $$ %out %_ %_ %_ %hok %(by
+        rw [← List.length_pos_iff, List.length_take]; word) [Hout Hb1] as %n %err ⟨Hb1, Hres⟩
     · iframe
     ihave Hbuf := (ownSlice_split_all bb buf _ bs ⟨hbb0, hbblen⟩).2 $$ [Hb1 Hb2]
     · iframe
@@ -89,6 +91,15 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     -- not `word` (see above)
     refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle (by omega) (by omega) (by rw [h00]; decide)
       (by rw [h00]; decide) hlen, by simp⟩
+
+/-- `flush.spec`: `specNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
+    go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec (GF := GF) (hG := hG) := by
+  intro pw wi W B ok out pend hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proofNE pw wi W B ok out pend hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
 
 end proof
 

@@ -40,13 +40,15 @@ or any nonzero errno). -/
 noncomputable def Fdatasync.impl : val :=
   λ: "fd", model.errno (ExternalOp Fs.fsExt.name "Fsync" "fd")
 
-/-- `Flock(fd int, how int) error`: `flock(2)`, trivial (`notes/osfs-ext-plan.md`, D7): the
-specifications are about one process, which never contends with itself for a lock it holds
-through one open file description, so the lock state is not modelled. The result is `nil` or an
-arbitrary nonzero `Errno`, the extension's `Flock`: it covers every answer Linux gives, a lock
-held elsewhere (`EWOULDBLOCK` with `LOCK_NB`), `EINTR`, `EINVAL` for a bad `how`, `ENOLCK`. It is
-stuck on an fd that is not open (D6). A blocking `flock` that never returns is a run the model
-need not contain. -/
+/-- `Flock(fd int, how int) error`: `flock(2)` (one `Syscall` and `errnoErr`, `EINTR` not retried):
+the extension's `Flock`, whose step is the lock rule on the description's `flock` lock (2026-11-15,
+the user's approval of lock state; **pending the user's review**, `notes/wal-units/locks.md`): for
+`how` `LOCK_SH`, `LOCK_EX` or `LOCK_UN`, with or without `LOCK_NB`, a lock succeeds only when no other
+open file description of the file holds a conflicting `flock` lock (two opens in one process
+conflict), a blocking one waiting for that, and any request may fail with any errno and no change,
+`EWOULDBLOCK` only on a conflict with `LOCK_NB`. Stuck on an fd that is not a file's, on another
+`how`, and on re-locking a description. Go examples: `examples/osfs/semantics/locks_flock.go`,
+`locks_blocking.go`. -/
 noncomputable def Flock.impl : val :=
   λ: "fd" "how", model.errno (ExternalOp Fs.fsExt.name "Flock" ("fd", "how"))
 
@@ -108,12 +110,25 @@ noncomputable def Fallocate.impl : val :=
 	return errno
 ```
 
-one `fcntl(2)` with the lock description `lk` (`fcntl64Syscall` is `SYS_FCNTL` on amd64). As
-`golang.org/x/sys/unix.FcntlFlock`'s model for the commands that set a lock, `F_SETLK` (6),
-`F_SETLKW` (7), `F_OFD_SETLK` (37) and `F_OFD_SETLKW` (38): the extension's `OfdLock`, trivial (any
-errno; the lock state is not modelled, `notes/osfs-ext-plan.md` D7, `notes/walfs-ext-plan.md`;
-the user's decision on lock state is pending, `notes/wal-fsext-plan.md` Q1), stuck on an fd that is
-not a file's; `lk` is not read.
+one `fcntl(2)` with the lock description `lk` (`fcntl64Syscall` is `SYS_FCNTL` on amd64).
+
+`F_OFD_SETLK` (37) and `F_OFD_SETLKW` (38), as `golang.org/x/sys/unix.FcntlFlock`'s model (2026-11-15,
+the user's approval of lock state; **pending the user's review**, `notes/wal-units/locks.md`): Linux
+copies the description in (`do_fcntl`), so the model loads its fields `Type`, `Whence`, `Start`,
+`Len`, `Pid` (a concurrent write is then a race a proof must exclude; the padding, which no outcome
+depends on, is not loaded). A whole-file request (`Whence` `SEEK_SET`, `Start` and `Len` 0) with
+`Pid` 0 and `Type` `F_RDLCK` (0), `F_WRLCK` (1) or `F_UNLCK` (2) is the extension's
+`OfdLock (fd, (cmd, Type))`: the lock rule on the description's OFD lock (a lock succeeds only when no
+other open file description holds a conflicting one, two opens in one process conflicting; a blocking
+one waits for that; any request may fail with any errno and no change, `EAGAIN` only on a conflict of
+a non-blocking one). Anything else panics, not modelled: a byte range (Linux accepts it), `Pid` not 0
+(Linux: `EINVAL`), another `Type` (`EINVAL`). Nothing is written back (`F_SETLK` copies nothing out).
+Go examples: `examples/osfs/semantics/locks_ofd.go`, `locks_blocking.go`.
+
+`F_SETLK` (6) and `F_SETLKW` (7), the classic per-process POSIX locks, are not modelled (a panic):
+they never conflict within one process and closing any fd of the file releases them
+(`locks_posix_not_modelled.go`), which the OFD rule would exclude. Until 2026-11-15 they were the
+trivial `OfdLock`.
 
 `F_OFD_GETLK` (36), the query fileutil's package initializer makes on fd 0 (`lock_linux.go`'s
 `init`, to choose OFD locks over `flock`), on any fd, one the process opened or not (fd 0 is
@@ -135,9 +150,22 @@ modelled: a panic, never reached by a proved program. Go example:
 `examples/osfs/semantics/model_syscall_fcntlflock.go`. -/
 noncomputable def FcntlFlock.impl : val :=
   λ: "fd" "cmd" "lk",
-    if: ("cmd" =⟨go.int⟩ #(W64 6)) || ("cmd" =⟨go.int⟩ #(W64 7)) ||
-        ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
-      model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", "cmd"))
+    if: ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
+      let: "ty" := ![go.int16] (StructFieldRef model.Flock_t go!"Type" "lk") in
+      let: "wh" := ![go.int16] (StructFieldRef model.Flock_t go!"Whence" "lk") in
+      let: "st" := ![go.int64] (StructFieldRef model.Flock_t go!"Start" "lk") in
+      let: "ln" := ![go.int64] (StructFieldRef model.Flock_t go!"Len" "lk") in
+      let: "pid" := ![go.int32] (StructFieldRef model.Flock_t go!"Pid" "lk") in
+      if: ("wh" =⟨go.int16⟩ #(W16 0)) && ("st" =⟨go.int64⟩ #(W64 0)) &&
+          ("ln" =⟨go.int64⟩ #(W64 0)) && ("pid" =⟨go.int32⟩ #(W32 0)) then
+        if: "ty" =⟨go.int16⟩ #(W16 1) then
+          model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", ("cmd", #(W64 1))))
+        else if: "ty" =⟨go.int16⟩ #(W16 0) then
+          model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", ("cmd", #(W64 0))))
+        else if: "ty" =⟨go.int16⟩ #(W16 2) then
+          model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", ("cmd", #(W64 2))))
+        else Panic "syscall.FcntlFlock: a lock type other than F_RDLCK, F_WRLCK, F_UNLCK"
+      else Panic "syscall.FcntlFlock: not a whole-file lock with l_pid 0: not modelled"
     else if: "cmd" =⟨go.int⟩ #(W64 36) then
       -- copy_from_user: the whole struct
       ![go.int16] (StructFieldRef model.Flock_t go!"Type" "lk") ;;

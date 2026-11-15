@@ -104,14 +104,14 @@ def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet)
 /-- **The lock file after a failed `renameWAL`** (see the file header): open, or closed by
 `renameWALUnlock`'s `w.Close()` (fd -1). -/
 def walLockLeft (f : Loc) (fd : w64) (fname : GoString) (d : OsFd) : IProp GF :=
-  iprop((os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) ∨
+  iprop((os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) ∨
     os.ownFile f (-1 : w64) fname (DFrac.own 1))
 
 /-- **The lock file and the encoder, as `renameWAL` takes them** (see the file header). -/
 def walLockIn (e f : Loc) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64) :
     IProp GF :=
   iprop(ownEncoder e (wal.fileWi f) c [] ∗ os.ownFile f fd fname (DFrac.own 1) ∗
-    osFd fd (DFrac.own 1) d ∗ os.ownOff f off)
+    osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ os.ownOff f off)
 
 /-- **`renameWAL`'s post** (see the file header). -/
 def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r dir : GoString)

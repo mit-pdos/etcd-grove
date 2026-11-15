@@ -231,7 +231,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   intro R jr r f fd name dir γ i H md cuts o0 sz k hS
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailP
-  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   obtain ⟨hmsz, ⟨hmz, hz⟩, hsz62, hfd, hlw⟩ := hp
   iapply Fs.wp_osMeta_zfGe _ _ rfl i _ m $$ Hm
   iintro %hzf Hm
@@ -240,7 +240,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + ([] : List w8).length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tailP Mr R jr r dir γ k H md cuts (o0 + ([] : List w8).length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hmz (fun b x hb hx => hz b x (by simpa using hb) hx) hzf
+    (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hmz (fun b x hb hx => hz b x (by simpa using hb) hx) hzf
     (by simpa using hS) $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as %e ⟨Hfd, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
@@ -250,11 +250,11 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   · ileft
     isplitr
     · ipureintro; exact he
-    isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+    isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · unfold walTailW
       iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr
@@ -267,8 +267,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
     isplitr
     · ipureintro; exact he
     iframe Hf Hoff Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     iexists m, bs
     iframe Hm Hb
     isplitr

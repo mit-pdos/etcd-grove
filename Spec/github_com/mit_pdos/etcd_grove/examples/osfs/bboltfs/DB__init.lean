@@ -33,11 +33,11 @@ abbrev DB.init.spec : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : GoString) (i : Ino) (dqf dq : DFrac) (m : OsMeta) (xs : List ByteG),
   m.maps = ∅ → xs.length = m.size → m.size ≤ 2 ^ 40 →
   {{ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"filesz"] ↦ W64 m.size ∗
-      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗
+      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true, none, some true⟩ ∗
       osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes (GF := GF) i 0 (DFrac.own 1) xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗
+      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true, none, some true⟩ ∗
       ((⌜err = interface.nil⌝ ∗
           db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗
           osMeta (GF := GF) i (DFrac.own 1)

@@ -16,6 +16,7 @@ module
 public import GeneratedProof.os
 public import Proof.syscall.Base
 public import GooseLang.Ext.Fs.Truncate
+public import GooseLang.Ext.Fs.Locks
 
 @[expose] public section
 

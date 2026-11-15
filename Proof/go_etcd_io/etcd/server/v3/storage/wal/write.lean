@@ -27,13 +27,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proof
-    (wp_PWrite : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec (GF := GF) (hG := hG))
+theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proofNE
+    (wp_PWrite : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.specNE (GF := GF) (hG := hG))
     (wp_Put : encoding.binary.littleEndian.PutUint64.spec (GF := GF) (hG := hG))
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG) := by
+    go_etcd_io.etcd.server.v3.storage.wal.write.specNE (GF := GF) (hG := hG) := by
   intro pw wi W B ok out pend u us d ds dq lenField hus hds hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, Hpw, Hout, Hu, Hd⟩
@@ -109,6 +109,21 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proof
       rw [List.append_assoc]; exact (List.prefix_append_right_inj _).2 hab
     rw [hr1] at this
     simpa only [List.append_assoc] using this
+
+/-- `write.spec`: `specNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proof
+    (wp_PWrite : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.specNE (GF := GF) (hG := hG))
+    (wp_Put : encoding.binary.littleEndian.PutUint64.spec (GF := GF) (hG := hG))
+    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
+    (wp_Since : time.Since.spec (GF := GF) (hG := hG))
+    (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG) := by
+  intro pw wi W B ok out pend u us d ds dq lenField hus hds hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.write.wp_proofNE wp_PWrite wp_Put wp_Now wp_Since
+    wp_Seconds pw wi W B ok out pend u us d ds dq lenField hus hds hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
 
 end proof
 

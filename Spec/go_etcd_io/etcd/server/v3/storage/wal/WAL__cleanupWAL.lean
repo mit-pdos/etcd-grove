@@ -82,7 +82,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF
       (⌜err ≠ interface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some (child r nm)) ∗
         osCallPerm (1 : Qp).half ∗ Fr ∗
         ∃ (fd : w64) (nmf : GoString) (d : OsFd),
-          os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) ∨
+          os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) ∨
       (⌜err ≠ interface.nil⌝ ∗ WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some (child r nm)) ∗
         osCallPerm (1 : Qp).half ∗ Fr ∗
         (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) ∗

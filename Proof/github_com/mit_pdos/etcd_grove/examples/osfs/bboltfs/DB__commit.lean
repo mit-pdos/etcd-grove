@@ -55,11 +55,11 @@ theorem commitErr_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp :
     dbOwner (GF := GF) γ t n ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       osMeta (GF := GF) γ.ino (DFrac.own 1) m2 ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail ⊢
       commitErr (GF := GF) γ db f fd p t := by
@@ -224,7 +224,7 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
     dbOwner (GF := GF) γ t n ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗
       ((∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
         (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf)) ∗
@@ -232,7 +232,7 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       osMeta (GF := GF) γ.ino (DFrac.own 1) m3 ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) γ.ino (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
@@ -311,13 +311,13 @@ theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : Lis
     dbOwner (GF := GF) γ t n ∗ dbFailed (GF := GF) γ ∗ ghostVar γ.cur (1 : Qp).half.half (mp, true, hwm) ∗
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ hdrTail (GF := GF) base 0 ∗ hdrTail (GF := GF) base 1 ∗
       cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       osMeta (GF := GF) γ.ino (DFrac.own 1) m3 ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) γ.ino (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
@@ -590,13 +590,13 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       osMeta (GF := GF) γ.ino (DFrac.own 1) m2 ∗ db.[DB, go!"filesz"] ↦ W64 m2.size ∗
       osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail2 ∗ writerCells (GF := GF) base hwm len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       db.[DB, go!"datasz"] ↦ W64 len ∗ db_ptr ↦ db ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv ∗
       dbOwner (GF := GF) γ mv.txid'.toNat hwm ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc) ∨
     (∃ e : GoInterface, ⌜bv = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
       «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat)))
@@ -616,7 +616,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     rw [← Hmaps]
     ihave Hnil := (osBytes_nil (GF := GF) γ.ino m'.size (DFrac.own 1)).2 $$ []
     · iempintro
-    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true⟩ m' [] hfd rfl hlenI
+    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true, none, some true⟩ m' [] hfd rfl hlenI
         (by simp only [List.length_nil, hlen64]; omega)
         $$ [Hf Hfd Hm Hnil Hmc] as %err ⟨Hf, Hfd, Hres, -⟩
     · simp only [hlen64]
@@ -643,7 +643,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         covers_touch_clean m' (rsPost true m' len len) (min m'.size len) (rsHi true m'.size len)
           (4096 * hwm) tail2.length hclean.2 rfl rfl (by omega)
           (by rw [os.rsPost_size', Htl2]; omega)
-      wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true⟩ (rsPost true m' len len) (4096 * hwm) tail2 hcov
+      wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true, none, some true⟩ (rsPost true m' len len) (4096 * hwm) tail2 hcov
           $$ [Hf Hfd Hm Htail] as %err2 ⟨Hf, Hfd, Hres2, -⟩
       · iframe; iframe #
       icases Hres2 with (⟨%Herr2, Hm, Htail⟩ | ⟨%Herr2, Hm, Htail⟩)
@@ -779,7 +779,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   rw [← Hmaps]
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) buf (dataPage mv.pgid' v) (DFrac.own 1)
       (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half)
-      ⟨γ.ino, true, true⟩ m2 (tail2.take 4096) rfl hoffI (by rw [hoff]; omega)
+      ⟨γ.ino, true, true, none, some true⟩ m2 (tail2.take 4096) rfl hoffI (by rw [hoff]; omega)
       (by rw [hoff, hdl]; omega) (by rw [hdl]; omega) (by rw [hdl]; omega)
       (by rw [hoff, htk, hdl]; omega) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
     as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %Hres, Hm, Hpg, Hpc, -⟩
@@ -824,7 +824,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   have hcov3 : (pwPost m2 (4096 * hwm) 4096 4096).Covers (4096 * hwm) ys.length :=
     covers_touch_clean m2 (pwPost m2 (4096 * hwm) 4096 4096) (min (4096 * hwm) m2.size)
       (4096 * hwm + 4096) (4096 * hwm) ys.length Hok2 rfl rfl (by omega) (by omega)
-  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ (pwPost m2 (4096 * hwm) 4096 4096)
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ (pwPost m2 (4096 * hwm) 4096 4096)
       (4096 * hwm) ys hcov3 $$ [Hfd Hm Hpg] as %e ⟨Hfd, Hs⟩
   · iframe Hfd Hm Hpg; iframe #
   icases Hs with (⟨%He, Hm, Hpg⟩ | ⟨%He, Hm, Hpg⟩)
@@ -905,7 +905,9 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   obtain ⟨rfl, -, -, HTn⟩ := Hmeta'
   icases Hmb with (⟨Hmx2, Hcls2⟩ | Hcls2)
   rotate_left
-  · icombine Hcls Hcls2 gives % ⟨_, Hbad⟩; cases Hbad
+  · iunfold clsOpen at Hcls
+    icases Hcls with ⟨Hcls, -⟩
+    icombine Hcls Hcls2 gives % ⟨_, Hbad⟩; cases Hbad
   (try wp_auto)
   -- the meta buffer holds the meta page
   ihave Hh : mbuf.ptr ↦ metaHdrOf mv $$ [Hh]
@@ -958,7 +960,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     simp only [List.length_take, List.length_drop, hmxl]; omega
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) mbuf (metaPageOf mv) (DFrac.own 1)
       ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half)
-      ⟨γ.ino, true, true⟩ m4 ((mxc.drop (4096 * i)).take 4096) rfl hoffmI
+      ⟨γ.ino, true, true, none, some true⟩ m4 ((mxc.drop (4096 * i)).take 4096) rfl hoffmI
       (by rw [hoffm]; omega) (by rw [hoffm, metaPageOf_length]; omega)
       (by rw [metaPageOf_length]; omega) (by rw [metaPageOf_length]; omega)
       (by rw [hoffm, metaPageOf_length, hwl]; omega)
@@ -1047,7 +1049,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   have hcov6 : (pwPost m4 (4096 * i) 4096 4096).Covers 0 X.length :=
     covers_touch_clean m4 (pwPost m4 (4096 * i) 4096 4096) (min (4096 * i) m4.size)
       (4096 * i + 4096) 0 X.length hm4o rfl rfl (by omega) (by omega)
-  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ (pwPost m4 (4096 * i) 4096 4096)
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ (pwPost m4 (4096 * i) 4096 4096)
       0 X hcov6 $$ [Hfd Hm Hmxw] as %e2 ⟨Hfd, Hs⟩
   · iframe Hfd Hm Hmxw; iframe #
   icases Hs with (⟨%He2, Hm, Hmxw⟩ | ⟨%He2, Hm, Hmxw⟩)

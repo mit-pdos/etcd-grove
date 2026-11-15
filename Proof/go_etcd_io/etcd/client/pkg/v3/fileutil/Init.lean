@@ -110,7 +110,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrLocked
   ihave #Hrest : (∃ e : GoInterfaceOk, globalAddr ErrLocked ↦□ GoInterface.ok e ∗ EtcdGrove.errOk e) ∗
       (∃ w : syscall.Flock_t, globalAddr wrlck ↦□ w ∗
-        ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0⌝) $$ []
+        ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧
+          w.Pid' = W32 0⌝) $$ []
   · isplitl []
     · unfold EtcdGrove.errOk
       iexists _
@@ -122,7 +123,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     · iexists _
       iframe Hwrlck
       ipureintro
-      exact ⟨rfl, rfl, rfl, rfl⟩
+      exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   by_cases he : e = 0
   · rw [show errnoErr e = interface.nil from by unfold errnoErr; simp only [he, ↓reduceIte]]
     wp_auto

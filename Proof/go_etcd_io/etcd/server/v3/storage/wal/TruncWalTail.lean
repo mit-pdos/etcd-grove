@@ -97,7 +97,7 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
   intro R jr r f fd name dir γ i H md cuts o0 sz out hle
   iintro %Φ ⟨#Harea, Hw⟩ HΦ
   unfold walTailW
-  icases Hw with ⟨Hof, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hof, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   obtain ⟨hmsz, ⟨hlen, hmaps, hZ, hlo, hhi, hpz⟩, hsz62, hfd, hlw⟩ := hp
   have hwr : o0 + out.length ≤ m.size := by omega
   have hT : (W64 ((o0 : Int) + (out.length : Int))).toNat = o0 + out.length := by word
@@ -116,7 +116,7 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
       (DFrac.own (1 : Qp).half) (bs.drop (o0 + out.length)) $$ [Hbd]
   · rw [hT, Nat.min_eq_right hwr]; iexact Hbd
   wp_apply wp_Truncate f fd name (DFrac.own 1) (W64 ((o0 : Int) + (out.length : Int))) (DFrac.own 1)
-    ⟨i, rd, true⟩ m (bs.drop (o0 + out.length)) _ (fun m => LoWr m (o0 + out.length)) hfd rfl hI hmaps
+    ⟨i, rd, true, lo, lk⟩ m (bs.drop (o0 + out.length)) _ (fun m => LoWr m (o0 + out.length)) hfd rfl hI hmaps
     (by rw [List.length_drop, hT]; omega) hlw (fun m' h _ => .inr (by rw [hT] at h; omega))
     $$ [Hof Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr, -⟩
   · iframe; iframe #
@@ -130,8 +130,8 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
     icases Hd with ⟨-, ⟨%tc, %rz, %htc, Hm'⟩, -⟩
     icases HK with ⟨Hk, Hv⟩
     iframe Hof Hoff Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     iexists (rsPost true m (o0 + out.length) (o0 + out.length)).withTc tc rz, bs.take (o0 + out.length)
     iframe Hm' Hbt
     isplitr

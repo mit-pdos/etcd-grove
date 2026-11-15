@@ -454,7 +454,7 @@ theorem wp_createTmp (R : Roots) (d : GoString) (j : Ino) (γ : GName) (V : Hist
       (∀ fd : w64, ∀ e : w64,
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create j tmpB i, V.2.length⟩) ∗
-            osMeta (GF := GF) i (DFrac.own 1) newMeta ∗ osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osMeta (GF := GF) i (DFrac.own 1) newMeta ∗ osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osTree (GF := GF) (DFrac.own (1 : Qp).half) R V ∨ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create j tmpB i, V.2.length⟩) ∗
             osMeta (GF := GF) i (DFrac.own 1) newMeta))) -∗
@@ -675,7 +675,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (γ : GName) (V : Hist)
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d tmpB))) (Val #(W64 66))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil⌝ ∗
-            os.ownFile f fd (child d tmpB) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+            os.ownFile f fd (child d tmpB) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
             osMeta i (DFrac.own 1) newMeta ∗
             osTree (DFrac.own (1 : Qp).half) R (V.push ⟨.create j tmpB i, V.2.length⟩)) ∨
          (⌜err ≠ interface.nil⌝ ∗ ∃ V', osTree (DFrac.own (1 : Qp).half) R V' ∗
@@ -756,7 +756,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (γ : GName) (V : Hist)
     · subst he0
       rw [decide_eq_true rfl]
       ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩
         by rw [openFd_rw]; split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
@@ -1240,15 +1240,15 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   have h8 : sint.nat (W64 8) = 8 := rfl
   wp_apply wp_ReadAt f fd (child d segB) (DFrac.own 1) buf
       (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0) (DFrac.own 1)
-      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, false⟩ m bs rfl (by decide)
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, false, none, none⟩ m bs rfl (by decide)
       (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; decide)
       (by rw [List.length_replicate, h8]; simp; omega)
       (by rw [List.length_replicate, h8]; exact hbl) $$ [Hos Hf Hbuf Hfd Hm Hb]
     as %n %err ⟨Hf, Hfd, Hm, Hb, %vs', Hbuf, %Hres, -⟩
   · iframe; iexact Hos
   (try wp_auto)
-  wp_apply wp_Close f fd (child d segB) ⟨i, true, false⟩ $$ [Hos Hf Hfd] as %e -
-  · iframe; iexact Hos
+  wp_apply wp_Close f fd (child d segB) ⟨i, true, false, none, none⟩ $$ [Hos Hf Hfd] as %e -
+  · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
   obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
   · (try wp_auto)
     wp_apply wp_dataOk buf (DFrac.own 1) vs' (by rw [hvs', hbv]) $$ [Hbuf] as Hbuf
@@ -1302,7 +1302,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   ihave Hmc : mcellsAny newMeta.maps (W64 0).toNat ((W64 0).toNat + dataC.length) $$ []
   · unfold mcellsAny; simp only [newMeta, initMeta]; iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply wp_WriteAt f fd (child d tmpB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
-      ⟨i, true, true⟩ newMeta [] rfl (by decide) (by decide) (by decide) (by decide) (by decide)
+      ⟨i, true, true, none, none⟩ newMeta [] rfl (by decide) (by decide) (by decide) (by decide) (by decide)
       (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
     as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
@@ -1312,8 +1312,8 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl hne
     | ok ie =>
     (try wp_auto)
-    wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e -
-    · iframe; iexact Hos
+    wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e -
+    · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -1324,7 +1324,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   -- `fdatasync`
   wp_apply wp_Fd f fd (child d tmpB) (DFrac.own 1) $$ Hf as Hf
   (try wp_auto)
-  wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨i, true, true⟩ _ 0 ys (OsMeta.covers_whole _ hysl)
+  wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨i, true, true, none, none⟩ _ 0 ys (OsMeta.covers_whole _ hysl)
       $$ [Hos Hfd Hm Hys]
     as %e ⟨Hfd, Hr⟩
   · iframe; iexact Hos
@@ -1333,8 +1333,8 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   · rw [show errnoErr e = interface.mkOk syscall.Errno.ty #e from if_neg he.1]
     dsimp only
     (try wp_auto)
-    wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
-    · iframe; iexact Hos
+    wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
+    · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -1342,8 +1342,8 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   rw [show errnoErr 0 = interface.nil from if_pos rfl]
   dsimp only
   (try wp_auto)
-  wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true⟩ $$ [Hos Hf Hfd] as %e' -
-  · iframe; iexact Hos
+  wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
+  · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
   (try wp_auto)
   -- the file, durable, goes into the invariant under the key `i`
   icases (osMeta_halves (L := hG.goose_localGS) i _).1 $$ Hm with ⟨Hm, Hmi⟩

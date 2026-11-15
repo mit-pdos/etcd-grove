@@ -32,7 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandshakeN
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
-public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.LockLemmas
 public import Proof.os.Off
 public import Proof.os.SharedAu
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
@@ -87,7 +87,7 @@ variable [os_sem : os.Assumptions]
 -- `tmpEnt`, `tmpClaim`: `TmpClaim.lean`.
 
 /-- **The `n`-th file of the pipeline of the directory `dir` (inode `j`), at `lf`**: a locked file
-on the name `pipeTmp n`, open write-only at offset 0, its `OsMeta` (no mappings) and its bytes
+on the name `pipeTmp n`, open write-only at offset 0, holding `LockFile`'s lock (`fdLocks`), its `OsMeta` (no mappings) and its bytes
 whole, all zeros (`osZerosA`), and the whole claim on its name, which holds it; the zeros known past
 its size (`ZeroPg`: `cut` syncs it as the new tail, whose `TailZ` needs them); no sync without its
 bytes (`OsMeta.cut` none), a crash's lower size bound at most the size, and the size a multiple of 8
@@ -95,9 +95,10 @@ bytes (`OsMeta.cut` none), a crash's lower size bound at most the size, and the 
 too) and below ext4's maximum offset (the pipeline's size: `cut` makes the file a handle's tail,
 whose size `walHandleIn` bounds). -/
 def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
-  iprop(∃ (f : Loc) (fd : w64) (i : Ino) (m : OsMeta) (h : NamesH),
+  iprop(∃ (f : Loc) (fd : w64) (i : Ino) (m : OsMeta) (h : NamesH) (lo lk : Option Bool),
     fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir (pipeTmp n)) (DFrac.own 1) ∗
-    os.ownOff f (W64 0) ∗ osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag true ||| W64 0x80000)) ∗
+    os.ownOff f (W64 0) ∗ osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗
+    fdLocks fd ⟨i, false, true, lo, lk⟩ ∗
     osMeta i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ∗
     osNames j (.only [pipeTmp n]) (DFrac.own 1) h ∗
     ⌜0 ≤ fd.toInt ∧ m.maps = ∅ ∧ h.cur !! pipeTmp n = some (.file i) ∧

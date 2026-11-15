@@ -254,7 +254,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
           locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
           ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝) ∨
         (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walOpenW (W := W) w dir ∗
-          ∃ rd : Bool, os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨h.ino, rd, true⟩) }} := by
+          ∃ (rd : Bool) (lo lk : Option Bool), os.ownFile f fd name (DFrac.own 1) ∗
+            osFd fd (DFrac.own 1) ⟨h.ino, rd, true, lo, lk⟩ ∗ fdLocks fd ⟨h.ino, rd, true, lo, lk⟩) }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -353,10 +354,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
       unfold walTailW
-      icases Htw with ⟨Hf, ⟨%rd, Hfd⟩, -⟩
+      icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
       · iapply (walOpenW_cut (W := W) w dir).2; iframe
-      iexists rd; iframe Hf Hfd
+      iexists rd, lo, lk; iframe Hf Hfd Hlkt
   · try wp_auto
     wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl took
     · iframe
@@ -376,10 +377,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
       unfold walTailW
-      icases Htw with ⟨Hf, ⟨%rd, Hfd⟩, -⟩
+      icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
       · iapply (walOpenW_cut (W := W) w dir).2; iframe
-      iexists rd; iframe Hf Hfd
+      iexists rd, lo, lk; iframe Hf Hfd Hlkt
 
 /-- See the file header: `wp_core` over the handle (`walHandleIn`), the tail's `TailMetaS` weakened to
 `TailMeta`. -/
@@ -471,9 +472,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
     iframe Hnf
     isplitl [Hopen]
     · iapply walOpenW_lockedTok $$ Hopen
-    icases Htf with ⟨%rd, Hf, Hfd⟩
-    iexists f, fd, name, ⟨h.ino, rd, true⟩, Rd, qd
-    iframe Hnmd Hf Hfd
+    icases Htf with ⟨%rd, %lo, %lk, Hf, Hfd, Hlkt⟩
+    iexists f, fd, name, ⟨h.ino, rd, true, lo, lk⟩, Rd, qd
+    iframe Hnmd Hf Hfd Hlkt
 
 /-- **`WAL.sync.specCut`**: `sync.spec` at a handle whose size is its write position
 (`h.sz = o0 + |out|`, `cut`'s truncate), so the size after the flush is the stream's end

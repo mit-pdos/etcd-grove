@@ -47,6 +47,24 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.write.spec : Prop :=
            (∃ a b : List w8, ⌜err ≠ GoInterface.nil ∧ pend' = [] ∧
               a ++ b <+: pend ++ u64Le lenField ++ ds⌝ ∗ B (out ++ a) b)) }}
 
+/-- `spec` over a writer called only with bytes (`io.writerStreamPNE`, unit `noioerr`). -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.write.specNE : Prop :=
+  ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
+    (ok : List w8 → Prop) (out pend : List w8) (u : GoSlice) (us : List w8) (d : GoSlice) (ds : List w8) (dq : DFrac) (lenField : w64),
+  us.length = 8 → ds.length < 2 ^ 62 → (∀ xs ys, xs <+: ys → ok ys → ok xs) →
+  ok (out ++ pend ++ u64Le lenField ++ ds) →
+  ⊢ io.writerStreamPNE wi ok W B -∗
+    {{ encEnv ∗ ioutil.ownPageWriter pw wi pend ∗ W out ∗ u ↦* us ∗ d ↦*{dq} ds }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.write))
+        (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty)
+          #pw))) (Val #u)) (Val #d)) (Val #lenField))
+    {{ (err : GoInterface), RET #err;
+        ∃ pend' : List w8, ioutil.ownPageWriter pw wi pend' ∗ u ↦* u64Le lenField ∗ d ↦*{dq} ds ∗
+          ((∃ ys : List w8, ⌜err = GoInterface.nil ∧ ys ++ pend' = pend ++ u64Le lenField ++ ds⌝ ∗
+              W (out ++ ys)) ∨
+           (∃ a b : List w8, ⌜err ≠ GoInterface.nil ∧ pend' = [] ∧
+              a ++ b <+: pend ++ u64Le lenField ++ ds⌝ ∗ B (out ++ a) b)) }}
+
 end spec
 
 end EtcdGrove

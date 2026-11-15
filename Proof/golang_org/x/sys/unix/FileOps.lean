@@ -8,6 +8,7 @@ module
 public import GeneratedProof.golang_org.x.sys.unix
 public import Proof.syscall.Base
 public import GooseLang.Ext.Fs.Falloc
+public import GooseLang.Ext.Fs.Locks
 
 @[expose] public section
 
@@ -67,20 +68,39 @@ theorem golang_org.x.sys.unix.Fallocate.wp_keep (fd off len : w64) (dq : DFrac) 
   iapply HΦ
   iframe
 
-/-- `unix.FcntlFlock(fd, cmd, lk)` for a command that sets a lock (`F_SETLK`, `F_SETLKW`,
-`F_OFD_SETLK`, `F_OFD_SETLKW`): any errno. -/
-theorem golang_org.x.sys.unix.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc) (dq : DFrac) (d : OsFd)
-    (hcmd : cmd = W64 6 ∨ cmd = W64 7 ∨ cmd = W64 37 ∨ cmd = W64 38) :
-    {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d }}
+theorem unix_flock_ty_eq : golang_org.x.sys.unix.model.Flock_t = golang_org.x.sys.unix.Flock_t.ty := by
+  unfold golang_org.x.sys.unix.Flock_t.ty; rfl
+
+/-- `unix.FcntlFlock(fd, cmd, lk)` for `F_OFD_SETLK` (37) or `F_OFD_SETLKW` (38) with a whole-file
+description `*lk` (`Whence`, `Start`, `Len`, `Pid` all 0) of type `F_RDLCK`, `F_WRLCK` or `F_UNLCK`
+(`ofdReq`: the request `req`): the extension's OFD lock (`wp_osOfdLock`), `*lk` read only. -/
+theorem golang_org.x.sys.unix.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc)
+    (v : golang_org.x.sys.unix.Flock_t) (d : OsFd) (req : Option Bool)
+    (hcmd : cmd = W64 37 ∨ cmd = W64 38)
+    (hwh : v.Whence' = 0) (hst : v.Start' = 0) (hln : v.Len' = 0) (hpid : v.Pid' = 0)
+    (hreq : ofdReq v.Type'.toNat = some req) (hw : req = some true → d.writable = true)
+    (hr : req = some false → d.readable = true) (hfree : req ≠ none → d.ofd = none) :
+    {{ osInv (GF := GF) ∗ (lk ↦ v : IProp GF) ∗ osFd (GF := GF) fd (DFrac.own 1) d ∗
+        lockTok (GF := GF) .ofd fd d }}
       (App (App (App (Val (@! golang_org.x.sys.unix.FcntlFlock)) (Val #fd)) (Val #cmd)) (Val #lk))
-    {{ (e : w64), RET #(errnoErr e); osFd fd dq d }} := by
-  wp_start as ⟨#Hinv, Hfd⟩
-  rcases hcmd with rfl | rfl | rfl | rfl <;>
-  · (try wp_auto)
-    wp_apply wp_osOfdLock fd _ dq d CoPset.subseteq_top $$ Hinv Hfd as %e Hfd
-    iapply wp_errno
-    iapply HΦ
-    iframe
+    {{ (e : w64), RET #(errnoErr e); lk ↦ v ∗ lockOut (GF := GF) .ofd fd d req e }} := by
+  wp_start as ⟨#Hinv, Hlk, Hfd, Ht⟩
+  have hty : v.Type' = 0 ∨ v.Type' = 1 ∨ v.Type' = 2 := by
+    have h := hreq; unfold ofdReq at h
+    split at h <;> (try cases h) <;> bv_omega
+  have hreq' : ∀ t : w64, t.toNat = v.Type'.toNat → ofdReq t.toNat = some req := fun t ht => by
+    rw [ht]; exact hreq
+  rw [unix_flock_ty_eq]
+  rcases hcmd with rfl | rfl <;>
+  · wp_auto
+    rw [hwh, hst, hln, hpid]
+    wp_auto
+    rcases hty with h0 | h0 | h0 <;> rw [h0] <;> wp_auto <;>
+    · wp_apply wp_osOfdLock fd _ _ d req CoPset.subseteq_top (by decide) (hreq' _ (by rw [h0]; rfl))
+        hw hr hfree $$ Hinv Hfd Ht as %e Hout
+      iapply wp_errno
+      iapply HΦ
+      iframe
 
 end proof
 

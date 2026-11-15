@@ -977,7 +977,7 @@ theorem wp_osOpenCreate_cs (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
       (∀ fd : w64, ∀ e : w64,
         ((∃ i, ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗
             csOwn (L := L) (child d b) R γ (csNew i) (V.push ⟨.create j b i, V.2.length⟩) ∗
-            osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osFd (L := L) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (csOwn (L := L) (child d b) R γ none V ∨ ∃ i,
             csOwn (L := L) (child d b) R γ (csNew i) (V.push ⟨.create j b i, V.2.length⟩)))) -∗
         Φ (PairV (#fd) (#e))) -∗

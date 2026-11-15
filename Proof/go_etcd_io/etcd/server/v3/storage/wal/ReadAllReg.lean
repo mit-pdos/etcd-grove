@@ -54,25 +54,24 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- The write-mode open flags give a writable fd. -/
-theorem openFd_write (i : Ino) : openFd i (walReadFlag true) = ⟨i, true, true⟩ := by
+theorem openFd_write (i : Ino) : openFd i (walReadFlag true) = ⟨i, true, true, none, none⟩ := by
   unfold openFd walReadFlag; simp only [↓reduceIte]; congr <;> decide
 
 /-- **The read tail as the handle's tail** (`walTailW`), at its write position `lay.wr` with
 nothing written: the decoder's stream state of the last file, the registration's key and record. -/
 theorem walTailW_ofRead (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) (g : SegG) (d : WalDur)
-    (lay : WalLay) (hfd : 0 ≤ fd.toInt) (hm : TailMeta g.om g.bs) (hsz : g.om.size ≤ 0xffffffff000) :
-    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd g.ino (walReadFlag true)) ∗
-      os.ownOff f (W64 (lay.wr : Int)) ∗ walTailKey (W := W) dir γ ∗
+    (lay : WalLay) (lo lk : Option Bool) (hfd : 0 ≤ fd.toInt) (hm : TailMeta g.om g.bs) (hsz : g.om.size ≤ 0xffffffff000) :
+    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (walSegFd true lo lk g.ino) ∗
+      fdLocks fd (walSegFd true lo lk g.ino) ∗ os.ownOff f (W64 (lay.wr : Int)) ∗ walTailKey (W := W) dir γ ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay g.ino none)) ⊢
     walTailW (W := W) f fd name dir γ g.ino d.H d.metadata lay.cuts lay.wr g.om.size [] := by
-  iintro ⟨Hf, Hfd, Ho, Hk, Hm, Hb, Hv⟩
+  iintro ⟨Hf, Hfd, Hlks, Ho, Hk, Hm, Hb, Hv⟩
   unfold walTailW
-  rw [openFd_write]
   rw [show ((lay.wr : Int) + (([] : List w8).length : Int)) = (lay.wr : Int) by simp]
   iframe Hf Ho Hk
-  isplitl [Hfd]
-  · iexists true; iexact Hfd
+  isplitl [Hfd Hlks]
+  · iexists true, lo, lk; iframe
   iexists g.om, g.bs
   iframe Hm Hb
   isplitr

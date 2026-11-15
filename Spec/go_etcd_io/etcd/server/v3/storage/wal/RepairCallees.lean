@@ -52,7 +52,8 @@ abbrev os.File.Truncate.specRepTail (Mr : WalMarshal) : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walTailPO f fd name dir γ i H md cuts o0 o0 k true off TailMetaRW) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ os.ownFile f fd name (DFrac.own 1) ∗
-        (∃ rd : Bool, osFd fd (DFrac.own 1) ⟨i, rd, true⟩) ∗ os.ownOff f off) }}
+        (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
+          fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗ os.ownOff f off) }}
 
 /-- **`fileutil.Fsync(f.File)` of `Repair`'s truncated tail** (see the file header). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specRepTail (Mr : WalMarshal) : Prop :=
@@ -64,7 +65,8 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specRepTail (Mr : WalMarshal
       walCutFrag (W := W) none }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync)) (Val #f))
   {{ (err : GoInterface), RET #err; walCutFrag (W := W) none ∗ os.ownFile f fd name (DFrac.own 1) ∗
-      (∃ rd : Bool, osFd fd (DFrac.own 1) ⟨i, rd, true⟩) ∗ os.ownOff f off ∗
+      (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
+          fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗ os.ownOff f off ∗
       ((⌜err = GoInterface.nil⌝ ∗ walTailKey (W := W) dir γ ∗
           ∃ (m : OsMeta) (bs : List ByteG),
             osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗

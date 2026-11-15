@@ -618,10 +618,11 @@ outcome.''',
         'try wp_auto', 'ipersist Hwrlck', 'ipersist HErrLocked',
         'ihave #Hrest : (∃ e : GoInterfaceOk, globalAddr ErrLocked ↦□ GoInterface.ok e ∗ EtcdGrove.errOk e) ∗',
         '    (∃ w : syscall.Flock_t, globalAddr wrlck ↦□ w ∗',
-        "      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0⌝) $$ []",
+        "      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧",
+        "        w.Pid' = W32 0⌝) $$ []",
         '· isplitl []', '  · unfold EtcdGrove.errOk', '    iexists _', '    iframe HErrLocked',
         "    iintro !> %Φ' HΦ'", '    iapply EL', '    inext', "    iapply HΦ'",
-        '  · iexists _', '    iframe Hwrlck', '    ipureintro', '    exact ⟨rfl, rfl, rfl, rfl⟩',
+        '  · iexists _', '    iframe Hwrlck', '    ipureintro', '    exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
         'by_cases he : e = 0'] +
         [l for ofd, eq, simps in
          [('true', 'interface.nil', '↓reduceIte'),

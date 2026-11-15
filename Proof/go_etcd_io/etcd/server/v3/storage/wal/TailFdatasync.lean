@@ -84,22 +84,22 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
         walCutFrag (W := W) none ∗ ((⌜e = 0⌝ ∗ walSyncedLb (W := W) dir H.length) ∨ ⌜e ≠ 0⌝) }} := by
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailW
-  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   wp_auto
   wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tail Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1.win hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hp.2.1.win hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ
   iframe Hcf
   icases Hr with (⟨%he, Hm, Hb, #Hs⟩ | ⟨%he, Hm, Hb⟩)
-  · isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+  · isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr
@@ -107,10 +107,10 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
         exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2.1, LoWr.of_exact rfl rfl⟩
       · iapply tailVar_unfold $$ Hv
     · ileft; iframe Hs; ipureintro; exact he
-  · isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+  · isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m, bs
       iframe Hm Hb
       isplitr
@@ -146,13 +146,13 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
          (⌜e ≠ 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaW))) }} := by
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailW
-  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   wp_auto
   wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tail Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ
@@ -161,10 +161,10 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
   · ileft
     isplitr
     · ipureintro; exact he
-    isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+    isplitl [Hf Hfd Hlkt Hoff Hk Hm Hb Hv]
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m.synced, (bs.map (fun x => durB x.1))
       iframe Hm Hb
       isplitr
@@ -176,8 +176,8 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
     isplitr
     · ipureintro; exact he
     · iframe Hf Hoff Hk
-      isplitl [Hfd]
-      · iexists rd; iexact Hfd
+      isplitl [Hfd Hlkt]
+      · iexists rd, lo, lk; iframe
       iexists m, bs
       iframe Hm Hb
       isplitr

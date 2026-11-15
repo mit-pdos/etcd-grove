@@ -53,7 +53,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (P : WalPbIn GF) (M
         ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
         ∃ (fd : w64) (nmf : GoString) (d : OsFd),
-          os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) }}
+          os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) }}
 
 end spec
 

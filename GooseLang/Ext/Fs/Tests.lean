@@ -46,6 +46,7 @@ module
 
 public import GooseLang.Ext.Fs.Lookup
 public import GooseLang.Ext.Fs.Premises
+public import GooseLang.Ext.Fs.CommitMono
 public import Perennial.Golang.Defn.PostLang
 
 @[expose] public section
@@ -690,7 +691,10 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
     · exact cacheOk_sync h hf
     · exact h
   next => -- Flock
-    obtain ⟨-, -, -, -, -, -, rfl, -⟩ := hs; exact h
+    obtain ⟨_, _, _, _, _, -, -, -, hl⟩ := hs
+    rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
+    · exact h
+    · exact cacheOk_setProc h _ rfl
   next => -- Close
     obtain ⟨-, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- Mmap
@@ -778,7 +782,10 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- FallocKeep
     obtain ⟨-, -, -, -, -, -, -, -, -, -, rfl, -⟩ := hs; exact h
   next => -- OfdLock
-    obtain ⟨-, -, -, -, -, -, rfl, -⟩ := hs; exact h
+    obtain ⟨_, _, _, _, _, -, -, -, -, -, -, hl⟩ := hs
+    rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
+    · exact h
+    · exact cacheOk_setProc h _ rfl
   next => exact hs.elim
 
 /-- The invariant holds at the start: every file is on disk, nothing is in flight. -/

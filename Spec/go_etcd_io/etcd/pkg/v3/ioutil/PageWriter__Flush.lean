@@ -37,6 +37,19 @@ abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec : Prop :=
         ioutil.ownPageWriter pw wi [] ∗
         ((⌜err = GoInterface.nil⌝ ∗ W (out ++ pend)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
 
+/-- `spec` over a writer called only with bytes (`io.writerStreamPNE`, unit `noioerr`). -/
+abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE : Prop :=
+  ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
+    (ok : List w8 → Prop) (out pend : List w8),
+  (∀ xs ys, xs <+: ys → ok ys → ok xs) → ok (out ++ pend) →
+  ⊢ io.writerStreamPNE wi ok W B -∗
+    {{ ioutil.ownPageWriter pw wi pend ∗ W out }}
+      (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
+        go!"Flush")) (Val #()))
+    {{ (err : GoInterface), RET #err;
+        ioutil.ownPageWriter pw wi [] ∗
+        ((⌜err = GoInterface.nil⌝ ∗ W (out ++ pend)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
+
 end spec
 
 end EtcdGrove

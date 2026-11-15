@@ -931,13 +931,13 @@ theorem dataErrTC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoSt
     dbOwner (GF := GF) γ t n ∗ dbFailed (GF := GF) γ ∗ ghostVar γ.cur (1 : Qp).half.half (mp, true, hwm) ∗
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ hdrTail (GF := GF) base 0 ∗ hdrTail (GF := GF) base 1 ∗
       cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       csOwnF (GF := GF) γc (some (γ.ino, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ⊢
       commitErrC (GF := GF) γ γc db f fd p t := by
   iintro ⟨Hown, #Hfailed, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, T0, T1, Hpc, Htop, Hfsz, Hdsz, Hf,
@@ -976,9 +976,9 @@ theorem writerStC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : G
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       csOwnF (GF := GF) γc (some (γ.ino, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ⊢
       writerStC (GF := GF) γ γc db f fd p mp fl hwm (some (base, len, γm)) m bs := by
   iintro ⟨Hcur, Hmap, Hout, Hflds, Hfsz, Hdsz, Hf, Hfd, Hcs, Hcls, Htok, #Hinv, Hwc⟩
@@ -1004,9 +1004,9 @@ theorem commitErrC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : 
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       csOwnF (GF := GF) γc (some (γ.ino, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ⊢
       commitErrC (GF := GF) γ γc db f fd p t := by
   iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hfsz, Hdsz, Hf, Hfd, Hcs, Hcls, Htok, #Hinv, Hwc⟩
@@ -1039,9 +1039,9 @@ theorem dataErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStr
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
       csOwnF (GF := GF) γc (some (γ.ino, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ∗
-      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      clsOpen (GF := GF) γ fd ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗
       ((∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
         (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf)) ∗
@@ -1313,7 +1313,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
       8192 (4096 * hwm) (by omega) Hwf.2.1
     rw [← hlen64] at hobl
     rw [← Hmaps]
-    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true⟩ dbCrashN p R γc Good dbOk m' bs
+    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true, none, some true⟩ dbCrashN p R γc Good dbOk m' bs
         8192 (4096 * hwm) hfd rfl hlenI (by rw [hlen64]; exact Hsz) dbCrashN_disj hobl
         $$ [Hf Hfd Hcs Hmc] as %err ⟨Hf, Hfd, Hres⟩
     · simp only [hlen64]; iframe; iframe #
@@ -1355,7 +1355,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
       · iframe
       (try wp_auto)
       rw [hsplit]
-      wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true⟩ dbCrashN p R γc Good dbOk (rsPost true m0 len len) H F T
+      wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true, none, some true⟩ dbCrashN p R γc Good dbOk (rsPost true m0 len len) H F T
           8192 (4096 * hwm) hH hF hHc dbCrashN_disj (by rw [hsyn]; exact hok3')
         $$ [Hf Hfd Hcs] as %err2 ⟨Hf, Hfd, Hres2⟩
       · iframe; iframe #
@@ -1535,7 +1535,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   have a5 : (mv.pgid' * W64 4096).toNat + (dataPage mv.pgid' v).length ≤ 8192 ∨
       4096 * hwm ≤ (mv.pgid' * W64 4096).toNat := .inr (by omega)
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) buf (dataPage mv.pgid' v) (DFrac.own 1)
-      (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ dbCrashN p R γc Good dbOk m2 bs2
+      (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ dbCrashN p R γc Good dbOk m2 bs2
       8192 (4096 * hwm) rfl hoffI a1 a2 a3 a4 dbCrashN_disj a5 hO
       $$ [Hf Hbuf Hfd Hcs Hpc]
     as %n %err ⟨Hf, Hbuf, Hfd, Hpc, %nn4, %m4, %bs4, %Hres, Hcs⟩
@@ -1574,7 +1574,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     hlo5⟩ := dataS_facts (i := γ.ino) (v := v) hcc4 hbl4 hmp4 hmv hhwm h2
       (by rw [hs4]; exact Hgrow) (by rw [hs4]; exact h30) hd4 Ht Hb Hboot
   rw [hsplit]
-  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ dbCrashN p R γc Good dbOk m4 H F T
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ dbCrashN p R γc Good dbOk m4 H F T
       8192 (4096 * hwm) hH hF hHc dbCrashN_disj (by rw [hsyn]; exact hok5)
     $$ [Hfd Hcs] as %e ⟨Hfd, Hs⟩
   · iframe Hfd Hcs; iframe #
@@ -1697,7 +1697,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
       4096 * hwm ≤ ((mv.txid' + W64 1) % W64 2 * W64 4096).toNat :=
     .inl (by rw [hoffm, metaPageOf_length]; omega)
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) mbuf (metaPageOf mv) (DFrac.own 1)
-      ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ dbCrashN
+      ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ dbCrashN
       p R γc Good dbOk M5 ((bs4.map Prod.fst).map durB) 8192 (4096 * hwm) rfl hoffmI b1 b2 b3 b4
       dbCrashN_disj b5 hobl2
       $$ [Hf Hmb Hfd Hcs Hpi]
@@ -1796,7 +1796,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   rw [hX]
   rw [hsplit6] at hok6
   rw [hsplit6]
-  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ dbCrashN p R γc Good dbOk m6 H6 F6
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ dbCrashN p R γc Good dbOk m6 H6 F6
       T6 8192 (4096 * hwm) hH6 hF6 hHc6 dbCrashN_disj
       (by rw [hsyn6]; exact hok7) $$ [Hfd Hcs] as %e2 ⟨Hfd, Hs⟩
   · iframe Hfd Hcs; iframe #

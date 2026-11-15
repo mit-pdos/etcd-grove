@@ -100,11 +100,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     iframe Hp
     iright; iright; ileft
     iunfold walLockIn at Hlk
-    icases Hlk with ⟨-, Hf, Hfd, -⟩
+    icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩
     iframe
     isplitr
     · ipureintro; intro hc; cases hc
-    isplitr [Hf Hfd]
+    isplitr [Hf Hfd Hlks]
     · ileft
       iunfold walPreIn
       iexists locks
@@ -179,7 +179,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     · ipureintro; exact herr
     iexists x
     iunfold walLockIn at Hlk
-    icases Hlk with ⟨-, Hf, Hfd, -⟩
+    icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩
     iframe
     unfold walLockLeft
     ileft; iframe

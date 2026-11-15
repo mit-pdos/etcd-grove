@@ -282,7 +282,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   iunfold WalFs.walAreaOk at Harea
   icases Harea with ⟨#Hinv, #HosI, #Hsi, -⟩
   icases ownDecoder_halves dec IoE eof fs 0 0#32 true gs hfl (fun k F g h1 h2 => by
-      obtain ⟨-, -, f, fd, -, hS⟩ := hfk k F g h1 h2
+      obtain ⟨-, -, f, fd, lo, lk, -, hS⟩ := hfk k F g h1 h2
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -436,7 +436,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           have hglast : gs.getLast? = some gl := by
             rw [List.getLast?_eq_getElem?, show gs.length - 1 = fsI.length by omega, hgl]
           have hglm : gl ∈ gs := List.mem_of_getElem? hgl
-          obtain ⟨-, -, fl, fdl, hflk, hFS⟩ := hfk fsI.length Fl gl (by rw [hfsI]; simp) hgl
+          obtain ⟨-, -, fl, fdl, lol, lkl, hflk, hFS⟩ := hfk fsI.length Fl gl (by rw [hfsI]; simp) hgl
           have hwrle := walReadFiles_wr_le hab hex hwr kk gs hgs gl hglast
           have hlsl : ls.length = fsI.length := by
             have := hll; simp only [List.length_append, List.length_singleton] at this; omega
@@ -448,7 +448,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           rw [hfsI]
           icases (BigSepL.bigSepL_snoc (PROP := IProp GF)).1 $$ Hleft with ⟨Hleft, ⟨%ql, Hsl⟩⟩
           iunfold walFileS at Hsl
-          icases Hsl with ⟨⟨%hql, %hfdl⟩, Hfl, Hfdl, Hoffl, Hml, Hbyl⟩
+          icases Hsl with ⟨⟨%hql, %hfdl⟩, Hfl, Hfdl, Hlksl, Hoffl, Hml, Hbyl⟩
           -- `w.tail().Seek(w.decoder.LastOffset(), io.SeekStart)`
           wp_apply (wp_LastOffset dec IoE eof _ off' c' _) $$ [$Hdec] as Hdec
           (try wp_auto)
@@ -484,8 +484,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · rw [← hgs, ← hR0eq]; exact hR0s
             · rw [← hgs, ← hR0eq]; exact hR0o
           rw [hold]
-          ihave Htw := walTailP_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay gl.om.size hfdl htm hzw hszb
-            $$ [Hfl Hfdl Hoffl Htk Hml Hbyl Htv]
+          ihave Htw := walTailP_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay gl.om.size lol lkl hfdl htm hzw hszb
+            $$ [Hfl Hfdl Hlksl Hoffl Htk Hml Hbyl Htv]
           · iframe
           wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
           · iframe
@@ -728,18 +728,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               rw [hl, List.dropLast_concat]
             have hkL : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F →
                 (gs.take fsI.length)[k]? = some g →
-                ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧
-                  F.S = walFileS f fd (child dir g.name) ((fun i => openFd i (walReadFlag true)) g.ino) g := by
+                ∃ (f : Loc) (fd : w64) (d : OsFd), fls[k]? = some f ∧
+                  F.S = walFileS f fd (child dir g.name) d g := by
               intro k F g h1 h2
               have hk : k < fsI.length := (List.getElem?_eq_some_iff.1 h1).1
               have h1' : fs[k]? = some F := by rw [hfsI, List.getElem?_append_left hk]; exact h1
               have h2' : gs[k]? = some g := by rw [List.getElem?_take, if_pos hk] at h2; exact h2
-              exact (hfk k F g h1' h2').2.2
+              obtain ⟨f, fd, lo, lk, h3, h4⟩ := (hfk k F g h1' h2').2.2
+              exact ⟨f, fd, _, h3, h4⟩
             ihave #HlkL : [∗list] k ↦ lf ∈ ls, fileutil.lockedFile lf (fls.getD k null) $$ [Hlks]
             · icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hlks with ⟨H1, -⟩
               iexact H1
             icases readAll_splitLeft (W := W) dir fsI (gs.take fsI.length) fls ls
-              (fun i => openFd i (walReadFlag true)) (by simp; omega) hlsl hkL $$ [Hleft HlkL]
+              (by simp; omega) hlsl hkL $$ [Hleft HlkL]
               with ⟨HS, Hlh⟩
             · iframe Hleft HlkL
             have hSz : ∀ g ∈ gs.take fsI.length, g.om.size = g.bs.length :=
@@ -802,7 +803,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hlastG := hlastN gl hglast
             have hglc : hj.cur !! gl.name = some (.file gl.ino) := by
               have hF : fs[fsI.length]? = some (DecFile.mk frl bsl
-                  (walFileS fl fdl (child dir gl.name) (openFd gl.ino (walReadFlag true)) gl)) := by
+                  (walFileS fl fdl (child dir gl.name) (walSegFd true lol lkl gl.ino) gl)) := by
                 rw [hfsI]; simp
               have hk := hfk fsI.length _ gl hF hgl
               exact hk.2.1

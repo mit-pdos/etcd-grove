@@ -36,9 +36,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 resources and `rc` the lock (write mode) or the file (read mode). -/
 def walOpenedRc (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceOk) (lf : Loc)
     (rc : GoInterface) : IProp GF :=
-  iprop(∃ (f : Loc) (fd : w64) (rl : Loc),
-    os.ownFile f fd (child dir b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (walReadFlag write)) ∗
-    os.ownOff f (W64 0) ∗ ⌜0 ≤ fd.toInt⌝ ∗
+  iprop(∃ (f : Loc) (fd : w64) (rl : Loc) (lo lk : Option Bool),
+    os.ownFile f fd (child dir b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (walSegFd write lo lk i) ∗
+    fdLocks fd (walSegFd write lo lk i) ∗ os.ownOff f (W64 0) ∗ ⌜0 ≤ fd.toInt⌝ ∗
     ⌜GoInterface.ok fr = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty) #rl⌝ ∗
     rl ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f ∗
     (if write then fileutil.lockedFile lf f ∗
@@ -49,8 +49,8 @@ theorem walOpenedRc_file (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInt
     (rc : GoInterface) :
     walOpenedRc (GF := GF) write dir b i fr lf rc ⊢ walOpenedFile write dir b i fr lf := by
   unfold walOpenedRc walOpenedFile
-  iintro ⟨%f, %fd, %rl, Hf, Hfd, Ho, %h0, %hfr, #Hrl, Hw⟩
-  iexists f, fd, rl
+  iintro ⟨%f, %fd, %rl, %lo, %lk, Hf, Hfd, Hlks, Ho, %h0, %hfr, #Hrl, Hw⟩
+  iexists f, fd, rl, lo, lk
   iframe
   isplitr
   · ipureintro; exact h0
@@ -70,7 +70,7 @@ theorem walOpenedRc_rcFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoI
     (rc : GoInterface) :
     walOpenedRc (GF := GF) write dir b i fr lf rc ⊢ wal.rcFile rc := by
   unfold walOpenedRc wal.rcFile
-  iintro ⟨%f, %fd, %rl, Hf, Hfd, -, -, -, -, Hw⟩
+  iintro ⟨%f, %fd, %rl, %lo, %lk, Hf, Hfd, Hlks, -, -, -, -, Hw⟩
   iexists f, fd, child dir b, _
   iframe
   cases write
@@ -184,7 +184,7 @@ theorem walOpenedRc_split (write : Bool) (dir b : GoString) (i : Ino) (fr : GoIn
   iintro H
   ihave #Hl : walRcLink (GF := GF) write fr lf rc $$ [H]
   · iunfold walOpenedRc at H
-    icases H with ⟨%f, %fd, %rl, -, -, -, -, %hfr, #Hrl, Hw⟩
+    icases H with ⟨%f, %fd, %rl, %lo, %lk, -, -, -, -, -, %hfr, #Hrl, Hw⟩
     iunfold walRcLink
     iexists f, rl
     isplitr
@@ -218,7 +218,7 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   iunfold walRcLink at Hl
   iunfold wal.walClosable at Hc
   icases Hl with ⟨%f, %rl, %hfr, #Hrl, #Hw⟩
-  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, -⟩
+  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, Hlks, -⟩
   have hrl : rl' = rl := by
     have h1 := hfr'.symm.trans hfr
     unfold interface.mkOk at h1
@@ -233,7 +233,7 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   subst hf
   iunfold wal.rcFile
   iexists f', fd, nm, fl
-  iframe Hf Hfd
+  iframe Hf Hfd Hlks
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hw with %hw
@@ -501,10 +501,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
           iframe Hop
           rw [List.getD_eq_getElem?_getD, hb, Option.getD_some]
           iunfold walOpenedRc
-          iexists f, fd, rl
+          iexists f, fd, rl, none, none
           iframe
           simp only [Bool.false_eq_true, ↓reduceIte, walReadFlag]
-          iframe
+          isplitr
+          · iapply fdLocks_unlocked <;> rfl
           isplitr
           · ipureintro; exact hfd0
           isplitr
@@ -563,6 +564,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       wp_apply wp_TryLock (child d b) (W64 2) (W32 384) _ Unit _ _
           (walOpen_triple R d b dq j i N dqn h qc (W64 2)
             (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hbok hbN hbi)
+          (by decide)
         $$ [Hp Hn Hperm] as %lf %err ⟨Hpost, Herr⟩
       · isplitl []; · iexact Hinv
         isplitl []; · iexact Hfu
@@ -570,10 +572,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitl []; · iexact Hsi
         iframe
       iunfold fileutil.lockPost at Hpost
-      icases Hpost with ⟨%x, (⟨%he, ⟨Hp, Hn, Hperm⟩, %f, %fd, %i', %hc, #Hlf, Hf, Ho, Hfd⟩ | ⟨%he, %b', ⟨Hp, Hn, Hperm⟩⟩)⟩
+      icases Hpost with ⟨%x, (⟨%he, ⟨Hp, Hn, Hperm⟩, %f, %fd, %i', %lk0, %hc, #Hlf, Hf, Ho, Hfd, Hlk0, #Hkind⟩ | ⟨%he, %b', ⟨Hp, Hn, Hperm⟩⟩)⟩
       · subst he
         obtain ⟨hfd0, hii⟩ := hc
         rw [hii]
+        ihave Hfd := lkFd_open lk0 i _ fd true true rfl rfl $$ [$Hfd $Hlk0 $Hkind]
+        icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
         (try wp_auto)
         wp_apply wp_slice_literal (V := Loc) [lf]
         isplitr
@@ -621,15 +625,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         have hj1 : sint.nat (jj + W64 1) = sint.nat jj + 1 :=
           walOpen_succ jj ns.length Hj0 hns62 hjlt
         rw [hj1]
-        isplitl [Hop Hf Ho Hfd]
+        isplitl [Hop Hf Ho Hfd Hlks]
         · iapply (walOpenedRcs_snoc true d ns is (sint.nat jj) i frs lfs rcs _ lf _ hi ⟨Hfl, Hll, Hrl⟩)
           iframe Hop
           rw [List.getD_eq_getElem?_getD, hb, Option.getD_some]
           iunfold walOpenedRc
-          iexists f, fd, rl
+          iexists f, fd, rl, lo, lk
           iframe
           simp only [↓reduceIte, walReadFlag]
-          iframe
           isplitr
           · ipureintro; exact hfd0
           isplitr

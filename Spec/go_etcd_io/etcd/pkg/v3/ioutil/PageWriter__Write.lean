@@ -47,6 +47,22 @@ abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec : Prop :=
          (∃ a b : List w8, ⌜err ≠ GoInterface.nil ∧ pend' = [] ∧ a ++ b <+: pend ++ xs⌝ ∗
             B (out ++ a) b)) }}
 
+/-- `spec` over a writer called only with bytes (`io.writerStreamPNE`): the page writer hands its writer only a non-empty buffer and whole pages (unit `noioerr`). -/
+abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.specNE : Prop :=
+  ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
+    (ok : List w8 → Prop) (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac),
+  xs.length < 2 ^ 62 → (∀ ys zs, ys <+: zs → ok zs → ok ys) → ok (out ++ pend ++ xs) →
+  ⊢ io.writerStreamPNE wi ok W B -∗
+    {{ ioutil.ownPageWriter pw wi pend ∗ W out ∗ p ↦*{dq} xs }}
+      (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
+        go!"Write")) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+        ∃ pend' : List w8, ioutil.ownPageWriter pw wi pend' ∗ p ↦*{dq} xs ∗
+        ((∃ ys : List w8, ⌜err = GoInterface.nil ∧ ys ++ pend' = pend ++ xs ∧ sint.Z n = xs.length⌝ ∗
+            W (out ++ ys)) ∨
+         (∃ a b : List w8, ⌜err ≠ GoInterface.nil ∧ pend' = [] ∧ a ++ b <+: pend ++ xs⌝ ∗
+            B (out ++ a) b)) }}
+
 end spec
 
 end EtcdGrove

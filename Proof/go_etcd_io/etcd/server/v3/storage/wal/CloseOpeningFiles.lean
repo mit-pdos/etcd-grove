@@ -37,51 +37,52 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
-/-- The `k`th file of the tie, open on the segment `g`: its `*os.File` and fd. -/
-def walTieFile (dir : GoString) (flag : w64) (fls : List Loc) (k : Nat) (g : SegG) : IProp GF :=
-  iprop(∃ fd : w64, os.ownFile (fls.getD k null) fd (child dir g.name) (DFrac.own 1) ∗
-    osFd fd (DFrac.own 1) (openFd g.ino flag))
+/-- The `k`th file of the tie, open on the segment `g`: its `*os.File`, fd and locks. -/
+def walTieFile (dir : GoString) (write : Bool) (fls : List Loc) (k : Nat) (g : SegG) : IProp GF :=
+  iprop(∃ (fd : w64) (lo lk : Option Bool), os.ownFile (fls.getD k null) fd (child dir g.name) (DFrac.own 1) ∗
+    osFd fd (DFrac.own 1) (walSegFd write lo lk g.ino) ∗ fdLocks fd (walSegFd write lo lk g.ino))
 
 /-- The `k`th file, any name and fd state (what a lock's `Close` needs). -/
 def walFileAt (fls : List Loc) (k : Nat) : IProp GF :=
   iprop(∃ (fd : w64) (nm : GoString) (d : OsFd), os.ownFile (fls.getD k null) fd nm (DFrac.own 1) ∗
-    osFd fd (DFrac.own 1) d)
+    osFd fd (DFrac.own 1) d ∗ fdLocks fd d)
 
-theorem walTieFile_at (dir : GoString) (flag : w64) (fls : List Loc) (k : Nat) (g : SegG) :
-    walTieFile (GF := GF) dir flag fls k g ⊢ walFileAt fls k := by
+theorem walTieFile_at (dir : GoString) (write : Bool) (fls : List Loc) (k : Nat) (g : SegG) :
+    walTieFile (GF := GF) dir write fls k g ⊢ walFileAt fls k := by
   unfold walTieFile walFileAt
-  iintro ⟨%fd, Hf, Hfd⟩
+  iintro ⟨%fd, %lo, %lk, Hf, Hfd, Hlks⟩
   iexists fd, _, _
   iframe
 
 /-- See the file header. -/
-theorem walTie_files (dir : GoString) (flag : w64) :
+theorem walTie_files (dir : GoString) (write : Bool) :
     ∀ (gs : List SegG) (fs : List (DecFile GF)) (fls : List Loc),
     fs.length = gs.length → fls.length = gs.length →
     (∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
-      ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧ F.S = walFileS f fd (child dir g.name) (openFd g.ino flag) g) →
+      ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
+        F.S = walFileS f fd (child dir g.name) (walSegFd write lo lk g.ino) g) →
     ([∗list] F ∈ fs, ∃ r, F.S r) ⊢
       ([∗list] g ∈ gs, segRes (L := hG.goose_localGS) g) ∗
-      [∗list] k ↦ g ∈ gs, walTieFile dir flag fls k g
+      [∗list] k ↦ g ∈ gs, walTieFile dir write fls k g
   | [], [], _, _, _, _ => by
     iintro -
     isplitl
     · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
     · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   | g :: gs, F :: fs, f0 :: fls, hl1, hl2, hk => by
-    obtain ⟨f, fd, hf, hS⟩ := hk 0 F g rfl rfl
+    obtain ⟨f, fd, lo, lk, hf, hS⟩ := hk 0 F g rfl rfl
     simp only [List.getElem?_cons_zero, Option.some.injEq] at hf
     subst hf
-    have e : ∀ (k : Nat) (g' : SegG), walTieFile (GF := GF) dir flag (f0 :: fls) (k + 1) g' =
-        walTieFile dir flag fls k g' := by
+    have e : ∀ (k : Nat) (g' : SegG), walTieFile (GF := GF) dir write (f0 :: fls) (k + 1) g' =
+        walTieFile dir write fls k g' := by
       intro k g'; simp [walTieFile]
-    have ih := walTie_files dir flag gs fs fls (by simpa using hl1) (by simpa using hl2)
+    have ih := walTie_files dir write gs fs fls (by simpa using hl1) (by simpa using hl2)
       (fun k F' g' h1 h2 => hk (k + 1) F' g' h1 h2)
     iintro H
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H with ⟨⟨%r, Hs⟩, H⟩
     rw [hS]
     unfold walFileS
-    icases Hs with ⟨-, Hf, Hfd, -, Hm, Hb⟩
+    icases Hs with ⟨-, Hf, Hfd, Hlks, -, Hm, Hb⟩
     icases ih $$ H with ⟨Hsg, Hfs⟩
     isplitl [Hm Hb Hsg]
     · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
@@ -91,7 +92,7 @@ theorem walTie_files (dir : GoString) (flag : w64) :
       simp only [e]
       iframe Hfs
       unfold walTieFile
-      iexists fd
+      iexists fd, lo, lk
       iframe
   | [], _ :: _, _, hl1, _, _ => by simp at hl1
   | _ :: _, [], _, hl1, _, _ => by simp at hl1
@@ -119,7 +120,7 @@ theorem walTie_locks :
     iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
     isplitl [Hf0]
     · unfold walFileAt walLockH
-      icases Hf0 with ⟨%fd, %nm, %d, Hf0, Hfd0⟩
+      icases Hf0 with ⟨%fd, %nm, %d, Hf0, Hfd0, Hlks0⟩
       iexists fls.getD 0 null, fd, nm, d
       iframe
       iexact Hl0

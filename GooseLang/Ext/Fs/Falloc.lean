@@ -1,7 +1,7 @@
 /-
 WP specs of the Linux file extension's `fallocate` (`FallocStart`, `FallocFinish` for mode 0, a
-truncate to `max size (off + len)`; `FallocKeep` for `FALLOC_FL_KEEP_SIZE`, no visible change) and
-of the OFD lock (`OfdLock`, trivial), as `Truncate.lean`'s and `wp_osFlock`.
+truncate to `max size (off + len)`; `FallocKeep` for `FALLOC_FL_KEEP_SIZE`, no visible change), as
+`Truncate.lean`'s. (The OFD lock is in `Locks.lean`.)
 -/
 module
 
@@ -23,42 +23,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 attribute [local instance] Classical.propDecidable
-
-/-- `fcntl(fd, F_OFD_SETLK[W], ...)`: any errno, nothing changed (the lock state is not
-modelled). -/
-theorem wp_osOfdLock (fd cmd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
-      (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "OfdLock" (Val (PairV (#fd) (#cmd)))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd HΦ
-  iapply wp_os_step "OfdLock" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %h Hw
-  unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
-  obtain ⟨hwf, hcoh⟩ := Hwc
-  unfold osFd
-  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
-  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
-  imodintro
-  isplitr
-  · ipureintro
-    exact ⟨_, h, st, ⟨fd, cmd, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same hwf rfl rfl Hag⟩
-  inext
-  iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  simp only [IsFsStep] at Hst
-  obtain ⟨fd', cmd', e, d', hv, -, rfl, rfl⟩ := Hst
-  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
-  · iframe
-  imodintro
-  iexists Γb, Γm, Γf, Γt
-  iframe
-  isplitr
-  · ipureintro; exact ⟨hwf, hcoh⟩
-  iapply wp_value'
-  iapply HΦ $$ Hfd
 
 /-- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: any errno, no visible change. -/
 theorem wp_osFallocKeep (fd off len : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E)

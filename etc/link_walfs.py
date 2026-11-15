@@ -590,16 +590,27 @@ def main(root, perennial, argv0, check=False, cfg=None):
 
     # the section's instances: the linked proofs' own and their modules' `variable` lines
     insts = []
+    # implicit section variables an instance names (`{Sio : IoSet}` of `[FsStepSat (NoIoErr Sio)]`,
+    # unit `noioerr`): emitted before the instances, those of `SEC_VARS` left out
+    imps = []
     exts = sorted(s for s, h in how.items() if h[0] == "result" and h[1]["ext"])
     for s in order + exts:
         x = how[s][1]
         groups = [h for h in x["hyps"] if h.startswith("[")]
         for line in varlines.get(x["mod"], []):
             groups += re.findall(r"\[[^\]]*\]", line)
+            for g in re.findall(r"\{[^\}]*\}", line):
+                g = " ".join(g.split())
+                if g not in SEC_VARS and g not in imps:
+                    imps.append(g)
         for g in groups:
             cls = " ".join(re.sub(r"^\[\s*(?:[\w']+\s*:\s*)?", "", g)[:-1].split())
             if cls not in OWN_INSTS and not OTHER_INSTS.search(cls) and cls not in insts:
                 insts.append(cls)
+
+    imps = [g for g in imps
+            if any(re.search(r"\b" + re.escape(v) + r"\b", c) for c in insts
+                   for v in g[1:-1].split(":")[0].split())]
 
     imports = set()
     for s, h in how.items():
@@ -634,13 +645,13 @@ namespace """ + lns + """
 
 """ + OPENS + """
 section links
-""" + SEC_VARS + "".join(f"variable [{c}]\n" for c in insts))
+""" + SEC_VARS + "".join(f"variable {g}\n" for g in imps) + "".join(f"variable [{c}]\n" for c in insts))
     out.extend(emit(s) for s in order if not hyps_of[s])
     out.append("end links\n")
     out.append("""/-! The results that reach a spec with no proof or a premise on the model parameters: each takes
 them as hypotheses (`h_<name>`, explicit binders). -/
 section links_pending
-""" + SEC_VARS + "".join(f"variable [{c}]\n" for c in insts))
+""" + SEC_VARS + "".join(f"variable {g}\n" for g in imps) + "".join(f"variable [{c}]\n" for c in insts))
     out.extend(emit(s) for s in order if hyps_of[s])
     out.append("end links_pending\n\nend " + lns + "\nend EtcdGrove\nend Perennial")
     text = "\n".join(out) + "\n"

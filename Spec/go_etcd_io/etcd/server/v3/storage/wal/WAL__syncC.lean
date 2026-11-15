@@ -52,7 +52,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr
           WalFs.walSyncedLb dir h.H.length) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag nf ∗
         ∃ (f : Loc) (fd : w64) (name : GoString) (d : OsFd) (R : Roots) (q : Qp),
-          nmd f R q ∗ os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) }}
+          nmd f R q ∗ os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) }}
 
 end spec
 
