@@ -289,7 +289,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   []⌝ ∗ Q (kvStateOf x.log lt)` (or the model's table named through `modelOutM`), and the read side's
   `□ Q (kvStateOf log lt)`, followed through v3rpc (`ServerKVOn`) and the client's KV results; (C) a
   transitional tie of the auth-on request side to the lease mode `none` until S3b. Not in Draft rev 5 §7.
-- **Decision.** Pending (etcd-grove-81; S3a stopped at this finding).
+- **Decision.** (A), with the stronger guard `⌜E.authOn = false ∨ γ.kv.lm = .none → lt = []⌝` (etcd-grove-81, 2026-11-15): S3a Draft rev 6, §14 (recorded here 2026-11-15, S3a2 review r2 S7).
 
 ## 2026-11-15: the latest track's certificate premise for a leased put or transaction -- unprovable at a dead lease (auth-lease S3a §6)
 
