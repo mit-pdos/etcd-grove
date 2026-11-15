@@ -1929,3 +1929,16 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   calls `ValidSnapshotEntries`, whose spec takes `walUnlockedTok`, which the open handle holds.
 - **Proposed change.** A VSE spec over an open handle (the handle pins the segments), then the three. Low priority.
 - **Decision.** Proposed.
+
+## 2026-11-15: `SP/storage/storage__MinimalEtcdVersion.lean` -- no panic under `diskOk`, false while the purge runs
+
+- **Spec.** `storage.MinimalEtcdVersion.spec` (SpecPlan): returns without panicking under `diskOk`.
+- **Defect.** `MinimalEtcdVersion` reopens the WAL (`w.Reopen`), releasing every segment lock, while the server's
+  purge (`fileutil.PurgeFileWithDoneNotify`, `--max-wals`) may delete or lock segments the reopen needs; the
+  reopen then panics.
+- **Evidence.** `issues/etcd-storage-downgrade-reopen-purge-panic.md` (test reproduces the panic 5/5 at upstream
+  main `260e4e0457aa`, 3/3 at the fork `3df9b265f`).
+- **Proposed change.** Either the spec takes "no purge runs" (a premise the server's downgrade path would have
+  to establish), or the fork reads the entries through `wal.OpenForRead` instead of reopening (the issue's
+  proposed fix, untested), after which the spec stands.
+- **Decision.** Proposed (with specgap's P8, the lock model, and P13).
