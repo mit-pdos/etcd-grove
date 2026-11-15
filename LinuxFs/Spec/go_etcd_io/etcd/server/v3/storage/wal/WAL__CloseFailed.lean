@@ -7,7 +7,11 @@ back from the ghost handle (`walReadFailed`), with the half of the call permissi
 pipeline held (the client holds the other half since `Open`). On an error the token may be lost (W4c U5,
 fifth session; ledger 2026-11-14, "`WAL.Close.specFailed`'s post"): after `ReadAll`'s `ZeroToEnd` or its
 fdatasync failed, the tail may be left in a resize window, which only `Close`'s own fdatasync closes; if
-that fails, the tail cannot be put back. The tester's `restartRead` (`examples/etcd/wal/wal.go`, `w.Close()`
+that fails, the tail cannot be put back. **Then the error result hands back what the handle held of the
+directory** (`walCloseLeft R dir`, `CloseLeft.lean`: the directory claim's half at the layout's names, the
+last segment's held lock, the call permission's half; unit `locks`, session 3, ledger 2026-11-15, P7
+continued): exactly what `wal.Repair.specHeld` takes, so etcd's boot path (`w.Close()`'s error ignored,
+then `Repair`) goes on (`CloseFailedRepair.lean`). The tester's `restartRead` (`examples/etcd/wal/wal.go`, `w.Close()`
 after a failed `ReadAll`; a non-nil answer fails the read, a nil one is followed by `Repair`, which takes the
 token) is its client.
 
@@ -21,6 +25,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLeft
 
 @[expose] public section
 
@@ -47,7 +52,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specFailed (Mr : WalMarsh
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
-      (WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
+        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft R dir) }}
 
 end spec
 
