@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-15: `fmt.ErrorfPlain.spec` (trust boundary) -- false for a flagged `w` verb (`%+w`, `%-5w`): the premise `¬ List.IsInfix "%w" format` lets them through
+
+- **Spec.** `Spec/fmt/ErrorfPlain.lean`, `fmt.ErrorfPlain.spec`; its axiom `fmt.ErrorfPlain.wp_proof`
+  (`Proof/fmt/ErrorfPlain.lean`). No SpecPlan counterpart.
+- **Defect.** False of Go: a `w` directive with flags, width or precision has no `%w` infix, parses as
+  a `w` directive (`fmt.fmtDirectives`), which `fmt.argsOk fmt.errorfVerbs` admits, and Go's
+  `doPrintf` wraps at every `w` verb (`fmt/print.go:1051-1052,1146-1147`, go1.27.3): `Errorf` returns a
+  `*fmt.wrapError`, not the leaf `*errors.errorString` the post claims. Latent: the two callers
+  (`rafthttp.checkPostResponse`, `streamReader.dial`) use literal formats with no `w` verb.
+- **Evidence.** `notes/axiom-review/errorfplain.md` (k8s 7f-5a-P, 2026-11-15); the counterexample
+  `examples/axiomcx/errorfplain` (`errors.Is(fmt.Errorf("%+w", io.EOF), io.EOF)` is true).
+- **Proposed change.** The premise becomes E3's (`notes/k8s-7f5a-draft.md` §11.3): `∃ ds,
+  fmt.fmtDirectives format = some ds ∧ ∀ d ∈ ds, d.verb ≠ W8 119`; the post unchanged. Evidence of the
+  new premise: `examples/premisefix/errorfwrap` (`TestNoWDirectiveGivesErrorString`, 200000 random
+  formats). The callers discharge it by `refine ⟨_, rfl, ?_⟩; decide`.
+- **Decision.** Accepted (etcd-grove-81, 2026-11-15; branch `errorfplain-fix`).
+
 ## 2026-11-15: `applyAll.spec` (proof sketch) -- the merge's guard is no longer only `m.term = raftTerm`, `index ≤ appliedi`: the verified fork defers a merge inside the replay window
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `applyAll.spec`
