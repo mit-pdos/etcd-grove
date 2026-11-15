@@ -14,6 +14,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutLay
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleasePos
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 
 @[expose] public section
 
@@ -195,6 +196,30 @@ theorem LkRel_read {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} 
         rw [this] at e; simp at e; subst e; exact hne rfl
   · exact Nat.le_of_eq (by rw [hfk])
 
+/-- **The handle's lock names** (the non-tail locks' then the tail's): each a segment's name at its
+sequence, present in the directory. -/
+theorem LkRel_names {hj : NamesH} {cuts : List Nat} {nm0 : GoString} {ls : List (GoString × Ino)} {b : Nat}
+    {ino : Ino} (h : LkRel hj cuts nm0 ls b) (hnm0 : hj.cur !! nm0 = some (.file ino)) :
+    ∀ k bn, (ls.map (·.1) ++ [nm0])[k]? = some bn →
+      ∃ ix n, bn = walFileName (cuts.length - ls.length + k) ix ∧ hj.cur !! bn = some n := by
+  intro k bn hk
+  obtain ⟨h1, -, ⟨ix0, h3⟩, h4, -⟩ := h
+  rcases Nat.lt_or_ge k ls.length with hlt | hge
+  · rw [List.getElem?_append_left (by simpa using hlt), List.getElem?_map] at hk
+    cases hl : ls[k]? with
+    | none => rw [hl] at hk; cases hk
+    | some l =>
+      rw [hl] at hk; simp only [Option.map_some, Option.some.injEq] at hk; subst hk
+      obtain ⟨hl1, ix, hix⟩ := h4 k l hl
+      exact ⟨ix, _, hix, hl1⟩
+  · rw [List.getElem?_append_right (by simpa using hge)] at hk
+    have hk0 : k - ls.length = 0 := by
+      have := (List.getElem?_eq_some_iff.1 hk).1
+      simp only [List.length_map, List.length_singleton] at this; omega
+    simp only [List.length_map, hk0, List.getElem?_cons_zero, Option.some.injEq] at hk
+    subst hk
+    exact ⟨ix0, _, by rw [h3]; congr 1; omega, hnm0⟩
+
 end pure
 
 section iris
@@ -204,6 +229,83 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+
+/-- **A lock's file, named `child pd bn`** (a segment's name; persistent): what `ReleaseLockTo`'s name loop
+reads (`l.Name()`, `filepath.Base`). -/
+def walLockBase (lf : Loc) (bn : GoString) : IProp GF :=
+  iprop(∃ (f : Loc) (pd : GoString), fileutil.lockedFile lf f ∗ os.fileNamed f (child pd bn) ∗
+    ⌜walSegName (child pd bn)⌝)
+
+instance walLockBase_persistent (lf : Loc) (bn : GoString) : Persistent (walLockBase (GF := GF) lf bn) := by
+  unfold walLockBase; infer_instance
+
+theorem walLockHI_base (lf : Loc) (bn : GoString) (i : Ino) :
+    walLockHI (GF := GF) lf bn i ⊢ walLockHI lf bn i ∗ walLockBase lf bn := by
+  unfold walLockHI walLockBase
+  iintro ⟨%f, %fd, %pd, %d, #Hl, Hf, Hfd, Hk, %h⟩
+  ihave #Hn := os.ownFile_named f fd (child pd bn) (DFrac.own 1) $$ Hf
+  isplitl [Hf Hfd Hk]
+  · iexists f, fd, pd, d; iframe Hl Hf Hfd Hk; ipureintro; exact h
+  · iexists f, pd; iframe Hl Hn; ipureintro; exact h.1
+
+theorem walLocksHI_base (lfs : List Loc) (ls : List (GoString × Ino)) :
+    ([∗list] lf; l ∈ lfs; ls, walLockHI (GF := GF) lf l.1 l.2) ⊢
+      ([∗list] lf; l ∈ lfs; ls, walLockHI (GF := GF) lf l.1 l.2) ∗
+        □ [∗list] lf; bn ∈ lfs; ls.map (·.1), walLockBase (GF := GF) lf bn := by
+  induction lfs generalizing ls with
+  | nil =>
+    cases ls with
+    | nil =>
+      iintro H; iframe H; imodintro
+      simp only [List.map_nil]
+      iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2; iempintro
+    | cons l ls => iintro H; ihave %h := BigSepL2.bigSepL2_length $$ H; simp at h
+  | cons x xs ih =>
+    cases ls with
+    | nil => iintro H; ihave %h := BigSepL2.bigSepL2_length $$ H; simp at h
+    | cons l ls =>
+      iintro ⟨Hx, Hxs⟩
+      ihave ⟨Hx, #Hbx⟩ := walLockHI_base x l.1 l.2 $$ Hx
+      ihave ⟨Hxs, #Hbxs⟩ := ih ls $$ Hxs
+      iframe Hx Hxs
+      imodintro
+      simp only [List.map_cons]
+      iapply (BigSepL2.bigSepL2_cons (PROP := IProp GF)).2
+      iframe Hbx Hbxs
+
+/-- **The first `m` locks as `walLockH`s, the rest kept.** -/
+theorem walLocksHI_split (m : Nat) (lfs : List Loc) (ls : List (GoString × Ino)) :
+    ([∗list] lf; l ∈ lfs; ls, walLockHI (GF := GF) lf l.1 l.2) ⊢
+      ([∗list] lf ∈ lfs.take m, walLockH (GF := GF) lf) ∗
+        [∗list] lf; l ∈ lfs.drop m; ls.drop m, walLockHI (GF := GF) lf l.1 l.2 := by
+  induction m generalizing lfs ls with
+  | zero =>
+    iintro H
+    simp only [List.take_zero, List.drop_zero]
+    iframe H
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+  | succ m ih =>
+    cases lfs with
+    | nil =>
+      iintro H
+      simp only [List.take_nil, List.drop_nil]
+      cases ls with
+      | nil =>
+        isplitr
+        · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+        · simp only [List.drop_nil]; iexact H
+      | cons l ls => ihave %h := BigSepL2.bigSepL2_length $$ H; simp at h
+    | cons x xs =>
+      cases ls with
+      | nil => iintro H; ihave %h := BigSepL2.bigSepL2_length $$ H; simp at h
+      | cons l ls =>
+        iintro ⟨Hx, Hxs⟩
+        ihave ⟨Ht, Hd⟩ := ih xs ls $$ Hxs
+        simp only [List.take_succ_cons, List.drop_succ_cons]
+        iframe Hd
+        iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+        iframe Ht
+        iapply walLockHI_H $$ Hx
 
 /-- **The old tail as a non-tail lock** (`cut`): its lock, its file at `child pd bn` (`bn` a segment's
 name), its writable locked description on `i`. -/

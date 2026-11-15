@@ -461,3 +461,69 @@ purge raised `pur` to at least the removed segments' end before removing anythin
 
 **Decisions left for the user**: none new (the trusted change's text, §4, still pending). **No new axiom, no
 `sorry`. No Go bug found** (item 3 above is a check on our own tester, not a finding).
+
+### Session 5 (2026-11-15, branch `wal-c-purge2`, base `origin/wal-int` `dbd4495eb5`; merged `32d1f57a80`, synclent)
+
+**Done** (built with `lake build`: the WAL `Link`, the tester's `Link` and `Main`; no new axiom, no `sorry`, nothing
+trusted changed, no Go changed):
+
+- **Item 1, the handle's half of the tie** (`Handle.lean`, `LockRange.lean`). As session 4 planned, with the
+  least churn: `walDirH dir j dfd ino name k lfs cuts …` takes the non-tail lock list and the cuts, its old
+  `walTailsFrag` conjunct is now `walDirLks dir hj nm0 lfs cuts` (one conjunct, so every `walDirH` pattern keeps
+  its shape): the holder's half `walTailsFrag {dir ↦ γt} {dir ↦ b}`, the non-tail locks `[∗list] lf; l ∈ lfs; ls,
+  walLockHI lf l.1 l.2` (a lock on the segment named `l.1` with inode `l.2`, exclusively locked: `walLockH` plus
+  `d.ino = i ∧ ∃ k, d.lk k = some true`) and `LkRel hj cuts nm0 ls b`: the locked segments are the last ones by
+  sequence (tail `|cuts|`, the non-tail ones the `|ls|` before it, each at its name in `hj`), every other `.wal`
+  name has a smaller sequence, the first locked segment starts at or before `b`, `|cuts| < 2^64`. The lock slot
+  of `walHandleIn` (and `walHandleC`) is `True`. The tail's description is now known locked: `walTailW` holds
+  `fdLocksW` (so `cut` can make the old tail a `walLockHI`); `walLockIn`/`wp_createSeg` carry it for `Create`.
+  The range moves:
+  - `Create`: registered at 0 in its commit (`walTailReg`, `CreateAu.lean`, `walGhost_lksSet`).
+  - `ReadAll`: registered at the first read segment's start in its registration look (`walInv_readCommitReg`
+    takes `hPre`); `LkRel_read`. **This needed a client-facing premise** (ledger 2026-11-15, "the handle's half of
+    the lock tie"): `ReadAll.spec`'s atomic precondition now also says `walOpenPos (d.H) s.1 ≤ d.unl`, what
+    `Open(s)`'s update left (nothing the proof holds between `Open` and `ReadAll` records it: `unl` is not in
+    `absLe`, and nothing freezes the history before the tail is registered). The tester gives it from
+    `walOpenRaise` (`restartRead.lean`). With it, `absD_segStart_le_openPos` (over `cutStart_le_openPos`,
+    `ReleasePos.lean`: no snapshot record after the segment needed) bounds the start. The read path's failure laws
+    (`walInv_untailPend`/`Key`, `readAll_failPend`/`Synced`, `walInv_readGive`, `walTailsRes_only`) take any
+    range and drop it; the lent exits use `readAll_failWpQL` (drops it at the failed-opening step).
+  - `cut`: `walDirLks_cut` (`LkRel_cut`; the old tail's lock `walLockHI_ofTail`).
+  - `ReleaseLockTo`: below. `Close` (all three) drop it before the unregistration (`walInv_lksDrop`,
+    `ReleaseAu.lean`).
+- **Item 3, `WAL.ReleaseLockTo.wp_proofNoErr`/`wp_proof` re-proved over the tie** (statements unchanged). The commit
+  (`walInv_releaseLks`, `ReleaseTie.lean`) raises `unl` and the range together, to `b' = max b (walReleasePos H
+  a)`, and returns, from the layout (`walInvBody_handleLook`: the claim's names against `WalAbsD`, the tail record's
+  cuts and history), that every `.wal` name of the directory with index below `a` starts at or before `b'`
+  (`absD_name_le_releasePos`, over `cutStart_le_releasePos`; `walFileName_inj`). The name loop now records that
+  every lock before the counter has index below `a` (the names from `LkRel_names`, persistent `walLockBase`), so the
+  kept lock `smaller` has; `LkRel_release` drops the first `smaller` locks (`walLocksHI_split`). `durable`'s `Link`
+  not rebuilt (no change in what it uses, not checked).
+- **Item 4, the tester's oracle covers a purge: yes, no mismatch.** Session 4's worry (an `Open` raising `d.unl`
+  past `c.unl`) does not arise at `opOwnSnap`: the running member's relation is `tMemOk o c d`
+  (`Member.lean`), which has `o.opens = []` and `d.unl ≤ c.unl` (the opens bound only matters between a restart's
+  `Open` and its `checkRestart`). So a purge to any `p ≤ d.unl` (what the purge law gives: the removed segment
+  ends at or before the handle's `b ≤ d.unl`) stays within `c.pur` once `opOwnSnap` raises every candidate's
+  `pur` to its `unl` (stored before the round), and `d.cut = segStart (first + 1) ≤ p`. Neither a tester bug nor a
+  proof gap.
+
+**Not done: items 2 and 5.**
+- **Item 2, the purge law and the invariant's purge step** (with the crash's alternative layouts, session 4's
+  choice). Everything on the handle's side is now in place: at `os.Remove(dir/nm)` with the remover's `osLock k i
+  fd'`, `fileutil.lockKind k`, and `hj.cur !! nm = some (.file i)`, `nm` not the largest name: if `nm` is a lock's
+  name, `fdLocks_excl` against its `walLockHI` refutes; otherwise `LkRel` gives its sequence below the first locked
+  one, so (cuts increasing, `WalAbsD.cuts`) it ends at or before `b ≤ d.unl` (`walLks_agree`). Left: the law itself
+  over `walOpenWF` (a sealed-handle update opening `walInv`, taking the claim's two halves for the name,
+  `NameSplit.lean`), the layout step at the removal (`walAbsD_purge` with `p = d.unl`; `nm` is `lay.first`'s:
+  the round removes oldest first), and the crash side: the removed-not-durable segments `pg` per directory and
+  `CrashOkA`'s alternatives with a suffix of `pg` put back (session 4's design), which touches `CrashOkW`/`CrashTo`
+  and every invariant step that rebuilds them.
+- **Item 5, `purgeRound`**: not restored (Go untouched): it needs item 2, and specs for `fileutil.ReadDir` of the
+  WAL directory under the handle's claim half and for `TryLockFile` relating the path to the inode `hj` maps it to.
+  The spec shape stays session 4's (a caller-supplied repeatable commit, `□ ∀ d, Pc d -∗ …`).
+
+**Next steps**: (1) the purge law (item 2's first part) as an update on `walOpenWF` — no invariant change; (2) the
+`pg` crash bookkeeping; (3) `purgeRound`'s spec and proof, the Go restored, retranslated, `opOwnSnap` re-proved.
+
+**Decisions left for the user**: none new (the trusted change's text, §4, still pending review). **No new axiom, no
+`sorry`. No Go bug found.**

@@ -2124,3 +2124,28 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   marshaller, for the lent tail's write position), the ReadAll/Close.specFailed statements updated with it.
 - **Decision.** Made (internal; the client-facing change is the error arm's `walCloseLeft dir`, which only
   `restartRead` (drops it) and `wp_afterCloseFailed` use).
+
+## 2026-11-15: the handle's half of the lock tie (unit `locks`, session 5) -- `WAL.ReadAll.spec`'s premise, the handle's locks
+
+- **Spec.** `WAL.ReadAll.spec` (client-facing: the atomic precondition); internal: `walDirH` (new arguments: the
+  non-tail lock list and the cuts), `walHandleIn`/`walHandleC` (the lock slot moved into `walDirH`), `walTailW`,
+  `walLockIn` (`renameWAL.spec`), `wp_createSeg`, `walTailReg`, `walInv_readCommitReg`, `readAll_splitLeft`,
+  `walInv_untailPend`/`walInv_untailKey`/`readAll_failPend`/`readAll_failSynced`/`walInv_readGive` (any range).
+- **Defect.** `ReleaseLockTo`'s `unl` raise was bookkeeping (nothing tied the handle's locks to it), so the purge
+  could not be proved: a purger must know that a segment it can lock ends at or before `unl`. The handle has to
+  register its locked range (`walLksAuth`'s `b ≤ unl`, session 4) at the point it can show the range is within
+  `unl`. For a restarted handle that point is `ReadAll`: `Open(s)` raised `unl` to `walOpenPos H s`, but nothing
+  the proof holds between `Open` and `ReadAll` records it (`unl` is not in `absLe`, the history is not frozen by
+  anything until the tail record is registered); only the client, which did that `Open`, knows it.
+- **Evidence.** `OpenAtPin.lean` (`walInv_openAt` raises `unl` and keeps no witness); `ReadAllRegCommit.lean`
+  (the registration's look sees the client's `d`); the tester's `restartRead` holds `tWalOwn γ (some
+  (walOpenRaise pr dc))`, i.e. exactly `Open`'s raised state, at `ReadAll`.
+- **Change (made).** (1) `WAL.ReadAll.spec`'s atomic precondition: `some s = walNewestPair … ∧ walOpenPos (d.H)
+  s.1 ≤ d.unl` (the tester proves it from `walOpenRaise`, `restartRead.lean`). (2) Internal: `walDirLks` /
+  `LkRel` / `walLockHI` (`Handle.lean`): the handle's non-tail locks with their segment names and inodes,
+  exclusively locked, and its registered range; `walTailW` (and `walLockIn`, `wp_createSeg`'s post) carry
+  `fdLocksW` (the tail's description is locked); the registration laws above. `WAL.ReleaseLockTo.spec{,NoErr}`
+  unchanged: now proved with the raise meaning what its docstring said (the released locks' segments end at or
+  before `walReleasePos`, `cutStart_le_releasePos`).
+- **Decision.** Made (the client-facing change is a premise every caller meets by calling `Open` first; the
+  server's `openWALFromSnapshot` does the same, not translated in the part).
