@@ -1087,6 +1087,29 @@ theorem srvKVInvsM_kvStoreInv (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : R
     iframe Hk
     ipureintro; exact Hm.1
 
+/-- **The server's auth fields, from the proposer's and the reader's views in the auth mode `on`**
+(`srvAuthAt_of_views`' at any mode; auth-lease S3c, Draft §7.3: the auth-on lease registrations'
+`srvAuthAt`). -/
+theorem srvAuthAt_of_viewsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerReqM on s E ρ ∗ isServerReadM on s E γr ⊢ srvAuthAt s E := by
+  iintro ⟨#Hq, #Hr⟩
+  ihave ⟨%vq, #Hq'⟩ : ∃ v : ReqFields, srvReqFieldsAtM on s E ρ v $$ [Hq]
+  · cases on
+    · iunfold isServerReqM at Hq; icases Hq with ⟨#H, -⟩; iexact H
+    · iunfold isServerReqM at Hq; icases Hq with ⟨#H, -⟩; iexact H
+  iunfold srvReqFieldsAtM at Hq'
+  icases Hq' with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -, #Has, #Hreq, -⟩
+  iunfold isServerReadM at Hr
+  icases Hr with ⟨%vr, Hr⟩
+  iunfold srvReadFieldsAtM at Hr
+  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
+  icombine Has Has2 gives %Heq
+  ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
+  · rw [← Heq]; iexact Hreq
+  iunfold srvAuthAt
+  iexists vr.auth, vq.cca
+  iframe #
+
 end lemmas
 
 end EtcdGrove

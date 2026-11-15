@@ -635,7 +635,7 @@ theorem NewServer.wp_proofRG
     imodintro
     rcases hGA with hg | hn
     · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
-        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, rfl⟩))
+        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, fun h => absurd h (by decide)⟩))
       iempintro
     · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
   -- (restart) the boot's buckets: the image's lease bucket put back (`D`'s)
@@ -650,9 +650,6 @@ theorem NewServer.wp_proofRG
   -- (restart) the lessor's history starts at the recovered snapshot (`HlAt0`, `NewLessor`'s), not
   -- `lessorAt_empty`'s
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 (appliedTable ρ.rd A).ids).1 $$ Hlt
-  ihave #Hlnil : iprop(□ (⌜false = true⌝ → apply.lookupNil (lease.lessorIface lp))) $$ []
-  · iintro !> %hon
-    iapply (lookupNil_of_guard lp ρ.rd.kv.lg false (Or.inr hon)) $$ Hllk'
   ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg false) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
@@ -1823,10 +1820,6 @@ theorem NewServer.wp_proofRG
     · iapply rwLens_authBeOn
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
-  -- (the auth plan's E3zb) the lessor finds no lease
-  ihave #HLnil : iprop(□ (⌜false = true⌝ → srvLessorNil s)) $$ []
-  · iintro !> %hon
-    simp at hon
   -- (authkv's Main) with auth on, the store's cost field; (C1's A4) and its `Authenticate` side
   ihave #HBF : iprop(□ (⌜false = true⌝ → srvAuthStoreOn s RD)) $$ []
   · iintro !> %hon
@@ -1863,9 +1856,9 @@ theorem NewServer.wp_proofRG
   -- (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's slot
   -- (restart) at the snapshot `NewLessor` recovered of the image's `lease` bucket
   ihave HLsrv : lease.srvInvAt false s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) m
-      (lease.recMap (recs.zip ls), ∅, lease.recTTLs minTTLsecs recs) $$ [HLnil HpeerRt HlessRd HlPool' HlAt0]
+      (lease.recMap (recs.zip ls), ∅, lease.recTTLs minTTLsecs recs) $$ [HpeerRt HlessRd HlPool' HlAt0]
   · iapply lease.srvInvAt_intro
-    iframe HLnil HpeerRt HlessRd HlPool'
+    iframe HpeerRt HlessRd HlPool'
     simp only
     rw [Hγl]
     iframe Hlmode HlAt0
@@ -2370,7 +2363,7 @@ theorem NewServer.wp_proofRG
             iframe Hlgd
             iintro !>
             iunfold srvGrantGuard
-            ipureintro; exact ⟨rfl, rfl⟩
+            ipureintro; exact ⟨rfl, fun h => absurd h (by decide)⟩
           rw [show (decide (ρ.rd.kv.lm = .mono)) = decide (m = .mono) by
             rw [lease.bootCfg_lm Hlbc]]
           iexact Hlmode

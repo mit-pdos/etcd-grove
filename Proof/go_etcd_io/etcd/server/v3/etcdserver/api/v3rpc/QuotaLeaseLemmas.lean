@@ -30,9 +30,34 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+/-- **`quotaLeaseServer.LeaseGrant` meets the embedded service's metadata-indexed spec**
+(auth-lease S3c, Draft §7.5; as `quotaKV_putHandlerOkMd_of`), with the quota check's reader slots
+(`quotaRd`, from its spec); the inner `LeaseGrant` is handed the check's `lgMu` reader with `S`. -/
+theorem v3rpc.quotaLease_grantHandlerOkMd_of
+    (wp_Grant : v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG))
+    {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep) (q s : Loc) (ls : GoInterfaceOk)
+    (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.quotaLeaseServerAt q ls s ∗
+        grpcHandlerOwnOkMd #(methods ls.ty go!"LeaseGrant" ls.v) iprop(S ∗ srvLgReader s) Spec ⊢
+      grpcHandlerOwnOkMd (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
+        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
+  unfold grpcHandlerOwnOkMd
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, Hown, HSpec⟩ HΨ
+  iapply (wp_Grant Req Rep Spec q s ls S m Φ Ψe ci cd r) $$ [HS Hqr Hown HSpec]
+  · iframe; iframe #
+    unfold grpcHandlerOwnOkMd
+    iexact Hh
+  inext
+  iintro %resp %err ⟨HS, Hqr, Hres⟩
+  iapply HΨ
+  iframe
+
 /-- **`quotaLeaseServer.LeaseGrant` meets the embedded service's spec**, with the quota check's
 reader slots (`quotaRd`, from its spec); the inner `LeaseGrant` is handed the check's `lgMu` reader
-with `S` (per-type stage B3). -/
+with `S` (per-type stage B3). (Auth-lease S3c: the metadata form's instance at `GrpcSpec.md`.) -/
 theorem v3rpc.quotaLease_grantHandlerOk_of
     (wp_Grant : v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
@@ -44,16 +69,31 @@ theorem v3rpc.quotaLease_grantHandlerOk_of
       grpcHandlerOwnOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
-  unfold grpcHandlerOwnOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, Hown, HSpec⟩ HΨ
-  iapply (wp_Grant Req Rep Spec q s ls S m Φ ci cd r) $$ [HS Hqr Hown HSpec]
-  · iframe; iframe #
-    unfold grpcHandlerOwnOk
-    iexact Hh
+  iapply (grpcHandlerOwnOk_md _ _ Spec).2
+  iapply (v3rpc.quotaLease_grantHandlerOkMd_of wp_Grant (GrpcSpec.md Spec) q s ls S)
+  iframe #
+  iapply (grpcHandlerOwnOk_md _ _ Spec).1
+  iexact Hh
+
+/-- **`quotaLeaseServer.LeaseRevoke`** (the embedded service's, promoted) meets the metadata-indexed
+spec the embedded service's meets (auth-lease S3c, Draft §7.5). -/
+theorem v3rpc.quotaLease_revokeHandlerOkMd {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)
+    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) :
+    v3rpc.quotaLeaseServerAt (GF := GF) q ls s ∗
+        grpcHandlerOkMd #(methods ls.ty go!"LeaseRevoke" ls.v) S Spec ⊢
+      grpcHandlerOkMd (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseRevoke")
+        S Spec := by
+  iintro ⟨#Hq, #Hh⟩
+  iunfold v3rpc.quotaLeaseServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hls, -⟩
+  unfold grpcHandlerOkMd
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ Hpre HΨ
+  rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseRevoke")]
+  wp_pures
+  wp_auto
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %r Hpre
   inext
-  iintro %resp %err ⟨HS, Hqr, Hres⟩
-  iapply HΨ
-  iframe
+  iexact HΨ
 
 /-- **`quotaLeaseServer.LeaseRevoke`** (the embedded service's, promoted) meets what the embedded
 service's meets. -/

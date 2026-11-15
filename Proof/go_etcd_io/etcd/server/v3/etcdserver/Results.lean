@@ -1747,11 +1747,11 @@ theorem apply_applier_kv_latest (E : EtcdGrove.apply.AEnv GF) (ci : EtcdGrove.ap
 
 /-- **The server's uber-applier's KV triples at the latest state, from its construction** (the
 auth plan's E3k, `UberOn.lean`), every callee linked: over the server's store at the latest state
-(`srvStoreLatest`) and its lessor finding no lease (`srvLessorNil`, a named premise). -/
+(`srvStoreLatest`) (until auth-lease S3c, 2026-11-15, also its lessor finding no lease, `srvLessorNil`). -/
 theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvStoreLatest s E L ∗ srvLessorNil s ⊢
+      srvUberBase s ua E ∗ srvStoreLatest s E L ⊢
       EtcdGrove.apply.uberKVL ua E (.quota .backend) L :=
   srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
     apply_lease_revoke_latest s ua E L
@@ -1759,11 +1759,11 @@ theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv G
 /-- **The same with auth on, the store's fact from the construction** (the auth plan's E3l,
 `UberOn.lean`): `srvStoreLatest` discharged by the built part's store fact (of the store's
 invariant), at the family `auth.latestResC stl (.on γa) γc` of the store the server's `authStore`
-field holds (at any backend's names `γc`); the lessor finding no lease stays a named premise. -/
+field holds (at any backend's names `γc`) (until auth-lease S3c also the lessor finding no lease). -/
 theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvLessorNil s ⊢
+      srvUberBase s ua E ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) :=
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
@@ -2211,13 +2211,18 @@ on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) :
+    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
+    -- (auth-lease S3c, decision C6) the cluster's lease mode, grant prefix and grant prefixes, as
+    -- `srvClusterBoot_alloc`'s (lease-mono3 step 2)
+    (lm : lease.Mode := .none) (gp : w64 := 0) (gps : List w64 := [gp])
+    (hgps : lm = .revocable → gp ∈ gps ∧ (gps.map (· &&& leaseIdMask)).Nodup :=
+      by first | exact fun h => nomatch h | exact fun _ => ⟨List.mem_singleton_self _, (by simp)⟩) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = false ∧ γk.lg = false⌝ ∗
+          γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2235,7 +2240,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
-  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz lm gp gps hgps
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/
@@ -2319,12 +2324,12 @@ theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
         [∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb, Hsk⟩ HΦ
   -- `start.spec` at the slot's `off`
-  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb, Hl⟩
+  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb⟩
   · iframe Hb Hsk
   have h' := server_start s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false] at h'
-  iapply h' $$ [Hb Hl]
-  · iframe Hpkg Hb Hl
+  iapply h' $$ [Hb]
+  · iframe Hpkg Hb
     ipureintro; exact ⟨hm, Hrb48, Hrb, Hai0⟩
   inext
   iintro ⟨%γw, #Hreq, #Hrd, -, Hst, -⟩

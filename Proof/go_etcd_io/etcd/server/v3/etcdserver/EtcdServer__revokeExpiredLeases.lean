@@ -63,11 +63,9 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ v γr γg γcx rv SP ls
   wp_start as ⟨#Hf, #Hrf, #Hexp, #Hrvk, %Hpre, Htok⟩
-  obtain ⟨hlm, hlev⟩ := Hpre
+  obtain ⟨hlm, hlev, hoff⟩ := Hpre
   have hlevK : srvRevokeK ≤ threadBound GF := hlev
-  -- auth off, from the slice's grant guard
-  ihave %Hg := srvGrantGuard_expired E.lg E.authMode.isOn ls $$ Hexp
-  have hoff : E.authOn = false := Hg.2
+  -- auth off: a premise (auth-lease S3c; until then from the slice's grant guard)
   have hRL : srvRevokesLeases E ρ := hlm
   -- the bundle's laws
   ihave %Hbnd30 := srvRevokeCtx_bound s E ρ γr γg $$ Hrvk

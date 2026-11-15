@@ -165,8 +165,6 @@ theorem startMember.wp_proof
       iexact Hlis
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
-  -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
-  ihave #HLnil := lease.srvInv_lessorNil true srv E .none rfl $$ Hlsrv
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on (at the boot state `x₀` and the read loop's
@@ -189,16 +187,14 @@ theorem startMember.wp_proof
     iframe Hmf Hfgc
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
-  -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row, the lessor's
+  -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row
   have hB := isServerBuiltM_C (GF := GF) (.on γa) srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
     (W64 0) x₀ N hγa
-  have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_true] at hB
   ihave Hsb := hB $$ [Hsb Hkeep]
   · iframe Hsb
     iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
-  ihave #HLnil := hL.2 $$ HLnil
   have h' := wp_Start srv γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
   simp only [AuthC.isOn] at h'
   wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩

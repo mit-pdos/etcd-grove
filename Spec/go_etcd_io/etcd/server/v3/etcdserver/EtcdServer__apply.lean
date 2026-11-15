@@ -48,8 +48,8 @@ the ghost index's equation `uint.Z (f0 - 1) = ai0 + |A|` (`kvBatch`'s).
 The rows that differ by the mode, at `E.authOn`: the server's view (`isServerM`), the committed log's
 shapes (`logShapeM`: with auth on, an admitted admin request too), the applier state (`srvApplyKVM`,
 at the model's auth state `sa`, unconstrained off), the apply thread's model (`kvAppliedM`, from
-`srvAuthSt0`). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`), the
-receipts' bound, and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
+`srvAuthSt0`). **With auth on** (only): the
+receipts' bound (auth-lease S3c, 2026-11-15: until then also the server's lessor finding no lease, `srvLessorNilM`), and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
 at the new consistent index after. (2026-10-31, the snapshot track's S5) `ep.confState` reports the
 voters once an entry is applied (`epCsAt`: the first is a validated conf change).
 
@@ -98,7 +98,7 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗
+      isServerM E.authOn s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
       epCsAt ρ.raft (ghostOf rp A) cs ∗

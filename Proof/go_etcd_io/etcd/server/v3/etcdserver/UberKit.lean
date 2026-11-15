@@ -64,8 +64,8 @@ theorem srvUberOn_of_kit (hk : uberKitM (GF := GF) (hG := hG) true) (s : Loc) :
   iunfold srvUberOn
   iintro !> %E %γa %ua %hM #Hb
   isplitl
-  · iintro %γc #Hln
-    ihave ⟨%stl, #Hf, #HL⟩ := srv_uberKVL_on hRange hDel hPut hTxn hRev s ua E γa hM γc $$ [$Hpkg $Hb $Hln]
+  · iintro %γc
+    ihave ⟨%stl, #Hf, #HL⟩ := srv_uberKVL_on hRange hDel hPut hTxn hRev s ua E γa hM γc $$ [$Hpkg $Hb]
     iexists stl
     iframe Hf
     iapply apply.uberKVC_of hK

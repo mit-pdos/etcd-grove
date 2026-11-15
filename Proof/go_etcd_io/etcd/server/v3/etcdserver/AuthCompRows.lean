@@ -367,7 +367,6 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (SP : IProp GF := iprop(False)) (DQ : IProp GF := iprop(True)) : IProp GF :=
   iprop("#Hsrv" ∷ isServerC C s γ ci TM E ρ γr ∗
-    "#Hlnil" ∷ acLessor C s ∗
     "#Hsa" ∷ isServerApplyAll s γr ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
