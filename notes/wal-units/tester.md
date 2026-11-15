@@ -447,3 +447,131 @@ Premises as far as this session sees them (unchanged from the ninth but for `tRe
    candidate, `resume` of the zero contents into `memLive` with `tSimAt_nil`; restart path; the `step` loop with
    `memLive ½`; the final `close`), over `TBoot` minus the crash tokens (which the crash condition keeps).
 3. `Main` = `Boot(area, orDir, 0, 40)`, then the U7 statement (the user's).
+
+# Eleventh session (branch `wal-c-tester4`, 2026-11-15): B1, B2, B3; `Boot`, `Main`
+
+Base `origin/wal-int` (`32a65fbcae`), merged again (`origin/wal-int` at `96d2ee138a`, unit `noioerr`: no
+conflict, nothing of the tester rebuilt). No axiom, no `sorry`, nothing trusted or generated edited, no Go
+changed. `#print axioms` of `Boot.wp_proof`, `Main.wp_proof`, `member.step.wp_proof`, `member.restart.wp_proof`,
+`restartRead.wp_proof`, `WalFs.walDirIs_named`: no `sorryAx` (the generated type axioms only; `tester_crash`
+also `recEncC_ok`, as before). **One new hypothesis spec** (`wal.Create.specFresh`, B3 below), taken by
+`Boot.wp_proof`.
+
+## Proved (`lake build` of each module passes)
+
+- **`Boot.wp_proof`** (`TS/Boot.lean`, `TP/Boot.lean`): `{isPkgInit ∗ TRun W e γ o od} Boot(area, orDir, seed,
+  nOps) {st; True}`, premises `e.orFile.Ok`, `tWalPathsOk e.area`, `(e.area, e.jr) ∈ e.R` (the area's spine,
+  `osPathS_root`). Over `zap.NewNop`, `newRnd`, `loadOracle`, `wal.Exist`, **`wal.Create.specFresh`**,
+  `freshOracle`, `storeOracle`, `member.resume`, `member.restart`, `member.step`, `rnd.choose`, `member.close`.
+  The proof: before any step (`wp_notCrashed_acc`), the oracle's relation is read off the invariant
+  (`tInv_rel`) and, when the oracle is created, the WAL's view raised to named (`tInv_named`, B2); `Exist`
+  committed unchanged (`tInv_dirAu`); its `false` arm with a created oracle is refuted (the panic is dead);
+  with a not-created oracle `Create` from that state (`tInv_createAu`), the fresh oracle with `created` stored
+  (`tCandOk_freshC`, the mark 0), the zero contents resumed and `memLive` built (`tMemOk_freshC`,
+  `tMemSim_freshC`, ...); the `true` arm restarts (`tRelI_relW`: the candidate, `tCheckWf`, `tRelW`); both
+  starts end in `memLive ½ o' ∗ ⌜tOrSmall o'⌝`, then the step loop and, by the choice, `close`.
+- **`Main.wp_proof`** (`TS/Main.lean`, `TP/Main.lean`): `Boot(area, orDir, 0, 40)`, same pre and premises.
+- **`TRun`, `TBoot_run`** (`TP/Inv.lean`): `TBoot e ⊣⊢ ∃ W γ o od, TRun W e γ o od ∗ walCrashTok ∗
+  durCrashTok`: the program's part and the crash tokens the crash condition keeps.
+- **`WalFs.walDirIs_named`** (`S/NamedView.lean`, new, non-spec; over the ghost lemma `walGhost_named` and
+  `walMapLe_named`): at a step of the generation (`notCrashed`), `walInv ⊢ walDirIs dir (some d) -∗ walNamed dir
+  ={E}=∗ walDirIs dir (some {d with named := true})`.
+- **`TP/BootAu.lean`** (new): `tInv_rel`, `tInv_named`, `tInv_createAu`, `tRelI_relW`, `walAreaOk_os`; pure:
+  `tPre_since`, `tCandOk_fresh`, `tFreshC` (the created fresh oracle) and its facts, `tCheckWf_pre`.
+
+## B1 (done as recommended, option (a))
+
+- `tPre o := {o with opens := []} = tFreshOracle`; **`tPreOk o od := tPre o ∧ (od = none ∨ ∃ d, od = some d ∧
+  tCandOk o tCand0 d)`** (`TP/Defs.lean`; was `o = tFreshOracle ∧ (none ∨ the fresh WAL's shape)`).
+  `tCand0 = ⟨[], 0, 0⟩` is the fresh oracle's candidate; `tCandOk` of it at mark 0 is the old shape with the
+  unlock position raised by the opens.
+- **`tRelW area o cd`** (`TP/Inv.lean`): created: `⌜tCheckWf o⌝ ∗ walSyncedLb (mark) ∗ walNamed`; not created:
+  `⌜tPre o⌝`. `tRelI_of_relW` (with `cd ∈ o.cands`, `tCandOk o cd d` it gives `tRelI o (some d)`),
+  `tRelW_withOpens`.
+- **`restartRead.spec`, `member.restart.spec`**: over any WAL state `od` (`tWalOwn γ od`, `∀ d, od = some d →
+  tCandOk o cd d`, and `∀ d, od = some d → tReadsBackOk …` for `restartRead`) and `tRelW` in place of
+  `o.created = true ∗ walSyncedLb ∗ walNamed`; `restartRead`'s post relates `od` and `od'` by `Option.Rel`, its
+  success arm names `d` (`od = some d`). `tInv_dirAu` takes any `od`; `tInv_openAu` takes `tRelW`.
+  `Boot`'s restart with a not-created oracle needs both: the WAL may be absent (`ValidSnapshotEntries` fails)
+  or `Create`'s.
+- Crash: `tPreOk_crash` now from `tCandOk_crash` (mark 0, `tPre_mark`); `tWal_crash` unchanged otherwise.
+
+## B2: the recommended lemma is false; done with a view raise
+
+The tenth session's lemma "`walNamed dir` and `walDirIs dir (some d)` give `d.named = true`" is false:
+`walDirIs` is a lower bound of the real state (`walOptLe`), so a view with `named = false` is consistent with a
+named WAL (`Create` returns the view `walDurFresh md`, `named = false`, beside `walNamed`; a crash keeps the
+view's `named`). And `Exist`'s `false` arm is `ExistFalseOk` of the view, so the contradiction needs the view
+named *at `Exist`'s linearization*. Done: `WalFs.walDirIs_named` (above, the WAL's vocabulary, minimal: the
+program's map raised to the real state's `named`, which `walNamed` and `absLe` give), used by `tInv_named` at
+`Boot`'s first step, before `Exist`.
+
+## B3: the recommended fix is false; a hypothesis spec instead (decision for the coordinator / WAL owner)
+
+The note "a crash maps an unnamed WAL to absent (`walDiskAt_crash_any_keep`)" is wrong: the trusted
+`walCrash` (`LinuxFs/GooseLang/Ext/AbsDisk/Impl.lean:230`) is `(d.named = false ∧ d' = none) ∨ (an image,
+named kept)`, and its comment says why (a WAL that survived a kill between `Create`'s rename and its parent's
+fsync is seen through a name in the page cache only; a later power loss can still revert the rename). So a
+generation may start with a fresh, unnamed WAL (after `Create` failed after its rename: `cleanupWAL` may have
+moved it aside without fsync, then a crash), `Exist` may answer `false` (`ExistFalseOk`), and `Boot` calls
+`Create`, whose spec takes only `walAbsent dir`. Nothing in the tester can turn that state into `walAbsent`.
+
+Taken as **a hypothesis**, `wal.Create.specFresh` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/
+CreateFresh.lean`): `Create.spec` with its update from `∃∃ o, walDirIs dir o ∗ ⌜wal.ExistFalseOk o⌝` (none, or a
+fresh unnamed WAL), committed to `walDurFresh md` as before; `Create.spec` is its `o = none` case. True of the
+Go code: `Create` returns `os.ErrExist` before any effect when `Exist(dir)` finds a `.wal` file, and a fresh WAL
+whose directory is at `dir` holds its first segment (F-N1), so `Create` proceeds only when the unnamed WAL's
+directory is not at `dir`, and then `RemoveAll(dir)` and the rename put the new WAL in place as from an absent
+one. Options:
+- (a, recommended) the WAL layer proves `Create.specFresh` (generalize `Create`'s creating update to
+  `ExistFalseOk`; the invariant must let the commit replace an unnamed, empty WAL whose directory is not at its
+  name, `AbsentNone`-like), and `Create.spec` follows;
+- (b) a sharper `Exist` spec at a generation's start plus `walInv_crash` choosing `d' = none` when the crashed
+  tree lacks the directory (two WAL-layer changes, and a fresh unnamed WAL kept present still needs (a));
+- (c) keep the hypothesis in the closed theorem (not recommended: it is a WAL fact).
+Ledger entry 2026-11-15 ("`wal.Create.spec`: the update from `walAbsent` only").
+
+## A further gap found: the loaded oracle's well-formedness (fixed, tester-internal)
+
+`restart` (`checkRestart`) needs `tCheckWf o` of the oracle `Boot` loads, and nothing carried it (`memLive`
+has it for the running member's oracle only). **`tRelI`'s created branch now carries `tCheckWf o`** (every
+stored oracle is a running member's). Statement changes (all tester-internal strengthenings): `tRelI`
+(created: `… ∧ tCheckWf o`), `tRelI_save1`/`tRelI_snap1` (premise `tCheckWf` of the appended oracle;
+`tCheckWf_saveO1`, `tCheckWf_snapO1` new in `OrLen`/`SnapPure`), `tRelI_synced` (premise `tCheckWf o`),
+`tRelI_checkWf` (new); specs **`member.save`, `member.saveSnap`, `member.sync`, `member.close`,
+`member.opEntries`, `member.opCommit`, `member.opTerm`** gain the premise `tCheckWf o` (their callers have it
+from `memLive`). `SavePure.absHs_phsNext` removed (a duplicate of `RefLemmas.absHs_phsNext`, now imported).
+
+## Also changed
+
+- **`member.step.spec`**: the post's oracle is small (`memLive ½ o' ∗ ⌜tOrSmall o'⌝`): `Boot`'s final `close`
+  stores the synced oracle (`tOrSmall (tSynced o)`), which no `fits` check precedes. `member.restart.spec`'s
+  post likewise (`… ∧ tOrSmall o''`, from its `fits(m.o, 0)`). `StepLive`: `tOrSmall_saveO_room`,
+  `tOrSmall_grow`.
+
+## For the closed theorem (not stated: the user's hard stop)
+
+`etcd_wal_adequate`/`etcd_wal_safe` over `fsSQ_crash_adequacy`: each generation's program is `Main(area,
+orDir)`; its precondition after `wp_osShare` is `TBoot e` (first: `tBoot0`; after a crash: `tester_crash` then
+`tBootCrash`), split by `TBoot_run` into `Main.spec`'s `TRun` and the crash tokens, which with `TRun`'s
+persistent parts (`TInv`, `walAreaOk`, `dirDurable`, `durInv`) form the crash condition `tester_crash` takes.
+The exact premises it would carry:
+1. World (the first tree `V`, roots `R`): `RootsOk R`; `(area, jr) ∈ R`, `(orDir, jo) ∈ R`, `jo ≠ jr`, `jr ∈
+   V.now`, `jo ∈ V.now`, `V.2 = []`; no entry of the area at an `AreaSlot` name; no oracle file nor its
+   temporary in `orDir` (`e.orFile.b`, `e.orFile.tb`); `e.orFile.Ok`; `tWalPathsOk area` (`area` clean and
+   absolute, `area ++ "/wal"` shorter than `2^59`).
+2. Ghost/semantic: `ReceiptBoundLe GF (2^62)`, `AbsDiskGpreS GF`.
+3. The crash premise: `∀ st st', Q st st' → W1 walCodec st st'` (no CRC collision).
+4. `BootFo V'.now jr` of every crashed tree (until `walFoRes` lands; `tester_crash`'s `hfo`).
+5. The callee hypotheses no proof discharges yet: **`wal.Create.specFresh`** (B3); `wal.Exist`'s `false` arm's
+   ENOENT hypothesis (`fileutil.ReadDir.specChildIs`); `WalDecEnvSupply` and `S/Link.lean`'s Perennial-gap
+   hypotheses (`errors.*`, `fmt.ErrorfErrsNot`, `filepathlite.IsAbs`), `proto.UnmarshalWalRecordE`, the model
+   laws (U4). Every other callee spec of `Boot`'s tree is proved (the tester's link file is not written: a
+   `Link.lean` for the tester, `etc/gen-link.py`, is the next step before the closed theorem).
+
+## Next steps
+
+1. A tester `Link.lean` (all the tester's `wp_proof`s linked, `Boot`/`Main` at the top), then `etc/tcb-report.py`
+   on it.
+2. B3 option (a) in the WAL layer (`Create.specFresh` proved), then `Boot` over the proved spec.
+3. The closed theorem (the user's).

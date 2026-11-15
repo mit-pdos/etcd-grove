@@ -2016,3 +2016,20 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   `encode.specG`), proved from the page writer. (2) For the user (trusted model). (3) A handle fact: each
   lock's name is `walName seq idx`.
 - **Decision.** Proposed.
+
+## 2026-11-15: `wal.Create.spec` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`) -- the update from `walAbsent` only
+
+- **Spec.** `Create(lg, dir, md)`: `AU <{ walAbsent dir }> … <{ walDiskAt dir (walDurFresh md), COMM Q }>`.
+- **Defect.** Too strong a precondition for its clients: after `Exist` answers `false`, the state is
+  `ExistFalseOk` (none, or a fresh unnamed WAL), and a generation may start with a fresh unnamed WAL (the
+  trusted `walCrash` keeps `named = false`; `Create` failed after its rename, `cleanupWAL`'s move aside not
+  fsynced). The tester's `Boot` then calls `Create` and cannot give `walAbsent` (the tenth session's B3, whose
+  premise "a crash maps an unnamed WAL to absent" is false).
+- **Evidence.** `LinuxFs/GooseLang/Ext/AbsDisk/Impl.lean:230-236` (`walCrash`); `Exist.lean`'s `ExistFalseOk`;
+  `examples/etcd/wal/wal.go` `Boot`; S/wal.go `Create` (its `Exist` check before any effect, `renameWAL`'s
+  `RemoveAll`).
+- **Proposed change.** The update from `∃∃ o, walDirIs dir o ∗ ⌜wal.ExistFalseOk o⌝` (`wal.Create.specFresh`,
+  stated as a hypothesis in `CreateFresh.lean`, taken by `Boot.wp_proof`); `Create.spec` is its `o = none` case.
+  Proved by the WAL layer (the creating update generalized; the invariant lets the commit replace an unnamed,
+  empty WAL whose directory is not at its name). Alternatives in `notes/wal-units/tester.md`, eleventh session.
+- **Decision.** Proposed (unit `tester`); until then a hypothesis of `Boot`.
