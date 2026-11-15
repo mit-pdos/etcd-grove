@@ -527,3 +527,81 @@ trusted changed, no Go changed):
 
 **Decisions left for the user**: none new (the trusted change's text, §4, still pending review). **No new axiom, no
 `sorry`. No Go bug found.**
+
+### Session 6 (2026-11-15, branch `wal-c-purge3`, base `origin/wal-int` `95c0f4e3f0`)
+
+**Done** (each built with `lake build`; no new axiom, no `sorry`, nothing trusted changed, no Go changed, no
+existing statement changed; all new files, so nothing else rebuilds):
+
+- **The handle's side of the purge law** (`PurgeSafe.lean`): `walLockHI_excl`/`walLocksHI_excl` (a purger's
+  `osLock k i fd'` of `fileutil`'s kind refutes any non-tail handle lock on `i`, `fdLocks_excl`, resources kept);
+  `LkRel_purge` (pure: a `.wal` name, neither the tail's nor a locked one's, sequence `sq`, has `sq + 1 ≤ |cuts| -
+  |ls|` and `segStart cuts (sq + 1) ≤ b`); `walDirLks_purge` (the two: `walDirLks` unfolded, `b` exposed with its
+  `walTailsFrag`, so a caller holding the invariant gets `segStart cuts (sq + 1) ≤ b ≤ d.unl` by `walLks_agree`).
+  `nm ≠ nm0` (not the tail) stays a premise: `purgeRound` has it from its count (`n + max < |fs|`, `max ≥ 1`, and
+  `nm0` the largest `.wal` name, `walDirH`), or from the tail's `fdLocksW` the same way.
+- **The remover's spec** (`Spec/os/RemoveN.lean`, `Proof/os/RemoveN.lean`, `Proof/os/UnlinkN.lean`):
+  `os.Remove.specFileSncN`, `specFileSnc` with the name in a claim on any `N` (`N.Mem b`), outcome `rmFileOutN`;
+  over the extension's unlink/unlink-none/rmdir-none specs generalized the same way (`wp_osUnlinkSN`,
+  `wp_osUnlinkSN_none`, `wp_osRmdirSN_none`; the originals' proofs, kept in `LinuxFs/Proof/os/` so the extension
+  does not rebuild). Why: the segment name is in the WAL directory's claim `(j, .except X, hj)`, half the handle's
+  and half `walInv`'s; splitting `.only [nm]` out of it would leave the invariant's `WalDirClaim`/`DirKeysOk`
+  broken for the duration of the call. With `specFileSncN` the purge's atomic update is `walCut_osAUnc`'s pattern
+  (`CutAu.lean`): the handle's half with the caller, the invariant's half in the update, the claim replaced by its
+  logged history at the commit (`replClaim`).
+- **The crash side, pure** (`PurgeCrash.lean`, `PurgeRegion.lean`); the design below:
+  `unpurge pg lay` (the removed-not-durable segments put back in front), `unpurge_purge` (a purge does not move
+  it), `crashTo_unpurge` (`CrashTo` of `lay` gives it of the full layout), `crashTo_purgeD` (the purge's raise
+  keeps `CrashTo`), `crashTo_cut_iff` (`CrashTo` does not read `cut`), `crashTo_dropFirst` (a crash keeping the
+  `t`-th removal: from `CrashTo` of the tree with the name back, `CrashTo` of the tree without it), `walFullD`
+  (the WAL with `cut` at the full layout's first segment), `WalAbsD.pur_mono`, `walAbsD_full_nil`,
+  `walAbsD_full_purge` (the full layout's static relation survives a purge), `regionCrashedK_keptSet` (a crash
+  keeping the removal keeps the claim's earlier entries and, with the name set back, is a crash of the claims
+  before it).
+
+**The crash design, settled** (supersedes session 4's "a list of alternative layouts"). A purge leaves the
+*full* layout `F = unpurge pg lay` (the layout as of the last directory sync) unchanged, and `CrashTo F` already
+quantifies over the kept suffix (`q`), so one layout covers every crash: none of the removals kept (`q ≤ |pg|`),
+or all of them (the round's removes are sequential: a kept removal keeps the earlier ones, `regionCrashedK_keptSet`;
+`crashTo_dropFirst`). A pending cut's alternative `alt` becomes `unpurge pg alt` (a cut's rename survives only with
+every earlier removal, the same `Follows` argument). The invariant change:
+
+1. `WalLay` gains `pg : List SegG := []` (the removed-not-durable segments of this WAL); `laysResF` holds their
+   halves too (`segResP`: the crash's `FileCrashedR` needs them), `segsAll` lists them (inode `Nodup`).
+2. `WalsOk`'s per-WAL clause keeps `WalAbsD d lay hj.cur` and replaces `CrashOkW d lay` by `(∃ ents0, WalAbsD
+   (walFullD d lay.pg lay) (unpurge lay.pg lay) ents0) ∧ CrashOkW (walFullD d lay.pg lay) (unpurge lay.pg lay)`.
+   With `pg = []` this is the old clause (`walAbsD_full_nil`, `unpurge_nil`, `walFullD d [] lay = d` given
+   `WalAbsD.cut`).
+3. Every step lemma that rebuilds the crash condition is applied to the full layout instead of `lay`: the crash
+   step lemmas (`crashOkA_tail`, `crashOkW_tailW`, `crashOkA_win`, `crashOk_sync`, the resize steps, ...) use only
+   `WalAbsD`'s `cuts`, `fit`, `intact`, `last`, `lastSynced`, `metas`, `synced` (checked by grep), which hold of
+   the full layout; their `habs'` is built by the same builders applied to `F` (a tail step changes only the last
+   segment, which `F` shares with `lay`). `crashGood_exists` (the crash) runs on `F` (`crashTo_cut_iff`).
+4. The directory's fsync (`cut`'s `w.dirFile` sync, `crashOk_dirSync`'s site; `Create`'s) sets `pg := []`: every
+   crash then keeps all removals, so `CrashTo F` with `q ≥ |pg|`, i.e. `CrashTo lay` (`crashTo_dropFirst` iterated),
+   and the parked halves go back to the purger's caller or are dropped with the file.
+5. **The purge step** (the commit of the purge's update, `walCut_osAUnc`'s shape): with the handle's tie
+   (`walDirLks_purge`: `segStart lay.cuts (lay.first + 1) ≤ d.unl`, `nm` the first named segment since the round
+   removes oldest first and only the handle's thread changes names): `Ls dir := { purgeLay lay with pg := lay.pg ++
+   [g0] }`, `s.wal dir := walPurgeD d lay d.unl`, `WalAbsD` by `walAbsD_purge`, the full layout's by
+   `walAbsD_full_purge`, the claim `replClaim … (hj.log x e c)`, the crash: dropped removal → old condition
+   (`regionCrashedK_unlog`, `crashTo_purgeD`), kept → `regionCrashedK_keptSet` then `crashTo_dropFirst`.
+   `d.cut` moves with it (the client's `walDiskAt`), so `purgeRound`'s spec takes the caller's repeatable commit
+   (session 4's shape, `□ ∀ d, Pc d -∗ …`), which the tester supplies (session 5: its oracle covers it).
+
+**Not done** (in order, each its own step):
+1. The invariant change (items 1-4 above): the `WalLay.pg` field, `WalsOk`, `laysResF`/`segsAll`, the ~15 crash
+   step sites (`etc/importers.py --uses CrashOkW`), `crashGood_exists`, the directory sync's drop. The largest
+   piece; mechanical once (2) is decided.
+2. The purge's update `walPurge_osAUnc` over `os.Remove.specFileSncN` (item 5), with the sealed-handle law
+   lending the handle's claim half and path to `purgeRound` (`walOpenWF ⊢ … ∗ (… -∗ walOpenWF)`; the handle's
+   relations survive the removal of an unlocked non-tail name: `LkRel` and `walDirH`'s facts only lose a name
+   below the locked range).
+3. `purgeRound` (item 2 of the brief): **not restored** (Go untouched): its call in `opOwnSnap` without a proof
+   would put an unproved function under the tester's closed result. Needs (1)-(2) and specs already present
+   (`fileutil.ReadDir`, which takes any claim fraction; `TryLockFile` through `fileutil.OpenTriple` instantiated
+   with `os.OpenFile` on the claim half, giving the inode `hj.cur` maps the name to; `os.Remove.specFileSncN`).
+4. Links: nothing new to link yet (no linked function changed; the new specs have no caller). `etc/gen-link.py
+   --check` not rerun for that reason.
+
+**Decisions left for the user**: none new. **No new axiom, no `sorry`. No Go bug found.**
