@@ -522,6 +522,19 @@ structure BootCore (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) 
   /-- the one bound on the boot log (`bootDataOk`) -/
   data : bootDataOk bl
 
+/-- **The members' ids are apart for their lease ids** (lease-mono3 step 2, 2026-11-14,
+`notes/lease-mono3-plan.md`, "Step 2 Scope"): the peers' 15 low bits are distinct. `LeaseGrant`
+gives a grant with no ID its member's next request id with bit 63 cleared, and a request id carries
+its member id's 16 low bits in bits 48-63 (`idPfxOf`): members whose ids agree in their 15 low bits
+generate colliding lease ids (`issues/etcd-lease-id-mask-member-prefix.md`). A premise of a cluster
+of several members in the revocable lease mode (`cluster3.StartCluster.spec`'s); `BootCore`'s
+`lowNodup` is the 16-bit condition. A member id depends only on the configuration (its peer URLs and
+the cluster token), so a Go test checks it per example: `TestMemberIDs` in
+`examples/etcd/leasecatchup/leasecatchup_test.go` (cluster3's configuration) and in
+`examples/etcd/auth3/auth3_test.go` (auth3's), and `TestGrantEveryMember`
+(`examples/etcd/leasecatchup/leasecatchup_grant_test.go`) for the configuration it runs. -/
+def leaseIdsApart (ps : List w64) : Prop := (ps.map (fun id => uint.Z id % 2 ^ 15)).Nodup
+
 /-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes** (D43 M5d). -/
 def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m

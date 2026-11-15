@@ -239,7 +239,7 @@ theorem Run.wp_proof
   imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.toBootCore
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
       (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁)
-      (some clientAddr₂) (some clientAddr₃) .none lease.runCfg_none (by decide))
+      (some clientAddr₂) (some clientAddr₃) .none lease.runCfg_none (fun h => nomatch h))
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
     Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd⟩

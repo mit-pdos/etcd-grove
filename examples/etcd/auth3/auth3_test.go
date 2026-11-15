@@ -21,7 +21,9 @@ import (
 
 // TestMemberIDs checks the premise on the member ids etcd computes for Main's cluster (from the
 // peer URLs and the cluster token; putget3's TestMemberIDs, `BootFacts`): their 16 low bits are
-// distinct and not 0.
+// distinct and not 0; and (lease-mono3 step 2, for the revocable lease mode of auth-on-leases) their
+// 15 low bits are distinct (`leaseIdsApart`: the members' lease ids, generated ids with bit 63
+// cleared, then never collide; issues/etcd-lease-id-mask-member-prefix.md).
 func TestMemberIDs(t *testing.T) {
 	urls, err := types.NewURLsMap("auth3-1=http://" + peerAddr1 + ",auth3-2=http://" + peerAddr2 +
 		",auth3-3=http://" + peerAddr3)
@@ -33,13 +35,18 @@ func TestMemberIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	seen := map[uint64]bool{}
+	seen15 := map[uint64]bool{}
 	for _, id := range cl.MemberIDs() {
 		low := uint64(id) & 0xffff
-		t.Logf("member %x: low 16 bits %#x", uint64(id), low)
+		t.Logf("member %x: low 16 bits %#x, low 15 bits %#x", uint64(id), low, low&0x7fff)
 		if low == 0 || seen[low] {
 			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
 		}
+		if seen15[low&0x7fff] {
+			t.Fatalf("member %x: low 15 bits %#x repeated", uint64(id), low&0x7fff)
+		}
 		seen[low] = true
+		seen15[low&0x7fff] = true
 	}
 	if len(seen) != 3 {
 		t.Fatalf("got %d members", len(seen))
