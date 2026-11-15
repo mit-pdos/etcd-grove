@@ -22,7 +22,7 @@ before it starts); a wait until it knows a leader; one linearizable `Range` of `
 unless the `Range` returned exactly the `25` pairs, in order, each at version `1`, at revision `26`. `Main(k)` for
 `k < 2` returns at once.
 
-**The claim**, for every member count `2 ≤ k ≤ 1000` (no parity premise): from a fresh state, for every real execution
+**The claim**, for every member count `3 ≤ k ≤ 1000` (approved by the user, 2026-11-15, via etcd-grove-81; no parity premise): from a fresh state, for every real execution
 of `n` steps, if `Main` returns it returns unit; no thread is stuck, and no thread has ended in a panic. So: if every
 `Put`, the restart and the `Range` succeed, the `Range` returns exactly the 25 writes, each applied once, with its value,
 and nothing else in the range.
@@ -41,7 +41,7 @@ theorem etcd_restartN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC restartNGF, ContextReadErrs (GF := restartNGF) (hG := heapAtRN hG lctx))
-    (k : Nat) (hk2 : 2 ≤ k) (hk : k ≤ 1000)
+    (k : Nat) (hk3 : 3 ≤ k) (hk : k ≤ 1000)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = k) (Hbf : etcd_restartN.BootFacts ids ps ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)

@@ -1,0 +1,13 @@
+# The restart example with k members (examples/etcd/restartN, restartN.go; notes/restartN-plan.md): the
+# results of Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/Results.lean, `restartN_Main` and
+# the closed theorem `etcd_restartN_safe`/`etcd_restartN_adequate`: 3 <= k <= 1000 members started as
+# etcdstart.StartMembers starts them but each peer address served through the program's `raftSwap`, a
+# follower stopped and restarted in process (bootstrap's restart contract N1 a premise for the two stop
+# candidates), no client and no gRPC served.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/restartN.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/restartN.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/Results\.lean$
