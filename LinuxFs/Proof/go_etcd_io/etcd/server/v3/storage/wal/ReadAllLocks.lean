@@ -61,10 +61,11 @@ theorem readAll_splitLeft (dir : GoString) :
       (∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F → gs[k]? = some g →
         ∃ (f : Loc) (fd : w64) (d : OsFd), fls[k]? = some f ∧
           F.S = walFileS f fd (child dir g.name) d g) →
+      (∀ g ∈ gs, ∃ sq ix : Nat, g.name = walFileName sq ix) →
       ([∗list] y ∈ fsI, ∃ q, y.S q) ∗
         ([∗list] k ↦ lf ∈ ls, fileutil.lockedFile lf (fls.getD k null)) ⊢
       ([∗list] g ∈ gs, segRes (L := hG.goose_localGS) g) ∗ [∗list] lf ∈ ls, walLockH lf
-  | [], gs, fls, ls, hl, hls, _ => by
+  | [], gs, fls, ls, hl, hls, _, _ => by
     have hg : gs = [] := List.eq_nil_of_length_eq_zero (by simp at hl; omega)
     have hl' : ls = [] := List.eq_nil_of_length_eq_zero (by simpa using hls)
     subst hg hl'
@@ -72,7 +73,7 @@ theorem readAll_splitLeft (dir : GoString) :
     isplitl
     · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
     · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
-  | F :: fsI, gs, fls, ls, hl, hls, hk => by
+  | F :: fsI, gs, fls, ls, hl, hls, hk, hgn => by
     obtain ⟨g, gs', rfl⟩ : ∃ g gs', gs = g :: gs' := by
       cases gs with
       | nil => simp at hl
@@ -92,6 +93,7 @@ theorem readAll_splitLeft (dir : GoString) :
       (fun k F' g' h1 h2 => by
         obtain ⟨f', fd', d', h3, h4⟩ := hk (k + 1) F' g' (by simpa using h1) (by simpa using h2)
         exact ⟨f', fd', d', by simpa using h3, h4⟩)
+      (fun g' hg' => hgn g' (List.mem_cons_of_mem _ hg'))
     iintro ⟨HF, HL⟩
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HF with ⟨⟨%q, H0⟩, HF⟩
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HL with ⟨#Hl0, HL⟩
@@ -115,7 +117,11 @@ theorem readAll_splitLeft (dir : GoString) :
       iexists f0, fd, child dir g.name, d
       iframe Hfile Hfd Hlks
       simp only [List.getD_cons_zero]
-      iexact Hl0
+      isplitr
+      · iexact Hl0
+      · ipureintro
+        obtain ⟨sq, ix, hn⟩ := hgn g List.mem_cons_self
+        exact ⟨dir, sq, ix, by rw [hn]⟩
 
 end handle
 

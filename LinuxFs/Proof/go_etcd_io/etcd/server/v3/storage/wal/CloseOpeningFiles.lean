@@ -103,7 +103,7 @@ theorem walTie_locks :
     ∀ (gs : List SegG) (lfs fls : List Loc), lfs.length = gs.length →
     ([∗list] k ↦ _g ∈ gs, walFileAt (GF := GF) fls k) ∗
       ([∗list] k ↦ lf ∈ lfs, fileutil.lockedFile lf (fls.getD k null)) ⊢
-      [∗list] lf ∈ lfs, walLockH lf
+      [∗list] lf ∈ lfs, walLockH lf (fun _ => True)
   | [], [], _, _ => by
     iintro -
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro

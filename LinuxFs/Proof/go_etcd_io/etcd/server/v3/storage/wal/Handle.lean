@@ -423,12 +423,19 @@ def walPipeH (fp : Loc) (dir : GoString) (j : Ino) (k : Nat)
     isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k ∧ pp R dq⌝ ∗
       ⌜fp ≠ null⌝)
 
+/-- A WAL segment's file name: a `.wal` name (`walFileName sq ix`) under some directory `pd` (Go's
+`f.Name()` keeps the path the file was opened at), so `parseWALName(filepath.Base(nm))` succeeds
+(`ReleaseLockTo`'s name loop: `baseModel_child_walFileName`, `scanWalName_walFileName`). -/
+def walSegName (nm : GoString) : Prop :=
+  ∃ (pd : GoString) (sq ix : Nat), nm = child pd (walFileName sq ix)
+
 /-- A non-tail lock: a `*fileutil.LockedFile` (`fileutil.lockedFile`, what `fileutil.LockFile`
-returns) and its open file, whole. -/
-def walLockH (lf : Loc) : IProp GF :=
+returns) and its open file, whole, its name satisfying `np` (the handle's: a segment's name,
+`walSegName`; `walOpening`'s closing loop, `walTie_locks`, needs none). -/
+def walLockH (lf : Loc) (np : GoString → Prop := walSegName) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (nm : GoString) (d : OsFd),
     fileutil.lockedFile lf f ∗ os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗
-      fdLocks fd d)
+      fdLocks fd d ∗ ⌜np nm⌝)
 
 /-- **The handle's share of its WAL directory `j`** (W2's `cut`, its rename; the directory-claim map,
 `notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the

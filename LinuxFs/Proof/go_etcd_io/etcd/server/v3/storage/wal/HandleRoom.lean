@@ -14,6 +14,8 @@ tail's headers being far below `maxBytes`; from `Save`'s cut; or a public measur
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 
 @[expose] public section
 
@@ -24,6 +26,48 @@ namespace EtcdGrove
 namespace WalFs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
+
+section pure
+variable [GooseExts]
+
+/-- **The room of a fresh tail** (`Create`'s segment, a cut's): its header records (`crc`, metadata
+below `2 ^ 41` bytes, the state or the empty snapshot) end below `2 ^ 43`, so at least
+`maxBytes - 2 ^ 43` bytes (about 8 TB) are left before ext4's `s_maxbytes`. -/
+def walFreshRoom : Nat := maxBytes - 2 ^ 43
+
+/-- A cut's headers end below `2 ^ 43`. -/
+theorem cutHdrs_room (Mr : WalMarshal) (md : List w8) (hs : HardStateM) (c : w32)
+    (hsz : md.length + (Mr.encState hs).length < 2 ^ 42) :
+    (recFrames walCodec (chainRecs walCodec c (cutHdrDs Mr md hs))).length ≤ 2 ^ 43 := by
+  rw [cutHdrRecs_frames]
+  have h1 := frame_walRecEnc_tight crcType (hash.crc32.crc32c c []) [] (by decide) (by simp)
+  have h2 := frame_walRecEnc_tight metadataType (hash.crc32.crc32c (hash.crc32.crc32c c []) md) md
+    (by decide) (by omega)
+  have h3 := frame_walRecEnc_tight stateType (hash.crc32.crc32c (hash.crc32.crc32c
+    (hash.crc32.crc32c c []) md) (Mr.encState hs)) (Mr.encState hs) (by decide) (by omega)
+  simp only [List.length_nil] at h1
+  split <;> simp only [List.length_append, List.length_nil] <;> omega
+
+/-- `Create`'s headers end below `2 ^ 43`. -/
+theorem createStream_room (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk Mr)
+    (hmd : md.length < 2 ^ 41) : (createStream Mr md).length ≤ 2 ^ 43 := by
+  rw [createStream_frames Mr md hMr]
+  unfold snapFrame
+  have h1 := frame_walRecEnc_tight crcType (hash.crc32.crc32c 0#32 []) [] (by decide) (by simp)
+  have h2 := frame_walRecEnc_tight metadataType (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) md
+    (by decide) (by omega)
+  have h3 := frame_walRecEnc_tight snapshotType (hash.crc32.crc32c (hash.crc32.crc32c
+    (hash.crc32.crc32c 0#32 []) md) (Mr.encSnap snapC0.model)) (Mr.encSnap snapC0.model) (by decide)
+    (by
+      have h4 : (Mr.encSnap snapC0.model).length < 2 ^ 8 := by
+        rw [hMr.2, hMr.1]; simp [snapC0, snapEnc, optVarintField, optBytesField, varintEnc]
+      omega)
+  have h4 : (Mr.encSnap snapC0.model).length < 2 ^ 8 := by
+    rw [hMr.2, hMr.1]; simp [snapC0, snapEnc, optVarintField, optBytesField, varintEnc]
+  simp only [List.length_nil, List.length_append] at h1 ⊢
+  omega
+
+end pure
 
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -55,6 +99,31 @@ theorem walOpenWFR_wf (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStri
   iexists h
   iframe Hh Hr
   ipureintro; exact ⟨hD, hmd⟩
+
+/-- **A handle whose tail's stream ends below `2 ^ 43` has the fresh room** (`Create`'s, a cut's). -/
+theorem walOpenWFR_fresh (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
+    (hD : h.Done) (hmd : h.md.length < 2 ^ 41) (hb : h.o0 + h.out.length + h.pend.length ≤ 2 ^ 43) :
+    walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⧗ h.pc ⊢ walOpenWFR P Mr w dir walFreshRoom := by
+  refine BI.Entails.trans ?_ (walOpenWFR_iff P Mr w dir walFreshRoom).2
+  iintro ⟨Hh, Hr⟩
+  iexists h
+  iframe Hh Hr
+  ipureintro
+  refine ⟨hD, hmd, ?_⟩
+  unfold walFreshRoom
+  have : (2 : Nat) ^ 43 ≤ maxBytes := by decide
+  omega
+
+/-- **Less room**: a handle with room `k` has room `k' ≤ k`. -/
+theorem walOpenWFR_mono (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k k' : Nat)
+    (hk : k' ≤ k) : walOpenWFR (W := W) P Mr w dir k ⊢ walOpenWFR P Mr w dir k' := by
+  refine (walOpenWFR_iff P Mr w dir k).1.trans ?_
+  refine BI.Entails.trans ?_ (walOpenWFR_iff P Mr w dir k').2
+  iintro ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
+  iexists h
+  iframe Hh Hr
+  ipureintro
+  exact ⟨hD, hmd, by omega⟩
 
 end handle
 
