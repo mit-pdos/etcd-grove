@@ -84,7 +84,9 @@ def srvKVInvsC (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IPr
   iprop(kvInvM C.isOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvM C.isOn γr.raft γr.kv srvAuthSt0 ∗
     srvRaftLogInv γr.raft ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗ ⌜E.Nx = kvNxM C.isOn γr⌝ ∗
-    ⌜kvNameTiesM C.isOn E γr⌝ ∗ ⌜acModesOk C γr.kv.cmp γr.kv.lg⌝ ∗ acInv C s E γr)
+    ⌜kvNameTiesM C.isOn E γr⌝ ∗ ⌜acModesOk C γr.kv.cmp γr.kv.lg⌝ ∗
+    -- (auth-lease S3a) on, `srvKVInvsOn`'s lease-mode and empty-prefix rows
+    ⌜C.isOn = true → γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝ ∗ acInv C s E γr)
 
 instance srvKVInvsC_persistent (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvsC (GF := GF) C s E γr) := by
@@ -472,8 +474,10 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       · ipureintro; exact ⟨Hc.1, Hc.2.1, Hlm⟩
       isplitr
       · ipureintro; trivial
+      isplitr
+      · ipureintro; intro h; cases h
       iapply acInv_off
-    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, %Ht, -, -⟩
+    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, %Ht, -, -, -⟩
       iframe H1 H2 H3 Hs
       isplitr
       · ipureintro; exact ⟨Ht.1, Ht.2.1, Hc.1, Hc.2⟩
@@ -493,17 +497,19 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       isplitr
       · ipureintro; trivial
       isplitr
-      · ipureintro; exact Hm
+      · ipureintro; exact ⟨Hm.1, Hm.2.1⟩
+      isplitr
+      · ipureintro; intro _; exact Hm.2.2
       iapply (acInv_on (.on γa) γa rfl s E γr).2
       iframe Htie Hu
-    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, -, %Hm, #Hi⟩
+    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, -, %Hm, %Hlp, #Hi⟩
       ihave ⟨#Htie, #Hu⟩ := (acInv_on (.on γa) γa rfl s E γr).1 $$ Hi
       iframe H1 H2 H3 Hs Htie Hu
       isplitr
       · ipureintro; exact Hc
       isplitr
       · ipureintro; exact HNx
-      ipureintro; exact Hm
+      ipureintro; exact ⟨Hm.1, Hm.2, Hlp rfl⟩
 
 theorem srvAtomicsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvAtomicsM (GF := GF) C.isOn s E γr ⊣⊢ srvAtomicsC C s E γr := by

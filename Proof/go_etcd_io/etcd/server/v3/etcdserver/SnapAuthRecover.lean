@@ -225,20 +225,25 @@ theorem adminNext_wf (rq : apply.IRRModel) (st : auth.AuthState) (h : histWf st)
 
 /-- A mode-on entry's request names a user by a bbolt key (`plainEntryOn`: a plain request is no
 `UserAdd`; an admin one's kind is `adminKindOk`'s). -/
-theorem plainEntryOn_userAdd (m : EntryModel) (hm : plainEntryOn m) (h0 : m.typ = W32 0)
+theorem plainEntryOn_userAdd {lm : lease.Mode} (m : EntryModel) (hm : plainEntryOn lm m) (h0 : m.typ = W32 0)
     (hd : m.data ≠ []) (rq : apply.IRRModel) (hdec : apply.irrDecode m.data = some rq) :
     ∀ u, rq.authUserAdd = some u → apply.dispatchKind rq = .authUserAdd →
       u.name.length ≤ backend.maxKeySize := by
   intro u hu hk
-  rcases hm h0 hd rq hdec with ⟨⟨-, hp⟩, -⟩ | ⟨ha, -⟩
-  · rw [hk] at hp; simp [putgetKind] at hp
+  rcases hm h0 hd rq hdec with ((⟨hp, -⟩ | ⟨-, hg, -⟩ | ⟨-, hr, -⟩) | ⟨ha, -⟩)
+  · rcases hp with ⟨-, hp⟩ | ⟨-, -, -, hp | ⟨hp, -⟩⟩
+    · rw [hk] at hp; simp [putgetKind] at hp
+    · rw [hk] at hp; cases hp
+    · rw [hk] at hp; cases hp
+  · rw [hk] at hg; cases hg
+  · rw [hk] at hr; cases hr
   · unfold apply.adminKindOk at ha
     rw [hk] at ha
     exact (ha u hu).1
 
 /-- A mode-on entry keeps the auth state well formed, its revision bumped at most once. -/
-theorem kvEntryOn_wf (c₀ : w64) (ch : apply.Chain) (s : OnState)
-    (m : EntryModel) (hm : plainEntryOn m) (h : histWf s.1) :
+theorem kvEntryOn_wf  {lm : lease.Mode} (c₀ : w64) (ch : apply.Chain) (s : OnState)
+    (m : EntryModel) (hm : plainEntryOn lm m) (h : histWf s.1) :
     histWf (kvEntryOn c₀ ch s m).1 ∧ (kvEntryOn c₀ ch s m).1.revision ≤ s.1.revision + 1 := by
   unfold kvEntryOn
   split
@@ -265,12 +270,12 @@ theorem list_snoc_ind {α : Type _} {P : List α → Prop} (h0 : P [])
 
 /-- **Along a mode-on log**, every recorded state of the history well formed, the last too, its
 revision at most the start's plus the log's length. -/
-theorem admStatesR_wf (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
-    (h₀ : histWf s₀.1) (A : List EntryModel) (hp : plainLogOn A) :
+theorem admStatesR_wf  {lm : lease.Mode} (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
+    (h₀ : histWf s₀.1) (A : List EntryModel) (hp : plainLogOn lm A) :
     (∀ x ∈ admStatesR c₀ ch s₀ A, histWf x) ∧ histWf (kvRaftOfOn c₀ ch s₀ A).1 ∧
       (kvRaftOfOn c₀ ch s₀ A).1.revision ≤ s₀.1.revision + A.length := by
   revert hp
-  refine list_snoc_ind (P := fun A => plainLogOn A →
+  refine list_snoc_ind (P := fun A => plainLogOn lm A →
       (∀ x ∈ admStatesR c₀ ch s₀ A, histWf x) ∧ histWf (kvRaftOfOn c₀ ch s₀ A).1 ∧
         (kvRaftOfOn c₀ ch s₀ A).1.revision ≤ s₀.1.revision + A.length) ?_ ?_ A
   · intro _
@@ -279,8 +284,8 @@ theorem admStatesR_wf (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     rw [admStatesR_nil, List.mem_singleton] at hx
     subst hx; exact h₀
   · intro A m ih hp
-    have hpA : plainLogOn A := fun e he => hp e (List.mem_append_left _ he)
-    have hpm : plainEntryOn m := hp m (List.mem_append_right _ (List.mem_singleton_self _))
+    have hpA : plainLogOn lm A := fun e he => hp e (List.mem_append_left _ he)
+    have hpm : plainEntryOn lm m := hp m (List.mem_append_right _ (List.mem_singleton_self _))
     obtain ⟨hall, hlast, hrev⟩ := ih hpA
     have hstep := kvEntryOn_wf c₀ ch (kvRaftOfOn c₀ ch s₀ A) m hpm hlast
     rw [← kvRaftOfOn_snoc] at hstep
@@ -300,8 +305,8 @@ the model's `userAddF` refusing only the empty name while `authSmall` bounds nam
 `adminKindOk` bounds them). Proved (2026-11-03) over the five kinds' `StepSmall`s and their permission keys (`adminStateR_wf`). The revision is `1` plus
 the number of state-changing admin entries, so at most the log's length plus one (review round 1's
 F3: `< 2^61` is false of `2^61 - 1` distinct `UserAdd`s). -/
-theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 ^ 61)
-    (hp : plainLogOn A') :
+theorem srvHist_wf  {lm : lease.Mode} (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 ^ 61)
+    (hp : plainLogOn lm A') :
     (∀ x ∈ srvHist γk A', auth.permKeysOk x) ∧
       auth.permsFit (srvAuthAtLog γk srvAuthSt0 A') ∧
       auth.authSmall (srvAuthAtLog γk srvAuthSt0 A') ∧
@@ -311,7 +316,7 @@ theorem srvHist_wf (γk : KVNames) (A' : List EntryModel) (hlen : A'.length < 2 
   obtain ⟨hall, hlast, hrev⟩ :=
     admStatesR_wf γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0, []) h₀ A' hp
   have hrev' : (srvAuthAtLog γk srvAuthSt0 A').revision ≤ A'.length + 1 := by
-    have h1 : (auth.bump auth.bootState, γk.log0, []).1.revision = 1 := rfl
+    have h1 : ((auth.bump auth.bootState, γk.log0, []) : OnState).1.revision = 1 := rfl
     rw [h1] at hrev
     show (kvRaftOfOn γk.c0 γk.ch0 (auth.bump auth.bootState, γk.log0, []) A').1.revision ≤ A'.length + 1
     omega
@@ -419,7 +424,7 @@ abbrev authRecoverOn.spec : Prop :=
       authHistTie E γr srvAuthSt0 ∗ srvRLogLb γr.raft A' ∗
       -- (review R1's F2) the image's committed log a mode-on log (`kvInvOn`'s), whose admin entries
       -- are bounded (`adminKindOk`)
-      ⌜A <+: A' ∧ sa = srvAuthAtLog γr.kv srvAuthSt0 A ∧ A'.length < 2 ^ 61 ∧ plainLogOn A'⌝ ∗
+      ⌜A <+: A' ∧ sa = srvAuthAtLog γr.kv srvAuthSt0 A ∧ A'.length < 2 ^ 61 ∧ plainLogOn γr.kv.lm A'⌝ ∗
       ⌜lg ≠ null⌝ ∗ ablOn abl dn.be lg ∗
       ⌜dn.P.has mvcc.authBI ∧ dn.P.has mvcc.authUsersBI ∧ dn.P.has mvcc.authRolesBI⌝ ∗
       backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.plHookRO dn.γB f ∗ ⌜f ≠ func.nil⌝ ∗
