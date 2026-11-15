@@ -34,7 +34,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.wp_proofLocked
   cases forceNew
   · wp_auto
     rw [show W64 1 ||| W64 64 = wal.walOpenFlag false from rfl]
-    wp_apply wp_LockFile path _ (W32 384) P X A C hopen $$ [HP] as %lf %err H
+    wp_apply wp_LockFile path _ (W32 384) P X A C hopen rfl $$ [HP] as %lf %err H
     · iframe; isplitl []
       · iexact Hinv
       · solve_pkg_init
@@ -56,7 +56,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.wp_proofLocked
       iexact HA
   · wp_auto
     rw [show (W64 1 ||| W64 64) ||| W64 512 = wal.walOpenFlag true from rfl]
-    wp_apply wp_LockFile path _ (W32 384) P X A C hopen $$ [HP] as %lf %err H
+    wp_apply wp_LockFile path _ (W32 384) P X A C hopen rfl $$ [HP] as %lf %err H
     · iframe; isplitl []
       · iexact Hinv
       · solve_pkg_init
