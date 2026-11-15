@@ -1,7 +1,7 @@
 /-
 The proof of `examples/net/echo/cmd/server`'s `main`, echo's server node: `echo.Serve`
 (`wp_Serve`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the package's
-initialization (`eof_init`, `ed_init`).
+initialization (`eof_init`, `wire.ed_init`).
 -/
 module
 
@@ -48,7 +48,10 @@ theorem wp_main
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.echo) $$ []
   · iPkgInit
   icases eof_init $$ Hecho with ⟨%eof, #Heof⟩
-  icases ed_init $$ Hecho with ⟨%ed, #Hed⟩
+  ihave #Hwire : (isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire) $$ []
+  · iPkgInit
+  icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof ed $$ []
   · iframe Hinvs Heof Hed

@@ -3,17 +3,19 @@ The proofs of `examples/net/echo`'s functions, over the specs of `net` and `wire
 (hypotheses, linked in `Results.lean`) and the protocol of `Defs.lean`:
 
 * `serveConn`: a full read of 5 bytes (`wire.read_acc` on the up-direction: a prefix of the
-  dialer's), its echo (`server_write_au`, with the connection's token), and the close
+  dialer's), its echo (a `Write`, Go's loop of steps: the writer predicate `srvP` and the accessor
+  `server_write_acc`, over the server's half of the connection's `γ.srv`), and the close
   (`wire.close_drop_au`).
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's protocol).
 * `Call`: the dial (`echo_dial_au`: `wire.dial_both_au` with the deposits `echo_deposit` and, for an
-  abandoned connection, `echo_deposit_ab`), the write of `"hello"`
-  (`wire.write_au`), the full read of the reply (`wire.read_acc` on the down-direction), and the
-  check: the reply is a prefix of `"hello"` (`client_check`) of its length, so `"hello"`.
+  abandoned connection, `echo_deposit_ab`), the write of `"hello"` (`wire.writeP`/`wire.write_acc`
+  on the up-direction: success means all of it written), the full read of the reply
+  (`wire.read_acc` on the down-direction), and the check: the reply is a prefix of `"hello"`
+  (`client_check`) of its length, so `"hello"`.
 * `SendJunk`: as `Call`, without the check.
-* `eof_init`, `ed_init`: `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values, from the package's
-  initialization (the bodies take them). A failure's error, of any kind, is a non-nil `*OpError`
-  (`net.resErr_netErr`): every `err != nil` check takes the failure branch.
+* `eof_init`: `io.EOF`'s value, from the package's initialization (the bodies take it, and
+  `poll.ErrDeadlineExceeded`'s, `wire.ed_init`). A failure's error, of any kind, is a non-nil
+  `*OpError` (`net.resErr_netErr`): every `err != nil` check takes the failure branch.
 
 The commands' `main`s (`cmd/<node>/Main.lean`) call `Serve`, `Call` and `SendJunk`.
 -/
@@ -21,6 +23,7 @@ module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.Defs
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -58,27 +61,6 @@ theorem client_check' (γm : GName) (cn : Nat) (γ : EchoNames) (W resp : List w
       sentAll (GF := GF) γ.up W -∗ sentLb (GF := GF) γ.down resp ={⊤}=∗
       ⌜resp <+: W⌝ ∗ sentAll (GF := GF) γ.up W :=
   client_check γm cn γ W resp
-
-/-- `internal/poll`'s package fact, from its `isPkgInit`. -/
-theorem poll_isInit_access :
-    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
-      iprop((∃ e : GoInterface, globalAddr internal.poll.ErrNoDeadline ↦□ e) ∗
-        (∃ e : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)) := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
-
-/-- `poll.ErrDeadlineExceeded`'s value (the `Err` of a deadline's failure, which the `Read` and
-`Write` specs name), from the package's initialization (`net` imports `internal/poll`).
-(General, as in the other examples: a candidate for `wire`.) -/
-theorem ed_init :
-    isPkgInit (PROP := IProp GF) pkg ⊢ ∃ ed : GoInterface,
-      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
-  iintro #Hpkg
-  ihave #Hp : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
-  · iPkgInit
-  ihave Hf := poll_isInit_access $$ Hp
-  icases Hf with ⟨-, ⟨%ed, #Hed⟩⟩
-  iexists ed
-  iexact Hed
 
 theorem wp_serveConn
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
@@ -131,12 +113,17 @@ theorem wp_serveConn
   · -- echo the request, then close
     obtain rfl := Hok rfl
     wp_auto
+    isimp only [List.nil_append] at Hlb
     wp_apply wp_Write t cn true srvAddr la ra buf got (DFrac.own 1) ed
-        (fun _ _ => tcpEnd G cn true TcpEnd.fresh) $$ [Hbuf Hend Htok]
-      as %n %err ⟨%k, %res, Hend, Hbuf, -⟩
+        (srvP cn γ TcpEnd.fresh) $$ [Hbuf Hend Htok]
+      as %n %err ⟨%w, %res, HP, Hbuf, -⟩
     · iframe Hc Hbuf Hed
-      iapply server_write_au γm cn γ got ([] ++ got) TcpEnd.fresh (by simp) $$ HechoInv Hname
-        Htok Hlb Hend
+      isplitl [Hend Htok]
+      · unfold srvP
+        iframe Hend Htok
+      iapply server_write_acc γm cn γ TcpEnd.fresh got $$ HechoInv Hname Hlb
+    unfold srvP
+    icases HP with ⟨Hend, -⟩
     (try wp_auto)
     wp_apply wp_Close t cn true srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
       as %err' ⟨%res', -, -⟩
@@ -250,13 +237,15 @@ theorem wp_Call
     wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
     (try wp_auto)
     wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
-        (fun k res => iprop(tcpEnd G cn false TcpEnd.fresh ∗
-          sentAll γ.up ([] ++ (go!"hello").take k) ∗
-          ⌜∃ d d', WriteOutcome TcpEnd.fresh d (go!"hello") k res d'⌝))
-        $$ [Hsl Hend Hw]
-      as %n %err ⟨%k, %res, ⟨Hend, Hw, %Hwr⟩, Hsl, %Hn, #Herr⟩
+        (wire.writeP γ.up cn false TcpEnd.fresh []) $$ [Hsl Hend Hw]
+      as %n %err ⟨%w, %res, HP, Hsl, %Hwp, #Herr⟩
     · iframe Hca Hsl Hed
-      iapply wire.write_au echoN cn false γ.up TcpEnd.fresh [] _ $$ HdU Hend Hw
+      isplitl [Hend Hw]
+      · iapply wire.writeP_init
+        iframe Hend Hw
+      iapply wire.write_acc echoN cn false γ.up TcpEnd.fresh [] _ $$ HdU
+    unfold wire.writeP
+    icases HP with ⟨Hend, Hw, -⟩
     icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
     by_cases hres : res = none
     case neg =>
@@ -272,8 +261,8 @@ theorem wp_Call
       itrivial
     subst hres
     obtain rfl := Hne.1 rfl
-    obtain ⟨d0, d0', Hwr⟩ := Hwr
-    obtain rfl := wire.writeOutcome_ok Hwr
+    obtain ⟨-, -, Hall, -⟩ := Hwp
+    obtain rfl := Hall rfl
     wp_auto
     wp_apply (wp_slice_make2 (V := w8) (W64 5)) as %buf ⟨Hbuf, -⟩
     · ipureintro; decide
@@ -310,7 +299,7 @@ theorem wp_Call
       obtain rfl := Hok rfl
       imod client_check' γm cn γ _ ([] ++ got) $$ HechoInv Hname Hw Hlb with ⟨%Hpre, -⟩
       have hs : got = go!"hello" := by
-        simp only [List.nil_append, List.take_length] at Hpre
+        simp only [List.nil_append] at Hpre
         exact Hpre.eq_of_length (by simpa using Hlen)
       subst hs
       wp_auto
@@ -361,13 +350,15 @@ theorem wp_SendJunk
     wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
     (try wp_auto)
     wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
-        (fun k res => iprop(tcpEnd G cn false TcpEnd.fresh ∗
-          sentAll γ.up ([] ++ (go!"xxxxxxxxxx").take k) ∗
-          ⌜∃ d d', WriteOutcome TcpEnd.fresh d (go!"xxxxxxxxxx") k res d'⌝))
-        $$ [Hsl Hend Hw]
-      as %n %err ⟨%k, %res, ⟨Hend, -, -⟩, Hsl, -, -⟩
+        (wire.writeP γ.up cn false TcpEnd.fresh []) $$ [Hsl Hend Hw]
+      as %n %err ⟨%w, %res, HP, Hsl, -, -⟩
     · iframe Hca Hsl Hed
-      iapply wire.write_au echoN cn false γ.up TcpEnd.fresh [] _ $$ HdU Hend Hw
+      isplitl [Hend Hw]
+      · iapply wire.writeP_init
+        iframe Hend Hw
+      iapply wire.write_acc echoN cn false γ.up TcpEnd.fresh [] _ $$ HdU
+    unfold wire.writeP
+    icases HP with ⟨Hend, -, -⟩
     (try wp_auto)
     wp_apply (wp_slice_make2 (V := w8) (W64 3)) as %buf ⟨Hbuf, -⟩
     · ipureintro; decide
