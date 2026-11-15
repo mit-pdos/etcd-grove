@@ -257,6 +257,7 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   have Hst := Hst0.1
   iexists oc
   icases HR with ⟨H1, H2, H3, H4, #Hcls, #Hlc⟩
+  ihave H2 := kvOwn_of_atP E _ _ $$ H2
   iframe H1 H2 H3 H4 Htr Htt
   isplitr
   · ipureintro
@@ -307,6 +308,7 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   have Hst := Hst0.1
   iexists oc
   icases HR with ⟨H1, H2, H3, H4, #Hcls, -⟩
+  ihave H2 := kvOwn_of_atP E _ _ $$ H2
   iframe H1 H2 H3 H4 Htr Htt
   isplitr
   · ipureintro
@@ -403,6 +405,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   have Hst := Hst0.1
   iexists oc
   icases HR with ⟨H1, H2, H3, H4, #Hcls, #Hlc⟩
+  ihave H2 := kvOwn_of_atP E _ _ $$ H2
   iframe H1 H2 H3 H4 Htr Htt
   isplitr
   · ipureintro

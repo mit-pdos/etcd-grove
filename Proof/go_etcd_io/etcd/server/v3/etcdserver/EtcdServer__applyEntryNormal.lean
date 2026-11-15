@@ -1739,7 +1739,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             _ (.quota .backend) (auth.latestResC stl (.on γa) T) hs _
             $$ [HKV Htt HRD HFSE HSpT HRS HLt Hrv HL] as %ar %id
               ⟨Htt, Hrt, HRD, HFS, -, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HRS, -, %Hstep0,
-                HRes, -, HL, %HXo, #Hdel⟩
+                HRes, -, HL, %HXo, -, #Hdel⟩
           · simp only [↓reduceIte]
             iframe HUK Hwok' HRD He HKV Htt HcpW HFSE HSpT HRS HLt Hrv HL
             isplitr
