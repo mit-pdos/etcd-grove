@@ -1074,9 +1074,11 @@ variable [sem : go.Semantics]
 and the methods they find. Stated over the error's own dynamic type and methods; its producers
 (`startWatching`, `syncPaginated`, `transform`; step 5) prove it of each error they hand over
 (`notes/k8s-7f5a-draft.md` §11 lists the texts that may need, E1-E6). Each conjunct:
-- `==` with any value of its dynamic type returns (its dynamic type is comparable: Go panics
-  comparing two interfaces of one non-comparable dynamic type; `err == context.Canceled`,
-  `err == rpctypes.ErrCompacted`; the step `go_eq_interface` takes);
+- its comparisons with `context.Canceled` (a `*errors.errorString`) and `rpctypes.ErrCompacted` (an
+  `EtcdError`) return: of either dynamic type, its value is one of that type (`go_eq_interface`
+  compares at the dynamic type, which has a step for a pointer and for `EtcdError`'s struct only on
+  values of that shape; 7f-5a-P step 5: it was a comparison with any value, which no pointer
+  error meets);
 - `Error()` returns, and there is no `Format` method (`fmt.argOk`: the `Error()` call and klog's
   `%v`);
 - an `etcdError` (`Code()`, `Error()`): its `Code()` returns;
@@ -1086,8 +1088,9 @@ and the methods they find. Stated over the error's own dynamic type and methods;
 - an `APIStatus`: its `Status()` returns a status whose `Status` is `Failure` (`statusFailureAt`). -/
 def kErrOk (err : GoInterface) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ □ (
-    (∀ (v : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
-      WP gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, v))) {{ Φ }}) ∗
+    ⌜(e.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty → ∃ x : Loc, e.v = #x) ∧
+      (e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+        ∃ y : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, e.v = #y)⌝ ∗
     fmt.stringMethodSpec e go!"Error" ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
     (⌜go.typeSetContains e.ty k8s_io.apiserver.pkg.storage.etcd3.etcdError.ty = true⌝ -∗
       ∀ Φ : val → IProp GF, ▷ (∀ c : google_golang_org.grpc.codes.Code, Φ #c) -∗
@@ -1112,19 +1115,45 @@ def kErrOk (err : GoInterface) : IProp GF :=
 instance kErrOk_persistent (err : GoInterface) : Persistent (kErrOk (GF := GF) err) := by
   unfold kErrOk; infer_instance
 
-/-- `kErrOk`'s comparison where `go_eq_interface` leaves it: the other side's dynamic type `t`
-equal to the error's, or `false`. -/
-theorem wp_kErrOk_eq (e : GoInterfaceOk) (v : val) (t : go.GoType) (Φ : val → IProp GF) :
-    ⊢ (□ ∀ (v : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
-        WP gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, v))) {{ Φ }}) -∗
-      (∀ b : Bool, Φ #b) -∗
-      WP (if e.ty = t then gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, v)))
-        else Val #false) {{ Φ }} := by
-  iintro #H HΦ
+/-- `kErrOk`'s comparison with `context.Canceled`'s `*errors.errorString` where `go_eq_interface`
+leaves it: the dynamic types equal, two pointers, or `false`. -/
+theorem wp_kErrOk_eq_ptr (e : GoInterfaceOk) (l : Loc) (Φ : val → IProp GF)
+    (h : e.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty → ∃ x : Loc, e.v = #x) :
+    ⊢ (∀ b : Bool, Φ #b) -∗
+      WP (if e.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty then
+        gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, #l))) else Val #false) {{ Φ }} := by
+  iintro HΦ
+  obtain ⟨t, v⟩ := e
   split
-  · iapply H
-    inext
-    iexact HΦ
+  · rename_i ht
+    simp only [] at ht h
+    subst ht
+    obtain ⟨x, rfl⟩ := h rfl
+    wp_auto
+    iapply HΦ
+  · (try wp_auto)
+    iapply HΦ
+
+/-- `kErrOk`'s comparison with `rpctypes.ErrCompacted`'s `EtcdError` where `go_eq_interface` leaves
+it: the dynamic types equal, two `EtcdError` structs, or `false`. -/
+theorem wp_kErrOk_eq_etcd [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] (e : GoInterfaceOk) (y : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
+    (Φ : val → IProp GF)
+    (h : e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+      ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, e.v = #x) :
+    ⊢ (∀ b : Bool, Φ #b) -∗
+      WP (if e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty then
+        gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, #y))) else Val #false) {{ Φ }} := by
+  iintro HΦ
+  obtain ⟨t, v⟩ := e
+  split
+  · rename_i ht
+    simp only [] at ht h
+    subst ht
+    obtain ⟨x, rfl⟩ := h rfl
+    dsimp only
+    wp_auto
+    by_cases hc : x.code' = y.code' <;> simp only [hc, decide_true, decide_false] <;> wp_auto <;>
+      iapply HΦ
   · (try wp_auto)
     iapply HΦ
 

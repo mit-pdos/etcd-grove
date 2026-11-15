@@ -31,18 +31,21 @@ theorem interpretWatchError.wp_proof
     interpretWatchError.spec (GF := GF) (hG := hG) := by
   intro err
   unfold kErrOk
-  wp_start as ⟨%e, %He, #Heq, #Hstr, %Hfmt, #Hcode, #Hgrpc, #Has, #Hst⟩
+  wp_start as ⟨%e, %He, %Heq, #Hstr, %Hfmt, #Hcode, #Hgrpc, #Has, #Hst⟩
   subst He
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
   icases Hri with ⟨-, ⟨%ce, #Hce, -, -, -, %Hcety⟩, -⟩
+  obtain ⟨y, hy⟩ := Hcety
+  cases ce
+  cases hy
   ihave #Pae : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors $$ []
   · iPkgInit
   wp_auto
   wp_bind (ite _ _ _)
-  iapply wp_kErrOk_eq $$ Heq
+  iapply wp_kErrOk_eq_etcd e y _ Heq.2
   iintro %b
   wp_auto
   cases b

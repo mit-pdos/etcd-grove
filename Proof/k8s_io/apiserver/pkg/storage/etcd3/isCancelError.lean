@@ -52,7 +52,7 @@ local macro "grpc_part" : tactic => `(tactic| (
 theorem isCancelError.wp_proof : isCancelError.spec (GF := GF) (hG := hG) := by
   intro err
   unfold kErrOk
-  wp_start as ⟨%e, %He, #Heq, #Hstr, %Hfmt, #Hcode, #Hgrpc, #Has, #Hst⟩
+  wp_start as ⟨%e, %He, %Heq, #Hstr, %Hfmt, #Hcode, #Hgrpc, #Has, #Hst⟩
   subst He
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -60,7 +60,7 @@ theorem isCancelError.wp_proof : isCancelError.spec (GF := GF) (hG := hG) := by
   icases Hci with ⟨-, -, -, -, -, ⟨%cx, #Hcx, -⟩, -⟩
   wp_auto
   wp_bind (ite _ _ _)
-  iapply wp_kErrOk_eq $$ Heq
+  iapply wp_kErrOk_eq_ptr e cx _ Heq.1
   iintro %b1
   wp_auto
   cases b1
