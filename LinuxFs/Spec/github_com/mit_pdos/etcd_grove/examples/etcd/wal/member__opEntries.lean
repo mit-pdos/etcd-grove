@@ -4,7 +4,9 @@ above; else one to four entries at the member's term `t` (indices from some `lo 
 `member.size`), recorded in `terms` (the indices above them deleted), the last index and possibly the
 commit moved, then `save` of the member's hard state with those entries (`memSavePost`). The entries are
 well formed (`tEntWf`: the term below `2^63` is the premise), and `terms` afterwards holds only `t` or
-values it held (`tTermsFrom`). The stored oracles' size premise is room for the largest save
+values it held (`tTermsFrom`); the fields' relation to the history's discipline (`tMemSim`) is kept: the
+entries are consecutive from `lo` above the base and the commit, the commit stays within the new last
+index (tenth session). The stored oracles' size premise is room for the largest save
 (`tOrRoom o 184`: four entries; `OrLen.lean`). Lean-first (no Rocq counterpart).
 -/
 module
@@ -35,6 +37,7 @@ abbrev member.opEntries.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand)
     (d : WalDur) (qc : Qp) (t vo cm bs l : w64) (tm : Loc) (M : GMap w64 w64) (r : Loc) (rv : rnd),
   e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat t < 2 ^ 63 → tOrRoom o 184 →
+  tMemSim o c bs l cm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc ∗
       m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗
@@ -47,7 +50,8 @@ abbrev member.opEntries.spec : Prop :=
       ((⌜b = true ∧ 2 ^ 62 ≤ uint.nat l⌝ ∗ m.[member, go!"commit"] ↦ cm ∗ m.[member, go!"last"] ↦ l ∗
           tm ↦$ M ∗ memSaveRes W e γ m w v o os c d qc) ∨
         (∃ (cm' l' : w64) (es : List TEnt) (M' : GMap w64 w64),
-          ⌜1 ≤ es.length ∧ es.length ≤ 4 ∧ (∀ x ∈ es, tEntWf x ∧ x.term' = t) ∧ tTermsFrom t M M'⌝ ∗
+          ⌜1 ≤ es.length ∧ es.length ≤ 4 ∧ (∀ x ∈ es, tEntWf x ∧ x.term' = t) ∧ tTermsFrom t M M' ∧
+            tMemSim (tSaveO o (hardState.mk t vo cm') es) c bs l' cm'⌝ ∗
           m.[member, go!"commit"] ↦ cm' ∗ m.[member, go!"last"] ↦ l' ∗ tm ↦$ M' ∗
           memSavePost W e γ m w o c qc (hardState.mk t vo cm') es b)) }}
 

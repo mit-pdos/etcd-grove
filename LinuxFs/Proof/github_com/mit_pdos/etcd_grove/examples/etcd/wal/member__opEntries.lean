@@ -34,8 +34,10 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     (wp_next : rnd.next.spec (GF := GF) (hG := hG)) (wp_size : member.size.spec (GF := GF) (hG := hG))
     (wp_hs : member.hs.spec (GF := GF) (hG := hG)) (wp_save : member.save.spec (GF := GF) (hG := hG)) :
     member.opEntries.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc t vo cm bs l tm M r rv hf hok hhs ht hroom
+  intro W e γ m w v o os c d qc t vo cm bs l tm M r rv hf hok hhs ht hroom hms
   wp_start as ⟨Hres, Ht, Hv, Hc, Hb, Hl, Htm, HM, Hr, Hrv⟩
+  have hcl := tMemSim_commitLe hms
+  have hbl := tMemSim_baseLe hms
   wp_auto
   wp_if_destruct
   · iapply HΦ
@@ -52,10 +54,13 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     wp_apply wp_choose $$ [$Hrv] as %k2 ⟨⟨%rv2, Hrv⟩, %hk2⟩
     all_goals try wp_auto
   all_goals
-    ihave Hlo : (∃ LO : w64, ⌜1 ≤ uint.nat LO ∧ uint.nat LO ≤ uint.nat l + 1⌝ ∗ lo_ptr ↦ LO) $$ [lo]
+    ihave Hlo : (∃ LO : w64, ⌜(1 ≤ uint.nat LO ∧ uint.nat LO ≤ uint.nat l + 1) ∧
+        uint.nat cm < uint.nat LO ∧ uint.nat bs < uint.nat LO⌝ ∗ lo_ptr ↦ LO) $$ [lo]
     · iexists _; iframe; ipureintro
-      first | (rw [if_neg (by word)] at hk2; constructor <;> word) | (constructor <;> word)
-    icases Hlo with ⟨%LO, %hLO, lo⟩
+      first | (rw [if_neg (by word)] at hk2; refine ⟨⟨?_, ?_⟩, ?_, ?_⟩ <;> word) |
+        (refine ⟨⟨?_, ?_⟩, ?_, ?_⟩ <;> word)
+    icases Hlo with ⟨%LO, %hLOx, lo⟩
+    obtain ⟨hLO, hcmLO, hbsLO⟩ := hLOx
     wp_apply wp_choose $$ [$Hrv] as %kn ⟨⟨%rv3, Hrv⟩, %hkn⟩
     rw [if_neg (by decide)] at hkn
     wp_apply +noauto (wp_slice_make2 (V := TEnt) (W64 0)) as %esl0 ⟨Hesl0, Hcap0⟩
@@ -68,11 +73,11 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
         "Hcap" ∷ ownSliceCap TEnt esl (DFrac.own 1) ∗ "HM" ∷ tm ↦$ M' ∗ "Hrv" ∷ r ↦ rvx ∗
         "%Hi" ∷ ⌜uint.nat LO ≤ uint.nat i ∧ uint.nat i ≤ uint.nat LO + uint.nat (W64 1 + kn) ∧
           es.length = uint.nat i - uint.nat LO ∧ (∀ x ∈ es, tEntWf x ∧ x.term' = t) ∧
-          tTermsFrom t M M'⌝ : IProp GF) $$ [i es Hesl0 Hcap0 HM Hrv]
+          tTermsFrom t M M' ∧ tConsec (uint.nat LO) es⌝ : IProp GF) $$ [i es Hesl0 Hcap0 HM Hrv]
     · iexists LO, esl0, [], M, rv3
       iframe
       ipureintro
-      refine ⟨Nat.le_refl _, by omega, by simp, by simp, tTermsFrom_refl t M⟩
+      refine ⟨Nat.le_refl _, by omega, by simp, by simp, tTermsFrom_refl t M, tConsec_nil _⟩
     wp_for HI
     by_cases hlt : uint.nat i < uint.nat LO + uint.nat (W64 1 + kn)
     · have hlt' : uint.Z i < uint.Z (LO + (W64 1 + kn)) := by word
@@ -91,9 +96,10 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       iexists i + W64 1, esl2, es ++ [entry.mk i t sz x], <[i := t]> M', rvz
       iframe
       ipureintro
-      obtain ⟨h1, h2, h3, h4, h5⟩ := Hi
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hi
       have hi1 : uint.nat (i + W64 1) = uint.nat i + 1 := by word
-      refine ⟨by omega, by omega, by simp only [List.length_append, List.length_singleton]; omega, ?_, tTermsFrom_insert h5 i⟩
+      refine ⟨by omega, by omega, by simp only [List.length_append, List.length_singleton]; omega, ?_,
+        tTermsFrom_insert h5 i, tConsec_snoc h6 _ (by simp only; omega)⟩
       intro y hy
       rcases List.mem_append.1 hy with hy | hy
       · exact h4 y hy
@@ -103,7 +109,7 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     · have hlt' : ¬ uint.Z i < uint.Z (LO + (W64 1 + kn)) := by word
       simp only [hlt', decide_false, _root_.decide_true, Bool.false_eq_true, ↓reduceIte, val_false_ne_true,
         not_false_eq_true]
-      obtain ⟨h1, h2, h3, h4, h5⟩ := Hi
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hi
       have hin : uint.nat i = uint.nat LO + uint.nat (W64 1 + kn) := by omega
       wp_auto
       ihave HI2 : (∃ (j : w64) (M'' : GMap w64 w64), "i" ∷ i_ptr ↦ j ∗ "HM" ∷ tm ↦$ M'' ∗
@@ -126,22 +132,30 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
         wp_apply wp_choose $$ [$Hrv] as %k3 ⟨⟨%rv4, Hrv⟩, -⟩
         wp_if_destruct
         wp_if_destruct
-        wp_apply wp_choose $$ [$Hrv] as %k4 ⟨⟨%rv5, Hrv⟩, -⟩
+        wp_apply wp_choose $$ [$Hrv] as %k4 ⟨⟨%rv5, Hrv⟩, %hk4⟩
         all_goals try wp_auto
         all_goals
-          ihave Hc : (∃ cm' : w64, m.[member, go!"commit"] ↦ cm') $$ [Hc]
-          · iexists _; iexact Hc
-          icases Hc with ⟨%cm', Hc⟩
-          ihave Hl : (∃ l' : w64, m.[member, go!"last"] ↦ l') $$ [Hl]
-          · iexists _; iexact Hl
-          icases Hl with ⟨%l', Hl⟩
+          ihave Hc : (∃ cm' : w64, ⌜uint.nat cm ≤ uint.nat cm' ∧
+              uint.nat cm' ≤ uint.nat LO + es.length - 1⌝ ∗ m.[member, go!"commit"] ↦ cm') $$ [Hc]
+          · iexists _; iframe; ipureintro
+            first | (rw [if_neg (by word)] at hk4; constructor <;> word) | (constructor <;> word)
+          icases Hc with ⟨%cm', %hcm', Hc⟩
+          ihave Hl : (∃ l' : w64, ⌜uint.nat l' = uint.nat LO + es.length - 1⌝ ∗
+              m.[member, go!"last"] ↦ l') $$ [Hl]
+          · iexists _; iframe; ipureintro; word
+          icases Hl with ⟨%l', %hl', Hl⟩
+          have hne : es ≠ [] := by intro h0; rw [h0] at hesl; simp at hesl
+          have hstep := tMemSim_save (h := hardState.mk t vo cm') (es := es) (lo := uint.nat LO) hms
+            hcm'.1 (Or.inr ⟨h6, hbsLO, hcmLO, hLO.2⟩) l' (by rw [if_neg hne]; exact hl')
+            (by simp only; omega)
           wp_apply (wp_hs m t vo cm') $$ [$Ht $Hv $Hc] as ⟨Ht, Hv, Hc⟩
           imod ownSlice_persist $$ Hes with #Hes
           try wp_auto
           iunfold memSaveRes at Hres
           icases Hres with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
           wp_apply (wp_save W e γ m w v o os c d qc (hardState.mk t vo cm') esl es hf hok hhs
-            (fun x hx => (h4 x hx).1) ht (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2)
+            (fun x hx => (h4 x hx).1) ht (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2
+            hstep.1)
             $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b Hpost
           · iframe
             iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
@@ -152,7 +166,7 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
           unfold memSavePost
           iframe
           ipureintro
-          exact ⟨hesl.2, hesl.1, h4, Hj⟩
+          exact ⟨hesl.2, hesl.1, h4, Hj, hstep.2⟩
 
 end proof
 

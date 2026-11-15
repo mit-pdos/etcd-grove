@@ -44,6 +44,14 @@ def tMemSim (o : TOracle) (c : TCand) (bs l cm : w64) : Prop :=
 def tConsec (lo : Nat) (es : List TEnt) : Prop :=
   es.map (fun e => uint.nat e.index') = List.range' lo es.length
 
+theorem tConsec_nil (lo : Nat) : tConsec lo [] := rfl
+
+theorem tConsec_snoc {lo : Nat} {es : List TEnt} (h : tConsec lo es) (e : TEnt)
+    (he : uint.nat e.index' = lo + es.length) : tConsec lo (es ++ [e]) := by
+  unfold tConsec at h ⊢
+  rw [List.map_append, h, List.length_append, List.length_singleton, List.range'_concat]
+  simp [he]
+
 theorem tSimAt_commitLe {H : WalHist} {n : Nat} {σ : StorContents} (h : tSimAt H n σ) :
     σ.commit ≤ σ.last := by
   obtain ⟨A, B, σA, -, -, hg, hD⟩ := h

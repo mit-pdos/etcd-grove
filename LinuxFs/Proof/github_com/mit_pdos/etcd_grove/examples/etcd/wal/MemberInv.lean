@@ -22,6 +22,7 @@ module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.MemberRep
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SnapPure
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.MemberSim
 
 @[expose] public section
 
@@ -176,7 +177,7 @@ theorem memSaveRes_post (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TO
 /-- **A running member between operations** at the oracle `o`: `memSaveRes` (some handle `w`, Go
 oracle, stored oracle, candidate `c`, WAL state `d`), the raft-like fields with `tMemFields`, the choice
 source, the handle's purge permission (`close` takes it), and the facts the operations take: `tMemOk`,
-`tMemHs`, `tCheckWf`. -/
+`tMemHs`, `tCheckWf`, and the fields' relation to the history's discipline (`tMemSim`, tenth session). -/
 def memLive (W : WalGS GF) (e : TEnv) (γ : TGS) (m : Loc) (qc : Qp) (o : TOracle) : IProp GF :=
   iprop(∃ (w : Loc) (v : oracle) (os : TOracle) (c : TCand) (d : WalDur) (t vo cm bs l : w64) (tm : Loc)
       (M : GMap w64 w64) (r : Loc) (rv : rnd),
@@ -185,7 +186,7 @@ def memLive (W : WalGS GF) (e : TEnv) (γ : TGS) (m : Loc) (qc : Qp) (o : TOracl
     m.[member, go!"base"] ↦ bs ∗ m.[member, go!"last"] ↦ l ∗ m.[member, go!"terms"] ↦ tm ∗
     tm ↦$ M ∗ m.[member, go!"r"] ↦ r ∗ r ↦ rv ∗
     WalFs.walPurgeW (W := W) w (tWalDir e.area) ∗
-    ⌜tMemOk o c d ∧ tMemHs o d ∧ tMemFields t M ∧ tCheckWf o⌝)
+    ⌜tMemOk o c d ∧ tMemHs o d ∧ tMemFields t M ∧ tCheckWf o ∧ tMemSim o c bs l cm⌝)
 
 end rep
 
