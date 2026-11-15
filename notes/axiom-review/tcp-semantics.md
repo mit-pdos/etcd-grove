@@ -704,3 +704,246 @@ The other rows rely on files and relations that did not change.
 - A `Write` above `maxRW` (argued: A2, A3).
 - IPv6-only hosts, `GODEBUG` variations, memory exhaustion (D12).
 
+## v3.2 (2026-11-15)
+
+Reviewed by the `axiom` skill, adapted to a trusted operational semantics, on branch `net-tcp` at
+`14231247d2` (semantics v3.2: `da1f8be906`, the trusted part, and `3213d05aa6`; `Impl.lean`'s D22
+and its audit table), the same target (Linux 7.0.0-38-generic, default sysctls, Go 1.27.3, sources
+read in `/usr/local/go/src`). Read whole: both commits' diffs of `Impl.lean`, `net.lean`,
+`Ghost.lean`, `Decide.lean`; `Tests.lean`'s steps section (`isTcpStep_total`, `isTcpStep_result`);
+`Specs.lean`'s `wp_tcp_op` and `wp_tcp_endOp`; Perennial's `Panic` (`Lang.lean`, `BaseStep`,
+`wp_PanicOp`), `RealNotStuck` and `UnrecoveredPanic` (`BoundedLang.lean`), `GoLoad` of a null
+pointer (`Golang/Defn/PostLang.lean`), `goose_dist_crash_adequacy` (`DistAdequacy.lean`) and its
+instance `echo_crash_safety`; Go's `net.go` and `tcpsock.go` (`ok()`, every method the models
+cover). `lake build --no-build GooseLang.Ext.Tcp.Tests nettcp-replay`: up to date.
+
+**Verdict: survives.** No program was found that panics in Go and has a no-panic proof over v3.2.
+The argument is a reduction to v3.1, which survived: apart from the zero values, v3.2's executions
+are v3.1's with each wait re-expressed as a stutter, extra stutters (prefixes of real runs), and a
+`Panic` step exactly where v3.1 was stuck. Both are excluded by the adequacy theorem. So a v3.2
+counterexample would be a v3.1 counterexample or would use a zero value. The zero-value paths
+(`model.einval`) are Go's, checked against the source of every method and measured. Seventeen
+measured runs were re-checked under v3.2, all ADMITTED and Lean CERTIFIED: eight new blocking
+runs (`examples/axiomcx/tcp-stutter`), v3.1's six `tcp-writeloop` races, and three runs of the
+v2/v3 counterexamples' programs. There are four findings, none a refutation: two inaccurate
+docstrings (N1, N2), the checker not transcribing the zero values (N3), and a measurement to promote
+(N4).
+
+### What changed since the v3.1 review (`3e53401dd5`)
+
+`git diff --stat 3e53401dd5 HEAD -- GooseLang/Ext/Tcp NetTcp/TrustedCode NetTcp/Code/net.toml
+NetTcp/ManualProof etc/`: seven files, of which two are trusted.
+
+| File | Trusted | What changed |
+|---|---|---|
+| `GooseLang/Ext/Tcp/Impl.lean` | yes | `TcpStep` = the stutter or `IsTcpStep`; `IsTcpStep` = per operation `OrInvalid valid step` (the v3.1 step, or `Invalid`: `Panic`, when `valid` fails); `ReadRes.wait` and `ReadAvail`'s wait clause, `AcceptStep`'s wait clause, and `WriteOutcome`'s `k = 0` success of a non-empty `rs` (open and cut directions: `1 ≤ k ∨ rs = []`) deleted; D22 and its table; D1, D2, D6, D7, D8, D21 reworded |
+| `NetTcp/TrustedCode/net.lean` | yes | `model.einval` (`Convert syscall.Errno error #22`); the id-0 check first in `conn.Read`, `conn.Write`, `conn.Close`, `TCPConn.CloseWrite`, `model.setDeadline` (the three `Set*Deadline`), `TCPListener.Accept`, `TCPListener.Close`; docstrings |
+| `GooseLang/Ext/Tcp/Ghost.lean` | no (an interpretation) | `PendOk` and `tcpConnAt`: `c ≠ 0` |
+| `GooseLang/Ext/Tcp/Specs.lean` | no (proved) | `wp_tcp_op` (the Löb rule of the stutter), `wp_tcp_endOp` without reducibility or wait premises |
+| `GooseLang/Ext/Tcp/Tests.lean` | no | `isTcpStep_total`, `isTcpStep_result`, the panics, the waits as stutters |
+| `GooseLang/Ext/Tcp/Decide.lean`, `Replay.lean` | no | the deciders without the waits, `writeOutcomeB` with `1 ≤ k ∨ rs = []` |
+
+Unchanged: `Adequacy.lean`, `Deploy.lean`, `NetTcp/Code/net.toml`, `NetTcp/ManualProof/net.lean`,
+`etc/goose.py`, `etc/gen-init.py`, the Perennial pin. No `sorry` or `axiom` in `GooseLang/Ext/Tcp`,
+`NetTcp/Spec`, `NetTcp/Proof`, `NetTcp/TrustedCode` (the one grep match, `PkgInitExt.lean`, is a
+comment).
+
+### The claims (v3.2)
+
+1. Every operation may stutter in every state (`e' = ExternalOp "net" op (Val v)`, nothing changed).
+2. Every operation, argument and state has an outcome rule besides the stutter (`isTcpStep_total`,
+   proved), and every outcome rule returns a value or `Panic` (`isTcpStep_result`).
+3. An invalid use (D22's table) has `Panic` as its only outcome rule. That is GooseLang's builtin
+   panic: stuck, not recoverable.
+4. The waits are stutters. A `Read`, `Accept` or `Write` that blocks has no outcome of its own. A
+   `Write` step that does not fail counts at least one byte unless `rs` is empty.
+5. A zero `TCPConn` or `TCPListener` (id 0) gets Go's bare `syscall.EINVAL` from every covered
+   method, before the extension is called. `LocalAddr` and `RemoteAddr` return `nil`, and the
+   listener's `Addr` panics.
+6. No connection is numbered 0 (`NewConn`) and no listener has id 0 (`ListenStep`). So an id the
+   extension returns is never 0.
+
+### Attacks
+
+**B1. Can a thread stutter where Go goes on (claim 2)?** Such a state would be unsound. v3.1 was
+stuck there, which `RealNotStuck` excludes, but under v3.2 the thread could stutter forever, and a
+safety theorem would not see what Go does next. There is no such state:
+
+- `isTcpStep_total` is proved for every operation name, every value and every state, invariants or
+  not. Under `OrInvalid`, `Panic` is an outcome only when `valid` fails, and the theorem shows each
+  `step` has an outcome whenever `valid` holds.
+- The table, row by row, against the relations:
+  - `Read`: a cut keeping nothing, then EOF.
+  - `Write`: `sys`.
+  - `Accept` on an open listener: `sys`.
+  - `Dial`: `sys`.
+  - `Listen`: `sys`.
+  - `Close`, `CloseWrite`, `SetDeadline`, `LisClose`: deterministic.
+  - `Any*`: a value.
+- The trusted models have one loop, `model.writeLoop`. It calls again only after a non-stutter
+  outcome (a successful step with `nn < len`). With `1 ≤ k` for a non-empty `rs` it now makes
+  progress at every iteration. v3.1's `k = 0` iterations could spin, which is harmless for safety
+  but gone now.
+- No other model calls the extension in a loop. `DialTimeout.impl`'s and `model.errFlag`'s `AnyBool`
+  each take one step.
+
+The stutter itself only adds prefixes of real runs: a call that has not returned yet. That holds
+even for calls Go never blocks in (`Close`, `SetDeadline`, `LisClose`), because a slow thread is a
+real prefix and the theorems conclude only safety. `echo_crash_safety` is quantified over every
+`n`, with the step bound `n + 1`, so stutters cost no bound. `wp_tcp_op` is proved: Löb induction
+over the stutter, `wp_extStep` given the stutter as the reducible step.
+
+**B2. The reduction to v3.1 (claims 1, 3, 4).** v3.1's `TcpStep` had, per operation, exactly
+v3.2's `step` (with the waits), and was `False` where v3.2's `valid` fails. Each such clause
+required what `valid` requires:
+
+- `IsEnd` with the connection present, for the end operations;
+- the listener in `L.lis`, for `Accept` and `LisClose`;
+- `ListenAt`, for `Listen`;
+- the plan entry, for `Dial`;
+- `v = #()`, for the `Any*` operations;
+- `False` for an unknown name.
+
+So:
+
+- (a) v3.1 stuck ⟺ `¬ valid` ⟺ v3.2 has only `Panic` and the stutter. `Panic` has no `BaseStep`
+  (`Lang.lean`), so a thread at `Panic` fails `RealNotStuck`, inside a `Catch` too (`Catch` steps
+  only on a value). Both versions exclude the state from any proved program.
+- (b) v3.1's `ReadRes.wait` and `AcceptStep`'s wait were `e' = op`, the stutter itself.
+- (c) v3.1's `k = 0` success of a non-empty `rs` left the direction as it was (`d ++ rs.take 0`).
+  The loop then re-read `connId c` and `b[nn:]` and called again, with no observable effect; only
+  a racing writer of `b` could tell, and that has no proof (A5). It is a stutter up to that
+  invisible re-read.
+
+The executions of a program that uses no zero value are therefore v3.1's, up to stutters and the
+`Panic`-for-stuck exchange. A v3.2 proof gives v3.1 safety, and a v3.2 counterexample would be a
+v3.1 counterexample. The removal of the waits excludes no real outcome:
+
+- a `write(2)` after `EAGAIN` writes at least one byte or fails;
+- a spurious wakeup is a stutter;
+- `n == 0` with no error is unreachable on TCP (A2);
+- a blocked `Read` ends in bytes, EOF, an error or a timeout, each an outcome rule;
+- a blocked `Accept` ends in a connection, `sys` or `closed`.
+
+Measured below (B5).
+
+**B3. The panics (claim 3) against adequacy.** `goose_dist_crash_adequacy` concludes `RealNotStuck`
+and `¬ UnrecoveredPanic` for every thread of every reachable configuration. A `Panic` step is
+reachable whenever its `¬ valid` holds, so the configuration after it is covered and fails
+`RealNotStuck`: the panic is excluded, not vacuously allowed. Each case:
+
+| Panic | Reachable from the models? |
+|---|---|
+| `Listen` with no `ListenAt` (not the plan's at this host, another host's, a wildcard whose port is not unique, any other string) | yes: `Listen.impl` passes the program's string. A proof obligation, not an assumption: the program must use plan addresses (D13). Go would succeed or fail. The model is less defined: sound |
+| `Dial` off the plan | the same (`Dial.impl`, `DialTimeout.impl`) |
+| `Accept`, `LisClose` on an id with no listener of this node | no: the models check `lid = 0` first. A non-zero `lid` is only `ListenStep`'s result (`l ≠ 0`), stored in an unexported field. Closed listeners stay in `L.lis`. A crash empties `L.lis` and the heap together, and a heap is not shared between nodes |
+| `Read` ... `SetDeadline` on an id naming no end | no: the models check `id = 0` first. A non-zero id is only `endId c s` with `c ≠ 0` and `2c + 1 < 2^64` (so not `0` modulo `2^64`), from `Dial`/`Accept`. Connections are never deleted, crashes included |
+| another argument shape | no: the models pass `#a`, `#l`, `(#e, #n)`, `(#e, #bs)`, `#e`, `(#e, (#kind, (#wall, #ext)))`, `#()`. Every example's proof uses each operation, so the shapes match |
+| an unknown operation name | no: goose never emits `ExternalOp "net"`; only `net.lean` does, with the names of the table |
+
+A struct copy (`cp := *tc`) or an overwrite (`*tc = net.TCPConn{}`) moves ids as Go moves `fd`
+pointers (`TestZeroedConn`). A racing overwrite is a data race with no proof (non-atomic heap).
+
+**B4. EINVAL for zero values (claim 5), against Go 1.27.3.** `conn.ok()` is `c != nil && c.fd != nil`
+(`net.go:187`), checked first by:
+
+- `Read` (`:192`), `Write` (`:204`), `Close` (`:216`);
+- `SetDeadline`, `SetReadDeadline`, `SetWriteDeadline` (`:248-279`), each `return syscall.EINVAL`;
+- `LocalAddr` and `RemoteAddr` (`:230`, `:240`), which `return nil`.
+
+`TCPConn.CloseWrite` (`tcpsock.go:198`) does the same. The listener's check is `l.ok()`:
+`TCPListener.Accept` (`:383`) returns `nil, syscall.EINVAL`, and `Close` (`:396`) returns
+`syscall.EINVAL`. `Addr` (`:409`) is `l.fd.laddr`, a nil dereference.
+
+The models match on each point:
+
+- They check before anything else, as Go does: before `n = 0`, an empty `b`, a closed end or a zero
+  time.
+- The value is the same: `Convert syscall.Errno error #(W64 22)`, while the translated
+  `syscall.EINVAL` is `#(W64 22)` (`Code/syscall/chunk0.lean:2967`) of the same named type, so
+  `err == syscall.EINVAL` and `err.(syscall.Errno)` agree with Go.
+- The type is a bare `Errno`, not an `*OpError`.
+- The case is the same: `id = 0` ⟺ `fd == nil` for a non-nil pointer, by claim 6 and B3.
+- Accept's `Conn` is a nil interface (`GoZeroVal model.Conn`).
+- `Addr` is `Panic`, which is stuck where Go's panic is a recoverable `runtime.Error`: less defined,
+  sound.
+
+Measured (`TestZeroValuesEvery`, beyond `TestZeroValues`'s seven calls):
+
+- every covered method, including `Read` and `Write` of 0 and 1 bytes, a second `Close`, each
+  `Set*Deadline` with the zero time and `time.Now()`, and the `Conn`/`Listener` interfaces: the bare
+  `syscall.Errno(22)`;
+- the addresses: `nil`;
+- `Addr`: a `runtime.Error`.
+
+Nil pointers (`TestNilReceivers`): `(*TCPListener)(nil).Accept` and `.Close` return `EINVAL`, while
+`(*TCPConn)(nil).Read`, `.Close` and `.CloseWrite` panic (Go computes `&c.conn`, a nil dereference).
+The models load the id through the pointer. `GoLoad` of a primitive at a null pointer is a `Read`
+with no heap cell, which is stuck, so no program calling them has a proof: sound in both cases (N1).
+
+**B5. Measurements of the waits (claim 4), traced and checked.** `examples/axiomcx/tcp-stutter`
+(tests only, ports 7161-7169) has eight blocking tests, each 20 iterations untraced, then the whole
+package `-count=3`, all passing:
+
+- `TestReadBlocksThenBytes`: a Read blocked 100 ms, then 1..5 bytes;
+- `TestAcceptBlocksThenAccepts`;
+- `TestWriteBlocksForSpace`: a 12 MiB Write blocked 200 ms, then `(Size, nil)`, every byte in
+  order;
+- `TestAcceptBlockedThenClose`: `closed`;
+- `TestReadBlockedThenDeadline`: a deadline set while blocked gives a timeout, the connection
+  unchanged;
+- `TestReadBlockedThenClose`: `closed`, and the peer gets EOF;
+- `TestEmptyWriteOnFullBuffer`: after a timed-out filling Write, an empty Write returns `(0, nil)`
+  at once, the one `k = 0` success v3.2 keeps;
+- `TestWriteBlockedPeerCloses`: `(2633835, write: connection reset by peer)` in 20 of 20 runs:
+  steps, then a `sys` step cutting the open direction.
+
+Each was traced once (`go test -c -overlay`, `NETTCP_ST_ITERS=1`) and checked by the v3.2 checker:
+**8 of 8 ADMITTED, all Lean CERTIFIED** (`check/certify.py`, 3 to 229 steps).
+
+**B6. v3.1's attacks where their files changed (`Impl.lean`'s `WriteOutcome`, `net.lean`).**
+
+- A2's table: the row "`EAGAIN`, pollable: `waitWrite`" is now a stutter instead of a `k = 0`
+  success; the empty-`b` row keeps its `k = 0` step (`rs = []`); the others are unchanged.
+- A5's argument that an append can be placed earlier still holds, and is simpler: no `Read` answers
+  "wait" at all now.
+- A11 re-done: the six `tcp-writeloop` tests re-traced at 12 MiB, one iteration, **6 of 6 ADMITTED,
+  Lean CERTIFIED** under v3.2.
+- The earlier counterexamples' programs, traced under v3.2:
+  - `tcp-emptywrite`'s `TestMainPanics` and `TestMainResetPanics` (the empty Write failing on a
+    timeout and on a reset) and `tcp-writedeadline`'s `TestMainPanics` (32 MiB, a deadline set
+    during the Write): **ADMITTED, Lean CERTIFIED**, so v2.1's and v3.1's fixes survive the
+    restructuring;
+  - `tcp-writedeadline`'s `TestWriteDeadlineSetDuring`: OUT OF SCOPE (port 0 and
+    `TCPConn.WriteTo`, as before).
+- The network-namespace tests (`NETTCP_NETNS=1`: `TestTimeoutOnBreak`, `TestResetInNetwork`,
+  `TestPartitionHealed`) pass: Writes blocked into a broken connection end in `sys`, as the
+  stutter then `sys` of a cut or open direction allows.
+
+### Findings that are not refutations
+
+- **N1. `net.lean`'s faithfulness paragraph says a nil receiver is "a nil dereference, where Go
+  returns `EINVAL`".** Measured (`TestNilReceivers`): that holds for a nil `*TCPListener` (`Accept`,
+  `Close`). A nil `*TCPConn`'s promoted methods panic in Go too (a runtime error at `&c.conn`). The
+  model is stuck in both cases, which is sound. **Proposed:** "a nil `*TCPListener` (Go returns
+  `EINVAL`) or nil `*TCPConn` (Go panics: a nil dereference)".
+- **N2. D22's table, row "`Close`, `CloseWrite` ... (one each)".** `CloseWriteOutcome` on an end
+  that is not closed has two outcomes, success or `sys`. The row probably means one relation each.
+  **Proposed:** "`CloseOutcome` (one outcome), `CloseWriteOutcome` (success or `sys`)".
+- **N3. The checker does not transcribe the zero values.** A traced operation on a zero-value socket
+  is OUT OF SCOPE (`TestZeroedConn`'s trace). v3.2 models it: a bare `EINVAL` with no extension
+  step. **Proposed:** `mapping.py` admits such an operation with no step when its result is the bare
+  `syscall.EINVAL` (and `nil` for the addresses), and rejects anything else.
+- **N4. `doc.go`'s `TestZeroValues` row covers seven calls.** **Proposed:** move
+  `TestZeroValuesEvery`, `TestZeroedConn` and `TestNilReceivers` into `examples/net/semantics/`
+  (`errors_test.go`), and the eight blocking tests under D22's "(the stutter convention)" row, which
+  is now classed *documented* and has these measurements. `doc.go` was not edited here.
+
+### Not tried
+
+- A Lean statement of B2's reduction (a simulation between v3.1's `TcpStep` and v3.2's); B2 is
+  argued clause by clause.
+- `reflect` or `unsafe` on `net`'s structs (untranslated).
+- v3.1's "not tried" list (M1's stress test, a `Write` above `maxRW`, IPv6-only hosts, `GODEBUG`,
+  memory exhaustion).
+
