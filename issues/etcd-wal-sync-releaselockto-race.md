@@ -74,7 +74,9 @@ concurrently with the next batch; [`storage`](https://github.com/etcd-io/etcd/bl
 ## Proof
 
 yes: Goose's semantics makes a racy load a failure, so the server's proof (C6) needs a fork fix
-(`Sync` takes `w.mu`, or `storage.Sync` takes the write lock); none is on the fork yet. Ledger P2
+(`Sync` takes `w.mu`, or `storage.Sync` takes the write lock). **Fixed in the fork** (2026-11-15, the user's decision):
+upamanyus/etcd `goose-lean-walfs` `e115818f5` ("wal: take w.mu in Sync", `fix.patch` with this test as
+`server/storage/sync_release_race_test.go`; `notes/wal-fsext-fork/0006-*.patch`); the test passes under `-race` there. Ledger P2
 (`notes/specs-only/ledger.md`, 2026-11-15) and `notes/wal-units/specgap.md` §3.1.
 
 ## Fix
