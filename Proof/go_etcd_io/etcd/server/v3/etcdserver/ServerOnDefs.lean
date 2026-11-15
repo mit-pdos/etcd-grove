@@ -324,7 +324,7 @@ theorem srvKVInvsM_rows (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
   · iintro -; ipureintro; intro h; cases h
   · unfold srvKVInvsM srvKVInvsOn
     iintro ⟨⟨-, -, -, -, -, -, -, %h⟩, -⟩
-    ipureintro; intro _; exact ⟨h.2.2.1, h.2.2.2⟩
+    ipureintro; intro _; exact ⟨h.2.1, h.2.2⟩
 
 /-- `srvKVInvsM true`'s uber-applier contracts. -/
 theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :

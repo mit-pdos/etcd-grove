@@ -381,9 +381,7 @@ instance kvNxOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   unfold kvNxOn; infer_instance
 
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
-store's history's tie to the log (`authHistTie`); (the lease-grant merge, 2026-11-03) a cluster that
-grants no lease (`NewServer.spec`'s `on = true → ρ.rd.kv.lg = false`): what the snapshot install's
-revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). (Strict M1, 2026-11-06, as
+store's history's tie to the log (`authHistTie`). (Strict M1, 2026-11-06, as
 `srvKVInvs`: the tie `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store
 invariant `kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
 witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`. Merge of `lean`,
@@ -392,13 +390,15 @@ by R6, 2026-11-07, as `γr.kv.cmp = false`, `lean`'s scope restriction, dropped 
 on-mode image certificate is at `crevOf γr.kv A`, `-1`, which the apply thread's compaction
 revision meets only when the cluster never compacts, `kvCpOk`.) (Auth-lease S3a, Draft rev 5 §3: the model's lease mode the
 environment's, `γr.kv.lm = E.lm`, and the raft prefix empty, `γr.raft.pre = []`, so the model's table and
-`srvRest`'s agree, `appliedTableM_eq_model`. TRANSITIONAL, removed at S3a's §5 step: `γr.kv.lg = false`.) -/
+`srvRest`'s agree, `appliedTableM_eq_model`. From the lease-grant merge, 2026-11-03, until S3a's §6 also
+`γr.kv.lg = false`, a cluster that grants no lease: dropped once the apply thread's grant and revocation arms
+were proved.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
     authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
     ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗
-    ⌜γr.kv.cmp = false ∧ γr.kv.lg = false ∧ γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝)
+    ⌜γr.kv.cmp = false ∧ γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by

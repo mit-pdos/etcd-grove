@@ -1303,7 +1303,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 A₀ $$ HkI HrI HA0 with %Hpc0
     -- (auth-lease S3a rev 7) the entry at the environment's lease mode (`srvKVInvsOn`'s `lm = E.lm`)
     have Hpe : plainEntryOn E.lm m := by
-      obtain ⟨-, -, hlmE, -⟩ := Hrows; rw [← hlmE]; exact Hpc0.1 m HmA
+      obtain ⟨-, hlmE, -⟩ := Hrows; rw [← hlmE]; exact Hpc0.1 m HmA
     have Hch : x.chain = apply.alarmChain true false false := Hxch.trans Hpc0.2.2
     imod srvApplyKVOn_writer hPers hReach s E γr srvAuthSt0 ρ.wait x sa $$ Hkvi HKV with
       ⟨HKV, #Hcx, -, -, %Hwf⟩
@@ -1521,8 +1521,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   iunfold srvKVInvsOn at Hkvi'
   icases Hkvi' with ⟨#HkI', -, #HrI', -, -, -, -, %Hrows'⟩
   -- (auth-lease S3a rev 7) the entry at the environment's lease mode (`srvKVInvsOn`'s `lm = E.lm`)
-  have hlmE : γr.kv.lm = E.lm := Hrows'.2.2.1
-  have hpreE : γr.raft.pre = [] := Hrows'.2.2.2
+  have hlmE : γr.kv.lm = E.lm := Hrows'.2.1
+  have hpreE : γr.raft.pre = [] := Hrows'.2.2
   have Hpe : plainEntryOn E.lm m := by rw [← hlmE]; exact Hpe
   imod (kvInvOn_keysA γr srvAuthSt0 (A ++ [m])) $$ HkI' HrI' HAm with %HkeysA
   icases kvAppliedLOn_nx _ _ _ _ _ HkeysA $$ Hka with ⟨Hka, #Hkc⟩

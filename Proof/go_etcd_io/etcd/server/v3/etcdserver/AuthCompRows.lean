@@ -75,7 +75,7 @@ def srvApplyKVC (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : app
 
 /-- **The apply thread's KV invariants** (`srvKVInvsM`'s): the mode's KV and certificates'
 invariants from `srvAuthSt0`, the raft log's, the KV names' ties (off's, `kvNameTiesM`), the modes
-the component needs (`acModesOk`: on, compaction and lease grants off), and the component's
+the component needs (`acModesOk`: on, compaction off), and the component's
 invariants (`acInv`). (R6, 2026-11-07, the `lean` merge: `lean`'s tie `E.γ.cok = γr.kv.cok` and
 mvcc's permit invariant `crevPermIs` replaced, as in `srvKVInvs`/`srvKVInvsOn`, by the store
 invariant at the chain's witness and permit, `envWitOk`, the permit `kvCpOk` and the witness the
@@ -497,9 +497,9 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       isplitr
       · ipureintro; trivial
       isplitr
-      · ipureintro; exact ⟨Hm.1, Hm.2.1⟩
+      · ipureintro; exact Hm.1
       isplitr
-      · ipureintro; intro _; exact Hm.2.2
+      · ipureintro; intro _; exact Hm.2
       iapply (acInv_on (.on γa) γa rfl s E γr).2
       iframe Htie Hu
     · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, -, %Hm, %Hlp, #Hi⟩
@@ -509,7 +509,7 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       · ipureintro; exact Hc
       isplitr
       · ipureintro; exact HNx
-      ipureintro; exact ⟨Hm.1, Hm.2, Hlp rfl⟩
+      ipureintro; exact ⟨Hm, Hlp rfl⟩
 
 theorem srvAtomicsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvAtomicsM (GF := GF) C.isOn s E γr ⊣⊢ srvAtomicsC C s E γr := by
@@ -1026,7 +1026,7 @@ theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     ihave #Hkvi := srvKVInvsM_true s E γr $$ HkM
     iunfold srvKVInvsOn at Hkvi
     icases Hkvi with ⟨-, -, -, -, -, -, -, %Hrows⟩
-    ipureintro; exact ⟨h, Hrows.2.2.1⟩
+    ipureintro; exact ⟨h, Hrows.2.1⟩
 
 /-- **A first start's `applyStartC` is the restart form at `A₀ = []`** (Go's index `ai₀`). -/
 theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
