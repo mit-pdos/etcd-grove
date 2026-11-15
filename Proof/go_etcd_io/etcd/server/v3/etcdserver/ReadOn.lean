@@ -492,7 +492,8 @@ theorem srvKVCoreM_fire (on : Bool)
     ⊢ srvKVCoreM on E γr -∗ E.Nx L -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ={⊤}=∗
-      ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+      ∃ (C : mvcc.Log) (lt : LeaseTable), ⌜on = false ∨ γr.kv.lm = .none → lt = []⌝ ∗
+        □ Q (kvStateOf C lt) ∗ ⌜L <+: C⌝ := by
   have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
     intro p hp
     rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp

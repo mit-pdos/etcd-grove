@@ -57,7 +57,7 @@ def KVState.log (σ : KVState) : mvcc.Log := [] :: σ.changes
 
 /-- **`σ` is a well-formed small log's state through revision `r`** (see the file header). -/
 def kvLogOkTo (σ : KVState) (r : Nat) : Prop :=
-  σ = kvStateOf σ.log ∧ r ≤ σ.rev ∧ r + 1 < 2 ^ 63 ∧
+  σ = kvStateOf σ.log σ.leases ∧ r ≤ σ.rev ∧ r + 1 < 2 ^ 63 ∧
     mvcc.LogWf' (σ.log.take (r + 1)) ∧ txn.LogSmall (σ.log.take (r + 1)) ∧
     -- (2026-10-30, `notes/keylen.md`) its keys short
     mvcc.LogPutsLe etcdKeyMax (σ.log.take (r + 1))

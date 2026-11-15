@@ -881,6 +881,51 @@ theorem plainReqL_nonGrant (lm : lease.Mode) (rq : apply.IRRModel) (h : plainReq
   · rw [hk]; decide
   · rw [hk]; decide
 
+/-- **At the lease mode `none`, an entry of the mode-`on` log changes no table** (a plain request, or an
+admin one, which is no write). -/
+theorem kvTable_plainOn_none (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
+    (hp : plainEntryOn .none m) : kvTable c₀ ch lt m = lt := by
+  unfold kvTable
+  split
+  · rename_i ht
+    split
+    · rfl
+    · rename_i hd
+      split
+      · rename_i rq hdec
+        unfold dispatchTable
+        split
+        · rfl
+        · rcases plainEntryOn_none m hp ht hd rq hdec with h | h
+          · exact chainTable_plain rq lt h.1.1 ch
+          · have hw : ¬ writeKind (apply.dispatchKind rq) := by
+              have hk := h.1
+              unfold apply.adminKindOk at hk
+              split at hk <;> simp_all [writeKind]
+            exact chainTable_nonwrite rq lt hw ch
+      · rfl
+  · rfl
+
+/-- At the lease mode `none`, every entry of the mode-`on` log keeps the table. -/
+theorem kvRaftOfOn_table_none (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s : OnState) (A : List EntryModel), plainLogOn .none A → (kvRaftOfOn c₀ ch s A).2.2 = s.2.2
+  | _, [], _ => rfl
+  | s, m :: A, h => by
+    have hm := h m (List.mem_cons_self ..)
+    have hstep : (kvEntryOn c₀ ch s m).2.2 = s.2.2 := by
+      unfold kvEntryOn
+      split
+      · split
+        · split
+          · rfl
+          · split
+            · rfl
+            · exact kvTable_plainOn_none c₀ ch _ m hm
+        · rfl
+      · exact kvTable_plainOn_none c₀ ch _ m hm
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).2.2 = s.2.2
+    rw [kvRaftOfOn_table_none c₀ ch _ A (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')), hstep]
+
 /-- **The entry is determinate at the state `s` it is applied at** (see the header): an admin entry
 above `c₀` has one successor (`authDet`), a KV entry's or a revocation's check is decided (`kvDet`;
 auth-lease S3a: `authKVKind`). -/
@@ -1032,6 +1077,12 @@ def kvLeasesOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : 
   (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).2.2
 
 theorem kvLeasesOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvLeasesOn γk st₀ [] = [] := rfl
+
+/-- **At the lease mode `none` the table is empty** (Draft rev 4 §4, r4's named lemma): a log of the mode-`on`
+log at `none` grants no lease. -/
+theorem kvLeasesOn_none (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (h : plainLogOn .none L) : kvLeasesOn γk st₀ L = [] := by
+  unfold kvLeasesOn; rw [kvRaftOfOn_table_none _ _ _ L h]
 
 /-- A log of no normal entries (the bootstrap log's configuration changes) has the empty table. -/
 theorem kvLeasesOn_conf (γk : KVNames) (st₀ : auth.AuthState) (A : List EntryModel)

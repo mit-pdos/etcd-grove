@@ -232,7 +232,7 @@ def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnMo
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
     srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
     E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
-    Q (kvStateOf x.log))
+    (∃ lt, ⌜E.authOn = false ∨ γw.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied); of the wire

@@ -1043,7 +1043,8 @@ theorem readQ_of_ansM (on : Bool) (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KV
     (if ser then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗
         □ v3rpc.rangeDepQM on γr.kv d L : IProp GF) ⊢
-      (if ser then iprop(True) else □ Q (kvStateOf log)) := by
+      (if ser then iprop(True) else
+        ∃ lt, ⌜on = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt)) := by
   cases hs : ser
   · simp only [Bool.false_eq_true, ↓reduceIte]
     iintro ⟨%L, -, %HL, #HQ⟩

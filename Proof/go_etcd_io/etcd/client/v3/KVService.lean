@@ -221,7 +221,7 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         opRespsRel false (t.branch m.succeeded)
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 m.resps⌝ ∗
       (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
-      (if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log)))
+      (if txn.txnSerializable t then iprop(True) else (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt))))
   else
     iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
         (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
@@ -237,7 +237,8 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
           (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps ∧
         -- (linkv-txn stage B1, 2026-10-20) the ranges run
         skip = false⌝ ∗
-      srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+      srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
+        (∃ lt, ⌜E.authOn = false ∨ γw.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 /-- **The revision a writing transaction's reply reached** (U1 of `notes/k8s-compactor-plan.md`,
 2026-11-04, the user's approval; as `etcdPutSpec`'s `kvRevLb`): for a writing `t`, the KV has
@@ -326,7 +327,7 @@ def rangeReplyOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) 
       txn.srvRangeOk o (mvcc.stateAt log (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)))
         m.kvs m.more ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-    (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
+    (if o.base.serializable then iprop(True) else (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt))))
 
 instance rangeReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (cid mid : w64) (Q : KVState → IProp GF) (m : RangeRespM) :
@@ -347,7 +348,8 @@ def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
+    (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 open Iris.ProofMode in
 /-- A delivered put's result, weakened (2026-10-19, D21 M6). -/
@@ -406,7 +408,7 @@ def rangeErrReply (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
       P log crev⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-    (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
+    (if o.base.serializable then iprop(True) else (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt))))
 
 instance rangeErrReply_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) :
@@ -489,7 +491,8 @@ def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
+    (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 open Iris.ProofMode in
 /-- A delivered delete's result, weakened (2026-10-20, linkv-txn stage A). -/

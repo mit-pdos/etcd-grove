@@ -182,7 +182,7 @@ theorem srvKVFacts_fire (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst
     client.srvKVFacts V ∗ □ V.W.histLb L ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ⊢
-      |={⊤}=> ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+      |={⊤}=> ∃ (C : mvcc.Log) (lt : LeaseTable), □ Q (kvStateOf C lt) ∗ ⌜L <+: C⌝ := by
   iintro ⟨#Hk, #HL, #Hau⟩
   iunfold client.srvKVFacts at Hk
   icases Hk with ⟨%on, %γr, #Hc, %Hp, -, %Ht⟩
@@ -194,9 +194,9 @@ theorem srvKVFacts_fire (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst
   icases HL with ⟨-, %L', %HL', #Hx, -⟩
   ihave Hx' : V.R.E.Nx L' $$ []
   · rw [HNx]; iexact Hx
-  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L' Q $$ Hc Hx' Hau with ⟨%C, #HQ, %HC⟩
+  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L' Q $$ Hc Hx' Hau with ⟨%C, %lt, -, #HQ, %HC⟩
   imodintro
-  iexists C
+  iexists C, lt
   iframe HQ
   ipureintro; exact HL'.1.trans HC
 
@@ -206,15 +206,15 @@ theorem srvKVFacts_fire0 (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.ks
     client.srvKVFacts V ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ⊢
-      |={⊤}=> ∃ C : mvcc.Log, □ Q (kvStateOf C) := by
+      |={⊤}=> ∃ (C : mvcc.Log) (lt : LeaseTable), □ Q (kvStateOf C lt) := by
   iintro ⟨#Hk, #Hau⟩
   ihave #Hk' := Hk
   iunfold client.srvKVFacts at Hk'
   icases Hk' with ⟨%on, %γr, #Hc, %Hp, -, -⟩
   imod srvKVCoreM_someNx on V.R.E γr $$ Hc with ⟨%L, Hx⟩
-  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L Q $$ Hc Hx Hau with ⟨%C, #HQ, -⟩
+  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L Q $$ Hc Hx Hau with ⟨%C, %lt, -, #HQ, -⟩
   imodintro
-  iexists C
+  iexists C, lt
   iexact HQ
 
 /-- **A response at the server's level is a read of the state** (see the file header): the caller's
