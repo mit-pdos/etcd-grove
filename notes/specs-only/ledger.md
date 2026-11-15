@@ -269,3 +269,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** The realization keeps `boltState` in an invariant (the bank's pattern),
   the commit's update opening it.
 - **Decision.** Pending (the backend's; no statement changes).
+
+## 2026-11-15: the auth-on KV results at `kvStateOf log` -- unprovable once `kvInvOn` carries the lease table (auth-lease S3a)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Put.lean:63`,
+  `EtcdServer__DeleteRange.lean:59` (`Q (kvStateOf x.log)`), `EtcdServer__Txn.lean`'s writing post (through
+  `txnQhOn_res`), and the read side's conversion `client/v3/Results.lean:1052` (`readQ_of_ansM`: `kvStM true`
+  is `kvStateOf (kvModelM true …)`, so a range's `□ Q (kvStateOf log)`), at `E.authOn = true`.
+- **Defect.** S3a (Draft rev 5 §2, frozen) puts the lease table in `kvInvOn`'s state and keeps the clients'
+  half in every lease mode, so a client's update fires at `kvStateOf (kvModelOn L) (kvLeasesOn L)`. These
+  posts give `Q` of `kvStateOf x.log` (the table `[]`), true only while no lease is granted. The off mode
+  proves its text by refuting a granting cluster from the client's half (`kvSt_client_lg`: `kvStQ` owns the
+  whole variable at `γk.lg`), which S3a removes with auth on by design. Nothing on the request side
+  (`isServerReqM true`, `putPermitM true`, `reqPropOkOn`) ties the mode to `none`.
+- **Evidence.** The S3a port: `ReqOn.grantedRes_applied` (`kvRes γc Q (kvStateOf lb)` from `grantedRes` at
+  `kvStateOf (kvModelOn L) (kvLeasesOn L)`), `ReadOn`'s `kvStOn` (must equal the invariant's state for the
+  read deposits' firing, `ReadOn.lean:666`), `readQ_of_ansM`'s `by cases on <;> rfl`.
+- **Proposed change.** (A) the posts give `Q` of the state with its table: `∃ lt, ⌜E.authOn = false → lt =
+  []⌝ ∗ Q (kvStateOf x.log lt)` (or the model's table named through `modelOutM`), and the read side's
+  `□ Q (kvStateOf log lt)`, followed through v3rpc (`ServerKVOn`) and the client's KV results; (C) a
+  transitional tie of the auth-on request side to the lease mode `none` until S3b. Not in Draft rev 5 §7.
+- **Decision.** Pending (etcd-grove-81; S3a stopped at this finding).

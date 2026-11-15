@@ -85,7 +85,7 @@ theorem authHistFrozen_adm (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   icases Hf with ⟨#Hc, #Hmk⟩
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
   iunfold authHistCell at Hc
   iinv Hc with >Hj Hclose2
   icases Hj with ⟨%hs₀, Hv, Hz⟩
@@ -98,8 +98,8 @@ theorem authHistFrozen_adm (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   ihave %Ha := monoListAuthOwn_agree γk.hist _ _ hs₀ _ $$ Hv Hh
   imod Hclose2 $$ [Hv] with -
   · inext; iexists hs₀; iunfold authHistView; iframe Hv; iright; iexact Hmk
-  imod Hclose $$ [HL Hσ Hh] with -
-  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   exact ⟨L, Ha.2, Hok.2.2.2.1⟩

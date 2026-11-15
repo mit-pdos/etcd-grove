@@ -464,17 +464,17 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
     exact ⟨hd, ht⟩
   iunfold kvInvOn at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L', HL', Hσ, Hh, %Hok, #Hw, HG⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
   ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ Hh] with -
-  · inext; iexists L'; iframe HL' Hσ Hh Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL' Hσ Hh HG] with -
+  · inext; iexists L'; iframe HL' Hσ Hh Hw HG; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
-  have HshL : logShapeOn L := srv_entry_transfer_nv _ L L' entryShapeOn
+  have HshL : logShapeOn ρ.kv.lm L := srv_entry_transfer_nv _ L L' (entryShapeOn ρ.kv.lm)
     (fun m m' he h => by
       have h1 := congrArg LogEntry.type he
       have h2 := congrArg LogEntry.data he
@@ -639,9 +639,11 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
-    (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
+    (hlog : γk.log0 ≠ []) (hln : mvcc.LogNoLease γk.log0) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
     (hao : γs.raft.authOn = true)
-    (hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61) :
+    (hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61)
+    -- (auth-lease S3a) the grant prefixes' condition of the names, as `kvInv_alloc_boot`'s
+    (hpo : kvPfxOk γk) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
@@ -674,13 +676,15 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     intro m hm
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     exact (hent n m hn).2.1
-  have hok : plainLogOn (bootEntries bootLog) ∧
+  have hconf : ∀ m ∈ bootEntries bootLog, m.typ ≠ W32 0 := fun m hm h0 => by
+    rw [hty m hm] at h0; exact absurd h0 (by decide)
+  have hok : plainLogOn γk.lm (bootEntries bootLog) ∧
       detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
-      uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
+      uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧ γk.ch0 = apply.alarmChain true false false ∧
+      (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ γs.raft.authOn = true ∧
       kvLogSmall γk (bootEntries bootLog) := by
-    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao, hsm.1, by unfold bootEntries; simpa using hsm.2⟩
+    refine ⟨?_, ?_, ?_, ?_, hch, ⟨hlog, hln⟩, hao, hsm.1, by unfold bootEntries; simpa using hsm.2⟩
     · intro m hm h0
       rw [hty m hm] at h0
       exact absurd h0 (by decide)
@@ -692,7 +696,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       refine ⟨?_, Or.inr ⟨ht, hc⟩⟩
       rw [hai, hi]; word
     · rw [hc0, hai]; word
-  have hshape : logShapeOn (bootEntries bootLog) := by
+  have hshape : logShapeOn γk.lm (bootEntries bootLog) := by
     intro m hm
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, ht, -, hid⟩ := hent n m hn
@@ -715,16 +719,17 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     rw [hty m hm]; decide)
   iunfold kvInvOn
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
-      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
+      srvRLog γs L ∗
+      ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)) ∗
       monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
-      ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) L ∧ srvIdxOkW γs.ai0 L ∧
-        uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
-        kvLogSmall γk L⌝ ∗
-        kvWorkOn γs.raft γk L))
+      ⌜plainLogOn γk.lm L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) L ∧ srvIdxOkW γs.ai0 L ∧
+        uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧ γk.ch0 = apply.alarmChain true false false ∧
+        (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ γs.raft.authOn = true ∧ kvLogSmall γk L⌝ ∗
+      kvWorkOn γs.raft γk L ∗ kvGrantIds γk L))
     $$ [HL Hv1 Hh] with #Hinv
   · inext
     iexists bootEntries bootLog
+    rw [kvLeasesOn_conf γk st₀ _ hconf]
     iframe Hv1
     rw [admStates_conf γk st₀ _ (fun m hm h0 => by rw [hty m hm] at h0; exact absurd h0 (by decide))]
     iframe Hh
@@ -732,11 +737,13 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     · iexact HL
     isplitr
     · ipureintro; exact hok
-    iunfold kvWorkOn
-    iframe Hcl
-    ipureintro
-    exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (by rw [hty m hm]; decide), hlk,
-      fun m hm => attrEntryOk_conf _ m (by rw [hty m hm]; decide)⟩
+    isplitr
+    · iunfold kvWorkOn
+      iframe Hcl
+      ipureintro
+      exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (by rw [hty m hm]; decide), hlk,
+        fun m hm => attrEntryOk_conf _ m (by rw [hty m hm]; decide)⟩
+    · iapply kvGrantIds_nil γk _ (logRevGrantIds_none _ _ hconf) hpo
   imodintro
   iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2

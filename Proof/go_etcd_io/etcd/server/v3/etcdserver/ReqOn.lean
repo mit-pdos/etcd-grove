@@ -181,8 +181,8 @@ def entryWitOn (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel) (lb : m
     srvRLogLb ρ.raft L ∗ idClaimAny ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧
-      kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take m) = (st, lb)⌝ ∗
-    authPubAt M (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take (m + 1))).1)
+      ∃ lt, kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take m) = (st, lb, lt)⌝ ∗
+    authPubAt M (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take (m + 1))).1)
 
 instance entryWitOn_persistent (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel)
     (lb : mvcc.Log) (st : auth.AuthState) :
@@ -217,7 +217,8 @@ def modelOutM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryM
     (lb : mvcc.Log) (out : apply.ApplyOut) : Prop :=
   match on with
   | false => kvModel γk L = lb
-  | true => ∃ st, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L = (st, lb) ∧ authTie st rq out
+  | true => ∃ st lt, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L = (st, lb, lt) ∧
+      authTie st rq out
 
 /-- **An admin result's tie as the proposer reports it, in the auth mode `on`** (E3x): `True` off;
 on, `adminTieAr` at the auth state the mode-`on` model of the committed prefix `L` reaches (the
@@ -275,7 +276,7 @@ def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRMo
   | false => iprop(True)
   | true => iprop(∃ e : EntryModel, srvRLogLb ρ.raft (L ++ [e]) ∗
       ⌜e.typ = W32 0 ∧ e.data ≠ [] ∧ apply.irrDecode e.data = some rq'⌝ ∗
-      authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1)
+      authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L ++ [e])).1)
 
 instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
     (L : List EntryModel) : Persistent (pubAfterM (GF := GF) on E ρ rq' L) := by

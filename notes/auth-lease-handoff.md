@@ -44,8 +44,8 @@ with `auth-lease-scope` merged).
      `auth-lease-s3a-frozen`). **Probe done** (2026-11-15): `kvOwnAt` and `kvOwn ⊣⊢ ∃ L, kvOwnAt E log L` proved
      (`Scratch/S3aProbe.lean`, untracked); `applierV3backend.Put`'s proof has the live set `L` in hand and splits
      on `o.leaseID = 0 ∨ o.leaseID ∈ L` (`applierV3backend__Put.lean:97-170`), rebuilding `kvOwn` at the same `L`
-     (`kvOwn_of_split`), so its `kvPostF` conjunct is local; the key-length bound is closed by §5. **Prove: not
-     started.** Order (Draft §8): (1) the model (`KVAuthModel.lean`: `OnState`, `kvEntryOn`/`kvRaftOfOn` on it,
+     (`kvOwn_of_split`), so its `kvPostF` conjunct is local; the key-length bound is closed by §5. **Prove: started 2026-11-15, STOPPED at a finding**
+     (see "S3a Prove: where it is" below). Order (Draft §8): (1) the model (`KVAuthModel.lean`: `OnState`, `kvEntryOn`/`kvRaftOfOn` on it,
      `kvGrantedL`/`leaseGrantedM`/`leaseOk` from `Scratch/AuthLeaseProbeModel.lean`, `plainEntryOn lm`/`plainReqL`/
      `txnPlainL`, `entryDetOn`/`entryShapeOn lm`, `keysNonEmpty`, `keysLeasesLive`, `KVAuthBridge.leaseOk_iff`);
      (2) `kvInvOn` + alloc, `appliedTableM`, `srvKVInvsOn`'s rows (`lm = E.lm`, `pre = []`), `appliedTableM_eq_model`;
@@ -59,7 +59,41 @@ with `auth-lease-scope` merged).
 2. S4 with the client's leased put (`WithLease`, `Put`/`Txn` with a lease) and linearizable client specs of
    `Lease.Grant`/`Revoke` (F3).
 
+## S3a Prove: where it is (2026-11-15)
+
+**Stopped** at a finding (ledger 2026-11-15, `questions.md`): the auth-on KV results stated at `kvStateOf log`
+(`EtcdServer.{Put,DeleteRange}.spec`, `Txn.spec`'s writing post, `client/v3/Results.readQ_of_ansM`) are
+unprovable once `kvInvOn` carries the table with the clients' half kept. Waiting for etcd-grove-81's decision.
+
+Done (commits on `auth-lease` after `fd97b8466d`; the tree does NOT build past the files below):
+- `KVAuthModel`: `OnState`, `leaseOk`/`leaseGrantedM`/`kvGrantedL` (+ `_of_disabled`, `leaseOk_of_none`,
+  `leaseGrantedM_of_plainCover`), `kvEntryOn`/`kvRaftOfOn`/`kvOpOn` on the triple state with the `authKVKind` guard,
+  every old lemma ported (`kvEntryOn_of_granted` takes the grant only at `authKVKind`), `plainReqL`/`txnPlainL`
+  (`= txn.txnLeased`)/`plainReqL_none`, `plainEntryOn lm`/`plainLogOn lm`/`plainEntryOn_none`, `entryDetOn` at
+  `authKVKind`, `entryShapeOn lm`/`logShapeOn lm`, `kvModelOn` (`.2.1`), `kvLeasesOn`, `kvStOn` (moved from
+  `ReadOn`, with the table), `keysNonEmpty`, `keysLeasesLive` (defined; their preservation lemmas NOT yet proved),
+  `kvInvOn` as rev 5 §2, `kvInvOn_alloc` (+ `hln`, `hpo`), `kvGrantIds_snoc_keep`, `entryRevGrantId_nonGrant`,
+  `kvRaftOfOn_conf`/`kvLeasesOn_conf`, `adminKindOk_nonAuthKV`/`_nonGrant`, `plainReqL_nonGrant`.
+- `KVApplyOn`: `outcomeOn` (rev 5 §3), `kvAppliedLOn`/`kvAppliedOn … lt`, `srvKVInvsOn` with `γr.kv.lm = E.lm ∧
+  γr.raft.pre = []` and a TRANSITIONAL `γr.kv.lg = false` (remove at the §5 step), `kvModelOn_snoc_granted` for
+  every kind (no `plainCover`), `kvLeasesOn_snoc*`, `kvRaftOfOn_snoc_refused`, `kvTable_alarmChain_on`.
+- Checked with `etc/lean-check.py`: `KVAuthModel`, `KVApplyOn`, `KVModelM`, `KVReadOn`, `KVAuthShape`,
+  `ProposeOn`, `ServerOnDefs`, `ImageOn`, `ServerOn`, `NewServerAllocOn`, `AuthTie`, `AuthTieRead`.
+- `ReqOn`: `entryWitOn`/`modelOutM` at `∃ lt`; `grantedRes_applied` is where the finding shows (4 errors left).
+
+Next, after the decision: `ReqOn`, `ReadOn`, then `/shared/tmp/rs56-order.txt`'s order (examples `auth/Hist`,
+`MainAlloc`, `SetupInv`, `WorkEnv`, `etcdstart/Alloc3On`, `auth3/AuthFixed`, `auth3/Main`; `AppliedOn`,
+`ApplyEntryOn`, `ApplyNormalOn`, `KVOutcomeOn`, `ApplyTieOn`, the snapshot files, `EtcdServer__*`, `NewServer`,
+`Results`, `RunOn`, `ClientModel`), then steps 2 (`appliedTableM`), 3 (`leaseExactL`, `kvOwnAt`, Chain's
+`kvPostF`), 4, 5. Scripts used: `/shared/tmp/auth-lease-s3a/hg.py` (adds the `HG` conjunct to `kvInvOn`'s
+open/close patterns).
+
 ## Pitfalls
+
+- `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
+  in goals that are rewritten.
+- With `apply.DispatchKVL` imported, `and_false` can be ambiguous in `simp only` (`BI.and_false`): use
+  `_root_.and_false`.
 
 - The latest-state refusal must be stated in `refusedL`'s form (`leaseRefusedL`), not `¬ leasePassedL`:
   `latestOk` is vacuous at `hs = []` and in mode `any`.

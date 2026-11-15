@@ -354,12 +354,12 @@ theorem kv_log_plainOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   iintro #Hinv #Hr #HB
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
-  imod Hclose $$ [HL Hσ Hh] with -
-  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   refine srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ ?_ HBi Hp.2.2 Hok.1
@@ -398,15 +398,15 @@ theorem kv_log_verOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   iintro #Hinv #Hr #HB
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hsh : iprop(⌜logShapeOn L⌝) $$ []
   · ihave #Hw' := Hw
     iunfold kvWorkOn at Hw'; icases Hw' with ⟨%h, -⟩; ipureintro; exact h.1
-  imod Hclose $$ [HL Hσ Hh] with -
-  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   refine srv_entry_transfer γ.ai0 B L clusterVerEntryOk ?_ ?_ ?_ HBi Hp.2.2
@@ -437,14 +437,14 @@ theorem kv_log_ccOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
     exact ⟨hd, ht⟩
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
   · iunfold kvWorkOn at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2.1
-  imod Hclose $$ [HL Hσ Hh] with -
-  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   have := srv_entry_transfer γ.ai0 B L

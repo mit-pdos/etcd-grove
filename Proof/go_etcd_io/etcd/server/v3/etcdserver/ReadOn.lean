@@ -555,7 +555,7 @@ theorem srvKVCoreM_fire (on : Bool)
     obtain ⟨hA, -⟩ := hA
     iunfold kvInvOn at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw, HG⟩
     -- `L` is a prefix of the committed log's mode-`on` model
     imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
       Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
@@ -585,8 +585,8 @@ theorem srvKVCoreM_fire (on : Bool)
       · iexact Hc2
       · ipureintro; rw [← Hag]; exact kvRoom_modelOn γr.kv srvAuthSt0 Lf Hok'.2.2.2.2.2.2.2
     imod Hback with -
-    imod Hclose $$ [HLf Hσ' Hh] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' Hh HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hh Hw HG; ipureintro; exact Hok'
     imodintro
     iexists kvModelOn γr.kv srvAuthSt0 Lf
     rw [Hag]
@@ -736,9 +736,9 @@ theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   iintro !> %A %B %Hab #HA
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ Hh] with -
-  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
     (by simp only [kvStOn, kvModelOn,
       kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0, []) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
@@ -765,7 +765,7 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   unfold atomic_acc
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
   imod kv_fire_reads_on γk st₀ L (kvRoom_modelOn γk st₀ L Hok.2.2.2.2.2.2.2) gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -775,14 +775,14 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ Hh] with -
-    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ Hh HG] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ Hh] with -
-    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ Hh HG] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
     imodintro
     iintro !>
     iexact HQs

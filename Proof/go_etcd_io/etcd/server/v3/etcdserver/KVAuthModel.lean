@@ -599,6 +599,20 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthSt
     exact ih (kvEntry c₀ ch [] log₀ m) (fun m' hm' => hA m' (List.mem_cons_of_mem _ hm'))
       (fun m' hm' => hL m' (List.mem_cons_of_mem _ hm'))
 
+/-- **Entries that are no normal entries keep the model's log and table** (the bootstrap log's
+configuration changes). -/
+theorem kvRaftOfOn_conf (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s : OnState) (A : List EntryModel), (∀ m ∈ A, m.typ ≠ W32 0) →
+      (kvRaftOfOn c₀ ch s A).2 = s.2
+  | _, [], _ => rfl
+  | s, m :: A, h => by
+    have hm := h m (List.mem_cons_self ..)
+    have hstep : kvEntryOn c₀ ch s m = (s.1, s.2) := by
+      unfold kvEntryOn kvEntry kvTable
+      rw [if_neg (fun hc => hm hc.1), if_neg hm, if_neg hm]
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).2 = s.2
+    rw [kvRaftOfOn_conf c₀ ch _ A (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')), hstep]
+
 /-! ### The auth history along a log (the auth-mode merge's 5b, 2026-10-29) -/
 
 /-- **A refused admin request keeps the state**: at a state that does not admit its principal,
@@ -1018,6 +1032,11 @@ def kvLeasesOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : 
   (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).2.2
 
 theorem kvLeasesOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvLeasesOn γk st₀ [] = [] := rfl
+
+/-- A log of no normal entries (the bootstrap log's configuration changes) has the empty table. -/
+theorem kvLeasesOn_conf (γk : KVNames) (st₀ : auth.AuthState) (A : List EntryModel)
+    (h : ∀ m ∈ A, m.typ ≠ W32 0) : kvLeasesOn γk st₀ A = [] := by
+  unfold kvLeasesOn; rw [kvRaftOfOn_conf _ _ _ A h]
 
 /-- **The KV state of the committed log `L` in the auth mode `on`**: the mode-`on` model's log and
 lease table, from the start's auth state `st₀` (`kvInvOn`'s ghost state). (Auth-lease S3a: moved here

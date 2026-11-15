@@ -287,9 +287,9 @@ theorem isServerM_c0_le (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM :
     icases Hkvi with ⟨#HkI, -⟩
     iunfold kvInvOn at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
-    imod Hclose $$ [HL Hσ Hh] with -
-    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+    icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
+    imod Hclose $$ [HL Hσ Hh HG] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
     imodintro; ipureintro; exact Hok.2.2.2.1
 
 end loop
