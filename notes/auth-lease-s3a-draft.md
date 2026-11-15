@@ -7,7 +7,8 @@ changed definition old → new, the lemmas it moves, what S3b/S3c take from it. 
 survey of the auth-on side's "no lease" dependencies (summarized in `/shared/tmp/auth-lease/s3-scope-gap.md`'s
 addendum), S2's apply layer (on lean, `c3da59fa29`).
 
-**Revision 6 addendum (2026-11-15, §14), for review**: the Prove step found the auth-on KV results stated at
+**Revision 6 (2026-11-15, §14) — FROZEN (etcd-grove-81; the stronger guard `⌜E.authOn = false ∨ γ.kv.lm =
+.none → lt = []⌝` in place of `G`'s, wherever §14 writes the guard)**: the Prove step found the auth-on KV results stated at
 `kvStateOf log` unprovable with the table in `kvInvOn` (ledger 2026-11-15); etcd-grove-81 decided (A), restating
 them at the state with its table. §14 lists every statement that changes; §0–§13 unchanged.
 
@@ -535,7 +536,7 @@ and `examples/` holds Go only; the closed theorems (`etcd_*_safe`) are adequacy 
 executions. The `interface/` files: none covers `client/v3`, v3rpc or the server (`etc/api`), so no new interface
 diff beyond §7's `Alloc3On.txt`.
 
-**Open for etcd-grove-81 (r5 S2): the guard.** `E.authOn = false → lt = []` tells the auth-on clients nothing,
+**The guard (r5 S2), decided by etcd-grove-81 (2026-11-15): the stronger one; §14 approved as the rev-6 freeze.** `E.authOn = false → lt = []` tells the auth-on clients nothing,
 though authkv/auth3/etcdstart run the lease mode `none`, where the table is empty. `⌜E.authOn = false ∨ γ.kv.lm =
 .none → lt = []⌝` keeps their exact old meaning (provable from `kvInvOn`'s `plainLogOn γk.lm L` and `kvLeasesOn_none`);
 no consumer found needs it. Naming the model's table is not possible for writes (the client rows carry no raft
