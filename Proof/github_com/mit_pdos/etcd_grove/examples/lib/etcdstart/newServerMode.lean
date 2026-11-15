@@ -184,8 +184,7 @@ theorem newServerMode.wp_proofRestart
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff,
-    #Hrows⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremiseR at Hboot
   iunfold commonPremises at Hcom
@@ -196,11 +195,10 @@ theorem newServerMode.wp_proofRestart
   icases Hmb with ⟨%Hρ, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx, Hids, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
-  -- the stopped member's image, at its witnesses, and the restart-only rows there
+  -- the stopped member's image, at its witnesses
   ihave Himg := memberRestartRes_boot _ _ _ _ _ $$ Hrr
   iunfold srvDiskImage at Himg
   icases Himg with ⟨%S, %σ, %i, %A, %D, %mb, %Mr, Himg⟩
-  ihave #Hrw := Hrows $$ %A %σ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit

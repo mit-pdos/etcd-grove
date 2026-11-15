@@ -136,10 +136,7 @@ theorem Run.wp_proof
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
-    -- (restart S7.4, 2026-11-14) `NewServer.specR`'s restart-only rows: restart3's open row, false on a
-    -- disclosed class with three members (`srvWinPend`'s docstring); R2s-A (route B) removes it
-    (hRows : ∀ (γ : SrvRaft) (id : w64), ⊢ □ (∀ A σ, srvRestartRows (GF := GF) γ id A σ)) :
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HLv HwbN Hp Hms hAs
   obtain ⟨Hbf, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
@@ -258,8 +255,6 @@ theorem Run.wp_proof
   icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₃ with ⟨#Hrfs₃, Hmb₃⟩
   -- (restart S7.4) `ETCD_VERIFY` off, kept from member 2's fresh bundle for the restarts
   icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfr₂ with ⟨#Hvoff, Hfr₂⟩
-  ihave #Hrows₂ := hRows { γ with reg := reg₂ } id₂
-  ihave #Hrows₃ := hRows { γ with reg := reg₃ } id₃
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
   have hd₂ : go!"http://" ++ peerAddr₂ ∈ dir3 id₁ id₂ id₃ id₂ := by simp [dir3, hn12.symm]

@@ -211,9 +211,10 @@ contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth component's stage 2, 2026-11-04) In both auth modes: the
 batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). (R2d'a swap
 batches 2-3, 2026-11-06) Both at a restart point: the batch `specBatch` the restart form (the ghost
-rows at `ghostOf rp`, `kvBatchR`, `srvRestR`, the window's `winNoMergedSendR` over a borrowed `T`,
-`srvSnapBagN`), in place of the first-start form, its instance at `rp = RestartPt.first`, `g = ai`,
-`T = True`, given `srvSnapBagN` (which `run` supplies) and `ai0 ≤ ciEff` (every existing caller). -/
+rows at `ghostOf rp`, `kvBatchR`, `srvRestR`), in place of the first-start form, its instance at
+`rp = RestartPt.first`, `g = ai`, given `ai0 ≤ ciEff` (every existing caller). (restart3 A1,
+2026-11-15) No window row: the fork's merge defers a merged snapshot inside the replay window; until
+then the batch took `winNoMergedSendR` over a borrowed `T` and `srvSnapBagN`. -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 

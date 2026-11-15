@@ -970,8 +970,8 @@ storage `bootstrappedWAL.MemoryStorage` rebuilt (`memStorRestarted`; `srvMem_res
 snapshot valid by `walSnapCS_valid`), the WAL's durability at the view `⟨S, σ.hs, none, P⟩` with
 `P = A₀.take σ.b` (`rnDur_alloc_view`, W4's records); yields the wrapper with the tokens at `P`
 (Q34 (a); `rnToks_of_restart`), the names' restart data (`a0 = A₀`, `t0` the restored term, `commit0`,
-`snap0` the restored commit and base), and the installer, which takes the restart-only premise
-`rnSnapTermAbove` (row 4, R2d'a's) for `isRaftNode`'s `rnRestartOk`. -/
+`snap0` the restored commit and base), and the installer. (restart3 A1, 2026-11-15: until then the
+installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNode`'s `rnRestartOk`.) -/
 abbrev NodeStartSpecR : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
@@ -1036,9 +1036,9 @@ abbrev NodeStartSpecR : Prop :=
           -- the tokens at `P` (Q34 (a))
           rnLoopTok γw (A₀.take σ.b) ∗ rnApplyTok γw (A₀.take σ.b) ∗
           (letI := srvStor (GF := GF) γw.node; nodeRunning γw.nl γw.node.cl srvClusterN (1 : Qp).half) ∗
-          -- the installer, with the restart-only premise `rnSnapTermAbove`
+          -- the installer
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
-            srvRdCtxInv E.γr.raft issued -∗ rnSnapTermAbove γw -∗
+            srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
@@ -1219,7 +1219,7 @@ theorem raftNode_of_RestartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hsta #Hfix Htrf Hlts #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -1245,7 +1245,6 @@ theorem raftNode_of_RestartNode
     isplitr
     · -- the restart data: the restart disjunct
       iunfold rnRestartOk; iright
-      iframe Hsta
       isplitr
       · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac⟩
       rw [Hsrv, Hwa0]; iexact HA0

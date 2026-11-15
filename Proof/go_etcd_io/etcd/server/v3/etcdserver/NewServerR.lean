@@ -1078,11 +1078,6 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrna0, Hrnt0, Hrnc0, Hrns0, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14,
     Hrn15, Hrnwal⟩ := Hrnames
-  -- (restart) the restart-only rows (`srvRestartRows`, D3): the installer's `rnSnapTermAbove` and
-  -- `isServerBuiltC`'s `Hwpend`
-  iunfold srvRestartRows at Hrows
-  have hrows : γrn.node = γ ∧ γrn.id = id ∧ γrn.pre = [] ∧ γrn.a0 = A ∧ γrn.t0 = σ.hs.Term' ∧
-      ρ.rd.raft.raft = γ := ⟨Hrn1, by rw [Hrn5, Hrid], Hrn6, Hrna0, Hrnt0, by rw [HρRaft]⟩
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1137,11 +1132,6 @@ theorem NewServer.wp_proofRG
     rw [hidr]
     iframe Hwmeta Hwpurge
   ipersist memberID
-  -- (restart S7.3) the rows, once the member id field is read-only
-  ihave #Hmid0 : srvMemberIDAddr s ↦□ id $$ []
-  · rw [← Hid]; iexact memberID
-  ihave Hrows := Hrows $$ %s %ρ.rd %γrn %hrows Hmid0
-  imod Hrows with ⟨HsTA, Hwpend⟩
   ipersist beHooks
   ipersist stats
   -- (restart) the member's snapshot directory: the image's invariant (its first start's, at raft's
@@ -1508,11 +1498,10 @@ theorem NewServer.wp_proofRG
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [HsTA] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
-  · iexact HsTA
   · iexact Hfix
   · iexact Htrf
   · iexact HlatestTs
@@ -2021,7 +2010,7 @@ theorem NewServer.wp_proofRG
   have hidr : γrn.id = id := by rw [Hrn5, Hrid]
   unfold srvBuiltR srvBuiltRC
   simp only [AuthC.isOn]
-  iframe Htpp' HsCI Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwpend Hwth Hwtl
+  iframe Htpp' HsCI Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwth Hwtl
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
@@ -2085,7 +2074,7 @@ theorem NewServer.wp_proofRG
     iframe NHmsc Hinfl
     isplitr
     · iexists γrn
-      iframe NHmsci
+      iframe NHmsci HNodeC HstepI
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
       rw [hidr, ← Hid]; iexact memberID

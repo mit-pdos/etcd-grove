@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-15: `applyAll.spec` (proof sketch) -- the merge's guard is no longer only `m.term = raftTerm`, `index ≤ appliedi`: the verified fork defers a merge inside the replay window
+
+- **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `applyAll.spec`
+  (its proof sketch and "Changes" paragraph; the statement is unchanged); the real spec
+  `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `applyAll.specBatch`.
+- **Defect.** The sketch describes the merge's select at the pin as "the code's" guard (`m.term = raftTerm`,
+  `index ≤ appliedi`, then `createMergedSnapshotMessage`/`sendMergedSnap`). The verified Go code changed
+  (restart3 A1, route (A) via A-g, approved by the user 2026-11-15): the goose fork's commit `6e8f0c004`
+  adds a third test, `ep.appliedi < s.consistIndex.ConsistentIndex()` (inside the replay window) under
+  which the merge is replaced by `s.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)`, and reports a
+  message dropped by the term or index guard failed too (D-A0-6). The sketch's callees miss
+  `consistentIndex.ConsistentIndex`, `raftpb.Message.GetTo` and `ReportSnapshot`.
+- **Evidence.** `notes/restart3-a0-draft.md` §3 and §8 (the change, the Go runs: the guard fires and the run
+  stays correct; unreported drops wedge a follower); the real proof `applyAll.wp_proofBatch`
+  (`Proof/.../EtcdServer__applyAll.lean`, `wp_ci_get` for the guard's read, `ReportSnapshot` on each drop).
+  The plan's statement already had no window premise, so it needs no change; the real spec's window row
+  (`winNoMergedSendR … ∗ T ∗ srvSnapBagN`) is deleted, converging toward the plan.
+- **Proposed change.** The sketch's merge paragraph and "Changes" paragraph name the window test, the
+  `ReportSnapshot` on a deferred or dropped `MsgSnap`, and the three callees. Statement unchanged.
+- **Decision.** Accepted (decided by etcd-grove-81 with the A-g route, 2026-11-15; text only; the restart3 A1
+  commit that applies it).
+
 ## 2026-11-14: `leaseCheckFrom` (the lease checks' and lease methods' posts) -- admits the empty user unbound
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseCheck.lean`, `leaseCheckFrom` (the lease-keys

@@ -11,9 +11,9 @@ directory (`srvDataDir`, which its stop takes).
 (`etcdstart.memberRestartRes`, at the stopped incarnation's names `ρ`), the cluster's persistent facts
 at `ρ` (`etcdstart.memberRestartFacts`), `ETCD_VERIFY` off and `bootstrap`'s restart contract
 (`etcdstart.bootPremiseR`): the member started at new names `ρ'` that agree with `ρ` where the
-cluster sees them (`restartNames`). `BuildServer.specRestart`'s restart-only rows (`srvRestartRows`)
-are not a premise: the cluster has one member (`γ.vs = [id]`), and the proof discharges them
-(`srvRestartRows_single`).
+cluster sees them (`restartNames`). (restart3 A1, 2026-11-15: `BuildServer.specRestart` has no
+restart-only rows any more; until then the proof discharged them for the one member,
+`srvRestartRows_single`.)
 -/
 module
 

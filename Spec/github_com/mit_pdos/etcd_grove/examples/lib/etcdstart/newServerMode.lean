@@ -14,8 +14,8 @@ compaction mode (`memberBoot … true`).
 **`specRestart`** (restart S7.4, 2026-11-14; `BuildServer.specRestart`'s, which it serves): the member
 started again on the data directory its last stop left, at the retention `0`: the restart bundle
 (`memberRestartRes`, the image), the cluster's persistent facts at the stopped names
-(`memberRestartFacts`), `ETCD_VERIFY` off, `NewServer.specR`'s restart-only rows at every image's
-witnesses and `bootstrap`'s restart contract (`bootPremiseR`) in place of a first start's boot bundle,
+(`memberRestartFacts`), `ETCD_VERIFY` off (restart3 A1, 2026-11-15: no restart-only rows, until then
+`NewServer.specR`'s at every image's witnesses) and `bootstrap`'s restart contract (`bootPremiseR`) in place of a first start's boot bundle,
 fresh directory and contract: an error, or the member built (`memberBuiltR`) at new names `ρ'` that
 agree with the stopped ones where the cluster sees them (`restartNames`) and a new stand-in
 environment, which the proof allocates (`memberRestartFacts_alloc`), with its data directory recorded.
@@ -117,8 +117,7 @@ abbrev newServerMode.specRestart : Prop :=
       bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      memberRestartFacts γ ρ id ∗ envVerifyOff ∗
-      □ (∀ A σ, srvRestartRows γ id A σ) }}
+      memberRestartFacts γ ρ id ∗ envVerifyOff }}
     (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))

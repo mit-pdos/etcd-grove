@@ -42,20 +42,20 @@ the first-start form, now the instance at `rp = RestartPt.first`; the restart fo
 `applyEntries`, the read-index notification, the snapshot trigger and the merged snapshot's receive)
 with the ghost rows at `ghostOf rp` (`RestReplay.lean`): the applied index `g`/`g'` the ghost's, the
 consistent index equal to it at the start (the window's `ciJ`), the KV model, `epCsAt`, the view and
-`srvApRes` at the ghost log, the rest buckets `srvRestR`, the kv side's batch `kvBatchR`, and, while a
-window is left after the batch, `winNoMergedSendR` (over a resource `T` it borrows and gives back) and
-the raft node's `MsgSnap` bag (`srvSnapBagN`). Go's rows (`ep.appliedi`, `loopOk`, the snapshot
-state, the frozen terms, `dvRes`) at Go's log `A`. A first start (`rp = RestartPt.first`, `g = ai`,
-`T = True`) is the old text: `ghostOf_first`, `srvRestR_first`, `kvBatchR_first` (at `ai0 = 0`),
-`winNoMergedSendR_nil` (`run_job_body`). -/
+`srvApRes` at the ghost log, the rest buckets `srvRestR` and the kv side's batch `kvBatchR`. (restart3
+A1, 2026-11-15) No window row: the fork's merge defers a merged snapshot inside the window
+(`ep.appliedi < ConsistentIndex()`, reporting it failed, D-A0-1), so the merge happens only past it; until
+then `winNoMergedSendR` over a borrowed `T` and the raft node's bag `srvSnapBagN` excluded the in-window
+merge (false of Go at a restarted leader). Go's rows (`ep.appliedi`, `loopOk`, the snapshot
+state, the frozen terms, `dvRes`) at Go's log `A`. A first start (`rp = RestartPt.first`, `g = ai`) is
+the old text: `ghostOf_first`, `srvRestR_first`, `kvBatchR_first` (at `ai0 = 0`). -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64)
-    (T : IProp GF),
+    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)
@@ -96,9 +96,6 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       appliedLogAt γr g x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestRM C.isOn E γr rp A ∗
       kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
-      -- (R2d' A7) no merged snapshot send while the window is left (`winNoMergedSend`)
-      winNoMergedSendR γr.raft.raft s γn.t0 T (rp.A₀.drop (A ++ unapplied ai ms).length) rt ∗ T ∗
-      srvSnapBagN s γn ∗
       dvView ρ.raft dv (ghostOf rp A) ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗
       srvApRes s γr (ghostOf rp A) ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
@@ -126,7 +123,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ T ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗

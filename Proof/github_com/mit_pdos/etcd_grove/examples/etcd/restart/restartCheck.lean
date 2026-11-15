@@ -68,7 +68,7 @@ theorem restartCheck.wp_proof
     Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HLv HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
     Hpe Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨#Hzlg, Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
-    #Hcci, #Hnet, #Hrfs, #Hvoff, #Hrows⟩
+    #Hcci, #Hnet, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

@@ -24,15 +24,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.ReportSnapshot(x, st)`** returns (raft's `node.ReportSnapshot`). -/
+/-- **`s.ReportSnapshot(x, st)`** returns (raft's `node.ReportSnapshot`). (restart3 A1, 2026-11-15) Over
+what the call reads, the raft wrapper's node and its inbound methods (`rnStepIfc`), so that the apply
+thread can report a dropped merged snapshot (`applyAll`'s merge, D-A0-6); until then over the whole
+`srvProcOk γn s id γd`, which contains them (`NetBridge`'s caller). -/
 abbrev EtcdServer.ReportSnapshot.spec : Prop :=
-  ∀ (γn : NetNames GF) (γd : GName) (s : Loc) (id x : w64) (st : SnapshotStatus),
+  ∀ (γ : RNNames) (s : Loc) (x : w64) (st : SnapshotStatus),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id γd }}
+      rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ReportSnapshot")) (Val #x))
       (Val #st))
   {{ RET #(); True }}
-
 end spec
 
 end EtcdGrove

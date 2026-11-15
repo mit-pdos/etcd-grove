@@ -2058,8 +2058,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · iexact Hrvkb
     iexact HstkP
-  -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
-  imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
   -- (auth-schema-fix S1 option A) `srv` read-only from here on (it holds `s`): the readiness's
   ipersist srv
   imodintro
@@ -2200,7 +2198,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe NHmsc Hinfl
     isplitr
     · iexists γrn
-      iframe NHmsci
+      iframe NHmsci HNodeC HstepI
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
       have hidr : γrn.id = id := by rw [Hrn5, Hrid]
@@ -2243,10 +2241,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     unfold srvErM
     simp only
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
-  isplitl [Hwpt]
-  · -- (R2d'a A10 item 5) at a first start `Hwpend` is free (`srvWinPend_first`)
-    iapply srvWinPend_first _ _ _ Hrna0 γwp
-    iexact Hwpt
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
   isplitl [Hwth]

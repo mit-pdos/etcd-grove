@@ -2,7 +2,7 @@
 Proofs of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/startMember.lean` (restart S7.5,
 2026-11-14): the peer URL slice and the cluster's map, `etcdstart.BuildServer`, `s.Start()`.
 `etcdstart.StartServer`'s proof over `BuildServer.spec` (`wp_proof`) and `BuildServer.specRestart`
-(`wp_proofRestart`, with the restart-only rows discharged for the one member,
+(`wp_proofRestart`; restart3 A1, 2026-11-15: no restart-only rows to discharge, until then
 `srvRestartRows_single`). Lean-first (no Rocq counterpart).
 -/
 module
@@ -11,7 +11,6 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.startMe
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartStop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestartRowsSingle
 
 @[expose] public section
 
@@ -114,16 +113,6 @@ theorem startMember.wp_proofRestart
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
-  -- the restart-only rows, for the one member (`srvRestartRows_single`)
-  ihave #Hrows : □ (∀ A σ, srvRestartRows γ id A σ) $$ []
-  · ihave #Hf := Hrfs
-    iunfold etcdstart.memberRestartFacts at Hf
-    icases Hf with ⟨%Hρ, #Hsrl, -⟩
-    imodintro
-    iintro %A %σ
-    iapply srvRestartRows_single γ id A σ hvs
-    rw [← Hρ.1]
-    iexact Hsrl
   (try wp_auto)
   -- the peer URL slice and the cluster's map, read-only from here on
   wp_apply wp_slice_literal

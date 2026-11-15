@@ -632,12 +632,12 @@ theorem EtcdServer.start.wp_proof
     iexists ms
     iframe Hms Hsnap
   -- (revoke-open Q8 (a)) `run` forked with the fresh thread token
-  wp_apply wp_fork_tok_body $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh
+  wp_apply wp_fork_tok_body $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hrunh
       Hwth Hwtl Hskeep]
   · iintro Htok
     wp_apply hRun s γ ci TM C E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ cfgk.DataDir' cs
-      $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh Hwth Hwtl Hskeep Htok]
+      $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hrunh Hwth Hwtl Hskeep Htok]
       as Htok
     · simp only [srvStopReq_wait, srvDoneInv_wait]
       iframe Htok
