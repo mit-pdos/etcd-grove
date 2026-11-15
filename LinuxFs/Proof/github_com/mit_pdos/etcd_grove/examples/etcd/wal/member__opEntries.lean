@@ -34,7 +34,7 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     (wp_next : rnd.next.spec (GF := GF) (hG := hG)) (wp_size : member.size.spec (GF := GF) (hG := hG))
     (wp_hs : member.hs.spec (GF := GF) (hG := hG)) (wp_save : member.save.spec (GF := GF) (hG := hG)) :
     member.opEntries.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc t vo cm bs l tm M r rv hf hok hhs ht hroom hms
+  intro W e γ m w v o os c d qc t vo cm bs l tm M r rv hf hok hhs ht hroom hms hcwf
   wp_start as ⟨Hres, Ht, Hv, Hc, Hb, Hl, Htm, HM, Hr, Hrv⟩
   have hcl := tMemSim_commitLe hms
   have hbl := tMemSim_baseLe hms
@@ -155,7 +155,7 @@ theorem member.opEntries.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
           icases Hres with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
           wp_apply (wp_save W e γ m w v o os c d qc (hardState.mk t vo cm') esl es hf hok hhs
             (fun x hx => (h4 x hx).1) ht (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2
-            hstep.1)
+            hstep.1 hcwf)
             $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b Hpost
           · iframe
             iframe Hes H13 H15 H16 H17 H1 H2 H3 H4

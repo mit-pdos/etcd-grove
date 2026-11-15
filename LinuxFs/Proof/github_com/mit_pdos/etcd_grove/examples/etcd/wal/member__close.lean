@@ -89,7 +89,7 @@ theorem member.close.wp_proof
     (wp_Close : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
     member.close.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc hf hok hsm
+  intro W e γ m w v o os c d qc hf hok hsm hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
     Hpw, #Hnm⟩
   wp_auto
@@ -110,7 +110,7 @@ theorem member.close.wp_proof
     | nil =>
     wp_auto
     ihave ⟨%hl, Hrep⟩ := oracleRep_synced v o $$ Hrep
-    ihave #Hrel := tRelI_synced W e.area o c d1 hok hl $$ [Hsl Hnm]
+    ihave #Hrel := tRelI_synced W e.area o c d1 hok hl hcwf $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl
       · iexact Hnm

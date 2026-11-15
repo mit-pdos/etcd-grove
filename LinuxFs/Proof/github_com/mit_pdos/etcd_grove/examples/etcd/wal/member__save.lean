@@ -83,6 +83,7 @@ macro "save_main" : tactic => `(tactic| (
       ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     · iexact Hop
   ihave #Hrel := tRelI_save1 W e.area o c d h es hok.1 hok.2.1 (tCandOk_save1 hok h es hes ht hsim)
+    (tCheckWf_saveO1 hcwf h es hes ht hsm1)
     $$ [Hsl Hnm]
   · isplitl []
     · iexact Hsl
@@ -208,7 +209,8 @@ macro "save_main" : tactic => `(tactic| (
         ihave ⟨%hl, Hrep1⟩ := oracleRep_synced _ _ $$ Hrep1
         ihave #Hsy := Hsync $$ [] 
         · ipureintro; exact (tMustSync_iff hhs h es).1 hMS
-        ihave #Hrel2 := tRelI_synced W e.area (tSaveO1 o h es) c (tSaveD d h es) hd' hl $$ [Hsy Hnm]
+        ihave #Hrel2 := tRelI_synced W e.area (tSaveO1 o h es) c (tSaveD d h es) hd' hl
+          (tCheckWf_saveO1 hcwf h es hes ht hsm1) $$ [Hsy Hnm]
         · isplitl []
           · rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]; iexact Hsy
           · iexact Hnm
@@ -268,7 +270,7 @@ theorem member.save.wp_proof
     (wp_Save : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
     member.save.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc h esl es hf hok hhs hes ht hsm1 hsm2 hsim
+  intro W e γ m w v o os c d qc h esl es hf hok hhs hes ht hsm1 hsm2 hsim hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Hes, #Harea, Hwf,
     #Hnm, #Hsl, #Hll⟩
   ihave %Hlen := ownSlice_len $$ Hes

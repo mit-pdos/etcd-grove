@@ -96,7 +96,7 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
   | true =>
     simp only [tRelI, hcr, ite_true]
     icases HR with ⟨%d, %c, %hdc, #Hsy, #Hnm⟩
-    obtain ⟨hod, hcm, hok⟩ := hdc
+    obtain ⟨hod, hcm, hok, hw⟩ := hdc
     subst hod
     have hk := WalFs.walDiskAt_crash_keep W W' (tWalDir area) d (tCandMark o c)
     unfold WalFs.walDiskAt at hk
@@ -107,7 +107,7 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
     iframe Hw'
     iexists _, c
     iframe Hsy' Hnm'
-    ipureintro; exact ⟨rfl, hcm, tCandOk_crash hok hI hk⟩
+    ipureintro; exact ⟨rfl, hcm, tCandOk_crash hok hI hk, hw⟩
   | false =>
     simp only [tRelI, hcr, Bool.false_eq_true, ite_false]
     icases HR with %hpre

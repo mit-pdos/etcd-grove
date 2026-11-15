@@ -51,7 +51,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- The appended oracle's relation to a WAL state its candidate is. -/
 theorem tRelI_save1 (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (d : WalDur)
     (h : THs) (es : List TEnt) (hcr : o.created = true) (hc0 : c ∈ o.cands)
-    (hc : tCandOk (tSaveO1 o h es) c d) :
+    (hc : tCandOk (tSaveO1 o h es) c d) (hw : tCheckWf (tSaveO1 o h es)) :
     WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area) ⊢
       tRelI (W := W) (GF := GF) area (tSaveO1 o h es) (some d) := by
   iintro ⟨#Hs, #Hn⟩
@@ -59,7 +59,7 @@ theorem tRelI_save1 (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (
   simp only [show (tSaveO1 o h es).created = true from hcr, ↓reduceIte]
   iexists d, c
   isplitr
-  · ipureintro; exact ⟨rfl, hc0, hc⟩
+  · ipureintro; exact ⟨rfl, hc0, hc, hw⟩
   rw [tSaveO1_mark]
   isplitl []
   · iexact Hs
@@ -110,11 +110,12 @@ theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
     iunfold tWalOwn at Hwo
     imod ghostVar_update_halves (some (tSaveD d h es)) γ.γw _ _ $$ Hwo Hw1 with ⟨Hwo, Hw1⟩
     have hok' := tMemOk_save1 hok h es hes ht hs
+    ihave %hw1 := tRelI_checkWf e.area (tSaveO1 o h es) (some d) hok.1 $$ Hr1
     ihave #Hrel := tRelI_save1 W e.area o c (tSaveD d h es) h es hok.1 hok.2.1
       (by
         have h2 := tMemOk_candOk0 hok'
         obtain ⟨h21, h22, h23, -, h25, h26, h27⟩ := h2
-        exact ⟨h21, h22, h23, Nat.le_trans hok'.2.2.2.2.2.2.1 (Nat.le_max_left _ _), h25, h26, h27⟩)
+        exact ⟨h21, h22, h23, Nat.le_trans hok'.2.2.2.2.2.2.1 (Nat.le_max_left _ _), h25, h26, h27⟩) hw1
       $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl

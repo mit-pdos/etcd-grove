@@ -70,7 +70,9 @@ theorem tRelW_withOpens (W : WalGS GF) (area : GoString) (o : TOracle) (cd : TCa
   unfold tRelW
   rw [tWithOpens_created]
   cases o.created with
-  | true => simp only [ite_true, tCandMark_withOpens]; iintro H; iexact H
+  | true =>
+    simp only [ite_true, tCandMark_withOpens]
+    iintro ⟨%hw, H⟩; iframe H; ipureintro; exact tCheckWf_withOpens l hw
   | false =>
     simp only [Bool.false_eq_true, ite_false]
     iintro %h; ipureintro; exact tPre_withOpens l h

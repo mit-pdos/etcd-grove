@@ -10,6 +10,8 @@ module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.RestartAu
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Crash
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.StepLive
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Resume
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NamedView
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.Exist
 
@@ -64,6 +66,44 @@ theorem tCheckWf_pre {o : TOracle} (h : tPre o) : tCheckWf o := by
 theorem tPre_freshC_not : ¬ tPre tFreshC := by
   intro h; have := tPre_created h; simp [tFreshC] at this
 
+theorem tOrSmall_freshC : tOrSmall tFreshC := by
+  unfold tOrSmall; rw [tEncodeOracle_length]
+  simp [tOrRest, tFreshC, tFreshOracle, tOpsBytes, tU64_length]
+
+theorem tMemOk_freshC (md : List w8) : tMemOk tFreshC tCand0 (walDurFresh md) := by
+  have hh : tCandHist tFreshC tCand0 = [] := by simp [tCandHist, tCand0, tFreshC, tFreshOracle]
+  refine ⟨rfl, tFreshC_cand, rfl, ?_, Nat.zero_le _, Nat.zero_le _, Nat.zero_le _, rfl, ?_, ?_, ?_⟩
+  · rw [hh]; rfl
+  · rw [hh]; intro x hx; cases hx
+  · simp [tFreshC, tFreshOracle]
+  · rw [hh]; exact tSimAt_tSim (tSimAt_nil _)
+
+theorem tMemHs_freshC (md : List w8) : tMemHs tFreshC (walDurFresh md) := rfl
+
+theorem tCheckWf_freshC : tCheckWf tFreshC := by
+  refine ⟨by simp [tFreshC, tFreshOracle], fun cd hcd => ?_⟩
+  simp only [tFreshC, tFreshOracle, List.mem_singleton] at hcd
+  subst hcd
+  have hh : tCandHist tFreshC ⟨[], W64 0, W64 0⟩ = [] := by simp [tCandHist, tFreshC, tFreshOracle]
+  rw [hh]
+  exact ⟨fun x hx => (by cases hx), by simp⟩
+
+theorem tMemFields_c0 : tMemFields (tResumeTerm tC0) (tResumeTerms tC0) := by
+  refine ⟨by simp [tResumeTerm, tC0, tHs0], ?_⟩
+  intro k x h
+  simp only [tResumeTerms, tC0, List.foldl_nil] at h
+  rcases (GMap.lookup_insert_Some _ _ _ _ _).1 h with ⟨-, rfl⟩ | ⟨-, h⟩
+  · simp
+  · simp at h
+
+theorem tMemSim_freshC : tMemSim tFreshC tCand0 tC0.baseIdx (tResumeLast tC0) (tResumeCommit tC0) := by
+  have hh : tCandHist tFreshC tCand0 = [] := by simp [tCandHist, tCand0, tFreshC, tFreshOracle]
+  refine ⟨walFresh, ?_, ?_, ?_, ?_⟩
+  · rw [hh]; exact tSimAt_nil _
+  · rfl
+  · simp [walFresh, StorContents.last, tResumeLast, tC0]; rfl
+  · simp [walFresh, StorContents.commit, tResumeCommit, tResumeLast, tC0, tHs0]
+
 end pure
 
 /-! ## The ghost steps -/
@@ -74,6 +114,13 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
+
+/-- The file system's invariants, out of the WAL area's. -/
+theorem walAreaOk_os (W : WalGS GF) (e : TEnv) :
+    WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ⊢ osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R := by
+  unfold WalFs.walAreaOk
+  iintro ⟨-, #Hos, #Hsi, -, -⟩
+  iframe #
 
 /-- **The oracle's relation to the WAL**, read off the invariant (persistent). -/
 theorem tInv_rel (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Option WalDur) (E : CoPset)
@@ -104,7 +151,8 @@ theorem tInv_named (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Opti
     TInv (W := W) e γ ∗ WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ tOrOwn γ o none ∗ tWalOwn γ od ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ tOrOwn γ o none ∗
-      ∃ (d : WalDur) (c : TCand), tWalOwn γ (some d) ∗ ⌜d.named = true ∧ c ∈ o.cands ∧ tCandOk o c d⌝ ∗
+      ∃ (d : WalDur) (c : TCand), tWalOwn γ (some d) ∗
+        ⌜d.named = true ∧ c ∈ o.cands ∧ tCandOk o c d ∧ tCheckWf o⌝ ∗
         WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
         WalFs.walNamed (W := W) (tWalDir e.area) := by
   iintro ⟨#Hinv, #Hok, Hnc, Ho, Hwo⟩
@@ -123,7 +171,7 @@ theorem tInv_named (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Opti
   iunfold tRelI at Hr1
   simp only [hcr, ↓reduceIte]
   icases Hr1 with ⟨%d, %c, %hdc, #Hsl, #Hnm⟩
-  obtain ⟨hod, hc, hok⟩ := hdc
+  obtain ⟨hod, hc, hok, hw⟩ := hdc
   subst hod
   imod walDirIs_named (L := hG.goose_localGS) (W := W) walCodec walRaftMr e.R e.jr e.area
     ((⊤ : CoPset) \ ↑tN) walN_sub_tN (tWalDir e.area) d $$ Hwi Hnc Hwd Hnm with ⟨Hnc, Hwd⟩
@@ -141,7 +189,7 @@ theorem tInv_named (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Opti
       simp only [hcr, ↓reduceIte]
       iexists { d with named := true }, c
       iframe #
-      ipureintro; exact ⟨rfl, hc, hok'⟩
+      ipureintro; exact ⟨rfl, hc, hok', hw⟩
     · iunfold tRelA; iempintro
   imodintro
   iframe Hnc Ho
@@ -149,7 +197,7 @@ theorem tInv_named (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Opti
   iunfold tWalOwn
   iframe Hwo
   iframe #
-  ipureintro; exact ⟨rfl, hc, hok'⟩
+  ipureintro; exact ⟨rfl, hc, hok', hw⟩
 
 /-- **`Create`'s update** from a state `Exist`'s `false` arm allows (`wal.Create.specFresh`'s), committed
 to the fresh WAL: the oracle, not created and fresh up to its opens, accounts for it (`tCandOk_fresh`). -/

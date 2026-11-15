@@ -35,7 +35,7 @@ abbrev member.opTerm.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand)
     (d : WalDur) (qc : Qp) (t vo cm bs l : w64) (r : Loc) (rv : rnd),
   e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat t < 2 ^ 63 → tMemSim o c bs l cm →
-  (∀ h : THs, tOrSmall (tSaveO1 o h []) ∧ tOrSmall (tSynced (tSaveO1 o h []))) →
+  (∀ h : THs, tOrSmall (tSaveO1 o h []) ∧ tOrSmall (tSynced (tSaveO1 o h []))) → tCheckWf o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc ∗
       m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗

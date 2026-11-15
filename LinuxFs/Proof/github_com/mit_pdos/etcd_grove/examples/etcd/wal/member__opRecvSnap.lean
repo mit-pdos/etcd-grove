@@ -63,7 +63,7 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
   wp_apply (wp_saveSnap W e γ m w v o os c d qc (l + W64 1 + k) t hf hok hhs hs63 hfl.1
     (tOrRoom_snap hroom (by omega) _ _)
     (tMemSim_recv hms hls (hardState.mk t vo (l + W64 1 + k)) [] rfl (tConsec_nil _) (l + W64 1 + k)
-      (by simp)).1) $$ [$Hres] as %b1 Hpost1
+      (by simp)).1 hwf) $$ [$Hres] as %b1 Hpost1
   cases b1
   · try wp_auto
     iapply HΦ
@@ -141,7 +141,8 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     iunfold memSaveRes at Hres1
     icases Hres1 with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
     wp_apply (wp_save W e γ m w v1 _ os1 c d1 qc (hardState.mk t vo (l + W64 1 + k)) esl es hf Hok1.1
-      Hok1.2 h4 hfl.1 hsv.1 hsv.2 hstep.2.1) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b2 Hpost2
+      Hok1.2 h4 hfl.1 hsv.1 hsv.2 hstep.2.1
+      (tCheckWf_snapO hwf hs63 hfl.1 (tOrRoom_snap hroom (by omega) _ _))) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b2 Hpost2
     · iframe
       iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
     cases b2
@@ -160,7 +161,10 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     have hsm2 : tOrSmall (tSynced (tSaveO (tSnapO o (l + W64 1 + k) t)
         (hardState.mk t vo (l + W64 1 + k)) es)) := by
       unfold tOrSmall; rw [tEncodeOracle_synced]; unfold tOrRoom at hroom; omega
-    wp_apply (wp_sync W e γ m w v2 _ os2 c d2 qc hf Hok2.1 hsm2)
+    have hsm2'' : tOrSmall (tSaveO (tSnapO o (l + W64 1 + k) t) (hardState.mk t vo (l + W64 1 + k)) es) := by
+      unfold tOrSmall; unfold tOrRoom at hroom; omega
+    wp_apply (wp_sync W e γ m w v2 _ os2 c d2 qc hf Hok2.1 hsm2
+      (tCheckWf_saveO (tCheckWf_snapO hwf hs63 hfl.1 hsnap) _ es h4 hfl.1 hsm2''))
       $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b3 Hpost3
     · iframe
       iframe H1 H2 H3 H4 H13 H15 H17

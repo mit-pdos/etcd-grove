@@ -9,6 +9,7 @@ public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.memb
 public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Sync
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOps
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SnapPure
 
 @[expose] public section
 
@@ -33,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 
 /-- The relation the synced oracle stores: its candidate accounts for the WAL. -/
 theorem tRelI_synced (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (d : WalDur)
-    (h : tMemOk o c d) (hl : o.since.length < 2 ^ 64) :
+    (h : tMemOk o c d) (hl : o.since.length < 2 ^ 64) (hw : tCheckWf o) :
     WalFs.walSyncedLb (W := W) (tWalDir area) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir area) ⊢
       tRelI (W := W) (GF := GF) area (tSynced o) (some d) := by
   iintro ⟨#Hs, #Hn⟩
@@ -41,7 +42,7 @@ theorem tRelI_synced (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) 
   simp only [show (tSynced o).created = true from h.1, ↓reduceIte]
   iexists d, c
   isplitr
-  · ipureintro; exact ⟨rfl, h.2.1, tMemOk_candOk h hl⟩
+  · ipureintro; exact ⟨rfl, h.2.1, tMemOk_candOk h hl, tCheckWf_synced hw hl⟩
   rw [tSynced_mark o c hl, ← tMemOk_len h]
   isplitl []
   · iexact Hs
@@ -77,7 +78,7 @@ theorem member.sync.wp_proof
     (wp_Sync : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
     member.sync.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc hf hok hsm
+  intro W e γ m w v o os c d qc hf hok hsm hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
     #Hlen, #Hnm⟩
   wp_auto
@@ -88,7 +89,7 @@ theorem member.sync.wp_proof
   · subst Herr
     wp_auto
     ihave ⟨%hl, Hrep⟩ := oracleRep_synced v o $$ Hrep
-    ihave #Hrel := tRelI_synced W e.area o c d hok hl $$ [Hsl Hnm]
+    ihave #Hrel := tRelI_synced W e.area o c d hok hl hcwf $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl
       · iexact Hnm

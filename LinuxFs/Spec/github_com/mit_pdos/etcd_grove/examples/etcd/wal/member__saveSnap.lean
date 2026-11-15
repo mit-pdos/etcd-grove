@@ -37,7 +37,7 @@ abbrev member.saveSnap.spec : Prop :=
     (d : WalDur) (qc : Qp) (idx term : w64),
   e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat idx < 2 ^ 63 → uint.nat term < 2 ^ 63 →
   tOrSmall (tSnapO1 o idx term) →
-  tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c) →
+  tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c) → tCheckWf o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc }}
     (App (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"saveSnap")) (Val #idx)) (Val #term))

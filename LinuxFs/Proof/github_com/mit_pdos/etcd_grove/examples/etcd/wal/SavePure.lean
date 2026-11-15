@@ -100,11 +100,6 @@ theorem tMemOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d)
   · show uint.nat o.synced ≤ (o.since ++ [tSaveOp h es]).length
     simp only [List.length_append, List.length_singleton]; omega
 
-theorem absHs_phsNext (p h : THs) : absHs (tPhsNext p h) = phsNext (absHs p) (absHs h) := by
-  rcases h with ⟨t, v, cm⟩
-  unfold tPhsNext phsNext tHsEmpty absHs
-  by_cases h1 : t = 0#64 <;> by_cases h2 : v = 0#64 <;> by_cases h3 : cm = 0#64 <;> simp [h1, h2, h3]
-
 theorem walLastHS_snoc (H : List WalOp) (h : HardStateM) (es : List EntryM) :
     walLastHS (H ++ [WalOpG.save h es]) = phsNext (walLastHS H) h := by
   unfold walLastHS; rw [List.foldl_append]; rfl

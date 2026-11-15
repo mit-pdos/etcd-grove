@@ -117,7 +117,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
   have hsim := tMemSim_own (t := (M !! (bs + W64 1 + k)).getD (zero_val w64)) hms ha1 ha2
   ihave ⟨Hres, #Hpers⟩ := memSaveRes_pers W e γ m w v o os c d qc $$ Hres
   wp_apply (wp_saveSnap W e γ m w v o os c d qc (bs + W64 1 + k) ((M !! (bs + W64 1 + k)).getD (zero_val w64))
-    hf hok hhs ha63 hta (tOrRoom_snap hroom (Nat.le_refl _) _ _) hsim.1) $$ [$Hres] as %b1 Hpost1
+    hf hok hhs ha63 hta (tOrRoom_snap hroom (Nat.le_refl _) _ _) hsim.1 hwf) $$ [$Hres] as %b1 Hpost1
   cases b1
   · try wp_auto
     iapply HΦ
@@ -315,7 +315,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       simp only [show (tRaiseNames (tSnapO o a ta) a).created = true from hok1.1, ↓reduceIte]
       iexists d1, tRaiseCand (tSnapO o a ta) a c
       isplitr
-      · ipureintro; exact ⟨rfl, tRaiseNames_mem a hok1.2.1, tMemOk_candOk0 hok3⟩
+      · ipureintro; exact ⟨rfl, tRaiseNames_mem a hok1.2.1, tMemOk_candOk0 hok3, tCheckWf_raise hcw1 a⟩
       isplitl
       · rw [tRaiseNames_mark]; iexact H16
       · iexact H15

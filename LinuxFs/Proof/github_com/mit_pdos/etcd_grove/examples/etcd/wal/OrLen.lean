@@ -175,6 +175,16 @@ theorem tOrSmall_since_lt {o : TOracle} (hs : tOrSmall o) : o.since.length < 2 ^
   have := tOpsBytes_length_ge o.since
   omega
 
+/-- **A save's append keeps `tCheckWf`**, its oracle within 1 GiB. -/
+theorem tCheckWf_saveO1 {o : TOracle} (hw : tCheckWf o) (h : THs) (es : List TEnt)
+    (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) (hs : tOrSmall (tSaveO1 o h es)) :
+    tCheckWf (tSaveO1 o h es) := by
+  refine ⟨?_, fun cd hcd => ⟨?_, tOrSmall_hist_lt hs hcd⟩⟩
+  · show uint.nat o.synced ≤ (o.since ++ [tSaveOp h es]).length
+    simp only [List.length_append, List.length_singleton]; have := hw.1; omega
+  · rw [tSaveO1_hist o cd h es]
+    exact tHistWf_snoc (hw.2 cd hcd).1 (tSaveOp_wf h es hes ht)
+
 /-- **A save keeps `tCheckWf`**, its oracle within 1 GiB. -/
 theorem tCheckWf_saveO {o : TOracle} (hw : tCheckWf o) (h : THs) (es : List TEnt)
     (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) (hs : tOrSmall (tSaveO o h es)) :

@@ -44,7 +44,7 @@ abbrev member.save.spec : Prop :=
     (d : WalDur) (qc : Qp) (h : THs) (esl : GoSlice) (es : List TEnt),
   e.orFile.Ok → tMemOk o c d → tMemHs o d → (∀ x ∈ es, tEntWf x) → uint.nat h.term' < 2 ^ 63 →
   tOrSmall (tSaveO1 o h es) → tOrSmall (tSynced (tSaveO1 o h es)) →
-  tSim ((tCandHist (tSaveO1 o h es) c).map absOp) (tCandMark o c) →
+  tSim ((tCandHist (tSaveO1 o h es) c).map absOp) (tCandMark o c) → tCheckWf o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗

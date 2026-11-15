@@ -97,7 +97,7 @@ theorem member.restart.wp_proof
       simp only [tCheckRestart, ↓reduceIte]
       iexists d1, c'
       isplitr
-      · ipureintro; exact ⟨rfl, hc', hcok⟩
+      · ipureintro; exact ⟨rfl, hc', hcok, tCheckWf_restart (tCheckWf_withOpens ls hwf) hsm2⟩
       isplitl
       · simp only [tCheckRestart] at hmark
         rw [hmark, hH]; iexact Hsl1

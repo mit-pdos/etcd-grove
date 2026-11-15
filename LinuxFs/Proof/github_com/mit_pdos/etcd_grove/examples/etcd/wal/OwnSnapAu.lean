@@ -57,6 +57,7 @@ theorem tInv_releaseAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (c1 :
   ihave %hao := tOrOwn_agree (W := W) γ o1 o2 none oa $$ Hoo Ho1
   obtain ⟨h1, h2⟩ := hao
   subst h2; subst o2
+  ihave %hw1 := tRelI_checkWf e.area o1 (some d) hcr $$ Hr1
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
@@ -88,7 +89,7 @@ theorem tInv_releaseAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (c1 :
         simp only [hcr, ↓reduceIte]
         iexists tReleaseD d a, c1
         iframe #
-        ipureintro; exact ⟨rfl, hc, hok⟩
+        ipureintro; exact ⟨rfl, hc, hok, hw1⟩
       · simp only [tRelA]; iempintro
     imodintro
     unfold tWalOwn

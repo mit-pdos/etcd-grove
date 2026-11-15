@@ -75,7 +75,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
   · ihave Hres : memSaveRes W e γ m w v o os c d (1 : Qp).half $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
     · iunfold memSaveRes; iframe; iframe #
     wp_apply (wp_opEntries W e γ m w v o os c d _ t vo cm bs l tm M r rv1 hf hok hhs hfl.1
-        (tOrRoom_mono hroom (by omega)) hms) $$ [$Hres $Ht $Hv $Hc $Hb $Hl $Htm $HM $Hr $Hrv] as %b Hpost
+        (tOrRoom_mono hroom (by omega)) hms hwf) $$ [$Hres $Ht $Hv $Hc $Hb $Hl $Htm $HM $Hr $Hrv] as %b Hpost
     icases Hpost with ⟨Ht, Hv, Hb, Htm, Hr, ⟨%rv2, Hrv⟩, Hpost⟩
     try wp_auto
     iapply HΦ
@@ -133,7 +133,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     ihave Hres : memSaveRes W e γ m w v o os c d (1 : Qp).half $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
     · iunfold memSaveRes; iframe; iframe #
     wp_apply (wp_opCommit W e γ m w v o os c d _ t vo cm l bs r rv1 hf hok hhs hfl.1 hms
-        (tOrRoom_saveNil (tOrRoom_mono hroom (by omega)))) $$ [$Hres $Ht $Hv $Hc $Hl $Hr $Hrv] as %b Hpost
+        (tOrRoom_saveNil (tOrRoom_mono hroom (by omega))) hwf) $$ [$Hres $Ht $Hv $Hc $Hl $Hr $Hrv] as %b Hpost
     icases Hpost with ⟨Ht, Hv, Hl, Hr, ⟨%rv2, Hrv⟩, Hpost⟩
     try wp_auto
     iapply HΦ
@@ -161,7 +161,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     ihave Hres : memSaveRes W e γ m w v o os c d (1 : Qp).half $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
     · iunfold memSaveRes; iframe; iframe #
     wp_apply (wp_opTerm W e γ m w v o os c d _ t vo cm bs l r rv1 hf hok hhs hfl.1 hms
-        (tOrRoom_saveNil (tOrRoom_mono hroom (by omega)))) $$ [$Hres $Ht $Hv $Hc $Hr $Hrv] as %b Hpost
+        (tOrRoom_saveNil (tOrRoom_mono hroom (by omega))) hwf) $$ [$Hres $Ht $Hv $Hc $Hr $Hrv] as %b Hpost
     icases Hpost with ⟨%vo', Ht, Hv, Hc, Hr, ⟨%rv2, Hrv⟩, Hpost, %hfx⟩
     try wp_auto
     iapply HΦ
@@ -215,7 +215,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
   try wp_auto
   wp_if_destruct
   · -- sync
-    wp_apply (wp_sync W e γ m w v o os c d _ hf hok hsyn) $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
+    wp_apply (wp_sync W e γ m w v o os c d _ hf hok hsyn hwf) $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
       as %b Hpost
     · iframe; iframe #
     icases Hpost with ⟨H5, H6, H7, H8, %v', H9, H12, Hpost⟩
@@ -239,7 +239,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
   try wp_auto
   wp_if_destruct
   · -- close, then restart
-    wp_apply (wp_close W e γ m w v o os c d _ hf hok hsyn) $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14 Hpw]
+    wp_apply (wp_close W e γ m w v o os c d _ hf hok hsyn hwf) $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14 Hpw]
       as %b Hpost
     · iframe; iframe #
     icases Hpost with ⟨H5, H6, H7, H8, %v', H9, Hpost⟩
@@ -256,6 +256,8 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     · iunfold tRelW
       simp only [show (tSynced o).created = true from hok.1, ↓reduceIte]
       rw [tSynced_mark o c hl, ← tMemOk_len hok]
+      isplitr
+      · ipureintro; exact tCheckWf_synced hwf hl
       iframe #
     wp_apply (wp_restart W e γ m lg null v' (tSynced o) c (some d) qp t vo cm bs l tm r rv1 hmn hf hpath
         hok.2.1 (fun d' hd' => by cases hd'; exact tMemOk_candOk hok hl) (tCheckWf_synced hwf hl))
