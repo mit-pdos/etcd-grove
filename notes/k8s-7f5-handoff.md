@@ -36,13 +36,18 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   `wait.Jitter` stays names-only: T5-d (an axiom, text reviewed in `notes/k8s-7f5-freeze.md`) and T5-f
   (`klog.Warningf.spec`, `mvccpb.Event_EventType.String.spec`, the Draft's §5) are **not yet written as
   axioms**: trusted text is a hard stop of this brief; ask 81 whether the reviewed texts may go in as is
-  (tcb then 870 → 873 or so, `--update` after its go).
+  (tcb then 870 → 873 or so, `--update` after its go). **Done after 81's go (`f42e7a9287`):** the three axioms
+  written verbatim; `tcb --check` still 870/4 (no root reaches them until the store watch is linked, step 7:
+  `--update` then). `Event_EventType.String` is called through the pointer type's `MethodResolve` on the
+  field's address (`etcd3.lean:2623`): reach the value-receiver spec by Perennial's pointer-method rule.
 - **Step 2, first part** (the commit after `920165edf8`): `Proof/k8s_io/apiserver/pkg/storage/etcd3/WatchDefs.lean`
   (namespace `k8s`) holds the Draft's pure part (§1 and the raw protocol), moved; the Draft imports it.
   Laws proved: `kRawToEv_t` (no Error event), `kTail_of_raw`, `kRawIdealL_filterMap`, `kNonErr_filterMap`,
   `kStreamOk_of_raw`, `kStreamSub_of_raw`.
 - **Next, step 2 rest:** transport along `kvSameHist` (`kvSameHist_at` exists in ListDefs; needs the
-  same for `changesAt`/`revEvents`, so `KTail`/`KRawTail` at `σ` hold at a longer `σ'`), prefix closure,
+  same for `changesAt` (via `take_of_prefix` and `List.getElem?_take_of_lt`) and `revEvents`; `kEvOfL`'s
+  `kPrevAt` reads `σ.at (modRev - 1)`, so a revision's events need `modRev = W64 r` (`evsOfRevM`'s
+  `evOfKv r`) and `σ.rev < 2^63`, so `KTail`/`KRawTail` at `σ` hold at a longer `σ'`), prefix closure,
   `inRange (pfx) (prefixEnd pfx) ↔ kInScope`, a client response (`watchStateRespOkP`: now one progress
   case with `hdrRev ≤ σ.rev`) gives a `KRawTail` chunk and its `PrevKv` gives `kPrevAt`, the initial
   events from `syncPaginated`'s pages. Then step 3 (leaves), 4 (channel ops, premise
