@@ -39,6 +39,7 @@ abbrev raft.handleHeartbeat.untracedTriple : Prop :=
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   s.term ≠ W64 0 →
+  (s.gh.sn.sz = true → cl.length ≤ entBytesMax) →
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -50,10 +51,10 @@ abbrev raft.handleHeartbeat.untracedTriple : Prop :=
 /-- `raft.handleHeartbeat.spec`'s untraced instance. -/
 theorem raft.handleHeartbeat.untraced (h : raft.handleHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz htr
+  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz Hcl htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ml dq dqe cap m ents sn cl rs iprop(emp) iprop(emp) Hcommit Hfrom Htz $$ [Hphys Hm]
+  iapply h c r id s ml dq dqe cap m ents sn cl rs iprop(emp) iprop(emp) Hcommit Hfrom Htz Hcl $$ [Hphys Hm]
   · iframe Hpkg Hphys Hm
     isplitr
     · iempintro
@@ -86,7 +87,7 @@ abbrev raft.handleAppendEntries.untracedTriple : Prop :=
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
@@ -240,7 +241,8 @@ abbrev stepCandidate.untracedTriple : Prop :=
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+      "Hm" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+               (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, cl, rs⟩ ∗
       "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
@@ -362,7 +364,8 @@ abbrev stepFollower.untracedTriple : Prop :=
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+      "Hm" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+               (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, cl, rs⟩ ∗
       "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn }}
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
@@ -451,7 +454,8 @@ abbrev stepLeader.untracedTriple : Prop :=
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+      "Hm" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+               (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, ctx, rs⟩ ∗
       "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗
       "#Hrc" ∷ ⧖ k0 }}

@@ -226,7 +226,7 @@ abbrev raft.send.untracedTriple : Prop :=
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
+      "Hm" ∷ msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
@@ -281,6 +281,7 @@ abbrev raft.sendHeartbeat.untracedTriple : Prop :=
   to ≠ id →
   to ∈ domSet s.progress →
   s.term ≠ W64 0 →
+  cl.length ≤ entBytesMax →
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -298,10 +299,10 @@ abbrev raft.sendHeartbeat.untracedTriple : Prop :=
 /-- `raft.sendHeartbeat.spec`'s untraced instance. -/
 theorem raft.sendHeartbeat.untraced (h : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Hto Hcfg Htz htr
+  intro c r id s to ctx cl Hto Hcfg Htz Hcl htr
   iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s to ctx cl (fun _ => iprop(emp)) Hto Hcfg Htz $$ [Hphys]
+  iapply h c r id s to ctx cl (fun _ => iprop(emp)) Hto Hcfg Htz Hcl $$ [Hphys]
   · iframe Hpkg Hphys Hctx
     iintro %cm %_
     rw [htr]
@@ -318,6 +319,7 @@ abbrev raft.bcastHeartbeatWithCtx.untracedTriple : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8),
   s.role = .leader →
   s.term ≠ W64 0 →
+  cl.length ≤ entBytesMax →
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -332,10 +334,10 @@ abbrev raft.bcastHeartbeatWithCtx.untracedTriple : Prop :=
 /-- `raft.bcastHeartbeatWithCtx.spec`'s untraced instance: every gate the struct's nil logger. -/
 theorem raft.bcastHeartbeatWithCtx.untraced (h : raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s ctx cl Hlead Htz htr
+  intro c r id s ctx cl Hlead Htz Hcl htr
   iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ctx cl (fun _ => iprop(emp)) Hlead Htz $$ [Hphys]
+  iapply h c r id s ctx cl (fun _ => iprop(emp)) Hlead Htz Hcl $$ [Hphys]
   · iframe Hpkg Hphys Hctx
     isplitr
     · imodintro

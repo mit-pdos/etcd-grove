@@ -218,7 +218,8 @@ abbrev raft.Step.untracedTriple : Prop :=
       -- and the snapshot owned; the entry pointers owned for a `MsgProp`, read-only
       -- otherwise; the `Context` holding `ctx`)
       "Hm" ∷ (
-         "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+         "Hmsg_in" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+                       (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                        ⟨m, ents, sn, ctx, rs⟩ ∗
          -- a proposal's conf-change entries' bytes, which decode
          -- (2026-10-19, D21 M6) and its entries' tickets (`entTk`), which the leader consumes

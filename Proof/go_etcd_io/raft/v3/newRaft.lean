@@ -1042,7 +1042,7 @@ theorem newRaft.wp_proof
     ihave Hphys := ownRaftPhysCV_intro cs'.cfg cs'.cfg.voters «$r0_ptr» cv.ID' s2 rv2 [] [] lok
       HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s2]; decide)⟩
       (by simp only [rv2]; rw [HpDPF, Hdpf]) (fun h => by simp only [rv2]; rw [HpMSP]; exact Hmms h)
-    (by simp only [rv2]; rw [HpDCC, Hdccv])
+      (by simp only [rv2]; rw [HpDCC, Hdccv])
       HpCQ
       rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
       (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])
@@ -1234,7 +1234,7 @@ theorem newRaft.wp_proof
     -- the struct
     wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
     obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
-    wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
+    wp_apply wp_newReadOnly sn.sz _ (HpRO.trans Hros) as %ro Hro
     imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
     ihave #Htlf := raftOwn_traceLogger _ _ $$ «$r0»
 
@@ -1514,7 +1514,7 @@ theorem newRaft.wp_proof
     ihave Hphys := ownRaftPhysCV_intro (cfgState ∅ ∅).cfg (cfgState ∅ ∅).cfg.voters «$r0_ptr» cv.ID' s2 rv2 [] [] lok
       HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s2]; decide)⟩
       (by simp only [rv2]; rw [HpDPF, Hdpf]) (fun h => by simp only [rv2]; rw [HpMSP]; exact Hmms h)
-    (by simp only [rv2]; rw [HpDCC, Hdccv])
+      (by simp only [rv2]; rw [HpDCC, Hdccv])
       HpCQ
       rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
       (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])

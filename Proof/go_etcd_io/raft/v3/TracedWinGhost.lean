@@ -88,7 +88,7 @@ theorem stepCD_wonW (c : CfgM) (id : w64) (s : NState) (m : MessageM) (ents : Li
     refine .trans _ _ _ _ _ (StepR.recordVote (absMsg .voteResp m ents) (rOf s g) rfl Hto
       Hteq Hpr) ?_
     exact StepR.win _ (prvalsMatch pvs) [] Hpr (by rw [Hrc]; exact Hq) (Int.le_refl _) Hmt'
-      (by simp) (by simp)
+      (by simp) (by simp) (by simp)
 
 /-- The won state's new message (the self-acknowledgement) is all its outbox adds. -/
 theorem outTr_wonW (γ : RaftNames) (id : w64) (s : NState) (m : MessageM) (pvs : GMap w64 Progress)

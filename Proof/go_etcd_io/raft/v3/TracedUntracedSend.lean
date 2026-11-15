@@ -156,10 +156,11 @@ abbrev sendMsgReadIndexResponse.untracedTriple : Prop :=
   s.role = .leader →
   s.term ≠ W64 0 →
   ents ≠ [] →
+  m.Type' ≠ MsgSnap →
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      "#Hm" ∷ msgOwnZ s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
     (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #ml))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜SendRIResult c id s m ents s'⌝ }}
@@ -167,10 +168,10 @@ abbrev sendMsgReadIndexResponse.untracedTriple : Prop :=
 /-- `sendMsgReadIndexResponse.spec`'s untraced instance: every gate the struct's nil logger. -/
 theorem sendMsgReadIndexResponse.untraced (h : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hl Htz Hne htr
+  intro c r id s ml m ents sn ctx rs Hl Htz Hne Hns htr
   iintro %Φ ⟨#Hpkg, Hphys, #Hm⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s ml m ents sn ctx rs (fun _ => iprop(emp)) Hl Htz Hne $$ [Hphys]
+  iapply h c r id s ml m ents sn ctx rs (fun _ => iprop(emp)) Hl Htz Hne Hns $$ [Hphys]
   · iframe Hpkg Hphys Hm
     isplitr
     · iempintro
@@ -242,13 +243,13 @@ abbrev raft.appendEntry.untracedTriple : Prop :=
   s.term ≠ W64 0 →
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      "Hes" ∷ entsPts es dq ents ∗
+      "Hes" ∷ entsPtsZ s.gh.sn.sz es dq ents ∗
       "#Hrc" ∷ ⧖ m }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
       ⧖ (m + ents.length) ∗
       ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
-      entsPts es dq ents ∗
+      entsPtsZ s.gh.sn.sz es dq ents ∗
       if accepted then
         ownRaftPhysCV c c.voters r id
           (sendMsgs

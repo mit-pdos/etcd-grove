@@ -874,7 +874,7 @@ theorem raft.appendEntry.traced (h : raft.appendEntry.spec (GF := GF) (hG := hG)
         (selfAck id { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }) e →
         TraceEv.Ok (elements c.incoming).length e) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        entsPts es dq ents ∗ ⧖ m ∗ trCapB s.gh.tr γ r id c b (Φs 0) Λ ∗ Rs 0 ∗
+        entsPtsZ s.gh.sn.sz es dq ents ∗ ⧖ m ∗ trCapB s.gh.tr γ r id c b (Φs 0) Λ ∗ Rs 0 ∗
         ([∗list] k ∈ List.range (normalCount ents),
           (Rs k -∗ FxPresUT s.gh.tr γ id (NodeEvOf (W64 5) id s c) (Φs k) (Φs (k + 1)) (Rs (k + 1)))) ∗
         (Rs (normalCount ents) -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id
@@ -883,7 +883,7 @@ theorem raft.appendEntry.traced (h : raft.appendEntry.spec (GF := GF) (hG := hG)
           (Φs (normalCount ents)) Φ' R') }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
     {{ (accepted : Bool), RET #accepted;
-        ⧖ (m + ents.length) ∗ ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗ entsPts es dq ents ∗
+        ⧖ (m + ents.length) ∗ ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗ entsPtsZ s.gh.sn.sz es dq ents ∗
         if accepted then
           ownRaftPhysCV c c.voters r id
             (sendMsgs

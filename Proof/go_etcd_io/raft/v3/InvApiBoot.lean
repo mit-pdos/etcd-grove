@@ -227,18 +227,21 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
 /-- **A new cluster of client decisions with a bootstrap log**, untraced (`cluster_alloc_boot_impl_tr`
 at `none`). -/
 theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (E : CoPset)
+    -- (raft-entsize §2) the bound on proposed data, as `cluster_alloc_boot_impl_tr`'s
+    (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31)
+    (HmxdB : ∀ b, mxd = some b → ∀ e ∈ boot, e.data.length ≤ b) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     BootLog vs ctxs boot →
     ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
         ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
-          γ.raft.reTrace = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+          γ.raft.reTrace = none ∧ γ.raft.maxData = mxd⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
         [∗list] id ∈ vs, nodeBootU γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
           nodeVacantU γ id :=
-  cluster_alloc_boot_impl_tr N vs ctxs boot dup sl none E
+  cluster_alloc_boot_impl_tr N vs ctxs boot dup sl none E mxd Hmxd HmxdB
 
 
 end boot
