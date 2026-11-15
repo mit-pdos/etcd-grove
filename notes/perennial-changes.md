@@ -17,69 +17,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `WithCancel` over a general `isContext` parent loses the parent's Done proposition (2026-11-14, k8s 7f-5a)
-
-What is missing: Perennial's `context.WithCancel.spec` gives the child
-`PDone := parent.PDone ∨ PDone'` only for a parent that is itself a `*cancelCtx` made by `WithCancel`
-(`isCancelCtxCtx`). For any other `isContext` parent (a `*valueCtx` over one, a `*timerCtx`, a
-wrapper whose `parentCancelCtx` succeeds), `wp_WithCancel_any` gives `PDone := True`: an observer of
-the child's closed Done channel learns nothing of why it closed.
-
-What Go does: the child's Done channel is closed by its own cancel function, or by
-`propagateCancel`: if the parent is already done (its Done channel closed), at once; otherwise
-`parentCancelCtx(parent)` finds the `*cancelCtx` `p` whose Done channel is the parent's (it checks
-`pdone == done` against `parent.Done()`), the child goes into `p.children`, and `p.cancel` closes
-`p.done` (the parent's Done channel) before it cancels its children. So whenever the child is closed
-by propagation, the parent's Done channel is already closed, and the parent's `isContextDone` gives
-`□ parent.PDone`.
-
-What the model should give: `wp_WithCancel` for any `isContext parent s` (with `HParentCC`) and any
-`PDone'`, the child `isContext` at `{ s with PDone := s.PDone ∨ PDone', Done_gn := γ' }`, its cancel
-needing `□ PDone'`. The missing link is in `isContext`'s `HParentCC`: it gives `isCancelCtx p` with an
-unknown Done proposition and channel. Strengthen it to say `p`'s Done channel is the parent's `ch`
-(or that `p`'s proposition gives `s.PDone`), true of every context the model makes (`*cancelCtx`,
-`*timerCtx`, value links over them), so that the children `p` cancels can be given
-`□ s.PDone`.
-
-Who needs it: the etcd3 watcher (k8s 7f-5a): `wc.ctx = WithCancel(WithRequireLeader(ctx))`, and the
-store watch's spec states the no-gap prefix unless the watch is cancelled, which a dropped event
-must witness from `wc.ctx`'s closed Done channel (`notes/k8s-7f5a-draft.md` §4, `kCancelPD`, §6
-risks). Workaround: none yet. If this is not in Perennial by 7f-5a-P's step 4 (the channel
-operations), a clearly marked local trust-boundary axiom with a Go test, a stop for etcd-grove-81's
-axiom review. Status: proposal, not yet on a Perennial branch.
-
-**Decision (etcd-grove-81, 2026-11-15): option (a), this general change, proposed independently
-through Perennial's workflow (the proposal goes to etcd-grove-81; no Perennial edit from the 7f-5a
-session). No local axiom.** Until it lands, 7f-5a-P's steps 4-5 (`queueEvent`, `sendEvent`,
-`sendError`, the producer) take the child's description as a premise, `isContext wc.ctx { cd with
-PDone := iprop(cd.PDone ∨ kCancelPD γ cd) }` (with `wc.cancel`'s `cancelSpec … (kCancelPD γ cd)`);
-step 6 (`createWatchChan`, which produces it from `WithCancel`) waits on this change.
-
-Design sketch (for the Perennial proposal; to be designed and reviewed on its own):
-
-1. **`isContext`'s `#HParentCC`** (`Perennial/Proof/context/Base.lean`, `isContextDef`): the
-   continuation `∀ p, isCancelCtx p -∗ Φ (PairV #p #true)` becomes
-   `∀ p γp Pp, isCancelCtxOf p γp Pp -∗ □ (Pp -∗ s.PDone) -∗ Φ (PairV #p #true)`: the `*cancelCtx`
-   that `parentCancelCtx` finds is cancelled only with a proposition that gives the parent's. True in
-   Go because `parentCancelCtx` returns `p` only when `p.done` is the parent's Done channel
-   (`pdone == done`), and a closed parent Done channel means `s.PDone` (`isContextDone`).
-2. **Its producers** keep it with no new reasoning: a `*cancelCtx` made by `WithCancel`
-   (`isCancelCtxCtx`: `Pp = s.PDone`, the identity), a `*timerCtx` (`s.PDone = True`), `WithValue`
-   and the other wrappers whose `parentCancelCtx` is the parent's (same `s`), and
-   `isContext_weaken` (`□ (s.PDone -∗ P')` composes). Downstream axioms that state
-   `parentCancelCtx` as a WP transfer from the parent (this repository's `WithRequireLeader.spec`,
-   T5-e) keep it unchanged, since a transfer carries any `Φ`.
-3. **A new triple `wp_WithCancel_ctx (parent) (s) (PDone')`**: from `isContext parent s`, the
-   child `isContext ctx' { s with PDone := iprop(s.PDone ∨ PDone'), Done_gn := γ' }`, its
-   `cancelSpec cancel γ' PDone'`, and `ctxValueFrom parent ctx'`. Proof: `propagateCancel`'s
-   already-done arm gets `□ s.PDone` from the parent's closed channel; its registering arm puts the
-   child in `p.children`, where `p.cancel` (holding `□ Pp`) cancels it with `□ s.PDone` by (1).
-   `wp_WithCancel_any` becomes a corollary (`PDone' := True`, then weaken to `True`), and the
-   existing `wp_WithCancel` over an `isCancelCtxCtx` parent stays as it is.
-4. Not shaped by one proof: any client that cancels a derived context and must learn why the
-   child's Done channel closed needs it (a `WithCancel` over a `WithValue` or `WithTimeout` parent
-   is the common Go pattern).
-
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
@@ -1219,6 +1156,25 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ## Landed
+
+### `WithCancel` over any `isContext` parent keeps the parent's Done proposition (landed 2026-11-15, Perennial `cbccb8321`, `2d8857406`, `e9e6351d9`; pin bumped 2026-11-15)
+
+- **Was missing.** `wp_WithCancel_any` gave the child of a general `isContext` parent (a `*valueCtx`
+  over a `*cancelCtx`, a `*timerCtx`, a wrapper whose `parentCancelCtx` succeeds) the Done
+  proposition `True`, so an observer of the child's closed Done channel learned nothing of why it
+  closed (k8s 7f-5a: `wc.ctx = WithCancel(WithRequireLeader(ctx))`).
+- **Landed in Perennial** (`docs/design/context-withcancel-parent-done.md`, tier 3: proofs and
+  proved specs only). `isContext` states two more things: `"#HParentCC"`'s `*cancelCtx` comes as
+  `isCancelCtxOf p γp Pp` with `□ (□ Pp -∗ s.PDone)`, and `"#HErrDone"` gives `□ s.PDone` once the
+  context is done. New `wp_WithCancel_ctx` (the child at `s.PDone ∨ PDone'`),
+  `wp_propagateCancel_ctx`, `childCancelSpec_mono`; `wp_WithCancel_any` and
+  `wp_propagateCancel_any` keep their statements. The design doc's audit of this repository's
+  axioms producing `isContext` (transfers over delegating wrappers, Done proposition `True`,
+  existential descriptors) found none made false.
+- **Pin bump fallout.** `SrvCtxWeak.lean`'s `srvCtxWeak_of_isContext` proves the two new clauses
+  (from `srvCtxWeak`'s `#HErrDone`/`#HParentCC`), and one intro pattern in
+  `cancellableContext__Err.lean`; no statement changed, trust base unchanged. 7f-5a-P's step 6
+  (`createWatchChan`) can now produce the child's description from `wp_WithCancel_ctx`.
 
 ### `Context.Value` at keys other than `&cancelCtxKey`; goose's multi-type type-switch case (landed 2026-11-08, Perennial `f137bdd8a` and `ddc0f0acc`; pin bumped 2026-11-08)
 
