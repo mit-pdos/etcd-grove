@@ -1942,3 +1942,12 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   to establish), or the fork reads the entries through `wal.OpenForRead` instead of reopening (the issue's
   proposed fix, untested), after which the spec stands.
 - **Decision.** Proposed (with specgap's P8, the lock model, and P13).
+
+## 2026-11-15: `LinuxFs/Spec/.../examples/etcd/wal/restartRead.lean`, `member__restart.lean` -- `m` not known non-nil
+
+- **Spec.** `restartRead.spec`, `member.restart.spec` (the WAL tester).
+- **Defect.** Unprovable: `restartRead` tests `m != nil`, and the field points-tos `m.[member, f] ↦ _` do not
+  give `m ≠ null`.
+- **Evidence.** `restartRead.wp_proof` (branch `wal-c-tester2`) needs it at the `if m != nil`.
+- **Proposed change.** Premise `m ≠ null` on both (every caller allocated `m`: `Boot`'s `&member{...}`).
+- **Decision.** Made (branch `wal-c-tester2`, `notes/wal-units/tester.md`, ninth session).
