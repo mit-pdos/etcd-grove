@@ -298,6 +298,49 @@ theorem kNonErr_append_err (evs : List (KWEv Obj)) (e : KWEv Obj) (h : e.t = 4) 
     kNonErr (evs ++ [e]) = kNonErr evs := by
   unfold kNonErr; simp [List.filter_append, h]
 
+/-- A transform is not an Error event: appending it appends to the non-error part. -/
+theorem kNonErr_append_ev (evs : List (KWEv Obj)) (e : KWEv Obj) (h : e.t ≤ 3) :
+    kNonErr (evs ++ [e]) = kNonErr evs ++ [e] := by
+  unfold kNonErr; simp [List.filter_append]; omega
+
+/-- **The processing goroutine's step, pure part**: `kResInv`'s equation at `σ` for the raw events
+taken so far, and the next raw event `r` received with the facts of `raws ++ [r]` at its state `σr`
+(one history), give the equation for `raws ++ [r]` and the events sent so far with `r`'s transform
+appended (`oe`: `none` when filtered out), at the later of the two states, with the element's facts
+carried there. -/
+theorem kRes_step_pure (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z : Obj)
+    (inS : GoString → Bool) (m : KWatchMode) (σ σr : KVState) (h : kvSameHist σ σr)
+    (evs : List (KWEv Obj)) (raws : List KRaw) (r : KRaw) (st : Nat) (oe : Option (KWEv Obj))
+    (Heq : kNonErr evs = raws.filterMap (kRawToEv dec sel emp z σ))
+    (Hraws : raws = [] ∨ ∀ x ∈ raws, kRawRevOk σ x)
+    (Hsub : kRawStreamSub inS m σr st (raws ++ [r]))
+    (hoe : kRawToEv dec sel emp z σr r = oe) :
+    ∃ σ', (σ' = σ ∨ σ' = σr) ∧
+      kNonErr (evs ++ oe.toList) = (raws ++ [r]).filterMap (kRawToEv dec sel emp z σ') ∧
+      kRawStreamSub inS m σ' st (raws ++ [r]) ∧
+      (kRawStreamOk inS m σr st (raws ++ [r]) → kRawStreamOk inS m σ' st (raws ++ [r])) := by
+  have hrev := kRawStreamSub_revOk Hsub
+  have hne : kNonErr (evs ++ oe.toList) = kNonErr evs ++ oe.toList := by
+    cases oe with
+    | none => simp
+    | some e =>
+      simp only [Option.toList_some]
+      exact kNonErr_append_ev evs e (kRawToEv_t dec sel emp z σr r e hoe)
+  by_cases hle : σ.rev ≤ σr.rev
+  · refine ⟨σr, Or.inr rfl, ?_, Hsub, id⟩
+    rw [hne, Heq, List.filterMap_append, List.filterMap_cons, List.filterMap_nil, hoe]
+    congr 1
+    · rcases Hraws with rfl | hx
+      · rfl
+      · exact kRawToEv_filterMap_hist dec sel emp z σ σr h hle raws hx
+  · have hle' : σr.rev ≤ σ.rev := by omega
+    have h' := kvSameHist_symm h
+    refine ⟨σ, Or.inl rfl, ?_, kRawStreamRel_hist h' hle' Hsub,
+      fun hok => kRawStreamRel_hist h' hle' hok⟩
+    rw [hne, Heq, List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      ← kRawToEv_hist dec sel emp z σr σ h' hle' r (hrev r (by simp)), hoe]
+    cases oe <;> rfl
+
 end steps
 
 section stepsI
