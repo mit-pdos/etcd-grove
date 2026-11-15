@@ -38,7 +38,9 @@ with `auth-lease-scope` merged).
    in three Freeze packages:
    - **S3a** (now): the model and the apply thread: the triple state with the lease table, the client's half kept in
      `kvInvOn`, the auth-on table for `srvRest`, `authKVKind` in the three places, admission of grants, revocations and
-     leased puts at the revocable mode. Design: `notes/auth-lease-s3a-draft.md`.
+     leased puts at the revocable mode. Design: `notes/auth-lease-s3a-draft.md` (revision 4 = the S3a Freeze package,
+     three review rounds `/shared/tmp/auth-lease/s3a-review-r{1,2,3}.md`; N1 (ii′): `leaseExactL` in the class
+     track's `kvPostF`); waiting for the Freeze decision. No Lean edited for S3 yet.
    - **S3b**: the request side (grant, revoke, leased put with auth on).
    - **S3c**: the couplings and `NewServer`; the `lease.bootCfg` hub change and the `NewLessor` docstring (hard stops).
    - The auth-on snapshot path carries the leases (F2 (a)); the latest track gains a lease-exact outcome (F1 (ii)).
