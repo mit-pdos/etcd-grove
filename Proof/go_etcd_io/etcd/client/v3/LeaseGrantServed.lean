@@ -139,14 +139,20 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S G R ci cd r m)
+  -- (auth-lease S3c) the handler's spec at auth off: the contract by `_false`, the off permit
+  ihave #HLM := (v3rpc.lessorGrantOkGM_false s E (⟨γr.kv.st, γr⟩ : ReqNames) S G R).2 $$ HL
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S G R ci cd r m
+      (fun _ _ => iprop(True)))
     $$ [HS Hid]
-  · iframe; iframe #; try (ipureintro; exact HRm)
+  · iframe; iframe #
+    isplitr
+    · ipureintro; exact HRm
+    iapply leaseGrantPermitM_false
   inext
   iintro %resp %err ⟨HS, Hout, Hg, #HSe⟩
   iunfold v3rpc.leaseGrantOut at Hout
   icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
-  · icases Hg with (%Hne | ⟨%id', #Hid', Hgr⟩)
+  · icases Hg with (%Hne | ⟨%id', #Hid', Hgr, -⟩)
     · exact absurd Hok.1 Hne
     iunfold v3rpc.leaseHdrOut at Hh
     icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩

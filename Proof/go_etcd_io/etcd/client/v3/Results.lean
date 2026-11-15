@@ -3803,10 +3803,15 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
   ihave #HLG := v3rpc.raftLessor_grantG s E S $$ HL
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S (fun _ _ => iprop(True))
-      (fun _ => True)
-      ci cd r m) $$ [HS Hid]
-  · iframe; iframe #; try (ipureintro; trivial)
+  -- (auth-lease S3c) the handler's spec at auth off: the contract by `_false`, the off permit
+  ihave #HLM := (v3rpc.lessorGrantOkGM_false s E (⟨γr.kv.st, γr⟩ : ReqNames) S (fun _ _ => iprop(True))
+      (fun _ => True)).2 $$ HLG
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S
+      (fun _ _ => iprop(True)) (fun _ => True) ci cd r m (fun _ _ => iprop(True))) $$ [HS Hid]
+  · iframe; iframe #
+    isplitr
+    · ipureintro; trivial
+    iapply leaseGrantPermitM_false
   inext
   iintro %resp %err ⟨HS, Hout, -, #HSe⟩
   iunfold v3rpc.leaseGrantOut at Hout
@@ -3858,10 +3863,18 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   rw [show (pbLeaseRevokeRequest (GF := GF)).recv r m = v3rpc.leaseRevokeReqIs r m from rfl]
   iapply wp_fupd
-  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid E S ci cd r m) $$ [HS]
+  -- (auth-lease S3c) the handler's spec at auth off: the revocation contract by `_false`, the off permit
+  ihave #HLR : v3rpc.lessorRevokeOkM false s E (⟨γr.kv.st, γr⟩ : ReqNames) S $$ []
+  · iapply (v3rpc.lessorRevokeOkM_false s E _ S).2
+    iunfold v3rpc.raftLessor at HL
+    icases HL with ⟨-, #HR⟩
+    iexact HR
+  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S ci cd r m
+      (fun _ => iprop(True))) $$ [HS]
   · iframe; iframe #
+    iapply leaseRevokePermitM_false
   inext
-  iintro %resp %err ⟨HS, Hout, #HSe⟩
+  iintro %resp %err ⟨HS, Hout, -, #HSe⟩
   iunfold v3rpc.leaseRevokeOut at Hout
   icases Hout with (⟨%Hok, Hh⟩ | %Herr)
   · iunfold v3rpc.leaseHdrOut at Hh
