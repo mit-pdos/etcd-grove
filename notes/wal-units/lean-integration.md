@@ -200,3 +200,143 @@ collections) cannot run yet (both need an up-to-date build).
 3. Re-merge `origin/wal-int` (`etc/wal-lean-remerge.py 8d6f3670d8`; `23c56c7a32` added only notes and
    the fork patch since). A new wal-int file may name `snapRoC`/`snapSize` (here `walSnapRoC`/
    `walSnapSize`) or open `go_etcd_io.etcd.pkg.v3` inside `EtcdGrove` (here `_root_.Perennial....`).
+
+## Session 3 (2026-11-15)
+
+Setup: a fresh worktree (local branch `wal-lean`, from `origin/wal-lean` `227d715e95`), session 2's `.lake`
+copied from its worktree.
+
+### The user's decision (A): the etcd examples' closed theorems over the file extension
+
+`fileutil` (with bodies) runs its `init` (the `F_OFD_GETLK` probe through `syscall.FcntlFlock`, over `fsExt`) in
+every etcd program's initialization, so the examples' closed theorems run over the file extension now:
+
+- `Proof/.../examples/lib/etcdstart/FsExts.lean` (new): `etcdFsExts = [idIssueExt, fsExt]`, its semantics
+  `(idIssue_semantics, Fs.fs_semantics)` (the file extension's own: every `FsStep`, no premise on the
+  environment) and ghost state `(idIssue_interp, Fs.fs_interp)`, `HasExt` of both by computation. As the osfs
+  programs' results (`fsExts`), with `idIssueExt` kept (the request ids' record the server needs).
+- Each theorem: the local instances are `etcdFsExts`'s, the ghost-state bundle's `goosePreGExts` gains the
+  file extension's (the universal camera), and the **one new premise** is
+  `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)` (the file extension's initial state: no process state, nothing
+  logged, every file named and on disk with its size bounded, the roots well formed, `RootsOk`), passed as
+  `extsInitP`'s file-extension component (`⟨trivial, Hfs, trivial⟩`). The conclusion is unchanged. The proofs
+  use none of the extension's start resources (the probe takes no extension step, `wp_getlk`), so no roots
+  premise beyond `FsInit`'s is needed.
+- Ledger entry (2026-11-15, "the etcd examples' closed theorems"); `TrivialExt.lean`'s header says who uses which.
+
+**For the user's review: the restated closed theorems** (each in `Adequacy*.lean`, restated in the same
+directory's `Results.lean` as `..._safe` with the same new premise; old premises otherwise unchanged; old
+extensions `[idIssueExt]`, new `[idIssueExt, fsExt]` with `Hfs : FsInit ...`):
+
+| theorem (and its `Results.lean` restatement) | new premise |
+|---|---|
+| `etcd_putget_adequate` / `etcd_putget_safe` | `Hfs` |
+| `etcd_putget3_adequate` / `etcd_putget3_safe` | `Hfs` |
+| `etcd_compacted_adequate` / `etcd_compacted_safe` | `Hfs` |
+| `etcd_restart1_adequate` / `etcd_restart1_safe` | `Hfs` |
+| `etcd_lease_adequate` / `etcd_lease_safe` | `Hfs` |
+| `etcd_leasegrant_adequate` / `etcd_leasegrant_safe` | `Hfs` |
+| `etcd_leaseexpiry_adequate` / `etcd_leaseexpiry_safe` | `Hfs` |
+| `etcd_leasecatchup_adequate` / `etcd_leasecatchup_safe` | `Hfs` |
+| `etcd_compactwatch_adequate` / `etcd_compactwatch_safe` | `Hfs` |
+| `etcd_txnlin_adequate` / `etcd_txnlin_safe` | `Hfs` |
+| `etcd_partition_adequate` / `etcd_partition_safe` | `Hfs` |
+| `k8s_compactor_adequate` / `k8s_compactor_safe`, `k8s_compactor_partition_adequate` / `_safe` | `Hfs` |
+| `k8s_etcd3_adequate` / `k8s_etcd3_safe`, `k8s_etcd3_cluster_adequate` / `_safe`, `k8s_etcd3_partition_adequate` / `_safe` | `Hfs` |
+| (beyond the 13 files named, same cause, not reached by session 2's build because they import `putget`'s or `partition`'s) `etcd_partition_watch_adequate` / `etcd_partition_watch_safe`, `etcd_auth_adequate` / `etcd_auth_safe`, `etcd_auth3_adequate` / `etcd_auth3_safe`, `etcd_watch_adequate` / `etcd_watch_safe`, `etcd_cache_adequate` / `etcd_cache_safe` | `Hfs` |
+
+All build (the full build below).
+
+### Re-merges of `origin/wal-int`
+
+1. `ba70ab7e55` (`b68210672e`): the tester's `Boot`/`Main`, `Create.specFresh`, the tester `Link` (`gen-link
+   --wal-tester`), the `NoIoErr` premise, notes. `etc/link_walfs.py`'s conflict resolved: `TESTER` over the part
+   `WalTester/` (`OUT`, `ROOT_DIRS`) and the main tree's WAL `Link` (`EXT_LINKS`); the `--durable`/`--wal-tester`
+   modes walk `WalTester/`'s specs first; a `Link.lean` under `PROOF_PFX` is skipped unless it is an `EXT_LINKS`
+   one. The three WAL links regenerated; collection `wal-tester`'s roots under `WalTester/`.
+2. `7fe119fb19` (`b7091da704`), at the coordinator's request: the file-lock semantics (trusted, **pending the
+   user's review**: `Impl.lean`'s `OsFd` lock fields, the `FcntlFlock`/`Flock` models, `os.File.Close.spec`'s
+   `lockToks`, `fileutil`'s lock tokens), the no-error WAL specs, `link_walfs`'s implicit section variables.
+   `Impl.lean`'s one conflict (the `OsFd` docstring) taken from `wal-int`; git paired `LinuxFs/Proof/syscall/
+   Flock.lean` with `Proof/os/File__CloseNil.lean` (ours kept; `Flock`'s proof is at `Proof/syscall/Flock.lean`
+   via the remerge script). `gen-init` up to date after it (the `fileutil` fact's `Pid' = 0`).
+
+### Repairs
+
+- `Proof/go_etcd_io/etcd/pkg/v3/ioutil/PageWriter__flush.lean`: `word`'s `bv_normalize` fallback realized
+  `Iris.HasLC.enumToBitVec` in this module; `k8s/etcd3/parseRV`'s `bv_decide` realizes it too, and the TCB report's
+  import of both failed ("environment already contains"). The four bounds now by `rw [h00]; decide`.
+- `etc/gen-link.py`: `--server`, `--apply`, `--v3rpc` open `_root_.Perennial.go_etcd_io.etcd.pkg.v3` (session 2
+  edited the generated Links, not the generator; `--check` now passes for all 55 modes).
+- `WAL.Sync.wp_proofNoErr` (from `wal-int`, written before fork 0006): takes `w.mu` around `sync` as
+  `WAL.Sync.wp_proof` does; its spec unchanged.
+- **Real bbolt over the lock semantics** (the coordinator's instruction; ledger entry 2026-11-15, "real bbolt's
+  `flock.spec` ..."): `flock.spec` (internal) takes `d.flk = none` and returns the locked descriptor with its
+  token on `nil`, `d` on an error; `DB.close.spec_owned` (internal) takes `lockToks fd d`, its `funlock` passes the
+  `flock` token on and `File.Close` gets both; after `Open`'s `flock` the descriptor is `dbFd i` (`⟨i, true, true,
+  none, some true⟩`, `Inv/Locks.lean`) and the token rides with the `path` field in the writer's core
+  (`dbPathLk db p fd`); `Open`'s failure paths give it back to `close`. No exported bbolt statement changed.
+
+### Build and checks (end of session 3)
+
+- Full niced `lake build`: **OK** (18398 jobs), after both re-merges and the repairs.
+- `etc/goose.py --check`, `etc/gen-init.py --check`, `etc/gen-specs-pkginit.py --check`: up to date.
+- `etc/gen-link.py` for every mode (55, the btree's, `--walfs`, `--durable`, `--wal-tester`): no difference.
+- TCB: see "TCB" below.
+- Interfaces: see below.
+
+### TCB
+
+`etc/tcb-report.py --check --update` (`ef33ef5a5e`; unchanged by the second re-merge and the bbolt repair: the
+check after them matches, 895 axioms, 4 sorries -- the 4 `sorry`s are `lean`'s axiomatized-type instances of
+bbolt's `Options` and `reflect.Type'`). Against `origin/lean`'s baseline: **removed** `axiom ...storage.wal.opaqueInitsOk`
+(the names-only WAL's); against this branch's base also `sorry WAL.ReadAll.wp_proof`. **Added** (all from the
+WAL's code on `wal-int`, now in the main trust base): the package-init trust boundaries of the bodied WAL and its
+imports (`bufio.opaqueInitsOk`, `hash.crc32.opaqueInitsOk`, `path.filepath.opaqueInitsOk`,
+`wal.walFsyncSec_init`/`walWriteBytes_init`/`walWriteSec_init`, `walpb.initFuncsOk`/`opaqueInitsOk`), which now
+reach every etcd example's closed theorem (the server's initialization runs the WAL's); the WAL's and tester's
+trust-boundary specs (`binary.ReadInt64LE`, `fmt.SprintfWalName`/`SscanfWalName`, `io.ReadFull`,
+`proto.MarshalAppendCachedRecord`, `pbRecordC_reg`, `pbSnapC_reg`, `recEncC_ok`, `snapEncC_ok`); and nine
+`etcd_wal.*._native.bv_decide.ax_*` (the tester's `bv_decide` calls, `tSaltOf_tEntData` and `u64Acc_step`:
+`Lean.ofReduceBool`, the native evaluator trusted -- worth a look: elsewhere this repository avoids it).
+Collections: the 16 etcd/k8s example collections gain the WAL's init axioms (updated); `wal-tester`'s baseline
+written (its roots under `WalTester/`); `wal-fsext`, `osfs` unchanged; all 60 pass.
+
+### Interfaces
+
+`etc/gen-interface.py` for every `etc/api/*.txt` (absdisk, backend, bbolt, etcdstart, mvcc, raft): only bbolt's
+changed (six proof files' interfaces: `DB.Close`, `fdatasync`, `Tx.write` ext over `dbFd`; `dbPathLk`'s
+auto-generated congr lemmas in place of `osFd`'s), layout baseline updated (`--layout --update`: no new
+violation kind, three `osFd.congr_simp` entries replaced by `dbPathLk.congr_simp`). `etc/api-check.py --check`:
+no errors.
+
+### `etc/gates.sh` (after the bbolt repair)
+
+Passes: build, links, tcb (895 axioms, 4 sorries), collections (59 match), goose, gen-init, reader-slot, entsize,
+joint-landing, issues, errorf-wrap, errdesc-check, bgcancel, bounds, mode, api, import-all, interfaces,
+premisefix, the k8s attack checks. Fixed here: **featuregate** (the allow list's `pkg/v3` pseudo-version was
+`lean`'s pin `2eaeb872bce9`; now the branch's `e115818f501d`, same lines) and **mode** (ratchet decrease 316 ->
+315 recorded, `--check --update`).
+
+**Still failing (decisions for the coordinator/user: each is a trust-base declaration about `wal-int`'s
+trusted WAL specs, which `wal-int` never ran `lean`'s gates on; not papered over here):**
+- **axiom-tok** (`--check`): `io.ReadFull.wp_proof` (`Proof/io/ReadFull.lean:28`) produces an `E` atom it does not
+  consume (rule 3: needs an `entry` in `etc/axiom-tok-allow.txt` with a reason, or a spec change); the walk of
+  `proto.MarshalAppendCachedRecord.wp_proof` truncates at `ownSlice` (needs a `trunc` line, or the checker
+  taught `ownSlice`). The selftest fails with it.
+- **model-param** (6): `pbRecordC_reg`, `pbSnapC_reg` (the WAL's protobuf model registrations) "not a constant at
+  bound variables"; `proto.MarshalAppendCachedRecord.wp_proof`'s model binders `C`/`M` lack a registry premise
+  (rule 1); `pbEntryC_reg` has no `Sat` theorem in `PbEntryTypeCore` (rule 7: the extract dropped it, or it must
+  move there).
+- **pbschema**: `pbRecordC_reg` reaches `WalEnc.recSchema`, not one of `pbSchemaOf`'s (the checker compares
+  the trusted schemas with Go's descriptors; walpb's are not in its table).
+
+### What is left before `etc/land.sh`
+
+1. The user's review of the trusted changes pending on this branch: the file-lock semantics (`Impl.lean`,
+   the `FcntlFlock`/`Flock` models, `wal-c-locks`), `wal-int`'s earlier pending ones (plan §3), the restated
+   closed theorems above, and the `bv_decide` native axioms of the tester.
+2. The three failing gates above (entries/registrations, or spec changes, by whoever owns the WAL's trusted
+   protobuf specs).
+3. A re-merge of `origin/wal-int` if it moves again (`etc/wal-lean-remerge.py 7fe119fb19`).
+4. `notes/STATUS.md` (the coordinator integrates), the session registry.
