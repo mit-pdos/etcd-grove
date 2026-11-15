@@ -27,6 +27,24 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, sixteenth 7f-5 agent, latest): E4 done, E5 WIP; lean merged at the e9e pin
+
+- **Pin:** lean merged (`cbae1bea7d`, lean 73cffb21d3, Perennial e9e6351d9). Use
+  `--packages=/shared/tmp/manifest-e9e.json` everywhere; `.lake/packages` is now a real directory linking only
+  iris, batteries, Qq. Full build after the merge: `/shared/tmp/k8s7f5a-p3/full-e9e.log`.
+- **E4 done** (`GetCurrentResourceVersion`: error arm `⌜err ≠ nil⌝ ∗ ((⌜clientErr err⌝ ∗ statusErrOk err) ∨
+  kFmtErr err)`; the spec imports `WatchDefs`). To strengthen to the no-wrap `*errorString` once the ErrorfPlain
+  fix (from /shared/etcd-grove-auth3) lands on lean: merge lean again on 81's word.
+- **E5 WIP** (`782d45245e`): `interpretListError.spec` over any `paging` (premise `paging = true → encOkL ck kp`,
+  post `listErrF`, new in `ListDefs` with `listErrF_listErr`); new `handleCompactedErrorForPaging` Spec/Proof
+  (proof ends in `sorry` after `NewResourceExpired`: the nested store `statusError.ErrStatus.ListMeta.Continue =
+  newToken` -- try `wp_auto`'s field-store instances, else `iStructNamed` three levels and recombine with
+  `typedPointsto_split`'s reverse, then `ipersist`); link list updated (`handleCompactedErrorForPaging:
+  EncodeContinue NewResourceExpired`); `Link.lean` of k8s-etcd3 NOT yet regenerated
+  (`etc/gen-link.py --k8s-etcd3`). Nothing of E5 checked yet.
+- Then step 5 (with `-- pending E1`/`-- pending E3`), apply E1 with it; STOP before step 6 (Perennial now has
+  `wp_WithCancel_ctx` for it).
+
 ## START HERE (2026-11-15, sixteenth 7f-5 agent, later): ghost steps done, E2 done; STOPPED on a soundness finding (fmt.ErrorfPlain)
 
 - 81's decisions after the axiom review (questions.md): E3 and T5-f's pointer form approved (add as trusted text
