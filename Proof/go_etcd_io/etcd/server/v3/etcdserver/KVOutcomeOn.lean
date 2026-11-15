@@ -249,14 +249,91 @@ theorem txnVerdictOwn_of (M : auth.AuthMode) (hs : List auth.AuthState) (rq : ap
     · exact Or.inr (Or.inl (ops_checked_sub _ L2 hz2.2 h2 y hy))
     · exact Or.inr (Or.inr (ops_checked_sub _ L3 hz1.2 h3 y hy))
 
+/-- (auth-lease S2) A lease attaching no key is refused only vacuously: its refusal gives any
+refusal. -/
+theorem refusedL_of_leaseRefusedL_none (M : auth.AuthMode) (hs : List auth.AuthState)
+    (ai : auth.AuthInfoM) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (perms : List apply.Perm3) (hn : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id)
+    (h : apply.leaseRefusedL M hs ai I id) : apply.refusedL M hs ai perms := by
+  cases M with
+  | on γa =>
+    intro stl hl
+    obtain ⟨-, k, hk, -⟩ := h stl hl
+    exact absurd hk (hn k)
+  | off => trivial
+  | any => trivial
+
+/-- The same for a transaction's checkable permissions. -/
+theorem refusedMay_of_leaseRefusedL_none (M : auth.AuthMode) (hs : List auth.AuthState)
+    (ai : auth.AuthInfoM) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (May : apply.Perm3 → Prop) (hn : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id)
+    (h : apply.leaseRefusedL M hs ai I id) : apply.refusedMay M hs ai May := by
+  cases M with
+  | on γa =>
+    intro stl hl
+    obtain ⟨-, k, hk, -⟩ := h stl hl
+    exact absurd hk (hn k)
+  | off => trivial
+  | any => trivial
+
+/-- The lease `0` attaches no key in any state (`leaseItemsOf_ne_zero`). -/
+theorem leaseItemsOf_zero_none (log : mvcc.Log) :
+    ∀ k : GoString, (mvcc.leaseItemsOf (mvcc.stateAfter log)).lookup ⟨k⟩ ≠ some (W64 0) :=
+  fun k => mvcc.leaseItemsOf_ne_zero _ _
+
+mutual
+/-- A plain wire operation's puts have the lease `0` (`txn.opPlain` of its model). -/
+theorem opPutsW_plain : ∀ (op : txn.TxnOpW), txn.opPlain op.toOp → ∀ o ∈ apply.opPutsW op,
+    o.leaseID = W64 0
+  | .get _, _, o, ho => by simp [apply.opPutsW] at ho
+  | .delete _, _, o, ho => by simp [apply.opPutsW] at ho
+  | .put o', h, o, ho => by
+    simp only [apply.opPutsW, List.mem_singleton] at ho
+    subst ho
+    simp only [txn.TxnOpW.toOp, txn.putTxnOp] at h
+    by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;>
+      simp [h1, h2, txn.opPlain] at h
+    · simpa using h
+    · exact h
+  | .txn _ ts es, h, o, ho => by
+    simp only [txn.TxnOpW.toOp, txn.opPlain] at h
+    simp only [apply.opPutsW, List.mem_append] at ho
+    rcases ho with ho | ho
+    · exact opsPutsW_plain ts h.1 o ho
+    · exact opsPutsW_plain es h.2 o ho
+
+theorem opsPutsW_plain : ∀ (ops : List txn.TxnOpW), txn.opsPlain (txn.TxnOpW.toOps ops) →
+    ∀ o ∈ apply.opsPutsW ops, o.leaseID = W64 0
+  | [], _, o, ho => by simp [apply.opsPutsW] at ho
+  | op :: ops, h, o, ho => by
+    simp only [txn.TxnOpW.toOps, txn.opsPlain] at h
+    simp only [apply.opsPutsW, List.mem_append] at ho
+    rcases ho with ho | ho
+    · exact opPutsW_plain op h.1 o ho
+    · exact opsPutsW_plain ops h.2 o ho
+end
+
+/-- **A plain transaction's puts have the lease `0`** (auth-lease S2). -/
+theorem txnPutsW_plain (t : txn.TxnModelW) (h : txn.txnPlain t.toModel) :
+    ∀ o ∈ apply.txnPutsW t, o.leaseID = W64 0 := by
+  intro o ho
+  simp only [apply.txnPutsW, List.mem_append] at ho
+  simp only [txn.txnPlain, txn.TxnModelW.toModel] at h
+  rcases ho with ho | ho
+  · exact opsPutsW_plain _ h.1 o ho
+  · exact opsPutsW_plain _ h.2 o ho
+
 /-- **The dispatched outcome decided at the latest state, on the request's own permissions**:
 `kvOutL` (the dispatch's KV triple at the latest state, at the request's principal) is E2s's
 `authOutL` at the model's `reqPerms`, for a request without `"\x00"` range ends (a transaction's
-through `txnVerdictOwn_of`, E3e). -/
+through `txnVerdictOwn_of`, E3e) and (auth-lease S2) of the mode-`on` log's plain shape
+(`plainCover`: no lease, so `kvOutL`'s lease parts are vacuous). -/
 theorem authOutL_of_kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ci : apply.Chain)
     (rq : apply.IRRModel) (log : mvcc.Log) (oc : apply.Outcome) (hz : noZeroEnds rq)
+    (hp : plainCover rq)
     (h : apply.kvOutL M hs (auth.authInfoM (apply.principalOf rq)) ci rq log oc) :
     apply.authOutL M hs (auth.authInfoM (apply.principalOf rq)) ci rq log (reqPerms rq) oc := by
+  have hz0 := leaseItemsOf_zero_none log
   unfold apply.kvOutL at h
   split at h
   · rename_i hk
@@ -268,7 +345,15 @@ theorem authOutL_of_kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ci : 
     simpa [reqPerms, hk, ho] using h
   · rename_i hk
     obtain ⟨o, ho, h⟩ := h
-    simpa [reqPerms, hk, ho] using h
+    have hl0 : o.leaseID = W64 0 := by
+      unfold plainCover at hp; rw [hk] at hp; exact hp.2.2 o ho
+    have hpr : reqPerms rq = apply.putPerms o := by simp [reqPerms, hk, ho]
+    rw [hpr]
+    rcases h with ⟨rfl, h | ⟨id, hid, h⟩⟩ | ⟨hc, h1, -⟩
+    · exact Or.inl ⟨rfl, h⟩
+    · rw [List.mem_singleton.1 hid, hl0] at h
+      exact Or.inl ⟨rfl, refusedL_of_leaseRefusedL_none _ _ _ _ _ _ hz0 h⟩
+    · exact Or.inr ⟨hc, h1⟩
   · rename_i hk
     obtain ⟨o, ho, e, he, h⟩ := h
     have hm : o.base.rangeEnd ≠ [W8 0] := by
@@ -278,10 +363,19 @@ theorem authOutL_of_kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ci : 
     simpa [reqPerms, hk, ho] using h
   · rename_i hk
     obtain ⟨t, htx, h⟩ := h
-    obtain ⟨hr, hp⟩ := txnVerdictOwn_of M hs rq hz hk t htx
-    rcases h with ⟨rfl, h⟩ | ⟨hc, L, hL, h⟩
+    obtain ⟨hr, hpa⟩ := txnVerdictOwn_of M hs rq hz hk t htx
+    have hpl : txn.txnPlain t.toModel := by
+      unfold plainCover at hp; rw [hk] at hp
+      exact hp.2.2 t.toModel (by rw [← apply.IRRModel.txnW_map, htx]; rfl)
+    have hl0 := txnPutsW_plain t hpl
+    unfold apply.txnOutLL at h
+    rcases h with ⟨rfl, h | ⟨o, ho, h⟩⟩ | ⟨hc, ⟨L, hL, h⟩, -⟩
     · exact Or.inl ⟨rfl, hr h⟩
-    · exact Or.inr ⟨hc, hp L hL h⟩
+    · rw [hl0 o ho] at h
+      exact Or.inl ⟨rfl, hr (refusedMay_of_leaseRefusedL_none _ _ _ _ _ _ hz0 h)⟩
+    · exact Or.inr ⟨hc, hpa L hL h⟩
+  · rename_i hk
+    unfold plainCover at hp; rw [hk] at hp; exact hp.elim
   · exact h.elim
 
 /-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2y): the
@@ -300,7 +394,7 @@ theorem outcomeOn_of_kvOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : E
     (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2 oc) :
     outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
   outcomeOn_of_authOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl oc
-    (authOutL_of_kvOutL _ hs _ rq s.2 oc hz h)
+    (authOutL_of_kvOutL _ hs _ rq s.2 oc hz hp h)
 
 end pure
 

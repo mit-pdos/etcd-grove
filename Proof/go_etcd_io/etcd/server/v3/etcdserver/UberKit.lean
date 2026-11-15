@@ -45,6 +45,7 @@ def uberKitM (on : Bool) : Prop :=
     apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG) ∧
     apply.authApplierV3.Put.specL (GF := GF) (hG := hG) ∧
     apply.authApplierV3.Txn.specL (GF := GF) (hG := hG) ∧
+    apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG) ∧
     apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) ∧
     apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG) ∧
     apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) ∧
@@ -58,13 +59,13 @@ def uberKitM (on : Bool) : Prop :=
 theorem srvUberOn_of_kit (hk : uberKitM (GF := GF) (hG := hG) true) (s : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ⊢
       srvUberOn (GF := GF) s := by
-  obtain ⟨hK, hAd, hRange, hDel, hPut, hTxn, hUA, hRA, hUGR, hRGP, hAE, hAu, hApplyL, hApply⟩ := hk
+  obtain ⟨hK, hAd, hRange, hDel, hPut, hTxn, hRev, hUA, hRA, hUGR, hRGP, hAE, hAu, hApplyL, hApply⟩ := hk
   iintro #Hpkg
   iunfold srvUberOn
   iintro !> %E %γa %ua %hM #Hb
   isplitl
   · iintro %γc #Hln
-    ihave ⟨%stl, #Hf, #HL⟩ := srv_uberKVL_on hRange hDel hPut hTxn s ua E γa hM γc $$ [$Hpkg $Hb $Hln]
+    ihave ⟨%stl, #Hf, #HL⟩ := srv_uberKVL_on hRange hDel hPut hTxn hRev s ua E γa hM γc $$ [$Hpkg $Hb $Hln]
     iexists stl
     iframe Hf
     iapply apply.uberKVC_of hK

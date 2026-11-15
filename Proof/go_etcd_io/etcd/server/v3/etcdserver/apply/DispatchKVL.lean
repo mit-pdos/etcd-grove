@@ -86,6 +86,12 @@ def authKVKind (k : ReqKind) : Bool := isKVKind k || k == .leaseRevoke
 theorem authKVKind_of_isKVKind (k : ReqKind) (h : isKVKind k = true) : authKVKind k = true := by
   unfold authKVKind; rw [h]
 
+/-- At a KV kind `rqOk` does not depend on the lease mode. -/
+theorem rqOk_kv (lm lm' : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
+    (hk : isKVKind (dispatchKind rq) = true) (h : rqOk lm log rq) : rqOk lm' log rq := by
+  unfold rqOk at h ⊢
+  cases hd : dispatchKind rq <;> rw [hd] at h hk <;> simp_all [isKVKind]
+
 theorem authKVKind_cases (k : ReqKind) (h : authKVKind k = true) :
     isKVKind k = true ∨ k = .leaseRevoke := by
   unfold authKVKind at h

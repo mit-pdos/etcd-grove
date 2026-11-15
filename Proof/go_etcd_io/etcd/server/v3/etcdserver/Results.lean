@@ -1536,9 +1536,14 @@ theorem apply_delete_range_latest :
     EtcdGrove.apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG) :=
   EtcdGrove.apply.authApplierV3.DeleteRange.wp_latest
 
+theorem apply_check_lease_puts_latest :
+    EtcdGrove.apply.checkLeasePuts.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.checkLeasePuts.wp_latest
+    (EtcdGrove.apply.checkLeasePutsKeys.wp_latest EtcdGrove.lease.Lease.Keys.wp_proof)
+
 theorem apply_check_put_latest :
     EtcdGrove.apply.checkPutAuth.specL (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.checkPutAuth.wp_latest EtcdGrove.apply.checkLeasePuts.wp_nil
+  EtcdGrove.apply.checkPutAuth.wp_latest apply_check_lease_puts_latest
 
 theorem apply_put_latest :
     EtcdGrove.apply.authApplierV3.Put.specL (GF := GF) (hG := hG) :=
@@ -1549,6 +1554,12 @@ theorem apply_txn_latest :
   EtcdGrove.apply.authApplierV3.Txn.wp_latest
     (EtcdGrove.apply.CheckTxnAuth.wp_latest
       (EtcdGrove.apply.checkTxnPermission.wp_latest apply_check_put_latest))
+
+/-- **The auth applier's `LeaseRevoke` on the apply thread** (auth-lease S2,
+`apply/AuthApplyLatestRevoke.lean`): the outcome decided at the latest state for the lease. -/
+theorem apply_lease_revoke_latest :
+    EtcdGrove.apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.LeaseRevoke.wp_latest apply_check_lease_puts_latest
 
 /-- **The admin operations keep the apply thread's tie** (the auth plan's E2s, `auth/LatestTie.lean`):
 each operation's spec with the admin side's halves of the flag and the cache exposed
@@ -1669,6 +1680,7 @@ end latestApply
 #print axioms Perennial.EtcdGrove.apply_delete_range_latest
 #print axioms Perennial.EtcdGrove.apply_put_latest
 #print axioms Perennial.EtcdGrove.apply_txn_latest
+#print axioms Perennial.EtcdGrove.apply_lease_revoke_latest
 #print axioms Perennial.EtcdGrove.auth_auth_enable_tie
 #print axioms Perennial.EtcdGrove.auth_auth_disable_tie
 #print axioms Perennial.EtcdGrove.auth_user_add_tie
@@ -1719,16 +1731,16 @@ theorem auth_user_add_tie_sure :
 
 /-- **The auth applier's KV triples at the latest state** (the auth plan's E2y,
 `apply/DispatchKVL.lean`): `applierKVL` of the auth applier, from its methods' latest-state
-specs, over its store at the latest state and the lessor finding no lease. -/
+specs, over its store at the latest state (auth-lease S2: until then also the lessor finding no lease). -/
 theorem apply_applier_kv_latest (E : EtcdGrove.apply.AEnv GF) (ci : EtcdGrove.apply.Chain)
     (inner : GoInterface) (p : Loc) (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       EtcdGrove.apply.authIs E p inner ∗ EtcdGrove.apply.authIsL E p L ∗
-      EtcdGrove.apply.lessorNil p ∗ EtcdGrove.apply.applierSpec E ci inner ⊢
+      EtcdGrove.apply.applierSpec E ci inner ⊢
       EtcdGrove.apply.applierKVL E (.auth E.authOn ci) ci
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty) #p) L :=
   EtcdGrove.apply.applierKVL_auth apply_range_latest apply_delete_range_latest apply_put_latest
-    apply_txn_latest E ci inner p L
+    apply_txn_latest apply_lease_revoke_latest E ci inner p L
 
 /-- **The server's uber-applier's KV triples at the latest state, from its construction** (the
 auth plan's E3k, `UberOn.lean`), every callee linked: over the server's store at the latest state
@@ -1738,7 +1750,8 @@ theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv G
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvStoreLatest s E L ∗ srvLessorNil s ⊢
       EtcdGrove.apply.uberKVL ua E (.quota .backend) L :=
-  srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest s ua E L
+  srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
+    apply_lease_revoke_latest s ua E L
 
 /-- **The same with auth on, the store's fact from the construction** (the auth plan's E3l,
 `UberOn.lean`): `srvStoreLatest` discharged by the built part's store fact (of the store's
@@ -1751,7 +1764,7 @@ theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEn
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) :=
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
-    s ua E γa hM γc
+    apply_lease_revoke_latest s ua E γa hM γc
 
 /-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
 plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
@@ -2129,7 +2142,8 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
     time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hD22)
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
-    apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_UserAdd_fuelX,
+    apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_lease_revoke_latest,
+    apply_UserAdd_fuelX,
     apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,
     apply_AuthEnable_fuelX, apply_Authenticate_specX,
     EtcdGrove.apply.authApplierV3.Apply.wp_latest

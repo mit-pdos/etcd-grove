@@ -1688,6 +1688,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · simp only [↓reduceIte]; iexact HSp
         by_cases hkv : apply.isKVKind (apply.dispatchKind rq) = true
         · -- a KV request: the latest-state triple (`kvSpecL`), the verdict at the row's history
+          ihave Hrv : apply.revokeOwn E rq $$ []
+          · rw [apply.revokeOwn_nonRevoke E rq (fun h => by rw [h] at hkv; simp [apply.isKVKind] at hkv)]
+            itrivial
           icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %Wb, %hs, %HPk, #Hwbc, #Hasf,
             #Hlend, #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
           ihave ⟨%stl', #Hasf', #HUK⟩ := srvUberOn_kv s E γa ua hM T $$ []
@@ -1726,12 +1729,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
-            _ (.quota .backend) (auth.latestResC stl (.on γa) T) hs
-            $$ [HKV Htt HRD HFSE HSpT HRS HL] as %ar %id
-              ⟨Htt, Hrt, HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HRS, %Hstep0, HRes, -, HL,
-                %HXo, #Hdel⟩
+            _ (.quota .backend) (auth.latestResC stl (.on γa) T) hs _
+            $$ [HKV Htt HRD HFSE HSpT HRS HLt Hrv HL] as %ar %id
+              ⟨Htt, Hrt, HRD, HFS, -, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HRS, -, %Hstep0,
+                HRes, -, HL, %HXo, #Hdel⟩
           · simp only [↓reduceIte]
-            iframe HUK Hwok' HRD He HKV Htt HcpW HFSE HSpT HRS HL
+            iframe HUK Hwok' HRD He HKV Htt HcpW HFSE HSpT HRS HLt Hrv HL
             isplitr
             · iunfold entryRegd at Hreg
               ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -1740,16 +1743,21 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             · iexact Hlgnn
             iframe HcF
             isplitr
-            · ipureintro; exact ⟨hdec, hid, hrq', HaOn ▸ hdk⟩
+            · ipureintro; exact ⟨hdec, hid, apply.rqOk_kv _ _ _ _ hkv hrq', HaOn ▸ hdk⟩
             ipureintro
-            refine ⟨by rw [Hch, hAuthOn]; rfl, hkv, ?_⟩
-            rw [hM]; exact kvShapedL_of_log _ hs rq hz hsa
+            refine ⟨by rw [Hch, hAuthOn]; rfl, apply.authKVKind_of_isKVKind _ hkv, ?_⟩
+            rw [hM]; exact kvShapedL_of_log _ hs x.log rq hz hsa hp
+          have hnr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
+            rw [h] at hkv; simp [apply.isKVKind] at hkv
+          irevert HLt HRS
+          rw [apply.revokeIdsA_nonRevoke _ _ _ _ hnr, apply.revokeRestA_nonRevoke _ _ _ _ _ hnr]
+          iintro HLt HRS
           have HXo' : ∀ o b, out = .dispatched o b → apply.kvOutL (.on γa) hs
               (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq x.log o := by
             intro o b h; have := HXo o b h rfl; rwa [hM] at this
           obtain ⟨hc', hmod⟩ := kvOn_after_kv γr.kv.c0 sa x x' m rq out Htyp hdata hdec hv hna hkv hp
             γa hs Hhl hz Hdet Hch Hstep0.1 HXo'
-          have Htie : authTie sa rq out := authTie_of_kvOutL γa hs sa Hhl rq x.log out hz HXo'
+          have Htie : authTie sa rq out := authTie_of_kvOutL γa hs sa Hhl rq x.log out hz hp HXo'
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           iunfold auth.latestResC at HL

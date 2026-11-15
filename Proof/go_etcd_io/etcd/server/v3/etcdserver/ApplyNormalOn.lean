@@ -74,9 +74,12 @@ theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.Au
 
 /-- **A KV request of the mode-`on` log has its checks of the cache's shape at any history**: its
 permissions are (`kvShapeAll`), and with no range end `"\x00"` every permission a transaction's
-check may see is one of them (`cmps_may_mem`, `ops_may_mem`). -/
-theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (rq : apply.IRRModel)
-    (hz : noZeroEnds rq) (ha : kvShapeAll rq) : apply.kvShapedL M hs rq := by
+check may see is one of them (`cmps_may_mem`, `ops_may_mem`); (auth-lease S2) its leases, the lease `0`
+of the log's plain shape (`plainCover`), attach no key. -/
+theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (log : mvcc.Log)
+    (rq : apply.IRRModel) (hz : noZeroEnds rq) (ha : kvShapeAll rq) (hpc : plainCover rq) :
+    apply.kvShapedL M hs log rq := by
+  have hz0l := leaseItemsOf_zero_none log
   have hall : ∀ L : List apply.Perm3, (∀ x ∈ L, x ∈ reqPerms rq) →
       apply.shapedL M hs L := by
     intro L hL
@@ -91,10 +94,14 @@ theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (rq : ap
     exact hx
   · rename_i hk
     intro o ho
-    apply hall
-    intro x hx
-    simp only [reqPerms, hk, ho]
-    exact hx
+    refine ⟨?_, ?_⟩
+    · apply hall
+      intro x hx
+      simp only [reqPerms, hk, ho]
+      exact hx
+    · have hl0 : o.leaseID = W64 0 := by
+        unfold plainCover at hpc; rw [hk] at hpc; exact hpc.2.2 o ho
+      rw [hl0]; exact apply.leaseShapedL_of_none _ _ _ _ hz0l
   · rename_i hk
     intro o ho
     apply hall
@@ -103,6 +110,13 @@ theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (rq : ap
     exact hx
   · rename_i hk
     intro t ht
+    refine ⟨?_, ?_⟩
+    rotate_left
+    · have hpl : txn.txnPlain t.toModel := by
+        unfold plainCover at hpc; rw [hk] at hpc
+        exact hpc.2.2 t.toModel (by rw [← apply.IRRModel.txnW_map, ht]; rfl)
+      intro o ho
+      rw [txnPutsW_plain t hpl o ho]; exact apply.leaseShapedL_of_none _ _ _ _ hz0l
     have hp : reqPerms rq = cmpPerms t.cmps ++ opsPerms t.thenOps ++ opsPerms t.elseOps := by
       simp only [reqPerms, hk, ht]
     have hz0 : endsOk (reqPerms rq) := hz
@@ -118,6 +132,8 @@ theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (rq : ap
     · exact Or.inl (Or.inl (cmps_may_mem _ x hz2.1 hx))
     · exact Or.inl (Or.inr (ops_may_mem _ x hz2.2 hx))
     · exact Or.inr (ops_may_mem _ x hz1.2 hx)
+  · rename_i hk
+    unfold plainCover at hpc; rw [hk] at hpc; exact hpc.elim
   · trivial
 
 /-- **An entry at or below the start's consistent index leaves the mode-`on` model's state**
@@ -239,12 +255,12 @@ post), on its own permissions (`noZeroEnds`): the auth layer's rejection exactly
 not grant it. -/
 theorem authTie_of_kvOutL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
     (hl : hs.getLast? = some st) (rq : apply.IRRModel) (log : mvcc.Log) (out : apply.ApplyOut)
-    (hz : noZeroEnds rq)
+    (hz : noZeroEnds rq) (hpc : plainCover rq)
     (h : ∀ o b, out = .dispatched o b →
       apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq log o) :
     authTie st rq out := by
   intro _ o skip hout
-  rcases authOutL_of_kvOutL _ hs _ rq log o hz (h o skip hout) with ⟨rfl, hr⟩ | ⟨hc, hpass⟩
+  rcases authOutL_of_kvOutL _ hs _ rq log o hz hpc (h o skip hout) with ⟨rfl, hr⟩ | ⟨hc, hpass⟩
   · exact ⟨fun _ => not_kvGranted_of_refusedL γa hs st hl rq _ (fun _ hx => hx) hr, fun _ => rfl⟩
   · have hg := kvGranted_of_passedL γa hs st hl rq hpass
     exact ⟨fun hr => absurd hr (chainStep_quota_not_auth rq log o hc), fun hn => absurd hg hn⟩

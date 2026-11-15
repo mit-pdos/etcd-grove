@@ -127,22 +127,20 @@ theorem srv_uberKVL
     (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
     (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
     (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (hRev : apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvStoreLatest s E L ∗ srvLessorNil s ⊢
       apply.uberKVL ua E (.quota .backend) L := by
-  iintro ⟨#Hpkg, #Hb, #Hst, #Hln⟩
+  iintro ⟨#Hpkg, #Hb, #Hst, -⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -⟩
   iunfold srvStoreLatest at Hst
   icases Hst with ⟨%au', #Hauf', #HL⟩
-  iunfold srvLessorNil at Hln
-  icases Hln with ⟨%le', #Hlef', #Hnil⟩
   icombine Hauf Hauf' gives %Ha
-  icombine Hlef Hlef' gives %Hl
-  subst Ha Hl
-  iapply apply.uberKVL_of_base hRange hDel hPut hTxn ua E au le L
-  iframe Hpkg Hub HL Hnil
+  subst Ha
+  iapply apply.uberKVL_of_base hRange hDel hPut hTxn hRev ua E au le L
+  iframe Hpkg Hub HL
 
 /-- **The server's uber-applier's KV triples at the latest state, with auth on** (the auth plan's
 E3l): `srv_uberKVL` with `srvStoreLatest` discharged by the built part's store fact
@@ -154,6 +152,7 @@ theorem srv_uberKVL_on
     (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
     (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
     (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (hRev : apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames)
     (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
@@ -172,7 +171,7 @@ theorem srv_uberKVL_on
   ihave #HLc := HL $$ %γc
   iexists stl
   iframe Hauf
-  iapply srv_uberKVL hRange hDel hPut hTxn s ua E (auth.latestResC stl (.on γa) γc)
+  iapply srv_uberKVL hRange hDel hPut hTxn hRev s ua E (auth.latestResC stl (.on γa) γc)
   iframe Hpkg Hln
   isplitr
   · iunfold srvUberBase
