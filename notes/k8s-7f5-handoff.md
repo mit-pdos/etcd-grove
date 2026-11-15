@@ -27,6 +27,28 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, sixteenth 7f-5 agent, later): ghost steps done, E2 done; STOPPED on a soundness finding (fmt.ErrorfPlain)
+
+- 81's decisions after the axiom review (questions.md): E3 and T5-f's pointer form approved (add as trusted text
+  when step 5 needs them, tcb diff exactly that); E1 approved with fixes 1-5, applied to §11.2 (`be44d3c8e9`);
+  not yet in Lean. Trusted-text edits land with the stage, each with its Go test, tcb diff at the land stop.
+- **Done:** `kResInv_step` (the shared core), `kResInv_send_acc`, `kResInv_filter`, `kProcExited_refute`,
+  `kvSameHist_refl` (`WatchRes.lean`, lean-checked); **E2** (`WatchResponse.Err.spec` post gains `statusErrOk err`
+  and `⌜AsTarget EtcdError → (closeErr ≠ nil → clientErr closeErr) → clientErr err⌝`; new callee
+  `rpctypes.EtcdError.Error` added to the four link lists and the four `Link.lean` regenerated; targeted build of
+  the callers green after two pattern fixes (`Cache__watchEvents`, `compactor__fromWatchResponse`):
+  `/shared/tmp/k8s7f5a-p3/build-e2b.log`, 8290 jobs). No `etc/api` list holds the spec (etcdstart's interface
+  names it only); run `gen-interface --check` of every list after the next full build.
+- **Soundness finding (STOP):** `fmt.ErrorfPlain.wp_proof`'s premise `¬ "%w" infix` admits `%+w`, `%-5w`, ...
+  which Go wraps: `notes/axiom-review/errorfplain.md`, Go counterexample `examples/axiomcx/errorfplain`. Latent
+  (its two rafthttp callers use no `w` verb). Proposed fix: E3's premise.
+- **Next, in order:** E4 (`GetCurrentResourceVersion`: error arm `⌜err ≠ nil⌝ ∗ ((⌜clientErr err⌝ ∗ statusErrOk
+  err) ∨ E3 form)`; needs E3 in Lean, which changes `fmt.Errorf.spec`'s post: 67 files use it, so prefer
+  adding E3 as its own conjunct that callers' patterns absorb, or as a separate derived spec), E5, step 5.
+- Pitfall: the abort branch of `sendEvent`/`sendError` returns the `Hsend` wand, which holds `kResAlive` (`T`)
+  inside `spsc_send_commit_inv`: step 6 (`run`'s `Wait`) needs `kResAlive` back from an aborted send; revisit
+  `spsc_send_commit_inv` then (keep `T` outside the wand, e.g. an Iris `∧`).
+
 ## START HERE (2026-11-15, sixteenth 7f-5 agent): Go evidence for E1, E3 and T5-f-ptr written; review package with 81
 
 81's decisions (questions.md, sixteenth agent): previous forms accepted; `alive` stays a parameter until step 6;

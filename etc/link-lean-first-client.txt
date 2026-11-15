@@ -155,7 +155,7 @@ Client__unaryClientInterceptor: reuseOrNewWithCallOptions withVersion filterCall
 # WithCancel takes a cancelCtx-chain parent only), the names-only `streamKeyFromCtx`.
 OpWatch: Op__applyOpts
 status_Error:
-WatchResponse__Err: rpctypes_Error status_Error
+WatchResponse__Err: rpctypes_Error status_Error rpctypes_EtcdError__Error
 ResponseHeader__GetRevision:
 WatchResponse__IsProgressNotify: ResponseHeader__GetRevision
 ensureWatchHeader:
