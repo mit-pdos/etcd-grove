@@ -5,10 +5,17 @@
 expiry arm), §3 (trusted text), §7; the S3b Draft §5 (D6's sketch). Probe: `Scratch/S3cProbe.lean` (untracked; copy
 `/shared/tmp/auth-lease-s3c/S3cProbe.lean`), §9. Reviews: `/shared/tmp/auth-lease-s3c/review-r*.md`.
 
+**Revision 4 (2026-11-15)**: review round 3 (`/shared/tmp/auth-lease-s3c/review-r3.md`, fresh `spec-reviewer`): F1 the
+registration lemma restated in `client/v3` from the persistent `grpcServerAt` (not the exclusive `grpcUpM true`), and
+etcdstart's `grpcUpOn` keeping the Lease service (an etcdstart API change, listed); F2 §7.4 writes out the handler
+specs, the quota spec, `leaseRevokeResT`'s body and the client lemma statements; F3 §6.2's wording (the auth-on row
+reaches `run` through the guard, not `runCfg`). Second tier: `srvRevokeOpen`'s meaning change and `isServerRunC`'s
+`acLessor` row listed. **Round 4 not yet run.**
+
 **Revision 3 (2026-11-15)**: review round 2 (`/shared/tmp/auth-lease-s3c/review-r2.md`, fresh `spec-reviewer`): F1 the
 seven exported `client/v3` results over `raftLessor` → C5′ (the off contracts kept, the mode's beside them, recorded as a
 `pair`) recommended; F2 `srvAuthAtM` dropped (`srvAuthAt` is already at `E.authMode`; its auth-on source from the
-mode's views); F3 `kv_lease_served_on` in etcdstart (where `grpcUpM` lives); F4 the quota wrappers: one metadata spec
+mode's views); F3 `etcd_lease_auth_served_on` in etcdstart (where `grpcUpM` lives); F4 the quota wrappers: one metadata spec
 each, the plain form a corollary (the `quotaKVServer.Put` precedent); F5 `acLessor` in `isServerBuilt_offC`'s statement
 and `applyAll.spec`'s post listed. Second tier: §6.2 names `lease.runCfg`; the `ResT` results without a new `match`;
 C6's grant-id rights (`kvInvOn_alloc_boot` already takes `hpo`).
@@ -17,7 +24,7 @@ C6's grant-id rights (`kvInvOn_alloc_boot` already takes `hpo`).
 F1 C2 → C2′ recommended (keeping `on`; C2 changed etcdstart's `Defs` API and v3rpc's `lessorGrantOkL_server`); F2 the
 quota wrapper needs the metadata form (§7.1, D6 re-estimated); F3 the `leaseGrantResM` law at `true`; F4 the deposit
 design is decision C7; F5 the `NewLessor` docstring without the server parenthesis, and the opaque `leasesNoExpiry`'s
-docstring listed as trusted text (§6); F6 C6 (§4a), unprobed; F7 `kv_lease_served_on`'s premises (`srvAuthAtM`, no
+docstring listed as trusted text (§6); F6 C6 (§4a), unprobed; F7 `etcd_lease_auth_served_on`'s premises (`srvAuthAtM`, no
 `srvLeaseRd`) and etcdstart's `memberBootOn` (`lg = false`) as C8; F8 the contracts redefined in place at the mode
 (C5 revised). Second tier applied (§1's direction, `hdrBoundM_tok`, `ctxTokenOf_md`, the module of `leaseGrantResT`,
 the extra proof sites and docstrings, the monotone mode marked unprobed).
@@ -288,10 +295,11 @@ S1) for its apply thread, the one place a grant is minted. -/
 
 New:
 ```
-refutes it. `NewServer` takes it through its boot slot `lease.bootCfg` (`run` through `lease.runCfg`):
-in the monotone lease mode, and (auth-lease S3c, 2026-11-15) with auth on in either granting mode, so that the expiry arm's
-revocation runs with auth off only (`revokeExpiredLeases`). (Until 2026-11-04 gated on the cluster
-granting leases, `KVNames.lg = true`, review S1.) -/
+refutes it. `NewServer` takes it through its boot slot `lease.bootCfg`: in the monotone lease mode
+(which `run` keeps, `lease.runCfg`), and (auth-lease S3c, 2026-11-15) with auth on in either granting
+mode, which the lessor's grant guard `srvGrantGuard` carries to every lease `expiredC` can deliver, so
+that `run`'s expiry arm revokes with auth off only (`revokeExpiredLeases`). (Until 2026-11-04 gated on
+the cluster granting leases, `KVNames.lg = true`, review S1.) -/
 ```
 
 The docstring's "True of `examples/etcd/leasegrant`" paragraph stays; S4 adds the authlease example's justification
@@ -357,7 +365,11 @@ def leaseGrantResT (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (to
       pubAfterM on E ρ (apply.withHeader (irrLeaseGrant id ttl) hm) L ∗
       Q id (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)))
 def leaseRevokeResT (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
-    (id : w64) (Q : KVState → IProp GF) : IProp GF   -- `leaseRevokeResM`'s body at the token, likewise
+    (id : w64) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(⌜on = true⌝ → ∃ (hm : apply.HeaderModel) (L : List EntryModel), hdrBoundT s E.authMode tok hm ∗
+      ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrLeaseRevoke id) hm) L⌝ ∗
+      pubAfterM on E ρ (apply.withHeader (irrLeaseRevoke id) hm) L ∗
+      Q (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)))
 ```
 
 Laws: `leaseGrantResT_false`, `leaseRevokeResT_false`; at `true` only (review r1 F3: at `false` `leaseGrantResM` gives no
@@ -418,19 +430,102 @@ as `etcdPutSpecOn`'s HS-4.) The auth-off registrations (`etcdLeaseGrantAt`, `etc
 set is a separate `Md` set, as the KV's (`etcd_kv_auth_served_on`); `etcdLeaseServedAt` at `E.authOn` (the S3b
 sketch) would register specs that only answer errors with auth on (decision C4).
 
-**7.3 The registration lemma, and etcdstart's auth-on boot (decision C8, review r1 F7).** `kv_lease_served_on`:
-from `grpcUpM true` (with `grpcLeaseUp`), `isServerReqM true s E ρ`, `isServerReadM true s E γr` (for
-`srvAuthAt_of_viewsM`), the run pools, at
-`E.authOn = true` and the revocable mode: `isGrpcRpcMd addr "/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn s E ρ
-(mvcc.api.mvccLeases E.γ)) ∗ isGrpcRpcMd addr "/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn s E ρ)` (no
-`srvLeaseRd`: grant and revoke do not read the lessor). Its place: etcdstart (`ServedLease.lean`, or a new
-`ServedLeaseOn.lean`), where `grpcUpM`/`grpcLeaseUp` are defined (`etcdstart/Defs.lean:481, 622`; `client/v3` cannot
-import etcdstart); an addition to etcdstart's interface, regenerated at the land stop.
-**etcdstart's auth-on boot bundle `memberBootOn` still requires `lg = false`** (`etcdstart/Defs.lean`), so no
-etcdstart-started member grants with auth on: a coupling of etcdstart's API (frozen, `etc/api`). C8: **recommended**,
-`kv_lease_served_on` in S3c (etcdstart); lifting `memberBootOn`'s `lg = false` goes to S4 with the driver's start
-(auth3's start at the revocable mode, Scope §7.4), listed in "Left". Alternative: lift it in S3c (an etcdstart API
-change, `gen-interface` diff).
+**7.3 The registration lemma (decision C8, review r2 F3, r3 F1).** In `client/v3`, beside
+`etcd_kv_auth_served_on` (`AuthnServedOn.lean:301`), from the **persistent** `grpcServerAt` that `grpc.start'` gives
+(the KV path's shape; a lease-only post from the exclusive `grpcUpM true` would leave the caller unable to register
+KV and Auth too):
+
+```lean
+theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAns GF) (lcid lmid : w64)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (il im iu : GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) (γa : auth.AuthNames)
+    (hγa : E.authMode = .on γa) (hlm : ρ.rd.kv.lm = .revocable) (hρ : ρ.rd = γr)
+    (hregs : ∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ □ (|==> idCred ρ.ids 1) ∗
+      v3rpc.quotaLeaseServerAt ql
+        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
+      v3rpc.leaseServerAt pl s A lcid lmid ∗
+      srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+    |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn s E ρ)
+```
+
+(`v3rpc.leaseRegs` includes `LeaseRevoke`, `InvGrpcStart.lean:285-288`; no `srvLeaseRd`: grant and revoke do not read
+the lessor.) **etcdstart API change:** `grpcUpOn` (`etcdstart/Defs.lean:595`) keeps the Lease service, `grpcLeaseUp s
+C.A regs`, which `grpcUpM_true` drops today (or a law `grpcUpM_true_lease` gives it beside `grpcUpOn`; the Prove step
+takes the law if it leaves `grpcUpOn`'s text, else the conjunct); `gen-interface` diff of etcdstart's `Defs`.
+**etcdstart's auth-on boot bundle `memberBootOn` still requires `lg = false`** (`Defs.lean:539`), so no
+etcdstart-started member grants with auth on: C8 recommends lifting it in S4 with the driver's start (Scope §7.4),
+listed in "Left"; alternative: in S3c (an etcdstart API change).
+
+**7.4 The handler specs and the client's metadata lemmas, in full (review r3 F2).**
+
+```lean
+-- Spec/…/v3rpc/LeaseServer__LeaseGrant.lean (old: lessorGrantOkG s E S G R, no Q, no permit, no result)
+abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64) (Q : w64 → KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorGrantOkGM on s E ρ S G R ∗ S ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m ∗
+      v3rpc.leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
+      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m.1 Q }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
+        structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
+        v3rpc.leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
+
+-- Spec/…/v3rpc/LeaseServer__LeaseRevoke.lean (old: raftLessor s E S; narrowed to the revoke contract)
+abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64) (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorRevokeOkM on s E ρ S ∗ S ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseRevokeReqIs r m ∗
+      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m Q }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseRevoke"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ v3rpc.leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m Q) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
+
+-- Spec/…/v3rpc/quotaLeaseServer__LeaseGrant.lean (old: Spec : GrpcSpec, grpcHandlerOwnOk, Spec m Φ):
+-- one metadata spec, as quotaKVServer.Put.spec; the handler writes r.ID, so the Own form
+abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (q s : Loc) (ls : GoInterfaceOk)
+    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      v3rpc.quotaLeaseServerAt q ls s ∗
+      grpcHandlerOwnOkMd #(methods ls.ty go!"LeaseGrant" ls.v) iprop(S ∗ srvLgReader s) Spec ∗
+      S ∗ v3rpc.quotaRd s ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+    (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
+-- today's plain form: a corollary through grpcHandlerOwnOk_md (GrpcSpec.md Spec, Ψe := fun _ => True)
+```
+
+The client's metadata lemmas (`client/v3/LeaseGrantServed.lean`, beside the plain ones, which keep their texts):
+`etcdLeaseGrantHandlerOkMd` — from `quotaLeaseServerAt`, `leaseServerAt`, `lessorGrantOkGM true s E ρ S (grantLiveG E)
+(fun m => m.2 = W64 0)` and the run's `S`, `grpcHandlerOwnOkMd` of the quota server's `LeaseGrant` at
+`etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)`; `etcdLeaseRevokeHandlerOkMd` — from `leaseServerAt`,
+`lessorRevokeOkM true s E ρ S`, `grpcHandlerOkMd` of `LeaseServer.LeaseRevoke` at `etcdLeaseRevokeSpecOn s E ρ` (each
+at `E.authMode = .on γa`; the context's token is the metadata's by `auth.ctxTokenOf_md`, `rfl`). They are what
+`etcd_lease_auth_served_on`'s proof uses.
 
 ## 8. Mode-gate impact (the cleanup stage comes next)
 
@@ -440,8 +535,8 @@ Expected (`etc/mode-check.py`, against `etc/mode-baseline.txt`):
 - `match-mode`, v3rpc: **0** (the `ResT` results as `⌜on = true⌝ → …`, no `match`).
 - `lit-mode`, v3rpc: **+5 to +7**, `bridge` (the `ResT` and the four `…M` contracts' `_false` laws, the two `true` laws);
   the contracts and the handler specs at `on`, their off users at `E.authOn` with `hoff`.
-- `lit-mode`, etcdstart: **+2 to +3** (`kv_lease_served_on`'s `grpcUpM true`, `isServerReqM true`, `isServerReadM
-  true`, as `etcd_kv_auth_served_on`'s).
+- `lit-mode`, client/v3: **+4 to +6** (`etcd_lease_auth_served_on`'s `isServerReqM true`/`isServerReadM true`, the two
+  `Md` handler lemmas' `lessor…M true`, as `etcd_kv_auth_served_on`'s); etcdstart: 0.
 - `twin`: **0**; one `pair` recorded (C5′'s contracts; not counted by the gate, listed for the cleanup stage).
 
 Net: about +4 to +7 over the gated packages, nearly all `bridge`/`flag` lines for the new mode-indexed results, against
@@ -478,6 +573,9 @@ added or changed in statement; `etc/tcb-baseline.txt` unchanged.
 | `EtcdServer.apply.spec`, `applyEntries.spec`, `applyEntryNormal.spec`, `.specOn` | `Spec/…`, `ModeSpecs` | `srvLessorNilM` dropped (§3) |
 | `acLessor` (C3 a) and `Start.spec`, `start.spec`, `applyAll.spec`, `AuthCompRows`, `run`'s loop row | `AuthComp` (frozen), `Spec/…` | deleted / conjunct removed |
 | `srvClusterBootOn_alloc` and its exported restatement (C6) | `NewServerAllocOn`, server `Results` | `lm`/`gp`/`gps`; post `γk.lm = lm ∧ …` for `γk.lg = false` (§4a) |
+| `grpcUpOn` (Lease service kept) | etcdstart `Defs` (API) | §7.3 |
+| `srvRevokeOpen` (meaning: `revokeExpiredLeases.spec` weakened, inside `bootCfg`/`runCfg`) | `LeaseRun` | meaning only, discharged by the linked proof as before (§5) |
+| `isServerRunC` (`run.spec`'s pre) | `EtcdServer__run.lean:194` | its `acLessor` row dropped (C3 a) |
 | `EtcdServer.revokeExpiredLeases.spec` | `Spec/…/EtcdServer__revokeExpiredLeases.lean` | `∧ E.authOn = false` (§5) |
 | `lessorGrantOkG`, `lessorGrantOk`, `lessorRevokeOk`, `raftLessor` | v3rpc `InvLease` | unchanged; `…M` contracts beside them (C5′, §7.1) |
 | `LeaseServer.LeaseGrant.spec`, `.LeaseRevoke.spec` (the `…M` contract; revoke narrowed); `quotaLeaseServer.LeaseGrant.spec` (one metadata spec, plain a corollary) | `Spec/…/v3rpc/` | §7.1 |
@@ -486,7 +584,7 @@ added or changed in statement; `etc/tcb-baseline.txt` unchanged.
 | `acLessor` in `isServerBuilt_offC`'s conclusion, `applyAll.spec`'s post | `ModeSpecs.lean:612-616`, `__applyAll.lean:126` | dropped (C3 a) |
 
 **New:** `srvGrantGuard_expired_off`, `lease.bootCfg_noExpiry`, `leaseGrantResT`/`leaseRevokeResT` (+ laws),
-`lessorGrantOkGM`/`lessorGrantOkM`/`lessorRevokeOkM`/`raftLessorM` (+ `_false`), `srvAuthAt_of_viewsM`, `etcdLeaseGrantSpecOn`, `etcdLeaseRevokeSpecOn`, `kv_lease_served_on`.
+`lessorGrantOkGM`/`lessorGrantOkM`/`lessorRevokeOkM`/`raftLessorM` (+ `_false`), `srvAuthAt_of_viewsM`, `etcdLeaseGrantSpecOn`, `etcdLeaseRevokeSpecOn`, `etcd_lease_auth_served_on`.
 **Deleted:** `srvLessorNil`, `srvLessorNilM` (+ laws), `lookupNil_of_guard`, `apply.lookupNil`,
 `srvGrantGuard_false`, `lease.bootCfg_auth`, `lease.srvInv{,At}_lessorNil`, `acLessor` (+ laws, C3 a).
 
@@ -517,7 +615,7 @@ the in-place contracts at auth off (proof bodies). Land stop: the diff of `Proof
   principle), the seven restated now.
 - **C6. The auth-on allocation at a lease mode** (§4a), in S3c. **Recommended**; alternative: S4.
 - **C7. The client's update as the contracts' `∀ Q` and permit**, no `KVDep.lease` deposit (§7.0). **Recommended.**
-- **C8. `kv_lease_served_on` in S3c (etcdstart); etcdstart's `memberBootOn` `lg = false` to S4** (§7.3). **Recommended.**
+- **C8. `etcd_lease_auth_served_on` in S3c (client/v3, from `grpcServerAt`; `grpcUpOn` keeps the Lease service); etcdstart's `memberBootOn` `lg = false` to S4** (§7.3). **Recommended.**
 - **The two trusted docstrings** (§6): the exact wordings. **Recommended.**
 
 ## 12. Order of work (after the Freeze), estimate 5–8 agent-days (couplings 2–3, C6 0.5, D6 3–4)
@@ -528,7 +626,7 @@ the in-place contracts at auth off (proof bodies). Land stop: the diff of `Proof
    docstrings; §6's two docstrings. §4a (C6).
 3. §7: `leaseGrantResT`/`leaseRevokeResT`, `srvAuthAt_of_viewsM`, the `…M` contracts, the server
    discharges, the handler specs, the quota wrapper's metadata instance, the client's metadata handler lemmas, v3rpc
-   `Results`; `etcdLease*SpecOn`; `kv_lease_served_on`.
+   `Results`; `etcdLease*SpecOn`; `etcd_lease_auth_served_on`.
 4. Land-stop checks: merge lean, full build (flock, 64G), `tcb-report --check` (870/4), `gen-interface --check` on every
    `etc/api` list, bounds and mode gates (raise for §8's `bridge`/`flag` lines, for the coordinator), closed statements
    unchanged, STATUS, handoff, status-history.
