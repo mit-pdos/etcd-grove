@@ -46,9 +46,11 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServe
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.StartMember.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.etcdstart.StartMember.wp_proof  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.StartMembers.wp_proof  # missing: a proof file proves its spec
-Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.StartMember.spec.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.NewMember.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.StartMembers.wp_proof  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.memberUp.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.StartPeriodicServer.wp_proof  # missing: a proof file proves its spec
