@@ -397,6 +397,9 @@ under `flock /shared/tmp/etcd-grove-build.lock`. `TMPDIR=/shared/tmp`.
   `srvRestM true`, `srvRestRM true`, `srvRestRpM true`, `kvModelM`/`kvStM` at literals; S3a2 should try to reduce the
   literal-`true` uses (state the auth-on arms' lemmas at `srvRestT` and the slot's `C.isOn`).
 
+- **The literal-mode count is growing** (decided by etcd-grove-81, 2026-11-15: S3b's raise accepted, etcdserver lit-mode
+  251→278, match-mode 78→82, the lease permits' and results' flags and bridges and three auth-on lemmas): reducing the
+  literal-mode uses (below) is due before the count grows further.
 - **S3a2 §5 not reached** (lit-mode 251, aim 200): the remaining literal uses are the auth-on arms of
   `applyEntryNormal.wp_proofOn`/`apply.wp_proofOn` (classified `unmoved`/`model`), `RestOn`'s lemmas true only of the
   auth-on table (`appliedTableM_true_*`, `srvRestM_keep`, `srvRestM_applyP0`/`_applyP`, which read the model's table) and
