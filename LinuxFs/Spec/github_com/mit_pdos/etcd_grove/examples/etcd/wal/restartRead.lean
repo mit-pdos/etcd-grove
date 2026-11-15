@@ -50,25 +50,25 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev restartRead.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (lg m : Loc) (v : oracle) (o : TOracle) (cd : TCand) (d : WalDur)
     (qp : Qp),
-  e.orFile.Ok → tWalPathsOk e.root → o.created = true → cd ∈ o.cands → tCandOk o cd d →
+  e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d →
   (tCandHist o cd).length < 2 ^ 63 → tReadsBackOk (d.H.map WalOpG.toM) →
   (tEncodeOracle o).length + 16 ≤ 0x40000000 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
       osCallPerm (GF := GF) 1 ∗ zapLoggerOk lg ∗
-      WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
-      osPathS (GF := GF) e.R (tArea e.root) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
+      WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
+      osPathS (GF := GF) e.R (e.area) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
       WalFs.walUnlockedTok (W := W) ∗
-      m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"o"] ↦ v ∗
+      m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"o"] ↦ v ∗
       oracleRep v o ∗ tOrOwn γ o none ∗ tWalOwn γ (some d) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o cd) ∗ WalFs.walNamed (W := W) (tWalDir e.root) }}
+      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o cd) ∗ WalFs.walNamed (W := W) (tWalDir e.area) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.wal.restartRead)) (Val #lg))
-      (Val #(tWalDir e.root))) (Val #m))
+      (Val #(tWalDir e.area))) (Val #m))
   {{ (st : w64) (vc : contents) (w : Loc), RET (PairV (PairV #st #vc) #w);
       DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
-      osPathS (GF := GF) e.R (tArea e.root) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
-      m.[member, go!"orPath"] ↦ tOrPath e.root ∗
+      osPathS (GF := GF) e.R (e.area) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
+      m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗
       ∃ (v' : oracle) (l : List w64) (d' : WalDur), m.[member, go!"o"] ↦ v' ∗
       oracleRep v' (tWithOpens o l) ∗ tOrOwn γ (tWithOpens o l) none ∗ tWalOwn γ (some d') ∗
       ⌜l.length ≤ 2 ∧ d'.H = d.H ∧ d'.cut = d.cut ∧ tCandOk (tWithOpens o l) cd d'⌝ ∗
@@ -76,9 +76,9 @@ abbrev restartRead.spec : Prop :=
         osCallPerm (GF := GF) (1 : Qp).half ∗ ∃ c : TContents, contentsRep vc c ∗
         ⌜∃ img ∈ tImgs (tCandHist o cd) (tCandMark o cd), d.H.map WalOpG.toM = img.map absOp ∧
           tRead img = some c⌝ ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
-        WalFs.walPurgeW (W := W) w (tWalDir e.root) ∗ WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.root) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.root)
+        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
+        WalFs.walPurgeW (W := W) w (tWalDir e.area) ∗ WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length ∗
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.area)
       else True }}
 
 end spec

@@ -46,11 +46,11 @@ def TCrashed (e : TEnv) (V : Hist) : IProp GF :=
   iprop(∃ (W : WalGS GF) (s : AbsDiskState) (o : TOracle) (od : Option WalDur) (v : Option GoString),
     ⌜V.2 = [] ∧ WalsBounded s ∧ DirsRoots e.R s ∧ TreeWf e.R V.now ∧ BootFo V.now e.jr ∧
       tOracleFile ⟨v, none⟩ o none⌝ ∗
-    walStart L W walCodec walRaftMr e.R e.jr (tArea e.root) s V.now ∗
+    walStart L W walCodec walRaftMr e.R e.jr (e.area) s V.now ∗
     ([∗list] i ∈ bootFiles V.now e.jr, trFile (hG := ⟨G, L⟩) i False) ∗
     WalFs.walUnlockedTok (W := W) ∗ WalFs.walCrashTok (W := W) ∗
-    WalFs.walDirIs (W := W) (tWalDir e.root) od ∗ tRelI (W := W) e.root o od ∗
-    WalFs.dirDurable (W := W) (tArea e.root) ∗
+    WalFs.walDirIs (W := W) (tWalDir e.area) od ∗ tRelI (W := W) e.area o od ∗
+    WalFs.dirDurable (W := W) (e.area) ∗
     DurFs.durFound (L := L) e.orFile V.now v ∗ DurFs.durFoundTmp (L := L) e.orFile V.now)
 
 end boot
@@ -63,7 +63,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 /-- **The tester's boot after a crash** (see the file header). World premises, as `tBoot0`'s (U7):
 the roots well formed, the area and the oracle directory two distinct roots, the receipts' bound. -/
 theorem tBootCrash (L : GooseLocalGS GF) (e : TEnv) (V : Hist) (hR : RootsOk e.R)
-    (hr : (tArea e.root, e.jr) ∈ e.R) (ho : (tOrDir e.root, e.jo) ∈ e.R) (hne : e.jo ≠ e.jr)
+    (hr : (e.area, e.jr) ∈ e.R) (ho : (e.orDir, e.jo) ∈ e.R) (hne : e.jo ≠ e.jr)
     (hrb : ReceiptBoundLe GF (2 ^ 62)) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ TCrashed (L := L) e V -∗ osInv (L := L) -∗ osSharedInv (L := L) e.R -∗
       osCallPerm (L := L) 1 -∗
@@ -75,7 +75,7 @@ theorem tBootCrash (L : GooseLocalGS GF) (e : TEnv) (V : Hist) (hR : RootsOk e.R
   icases Hc with ⟨%W, %s, %o, %od, %v, %hp, Hst, Hbf, Hu, Hct, Hw, #Hrel, #Hdd, Hdf, Hdt⟩
   obtain ⟨hV, hbd, hdr, hwf, hfo, hof⟩ := hp
   -- the WAL's area
-  imod walBootCrash walCodec walCodec_ok walRaftMr L W e.R e.jr (tArea e.root) s V hV hR hr hwf
+  imod walBootCrash walCodec walCodec_ok walRaftMr L W e.R e.jr (e.area) s V hV hR hr hwf
     hbd hdr hfo hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hst Hbf Hall with ⟨#Hok, Hres, -, Hrest⟩
   -- the oracle directory's claim, and durable's boot
   ihave Hjo := claims_take L V _ e.jo (mem_bootRest_root hwf hr ho hne) $$ Hrest

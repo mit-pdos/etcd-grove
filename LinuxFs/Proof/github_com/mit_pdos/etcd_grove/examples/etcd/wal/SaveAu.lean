@@ -49,11 +49,11 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 
 /-- The appended oracle's relation to a WAL state its candidate is. -/
-theorem tRelI_save1 (W : WalGS GF) (root : GoString) (o : TOracle) (c : TCand) (d : WalDur)
+theorem tRelI_save1 (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (d : WalDur)
     (h : THs) (es : List TEnt) (hcr : o.created = true) (hc0 : c ∈ o.cands)
     (hc : tCandOk (tSaveO1 o h es) c d) :
-    WalFs.walSyncedLb (W := W) (tWalDir root) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir root) ⊢
-      tRelI (W := W) (GF := GF) root (tSaveO1 o h es) (some d) := by
+    WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area) ⊢
+      tRelI (W := W) (GF := GF) area (tSaveO1 o h es) (some d) := by
   iintro ⟨#Hs, #Hn⟩
   unfold tRelI
   simp only [show (tSaveO1 o h es).created = true from hcr, ↓reduceIte]
@@ -70,11 +70,11 @@ theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
     (h : THs) (es : List TEnt) (hok : tMemOk o c d) (hes : ∀ x ∈ es, tEntWf x)
     (ht : uint.nat h.term' < 2 ^ 63) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ (tSaveO1 o h es) none ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c) ∗
-      WalFs.walNamed (W := W) (tWalDir e.root) ⊢
-      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.root) d' ∗ ⌜d'.sized = true⌝ }>
+      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
+      WalFs.walNamed (W := W) (tWalDir e.area) ⊢
+      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' ∗ ⌜d'.sized = true⌝ }>
           @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.root)
+        <{ WalFs.walDiskAt (W := W) (tWalDir e.area)
             { d' with H := d'.H ++ [(WalOpG.save (absHs h) (es.map absEnt)).toRaw] },
           COMM ⌜d' = d⌝ ∗ tWalOwn γ (some (tSaveD d h es)) ∗ tOrOwn γ (tSaveO1 o h es) none }> := by
   iintro ⟨#Hinv, Hwo, Hoo, #Hsl, #Hnm⟩
@@ -109,7 +109,7 @@ theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
     iunfold tWalOwn at Hwo
     imod ghostVar_update_halves (some (tSaveD d h es)) γ.γw _ _ $$ Hwo Hw1 with ⟨Hwo, Hw1⟩
     have hok' := tMemOk_save1 hok h es hes ht
-    ihave #Hrel := tRelI_save1 W e.root o c (tSaveD d h es) h es hok.1 hok.2.1
+    ihave #Hrel := tRelI_save1 W e.area o c (tSaveD d h es) h es hok.1 hok.2.1
       (by
         have h2 := tMemOk_candOk0 hok'
         obtain ⟨h21, h22, h23, -, h25, h26⟩ := h2

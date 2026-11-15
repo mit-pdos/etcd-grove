@@ -51,8 +51,8 @@ theorem tWalOwn_agree (γ : TGS) (od od' : Option WalDur) :
 /-- **`Close`'s update, committed on the tester's invariant with the WAL state unchanged.** -/
 theorem tInv_walAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ⊢
-      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.root) d' }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.root) d', COMM ⌜d' = d⌝ ∗ tWalOwn γ (some d) }> := by
+      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAt (W := W) (tWalDir e.area) d', COMM ⌜d' = d⌝ ∗ tWalOwn γ (some d) }> := by
   iintro ⟨#Hinv, Hwo⟩
   iauintro
   unfold atomic_acc
@@ -93,7 +93,7 @@ theorem member.close.wp_proof
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
     Hpw, #Hnm⟩
   wp_auto
-  wp_apply (wp_Close W e.R e.jr (tArea e.root) w (tWalDir e.root)
+  wp_apply (wp_Close W e.R e.jr (e.area) w (tWalDir e.area)
       (fun d' => iprop(⌜d' = d⌝ ∗ tWalOwn γ (some d)))) $$ [Hwf Hpw Hwo]
     as %err Hr
   · iframe; iframe #
@@ -110,7 +110,7 @@ theorem member.close.wp_proof
     | nil =>
     wp_auto
     ihave ⟨%hl, Hrep⟩ := oracleRep_synced v o $$ Hrep
-    ihave #Hrel := tRelI_synced W e.root o c d1 hok hl $$ [Hsl Hnm]
+    ihave #Hrel := tRelI_synced W e.area o c d1 hok hl $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl
       · iexact Hnm

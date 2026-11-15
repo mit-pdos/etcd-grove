@@ -10,6 +10,7 @@ public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.memb
 public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.checkRestart
 public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__resume
+public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.fits
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.RestartLive
 
 @[expose] public section
@@ -37,12 +38,22 @@ theorem member.restart.wp_proof
     (wp_read : restartRead.spec (GF := GF) (hG := hG))
     (wp_check : checkRestart.spec (GF := GF) (hG := hG))
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
-    (wp_resume : member.resume.spec (GF := GF) (hG := hG)) :
+    (wp_resume : member.resume.spec (GF := GF) (hG := hG))
+    (wp_fits : fits.spec (GF := GF) (hG := hG)) :
     member.restart.spec (GF := GF) (hG := hG) := by
-  intro W e γ m lg w0 v o cd d qp t vo cm b l tm r rv hf hpath hcr hcd hok hwf hrb hsm hsm2
+  intro W e γ m lg w0 v o cd d qp t vo cm b l tm r rv hf hpath hcr hcd hok hwf hrb
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hlg, Hwd, Hop, Hw,
     Hov, Ht, Hv, Hc, Hb, Hl, Htm, Hr, Hrv, Hrep, Ho, Hwo, #Hsl, #Hnm⟩
   try wp_auto
+  wp_apply (wp_fits v o (W64 16) (by word)) $$ [$Hrep] as %bf ⟨Hrep, %hbf⟩
+  cases bf
+  · wp_auto
+    iapply HΦ
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe
+  have hsm : (tEncodeOracle o).length + 16 ≤ 0x40000000 := by
+    have h := hbf.1 rfl; unfold tOrRoom at h; simp at h; omega
+  wp_auto
   wp_apply (wp_read W e γ lg m v o cd d qp hf hpath hcr hcd hok (by have := (hwf.2 cd hcd).2; omega)
       hrb hsm) $$ [Hh Hperm Hpath Hres Htok Hop Hov Hrep Ho Hwo]
     as %st %vc %w ⟨Hh, Hpath, Hres, Hop, %v1, %ls, %d1, Hov, Hrep, Ho, Hwo, %hd1, Hst⟩
@@ -64,7 +75,17 @@ theorem member.restart.wp_proof
         (by intro hn; have hc2 : c' ∈ tCheckNext (tWithOpens o ls) c := hc'; rw [hn] at hc2; cases hc2)) $$ [Hrep Hcr] as %v2 ⟨Hrep, Hrep2⟩
     · iframe; iframe #
     try wp_auto
-    ihave #Hrel : tRelI (W := W) e.root (tCheckRestart (tWithOpens o ls) c) (some d1) $$ [Hsl1 Hnm1]
+    wp_apply (wp_fits v2 (tCheckRestart (tWithOpens o ls) c) (W64 0) (by word)) $$ [$Hrep2]
+      as %bf2 ⟨Hrep2, %hbf2⟩
+    cases bf2
+    · wp_auto
+      iapply HΦ
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe
+    have hsm2 : tOrSmall (tCheckRestart (tWithOpens o ls) c) := by
+      have h := hbf2.1 rfl; unfold tOrRoom at h; unfold tOrSmall; simpa using h
+    wp_auto
+    ihave #Hrel : tRelI (W := W) e.area (tCheckRestart (tWithOpens o ls) c) (some d1) $$ [Hsl1 Hnm1]
     · iunfold tRelI
       simp only [tCheckRestart, ↓reduceIte]
       iexists d1, c'
@@ -75,7 +96,7 @@ theorem member.restart.wp_proof
         rw [hmark, hH]; iexact Hsl1
       · iexact Hnm1
     wp_apply (wp_store W e γ v2 (tWithOpens o ls) (tCheckRestart (tWithOpens o ls) c) (some d1)
-        (1 : Qp).half hf (hsm2 ls c)) $$ [Hh Hp1 Hrep2 Ho Hwo]
+        (1 : Qp).half hf hsm2) $$ [Hh Hp1 Hrep2 Ho Hwo]
       as ⟨Hh, Hp1, Hrep2, Ho, Hwo⟩
     · iframe; iframe #
     try wp_auto
@@ -83,7 +104,7 @@ theorem member.restart.wp_proof
     · iframe; iframe #
     try wp_auto
     have hwi : tHistWf img := tHistWf_of_mem_tImgs hok1.2.2.2.2.2 himgm
-    have hcw := tCheckWf_restart (tCheckWf_withOpens ls hwf) (hsm2 ls c)
+    have hcw := tCheckWf_restart (tCheckWf_withOpens ls hwf) hsm2
     iapply HΦ
     simp only [↓reduceIte]
     iframe

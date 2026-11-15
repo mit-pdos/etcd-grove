@@ -16,7 +16,7 @@ the WAL; its pure vocabulary (`ref.go`) transliterates the WAL spec's (`WalHist.
   them; `RefLemmas.lean` relates them to `WalHist`'s;
 * **the oracle's encoding** (`encodeOracle`, `oracle.go`'s `putU64`/`putOps`/...);
 * **the abstraction into the model** (`absOp`: the tester's operation as the history's);
-* **the tester's paths** (`tOrPath`, `tArea`, `tWalDir`).
+* **the tester's paths** (`tOrPath`, `tWalDir`).
 
 Not here (U5, over the `fsExt` WAL specs and `lib/durable`'s part predicates): the main tree's
 `tOracleFile` (over `durableExt`'s `DurableState`) and its crash invariant `TInvBody`/`TInv`/`TBoot`
@@ -336,14 +336,10 @@ def tPreOk (o : TOracle) (od : Option WalDur) : Prop :=
 
 /-! ## Paths -/
 
-/-- The oracle file (`Boot`: `root + "/oracle/state"`). -/
-def tOrPath (root : GoString) : GoString := root ++ go!"/oracle/state"
-/-- The data directory (`root + "/data"`). -/
-def tDataDir (root : GoString) : GoString := root ++ go!"/data"
-/-- The member directory, the WAL area (`data + "/member"`). -/
-def tArea (root : GoString) : GoString := tDataDir root ++ go!"/member"
-/-- The WAL directory (`memberDir + "/wal"`). -/
-def tWalDir (root : GoString) : GoString := tArea root ++ go!"/wal"
+/-- The oracle file (`Boot`: `orDir + "/state"`; `Boot` takes the oracle's directory `orDir`). -/
+def tOrPath (orDir : GoString) : GoString := orDir ++ go!"/state"
+/-- The WAL directory (`Boot`: `area + "/wal"`; `Boot` takes the WAL area `area`). -/
+def tWalDir (area : GoString) : GoString := area ++ go!"/wal"
 
 end pure
 

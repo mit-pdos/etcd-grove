@@ -82,7 +82,7 @@ macro "save_main" : tactic => `(tactic| (
       iframe Hes
       ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     · iexact Hop
-  ihave #Hrel := tRelI_save1 W e.root o c d h es hok.1 hok.2.1 (tCandOk_save1 hok h es hes ht)
+  ihave #Hrel := tRelI_save1 W e.area o c d h es hok.1 hok.2.1 (tCandOk_save1 hok h es hes ht)
     $$ [Hsl Hnm]
   · isplitl []
     · iexact Hsl
@@ -153,7 +153,7 @@ macro "save_main" : tactic => `(tactic| (
     ihave Hau := tInv_saveAu W e γ o c d h es hok hes ht $$ [Hwo Ho]
     · iframe; iframe #
     obtain ⟨hidx, henc⟩ := tEnts_saveOk es hes
-    wp_apply (wp_Save W e.R e.jr (tArea e.root) w (tWalDir e.root) hp (absHs h) rs ls
+    wp_apply (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) hp (absHs h) rs ls
         (es.map absEnt) true _) $$ [Hwf Hents Hau]
       as %err Hr
     · iframe; iframe #
@@ -208,7 +208,7 @@ macro "save_main" : tactic => `(tactic| (
         ihave ⟨%hl, Hrep1⟩ := oracleRep_synced _ _ $$ Hrep1
         ihave #Hsy := Hsync $$ [] 
         · ipureintro; exact (tMustSync_iff hhs h es).1 hMS
-        ihave #Hrel2 := tRelI_synced W e.root (tSaveO1 o h es) c (tSaveD d h es) hd' hl $$ [Hsy Hnm]
+        ihave #Hrel2 := tRelI_synced W e.area (tSaveO1 o h es) c (tSaveD d h es) hd' hl $$ [Hsy Hnm]
         · isplitl []
           · rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]; iexact Hsy
           · iexact Hnm

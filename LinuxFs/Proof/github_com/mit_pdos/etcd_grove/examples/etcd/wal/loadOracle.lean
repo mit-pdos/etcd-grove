@@ -45,7 +45,7 @@ theorem loadOracle.wp_proof
   isimp only [isPkgInitDeps] at Hdeps
   icases Hdeps with ⟨#Hdpkg, -⟩
   wp_auto
-  rw [show tOrPath e.root = e.orFile.name from (tOrPath_child e.root).symm]
+  rw [show tOrPath e.orDir = e.orFile.name from (tOrPath_child e.orDir).symm]
   wp_apply (wp_Read γ.γd e.orFile e.R qc hf) $$ Hdpkg Hos Hsi Hdi Hh Hperm [-Hpkg]
   iauintro
   unfold atomic_acc

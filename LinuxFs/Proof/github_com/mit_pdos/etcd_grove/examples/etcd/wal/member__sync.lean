@@ -32,10 +32,10 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 
 /-- The relation the synced oracle stores: its candidate accounts for the WAL. -/
-theorem tRelI_synced (W : WalGS GF) (root : GoString) (o : TOracle) (c : TCand) (d : WalDur)
+theorem tRelI_synced (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (d : WalDur)
     (h : tMemOk o c d) (hl : o.since.length < 2 ^ 64) :
-    WalFs.walSyncedLb (W := W) (tWalDir root) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir root) ⊢
-      tRelI (W := W) (GF := GF) root (tSynced o) (some d) := by
+    WalFs.walSyncedLb (W := W) (tWalDir area) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir area) ⊢
+      tRelI (W := W) (GF := GF) area (tSynced o) (some d) := by
   iintro ⟨#Hs, #Hn⟩
   unfold tRelI
   simp only [show (tSynced o).created = true from h.1, ↓reduceIte]
@@ -81,14 +81,14 @@ theorem member.sync.wp_proof
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
     #Hlen, #Hnm⟩
   wp_auto
-  wp_apply (wp_Sync W e.R e.jr (tArea e.root) w (tWalDir e.root) d.H.length) $$ [Hwf]
+  wp_apply (wp_Sync W e.R e.jr (e.area) w (tWalDir e.area) d.H.length) $$ [Hwf]
     as %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, Hwf, #Hsl⟩ | %Herr)
   · subst Herr
     wp_auto
     ihave ⟨%hl, Hrep⟩ := oracleRep_synced v o $$ Hrep
-    ihave #Hrel := tRelI_synced W e.root o c d hok hl $$ [Hsl Hnm]
+    ihave #Hrel := tRelI_synced W e.area o c d hok hl $$ [Hsl Hnm]
     · isplitl []
       · iexact Hsl
       · iexact Hnm

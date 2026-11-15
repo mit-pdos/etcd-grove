@@ -8,10 +8,11 @@ The main tree's `TInvBody`/`TInv`/`TBoot` (over `absDiskExt`'s `walDirIs`/`walAr
 `walNamed`, `walAreaOk`, `walAreaRes`, the lock and crash tokens) and `lib/durable` over `fsExt`
 (`DurFs`: `durSt`, `durInv`, `durHandle`).
 
-* **The environment** (`TEnv`): the tester's `root`, the file system's roots `R`, the area's directory
-  `jr` and the oracle directory's `jo`. The area `tArea root` (`root/data/member`) and the oracle's
-  directory `tOrDir root` (`root/oracle`) are both roots of `R` (U3's boot premise 3: a durable
-  directory is a root; `durable` creates no directory): the closed theorem's world premises (U7).
+* **The environment** (`TEnv`): `Boot`'s two directories, the WAL area `area` (the WAL is `area/wal`)
+  and the oracle's directory `orDir` (the oracle `orDir/state`), the file system's roots `R`, the
+  area's directory `jr` and the oracle directory's `jo`. Both directories are roots of `R` (U3's boot
+  premise 3: a durable directory is a root; `durable` and `Boot` create no directory, 2026-11-15): the
+  closed theorem's world premises (U7).
 * **The oracle file** (`tOracleFile`): over durable's client state `DurSt` (`cur`, and `alt` while a
   `Write`'s rename may be lost to a crash), the tester's oracle `o` held by `cur` and, while a `Write`
   is between its rename and its directory's sync, the oracle before it `oa = some o'` held by `alt`.
@@ -55,27 +56,26 @@ open Iris Iris.BI go_etcd_io.raft.v3 Fs WalFs
 section pure
 variable [GooseExts]
 
-/-- The oracle's directory (`Boot`: `root + "/oracle"`). -/
-def tOrDir (root : GoString) : GoString := root ++ go!"/oracle"
-
-/-- The oracle file's base name (`Boot`: `.../state`). -/
+/-- The oracle file's base name (`Boot`: `orDir + "/state"`). -/
 def tOrBase : GoString := go!"state"
 
 /-- The oracle file's path is its directory's child. -/
-theorem tOrPath_child (root : GoString) : child (tOrDir root) tOrBase = tOrPath root := by
-  simp [child, tOrDir, tOrBase, tOrPath]
+theorem tOrPath_child (orDir : GoString) : child orDir tOrBase = tOrPath orDir := by
+  simp [child, tOrBase, tOrPath]
   rfl
 
-/-- **The tester's environment**: its `root`, the file system's roots `R`, the WAL area's directory
-`jr` (`tArea root`, a root of `R`) and the oracle directory's `jo` (`tOrDir root`, a root of `R`). -/
+/-- **The tester's environment**: `Boot`'s WAL area `area` and oracle directory `orDir`, the file
+system's roots `R`, the area's directory `jr` and the oracle directory's `jo` (both directories roots
+of `R`). -/
 structure TEnv where
-  root : GoString
+  area : GoString
+  orDir : GoString
   R : Roots
   jr : Ino
   jo : Ino
 
 /-- The oracle file as `durable` manages it. -/
-def TEnv.orFile (e : TEnv) : DurFs.DFile := ⟨tOrDir e.root, e.jo, tOrBase⟩
+def TEnv.orFile (e : TEnv) : DurFs.DFile := ⟨e.orDir, e.jo, tOrBase⟩
 
 /-- **An oracle the file may hold**: its encoding at most 1 GiB (`durable.Write`'s premise). -/
 def tOrSmall (o : TOracle) : Prop := (tEncodeOracle o).length ≤ 0x40000000
@@ -166,33 +166,33 @@ instance walDirIs_timeless' (dir : GoString) (o : Option WalDur) :
 /-- **What the WAL side knows of the oracle `o`**, by its phase: after `Create` returned, some
 candidate accounts for the WAL (`tCandOk`), whose mark is synced and whose entry is durable; before,
 `tPreOk`. -/
-def tRelI (root : GoString) (o : TOracle) (od : Option WalDur) : IProp GF :=
+def tRelI (area : GoString) (o : TOracle) (od : Option WalDur) : IProp GF :=
   if o.created then
     iprop(∃ (d : WalDur) (c : TCand), ⌜od = some d ∧ c ∈ o.cands ∧ tCandOk o c d⌝ ∗
-      WalFs.walSyncedLb (W := W) (tWalDir root) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir root))
+      WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area))
   else iprop(⌜tPreOk o od⌝)
 
-instance tRelI_persistent (root : GoString) (o : TOracle) (od : Option WalDur) :
-    Persistent (tRelI (W := W) (GF := GF) root o od) := by
+instance tRelI_persistent (area : GoString) (o : TOracle) (od : Option WalDur) :
+    Persistent (tRelI (W := W) (GF := GF) area o od) := by
   unfold tRelI; split <;> infer_instance
 
-instance tRelI_timeless (root : GoString) (o : TOracle) (od : Option WalDur) :
-    Timeless (tRelI (W := W) (GF := GF) root o od) := by
+instance tRelI_timeless (area : GoString) (o : TOracle) (od : Option WalDur) :
+    Timeless (tRelI (W := W) (GF := GF) area o od) := by
   unfold tRelI; split <;> infer_instance
 
 /-- **The pending oracle's relation**: while a `Write` is pending, the oracle before it accounts for
 the WAL too. -/
-def tRelA (root : GoString) (oa : Option TOracle) (od : Option WalDur) : IProp GF :=
+def tRelA (area : GoString) (oa : Option TOracle) (od : Option WalDur) : IProp GF :=
   match oa with
   | none => iprop(emp)
-  | some o' => tRelI (W := W) root o' od
+  | some o' => tRelI (W := W) area o' od
 
-instance tRelA_persistent (root : GoString) (oa : Option TOracle) (od : Option WalDur) :
-    Persistent (tRelA (W := W) (GF := GF) root oa od) := by
+instance tRelA_persistent (area : GoString) (oa : Option TOracle) (od : Option WalDur) :
+    Persistent (tRelA (W := W) (GF := GF) area oa od) := by
   unfold tRelA; split <;> infer_instance
 
-instance tRelA_timeless (root : GoString) (oa : Option TOracle) (od : Option WalDur) :
-    Timeless (tRelA (W := W) (GF := GF) root oa od) := by
+instance tRelA_timeless (area : GoString) (oa : Option TOracle) (od : Option WalDur) :
+    Timeless (tRelA (W := W) (GF := GF) area oa od) := by
   unfold tRelA; split <;> infer_instance
 
 /-- **The program's half of the oracles**: the oracle `o` and the pending one `oa`. -/
@@ -216,8 +216,8 @@ both oracles to the WAL. -/
 def TInvBody (e : TEnv) (γ : TGS) : IProp GF :=
   iprop(∃ (s : DurFs.DurSt) (o : TOracle) (oa : Option TOracle) (od : Option WalDur),
     DurFs.durSt γ.γd s ∗ ⌜tOracleFile s o oa⌝ ∗ ghostVar γ.γo (1 : Qp).half (o, oa) ∗
-    WalFs.walDirIs (W := W) (tWalDir e.root) od ∗ ghostVar γ.γw (1 : Qp).half od ∗
-    tRelI (W := W) e.root o od ∗ tRelA (W := W) e.root oa od)
+    WalFs.walDirIs (W := W) (tWalDir e.area) od ∗ ghostVar γ.γw (1 : Qp).half od ∗
+    tRelI (W := W) e.area o od ∗ tRelA (W := W) e.area oa od)
 
 instance TInvBody_timeless (e : TEnv) (γ : TGS) : Timeless (TInvBody (W := W) (GF := GF) e γ) := by
   unfold TInvBody; infer_instance
@@ -256,8 +256,8 @@ crash obligation takes (`walInv_crash`'s, durable's). -/
 def TBoot (e : TEnv) : IProp GF :=
   iprop(∃ (W : WalGS GF) (γ : TGS) (o : TOracle) (od : Option WalDur),
     TInv (W := W) e γ ∗ tOrOwn γ o none ∗ tWalOwn γ od ∗
-    WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
-    WalFs.dirDurable (W := W) (tArea e.root) ∗ WalFs.walAreaRes (W := W) e.jr ∗ WalFs.walUnlockedTok (W := W) ∗
+    WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
+    WalFs.dirDurable (W := W) (e.area) ∗ WalFs.walAreaRes (W := W) e.jr ∗ WalFs.walUnlockedTok (W := W) ∗
     DurFs.durInv γ.γd e.orFile ∗ DurFs.durHandle γ.γd e.orFile e.R ∗ osCallPerm 1 ∗
     WalFs.walCrashTok (W := W) ∗ DurFs.durCrashTok γ.γd)
 

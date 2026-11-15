@@ -8,8 +8,8 @@ the whole call permission, a whole claim on all names of every directory of the 
 nothing logged), the first incarnation's `TBoot`: the WAL's area by `walBoot0` (U3) and the oracle
 file's by durable's first boot (`DurBoot0`, proved by U2's `DurFs.durBoot0`: `durBoot0_holds`), the tester's invariant allocated over the fresh oracle and no WAL.
 
-The world premises (each the closed theorem's, U7): the roots well formed; the area `tArea root` and the
-oracle directory `tOrDir root` two distinct roots; no entry of the area at a WAL function's name
+The world premises (each the closed theorem's, U7): the roots well formed; the area `e.area` and the
+oracle directory `e.orDir` two distinct roots; no entry of the area at a WAL function's name
 (`walBoot0`'s `hslots`: no WAL found); no oracle file and no temporary of it; the receipts' bound.
 -/
 module
@@ -73,9 +73,9 @@ theorem dirDurable_boot0 [W : WalGS GF] (r : GoString) :
 
 /-- **The tester's first boot** (see the file header). -/
 theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
-    (e : TEnv) (V : Hist) (hV : V.2 = []) (hR : RootsOk e.R) (hr : (tArea e.root, e.jr) ∈ e.R)
+    (e : TEnv) (V : Hist) (hV : V.2 = []) (hR : RootsOk e.R) (hr : (e.area, e.jr) ∈ e.R)
     (hjr : e.jr ∈ V.now) (hslots : ∀ b, AreaSlot b → V.now.entry e.jr b = none)
-    (ho : (tOrDir e.root, e.jo) ∈ e.R) (hjo : e.jo ∈ V.now) (hne : e.jo ≠ e.jr)
+    (ho : (e.orDir, e.jo) ∈ e.R) (hjo : e.jo ∈ V.now) (hne : e.jo ≠ e.jr)
     (hob : V.now.entry e.jo e.orFile.b = none) (hot : V.now.entry e.jo e.orFile.tb = none)
     (hf : e.orFile.Ok) (hrb : ReceiptBoundLe GF (2 ^ 62)) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) e.R -∗ osCallPerm (L := L) 1 -∗
@@ -84,10 +84,10 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
       TBoot (L := L) e := by
   iintro #Hos #Hsh Hcp Hall
   -- the WAL's area
-  imod walBoot0 hPre walCodec walCodec_ok walRaftMr L e.R e.jr (tArea e.root) V hV hR hr hjr hslots
+  imod walBoot0 hPre walCodec walCodec_ok walRaftMr L e.R e.jr (e.area) V hV hR hr hjr hslots
     hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hall
     with ⟨%W, #Hok, Hres, Hu, Hc, #Hp, Hown, -, Hrest⟩
-  ihave #Hdd := dirDurable_boot0 (W := W) (tArea e.root) $$ Hp
+  ihave #Hdd := dirDurable_boot0 (W := W) (e.area) $$ Hp
   -- the oracle directory's claim, and durable's boot
   have hmem : e.jo ∈ ((GMap.toList V.now).map (·.1)).erase e.jr := by
     have h1 : e.jo ∈ (GMap.toList V.now).map (·.1) := by
@@ -118,7 +118,7 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
       iexists ∅
       iframe Hown
       ipureintro
-      show walOptLe none ((∅ : GMap GoString WalDur) !! tWalDir e.root)
+      show walOptLe none ((∅ : GMap GoString WalDur) !! tWalDir e.area)
       rw [GMap.lookup_empty]; trivial
     isplitr
     · unfold tRelI
