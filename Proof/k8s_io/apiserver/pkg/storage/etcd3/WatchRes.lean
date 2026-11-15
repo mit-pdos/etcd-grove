@@ -487,6 +487,229 @@ theorem kResInv_err_acc (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNa
 
   · iexfalso
     iapply kResAlive_closed $$ [$HT $HC]
+
+/-- The processing goroutine, still running (`procEx`'s fraction at `false`), refutes `kProcExited`
+in a received element's no-gap fact. -/
+theorem kProcExited_refute (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (q : Qp)
+    (P : Prop) :
+    ⊢ dghostVar (GF := GF) γ.procEx (DFrac.own q) false -∗ (⌜P⌝ ∨ kCancelled γ cd ∨ kProcExited γ) -∗
+      dghostVar γ.procEx (DFrac.own q) false ∗ (⌜P⌝ ∨ kCancelled γ cd) := by
+  iintro Hd Hor
+  icases Hor with (%HP | #Hc | #He)
+  · isplitl [Hd]; · iexact Hd
+    ileft; ipureintro; exact HP
+  · isplitl [Hd]; · iexact Hd
+    iright; iexact Hc
+  · unfold kProcExited
+    ihave %Hab := dghostVar_agree _ _ _ _ _ $$ Hd He
+    exact absurd Hab (by decide)
+
+theorem kvSameHist_refl (σ : KVState) : kvSameHist σ σ := ⟨rfl, rfl, Or.inl (List.prefix_refl _)⟩
+
+/-- **The processing goroutine's step on a received raw event** (pure and ghost part, inside
+`kResChan`'s invariant): the goroutine's half of `procd` at `n`, the received element's facts (its
+raw events `raws' ++ [r]` with `raws'.length = n`, read at `σr`, `□ Q lbr σr`, the start point, the
+subsequence and, `kProcExited` refuted, the prefix-or-cancelled fact), and `oe`, the raw event's
+transform at `σr`. With `kResInv` (a closed channel is refuted by `kResAlive`), `procd` agrees: the
+raw events taken so far are `raws'`; the sent events' non-error part, with `oe` appended, is the
+transform of `raws' ++ [r]` at the later of `kResInv`'s state and `σr` (one history, by `Hhist`).
+Gives that state `σ'` with its `□ Q`, the new lower bound of the raw events, and the updated
+`kResInv` once the events `evs ++ oe.toList` are recorded: the caller chooses to send (`oe = some e`,
+`kResInv_send_acc`) or not (`kResInv_filter`). -/
+theorem kResInv_step (c : StoreCfg GF Obj) (γ : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd : GName) (n : Nat)
+    (r : KRaw) (raws' : List KRaw) (lbr lb0 st : Nat) (σr σ0 : KVState) (oe : Option (KWEv Obj))
+    (hlen : raws'.length = n)
+    (hsub : kRawStreamSub inS m σr st (raws' ++ [r]))
+    (hoe : kRawToEv c.S.dec sel emp c.S.zero σr r = oe) :
+    ⊢ □ (∀ (l l' : Nat) (s s' : KVState), Q l s -∗ Q l' s' -∗ ⌜kvSameHist s s'⌝) -∗
+      dghostVar procd (DFrac.own (1 : Qp).half) n -∗
+      ([∗list] j ↦ x ∈ raws' ++ [r], monoListIdxOwn γ.raws j x) -∗
+      □ Q lbr σr -∗ □ Q lb0 σ0 -∗
+      (⌜kRawStreamOk inS m σr st (raws' ++ [r])⌝ ∨ kCancelled γ cd) -∗
+      kResInv c γ cd sel emp inS m Q procd ==∗
+      ∃ (sent : List k8s_io.apimachinery.pkg.watch.Event) (evs : List (KWEv Obj)) (σ' : KVState)
+        (lb' : Nat),
+        spscProducer γ.res sent ∗ monoListAuthOwn γ.evs (1 : Qp) evs ∗ ⌜sent.length = evs.length⌝ ∗
+        dghostVar procd (DFrac.own (1 : Qp).half) (n + 1) ∗
+        dghostVar procd (DFrac.own (1 : Qp).half) (n + 1) ∗
+        monoListLbOwn γ.raws (raws' ++ [r]) ∗ □ Q lb' σ' ∗
+        ⌜kNonErr (evs ++ oe.toList) = (raws' ++ [r]).filterMap
+          (kRawToEv c.S.dec sel emp c.S.zero σ')⌝ ∗
+        ⌜kRawStreamSub inS m σ' st (raws' ++ [r])⌝ ∗
+        (⌜kRawStreamOk inS m σ' st (raws' ++ [r])⌝ ∨ kCancelled γ cd) := by
+  iintro #Hhist Hd #Hbig #HQr #HQ0 Hok HI
+  unfold kResInv
+  icases HI with ⟨%sent, %evs, %raws, %σ, Hp, Hauth, %Hlen, Hprocd, #Hlb, %Heq, #Hf⟩
+  ihave %Hn := dghostVar_agree _ _ _ _ _ $$ Hprocd Hd
+  ihave ⟨%Hr, #Hlb'⟩ := monoList_idx_lb_snoc γ.raws raws raws' r (by omega) $$ Hlb Hbig
+  subst Hr
+  imod dghostVar_update_halves (n + 1) procd _ _ $$ Hprocd Hd with ⟨Hd1, Hd2⟩
+  -- the state before: kResInv's when it holds raw events, else `σr` itself
+  ihave Hb : ∃ (σb : KVState) (lbb : Nat), □ Q lbb σb ∗
+      ⌜kvSameHist σb σr⌝ ∗
+      ⌜kNonErr evs = raws.filterMap (kRawToEv c.S.dec sel emp c.S.zero σb)⌝ ∗
+      ⌜raws = [] ∨ ∀ x ∈ raws, kRawRevOk σb x⌝ $$ []
+  · icases Hf with (%Hnil | ⟨%lb, %lb0', %st', %σ0', #HQ, #HQ0', %Hst', %Hsub', #Hok'⟩)
+    · iexists σr, lbr
+      isplitr; · iexact HQr
+      ipureintro
+      refine ⟨kvSameHist_refl σr, ?_, Or.inl Hnil⟩
+      rw [Heq, Hnil]; rfl
+    · iexists σ, lb
+      isplitr; · iexact HQ
+      ihave %Hh := Hhist $$ HQ HQr
+      ipureintro
+      exact ⟨Hh, Heq, Or.inr (kRawStreamSub_revOk Hsub')⟩
+  icases Hb with ⟨%σb, %lbb, #HQb, %Hhb, %Heqb, %Hrawsb⟩
+  obtain ⟨σ', hσ', Heq', Hsub', Hok'⟩ :=
+    kRes_step_pure c.S.dec sel emp c.S.zero inS m σb σr Hhb evs raws r st oe Heqb Hrawsb hsub hoe
+  imodintro
+  iexists sent, evs, σ'
+  ihave HQ'' : ∃ lb' : Nat, □ Q lb' σ' $$ []
+  · rcases hσ' with rfl | rfl
+    · iexists lbb; iexact HQb
+    · iexists lbr; iexact HQr
+  icases HQ'' with ⟨%lb', #HQ'⟩
+  iexists lb'
+  isplitl [Hp]; · iexact Hp
+  isplitl [Hauth]; · iexact Hauth
+  isplitr; · ipureintro; exact Hlen
+  isplitl [Hd1]; · iexact Hd1
+  isplitl [Hd2]; · iexact Hd2
+  isplitr; · iexact Hlb'
+  isplitr; · iexact HQ'
+  isplitr; · ipureintro; exact Heq'
+  isplitr; · ipureintro; exact Hsub'
+  icases Hok with (%Hok | #Hc)
+  · ileft; ipureintro; exact Hok' Hok
+  · iright; iexact Hc
+
+
+/-- **The processing goroutine's send** (`sendEvent`'s commit, `spsc_send_commit_inv`'s accessor with
+`T := kResAlive alive q`): the received element's facts (`kResInv_step`'s), its transform `e` at
+`σr`, and the event `v` holding it (`wevAt`): the element sent is `kResElem`'s at the next index, and
+after the send `kResInv` holds `raws' ++ [r]` and `evs ++ [e]`, the goroutine's half of `procd` at
+`n + 1`. -/
+theorem kResInv_send_acc (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (q : Qp) (n : Nat)
+    (r : KRaw) (raws' : List KRaw) (lbr lb0 st : Nat) (σr σ0 : KVState) (e : KWEv Obj)
+    (v : k8s_io.apimachinery.pkg.watch.Event)
+    (hlen : raws'.length = n) (hst : kStartOk m σ0 st)
+    (hsub : kRawStreamSub inS m σr st (raws' ++ [r]))
+    (he : kRawToEv c.S.dec sel emp c.S.zero σr r = some e) :
+    ⊢ □ (∀ (l l' : Nat) (s s' : KVState), Q l s -∗ Q l' s' -∗ ⌜kvSameHist s s'⌝) -∗
+      dghostVar procd (DFrac.own (1 : Qp).half) n -∗
+      ([∗list] j ↦ x ∈ raws' ++ [r], monoListIdxOwn γ.raws j x) -∗
+      □ Q lbr σr -∗ □ Q lb0 σ0 -∗
+      (⌜kRawStreamOk inS m σr st (raws' ++ [r])⌝ ∨ kCancelled γ cd) -∗
+      wevAt c.S W v e -∗
+      kResAlive alive q -∗ (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive) ==∗
+      ∃ sent : List k8s_io.apimachinery.pkg.watch.Event, spscProducer γ.res sent ∗
+        kResElem c W γ cd sel emp inS m Q (sent.length : Int) v ∗
+        (spscProducer γ.res (sent ++ [v]) ==∗
+          (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive) ∗ kResAlive alive q ∗
+            dghostVar procd (DFrac.own (1 : Qp).half) (n + 1)) := by
+  iintro #Hhist Hd #Hbig #HQr #HQ0 Hok Hw HT HX
+  icases HX with (HI | HC)
+  · imod kResInv_step c γ cd sel emp inS m Q procd n r raws' lbr lb0 st σr σ0 (some e) hlen
+      hsub he $$ Hhist Hd Hbig HQr HQ0 Hok HI
+      with ⟨%sent, %evs, %σ', %lb', Hp, Hauth, %Hlen, Hd1, Hd2, #Hlb', #HQ', %Heq', %Hsub', #Hok'⟩
+    simp only [Option.toList_some] at Heq'
+    have Hty : ∀ x ∈ evs ++ [e], x.t ≤ 4 := kEvs_types _ _ _ _ _ _ _ Heq'
+    imod monoListAuthOwn_update_app [e] $$ Hauth with ⟨Hauth, #Hevs⟩
+    imodintro
+    iexists sent
+    isplitl [Hp]; · iexact Hp
+    isplitl [Hw]
+    · unfold kResElem
+      iexists e, evs
+      isplitl [Hw]; · iexact Hw
+      isplitr; · ipureintro; simp [Hlen]
+      isplitr; · iapply monoList_lb_idx_all $$ Hevs
+      iright
+      iexists lb', lb0, st, σ', σ0
+      isplitr; · iexact HQ'
+      isplitr; · iexact HQ0
+      isplitr; · ipureintro; exact hst
+      isplitr
+      · ipureintro; exact kStreamSub_of_raw _ _ _ _ _ _ _ _ _ _ Hsub' Heq' Hty
+      icases Hok' with (%Hok' | #Hc)
+      · ileft; ipureintro; exact kStreamOk_of_raw _ _ _ _ _ _ _ _ _ _ Hok' Heq' Hty
+      · iright; iexact Hc
+    · iintro Hp
+      imodintro
+      isplitl [Hp Hauth Hd1]
+      · ileft
+        unfold kResInv
+        iexists sent ++ [v], evs ++ [e], raws' ++ [r], σ'
+        isplitl [Hp]; · iexact Hp
+        isplitl [Hauth]; · iexact Hauth
+        isplitr; · ipureintro; simp [Hlen]
+        isplitl [Hd1]; · simp only [List.length_append, List.length_singleton, hlen]; iexact Hd1
+        isplitr; · iexact Hlb'
+        isplitr; · ipureintro; exact Heq'
+        iright
+        iexists lb', lb0, st, σ0
+        isplitr; · iexact HQ'
+        isplitr; · iexact HQ0
+        isplitr; · ipureintro; exact hst
+        isplitr; · ipureintro; exact Hsub'
+        iexact Hok'
+      isplitl [HT]; · iexact HT
+      iexact Hd2
+  · iexfalso
+    iapply kResAlive_closed $$ [$HT $HC]
+
+/-- **The processing goroutine's filtered raw event** (no send: `transform` gave `nil`): a ghost step
+inside `kResChan`'s invariant, `kResInv` taking `raws' ++ [r]` with the events unchanged, the
+goroutine's half of `procd` at `n + 1`. -/
+theorem kResInv_filter (c : StoreCfg GF Obj) (γ : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (q : Qp) (n : Nat)
+    (r : KRaw) (raws' : List KRaw) (lbr lb0 st : Nat) (σr σ0 : KVState)
+    (hlen : raws'.length = n) (hst : kStartOk m σ0 st)
+    (hsub : kRawStreamSub inS m σr st (raws' ++ [r]))
+    (hnone : kRawToEv c.S.dec sel emp c.S.zero σr r = none) :
+    ⊢ □ (∀ (l l' : Nat) (s s' : KVState), Q l s -∗ Q l' s' -∗ ⌜kvSameHist s s'⌝) -∗
+      dghostVar procd (DFrac.own (1 : Qp).half) n -∗
+      ([∗list] j ↦ x ∈ raws' ++ [r], monoListIdxOwn γ.raws j x) -∗
+      □ Q lbr σr -∗ □ Q lb0 σ0 -∗
+      (⌜kRawStreamOk inS m σr st (raws' ++ [r])⌝ ∨ kCancelled γ cd) -∗
+      kResAlive alive q -∗ (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive) ==∗
+      (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive) ∗ kResAlive alive q ∗
+        dghostVar procd (DFrac.own (1 : Qp).half) (n + 1) := by
+  iintro #Hhist Hd #Hbig #HQr #HQ0 Hok HT HX
+  icases HX with (HI | HC)
+  · imod kResInv_step c γ cd sel emp inS m Q procd n r raws' lbr lb0 st σr σ0 none hlen
+      hsub hnone $$ Hhist Hd Hbig HQr HQ0 Hok HI
+      with ⟨%sent, %evs, %σ', %lb', Hp, Hauth, %Hlen, Hd1, Hd2, #Hlb', #HQ', %Heq', %Hsub', #Hok'⟩
+    simp only [Option.toList_none, List.append_nil] at Heq'
+    imodintro
+    isplitl [Hp Hauth Hd1]
+    · ileft
+      unfold kResInv
+      iexists sent, evs, raws' ++ [r], σ'
+      isplitl [Hp]; · iexact Hp
+      isplitl [Hauth]; · iexact Hauth
+      isplitr; · ipureintro; exact Hlen
+      isplitl [Hd1]; · simp only [List.length_append, List.length_singleton, hlen]; iexact Hd1
+      isplitr; · iexact Hlb'
+      isplitr; · ipureintro; exact Heq'
+      iright
+      iexists lb', lb0, st, σ0
+      isplitr; · iexact HQ'
+      isplitr; · iexact HQ0
+      isplitr; · ipureintro; exact hst
+      isplitr; · ipureintro; exact Hsub'
+      iexact Hok'
+    isplitl [HT]; · iexact HT
+    iexact Hd2
+  · iexfalso
+    iapply kResAlive_closed $$ [$HT $HC]
+
 end stepsI
 
 end k8s
