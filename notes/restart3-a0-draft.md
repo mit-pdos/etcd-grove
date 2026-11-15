@@ -385,3 +385,28 @@ restarts its single member, but a single voter sends no `MsgSnap` at all (the P2
 destination is a committed voter other than the sender), so it has no merge and no install. In the proof, the
 only install is `applyAll.specSnapM`, whose premise `uint.Z g < uint.Z sv.Index` (A8, derived from
 `rnRestartOk_winAbove`) is a forward install.
+
+## 8. Step 2: the A-g guard-firing run, and the fork commit (2026-11-15)
+
+D-A0-6 (etcd-grove-81): `ReportSnapshot(SnapshotFailure)` on every drop at the merge select.
+
+**The fork commit**: `6e8f0c004` on branch `restart3-ag` of a clone of `upamanyus/etcd`
+(`/shared/tmp/restart3-a0/etcd-fork`), on `goose-lean` `2eaeb872b`, not pushed: inside the window
+(`ep.appliedi < s.consistIndex.ConsistentIndex()`) the merge is replaced by `s.ReportSnapshot(m.GetTo(),
+raft.SnapshotFailure)`; a message dropped by the term or index guard is reported failed too. etcd's
+`server/etcdserver` unit tests pass on it (`go test ./etcdserver/`, 9.9 s).
+
+**Runs** (the harness of §7, etcd at `2eaeb872bc` with the same change plus log lines, `gofail enable`d;
+logs `/shared/tmp/restart3-a0/s2-*.log`):
+
+| Setting | Runs | Result |
+|---|---|---|
+| `ZZ_EXPECT_DEFER=1` (connect the follower once the leader applies its term's batches, inside its window) | 3 | PASS 3/3: the guard fired 19-25 times per run (deferred inside the window), the follower installed a snapshot at its own index (487 = 487, 467 = 467, 487 = 487), then served all 455 keys linearizably |
+| `ZZ_MEND_EARLY=1` (connect it before: the term guard drops the first `MsgSnap`s) | 3 | PASS 3/3: 1-7 term-guard drops and 11-24 deferrals per run, each reported; the follower recovered, installed at 467 = 467 and served all 455 keys |
+| `ZZ_MEND_EARLY=1`, `ZZ_NO_REPORT=1` (the drops not reported, as before the commit) | 2 | FAIL 2/2: after one unreported drop the follower got no snapshot for 60 s (the leader's window ended after about 20 s): the stuck follower of §7, confirmed |
+
+So: the guard fires and the run stays correct; every merged image installed is at its own index; reporting the
+drops is what lets the follower recover.
+
+Next: the user pushes `6e8f0c004` to `goose-lean` (fast-forward from `2eaeb872b`); then A1's g0 (pin bump in
+`etc/goose.py` and `examples/go.mod`, translation, `etc/goose.py --check`).
