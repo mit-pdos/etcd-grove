@@ -54,6 +54,17 @@ def imageLeasesAt [GooseExts] (γr : ReadNames) (P : BParams) (D : Data) (A' : L
     ((apply.restLeasesWith f (appliedTable γr A').ids
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup go!"lease").getD ∅
 
+/-- `imageLeasesAt` at a given lease table `T` (auth-lease S3a, Draft rev 5 §4: the mode's table,
+`imageLeasesAtM` in `ApplyRDefs`). -/
+def imageLeasesAtT [GooseExts] (γr : ReadNames) (T : LeaseTable) (P : BParams) (D : Data)
+    (A' : List EntryModel) : Prop :=
+  ∃ f : w64 → w64, leaseTTLsGeReq T f ∧ ((rbData P D).lookup go!"lease").getD ∅ =
+    ((apply.restLeasesWith f T.ids
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup go!"lease").getD ∅
+
+theorem imageLeasesAt_eq_T [GooseExts] (γr : ReadNames) (P : BParams) (D : Data) (A' : List EntryModel) :
+    imageLeasesAt γr P D A' = imageLeasesAtT γr (appliedTable γr A') P D A' := rfl
+
 /-- **The leased rest image gives the image's lease bucket** (on a real backend, which tracks
 every rest bucket): `bkRestAtL` at the receiver's raft log (what `imageAt` states, with
 `L = γr.raft.pre ++ A'`). -/

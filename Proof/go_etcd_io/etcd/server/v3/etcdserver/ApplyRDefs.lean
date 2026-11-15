@@ -63,6 +63,37 @@ def srvRestRp (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r 
     IProp GF :=
   if E.lg then iprop(srvRestAt E (appliedTable γr A₀) r ∗ srvEver E A₀) else E.RO r
 
+/-- **`srvRest` in the auth mode `on`** (auth-lease S3a, Draft rev 5 §4; the split decided by
+etcd-grove-81 as a form): the off `srvRest`, and with auth on `srvRestT` at the mode-`on` model's
+table (`appliedTableM true`). -/
+def srvRestM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
+  match on with
+  | false => srvRest E γr A
+  | true => srvRestT E γr (appliedTableM true γr A) A
+
+theorem srvRestM_false (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    srvRestM (GF := GF) false E γr A = srvRest E γr A := rfl
+
+/-- In a cluster that grants none, the mode does not matter. -/
+theorem srvRestM_lg_false (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel)
+    (h : E.lg = false) : srvRestM (GF := GF) on E γr A = srvRest E γr A := by
+  cases on
+  · rfl
+  · unfold srvRestM; rw [srvRest_eq_T]; exact srvRestT_lg_false E γr _ _ A h
+
+/-- `srvRestRp` in the auth mode `on` (Draft rev 5 §4, review r3 F2). -/
+def srvRestRpM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM) :
+    IProp GF :=
+  if E.lg then iprop(srvRestAt E (appliedTableM on γr A₀) r ∗ srvEver E A₀) else E.RO r
+
+theorem srvRestRpM_false (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM) :
+    srvRestRpM (GF := GF) false E γr A₀ r = srvRestRp E γr A₀ r := by
+  unfold srvRestRpM srvRestRp; rw [appliedTableM_false]
+
+theorem srvRestRpM_lg_false (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel)
+    (r : apply.RestM) (h : E.lg = false) : srvRestRpM (GF := GF) on E γr A₀ r = srvRestRp E γr A₀ r := by
+  unfold srvRestRpM srvRestRp; rw [h]; rfl
+
 /-- **The image after Go's log `G` inside the window** (R2d' A4): the rest model of the
 backend's log `A₀` (`cluster.Recover`'s members, `bootstrap.go:255-273` at the pin `673da07c8`),
 the entries Go replayed since its start index (`G.drop rp.b`) replayed v2-only on it. -/
