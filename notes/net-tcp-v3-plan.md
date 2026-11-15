@@ -115,3 +115,6 @@ owned by a listener (impossible with node-local crashes, D7); dsverify-lab's Hoa
 3. The seven examples re-proved over v3, `PlanWellFormed` in each theorem.
 4. An axiom review of v3 (`axiom` skill).
 5. The conformance checker (E10), over v3.
+
+All five done (2026-11-15), with the v3 review's refutation fixed in between (E11, v3.1) and the
+examples re-proved again over v3.1; `notes/net-tcp.md` describes the result.

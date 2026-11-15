@@ -22,18 +22,14 @@ grpc-go), each verified end to end with a distributed adequacy theorem.
 | each node's command, its program | `examples/net/<ex>/cmd/<node>/main.go`; its proof `.../<ex>/cmd/<node>/Main.lean` (`wp_main`), its `Init` and `PkgTable` generated (`NT_NODES`, `NT_PROGRAMS`), its `Base` (package fact `True`) |
 | the process tests | `examples/net/<ex>/process_test.go`, over `examples/net/internal/proctest` |
 | the proved stream protocol, `wire.ReadFull`, the per-address protocol | `.../examples/net/wire/{Stream,ReadFull,Addr}.lean` |
-| the soundness review | `notes/axiom-review/tcp-semantics.md` |
+| the deployment premise (`PlanWellFormed`, decidable) | `GooseLang/Ext/Tcp/Deploy.lean` |
+| one Lean `example` per measured row (allowed or excluded) | `GooseLang/Ext/Tcp/Tests.lean` |
+| network-namespace tests (partitions, a middlebox's reset; `NETTCP_NETNS=1`, `sudo -n`) | `examples/net/semantics/netns_test.go` |
+| the conformance checker: tracer, search, Lean replay | `examples/net/conform/` (`README.md`), `.../conform/check/` (`README.md`), `GooseLang/Ext/Tcp/{Decide,Replay}.lean` (`lake exe nettcp-replay`) |
+| the soundness reviews (v2, v3) | `notes/axiom-review/tcp-semantics.md` |
+| what we took from dsverify-lab's model, and why | `notes/net-tcp-v3-plan.md`, `notes/net-tcp-dsverify-survey.md` |
 
-## v3 (2026-11-14, phase 1)
-
-Errors are Go's values (D14: kinds `closed|timeout|sys`), with the Write/Close race (D15),
-abandoned dials (D16), `Close` of an open end or listener succeeding (D17), addresses (D18),
-`DialTimeout` (D19), the plan's well-formedness (D20, `Deploy.lean`) and wildcard `Listen` (D21):
-`notes/net-tcp-v3-plan.md` (the decisions, and how phase 1 departs from them). Each `doc.go` row has
-an `example` in `GooseLang/Ext/Tcp/Tests.lean`. The sections below describe v2.1, which v3 extends;
-the examples' proofs are over v2.1 until phase 3.
-
-## The semantics (v2.1, 2026-11-14)
+## The semantics (v3.1, 2026-11-15)
 
 **Only observable state** (the user, 2026-11-14: "make sure the semantics is not designed for proof
 convenience. It should be easy to audit, and as a general principle, operational semantics and
@@ -42,6 +38,9 @@ specs should avoid unobservable state (e.g., the past operations are unobservabl
 connections; a connection is its address, whether accepted, two ends (`TcpEnd`: `closed`, a read
 deadline, a write deadline) and two directions (`TcpDir`: the unread bytes, oldest first, and a
 status `open | fin | cut`). A node's local state is its host and its listeners. No history.
+Decisions D1–D21 are in `Impl.lean`'s header, each with its Go test (`examples/net/semantics/doc.go`,
+every row classed measured, documented with a citation, or assumed, and naming its Lean definition
+and its `Tests.lean` example).
 
 **Each operation's outcome is a pure relation** on one end's state and one direction
 (`ReadOutcome`/`ReadAvail`, `WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`);
@@ -54,8 +53,31 @@ That covers resets, kernel timeouts, and the death of a peer's process (its kern
 `TestKilledWriterFin`, `TestKilledResetTakenByWrite`) or machine. So **EOF guarantees nothing**
 beyond "no more bytes will come"; what a reader read is a prefix of what the writer wrote (order, no
 invention), never a promise of completeness. Timeouts only with a deadline set, and they lose no
-byte. A failing write appends a shorter prefix, or nothing (an empty write can fail:
-`TestEmptyWrite`).
+byte. A failed `Dial` may leave a connection the listener accepts, reading EOF (D16:
+`TestDialTimeoutAccepted`).
+
+**Errors are Go's values** (D14). Every failure has a kind, `closed` (the caller's own end or
+listener is closed: `net.ErrClosed`), `timeout` (a deadline: `os.ErrDeadlineExceeded`; a
+`DialTimeout` also `net`'s `errTimeout`, both shapes measured) or `sys` (an `*os.SyscallError` around
+a nonzero `syscall.Errno`, with Go's syscall name), wrapped in an `*OpError` with Go's `Op`, `Net`,
+`Source`, `Addr`; `OpError` and `Unwrap` are translated, `Timeout()`/`Temporary()` are true for
+deadlines, false for `ErrClosed`, arbitrary for `sys` (a kernel `ETIMEDOUT` reports both true:
+`TestTimeoutOnBreak`). Unlike dsverify-lab's model, which returns an error type of its own (refutable
+by a type assertion), these are Go's own values (Perennial translates `internal/poll`, `os`).
+
+**A `Write` is Go's loop** (D2, D15; v3.1): `poll.FD.Write` is a loop of `write(2)` calls with
+waits, so the Go-level `Write` is a loop of extension steps (`net.model.writeLoop`), each one call on
+the bytes not yet written, checking the end's state at that step: some bytes appended (all, some, or
+none: a wait), or a failure appending nothing (`sys` breaking the direction; `timeout` with a write
+deadline set at that step; `closed` once the end is closed). A `Close` or a deadline set between two
+steps gives Go's `(n, ErrClosed)` and `(n, ErrDeadlineExceeded)` with `0 < n < len`
+(`TestWriteCloseRace`, `TestWriteDeadlineSetDuring`). `Close` of an open end or listener succeeds
+(D17).
+
+**Addresses** (D18): `LocalAddr`, `RemoteAddr`, `TCPListener.Addr` are non-nil `*TCPAddr`s fixed at
+creation, otherwise arbitrary (in the Go heap, no extension state). `DialTimeout` (D19). Wildcard
+`Listen` (`":p"`, `"0.0.0.0:p"`, `"[::]:p"`, D21) listens at the plan address with port `p` at this
+node's host, stuck unless the port is unique in the plan.
 
 **Crashes** are node-local (an extension's crash relation sees only the node's local state): the
 node's listeners are gone, connections stay; what the peers see of the dead node's connections is
@@ -67,8 +89,9 @@ more behaviors than Linux (which refuses or resets), each sound.
 names nothing, so a program using one is stuck (Go returns `EINVAL`).
 
 **The deployment** (D13) every theorem assumes: a closed world (nothing outside the system uses the
-plan's addresses), addresses that do not alias (canonical `IP:port`, no hostnames or wildcards),
-ports outside the ephemeral range, and the target configuration (Linux 7.0 defaults, Go 1.27.3).
+plan's addresses; prose only), plan addresses that are canonical IPv4 `a.b.c.d:p` with a port
+outside the ephemeral range (D20: `PlanWellFormed`, decidable, a premise of every top-level theorem,
+checked by `decide`), and the target configuration (Linux 7.0 defaults, Go 1.27.3).
 
 ### History of the design
 
@@ -86,7 +109,10 @@ ports outside the ephemeral range, and the target configuration (Linux 7.0 defau
 - **v2.1 (2026-11-14)**: the soundness review (`notes/axiom-review/tcp-semantics.md`) refuted v2
   with a proved counterexample (an empty `Write` could only succeed), and found id 0 naming a
   connection end and the deployment unstated; all fixed.
-- **v3 (2026-11-14)**: Go's error values and D14-D21 (`notes/net-tcp-v3-plan.md`).
+- **v3 (2026-11-14)**: what we took from dsverify-lab's network model (`notes/net-tcp-v3-plan.md`,
+  `notes/net-tcp-dsverify-survey.md`): Go's error values, the Write/Close race, abandoned dials,
+  addresses, `DialTimeout`, the deployment as a decidable premise, wildcard `Listen`, Lean tests and
+  evidence classes, namespace tests, the conformance checker.
 - **v3.1 (2026-11-14/15)**: the v3 review refuted the one-step `Write` (a deadline set while it
   blocks makes Go's `Write` time out after the peer read some of it): a `Write` is now Go's loop of
   steps, each `write(2)` with its wait one extension step (D2, D15; E11).
@@ -109,10 +135,15 @@ predicate of the bytes it read (the buffer's contents) and a per-`Read` accessor
 
 ## The examples
 
-All seven are proved end to end over v2.1 (`lake build`, 2026-11-14), each `<ex>_crash_safety` over
-`goose_dist_crash_adequacy` with no `sorry` and no axiom of this repository; `#print axioms` lists
-Lean's three, the translation's axiomatized Go types, and for preface Perennial's
-`time.Now.wp_proof`.
+All seven are proved end to end over v3.1 (`lake build`, 2026-11-15), each `<ex>_crash_safety` over
+`goose_dist_crash_adequacy` with no `sorry` and no axiom of this repository, under the plan premise
+`PlanWellFormed pl` (D20); `#print axioms` lists Lean's three, the translation's axiomatized Go types
+(since v3 also `os.Process`/`os.processHandle` and the value `os.blockSize`, from the `os` translation
+`net` now imports), and for preface Perennial's `time.Now.wp_proof`. Each example handles abandoned
+dials (the dialer deposits the connection's usual protocol, which a shut, empty direction satisfies)
+and every error kind (a non-nil `*OpError`, `net.resErr_netErr`); a writer with a protocol of its own
+keeps it per step through `Conn.Write.spec`'s accessor (echo, acceptloop and preface's servers now
+record their written bytes in a ghost variable in place of v3's one-time token).
 
 **Each node is its own process** (since 2026-11-14): a command of its example,
 `examples/net/<ex>/cmd/<node>/main.go`, whose `main` calls the example's body (`Serve`, `Call`,
@@ -137,15 +168,43 @@ on exit; v2's breaks cover it, so `Forever` is gone.
 | preface | `preface_crash_safety` | 3 | deadlines set and cleared (`DeadlineOutcome`, Go's `Time.IsZero`) |
 | shutdown | `shutdown_crash_safety` | 1 | a listener and an end shared with blocked goroutines; every operation after `Close` fails |
 
+## Conformance checking (E10)
+
+Real runs are checked against the semantics, as dsverify-lab's `harness/conform` does, with its
+verdicts certified in Lean:
+- **Tracer** (`examples/net/conform/`): a `go build -overlay` of Go's own `net` sources records every
+  modeled call (begin and end, monotonic time, the arguments, the results, the error's facts) and
+  the unmodeled ones, one JSON line per `write(2)`; `NETTCP_CONFORM=1` makes `proctest` build with
+  it. The collection traces the examples' process tests (with server kills) and a probe of races
+  (Write/Close, Write/CloseWrite, a reset or a kill mid-`Write`, deadlines, empty writes, dials with
+  no listener, tiny `DialTimeout`s).
+- **Search** (`examples/net/conform/check/`, Python): a transcription of `Impl.lean`'s relations and a
+  linearizability search (Wing & Gong with Lowe's memo; lazy cuts and prefixes, with the completeness
+  argument in its README; crashes between a node's processes; a `Write` as its loop's steps), which
+  outputs a witness. 2026-11-15: 21 of 22 collected runs admitted (the semantics tests' own run out of
+  scope: port 0, zero values, `SyscallConn`), none rejected; 786 of 786 mutants rejected.
+- **Certification** (`GooseLang/Ext/Tcp/Decide.lean`, `Replay.lean`, `lake exe nettcp-replay`):
+  deciders proved equivalent to the relations; the replay checks the plan, every witness step as a
+  model step (`checkSteps_sound`: an accepted sequence is an execution of `TcpStep`/crash from the
+  initial state), and every traced call linearized in its interval with its observed results (not
+  proved; by reading). All 21 admitted runs and the 14 samples CERTIFIED; 19 tampered witnesses
+  rejected. Trusted: the tracer, the records' copy, the error-facts-to-kinds rules (in Lean), a node's
+  processes as its incarnations.
+
 ## Open
 
 - `Conn.Read`'s count: `ReadOut` gives only `sint.nat k = min …` (so `k`'s sign is free when the
   minimum is 0), because Perennial's `wp_slice_copy` gives only that; a stronger copy spec in
   Perennial would pin it (`notes/perennial-changes.md`).
-- The examples' shared lemmas moved to `wire/` (`dial_both_au`, `dirInv_body_alloc`,
-  `close_drop_au`, the closed-end facts, the read length bounds); still local in each: deriving a
-  direction's `inv` from the example's ghost-map invariant (`inv_alter`), and halfclose's
-  `dirPart_alloc` (a fresh direction's state with nothing written or read).
+- `errors.Is(err, net.ErrClosed)` has no proof: Perennial's `errors.Is` spec admits only pointer
+  targets, and `ErrClosed` is the value `errNetClosing{}`; `errors.Is` on a `sys` error is stuck (the
+  `os` translation has no body for `(*SyscallError).Unwrap`) (`notes/perennial-changes.md`).
+- Shared lemmas still local: deriving a direction's `inv` from an example's ghost-map invariant
+  (`inv_alter`); a server writer bounded by another direction's bytes (`server_write_acc` in echo,
+  framed, halfclose, acceptloop, preface: one `wire` form could replace them); `eof_init`.
+- Precision (sound, more than Go): after a cut, a `Write` may succeed after its own `CloseWrite`; two
+  concurrent `Write`s' steps may interleave (Go's write lock serializes them); across a crash, a
+  restarted node may accept a connection dialed to its previous incarnation (the review's N1).
 - acceptloop's `wp_Add_many` copies `examples/mvccrand/RunChecksJoin.lean`'s (the part cannot import
   the main tree's): a second copy of the `Add(n)` join spec Perennial lacks
   (`notes/perennial-changes.md`, "The `WaitGroup` join idiom's `Add(n)`").
