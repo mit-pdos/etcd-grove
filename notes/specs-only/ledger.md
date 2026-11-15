@@ -331,3 +331,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** The wand's premise `⌜PathsIgnOk … br ∧ PathsLeaseOk (stateAfter log) L br⌝` (a weaker
   obligation on the caller); `txn.Txn`'s proof passes `⟨Hign, Hlok⟩`; `TxnSpecs.lean`/`clients-txn.md` §8 updated.
 - **Decision.** Pending: the S3a2 Freeze (etcd-grove-81).
+
+## 2026-11-15: authTie at a leased request -- false in the refused-implies-not-permitted direction (auth-lease S3a2 §4a)
+
+- **Spec.** `authTie` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn.lean:89-91`), in `resultIsWOn` and
+  `modelOutM` (`:151`, `:221`), read by `EtcdServer.processInternalRaftRequestOnce`'s spec.
+- **Defect.** `o = .rejected .auth ↔ ¬ kvGranted st rq`: `kvGranted` is the permission check only; the auth layer
+  also refuses a leased put whose lease carries a key the principal may not write (`checkLeasePuts`,
+  `apply/auth.go:198-219`; the model's `¬ kvGrantedL`). Once S3a2 admits leased puts with auth on, the `→` direction
+  is false.
+- **Evidence.** S3a2 review r3 F1 (`/shared/tmp/auth-lease-s3a2/review-r3.md`); the example: key `a` permitted, the
+  lease carrying `b` not.
+- **Proposed change.** (c) `(¬ kvGranted st rq → o = .rejected .auth) ∧ (o = .rejected .auth → ¬ kvGranted st rq ∨
+  apply.hasLeasedPut rq)` (recommended; (a) one direction; (b) the iff at `kvGrantedL` with the log): S3a2 Draft §4a.
+- **Decision.** Pending: the S3a2 Freeze (etcd-grove-81).

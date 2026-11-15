@@ -5,7 +5,13 @@
 (decision: (3) in S3a, then (1) as S3a2), `notes/auth-lease-s3a-draft.md` §3a, §6, §15. Evidence: the probe
 `Scratch/S3a2Probe.lean` (untracked; §2), the code read below.
 
-**Revision 3 (2026-11-15), the S3a2 Freeze package candidate**: review round 2
+**Revision 4 (2026-11-15), the S3a2 Freeze package candidate**: review round 3
+(`/shared/tmp/auth-lease-s3a2/review-r3.md`) found one first-tier point, F1: the auth-on KV arm's `authTie`
+(handed to the proposer) is false of an admitted leased request. Rev 4 adds §4a (`authTie` restated; **a decision
+for etcd-grove-81**, options (a)–(c), recommended (c)), §6's coupling rows, §0's correction, and the second-tier
+S1–S6 (§1, §2, §4, §6). Ledger entry written before any edit (2026-11-15, "authTie at a leased request").
+
+**Revision 3 (2026-11-15)**: review round 2
 (`/shared/tmp/auth-lease-s3a2/review-r2.md`) applied: F1 (§6, the carriers of `applierSpec`), F2 (§6/§7, the txn
 package's results), S1 (§4's exported premises without a free mode), S3 (§4, no auth-on copies: lemmas restated once
 over the facts they use), S4–S6 (§4), S7 (the ledger's S3a entry's decision recorded); §4's NOSPACE "to confirm"
@@ -30,7 +36,8 @@ leased puts and leased transactions at the revocable mode (`plainReqL` back to S
 covers them over S3a session 5's lemmas (`backendLog_of_step`, `outcomeOn_of_kvOutLL`, `kvGrantedL_of_kvOutL`,
 `kvShapedL_of_logL`, the `leaseOk` bridge).
 
-S3a2 changes no request-side statement and none of the couplings. A server reaches the new case only after S3b
+S3a2 changes no request-side proposal statement; it restates one statement the apply thread hands to the
+proposer, `authTie` (§4a, review r3 F1), and none of the four S3c couplings. A server reaches the new case only after S3b
 (the proposers of a leased put with auth on) **and** S3c: the auth-on KV arm still gets its latest-state contract
 from `srvUberOn`'s KV conjunct under `srvLessorNil s -∗` (`ServerOnDefs.lean:262-264`, used at
 `EtcdServer__applyEntryNormal.lean:1983`), which a granted lease refutes; no latest triple reads `lookupNil` any
@@ -56,6 +63,12 @@ def leasesLiveAt (E : AEnv GF) (s : List EtcdKv) (T : List w64) : IProp GF :=
 def mPreAt (E : AEnv GF) (c : Chain) (a : GoInterface) (info : AuthInfo) (log : mvcc.Log) (T : List w64)
     (Pre Q Post : IProp GF) : IProp GF := …
 ```
+
+**One body each (review r3 S4):** `mPre` is redefined as `∃ T, mPreAt … T …` and `leasesLive` as
+`∃ T, leasesLiveAt E s T`, `kvOwnAt` written with `leasesLiveAt` (equivalent bodies; the destructurings of `mPre`/
+`leasesLive` gain the `%T`), so the live-set block has one text. `certPre` and `certPreT` both stay: `certPre` is the
+auth-off server's and the delete/revocation triples' (all outcomes, no live set in scope), `certPreT` the lease-exact
+one; `certPre ⊢ certPreT T` relates them.
 
 Laws. Proved in the probe: `mPre_iff_at : mPre E c a info log Pre Q Post ⊣⊢ ∃ T, mPreAt … T …`;
 `certPreT_of_certPre : certPre E c rq log ⊢ certPreT E c rq log T` (any `T`); `putPre_of_old`. To prove (each the
@@ -215,7 +228,7 @@ with `keysNonEmpty_kvRaftOfOn` (S3a session 4), at `plainReqL lm`. The grant arm
 **The auth-on case split (review r1 S1; rev 3, review r2 S3).** `plainOrCmpG_of_entryOn` (`EtcdServer__applyEntryNormal.lean:70-76`)
 concludes `plainOrCmpG lm rq` (`plainOrCmp ∨ grantPropOk ∨ revokePropOk`, `ApplyCmpArm.lean:174`, shared with the
 auth-off arms), false of a leased put (`plainCover` needs lease `0`). Chosen (rev 3): no auth-on copies of the lemmas. `plainOrCmpG_of_entryOn` concludes
-`plainOrCmpG lm rq ∨ leasedKV rq` (`leasedKV`: `plainReqL`'s right disjunct without its mode); each lemma the
+`(plainOrCmpG lm rq ∨ leasedKV rq) ∧ ¬ apply.adminKindOk rq` (today's `∧ ¬ adminKindOk rq` kept, review r3 S5) (`leasedKV`: `plainReqL`'s right disjunct without its mode); each lemma the
 arms use is restated **once**, in place, over the facts it actually reads (a non-lease KV kind, `needAdminPermission
 rq = false`, `noSideEffect rq = false`, the kind's `putgetKind`), and `plainOrCmp`/`plainCover` callers derive those
 facts (one projection lemma each). The auth-off arms keep their texts: they call the same lemmas with the facts
@@ -229,12 +242,14 @@ itself was rejected: its auth-off consumers would have to cover or refute a case
   (`RestOn.lean:130-170`) and `srvGrantIf_permP` (`ApplyCmpArm.lean:616`) at a non-lease KV kind, `plainOrCmp_nonLease`,
   `plainCover_needAdmin` (`ApplyNormalOn.lean:410`, from `plainReqL`'s `needAdminPermission rq = false`),
   `kvShapedL_of_log` → `kvShapedL_of_logL`, `applyResultIs_notNoSpaceOn`/`dispatchStep_start` (`NoSpaceDeadOn.lean:150`,
-  `NoSpaceDead.lean:46`), `authnArM_of_ne` (its `putgetKind` from the kind).
+  `NoSpaceDead.lean:46`), `dispatchAnswer_notNoSpaceOn`/`dispatchAnswer_notNoSpace` and `plainReq_noAdmin` (each uses
+  `plainCover` only to split on the kind; review r3 S1), `authnArM_of_ne` (its `putgetKind` from the kind).
 - Further `plainReqL`-as-`plainReq` sites: `KVAuthModel`, `KVOutcomeOn` (`backendLog_of_step`'s `hpc`), `ProposeOn`,
   `ApplyEntryOn`, `EtcdServer__applyEntryNormal`, `EtcdServer__applySnapshot.lean:144` (`plainLogOn .mono`),
   `SnapRecvOn.lean:52` (`kvCrevEntry_plainOn`), `SnapAuthRecover.lean:235`
   (`plainEntryOn_userAdd`, at the general `γr.kv.lm`), `ImageLeasesOn.lean:83-152` (needs a `plainReqL_mono`-style
-  lemma beside `plainReqL_none`).
+  lemma beside `plainReqL_none`). Generic in the mode, unchanged: `KVApplyOn`, `KVReadOn`, `ServerOn`, a comment in
+  `Spec/…/EtcdServer__applyAll.lean` (review r3 S2).
 All internal; none in `Spec/`, `interface/` or a closed theorem.
 
 **Exported server results** (`Results.lean`; none is used by another proof):
@@ -242,9 +257,48 @@ All internal; none in `Spec/`, `interface/` or a closed theorem.
 | result | old | new |
 |---|---|---|
 | `kv_outcome_on_latest` (:1816) | `(hp : plainCover rq)` | `(hp : plainReqL .revocable rq) (hex : plainCover rq ∨ leaseExactL s.2.2.ids rq s.2.1 oc)` (= `outcomeOn_of_kvOutLL`; `.revocable` the widest mode, `plainReqL lm rq → plainReqL .revocable rq`) |
-| `apply_kv_entry_pre_on` (:2429) | conclusion `⌜plainCover rq ∧ …⌝`, `certPreVW true E x.chain rq x.log (kvOutL …)` | `⌜plainReqL γr.kv.lm rq ∧ …⌝` (the mode is the invariant's, not free), `certPreVW true E x.chain rq x.log (kvOutLT E.authMode E.lg … (kvLeasesOn γr.kv st₀ A).ids)` |
+| `apply_kv_entry_pre_on` (:2429) | conclusion `⌜plainCover rq ∧ …⌝`, `certPreVW true E x.chain rq x.log (kvOutL …)` | `⌜plainReqL γr.kv.lm rq ∧ …⌝` (the mode is the invariant's, not free), `certPreVW true E x.chain rq x.log (kvOutLT (.on γa) E.lg … (kvLeasesOn γr.kv st₀ A).ids)` (at `.on γa`, `γa` the statement's binder, as today) |
 | `apply_kv_after_on` (:2449) | `(hp : plainCover rq)` | `(hp : plainReqL .revocable rq)` and `hout` gains `plainCover rq ∨ leaseExactL lt.ids rq x.log o` |
 | `server_apply_not_nospace_on` (:2493) | `(hp : plainCover rq)` | `(hp : plainReqL .revocable rq)` (`dispatchStep_start` ignores the lease, `NoSpaceDead.lean:46-80`; the backend's `ErrLeaseNotFound`/`ErrKeyNotFound`/`checkErrIs` are told apart from `ErrNoSpace`, `NoSpaceDead.lean:142-185`; the auth layer's lease refusal is an auth error, `authErrVarIs_notNoSpace`, `NoSpaceDeadOn.lean:62`; review r2) |
+
+## 4a. `authTie` at a leased request (review r3 F1) — decision needed
+
+`authTie` (`ReqOn.lean:89-91`), proved by the auth-on KV arm (`EtcdServer__applyEntryNormal.lean:2046`) into
+`resultIsWOn` (`ReqOn.lean:151`) and `modelOutM` (`:221`), which `EtcdServer.processInternalRaftRequestOnce`'s spec
+names (`Spec/…/EtcdServer__processInternalRaftRequestOnce.lean:56`):
+
+```lean
+def authTie (st : auth.AuthState) (rq : apply.IRRModel) (out : apply.ApplyOut) : Prop :=
+  apply.isKVKind (apply.dispatchKind rq) = true → ∀ o skip, out = .dispatched o skip →
+    (o = .rejected .auth ↔ ¬ kvGranted st rq)
+```
+
+`kvGranted` is the permission check only; with leases the auth layer also refuses a put whose lease carries a key
+the principal may not write (Go `checkLeasePuts`, `apply/auth.go:198-219`; the model's `¬ kvGrantedL`,
+`KVAuthModel.lean:361`). So the `→` direction of the iff (refused ⇒ not permitted) is false at an admitted leased
+put: `a` permitted, the lease carrying a non-permitted `b`, refused. The request side uses only `¬ kvGranted →
+rejected` (`grantedAt_of_applied`, `ReqOn.lean:963`; to be confirmed for every consumer in the Prove step: `AuthTie`,
+`KVApplyOn`, `NewServer`, `SnapAuthRecover`, the auth example's `WorkAuth`/`WorkEnv` read only `authTieReadMask`).
+
+Options:
+- (a) keep one direction: `¬ kvGranted st rq → o = .rejected .auth`. Minimal, signature unchanged; loses the
+  converse also for unleased requests.
+- (b) exact: `o = .rejected .auth ↔ ¬ kvGrantedL st (leaseItemsOf (stateAfter lb)) rq`; needs the log `lb` in
+  `authTie`'s signature, so `resultIsWOn`'s and `modelOutM`'s texts change (they have `lb` in scope).
+- (c) **recommended**: exact for requests without a leased put, and the one direction for those with one, signature
+  unchanged:
+  ```lean
+  (¬ kvGranted st rq → o = .rejected .auth) ∧
+  (o = .rejected .auth → ¬ kvGranted st rq ∨ apply.hasLeasedPut rq)
+  ```
+  (`hasLeasedPut rq`: a put with `leaseID ≠ 0`, or a transaction one of whose puts has one — S2's lease-id list of
+  `authOutLL`/`txnPutsW` holding a nonzero id; new pure definition). At lease mode `none` (every closed theorem with
+  auth on) no admitted request has a leased put, so it means what the iff means today; the proposer keeps exactly
+  what it uses. Proof: `authTie_of_kvOutL` over `kvOutL`'s verdict and S3a's `leaseOk` bridge.
+
+Either option is a text change of a statement the apply thread hands the request side (through
+`resultIsWOn`/`modelOutM`, in meaning `resultΨOn` and `processInternalRaftRequestOnce`'s spec); no closed theorem
+mentions `authTie` in a statement (`Proof/github_com` only names `authTieReadMask`).
 
 ## 5. Literal-mode uses (the follow-up; forms only)
 
@@ -273,7 +327,7 @@ step of §7, after the KV arm. Target: etcdserver `lit-mode` ≤ 200, measured a
   `apply_dispatch_kv_latest`, `apply_uber_apply_kv_latest` and `apply_apply_kv_latest`.
 - **`Spec/…/txn/Txn.lean`: `txn.Txn.specSole`'s write-wand premise gains `PathsLeaseOk (stateAfter log) L br`**
   (§2; frozen text, a strengthening).
-- Server: the body of `plainReqL` (§4). `kv_outcome_on_latest`, `apply_kv_entry_pre_on`, `apply_kv_after_on`,
+- Server: **`authTie`'s body (§4a, the option decided)**; the body of `plainReqL` (§4). `kv_outcome_on_latest`, `apply_kv_entry_pre_on`, `apply_kv_after_on`,
   `server_apply_not_nospace_on` (§4's table).
 
 **Meaning only (text unchanged):**
@@ -286,14 +340,20 @@ step of §7, after the KV arm. Target: etcdserver `lit-mode` ≤ 200, measured a
   exported `apply_put_latest`, `apply_txn_latest` (`Results.lean:1548, 1552`), `server_uber_kvl`,
   `server_uber_kvl_on` (`:1747, :1760`, through `uberKVL` → `applierKVL`) (review r1 F1).
 - Through `uberKVC`'s text: `srvUberOn`, `srvKVInvsM true` and the auth slot's `acInv` (the predicates containing it).
+- Through `authTie`: `resultIsWOn`, `modelOutM` (text unchanged under (a)/(c), changed under (b)), `resultΨOn`,
+  `EtcdServer.processInternalRaftRequestOnce`'s spec (review r3 F1).
+- Through `kvInvOn`/`NewServer.specM true` (lease mode `none` in all, so unchanged in effect; review r3 S3):
+  `server_new_auth_on`, `server_cluster_alloc_on`, `server_member_alloc_on`, etcdstart's `kvInvOn_reg`.
 - `plainEntryOn`/`plainLogOn` and therefore `kvInvOn`: they admit more at `revocable`, and at `none` they are
   unchanged by `plainReqL_none`. `kvInvOn` appears in `interface/…/etcdstart/Alloc3On.txt` by name only, so there is
   no interface diff.
 - `txn.Txn.spec` (`specSole ∧ specRead`) and the exported `txn_srvRunTxn` (`txn/Results.lean:189`). `txn_runTxn`
   (`txn/Results.lean:197`) restates the old wand inline: its text is kept and it is proved as a corollary of the
-  stronger spec (review r2 F2).
+  stronger spec (review r2 F2). A margin (review r3 S6): `txn_runTxn` stays on the weaker wand, sound, by choice
+  (no caller needs the lease fact there); the strengthening moves toward `SpecPlan`'s `Txn.spec`, which fires at the
+  live lease table.
 - **The carriers of `applierSpec`** (review r2 F1): `applierSpec` is a conjunct of `uberIs`, `uberOwn` and
-  `applierFor` (`InvUber.lean:231, 257, 263`), so its meaning (each Put/Txn triple stronger) reaches the class
+  `applierFor` (`InvUber.lean:231, 257, 263`) and of `baseAuth` (`:212-215`), so its meaning (each Put/Txn triple stronger) reaches the class
   `dispatch.spec` (pre and post), `uberApplier.Apply.spec`, `apply.Apply.spec`, the applier constructors' `Spec/`
   triples, `NewServer.specM`, `srvApplyKV` and the exported results over it (`Results.lean:483, 497`), in both auth
   modes. Text unchanged in all of them; every one becomes stronger or stays (a holder of `applierSpec` gets triples
@@ -349,3 +409,10 @@ Confirmed: the backend Put/Txn, the txn wand strengthening (true of Go, the righ
 closed-theorem change. First tier F1 (§6: `applierSpec`'s carriers) and second tier F2, S1, S3–S7 applied in rev 3;
 S2 (`hex` may reduce to `leaseExactL` alone) left as is: the disjunction is what `outcomeOn_of_kvOutLL` proves and is
 no weaker for callers.
+
+## 10. Review round 3 (fresh `spec-reviewer`, `/shared/tmp/auth-lease-s3a2/review-r3.md`)
+
+First tier F1: `authTie` false at an admitted leased request (→ §4a, decision needed). Second tier S1–S6 applied in
+rev 4. Confirmed: the class and latest tracks (bundled `∃ T` pinned by `lessorUser`, backend Put/Txn,
+`certPreW_innerT`, `certPreW_tie`, the `E.lg` guard), the server certificate at both `E.lg`, §4's exported results
+(old hypotheses imply the new), the txn wand change, no closed theorem / `interface/` / `etc/api` change.
