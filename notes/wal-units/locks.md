@@ -384,3 +384,80 @@ predicate, `walSegName`): the tie of (2) should be built on that form after it l
 
 **Decisions left for the user**: none new (the trusted change's text, §4, still pending review).
 **No new axiom, no `sorry`. No Go bug found.**
+
+### Session 4 (2026-11-15, branch `wal-c-purge`, base `origin/wal-int` `f2ee139e77`)
+
+**Done** (built with `lake build`: the WAL `Link`, the tester's `Link`, `durable`'s `Link`, `PurgePure`; no new
+axiom, no `sorry`, nothing trusted changed, no Go changed, no spec statement changed):
+
+- **Item 1, the tie's invariant half** (a cheaper placement than session 3's): not a map in `walTailsRes`'s
+  per-directory entries (27 unfold sites) but a new ghost variable `WalGS.γlk` of a map `Lk : dir ↦ b` (a
+  history position), **half in `walGhost s`** (`walLksAuth s`, with `LksOk s Lk`: each `b` is at most
+  `dir`'s `unl`), **half the lock holder's** inside `walTailsFrag T Lk` (a new second argument, default `∅`,
+  so the lock token's `walTailsFrag ∅` says no range is registered and every existing use is unchanged).
+  The invariant fact needs no layout: what ties `b` to the segments is the handle's (below), since the handle
+  already pins the cuts (its tail record) and the directory's names and inodes (its half of the claim, `hj`,
+  with `WalAbsD.names`/`seqName`), so only `unl` (the invariant's, raised by client updates) needs a ghost.
+  `unl` only rises within a generation (`max` raises; a crash starts new ghost state), so the only cost is a
+  premise `UnlMono s s'` on `walGhost_updR`/`walGhost_upd`/`walGhost_upd_lag` (5 callers: `unlMono_upd`,
+  `unlMono_insert`) and the three sync steps that rebuild `walGhost` by hand (`TailSync`, `TailSyncPend`,
+  `RepairSync`). Laws: `walLks_agree` (the halves agree; `LksOk`), `walLks_set` (both halves set to any `Lk'`
+  with `LksOk s Lk'`: a handle registering, raising or dropping its range), `walLksAuth_mono`.
+- **Item 2, the layout step** (`PurgePure.lean`): `walAbsD_purge`: removing the first named segment's name
+  (not the last) takes `WalAbsD d lay ents` to `WalAbsD (walPurgeD d lay p) (purgeLay lay) ents'`
+  (`first + 1`, the segments' tail; `pur := max pur p`, `cut := segStart cuts (first + 1)`), given
+  `segStart lay.cuts (lay.first + 1) ≤ p`, the directory's `.wal` entries being the rest. Not yet used.
+
+**The crash issue, settled (design; not implemented).** `purgeRound`'s Go (`bb9a9866b6^:examples/etcd/wal/wal.go`)
+removes with `os.Remove` and **never fsyncs the directory**; the next durable point is the next `cut`'s
+`w.dirFile` sync (or `Create`'s). In `fsExt` a crash keeps a `Follows`-closed set of the logged metadata
+operations (`Tree.lean`), and the round's removes are sequential in one thread (each call begins after the
+previous returned), so a crash keeps a **prefix** of the removes, and a later cut's rename survives only with
+all of them: the possible layouts form a chain (no holes, unlike the old abstract disk's out-of-order unlinks,
+`nonissues/etcd-wal-purge-unlink-gap.md`). Chosen: the invariant keeps, per directory, the removed-not-durable
+segments `pg : List SegG` (contiguous, just before `first`, their invariant halves parked until the directory
+is durable, `FileCrashedR` premise), and `CrashOkA`'s alternatives become "`lay`, or the pending cut's `alt`
+(or `lay`), with a suffix of `pg` put back in front" (a list of alternative layouts, structured). The other
+option, "the purge waits for a directory sync", is not available without a Go change (`purgeRound` has no
+directory fsync), so not taken. The abstract state needs nothing new: a crash re-chooses `cut ≤ pur`, and the
+purge raised `pur` to at least the removed segments' end before removing anything.
+
+**Not done: the handle's half of the tie, items 2 (the law), 3, 4.** What is left, in order:
+
+1. **The handle's relation** (the next step; a `walHandleIn` restructure). The handle must hold its half
+   `walTailsFrag {dir ↦ γt} {dir ↦ b}` (in `walDirH`, today `walTailsFrag {dir ↦ γt}` with `Lk = ∅`) and the
+   fact the purge law needs: every `.wal` name of `hj` whose inode no handle lock holds has
+   `segStart h.cuts (seq + 1) ≤ b`, and each lock's description is on the inode `hj` maps its base name to,
+   exclusively locked (`∃ k, d.lk k = some true`, from `lkFd_lk` at `openWALFiles`). The obstacle: `hj` is
+   private to `walDirH`, the lock list to `walHandleIn`, the cuts to the tail record; no single predicate
+   sees all three. Least churn found: give `walDirH` the non-tail lock list and the cuts as parameters
+   (`walHandleIn` passes `lfs.dropLast`, `h.cuts`) and move the `walLockH` bigsep into it (its conjunct in
+   `walHandleIn` becomes `True`, so the 53 `walHandleIn` patterns keep their positions); `walLockH lf` gains
+   `(nm, i)` facts (its base name and description inode). Sites: `walDirH`'s 11 unfolds (17 files),
+   `walLockH`'s 12 files, then the steps: `Create` (register `b = 0`), `ReadAll`/`Open` (register `b` = the
+   raised `walOpenPos`; the unselected names end before it), `cut` (the new name is the new tail's; cuts
+   appended keep `segStart` of the old names), `ReleaseLockTo` (item 3: `walLks_set` to `walReleasePos H a`
+   right after its `unl` commit; each closed lock's segment ends before it, by `WalAbsD.nameBound`), `Close`
+   (`walLks_set` to `∅` before `walTails_unregister`).
+2. **The purge law** (item 2): at `os.Remove(dir/nm)`'s step (`os.Remove.specFileSnc`, the claim `.only [nm]`
+   split from both halves of `(j, .except X)`, `NameSplit.lean`), with the remover's `osLock k i fd'` and
+   `lockKind k`: `fdLocks_excl` against every handle lock gives `i` unlocked by the handle, so the
+   relation gives `segStart cuts (seq nm + 1) ≤ b ≤ d.unl` (`walLks_agree`); `nm` is the first named
+   segment (the round removes oldest first; the handle's thread is the only one changing names) and not the
+   last (the tail is locked); `walAbsD_purge` with `p = d.unl`; the removed segment into `pg` (above).
+   **The client's state moves at each removal** (`WalAbsD.cut` fixes `d.cut = segStart lay.cuts lay.first`),
+   so `purgeRound` cannot take one atomic update (the old main-tree axiom committed once with a prophesied
+   outcome). Proposed spec shape: a predicate `Pc` of the caller and a persistent, repeatable commit
+   `□ ∀ d, Pc d -∗ AU-like access to walDiskAt dir d giving walDiskAt dir (walPurgeD …) ∗ Pc (…)`, which
+   the tester supplies from `TInv` (`tCandOk` needs `d.pur, d.cut ≤ c.pur`). Alternative (changes
+   `ReadAll`'s client-facing reading of `d.cut`): relax `WalAbsD.cut` to a range. Recommended: the first.
+3. **A point to check before item 4** (possible tester-oracle mismatch, not a WAL bug): the Go raises each
+   candidate's `pur` to its `unl` before `purgeRound`, but `tCandOk` bounds `d.unl` by `max c.unl
+   (tOpensBound o c)`; if `d.unl` can exceed `c.unl` at `opOwnSnap` (an `Open` that raised it past the
+   oracle's `unl`), a purge to `d.unl` may go past `c.pur`. The restored proof needs `d.unl ≤ c.pur` there
+   (or the purge's `p` the oracle's bound); check `resume`/`restartRead`'s raise of `c.unl` first.
+4. **`purgeRound` restored** (item 4) only once 1-2 are proved: restoring the call in `opOwnSnap` without a
+   proof would put an unproved function under the tester's closed result (session 2). Not done; Go untouched.
+
+**Decisions left for the user**: none new (the trusted change's text, §4, still pending). **No new axiom, no
+`sorry`. No Go bug found** (item 3 above is a check on our own tester, not a finding).
