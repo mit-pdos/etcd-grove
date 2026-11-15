@@ -88,7 +88,10 @@ echo "collections: $coll_ok match, $coll_bad differ"; [ "$coll_bad" = 0 ] || fai
 # in this section). A full run: about 6 minutes, 9 GiB peak (2026-11-11); its own memory cap
 # (systemd-run, where there is one).
 cap=()
-if command -v systemd-run > /dev/null 2>&1; then cap=(systemd-run --scope -q -p MemoryMax=24G); fi
+# (only where it works: a session without a login's polkit rights gets "Access denied", 2026-11-15)
+if command -v systemd-run > /dev/null 2>&1 && systemd-run --scope -q -p MemoryMax=24G true > /dev/null 2>&1; then
+  cap=(systemd-run --scope -q -p MemoryMax=24G)
+fi
 if "${cap[@]}" python3 etc/axiom-tok-check.py --check --raw "$tmp/atok.jsonl" > "$tmp/atok.log" 2>&1; then
   echo "axiom-tok: $(tail -1 "$tmp/atok.log" | sed 's/^axiom-tok: //')"
 else

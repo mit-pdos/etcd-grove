@@ -392,7 +392,14 @@ sides' entries kept). Next base: `95c0f4e3f0`.
 
 Full niced `lake build` after the last re-merge: OK (18424 jobs). `etc/gates.sh`: everything passed but tcb,
 collections (the nine native axioms gone: updated), axiom-tok (entries above), model-param (`MIN_REGS`) and the
-raft interface (regenerated: `PbEntryType`/`PbEntryTypeCore`); all fixed after, gates re-run below.
+raft interface (regenerated: `PbEntryType`/`PbEntryTypeCore`); all fixed after. `etc/gates.sh` then failed
+axiom-tok only because `systemd-run --scope` (its memory cap) is refused in this session ("Access denied ...
+interactive authentication"), which the gate printed as a bare FAILED (the session-3 report of the axiom-tok
+selftest failing may have had the same cause): `gates.sh` now uses the cap only where `systemd-run` works.
+Final `etc/gates.sh`: **all passed** (tcb 886 axioms, 4 sorries; collections 59 match; axiom-tok 832 walked,
+796 pass, 36 by an entry or pair; selftest 0 failures; model-param 38 registrations each with its Sat;
+pbschema ok; interfaces ok). Generators: `gen-link --walfs/--durable/--wal-tester --check`,
+`gen-specs-pkginit --check` up to date (goose and gen-init checked by the gates).
 
 TCB against `origin/lean`: removed `wal.opaqueInitsOk` (the names-only WAL's); added the bodied WAL's package
 inits (`bufio`, `hash.crc32`, `path.filepath` `opaqueInitsOk`, `walFsyncSec_init`, `walWriteBytes_init`,
