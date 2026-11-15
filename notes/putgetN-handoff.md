@@ -41,3 +41,10 @@ recorded in the worktree's `questions.md`).
 `lake --packages=/shared/tmp/manifest-ddc.json build <targets>` under
 `systemd-run --scope -q -p MemoryMax=64G`; check files with
 `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json etc/lean-check.py`.
+
+## State (2026-11-15, linked)
+Linked and checked: full build (flock, 64G) green; `tcb-report.py --check` 870/4 unchanged; every collection
+passes; `etc/tcb-collections/putgetN.txt` 640 axioms, identical to putget3's; gen-init and gen-interface
+(etcdstart) regenerated, layout baseline updated; mode gate ok (447). Open: the bounds gate counts +6
+(`spec-thread`/`spec-receipt` in putgetN and in etcdstart's `StartMembers.spec`, putget3's and
+`StartMember.spec`'s pattern), awaiting etcd-grove-81's decision before land.sh.
