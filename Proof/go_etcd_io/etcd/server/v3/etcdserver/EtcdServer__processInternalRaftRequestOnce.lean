@@ -442,7 +442,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hg Hv
             isplitr
             · ipureintro
-              refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ltw, ?_, Hst.2.2.2.2⟩
+              refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ltw, ?_, by rw [Hst.2.2.1]; exact Hst.2.2.2.2⟩
               rw [Hst.2.2.1]; exact hlbw
             -- (E3x) the admin result's tie, at the state the entry met
             isplitr

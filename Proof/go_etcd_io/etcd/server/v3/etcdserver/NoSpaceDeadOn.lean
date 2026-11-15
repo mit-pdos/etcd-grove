@@ -88,7 +88,7 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 /-- **The answer's error at the start's chain with auth on** (given back): not `ErrNoSpace`'s
 (`dispatchAnswer_notNoSpace`'s, and the auth layer's refusal). -/
 theorem dispatchAnswer_notNoSpaceOn (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
-    (resp err : GoInterface) (tr : Loc) (o : apply.Outcome) (hp : plainCover rq)
+    (resp err : GoInterface) (tr : Loc) (o : apply.Outcome) (hp : kvCover rq)
     (ho : o = .rejected .auth ∨ o = .rejected .backend ∨ ∃ l, o = .applied l false) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
       apply.dispatchAnswer rq log skip resp err tr o -∗
@@ -100,7 +100,7 @@ theorem dispatchAnswer_notNoSpaceOn (rq : apply.IRRModel) (log : mvcc.Log) (skip
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, #Hap, -⟩
   have hnil : ⊢ notNoSpaceErr (GF := GF) GoInterface.nil := by
     iunfold notNoSpaceErr; iintro; ileft; ipureintro; rfl
-  unfold plainCover at hp
+  unfold kvCover at hp
   unfold apply.dispatchAnswer
   cases hk : apply.dispatchKind rq <;> simp only [hk] at hp ⊢
   · -- clusterVersionSet
@@ -148,7 +148,7 @@ theorem dispatchAnswer_notNoSpaceOn (rq : apply.IRRModel) (log : mvcc.Log) (skip
 /-- **`apply.Apply`'s result at the start's chain with auth on** (given back): `nil`, or its `Err`
 is not `ErrNoSpace`'s (`applyResultIs_notNoSpace`'s counterpart). -/
 theorem applyResultIs_notNoSpaceOn (rq : apply.IRRModel) (x x' : apply.ApplyKV) (ar : Loc)
-    (out : apply.ApplyOut) (hp : plainCover rq)
+    (out : apply.ApplyOut) (hp : kvCover rq)
     (hch : x.chain = apply.alarmChain true false false)
     (hs : apply.applyStep rq true x x' out) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢

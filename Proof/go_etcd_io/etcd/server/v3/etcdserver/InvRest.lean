@@ -416,16 +416,15 @@ theorem restModel_append [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : Lis
 rejected (a covered request has no side-effect-free and no admin field), so the effect is
 `dispatch`'s. -/
 theorem restOut_plain [GooseExts] (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
-    (out : apply.ApplyOut) (r : apply.RestM) (hp : plainCover rq)
+    (out : apply.ApplyOut) (r : apply.RestM) (hp : kvCover rq)
     (h : apply.applyStep rq v3 x x' out) :
     apply.restOut rq v3 out r = apply.restAfter rq v3 r := by
   have hns : apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false := by
-    unfold plainCover at hp
+    unfold kvCover at hp
     cases hk : apply.dispatchKind rq <;> simp only [hk] at hp
     all_goals first
       | exact hp.elim
-      | exact ⟨hp.1, hp.2.1⟩
-      | exact ⟨hp.1, hp.2⟩
+      | exact hp
   cases out with
   | skipped => exact absurd h.1 (by rw [hns.1]; decide)
   | rejected => exact absurd h.1 (by rw [hns.2]; decide)
@@ -894,6 +893,10 @@ theorem srvEverOk_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryMode
 /-- The ids the image holds records of: the table's in a cluster that grants leases, none
 otherwise. -/
 def srvIds (E : apply.AEnv GF) (T : List w64) : List w64 := if E.lg then T else []
+
+/-- In a cluster that grants leases, the image's ids are the table's (auth-lease S3a2 §4). -/
+theorem srvIds_lg (E : apply.AEnv GF) (T : List w64) (h : E.lg = true) : srvIds E T = T := by
+  unfold srvIds; rw [if_pos h]
 
 /-- `srvGrantable` in a cluster that grants leases, `True` otherwise (persistent). -/
 def srvGrantIf (E : apply.AEnv GF) : IProp GF := if E.lg then srvGrantable E else iprop(True)

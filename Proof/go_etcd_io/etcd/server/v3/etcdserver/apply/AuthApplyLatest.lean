@@ -173,12 +173,14 @@ instance certPreVW_persistent (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRMod
     (log : mvcc.Log) (X : Outcome → Prop) : Persistent (certPreVW v3 E c rq log X) := by
   unfold certPreVW; split <;> infer_instance
 
-/-- `putPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+/-- `putPre` with the certificates of the outcomes `X` admits (`certPreW`); (auth-lease S3a2, Draft §3) at the
+live set `T` of the method's resources, the outcomes also lease-exact at `T`. -/
 def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
-    txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
+    ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
+      mPreAt E c a info log T Pre Q Post)
 
 /-- `deletePre` with the certificates of the outcomes `X` admits (`certPreW`). -/
 def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -187,12 +189,13 @@ def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
     certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
 
-/-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+/-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`), at the live set (as `putPreW`). -/
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
-    txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
+    txn.txnRequestIs r t ∗ ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
+      mPreAt E c a info log T Pre Q Post)
 
 end defs
 
@@ -243,6 +246,30 @@ theorem certPreW_inner (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (lo
   iunfold certPre
   iintro !> %oc %hs
   iapply H $$ %oc %(⟨by simp only [chainStep]; split <;> simp [hs], h oc hs⟩)
+
+/-- **Past the auth layer's check, at the live set `T`** (auth-lease S3a2, Draft §3): the latest certificate of
+the outcomes meeting `X` and lease-exact at `T` is the inner chain's `certPreT` at `T`, when every inner outcome
+meets `X`. -/
+theorem certPreW_innerT (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (T : List w64) (X : Outcome → Prop) (h : ∀ oc, chainStep backendStep c rq log oc → X oc) :
+    certPreW E (.auth on c) rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ⊢
+      certPreT E c rq log T := by
+  iintro #H
+  iunfold certPreW at H
+  iunfold certPreT
+  iintro !> %oc %hs
+  iapply H $$ %oc %(⟨by simp only [chainStep]; split <;> simp [hs.1], h oc hs.1, hs.2⟩)
+
+/-- **The dispatch's tie** (auth-lease S3a2, Draft §3): a certificate whose lease-exactness at `T` is guarded by
+`E.lg` is one at the live set `L` of the method's resources, when the two agree in a cluster that grants
+leases. -/
+theorem certPreW_tie (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (L T : List w64) (X : Outcome → Prop) (hLT : E.lg = true → L = T) :
+    certPreW E c rq log (fun oc => X oc ∧ (E.lg = true → leaseExactL T rq log oc)) ⊢
+      certPreW E c rq log (fun oc => X oc ∧ leaseExactL L rq log oc) := by
+  iapply certPreW_mono
+  intro oc ⟨hx, hl⟩
+  exact ⟨hx, fun hg => hLT hg ▸ hl⟩
 
 theorem rangePostL_rangePost (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)

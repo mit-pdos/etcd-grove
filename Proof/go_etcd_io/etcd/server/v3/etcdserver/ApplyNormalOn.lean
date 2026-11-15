@@ -314,22 +314,21 @@ theorem chainStep_quota_not_auth (rq : apply.IRRModel) (log : mvcc.Log) (o : app
 /-- **The auth layer's verdict is the model's** (`authTie`, for the waiter): a KV request's
 dispatched outcome decided at the latest state `st` of `hs` (`kvOutL`, `apply.Apply.kvSpecL`'s
 post), on its own permissions (`noZeroEnds`): the auth layer's rejection exactly when `st` does
-not grant it. -/
+not grant it at the log's lease items (`kvGrantedL`; auth-lease S3a2 §4a (b): no `plainCover`). -/
 theorem authTie_of_kvOutL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
     (hl : hs.getLast? = some st) (rq : apply.IRRModel) (log : mvcc.Log) (out : apply.ApplyOut)
-    (hz : noZeroEnds rq) (hpc : plainCover rq)
+    (hz : noZeroEnds rq)
     (h : ∀ o b, out = .dispatched o b →
       apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq log o) :
-    authTie st rq out := by
+    authTie st log rq out := by
   intro _ o skip hout
-  rcases authOutL_of_kvOutL _ hs _ rq log o hz hpc (h o skip hout) with ⟨rfl, hr⟩ | ⟨hc, hpass⟩
-  · exact ⟨fun _ => not_kvGranted_of_refusedL γa hs st hl rq _ (fun _ hx => hx) hr, fun _ => rfl⟩
-  · have hg := kvGranted_of_passedL γa hs st hl rq hpass
-    exact ⟨fun hr => absurd hr (chainStep_quota_not_auth rq log o hc), fun hn => absurd hg hn⟩
+  rcases kvGrantedL_of_kvOutL γa hs st hl _ rq log o hz (h o skip hout) with ⟨rfl, hr⟩ | ⟨hc, hg⟩
+  · exact ⟨fun _ => hr, fun _ => rfl⟩
+  · exact ⟨fun hr => absurd hr (chainStep_quota_not_auth rq log o hc), fun hn => absurd hg hn⟩
 
 /-- A request of no KV kind has its verdict tied vacuously. -/
-theorem authTie_nonKV (st : auth.AuthState) (rq : apply.IRRModel) (out : apply.ApplyOut)
-    (hk : apply.isKVKind (apply.dispatchKind rq) = false) : authTie st rq out := by
+theorem authTie_nonKV (st : auth.AuthState) (lb : mvcc.Log) (rq : apply.IRRModel) (out : apply.ApplyOut)
+    (hk : apply.isKVKind (apply.dispatchKind rq) = false) : authTie st lb rq out := by
   intro h; rw [hk] at h; cases h
 
 theorem ite_eq_iff_or {α : Sort _} {c : Prop} [Decidable c] {a b k : α} :

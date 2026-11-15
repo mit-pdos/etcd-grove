@@ -311,7 +311,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   []⌝ ∗ Q (kvStateOf x.log lt)` (or the model's table named through `modelOutM`), and the read side's
   `□ Q (kvStateOf log lt)`, followed through v3rpc (`ServerKVOn`) and the client's KV results; (C) a
   transitional tie of the auth-on request side to the lease mode `none` until S3b. Not in Draft rev 5 §7.
-- **Decision.** Pending (etcd-grove-81; S3a stopped at this finding).
+- **Decision.** (A), with the stronger guard `⌜E.authOn = false ∨ γ.kv.lm = .none → lt = []⌝` (etcd-grove-81, 2026-11-15): S3a Draft rev 6, §14 (recorded here 2026-11-15, S3a2 review r2 S7).
 
 ## 2026-11-15: the latest track's certificate premise for a leased put or transaction -- unprovable at a dead lease (auth-lease S3a §6)
 
@@ -339,3 +339,34 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   or transaction admitted (`plainReqL lm := plainReq`), leased puts moved to a later stage with (1).
 - **Decision.** (3) now, then (1) as its own stage S3a2 (etcd-grove-81, 2026-11-15): Draft rev 7, §15; `plainReqL lm :=
   plainReq`.
+
+## 2026-11-15: txn.Txn's write wand is not told the lease check (auth-lease S3a2 §2)
+
+- **Spec.** `txn.Txn.specSole` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Txn.lean:62-65`; frozen text,
+  `notes/mvcc-api-clients/clients-txn.md` §8): the caller's write wand is told `PathsIgnOk (stateAfter log) br` only.
+- **Defect.** Too weak for a caller whose commit certificate depends on the leases: `applierV3backend.Txn` builds
+  the commit's witness `E.Nx` inside that wand, and S3a2's certificate at the live set (`certPreT … L`, ledger
+  2026-11-15 option (1)) covers an applied transaction only with `PathsLeaseOk (stateAfter log) L br`.
+- **Evidence.** Go: `checkTxn` (with `checkPut` → `checkLease`) runs before `kv.Write` (`server/etcdserver/txn/txn.go:54-67`,
+  `put.go:71-72`). Proof: `Hlok : PathsLeaseOk L` is in scope at `Proof/…/txn/Txn.lean:182`, the wand called at
+  `:256`. Probe: `Scratch/S3a2Probe.lean` (`Txn_wp_T` over a local copy of the strengthened spec).
+- **Proposed change.** The wand's premise `⌜PathsIgnOk … br ∧ PathsLeaseOk (stateAfter log) L br⌝` (a weaker
+  obligation on the caller); `txn.Txn`'s proof passes `⟨Hign, Hlok⟩`; `TxnSpecs.lean`/`clients-txn.md` §8 updated.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 2): the wand gains
+  `PathsLeaseOk (stateAfter log) L br`; `clients-txn.md` §8's frozen text noted as changed by this entry.
+
+## 2026-11-15: authTie at a leased request -- false in the refused-implies-not-permitted direction (auth-lease S3a2 §4a)
+
+- **Spec.** `authTie` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn.lean:89-91`), in `resultIsWOn` and
+  `modelOutM` (`:151`, `:221`), read by `EtcdServer.processInternalRaftRequestOnce`'s spec.
+- **Defect.** `o = .rejected .auth ↔ ¬ kvGranted st rq`: `kvGranted` is the permission check only; the auth layer
+  also refuses a leased put whose lease carries a key the principal may not write (`checkLeasePuts`,
+  `apply/auth.go:198-219`; the model's `¬ kvGrantedL`). Once S3a2 admits leased puts with auth on, the `→` direction
+  is false.
+- **Evidence.** S3a2 review r3 F1 (`/shared/tmp/auth-lease-s3a2/review-r3.md`); the example: key `a` permitted, the
+  lease carrying `b` not.
+- **Proposed change.** (b) the iff at `kvGrantedL st (leaseItemsOf (stateAfter lb)) rq`, `authTie` gaining the log
+  `lb` (recommended since S3a2 Draft rev 5, review r4; probed `Scratch/S3a2ProbeTie.lean`); alternatives (a) one
+  direction, (c) the iff for requests without a leased put: S3a2 Draft §4a.
+- **Decision.** (b) (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 3): the iff at the model's `kvGrantedL`,
+  `authTie` gaining `lb`.

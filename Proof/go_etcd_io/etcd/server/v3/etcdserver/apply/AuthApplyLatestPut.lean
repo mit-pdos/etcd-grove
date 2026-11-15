@@ -518,9 +518,9 @@ theorem apply.authApplierV3.Put.wp_latest
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.putPreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
-  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
-  ihave ⟨Hard, %Lw, Hu, Hkv⟩ := apply.mPreRest_lend E log Pre Q Post $$ Hm
+  icases Hpre with ⟨%Hk, #Hr, %Lw, #Hcp, Hm⟩
+  icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave ⟨Hard, Hu, Hkv⟩ := apply.mPreRestAt_lend E log Lw Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -543,6 +543,7 @@ theorem apply.authApplierV3.Put.wp_latest
     isplitl
     rotate_left
     · iapply apply.traceRes_null
+    ihave Hkv := apply.mPreRest_of_at _ _ _ _ _ _ $$ Hkv
     icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
     iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post _ hk
       (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h))
@@ -565,7 +566,7 @@ theorem apply.authApplierV3.Put.wp_latest
     intro oc hoc
     obtain ⟨h1, h2⟩ := Hvd.1 rfl
     exact Or.inr ⟨hoc, h1, fun id hid => by rw [List.mem_singleton.1 hid]; exact h2⟩
-  ihave #Hcp := apply.certPreW_inner E E.authOn c rq log
+  ihave #Hcp := apply.certPreW_innerT E E.authOn c rq log Lw
     (apply.authOutLL E.authMode hs (auth.authInfoM info) c rq log (apply.putPerms o)
       (mvcc.leaseItemsOf (mvcc.stateAfter log)) [o.leaseID])
     Hpass $$ Hcp
@@ -577,7 +578,7 @@ theorem apply.authApplierV3.Put.wp_latest
     iframe #
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
+    iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ
   iframe HL Htt
