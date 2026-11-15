@@ -10,7 +10,8 @@ tail lent (`walLentTokB dir γ k p`) for the key.
 * `TailMetaR`: what `ReadAll` knows of the tail it registers (`TailMeta` without `TailZ`/`PastZ`).
 * `TailMetaZ`: the tail after `ZeroToEnd` (all its bytes, no mappings, the page cache known zero to the
   end of the size's page).
-* `walTailP`: the handle's tail, lent.
+* `walTailP`: the handle's tail, lent; its description locked (`fdLocksW`: unit `closefailed`, so that a failed
+  `Close` hands the lock to `Repair`).
 -/
 module
 

@@ -2,12 +2,13 @@
 **What a failed `Close` of a failed read leaves** (unit `locks`, session 3; ledger 2026-11-15, "`WAL.Close.specFailed`'s
 error arm for the boot path's `Repair`", P7 continued). `(*wal.WAL).Close()` returns `w.sync()`'s error before it
 closes any lock (S/wal.go:1060-1066): the locks stay held, the handle's ghost (the lock token) cannot be put back,
-and what the handle held of the WAL directory stays the caller's. `walCloseLeft R dir` is that: the shared
-invariant of the roots `R` and a path to `dir` (its inode `j`), the handle's half of the directory's claim
+and what the handle held of the WAL directory stays the caller's. `walCloseLeft dir` is that: the shared
+invariant of some roots `R` and a path to `dir` under them (its inode `j`; the area's, `walInv_dirPath`), the handle's half of the directory's claim
 (`osNames j (.except X)`, the names `X` it leaves out not `.wal` names), with the layout's facts about its names
 (the named segments `segs`, in name order, each a `walFileName`, the last `gL`), the last segment's lock (held
 through the tail's description, of `fileutil`'s kind), and the call permission's half the handle and its pipeline
-held. Exactly what `wal.Repair.specHeld` takes but the client's half of the call permission: so the boot path
+held. Exactly what `wal.Repair.specHeld` takes but the client's half of the call permission and `dir`'s length
+bound (`Open`'s premise, which the caller knows; unit `closefailed` moved it out of `CloseLeftOk`): so the boot path
 (`openWALFromSnapshot`: a failed `ReadAll`, `w.Close()` ignored, `Repair`) composes
 (`CloseFailedRepair.lean`). Lean-first.
 -/

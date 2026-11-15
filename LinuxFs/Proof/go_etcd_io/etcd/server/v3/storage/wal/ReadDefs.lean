@@ -1,7 +1,7 @@
 /-
 The read-phase handles of the WAL over `fsExt` (W3/W5 of `notes/wal-fsext-plan.md`): what `Open`
 returns and `ReadAll` takes (`walOpeningF`), what `OpenForRead` returns (`walReadOnlyF`), and what a
-failed `ReadAll` leaves (`walReadFailedF`), the program-level counterparts of the ghost
+failed `ReadAll` leaves (`walReadFailedF`, its body `walFailH`: unit `closefailed`), the program-level counterparts of the ghost
 `walOpening`/`walReadFailed` (`Ghost.lean`), as `walOpenWF` (`Handle.lean`) is of `walOpenW`. The
 three are sealed: the specs that mention them (`LinuxFs/Spec/.../wal/{Open,OpenForRead,WAL__ReadAll}.lean`)
 do not depend on their bodies.
