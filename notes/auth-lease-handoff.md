@@ -17,11 +17,23 @@ with `auth-lease-scope` merged).
   coordinator's go to run `etc/land.sh`.
 - **S2 Draft** (design text): `notes/auth-lease-s2-draft.md`, reviewed in rounds (`/shared/tmp/auth-lease/`).
 
+- S1 landed: lean `28b89b9dd6` (2026-11-14).
+- **S2 (apply layer at the latest state with a lessor), proved, 2026-11-15** (Freeze approved by
+  etcd-grove-81 with the five design choices): `AuthLatest` (lease vocabulary, `isAuthStoreL`'s snapshot
+  clause), `AuthApplyLatestPut` (`checkLeasePuts{,Keys}.specL`, `checkPutAuth.specL`, `Put.specL`),
+  `AuthApplyLatestTxn` (`txnPutsW`, `txnOutLL`, the txn checks), `AuthApplyLatestRevoke` (new:
+  `revokePreW`, `LeaseRevoke.specL`), `AuthApplyLatest` (`authOutLL`, `kvPostFL` + lease class),
+  `DispatchKVL` (`authKVKind`, `kvOutL`/`kvShapedL` with leases, `applierKVL`'s revocation triple,
+  `dispatch.kvSpecL` widened, the revocation branch), `ApplyKVL`/`ApplyFnKVL` widened, `UberKVLBase`,
+  server: `KVOutcomeOn` (`txnPutsW_plain`, `authOutL_of_kvOutL` over `plainCover`), `ApplyNormalOn`,
+  `UberOn`, `UberKit` (`LeaseRevoke.specL`), `EtcdServer__applyEntryNormal`, `Results`
+  (`apply_lease_revoke_latest`). Full build green; lean `dd068e790f` merged.
+
 ## Next, in order
 
-1. Land S1 when the coordinator says lean is free (merge lean first; `etc/land.sh`).
-2. S2: finish the review rounds, then the Freeze package (hard stop), then the Lean Draft and Prove.
-3. S3, S4 as the Scope.
+1. Land S2 when the coordinator says go (record the mode gate's decrease, `etc/mode-check.py --check
+   --update`, from S1's `infoBoundTM` removal).
+2. S3 (the auth-on server with leases), S4 as the Scope.
 
 ## Pitfalls
 
