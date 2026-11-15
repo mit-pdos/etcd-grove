@@ -7,6 +7,9 @@ changed definition old → new, the lemmas it moves, what S3b/S3c take from it. 
 survey of the auth-on side's "no lease" dependencies (summarized in `/shared/tmp/auth-lease/s3-scope-gap.md`'s
 addendum), S2's apply layer (on lean, `c3da59fa29`).
 
+**Revision 2 (2026-11-15)**: review round 2's N2–N5 and second-tier points applied (§3, §3a, §5, §6, §7, §8);
+N1 (§3a's source of the lease-exact facts: the class track) waits for etcd-grove-81's re-decision (§11).
+
 **Revision 1 (2026-11-15)**, after review round 1 and etcd-grove-81's decisions (F1 (ii), F2 (a), F3 accepted):
 new §3a (the lease-exact outcome), §5 rewritten (the snapshot path carries the leases), §2's claims of lease
 entries (F3), and the second-tier points (S1–S3, S6).
@@ -113,7 +116,8 @@ def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IP
 - **What a lease entry's claim carries** (F3, accepted; S3b's obligation, a fixed statement): the proposal of
   a grant, a revocation or a leased put carries its client's update, fired at most once, as a KV write's
   (`kvAu1G γk (kvOpStep op) (writeGrantG …) Q`, `reqPropOkOn`'s second disjunct): `op = .leaseGrant id ttl` (the id
-  the member fixed before `raftRequest`), `.leaseRevoke id`, `.put o` with `o.leaseID ≠ 0`. `reqPropOkOn` gains
+  the member fixed before `raftRequest`), `.leaseRevoke id`, `.put o` with `o.leaseID ≠ 0`, and a leased
+  transaction's the existing `kvOpStep (.txn t)`. `reqPropOkOn` gains
   these at the revocable mode (S3b states it; S3a's `kvInvOn_commit_granted` consumes it, restated over
   `kvOpStep`'s lease arms, `KVModelDefs.lean:1096-1113`). S4: linearizable client specs of `Lease.Grant`/`Revoke`
   that fire them (accepted).
@@ -143,7 +147,9 @@ def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IP
   `applyStep_keep`, `kv_certPre_keep`: the table threaded; their `plainCover` premise → the admission.
 - `entryOkOn` (`ApplyNormalOn.lean:48`): `apply.rqOk .none x.log rq` → `apply.rqOk lm x.log rq` (`entryOkM on lm`
   passes the mode it already has); a grant at `lm ≠ none`, a revocation at `revocable`.
-- `srvKVInvsOn` (`KVApplyOn.lean:333`): drops `γr.kv.lg = false` (keeps `γr.kv.cmp = false`).
+- `srvKVInvsOn` (`KVApplyOn.lean:333`): `γr.kv.lg = false` → `γr.kv.lm = E.lm` (keeps `γr.kv.cmp = false`):
+  the tie of the model's mode (admission at `γk.lm`) to the environment's (`entryOkM`, `logShapeM` at `E.lm`, the
+  `ltHalf` tie at `E.lg`), as the off `srvKVInvs` has (`InvApplier.lean:375`; review r2 N5).
 
 ## 3a. The lease-exact outcome of a leased put or transaction (F1 (ii))
 
@@ -162,19 +168,25 @@ def apply.leaseExactL (ids : List w64) (rq : IRRModel) (log : mvcc.Log) (oc : Ou
   | .txn => ∀ t, rq.txn = some t →
       let br := t.branch (txn.txnOk (mvcc.stateAfter log) t)
       (oc.logAfter log ≠ log → txn.PathsLeaseOk (mvcc.stateAfter log) ids br) ∧
-      (oc = .rejected .backend → ¬ (txn.PathsIgnOk (mvcc.stateAfter log) br ∧
+      (txn.txnLeased t → oc = .rejected .backend → ¬ (txn.PathsIgnOk (mvcc.stateAfter log) br ∧
         txn.PathsLeaseOk (mvcc.stateAfter log) ids br))
   | _ => True
 ```
 
-- `kvOwn E log` becomes `∃ L, kvOwnAt E log L` (`leasesLive`'s live set exposed: `txn.leasesKnown L s ∗
-  lessorUser … L … ∗ ltHalf E L`); `kvPostFL` gains `∃ L, ⌜apply.leaseExactL L rq log oc⌝ ∗
+(Review r2 N2: the rejection arm guarded by `txn.txnLeased`, as `checkTxn.spec`/`Txn.specSole` are
+(`Spec/…/txn/Txn.lean:72-82`): `checkTxn` also rejects a get at a nonzero revision and a put with `IgnoreLease`
+and a dead lease, where both `PathsIgnOk` and `PathsLeaseOk` hold; a lemma `txnPlainL t → txnLeased t`. The put arm
+is right as stated and, with `kvOutL`, determines `backendLog` in every case, `needsPrev` included.)
+
+- `kvOwn`'s body stays; new `kvOwnAt E log L` (`leasesLive`'s live set exposed: `txn.leasesKnown L s ∗
+  lessorUser … L … ∗ ltHalf E L`) with the law `kvOwn E log ⊣⊢ ∃ L, kvOwnAt E log L` (review r2: `kvOwn_rd`,
+  `kvOwn_lend` and the ~30 unfoldings of `kvOwn` stay; `mPreRest_lend` unfolds `leasesLive`, unaffected). `L` is
+  `srvIds`'s live set where `E.lg`, unconstrained (and harmless) at the mode `none`. `kvPostFL` gains `∃ L, ⌜apply.leaseExactL L rq log oc⌝ ∗
   kvOwnAt E (oc.logAfter log) L` in place of its `kvOwn E (oc.logAfter log)` (a put or a transaction leaves the
   live set as it was). `ltHalf E L` ties `L` to `srvRest`'s auth-on table (§4).
 - Proved from: `txn.Put.spec`'s and `checkLease.spec`'s exactness in the live set (`applierV3backend__Put.lean:
-  97-170` splits on it); the transaction's `PathsLeaseOk` from the txn package's lease check. **Probe item (r1
-  S6, uncertain):** that the txn and backend specs cover leased transaction puts (the `checkTxn` lease path was
-  proved for lease-`0` workloads); if not, the txn package's lease check is part of S3a.
+  97-170` splits on it); the transaction's from the txn specs, already lease-exact for `txnLeased` transactions
+  and proved (review r2, answering r1 S6). **How the latest layer gets them: §11 (N1).**
 - Changes to S2's latest statements (a Freeze item): `kvPostFL`'s body, `apply.kvOwn`'s split (`kvOwnAt`, its
   laws `kvOwn_lend`, `kvOwn_rd`, `mPreRest_lend` restated), the latest triples' posts through `kvPostFL`
   (`Put`/`Txn`/`DeleteRange`/`LeaseRevoke.specL`, `applierKVL`, the four layer triples); the class track and
@@ -217,8 +229,21 @@ lease" and their auth-off pattern:
 | `ImageOn.lean` (`imageRestAtOn`, `dbImageOn`) | `kvTableOf_plainOn`, `crevOf_plainOn` | the image at the auth-on table | `ImageLeases.lean` |
 | `SnapRecvOn.lean:43-159, 290, 311, 333` (`kvEntryOn_growsOk`, `restorable`, `SnapImageFactsOn.nolease`, `kvTable_plainOn`, `kvTableOf_plainOn`) | lease-free log | `LogNoLease` replaced by the keys' invariant and the table; `restoreLogOk` with leased keys | `KVModelRestore.lean:234, 272` (off: still `LogNoLease`: the off log has no leased put either; the restore of leased keys is new on both sides) |
 | `SnapAuthRecover.lean` (`authRecoverOn.spec`, `plainLogOn A'`) | `plainLogOn` | `plainLogOn lm` | — |
+| **`Spec/…/EtcdServer__applySnapshot.lean:119`** (`specSnapM`'s `hnl : LogNoLease (kvModelM E.authOn γr.kv A')`), and its consumers `SnapApplyWalk`, `SnapApplyPost` (`srvSnapApplied_of_walk`), `SnapApplyKV`, `SnapApplyKVLemmas` (`leasesKnown_noLease`) | the model's log attaches no key | **a frozen spec premise restated** (review r2 N3): at auth on, the model's invariant below (every key's lease live in the table) in place of `LogNoLease`; mvcc's `store.Restore.spec` handles leased keys given every pending item's lease in `Recover`'s live set (`store__Restore.lean:156-158`) | none (the off log has no leased put) |
+| `snapRecv_imageOn` (`SnapRecvOn.lean:477`) | `E.lg = false` | the image's table | — |
+| `srvClusterBootOn_alloc` (`NewServerAllocOn.lean:65`) | `γk.lg = false` | the mode's (`γk.lm`) | `srvClusterBoot_alloc` |
 
-Est. +5–8 agent-days (in the revised 26–40). No closed theorem's statement changes (authkv and auth3 at the mode
+**A new model invariant** (review r2 N3, its proof sketched in the r2 report): `keysLeasesLive (s : OnState)`:
+every key the log's state attaches to a lease `id ≠ 0` has `id` in the table's ids (a leased put applies only at a
+live lease, `leaseMissingIn`; a revocation deletes its keys and drops its id; a refused revocation changes
+neither; a grant adds an id). Distinct from `keysNonEmpty`. It also gives `outcomeOn` on a revocation of a non-live
+id (`backendStep` applies `revokeLog` unconditionally, `backendLog` keeps the log; with the invariant, a non-live
+id has no key, so `revokeLog` commits nothing).
+
+The off path is **not** a pattern for leased keys (the off log has no leased put, it rests on `LogNoLease`
+throughout); it is one for the table and the lessor's records. Est. +7–11 agent-days for §5 (revised from +5–8;
+S3 26–40 stays the coordinator's figure, at its upper half). Unchecked (r2): whether restored leased keys meet
+`Restore`'s key-length bound (a Probe item). No closed theorem's statement changes (authkv and auth3 at the mode
 `none` take the same path with an empty table); no premise is added to `etcd_authlease_safe`.
 
 ## 6. The mode-`on` apply proofs
@@ -227,8 +252,11 @@ Est. +5–8 agent-days (in the revised 26–40). No closed theorem's statement c
   verdict, its premises from the admission and the keys' invariant, no more `plainCover` discharge); new
   branches for a grant (the general `Apply.spec`, as a cluster request: the off arm's `srvEver_applyPre`,
   `kv_entry_grantFresh`, `grantReqA_of_res`), and a revocation (the latest triple's revocation, S2: `revokeOwn`,
-  `ltHalf`, `revokeRestA`; the off arm's `revokeA_drop`, `revokeArM_of_res`) — each the off arm's step with the
-  auth-on model (`kvEntryOn`, the refused case keeping the table).
+  `ltHalf`, `revokeRestA`; the off arm's `revokeA_drop`, `revokeArM_of_res` for the lessor's side).
+- **The revocation's KV side is new work** (review r2 N4): the off arm assumes a revocation deletes nothing
+  (`kvEntry_revoke`, `kv_certPre_G`, `batchStep_plainMG` take `LogNoLease`, `ApplyCmpArm.lean:288-300, 367,
+  657-668`); with leased puts it commits the lease's keys' deletions, which need the commit's certificate, the
+  batch step and the history step for a non-empty commit (S2's backend revoke triple is already general).
 - `EtcdServer__apply.wp_proofOn`: the batch's rows at the table (`kvAppliedOn`'s `lt`, `srvRest`'s on table).
 - `ModeSpecs.applyEntryNormal.specOn` keeps its `srvLessorNil s` until S3c (unused since S2).
 - The KV branch's verdict: `kvOutL` and `leaseExactL` (§3a) at the live set the `ltHalf` ties to
@@ -246,18 +274,20 @@ Est. +5–8 agent-days (in the revised 26–40). No closed theorem's statement c
   `server_member_alloc_on` (`kvInvOn`'s body).
 - The latest track (§3a): `apply.kvOwn` (split into `kvOwnAt`), `kvPostFL`'s body, new `apply.leaseExactL`;
   through them the latest triples' posts (S2's statements, re-frozen here).
-- The snapshot path (§5): `applyAll.specSnapM` and the on image predicates (`imageRestAtOn`, `dbImageOn`,
-  `SnapImageFactsOn`), their `lg = false` rows replaced by the table.
+- The snapshot path (§5): **`EtcdServer.applySnapshot.specSnapM`'s `LogNoLease` premise** (a `Spec/` statement)
+  replaced at auth on by `keysLeasesLive`; the on image predicates (`imageRestAtOn`, `dbImageOn`,
+  `SnapImageFactsOn`) at the table. (`applyAll.specSnapM`'s `lg = false` was already removed on 2026-11-05,
+  `EtcdServer__applyAll.lean:217`.)
 - Interfaces: `interface/…/etcdstart/Alloc3On.txt` (`kvInvOn` in a statement), regenerated and reviewed.
-- Specs: none of `Spec/` changes in S3a (`logShapeM true` → `logShapeOn E.lm`: `logShapeM on lm` already takes
-  the mode; `entryOkM` too). `applyAll.specSnapM`'s `γr.kv.lg = false` stays.
+- Specs: `EtcdServer.applySnapshot.specSnapM` (above); otherwise `logShapeM true` → `logShapeOn E.lm` and
+  `entryOkM` pass the mode they already take.
 - Closed theorems: none (authkv, auth3 at the mode `none`).
 - No axiom, no trusted text.
 
 ## 8. Order of work (after the Freeze)
 
-0. Probe: the txn/backend specs on leased transaction puts (r1 S6); `kvOwnAt`'s split against `applierV3backend.Put`'s
-   proof (§3a).
+0. Probe: `kvOwnAt` against `applierV3backend.Put`'s proof (§3a); `Restore`'s key-length bound on restored leased
+   keys (§5).
 1. The model (§1) with the probe's lemmas; the keys' invariant; `KVAuthBridge`'s `leaseOk_iff`.
 2. `kvInvOn` (§2) and its alloc; `srvRest`'s `appliedTableM` (§4).
 3. The latest track's lease-exact outcome (§3a); the apply thread's model (§3).
@@ -299,3 +329,21 @@ Second tier (to apply with the revision): `appliedTableM` generic in `st₀` (S1
 beyond `lm = none` (S2); `keysNonEmpty` derived, relying on `txn = txnW.toModel` (S3); check that the txn and
 backend specs cover leased transaction puts (S6, uncertain; the `checkTxn` lease path was proved for lease-0
 workloads).
+
+## 11. Review round 2 (fresh `spec-reviewer`, `/shared/tmp/auth-lease/s3a-review-r2.md`): N1 needs a re-decision
+
+N2–N5 and the second-tier points are applied above. **N1:** §3a cannot be proved with the class track untouched.
+The auth applier's latest `Put`/`Txn` triples reach the inner applier only through `applierSpec` →
+`applierTriples` (`apply/AuthApplyLatestPut.lean:104`, `apply/Chain.lean:2005, 2023, 2086`), whose posts are the
+class track's `kvPostF` (`Chain.lean:1629-1633`): `backendStep` and a `kvOwn` whose live set is not tied to the
+pre's; `auth_pass_kvPostFL` lifts exactly that, so the latest layer has nothing to prove `leaseExactL` from (the
+facts are inside `applierV3backend.Put`/`.Txn`'s proofs). Options:
+
+- **(ii′) (recommended):** `kvPostF` gains the same conjunct (`∃ L, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E
+  (oc.logAfter log) L`), proved by the backend's `Put`/`Txn` (where the facts are) and passed through the quota,
+  capped and corrupt layers' `Put`/`Txn` specs and `kvPost`'s other users (a vacuous `True` for the other kinds).
+  A change to the class track's `kvPostF` (lease-keys Part A's frozen vocabulary? `kvPost`/`kvPostF` are in
+  `Chain.lean`; their users are the chain's `X.spec`s), but `backendStep` stays.
+- (i): `backendStep` takes the live set (`Chain.lean`'s core definition; every track's outcome relation).
+
+Either way the class track changes, which (ii) was chosen to avoid.
