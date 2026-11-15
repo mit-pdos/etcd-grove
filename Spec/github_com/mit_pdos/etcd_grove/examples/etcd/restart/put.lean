@@ -1,20 +1,19 @@
 /-
-`put(cli, k, v)` (`examples/etcd/restart/restart3.go`; the restart plan's R2, 2026-11-02): `cli.Put` of
-`k ↦ v` in a context with the request timeout, cancelled after the call. Lean-first (no Rocq
-counterpart).
+`put(s, i)` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15, restart1's `put`): `s.Put` of
+`key(i) ↦ value(i)` through the server's own API, in a context with the request timeout, cancelled
+after the call. Lean-first (no Rocq counterpart).
 
-**`spec`, a put of the client invariant's key:** for `New`'s client `cl` of the endpoint `ep`, whose
-registrations are a member's (`kvRegsAt`), under the client's invariant for `key ↦ val`
-(`client.putGetInv`): an error, or `nil` and the put's flag (`monoNatLbOwn γf 1`: the put fired, so
-`key`'s value is `val` from then on).
-
-**`specOther`, a put of another key** (`key' ≠ key`): an error or `nil`; the invariant's key keeps
-its value (`client.client_Put_other`).
+**The triple:** at a started member's request view (`isServerReq`, auth off) and the revocation's
+built part (`srvRevokeBuilt`, from which the call borrows its `leadTimeMu` slot and `E.RD` at level 2
+of the thread token, and gives them back), under `restart3`'s KV invariant (`r3Inv`), with the
+driver's half of the put counter at `i < NPuts`: the thread token back, and `nil` with the counter's
+half at `i + 1` (the put fired: the range holds the first `i + 1` pairs), or an error.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.KV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Defs
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -25,6 +24,7 @@ namespace EtcdGrove
 namespace etcd_restart
 
 open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+open etcd_restart1 (r1PutOp)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,34 +35,17 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 
 /-- See the file header. -/
 abbrev put.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (cl : Loc) (ep : GoString) (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
-    (γf : GName) (cid mid : w64) (key val : GoString),
-  opSizeOk (opPutModel key val []) →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γc : GName) (i : Nat)
+    [ReceiptBoundLe GF (2 ^ 48)],
+  i < r3NPuts → E.authOn = false → srvLevels (GF := GF) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      isNewClient cl [ep] V ∗ client.kvRegsAt (⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF) ∗
-      client.putGetInv γr γf key val }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.put))
-      (Val #cl)) (Val #key)) (Val #val))
-  {{ (err : GoInterface), RET #err;
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ monoNatLbOwn γf 1) }}
-
-/-- See the file header (`specOther`). -/
-abbrev put.specOther : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (cl : Loc) (ep : GoString) (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
-    (γf : GName) (cid mid : w64) (key val key' val' : GoString),
-  key' ≠ key → opSizeOk (opPutModel key' val' []) →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      isNewClient cl [ep] V ∗ client.kvRegsAt (⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF) ∗
-      client.putGetInv γr γf key val }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.put))
-      (Val #cl)) (Val #key')) (Val #val'))
-  {{ (err : GoInterface), RET #err; True }}
+      isServerReq s E ρ ∗ srvRevokeBuilt s E ∗ threadTok ∗
+      r3Inv ρ.kv γc ∗ monoNatAuthOwn γc (1 : Qp).half i }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.put))
+      (Val #s)) (Val #(W64 (i : Int))))
+  {{ (err : GoInterface), RET #err; threadTok ∗
+      ((⌜err = GoInterface.nil⌝ ∗ monoNatAuthOwn γc (1 : Qp).half (i + 1)) ∨
+        ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

@@ -983,10 +983,12 @@ PROJECTS = [
     ),
     Project(
         name="restart3",
-        # putget3 with a follower stopped (HardStop) and started again on its data directory
-        # (notes/restart-plan.md): the WAL replayed, a snapshot found in it, the member caught
-        # up by a snapshot. A package of the examples' Go module (examples/go.mod); its imports
-        # are the etcd project's translations (names reached through the empty root).
+        # The three-member restart example (restart3, notes/restart3-scope.md §4): in-process Puts
+        # through member 1 before and while a follower is stopped (HardStop), the follower started
+        # again on its data directory (the WAL replayed past a snapshot record, a merged snapshot
+        # installed), its peer address served by the example's swap handler, and an in-process
+        # Range at it checked exactly. A package of the examples' Go module (examples/go.mod); its
+        # imports are the etcd project's translations (names reached through the empty root).
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "restart"),

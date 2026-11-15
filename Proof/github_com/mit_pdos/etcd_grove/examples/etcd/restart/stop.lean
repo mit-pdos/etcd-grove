@@ -1,7 +1,7 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restart/stop.lean` (the restart plan's R2a,
-2026-11-02): `m.s.HardStop()`, then `m.pl.Close()`, over the drafted `HardStop.spec` and the draft
-boundary `http.ListenerClose_spec`. Lean-first (no Rocq counterpart).
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restart/stop.lean` (restart3 C2, 2026-11-15, restart1's (restart S7.5, step e,
+2026-11-14): the `AppliedIndex()` wait, then `s.HardStop()` (`HardStop.spec`); restart3's `stop.wp_proof`
+without the listener close. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -31,27 +31,18 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 
 theorem stop.wp_proof
     (wp_AppliedIndex : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
-    (wp_HardStop : EtcdServer.HardStop.spec (GF := GF) (hG := hG))
-    (hClose : http.ListenerClose_spec (GF := GF) (hG := hG)) :
+    (wp_HardStop : EtcdServer.HardStop.spec (GF := GF) (hG := hG)) :
     stop.spec (GF := GF) (hG := hG) := by
-  intro m s pl γ id peerAddr γn ρ name
-  wp_start as ⟨Hm, Hres, %Hb3⟩
-  iunfold memberStop at Hm
-  icases Hm with ⟨Hrec, #Hdd, %Hli, Hcl, %Hγρ, #Hai⟩
-  subst Hγρ
-  iunfold memberStopRes at Hres
-  icases Hres with ⟨%Es, %dd, Hsr, %Hsc, Hrds⟩
-  icases srvStopRight_dd s Es _ ρ id dd _ $$ [$Hsr $Hdd] with ⟨%Hdd', Hsr⟩
+  intro s E Ea ρ id dd γn name Hb1 Hsc
+  wp_start as ⟨#Hai, #Hdd, Hsr, Hrds⟩
+  icases srvStopRight_dd s E _ ρ id dd _ $$ [$Hsr $Hdd] with ⟨%Hdd', Hsr⟩
   subst Hdd'
-  icases Hai with ⟨%E, #Hai⟩
-  obtain ⟨li, rfl⟩ := Hli
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   wp_auto
-  -- the wait: `for m.s.AppliedIndex() < NBoot { time.Sleep(time.Millisecond) }`; on exit the
-  -- member applied the bootstrap log
-  wp_for Hrec
-  wp_apply (wp_AppliedIndex false s E ρ.rd) as %v #Hv
+  -- the wait: `for s.AppliedIndex() < NBoot { time.Sleep(time.Millisecond) }`
+  wp_for s
+  wp_apply (wp_AppliedIndex false s Ea ρ.rd) as %v #Hv
   · rw [srvAppliedInvM_false]; iframe #
   (try wp_auto)
   wp_if_destruct
@@ -63,25 +54,20 @@ theorem stop.wp_proof
     intro h; apply Hif; congr 1; simp only [decide_eq_true_eq]; word
   rw [if_neg (by simpa using Hnlt)]
   wp_auto
-  dsimp only
   have Hba : ρ.rd.raft.raft.boot.length ≤ uint.nat v := by
     word
-  -- `m.s.HardStop()`
-  wp_apply (wp_HardStop s Es ρ.rd.raft.raft ρ id (name ++ go!".etcd")) $$ [Hsr Hrds] as Himg
+  -- `s.HardStop()`
+  wp_apply (wp_HardStop s E ρ.rd.raft.raft ρ id (name ++ go!".etcd")) $$ [Hsr Hrds] as Himg
   · iframe Hsr
-    iframe #
-    iapply srvStopReq_intro s Es ρ (name ++ go!".etcd") Hsc
+    iapply srvStopReq_intro s E ρ (name ++ go!".etcd") Hsc
     isplitr
     · iapply srvBootApplied_of_applied ρ v Hba $$ Hv
     isplitr
     · iexact Hdd
     iexact Hrds
-  -- `m.pl.Close()`
-  wp_apply (hClose _ li peerAddr (raftProto (netRh γn)) rfl) $$ [Hcl] as %err ⟨Haddr, Hown⟩
-  · iexact Hcl
   iapply HΦ
-  iapply etcdstart.memberRestartRes_intro
-  iframe
+  iapply etcdstart.memberRestartRes_intro0
+  iexact Himg
 
 end proof
 

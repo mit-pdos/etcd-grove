@@ -1,8 +1,9 @@
 /-
-`Main()` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): `Run` with
-no logging (`zap.NewNop()`). Lean-first (no Rocq counterpart).
+`Main()` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15): `Run(zap.NewNop())`.
+Lean-first (no Rocq counterpart).
 
-**The triple:** `Run.spec`'s, at the logger `zap.NewNop` returns.
+**The triple:** `Run.spec`'s, at the logger `zap.NewNop` returns: from the members' start bundles (program
+start gives them, D19d), the main thread's token and `Run`'s named premises, no panic.
 -/
 module
 
@@ -27,20 +28,18 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
-  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  BootFacts id₁ id₂ id₃ ps ctxs boot →
   srvLevels (GF := GF) →
-  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  runPure id₁ id₂ id₃ ps ctxs boot →
-  v3rpc.ServerMethodSets →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      runRes N id₁ id₂ id₃ ps ctxs boot }}
+      etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, none⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, none⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, none⟩ ∗
+      threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.Main)) (Val #()))
   {{ RET #(); True }}
 

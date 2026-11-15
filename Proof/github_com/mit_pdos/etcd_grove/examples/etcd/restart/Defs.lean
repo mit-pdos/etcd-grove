@@ -1,32 +1,25 @@
 /-
-**restart3's `Run` and its functions: their named premises and vocabulary** (the restart plan's
-R2a, 2026-11-02, `notes/restart-plan.md`; DRAFT). Lean-first (no Rocq counterpart). putget3's
-(`putget3/Defs.lean`) for the members of `examples/etcd/restart/restart3.go`, with a member's stop and
-restart.
+**restart3's `Run` and its functions: their named premises and vocabulary** (restart3 C2,
+2026-11-15, `notes/restart3-handoff.md`; the restart plan's R2a draft until then). Lean-first (no Rocq
+counterpart). putget3's (`putget3/Defs.lean`) for the members of `examples/etcd/restart/restart3.go`,
+with a member's stop and restart.
 
 **The pure facts** (`BootFacts`): putget3's, for `restart3`'s three configurations (the cluster
 token `restart3`; `TestMemberIDs` in `restart3_test.go` prints the ids).
 
 **The Iris premises** (`premises`, persistent): `bootstrap`'s contract for each member's first
 start (`etcdstart.bootPremise`, in the shared start's form) and, for members 2 and 3 (either may be the
-one stopped), its restart case (`etcdstart.bootPremiseR`, R2c); `proto.Marshal`'s contract at the
+one stopped), its restart case (`etcdstart.bootPremiseR`); `proto.Marshal`'s contract at the
 bootstrap log (`bootMarshal`); the members' shared premises (`etcdstart.commonPremises`).
-
-**A stoppable member** (`memberStop`): what `startMember` returns besides the started member
-(`etcdstart.memberUp`) and `stop` takes: the `member` record, its server's data directory
-(`srvDataDir`), and the right to close its peer listener (`http.httpListenerCloser`, the draft
-boundary of `Proof/net/http/ListenerClose.lean`). The right to stop its server is in `memberUp`
-(R2c-4); what the stop takes of the started member (the right, the stop's scope, the unused serving
-readers) is `memberStopRes`, split off `memberUp` by `memberUp_stopRes`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Base
-public import Proof.net.http.ListenerClose
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Swap
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 
@@ -59,7 +52,7 @@ abbrev peerAddr₁ : GoString := go!"127.0.0.1:23861"
 abbrev peerAddr₂ : GoString := go!"127.0.0.1:23862"
 abbrev peerAddr₃ : GoString := go!"127.0.0.1:23863"
 
-/-- The members' client addresses (served by `serveClient`: member 1's, and the restarted member's after its restart). -/
+/-- The members' client addresses (each member's one client URL `http://` of it; not served). -/
 abbrev clientAddr₁ : GoString := go!"127.0.0.1:23864"
 abbrev clientAddr₂ : GoString := go!"127.0.0.1:23865"
 abbrev clientAddr₃ : GoString := go!"127.0.0.1:23866"
@@ -90,8 +83,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Assumptions]
 
 /-- **The token of `restart3`'s cluster.** -/
 abbrev token : GoString := go!"restart3"
@@ -119,55 +111,37 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
     Persistent (premises (GF := GF) N id₁ id₂ id₃ ps ctxs boot) := by
   unfold premises; infer_instance
 
-/-- **A stoppable member** (DRAFT; see the file header): the `member` record at `m` (its server
-`s`, its peer listener `pl`), the server's data directory `dd` (`srvDataDir`, which the stop
-request carries), and the right to close `pl`, served at `peerAddr` with member `id`'s raft
-protocol in the network `γn`; (R2b-2, 2026-11-02) the raft names `ρ` record the cluster's `γ`, and
-the applied index's invariant (`srvAppliedInv`, `AppliedIndex()`'s premise: `stop` waits on it until
-the bootstrap log is applied). (R2c-4, 2026-11-05: the right to stop `s`, with the stop's scope, is
-no longer here: it is `memberStopRes`'s, out of `memberUp`.) -/
-def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
-    (γn : NetNames GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
-  iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk s pl) ∗
-    srvDataDir s dd ∗
-    ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
-    http.httpListenerCloser pl peerAddr (raftProto (netRh γn)) ∗
-    ⌜ρ.rd.raft.raft = γ⌝ ∗ (∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd))
+/-- A handler's contract is persistent (its body is). -/
+instance handlerOk_persistent' (H : http.HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) :
+    Persistent (http.handlerOk H a Rs h) := by
+  unfold http.handlerOk; infer_instance
 
-/-- (R2c-4) **What a member's stop takes of the started member**: the right to stop its server
-(`srvStopRight`, `Start`'s, inside `etcdstart.memberUp`), at an apply environment in the stop's scope
-(`srvStop.scope`), and the store's readers of the serving stocks the member never used
-(`srvStopReaders`: the gRPC run pool's raw stock), which the stop request hands `run`'s shutdown. -/
-def memberStopRes (s : Loc) (ρ : ReqNames) (id : w64) : IProp GF :=
-  iprop(∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ ⌜srvStop.scope E⌝ ∗
-    srvStopReaders E)
+/-- **The swap's lock invariant** (`Swap.lean`): the handler `sw.h` of the current incarnation, a
+handler of the member's peer address `a` lending its incarnation's resource, and the mutex's view of
+the current incarnation. -/
+def swLock (sw : Loc) (γS : SwNames) (γn : NetNames GF) (a : GoString) : IProp GF :=
+  iprop(∃ (h : _root_.Perennial.net.http.Handler) (c b : GName) (τ : SrvTr GF),
+    structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap go!"h" sw ↦ h ∗
+    swCur γS γn c b τ ∗ http.handlerOk (raftHttpNet (netRh γn)) a (srvServeRes γn τ) h)
 
-/-- (R2c-4) **A started member that will not serve, split for its stop**: its request view and
-`GoAttach` resources, and what its stop takes (`memberStopRes`), out of compaction mode. -/
-theorem memberUp_stopRes (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
-    (γn : NetNames GF) (id : w64) (hcmp : E₀.cmp = false) :
-    etcdstart.memberUp (GF := GF) s ρ E₀ lg γn id ⊢
-      (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
-        memberStopRes s ρ id := by
-  iintro Hup
-  icases etcdstart.memberUp_stop hRS s ρ E₀ lg γn id .none $$ Hup with ⟨Hl, %E, %dd, Hr, %hsc, Hrd⟩
-  iframe Hl
-  iunfold memberStopRes
-  iexists E, dd
-  iframe Hr Hrd
-  ipureintro; exact ⟨hsc.1, by rw [hsc.2, hcmp]⟩
+/-- **A member's peer handler** (persistent): `sw.mu` a mutex guarding `swLock`, and the swap's
+global invariant, at `http.Serve`'s slot count. -/
+def swapOk (sw : Loc) (γS : SwNames) (γn : NetNames GF) (a : GoString) : IProp GF :=
+  iprop(⌜γS.n = http.httpProcSlots⌝ ∗ ∃ mu : Loc,
+    structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap go!"mu" sw ↦□ mu ∗
+    sync.isMutex mu (swLock sw γS γn a) ∗ swGInv γS)
 
-/-- A started member's applied index's invariant (from its reader's view, `isServerRead`). -/
-theorem memberUp_applied (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
-    (γn : NetNames GF) (id : w64) :
-    etcdstart.memberUp (GF := GF) s ρ E₀ lg γn id ⊢
-      etcdstart.memberUp s ρ E₀ lg γn id ∗ ∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd := by
-  refine persistent_entails_left ?_
-  iintro Hup
-  icases etcdstart.memberUp_served s ρ E₀ lg γn id .none $$ Hup with ⟨%E, %cfg, %γw, -, -, #Hrd, -⟩
-  iexists E
-  iapply isServerRead_applied
-  iexact Hrd
+instance swapOk_persistent (sw : Loc) (γS : SwNames) (γn : NetNames GF) (a : GoString) :
+    Persistent (swapOk sw γS γn a) := by
+  unfold swapOk; infer_instance
+
+/-- **A member's record**: its peer handler `sw` (`swapOk`, at the member's peer address
+`peerAddr`), its name, peer URLs (`[http://peerAddr]`) and client address. -/
+def memberRec (m : Loc) (γS : SwNames) (γn : NetNames GF) (name peerAddr client : GoString) :
+    IProp GF :=
+  iprop(∃ (sw : Loc) (peer : GoSlice),
+    m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk sw name peer client) ∗
+    peer ↦*□ [etcdstart.httpURL peerAddr] ∗ swapOk sw γS γn peerAddr)
 
 end defs
 

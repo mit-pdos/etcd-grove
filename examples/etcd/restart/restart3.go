@@ -1,12 +1,34 @@
-// Package restart is putget3 (examples/etcd/putget3) with a member stopped and started again on its
-// data directory (notes/restart-plan.md): three etcd members started in-process, a Put of another
-// key through the first, a follower other than the first stopped (HardStop, its peer listener
-// closed), Puts of the key through the first, that member started again -- same name, data
-// directory and addresses -- and a Get of the key through it, checked against the last Put: a
-// restarted member that missed the Puts made while it was stopped finds no value. Only the first member's gRPC API is served before
-// the restart, and the restarted member's after it. The members take a snapshot every other entry
-// and keep one entry below it (linkv3p's settings), so the restarted member finds a snapshot in its
-// WAL and is caught up by a snapshot from the leader.
+// Package restart is the three-member restart example (restart3, notes/restart3-scope.md §4): three
+// etcd members started in-process, N1 Puts of distinct keys through member 1's own API
+// ((*EtcdServer).Put, the call v3rpc's kvServer.Put makes; member 1 may be a follower, which
+// forwards the proposal), a follower other than member 1 stopped gracefully (HardStop, in the same
+// process), N2 more Puts of distinct keys through member 1 while it is down (the other two keep the
+// quorum), the stopped member started again on its data directory -- same name, addresses and
+// settings -- and one linearizable Range of the keys through the restarted member's own API, checked
+// exactly: every acknowledged Put's key with its value, at version 1 (applied once), the response's
+// revision 1 + N1 + N2 (the store's first revision and one per Put), and nothing else in the range.
+// A restart that lost an acknowledged write (one made before the stop, or one made while the member
+// was down), applied one twice (its version 2, the revision higher) or invented one fails the check.
+// The check does not compare the keys' create and mod revisions.
+//
+// The members take a disk snapshot every applied entry and compact raft's log to one entry below it
+// (SnapCount = SnapCatchUp = 1), so that the restarted member's WAL holds a snapshot record (the
+// restart replays the WAL past it) and the leader compacts past the stopped member's last index
+// while it is down (the restarted member may then be caught up by a merged snapshot, which the
+// verified fork defers while its sender is inside its own replay window).
+//
+// Each member's peer address is served by one listener for the whole run, through the example's own
+// handler (raftSwap), which forwards each request to the current incarnation's raft handler and is
+// swapped to the restarted incarnation's under a mutex before it starts (D-R3-4; each incarnation is
+// built before its handler is served or swapped in, so the handler is never unset): the address is
+// never closed or listened on again. A request that reached the stopped incarnation's handler before
+// the swap may still run in it; it finds that incarnation stopped.
+//
+// Before the Range, the driver waits until the restarted member knows a leader (restart1's: a
+// linearizable read begun earlier can fail with ErrLeaderChanged). A liveness wait, as stop's wait on
+// AppliedIndex().
+//
+// "Restart" here is a graceful stop in one process: not a kill, a SIGKILL or a power loss.
 //
 // Main panics if the check fails; the adequacy theorem to prove is that it does not. An error from
 // any step ends Main without a check, as in putget3.
@@ -16,20 +38,21 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/types"
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
-// The members' peer and client addresses (each member's one peer URL is http://<peer addr>, its
-// raft handler's; its client address is its gRPC server's, a plain host:port). Not another
-// example's, so that the examples' tests can run at once.
+// The members' peer and client addresses (each member's one peer URL is http://<peer addr>, served by
+// its raftSwap; its client URL http://<client addr> is not served: the program serves no gRPC). Not
+// another example's, so that the examples' tests can run at once.
 const (
 	peerAddr1   = "127.0.0.1:23861"
 	peerAddr2   = "127.0.0.1:23862"
@@ -39,9 +62,16 @@ const (
 	clientAddr3 = "127.0.0.1:23866"
 )
 
+// The members' names, and the cluster's token.
+const (
+	name1 = "restart3-1"
+	name2 = "restart3-2"
+	name3 = "restart3-3"
+	token = "restart3"
+)
+
 // The members' snapshot settings (etcdstart.BuildServer): a disk snapshot every SnapCount applied
-// entries, raft's log then compacted to SnapCatchUp entries below it, so that the stopped member
-// is caught up by a snapshot once started again.
+// entries, raft's log then compacted to SnapCatchUp entries below it.
 const (
 	SnapCount   uint64 = 1
 	SnapCatchUp uint64 = 1
@@ -50,143 +80,207 @@ const (
 // NBoot is the number of the cluster's bootstrap entries: one configuration change per member.
 const NBoot = 3
 
-// NPuts is the number of Puts made while the third member is stopped: enough that the leader
-// compacts its log past the stopped member's last index.
-const NPuts = 20
+// N1 is the number of Puts before the stop, N2 the number while the member is down (N1 + N2 at most
+// 256: key i is "k" followed by the byte i). Any N2 >= 1 lets the leader compact past the stopped
+// member at SnapCatchUp = 1.
+const (
+	N1 = 5
+	N2 = 20
+)
 
-// A member: its server and its peer listener (serving its raft handler), kept so that stop can
-// close it.
-type member struct {
-	s  *etcdserver.EtcdServer
-	pl net.Listener
+// key is the i-th Put's key, "k" followed by the byte i (i < 256): the keys are distinct, in the
+// order of i, and all in [RangeKey, RangeEnd).
+func key(i int) []byte {
+	return []byte{'k', byte(i)}
 }
 
-// startMember starts member name of the cluster cluster (token "restart3"), whose peer URLs are
-// peer (the one URL http://peerAddr): the server built (etcdstart.BuildServer, at the snapshot
-// settings), its raft handler served on a listener at peerAddr, and the server started. Its client
-// URL is http://client, served only by serveClient. Starting a member that was stopped finds its
-// data directory (the member's name + ".etcd"): etcd restarts it from its WAL.
-func startMember(name string, peer types.URLs, peerAddr string, client string,
-	cluster types.URLsMap, lg *zap.Logger) (*member, error) {
-	s, err := etcdstart.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)
-	if err != nil {
-		return nil, err
-	}
+// value is the i-th Put's value, "v" followed by the byte i.
+func value(i int) []byte {
+	return []byte{'v', byte(i)}
+}
+
+// The Range after the restart: every key that begins with "k".
+const (
+	RangeKey = "k"
+	RangeEnd = "l"
+)
+
+// raftSwap is a member's peer handler: it forwards each request to the handler h of the member's
+// current incarnation, which set replaces under mu.
+type raftSwap struct {
+	mu *sync.Mutex
+	h  http.Handler
+}
+
+// ServeHTTP serves r with the current incarnation's handler.
+func (sw *raftSwap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	sw.mu.Lock()
+	h := sw.h
+	sw.mu.Unlock()
+	h.ServeHTTP(w, r)
+}
+
+// set makes h the handler of the member's current incarnation.
+func (sw *raftSwap) set(h http.Handler) {
+	sw.mu.Lock()
+	sw.h = h
+	sw.mu.Unlock()
+}
+
+// A member: its peer handler, served at its peer address for the whole run, and its name, peer URLs
+// and client address, for its restart.
+type member struct {
+	sw     *raftSwap
+	name   string
+	peer   types.URLs
+	client string
+}
+
+// build builds an incarnation of member name of the cluster cluster, with peer URLs peer and client
+// URL http://client (etcdstart.BuildServer, at the snapshot settings), not yet started. Building a
+// member that was stopped finds its data directory (the member's name + ".etcd"): etcd restarts it
+// from its WAL.
+func build(name string, peer types.URLs, client string, cluster types.URLsMap,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	return etcdstart.BuildServer(name, peer, client, cluster, token, SnapCount, SnapCatchUp, lg)
+}
+
+// newMember serves member name's peer handler on a listener at peerAddr, forwarding to the built
+// first incarnation s's raft handler, and starts s.
+func newMember(s *etcdserver.EtcdServer, name string, peer types.URLs, peerAddr string,
+	client string) (*member, error) {
 	pl, err := net.Listen("tcp", peerAddr)
 	if err != nil {
 		return nil, err
 	}
-	go http.Serve(pl, s.RaftHandler())
+	sw := &raftSwap{mu: new(sync.Mutex), h: s.RaftHandler()}
+	go http.Serve(pl, sw)
 	s.Start()
-	return &member{s: s, pl: pl}, nil
+	return &member{sw: sw, name: name, peer: peer, client: client}, nil
 }
 
-// serveClient serves the started member m's gRPC API on a listener at client (etcdstart.Serve). An
-// address is served once in a run: member 1's from the start, the restarted member's only after
-// its restart (the proofs' network model binds an address's gRPC server for good).
-func serveClient(m *member, client string) error {
-	return etcdstart.Serve(m.s, client)
-}
-
-// stop stops the member m: the server stopped (HardStop: no leadership transfer; run's deferred
-// shutdown stops the raft node and the transport and calls Cleanup, which closes the lessor, the KV
-// store, the auth store and the backend, so that the data directory can be opened again; Cleanup
-// must not be called again: a second lessor.Stop closes a closed channel), then its peer listener
-// closed, so that the restarted member can listen on the address again.
-func stop(m *member) {
-	// wait until the member has applied the cluster's bootstrap entries (one per member), so that
-	// its data directory holds the cluster's members when it is started again
-	for m.s.AppliedIndex() < NBoot {
-		time.Sleep(time.Millisecond)
+// restartMember builds a new incarnation of the stopped member m (on its data directory, at its
+// addresses), swaps m's peer handler to its raft handler, and starts it.
+func restartMember(m *member, cluster types.URLsMap, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	s, err := build(m.name, m.peer, m.client, cluster, lg)
+	if err != nil {
+		return nil, err
 	}
-	m.s.HardStop()
-	m.pl.Close()
+	m.sw.set(s.RaftHandler())
+	s.Start()
+	return s, nil
 }
 
-// put puts key k with value v through cli, in a context with the request timeout, cancelled after
-// the call.
-func put(cli *clientv3.Client, k string, v string) error {
+// put puts key(i) with value value(i) through s's own API, in a context with the request timeout,
+// cancelled after the call.
+func put(s *etcdserver.EtcdServer, i int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
-	_, err := cli.Put(ctx, k, v)
+	_, err := s.Put(ctx, &etcdserverpb.PutRequest{Key: key(i), Value: value(i)})
 	cancel()
 	return err
 }
 
-// Run is Main with the logger lg (the members' and the clients'), so that a test can count what
-// the members log.
-func Run(lg *zap.Logger) {
+// stop stops the incarnation s: it waits until s has applied the cluster's bootstrap entries (one per
+// member), so that its data directory holds the cluster's members when it is started again, then
+// stops it (HardStop: no leadership transfer; run's deferred shutdown stops the raft node and the
+// transport and calls Cleanup, which closes the lessor, the KV store, the auth store and the backend,
+// so that the data directory can be opened again).
+func stop(s *etcdserver.EtcdServer) {
+	for s.AppliedIndex() < NBoot {
+		time.Sleep(time.Millisecond)
+	}
+	s.HardStop()
+}
+
+// check waits until s knows a leader, then reads every key in [RangeKey, RangeEnd) through s's own API
+// (a linearizable Range, in a context with the request timeout, cancelled after the call) and panics
+// unless it returns exactly the N1 + N2 Puts' keys, in order, each with its value at version 1, at the
+// response revision 1 + N1 + N2. It reports whether the check ran: false if the Range failed.
+func check(s *etcdserver.EtcdServer) bool {
+	for s.Leader() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
+	resp, err := s.Range(ctx, &etcdserverpb.RangeRequest{Key: []byte(RangeKey),
+		RangeEnd: []byte(RangeEnd)})
+	cancel()
+	if err != nil {
+		return false
+	}
+	if resp.Header.Revision != 1+N1+N2 {
+		panic("restart3: the restarted member's Range is not at revision 1 + N1 + N2")
+	}
+	if len(resp.Kvs) != N1+N2 {
+		panic("restart3: the restarted member's Range did not return every Put")
+	}
+	for i := 0; i < N1+N2; i++ {
+		kv := resp.Kvs[i]
+		if string(kv.Key) != string(key(i)) || string(kv.Value) != string(value(i)) ||
+			kv.Version != 1 {
+			panic("restart3: the restarted member's Range returned a wrong pair")
+		}
+	}
+	return true
+}
+
+// Run is Main with the logger lg, so that a test can count what the members log. It reports whether
+// the check ran (and passed): false if a step failed first. It leaves the members running.
+func Run(lg *zap.Logger) bool {
 	peer1 := types.URLs{{Scheme: "http", Host: peerAddr1}}
 	peer2 := types.URLs{{Scheme: "http", Host: peerAddr2}}
 	peer3 := types.URLs{{Scheme: "http", Host: peerAddr3}}
-	cluster := types.URLsMap{"restart3-1": peer1, "restart3-2": peer2, "restart3-3": peer3}
+	cluster := types.URLsMap{name1: peer1, name2: peer2, name3: peer3}
 
-	m1, err := startMember("restart3-1", peer1, peerAddr1, clientAddr1, cluster, lg)
+	s1, err := build(name1, peer1, clientAddr1, cluster, lg)
 	if err != nil {
-		return
+		return false
 	}
-	m2, err := startMember("restart3-2", peer2, peerAddr2, clientAddr2, cluster, lg)
+	s2, err := build(name2, peer2, clientAddr2, cluster, lg)
 	if err != nil {
-		return
+		return false
 	}
-	m3, err := startMember("restart3-3", peer3, peerAddr3, clientAddr3, cluster, lg)
+	s3, err := build(name3, peer3, clientAddr3, cluster, lg)
 	if err != nil {
-		return
+		return false
+	}
+	_, err = newMember(s1, name1, peer1, peerAddr1, clientAddr1)
+	if err != nil {
+		return false
+	}
+	m2, err := newMember(s2, name2, peer2, peerAddr2, clientAddr2)
+	if err != nil {
+		return false
+	}
+	m3, err := newMember(s3, name3, peer3, peerAddr3, clientAddr3)
+	if err != nil {
+		return false
 	}
 
-	if err := serveClient(m1, clientAddr1); err != nil {
-		return
-	}
-	cli, err := etcdstart.NewClient(clientAddr1, lg)
-	if err != nil {
-		return
-	}
-	if err := put(cli, "k0", "v1"); err != nil {
-		return
-	}
-
-	// a follower stopped and started again (Q6 of the plan: no election forced): member 3, or
-	// member 2 if member 3 leads (the client's member 1 is never stopped); the others keep the quorum
-	if m3.s.Leader() == m3.s.MemberID() {
-		restartCheck(cli, m2, "restart3-2", peer2, peerAddr2, clientAddr2, cluster, lg)
-	} else {
-		restartCheck(cli, m3, "restart3-3", peer3, peerAddr3, clientAddr3, cluster, lg)
-	}
-}
-
-// restartCheck stops the member m (member name of the cluster cluster, whose peer URLs are peer, at
-// peerAddr, with client URL http://client), makes NPuts Puts of k through cli, starts the member
-// again on its data directory, serves its gRPC API, and panics unless a Get of k through it returns
-// the last Put's value. An error from any step returns without the check.
-func restartCheck(cli *clientv3.Client, m *member, name string, peer types.URLs, peerAddr string,
-	client string, cluster types.URLsMap, lg *zap.Logger) {
-	stop(m)
-	for i := 0; i < NPuts; i++ {
-		if err := put(cli, "k", "v2"); err != nil {
-			return
+	for i := 0; i < N1; i++ {
+		if err := put(s1, i); err != nil {
+			return false
 		}
 	}
 
-	// the stopped member started again on its data directory
-	mR, err := startMember(name, peer, peerAddr, client, cluster, lg)
+	// a follower other than member 1 stopped and started again (no election forced): member 3, or
+	// member 2 if member 3 leads; the other two keep the quorum
+	m, s := m3, s3
+	if s3.Leader() == s3.MemberID() {
+		m, s = m2, s2
+	}
+	stop(s)
+	for i := N1; i < N1+N2; i++ {
+		if err := put(s1, i); err != nil {
+			return false
+		}
+	}
+
+	// the stopped member started again on its data directory, at its addresses
+	sR, err := restartMember(m, cluster, lg)
 	if err != nil {
-		return
+		return false
 	}
-	if err := serveClient(mR, client); err != nil {
-		return
-	}
-	cliR, err := etcdstart.NewClient(client, lg)
-	if err != nil {
-		return
-	}
-	gctx, gcancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
-	resp, err := cliR.Get(gctx, "k")
-	gcancel()
-	if err != nil {
-		return
-	}
-	if len(resp.Kvs) == 0 || string(resp.Kvs[0].Value) != "v2" {
-		panic("restart3: the restarted member's Get did not return the last Put's value")
-	}
+	return check(sR)
 }
 
 // Main runs the example with no logging (Run).
