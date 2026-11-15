@@ -201,6 +201,60 @@ arm of `applyEntryNormal.wp_proofOn` (a revocation's certificate is the model's:
 `liveSt` of the model's state, `liveSt_kvRaftOfOn`, and `0 ∉` the table's ids, from `appliedTableM_ids_granted`-style
 facts), then the replay branch. The row `γr.kv.lg = false` stays until the KV arm covers the revocable mode.
 
+**Session 5, continued (2026-11-15): decided by etcd-grove-81, (3) now, then (1) as stage S3a2.** Done:
+- Rev 7 (Draft §15, ledger decision): `plainReqL lm := plainReq` (`plainReqL_iff`); destructurings of the old
+  disjunction fixed (KVAuthModel, KVOutcomeOn, SnapRecvOn, ImageLeasesOn, SnapAuthRecover). Commit `…rev 7`.
+- `kv_entry_pre_on` at the mode (no transitional step; grants/revocations are no KV kind).
+- `applyEntryNormal.wp_proofOn` at `srvRestM true` throughout (no `srvRestM_lg_false`): new `RestOn.lean`
+  (`appliedTableM_true_snoc/_eq/_nonLease/_nodata`, `srvRestM_keep`, `srvRestM_nodata/_admin/_applyP/_applyP0`).
+  The replay branch (v3 = false) is DONE at the lease mode: plain, grant and revocation entries all by
+  `Apply.spec` (`plainOrCmpG_of_entryOn`, `revokeOwn_take`), at `srvRestRpM true`. Commit `fdd1d88b44`; checked
+  with `etc/lean-check.py -a` (0 errors).
+- What is LEFT of the transitional row: the two `exfalso` bullets in the v3 = true data branch of `wp_proofOn`
+  (marked "TRANSITIONAL until the grant arm" / "… revocation arm"), and the row itself in `srvKVInvsOn`
+  (KVApplyOn) with its docstring. `grep -rn TRANSITIONAL Proof` lists exactly these.
+
+Full build GREEN at `fdd1d88b44` (`/shared/tmp/auth-lease-s3a/build14.log`, flock + 64G).
+
+**Next (session 6), in order:**
+1. The grant arm (v3 = true), modelled on the cluster-request branch (`hA`, `Apply.spec`, auth passes a grant
+   through: not `authChecks`): `applyStep_grant`, `kvEntry_grant`; the table after is `kvTable` (the model's write
+   branch: a grant is no `authKVKind`, no admin), so generalize the `tail_on` macro to take the table `lt'` (it
+   hardcodes `kvLeasesOn γr.kv srvAuthSt0 A`; `kvApplied_nextOn` already takes any `lt'`); certificate: the log
+   kept (a `kv_certPre_keep` for a grant: `apply.chainStep_grant_logAfter`); `srvEver_applyPre` with a new
+   `kv_entry_grantFresh_on` (port of `kv_entry_grantFresh` over `kvInvOn`'s `kvGrantIds`); `srvGrantIf_permPG`;
+   `grantReqA_of_res`; `srvRestM_applyG` (port of `srvRest_applyG`'s `lg = true` branch at the auth-on table,
+   `appliedTableM_true_snoc` + the write branch giving `dispatchTable`); the result's not-NOSPACE at the auth chain
+   (`applyResultIs_notNoSpace_grant` is at `alarmChain false …`: port); `authTie_nonKV`; `grantArM_of_resW`.
+2. The revocation arm (v3 = true), modelled on the KV branch (`hK`, `kvSpecL`: `authKVKind .leaseRevoke`):
+   certificate from `outcomeOn_of_kvOutL_revoke` (needs `liveSt` of the model state: with rev 7 the model's log has
+   no leased key, `LogNoLease`, so `liveSt` is immediate; and `0 ∉` the table's ids: a `kvRaftOfOn` port of
+   `kvTableOf_ne0`); `kvShapedL_of_logL` + `keysNonEmpty_kvRaftOfOn`; `revokeOwn_take`; the post's
+   `revokeIdsA`/`revokeRestA` at the model's table after (refused at the latest state: kept; applied:
+   `backendTable`'s filter; port `revokeA_table`/`srvRest_applyR` to the auth-on table); `revokeArM` from
+   `revokeAnsRA` (`InvRequest.lean:2031`); not-NOSPACE (`applyResultIs_notNoSpace_revoke` at the auth chain);
+   `authTie` of a revocation (check `authTie`'s kind guard).
+3. Drop `γr.kv.lg = false` from `srvKVInvsOn` (KVApplyOn) and its provers (`NewServerAllocOn`,
+   `srvClusterBootOn_alloc`); shift the destructurings (`Hrows.2.2.1` → `Hrows.2.1` etc.: grep `srvKVInvsOn` in
+   ReadOn, ApplyNormalOn, KVApplyOn, ServerOnDefs `srvKVInvsM_rows`, AuthCompRows `isServerC_lm`, ModeSpecs,
+   ApplyAllSnap `Hcmlg`, EtcdServer__run/apply/applyEntryNormal (`obtain ⟨-, -, hlmE, -⟩ := Hrows`, `Hrows'.2.2.1`),
+   WatchSrv, MainServe).
+4. The land-stop checks (merge lean, full build under flock + 64G, tcb 870/4, gen-interface with only Alloc3On.txt,
+   bounds/mode, no closed statement changed, `grep -rn TRANSITIONAL` empty, STATUS/handoff/status-history). STOP
+   before `etc/land.sh`.
+
+**Stage S3a2 (after S3a lands; its own Scope and Freeze; 3–6 agent-days; S3b's leased put waits on it).** Leased
+puts and leased transactions in the auth-on apply thread (ledger 2026-11-15, option (1)). Freeze items:
+- `certPreT E c rq log T` in place of the class track's `certPre` for KV requests: the certificate of the outcomes
+  that are lease-exact at the live set `T` (`apply.leaseExactL T`), with the class track's `leasesLive` at `T`
+  (`kvOwnAt E log T`, split at the top layer from the two `ltHalf`s);
+- the backend's `Put`/`Txn` take the certificate only when the lease is live (today `applierV3backend__Put.lean:88-95`
+  takes it before the lease check);
+- the latest track's `X` gains `leaseExactL T` (`certPreW_inner`, `Apply.kvSpecL`, `uberKVC`,
+  `uberApplier.Apply.kvSpecL`, `dispatch.kvSpecL`: the exported `apply_*_kv_latest` change);
+- `plainReqL` widened back to Draft §1's text; §6's KV arm over `outcomeOn_of_kvOutLL` (session 5's lemmas:
+  `backendLog_of_step`, `kvGrantedL_of_kvOutL`, `kvShapedL_of_logL`).
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
