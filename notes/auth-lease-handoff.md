@@ -74,13 +74,12 @@ after the tree builds.
 Checked clean with `etc/lean-check.py` (in order): KVAuthModel, KVApplyOn, KVModelM, KVReadOn, KVAuthShape, ProposeOn,
 ServerOnDefs, ImageOn, ServerOn, NewServerAllocOn, AuthTie, AuthTieRead, ReqOn, ReadOn, auth/Hist, KVOutcomeOn,
 ApplyEntryOn, ApplyTieOn, ApplyNormalOn, SnapRecvOn, MergedImageOn, SnapAuthRecover, AuthCompRows,
-Spec/EtcdServer__applyAll, ApplyAllSnap. Edited, not yet checked: auth/MainAlloc, etcdstart/Alloc3On (alloc premises),
+Spec/EtcdServer__applyAll, ApplyAllSnap, ModeSpecs, EtcdServer__Range, EtcdServer__apply, EtcdServer__applyEntryNormal,
+StartOn, RunOn, NewServer, EtcdServer__applySnapshot (SnapApplyPost), SnapSendBranch, StopShutdown, EtcdServer__run,
+ClientModel, EtcdServer__Put/DeleteRange/Txn. Edited, not yet checked: auth/MainAlloc, etcdstart/Alloc3On (alloc premises),
 server Results (`server_member_alloc_on` premises), KVLogOk, client WatchFire/Results/KVService, v3rpc ServerKV, InvRead.
 
-Next, in order: ModeSpecs (`entryOkOn lm`), EtcdServer__Range, EtcdServer__apply, EtcdServer__applyEntryNormal,
-NewServer, RunOn, StartOn, StopShutdown, EtcdServer__run, SnapApply*/EtcdServer__applySnapshot, SnapSendBranch, server
-Results, ClientModel; EtcdServer__Put/DeleteRange/Txn proofs (the guard: `grantedRes_applied` gives `∃ lt, ⌜lm = none →
-lt = []⌝`; off, `lt = []`), v3rpc ServerKVOn/Results, the client chain (KVService, ServerKVPut/Get/Txn, ClientPutGet,
+Next, in order: server Results, v3rpc ServerKVOn/Results, the client chain (KVService, ServerKVPut/Get/Txn, ClientPutGet,
 Results, ResultsOn, KVServiceOn, WatchFire users, kubernetes), examples (auth, auth3, etcdstart, restart1, watch, k8s,
 txnlin, partition). Then a full build (flock, 64G) to find the rest.
 
