@@ -102,6 +102,10 @@ class Project:
     # The Go source is this directory of this repository (relative to its root) instead
     # of a fork (`repo`, `rev`: None).
     local: str = None
+    # Additional Go build tags the packages are loaded with, beside `goose` (goose's and proofgen's
+    # `-tags`, Perennial c6b39d4f8). Every package of one program must be translated with the same
+    # tags: see RAFT_TAGS below.
+    tags: list = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
     # a project whose Go paths another project also translates (raft-witness and kvwitness,
@@ -1419,9 +1423,8 @@ PROJECTS = [
         # harness of raft.Nodes with Main (package tracecheck), and the Go transcription of
         # etcdraft.tla and Traceetcdraft.tla its checker (package etcdraft; not its ndjson reader
         # nor its porcupine model, pmodel, which only cross-check). A Go module of its own, whose
-        # go.mod replaces go.etcd.io/raft/v3 by the fork with the trace hooks under the goose tag:
-        # a local checkout until that commit is pushed (etc/fork-patches/README.md; then a
-        # pseudo-version, and an entry of GO_MOD_PINS). Its raft is project raft's (main tree).
+        # go.mod replaces go.etcd.io/raft/v3 by the fork at project raft's pin (GO_MOD_PINS), loaded
+        # in the `with_tla` build (RAFT_TAGS). Its raft is project raft's (main tree).
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "tracecheck"),
@@ -1473,6 +1476,25 @@ PROJECTS = [
     ),
 ]
 
+# Raft is translated in its `with_tla` build, the one with the trace hooks' bodies
+# (`state_trace.go`, `//go:build with_tla`; without the tag `state_trace_nop.go`'s empty hooks,
+# `TraceLogger = interface{}` and the empty `TracingEvent`): the hooks' specs and the trace check
+# (examples/raft/tracecheck) are about them. A build tag is a property of a whole build, so every
+# project whose packages reach this raft (it lists raft's `-lean-root`) is loaded with it too, or its
+# translation would see the other build's declarations of raft. Not the witness experiment's
+# projects: their raft is another commit, translated in its default build as before. (Until
+# 2026-11-15 a fork commit put the hooks under the `goose` tag instead, kept unpushed in
+# etc/fork-patches/: no change of raft's source is needed for this.)
+RAFT_TAGS = ["with_tla"]
+for _p in PROJECTS:
+    if _p.name in ("raft-witness", "kvwitness"):
+        continue
+    if _p.name == "raft" or any(r.startswith("go.etcd.io/raft/v3=")
+                                for _, roots, _, _ in [(None, _p.lean_roots, None, None)] +
+                                [(None, q.lean_roots, None, None) for q in _p.parts]
+                                for r in roots):
+        _p.tags = list(RAFT_TAGS)
+
 
 # The Go modules of this repository that build the examples against the forks, and which project's
 # pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
@@ -1482,6 +1504,7 @@ GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
+    os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
@@ -1668,6 +1691,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             piece_out = os.path.join(out, str(i))
             config = os.path.join(lib_dir, "Code")
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
+            if proj.tags:
+                roots = ["-tags", ",".join(proj.tags)] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
                 run([os.path.join(bindir, tool)] + roots +
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
