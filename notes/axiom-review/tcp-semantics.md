@@ -494,3 +494,213 @@ writer predicate and a per-step accessor (`notes/net-tcp-v3-plan.md`, E11).
 Not tried: listener deadlines and the other unmodelled methods (stuck), IPv6-only hosts, `GODEBUG`
 variations, memory exhaustion (D12).
 
+## v3.1 (2026-11-15)
+
+Reviewed by the `axiom` skill, adapted to a trusted operational semantics, on branch `net-tcp` at
+`c0a47d0234`: semantics v3.1 (commit `b334f68554`; `notes/net-tcp.md`, "The semantics (v3.1)";
+`notes/net-tcp-v3-plan.md`, E11), the same target (Linux 7.0.0-38-generic, default sysctls,
+Go 1.27.3, sources read in `/usr/local/go/src`). Read whole: `b334f68554`'s diff,
+`WriteOutcome`/`WriteStep` and the D2/D15 text in `Impl.lean`, `model.writeLoop`/`conn.Write.impl`
+and the faithfulness paragraph in `NetTcp/TrustedCode/net.lean`, `NetTcp/Spec/net/Conn__Write.lean`,
+Go's `(*poll.FD).Write` (`internal/poll/fd_unix.go:365-406`), `writeLock` (`fd_mutex.go:249`),
+`(*FD).Close` (`fd_unix.go:91`), `(*netFD).Write` (`net/fd_posix.go:108`), `(*conn).Write`
+(`net/net.go:204`), `convertErr` (`fd_poll_runtime.go:116`), `netpollcheckerr` (`runtime/netpoll.go:512`).
+
+**Verdict: survives.** No program was found that panics in Go and has a no-panic proof over v3.1.
+`WriteOutcome` as one `write(2)` with its wait, and `model.writeLoop` as `poll.FD.Write`'s loop,
+match Go and Linux on every path of the loop (below). Six new measurements of the loop's corners
+(`examples/axiomcx/tcp-writeloop`, tests only) agree with the model, and their traced runs are
+ADMITTED by the conformance checker and CERTIFIED by the Lean replay. There are no refutations. The
+findings below are a source-reading gap on the unchanged Read path (M1, not reproduced), checker
+robustness (M3) and documentation (M4).
+
+### What changed since the v3 review (`f0ce9973c8`)
+
+`git diff --stat f0ce9973c8 HEAD -- GooseLang/Ext/Tcp NetTcp/TrustedCode NetTcp/Code/net.toml
+NetTcp/ManualProof etc/gen-init.py etc/goose.py`, and `git log` over the same paths (two commits,
+`b334f68554` and `df138a485d`):
+
+| File | Trusted | What changed |
+|---|---|---|
+| `GooseLang/Ext/Tcp/Impl.lean` | yes | `b334f68554`: the version line, D2 and D15 rewritten, `WriteOutcome` (one step on the bytes `rs` not written), `WriteStep`'s docstring; no other relation changed |
+| `NetTcp/TrustedCode/net.lean` | yes | `b334f68554`: the faithfulness paragraph, `model.writeLoop` (new), `conn.Write.impl` (the loop from 0) |
+| `etc/gen-init.py`, `etc/goose.py` | yes | `b334f68554`: v3's counterexample (`tcp-writedeadline`) taken out of project `nettcp`; nothing else |
+| `GooseLang/Ext/Tcp/Specs.lean` | no (proved) | `writeOutcome_total` restated, `writeOutcome_le`, `writeOutcome_fail`, `wp_tcp_Write`'s docstring |
+| `GooseLang/Ext/Tcp/Tests.lean` | no | per-step examples |
+| `GooseLang/Ext/Tcp/Decide.lean`, `Replay.lean` | no | `df138a485d`: the checker's deciders and replay; imported only by `lean_exe nettcp-replay` (`lakefile.toml`'s only change), by no proof |
+
+Unchanged: `Ghost.lean`, `Adequacy.lean`, `Deploy.lean`, `NetTcp/Code/net.toml`,
+`NetTcp/ManualProof/net.lean`, `NetTcp/Proof/net/{Base,Init}.lean`, `NetTcp/Proof/runtime/`, the
+Perennial pin (`lake-manifest.json`), `lean-toolchain`. The checker's commits (`972ef939ea`,
+`2089b490b6`, `df138a485d`) and the examples' re-proofs (`335173e165`, `128c3c4f81`, `040e6ce09f`,
+`c5427ba5f5`, `3e7a5d43c4`, `9f1a49dd94`, `795b3d1583`) touch no trusted file. Of
+`NetTcp/Spec/net/` only `Conn__Write.lean` changed. All 16 specs there have proofs in
+`NetTcp/Proof/net/`, and there is no `axiom` or `sorry` in `NetTcp/Proof`, `NetTcp/Spec` or
+`GooseLang/Ext/Tcp` (`PkgInitExt.lean`'s one match is a comment). So no spec can promise more than
+the model. The seven examples' `Results` are up to date over v3.1 (`lake build --no-build`: all
+targets up-to-date).
+
+### The claims (v3.1)
+
+1. A step on a closed end: `closed`, nothing written.
+2. Into a shut direction (`fin`): `sys`, or `timeout` with a write deadline set; nothing written.
+3. Into an open direction: the first `k ≤ |rs|` bytes appended with no failure; or `sys` appending
+   nothing and cutting the direction (its unread bytes kept); or `timeout` (deadline set) appending
+   nothing, the direction unchanged.
+4. Into a cut direction: any `k ≤ |rs|` counted and discarded; or `sys`; or `timeout` (deadline set).
+5. The loop: `b[nn:]` read at each step; `(nn, nil)` once `nn = len(b)` after a successful step;
+   `(nn, err)` at the first failing step; an empty `b` takes one step, which may fail.
+6. `Conn.Write.spec`'s post: `w <+: bs`, `n = len w`, `res = none → w = bs`,
+   `w = bs → res = none ∨ bs = []`, and `resErr` of the last step's kind (proved from 1-5).
+
+### Attacks
+
+**A1. Can one `write(2)` both append bytes and fail?** No. A system call returns one value: Go's
+`syscall.Write` gives `n = -1` with the error, and `(*FD).Write` counts only `n > 0`
+(`fd_unix.go:380`). Linux's `tcp_sendmsg_locked` returns the count whenever it copied anything
+(`do_error: if (copied + copied_syn) goto out`). An error met after copying (a reset processed from
+the backlog at `restart`, a shutdown) is left in `sk_err`/`sk_shutdown` for the next call: two
+steps, a success then a failure, which is what the model has. Measured
+(`TestCloseDuringWrite`, `TestCloseWriteDuringWrite`, `TestTwoWritesAndClose`, 110 or more
+iterations each): the peer reads exactly the `n` the failing `Write` returned, then EOF. A failing
+step that appended bytes would show more.
+
+**A2. Does the loop return exactly Go's `(nn, err)`?** Walking `fd_unix.go:365-406`:
+
+| Go | The model |
+|---|---|
+| `writeLock` fails (closing): `(0, ErrNetClosing)` | the first step on a closed end: `closed` |
+| `prepareWrite` fails: `ErrNetClosing` or `ErrDeadlineExceeded` (`netpollcheckerr`: closing first) | the first step: `closed`, or `timeout` (wdl set; a closed end gives only `closed`, as Go's order) |
+| `write(2)` of `p[nn:max]`, `n > 0` | a step appending `k = n` (`k ≤ |rs|`) |
+| `nn == len(p)`: return `(nn, err)`; `err` is nil after an `n > 0` write, the call's error for an empty `p` | `nn = len` after a successful step: `(nn, nil)`; an empty `b`: its one step's result |
+| `EAGAIN`, pollable: `waitWrite`; nil: continue; else `ErrNetClosing`/`ErrDeadlineExceeded` | a `k = 0` success (a wait), or a failing `closed`/`timeout` step |
+| another errno: `(nn, errno)`, wrapped `*os.SyscallError{"write", errno}` (`fd_posix.go:111`) | `sys` (`model.sysErr "write"`) |
+| `n == 0`, no error, `nn < len(p)`: `(nn, io.ErrUnexpectedEOF)` | not modeled; unreachable: a nonblocking TCP `write(2)` of a nonempty buffer returns a count above 0 or an error (`EAGAIN` when full) |
+| `EINTR`: retried in `ignoringEINTRIO` | unobservable |
+| `EAGAIN` on a non-pollable fd: `(nn, EAGAIN)` | unreachable: a `*TCPConn`'s fd is registered (`netFD.init` failing fails the `Dial` or `Accept`: `sock_posix.go:126`, `fd_unix.go:158`), and `runtimeCtx` is cleared only in `destroy`, after the `Write`'s reference is dropped |
+| `maxRW` (1 GiB) chunks | any `k ≤ |rs|`; Linux copies at most the send buffer's space per call anyway (4 MiB here) |
+| `n > max-nn`: Go panics (issue 61060, VPN drivers) | Linux never returns more than asked; no step counts more (`writeOutcome_le`) |
+
+The `waitWrite` errors are `convertErr`'s (`fd_poll_runtime.go:116`). `pollErrNotPollable` is
+never one, since `netpollcheckerr` reports the event error only for `'r'` (`netpoll.go:523`; M1).
+
+**A3. Can a step's progress exceed what Go could write?** No: `k ≤ |rs|`, and the bytes are
+`rs.take k`, `b[nn:nn+k]` as `write(2)` of `p[nn:]` takes them. A model step coarser than Go's
+(1 GiB+ at once) is unobservable, since a Read takes any prefix of what is unread.
+
+**A4. Two concurrent `Write`s on one end.** Go's `writeLock` serializes them. Measured
+(`TestConcurrentWritesSerialized`, 8 MiB each, 160 iterations): never interleaved. The model may
+interleave their steps: extra behaviors only (sound; `notes/net-tcp.md`, "Open"). A `Write` waiting
+for the lock when the end is closed returns `(0, ErrClosed)` (`TestTwoWritesAndClose`), the model's
+step on a closed end. A deadline that passes while it waits for the lock is seen by `prepareWrite`
+once it has the lock: a step with wdl set.
+
+**A5. A `Write` racing with `Close`.** `poll.FD.Close` (`increfAndClose`, `evict`, then
+`Semacquire(&fd.csema)` since sockets are nonblocking) returns only once the `Write`'s reference is
+dropped (`writeUnlock`, deferred in `FD.Write`), so every `write(2)` of the `Write` lies within
+`Close`'s interval. The model's `Close` step goes after the `Write`'s last successful `write(2)`
+and before its failing wait (woken by `evict`). Measured (`TestCloseDuringWrite`): `(n, ErrClosed)`,
+`0 < n < len`, `Close` nil, the peer reads `n` then EOF. (`Close` can return a few µs before the
+`Write`'s caller resumes, which the test's first version wrongly asserted against, failing 1 run
+in 50; only the system calls are ordered.)
+
+Could an observer of a started `Close` force one of the `Write`'s appends after the `Close` step?
+Such observers are a concurrent `Read`'s or `SetDeadline`'s `ErrClosed`. An append can always be
+placed earlier, because no operation observes its absence: a `Read` of an open direction never
+answers "empty" (`wait` is not a result, a `timeout` needs only rdl, EOF needs `fin`/`cut`). A
+program that would make the late bytes differ, by modifying `b[nn:]` after the observation, races
+with the model's loop, which reads `b[nn:]` before every step, the failing one included. It has no
+proof (and is a data race in Go too: `syscall.Write`'s `race.ReadRange`).
+
+**A6. A `Write` racing with `CloseWrite`.** `shutdown(2)` and `tcp_sendmsg` serialize on the socket
+lock. Measured (`TestCloseWriteDuringWrite`): `(n, write: EPIPE)`, `0 < n < len`, the peer reads `n`
+then EOF. The model: steps appending `n`, `CloseWrite` (`fin`), `sys` on `fin`. This is v3's row 11,
+now allowed without a cut.
+
+**A7. A `Write` racing with deadlines.** `netpollcheckerr` checks only the mode's own deadline. A
+read deadline never times a `Write` out (`TestReadDeadlineDuringWrite`, 110 iterations: `(len,
+nil)`), as the model's `DeadlineOutcome` of kind 1 leaves wdl. A write deadline set and at once
+cleared gave 0 timeouts in the 120 iterations logged (320 passed: `TestDeadlineSetThenCleared`); the model allows both
+outcomes. A deadline set while the `Write` blocks is `TestWriteDeadlineSetDuring`, now allowed
+(v3's R1).
+
+**A8. A `Write` racing with a reset.** The partial count first, the error at the next call (A1);
+`TestPartialWriteOnReset`, the checker's `resetwrite`. Does any `write(2)` error leave a live
+connection whose later bytes are delivered? That would refute the model, whose `sys` cuts the
+direction and whose cut discards later bytes. On Linux TCP, no:
+
+- `sk_err` is set on a socket that stays open only with `IP_RECVERR` (`tcp_v4_err`), which Go does
+  not set. Otherwise it is set just before `tcp_done`.
+- `SEND_SHUTDOWN` is permanent (`tcp_disconnect` clears it, which Go never reaches).
+- A memory shortage waits (`wait_for_space`: `EAGAIN`) instead of failing with ENOBUFS.
+- Accepted ends are plain TCP: Go 1.27 dials without MPTCP (`dial.go:33`,
+  `defaultMPTCPEnabledDial = false`), so the MPTCP listener falls back.
+
+**A9. `Conn.Write.spec`.** It is proved (`NetTcp/Proof/net/Conn__Write.lean`, no `sorry`), so it
+cannot claim more than the model. Its post facts are Go's returns: `w = bs → res = none ∨ bs = []`
+is `nn == len(p)` returning first, and `res = none → w = bs` holds because the loop's only nil
+return is there. Holding `b ↦*{dq} bs` for the whole call matches io.Writer's contract.
+
+**A10. Other paths.** `(*TCPConn).ReadFrom`, `WriteTo` and `writeBuffers` (`io.Copy`,
+`net.Buffers.WriteTo`) are in `*TCPConn`'s method set, Go's, with no `MethodUnfold`, so a program
+reaching them has no proof. `TCPConn.Write` is the translated promotion of `conn.Write`, and
+`io.WriteString` and buffered writers go through it.
+
+**A11. The conformance checker.** The six tests, traced (`go test -overlay`, one iteration each,
+fixed ports 7181-7186) and checked: **6 of 6 ADMITTED**, all **Lean CERTIFIED**
+(`check/certify.py`, `nettcp-replay` rebuilt). `TestDeadlineSetThenCleared` and
+`TestReadDeadlineDuringWrite` were re-traced at 12 MiB (M3). A real run that the checker rejects
+would have been a candidate; there was none.
+
+**Re-checked from the earlier tables**, the rows that rely on `WriteOutcome`:
+
+- v3's rows 10 (Write/Close, now A5) and 11 (Write/CloseWrite, now A6).
+- v3's row 12 (R1, now allowed: `TestWriteDeadlineSetDuring`).
+- v2's rows 6-11:
+  - `(len, err)` still never for `len > 0`;
+  - a peer reading bytes of a failed `Write`, and a `Write` after the peer's FIN or RST: allowed;
+  - the empty `Write` (row 11): its one step may fail.
+
+The other rows rely on files and relations that did not change.
+
+### Findings that are not refutations
+
+- **M1. Read's `ErrNotPollable` (source reading, not reproduced; Read is unchanged since v3).** The
+  netpoller sets a fd's event error flag when an epoll event for it is exactly `EPOLLERR`
+  (`netpoll_epoll.go:183`). It clears the flag at the fd's next event. While the flag is set,
+  `netpollcheckerr` returns `pollErrNotPollable` for `'r'` (`netpoll.go:523`). So a `Read` whose
+  `prepareRead` or wait falls in that window returns `*OpError{Err: poll.ErrNotPollable}`: not an
+  `Errno`, not wrapped. The model's read failures are `closed`, `timeout` or `sys`, which is always
+  an `*os.SyscallError`, so a program asserting `oe.Err.(*os.SyscallError)` on a read error would
+  be refuted if this fired. For a TCP socket, `tcp_poll` gives `EPOLLERR` alone only when `sk_err`
+  is set while the state is not yet `TCP_CLOSE`, nothing is readable and the send buffer is full.
+  Without `IP_RECVERR` that is only inside `tcp_done_with_error`, between `sk_err`'s write and
+  `tcp_done` (the `smp_wmb`/`smp_rmb` pair), while it purges the write queue. The netpoller must
+  collect the socket's ready-list entry in that window. **Proposed (for the user):** measure it
+  with a stress test (a full send buffer, the peer's reset, many concurrent `Read`s), or let a
+  read's `sys` error be `poll.ErrNotPollable` too (`model.kindErr` for `"read"` choosing with
+  `AnyBool`), with a D14 note. Writes are unaffected.
+- **M2. Precision (sound, as `notes/net-tcp.md` lists).** Concurrent `Write`s interleave in the
+  model. The model's `Close` returns at once (Go waits for in-flight I/O). A step may count 0 with
+  no failure forever (Go blocks).
+- **M3. The Lean replay overflows its stack on a witness with a 32 MiB step** (a 32 MiB `Write`
+  read whole): `nettcp-replay` aborts ("Stack overflow detected", also under `ulimit -s
+  unlimited`), and `certify.py` dies with a traceback instead of reporting the run. The same tests
+  at 12 MiB certify, and a 32 MiB `Write` cut at 5.4 MB certifies. **Proposed:** byte strings in
+  the replay as `ByteArray` (or tail-recursive list functions), and `certify.py` reporting a replay
+  crash as a run's failure.
+- **M4. `doc.go`'s "(the Write loop)" row is classed *documented*.** Its claim that a failing
+  `write(2)` writes nothing is now measured (A1). **Proposed:** a row for the six tests (or moving
+  them into `examples/net/semantics/write_test.go`), measured, under D2/D15. `doc.go` is the
+  semantics' index and was not edited here.
+- **M5. One unexplained failure.** In the first traced batch, `TestTwoWritesAndClose` printed
+  `FAIL` and its output was not kept. 38 traced runs since (380 iterations) and 110 untraced
+  iterations pass. The likeliest cause is v3's N4 (a fresh loopback connection reset when a fixed
+  port's 4-tuple is reused), which fails the test's `Accept` or first `ReadFull`: a cut, allowed.
+
+### Not tried
+
+- A stress test of M1.
+- A `Write` above `maxRW` (argued: A2, A3).
+- IPv6-only hosts, `GODEBUG` variations, memory exhaustion (D12).
+
