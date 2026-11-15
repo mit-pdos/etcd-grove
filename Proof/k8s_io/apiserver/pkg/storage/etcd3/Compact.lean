@@ -161,13 +161,13 @@ theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ms : List 
     rw [hw]
     unfold client.txnRevLb client.txnReplied
     simp only [hro, Bool.false_eq_true, ↓reduceIte]
-    icases Hr with ⟨%tw, %hmd, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+    icases Hr with ⟨%tw, %hmd, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, ⟨%ltq, -, HQ⟩⟩
     obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
     have ht : t' = casTxn ev rev := Hz (irrNoZeroEnd_txnOf _ _ _ tw Htw)
     subst ht hsk
-    have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
-    have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _
-    iexists m, kvStateOf y.log
+    have hr : ((kvStateOf y.log ltq).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
+    have hs : (kvStateOf y.log ltq).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _
+    iexists m, kvStateOf y.log ltq
     iframe Hm HQ Hrv'
     ipureintro
     refine ⟨?_, ?_, ?_⟩
