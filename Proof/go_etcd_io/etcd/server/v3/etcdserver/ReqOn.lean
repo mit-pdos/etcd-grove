@@ -1340,7 +1340,8 @@ theorem deletePermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
 2026-10-27): `txnPermit`'s, and every permission the transaction's checks need of the shape the
 permission cache decides (`kvShapeAll`: its comparisons' and operations' keys and range ends), for
 whichever wire transaction of `t` the request holds (E3e: a put's `PrevKv` read is of its key and
-its write's range end, so the shape is `t`'s). -/
+its write's range end, so the shape is `t`'s); (auth-lease S3b) plain, or, at the revocable lease mode,
+plain but for its puts' leases (`txnPlainL`), the update told the lease part of its grant. -/
 def txnPermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜(txn.txnPlain t ∨ (γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗
@@ -1429,7 +1430,8 @@ theorem txnPermitOn_mono (γ : ServerRaftNames) (γk : KVNames)
   iexact Hau
 
 /-- **What a writing transaction `t` needs, in the auth mode `on`**: `txnPermit`'s (plain, no zero
-range end, its shape), and with auth on (`⌜on = true⌝ → …`) every permission of the wire
+range end, its shape; auth-lease S3b: with auth on at the revocable lease mode, plain but for its puts'
+leases), and with auth on (`⌜on = true⌝ → …`) every permission of the wire
 transaction of the shape the permission cache decides (`kvShapeAll`) and the update's grant under
 the caller's binding `Gb` (`writeGrantG`) told at the log `L₀` the caller saw. Off, it is
 `txnPermit` (`txnPermitM_false`, `txnPermit_of_false`); on, `txnPermitOn` (`txnPermitM_true`). -/

@@ -3,7 +3,8 @@
 `notes/decisions.md`, "E2w of the auth plan"): `kv_prop_au`'s counterpart over the mode-`on` KV
 invariant (`kvInvOn`, E2q), which a proposer of the server in the mode `on` hands raft. The design
 (decided 2026-10-26): **a client's KV update fires at the commit only if the auth state after the
-committed log grants the request** (`kvGranted`, at the model's auth state: `grantedAt`); otherwise
+committed log grants the request** (`kvGrantedL`, at the model's auth state and, auth-lease S3b,
+the lease items of its log: `grantedAt`); otherwise
 nothing fires, the KV state is kept (`kvModelOn_snoc_refused`), and the proposer's result says the
 request was refused (`⌜¬ grantedAt …⌝`), which the apply thread's refusal answers to the client.
 
@@ -299,8 +300,10 @@ theorem admStates_eqv (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   admStatesR_eqv γ _ _ _ A B h hc
 
 
-/-- **A plain write's result in the mode `on`** at the committed log `L` before its entry: granted,
-with the client's result at the state after `L` (left at the token `γc`, `kvRes`); or refused. -/
+/-- **A write's result in the mode `on`** at the committed log `L` before its entry: granted (the
+model's whole verdict, `grantedAt`: auth-lease S3b, a leased put's, a leased transaction's and a
+revocation's lease part included; a grant always), with the client's result at the state after `L`
+(left at the token `γc`, `kvRes`); or refused. -/
 def grantedRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (γc : GName)
     (Q : KVState → IProp GF) (L : List EntryModel) : IProp GF :=
   iprop((⌜grantedAt γk st₀ rq L ∧ (γk.lm = .none → kvLeasesOn γk st₀ L = [])⌝ ∗

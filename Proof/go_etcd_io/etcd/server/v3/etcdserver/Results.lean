@@ -431,7 +431,9 @@ apply side, the entries' claims (`entryWaitOk`, from raft's `batchCommitted`, un
 return is the apply package's answer to the request (`putOutcomeIs`/`deleteOutcomeIs` at the log
 `x.log` the entry met, no error), dispatched at `x` to `x'`, with `idxCert` of `x'.log`; an error
 is the apply's (`appliedErr`) or the proposal's (`srvMaybeDeposited`: `put_err` is the right
-disjunct of the same postcondition). `put_applied_model`/`deleteRange_applied_model`: through the
+disjunct of the same postcondition). (Auth-lease S3b D3) The success's client result is at a state
+where the put's lease is not missing (`¬ leaseMissing`: the update's step committed the put).
+`put_applied_model`/`deleteRange_applied_model`: through the
 uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (the txn package's
 `putModel`/`deleteModel`, or a layer's rejection) and the log after is the outcome's
 (`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/

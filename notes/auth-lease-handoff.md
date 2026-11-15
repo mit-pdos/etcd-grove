@@ -60,6 +60,12 @@ with `auth-lease-scope` merged).
      (round 2: no first-tier finding); STOPPED for etcd-grove-81's decisions D1–D7 (questions.md). After the Freeze:
      the Draft's §8 order of work (est. 5–8 days).
    - **S3c**: the couplings and `NewServer`; the `lease.bootCfg` hub change and the `NewLessor` docstring (hard stops).
+     **Plus (S3b decision D6, etcd-grove-81, 2026-11-15; +2–3 days):** the gRPC lease handlers' contracts at the mode
+     (v3rpc `lessorGrantOkG`/`lessorRevokeOk` at `isServerReqM E.authOn` with the client's lease deposit, `KVDep.lease`/
+     `LeaseDep` as S3b Draft §5 sketches; `lessor*_of_server`, `ServerLeaseGrant`/`ServerLeaseRevoke`, v3rpc `Results`'
+     `lessor*_server`) and etcdstart's lease registrations at auth on (`etcdLeaseServedAt` at `etcdModelOfServer E γr
+     E.authOn`), beside the couplings `etcdLeaseServedAt`'s revocable branch needs. Until then those callers stay at
+     auth off (they hold `isServerReq` and pass the off permits).
    - The auth-on snapshot path carries the leases (F2 (a)); the latest track gains a lease-exact outcome (F1 (ii)).
 2. S4 with the client's leased put (`WithLease`, `Put`/`Txn` with a lease) and linearizable client specs of
    `Lease.Grant`/`Revoke` (F3).
@@ -320,6 +326,34 @@ mode (baseline ratcheted 252 → 251): see the session report; no file under `Pr
 one `Spec/` change is the approved txn wand; `grep TRANSITIONAL` empty. STOPPED before `etc/land.sh`.
 Next: S3b (the proposers of a leased put with auth on; `grantedAt` → `kvGrantedL` via `kvGrantedL_of_tie`-style use of
 `authTie`'s converse).
+
+## S3b Prove (2026-11-15, session 9): FROZEN at Draft rev 3 (etcd-grove-81; tag `auth-lease-s3b-frozen`)
+
+Decisions D1–D7 (`questions.md`, "S3b Freeze"; ledger 2026-11-15, S3b entries). Done (commits after `76a28d8669`):
+1. `ReqOn`: `authTie st lb lt rq out` (guard `authKVKind`, the lease-exact disjunct), `resultIsWOn`/`entryWitOn` (+ `lt`),
+   `resultΨOn` (`∃ … lt`), `modelOutM true`; `grantedAt_of_dispatched`, `grantedAt_of_applied` (at `authKVKind`),
+   `modelOutM_true_table`, `chainStep_applied_backend`, `leaseLive_of_tie` (D3), `txnLeaseLive_of_tie` (D7),
+   `pathLeaseOk_of_plain`/`txnPathsLeaseOk_of_plain`; `grantedRes_applied`/`putQhOn_res`/`txnQhOn_res` return the model's
+   table; `putPermitOn`/`txnPermitOn`/`txnPermitM` widened; `rqShape_put`/`rqShape_txnL`/`rqShape_grant`/`rqShape_revoke`;
+   `reqPropOkM_true_writeL`.
+2. `ProposeOn`: `grantedAt` at `kvGrantedL` (D2), `grantedAt_iff` restated, `grantedAt_kvGranted`, `grantedAt_plain`,
+   `grantedAt_grant`, `writeGrantG_granted`; `reqPropOkOn`'s write form at `writePropOk lm` (`plainReqL ∨ grantPropOk ∨
+   revokePropOk`), `rqShape lm`, `grantIdOwn`; `kv_prop_au_on`'s write branch (`commitOkOn_L`, `kvGrantIds_snoc`, a grant
+   never refused).
+3. New `LeaseReqOn.lean`: `leaseGrantPermitM`/`leaseRevokePermitM` (+ `_false`/`_true`/`_mono`), `grantQhOn`/`revokeQhOn`,
+   `leaseGrantPermit_reqPropOk`/`leaseRevokePermit_reqPropOk`, `leaseGrantResM`/`leaseRevokeResM` (+ laws),
+   `leaseGrantedRespAt`, `leaseGrantedResp_iff_at`, `leaseGrantResM_true_id`, `authedOutB_ctx`. `InvProposer`:
+   `irrLeaseGrant`, `irrLeaseRevoke`.
+4. `ApplyNormalOn`: `authTie_of_kvOutL` (+ `lt`, `hex`), `leaseExact_revoke`, `authTie_nonAuthKV`; the apply arms of
+   `applyEntryNormal.wp_proofOn` (KV arm's `hex` from `HXL`, the revocation arm by `authTie_of_kvOutL`, the others
+   vacuous); `processInternalRaftRequestOnce` destructures the table.
+5. Specs: `Put.spec` (D3), `LeaseGrant.spec`, `LeaseRevoke.spec` (both at `isServerReqM E.authOn`, the permit, `authedOutB`,
+   the result), `txnAppliedOk` (D7), `srvGrantsLeases`/`srvRevokesLeases` (auth-off conjunct dropped); proofs: `Put`, `Txn`,
+   `DeleteRange`, `LeaseGrant`, `LeaseRevoke` (a mode split after `requireAuthInfo`, whose error is returned with auth on).
+6. Callers: `revokeExpiredLeases` (off permit), v3rpc `ServerLeaseGrant`/`ServerLeaseRevoke` (off instance by
+   `isServerReq_authOn`), `ServerKVOn` (`putPermitM_of_dep`/`txnPermitM_of_dep` left disjuncts; the extra conjuncts dropped),
+   etcdstart `ServedLease`, `WorkAuth` (`grantedAt_kvGranted`). SpecPlan's `LeaseGrant`/`LeaseRevoke`/`Put` checked: an
+   opaque-vocabulary statement S3b moves toward (the client's update fired at the commit); no defect found.
 
 ## Pitfalls
 
