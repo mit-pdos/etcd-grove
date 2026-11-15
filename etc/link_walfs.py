@@ -686,7 +686,7 @@ section laws
 """ + SEC_VARS + "".join(f"variable {g}\n" for g in imps) + "".join(f"variable [{c}]\n" for c in insts))
         out.extend(emit_law(x) for x in laws)
         out.append("end laws\n")
-    out.append("\nend " + lns + "\nend EtcdGrove\nend Perennial")
+    out.append("end " + lns + "\nend EtcdGrove\nend Perennial")
     text = "\n".join(out) + "\n"
     if rejected:
         print(f"gen-link.py {flag}: root proofs with a binder of no known kind (not linked): "

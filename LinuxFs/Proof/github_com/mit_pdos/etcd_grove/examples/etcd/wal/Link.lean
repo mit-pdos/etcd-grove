@@ -153,6 +153,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable {Sio : IoSet}
 variable [github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 variable [os.Assumptions]
 variable [os.fileStat.FieldAssumptions]
@@ -173,6 +174,7 @@ variable [_root_.Perennial.errors.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
+variable [FsStepSat (NoIoErr Sio)]
 
 theorem etcd_wal.wp_newRnd :
     _root_.Perennial.EtcdGrove.etcd_wal.newRnd.spec (GF := GF) (hG := hG) :=
@@ -615,6 +617,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable {Sio : IoSet}
 variable [github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 variable [os.Assumptions]
 variable [os.fileStat.FieldAssumptions]
@@ -635,6 +638,7 @@ variable [_root_.Perennial.errors.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 variable [hash.crc32.Assumptions]
 variable [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
+variable [FsStepSat (NoIoErr Sio)]
 
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_tryRead
     (h_errors_IsPathErrnoNotExist : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec
