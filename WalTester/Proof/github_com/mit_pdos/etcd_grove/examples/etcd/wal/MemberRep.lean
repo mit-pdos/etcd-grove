@@ -41,25 +41,25 @@ def memSaveRes (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o 
   iprop(osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
       osCallPerm (GF := GF) qc ∗
-      m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
+      m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
       oracleRep v o ∗ tOrOwn γ os none ∗ tWalOwn γ (some d) ∗
-      WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
-      walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
-      WalFs.walNamed (W := W) (tWalDir e.root) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c) ∗
-      WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length)
+      WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
+      walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
+      WalFs.walNamed (W := W) (tWalDir e.area) ∗
+      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
+      WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length)
 
 /-- `member.save.spec`'s postcondition at the oracle `o`, the hard state `h` and the entries `es`. -/
 def memSavePost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand) (qc : Qp)
     (h : THs) (es : List TEnt) (b : Bool) : IProp GF :=
   iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
-      m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
+      m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' (tSaveO o h es) ∗ tWalOwn γ (some d') ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
+        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
         ⌜tMemOk (tSaveO o h es) c d' ∧ tMemHs (tSaveO o h es) d'⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark (tSaveO o h es) c) ∗
-        WalFs.walLenLb (W := W) w (tWalDir e.root) d'.H.length
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark (tSaveO o h es) c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.area) d'.H.length
       else True)
 
 end rep

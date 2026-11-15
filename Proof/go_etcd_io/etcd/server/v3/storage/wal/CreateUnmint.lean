@@ -124,7 +124,7 @@ theorem create_abortTmpH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (NameSet.mem_diff _ _ _).2 ⟨hNm, by simpa using (tmpName_ne nm).symm⟩
   imod walInv_mergeIn C Mr R jr r (N.diff [tmpName nm]) (.only [tmpName nm]) N
     hN hT nm (tmpName nm) (walUnlockedTok (W := W))
-    walUnlockedTok_excl ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm (by simp [NameSet.Mem])
+    walUnlockedTok_exclX ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm (by simp [NameSet.Mem])
     (fun b hb => by simp only [NameSet.Mem, List.mem_singleton] at hb; subst hb; exact tmpName_not_walName nm)
     (fun b => by
       rw [NameSet.mem_diff]
@@ -151,7 +151,7 @@ theorem create_abortTmpH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   imodintro
   iframe Hnc Hu
   iapply area_give N N h h' cl jr (tmpName nm) Wn hok (fun _ => Iff.rfl) (tmpName_not_walName nm)
-    (fun b hb _ => hcb b hb)
+    (fun b hb _ _ => hcb b hb)
   iframe HN Hcl Hsf
   rw [htc]
   iexact Hs
@@ -193,7 +193,7 @@ theorem create_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
   imod walInv_unmint C Mr R jr r dir _ _ J ⊤ CoPset.subseteq_top $$ Hinv Hnc Hcr with ⟨Hnc, Hu⟩
   -- the two halves merged into the program's half of a claim on `N`
   imod walInv_merge2 C Mr R jr r ((N.diff [tmpName nm]).diff [nm]) (.only [nm, tmpName nm]) N _ hC
-    b1 nm (walUnlockedTok (W := W)) walUnlockedTok_excl ⊤ CoPset.subseteq_top walN_osShN_top hb1
+    b1 nm (walUnlockedTok (W := W)) walUnlockedTok_exclX ⊤ CoPset.subseteq_top walN_osShN_top hb1
     hN1b1 hnm (by simp [NameSet.Mem])
     (fun hm => ((NameSet.mem_diff _ _ _).1 hm).2 (List.mem_singleton_self _))
     (fun b => by

@@ -28,20 +28,21 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
 /-- **The names' resources lend half their area spine.** -/
-theorem walNamesRes_areaPath (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay) :
-    walNamesRes (L := hG.goose_localGS) (W := W) R jr r Ls ⊢
-      walNamesRes (L := hG.goose_localGS) (W := W) R jr r Ls ∗
+theorem walNamesRes_areaPath (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s : AbsDiskState) :
+    walNamesRes (L := hG.goose_localGS) (W := W) R jr r Ls s ⊢
+      walNamesRes (L := hG.goose_localGS) (W := W) R jr r Ls s ∗
         ∃ q : Qp, osPathS (L := hG.goose_localGS) R r (DFrac.own q) jr := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, ⟨%qs, Hsp⟩, Hl⟩
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, ⟨%qs, Hsp⟩, Hl⟩
   icases (osPathS_frac (L := hG.goose_localGS) R r qs.half qs.half jr).1 $$ [Hsp] with ⟨Hsp, Hsp2⟩
   · rw [Qp.half_add_half]; iexact Hsp
   isplitr [Hsp2]
   · iexists o, Wn
     iframe
     isplitr
-    · ipureintro; exact hf.1
-    ipureintro; exact hf.2
+    · ipureintro; exact hf
+    ipureintro; exact hun
   · iexists qs.half; iexact Hsp2
 
 /-- **A path to the area, lent by the invariant body.** -/
@@ -54,7 +55,7 @@ theorem walInvBody_areaPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     Hdk, %HAt, Hnms, Hbd⟩
-  icases walNamesRes_areaPath R jr r Ls $$ Hnms with ⟨Hnms, Hp⟩
+  icases walNamesRes_areaPath R jr r Ls s $$ Hnms with ⟨Hnms, Hp⟩
   imodintro
   iframe Hp
   iexists Ls, cl, n, F

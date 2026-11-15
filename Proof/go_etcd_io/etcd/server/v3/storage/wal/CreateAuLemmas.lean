@@ -77,15 +77,17 @@ theorem creatingOk_create {jr : Ino} {cl : List Claim}
     {CR : GMap GoString (NameSet × NamesH × Ino)}
     {dir nm : GoString} {N : NameSet} {h : NamesH} {x : Nat} {e : LogEntry} {cc : Ents} {J : Ino}
     {X : List GoString} {hJ : NamesH}
-    (hco : CreatingOk jr cl CR) (hd : CR !! dir = some (N, h, J)) (hnmN : N.Mem nm) (hJjr : J ≠ jr) :
+    (hco : CreatingOk jr cl CR) (hd : CR !! dir = some (N, h, J)) (hnmN : N.Mem nm) (hJjr : J ≠ jr)
+    (hdk : dir ≠ cleanKey) :
     CreatingOk jr (createClaims cl jr N h x e cc J X hJ) (GMap.delete dir CR) := by
   classical
-  obtain ⟨-, -, hex0, -, hdist0, -, -, hJd0, -⟩ := hco dir N h J hd
+  obtain ⟨-, -, hex0, -, hdist0, hnew0⟩ := hco dir N h J hd
+  obtain ⟨-, -, hJd0, -⟩ := hnew0 hdk
   intro dir' N' h' J' hd'
   have hdd : dir' ≠ dir := by
     rintro rfl; rw [GMap.lookup_delete_eq] at hd'; cases hd'
   rw [GMap.lookup_delete_ne _ (Ne.symm hdd)] at hd'
-  obtain ⟨hm, hcoh, hex, honce, hdist, hJ'jr, hJ'c, hJ'd, hJ'b⟩ := hco dir' N' h' J' hd'
+  obtain ⟨hm, hcoh, hex, honce, hdist, hnew'⟩ := hco dir' N' h' J' hd'
   have hJJ' : J' ≠ J := hJd0 dir' (N', h', J') hdd hd'
   have hne : (jr, N', h') ≠ (jr, N, h) := by
     intro he
@@ -102,7 +104,7 @@ theorem creatingOk_create {jr : Ino} {cl : List Claim}
     obtain ⟨-, rfl, -⟩ := he
     exact hNN nm hnmN hnmN
   refine ⟨mem_createClaims_other hm hne, hcoh, ?_, claimOnce_createClaims honce hne hne1
-    (fun h1 => hJjr h1.symm), ?_, hJ'jr, ?_, ?_, hJ'b⟩
+    (fun h1 => hJjr h1.symm), ?_, fun hk => ?_⟩
   · intro c hc hcne hcj b hb
     rcases List.mem_append.1 hc with hc | hc
     · obtain ⟨c0, hc0, rfl⟩ := List.mem_map.1 hc
@@ -118,6 +120,8 @@ theorem creatingOk_create {jr : Ino} {cl : List Claim}
     · subst h2; rw [GMap.lookup_delete_eq] at hl; cases hl
     · rw [GMap.lookup_delete_ne _ (Ne.symm h2)] at hl
       exact hdist dir'' J'' hne'' hl
+  obtain ⟨hJ'jr, hJ'c, hJ'd, hJ'b⟩ := hnew' hk
+  refine ⟨hJ'jr, ?_, ?_, hJ'b⟩
   · intro c hc hcj b hb
     rcases List.mem_append.1 hc with hc | hc
     · obtain ⟨c0, hc0, rfl⟩ := List.mem_map.1 hc

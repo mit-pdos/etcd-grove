@@ -86,11 +86,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- **The WAL directory's state across the crash, by phase**: the old copy kept, and a new one the
 oracle `o` still accounts for, in the new generation. -/
-theorem tWal_crash (W W' : WalGS GF) (root : GoString) (o : TOracle) (od : Option WalDur) :
-    ⊢@{IProp GF} WalFs.walCrashWal W W' -∗ WalFs.walDirIs (W := W) (tWalDir root) od -∗
-      tRelI (W := W) root o od -∗
-      WalFs.walDirIs (W := W) (tWalDir root) od ∗ ∃ od' : Option WalDur,
-        WalFs.walDirIs (W := W') (tWalDir root) od' ∗ tRelI (W := W') root o od' := by
+theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Option WalDur) :
+    ⊢@{IProp GF} WalFs.walCrashWal W W' -∗ WalFs.walDirIs (W := W) (tWalDir area) od -∗
+      tRelI (W := W) area o od -∗
+      WalFs.walDirIs (W := W) (tWalDir area) od ∗ ∃ od' : Option WalDur,
+        WalFs.walDirIs (W := W') (tWalDir area) od' ∗ tRelI (W := W') area o od' := by
   iintro Hcv Hw #HR
   cases hcr : o.created with
   | true =>
@@ -98,7 +98,7 @@ theorem tWal_crash (W W' : WalGS GF) (root : GoString) (o : TOracle) (od : Optio
     icases HR with ⟨%d, %c, %hdc, #Hsy, #Hnm⟩
     obtain ⟨hod, hcm, hok⟩ := hdc
     subst hod
-    have hk := WalFs.walDiskAt_crash_keep W W' (tWalDir root) d (tCandMark o c)
+    have hk := WalFs.walDiskAt_crash_keep W W' (tWalDir area) d (tCandMark o c)
     unfold WalFs.walDiskAt at hk
     icases hk $$ Hcv Hw Hsy Hnm with ⟨Hw, %I, %k, %hIk, Hw', #Hsy', #Hnm'⟩
     obtain ⟨hI, hk⟩ := hIk
@@ -113,7 +113,7 @@ theorem tWal_crash (W W' : WalGS GF) (root : GoString) (o : TOracle) (od : Optio
     icases HR with %hpre
     obtain ⟨hfresh, hnone | ⟨d, hod, hd⟩⟩ := hpre
     · subst hnone
-      have hk := WalFs.walAbsent_crash_keep W W' (tWalDir root)
+      have hk := WalFs.walAbsent_crash_keep W W' (tWalDir area)
       unfold WalFs.walAbsent at hk
       icases hk $$ Hcv Hw with ⟨Hw, Hw'⟩
       iframe Hw
@@ -121,7 +121,7 @@ theorem tWal_crash (W W' : WalGS GF) (root : GoString) (o : TOracle) (od : Optio
       iframe Hw'
       ipureintro; exact ⟨hfresh, Or.inl rfl⟩
     · subst hod
-      have hk := WalFs.walDiskAt_crash_any_keep0 W W' (tWalDir root) d
+      have hk := WalFs.walDiskAt_crash_any_keep0 W W' (tWalDir area) d
       unfold WalFs.walDiskAt WalFs.walAbsent at hk
       icases hk $$ Hcv Hw with ⟨Hw, Hcr⟩
       iframe Hw
@@ -136,10 +136,10 @@ theorem tWal_crash (W W' : WalGS GF) (root : GoString) (o : TOracle) (od : Optio
 
 /-- **The oracle a crash keeps accounts for the WAL**: the file's oracle after the crash is the
 oracle or the pending one, whose relations the invariant holds. -/
-theorem tRel_crash [W : WalGS GF] (root : GoString) (o o'' : TOracle) (oa : Option TOracle)
+theorem tRel_crash [W : WalGS GF] (area : GoString) (o o'' : TOracle) (oa : Option TOracle)
     (od : Option WalDur) (h : o'' = o ∨ oa = some o'') :
-    ⊢@{IProp GF} tRelI (W := W) root o od -∗ tRelA (W := W) root oa od -∗
-      tRelI (W := W) root o'' od := by
+    ⊢@{IProp GF} tRelI (W := W) area o od -∗ tRelA (W := W) area oa od -∗
+      tRelI (W := W) area o'' od := by
   iintro #HR #HA
   rcases h with rfl | rfl
   · iexact HR
@@ -148,11 +148,11 @@ theorem tRel_crash [W : WalGS GF] (root : GoString) (o o'' : TOracle) (oa : Opti
 /-- **The tester's crash** (see the file header). -/
 theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 walCodec st st') (L L' : GooseLocalGS GF) (W : WalGS GF)
-    (e : TEnv) (γ : TGS) (V' : Hist) (ho : (tOrDir e.root, e.jo) ∈ e.R)
+    (e : TEnv) (γ : TGS) (V' : Hist) (ho : (e.orDir, e.jo) ∈ e.R)
     (hfo : BootFo V'.now e.jr) :
     ⊢ TInv (L := L) (W := W) e γ -∗
-      WalFs.walAreaOk (L := L) (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) -∗
-      WalFs.dirDurable (W := W) (tArea e.root) -∗ DurFs.durInv (L := L) γ.γd e.orFile -∗
+      WalFs.walAreaOk (L := L) (W := W) walCodec walRaftMr e.R e.jr (e.area) -∗
+      WalFs.dirDurable (W := W) (e.area) -∗ DurFs.durInv (L := L) γ.γd e.orFile -∗
       WalFs.walCrashTok (W := W) -∗ DurFs.durCrashTok (GF := GF) γ.γd -∗
       crashed (hC := L.goose_crashGS) -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={⊤}=∗
@@ -167,7 +167,7 @@ theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
   unfold TInvBody
   icases Hb with ⟨%s, %o, %oa, %od, Hds, %hof, Ho, Hw, Hgw, #HR, #HA⟩
   -- the WAL's crash, first
-  imod walInv_crash walCodec walCodec_ok walRaftMr Q hQ hPre L L' W e.R e.jr (tArea e.root) V' []
+  imod walInv_crash walCodec walCodec_ok walRaftMr Q hQ hPre L L' W e.R e.jr (e.area) V' []
     (fun i hi => by cases hi) ((⊤ : CoPset) \ ↑tN) walN_sub_tN osShN_sub_tN $$ Hwi Hcrd Hwt Hsh Hcr
     with ⟨%W', %s', %D', Hcv, %hp, Hst, -, Hu', Hct', Hbf, Hcr⟩
   obtain ⟨-, -, hbd, hdr, hwf, hD'⟩ := hp
@@ -181,10 +181,10 @@ theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
   imod crashRest_treeS Q L L' _ V' e.R _ osShN_sub_tN $$ Hsh Hcr with ⟨%hV, Htree, -⟩
   -- the oracle the file holds, accounting for the WAL
   obtain ⟨o'', ho'', hof''⟩ := tOracleFile_crash hof v hv.1
-  ihave #HR'' := tRel_crash (W := W) e.root o o'' oa od ho'' $$ HR HA
+  ihave #HR'' := tRel_crash (W := W) e.area o o'' oa od ho'' $$ HR HA
   -- the area's durability, and the WAL's state, in the new generation
-  icases WalFs.dirDurable_crash_keep W W' (tArea e.root) $$ Hcv Hdd with ⟨Hcv, #Hdd'⟩
-  icases tWal_crash W W' e.root o'' od $$ Hcv Hw HR'' with ⟨Hw, %od', Hw', #HR'⟩
+  icases WalFs.dirDurable_crash_keep W W' (e.area) $$ Hcv Hdd with ⟨Hcv, #Hdd'⟩
+  icases tWal_crash W W' e.area o'' od $$ Hcv Hw HR'' with ⟨Hw, %od', Hw', #HR'⟩
   -- close the old invariant with its contents
   imod Hclose $$ [Hds Ho Hw Hgw] with -
   · inext

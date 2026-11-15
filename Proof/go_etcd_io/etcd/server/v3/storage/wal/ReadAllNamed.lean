@@ -136,10 +136,10 @@ theorem walInvBody_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     (hd : s.wal !! dir = some d) (hin : InArea r dir nm) (hN : N.Mem nm) (hcoh : ClaimCoh h jr N)
     (hnx : h.next ≤ n) (hJ : h.cur !! nm = some (.dir J)) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n ={Em}=∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r (setNamed s dir) ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir := by
-  iintro Hb #Hsh Hn #Hc
+        walNamed (W := W) dir ∗ walNamesFrag (W := W) none := by
+  iintro Hb #Hsh Hn #Hc Hnf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -161,7 +161,9 @@ theorem walInvBody_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
     (absLe_setNamed s dir) (walKeysInArea_upd s dir _) (fun _ hn => hn.upd (fun _ => rfl)) $$ Hg with
     ⟨Hg, #Hp⟩
+  icases walNamesRes_none R jr r Ls s (setNamed s dir) $$ Hnms Hnf with ⟨Hnms, Hnf⟩
   imodintro
+  iframe Hnf
   isplitl [Hg Hcl Hlays Hcr Htl Hpk Hdk Hcp Hnms]
   · iexists Ls, cl, max n0 n, F
     iframe Hg Hcl Hlays
@@ -221,15 +223,16 @@ theorem walInv_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     (hnx : h.next ≤ n) (hJ : h.cur !! nm = some (.dir J)) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPast (W := W) s0 -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walNamed (W := W) dir := by
-  iintro #Hinv #Hsi Hnc #Hp H #Hc
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walNamed (W := W) dir ∗
+        walNamesFrag (W := W) none := by
+  iintro #Hinv #Hsi Hnc #Hp H #Hc Hnf
   iapply walInv_stepS C Mr R jr r
     iprop(osSharedInv (L := L) R ∗ walPast (W := W) s0 ∗ osNames (L := L) jr N dq h ∗
-      osCommitLb (L := L) n)
-    iprop(osNames (L := L) jr N dq h ∗ walNamed (W := W) dir)
+      osCommitLb (L := L) n ∗ walNamesFrag (W := W) none)
+    iprop(osNames (L := L) jr N dq h ∗ walNamed (W := W) dir ∗ walNamesFrag (W := W) none)
     ⊤ CoPset.subseteq_top (fun s => by
-      iintro Hb ⟨#Hsi, #Hp, H, #Hc⟩
+      iintro Hb ⟨#Hsi, #Hp, H, #Hc, Hnf⟩
       iunfold walInvBody at Hb
       icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, Hrest⟩
       icases walPast_ghost_le s s0 $$ Hg Hp with %Hle
@@ -237,13 +240,13 @@ theorem walInv_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
       ihave Hb : walInvBody (L := L) (W := W) C Mr R jr r s $$ [Hg Hrest]
       · unfold walInvBody; iexists Ls, cl, n0, F; iframe
       imod walInvBody_namedBy C Mr R jr r s dir nm d N dq h J n hd hin hN hcoh hnx hJ
-        walN_osShN_top $$ Hb Hsi H Hc with ⟨Hb, H, #Hnm⟩
+        walN_osShN_top $$ Hb Hsi H Hc Hnf with ⟨Hb, H, #Hnm, Hnf⟩
       imodintro
       isplitl [Hb]
       · iexists _; iexact Hb
-      iframe H Hnm)
-    $$ Hinv Hnc [H]
-  iframe H; iframe #
+      iframe H Hnm Hnf)
+    $$ Hinv Hnc [H Hnf]
+  iframe H Hnf; iframe #
 
 end iris
 

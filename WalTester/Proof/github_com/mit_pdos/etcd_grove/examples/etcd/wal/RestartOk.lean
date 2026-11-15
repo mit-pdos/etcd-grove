@@ -41,10 +41,10 @@ variable [GooseExts]
 
 /-- **The WAL's paths are the area's** (the premises the WAL's directory calls take: `Open`,
 `ValidSnapshotEntries`, `Repair`): the WAL directory `wal` in the area, the area a clean absolute path,
-the directory's name short. A world premise of the tester's root (U7). -/
-def tWalPathsOk (root : GoString) : Prop :=
-  InArea (tArea root) (tWalDir root) go!"wal" ∧ NameOk go!"wal" ∧ cleanAbsPath (tArea root) ∧
-    (tWalDir root).length < 2 ^ 59
+the directory's name short. A world premise of the tester's area (U7). -/
+def tWalPathsOk (area : GoString) : Prop :=
+  InArea area (tWalDir area) go!"wal" ∧ NameOk go!"wal" ∧ cleanAbsPath area ∧
+    (tWalDir area).length < 2 ^ 59
 
 /-! ## The pending opens -/
 

@@ -622,7 +622,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           iintro Hnc
           imod walInv_namedBy walCodec Mr R jr rt dir nmw s1 d0 (.only [nmw]) (DFrac.own qn) hnw j hnw.next
               hd1 hin1 (List.mem_singleton_self nmw) hcoh1 (Nat.le_refl _) hcur1
-            $$ Hinv Hsi Hnc Hp1 Hnw Hcmt with ⟨Hnc, Hnw, #Hnamed⟩
+            $$ Hinv Hsi Hnc Hp1 Hnw Hcmt Hnf with ⟨Hnc, Hnw, #Hnamed, Hnf⟩
           imod walInv_tailH walCodec Mr R jr rt _ _ _ _ _ _ _ _ _ _ _ _ _ s1 $$ Hinv Hnc Hp1 Htw
             with ⟨Hnc, Htw, %hHle⟩
           ihave #Hsyn1 := walSyncedLb_le dir (n' := dc.H.length) (by rw [hle1.1]; exact hHle d0 hd1) $$ Hsyn

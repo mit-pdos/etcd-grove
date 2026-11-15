@@ -191,7 +191,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
     · iapply BigSepL.bigSepL_nil.2; iempintro
   isplitr
   · ipureintro
-    intro b _ _ J hJ
+    intro b _ _ _ J hJ
     rw [hcur b] at hJ; cases hJ
   · ipureintro
     intro nm _

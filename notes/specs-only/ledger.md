@@ -2028,3 +2028,41 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   `File__WriteAtExt.pwPostE_chunk` (with `pwCzE_stepG`, `pwCzE_step` for a write anywhere); the bbolt
   port's users (`Tx__write`, `Commit/WriteExtRun`, `Commit/PwMeta`'s `pwPostE_inside`) take the `E`; the
   others (`Tx__write_ext`, `Commit/WriteRun`, `Commit/MetaBytes`) needed nothing.
+
+## 2026-11-15: `SP/storage/storage__MinimalEtcdVersion.lean` -- no panic under `diskOk`, false while the purge runs
+
+- **Spec.** `storage.MinimalEtcdVersion.spec` (SpecPlan): returns without panicking under `diskOk`.
+- **Defect.** `MinimalEtcdVersion` reopens the WAL (`w.Reopen`), releasing every segment lock, while the server's
+  purge (`fileutil.PurgeFileWithDoneNotify`, `--max-wals`) may delete or lock segments the reopen needs; the
+  reopen then panics.
+- **Evidence.** `issues/etcd-storage-downgrade-reopen-purge-panic.md` (test reproduces the panic 5/5 at upstream
+  main `260e4e0457aa`, 3/3 at the fork `3df9b265f`).
+- **Proposed change.** Either the spec takes "no purge runs" (a premise the server's downgrade path would have
+  to establish), or the fork reads the entries through `wal.OpenForRead` instead of reopening (the issue's
+  proposed fix, untested), after which the spec stands.
+- **Decision.** Proposed (with specgap's P8, the lock model, and P13).
+
+## 2026-11-15: `LinuxFs/Spec/.../examples/etcd/wal/restartRead.lean`, `member__restart.lean` -- `m` not known non-nil
+
+- **Spec.** `restartRead.spec`, `member.restart.spec` (the WAL tester).
+- **Defect.** Unprovable: `restartRead` tests `m != nil`, and the field points-tos `m.[member, f] ↦ _` do not
+  give `m ≠ null`.
+- **Evidence.** `restartRead.wp_proof` (branch `wal-c-tester2`) needs it at the `if m != nil`.
+- **Proposed change.** Premise `m ≠ null` on both (every caller allocated `m`: `Boot`'s `&member{...}`).
+- **Decision.** Made (branch `wal-c-tester2`, `notes/wal-units/tester.md`, ninth session).
+## 2026-11-15: the WAL invariant for `Create`'s cleanup (unit `create`, session 4; the coordinator's decisions)
+
+- **Spec.** `LinuxFs/Proof/.../wal/Inv.lean` (`walNamesRes` takes `s`, the pending WAL unnamed; `WalsAt`
+  weakened; `CreatingOk`'s `CreatingNew` guarded by `dir ≠ cleanKey`), `Ghost.lean` (`walCreatingAuth`'s
+  cleanup pin, `walCreating` carrying `dir ≠ cleanKey`, `walCleanPin`), `CreateDefs.lean`/`CreateArea.lean`
+  (`walAreaRes`/`AreaOk` exempt `BrokenSlot` names); the internal step lemmas `walInvBody_named`/`walInv_named`,
+  `walInvBody_namedBy`/`walInv_namedBy` (take and return `walNamesFrag none`), `walInvBody_register`/
+  `walInv_register` (premise `∃ J, hn.cur !! nm = some (.dir J)`), `walInvBody_mint`/`walInv_mint`
+  (`dir ≠ cleanKey`), the area steps' `hT` (against `walUnlockedTokX`).
+- **Defect.** `create_cleanupLaw` could not be proved: the rename's update could not find the invariant's half
+  of its area claim (no pin), and a rename that took effect broke `WalsAt`, `walAreaRes`'s `SubCover` and, with
+  the WAL possibly named, `CrashTo`.
+- **Evidence.** `notes/wal-units/create.md`, sessions 3 and 4.
+- **Change (made).** As listed; `Create` registers before it names. No client-facing spec changed.
+- **Decision.** The coordinator's (decisions 1 and 2 of session 3); made, every importer rebuilt, both `sorry`s
+  proved.

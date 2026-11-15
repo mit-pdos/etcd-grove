@@ -52,7 +52,8 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (X : List GoString) (hJ : NamesH) {Em : CoPset}
     (hnm : walNameOk nm) (hNnm : N.Mem nm) (hNt : ¬ N.Mem tmp) (hDe : N.diff [nm] ≠ .only [])
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (hXnm : nm ∉ X)
-    (hX : ∀ b ∈ X, walNameP b = false) (hXt : ∀ b ∈ X, b ∈ walTmps) (hE : ↑osShN ⊆ Em) :
+    (hX : ∀ b ∈ X, walNameP b = false) (hXt : ∀ b ∈ X, b ∈ walTmps) (hE : ↑osShN ⊆ Em)
+    (hdkey : dir ≠ cleanKey) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
       walUnlockedTok (W := W) -∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h -∗
       osNames (L := L) jr (.only [tmp]) (DFrac.own 1) hT -∗
@@ -118,7 +119,7 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   icases osNames_halve jr (N.diff [nm]) _ hDe $$ HD with ⟨HD1, HD2⟩
   have hCr : hC.restrict jr (N.inter [nm]) = h.restrict jr (N.inter [nm]) := hmr.1.trans hIself
   -- the creating token
-  imod walCreating_mint CR dir (.only [nm, tmp]) hC J $$ HCRa Hu with ⟨%hCR0, HCRa, Htok⟩
+  imod walCreating_mint CR dir (.only [nm, tmp]) hC J hdkey $$ HCRa Hu with ⟨%hCR0, HCRa, Htok⟩
   subst hCR0
   -- the new claims
   have hcov : CoverOk jr cl (mintClaims cl jr N h nm tmp hC) n :=
@@ -175,7 +176,8 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       · intro d2 J2 hd2
         rw [GMap.lookup_insert_ne _ _ (Ne.symm hd2)]
         simp
-      · refine ⟨hJjr, fun c hc hj b hb => ?_, fun d2 x hd2 hx => ?_, go!".wal", walNameP_dotwal, ?_⟩
+      · intro _
+        refine ⟨hJjr, fun c hc hj b hb => ?_, fun d2 x hd2 hx => ?_, go!".wal", walNameP_dotwal, ?_⟩
         · have hc' : c ∈ cl := (hcov.other c (by rw [hj]; exact hJjr)).1 hc
           exact hJx c hc' hj b (show b ∉ X from fun hbX => hb (hXt b hbX))
         · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd2)] at hx

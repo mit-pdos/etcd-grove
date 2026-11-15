@@ -234,3 +234,76 @@ destructure; the coordinator should decide where they land):
 **Next step**: the coordinator's decision on 1 and 2 (where the invariant changes land); then the law (the merge,
 the pinned update, its no-effect commit, the moved-aside commit) and `create_cleanBack` (`createAreaL` to carry
 `h'`'s pure facts: as `h` off `nm.tmp`/WAL names, or moved). `renameWALUnlock` not attempted.
+
+## Session 4 (branch `wal-c-create2`, base `origin/wal-int` `bf4cf547b9`, 2026-11-15): the cleanup's law; the WAL has no `sorry` left
+
+*Setup*: the `wal-above` build copied (same commit as the base). The coordinator decided both invariant changes
+session 3 stopped at; carried out as below. **Proved: `WalFs.create_cleanupLaw` and `WalFs.create_cleanBack`**
+(`CreateCleanup.lean`); every importer of the changed modules rebuilt with `lake build` (the 19 leaves of
+`etc/importers.py --leaves`: the WAL `Link`, `BootCrash`, the tester's modules, `durable`), no error, no `sorry`.
+`etc/tcb-baseline.txt` and `etc/tcb-collections/wal-fsext.txt` edited by hand (the two `sorry` lines removed;
+the collection now lists no `sorry`), to be confirmed by `etc/tcb-report.py --check --update` at integration.
+`Link.lean` unchanged (no proof's hypotheses changed; `etc/gen-link.py --walfs` regenerates it identically).
+No client-facing spec (`LinuxFs/Spec/.../wal/*.lean`) changed; no axiom added.
+
+**Decision 1 (the pin), as made.** The creating map gets a third kind of entry, at the key `cleanKey` (`[]`,
+no WAL directory: `child_ne_cleanKey`). `walCreatingAuth`'s deposit: `CR = ∅`, or one entry with `walUnlockedTok`
+(the create kind), or `cleanKey ↦ x` with `walUnlockedTokX` (the cleanup's `Create` holds `walNamesFrag (some
+dir)`, not the free token). `walCreating dir N h J` now carries `⌜dir ≠ cleanKey⌝` (so the commit, the drop and
+the unmint, which delete their entry and get `walUnlockedTok`, know their entry is the create kind:
+`walCreating_ne`; `walCreating_mint` takes `dir ≠ cleanKey`, from `walInvBody_mint`/`walInv_mint`'s new premise,
+`Create` passing `child_ne_cleanKey`); the pin's token is `walCleanPin N h J` (`walCreating_mintC`,
+`walCreating_deleteC`, `walCleanPin_lookup`, `Ghost.lean`). `CreatingOk`'s `CreatingNew` is guarded by `dir ≠
+cleanKey` (the pin has membership, coherence, exclusivity and once, not the new-directory facts); its users
+(`creatingOk_create`, `creatingOk_cut`, `CreateMint`, `CreateAu`) adjusted. `walCreating_empty`'s (and every
+area step's) `hT` now refutes `walUnlockedTokX` (`T -∗ walUnlockedTokX -∗ False`; new `walUnlockedTok_exclX`,
+`walLockedTok_exclX`, `walUnlockedTokX_exclX`, `walOpenWF(U)_unlocked_exclX`), the free token implying it
+(`walUnlockedTok_toX`). The pin is minted by `walInvBody_pinClean`/`walInv_pinClean` (`CleanupAu.lean`), after
+`walInv_merge2` has merged `nm`'s claim back, where the shared invariant gives the facts (`osClaims_keys`,
+`osClaims_once`, `osNames_coh`).
+
+**Decision 2 (the moved-aside step), as made.**
+- `walNamesRes R jr r Ls s` takes the real state and records `∀ dir d, o = some dir → s.wal !! dir = some d →
+  d.named = false` (a separate pure conjunct). Kept by: `walNamesRes_addWal` (the commit: the fresh WAL unnamed),
+  `walNamesRes_congr` (`NamedSub`, for the steps that change `s` but no `named`: sync, append, unlock;
+  `namedSub_upd`/`namedSub_ins`), `walNamesRes_none` (with `walNamesFrag none`: the naming steps), the
+  registration (`o := none`). Read by `walNamesRes_unnamed`.
+- The naming steps take the caller's `walNamesFrag none`: `walInvBody_named`/`walInv_named` (`Create`'s success
+  exit now **registers, then names**: the name claim split in two halves, one registered, one for the naming)
+  and `walInvBody_namedBy`/`walInv_namedBy` (`ReadAll`: its handle's `Hnf`).
+- `WalsAt`'s second part weakened to `h.cur !! lay.nm = some (.dir lay.j) ∨ h.cur !! lay.nm = none` (the minimal
+  form; the invariant does not keep `Create`'s names fragment: no user needs to refute the second disjunct). Its
+  strong users: the registration takes `∃ J, hn.cur !! nm = some (.dir J)` (`walInvBody_register`/
+  `walInv_register`'s new premise; `WalsAt.at_dir`); the start keeps the strong form (`WalsAtS`,
+  `walsAt_start`); `walDirAt_pure`'s second part weakened (unused). Preservation lemmas adjusted
+  (`walsAt_create`, `walsAt_drop`).
+- `walAreaRes`/`AreaOk`'s `SubCover` exempts broken names (`BrokenSlot b := ∃ nm sfx, walNameOk nm ∧ b =
+  nm.broken.sfx`, `CreateDefs.lean`); `area_takeTmp` refutes it for `nm.tmp` (`tmpName_not_broken`, over
+  `dot_cut`); `areaOk_give`/`area_give`'s `hcur` may skip broken names.
+- The moved-aside step's pure part, `CleanupMoved.lean`: the rename `nm → brk` logged in the pinned claim
+  (`movClaims`, a `replClaim`); a crash keeping it leaves `nm` empty (`CrashTo`'s left disjunct, the WAL unnamed)
+  and, the rename undone (`movUndo`), is a crash of the claims before (`regionCrashedK_moved_keep`); one dropping
+  it is a crash before (`regionCrashedK_unlog`). `walsOk_moved`, `absentNone_moved`, `dirsOk_moved`,
+  `walsCreateOk_moved`, `walsNamed_moved`, `dirKeysOk_moved`, `walsAt_moved`. No lemma needed `walNameP brk =
+  false`: the other WALs' conditions read their own directories (not the area's, `WalsAt.ne`).
+
+**The law** (`create_cleanupLaw`): `nm`'s claim whole from the two pinned paths (`os.osPathS_unchild` twice,
+`osNames_agree`, `d + (d + c) = ½`), merged (`walInv_merge2`), pinned (`walInv_pinClean`, the token
+deposited), `lb := h'.next` (`osNames_next`), the update `cleanAU` (`CleanupAu.lean`: halves, `q = rr = ½`; its
+resource the pin and the names fragment; abort puts the invariant's half back; commit deletes the pin and,
+logged, makes the moved-aside step, the WAL known present by `AbsentNone` and unnamed by `walNamesRes_unnamed`);
+`cleanQ` returns `walUnlockedTokX` and the names fragment. Every outcome gives `createFin` (an unused update
+committed with no effect: `osAUnc_none'`, a copy of `WAL__renameWAL.lean`'s, which is a proof file).
+`createAreaL`/`createFin` now carry the area history `h` and the fact that the claim's names but `nm` and a
+broken name are as `h` had them; `create_cleanBack` merges `nm.tmp` back (`walInv_mergeIn`) and rebuilds
+`walAreaRes` (`area_give`). Statement changes, all internal: `create_cleanupLaw` (the area path's fraction a
+`Qp`, `hself` dropped, `hnmO` added, the instance `[os.fileStat.FieldAssumptions]` that `os.osPathS_unchild`
+carries), `create_cleanBack` (`h`, `hok`, `hnm`, `hself`), `createFin` (`qa : Qp`, `h`).
+
+**Consequence worth knowing.** After a cleanup whose rename was called (it took effect or not), the pending
+registration stays `some dir` forever: no `walNamesFrag none` can be formed, so no lock token again in the
+generation (as session 3 noted for the error arm). `Create.spec`'s error postcondition never returned the lock,
+so nothing a client relies on changes.
+
+**Left**: nothing in this unit. `WAL.renameWALUnlock.spec` (a hypothesis of `renameWAL`, false as stated: session
+1's (a)-(c)) was not attempted; it is the WAL's remaining open item on `Create`'s path, outside the `sorry` count.

@@ -86,17 +86,19 @@ theorem creatingOk_cut {jr : Ino} {cl : List Claim} {CR : GMap GoString (NameSet
     (hcl : (j, N, h) ∈ cl) (hN : ∃ b, walNameP b = true ∧ N.Mem b) :
     CreatingOk jr (replClaim (j, N, h) (j, N, h') cl) CR := by
   intro dir N' h'' J hcr
-  obtain ⟨hm, hcoh, hex, honce, hdist, hJr, hJc, hJd, hb⟩ := hCO dir N' h'' J hcr
+  obtain ⟨hm, hcoh, hex, honce, hdist, hnew⟩ := hCO dir N' h'' J hcr
   have hne0 : (jr, N', h'') ≠ (j, N, h) := fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1.symm)
   have hne1 : (jr, N', h'') ≠ (j, N, h') := fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1.symm)
-  have hJj : J ≠ j := fun e => by
-    obtain ⟨b, hbw, hbN⟩ := hN
-    exact hJc _ hcl e.symm b (not_walTmps_of_wal hbw) hbN
   refine ⟨mem_replClaim_of_ne hm hne0, hcoh, fun c hc hne hc1 b hb' => ?_,
-    claimOnce_repl_other honce hne0 hne1, hdist, hJr, fun c hc hc1 => ?_, hJd, hb⟩
+    claimOnce_repl_other honce hne0 hne1, hdist, fun hk => ?_⟩
   · rcases mem_replClaim_cases hc with rfl | ⟨hc', -⟩
     · exact absurd hc1 hjjr
     · exact hex c hc' hne hc1 b hb'
+  obtain ⟨hJr, hJc, hJd, hb⟩ := hnew hk
+  have hJj : J ≠ j := fun e => by
+    obtain ⟨b, hbw, hbN⟩ := hN
+    exact hJc _ hcl e.symm b (not_walTmps_of_wal hbw) hbN
+  refine ⟨hJr, fun c hc hc1 => ?_, hJd, hb⟩
   · rcases mem_replClaim_cases hc with rfl | ⟨hc', -⟩
     · exact absurd hc1.symm hJj
     · exact hJc c hc' hc1

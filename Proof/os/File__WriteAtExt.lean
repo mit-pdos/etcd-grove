@@ -353,6 +353,8 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
       · omega
       · exact ⟨hEj, hja', Or.inr ⟨hja, by omega⟩⟩
     split <;> omega
+  have hjc : j ≤ nn + c := by
+    rcases hinv with ⟨hj0', -⟩ | ⟨-, -, -, -, hja, hal, -, ha, -⟩ <;> omega
   have hmeta : pwPost mj oc.toNat cd.length k =
       os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) := by
     rw [hcdl, hocN]
@@ -364,6 +366,9 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
     osMeta d.ino (DFrac.own 1)
       (os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E)) by
       rw [hmeta]) $$ Hm
+  -- the last whole chunk's end, as a variable (its `if` slows `omega` on the context down)
+  generalize hE'd : (if k = c then nn + c else E) = E' at hE' ⊢
+  clear hE'd hmeta hinv
   have hL2 := pwBytesG_length mj.size oc.toNat cd k nst
     ((ys.drop (min oc.toNat (pwSize m.size off.toNat j) - min off.toNat m.size)).take
       (min (oc.toNat + c) (pwSize m.size off.toNat j) - min oc.toNat (pwSize m.size off.toNat j))) zs
@@ -406,20 +411,20 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   have hA : max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
       min data.length 0x40000000 ≤ nn + c ∧ 0 < nn + c := by omega
   have hinv' : ∀ nn', nn ≤ nn' → (max j (nn + k) = 0 ∧ nn' = 0 ∧
-      os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) = m ∧
-      (if k = c then nn + c else E) = 0) ∨
-      (os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) =
-          os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) ∧
-        (if k = c then nn + c else E) ≤ max j (nn + k) ∧
-        (max j (nn + k) = nn + c → (if k = c then nn + c else E) = nn + c) ∧
+      os.pwPostE m off.toNat (nn + c) (max j (nn + k)) E' = m ∧
+      E' = 0) ∨
+      (os.pwPostE m off.toNat (nn + c) (max j (nn + k)) E' =
+          os.pwPostE m off.toNat (nn + c) (max j (nn + k)) E' ∧
+        E' ≤ max j (nn + k) ∧
+        (max j (nn + k) = nn + c → E' = nn + c) ∧
         m.lo ≤ m.size ∧ max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
         min data.length 0x40000000 ≤ nn + c ∧ nn + c ≤ nn' + 0x40000000 ∧ 0 < nn + c) :=
     fun nn' h => .inr ⟨rfl, hE'.1, hE'.2, hml, hA.1, hA.2.1, hA.2.2.1, by omega, hA.2.2.2⟩
-  clear hend hL2 hyl hsz hlZ hsb hsb2 hys hcd hslz Hlen Hwf hinv hmeta hmsz hmaps
+  clear hend hL2 hyl hsz hlZ hsb hsb2 hys hcd hslz Hlen Hwf hmsz hmaps
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %(W64 ↑nn) %nn %(max j (nn + k)) %(nn + c) %(if k = c then nn + c else E) %_ %_ %rfl %hJ %hnJ %hnl %hys'
+    iapply IH $$ %(W64 ↑nn) %nn %(max j (nn + k)) %(nn + c) %E' %_ %_ %rfl %hJ %hnJ %hnl %hys'
       %(hinv' nn (Nat.le_refl _)) %hcj' %hcn Hm Hbs Hc Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
@@ -453,7 +458,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         have hnJ2 : nn + k ≤ max j (nn + k) := by omega
         have hnl2 : nn + k < data.length := by omega
         have hcn2 := waCut_short _ _ _ _ _ hcn hcdef hk0 hfull hk hnl hpc
-        iapply IH $$ %(W64 ↑nn + W64 ↑k) %(nn + k) %(max j (nn + k)) %(nn + c) %(if k = c then nn + c else E) %_ %_
+        iapply IH $$ %(W64 ↑nn + W64 ↑k) %(nn + k) %(max j (nn + k)) %(nn + c) %E' %_ %_
           %hnw2 %hJ %hnJ2 %hnl2 %hys' %(hinv' (nn + k) (by omega)) %hcj' %hcn2
           Hm Hbs Hc Hosfd Hsl Hfd HΦ
     · have he0' : ¬ e = W64 0 := he0

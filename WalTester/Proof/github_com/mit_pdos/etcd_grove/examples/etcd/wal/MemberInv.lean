@@ -111,8 +111,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 def memSavePers (W : WalGS GF) (e : TEnv) (γ : TGS) : IProp GF :=
   iprop(osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗
-      WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
-      WalFs.walNamed (W := W) (tWalDir e.root))
+      WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
+      WalFs.walNamed (W := W) (tWalDir e.area))
 
 instance memSavePers_persistent (W : WalGS GF) (e : TEnv) (γ : TGS) :
     Persistent (memSavePers (GF := GF) W e γ) := by
@@ -133,13 +133,13 @@ theorem memSaveRes_pers (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : or
 def memOpPost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o' : TOracle) (c : TCand) (qc : Qp)
     (b : Bool) : IProp GF :=
   iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
-      m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
+      m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' o' ∗ tWalOwn γ (some d') ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
+        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
         ⌜tMemOk o' c d' ∧ tMemHs o' d'⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o' c) ∗
-        WalFs.walLenLb (W := W) w (tWalDir e.root) d'.H.length
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o' c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.area) d'.H.length
       else True)
 
 theorem memSavePost_op (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand)
@@ -184,7 +184,7 @@ def memLive (W : WalGS GF) (e : TEnv) (γ : TGS) (m : Loc) (qc : Qp) (o : TOracl
     m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗
     m.[member, go!"base"] ↦ bs ∗ m.[member, go!"last"] ↦ l ∗ m.[member, go!"terms"] ↦ tm ∗
     tm ↦$ M ∗ m.[member, go!"r"] ↦ r ∗ r ↦ rv ∗
-    WalFs.walPurgeW (W := W) w (tWalDir e.root) ∗
+    WalFs.walPurgeW (W := W) w (tWalDir e.area) ∗
     ⌜tMemOk o c d ∧ tMemHs o d ∧ tMemFields t M ∧ tCheckWf o⌝)
 
 end rep

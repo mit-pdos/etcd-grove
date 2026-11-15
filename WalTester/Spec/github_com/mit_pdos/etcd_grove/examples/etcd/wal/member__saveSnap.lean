@@ -1,15 +1,12 @@
 /-
 `(*member).saveSnap(idx, term)` (wal.go) over `fsExt` (W4c U5): the snapshot operation appended to the
 oracle's `since` and stored (`tSnapO1`), `w.SaveSnapshot(&walpb.Snapshot{Index, Term, ConfState:
-{Voters: [1]}})` (its update committed on the tester's invariant), then the mark moved to the end and stored
-(`SaveSnapshot` syncs): `true`, `memOpPost` at `tSnapO o idx term`; `false`, `SaveSnapshot` failed (the
-member stops). As `member.save.spec`, over `memSaveRes`.
-
-**Stated, not proved**: the proof must show the snapshot record's encoding is the model's (`walSnapAt`:
-`snapEnc c = Mr.encSnap md` with `absSnapMd`'s conf state), which `wal.go`'s `ConfState{Voters: []uint64{1}}`
-(no `AutoLeave`) does not meet against U4's canonical form (W4c U1 mismatch 3, a user decision:
-`notes/wal-fsext-w4c-plan.md`). `opRecvSnap` (and `opOwnSnap`) take it as a callee hypothesis. Lean-first
-(no Rocq counterpart).
+{Voters: [1], AutoLeave: new(bool)}})` (its update committed on the tester's invariant), then the mark moved
+to the end and stored (`SaveSnapshot` syncs): `true`, `memOpPost` at `tSnapO o idx term`; `false`,
+`SaveSnapshot` failed (the member stops). As `member.save.spec`, over `memSaveRes`. Proved
+(`member__saveSnap.lean`) since the conf state is raft's canonical form (`AutoLeave` set; the user's
+decision of 2026-11-15, U1 mismatch 3): its object is `walSnapCanon (absSnapMd idx term)`, whose encoding is
+`walRaftMr`'s (`SnapAu.walSnapAt_litCs`). Lean-first (no Rocq counterpart).
 -/
 module
 

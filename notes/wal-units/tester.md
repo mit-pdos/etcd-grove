@@ -232,3 +232,95 @@ it is not proved.
    `Close.specFailed`'s half for `Repair`); on success `tRead_of_readAll` (with `hsGet`'s and `fromRaft`'s
    specs for the read).
 2. Discharging `tReadsBackOk` (open point 1) and the size premise in the invariant (U7 / whoever owns it).
+
+# Ninth session (branch `wal-c-tester2`, 2026-11-15): the tester's Go changes; `restartRead`, `saveSnap`
+
+Base `origin/wal-int` (`bf4cf547b9`), merged again (`79bbbe6b65`, notes only). No axiom added; one retired
+(`purgeRound`, below). No `sorry`. Nothing trusted or generated edited by hand.
+
+## The Go changes (the user's decisions of 2026-11-15, "Fixup the tester as needed")
+
+Recorded in `notes/decisions.md`, "WAL tester over fsExt: Go changes". In `examples/etcd/wal/`:
+1. `restartRead`: `snaps[i].GetIndex()`/`GetTerm()` (was `*snaps[i].Index`/`*snaps[i].Term`).
+2. `saveSnap`: `&raftpb.ConfState{Voters: []uint64{1}, AutoLeave: new(bool)}` (raft's canonical form).
+3. `Boot(area, orDir, seed, nOps)`: the WAL area (WAL `area/wal`) and the oracle directory (`orDir/state`) are
+   the environment's; no `TouchDirAll`. `Main(area, orDir)`. The harness (`robust_test.go`) creates
+   `root/data/member` beside `root/oracle` and calls `Boot(root+"/data/member", root+"/oracle", …)`.
+4. The oracle's size: `fits(o, room)` (oracle.go: `len(encodeOracle(o)) + room <= maxOracle = 2^30`). `step`
+   returns false unless `fits(m.o, oracleRoom = 256)`; `restart` unless `fits(m.o, 16)` before `restartRead`
+   and `fits(m.o, 0)` before storing `checkRestart`'s oracle. Chosen over a `storeOracle` that refuses (that
+   would add a false arm at every store, i.e. change every operation's spec); the two places are where the
+   oracle can grow by more than a caller-known constant.
+5. `purgeRound` dropped, with its call and the purge bound's raise in `opOwnSnap`; retired with it: the main
+   tree's approved axiom `Proof/.../examples/etcd/wal/purgeRound.lean`, its spec, `PurgeBody.lean`, the Go
+   evidence `purge_test.go`; the main tree's goose configuration (`Code/.../etcd/wal.toml`) now translates
+   everything. **It returns with a lock model** (`notes/wal-fsext-plan.md` gap 3, Q1): then `opOwnSnap` raises
+   the candidates' purge bounds again before a round, and `purgeRound` gets an `fsExt` spec over the lock model.
+   `etc/tcb-baseline.txt` and the collections did not list the axiom (no result reached it): no change.
+
+Checks: `go vet ./etcd/wal/...`, `go test ./etcd/wal/...` (pass), `TestRobust -chains 30 -model posix -fz
+-fn` (210 incarnations, 180 checked restarts, 0 violations). `etc/goose.py --project etcd-wal` regenerated
+both translations (main tree and `LinuxFs`); `--check --project etcd-wal` passes; `etc/gen-init.py`
+regenerated both `Init.lean` (the tester no longer imports `os`, `strings`, `fileutil`).
+
+## Proof repairs and statement changes
+
+- **`TEnv`** (`TP/Inv.lean`): `area`, `orDir` in place of `root`; `tWalDir area = area ++ "/wal"`, `tOrPath orDir =
+  orDir ++ "/state"` (`TP/Defs.lean`); `tArea`, `tDataDir`, `tOrDir` gone; `tOrPath_child orDir`; `tWalPathsOk
+  area`. Every tester spec/proof rewritten mechanically (`tArea e.root` → `e.area`, …); all rebuild.
+- **`member.restart.spec`**: loses its two size premises (`(tEncodeOracle o).length + 16 ≤ 2^30`, `∀ ls c,
+  tOrSmall (tCheckRestart …)`): the two `fits` checks give them; gains `m ≠ null` (below). Re-proved.
+- **`restartRead.spec`**: gains `m ≠ null` (ledger 2026-11-15: `restartRead` tests `m != nil`).
+- **`member.saveSnap.spec`**: unchanged but its header (now proved).
+
+## Proved (`lake build` of each module passes)
+
+- **`fits`** (`TS/fits.lean`): `b = true ↔ tOrRoom o room` for `room ≤ 2^62`.
+- **`restartRead.wp_proof`** (`TP/restartRead.lean`), over `ValidSnapshotEntries`, `Open`, `WAL.ReadAll`,
+  `WAL.Close.specFailed`, `Repair`, `walpb.Snapshot.GetIndex/GetTerm`, `newU64`, `storeOracle`, `fromRaft`
+  and `RaftModel.Getters`' `wp_hsGet*`. The newest-pair loop computes `walNewestPair` (`walNewestPair_loop`);
+  the attempt loop's invariant is `(repaired, l, dc)` with `|l| = [repaired]`, `dc.H = d.H`, `dc.cut = d.cut`,
+  `tCandOk (tWithOpens o l) cd dc`; on success `tRead_of_readAll` names the image.
+- **`TP/RestartAu.lean`** (new, non-spec): `tInv_dirAu` (VSE/Repair), `tInv_readAu` (ReadAll, with its
+  newest-pair premise), `tInv_openAu` (Open's raise, both WAL halves moved, the invariant's relation by the
+  member's candidate), `walOpenRaise`, `tNewestStep`/`walNewestPair_loop`, `walSnapIdTerm_lit` (Open's
+  argument frozen), persistence instances of `walSnapsAt`/`walEntsIn`.
+- **`member.saveSnap.wp_proof`** (`TP/member__saveSnap.lean`), over `storeOracle`, `newU64`,
+  `WAL.SaveSnapshot`. **`TP/SnapAu.lean`** (new): `tSnapD`, `tCandOk_snap1`, `tMemOk_snap1`, `tMemHs_snap`,
+  `walSnapCanon_absSnapMd`, `absSnapMd_enc_lt` (< 2^40), `tRelI_snap1`, `tInv_snapAu`, and
+  **`walSnapAt_litCs`**: the literal with the canonical conf state, frozen, is `walSnapAt walRaftMr _
+  (absSnapMd idx term) true` (its object is `walSnapCanon`, so `snapEnc c = walRaftMr.encSnap md` by `rfl`).
+  So `opRecvSnap` now links (its callee hypothesis is proved).
+
+## Not done, next steps (in order)
+
+1. **`member.opOwnSnap`**: unblocked, not written. Its spec in `memLive` form, as `opRecvSnap`'s. Needs: a pure
+   `tRaiseNames o a` (every candidate's `unl` raised to `tNameBound (cd.h ++ since) a`, Go's `>` on `uint64`),
+   its encoding length equal (`tEncodeOracle_length`: only `unl` values change), the candidates loop (as
+   `checkRestart`'s, `CandsLemmas.candsElems_set`), `m.terms[a]` (map lookup; `tMemFields` bounds it), and
+   `ReleaseLockTo`'s AU on `TInv` (the record at `i = |d.H|` before the snapshot's append, `i < n = |d.H| + 1`
+   from `saveSnap`'s `walSyncedLb`; the raise is accounted for by `walReleasePos_le_openPos`, `walOpenPos ≤
+   walNameBound … false` (it is a `min`) and `tNameBound_eq`).
+2. **`member.step`**: its arms but the restart are in reach (`opTerm/opCommit/opEntries/opResend` to `memLive` by
+   `memSaveRes_post`; `fits(m.o, 256)` gives each op's `tOrRoom`). **The close-and-restart arm is blocked** on
+   `restart`'s premise `tReadsBackOk (d.H.map toM)` of the member's WAL state, the eighth session's open point 1
+   (true of the tester's histories as far as known, proved nowhere; it is a fact about the tester's raft
+   discipline that every operation must preserve). `step`'s spec cannot discharge it from `memLive`; options:
+   (a) carry it in `memLive` and prove its preservation by every operation (option (b) of the eighth session:
+   entries contiguous above the commit, commit at most the last index, the `opRecvSnap` shape); (b) state
+   `step`/`Boot` with an explicit premise on every reachable history (a weaker closed theorem). I recommend (a);
+   not a user decision unless (b) is taken into the closed theorem.
+   The restart arm also needs `step`'s frame to carry `m.lg`, `m.walDir`, `zapLoggerOk`, `osPathS`, `walAreaRes`,
+   and the half of the call permission `close` returns (joined with `memLive`'s for `restart`'s `osCallPerm 1`).
+3. **`Boot`, `Main`**: `Boot`'s first start (`Create` with `walAbsent` from `TBoot`'s `od = none`, `freshOracle`
+   stored, `resume` of the zero contents) and its restart path (`restart`, same premise as in 2); then the step
+   loop and the final `close`. `Main` = `Boot(area, orDir, 0, 40)`. Not started.
+
+## For the closed theorem (not stated: the user's hard stop)
+
+Its premises as far as this session sees them: the world premises of `tBoot0`/`tBootCrash` (`RootsOk R`; `area`
+and `orDir` two distinct roots, both in the first tree; no oracle file nor its temporary at the first boot;
+`ReceiptBoundLe GF (2^62)`; `e.orFile.Ok`; `tWalPathsOk area`, i.e. `area` clean and absolute, `area/wal`
+shorter than `2^59`); `W1` (no CRC collision) as the crash premise (`hQ`); `BootFo` of the crashed tree until
+`walFoRes` lands (tcrash.md); `WalDecEnvSupply` and the Perennial-gap hypotheses of `S/Link.lean`; and, until
+step 2 above is done, `tReadsBackOk` of the restarted states.

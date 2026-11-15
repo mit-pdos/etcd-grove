@@ -53,7 +53,7 @@ theorem storeOracle.wp_proof
   wp_auto
   wp_apply wp_enc $$ [$Hrep] as Hrep
   icases Hdeps with ⟨#Hdpkg, -⟩
-  rw [show tOrPath e.root = e.orFile.name from (tOrPath_child e.root).symm]
+  rw [show tOrPath e.orDir = e.orFile.name from (tOrPath_child e.orDir).symm]
   wp_apply (wp_Write γ.γd e.orFile e.R qc (tEncodeOracle o') hf hs) $$ Hdpkg Hos Hsi Hdi Hh Hperm
     [Ho Hw Hrep HΦ]
   · iauintro

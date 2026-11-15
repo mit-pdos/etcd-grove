@@ -39,9 +39,9 @@ abbrev storeOracle.spec : Prop :=
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
       osCallPerm (GF := GF) qc ∗ oracleRep v o' ∗ tOrOwn γ o none ∗ tWalOwn γ od ∗
-      tRelI (W := W) e.root o' od }}
+      tRelI (W := W) e.area o' od }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle))
-      (Val #(tOrPath e.root))) (Val #v))
+      (Val #(tOrPath e.orDir))) (Val #v))
   {{ RET #(); DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
       oracleRep v o' ∗ tOrOwn γ o' none ∗ tWalOwn γ od }}
 

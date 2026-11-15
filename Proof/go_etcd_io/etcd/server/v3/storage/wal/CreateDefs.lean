@@ -65,8 +65,42 @@ claim in `cl`. -/
 def SubCover (cl : List Claim) (e : Option Node) : Prop :=
   ∀ J, e = some (.dir J) → ∀ J', ClReach cl J J' → ∃ h, (J', NameSet.except [], h) ∈ cl
 
+/-- **A name `nm.broken.<sfx>` of a WAL name** (W4 session 4): where `Create`'s cleanup renames a WAL
+being created (`cleanupWAL`), whose directory's claims stay the invariant's; `walAreaRes` asks nothing
+of what is under it. -/
+def BrokenSlot (b : GoString) : Prop := ∃ nm sfx, walNameOk nm ∧ b = nm ++ go!".broken." ++ sfx
+
 /-- The name `n.tmp` of `Create`'s temporary directory (`filepath.Clean(dir) + ".tmp"`, S/wal.go:112). -/
 def tmpName (nm : GoString) : GoString := nm ++ go!".tmp"
+
+/-- Two names cut at their first `.`. -/
+theorem dot_cut {a b x y : GoString} (ha : W8 46 ∉ a) (hb : W8 46 ∉ b)
+    (h : a ++ W8 46 :: x = b ++ W8 46 :: y) : a = b ∧ x = y := by
+  induction a generalizing b with
+  | nil =>
+    cases b with
+    | nil => simpa using h
+    | cons c b => simp at h; exact absurd (h.1 ▸ List.mem_cons_self ..) hb
+  | cons c a ih =>
+    cases b with
+    | nil => simp at h; exact absurd (h.1 ▸ List.mem_cons_self ..) ha
+    | cons c' b =>
+      simp only [List.cons_append, List.cons.injEq] at h
+      obtain ⟨rfl, h⟩ := h
+      obtain ⟨e1, e2⟩ := ih (fun hm => ha (List.mem_cons_of_mem _ hm))
+        (fun hm => hb (List.mem_cons_of_mem _ hm)) h
+      exact ⟨by rw [e1], e2⟩
+
+/-- A WAL name's temporary directory is no broken name. -/
+theorem tmpName_not_broken {nm : GoString} (hnm : walNameOk nm) : ¬ BrokenSlot (tmpName nm) := by
+  rintro ⟨nm', sfx, hnm', he⟩
+  unfold tmpName at he
+  have e1 : nm ++ go!".tmp" = nm ++ W8 46 :: go!"tmp" := rfl
+  have e2 : nm' ++ go!".broken." ++ sfx = nm' ++ W8 46 :: (go!"broken." ++ sfx) := by
+    simp [List.append_assoc]
+  rw [e1, e2] at he
+  have := (dot_cut hnm.2.2 hnm'.2.2 he).2
+  simp at this
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -137,7 +171,8 @@ def areaCls (cl : List (GoString × Claim)) : IProp GF :=
 names `N` containing every WAL name not split out (`Wn`, `walSplitFrag`: the registered WALs' names, each
 in its own claim, `walNamesRes`; G-spine, W1 log, fourteenth session) and every name `nm.<sfx>` of a WAL
 name (`Create`'s `nm.tmp`, the cleanup's `nm.broken.<time>`; the invariant holds the other half), and, for each non-WAL name `b` of `N`, the whole
-claims of every directory under it (`SubCover`; each claim tagged with the name it is under, so that a
+claims of every directory under it (`SubCover`, but under a `BrokenSlot`, where the cleanup moves a WAL
+being created aside; each claim tagged with the name it is under, so that a
 function working on `b`'s subtree takes and gives back `b`'s claims only: W4 log, eleventh session); a
 WAL name's temporary directory `nm.tmp` (a leftover of a `Create` a crash interrupted) holds nothing or a
 directory of files only (`TmpOk`: the WAL creates nothing else there), so that `Create`'s
@@ -149,7 +184,7 @@ def walAreaRes (jr : Ino) : IProp GF :=
     ⌜∀ nm, walNameOk nm → N.Mem nm ∨ nm ∈ Wn⌝ ∗
     ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
     areaCls (L := L) cl ∗
-    ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover (clOf cl b) (h.cur !! b)⌝ ∗
+    ⌜∀ b, N.Mem b → ¬ walNameOk b → ¬ BrokenSlot b → SubCover (clOf cl b) (h.cur !! b)⌝ ∗
     ⌜∀ nm, walNameOk nm → TmpOk (clOf cl (tmpName nm)) (h.cur !! tmpName nm)⌝)
 
 end res

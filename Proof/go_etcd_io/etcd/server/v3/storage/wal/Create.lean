@@ -129,12 +129,12 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
     "(" fC:tacticSeq ")" : tactic => `(tactic| (
     wp_apply wp_cleanupWAL R jr r nm $w lg R d $tf
       (createFr R jr r nm (DFrac.own (e + a')) N h c hn cl Wn)
-      (createFin R jr r nm (DFrac.own (e + a')) $tf N cl Wn) hnmO
+      (createFin R jr r nm (e + a') $tf N h cl Wn) hnmO
       $$ [Hw Hpw Hcp Hp HNr Hnm Hcl Hsf'] as %cerr Hcr
     · iframe; iframe #
       isplitl [Hp HNr Hnm Hcl Hsf']
       · unfold createFr; iframe
-      iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hself hNnm _hcq hnm.1
+      iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hNnm hnmO _hcq hnm.1
         $$ Hok
     icases Hcr with (⟨%hce, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd'⟩ |
       ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | Hfin)
@@ -164,9 +164,9 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c hn hin hnmO
-        (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, -, Hsf'⟩
+        (by rw [hs']; simp) ⟨J, hnm.1⟩ $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, -, Hsf'⟩
       imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
-        walLockedTok_unlocked_excl hok hin.1 hself hht $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf'
+        walLockedTok_exclX hok hin.1 hself hht $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf'
         with ⟨Hnc, -, Hres⟩
       iframe Hnc
       imodintro
@@ -202,9 +202,9 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c hn hin hnmO
-        (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, -, Hsf'⟩
+        (by rw [hs']; simp) ⟨J, hnm.1⟩ $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, -, Hsf'⟩
       imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walUnlockedTokX (W := W))
-        walUnlockedTokX_unlocked_excl hok hin.1 hself hht $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf'
+        walUnlockedTokX_exclX hok hin.1 hself hht $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf'
         with ⟨Hnc, -, Hres⟩
       iframe Hnc
       imodintro
@@ -242,7 +242,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
         · iframe; iframe #
         iapply wp_notCrashed_acc _ _ rfl
         iintro Hnc
-        imod create_cleanBack walCodec Mr R jr r nm N cl Wn ht hht $$ Hinv Hsi Hnc HaL Htmp
+        imod create_cleanBack walCodec Mr R jr r nm N h cl Wn ht hok hin.1 hself hht $$ Hinv Hsi Hnc HaL Htmp
           with ⟨Hnc, Hres⟩
         iframe Hnc
         imodintro
@@ -399,18 +399,21 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     icases walOpenWFU_seal P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hnf, Hw⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_named walCodec Mr R jr r (child r nm) nm s' (walDurFresh md) (.only [nm]) (DFrac.own c)
-      hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
-      $$ Hinv Hsi Hnc Hpast Hnm Hcm with ⟨Hnc, Hnm, #Hnamed⟩
-    imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c hn hin hnmO
-      (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, Hnf, Hsf'⟩
+    icases (osNames_frac (L := hG.goose_localGS) jr (.only [nm]) c.half c.half hn).1 $$ [Hnm]
+      with ⟨Hnm, Hnm2⟩
+    · rw [Qp.half_add_half]; iexact Hnm
+    imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c.half hn hin hnmO
+      (by rw [hs']; simp) ⟨J, hnc⟩ $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, Hnf, Hsf'⟩
+    imod walInv_named walCodec Mr R jr r (child r nm) nm s' (walDurFresh md) (.only [nm])
+      (DFrac.own c.half) hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
+      $$ Hinv Hsi Hnc Hpast Hnm2 Hcm Hnf with ⟨Hnc, -, #Hnamed, Hnf⟩
     iframe Hnc
     imodintro
     ihave Hw := Hw $$ Hnf Hnamed
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walOpenWF P Mr $w (child r nm))
-      (walOpenWF_unlocked_excl P Mr $w (child r nm)) hok hnm hself hht
+      (walOpenWF_unlocked_exclX P Mr $w (child r nm)) hok hnm hself hht
       $$ Hinv Hsi Hnc Hw HNr Htmp Hcl Hsf' with ⟨Hnc, Hw, Hres⟩
     iframe Hnc
     imodintro
@@ -1015,7 +1018,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       (h.restrict jr (N.diff [tmpName nm])) hT3 J walTmps
       (hJ'.restrict J ((NameSet.except []).diff walTmps)) ⊤ CoPset.subseteq_top walN_osShN_top hnm
       hNnm' hNt' hDe (tmpName_not_walName nm) (tmpName_walNameP nm) (walNameOk_not_tmps hnm)
-      walTmps_not_wal (fun _ h => h) $$ Hinv Hsi Hnc Hu HN HT HJx with ⟨Hnc, %hC, Hcr, HNr, HC, HJx, %hCf⟩
+      walTmps_not_wal (fun _ h => h) (child_ne_cleanKey r nm) $$ Hinv Hsi Hnc Hu HN HT HJx with ⟨Hnc, %hC, Hcr, HNr, HC, HJx, %hCf⟩
     iframe Hnc
     imodintro
     imod create_J_ne R jr J [nm, tmpName nm] nm _ _ hC _ (by simp) (walNameOk_not_tmps hnm)
@@ -1289,9 +1292,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn (b1 + b1) hn hin hnmO
-      (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf Hnm with ⟨Hnc, -, Hsf⟩
+      (by rw [hs']; simp) ⟨J, hnt.1⟩ $$ Hinv Hsi Hnc Hpast Hnf Hsf Hnm with ⟨Hnc, -, Hsf⟩
     imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
-      walLockedTok_unlocked_excl hok hnm hself hnt.2 $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf
+      walLockedTok_exclX hok hnm hself hnt.2 $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf
       with ⟨Hnc, -, Hres⟩
     iframe Hnc
     imodintro

@@ -345,6 +345,10 @@ to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes i
 def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
   ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
 
+/-- A WAL directory's path is not the cleanup's key. -/
+theorem child_ne_cleanKey (d b : GoString) : child d b ≠ cleanKey := by
+  unfold cleanKey child; simp
+
 /-- The claim `c` occurs once in `cl`. -/
 def ClaimOnce (c : Claim) (cl : List Claim) : Prop :=
   ∃ l1 l2, cl = l1 ++ c :: l2 ∧ c ∉ l1 ∧ c ∉ l2
@@ -369,12 +373,14 @@ shared invariant says of claims, `NamesCoh.disj`, recorded where the token is ma
 commit, inside an `os` call's update, cannot open that invariant); the claim occurs once in `cl`
 (the commit replaces that one occurrence) and is no other entry's (the commit deletes only its own
 entry). A new entry's claim is split off the area claim where its token is made, so it is in no
-claim of `cl` before. -/
+claim of `cl` before. The cleanup's pin (`cleanKey`, W4 session 4) has all but `CreatingNew`: its claim
+is the area claim with the WAL's name merged back, whose directory `J` (recorded as `jr`) is no new
+directory. -/
 def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH × Ino)) : Prop :=
   ∀ dir N h J, CR !! dir = some (N, h, J) → (jr, N, h) ∈ cl ∧ ClaimCoh h jr N ∧
     (∀ c ∈ cl, c ≠ (jr, N, h) → c.1 = jr → ∀ b, N.Mem b → ¬ c.2.1.Mem b) ∧
     ClaimOnce (jr, N, h) cl ∧ (∀ dir' J', dir' ≠ dir → CR !! dir' ≠ some (N, h, J')) ∧
-    CreatingNew jr cl CR dir N J
+    (dir ≠ cleanKey → CreatingNew jr cl CR dir N J)
 
 /-- **A WAL name of the area with no WAL is absent** (W4, framed; strong absence, against `AbsentOk`'s
 "no `.wal` file"): in every claim of the area directory holding it, now, and after every crash the
@@ -605,10 +611,23 @@ directory at its name; the others' names untouched). And **no WAL's directory is
 directory** (`lay.j ≠ jr`; W4: `Create`'s merge of its claims back into the area claim after the
 commit needs the merged claim to be no WAL directory's, `WalDirClaimOf`; established at the start from
 the crash's old invariant, `CrashGood` keeping each layout's directory, kept by every step, which
-keeps each layout's directory, and `Create`'s commit, `CreatingNew`'s `J ≠ jr`). -/
+keeps each layout's directory, and `Create`'s commit, `CreatingNew`'s `J ≠ jr`). **Or nothing** (W4
+session 4, `notes/wal-units/create.md`): the cleanup's rename of a WAL being created (`nm` onto
+`nm.broken.<time>`) leaves its layout with no entry at its name; that WAL is never registered again (the
+pending registration stays its, `walNamesRes`), so a holder of a registered name's claim has the
+directory there from `nameShare`, and `Create`'s registration from its own claim. -/
 def WalsAt (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim) : Prop :=
   ∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr ∧ ∀ N h, (jr, N, h) ∈ cl → N.Mem lay.nm →
+    h.cur !! lay.nm = some (.dir lay.j) ∨ h.cur !! lay.nm = none
+
+/-- **`WalsAt` with the directory at every name** (the start's, `walsAt_start`, before any cleanup). -/
+def WalsAtS (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim) : Prop :=
+  ∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr ∧ ∀ N h, (jr, N, h) ∈ cl → N.Mem lay.nm →
     h.cur !! lay.nm = some (.dir lay.j)
+
+theorem WalsAtS.weak {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : WalsAtS jr Ls cl) :
+    WalsAt jr Ls cl := fun dir lay hl =>
+  ⟨(h dir lay hl).1, fun N hh hm hN => Or.inl ((h dir lay hl).2 N hh hm hN)⟩
 
 /-- No WAL's directory is the area directory (`WalsAt`'s first part). -/
 theorem WalsAt.ne {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : WalsAt jr Ls cl)
@@ -617,8 +636,18 @@ theorem WalsAt.ne {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : 
 /-- The area claims at a WAL's name (`WalsAt`'s second part). -/
 theorem WalsAt.at {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : WalsAt jr Ls cl)
     {dir : GoString} {lay : WalLay} (hl : Ls !! dir = some lay) {N : NameSet} {hh : NamesH}
-    (hm : (jr, N, hh) ∈ cl) (hN : N.Mem lay.nm) : hh.cur !! lay.nm = some (.dir lay.j) :=
+    (hm : (jr, N, hh) ∈ cl) (hN : N.Mem lay.nm) :
+    hh.cur !! lay.nm = some (.dir lay.j) ∨ hh.cur !! lay.nm = none :=
   (h dir lay hl).2 N hh hm hN
+
+/-- `WalsAt.at` where the claim holds a directory at the name. -/
+theorem WalsAt.at_dir {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : WalsAt jr Ls cl)
+    {dir : GoString} {lay : WalLay} (hl : Ls !! dir = some lay) {N : NameSet} {hh : NamesH}
+    (hm : (jr, N, hh) ∈ cl) (hN : N.Mem lay.nm) {J : Ino} (hJ : hh.cur !! lay.nm = some (.dir J)) :
+    hh.cur !! lay.nm = some (.dir lay.j) := by
+  rcases h.at hl hm hN with e | e
+  · exact e
+  · rw [hJ] at e; cases e
 
 /-- A claim of the area directory is no WAL directory's claim (`WalsAt`'s first part). -/
 theorem WalsAt.not_walDirClaimOf {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim}
@@ -2024,17 +2053,23 @@ half, which its cleanup's rename needs). Each registered name is a present WAL's
 other half is `walAreaRes`'s, whose area claim holds every WAL name but these). And a fraction of the
 area's spine, lent by halves with the name's: a handle keeps its path past the call that opened it,
 whose caller gets its own spine back whole. Independent of the claims list (a step changing other
-claims leaves it as it is). -/
-def walNamesRes (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay) : IProp GF :=
+claims leaves it as it is). **The WAL being created is unnamed** (W4 session 4, `notes/wal-units/create.md`):
+`o = some dir`'s WAL is not `named` in the real state `s` (`Create` registers before it names, and
+`ReadAll`'s naming holds a handle's `walNamesFrag none`), so that the cleanup's rename of its name away
+keeps its crash condition (`CrashTo`'s left disjunct). -/
+def walNamesRes (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay) (s : AbsDiskState) :
+    IProp GF :=
   iprop(∃ (o : Option GoString) (Wn : List GoString),
     walNamesAuth (W := W) o ∗ walSplitAuth (W := W) Wn ∗
     ⌜(∀ nm ∈ Wn, ∃ dir lay, Ls !! dir = some lay ∧ lay.nm = nm) ∧
       ∀ dir lay, Ls !! dir = some lay → o ≠ some dir → lay.nm ∈ Wn⌝ ∗
+    ⌜∀ dir d, o = some dir → s.wal !! dir = some d → d.named = false⌝ ∗
     (∃ q : Qp, osPathS (L := L) R r (DFrac.own q) jr) ∗
     [∗list] nm ∈ Wn, nameShare (L := L) jr Ls nm)
 
-instance walNamesRes_timeless (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay) :
-    Timeless (walNamesRes (L := L) (W := W) R jr r Ls) := by
+instance walNamesRes_timeless (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s : AbsDiskState) :
+    Timeless (walNamesRes (L := L) (W := W) R jr r Ls s) := by
   haveI : ∀ (j : Ino) (N : NameSet) (q : DFrac) (h : NamesH), Timeless (osNames (L := L) j N q h) :=
     fun _ _ _ _ => by unfold osNames; split <;> infer_instance
   haveI : ∀ nm, Timeless (nameShare (L := L) jr Ls nm) := fun _ => by
@@ -2051,7 +2086,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) C Mr s Ls F ∗
     ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl F ∗
     (∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝) ∗
-    ⌜WalsAt jr Ls cl⌝ ∗ walNamesRes (L := L) (W := W) R jr r Ls ∗
+    ⌜WalsAt jr Ls cl⌝ ∗ walNamesRes (L := L) (W := W) R jr r Ls s ∗
     ⌜WalsBounded s ∧ DirsRoots R s⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -2125,12 +2160,13 @@ theorem nameShare_mono (jr : Ino) (Ls Ls' : GMap GoString WalLay) (nm : GoString
 yet registered (the pending registration set to `dir`, until `Create` registers it); no other layout has
 its name. -/
 theorem walNamesRes_addWal (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
-    (dir : GoString) (lay : WalLay) (hLd : Ls !! dir = none)
-    (hnew : ∀ dir' lay', Ls !! dir' = some lay' → lay'.nm ≠ lay.nm) :
-    ⊢ walNamesRes (L := L) (W := W) R jr r Ls -∗ walNamesFrag (W := W) none ==∗
-      walNamesRes (L := L) (W := W) R jr r (<[dir := lay]> Ls) ∗ walNamesFrag (W := W) (some dir) := by
+    (s s' : AbsDiskState) (dir : GoString) (lay : WalLay) (hLd : Ls !! dir = none)
+    (hnew : ∀ dir' lay', Ls !! dir' = some lay' → lay'.nm ≠ lay.nm)
+    (hs' : ∀ d, s'.wal !! dir = some d → d.named = false) :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) none ==∗
+      walNamesRes (L := L) (W := W) R jr r (<[dir := lay]> Ls) s' ∗ walNamesFrag (W := W) (some dir) := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, Hsp, Hl⟩ Hf
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, -, Hsp, Hl⟩ Hf
   icases walNames_agree (W := W) o none $$ Ha Hf with %ho
   subst ho
   imod walNames_set (W := W) none none (some dir) $$ Ha Hf with ⟨Ha, Hf⟩
@@ -2147,6 +2183,11 @@ theorem walNamesRes_addWal (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
     · have e : dir' ≠ dir := fun e => ho (by rw [e])
       rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
       exact hf.2 dir' l hl' (by simp)
+  isplitr
+  · ipureintro
+    intro dir' d ho hd
+    cases ho
+    exact hs' d hd
   iapply BigSepL.bigSepL_mono (fun {k nm} hk => ?_) $$ Hl
   refine nameShare_mono jr Ls _ nm (fun d' l' hl' he => ?_)
   by_cases e : d' = dir
@@ -2161,12 +2202,13 @@ theorem walNamesRes_addWal (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
 a cut). -/
 theorem walNamesRes_insert (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
     (dir : GoString) (lay lay' : WalLay) (hl : Ls !! dir = some lay)
-    (hnm : lay'.nm = lay.nm) (hj : lay'.j = lay.j) :
-    walNamesRes (L := L) (W := W) R jr r Ls ⊢ walNamesRes (L := L) (W := W) R jr r (<[dir := lay']> Ls) := by
+    (hnm : lay'.nm = lay.nm) (hj : lay'.j = lay.j) {s : AbsDiskState} :
+    walNamesRes (L := L) (W := W) R jr r Ls s ⊢
+      walNamesRes (L := L) (W := W) R jr r (<[dir := lay']> Ls) s := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, Hsp, Hl⟩
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, Hun, Hsp, Hl⟩
   iexists o, Wn
-  iframe Ha Hs Hsp
+  iframe Ha Hs Hsp Hun
   isplitr
   · ipureintro
     refine ⟨fun nm hm => ?_, fun dir' l hl' ho => ?_⟩
@@ -2188,6 +2230,94 @@ theorem walNamesRes_insert (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
     exact ⟨lay, hl, hnm ▸ he, hj.symm⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
     exact ⟨l', hl', he, rfl⟩
+
+/-- `s'` names no WAL that `s` does not (`walNamesRes_congr`'s premise). -/
+def NamedSub (s' s : AbsDiskState) : Prop :=
+  ∀ dir d', s'.wal !! dir = some d' → d'.named = true → ∃ d, s.wal !! dir = some d ∧ d.named = true
+
+theorem namedSub_upd (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur)
+    (hf : ∀ d, (f d).named = d.named) : NamedSub (absDiskUpd s dir f) s := by
+  intro dir' d' hd' hn
+  unfold absDiskUpd at hd'
+  cases hs : s.wal !! dir with
+  | none => rw [hs] at hd'; exact ⟨d', hd', hn⟩
+  | some d =>
+    rw [hs] at hd'
+    by_cases e : dir' = dir
+    · subst e
+      simp only [GMap.lookup_insert_eq, Option.some.injEq] at hd'
+      subst hd'
+      exact ⟨d, hs, by rw [← hf d]; exact hn⟩
+    · simp only [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hd'
+      exact ⟨d', hd', hn⟩
+
+theorem namedSub_ins (s : AbsDiskState) (dir : GoString) (d d' : WalDur) (hd : s.wal !! dir = some d)
+    (hn : d'.named = d.named) : NamedSub { s with wal := <[dir := d']> s.wal } s := by
+  intro dir' d2 hd2 hn2
+  by_cases e : dir' = dir
+  · subst e
+    simp only [GMap.lookup_insert_eq, Option.some.injEq] at hd2
+    subst hd2
+    exact ⟨d, hd, by rw [← hn]; exact hn2⟩
+  · simp only [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hd2
+    exact ⟨d2, hd2, hn2⟩
+
+/-- **`walNamesRes` over another real state naming no WAL that `s` does not.** -/
+theorem walNamesRes_congr (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s s' : AbsDiskState)
+    (hs : ∀ dir d', s'.wal !! dir = some d' → d'.named = true →
+      ∃ d, s.wal !! dir = some d ∧ d.named = true) :
+    walNamesRes (L := L) (W := W) R jr r Ls s ⊢ walNamesRes (L := L) (W := W) R jr r Ls s' := by
+  unfold walNamesRes
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hsp, Hl⟩
+  iexists o, Wn
+  iframe Ha Hs Hsp Hl
+  isplitr
+  · ipureintro; exact hf
+  ipureintro
+  intro dir d' ho hd'
+  cases hn : d'.named
+  · rfl
+  · obtain ⟨d, hd, hdn⟩ := hs dir d' hd' hn
+    rw [hun dir d ho hd] at hdn; cases hdn
+
+/-- **`walNamesRes` over any real state, with no registration pending** (`walNamesFrag none`: the
+naming steps, whose caller has registered its WAL's name). -/
+theorem walNamesRes_none (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s s' : AbsDiskState) :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) none -∗
+      walNamesRes (L := L) (W := W) R jr r Ls s' ∗ walNamesFrag (W := W) none := by
+  unfold walNamesRes
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, -, Hsp, Hl⟩ Hf
+  icases walNames_agree (W := W) o none $$ Ha Hf with %ho
+  subst ho
+  iframe Hf
+  iexists none, Wn
+  iframe Ha Hs Hsp Hl
+  isplitr
+  · ipureintro; exact hf
+  ipureintro
+  intro dir d ho; cases ho
+
+/-- **The WAL being created is unnamed** (`walNamesRes`'s fact, with `Create`'s `walNamesFrag (some
+dir)`). -/
+theorem walNamesRes_unnamed (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s : AbsDiskState) (dir : GoString) :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) (some dir) -∗
+      ⌜∀ d, s.wal !! dir = some d → d.named = false⌝ ∗
+      walNamesRes (L := L) (W := W) R jr r Ls s ∗ walNamesFrag (W := W) (some dir) := by
+  unfold walNamesRes
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hsp, Hl⟩ Hf
+  icases walNames_agree (W := W) o (some dir) $$ Ha Hf with %ho
+  subst ho
+  iframe Hf
+  isplitr
+  · ipureintro; exact fun d hd => hun dir d rfl hd
+  iexists some dir, Wn
+  iframe Ha Hs Hsp Hl
+  isplitr
+  · ipureintro; exact hf
+  ipureintro; exact hun
 
 end inv
 

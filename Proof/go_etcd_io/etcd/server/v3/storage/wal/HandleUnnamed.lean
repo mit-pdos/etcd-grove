@@ -208,6 +208,20 @@ theorem walOpenWFU_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (d
   icases Hw with ⟨-, Hl⟩
   iapply walLockedTok_unlocked_excl $$ Hl Hu
 
+/-- The same against the free token less its names fragment. -/
+theorem walOpenWFU_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (Rp : Roots) (qp : Qp) (tf : Loc) :
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ walUnlockedTokX (W := W) -∗ False := by
+  iintro H Hu
+  unfold walOpenWFU
+  icases H with ⟨%h, Hh, -⟩
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
+    -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hw, -⟩
+  unfold walOpenW
+  icases Hw with ⟨-, Hl⟩
+  iapply walLockedTok_exclX $$ Hl Hu
+
 /-- **The handle holds the lock token.** -/
 theorem walOpenWF_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     ⊢ walOpenWF (W := W) P Mr w dir -∗ walUnlockedTok (W := W) -∗ False := by
@@ -220,6 +234,19 @@ theorem walOpenWF_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (di
   unfold walOpenW
   icases Hw with ⟨-, Hl⟩
   iapply walLockedTok_unlocked_excl $$ Hl Hu
+
+/-- The same against the free token less its names fragment. -/
+theorem walOpenWF_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    ⊢ walOpenWF (W := W) P Mr w dir -∗ walUnlockedTokX (W := W) -∗ False := by
+  iintro H Hu
+  unfold walOpenWF
+  icases H with ⟨%h, Hh, -⟩
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
+    -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hw, -⟩
+  unfold walOpenW
+  icases Hw with ⟨-, Hl⟩
+  iapply walLockedTok_exclX $$ Hl Hu
 
 end handle
 

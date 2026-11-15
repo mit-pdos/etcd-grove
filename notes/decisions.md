@@ -35686,3 +35686,39 @@ deleted), so `kaDn` changes with it. The TLS fallback stays admitted (a certific
 change to Part B's frozen statements; the three check proofs use `principalBoundOn_of_ctxBound`
 (`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
 unchanged.
+
+## WAL tester over fsExt: Go changes (2026-11-15 · the user's decision, "Fixup the tester as needed" · branch `wal-c-tester2`)
+
+The tester (`examples/etcd/wal`, our own example) changed as the W4c unit logs recommended
+(`notes/wal-fsext-w4c-plan.md` U1 log mismatches 1-3, U6; `notes/wal-units/tester.md` eighth session;
+`notes/wal-units/ops.md`). Behaviour otherwise identical; its Go tests and the crash harness
+(`TestRobust`, 30 chains posix/F-Z/F-N: no violation) pass.
+
+1. **`restartRead` reads the newest pair through `GetIndex()`/`GetTerm()`** (was `*snaps[i].Index`,
+   `*snaps[i].Term`): `ValidSnapshotEntries.spec` gives each snapshot as `walSnapIdTerm`, whose model
+   reads a nil field as 0 and tracks no presence, so the loads were not provable (a nil field would make
+   the model stuck). Same behaviour in Go (every record the tester writes has both fields set).
+2. **`saveSnap`'s conf state is `{Voters: [1], AutoLeave: new(bool)}`**, raft's canonical form
+   (`ProgressTracker.ConfState()` sets `AutoLeave`), so `walSnapAt`'s `snapEnc c = Mr.encSnap md` holds
+   for the WAL's raftpb model (U4's `walCsCanon`). The encoding of a set `false` is what raft writes.
+3. **`Boot(area, orDir, seed, nOps)`**: the WAL area (the WAL is `area/wal`) and the oracle's directory
+   (the oracle `orDir/state`) are the environment's, the two `fsExt` roots of U3's boot premise 3; `Boot`
+   no longer calls `TouchDirAll(data)`/`TouchDirAll(memberDir)` (they have no spec there: `data` is above
+   a root, `memberDir` is the root). `Main(area, orDir)`; the harness creates `data/member` beside
+   `oracle` and calls `Boot(root+"/data/member", root+"/oracle", …)` (its `-killdir mkdir` sites are now
+   only `kn_test`'s). In the proofs `TEnv` holds `area`/`orDir` in place of `root`; `tWalDir area`,
+   `tOrPath orDir` (`tArea`, `tDataDir`, `tOrDir` gone).
+4. **The oracle's size**: `fits(o, room)` (oracle.go) says whether `len(encodeOracle(o)) + room ≤
+   maxOracle = 2^30` (`durable.Write`'s 1 GiB premise). `step` returns false (the member goes down,
+   `StatusDown`) unless `fits(m.o, oracleRoom = 256)` (every operation adds at most 184 bytes:
+   `tOrRoom`); `restart` returns false unless `fits(m.o, 16)` before `restartRead` (its two opens) and
+   `fits(m.o, 0)` before storing `checkRestart`'s oracle. Chosen over a `storeOracle` that refuses: that
+   would have changed every operation's spec (a false arm at each store) where the checks at the two places
+   the oracle can grow without a bound known to the caller keep the proved specs and their `tOrRoom`
+   premises. `member.restart.spec` loses its two size premises.
+5. **`purgeRound` dropped** with its call in `opOwnSnap` (and the purge bound's raise before it): its only
+   purpose was exercising the WAL's file lock, which `fsExt` does not model. Retired with it: its
+   approved trust-boundary axiom (`Proof/.../examples/etcd/wal/purgeRound.lean`, main tree), its spec,
+   `PurgeBody.lean` and the Go evidence `purge_test.go`; the main tree's goose configuration now translates
+   every function. It returns with a lock model (`notes/wal-fsext-plan.md` gap 3, Q1). `etc/tcb-baseline.txt`
+   did not list it (no result reached it), so no baseline change.

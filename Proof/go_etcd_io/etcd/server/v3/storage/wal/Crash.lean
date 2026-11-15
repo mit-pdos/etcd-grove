@@ -493,7 +493,7 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 theorem walsAt_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
-    (hst : WalsStart C Mr R jr s Ls V.now) : WalsAt jr Ls cl := by
+    (hst : WalsStart C Mr R jr s Ls V.now) : WalsAtS jr Ls cl := by
   intro dir lay hL
   refine ⟨hst.2.2.2.2.2 dir lay hL, fun N h hm hN => ?_⟩
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
@@ -598,7 +598,7 @@ theorem mem_nameClaimsOf {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim
 /-- **The program's halves of the present WALs' name claims, out of the rest** (`walInv_alloc`). -/
 theorem names_split_start (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim)
     (hok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b)
-    (hwn : ∀ dir lay, Ls !! dir = some lay → walNameOk lay.nm) (hA : WalsAt jr Ls cl) :
+    (hwn : ∀ dir lay, Ls !! dir = some lay → walNameOk lay.nm) (hA : WalsAtS jr Ls cl) :
     ([∗list] c ∈ cl, if WalDirClaimOf Ls c then emp else
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2) ⊢
       ([∗list] nm ∈ nameClaimsOf jr Ls cl, nameShare (L := L) jr Ls nm) ∗
@@ -625,7 +625,7 @@ theorem names_split_start (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Clai
       iexists (1 : Qp).half, h
       iframe H
       ipureintro
-      exact ⟨hok _ _ hc, hwn dir lay hl, fun d' l' hl' he => he ▸ hA.at hl' hc (by rw [he]; simp [NameSet.Mem])⟩
+      exact ⟨hok _ _ hc, hwn dir lay hl, fun d' l' hl' he => he ▸ (hA d' l' hl').2 _ _ hc (by rw [he]; simp [NameSet.Mem])⟩
     · iempintro
   · rw [if_neg hn]
     simp only [Option.elim]
@@ -863,7 +863,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       exact crashOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hstart dir d lay hd hl
     isplitr
     · ipureintro
-      exact walsAt_start C Mr R jr s Ls V cl hV hcl hstart
+      exact (walsAt_start C Mr R jr s Ls V cl hV hcl hstart).weak
     isplitl [Hnm Hnw Hns Hsp]
     · unfold walNamesRes
       iexists none, nameClaimsOf jr Ls cl
@@ -871,6 +871,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       isplitr
       · ipureintro
         exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
+      isplitr
+      · ipureintro; intro dir d ho; cases ho
       iexists qs; iexact Hsp
     ipureintro; exact ⟨hbd, hdr⟩
   imodintro
