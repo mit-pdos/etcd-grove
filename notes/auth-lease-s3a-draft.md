@@ -7,6 +7,12 @@ changed definition old → new, the lemmas it moves, what S3b/S3c take from it. 
 survey of the auth-on side's "no lease" dependencies (summarized in `/shared/tmp/auth-lease/s3-scope-gap.md`'s
 addendum), S2's apply layer (on lean, `c3da59fa29`).
 
+**Revision 5 (2026-11-15) — FROZEN (S3a, decided by etcd-grove-81 after review round 4; no fifth round)**:
+round 4's N1 (a) applied (`γr.raft.pre = []` in `srvKVInvsOn`, the table-agreement lemma, §3) and its smaller
+points (§0, §3a, §4, §5, §8). The frozen-text changes signed off by etcd-grove-81: `specSnapM`'s `hnl` restated with
+`keysLeasesLive` (§5) and `imageLeasesAt`'s mode argument (§4). §5's text is stable from here (restart3 A0 designs
+against it).
+
 **Revision 4 (2026-11-15), the S3a Freeze package**: review round 3's F1–F3 and second-tier points applied
 (§1 `keysLeasesLive`, §3a the layer posts and `kvOwnAt`'s body, §4 `srvRestRp`/`imageLeasesAt`, §5 `hnl`'s text,
 §7, §8); round 3 found the class-track design provable at every layer and no closed statement changed (§12).
@@ -32,7 +38,8 @@ grants, revocations and leased puts (a put or a transaction's puts with a lease)
 layer refuses including its lease part (S2's `authOutLL`/`txnOutLL`), keeps the clients' half of the KV state
 (so the KV results stay meaningful in the revocable mode), and gives `srvRest` the auth-on table. It changes no
 request-side statement (S3b: the proposers of grants, revocations and leased puts with auth on) and none of the
-four couplings (S3c: `srvGrantGuard`, `lease.bootCfg`, `lease.srvInvAt`, `srvUberOn`; `NewServer`). Until S3c a
+four couplings (S3c: `srvGrantGuard`, `lease.bootCfg`, `lease.srvInvAt`, `srvUberOn`; `NewServer`). S3a touches `NewServer`/the alloc proofs only to
+prove `srvKVInvsOn`'s new rows (`γr.kv.lm = E.lm`, `γr.raft.pre = []`, review r4). Until S3c a
 built auth-on server is still a cluster that grants none, so S3a's new cases are reachable only in the model and
 the apply thread's proofs, not yet by a closed theorem: no closed statement changes (authkv and auth3 run the
 lease mode `none` with auth on, where every new case is excluded by admission).
@@ -163,7 +170,11 @@ def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IP
   passes the mode it already has); a grant at `lm ≠ none`, a revocation at `revocable`.
 - `srvKVInvsOn` (`KVApplyOn.lean:333`): `γr.kv.lg = false` → `γr.kv.lm = E.lm` (keeps `γr.kv.cmp = false`):
   the tie of the model's mode (admission at `γk.lm`) to the environment's (`entryOkM`, `logShapeM` at `E.lm`, the
-  `ltHalf` tie at `E.lg`), as the off `srvKVInvs` has (`InvApplier.lean:375`; review r2 N5).
+  `ltHalf` tie at `E.lg`), as the off `srvKVInvs` has (`InvApplier.lean:375`; review r2 N5); and (review r4 N1
+  (a)) `γr.raft.pre = []` (the starts prove it, as `applyAll.spec`'s and `specSnapM`'s `hpre0`), with the bridge
+  lemma `appliedTableM_eq_model : γr.raft.pre = [] → (appliedTableM true γr A).ids = (kvRaftOfOn γr.kv.c0
+  γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).2.2.ids`: the model's table (over `A`) and `srvRest`'s (over
+  `pre ++ A`) agree. This ties the auth-on server to fresh starts (an auth-on restart, future work, revisits it).
 
 ## 3a. The lease-exact outcome of a leased put or transaction (F1 (ii))
 
@@ -212,6 +223,8 @@ is right as stated and, with `kvOutL`, determines `backendLog` in every case, `n
   laws `kvOwn_lend`, `kvOwn_rd`, `mPreRest_lend` restated), the latest triples' posts through `kvPostFL`
   (`Put`/`Txn`/`DeleteRange`/`LeaseRevoke.specL`, `applierKVL`, the four layer triples); the class track and
   `Chain.lean`'s `backendStep` untouched.
+- **Text vs meaning (review r4):** the posts whose text changes are the three `kvSpecL`s and `uberKVC`; those whose
+  meaning changes through `kvPostFL` are `applierKVL`, `apply_applier_kv_latest`, `auth_pass_kvPostFL_nil`.
 - **To the server (review r3 F1):** the three layer triples the auth-on KV branch reads keep only `kvOutL` today
   (`dispatch.wp_kvL` unfolds `kvPostFL`, `DispatchKVL.lean:727-735`). Their posts gain
   `⌜∀ o b, out = .dispatched o b → v3 = true → E.lg = true → apply.leaseExactL T rq x.log o⌝` at the caller's
@@ -244,7 +257,8 @@ arm's laws (`srvRest_applyG`, the grant/revoke `restOut_*`, `srvEver_*`) take th
 **Also on the auth-on table (review r3 F2):** `srvRestRp` (`ApplyRDefs.lean:64`, in the `applyEntryNormal`,
 `applyAll` and `applySnapshot` specs) and `imageLeasesAt` (`ImageLeases.lean:51`, `specSnapM`'s `hlease`,
 `EtcdServer__applySnapshot.lean:152`) take the mode and read `appliedTableM E.authOn γr A` (`… false` the off
-table, so the off proofs only rewrite); without it `hlease` is false of a real auth-on snapshot once the log holds a
+table, so the off proofs only rewrite); a named lemma `kvLeasesOn_none` (at the lease mode `none` the table is
+empty, as `kvTableOf_plainOn` is used today) serves authkv/auth3; without it `hlease` is false of a real auth-on snapshot once the log holds a
 refused revocation. The ~18 proof files with `leaseTTLsGeReq (appliedTable …)`-style premises move with them
 (the off ones by the rewrite).
 
@@ -276,7 +290,8 @@ id (`backendStep` applies `revokeLog` unconditionally, `backendLog` keeps the lo
 id has no key, so `revokeLog` commits nothing).
 
 The off path is **not** a pattern for leased keys (the off log has no leased put, it rests on `LogNoLease`
-throughout); it is one for the table and the lessor's records. Est. +7–11 agent-days for §5 (revised from +5–8;
+throughout); it is one for the table and the lessor's records. `Restore`'s key-length bound on restored keys (review r4): derived inside `specSnapM`'s proof from `srvKVInvsOn`
+and `srvRLogLb γr.raft A'` (the auth-on key lemma, `ServerOnDefs.lean:293`); no premise. Est. +7–11 agent-days for §5 (revised from +5–8;
 S3 26–40 stays the coordinator's figure, at its upper half). Unchecked (r2): whether restored leased keys meet
 `Restore`'s key-length bound (a Probe item). No closed theorem's statement changes (authkv and auth3 at the mode
 `none` take the same path with an empty table); no premise is added to `etcd_authlease_safe`.
@@ -347,8 +362,7 @@ S3 26–40 stays the coordinator's figure, at its upper half). Unchecked (r2): w
 
 ## 8. Order of work (after the Freeze)
 
-0. Probe: `kvOwnAt` against `applierV3backend.Put`'s proof (§3a); `Restore`'s key-length bound on restored leased
-   keys (§5).
+0. Probe: `kvOwnAt` against `applierV3backend.Put`'s proof (§3a) (the key-length bound is closed, §5).
 1. The model (§1) with the probe's lemmas; the keys' invariant; `KVAuthBridge`'s `leaseOk_iff`.
 2. `kvInvOn` (§2) and its alloc; `srvRest`'s `appliedTableM` (§4).
 3. The latest track's lease-exact outcome (§3a); the apply thread's model (§3).
