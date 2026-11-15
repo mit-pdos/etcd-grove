@@ -535,7 +535,7 @@ theorem wal.tailWriterWNE [os.file.FieldAssumptions] (hS0 : ∀ st i, Sio.ino st
   iunfold walTailWS at HW
   icases HW with ⟨HW, %hob⟩
   iunfold walTailW at HW
-  icases HW with ⟨Hf, ⟨%rd, Hfd⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
+  icases HW with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
   obtain ⟨hsz, hm, hsz62, hfd0, hlw⟩ := hmb
   obtain ⟨⟨hpre, hle⟩, hmx⟩ := hok
   simp only [List.length_append] at hle hmx
@@ -551,7 +551,7 @@ theorem wal.tailWriterWNE [os.file.FieldAssumptions] (hS0 : ∀ st i, Sio.ino st
     exact List.prefix_append _ _
   have hin : o0 + out.length ≤ m.size := by rw [hsz]; exact Nat.le_max_right _ _
   wp_apply (wp_tailWriteWNE hS0 Mr R jr r dir γ H md cuts f fd name (DFrac.own 1) p xs dqp
-      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true⟩ m bs hfd0
+      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ m bs hfd0
       rfl (by rw [hoI]; omega) hoN hn hin (by rw [hoI]; omega) hS hm hlw (by omega))
     $$ [Harea Hf Ho Hp Hfd Hk Hv Hm Hb] as %n %err ⟨Hf, Hp, Hres⟩
   · unfold tailVar; iframe; iexact Harea
@@ -568,12 +568,12 @@ theorem wal.tailWriterWNE [os.file.FieldAssumptions] (hS0 : ∀ st i, Sio.ino st
     rw [hres.2]; simp only [sint.Z]; rw [os.W64_nat_toInt xs.length (by omega)]
   iunfold walTailWS
   rw [List.length_append, ← Nat.add_assoc]
-  isplitl [Hf Hk Hfd Ho Hm Hb Hv]
+  isplitl [Hf Hk Hfd Hlkt Ho Hm Hb Hv]
   · iunfold walTailW
     rw [List.length_append, ← Nat.add_assoc]
     iframe Hf Hk
-    isplitl [Hfd]
-    · iexists rd; iexact Hfd
+    isplitl [Hfd Hlkt]
+    · iexists rd, lo, lk; iframe
     isplitl [Ho]
     · rw [show W64 ((o0 + out.length : Nat) : Int) + W64 (xs.length : Int) =
           W64 ((o0 : Int) + ((out.length + xs.length : Nat) : Int)) by
