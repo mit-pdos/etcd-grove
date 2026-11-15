@@ -71,7 +71,7 @@ def snapEnc (s : WalSnapC) : List w8 :=
 
 /-- **protobuf's size of a `walpb.Snapshot`** (`proto.Size`): its encoding's length (`proto.Size` is
 the length `Marshal` writes; checked by `TestSnapshotEncoder`). -/
-def snapSize (s : WalSnapC) : Nat := (snapEnc s).length
+def walSnapSize (s : WalSnapC) : Nat := (snapEnc s).length
 
 /-- **`record.proto`'s `Snapshot` schema** (`UfWire.lean`): `index` 1 and `term` 2 varints,
 `conf_state` 3 length-delimited. -/

@@ -175,7 +175,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       · rw [os.rsPost_rsPost, hdsz, hdmaps, Nat.min_self]; iframe
       · rw [os.rsPost_rsPost, hdsz, hdmaps, Nat.min_self]; iframe
       · rw [os.announce_rsPost, hdsz, hdmaps, Nat.min_self]; iframe Hm
-        iapply (mcells_congr (GF := GF) _ _ _ _ _ (fun i h1 _ => by
+        iapply (mcells_congr_iff (GF := GF) _ _ _ _ _ (fun i h1 _ => by
           simp only [rsOld, rsCell, if_neg (Nat.not_lt.2 h1)])).1 $$ Hc
     icases Hm with ⟨Hm, Hc2⟩
     ihave Hcs := (mcells_split (GF := GF) m.maps sz.toNat (rsHi true sz.toNat sz.toNat)

@@ -34,7 +34,7 @@ theorem go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.wp_proofWalSnap (Mr : W
   iunfold walSnapAt at Hs
   icases Hs with ⟨%c, #Hro, %Hc⟩
   obtain ⟨-, hi, -, -, he⟩ := Hc
-  have hs : snapSize c < 2 ^ 48 := by unfold snapSize; rw [he]; exact hsz
+  have hs : walSnapSize c < 2 ^ 48 := by unfold walSnapSize; rw [he]; exact hsz
   have hne : snapEnc c ≠ [] := snapEnc_ne_of_index c (by simp [hi])
   wp_auto
   have wpM := wp_Marshal pbSnapC pbSnapC_reg sp c trivial hs

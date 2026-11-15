@@ -21,7 +21,7 @@ model; the pattern of `PbRecord.lean`).
 - `snapEncC_ok`: protobuf-go decodes `snapEnc c` back to `c`'s model when both levels' unknown
   fields are valid at their schemas. Measured: `examples/stdlib/walpb/snapshot_test.go`
   (`TestSnapshotEncoder`: 200,000 random contents, `proto.Marshal`/`proto.Size` against
-  `snapEnc`/`snapSize`, `proto.Unmarshal(snapEnc c)` giving back exactly `c` at both levels;
+  `snapEnc`/`walSnapSize`, `proto.Unmarshal(snapEnc c)` giving back exactly `c` at both levels;
   `TestSnapshotSchema`: the descriptors against `walSnapSchema`/`walCsSchema`).
 - `pbSnapC_reg`: the registration, of the exact shape `pbModelOf GF walpb.Snapshot.ty = some …`.
 
@@ -69,7 +69,7 @@ opaque snapDecode (bs : List w8) : Option SnapshotMetadataM
 
 /-- **The trust boundary: `walpb.Snapshot`'s encoding** (pending the user's review; see the file
 header). -/
-axiom snapEncC_ok (c : WalSnapC) : (∀ p ∈ c.levels, ufWire p.1 p.2) → snapSize c < 2 ^ 63 →
+axiom snapEncC_ok (c : WalSnapC) : (∀ p ∈ c.levels, ufWire p.1 p.2) → walSnapSize c < 2 ^ 63 →
     snapDecode (snapEnc c) = some c.model
 
 section defs
@@ -237,7 +237,7 @@ def pbSnapM : PbModelC GF where
   roC_persistent _ _ := inferInstance
   modelOf := WalSnapC.model
   levels := WalSnapC.levels
-  size := snapSize
+  size := walSnapSize
   tree := walSnapTree
   decOk _ := True
   ro_iff _ _ := .rfl
@@ -261,7 +261,7 @@ def pbSnapC : PbTypeC GF where
 @[simp] theorem pbSnapC_roC : (pbSnapC (GF := GF)).data.roC = walSnapRoC := rfl
 @[simp] theorem pbSnapC_C : (pbSnapC (GF := GF)).data.C = WalSnapC := rfl
 @[simp] theorem pbSnapC_modelOf : (pbSnapC (GF := GF)).data.modelOf = WalSnapC.model := rfl
-@[simp] theorem pbSnapC_size : (pbSnapC (GF := GF)).data.size = snapSize := rfl
+@[simp] theorem pbSnapC_size : (pbSnapC (GF := GF)).data.size = walSnapSize := rfl
 @[simp] theorem pbSnapC_decC (l : Loc) (c : WalSnapC) :
     (pbSnapC (GF := GF)).data.decC l c = snapOwnC l c := rfl
 

@@ -631,7 +631,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
               bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) by rw [hA])
           iexact Hown
         · rw [← hRR, touch_maps]
-          iapply (mcells_congr (GF := GF) _ _ _ _ _ (fun i h1 _ => by
+          iapply (mcells_congr_iff (GF := GF) _ _ _ _ _ (fun i h1 _ => by
             simp only [rsOld, rsCell]; rw [if_neg (by omega), if_neg (by omega)])).1 $$ Hc
     icases Hown with ⟨Hown, Hc2⟩
     ihave Hcs := (mcells_split (GF := GF) m0.maps m0.size sz.toNat (rsHi true m0.size sz.toNat) _
