@@ -1220,9 +1220,9 @@ end finish
 
 /-- The page cache past the end of a write that raised `cz` (`pwCz`) is zero: the write wrote all
 of its data, and the bytes past it were past the zeros its first step announced (`MetaOk.zc`). -/
-theorem pwFinish_cz_raise {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} {off k b : Nat}
-    {data : List w8}
-    (hmo : MetaOk st i (m.announce off (off + data.length) (max m.size (off + data.length))) f)
+theorem pwFinish_cz_raise {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} {off k b lo : Nat}
+    {data : List w8} (hlo : lo ≤ off)
+    (hmo : MetaOk st i (m.announce lo (off + data.length) (max m.size (off + data.length))) f)
     (hb : pwSize f.size off k ≤ b) (hbz : b < pwCz m off data.length k) (hbc : ¬ b < m.cz) :
     f.cache b = 0 := by
   unfold pwCz at hbz
@@ -1453,7 +1453,7 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
         have h2 : pageEnd f.size ≤ pageEnd (pwSize f.size off k) :=
           pageEnd_mono (by unfold pwSize; split <;> omega)
         have h3 : k = 0 ∨ off + k ≤ pwSize f.size off k := by unfold pwSize; split <;> omega
-        have hk : ¬ (off ≤ b ∧ b < off + k) := by omega
+        have hk : ¬ (min off m.size ≤ b ∧ 0 < k ∧ b < off + k) := by omega
         rw [hcache b, if_neg hk]
         exact hmo.ce b (by omega)
       rotate_right 3
@@ -1484,18 +1484,19 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
           · rename_i hr
             exact hmo.tail b cs hfb (by rw [announce_tc, if_neg hr]; exact hc)
       · rw [hsz2] at hb
-        have hk : ¬ (off ≤ b ∧ b < off + k) := by unfold pwSize at hb; split at hb <;> omega
+        have hk : ¬ (min off m.size ≤ b ∧ 0 < k ∧ b < off + k) := by
+          unfold pwSize at hb; split at hb <;> omega
         have hfb : f.size ≤ b := by unfold pwSize at hb; split at hb <;> omega
         rw [hcache b, if_neg hk]
         change b < pwCz m off data.length k at hbz
         by_cases hbc : b < m.cz
         · exact hmo.cz b hfb (by simpa only [announce_cz] using hbc)
-        · exact pwFinish_cz_raise hmo hb hbz hbc
+        · exact pwFinish_cz_raise (Nat.min_le_left _ _) hmo hb hbz hbc
       · simp only [announce_zf, Option.map_eq_some_iff] at hz
         obtain ⟨z0, hz0, rfl⟩ := hz
         have hz1 := hmo.zc _ (by simp only [announce_zf, hz0]; rfl) b hzb
-        have hlt : off < off + data.length := by omega
-        simp only [hlt, if_true] at hzb
+        have hlt : min off m.size < off + data.length := by omega
+        rw [if_pos hlt] at hzb
         rw [hcache b, if_neg (by omega)]
         exact hz1
       · simp only [pwFile, OsFile.land, announce_lo]; omega
@@ -1912,14 +1913,6 @@ theorem mcells_split (M : GMap Loc Nat) (lo mid hi : Nat) (vf : Nat → val) (h1
   constructor <;> apply BigSepM.bigSepM_mono <;> intro b len _
   · exact (cellsR_split b len lo mid hi vf h1 h2).1
   · exact (cellsR_split b len lo mid hi vf h1 h2).2
-
-theorem mcells_congr (M : GMap Loc Nat) (lo hi : Nat) (vf vf' : Nat → val)
-    (h : ∀ i, lo ≤ i → i < hi → vf i = vf' i) :
-    mcells (GF := GF) M lo hi vf ⊣⊢ mcells M lo hi vf' := by
-  unfold mcells
-  constructor <;> apply BigSepM.bigSepM_mono <;> intro b len _
-  · exact (cellsR_congr _ _ _ vf vf' (fun i h1 h2 => h i (by omega) (by omega))).1
-  · exact (cellsR_congr _ _ _ vf vf' (fun i h1 h2 => h i (by omega) (by omega))).2
 
 end specs4
 
