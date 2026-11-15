@@ -671,8 +671,8 @@ was live, at its place in the received list; `q ≤ p` the cursor): the events s
 events `[lo, dd)` of a certified log `Lc`, `dd` the notification's coverage (`p + 1 ≤ dd`, and
 `dd ≤ p + 1` unless no event was delivered, `dd ≤ lo`), and the watch's start is at most `p + 1`.
 The server-level contract (a progress notification: past the cursor, `Lc` reaches `p` and has no
-range event in `(q, p]`; at the cursor, nothing; at revision `0`, a response without events that
-is not one) and the cursor at `p` (or kept). -/
+range event in `(q, p]`, also at the cursor, `q = p`, the watch's start included: ledger
+2026-11-15; at revision `0`, a response without events that is not one) and the cursor at `p` (or kept). -/
 theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.WatchRespM)
     (m : v3rpc.WatchRespM) (x : mvcc.api.WResp) (pre : List mvcc.api.WResp) (X : w64)
     (rg : mvcc.WatchRange) (lo : Nat)
@@ -680,7 +680,7 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     (Lc : mvcc.Log) (dd p q : Nat) (hpx : x.rev = W64 (p : Int))
     (hp63 : p < 2 ^ 63) (hqc : c2 = W64 (q : Int)) (hqp : q ≤ p)
     (hE : evsOf Dm X = mvcc.watchEvents Lc rg lo dd) (hd1 : p + 1 ≤ dd)
-    (hd2 : dd ≤ p + 1 ∨ dd ≤ lo) (hd3 : dd ≤ Lc.length ∨ dd ≤ lo) (hlop : lo ≤ p + 1)
+    (hd2 : dd ≤ p + 1 ∨ dd ≤ lo) (hd3 : dd ≤ Lc.length) (hlop : lo ≤ p + 1)
     (hlo : lo = (sint.Z rr).toNat) (hrev : 1 ≤ sint.Z rr)
     (hsnoc : evsOf (Dm ++ [m]) X = evsOf Dm X) (hmx : m.src = some (pre.length, x))
     (hxe : x.evs = [])
@@ -734,10 +734,19 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     isplitr
     · ipureintro
       exact ⟨hv, hprog, by omega, by omega, hc2r, by omega⟩
-    ileft; ipureintro; rw [hc2r]
+    -- the progress notification's revision is the certified log's (`progCovd`)
+    iexists Lc
+    iframe HLc
+    ipureintro
+    have hnp : sint.nat r.hdrRev = q := by show (sint.Z r.hdrRev).toNat = q; rw [hzp]; simp
+    have hnc : sint.nat c2 = q := by show (sint.Z c2).toNat = q; rw [hzq]; simp
+    refine ⟨by omega, ?_⟩
+    rw [hnc, hnp]
+    unfold rangeLogEvents mvcc.logEvents
+    simp
   -- `q < p`: no event of the range in `(q, p]`
   have hqp' : q < p := by omega
-  have hdL : p + 1 ≤ Lc.length := hd3.resolve_right (by omega)
+  have hdL : p + 1 ≤ Lc.length := hd3
   ihave %Hcmp := cLog_cmp V.W L Lc $$ [$Hl $HL $HLc]
   have hnone0 := cmpl_prog_none L Lc Hcmp rg lo q p hlo1 hq1 hdL hqp (h1.symm.trans hE)
   ihave %Hwc := srvWLaws_model V.W Lc $$ [$Hl $HLc]
@@ -748,7 +757,6 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     iright; iright; ileft
     isplitr
     · ipureintro; exact ⟨hv, hprog, by omega, by omega, by rw [hrh, hpx], by omega⟩
-    iright
     iexists Lc
     iframe HLc
     ipureintro
@@ -855,12 +863,12 @@ theorem cmpl_cov (Dm : List v3rpc.WatchRespM) (x : mvcc.api.WResp) (pre : List m
     (hlo1 : 1 ≤ lo) :
     ∃ (dd p : Nat), x.rev = W64 (p : Int) ∧ p < 2 ^ 63 ∧
       evsOf Dm X = mvcc.watchEvents Lc rg lo dd ∧
-      p + 1 ≤ dd ∧ (dd ≤ p + 1 ∨ dd ≤ lo) ∧ (dd ≤ Lc.length ∨ dd ≤ lo) ∧ lo ≤ p + 1 := by
+      p + 1 ≤ dd ∧ (dd ≤ p + 1 ∨ dd ≤ lo) ∧ dd ≤ Lc.length ∧ lo ≤ p + 1 := by
   have hx0 : 0 ≤ sint.Z x.rev := by omega
   have hx63 : sint.Z x.rev < 2 ^ 63 := by word
   have hp : sint.nat x.rev = (sint.Z x.rev).toNat := rfl
   refine ⟨sint.nat x.rev + 1, sint.nat x.rev, by rw [hp]; word, by omega, ?_, by omega,
-    Or.inl (Nat.le_refl _), Or.inl (by omega), by omega⟩
+    Or.inl (Nat.le_refl _), by omega, by omega⟩
   rw [← hrec, recvEvs_snoc_nil pre x X hxe]
   unfold evsOf mvcc.api.recvEvs
   rw [hfe, flatten_evs_filter]
