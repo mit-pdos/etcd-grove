@@ -468,7 +468,7 @@ theorem server_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) :
     inv hcN (hcState (Gg := Gg) γm) ∗ hcName γm cn ns ⊢
       □ (∀ (got : List w8) (m : Nat), srvP ns cn st got -∗
         |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn false d ∗
-          ∀ r d', ⌜ReadOutcome st0 d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn true st0 -∗
+          ∀ r d', ⌜ReadOutcome st0 d m r d'⌝ -∗ tcpEnd G cn true st0 -∗
             tcpDir G cn false d' ={∅,⊤}=∗ srvP ns cn st (got ++ r.got)) := by
   iintro ⟨#Hinv, #Hname⟩
   imodintro
@@ -494,7 +494,7 @@ theorem server_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) :
     iexists d', WU, RU ++ r.got, dD, WD, RD
     iframe HdU HwU HrU HD
     ipureintro
-    exact ⟨dirOk_read Hok.1 Hrd.1, Hok.2.1, Hok.2.2.1,
+    exact ⟨dirOk_read Hok.1 Hrd, Hok.2.1, Hok.2.2.1,
       Hok.2.2.2.trans (List.prefix_append RU r.got)⟩
   imodintro
   iframe Hend Hr
@@ -509,7 +509,7 @@ theorem client_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) :
     inv hcN (hcState (Gg := Gg) γm) ∗ hcName γm cn ns ⊢
       □ (∀ (got : List w8) (m : Nat), cliP ns cn st got -∗
         |={⊤,∅}=> ∃ st0 d, tcpEnd G cn false st0 ∗ tcpDir G cn true d ∗
-          ∀ r d', ⌜ReadOutcome st0 d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st0 -∗
+          ∀ r d', ⌜ReadOutcome st0 d m r d'⌝ -∗ tcpEnd G cn false st0 -∗
             tcpDir G cn true d' ={∅,⊤}=∗ cliP ns cn st (got ++ r.got)) := by
   iintro ⟨#Hinv, #Hname⟩
   imodintro
@@ -535,7 +535,7 @@ theorem client_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) :
     iexists dU, WU, RU, d', WD, RD ++ r.got
     iframe HU HdD HwD HrD
     ipureintro
-    exact ⟨Hok.1, dirOk_read Hok.2.1 Hrd.1, Hok.2.2.1, Hok.2.2.2⟩
+    exact ⟨Hok.1, dirOk_read Hok.2.1 Hrd, Hok.2.2.1, Hok.2.2.2⟩
   imodintro
   iframe Hend Hr
 

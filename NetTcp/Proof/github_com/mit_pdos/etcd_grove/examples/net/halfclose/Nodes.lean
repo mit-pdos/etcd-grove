@@ -131,7 +131,7 @@ theorem wp_readAll
         globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] ∗
         □ (∀ (got : List w8) (m : Nat), P got -∗
           |={⊤,∅}=> ∃ st d, tcpEnd G cn s st ∗ tcpDir G cn (!s) d ∗
-            ∀ r d', ⌜ReadOutcome st d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn s st -∗
+            ∀ r d', ⌜ReadOutcome st d m r d'⌝ -∗ tcpEnd G cn s st -∗
               tcpDir G cn (!s) d' ={∅,⊤}=∗ P (got ++ r.got)) }}
       (App (Val (@! readAll)) (Val #c))
     {{ (sl : GoSlice) (ok : Bool), RET (PairV #sl #ok); ∃ data, sl ↦* data ∗ P data }} := by
@@ -172,10 +172,10 @@ theorem wp_readAll
     imodintro
     iframe HP
     ipureintro
-    have := (readOutcome_got_le Hrd.1).1
+    have := (readOutcome_got_le Hrd).1
     refine ⟨by omega, fun bs hbs => ?_⟩
     subst hbs
-    exact readOutcome_bytes_pos Hrd.1 (by omega)
+    exact readOutcome_bytes_pos Hrd (by omega)
   cases r
   case' eof =>
     -- EOF: `err` is `io.EOF`
@@ -187,9 +187,6 @@ theorem wp_readAll
     simp only [net.ReadErr]
     icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
     obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
-  case' wait =>
-    simp only [net.ReadErr]
-    iexfalso; iexact HE
   case' bytes bs =>
     -- the next bytes: append them, and go on
     obtain ⟨hk, rfl⟩ := Hout
