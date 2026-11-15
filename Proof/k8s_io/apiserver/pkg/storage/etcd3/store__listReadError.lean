@@ -58,10 +58,10 @@ theorem store.listReadError.wp_proof
   cases b
   · -- not a future revision: `interpretListError`
     wp_auto
-    wp_apply (wp_interpretListError Obj c err ck kp) $$ [$Hke] as %e #He
+    wp_apply (wp_interpretListError Obj c err false ck kp (by simp)) $$ [$Hke] as %e #He
     iapply HΦ
     iright
-    iexact He
+    iapply listErrF_listErr $$ He
   · -- a future revision: the state below `withRev`, and the too-large error
     have hd : go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc :=
       (hb rfl).trans HdFR

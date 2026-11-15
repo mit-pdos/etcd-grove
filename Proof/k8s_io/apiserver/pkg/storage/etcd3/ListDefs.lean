@@ -318,6 +318,25 @@ instance listErr_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
     Persistent (listErr c err) := by
   unfold listErr; infer_instance
 
+/-- **`listErr` with the status's `Failure`** (k8s 7f-5a-P, E5: `interpretListError`'s post; the
+watcher's `sendError` needs an `APIStatus` error's status to be a `Failure`). -/
+def listErrF (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
+  iprop(unkErr c err ∨ ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status,
+    apierrors.apiErrAt err (.status st []) ∗
+    ⌜st.Reason' = go!"Expired" ∧ st.Code' = W32 410 ∧ st.Status' = go!"Failure"⌝)
+
+instance listErrF_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
+    Persistent (listErrF c err) := by
+  unfold listErrF; infer_instance
+
+theorem listErrF_listErr (c : StoreCfg GF Obj) (err : GoInterface) :
+    listErrF c err ⊢ listErr c err := by
+  unfold listErrF listErr
+  iintro (#H | ⟨%st, #H, %h⟩)
+  · ileft; iexact H
+  · iright; iexists st; isplitl; · iexact H
+    ipureintro; exact ⟨h.1, h.2.1⟩
+
 /-- **An error of the kubernetes client** (`unkErr`'s first branch; D1 of the second third): not
 `nil`, a leaf grpc's `status` accepts, an `rpctypes.EtcdError` value if of that type. -/
 def kClientErr (err : GoInterface) : IProp GF :=
