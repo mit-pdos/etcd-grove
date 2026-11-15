@@ -243,7 +243,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-    lease.leaseOwn (mvccLeases E.γ) Lr ∅ ∗ lease.lessorRdOf (mvccLeases E.γ) ∗
+    lease.leaseOwn (mvccLeases E.γ) Lr (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM E.authOn γr.kv A'))) ∗
+      lease.lessorRdOf (mvccLeases E.γ) ∗
     lease.leaseRevokers (mvccLeases E.γ) Lr ∗
     apply.ltHalf E Lr ∗ apply.ltHalf E Lr ∗ apply.everOwn E (U ++ recs.map (·.1)) ∗
     □ ([∗list] x ∈ recs, lease.leaseReqIs (mvccLeases E.γ) x.1 (reqOf x.1)) ∗

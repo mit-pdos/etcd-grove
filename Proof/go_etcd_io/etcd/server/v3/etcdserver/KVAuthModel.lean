@@ -1149,6 +1149,331 @@ theorem keysLeasesLive_kvRaftOfOn (c₀ : w64) (ch : apply.Chain) (st₀ : auth.
   keysLeasesLive_of_liveSt _ (liveSt_kvRaftOfOn c₀ ch A _
     (fun kv hkv => Or.inl (mvcc.stateAfter_leaseZero log₀ h kv hkv)))
 
+/-! ### The keys' invariant: a key with a lease is not empty (`keysNonEmpty`) -/
+
+/-- Every key-value of the state `s` with a lease has a non-empty key. -/
+def neSt (s : List EtcdKv) : Prop := ∀ kv ∈ s, kv.lease = W64 0 ∨ kv.key ≠ []
+
+mutual
+/-- Every put of the operation has a non-empty key. -/
+def opKeysNE : TxnOp → Prop
+  | .get _ => True
+  | .put k _ _ => k ≠ []
+  | .putKeep k _ => k ≠ []
+  | .putIgnVal k _ => k ≠ []
+  | .delete _ => True
+  | .txn _ ts es => opsKeysNE ts ∧ opsKeysNE es
+
+/-- Every put of the operations has a non-empty key. -/
+def opsKeysNE : List TxnOp → Prop
+  | [] => True
+  | op :: ops => opKeysNE op ∧ opsKeysNE ops
+end
+
+/-- **Every put of the request has a non-empty key** (a put's, a transaction's puts in both branches). -/
+def reqKeysNE (rq : apply.IRRModel) : Prop :=
+  (apply.dispatchKind rq = .put → ∀ op, rq.put = some op → op.key ≠ []) ∧
+    (apply.dispatchKind rq = .txn → ∀ t, rq.txn = some t → opsKeysNE t.thenOps ∧ opsKeysNE t.elseOps)
+
+theorem neSt_applyChange {s : List EtcdKv} (hs : neSt s) (r : w64) (c : mvcc.Change)
+    (hc : ∀ (k v : GoString) (l : w64), c = .put k v l → k ≠ [] ∨ l = W64 0) :
+    neSt (mvcc.applyChange r s c) := by
+  cases c with
+  | put k v l =>
+    intro kv hkv
+    simp only [mvcc.applyChange, putKv] at hkv
+    rcases btInsert_mem hkv with rfl | h
+    · split
+      · rename_i w hw
+        have hwk : w.key = k := by simpa using List.find?_some hw
+        rcases hc k v l rfl with h1 | h1
+        · right; simpa [hwk] using h1
+        · left; simpa using h1
+      · rcases hc k v l rfl with h1 | h1
+        · right; simpa using h1
+        · left; simpa using h1
+    · exact hs kv h
+  | del k =>
+    intro kv hkv
+    exact hs kv (List.mem_filter.1 hkv).1
+
+theorem neSt_applyChanges {s : List EtcdKv} (r : w64) :
+    ∀ (cs : List mvcc.Change), neSt s →
+      (∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → k ≠ [] ∨ l = W64 0) →
+      neSt (mvcc.applyChanges r s cs) := by
+  intro cs
+  induction cs generalizing s with
+  | nil => intro hs _; exact hs
+  | cons c cs ih =>
+    intro hs hc
+    unfold mvcc.applyChanges
+    rw [List.foldl_cons]
+    exact ih (neSt_applyChange hs r c (hc c (by simp))) (fun c' h => hc c' (by simp [h]))
+
+/-- A put at a key keeping the key's lease keeps the invariant. -/
+theorem neSt_findKey {s : List EtcdKv} (hs : neSt s) (k : GoString) :
+    k ≠ [] ∨ ((mvcc.findKey k s).map EtcdKv.lease).getD (W64 0) = W64 0 := by
+  cases hf : mvcc.findKey k s with
+  | none => right; rfl
+  | some kv =>
+    have hk : kv.key = k := by unfold mvcc.findKey at hf; simpa using List.find?_some hf
+    rcases hs kv (List.mem_of_find?_eq_some hf) with h | h
+    · right; exact h
+    · left; rw [← hk]; exact h
+
+theorem neSt_dels {s : List EtcdKv} (hs : neSt s) (r : w64)
+    (cs : List mvcc.Change) (hd : ∀ c ∈ cs, ∃ k, c = .del k) : neSt (mvcc.applyChanges r s cs) :=
+  neSt_applyChanges r cs hs (fun c hc k v l he => by
+    obtain ⟨k', rfl⟩ := hd c hc; cases he)
+
+mutual
+theorem neSt_srvOp (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (op : TxnOp), neSt s → opKeysNE op →
+      neSt (mvcc.applyChanges r s (txn.srvOp s0 r s op).1)
+  | s, .get o, hs, _ => by simpa [txn.srvOp, mvcc.applyChanges] using hs
+  | s, .put k v l, hs, hp => by
+    simp only [txn.srvOp]
+    exact neSt_applyChanges r _ hs (fun c hc k' v' l' he => by
+      simp only [List.mem_singleton] at hc; subst hc; cases he; exact Or.inl hp)
+  | s, .putKeep k v, hs, hp => by
+    simp only [txn.srvOp]
+    exact neSt_applyChanges r _ hs (fun c hc k' v' l' he => by
+      simp only [List.mem_singleton] at hc; subst hc; cases he; exact Or.inl hp)
+  | s, .putIgnVal k lo, hs, hp => by
+    simp only [txn.srvOp]
+    exact neSt_applyChanges r _ hs (fun c hc k' v' l' he => by
+      simp only [List.mem_singleton] at hc; subst hc; cases he; exact Or.inl hp)
+  | s, .delete o, hs, _ => by
+    simp only [txn.srvOp]
+    exact neSt_dels hs r _ (fun c hc => by
+      obtain ⟨v, -, rfl⟩ := List.mem_map.1 hc; exact ⟨_, rfl⟩)
+  | s, .txn cs ts es, hs, hp => by
+    rw [txn.srvOp_txn]
+    simp only [opKeysNE] at hp
+    cases hc : cs.all (cmpHolds s0)
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      exact neSt_srvOps s0 r s es hs hp.2
+    · simp only [↓reduceIte]
+      exact neSt_srvOps s0 r s ts hs hp.1
+
+theorem neSt_srvOps (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), neSt s → opsKeysNE ops →
+      neSt (mvcc.applyChanges r s (txn.srvOps s0 r s ops).1)
+  | s, [], hs, _ => by simpa [txn.srvOps, mvcc.applyChanges] using hs
+  | s, op :: ops, hs, hp => by
+    rw [txn.srvOps_cons]
+    simp only [opsKeysNE] at hp
+    rw [txn.applyChanges_append]
+    exact neSt_srvOps s0 r _ ops (neSt_srvOp s0 r s op hs hp.1) hp.2
+end
+
+theorem neSt_commitLog {log : mvcc.Log} (hs : neSt (mvcc.stateAfter log))
+    (cs : List mvcc.Change) (h : neSt (mvcc.applyChanges (W64 log.length) (mvcc.stateAfter log) cs)) :
+    neSt (mvcc.stateAfter (mvcc.commitLog log cs)) := by
+  unfold mvcc.commitLog
+  split
+  · exact hs
+  · rw [txn.stateAfter_snoc]; exact h
+
+open Classical in
+/-- **The backend keeps the keys with a lease non-empty**, given the request's put keys. -/
+theorem neSt_backend (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log) (hq : reqKeysNE rq)
+    (hs : neSt (mvcc.stateAfter log)) :
+    neSt (mvcc.stateAfter (backendLog lt rq log)) := by
+  unfold backendLog
+  cases hk : apply.dispatchKind rq <;> simp only [] <;> try exact hs
+  case put =>
+    cases hop : rq.put with
+    | none => exact hs
+    | some op =>
+      simp only []
+      split
+      · exact hs
+      · split
+        · exact hs
+        · rw [txn.stateAfter_snoc]
+          refine neSt_applyChanges _ _ hs (fun c hc k v l he => ?_)
+          simp only [List.mem_singleton] at hc; subst hc
+          unfold txn.putChangeOf at he; cases he
+          exact Or.inl (hq.1 hk op hop)
+  case deleteRange =>
+    cases hop : rq.deleteRange with
+    | none => exact hs
+    | some op =>
+      exact neSt_commitLog hs _ (neSt_dels hs _ _ (fun c hc => by
+        unfold txn.delChanges at hc; obtain ⟨v, -, rfl⟩ := List.mem_map.1 hc; exact ⟨_, rfl⟩))
+  case txn =>
+    cases hop : rq.txn with
+    | none => exact hs
+    | some t =>
+      simp only []
+      split
+      · have ht := hq.2 hk t hop
+        refine neSt_commitLog hs _ (neSt_srvOps _ _ _ _ hs ?_)
+        unfold TxnModel.branch
+        split
+        · exact ht.1
+        · exact ht.2
+      · exact hs
+  case leaseRevoke =>
+    cases hop : rq.leaseRevoke with
+    | none => exact hs
+    | some id =>
+      simp only []
+      split
+      · exact neSt_commitLog hs _ (neSt_dels hs _ _ (fun c hc => by
+          unfold revokeChanges at hc; obtain ⟨v, -, rfl⟩ := List.mem_map.1 hc; exact ⟨_, rfl⟩))
+      · exact hs
+
+theorem neSt_chain (rq : apply.IRRModel) (hq : reqKeysNE rq) :
+    ∀ (c : apply.Chain) (lt : LeaseTable) (log : mvcc.Log), neSt (mvcc.stateAfter log) →
+      neSt (mvcc.stateAfter (chainLog c rq lt log))
+  | .backend, lt, log, hs => neSt_backend lt rq log hq hs
+  | .auth _ c, lt, log, hs => by simp only [chainLog]; exact neSt_chain rq hq c lt log hs
+  | .quota c, lt, log, hs => by simp only [chainLog]; exact neSt_chain rq hq c lt log hs
+  | .capped c, lt, log, hs => by
+    simp only [chainLog]; split
+    · exact hs
+    · exact neSt_chain rq hq c lt log hs
+  | .corrupt c, lt, log, hs => by
+    simp only [chainLog]; split
+    · exact hs
+    · exact neSt_chain rq hq c lt log hs
+
+theorem neSt_dispatch (c : apply.Chain) (rq : apply.IRRModel) (hq : reqKeysNE rq) (v3 : Bool)
+    (lt : LeaseTable) (log : mvcc.Log) (hs : neSt (mvcc.stateAfter log)) :
+    neSt (mvcc.stateAfter (dispatchLog c rq v3 lt log)) := by
+  unfold dispatchLog
+  split
+  · exact hs
+  · split
+    · exact neSt_chain rq hq c lt log hs
+    · exact hs
+
+/-- The entry's request, when it has one, puts only at non-empty keys. -/
+def entryKeysNE (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → reqKeysNE rq
+
+theorem neSt_kvEntry (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log) (m : EntryModel)
+    (hm : entryKeysNE m) (hs : neSt (mvcc.stateAfter log)) :
+    neSt (mvcc.stateAfter (kvEntry c₀ ch lt log m)) := by
+  unfold kvEntry
+  by_cases ht : m.typ = W32 0
+  · simp only [ht, ↓reduceIte]
+    by_cases hd : m.data = []
+    · simp only [hd, ↓reduceIte]; exact hs
+    · simp only [hd, ↓reduceIte]
+      cases hr : apply.irrDecode m.data with
+      | none => exact hs
+      | some rq => exact neSt_dispatch ch rq (hm ht hd rq hr) _ lt log hs
+  · simp only [ht, ↓reduceIte]; exact hs
+
+theorem neSt_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel)
+    (hm : entryKeysNE m) (hs : neSt (mvcc.stateAfter s.2.1)) :
+    neSt (mvcc.stateAfter (kvEntryOn c₀ ch s m).2.1) := by
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · exact hs
+      · split
+        · exact hs
+        · exact neSt_kvEntry c₀ ch s.2.2 s.2.1 m hm hs
+    · exact hs
+  · exact neSt_kvEntry c₀ ch s.2.2 s.2.1 m hm hs
+
+theorem neSt_kvRaftOfOn (c₀ : w64) (ch : apply.Chain) :
+    ∀ (A : List EntryModel) (s : OnState), (∀ m ∈ A, entryKeysNE m) → neSt (mvcc.stateAfter s.2.1) →
+      neSt (mvcc.stateAfter (kvRaftOfOn c₀ ch s A).2.1)
+  | [], _, _, hs => hs
+  | m :: A, s, hA, hs =>
+    neSt_kvRaftOfOn c₀ ch A (kvEntryOn c₀ ch s m) (fun m' h => hA m' (by simp [h]))
+      (neSt_kvEntryOn c₀ ch s m (hA m (by simp)) hs)
+
+theorem keysNonEmpty_of_neSt (l : mvcc.Log) (h : neSt (mvcc.stateAfter l)) : keysNonEmpty l := by
+  intro k id hk
+  have hk' : ((mvcc.findKey k (mvcc.stateAfter l)).bind mvcc.kvLease) = some id := hk
+  cases hf : mvcc.findKey k (mvcc.stateAfter l) with
+  | none => rw [hf] at hk'; cases hk'
+  | some kv =>
+    rw [hf] at hk'
+    simp only [Option.bind_some, mvcc.kvLease] at hk'
+    have hkk : kv.key = k := by unfold mvcc.findKey at hf; simpa using List.find?_some hf
+    split at hk'
+    · cases hk'
+    · rename_i h0
+      rcases h kv (List.mem_of_find?_eq_some hf) with hz | hne
+      · exact absurd hz h0
+      · rw [← hkk]; exact hne
+
+mutual
+theorem opKeysNE_of_perms : ∀ op : txn.TxnOpW, (∀ x ∈ opPerms op, auth.reqShape x.1 x.2.1) →
+    opKeysNE op.toOp
+  | .get _, _ => by simp [txn.TxnOpW.toOp, opKeysNE]
+  | .put o, h => by
+    have hk : o.key ≠ [] := (h (o.key, [], .write) (by simp [opPerms, apply.putPerms])).1
+    simp only [txn.TxnOpW.toOp, txn.putTxnOp]
+    split
+    · exact hk
+    · split <;> exact hk
+  | .delete _, _ => by simp [txn.TxnOpW.toOp, opKeysNE]
+  | .txn cs ts es, h => by
+    simp only [txn.TxnOpW.toOp, opKeysNE]
+    exact ⟨opsKeysNE_of_perms ts (fun x hx => h x (by simp [opPerms, hx])),
+      opsKeysNE_of_perms es (fun x hx => h x (by simp [opPerms, hx]))⟩
+
+theorem opsKeysNE_of_perms : ∀ ops : List txn.TxnOpW, (∀ x ∈ opsPerms ops, auth.reqShape x.1 x.2.1) →
+    opsKeysNE (txn.TxnOpW.toOps ops)
+  | [], _ => by simp [txn.TxnOpW.toOps, opsKeysNE]
+  | op :: ops, h => by
+    simp only [txn.TxnOpW.toOps, opsKeysNE]
+    exact ⟨opKeysNE_of_perms op (fun x hx => h x (by simp [opsPerms, hx])),
+      opsKeysNE_of_perms ops (fun x hx => h x (by simp [opsPerms, hx]))⟩
+end
+
+/-- **A request of the cache's shape puts only at non-empty keys** (`kvShapeAll`: every permission,
+a put's write of its key included, is of the cache's shape, whose key is not empty). -/
+theorem reqKeysNE_of_shape (rq : apply.IRRModel) (h : kvShapeAll rq) : reqKeysNE rq := by
+  refine ⟨fun hk op hop => ?_, fun hk t ht => ?_⟩
+  · exact (h (op.key, [], .write) (by simp [reqPerms, hk, hop, apply.putPerms])).1
+  · cases hw : rq.txnW with
+    | none =>
+      have := apply.IRRModel.txnW_map rq
+      rw [hw, ht] at this; cases this
+    | some tw =>
+      have := apply.IRRModel.txnW_map rq
+      rw [hw, ht] at this
+      simp only [Option.map_some, Option.some.injEq] at this
+      subst this
+      have hp : reqPerms rq = tw.cmps.map (fun cm => (cm.key, cm.rangeEnd, .read)) ++ opsPerms tw.thenOps ++ opsPerms tw.elseOps := by
+        simp only [reqPerms, hk, hw]
+      exact ⟨opsKeysNE_of_perms _ (fun x hx => h x (by rw [hp]; simp [hx])),
+        opsKeysNE_of_perms _ (fun x hx => h x (by rw [hp]; simp [hx]))⟩
+
+/-- A request that is neither a put nor a transaction puts nothing. -/
+theorem reqKeysNE_of_kind (rq : apply.IRRModel) (hp : apply.dispatchKind rq ≠ .put)
+    (ht : apply.dispatchKind rq ≠ .txn) : reqKeysNE rq :=
+  ⟨fun h => absurd h hp, fun h => absurd h ht⟩
+
+/-- **An entry of the mode-`on` log puts only at non-empty keys.** -/
+theorem entryKeysNE_of_plain (lm : lease.Mode) (m : EntryModel) (h : plainEntryOn lm m) :
+    entryKeysNE m := by
+  intro ht hd rq hrq
+  rcases h ht hd rq hrq with ((⟨-, -, h3⟩ | ⟨-, hg, -⟩ | ⟨-, hr, -⟩) | ⟨ha, -⟩)
+  · exact reqKeysNE_of_shape rq h3
+  · exact reqKeysNE_of_kind rq (by rw [hg]; decide) (by rw [hg]; decide)
+  · exact reqKeysNE_of_kind rq (by rw [hr]; decide) (by rw [hr]; decide)
+  · refine reqKeysNE_of_kind rq (fun hk => ?_) (fun hk => ?_) <;>
+      (unfold apply.adminKindOk at ha; rw [hk] at ha; exact ha)
+
+/-- **The keys attached to a lease are not empty in the mode-`on` model of a log of the mode `lm`**
+from a start whose log attaches no key to a lease (auth-lease S3a, Draft §1). -/
+theorem keysNonEmpty_kvRaftOfOn (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState)
+    (log₀ : mvcc.Log) (A : List EntryModel) (hA : plainLogOn lm A) (h : mvcc.LogNoLease log₀) :
+    keysNonEmpty (kvRaftOfOn c₀ ch (st₀, log₀, []) A).2.1 :=
+  keysNonEmpty_of_neSt _ (neSt_kvRaftOfOn c₀ ch A _ (fun m hm => entryKeysNE_of_plain lm m (hA m hm))
+    (fun kv hkv => Or.inl (mvcc.stateAfter_leaseZero log₀ h kv hkv)))
+
 
 /-- At the lease mode `none`, an entry of the mode-`on` log is what it was (no lease request). -/
 theorem plainEntryOn_none (m : EntryModel) (h : plainEntryOn .none m) :

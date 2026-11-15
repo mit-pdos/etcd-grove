@@ -119,8 +119,10 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     -- (strict M1, 2026-11-06) the image's state reachable and short (`dbImage`'s `imageStOk`; the
     -- mvcc merge: the model by the mode)
     (hst : imageStOk (kvModelM E.authOn γr.kv A') (crevOf γr.kv A'))
-    -- (strict M1's, kept by R4) the image's history attaches no lease to a key (`specSnapM`'s)
-    (hnl : mvcc.LogNoLease (kvModelM E.authOn γr.kv A'))
+    -- (strict M1's, kept by R4; auth-lease S3a, Draft rev 5 §5) the image's history attaches a key
+    -- only to a lease `Recover` restores (`specSnapM`'s `hnl` with the image's records)
+    (hnl : ∀ (k : GoString) (id : w64),
+      mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM E.authOn γr.kv A')) !! ⟨k⟩ = some id → id ∈ Lr)
     (hNMB : schema.NewMembershipBackend.spec (GF := GF) (hG := hG))
     (hCSB : membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG))
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
@@ -596,17 +598,28 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  -- (R4, 2026-11-07) the image's history attaches no lease to a key (`hnl`), so `KV.Restore` has no
-  -- pending item: its `leaseOwn` at `Recover`'s live set `Lr`; the model by the mode
-  have hpi : mvcc.pendItems (kvModelM E.authOn γr.kv A') [] = ∅ := by
-    rw [mvcc.api.pendItems_nil]
-    exact mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero _ hnl)
+  -- (R4, 2026-11-07; auth-lease S3a §5) `KV.Restore`'s pending items are the image's leased keys
+  -- (`hnl`: each lease among `Recover`'s live set `Lr`), each short (the log's puts', `Hkey`): its
+  -- `leaseOwn` at `Lr` and those items; the model by the mode
+  imod (srvKVInvsM_keysA E.authOn s E γr A') $$ Hkvi HA' with %Hkey
+  have hpi : mvcc.pendItems (kvModelM E.authOn γr.kv A') [] =
+      mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM E.authOn γr.kv A')) := mvcc.api.pendItems_nil _
   have hit : ∀ it lid, (mvcc.pendItems (srvApi.stAt (kvModelM E.authOn γr.kv A')
       (crevOf γr.kv A')).log []).lookup it = some lid →
       lid ∈ Lr ∧ (it.Key'.length : Int) < 2 ^ 63 - 1 := by
     intro it lid h
     rw [srvApi.stAt_log, hpi] at h
-    simp at h
+    refine ⟨hnl it.Key' lid h, ?_⟩
+    have h' : ((mvcc.findKey it.Key' (mvcc.stateAfter (kvModelM E.authOn γr.kv A'))).bind
+        mvcc.kvLease) = some lid := h
+    cases hf : mvcc.findKey it.Key' (mvcc.stateAfter (kvModelM E.authOn γr.kv A')) with
+    | none => rw [hf] at h'; cases h'
+    | some kv =>
+      have hk : kv.key = it.Key' := by unfold mvcc.findKey at hf; simpa using List.find?_some hf
+      have hl := mvcc.stateAfter_keys Hkey kv (List.mem_of_find?_eq_some hf)
+      rw [hk] at hl
+      unfold etcdKeyMax at hl
+      omega
   ihave Hrun : mvcc.api.hookRun (GF := GF)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) func.nil iprop(True)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) $$ []
@@ -616,7 +629,6 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave Hpost : iprop(batchLockInv (GF := GF) (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ={⊤}=∗
       batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ∗ True) $$ []
   · iintro H; imodintro; iframe H
-  imod (srvKVInvsM_keysA E.authOn s E γr A') $$ Hkvi HA' with %Hkey
   ihave Hrp : srvApi.restorePreA (GF := GF) E.kv E.γ d d' (E.Pk d)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')) u Lr (DFrac.own (1 : Qp).half)

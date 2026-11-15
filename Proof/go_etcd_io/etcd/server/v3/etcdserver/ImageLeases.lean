@@ -314,19 +314,17 @@ entries in key order are `leaseRecEnc` of some records whose ids are the snapsho
 permutation (review r1 F15: `Recover`'s `Lr.Perm`; the bucket's keys are distinct, and so are the
 table's ids, `leaseGrantOk`), each with remaining TTL `0`, each record's TTL at least its table
 entry's (the grant's request: `Recover`'s `reqOf` premise, Q-S6 (A-ii)). -/
-theorem imageLeasesAt_recs {γr : ReadNames} {P : BParams} {D : Data}
-    {A' : List EntryModel} (h : imageLeasesAt γr P D A') :
+theorem imageLeasesAtT_recs {γr : ReadNames} {T : LeaseTable} {P : BParams} {D : Data}
+    {A' : List EntryModel} (hTn : T.ids.Nodup) (h : imageLeasesAtT γr T P D A') :
     ∃ recs : List (w64 × w64 × w64),
       bktEnts (((rbData P D).lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc ∧
-      (recs.map (·.1)).Perm (appliedTable γr A').ids ∧
+      (recs.map (·.1)).Perm T.ids ∧
       (∀ x ∈ recs, x.2.2 = W64 0) ∧
-      ∀ x ∈ recs, ∀ p ∈ appliedTable γr A', p.1 = x.1 → sint.Z p.2 ≤ sint.Z x.2.1 := by
+      ∀ x ∈ recs, ∀ p ∈ T, p.1 = x.1 → sint.Z p.2 ≤ sint.Z x.2.1 := by
   obtain ⟨f, hf, hb⟩ := h
-  generalize hT : appliedTable γr A' = T at hf hb ⊢
   generalize hr0 : restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A') = r0 at hb
   have hr0l : (r0.bk.lookup mvcc.leaseName) = some ∅ := by
     rw [← hr0]; exact restModel_lease _ _ _
-  have hTn : T.ids.Nodup := hT ▸ appliedTable_nodup γr A'
   generalize hbk : ((rbData P D).lookup go!"lease").getD ∅ = bk at hb ⊢
   have hbk' : bk = (((apply.restLeasesWith f T.ids r0).bk.lookup mvcc.leaseName).getD ∅) := hb
   -- the bucket's entries: each a record of an id of the table, and each id's record there
@@ -420,6 +418,15 @@ theorem imageLeasesAt_recs {γr : ReadNames} {P : BParams} {D : Data}
   · intro x hx p hp hpx
     rw [(hP x hx).2.1, ← hpx]
     exact hf p hp
+
+theorem imageLeasesAt_recs {γr : ReadNames} {P : BParams} {D : Data}
+    {A' : List EntryModel} (h : imageLeasesAt γr P D A') :
+    ∃ recs : List (w64 × w64 × w64),
+      bktEnts (((rbData P D).lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc ∧
+      (recs.map (·.1)).Perm (appliedTable γr A').ids ∧
+      (∀ x ∈ recs, x.2.2 = W64 0) ∧
+      ∀ x ∈ recs, ∀ p ∈ appliedTable γr A', p.1 = x.1 → sint.Z p.2 ≤ sint.Z x.2.1 :=
+  imageLeasesAtT_recs (appliedTable_nodup γr A') (by rw [← imageLeasesAt_eq_T]; exact h)
 
 /-- **S2, the monotone mode: every live lease of the applied log is live at the snapshot's**: along
 a prefix of a committed log that is plain in the monotone mode (no revocation: the lease-expiry

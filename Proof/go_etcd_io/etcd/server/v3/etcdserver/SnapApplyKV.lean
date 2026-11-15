@@ -39,14 +39,16 @@ thread's half (`ltHalf`), and (step 2) the lessor's range deleter. Until strict 
 store's sole writer at the restored physical names. (The mvcc merge, 2026-11-06: `lean`'s mode
 and live set over strict M1's store; the deleter `lease.rdAt (mvcc.api.mvccLeases E.γ) E.s` restated at the API's
 `mvccDeleter`.)
-(R4, 2026-11-07) The image's history attaches no lease to a key (`hnl`), so the KV's `leasesLive`
-holds at `Recover`'s live set `L` (`leasesKnown_noLease`; strict M1 had `L = []`). -/
+(R4, 2026-11-07; auth-lease S3a §5) The image's history attaches a key only to a lease of
+`Recover`'s live set `L` (`hnl`), so the KV's `leasesLive` holds at `L` and the image's lease items
+(`leasesKnown_of_items`; R4 had no leased key, strict M1 `L = []`). -/
 theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (π0 : ApplyPhys) (P : backend.BParams) (d' : mvcc.KBReal) (g : GoFunc)
     (up' : Loc) (opts' : apply.ApplierOptions) (w0 : GoInterface) (RD0 : IProp GF)
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A' : List EntryModel) (L : List w64) (on : Bool)
     (st : auth.AuthState) (hxl : x.log.length ≤ (kvModelM on γr.kv A').length)
-    (hnl : mvcc.LogNoLease (kvModelM on γr.kv A')) :
+    (hnl : ∀ (k : GoString) (id : w64),
+      mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A')) !! ⟨k⟩ = some id → id ∈ L) :
     apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
       apply.uberOwn (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' (apply.alarmChain (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be).authOn false false) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
@@ -54,7 +56,8 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       mvcc.api.mvccOpen E.γ ∗
       mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) ∗
       backend.plHookRO d'.γB g ∗
-      lease.leaseOwn (mvcc.api.mvccLeases E.γ) L ∅ ∗ lease.lessorRdOf (mvcc.api.mvccLeases E.γ) ∗
+      lease.leaseOwn (mvcc.api.mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A'))) ∗
+      lease.lessorRdOf (mvcc.api.mvccLeases E.γ) ∗
       lease.leaseRevokers (mvcc.api.mvccLeases E.γ) L ∗ apply.ltHalf E L ∗
       (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
@@ -71,9 +74,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       srvApplyKVM on s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ.wait x' st := by
   iintro ⟨#Hub, Huo, Hua, HwSt, HcrO, HmO, HmB, #Hhk, Hlo, Hlr, Hrv, HLt, Hrdat, HRD, Hbe, Hγbe, #Hro,
     Hpl, Hrt, Hra, Hauar, #Hw, #Hwok, HRD0⟩
-  ihave #Hlk := leasesKnown_noLease (GF := GF) L _ hnl
-  have hli : mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A')) = ∅ :=
-    mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero _ hnl)
+  ihave #Hlk := leasesKnown_of_items (GF := GF) L _ hnl
   imodintro
   iexists ⟨kvModelM on γr.kv A', apply.alarmChain E.authOn false false, crevOf γr.kv A'⟩
   isplitr
@@ -112,7 +113,6 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iexists L
       iframe Hlk
       iunfold lease.lessorUser
-      rw [hli]
       simp only [snapE_γ]
       iframe Hlo Hlr Hrv
       rw [show apply.ltHalf (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl
