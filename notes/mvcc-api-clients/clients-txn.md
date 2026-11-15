@@ -187,4 +187,7 @@ Decided by the coordinator, 2026-11-05:
   the call, used only once `checkTxn` passed, and the server's write updates build a commit witness
   that exists only when the request's paths find their previous key-values. txn's proof supplies
   `checkTxn`'s `PathsIgnOk` where it uses the wand.
+  **Changed 2026-11-15 (auth-lease S3a2, approved by etcd-grove-81; ledger 2026-11-15 "txn.Txn's write wand is
+  not told the lease check"):** the wand is also told `txn.PathsLeaseOk (stateAfter log) L br` (`L` the spec's live set),
+  which `checkTxn`'s lease check gives before `kv.Write`.
 `TxnSpecs.lean` is updated for B, D, E and G.

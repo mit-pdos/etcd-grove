@@ -47,9 +47,9 @@ theorem apply.applierV3Capped.Txn.wp_proof
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
-  ihave #Hcp := apply.certPre_capped E c rq log (by rw [Hk.2.1]; rfl) $$ Hcp
-  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  icases Hpre with ⟨%Hk, #Hr, %T, #Hcp, Hm⟩
+  ihave #Hcp := apply.certPreT_capped E c rq log T (by rw [Hk.2.1]; rfl) $$ Hcp
+  icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave #Hr' := Hr
   iunfold txn.txnRequestIs at Hr'
   icases Hr' with ⟨%Hrn, -⟩
@@ -59,6 +59,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
   wp_auto
   wp_if_destruct
   · -- the request costs: `ErrNoSpace`
+    ihave Hm := apply.mPreRest_of_at _ _ _ _ _ _ $$ Hm
     icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
     ihave Hkv := apply.kvOwn_rejected E log rq .noSpace (by decide) $$ Hkv
     iapply HΦ
@@ -97,7 +98,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
       iframe #
       isplitr
       · ipureintro; exact Hk
-      iapply apply.mPre_of_rest
+      iapply apply.mPreAt_of_rest
       iframe
     iapply HΦ
     iframe Htt

@@ -855,6 +855,11 @@ def hdrFields (h : Loc) : IProp GF :=
     structFieldRef etcdserverpb.ResponseHeader go!"RaftTerm" h ↦ t ∗
     structFieldRef etcdserverpb.ResponseHeader go!"LeaderId" h ↦ l)
 
+/-- **`leasesLive` at the live set `T`** (auth-lease S3a2, Draft §1): the lease owner's resource at `T`, every
+lease of `s` in `T`, the apply thread's half of `T` (`leasesLive_iff_at`). -/
+def leasesLiveAt (E : AEnv GF) (s : List EtcdKv) (T : List w64) : IProp GF :=
+  iprop(txn.leasesKnown T s ∗ lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf s) ∗ ltHalf E T)
+
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
 which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each key's lease, the
@@ -863,6 +868,12 @@ of the live set (`ltHalf`). Strict M1: at the store's lessor names `mvccLeases E
 def leasesLive (E : AEnv GF) (s : List EtcdKv) : IProp GF :=
   iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf s) ∗
     ltHalf E L)
+
+open Iris.ProofMode in
+/-- `leasesLive` is `leasesLiveAt` at some live set. -/
+theorem leasesLive_iff_at (E : AEnv GF) (s : List EtcdKv) :
+    leasesLive E s ⊣⊢ ∃ T, leasesLiveAt E s T := by
+  unfold leasesLive leasesLiveAt; exact .rfl
 
 /-- **The builders the chain uses** (persistent; in `backendOptsOk`'s KV clause; the draft's
 `envAus`): `kvAus.law`'s apply-thread conjuncts at `E.Nx`/`E.Cp`, and (strict M1, 2026-11-05, the
@@ -1585,6 +1596,49 @@ theorem certPre_backend_applied (E : AEnv GF) (rq : IRRModel) (log log' : mvcc.L
   simp only [Outcome.logAfter]
   iexact Hc
 
+/-- **The certificates of the outcomes lease-exact at the live set `T`** (auth-lease S3a2, Draft §1): `certPre`
+narrowed to the outcomes of `chainStep` that are lease-exact (`leaseExactL`) at `T`. A put's and a
+transaction's precondition carry it at the live set of their `mPreAt` (`putPre`, `txnPre`): the store's caller
+certifies only the logs the request can commit against the lessor's live set. -/
+def certPreT (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) (T : List w64) : IProp GF :=
+  iprop(□ ∀ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ leaseExactL T rq log oc⌝ -∗
+    E.Nx (oc.logAfter log))
+
+instance certPreT_persistent (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (T : List w64) : Persistent (certPreT E c rq log T) := by
+  unfold certPreT; infer_instance
+
+open Iris.ProofMode in
+/-- `certPre` gives `certPreT` at any live set. -/
+theorem certPreT_of_certPre (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (T : List w64) : certPre E c rq log ⊢ certPreT E c rq log T := by
+  unfold certPre certPreT
+  iintro #H !> %oc %h
+  iapply H $$ %oc %h.1
+
+open Iris.ProofMode in
+/-- `certPreT` for a wrapper chain (`certPre_mono`'s). -/
+theorem certPreT_mono (E : AEnv GF) (c c' : Chain) (rq : IRRModel) (log : mvcc.Log) (T : List w64)
+    (h : ∀ oc, chainStep backendStep c' rq log oc → chainStep backendStep c rq log oc) :
+    certPreT E c rq log T ⊢ certPreT E c' rq log T := by
+  unfold certPreT
+  iintro #H !> %oc %hs
+  iapply H $$ %oc %(⟨h oc hs.1, hs.2⟩)
+
+theorem certPreT_auth (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (T : List w64) : certPreT E (.auth on c) rq log T ⊢ certPreT E c rq log T :=
+  certPreT_mono E _ c rq log T (fun oc h => by simp only [chainStep]; split <;> simp [h])
+
+theorem certPreT_quota (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) (T : List w64) :
+    certPreT E (.quota c) rq log T ⊢ certPreT E c rq log T :=
+  certPreT_mono E _ c rq log T (fun oc h => by simp only [chainStep]; exact h)
+
+theorem certPreT_capped (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) (T : List w64)
+    (hk : cappedRejects (dispatchKind rq) = false) :
+    certPreT E (.capped c) rq log T ⊢ certPreT E c rq log T :=
+  certPreT_mono E _ c rq log T (fun oc h => by
+    simp only [chainStep, hk, Bool.false_eq_true, ↓reduceIte]; split <;> simp [h])
+
 /-- **A backend the tie does not refute** (2026-11-06, the server track's sixth session): the
 tie at `B` is not inconsistent. For the server's tie (`srvBkTie d`, `B = d`) this is `B = d`
 (`InvApplier.tieOk_srv`). A pure fact, so a method that hands the tie on (into `kvOwn`) can keep it
@@ -1674,6 +1728,29 @@ def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.ser
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       csContractA (E.Pk B) E.f Pre Q Post)
 
+/-- **`mPre` at the live set `T`** (auth-lease S3a2, Draft §1): `mPre`'s resources with `leasesLive`'s live set
+named (`mPre_iff_at`). -/
+def mPreAt (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
+    chainRes c a info ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
+      csContractA (E.Pk B) E.f Pre Q Post)
+
+open Iris.ProofMode in
+/-- **`mPre` is `mPreAt` at some live set.** -/
+theorem mPre_iff_at (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPre E c a info log Pre Q Post ⊣⊢ ∃ T, mPreAt E c a info log T Pre Q Post := by
+  constructor
+  · unfold mPre leasesLive mPreAt leasesLiveAt
+    iintro ⟨Hw, ⟨%L, Hk, Hu, Hlt⟩, Hrd, Hres, Hb⟩
+    iexists L; iframe
+  · unfold mPre leasesLive mPreAt leasesLiveAt
+    iintro ⟨%L, Hw, ⟨Hk, Hu, Hlt⟩, Hrd, Hres, Hb⟩
+    iframe Hw Hrd Hres Hb
+    iexists L; iframe
+
 /-- The common postcondition of a writing method that leaves the log as it is (the chain's
 resources at some principal: `UserGet` and `RoleGet` reset the auth layer's `authInfo` when
 they reject). -/
@@ -1748,11 +1825,12 @@ def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.
     chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
     chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
-/-- `Put(r)`'s precondition: `r` is `rq`'s put `o`. -/
+/-- `Put(r)`'s precondition: `r` is `rq`'s put `o`; (auth-lease S3a2, Draft §1) the certificate of the outcomes
+lease-exact at the live set `T` of the method's resources (`certPreT`, `mPreAt`), the caller picking `T`. -/
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPre E c rq log ∗
-    txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
+    ∃ T : List w64, certPreT E c rq log T ∗ mPreAt E c a info log T Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
 def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -1772,11 +1850,11 @@ def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etc
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
     kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ chainClass E.authMode info c rq oc)
 
-/-- `Txn(r, skip)`'s precondition. -/
+/-- `Txn(r, skip)`'s precondition (auth-lease S3a2: the certificate at the live set, as `putPre`). -/
 def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPre E c rq log ∗
-    txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
+    txn.txnRequestIs r t ∗ ∃ T : List w64, certPreT E c rq log T ∗ mPreAt E c a info log T Pre Q Post)
 
 /-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the
 range deleter held (`rdHeld`), the revocable lessor, the rest at `rs`; (the lease-expiry plan's X7,

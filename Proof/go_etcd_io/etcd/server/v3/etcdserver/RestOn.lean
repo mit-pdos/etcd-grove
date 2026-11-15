@@ -65,6 +65,24 @@ theorem appliedTableM_true_nodata (γr : ReadNames) (A : List EntryModel) (m : E
   · exact h
   · rw [h]; simp [kvTable, ht, hd]
 
+/-- **At either mode, an entry that neither grants nor revokes keeps the table** (auth-lease S3a2 §5). -/
+theorem appliedTableM_nonLease {on : Bool} (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hg : apply.dispatchKind rq ≠ .leaseGrant)
+    (hr : apply.dispatchKind rq ≠ .leaseRevoke) :
+    appliedTableM on γr (A ++ [m]) = appliedTableM on γr A := by
+  cases on
+  · simp only [appliedTableM_false]; exact appliedTable_nonLease γr A m rq ht hd hdec hg hr
+  · exact appliedTableM_true_nonLease γr A m rq ht hd hdec hg hr
+
+/-- **At either mode, an entry with no data keeps the table.** -/
+theorem appliedTableM_nodata {on : Bool} (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (ht : m.typ = W32 0) (hd : m.data = []) :
+    appliedTableM on γr (A ++ [m]) = appliedTableM on γr A := by
+  cases on
+  · simp only [appliedTableM_false]; exact appliedTable_nodata γr A m ht hd
+  · exact appliedTableM_true_nodata γr A m ht hd
+
 end pure
 
 section arm
@@ -102,25 +120,25 @@ theorem srvRestM_keep (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
   iexact HR
 
 open Iris.ProofMode in
-/-- An entry with no data (`srvRest_nodata` at the auth-on table). -/
-theorem srvRestM_nodata (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
-    (ht : m.typ = W32 0) (hd : m.data = []) : srvRestM true E γr A ⊢ srvRestM true E γr (A ++ [m]) := by
+/-- An entry with no data (`srvRest_nodata` at the mode's table; auth-lease S3a2 §5: at either mode). -/
+theorem srvRestM_nodata {on : Bool} (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (ht : m.typ = W32 0) (hd : m.data = []) : srvRestM on E γr A ⊢ srvRestM on E γr (A ++ [m]) := by
   iintro H
-  ihave ⟨H, HU⟩ := (srvRestM_eq_at true E γr A).1 $$ H
-  iapply srvRestM_snoc true E γr A m (appliedTableM_true_nodata γr A m ht hd)
+  ihave ⟨H, HU⟩ := (srvRestM_eq_at on E γr A).1 $$ H
+  iapply srvRestM_snoc on E γr A m (appliedTableM_nodata γr A m ht hd)
   rw [restEntry_nodata _ _ _ ht hd]
   iframe H HU
 
 open Iris.ProofMode in
-/-- An admitted admin request (`srvRest_admin` at the auth-on table). -/
-theorem srvRestM_admin (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+/-- An admitted admin request (`srvRest_admin` at the mode's table; S3a2 §5: at either mode). -/
+theorem srvRestM_admin {on : Bool} (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hk : apply.adminKindOk rq) :
-    srvRestM true E γr A ⊢ srvRestM true E γr (A ++ [m]) := by
+    srvRestM on E γr A ⊢ srvRestM on E γr (A ++ [m]) := by
   obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hk
   iintro H
-  ihave ⟨H, HU⟩ := (srvRestM_eq_at true E γr A).1 $$ H
-  iapply srvRestM_snoc true E γr A m (appliedTableM_true_nonLease γr A m rq ht hd hdec
+  ihave ⟨H, HU⟩ := (srvRestM_eq_at on E γr A).1 $$ H
+  iapply srvRestM_snoc on E γr A m (appliedTableM_nonLease γr A m rq ht hd hdec
     (adminKindOk_nonGrant rq hk) (adminKindOk_nonRevoke rq hk))
   rw [restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
   iframe H HU
@@ -131,7 +149,7 @@ theorem srvRestM_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index))
-    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out)
+    (hp : plainOrCmp rq ∨ kvCover rq) (hs : apply.applyStep rq v3 x x' out)
     (hfb : E.lg = true → leaseTTLsGeReq (appliedTableM true γr A) f) :
     srvGrantIf E ∗ srvReqsIf E (appliedTableM true γr A) ∗
       apply.ltHalf E (srvIds E (appliedTableM true γr A).ids) ∗
@@ -140,8 +158,15 @@ theorem srvRestM_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ∗
       srvEver E (A ++ [m]) ⊢
       srvRestM true E γr (A ++ [m]) := by
-  have hk := plainOrCmp_nonLease rq hp
-  rw [restOut_plainOrCmp rq v3 x x' out _ hp hs]
+  have hk : apply.dispatchKind rq ≠ .leaseGrant ∧ apply.dispatchKind rq ≠ .leaseRevoke := by
+    rcases hp with hp | hp
+    · exact plainOrCmp_nonLease rq hp
+    · unfold kvCover at hp
+      constructor <;> intro h <;> rw [h] at hp <;> exact hp.elim
+  rw [show apply.restOut rq v3 out _ = _ from by
+    rcases hp with hp | hp
+    · exact restOut_plainOrCmp rq v3 x x' out _ hp hs
+    · exact restOut_plain rq v3 x x' out _ hp hs]
   apply srvRestM_keep E γr A m (appliedTableM_true_nonLease γr A m rq ht hd hdec hk.1 hk.2)
     (apply.restAfter rq v3) (fun id t r => apply.restAfter_restGrantT rq v3 id t r) _ f hfb
   rw [← List.append_assoc, restModel_append, restEntry_normal _ _ rq _ ht hd hdec, ← hv3]
@@ -166,7 +191,7 @@ theorem srvRestM_applyP (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   rw [apply.grantIdsA_nonGrant _ _ _ _ hk]
   simp only [apply.grantRestA_nonGrant _ _ _ _ _ hk]
   iintro ⟨#HG, #HQ, -, -, HL, ⟨%t, -, HR⟩, HU⟩
-  iapply srvRestM_applyP0 E γr A m rq v3 x x' out f ht hd hdec hv3 hp hs hfb
+  iapply srvRestM_applyP0 E γr A m rq v3 x x' out f ht hd hdec hv3 (Or.inl hp) hs hfb
   iframe HG HQ HL HR HU
 
 end arm

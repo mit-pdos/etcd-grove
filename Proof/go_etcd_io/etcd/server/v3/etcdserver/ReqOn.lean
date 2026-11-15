@@ -11,7 +11,7 @@ the match reduces), so nothing mode-off changes:
 - `resultΨM`: the result the proposer expects, `resultΨ` off, `resultΨOn` on: the result with the
   auth state `st` and the log `lb` the entry met (`entryWitOn`: the mode-`on` model of the raft
   prefix before it is `(st, lb)`) and **the auth layer's verdict the model's** (`authTie`: a KV
-  request was rejected by the auth layer exactly when `st` does not grant it), which the apply thread
+  request was rejected by the auth layer exactly when `st` does not grant it at `lb`'s lease items, `kvGrantedL`), which the apply thread
   in the mode `on` hands over (E2t/E2y's `outcomeOn`). `reqWaitRM`, `waitInvM`, `srvReqFieldsAtM`,
   `isServerReqM`: the wait's registration and the proposer's view over it and `kvInvM` (E2w).
 - `resPostM`: the applied result as `processInternalRaftRequestOnce.spec` reports it with auth on.
@@ -81,14 +81,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The auth layer's verdict is the model's** (`authTie st rq out`): an application of the KV
+/-- **The auth layer's verdict is the model's** (`authTie st lb rq out`): an application of the KV
 request `rq` dispatched to the outcome `o` was rejected by the auth layer exactly when the model's
-auth state `st` (the state the entry met) does not grant it (`kvGranted`). What the apply thread in
-the mode `on` knows of every KV entry it applies (E2t's `outcomeOn`, at the apply layer E2y's
-`outcomeOn_of_kvOutL`), handed to the proposer with the result. -/
-def authTie (st : auth.AuthState) (rq : apply.IRRModel) (out : apply.ApplyOut) : Prop :=
+auth state `st` (the state the entry met) does not grant it at the lease items of the log `lb` the
+entry met (`kvGrantedL`: the permission check and, auth-lease S3a2 §4a option (b), the lease check of
+a leased put's keys). What the apply thread in the mode `on` knows of every KV entry it applies (E2t's
+`outcomeOn`, at the apply layer E2y's `outcomeOn_of_kvOutL`), handed to the proposer with the result. -/
+def authTie (st : auth.AuthState) (lb : mvcc.Log) (rq : apply.IRRModel) (out : apply.ApplyOut) : Prop :=
   apply.isKVKind (apply.dispatchKind rq) = true → ∀ o skip, out = .dispatched o skip →
-    (o = .rejected .auth ↔ ¬ kvGranted st rq)
+    (o = .rejected .auth ↔ ¬ kvGrantedL st (mvcc.leaseItemsOf (mvcc.stateAfter lb)) rq)
 
 /-- **An `Authenticate` entry's response** (C1's A2, 2026-10-28): unless the entry is not an
 `Authenticate` or was not dispatched, the result at `ar` holds the response (`Resp`, a pointer to
@@ -148,7 +149,7 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
-        out.waived = false ∧ authTie st rq out⌝ ∗
+        out.waived = false ∧ authTie st lb rq out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       E.Nx y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
@@ -218,7 +219,7 @@ def modelOutM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryM
   match on with
   | false => kvModel γk L = lb
   | true => ∃ st lt, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L = (st, lb, lt) ∧
-      authTie st rq out
+      authTie st lb rq out
 
 /-- **An admin result's tie as the proposer reports it, in the auth mode `on`** (E3x): `True` off;
 on, `adminTieAr` at the auth state the mode-`on` model of the committed prefix `L` reaches (the
@@ -955,7 +956,7 @@ theorem grantedAt_of_applied (γk : KVNames) (rq : apply.IRRModel) (L : List Ent
   obtain ⟨st, lt, hst, htie⟩ := h
   have hg : kvGranted st rq := by
     have := htie hkv _ _ rfl
-    exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
+    exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 (fun hg => hn hg.1))
   unfold grantedAt; rw [hst]; exact hg
 
 /-- **A KV write applied without an error was granted, so its client's result is there** (the

@@ -62,11 +62,11 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.applyTok at Htt
   icases Htt with Hmr
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
-  iunfold apply.mPre at Hpre
+  icases Hpre with ⟨%Hrq, #Hr, %L, #Hcp, Hpre⟩
+  iunfold apply.mPreAt at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
-  iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
+  iunfold apply.leasesLiveAt at Hlive
+  icases Hlive with ⟨#Hknown, Hu, HltL⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -83,15 +83,6 @@ theorem apply.applierV3backend.Put.wp_proof
   imod Hfacts $$ %log %c Hw with ⟨Hw, -, #Hnx0, -, %Hreach⟩
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
-  -- the witness of the log the put commits
-  ihave Hnx : E.Nx (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c))) $$ []
-  · rcases apply.putPend_cases o log c with ⟨-, -, hp⟩ | ⟨hn, hp⟩
-    · rw [hp]; unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
-    · rw [hp]
-      unfold mvcc.commitLog
-      simp only [reduceCtorEq, ↓reduceIte]
-      iapply (apply.certPre_backend_applied E rq log _ false ?_) $$ Hcp
-      unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr ⟨hn, rfl⟩)⟩
   ihave #Hlok := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   -- the put's updates (only for a live lease; else the writer's half kept)
   ihave Hif : iprop((if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then
@@ -100,9 +91,27 @@ theorem apply.applierV3backend.Put.wp_proof
             srvApi.wSt E.γs (mvcc.commitLog log (txn.putPend o σ)) c))
       else iprop(True)) ∗
       (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then iprop(True)
-       else srvApi.wSt E.γs log c)) $$ [Hw Hnx]
+       else srvApi.wSt E.γs log c)) $$ [Hw]
   · by_cases hl : o.leaseID = W64 0 ∨ o.leaseID ∈ L
     · simp only [hl, decide_true, ↓reduceIte]
+      -- the witness of the log the put commits: only now, the lease live (S3a2)
+      ihave Hnx : E.Nx (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c))) $$ []
+      · rcases apply.putPend_cases o log c with ⟨-, -, hp⟩ | ⟨hn, hp⟩
+        · rw [hp]; unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
+        · rw [hp]
+          unfold mvcc.commitLog
+          simp only [reduceCtorEq, ↓reduceIte]
+          iunfold apply.certPreT at Hcp
+          ihave Hc := Hcp $$ %(apply.Outcome.applied
+            (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false) %(by
+              refine ⟨?_, ?_⟩
+              · unfold apply.chainStep apply.backendStep; rw [Hrq.2.1]
+                exact ⟨o, Hrq.1, Or.inr (Or.inr ⟨hn, rfl⟩)⟩
+              · simp only [apply.leaseExactL, Hrq.2.1]
+                intro op hop; rw [Hrq.1] at hop; cases hop
+                exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩)
+          simp only [apply.Outcome.logAfter]
+          iexact Hc
       isplitl [Hw Hnx]; rotate_left
       · itrivial
       unfold txn.putAU

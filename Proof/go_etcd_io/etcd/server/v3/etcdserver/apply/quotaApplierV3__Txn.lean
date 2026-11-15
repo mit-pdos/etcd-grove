@@ -48,9 +48,9 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
-  ihave #Hcp := apply.certPre_quota E c rq log $$ Hcp
-  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  icases Hpre with ⟨%Hk, #Hr, %T, #Hcp, Hm⟩
+  ihave #Hcp := apply.certPreT_quota E c rq log T $$ Hcp
+  icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok %Hok
   · ipureintro; exact Or.inr (Or.inl rfl)
@@ -61,7 +61,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     iframe #
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
+    iapply apply.mPreAt_of_rest
     iframe
   iunfold apply.kvPostF at Hpost
   icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
