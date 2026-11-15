@@ -243,6 +243,28 @@ Full build GREEN at `fdd1d88b44` (`/shared/tmp/auth-lease-s3a/build14.log`, floc
    bounds/mode, no closed statement changed, `grep -rn TRANSITIONAL` empty, STATUS/handoff/status-history). STOP
    before `etc/land.sh`.
 
+**Session 6 (2026-11-15): S3a's proof DONE, at the land stop.** Commits `9c2f582bd1` (the grant and revocation
+arms), `b2550e6a1d` (the transitional row dropped):
+1. The grant arm (v3 = true): `apply.Apply.spec` (the auth layer passes a grant through), the log kept, the table
+   the model's step (`kvEntryOn_grant`: the third branch of `kvEntryOn`, `dispatchTable` at the auth-on chain);
+   `srvRestT_applyG` (`srvRest_applyG` at any table), `kv_entry_grantFresh_on`, `kv_certPre_grantOn`,
+   `applyResultIs_notNoSpace_grantOn` (`dispatchStep_start_grantB`). All in `RestOn.lean`.
+2. The revocation arm (v3 = true): the latest-state triple `kvSpecL` (the auth layer checks a revocation);
+   `revokeOn_after` (refused: the model's table kept; applied: `backendTable`); the certificate
+   `kv_certPreVW_revoke_on` over `outcomeOn_of_kvOutL_revoke` (`liveSt` from `kvInvOn_log0`, `0 ∉` the table by
+   `kvRaftOfOn_ne0`); `kvShapedL_revoke` from `keysNonEmpty_kvRaftOfOn`; `srvRestT_applyR` with the refusal;
+   `applyResultIs_notNoSpace_revokeOn` (the auth error told apart). The table after needs the empty raft prefix
+   (`srvKVInvsOn`'s `pre = []`) to be the model's state the outcome met.
+3. `γr.kv.lg = false` dropped from `srvKVInvsOn`; `acModesOk` on: `cmp = false` only (`srvKVInvsC`); NewServer no
+   longer proves it. `grep -rn TRANSITIONAL` is empty. The local macro `tail_on` takes the table after the entry.
+4. Land-stop checks (2026-11-15): lean not moved (`c3da59fa29` merged); full build GREEN under flock + 64G
+   (`/shared/tmp/auth-lease-s3a/build15.log`, 17537 jobs); `tcb-report --check` 870 axioms, 4 sorries; every
+   `etc/api` list's `gen-interface --check` passes, no interface differs from lean (the Alloc3On change is a
+   proof body only); bounds ok (351); mode gate: S3a's findings classified (`model`: the auth-on table's rows;
+   `unmoved`: `specSnapM`'s frozen `hnl`), baselines raised (etcdserver lit-mode 156→252, match-mode 76→78,
+   client/v3 lit-mode 18→22; commit `4f34346b9e`); no closed theorem statement changed (the diff in
+   `Proof/github_com` is proof bodies). STOPPED before `etc/land.sh`.
+
 **Stage S3a2 (after S3a lands; its own Scope and Freeze; 3–6 agent-days; S3b's leased put waits on it).** Leased
 puts and leased transactions in the auth-on apply thread (ledger 2026-11-15, option (1)). Freeze items:
 - `certPreT E c rq log T` in place of the class track's `certPre` for KV requests: the certificate of the outcomes
