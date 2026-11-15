@@ -12,7 +12,8 @@ for by `cd`. On `readOK` (0): the read `c`, which an image `img` of `cd`'s histo
 the purged prefix 0 (`tRead img = some c`); the open handle and the WAL's facts `ReadAll` gives; `Open`'s half
 of the call permission. On a failure: nothing more (the member is down).
 
-Premises: the paths are the area's (`tWalPathsOk`); the history `ReadAll` reads reads back
+Premises: `m` is not nil (`restartRead`'s `if m != nil`; the caller allocated it); the paths are the
+area's (`tWalPathsOk`); the history `ReadAll` reads reads back
 (`tReadsBackOk`, W4b's `walReadsBack` where `ReadAll` succeeds; the obligation of whoever carries the
 oracle invariant: `RestartOk.lean`); the oracle has room for two opens (16 bytes below `tOrSmall`'s bound,
 `tEncodeOracle_withOpens_length`). Lean-first (no Rocq counterpart).
@@ -50,7 +51,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev restartRead.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (lg m : Loc) (v : oracle) (o : TOracle) (cd : TCand) (d : WalDur)
     (qp : Qp),
-  e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d →
+  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d →
   (tCandHist o cd).length < 2 ^ 63 → tReadsBackOk (d.H.map WalOpG.toM) →
   (tEncodeOracle o).length + 16 ≤ 0x40000000 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗

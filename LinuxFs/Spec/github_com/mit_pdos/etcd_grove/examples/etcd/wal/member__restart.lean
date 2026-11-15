@@ -43,7 +43,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev member.restart.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m lg w0 : Loc) (v : oracle) (o : TOracle) (cd : TCand)
     (d : WalDur) (qp : Qp) (t vo cm b l : w64) (tm r : Loc) (rv : rnd),
-  e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d → tCheckWf o →
+  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → o.created = true → cd ∈ o.cands → tCandOk o cd d →
+  tCheckWf o →
   tReadsBackOk (d.H.map WalOpG.toM) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
