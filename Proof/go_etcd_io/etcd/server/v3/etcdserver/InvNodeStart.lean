@@ -118,6 +118,10 @@ structure rnRestartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceO
   maxMsg : uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20
   noAsync : cv.AsyncStorageWrites' = false
   applied : cv.Applied' = W64 0
+  /-- (`lean` merge, stage 2; as `rnStartCfg.traceLogger`, Q1 of `notes/trace-validation-plan.md`) no
+  trace logger: the restart's `b.config` is built by the same `raftConfig` (`bootstrap.go`), which sets
+  none. `RestartNode.spec`'s premise. -/
+  traceLogger : TraceLoggerOk cv.TraceLogger'
   peersNil : pv = []
 
 /-- (restart S3 item 5, Q35 (a), r2db §4.3, 2026-11-11) **How the raft node boots** (the boot sum):

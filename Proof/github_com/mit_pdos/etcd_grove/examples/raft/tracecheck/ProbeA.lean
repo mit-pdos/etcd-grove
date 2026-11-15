@@ -533,8 +533,8 @@ theorem wp_Clone_msg (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpi, #Hro⟩ HΦ
   ihave ⟨%c, #Hc, %Hcm⟩ := msgOwn_msgRoC l st hr $$ Hro
   have Hcl := wp_Clone pbMessageC pbMessageC_reg l c
-  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_dec, pbMessageC_eqv, pbMessageC_modelOf,
-    pbMessageC_C, pbMessageC_decOk, pbMessageC_marshals, pbMessageC_ufValid] at Hcl
+  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_decC, pbMessageC_eqv, pbMessageC_modelOf,
+    pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid] at Hcl
   iapply Hcl $$ [] [HΦ]
   · iframe Hpi Hc
   inext
@@ -545,7 +545,7 @@ theorem wp_Clone_msg (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
   iapply HΦ
   iexists c'.model
   isplitl [Hdec]
-  · iapply Hdec; ipureintro; exact Hcm.2
+  · iapply msgPtsCC_msgPtsC _ _ _ _ _ Hcm.2 $$ Hdec
   · ipureintro; rw [Hcm.1]; exact ⟨rfl, fun h => h⟩
 
 /-- **`proto.Clone(m)` then `node.Step(ctx, clone)`** (§2.3's last row, §2.4; S1's correction, the
