@@ -442,7 +442,7 @@ T5-a's `watchCtx`. Same meaning. **`klog.Warningf.spec`** now takes `klog.Errorf
 
 81's decisions in `questions.md` (2026-11-15); ledger entry of 2026-11-15 in `notes/specs-only/ledger.md`.
 
-- **M1, the start progress notification: OPEN (a stop for 81).** The client's `watchStateRespOk`
+- **M1, the start progress notification: decided by 81 (2026-11-15): the client spec strengthened (ledger 2026-11-15; `watchStateRespOk`'s progress arm now always `hdrRev ≤ σ.rev`), so `KTail.bm` holds the start notification unchanged.** The analysis that led there: The client's `watchStateRespOk`
   admits a progress notification at the watch's start (`hdrRev = c`, `c + 1 = rev`) with no
   `σ.rev` bound (`WatchStateDefs.lean:125-128`); `startWatching` queues it as `KRaw.bm hdrRev
   false`, which `KRawTail.bm`/`KTail.bm` (`p ≤ σ.rev`) cannot hold. The Draft-local fix (`bm`
