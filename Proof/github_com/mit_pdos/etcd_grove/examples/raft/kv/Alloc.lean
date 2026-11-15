@@ -125,7 +125,7 @@ theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF 
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2, Htr⟩
+  · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Htr, Hγ.2.2.2⟩
   iframe Hinv Hval Hseqs Hslots
   unfold kvCluster
   iframe Hiscl Hpol Hca0 Hsinv

@@ -822,7 +822,7 @@ theorem srvClusterOk_untraced (γ : ServerRaftNames) :
     srvClusterOk (GF := GF) γ ⊢ ⌜Cluster.trace γ.raft.cl = none⌝ := by
   unfold srvClusterOk
   iintro ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
-  ipureintro; exact H
+  ipureintro; exact H.1
 
 /-- **Raft's committed log, at the server** (persistent; the contract's ghost interface): the
 server's log invariant, the cluster, the start log committed and the start index its length; and
@@ -846,7 +846,7 @@ theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
   unfold srvRaftLogInv srvClusterOk
   iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
-  ipureintro; exact H
+  ipureintro; exact H.2
 
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by

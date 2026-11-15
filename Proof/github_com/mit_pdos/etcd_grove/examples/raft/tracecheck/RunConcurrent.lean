@@ -381,7 +381,7 @@ theorem RunConcurrent.wp_proof
     -- the traced cluster, with the harness's invariants
     imod probeA_alloc tcRaftN boot γt ⊤ (fun _ _ => CoPset.mem_full) (by omega) Hbf $$ Hprem Hfr
       with ⟨%γ, %γd, %tn, %Hγ, #Hdir, #Hsim, #Hcl, #Hops, #Hpol, #Hsn, #Hca0, #Hboot, Hvs⟩
-    obtain ⟨Htr, Htn, Hvoters, Hsl0, Hdup, Hbl⟩ := Hγ
+    obtain ⟨Htr, Htn, Hvoters, Hsl0, Hdup, Hbl, Hmd⟩ := Hγ
     ihave #Hlog := tcLogger_isLogger (GF := GF)
     icases (BigSepL.bigSepL_cons (Φ := fun _ i =>
         voterStart (GF := GF) γ tcRaftN tcVoters tcCtxs tn i)).1 $$ Hvs with ⟨Hv1, Hvs⟩
@@ -424,7 +424,7 @@ theorem RunConcurrent.wp_proof
     wp_if_destruct
     · -- one more replica: its storage, registered
       try wp_auto
-      wp_apply wp_NewMemoryStorage as %ms %γs ⟨#Hlock, #Hlog0, Hend, -, Hmeta, Hfresh⟩
+      wp_apply wp_NewMemoryStorage false as %ms %γs ⟨%Hsz, #Hlock, #Hlog0, Hend, -, Hmeta, Hfresh⟩
       cases HM : M.lookup ms with
       | some x =>
         iexfalso
@@ -445,6 +445,7 @@ theorem RunConcurrent.wp_proof
       ihave Hau := tc_startAu γ tcRaftN k $$ Hrs0
       ihave Hboot := tc_bootStorage wp_InitialState wp_LastIndex wp_FirstIndex wp_Term wp_Entries
         wp_Snapshot ms γs γ (fun _ => memStorMeta ms γs tcBootContents.hs)
+        (fun h => by simp [Hmd] at h)
         $$ Hrg Hlock Hfresh Hmeta Hlog0 Hend []
       · iintro %K Hm -; iexact Hm
       ihave #Hpctx := tcPeers_ctx (GF := GF)
@@ -460,7 +461,8 @@ theorem RunConcurrent.wp_proof
             (raftState γ k RaftState.init) (fun _ => memStorMeta ms γs tcBootContents.hs)
             sl (DFrac.own 1) (tcPeers 3) (tcConfig_valid k ms «$v1_ptr» Hk.1 Hk3) rfl rfl
             (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
-            (Or.inr (by show ~~~W64 0 ≠ W64 0; decide)) rfl rfl rfl rfl rfl rfl rfl
+            (Or.inr (by show ~~~W64 0 ≠ W64 0; decide)) rfl (fun h => absurd Hmd h)
+            rfl rfl rfl rfl rfl rfl
             tcPeers_ids.symm)
           $$ [«$r0» Hau Hboot Hvac Hsl Hstc]
           as %nd ⟨%n, %K, %Hnd, -, #HisNode, Hdrv, Hncfg, Hrun, Hrs, Hmeta, Hsl, #Hsd⟩
@@ -519,6 +521,7 @@ theorem RunConcurrent.wp_proof
             · iunfold repInfo
               subst Hnd
               iframe Rid Rnode Rstor HisNode Hrg Hlock
+              ipureintro; exact Hsz
             isplitl [Rappl Rsi Rcs]
             · iunfold repOwn
               iexists _, _, _
@@ -572,7 +575,7 @@ theorem RunConcurrent.wp_proof
           Hboot
         isplitr
         · ipureintro
-          refine ⟨⟨HN3, HX0, HC0, HS0, HM0, HM1, HT0⟩, HT0, Htr, Hsl0, Hbf, by simp [Hdl], ?_⟩
+          refine ⟨⟨HN3, HX0, HC0, HS0, HM0, HM1, HT0⟩, HT0, Htr, Hsl0, Hbf, by simp [Hdl], ?_, Hmd⟩
           rw [Hbl, Hbl3]; omega
         isplitr
         · unfold replicasRO; iexists rsl; iframe Freps Hrsl
@@ -767,6 +770,8 @@ theorem RunConcurrent.wp_proof
             · iframe Hnd Hbs
               isplitr
               · iunfold nodeCtx; iright; iexact Hctx
+              isplitr
+              · ipureintro; intro b h; simp [Hmd] at h
               rw [Hdup]
               iexact Hau
             try wp_auto

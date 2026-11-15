@@ -137,7 +137,9 @@ theorem RawNode.ReportUnreachable.traced
       iintro %h
       exact absurd h.1 (by msg_ne)
     isplitl [Hm]
-    · iframe Hm
+    · isplitl [Hm]
+      · -- (out_size C3) `raft.Step` takes the message at its content; this type moves nothing
+        iapply msgIn_toC (show movesB (W32 10) = false by decide) _ _ _ $$ Hm
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
       imodintro
       iintro %ty %Hty

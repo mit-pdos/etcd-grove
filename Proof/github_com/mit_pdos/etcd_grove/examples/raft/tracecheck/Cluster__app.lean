@@ -89,7 +89,7 @@ theorem Cluster.app.wp_proof
     #Hiso, #HcP, #HcD, #HcX, #HcR, #HcC, #Hclu, #Hops, #Hpol, #Hsn, #Hboot⟩
   ihave #Hri' := Hri
   iunfold repInfo at Hri'
-  icases Hri' with ⟨#Hid, #Hnf, #Hsf, #Hnode, #Hreg, #Hlock⟩
+  icases Hri' with ⟨#Hid, #Hnf, #Hsf, #Hnode, #Hreg, #Hlock, %HszR⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -176,7 +176,8 @@ theorem Cluster.app.wp_proof
     iunfold readyGotT at Hgot
     icases Hgot with ⟨%ce, %es, %h, %L, %qs, %ss, #Hce, #Hcomm, -, Hrest, -, Henter, #Hdl, -, Hcl⟩
     iunfold readyRest at Hrest
-    icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, -, %Hbnd, Hsnap, -⟩
+    icases Hrest with ⟨#Hes0, Hmsl, Hmsok, -, #Hhs, -, %Hbnd, Hsnap, -⟩
+    ihave #Hes := readyEnts_entsRO W.cl rdv.Entries' es $$ Hes0
     cases L with
     | some l =>
       imod probeA_noSnap W.cl tcRaftN id rdv st ce es l ⊤ (fun _ _ => CoPset.mem_full)
@@ -193,7 +194,7 @@ theorem Cluster.app.wp_proof
     have Hbound : ∀ e0, es.head? = some e0 →
         (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
         uint.nat e0.Index' + es.length ≤ 2 ^ 61 :=
-      fun e0 he => ⟨(Hidx e0 he).1, tc_batch_bound es Lx _ _ HL1 HL2 Hpure.2.2.2.2.2.2 e0 he⟩
+      fun e0 he => ⟨(Hidx e0 he).1, tc_batch_bound es Lx _ _ HL1 HL2 Hpure.2.2.2.2.2.2.1 e0 he⟩
     ihave Happ' : appendRight (memStorIface ms) es $$ [Happ]
     · rw [← Hst.2.1]; iexact Happ
     wp_apply wp_handleReady c W r n ms γs id rdv st.delivered ce es h hs v Hst.2.2 Hbound

@@ -233,7 +233,7 @@ theorem Cluster.handleReady.wp_proof
     #HcC, #Hclu, #Hops, #Hpol, #Hsn, #Hboot⟩
   ihave #Hri' := Hri
   iunfold repInfo at Hri'
-  icases Hri' with ⟨#Hid, #Hnf, #Hsf, #Hnode, #Hreg, #Hlock⟩
+  icases Hri' with ⟨#Hid, #Hnf, #Hsf, #Hnode, #Hreg, #Hlock, %HszR⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   try wp_auto
@@ -281,8 +281,11 @@ theorem Cluster.handleReady.wp_proof
       rw [Hk e0 (by rw [hes]; rfl)]
       rw [hes] at this
       exact this
+  -- (out_size C2) the batch at the storage's flag: unsized (`HszR`)
+  ihave #HesZ : entsPtsZ γs.sz rd.Entries' DFrac.discard es $$ []
+  · rw [HszR]; iapply entsPts_entsPtsZ $$ Hes
   wp_apply wp_Append ms γs k old es rd.Entries' DFrac.discard h1 h2
-    $$ [$Hraft $Hlock $Hrange $Hes] as ⟨-, Hb⟩
+    $$ [$Hraft $Hlock $Hrange $HesZ] as ⟨-, Hb⟩
   try wp_auto
   -- the hard state
   wp_join iprop(∃ hs1 : HardStateM, memStorMeta ms γs hs1 ∗ r_ptr ↦ r ∗ rd_ptr ↦ rd)

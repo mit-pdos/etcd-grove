@@ -136,7 +136,11 @@ theorem Cluster.send.wp_proof
           try wp_auto
           ihave #Hloc := snapLocalMsg_noDir (GF := GF) W.cl st.msg.To'
             (by rw [Hpure.2.2.2.1]) st
-          imod stepIn_intro W.cl tcRaftN st.msg.To' ml sid st rfl $$ [Hm Hcr Htok] with Hstep
+          -- (raft-entsize §2) the copy's content form; no bound on proposed data (`Hmd`)
+          have Hmd : W.cl.maxData = none := Hpure.2.2.2.2.2.2.2
+          icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%cm, Hm, %Hcm⟩
+          imod stepIn_intro W.cl tcRaftN st.msg.To' ml sid st cm rfl Hcm.1 Hcm.2
+            (fun b h => by simp [Hmd] at h) $$ [Hm Hcr Htok] with Hstep
           · iframe Hs Hm Hcr Hloc Htok
           wp_apply wp_Step nd W.cl tcRaftN st.msg.To' ml ctx cd $$ [Hstep] as %err -
           · iframe Hdnode Hstep

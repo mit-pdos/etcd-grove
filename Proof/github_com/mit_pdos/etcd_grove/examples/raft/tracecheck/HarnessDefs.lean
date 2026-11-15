@@ -118,7 +118,9 @@ def repInfo [MemStorReg GF] (γ : Cluster) (r : Loc) (id : w64) (n ms : Loc) (γ
   iprop(r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"id"] ↦□ id ∗
     r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"] ↦□ nodeIface n ∗
     r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"storage"] ↦□ ms ∗
-    isNode n γ tcRaftN id ∗ memStorReg ms γs ∗ memStorLock ms γs)
+    isNode n γ tcRaftN id ∗ memStorReg ms γs ∗ memStorLock ms γs ∗
+    -- (out_size C3) the storage is unsized: the cluster bounds no proposed data
+    ⌜γs.sz = false⌝)
 
 instance repInfo_persistent [MemStorReg GF] (γ : Cluster) (r : Loc) (id : w64) (n ms : Loc)
     (γs : MemStorNames) : Persistent (repInfo (GF := GF) γ r id n ms γs) := by
@@ -139,7 +141,7 @@ def tcWorld (c : Loc) (W : TcW) : IProp GF :=
     c.[G.Cluster, go!"cfg"].[G.CConfig, go!"SnapshotEvery"] ↦□ W.cfg.SnapshotEvery' ∗
     ⌜Workload W.cfg ∧ 0 < sint.Z W.cfg.Tick' ∧ Cluster.trace W.cl = some W.γd ∧
       W.cl.snapLoc = (fun _ => none) ∧ BootLogFacts W.boot ∧ W.rs.length = 3 ∧
-      receiptBound GF + W.cl.bootLen ≤ 2 ^ 61⌝ ∗
+      receiptBound GF + W.cl.bootLen ≤ 2 ^ 61 ∧ W.cl.maxData = none⌝ ∗
     c.[G.Cluster, go!"stop"] ↦□ W.sc ∗ ownBroadcastChan W.sc W.γsc iprop(True) .Unknown ∗
     replicasRO c W.rs ∗
     ([∗list] i ↦ r ∈ W.rs, repNode W.cl r (W64 (i + 1))) ∗

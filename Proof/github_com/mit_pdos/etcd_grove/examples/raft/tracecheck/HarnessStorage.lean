@@ -62,9 +62,9 @@ def tcJ (γ : Cluster) (K : GName) : MemJust GF where
   DL_pers := fun i => by infer_instance
 
 /-- The storage contract with a weaker compaction bound. -/
-theorem isStorageP_bnd (SV : SnapshotM → IProp GF) (B1 B2 : Nat → IProp GF) (DL : Nat → IProp GF)
-    (st : Storage) :
-    ⊢ isStorageP SV B1 DL st -∗ □ (∀ c, B1 c ={⊤}=∗ B2 c) -∗ isStorageP SV B2 DL st := by
+theorem isStorageP_bnd (sz : Bool) (SV : SnapshotM → IProp GF) (B1 B2 : Nat → IProp GF)
+    (DL : Nat → IProp GF) (st : Storage) :
+    ⊢ isStorageP sz SV B1 DL st -∗ □ (∀ c, B1 c ={⊤}=∗ B2 c) -∗ isStorageP sz SV B2 DL st := by
   iintro #H #Hb
   unfold isStorageP
   icases H with ⟨%i, %Hst, #H1, #H2, #H3, #H4, #H5, #Hbound, #Hlen⟩
@@ -84,17 +84,27 @@ theorem tc_isStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (hsz : γ.maxData.isSome = true → γs.sz = true) :
     ⊢ memStorInvP (GF := GF) ms γs (tcJ γ K) -∗ memStorReg ms γs -∗
       isStorage γ K (memStorIface ms) := by
   iintro #Hinv #Hreg
   ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
     (tcJ γ K) $$ Hinv Hreg
-  ihave #H' : isStorageP (snapshotValid γ) (memBnd (tcJ γ K)) (nodeCommitLb γ K) (memStorIface ms)
-    $$ []
-  · iExactEq H; rfl
+  -- (out_size C2) at the cluster's flag: the storage's own when the cluster bounds proposed data
+  -- (`hsz`), unsized otherwise (`isStorageP_unsize`), as `memStorage_isStorage`
+  ihave #H' : isStorageP γ.maxData.isSome (snapshotValid γ) (memBnd (tcJ γ K)) (nodeCommitLb γ K)
+    (memStorIface ms) $$ []
+  · by_cases h : γ.maxData.isSome = true
+    · have e : γ.maxData.isSome = γs.sz := by rw [h, hsz h]
+      rw [e]
+      iExactEq H; rfl
+    · have e : γ.maxData.isSome = false := by simpa using h
+      rw [e]
+      ihave #H2 := isStorageP_unsize _ _ _ _ _ $$ H
+      iExactEq H2; rfl
   unfold isStorage
-  iapply isStorageP_bnd (snapshotValid γ) (memBnd (tcJ γ K)) (storBnd γ K) (nodeCommitLb γ K)
+  iapply isStorageP_bnd γ.maxData.isSome (snapshotValid γ) (memBnd (tcJ γ K)) (storBnd γ K) (nodeCommitLb γ K)
     (memStorIface ms) $$ H'
   iintro !> %c #Hc
   unfold memBnd tcJ
@@ -120,7 +130,8 @@ theorem tc_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (F : GName → IProp GF) :
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (F : GName → IProp GF)
+    (hsz : γ.maxData.isSome = true → γs.sz = true) :
     ⊢ memStorReg (GF := GF) ms γs -∗ memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
       memStorMeta ms γs tcBootContents.hs -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
@@ -178,7 +189,7 @@ theorem tc_bootStorage
   ihave HFK := HF $$ %K Hmeta Hinv
   imodintro
   isplitr
-  · iapply tc_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs γ K
+  · iapply tc_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs γ K hsz
       $$ Hinv Hreg
   iframe HFK
   iunfold storHolds

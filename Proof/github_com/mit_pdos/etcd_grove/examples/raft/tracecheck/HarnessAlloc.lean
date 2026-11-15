@@ -152,7 +152,7 @@ theorem harness_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) -∗ traceFrag γt [] ={E}=∗
       ∃ (γ : Cluster) (γd : GName) (tn : TraceNames),
         ⌜Cluster.trace γ = some γd ∧ tn.tr = γt ∧ tn.voters = vs ∧ γ.dup = false ∧
-          γ.snapLoc = (fun _ => none) ∧ γ.bootLen = boot.length⌝ ∗
+          γ.snapLoc = (fun _ => none) ∧ γ.bootLen = boot.length ∧ γ.maxData = none⌝ ∗
         traceDir γd tn ∗ Cluster.traceSim γ vs tn ∗
         ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
@@ -163,8 +163,8 @@ theorem harness_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     with ⟨%γd, %tn, %A, %Bt, %Htn, #Hdir, HA, HB0, HBt, HDn, Hsh⟩
   obtain ⟨Htr, Hvs, HA1, HA2, HBt1⟩ := Htn
   subst Htr
-  imod cluster_alloc_traced (GF := GF) N vs ctxs boot false (fun _ => none) γd E Hrb Hne Hnd Hnz Hlen
-    HB $$ Hm with ⟨%γ, %Hγ, %Hgt, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hrs, #Hlb, #Hbs⟩
+  imod cluster_alloc_traced (GF := GF) N vs ctxs boot false (fun _ => none) γd none E Hrb Hne Hnd Hnz Hlen
+    HB (fun _ h => by cases h) (fun _ h => by cases h) $$ Hm with ⟨%γ, %Hγ, %Hgt, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hrs, #Hlb, #Hbs⟩
   obtain ⟨v0, vs', rfl⟩ : ∃ v0 vs', vs = v0 :: vs' := List.exists_cons_of_ne_nil Hne
   ihave #Hb0 : nodeBoot γ N (v0 :: vs') ctxs v0 $$ []
   · icases (BigSepL.bigSepL_cons (Φ := fun _ i => nodeBoot (GF := GF) γ N (v0 :: vs') ctxs i)).1
@@ -176,7 +176,7 @@ theorem harness_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
   imodintro
   iexists γ, γd, tn
   isplitr
-  · ipureintro; exact ⟨Hgt, rfl, Hvs, Hγ.1, Hγ.2.1, Hγ.2.2⟩
+  · ipureintro; exact ⟨Hgt, rfl, Hvs, Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2⟩
   iframe Hdir Hinv Hops Hctx Hcl Hdec Hca Hsm Hlb
   unfold voterStart
   iapply (BigSepL.bigSepL_sep_eqv (Φ := fun _ i => nodeBoot (GF := GF) γ N (v0 :: vs') ctxs i)

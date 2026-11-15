@@ -140,7 +140,8 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
     ⊢ bootMarshal (GF := GF) tcVoters tcCtxs (LogEntry.toEntries boot 0) -∗ traceFrag γt [] ={E}=∗
       ∃ (γ : Cluster) (γd : GName) (tn : TraceNames),
         ⌜Cluster.trace γ = some γd ∧ tn.tr = γt ∧ tn.voters = tcVoters ∧
-          γ.snapLoc = (fun _ => none) ∧ γ.dup = false ∧ γ.bootLen = boot.length⌝ ∗
+          γ.snapLoc = (fun _ => none) ∧ γ.dup = false ∧ γ.bootLen = boot.length ∧
+          γ.maxData = none⌝ ∗
         traceDir γd tn ∗ Cluster.traceSim γ tcVoters tn ∗ isCluster γ N ∗
         tcOpsInv γ boot ∗ confPolicy γ tcConfN tcRule ∗ tcSnapsInv γ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet tcVoters)) ∗ isCommittedLogLb γ boot ∗
@@ -149,7 +150,7 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
   iintro #Hm Hfr
   imod harness_alloc (GF := GF) N tcVoters tcCtxs boot γt E hE Hrb Hne Hnd Hnz Hlen HB $$ Hm Hfr
     with ⟨%γ, %γd, %tn, %Hγ, #Hd, #Hinv, Hops, -, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hvs⟩
-  obtain ⟨Htr, Htn, Hvs', Hdup, Hsl, Hbl⟩ := Hγ
+  obtain ⟨Htr, Htn, Hvs', Hdup, Hsl, Hbl, Hmd⟩ := Hγ
   imod inv_alloc tcOpsN E (tcOpsBody (GF := GF) γ boot) $$ [Hops] with #Hops
   · inext
     unfold tcOpsBody
@@ -164,7 +165,7 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
   imodintro
   iexists γ, γd, tn
   isplitr
-  · ipureintro; exact ⟨Htr, Htn, Hvs', Hsl, Hdup, Hbl⟩
+  · ipureintro; exact ⟨Htr, Htn, Hvs', Hsl, Hdup, Hbl, Hmd⟩
   unfold tcOpsInv tcSnapsInv
   iframe Hd Hinv Hcl Hops Hpol Hsn Hca Hlb Hvs
 
@@ -406,12 +407,12 @@ theorem probeA_readySplit (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (s
       ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
         (ms : List QMsg) (ss : Option (w64 × StateType)),
         rd.Messages' ↦* ms.map QMsg.loc ∗
-        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+        ([∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
         readySnap γ N id rd st ce es L ∗
         readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗ readyToksClaim n γ N ms ∗
         ⌜(st.afterReady ce es h L ss).handling = some (es, L)⌝ := by
   unfold readyGotT readyRest
-  iintro ⟨%ce, %es, %h, %L, %ms, %ss, -, -, -, ⟨-, Hmsl, Hms, -, -, -, Hsnap, -⟩, -, Hent, -, -,
+  iintro ⟨%ce, %es, %h, %L, %ms, %ss, -, -, -, ⟨-, Hmsl, Hms, -, -, -, -, Hsnap, -⟩, -, Hent, -, -,
     Hcl⟩
   iexists ce, es, h, L, ms, ss
   iframe Hmsl Hms Hsnap Hent Hcl
@@ -422,7 +423,7 @@ theorem probeA_readySplit (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (s
 tokens give, for each message, what `send` takes: its `msgOwn` at `readyDq`, `sentMsg`, credits and
 token, at one `q.st`. -/
 theorem probeA_msgs (γ : Cluster) (N : Namespace) (src : w64) (ms : List QMsg) :
-    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) -∗
+    ⊢ ([∗list] q ∈ ms, msgOut (GF := GF) γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) -∗
       readyMsgs γ N src ms -∗ ([∗list] q ∈ ms, trTok γ q.st) -∗
       [∗list] q ∈ ms, (msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N src q.st ∗
         msgCredits γ N q.st) ∗ trTok γ q.st := by
@@ -556,7 +557,8 @@ theorem probeA_cloneStep
     (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
     (wp_Step : node.Step.spec (GF := GF) (hG := hG))
     (n : Loc) (γ : Cluster) (N : Namespace) (id src : w64) (q : QMsg) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (hto : q.st.msg.To' = id) (hsl : γ.snapLoc id = none) :
+    (cd : context.ContextDesc (IProp GF)) (hto : q.st.msg.To' = id) (hsl : γ.snapLoc id = none)
+    (hmd : γ.maxData = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto -∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗ isNode n γ N id -∗ nodeCtx ctx cd -∗
       msgOwn q.loc (readyDq q.st) q.st -∗ sentMsg γ N src q.st -∗ msgCredits γ N q.st -∗
@@ -581,11 +583,11 @@ theorem probeA_cloneStep
   · ipureintro; rfl
   have Hst := clone_st q.st st' hr Heqv
   ihave #Hloc := snapLocalMsg_noDir (GF := GF) γ id hsl q.st
-  imod stepIn_intro γ N id l' src q.st hto $$ [Hdec Hcr Htok] with Hstep
-  · iframe Hs Hcr Hloc Htok
-    rw [← Hst]
-    iExactEq Hdec
-    rfl
+  -- (raft-entsize §2) the clone's content form; no bound on proposed data (`hmd`)
+  icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hdec with ⟨%cm, Hdec, %Hcm⟩
+  imod stepIn_intro γ N id l' src q.st cm hto (Hcm.1.trans Hst) Hcm.2
+    (fun b h => by simp [hmd] at h) $$ [Hdec Hcr Htok] with Hstep
+  · iframe Hs Hdec Hcr Hloc Htok
   iapply (wp_Step n γ N id l' ctx cd) $$ [Hstep] []
   · iframe Hri Hn Hctx Hstep
   inext
