@@ -135,33 +135,64 @@ before §3a; §3a adds no axiom). Done this session:
   image from `kvInvOn_log0` + `kvRaftOfOn_restorable` at lease mode none; `hleaseI` to the off table), SnapRecvOn and
   ApplyAllSnap (`SnapImageFactsOn` built from the lease-free image); plus the older ones (`grep -rn TRANSITIONAL Proof`).
 
-Next (session 4), in order: (a) `keysNonEmpty` preserved; (b) restate the snapshot consumers' `hnl` (SnapApplyWalk,
-SnapApplyPost `srvSnapApplied_of_walk`, SnapApplyKV, SnapApplyKVLemmas `leasesKnown_noLease`) from `LogNoLease` to the
-keys-live form, with `store.Restore.spec`'s pending items (`store__Restore.lean:156-158`); (c) drop `γr.kv.lg = false` from
-`srvKVInvsOn` and replace each TRANSITIONAL conversion by the M laws (the on apply arms then meet `E.lg = true`: §6).
+**Session 4 (2026-11-15):** handoff items (a), (b) and most of (c) DONE (commits `26acfbb48f`, `1239efff42`; full
+build `build13` at `1239efff42`, `/shared/tmp/auth-lease-s3a/build13.log`; see the session report):
+- (a) `keysNonEmpty` preserved: `neSt`, `opKeysNE`/`opsKeysNE`, `reqKeysNE`, `entryKeysNE` and their laws through
+  `applyChange(s)`, `srvOp(s)`, `backendLog`, the chain, `dispatchLog`, `kvEntry`, `kvEntryOn`, `kvRaftOfOn`;
+  `reqKeysNE_of_shape` (`kvShapeAll`: a put's key is a point key of the cache's shape), `entryKeysNE_of_plain`,
+  `keysNonEmpty_kvRaftOfOn` (KVAuthModel). Not yet used (§6's `kvShapedL` at a leased put takes it).
+- (b) the snapshot consumers at the keys-live form: `applySnapshot_walk`'s `hnl` is "every leased key's lease is in
+  `Recover`'s `Lr`" (pending items = the image's lease items, each short by `Hkey`), `snapWalkPost`'s `leaseOwn Lr`
+  at the image's lease items, `snap_applyKV` at them (`leasesKnown_of_items`, SnapApplyKVLemmas), `snap_srvRest`
+  at `srvRestM on` (`srvRestM_close`), `srvSnapApplied_of_walk` at `appliedTableM E.authOn` (its TRANSITIONAL
+  `HrestM` gone). `EtcdServer.applySnapshot.wp_proof`'s leased branch (`E.lg = true`) now covers both auth modes:
+  the mode's table (`ImageLeasesOn.lean`: `kvEntryOn_table_eq_or`, `kvRaftOfOn_table_{mem,nodup,mono}`,
+  `appliedTableM_{nodup,ids_granted,mono_mem,mono_sub,rev_mem,granted_live}`, `kv_grantLog_nodup_on`), the image's
+  records by `imageLeasesAtT_recs` (ImageLeases, table-generic), `hnl` from the frozen rev-5 text. The `E.lg = false`
+  branch is not transitional (lease mode `none` from `E.lg = false`); its comment relabelled.
+- (c) the auth-on image carries the leases (Draft §5's ImageOn/MergedImageOn/SnapSendBranch/snapRecv rows):
+  `bkRestAtNAL T` (ImageOn) in `imageRestAtOn` at `kvLeasesOn γk st₀ L`; `mergedImgM`'s table `appliedTableM M.isOn`;
+  `bkRestAtM_of_obs`, `mergedCreate_window`, `stop_obs` at `appliedTableM E.authOn`/`srvRestM E.authOn`;
+  `merged_imageOn` builds the leased certificate (`kvLeasesOn_none` when `E.lg = false`); `snapRecv_imageOn`,
+  `snapRecv_imageOnR` take `srvRestM true`/`srvRestRpM true`, no `hlg`, and give `SnapImageFactsOn` from the image's
+  records (`bkRestAtNAL_other`, `restModel_bk_of_NAL`, `image_alarmNAL`, `image_membBucketsNAL`,
+  `clusterImageOk_of_NAL`, `imageLeasesAtT_of_NAL`, SnapRecvOn; `nolease` from `keysLeasesLive_kvRaftOfOn`).
+  TRANSITIONAL conversions removed: applyAll's merged send (`isServerC_restM` deleted), ApplyAllSnap (on receive and
+  on merged send; the lessor-mode block `hEm`/`HElg`/`Hlrev` deleted: unused), SnapRecvOn, MergedImageOn,
+  SnapApplyPost (`srvKVInvsM_lg` deleted).
+- Left of (c), all bound to §6: the row `γr.kv.lg = false` in `srvKVInvsOn` (KVApplyOn) and its three users,
+  `kv_entry_pre_on` (ApplyEntryOn:151, over `plainCover`) and `applyEntryNormal.wp_proofOn`'s two branches
+  (v3 = false replay, 1293; v3 = true, 1519). Dropping the row before §6 breaks those proofs: the on branches must
+  then cover the revocable mode.
 
-Next, in order:
-1. §4's statement switch (with §5): `EtcdServer.applyEntryNormal.spec` (`Spec/…/EtcdServer__applyEntryNormal.lean:91, 118`),
-   `applyAll.spec` (`EtcdServer__applyAll.lean:281`), `ModeSpecs.applyEntryNormal.specOn` (`ModeSpecs.lean:152, 177`), the
-   run loop's rows (`RunOn.lean:62, 81`, `AuthCompRows.lean:130, 172, 310, 332`) take `srvRestM E.authOn` / `srvRestM true`;
-   `srvRestRp` in the specs → `srvRestRpM E.authOn`; `specSnapM`'s `hlease` → an `imageLeasesAtM` (define it where
-   `appliedTableM` is visible, e.g. ApplyRDefs or the applySnapshot spec's imports, as `imageLeasesAtT γr (appliedTableM
-   on γr A') …`). Off branches are `rfl` (`srvRestM_false`); while the TRANSITIONAL row stands the on branches rewrite by
-   `srvRestM_lg_false` (`E.lg = false`: the on server's `γr.kv.lg = false` and the tie `γr.kv.lg = E.lg`, `InvApplier.lean:714`
-   / `AuthCompRows.lean:998` gives it only off: check where the on tie comes from).
-2. §5: drop `γr.kv.lg = false` from `srvKVInvsOn` (`KVApplyOn.lean:401`) and the TRANSITIONAL sites (`grep -rn
-   TRANSITIONAL Proof`: `ApplyAllSnap:279`, `ApplyEntryOn:151`, `EtcdServer__applyEntryNormal:1293, 1513`,
-   `MergedImageOn:88`, `SnapApplyPost:100` (`srvKVInvsM_lg`), `SnapRecvOn:537`), restate `specSnapM`'s `hnl` with
-   `keysLeasesLive` (frozen rev 5 text, §5's table); the keys' invariants' preservation (`keysNonEmpty`,
-   `keysLeasesLive`) in `kvInvOn`.
-3. §6: the mode-`on` apply proofs (grant, revocation arms; the KV branch over `kvOutL` + `leaseExactL`, no `plainCover`).
-4. The land-stop checks (handoff "Build"; tcb 870/4, gen-interface with `Alloc3On.txt`, bounds, modes, closed statements,
-   merge lean, no TRANSITIONAL markers).
+Next (session 5), in order:
+1. §6, pure side (KVOutcomeOn/ApplyNormalOn/ApplyEntryOn): `kvShapedL_of_log` at `plainReqL lm` with `keysNonEmpty`
+   (a leased put's/txn's lease keys `reqShape k []` from `keysNonEmpty_kvRaftOfOn`); `authOutL_of_kvOutL`/
+   `outcomeOn_of_kvOutL` at `plainReqL lm` with the lease verdict (`KVAuthBridge.leaseOk_iff`) and `leaseExactL T`
+   at `T = (appliedTableM true γr A).ids` (`appliedTableM_eq_model`, `pre = []`); `kv_entry_pre_on` at the mode
+   (`plainEntryOn γk.lm`, no `plainCover`); `kvOn_after_kv`, `authTie_of_kvOutL` likewise.
+2. §6, `applyEntryNormal.wp_proofOn` v3 = true: the KV arm consumes the dropped `leaseExactL` conjunct (`%HXo, -,
+   #Hdel` → keep it); new grant arm (the off arm's `srvEver_applyPre`, `kv_entry_grantFresh`, `grantReqA_of_res`,
+   at the mode's table) and revocation arm (S2's `LeaseRevoke.specL`, `revokeOwn`, `ltHalf`, `revokeRestA`; the
+   KV side new: the lease's keys' deletions committed, Draft §6 r2 N4); the rest at `srvRestM true` (no
+   `srvRestM_lg_false`).
+3. The replay branch (v3 = false): `srvRestRpM true` at the mode's table; at `v3 = false` `kvEntryOn` keeps the
+   table (`dispatchTable` with `v3 = false`).
+4. Drop `γr.kv.lg = false` from `srvKVInvsOn` (KVApplyOn:401) and from its provers (`NewServerAllocOn`,
+   `srvClusterBootOn_alloc`); fix the destructurings of its pure row (`Hrows.2.2.1` etc. shift: grep `srvKVInvsOn` in
+   ReadOn, ApplyNormalOn, KVApplyOn, ServerOnDefs (`srvKVInvsM_rows`), AuthCompRows (`isServerC_lm`), ModeSpecs,
+   ApplyAllSnap (`Hcmlg`), EtcdServer__run/apply, WatchSrv, MainServe).
+5. The land-stop checks (below, "Build").
+
 
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
   in goals that are rewritten.
+- In an Iris proof, `cases hon : E.authOn` rewrites the goal but not the Iris context (an `iexact` of a hypothesis at
+  `E.authOn` then fails at `false`): split with `by_cases hon : E.authOn = true` and rewrite where needed.
+- `srvRestM false E γr A` is `srvRest E γr A` by `rfl` but `iexact` does not unify them (a `match` on the mode):
+  `rw [srvRestM_false]` first.
 - With `apply.DispatchKVL` imported, `and_false` can be ambiguous in `simp only` (`BI.and_false`): use
   `_root_.and_false`.
 
