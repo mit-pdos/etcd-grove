@@ -420,12 +420,13 @@ room. Helpers `TP/StepLive.lean` (`memFields`, `memLive_intro`, `memLive_post`, 
   (`walImg [] 0 []`, `tSimAt_nil`). About one session. Not a user decision (tester-internal invariant).
 - **(B2) The panic** ("the WAL vanished after `wal.Create` returned"): from `Exist = false` (`ExistFalseOk od`:
   none, or empty and unnamed) and `o.created` (`tRelI`: `od = some d`, `walNamed`), a lemma that `walNamed dir`
-  (a `walPast` lower bound) and `walDirIs dir (some d)` give `d.named = true` (WalFs; check `Ghost.lean`'s
-  `walPast` monotonicity).
+  (a `walPast` lower bound) and `walDirIs dir (some d)` give `d.named = true`: `Ghost.walPast_ghost_le` (`absLe p
+  s`) and `named` monotone along `absLe`; to write in WalFs' vocabulary (one lemma).
 - **(B3) `Create`'s AU needs `walAbsent` (`od = none`)**, while `ExistFalseOk`/`tPreOk` allow `od = some d` empty
-  and unnamed (`tPreOk`'s second branch, a crash after `Create`'s commit). Whether that state survives a crash
-  boot (or `walBootCrash` maps an unnamed WAL to none) decides whether `Boot` needs a `Create` spec from an
-  empty unnamed WAL (the `wal-c-create*` unit's ground).
+  and unnamed. At a generation's start that state does not occur: `walDiskAt_crash_any_keep` (`S/Crash.lean`)
+  maps an unnamed WAL to `walAbsent` in the new generation, and the first boot has `od = none`. So `TBoot`
+  (and `TCrashed`, from `tester_crash`'s `tWal_crash`) should carry `∀ d, od = some d → d.named = true` (or
+  `tPreOk`'s second branch with `named`); then `ExistFalseOk od` gives `od = none` and `Create`'s AU applies.
 
 ## For the closed theorem (not stated: the user's hard stop)
 
@@ -434,7 +435,7 @@ Premises as far as this session sees them (unchanged from the ninth but for `tRe
   no oracle file nor its temporary at the first boot; `ReceiptBoundLe GF (2^62)`; `e.orFile.Ok`; `tWalPathsOk
   area` (`area` clean and absolute, `area/wal` shorter than `2^59`);
 - `W1` (no CRC collision) as the crash premise (`hQ`), `AbsDiskGpreS GF`, `(orDir, jo) ∈ R`;
-- `BootFo` of the crashed tree until `walFoAres` lands (tcrash.md);
+- `BootFo` of the crashed tree until `walFoRes` lands (tcrash.md);
 - `WalDecEnvSupply` and the Perennial-gap hypotheses of `S/Link.lean` (`errors.*`, `fmt.ErrorfErrsNot`,
   `filepathlite.IsAbs`), `proto.UnmarshalWalRecordE`, the model laws (U4);
 - **no `tReadsBackOk` premise** (this session).
