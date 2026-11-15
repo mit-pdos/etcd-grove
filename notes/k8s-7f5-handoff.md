@@ -27,6 +27,26 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, twelfth 7f-5 agent, later): 81 decided A-C; B and C done in the tree (build pending)
+
+- **(A)** goose proposal written: `notes/perennial-changes.md`, "Goose: the pointer method of an axiomatized value
+  method"; `StringPtr.spec` stays a callee hypothesis of `parseEvent.wp_proof` until the pin moves (step 7).
+- **(B)** `EtcdGrove.eventAt` (`cache/v3/InvStore.lean`) ends with `⌜ev ≠ null ∧ e.kv ≠ null⌝`; new law
+  `eventAt_nonnull`; `eventAt_elim` keeps its statement; producer `WatchContent.evIs_facts` (from `mvcc.evRd`'s
+  `%Hn`); every reader's `iunfold eventAt at H` became `ihave H := eventAt_elim $$ H` (patterns unchanged);
+  ledger 2026-11-15 (B).
+- **(C)** `ObjCodec.fromS_nil_decode : ∀ d st, fromS [] = some (d, st) → decode d = none` (docstring: Kubernetes
+  codecs reject empty data), laws `ObjCodec.dec_nil`, `ObjCodec.ne_nil_of_dec`; discharged for `driverCodec`
+  (`examples/k8s/etcd3/Codec.lean`, `decodeD []` is `none`); Go check in `TestCodecDecodeNil`
+  (`examples/k8s/etcd3/list_test.go`, passes); ledger 2026-11-15 (C).
+- `Contract.lean` gained `Persistent` instances for `versionerOk` and `transformerOk`.
+- **WatchDefs** gained `kCurObj`, `kOldObj`, `kRawDecOk`, `kRawRev`, `kObjOpt` (prepareObjs' results).
+- **Written, not yet checked:** `Spec/.../etcd3/watchChan__prepareObjs.lean` (+ proof skeleton with `sorry`),
+  `Spec/.../etcd3/watchChan__transform.lean` (no proof yet; its premises: `kRawDecOk`, revisions not negative,
+  `recordTimestamps ↦□ false`, `newItemOk`).
+- Full build after B/C: `/shared/tmp/k8s7f5a-p2/full1.log` (started before the `Contract.lean` instances and the
+  WatchDefs additions: rebuild once more).
+
 ## START HERE (2026-11-15, twelfth 7f-5 agent): step 3 partly done; STOPPED on three decisions (A-C)
 
 - **Proved** (Spec + Proof each, lean-checked, no `sorry` but the hypotheses noted): `mvccpb.Event.IsCreate`,

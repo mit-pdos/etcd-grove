@@ -80,6 +80,36 @@ Design sketch (for the Perennial proposal; to be designed and reviewed on its ow
    child's Done channel closed needs it (a `WithCancel` over a `WithValue` or `WithTimeout` parent
    is the common Go pattern).
 
+### Goose: the pointer method of an axiomatized value method (2026-11-15, k8s 7f-5a-P; decided by etcd-grove-81: proposal (A))
+
+What is missing: for a named type `T` with a value method `M`, Go's method set of `*T` contains `M`,
+and `(*T).M` called on `p` is `T.M` called on `*p` (the spec, "Method sets" and "Method values": an
+auto-dereference). goose's `ptr_method_set` already lists `M` for `*T`, but the unfolding
+`ptr_M_unfold : MethodUnfold (PointerType T) M (λ "$r", MethodResolve T M (![T] "$r"))` is emitted
+only when `M` is not axiomatized (`goose/lean_types.go:322`, `if GetAction(T.M) == Axiomatize
+{ continue }`). For a names-only value method the pointer call is then stuck in the model: no proof
+reaches the value method's spec (an axiom at the trust boundary) from `MethodResolve (PointerType T)
+M p`.
+
+Who needs it: the etcd3 watcher's `parseEvent` calls `e.Type.String()` on the field's address
+(`etcd3.lean`, `MethodResolve (PointerType mvccpb.Event_EventType.ty) "String"`); the value method
+is T5-f's axiom `mvccpb.Event_EventType.String.wp_proof`. Workaround here: `parseEvent.wp_proof` takes
+`mvccpb.Event_EventType.StringPtr.spec` (the pointer call returns a string) as a callee hypothesis,
+unproved until the pin moves; it is needed only at the store watch's link (7f-5a-P step 7). No axiom
+added.
+
+The general change (goose only): drop the `Axiomatize` skip for the value-receiver case of the `*T`
+loop, i.e. emit `ptr_M_unfold` for every value method of `T` whatever its action, keeping the skip
+for pointer-receiver methods (their unfolding names `T.M.impl`, which an axiomatized method lacks;
+an embedded-field method keeps its current treatment). Sound: the emitted body is the language's
+rule, it names no implementation, only `MethodResolve T M` of the loaded value, which the semantics
+resolves to whatever `methods T M` is (an axiomatized method stays uninterpreted). Expected diff: one
+condition in `lean_types.go`; regenerated translations gain one `ptr_M_unfold` field (and its
+`attribute [instance]` line) per axiomatized value method of a translated type (the `TypeAssumptions`
+classes of names-only and types-only packages: `mvccpb.Event_EventType`'s `String`, `Descriptor`,
+`Enum`, ...); no proof changes, since a new instance only unsticks calls. Not yet proposed upstream
+(through etcd-grove-81; no Perennial edit here).
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of

@@ -199,6 +199,52 @@ def kRawToEv (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z : Obj) (σ : K
   | .ev e => kEvOfL dec sel emp σ e
   | .bm r a => some ⟨3, z, r, a⟩
 
+/-- **`prepareObjs`' current object** of a raw event (decoded, before the resource version is
+set): an initial key-value's and a non-delete event's value; none for a delete or a bookmark. -/
+def kCurObj (dec : Dec Obj) : KRaw → Option Obj
+  | .kv v => kDecObj dec v.value
+  | .ev e => if e.del then none else kDecObj dec e.kv.value
+  | .bm _ _ => none
+
+/-- **`prepareObjs`' old object** of a raw event, for a predicate empty iff `emp`: the key's record
+before a non-create event, decoded when it is a delete or the predicate is not empty; none
+otherwise (a create's previous value is `nil`; an initial key-value's and a bookmark's too). -/
+def kOldObj (dec : Dec Obj) (emp : Bool) (σ : KVState) : KRaw → Option Obj
+  | .ev e => if e.del = false ∧ e.kv.createRev = e.kv.modRev then none
+      else if e.del = true ∨ emp = false then (kPrevAt σ e).bind fun p => kDecObj dec p.value
+      else none
+  | _ => none
+
+/-- **A raw event's values decode** (what `kvWfHist` gives under the store's prefix): the value
+`prepareObjs` decodes, and the previous value of a non-create event. -/
+def kRawDecOk (dec : Dec Obj) (σ : KVState) : KRaw → Prop
+  | .kv v => dec v.value ≠ none
+  | .ev e => (e.del = false → dec e.kv.value ≠ none) ∧
+      (¬ (e.del = false ∧ e.kv.createRev = e.kv.modRev) →
+        ∀ pr, kPrevAt σ e = some pr → dec pr.value ≠ none)
+  | .bm _ _ => True
+
+/-- A stored value that decodes: the transformer reads data that the codec decodes, to the object
+`kDecObj` gives. -/
+theorem kDec_some {C : ObjCodec Obj} {v : GoString} (h : C.dec v ≠ none) :
+    ∃ d st o, C.fromS v = some (d, st) ∧ C.decode d = some o ∧ kDecObj C.dec v = some o := by
+  unfold ObjCodec.dec at h
+  cases hf : C.fromS v with
+  | none => rw [hf] at h; exact absurd rfl h
+  | some p =>
+    rw [hf] at h
+    cases hd : C.decode p.1 with
+    | none => simp [hd] at h
+    | some o =>
+      refine ⟨p.1, p.2, o, by simp, hd, ?_⟩
+      simp [kDecObj, ObjCodec.dec, hf, hd]
+
+/-- A raw event's revision (the `event`'s `rev`). -/
+def kRawRev : KRaw → w64
+  | .kv v => v.modRev
+  | .ev e => e.kv.modRev
+  | .bm r _ => W64 (r : Int)
+
 /-- A tail of raw events from the cursor `c` (`KTail` before `transform`). -/
 inductive KRawTail (σ : KVState) (inS : GoString → Bool) : Nat → List KRaw → Prop
   | nil (c : Nat) : KRawTail σ inS c []
@@ -763,6 +809,13 @@ def statusFailureAt (x : GoInterface) : IProp GF :=
   iprop(∃ (p : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status),
     ⌜x = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty) #p ∧
       st.Status' = go!"Failure"⌝ ∗ p ↦□ st)
+
+/-- **An optional object** (`prepareObjs`' results): `nil` for none, else the object at the
+resource version `rev`. -/
+def kObjOpt (S : ObjSpec GF Obj) (x : GoInterface) (oo : Option Obj) (rev : w64) : IProp GF :=
+  match oo with
+  | none => iprop(⌜x = GoInterface.nil⌝)
+  | some o => S.objAt x o (S.fmtRV rev)
 
 /-- **The received `watch.Event` `v` is the event `e`**: an Error event's object a failure status;
 any other event's type, and its object owned, holding the body (annotated if `e.ann`) at the

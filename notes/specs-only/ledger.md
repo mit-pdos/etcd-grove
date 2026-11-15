@@ -470,3 +470,23 @@ One entry for the frozen texts S3b changes (Draft §6's table); the evidence of 
   post does not say so.
 - **Proposed change.** The pure conjunct gains `l ≠ x.log → txn.PathsLeaseOk (stateAfter x.log) lt.ids (t'.branch …)`.
 - **Decision.** D7 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: a delivered watch event's pointers are not known to be non-nil (k8s 7f-5a-P, B)
+
+- **Spec.** `EtcdGrove.eventAt` (`Proof/go_etcd_io/etcd/cache/v3/InvStore.lean`, exported through the client's
+  `eventsAt`/`respAt`/`watchStateElemP`).
+- **Defect.** It drops `ev ≠ null ∧ e.kv ≠ null`, which its producer has (`mvcc.evRd`), so the etcd3 watcher's
+  `parseEvent` cannot be called on a delivered event: its `e.IsCreate()` reads the type and revisions through the
+  getters, which answer defaults on a nil pointer (with `p = null` the model's `IsCreate` is `true`).
+- **Proposed change.** `eventAt ev e` gains `⌜ev ≠ null ∧ e.kv ≠ null⌝`; produced by `WatchContent.evIs_facts`;
+  `eventAt_elim` keeps its statement (a weakening).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, (B)).
+
+## 2026-11-15: a codec's decoding of empty data (k8s 7f-5a-P, C)
+
+- **Spec.** `ObjCodec` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Contract.lean`), hence `kvWfHist`'s `dec v ≠ none`.
+- **Defect.** Nothing excludes an empty stored value that decodes; for one, the watcher's `prepareObjs` drops the
+  previous object (`len(e.prevValue) > 0` fails) and `transform` calls `filter(nil)`, where `kEvOfL` decodes it.
+- **Proposed change.** A field `dec_nil : ObjCodec.dec [] = none` (Kubernetes codecs reject empty data), discharged
+  for the examples' codec.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, (C)).

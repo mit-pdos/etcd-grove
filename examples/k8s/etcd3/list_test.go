@@ -200,6 +200,10 @@ func TestCodecDecodeNil(t *testing.T) {
 	if err != nil || *got.(*Obj) != o {
 		t.Fatalf("Decode(nil) = %v, %v", got, err)
 	}
+	// empty data does not decode (ObjCodec.fromS_nil_decode, ledger 2026-11-15 (C))
+	if _, _, err := (codec{}).Decode(nil, nil, nil); err == nil {
+		t.Fatal("Decode(empty) succeeded")
+	}
 	var a Obj
 	a.SetAnnotations(map[string]string{"k8s.io/initial-events-end": "true"})
 	if !a.Annotated || a.GetAnnotations()["k8s.io/initial-events-end"] != "true" {
