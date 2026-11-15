@@ -1,7 +1,7 @@
 /-
 The proof of `examples/net/framed/cmd/junk`'s `main`, the junk node's program: it calls
 `framed.SendJunk` (`wp_SendJunk`), with `poll.ErrDeadlineExceeded`'s value from the package's
-initialization.
+initialization (through `wire`'s, `wire.ed_init`).
 -/
 module
 
@@ -17,7 +17,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_SendJunk ed_init)
+open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_SendJunk)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.junk
 
@@ -41,7 +41,10 @@ theorem wp_main
   ihave #Hfr : (isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.framed)
     $$ []
   · iPkgInit
-  icases ed_init $$ Hfr with ⟨%ed, #Hed⟩
+  ihave #Hwi : (isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire)
+    $$ []
+  · iPkgInit
+  icases wire.ed_init $$ Hwi with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_SendJunk wp_Dial wp_Write wp_Close γm h ed $$ []
   · iframe Hinvs Hplan Hed

@@ -26,11 +26,12 @@ the system with crashes, no thread of any node is stuck and none has an unrecove
 client's check (each reply it read in full, header then payload, is the request it sent, over
 three exchanges on one connection) never fails, whatever the junk sender sends (a truncated frame),
 however the bytes are split among reads, however the connections fail (with any error kind: a
-`Write` may also fail with `ErrClosed` having written a prefix, D15) or the nodes crash, and
-whether or not a failed dial leaves its connection for the server to accept (D16) (a crash does not clear
-the bytes in flight on a connection: the network is global state). The theorems assume the
-deployment of `Impl.lean`'s D13: no process outside the three listens at or dials `SrvAddr`,
-whose string names one socket, at a port outside the ephemeral range, on the target configuration.
+`Write` is Go's loop of steps and may fail after its earlier steps wrote some of its bytes, D2/D15)
+or the nodes crash, and whether or not a failed dial leaves its connection for the server to accept
+(D16) (a crash does not clear the bytes in flight on a connection: the network is global state).
+The theorems assume the deployment of `Impl.lean`'s D13: no process outside the three listens at or
+dials `SrvAddr`, whose string names one socket, at a port outside the ephemeral range, on the target
+configuration.
 -/
 module
 

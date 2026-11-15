@@ -22,12 +22,14 @@ the per-direction stream protocol (`wire/Stream.lean`) and the per-address proto
   down direction (`dialerProto`). A dial that fails but leaves its connection pending (abandoned,
   D16: the dialer's end closed, the up direction shut and empty) deposits the same protocol
   (`framed_deposit_ab`), its up direction's state made from the shut direction (`framed_alloc`
-  takes any direction with nothing unread); the dialer keeps nothing, so nothing is ever written
-  up, and the server reads EOF.
+  takes any direction with nothing unread, `wire.dirInv_body_alloc_of`); the dialer keeps
+  nothing, so nothing is ever written up, and the server reads EOF.
 
-The server writes back only bytes it has read: a write of `bs` after `so`, with `so ++ bs` a prefix
-of a lower bound of the dialer's bytes (`server_write_au`), keeps the server's bytes a prefix of
-the dialer's, whatever part of `bs` it writes. The client's check (`client_check`): a reply it read
+The server writes back only bytes it has read: a step of a `Write` of `rs` after `so`, with
+`so ++ rs` a prefix of a lower bound of the dialer's bytes (`server_write_au`), keeps the server's
+bytes a prefix of the dialer's, whatever part of `rs` it writes; a `Write` of `bs` is Go's loop of
+such steps, each on the bytes not yet written (the writer predicate `srvWriteP` and the accessor
+`srv_write_acc` of `net.Conn.Write.spec`). The client's check (`client_check`): a reply it read
 (a lower bound of the server's bytes, `wire.read_au`) is a prefix of the server's bytes, which are
 a prefix of the client's own. Crashes change nothing here: the invariants are global, and a
 connection's protocol stays in the address's invariant until a server (of any incarnation) accepts
@@ -155,33 +157,6 @@ theorem framedInvs_elim (γm : GName) :
     framedInvs (Gg := Gg) γm ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗
       inv framedN (framedState γm) := .rfl
 
-/-- A new direction's protocol state from a direction with no unread bytes, of any status (a
-fresh one, or an abandoned dial's shut one, D16): `wire.dirInv_body_alloc` for any direction that
-agrees with nothing written and nothing read. -/
-theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
-    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
-  letI := (G (Gg := Gg)).allG
-  iintro Hd
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imodintro
-  iexists ⟨γw, γr⟩
-  unfold dirInv sentAll rcvdAll
-  isplitl [Hd Hw1 Hr1]
-  · iexists d, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact hd
-  iframe Hw2 Hr2
-
-/-- An empty direction agrees with nothing written and nothing read, whatever its status. -/
-theorem dirOk_empty (st : TcpStatus) : DirOk ⟨[], st⟩ [] [] := by
-  cases st <;> simp [DirOk]
-
 /-- A new connection `cn`'s protocol, from the direction from its dialer (with nothing unread)
 (`dd`) and the acceptor's fresh resources: the two directions' protocols and the framed fact (nothing
 written), the names in the map; the server's part (`connProto`), and what is left for the dialer
@@ -208,7 +183,7 @@ theorem framed_alloc (γm : GName) (cn : Nat) (dd : TcpDir) (hdd : DirOk dd [] [
     icases Hc with ⟨⟨%d, %W, %R, Hd', -⟩, -⟩
     icases tcpDir_excl _ cn false d _ $$ Hd' Hdd with ⟨⟩
   | none =>
-    imod dirInv_body_alloc_of cn false _ hdd $$ Hdd with ⟨%γu, Hu, Huw, Hur⟩
+    imod wire.dirInv_body_alloc_of cn false _ hdd $$ Hdd with ⟨%γu, Hu, Huw, Hur⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdn, Hdw, Hdr⟩
     imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γv, Hv⟩
     icases (ghostVar_split_half (GF := GF) γv 1 ([] : List w8)).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -260,7 +235,7 @@ theorem framed_deposit_ab (γm : GName) (cn : Nat) :
       tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗ tcpDir G cn false ⟨[], .fin⟩ -∗
       tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
   iintro #Hinv - - Hdd Ha
-  imod framed_alloc γm cn ⟨[], .fin⟩ (dirOk_empty .fin) $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imod framed_alloc γm cn ⟨[], .fin⟩ wire.dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
   imodintro
   iexact Hp
 
@@ -400,6 +375,45 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : FNames) (so bs si : List 
   imodintro
   iframe Hend Hv
   ipureintro; exact ⟨d, d', Hwr⟩
+
+/-- The server's writer predicate for `net.Conn.Write.spec` (its `P w _`), on `cn` (its end's state
+`st`), having written `so` before the `Write`: its end's state, and its view of its bytes, which
+the `Write`'s bytes `w` so far extend. -/
+def srvWriteP (γ : FNames) (cn : Nat) (st : TcpEnd) (so w : List w8) : IProp GF :=
+  iprop(tcpEnd G cn true st ∗ srvView (Gg := Gg) γ.v (so ++ w))
+
+theorem srvWriteP_init (γ : FNames) (cn : Nat) (st : TcpEnd) (so : List w8) :
+    tcpEnd G cn true st ∗ srvView (Gg := Gg) γ.v so ⊢ srvWriteP γ cn st so [] := by
+  unfold srvWriteP
+  rw [List.append_nil]
+
+/-- The accessor `net.Conn.Write.spec` takes for the server's `Write` of `bs` after the `so` it
+has written, with `so ++ bs` a prefix of a lower bound `si` of the dialer's bytes: each step
+(`server_write_au`, on the bytes `rs` not yet written) keeps the server's bytes a prefix of the
+dialer's, whatever part of `rs` it writes. -/
+theorem srv_write_acc (γm : GName) (cn : Nat) (γ : FNames) (so bs si : List w8) (st : TcpEnd)
+    (hbs : so ++ bs <+: si) :
+    ⊢ inv framedN (framedState (Gg := Gg) γm) -∗ framedName γm cn γ -∗ sentLb γ.u si -∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ srvWriteP γ cn st so w -∗
+        |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn true d ∗
+          ∀ k res d', ⌜WriteOutcome st0 d rs k res d'⌝ -∗ tcpEnd G cn true st0 -∗
+            tcpDir G cn true d' ={∅,⊤}=∗ srvWriteP γ cn st so (w ++ rs.take k)) := by
+  iintro #Hinv #Hname #Hsi
+  imodintro
+  iintro %w %rs %Hw HP
+  unfold srvWriteP
+  icases HP with ⟨Hend, Hv⟩
+  have hpre : (so ++ w) ++ rs <+: si := by rw [List.append_assoc, Hw]; exact hbs
+  imod server_write_au γm cn γ (so ++ w) rs si st hpre $$ Hinv Hname Hv Hsi Hend
+    with ⟨%st0, %d, Hend, Hd, Hk⟩
+  imodintro
+  iexists st0, d
+  iframe Hend Hd
+  iintro %k %res %d' %Hwr Hend Hd
+  imod Hk $$ %k %res %d' %Hwr Hend Hd with ⟨Hend, Hv, -⟩
+  imodintro
+  rw [List.append_assoc]
+  iframe Hend Hv
 
 /-- The client's check: a reply it read (`resp`, a lower bound of the server's bytes) is a prefix
 of the client's own bytes `out`. -/

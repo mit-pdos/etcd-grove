@@ -1,7 +1,7 @@
 /-
 The proof of `examples/net/framed/cmd/server`'s `main`, the server node's program: it calls
 `framed.Serve` (`wp_Serve`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the
-package's initialization.
+package's initialization (`poll.ErrDeadlineExceeded`'s through `wire`'s, `wire.ed_init`).
 -/
 module
 
@@ -17,7 +17,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_Serve eof_init ed_init)
+open github_com.mit_pdos.etcd_grove.examples.net.framed (framedInvs srvAddr wp_Serve eof_init)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.server
 
@@ -46,7 +46,10 @@ theorem wp_main
     $$ []
   · iPkgInit
   icases eof_init $$ Hfr with ⟨%eof, #Heof⟩
-  icases ed_init $$ Hfr with ⟨%ed, #Hed⟩
+  ihave #Hwi : (isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire)
+    $$ []
+  · iPkgInit
+  icases wire.ed_init $$ Hwi with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof ed $$ []
   · iframe Hinvs Heof Hed
