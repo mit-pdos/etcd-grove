@@ -35434,3 +35434,25 @@ The tester (`examples/etcd/wal`, our own example) changed as the W4c unit logs r
    `PurgeBody.lean` and the Go evidence `purge_test.go`; the main tree's goose configuration now translates
    every function. It returns with a lock model (`notes/wal-fsext-plan.md` gap 3, Q1). `etc/tcb-baseline.txt`
    did not list it (no result reached it), so no baseline change.
+
+## fsExt: no I/O errors on chosen files (2026-11-15 · the user's approval of the environment assumption; the statement decided by unit `noioerr` · branch `wal-c-noioerr`)
+
+etcd's server panics (`lg.Panic`) when `wal.Create`, `SaveSnapshot`, `ReleaseLockTo`, `Close` or `Reopen`
+fail, and `fsExt` lets every system call fail, so those panics are reachable. The user approved an
+environment assumption, "no I/O errors on these files", made on executions (not an opaque `diskOk`, and
+not "no panic at these sites", which would assume the conclusion).
+
+**Decision.** A premise on steps, `NoIoErr S` (`GooseLang/Ext/Fs/Premises.lean`), a filter of
+`fsSemWithS` like minibolt's P1: for the calls on a file or path `S : IoSet` covers (files by inode at the
+step, paths by the call's argument), the errno is 0 **whenever the semantics has an outcome with errno 0
+for that call from that state**. Phrasing it relative to the semantics' own successes, rather than
+listing errnos per call, makes `StepKeeps` hold by construction (`noIoErr_keeps`, proved; the kept step is
+that success) and makes it exclude nothing the configuration's limits force: `EFBIG` at `maxBytes`,
+`EMFILE`, a path call that cannot succeed, stay. The lock calls are not covered (independent of the lock
+semantics being added on `wal-c-locks`). In Iris, `FsStepSat (NoIoErr S)` with `wp_ext_post`/`wp_ext_postS`
+(`WpPost.lean`) turns the existing specs into error-free ones without re-proving them. Go example:
+`examples/osfs/semantics/premise_no_io_err.go` (evidence: assumed).
+
+**Open** (`notes/wal-units/noioerr.md`): the Iris specs so far take every inode covered; restricting to the
+WAL's files needs a data-step lifting that sees the tree. Recommended for the server's theorem: every
+inode of the roots' trees (the roots being the data directory), pending the user.
