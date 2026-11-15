@@ -1821,8 +1821,8 @@ theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : OnState)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq) (oc : EtcdGrove.apply.Outcome)
     (h : EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-      (.quota .backend) rq s.2 oc) :
-    outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
+      (.quota .backend) rq s.2.1 oc) :
+    outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) :=
   outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h
 
 #print axioms Perennial.EtcdGrove.auth_user_add_tie_sure
@@ -2432,34 +2432,36 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z γr.kv.c0 < uint.Z m.index)
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
-    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63) :
+    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log, kvLeasesOn γr.kv st₀ A) m).2.1.length < 2 ^ 63) :
     ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st (kvLeasesOn γr.kv st₀ A) -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainCover rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
-        entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
+        entryDetOn γr.kv.c0 (st, x.log, kvLeasesOn γr.kv st₀ A) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
         noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
       EtcdGrove.apply.certPreVW true E x.chain rq x.log
         (EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
           (.quota .backend) rq x.log) ∗
-      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) :=
+      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log, kvLeasesOn γr.kv st₀ A) m) :=
   kv_entry_pre_on E γr st₀ A m x st rq ht hd hdec hv hk γa hs hl hlen
 
 /-- **After `apply.Apply` on a KV entry with auth on** (E3f): the apply thread's state is the
 model's (`kvOn_after_kv`). -/
-theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.apply.ApplyKV)
+theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (lt : LeaseTable)
+    (x x' : EtcdGrove.apply.ApplyKV)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (out : EtcdGrove.apply.ApplyOut)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : EtcdGrove.apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : EtcdGrove.apply.needAdminPermission rq = false)
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
     (hz : noZeroEnds rq)
-    (hdet : entryDetOn c₀ (st, x.log) m) (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
+    (hdet : entryDetOn c₀ (st, x.log, lt) m)
+    (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
     (hstep : EtcdGrove.apply.applyStep rq true x x' out)
     (hout : ∀ o b, out = .dispatched o b →
       EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
         (.quota .backend) rq x.log o) :
-    x'.chain = x.chain ∧ (st, x'.log) = kvEntryOn c₀ x.chain (st, x.log) m :=
-  kvOn_after_kv c₀ st x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
+    x'.chain = x.chain ∧ (st, x'.log, lt) = kvEntryOn c₀ x.chain (st, x.log, lt) m :=
+  kvOn_after_kv c₀ st lt x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
 
 end applyEntryOn
 

@@ -88,9 +88,9 @@ theorem eventsIs_of_erase (es : List EvModel) (evs : List mvcc.EvM) (kvs : List 
 /-- **A pointer at the server's level, as a read of a longer log's state** (k8s 7f-3c): the key's
 record at the revision before the event's in a watched log `L` is the one in the state of a log
 `C` extending it. -/
-theorem prevKvLogOk_state (o : OpFull) (L C : mvcc.Log) (hLC : L <+: C) (ev : mvcc.EvM) (pk : Loc)
-    (hj : sint.nat ev.kv.modRev - 1 < L.length) :
-    client.prevKvLogOk (GF := GF) o L ev pk ⊢ prevKvOk o (kvStateOf C) ev pk := by
+theorem prevKvLogOk_state (o : OpFull) (L C : mvcc.Log) {lt : LeaseTable} (hLC : L <+: C) (ev : mvcc.EvM)
+    (pk : Loc) (hj : sint.nat ev.kv.modRev - 1 < L.length) :
+    client.prevKvLogOk (GF := GF) o L ev pk ⊢ prevKvOk o (kvStateOf C lt) ev pk := by
   unfold client.prevKvLogOk prevKvOk
   split
   · iintro (%h | ⟨%kv, %H, #Hkv⟩)
@@ -99,7 +99,7 @@ theorem prevKvLogOk_state (o : OpFull) (L C : mvcc.Log) (hLC : L <+: C) (ev : mv
     have hCl := hLC.length_le
     have hst : mvcc.stateAt L (sint.nat ev.kv.modRev - 1) =
         mvcc.stateAt C (sint.nat ev.kv.modRev - 1) := v3rpc.stateAt_prefix hLC hj
-    have hat : (kvStateOf C).at (sint.nat ev.kv.modRev - 1) =
+    have hat : (kvStateOf C lt).at (sint.nat ev.kv.modRev - 1) =
         storeOf (mvcc.stateAt C (sint.nat ev.kv.modRev - 1)) := kvStateOf_at C _ (by omega)
     have hk := findKey_key hf
     iright
