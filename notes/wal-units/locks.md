@@ -605,3 +605,78 @@ every earlier removal, the same `Follows` argument). The invariant change:
    --check` not rerun for that reason.
 
 **Decisions left for the user**: none new. **No new axiom, no `sorry`. No Go bug found.**
+
+### Session 7 (2026-11-15, branch `wal-c-purge4`, base `origin/wal-int` `16f1121760`)
+
+**Done: item 1, the invariant change** (session 6's plan, with one deviation below). Built with `lake build`:
+the WAL `Link`; the tester's and `durable`'s `Link`s: see the end of this entry. No new axiom, no `sorry`,
+nothing trusted changed, no Go changed, no client-facing spec changed (so no ledger entry: no statement was
+found false; the internal lemma statements below changed with the invariant).
+
+- **The state.** `WalLay.pg : List SegG := []` (`Abs.lean`): the segments removed by purges, in front of
+  `first`. `unpurge pg lay` and `walFullD d pg lay` moved to `Abs.lean` (`unpurge` now also sets `pg := []`,
+  so the full layout has no removed segments of its own), with their projection `simp` lemmas,
+  `unpurge_getLast?`, `walFullD_nil`, `walCrash_walFullD`, `WalAbsD.setPg`/`setCut`.
+- **The invariant** (`Inv.lean`, `Cut.lean`):
+  - `segsAll Ls` lists `lay.pg ++ lay.segs` of every layout (so `laysResF`, `walParked` and the inode
+    `Nodup` cover the removed segments: their halves stay in the invariant, which a crash bringing them back
+    needs, `FileCrashedR`); `laysRes` likewise.
+  - `WalsOk`'s per-WAL clause: `WalAbsD d lay hj.cur ∧ WalFullOk d lay cl n`, where `WalFullOk` (new,
+    `Cut.lean`) is `(∃ ents0, WalAbsD (walFullD d lay.pg lay) (unpurge lay.pg lay) ents0) ∧
+    CrashOkW (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n` (`walFullOk_nil`: with `pg = []` it is the
+    old `CrashOkW d lay`).
+  - `DirKeysOk`'s crash clause: `CrashOkA (walFullD d lay.pg lay) (unpurge lay.pg lay) none`.
+  - `WalsNamed`'s crash clause: `SegsNamedC (lay.pg ++ lay.segs)` (a crash may bring a removed name back).
+  - `WalsStart` (`CrashPure.lean`): its last clause also says `lay.pg = []`; `crashGood_exists` runs on the
+    full layout and returns the crashed layout with `pg := []`.
+- **Deviation from session 6, item 4: the directory's fsync does not drop `pg`.** Not needed for soundness
+  (`CrashTo` of the full layout quantifies over the kept suffix, so it stays true once every removal is
+  durable; `crashOk_dirSync` drops the cut's alternative on the full layouts as before), and dropping would
+  need a new crash lemma (`CrashTo` of the full layout with the removed inodes absent gives `CrashTo` of
+  `lay`) and the parked/invariant halves' release at `cut`'s sync, for no client benefit. So `pg` is the
+  segments removed **this generation** (a crash resets it), and `unpurge lay.pg lay` the layout with all of
+  them back; the names "as of the last directory sync" in `PurgeCrash.lean`'s header are now loose.
+- **Machinery.** `PurgeFull.lean` (new, pure): `walAbsD_full_step` (the full layout's relation after any step
+  that keeps `pg` and `first`, from the old full relation and the new layout's: segment starts, streams and
+  history before `first` unchanged, `pur` not lowered, new names at or above old ones), `walAbsD_full_same`,
+  `pg_le_first`; `crashTo_unpurge`, `crashTo_cut_iff` moved there from `PurgeCrash.lean`. Per step family:
+  `walAbsD_full_tail` and `walFullOk_tail` (`TailStepPure.lean`), `tailLay_unpurge`, `syncLay_unpurge`,
+  `syncLayW_unpurge`, `syncLayP_unpurge`, `cutLay_unpurge` (a step of the full layout is the full layout of
+  the step), `TailCrashStepF` (`RzWals.lean`: the crash step of the full layout, which the resize/write
+  steps' callers now prove by the same lemmas applied to the full relation), `crashOkA_cutF` (`CutLay.lean`:
+  the cut's rename on the full layout: a crash keeping the rename keeps every earlier entry of the claim,
+  so `CrashTo` of the new layout, `crashTo_synced`, then of the full one, `crashTo_unpurge`),
+  `walInos_realize` (`CutCommitPure.lean`: entries listing given segments, for the full relation's `ents0`
+  after a cut), `segsNamedC_pg`, `pg_walNameP` (`CutCommitLemmas.lean`), `repOld_unpurge`,
+  `tailSynced_unpurge`, `walFullOk_mono`/`_named`/`_unl`, `laysResF_put` with `laysResF_del` restated (the
+  rest keeps the layout with no named segments, `pg` in it), `segsAll_nodup_segs`/`_ne`, `sub_pg`,
+  `mem_segsAll_all`/`_pg`, `segsAll_mem_nil`.
+- **Internal statement changes** (no client spec): `walsOk_tail`, `dirKeysOk_tail` (+ `g.name = g0.name`);
+  `walsOk_tailA`, `dirKeysOk_tailA` (the step a `TailCrashStepF`, + the name, + `WalsOk`); `walsOk_append`,
+  `walsOk_sync`/`syncW`/`syncP`/`syncIdle` (their `CrashOk` premise on the full layout, which `DirKeysOk`
+  gives); `walsOk_create`, `dirKeysOk_create`, `walsNamed_create`, `walParked_create`, `laysResF_insert`,
+  `walCreate_osAUnc` (+ `lay.pg = []`; `Create`'s `createLay` has it by `rfl`); `walsNamed_relay`,
+  `walParked_relay`, `segsAll_sep_relay` (+ `lay'.pg = lay.pg`); `syncLay_any`, `syncLay_anyP`, `syncLay_anyE`,
+  the repair's (+ `L.pg = lay.pg` among the new layout's facts); `segsAll_mem`, `segsAll_nodup_iff`,
+  `segsAll_nodup_sub`, `laysResF_map`, `segsAll_sep_map`, `CrashGood` (over `pg ++ segs`).
+- A gotcha met: an `obtain` pattern `-` on a `WalsOk` clause's `hj` clears the `WalAbsD … hj.cur` after it
+  too (it depends on `hj`); name `hj` when `habs` is needed.
+
+**Not done: items 2 and 3.**
+- **Item 2, the purge's update and step.** What it needs, now that the full layout is in place: (a) the pure
+  step `walsOk_purge`/`dirKeysOk_purge`/`walsNamed_purge` (the layout `{ purgeLay lay with pg := lay.pg ++
+  [g0] }`, `segsAll` unchanged as a list (`pg ++ g0 :: gs`), `WalAbsD` by `walAbsD_purge` with `p = d.unl`,
+  the full relation by `walAbsD_full_purge` (its `pg` argument now `lay.pg`, `unpurge` resetting `pg`), the
+  crash: the claim `replClaim … (hj.log x (rmFileEnt …) (delete nm hj.cur))`; a crash dropping the removal is
+  one of the old claims (`regionCrashedK_unlog`), one keeping it is, with the name set back, one of the old
+  claims keeping every earlier entry (`regionCrashedK_keptSet`), and `crashTo_dropFirst`; the old condition
+  taken from `DirKeysOk`'s (no cut pending, so no alternative); the W1G/`FileCrashedR` premises at the crash
+  with the name set back need the removed segment's (durable, intact) image: `w1G_durable`-style; then
+  `walParked`'s claim replacement (`walParked_cut`'s claim part) and `walTailsRes` (the last segment kept:
+  the purged one is not the tail); (b) the update `walPurge_osAUnc` over `os.Remove.specFileSncN`
+  (`walCut_osAUnc`'s shape, the handle's claim half lent, `walDirLks_purge` for `segStart cuts (first + 1) ≤
+  d.unl`, `nm` the first named segment); (c) the handle's side: `walOpenWF` lending the claim half and the
+  path, `LkRel`/`walDirH` after the removal of an unlocked name below the locked range.
+- **Item 3, `purgeRound`**: not restored (Go untouched), as session 6: it needs item 2.
+
+**Decisions left for the user**: none new. **No new axiom, no `sorry`. No Go bug found.**
