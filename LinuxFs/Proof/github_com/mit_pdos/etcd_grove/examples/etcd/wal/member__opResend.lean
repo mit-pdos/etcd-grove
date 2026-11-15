@@ -46,7 +46,7 @@ set_option hygiene false in
 /-- `opResend` after the entries' loop (its three exits): the empty check, the terms' loop, the last
 index, `save`. Unhygienic: it names the proof's hypotheses. -/
 local macro "resend_rest" : tactic => `(tactic| (
-  have hesw : ∀ x ∈ es, tEntWf x := fun x hx => hentwf x (Hi.2.2.2 x hx)
+  have hesw : ∀ x ∈ es, tEntWf x := fun x hx => hentwf x (Hi.2.2.2.1 x hx)
   imod ownSlice_persist $$ Hes with #Hes
   ihave %Hesl := ownSlice_len $$ Hes
   try wp_auto
@@ -117,8 +117,16 @@ local macro "resend_rest" : tactic => `(tactic| (
     wp_apply (wp_hs m t' vo cm) $$ [Ht Hv Hc] as ⟨Ht, Hv, Hc⟩
     · iframe
     try wp_auto
+    have hne : es ≠ [] := by intro h0; rw [h0] at hesl; simp at hesl
+    have hxl : uint.nat x.index' = uint.nat l + 1 + es.length - 1 := by
+      have := tConsec_get Hi.2.2.2.2 Hx; omega
+    have hstep := tMemSim_save (h := hardState.mk t' vo cm) (es := es) (lo := uint.nat l + 1) hms
+      (Nat.le_refl _) (Or.inr ⟨Hi.2.2.2.2, by have := tMemSim_baseLe hms; omega,
+        by have := tMemSim_commitLe hms; omega, Nat.le_refl _⟩) x.index' (by rw [if_neg hne]; exact hxl)
+      (by have := tMemSim_commitLe hms; simp only; omega)
     wp_apply (wp_save W e γ m w v o os c d qc (hardState.mk t' vo cm) esl es hf hok hhs
-      hesw (Hj.2.2 hfm).1 (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2)
+      hesw (Hj.2.2 hfm).1 (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2
+      hstep.1)
       $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14] as %b Hpost
     · iframe
       iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
@@ -129,14 +137,14 @@ local macro "resend_rest" : tactic => `(tactic| (
     unfold memSavePost
     iframe
     ipureintro
-    exact ⟨hesl.1, hesl.2, hesw, Hj.2.2⟩))
+    exact ⟨hesl.1, hesl.2, hesw, Hj.2.2, hstep.2⟩))
 
 set_option maxHeartbeats 1000000 in
 theorem member.opResend.wp_proof (wp_copyOps : copyOps.spec (GF := GF) (hG := hG))
     (wp_walFold : walFold.spec (GF := GF) (hG := hG))
     (wp_hs : member.hs.spec (GF := GF) (hG := hG)) (wp_save : member.save.spec (GF := GF) (hG := hG)) :
     member.opResend.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc t vo cm l tm M hf hok hhs hwf hfm hroom
+  intro W e γ m w v o os c d qc t vo cm l bs tm M hf hok hhs hwf hfm hroom hms
   wp_start as ⟨Hres, Ht, Hv, Hc, Hl, Htm, HM⟩
   wp_auto
   wp_if_destruct
@@ -257,12 +265,13 @@ theorem member.opResend.wp_proof (wp_copyOps : copyOps.spec (GF := GF) (hG := hG
         "i" ∷ i_ptr ↦ i ∗ "es" ∷ es_ptr ↦ esl ∗ "Hes" ∷ esl ↦* es ∗
         "Hcap" ∷ ownSliceCap TEnt esl (DFrac.own 1) ∗
         "%Hi" ∷ ⌜uint.nat (l - fv.baseIdx') ≤ uint.nat i ∧ uint.nat i ≤ uint.nat (l - fv.baseIdx') + 3 ∧
-          es.length = uint.nat i - uint.nat (l - fv.baseIdx') ∧ ∀ x ∈ es, x ∈ f.ents⌝ : IProp GF)
+          es.length = uint.nat i - uint.nat (l - fv.baseIdx') ∧ (∀ x ∈ es, x ∈ f.ents) ∧
+          tConsec (uint.nat l + 1) es⌝ : IProp GF)
         $$ [i es Hesl0 Hcap0]
     · iexists _, esl0, []
       iframe
       ipureintro
-      refine ⟨Nat.le_refl _, by omega, by simp, by simp⟩
+      refine ⟨Nat.le_refl _, by omega, by simp, by simp, tConsec_nil _⟩
     wp_for HI
     wp_if_destruct
     · try wp_auto
@@ -294,9 +303,10 @@ theorem member.opResend.wp_proof (wp_copyOps : copyOps.spec (GF := GF) (hG := hG
           iexists i + W64 1, esl2, es ++ [x]
           iframe
           ipureintro
-          obtain ⟨h1, h2, h3', h4⟩ := Hi
+          obtain ⟨h1, h2, h3', h4, h5⟩ := Hi
           have hi1 : uint.nat (i + W64 1) = uint.nat i + 1 := by word
-          refine ⟨by omega, by word, by simp only [List.length_append, List.length_singleton]; omega, ?_⟩
+          refine ⟨by omega, by word, by simp only [List.length_append, List.length_singleton]; omega, ?_,
+            tConsec_snoc h5 x (by word)⟩
           intro y hy
           rcases List.mem_append.1 hy with hy | hy
           · exact h4 y hy

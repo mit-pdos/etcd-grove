@@ -52,6 +52,14 @@ theorem tConsec_snoc {lo : Nat} {es : List TEnt} (h : tConsec lo es) (e : TEnt)
   rw [List.map_append, h, List.length_append, List.length_singleton, List.range'_concat]
   simp [he]
 
+theorem tConsec_get {lo : Nat} {es : List TEnt} (h : tConsec lo es) {k : Nat} {x : TEnt}
+    (hx : es[k]? = some x) : uint.nat x.index' = lo + k := by
+  have hk : k < es.length := (List.getElem?_eq_some_iff.1 hx).1
+  have h1 : (es.map (fun e => uint.nat e.index'))[k]? = some (uint.nat x.index') := by
+    rw [List.getElem?_map, hx]; rfl
+  rw [h, List.getElem?_range' hk] at h1
+  simp at h1; omega
+
 theorem tSimAt_commitLe {H : WalHist} {n : Nat} {σ : StorContents} (h : tSimAt H n σ) :
     σ.commit ≤ σ.last := by
   obtain ⟨A, B, σA, -, -, hg, hD⟩ := h
