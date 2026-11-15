@@ -187,14 +187,14 @@ def kStreamSub (dec : Dec Obj) (sel : Obj → Bool) (emp : Bool) (z : Obj) (inS 
 - with initial events, the revision of the first page's linearizable `Get` (`syncPaginated`'s
   `wc.initialRev = getResp.Header.Revision`, which overwrites a requested revision), so
   `st = σ0.rev`, at least the requested revision (`startWatching` checked it against
-  `getCurrentStorageRV` before) and 1;
+  `getCurrentStorageRV` before; a caller whose `Q` gives `1 ≤ σ.rev` reads `1 ≤ st` from `σ0`);
 - without, the requested revision when positive, else the revision of `getCurrentStorageRV`'s quorum
   `Get` (`getStartWatchResourceVersion`), `st = σ0.rev`.
 
 So a watch from "now" starts at a state the caller's read update fired at during the call, and the
 caller's `Q` gives its freshness. -/
 def kStartOk (m : KWatchMode) (σ0 : KVState) (st : Nat) : Prop :=
-  if m.forceInit then st = σ0.rev ∧ max m.req 1 ≤ st
+  if m.forceInit then st = σ0.rev ∧ m.req ≤ st
   else if 0 < m.req then st = m.req else st = σ0.rev
 
 /-! ### The protocol's pure part: the raw events the producer queues -/
@@ -401,6 +401,8 @@ structure KWatchNames where
   stop : GName
   /-- whether the producer has exited (`startWatching` closed `watchClosedCh`; internal) -/
   prodEx : GName
+  /-- whether the processing goroutine has exited (set before its `sendError`; internal) -/
+  procEx : GName
 
 /-- **The consumer has not stopped the watch** (exclusive; `k8sWatch` gives it): `Stop` takes it
 (or `kStopped`). Excludes `kStopped` (`dghostVar`'s full fraction against a discarded one). -/
@@ -503,22 +505,34 @@ def kProdExited (γ : KWatchNames) : IProp GF := dghostVar γ.prodEx DFrac.disca
 instance kProdExited_persistent (γ : KWatchNames) : Persistent (kProdExited (GF := GF) γ) := by
   unfold kProdExited; infer_instance
 
-/-- **The Done proposition of `wc.cancel`** (`WithCancel`'s `PDone'`, persistent): the consumer
-stopped the watch (`Stop`), or the producer has exited (`run`'s cancel after `watchClosedCh`), or
+/-- **The processing goroutine has exited** (persistent): `serialProcessEvents` sets it before its
+`sendError` (a `transform` error; `sendError`'s deferred `wc.cancel()` follows, and the goroutine
+returns), the only place it cancels. -/
+def kProcExited (γ : KWatchNames) : IProp GF := dghostVar γ.procEx DFrac.discard true
+
+instance kProcExited_persistent (γ : KWatchNames) : Persistent (kProcExited (GF := GF) γ) := by
+  unfold kProcExited; infer_instance
+
+/-- **The Done proposition of `wc.cancel`** (`WithCancel`'s `PDone'`, persistent): one for each
+call of `wc.cancel()`: the consumer stopped the watch (`Stop`), or the producer has exited (`run`'s
+cancel after `watchClosedCh`; the producer's own `sendError` cancels too, so it sets `kProdExited`
+before it), or the processing goroutine has exited (its `sendError`, `watcher.go:559-562, 796`), or
 the caller's context is done (`run`'s cancel after `wc.ctx.Done()` when the parent's closing is what
-closed it). An observer of `wc.ctx`'s closed Done channel gets `□ (cd.PDone ∨ kCancelPD γ cd)`, which
-the producer (still running, so not `kProdExited`) turns into `kCancelled γ cd` at a dropped event.
-That needs `WithCancel` over an `isContext` parent to keep the parent's `PDone` (Perennial's
-`context.WithCancel.spec` does for an `isCancelCtxCtx` parent; `wp_WithCancel_any` gives `True`):
-`notes/k8s-7f5a-draft.md` §6, risks. -/
+closed it). An observer of `wc.ctx`'s closed Done channel gets `□ (cd.PDone ∨ kCancelPD γ cd)`; the
+producer (still running, so not `kProdExited`) turns it at a dropped event into `kCancelled γ cd ∨
+kProcExited γ`, which `kInElem` carries. That needs `WithCancel` over an `isContext` parent to keep
+the parent's `PDone`, a Perennial change proposed on its own (`notes/perennial-changes.md`, option
+(a)); until then 7f-5a-P's steps 4-5 take `isContext wc.ctx { cd with PDone := cd.PDone ∨
+kCancelPD γ cd }` as a premise. -/
 def kCancelPD (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(kStopped γ ∨ kProdExited γ ∨ □ cd.PDone)
+  iprop(kStopped γ ∨ kProdExited γ ∨ kProcExited γ ∨ □ cd.PDone)
 
 /-- **The `i`-th element of `incomingEventChan`** (an SPSC: producer `startWatching`, consumer the
 processing goroutine): an `*event` holding the raw event `r` at the fired state `σ` (with its
 previous value), the first `i + 1` raw events are `raws ++ [r]` (at their indices of `γ.raws`),
 from the start point `st` (`kStartOk` at a fired `σ0`): a subsequence of the ideal raw stream, and a
-prefix of it unless the watch is no longer live. -/
+prefix of it unless the watch is no longer live or the processing goroutine has exited (which the
+processing goroutine refutes at each receipt: it has not). -/
 def kInElem (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) [Pos.Countable KRaw] (i : Int) (p : Loc) :
     IProp GF :=
@@ -526,7 +540,7 @@ def kInElem (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (inS : GoSt
     eventAt σ p r ∗ ⌜raws.length = i.toNat⌝ ∗
     ([∗list] j ↦ r' ∈ raws ++ [r], monoListIdxOwn γ.raws j r') ∗
     □ Q lb σ ∗ □ Q lb0 σ0 ∗ ⌜kStartOk m σ0 st⌝ ∗ ⌜kRawStreamSub inS m σ st (raws ++ [r])⌝ ∗
-    (⌜kRawStreamOk inS m σ st (raws ++ [r])⌝ ∨ kCancelled γ cd))
+    (⌜kRawStreamOk inS m σ st (raws ++ [r])⌝ ∨ kCancelled γ cd ∨ kProcExited γ))
 
 /-- **`resultChan`'s producers' invariant** (two producers: `sendEvent` from the processing
 goroutine, in order, and `sendError` from either goroutine, an Error event): the SPSC's producer
@@ -566,7 +580,8 @@ a watch of the prepared key's scope from the parsed resource version `n`, with `
 `EtcdRangeStream` off and (temporarily, Q6) `ConcurrentWatchObjectDecode` off, under the caller's
 context (an `isContext` with grpc's outgoing metadata, client errors and the Kubernetes keys), with
 the caller's read updates `Q lb` (`Q lb σ`: a state of one history at revision at least `lb`;
-`Q σ.rev` handed out after a firing at `σ`), returns an error, or `nil` and the consumer's view
+`Q σ.rev` handed out after a firing at `σ`), returns an error (only `getCurrentStorageRV`'s, for RV 0 with `SendInitialEvents = false`), or `nil`
+and the consumer's view
 (`k8sWatch`, live while the caller has not stopped it and its context `cd` is not done). No thread
 token: the watch's three goroutines get theirs at their `go` statements. -/
 abbrev store.Watch.spec : Prop :=
@@ -594,7 +609,7 @@ abbrev store.Watch.spec : Prop :=
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Watch")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #opts))
   {{ (wi err : GoInterface), RET (PairV #wi #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨
+      ⌜err ≠ GoInterface.nil ∧ sie = some false ∧ uint.nat n = 0⌝ ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ γ : KWatchNames,
         k8sWatch c W wi γ cd sel emp (kScopeOf c k opts.Recursive')
           (kModeOf sie opts.Predicate'.AllowWatchBookmarks' n) Q) }}

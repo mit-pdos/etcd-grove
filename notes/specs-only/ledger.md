@@ -371,6 +371,50 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** (b) (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 3): the iff at the model's `kvGrantedL`,
   `authTie` gaining `lb`.
 
+## 2026-11-15: the 7f-5a Draft's store watch (independent re-review: M1, M2, m1, m2)
+
+- **Spec.** `Draft.store.Watch.spec` and its vocabulary (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean`,
+  unlinked; `notes/k8s-7f5a-draft.md` §10), before 7f-5a-P moves it to `Spec/`.
+- **Defects.** (M1) the client may deliver a progress notification at the watch's start, `hdrRev = c` with
+  `c + 1 = rev`, with no bound by a fired state (`watchStateRespOk`, `WatchStateDefs.lean:125-128`); the producer
+  queues it as a bookmark, which `KRawTail.bm`/`KTail.bm` (`p ≤ σ.rev`) cannot hold. (M2) `kCancelPD` lacked the
+  processing goroutine's own cancel (its `sendError`'s deferred `wc.cancel()`, watcher.go:559-562, 796).
+  (m1) the post's error arm said only `err ≠ nil`. (m2) `kStartOk`'s `max m.req 1 ≤ st` needs `1 ≤ σ0.rev` in
+  the legacy case, which neither `kvWf` nor a firing gives.
+- **Evidence.** The re-review (etcd-grove-81, 2026-11-15); Go: watcher.go as cited; for M1, the driver check
+  `watchOkL` rejects any event above the configuration's revision (`KWatch.lean:209`), and 7f-6's traffic draws
+  future resource versions for legacy watches (`notes/k8s-7f-scope.md` §1), so a bookmark at a future start is
+  one the consumer cannot accept; etcd does not send one (`progressIfSync` returns unless `rev ≥ w.startRev`,
+  `server/storage/mvcc/watchable_store.go:539`): the client spec is looser than etcd.
+- **Changes.** (M2) `kProcExited` set before the processor's `sendError`; `kCancelPD` gains it; `kInElem`'s no-gap
+  fact gains it as a third disjunct (the processor refutes it). (m1) error arm `err ≠ nil ∧ sie = some false ∧
+  uint.nat n = 0`. (m2) `kStartOk`'s watch-list arm `st = σ0.rev ∧ m.req ≤ st` (the `1` from the caller's `Q`).
+  (M1) see the next entry. Was OPEN: the Draft-local fix (`bm` admitting `p = c` unbounded) does not serve the consumer (above); the
+  alternative is the client's `watchStateRespOk` start disjunct gaining `hdrRev ≤ σ.rev` (an exported client
+  spec), a stop for etcd-grove-81.
+- **Decision.** M2, m1, m2: decided by etcd-grove-81 (2026-11-15; m2's form chosen by the agent). M1: open.
+
+## 2026-11-15: the client watch's progress notification at the watch's start has no state bound (7f-5a M1)
+
+- **Spec.** `client.watchStateRespOk` (`Proof/go_etcd_io/etcd/client/v3/WatchStateDefs.lean:125-128`), the element
+  of `watcher.Watch.spec`'s channel (`watchStateElemP`), and the server-level `client.rawRespOk` (same file).
+- **Defect.** Too weak: a progress notification at the cursor when the cursor is the watch's start
+  (`hdrRev = c`, `c + 1 = rev`) carries no bound by the state `σ` (`watchStateRespOk`) nor a certified log
+  (`rawRespOk`'s `c = hdrRev` arm). A consumer cannot exclude a progress notification at a revision etcd has not
+  reached: the etcd3 store's watch queues it as a bookmark (`KTail.bm` needs `p ≤ σ.rev`), and 7f-6's driver check
+  rejects a bookmark above the configuration's revision while its traffic watches from future revisions.
+- **Evidence.** etcd sends a progress notification to a watcher only once the store reached its start
+  (`progressIfSync`: `if rev < w.startRev { return false }`, `server/storage/mvcc/watchable_store.go:539` at
+  `673da07c8f`). Proof: the server-level fact already has the log (`progCovd`: `sint.nat x.rev < L.length`;
+  `cmpl_cov` gives `dd ≤ Lc.length` outright), which `cmpl_prog`'s at-the-cursor case drops.
+- **Proposed change.** `rawRespOk`'s progress arm always carries `∃ L, □ W.histLb L ∗ ⌜hdrRev < L.length ∧
+  rangeLogEvents L o (c+1) (hdrRev+1) = []⌝` (the `c = hdrRev` arm without a log removed); `watchStateRespOk`'s
+  progress arm always `hdrRev ≤ σ.rev ∧ rangeEvents σ o (c+1) (hdrRev+1) = [] ∧ kvLogOkTo σ hdrRev` (the start
+  disjunct removed: at `c = hdrRev` the range is empty). A stronger post of the exported client spec; `cmpl_cov`/
+  `cmpl_prog` keep the log; `raw_to_state` fires at a state through it; the readers lose a case.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15): strengthen, land as its own unit before 7f-5a-P; no closed
+  theorem statement changes, tcb stays 870/4; upstream's traffic kept.
+
 ## 2026-11-15: the server's lease requests with auth on (auth-lease S3b; Draft `notes/auth-lease-s3b-draft.md` rev 3)
 
 One entry for the frozen texts S3b changes (Draft §6's table); the evidence of each is the Draft's section.

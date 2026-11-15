@@ -479,54 +479,44 @@ theorem watchRespOk_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoStri
   · ileft; iframe Hs; ipureintro; exact H
   · iright; ileft; ipureintro; exact H
   · iright; iright; ileft
-    obtain ⟨hne, hpn, hc0, hch, hc', hcase⟩ := H
-    rcases hcase with ⟨heq, hst⟩ | ⟨hle, hnil, hok⟩
-    · -- at the watch's start: the caller's floor
-      have hcr : c = r.hdrRev := by word
-      have hb : sint.Z o.base.rev < 2 ^ 63 := by word
-      isplitr
-      · ipureintro; exact ⟨hne, hpn, hch, hc', by omega⟩
-      isplitr
-      · ileft; ipureintro; exact hcr
-      iapply etcdReached_mono (EM := etcdModelOfKV γ) (rev - W64 1) r.hdrRev
-        (by rw [← hrev]; word) $$ Hr0
-    · -- past the cursor (or at it): the state's log through its revision
-      obtain ⟨hl, hrc⟩ := kvLogOkTo_len hok
-      have hr1 := hok.2.1
-      have h63 := hok.2.2.1
-      have hhz : ((sint.nat r.hdrRev : Nat) : Int) = sint.Z r.hdrRev := by
-        show (((sint.Z r.hdrRev).toNat : Nat) : Int) = _; omega
-      have hcz : ((sint.nat c : Nat) : Int) = sint.Z c := by
-        show (((sint.Z c).toNat : Nat) : Int) = _; omega
-      have hWh := km_w64_nat r.hdrRev (by omega)
-      have hWc := km_w64_nat c hc0
-      isplitr
-      · ipureintro; exact ⟨hne, hpn, hch, hc', by omega⟩
-      isplitr
-      · by_cases hcq : sint.Z c = sint.Z r.hdrRev
-        · ileft; ipureintro; word
-        iright
-        have hE := rangeEvents_take σ o pfx hp hff hk he (sint.nat r.hdrRev) hok
-          (sint.nat c + 1) (sint.nat r.hdrRev + 1) (by omega) (Nat.le_refl _)
-        rw [hnil] at hE
-        have hLl : (σ.log.take (sint.nat r.hdrRev + 1)).length = sint.nat r.hdrRev + 1 := by
-          rw [List.length_take]; omega
-        have hsplit := watchEvents_append (σ.log.take (sint.nat r.hdrRev + 1)) (pfxRange pfx)
-          (show sint.nat c + 1 ≤ sint.nat r.hdrRev by omega)
-          (show sint.nat r.hdrRev ≤ sint.nat r.hdrRev + 1 by omega)
-        rw [← hE] at hsplit
-        have hnone := (List.append_eq_nil_iff.1 hsplit.symm).1
-        have hlast := (List.append_eq_nil_iff.1 hsplit.symm).2
-        ihave #HL := kmLog_take γ σ (sint.nat r.hdrRev) hok $$ Hlb
-        have Hs := km_step_of (GF := GF) γ (σ.log.take (sint.nat r.hdrRev + 1)) hok.2.2.2.1
-          (by omega) pfx (pfxRange pfx) hcov (sint.nat c) (sint.nat r.hdrRev) (by omega)
-          (by omega) hnone
-        rw [hlast, hWc, hWh, List.map_nil] at Hs
-        rw [etcdModelOfKV_EtcdStep]
-        iapply Hs $$ HL
-      ihave ⟨#Hre, -⟩ := km_reached_of γ σ.changes (sint.nat r.hdrRev) (by omega) (by omega) $$ Hlb
-      iapply etcdReached_mono (EM := etcdModelOfKV γ) _ r.hdrRev
-        (Int.le_of_eq (congrArg sint.Z hWh.symm)) $$ Hre
+    obtain ⟨hne, hpn, hc0, hch, hc', hle, hnil, hok⟩ := H
+    -- past the cursor (or at it): the state's log through its revision
+    obtain ⟨hl, hrc⟩ := kvLogOkTo_len hok
+    have hr1 := hok.2.1
+    have h63 := hok.2.2.1
+    have hhz : ((sint.nat r.hdrRev : Nat) : Int) = sint.Z r.hdrRev := by
+      show (((sint.Z r.hdrRev).toNat : Nat) : Int) = _; omega
+    have hcz : ((sint.nat c : Nat) : Int) = sint.Z c := by
+      show (((sint.Z c).toNat : Nat) : Int) = _; omega
+    have hWh := km_w64_nat r.hdrRev (by omega)
+    have hWc := km_w64_nat c hc0
+    isplitr
+    · ipureintro; exact ⟨hne, hpn, hch, hc', by omega⟩
+    isplitr
+    · by_cases hcq : sint.Z c = sint.Z r.hdrRev
+      · ileft; ipureintro; word
+      iright
+      have hE := rangeEvents_take σ o pfx hp hff hk he (sint.nat r.hdrRev) hok
+        (sint.nat c + 1) (sint.nat r.hdrRev + 1) (by omega) (Nat.le_refl _)
+      rw [hnil] at hE
+      have hLl : (σ.log.take (sint.nat r.hdrRev + 1)).length = sint.nat r.hdrRev + 1 := by
+        rw [List.length_take]; omega
+      have hsplit := watchEvents_append (σ.log.take (sint.nat r.hdrRev + 1)) (pfxRange pfx)
+        (show sint.nat c + 1 ≤ sint.nat r.hdrRev by omega)
+        (show sint.nat r.hdrRev ≤ sint.nat r.hdrRev + 1 by omega)
+      rw [← hE] at hsplit
+      have hnone := (List.append_eq_nil_iff.1 hsplit.symm).1
+      have hlast := (List.append_eq_nil_iff.1 hsplit.symm).2
+      ihave #HL := kmLog_take γ σ (sint.nat r.hdrRev) hok $$ Hlb
+      have Hs := km_step_of (GF := GF) γ (σ.log.take (sint.nat r.hdrRev + 1)) hok.2.2.2.1
+        (by omega) pfx (pfxRange pfx) hcov (sint.nat c) (sint.nat r.hdrRev) (by omega)
+        (by omega) hnone
+      rw [hlast, hWc, hWh, List.map_nil] at Hs
+      rw [etcdModelOfKV_EtcdStep]
+      iapply Hs $$ HL
+    ihave ⟨#Hre, -⟩ := km_reached_of γ σ.changes (sint.nat r.hdrRev) (by omega) (by omega) $$ Hlb
+    iapply etcdReached_mono (EM := etcdModelOfKV γ) _ r.hdrRev
+      (Int.le_of_eq (congrArg sint.Z hWh.symm)) $$ Hre
   · -- events: the state log's, a chain of steps
     iright; iright; iright
     obtain ⟨hne, hev0, hc0, hcc, hle, hlast, hok⟩ := H

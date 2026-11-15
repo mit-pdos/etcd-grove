@@ -238,7 +238,7 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
   imod srvKVFacts_fire0 V γ hst Q $$ [Hk Hau] with ⟨%C0, %lt0, #HQ0⟩
   · iframe #
   unfold client.rawRespOk
-  icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, (%Hle | ⟨%L, #HL, %HLp⟩)⟩ |
+  icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, %L, #HL, %HLp⟩ |
     ⟨%Hev, %L, %kvs, #HL, %HLe, #Hkv, #Hpk⟩)
   · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
     unfold watchStateRespOkP
@@ -250,28 +250,6 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
     isplitr
     · unfold watchStateRespOk; iright; ileft; ipureintro; exact Hne
     iapply respPkOk_nil; rw [Hne.2.2.2]; exact rangeEvents_same _ _ _
-  · -- at the cursor: the watch's start, or a state the update fired at before (`posQ`)
-    obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
-    iunfold posQ at Hpos
-    icases Hpos with (%Hst | ⟨%σ', #HQ', %Hσ'⟩)
-    · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
-      unfold watchStateRespOkP
-      isplitr
-      · unfold watchStateRespOk; iright; iright; ileft; ipureintro
-        exact ⟨hv, hpn, hc0, hcl, hc', Or.inl ⟨Hle, Hst⟩⟩
-      iapply respPkOk_nil
-      have hn' : sint.nat c' = sint.nat c := by rw [hc']; simp only [hn]; omega
-      rw [hn']; exact rangeEvents_same _ _ _
-    · imodintro; iexists σ'; iframe HQ'
-      unfold watchStateRespOkP
-      have hn' : sint.nat r.hdrRev = sint.nat c := by simp only [hn]; omega
-      isplitr
-      · unfold watchStateRespOk; iright; iright; ileft; ipureintro
-        obtain ⟨-, hle', hok'⟩ := Hσ'
-        refine ⟨hv, hpn, hc0, hcl, hc', Or.inr ⟨by omega, ?_, by rw [hn']; exact hok'⟩⟩
-        unfold KVState.rangeEvents; rw [hn']; simp
-      iapply respPkOk_nil
-      rw [hc', hn']; exact rangeEvents_same _ _ _
   · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, %ltC, #HQ, %HLC⟩
     · iframe #
     ihave %Hlk := client.srvWLaws_model V.W L $$ [$Hl $HL]
@@ -286,7 +264,7 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; iright; iright; ileft; ipureintro
-      refine ⟨hv, hpn, hc0, hcl, hc', Or.inr ⟨?_, hnone', ?_⟩⟩
+      refine ⟨hv, hpn, hc0, hcl, hc', ?_, hnone', ?_⟩
       · rw [kvStateOf_rev]; omega
       · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2.1 Hlk.2.1 (by simp only [hn]; omega) Hlk.2.2.2
     iapply respPkOk_nil; rw [hc']; exact hnone'
