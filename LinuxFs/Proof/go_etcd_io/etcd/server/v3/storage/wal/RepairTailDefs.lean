@@ -61,6 +61,7 @@ theorem walTailP_po (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ 
     walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k p tm ⊢
       walTailPO (W := W) f fd name dir γ i H md cuts o0 sz k p (W64 o0) tm := by
   unfold walTailP walTailPO
+  rw [show ((o0 : Int) + (([] : List w8).length : Int)) = (o0 : Int) by simp]
   simp only [List.length_nil, Nat.add_zero]
   iintro ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hl⟩, Ho, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   iframe Hf Ho Hk

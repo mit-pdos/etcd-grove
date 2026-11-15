@@ -184,7 +184,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
       isplitr
       · ipureintro; exact ⟨rfl, ho⟩
       iunfold walLastOpen
-      ihave Hfd := lkFd_open k gL.ino (W64 2) fd true true rfl rfl $$ [$Hfd $Hlk $Hkind]
+      ihave Hfd := lkFd_openW k gL.ino (W64 2) fd true true rfl rfl $$ [$Hfd $Hlk $Hkind]
       icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
       iexists d, lay, X, hj, gL, f, fd, qd, lo, lk
       iframe
