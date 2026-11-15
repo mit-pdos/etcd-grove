@@ -11,6 +11,7 @@ bound `NPuts` (every put fired): no panic, whatever the check returns.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.KV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Defs
 
 @[expose] public section
 

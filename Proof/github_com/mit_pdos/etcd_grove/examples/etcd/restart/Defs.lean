@@ -135,17 +135,13 @@ instance swapOk_persistent (sw : Loc) (γS : SwNames) (γn : NetNames GF) (a : G
     Persistent (swapOk sw γS γn a) := by
   unfold swapOk; infer_instance
 
-/-- **A member's record** (persistent): its peer handler `sw` (`swapOk`, at the member's peer address
+/-- **A member's record**: its peer handler `sw` (`swapOk`, at the member's peer address
 `peerAddr`), its name, peer URLs (`[http://peerAddr]`) and client address. -/
 def memberRec (m : Loc) (γS : SwNames) (γn : NetNames GF) (name peerAddr client : GoString) :
     IProp GF :=
   iprop(∃ (sw : Loc) (peer : GoSlice),
-    m ↦□ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk sw name peer client) ∗
+    m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk sw name peer client) ∗
     peer ↦*□ [etcdstart.httpURL peerAddr] ∗ swapOk sw γS γn peerAddr)
-
-instance memberRec_persistent (m : Loc) (γS : SwNames) (γn : NetNames GF)
-    (name peerAddr client : GoString) : Persistent (memberRec m γS γn name peerAddr client) := by
-  unfold memberRec; infer_instance
 
 end defs
 

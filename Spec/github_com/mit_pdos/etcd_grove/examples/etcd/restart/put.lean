@@ -12,6 +12,7 @@ half at `i + 1` (the put fired: the range holds the first `i + 1` pairs), or an 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.KV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Defs
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
