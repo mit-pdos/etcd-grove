@@ -670,8 +670,16 @@ found false; the internal lemma statements below changed with the invariant).
   crash: the claim `replClaim … (hj.log x (rmFileEnt …) (delete nm hj.cur))`; a crash dropping the removal is
   one of the old claims (`regionCrashedK_unlog`), one keeping it is, with the name set back, one of the old
   claims keeping every earlier entry (`regionCrashedK_keptSet`), and `crashTo_dropFirst`; the old condition
-  taken from `DirKeysOk`'s (no cut pending, so no alternative); the W1G/`FileCrashedR` premises at the crash
-  with the name set back need the removed segment's (durable, intact) image: `w1G_durable`-style; then
+  taken from `DirKeysOk`'s (no cut pending, so no alternative). **The obstacle found** (the next session's
+  first problem): applying the old condition at the crash `m''` with the name set back needs its premises
+  there: `(fo g0.ino).isSome` for the removed segment (`fo` is the crashed files, and a durably removed file
+  need not be among them) and `W1G` over `walInos m''`, one file more in front. Plan: take `fo''` = `fo`
+  with `g0`'s durable image (`OsFile.ofDisk` of its intact stream: `FileCrashedR` holds, the segment exact
+  and durable); prove `W1G` for the list with `g0` in front from `W1G` of the rest (`w1G_durable`'s case for
+  `g0` itself; for the frames accepted in later files when reading from `g0` on, an `acceptsFiles` lemma:
+  reading through an intact segment whose chain ends at the next file's CRC record accepts, in the later
+  files, frames a fresh reader from that file accepts); then `crashTo_dropFirst` on `fo''` and a `CrashTo`
+  congruence in `fo` on the kept segments (`g0` is dropped). Then
   `walParked`'s claim replacement (`walParked_cut`'s claim part) and `walTailsRes` (the last segment kept:
   the purged one is not the tail); (b) the update `walPurge_osAUnc` over `os.Remove.specFileSncN`
   (`walCut_osAUnc`'s shape, the handle's claim half lent, `walDirLks_purge` for `segStart cuts (first + 1) ≤
