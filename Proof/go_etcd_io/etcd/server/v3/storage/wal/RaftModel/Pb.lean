@@ -20,7 +20,7 @@ Lean-first.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Marshal
-public import Proof.go_etcd_io.raft.v3.PbEntryType
+public import Proof.go_etcd_io.raft.v3.PbEntryTypeCore
 public import Proof.go_etcd_io.raft.v3.Base
 @[expose] public section
 

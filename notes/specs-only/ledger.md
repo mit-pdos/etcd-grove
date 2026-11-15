@@ -1798,3 +1798,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   and `tMemFields t M` of `opResend` (all three implied by `memLive`, the form `step` will take).
 - **Decision.** Adopted (internal: the tester's own definitions and specs, recommended by the ops agent and
   delegated to the restart path by the coordinator); made, every client re-proved.
+
+## 2026-11-15: `os.File.WriteAt.specExt` (lean's chunked `WriteAt`) -- its post's `OsMeta` is false under the WAL track's page cache known zero (`OsMeta.cz`) (the `lean`/`wal-int` merge, branch `wal-lean`)
+
+- **Spec.** `Spec/os/File__WriteAt.lean`'s `specExt` (lean `6342dfeb5d`, for the bbolt port): the post's
+  `osMeta d.ino 1 (pwPost m off a j)`.
+- **Defect.** `wal-int`'s change to the per-byte extension's program logic (P1 of
+  `notes/axiom-review/eof-page.md`, pending the user's review: the page cache known zero `OsMeta.cz`, raised by a
+  `pwrite` that lands all its data, `pwCz`) makes the `OsMeta` a chunked write
+  leaves remember the last chunk that landed whole: after a first chunk landed whole and a later one short,
+  the ghost `cz` is the first chunk's raise, not `pwPost`'s (`pwCz m off a j`, no raise unless the whole write
+  landed). Lean's `specExt` was proved over the base semantics, without `cz`.
+- **Evidence.** `Proof/os/WriteChunks.lean`'s `pwPost_chunk` leaves the goals
+  `(pwPost (pwPost m off a j) (off + nn) cs k).cz = (pwPost m off (nn + cs) (max j (nn + k))).cz` (false when
+  `j = a < nn + cs` and the first write raised `cz`) and the same for `rz`; the WAL track met the same in its own
+  chunked spec and states it with `os.pwPostE m off A j E` (`Spec/os/WriteLong.lean`, `specLong`: `cz :=
+  pwCz m off E E`, `E` the last whole chunk's end).
+- **Proposed change.** `specExt`'s post as `specLong`'s: `∃ E, E ≤ j ∧ (j = a → E = a) ∧ ...` and
+  `osMeta d.ino 1 (os.pwPostE m off.toNat a j E)` (and `rz` likewise, to check); `WriteChunks`' chunk lemma
+  as `WriteLongStep.pwPostE_step` over `pwrite` anywhere; the bbolt port's six users of `specExt`
+  (`Proof/go_etcd_io/bbolt/{Tx__write,Tx__write_ext,Commit/WriteRun,Commit/PwMeta,Commit/WriteExtRun,
+  Commit/MetaBytes}.lean`) re-proved over `pwPostE`. Meanwhile `specExt`'s proof is split to
+  `Proof/os/File__WriteAtExt.lean` (it does not build) so that the WAL does not wait on it.
+- **Decision.** Pending (the coordinator: a `lean` spec the bbolt port uses; the cause is P1, pending the
+  user's review).
