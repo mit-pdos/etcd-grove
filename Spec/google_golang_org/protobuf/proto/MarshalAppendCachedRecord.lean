@@ -57,9 +57,12 @@ stated at `walpb.Record` only**: it has no message field (`record.proto`: two va
 so its bytes do not depend on the cache, whatever value the hidden-field invariant holds there. Not
 stated for registered types in general: at a type with message fields a stale cache gives other
 bytes. Measured: `examples/stdlib/walpb` (`TestRecordEncoder`: after `proto.Size`, the bytes equal
-`recEnc`). -/
+`recEnc`). The registration is keyed by `I.data.ty` (then `I.data.ty = walpb.Record.ty`), the
+form the model-param gate's rule 1 reads as tying `I` to its Go type (2026-11-15; until then keyed
+by `walpb.Record.ty` directly, the same statement). -/
 abbrev proto.MarshalAppendCachedRecord.spec : Prop :=
-  ∀ (I : PbTypeC GF), pbModelOf GF go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty = some I →
+  ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
+    I.data.ty = go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty →
   ∀ (o : Loc) (dq : DFrac) (l : Loc) (c : I.data.C) (b : GoSlice) (xs : List w8),
   I.data.marshals (I.data.modelOf c) → xs.length + I.data.size c < 2 ^ 47 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗

@@ -11,6 +11,7 @@ back as itself.
 module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Defs
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.U64Acc
 
 @[expose] public section
 
@@ -64,23 +65,18 @@ theorem tEntData_prefix8 (e : TEnt) (h8 : 8 ≤ uint.nat e.size') (i : Nat) (hi 
 theorem tEntData_len (e : TEnt) : (tEntData e).length = uint.nat e.size' := by
   unfold tEntData; simp; omega
 
+/-- `fromRaft`'s salt loop after `k` bytes of `tEntData e`: the low `8 k` bits of the salt. -/
+theorem tSalt_fold (e : TEnt) (h8 : 8 ≤ uint.nat e.size') :
+    ∀ k, k ≤ 8 → (List.range k).foldl (tSaltStep (tEntData e)) (W64 0) = u64Acc e.salt' k
+  | 0, _ => by simp [u64Acc_zero]
+  | k + 1, hk => by
+    rw [List.range_succ, List.foldl_append, tSalt_fold e h8 k (by omega), List.foldl_cons,
+      List.foldl_nil, tSaltStep, tEntData_prefix8 e h8 k (by omega), Option.getD_some]
+    exact u64Acc_step' _ k (by omega)
+
 theorem tSaltOf_tEntData (e : TEnt) (h8 : 8 ≤ uint.nat e.size') : tSaltOf (tEntData e) = e.salt' := by
   unfold tSaltOf
-  rw [tEntData_len, Nat.min_eq_left h8]
-  simp only [List.range_succ, List.range_zero, List.nil_append, List.foldl_append, List.foldl_cons,
-    List.foldl_nil, tSaltStep]
-  simp only [tEntData_prefix8 e h8 _ (by decide : (0:Nat) < 8), tEntData_prefix8 e h8 _ (by decide : (1:Nat) < 8),
-    tEntData_prefix8 e h8 _ (by decide : (2:Nat) < 8), tEntData_prefix8 e h8 _ (by decide : (3:Nat) < 8),
-    tEntData_prefix8 e h8 _ (by decide : (4:Nat) < 8), tEntData_prefix8 e h8 _ (by decide : (5:Nat) < 8),
-    tEntData_prefix8 e h8 _ (by decide : (6:Nat) < 8), tEntData_prefix8 e h8 _ (by decide : (7:Nat) < 8),
-    Option.getD_some]
-  generalize e.salt' = x
-  have hb : ∀ y : w64, W64 (uint.Z (W8 (uint.Z y))) = BitVec.zeroExtend 64 (BitVec.truncate 8 y) := by
-    intro y; apply BitVec.eq_of_toNat_eq; simp [uint.Z]; omega
-  simp only [hb]
-  push_cast
-  simp only [Int.reduceMul, BitVec.ofInt_ofNat]
-  bv_decide
+  rw [tEntData_len, Nat.min_eq_left h8, tSalt_fold e h8 8 (Nat.le_refl 8), u64Acc_eight]
 
 /-- **A tester entry reads back as itself.** -/
 theorem tFromRaft_absEnt (e : TEnt) (h8 : 8 ≤ uint.nat e.size') : tFromRaft (absEnt e) = e := by

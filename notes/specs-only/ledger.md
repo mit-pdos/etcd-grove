@@ -2270,3 +2270,24 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   marshaller, for the lent tail's write position), the ReadAll/Close.specFailed statements updated with it.
 - **Decision.** Made (internal; the client-facing change is the error arm's `walCloseLeft dir`, which only
   `restartRead` (drops it) and `wp_afterCloseFailed` use).
+
+## 2026-11-15: the WAL's trusted protobuf specs under `lean`'s trust gates (unit `lean-integration`, session 4)
+
+- **Spec.** `proto.MarshalAppendCachedRecord.spec` (trust boundary); `pbSchemaOf` (`PbSchema.lean`, trusted);
+  `WalEnc.recSchema`, `WalEnc.walSnapSchema`, the WAL's `walCsSchema`; `pbRecordC_reg`, `pbSnapC_reg`.
+- **Defect.** None of substance: the WAL's registrations and trusted specs were written in the part `LinuxFs/`,
+  outside the model-param, pbschema and axiom-tok gates. (1) `MarshalAppendCachedRecord.spec` keyed the
+  registration premise by the constant `walpb.Record.ty`, which rule 1 does not read as tying the model `I` to a
+  Go type (it wants `pbModelOf GF I.data.ty = some I`). (2) The WAL's schemas were not in `pbSchemaOf`'s table
+  (the descriptor check could not read them), and `walCsSchema` duplicated raft's `csSchema` word for word.
+  (3) No `Sat` theorem for `pbRecordM`/`pbSnapM` (rule 7).
+- **Evidence.** `etc/model-param-check.py` (6 findings), `etc/pbschema-check.py`, at `033a5eafda`
+  (`notes/wal-units/lean-integration.md`, session 3).
+- **Change (made).** (1) `∀ I, pbModelOf GF I.data.ty = some I → I.data.ty = walpb.Record.ty → ...`: the same
+  statement (its one user passes `pbRecordC_reg rfl`). (2) `pbSchemaOf` gains `walpb.Record ↦ recSchema`,
+  `walpb.Snapshot ↦ walSnapSchema` (both moved into `PbSchema.lean`, same names and lists; `record.proto` at the
+  pin), `walCsSchema` replaced by `csSchema`; `pbMsg` of a walpb type (none exists) now reads the real schema
+  instead of `[]`. The descriptor check reads both roots (and `raftpb.ConfState` through `Snapshot.conf_state`)
+  and runs `examples/stdlib/walpb`'s encoder and schema tests. (3) `pbRecordM_sat`, `pbSnapM_sat` proved.
+- **Decision.** Made (no statement weakened or strengthened; the schema table's two entries are trusted text,
+  for the user's review with the WAL's other trusted specs).

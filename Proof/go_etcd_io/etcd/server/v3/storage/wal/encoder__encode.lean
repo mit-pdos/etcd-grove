@@ -199,7 +199,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
     icases ownSlice_slice_with_cap (W64 0) (W64 0) b bs ⟨by rw [h0]; exact Int.le_refl 0,
       by rw [h0]; exact Int.le_refl 0, by rw [h0, hbl]; unfold encBufBytes; omega⟩ $$ [Hbs Hbc] with ⟨-, Hb0, Hc0⟩
     · iframe
-    have wpA := wp_MarshalAppend pbRecordC pbRecordC_reg opts_ptr (DFrac.own 1) rp
+    have wpA := wp_MarshalAppend pbRecordC pbRecordC_reg rfl opts_ptr (DFrac.own 1) rp
       (recOf ⟨t, hash.crc32.crc32c c d, d⟩) (slice.slice b w8 (W64 0) (W64 0))
       (subslice (sint.nat (W64 0)) (sint.nat (W64 0)) bs) trivial
       (by simp only [pbRecordC_size, subslice, sint.nat, h0]; simp; omega)

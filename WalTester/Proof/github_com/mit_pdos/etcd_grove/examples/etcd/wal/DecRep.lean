@@ -5,12 +5,14 @@ Lean-first (no Rocq counterpart).
 
 `decRep d bs k`: the decoder at `d` reads the bytes `bs` (read-only), at offset `k`, with `ok` set,
 the encoding at most 1 GiB (`tOrSmall`'s bound, so that no offset wraps). The pure facts its
-methods' proofs need: the byte-by-byte decoding of `tU64`, and offsets through `List.drop`.
+methods' proofs need: the byte-by-byte decoding of `tU64` (`u64Acc`, `U64Acc.lean`), and offsets
+through `List.drop`.
 -/
 module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Rep
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.CandsLemmas
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.U64Acc
 
 @[expose] public section
 
@@ -31,26 +33,6 @@ variable [GooseExts]
 theorem tU64_getElem? (x : w64) (i : Nat) (hi : i < 8) :
     (tU64 x)[i]? = some (W8 (uint.Z (x >>> W64 (8 * (i : Int))))) := by
   simp [tU64, hi]
-
-/-- The decoded prefix after `i` bytes: the low `8 i` bits. -/
-def u64Acc (x : w64) (i : Nat) : w64 := x &&& ((1 <<< (8 * i)) - 1)
-
-theorem u64Acc_zero (x : w64) : u64Acc x 0 = W64 0 := by
-  unfold u64Acc; bv_decide
-
-theorem u64Acc_eight (x : w64) : u64Acc x 8 = x := by
-  unfold u64Acc; bv_decide
-
-/-- One byte more of the decoding (`x |= uint64(b[off+i]) << (8*i)`). -/
-theorem u64Acc_step (x : w64) (i : Nat) (hi : i < 8) :
-    u64Acc x i ||| ((W8 (uint.Z (x >>> W64 (8 * (i : Int))))).setWidth 64 <<< (W64 8 * W64 i)) =
-      u64Acc x (i + 1) := by
-  unfold u64Acc
-  rw [show (8 * (i : Int)) = ((8 * i : Nat) : Int) by push_cast; rfl]
-  simp only [W8, W64, uint.Z, BitVec.ofInt_natCast, BitVec.ofNat_toNat]
-  have : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 ∨ i = 5 ∨ i = 6 ∨ i = 7 := by omega
-  rcases this with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-    simp only [Nat.reduceMul, Nat.reduceAdd] <;> bv_decide
 
 /-- Reading past a prefix. -/
 theorem drop_app {bs a r : List w8} {k : Nat} (h : bs.drop k = a ++ r) (hk : k ≤ bs.length) :
