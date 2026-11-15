@@ -488,6 +488,108 @@ theorem Run.wp_proof
       (hdx _ (List.mem_of_getElem? hx1)) hxm1 $$ H1 Htok Hrf1 Hnet1 HbR1
     with ⟨Htok, #Hlead1, ⟨%mid1, #Hmid1⟩, Hc1⟩
   (try wp_auto)
+  have hk1z : sint.Z (W64 (k : Int) - W64 1) = (k - 1 : Nat) := by word
+  have hk1n : (sint.Z (W64 (k : Int) - W64 1)).toNat = k - 1 := by rw [hk1z]; simp
+  -- the `if`, proved with the stopped member as its postcondition
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ threadTok ∗ ssl ↦* zs.map (·.1) ∗
+      srvs_ptr ↦ ssl ∗ k_ptr ↦ W64 (k : Int) ∗
+      ∃ (jn : Nat) (z : Loc × Loc), j_ptr ↦ W64 (jn : Int) ∗ ⌜jn < k ∧ zs[jn]? = some z⌝ ∗
+        stopCand N z.2 z.1 γn γ γk (members k) ids ps ctxs boot))) $$ [j k srvs Htok Hssl Hc1 Hrest]
+  · have hjv : W64 (k : Int) - W64 1 = W64 ((k - 1 : Nat) : Int) := by word
+    wp_if_destruct
+    · have hk3 : 2 < k := by
+        have := Hif; rw [hkz] at this; simp only [show uint.Z (W64 2) = 2 from rfl] at this; omega
+      ihave %Hsll2 := ownSlice_len $$ Hssl
+      have Hb1 : 0 ≤ sint.Z (W64 (k : Int) - W64 1) ∧ sint.Z (W64 (k : Int) - W64 1) < sint.Z ssl.len := by
+        obtain ⟨h1, h2⟩ := Hsll2; simp only [List.length_map, hzk] at h1; rw [hk1z]; constructor <;> word
+      have hl1 : (zs.map (·.1))[(sint.Z (W64 (k : Int) - W64 1)).toNat]? = some p1.1.1 := by
+        rw [hk1n]; simp [hz1]
+      (try wp_auto)
+      (try simp only [Hb1, _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index _ (sint.Z (W64 (k : Int) - W64 1)) _ _ p1.1.1 Hb1.1 $$ [Hssl] as Hssl
+      · iframe Hssl; ipureintro; exact hl1
+      (try wp_auto)
+      wp_apply (wp_Leader p1.1.1) as %l -
+      · iframe #
+      (try wp_auto)
+      (try simp only [Hb1, _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index _ (sint.Z (W64 (k : Int) - W64 1)) _ _ p1.1.1 Hb1.1 $$ [Hssl] as Hssl
+      · iframe Hssl; ipureintro; exact hl1
+      (try wp_auto)
+      wp_apply (wp_MemberID p1.1.1 mid1)
+      · iframe #
+      (try wp_auto)
+      wp_if_destruct
+      · -- member `k - 1` leads: member `k - 2` is stopped
+        obtain ⟨p2, hp2⟩ : ∃ p, (zs.zip ((members k).zip gs))[k - 2]? = some p :=
+          ⟨_, List.getElem?_eq_getElem (by simp [hzk, hxk]; omega)⟩
+        obtain ⟨hz2, hx2, hm2, hi2⟩ := cand_facts k gs ids hgids zs (k - 2) p2 hp2
+        have hxm2 : p2.2.1 ∈ members k := List.mem_of_getElem? hm2
+        have hgok2 := hgok p2.2.2 (List.of_mem_zip (List.mem_of_getElem? hx2)).2
+        ihave H2 := (BigSepL.bigSepL_lookup hp2) $$ Hrest
+        ihave H2 := H2 $$ %(by omega : k - 2 ≠ k - 1)
+        ihave H2 := H2 $$ %(by omega : k - 2 ≠ 0)
+        ihave #Hrf2 := (BigSepL.bigSepL_lookup (Φ := fun _ (x : GMember × MemberG GF) =>
+          iprop(memberRestartFacts x.2.γ x.2.ρ x.2.id ∗ ⌜x.2.E.cmp = false⌝)) hx2) $$ Hrfs
+        ihave #HbR2 := bootR_at k N ids ps ctxs boot (k - 2) p2.2.1 p2.2.2.id (by unfold nStop; omega)
+          hm2 hi2 $$ HbRs
+        ihave #Hnet2 : netHttpOk γn p2.2.2.id $$ []
+        · iapply Hnet
+        icases stopCand_of hRS N lg γn γ γk (members k) ids ps ctxs boot p2.1 p2.2 hgok2
+            (hdx _ (List.mem_of_getElem? hx2)) hxm2 $$ H2 Htok Hrf2 Hnet2 HbR2
+          with ⟨Htok, -, -, Hc2⟩
+        isplitr
+        · itrivial
+        iframe Htok Hssl srvs k
+        iexists k - 2, p2.1
+        have hjv2 : W64 (k : Int) - W64 2 = W64 ((k - 2 : Nat) : Int) := by word
+        rw [hjv2]
+        iframe
+        ipureintro; exact ⟨by omega, hz2⟩
+      · -- member `k - 1` is stopped
+        isplitr
+        · itrivial
+        iframe Htok Hssl srvs k
+        iexists k - 1, p1.1
+        rw [hjv]
+        iframe
+        ipureintro; exact ⟨by omega, hz1⟩
+    · -- `k = 2`: member `k - 1` is stopped
+      isplitr
+      · itrivial
+      iframe Htok Hssl srvs k
+      iexists k - 1, p1.1
+      rw [hjv]
+      iframe
+      ipureintro; exact ⟨by omega, hz1⟩
+  iintro %v ⟨%Hv, Htok, Hssl, srvs, k, %jn, %z, j, %Hjz, Hc⟩
+  subst Hv
+  (try wp_auto)
+  iunfold stopCand at Hc
+  icases Hc with ⟨%x, %id, %reg, %ρ, %E, %dd, %γS, ⟨%hd, %hxm, %hst, %hsc⟩, Hrec, #Hai, #Hdd, Hsr, Hrds,
+    #Hnetx, #HbR, #Hrfx⟩
+  -- `stop(srvs[j], k)`
+  ihave %Hρr : ⌜ρ.rd.raft.raft = { γ with reg := reg }⌝ $$ []
+  · ihave #Hf := Hrfx
+    iunfold etcdstart.memberRestartFacts at Hf
+    icases Hf with ⟨%Hρ, -⟩
+    ipureintro; rw [Hρ.1]
+  have Hbk : ρ.rd.raft.raft.boot.length ≤ uint.nat (W64 (k : Int)) := by
+    rw [Hρr]; show γ.boot.length ≤ _; rw [hboot]; simp only [LogEntry.toEntries, List.length_map,
+      List.length_zipIdx, List.length_mapIdx, hblen]; word
+  have hjz : sint.Z (W64 (jn : Int)) = jn := by word
+  ihave %Hsll3 := ownSlice_len $$ Hssl
+  have Hbj : 0 ≤ sint.Z (W64 (jn : Int)) ∧ sint.Z (W64 (jn : Int)) < sint.Z ssl.len := by
+    obtain ⟨h1, h2⟩ := Hsll3; simp only [List.length_map, hzk] at h1; rw [hjz]; constructor <;> word
+  (try simp only [Hbj, _root_.and_self, ↓reduceIte])
+  wp_apply wp_load_slice_index _ (sint.Z (W64 (jn : Int))) _ _ z.1 Hbj.1 $$ [Hssl] as Hssl
+  · iframe Hssl; ipureintro; rw [hjz]; simp [Hjz.2]
+  (try wp_auto)
+  wp_apply (wp_stop z.1 E E ρ id dd γn x.Name' (W64 (k : Int)) Hbk hsc) $$ [Hsr Hrds] as Hrr
+  · iframe; iframe #
+  rw [Hρr]
+  (try wp_auto)
   sorry
 
 end proof
