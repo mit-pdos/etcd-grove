@@ -260,7 +260,7 @@ theorem stepLeader.wp_proof
     ihave #Hgr := Hgrihb $$ %Hrix
     iapply wp_stepLeader_readindex c
       wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
-      r id s ml m ents ctx sn rs _ _ _ Hrix Hlead
+      r id s ml m ents ctx sn rs Hrix Hlead
       (Hrdnz (Or.inr (Or.inr Hrix))).2 (Hri Hrix) G $$ [Hphys Hm HG Hgriresp] HΦG
     iframe
     iframe Hinit Hgr

@@ -61,13 +61,16 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
           ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗ slotLive γ id q' g ∗
           slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (restart S7.3, `RawNode.Ready.spec`'s) each message's `MsgSnap` facts, outright
+      "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-      "#Hents" ∷ entsRO rd.Entries' es ∗
+      -- (out_size C3, `RawNode.Ready.spec`'s) at contents, sized in a cluster bounding proposed data
+      "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
-      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
@@ -99,7 +102,7 @@ theorem RawNode.Ready.traced
   iNamed H
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
     $$ Hhard Hlive Hfree Hrn
-    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, -⟩
+    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, -⟩
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L
     (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $Hhard]
     as %steps %ss H
@@ -109,7 +112,7 @@ theorem RawNode.Ready.traced
   subst Hsseq
   iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss0 %W
   iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hcr Happ Hrs Hrs_ok Hhard Hhsw
-    Hsnapz Hfrz Hdk Hlive
+    Hsnapz Hfrz Hdk Hlive Hmss
   isplitl [Hrn]
   · iExactEq Hrn; rfl
   isplitl [Hpb]

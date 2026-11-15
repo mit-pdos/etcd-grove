@@ -260,14 +260,19 @@ theorem isReadyChan_recvAu.tracedSpec_proof : isReadyChan_recvAu.tracedSpec (GF 
 
 /-- **`node.Step(ctx, m)`, traced**: `node.Step.spec` at `stepIn_intro`'s premises (a copy of a message
 node `src` sent, to `id`, with its credits, its snapshot local to `id`, and its token). A corollary
-(`node.Step.tracedSpec_of_spec`). -/
+(`node.Step.tracedSpec_of_spec`). (`lean` merge, stage 2) The copy at a content `c`, as
+`stepIn_intro` takes it since raft-entsize §2 (`msgPtsCC`; until then `msgPtsC ml 1 1 true ⟨st…, []⟩`):
+its model the message, no unknown fields in its snapshot's conf state, and of bounded size in a
+cluster with a bound on proposed data, but a `MsgSnap`. -/
 abbrev node.Step.tracedSpec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    (c : MsgC) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   st.msg.To' = id →
+  c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ → c.csUfNil →
+  (∀ b, γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       sentMsg γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
+      msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ∗ trTok γ st }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
       (Val #(interface.ok ctx))) (Val #ml))
@@ -277,9 +282,9 @@ open Iris.ProofMode in
 /-- `node.Step.tracedSpec` is `stepIn_intro` then `node.Step.spec` (the design's F2). -/
 theorem node.Step.tracedSpec_of_spec (h : node.Step.spec (GF := GF) (hG := hG)) :
     node.Step.tracedSpec (GF := GF) := by
-  intro n γ N id ml src st ctx cd Hto
+  intro n γ N id ml src st c ctx cd Hto Hcm Hcs Hsz
   iintro %Φ ⟨#Hi, #Hn, #Hc, #Hs, Hm, Hcr, #Hl, Ht⟩ HΦ
-  imod stepIn_intro γ N id ml src st Hto $$ [Hm Hcr Ht] with Hst
+  imod stepIn_intro γ N id ml src st c Hto Hcm Hcs Hsz $$ [Hm Hcr Ht] with Hst
   · iframe Hs Hm Hcr Hl Ht
   iapply (h n γ N id ml ctx cd) $$ [Hst] HΦ
   iframe Hi Hn Hc Hst

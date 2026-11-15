@@ -118,7 +118,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-  · isplitl [Hm]
+  · isplitl [Hm Hmb]
     · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     · iunfold followerGates at Hfg; iexact Hfg
   ihave HG := stepOut_or R _ _ $$ HGo
@@ -137,7 +137,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · exact ⟨rfl, rfl⟩
   · refine ⟨[absMsg .heartbeat m ents ctx] ++ [absMsg .heartbeat m ents ctx], ?_, ?_⟩
     · intro m' Hm'
-      simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
+      simp only [List.mem_append, List.mem_singleton, _root_.or_self] at Hm'
       exact Hm'
     · refine StepCD.frame ?_ (by rframe)
       refine .trans _ _ _ _ _

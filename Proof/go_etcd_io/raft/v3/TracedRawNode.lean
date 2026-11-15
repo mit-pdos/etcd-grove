@@ -92,7 +92,11 @@ abbrev RawNode.Step.tracedTriple : Prop :=
   γ.reBoot ≠ [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "Hm" ∷ msgIn ml DFrac.discard st ∗
+      -- (`lean` merge, stage 2) at a content `c`, as `RawNode.Step.spec` takes it since
+      -- raft-entsize §2 (until then `msgIn ml □ st`)
+      "Hm" ∷ (∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
+        ⌜c.model = st ∧ c.csUfNil ∧
+          (∀ b, γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝) ∗
       "#Hraft" ∷ isRaftMsg γ id st ∗
       "Htok" ∷ recvTokOf γd st.msg st.ents st.ctx }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))
@@ -143,6 +147,13 @@ theorem RawNode.Step.traced
   have HnAp : m.Type' ≠ MsgStorageApplyResp := by trnet_ne Hnt
   wp_start as H
   iNamed H
+  icases Hm with ⟨%cm, Hm, %Hcm⟩
+  obtain ⟨Hcmod, Hccs, Hcsz⟩ := Hcm
+  -- (out_size C3) half read through the getters, the whole kept at its content for `raft.Step`
+  have hrd := msgPtsCC_readE (GF := GF) ml (needsCap m) cm Hccs DFrac.discard DFrac.discard
+  rw [discard_op_discard] at hrd
+  icases hrd $$ Hm with ⟨Hm, Hmb⟩
+  rw [Hcmod]
   iNamed Hrn
   ihave #HI := isInitialized_access $$ Hpkg
   iNamed HI
@@ -184,6 +195,9 @@ theorem RawNode.Step.traced
       icases ownStepGhost_dlv_terms γ _ cf id s rs.delivered
         (by have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega) Hac0 $$ Hdeliv Hghost
         with ⟨%Hdag, Hghost⟩
+      icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+      iunfold certLink at Hlink
+      icases Hlink with ⟨-, -, %Hszl, -⟩
       -- (slice 25n) the capability, open; the bundle's premises from the node's state
       have Htr : s.gh.tr = some γd := Hgtr.trans HtrG
       icases (rnTrace_some γ rnv.raft' id cf rs.delivered s γd Htr).1 $$ Hrntr with
@@ -222,13 +236,23 @@ theorem RawNode.Step.traced
         (fun h => absurd h (by trnet_ne Hnt)) (fun h => absurd h (by trnet_ne Hnt))
         (fun h => absurd h (by trnet_ne Hnt)) (fun h => absurd h (by trnet_ne Hnt))
         -- (2026-11-12, implementation step 3) no transfer stepped; no transferee (`rnTrace`'s (b))
-        (fun h => absurd h (by trnet_ne Hnt)) (fun _ _ => Hpure.1.1) $$ [$Hphys $Hghost $Hlc1 Hm Hcred HG Hgates Hclose]
+        (fun h => absurd h (by trnet_ne Hnt)) (fun _ _ => Hpure.1.1) $$ [$Hphys $Hghost $Hlc1 Hm Hmb Hcred HG Hgates Hclose]
       · simp only [HnP, ↓reduceIte, named]
         isplitr
         · imodintro; iintro %h; exact absurd h.1 HnX
-        isplitl [Hm]
-        · isplitl [Hm]
-          · iexact Hm
+        isplitl [Hm Hmb]
+        · isplitl [Hm Hmb]
+          · -- (out_size C3) at its content, with its size under the node's flag (`certLink`)
+            ihave Hm := Hmb $$ Hm
+            unfold msgInC
+            iexists cm
+            iframe Hm
+            ipureintro
+            refine ⟨Hcmod, Hccs, fun hs ht => ?_⟩
+            have hs' : s.gh.sn.sz = true := by simp only [Bool.and_eq_true] at hs; exact hs.1
+            rw [Hszl] at hs'
+            obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs'
+            exact Hcsz b hb ht
           isplitr
           · iempintro
           isplitr
@@ -373,7 +397,8 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
     (Hboot : γ.reBoot ≠ []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        msgIn ml (DFrac.own 1) st ∗
+        -- (`lean` merge, stage 2) at its content, as `wp_rn_raft_Step_prop` takes it (out_size C3)
+        msgInC γ.maxData.isSome ml (DFrac.own 1) st ∗
         isMessage γ (absMsg .propose st.msg st.ents) ∗
         ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -400,6 +425,10 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   icases propData_ccEnts γ ents $$ Hed with ⟨%cs, #Hcc⟩
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  -- (out_size C3) the node's flag is the cluster's (`certLink`)
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, -⟩
   -- (slice 25n) the capability, open; the bundle's premises from the node's state
   have Htr : s.gh.tr = some γd := Hgtr.trans HtrG
   icases (rnTrace_some γ rnv.raft' id cf rs.delivered s γd Htr).1 $$ Hrntr with
@@ -473,7 +502,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
     isplitl [Hmin Htk]
     · simp only [named]
       isplitl [Hmin]
-      · iexact Hmin
+      · rw [flag_moves movesB_MsgProp, Hszl]; iexact Hmin
       isplitl [Htk]
       · isplitr
         · iexists cs

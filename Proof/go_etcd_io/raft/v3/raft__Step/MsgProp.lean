@@ -164,6 +164,10 @@ theorem stepCD_sendApps [GoSemanticsFunctions] (c : CfgM) (id : w64) (B : Int) (
       simp [sendMsgs] <;> rfl
     rw [Hr]
     exact StepR.sendApps _ ms Hrl (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
+      (fun m hm h => by
+        have e : m.dst ∈ c.voters ∪ c.learners :=
+          (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1 h)
+        rw [← hc] at e; exact e)
 
 theorem proposed_role (id : w64) (s : NState) (ents : List EntryM) (h : s.role = .leader) :
     (proposed id s ents).role = .leader := by

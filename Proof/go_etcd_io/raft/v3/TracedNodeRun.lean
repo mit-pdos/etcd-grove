@@ -152,7 +152,8 @@ theorem wp_rn_raft_Step_prop_g (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
       uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        msgIn ml (DFrac.own 1) st ∗
+        -- (out_size C3) the proposal at its content, sized in a cluster bounding proposed data
+        msgInC γ.maxData.isSome ml (DFrac.own 1) st ∗
         isMessage γ (absMsg .propose st.msg st.ents) ∗
         ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
