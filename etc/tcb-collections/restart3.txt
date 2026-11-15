@@ -1,0 +1,13 @@
+# The three-member restart example (examples/etcd/restart, restart3.go; notes/restart3-scope.md): the
+# results of Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/Results.lean, `restart3_Main` and
+# the closed theorem `etcd_restart3_safe`/`etcd_restart3_adequate`: three members, a follower stopped
+# and restarted in process (bootstrap's restart contract N1 a premise for members 2 and 3), its peer
+# address served for the whole run by the program's `raftSwap` (proved; no listener close, HS3), no
+# client and no gRPC served.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/restart3.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/restart3.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/Results\.lean$

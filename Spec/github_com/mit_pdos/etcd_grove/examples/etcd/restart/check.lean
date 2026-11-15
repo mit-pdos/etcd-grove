@@ -1,12 +1,13 @@
 /-
-`check(s)` (`examples/etcd/restart/restart1.go`; restart S7.5, step f, 2026-11-14): the wait until the
-restarted member knows a leader (`Leader() != 0`), one linearizable `Range` of `["k", "l")` through its
-own API (`EtcdServer.Range`), in a context with the request timeout, and the check: exactly the `NPuts`
-pairs `key(i) ↦ value(i)`, in order, or a panic. Lean-first (no Rocq counterpart).
+`check(s)` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15, restart1's `check`): the wait
+until the restarted member knows a leader (`Leader() != 0`), one linearizable `Range` of `["k", "l")`
+through its own API (`EtcdServer.Range`), in a context with the request timeout, and the check: exactly
+the `N1 + N2 = 25` pairs `key(i) ↦ value(i)`, in order, at revision `1 + N1 + N2`, or a panic.
+Lean-first (no Rocq counterpart).
 
-**The triple:** of a started member (`etcdstart.memberUp`, the restarted one), under `restart1`'s KV
-invariant at its names (`r3Inv`, the stopped incarnation's, `r3Inv_st`) and the put counter's lower
-bound `NPuts` (every put fired): no panic, whatever the check returns.
+**The triple:** of a started member (`etcdstart.memberUp`, the restarted one), under `restart3`'s KV
+invariant at its names (`r3Inv`, the cluster's, `r3Inv_st`) and the put counter's lower bound `25`
+(every put fired): no panic, whatever the check returns.
 -/
 module
 

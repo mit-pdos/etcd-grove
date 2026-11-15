@@ -1,13 +1,14 @@
 /-
-`stop(s)` (`examples/etcd/restart/restart1.go`; restart S7.5, step e, 2026-11-14): the wait until the
-member applied the bootstrap log (`AppliedIndex() ≥ NBoot`), then `s.HardStop()`. Lean-first (no Rocq
-counterpart). restart3's `stop` without the peer listener.
+`stop(s)` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15, restart1's `stop`): the wait
+until the member applied the cluster's bootstrap log (`AppliedIndex() ≥ NBoot`, one entry per member),
+then `s.HardStop()`. Lean-first (no Rocq counterpart).
 
 **The triple:** from the applied index's invariant (`srvAppliedInv`), the server's data directory
-(`srvDataDir`, `restart1.etcd`), the right to stop it (`srvStopRight`, at an apply environment in the
+(`srvDataDir`, `name ++ ".etcd"`), the right to stop it (`srvStopRight`, at an apply environment in the
 stop's scope) and its unused serving readers (`srvStopReaders`), of a cluster whose bootstrap log has
-at most `NBoot` entries: the member's data directory as the stop left it, at the request names `ρ`
-(`srvDiskImage`), as its restart bundle without addresses (`etcdstart.memberRestartRes`).
+at most `NBoot = 3` entries: the member's data directory as the stop left it, at the request names `ρ`
+(`srvDiskImage`), as its restart bundle without addresses (`etcdstart.memberRestartRes`; its peer
+address stays served by its `raftSwap`).
 -/
 module
 

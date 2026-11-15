@@ -2610,6 +2610,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.restart1':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.restart':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':

@@ -1,11 +1,11 @@
 /-
-`put(s, i)` (`examples/etcd/restart/restart1.go`; restart S7.5, step c, 2026-11-14): `s.Put` of
+`put(s, i)` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15, restart1's `put`): `s.Put` of
 `key(i) ↦ value(i)` through the server's own API, in a context with the request timeout, cancelled
 after the call. Lean-first (no Rocq counterpart).
 
 **The triple:** at a started member's request view (`isServerReq`, auth off) and the revocation's
 built part (`srvRevokeBuilt`, from which the call borrows its `leadTimeMu` slot and `E.RD` at level 2
-of the thread token, and gives them back), under `restart1`'s KV invariant (`r3Inv`), with the
+of the thread token, and gives them back), under `restart3`'s KV invariant (`r3Inv`), with the
 driver's half of the put counter at `i < NPuts`: the thread token back, and `nil` with the counter's
 half at `i + 1` (the put fired: the range holds the first `i + 1` pairs), or an error.
 -/
