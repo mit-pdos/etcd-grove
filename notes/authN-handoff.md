@@ -15,16 +15,20 @@ linking). Rules: /shared/tmp/coord-81/common-rules.md.
   `AllocNOn` (`memberGOkOn`, `sameCluster_of_gOkOn`, `memberBootsOn_of`, `allocNOn`); authN `Base`,
   `Defs` (`members`, `token`, `startOf`, `memberAtMod`, `premises`; putgetN's `BootFacts`/`dirN` reused),
   `Spec/.../authN/Main.lean`.
-- Drafts not yet in the tree: `/shared/tmp/authN/lean/Dir.lean` (authN's addresses; one `sorry` to replace
-  in `authNAddrs_perm`, and `authNAddrs_nodup` must cover client/client too), `/shared/tmp/authN/lean/runSpec.lean`
-  (run.spec sketch).
+- (2026-11-15, second session) authN `Dir` (txnlinfaultsN's without the bridges: addresses' perm/nodup/lit,
+  dirs, `members_client_plain`), `barrier`/`newUserClient` specs and proofs (auth3's, copied), `run.spec` and
+  `run.wp_proof` (serve loop and barrier loop over the members; per-member witnesses `Wit`, `srvdW`, `fixedW`;
+  `mod_len_sint`), `Main.wp_proof` (`allocNOn`, `memberPresOn_of`, `StartMembersAuth`, `run`; callee hypothesis
+  `hbcfg` as putgetN's). All built with lake (kernel included), no sorry.
+- lean merged (9e678b61e7, unchanged since the branch).
+- Statement draft for the HARD STOP: `notes/authN-draft.md`.
 
 ## Next, in order
 1. (done) etcdstart's auth-on start.
 2. authN: `Base`, `Defs` (premises over `members k`, bootPremiseOn; putgetN's `BootFacts`/`dirN` reused),
    `Dir` (authN's members' addresses: all peers and all clients; addresses' perm/nodup/lit), `run`
    (serve loop, set-up via member 0, barrier loop, principals at 0, 1 % k, 2 % k), `Main`.
-3. HARD STOP: statement in plain words vs etcd_auth3_safe.
+3. HARD STOP (current): statement in plain words vs etcd_auth3_safe (`notes/authN-draft.md`).
 4. Link: MainLinked, Adequacy (`etcd_adequate_members` with all start bundles), Results, PkgTable/Init
    (`etc/gen-init.py`), etcdstart Link entries (`etc/link-lean-first-common.txt`, `etc/gen-link.py --common`),
    `etc/api/etcdstart.txt`, collection `etc/tcb-collections/authN.txt`, interfaces, bounds, gates.
@@ -42,6 +46,12 @@ linking). Rules: /shared/tmp/coord-81/common-rules.md.
   `Work` loop as auth3's with those three members.
 
 ## Pitfalls
+- `wp_if_destruct` on the range loops hit max recursion: `run.wp_proof` sets `maxRecDepth 10000`.
+- `have` after IPM steps can give "unknown free variable" (an `icases ... $$` using a `have` stated later):
+  `run.wp_proof` states its pure index facts right after `wp_start`.
+- A member's served facts must be looked up at fixed witnesses (`Wit`): member 0's anon client is created
+  with member 0's watch server before `SetUp`, so the barrier loop accumulates `fixedW` at the serve loop's
+  witnesses, not a fresh existential.
 - See notes/putgetN-handoff.md and notes/txnlinfaultsN-handoff.md (loop invariants, `iframe` on snoc'd big-seps).
 - Go tests: `cd examples; GOWORK=off PATH=/usr/local/go/bin:$PATH systemd-run --scope -q -p MemoryMax=32G go test ./etcd/authN/`
   (`AUTHN_MEMBERS=k` fixes k).
