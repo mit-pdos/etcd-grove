@@ -48,7 +48,7 @@ theorem beSucc_authMode {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc
 (`kvRun`'s). -/
 def kvRunAtOn (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV)
     (sa : auth.AuthState) : IProp GF :=
-  iprop(kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝)
+  iprop(kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝)
 
 /-- **The apply thread's resources at the log `A` in the mode `on`** (`applyRes`'s). -/
 def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=

@@ -476,9 +476,9 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
     (hRO : E.RO = srvRestOwnH E.authMode d.γB cl H) (hlg : E.lg = false) :
     ⊢ srvKVInvsOn E γr srvAuthSt0 -∗ srvImageOn γ i D -∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRest E γr A -∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
       ∃ (A' : List EntryModel) (u : Bool), srvRLogLb γr.raft A' ∗
         ⌜SnapImageFactsOn γr d D cl i A A'
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ ∗
@@ -683,7 +683,7 @@ certificate `certOk` of the restored log). -/
 theorem snapRecv_kv_jumpOn (E : apply.AEnv GF) (γr : ReadNames) (A A' : List EntryModel)
     (x : apply.ApplyKV) (sa : auth.AuthState) (hA : A <+: A')
     (hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63) :
-    ⊢ srvKVInvsOn (GF := GF) E γr srvAuthSt0 -∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗
+    ⊢ srvKVInvsOn (GF := GF) E γr srvAuthSt0 -∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) -∗
       srvRLogLb γr.raft A' ={⊤}=∗
       ⌜x.chain = γr.kv.ch0⌝ ∗
       kvAppliedLOn γr.raft γr.kv srvAuthSt0 A'

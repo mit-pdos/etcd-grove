@@ -1324,7 +1324,7 @@ theorem EtcdServer.apply.wp_proofOn
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       -- (D22 J5) the write tokens taken, one per entry
       "#HWA" ∷ srvWTTaken γp.cnt (w + sint.nat j) ∗
-      "Hka" ∷ kvAppliedOn γr.raft γr.kv srvAuthSt0 Γ xj saj ∗
+      "Hka" ∷ kvAppliedOn γr.raft γr.kv srvAuthSt0 Γ xj saj (kvLeasesOn γr.kv srvAuthSt0 Γ) ∗
       "HRS" ∷ srvRestR E γr rp (A ++ ms.take (sint.nat j)) ∗
       "HAR" ∷ srvApRes s γr Γ ∗
       "Hdv" ∷ dvView ρ.raft dv Γ ∗
@@ -2033,7 +2033,7 @@ theorem EtcdServer.apply.wp_proofOn
           -- (R2d'a) the chain the start's (`kvAppliedOn`'s), for an admin request's steps
           iunfold kvAppliedOn at Hka
           icases Hka with ⟨HkaL, %Hxch⟩
-          ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 rp.A₀ xj saj $$ [HkaL]
+          ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 rp.A₀ xj saj (kvLeasesOn γr.kv srvAuthSt0 rp.A₀) $$ [HkaL]
           · iunfold kvAppliedOn; iframe HkaL; ipureintro; exact Hxch
           wp_apply (hAENR s γ ci TM E ρ b e m (stLoaded γ st') xj γr rp.A₀
               (restReplay γr rp (A ++ ms.take (sint.nat j))) γa saj hM)

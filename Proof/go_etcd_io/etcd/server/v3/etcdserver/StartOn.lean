@@ -45,7 +45,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 over `kvAppliedOn` from `srvAuthSt0`, at the auth state `st` the model reaches). -/
 def kvRunOn (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV) :
     IProp GF :=
-  iprop((∃ st : auth.AuthState, kvAppliedOn γr.raft γr.kv srvAuthSt0 A x st) ∗
+  iprop((∃ st : auth.AuthState, kvAppliedOn γr.raft γr.kv srvAuthSt0 A x st (kvLeasesOn γr.kv srvAuthSt0 A)) ∗
     ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝)
 
 /-- **The apply thread's resources at `ai₀` in the mode `on`** (`applyBuilt` with `kvRunOn`, and,

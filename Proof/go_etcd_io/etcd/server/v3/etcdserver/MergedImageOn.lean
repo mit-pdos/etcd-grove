@@ -63,8 +63,8 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
     (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcr : x.crev = -1) :
     mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗ ⌜authBucketsAt sa D⌝ ∗
       isServerM true s γ ci TM E ρ γr ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ⊢
-      |={⊤}=> kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ⊢
+      |={⊤}=> kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗
         □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
   iintro ⟨#Hmi, %hau, #Hsrv, Hka⟩
   iunfold mergedImgM at Hmi

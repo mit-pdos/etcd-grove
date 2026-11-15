@@ -2234,7 +2234,8 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/
 theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
-    (cok : GName) :
+    (cok : GName)
+    (hpfx : γk.lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
       (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
@@ -2247,7 +2248,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
-  srvMemberBootOn_alloc γ cnt γk id cok
+  srvMemberBootOn_alloc γ cnt γk id cok hpfx hpo
 
 /-- **`start`'s construction premise in the auth mode, from `NewServer.specM`'s built part**
 (`isServerBuilt_of_gapM`, E2z): `isServerBuilt` with auth off, `isServerBuiltOn` (the mode-`on`
@@ -2432,7 +2433,7 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
     (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63) :
-    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st -∗
+    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st (kvLeasesOn γr.kv st₀ A) -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainCover rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
         entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧

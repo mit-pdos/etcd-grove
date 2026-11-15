@@ -181,28 +181,15 @@ theorem kvModelOn_boot (γk : KVNames) (st₀ : auth.AuthState) (ps : List w64)
     (bootLog : List EntryM) (hb : srvBootLogOk ps bootLog) :
     kvModelOn γk st₀ (bootEntries bootLog) = γk.log0 := by
   obtain ⟨-, -, he⟩ := hb
-  unfold kvModelOn kvRaftOfOn bootEntries
-  rw [List.foldl_map]
-  suffices h : ∀ (l : List EntryM) (st : auth.AuthState), (∀ e ∈ l, e.Type' = W32 1) →
-      (l.foldl (fun s e => kvEntryOn γk.c0 γk.ch0 s (EntryModel.ofM e)) (st, γk.log0)).2 =
-        γk.log0 by
-    apply h
-    intro e hm
-    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm
-    exact (he k _ (List.getElem?_eq_getElem hk)).2.2.1
-  intro l
-  induction l with
-  | nil => intro _ _; rfl
-  | cons e l ih =>
-    intro st hl
-    rw [List.foldl_cons]
-    have ht : e.Type' = W32 1 := hl e (List.mem_cons_self ..)
-    have : kvEntryOn γk.c0 γk.ch0 (st, γk.log0) (EntryModel.ofM e) = (st, γk.log0) := by
-      unfold kvEntryOn kvEntry
-      simp only [EntryModel.ofM, ht]
-      rfl
-    rw [this]
-    exact ih st (fun e' h' => hl e' (List.mem_cons_of_mem _ h'))
+  have hconf : ∀ m ∈ bootEntries bootLog, m.typ ≠ W32 0 := by
+    intro m hm
+    unfold bootEntries at hm
+    obtain ⟨e, hm', rfl⟩ := List.mem_map.1 hm
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm'
+    simp only [EntryModel.ofM]
+    rw [(he k _ (List.getElem?_eq_getElem hk)).2.2.1]; decide
+  unfold kvModelOn
+  rw [kvRaftOfOn_conf _ _ _ _ hconf]
 
 /-- **The boot state is admitted** (`Main` allocates the invariant there, before `SetUp`): the
 bootstrap log changes nothing (`kvModelOn_boot`) from the start's log of empty revisions. -/

@@ -543,10 +543,10 @@ theorem srvKVCoreM_fire (on : Bool)
     imod Hclose $$ [HLf Hσ' HG] with -
     · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
-    iexists kvModel γr.kv Lf
+    iexists kvModel γr.kv Lf, []
     rw [← kvModelSt_plain γr.kv Lf (KVNames.lm_of_lg_false Hlg ▸ Hok'.1), Hag]
     iframe HQ0
-    ipureintro; exact HpL
+    ipureintro; exact ⟨fun _ => rfl, HpL⟩
   · rw [srvKVCoreM_true]
     iintro #Hinvs Hc #Hau
     icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
@@ -589,10 +589,14 @@ theorem srvKVCoreM_fire (on : Bool)
     imod Hclose $$ [HLf Hσ' Hh HG] with -
     · inext; iexists Lf; iframe HLf Hσ' Hh Hw HG; ipureintro; exact Hok'
     imodintro
-    iexists kvModelOn γr.kv srvAuthSt0 Lf
+    iexists kvModelOn γr.kv srvAuthSt0 Lf, kvLeasesOn γr.kv srvAuthSt0 Lf
     rw [Hag]
     iframe HQ0
-    ipureintro; exact HpL
+    ipureintro
+    refine ⟨fun h => ?_, HpL⟩
+    rcases h with h | h
+    · cases h
+    · exact kvLeasesOn_none _ _ _ (h ▸ Hok'.1)
 
 
 /-- **A committed raft prefix's KV model has short keys, in either auth mode** (R8, 2026-11-07:
@@ -741,7 +745,7 @@ theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   imod Hclose $$ [HL Hσ Hh HG] with -
   · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
-    (by simp only [kvStOn, kvModelOn,
+    (by simp only [kvStOn, kvModelOn, kvLeasesOn,
       kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0, []) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
   imodintro
   inext

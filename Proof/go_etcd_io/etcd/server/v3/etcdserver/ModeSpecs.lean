@@ -149,7 +149,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
         srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvWT E ∗ srvFS s ∗
         ⧗ 1 ∗ apply.adminWTs E ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-        kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+        kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
@@ -174,7 +174,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
           entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗ srvRest E γr (A ++ [m])) ∗
+          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRest E γr (A ++ [m])) ∗
         (ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩) ∗
         srvTokRights E m.index)

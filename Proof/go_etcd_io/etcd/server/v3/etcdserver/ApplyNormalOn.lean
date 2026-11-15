@@ -470,7 +470,7 @@ theorem kvApplied_nextOn (γr : ReadNames) (A : List EntryModel) (m : EntryModel
     (x' : apply.ApplyKV) (st' : auth.AuthState) (i : w64)
     (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length + 1) (hc : x'.chain = γr.kv.ch0) :
     kvAppliedLOn (GF := GF) γr.raft γr.kv srvAuthSt0 (A ++ [m]) (st', x'.log) ⊢
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' st' ∗ kvLogAtM true γr i x'.log := by
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' st' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ kvLogAtM true γr i x'.log := by
   iintro H
   ihave ⟨#HB, %Hl⟩ : iprop(srvRLogLb γr.raft (A ++ [m]) ∗
       ⌜(st', x'.log) = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) (A ++ [m])⌝) $$ [H]
@@ -670,8 +670,8 @@ the log through `i` published (`appliedPubM true`, what `setAppliedIndex.spec` t
 theorem srvApplyKVOn_appliedPub (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (sa : auth.AuthState) (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γr : ReadNames)
     (A : List EntryModel) (i : w64) (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length) :
-    srvApplyKVOn (GF := GF) s E γw x sa ⊢ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ={⊤}=∗
-      srvApplyKVOn s E γw x sa ∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗
+    srvApplyKVOn (GF := GF) s E γw x sa ⊢ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ={⊤}=∗
+      srvApplyKVOn s E γw x sa ∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗
       appliedPubM true E γr i := by
   iintro HKV Hka
   iunfold srvApplyKVOn at HKV

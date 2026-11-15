@@ -1116,7 +1116,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut) (sa'' : auth.AuthState),
       srvApplyKVOn s E ρ.wait x'' sa'' ∗ ⌜entryStep m true x x'' out'⌝ ∗
       entryDelivered ρ.wait m ot out' ∗ srvAppliedPre γr v m.index x''.log ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x'' sa'' ∗ srvRest E γr (A ++ [m]))
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x'' sa'' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRest E γr (A ++ [m]))
       $$ [HKV Hua Hbo HRD HRA HAR Hrdat Hpre Hka HRS]
   · iexists x', out, $sa'
     iframe Hpre Hka HRS
@@ -1498,7 +1498,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   iunfold kvAppliedOn at Hka
   icases Hka with ⟨Hka, %Hxch0⟩
   icases kvAppliedLOn_cert _ _ _ _ _ $$ Hka with ⟨Hka, -, %Hxl⟩
-  ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa $$ [Hka]
+  ihave Hka : kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) $$ [Hka]
   · iunfold kvAppliedOn; iframe Hka; ipureintro; exact Hxch0
   -- the model's step (E2 of the auth plan): the entry admitted and determinate, its state after
   imod kv_applied_step_on E γr srvAuthSt0 A m x sa (kvEntryOn_len _ _ sa x m Hok Hlx)
@@ -1559,7 +1559,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
           entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗ srvRest E γr (A ++ [m]))
+          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ srvRest E γr (A ++ [m]))
           $$ [HKV Hpre Hka HRS]
       · iexists x, apply.ApplyOut.skipped, sa
         iframe HKV Hpre Hka

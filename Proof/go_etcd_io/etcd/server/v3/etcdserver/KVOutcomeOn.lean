@@ -52,37 +52,47 @@ theorem outcomeOn_of_authOutL (c₀ : w64) (s : OnState) (m : EntryModel)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (oc : apply.Outcome)
     (h : apply.authOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq
-      s.2 (reqPerms rq) oc) :
-    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) := by
+      s.2.1 (reqPerms rq) oc) :
+    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) := by
   have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
   have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
     rintro ⟨-, h⟩; rw [hna] at h; cases h
+  have hak : apply.authKVKind (apply.dispatchKind rq) = true := apply.authKVKind_of_isKVKind _ hk
   unfold outcomeOn
   rw [if_pos hm, hdec]
   simp only
   rw [if_neg hna']
   rcases h with ⟨rfl, hr⟩ | ⟨hc, hpass⟩
-  · -- refused at the latest state: the log kept
+  · -- refused at the latest state: the state kept
     have hng := not_kvGranted_of_refusedL γa hs s.1 hl rq (reqPerms rq) (fun _ hx => hx) hr
-    rw [if_pos ⟨hk, hng⟩]
+    rw [if_pos ⟨hak, fun h => hng h.1⟩]
     rfl
   · -- granted at the latest state: the inner chain's write, the model's
     have hg := kvGranted_of_passedL γa hs s.1 hl rq hpass
-    have hng : ¬ (apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq) := by
-      rintro ⟨-, hn⟩; exact hn hg
+    have hng : ¬ (apply.authKVKind (apply.dispatchKind rq) = true ∧
+        ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq) := by
+      rintro ⟨-, hn⟩; exact hn ⟨hg, leaseGrantedM_of_plainCover _ _ _ hp⟩
     rw [if_neg hng]
-    have hlog : oc.logAfter s.2 = chainLog (.quota .backend) rq [] s.2 := by
-      rcases chainStep_plain [] (.quota .backend) rq s.2 oc hp hc with h | ⟨-, hx⟩
+    have hlog : oc.logAfter s.2.1 = chainLog (.quota .backend) rq s.2.2 s.2.1 := by
+      rcases chainStep_plain s.2.2 (.quota .backend) rq s.2.1 oc hp hc with h | ⟨-, hx⟩
       · exact h
       · exact absurd hx (by decide)
-    have hkv : kvEntry c₀ (apply.alarmChain true false false) [] s.2 m =
-        chainLog (.quota .backend) rq [] s.2 := by
+    have hkv : kvEntry c₀ (apply.alarmChain true false false) s.2.2 s.2.1 m =
+        chainLog (.quota .backend) rq s.2.2 s.2.1 := by
       unfold kvEntry
       rw [if_pos ht, if_neg hd, hdec]
       simp only [decide_eq_true hv]
-      rw [dispatchLog_kv _ rq [] s.2 hk]
+      rw [dispatchLog_kv _ rq s.2.2 s.2.1 hk]
       rfl
-    rw [hlog, hkv]
+    have htb : kvTable c₀ (apply.alarmChain true false false) s.2.2 m = s.2.2 := by
+      unfold kvTable
+      rw [if_pos ht, if_neg hd, hdec]
+      simp only
+      unfold dispatchTable
+      split
+      · rfl
+      · exact chainTable_plain rq s.2.2 hp _
+    rw [hlog, hkv, htb]
 
 /-! ## The dispatched outcome's verdict on the request's own permissions (E2y) -/
 
@@ -344,10 +354,10 @@ theorem outcomeOn_of_kvOutL (c₀ : w64) (s : OnState) (m : EntryModel)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq)
     (oc : apply.Outcome)
-    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2 oc) :
-    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
+    (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2.1 oc) :
+    outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) :=
   outcomeOn_of_authOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl oc
-    (authOutL_of_kvOutL _ hs _ rq s.2 oc hz hp h)
+    (authOutL_of_kvOutL _ hs _ rq s.2.1 oc hz hp h)
 
 end pure
 

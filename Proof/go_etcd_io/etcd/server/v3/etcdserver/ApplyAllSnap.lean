@@ -56,7 +56,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem kvAppliedOn_sa (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyKV)
     (sa : auth.AuthState) :
     kvAppliedOn (GF := GF) γr.raft γr.kv srvAuthSt0 A x sa ⊢
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ ⌜sa = srvAuthAtLog γr.kv srvAuthSt0 A⌝ := by
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ ⌜sa = srvAuthAtLog γr.kv srvAuthSt0 A⌝ := by
   iintro H
   iunfold kvAppliedOn at H
   icases H with ⟨Hl, %Hch⟩
@@ -224,9 +224,9 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
     (hids : ∀ k, (r0.mem !! k).isSome =
       ((restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem !! k).isSome) :
     ⊢ srvKVInvsOn E γr srvAuthSt0 -∗ srvImageOn γ i D -∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa -∗ srvRestRp E γr A r0 -∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) -∗ srvRestRp E γr A r0 -∗
       membership.isRaftCluster cl ={⊤}=∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestRp E γr A r0 ∗
+      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa (kvLeasesOn γr.kv srvAuthSt0 A) ∗ srvRestRp E γr A r0 ∗
       ∃ (A' : List EntryModel) (u : Bool), srvRLogLb γr.raft A' ∗
         ⌜SnapImageFactsOn γr d D cl i A A'
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ ∗

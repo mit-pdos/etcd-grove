@@ -234,7 +234,8 @@ theorem admStates_eqv (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
 with the client's result at the state after `L` (left at the token `γc`, `kvRes`); or refused. -/
 def grantedRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (γc : GName)
     (Q : KVState → IProp GF) (L : List EntryModel) : IProp GF :=
-  iprop((⌜grantedAt γk st₀ rq L⌝ ∗ kvRes γc Q (kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L))) ∨
+  iprop((⌜grantedAt γk st₀ rq L ∧ (γk.lm = .none → kvLeasesOn γk st₀ L = [])⌝ ∗
+      kvRes γc Q (kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L))) ∨
     ⌜¬ grantedAt γk st₀ rq L⌝)
 
 instance grantedRes_persistent (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
@@ -584,7 +585,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         ileft
         rw [Hag]
         iframe HQ
-        ipureintro; exact hg
+        ipureintro; exact ⟨hg, fun h => kvLeasesOn_none _ _ _ (h ▸ Hok.1)⟩
       · -- refused: the client's update is put back, nothing fires, the state kept
         icases Hucl with ⟨Habort, -⟩
         imod Habort $$ [Hc] with -
@@ -850,7 +851,7 @@ theorem reqPropOkOn_qinv (γ γl : ServerRaftNames) (γk : KVNames) (st₀ : aut
     icases Hok with (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, -⟩ | (%Had | ⟨%Qh, %Had, -⟩))
     · ipureintro; exact ⟨fun _ _ => iprop(True), Hno.2.2.2.2.2⟩
     · ipureintro
-      refine ⟨fun x _ => iprop((⌜kvGranted x.1 (apply.withHeader rq₀ hm)⌝ ∗
+      refine ⟨fun x _ => iprop((⌜kvGranted x.1 (apply.withHeader rq₀ hm) ∧ (γk.lm = .none → x.2.2 = [])⌝ ∗
         kvRes γc Q (kvStateOf x.2.1 x.2.2)) ∨ ⌜¬ kvGranted x.1 (apply.withHeader rq₀ hm)⌝), ?_⟩
       rw [Hop.2.2.2.2.2]; rfl
     · ipureintro

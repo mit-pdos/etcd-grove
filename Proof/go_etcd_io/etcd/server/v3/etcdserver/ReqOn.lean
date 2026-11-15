@@ -952,7 +952,7 @@ theorem grantedAt_of_applied (γk : KVNames) (rq : apply.IRRModel) (L : List Ent
     (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
     (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
     grantedAt γk srvAuthSt0 rq L := by
-  obtain ⟨st, hst, htie⟩ := h
+  obtain ⟨st, lt, hst, htie⟩ := h
   have hg : kvGranted st rq := by
     have := htie hkv _ _ rfl
     exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
@@ -966,14 +966,17 @@ theorem grantedRes_applied (γk : KVNames) (rq : apply.IRRModel) (γc : GName)
     (Q : KVState → IProp GF) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
     (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
-    grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢ kvRes γc Q (kvStateOf lb) := by
+    grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢
+      ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) := by
   have hga := grantedAt_of_applied γk rq L lb log' skip hkv h
-  obtain ⟨st, hst, -⟩ := h
+  obtain ⟨st, lt, hst, -⟩ := h
   have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
   unfold grantedRes
   rw [hlb]
-  iintro (⟨-, H⟩ | %Hn)
-  · iexact H
+  iintro (⟨%Hg, H⟩ | %Hn)
+  · iexists kvLeasesOn γk srvAuthSt0 L
+    iframe H
+    ipureintro; exact Hg.2
   · exact absurd hga Hn
 
 
@@ -997,7 +1000,7 @@ theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState →
     (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (h : modelOutM true γk (apply.withHeader (irrPut op) hm) L lb
       (.dispatched (.applied log' false) skip)) :
-    putQhOn (GF := GF) γk op γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) :=
+    putQhOn (GF := GF) γk op γc Q hm L ⊢ ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) :=
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrPut_kind]; rfl) h
 
@@ -1259,7 +1262,7 @@ theorem txnQhOn_res (γk : KVNames) (tw : txn.TxnModelW) (γc : GName) (Q : KVSt
     (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (h : modelOutM true γk (apply.withHeader (irrTxn tw) hm) L lb
       (.dispatched (.applied log' false) skip)) :
-    txnQhOn (GF := GF) γk tw γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) :=
+    txnQhOn (GF := GF) γk tw γc Q hm L ⊢ ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) :=
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrTxn_kind]; rfl) h
 
