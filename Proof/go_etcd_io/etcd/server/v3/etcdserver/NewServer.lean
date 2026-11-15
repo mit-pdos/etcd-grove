@@ -2234,7 +2234,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
           · rfl
           · exact absurd (Hcon hc) (by decide)
         refine ⟨⟨⟨fun _ => inferInstance, fun _ => inferInstance, fun _ => inferInstance,
-          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, Hlgon rfl⟩
+          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, Hlgon rfl, by first | trivial | rfl, by simp [HρRaft]⟩
         all_goals first | exact True.intro | rfl | exact hcf
       · iapply srvUberOn_of_kit hKit
         iPkgInit
