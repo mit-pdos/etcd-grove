@@ -5,6 +5,12 @@
 lease entry's claim carries"), S3a2 Draft §4a (`authTie` option (b)). Probe: `Scratch/S3bProbe.lean` (untracked;
 copy `/shared/tmp/auth-lease-s3b/S3bProbe.lean`), §3.
 
+**Revision 3 (2026-11-15), the S3b Freeze package**: review round 2 (`/shared/tmp/auth-lease-s3b/review-r2.md`, fresh
+`spec-reviewer`) found **no first-tier point**; its second tier applied: S1' (`leaseGrantResM_true_id`, §4.2), S2'
+(D6's deposit for an id not yet known, §5), S3' (the docstrings list, §5), S4' (a leased transaction's liveness:
+new decision D7, §4.4, §7), S5' (`grantedAt_of_applied` in §6), and its nits (§6 wording, §4.3 in full, `_mono`
+written out, D4's refusal case, `SpecPlan`, §7a).
+
 **Revision 2 (2026-11-15)**: review round 1 (`/shared/tmp/auth-lease-s3b/review-r1.md`, fresh `spec-reviewer`) found
 every statement true and provable and no closed theorem changed; first tier F1 (the served lease registrations at
 the mode, Scope §5's S3 item, not placed: now decision D6, recommended in S3c, §0, §5, §7) and F2 (§6 missed the
@@ -192,9 +198,10 @@ def leaseRevokePermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : 
 and their results at the stamped header (`grantQhOn γk id ttl γc Q hm L := grantedRes γk srvAuthSt0 (withHeader
 (irrLeaseGrant id ttl) hm) γc (Q id) L`, `revokeQhOn` likewise), with `…Permit…_reqPropOk` lemmas (internal), and
 the laws a client uses without unfolding (review r1 S3): `leaseGrantPermitM_false`/`leaseRevokePermitM_false`
-(`True`, introduction for the off callers), `_true` (the update, elimination), `_mono` (a binding admitting more,
-`Gb' ⊢ Gb`: what a gRPC deposit at `hdrBoundT s E.authMode tok` converts by, as `putPermitOn_mono` does in
-`putPermitM_of_dep`).
+(`True`, introduction for the off callers), `_true` (the update, elimination), and `_mono`:
+`(∀ hm, Gb' hm ⊢ Gb hm) → leaseGrantPermitM on γ γk Gb ttl Q ⊢ leaseGrantPermitM on γ γk Gb' ttl Q` (a permit made at a
+binding `Gb` serves a caller whose binding `Gb'` gives `Gb`: `hdrBoundM true s E ctx ⊢ hdrBoundT s E.authMode tok`,
+`hdrBoundM_tok`, as `putPermitOn_mono` in `putPermitM_of_dep`; `leaseRevokePermitM_mono` likewise).
 
 ## 3. The tie the apply thread hands the proposer (`authTie`, frozen at S3a2 rev 6)
 
@@ -324,7 +331,10 @@ def leaseGrantResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ct
 `pubAfterM` ties the header `hm`, the id and the prefix `L`: the committed log
 holds, after `L`, the entry of the grant of `id` stamped with `hm` (review r1 S1: without it `hm` was bound to
 nothing). The response's `ID` is also `leaseGrantedResp`'s; the two agree by the persistent points-to's agreement
-(`icombine … gives`), no new law. Laws: `leaseGrantResM_false` (drop), `_true`.
+(`icombine … gives`); a law states it so callers need not unfold `leaseGrantedResp` (review r2 S1'):
+`leaseGrantResM_true_id : leaseGrantedResp E resp ttl ∗ leaseGrantResM true s E ρ ctx ttl resp Q ⊢ ∃ id …,
+leaseGrantedRespAt E resp ttl id ∗ …` (the response's `ID` and the update's id one). Laws: `leaseGrantResM_false`
+(drop), `_true`, `_true_id`.
 
 - `isServerReq` → `isServerReqM E.authOn`, and `authedOutB` on success (`requireAuthInfo`'s, `v3_server.go:447`, at
   the span's context, carried to `ctx` by `principalBound_ctx`): the Scope's §2.3 Draft. `authedOutB` is what refuses
@@ -356,7 +366,9 @@ nothing). The response's `ID` is also `leaseGrantedResp`'s; the two agree by the
       ((⌜err = nil ∧ resp ≠ null⌝ ∗ leaseRevokedResp E resp) ∨ (⌜resp = null ∧ err ≠ nil⌝ ∗ applyErrIs err)) }}
 -- new
 ∀ (s E ρ ctx cd r) (id : w64) (Q : KVState → IProp GF),
-  {{ … ⌜srvRevokesLeases E ρ⌝ ∗ isServerReqM E.authOn s E ρ … ∗ leaseRevokeReqRO r id ∗
+  {{ isPkgInit … ∗ ⌜srvRevokesLeases E ρ⌝ ∗ isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗
+      E.RD ∗ □ (|==> idCred ρ.ids 1) ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗
+      context.startTimeOk ctx ∗ leaseRevokeReqRO r id ∗
       leaseRevokePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) id Q }}
     s.LeaseRevoke(ctx, r)
   {{ resp err, RET (resp, err); srvLeadTimeReader s ∗ E.RD ∗
@@ -394,10 +406,17 @@ def leaseRevokeResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
   A revocation of a lease not live: `ErrLeaseNotFound` from the lessor, the same branch. **No client result on the
   error branch** (today's shape for every error): the client's `Q` of the missing-lease state stays in its `kvRes`.
   `etcd_authlease_safe` counts any error as a refusal and ends `Failed` on an allowed call's error, so it needs none
-  (decision D4).
+  (decision D4). On `requireAuthInfo`'s refusal (before any proposal) the update was never offered; the error post does
+  not hand it back either (the caller does not need it: the call ends there).
 - `EtcdServer.Txn.spec`: text unchanged; its writing case's pre (`txnPermitM E.authOn`) admits leased puts at the
-  revocable mode (§2), its post's `grantedAt` means `kvGrantedL` (§1). No liveness conjunct for a leased transaction:
-  no check of the theorem reads one (check 2 refuses a leased transaction; it never succeeds). A margin (§6).
+  revocable mode (§2), its post's `grantedAt` means `kvGrantedL` (§1).
+- **D7 (review r2 S4'): a leased transaction's liveness, as the put's.** `txnAppliedOk` (`InvRead.lean:223`, the
+  writing post's vocabulary, frozen) `∃ lt, ⌜E.authOn = false ∨ γw.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)`
+  gains `∧ (l ≠ x.log → txn.PathsLeaseOk (mvcc.stateAfter x.log) lt.ids (t'.branch (txn.txnOk (mvcc.stateAfter x.log)
+  t')))`: a transaction that committed did so at a state whose leases its executed path names are live (`kvOpStep (.txn
+  t)`'s guard). Off: every lease `0` (`txnPlain`). On: `leaseExactL`'s txn arm from the same tie (§3). No check of the
+  theorem reads it; recommended for the reason the put's is there (the client's linearizable `Txn` with leases, S4),
+  at the same cost; the alternative is a margin.
 
 ## 5. Callers
 
@@ -411,8 +430,15 @@ def leaseRevokeResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
 - Docstrings that the changes make false, restated (review r1 S4): `Spec/…/EtcdServer__Put.lean:29-32`,
   `__LeaseGrant.lean`/`__LeaseRevoke.lean` ("auth off" sentences), `LeaseGrant.lean:36-41`, `RevokeCtx.lean:59-63`,
   `ServerLeaseRevoke.lean:4`, `InvLease.lean:147`, `Results.lean:430`, `ReqOn.lean:13, 84-89`,
-  `__processInternalRaftRequestOnce.lean:56`, `authStore__WithRoot.lean:34`.
-- **D6 (the served registrations at the mode, recommended S3c).** Sketch of the contracts: `lessorGrantOkG`/
+  `__processInternalRaftRequestOnce.lean:56`, `__raftRequest.lean:40` ("the model's grant"), `authStore__WithRoot.lean:34`,
+  and (review r2 S3') `reqPropOkOn`, `grantedRes`, `grantedAt` (`ProposeOn.lean`), `putPermitOn`, `txnPermitOn`,
+  `txnPermitM` (`ReqOn.lean`).
+- **D6 (the served registrations at the mode, recommended S3c).** The deposit (review r2 S2'): the KV deposit
+  `KVDep.op1 o Q` fixes its operation, a grant's does not (the id is the member's); a new deposit kind `KVDep.lease
+  (d : LeaseDep)`, `LeaseDep := .grant ttl (Q : w64 → KVState → IProp GF) | .revoke id Q`, whose owned resource at the
+  mode is the permit itself made by the client at its token, `leaseGrantPermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode
+  tok) ttl Q` (the `∀ id` update; `leaseRevokePermitM` likewise), carried to the handler by the registration as `op1`'s
+  `kvOpAuM` is. Sketch of the contracts: `lessorGrantOkG`/
   `lessorRevokeOk` (`InvLease.lean:150, 168`) gain, at the mode, the client's deposit in the pre and its result in the
   post, as the KV handlers' `kvDepOwnM`: a lease deposit `leaseDepM on s E ρ tok d` (`d` a grant's `ttl` and `Q : w64 →
   KVState → IProp GF`, or a revocation's `id` and `Q`) giving `leaseGrantPermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode
@@ -435,12 +461,13 @@ def leaseRevokeResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
 | `putPermitOn`; `txnPermitOn`, `txnPermitM` | `ReqOn.lean` | lease `0` → `lease 0 ∨ lm = revocable`; `txnPlain` → `txnPlain ∨ (on ∧ revocable ∧ txnPlainL)` (§2) |
 | `authTie` (+ `lt`), `resultIsWOn` (+ `lt`), `entryWitOn` (+ `lt`), `resultΨOn`, `modelOutM` | `ReqOn.lean` | `authKVKind` guard, the lease-exact disjunct, the table threaded (§3; frozen at S3a2 rev 6) |
 | `put_applied` (exported) | `Results.lean:451` | its statement is `EtcdServer.Put.spec` by name: the new post conjunct (a text diff of `Results.lean` shows nothing; docstring `:430` updated) |
-| `authTie_of_kvOutL`, `authTie_nonKV` → `authTie_nonAuthKV`, `putQhOn_res`, `grantedRes_applied` | `ApplyNormalOn.lean`, `ReqOn.lean` | internal: `lt` and `hex`; the `authKVKind` premise; the table returned (§3, §4.1) |
+| `authTie_of_kvOutL`, `authTie_nonKV` (restated as `authTie_nonAuthKV`), `grantedAt_of_applied`, `putQhOn_res`, `grantedRes_applied` | `ApplyNormalOn.lean`, `ReqOn.lean` | internal: `lt` and `hex`; the `authKVKind` premise; `grantedAt_of_applied` at `authKVKind` and the table (review r2 S5'); the table returned (§3, §4.1) |
+| `txnAppliedOk` (D7) | `InvRead.lean:223` | the leased transaction's liveness (§4.4), if D7 is taken |
 
 New: `leaseGrantPermitM`, `leaseRevokePermitM`, `leaseGrantResM`, `leaseRevokeResM` and their `_false`/`_true`/
 `_mono` laws, `writeGrantG_granted`, `irrLeaseGrant`,
 `irrLeaseRevoke`, `grantQhOn`, `revokeQhOn`, `grantedAt_kvGranted`, `grantedAt_plain`, `grantedAt_grant`,
-`leaseLive_of_tie`, `authTie_nonAuthKV` (renaming `authTie_nonKV`), `commitOkOn_L`, `reqPropOkM_true_writeL`, the
+`leaseLive_of_tie`, `commitOkOn_L`, `reqPropOkM_true_writeL`, the
 permits' `_reqPropOk`/`_mono` lemmas.
 
 **Meaning only (text unchanged):**
@@ -504,6 +531,17 @@ authStore__WithRoot.lean` docstring sentence is of a proved spec).
   contracts at the mode with the client's deposit and `etcdLeaseServedAt` at `E.authOn`, sketched in §5. **Recommended:
   in S3c** (with the couplings `etcdLeaseServedAt`'s revocable branch needs), +2–3 days there. Alternative: in S3b
   (the handler contracts only; `etcdLeaseServedAt` still waits for S3c).
+
+- **D7. A leased transaction's liveness in `txnAppliedOk`** (§4.4; review r2 S4'). **Recommended** (the put's
+  reason, the same cost); alternative: a margin.
+
+## 7a. Convergence with `SpecPlan/` (review r2 nit)
+
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` states the server's request specs over opaque predicates (the
+plan's vocabulary, no auth-mode model). S3b's changes move toward it where they touch it: a lease request's client
+update fired at its commit, the success answers tied to the model's step (SpecPlan's `opStep … ls.table`). The Prove
+step checks `SpecPlan`'s `LeaseGrant`/`LeaseRevoke`/`Put` specs and records any defect the proof finds in
+`notes/specs-only/ledger.md` before editing (CLAUDE.md, "The spec plan and convergence").
 
 ## 8. Order of work (after the Freeze), estimate 5–8 agent-days
 

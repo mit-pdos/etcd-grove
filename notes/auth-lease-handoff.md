@@ -56,7 +56,9 @@ with `auth-lease-scope` merged).
    - **S3b**: the request side (grant, revoke, leased put with auth on). **Draft** (2026-11-15):
      `notes/auth-lease-s3b-draft.md` (statements old → new, §6; decisions D1–D5, §7); probe `Scratch/S3bProbe.lean`
      (untracked; copy `/shared/tmp/auth-lease-s3b/S3bProbe.lean`, checked clean: the widened `authTie`, applied ⇒
-     `kvGrantedL`, an applied put's lease live); reviews `/shared/tmp/auth-lease-s3b/review-r*.md`. No frozen text edited.
+     `kvGrantedL`, an applied put's lease live); reviews `/shared/tmp/auth-lease-s3b/review-r*.md`. No frozen text edited. **Rev 3 = the S3b Freeze package**
+     (round 2: no first-tier finding); STOPPED for etcd-grove-81's decisions D1–D7 (questions.md). After the Freeze:
+     the Draft's §8 order of work (est. 5–8 days).
    - **S3c**: the couplings and `NewServer`; the `lease.bootCfg` hub change and the `NewLessor` docstring (hard stops).
    - The auth-on snapshot path carries the leases (F2 (a)); the latest track gains a lease-exact outcome (F1 (ii)).
 2. S4 with the client's leased put (`WithLease`, `Put`/`Txn` with a lease) and linearizable client specs of
