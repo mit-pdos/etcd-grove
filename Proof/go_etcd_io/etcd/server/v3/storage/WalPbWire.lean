@@ -2,8 +2,9 @@
 **The wire format of a `walpb.Record`** (W1/W6 of `notes/wal-fsext-plan.md`, §2.3, "Record bytes"):
 what protobuf-go's `proto.Marshal`/`MarshalAppend` produce for a `walpb.Record`, as a transparent
 Lean function of the message's wire content, and the facts about those bytes the WAL's proof uses.
-Pure (no Go types): the registration of `walpb.Record` as a protobuf message type, with its trusted
-facts, is in the part `LinuxFs/` (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/PbRecord.lean`).
+Pure (no Go types; the schema `recSchema` is `PbSchema.lean`'s, with the other registered types'): the
+registration of `walpb.Record` as a protobuf message type, with its trusted facts, is
+`Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/PbRecord.lean`.
 
 `server/storage/wal/walpb/record.proto` (proto2) at the fork's pin:
 
@@ -32,7 +33,7 @@ The facts:
 -/
 module
 
-public import Proof.google_golang_org.protobuf.proto.UfWire
+public import Proof.google_golang_org.protobuf.proto.PbSchema
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncDecode
 
 @[expose] public section
@@ -78,10 +79,6 @@ def recSize (c : RecC) : Nat :=
   (match c.crc with | none => 0 | some v => 1 + varintSize (uint.nat v)) +
   (match c.data with | none => 0 | some d => 1 + varintSize d.length + d.length) +
   c.uf.length
-
-/-- **`record.proto`'s schema** (`UfWire.lean`): `type` 1 and `crc` 2 varints, `data` 3
-length-delimited. -/
-def recSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [2])]
 
 /-- **The record the WAL's encoder writes for `r`** (`encode`, encoder.go:66-93): `Type` and `Crc`
 always set (`encode` refuses a nil type and sets `Crc`), no unknown fields, and `Data` nil exactly

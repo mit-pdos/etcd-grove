@@ -2,7 +2,9 @@
 The declarations `entDecode`, `EntWireOk`, `entryEncC`, `entryEncC_ok`, `entryTree`, `pbEntryM`,
 `pbEntryC`, `pbEncC_pbEntryC`, `pbEntryC_ty`, `pbEntryC_roC`, `pbEntryC_C`, `pbEntryC_modelOf`,
 `pbEntryC_size`, `pbEntryC_marshals`, `pbEntryC_wire`, `pbEntryC_decOk`, `pbEntryC_ufValid`,
-`pbEntryC_blank`, `pbEntryC_dec`, `pbEntryC_decC`, `entPtsCC_freeze`, `pbEntryC_reg` of
+`pbEntryC_blank`, `pbEntryC_dec`, `pbEntryC_decC`, `entPtsCC_freeze`, `pbEntryC_reg` and its `Sat`
+theorem `pbEntryC_sat` (with `optCell_freeze`, `bytesC_freeze`, `treeWp_entryTree`: the model-param
+gate's rule 7 wants it in the registration's module) of
 `Proof/go_etcd_io/raft/v3/PbEntryType.lean`, split from it so that the WAL
 (`Proof/go_etcd_io/etcd/server/v3/storage/wal/`) imports them without the rest (until 2026-11-15 an
 extract of `etc/gen-part-copies.py` for the part `LinuxFs/`; notes/wal-lean-integration.md). The
@@ -159,6 +161,134 @@ end extract
 axiom pbEntryC_reg [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] :
     pbModelOf GF raftpb.Entry.ty = some (pbEntryC (GF := GF))
+
+/-! ## `Sat` -/
+
+section sat
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A stored cell, frozen, at some presence. -/
+theorem optCell_freeze {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (x : V) :
+    (⌜p = null ∧ x = zero_val V⌝ ∨ p ↦ x : IProp GF) ⊢
+      |==> ∃ o : Option V, optCell p o ∗ ⌜o.getD (zero_val V) = x⌝ := by
+  iintro (%H | H)
+  · imodintro; iexists none
+    unfold optCell
+    isplitl
+    · ipureintro; exact H.1
+    · ipureintro; exact H.2.symm
+  · imod (typedPointsto_dfractional (GF := GF) p x).dfractional_persist _ $$ H with #H
+    imodintro; iexists (some x)
+    unfold optCell
+    isplitl
+    · iexact H
+    · ipureintro; rfl
+
+/-- A stored `bytes` field, frozen, at some nil-ness. -/
+theorem bytesC_freeze (ds : GoSlice) (xs : List w8) (h : xs = [] → ds = slice.nil) :
+    (ds ↦* xs : IProp GF) ⊢ |==> ∃ o : Option (List w8), bytesC ds o ∗ ⌜o.getD [] = xs⌝ := by
+  iintro H
+  by_cases hx : xs = []
+  · subst hx
+    imodintro; iexists none
+    unfold bytesC
+    isplitl
+    · ipureintro; exact h rfl
+    · ipureintro; rfl
+  · ihave %Hlen := ownSlice_len _ _ _ $$ H
+    imod ownSlice_persist _ _ _ $$ H with #H
+    imodintro; iexists (some xs)
+    unfold bytesC
+    isplitl
+    · isplitl
+      · ipureintro
+        intro hn; subst hn
+        apply hx; apply List.eq_nil_of_length_eq_zero
+        rw [Hlen.1]; rfl
+      · iexact H
+    · ipureintro; rfl
+
+/-- **An entry's struct literal**: its value, which, stored anywhere, is an owned entry at some wire
+content with the model `e` (`entPtsCC_freeze` freezes it). -/
+theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
+    (∀ x : raftpb.Entry, (∀ p : Loc, p ↦ x ={⊤}=∗ ∃ c, entPtsCC p (DFrac.own 1) c ∗ ⌜c.model = e⌝) -∗
+      Φ #x) ⊢
+      treeWp (entryTree e) Φ := by
+  iintro H
+  simp only [entryTree, treeWp, treeWpL]
+  iapply treeWp_cell
+  iintro %pt Hpt
+  isplitr
+  · ipureintro; exact isPanic_intoVal pt
+  iapply treeWp_cell
+  iintro %pi Hpi
+  isplitr
+  · ipureintro; exact isPanic_intoVal pi
+  iapply treeWp_cell
+  iintro %pty Hpty
+  isplitr
+  · ipureintro; exact isPanic_intoVal pty
+  iapply treeWp_bytes
+  iintro %ds %Hds Hs -
+  isplitr
+  · ipureintro; exact isPanic_intoVal ds
+  simp [litBody, strctKes, kesσ, envσ]
+  repeat (isplitr; · ipureintro; trivial)
+  wp_auto
+  iapply H
+  iintro %l Hl
+  ihave %Hnn := typedPointsto_not_null $$ Hl
+  icases typedPointsto_split _ _ _ $$ Hl with Hl
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hl with ⟨HS, HT, HI, HY, HD, HU, HSC, -⟩
+  ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
+  ihave Hpb : |={⊤}=> pbMsg raftpb.Entry l [] $$ [HS HSC HU Hnil]
+  · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
+    iframe
+    iexact Hnil
+  imod Hpb with #Hpb
+  imod optCell_freeze pt e.Term' $$ Hpt with ⟨%o1, #c1, %h1⟩
+  imod optCell_freeze pi e.Index' $$ Hpi with ⟨%o2, #c2, %h2⟩
+  imod optCell_freeze pty e.Type' $$ Hpty with ⟨%o3, #c3, %h3⟩
+  imod bytesC_freeze ds e.Data' Hds.2 $$ Hs with ⟨%o4, #c4, %h4⟩
+  imodintro
+  iexists ⟨o1, o2, o3, o4, []⟩
+  unfold entPtsCC
+  isplitl
+  · iexists pt, pi, pty, ds
+    isplitr
+    · ipureintro; exact Hnn
+    iframe HT c1 HI c2 HY c3 HD c4 Hpb
+    try (ipureintro; exact ufWire_nil _)
+  · ipureintro
+    cases e
+    simp only [EntryC.model] at h1 h2 h3 h4 ⊢
+    rw [← h1, ← h2, ← h3, ← h4]
+
+/-- **`pbEntryC`'s decoded model is satisfiable** by the generic store. -/
+theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
+  refine ⟨⟨raftpb.Entry, inferInstance, inferInstance,
+    (inferInstance : IntoValTyped raftpb.Entry raftpb.Entry.ty), fun l => .rfl⟩, ?_⟩
+  intro e l
+  simp only [pbEntryM]
+  iintro Hl
+  iapply wp_fupd
+  iapply (storeInto_wp_typed (V := raftpb.Entry) (ty := raftpb.Entry.ty) l (zero_val raftpb.Entry))
+  iapply (treeWp_entryTree (GF := GF) e)
+  iintro %x Hx
+  iexists x
+  isplitr
+  · ipureintro; rfl
+  iframe Hl
+  iintro Hl
+  iapply Hx $$ Hl
+
+end sat
 
 end EtcdGrove
 end Perennial

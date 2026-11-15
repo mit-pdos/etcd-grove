@@ -2,9 +2,9 @@
 **The wire format of a `walpb.Snapshot`** (W6 of `notes/wal-fsext-plan.md`, `SaveSnapshot`'s content
 model): what protobuf-go's `proto.Marshal` produces for a `walpb.Snapshot` (and the `raftpb.ConfState`
 inside it), as a transparent Lean function of the message's wire content, as `WalPbWire.lean` is for
-`walpb.Record`. Pure (no Go types, nor raft's models: the part `LinuxFs/` imports it, and raft's
-`PbModel`/`PbSchema` exist twice, in the main tree and in the part); the content's model
-(`SnapshotMetadataM`) and the registration of `walpb.Snapshot` belong to the part.
+`walpb.Record`. Pure (no Go types; the schemas `walSnapSchema` and `csSchema` are `PbSchema.lean`'s);
+the content's model (`SnapshotMetadataM`) and the registration of `walpb.Snapshot` are
+`wal/walpb/PbSnapshot.lean`'s.
 
 `server/storage/wal/walpb/record.proto` and raft's `raftpb/raft.proto` (both proto2) at the pins:
 
@@ -73,17 +73,9 @@ def snapEnc (s : WalSnapC) : List w8 :=
 the length `Marshal` writes; checked by `TestSnapshotEncoder`). -/
 def walSnapSize (s : WalSnapC) : Nat := (snapEnc s).length
 
-/-- **`record.proto`'s `Snapshot` schema** (`UfWire.lean`): `index` 1 and `term` 2 varints,
-`conf_state` 3 length-delimited. -/
-def walSnapSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [2])]
-
-/-- **`raft.proto`'s `ConfState` schema**: the four repeated `uint64`s (varint, or packed:
-protobuf-go's decoder takes both), `auto_leave` 5 a varint. -/
-def walCsSchema : FieldSchema := [(1, [0, 2]), (2, [0, 2]), (3, [0, 2]), (4, [0, 2]), (5, [0])]
-
 /-- Each level's schema and unknown fields: the snapshot's, then its conf state's. -/
 def WalSnapC.levels (s : WalSnapC) : List (FieldSchema × List w8) :=
-  (walSnapSchema, s.uf) :: (match s.confState with | none => [] | some c => [(walCsSchema, c.uf)])
+  (walSnapSchema, s.uf) :: (match s.confState with | none => [] | some c => [(csSchema, c.uf)])
 
 theorem snapEnc_ne_of_index (s : WalSnapC) (h : s.index.isSome) : snapEnc s ≠ [] := by
   rcases s with ⟨_ | i, t, c, u⟩

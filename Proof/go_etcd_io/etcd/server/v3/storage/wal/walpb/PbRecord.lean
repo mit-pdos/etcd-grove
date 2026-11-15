@@ -31,8 +31,8 @@ of raft's `PbEntryType.lean`, for the WAL: W6 of `notes/wal-fsext-plan.md`, §2.
   `recEnc`/`recSize`, and `proto.Unmarshal(recEnc c)` giving back exactly `c`; `TestRecordSchema`:
   the descriptor against `recSchema`; protobuf-go v1.36.12, go1.27.3).
 - `pbRecordC_reg`: the registration, of the exact shape `pbModelOf GF walpb.Record.ty = some …`.
-`etc/pbschema-check.py` does not see this registration (it walks `Proof/` and `Spec/` only, and
-its schema table is the main tree's `pbSchemaOf`): `TestRecordSchema` is its descriptor check.
+`recSchema` is `pbSchemaOf walpb.Record.ty` (`PbSchema.lean`), which `etc/pbschema-check.py` reads
+against the Go descriptor, as raftpb's (and `examples/stdlib/walpb`'s `TestRecordSchema`).
 -/
 module
 

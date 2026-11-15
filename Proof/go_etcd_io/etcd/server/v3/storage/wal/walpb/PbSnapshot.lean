@@ -13,7 +13,7 @@ model; the pattern of `PbRecord.lean`).
   the part cannot import; **at C6** the conf state the server passes is raft's own snapshot
   metadata's, `storage.go:62-66` `ConfState: snap.Metadata.GetConfState()`, whose hidden fields are in
   raft's `pbMsg raftpb.ConfState` invariant: `walCsHidden` must then be that one, as it is word for
-  word but the schema's name, `walCsSchema` for `pbSchemaOf raftpb.ConfState`).
+  word, at `csSchema`, `pbSchemaOf raftpb.ConfState`).
 - `snapOwnC l c`: the decoded object, owned whole (as `recOwnC`): what `proto.Unmarshal` leaves.
 - **The encoder is a transparent Lean function** (`WalEnc.snapEnc`), the decoder `snapDecode` opaque.
 
@@ -22,7 +22,7 @@ model; the pattern of `PbRecord.lean`).
   fields are valid at their schemas. Measured: `examples/stdlib/walpb/snapshot_test.go`
   (`TestSnapshotEncoder`: 200,000 random contents, `proto.Marshal`/`proto.Size` against
   `snapEnc`/`walSnapSize`, `proto.Unmarshal(snapEnc c)` giving back exactly `c` at both levels;
-  `TestSnapshotSchema`: the descriptors against `walSnapSchema`/`walCsSchema`).
+  `TestSnapshotSchema`: the descriptors against `walSnapSchema`/`csSchema`).
 - `pbSnapC_reg`: the registration, of the exact shape `pbModelOf GF walpb.Snapshot.ty = some …`.
 
 **The WAL's snapshot predicates** (the part's, in place of the main tree's `WalDisk.lean` ones, which
@@ -88,12 +88,12 @@ def snapHidden (l : Loc) (uf : List w8) : IProp GF :=
       l.[walpb.Snapshot, go!"unknownFields"] ↦ us ∗ us ↦* uf) ∗ ⌜ufWire walSnapSchema uf⌝)
 
 /-- **The hidden fields of a `*raftpb.ConfState`** (raft's `pbMsg raftpb.ConfState` word for word,
-at `walCsSchema`; see the file header). -/
+at `csSchema`; see the file header). -/
 def walCsHidden (l : Loc) (uf : List w8) : IProp GF :=
   iprop(inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
       (sc : w32) (us : GoSlice),
     l.[raftpb.ConfState, go!"state"] ↦ st ∗ l.[raftpb.ConfState, go!"sizeCache"] ↦ sc ∗
-      l.[raftpb.ConfState, go!"unknownFields"] ↦ us ∗ us ↦* uf) ∗ ⌜ufWire walCsSchema uf⌝)
+      l.[raftpb.ConfState, go!"unknownFields"] ↦ us ∗ us ↦* uf) ∗ ⌜ufWire csSchema uf⌝)
 
 instance snapHidden_persistent (l : Loc) (uf : List w8) :
     Persistent (snapHidden (GF := GF) l uf) := by unfold snapHidden; infer_instance
@@ -191,7 +191,7 @@ def walCsOwnC (p : Loc) : Option WalCsC → IProp GF
   | some c => iprop(∃ v : raftpb.ConfState,
       p ↦ v ∗ v.Voters' ↦* c.voters ∗ v.Learners' ↦* c.learners ∗
       v.VotersOutgoing' ↦* c.votersOutgoing ∗ v.LearnersNext' ↦* c.learnersNext ∗
-      recCell v.AutoLeave' c.autoLeave ∗ v.unknownFields' ↦* c.uf ∗ ⌜ufWire walCsSchema c.uf⌝)
+      recCell v.AutoLeave' c.autoLeave ∗ v.unknownFields' ↦* c.uf ∗ ⌜ufWire csSchema c.uf⌝)
 
 /-- **A decoded `*walpb.Snapshot` at `l` holding exactly `c`, owned whole** (as `recOwnC`: the
 decoded message is fresh, and protobuf-go keeps no reference to it after `Unmarshal` returns). -/
