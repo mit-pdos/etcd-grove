@@ -1,0 +1,13 @@
+# txnlinfaultsN (examples/etcd/txnlinfaultsN; notes/txnlinfaultsN-plan.md, 2026-11-15): linkv3p (partition)
+# with any number of members, `Main(k, clients, ops, sched)` for every 1 <= k <= 1000 and every schedule. The
+# results of Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/Results.lean: `txnlinfaultsN_Main`
+# and the closed theorem `etcd_txnlinfaultsN_safe`/`etcd_txnlinfaultsN_adequate`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/txnlinfaultsN.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/txnlinfaultsN.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/txnlinfaultsN.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update (after linking: Results.lean does not
+# exist yet).
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/Results\.lean$
