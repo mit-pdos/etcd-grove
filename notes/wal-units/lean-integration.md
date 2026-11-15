@@ -106,3 +106,97 @@ relocation + `origin/lean` merged. Log of the session(s); the plan says what and
    −`purgeRound`, the WAL's copied axioms now the originals), `etc/tcb-collections` (`wal-fsext`, a
    `wal-tester`), `etc/gen-interface.py` for the changed APIs.
 6. Re-merge `origin/wal-int` again before landing (`etc/wal-lean-remerge.py b46dd78a5d`).
+
+## Session 2 (2026-11-15)
+
+Setup: a fresh worktree (local branch `wal-lean2`, pushing to `origin/wal-lean`: the old worktree
+still holds `wal-lean`), the previous session's `.lake` copied.
+
+### Coordinator decisions applied
+
+- **`os.File.WriteAt.specExt` restated as `specLong`'s post** (ledger entry updated): `∃ j a E ys`,
+  `E ≤ j ∧ (j = a → E = a)`, `osMeta (os.pwPostE m off a j E)`; `WriteChunks.pwPost_chunk` (false under
+  `cz`) deleted, `File__WriteAtExt.pwPostE_chunk` (with `pwCzE_stepG`, `pwCzE_step` for a write
+  anywhere) in its place; the proof carries the last whole chunk's end `E` through the Löb loop
+  (generalized to a variable before the context's `omega`s: with its `if`, and with the loop invariant
+  in context, `omega` timed out). bbolt: `Tx__write`, `Commit/WriteExtRun`, `Commit/PwMeta`
+  (`pwPostE_inside`) take the `E`.
+- **`lib/durable` D2** recorded as decided (plan, `CLAUDE.md`); **`purgeRound`'s retirement** approved
+  (plan).
+
+### Done
+
+1. `Proof.go_etcd_io.etcd.server.v3.storage.wal.Link` builds (no repair needed past session 1's).
+2. `WalTester/`: its generated `Init.lean`s imported wrong paths (`etc/gen-init.py`'s `wt_inits`: the
+   part's instance paths lacked `Proof/`, the part's inventory shadowed the main tree's `os` with
+   Perennial's); fixed and regenerated; builds.
+3. Re-merge of `origin/wal-int` `8d6f3670d8` (`0542339226`): the tester's Go changes and proofs
+   (`purgeRound` gone), `Create`'s cleanup proved (`CleanupAu`, `CleanupMoved`). `etc/wal-lean-remerge.py`
+   fixed: "ours" is HEAD's file (git's own merge may have left markers in the working file), and the
+   tester's imports get the `WalTester.` prefix. WalTester's translation regenerated (`--project
+   etcd-wal`; the main tree's absDisk tester `wal.toml`/`wal.lean`, which wal-int changed, stay deleted).
+4. Etcd pin `e115818f5` (fork 0006: `WAL.Sync` takes `w.mu`, issues/etcd-wal-sync-releaselockto-race.md):
+   `etc/goose.py`, the examples' `go.mod`/`go.sum` (the replaces' pseudo-version; sums from `go mod
+   download -json`, no `tidy`: it rewrote unrelated requirements). Regenerated: `WAL.Sync`'s body only
+   (and `ioutil`, below). `WAL.Sync.wp_proof` takes the handle's mutex (`walHandleIn_lockFacts`,
+   Perennial's `sync.Mutex.wp_Lock`/`wp_Unlock`, invariant `True`) around `sync`, the invariant opened
+   right after the lock; **its spec is unchanged** (no ledger entry needed); no new hypothesis.
+5. Full-build repairs (`187e7d78ce`):
+   - `ioutil.toml`: the merge kept only the WAL's entries; lean's (rafthttp's readers, `ReaderAndCloser`)
+     restored beside them (regenerated: `Code/.../ioutil.lean` gains the WAL's page writer only).
+   - The WAL's specs are named in `EtcdGrove.go_etcd_io.etcd.pkg.v3.{crc,ioutil}`, so `open
+     go_etcd_io.etcd.pkg.v3` inside `namespace EtcdGrove` resolved to it in every module that reaches
+     the WAL (the server's): those opens (116 files) now name `_root_.Perennial.go_etcd_io.etcd.pkg.v3`.
+   - k8s `PrepareKey`'s `argWf_string` is `storage.argWf_string` (the WAL's `Spec/fmt/ErrorfErrs` has it).
+   - bbolt over wal-int's `os` changes: `File.Stat`'s error is an `errnoPathErr` (`PageSize.stat_err_ptr`
+     gives the pointer-error fact the port used); `ftruncate` announces to the page end (`rsPost true`,
+     `rsHi true`; `DB__grow.grow_rsHi`: for a page-aligned size at least the file's, the size).
+   - raft's and RaftWitness's `Init`: `os`'s fact has more conjuncts (`sep_elim_left`); mvcc `Results`
+     imports raft's `Code` (no longer reached through the backend's `Base`); `RaftModel/LawsHs`: raft's
+     `isInitialized` is not persistent (the part's `rootInit` was); WalTester's new files use
+     `walSnapRoC`/`walSnapSize`; `EntryType.Enum`'s spec imports raft's `Base`; SpecPlan's PkgInit
+     regenerated (`etc/gen-specs-pkginit.py`).
+   - `etc/api/raft.txt`: the seven `<Source>Core` extracts importable (each a piece of a listed module).
+
+### Build status (end of session 2)
+
+Full niced `lake build` (18355 jobs): everything builds **but 13 adequacy theorems**, all with one error,
+`failed to synthesize HasExt Fs.fsExt`: `examples/etcd/{compacted,putget,putget3,restart1,lease,leasegrant,
+leaseexpiry,leasecatchup,compactwatch,txnlin,partition}/Adequacy.lean`, `examples/k8s/{compactor,etcd3}/
+Adequacy.lean`. Cause: with bodies, `fileutil`'s package initializer runs its `init` (lock_linux.go: the
+`F_OFD_GETLK` probe, `syscall.FcntlFlock` over `fsExt`), and the server imports `fileutil`, so every
+etcd program's `wp_initialize'` now needs the file extension (`[ExtSemantics fsExt] [FsSemOk] [HasExt
+fsExt]`), where these adequacy theorems run over `trivialExts` (no extension). True of real etcd (every
+etcd process makes that `fcntl` at startup), but closing them means changing the closed theorems'
+semantics: **for the coordinator/user**. Options: (A) the etcd adequacy theorems over `fsExts`
+(`fsExtsSemanticsWithS`, the osfs programs' setup; their start allocates the file extension's ghost state)
+-- a change to 13 closed statements; (B) the server's `fileutil` initializer kept a trust-boundary fact
+for the server's chain (an axiom that the probe's outcome is one of the two lock pairs, with no extension
+step), which would be a trusted-text change; (C) etcd's main programs import the names-only `fileutil`
+(a second translation, as `lib/durable`) -- against one translation per package. Not attempted.
+Because the build fails there, `etc/gates.sh` and `etc/tcb-report.py --check --update` (and the
+collections) cannot run yet (both need an up-to-date build).
+
+### Checks run
+
+- `etc/gen-init.py --check`: up to date. `etc/gen-specs-pkginit.py --check`: up to date.
+- `etc/api-check.py --check` for every `etc/api/*.txt`: no errors (after the raft list's additions).
+- `etc/goose.py --check`: passes (every project at its pin, the examples' replaces at the etcd pin).
+- Interfaces regenerated (`etc/gen-interface.py`): `backend` (the package instances moved to their
+  `PkgInit.lean`s), `etcdstart` (`wp_initialize'_res` takes `[ExtSemantics fsExt] [FsSemOk] [HasExt
+  fsExt]`: the cause above, visible in the API), `raft` (the `<Source>Core` modules); `bbolt` could not
+  be regenerated (its check needs the failing adequacy modules built), its only change was
+  `DB__grow.grow_rsHi`, now `private`. `--layout`: no new violation in the three regenerated.
+- Not run: `etc/gates.sh`, `etc/tcb-report.py --check --update` and the collections (`wal-fsext`, a
+  `wal-tester`): they need the full build.
+
+### Next steps
+
+1. The coordinator's decision on the etcd adequacy theorems and `fsExt` (A/B/C above); then the 13
+   adequacy files.
+2. The full niced `lake build`; `etc/gates.sh`; `etc/tcb-report.py --check --update` (expected: −12
+   names-only WAL axioms, −`purgeRound`, −`TouchDirAll`'s, the WAL's `sorry`s gone) and the collections;
+   the `bbolt` interface.
+3. Re-merge `origin/wal-int` (`etc/wal-lean-remerge.py 8d6f3670d8`; `23c56c7a32` added only notes and
+   the fork patch since). A new wal-int file may name `snapRoC`/`snapSize` (here `walSnapRoC`/
+   `walSnapSize`) or open `go_etcd_io.etcd.pkg.v3` inside `EtcdGrove` (here `_root_.Perennial....`).

@@ -19,11 +19,6 @@ def metaOptC (p : Loc) : Option SnapMetaC → IProp GF :=
   | none => iprop(⌜p = null⌝)
   | some m => metaRoC p m
 
-def bytesC (ds : GoSlice) : Option (List w8) → IProp GF :=
-  match x✝ with
-  | none => iprop(⌜ds = slice.nil⌝)
-  | some bs => iprop(⌜ds ≠ slice.nil⌝ ∗ ownSlice ds bs DFrac.discard)
-
 theorem entsRO_entsRoC (els : List Loc) (es : List EntryM) : ([∗list] p;e ∈ els;es, entRO p e) ⊢ ∃
     ecs, ([∗list] p;c ∈ els;ecs, entRoC p c) ∗ ⌜List.map EntryC.model ecs = es⌝
 
@@ -50,10 +45,6 @@ def csRoC (p : Loc) (c : CSC) : IProp GF :=
                               p)
                             pa DFrac.discard ∗
                           optCell pa c.autoLeave ∗ pbMsg raftpb.ConfState p c.uf)
-
-def EntryC.model (c : EntryC) : EntryM :=
-  { Term' := c.term.getD (zero_val w64), Index' := c.index.getD (zero_val w64),
-    Type' := c.type.getD (zero_val raftpb.EntryType), Data' := c.data.getD [] }
 
 theorem MsgC.brecOn.eq.{u} {motive_1 : MsgC → Sort u} {motive_2 : List (Loc × MsgC) → Sort u}
     {motive_3 : Loc × MsgC → Sort u} (t : MsgC) (F_1 : (t : MsgC) → t.below → motive_1 t) (F_2 : (t
@@ -84,8 +75,6 @@ def csLevels : Option CSC → List (FieldSchema × List w8) :=
   | some c => [(csSchema, c.uf)]
 
 theorem entRoC_entRO (l : Loc) (c : EntryC) : entRoC l c ⊢ entRO l c.model
-
-theorem pbMsg_uf_entry (l : Loc) (uf : List w8) : pbMsg raftpb.Entry l uf ⊢ ⌜ufWire entrySchema uf⌝
 
 theorem msgRoC_persistent (l : Loc) (c : MsgC) : Persistent (msgRoC l c)
 
@@ -157,11 +146,6 @@ def MsgFC.levels (f : MsgFC) : List (FieldSchema × List w8) :=
 
 theorem csOptC_csOptA (p : Loc) (o : Option CSC) (h : ∀ (cs : CSC), cs ∈ o → cs.uf = []) : csOptC p
     o ⊢ csOptA p DFrac.discard ((Option.map CSC.model o).getD csZero)
-
-theorem bytesC_persistent (ds : GoSlice) (o : Option (List w8)) : Persistent (bytesC ds o)
-
-theorem optCell_persistent {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (o : Option V) :
-    Persistent (optCell p o)
 
 def snapOptC (p : Loc) : Option SnapC → IProp GF :=
   match x✝ with
@@ -245,18 +229,6 @@ theorem MsgC.brecOn_1.eq.{u} {motive_1 : MsgC → Sort u} {motive_2 : List (Loc 
 inductive MsgC : Type
   | MsgC.mk (f : MsgFC) (resps : List (Loc × MsgC)) : MsgC
 
-def entRoC (l : Loc) (c : EntryC) : IProp GF :=
-  iprop(∃ pt pi pty ds,
-      ⌜l ≠ null⌝ ∗
-        typedPointsto (structFieldRef raftpb.Entry go!"Term" l) pt DFrac.discard ∗
-          optCell pt c.term ∗
-            typedPointsto (structFieldRef raftpb.Entry go!"Index" l) pi DFrac.discard ∗
-              optCell pi c.index ∗
-                typedPointsto (structFieldRef raftpb.Entry go!"Type" l) pty DFrac.discard ∗
-                  optCell pty c.type ∗
-                    typedPointsto (structFieldRef raftpb.Entry go!"Data" l) ds DFrac.discard ∗
-                      bytesC ds c.data ∗ pbMsg raftpb.Entry l c.uf)
-
 theorem snapOptC_snapOpt (p : Loc) (o : Option SnapC) (h : ∀ (s : SnapC), s ∈ o → ∀ (m : SnapMetaC),
     m ∈ s.metadata → ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []) : snapOptC p o ⊢ snapOpt p
     DFrac.discard (Option.map SnapC.model o)
@@ -271,11 +243,6 @@ structure SnapMetaC : Type where
   uf : List w8
 
 theorem entRoC_uf (p : Loc) (e : EntryC) : entRoC p e ⊢ ⌜ufWire entrySchema e.uf⌝
-
-def optVarintSize (o : Option Nat) : Nat :=
-  match o with
-  | none => 0
-  | some n => 1 + varintSize n
 
 theorem smOpt_metaOptC (p : Loc) (md : SnapshotMetadataM) : smOpt p DFrac.discard md ⊢ ∃ o, metaOptC
     p o ∗ ⌜(Option.map SnapMetaC.model o).getD metaZero = md ∧ ∀ (m : SnapMetaC), m ∈ o → ∀ (cs :
@@ -299,15 +266,6 @@ theorem msgOwn_msgRoC (l : Loc) (st : MsgSt) (hr : st.resps = []) : msgOwn l DFr
 theorem msgRoC_ents (l : Loc) (c : MsgC) : msgRoC l c ⊢ ∃ es els, typedPointsto (structFieldRef
     raftpb.Message go!"Entries" l) es DFrac.discard ∗ ownSlice es els DFrac.discard ∗ [∗list] p;e ∈
     els;c.f.entries, entRoC p e
-
-def entrySize (c : EntryC) : Nat :=
-  (optVarintSize (Option.map (fun t => (uint.Z (W64 (sint.Z t))).toNat) c.type) +
-          optVarintSize (Option.map (fun v => (uint.Z v).toNat) c.term) +
-        optVarintSize (Option.map (fun v => (uint.Z v).toNat) c.index) +
-      match c.data with
-      | none => 0
-      | some bs => 1 + varintSize bs.length + bs.length) +
-    c.uf.length
 
 def MsgC.brecOn_1.go.{u} {motive_1 : MsgC → Sort u} {motive_2 : List (Loc × MsgC) → Sort u}
     {motive_3 : Loc × MsgC → Sort u} (t : List (Loc × MsgC)) (F_1 : (t : MsgC) → t.below → motive_1
@@ -334,8 +292,6 @@ def MsgC.brecOn_2.go.{u} {motive_1 : MsgC → Sort u} {motive_2 : List (Loc × M
   MsgC.rec_2 (fun f resps resps_ih => ⟨F_1 (MsgC.mk f resps) resps_ih, resps_ih⟩) ⟨F_2 [] PUnit.unit, PUnit.unit⟩
     (fun head tail head_ih tail_ih => ⟨F_2 (head :: tail) ⟨head_ih, tail_ih⟩, head_ih, tail_ih⟩)
     (fun fst snd snd_ih => ⟨F_3 (fst, snd) snd_ih, snd_ih⟩) t
-
-theorem entRoC_persistent (l : Loc) (c : EntryC) : Persistent (entRoC l c)
 
 theorem csOptA_csOptC (p : Loc) (c : ConfStateM) : csOptA p DFrac.discard c ⊢ ∃ o, csOptC p o ∗
     ⌜(Option.map CSC.model o).getD csZero = c ∧ ∀ (cc : CSC), cc ∈ o → cc.uf = []⌝
@@ -453,13 +409,6 @@ def MsgC.model (c : MsgC) : MsgSt :=
 def lenSize (n : Nat) : Nat :=
   1 + varintSize n + n
 
-structure EntryC : Type where
-  term : Option w64
-  index : Option w64
-  type : Option raftpb.EntryType
-  data : Option (List w8)
-  uf : List w8
-
 theorem msgRoC.eq_def (x✝ : Loc) (x✝¹ : MsgC) : msgRoC x✝ x✝¹ = match x✝, x✝¹ with | l, MsgC.mk f rs
     => iprop(msgFRoC l f (List.map Prod.fst rs) ∗ respsRoC rs)
 
@@ -500,11 +449,6 @@ def optBoolSize : Option Bool → Nat :=
   match x✝ with
   | none => 0
   | some val => 2
-
-def optCell {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) : Option V → IProp GF :=
-  match x✝ with
-  | none => iprop(⌜p = null⌝)
-  | some v => typedPointsto p v DFrac.discard
 
 theorem smPts_metaRoC (p : Loc) (md : SnapshotMetadataM) : smPts p DFrac.discard md ⊢ ∃ m, metaRoC p
     m ∗ ⌜m.model = md ∧ ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []⌝

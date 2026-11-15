@@ -180,3 +180,13 @@ importable Proof.go_etcd_io.raft.v3.SpecResults
 importable Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
 importable Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 importable Proof.go_etcd_io.raft.v3.Protocol.StepRInv
+
+# (2026-11-15, the WAL over fsExt into the main tree, notes/wal-lean-integration.md) the parts of
+# importable modules the WAL imports alone (their sources import them publicly; the whole sources
+# bring names that clash with the WAL's): no new exposure, each is a piece of a listed module.
+importable Proof.go_etcd_io.raft.v3.NodeApiVocabCore
+importable Proof.go_etcd_io.raft.v3.Protocol.CommitWitCore
+importable Proof.go_etcd_io.raft.v3.InvPbCore
+importable Proof.go_etcd_io.raft.v3.PbContentCore
+importable Proof.go_etcd_io.raft.v3.PbContentOwnCore
+importable Proof.go_etcd_io.raft.v3.PbEntryTypeCore

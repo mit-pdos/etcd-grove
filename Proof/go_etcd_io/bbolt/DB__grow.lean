@@ -32,7 +32,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 
 /-- A resize to a page-aligned size at least the file's announces up to that size (`rsHi`: the end of
 the page holding the larger of the two). -/
-theorem grow_rsHi (s tg : Nat) (h : s ≤ tg) (hal : tg % 4096 = 0) : rsHi true s tg = tg := by
+private theorem grow_rsHi (s tg : Nat) (h : s ≤ tg) (hal : tg % 4096 = 0) : rsHi true s tg = tg := by
   simp only [rsHi, if_true, pageEnd]; omega
 
 section proof
