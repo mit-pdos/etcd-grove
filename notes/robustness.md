@@ -10,40 +10,64 @@ establishes about exactly those runs. First user: `examples/raft/kvnet`. Branch 
 | | Go (test) | Lean (statement) |
 |---|---|---|
 | where | `examples/lib/robust` | lean_lib `Robustness` (`Robustness/*.lean`) |
-| the system's nodes | the program's unchanged binary, a process per machine (`Machine.Start`) | `Deployment.sys`: each node's boot program (its Goose translation) and initial local state |
-| clients, other hosts | goroutines dialing from client machines (`Machine.Dial`) | `Deployment.env`: **any** programs on other nodes; nothing proved of them |
-| crashes | `Proc.Kill` (SIGKILL) then `SyncFS`, or `Disk.PowerLoss` (dm-flakey) | `RunStep.crash`: any node, any step, restart with its boot program from a state the extensions' crash relations allow (the file extension's power loss; a kill plus sync is one by its "Restarts" assumption) |
-| network faults | the kernel, in a router namespace: iptables partitions (both ways or one way, drops or resets), tc netem (delay, jitter, loss, duplication, reordering); `NetNemesis` | the network semantics' nondeterminism (TCP: a direction cut at any read or write, any delay, a dial failing); `World.move` for a network whose semantics lacks a fault (none for TCP) |
+| the system's nodes | the program's unchanged binary, a process per machine (`Machine.Start`) | `Robust`'s `sys`: each node's boot program (its Goose translation) and initial local state |
+| clients, other hosts | goroutines dialing from client machines (`Machine.Dial`) | `Robust`'s `env`: **any** programs on other nodes of the same distributed system; nothing proved of them |
+| crashes | `Proc.Kill` (SIGKILL) then `SyncFS`, or `Disk.PowerLoss` (dm-flakey) | `DistCrashStep.crash`: any node, any step, restart with its boot program from a state the extensions' crash relations allow (the file extension's power loss; a kill plus sync is one by its "Restarts" assumption) |
+| network faults | the kernel, in a router namespace: iptables partitions (both ways or one way, drops or resets), tc netem (delay, jitter, loss, duplication, reordering); `NetNemesis` | the TCP semantics' nondeterminism (a direction cut at any read or write, any delay, a dial failing) |
 | scheduling | the OS | any interleaving (a node started late is one not scheduled before) |
-| what is checked | the driver's (kvnet: porcupine on the clients' history, convergence, the final whole-cluster crash) | `Robust`'s conclusion: every system node fine (`NodeOk`: no stuck thread, no unrecovered panic), and `Guarantee` of the observed trace |
+| what is checked | the driver's (kvnet: porcupine on the clients' history, convergence, the final whole-cluster crash) | `Robust`'s conclusion: every system node fine (`NodeOk`: no stuck thread, no unrecovered panic), and `Guarantee` of the shared state over time |
 
 ## The Lean statement (`Robustness/`)
 
-- `Run.lean` (trusted): `RunStep` = a thread step of any node | a crash of any node | a world move;
-  `Run` collects the **trace**: for each step, the events `World.obs g g'` of its change of the shared
-  state, stamped with the step's index and who made it (`Timed`, `Who`). Events come from the change
-  of the shared state, not from a history kept in it: the network semantics of branch `net-tcp` keeps
-  only observable state (the user's principle), and a step's change is observable.
-- `Statement.lean` (trusted): `Robust W d bound Assume Guarantee`. **`Assume` sees only the
-  environment's events** (`Deployment.envEvents`: those of the environment's nodes and of world
-  moves, in order, without times), so it can constrain the clients and never what the system
-  answers: the premise cannot be made false by the system's behavior (no vacuity through it).
-- `Linearizability.lean` (trusted): `LinearizableTrace M h` for timed call/return events keyed by an
-  operation's identity: well formed (a return follows a call; one input and one output per key:
-  retries are one operation and its answers agree) and porcupine's `Theory.Linearizable` of the
-  history with each operation from its first call to its first return, plus a chosen subset of the
-  operations that never returned, open to the end (Herlihy and Wing's pending operations).
-- `Stream.lean` (trusted): `StreamEv` (bytes written into a connection, by which end, to which
-  address); the class `StreamNet` a network semantics instantiates (`obs`, `host`, `fresh`,
-  `freshNode`; the header says how the TCP extension of `net-tcp` would); `World.ofStream` (no world
-  moves); `ReqResp` and `opEvents`: a call when the dialer's bytes first decode as a complete request,
-  a return when the acceptor's bytes first decode as a complete answer.
+Redone 2026-11-15 (the user's: the first version introduced concepts it did not need, a "world"
+among them; use GooseLang's existing transition relation; keep the trust base small). The statement
+has **no semantics of its own**: the transition relation is Perennial's `DistCrashStep`
+(`DistLang.lean`: a thread step of a node, or a node's crash and restart), the one
+`goose_dist_crash_adequacy` is about.
+
+- `Statement.lean` (trusted, four definitions):
+  - `IsRun boots cs`: `cs[j+1]` is a `DistCrashStep` from `cs[j]`. Proved equal to the executions of
+    `DistCrashNsteps` with the intermediate configurations kept (`IsRun.nsteps`, `IsRun.of_nsteps`,
+    not trusted), so `NodeOk` at a run's end is the adequacy theorem's conclusion as it stands.
+  - `envSteps k cs`: the changes `(g, g')` of the shared state by the steps that leave the first `k`
+    nodes (the system's) as they were. This is how a step is attributed without labels:
+    `DistCrashStep` does not say which node stepped. (A system node's step that changed neither its
+    threads nor its local state would be counted as the environment's: only an extension's stutter
+    does that, and it changes nothing.)
+  - `NodeOk`, and `Robust sys env g bound Assume Guarantee`: for every run of `sys ++ env` from `g`
+    of fewer than `bound` steps, `Assume (envSteps …)` implies `NodeOk` of every system node at the
+    end and `Guarantee` of the run's global states (the index is the time). **`Assume` sees only the
+    environment's steps**, so it can constrain the clients and cannot mention a step the system took.
+- `Linearizability.lean` (trusted, unchanged): `LinearizableTrace M h` for timed call/return events
+  keyed by an operation's identity: well formed (a return follows a call; one input and one output
+  per key: retries are one operation and its answers agree) and porcupine's `Theory.Linearizable` of
+  the history with each operation from its first call to its first return, plus a chosen subset of
+  the operations that never returned, open to the end (Herlihy and Wing's pending operations).
+- `Stream.lean` (trusted): over the TCP extension's state (`GooseLang/Ext/Tcp/Impl.lean`), not a
+  class. `StreamEv` (bytes written into a connection, by which end, to which address); `tcpObs g g'`:
+  the events of a change of the network, read off the state because it keeps only what is
+  observable (the user's principle: no history): a direction whose unread bytes grew by a suffix had
+  that suffix written (`appended`; a read removes a prefix, a cut keeps one: `appended_write`,
+  `appended_read`); `streamTrace` (the events of a run's global states, with their step's index),
+  `envStream` (those of the environment's steps); `ReqResp` and `opEvents` as before: a call when
+  the dialer's bytes first decode as a complete request, a return when the acceptor's bytes first
+  decode as a complete answer.
+
+What went away, and why it was not needed: `World` (`move`: empty for TCP, whose semantics has every
+fault; `obs`: now `tcpObs`, applied by the instance), `Who` and `Timed` (a time is an index; who
+stepped is `envSteps`), `RunStep`/`Run` (a copy of `DistCrashStep` with labels and a trace),
+`Deployment` and its five functions (two lists and a global state), the class `StreamNet` (`obs`,
+`host`, `fresh`, `freshNode`: an instance to be trusted later; now the extension's own fields).
 
 ## kvnet's statement (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean`)
 
 `kvnetRobust prog : Prop`, a `def` (no proof, no `sorry`, no axiom): for every deployment of replica
-processes running `prog cfg` (fresh directories, a fresh network whose plan puts each replica's
-address at its host), with any environment nodes on other hosts, every run of fewer than `2^61` steps
+processes running `prog cfg` (fresh directories, no listener, a fresh network -- `FreshNet`: a
+well-formed plan, `Tcp.PlanWellFormed`, and no connection -- whose plan puts each replica's
+address at its host), with any environment nodes on other hosts with no listener at the start
+(`EnvStart`; without that, an environment node could start with an open listener at a replica's
+address and accept its clients and peers: the first version's statement allowed it), every run of
+fewer than `2^61` steps
 whose environment satisfies `ClientsOk` -- no client speaks the peer protocol to a replica
 (`NoPeerClaim`, the closed world: replicas do not authenticate raft messages) and no two read
 requests share a sequence number (`ReadSeqsFresh`: a replica matches read answers to waiters by it)
@@ -59,9 +83,9 @@ Decisions (the agent's, for review):
   an interval inside what the client observes, so the guarantee is at least the client's.
 - **Status, configuration changes and disruptions** are allowed from any client at any time and are
   not operations of the history (`ReqStatus` reads a replica's local state, stale by design).
-- **`prog` is a parameter**: kvnet is not translated (`net` is names-only at this pin; its semantics
-  is on branch `net-tcp`). The theorem to prove is `kvnetRobust (fun cfg => <the translation>)`. So is
-  the network: `[StreamNet]`; the files: `[HasExt Fs.fsExt]` (durable's reimplementation over `os`,
+- **`prog` is a parameter**: kvnet is not translated. The theorem to prove is
+  `kvnetRobust (fun cfg => <the translation>)`. The extensions are any list with the TCP extension
+  (`[HasExt Tcp.tcpExt]`) and the files' (`[HasExt Fs.fsExt]`: durable's reimplementation over `os`,
   `notes/decisions.md`, "One file semantics, fsExt; power loss only").
 - **Replicas started later** (the driver's ids 4-9) are nodes of the deployment from the start that
   the scheduler does not run before; **removed replicas** keep running, as in the test.
@@ -90,11 +114,15 @@ machine, 27 by resets) and 47 link-fault episodes.
 
 ## Next
 
-- Instantiate `StreamNet` for the TCP extension when `net-tcp` lands, and check that `obs` gives one
-  event per `"Write"` step (a write's suffix), none for reads, cuts and dials.
-- A distributed adequacy theorem for `Run` (`goose_dist_crash_adequacy` plus world moves, plus an
-  observation-preserving invariant connecting the trace to ghost state), then `kvnetRobust`'s proof
-  from kvdurable's.
+- A sanity lemma that a `Tcp.WriteStep` into an open direction has exactly one event, its bytes, and
+  every other step of the extension none (`tcpObs` over `GMap.toList` of `setConn`).
+- A distributed adequacy theorem with unverified nodes: `goose_dist_crash_adequacy` asks a WP of
+  every node; `Robust` needs the environment's nodes to run any program, constrained only through
+  `Assume` on their steps' changes of the network, plus an invariant connecting the network's state
+  over time to ghost state (the trace is not in the state). Then `kvnetRobust`'s proof from
+  kvdurable's. This is where the statement's shape will be tested; nothing is proved of it yet.
+- Whether `DistStep` should carry the stepping node's index in Perennial (it would make `envSteps`
+  a filter on labels): a general change, to propose there on its own.
 - A mutation check that only the network finds (e.g. a `Read` served without a read index: a stale
   read from a partitioned old leader).
 - Other programs: the harness takes any binary; their statements reuse `Robust` with their own

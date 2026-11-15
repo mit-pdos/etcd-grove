@@ -15,11 +15,13 @@ replica program would establish of every such run, over the generic statement of
 **For every deployment** of replica processes, each running `prog cfg` (its node configuration
 `cfg`: id, directory, every replica's address, the cluster's options) on a machine of its own, at
 the start and after every crash, with an empty directory of its own and no package initialized;
-with any number of environment nodes running **any programs** on other hosts; on a fresh network
-with a plan of addresses that puts each replica's address on its machine; **in every run** (any
-interleaving, any crash of any node at any step -- a power loss, or a kill followed by a sync, the
-file extension's "Restarts" -- and every network fault the network semantics allows: bytes delayed,
-directions cut, dials failing, which is what partitions and resets are) of fewer than `2^61` steps,
+with any number of environment nodes running **any programs** on other hosts, with no listener at
+the start; on a fresh network (no connection) with a well-formed plan of addresses that puts each
+replica's address on its machine; **in every run** (`IsRun`, the executions of Perennial's
+`DistCrashStep`: any interleaving, any crash of any node at any step -- a power loss, or a kill
+followed by a sync, the file extension's "Restarts" -- and every network fault the TCP semantics
+allows: bytes delayed, directions cut, dials failing, which is what partitions and resets are) of
+fewer than `2^61` steps,
 **if the environment's events** (`ClientsOk`) never speak the peer protocol to a replica (a
 connection a client opens to a replica starts with `'C'`) and never send two read requests with
 one sequence number, **then** no replica is stuck or has an unrecovered panic, and the clients'
@@ -36,13 +38,13 @@ could forge raft messages: that is the closed-world assumption `NoPeerClaim`.
 
 **The parameters a proof will fix.**
 * `prog`: the Goose translation of a replica's process, kvnet's package initialization then
-  `RunNode(cfg)` with `cfg`'s Go value. kvnet is not translated yet (`net` is names-only in this
-  pin's Perennial; branch `net-tcp` has its semantics), so the statement takes it as a parameter:
-  `kvnetRobust (fun cfg => <translated program>)` is the theorem to prove.
-* `[StreamNet]`: the network semantics (the TCP extension of branch `net-tcp`, whose instance
-  `Robustness/Stream.lean`'s header describes), and `[HasExt Fs.fsExt]`: the file semantics (the
-  replicas' file, written through `durable.Write`, reimplemented over `os` per `notes/decisions.md`,
-  "One file semantics, fsExt; power loss only").
+  `RunNode(cfg)` with `cfg`'s Go value. kvnet is not translated yet, so the statement takes it as
+  a parameter: `kvnetRobust (fun cfg => <translated program>)` is the theorem to prove.
+* The extensions: any list of them with the TCP extension (`[HasExt Tcp.tcpExt]`,
+  `GooseLang/Ext/Tcp/Impl.lean`: the network, whose events `Robustness/Stream.lean` reads off its
+  state) and the Linux file extension (`[HasExt Fs.fsExt]`: the replicas' file, written through
+  `durable.Write`, reimplemented over `os` per `notes/decisions.md`, "One file semantics, fsExt;
+  power loss only"), each with its own semantics (`HasExt.sem_eq`).
 
 The wire format below is kvnet's (`wire.go`, `client.go`, `codec.go`): a frame is an 8-byte
 little-endian length and the body (a reader drops a length above `2^26`); a client connection
@@ -53,6 +55,8 @@ module
 
 public import Robustness.Stream
 public import GooseLang.Ext.Fs.Ghost
+public import GooseLang.Ext.Tcp.Ghost
+public import GooseLang.Ext.Tcp.Deploy
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -217,7 +221,20 @@ def replicaAddrs (cfgs : List NodeConfig) : List GoString :=
   cfgs.flatMap fun c => c.addrs.map Prod.snd
 
 section deployment
-variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [HasExt Fs.fsExt] [StreamNet]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [HasExt Fs.fsExt]
+  [HasExt Tcp.tcpExt]
+
+/-- The host of the machine with the local state `σ`. -/
+abbrev hostOf (σ : state) : GoString := (extLocal Tcp.tcpExt σ.world).host
+
+/-- The machine with the local state `σ` has no listener. -/
+abbrev NoListener (σ : state) : Prop := (extLocal Tcp.tcpExt σ.world).lis = ∅
+
+/-- The network at the start: the plan `plan` (each address and the host that may listen at it),
+well formed (`Tcp.PlanWellFormed`, the TCP extension's deployment, D13 and D20), and no
+connection. -/
+def FreshNet (plan : List (GoString × GoString)) (g : GlobalState) : Prop :=
+  Tcp.PlanWellFormed plan ∧ (netOf g).plan = GMap.ofList plan ∧ (netOf g).conns = ∅
 
 /-- A replica's machine at the deployment's start: the Go context `lctx`, no package initialized,
 the main thread only; its files as on disk, its directory one of the file system's roots and
@@ -228,30 +245,34 @@ def ReplicaStart (lctx : GoLocalContext) (plan : List (GoString × GoString)) (c
   Fs.FsInit (extLocal Fs.fsExt σ.world) ∧
   (∃ j, (cfg.dir, j) ∈ (extLocal Fs.fsExt σ.world).fs.roots) ∧
   (∀ c, (extLocal Fs.fsExt σ.world).lookup (joinPath cfg.dir [c]) = none) ∧
-  StreamNet.freshNode σ ∧
+  NoListener σ ∧
   (∀ p ∈ cfg.addrs, ∃ h, (p.2, h) ∈ plan) ∧
-  (∀ a, (cfg.id, a) ∈ cfg.addrs → (a, StreamNet.host σ) ∈ plan)
+  (∀ a, (cfg.id, a) ∈ cfg.addrs → (a, hostOf σ) ∈ plan)
 
-/-- An environment node's machine: on a host where the plan puts no replica's address (so it can
-listen at none of them). Nothing else is assumed of it: any program, any state. -/
+/-- An environment node's machine: on a host where the plan puts no replica's address, with no
+listener (so it can listen at no replica's address, now or later: `Tcp.ListenStep` listens only
+at a plan address of the node's host, and a crash keeps the host). Nothing else is assumed of it:
+any program, any other state. -/
 def EnvStart (cfgs : List NodeConfig) (plan : List (GoString × GoString)) (σ : state) : Prop :=
-  ∀ a h, (a, h) ∈ plan → a ∈ replicaAddrs cfgs → h ≠ StreamNet.host σ
+  NoListener σ ∧ ∀ a h, (a, h) ∈ plan → a ∈ replicaAddrs cfgs → h ≠ hostOf σ
 
 /-- **kvnet's robustness statement** (see the file header), for the replica program `prog`: every
 deployment of replicas configured by `cfgs`, on machines `sys`, with any environment nodes `env`,
-on a fresh network with the plan `plan`, is `Robust`: in every run of fewer than `2^61` steps whose
-environment satisfies `ClientsOk`, no replica is stuck or has an unrecovered panic, and the clients'
-operations are linearizable for `kvModel`. -/
+on a fresh network with the plan `plan`, is `Robust`: in every run of fewer than `2^61` steps in
+which the events of the environment's steps satisfy `ClientsOk`, no replica is stuck or has an
+unrecovered panic, and the clients' operations, as the network's events show them, are
+linearizable for `kvModel`. -/
 def kvnetRobust [lctx : GoLocalContext] [go.Semantics] (prog : NodeConfig → Expr) : Prop :=
   ∀ (cfgs : List NodeConfig) (sys : List state) (env : List (Expr × state))
     (plan : List (GoString × GoString)) (g : GlobalState),
     ClusterOk cfgs → cfgs.length = sys.length →
     (∀ p ∈ cfgs.zip sys, ReplicaStart lctx plan p.1 p.2) →
     (∀ x ∈ env, EnvStart cfgs plan x.2) →
-    StreamNet.fresh plan g →
-    Robust World.ofStream ⟨(cfgs.zip sys).map (fun p => (prog p.1, p.2)), env, g⟩ (2 ^ 61)
-      (ClientsOk (replicaAddrs cfgs))
-      (fun tr => LinearizableTrace kvModel (opEvents (kvProto (replicaAddrs cfgs)) tr))
+    FreshNet plan g →
+    Robust ((cfgs.zip sys).map (fun p => (prog p.1, p.2))) env g (2 ^ 61)
+      (fun steps => ClientsOk (replicaAddrs cfgs) (envStream steps))
+      (fun gs => LinearizableTrace kvModel
+        (opEvents (kvProto (replicaAddrs cfgs)) (streamTrace gs)))
 
 end deployment
 

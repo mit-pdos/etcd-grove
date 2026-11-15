@@ -67,11 +67,12 @@ name = "Bbolt"
 globs = ["Bbolt.+"]
 
 # Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
-# every run of its nodes (the real programs) with crashes, the network's faults and any clients,
-# under assumptions on the environment's events only, leaves the nodes fine and satisfies a
-# guarantee on the observed trace (e.g. linearizability) -- generic over the programs, the
-# extensions and the network. Used by the examples' statements (raft/kvnet); its Go counterpart is
-# the test harness examples/lib/robust.
+# every run (Perennial's DistCrashStep) of its nodes (the real programs) and any clients' nodes,
+# with crashes and the network's faults, under assumptions on the environment's steps only, leaves
+# the nodes fine and satisfies a guarantee on the shared state over time (e.g. linearizability of
+# what the TCP extension's network shows) -- generic over the programs and the other extensions.
+# Used by the examples' statements (raft/kvnet); its Go counterpart is the test harness
+# examples/lib/robust.
 [[lean_lib]]
 name = "Robustness"
 globs = ["Robustness.+"]
