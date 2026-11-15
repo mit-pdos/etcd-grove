@@ -9,6 +9,14 @@ package's two metric names, the trivial extension and the ghost-state bundle `re
 `restart1`'s `wp_initialize'` and `etcd_restart1.wp_Main` (`MainLinked.lean`). The statement, its
 hypotheses and what it does not say: `Results.lean`'s `etcd_restart1_safe` (frozen, approved by the
 user 2026-11-14, `notes/restart-s7-freeze.md`).
+
+**Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
+`[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
+the environment), since `fileutil`'s package initializer, which the server's initialization runs,
+probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
+premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
+well formed), so it says that the program runs on a real file system. Until then the extensions were
+`TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -17,7 +25,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.MainLi
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 
 @[expose] public section
 
@@ -32,7 +40,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 /-! ## The ghost-state bundle -/
 
@@ -58,7 +67,7 @@ instance restart1GF_gooseGpreS : GooseGpreS restart1GF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨restart1GF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨restart1GF_allG⟩, ⟨restart1GF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := restart1GF_allG
 
@@ -99,7 +108,9 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart1GF,
       ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([restart1Program], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -113,8 +124,8 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [] (by decide)
     [go!"restart1.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- the one member's start bundle: no address, its data directory
-    [(go!"restart1", {})] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩
-    ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs (fun _ h => absurd h List.not_mem_nil) HDs
+    [(go!"restart1", {})] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩
+    ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs (fun _ h => absurd h List.not_mem_nil) HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC restart1GF := heapAtR1 hG lctx
   haveI := Hctx hG
