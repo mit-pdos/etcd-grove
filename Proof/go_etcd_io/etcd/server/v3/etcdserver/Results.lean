@@ -211,9 +211,10 @@ contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth component's stage 2, 2026-11-04) In both auth modes: the
 batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). (R2d'a swap
 batches 2-3, 2026-11-06) Both at a restart point: the batch `specBatch` the restart form (the ghost
-rows at `ghostOf rp`, `kvBatchR`, `srvRestR`, the window's `winNoMergedSendR` over a borrowed `T`,
-`srvSnapBagN`), in place of the first-start form, its instance at `rp = RestartPt.first`, `g = ai`,
-`T = True`, given `srvSnapBagN` (which `run` supplies) and `ai0 ≤ ciEff` (every existing caller). -/
+rows at `ghostOf rp`, `kvBatchR`, `srvRestR`), in place of the first-start form, its instance at
+`rp = RestartPt.first`, `g = ai`, given `ai0 ≤ ciEff` (every existing caller). (restart3 A1,
+2026-11-15) No window row: the fork's merge defers a merged snapshot inside the replay window; until
+then the batch took `winNoMergedSendR` over a borrowed `T` and `srvSnapBagN`. -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
@@ -431,7 +432,9 @@ apply side, the entries' claims (`entryWaitOk`, from raft's `batchCommitted`, un
 return is the apply package's answer to the request (`putOutcomeIs`/`deleteOutcomeIs` at the log
 `x.log` the entry met, no error), dispatched at `x` to `x'`, with `idxCert` of `x'.log`; an error
 is the apply's (`appliedErr`) or the proposal's (`srvMaybeDeposited`: `put_err` is the right
-disjunct of the same postcondition). `put_applied_model`/`deleteRange_applied_model`: through the
+disjunct of the same postcondition). (Auth-lease S3b D3) The success's client result is at a state
+where the put's lease is not missing (`¬ leaseMissing`: the update's step committed the put).
+`put_applied_model`/`deleteRange_applied_model`: through the
 uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (the txn package's
 `putModel`/`deleteModel`, or a layer's rejection) and the log after is the outcome's
 (`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/
@@ -1536,9 +1539,14 @@ theorem apply_delete_range_latest :
     EtcdGrove.apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG) :=
   EtcdGrove.apply.authApplierV3.DeleteRange.wp_latest
 
+theorem apply_check_lease_puts_latest :
+    EtcdGrove.apply.checkLeasePuts.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.checkLeasePuts.wp_latest
+    (EtcdGrove.apply.checkLeasePutsKeys.wp_latest EtcdGrove.lease.Lease.Keys.wp_proof)
+
 theorem apply_check_put_latest :
     EtcdGrove.apply.checkPutAuth.specL (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.checkPutAuth.wp_latest EtcdGrove.apply.checkLeasePuts.wp_nil
+  EtcdGrove.apply.checkPutAuth.wp_latest apply_check_lease_puts_latest
 
 theorem apply_put_latest :
     EtcdGrove.apply.authApplierV3.Put.specL (GF := GF) (hG := hG) :=
@@ -1549,6 +1557,12 @@ theorem apply_txn_latest :
   EtcdGrove.apply.authApplierV3.Txn.wp_latest
     (EtcdGrove.apply.CheckTxnAuth.wp_latest
       (EtcdGrove.apply.checkTxnPermission.wp_latest apply_check_put_latest))
+
+/-- **The auth applier's `LeaseRevoke` on the apply thread** (auth-lease S2,
+`apply/AuthApplyLatestRevoke.lean`): the outcome decided at the latest state for the lease. -/
+theorem apply_lease_revoke_latest :
+    EtcdGrove.apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.LeaseRevoke.wp_latest apply_check_lease_puts_latest
 
 /-- **The admin operations keep the apply thread's tie** (the auth plan's E2s, `auth/LatestTie.lean`):
 each operation's spec with the admin side's halves of the flag and the cache exposed
@@ -1669,6 +1683,7 @@ end latestApply
 #print axioms Perennial.EtcdGrove.apply_delete_range_latest
 #print axioms Perennial.EtcdGrove.apply_put_latest
 #print axioms Perennial.EtcdGrove.apply_txn_latest
+#print axioms Perennial.EtcdGrove.apply_lease_revoke_latest
 #print axioms Perennial.EtcdGrove.auth_auth_enable_tie
 #print axioms Perennial.EtcdGrove.auth_auth_disable_tie
 #print axioms Perennial.EtcdGrove.auth_user_add_tie
@@ -1719,39 +1734,40 @@ theorem auth_user_add_tie_sure :
 
 /-- **The auth applier's KV triples at the latest state** (the auth plan's E2y,
 `apply/DispatchKVL.lean`): `applierKVL` of the auth applier, from its methods' latest-state
-specs, over its store at the latest state and the lessor finding no lease. -/
+specs, over its store at the latest state (auth-lease S2: until then also the lessor finding no lease). -/
 theorem apply_applier_kv_latest (E : EtcdGrove.apply.AEnv GF) (ci : EtcdGrove.apply.Chain)
     (inner : GoInterface) (p : Loc) (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       EtcdGrove.apply.authIs E p inner ∗ EtcdGrove.apply.authIsL E p L ∗
-      EtcdGrove.apply.lessorNil p ∗ EtcdGrove.apply.applierSpec E ci inner ⊢
+      EtcdGrove.apply.applierSpec E ci inner ⊢
       EtcdGrove.apply.applierKVL E (.auth E.authOn ci) ci
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty) #p) L :=
   EtcdGrove.apply.applierKVL_auth apply_range_latest apply_delete_range_latest apply_put_latest
-    apply_txn_latest E ci inner p L
+    apply_txn_latest apply_lease_revoke_latest E ci inner p L
 
 /-- **The server's uber-applier's KV triples at the latest state, from its construction** (the
 auth plan's E3k, `UberOn.lean`), every callee linked: over the server's store at the latest state
-(`srvStoreLatest`) and its lessor finding no lease (`srvLessorNil`, a named premise). -/
+(`srvStoreLatest`) (until auth-lease S3c, 2026-11-15, also its lessor finding no lease, `srvLessorNil`). -/
 theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvStoreLatest s E L ∗ srvLessorNil s ⊢
+      srvUberBase s ua E ∗ srvStoreLatest s E L ⊢
       EtcdGrove.apply.uberKVL ua E (.quota .backend) L :=
-  srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest s ua E L
+  srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
+    apply_lease_revoke_latest s ua E L
 
 /-- **The same with auth on, the store's fact from the construction** (the auth plan's E3l,
 `UberOn.lean`): `srvStoreLatest` discharged by the built part's store fact (of the store's
 invariant), at the family `auth.latestResC stl (.on γa) γc` of the store the server's `authStore`
-field holds (at any backend's names `γc`); the lessor finding no lease stays a named premise. -/
+field holds (at any backend's names `γc`) (until auth-lease S3c also the lessor finding no lease). -/
 theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
     (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvLessorNil s ⊢
+      srvUberBase s ua E ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) :=
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
-    s ua E γa hM γc
+    apply_lease_revoke_latest s ua E γa hM γc
 
 /-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
 plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
@@ -1797,20 +1813,23 @@ end kvLatest
 
 /-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2v/E2y,
 `KVOutcomeOn.lean`): the dispatched verdict at the latest state (`kvOutL`, `apply_apply_kv_latest`)
-gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
-without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
-`txnVerdictOwn_of`). -/
-theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
+gives E2t's `outcomeOn`, for a KV request of the auth-on log at the start chain with auth on and no alarm
+(auth-lease S3a2: a leased put or transaction too, at the widest lease mode, its outcome lease-exact at the
+model's table), without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since
+E3e, `txnVerdictOwn_of`). -/
+theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : OnState)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)
-    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
+    (hp : plainReqL .revocable rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
     (hz : noZeroEnds rq) (oc : EtcdGrove.apply.Outcome)
     (h : EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-      (.quota .backend) rq s.2 oc) :
-    outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
-  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h
+      (.quota .backend) rq s.2.1 oc)
+    (hex : plainCover rq ∨ EtcdGrove.apply.leaseExactL s.2.2.ids rq s.2.1 oc) :
+    outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) :=
+  outcomeOn_of_kvOutLL .revocable c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h hex
 
 #print axioms Perennial.EtcdGrove.auth_user_add_tie_sure
 #print axioms Perennial.EtcdGrove.apply_applier_kv_latest
@@ -2129,7 +2148,8 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
     time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hD22)
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
-    apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_UserAdd_fuelX,
+    apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_lease_revoke_latest,
+    apply_UserAdd_fuelX,
     apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,
     apply_AuthEnable_fuelX, apply_Authenticate_specX,
     EtcdGrove.apply.authApplierV3.Apply.wp_latest
@@ -2191,13 +2211,18 @@ on the boot entries, `bootDataOk`, from which (2026-11-10) the allocation passes
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps) :
+    (Hbc : BootCore ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
+    -- (auth-lease S3c, decision C6) the cluster's lease mode, grant prefix and grant prefixes, as
+    -- `srvClusterBoot_alloc`'s (lease-mono3 step 2)
+    (lm : lease.Mode := .none) (gp : w64 := 0) (gps : List w64 := [gp])
+    (hgps : lm = .revocable → gp ∈ gps ∧ (gps.map (· &&& leaseIdMask)).Nodup :=
+      by first | exact fun h => nomatch h | exact fun _ => ⟨List.mem_singleton_self _, (by simp)⟩) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = false ∧ γk.lg = false⌝ ∗
+          γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2215,12 +2240,13 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
-  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz lm gp gps hgps
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/
 theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
-    (cok : GName) :
+    (cok : GName)
+    (hpfx : γk.lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
       (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
@@ -2233,7 +2259,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
-  srvMemberBootOn_alloc γ cnt γk id cok
+  srvMemberBootOn_alloc γ cnt γk id cok hpfx hpo
 
 /-- **`start`'s construction premise in the auth mode, from `NewServer.specM`'s built part**
 (`isServerBuilt_of_gapM`, E2z): `isServerBuilt` with auth off, `isServerBuiltOn` (the mode-`on`
@@ -2298,12 +2324,12 @@ theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
         [∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb, Hsk⟩ HΦ
   -- `start.spec` at the slot's `off`
-  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb, Hl⟩
+  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb⟩
   · iframe Hb Hsk
   have h' := server_start s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false] at h'
-  iapply h' $$ [Hb Hl]
-  · iframe Hpkg Hb Hl
+  iapply h' $$ [Hb]
+  · iframe Hpkg Hb
     ipureintro; exact ⟨hm, Hrb48, Hrb, Hai0⟩
   inext
   iintro ⟨%γw, #Hreq, #Hrd, -, Hst, -⟩
@@ -2417,34 +2443,37 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z γr.kv.c0 < uint.Z m.index)
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
-    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63) :
-    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st -∗
+    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log, kvLeasesOn γr.kv st₀ A) m).2.1.length < 2 ^ 63) :
+    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st (kvLeasesOn γr.kv st₀ A) -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainCover rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
-        entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
+      ⌜plainReqL γr.kv.lm rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
+        entryDetOn γr.kv.c0 (st, x.log, kvLeasesOn γr.kv st₀ A) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
         noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
       EtcdGrove.apply.certPreVW true E x.chain rq x.log
-        (EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-          (.quota .backend) rq x.log) ∗
-      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) :=
+        (EtcdGrove.apply.kvOutLT (.on γa) E.lg hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
+          (.quota .backend) rq x.log (kvLeasesOn γr.kv st₀ A).ids) ∗
+      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log, kvLeasesOn γr.kv st₀ A) m) :=
   kv_entry_pre_on E γr st₀ A m x st rq ht hd hdec hv hk γa hs hl hlen
 
 /-- **After `apply.Apply` on a KV entry with auth on** (E3f): the apply thread's state is the
 model's (`kvOn_after_kv`). -/
-theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.apply.ApplyKV)
+theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (lt : LeaseTable)
+    (x x' : EtcdGrove.apply.ApplyKV)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (out : EtcdGrove.apply.ApplyOut)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : EtcdGrove.apply.irrDecode m.data = some rq)
     (hv : uint.Z c₀ < uint.Z m.index) (hna : EtcdGrove.apply.needAdminPermission rq = false)
-    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
+    (hp : plainReqL .revocable rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
     (hz : noZeroEnds rq)
-    (hdet : entryDetOn c₀ (st, x.log) m) (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
+    (hdet : entryDetOn c₀ (st, x.log, lt) m)
+    (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
     (hstep : EtcdGrove.apply.applyStep rq true x x' out)
     (hout : ∀ o b, out = .dispatched o b →
       EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
-        (.quota .backend) rq x.log o) :
-    x'.chain = x.chain ∧ (st, x'.log) = kvEntryOn c₀ x.chain (st, x.log) m :=
-  kvOn_after_kv c₀ st x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
+        (.quota .backend) rq x.log o ∧ (plainCover rq ∨ EtcdGrove.apply.leaseExactL lt.ids rq x.log o)) :
+    x'.chain = x.chain ∧ (st, x'.log, lt) = kvEntryOn c₀ x.chain (st, x.log, lt) m :=
+  kvOn_after_kv .revocable c₀ st lt x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
 
 end applyEntryOn
 
@@ -2472,9 +2501,10 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 
 /-- **`apply.Apply`'s result with auth on is not `ErrNoSpace`'s** (the auth plan's E3i,
 `NoSpaceDeadOn.lean`): `applyEntryNormal`'s NOSPACE branch is dead for a covered entry at the
-start's chain with auth on, the auth layer's refusal included. -/
+start's chain with auth on, the auth layer's refusal included; (auth-lease S3a2) a leased put or transaction
+of the auth-on log too (`plainReqL .revocable`, the widest mode). -/
 theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : EtcdGrove.apply.ApplyKV)
-    (ar : Loc) (out : EtcdGrove.apply.ApplyOut) (hp : plainCover rq)
+    (ar : Loc) (out : EtcdGrove.apply.ApplyOut) (hp : plainReqL .revocable rq)
     (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
     (hs : EtcdGrove.apply.applyStep rq true x x' out) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
@@ -2483,7 +2513,7 @@ theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : Etcd
       (⌜ar = null⌝ ∨ ∃ err : GoInterface,
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) :=
-  applyResultIs_notNoSpaceOn rq x x' ar out hp hch hs
+  applyResultIs_notNoSpaceOn rq x x' ar out (kvCover_of_plainReqL _ rq hp) hch hs
 
 /-- **`apply.Apply`'s result on an admitted admin entry with auth on is not `ErrNoSpace`'s** (the
 auth plan's E3j, `NoSpaceDeadAdminOn.lean`): with `apply.Apply.adminSpecL`'s postcondition (the

@@ -73,18 +73,15 @@ theorem resp_state (γc : GName) (P : List (GoString × GoString)) (hpk : ∀ kv
     · ipureintro; simpa using hcur
     iintro !> %j %e %h
     simp at h
-  · obtain ⟨-, hp, -, hle, rfl, hcase⟩ := H
+  · obtain ⟨-, hp, -, hle, rfl, -, hnil, hok⟩ := H
     have he0 := isProgressNotify_events hp
     have hpn : ((sint.nat r.hdrRev : Nat) : Int) = sint.Z r.hdrRev := sint_nat_cast _ (by omega)
     have hc' : etcdstart.Cur n r.hdrRev := by
-      rcases hcase with ⟨heq, -⟩ | ⟨-, hnil, hok⟩
-      · have : c = r.hdrRev := by word
-        rw [← this]; exact hcur
-      · rw [rangeEvents_plan P wkPfx o hrange hpk σ (sint.nat r.hdrRev) hW hok (sint.nat c + 1)
-          (sint.nat r.hdrRev + 1) (by omega) (by omega)] at hnil
-        simp only [List.map_eq_nil_iff, List.range'_eq_nil_iff] at hnil
-        unfold etcdstart.Cur at hcur ⊢
-        omega
+      rw [rangeEvents_plan P wkPfx o hrange hpk σ (sint.nat r.hdrRev) hW hok (sint.nat c + 1)
+        (sint.nat r.hdrRev + 1) (by omega) (by omega)] at hnil
+      simp only [List.map_eq_nil_iff, List.range'_eq_nil_iff] at hnil
+      unfold etcdstart.Cur at hcur ⊢
+      omega
     imodintro
     rw [he0]
     isplitr

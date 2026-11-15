@@ -6,6 +6,7 @@ Rocq counterpart); the vocabulary is
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseOn
 
 @[expose] public section
 
@@ -26,6 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`ls.LeaseRevoke(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
@@ -33,16 +35,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 context, the resource `S`), on a decoded request: `ls.le.LeaseRevoke(ctx, r)`, then the header
 filled: `S` back, and the server's response with its header filled by the cluster `cid` and the
 member `mid`, its revision not `0` and reached (and nothing else), or `nil` and a non-nil error
-(`leaseGrantOut`, `leaseRevokeOut`). -/
+(`leaseGrantOut`, `leaseRevokeOut`). (Auth-lease S3c, decision D6/C5′, 2026-11-15: the revocation
+contract alone, at the auth mode `on`, `lessorRevokeOkM on s E ρ S` (until then `raftLessor s E S`,
+of which only the revocation is called), with the client's `Q` and the server's permit at the request
+context's token, handed through, and on success the client's result `leaseRevokeResT`.) -/
 abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
-  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (S : IProp GF)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64),
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
+    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64)
+    (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLessor s E S ∗ S ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseRevokeReqIs r m }}
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorRevokeOkM on s E ρ S ∗ S ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseRevokeReqIs r m ∗
+      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseRevoke"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ v3rpc.leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m Q) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

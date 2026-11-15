@@ -214,7 +214,8 @@ structure KVNames where
   leases**: one for every member, as `cmp`. `false` (the default): no grant is proposed, every
   member's grant guard is `False` (`srvGrantGuard`) and its lessor revocable (`lease.NewLessor`'s
   `mono := false`), so a snapshot can be restored (`lease.lessor.Recover`). `true`: grants are
-  proposed (with auth off and under `lease.leasesNoExpiry`), each member's lessor is monotone (its
+  proposed (under `lease.leasesNoExpiry` in the monotone mode, and with auth on in either granting
+  mode: auth-lease S3c, 2026-11-15, until then with auth off only), each member's lessor is monotone (its
   live leases stay live: no revocation, no restore), which `LeaseLeases` reads rely on. (The
   lease-expiry plan's X7 option (iii), 2026-11-04, the user's: the field is the cluster's lease mode
   `lm`, `KVNames.lg` its grant flag; `.revocable` admits the server's revocations.) -/

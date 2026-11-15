@@ -80,6 +80,21 @@ def plainCover (rq : apply.IRRModel) : Prop :=
       apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
   | _ => False
 
+/-- **`plainCover` without its lease conditions** (auth-lease S3a2 §4): the kinds and flags the generic apply
+arms read (no side-effect-free field, no admin field), true of a plain request (`kvCover_of_plainCover`) and of
+a leased put or transaction of the auth-on log (`kvCover_of_plainReqL`). The lemmas that read only these facts
+are stated over it. -/
+def kvCover (rq : apply.IRRModel) : Prop :=
+  match apply.dispatchKind rq with
+  | .put | .deleteRange | .txn | .clusterVersionSet | .clusterMemberAttrSet =>
+      apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
+  | _ => False
+
+theorem kvCover_of_plainCover (rq : apply.IRRModel) (h : plainCover rq) : kvCover rq := by
+  unfold plainCover at h; unfold kvCover
+  split <;> rename_i hk <;> simp only [hk] at h
+  all_goals first | exact h.elim | exact ⟨h.1, h.2.1⟩ | exact ⟨h.1, h.2⟩
+
 /-- **A KV operation** as the server applies it. -/
 inductive KVOp where
   | put (o : OpFull)

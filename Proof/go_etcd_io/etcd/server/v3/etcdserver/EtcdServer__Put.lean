@@ -176,6 +176,8 @@ theorem EtcdServer.Put.wp_proof
   iunfold putPermitM at Hperm
   cases hon : E.authOn
   · -- auth off
+    unfold putPermit
+    icases Hperm with ⟨%Hl0, Hperm⟩
     have hRR := EtcdServer.raftRequest.spec_off hRR
     wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
         (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl (apply.irrDepthOk_of_txnW_none rfl)
@@ -185,7 +187,10 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · rw [← isServerReqM_false]; iexact Hsrv
       isplitl [Hperm]
-      · iapply putPermit_reqPropOk ρ.kv op Q γc $$ Hperm
+      · iapply putPermit_reqPropOk ρ.kv op Q γc
+        unfold putPermit
+        iframe Hperm
+        ipureintro; exact Hl0
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -228,7 +233,9 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · ipureintro; exact Hwf
       rw [Hxlb, ← HLlb]
-      iframe HQ
+      isplitl [HQ]
+      · iexists []; iframe HQ; ipureintro
+        exact ⟨fun _ => rfl, fun h => KVState.leaseMissing_zero _ (Hl0 ▸ h)⟩
       isplitr
       · iunfold hdrBoundM; ipureintro; trivial
       iintro !> %h; cases h
@@ -292,7 +299,10 @@ theorem EtcdServer.Put.wp_proof
       icases Hpo with ⟨Hpo, Hhdr⟩
       wp_auto_lc 1
       -- the put's result, with its token
-      ihave #HQr := putQhOn_res ρ.kv op γc Q hm Lq x.log log' skip Hmo $$ HQq
+      icases putQhOn_res ρ.kv op γc Q hm Lq x.log log' skip Hmo $$ HQq with ⟨%Hlt, #HQr⟩
+      -- (auth-lease S3b D3) the put applied: its lease live at the model's table (`authTie`)
+      have Hlive := leaseLive_of_tie _ x.log _ op hm x.chain log' skip
+        (modelOutM_true_table ρ.kv _ Lq x.log _ Hmo) Hstep.2.1
       imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
       (try wp_auto)
       wp_apply HEnd
@@ -308,7 +318,12 @@ theorem EtcdServer.Put.wp_proof
       · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
       isplitr
       · ipureintro; exact Hwf
-      iframe HQ
+      isplitl [HQ]
+      · iexists kvLeasesOn ρ.kv srvAuthSt0 Lq; iframe HQ; ipureintro
+        refine ⟨?_, Hlive⟩
+        rintro (h | h)
+        · cases h
+        · exact Hlt h
       isplitr
       · iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb
       iintro !> -

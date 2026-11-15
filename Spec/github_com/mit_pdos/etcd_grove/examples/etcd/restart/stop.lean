@@ -1,16 +1,14 @@
 /-
-`stop(m)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): the
-member's server stopped (`HardStop`), then its peer listener closed. Lean-first (no Rocq
-counterpart).
+`stop(s)` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15, restart1's `stop`): the wait
+until the member applied the cluster's bootstrap log (`AppliedIndex() ≥ NBoot`, one entry per member),
+then `s.HardStop()`. Lean-first (no Rocq counterpart).
 
-**The triple:** from a stoppable member (`memberStop`, at the request names `ρ`, with (R2c-4) what
-its stop takes of the started member, `memberStopRes`: the right to stop the server and the
-store's readers of the serving stocks it never used) of a cluster whose bootstrap log has at most `NBoot` entries (`stop` waits until the
-member applied `NBoot`, the evidence `HardStop` takes, R2b-2 review F2), the member's data directory as the stop left it, recording `ρ` (`srvDiskImage`, R2c), its peer address and the right to serve it with the member's raft
-protocol back (`http.ListenerClose_spec`'s draft boundary), as the member's restart bundle
-(`etcdstart.memberRestartRes`, hub step 8's E5, its data directory `name ++ ".etcd"`), so that the
-member can be started again there. (R2b-2, 2026-11-02: until then also the request view `isServerReq`, which
-`HardStop` no longer takes.)
+**The triple:** from the applied index's invariant (`srvAppliedInv`), the server's data directory
+(`srvDataDir`, `name ++ ".etcd"`), the right to stop it (`srvStopRight`, at an apply environment in the
+stop's scope) and its unused serving readers (`srvStopReaders`), of a cluster whose bootstrap log has
+at most `NBoot = 3` entries: the member's data directory as the stop left it, at the request names `ρ`
+(`srvDiskImage`), as its restart bundle without addresses (`etcdstart.memberRestartRes`; its peer
+address stays served by its `raftSwap`).
 -/
 module
 
@@ -35,13 +33,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 
 /-- See the file header. -/
 abbrev stop.spec : Prop :=
-  ∀ (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
-    (γn : NetNames GF) (ρ : ReqNames) (name : GoString),
+  ∀ (s : Loc) (E Ea : apply.AEnv GF) (ρ : ReqNames) (id : w64) (dd : GoString)
+    (γn : NetNames GF) (name : GoString),
+  ρ.rd.raft.raft.boot.length ≤ 3 → srvStop.scope E →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      memberStop m s pl γ id peerAddr γn ρ (name ++ go!".etcd") ∗ memberStopRes s ρ id ∗
-      ⌜γ.boot.length ≤ 3⌝ }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.stop)) (Val #m))
-  {{ RET #(); etcdstart.memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id }}
+      srvAppliedInv s Ea ρ.rd ∗ srvDataDir s (name ++ go!".etcd") ∗
+      srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E }}
+    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.stop)) (Val #s))
+  {{ RET #(); etcdstart.memberRestartRes name {} γn ρ.rd.raft.raft ρ id }}
 
 end spec
 

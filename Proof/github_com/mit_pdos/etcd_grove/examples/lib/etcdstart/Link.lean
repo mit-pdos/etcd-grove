@@ -17,12 +17,14 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Compac
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
@@ -37,6 +39,7 @@ public import Proof.google_golang_org.grpc.model.acceptRunConns
 public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
+public import Proof.strconv.FormatUint
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -78,6 +81,10 @@ theorem wp_GenAll :
 theorem wp_MaxRev :
     EtcdGrove.etcdstart.MaxRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.MaxRev.wp_proof
+
+theorem strconv.wp_FormatUint :
+    EtcdGrove.strconv.FormatUint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.FormatUint.wp_proof
 
 end links
 
@@ -129,6 +136,10 @@ theorem wp_Collect :
 theorem wp_CompactRev :
     EtcdGrove.etcdstart.CompactRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.CompactRev.wp_proof
+
+theorem wp_Members :
+    EtcdGrove.etcdstart.Members.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.Members.wp_proof strconv.wp_FormatUint
 
 theorem wp_NewClients [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcdstart.NewClients.spec (GF := GF) (hG := hG) :=
@@ -185,6 +196,10 @@ theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
+
+theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.StartMembers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.StartMembers.wp_proof wp_NewMember EtcdServer.wp_Start
 
 theorem wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartPeriodicServer.spec (GF := GF) (hG := hG) :=

@@ -651,11 +651,12 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     ihave %Hfl : ⌜t.linearizable = true → lf.length ≤ log.length⌝ $$ []
     · cases hlin : t.linearizable
       · ipureintro; intro h; cases h
-      · ihave #Himp' := Himp $$ %rfl %(kvStateOf log)
+      · ihave #Himp' := Himp $$ %rfl
         rw [hlin] at hser
         simp only [Bool.not_true] at hser
         simp only [hser, Bool.false_eq_true, ↓reduceIte]
-        ihave %h := Himp' $$ HQl
+        icases HQl with ⟨%ltq, -, #HQl⟩
+        ihave %h := Himp' $$ %(kvStateOf log ltq) HQl
         ipureintro; intro _
         simp only [kvStateOf_rev, kvStateOf_kvs] at h
         omega
@@ -714,13 +715,13 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     simp only [Bool.false_eq_true, ↓reduceIte]
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
-    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, %Hk, HQ⟩
+    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, %Hk, ⟨%ltq, -, HQ⟩⟩
     ihave %Hlok := srvLogCert_logOk E x'.log hrb $$ Hcert
     ihave #Hkn := srvLogCert_kvNx E γr x'.log hNx $$ Hcert
     obtain ⟨Htw, Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
     have hlin : t.linearizable = true :=
       linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
-    ihave %Hfl := Himp $$ %hlin %(kvStateOf x.log) HQ
+    ihave %Hfl := Himp $$ %hlin %(kvStateOf x.log ltq) HQ
     have ht' : t' = txnWireOf t := Hz (noZeroEnd_wire t hp hng hcz hdz tw Htw)
     subst ht'
     have hlog := txn_applied_exact tw (txnWireOf t) hm rq' x x' l skip Hw Ht' Hst

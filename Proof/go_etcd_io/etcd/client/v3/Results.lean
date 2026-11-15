@@ -1042,32 +1042,60 @@ theorem readQ_of_ansM (on : Bool) (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KV
     (h : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q) :
     (if ser then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗
+        ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ ∗
         □ v3rpc.rangeDepQM on γr.kv d L : IProp GF) ⊢
-      (if ser then iprop(True) else □ Q (kvStateOf log)) := by
+      (if ser then iprop(True) else
+        ∃ lt, ⌜on = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt)) := by
   cases hs : ser
   · simp only [Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨%L, -, %HL, #HQ⟩
+    iintro ⟨%L, -, %HL, %Hg, #HQ⟩
     rcases h with ⟨rfl, rfl⟩ | rfl
-    · iintro !>; itrivial
-    · have hst : kvStM on γr.kv L = kvStateOf (kvModelM on γr.kv L) := by cases on <;> rfl
-      simp only [v3rpc.rangeDepQM]
-      rw [hst, HL]
-      iintro !>
-      iexact HQ
+    · iexists []
+      isplitl []
+      · ipureintro; intro _; rfl
+      iintro !>; itrivial
+    · cases on
+      · iexists []
+        isplitl []
+        · ipureintro; intro _; rfl
+        have hst : kvStM false γr.kv L = kvStateOf (kvModelM false γr.kv L) [] := rfl
+        simp only [v3rpc.rangeDepQM]
+        rw [hst, HL]
+        iintro !>
+        iexact HQ
+      · iexists kvLeasesOn γr.kv srvAuthSt0 L
+        isplitl []
+        · ipureintro
+          rintro (h | h)
+          · cases h
+          · exact Hg rfl h
+        have hst : kvStM true γr.kv L =
+            kvStateOf (kvModelM true γr.kv L) (kvLeasesOn γr.kv srvAuthSt0 L) := rfl
+        simp only [v3rpc.rangeDepQM]
+        rw [hst, HL]
+        iintro !>
+        iexact HQ
   · simp only [↓reduceIte]; iintro -; itrivial
 
 /-- **A failed range's read facts as the client's** (k8s etcd3 7c-2 part 2, S7): the server's
 (`rangeErrAt`, the deposit's result at a committed raft log whose mode's model is the log read) as
-`rangeErrReply`'s, `□ Q` of the state of the log read (`readQ_of_ansM`). -/
-theorem rangeErrReply_of_errAt (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+`rangeErrReply`'s, `□ Q` of the state of the log read (`readQ_of_ansM`; auth-lease S3a, rev 6: the
+table's guard from the KV core, `depQ_leases_none`), under the error description's alternative. -/
+theorem rangeErrReply_of_errAt (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (o : OpFull) (d : v3rpc.KVDep GF) (Q : KVState → IProp GF)
-    (P : mvcc.Log → Int → Prop)
+    (P : mvcc.Log → Int → Prop) (A : Prop)
     (h : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q) :
-    rangeErrAt (GF := GF) on E γr c F o (v3rpc.rangeDepQM on γr.kv d) P ⊢
-      rangeErrReply E γr c F o Q P := by
+    ⊢ srvKVCoreM (GF := GF) E.authOn E γr -∗
+      (⌜A⌝ ∨ rangeErrAt E.authOn E γr c F o (v3rpc.rangeDepQM E.authOn γr.kv d) P) ={⊤}=∗
+      (⌜A⌝ ∨ rangeErrReply E γr c F o Q P) := by
+  iintro #Hcore (%Ha | Hat)
+  · imodintro; ileft; ipureintro; exact Ha
   unfold rangeErrAt rangeErrReply
-  iintro ⟨%log, %crev, #Hc, #Hok, #Hrc, #Hcr, %Hp, Hrl, HQ⟩
-  ihave HQ' := readQ_of_ansM on γr d Q o.base.serializable log h $$ HQ
+  icases Hat with ⟨%log, %crev, #Hc, #Hok, #Hrc, #Hcr, %Hp, Hrl, HQ⟩
+  imod depQ_leases_none E.authOn o.base.serializable E γr log _ $$ Hcore HQ with HQ
+  ihave HQ' := readQ_of_ansM E.authOn γr d Q o.base.serializable log h $$ HQ
+  imodintro
+  iright
   iexists log, crev
   iframe Hc Hok Hrc Hcr Hrl HQ'
   ipureintro; exact Hp
@@ -1477,12 +1505,15 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         iframe #
         ipureintro
         exact ⟨Hkeys, Hlog.2.1, Hlog.2.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2.2⟩
-    · imodintro
+    · ihave #Hcore := srvKVCoreM_of_readM E.authOn s E γr $$ Hsrd
+      iunfold rangeErrDesc at HrD
+      icases HrD with ⟨Hfu, Hcp⟩
+      imod rangeErrReply_of_errAt E γr c F o d Q _ _ Hdd $$ Hcore Hfu with Hfu
+      imod rangeErrReply_of_errAt E γr c F o d Q _ _ Hdd $$ Hcore Hcp with Hcp
+      imodintro
       ihave Hed : iprop(⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) $$ [HΨr HrD]
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) $$ [HΨr Hfu Hcp]
       · iintro %Hm
-        iunfold rangeErrDesc at HrD
-        icases HrD with ⟨Hfu, Hcp⟩
         have hm := Hm.2
         simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hm
         rcases hm with hm | hm
@@ -1491,13 +1522,13 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
           icases HΨr with ⟨HΨf, -⟩
           rw [hm]
           iapply HΨf
-          iapply (rangeErrReply_of_errAt E.authOn E γr c F o d Q _ Hdd) $$ Hfu
+          iexact Hfu
         · icases Hcp with (%Hcp | Hcp)
           · exact absurd hm Hcp
           icases HΨr with ⟨-, HΨp⟩
           rw [hm]
           iapply HΨp
-          iapply (rangeErrReply_of_errAt E.authOn E γr c F o d Q _ Hdd) $$ Hcp
+          iexact Hcp
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hcr]
@@ -3438,7 +3469,8 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
@@ -3472,7 +3504,8 @@ theorem client_get_value_rev (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
@@ -3507,7 +3540,8 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
       unfold sint.nat; word
     rw [h2, mvcc.stateAt_last]
   rw [hst] at hsel hcount
-  iexists kvStateOf l
+  icases HQ with ⟨%ltq, -, #HQ⟩
+  iexists kvStateOf l ltq
   iframe HQ
   ipureintro
   try rw [kvStateOf_kvs]
@@ -3769,10 +3803,15 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
   ihave #HLG := v3rpc.raftLessor_grantG s E S $$ HL
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S (fun _ _ => iprop(True))
-      (fun _ => True)
-      ci cd r m) $$ [HS Hid]
-  · iframe; iframe #; try (ipureintro; trivial)
+  -- (auth-lease S3c) the handler's spec at auth off: the contract by `_false`, the off permit
+  ihave #HLM := (v3rpc.lessorGrantOkGM_false s E (⟨γr.kv.st, γr⟩ : ReqNames) S (fun _ _ => iprop(True))
+      (fun _ => True)).2 $$ HLG
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S
+      (fun _ _ => iprop(True)) (fun _ => True) ci cd r m (fun _ _ => iprop(True))) $$ [HS Hid]
+  · iframe; iframe #
+    isplitr
+    · ipureintro; trivial
+    iapply leaseGrantPermitM_false
   inext
   iintro %resp %err ⟨HS, Hout, -, #HSe⟩
   iunfold v3rpc.leaseGrantOut at Hout
@@ -3824,10 +3863,19 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   rw [show (pbLeaseRevokeRequest (GF := GF)).recv r m = v3rpc.leaseRevokeReqIs r m from rfl]
   iapply wp_fupd
-  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid E S ci cd r m) $$ [HS]
+  -- (auth-lease S3c) the handler's spec at auth off: the revocation contract by `_false`, the off permit
+  ihave #HLR : v3rpc.lessorRevokeOkM false s E (⟨γr.kv.st, γr⟩ : ReqNames) S $$ []
+  · iapply (v3rpc.lessorRevokeOkM_false s E _ S).2
+    iunfold v3rpc.raftLessor at HL
+    icases HL with ⟨-, #HR⟩
+    iexact HR
+  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S ci cd r m
+      (fun _ => iprop(True))) $$ [HS]
   · iframe; iframe #
+    iunfold leaseRevokePermitM
+    itrivial
   inext
-  iintro %resp %err ⟨HS, Hout, #HSe⟩
+  iintro %resp %err ⟨HS, Hout, -, #HSe⟩
   iunfold v3rpc.leaseRevokeOut at Hout
   icases Hout with (⟨%Hok, Hh⟩ | %Herr)
   · iunfold v3rpc.leaseHdrOut at Hh
@@ -3913,7 +3961,44 @@ theorem etcd_leaseGrantMethodOk (q : Loc)
   iapply HΨ
   iframe; iframe HSe
 
-/-- **etcd's `LeaseRevoke`, as grpc runs it** (as `etcd_leaseGrantMethodOk`). -/
+/-- **etcd's `LeaseRevoke`, as grpc runs it, at a metadata-indexed spec** (auth-lease S3c; as
+`etcd_userAddMethodOk`): the generated `_Lease_LeaseRevoke_Handler` on the `*quotaLeaseServer` `q`
+whose `LeaseRevoke` meets `Spec`, under a chain of transparent interceptors. -/
+theorem etcd_leaseRevokeMethodOkMd (q : Loc)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOkMd (q @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseRevoke")
+        iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOkMd (@! etcdserverpb._Lease_LeaseRevoke_Handler)
+        (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseRevokeRequest) -∗
+      (pbLeaseRevokeRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbLeaseRevokeRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseRevokeRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply leaseRevokeReq_learnerOk
+  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseRevoke_Handler pbLeaseRevokeRequest
+    pbLeaseRevokeResponse Spec ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **etcd's `LeaseRevoke`, as grpc runs it** (as `etcd_leaseGrantMethodOk`; auth-lease S3c:
+`etcd_leaseRevokeMethodOkMd` at `GrpcSpec.md`). -/
 theorem etcd_leaseRevokeMethodOk (q : Loc)
     (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) :
@@ -3926,20 +4011,40 @@ theorem etcd_leaseRevokeMethodOk (q : Loc)
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
-  unfold grpcMethodOk
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
-  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseRevokeRequest) -∗
-      (pbLeaseRevokeRequest (GF := GF)).blank l) $$ []
-  · iintro !> %l Hl; simp only [pbLeaseRevokeRequest]; iexact Hl
-  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseRevokeRequest (GF := GF)).recv l m -∗
+  iapply (grpcMethodOk_md _ _ _ _ _).2
+  iapply etcd_leaseRevokeMethodOkMd
+  iframe #
+  iapply (grpcHandlerOk_md _ _ _).1
+  iexact Hh
+
+/-- **etcd's `LeaseGrant`, as grpc runs it, at a metadata-indexed spec** (auth-lease S3c; as
+`etcd_leaseGrantMethodOk`, whose handler spec is already the metadata one). -/
+theorem etcd_leaseGrantMethodOkMd (q : Loc)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOkMd (q @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
+        iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOkMd (@! etcdserverpb._Lease_LeaseGrant_Handler)
+        (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseGrantRequest) -∗
+      (pbLeaseGrantRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbLeaseGrantRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseGrantRequest (GF := GF)).recv l m -∗
       v3rpc.learnerReqOk
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeRequest.ty) #l)) $$ []
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty) #l)) $$ []
   · iintro !> %l -
-    iapply leaseRevokeReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseRevoke_Handler pbLeaseRevokeRequest
-    pbLeaseRevokeResponse Spec ⟨go.GoType.PointerType
+    iapply leaseGrantReq_learnerOk
+  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseGrant_Handler pbLeaseGrantRequest pbLeaseGrantResponse
+    Spec ⟨go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext

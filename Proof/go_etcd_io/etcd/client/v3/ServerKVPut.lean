@@ -196,7 +196,7 @@ theorem putResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (lo :
       putResult (EM := v3rpc.etcdModelOfServer E γw false) pfx lo (putTxnOp o) GoInterface.nil := by
   iintro Hrep
   iunfold putReplied at Hrep
-  icases Hrep with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, %Hk, %Hfl⟩
+  icases Hrep with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, %Hk, ⟨%lt, -, %Hfl⟩⟩
   ihave %Hlok := srvLogCert_logOk E x'.log hrb $$ Hcert
   ihave #Hkn := srvLogCert_kvNx E γw x'.log hNx $$ Hcert
   obtain ⟨Hst, -, -, -, -, -, H2, H4⟩ := Hp
@@ -403,7 +403,7 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
       deleteResult (EM := v3rpc.etcdModelOfServer E γw false) pfx lo o GoInterface.nil := by
   iintro Hrep
   iunfold deleteReplied at Hrep
-  icases Hrep with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hcert, -, -, %Hk, %Hfl⟩
+  icases Hrep with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hcert, -, -, %Hk, ⟨%lt, -, %Hfl⟩⟩
   ihave %Hlok := srvLogCert_logOk E x'.log hrb $$ Hcert
   ihave #Hkn := srvLogCert_kvNx E γw x'.log hNx $$ Hcert
   obtain ⟨Hw, Hop, Hz, Hst, -, -, -, -, -, -, H2, H4⟩ := Hp

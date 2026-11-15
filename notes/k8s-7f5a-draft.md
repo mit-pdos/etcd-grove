@@ -437,3 +437,38 @@ walk stop at `isContextDone` (a truncation, and the allow file adds no new `trun
 T5-a's `watchCtx`. Same meaning. **`klog.Warningf.spec`** now takes `klog.Errorf.spec`'s form
 (`args ↦*{dq} xs ∗ klog.argsOk f xs`, given back), as `notes/klog-args-fix.md` asks.
 
+
+## 10. Independent re-review (2026-11-15), old → new
+
+81's decisions in `questions.md` (2026-11-15); ledger entry of 2026-11-15 in `notes/specs-only/ledger.md`.
+
+- **M1, the start progress notification: decided by 81 (2026-11-15): the client spec strengthened (ledger 2026-11-15; `watchStateRespOk`'s progress arm now always `hdrRev ≤ σ.rev`), so `KTail.bm` holds the start notification unchanged.** The analysis that led there: The client's `watchStateRespOk`
+  admits a progress notification at the watch's start (`hdrRev = c`, `c + 1 = rev`) with no
+  `σ.rev` bound (`WatchStateDefs.lean:125-128`); `startWatching` queues it as `KRaw.bm hdrRev
+  false`, which `KRawTail.bm`/`KTail.bm` (`p ≤ σ.rev`) cannot hold. The Draft-local fix (`bm`
+  admits `p = c` without the bound) would serve 7f-5a's own proof but not its consumer: 7f-6's
+  bridge to the driver's `TailOk` needs `p ≤ hs.length`, and the driver's check rejects any event
+  above the configuration's revision (`watchOkL`, `KWatch.lean:209`), while 7f-6's traffic (as the
+  upstream test's) draws future resource versions for legacy watches (`notes/k8s-7f-scope.md` §1):
+  a start bookmark at a future `req` would fail the check. etcd never sends one (`progressIfSync`
+  returns unless `rev ≥ w.startRev`, `watchable_store.go:539` at the pin): the client spec is
+  looser than etcd. Not changed in the Draft; the alternative, `hdrRev ≤ σ.rev` in the client's
+  start disjunct (an exported client spec), waits on 81.
+- **M2, the processor's cancel.** Old: `kCancelPD := kStopped ∨ kProdExited ∨ □ cd.PDone`, and the
+  docstring derived `kCancelled` for the producer from it. New: `KWatchNames.procEx`,
+  `kProcExited γ` (persistent; set by the processing goroutine before its `sendError`, whose
+  deferred `wc.cancel()` follows), `kCancelPD := kStopped ∨ kProdExited ∨ kProcExited ∨ □ cd.PDone`;
+  the producer's own `sendError` sets `kProdExited` before it; the producer, which refutes only
+  `kProdExited`, keeps `kProcExited` as a third disjunct of `kInElem`'s no-gap fact
+  (`kRawStreamOk ∨ kCancelled ∨ kProcExited`), refuted by the processor at each receipt.
+- **m1, the error arm.** Old: `⌜err ≠ nil⌝`. New: `⌜err ≠ nil ∧ sie = some false ∧ uint.nat n = 0⌝`
+  (under the premises the only error is `getStartWatchResourceVersion`'s `getCurrentStorageRV`,
+  `watcher.go:193-217`: prepareKey, ParseResourceVersion, the recursive suffix and
+  `ProgressNotify` are excluded by premises).
+- **m2, `1 ≤ st`.** `kvWf` does not give `1 ≤ σ.rev`, nor does a firing (`kvAu` tells `kvRoom`).
+  Old: `kStartOk`'s watch-list arm `st = σ0.rev ∧ max m.req 1 ≤ st`. New: `st = σ0.rev ∧ m.req ≤ st`;
+  a consumer whose `Q` gives `1 ≤ σ.rev` reads `1 ≤ st` from the element's `□ Q lb0 σ0`.
+- **The `WithCancel` gap.** Option (a): `notes/perennial-changes.md`'s entry now has the decision and
+  a design sketch (`HParentCC` gives `□ (Pp -∗ s.PDone)` of the `*cancelCtx` it finds; a new
+  `wp_WithCancel_ctx`). Steps 4-5 take `isContext wc.ctx { cd with PDone := cd.PDone ∨ kCancelPD γ cd }`
+  as a premise; step 6 waits on (a).

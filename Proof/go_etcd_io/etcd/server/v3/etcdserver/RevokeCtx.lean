@@ -57,13 +57,12 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The cluster revokes leases** (moved from `LeaseRevoke.lean`, 2026-11-06, revoke-open: the
-revocation's spec names it; see that file's header): two scope restrictions, the KV names' lease
-mode `revocable` (the cluster's requests may revoke leases, `revokePropOk`) and auth off (the
-auth-on apply row admits no revocation, `plainCover`). (Of `revokeExpiredLeases`' caller, the auth
-half also follows from its slice of expired leases, whose grant guard says auth is off,
-`srvGrantGuard`; `LeaseRevoke.spec` takes the pair.) -/
+revocation's spec names it; see that file's header): the KV names' lease mode `revocable` (the
+cluster's requests may revoke leases, `revokePropOk`). (Auth-lease S3b, 2026-11-15: until then also
+auth off; the auth-on apply thread admits revocations since S3a, and `LeaseRevoke.spec` is at
+`isServerReqM E.authOn`.) -/
 def srvRevokesLeases (E : apply.AEnv GF) (ρ : ReqNames) : Prop :=
-  ρ.rd.kv.lm = .revocable ∧ E.authOn = false
+  ρ.rd.kv.lm = .revocable
 
 /-- **The level bound the revocation's goroutines need** (revoke-open Q1 (a2), Q2 (ii)): levels
 `0 … srvRevokeK - 1` of a thread token exist (see the file header). Only the revocable run

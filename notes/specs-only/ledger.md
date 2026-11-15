@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-15: `applyAll.spec` (proof sketch) -- the merge's guard is no longer only `m.term = raftTerm`, `index ≤ appliedi`: the verified fork defers a merge inside the replay window
+
+- **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `applyAll.spec`
+  (its proof sketch and "Changes" paragraph; the statement is unchanged); the real spec
+  `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `applyAll.specBatch`.
+- **Defect.** The sketch describes the merge's select at the pin as "the code's" guard (`m.term = raftTerm`,
+  `index ≤ appliedi`, then `createMergedSnapshotMessage`/`sendMergedSnap`). The verified Go code changed
+  (restart3 A1, route (A) via A-g, approved by the user 2026-11-15): the goose fork's commit `6e8f0c004`
+  adds a third test, `ep.appliedi < s.consistIndex.ConsistentIndex()` (inside the replay window) under
+  which the merge is replaced by `s.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)`, and reports a
+  message dropped by the term or index guard failed too (D-A0-6). The sketch's callees miss
+  `consistentIndex.ConsistentIndex`, `raftpb.Message.GetTo` and `ReportSnapshot`.
+- **Evidence.** `notes/restart3-a0-draft.md` §3 and §8 (the change, the Go runs: the guard fires and the run
+  stays correct; unreported drops wedge a follower); the real proof `applyAll.wp_proofBatch`
+  (`Proof/.../EtcdServer__applyAll.lean`, `wp_ci_get` for the guard's read, `ReportSnapshot` on each drop).
+  The plan's statement already had no window premise, so it needs no change; the real spec's window row
+  (`winNoMergedSendR … ∗ T ∗ srvSnapBagN`) is deleted, converging toward the plan.
+- **Proposed change.** The sketch's merge paragraph and "Changes" paragraph name the window test, the
+  `ReportSnapshot` on a deferred or dropped `MsgSnap`, and the three callees. Statement unchanged.
+- **Decision.** Accepted (decided by etcd-grove-81 with the A-g route, 2026-11-15; text only; the restart3 A1
+  commit that applies it).
+
 ## 2026-11-14: `leaseCheckFrom` (the lease checks' and lease methods' posts) -- admits the empty user unbound
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseCheck.lean`, `leaseCheckFrom` (the lease-keys
@@ -269,3 +291,201 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** The realization keeps `boltState` in an invariant (the bank's pattern),
   the commit's update opening it.
 - **Decision.** Pending (the backend's; no statement changes).
+
+## 2026-11-15: the auth-on KV results at `kvStateOf log` -- unprovable once `kvInvOn` carries the lease table (auth-lease S3a)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Put.lean:63`,
+  `EtcdServer__DeleteRange.lean:59` (`Q (kvStateOf x.log)`), `EtcdServer__Txn.lean`'s writing post (through
+  `txnQhOn_res`), and the read side's conversion `client/v3/Results.lean:1052` (`readQ_of_ansM`: `kvStM true`
+  is `kvStateOf (kvModelM true …)`, so a range's `□ Q (kvStateOf log)`), at `E.authOn = true`.
+- **Defect.** S3a (Draft rev 5 §2, frozen) puts the lease table in `kvInvOn`'s state and keeps the clients'
+  half in every lease mode, so a client's update fires at `kvStateOf (kvModelOn L) (kvLeasesOn L)`. These
+  posts give `Q` of `kvStateOf x.log` (the table `[]`), true only while no lease is granted. The off mode
+  proves its text by refuting a granting cluster from the client's half (`kvSt_client_lg`: `kvStQ` owns the
+  whole variable at `γk.lg`), which S3a removes with auth on by design. Nothing on the request side
+  (`isServerReqM true`, `putPermitM true`, `reqPropOkOn`) ties the mode to `none`.
+- **Evidence.** The S3a port: `ReqOn.grantedRes_applied` (`kvRes γc Q (kvStateOf lb)` from `grantedRes` at
+  `kvStateOf (kvModelOn L) (kvLeasesOn L)`), `ReadOn`'s `kvStOn` (must equal the invariant's state for the
+  read deposits' firing, `ReadOn.lean:666`), `readQ_of_ansM`'s `by cases on <;> rfl`.
+- **Proposed change.** (A) the posts give `Q` of the state with its table: `∃ lt, ⌜E.authOn = false → lt =
+  []⌝ ∗ Q (kvStateOf x.log lt)` (or the model's table named through `modelOutM`), and the read side's
+  `□ Q (kvStateOf log lt)`, followed through v3rpc (`ServerKVOn`) and the client's KV results; (C) a
+  transitional tie of the auth-on request side to the lease mode `none` until S3b. Not in Draft rev 5 §7.
+- **Decision.** (A), with the stronger guard `⌜E.authOn = false ∨ γ.kv.lm = .none → lt = []⌝` (etcd-grove-81, 2026-11-15): S3a Draft rev 6, §14 (recorded here 2026-11-15, S3a2 review r2 S7).
+
+## 2026-11-15: the latest track's certificate premise for a leased put or transaction -- unprovable at a dead lease (auth-lease S3a §6)
+
+- **Spec.** `apply.Apply.kvSpecL`, `apply.uberKVC`, `apply.uberApplier.Apply.kvSpecL`
+  (`apply/ApplyFnKVL.lean:73,110`, `apply/ApplyKVL.lean:54`; exported as `apply_*_kv_latest`): the premise
+  `certPreVW v3 E x.chain rq x.log (kvOutL …)`; through `certPreW_inner` (`apply/AuthApplyLatest.lean:238`, used by
+  the latest Put/Txn/Revoke) it becomes the class track's `certPre E c rq log` (`apply/Chain.lean:1532`): a
+  certificate `E.Nx` of the log after EVERY `chainStep backendStep` outcome.
+- **Defect.** `backendStep`'s put case (`apply/Chain.lean:209`, kept unchanged by S3a's N1 (ii′)) admits
+  `applied (log ++ [putChangeOf op …])` whatever the lease, and its transaction case an applied commit without
+  `PathsLeaseOk`. The model (`backendLog`) keeps the log for a put of a lease not live (`leaseMissingIn`) and for a
+  transaction whose path names one. With auth on, `E.Nx = kvNxOn` certifies only the models of committed raft logs,
+  so the server cannot give the certificate of that outcome: Draft §6's KV branch ("as today, S2's latest triple
+  ... no more `plainCover` discharge") is unprovable for an admitted leased put or leased transaction at the
+  revocable mode, which a concurrent revocation makes reachable (a put proposed with a lease revoked before it
+  applies). §3a's `leaseExactL` reaches the posts, not this premise. The backend's Put gets the certificate before
+  its lease check (`applierV3backend__Put.lean:88-95`) and uses it only in the live branch.
+- **Evidence.** `certPreW_inner`'s hypothesis `∀ oc, chainStep backendStep c rq log oc → X oc`; `kvNxOn`
+  (`KVApplyOn.lean`); `kv_certPreW_on` (`ApplyEntryOn.lean`), which needs every admitted outcome to be the model's
+  (`outcomeOn_of_kvOutLL` needs `leaseExactL` at the model's table, not available for the premise).
+- **Proposed change.** (1) Restrict the class track's certificate to lease-exact outcomes at the live set `T`
+  (`certPre` -> `certPreT … T`, outcomes with `leaseExactL T`; the class track's `leasesLive` at `T`, i.e. `kvOwnAt E
+  log T`, split at the top from the two `ltHalf`s; the backend Put/Txn take `E.Nx` in their live branch), and the
+  latest track's `X` with `leaseExactL T`; (2) `backendStep` over the live set (wider); (3) narrow S3a: no leased put
+  or transaction admitted (`plainReqL lm := plainReq`), leased puts moved to a later stage with (1).
+- **Decision.** (3) now, then (1) as its own stage S3a2 (etcd-grove-81, 2026-11-15): Draft rev 7, §15; `plainReqL lm :=
+  plainReq`.
+
+## 2026-11-15: txn.Txn's write wand is not told the lease check (auth-lease S3a2 §2)
+
+- **Spec.** `txn.Txn.specSole` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Txn.lean:62-65`; frozen text,
+  `notes/mvcc-api-clients/clients-txn.md` §8): the caller's write wand is told `PathsIgnOk (stateAfter log) br` only.
+- **Defect.** Too weak for a caller whose commit certificate depends on the leases: `applierV3backend.Txn` builds
+  the commit's witness `E.Nx` inside that wand, and S3a2's certificate at the live set (`certPreT … L`, ledger
+  2026-11-15 option (1)) covers an applied transaction only with `PathsLeaseOk (stateAfter log) L br`.
+- **Evidence.** Go: `checkTxn` (with `checkPut` → `checkLease`) runs before `kv.Write` (`server/etcdserver/txn/txn.go:54-67`,
+  `put.go:71-72`). Proof: `Hlok : PathsLeaseOk L` is in scope at `Proof/…/txn/Txn.lean:182`, the wand called at
+  `:256`. Probe: `Scratch/S3a2Probe.lean` (`Txn_wp_T` over a local copy of the strengthened spec).
+- **Proposed change.** The wand's premise `⌜PathsIgnOk … br ∧ PathsLeaseOk (stateAfter log) L br⌝` (a weaker
+  obligation on the caller); `txn.Txn`'s proof passes `⟨Hign, Hlok⟩`; `TxnSpecs.lean`/`clients-txn.md` §8 updated.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 2): the wand gains
+  `PathsLeaseOk (stateAfter log) L br`; `clients-txn.md` §8's frozen text noted as changed by this entry.
+
+## 2026-11-15: authTie at a leased request -- false in the refused-implies-not-permitted direction (auth-lease S3a2 §4a)
+
+- **Spec.** `authTie` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn.lean:89-91`), in `resultIsWOn` and
+  `modelOutM` (`:151`, `:221`), read by `EtcdServer.processInternalRaftRequestOnce`'s spec.
+- **Defect.** `o = .rejected .auth ↔ ¬ kvGranted st rq`: `kvGranted` is the permission check only; the auth layer
+  also refuses a leased put whose lease carries a key the principal may not write (`checkLeasePuts`,
+  `apply/auth.go:198-219`; the model's `¬ kvGrantedL`). Once S3a2 admits leased puts with auth on, the `→` direction
+  is false.
+- **Evidence.** S3a2 review r3 F1 (`/shared/tmp/auth-lease-s3a2/review-r3.md`); the example: key `a` permitted, the
+  lease carrying `b` not.
+- **Proposed change.** (b) the iff at `kvGrantedL st (leaseItemsOf (stateAfter lb)) rq`, `authTie` gaining the log
+  `lb` (recommended since S3a2 Draft rev 5, review r4; probed `Scratch/S3a2ProbeTie.lean`); alternatives (a) one
+  direction, (c) the iff for requests without a leased put: S3a2 Draft §4a.
+- **Decision.** (b) (etcd-grove-81, 2026-11-15, the S3a2 Freeze, decision 3): the iff at the model's `kvGrantedL`,
+  `authTie` gaining `lb`.
+
+## 2026-11-15: the 7f-5a Draft's store watch (independent re-review: M1, M2, m1, m2)
+
+- **Spec.** `Draft.store.Watch.spec` and its vocabulary (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean`,
+  unlinked; `notes/k8s-7f5a-draft.md` §10), before 7f-5a-P moves it to `Spec/`.
+- **Defects.** (M1) the client may deliver a progress notification at the watch's start, `hdrRev = c` with
+  `c + 1 = rev`, with no bound by a fired state (`watchStateRespOk`, `WatchStateDefs.lean:125-128`); the producer
+  queues it as a bookmark, which `KRawTail.bm`/`KTail.bm` (`p ≤ σ.rev`) cannot hold. (M2) `kCancelPD` lacked the
+  processing goroutine's own cancel (its `sendError`'s deferred `wc.cancel()`, watcher.go:559-562, 796).
+  (m1) the post's error arm said only `err ≠ nil`. (m2) `kStartOk`'s `max m.req 1 ≤ st` needs `1 ≤ σ0.rev` in
+  the legacy case, which neither `kvWf` nor a firing gives.
+- **Evidence.** The re-review (etcd-grove-81, 2026-11-15); Go: watcher.go as cited; for M1, the driver check
+  `watchOkL` rejects any event above the configuration's revision (`KWatch.lean:209`), and 7f-6's traffic draws
+  future resource versions for legacy watches (`notes/k8s-7f-scope.md` §1), so a bookmark at a future start is
+  one the consumer cannot accept; etcd does not send one (`progressIfSync` returns unless `rev ≥ w.startRev`,
+  `server/storage/mvcc/watchable_store.go:539`): the client spec is looser than etcd.
+- **Changes.** (M2) `kProcExited` set before the processor's `sendError`; `kCancelPD` gains it; `kInElem`'s no-gap
+  fact gains it as a third disjunct (the processor refutes it). (m1) error arm `err ≠ nil ∧ sie = some false ∧
+  uint.nat n = 0`. (m2) `kStartOk`'s watch-list arm `st = σ0.rev ∧ m.req ≤ st` (the `1` from the caller's `Q`).
+  (M1) see the next entry. Was OPEN: the Draft-local fix (`bm` admitting `p = c` unbounded) does not serve the consumer (above); the
+  alternative is the client's `watchStateRespOk` start disjunct gaining `hdrRev ≤ σ.rev` (an exported client
+  spec), a stop for etcd-grove-81.
+- **Decision.** M2, m1, m2: decided by etcd-grove-81 (2026-11-15; m2's form chosen by the agent). M1: open.
+
+## 2026-11-15: the client watch's progress notification at the watch's start has no state bound (7f-5a M1)
+
+- **Spec.** `client.watchStateRespOk` (`Proof/go_etcd_io/etcd/client/v3/WatchStateDefs.lean:125-128`), the element
+  of `watcher.Watch.spec`'s channel (`watchStateElemP`), and the server-level `client.rawRespOk` (same file).
+- **Defect.** Too weak: a progress notification at the cursor when the cursor is the watch's start
+  (`hdrRev = c`, `c + 1 = rev`) carries no bound by the state `σ` (`watchStateRespOk`) nor a certified log
+  (`rawRespOk`'s `c = hdrRev` arm). A consumer cannot exclude a progress notification at a revision etcd has not
+  reached: the etcd3 store's watch queues it as a bookmark (`KTail.bm` needs `p ≤ σ.rev`), and 7f-6's driver check
+  rejects a bookmark above the configuration's revision while its traffic watches from future revisions.
+- **Evidence.** etcd sends a progress notification to a watcher only once the store reached its start
+  (`progressIfSync`: `if rev < w.startRev { return false }`, `server/storage/mvcc/watchable_store.go:539` at
+  `673da07c8f`). Proof: the server-level fact already has the log (`progCovd`: `sint.nat x.rev < L.length`;
+  `cmpl_cov` gives `dd ≤ Lc.length` outright), which `cmpl_prog`'s at-the-cursor case drops.
+- **Proposed change.** `rawRespOk`'s progress arm always carries `∃ L, □ W.histLb L ∗ ⌜hdrRev < L.length ∧
+  rangeLogEvents L o (c+1) (hdrRev+1) = []⌝` (the `c = hdrRev` arm without a log removed); `watchStateRespOk`'s
+  progress arm always `hdrRev ≤ σ.rev ∧ rangeEvents σ o (c+1) (hdrRev+1) = [] ∧ kvLogOkTo σ hdrRev` (the start
+  disjunct removed: at `c = hdrRev` the range is empty). A stronger post of the exported client spec; `cmpl_cov`/
+  `cmpl_prog` keep the log; `raw_to_state` fires at a state through it; the readers lose a case.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15): strengthen, land as its own unit before 7f-5a-P; no closed
+  theorem statement changes, tcb stays 870/4; upstream's traffic kept.
+
+## 2026-11-15: the server's lease requests with auth on (auth-lease S3b; Draft `notes/auth-lease-s3b-draft.md` rev 3)
+
+One entry for the frozen texts S3b changes (Draft §6's table); the evidence of each is the Draft's section.
+
+- **Spec.** `EtcdServer.LeaseGrant.spec`, `EtcdServer.LeaseRevoke.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`),
+  `srvGrantsLeases`/`srvRevokesLeases`, `reqPropOkOn`, `putPermitOn`/`txnPermitOn`/`txnPermitM` (`ProposeOn`, `ReqOn`).
+- **Defect.** No proposer of a grant, a revocation, a leased put or a leased transaction with auth on: the two lease
+  specs and `srvGrants/RevokesLeases` require auth off, `reqPropOkOn` has no lease form, `putPermitOn` requires lease 0
+  and `txnPermitM` `txnPlain`, though Go serves all four with auth on (`v3_server.go` `LeaseGrant`/`LeaseRevoke`,
+  `requireAuthInfo` at `:447`; the apply side admits them since S3a/S3a2).
+- **Proposed change.** Draft §1, §2, §4.2, §4.3: the auth-off conjuncts dropped; the specs at `isServerReqM E.authOn`
+  with the client's update (`leaseGrantPermitM`/`leaseRevokePermitM`) and, on success, `authedOutB` and
+  `leaseGrantResM`/`leaseRevokeResM`; `reqPropOkOn`'s write disjunct at `plainReqL lm ∨ grantPropOk lm ∨ revokePropOk lm`,
+  `rqShape lm`, `grantIdOwn`; the permits' lease disjuncts at the revocable mode.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3b Freeze); D6: the v3rpc lease handlers' contracts and
+  etcdstart's registrations at the mode in S3c.
+
+## 2026-11-15: authTie says nothing of revocations or of a leased put's lease (auth-lease S3b D1)
+
+- **Spec.** `authTie` and its carriers `resultIsWOn`, `entryWitOn`, `resultΨOn`, `modelOutM` (`ReqOn.lean`; frozen at
+  S3a2 rev 6), read by `processInternalRaftRequestOnce.spec`/`raftRequest.spec` through `appliedOkM`.
+- **Defect.** Guarded by `isKVKind` (excludes `.leaseRevoke`): a successful revocation cannot be shown granted. It
+  carries no liveness: a successful leased put cannot be shown to have met a live lease (`backendStep` admits an
+  applied put of a dead lease; the lease exactness is dropped at the KV arm).
+- **Evidence.** Draft §3; probe `Scratch/S3bProbe.lean` (`authTieB_of_kvOutL`, `kvGrantedL_of_tieB`, `leaseLive_of_tieB`).
+- **Proposed change.** Guard `authKVKind`; the post gains `plainCover rq ∨ apply.leaseExactL lt.ids rq lb o`; `authTie`
+  gains the model's table `lt`, threaded through the carriers.
+- **Decision.** D1 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: grantedAt is the permission check only (auth-lease S3b D2)
+
+- **Spec.** `grantedAt`, `grantedAt_iff` (`ProposeOn.lean`), hence `writeGrantG`/`grantedRes` and the posts of
+  `Put`/`DeleteRange`/`Txn.spec`.
+- **Defect.** `kvGranted` omits the lease part of the model's verdict (`kvEntryOn`'s guard is `kvGrantedL`): a client's
+  update cannot be refuted for a put permitted on its key but refused for its lease's keys (`etcd_authlease_safe`
+  checks 2, 3, 5).
+- **Proposed change.** `grantedAt` at `kvGrantedL … (leaseItemsOf (stateAfter (kvModelOn …)))`; `grantedAt_plain` keeps
+  the old meaning for every request without a lease part.
+- **Decision.** D2 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: Put.spec's success does not say the lease was live (auth-lease S3b D3)
+
+- **Spec.** `EtcdServer.Put.spec` (frozen `Spec/` text), with the exported `put_applied`.
+- **Defect.** The success's client result `Q (kvStateOf x.log lt)` does not exclude the state where `kvOpStep (.put op)`
+  is `leaseMissing`'s identity, though Go's success means the lease was found (`checkLease`, `put.go:71`).
+- **Proposed change.** The success post's pure conjunct gains `¬ (kvStateOf x.log lt).leaseMissing op.leaseID`.
+- **Decision.** D3 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: txnAppliedOk does not say a leased transaction's leases were live (auth-lease S3b D7)
+
+- **Spec.** `txnAppliedOk` (`InvRead.lean`, the writing post of `EtcdServer.Txn.spec`; frozen).
+- **Defect.** As D3's for a transaction: a committed transaction's executed path's leases were live (`checkTxn`), the
+  post does not say so.
+- **Proposed change.** The pure conjunct gains `l ≠ x.log → txn.PathsLeaseOk (stateAfter x.log) lt.ids (t'.branch …)`.
+- **Decision.** D7 approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-15: auth on implies no lease granted (auth-lease S3c; Draft `notes/auth-lease-s3c-draft.md` rev 6)
+
+One entry for the frozen, exported and hub texts S3c changes (Draft §10's table); the evidence of each is the Draft's section.
+
+- **Spec.** `srvGrantGuard` (+ `_expired`), `lease.bootCfg` (hub) and its laws, `lease.srvInvAt`'s body, `srvUberOn`,
+  `srv_uberKVL(_on)` and the exported `server_uber_kvl(_on)`, the apply specs' `srvLessorNilM` premise, the auth component's
+  `acLessor` (frozen, 2026-11-04) in `Start`/`start`/`applyAll.spec`, `isServerRunC`, `isServerBuilt_offC`;
+  `EtcdServer.revokeExpiredLeases.spec`; `srvClusterBootOn_alloc` (+ exported restatement); etcdstart's `grpcUpOn`; the v3rpc
+  lease handlers' specs and `quotaLeaseServer.LeaseGrant.spec`.
+- **Defect.** Four couplings make "auth on" imply "no lease granted" (the guard `False` at auth on, `bootCfg`'s `on → m =
+  none`, `srvInvAt`'s `srvLessorNil`, the apply specs' `srvLessorNilM`), though Go serves grants with auth on and the apply
+  layer no longer reads `srvLessorNil` since S2 (`UberOn.lean:134`); the gRPC lease contracts are auth off only (S3b D6).
+- **Proposed change.** Draft §1–§7: C1 guard `⌜lg = true ∧ (on = true → leasesNoExpiry)⌝`; `bootCfg`'s row `on = true → m =
+  revocable → leasesNoExpiry`; `srvLessorNil(M)`, `acLessor` and their conjuncts deleted; `revokeExpiredLeases.spec` takes
+  `E.authOn = false`; the auth-on allocation at a lease mode (C6); the `…M` contracts beside today's (C5′) and the auth-on
+  `Md` registrations (C4, C7, C8).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3c Freeze, conditional on review round 5, which found no
+  first-tier problem).

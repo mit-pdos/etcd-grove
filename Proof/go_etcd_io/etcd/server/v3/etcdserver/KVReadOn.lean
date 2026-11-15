@@ -39,39 +39,44 @@ the entry meets the committer's obligation (`commitOkOn`: admitted and determina
 state after `L`), and its index the next. -/
 theorem kvInvOn_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (L : List EntryModel) (e : EntryModel)
-    (hok : plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
-      uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true ∧
-      kvLogSmall γk L)
+    (hok : plainLogOn γk.lm L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) L ∧ srvIdxOkW γ.ai0 L ∧
+      uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧ γk.ch0 = apply.alarmChain true false false ∧
+      (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ γ.raft.authOn = true ∧ kvLogSmall γk L)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e]))
-    (hc : commitOkOn γk.c0 γk.ch0 (st₀, γk.log0) L e) (hsz : L.length + 1 < 2 ^ 61) :
-    plainLogOn (L ++ [e]) ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (L ++ [e]) ∧
+    (hc : commitOkOn γk.lm γk.c0 γk.ch0 (st₀, γk.log0, []) L e) (hsz : L.length + 1 < 2 ^ 61) :
+    plainLogOn γk.lm (L ++ [e]) ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0, []) (L ++ [e]) ∧
       srvIdxOkW γ.ai0 (L ++ [e]) ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true ∧
+      γk.ch0 = apply.alarmChain true false false ∧
+      (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ γ.raft.authOn = true ∧
       kvLogSmall γk (L ++ [e]) := by
   obtain ⟨hp, hd, -, hc0, hch, h0, hao, hsm⟩ := hok
-  obtain ⟨hp', hd'⟩ := logOn_snoc γk.c0 γk.ch0 (st₀, γk.log0) L e hp hd hc
+  obtain ⟨hp', hd'⟩ := logOn_snoc γk.lm γk.c0 γk.ch0 (st₀, γk.log0, []) L e hp hd hc
   exact ⟨hp', hd', hidx', hc0, hch, h0, hao, kvLogSmall_snoc γk L e hsm hsz⟩
 
-/-- **A granted plain write's commit fires its client's update** (the ghost step at the commit, in
+/-- **A granted request's commit fires its client's update** (the ghost step at the commit, in
 the mode `on`): the invariant's half of the state's ghost variable at the committed log `L`'s model
-and a client's `etcdKV` at `σ` agree, and both move to the request's step, which is the model's
-state after `L ++ [e]` (`kvModelOn_snoc_granted`). -/
+and table and a client's `etcdKV` at `σ` agree, and both move to the request's step, which is the
+model's state after `L ++ [e]` (`kvModelOn_snoc_granted`; auth-lease S3a: any kind, the lease arms of
+`kvOpStep` included, its lease part granted at the model's lease items). -/
 theorem kvInvOn_commit_granted (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) (rq : apply.IRRModel) (σ : KVState)
     (hch : γk.ch0 = apply.alarmChain true false false)
     (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
     (hna : apply.needAdminPermission rq = false)
-    (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq) (hpc : plainCover rq) :
-    ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) -∗ etcdKV γk σ ==∗
-      ⌜σ = kvStateOf (kvModelOn γk st₀ L)⌝ ∗
-      ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ (L ++ [e]))) ∗
+    (hg : apply.authKVKind (apply.dispatchKind rq) = true →
+      kvGrantedL (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1
+        (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelOn γk st₀ L))) rq) :
+    ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half
+        (kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)) -∗ etcdKV γk σ ==∗
+      ⌜σ = kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)⌝ ∗
+      ghostVar γk.st (1 : Qp).half
+        (kvStateOf (kvModelOn γk st₀ (L ++ [e])) (kvLeasesOn γk st₀ (L ++ [e]))) ∗
       etcdKV γk (kvReqStep rq σ) := by
   iintro Hσ Hc
   iunfold etcdKV at Hc
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
-  have hst := kvModelOn_snoc_granted γk st₀ L e rq hch h0 ht hd hdec hidx hna hg hpc
+  have hst := kvModelOn_snoc_granted γk st₀ L e rq hch h0 ht hd hdec hidx hna hg
   imod ghostVar_update_halves (kvReqStep rq σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
   imodintro
   isplitr
@@ -81,14 +86,16 @@ theorem kvInvOn_commit_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
   iunfold etcdKV
   iexact Hc
 
-/-- **An entry that keeps the KV log keeps the state** (an admin entry, `kvModelOn_snoc_admin`, or
-a refused KV entry, `kvModelOn_snoc_refused`): the invariant's half moves to `L ++ [e]` unchanged,
-no client's update fires. -/
+/-- **An entry that keeps the KV log and the table keeps the state** (an admin entry,
+`kvModelOn_snoc_admin`, or a refused one, `kvModelOn_snoc_refused`): the invariant's half moves to
+`L ++ [e]` unchanged, no client's update fires. -/
 theorem kvInvOn_commit_keep (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
-    (e : EntryModel) (hk : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L) :
-    ghostVar (GF := GF) γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ⊢
-      ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ (L ++ [e]))) := by
-  rw [hk]
+    (e : EntryModel) (hk : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L)
+    (hl : kvLeasesOn γk st₀ (L ++ [e]) = kvLeasesOn γk st₀ L) :
+    ghostVar (GF := GF) γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)) ⊢
+      ghostVar γk.st (1 : Qp).half
+        (kvStateOf (kvModelOn γk st₀ (L ++ [e])) (kvLeasesOn γk st₀ (L ++ [e]))) := by
+  rw [hk, hl]
 
 end lemmas
 

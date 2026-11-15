@@ -49,6 +49,7 @@ theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Cha
         log F R Pre Post := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
   ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
+  ihave Hkv := apply.kvOwn_rejected E log rq .auth (by decide) $$ Hkv
   iunfold apply.kvPostF
   iexists (.rejected .auth)
   isplitr

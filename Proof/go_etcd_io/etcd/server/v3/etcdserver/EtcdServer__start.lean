@@ -104,7 +104,7 @@ theorem EtcdServer.start.wp_proof
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  wp_start as ⟨%hC, Hb, #Hlnil⟩
+  wp_start as ⟨%hC, Hb⟩
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
   iunfold isServerBuiltC at Hb
   icases Hb with ⟨Hb, Hskeep⟩
@@ -632,18 +632,18 @@ theorem EtcdServer.start.wp_proof
     iexists ms
     iframe Hms Hsnap
   -- (revoke-open Q8 (a)) `run` forked with the fresh thread token
-  wp_apply wp_fork_tok_body $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh
+  wp_apply wp_fork_tok_body $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hrunh
       Hwth Hwtl Hskeep]
   · iintro Htok
     wp_apply hRun s γ ci TM C E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ cfgk.DataDir' cs
-      $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh Hwth Hwtl Hskeep Htok]
+      $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hrunh Hwth Hwtl Hskeep Htok]
       as Htok
     · simp only [srvStopReq_wait, srvDoneInv_wait]
       iframe Htok
       iunfold isServerRunC
       iframe
-      iframe Hrf Hrvk Hsa Hsrv Hrn Hlnil Hmid HmetaSnap
+      iframe Hrf Hrvk Hsa Hsrv Hrn Hmid HmetaSnap
       isplitr
       · ipureintro; exact ⟨hm, hRB⟩
       isplitr

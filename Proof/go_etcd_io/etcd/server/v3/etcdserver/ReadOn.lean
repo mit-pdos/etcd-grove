@@ -55,11 +55,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The KV state of the committed log `L` in the auth mode `on`**: the mode-`on` model's, from
-the start's auth state `st₀` (`kvInvOn`'s ghost state). -/
-@[reducible] def kvStOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : KVState :=
-  kvStateOf (kvModelOn γk st₀ L)
-
 /-- **The deposits' state function in the auth mode `on`**: `kvStOff` at `false`, `kvStOn` from the
 server's start state `srvAuthSt0` at `true`. -/
 def kvStM (on : Bool) (γk : KVNames) : List EntryModel → KVState :=
@@ -409,7 +404,7 @@ def authFloorAt (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) : IPro
   match M with
   | .on γa => iprop(∃ (A : List EntryModel) (i : Nat), srvRLogLb γr.raft A ∗
       ⌜uint.Z c ≤ uint.Z γr.raft.ai0 + A.length ∧ i ≤ m⌝ ∗
-      auth.authStateAt γa i (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1)
+      auth.authStateAt γa i (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1)
   | _ => iprop(True)
 
 instance authFloorAt_persistent (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) :
@@ -484,6 +479,42 @@ theorem srvKVCoreM_of_readM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
   iapply srvKVInvsM_core on s E γr $$ Hkvi
 
+/-- **With auth on at the lease mode `none`, a committed raft log's lease table is empty** (auth-lease
+S3a, rev 6: the read side of the guard `on = false ∨ lm = none → lt = []`; `kv_log_plain_on`,
+`kvLeasesOn_none`). -/
+theorem srvKVCoreM_leases_none (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (L : List EntryModel) :
+    ⊢ srvKVCoreM on E γr -∗ srvRLogLb γr.raft L ={⊤}=∗
+      ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ := by
+  cases on
+  · iintro - - !>; ipureintro; intro h; cases h
+  · rw [srvKVCoreM_true]
+    iintro ⟨#HkI, -, #HrI, -⟩ #HL
+    imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 L $$ HkI HrI HL with %Hpc
+    imodintro; ipureintro
+    intro _ hlm
+    exact kvLeasesOn_none _ _ _ (hlm ▸ Hpc.1)
+
+/-- **A read deposit's result row with the guard** (`srvKVCoreM_leases_none` under the row's
+serializable branch): what `rangeAnsOkM`/`txnReadAnsM` take from `rangeReadOkM`'s. -/
+theorem depQ_leases_none (on b : Bool) (E : apply.AEnv GF) (γr : ReadNames) (log : mvcc.Log)
+    (Q : List EntryModel → IProp GF) :
+    ⊢ srvKVCoreM on E γr -∗
+      (if b then iprop(True) else
+        ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ={⊤}=∗
+      (if b then iprop(True) else
+        ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗
+          ⌜on = true → γr.kv.lm = .none → kvLeasesOn γr.kv srvAuthSt0 L = []⌝ ∗ □ Q L) := by
+  cases b
+  · simp only [Bool.false_eq_true, ite_false]
+    iintro #Hc ⟨%L, #HL, %Hm, #HQ⟩
+    imod srvKVCoreM_leases_none on E γr L $$ Hc HL with %Hg
+    imodintro
+    iexists L
+    iframe HL HQ
+    ipureintro; exact ⟨Hm, Hg⟩
+  · simp only [ite_true]
+    iintro - - !>; itrivial
+
 /-- **A read update fired at a certified log, in either auth mode** (G2's follow-up, 2026-10-30;
 until then `client.watch_fire`, auth off only): with the KV core in the mode `on` and a log `L`
 with the store's witness (`E.Nx L`), the caller's persistent read update of `γ`'s state (the KV
@@ -497,7 +528,8 @@ theorem srvKVCoreM_fire (on : Bool)
     ⊢ srvKVCoreM on E γr -∗ E.Nx L -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ={⊤}=∗
-      ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+      ∃ (C : mvcc.Log) (lt : LeaseTable), ⌜on = false ∨ γr.kv.lm = .none → lt = []⌝ ∗
+        □ Q (kvStateOf C lt) ∗ ⌜L <+: C⌝ := by
   have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
     intro p hp
     rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
@@ -547,10 +579,10 @@ theorem srvKVCoreM_fire (on : Bool)
     imod Hclose $$ [HLf Hσ' HG] with -
     · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
-    iexists kvModel γr.kv Lf
+    iexists kvModel γr.kv Lf, []
     rw [← kvModelSt_plain γr.kv Lf (KVNames.lm_of_lg_false Hlg ▸ Hok'.1), Hag]
     iframe HQ0
-    ipureintro; exact HpL
+    ipureintro; exact ⟨fun _ => rfl, HpL⟩
   · rw [srvKVCoreM_true]
     iintro #Hinvs Hc #Hau
     icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
@@ -560,14 +592,14 @@ theorem srvKVCoreM_fire (on : Bool)
     obtain ⟨hA, -⟩ := hA
     iunfold kvInvOn at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw, HG⟩
     -- `L` is a prefix of the committed log's mode-`on` model
     imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
       Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
     ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
     have HpL : L <+: kvModelOn γr.kv srvAuthSt0 Lf := by
       obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
-        (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+        (srvAuthSt0, γr.kv.log0, []) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
       rw [← hA]
       unfold kvModelOn
       rw [hAL]
@@ -590,13 +622,17 @@ theorem srvKVCoreM_fire (on : Bool)
       · iexact Hc2
       · ipureintro; rw [← Hag]; exact kvRoom_modelOn γr.kv srvAuthSt0 Lf Hok'.2.2.2.2.2.2.2
     imod Hback with -
-    imod Hclose $$ [HLf Hσ' Hh] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' Hh HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hh Hw HG; ipureintro; exact Hok'
     imodintro
-    iexists kvModelOn γr.kv srvAuthSt0 Lf
+    iexists kvModelOn γr.kv srvAuthSt0 Lf, kvLeasesOn γr.kv srvAuthSt0 Lf
     rw [Hag]
     iframe HQ0
-    ipureintro; exact HpL
+    ipureintro
+    refine ⟨fun h => ?_, HpL⟩
+    rcases h with h | h
+    · cases h
+    · exact kvLeasesOn_none _ _ _ (h ▸ Hok'.1)
 
 
 /-- **A committed raft prefix's KV model has short keys, in either auth mode** (R8, 2026-11-07:
@@ -741,12 +777,12 @@ theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   iintro !> %A %B %Hab #HA
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ Hh] with -
-  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ Hh HG] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
-    (by simp only [kvStOn, kvModelOn,
-      kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
+    (by simp only [kvStOn, kvModelOn, kvLeasesOn,
+      kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0, []) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
   imodintro
   inext
   iintro !>
@@ -770,7 +806,7 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   unfold atomic_acc
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw, HG⟩
   imod kv_fire_reads_on γk st₀ L (kvRoom_modelOn γk st₀ L Hok.2.2.2.2.2.2.2) gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -780,14 +816,14 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   isplit
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ Hh] with -
-    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ Hh HG] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro HL
     imod Hmask with -
-    imod Hclose $$ [HL Hσ Hh] with -
-    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+    imod Hclose $$ [HL Hσ Hh HG] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
     imodintro
     iintro !>
     iexact HQs
@@ -906,7 +942,7 @@ theorem authFloor_of_pubFrom (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.A
   iunfold appliedPubM at Hpi
   icases Hpi with ⟨%A, #HA, %hA, #Hpa⟩
   ihave #Hpa' : authPubAt (GF := GF) (.on γa)
-      (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1 $$ []
+      (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1 $$ []
   · rw [← hM]; iexact Hpa
   iunfold authPubAt at Hpa'
   icases Hpa' with ⟨%i, #Hlb, #Hst⟩
@@ -991,7 +1027,7 @@ theorem kv_read_logOn (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Lo
     iframe HA'
     ipureintro
     exact ⟨hA', by have := h.length_le; omega⟩
-  · have hk := kvRaftOfOn_prefix γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A' AR h
+  · have hk := kvRaftOfOn_prefix γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A' AR h
     have hk' : l <+: L₀ := by
       have hR2 : L₀ = kvModelOn γr.kv srvAuthSt0 AR := HR.2
       unfold kvModelOn at hR2
@@ -1050,6 +1086,29 @@ theorem srvKVInvsM_kvStoreInv (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : R
     icases H' with ⟨-, -, -, -, #Hk, %Hm, -⟩
     iframe Hk
     ipureintro; exact Hm.1
+
+/-- **The server's auth fields, from the proposer's and the reader's views in the auth mode `on`**
+(`srvAuthAt_of_views`' at any mode; auth-lease S3c, Draft §7.3: the auth-on lease registrations'
+`srvAuthAt`). -/
+theorem srvAuthAt_of_viewsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerReqM on s E ρ ∗ isServerReadM on s E γr ⊢ srvAuthAt s E := by
+  iintro ⟨#Hq, #Hr⟩
+  ihave ⟨%vq, #Hq'⟩ : ∃ v : ReqFields, srvReqFieldsAtM on s E ρ v $$ [Hq]
+  · cases on
+    · iunfold isServerReqM at Hq; icases Hq with ⟨#H, -⟩; iexact H
+    · iunfold isServerReqM at Hq; icases Hq with ⟨#H, -⟩; iexact H
+  iunfold srvReqFieldsAtM at Hq'
+  icases Hq' with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -, #Has, #Hreq, -⟩
+  iunfold isServerReadM at Hr
+  icases Hr with ⟨%vr, Hr⟩
+  iunfold srvReadFieldsAtM at Hr
+  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
+  icombine Has Has2 gives %Heq
+  ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
+  · rw [← Heq]; iexact Hreq
+  iunfold srvAuthAt
+  iexists vr.auth, vq.cca
+  iframe #
 
 end lemmas
 

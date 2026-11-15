@@ -11,7 +11,7 @@ slot (`lease.bootCfg_run`, `LeaseApi.lean`) or, before `NewServer`, by the mode'
 change of what the running server takes of the lease subsystem (the expiry stage's Part X: the
 revocable mode) changes `lease.runCfg`'s body and laws, not the inner predicates' text.
 
-Below `InvRun.lean` (whose `srvWinPend` `isServerRunC` needs) and `LeaseApi.lean` (whose `lease.bootCfg` names
+Below `InvRun.lean` and `LeaseApi.lean` (whose `lease.bootCfg` names
 `srvGrantOpen`), with the open cases of a granting cluster (`srvGrantOpen`, `runSnapLgOkBody`, moved
 from `InvRun.lean`). Sealed (`etc/import-all.txt`; `LeaseApi.lean` alone imports it with `import
 all`, for the laws relating the two slots).

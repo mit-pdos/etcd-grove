@@ -253,7 +253,7 @@ theorem txn.Txn_sole
     rw [hro]
     simp only [Bool.false_eq_true, ↓reduceIte]
     -- the caller's wand, told that the checks passed (`checkTxn`'s `PathsIgnOk`)
-    ihave Hbeg := Hwand $$ %σr %Hign HQr
+    ihave Hbeg := Hwand $$ %σr %(⟨Hign, Hlok⟩ : _ ∧ _) HQr
     iunfold txn.txnBeginAU at Hbeg
     ihave Hbeg := txn.beginAU_reach hpers hreach _ γ _ $$ Hkv Hbeg
     wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Hrd $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]

@@ -34,6 +34,11 @@ net_Listen:
 EtcdServer__RaftHandler: @
 etcdstart_NewMember: etcdstart_newServer net_Listen EtcdServer__RaftHandler
 etcdstart_StartMember: etcdstart_NewMember EtcdServer__Start
+# (putgetN, the clusterN Scope, 2026-11-15) `Members`: the members of a cluster of any size
+# (`strconv.FormatUint`'s trust-boundary axiom); `StartMembers`: `NewMember` and `Start` for each
+strconv_FormatUint:
+etcdstart_Members: strconv_FormatUint
+etcdstart_StartMembers: etcdstart_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @

@@ -30,13 +30,14 @@ X-a: the call's statement, its proof a later step): with the server's persistent
 point of `run` (its fields with auth off, `srvFieldsAt`, and its run fields, `srvRunFieldsAt`:
 the stop channel, the server context, `GoAttach`'s protocol) and a slice `ls` of expired leases
 as the lessor's `expiredC` delivers it (`lease.expiredLeases`: read-only, non-empty, each lease's
-`ID` read-only, each id meeting the server's grant guard, which says the cluster grants leases and
-auth is off), it returns (Go: `s.GoAttach` of the round, which checks leadership and proposes one
+`ID` read-only, each id meeting the server's grant guard, which says the cluster grants leases), it returns (Go: `s.GoAttach` of the round, which checks leadership and proposes one
 `LeaseRevoke` per lease, each in a goroutine of its own; the caller waits for none).
 
 (revoke-open, 2026-11-06, Q8; `notes/revoke-open-plan.md`, "Draft pass 1", I.1) In a cluster that
-revokes leases (the KV names' lease mode `revocable`; auth off follows from the slice's grant guard,
-`srvGrantGuard_expired`, and with it `srvRevokesLeases`), with levels `0 … srvRevokeK - 1` of a
+revokes leases (the KV names' lease mode `revocable`, with it `srvRevokesLeases`) with auth off (a premise, auth-lease
+S3c, 2026-11-15: with auth on no lease expires, `lease.bootCfg`, and `run`'s expiry arm derives auth off
+from the slice's guard and the payload's `¬ leasesNoExpiry`, `srvGrantGuard_expired_off`; S5 lifts it;
+until then from the slice's grant guard), with levels `0 … srvRevokeK - 1` of a
 thread token (`srvRevokeLevels`), the revocation's persistent bundle (`srvRevokeCtx`: the pools its
 goroutines borrow from, the request side's views, the server context) and the caller's thread
 token, which it returns (its goroutines' reader slots come from pools backed by it). (Review round 1,
@@ -49,7 +50,7 @@ abbrev EtcdServer.revokeExpiredLeases.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
       lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls ∗
-      srvRevokeCtx s E ρ γr γg ∗ ⌜ρ.rd.kv.lm = .revocable ∧ srvRevokeLevels (GF := GF)⌝ ∗
+      srvRevokeCtx s E ρ γr γg ∗ ⌜ρ.rd.kv.lm = .revocable ∧ srvRevokeLevels (GF := GF) ∧ E.authOn = false⌝ ∗
       threadTok }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"revokeExpiredLeases")) (Val #ls))
   {{ RET #(); threadTok }}

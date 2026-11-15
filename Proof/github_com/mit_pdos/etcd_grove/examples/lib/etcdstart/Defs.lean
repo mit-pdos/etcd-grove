@@ -591,7 +591,9 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on
-the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`). -/
+the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`) and (auth-lease S3c, Draft §7.3)
+the Lease service's (`grpcLeaseUp`, at the on answers: `client.etcd_lease_auth_served_on` serves its
+grant and revocation with auth on). -/
 def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
@@ -612,7 +614,7 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr)
+    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
 
 /-- **What `v3rpc.Server` and `Listen` return, in the auth mode `on`** (the auth component's stage 5;
@@ -674,15 +676,16 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   iexact Hlu
 
 open Iris.ProofMode in
-/-- **`grpcUpM` with auth on is `grpcUpOn`** (a bridge): the configuration and the `*kvServer`
-moved to the on answers (through `raftKV_srvKVAnsM_true`); the Lease service dropped. -/
+/-- **`grpcUpM` with auth on is `grpcUpOn`** (a bridge): the configuration, the `*kvServer` and
+the Lease service moved to the on answers (through `raftKV_srvKVAnsM_true`, `leaseServerAt_revR`;
+auth-lease S3c: until then the Lease service dropped). -/
 theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) :
     grpcUpM true s E ρ γr gs lis addr cid mid R ⊢ grpcUpOn s E ρ γr gs lis addr cid mid R := by
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, -⟩
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
   obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢
       v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by
@@ -698,6 +701,12 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   · iapply v3rpc.grpcCfgOk_A s C _ hk $$ Hc
   ihave #Hk' := v3rpc.kvServerIs_mono p s C.A _ cid mid C.n hR hk $$ Hk
   iframe; iframe #
+  have hl : ∀ pl lcid lmid, v3rpc.leaseServerAt (GF := GF) pl s C.A lcid lmid =
+      v3rpc.leaseServerAt pl s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) lcid lmid :=
+    fun pl lcid lmid => v3rpc.leaseServerAt_revR pl s _ _ lcid lmid hR
+  unfold grpcLeaseUp
+  simp only [hl]
+  iexact Hlu
 
 
 open Iris.ProofMode in

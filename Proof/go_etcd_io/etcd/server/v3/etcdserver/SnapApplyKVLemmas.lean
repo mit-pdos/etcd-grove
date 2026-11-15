@@ -44,6 +44,24 @@ theorem leasesKnown_noLease (L : List w64) (log : mvcc.Log) (h : mvcc.LogNoLease
   obtain ⟨kv, hkv, rfl⟩ := List.mem_map.1 hl
   exact hz kv hkv
 
+/-- **A state whose leased keys' leases are among `L` needs no other lease** (`leasesKnown L`; auth-lease
+S3a, Draft rev 5 §5: the restored image's keys attach only leases `Recover` restored). -/
+theorem leasesKnown_of_items (L : List w64) (log : mvcc.Log)
+    (h : ∀ (k : GoString) (id : w64), mvcc.leaseItemsOf (mvcc.stateAfter log) !! ⟨k⟩ = some id → id ∈ L) :
+    ⊢ txn.leasesKnown (GF := GF) L (mvcc.stateAfter log) := by
+  unfold txn.leasesKnown txn.leasesOk
+  iintro !> %l %hl
+  iunfold txn.leaseOk
+  ipureintro
+  obtain ⟨kv, hkv, rfl⟩ := List.mem_map.1 hl
+  by_cases h0 : kv.lease = W64 0
+  · left; exact h0
+  · right
+    apply h kv.key
+    have hf := txn.findKey_of_mem_sorted (mvcc.stateAfter_sorted log) hkv
+    show ((mvcc.findKey kv.key (mvcc.stateAfter log)).bind mvcc.kvLease) = some kv.lease
+    rw [hf]; simp only [Option.bind_some, mvcc.kvLease]; rw [if_neg h0]
+
 end proof
 
 end EtcdGrove

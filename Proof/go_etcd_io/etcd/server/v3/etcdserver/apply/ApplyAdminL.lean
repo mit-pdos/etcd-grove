@@ -320,7 +320,7 @@ theorem apply.authApplierV3.Apply.wp_latest
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   ihave #Hst' := Hst
   iunfold apply.isAuthStoreL at Hst'
-  icases Hst' with ⟨%sti, %Hsti, -, -, -, #HAdmin⟩
+  icases Hst' with ⟨%sti, %Hsti, -, -, -, #HAdmin, -⟩
   subst Hsti
   ihave #Hin := Hinner
   iunfold apply.applyNR at Hin

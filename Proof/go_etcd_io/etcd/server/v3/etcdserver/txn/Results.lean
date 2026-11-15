@@ -188,6 +188,18 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **`Txn`** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Txn.lean`). -/
 theorem txn_srvRunTxn : Txn.spec (GF := GF) (hG := hG) := wp_Txn
 
+open Iris.ProofMode in
+/-- A write wand told less is one told more (auth-lease S3a2: `txn_runTxn` keeps the wand told
+`PathsIgnOk` only; `Txn.specSole`'s is also told `PathsLeaseOk`). -/
+theorem wand_weaken_told (b : Bool) (A B : Prop) (R : MvccState → IProp GF) :
+    iprop(if b then iprop(True) else iprop(∀ σ : MvccState, ⌜A⌝ -∗ R σ)) ⊢
+      iprop(if b then iprop(True) else iprop(∀ σ : MvccState, ⌜A ∧ B⌝ -∗ R σ)) := by
+  cases b
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro H %σ %h
+    iapply H $$ %σ %h.1
+  · simp only [↓reduceIte]; iintro -; itrivial
+
 /-- **The server's transaction at the sole writer of `log` is the client model's `runTxn`**, when
 the nested verdicts are stable (`OpsStable`): one of `checkTxn`'s errors, nothing written; or the
 changes `txnChs log t` committed, whose state is `runTxn`'s, the response that of `runTxn`'s
@@ -233,6 +245,9 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
           (if txnReadonly t then iprop(Pre ∗ Qr σr)
            else iprop(Post ∗ ∃ σw : MvccState, ⌜σw.log = log⌝ ∗ Qw σw)))) }} := by
   wp_start_folded as ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16⟩
+  ihave H16 := wand_weaken_told (txnReadonly t) _
+    (PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txnOk (mvcc.stateAfter log) t)))
+    (fun σ => iprop(Qr σ -∗ txnBeginAU γ log t Qw)) $$ H16
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw)
     $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16]
   · iframe Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16

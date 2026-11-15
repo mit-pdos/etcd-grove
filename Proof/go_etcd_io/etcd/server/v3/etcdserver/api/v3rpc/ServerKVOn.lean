@@ -389,7 +389,7 @@ theorem putPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     iunfold putPermitOn
     isplitr
     · ipureintro
-      refine ⟨hl, fun hk => ?_⟩
+      refine ⟨Or.inl hl, fun hk => ?_⟩
       simp [putReqOk, putCheck, hk] at hc
     iexact H
 
@@ -434,7 +434,7 @@ theorem txnPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro ⟨%L₀, #HL₀, Hau⟩
   iunfold txnPermitM
   isplitr
-  · ipureintro; exact ⟨hp, hz, hs⟩
+  · ipureintro; exact ⟨Or.inl hp, hz, hs⟩
   isplitr
   · ipureintro; exact hsh
   iexists L₀
@@ -485,9 +485,12 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, Hcok,
-    Hrcpt, %Hwf, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    Hrcpt, %Hwf, ⟨%ltq, %Hltq, HQv⟩, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
+    -- (auth-lease S3b D3) the success's lease liveness: the handler's answer does not carry it
+    ihave HQv : iprop(∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ opDepQ d (kvStateOf x.log lt)) $$ [HQv]
+    · iexists ltq; iframe HQv; ipureintro; exact Hltq.1
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     icases Hpo with ⟨#Hresp, -⟩
     ihave #Hresp' := Hresp
@@ -1066,18 +1069,22 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
+  iapply wp_fupd
   wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
     as %resp %err ⟨Hrc, Hres⟩
   · iframe #; iframe Hrc
     isplitr
     · simp only [traceutil.ownTraceOpt]; itrivial
     ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
-  iapply HΦ
-  iunfold kvAnswer
+  ihave #Hcore := srvKVCoreM_of_readM E.authOn s E γr $$ Hsrd
   icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, #HrO, -⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOkM at Hok'
     icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hres, Hown⟩
+    imod depQ_leases_none E.authOn o.base.serializable E γr log _ $$ Hcore HQl with HQl
+    imodintro
+    iapply HΦ
+    iunfold kvAnswer
     ihave #Hres' := Hres
     icases Hres' with ⟨%crev, Hres'⟩
     iunfold txn.rangeResult at Hres'
@@ -1114,6 +1121,9 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     rw [hon]
     rw [← Htok hon]; iapply infoBoundM_tok $$ Hib
   · obtain ⟨rfl, Hne⟩ := Hre
+    imodintro
+    iapply HΦ
+    iunfold kvAnswer
     iright
     isplitr
     · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
@@ -1182,7 +1192,10 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%tw, %hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
-        Hcok, Hrcpt, %Hwf, HQv⟩
+        Hcok, Hrcpt, %Hwf, ⟨%ltq, %Hltq, HQv⟩⟩
+      -- (auth-lease S3b D7) the transaction's lease liveness: the handler's answer does not carry it
+      ihave HQv : iprop(∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ opDepQ d (kvStateOf x.log lt)) $$ [HQv]
+      · iexists ltq; iframe HQv; ipureintro; exact Hltq.1
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩
@@ -1244,6 +1257,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   · -- a read-only transaction: read locally
     ihave #Hdep' := kvDep_of_depM E.authOn s E ρ γr tok d $$ Hdep
     simp only [hro, ↓reduceIte] at hT
+    iapply wp_fupd
     wp_apply hT $$ [Hlt Hcred Hrc] as %resp %err ⟨Hlt, Hrc, Hcred, Hres⟩
     · iframe #; iframe Hlt Hcred Hrc
       isplitr
@@ -1252,12 +1266,15 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       first
         | exact fun _ => ⟨hg hro, Hany⟩
         | exact ⟨fun _ => ⟨hg hro, Hany⟩, fun h => by cases h⟩
-    iapply HΦ
-    iunfold kvAnswer
+    ihave #Hcore := srvKVCoreM_of_readM E.authOn s E γr $$ Hsrd
     icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hne, #HaE, -⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnReadOkM at Hok'
       icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hresp, Hown⟩
+      imod depQ_leases_none E.authOn (txn.txnSerializable t) E γr log _ $$ Hcore HQl with HQl
+      imodintro
+      iapply HΦ
+      iunfold kvAnswer
       ihave #Hresp' := Hresp
       iunfold txn.txnResponseIs at Hresp'
       icases Hresp' with ⟨-, #Hf⟩
@@ -1292,7 +1309,10 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact Hm
       rw [hon, ← Htok hon]
       iapply infoBoundM_tok $$ Hib
-    · iright
+    · imodintro
+      iapply HΦ
+      iunfold kvAnswer
+      iright
       isplitr
       · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
       isplitr

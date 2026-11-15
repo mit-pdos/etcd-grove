@@ -35659,3 +35659,15 @@ deleted), so `kaDn` changes with it. The TLS fallback stays admitted (a certific
 change to Part B's frozen statements; the three check proofs use `principalBoundOn_of_ctxBound`
 (`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
 unchanged.
+
+## auth-lease S2: the apply layer at the latest state over the lease owner's resource (2026-11-15 · Freeze approved by etcd-grove-81 · branch `auth-lease`)
+
+The design is `notes/auth-lease-s2-draft.md` (three review rounds, `/shared/tmp/auth-lease/s2-review-r*.md`).
+The five choices approved: the lease class stops at the auth applier's methods (`kvPostFL`, Q5; nothing past
+the methods reads it, so the Scope's "carried through dispatch" is dropped); the four latest layer triples
+(`dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `uberKVC`, `Apply.kvSpecL`) widen to the revocation
+(`authKVKind`, `rqOk E.lm`, the revocation's resources as `dispatch.spec` threads them) instead of a parallel
+revocation family; the server-side readers of the latest verdict take the auth-on log's `plainCover` (no
+lease), discharged inside the proofs (`authOutL_of_kvOutL`, `kvShapedL_of_log`, `authTie_of_kvOutL`), until S3's
+model has a lease table; `LeaseRevoke.specL`'s floor is `[]`; the class and latest tracks stay separate. No
+closed theorem's statement changed; `srvLessorNil` stays a premise of `srv_uberKVL{,_on}` (unused) until S3.

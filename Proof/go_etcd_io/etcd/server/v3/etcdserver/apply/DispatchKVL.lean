@@ -22,6 +22,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReque
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestRevoke
 
 @[expose] public section
 
@@ -43,30 +44,67 @@ variable [GooseExts]
 
 /-- **A KV request's outcome `oc` decided at the latest state of `hs`** for the principal `ai`
 (the inner chain `ci` of the auth applier): the verdict of the auth applier's method for the
-request's operation (`authApplierV3.X.specL`), the checked permissions as the checks saw them. -/
+request's operation (`authApplierV3.X.specL`), the checked permissions as the checks saw them;
+(auth-lease S2) a put's and a transaction's puts' leases and a revocation's lease at the owner's item
+map of the log's state included. -/
 def kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (ci : Chain)
     (rq : IRRModel) (log : mvcc.Log) (oc : Outcome) : Prop :=
   match dispatchKind rq with
   | .range => ∃ o, rq.range = some o ∧ ∃ e, authEndOf o.base.rangeEnd e ∧
       authOutL M hs ai ci rq log [(o.key, e, .read)] oc
-  | .put => ∃ o, rq.put = some o ∧ authOutL M hs ai ci rq log (putPerms o) oc
+  | .put => ∃ o, rq.put = some o ∧
+      authOutLL M hs ai ci rq log (putPerms o) (mvcc.leaseItemsOf (mvcc.stateAfter log)) [o.leaseID] oc
   | .deleteRange => ∃ o, rq.deleteRange = some o ∧ ∃ e, authEndOf o.base.rangeEnd e ∧
       authOutL M hs ai ci rq log
         ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc
   | .txn => ∃ t, rq.txnW = some t ∧
-      ((oc = .rejected .auth ∧ refusedMay M hs ai (txnMay t)) ∨
-        (chainStep backendStep ci rq log oc ∧ ∃ L, txnChecked t L ∧ passedL M hs ai L))
+      txnOutLL M hs ai ci rq log t (mvcc.leaseItemsOf (mvcc.stateAfter log)) oc
+  | .leaseRevoke => ∃ id, rq.leaseRevoke = some id ∧
+      authOutLL M hs ai ci rq log [] (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id] oc
   | _ => False
 
+/-- **`kvOutL` with the outcome lease-exact at the live set `T`** in a cluster that grants leases (auth-lease S3a2,
+Draft §3): the certificate the latest triples take. When `lg = false` the live set is not tied to `T` (`ltHalf` is
+`True`), so the guard lets the dispatch pass the certificate on at the method's real live set. -/
+def kvOutLT (M : auth.AuthMode) (lg : Bool) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (ci : Chain)
+    (rq : IRRModel) (log : mvcc.Log) (T : List w64) (oc : Outcome) : Prop :=
+  kvOutL M hs ai ci rq log oc ∧ (lg = true → leaseExactL T rq log oc)
+
 /-- **The KV request's checked permissions are of the cache's shape** at the latest state whenever
-auth is enabled (the model's `kvDet`): what the methods' exact verdicts take. -/
-def kvShapedL (M : auth.AuthMode) (hs : List auth.AuthState) (rq : IRRModel) : Prop :=
+auth is enabled (the model's `kvDet`): what the methods' exact verdicts take; (auth-lease S2) the leases' keys of the
+log's state too. -/
+def kvShapedL (M : auth.AuthMode) (hs : List auth.AuthState) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .range => ∀ o, rq.range = some o → shapedL M hs (rangePermsM o)
-  | .put => ∀ o, rq.put = some o → shapedL M hs (putPerms o)
+  | .put => ∀ o, rq.put = some o → shapedL M hs (putPerms o) ∧
+      leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID
   | .deleteRange => ∀ o, rq.deleteRange = some o → shapedL M hs (deletePermsM o)
-  | .txn => ∀ t, rq.txnW = some t → shapedMay M hs (txnMay t)
+  | .txn => ∀ t, rq.txnW = some t → shapedMay M hs (txnMay t) ∧
+      ∀ o ∈ txnPutsW t, leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID
+  | .leaseRevoke => ∀ id, rq.leaseRevoke = some id →
+      leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) id
   | _ => True
+
+/-- **The kinds the auth layer checks with a verdict that changes the KV state** (auth-lease S2): the
+KV kinds and the revocation (`authChecks` without the two reads `UserGet`/`RoleGet`); the kinds of the
+latest-state triples. -/
+def authKVKind (k : ReqKind) : Bool := isKVKind k || k == .leaseRevoke
+
+theorem authKVKind_of_isKVKind (k : ReqKind) (h : isKVKind k = true) : authKVKind k = true := by
+  unfold authKVKind; rw [h]
+
+/-- At a KV kind `rqOk` does not depend on the lease mode. -/
+theorem rqOk_kv (lm lm' : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
+    (hk : isKVKind (dispatchKind rq) = true) (h : rqOk lm log rq) : rqOk lm' log rq := by
+  unfold rqOk at h ⊢
+  cases hd : dispatchKind rq <;> rw [hd] at h hk <;> simp_all [isKVKind]
+
+theorem authKVKind_cases (k : ReqKind) (h : authKVKind k = true) :
+    isKVKind k = true ∨ k = .leaseRevoke := by
+  unfold authKVKind at h
+  cases hk : isKVKind k
+  · rw [hk] at h; right; simpa using h
+  · left; rfl
 
 end pure
 
@@ -86,12 +124,17 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState),
       {{ putPreW E c (.ok ai) info r rq o log Pre Q Post
-            (authOutL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)) ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedL E.authMode hs (putPerms o)⌝ ∗ apply.applyTok E }}
+            (authOutLL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)
+              (mvcc.leaseItemsOf (mvcc.stateAfter log)) [o.leaseID]) ∗
+          srvApi.kvLogLb E.γs F ∗ L hs ∗
+          ⌜shapedL E.authMode hs (putPerms o) ∧
+            leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID⌝ ∗
+          apply.applyTok E }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post
-            (authOutL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)) ∗
+            (authOutLL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)
+              (mvcc.leaseItemsOf (mvcc.stateAfter log)) [o.leaseID]) ∗
           L hs ∗ traceRes trace ∗ apply.applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState),
@@ -121,20 +164,34 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
         (log F : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
         (hs : List auth.AuthState),
       {{ txnPreW E c (.ok ai) info r rq t log Pre Q Post
-            (fun oc => (oc = .rejected .auth ∧
-                refusedMay E.authMode hs (auth.authInfoM info) (txnMay tw)) ∨
-              (chainStep backendStep ci rq log oc ∧
-                ∃ L, txnChecked tw L ∧ passedL E.authMode hs (auth.authInfoM info) L)) ∗
+            (txnOutLL E.authMode hs (auth.authInfoM info) ci rq log tw
+              (mvcc.leaseItemsOf (mvcc.stateAfter log))) ∗
           txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedMay E.authMode hs (txnMay tw)⌝ ∗ apply.applyTok E }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗
+          ⌜shapedMay E.authMode hs (txnMay tw) ∧ ∀ o ∈ txnPutsW tw,
+            leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID⌝ ∗
+          apply.applyTok E }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post
-            (fun oc => (oc = .rejected .auth ∧
-                refusedMay E.authMode hs (auth.authInfoM info) (txnMay tw)) ∨
-              (chainStep backendStep ci rq log oc ∧
-                ∃ L, txnChecked tw L ∧ passedL E.authMode hs (auth.authInfoM info) L)) ∗
-          L hs ∗ traceRes trace ∗ apply.applyTok E }}))
+            (txnOutLL E.authMode hs (auth.authInfoM info) ci rq log tw
+              (mvcc.leaseItemsOf (mvcc.stateAfter log))) ∗
+          L hs ∗ traceRes trace ∗ apply.applyTok E }}) ∗
+    □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
+        (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+        (hs : List auth.AuthState),
+      {{ revokePreW E c (.ok ai) info r rq id log T rs Pre Q Post
+            (authOutLL E.authMode hs (auth.authInfoM info) ci rq log []
+              (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) ∗
+          L hs ∗ ⌜leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) id⌝ ∗
+          apply.applyTok E }}
+        (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+          apply.applyTok E ∗ L hs ∗
+          kvPostFL E c (.ok ai) info rq log []
+            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post
+            (authOutLL E.authMode hs (auth.authInfoM info) ci rq log []
+              (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) }}))
 
 instance applierKVL_persistent (E : AEnv GF) (c ci : Chain) (a : GoInterface)
     (L : List auth.AuthState → IProp GF) : Persistent (applierKVL E c ci a L) := by
@@ -152,7 +209,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.dispatch(r, shouldApplyV3)` on a KV request, the verdict at the latest state** (see the
-file header): `dispatch.spec`'s triple for a KV request (`isKVKind`) with the current applier's
+file header): `dispatch.spec`'s triple for a KV request or a revocation (`authKVKind`, auth-lease S2: with
+the revocation's resources as `dispatch.spec` threads them, the live set's half `T`, `revokeOwn`, the
+rest after `revokeRest`, its answer `revokeAnsR`; until then `isKVKind`) with the current applier's
 KV triples at the latest state (`applierKVL`), the latest-state resource `L hs` and the checked
 permissions' shape (`kvShapedL`); besides `dispatch.spec`'s postcondition, `L hs` back and, when
 applied, the outcome decided at the latest state (`kvOutL`). (Strict M1, 2026-11-06: over
@@ -162,27 +221,31 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
   ∀ (E : apply.AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log F : mvcc.Log) (Pre Q Post : IProp GF)
     (rs : apply.RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (ci : apply.Chain)
-    (L : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
+    (L : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (T : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.chainRes c a info ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwnPre v3 E log Pre Q Post ∗
-      apply.certPreVW v3 E c rq log (apply.kvOutL E.authMode hs (auth.authInfoM info) ci rq log) ∗
-      ⌜apply.rqOk .none log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
+      apply.certPreVW v3 E c rq log (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM info) ci rq log T) ∗
+      ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
       srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
+      apply.ltHalf E T ∗ apply.revokeOwn E rq ∗
       apply.applierKVL E c ci a L ∗ L hs ∗
-      ⌜apply.isKVKind (apply.dispatchKind rq) = true ∧ apply.kvShapedL E.authMode hs rq⌝ }}
+      ⌜apply.authKVKind (apply.dispatchKind rq) = true ∧ apply.kvShapedL E.authMode hs log rq⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗
-      E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
+      E.FS ∗ apply.revokeOwn E rq ∗ apply.revokeAnsR E rq ar ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
-        apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗
+        apply.kvOwn E (o.logAfter log) ∗
+        apply.ltHalf E (apply.revokeIds rq v3 o T) ∗
+        E.RO (apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs)) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
           apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗
         apply.resTrace ar ∗ L hs ∗
         ⌜v3 = true → apply.kvOutL E.authMode hs (auth.authInfoM info) ci rq log o⌝ ∗
+        ⌜v3 = true → E.lg = true → apply.leaseExactL T rq log o⌝ ∗
         apply.dispatchResult rq v3 log skip ar o }}
 
 end spec
@@ -195,20 +258,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The auth applier's KV triples at the latest state** (`applierKVL`), from its methods'
-latest-state specs (E2s), over its store at the latest state (`authIsL`) and the lessor finding no
-lease (`lessorNil`). -/
+latest-state specs (E2s), over its store at the latest state (`authIsL`; auth-lease S2: until then also
+the lessor finding no lease, `lessorNil`). -/
 theorem apply.applierKVL_auth
     (hRange : apply.authApplierV3.Range.specL (GF := GF) (hG := hG))
     (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
     (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
     (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (hRev : apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG))
     (E : apply.AEnv GF) (ci : apply.Chain) (inner : GoInterface) (p : Loc)
     (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.lessorNil p ∗ apply.applierSpec E ci inner ⊢
+      apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.applierSpec E ci inner ⊢
       apply.applierKVL E (.auth E.authOn ci) ci
         (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) L := by
-  iintro ⟨#Hpkg, #Ha, #HaL, #Hln, #Hin⟩
+  iintro ⟨#Hpkg, #Ha, #HaL, #Hin⟩
   iunfold apply.applierKVL
   iexists ⟨go.GoType.PointerType authApplierV3.ty, #p⟩
   isplitr
@@ -243,6 +307,7 @@ theorem apply.applierKVL_auth
     iframe Hpre HL Htt
     iframe #
     ipureintro; exact Hsh
+  isplitr
   · -- Txn
     imodintro
     iintro %r %skip %rq %t %tw %log %F %Pre %Q %Post %info %hs
@@ -252,6 +317,15 @@ theorem apply.applierKVL_auth
     iframe Hpre HL Htt
     iframe #
     ipureintro; exact ⟨Htw, Hsh⟩
+  · -- LeaseRevoke (auth-lease S2)
+    imodintro
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info %hs
+    imodintro
+    iintro %Φ' ⟨Hpre, HL, %Hsh, Htt⟩ HΦ'
+    iapply (hRev E ci inner p r rq id log T rs Pre Q Post info L hs) $$ [Hpre HL Htt] HΦ'
+    iframe Hpre HL Htt
+    iframe #
+    ipureintro; exact Hsh
 
 set_option hygiene false in
 /-- Persist the result struct `ar` (all stores done) and split it into its fields (read-only
@@ -373,9 +447,15 @@ set_option hygiene false in
 /-- The postcondition for a request whose outcome `oc` is the chain's (`Hst`). -/
 local macro "fin_kvL" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
-  iframe Htt Hrt Hres
+  iframe Htt Hrt Hres Hrv
+  isplitl []
+  · iapply apply.revokeAnsR_not_revoke; simp [hk]
   iexists (GoInterface.ok ai), c, oc
   iframe Ha Hs Hkv
+  isplitl [HLt]
+  · rw [apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])]; iexact HLt
+  isplitl [HRO]
+  · rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
   isplitl [HPP]
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
@@ -394,6 +474,8 @@ local macro "fin_kvL" : tactic => `(tactic| (
   · iexact HL
   isplitr
   · ipureintro; intro _; exact HXo
+  isplitr
+  · ipureintro; intro _; exact HXe
   simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
   iframe %hn
   iexists _
@@ -422,8 +504,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
     (hWER : txn.WarnOfExpensiveRequest.spec (GF := GF) (hG := hG))
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.kvSpecL (GF := GF) (hG := hG) := by
-  intro E p opts c a r rq skip v3 log F Pre Q Post rs info ci L hh
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, %HcE, #HF, Htt, HFS, HSp, HRO, #HKV, HL, %Hx⟩
+  intro E p opts c a r rq skip v3 log F Pre Q Post rs info ci L hh T
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, %HcE, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #HKV, HL, %Hx⟩
   obtain ⟨Hkk, Hsh⟩ := Hx
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
@@ -483,7 +565,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster, -⟩
   iunfold apply.applierKVL at HKV
-  icases HKV with ⟨%ai', %Hai', #HPutL, #HDelL, #HRangeL, #HTxnL⟩
+  icases HKV with ⟨%ai', %Hai', #HPutL, #HDelL, #HRangeL, #HTxnL, #HRevL⟩
   injection Hai' with Hai'
   subst Hai'
   ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -511,7 +593,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCV.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCV
     have hk : dispatchKind rq = .clusterVersionSet := by simp [dispatchKind, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zClusterVersionSet : rq.clusterVersionSet = none := nCV.1 (by simpa using Hif)
   wp_if_destruct
   · -- ClusterMemberAttrSet
@@ -519,7 +601,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCM.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCM
     have hk : dispatchKind rq = .clusterMemberAttrSet := by simp [dispatchKind, zClusterVersionSet, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zClusterMemberAttrSet : rq.clusterMemberAttrSet = none := nCM.1 (by simpa using Hif)
   -- (D22, 2026-10-23) no other request changes the rest buckets
   ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
@@ -530,7 +612,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nDI.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HDI
     have hk : dispatchKind rq = .downgradeInfoSet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zDowngradeInfoSet : rq.downgradeInfoSet = none := nDI.1 (by simpa using Hif)
   wp_if_destruct
   · -- DowngradeVersionTest: nothing
@@ -540,7 +622,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nDT.2 h) hl
       · rfl
     have hk : dispatchKind rq = .downgradeVersionTest := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zDowngradeVersionTest : rq.downgradeVersionTest = false := nDT.1 (by simpa using Hif)
   have hpre : apply.preV3Kind (dispatchKind rq) = false :=
     apply.preV3Kind_dispatchKind rq zClusterVersionSet zClusterMemberAttrSet zDowngradeInfoSet zDowngradeVersionTest
@@ -549,13 +631,19 @@ theorem apply.uberApplier.dispatch.wp_kvL
     (try wp_auto)
     ok_path
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS Hrv
     ihave ⟨Hkv, Hrt, Hc⟩ := apply.kvOwnPre_kvOwn false E log Pre Q Post $$ Hkv
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iframe Htt Hrt Hres
+    isplitl []
+    · iapply apply.revokeAnsR_null
     iexists (GoInterface.ok ai), c, (Outcome.applied log false)
     simp only [apply.Outcome.logAfter]
     iframe Ha Hs Hkv
+    isplitl [HLt]
+    · rw [apply.revokeIds_noV3]; iexact HLt
+    isplitl [HRO]
+    · rw [apply.revokeRest_noV3]; iexact HRO
     isplitl [Hc]
     · simp only [apply.cPost, Bool.false_eq_true, ↓reduceIte]; iexact Hc
     isplitr
@@ -565,6 +653,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
     isplitl []
     · iapply apply.resTrace_null
     iframe HL
+    isplitr
+    · ipureintro; intro h; cases h
     isplitr
     · ipureintro; intro h; cases h
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, or_self, ↓reduceIte]
@@ -581,16 +671,20 @@ theorem apply.uberApplier.dispatch.wp_kvL
       a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
       (apply.applyTok E ∗ apply.bkRTOf E ∗ apply.chainResAny c (GoInterface.ok ai) ∗
+        apply.revokeOwn E rq ∗ apply.revokeAnsR E rq «$r0_ptr» ∗
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
-          apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
+          apply.kvOwn E (o.logAfter log) ∗
+          apply.ltHalf E (apply.revokeIds rq true o T) ∗
+          E.RO (apply.revokeRest T rq true o (apply.restAfter rq true rs)) ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.resTrace «$r0_ptr» ∗ L hh ∗
           ⌜true = true → apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log o⌝ ∗
+          ⌜true = true → E.lg = true → apply.leaseExactL T rq log o⌝ ∗
           apply.dispatchResult rq true log skip «$r0_ptr» o))
-    with [a r ar op «$r0» Hres Ha Hkv Htt HL]
+    with [a r ar op «$r0» Hres Ha Hkv Htt HL HRO HLt Hrv]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -612,6 +706,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
     iunfold apply.rangePostL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, #Hcls⟩
     have Hst := Hst0.1
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun _ =>
+      apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
@@ -629,9 +725,12 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    have hsh : apply.shapedL E.authMode hh (apply.putPerms x) := by
+    have hsh : apply.shapedL E.authMode hh (apply.putPerms x) ∧
+        apply.leaseShapedL E.authMode hh (mvcc.leaseItemsOf (mvcc.stateAfter log)) x.leaseID := by
       have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    ihave ⟨%Lm, Hmp⟩ := (apply.mPre_iff_at E c _ info log Pre Q Post).1 $$ Hmp
+    ihave ⟨%HLm, Hmp, HLt⟩ := apply.mPreAt_ltHalf E c _ info log Lm T Pre Q Post $$ [$Hmp $HLt]
     wp_apply HPutL $$ %lPu %rq %x %log %F %Pre %Q %Post %info %hh [Hmp HL Htt] as %resp %trace %err ⟨Hpost, HL, Htrc, Htt⟩
     · iframe HF HL Htt
       isplitl [Hmp]
@@ -639,11 +738,17 @@ theorem apply.uberApplier.dispatch.wp_kvL
         isplitr
         · ipureintro; exact ⟨hs, hk, hok⟩
         ihave #HcpK := apply.certPreW_mono E c rq log _ _
-          (fun oc h => by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩) $$ Hcp
-        iframe HR HcpK Hmp
+          (fun oc (h : _ ∧ apply.leaseExactL Lm rq log oc) => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h.1⟩,
+            fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp
+        iframe HR
+        iexists Lm
+        iframe HcpK Hmp
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
-    icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
+    ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
+    ihave Hkv := apply.kvOwn_of_at E _ Lk $$ Hkv
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun hlg => HLk hlg ▸ Hex
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2.2⟩
@@ -670,11 +775,15 @@ theorem apply.uberApplier.dispatch.wp_kvL
         isplitr
         · ipureintro; exact ⟨hs, hk, hok x hs⟩
         ihave #HcpK := apply.certPreW_mono E c rq log _ _
-          (fun oc h => by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩) $$ Hcp
+          (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
+            apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
         iframe HR HcpK Hmp
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
-    icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
+    ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
+    ihave Hkv := apply.kvOwn_of_at E _ Lk $$ Hkv
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun hlg => HLk hlg ▸ Hex
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2.2⟩
@@ -697,9 +806,12 @@ theorem apply.uberApplier.dispatch.wp_kvL
       | none => rw [h'] at h; cases h
       | some tw => exact ⟨tw, rfl⟩
     ihave #HRW := apply.optReqIs_some _ _ _ _ htw $$ HTxW
-    have hsh : apply.shapedMay E.authMode hh (apply.txnMay tw) := by
+    have hsh : apply.shapedMay E.authMode hh (apply.txnMay tw) ∧ ∀ o ∈ apply.txnPutsW tw,
+        apply.leaseShapedL E.authMode hh (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID := by
       have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h tw htw
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    ihave ⟨%Lm, Hmp⟩ := (apply.mPre_iff_at E c _ info log Pre Q Post).1 $$ Hmp
+    ihave ⟨%HLm, Hmp, HLt⟩ := apply.mPreAt_ltHalf E c _ info log Lm T Pre Q Post $$ [$Hmp $HLt]
     wp_apply HTxnL $$ %lTx %skip %rq %x %tw %log %F %Pre %Q %Post %info %hh [Hmp HL Htt] as %resp %trace %err ⟨Hpost, HL, Htrc, Htt⟩
     · iframe HF HL HRW Htt
       isplitl [Hmp]
@@ -707,11 +819,17 @@ theorem apply.uberApplier.dispatch.wp_kvL
         isplitr
         · ipureintro; exact ⟨hs, hk, hok x hs⟩
         ihave #HcpK := apply.certPreW_mono E c rq log _ _
-          (fun oc h => by simp only [apply.kvOutL, hk]; exact ⟨tw, htw, h⟩) $$ Hcp
-        iframe HR HcpK Hmp
+          (fun oc (h : _ ∧ apply.leaseExactL Lm rq log oc) => ⟨by simp only [apply.kvOutL, hk]; exact ⟨tw, htw, h.1⟩,
+            fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp
+        iframe HR
+        iexists Lm
+        iframe HcpK Hmp
       ipureintro; exact ⟨htw, hsh⟩
     iunfold apply.kvPostFL at Hpost
-    icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
+    ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
+    ihave Hkv := apply.kvOwn_of_at E _ Lk $$ Hkv
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun hlg => HLk hlg ▸ Hex
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨tw, htw, Hst0.2.2⟩
@@ -725,7 +843,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hl : lCo ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCo.2 h))
     have hk : dispatchKind rq = .compaction := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zCompaction : rq.compaction = none := nCo.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseGrant
@@ -733,15 +851,88 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLG.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLG
     have hk : dispatchKind rq = .leaseGrant := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zLeaseGrant : rq.leaseGrant = none := nLG.1 (by simpa using Hif)
   wp_if_destruct
-  · -- LeaseRevoke
+  · -- LeaseRevoke (auth-lease S2): the auth applier's revocation at the latest state
     have hl : lLR ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLR.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLR
     have hk : dispatchKind rq = .leaseRevoke := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    have hok : E.lm = .revocable ∧ putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
+      have h := (apply.rqOk_leaseRevoke _ _ _ hk).1 Hok.1
+      exact ⟨h.1, h.2.2.1, h.2.2.2⟩
+    have hsh : apply.leaseShapedL E.authMode hh (mvcc.leaseItemsOf (mvcc.stateAfter log)) x := by
+      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
+    iunfold apply.revokeOwn at Hrv
+    rw [if_pos hk] at *
+    icases Hrv with ⟨Hrdat, #Hrev⟩
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HRevL $$ %lLR %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info %hh
+      [Hmp HL Htt Hrdat HLt HRO] as %resp %err ⟨Htt, HL, Hpost⟩
+    · iframe HL Htt
+      isplitl [Hmp Hrdat HLt HRO]
+      · iunfold apply.revokePreW
+        isplitr
+        · ipureintro; exact ⟨hs, hk, hok.2.1, hok.2.2⟩
+        ihave #HcpK := apply.certPreW_mono E c rq log _ _
+          (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
+            apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
+        iframe HR HcpK Hmp
+        iunfold apply.revokeRes
+        iframe
+        iframe #
+        ipureintro; exact hok.1
+      ipureintro; exact hsh
+    iunfold apply.kvPostFL at Hpost
+    icases Hpost with ⟨%oc, %Hst0, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
+    iunfold apply.revokeResAfter at HRa
+    icases HRa with ⟨Hrdat, -, HLt, HRO, Hra⟩
+    have Hst := Hst0.1
+    have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
+      simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2.2⟩
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.revokeOutcomeIs_errIs _ _ _) $$ [$Hev $Hans]
+    join_ar
+    (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
+    iframe Htt Hrt Hres
+    isplitl [Hrdat]
+    · iunfold apply.revokeOwn; rw [if_pos hk]; iframe Hrdat Hrev
+    isplitl [Hra]
+    · iunfold apply.revokeAnsR
+      rw [if_pos ⟨hk, hn⟩]
+      iexists _
+      iframe H0
+      iexact Hra
+    iexists (GoInterface.ok ai), c, oc
+    iframe Ha Hs Hkv HLt HRO
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro
+      refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩
+      simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
+        Bool.false_eq_true, _root_.or_self, ↓reduceIte]
+      exact Hst
+    isplitl []
+    · iintro %_; iexact Hcls
+    isplitl []
+    · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
+    isplitl [HL]
+    · iexact HL
+    isplitr
+    · ipureintro; intro _; exact HXo
+    isplitr
+    · ipureintro; intro _ _
+      exact apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · iexact HeI
+    simp only [apply.dispatchAnswer, hk]
+    iexists resp; iframe Hans; ipureintro; rfl
   have zLeaseRevoke : rq.leaseRevoke = none := nLR.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseCheckpoint
@@ -749,7 +940,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLC.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLC
     have hk : dispatchKind rq = .leaseCheckpoint := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zLeaseCheckpoint : rq.leaseCheckpoint = none := nLC.1 (by simpa using Hif)
   wp_if_destruct
   · -- Alarm: not admitted (`rqOk`; D22, 2026-10-23: its writer takes `AEnv.RW`)
@@ -757,7 +948,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAl.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAl
     have hk : dispatchKind rq = .alarm := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAlarm : rq.alarm = none := nAl.1 (by simpa using Hif)
   wp_if_destruct
   · -- Authenticate (D22, 2026-10-23: not admitted, `rqOk`)
@@ -765,7 +956,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAu.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAu
     have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthenticate : rq.authenticate = none := nAu.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthEnable (D22, 2026-10-23: not admitted, `rqOk`)
@@ -775,7 +966,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nAE.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authEnable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthDisable (D22, 2026-10-23: not admitted, `rqOk`)
@@ -785,7 +976,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nAD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authDisable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthDisable : rq.authDisable = false := nAD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthStatus
@@ -795,7 +986,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nAS.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authStatus := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserAdd (D22, 2026-10-23: not admitted, `rqOk`)
@@ -803,7 +994,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
@@ -813,7 +1004,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nUD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authUserDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserDelete : rq.authUserDelete = false := nUD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserChangePassword (D22, 2026-10-23: not admitted, `rqOk`)
@@ -823,14 +1014,14 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nUC.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserChangePassword : rq.authUserChangePassword = false := nUC.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGrantRole (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUGR ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUGR.2 h))
     have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserGrantRole : rq.authUserGrantRole = none := nUGR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGet (D22, 2026-10-23: not admitted, `rqOk`)
@@ -838,7 +1029,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUG.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUG
     have hk : dispatchKind rq = .authUserGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserGet : rq.authUserGet = none := nUG.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserRevokeRole (D22, 2026-10-23: not admitted, `rqOk`)
@@ -848,7 +1039,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nURR.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserRevokeRole : rq.authUserRevokeRole = false := nURR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleAdd (D22, 2026-10-23: not admitted, `rqOk`)
@@ -856,14 +1047,14 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRA
     have hk : dispatchKind rq = .authRoleAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGrantPermission (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRGP ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRGP.2 h))
     have hk : dispatchKind rq = .authRoleGrantPermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthRoleGrantPermission : rq.authRoleGrantPermission = none := nRGP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGet (D22, 2026-10-23: not admitted, `rqOk`)
@@ -871,7 +1062,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRG.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRG
     have hk : dispatchKind rq = .authRoleGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthRoleGet : rq.authRoleGet = none := nRG.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleRevokePermission (D22, 2026-10-23: not admitted, `rqOk`)
@@ -881,7 +1072,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nRRP.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthRoleRevokePermission : rq.authRoleRevokePermission = false := nRRP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleDelete (D22, 2026-10-23: not admitted, `rqOk`)
@@ -891,7 +1082,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nRD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authRoleDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthRoleDelete : rq.authRoleDelete = false := nRD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserList (D22, 2026-10-23: not admitted, `rqOk`)
@@ -901,7 +1092,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nUL.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authUserList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthUserList : rq.authUserList = false := nUL.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleList (D22, 2026-10-23: not admitted, `rqOk`)
@@ -911,7 +1102,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       · exact absurd (nRL.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authRoleList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, hs]
-    exact absurd Hkk (by simp [apply.isKVKind, hk])
+    exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
@@ -924,7 +1115,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   dtail
   all_goals
     iapply HΦ
-    iframe HFS HRO
+    iframe HFS
     iexact Hpost
 
 

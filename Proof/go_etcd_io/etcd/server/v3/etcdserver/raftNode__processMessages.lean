@@ -59,7 +59,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     iframe Hm
     isplit
     · iintro %h
-      exact absurd Hty.1 h
+      exact absurd Hty h
     · iintro %_ Hm
       iunfold rnSnapMsg
       iexists st

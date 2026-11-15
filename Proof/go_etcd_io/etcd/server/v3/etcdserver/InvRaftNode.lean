@@ -108,9 +108,10 @@ structure RNNames [GooseExts] where
   -- log through its consistent index, `bootstrap.go:255-273` at the etcd pin `673da07c8`), over
   -- which the driver's view is stated (`rnCfgAt`); `[]` at a first start (`newRaftNode`'s)
   a0 : List EntryModel
-  -- (R2d'a A10 item 5, 2026-11-06; DRAFT, approved by 82) the restart point's restored `HardState`
-  -- term `T₀` (`RestartNode`'s, R2d'b), which bounds this incarnation's `MsgSnap`s from below
-  -- (`rnSnapMsg`) and `Hwpend`'s guard; `W64 0` at a first start (`newRaftNode`'s)
+  -- (R2d'a A10 item 5, 2026-11-06) the restart point's restored `HardState` term `T₀`
+  -- (`RestartNode`'s); `W64 0` at a first start (`newRaftNode`'s). (restart3 A1, 2026-11-15) Read by
+  -- nothing since `rnSnapMsg`'s bound and the window row went; kept for the restart data's first
+  -- disjunct
   t0 : w64
   -- (R2d'b F1 / S1, Q40, 2026-11-11) the restart point's WAL commit `σ.commit` (raft's restored
   -- commit, from which the loop's commit never drops: `rnLoopTokP`) and snapshot index `σ.b`; `0`
@@ -194,16 +195,15 @@ def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
 `MsgSnap` being no response; 2026-10-31, S1: until then at some fraction, which
 `createMergedSnapshotMessage`'s write of `m.Snapshot` cannot take), of type `MsgSnap`, sent by the
 node, with its credits (`sentMsg_snapshot` gives its snapshot's certificate): what
-`processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. (R2d'a A10 item 5, approved by
-82; DRAFT) Its term is above this incarnation's start term `γ.t0` (`W64 0` at a first start, where
-`sentMsg_shape`'s nonzero term gives it; at a restart `rnRestartOk`'s `rnSnapTermAbove`, R2d'b's
-target): `applyAll`'s merged-send case at a batch term `rt ≤ t0` reads it (`winNoMergedSendR`).
+`processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. (restart3 A1, 2026-11-15; from
+R2d'a A10 item 5 until then: its term above this incarnation's start term `γ.t0`, which only the
+deleted window row `winNoMergedSendR` read; the fork's window guard replaces it.)
 (raft-entsize [r3c], 2026-11-10) Without top-level unknown fields (`pbMsg … []`, raft's literal:
 `msgOut_snapUf`), for the merged message's content (`createMergedSnapshotMessage`). -/
 def rnSnapMsg (γ : RNNames) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ st : MsgSt, msgOwn m (DFrac.own 1) st ∗
-    ⌜st.msg.Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z st.msg.Term'⌝ ∗
+    ⌜st.msg.Type' = MsgSnap⌝ ∗
     sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗
     pbMsg raftpb.Message m [])
 
@@ -358,15 +358,6 @@ def softStateAt (p : Loc) : IProp GF := softStateRO p
 instance softStateAt_persistent (p : Loc) : Persistent (softStateAt (GF := GF) p) := by
   unfold softStateAt; infer_instance
 
-/-- (R2d'a A10 item 5, Q29 (d)) **A `Ready`'s `MsgSnap`s within this incarnation's terms** (pure): a
-first start's (`t0 = 0`: `sentMsg_shape` bounds them), or each above `t0` (`rnSnapTermAbove`). -/
-def rnSnapTermOk (γ : RNNames) (ms : List QMsg) : Prop :=
-  γ.t0 = W64 0 ∨ ∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'
-
-theorem rnSnapTermOk_cons {γ : RNNames} {q : QMsg} {ms : List QMsg} (h : rnSnapTermOk γ (q :: ms)) :
-    rnSnapTermOk γ ms :=
-  h.imp_right fun h' q' hq' => h' q' (List.mem_cons_of_mem _ hq')
-
 /-- (2026-11-03, R2b-3: *enter* at the `Save`) **A `Ready`'s messages `ms`, not yet sent**: each
 owned as the node API hands it out (raft-entsize §2: at the content it pinned, `msgOut`), with its
 credits, and at role leader (`r' = StateLeader`, the
@@ -375,10 +366,7 @@ durable). Otherwise *enter* gives the sends (`readyMsgs`), after the WAL `Save`.
 def rnRawMsgs (γ : RNNames) (ms : List QMsg) (r' : StateType) : IProp GF :=
   iprop(([∗list] q ∈ ms, msgOut γ.node.cl q.loc (readyDq q.st) q.st ∗
       msgCredits γ.node.cl srvClusterN q.st) ∗
-    (⌜r' = StateLeader⌝ -∗ readyMsgs γ.node.cl srvClusterN γ.id ms) ∗
-    -- (R2d'a A10 item 5, Q29 (d)) a first start (`t0 = 0`), or every `MsgSnap` above `t0`
-    -- (`rnSnapTermAbove`, at the receive)
-    ⌜rnSnapTermOk γ ms⌝)
+    (⌜r' = StateLeader⌝ -∗ readyMsgs γ.node.cl srvClusterN γ.id ms))
 
 /-- A `Ready`'s entries in a sized cluster: the slice, the objects at sized contents, and today's
 `entRO` list. -/
@@ -447,55 +435,28 @@ def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) (S : RaftState
     NodeDriverState :=
   ⟨memStorIface γ.ms, srvLE γ.srv L, p, none, γ.key, S, r⟩
 
-/-- (R2d'a A10 item 5, Q29 (d), 2026-11-06; DRAFT, approved by 82 as hub owner; a restart-only
-premise) **This incarnation's `MsgSnap`s are above its start term**: every `MsgSnap` in a `Ready`
-this incarnation's node hands its driver (`readyRest` at the driver's idle state `rnDrvSt γ …`,
-which names this incarnation's storage `γ.ms` and key `γ.key`; the receive consumes the
-`nodeDriver γ.nl`, so the anchor is the driver state the receive was at) has a term above `γ.t0`,
-the restored `HardState` term. True of Go (raft v3.7.0 at `565c2bd`, etcd at `673da07c8`): only a
-leader sends `MsgSnap`, at its term, and a restarted node leads only after `becomeCandidate` at
-`T₀ + 1` or later (`raft.go:902-911`); a `MsgSnap` queued at `T` by a leader that then steps down
-still has `T ≥ T₀ + 1`. The main session's probe: 0 of ~7,300 `MsgSnap`s per run from restarted
-incarnations had `Term ≤` the restored term (`notes/restart-plan.md`, "Probe follow-ups"). Raft's
-API does not say so: `reset(term)` does not clear `r.msgs`, so the per-instance law needs a
-raft-struct invariant and a `StartNode` post change. **R2d'b's target** (5-8 d, est.). At a first
-start it is not needed: `rnRestartOk`'s first disjunct has `t0 = 0`, and `sentMsg_shape` gives a
-`MsgSnap` a nonzero term (`rnMsgOk_of_api`). R2e's closed theorem must not carry it. -/
-def rnSnapTermAbove (γ : RNNames) : IProp GF :=
-  letI := srvStor (GF := GF) γ.node
-  iprop(□ ∀ (rd : Ready) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType)
-      (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (Lo : Option SnapLoan)
-      (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss ={⊤}=∗
-      readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss ∗
-      ⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝)
-
-instance rnSnapTermAbove_persistent (γ : RNNames) :
-    Persistent (rnSnapTermAbove (GF := GF) γ) := by
-  unfold rnSnapTermAbove; infer_instance
-
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The restart data** (persistent): a first start (`a0 = []`, and
 (A10 item 5, Q28 (i)) the start term `t0 = 0`; (S1, 2026-11-11) the restart point's WAL commit and
 snapshot index `commit0 = snap0 = 0`), or a restart (`pre = []`; R2d'a's `σ.b = 0` restriction
 lifted by restart S3/S4, 2026-11-11/12: the server's hubs carry Go's start log `P`, `srvRunRestartR`)
 whose backend log `a0` is committed (`srvRLogLb`), between the
-restored records' snapshot index and commit (`snap0 ≤ |a0| ≤ commit0`), with (A10 item 5, Q29 (d))
-this incarnation's `MsgSnap`s above `t0` (`rnSnapTermAbove`).
+restored records' snapshot index and commit (`snap0 ≤ |a0| ≤ commit0`). (restart3 A1, 2026-11-15:
+row 4, `rnSnapTermAbove`, this incarnation's `MsgSnap`s above `t0`, deleted with the window row it
+served.)
 
 (S1, Q31 (a), Q40 F1, 2026-11-11; until then the restart disjunct carried R2d'a's A8,
 `rnWinInstallAbove`, row 2, and `rnWalCommitAbove`, row 3, which was false at the start of almost
 every restart) Row 2 is now derived (`rnRestartOk_winAbove`), from `|a0| ≤ commit0` and the loop's
 fact `commit0 ≤ p.Commit'` (`rnLoopTokP`); row 3 is gone. Of the restart-only premises
 (`notes/restart-plan.md`, "R2d'a restart-only premises") the restart disjunct carries
-`rnSnapTermAbove` (4) and `srvRLogLb γ.srv γ.a0` (8). `snap0 ≤ |a0| ≤ commit0` is a fact of the names
+`srvRLogLb γ.srv γ.a0` (8). `snap0 ≤ |a0| ≤ commit0` is a fact of the names
 fixed when the node is built, true of every graceful stop's image (`raftNode.stop.spec`'s post);
 `|a0| ≤ commit0` is **graceful-only** (after a power loss the backend's consistent index can be above
 the WAL's synced commit: crash-design §2.3), so it stays this one conjunct, and nothing that does not
 need it (the loop's fact, row 2's `commit0 < snapIdx`) is stated with it. -/
 def rnRestartOk (γ : RNNames) : IProp GF :=
   iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0 ∧ γ.commit0 = 0 ∧ γ.snap0 = 0⌝ ∨
-    (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0⌝ ∗ srvRLogLb γ.srv γ.a0 ∗
-      rnSnapTermAbove γ))
+    (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0⌝ ∗ srvRLogLb γ.srv γ.a0))
 
 instance rnRestartOk_persistent (γ : RNNames) : Persistent (rnRestartOk (GF := GF) γ) := by
   unfold rnRestartOk; infer_instance
@@ -507,30 +468,9 @@ theorem rnRestartOk_a0_le (γ : RNNames) (c : Nat) (hc : γ.commit0 ≤ c) :
     rnRestartOk (GF := GF) γ ⊢ ⌜γ.a0.length ≤ c⌝ := by
   unfold rnRestartOk
   iintro #Hr
-  icases Hr with (%Ha | ⟨%Ha, -, -⟩)
+  icases Hr with (%Ha | ⟨%Ha, -⟩)
   · ipureintro; rw [Ha.1]; exact Nat.zero_le _
   · ipureintro; exact Nat.le_trans Ha.2.2 hc
-
-/-- (R2d'a A10 item 5, Q29 (d)) **A `Ready`'s `MsgSnap`s within this incarnation's terms**: from the
-restart data, at a first start `t0 = 0`, at a restart `rnSnapTermAbove`. -/
-theorem rnRestartOk_snapTerm (γ : RNNames) (L : List EntryModel) (p : HardStateM) (S : RaftState)
-    (r : StateType) (rd : Ready) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
-    rnRestartOk (GF := GF) γ ⊢
-      (letI := srvStor (GF := GF) γ.node;
-        readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) ={⊤}=∗
-      (letI := srvStor (GF := GF) γ.node;
-        readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) ∗
-      ⌜rnSnapTermOk γ ms⌝ := by
-  letI := srvStor (GF := GF) γ.node
-  unfold rnRestartOk
-  iintro #Hr H
-  icases Hr with (%Ha | ⟨-, -, #Hs⟩)
-  · iframe H; ipureintro; exact Or.inl Ha.2.1
-  · iunfold rnSnapTermAbove at Hs
-    ihave Hs' := Hs $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
-    imod Hs' with ⟨H, %hb⟩
-    iframe H; ipureintro; exact Or.inr hb
 
 /-- (R2d'a task 4; S1, 2026-11-11: derived, until then R2d'a's A8 `rnWinInstallAbove`, a premise)
 **A `Ready`'s snapshot above the restart point**: a snapshot a `Ready` hands the driver at the hard
@@ -993,11 +933,9 @@ theorem msgSnap_not_termless :
   unfold MsgSnap MsgProp MsgReadIndex MsgTransferLeader; decide
 
 /-- The messages a `Ready` hands out, each one `E.M` admits, with its credits, persisted (the
-server's clusters send no `MsgSnap`, `srv_sentMsg_notSnap`). (R2d'a A10 item 5, Q29 (d)) A `MsgSnap`'s
-term above `γ.t0` combines the two cases of `rnSnapTermOk`: at a first start (`t0 = 0`) its nonzero
-term (`sentMsg_shape`), at a restart the receive's bound (`rnSnapTermAbove`). -/
+server's clusters send no `MsgSnap`, `srv_sentMsg_notSnap`). -/
 theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames) :
-    ∀ ms : List QMsg, rnSnapTermOk γ ms →
+    ∀ ms : List QMsg,
       ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOut γ.node.cl m DFrac.discard st ∗
           sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝ -∗
           E.M m) -∗ srvClusterOk E.γr.raft -∗ ⌜E.γr.raft.raft = γ.node⌝ -∗
@@ -1005,18 +943,18 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
           sentMsg γ.node.cl srvClusterN γ.id q.st ∗ msgCredits γ.node.cl srvClusterN q.st)
           ={⊤}=∗
         [∗list] m ∈ ms.map QMsg.loc, rnMsgR E γ m
-  | [], _ => by
+  | [] => by
     iintro #HM - - -
     imodintro
     simp only [List.map_nil]
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     itrivial
-  | q :: ms, hb => by
+  | q :: ms => by
     iintro #HM #Hcl %Hraft H
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOut (GF := GF) γ.node.cl q.loc
       (readyDq q.st) q.st ∗ sentMsg γ.node.cl srvClusterN γ.id q.st ∗
       msgCredits γ.node.cl srvClusterN q.st))).1 $$ H with ⟨⟨Hm, #Hsm, Hc⟩, Hrest⟩
-    imod rnMsgOk_of_api E γ ms (rnSnapTermOk_cons hb) $$ HM Hcl %Hraft Hrest with Hrest
+    imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hrest with Hrest
     simp only [List.map_cons]
     by_cases hsn : q.st.msg.Type' = MsgSnap
     · -- (2026-10-30, the repair) a `MsgSnap`: owned, for `msgSnapC`
@@ -1034,19 +972,8 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
         msgOut_snapUf γ.node.cl q.loc (DFrac.own 1) q.st hsn) $$ Hm
       ihave Hm := (letI := srvStor (GF := GF) γ.node;
         msgOut_msgOwn γ.node.cl q.loc (DFrac.own 1) q.st) $$ Hm
-      ihave %Hsh := (letI := srvStor (GF := GF) γ.node;
-        sentMsg_shape (GF := GF) γ.node.cl srvClusterN γ.id q.st) $$ Hsm
       iframe Hm Hsm Hc Huf
-      ipureintro
-      refine ⟨hsn, ?_⟩
-      rcases hb with h0 | hb
-      · -- a first start: `t0 = 0` and the `MsgSnap`'s term nonzero
-        have hne : q.st.msg.Term' ≠ W64 0 := Hsh.1.2.2.2.1 (by
-          rw [hsn]; exact msgSnap_not_termless)
-        rw [h0]
-        have : uint.Z q.st.msg.Term' ≠ 0 := fun h => hne (by word)
-        word
-      · exact hb q List.mem_cons_self hsn
+      ipureintro; exact hsn
     -- (raft-entsize §2) frozen at the content raft handed it out with
     imod (letI := srvStor (GF := GF) γ.node;
       msgOut_persist_fupd γ.node.cl q.loc (readyDq q.st) q.st ⊤) $$ Hm with #Hm
@@ -1074,13 +1001,13 @@ theorem rnRawMsgs_sent [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
   letI := srvStor (GF := GF) γ.node
   iintro #Henv Hraw #Hsent
   iunfold rnRawMsgs at Hraw
-  icases Hraw with ⟨Hmo, -, %Hb⟩
+  icases Hraw with ⟨Hmo, -⟩
   iunfold rnEnvOk at Henv
   icases Henv with ⟨-, %Hn, -, #Hinv, #HM, -⟩
   ihave #Hcl : srvClusterOk E.γr.raft $$ []
   · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
   ihave Hmo := readyMsgs_sentC γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
-  iapply rnMsgOk_of_api E γ ms Hb $$ HM Hcl %Hn.1 Hmo
+  iapply rnMsgOk_of_api E γ ms $$ HM Hcl %Hn.1 Hmo
 
 /-- (2026-11-03, R2b-3) **A leader's messages, sent before *enter*** (raft's `readyLeaderMsgs`). -/
 theorem rnRawMsgs_leader [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames)
@@ -1089,15 +1016,13 @@ theorem rnRawMsgs_leader [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : R
   letI := srvStor (GF := GF) γ.node
   iintro #Henv Hraw
   iunfold rnRawMsgs at Hraw
-  icases Hraw with ⟨Hmo, Hl, %Hb⟩
+  icases Hraw with ⟨Hmo, Hl⟩
   ihave #Hsent := Hl $$ %hr
   iapply rnRawMsgs_sent E γ ms r' $$ Henv [Hmo] Hsent
   iunfold rnRawMsgs
   iframe Hmo
-  isplitr
-  · iintro -
-    iexact Hsent
-  ipureintro; exact Hb
+  iintro -
+  iexact Hsent
 
 /-- The read states a `Ready` hands out, each answering the server's registrations (through
 the bridge). -/
@@ -1221,8 +1146,6 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   iunfold readyGot at Hgot
   icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, Hlead,
     Henter, #Hdlb0, #Hhsc⟩
-  -- (R2d'a A10 item 5, Q29 (d)) the `MsgSnap`s' terms, from the restart data
-  imod (rnRestartOk_snapTerm γ L p S r rd ce es h Lo ms ss) $$ Hrok Hrest with ⟨Hrest, %Hsb⟩
   -- (R2d'a task 4) a snapshot's index above the restart point (A8; S1: derived, from the loop's fact)
   ihave ⟨Hrest, %Hwa2⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss Hc0 $$ Hrok Hrest
   have Hwa := Hwa2.2
@@ -1397,7 +1320,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       isplitr
       · ipureintro; rfl
       isplitl [Hmo Hlead]
-      · iunfold rnRawMsgs; iframe Hmo; isplitl [Hlead]; iexact Hlead; ipureintro; exact Hsb
+      · iunfold rnRawMsgs; iframe Hmo; iexact Hlead
       isplitr
       · iexists ss; iframe Hss; ipureintro; rfl
       isplitr
@@ -1534,7 +1457,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     isplitr
     · ipureintro; rfl
     isplitl [Hmo Hlead]
-    · iunfold rnRawMsgs; iframe Hmo; isplitl [Hlead]; iexact Hlead; ipureintro; exact Hsb
+    · iunfold rnRawMsgs; iframe Hmo; iexact Hlead
     isplitr
     · iexists ss; iframe Hss; ipureintro; rfl
     isplitr

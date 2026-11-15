@@ -13,11 +13,13 @@
 * corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
 lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
 lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/KVServiceOn\.lean::etcdRangeSpecE_M::  # (k8s 7e-1, registration (A), etcd-grove-81 2026-11-10) the client-side Range registration `etcdRangeSpecE` (auth off) gives the server's `etcdRangeSpecM false`: a bridge at its literal, as etcdRangeSpecM_false
+lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/Results\.lean::(etcd_leaseRevokeHandlerOk|etcd_leaseGrantHandlerOk)::  # (auth-lease S3c, Draft §10) the auth-off client results instantiate the lease handler specs (at the mode since S3c) at a literal `false` through the `_false` bridges
+* pair ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(LeaseOn|InvLease)\.lean::(lessorGrantOkGM|lessorGrantOkM|lessorRevokeOkM|raftLessorM|lessorGrantOkG|lessorGrantOk|lessorRevokeOk|raftLessor)::  # (auth-lease S3c, decision C5′, etcd-grove-81 2026-11-15) the lease contracts at the mode beside the auth-off ones, for the cleanup stage to merge
 
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
 lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$
 
-match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM|kvNxM)::
+match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvStM|srvKVCoreM|logShapeM|kvModelM|kvCertInvM|resultΨM|modelOutM|adminTieM|adminDoneM|reqPropOkM|putPermitM|deletePermitM|authHistTie|kvLogsPubM|kvNxM|leaseGrantPermitM|leaseRevokePermitM|leaseGrantResM|leaseRevokeResM)::
 
 # the resource rows and the mode-level vocabulary still over `on`/`M` (stage 3: over the slot,
 # or left over `M` as the auth package's verdict vocabulary)
@@ -59,7 +61,6 @@ match-mode unmoved ::snapRestImgM::
 match-mode unmoved ::srvApplyKVM::
 match-mode unmoved ::srvAuthBoundM::
 match-mode unmoved ::srvKVInvsM::
-match-mode unmoved ::srvLessorNilM::
 match-mode unmoved ::srvOpenQ::
 match-mode unmoved ::srvSnapAppliedM::
 match-mode unmoved ::srvTokRights::
@@ -108,6 +109,7 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR\.lean::N
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerRFacts\.lean::srvIndices_allocR::  # 2 (restart S6 B2, D1: the restart's indices at specR's auth-off scope)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReadOn\.lean::  # 7
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn\.lean::  # 12
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseReqOn\.lean::(leaseGrantPermit_reqPropOk|leaseRevokePermit_reqPropOk|leaseGrantResM_true_id)::  # 4 (auth-lease S3b: the lease permits' auth-on proposals and the grant result's id law, as ReqOn's putPermitOn_reqPropOk)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/RunOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOn\.lean::  # 3 (the other 4 moved to ServerOnDefs.lean)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ServerOnDefs\.lean::(kvLogsPubM|kvLogsPubM_iff|srvKVInvsM_uberOn)::  # 4, moved from ServerOn.lean (mvcc-api, 2026-11-07)
@@ -131,3 +133,10 @@ lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/start
 lit-mode unmoved ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/barrier\.lean::  # 1 (auth3 A2, 2026-11-14): a member started with auth on (memberUpOn_served's read view), as authkv's WorkEnv
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/AuthFixed\.lean::  # 1 (auth3 A2, 2026-11-14): the barrier lemma over akAuthFixed_alloc's read view, as authkv's WorkEnv
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/run\.lean::  # 1 (auth3 A2, 2026-11-14): serve_member, authkv's Run's Serve step
+
+# (auth-lease S3a, 2026-11-15) the auth-on lease table and the rest buckets at it: model rows (`srvRestT` at the
+# mode-`on` model's table, `appliedTableM`), at a literal mode in the auth-on apply arms, their laws, and the
+# mode-generic lemmas' `cases on` branches
+match-mode model ::(srvRestM|srvRestRM|srvRestRpM|appliedTableM|imageLeasesAtM)::
+lit-mode model ::(appliedTableM|srvRestM|srvRestRM|srvRestRpM|imageLeasesAtM|kvModelM|kvStM)(\s*\(GF := GF\))? (true|false)$  # the KV model and its lease table at a case's mode (auth-lease S3a §4-§6)
+match-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot\.lean::EtcdServer\.applySnapshot\.specSnapM::  # (auth-lease S3a rev 5 §5, frozen) `hnl`'s auth-on/off text

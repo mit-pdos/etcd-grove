@@ -53,7 +53,7 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `Start.spec` at the slot's `off`
   imod isServerBuilt_offC s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
-    γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb, Hl⟩
+    γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb⟩
   · iframe Hsb
     iapply (srvStop.slot_intro s cfg E γrn γk
       (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk)) rfl) $$ Hkeep
@@ -70,7 +70,7 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   icases Hpok with ⟨%lp, %cp, %stp, %γrp, -, -, #Hmidp, -⟩
   icombine HmidS Hmidp gives %Hideq
   subst Hideq
-  wp_apply h' $$ [Hsb Hl Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, -, Hgo, Hlg3, Hsr, -, Hright⟩
+  wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, -, Hgo, Hlg3, Hsr, -, Hright⟩
   · iframe; iframe #
     ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
   iunfold srvStartReaders at Hsr
