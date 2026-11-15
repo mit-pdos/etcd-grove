@@ -367,7 +367,7 @@ Decisions D1–D7 (`questions.md`, "S3b Freeze"; ledger 2026-11-15, S3b entries)
 
 Draft `notes/auth-lease-s3c-draft.md` (rev 1, commit `64326e6fff`); probe `Scratch/S3cProbe.lean` (untracked; copy
 `/shared/tmp/auth-lease-s3c/S3cProbe.lean`, clean: the guard C1, run's expiry arm, the new `bootCfg` and its laws,
-`NewServer`/`NewServerR`'s guard). Reviews `/shared/tmp/auth-lease-s3c/review-r*.md`. Rev 2–4 applied rounds 1–3 (each had first-tier findings: C2→C2′, the quota wrapper's metadata spec, C5′ pair, `srvAuthAt_of_viewsM`, the registration lemma from `grpcServerAt` in client/v3, the two trusted docstrings' wording); rev 4 = commit `a5f0e9223b`; round 4 next. Decisions asked: C1 (the guard
+`NewServer`/`NewServerR`'s guard). Reviews `/shared/tmp/auth-lease-s3c/review-r*.md`. Rev 2–4 applied rounds 1–3 (each had first-tier findings: C2→C2′, the quota wrapper's metadata spec, C5′ pair, `srvAuthAt_of_viewsM`, the registration lemma from `grpcServerAt` in client/v3, the two trusted docstrings' wording); rev 4 = commit `a5f0e9223b`; round 4 (§1–§6 clean; three first-tier in §7: `grpcUpOn`'s Lease conjunct, the exported mode corollaries, the quota server's revoke) applied as rev 5 = `9ce15e1837`. **Next: review round 5 on rev 5** (a fresh `spec-reviewer`, brief as round 4's), then the Freeze package. Session 10 stopped on context. Decisions asked: C1 (the guard
 carries `on → leasesNoExpiry`; `run` has `runCfg`, not `bootCfg`), the hub change (`bootCfg`'s row, Scope text), C2
 (`srvInvAt` drops `on`), C3 (`acLessor` deleted), C4 (auth-on lease registrations as an `Md` set), C5 (`…M` contracts
 beside the off ones), the `NewLessor` docstring wording (§6). No Lean outside `Scratch/` edited.
