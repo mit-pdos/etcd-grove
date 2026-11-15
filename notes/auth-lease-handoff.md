@@ -282,7 +282,10 @@ Probe `Scratch/S3a2Probe.lean` (untracked, checked with `etc/lean-check.py -a`, 
 `putPre`/`txnPre` bundling `∃ T, certPreT … T ∗ mPreAt … T`, the backend `Put` with the witness taken in the live
 branch (`Put_wp_T`), the backend `Txn` over a strengthened `txn.Txn.specSole` wand (`Txn_wp_T`; finding: the wand
 must be told `PathsLeaseOk L`, a frozen `Spec/` text), `certPreW_innerT`, `certPreW_tie`. Review rounds:
-`/shared/tmp/auth-lease-s3a2/review-r*.md`. Next: the Freeze package (hard stop), then Draft §7's order.
+`/shared/tmp/auth-lease-s3a2/review-r*.md` (r1–r5; r3 found `authTie` false at a leased request → Draft §4a, option (b)
+probed in `Scratch/S3a2ProbeTie.lean`; r5 no first-tier finding). Draft rev 6 = the Freeze package (commit
+`cb5bf97093`), STOPPED for etcd-grove-81 (`questions.md`). Probes copied to `/shared/tmp/auth-lease-s3a2/`. Next after
+the Freeze: Draft §7's order (step 1 `Chain.lean`). No Lean outside `Scratch/` edited yet.
 
 ## Pitfalls
 
