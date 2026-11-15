@@ -29,11 +29,14 @@ with `auth-lease-scope` merged).
   `UberOn`, `UberKit` (`LeaseRevoke.specL`), `EtcdServer__applyEntryNormal`, `Results`
   (`apply_lease_revoke_latest`). Full build green; lean `dd068e790f` merged.
 
+- S2 landed: lean `c3da59fa29` (2026-11-15).
+
 ## Next, in order
 
-1. Land S2 when the coordinator says go (record the mode gate's decrease, `etc/mode-check.py --check
-   --update`, from S1's `infoBoundTM` removal).
-2. S3 (the auth-on server with leases), S4 as the Scope.
+1. S3 (the auth-on server with leases): a gap found at its start, reported to the coordinator: no path admits a
+   put with a lease (`plainCover`, `putPermit`/`putPermitOn` require lease `0`; no `clientv3.WithLease` spec):
+   `/shared/tmp/auth-lease/s3-scope-gap.md`. The S3 Freeze package waits for that decision.
+2. S4 as the Scope (with the client's leased put if option (a)).
 
 ## Pitfalls
 
