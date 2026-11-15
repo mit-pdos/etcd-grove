@@ -267,7 +267,7 @@ theorem isNewError_of_ptr {ii : GoInterfaceOk} (h : errors.IsPointerError ii) :
 theorem os_isPkgInit_Stderr :
     isPkgInit (PROP := IProp GF) pkg_id.os ⊢
       ∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.os
+  with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans sep_elim_left
 
 theorem io_isPkgInit_Discard :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢

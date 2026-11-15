@@ -63,8 +63,7 @@ trusted model of its initializer (`TrustedCode/os.lean`) allocates it (2026-11-0
 assumption of `Init.lean`'s); and `ErrExist` holds a non-nil error (io/fs's, which the initializer
 copies; `wal.Create` returns it, 2026-11-14), `ErrNotExist` holds an `*errorString` for good (`wal.Exist`
 compares with it, 2026-11-14; its type since `wal-vsnap4`), and so does `ErrInvalid` (the nil-receiver `(*File).Close` returns it,
-`WAL.Close` of a nil `dirFile`, 2026-11-14); the part's only: the main tree's `os` fact is `Stderr`'s
-alone. -/
+`WAL.Close` of a nil `dirFile`, 2026-11-14). -/
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
   define_is_pkg_init iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
     (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗

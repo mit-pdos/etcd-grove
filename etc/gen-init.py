@@ -3111,10 +3111,12 @@ WT_PKGS = ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
 
 
 def wt_inventory():
-    """The part's translation over the main tree's."""
-    out = inventory(f'{WT_ROOT}/Code')
-    for q, d in inv.items():
-        out.setdefault(q, d)
+    """The part's translation over the main tree's (the part's inventory lists Perennial's packages too,
+    which the main tree may translate itself: `os`)."""
+    out = dict(inv)
+    for q, d in inventory(f'{WT_ROOT}/Code').items():
+        if not d['perennial']:
+            out[q] = d
     return out
 
 
@@ -3125,7 +3127,7 @@ def wt_inits():
     raw = []
     try:
         inv = wt_inventory()
-        inst = {**inst, **{k: [(f'{WT_ROOT}/' + f, fact) for f, fact in v]
+        inst = {**inst, **{k: [(f'{WT_ROOT}/Proof/' + f, fact) for f, fact in v]
                            for k, v in instances(f'{WT_ROOT}/Proof/').items()}}
         for p in WT_PKGS:
             raw.append(gen(p, WT_SPECIAL.get(p, SPECIAL.get(p))))

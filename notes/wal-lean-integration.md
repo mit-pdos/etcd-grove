@@ -31,7 +31,7 @@ the main tree gives in the cache's/lease's/backend's/apply's `Base.lean` and `Pr
 instance of the WAL package, which with bodies has the part's fact). Each: one instance, kept where the
 generated init chain wants it (stage 4).
 
-### `lib/durable`: two translations of one package [decision, provisional]
+### `lib/durable`: two translations of one package [decided: D2, coordinator 2026-11-15]
 
 The tester's oracle goes through `examples/lib/durable`; the part translates it **with bodies** over `fsExt`
 (W4c U2), the main tree **trusted** over `durableExt`, which kvdurable (20+ files), kvfile and
@@ -46,10 +46,13 @@ The tester's oracle goes through `examples/lib/durable`; the part translates it 
 - D3. port kvdurable/kvfile/etcdstart onto the bodied `durable`'s specs and retire `durableExt` (several
   sessions; the w4c plan's "later `durableExt` retirement").
 
-D2 until D3. The old absDisk tester (`T/`, `Spec/.../examples/etcd/wal/`, the main `Code/.../examples/etcd/wal`)
+D2 until D3 (the coordinator's decision, 2026-11-15: the provisional part `WalTester/` stays; the main tree
+keeps the trusted `durableExt` version for kvdurable/kvfile/etcdstart). The old absDisk tester (`T/`, `Spec/.../examples/etcd/wal/`, the main `Code/.../examples/etcd/wal`)
 goes (U8): it is stated over the WAL axioms the part's proofs replace. **Its `purgeRound` axiom goes with it**
 (the w4c plan §6.2 makes retiring that approved axiom a user-review item; the new tester translates
-`purgeRound` with its body, so nothing needs the axiom): flagged for the user.
+`purgeRound` with its body, so nothing needs the axiom). Retiring it is approved (the coordinator, 2026-11-15,
+from the user's "fix up the tester as needed"; the tester agent drops `purgeRound` from the Go on
+`wal-c-tester2`).
 
 ## 2. Mapping (git renames, mirroring `003d52e8ff`)
 

@@ -397,16 +397,16 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
         (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om2 xs rfl h0
         (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn, hmin2]; omega)
-        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
+        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %EE, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
         rw [htn, hmin2, ← fileOwn_eq]
         iframe
-      obtain ⟨hjja, hale, -, hysp, -, hres⟩ := Hjj
+      obtain ⟨hjja, hale, -, -, -, hysp, -, hres⟩ := Hjj
       have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       have hsize : pwSize om2.size (4096 * c.1.toNat + w) jj = om2.size :=
         pwSize_inside _ _ _ cs (by rw [hcl] at hjjle; exact hjjle) (by omega)
-      have hpi := pwPost_inside om2 (4096 * c.1.toNat + w) cs aa jj
+      have hpi := pwPostE_inside om2 (4096 * c.1.toNat + w) cs aa jj EE
         (by rw [hcl] at hjjle; exact hjjle) (by omega)
       rw [hmin2, hcl]
       have hyl : ys.length = cs := by
@@ -481,10 +481,10 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         icases Hc with ⟨%vf, Hc⟩
         ihave Hc : cellsR b (4096 * c.1.toNat + w) ys.length vf $$ [Hc]
         · rw [hyl]; iexact Hc
-        have hbm : (pwPost om2 (4096 * c.1.toNat + w) aa cs).maps !! b = some l := by
+        have hbm : (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE).maps !! b = some l := by
           rw [hpi.2, Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
         have hyl' : 4096 * c.1.toNat + w + ys.length ≤ l := by rw [hyl]; omega
-        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) (pwPost om2 (4096 * c.1.toNat + w) aa cs) b l hbm
+        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE) b l hbm
           (DFrac.own 1) (by simp) _ ys (4096 * c.1.toNat + w) vf hyl' $$ Hos Hm Hys Hc
         iintro Hm Hys Hc
         icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
@@ -539,7 +539,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             word
           rw [fileOwn_eq]
           iframe
-          iexists j + W64 1, c.2.1, (pwPost om2 (4096 * c.1.toNat + w) aa cs)
+          iexists j + W64 1, c.2.1, (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE)
           rw [hj1]
           iframe
           ipureintro
@@ -563,7 +563,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           wp_for_post
           rw [fileOwn_eq]
           iframe
-          iexists w + cs, ysd ++ ys, (pwPost om2 (4096 * c.1.toNat + w) aa cs)
+          iexists w + cs, ysd ++ ys, (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE)
           iframe
           ipureintro
           exact ⟨hnend, hfst, hpi.1.trans Hom2s, hpi.2.trans Hom2m⟩

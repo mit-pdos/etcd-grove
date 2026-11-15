@@ -134,7 +134,7 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
   and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
   `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
-  two translations"). Its modules declare the main `durable`'s names, so nothing outside it imports it;
+  two translations", decided 2026-11-15). Its modules declare the main `durable`'s names, so nothing outside it imports it;
   it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
   ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of

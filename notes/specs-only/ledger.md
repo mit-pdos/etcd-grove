@@ -2022,5 +2022,9 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   (`Proof/go_etcd_io/bbolt/{Tx__write,Tx__write_ext,Commit/WriteRun,Commit/PwMeta,Commit/WriteExtRun,
   Commit/MetaBytes}.lean`) re-proved over `pwPostE`. Meanwhile `specExt`'s proof is split to
   `Proof/os/File__WriteAtExt.lean` (it does not build) so that the WAL does not wait on it.
-- **Decision.** Pending (the coordinator: a `lean` spec the bbolt port uses; the cause is P1, pending the
-  user's review).
+- **Decision.** Restated as specLong's post; coordinator, 2026-11-15. Done on `wal-lean`: `specExt`'s post is
+  `∃ j a E ys, ... E ≤ j ∧ (j = a → E = a) ∧ ...` with `osMeta d.ino 1 (os.pwPostE m off a j E)` (`rz` needed
+  nothing: `pwPost` keeps it); `WriteChunks.pwPost_chunk` (false) is gone, replaced by
+  `File__WriteAtExt.pwPostE_chunk` (with `pwCzE_stepG`, `pwCzE_step` for a write anywhere); the bbolt
+  port's users (`Tx__write`, `Commit/WriteExtRun`, `Commit/PwMeta`'s `pwPostE_inside`) take the `E`; the
+  others (`Tx__write_ext`, `Commit/WriteRun`, `Commit/MetaBytes`) needed nothing.

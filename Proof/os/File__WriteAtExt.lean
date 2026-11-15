@@ -3,14 +3,15 @@ The proof of `os.File.WriteAt.specExt` (`Spec/os/File__WriteAt.lean`): any write
 file and in chunks of at most 1 GiB (`Proof/os/WriteChunks.lean`). Split from `File__WriteAt.lean`
 (2026-11-15, notes/wal-lean-integration.md), so that the WAL's proofs, which use `specLong`
 (`Proof/os/WriteLong.lean`), do not wait on it: under the per-byte extension's page cache known zero
-(`OsMeta.cz`, raised by a write that lands whole, `pwCz`) its post `pwPost m off a j` is not the state
-a chunked write leaves (`WriteChunks.pwPost_chunk`'s `cz` goal), to be restated as `specLong`'s
-(`os.pwPostE`): see notes/wal-lean-integration.md, "Open: `specExt` under `cz`".
+(`OsMeta.cz`, raised by a write that lands whole, `pwCz`) the post is `specLong`'s `os.pwPostE`, the
+page cache known zero as the last chunk that landed whole left it (`pwPostE_chunk`; ledger 2026-11-15,
+restated as specLong's post).
 -/
 module
 
 public import Proof.os.File__WriteAt
 public import Proof.os.WriteChunks
+public import Proof.os.WriteLongStep
 
 @[expose] public section
 
@@ -68,6 +69,86 @@ theorem wa_toNat_add_W64 (off : w64) (nn : Nat) (h : off.toNat + nn < 2 ^ 63) :
     simp only [W64]; rw [BitVec.toNat_ofInt]; omega
   rw [this]; exact Nat.mod_eq_of_lt (by omega)
 
+/-- `pwCzE_step` for a write anywhere (`off` past the size too): the announcement from
+`min off size` raises the zeros known to `off + A` as one from `off` does. -/
+theorem pwCzE_stepG (m : OsMeta) (off A j E nn A' k : Nat) (hA0 : 0 < A)
+    (hA : A ≤ A') (hnA : nn < A') (hE : E ≤ A') :
+    pwCz (os.pwPostE m off A j E) (off + nn) (A' - nn) k =
+      pwCz m off (if k = A' - nn then A' else E) (if k = A' - nn then A' else E) := by
+  have hz1 : (os.pwPostE m off A j E).zf = m.zf.map (fun z => max z (off + A)) := by
+    simp only [os.pwPostE, pwPost, announce_zf]
+    cases m.zf with
+    | none => rfl
+    | some z => simp only [Option.map_some, show min off m.size < off + A by omega, if_true]
+  have hcz1 : (os.pwPostE m off A j E).cz = pwCz m off E E := rfl
+  cases hzf : m.zf with
+  | none =>
+    rw [pwCz_none _ _ _ _ (by rw [hz1, hzf]; rfl), hcz1, pwCz_none _ _ _ _ hzf, pwCz_none _ _ _ _ hzf]
+  | some z =>
+    rw [pwCz_some _ _ _ _ (max z (off + A)) (by rw [hz1, hzf]; rfl), hcz1,
+      show off + nn + (A' - nn) = off + A' by omega]
+    by_cases hk : k = A' - nn
+    · rw [if_pos hk, pwCz_some m off A' A' z hzf]
+      by_cases hzA : z ≤ off + A'
+      · rw [if_pos ⟨by omega, hk, by omega⟩, if_pos ⟨by omega, rfl, hzA⟩]
+        have := pwCz_le_raise m off E A' hE z hzf hzA
+        have := le_pwCz m off E E
+        omega
+      · rw [if_neg (by omega), if_neg (by omega), pwCz_some m off E E z hzf, if_neg (by omega)]
+    · rw [if_neg (by omega), if_neg hk]
+
+/-- A write of `cs` bytes at `off + nn` (the chunk) over the `OsMeta` a write of `j` bytes at
+`off` left, whose first steps announced `[min off size, off + a)` and whose last whole chunk ended at
+`E`, leaves the `OsMeta` of a write of `max j (nn + k)` bytes whose first steps announced
+`[min off size, off + nn + cs)`, whose last whole chunk is this one if it landed whole (`pwPostE_step`
+for a write anywhere). -/
+theorem pwPostE_chunk (m : OsMeta) (off a nn j E cs k : Nat) (hml : m.lo ≤ m.size) (hnn : nn ≤ j)
+    (hja : j ≤ a) (ha : a ≤ nn + cs) (ha0 : 0 < a) (hk : k ≤ cs) (hcs0 : 0 < cs) (hE : E ≤ j) :
+    pwPost (os.pwPostE m off a j E) (off + nn) cs k =
+      os.pwPostE m off (nn + cs) (max j (nn + k)) (if k = cs then nn + cs else E) := by
+  have hS1 : m.size ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
+  have hS2 : 0 < j → off + j ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
+  have hS3 : j = 0 → pwSize m.size off j = m.size := by intro h; simp [pwSize, h]
+  have hlo' : min off m.size ≤ min (off + nn) (pwSize m.size off j) := by omega
+  have hlo'' : min (off + nn) (pwSize m.size off j) ≤ off + a := by omega
+  have hsz : pwSize (pwSize m.size off j) (off + nn) k = pwSize m.size off (max j (nn + k)) :=
+    pwSize_chunk _ _ _ _ _ hnn
+  have hszE : (os.pwPostE m off a j E).size = pwSize m.size off j := rfl
+  apply os.osMeta_eq
+  · show pwSize (os.pwPostE m off a j E).size (off + nn) k = pwSize m.size off (max j (nn + k))
+    rw [hszE]; exact hsz
+  · simp only [pwPost, os.pwPostE, announce_lo]; unfold pwSize; split <;> omega
+  · simp only [pwPost, os.pwPostE, announce_hi]; unfold pwSize; split <;> omega
+  · simp only [pwPost, os.pwPostE, announce_maps]
+  · simp only [pwPost, os.pwPostE, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi]
+    by_cases h3 : m.dhi ≤ m.dlo <;>
+      simp only [h3, if_true, if_false, show ¬ off + a ≤ min off m.size by omega,
+        show ¬ off + nn + cs ≤ min (off + nn) (pwSize m.size off j) by omega,
+        show ¬ off + (nn + cs) ≤ min off m.size by omega] <;> (repeat' split) <;> omega
+  · simp only [pwPost, os.pwPostE, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi]
+    by_cases h3 : m.dhi ≤ m.dlo <;>
+      simp only [h3, if_true, if_false, show ¬ off + a ≤ min off m.size by omega,
+        show ¬ off + nn + cs ≤ min (off + nn) (pwSize m.size off j) by omega,
+        show ¬ off + (nn + cs) ≤ min off m.size by omega] <;> (repeat' split) <;> omega
+  · simp only [pwPost, os.pwPostE, announce_zf, Option.map_map]
+    cases m.zf with
+    | none => rfl
+    | some z =>
+      simp only [Option.map_some, Function.comp, Option.some.injEq,
+        show min off m.size < off + a by omega,
+        show min (off + nn) (pwSize m.size off j) < off + nn + cs by omega,
+        show min off m.size < off + (nn + cs) by omega, if_true]
+      omega
+  · apply GMap.ext; intro b
+    simp only [pwPost, os.pwPostE, announce_tc, announce_size, inRange, Bool.and_eq_true,
+      decide_eq_true_eq]
+    (repeat' split) <;> first | rfl | omega
+  · simp [pwPost, os.pwPostE]
+  · have h := pwCzE_stepG m off a j E nn (nn + cs) k ha0 ha (by omega) (by omega)
+    rw [show nn + cs - nn = cs by omega] at h
+    exact h
+  · simp [pwPost, os.pwPostE]
+
 /-- The bytes a write has landed after one more attempt, of the chunk `c` from `nn`, are a cut. -/
 theorem waCut_step (off len nn j c k : Nat) (hj0 : os.WaCut off len j)
     (hcn : (off + nn) % osPageSize = 0 ∨ nn % 0x40000000 = 0)
@@ -110,7 +191,7 @@ theorem waCut_short (off len nn c k : Nat)
     · right; omega
   · left; rw [← Nat.add_assoc]; exact h0
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 4000000 in
 theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := hG) := by
   intro f fd name dqf sl data dqs off dq d m xs hwr hoff hbig hn hxl
   unfold os.ownFile
@@ -147,6 +228,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   -- announced `[min off size, off + a)`
   obtain ⟨j, hj0⟩ : ∃ j : Nat, j = 0 := ⟨_, rfl⟩
   obtain ⟨a, ha0⟩ : ∃ a : Nat, a = 0 := ⟨_, rfl⟩
+  obtain ⟨E, hE0⟩ : ∃ E : Nat, E = 0 := ⟨_, rfl⟩
   obtain ⟨mj, hmj⟩ : ∃ mj, mj = m := ⟨_, rfl⟩
   ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own 1) m ⊢ osMeta d.ino (DFrac.own 1) mj by
     rw [hmj]) $$ Hm
@@ -158,24 +240,24 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   have hnl : nn < data.length := by omega
   have hys : ys.map Prod.fst = pwValsG m.size off.toNat data j xs := by
     rw [hy, hj0, pwValsG_zero _ _ _ _ hxl]
-  have hinv : (j = 0 ∧ nn = 0 ∧ mj = m) ∨
-      (mj = pwPost m off.toNat a j ∧ m.lo ≤ m.size ∧ j ≤ a ∧ a ≤ data.length ∧
-        min data.length 0x40000000 ≤ a ∧ a ≤ nn + 0x40000000 ∧ 0 < a) :=
-    .inl ⟨hj0, hnn0, hmj⟩
+  have hinv : (j = 0 ∧ nn = 0 ∧ mj = m ∧ E = 0) ∨
+      (mj = os.pwPostE m off.toNat a j E ∧ E ≤ j ∧ (j = a → E = a) ∧ m.lo ≤ m.size ∧ j ≤ a ∧
+        a ≤ data.length ∧ min data.length 0x40000000 ≤ a ∧ a ≤ nn + 0x40000000 ∧ 0 < a) :=
+    .inl ⟨hj0, hnn0, hmj, hE0⟩
   have hcj : os.WaCut off.toNat data.length j := ⟨Or.inl (Or.inl hj0), Or.inl hj0⟩
   have hcn : (off.toNat + nn) % osPageSize = 0 ∨ nn % 0x40000000 = 0 := by
     right; rw [hnn0]
-  clear hmj hy hj0 hnn0 ha0
-  iloeb as IH generalizing %nw %nn %j %a %mj %ys %hnw' %hj %hnj %hnl %hys %hinv %hcj %hcn
+  clear hmj hy hj0 hnn0 ha0 hE0
+  iloeb as IH generalizing %nw %nn %j %a %E %mj %ys %hnw' %hj %hnj %hnl %hys %hinv %hcj %hcn
     Hm Hbs Hc Hosfd Hsl Hfd HΦ
   subst hnw'
   -- one attempt, of the chunk `[nn, nn + c)`
   have hmsz : mj.size = pwSize m.size off.toNat j := by
-    rcases hinv with ⟨rfl, -, rfl⟩ | ⟨rfl, -⟩
+    rcases hinv with ⟨rfl, -, rfl, -⟩ | ⟨rfl, -⟩
     · simp [pwSize]
     · rfl
   have hmaps : mj.maps = m.maps := by
-    rcases hinv with ⟨-, -, rfl⟩ | ⟨rfl, -⟩ <;> simp [pwPost]
+    rcases hinv with ⟨-, -, rfl, -⟩ | ⟨rfl, -⟩ <;> simp [os.pwPostE, pwPost]
   wp_auto
   have hlZ : sint.Z (sl.len - W64 ↑nn) = ↑(data.length - nn) := by
     rw [hsln, wa_W64_sub _ _ (by omega) (by omega), wa_sintZ_W64 _ (by omega)]
@@ -261,16 +343,26 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   rw [hcdl, hocN] at hpc
   -- the file as a write of the first `max j (nn + k)` bytes left it, announced up to `nn + c`
   have hml : m.lo ≤ m.size := by
-    rcases hinv with ⟨-, -, rfl⟩ | ⟨-, h, -⟩
+    rcases hinv with ⟨-, -, rfl, -⟩ | ⟨-, -, -, h, -⟩
     · exact hmlo
     · exact h
-  have hmeta : pwPost mj oc.toNat cd.length k = pwPost m off.toNat (nn + c) (max j (nn + k)) := by
+  have hE' : (if k = c then nn + c else E) ≤ max j (nn + k) ∧
+      (max j (nn + k) = nn + c → (if k = c then nn + c else E) = nn + c) := by
+    have hEj : E ≤ j ∧ (j = a → E = a) ∧ (j = 0 ∨ (j ≤ a ∧ a ≤ nn + c)) := by
+      rcases hinv with ⟨hj0', -, -, hE0'⟩ | ⟨-, hEj, hja', -, hja, hal, -, ha, -⟩
+      · omega
+      · exact ⟨hEj, hja', Or.inr ⟨hja, by omega⟩⟩
+    split <;> omega
+  have hmeta : pwPost mj oc.toNat cd.length k =
+      os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) := by
     rw [hcdl, hocN]
-    rcases hinv with ⟨rfl, rfl, rfl⟩ | ⟨rfl, -, hja, hal, -, ha, ha0⟩
-    · simp
-    · exact pwPost_chunk m off.toNat a nn j c k hml hnj hja (by omega) ha0 hk hc0
+    rcases hinv with ⟨rfl, rfl, rfl, rfl⟩ | ⟨rfl, hEj', -, -, hja, hal, -, ha, ha0⟩
+    · rw [Nat.add_zero, Nat.zero_add, Nat.zero_add, show max 0 k = k by omega]
+      exact pwPostE_base _ _ _ _ hk
+    · exact pwPostE_chunk m off.toNat a nn j E c k hml hnj hja (by omega) ha0 hk hc0 hEj'
   ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own 1) (pwPost mj oc.toNat cd.length k) ⊢
-    osMeta d.ino (DFrac.own 1) (pwPost m off.toNat (nn + c) (max j (nn + k))) by
+    osMeta d.ino (DFrac.own 1)
+      (os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E)) by
       rw [hmeta]) $$ Hm
   have hL2 := pwBytesG_length mj.size oc.toNat cd k nst
     ((ys.drop (min oc.toNat (pwSize m.size off.toNat j) - min off.toNat m.size)).take
@@ -314,16 +406,20 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   have hA : max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
       min data.length 0x40000000 ≤ nn + c ∧ 0 < nn + c := by omega
   have hinv' : ∀ nn', nn ≤ nn' → (max j (nn + k) = 0 ∧ nn' = 0 ∧
-      pwPost m off.toNat (nn + c) (max j (nn + k)) = m) ∨
-      (pwPost m off.toNat (nn + c) (max j (nn + k)) = pwPost m off.toNat (nn + c) (max j (nn + k)) ∧
+      os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) = m ∧
+      (if k = c then nn + c else E) = 0) ∨
+      (os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) =
+          os.pwPostE m off.toNat (nn + c) (max j (nn + k)) (if k = c then nn + c else E) ∧
+        (if k = c then nn + c else E) ≤ max j (nn + k) ∧
+        (max j (nn + k) = nn + c → (if k = c then nn + c else E) = nn + c) ∧
         m.lo ≤ m.size ∧ max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
         min data.length 0x40000000 ≤ nn + c ∧ nn + c ≤ nn' + 0x40000000 ∧ 0 < nn + c) :=
-    fun nn' h => .inr ⟨rfl, hml, hA.1, hA.2.1, hA.2.2.1, by omega, hA.2.2.2⟩
+    fun nn' h => .inr ⟨rfl, hE'.1, hE'.2, hml, hA.1, hA.2.1, hA.2.2.1, by omega, hA.2.2.2⟩
   clear hend hL2 hyl hsz hlZ hsb hsb2 hys hcd hslz Hlen Hwf hinv hmeta hmsz hmaps
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %(W64 ↑nn) %nn %(max j (nn + k)) %(nn + c) %_ %_ %rfl %hJ %hnJ %hnl %hys'
+    iapply IH $$ %(W64 ↑nn) %nn %(max j (nn + k)) %(nn + c) %(if k = c then nn + c else E) %_ %_ %rfl %hJ %hnJ %hnl %hys'
       %(hinv' nn (Nat.le_refl _)) %hcj' %hcn Hm Hbs Hc Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
@@ -339,7 +435,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hA.1, hA.2.1, hA.2.2.1, hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
+          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false (show ¬ W64 ↑nn + W64 ↑k = sl.len by
           rw [wa_W64_add, hsln, wa_W64_inj _ _ (by omega) (by omega)]; omega)]
         wp_pure
@@ -357,7 +453,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         have hnJ2 : nn + k ≤ max j (nn + k) := by omega
         have hnl2 : nn + k < data.length := by omega
         have hcn2 := waCut_short _ _ _ _ _ hcn hcdef hk0 hfull hk hnl hpc
-        iapply IH $$ %(W64 ↑nn + W64 ↑k) %(nn + k) %(max j (nn + k)) %(nn + c) %_ %_
+        iapply IH $$ %(W64 ↑nn + W64 ↑k) %(nn + k) %(max j (nn + k)) %(nn + c) %(if k = c then nn + c else E) %_ %_
           %hnw2 %hJ %hnJ2 %hnl2 %hys' %(hinv' (nn + k) (by omega)) %hcj' %hcn2
           Hm Hbs Hc Hosfd Hsl Hfd HΦ
     · have he0' : ¬ e = W64 0 := he0
@@ -376,7 +472,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hA.1, hA.2.1, hA.2.2.1, hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
       · rw [decide_eq_false hkl]
         wp_auto
         simp only [decide_eq_false he0', Bool.not_false]
@@ -389,7 +485,7 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hA.1, hA.2.1, hA.2.2.1, hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
 
 end proof
 
