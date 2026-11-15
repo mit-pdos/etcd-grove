@@ -5,7 +5,12 @@
 (decision: (3) in S3a, then (1) as S3a2), `notes/auth-lease-s3a-draft.md` §3a, §6, §15. Evidence: the probe
 `Scratch/S3a2Probe.lean` (untracked; §2), the code read below.
 
-**Revision 1 (2026-11-15), the S3a2 Freeze package candidate.**
+**Revision 2 (2026-11-15), the S3a2 Freeze package candidate**: review round 1
+(`/shared/tmp/auth-lease-s3a2/review-r1.md`, fresh `spec-reviewer`) applied: F1 (§6's list), S1 (§4 the auth-on case
+split and the lemma variants, §7's estimate), S2 (§1 the laws, probed vs to prove), S3 (§0), S4 (§5), S6 (ledger
+entry), N1–N4. Round 1 found every changed statement provable and no closed theorem changed (§8).
+
+**Revision 1 (2026-11-15).**
 
 ## 0. What S3a2 does, and what it leaves
 
@@ -19,9 +24,12 @@ leased puts and leased transactions at the revocable mode (`plainReqL` back to S
 covers them over S3a session 5's lemmas (`backendLog_of_step`, `outcomeOn_of_kvOutLL`, `kvGrantedL_of_kvOutL`,
 `kvShapedL_of_logL`, the `leaseOk` bridge).
 
-S3a2 changes no request-side statement. S3b's proposers of a leased put with auth on are what make the new case
-reachable by a server, so until S3b it is reachable only in the model and the apply thread's proofs. No closed
-theorem changes (§6).
+S3a2 changes no request-side statement and none of the couplings. A server reaches the new case only after S3b
+(the proposers of a leased put with auth on) **and** S3c: the auth-on KV arm still gets its latest-state contract
+from `srvUberOn`'s KV conjunct under `srvLessorNil s -∗` (`ServerOnDefs.lean:262-264`, used at
+`EtcdServer__applyEntryNormal.lean:1983`), which a granted lease refutes; no latest triple reads `lookupNil` any
+more, so S3c drops that premise with the coupling (review r1 S3; S3a2 leaves it, as S3a did). Until then the new
+case is reachable only in the model and the apply thread's proofs. No closed theorem changes (§6).
 
 ## 1. The class track's certificate at the live set
 
@@ -43,9 +51,12 @@ def mPreAt (E : AEnv GF) (c : Chain) (a : GoInterface) (info : AuthInfo) (log : 
     (Pre Q Post : IProp GF) : IProp GF := …
 ```
 
-Laws (proved in the probe): `mPre_iff_at : mPre E c a info log Pre Q Post ⊣⊢ ∃ T, mPreAt … T …`;
-`certPreT_of_certPre : certPre E c rq log ⊢ certPreT E c rq log T` (any `T`); `certPreT_mono` (as `certPre_mono`,
-for a wrapper chain); `leasesLive E s ⊣⊢ ∃ T, leasesLiveAt E s T`.
+Laws. Proved in the probe: `mPre_iff_at : mPre E c a info log Pre Q Post ⊣⊢ ∃ T, mPreAt … T …`;
+`certPreT_of_certPre : certPre E c rq log ⊢ certPreT E c rq log T` (any `T`); `putPre_of_old`. To prove (each the
+`T`-fixed copy of an existing law, review r1 S2): `certPreT_mono` (as `certPre_mono`, for a wrapper chain);
+`leasesLive E s ⊣⊢ ∃ T, leasesLiveAt E s T`; `mPreAt` versions of `mPre_split_chain`, `mPre_of_rest`,
+`mPreRest_lend` (lending `T` itself) and the `ltHalf` agreement (`mPreAt … L ∗ ltHalf E T ⊢ ⌜E.lg = true → L = T⌝ ∗ …`,
+as `kvOwnAt_ltHalf`), which the wrapper layers, the latest layers and the dispatch use.
 
 **`putPre`/`txnPre` bundle the certificate with the live set** (bodies change, signatures do not):
 
@@ -67,7 +78,16 @@ are deterministic, and `leaseExactL` is `True` on them.
 Why bundle and not add a `T` argument (the handoff's literal "kvOwnAt E log T"): the ten class-track `Spec/`
 triples name `putPre`/`txnPre`, so their texts stay as they are, and their callers (the wrapper layers, the class
 `dispatch`) do not pick a `T` they do not otherwise have. The live set stays fixed at `T` throughout the call
-either way.
+either way. The two forms are the same triple (`{∃ T, P T} e {Q}` ≡ `∀ T, {P T} e {Q}`), and `T` is not free:
+`mPreAt`'s `lessorUser … T` is the lessor's `leaseOwn γl T I` (`lease/InvLessor.lean:1080`), which pins `T` to the
+real live set, so the narrower certificate makes no triple vacuous (review r1). A margin left (N3): with `T` bound,
+the class-track post cannot say the live set after a put/txn is the `T` before it (the code keeps it); no caller
+needs it.
+
+Convergence with `SpecPlan` (N4): its apply specs determine the outcome from the live table (`opStep … ls.table`,
+`SpecPlan/…/apply/applierV3backend__Put.lean`), which is ledger option (2) (`backendStep` over the live set). The
+ledger chose (1) to keep `backendStep` and every track's statements; `certPreT`'s `leaseExactL T` is the same fact
+at the certificate. Converging `backendStep` itself later stays open (not in S3a2).
 
 ## 2. The backend's `Put` and `Txn`: the certificate taken only when the lease is live (probe)
 
@@ -135,11 +155,11 @@ theorem certPreW_innerT (h : ∀ oc, chainStep backendStep c rq log oc → X oc)
 -- old
 apply.certPreVW v3 E c rq log (apply.kvOutL E.authMode hs ai ci rq log)
 -- new
-apply.certPreVW v3 E c rq log (apply.kvOutLT E hs ai ci rq log T)
--- with (new, DispatchKVL)
-def kvOutLT (E : AEnv GF) (hs) (ai) (ci : Chain) (rq : IRRModel) (log : mvcc.Log) (T : List w64)
-    (oc : Outcome) : Prop :=
-  kvOutL E.authMode hs ai ci rq log oc ∧ (E.lg = true → leaseExactL T rq log oc)
+apply.certPreVW v3 E c rq log (apply.kvOutLT E.authMode E.lg hs ai ci rq log T)
+-- with (new, DispatchKVL; pure, review r1 N2)
+def kvOutLT (M : auth.AuthMode) (lg : Bool) (hs) (ai) (ci : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (T : List w64) (oc : Outcome) : Prop :=
+  kvOutL M hs ai ci rq log oc ∧ (lg = true → leaseExactL T rq log oc)
 ```
 
 `T` is the triples' existing binder, the one in `ltHalf E T`. The `E.lg` guard follows the posts' existing
@@ -177,14 +197,33 @@ def plainReqL (lm : lease.Mode) (rq : apply.IRRModel) : Prop :=
 `kvOutLT E … (s.2.2.ids)`. For an outcome meeting it: when `E.lg = true`, `outcomeOn_of_kvOutLL` with
 `leaseExactL s.2.2.ids`; when `E.lg = false`, `γk.lm = E.lm = .none` (`srvKVInvsOn`, `AEnv.lm_of_lg_false`), so
 `plainReqL .none` gives `plainCover` (`outcomeOn_of_kvOutLL`'s left disjunct). The server's `T` is `srvRestM`'s
-table, `(appliedTableM true γr A).ids`, which is the model's (`appliedTableM_eq_model`, `pre = []`).
+`srvIds E (appliedTableM true γr A).ids` (`InvRest.lean:896`: the table's ids when `E.lg`, else `[]`); under the
+guard (`E.lg = true`) it is `(appliedTableM true γr A).ids`, the model's (`appliedTableM_eq_model`, `pre = []`), by a
+bridge `srvIds_lg` (review r1 N1).
 
 **`applyEntryNormal.wp_proofOn`'s KV arm (v3 = true):** the dispatch post's `leaseExactL T` conjunct, today dropped
 at the server (`%HXo, -, #Hdel`, `EtcdServer__applyEntryNormal.lean:2021`), goes to `kvOn_after_kv`/`outcomeOn_of_kvOutLL`. Its pre is `kvShapedL_of_logL`
-with `keysNonEmpty_kvRaftOfOn` (S3a session 4), at `plainReqL lm`. The replay branch (v3 = false) and the
-grant/revocation arms do not change in text. `plainOrCmpG_of_entryOn` and the destructurings of `plainReqL` (13
-sites: `KVAuthModel`, `KVOutcomeOn`, `ProposeOn`, `ApplyEntryOn`, `EtcdServer__applyEntryNormal`) take the
-disjunction.
+with `keysNonEmpty_kvRaftOfOn` (S3a session 4), at `plainReqL lm`. The grant/revocation arms do not change.
+
+**The auth-on case split (review r1 S1).** `plainOrCmpG_of_entryOn` (`EtcdServer__applyEntryNormal.lean:70-76`)
+concludes `plainOrCmpG lm rq` (`plainOrCmp ∨ grantPropOk ∨ revokePropOk`, `ApplyCmpArm.lean:174`, shared with the
+auth-off arms), false of a leased put (`plainCover` needs lease `0`). Chosen: a new internal auth-on predicate,
+`plainOrCmpGL lm rq := plainOrCmpG lm rq ∨ leasedKV lm rq` (`leasedKV`: `plainReqL`'s right disjunct), concluded by
+`plainOrCmpG_of_entryOn`; `plainOrCmpG` and every auth-off arm are untouched. The leased disjunct goes:
+- in the replay branch (v3 = false, `:1378` ff.) to `Apply.spec` like a plain put (a leased put/txn is a KV kind:
+  no revocation, `revokeOwn_take`/`restOutA_false` at a non-lease kind);
+- in the v3 KV arm to lease-generic variants of: `kvOn_after_kv` (`applyStep_plain`, `ApplyEntryOn.lean:42,50`),
+  `authTie_of_kvOutL` (`authOutL_of_kvOutL … hpc` assumes lease `0`; S3a session 5's `kvGrantedL_of_kvOutL` and the
+  `leaseOk` bridge give the lease form, `ApplyNormalOn.lean:318-326`), `srvRestM_applyP0`/`srvRestM_applyP`
+  (`RestOn.lean:130-170`) and `srvGrantIf_permP` (`ApplyCmpArm.lean:616`) at a non-lease KV kind, `plainOrCmp_nonLease`,
+  `plainCover_needAdmin` (`ApplyNormalOn.lean:410`, from `plainReqL`'s `needAdminPermission rq = false`),
+  `kvShapedL_of_log` → `kvShapedL_of_logL`, `applyResultIs_notNoSpaceOn`/`dispatchStep_start` (`NoSpaceDeadOn.lean:150`,
+  `NoSpaceDead.lean:46`), `authnArM_of_ne` (its `putgetKind` from the kind).
+- Further `plainReqL`-as-`plainReq` sites: `KVAuthModel`, `KVOutcomeOn` (`backendLog_of_step`'s `hpc`), `ProposeOn`,
+  `ApplyEntryOn`, `EtcdServer__applyEntryNormal`, `SnapRecvOn.lean:52` (`kvCrevEntry_plainOn`), `SnapAuthRecover.lean:235`
+  (`plainEntryOn_userAdd`, at the general `γr.kv.lm`), `ImageLeasesOn.lean:83-152` (needs a `plainReqL_mono`-style
+  lemma beside `plainReqL_none`).
+All internal; none in `Spec/`, `interface/` or a closed theorem.
 
 **Exported server results** (`Results.lean`; none is used by another proof):
 
@@ -193,7 +232,7 @@ disjunction.
 | `kv_outcome_on_latest` (:1816) | `(hp : plainCover rq)` | `(hp : plainReqL lm rq) (hex : plainCover rq ∨ leaseExactL s.2.2.ids rq s.2.1 oc)` (= `outcomeOn_of_kvOutLL`) |
 | `apply_kv_entry_pre_on` (:2429) | conclusion `⌜plainCover rq ∧ …⌝`, `certPreVW true E x.chain rq x.log (kvOutL …)` | `⌜plainReqL γr.kv.lm rq ∧ …⌝`, `certPreVW true E x.chain rq x.log (kvOutLT E … (kvLeasesOn γr.kv st₀ A).ids)` |
 | `apply_kv_after_on` (:2449) | `(hp : plainCover rq)` | `(hp : plainReqL lm rq)` and `hout` gains `plainCover rq ∨ leaseExactL lt.ids rq x.log o` |
-| `server_apply_not_nospace_on` (:2493) | `(hp : plainCover rq)` | `(hp : plainReqL lm rq)` (`dispatchStep_start` at a leased put/txn: rejected by the backend or applied, as at lease `0`) |
+| `server_apply_not_nospace_on` (:2493) | `(hp : plainCover rq)` | `(hp : plainReqL lm rq)` (`dispatchStep_start` at a leased put/txn: rejected by the backend or applied, as at lease `0`; the backend's `ErrLeaseNotFound` and the auth layer's lease refusal are not `ErrNoSpace`: to confirm in the Prove step (`dispatchAnswer_notNoSpaceOn`); if it does not go through, the old text is kept and the server arm uses an internal lemma) |
 
 ## 5. Literal-mode uses (the follow-up; forms only)
 
@@ -204,8 +243,12 @@ arms) and `EtcdServer__apply.lean` (14). Plan: state `RestOn`'s lemmas and the `
 model's table, without the literal. One bridge per name (`srvRestM_true_eq`, `srvRestRpM_true_eq`,
 `appliedTableM_true_def`, `rfl`/`if_pos`) converts at each arm's entry and exit, and the specs stay at
 `srvRestM E.authOn`/`C.isOn`. These are internal forms: no statement in `Spec/`, `interface/` or a closed theorem
-changes. Target: etcdserver `lit-mode` ≤ 200, measured and ratcheted (`etc/mode-check.py --check --update`) at the
-land stop. If a site cannot lose its literal, it is classified (`etc/mode-allow.txt`) and listed in the report.
+changes. Review r1 S4 (the stage-5 lesson: lowering the count without removing the dependence is no gain): a
+lemma is restated only when it holds at **any** table `lt` (with the pure premises it uses, e.g. `0 ∉ lt.ids`, the
+entry's step on `lt`), so the auth-on dependence leaves the lemma and stays at the one bridge per name; a lemma
+true only of the auth-on table keeps its literal and stays classified `model`. Off the critical path: the last
+step of §7, after the KV arm. Target: etcdserver `lit-mode` ≤ 200, measured and ratcheted (`etc/mode-check.py
+--check --update`) at the land stop; what cannot move is listed in the report.
 
 ## 6. Statements this changes (for the Freeze)
 
@@ -227,7 +270,10 @@ land stop. If a site cannot lose its literal, it is classified (`etc/mode-allow.
   They ask a certificate of fewer outcomes, with the same resources (`∃ T, mPreAt … T` ≡ `mPre`), so each triple
   is stronger and its callers' obligation weaker.
 - Through them: `apply.applierTriples`/`applierSpec`, `apply/Results.lean`'s `chain_put` and `chain_txn`.
-- `authApplierV3.{Put,Txn}.specL`, `applierKVL`, `apply_applier_kv_latest`, `auth_pass_kvPostFL_nil`.
+- `authApplierV3.{Put,Txn}.specL`, `applierKVL`, `apply_applier_kv_latest`, `auth_pass_kvPostFL_nil`, and the
+  exported `apply_put_latest`, `apply_txn_latest` (`Results.lean:1548, 1552`), `server_uber_kvl`,
+  `server_uber_kvl_on` (`:1747, :1760`, through `uberKVL` → `applierKVL`) (review r1 F1).
+- Through `uberKVC`'s text: `srvUberOn`, `srvKVInvsM true` and the auth slot's `acInv` (the predicates containing it).
 - `plainEntryOn`/`plainLogOn` and therefore `kvInvOn`: they admit more at `revocable`, and at `none` they are
   unchanged by `plainReqL_none`. `kvInvOn` appears in `interface/…/etcdstart/Alloc3On.txt` by name only, so there is
   no interface diff.
@@ -245,16 +291,29 @@ the auth-off examples go through `certPre`, which does not change. No `interface
 
 **Trust base:** no axiom, `sorry`, opaque or trusted text is added or changed.
 
-## 7. Order of work (after the Freeze), estimate 3–5 agent-days
+## 7. Order of work (after the Freeze), estimate 5–8 agent-days (revised from 3–5, review r1 S1)
 
 1. `Chain.lean`: `certPreT`, `leasesLiveAt`, `mPreAt` and their laws. `putPre`/`txnPre` bodies. The ten
    class-track proofs, class `dispatch`, `newQuotaApplierV3`, `newApplierV3Capped`, `apply/Results`.
-2. `txn.Txn.specSole`'s wand: the spec, `txn/Txn.lean:256`, `applierV3backend.Txn`.
+2. `txn.Txn.specSole`'s wand: the spec, its docstring, `notes/mvcc-api-clients/TxnSpecs.lean` and `clients-txn.md`
+   §8 (the same change), `txn/Txn.lean:256`, `applierV3backend.Txn`. Ledger entry 2026-11-15 "txn.Txn's write wand is
+   not told the lease check" (written before the edit, decision pending the Freeze).
 3. Latest: `putPreW`/`txnPreW`, `certPreW_innerT`, `AuthApplyLatestPut`/`Txn`. `kvOutLT` and the four triples
    (`DispatchKVL`, `ApplyKVL`, `ApplyFnKVL`, `UberKit`/`UberOn` instantiations).
-4. Server: `plainReqL` widened. `kv_certPreW_on` and `kv_entry_pre_on` at `kvOutLT`. The KV arm of `wp_proofOn`.
-   `Results`.
+4. Server: `plainReqL` widened, `plainOrCmpGL`, the lemma variants and sites of §4. `kv_certPreW_on` and
+   `kv_entry_pre_on` at `kvOutLT`. The KV arm and the replay branch of `wp_proofOn`. `Results`.
 5. Literal-mode reduction (§5).
 6. Land-stop checks: merge lean, a full build (flock, 64G), `tcb-report --check` (870/4 unchanged),
    `gen-interface --check` on every `etc/api` list, bounds and mode gates, `grep TRANSITIONAL` empty, closed
    statements unchanged. Then STATUS, the handoff and status-history.
+
+## 8. Review round 1 (fresh `spec-reviewer`, `/shared/tmp/auth-lease-s3a2/review-r1.md`)
+
+Found: every changed statement provable at every layer (backend Put with the witness in the live branch; backend Txn
+given the txn wand; the latest auth layer by `certPreW_innerT` with `T` lent; the dispatch by the `ltHalf` agreement
+and `certPreW_tie`; the server at `E.lg = false` by `lm = .none`, at `E.lg = true` by the model's table); the bundled
+`∃ T` as strong as an explicit binder and not vacuous; the `kvOutLT` guard needed and minimal; the txn wand change
+true of Go (`checkTxn` before `kv.Write`) and unavoidable for any lease-based restriction (the commit is inside the
+caller's wand); no closed theorem, `interface/` file or `etc/api` list changed; re-admission consistent with
+`keysNonEmpty`, `keysLeasesLive`, `entryDetOn`, `kvWorkOn`, the revocation lemmas and the snapshot path. One first-tier
+finding, F1 (§6's list incomplete), applied; second tier S1–S4, S6 and nits N1–N4 applied above.

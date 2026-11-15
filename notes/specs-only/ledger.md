@@ -317,3 +317,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   or transaction admitted (`plainReqL lm := plainReq`), leased puts moved to a later stage with (1).
 - **Decision.** (3) now, then (1) as its own stage S3a2 (etcd-grove-81, 2026-11-15): Draft rev 7, §15; `plainReqL lm :=
   plainReq`.
+
+## 2026-11-15: txn.Txn's write wand is not told the lease check (auth-lease S3a2 §2)
+
+- **Spec.** `txn.Txn.specSole` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Txn.lean:62-65`; frozen text,
+  `notes/mvcc-api-clients/clients-txn.md` §8): the caller's write wand is told `PathsIgnOk (stateAfter log) br` only.
+- **Defect.** Too weak for a caller whose commit certificate depends on the leases: `applierV3backend.Txn` builds
+  the commit's witness `E.Nx` inside that wand, and S3a2's certificate at the live set (`certPreT … L`, ledger
+  2026-11-15 option (1)) covers an applied transaction only with `PathsLeaseOk (stateAfter log) L br`.
+- **Evidence.** Go: `checkTxn` (with `checkPut` → `checkLease`) runs before `kv.Write` (`server/etcdserver/txn/txn.go:54-67`,
+  `put.go:71-72`). Proof: `Hlok : PathsLeaseOk L` is in scope at `Proof/…/txn/Txn.lean:182`, the wand called at
+  `:256`. Probe: `Scratch/S3a2Probe.lean` (`Txn_wp_T` over a local copy of the strengthened spec).
+- **Proposed change.** The wand's premise `⌜PathsIgnOk … br ∧ PathsLeaseOk (stateAfter log) L br⌝` (a weaker
+  obligation on the caller); `txn.Txn`'s proof passes `⟨Hign, Hlok⟩`; `TxnSpecs.lean`/`clients-txn.md` §8 updated.
+- **Decision.** Pending: the S3a2 Freeze (etcd-grove-81).
