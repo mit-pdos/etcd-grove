@@ -1,21 +1,21 @@
 /-
-`Run(lg)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): three
-members started, member 1's gRPC API served and a client of it, a `Put` of `k`, a follower stopped
-(member 3, or member 2 if member 3 leads), `NPuts` more `Put`s, the follower started again on its
-data directory and its gRPC API served, a client of it, a `Get` of `k`, and a panic unless the
-`Get` returned the last `Put`'s value. Lean-first (no Rocq counterpart).
+`Run(lg)` (`examples/etcd/restart/restart3.go`; restart3 C2, 2026-11-15): the three members built
+(`build`) and started, each serving its peer handler (`newMember`), the `N1` in-process `Put`s through
+member 1 (`put`), a follower other than member 1 stopped (`stop`: member 3, or member 2 if member 3
+leads), the `N2` more `Put`s through member 1, the stopped member started again on its data directory
+(`restartMember`, its peer handler swapped to the new incarnation's), and the check at the restarted
+member (`check`). Lean-first (no Rocq counterpart).
 
-**The triple:** putget3's `Main.spec`'s (`putget3/Main.lean`) for `restart3`'s members at any
-logger `lg` that is not `nil`, with the rights to listen on all three client addresses (member 1's
-is served before the restart, the restarted member's after it), two thread tokens (one passed from
-each first start to the next and spent on serving member 1, as putget3's one; the other the
-restart's, spent on serving the restarted member) and `restart3`'s premises (with the restart's
-contracts, `premises`): `Run(lg)` returns, so it did not panic.
+**The triple:** with a zap logger, the members' start bundles (`etcdstart.memberStartRes`: each data
+directory fresh, the right to listen on its peer address with its HTTP protocol unregistered,
+`ETCD_VERIFY` off), the main thread's token and `Run`'s named premises (`premises`: `bootstrap`'s
+contract for each member's first start, and its restart contract for members 2 and 3), at the bounds
+the server's specs take: no panic.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.KV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Defs
-public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -35,44 +35,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Assumptions]
 
-/-- `Run`'s and `Main`'s pure premises (putget3's, but the thread and receipt bounds, which `Run.spec`
-and `Main.spec` take as instances). -/
-def runPure (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :
-    Prop :=
-  BootFacts id₁ id₂ id₃ ps ctxs boot ∧
-  authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
-
-/-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses and a
-second thread token): each member's start bundle (`etcdstart.memberStartRes`, at its peer and its
-client address; hub step 8, E6). -/
-def runRes (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) : IProp GF :=
-  iprop(etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗
-    etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, some clientAddr₂⟩ ∗
-    etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, some clientAddr₃⟩ ∗
-    threadTok ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot)
-
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
-    (lg : Loc) (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (lg : Loc) (N : Nat) (id₁ id₂ id₃ : w64)
+    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
-  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  BootFacts id₁ id₂ id₃ ps ctxs boot →
   srvLevels (GF := GF) →
-  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  runPure id₁ id₂ id₃ ps ctxs boot →
-  v3rpc.ServerMethodSets →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
-      runRes N id₁ id₂ id₃ ps ctxs boot }}
+      etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, none⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, none⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, none⟩ ∗
+      threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.Run)) (Val #lg))
-  {{ RET #(); True }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 
