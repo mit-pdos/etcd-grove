@@ -303,6 +303,17 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   proof convenience. It should be easy to audit, and as a general principle, operational semantics
   and specs should avoid unobservable state (e.g., the past operations are unobservable)";
   `notes/net-tcp.md`.)
+- **No redundancy in a formal state: two states no program can tell apart should be one state.**
+  The test is not "can a transition read it" but "is there another state with the same observable
+  future". A field the transitions carefully keep unreadable is still a defect: names chosen by the
+  semantics (ids, counters, encodings), records nothing can reach any more, fields no operation
+  consults. A permutation of such names giving an observably equivalent state is the sign. Name
+  things by what is observable (TCP: a connection by its addresses) and keep per-handle state where
+  the real system keeps it; if removing the redundancy is not easy, say what it would take. (The TCP
+  extension, 2026-11-15: connections and listeners keyed by ids the semantics picks; the user: "we
+  could permute the connection ids and have an observably equivalent state. This redundancy in the
+  formal state is undesirable, so if it's easy to get rid of, we should get rid of it. The v1
+  history was also state that was unobservable".)
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)
