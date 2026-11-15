@@ -69,11 +69,12 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   iintro ⟨#Hmi, %hau, #Hsrv, Hka⟩
   iunfold mergedImgM at Hmi
   icases Hmi with ⟨%hobs, %u, #Him⟩
-  obtain ⟨hci, hterm, ⟨f, -, hrest⟩, hre⟩ := hobs
+  obtain ⟨hci, hterm, hrest, hre⟩ := hobs
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨-, -, -, Hat, -, -⟩
   iunfold srvAtomicsM at Hat
   icases Hat with ⟨-, -, Hki⟩
+  ihave %Hrw := srvKVInvsM_rows true s E γr $$ Hki
   ihave #Hinvs := srvKVInvsM_true s E γr $$ Hki
   iunfold srvKVInvsOn at Hinvs
   icases Hinvs with ⟨#HkI, -, #HrI, -, -, -, %Hrows⟩
@@ -84,9 +85,9 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   icases Hka with ⟨Hal, %Hch'⟩
   iunfold kvAppliedLOn at Hal
   icases Hal with ⟨#HA, Hhi, Hc, %Hl⟩
-  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A $$ HkI HrI HA with %Hpl'
-  -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
-  have Hpl : plainLogOn .none A := by rw [← KVNames.lm_of_lg_false Hrows.2.2.1]; exact Hpl'
+  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A $$ HkI HrI HA with %Hpl
+  -- (auth-lease S3a, Draft rev 5 §5) the model's lease mode the environment's
+  have hlm : γr.kv.lm = E.lm := (Hrw rfl).1
   imodintro
   isplitl [Hhi Hc]
   · iunfold kvAppliedOn
@@ -115,18 +116,23 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   have hpre : γr.raft.pre = [] := by rw [hraft]
   have hz : uint.Z (W64 0) = 0 := rfl
   rw [hM] at hrest
-  have hT : LeaseTable.ids (if E.lg then kvLeases γr.kv (γr.raft.pre ++ A) else []) = [] := by
-    split
-    · unfold kvLeases; rw [hpre, List.nil_append, kvTableOf_plainOn _ _ A Hpl]; rfl
-    · rfl
+  -- (auth-lease S3a §5) the window's table is the mode-`on` model's (empty in a cluster granting none)
+  have hT : (if E.lg then appliedTableM (auth.AuthMode.on γa).isOn γr A else []) =
+      kvLeasesOn γr.kv srvAuthSt0 (γr.raft.pre ++ A) := by
+    cases hlg : E.lg
+    · have hl0 : γr.kv.lm = .none := hlm.trans (apply.AEnv.lm_of_lg_false hlg)
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [hpre, List.nil_append, kvLeasesOn_none _ _ A (hl0 ▸ Hpl)]
+    · simp only [↓reduceIte, auth.AuthMode.isOn, appliedTableM_true]
   rw [hT] at hrest
-  refine ⟨by simp only []; omega, ⟨hci, hterm, ?_, ?_⟩, ?_⟩
-  · intro n hn hna
-    have h := hrest n hn (by
+  obtain ⟨f, hf, hb⟩ := hrest
+  refine ⟨by simp only []; omega, ⟨hci, hterm, ⟨f, ?_, fun n hn hna => ?_⟩, ?_⟩, ?_⟩
+  · simpa [hpre] using hf
+  · have h := hb n hn (by
       by_cases hc : membership.clusterBkts n
       · exact Or.inl hc
       · exact Or.inr ⟨hc, hna⟩)
-    simpa [hpre, apply.restLeasesWith_nil, bkRestOf] using h
+    simpa [hpre] using h
   · rw [← hsa]; exact hau
   · exact hre
 

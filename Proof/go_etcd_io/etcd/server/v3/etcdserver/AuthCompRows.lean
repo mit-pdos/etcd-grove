@@ -1007,30 +1007,6 @@ theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     icases H with ⟨%h, -⟩
     ipureintro; exact ⟨h, fun h' => by cases h'⟩
 
-/-- (auth-lease S3a, TRANSITIONAL until the §5 step) **The rest buckets at the mode's table are the off
-table's** at a server of the view: off by definition, on in a cluster that grants none
-(`srvKVInvsOn`'s transitional `γr.kv.lg = false`, the lease mode the environment's). -/
-theorem isServerC_restM (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜∀ A, srvRestM K.isOn E γr A = srvRest E γr A⌝ := by
-  refine (isServerM_C (GF := GF) K s γ ci TM E ρ γr).2.trans ?_
-  cases K with
-  | off => iintro -; ipureintro; intro A; rfl
-  | on γa =>
-    iintro H
-    simp only [AuthC.isOn]
-    iunfold isServerM at H
-    icases H with ⟨-, -, -, #Hat, -⟩
-    iunfold srvAtomicsM at Hat
-    icases Hat with ⟨-, -, #HkM⟩
-    ihave #Hkvi := srvKVInvsM_true s E γr $$ HkM
-    iunfold srvKVInvsOn at Hkvi
-    icases Hkvi with ⟨-, -, -, -, -, -, -, %Hrows⟩
-    ipureintro
-    intro A
-    apply srvRestM_lg_false
-    rw [apply.AEnv.lg_eq, ← Hrows.2.2.1]; exact Hrows.2.1
-
 theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ γr.kv.lm = E.lm⌝ := by

@@ -619,7 +619,10 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     · word
   have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
     simp [mvcc.KBReal.P, hn]
-  ihave ⟨%f, %Hfb, HRs, -, -, -⟩ := srvRestRp_open B.E C.γr G rG $$ HRs
+  have hBon : B.E.authOn = false := by unfold apply.AEnv.authOn; rw [hBam]; rfl
+  ihave HRs : srvRestRpM B.E.authOn B.E C.γr G rG $$ [HRs]
+  · rw [hBon, srvRestRpM_false]; iexact HRs
+  ihave ⟨%f, %Hfb, HRs, -, -, -⟩ := srvRestRpM_open B.E.authOn B.E C.γr G rG $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, -⟩
@@ -627,7 +630,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hro with ⟨Hrc, Hrn', -, -⟩
   -- the image's buckets are the model's at `G` (inside the window: the replay changes only the
   -- members)
-  rw [restLeasesWith_bk_congr f (srvIds B.E (appliedTable C.γr G).ids) _
+  rw [restLeasesWith_bk_congr f (srvIds B.E (appliedTableM B.E.authOn C.γr G).ids) _
     (restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ G)) hbk]
   -- the store's part (`mvccImage_stop.law`, with the apply thread's whole share)
   ihave HmB : mvcc.api.mvccBackend C.E.γ 1 (mvcc.api.etcdStorage d)

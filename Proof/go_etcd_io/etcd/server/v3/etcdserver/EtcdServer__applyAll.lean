@@ -499,10 +499,9 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
             ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]
             · iunfold apply.applyTok; iexact Hmr
-            -- (auth-lease S3a, TRANSITIONAL until the §5 step) the window at the off table
-            ihave %HrestM := isServerC_restM C s γ ci TM E ρ γr $$ HsrvC
-            ihave HRS : srvRest E γr (A ++ unapplied ai ms) $$ [HRS]
-            · rw [← HrestM]; iexact HRS
+            -- (auth-lease S3a §5) the window at the mode's table
+            ihave HRS : srvRestM E.authOn E γr (A ++ unapplied ai ms) $$ [HRS]
+            · rw [hon]; iexact HRS
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
                 s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
                 (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
@@ -528,7 +527,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iunfold srvGoRes; iframe HgrW HgT
             imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
             ihave HRS : srvRestM C.isOn E γr (A ++ unapplied ai ms) $$ [HRS]
-            · rw [HrestM]; iexact HRS
+            · rw [← hon]; iexact HRS
             ihave HKV := HKVk $$ HKVc HAr
             iunfold apply.applyTok at HthT
             irename HthT => Hmr
