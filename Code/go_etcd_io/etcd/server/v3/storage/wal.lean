@@ -6064,14 +6064,25 @@ noncomputable def WAL.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WAL.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WAL.ty) go!"sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- ReleaseLockTo releases the locks, which has smaller index than the given index
@@ -6079,7 +6090,7 @@ noncomputable def WAL.Sync.impl [GooseExts] [GoGlobalContext] : val :=
     For example, if WAL is holding lock 1,2,3,4,5,6, ReleaseLockTo(4) will release
     lock 1,2 but keep 3. ReleaseLockTo(5) will release 1,2,3 but keep 4.
 
-    go: wal.go:1011:15 -/
+    go: wal.go:1013:15 -/
 noncomputable def WAL.ReleaseLockTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "index"
@@ -6221,7 +6232,7 @@ noncomputable def WAL.ReleaseLockTo.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Close closes the current WAL file and directory.
 
-    go: wal.go:1055:15 -/
+    go: wal.go:1057:15 -/
 noncomputable def WAL.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6306,7 +6317,7 @@ noncomputable def WAL.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1081:15 -/
+/-- go: wal.go:1083:15 -/
 noncomputable def WAL.saveEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -6355,7 +6366,7 @@ noncomputable def WAL.saveEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1092:15 -/
+/-- go: wal.go:1094:15 -/
 noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "s"
@@ -6400,7 +6411,7 @@ noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1102:15 -/
+/-- go: wal.go:1104:15 -/
 noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "st"
@@ -6553,7 +6564,7 @@ noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: wal.go:1146:15 -/
+/-- go: wal.go:1148:15 -/
 noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -6650,7 +6661,7 @@ noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1173:15 -/
+/-- go: wal.go:1175:15 -/
 noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "prevCrc"
@@ -6669,7 +6680,7 @@ noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1177:15 -/
+/-- go: wal.go:1179:15 -/
 noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6696,7 +6707,7 @@ noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "$res0"))))))
 
-/-- go: wal.go:1184:15 -/
+/-- go: wal.go:1186:15 -/
 noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6759,7 +6770,7 @@ noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: wal.go:1196:6 -/
+/-- go: wal.go:1198:6 -/
 noncomputable def closeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "rcs"

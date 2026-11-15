@@ -266,7 +266,7 @@ theorem walSnapAt_litCs (l pi pt pc pa : Loc) (sv : GoSlice)
   iexists walSnapCanon (absSnapMd idx term)
   rw [walSnapCanon_absSnapMd]
   isplitl
-  · iunfold snapRoC
+  · iunfold walSnapRoC
     iexists pi, pt, pc
     simp only [recCell, walCsOptRoC, snapHidden]
     isplitr

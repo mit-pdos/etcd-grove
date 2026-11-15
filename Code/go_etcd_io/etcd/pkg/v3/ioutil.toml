@@ -1,7 +1,11 @@
-# (project etcd's part `LinuxFs/`) the WAL's page writer, with its body (pagewriter.go); the rest
-# (the limited and exact readers, `WriteAndSyncFile`) names only.
-translate = ["!*", "defaultBufferBytes", "PageWriter", "NewPageWriter", "PageWriter.*"]
-imports = ["!*", "io", "go.etcd.io/etcd/client/pkg/v3/verify"]
+# Names only (D38, rafthttp's stage 1): what rafthttp's message path calls; (stage 4, 2026-10-23)
+# with the body of the pipeline handler's reader, `NewLimitedBufferReader` (a per-read cap);
+# (2026-10-24, stage 7c) the snapshot sender's body, `ReaderAndCloser`'s promoted `Read` and `Close`;
+# (the WAL over fsExt, until 2026-11-15 in the part `LinuxFs/`) the WAL's page writer, with its body
+# (pagewriter.go). The rest (the exact reader, `WriteAndSyncFile`) names only.
+translate = ["!*", "NewLimitedBufferReader", "limitedBufferReader.Read", "ReaderAndCloser.Read",
+  "ReaderAndCloser.Close", "defaultBufferBytes", "PageWriter", "NewPageWriter", "PageWriter.*"]
+imports = ["!*", "io", "net/http", "go.etcd.io/etcd/client/pkg/v3/verify"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

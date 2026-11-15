@@ -16,7 +16,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

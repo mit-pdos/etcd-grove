@@ -372,6 +372,68 @@ noncomputable def PageWriter.flush.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- NewLimitedBufferReader returns a reader that reads from the given reader
+    but limits the amount of data returned to at most n bytes.
+
+    go: reader.go:22:6 -/
+noncomputable def NewLimitedBufferReader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType limitedBufferReader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoAlloc limitedBufferReader.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (Val (GoInstruction (CompositeLiteral limitedBufferReader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"r")) (ElementExpression _root_.Perennial.io.Reader.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.Reader.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res0"))))))
+
+/-- go: reader.go:34:31 -/
+noncomputable def limitedBufferReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "p"
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res1" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (Let "np" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r")))))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
   pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
@@ -502,6 +564,14 @@ class ReaderAndCloser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_Closer : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Closer), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Closer") (PairV #x #y) (Val #(({ x with Closer' := y } : ReaderAndCloser)))
   method_set : go.MethodSetIs ReaderAndCloser.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReaderAndCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  Close_unfold : MethodUnfold ReaderAndCloser.ty go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Closer"))) (Var "$r"))))
+  Read_unfold : MethodUnfold ReaderAndCloser.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Reader"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Closer.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Closer"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Reader"))) (Var "$r")))))
 
 attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.underlying
@@ -511,6 +581,10 @@ attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.set_Closer
   ReaderAndCloser.TypeAssumptions.method_set
   ReaderAndCloser.TypeAssumptions.ptr_method_set
+  ReaderAndCloser.TypeAssumptions.Close_unfold
+  ReaderAndCloser.TypeAssumptions.Read_unfold
+  ReaderAndCloser.TypeAssumptions.ptr_Close_unfold
+  ReaderAndCloser.TypeAssumptions.ptr_Read_unfold
 
 structure exactReadCloser [GooseExts] where
   mk ::
@@ -590,6 +664,7 @@ class limitedBufferReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_n : ∀ (x : limitedBufferReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : limitedBufferReader)))
   method_set : go.MethodSetIs limitedBufferReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitedBufferReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType limitedBufferReader.ty) go!"Read" limitedBufferReader.Read.impl
 
 attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.underlying
@@ -599,6 +674,7 @@ attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.set_n
   limitedBufferReader.TypeAssumptions.method_set
   limitedBufferReader.TypeAssumptions.ptr_method_set
+  limitedBufferReader.TypeAssumptions.ptr_Read_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PageWriter_instance : PageWriter.TypeAssumptions
@@ -606,6 +682,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   exactReadCloser_instance : exactReadCloser.TypeAssumptions
   limitedBufferReader_instance : limitedBufferReader.TypeAssumptions
   NewPageWriter_unfold : FuncUnfold NewPageWriter [] NewPageWriter.impl
+  NewLimitedBufferReader_unfold : FuncUnfold NewLimitedBufferReader [] NewLimitedBufferReader.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
 
@@ -614,6 +691,7 @@ attribute [instance] Assumptions.PageWriter_instance
   Assumptions.exactReadCloser_instance
   Assumptions.limitedBufferReader_instance
   Assumptions.NewPageWriter_unfold
+  Assumptions.NewLimitedBufferReader_unfold
   Assumptions.import_io_Assumption
   Assumptions.import_verify_Assumption
 

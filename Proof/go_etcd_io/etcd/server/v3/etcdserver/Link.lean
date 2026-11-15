@@ -619,7 +619,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]

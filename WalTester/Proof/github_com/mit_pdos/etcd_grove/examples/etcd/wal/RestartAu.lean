@@ -245,7 +245,7 @@ theorem walSnapIdTerm_lit (l pi pt : Loc) (st : google_golang_org.protobuf.inter
   iunfold walSnapIdTerm
   iexists (⟨some x, some y, none, []⟩ : WalSnapC)
   isplitl
-  · iunfold snapRoC
+  · iunfold walSnapRoC
     iexists pi, pt, null
     simp only [recCell, walCsOptRoC, snapHidden]
     isplitr

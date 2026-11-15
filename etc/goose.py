@@ -288,12 +288,13 @@ PROJECTS = [
         # Then (the WAL over fsExt, 2026-11-14) branch `goose-lean-walfs` (on 2eaeb872b), head
         # 3df9b265f: the WAL's local fixes 0001-0005 (notes/wal-fsext-fork/README.md: `NewFileReader`'s
         # Stat, `Create`'s cleanup, the byte-mix tests, `N.tmp` opened with `O_TRUNC`, `Create`'s
-        # parent close).
+        # parent close). Then (2026-11-15) e115818f5 on it: `WAL.Sync` takes `w.mu` (0006,
+        # issues/etcd-wal-sync-releaselockto-race.md, the reproduced data race with `ReleaseLockTo`).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="3df9b265f7e7fd752cd85e7a8191a824f632313d",
+        rev="e115818f501dbc5987bf228740b76f26491eca1d",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

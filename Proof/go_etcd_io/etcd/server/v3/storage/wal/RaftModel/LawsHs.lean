@@ -122,7 +122,7 @@ theorem walRaftP_isEmpty : WalPbIn.IsEmptyLaw (walRaftP (GF := GF)) := by
   intro hp hs
   simp only [walRaftP]
   wp_start as #Hh
-  ihave #Hr : (go_etcd_io.raft.v3.isInitialized : IProp GF) $$ []
+  ihave Hr : (go_etcd_io.raft.v3.isInitialized : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   ihave ⟨%es, #Hg, #Ges⟩ := rootInit_hsGet $$ Hr
   ihave #G := walHsIn_hsGet hp hs $$ Hh

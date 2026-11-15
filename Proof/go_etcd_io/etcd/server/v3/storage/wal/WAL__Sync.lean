@@ -1,13 +1,17 @@
 /-
-`(*WAL).Sync` over `sync` (`return w.sync()`). Proved over the callee's spec: the caller's
-`walLenLb w dir n` is at most the handle's history (`walHandleIn_lenLb`, the invariant opened at the
-call's first step), so `sync`'s `walSyncedLb dir |H|` gives `walSyncedLb dir n`. Lean-first.
+`(*WAL).Sync` over `sync` (`w.mu.Lock(); defer w.mu.Unlock(); return w.sync()`; the lock since the
+fork's 0006, 2026-11-15, issues/etcd-wal-sync-releaselockto-race.md). Proved over the callee's spec:
+the handle's mutex (`walHandleIn_lockFacts`, invariant `True`) is taken around `sync`; the caller's
+`walLenLb w dir n` is at most the handle's history (`walHandleIn_lenLb`, the invariant opened right
+after the lock), so `sync`'s `walSyncedLb dir |H|` gives `walSyncedLb dir n`. Lean-first.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Sync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
+public import Perennial.Proof.sync.Results
 
 @[expose] public section
 
@@ -34,15 +38,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
   intro R jr r w dir n
   wp_start as ⟨#Harea, Hw, #Hn⟩
   icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
+  icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, -⟩
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
     with ⟨Hnc, Hh, %hn⟩
   imodintro
   iframe Hnc
-  wp_auto
+  (try wp_auto)
   wp_apply (wp_sync R jr r w dir h hD.1) $$ [Hh] as %err Hpost
   · iframe Harea Hh
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+  (try wp_auto)
   icases Hpost with (⟨%Herr, Hh, #Hs⟩ | %Herr)
   · iapply HΦ
     ileft
