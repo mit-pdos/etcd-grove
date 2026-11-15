@@ -314,9 +314,10 @@ refutes it. `NewServer` takes it (gated on the cluster granting leases, `KVNames
 S1) for its apply thread, the one place a grant is minted. -/
 ```
 
-New:
+New (the clause "and `NewServerR` ... their" added at the Prove step: review r5 S5, accepted by etcd-grove-81,
+2026-11-15):
 ```
-refutes it. `NewServer` takes it through its boot slot `lease.bootCfg`: in the monotone lease mode
+refutes it. `NewServer` and `NewServerR` take it through their boot slot `lease.bootCfg`: in the monotone lease mode
 (which `run` keeps, `lease.runCfg`), and (auth-lease S3c, 2026-11-15) with auth on in either granting
 mode, which the lessor's grant guard `srvGrantGuard` carries to every lease `expiredC` can deliver, so
 that `run`'s expiry arm revokes with auth off only (`revokeExpiredLeases`). (Until 2026-11-04 gated on

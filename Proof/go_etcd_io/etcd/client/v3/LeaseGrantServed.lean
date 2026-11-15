@@ -107,6 +107,46 @@ theorem grants_listed (γl : GName) (G : List w64) (m i : Nat) (ids : List w64) 
 
 end grants
 
+section specsOn
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **etcd's `LeaseGrant` with auth on, at the lessor `γl`** (auth-lease S3c, Draft §7.2; as
+`etcdPutSpecOn`, metadata-indexed): a request with `ID = 0` (as `etcdLeaseGrantSpecLive`'s filter),
+the caller's update `Q` handed over in the grant's permit at the token of the attempt's metadata
+(`leaseGrantPermitM`, `v3rpc.hdrBoundT … (auth.mdTokenOf md)`); a reply's lease ID is not `NoLease`,
+its header revision etcd has reached, its lease live in the lessor's history from some index with
+the request's TTL (`etcdLeaseGrantSpecLive`'s fact), and the caller's result at the token
+(`v3rpc.leaseGrantResT`: with auth on, the grant published at a log and `Q` of the model's state
+after it). An error carries nothing (`□ ∀ d, Ψe d`, `etcdPutSpecOn`'s HS-4). -/
+def etcdLeaseGrantSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName) :
+    GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  fun md (req : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜req.2 = W64 0⌝ ∗ ∃ Q : w64 → KVState → IProp GF,
+      leaseGrantPermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) req.1 Q ∗
+      ∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
+        (∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i m.id l ∗ lease.leaseReqIs γl m.id req.1) -∗
+        v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) req.1 m.id Q -∗ Φ m)
+
+/-- **etcd's `LeaseRevoke` with auth on** (auth-lease S3c, Draft §7.2; as `etcdLeaseGrantSpecOn`):
+the caller's update `Q` handed over in the revocation's permit at the token of the attempt's
+metadata; a reply's header revision etcd has reached, and the caller's result at the token
+(`v3rpc.leaseRevokeResT`: with auth on, the revocation granted and published at a log and `Q` of
+the model's state after it). An error carries nothing. -/
+def etcdLeaseRevokeSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse :=
+  fun md (id : w64) (Φ : LeaseRevokeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : KVState → IProp GF,
+      leaseRevokePermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) id Q ∗
+      ∀ m : LeaseRevokeRespM, etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
+        v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗ Φ m)
+
+end specsOn
+
 section served
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
@@ -189,6 +229,146 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     iframe HS HSe
     iintro %Hnil
     exact absurd Hnil Herr.2
+
+/-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec with auth on**
+(`grpcHandlerOwnOkMd`; auth-lease S3c, Draft §7.5; as `etcd_leaseGrantHandlerOkGR`, over the
+grant contract in the environment's auth mode at the live fact, `v3rpc.lessorGrantOkGM E.authOn …
+(v3rpc.grantLiveG E)`, for the requests with `ID = 0`; mode-generic, used with auth on): the caller's permit is passed to the handler at the run's token (the
+metadata's, `auth.ctxTokenOf_md`), and a reply carries the live fact and the caller's result. -/
+theorem etcdLeaseGrantHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (ρ : ReqNames) (hNx : E.Nx = srvApi.kvNx ρ.rd E.authOn) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗
+        v3rpc.lessorGrantOkGM E.authOn s E ρ S (v3rpc.grantLiveG E) (fun m => m.2 = W64 0) ⊢
+      grpcHandlerOwnOkMd (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant") S
+        (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) := by
+  iintro ⟨#Pv, #Hat, #HL⟩
+  unfold grpcHandlerOwnOkMd etcdLeaseGrantSpecOn
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, ⟨#HΨe, %Hm0, %Q, Hperm, Hk⟩⟩ HΨ
+  rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
+  rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
+  iapply wp_fupd
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E.authOn E ρ S (v3rpc.grantLiveG E)
+      (fun m => m.2 = W64 0) ci cd r m Q) $$ [HS Hid Hperm]
+  · iframe HS Hid; iframe #
+    isplitr [Hperm]
+    · ipureintro; exact Hm0
+    rw [auth.ctxTokenOf_md]
+    iexact Hperm
+  inext
+  iintro %resp %err ⟨HS, Hout, Hg, #HSe⟩
+  iunfold v3rpc.leaseGrantOut at Hout
+  icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
+  · icases Hg with (%Hne | ⟨%id', #Hid', Hgr, Hres⟩)
+    · exact absurd Hok.1 Hne
+    iunfold v3rpc.leaseHdrOut at Hh
+    icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩
+    iunfold v3rpc.hdrFilled at Hfd
+    icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hl⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hl
+    iunfold v3rpc.leaseGrantFields at Hf
+    icases Hf with ⟨%id, %ttl, %e, #Hid, %Hid0, #Httl, #He⟩
+    icombine Hid Hid' gives %Hii
+    subst Hii
+    imodintro
+    iapply HΨ
+    iframe HS HSe
+    isplitl
+    · iintro -
+      iexists (LeaseGrantRespM.mk (HdrM.mk cid mid rv t ld) id ttl e)
+      isplitl []
+      · simp only [pbLeaseGrantResponse]
+        unfold leaseGrantRespMsg hdrFull
+        isplitl []
+        · ipureintro; exact Hok.2
+        iexists h
+        iframe #
+        ipureintro; exact Hhn
+      · iunfold v3rpc.grantLiveG at Hgr
+        ihave #Hre := v3rpc.etcdReached_of_srvRevLb E ρ.rd E.authOn rv hNx $$ Hreach
+        iapply Hk $$ [] [] [Hgr] [Hres]
+        · ipureintro; exact Hid0
+        · iexact Hre
+        · iexact Hgr
+        · rw [← auth.ctxTokenOf_md]
+          iexact Hres
+    · iintro -
+      iapply HΨe
+  · imodintro
+    iapply HΨ
+    iframe HS HSe
+    isplitl
+    · iintro %Hnil
+      exact absurd Hnil Herr.2
+    · iintro -
+      iapply HΨe
+
+/-- **etcd's `LeaseRevoke` handler meets etcd's `LeaseRevoke` spec with auth on**
+(`grpcHandlerOkMd`; auth-lease S3c, Draft §7.5; as `etcdLeaseGrantHandlerOkMd`, over the revocation
+contract in the environment's auth mode, `v3rpc.lessorRevokeOkM E.authOn`; mode-generic). -/
+theorem etcdLeaseRevokeHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (ρ : ReqNames) (hNx : E.Nx = srvApi.kvNx ρ.rd E.authOn) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.lessorRevokeOkM E.authOn s E ρ S ⊢
+      grpcHandlerOkMd (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseRevoke") S
+        (etcdLeaseRevokeSpecOn s E ρ) := by
+  iintro ⟨#Pv, #Hat, #HL⟩
+  unfold grpcHandlerOkMd etcdLeaseRevokeSpecOn
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, ⟨#HΨe, %Q, Hperm, Hk⟩⟩ HΨ
+  rw [show (pbLeaseRevokeRequest (GF := GF)).recv r m = v3rpc.leaseRevokeReqIs r m from rfl]
+  iapply wp_fupd
+  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid E.authOn E ρ S ci cd r m Q) $$ [HS Hperm]
+  · iframe HS; iframe #
+    rw [auth.ctxTokenOf_md]
+    iexact Hperm
+  inext
+  iintro %resp %err ⟨HS, Hout, Hg, #HSe⟩
+  iunfold v3rpc.leaseRevokeOut at Hout
+  icases Hout with (⟨%Hok, Hh⟩ | %Herr)
+  · icases Hg with (%Hne | Hres)
+    · exact absurd Hok.1 Hne
+    iunfold v3rpc.leaseHdrOut at Hh
+    icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩
+    iunfold v3rpc.hdrFilled at Hfd
+    icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hl⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hl
+    imodintro
+    iapply HΨ
+    iframe HS HSe
+    isplitl
+    · iintro -
+      iexists (LeaseRevokeRespM.mk (HdrM.mk cid mid rv t ld))
+      isplitl []
+      · simp only [pbLeaseRevokeResponse]
+        unfold leaseRevokeRespMsg hdrFull
+        isplitl []
+        · ipureintro; exact Hok.2
+        iexists h
+        iframe #
+        ipureintro; exact Hhn
+      · ihave #Hre := v3rpc.etcdReached_of_srvRevLb E ρ.rd E.authOn rv hNx $$ Hreach
+        iapply Hk $$ [] [Hres]
+        · iexact Hre
+        · rw [← auth.ctxTokenOf_md]
+          iexact Hres
+    · iintro -
+      iapply HΨe
+  · imodintro
+    iapply HΨ
+    iframe HS HSe
+    isplitl
+    · iintro %Hnil
+      exact absurd Hnil Herr.2
+    · iintro -
+      iapply HΨe
 
 /-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at a success fact `G`**
 (`etcd_leaseGrantHandlerOkGR` at the filter that covers every request). -/
