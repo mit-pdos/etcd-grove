@@ -40,7 +40,7 @@ with `auth-lease-scope` merged).
      `kvInvOn`, the auth-on table for `srvRest`, `authKVKind` in the three places, admission of grants, revocations and
      leased puts at the revocable mode. Design: `notes/auth-lease-s3a-draft.md` (revision 4 = the S3a Freeze package,
      three review rounds `/shared/tmp/auth-lease/s3a-review-r{1,2,3}.md`; N1 (ii′): `leaseExactL` in the class
-     track's `kvPostF`); waiting for the Freeze decision. No Lean edited for S3 yet.
+     track's `kvPostF`); **frozen at revision 5** (etcd-grove-81, 2026-11-15, after round 4); Probe, then Prove.
    - **S3b**: the request side (grant, revoke, leased put with auth on).
    - **S3c**: the couplings and `NewServer`; the `lease.bootCfg` hub change and the `NewLessor` docstring (hard stops).
    - The auth-on snapshot path carries the leases (F2 (a)); the latest track gains a lease-exact outcome (F1 (ii)).
@@ -64,3 +64,10 @@ with `auth-lease-scope` merged).
 Targeted: `systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc.json build
 <modules>`; check: `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json etc/lean-check.py FILE`. Full builds
 under `flock /shared/tmp/etcd-grove-build.lock`. `TMPDIR=/shared/tmp`.
+
+## Left (follow-ups)
+
+- **The empty-prefix fact ties the auth-on server to fresh starts** (S3a rev 5, `srvKVInvsOn`'s `γr.raft.pre = []`):
+  an auth-on restart (future work) has to revisit it (the model's table folds over the applied entries, `srvRest`'s
+  over the raft prefix and them).
+- A revocable auth-on cluster's snapshots: carried by S3a §5 (the image's table, `keysLeasesLive`).
