@@ -1743,3 +1743,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Made (internal). The law's proof (`create_cleanupLaw`, `sorry`) is blocked on two invariant
   changes (a pin for the rename's area claim; the moved-aside step with the pending WAL known unnamed):
   `notes/wal-units/create.md`, session 3; left to the coordinator.
+
+## 2026-11-15: the WAL invariant for `Create`'s cleanup (unit `create`, session 4; the coordinator's decisions)
+
+- **Spec.** `LinuxFs/Proof/.../wal/Inv.lean` (`walNamesRes` takes `s`, the pending WAL unnamed; `WalsAt`
+  weakened; `CreatingOk`'s `CreatingNew` guarded by `dir ≠ cleanKey`), `Ghost.lean` (`walCreatingAuth`'s
+  cleanup pin, `walCreating` carrying `dir ≠ cleanKey`, `walCleanPin`), `CreateDefs.lean`/`CreateArea.lean`
+  (`walAreaRes`/`AreaOk` exempt `BrokenSlot` names); the internal step lemmas `walInvBody_named`/`walInv_named`,
+  `walInvBody_namedBy`/`walInv_namedBy` (take and return `walNamesFrag none`), `walInvBody_register`/
+  `walInv_register` (premise `∃ J, hn.cur !! nm = some (.dir J)`), `walInvBody_mint`/`walInv_mint`
+  (`dir ≠ cleanKey`), the area steps' `hT` (against `walUnlockedTokX`).
+- **Defect.** `create_cleanupLaw` could not be proved: the rename's update could not find the invariant's half
+  of its area claim (no pin), and a rename that took effect broke `WalsAt`, `walAreaRes`'s `SubCover` and, with
+  the WAL possibly named, `CrashTo`.
+- **Evidence.** `notes/wal-units/create.md`, sessions 3 and 4.
+- **Change (made).** As listed; `Create` registers before it names. No client-facing spec changed.
+- **Decision.** The coordinator's (decisions 1 and 2 of session 3); made, every importer rebuilt, both `sorry`s
+  proved.
