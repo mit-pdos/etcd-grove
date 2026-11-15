@@ -14,6 +14,11 @@ examples' adequacy files use the names), is `[idIssueExt]`: the request ids' iss
 (`GooseLang/Ext/IdIssue`), the model-only state the trusted `idutil` `Generator.Next` steps through.
 Its only operation is that model's; a program that never runs it sees GooseLang's semantics alone,
 as with `trivialExt`, which stays defined here, unused.
+
+Since 2026-11-15 (`wal-lean`, the user's decision (A)) the etcd and Kubernetes examples, whose
+initialization runs `fileutil`'s (an `F_OFD_GETLK` probe over the Linux file extension), close it as
+`FsExts.lean`'s `etcdFsExts` (`[idIssueExt, fsExt]`) instead; the raft, mvcc and lintest examples keep
+this one.
 -/
 module
 

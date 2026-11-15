@@ -25,6 +25,30 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-15: the etcd examples' closed theorems -- over no file extension, but `fileutil`'s initializer needs one
+
+- **Spec.** The closed theorems of the etcd and Kubernetes examples (`Proof/.../examples/{etcd,k8s}/*/Adequacy.lean`
+  and their restatements in `Results.lean`): `etcd_{compacted,putget,putget3,restart1,lease,leasegrant,leaseexpiry,
+  leasecatchup,compactwatch,txnlin,partition}_adequate` (`_safe`), `etcd_partition_watch_adequate`, `k8s_compactor{,
+  _partition}_adequate`, `k8s_etcd3{,_cluster,_partition}_adequate`, and, through the same cause, `etcd_{auth,auth3,
+  watch,cache}_adequate`.
+- **Defect.** Unprovable on `wal-lean`: they ran over `TrivialExt.lean`'s `[idIssueExt]`, but `fileutil` (now
+  translated with bodies) has a package `init` (lock_linux.go) that probes `F_OFD_GETLK` through
+  `syscall.FcntlFlock`, whose model is over the Linux file extension, and the server imports `fileutil`, so every
+  etcd program's `wp_initialize'` takes `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`.
+- **Evidence.** The full build of `wal-lean` (session 2 of `notes/wal-units/lean-integration.md`): 13 adequacy
+  modules fail with `failed to synthesize HasExt Fs.fsExt` (the other four import `putget`'s or `partition`'s and
+  were not attempted).
+- **Change (made).** Each theorem runs over `etcdFsExts` = `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`; the
+  file extension's own semantics `fs_semantics`, no premise on the environment; its ghost state `fs_interp`) and
+  takes one new premise, `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)` (the file extension's initial state: no
+  process state, nothing logged, every file named and on disk, the roots well formed), as the osfs programs'
+  results do. The conclusion is unchanged. The proofs use none of the extension's start resources (the probe takes
+  no extension step, `syscall.FcntlFlock.wp_getlk`).
+- **Decision.** The user's, option (A) (2026-11-15; the alternatives were a trust-boundary fact for `fileutil`'s
+  initializer, or a names-only second translation of `fileutil` for the server). Made on `wal-lean` (session 3 of
+  the log, which lists the restated theorems for the user's review).
+
 ## 2026-11-14: `leaseCheckFrom` (the lease checks' and lease methods' posts) -- admits the empty user unbound
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseCheck.lean`, `leaseCheckFrom` (the lease-keys
