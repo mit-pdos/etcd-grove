@@ -44,10 +44,10 @@ variable [GooseExts]
 
 /-- **An entry's premise in the auth mode `on`** (`entryOk`'s): no data, or data decoding to a
 request with an id that `rqOk` admits at the apply thread's log or an admitted admin request
-(`adminKindOk`), dispatchable on the apply thread's chain. -/
-def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+(`adminKindOk`), dispatchable on the apply thread's chain; (auth-lease S3a) `rqOk` at the lease mode. -/
+def entryOkOn (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    (apply.rqOk .none x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
+    (apply.rqOk lm x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
 off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the lease-grant stage's
@@ -55,14 +55,14 @@ off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the leas
 def entryOkM (on : Bool) (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
   | false => entryOk lm x m
-  | true => entryOkOn x m
+  | true => entryOkOn lm x m
 
 theorem entryOkM_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
     entryOkM false lm x m = entryOk lm x m :=
   rfl
 
 theorem entryOkM_true (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
-    entryOkM true lm x m = entryOkOn x m :=
+    entryOkM true lm x m = entryOkOn lm x m :=
   rfl
 
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
@@ -140,7 +140,7 @@ theorem kvShapedL_of_log (M : auth.AuthMode) (hs : List auth.AuthState) (log : m
 (replayed: `dispatch` runs with `v3` false, `dispatchLog`'s first case). -/
 theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hv : ¬ uint.Z c₀ < uint.Z m.index) : kvEntryOn c₀ ch s m = s := by
-  have hk : kvEntry c₀ ch [] s.2 m = s.2 := by
+  have hk : kvEntry c₀ ch s.2.2 s.2.1 m = s.2.1 := by
     unfold kvEntry
     split
     · split
@@ -150,24 +150,25 @@ theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : OnState)
           rw [if_pos (Or.inr (by simp [hv]))]
         · rfl
     · rfl
+  have hl : kvTable c₀ ch s.2.2 m = s.2.2 := by
+    unfold kvTable
+    split
+    · split
+      · rfl
+      · split
+        · unfold dispatchTable
+          rw [if_pos (Or.inr (by simp [hv]))]
+        · rfl
+    · rfl
   unfold kvEntryOn
   split
   · split
     · rw [if_neg (fun h => hv h.1)]
       split
       · rfl
-      · rw [hk]
+      · rw [hk, hl]
     · rfl
-  · rw [hk]
-
-/-- **An admitted admin request is no grant** (the lease-grant plan's 2.6: nothing to carry,
-`grantArM_not_grant`). -/
-theorem adminKindOk_nonGrant (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
-    apply.dispatchKind rq ≠ .leaseGrant := by
-  intro hk
-  unfold apply.adminKindOk at h
-  rw [hk] at h
-  exact h
+  · rw [hk, hl]
 
 /-- An admin request is not a revocation (the lease-expiry plan's X6). -/
 theorem adminKindOk_nonRevoke (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
@@ -220,13 +221,14 @@ theorem adminKindOk_nonwrite (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
 /-- **The mode-`on` model's log after an entry is within the revision budget** (`kvEntry_len`'s,
 with `entryOkOn`: an admin request writes nothing). -/
 theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x : apply.ApplyKV)
-    (m : EntryModel) (hok : entryOkOn x m) (hl : x.log.length + 3 ≤ 2 ^ 63) :
-    (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
-  have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
+    (lt : LeaseTable) {lm : lease.Mode}
+    (m : EntryModel) (hok : entryOkOn lm x m) (hl : x.log.length + 3 ≤ 2 ^ 63) :
+    (kvEntryOn c₀ ch (st, x.log, lt) m).2.1.length < 2 ^ 63 := by
+  have hk : (kvEntry c₀ ch lt x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
-    · exact kvEntry_len c₀ ch [] x m (lm := .none) (Or.inl hd) hl
-    · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
-    · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
+    · exact kvEntry_len c₀ ch lt x m (lm := lm) (Or.inl hd) hl
+    · exact kvEntry_len c₀ ch lt x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
+    · rw [kvEntry_nonwrite c₀ ch lt x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]
       omega
   unfold kvEntryOn
@@ -325,15 +327,17 @@ theorem kvEntryOn_keep (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hna : apply.needAdminPermission rq = false)
     (hw : ¬ writeKind (apply.dispatchKind rq)) : kvEntryOn c₀ ch s m = s := by
-  have hk : kvEntry c₀ ch [] s.2 m = s.2 :=
-    kvEntry_nonwrite c₀ ch [] s.2 m
-      (Or.inr (Or.inr (fun rq' h => by rw [hdec] at h; cases h; exact hw)))
+  have hw' : m.data = [] ∨ m.typ ≠ W32 0 ∨ ∀ rq', apply.irrDecode m.data = some rq' →
+      ¬ writeKind (apply.dispatchKind rq') :=
+    Or.inr (Or.inr (fun rq' h => by rw [hdec] at h; cases h; exact hw))
+  have hk : kvEntry c₀ ch s.2.2 s.2.1 m = s.2.1 := kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m hw'
+  have hl : kvTable c₀ ch s.2.2 m = s.2.2 := kvTable_nonwrite c₀ ch s.2.2 m hw'
   unfold kvEntryOn
   rw [if_pos ⟨ht, hd⟩, hdec]
   simp only [hna, Bool.false_eq_true, _root_.and_false, ↓reduceIte]
   split
   · rfl
-  · rw [hk]
+  · rw [hk, hl]
 
 /-- An admitted admin request is no KV request and takes no floor. -/
 theorem adminKindOk_kinds (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
@@ -386,15 +390,17 @@ theorem applyStep_plain_false (rq : apply.IRRModel) (x x' : apply.ApplyKV)
 theorem kvEntryOn_nodata (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hd : m.data = []) : kvEntryOn c₀ ch s m = s := by
   unfold kvEntryOn
-  rw [if_neg (fun h => h.2 hd), kvEntry_nonwrite c₀ ch [] s.2 m (Or.inl hd)]
+  rw [if_neg (fun h => h.2 hd), kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m (Or.inl hd),
+    kvTable_nonwrite c₀ ch s.2.2 m (Or.inl hd)]
 
 
 /-- **An entry's premise in the mode `on` at a small log, from its shape** (`entryOk_of_shape`'s, for
 the apply loop with auth on): a plain request's as there, an admitted admin request's from the
 chain's mode (`authEnable` dispatchable only with auth on). -/
-theorem entryOkOn_of_shape (x : apply.ApplyKV) (m : EntryModel) (hs : entryShapeOn m)
+theorem entryOkOn_of_shape {lm : lease.Mode} (x : apply.ApplyKV) (m : EntryModel)
+    (hs : entryShapeOn lm m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) (ha : x.chain.authOn = true) : entryOkOn x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) (ha : x.chain.authOn = true) : entryOkOn lm x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
   · refine Or.inr ⟨rq, hdec, hid, ?_⟩
@@ -408,7 +414,8 @@ theorem entryOkOn_of_shape (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape
 theorem kvEntryOn_cc (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (ht : m.typ ≠ W32 0) : kvEntryOn c₀ ch s m = s := by
   unfold kvEntryOn
-  rw [if_neg (fun h => ht h.1), kvEntry_nonwrite c₀ ch [] s.2 m (Or.inr (Or.inl ht))]
+  rw [if_neg (fun h => ht h.1), kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m (Or.inr (Or.inl ht)),
+    kvTable_nonwrite c₀ ch s.2.2 m (Or.inr (Or.inl ht))]
 
 end pure
 
@@ -467,14 +474,16 @@ ghost state at the next state `x'` and auth state `st'` (the model's after `A ++
 the start's), and the applied log the mode-`on` model of the committed raft log through `i`
 (`kvLogAtM true`). -/
 theorem kvApplied_nextOn (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
-    (x' : apply.ApplyKV) (st' : auth.AuthState) (i : w64)
+    (x' : apply.ApplyKV) (st' : auth.AuthState) (lt' : LeaseTable) (i : w64)
     (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length + 1) (hc : x'.chain = γr.kv.ch0) :
-    kvAppliedLOn (GF := GF) γr.raft γr.kv srvAuthSt0 (A ++ [m]) (st', x'.log) ⊢
+    kvAppliedLOn (GF := GF) γr.raft γr.kv srvAuthSt0 (A ++ [m]) (st', x'.log, lt') ⊢
       kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' st' (kvLeasesOn γr.kv srvAuthSt0 (A ++ [m])) ∗ kvLogAtM true γr i x'.log := by
   iintro H
   ihave ⟨#HB, %Hl⟩ : iprop(srvRLogLb γr.raft (A ++ [m]) ∗
-      ⌜(st', x'.log) = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) (A ++ [m])⌝) $$ [H]
+      ⌜(st', x'.log, lt') = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) (A ++ [m])⌝) $$ [H]
   · iunfold kvAppliedLOn at H; icases H with ⟨#HB, -, -, %Hl⟩; iframe HB; ipureintro; exact Hl
+  have hlt : kvLeasesOn γr.kv srvAuthSt0 (A ++ [m]) = lt' := by unfold kvLeasesOn; rw [← Hl]
+  rw [hlt]
   isplitl [H]
   · iunfold kvAppliedOn
     iframe H
@@ -514,7 +523,7 @@ theorem kv_certPre_keep (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVName
 /-- `kvAppliedLOn`'s certificate and model equation. -/
 theorem kvAppliedLOn_cert (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (s : OnState) :
-    kvAppliedLOn (GF := GF) γ γk st₀ A s ⊢ kvAppliedLOn γ γk st₀ A s ∗ kvCert γk s.2 ∗
+    kvAppliedLOn (GF := GF) γ γk st₀ A s ⊢ kvAppliedLOn γ γk st₀ A s ∗ kvCert γk s.2.1 ∗
       ⌜s = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) A⌝ := by
   iintro H
   iunfold kvAppliedLOn at H
