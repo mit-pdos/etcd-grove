@@ -60,25 +60,25 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIdleF [os.file.Fi
     iintro %out %p %xs %dq %hok %hne
     exact absurd (List.append_eq_nil_iff.1 hok).2 hne
   by_cases hen : e = null
-  · subst hen
-    wp_auto
-  · icases Henc with (%he0 | ⟨%c, Henc⟩)
-    · exact absurd he0 hen
-    wp_auto
-    simp only [decide_eq_false hen]
-    wp_auto
-    wp_apply (wp_flush e (wal.fileWi f) (fun _ => iprop(True)) (fun _ _ => iprop(False)) (fun ys => ys = [])
-        [] [] c (fun xs ys h hy => by subst hy; exact List.prefix_nil.1 h) rfl) $$ [Hws] [Henc]
-        as %err ⟨Henc, Hres⟩
-    · iexact Hws
-    · iframe; iframe #
-    icases Hres with (⟨%Herr, -⟩ | ⟨-, Hfalse⟩)
-    rotate_left
-    · iexact Hfalse
-    subst Herr
-    wp_auto
-    ihave Henc : (⌜e = null⌝ ∨ ∃ c : w32, ownEncoder e (wal.fileWi f) c []) $$ [Henc]
-    · iright; iexists c; iexact Henc
+  subst hen
+  wp_auto
+  rotate_left
+  icases Henc with (%he0 | ⟨%c, Henc⟩)
+  · exact absurd he0 hen
+  wp_auto
+  simp only [decide_eq_false hen]
+  wp_auto
+  wp_apply (wp_flush e (wal.fileWi f) (fun _ => iprop(True)) (fun _ _ => iprop(False)) (fun ys => ys = [])
+      [] [] c (fun xs ys h hy => by subst hy; exact List.prefix_nil.1 h) rfl) $$ [Hws] [Henc]
+      as %err ⟨Henc, Hres⟩
+  · iexact Hws
+  · iframe; iframe #
+  icases Hres with (⟨%Herr, -⟩ | ⟨-, Hfalse⟩)
+  all_goals first | (iexfalso; iexact Hfalse) | skip
+  subst Herr
+  wp_auto
+  ihave Henc : (⌜e = null⌝ ∨ ∃ c : w32, ownEncoder e (wal.fileWi f) c []) $$ [Henc]
+  · iright; iexists c; iexact Henc
   all_goals try wp_auto
   all_goals (
     ihave #Henv0 := Henv

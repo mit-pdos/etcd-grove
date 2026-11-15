@@ -340,6 +340,17 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
   iframe
   ipureintro; exact ⟨hwr, segs, gLL, hcl, hgLL⟩
 
+theorem osCallPerm_halves' :
+    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+  rw [Qp.half_add_half] at h
+  exact h.2
+
+theorem pipeTmp_mem_walTmpsF (n : Nat) : pipeTmp n ∈ walTmps := by
+  unfold pipeTmp walTmps; split <;> simp
+
 end intro
 
 section streams

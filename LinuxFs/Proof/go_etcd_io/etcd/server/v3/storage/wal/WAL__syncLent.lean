@@ -8,6 +8,7 @@ module
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLent
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllFail
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllReg
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import LinuxFs.Spec.go_uber_org.zap.Logger__Warn
 public import LinuxFs.Spec.go_uber_org.zap.Duration
@@ -72,40 +73,79 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLent [os.file.Fie
       as %en ⟨Hcf, Hr⟩
   · iframe; iexact Harea
   icases Hr with (⟨%he, Htw, -⟩ | ⟨%he, Htw⟩)
-  · -- success: the tail unregistered by its key at the next step
-    subst he
-    unfold walTailW
-    icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-    obtain ⟨hmsz, hTM, -, -, -⟩ := hp
-    iapply wp_notCrashed_acc _ _ rfl
-    iintro Hnc
-    imod walInv_untailKey (L := hG.goose_localGS) Mr R jr r dir γ H md cuts (o0 + ([] : List w8).length) i m bs hTM
-        (by simpa using ho0) $$ Hinv Hnc Htf Hk [Hv] Hm Hb with ⟨Hnc, Htf, Hm, Hb⟩
-    · unfold tailVar; iexact Hv
-    iframe Hnc
-    imodintro
-    ihave Hres : iprop((⌜errnoErr 0 = GoInterface.nil⌝ ∗ walTailsFrag (W := W) ∅ ∗ os.ownFile f fd name (DFrac.own 1) ∗
-          (∃ d : OsFd, osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ ⌜d.ino = i⌝) ∗
-          ∃ g : SegG, segRes g ∗ ⌜g.ino = i ∧ g.om.size = g.bs.length⌝) ∨
-       (⌜errnoErr 0 ≠ GoInterface.nil⌝ ∗ walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
-          walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k false
-            (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0)))
-        $$ [Htf Hf Hfd Hlkt Hm Hb]
-    · ileft
-      iframe Htf Hf
-      isplitr
-      · ipureintro; exact WalFs.errnoErr_zero
-      isplitl [Hfd Hlkt]
-      · iexists _; iframe Hfd; ihave Hlkt := fdLocksW_locks _ _ $$ Hlkt; iframe Hlkt
-      iexists ⟨name, i, m, bs⟩
-      unfold segRes
-      iframe Hm Hb
-      ipureintro; exact ⟨rfl, hmsz.trans hTM.1.1.symm⟩
-    iclear Hoff
+  -- success: the tail unregistered by its key at the next step
+  subst he
+  unfold walTailW
+  icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  obtain ⟨hmsz, hTM, -, -, -⟩ := hp
+  iapply wp_notCrashed_acc _ _ rfl
+  iintro Hnc
+  imod walInv_untailKey (L := hG.goose_localGS) Mr R jr r dir γ H md cuts (o0 + ([] : List w8).length) i m bs hTM
+      (by simpa using ho0) $$ Hinv Hnc Htf Hk [Hv] Hm Hb with ⟨Hnc, Htf, Hm, Hb⟩
+  · unfold tailVar; iexact Hv
+  iframe Hnc
+  imodintro
+  ihave Hres : iprop((⌜errnoErr 0 = GoInterface.nil⌝ ∗ walTailsFrag (W := W) ∅ ∗ os.ownFile f fd name (DFrac.own 1) ∗
+        (∃ d : OsFd, osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ ⌜d.ino = i⌝) ∗
+        ∃ g : SegG, segRes g ∗ ⌜g.ino = i ∧ g.om.size = g.bs.length⌝) ∨
+     (⌜errnoErr 0 ≠ GoInterface.nil⌝ ∗ walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
+        walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k false
+          (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0)))
+      $$ [Htf Hf Hfd Hlkt Hm Hb]
+  · ileft
+    iframe Htf Hf
+    isplitr
+    · ipureintro; exact WalFs.errnoErr_zero
+    isplitl [Hfd Hlkt]
+    · iexists _; iframe Hfd Hlkt; ipureintro; rfl
+    iexists ⟨name, i, m, bs⟩
+    unfold segRes
+    iframe Hm Hb
+    ipureintro; exact ⟨rfl, hTM.1.1.symm⟩
+  iclear Hoff
+  rotate_left
+  ihave Hres : iprop((⌜errnoErr en = GoInterface.nil⌝ ∗ walTailsFrag (W := W) ∅ ∗ os.ownFile f fd name (DFrac.own 1) ∗
+        (∃ d : OsFd, osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ ⌜d.ino = i⌝) ∗
+        ∃ g : SegG, segRes g ∗ ⌜g.ino = i ∧ g.om.size = g.bs.length⌝) ∨
+     (⌜errnoErr en ≠ GoInterface.nil⌝ ∗ walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
+        walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k false
+          (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0))) $$ [Htf Htw]
+  · iright
+    iframe Htf Htw
+    ipureintro; exact WalFs.errnoErr_ne en he
+  all_goals (
     wp_apply wp_Since as %dur -
     try wp_auto
-    sorry
-  · sorry
+    by_cases Hif : sint.Z (W64 1000000000) < sint.Z dur
+    all_goals first | simp only [decide_eq_true Hif] | simp only [decide_eq_false Hif]
+    all_goals (wp_pures; try wp_auto)
+    · wp_apply wp_Duration as %f1 -
+      wp_apply wp_Duration as %f2 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl' took
+      · iframe
+      try wp_auto
+      wp_apply Hhspec
+      try wp_auto
+      iapply HΦ
+      iframe He Hns Hlg Hlocks Hls Hcf
+      iexact Hres
+    · try wp_auto
+      wp_apply (wp_Seconds_ptr _ dur) $$ [took] as %fl' took
+      · iframe
+      try wp_auto
+      wp_apply Hhspec
+      try wp_auto
+      iapply HΦ
+      iframe He Hns Hlg Hlocks Hls Hcf
+      iexact Hres)
 
 end proof
 
