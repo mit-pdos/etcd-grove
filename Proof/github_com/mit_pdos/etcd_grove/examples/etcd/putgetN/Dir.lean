@@ -9,6 +9,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -189,6 +190,21 @@ theorem members_peer_plain (k : Nat) : ∀ m ∈ members k, types.plainPeerURL (
   intro m hm
   obtain ⟨i, -, rfl⟩ := members_mem k m hm
   exact loopback_plain _
+
+/-- A loopback address is a plain endpoint (`clientv3.New`'s premise). -/
+theorem loopback_plainEndpoint (p : w64) : plainEndpoint (go!"127.0.0.1:" ++ decStr p) := by
+  have hd := decStr_digits p
+  refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩
+  · have hm : (47 : w8) ∈ (go!"127.0.0.1:" ++ decStr p : List w8) := h.subset (by decide)
+    rcases List.mem_append.1 hm with h1 | h1
+    · revert h1; decide
+    · have := hd _ h1; simp at this
+  · obtain ⟨t, ht⟩ := h
+    have := congrArg List.head? ht
+    simp at this
+  · obtain ⟨t, ht⟩ := h
+    have := congrArg List.head? ht
+    simp at this
 
 end pure
 
