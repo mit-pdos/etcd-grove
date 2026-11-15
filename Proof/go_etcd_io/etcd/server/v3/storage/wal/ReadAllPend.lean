@@ -35,7 +35,7 @@ theorem walTailP_ofRead (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) 
     (lay : WalLay) (k : Nat) (lo lk : Option Bool) (hfd : 0 ≤ fd.toInt) (hm : TailMetaR g.om g.bs)
     (hz : ∀ j, j < 8 → (g.bs.getD (lay.wr + j) (0, [])).1 = 0) (hsz : g.om.size ≤ 0xffffffff000) :
     os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (walSegFd true lo lk g.ino) ∗
-      fdLocks fd (walSegFd true lo lk g.ino) ∗ os.ownOff f (W64 (lay.wr : Int)) ∗ walPendTok (W := W) dir γ k ∗
+      fdLocksW fd (walSegFd true lo lk g.ino) ∗ os.ownOff f (W64 (lay.wr : Int)) ∗ walPendTok (W := W) dir γ k ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay g.ino none)) ⊢
     walTailP (W := W) f fd name dir γ g.ino d.H d.metadata lay.cuts lay.wr g.om.size [] k true

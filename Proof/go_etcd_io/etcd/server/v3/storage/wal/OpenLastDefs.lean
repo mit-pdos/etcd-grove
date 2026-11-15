@@ -45,7 +45,7 @@ def walLastOpen (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (dir : G
     osPathS (L := hG.goose_localGS) R dir (DFrac.own qd) lay.j ∗
     fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir gL.name) (DFrac.own 1) ∗
     os.ownOff f (W64 0) ∗ osFd (L := hG.goose_localGS) fd (DFrac.own 1) ⟨gL.ino, true, true, lo, lk⟩ ∗
-    fdLocks (GF := GF) fd ⟨gL.ino, true, true, lo, lk⟩)
+    fdLocksW (GF := GF) fd ⟨gL.ino, true, true, lo, lk⟩)
 
 end defs
 

@@ -133,7 +133,8 @@ macro "repair_open" : tactic => `(tactic| (
     rw [← hF]
     simp only [walDecFile]
     iunfold walFileS at HS
-    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hlks, Hoff, Hm, Hb⟩))
+    icases HS with ⟨⟨%hqp, -⟩, Hf, Hfd, Hlks, Hoff, Hm, Hb⟩
+    ihave Hlks := fdLocksW_locks _ _ $$ Hlks))
 
 /-- See the file header. -/
 theorem wal.Repair.wp_proof (Mr : WalMarshal)

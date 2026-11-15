@@ -311,7 +311,7 @@ theorem restartRead.wp_proof
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     | nil =>
-    icases Hc with (⟨Htok, Hph2⟩ | %hc)
+    icases Hc with (⟨Htok, Hph2⟩ | ⟨%hc, -⟩)
     rotate_left
     · exact absurd rfl hc
     wp_auto

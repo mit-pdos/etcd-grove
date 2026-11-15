@@ -40,9 +40,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-/-- The lock `lf` holds a file with a name (persistent). -/
+/-- The lock `lf` holds a file with a name, a segment's (persistent). -/
 def walLockNamed (lf : Loc) : IProp GF :=
-  iprop(∃ (f : Loc) (nm : GoString), fileutil.lockedFile lf f ∗ os.fileNamed f nm)
+  iprop(∃ (f : Loc) (nm : GoString), fileutil.lockedFile lf f ∗ os.fileNamed f nm ∗ ⌜walSegName nm⌝)
 
 instance walLockNamed_persistent (lf : Loc) : Persistent (walLockNamed (GF := GF) lf) := by
   unfold walLockNamed; infer_instance
@@ -50,13 +50,15 @@ instance walLockNamed_persistent (lf : Loc) : Persistent (walLockNamed (GF := GF
 theorem walLockH_named (lf : Loc) :
     walLockH (GF := GF) lf ⊢ walLockH lf ∗ walLockNamed lf := by
   unfold walLockH walLockNamed
-  iintro ⟨%f, %fd, %nm, %d, #Hl, Hf, Hfd, Hlks⟩
+  iintro ⟨%f, %fd, %nm, %d, #Hl, Hf, Hfd, Hlks, %hnm⟩
   ihave #Hn := os.ownFile_named f fd nm (DFrac.own 1) $$ Hf
   isplitl [Hf Hfd Hlks]
   · iexists f, fd, nm, d
     iframe Hl Hf Hfd Hlks
+    ipureintro; exact hnm
   · iexists f, nm
     iframe Hl Hn
+    ipureintro; exact hnm
 
 theorem walLocksH_named (ls : List Loc) :
     ([∗list] lf ∈ ls, walLockH (GF := GF) lf) ⊢
@@ -87,8 +89,23 @@ theorem walTailW_named (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (
   ihave #Hn := os.ownFile_named f fd name (DFrac.own 1) $$ Hf
   iframe Hf Hrest Hn
 
+/-- The tail's name (`walDirH`'s) is a segment's. -/
+theorem walDirH_segName (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+    (nmd : Roots → Qp → IProp GF) (nf : Option GoString) :
+    walDirH (W := W) dir j dfd ino name k nmd nf ⊢
+      walDirH (W := W) dir j dfd ino name k nmd nf ∗ ⌜walSegName name⌝ := by
+  unfold walDirH
+  iintro ⟨%R, %q, %X, %hj, %nm0, %ph, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, %hp⟩
+  obtain ⟨_, _, ⟨pd, hname⟩, _, _, ⟨sq, ix, hnm0, _⟩, _⟩ := id hp
+  isplitl
+  · iexists R, q, X, hj, nm0, ph
+    iframe
+    ipureintro; exact hp
+  · ipureintro; exact ⟨pd, sq, ix, by rw [hname, hnm0]⟩
+
 /-- Every lock of the handle is named: the non-tail locks' and the tail's. -/
-theorem walLocks_named (lfs : List Loc) (lt f : Loc) (nm : GoString) (hl : lfs.getLast? = some lt) :
+theorem walLocks_named (lfs : List Loc) (lt f : Loc) (nm : GoString) (hl : lfs.getLast? = some lt)
+    (hnm : walSegName nm) :
     ⊢ ([∗list] lf ∈ lfs.dropLast, walLockH (GF := GF) lf) -∗ fileutil.lockedFile lt f -∗
       os.fileNamed f nm -∗
       ([∗list] lf ∈ lfs.dropLast, walLockH (GF := GF) lf) ∗
@@ -105,6 +122,7 @@ theorem walLocks_named (lfs : List Loc) (lt f : Loc) (nm : GoString) (hl : lfs.g
   · unfold walLockNamed
     iexists f, nm
     iframe Hlt Hn
+    ipureintro; exact hnm
   · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     iempintro
 

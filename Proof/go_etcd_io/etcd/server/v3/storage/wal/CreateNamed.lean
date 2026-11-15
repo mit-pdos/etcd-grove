@@ -286,7 +286,8 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   have hdn : (setNamed s dir).wal !! dir = some { d with named := true } := by
     rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd, GMap.lookup_insert_eq]
   imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
-    (absLe_setNamed s dir) (walKeysInArea_upd s dir _) (fun _ hn => hn.upd (fun _ => rfl)) $$ Hg with
+    (absLe_setNamed s dir) (walKeysInArea_upd s dir _) (fun _ hn => hn.upd (fun _ => rfl))
+    (unlMono_upd s dir _ (fun _ => Nat.le_refl _)) $$ Hg with
     ⟨Hg, #Hp⟩
   icases walNamesRes_none R jr r Ls s (setNamed s dir) $$ Hnms Hnf with ⟨Hnms, Hnf⟩
   imodintro

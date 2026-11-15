@@ -213,3 +213,93 @@ shape). `etc/gen-link.py --wal-tester`/`--durable` outputs unchanged.
 2. After `wal-c-locks` lands: `walLockH`'s name fact and `ReleaseLockTo.specNoErr`; re-run this session's
    copies (`wp_coreNE`, `wp_tailWriteAtWNE`, `Close.wp_proofNoErr`) over its changed `osFd`/`walTailW`.
 3. `Create.specNoErr` (the os-level no-error variants first), `Save.specNoErr` (with room for its batch).
+
+## Session 3 (2026-11-15, branch `wal-c-noioerr3`, base `origin/wal-int` 7fe119fb19, merged 9d6a18783e)
+
+### Item 1: `walLockH` records each lock's segment name; `ReleaseLockTo.specNoErr` (proved)
+
+- `Handle.lean`: **`walSegName nm`** := `∃ pd sq ix, nm = child pd (walFileName sq ix)`; `walLockH lf (np :=
+  walSegName)` gains the conjunct `⌜np nm⌝` (additive: an optional parameter, the handle's uses unchanged).
+  Producers: `readAll_splitLeft` (new premise `∀ g ∈ gs, ∃ sq ix, g.name = walFileName sq ix`, discharged in
+  `WAL__ReadAll.lean` from `WalAbsD.nameBound`), `cut` (the demoted tail, from its `walDirH`'s name facts).
+  `walOpening`'s closing loop (`walTie_locks`, `WAL__CloseOpening`) uses `walLockH lf (fun _ => True)`: its
+  files' names are not tracked, and only `Close` reads them. Consumers' `icases` patterns gained a `-`.
+  **Pushed early (commit 21a3d42167) for the purge work.**
+- `ReleaseLocks.lean`: `walLockNamed` carries `⌜walSegName nm⌝`; `walDirH_segName` (the tail's name);
+  `walLocks_named` takes the tail's fact.
+- **`WAL.ReleaseLockTo.specNoErr`** (in `Spec/.../WAL__ReleaseLockTo.lean`): `spec` with `⌜err = nil⌝`; no
+  I/O premise. `wp_proofNoErr` is the old proof with the `parseWALName` error arm refuted
+  (`baseModel_child_walFileName`, `scanWalName_walFileName`); `wp_proof` is its weakening (no copy).
+
+### Item 2: the room's provenance
+
+- `HandleRoom.lean`: **`walFreshRoom := maxBytes - 2 ^ 43`** (about 8 TB); `cutHdrs_room`,
+  `createStream_room` (a fresh tail's headers end below `2 ^ 43`, over `frame_walRecEnc_tight`);
+  `walOpenWFR_fresh` (a quiescent handle whose stream ends below `2 ^ 43` has room `walFreshRoom`),
+  `walOpenWFR_mono`.
+- **`cut.spec`'s success post strengthened** (internal spec, its one consumer `Save`): `h'.o0 + |h'.out| +
+  |h'.pend| ≤ 2 ^ 43`. `cut`'s proof gives it from `cutHdrs_room`.
+- `Save`: the room comes back after every `Save` that writes (`Save.specNoErr` below): either the tail stays
+  below `SegmentSizeBytes` (64 MB, plus at most the page writer's `2 ^ 18` pending bytes) or the call cut.
+- `Create`: `createStream_room` is ready, but the room belongs to `Create.specNoErr` (blocked, below): the
+  success arm of `Create.spec` includes the reopened WAL of `renameWALUnlock` (arm 2, after an `EPERM`
+  rename), whose handle's stream `Create`'s proof does not see; under `NoIoErr` that arm is excluded.
+
+### Item 4: `Save.specNoErr` (proved over `cut.specNoErr`, which is stated, not proved)
+
+- `saveEntry.specNoErr`, `saveState.specNoErr` (new spec/proof files `WAL__saveEntryNoErr`,
+  `WAL__saveStateNoErr`): the success arms, over `encode.specTailNoErr`, given room for the record's frame
+  (data + 64); posts bound the stream's growth by the same.
+- `cut.specNoErr` (`WAL__cutNoErr.lean`, **spec only**): `cut.spec`'s success arm given `o0 + |out| + |pend| ≤
+  maxBytes`. Not provable with the current premise: see "Blocked" below.
+- **`Save.specNoErr`** (`WAL__SaveNoErr.lean`): from `walOpenWFR k` with `saveRoom Mr hs es ≤ k`
+  (`saveRoom` = Σ (|encEntry e| + 64) + |encState hs| + 64), `nil` returned, the handle back with room `k` if
+  nothing was written (`hsEmptyP hs ∧ es = []`, the shortcut), else with `walFreshRoom`. The proof is
+  `WAL__Save.lean`'s (copied, 300 lines of body) with the loop invariant carrying the room left for the
+  remaining frames (`save_drop_sum`) and `save_postR`.
+- Linked (`etc/gen-link.py --walfs`): `wp_ReleaseLockToNoErr` (no hypothesis), `wp_saveEntryNoErr`,
+  `wp_saveStateNoErr` (the `P` laws), `wp_SaveNoErr` (the `P` laws and `h_wal_WAL_cutNoErr`, pending).
+
+### Blocked: `Create.specNoErr`, `cut.specNoErr` (a decision for the user)
+
+`NoIoErr`'s `IoCovers` does not name every call these make, and on what it names it forces errno 0 only
+when a success exists:
+
+1. **The lock calls** (`Flock`, `OfdLock`): `cut` locks its new segment (`fileutil.LockFile`), `Create`'s
+   `createNewWALFile` locks the first segment. The lock semantics (`wal-c-locks`) lets any request fail with
+   any errno at any time. A blocking lock request with no conflict always has a success, so an extension in
+   `NoIoErr`'s style ("a covered lock request succeeds whenever it can") would make both error-free.
+2. **The directory reads** (`DirReadNext`, `LstatDir`, `PathKind`, `FdKind`): `Create`'s
+   `fileutil.CreateDirAll` reads the new directory (`ReadDir`, to check it is empty) and `os.MkdirAll`
+   stats the path; `os.RemoveAll` of an existing `dir.tmp` (a crash's leftover) reads it.
+3. **Failing path calls fail with any errno**: an `Unlink`/`Rmdir`/`Open` that cannot succeed may return any
+   nonzero errno (`Impl.lean`), and `NoIoErr` keeps all of them (no success exists). Where Go tests for
+   `ENOENT`/`EEXIST` (`RemoveAll` of an absent name returns `nil` only on `ENOENT`, `MkdirAll` on `EEXIST`),
+   another errno is an error. `Create`'s calls on `dir.tmp` reach this only if it exists or vanishes
+   (the area's exclusivity), so it may be avoidable with a premise; to be checked call by call.
+
+Options: (a) extend `IoCovers` with the lock requests and the directory reads on covered inodes/paths (the
+same "succeeds whenever it can" form; trusted, `Premises.lean` and its Go example), and add "a covered path
+call that cannot succeed fails with the errno Linux gives" if item 3 is reached; (b) leave `Create`/`cut`
+with errors and have the server's theorem take their success as a premise. **Recommendation: (a)** for the
+lock calls (the WAL's locks are on its own files, which no other process locks: the premise is the same
+kind of environment assumption) and the directory reads; item 3 only if a call needs it.
+
+After the decision, `Create.specNoErr` still needs no-error variants of its ~25 callees and a pass over its
+1322-line proof. To avoid a copy, the plan: parametrize the proof by a flag `E : Prop` ("errors possible"),
+the callee hypotheses at `specE E` (error arms guarded by `⌜E⌝`, `specE True` ⇔ `spec`, `specE False` =
+`specNoErr`), so `Create.spec` and `Create.specNoErr` (with `walOpenWFR … walFreshRoom` from
+`createStream_room`) are the two instances.
+
+### Build
+
+`lake build` of the WAL's `Link` and the tester's `Link` after the merge of `origin/wal-int` 9d6a18783e: success; no new axiom,
+no `sorry`. `etc/gen-link.py --wal-tester --check` and `--durable --check` unchanged.
+
+### Next steps
+
+1. The user's decision on the premise's coverage (above).
+2. `cut.wp_proofNoErr` over the extended premise (no-error `Truncate`, `sync.specCut`, the pipeline's
+   `Open` (its goroutine's `OpenFile`/`Preallocate`), the encodes on `N.tmp`, `Rename`, the directory
+   `Fsync`, `Close`, `LockFile`, `Seek`).
+3. `Create.specNoErr` by the flag parametrization.

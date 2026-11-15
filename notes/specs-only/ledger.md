@@ -2225,7 +2225,12 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   arm gives nothing, and the spec is itself unproved (`walReadFailedF` is a stub).
 - **Proposed change.** `Close.specFailed`'s error arm gives those resources (a `walCloseLeft`); with it, the server's
   restart (C6) composes `Close.specFailed` and `Repair.specHeld` on this path.
-- **Decision.** Proposed.
+- **Decision.** Made (unit `locks`, session 3; the coordinator's approval, internal): the post is
+  `(walUnlockedTok ∗ osCallPerm ½) ∨ (⌜err ≠ nil⌝ ∗ walCloseLeft R dir)` (`CloseLeft.lean`: the shared invariant
+  and a path to `dir`, the claim's half at the layout's names with `Repair.specHeld`'s facts, the last segment's
+  lock and `lockKind`, the call permission's half); the composition `wal.Repair.wp_afterCloseFailed`
+  (`CloseFailedRepair.lean`, proved over `Repair.specHeld`). The tester's `restartRead` drops the new resources.
+  `Close.specFailed` itself is still unproved (`walReadFailedF` a stub).
 
 ## 2026-11-15: the no-error WAL specs (unit `noioerr`, second session) -- `EFBIG` at `maxBytes` needs room
 
@@ -2242,3 +2247,26 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   specs take `o0 + |out| + |pend| ≤ maxBytes`. Existing specs unchanged.
 - **Decision.** Open, for the user: how a client obtains the room (`notes/wal-units/noioerr.md`, second
   session: room from `Create`'s and `Save`'s posts, a public measure of the tail, or a history-size premise).
+
+## 2026-11-15: `WAL.Close.specFailed`'s proof (unit `closefailed`) -- `walCloseLeft`'s roots and `dir` bound, the lent tail's lock
+
+- **Spec.** `walCloseLeft R dir` (`CloseLeft.lean`, `Close.specFailed`'s error arm), `CloseLeftOk`; the internal
+  `walReadFailedF w dir` (sealed), `walTailP`/`walTailPE`/`walOpenedFile`/`walFileS`/`walLastOpen` (internal).
+- **Defect.** (1) The path to `dir` the failed handle can give is the area's (`walInv_dirPath`, roots `R` of
+  `walAreaOk`) only through an invariant look; the pipeline's path has its own roots and an arbitrary fraction,
+  so `walCloseLeft R dir` with the spec's `R` is provable but only by that look, and nothing needs `R` fixed
+  (`Repair.specHeld` is generic in it). (2) `CloseLeftOk`'s `dir.length < 2^59` is `Open`'s premise, which
+  `walOpeningF`/`walReadFailedF` do not record: `ReadAll` cannot supply it. (3) The lock `walCloseLeft` hands
+  over is the tail's, but no WAL file predicate recorded that a writable description holds a lock (`fdLocks`
+  keeps the tokens of the locks it has, possibly none).
+- **Evidence.** `WAL__CloseFailed.lean`'s error arm; `Spec/.../Repair.lean` (`specHeld` generic in `R`, takes
+  the bound as a premise); `openWALFiles`/`openLast` (every writable WAL file is a `TryLockFile`/`LockFile`
+  success, `lkFd_lk`).
+- **Change (made).** (1) `walCloseLeft dir`: the roots existential (`Close.specFailed`'s post `walCloseLeft
+  dir`). (2) The bound out of `CloseLeftOk`; `wal.Repair.wp_afterCloseFailed` takes it as a premise (its caller
+  called `Open` with it). (3) `fdLocksW fd d := fdLocks fd d ∗ ⌜d.writable → d.ofd = some true ∨ d.flk = some
+  true⌝` (`LockLemmas.lean`) in `walOpenedFile`, `walOpenedRc`, `walFileS`, `walLastOpen`, `walTailP`,
+  `walTailPE` (`lkFd_openW`, `fdLocksW_held`); internal predicates only. Also: `walReadFailedF Mr w dir` (the
+  marshaller, for the lent tail's write position), the ReadAll/Close.specFailed statements updated with it.
+- **Decision.** Made (internal; the client-facing change is the error arm's `walCloseLeft dir`, which only
+  `restartRead` (drops it) and `wp_afterCloseFailed` use).

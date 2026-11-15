@@ -131,6 +131,68 @@ theorem lkFd_open (k : LockKind) (i : Ino) (fl : w64) (fd : w64) (rd wr : Bool)
   iexists d.ofd, d.flk
   iframe
 
+/-- A writable WAL file's description holds an exclusive lock (unit `closefailed`): every file the WAL
+opens for writing is a `TryLockFile`/`LockFile` success (`lkFd`), which holds one. -/
+def FdHeldW (d : OsFd) : Prop := d.writable = true → d.ofd = some true ∨ d.flk = some true
+
+/-- **The locks of a WAL file whose description, if writable, is locked** (unit `closefailed`): `fdLocks`
+with `FdHeldW`. The read tie's files (`walOpenedFile`, `walFileS`) and the lent tail (`walTailP`,
+`walTailPE`) hold it, so that a failed `Close` of a failed read can hand the tail's lock to `Repair`
+(`walCloseLeft`). -/
+def fdLocksW (fd : w64) (d : OsFd) : IProp GF := iprop(fdLocks fd d ∗ ⌜FdHeldW d⌝)
+
+theorem fdLocksW_locks (fd : w64) (d : OsFd) : fdLocksW (GF := GF) fd d ⊢ fdLocks fd d := by
+  unfold fdLocksW; iintro ⟨H, -⟩; iexact H
+
+theorem fdLocksW_of (fd : w64) (d : OsFd) (h : FdHeldW d) : fdLocks (GF := GF) fd d ⊢ fdLocksW fd d := by
+  unfold fdLocksW; iintro H; iframe H; ipureintro; exact h
+
+theorem fdLocksW_ro (fd : w64) (d : OsFd) (h : d.writable = false) :
+    fdLocks (GF := GF) fd d ⊢ fdLocksW fd d :=
+  fdLocksW_of fd d (fun h' => by rw [h] at h'; cases h')
+
+/-- A writable description's lock, out of its `fdLocksW`. -/
+theorem fdLocksW_held (fd : w64) (d : OsFd) (h : d.writable = true) :
+    fdLocksW (GF := GF) fd d ⊢ ∃ k, osLock (GF := GF) k d.ino fd ∗ fileutil.lockKind (GF := GF) k := by
+  unfold fdLocksW fdLocks fdKindOk lockToks
+  iintro ⟨⟨⟨Ho, Hf⟩, #Hok⟩, %hh⟩
+  rcases hh h with h1 | h1
+  · have hk : d.lk .ofd = some true := h1
+    iexists .ofd
+    ihave #Hk := Hok $$ %LockKind.ofd %hk
+    iframe Hk
+    iapply (lockTok_some (GF := GF) .ofd fd d hk).1 $$ Ho
+  · have hk : d.lk .flock = some true := h1
+    iexists .flock
+    ihave #Hk := Hok $$ %LockKind.flock %hk
+    iframe Hk
+    iapply (lockTok_some (GF := GF) .flock fd d hk).1 $$ Hf
+
+/-- `lkFd_open` with the lock recorded (`fdLocksW`). -/
+theorem lkFd_openW (k : LockKind) (i : Ino) (fl : w64) (fd : w64) (rd wr : Bool)
+    (hrd : (openFd i (fl ||| W64 0x80000)).readable = rd)
+    (hwr : (openFd i (fl ||| W64 0x80000)).writable = wr) :
+    osFd (GF := GF) fd (DFrac.own 1) (fileutil.lkFd k i fl) ∗ osLock (GF := GF) k i fd ∗
+        fileutil.lockKind (GF := GF) k ⊢
+      ∃ lo lk : Option Bool, osFd (GF := GF) fd (DFrac.own 1) ⟨i, rd, wr, lo, lk⟩ ∗
+        fdLocksW (GF := GF) fd ⟨i, rd, wr, lo, lk⟩ := by
+  have e := lkFd_eta k i fl
+  rw [hrd, hwr] at e
+  have hl := lkFd_lk k i fl
+  iintro ⟨Hfd, Hl, #Hk⟩
+  ihave Hls := lkFd_locks k i fl fd $$ [$Hl $Hk]
+  generalize fileutil.lkFd k i fl = d at e hl ⊢
+  rw [e]
+  iexists d.ofd, d.flk
+  iframe Hfd
+  have hh : FdHeldW ⟨i, rd, wr, d.ofd, d.flk⟩ := by
+    intro _
+    cases k
+    · left; exact hl
+    · right; exact hl
+  iapply fdLocksW_of fd _ hh
+  iexact Hls
+
 /-- **The purger's law** (2026-11-15, the lock semantics): a WAL file's description `d` that holds an
 exclusive lock (of any kind; `fdKindOk` makes it `fileutil`'s) on the file `i`, and a lock of `fileutil`'s
 kind on `i` that someone else got (`TryLockFile`/`LockFile`'s `osLock k' i fd'` and `lockKind k'`), cannot

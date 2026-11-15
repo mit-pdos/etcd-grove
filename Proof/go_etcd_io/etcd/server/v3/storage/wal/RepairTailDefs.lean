@@ -53,15 +53,23 @@ def walTailPO (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GNam
     ⌜m.size = sz ∧ tm m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt ∧ LoWr m o0⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0, i, none) : TailG))
 
-/-- `walTailP` at an empty `out` is `walTailPO` at the write position. -/
+/-- `walTailP` at an empty `out` is `walTailPO` at the write position (forgetting that the tail is locked,
+`fdLocksW`). -/
 theorem walTailP_po (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (k : Nat) (p : Bool)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop) :
-    walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k p tm ⊣⊢
+    walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k p tm ⊢
       walTailPO (W := W) f fd name dir γ i H md cuts o0 sz k p (W64 o0) tm := by
   unfold walTailP walTailPO
+  rw [show ((o0 : Int) + (([] : List w8).length : Int)) = (o0 : Int) by simp]
   simp only [List.length_nil, Nat.add_zero]
-  exact .rfl
+  iintro ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hl⟩, Ho, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  iframe Hf Ho Hk
+  isplitl [Hfd Hl]
+  · iexists rd, lo, lk; iframe Hfd; iapply fdLocksW_locks $$ Hl
+  iexists m, bs
+  iframe
+  ipureintro; exact hp
 
 end handle
 

@@ -27,33 +27,35 @@ section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
 
 /-- **A tail registered**: the key `dir ↦ γ` inserted into both halves of the tails' authority. -/
-theorem walTails_register (T : GMap GoString GName) (dir : GoString) (γ : GName) (hT : T !! dir = none) :
-    ⊢@{IProp GF} walTailsAuth (W := W) T -∗ walTailsFrag (W := W) T ==∗
-      walTailsAuth (W := W) (<[dir := γ]> T) ∗ walTailsFrag (W := W) (<[dir := γ]> T) ∗
+theorem walTails_register (T : GMap GoString GName) (dir : GoString) (γ : GName) (hT : T !! dir = none)
+    (Lk : GMap GoString Nat := ∅) :
+    ⊢@{IProp GF} walTailsAuth (W := W) T -∗ walTailsFrag (W := W) T Lk ==∗
+      walTailsAuth (W := W) (<[dir := γ]> T) ∗ walTailsFrag (W := W) (<[dir := γ]> T) Lk ∗
         walTailKey (W := W) dir γ := by
   unfold walTailsAuth walTailsFrag walTailKey
   letI := walAllG (W := W)
-  iintro Ha Hf
+  iintro Ha ⟨Hf, Hlk⟩
   ihave Hw := (ghostMapAuth_halves (GF := GF) W.γt T).2 $$ [Ha Hf]
   · iframe Ha Hf
   imod ghost_map_insert (GF := GF) dir γ hT $$ Hw with ⟨Hw, Hk⟩
   icases (ghostMapAuth_halves (GF := GF) W.γt (<[dir := γ]> T)).1 $$ Hw with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Hf Hk
+  iframe Ha Hf Hk Hlk
 
 /-- **A tail removed** (`Close`): the key deleted from both halves. -/
-theorem walTails_unregister (T : GMap GoString GName) (dir : GoString) (γ : GName) :
-    ⊢@{IProp GF} walTailsAuth (W := W) T -∗ walTailsFrag (W := W) T -∗ walTailKey (W := W) dir γ ==∗
-      walTailsAuth (W := W) (GMap.delete dir T) ∗ walTailsFrag (W := W) (GMap.delete dir T) := by
+theorem walTails_unregister (T : GMap GoString GName) (dir : GoString) (γ : GName)
+    (Lk : GMap GoString Nat := ∅) :
+    ⊢@{IProp GF} walTailsAuth (W := W) T -∗ walTailsFrag (W := W) T Lk -∗ walTailKey (W := W) dir γ ==∗
+      walTailsAuth (W := W) (GMap.delete dir T) ∗ walTailsFrag (W := W) (GMap.delete dir T) Lk := by
   unfold walTailsAuth walTailsFrag walTailKey
   letI := walAllG (W := W)
-  iintro Ha Hf Hk
+  iintro Ha ⟨Hf, Hlk⟩ Hk
   ihave Hw := (ghostMapAuth_halves (GF := GF) W.γt T).2 $$ [Ha Hf]
   · iframe Ha Hf
   imod ghost_map_delete (GF := GF) $$ Hw Hk with Hw
   icases (ghostMapAuth_halves (GF := GF) W.γt (GMap.delete dir T)).1 $$ Hw with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Hf
+  iframe Ha Hf Hlk
 
 end ghost
 

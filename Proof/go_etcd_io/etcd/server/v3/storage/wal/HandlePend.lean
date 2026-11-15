@@ -10,7 +10,8 @@ tail lent (`walLentTokB dir γ k p`) for the key.
 * `TailMetaR`: what `ReadAll` knows of the tail it registers (`TailMeta` without `TailZ`/`PastZ`).
 * `TailMetaZ`: the tail after `ZeroToEnd` (all its bytes, no mappings, the page cache known zero to the
   end of the size's page).
-* `walTailP`: the handle's tail, lent.
+* `walTailP`: the handle's tail, lent; its description locked (`fdLocksW`: unit `closefailed`, so that a failed
+  `Close` hands the lock to `Repair`).
 -/
 module
 
@@ -105,7 +106,7 @@ def walTailP (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     (k : Nat) (p : Bool) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMetaR) : IProp GF :=
   letI := walAllG (W := W)
   iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
-    fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗
+    fdLocksW fd ⟨i, rd, true, lo, lk⟩) ∗
     os.ownOff f (W64 (o0 + out.length)) ∗ walLentTokB (W := W) dir γ k p ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
@@ -119,7 +120,7 @@ def walTailPE (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GNam
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 : Nat) (k : Nat) : IProp GF :=
   letI := walAllG (W := W)
   iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
-    fdLocks fd ⟨i, rd, true, lo, lk⟩) ∗
+    fdLocksW fd ⟨i, rd, true, lo, lk⟩) ∗
     (∃ o' : w64, os.ownOff f o') ∗ walLentTokB (W := W) dir γ k false ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
