@@ -76,7 +76,7 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   icases Hat with ⟨-, -, Hki⟩
   ihave #Hinvs := srvKVInvsM_true s E γr $$ Hki
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, -, #HrI, -⟩
+  icases Hinvs with ⟨#HkI, -, #HrI, -, -, -, %Hrows⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ HrI
   imod (kvInvOn_ch0 γr.raft γr.kv srvAuthSt0) $$ HkI with %hch
   imod (kvInvOn_authOn γr.raft γr.kv srvAuthSt0) $$ HkI with %hao
@@ -84,7 +84,9 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   icases Hka with ⟨Hal, %Hch'⟩
   iunfold kvAppliedLOn at Hal
   icases Hal with ⟨#HA, Hhi, Hc, %Hl⟩
-  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A $$ HkI HrI HA with %Hpl
+  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A $$ HkI HrI HA with %Hpl'
+  -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
+  have Hpl : plainLogOn .none A := by rw [← KVNames.lm_of_lg_false Hrows.2.2.1]; exact Hpl'
   imodintro
   isplitl [Hhi Hc]
   · iunfold kvAppliedOn

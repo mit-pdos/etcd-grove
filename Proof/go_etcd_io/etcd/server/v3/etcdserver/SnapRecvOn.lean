@@ -41,7 +41,7 @@ theorem adminKindOk_kind [GooseExts] (rq : apply.IRRModel) (h : apply.adminKindO
 
 /-- A mode-on plain entry compacts nothing. -/
 theorem kvCrevEntry_plainOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (crev : Int)
-    (m : EntryModel) (h : plainEntryOn m) : kvCrevEntry c₀ ch crev m = crev := by
+    (m : EntryModel) (h : plainEntryOn .none m) : kvCrevEntry c₀ ch crev m = crev := by
   unfold kvCrevEntry
   split
   · split
@@ -50,18 +50,18 @@ theorem kvCrevEntry_plainOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (crev : 
       split
       · rename_i rq hrq
         apply apply.dispatchCrev_nonCmp
-        rcases h ht hd rq hrq with hp | ⟨ha, -⟩
+        rcases plainEntryOn_none m h ht hd rq hrq with hp | ⟨ha, -⟩
         · exact plainReq_nonCmp rq hp.1
         · exact (adminKindOk_kind rq ha).2
       · rfl
   · rfl
 
 /-- **A mode-on log has no compaction**: its compaction revision is the start's `-1`. -/
-theorem crevOf_plainOn [GooseExts] (γk : KVNames) (A : List EntryModel) (h : plainLogOn A) :
+theorem crevOf_plainOn [GooseExts] (γk : KVNames) (A : List EntryModel) (h : plainLogOn .none A) :
     crevOf γk A = -1 := by
   unfold crevOf kvCrevOf
   generalize hc : (-1 : Int) = c₀
-  have key : ∀ (B : List EntryModel), plainLogOn B →
+  have key : ∀ (B : List EntryModel), plainLogOn .none B →
       ∀ c, B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
     intro B
     induction B with
@@ -76,7 +76,7 @@ theorem crevOf_plainOn [GooseExts] (γk : KVNames) (A : List EntryModel) (h : pl
 /-- A mode-on plain entry's write is restorable (`kvEntry_growsOk`'s, an admin entry writing
 nothing). -/
 theorem kvEntry_growsOkOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
-    (log : mvcc.Log) (m : EntryModel) (hm : plainEntryOn m) (hl : mvcc.LogNoLease log) :
+    (log : mvcc.Log) (m : EntryModel) (hm : plainEntryOn .none m) (hl : mvcc.LogNoLease log) :
     growsOk log (kvEntry c₀ ch lt log m) := by
   unfold kvEntry
   split
@@ -90,7 +90,7 @@ theorem kvEntry_growsOkOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (lt : Leas
         split
         · exact growsOk_refl _
         · split
-          · rcases hm ht hd rq hdec with hp | ⟨ha, -⟩
+          · rcases plainEntryOn_none m hm ht hd rq hdec with hp | ⟨ha, -⟩
             · exact chainLog_growsOk rq lt log hp.1.1 hl ch
             · rw [chainLog_nonwrite rq lt log (adminKindOk_kind rq ha).1 ch]
               exact growsOk_refl _
@@ -100,8 +100,8 @@ theorem kvEntry_growsOkOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (lt : Leas
 
 /-- A mode-on plain entry's step of the mode-on model is restorable. -/
 theorem kvEntryOn_growsOk [GooseExts] (c₀ : w64) (ch : apply.Chain)
-    (s : OnState) (m : EntryModel) (hm : plainEntryOn m)
-    (hl : mvcc.LogNoLease s.2) : growsOk s.2 (kvEntryOn c₀ ch s m).2 := by
+    (s : OnState) (m : EntryModel) (hm : plainEntryOn .none m)
+    (hl : mvcc.LogNoLease s.2.1) : growsOk s.2.1 (kvEntryOn c₀ ch s m).2.1 := by
   unfold kvEntryOn
   split
   · split
@@ -109,27 +109,27 @@ theorem kvEntryOn_growsOk [GooseExts] (c₀ : w64) (ch : apply.Chain)
       · exact growsOk_refl _
       · split
         · exact growsOk_refl _
-        · exact kvEntry_growsOkOn c₀ ch [] s.2 m hm hl
+        · exact kvEntry_growsOkOn c₀ ch s.2.2 s.2.1 m hm hl
     · exact growsOk_refl _
-  · exact kvEntry_growsOkOn c₀ ch [] s.2 m hm hl
+  · exact kvEntry_growsOkOn c₀ ch s.2.2 s.2.1 m hm hl
 
 /-- **The mode-on model of a mode-on log, from a lease-free start, is restorable**
 (`kvRaftSt_restorable`'s). -/
 theorem kvRaftOfOn_restorable [GooseExts] (c₀ : w64) (ch : apply.Chain) :
-    ∀ (s₀ : OnState) (A : List EntryModel), plainLogOn A →
-      mvcc.LogNoLease s₀.2 →
-      mvcc.LogNoLease (kvRaftOfOn c₀ ch s₀ A).2 ∧
-        ∀ cs ∈ (kvRaftOfOn c₀ ch s₀ A).2.drop s₀.2.length, cs ≠ []
+    ∀ (s₀ : OnState) (A : List EntryModel), plainLogOn .none A →
+      mvcc.LogNoLease s₀.2.1 →
+      mvcc.LogNoLease (kvRaftOfOn c₀ ch s₀ A).2.1 ∧
+        ∀ cs ∈ (kvRaftOfOn c₀ ch s₀ A).2.1.drop s₀.2.1.length, cs ≠ []
   | s₀, [], _, hl => ⟨hl, by simp [kvRaftOfOn_nil]⟩
   | s₀, m :: A, hA, hl => by
-    have hm : plainEntryOn m := hA m (by simp)
-    have hA' : plainLogOn A := fun m' h => hA m' (by simp [h])
+    have hm : plainEntryOn .none m := hA m (by simp)
+    have hA' : plainLogOn .none A := fun m' h => hA m' (by simp [h])
     have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
     rw [hk]
     rcases kvEntryOn_growsOk c₀ ch s₀ m hm hl with he | ⟨cs, ⟨hne, hcs⟩, he⟩
     · have h := kvRaftOfOn_restorable c₀ ch (kvEntryOn c₀ ch s₀ m) A hA' (by rw [he]; exact hl)
       rw [he] at h; exact h
-    · have hl' : mvcc.LogNoLease (s₀.2 ++ [cs]) := by
+    · have hl' : mvcc.LogNoLease (s₀.2.1 ++ [cs]) := by
         intro cs' h
         rcases List.mem_append.1 h with h | h
         · exact hl cs' h
@@ -153,16 +153,16 @@ theorem kvRaftOfOn_restorable [GooseExts] (c₀ : w64) (ch : apply.Chain) :
 
 /-- **`restoreLogOk` of the mode-on model's tail** (`restoreLogOk_kvRaftOf`'s). -/
 theorem restoreLogOk_kvRaftOfOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState)
-    (A : List EntryModel) (hA : plainLogOn A)
-    (hwf : mvcc.IdxWf (kvRaftOfOn c₀ ch (st, [[], []]) A).2 []) :
-    mvcc.restoreLogOk ((kvRaftOfOn c₀ ch (st, [[], []]) A).2.drop 2) := by
+    (A : List EntryModel) (hA : plainLogOn .none A)
+    (hwf : mvcc.IdxWf (kvRaftOfOn c₀ ch (st, [[], []], []) A).2.1 []) :
+    mvcc.restoreLogOk ((kvRaftOfOn c₀ ch (st, [[], []], []) A).2.1.drop 2) := by
   have hl0 : mvcc.LogNoLease ([[], []] : mvcc.Log) := by
-    intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+    intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
     rcases hcs with rfl | rfl <;> simp at hc
-  obtain ⟨hnl, hne⟩ := kvRaftOfOn_restorable c₀ ch (st, [[], []]) A hA hl0
-  obtain ⟨T, hT⟩ := kvRaftOfOn_extends c₀ ch (st, [[], []]) A
-  have hsplit : [[], []] ++ (kvRaftOfOn c₀ ch (st, [[], []]) A).2.drop 2 =
-      (kvRaftOfOn c₀ ch (st, [[], []]) A).2 := by
+  obtain ⟨hnl, hne⟩ := kvRaftOfOn_restorable c₀ ch (st, [[], []], []) A hA hl0
+  obtain ⟨T, hT⟩ := kvRaftOfOn_extends c₀ ch (st, [[], []], []) A
+  have hsplit : [[], []] ++ (kvRaftOfOn c₀ ch (st, [[], []], []) A).2.1.drop 2 =
+      (kvRaftOfOn c₀ ch (st, [[], []], []) A).2.1 := by
     rw [← hT]; simp
   exact ⟨fun cs hcs => hne cs (by simpa using hcs), by rw [hsplit]; exact hwf⟩
 
@@ -308,8 +308,8 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
 
 /-- **A mode-on entry changes no lease table** (`kvTable_plainM`'s twin: an auth-on log's entries are
 plain KV requests or auth admin ones, none a lease's). -/
-theorem kvTable_plainOn (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
-    (hp : plainEntryOn m) : kvTable c₀ ch lt m = lt := by
+theorem kvTable_plainOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
+    (hp : plainEntryOn .none m) : kvTable c₀ ch lt m = lt := by
   unfold kvTable
   split
   · rename_i ht
@@ -321,7 +321,7 @@ theorem kvTable_plainOn (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : E
         unfold dispatchTable
         split
         · rfl
-        · rcases hp ht hd rq hdec with h | ⟨hk, -⟩
+        · rcases plainEntryOn_none m hp ht hd rq hdec with h | ⟨hk, -⟩
           · exact chainTable_plain rq lt h.1.1 ch
           · refine chainTable_nonwrite rq lt (fun hw => ?_) ch
             unfold apply.adminKindOk at hk
@@ -330,8 +330,8 @@ theorem kvTable_plainOn (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : E
   · rfl
 
 /-- **A mode-on log grants no lease** (`kvTableOf_plainM`'s twin). -/
-theorem kvTableOf_plainOn (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)
-    (hp : plainLogOn A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
+theorem kvTableOf_plainOn [GooseExts] (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)
+    (hp : plainLogOn .none A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
   induction A with
   | nil => intro lt; rfl
   | cons m A ih =>
@@ -350,7 +350,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A committed prefix is a mode-on log** (`kv_log_plain`'s, of the mode-on KV invariant). -/
 theorem kv_log_plainOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (B : List EntryModel) :
-    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗ ⌜plainLogOn B⌝ := by
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗ ⌜plainLogOn γk.lm B⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
@@ -362,7 +362,7 @@ theorem kv_log_plainOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   · inext; iexists L; iframe HL Hσ Hh Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
-  refine srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ ?_ HBi Hp.2.2 Hok.1
+  refine srv_entry_transfer γ.ai0 B L (plainEntryOn γk.lm) ?_ ?_ ?_ HBi Hp.2.2 Hok.1
   · intro m m' he h ht hd rq hdec
     have h1 := congrArg LogEntry.type he
     have h2 := congrArg LogEntry.data he
@@ -373,7 +373,7 @@ theorem kv_log_plainOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
 
 /-- (Sweep repairs 1, S4) **An entry of a good shape in the mode `on` has cluster requests `Recover`
 accepts** (`rqShape .none`'s, or an admitted admin request, whose kinds are neither). -/
-theorem clusterVerEntryOk_of_entryShapeOn (m : EntryModel) (h : entryShapeOn m) :
+theorem clusterVerEntryOk_of_entryShapeOn {lm : lease.Mode} (m : EntryModel) (h : entryShapeOn lm m) :
     clusterVerEntryOk m := by
   intro ht hd rq hdec
   rcases h.1 ht with h0 | ⟨rq', hd', -, hs⟩
@@ -381,7 +381,7 @@ theorem clusterVerEntryOk_of_entryShapeOn (m : EntryModel) (h : entryShapeOn m) 
   rw [hdec] at hd'
   cases hd'
   rcases hs with hs | ha
-  · exact clusterVer_of_rqShape .none rq hs
+  · exact clusterVer_of_rqShape _ rq hs
   · constructor
     · intro v hv
       have hk : apply.dispatchKind rq = .clusterVersionSet := by simp [apply.dispatchKind, hv]
@@ -402,7 +402,7 @@ theorem kv_log_verOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
-  ihave %Hsh : iprop(⌜logShapeOn L⌝) $$ []
+  ihave %Hsh : iprop(⌜logShapeOn γk.lm L⌝) $$ []
   · ihave #Hw' := Hw
     iunfold kvWorkOn at Hw'; icases Hw' with ⟨%h, -⟩; ipureintro; exact h.1
   imod Hclose $$ [HL Hσ Hh HG] with -
@@ -491,12 +491,12 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   rw [srvRest_false E γr A hlg]
   iintro #Hinvs #Himg Hka Hrest #Hrc
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows⟩
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩
   obtain ⟨h0', h1', h2'⟩ := hk'
-  have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0) B =
+  have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0, []) B =
       kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) B := by
     intro B; rw [h0', h1', h2', hc0, hch, hlog0]
   have hk : ∀ B, kvModelOn γk' srvAuthSt0 B = kvModelOn γr.kv srvAuthSt0 B := by
@@ -527,7 +527,9 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
   -- (sweep repairs 1, S4) the committed log's cluster requests
   imod kv_log_verOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hver
-  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
+  imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl'
+  -- (auth-lease S3a, TRANSITIONAL until the §5 step) the lease mode `none`
+  have Hpl : plainLogOn .none A' := by rw [← KVNames.lm_of_lg_false Hrows.2.2.1]; exact Hpl'
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
   iunfold srvRestOwnH at Hrest
@@ -556,10 +558,10 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   have hcrev : crevOf γr.kv A' = -1 := crevOf_plainOn γr.kv A' Hpl
   have hnl : mvcc.LogNoLease (kvModelOn γr.kv srvAuthSt0 A') := by
     have hl0 : mvcc.LogNoLease ([[], []] : mvcc.Log) := by
-      intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+      intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
       rcases hcs with rfl | rfl <;> simp at hc
     unfold kvModelOn; rw [hlog0]
-    exact (kvRaftOfOn_restorable _ _ (srvAuthSt0, [[], []]) A' Hpl hl0).1
+    exact (kvRaftOfOn_restorable _ _ (srvAuthSt0, [[], []], []) A' Hpl hl0).1
   imodintro
   isplitl [Hhi]
   · iunfold kvAppliedOn
@@ -606,12 +608,13 @@ theorem kv_cert_jumpOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
     (hE : ↑kvcN ⊆ E) (A A' : List EntryModel) (s : OnState) (hA : A <+: A')
     (hlen : (kvModelOn γk st₀ A').length < 2 ^ 63) :
     ⊢ kvCertInvOn (GF := GF) γ γk st₀ -∗ kvAppliedLOn γ γk st₀ A s -∗ srvRLogLb γ A' ={E}=∗
-      kvAppliedLOn γ γk st₀ A' (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') := by
+      kvAppliedLOn γ γk st₀ A' (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A', kvLeasesOn γk st₀ A') := by
   iintro #Hinv Ha #Hlb
   iunfold kvAppliedLOn at Ha
   icases Ha with ⟨#HA, Hhi, #Hc, %Hl⟩
-  have hs2 : s.2 = kvModelOn γk st₀ A := by unfold kvModelOn; rw [Hl]
-  have hq : (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A') = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) A' :=
+  have hs2 : s.2.1 = kvModelOn γk st₀ A := by unfold kvModelOn; rw [Hl]
+  have hq : (srvAuthAtLog γk st₀ A', kvModelOn γk st₀ A', kvLeasesOn γk st₀ A') =
+      kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) A' :=
     rfl
   rw [hs2]
   have hpre : kvModelOn γk st₀ A <+: kvModelOn γk st₀ A' := kvModelOn_prefix γk st₀ hA
@@ -687,13 +690,13 @@ theorem snapRecv_kv_jumpOn (E : apply.AEnv GF) (γr : ReadNames) (A A' : List En
       srvRLogLb γr.raft A' ={⊤}=∗
       ⌜x.chain = γr.kv.ch0⌝ ∗
       kvAppliedLOn γr.raft γr.kv srvAuthSt0 A'
-        (srvAuthAtLog γr.kv srvAuthSt0 A', kvModelOn γr.kv srvAuthSt0 A') := by
+        (srvAuthAtLog γr.kv srvAuthSt0 A', kvModelOn γr.kv srvAuthSt0 A', kvLeasesOn γr.kv srvAuthSt0 A') := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
   icases Hinvs with ⟨-, #HcI, -⟩
   iunfold kvAppliedOn at Ha
   icases Ha with ⟨Ha, %Hch⟩
-  imod kv_cert_jumpOn γr.raft γr.kv srvAuthSt0 ⊤ (fun _ _ => CoPset.mem_full) A A' (sa, x.log) hA hlen
+  imod kv_cert_jumpOn γr.raft γr.kv srvAuthSt0 ⊤ (fun _ _ => CoPset.mem_full) A A' (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) hA hlen
     $$ HcI Ha Hlb with Ha
   imodintro
   isplitr
