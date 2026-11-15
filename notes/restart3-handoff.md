@@ -190,3 +190,22 @@ Pitfall (2026-11-15): a lemma instantiated at a NUMERAL slot count whose stateme
 `[∗list] j ∈ List.range n` made the IPM materialize the list (15 GB RSS in `imod`, killed). Keep `List.range`
 over a variable (`γS.n`); only `List.replicate httpProcSlots` reaches concrete proofs (as in etcdstart).
 Run lean-check under `systemd-run --scope -q -p MemoryMax=…` to be safe.
+
+### C2/C3 done (2026-11-15, third agent): at the C4 hard stop
+Commits `25dc487833`..`4939e4892a` (+ this note). Targeted `lake build` of every module of the example
+(`Main Run newMember raftSwap build put stop check Init`, 64G cap) passes (`/shared/tmp/restart3-c/build-c2.log`);
+no `sorry`, no axiom, no trusted text added. Proved: `raftSwap.ServeHTTP`/`set` (C3, over `Swap.lean`),
+`newMember` (Listen, register, the swap's ghost state from the `httpProcSlots` serving copies, `init_Mutex`,
+`go http.Serve(pl, sw)` with `swap_handlerOk`, Start), `restartMember` (`build.specRestart`, `set`, Start),
+`build` (both), `put`/`stop`/`check` (restart1's, 25 puts, NBoot 3), `Run` (alloc3, 3 builds, 3 newMembers,
+N1 puts, the `if` via `wp_bind (If _ _ _)` + `wp_wand` with post `stopCand`, stop, N2 puts, restartMember,
+check), `Main`.
+Checks (i)/(ii) of Scope §2.2: discharged by the proof itself: a stopped incarnation's in-flight handler run
+keeps its own copy of `srvServeRes` (`sw_exit` drops it after the run; `HardStop.spec` takes nothing of it),
+and the handler's WP is `RaftHandler`'s proved contract, so a message delivered to the dead incarnation needs
+no world assumption.
+Next (C4, after etcd-grove-81's answer on the statement): `PkgTable.lean`/`Init` wiring as restart1's
+(`etc/gen-init.py` PkgTable entry for `restart`), `MainLinked.lean`, `Adequacy.lean` (`restart3Program`,
+`restart3GF`, `restart3Names`, `restart3Addrs` = the three peer addresses), `Results.lean` with
+`etcd_restart3_safe`, a tcb collection `etc/tcb-collections/restart3.txt`, `etc/link-*` lists if needed,
+then a full build (flock, 64G), tcb `--check`, interfaces.
