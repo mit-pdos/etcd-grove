@@ -472,3 +472,73 @@ T5-a's `watchCtx`. Same meaning. **`klog.Warningf.spec`** now takes `klog.Errorf
   a design sketch (`HParentCC` gives `□ (Pp -∗ s.PDone)` of the `*cancelCtx` it finds; a new
   `wp_WithCancel_ctx`). Steps 4-5 take `isContext wc.ctx { cd with PDone := cd.PDone ∨ kCancelPD γ cd }`
   as a premise; step 6 waits on (a).
+
+## 11. The error leaves (7f-5a-P step 3, decided by etcd-grove-81 2026-11-15)
+
+§5 expected the watcher's error leaves to need no new text over `clientErrTys`; that was wrong
+(questions.md, thirteenth agent). 81 decided the route:
+
+- **An internal predicate `kErrOk err`** (`WatchDefs.lean`): the error's calls on the error paths
+  behave, stated over its own dynamic type and methods: `==` with any error returns (a comparable
+  dynamic type); `Error()` returns and no `Format` method; as an `etcdError`, `Code()` returns; as a
+  `grpcError`, `GRPCStatus()` returns some `s` and `s.Code()` returns; `errors.As(err,
+  &(*corruptObjectDeletedError))` returns `false`; as an `APIStatus`, `Status()` returns a `Failure`
+  status. `isCancelError`, `interpretWatchError`, `transformErrorToEvent`, `logWatchChannelErr` (step 3)
+  and `sendError` (step 4) are proved over it, with no new text. (`(*StatusError).Status`, a one-line
+  getter, is now translated with its body, `Code/k8s_io/apimachinery/pkg/api/errors.toml`: less
+  trusted text, no spec added.)
+- **The producers prove `kErrOk`** of each error they hand to `sendError` (step 5): `startWatching`'s
+  (the client watch's close error `wres.Err()`, `GetCurrentResourceVersion`'s via
+  `getStartWatchResourceVersion`, `parseEvent`'s `fmt.Errorf`, `sync`'s), `syncPaginated`'s
+  (`interpretListError(err, true, …)` of the client's `Get` error, its own `fmt.Errorf`), and
+  `transform`'s (none reachable under `kvWfHist`, `prepareObjs`' spec).
+- **The candidate texts E1-E6**, drafted here for review when step 5 needs them. None is in Lean;
+  none is an axiom. Each says what `kErrOk` needs of it.
+
+**E1. `(*grpc/status.Status).Code()` returns** (trusted text; grpc's `internal/status` is names
+only). Candidate: `∀ s : Loc, {{ True }} methods (*Status) "Code" #s #() {{ (c : codes.Code), RET #c;
+True }}`. Go (`internal/status/status.go`): `if s == nil || s.s == nil { return codes.OK }; return
+codes.Code(s.s.Code)`, a read of an immutable proto field (grpc never writes a `*Status` after
+`New`; `Proto()` clones). Stronger form, if a consumer wants the code: `RET #(statusCode s)` over the
+cache's `grpcErrMethodsOk` status. Go check to write: `Code()` of `nil`, of `status.New(c, m)` for
+every code, of `FromError`'s results. Needed by `kErrOk`'s `grpcError` conjunct for a `*status.Error`.
+
+**E2. The client watch's close error has a known dynamic type** (a proved spec strengthened, no
+trusted text): `WatchResponse.Err()`'s post gives only nil-iff and `errStrOk`, and the watch state
+keeps only `statusErrOk closeErr`. Candidate: `watchStateDefs`' close error carries `clientErr
+closeErr` (exported client vocabulary: ledger entry first, interface regenerated), and `Err()`'s
+post returns it, or one of `ErrCompacted`/`ErrFutureRev` (`EtcdError` values, `rpctypesInit`).
+`kErrOk` of a `clientErr` error then follows per type: `*status.Error` (E1; `GRPCStatus` from
+`grpcErrMethodsOk`; comparable pointer; `errors.As` false by a leaf-error `As` spec for this type,
+see E3's note), `EtcdError` (its `Code()` translated or specified: rpctypes' `Code` is a field read;
+comparable struct, needs `AsTypeTyped`), the context errors (`*errorString`: `errors.AsLeaf.spec`;
+`deadlineExceededError`: a struct with no fields, comparable; neither is an `etcdError`,
+`grpcError` or `APIStatus` by method sets).
+
+**E3. `fmt.Errorf` without `%w` returns an `errors.New` error** (trusted-text strengthening of
+EtcdGrove's `fmt.Errorf.spec`): its post says only `kFmtErr` (Error, no Format, a pointer error).
+Candidate: for a format with no `%w`, the result is `interface.mkOk (*errors.errorString) #x` (Go:
+`fmt.Errorf` returns `errors.New(s)` unless a `%w` verb is present, `fmt/errors.go`). Then
+`kErrOk` follows: `*errorString`'s method set is `{Error}` (no `Code`, `GRPCStatus`, `Status`,
+`Format`), a comparable pointer, and `errors.AsLeaf.spec` (exists) gives `As` false. The watcher's
+two are `parseEvent`'s (`%q %d %s`) and `syncPaginated`'s (no verb). Go check: `reflect.TypeOf` of
+both is `*errors.errorString`.
+
+**E4. `GetCurrentResourceVersion`'s error is the client's** (a proved spec strengthened): its error
+arm is a bare `err ≠ nil`. Candidate: the error is the client `Get`'s (`clientErr err ∗ statusErrOk
+err`), as the proof already has it inside. `startWatching` sends it when `initialRev > 0 ∧
+forceInitialEvents` (through `getStartWatchResourceVersion` in `Watch`, before the goroutines: then
+it is `Watch`'s error, not `sendError`'s; check in step 5 which path reaches `sendError`).
+
+**E5. `interpretListError(err, true, k, p)`** (a new proved spec; translated): the `paging = true`
+branch calls `handleCompactedErrorForPaging` (`storage.EncodeContinue`, `utilruntime.HandleError`,
+`NewResourceExpired`, a write of `ListMeta.Continue`) for `ErrCompacted`, else returns `err`.
+Candidate post: `err' = err` (when `err ≠ ErrCompacted`) or a `*StatusError` held with a `Failure`
+status (`NewResourceExpired`). Needs specs of `EncodeContinue` (translated? check) and `HandleError`
+(names only: a no-op text, trusted, if reached).
+
+**E6. `storage.NewTooLargeResourceVersionError`** (a spec of a translated function, or a text if
+not translated): reached only by `validateMinimumResourceVersion`'s callers, not by the watcher's
+`sendError` under 7f-5a's premises (the watch path has no minimum RV check); listed because §5 did.
+Candidate post: `tooLargeErrIs err` with a `Failure` status (`NewTimeoutError` is translated).
+Drop it if step 5 confirms it unreachable.

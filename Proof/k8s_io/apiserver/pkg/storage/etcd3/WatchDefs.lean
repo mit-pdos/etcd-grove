@@ -1062,6 +1062,74 @@ instance blockLoggerOk_persistent (l : Loc) : Persistent (blockLoggerOk (GF := G
 
 end defs
 
+section errs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **An error the watcher's error paths accept** (persistent; internal, decided by etcd-grove-81,
+2026-11-15): a non-`nil` error whose calls on the watcher's error paths (`isCancelError`,
+`interpretWatchError`, `transformErrorToEvent`, `logWatchChannelErr`) behave: the dynamic-type checks
+and the methods they find. Stated over the error's own dynamic type and methods; its producers
+(`startWatching`, `syncPaginated`, `transform`; step 5) prove it of each error they hand over
+(`notes/k8s-7f5a-draft.md` §11 lists the texts that may need, E1-E6). Each conjunct:
+- `==` with any value of its dynamic type returns (its dynamic type is comparable: Go panics
+  comparing two interfaces of one non-comparable dynamic type; `err == context.Canceled`,
+  `err == rpctypes.ErrCompacted`; the step `go_eq_interface` takes);
+- `Error()` returns, and there is no `Format` method (`fmt.argOk`: the `Error()` call and klog's
+  `%v`);
+- an `etcdError` (`Code()`, `Error()`): its `Code()` returns;
+- a `grpcError` (`GRPCStatus()`): `GRPCStatus()` returns some status `s`, and `s.Code()` returns;
+- `errors.As(err, &(*corruptObjectDeletedError)(nil))` returns `false`, the target unchanged (no
+  corrupt-object error reaches the watcher's error paths: its decode never fails under `kvWfHist`);
+- an `APIStatus`: its `Status()` returns a status whose `Status` is `Failure` (`statusFailureAt`). -/
+def kErrOk (err : GoInterface) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ □ (
+    (∀ (v : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
+      WP gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, v))) {{ Φ }}) ∗
+    fmt.stringMethodSpec e go!"Error" ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
+    (⌜go.typeSetContains e.ty k8s_io.apiserver.pkg.storage.etcd3.etcdError.ty = true⌝ -∗
+      ∀ Φ : val → IProp GF, ▷ (∀ c : google_golang_org.grpc.codes.Code, Φ #c) -∗
+        WP (App (Val #(methods e.ty go!"Code" e.v)) (Val #())) {{ Φ }}) ∗
+    (⌜go.typeSetContains e.ty k8s_io.apiserver.pkg.storage.etcd3.grpcError.ty = true⌝ -∗
+      ∃ s : Loc,
+        (∀ Φ : val → IProp GF, ▷ Φ #s -∗
+          WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
+        (∀ Φ : val → IProp GF, ▷ (∀ c : google_golang_org.grpc.codes.Code, Φ #c) -∗
+          WP (App (Val #(methods (go.GoType.PointerType google_golang_org.grpc.status.Status.ty)
+            go!"Code" #s)) (Val #())) {{ Φ }})) ∗
+    (∀ (l v : Loc) (Φ : val → IProp GF), l ↦ v -∗ ▷ (l ↦ v -∗ Φ #false) -∗
+      WP (App (App (Val (@! _root_.Perennial.errors.As)) (Val #err))
+        (Val #(interface.mkOk (go.GoType.PointerType (go.GoType.PointerType
+          k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)) #l))) {{ Φ }}) ∗
+    (⌜go.typeSetContains e.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = true⌝ -∗
+      ∀ Φ : val → IProp GF,
+        ▷ (∀ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status, ⌜st.Status' = go!"Failure"⌝ -∗
+          Φ #st) -∗
+        WP (App (Val #(methods e.ty go!"Status" e.v)) (Val #())) {{ Φ }})))
+
+instance kErrOk_persistent (err : GoInterface) : Persistent (kErrOk (GF := GF) err) := by
+  unfold kErrOk; infer_instance
+
+/-- `kErrOk`'s comparison where `go_eq_interface` leaves it: the other side's dynamic type `t`
+equal to the error's, or `false`. -/
+theorem wp_kErrOk_eq (e : GoInterfaceOk) (v : val) (t : go.GoType) (Φ : val → IProp GF) :
+    ⊢ (□ ∀ (v : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
+        WP gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, v))) {{ Φ }}) -∗
+      (∀ b : Bool, Φ #b) -∗
+      WP (if e.ty = t then gl(CheckComparable e.ty ;; GoOp GoEquals e.ty glv((e.v, v)))
+        else Val #false) {{ Φ }} := by
+  iintro #H HΦ
+  split
+  · iapply H
+    inext
+    iexact HΦ
+  · (try wp_auto)
+    iapply HΦ
+
+end errs
+
 end k8s
 end EtcdGrove
 end Perennial
