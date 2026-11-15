@@ -203,3 +203,38 @@ image's lease table and the restored keys' invariant.
 3. The apply thread's model (§3) and the snapshot premise (§5).
 4. The mode-`on` apply proofs (§6), then the examples' adaptations (mechanical: `plainLogOn .none`).
 Rebuild: `KVAuthModel` and its importers, about 1500 modules; full builds under the flock.
+
+## 10. Review round 1 (fresh `spec-reviewer`, 2026-11-15, `/shared/tmp/auth-lease/s3a-review-r1.md`): decisions needed
+
+Checked correct: the model's step against the Go auth applier (order, admin without revision, keyless lease,
+empty principal, a refused revocation leaving lessor and table); `appliedTableM` = the lessor's live set
+(`leasesLive`, `ltHalf`); no closed theorem changes; server-originated steps excluded (expiry by `leasesNoExpiry`,
+checkpoints by `rqOk`, a server-picked grant id fixed before `raftRequest`). First-tier findings:
+
+- **F1. The apply layer's outcome of a leased put/txn is not lease-exact.** `backendStep` (`apply/Chain.lean:209-231`)
+  lets a put with a lease be rejected whatever the lease and applied with no lease condition (a txn: `PathsIgnOk`,
+  not `PathsLeaseOk`), so `kvOutL` admits `.rejected .backend` where the model applies: `kv_outcome_on_latest`
+  restated at `plainReqL` would be false. The exact facts exist below (`txn.Put.spec`, `checkLease.spec` exact in
+  the live set `L`; `applierV3backend__Put.lean:97-170`). Options: (i) a lease-exact `backendStep` (a core
+  definition of `Chain.lean`, every track's statements); (ii) **recommended**: a conjunct of the latest track's
+  posts (`kvPostFL`, S2's), the outcome's lease part exact at the live set `L` of `kvOwn`'s `leasesLive` before the
+  request, tied to the table by `ltHalf`; a change to S2's just-frozen latest statements (`kvPostFL`'s body, the
+  methods' and `applierV3backend.Put/Txn`'s latest posts) — a Freeze item.
+- **F2. §5's plan rests on raft's no-snapshot mode, which no cluster has any more** (`RawNode__Bootstrap.lean:66`,
+  `setupNode.lean:85` require `reNoSnap = false`; U9: snapshots in every cluster). Neither the row nor the fallback
+  works, and §5 missed four users of "auth on ⇒ no lease" (`EtcdServer__applySnapshot.lean:122-135` via
+  `srvKVInvsM_lg`; `SnapSendBranch.lean:491, 873`; `MergedImageOn.lean:116`; `ImageOn.lean`'s
+  `imageRestAtOn`/`dbImageOn`). auth3's statement covers installs (its run only avoids them). Options: (a)
+  **recommended**: carry the leases through the auth-on snapshot path as the auth-off revocable path does
+  (`imageLeasesAt_recs`, the image's lease table, the restored keys' invariant), est. +5–8 days; (b) a scope cut,
+  stated as a premise of `etcd_authlease_safe` (the run installs and sends no snapshot), a world assumption about
+  raft's behaviour that the user would have to accept.
+- **F3. The client's claim of a lease entry** must be fixed in S3a: a grant's `kvOpAu1 (.leaseGrant id ttl)`, a
+  revocation's `kvOpAu1 (.leaseRevoke id)`, a leased put's `kvOpAu1 (.put op)` (S3b's obligation); and (r1 S5)
+  linearizable client specs of `Lease.Grant`/`Revoke` that fire them become a hard S4 dependency (none exist
+  today), est. +3–5 days.
+
+Second tier (to apply with the revision): `appliedTableM` generic in `st₀` (S1); the lemma port is not mechanical
+beyond `lm = none` (S2); `keysNonEmpty` derived, relying on `txn = txnW.toModel` (S3); check that the txn and
+backend specs cover leased transaction puts (S6, uncertain; the `checkTxn` lease path was proved for lease-0
+workloads).
