@@ -80,6 +80,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregato
 public import Proof.errors.IsStatusErr
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
 public import Proof.k8s_io.apimachinery.pkg.fields.Set__Get
+public import Proof.fmt.ErrorfPlain
 public import Proof.fmt.SprintfNamed
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getNewItemFunc
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
@@ -260,6 +261,10 @@ theorem «attribute».wp_Int :
 theorem «attribute».wp_String :
     EtcdGrove.«attribute».String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.«attribute».String.wp_proof
+
+theorem fmt.wp_ErrorfPlain :
+    EtcdGrove.fmt.ErrorfPlain.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.ErrorfPlain.wp_proof
 
 theorem reflect.Value.wp_Type :
     EtcdGrove.reflect.Value.Type.spec (GF := GF) (hG := hG) :=
@@ -672,7 +677,7 @@ theorem store.wp_Get :
 
 theorem store.wp_GetCurrentResourceVersion :
     EtcdGrove.k8s.store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get fmt.wp_Errorf
+  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get fmt.wp_ErrorfPlain
 
 theorem store.wp_getResourceSizeEstimator :
     EtcdGrove.k8s.store.getResourceSizeEstimator.spec (GF := GF) (hG := hG) :=

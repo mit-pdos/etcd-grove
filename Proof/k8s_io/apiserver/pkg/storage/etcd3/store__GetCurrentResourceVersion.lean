@@ -12,7 +12,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__GetCurrentResourceV
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
-public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorfPlain
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
@@ -45,7 +45,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (wp_prepareKey : store.prepareKey.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG))
-    (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG)) :
     store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd k Q hk hkl
   wp_start as ⟨#Hst, #Hctx, #Hce, Hau⟩
@@ -102,7 +102,8 @@ theorem store.GetCurrentResourceVersion.wp_proof
     · have hz : (W64 (σ.rev : Int)) = W64 0 := by rw [h0]; rfl
       rw [hz]
       (try wp_auto)
-      wp_apply (wp_Errorf _ slice.nil [] (DFrac.own 1)) $$ [] as %e ⟨-, #Hes, %Hem, %Hep⟩
+      wp_apply (wp_ErrorfPlain _ slice.nil [] (DFrac.own 1) (by refine ⟨_, rfl, ?_⟩; decide)) $$ []
+        as %x ⟨-, %msg, -, -, #HE⟩
       · iframe #
         isplitl
         · iapply ownSlice_nil
@@ -113,12 +114,13 @@ theorem store.GetCurrentResourceVersion.wp_proof
       isplitr
       · ipureintro; simp
       iright
-      unfold kFmtErr
-      iexists e
+      iexists x
       isplitr; · ipureintro; rfl
-      isplitr; · iexact Hes
-      isplitr; · ipureintro; exact Hem
-      ipureintro; exact Hep
+      unfold fmt.stringMethodSpec
+      iintro !> %Φ' HΦ'
+      iapply HE
+      inext
+      iapply HΦ'
     · have hnz : (W64 (σ.rev : Int)) ≠ W64 0 := by
         intro h; apply h0; have := congrArg (fun w : w64 => w.toNat) h; simp at this; omega
       (try wp_auto)

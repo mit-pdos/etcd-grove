@@ -27,6 +27,24 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, sixteenth 7f-5 agent, final): E2, E4, E5 done; lean merged (9e678b61e7, e9e pin); step 5 next
+
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json`; `.lake/packages` links only iris, batteries, Qq. A full build
+  at the e9e pin (before E4's final form and E5's proof) was green but for the then-new handleCompacted spec
+  (`/shared/tmp/k8s7f5a-p3/full-e9e.log`); targeted build after E4/E5: `/shared/tmp/k8s7f5a-p3/build-e4e5.log`.
+- **E4 final:** `GetCurrentResourceVersion`'s error arm `⌜err ≠ nil⌝ ∗ ((⌜clientErr err⌝ ∗ statusErrOk err) ∨ ∃ x,
+  ⌜err = mkOk (*errors.errorString) #x⌝ ∗ fmt.stringMethodSpec … "Error")`, from the fixed `fmt.ErrorfPlain`
+  (callee `fmt_ErrorfPlain`, a trust-boundary entry in `etc/link-lean-first-k8s-etcd3.txt`; the k8s etcd3 tcb
+  collection now reaches the `fmt.ErrorfPlain.wp_proof` axiom: run `etc/tcb-report.py --check` and the collection
+  checks at the land stop).
+- **E5 done:** `interpretListError` over any `paging` (premise `paging = true → encOkL ck kp`, post `listErrF`),
+  `handleCompactedErrorForPaging` proved (`wp_apply` does the nested `ListMeta.Continue` store itself).
+- **Next:** step 5 (`sync`/`syncPaginated`, `startWatching`) with `-- pending E1` (E1's fixed text, §11.2, approved:
+  apply it with step 5), `kErrOk` of each error sent; T5-f pointer form approved (step 7). STOP before step 6
+  (Perennial e9e has `wp_WithCancel_ctx`; `spsc_send_commit_inv` must keep `kResAlive` outside the wand).
+- Pitfalls: the lean-check server sometimes sits at "line 1" after imports change though they build: `--stop`
+  and re-run; never `pkill -f` a pattern in your own command line.
+
 ## START HERE (2026-11-15, sixteenth 7f-5 agent, latest): E4 done, E5 WIP; lean merged at the e9e pin
 
 - **Pin:** lean merged (`cbae1bea7d`, lean 73cffb21d3, Perennial e9e6351d9). Use
