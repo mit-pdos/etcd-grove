@@ -415,43 +415,6 @@ abbrev store.Watch.spec : Prop :=
 
 end spec
 
-/-! ## 5. Trusted texts T5-f (statements for the axiom review; the axioms land in 7f-5a-P) -/
-
-section trusted
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **`klog.Warningf(f, args...)`** (names-only; `logWatchChannelErr`'s compaction branch,
-`watcher.go:428-437`): logging, a no-op for the program's results, in the restricted form of
-`klog.Errorf.spec` (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`": the same
-`printfDepth`; Go refuted "any arguments"): the arguments' slice, given back, and `klog.argsOk f xs`.
-The watcher's call (`"watch chan error: %v"`, one error whose `Error()` returns) discharges it with
-`klog_args_intro`, `klog.argOkAt_of_argOk` from `fmt.argOk err`, `itrivial`.
-
-Assumed configuration, which the axiom's docstring names: klog's default flags (`-logtostderr`,
-output to stderr), no `klog.SetLogger`/`SetOutput`. Otherwise klog can end the process (an
-unwritable `-log_file`/`-log_dir`, a full disk: `os.Exit(2)`; a broken stderr pipe: `SIGPIPE`) or run
-the installed logger's code; an exit does not break a safety result, a foreign logger would. -/
-abbrev klog.Warningf.spec : Prop :=
-  ∀ (f : GoString) (args : GoSlice) (xs : List GoInterface) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 ∗ args ↦*{dq} xs ∗ klog.argsOk f xs }}
-    (App (App (Val (@! k8s_io.klog.v2.Warningf)) (Val #f)) (Val #args))
-  {{ RET #(); args ↦*{dq} xs ∗ klog.argsOk f xs }}
-
-/-- **`Event_EventType.String(t)`** (names-only; `parseEvent`'s error for a `nil` `PrevKv`, Q5):
-returns some string, for every value, once mvccpb is initialized (`String` reads the enum's
-descriptor, which `file_kv_proto_init` fills; unknown values print as numbers). -/
-abbrev mvccpb.Event_EventType.String.spec : Prop :=
-  ∀ (t : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.mvccpb }}
-    (App (App (Val (GoInstruction (MethodResolve go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty
-      go!"String"))) (Val #t)) (Val #()))
-  {{ (s : GoString), RET #s; True }}
-
-end trusted
-
 end Draft
 end k8s
 end EtcdGrove
