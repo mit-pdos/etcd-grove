@@ -287,6 +287,35 @@ probed in `Scratch/S3a2ProbeTie.lean`; r5 no first-tier finding). Draft rev 6 = 
 `cb5bf97093`), STOPPED for etcd-grove-81 (`questions.md`). Probes copied to `/shared/tmp/auth-lease-s3a2/`. Next after
 the Freeze: Draft §7's order (step 1 `Chain.lean`). No Lean outside `Scratch/` edited yet.
 
+**S3a2 Prove (2026-11-15, session 8): FROZEN at Draft rev 6 (etcd-grove-81; tag `auth-lease-s3a2-frozen`), proved.**
+Commits after `42827e4060` (the Freeze record): `4453757bc6` (apply layer and server lemmas), `a1dff7fc97` (the KV arm),
+then the build fixes. Done, by Draft §7's steps:
+1. `Chain.lean`: `leasesLiveAt`, `certPreT` (+ `_of_certPre`, `_mono`, `_auth`, `_quota`, `_capped`), `mPreAt`,
+   `mPre_iff_at`, `leasesLive_iff_at`; `putPre`/`txnPre` bundle `∃ T, certPreT … T ∗ mPreAt … T`. `mPre`, `leasesLive`,
+   `kvOwnAt` keep their bodies (form: equivalent, the laws relate them). WriteLemmas: `mPreRestAt`, `mPreAt_split_chain`,
+   `mPreAt_of_rest`, `mPreRest_of_at`, `mPreRestAt_lend`, `mPreAt_ltHalf`, `putPre_of_mPre`, `txnPre_of_mPre`. The backend
+   `Put` (witness in the live branch) and `Txn` (from the probe), quota/capped/corrupt/auth, class `dispatch`.
+2. `txn.Txn.specSole`'s wand told `PathsLeaseOk`; `txn/Txn.lean` passes `⟨Hign, Hlok⟩`; `txn_runTxn` keeps its text
+   (`wand_weaken_told`); `TxnSpecs.lean`, `clients-txn.md` §8 noted.
+3. Latest: `putPreW`/`txnPreW` bundle `∃ T` with `leaseExactL T`; `certPreW_innerT`, `certPreW_tie`; `kvOutLT` and the four
+   triples (`dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `uberKVC`, `Apply.kvSpecL`); the dispatch's put/txn cases split
+   `mPre` at its live set and tie it to `T` (`mPreAt_ltHalf`).
+4. Server: `authTie st lb rq out` at `kvGrantedL` (option (b)); `plainReqL` back to rev 5's text (rev 7's
+   `plainReqL_iff` gone); `kvCover` (KVModelDefs: `plainCover` without the lease conditions) carries the Draft's
+   `leasedKV`: the lemmas that read only those facts are restated over it in place; `kv_certPreW_on`/`kv_entry_pre_on`
+   at `kvOutLT` (the model's table); the KV arm of `wp_proofOn` over plain and leased requests (`kvOn_after_kv` at
+   `plainReqL lm` with the dispatch post's `leaseExactL`; `hne` from `keysNonEmpty_kvRaftOfOn`); the replay branch over
+   `plainOrCmpG ∨ kvCover`; the four exported results restated (Draft §4's table).
+Forms: `questions.md`, "S3a2 Prove". §5 (literal modes): only `srvRestM_nodata`/`srvRestM_admin` and the table-keeping
+lemmas (`appliedTableM_nonLease`, `appliedTableM_nodata`) moved to either mode; etcdserver lit-mode 252 → 251 (the KV arm's
+certificate at the server's live set added three); the aim of 200 is NOT reached (Left, below).
+Land-stop checks (2026-11-15): lean `b7e3cf342a` not moved (merged); full build GREEN under flock + 64G
+(`/shared/tmp/auth-lease-s3a2/build4.log`, 17537 jobs); `tcb-report --check`, `gen-interface --check`, bounds (351),
+mode (baseline ratcheted 252 → 251): see the session report; no file under `Proof/github_com` or `interface/` changed, the
+one `Spec/` change is the approved txn wand; `grep TRANSITIONAL` empty. STOPPED before `etc/land.sh`.
+Next: S3b (the proposers of a leased put with auth on; `grantedAt` → `kvGrantedL` via `kvGrantedL_of_tie`-style use of
+`authTie`'s converse).
+
 ## Pitfalls
 
 - `kvStOn` is `@[reducible]` but `rw` does not see through it: write `kvStateOf (kvModelOn …) (kvLeasesOn …)`
@@ -321,6 +350,11 @@ under `flock /shared/tmp/etcd-grove-build.lock`. `TMPDIR=/shared/tmp`.
   `srvRestM true`, `srvRestRM true`, `srvRestRpM true`, `kvModelM`/`kvStM` at literals; S3a2 should try to reduce the
   literal-`true` uses (state the auth-on arms' lemmas at `srvRestT` and the slot's `C.isOn`).
 
+- **S3a2 §5 not reached** (lit-mode 251, aim 200): the remaining literal uses are the auth-on arms of
+  `applyEntryNormal.wp_proofOn`/`apply.wp_proofOn` (classified `unmoved`/`model`), `RestOn`'s lemmas true only of the
+  auth-on table (`appliedTableM_true_*`, `srvRestM_keep`, `srvRestM_applyP0`/`_applyP`, which read the model's table) and
+  `ReqOn`/`ReadOn`'s `…M true` rows; moving them means stating `RestOn`'s lemmas over `srvRestT` at any table with the
+  entry's step as a premise (Draft §5's plan), a refactor of its own.
 - **The empty-prefix fact ties the auth-on server to fresh starts** (S3a rev 5, `srvKVInvsOn`'s `γr.raft.pre = []`):
   an auth-on restart (future work) has to revisit it (the model's table folds over the applied entries, `srvRest`'s
   over the raft prefix and them).
