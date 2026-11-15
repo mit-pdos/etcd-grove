@@ -559,3 +559,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `Md` registrations (C4, C7, C8).
 - **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3c Freeze, conditional on review round 5, which found no
   first-tier problem).
+
+## 2026-11-15: store.Watch's revision bound (k8s 7f-5a-P step 5)
+
+- **Spec.** The Draft's `store.Watch.spec` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean`, not yet in `Spec/`).
+- **Defect.** Its premise `uint.Z n < 2^63` admits `n = 2^63 - 1` for a watch without initial events, whose
+  `startWatching` asks the client for `WithRev(n + 1)`, which wraps negative; the client's `Watch` spec needs `1 ≤ rev`
+  (in Go etcd then answers a compacted or invalid watch: no panic, but the proof's start point is not a revision).
+- **Evidence.** `watcher.go` `startWatching` (`clientv3.WithRev(wc.initialRev + 1)`); `kStartPre` (`WatchProd.lean`) asks
+  `uint.Z r0 + 1 < 2^63` in that case.
+- **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15).

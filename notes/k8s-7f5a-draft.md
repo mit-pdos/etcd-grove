@@ -142,7 +142,8 @@ key, recursive or not) and mode (`kModeOf`). The premises:
     and `AnnotateInitialEventsEndBookmark`. Both are proved for the driver's codec, not trusted.
 - The request:
   - the key prepares and is short;
-  - the resource version parses, below `2^63`;
+  - the resource version parses, below `2^63 - 1` (so that `WithRev(n + 1)` is a positive `int64`;
+    ledger 2026-11-15, "store.Watch's revision bound");
   - `ProgressNotify` and `RecordTimestamps` are false (D6);
   - `SendInitialEvents` is read-only (`sendInitIs`);
   - the predicate is `selPredOk` (7e's).
@@ -179,7 +180,7 @@ abbrev store.Watch.spec : Prop :=
   {{ isPkgInit etcd3 ∗ isStore sp c ∗ storeWatchOk sp c W γk ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧
-        uint.Z n < 2 ^ 63 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
+        uint.Z n < 2 ^ 63 - 1 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
       watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗

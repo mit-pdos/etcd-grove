@@ -7,9 +7,10 @@
 # format an error (`%v`), which Perennial's `Sprintf` model does not cover: names only, specified
 # at the trust boundary.
 # k8s 7f-5a-P: `StatusError.Status` (`return e.ErrStatus`), which the etcd3 watcher's
-# `transformErrorToEvent` calls through `err.(APIStatus).Status()`.
+# `transformErrorToEvent` calls through `err.(APIStatus).Status()`; and `StatusError.Error`
+# (`return e.ErrStatus.Message`), which its error paths call (`kErrOk`).
 translate = ["!*", "NewTimeoutError", "NewBadRequest", "NewResourceExpired", "NewNotFound",
-  "NewAlreadyExists", "StatusError.Status"]
+  "NewAlreadyExists", "StatusError.Status", "StatusError.Error"]
 # what `NewTimeoutError`'s body names: `fmt.Sprintf`, `http.StatusGatewayTimeout`, metav1's
 # `Status` constants
 imports = ["!*", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1",

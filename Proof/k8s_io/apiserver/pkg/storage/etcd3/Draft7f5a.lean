@@ -84,7 +84,7 @@ abbrev store.Watch.spec : Prop :=
       storeWatchOk sp c W γk ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧
-        uint.Z n < 2 ^ 63 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
+        uint.Z n < 2 ^ 63 - 1 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
       watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗
