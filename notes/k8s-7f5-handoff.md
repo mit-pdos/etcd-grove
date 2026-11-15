@@ -27,30 +27,31 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
-## START HERE (2026-11-15, eighteenth 7f-5 agent): ErrOk done (E1, AsLeafTy applied), syncPaginated in progress
+## START HERE (2026-11-15, eighteenth 7f-5 agent, final): steps 1-2 DONE (syncPaginated proved, ErrOk), step 3 (startWatching) next
 
 - **Decided by 81 this round** (questions.md): previous forms accepted; store.Watch premise `uint.Z n < 2^63 - 1`
-  (ledger, Draft §3, `Draft7f5a.lean`: done); `Pos.Countable KRaw` at step 6; **errors.AsLeafTy APPROVED** (review
-  found it sound): now an axiom (`Proof/errors/AsLeafTy.lean`; header with the reviewer's wording; Go test
+  (ledger, Draft §3, `Draft7f5a.lean`: done); `Pos.Countable KRaw` at step 6; **errors.AsLeafTy APPROVED**: now an
+  axiom (`Proof/errors/AsLeafTy.lean`; header with the reviewer's wording; Go test
   `examples/premisefix/watcherctx/asleafty_test.go`, passes under -race). `errors.AsLeaf` is KEPT (rafthttp's two proofs
   use it; deriving it from AsLeafTy needs an extra premise (underlying types) on its statement: for 81 at the land stop).
 - **E1 applied** (`ee8f7c876c`): `grpcStatusRO`/`grpcStatusROP` and `statusCode` (moved from FromError's spec) in
   `Proof/google_golang_org/grpc/status/StatusRO.lean`; `grpcErrMethodsOk`'s GRPCStatus conjunct gives
   `grpcStatusRO s (statusCode e)`; new axiom `status.Status.Code.wp_proof` (`Spec/.../grpc/status/Status__Code.lean`);
   FromError/Code docstrings updated; `notes/axiom-review/grpc-status-immutability.md` "Resolved".
-- **ErrOk.lean done** (lean-checked): `kErrOk_intro` (generic, over AsLeafTy), `kErrOk_errorString`, `kErrOk_client`
-  (`kClientErr err ⊢ kErrOk err`), `kErrOk_statusError` (`StatusError.Error` now translated with its body:
-  `Code/k8s_io/apimachinery/pkg/api/errors.toml`, `etc/goose.py --project k8s-apiserver --perennial /shared/perennial-e9e6351d9`).
-- `listErrF`'s first arm is `kClientErr` (interpretListError re-proved, not yet rebuilt); `kWcProd`'s pure conjunct
-  now `kp ≠ []` (step 6 discharges it with `prepareKeyM_ne_nil`; needed for interpretListError's `encOkL`).
-- **etcd3's package fact** (`registryFact`) now also holds `globalAddr defaultWatcherMaxLimit ↦□ W64 10000`
-  (`etc/gen-init.py` SPECIAL, Init regenerated, StartCompactorPerEndpoint adapted): syncPaginated loads it.
-- **SyncPages.lean** (pure, checked): `syncGs`, `rangeWireOf_sync0/R` (rfl), `srvRangeOk_page_more`,
-  `srvRangeOk_key0`, `scope_key`, `syncNext`.
-- **watchChan__syncPaginated.lean**: `optsOwn` (options slice with capacity, `wp_optsOwn_append`), the unpacking;
-  the body is `sorry` (plan in the file header: invariant before/after the first page).
-- **Next:** finish syncPaginated; then startWatching (template compactor__runWatchLoop). Then the land-stop checks.
+- **ErrOk.lean done**: `kErrOk_intro` (generic, over AsLeafTy), `kErrOk_errorString`, `kErrOk_client`
+  (`kClientErr err ⊢ kErrOk err`), `kErrOk_statusError` (`StatusError.Error` translated with its body:
+  `Code/k8s_io/apimachinery/pkg/api/errors.toml`; `etc/goose.py --project k8s-apiserver --perennial /shared/perennial-e9e6351d9`).
+- `listErrF`'s first arm is `kClientErr`; `kWcProd`'s pure conjunct now `kp ≠ []` (step 6: `prepareKeyM_ne_nil`).
+- **etcd3's package fact** (`registryFact`) also holds `globalAddr defaultWatcherMaxLimit ↦□ W64 10000`
+  (`etc/gen-init.py` SPECIAL, Init regenerated, StartCompactorPerEndpoint adapted).
+- **watchChan.syncPaginated PROVED** (`c837473662`, no sorry): `SyncPages.lean` (pure: `syncGs`, `srvRangeOk_sync`,
+  `srvRangeOk_key0`, `syncNext`, `queue_prefix`, ...), `wp_syncGet` (one page through `client_range_any`),
+  `optsOwn`/`wp_optsOwn_append`, `syncGsOf`. Callee hypotheses: AsLeafTy, EtcdError.Code, Status.Code, WithRev/Limit/Range,
+  GetPrefixRangeEnd, RecordEtcdRequest, ErrorfPlain, interpretListError, parseKV, queueEvent. Not yet linked (step 7).
+- **Next:** step 3, startWatching (template compactor__runWatchLoop; the watch phase `kProdAt`; errors via kErrOk_*;
+  `kProdExited` before each sendError and close). Then the land-stop checks (81's list).
 - **Rebuild cost:** cache `Base.lean` changed: everything importing it rebuilds (~15 min for ErrOk's imports).
+  Targeted build of the changed definitions' users: `/shared/tmp/k8s7f5a-p4/build-step5b.log`.
 
 ## START HERE (2026-11-15, seventeenth 7f-5 agent): step 5 statements written, sync proved; syncPaginated/startWatching proofs next
 
