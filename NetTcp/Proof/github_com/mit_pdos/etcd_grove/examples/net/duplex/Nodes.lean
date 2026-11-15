@@ -3,11 +3,12 @@ The proofs of `examples/net/duplex`'s functions, over the specs of `net` and `wi
 linked in `Results.lean`) and the protocol of `Defs.lean`:
 
 * `serveConn`: a loop of `Read`s into a 16-byte buffer (`wire.read_au` on the up-direction: what
-  the server read, the dialer wrote), each read's bytes written back (`server_write_au`: the
-  server's bytes stay those it read), until a failure or EOF; then the close (`wire.close_drop_au` on
-  the down-direction). The server thread owns its end.
+  the server read, the dialer wrote), each read's bytes written back (a `Write`, each of its steps
+  through `srv_write_acc`: the server's bytes stay those it read), until a failure or EOF; then
+  the close (`wire.close_drop_au` on the down-direction). The server thread owns its end.
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`).
-* `writeAll`: the writer goroutine, the bytes 1..4 one at a time (`cli_write_au`).
+* `writeAll`: the writer goroutine, the bytes 1..4 one `Write` at a time, each of its steps through
+  `cli_write_acc`.
 * `Call`: the dial (`wire.dial_both_au`, the deposit `dup_deposit`), the client's end put in its invariant
   (`cliInv_alloc`), `writeAll` forked, then four `wire.ReadFull`s of one byte through the reader's
   accessor (`cli_read_acc`), each checked (`client_check`: the byte at position `i - 1` is `i`),
@@ -18,7 +19,8 @@ which ends the loop it is in. The server's precondition has the network's plan's
 `SrvAddr` at its host (`Listen`'s `ListenAt`, `listenAt_self`).
 
 The commands' `main`s (`cmd/{server,client}/Main.lean`) call `Serve` and `Call`, with the values of
-`io.EOF` and `poll.ErrDeadlineExceeded` from the package's initialization (`eof_init`, `ed_init`).
+`io.EOF` and `poll.ErrDeadlineExceeded` from the package's initialization (`eof_init`,
+`wire.ed_init`).
 -/
 module
 
@@ -30,6 +32,7 @@ public import NetTcp.Spec.net.Conn__Close
 public import NetTcp.Spec.net.Dial
 public import NetTcp.Spec.net.Listen
 public import NetTcp.Spec.net.Listener__Accept
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Perennial.Proof.io
 
 @[expose] public section
@@ -197,12 +200,16 @@ theorem wp_serveConn
         rw [hk', Hbl, List.take_of_length_le Hgl, List.take_left' rfl]
       isimp only [htk] at Hb1
       (try wp_auto)
+      ihave #Hacc := srv_write_acc γm cn γ R bs1 $$ HsrvInv Hname Hlb2
       wp_apply wp_Write t cn true srvAddr la ra (slice.slice buf w8 (W64 0) k) bs1 (DFrac.own 1)
-          ed (fun kw res => iprop(tcpEnd G cn true TcpEnd.fresh ∗ half G γ.m (R ++ bs1.take kw) ∗
-            ⌜∃ d d', WriteOutcome TcpEnd.fresh d bs1 kw res d'⌝)) $$ [Hb1 Hend Hh]
-        as %n %werr ⟨%kw, %resw, ⟨Hend, Hh, %Hwr⟩, Hb1, %Hn, #Hwerr⟩
-      · iframe Hc Hb1 Hed
-        iapply server_write_au γm cn γ R bs1 TcpEnd.fresh $$ HsrvInv Hname Hh Hlb2 Hend
+          ed (srvP cn γ R) $$ [Hb1 Hend Hh]
+        as %n %werr ⟨%w, %resw, HP, Hb1, %Hpost, #Hwerr⟩
+      · iframe Hc Hb1 Hed Hacc
+        unfold srvP
+        rw [List.append_nil]
+        iframe Hend Hh
+      unfold srvP
+      icases HP with ⟨Hend, Hh⟩
       ihave %Hwe := net.resErr_netErr _ _ _ _ _ _ _ $$ Hwerr
       ihave Hbuf := buf_rejoin buf k _ _ (by rw [hk']) ⟨by word, hkl⟩ $$ Hb1 Hb2
       cases resw with
@@ -219,8 +226,8 @@ theorem wp_serveConn
         itrivial
       | none =>
         rw [Hwe.1 rfl]
-        obtain ⟨d0, d0', Hwr⟩ := Hwr
-        rw [wire.writeOutcome_ok Hwr, List.take_length]
+        have Hwb := Hpost.2.2.1 rfl
+        subst w
         wp_auto
         wp_for_post
         iframe HΦ c buf
@@ -366,11 +373,14 @@ theorem wp_writeAll
         [W8 (↑j + 1)] := by
       rw [show sint.Z (W64 (↑j + 1)) = ↑j + 1 by word]; rfl
     isimp only [Hset] at Hb
+    ihave #Hacc := cli_write_acc cn γ γw j hj4 $$ Hinv Hdir
     wp_apply wp_Write t cn false srvAddr la ra b [W8 (↑j + 1)] (DFrac.own 1) ed
-        (fun k res => iprop(half G γw (j + k) ∗ ⌜res = none → k = 1⌝)) $$ [Hb Hw]
-      as %n %err ⟨%k, %resw, ⟨Hw, %Hk⟩, Hb, %Hn, #Herr⟩
-    · iframe Hc Hb Hed
-      iapply cli_write_au cn γ γw j hj4 $$ Hinv Hdir Hw
+        (cliWP γw j) $$ [Hb Hw]
+      as %n %err ⟨%w, %resw, Hw, Hb, %Hpost, #Herr⟩
+    · iframe Hc Hb Hed Hacc
+      unfold cliWP
+      rw [List.length_nil, Nat.add_zero]
+      iexact Hw
     ihave %Hwe := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
     cases resw
     case some e =>
@@ -382,7 +392,8 @@ theorem wp_writeAll
       iapply HΦ
       itrivial
     rw [Hwe.1 rfl]
-    obtain rfl := Hk rfl
+    obtain rfl := Hpost.2.2.1 rfl
+    isimp only [cliWP, List.length_singleton] at Hw
     wp_auto
     wp_for_post
     (try wp_auto)
@@ -536,28 +547,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists _
   iexact Heof
-
-/-- `internal/poll`'s package fact (the main tree's, `Proof/internal/poll/PkgInit.lean`). -/
-theorem poll_access :
-    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
-      iprop((∃ e : GoInterface,
-        typedPointsto (globalAddr internal.poll.ErrNoDeadline) e DFrac.discard) ∗
-        (∃ e : GoInterface,
-          typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded) e DFrac.discard)) := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
-
-/-- `poll.ErrDeadlineExceeded`'s value (the `Err` of a deadline's timeout, which `Read`, `Write`
-and `wire.ReadFull` name), from the package's initialization. -/
-theorem ed_init :
-    isPkgInit (PROP := IProp GF) pkg ⊢
-      ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
-  iintro #Hpkg
-  ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
-  · iPkgInit
-  ihave #Hi := poll_access $$ Hpoll
-  icases Hi with ⟨-, %ed, #Hed⟩
-  iexists ed
-  iexact Hed
 
 end proof
 

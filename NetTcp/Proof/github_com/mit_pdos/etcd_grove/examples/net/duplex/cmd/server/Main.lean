@@ -2,7 +2,7 @@
 The proof of `examples/net/duplex/cmd/server`'s `main`, the server node's program: it calls
 `duplex.Serve` (`wp_Serve`, `Nodes.lean`), with the example package's initialization from the
 command's (`iPkgInit`) and the values of `io.EOF` and `poll.ErrDeadlineExceeded` from it (`eof_init`,
-`ed_init`).
+`wire.ed_init`).
 -/
 module
 
@@ -19,7 +19,7 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
 open github_com.mit_pdos.etcd_grove.examples.net.wire (G)
-open github_com.mit_pdos.etcd_grove.examples.net.duplex (dupInvs srvAddr eof_init ed_init wp_Serve)
+open github_com.mit_pdos.etcd_grove.examples.net.duplex (dupInvs srvAddr eof_init wp_Serve)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.duplex.cmd.server
 
@@ -49,7 +49,10 @@ theorem wp_main
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.duplex) $$ []
   · iPkgInit
   icases eof_init $$ Hdup with ⟨%eof, #Heof⟩
-  icases ed_init $$ Hdup with ⟨%ed, #Hed⟩
+  ihave #Hwire : (isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire) $$ []
+  · iPkgInit
+  icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply wp_Serve wp_Listen wp_Accept wp_Read wp_Write wp_Close γm eof ed $$ []
   · iframe Hinvs Heof Hed

@@ -18,14 +18,17 @@ the per-address protocol (`wire/Addr.lean`) and the per-direction stream protoco
   dialer keeps `dialerOwn γm cn`: its end's state, the writer's half of the up-direction, the
   reader's half of the down-direction. A dial that fails leaving its connection abandoned (D16:
   the dialer's end closed, its direction shut and empty) deposits the same `connProto`
-  (`dup_deposit_ab`, the up-direction's protocol from the shut direction, `dirInv_body_alloc_of`),
+  (`dup_deposit_ab`, the up-direction's protocol from the shut direction,
+  `wire.dirInv_body_alloc_of`),
   and the dialer keeps nothing: the server may accept it, and reads EOF.
 * **The client's end** (`cliInv cn γ γw`, an invariant the client allocates after its dial,
   `cliInv_alloc`): the dialer end's state, shared by the writer goroutine and the reader (the main
   thread, which also closes it), and the up-direction's writer's half: the bytes written are the
   first `w` of 1, 2, 3, 4 (`dseq`), `w` mirrored by the ghost variable `γw` whose other half is the
-  writer's (`cli_write_au`). The reader's half of the down-direction is the reader's own, in its
-  predicate of `wire.ReadFull` (`cliP`, accessor `cli_read_acc`).
+  writer's, updated at each step of the writer's `Write`s (`cli_write_au`, the writer
+  predicate `cliWP` and its accessor `cli_write_acc`). The server's `Write`s go the same way
+  (`server_write_au` per step, `srvP`, `srv_write_acc`). The reader's half of the down-direction
+  is the reader's own, in its predicate of `wire.ReadFull` (`cliP`, accessor `cli_read_acc`).
 
 The client's check (`client_check`): what the client read (`sentLb γ.down`, from its reads) is a
 prefix of what the server wrote (`sentAll γ.down W`), a prefix of what the server read
@@ -276,29 +279,6 @@ theorem dup_deposit (γm : GName) (cn : Nat) :
     · iexists ⟨γh, γu, γd⟩
       iframe Hname Hde Hwu Hrd Hlbd
 
-/-- A direction's protocol state, as `wire.dirInv_body_alloc`, from any state `d` agreeing with
-nothing written or read (`DirOk d [] []`: empty; open, or shut as an abandoned dial leaves its
-dialer's direction, D16). -/
-theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
-    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
-  letI := (G (Gg := Gg)).allG
-  iintro Hd
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imodintro
-  iexists ⟨γw, γr⟩
-  unfold dirInv sentAll rcvdAll
-  isplitl [Hd Hw1 Hr1]
-  · iexists d, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact hd
-  iframe Hw2 Hr2
-
 /-- The deposit of a dial that failed leaving its connection `cn` abandoned (D16): the dialer's
 end closed, its direction shut and empty. As `dup_deposit`, nothing written; the server's part
 (`connProto`) only, the dialer keeping nothing (an `Accept` may still return `cn`: it reads EOF). -/
@@ -323,7 +303,7 @@ theorem dup_deposit_ab (γm : GName) (cn : Nat) :
     icases Hc with ⟨-, ⟨%d, %W, %R, Hdir, -⟩, -⟩
     icases tcpDir_excl _ cn true d TcpDir.fresh $$ Hdir Had with ⟨⟩
   | none =>
-    imod dirInv_body_alloc_of cn false ⟨[], .fin⟩ (by simp [DirOk]) $$ Hdd
+    imod wire.dirInv_body_alloc_of cn false ⟨[], .fin⟩ wire.dirOk_abandoned $$ Hdd
       with ⟨%γu, HIu, Hwu, Hru⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, HId, Hwd, -⟩
     imod half_alloc (Gg := Gg) ([] : List w8) with ⟨%γh, Hh1, Hh2⟩
@@ -445,6 +425,37 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : DupNames) (W bs : List w8
   iframe Hend Hh
   ipureintro; exact ⟨d, d', Hwr⟩
 
+/-- The server's writer predicate of `net.Conn.Write.spec` on `cn` (names `γ`), its bytes `R`
+before the `Write`: its end's state, and its bytes `R ++ w` mirrored by `γ.m`. -/
+def srvP (cn : Nat) (γ : DupNames) (R w : List w8) (_res : Option TcpErr) : IProp GF :=
+  iprop(tcpEnd G cn true TcpEnd.fresh ∗ half G γ.m (R ++ w))
+
+/-- The server's accessor of `net.Conn.Write.spec` for `srvP`, writing back bytes `bs` that, after
+its bytes `R`, the dialer wrote (`sentLb γ.up (R ++ bs)`): each step by `server_write_au`. -/
+theorem srv_write_acc (γm : GName) (cn : Nat) (γ : DupNames) (R bs : List w8) :
+    ⊢ inv srvN (srvState (Gg := Gg) γm) -∗ srvName γm cn γ -∗ sentLb (Gg := Gg) γ.up (R ++ bs) -∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ srvP cn γ R w none -∗
+        |={⊤,∅}=> ∃ st d, tcpEnd G cn true st ∗ tcpDir G cn true d ∗
+          ∀ k res d', ⌜WriteOutcome st d rs k res d'⌝ -∗ tcpEnd G cn true st -∗
+            tcpDir G cn true d' ={∅,⊤}=∗ srvP cn γ R (w ++ rs.take k) res) := by
+  iintro #Hinv #Hname #Hlb
+  imodintro
+  iintro %w %rs %Hw HP
+  subst Hw
+  unfold srvP
+  icases HP with ⟨Hend, Hh⟩
+  rw [show R ++ (w ++ rs) = R ++ w ++ rs from (List.append_assoc R w rs).symm]
+  imod server_write_au γm cn γ (R ++ w) rs TcpEnd.fresh $$ Hinv Hname Hh Hlb Hend
+    with ⟨%st0, %d, Hend, Hd, Hk⟩
+  imodintro
+  iexists st0, d
+  iframe Hend Hd
+  iintro %k %res %d' %Hwr Hend Hd
+  imod Hk $$ %k %res %d' %Hwr Hend Hd with ⟨Hend, Hh, -⟩
+  imodintro
+  rw [show R ++ (w ++ rs.take k) = R ++ w ++ rs.take k from (List.append_assoc R w _).symm]
+  iframe Hend Hh
+
 /-- The client's end, put in its invariant after the dial: nothing written. -/
 theorem cliInv_alloc (cn : Nat) (γ : DupNames) :
     tcpEnd (G (Gg := Gg)) cn false TcpEnd.fresh -∗ sentAll (Gg := Gg) γ.up [] ={⊤}=∗
@@ -511,14 +522,23 @@ theorem cli_read_acc (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
   rw [List.append_assoc]
   iframe Hr Hlb
 
-/-- The writer's write of the byte `i + 1` after the first `i` of `dseq`: they are then the first
-`i + k`. -/
-theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (hi : i < 4) :
+/-- A step of a write after the first `i` bytes of `dseq` of bytes `rs` that continue them: the
+bytes written are then the first `i + |rs.take k|`. -/
+theorem dseq_take_app (i k : Nat) (rs : List w8) (hi : i ≤ 4) (h : dseq.take i ++ rs <+: dseq) :
+    dseq.take i ++ rs.take k = dseq.take (i + (rs.take k).length) := by
+  have hp : dseq.take i ++ rs.take k <+: dseq :=
+    ((List.prefix_append_right_inj _).2 (List.take_prefix k rs)).trans h
+  rw [List.prefix_iff_eq_take.1 hp, List.length_append, List.length_take_of_le (by simpa using hi)]
+
+/-- A step of the writer's `Write`, after the first `i` of `dseq`, of bytes `rs` that continue
+them: the bytes written are then the first `i + |rs.take k|`. -/
+theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (rs : List w8) (hi : i ≤ 4)
+    (hrs : dseq.take i ++ rs <+: dseq) :
     ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
       half G γw i -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
-        ∀ k ok d', ⌜WriteOutcome st d [W8 (i + 1)] k ok d'⌝ -∗ tcpEnd G cn false st -∗
-          tcpDir G cn false d' ={∅,⊤}=∗ half G γw (i + k) ∗ ⌜ok = none → k = 1⌝ := by
+        ∀ k ok d', ⌜WriteOutcome st d rs k ok d'⌝ -∗ tcpEnd G cn false st -∗
+          tcpDir G cn false d' ={∅,⊤}=∗ half G γw (i + (rs.take k).length) := by
   iintro #Hcli #Hdir Hwh
   iinv Hcli with Hi Hclose
   iinv Hdir with Hj Hclose'
@@ -535,29 +555,61 @@ theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (hi : i 
   iframe Hend Hd
   iintro %k %ok %d' %Hwr Hend Hd
   imod Hmask
-  have hk1 : k ≤ 1 := by simpa using wire.writeOutcome_le Hwr
-  have hok : ok = none → k = 1 := by
-    intro h; subst h; simpa using wire.writeOutcome_ok Hwr
-  imod wire.sentAll_app γ.up W (dseq.take i) ([W8 (i + 1)].take k) $$ Hwa Hw with ⟨%Heq, Hwa, Hw⟩
+  imod wire.sentAll_app γ.up W (dseq.take i) (rs.take k) $$ Hwa Hw with ⟨%Heq, Hwa, Hw⟩
   subst Heq
-  imod half_update (Gg := Gg) γw i i (i + k) $$ Hwh Hwh' with ⟨Hwh, Hwh'⟩
-  have htk : dseq.take i ++ [W8 (i + 1)].take k = dseq.take (i + k) := by
-    rcases Nat.le_one_iff_eq_zero_or_eq_one.1 hk1 with rfl | rfl
-    · simp
-    · exact dseq_take_succ i hi
+  imod half_update (Gg := Gg) γw i i (i + (rs.take k).length) $$ Hwh Hwh' with ⟨Hwh, Hwh'⟩
+  have htk := dseq_take_app i k rs hi hrs
   imod Hclose' $$ [Hd Hwa Hr] with -
   · inext
-    iexists d', dseq.take i ++ [W8 (i + 1)].take k, R
+    iexists d', dseq.take i ++ rs.take k, R
     iframe Hd Hwa Hr
     ipureintro; exact wire.dirOk_write Hok Hwr
   imod Hclose $$ [Hend Hw Hwh'] with -
   · inext
-    iexists st, i + k
+    iexists st, i + (rs.take k).length
     rw [htk]
     iframe Hend Hw Hwh'
   imodintro
   iframe Hwh
-  ipureintro; exact hok
+
+/-- The writer goroutine's writer predicate of `net.Conn.Write.spec`, for its `Write` of the byte
+`j + 1` after the first `j` of `dseq`: the bytes written, `j` and this call's `w`. -/
+def cliWP (γw : GName) (j : Nat) (w : List w8) (_res : Option TcpErr) : IProp GF :=
+  half G γw (j + w.length)
+
+/-- The writer goroutine's accessor of `net.Conn.Write.spec` for `cliWP`: each step by
+`cli_write_au`. -/
+theorem cli_write_acc (cn : Nat) (γ : DupNames) (γw : GName) (j : Nat) (hj : j < 4) :
+    ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = [W8 (j + 1)]⌝ -∗ cliWP γw j w none -∗
+        |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
+          ∀ k res d', ⌜WriteOutcome st d rs k res d'⌝ -∗ tcpEnd G cn false st -∗
+            tcpDir G cn false d' ={∅,⊤}=∗ cliWP γw j (w ++ rs.take k) res) := by
+  iintro #Hcli #Hdir
+  imodintro
+  iintro %w %rs %Hw HP
+  have hw1 : w.length ≤ 1 := by
+    have := congrArg List.length Hw
+    simp only [List.length_append, List.length_singleton] at this
+    omega
+  have hrs : dseq.take (j + w.length) ++ rs <+: dseq := by
+    rcases List.append_eq_singleton_iff.1 Hw with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    · simp only [List.length_nil, Nat.add_zero]
+      rw [dseq_take_succ j hj]
+      exact List.take_prefix _ _
+    · simp only [List.length_singleton, List.append_nil]
+      exact List.take_prefix _ _
+  unfold cliWP
+  imod cli_write_au cn γ γw (j + w.length) rs (by omega) hrs $$ Hcli Hdir HP
+    with ⟨%st, %d, Hend, Hd, Hk⟩
+  imodintro
+  iexists st, d
+  iframe Hend Hd
+  iintro %k %res %d' %Hwr Hend Hd
+  imod Hk $$ %k %res %d' %Hwr Hend Hd with Hwh
+  imodintro
+  rw [List.length_append, ← Nat.add_assoc]
+  iexact Hwh
 
 /-- A close of the client's end, by the reader (the writer may still be writing). -/
 theorem cli_close_au (cn : Nat) (γ : DupNames) (γw : GName) :
