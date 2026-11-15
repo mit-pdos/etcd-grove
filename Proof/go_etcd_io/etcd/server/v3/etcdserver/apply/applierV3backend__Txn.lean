@@ -154,11 +154,14 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitl []
     · ipureintro; exact Herr.1
     isplitl [Hw Hbk Hhk Htie Hu Hard HltL]
-    · iapply (apply.kvOwn_of_split E log B c)
-      iframe Hw Htie
-      iunfold apply.kvRest
-      iframe Hbk Hhk Hard
-      iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
+    · iexists L
+      isplitl []
+      · ipureintro
+        simp only [apply.leaseExactL, hk]
+        intro t' ht'; rw [ht] at ht'; cases ht'
+        exact ⟨fun h => absurd rfl h, fun hl _ => Herr.2.2.2 hl⟩
+      iapply (apply.kvOwnAt_of_split E log B c L)
+      iframe Hw Htie Hbk Hhk Hard Hknown Hu HltL
     iright; iexact HPre
   · -- the run committed
     isplitr [Htrc]
@@ -188,11 +191,14 @@ theorem apply.applierV3backend.Txn.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases HPP with ⟨HPost, %σw, -, ⟨%Hσ, Hw⟩⟩
       isplitl [Hw Hbk Hhk Htie Hu Hard HltL]
-      · iapply (apply.kvOwn_of_split E _ B c)
-        iframe Hw Htie
-        iunfold apply.kvRest
-        iframe Hbk Hhk Hard
-        iunfold apply.leasesLive; iexists L; iframe Hknown' Hu HltL
+      · iexists L
+        isplitl []
+        · ipureintro
+          simp only [apply.leaseExactL, hk]
+          intro t' ht'; rw [ht] at ht'; cases ht'
+          exact ⟨fun _ => Hok.2.2.2.2, fun _ h => by cases h⟩
+        iapply (apply.kvOwnAt_of_split E _ B c L)
+        iframe Hw Htie Hbk Hhk Hard Hknown' Hu HltL
       ileft; iexact HPost
     · simp only [↓reduceIte]
       icases HPP with ⟨HPre, ⟨%Hσ, Hw⟩⟩
@@ -202,13 +208,15 @@ theorem apply.applierV3backend.Txn.wp_proof
       isplitl [Hw Hbk Hhk Htie Hu Hard HltL]
       · simp only [txn.txnChs] at hcl
         rw [hcl]
-        iapply (apply.kvOwn_of_split E _ B c)
-        iframe Hw Htie
-        iunfold apply.kvRest
-        iframe Hbk Hhk Hard
-        iunfold apply.leasesLive; iexists L
+        iexists L
+        isplitl []
+        · ipureintro
+          simp only [apply.leaseExactL, hk]
+          intro t' ht'; rw [ht] at ht'; cases ht'
+          exact ⟨fun _ => Hok.2.2.2.2, fun _ h => by cases h⟩
+        iapply (apply.kvOwnAt_of_split E _ B c L)
         rw [hcl] at *
-        iframe Hknown' Hu HltL
+        iframe Hw Htie Hbk Hhk Hard Hknown' Hu HltL
       iright; iexact HPre
 
 end proof

@@ -238,6 +238,7 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
         (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗
         apply.resTrace ar ∗ L hs ∗
         ⌜v3 = true → apply.kvOutL E.authMode hs (auth.authInfoM info) ci rq log o⌝ ∗
+        ⌜v3 = true → E.lg = true → apply.leaseExactL T rq log o⌝ ∗
         apply.dispatchResult rq v3 log skip ar o }}
 
 end spec
@@ -466,6 +467,8 @@ local macro "fin_kvL" : tactic => `(tactic| (
   · iexact HL
   isplitr
   · ipureintro; intro _; exact HXo
+  isplitr
+  · ipureintro; intro _; exact HXe
   simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
   iframe %hn
   iexists _
@@ -645,6 +648,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
     iframe HL
     isplitr
     · ipureintro; intro h; cases h
+    isplitr
+    · ipureintro; intro h; cases h
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, or_self, ↓reduceIte]
     ipureintro; trivial
   (try wp_auto)
@@ -670,6 +675,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.resTrace «$r0_ptr» ∗ L hh ∗
           ⌜true = true → apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log o⌝ ∗
+          ⌜true = true → E.lg = true → apply.leaseExactL T rq log o⌝ ∗
           apply.dispatchResult rq true log skip «$r0_ptr» o))
     with [a r ar op «$r0» Hres Ha Hkv Htt HL HRO HLt Hrv]
   · -- Range
@@ -693,6 +699,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
     iunfold apply.rangePostL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, #Hcls⟩
     have Hst := Hst0.1
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun _ =>
+      apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
@@ -725,7 +733,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
         iframe HR HcpK Hmp
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
-    icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
+    ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
+    ihave Hkv := apply.kvOwn_of_at E _ Lk $$ Hkv
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun hlg => HLk hlg ▸ Hex
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2.2⟩
@@ -756,7 +767,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
         iframe HR HcpK Hmp
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
-    icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
+    ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
+    ihave Hkv := apply.kvOwn_of_at E _ Lk $$ Hkv
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun hlg => HLk hlg ▸ Hex
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2.2⟩
@@ -794,7 +808,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
         iframe HR HcpK Hmp
       ipureintro; exact ⟨htw, hsh⟩
     iunfold apply.kvPostFL at Hpost
-    icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
+    ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
+    ihave Hkv := apply.kvOwn_of_at E _ Lk $$ Hkv
+    have HXe : E.lg = true → apply.leaseExactL T rq log oc := fun hlg => HLk hlg ▸ Hex
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
       simp only [apply.kvOutL, hk]; exact ⟨tw, htw, Hst0.2.2⟩
@@ -850,6 +867,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
     iunfold apply.revokeResAfter at HRa
     icases HRa with ⟨Hrdat, -, HLt, HRO, Hra⟩
     have Hst := Hst0.1
@@ -885,6 +903,9 @@ theorem apply.uberApplier.dispatch.wp_kvL
     · iexact HL
     isplitr
     · ipureintro; intro _; exact HXo
+    isplitr
+    · ipureintro; intro _ _
+      exact apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
     iframe %hn
     iexists _

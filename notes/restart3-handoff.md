@@ -107,3 +107,12 @@ Edits:
   (raft untouched, so as not to rebuild raft's importers).
 - SpecPlan: ledger entry 2026-11-15 (`applyAll.spec` sketch), `SpecPlan/.../EtcdServer__applyAll.lean` sketch text.
 Build log: `/shared/tmp/restart3-a1/build-g2-*.log`.
+
+### lean merged into `restart3` (2026-11-15, lean `b7e3cf342a`, auth-lease S3a)
+Conflicts: `EtcdServer__applyAll.lean` (A1's `T`-less step end and `st4` kept, at S3a's `srvRestRM C.isOn` /
+`srvRestRM_past`; S3a's `srvRestM` mode switches around `mergedCreate_window` auto-merged), STATUS "Last updated"
+(union of both sides' ten, newest ten kept; http-boundary moved to status-history, S7.4 already there),
+status-history (A1's S7.4 line kept). Full build green (flock, 64G; `/shared/tmp/restart3-merge/build-1.log`);
+`etc/gates.sh`: build, links, tcb (870/4), collections (57 match), gen-init, bounds 351, mode 417, api, interfaces,
+import-all ok; goose and the Go gates (pbschema, entsize, featuregate, premisefix, k8s) fail on go.sum only (the
+unpushed fork `6e8f0c004`), as expected (`/shared/tmp/restart3-merge/gates-1.log`).

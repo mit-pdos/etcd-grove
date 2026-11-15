@@ -221,7 +221,7 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         opRespsRel false (t.branch m.succeeded)
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 m.resps⌝ ∗
       (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
-      (if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log)))
+      (if txn.txnSerializable t then iprop(True) else (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt))))
   else
     iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
         (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
@@ -237,7 +237,8 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
           (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps ∧
         -- (linkv-txn stage B1, 2026-10-20) the ranges run
         skip = false⌝ ∗
-      srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+      srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
+        (∃ lt, ⌜E.authOn = false ∨ γw.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 /-- **The revision a writing transaction's reply reached** (U1 of `notes/k8s-compactor-plan.md`,
 2026-11-04, the user's approval; as `etcdPutSpec`'s `kvRevLb`): for a writing `t`, the KV has
@@ -326,7 +327,7 @@ def rangeReplyOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) 
       txn.srvRangeOk o (mvcc.stateAt log (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)))
         m.kvs m.more ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-    (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
+    (if o.base.serializable then iprop(True) else (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt))))
 
 instance rangeReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (cid mid : w64) (Q : KVState → IProp GF) (m : RangeRespM) :
@@ -347,7 +348,8 @@ def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
+    (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 open Iris.ProofMode in
 /-- A delivered put's result, weakened (2026-10-19, D21 M6). -/
@@ -356,13 +358,16 @@ theorem putReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o 
     putReplied E γr F o Q cid mid m ⊢ putReplied E γr F o Q' cid mid m := by
   iintro H
   unfold putReplied
-  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, %Hk, HQ⟩
+  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, %Hk, ⟨%lt, %Hlt, HQ⟩⟩
   iexists hm, x, x', l, skip
   iframe Hc Htok Hw
   isplitr
   · ipureintro; exact Hp
   isplitr
   · ipureintro; exact Hk
+  iexists lt
+  isplitr
+  · ipureintro; exact Hlt
   iapply h $$ HQ
 
 /-- **etcd's spec of the KV service's `Put`** (a predicate transformer; see the file header): a
@@ -406,7 +411,7 @@ def rangeErrReply (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
       P log crev⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-    (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
+    (if o.base.serializable then iprop(True) else (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ □ Q (kvStateOf log lt))))
 
 instance rangeErrReply_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) :
@@ -489,7 +494,8 @@ def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
+    (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
 open Iris.ProofMode in
 /-- A delivered delete's result, weakened (2026-10-20, linkv-txn stage A). -/
@@ -498,13 +504,16 @@ theorem deleteReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) 
     deleteReplied E γr F o Q cid mid m ⊢ deleteReplied E γr F o Q' cid mid m := by
   iintro H
   unfold deleteReplied
-  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, %Hk, HQ⟩
+  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, %Hk, ⟨%lt, %Hlt, HQ⟩⟩
   iexists hm, rq', op', x, x', l, skip
   iframe Hc Htok Hw
   isplitr
   · ipureintro; exact Hp
   isplitr
   · ipureintro; exact Hk
+  iexists lt
+  isplitr
+  · ipureintro; exact Hlt
   iapply h $$ HQ
 
 /-- **etcd's spec of the KV service's `DeleteRange`**: a caller asking the delete `o` gets a
@@ -1381,8 +1390,9 @@ theorem kvs_txn_applied_log (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.Hea
 committed, a certified log `C` extending it (`l` not empty). -/
 theorem kvLogOk_commit {l C : mvcc.Log} (cs : List mvcc.Change) (hp : mvcc.commitLog l cs <+: C)
     (hne : l ≠ [])
-    (hc : mvcc.LogWf' C ∧ C.length < 2 ^ 63 ∧ txn.LogSmall C ∧ mvcc.LogPutsLe etcdKeyMax C) :
-    kvLogOk ((kvStateOf l).commit cs) := by
+    (hc : mvcc.LogWf' C ∧ C.length < 2 ^ 63 ∧ txn.LogSmall C ∧ mvcc.LogPutsLe etcdKeyMax C)
+    {lt : LeaseTable} :
+    kvLogOk ((kvStateOf l lt).commit cs) := by
   rw [← kvStateOf_commitLog l cs hne]
   refine kvLogOk_of_prefix hp hc.1 hc.2.2.1 hc.2.1 ?_ hc.2.2.2
   unfold mvcc.commitLog; split
@@ -1441,13 +1451,14 @@ theorem srvStart_both (ms : List (SrvAt GF)) :
     iintro #H; iunfold srvStart at H; iexact H
 
 /-- A log's state's next revision is its length. -/
-theorem kvStateOf_rev_succ (l : mvcc.Log) (h : 2 ≤ l.length) :
-    (kvStateOf l).rev + 1 = l.length := by
+theorem kvStateOf_rev_succ (l : mvcc.Log) {lt : LeaseTable} (h : 2 ≤ l.length) :
+    (kvStateOf l lt).rev + 1 = l.length := by
   rw [kvStateOf_rev]; omega
 
 /-- **A write's revision is its state's after the changes** (`writeRev`, `KVState.commit`). -/
-theorem kvStateOf_commit_rev (l : mvcc.Log) (cs : List mvcc.Change) (h : 2 ≤ l.length) :
-    ((kvStateOf l).commit cs).rev = mvcc.writeRev l cs := by
+theorem kvStateOf_commit_rev (l : mvcc.Log) (cs : List mvcc.Change) {lt : LeaseTable}
+    (h : 2 ≤ l.length) :
+    ((kvStateOf l lt).commit cs).rev = mvcc.writeRev l cs := by
   unfold mvcc.writeRev
   by_cases hc : cs = []
   · simp only [hc, KVState.commit_nil, ↓reduceIte, kvStateOf_rev]
@@ -1767,8 +1778,8 @@ theorem irrNoZeroEnd_txn (tw : txn.TxnModelW) (t : TxnModel) (htw : tw.toModel =
 theorem kvLogOk_of_step {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV} {out : apply.ApplyOut}
     (h : apply.applyStep rq v3 x x' out) (hl : 2 ≤ x.log.length)
     (hc : mvcc.LogWf' x'.log ∧ x'.log.length < 2 ^ 63 ∧ txn.LogSmall x'.log ∧
-      mvcc.LogPutsLe etcdKeyMax x'.log) :
-    kvLogOk (kvStateOf x.log) :=
+      mvcc.LogPutsLe etcdKeyMax x'.log) {lt : LeaseTable} :
+    kvLogOk (kvStateOf x.log lt) :=
   kvLogOk_of_prefix (applyStep_prefix rq v3 x x' out h) hc.1 hc.2.2.1 hc.2.1
     (by intro he; rw [he] at hl; simp at hl) hc.2.2.2
 
@@ -1782,12 +1793,12 @@ theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
   ihave #Hrv' := kvRevLb_same x.γr.kv γ (hn x hx) m.hdr.revision $$ Hrv
   iframe Hrv'
   iunfold putReplied at H
-  icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, HQ⟩
+  icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, ⟨%lt, -, HQ⟩⟩
   ihave %Hl0 := srvLogCert_logOk _ _ hrb $$ Hc
   have Hl := And.intro Hl0.1 (And.intro Hl0.2.1 (And.intro Hl0.2.2 Hk))
   obtain ⟨hst, hrev, -, -, hprev, -, hlen, hb⟩ := Hp
   have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
-  iexists kvStateOf y.log
+  iexists kvStateOf y.log lt
   iframe HQ
   ipureintro
   refine ⟨?_, ?_, ?_, kvLogOk_of_step hst hlen Hl, ?_⟩
@@ -1815,13 +1826,19 @@ theorem rangeAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c
   iintro ⟨%x, -, H⟩
   iunfold rangeReplyOk at H
   icases H with ⟨%l, #Hc, %Hk, %Hl, -, HQ⟩
+  ihave ⟨%lt, HQ⟩ : iprop(∃ lt : LeaseTable,
+      if o.base.serializable then iprop(True) else □ Q (kvStateOf l lt)) $$ [HQ]
+  · cases hser : o.base.serializable
+    · simp only [hser, Bool.false_eq_true, ↓reduceIte]
+      icases HQ with ⟨%lt, -, #HQ⟩; iexists lt; iexact HQ
+    · iexists []; simp only [↓reduceIte]; itrivial
   ihave %Hlk := srvLogCert_logOk _ _ hrb $$ Hc
   obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
   have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
   have hle' : sint.Z o.base.rev ≤ (l.length : Int) - 1 := by rw [hrev, h2] at hle; exact hle
   have hn : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by unfold sint.nat; word
   -- the revision read: the one asked, or the header's (the log's last)
-  have hRR : (kvStateOf l).readRev o.base.rev =
+  have hRR : (kvStateOf l lt).readRev o.base.rev =
       sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev) := by
     unfold KVState.readRev mvcc.rangeRev
     rw [kvStateOf_rev, hrev]
@@ -1835,7 +1852,7 @@ theorem rangeAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c
     · simp only [h0, ↓reduceIte]
       show (sint.Z o.base.rev).toNat ≤ l.length - 1
       omega
-  iexists kvStateOf l
+  iexists kvStateOf l lt
   iframe HQ
   ipureintro
   rw [hRR, kvStateOf_at_kvs l _ hRle]
@@ -1854,7 +1871,7 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   unfold delAns delStOk
   iintro ⟨%x, -, H⟩
   iunfold deleteReplied at H
-  icases H with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, HQ⟩
+  icases H with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, ⟨%lt, -, HQ⟩⟩
   ihave %Hl0 := srvLogCert_logOk _ _ hrb $$ Hc
   have Hl := And.intro Hl0.1 (And.intro Hl0.2.1 (And.intro Hl0.2.2 Hk))
   obtain ⟨hw, hop', Hz, hst, hrev, -, -, hdel, hprevs, -, hlen, hb⟩ := Hp
@@ -1862,8 +1879,8 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   have hop : op' = o := Hz (irrNoZeroEnd_delete o hz)
   subst hop
   have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
-  have hs := kvStateOf_kvs y.log (lt := [])
-  iexists kvStateOf y.log
+  have hs := kvStateOf_kvs y.log (lt := lt)
+  iexists kvStateOf y.log lt
   iframe HQ
   ipureintro
   refine ⟨by rw [hs]; exact hdel, by rw [hs]; exact hprevs, ?_, ?_, kvLogOk_of_step hst hlen Hl,
@@ -1893,7 +1910,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
   cases hro : txn.txnReadonly t
   · -- writing
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, HQ⟩
+    icases H with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, ⟨%lt, -, HQ⟩⟩
     ihave %Hl0 := srvLogCert_logOk _ _ hrb $$ Hc
     have Hl := And.intro Hl0.1 (And.intro Hl0.2.1 (And.intro Hl0.2.2 Hk))
     obtain ⟨htw, hw, ht', Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
@@ -1901,9 +1918,9 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
     have ht : t' = t := Hz (irrNoZeroEnd_txn tw t htw (hz hro))
     subst ht hsk
     have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
-    have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
-    have hs := kvStateOf_kvs y.log (lt := [])
-    iexists kvStateOf y.log
+    have hr : ((kvStateOf y.log lt).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
+    have hs := kvStateOf_kvs y.log (lt := lt)
+    iexists kvStateOf y.log lt
     iframe HQ Hrv'
     ipureintro
     rw [hr, hs]
@@ -1916,11 +1933,17 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
   · -- read-only
     simp only [↓reduceIte]
     icases H with ⟨%log, #Hc, %Hk, %Hp, -, HQ⟩
+    ihave ⟨%lt, HQ⟩ : iprop(∃ lt : LeaseTable,
+        if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log lt)) $$ [HQ]
+    · cases hser : txn.txnSerializable t
+      · simp only [hser, Bool.false_eq_true, ↓reduceIte]
+        icases HQ with ⟨%lt, -, #HQ⟩; iexists lt; iexact HQ
+      · iexists []; simp only [↓reduceIte]; itrivial
     ihave %Hl := srvLogCert_logOk _ _ hrb $$ Hc
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
-    have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
-    have hs := kvStateOf_kvs log (lt := [])
-    iexists kvStateOf log
+    have hr : ((kvStateOf log lt).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
+    have hs := kvStateOf_kvs log (lt := lt)
+    iexists kvStateOf log lt
     iframe HQ Hrv'
     ipureintro
     rw [hr, hs]

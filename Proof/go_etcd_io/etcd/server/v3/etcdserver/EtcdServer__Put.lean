@@ -228,7 +228,8 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · ipureintro; exact Hwf
       rw [Hxlb, ← HLlb]
-      iframe HQ
+      isplitl [HQ]
+      · iexists []; iframe HQ; ipureintro; intro _; rfl
       isplitr
       · iunfold hdrBoundM; ipureintro; trivial
       iintro !> %h; cases h
@@ -292,7 +293,7 @@ theorem EtcdServer.Put.wp_proof
       icases Hpo with ⟨Hpo, Hhdr⟩
       wp_auto_lc 1
       -- the put's result, with its token
-      ihave #HQr := putQhOn_res ρ.kv op γc Q hm Lq x.log log' skip Hmo $$ HQq
+      icases putQhOn_res ρ.kv op γc Q hm Lq x.log log' skip Hmo $$ HQq with ⟨%lt, %Hlt, #HQr⟩
       imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
       (try wp_auto)
       wp_apply HEnd
@@ -308,7 +309,11 @@ theorem EtcdServer.Put.wp_proof
       · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
       isplitr
       · ipureintro; exact Hwf
-      iframe HQ
+      isplitl [HQ]
+      · iexists lt; iframe HQ; ipureintro
+        rintro (h | h)
+        · cases h
+        · exact Hlt h
       isplitr
       · iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb
       iintro !> -

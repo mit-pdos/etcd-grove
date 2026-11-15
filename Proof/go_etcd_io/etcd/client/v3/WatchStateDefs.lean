@@ -64,16 +64,16 @@ def rangeLogEvents (L : mvcc.Log) (o : OpFull) (lo hi : Nat) : List mvcc.EvM :=
   (mvcc.logEvents L lo hi).filter fun ev => inRange o.key o.base.rangeEnd ev.kv.key
 
 /-- At a log's state, a later revision's events are the log's (mvcc's watch events of it). -/
-theorem revEvents_kvStateOf (l : mvcc.Log) (r : Nat) (h0 : 0 < r) (hr : r ≤ l.length - 1) :
-    (kvStateOf l).revEvents r = mvcc.evsOfRevM r (mvcc.stateAt l (r - 1)) (l.getD r []) := by
+theorem revEvents_kvStateOf (l : mvcc.Log) {lt : LeaseTable} (r : Nat) (h0 : 0 < r) (hr : r ≤ l.length - 1) :
+    (kvStateOf l lt).revEvents r = mvcc.evsOfRevM r (mvcc.stateAt l (r - 1)) (l.getD r []) := by
   unfold KVState.revEvents
   rw [kvStateOf_at_kvs l (r - 1) (by omega), kvStateOf_changesAt l r h0]
 
 /-- **At a log's state, the range's events are the log's** (its revisions from `lo ≥ 1` below
 `hi ≤ l.length`): what the server sends. -/
-theorem rangeEvents_kvStateOf (l : mvcc.Log) (o : OpFull) (lo hi : Nat) (h0 : 0 < lo)
+theorem rangeEvents_kvStateOf (l : mvcc.Log) {lt : LeaseTable} (o : OpFull) (lo hi : Nat) (h0 : 0 < lo)
     (hh : hi ≤ l.length) :
-    (kvStateOf l).rangeEvents o lo hi = rangeLogEvents l o lo hi := by
+    (kvStateOf l lt).rangeEvents o lo hi = rangeLogEvents l o lo hi := by
   unfold KVState.rangeEvents rangeLogEvents mvcc.logEvents
   congr 2
   apply List.map_congr_left

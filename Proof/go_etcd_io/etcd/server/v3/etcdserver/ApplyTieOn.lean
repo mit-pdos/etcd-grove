@@ -55,7 +55,7 @@ theorem histAfter_last (hs : List auth.AuthState) (st : auth.AuthState) (o : aut
 /-- **A KV entry keeps the auth state**: every outcome `outcomeOn` allows for an entry that is not
 an admin one above `c₀` (a KV request, a request of another kind, an entry without data or below
 the consistent index) keeps the state's auth part. -/
-theorem outcomeOn_auth_keep (c₀ : w64) (ch : apply.Chain) (s o : auth.AuthState × mvcc.Log)
+theorem outcomeOn_auth_keep (c₀ : w64) (ch : apply.Chain) (s o : OnState)
     (m : EntryModel)
     (hna : ∀ rq, m.typ = W32 0 → m.data ≠ [] → apply.irrDecode m.data = some rq →
       ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true))
@@ -74,7 +74,7 @@ theorem outcomeOn_auth_keep (c₀ : w64) (ch : apply.Chain) (s o : auth.AuthStat
 
 /-- **An admin entry's model outcome from its admin step**: an admin entry above `c₀` reaches any
 successor of its admin step (`adminStateR`), the log kept. -/
-theorem outcomeOn_of_adminStateR (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem outcomeOn_of_adminStateR (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (rq : apply.IRRModel) (st' : auth.AuthState) (ht : m.typ = W32 0)
     (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (ha : apply.needAdminPermission rq = true) (hr : adminStateR rq s.1 st') :

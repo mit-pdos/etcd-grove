@@ -628,7 +628,7 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
     iframe Hc Hm HLs Hk
     isplitr
     · ipureintro; exact ⟨hLs, hLr⟩
-    have hx : (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1 = setupSt r := by
+    have hx : (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L ++ [e])).1 = setupSt r := by
       show srvAuthAtLog ρ.kv srvAuthSt0 (L ++ [e]) = _
       rw [hsnoc]; refine hset.trans ?_; rw [hr]
     isplitl []

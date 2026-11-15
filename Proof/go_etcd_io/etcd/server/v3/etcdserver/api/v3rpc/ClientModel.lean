@@ -95,8 +95,8 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- A mode-`on` entry's step extends the model's log. -/
-theorem kvEntryOn_extends (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState × Log)
-    (m : EntryModel) : st.2 <+: (kvEntryOn c₀ ch st m).2 := by
+theorem kvEntryOn_extends (c₀ : w64) (ch : apply.Chain) (st : OnState)
+    (m : EntryModel) : st.2.1 <+: (kvEntryOn c₀ ch st m).2.1 := by
   unfold kvEntryOn
   split
   · split
@@ -104,12 +104,12 @@ theorem kvEntryOn_extends (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState �
       · exact List.prefix_refl _
       · split
         · exact List.prefix_refl _
-        · exact kvEntry_prefix c₀ ch [] st.2 m
+        · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
     · exact List.prefix_refl _
-  · exact kvEntry_prefix c₀ ch [] st.2 m
+  · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
 
 theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (B : List EntryModel) :
-    ∀ st : auth.AuthState × Log, st.2 <+: (kvRaftOfOn c₀ ch st B).2 := by
+    ∀ st : OnState, st.2.1 <+: (kvRaftOfOn c₀ ch st B).2.1 := by
   induction B with
   | nil => intro st; exact List.prefix_refl _
   | cons m B ih =>
@@ -122,8 +122,8 @@ theorem kvModelM_prefix (on : Bool) (γk : KVNames) (A B : List EntryModel) (h :
   cases on
   · exact kvRaftOf_prefix _ _ _ _ _ h
   · obtain ⟨D, rfl⟩ := h
-    show (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) A).2 <+:
-      (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) (A ++ D)).2
+    show (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) A).2.1 <+:
+      (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) (A ++ D)).2.1
     rw [kvRaftOfOn_append]
     exact kvRaftOfOn_extends _ _ D _
 

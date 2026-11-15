@@ -291,3 +291,51 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** The realization keeps `boltState` in an invariant (the bank's pattern),
   the commit's update opening it.
 - **Decision.** Pending (the backend's; no statement changes).
+
+## 2026-11-15: the auth-on KV results at `kvStateOf log` -- unprovable once `kvInvOn` carries the lease table (auth-lease S3a)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Put.lean:63`,
+  `EtcdServer__DeleteRange.lean:59` (`Q (kvStateOf x.log)`), `EtcdServer__Txn.lean`'s writing post (through
+  `txnQhOn_res`), and the read side's conversion `client/v3/Results.lean:1052` (`readQ_of_ansM`: `kvStM true`
+  is `kvStateOf (kvModelM true …)`, so a range's `□ Q (kvStateOf log)`), at `E.authOn = true`.
+- **Defect.** S3a (Draft rev 5 §2, frozen) puts the lease table in `kvInvOn`'s state and keeps the clients'
+  half in every lease mode, so a client's update fires at `kvStateOf (kvModelOn L) (kvLeasesOn L)`. These
+  posts give `Q` of `kvStateOf x.log` (the table `[]`), true only while no lease is granted. The off mode
+  proves its text by refuting a granting cluster from the client's half (`kvSt_client_lg`: `kvStQ` owns the
+  whole variable at `γk.lg`), which S3a removes with auth on by design. Nothing on the request side
+  (`isServerReqM true`, `putPermitM true`, `reqPropOkOn`) ties the mode to `none`.
+- **Evidence.** The S3a port: `ReqOn.grantedRes_applied` (`kvRes γc Q (kvStateOf lb)` from `grantedRes` at
+  `kvStateOf (kvModelOn L) (kvLeasesOn L)`), `ReadOn`'s `kvStOn` (must equal the invariant's state for the
+  read deposits' firing, `ReadOn.lean:666`), `readQ_of_ansM`'s `by cases on <;> rfl`.
+- **Proposed change.** (A) the posts give `Q` of the state with its table: `∃ lt, ⌜E.authOn = false → lt =
+  []⌝ ∗ Q (kvStateOf x.log lt)` (or the model's table named through `modelOutM`), and the read side's
+  `□ Q (kvStateOf log lt)`, followed through v3rpc (`ServerKVOn`) and the client's KV results; (C) a
+  transitional tie of the auth-on request side to the lease mode `none` until S3b. Not in Draft rev 5 §7.
+- **Decision.** Pending (etcd-grove-81; S3a stopped at this finding).
+
+## 2026-11-15: the latest track's certificate premise for a leased put or transaction -- unprovable at a dead lease (auth-lease S3a §6)
+
+- **Spec.** `apply.Apply.kvSpecL`, `apply.uberKVC`, `apply.uberApplier.Apply.kvSpecL`
+  (`apply/ApplyFnKVL.lean:73,110`, `apply/ApplyKVL.lean:54`; exported as `apply_*_kv_latest`): the premise
+  `certPreVW v3 E x.chain rq x.log (kvOutL …)`; through `certPreW_inner` (`apply/AuthApplyLatest.lean:238`, used by
+  the latest Put/Txn/Revoke) it becomes the class track's `certPre E c rq log` (`apply/Chain.lean:1532`): a
+  certificate `E.Nx` of the log after EVERY `chainStep backendStep` outcome.
+- **Defect.** `backendStep`'s put case (`apply/Chain.lean:209`, kept unchanged by S3a's N1 (ii′)) admits
+  `applied (log ++ [putChangeOf op …])` whatever the lease, and its transaction case an applied commit without
+  `PathsLeaseOk`. The model (`backendLog`) keeps the log for a put of a lease not live (`leaseMissingIn`) and for a
+  transaction whose path names one. With auth on, `E.Nx = kvNxOn` certifies only the models of committed raft logs,
+  so the server cannot give the certificate of that outcome: Draft §6's KV branch ("as today, S2's latest triple
+  ... no more `plainCover` discharge") is unprovable for an admitted leased put or leased transaction at the
+  revocable mode, which a concurrent revocation makes reachable (a put proposed with a lease revoked before it
+  applies). §3a's `leaseExactL` reaches the posts, not this premise. The backend's Put gets the certificate before
+  its lease check (`applierV3backend__Put.lean:88-95`) and uses it only in the live branch.
+- **Evidence.** `certPreW_inner`'s hypothesis `∀ oc, chainStep backendStep c rq log oc → X oc`; `kvNxOn`
+  (`KVApplyOn.lean`); `kv_certPreW_on` (`ApplyEntryOn.lean`), which needs every admitted outcome to be the model's
+  (`outcomeOn_of_kvOutLL` needs `leaseExactL` at the model's table, not available for the premise).
+- **Proposed change.** (1) Restrict the class track's certificate to lease-exact outcomes at the live set `T`
+  (`certPre` -> `certPreT … T`, outcomes with `leaseExactL T`; the class track's `leasesLive` at `T`, i.e. `kvOwnAt E
+  log T`, split at the top from the two `ltHalf`s; the backend Put/Txn take `E.Nx` in their live branch), and the
+  latest track's `X` with `leaseExactL T`; (2) `backendStep` over the live set (wider); (3) narrow S3a: no leased put
+  or transaction admitted (`plainReqL lm := plainReq`), leased puts moved to a later stage with (1).
+- **Decision.** (3) now, then (1) as its own stage S3a2 (etcd-grove-81, 2026-11-15): Draft rev 7, §15; `plainReqL lm :=
+  plainReq`.

@@ -91,7 +91,8 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
         apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
         apply.applyAuthRes E.authMode x.chain rq v3 out ∗ L hs ∗
         ⌜∀ o, out = .dispatched o skip → v3 = true →
-          apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ }})
+          apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ ∗
+        ⌜∀ o b, out = .dispatched o b → v3 = true → E.lg = true → apply.leaseExactL T rq x.log o⌝ }})
 
 instance apply.uberKVC_persistent (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
     (L : List auth.AuthState → IProp GF) : Persistent (apply.uberKVC ua E ci L) := by
@@ -137,6 +138,7 @@ abbrev apply.Apply.kvSpecL : Prop :=
         L hs ∗
         ⌜∀ o b, out = .dispatched o b → v3 = true →
           apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ ∗
+        ⌜∀ o b, out = .dispatched o b → v3 = true → E.lg = true → apply.leaseExactL T rq x.log o⌝ ∗
         (⌜out.waived = false⌝ ∨ G ot id) }}
 
 end defs
@@ -198,7 +200,8 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
         apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
         apply.applyAuthRes E.authMode x.chain rq v3 out ∗ L hh ∗
         ⌜∀ o, out = .dispatched o sk → v3 = true →
-          apply.kvOutL E.authMode hh (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝)))
+          apply.kvOutL E.authMode hh (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝ ∗
+        ⌜∀ o b, out = .dispatched o b → v3 = true → E.lg = true → apply.leaseExactL T rq x.log o⌝)))
       $$ [HRD HK Hown Hkv Htt HFS HSp HRO HLt Hrv HL] as %ar %id' ⟨HRD, %Hid', Hout⟩
   · iframe # HRD HK Hown Hkv Htt HFS HSp HRO HLt Hrv HL
     isplitr
@@ -214,7 +217,7 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
       ipureintro; exact ⟨⟨Hrq, Hdk⟩, Hskt, Hx⟩
     iapply HΦ; iexact HQ
   subst Hid'
-  icases Hout with (⟨%sk, ⟨Htt, Hrt, HFS, Hrv, %x', %out, Hown, Hkv, HPP, HLt, HRO, Hra, %Hst, Htr, Hres, #Hauth, HL, %HXo⟩, Hwv⟩ |
+  icases Hout with (⟨%sk, ⟨Htt, Hrt, HFS, Hrv, %x', %out, Hown, Hkv, HPP, HLt, HRO, Hra, %Hst, Htr, Hres, #Hauth, HL, %HXo, %HXe⟩, Hwv⟩ |
     ⟨%Hnil, HG, Hown, Hkv, Htt, HFS, HSp, HRO, HLt, Hrv, HL⟩)
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
@@ -237,6 +240,8 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     · ipureintro
       intro o b hb hv
       exact HXo o (apply.dispatched_skip Hst.2.1 hb) hv
+    isplitr
+    · ipureintro; exact HXe
     icases Hwv with (%Hsk | HG)
     · ileft; ipureintro
       rcases Hst.2.1 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived, Hsk]
@@ -268,6 +273,8 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     isplitr
     · simp only [apply.applyAuthRes]; itrivial
     iframe HL
+    isplitr
+    · ipureintro; intro o b hb; cases hb
     isplitr
     · ipureintro; intro o b hb; cases hb
     iright; iexact HG

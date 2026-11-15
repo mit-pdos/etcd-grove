@@ -344,7 +344,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
       srvGoRes s -∗ mvcc.api.mvccReaders E.γ 1 -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' -∗
-      srvRestR E γr rp (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
+      srvRestRM C.isOn E γr rp (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
   · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
@@ -493,7 +493,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               word
             ihave #Hlog'' : appliedLogAt γr ai' x'.log $$ []
             · rw [← hgai]; iexact Hlog'
-            rw [ghostOf_past rp _ hW, srvRestR_past E γr rp _ hW]
+            rw [ghostOf_past rp _ hW, srvRestRM_past C.isOn E γr rp _ hW]
             have hciE : ciEff γ st4.k = ai' := by
               rw [Hst4.2]
               have h2 : uint.Z (ciEff γ st'.k) ≤ uint.Z ai' := by
@@ -518,6 +518,9 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
             ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]
             · iunfold apply.applyTok; iexact Hmr
+            -- (auth-lease S3a §5) the window at the mode's table
+            ihave HRS : srvRestM E.authOn E γr (A ++ unapplied ai ms) $$ [HRS]
+            · rw [hon]; iexact HRS
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
                 s γ ci TM E ρ γr b st4 ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst4.1 hciE
                 (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
@@ -542,6 +545,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             ihave Hgr : srvGoRes s $$ [HgrW HgT]
             · iunfold srvGoRes; iframe HgrW HgT
             imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
+            ihave HRS : srvRestM C.isOn E γr (A ++ unapplied ai ms) $$ [HRS]
+            · rw [← hon]; iexact HRS
             ihave HKV := HKVk $$ HKVc HAr
             iunfold apply.applyTok at HthT
             irename HthT => Hmr

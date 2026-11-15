@@ -493,6 +493,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
@@ -515,6 +516,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
@@ -537,6 +539,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv

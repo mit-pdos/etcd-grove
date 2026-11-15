@@ -62,6 +62,31 @@ theorem kvOwn_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : In
   · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
   iframe Hll Hrd
 
+/-- The thread's KV resources at the live set `L`, from the split's pieces (auth-lease S3a). -/
+theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) (L : List w64) :
+    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
+      txn.leasesKnown L (mvcc.stateAfter log) ∗
+      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗ ltHalf E L ∗
+      E.RD ⊢ kvOwnAt E log L := by
+  iintro ⟨Hw, Htie, Hbk, Hhk, Hk, Hu, Hlt, Hrd⟩
+  iunfold kvOwnAt
+  isplitl [Hw]
+  · iexists cr; iexact Hw
+  isplitl [Hbk Hhk Htie]
+  · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
+  iframe Hk Hu Hlt Hrd
+
+/-- **Two writer halves at different logs are impossible** (each holds a half of `γs.st`). -/
+theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
+    srvApi.wSt (GF := GF) γs l c ∗ srvApi.wSt γs l' c' ⊢ False := by
+  unfold srvApi.wSt
+  iintro ⟨⟨Hs, -⟩, ⟨Hs', -⟩⟩
+  icombine Hs Hs' gives %H
+  exfalso
+  have := H.2
+  simp only [Prod.mk.injEq] at this
+  exact h this.1
+
 /-- **`mPostW` at the backend**, from the split's pieces, the caller's outcome and the reader
 token back. -/
 theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Post : IProp GF)

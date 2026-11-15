@@ -123,12 +123,14 @@ instance authIsL_persistent (E : AEnv GF) (p : Loc) (L : List auth.AuthState →
   unfold authIsL; infer_instance
 
 /-- `kvPostF` with the outcome's property `X` (`authOutL` for the auth applier's methods); (auth-lease
-S2, Q5) with `kvPostF`'s lease class at the owner's item map of the state before the request. -/
+S2, Q5) with `kvPostF`'s lease class at the owner's item map of the state before the request; (S3a,
+Draft rev 5 §3a) with `kvPostF`'s lease exactness at the live set of `kvOwnAt`. -/
 def kvPostFL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc ∧ X oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
+    chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
     chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `rangePost` with the outcome's property `X`. -/
@@ -264,6 +266,7 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
         log F R Pre Post X := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
   ihave HPre := csContract_pre _ _ _ _ _ $$ Hcs
+  ihave Hkv := kvOwn_rejected E log rq .auth (by decide) $$ Hkv
   iunfold kvPostFL
   iexists (.rejected .auth)
   isplitr

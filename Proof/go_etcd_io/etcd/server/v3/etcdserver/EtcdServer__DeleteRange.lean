@@ -196,7 +196,8 @@ theorem EtcdServer.DeleteRange.wp_proof
       · isplitr
         · ipureintro; exact Hwf
         rw [Hxlb, ← HLlb]
-        iframe HQ
+        isplitl [HQ]
+        · iexists []; iframe HQ; ipureintro; intro _; rfl
         isplitr
         · iunfold hdrBoundM; ipureintro; trivial
         iintro !> %h; cases h
@@ -269,8 +270,8 @@ theorem EtcdServer.DeleteRange.wp_proof
       -- the delete's result, with its token
       rw [Hrq] at Hmo
       iunfold deleteQhOn at HQq
-      ihave #HQr := grantedRes_applied ρ.kv _ γc Q Lq x.log log' skip
-        (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq
+      icases grantedRes_applied ρ.kv _ γc Q Lq x.log log' skip
+        (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq with ⟨%lt, %Hlt, #HQr⟩
       have Hga := grantedAt_of_applied ρ.kv _ Lq x.log log' skip
         (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo
       rw [← Hrq] at Hga
@@ -289,7 +290,11 @@ theorem EtcdServer.DeleteRange.wp_proof
       rotate_left
       · isplitr
         · ipureintro; exact Hwf
-        iframe HQ
+        isplitl [HQ]
+        · iexists lt; iframe HQ; ipureintro
+          rintro (h | h)
+          · cases h
+          · exact Hlt h
         isplitr
         · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
         iintro !> -

@@ -88,9 +88,9 @@ theorem eventsIs_of_erase (es : List EvModel) (evs : List mvcc.EvM) (kvs : List 
 /-- **A pointer at the server's level, as a read of a longer log's state** (k8s 7f-3c): the key's
 record at the revision before the event's in a watched log `L` is the one in the state of a log
 `C` extending it. -/
-theorem prevKvLogOk_state (o : OpFull) (L C : mvcc.Log) (hLC : L <+: C) (ev : mvcc.EvM) (pk : Loc)
-    (hj : sint.nat ev.kv.modRev - 1 < L.length) :
-    client.prevKvLogOk (GF := GF) o L ev pk ⊢ prevKvOk o (kvStateOf C) ev pk := by
+theorem prevKvLogOk_state (o : OpFull) (L C : mvcc.Log) {lt : LeaseTable} (hLC : L <+: C) (ev : mvcc.EvM)
+    (pk : Loc) (hj : sint.nat ev.kv.modRev - 1 < L.length) :
+    client.prevKvLogOk (GF := GF) o L ev pk ⊢ prevKvOk o (kvStateOf C lt) ev pk := by
   unfold client.prevKvLogOk prevKvOk
   split
   · iintro (%h | ⟨%kv, %H, #Hkv⟩)
@@ -99,7 +99,7 @@ theorem prevKvLogOk_state (o : OpFull) (L C : mvcc.Log) (hLC : L <+: C) (ev : mv
     have hCl := hLC.length_le
     have hst : mvcc.stateAt L (sint.nat ev.kv.modRev - 1) =
         mvcc.stateAt C (sint.nat ev.kv.modRev - 1) := v3rpc.stateAt_prefix hLC hj
-    have hat : (kvStateOf C).at (sint.nat ev.kv.modRev - 1) =
+    have hat : (kvStateOf C lt).at (sint.nat ev.kv.modRev - 1) =
         storeOf (mvcc.stateAt C (sint.nat ev.kv.modRev - 1)) := kvStateOf_at C _ (by omega)
     have hk := findKey_key hf
     iright
@@ -182,7 +182,7 @@ theorem srvKVFacts_fire (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst
     client.srvKVFacts V ∗ □ V.W.histLb L ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ⊢
-      |={⊤}=> ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+      |={⊤}=> ∃ (C : mvcc.Log) (lt : LeaseTable), □ Q (kvStateOf C lt) ∗ ⌜L <+: C⌝ := by
   iintro ⟨#Hk, #HL, #Hau⟩
   iunfold client.srvKVFacts at Hk
   icases Hk with ⟨%on, %γr, #Hc, %Hp, -, %Ht⟩
@@ -194,9 +194,9 @@ theorem srvKVFacts_fire (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst
   icases HL with ⟨-, %L', %HL', #Hx, -⟩
   ihave Hx' : V.R.E.Nx L' $$ []
   · rw [HNx]; iexact Hx
-  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L' Q $$ Hc Hx' Hau with ⟨%C, #HQ, %HC⟩
+  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L' Q $$ Hc Hx' Hau with ⟨%C, %lt, -, #HQ, %HC⟩
   imodintro
-  iexists C
+  iexists C, lt
   iframe HQ
   ipureintro; exact HL'.1.trans HC
 
@@ -206,15 +206,15 @@ theorem srvKVFacts_fire0 (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.ks
     client.srvKVFacts V ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ⊢
-      |={⊤}=> ∃ C : mvcc.Log, □ Q (kvStateOf C) := by
+      |={⊤}=> ∃ (C : mvcc.Log) (lt : LeaseTable), □ Q (kvStateOf C lt) := by
   iintro ⟨#Hk, #Hau⟩
   ihave #Hk' := Hk
   iunfold client.srvKVFacts at Hk'
   icases Hk' with ⟨%on, %γr, #Hc, %Hp, -, -⟩
   imod srvKVCoreM_someNx on V.R.E γr $$ Hc with ⟨%L, Hx⟩
-  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L Q $$ Hc Hx Hau with ⟨%C, #HQ, -⟩
+  imod srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hp.1]) L Q $$ Hc Hx Hau with ⟨%C, %lt, -, #HQ, -⟩
   imodintro
-  iexists C
+  iexists C, lt
   iexact HQ
 
 /-- **A response at the server's level is a read of the state** (see the file header): the caller's
@@ -235,17 +235,17 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
   have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl
   iintro #Hk #Hl #Hau #Hpos #Hraw
   -- the update fired at some witnessed log
-  imod srvKVFacts_fire0 V γ hst Q $$ [Hk Hau] with ⟨%C0, #HQ0⟩
+  imod srvKVFacts_fire0 V γ hst Q $$ [Hk Hau] with ⟨%C0, %lt0, #HQ0⟩
   · iframe #
   unfold client.rawRespOk
   icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, (%Hle | ⟨%L, #HL, %HLp⟩)⟩ |
     ⟨%Hev, %L, %kvs, #HL, %HLe, #Hkv, #Hpk⟩)
-  · imodintro; iexists kvStateOf C0; iframe HQ0
+  · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; ileft; iframe Hse; ipureintro; exact Herr
     iapply respPkOk_nil; rw [Herr.2]; exact rangeEvents_same _ _ _
-  · imodintro; iexists kvStateOf C0; iframe HQ0
+  · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; iright; ileft; ipureintro; exact Hne
@@ -254,7 +254,7 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
     obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
     iunfold posQ at Hpos
     icases Hpos with (%Hst | ⟨%σ', #HQ', %Hσ'⟩)
-    · imodintro; iexists kvStateOf C0; iframe HQ0
+    · imodintro; iexists kvStateOf C0 lt0; iframe HQ0
       unfold watchStateRespOkP
       isplitr
       · unfold watchStateRespOk; iright; iright; ileft; ipureintro
@@ -272,15 +272,15 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
         unfold KVState.rangeEvents; rw [hn']; simp
       iapply respPkOk_nil
       rw [hc', hn']; exact rangeEvents_same _ _ _
-  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, #HQ, %HLC⟩
+  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, %ltC, #HQ, %HLC⟩
     · iframe #
     ihave %Hlk := client.srvWLaws_model V.W L $$ [$Hl $HL]
-    imodintro; iexists kvStateOf C; iframe HQ
+    imodintro; iexists kvStateOf C ltC; iframe HQ
     obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
     obtain ⟨hpl, hnone⟩ := HLp
     have hCl := HLC.length_le
-    have hnone' : (kvStateOf C).rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] := by
-      rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
+    have hnone' : (kvStateOf C ltC).rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] := by
+      rw [rangeEvents_kvStateOf C (lt := ltC) o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
       exact hnone
     unfold watchStateRespOkP
@@ -290,17 +290,17 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
       · rw [kvStateOf_rev]; omega
       · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2.1 Hlk.2.1 (by simp only [hn]; omega) Hlk.2.2.2
     iapply respPkOk_nil; rw [hc']; exact hnone'
-  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, #HQ, %HLC⟩
+  · imod srvKVFacts_fire V γ hst L Q $$ [Hk HL Hau] with ⟨%C, %ltC, #HQ, %HLC⟩
     · iframe #
     obtain ⟨hv, hne, hc0, hcc, hlast⟩ := Hev
     obtain ⟨hcl, hkl, hre⟩ := HLe
     have hCl := HLC.length_le
-    have hevs : (kvStateOf C).rangeEvents o (sint.nat c + 1) (sint.nat c' + 1) =
+    have hevs : (kvStateOf C ltC).rangeEvents o (sint.nat c + 1) (sint.nat c' + 1) =
         rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1) := by
-      rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
+      rw [rangeEvents_kvStateOf C (lt := ltC) o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
     ihave %Hlk := client.srvWLaws_model V.W L $$ [$Hl $HL]
-    imodintro; iexists kvStateOf C; iframe HQ
+    imodintro; iexists kvStateOf C ltC; iframe HQ
     unfold watchStateRespOkP
     isplitr
     · unfold watchStateRespOk; iright; iright; iright

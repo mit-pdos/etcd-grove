@@ -131,3 +131,10 @@ lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/start
 lit-mode unmoved ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/barrier\.lean::  # 1 (auth3 A2, 2026-11-14): a member started with auth on (memberUpOn_served's read view), as authkv's WorkEnv
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/AuthFixed\.lean::  # 1 (auth3 A2, 2026-11-14): the barrier lemma over akAuthFixed_alloc's read view, as authkv's WorkEnv
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/run\.lean::  # 1 (auth3 A2, 2026-11-14): serve_member, authkv's Run's Serve step
+
+# (auth-lease S3a, 2026-11-15) the auth-on lease table and the rest buckets at it: model rows (`srvRestT` at the
+# mode-`on` model's table, `appliedTableM`), at a literal mode in the auth-on apply arms, their laws, and the
+# mode-generic lemmas' `cases on` branches
+match-mode model ::(srvRestM|srvRestRM|srvRestRpM|appliedTableM|imageLeasesAtM)::
+lit-mode model ::(appliedTableM|srvRestM|srvRestRM|srvRestRpM|imageLeasesAtM|kvModelM|kvStM)(\s*\(GF := GF\))? (true|false)$  # the KV model and its lease table at a case's mode (auth-lease S3a §4-§6)
+match-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot\.lean::EtcdServer\.applySnapshot\.specSnapM::  # (auth-lease S3a rev 5 §5, frozen) `hnl`'s auth-on/off text

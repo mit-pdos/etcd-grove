@@ -181,8 +181,8 @@ def entryWitOn (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel) (lb : m
     srvRLogLb ρ.raft L ∗ idClaimAny ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧
-      kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take m) = (st, lb)⌝ ∗
-    authPubAt M (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take (m + 1))).1)
+      ∃ lt, kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take m) = (st, lb, lt)⌝ ∗
+    authPubAt M (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L.take (m + 1))).1)
 
 instance entryWitOn_persistent (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel)
     (lb : mvcc.Log) (st : auth.AuthState) :
@@ -217,7 +217,8 @@ def modelOutM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryM
     (lb : mvcc.Log) (out : apply.ApplyOut) : Prop :=
   match on with
   | false => kvModel γk L = lb
-  | true => ∃ st, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L = (st, lb) ∧ authTie st rq out
+  | true => ∃ st lt, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L = (st, lb, lt) ∧
+      authTie st rq out
 
 /-- **An admin result's tie as the proposer reports it, in the auth mode `on`** (E3x): `True` off;
 on, `adminTieAr` at the auth state the mode-`on` model of the committed prefix `L` reaches (the
@@ -227,7 +228,7 @@ def adminTieM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryM
   match on with
   | false => iprop(True)
   | true =>
-    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L).1
+    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L).1
     adminTieAr ar rq st (adminNext rq st) out
 
 instance adminTieM_persistent (on : Bool) (γk : KVNames) (rq : apply.IRRModel)
@@ -243,7 +244,7 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
   match on with
   | false => True
   | true =>
-    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L).1
+    let st := (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L).1
     apply.needAdminPermission rq = true → adminStepOk rq st (adminNext rq st)
 
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
@@ -275,7 +276,7 @@ def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRMo
   | false => iprop(True)
   | true => iprop(∃ e : EntryModel, srvRLogLb ρ.raft (L ++ [e]) ∗
       ⌜e.typ = W32 0 ∧ e.data ≠ [] ∧ apply.irrDecode e.data = some rq'⌝ ∗
-      authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1)
+      authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0, []) (L ++ [e])).1)
 
 instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
     (L : List EntryModel) : Persistent (pubAfterM (GF := GF) on E ρ rq' L) := by
@@ -951,7 +952,7 @@ theorem grantedAt_of_applied (γk : KVNames) (rq : apply.IRRModel) (L : List Ent
     (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
     (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
     grantedAt γk srvAuthSt0 rq L := by
-  obtain ⟨st, hst, htie⟩ := h
+  obtain ⟨st, lt, hst, htie⟩ := h
   have hg : kvGranted st rq := by
     have := htie hkv _ _ rfl
     exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
@@ -965,14 +966,17 @@ theorem grantedRes_applied (γk : KVNames) (rq : apply.IRRModel) (γc : GName)
     (Q : KVState → IProp GF) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
     (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
-    grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢ kvRes γc Q (kvStateOf lb) := by
+    grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢
+      ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) := by
   have hga := grantedAt_of_applied γk rq L lb log' skip hkv h
-  obtain ⟨st, hst, -⟩ := h
+  obtain ⟨st, lt, hst, -⟩ := h
   have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
   unfold grantedRes
   rw [hlb]
-  iintro (⟨-, H⟩ | %Hn)
-  · iexact H
+  iintro (⟨%Hg, H⟩ | %Hn)
+  · iexists kvLeasesOn γk srvAuthSt0 L
+    iframe H
+    ipureintro; exact Hg.2
   · exact absurd hga Hn
 
 
@@ -996,7 +1000,7 @@ theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState →
     (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (h : modelOutM true γk (apply.withHeader (irrPut op) hm) L lb
       (.dispatched (.applied log' false) skip)) :
-    putQhOn (GF := GF) γk op γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) :=
+    putQhOn (GF := GF) γk op γc Q hm L ⊢ ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) :=
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrPut_kind]; rfl) h
 
@@ -1258,7 +1262,7 @@ theorem txnQhOn_res (γk : KVNames) (tw : txn.TxnModelW) (γc : GName) (Q : KVSt
     (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
     (h : modelOutM true γk (apply.withHeader (irrTxn tw) hm) L lb
       (.dispatched (.applied log' false) skip)) :
-    txnQhOn (GF := GF) γk tw γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) :=
+    txnQhOn (GF := GF) γk tw γc Q hm L ⊢ ∃ lt, ⌜γk.lm = .none → lt = []⌝ ∗ kvRes γc Q (kvStateOf lb lt) :=
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrTxn_kind]; rfl) h
 

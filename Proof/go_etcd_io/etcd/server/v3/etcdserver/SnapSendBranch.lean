@@ -420,7 +420,7 @@ def mergedImgM (M : auth.AuthMode) (lg : Bool) (γr : ReadNames) (ai : w64) (A :
         go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
       (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
         go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-      bkRestAtM M (if lg then kvLeases γr.kv (γr.raft.pre ++ A) else []) γr.kv.c0
+      bkRestAtM M (if lg then appliedTableM M.isOn γr A else []) γr.kv.c0
         γr.raft.raft.boot (γr.raft.pre ++ A) D ∧
       imageStOk log crev⌝ ∗
     ∃ u : Bool, mvcc.api.mvccImage D log crev u)
@@ -437,10 +437,10 @@ theorem bkRestAtM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     (d : mvcc.KBReal) (f : w64 → w64) (D : backend.Data)
     (hRB : ∀ n ∈ restBuckets, d.P.RB n = true)
     (hrbD : ∀ n, (membership.clusterBkts n ∨ restSet E.authMode n) →
-      (backend.rbData d.P D).lookup n = (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+      (backend.rbData d.P D).lookup n = (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n)
-    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
-    bkRestAtM E.authMode (if E.lg then kvLeases γr.kv (γr.raft.pre ++ A) else []) γr.kv.c0
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTableM E.authOn γr A) f) :
+    bkRestAtM E.authMode (if E.lg then appliedTableM E.authOn γr A else []) γr.kv.c0
       γr.raft.raft.boot (γr.raft.pre ++ A) D := by
   refine ⟨f, ?_, fun n hn hs => ?_⟩
   · cases hlg : E.lg
@@ -448,7 +448,7 @@ theorem bkRestAtM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     · exact hfb hlg
   · have := hrbD n hs
     simp only [backend.rbData_lookup, hRB n hn, ↓reduceIte] at this
-    unfold srvIds appliedTable at this
+    unfold srvIds at this
     cases hlg : E.lg <;> simp only [hlg, Bool.false_eq_true, ↓reduceIte] at this ⊢ <;> exact this
 
 /-- **Nothing lent** (`bkLendW` of no bucket): what the merged snapshot's window takes with the auth
@@ -536,14 +536,14 @@ theorem mergedCreate_window
       isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗
       srvWTPool E γp ∗ ⧗ 1 ∗ £ 1 ∗ apply.applyTok E ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗
-      srvRest E γr A ∗ bkLendW E SA QA RA ⊢
+      srvRestM E.authOn E γr A ∗ bkLendW E SA QA RA ⊢
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF)
         (Qd : backend.Data → IProp GF),
       srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
       srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
       (∀ D : backend.Data, RS' -∗ Qd D -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState,
         apply.applyTok E ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-        srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
+        srvApplyKVCore s E γw x ua ∗ srvRestM E.authOn E γr A ∗
         mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
         RA ∗ ⌜(∃ r, QA r ∧ ∀ n, SA n → D.lookup n = r.lookup n) ∧
           loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
@@ -622,17 +622,17 @@ theorem mergedCreate_window
   -- the snapshot's write-back token
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hl1 Hg with ⟨Ht1, Hg⟩
   -- the rest buckets, at the image of the applied log's leases (lease-expiry)
-  ihave ⟨%f, %Hfb, HRs, HLt, #HGI, #HRq, HEv⟩ := srvRest_open E γr A $$ HRs
+  ihave ⟨%f, %Hfb, HRs, HLt, #HGI, #HRq, HEv⟩ := srvRestM_open E.authOn E γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
   icases Hro with ⟨Hrc, Hrn, Hcl, %Hmi⟩
   ihave Hrb : iprop(backend.rbOwnIn (GF := GF) d.γB membership.clusterBkts
-      (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+      (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
     backend.rbPart d.γB (restSet E.authMode)
-      (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+      (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
     RL) $$ [Hrc Hrn Hpa]
   · iframe Hrc Hrn Hpa
@@ -650,19 +650,19 @@ theorem mergedCreate_window
       (mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗
       backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
-          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB (restSet E.authMode)
-          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         RL)) ∗
       srvApi.wSt E.γs x.log x.crev))
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
-          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB (restSet E.authMode)
-          (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         RL)) ∗
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)))
@@ -690,15 +690,15 @@ theorem mergedCreate_window
     wp_apply (srvApi.snapImageG hPers hReach hImg hSnap E.Nx E.Cp E.kv E.γ E.γs x.log x.crev d (E.Pk d)
         backend.rdOpen
         iprop(freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
-            (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+            (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
           backend.rbPart d.γB (restSet E.authMode)
-            (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+            (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
           RL))
         (fun dd r => ciObs (ciEff γ st.k) dd ∧
           (∀ n, (membership.clusterBkts n ∨ restSet E.authMode n) → r.lookup n =
-            (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+            (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n) ∧
           ∃ ra, QA ra ∧ ∀ n, SA n → r.lookup n = ra.lookup n))
       $$ [HmB Ho Hwb Htok HR Hws]
@@ -709,7 +709,7 @@ theorem mergedCreate_window
       icases Hlaw $$ %r HRL Hrb' with ⟨%Hra, -, Hrb'⟩
       ihave Hnone := backend.rbPart_none (GF := GF) d.γB ∅
       ihave %Hob := (snapObsA γ d.γB d.P hcK st (restSet E.authMode)
-        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+        (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk (fun _ => False) ∅)
         $$ [HY Hrc Hrn Hnone] HPk Hhk Hrb'
       · iframe HY Hrc Hrn Hnone
@@ -785,7 +785,7 @@ theorem mergedCreate_window
       · iexact Hra
       iexact Hw
     isplitl [Hrc Hrn Hcl HH HLt HEv]
-    · iapply srvRest_close
+    · iapply srvRestM_close
       iframe HLt HGI HRq HEv
       iexists f
       isplitr
@@ -869,6 +869,8 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   icases Hmi with ⟨%hmi, %u, #Him⟩
   obtain ⟨hci', hterm, hrest, hre⟩ := hmi
   rw [hM] at hrest
+  simp only [auth.AuthMode.isOn, appliedTableM_false] at hrest
+  unfold appliedTable at hrest
   have hpre : γr.raft.pre = [] := by rw [hraft]
   have hn : E.lg = false → (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
     intro hlg
