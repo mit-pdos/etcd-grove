@@ -553,11 +553,20 @@ review also exposed a latent assumption of two existing axioms, `status.FromErro
 (E2, E4, E5) are made with ledger entries; trusted texts (E1's package, E3) are drafted here, one package
 for 81's review, not applied; step 5 takes them as `-- pending E1`/`-- pending E3` hypotheses.
 
-### 11.2 The E1 package (DRAFT, trusted text; not applied)
+### 11.2 The E1 package (trusted text; approved by etcd-grove-81 2026-11-15 with fixes 1-5 below, applied to this text; not yet in Lean)
+
+Review: `/shared/tmp/claude-0/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/tasks/a5b3d2b2a50b33811.output`
+(no counterexample). Fixes applied here: (1) no nil case, and the law `grpcStatusRO s c ⊢ ⌜s ≠ null⌝`;
+(2) "fresh per call" dropped (shared statuses are fine); (3) "nobody writes" reworded as "whose `Code()`/
+`Message()` never change" (protobuf's internal size cache is written by `proto.Marshal`); (4) the
+`ctxErrsErr` line rechecked; (5) the pass-through paths checked (end of (d)). Fix 6 (optional) taken in (c).
 
 **New opaque vocabulary** (in `Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusCode`):
-`grpcStatusRO (s : Loc) (c : w32) : IProp GF`, persistent: "`s` is a `*Status` nobody writes, whose
-code is `c`". Opaque because grpc's `Status` is an axiomatized type (no points-to can be stated).
+`grpcStatusRO (s : Loc) (c : w32) : IProp GF`, persistent: "`s` is a non-nil `*Status`, built by
+`status.New`/`Error` (or grpc's other constructors) and never written after, whose `Code()` is `c` and
+whose `Code()` and `Message()` never change". Opaque because grpc's `Status` is an axiomatized type (no
+points-to can be stated). Law (an axiom of the opaque vocabulary, or part of its definition if it is
+stated as `⌜s ≠ null⌝ ∗ opaque`): `grpcStatusRO s c ⊢ ⌜s ≠ null⌝`.
 
 **(a) `grpcErrMethodsOk`'s `GRPCStatus` conjunct** gains the returned status's facts:
 ```
@@ -567,34 +576,57 @@ code is `c`". Opaque because grpc's `Status` is an axiomatized type (no points-t
 ```
 Docstring (`Base.lean:325`) corrected: grpc's `*Status` is not immutable in Go (a whole-struct
 assignment `*s = *t` from any package copies its unexported fields); the fact is a guarantee of the
-producer that built `s` fresh and never handed out a way to write it.
+producer that built `s` (with `status.New`/`Error`) and never writes it after; a status may be shared
+(package-level `status.Error` values: grpc's `ErrClientConnClosing`, `errContextCanceled`/`errContextDeadline`,
+etcd's `ErrGRPC*`).
 
 **(b) The `Status` methods over `grpcStatusRO`** (replaces E1; an axiom in
 `Proof/google_golang_org/grpc/status/StatusRO.lean`):
 `∀ s c, {{ grpcStatusRO s c }} (s @!! *Status @!! "Code") #() {{ RET #c; True }}` (Go:
-`if s == nil || s.s == nil { return codes.OK }; return codes.Code(s.s.Code)`: a read of a status
-nobody writes; for `s = nil` the producer states `c = OK`). `Proto()`, `Message()` as needed by
-(c) only (not exported unless a proof needs them).
+`return codes.Code(s.s.Code)` for a non-nil `s` with a non-nil `s.s`, as every constructor builds it: a
+read of a status whose code never changes). `Proto()`, `Message()` as needed by (c) only (not exported
+unless a proof needs them).
 
 **(c) `status.FromError.spec` and `status.Code.spec`**: statements unchanged (they take `statusErrOk
 err`, which now carries `grpcStatusRO s (statusCode e)` for an error with `GRPCStatus`); the
 docstrings say that `FromError`/`Code` read the returned `*s` through `Proto()`/`Code()`, justified by
-`grpcStatusRO`, and the pointer added today to the axiom-review note goes away.
+`grpcStatusRO`, and the pointer added today to the axiom-review note goes away. Fix 6 (optional, taken
+if cheap when applying): `FromError`'s post also gives `grpcStatusRO s (statusCode err)` of the status it
+returns (for an error with `GRPCStatus` it returns that very pointer; otherwise one it built with `New`).
 
-**(d) The producers that build a status fresh** (each trusted text whose post gives `statusErrOk` of
+**(d) The producers that build a status** (each trusted text whose post gives `statusErrOk` of
 an error with a `GRPCStatus` method now also promises `grpcStatusRO` of its status, through (a); no
 statement changes, the meaning of `statusErrOk` does):
 - `status.Error.spec`, `status.Errorf.spec` (`Proof/google_golang_org/grpc/status/Error.lean`,
-  `Errorf.lean`): `&Error{s: New(c, msg)}`, `s` fresh, `*Error.GRPCStatus` returns `e.s` (never
+  `Errorf.lean`): `&Error{s: New(c, msg)}`, `*Error.GRPCStatus` returns `e.s` (never
   written after); the code is `c`, so the post may also say `statusCode err = c` (optional).
 - grpc's invoker and stream texts (`Proof/google_golang_org/grpc/InvGrpc.lean`: `grpcInvokerOk`'s
-  attempt error, `grpcDecOk` (`toRPCErr`'s `*status.Error`), `ctxErrsErr` (context errors: no
-  `GRPCStatus`, unaffected); `InvGrpcStream.lean`: `cliStreamErr`, the `RecvMsg`/`SendMsg`/`Send`
-  error arms at lines 434, 477, 543): grpc builds each `*status.Error` with `status.New`/`Err()` or
-  `FromContextError`, fresh per error; `io.EOF`, `io.ErrUnexpectedEOF` have no `GRPCStatus`.
+  attempt error, `grpcDecOk` (`toRPCErr`'s `*status.Error`); `InvGrpcStream.lean`: `cliStreamErr`, the
+  `RecvMsg`/`SendMsg`/`Send` error arms at lines 434, 477, 543): grpc builds each `*status.Error` with
+  `status.New`/`Err()`/`NewWithProto` or `FromContextError`, or returns a shared package-level one
+  (`ErrClientConnClosing`, `clientconn.go:70`; `toRPCErr` maps `context.Canceled`/`DeadlineExceeded` to
+  `errContextCanceled`/`errContextDeadline`, `rpc_util.go:1129-1130`), never written after; `io.EOF`,
+  `io.ErrUnexpectedEOF` have no `GRPCStatus`.
+- `ctxErrsErr` (fix 4, rechecked): it is a premise on the program's context (the caller proves it), not a
+  grpc promise; its `statusErrOk err` of `Err()`'s result now also requires `grpcStatusRO` for an error
+  with `GRPCStatus`, which `context.Canceled`/`DeadlineExceeded` (`*errorString`, `deadlineExceededError`)
+  lack, so nothing changes for the contexts in use. Through grpc, those context errors become the shared
+  `errContextCanceled`/`errContextDeadline` (`toRPCErr`), covered by the invoker/stream line above.
 - rpctypes' and v3rpc's package-initializer axioms for the `ErrGRPC*` values
   (`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean`, `.../etcdserver/api/v3rpc/Init.lean`):
   `status.Error(...)` at init, never written.
+- **The pass-through paths (fix 5)**: grpc returns some errors unchanged, so its texts' `grpcStatusRO`
+  of them must come from the program's callback specs. Checked: (i) `toRPCErr` returns as is an error
+  `FromError` accepts; on the client it is reached by the codec's errors (grpc's default proto codec only:
+  `grpcInvokerOk`'s docstring, `dialOptsAt`), the transport's (grpc's own), and the context's `Err()`
+  (`ctxErrsErr`/`ctxOk`, which require `statusErrOk`, now with `grpcStatusRO`); (ii) per-RPC credentials:
+  `perRPCCredsOk` requires `GetRequestMetadata` to return `err = nil` (k8s 7e-1's soundness fix), so the
+  pass-through of a credentials error (`http2_client.go:697-702,733-738`) is unreachable; (iii) client
+  interceptors (`chainWP`): an interceptor's error goes back to the caller, not into grpc, so grpc's texts
+  promise nothing of it; (iv) the server's handler errors (`grpcHandlerOk`) are written to the wire
+  (`RawStatusProto`, read-only) and rebuilt on the client by `NewWithProto`; `grpcDecOk`'s errors are
+  grpc's own. No callback hands grpc an error whose status grpc's texts then promise without the
+  callback's spec requiring `statusErrOk`.
 **Go evidence (written 2026-11-15, sixteenth agent): `examples/premisefix/grpcstatusro/`** (main examples
 module, the etcd fork at the etcd pin, grpc v1.84.0; `GOWORK=off GOTOOLCHAIN=go1.27.3 go test -race`, 32G
 cap, all pass, `/shared/tmp/k8s7f5a-p3/e1.log`):

@@ -1,7 +1,9 @@
 // Package grpcstatusro is the Go evidence of the E1 package (k8s 7f-5a-P, notes/k8s-7f5a-draft.md
-// §11.2; notes/axiom-review/grpc-status-immutability.md): grpcStatusRO s c, "s is a *Status nobody
-// writes, whose code is c", promised by the producers that build a status fresh, and
-// {{ grpcStatusRO s c }} s.Code() {{ RET c }}.
+// §11.2; notes/axiom-review/grpc-status-immutability.md): grpcStatusRO s c, "s is a non-nil *Status,
+// built by status.New/Error and never written after, whose Code() is c and whose Code() and Message()
+// never change", promised by the producers that build a status (shared ones included: ErrGRPC*,
+// grpc's ErrClientConnClosing), and {{ grpcStatusRO s c }} s.Code() {{ RET c }}. (status.Error's
+// pointers are also distinct per call, which the test checks, but the text does not need it.)
 //
 // A *Status is not immutable in Go: any package can assign a whole struct, *s = *t, copying the
 // unexported field (TestWholeStructWriteChangesCode, the negative: the reason grpcStatusRO is a
@@ -153,7 +155,7 @@ func TestNilStatusCode(t *testing.T) {
 
 // TestWholeStructWriteChangesCode: the negative. A program that writes through the pointer
 // GRPCStatus() returns changes what FromError and Code read: no fact of an arbitrary *Status, only
-// of one nobody writes.
+// of one built by a producer and never written after.
 func TestWholeStructWriteChangesCode(t *testing.T) {
 	err := status.Error(codes.Canceled, "x")
 	s := statusOf(t, err)
