@@ -466,7 +466,10 @@ therefore fires at the state with the table (`kvAu1`'s `COMM □ Q σ` at the va
 stated as `Q (kvStateOf log)` (table `[]`) is unprovable once a lease is granted. The off mode proves the same text
 by refuting a granting cluster from the client's half (`kvSt_client_lg`: at `γk.lg` the invariant owns the whole
 variable, `kvStQ`); §2 removes that refutation with auth on by design. No request-side fact (`isServerReqM true`,
-`putPermitM true`, `reqPropOkOn`) ties the auth-on mode to `none`.
+`putPermitM true`, `reqPropOkOn`, `srvReqFieldsAtM`) ties the auth-on mode to `none`. (Review r5 S1: the reader side
+keeps the old text provable only through the transitional `γr.kv.lg = false` of `srvKVInvsOn`, which §5's step
+removes; the ledger's other option (C), a transitional `lm = none` premise on the request side until S3b, would
+have kept the old text and only deferred the change.)
 
 **The restatement.** Wherever an applied write's or a linearizable read's result is handed on, `Q (kvStateOf l)`
 becomes `∃ lt, ⌜on = false → lt = []⌝ ∗ Q (kvStateOf l lt)` (`on` the mode the statement is at: `E.authOn` for a
@@ -482,26 +485,37 @@ the statement does not name (the client's `Q` gets the state it fired at; nothin
 | `EtcdServer.DeleteRange.spec`'s success post | `Spec/…/EtcdServer__DeleteRange.lean:59` | `Q (kvStateOf x.log)` | `G x.log` |
 | `txnAppliedOk` (`EtcdServer.Txn.spec`'s writing post, by name) | `Proof/…/etcdserver/InvRead.lean:235` | `Q (kvStateOf x.log)` | `G x.log` |
 | `putApplied`, `deleteApplied`, `txnAppliedAns` (v3rpc rows) | `Proof/…/api/v3rpc/ServerKV.lean:122, 152, 269` | `Q (kvStateOf x.log)` | `G x.log` |
-| `rangeDepQM on` (v3rpc) | `ServerKV.lean:299` | unchanged text (`□ Q (kvStM on γk L)`); its meaning on through `kvStOn` (below) | — |
+| `rangeDepQM on` (v3rpc) | `ServerKV.lean:300` | unchanged text (`□ Q (kvStM on γk L)`); its meaning on through `kvStOn` (below) | — |
 | client `putReplied`, `deleteReplied`, `txnReplied` (writing), `rangeReplyOk`, `rangeErrReply`, `txnReplied` (read) | `Proof/…/client/v3/KVService.lean:240, 350, 492, 224, 329, 409` | `Q (kvStateOf x.log)` / `□ Q (kvStateOf log)` | `G x.log` / `∃ lt, ⌜E.authOn = false → lt = []⌝ ∗ □ Q (kvStateOf log lt)` |
 | `readQ_of_ansM` (client `Results`) | `client/v3/Results.lean:1039-1046` | `□ Q (kvStateOf log)` | `∃ lt, ⌜on = false → lt = []⌝ ∗ □ Q (kvStateOf log lt)` |
 | `client_get_value`, `client_get_value_rev`, `rangeReply_state` (client `Results`, through `rangeReplyOk`) | `client/v3/Results.lean:3422, 3456, 3493` | text unchanged; their proofs destructure `lt` | — |
 | `revToken_of_put` (v3rpc `Results`, through `putApplied`) | `api/v3rpc/Results.lean` | text unchanged; meaning through `putApplied` | — |
+| `srvKVCoreM_fire` (the watch's read update, review r5 F1) | `Proof/…/etcdserver/ReadOn.lean:488-495` | `∃ C, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝` | `∃ C lt, ⌜on = false → lt = []⌝ ∗ □ Q (kvStateOf C lt) ∗ ⌜L <+: C⌝` |
+| `srvKVFacts_fire`, `srvKVFacts_fire0` (client wrappers, r5 F1) | `Proof/…/client/v3/WatchFire.lean:180-185, 205-209` | `∃ C, □ Q (kvStateOf C) …` | `∃ C lt, □ Q (kvStateOf C lt) …` (no guard: `srvKVFacts` hides the mode, `InvWatch.lean:371-375`; the watch's statements already quantify the state, `OnceUpTo.lean:86` reads only `σ.changes`) |
 | `kvLogOkTo` (the clients' well-formed state) | `Proof/…/etcdserver/KVLogOk.lean:60` | `σ = kvStateOf σ.log ∧ …` | `σ = kvStateOf σ.log σ.leases ∧ …` (the table free) |
 | `kvStOn` (the read deposits' state; moved to `KVAuthModel`, a form already accepted) | `KVAuthModel.lean` | `kvStateOf (kvModelOn γk st₀ L)` | `kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)` (must equal `kvInvOn`'s state, which the deposits' firing reads, `ReadOn.lean:666`) |
 
 Through these, the meaning (not the text) of: `EtcdServer.Txn.spec` (writing post), `EtcdServer.Range.spec` and
 `EtcdServer.start.spec` (`kvStM E.authOn`), the v3rpc `raftKV`/`kvPutOk`/`kvDeleteOk`/`kvTxnOk` conjuncts and
 `srvKVAnsM`, the client's gRPC KV specs (`etcdPutSpec`, `etcdRangeSpec(E)`, `etcdDeleteSpec`, `etcdTxnSpec`,
-`kvPutSpec`…`kvTxnSpec`), `etcd_*HandlerM`, `etcd_kv_served`, `client_*_any`, `client_*_end_to_end`.
+`kvPutSpec`…`kvTxnSpec`), `etcd_*HandlerM`, `etcd_kv_served`, `client_*_any`, `client_*_end_to_end`; (r5 S3) the
+auth-on client results `client_put_on`, `client_range_on`, `client_delete_on`, `client_txn_on` (`ResultsOn.lean:55,
+150, 223, 329`) and `KVServiceOn`'s handler premises; `kv.Put.spec`, `kv.Get.spec`, `kv.Delete.spec`,
+`txn.Commit.spec` (through `kvLogOk`); etcdstart's `Writer.spec`, `WritesKM` (in `interface/`, text unchanged), the
+watch proof (`WatchFire.lean`, `watcher__Watch.lean:54`) and `OnceUpTo` (cache, compactwatch, k8s compactor).
+**Proofs to re-check, statements unchanged (r5 S4):** `ReqOn.lean:969, 1000, 1262`, `KVService.lean:1767-1932`,
+`kubernetes/Defs.lean:263`, k8s `etcd3/Compact.lean:168-170`, `txnlin/Calls.lean:443-498`,
+`partition/WatchWrites.lean:110`, `ClientPutGet.lean:450, 510`, `ServerKVTxn.lean:723`.
 Projection lemmas stated at the default table generalize to `{lt}` (a form): `revEvents_kvStateOf`,
 `rangeEvents_kvStateOf` (`WatchStateDefs`), `kvStateOf_at_kvs`, `kvStateOf_changesAt`, `kvStateOf_rev_succ`,
 `kvStateOf_commit_rev`, `kvLogOk_commit` and the `KVLogOk` lemmas (`kvStateOf_rev`, `kvStateOf_kvs` already are).
 
 **Who relies on a lease-free auth-on state (the check, 2026-11-15).** Grep of `client/v3`, `api/v3rpc`,
 `Proof/github_com` and `examples/` for `kvStateOf`, `kvLogOk(To)`, `.leases`, `leaseMissing` and the rows above:
-- The only reader of a state's table is `kvOpStep`'s `leaseMissing` (`PutThenGet.lean:61, 79`, `KMPut.lean:50`):
-  at a put's lease `0`, false at any table, so lease-insensitive.
+- The readers of a state's table are `kvOpStep`'s `leaseMissing` (`PutThenGet.lean:61, 79`, `KMPut.lean:50`: at a
+  put's lease `0`, false at any table) and its transaction case's `PathsLeaseOk` (`KVModelDefs.lean:1105`; its users
+  `KMTxn.lean:83`, txnlin's `kvOpStep_txnOf_eq` through `pathsLeaseOk_plain`, accept any table): lease-insensitive
+  (r5 S5).
 - `kvLogOkTo`'s first conjunct is used only to rewrite a state to its log's for its events/key-values
   (`EtcdModelKV.lean:782`, `auth/Hist.lean:232`, `watch/StateEvents.lean:70, 127`, `KMWatch.lean:184`), all through
   projections that ignore the table: they hold with `σ = kvStateOf σ.log σ.leases`.
@@ -520,6 +534,17 @@ any changed name in a statement (`kvStateOf`, `kvLogOk(To)`, `kvStOn`, the v3rpc
 and `examples/` holds Go only; the closed theorems (`etcd_*_safe`) are adequacy statements over the Go programs'
 executions. The `interface/` files: none covers `client/v3`, v3rpc or the server (`etc/api`), so no new interface
 diff beyond §7's `Alloc3On.txt`.
+
+**Open for etcd-grove-81 (r5 S2): the guard.** `E.authOn = false → lt = []` tells the auth-on clients nothing,
+though authkv/auth3/etcdstart run the lease mode `none`, where the table is empty. `⌜E.authOn = false ∨ γ.kv.lm =
+.none → lt = []⌝` keeps their exact old meaning (provable from `kvInvOn`'s `plainLogOn γk.lm L` and `kvLeasesOn_none`);
+no consumer found needs it. Naming the model's table is not possible for writes (the client rows carry no raft
+log), so the existential stays. Recommendation: the stronger guard (it costs one lemma, and keeps the auth-on
+examples' results at lease mode `none` exactly what they were).
+
+Review round 5 (fresh `spec-reviewer`, `/shared/tmp/auth-lease/s3a-review-r5.md`): F1 (`srvKVCoreM_fire` and its
+wrappers missing) and S1, S3–S6 applied above; S2 open; claims (1), (3), (4) confirmed (all 104
+`Results`/`Adequacy`/`MainLinked` files searched: none under `Proof/github_com` mentions a changed name).
 
 **Not covered here:** S3b's leased puts (their `kvOpStep (.put o)` with `o.leaseID ≠ 0` reads the table; the
 results above already carry it).
