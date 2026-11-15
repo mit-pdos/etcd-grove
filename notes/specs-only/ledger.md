@@ -2016,6 +2016,12 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   `encode.specG`), proved from the page writer. (2) For the user (trusted model). (3) A handle fact: each
   lock's name is `walName seq idx`.
 - **Decision.** Proposed.
+- **Resolved (2026-11-15, unit `noioerr`, second session, `wal-c-noioerr2`).** (1) and (2) together, without
+  changing a statement: new specs over a writer called only with bytes (`io.writerStreamPNE`;
+  `PageWriter.flush/Flush/Write.specNE`, `encoder.flush.specPNE`, `write.specNE`, `encode.specGNE`,
+  `saveCrc.specNE`), the old ones their instances. The page writer never writes an empty slice (Go:
+  pagewriter.go:107-111, 86-88), so the trusted empty-`Write` branch is never reached on the WAL's paths: (2)
+  needs no model change. (3) open (after `wal-c-locks`, which rewrites `walLockH`).
 
 ## 2026-11-15: `wal.Create.spec` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`) -- the update from `walAbsent` only
 
@@ -2049,3 +2055,19 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   hypothesis of `Boot`. Proposed, not made: `Exist.spec`'s `false` arm strengthened to `o = none`
   (closes specgap P6).
 - **Decision.** Made (unit `fresh`, coordinator's option (a)); the `Exist` strengthening proposed.
+
+## 2026-11-15: the no-error WAL specs (unit `noioerr`, second session) -- `EFBIG` at `maxBytes` needs room
+
+- **Spec.** The new `WAL.sync.specNoErr`/`specCNoErr`, `encoder.encode.specTailNoErr`, `WAL.Close.specNoErr`,
+  `WAL.SaveSnapshot.specNoErr` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/*NoErr.lean`).
+- **Defect (of the first statement tried: `Close.specNoErr` from `walOpenWF`).** False: a flush whose bytes
+  reach `maxBytes` (ext4's `s_maxbytes`, `fsExt`'s file size bound) fails with `EFBIG`, which `NoIoErr` keeps
+  (no success exists at that offset), and `walOpenWF` bounds only `o0 + |out| ≤ sz ≤ maxBytes`, not the
+  pending bytes; `SaveSnapshot` adds a frame.
+- **Evidence.** `GooseLang/Ext/Fs/Premises.lean` (`NoIoErr`: a covered call succeeds when a success exists);
+  `examples/osfs/semantics/data_maxbytes.go`; the ledger's 2026-11-14 entries (the stream-end fact withdrawn).
+- **Change (made).** The no-error specs that write take a sealed handle with room, `walOpenWFR P Mr w dir k`
+  (`HandleRoom.lean`: `o0 + |out| + |pend| + k ≤ maxBytes`; `walOpenWFR_wf`); `sync`'s internal no-error
+  specs take `o0 + |out| + |pend| ≤ maxBytes`. Existing specs unchanged.
+- **Decision.** Open, for the user: how a client obtains the room (`notes/wal-units/noioerr.md`, second
+  session: room from `Create`'s and `Save`'s posts, a public measure of the tail, or a history-size premise).

@@ -40,7 +40,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofNoErr (P 
       (hG := hG))
     (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specNoErr (Sio := Sio) (W := W) P Mr := by
-  intro hS0 R jr r w dir sp md cs sized Q
+  intro hS0 R jr r w dir sp md cs sized Q k
   wp_start as ⟨#Harea, Hw, #Hs, %hcs, %hidx, %hsz, Hau⟩
   icases (walOpenWFR_iff P Mr w dir _).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
   iunfold walHandleIn at Hh
@@ -229,14 +229,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofNoErr (P 
     · ipureintro; exact herr
     icases HQ with ⟨%d, HQ, %hd⟩
     isplitl [Hh Hr]
-    · iapply (walOpenWF_iff P Mr w dir).2
+    · iapply (walOpenWFR_iff P Mr w dir k).2
       iexists _
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
       iframe Hh
       simp only
       iframe Hr
       ipureintro
-      refine ⟨⟨hD.1, ?_⟩, hmd⟩
+      refine ⟨⟨hD.1, ?_⟩, hmd, ?_⟩
+      rotate_left
+      · have := congrArg List.length heq
+        simp only [List.length_append, List.length_nil] at this hroom ⊢
+        omega
       show h.st = walLastHS ((h.H ++ [WalOpG.snap md]).map WalOpG.toM)
       rw [hmap, walLastHS_snap]; exact hD.2
     iexists d
