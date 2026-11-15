@@ -36,4 +36,5 @@ axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
-sorry wal.Create.wp_proof
+sorry WalFs.create_cleanBack
+sorry WalFs.create_cleanupLaw

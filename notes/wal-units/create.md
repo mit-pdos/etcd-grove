@@ -160,3 +160,77 @@ spec for an absent source (the second rename after a first that took effect). No
    the rename failed: register and merge back; the rename took effect: **the moved-aside step** above
    (`WalsAt`'s exception holding `Create`'s names fragment, the moved-aside list in `walAreaRes`), the one
    remaining invariant design.
+
+## Session 3 (branch `wal-c-create`, 2026-11-14/15): `cleanupWAL`, the three sites; the rename blocked on the invariant
+
+*Setup*: base `origin/wal-c-create` (`408d79f071`, = `wal-int`); the previous session's worktree build copied
+(same commit). The previous session's worktree still holds the local branch `wal-c-create`, so this one works
+on a local `wal-c-create-b` pushed to `origin/wal-c-create`.
+
+**Proved** (no axiom; the WAL's `sorry`s go from one, `wal.Create.wp_proof`, to two smaller ones in
+`CreateCleanup.lean`; `etc/tcb-baseline.txt` and `etc/tcb-collections/wal-fsext.txt` edited by hand to match,
+to be confirmed by `etc/tcb-report.py --check --update` at integration):
+- **`WAL.cleanupWAL.spec`** (new, internal, `Create`-specific: `LinuxFs/Spec/.../wal/WAL__cleanupWAL.lean`) and
+  **`WAL.cleanupWAL.wp_proof`** (`LinuxFs/Proof/.../wal/WAL__cleanupWAL.lean`, `lake build` clean). Pre: the
+  handle before naming `walOpenWFU P Mr w (child r nm) Rp qp tf`, its purge right, the caller's half of the call
+  permission, a frame `Fr`, and the rename's law `cleanupLaw` (at the timestamp `ts`: from `Fr`, what a
+  successful `Close` returned and `notCrashed`, the precondition of `os.Rename.specDirAnySnc` of `r/nm` onto
+  `r/nm.broken.<ts>`, and a continuation from its post to `Fin err`). Post: `Close` failed in its sync
+  (`walLockedTok`, the names fragment, the tail file open, `Fr`); `Close` returned everything but an error
+  (`walUnlockedTokX`, the names fragment, the paths, the tail file closed, `Fr`); or `Fin err`. Callees:
+  `Close.specU`, `time.Now`, `time.Time.Format.specBroken` and `fmt.SprintfBroken.spec` (the two pending
+  hypotheses, now reaching `wal.wp_Create` in the Link), `os.Rename.specDirAnySnc`, zap.
+- **`Create`'s three sites** (`create_cleanup`, called by `create_named_cont` at the parent's `OpenDir`, `Fsync`
+  and `dirCloser` failures, in both arms 1 and 2): the logs, the deferred `cleanupWAL` over `createFr` (the area
+  path, the area claim less `nm.tmp` and `nm`, `Create`'s fraction `c` of `nm`'s claim, the tagged claims, the
+  split names) and `create_cleanupLaw`; `fmt.Errorf("%w (after: %v)")` of its error (`fmt.ErrorfAny.spec`); the
+  deferred `f.Close()` (arm 1: the tail lock's file, open after a failed sync, closed after `Close`; arm 2: the
+  caller's segment file `walLockLeft`, `Hll2`); `RemoveAll(nm.tmp)`. **The two outcomes without a rename are
+  proved**: the name registered (`walInv_register`, `Create`'s `c`) and `nm.tmp` merged back (`create_areaBack`,
+  `T := walLockedTok` after a failed sync, `walUnlockedTokX` otherwise, `walUnlockedTokX_unlocked_excl`), as arm 4.
+  The outcome with a rename goes through `createFin` and `create_cleanBack`. `wal.Create.wp_proof` takes two new
+  hypotheses, `cleanupWAL.spec` and `fmt.ErrorfAny.spec`, both proved and linked (`Link.lean` regenerated, builds).
+  Arm 2's handle's fraction is `Create`'s `d` (`hqd`).
+- The Fsync site's comment now says the fork's fix (the parent closed without `dirCloser`) is in the translation.
+
+**Left: `create_cleanupLaw` and `create_cleanBack` (`CreateCleanup.lean`, `sorry`)**: the rename's law. Its plan
+(sound up to the update): `c + d + d = ½` from the two pinned paths (`os.osPathS_unchild` twice, `osNames_agree`,
+`osNames_frac`); `nm`'s claim merged back into the area claim (`walInv_merge2`, `T := walUnlockedTokX`) so the
+rename's claim is `N.diff [nm.tmp]` (holding `nm` and the broken name, `AreaOk`'s `nm.<sfx>`); `lb := h'.next`
+(`osNames_next`); the update with the program's half split (a quarter to the rename, a quarter in the update's
+resource) so that an unused update gives it back (`osAUnc_none`, as `renameWAL` does). **Two findings block it,
+both invariant changes, not made** (they touch `walInvBody` or its conjuncts, which four other units' proofs
+destructure; the coordinator should decide where they land):
+
+1. **The update cannot find the invariant's half of the area claim.** `osAUnc`'s opening runs inside the `os`
+   step with the shared invariant's namespace open (`osAuMask` excludes `osShN`), so `osClaims_keys` (how the
+   program's steps find the invariant's half of an area claim from their own) is unavailable there; and nothing
+   in the invariant pins the area claim (`Create`'s commit found its claim through the creating map:
+   `CreatingOk` gives `(jr, N, h) ∈ cl` for an entry; an unpinned claim's invariant half could in principle have
+   moved, and `osNames_agree` gives the history only once a claim of the same names is found). This blocks even
+   the outcomes where the rename has no effect. Options: (a) a pin in the invariant for "the claim the program
+   renames in", e.g. a creating-map entry kind for the cleanup (`CreatingOk` of an entry `J = jr`-marked, or a sum
+   type) recorded by an invariant step at the merge, where `osShN` is available; (b) a new ghost map
+   claim-key -> history in `walInvBody` with its fragment in the update's resource; (c) do the rename on a claim
+   the invariant already pins. Recommendation: (a), recorded by the merge step (`walInvBody_merge2`'s variant),
+   removed by the commit or abort.
+2. **The moved-aside step** (a rename that took effect; the plan above) needs, beyond the session-1 list
+   (`WalsAt`'s exception for the moved WAL's name, `walAreaRes`'s for the broken name, whose directory's claims
+   are the invariant's): **the pending WAL known unnamed in the invariant.** After the rename a crash may keep it
+   (`nm` absent), which `CrashTo` allows only for `named = false`; `named` is monotone (`walDurLe`) and
+   `walInvBody_named`/`walInvBody_namedBy` need only a claim fraction holding `nm`, so nothing now excludes that the
+   real WAL got named before the cleanup. Proposed: `walNamesRes` (or `walInvBody`) records `o = some dir → the
+   WAL in dir is unnamed`; `Create`'s success exit registers before naming (now: names, then registers);
+   `walInv_namedBy` (`ReadAll`) gets `o ≠ some dir` from its handle's `walNamesFrag none`.
+   Minimal forms found for the other two: `WalsAt`'s second part weakened to `h.cur !! lay.nm = some (.dir lay.j) ∨
+   h.cur !! lay.nm = none` (every preservation lemma carries it; its two strong users, the registration's
+   `nameShare` and `names_split_start`, can take the strong fact from their own claim and from `walsAt_start`;
+   `walDirAt_pure`'s second part has no user); `AreaOk`/`walAreaRes`'s `SubCover` exempting a broken name
+   (`∃ nm s, walNameOk nm ∧ b = brokenName nm s`; its one user, `area_takeTmp`, refutes it for `nm.tmp`).
+   With the merge approach the moved step is one claim replaced by its logged self in `cl`; `CreateCommit.lean`'s
+   lemmas (`regionCrashedK_create_keep/drop`, `treeUnren`, `crashOkW_create_other`) are generic in the names but
+   assume the target absent (the cleanup's target may hold an empty directory, `RenTgtOk`): variants needed.
+
+**Next step**: the coordinator's decision on 1 and 2 (where the invariant changes land); then the law (the merge,
+the pinned update, its no-effect commit, the moved-aside commit) and `create_cleanBack` (`createAreaL` to carry
+`h'`'s pure facts: as `h` off `nm.tmp`/WAL names, or moved). `renameWALUnlock` not attempted.

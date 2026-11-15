@@ -5,8 +5,8 @@ over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unf
 proved through the call of `renameWAL`, its committed-error arm and its not-committed arm (the
 unminting, `CreateUnmint.lean`); arm 1 builds the handle before naming (`walOpenWFU`, `CreateHandle.lean`);
 both success arms then run one continuation (`create_named_cont`: the parent's fsync and the naming), whose
-error exits (`cleanupWAL`) are `sorry`, one of them a code bug (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`;
-W4 log, twenty-fourth session). Lean-first.
+error exits run the deferred `cleanupWAL` (`create_cleanup`, over `CreateCleanup.lean`: the rename's law
+`create_cleanupLaw` and `create_cleanBack` are `sorry` there; `notes/wal-units/create.md`). Lean-first.
 -/
 module
 
@@ -54,6 +54,8 @@ public import Spec.time.Duration__Seconds
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import Proof.os.NsS
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCleanup
+public import Spec.fmt.ErrorfAny
 
 @[expose] public section
 
@@ -115,6 +117,143 @@ macro "create_seg_exit" : tactic => `(tactic| (
     ipureintro; intro hc; cases hc))
 
 set_option hygiene false in
+/-- **The deferred calls after the commit, on an error exit of the parent's sync** (the parent's
+`OpenDir`, `Fsync` or `Close` failed, `perr = ok pei`; at the deferred cleanup closure, the handle
+before naming `walOpenWFU P Mr w (child r nm) R d f` whole): `cleanupWAL` (`WAL.cleanupWAL.spec`) over
+`Create`'s area resources (`createFr`) and the rename's law (`create_cleanupLaw`); `fmt.Errorf` of
+its error (if any); the deferred `f.Close()` (the tail lock's file: open after a failed sync, closed
+after `Close`); the deferred `RemoveAll(nm.tmp)` of the absent name; the area back: the name
+registered and `nm.tmp` merged back (`walInv_register`, `create_areaBack`) when no rename was called,
+`create_cleanBack` after one. Unhygienic: it names `Create`'s hypotheses. -/
+macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tacticSeq ")"
+    "(" fC:tacticSeq ")" : tactic => `(tactic| (
+    wp_apply wp_cleanupWAL R jr r nm $w lg R d $tf
+      (createFr R jr r nm (DFrac.own (e + a')) N h c hn cl Wn)
+      (createFin R jr r nm (DFrac.own (e + a')) $tf N cl Wn) hnmO
+      $$ [Hw Hpw Hcp Hp HNr Hnm Hcl Hsf'] as %cerr Hcr
+    · iframe; iframe #
+      isplitl [Hp HNr Hnm Hcl Hsf']
+      · unfold createFr; iframe
+      iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hself hNnm _hcq hnm.1
+        $$ Hok
+    icases Hcr with (⟨%hce, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd'⟩ |
+      ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | Hfin)
+    · -- `Close` failed in its sync: no rename
+      rcases cerr with cei | _
+      rotate_left
+      · exact absurd rfl hce
+      try wp_auto
+      wp_apply wp_slice_literal (V := GoInterface) [GoInterface.ok cei, GoInterface.ok pei]
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      try wp_auto
+      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
+      · iexact Hasl
+      rcases ef with efi | _
+      rotate_left
+      · exact absurd rfl hef
+      try wp_auto
+      ($fA)
+      try wp_auto
+      unfold createFr
+      icases Hfr with ⟨Hp, HNr, Hnm, Hcl, Hsf'⟩
+      wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+        (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hcp] as %err' ⟨Hp, Htmp, Hcp, -⟩
+      · iframe; iframe #
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c hn hin hnmO
+        (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, -, Hsf'⟩
+      imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
+        walLockedTok_unlocked_excl hok hin.1 hself hht $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf'
+        with ⟨Hnc, -, Hres⟩
+      iframe Hnc
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iframe
+      iright; iright
+      iframe
+      ipureintro; intro hc; cases hc
+    · -- `Close` returned an error: no rename
+      rcases cerr with cei | _
+      rotate_left
+      · exact absurd rfl hce
+      try wp_auto
+      wp_apply wp_slice_literal (V := GoInterface) [GoInterface.ok cei, GoInterface.ok pei]
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      try wp_auto
+      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
+      · iexact Hasl
+      rcases ef with efi | _
+      rotate_left
+      · exact absurd rfl hef
+      try wp_auto
+      ($fB)
+      try wp_auto
+      unfold createFr
+      icases Hfr with ⟨Hp, HNr, Hnm, Hcl, Hsf'⟩
+      wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+        (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hcp] as %err' ⟨Hp, Htmp, Hcp, -⟩
+      · iframe; iframe #
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c hn hin hnmO
+        (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, -, Hsf'⟩
+      imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walUnlockedTokX (W := W))
+        walUnlockedTokX_unlocked_excl hok hin.1 hself hht $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf'
+        with ⟨Hnc, -, Hres⟩
+      iframe Hnc
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iframe
+      iright; iright
+      iframe
+      ipureintro; intro hc; cases hc
+    · -- the rename was called: `createFin`; `retErr` the cleanup's error wrapped, or `perr`
+      unfold createFin
+      icases Hfin with ⟨Hp, Hcp, ⟨%nmf, Hf'⟩, HaL⟩
+      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
+      · rw [Qp.half_add_half]; iexact Hcp
+      icases Hcp with ⟨Hcp, -⟩
+      rcases cerr with cei | _
+      all_goals try wp_auto
+      all_goals try (
+        wp_apply wp_slice_literal (V := GoInterface) [GoInterface.ok cei, GoInterface.ok pei]
+        isplitr
+        · ipureintro; rfl
+        iintro %asl ⟨Hasl, -⟩
+        try wp_auto
+        wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
+        · iexact Hasl
+        rcases ef with efi | _
+        rotate_left
+        · exact absurd rfl hef)
+      all_goals (
+        try wp_auto
+        ($fC)
+        try wp_auto
+        wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+          (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hcp] as %err' ⟨Hp, Htmp, Hcp, -⟩
+        · iframe; iframe #
+        iapply wp_notCrashed_acc _ _ rfl
+        iintro Hnc
+        imod create_cleanBack walCodec Mr R jr r nm N cl Wn ht hht $$ Hinv Hsi Hnc HaL Htmp
+          with ⟨Hnc, Hres⟩
+        iframe Hnc
+        imodintro
+        try wp_auto
+        iapply HΦ
+        iframe
+        iright; iright
+        iframe
+        ipureintro; intro hc; cases hc)))
+
+set_option hygiene false in
 /-- **The continuation after a committed `renameWAL` that returned a WAL** (arms 1 and 2, at the
 handle before naming `walOpenWFU P Mr w dir`, `walPurgeW w dir` and `createUH x`), in Go's order:
 `w.dir` (`walOpenWFU_dirAcc`), `filepath.Dir` (`dir_child_model`), `OpenDir(r)` with the handle's
@@ -122,9 +261,11 @@ call-permission quarter lent (`walOpenWFU_permAcc`), `time.Now`, `Fsync` with `o
 naming at its success (`walInv_named`), `walFsyncSec.Observe`, `dirCloser()`, then the deferred calls
 in LIFO order (the cleanup closure and `f.Close` skipped, `RemoveAll(nm.tmp)` of the absent name),
 `walOpenWFU_named`, `create_areaBack` (`T := walOpenWF`), `walPurgeW_fresh_lbs`. Unhygienic: it
-names `Create`'s hypotheses. The error exits (`OpenDir`, `Fsync`, the close: `cleanupWAL`) are
-`sorry` (W4 log, twenty-fourth session). -/
-macro "create_named_cont" w:term : tactic => `(tactic| (
+names `Create`'s hypotheses. The error exits (`OpenDir`, `Fsync`, the close) log and run the
+deferred cleanup (`create_cleanup`); `w`, `tf` are the handle and its pinned tail file, `fA`-`fC` the
+deferred `f.Close()` after each of the cleanup's outcomes. -/
+macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tacticSeq ")"
+    "(" fC:tacticSeq ")" : tactic => `(tactic| (
     iunfold createUH at HUH
     icases HUH with ⟨HQ, ⟨%s', #Hpast, %hs'⟩, ⟨%c, %hn, Hnm, %hnm⟩, #HlbX, ⟨%ht, Htmp, %hht⟩, Hsf'⟩
     obtain ⟨_hcq, hnm⟩ := hnm
@@ -142,8 +283,29 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
     · iframe; iframe #
     icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, -⟩)
     rotate_left
-    · -- `OpenDir` failed: the deferred `cleanupWAL` (task 2 of the twenty-fourth session)
-      sorry
+    · -- `OpenDir` failed: logged, then the deferred `cleanupWAL`
+      ihave Hw := Hw $$ Hperm
+      try wp_auto
+      icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
+      rcases perr with pei | _
+      rotate_left
+      · exact absurd rfl hperr
+      try wp_auto
+      wp_apply wp_Dir (child r nm) as %pd -
+      wp_apply wp_String as %f1 -
+      try wp_auto
+      wp_apply wp_String as %f2 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      ihave Hw := Hw $$ Hdir
+      try wp_auto
+      create_cleanup $w $tf ($fA) ($fB) ($fC)
     subst hperr
     try wp_auto
     wp_apply wp_Now as %t0 -
@@ -152,10 +314,32 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
       ⟨Hpf, Hpfd, Hfr⟩
     · iframe; iframe #
     icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
-    · -- `Fsync` failed: `dirCloser()` overwrites `perr` with the close's result, so a successful close
-      -- returns `(nil, nil)` (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`, fork diff 0005,
-      -- pending); a failed one runs the deferred `cleanupWAL` (task 2)
-      sorry
+    · -- `Fsync` failed: the parent closed (not by `dirCloser`, which would overwrite `perr`: the fork's
+      -- fix, `nonissues/etcd-wal-create-parent-fsync-nil-nil.md`), logged, the deferred `cleanupWAL`
+      rcases ferr with pei | _
+      rotate_left
+      · exact absurd rfl hfe
+      try wp_auto
+      wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr0 -
+      · iframe; iframe #
+      ihave Hw := Hw $$ Hperm
+      icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
+      try wp_auto
+      wp_apply wp_Dir (child r nm) as %pd -
+      wp_apply wp_String as %f1 -
+      try wp_auto
+      wp_apply wp_String as %f2 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      ihave Hw := Hw $$ Hdir
+      try wp_auto
+      create_cleanup $w $tf ($fA) ($fB) ($fC)
     subst hfe
     try wp_auto
     -- `walFsyncSec.Observe(time.Since(start).Seconds())`
@@ -179,8 +363,28 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
     · iframe; iframe #
     by_cases hce : cerr = interface.nil
     rotate_left
-    · -- the close failed: the deferred `cleanupWAL` (task 2)
-      sorry
+    · -- the close failed (`dirCloser` logged it): the deferred `cleanupWAL`
+      rcases cerr with pei | _
+      rotate_left
+      · exact absurd rfl hce
+      ihave Hw := Hw $$ Hperm
+      icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
+      try wp_auto
+      wp_apply wp_Dir (child r nm) as %pd -
+      wp_apply wp_String as %f1 -
+      try wp_auto
+      wp_apply wp_String as %f2 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      ihave Hw := Hw $$ Hdir
+      try wp_auto
+      create_cleanup $w $tf ($fA) ($fB) ($fC)
     subst hce
     try wp_auto
     -- the deferred `RemoveAll(nm.tmp)` (absent)
@@ -254,7 +458,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
-    (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
+    (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG))
+    (wp_cleanupWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr)
+    (wp_ErrorfAny : fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
   intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp hmd hmdne hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
@@ -968,11 +1174,29 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size)
         (createHS_done md i _ γt _) hmd $$ [HhIn Hr0]
       · iframe
-      create_named_cont wl
+      create_named_cont wl f
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd' nmf d' $$ [Hf' Hfd'] as %cerr' -
+         · iframe; iframe #
+           iunfold walLockLeft; ileft; iframe)
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f (-1 : w64) nmf ⟨0, false, false⟩ $$ [Hf']
+           as %cerr' -
+         · iframe; iframe #
+           iunfold walLockLeft; iright; iframe)
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f (-1 : w64) nmf ⟨0, false, false⟩ $$ [Hf']
+           as %cerr' -
+         · iframe; iframe #
+           iunfold walLockLeft; iright; iframe)
     · -- committed, a reopened WAL returned (the handle before naming, `walOpenWFU`, and `createUH`):
       -- the parent's fsync, the naming
       subst herr
-      create_named_cont w'
+      obtain rfl : d = qd := by cases hqd; rfl
+      create_named_cont w' tf
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f _ _ _ $$ [Hll2] as %cerr' -
+         · iframe; iframe #)
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f _ _ _ $$ [Hll2] as %cerr' -
+         · iframe; iframe #)
+        (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f _ _ _ $$ [Hll2] as %cerr' -
+         · iframe; iframe #)
     · -- not committed: the unminting (`create_unmint`), the deferred `f.Close()` and
       -- `RemoveAll(nm.tmp)`, the abort over the area claim's rebuilt history (`create_abortTmpH`)
       rcases err with ei | _
