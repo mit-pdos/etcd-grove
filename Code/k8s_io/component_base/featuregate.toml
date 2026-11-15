@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md; what util/feature names).
+# notes/k8s-etcd3-goose.md; what util/feature names). It imports what the interfaces'
+# method signatures name (context, pflag, version), so that goose translates
+# `MutableFeatureGate` and `MutableVersionedFeatureGate` (whose `Set` the driver's noStreaming
+# calls) as interface types; the logger variants stay axiomatized (klog's alias).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "context", "github.com/spf13/pflag", "k8s.io/apimachinery/pkg/util/version"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

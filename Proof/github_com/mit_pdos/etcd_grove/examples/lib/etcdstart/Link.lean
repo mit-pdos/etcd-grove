@@ -31,6 +31,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newSer
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
+public import Proof.google_golang_org.grpc.model.Serve
+public import Proof.google_golang_org.grpc.model.acceptRun
+public import Proof.google_golang_org.grpc.model.acceptRunConns
+public import Proof.google_golang_org.grpc.model.finishStream
+public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -105,6 +110,18 @@ theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.BuildServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.BuildServer.wp_proof wp_newServer
 
+theorem wp_newServerModeRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.newServerMode.specRestart (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.newServerMode.wp_proofRestart mvcc.api.mvccApi_names_nonempty_law_holds features.wp_NewDefaultServerFeatureGate wp_NewServerR
+
+theorem wp_newServerRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.newServer.specRestart (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.newServer.wp_proofRestart wp_newServerModeRestart
+
+theorem wp_BuildServerRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.etcdstart.BuildServer.specRestart (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.BuildServer.wp_proofRestart wp_newServerRestart
+
 theorem wp_Collect :
     EtcdGrove.etcdstart.Collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Collect.wp_proof client.v3.WatchResponse.wp_Err
@@ -133,9 +150,29 @@ theorem grpc.wp_KeepaliveEnforcementPolicy :
     EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
 
+theorem grpc.model.wp_acceptRun :
+    EtcdGrove.grpc.model.acceptRun.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.acceptRun.wp_proof
+
+theorem grpc.model.wp_acceptRunConns :
+    EtcdGrove.grpc.model.acceptRunConns.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.acceptRunConns.wp_proof
+
+theorem grpc.model.wp_respond :
+    EtcdGrove.grpc.model.respond.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.respond.wp_proof
+
+theorem grpc.model.wp_finishStream :
+    EtcdGrove.grpc.model.finishStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.finishStream.wp_proof
+
+theorem grpc.model.wp_Serve :
+    EtcdGrove.grpc.model.Serve.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.Serve.wp_proof grpc.model.wp_acceptRun grpc.model.wp_acceptRunConns grpc.model.wp_respond grpc.model.wp_finishStream
+
 theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
+  EtcdGrove.grpc.Server.Serve.wp_proof grpc.model.wp_Serve
 
 theorem wp_Serve :
     EtcdGrove.etcdstart.Serve.spec (GF := GF) (hG := hG) :=

@@ -36,13 +36,13 @@ discharged first, or `wp_auto` stops at it).
 The tail is split off with `ownSlice_split_all` and put back with `ownSlice_combine`
 plus `ownSlice_trivial_slice_2`. -/
 theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
-  intro dst vals ds vs dq1 dq2 Hcap
+  intro sz dst vals ds vs dq1 dq2 Hcap
   wp_start as ⟨Hdst, Hvals⟩
-  iunfold entsPts at Hdst Hvals
-  icases Hdst with ⟨%ls1, Hdst, #Hb1⟩
-  icases Hvals with ⟨%ls2, Hvals, #Hb2⟩
-  ihave %Hbl1 := entsBig_length $$ Hb1
-  ihave %Hbl2 := entsBig_length $$ Hb2
+  iunfold entsPtsC at Hdst Hvals
+  icases Hdst with ⟨%ls1, Hdst, #Hb1, %Hz1⟩
+  icases Hvals with ⟨%ls2, Hvals, #Hb2, %Hz2⟩
+  ihave %Hbl1 := BigSepL2.bigSepL2_length $$ Hb1
+  ihave %Hbl2 := BigSepL2.bigSepL2_length $$ Hb2
   rw [← Hbl1, ← Hbl2] at Hcap
   wp_auto
   ihave %Hlen1 := ownSlice_len _ _ _ $$ Hdst
@@ -87,14 +87,19 @@ theorem extend.wp_proof : extend.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iframe Hbuf_cap
   isplitl [Hbuf]
-  · iunfold entsPts
+  · iunfold entsPtsC
     iexists ls1 ++ ls2
     iframe Hbuf
-    iapply entsBig_app $$ [Hb1 Hb2]
-    iframe Hb1 Hb2
+    isplitl
+    · iapply (BigSepL2.bigSepL2_app_wand (PROP := IProp GF)) $$ Hb1 Hb2
+    · ipureintro
+      intro hs c hc
+      rcases List.mem_append.1 hc with hc | hc
+      · exact Hz1 hs c hc
+      · exact Hz2 hs c hc
   isplitl [Hdst]
-  · iunfold entsPts; iexists ls1; iframe Hdst Hb1
-  · iunfold entsPts; iexists ls2; iframe Hvals Hb2
+  · iunfold entsPtsC; iexists ls1; iframe Hdst Hb1; ipureintro; exact Hz1
+  · iunfold entsPtsC; iexists ls2; iframe Hvals Hb2; ipureintro; exact Hz2
 
 end proof
 

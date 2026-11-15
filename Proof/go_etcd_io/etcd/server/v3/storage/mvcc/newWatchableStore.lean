@@ -40,17 +40,18 @@ theorem mvcc.newWatchableStore.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
   intro _ lg b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq
-  wp_start as ⟨%Hpre, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
+  wp_start as ⟨%Hpre, #Hzl, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
     #Hlessor, Hro, Hlo, %Hpend, Hifresh, Hok0, Hcert0, Hfin, Hcrv, Hres, Hsup⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
-  wp_join iprop(∃ lg' : Loc, lg_ptr ↦ lg') with [lg] as ⟨%lg', lg⟩
+  wp_join iprop(∃ lg' : Loc, lg_ptr ↦ lg' ∗ zapLoggerOrNil lg') with [lg] as ⟨%lg', lg, #Hzl'⟩
   · wp_apply hNop as %l #Hlz
-    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
+    ihave #Hl := zapLoggerOk_orNil l $$ Hlz
     isplitr
     · ipureintro; rfl
-    iexists l; iexact lg
+    iexists l; iframe lg; iexact Hl
+  · iexists lg; iframe lg; iexact Hzl
   wp_apply (hNewStore _ b le cfg d γb γl P rd0 true γi γok M Perm R r Ls hk Pre Q Post X Y dq)
     $$ [$Hsess $Hbtr $Hkcr $Hreg $Himg $Hrcpt $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro
       $Hlo $Hifresh $Hok0 $Hcert0 $Hfin $Hcrv $Hres $Hsup] as %st

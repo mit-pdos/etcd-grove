@@ -71,7 +71,8 @@ theorem checkCompactRev.wp_proof
   -- `cctx, ccancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -⟩
+    as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -, #cctxFrom⟩
+  ihave #cctxO := metadata.outgoingCtxOkC_bgFrom cctx $$ cctxFrom
   (try wp_auto)
   -- the watch's option, `WithRev(2)`
   wp_apply wp_WithRev (W64 2) as %f2 #Hf2
@@ -107,11 +108,11 @@ theorem checkCompactRev.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro
       refine ⟨?_, ?_, by decide, ?_⟩
-      · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatch, OpFull.newOp,
+      · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatchP, OpFull.newOp,
           OpModel.zero]
       · simp [opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit, withRevM,
           OpFull.newOp, OpModel.zero]
@@ -173,7 +174,7 @@ theorem checkCompactRev.wp_proof
       (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
       as %lresp %lerr Hget
   · iframe #
-    iunfold committedAtLeast
+    iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl
   (try wp_auto)
   wp_apply Hlcancel

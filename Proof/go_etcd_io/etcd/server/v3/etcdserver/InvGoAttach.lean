@@ -128,7 +128,7 @@ def srvGoAttachOk (s : Loc) (γ : GoNames) : IProp GF :=
     isStopChanInternal ch γ.ch γ.chi iprop(True) ∗
     sync.isWaitGroup (srvWgAddr s) γ.wg goAttachWGN ∗ inv goAttachN (goAttachInv γ) ∗
     sync.isRWMutexGuard (srvWgMuAddr s) (wgMuP γ) ∗ srvCtxAddr s ↦□ c ∗
-    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗ raftPool (srvLgReader s) ∗
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ zapLoggerOk l) ∗ raftPool (srvLgReader s) ∗
     ⌜2 * threadBound GF ≤ 2 ^ 31⌝)
 
 instance srvGoAttachOk_persistent (s : Loc) (γ : GoNames) :

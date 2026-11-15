@@ -52,7 +52,7 @@ theorem store.stateFromEtcdResponse.wp_proof
   wp_start as ⟨#Hst, #Hkv, %Hv⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave #Prf : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []

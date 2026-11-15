@@ -51,7 +51,7 @@ abbrev EtcdServer.compactRaftLog.spec : Prop :=
     (scu : w64) (l : Loc),
   1 ≤ uint.Z snapi →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
-      srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗
+      srvLgAddr s ↦□ l ∗ zapLoggerOk l ∗
       srvInflight s ∗
       rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
       (letI : MemStorReg GF := ⟨γr.reg⟩

@@ -293,7 +293,7 @@ func (db *DB) Snapshot() (uint64, uint64, bool, error) {
 // Commit is a write transaction storing v: a new root page at the high water
 // mark, then the meta. An error means the outcome is unknown: after a failed
 // fdatasync of the meta, the new meta is in the page cache, and a crash may
-// keep it or not (its bytes are lost, plan D2). bbolt goes on serving it; minibolt
+// keep it or not. bbolt goes on serving it; minibolt
 // marks the handle failed instead, so that it never reads or builds on a
 // commit that may not be durable.
 func (db *DB) Commit(v uint64) error {

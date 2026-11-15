@@ -25,10 +25,13 @@ triple of a function the program calls, D19a's second kind):
 * `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`; 2026-10-27, until
   then part of `bootstrap`'s contract's postcondition), which the cluster's allocation takes;
 * the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s): `rnLoggerZapOk`,
-  `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk` (2026-10-30, the repair:
+  `rnTimeoutDetectorOk`, `rnNewStorageOk` (2026-10-30, the repair:
   `rnStopOkStarted` gone, the node's `Stop` is proved; 2026-11-03, the boot premises: `rnTickerOk`
-  gone, a theorem of the `time` specs, `rnTickerOk_of_time`);
-* `v3rpc.runsNoRequireLeader` (no client stream asks for a leader: a fact of the deployment).
+  gone, a theorem of the `time` specs, `rnTickerOk_of_time`; premise-fixes-4, 2026-11-10:
+  `rnSetLoggerOk` gone, false in the model, raft's `SetLogger` proved over the package
+  initialization);
+* (until 2026-11-13, k8s 7f-4 step 6) `v3rpc.runsNoRequireLeader` (no client stream asks for a leader),
+  deleted: the require-leader branch is proved.
 
 What were package-fact premises until D19r was carried out are gone: `rnRaftStatusOk` and
 `waitClosecInit` are now `etcdserver`'s and `pkg/wait`'s facts; `io.EOF` and `context`'s

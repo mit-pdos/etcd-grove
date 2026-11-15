@@ -28,11 +28,11 @@ def peerStatusInv (s : Loc) : IProp GF :=
   iprop(∃ (a : Bool) (t : time.Time),
     s.[rafthttp.peerStatus, go!"active"] ↦ a ∗ s.[rafthttp.peerStatus, go!"since"] ↦ t)
 
-/-- **A peer status** (persistent): its logger (not `nil`: `newPeerStatus` makes a no-op one for
+/-- **A peer status** (persistent): its logger (a zap logger: `newPeerStatus` makes a no-op one for
 `nil`), its local and peer ids, and its mutex. -/
 def peerStatusOk (s : Loc) : IProp GF :=
   iprop(∃ (lg : Loc) (lid id : go_etcd_io.etcd.client.pkg.v3.types.ID),
-    s.[rafthttp.peerStatus, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    s.[rafthttp.peerStatus, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     s.[rafthttp.peerStatus, go!"local"] ↦□ lid ∗ s.[rafthttp.peerStatus, go!"id"] ↦□ id ∗
     sync.isMutex (s.[rafthttp.peerStatus, go!"mu"]) (peerStatusInv s))
 

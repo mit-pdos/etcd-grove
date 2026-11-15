@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Check(clis, clients, ops, timeout)` (`examples/etcd/partition/etcd_partition.go`; the partition plan's S3a,
+`Check(clis, clients, ops, timeout)` (`examples/etcd/partition/linkv3p.go`; the partition plan's S3a,
 2026-10-20; over linkvtxn's workload since 2026-10-20, `notes/linkv3p-txn-plan.md`): `lintest.Run`
 with linkvtxn's model `Model()`, the closure `func(input any) any { return Apply(clis, input) }`
 (each operation through a random client of `clis`), linkvtxn's generator `Gen` and the clock

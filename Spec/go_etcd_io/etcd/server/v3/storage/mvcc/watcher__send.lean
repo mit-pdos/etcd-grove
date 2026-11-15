@@ -21,7 +21,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `w.send(wr)`: the response `wr` for the watcher `w` (its events `evm`, read-only, those of
+/-- `w.send(wr)`: the response `wr` for the watcher `w` (its events `evm`, the watcher's own copies
+(`evOwn`, k8s 7f-3b: on `true` those kept are the channel's, with their `PrevKv` fields, which the
+receiver gets; on `false` all are given back), those of
 the delivery that extends `w`'s delivered events, at or below `wr`'s revision, at or above a
 positive start revision: `verify.Verify`'s check), filtered by `w`'s filters, sent on its
 channel without blocking (the channel is open: `w` is live), unless all its events were filtered
@@ -49,7 +51,7 @@ abbrev mvcc.watcher.send.spec : Prop :=
       dghostVar γw.live (DFrac.own ql) true ∗
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ mvcc.evsWf γ r γw.lo (evsw ++ evm) d) ∗
-      wr.Events' ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
+      wr.Events' ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evOwn x.1 x.2) ∗
       mvcc.covPre γ γw.wc wr.Revision' cs ∗ mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗
       mvcc.revApi γ wr.Revision' ∗
       ⌜evm = [] → ∃ q L, nl = some (q, L) ∧ sint.Z wr.Revision' + 1 = (L.length : Int)⌝ ∗
@@ -63,7 +65,8 @@ abbrev mvcc.watcher.send.spec : Prop :=
   {{ (b : Bool), RET #b;
       typedPointsto (structFieldRef watcher go!"ch" w) ch (DFrac.own qc) ∗
       dghostVar γw.live (DFrac.own ql) true ∗
-      (if b then wr.Events' ↦*□ es else wr.Events' ↦*{dq} es) ∗
+      (if b then wr.Events' ↦*□ es else
+        wr.Events' ↦*{dq} es ∗ [∗list] x ∈ es.zip evm, mvcc.evOwn x.1 x.2) ∗
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half (if b then evsw ++ evm else evsw)) ∗
       mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗ CS }}

@@ -29,7 +29,7 @@ theorem txn.isNil.wp_proof (hVO : reflect.ValueOf.spec (GF := GF) (hG := hG)) :
   intro T p
   wp_start
   wp_auto
-  wp_apply hVO as %v #HIsNil
+  wp_apply hVO as %v ⟨#HIsNil, -⟩
   wp_apply HIsNil
   iapply HΦ
   itrivial

@@ -1482,6 +1482,39 @@ here:
   `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
   `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
 
+### Soundness finding in the trust base: `perRPCCredsOk` admitted erring credentials (7e-1 checkpoint (ii), 2026-11-10; fix decided by etcd-grove-81)
+
+On lean, `perRPCCredsOk pc Q` (`Proof/google_golang_org/grpc/InvGrpc.lean`) let `GetRequestMetadata`
+return any error whose description is not a handler's, and `dialOptsAt` admits `.perRPCCreds pc` for any
+such `pc`. grpc-go v1.84 returns a credentials error that already carries a status (a `GRPCStatus()`
+method, or a status wrapped with `%w`) unchanged as the attempt's (`internal/transport/http2_client.go:
+697-702`), so the error is the caller's type or a `*fmt.wrapError`: not a leaf (`Unwrap`), contrary to
+`clientErr`'s `errors.isLeafError`, which `grpcInvokerOk` and `cliStreamErr` assert. A Go program against
+grpc v1.84.0 confirms both (`/shared/tmp/k8s7e1/attack-invoker/main_test.go`). So lean's
+`grpcInvokerOk`/`cliStreamErr` overclaim under an admissible credential. etcd is not affected: its
+`perRPCCredential.GetRequestMetadata` always returns `nil` (proved,
+`perRPCCredential__GetRequestMetadata`), so no Go user of etcd's client hits it (no `nonissues/` entry).
+**Fix (k8s-7e):** `perRPCCredsOk`'s error clause is `err = nil`; etcd's bundle's proof discharges it;
+`TestCredentialNilError` (gates step 9c). The same review found a third grpc path to a non-leaf error,
+a service-config retry policy exhausting its attempts (`stream.go:867`); nothing in the trusted text
+excluded it, so `grpcResolverAt`'s meaning now includes "its service config sets no retry policy"
+(etcd's resolver: `round_robin` only; no `GrpcDialOpt` sets a default service config).
+
+### Bug in our own specs: `HGetAt`/`HList`'s error clause unprovable (7e-1, 2026-11-10; recorded as etcd-grove-81 decided)
+
+The hypotheses `Client.GetAt.spec` and `Client.List.spec` (7e-2, premises of `store.getList`'s proof, and on
+branch `k8s-7e` pending hypotheses `HGetAt`/`HList` of the closed `k8s_etcd3_safe`, `_cluster_safe`,
+`_partition_safe` and their `_adequate` versions) stated their error clause `rangeErrSound o Q err` as
+`□ (errDesc err = futureRevDesc -∗ ∃ σ, □ Q (W64 σ.rev) σ ∗ σ.rev < o)`: the read update fired with its
+revision argument equal to `σ.rev`. No client proof of this design gives it: the client makes its update once,
+at the prophesied response revision `R`, and on the error path the prophecy is never resolved (an error has
+no header), so the update fired at `σ` gives `□ Q R σ` for an `R` unrelated to `σ.rev`. The closed theorems on
+`k8s-7e` were therefore possibly vacuous through `HGetAt`/`HList`; never on `lean` (the hypotheses never
+reached it). Fix R1 (`notes/k8s-7e-1-draft.md` §1, approved by etcd-grove-81 under the user's delegation):
+`rangeErrSound` quantifies `R`, `readErrIs`'s future clause follows, and the driver's `readQ`/`listQ` commit
+`ETooLarge` at `σ.rev < n` whatever `R` (answered reads stay at `σ.rev = R`), as Go's `ErrFutureRev` says only
+that the served revision was below `o` at the linearization point.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

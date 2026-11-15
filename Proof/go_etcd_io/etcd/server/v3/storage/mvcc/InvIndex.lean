@@ -24,6 +24,7 @@ have higher mains: `kiGet_reader`) or the index has exactly `log₀`'s events (t
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Hist
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
@@ -881,13 +882,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- A tree index (persistent): its tree and logger, and the lock's guard (writers lock through
+/-- A tree index (persistent): its tree and logger (a zap logger: `Compact` logs; premise fixes 6), and the lock's guard (writers lock through
 it). -/
 def isTreeIndex (ti : Loc) (γ : IdxNames) : IProp GF :=
   iprop(∃ (t lg : Loc),
     "#Htree" ∷ ti.[treeIndex, go!"tree"] ↦□ t ∗
     "#Hlg" ∷ ti.[treeIndex, go!"lg"] ↦□ lg ∗
-    "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
+    "#Hlgnn" ∷ zapLoggerOk lg ∗
     "#Hmu" ∷ sync.isRWMutexGuard (idxMuAddr ti) (idxLockInv t γ))
 
 instance isTreeIndex_persistent (ti : Loc) (γ : IdxNames) : Persistent (isTreeIndex (GF := GF) ti γ) := by

@@ -138,10 +138,10 @@ private theorem unlock_core
   intro γ P W Pk b t st Q Hhw Hroom
   wp_start as ⟨#Hb, #Ht, Hl, Htok, Hcase⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
+    ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, #-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   ihave Hl := batchLocked_W γ P b st $$ Hl
   unfold batchLockedW batchGhostW
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -182,7 +182,7 @@ private theorem unlock_core
       imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
-      wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
+      wp_apply (hWB (wbOf t) st.W (rbufOf (backend.baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
         as ⟨HW, HRB⟩
       have hver : uint.Z st.R.ver + 1 < 2 ^ 64 := by
         have := Hbg.1
@@ -248,7 +248,7 @@ private theorem unlock_core
       imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
-      wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
+      wp_apply (hWB (wbOf t) st.W (rbufOf (backend.baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
         as ⟨HW, HRB⟩
       have hver : uint.Z st.R.ver + 1 < 2 ^ 64 := by
         have := Hbg.1

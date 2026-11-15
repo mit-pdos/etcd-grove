@@ -62,22 +62,24 @@ theorem Check.wp_proof
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp c g0 s0 clients ops dur hc hpfx hrp hAs hse hne Hrb H0 H31 Hops Hmul Hg0
-  wp_start as ⟨#Hcc, #Hst, #Hinvs, Hks, #Hs0⟩
+  intro _ _ _ γ sp c g0 s0 hsl hs clients ops dur hc hpfx hrp hdi hvi hAs hse htb hnr hne Hrb H0
+    H31 Hops Hmul Hg0
+  wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #Hs0, #Hsl, #Hhs⟩
   wp_auto
   wp_apply wp_newCache c as %tbl #Htbl
   (try wp_auto)
   ipersist s
   ipersist tbl
-  ihave #HA := (wp_Apply γ sp tbl c g0 hc hpfx hrp hAs hse) $$ Hpkg Hpkg2 Hst Hinvs %hne Htbl
-  wp_apply wp_Model s0 g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
+  ihave #HA := (wp_Apply γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse htb hnr) $$ Hpkg Hpkg2 Hst Hinvs
+    %hne Htbl Hrs
+  wp_apply wp_Model s0 hsl hs g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   · iframe #
     ipureintro; exact Hg0
   ihave #Hm := github_com.anishathalye.porcupine.isModel_of_step (k8setcd3S g0) m $$ [Hinit Hstep Heh]
   · iframe Hinit Hstep Heh
     ipureintro; exact ⟨Hp, Hsc⟩
   wp_apply wp_CounterClock clockN Hrb as %clock ⟨%clockVal, #Hclk, Hc0⟩
-  wp_apply wp_Run (linkv.PSet GSt Input) (k8setcd3S g0) m _ _ clock (kInOk c) (kState γ g0) clockVal
+  wp_apply wp_Run (linkv.PSet HSt Input) (k8setcd3S g0) m _ _ clock (kInOk c) (kState γ g0) clockVal
     (W64 0) drvE ↑clockN clients ops dur lintestN_drvE lintestN_clockN H0 H31 Hops Hmul
     $$ [Hks Hc0]
   · iframe Hc0 Hcc Hm Hclk
@@ -89,7 +91,8 @@ theorem Check.wp_proof
       iintro %Φ' ⟨Hin, Htt⟩ HAU
       wp_auto
       wp_bind (App (App (App (Val _) (Val _)) (Val _)) (Val _))
-      iapply HA $$ %i Hin
+      iapply HA $$ %i [Hin Htt]
+      · iframe
       inext
       imod HAU with ⟨%S, Hs, Hc⟩
       imodintro
@@ -99,7 +102,7 @@ theorem Check.wp_proof
       imod Hc $$ Hb with HQ
       imodintro
       iintro Hio
-      ihave HQ := HQ $$ [$Hio $Htt]
+      ihave HQ := HQ $$ Hio
       wp_auto
       iexact HQ
     isplitr

@@ -1,5 +1,5 @@
 /-
-`MainWatch(nw, nops, sched)` (`examples/etcd/partition/etcd_partition.go`; W4 of `notes/watch-cut-plan.md`,
+`MainWatch(nw, nops, sched)` (`examples/etcd/partition/linkv3p.go`; W4 of `notes/watch-cut-plan.md`,
 2026-10-22): watchkv's workload over linkv3p's cluster under partitions. The writers' `nw * nops`
 puts picked (`genAll`); the cluster started (`startCluster`: three members, a bridge to each,
 three clients each of every bridge); a prefix watch on `wk/` from revision `1` through the first
@@ -47,10 +47,12 @@ abbrev MainWatch.spec : Prop :=
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),
   BootFacts id₁ id₂ id₃ ps ctxs boot →
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 28 →
+  -- (per-type stage B3) the levels of a thread token the members' gRPC runs use
+  srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →

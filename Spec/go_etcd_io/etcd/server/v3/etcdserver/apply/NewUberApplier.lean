@@ -30,13 +30,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 hold in `E`): its fields from the options and the base chain (`uberIs`, persistent), its current
 applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain E.authOn ns cr`)
 (2026-11-01, J8a: no reader resource `E.RD`, which the auth layer's `Apply` borrows from its caller;
-until then its mutex took one). -/
+until then its mutex took one). The options' logger a zap logger (`newApplierV3`'s; premise fixes 6). -/
 abbrev apply.NewUberApplier.spec : Prop :=
   ∀ (opts : ApplierOptions) (T : IProp GF) (z : Bool),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.alarmGetIs opts.AlarmStore' T z ∗ T }}
+      apply.alarmGetIs opts.AlarmStore' T z ∗ T ∗ zapLoggerOk opts.Logger' }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
   {{ (ua : GoInterface), RET #ua; T ∗ ∃ p : Loc,
       ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗

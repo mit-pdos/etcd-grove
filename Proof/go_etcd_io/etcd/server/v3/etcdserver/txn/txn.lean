@@ -40,7 +40,7 @@ theorem txn.txn.wp_proof
     (hLgErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     txn.txn.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg γ trace te tw ro σ rt t pl skip L k chs
-  wp_start as ⟨Htw, Htrc, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre⟩
+  wp_start as ⟨Htw, Htrc, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre, #Hlgo⟩
   obtain ⟨hreach, hpend, hops, hro, hndro⟩ := Hpre
   have hkst : k.state = σ := by cases ro <;> rfl
   have hkr : txn.MTxn.isRead k = ro := by cases ro <;> rfl
@@ -71,14 +71,16 @@ theorem txn.txn.wp_proof
   wp_apply hE $$ [$Htw $Htrc $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown0]
     as %n2 %err Hres
   · ipureintro
-    refine ⟨hreach, hops, ?_, fun h => by rw [hkr]; exact (hndro h).1⟩
+    refine ⟨hreach, hops, ?_, fun h => by rw [hkr]; exact hndro h⟩
     intro hr op hop
     rw [hkr] at hr
     exact readonly_branch t (hro hr) _ op hop
   icases Hres with ⟨Htrc, (⟨⟨%Herr, -, %Hrun⟩, Htw, #Hrs, #Hknown', Hown⟩ | ⟨%Hndf, #He, Htw, #Hros⟩)⟩
   rotate_left
   · -- the context done during a range: logged, the response returned with the error
-    obtain ⟨hro1, hlg⟩ := hndro Hndf
+    have hro1 := hndro Hndf
+    ihave #Hlg : zapLoggerOk lg $$ [Hlgo]
+    · subst Hndf; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlgo
     subst hro1
     ihave ⟨%x, %Hx⟩ := mvcc.ctxErrorf_ok _ $$ He
     subst Hx
@@ -92,7 +94,7 @@ theorem txn.txn.wp_proof
     iintro %fsl ⟨-, -⟩
     wp_auto
     wp_apply hLgErr $$ []
-    · iframe #; ipureintro; exact hlg
+    · iframe #
     wp_apply (hRevC γ trace k) $$ [$Htw] as Htw
     wp_apply (hChC γ trace k) $$ [$Htw] as %chs' ⟨Htw, -⟩
     iapply wp_fupd

@@ -31,9 +31,9 @@ theorem watcher.closeStream.wp_proof : watcher.closeStream.spec (GF := GF) (hG :
   intro V G callSl
   wp_start as ⟨#Hw, #Hg, Hdc, #Hpub⟩
   iunfold isClientWatcher at Hw
-  icases Hw with ⟨%wsl, %wvs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgnn⟩
+  icases Hw with ⟨%wsl, %wvs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
   iunfold isWGS at Hg
-  icases Hg with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
+  icases Hg with ⟨%Hgnn, #Hcv, #Hsf, #Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
     #Hbdone, -⟩
   wp_auto

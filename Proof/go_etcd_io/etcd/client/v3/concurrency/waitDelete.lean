@@ -31,16 +31,17 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     waitDelete.spec (GF := GF) (hG := hG) := by
   intro ctx cs client pfx key rev
-  wp_start as ⟨#Hcl, #Hctx, #Hcc, %Hp⟩
+  wp_start as ⟨#Hcl, #Hctx, #HctxC, #Hcc, %Hp⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, -, #Hwf, -, -, -, -, -, #HW⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, -, #Hwf, -, -, -, -, -, -, #HW⟩
   wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
   wp_apply context.wp_WithCancel iprop(True) ctx cs $$ [$Hctx $Hcc]
-      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
+      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc', #Hfrom'⟩
+  ihave #HctxC' := metadata.outgoingCtxOkC_from ctx ctx' $$ [$Hfrom' $HctxC]
   ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
   (try wp_auto)
   wp_apply wp_WithRev rev as %f #Hf
@@ -67,7 +68,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   wp_auto
   obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatch_opts key rev
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
-  · iframe Hctx' Hopts
+  · iframe Hctx' HctxC' Hopts
     ipureintro
     refine ⟨Hw1, Hw2, Hp.2.1, ?_, watchSizeOk_keyWatch rev Hp.2.2⟩
     rw [Hw3, Hw4]; exact keyRangeUnder_key pfx key Hp.1

@@ -30,21 +30,21 @@ func TestMainLinearizable(t *testing.T) {
 // (D30g), a no-op update of a canonical one does not.
 func TestModelNoopRewrite(t *testing.T) {
 	st := mstore{rv: 1}
-	st = mstore{items: setItem(st.items, item{key: "a", obj: Obj{Name: "a", Value: "x", ResourceVersion: 2}, canon: false}), rv: 2}
-	st1, o1 := mstep(Input{Kind: KUpdate, Key: "a", NoOp: true}, st)
+	st = mstore{items: setItem(st.items, item{key: "ns-1/a", obj: Obj{Namespace: "ns-1", Name: "a", Value: "x", ResourceVersion: 2}, canon: false}), rv: 2}
+	st1, o1 := mstep(Input{Kind: KUpdate, Key: "ns-1/a", NoOp: true}, st)
 	if st1.rv != 3 || o1.RV != 3 || o1.Value != "x" {
 		t.Fatalf("no-op on non-canonical: %+v %+v", st1, o1)
 	}
-	st2, o2 := mstep(Input{Kind: KUpdate, Key: "a", NoOp: true}, st1)
+	st2, o2 := mstep(Input{Kind: KUpdate, Key: "ns-1/a", NoOp: true}, st1)
 	if st2.rv != 3 || o2.RV != 3 {
 		t.Fatalf("no-op on canonical: %+v %+v", st2, o2)
 	}
-	_, o3 := mstep(Input{Kind: KDelete, Key: "a", Reject: "x"}, st2)
+	_, o3 := mstep(Input{Kind: KDelete, Key: "ns-1/a", HasReject: true, Reject: ""}, st2)
 	if o3.Err != ERejected {
 		t.Fatalf("rejected delete: %+v", o3)
 	}
-	_, o4 := mstep(Input{Kind: KGet, Key: "c"}, st2)
-	if o4.Err != ENotFound || o4.ErrKey != "/registry/objs/c" || o4.ErrRV != 3 {
+	_, o4 := mstep(Input{Kind: KGet, Key: "ns-1/c"}, st2)
+	if o4.Err != ENotFound || o4.ErrKey != "/registry/objs/ns-1/c" || o4.ErrRV != 3 {
 		t.Fatalf("missing get: %+v", o4)
 	}
 }
@@ -239,5 +239,17 @@ func TestMainPartition(t *testing.T) {
 				}
 			})
 		})
+	}
+}
+
+// TestSplitKey checks splitKey's loop against strings.Cut, which it replaces (7e-3b: Perennial has
+// no model of Cut).
+func TestSplitKey(t *testing.T) {
+	for _, k := range []string{"", "/", "a", "a/", "/b", "ns-1/pod-1", "ns-11/pod-1/x", "ns//p"} {
+		ns, name := splitKey(k)
+		cns, cname, _ := strings.Cut(k, "/")
+		if ns != cns || name != cname {
+			t.Fatalf("splitKey(%q) = %q, %q; strings.Cut: %q, %q", k, ns, name, cns, cname)
+		}
 	}
 }

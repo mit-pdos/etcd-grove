@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, tracecheck, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -164,13 +164,16 @@ PROJECTS = [
         # leave no valid meta), `%v` for errors in logger calls (27b1412, upstream main's change)
         # and a no-op default logger (b3e06648); then `Open` maps the file through `mmapUnlocked`, closes
         # under the locks after its transaction began, and `loadFreelist` publishes the freelist
-        # under `metalock` (743299d8, verification only). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # under `metalock` (743299d8, verification only); then a writable `Open` fdatasyncs the file
+        # before its first commit (c5a6065d, issues/bbolt-open-unsynced-meta-kill-then-power-loss.md;
+        # 004c930 its robustness test), closing under the locks if that sync fails (ea4cab52, as the
+        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="743299d8cec897535160dbd82723f3cb1873f312",
+        rev="ea4cab5267973cc858b7393c5c010eee4014e75c",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -257,18 +260,43 @@ PROJECTS = [
         # Then (sweep repairs 1, R1-3, 2026-11-08) a4d2bb172 on `goose-lean`: `purgeFile` no longer
         # purges `.snap.db` files (`ReleaseSnapDBs` removes the ones below an opened or taken
         # snapshot; nonissues/etcd-purge-snapdb-unopened.md, the user's option A via etcd-grove-82).
+        # Then (the WAL crash spec's W3, 2026-11-11) branch `goose-lean-walsync` (on a4d2bb172): the
+        # WAL's three power-loss fixes the user approved, for the bare fsync(2) contract:
+        # `ReadAll` fdatasyncs the tail it zeroed (41fddbc2d,
+        # nonissues/etcd-wal-readall-zero-unsynced.md), `Create` fsyncs `<dir>.tmp` before renaming
+        # it (161796636, nonissues/etcd-wal-create-dir-entry-unsynced.md), and `TouchDirAll` fsyncs
+        # the parent of each directory it creates (71f99a4bf,
+        # nonissues/etcd-fileutil-touchdirall-parent-unsynced.md).
+        # Then (W3b, 2026-11-11) b18c2d500 on `goose-lean` (F-N4, for a kill, a restart without a
+        # reboot, then a power loss): `TouchDirAll` fsyncs the parent of an existing directory too
+        # (055b2f69a, nonissues/etcd-fileutil-touchdirall-existing-after-kill.md), and `ReadAll` in
+        # write mode fsyncs the WAL directory and its parent (b18c2d500,
+        # nonissues/etcd-wal-dir-names-after-kill.md).
+        # Then (WAL W4a revision, 2026-11-12) c90b03b56 on `goose-lean`: `Exist` reports a WAL when
+        # its directory cannot be read, so `Create` never removes one
+        # (nonissues/etcd-wal-exist-readdir-error-removes-wal.md).
+        # Then (WAL W4a.2, 2026-11-12) 1aaca041c on `goose-lean-exist`: a write-mode `ReadAll` reports
+        # `ErrSnapshotNotFound` when no record matched its start snapshot
+        # (nonissues/etcd-wal-readall-snapshot-not-found-masked.md).
+        # Then (WAL W4a.2, 2026-11-12) 0b50f0426 on `goose-lean-exist`: a cut names its segment
+        # max(w.enti, the highest snapshot index saved or read)+1, so that Open at a snapshot of the
+        # WAL starts at or before its record (the same nonissue).
+        # Then (restart S6a, 2026-11-13) 2eaeb872b on `goose-lean-snaplink` (on 0b50f0426):
+        # `SaveDBFrom` links its file into place (`os.Link`), so that of two concurrent saves of one
+        # index exactly one puts its file in place and the other keeps it
+        # (nonissues/etcd-snap-savedbfrom-concurrent-rename.md; the user's decision via etcd-grove-81).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="a4d2bb1720b9ab0c44919b5c032f3a8cc7511692",
+        rev="2eaeb872bce9661d984e00005793fa01ae24834f",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
-                    "net=", "hash=", "path=", "internal/bytealg=",
+                    "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
@@ -370,6 +398,10 @@ PROJECTS = [
             # `bootstrappedRaft.newRaftNode` wraps)
             "go.etcd.io/etcd/client/pkg/v3/logutil",
             "go.etcd.io/etcd/server/v3/storage/wal",
+            # types and names only (WAL W4a, 2026-11-11): the WAL's record types (`walpb.Snapshot`,
+            # which the read path's specs name) and `fileutil` (`TouchDirAll`, the WAL tester's call)
+            "go.etcd.io/etcd/server/v3/storage/wal/walpb",
+            "go.etcd.io/etcd/client/pkg/v3/fileutil",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
@@ -476,13 +508,18 @@ PROJECTS = [
             # transport.TLSInfo's crypto/tls types, crypto/tls listed above), so that those
             # structs are translated (NewServer splits the configuration; unit N4, 2026-10-17)
             "net/url",
+            # types only (k8s 7f-4, Addendum T-h0): the context keys net/http's client reads
+            # (`httptrace.clientEventContextKey`, `nettrace.TraceKey`,
+            # `nettrace.LookupIPAltResolverKey`), named by `leasehttp.RenewHTTP.spec`'s premise
+            "net/http/httptrace",
+            "internal/nettrace",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
-               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
+               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
@@ -571,7 +608,7 @@ PROJECTS = [
     Project(
         name="bboltfs",
         # minibolt and its programs (`examples/osfs/bboltfs`), the acceptance test of the Linux file
-        # extension osFsExt (GooseLang/Ext/OsFs, notes/osfs-ext-plan.md). Its `os`, `syscall` and
+        # extension fsExt (GooseLang/Ext/Fs, notes/fs-semantics-v2.md). Its `os`, `syscall` and
         # `golang.org/x/sys/unix` are this repository's translations, not Perennial's (whose
         # `os.toml` trusts nothing): the constants and types minibolt needs, and the functions it
         # calls trusted, modeled by the extension's operations (TrustedCode/os.lean,
@@ -606,6 +643,20 @@ PROJECTS = [
                     "io/fs=", "internal/poll=", "internal/syscall="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "crashlog")],
+    ),
+    Project(
+        name="walfs",
+        # the WAL's file-system calls (`examples/osfs/walfs`, notes/walfs-ext-plan.md): a segment
+        # committed by rename (segdir.go), a directory made to appear by rename (dirswap.go), a
+        # segment's own calls (seglog.go). Its `os`, `syscall` and `golang.org/x/sys/unix` are
+        # project bboltfs's translations, as for crashlog. A package of the examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "osfs", "walfs"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
     Project(
         name="durablekv",
@@ -881,6 +932,21 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth")],
     ),
     Project(
+        name="auth3",
+        # authkv with three members (notes/auth3-scope.md, A1): three members started in-process
+        # with auth on, each serving its raft handler on its own peer listener, then authkv's run
+        # (auth.Run) through the first, every client on it. A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root) and examples/etcd/auth.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "auth3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth3")],
+    ),
+    Project(
         name="cachekv",
         # watchkv with the watch read through etcd's cache: one member started in-process, as in
         # putget, a cache of the prefix over the client, a cache watch from revision 2, writer
@@ -922,6 +988,40 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
+    ),
+    Project(
+        name="restart1",
+        # The one-member restart example (restart S7, notes/restart-s7-scope.md): one member started
+        # in-process, Puts of distinct keys through its own API, a graceful stop (HardStop) and a
+        # start again on its data directory (the WAL replayed past a snapshot record), and a
+        # Range through the restarted member's API checked exactly. A package of the examples' Go
+        # module (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "restart1"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart1")],
+    ),
+    Project(
+        name="etcd-wal",
+        # The WAL robustness tester (WAL W4c; `etcd_wal_safe`, notes/decisions.md "WAL W4c"): one
+        # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
+        # restart's read against the crash-aware WAL spec, with its reference state in a durable
+        # file (lib/durable). A package of the examples' Go module (examples/go.mod); its imports
+        # are the etcd project's translations (`wal`, `walpb`, `fileutil` names-only). Its crash
+        # driver (`*_test.go`, `crashtest/`) is Go-only.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "wal"),
+        # `os` and `io/fs` are this repository's (as the etcd project's), so that the translation
+        # and the WAL's specs can be imported together
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
     ),
     Project(
         name="porcupine",
@@ -1027,7 +1127,13 @@ PROJECTS = [
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
                     # and flowcontrol name (notes/k8s-clientgo-goose.md)
-                    "golang.org/x/time=", "container/heap=", "github.com/go-logr="],
+                    "golang.org/x/time=", "container/heap=", "github.com/go-logr=",
+                    # pflag, names only: `FlagSet`, which featuregate's `MutableFeatureGate.AddFlag`
+                    # names (so that goose translates the interface: the driver's noStreaming)
+                    "github.com/spf13=",
+                    # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
+                    # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
+                    "runtime/trace="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -1160,6 +1266,8 @@ PROJECTS = [
             "k8s.io/apiserver/pkg/util/flowcontrol",
             "k8s.io/component-base/tracing",
             "k8s.io/component-base/featuregate",
+            # (pflag, names only: what featuregate's interfaces name, Code/github_com/spf13/pflag.toml)
+            "github.com/spf13/pflag",
             "k8s.io/klog/v2",
             # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
             "github.com/go-logr/logr",
@@ -1167,6 +1275,8 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
+            "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
             # types and names only: what the DaemonSet controller and its example name beyond the
             # above (project k8s-daemonset translates the controller; notes/k8s-daemonset-goose.md),
@@ -1214,7 +1324,9 @@ PROJECTS = [
                os.path.join("k8s_io", "utils", "buffer"),
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
+               os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
+               os.path.join("runtime", "trace"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

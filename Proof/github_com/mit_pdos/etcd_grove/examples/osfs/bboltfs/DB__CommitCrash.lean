@@ -16,9 +16,10 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -26,8 +27,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- `rwRC`'s open branch, from the writer's part. -/
 theorem rwRC_of_writerStC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString)
-    (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool))
-    (hok : fl = false → m.ok = true) :
+    (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG)
+    (hok : fl = false → True) :
     writerStC (GF := GF) γ γc db f fd p mp fl hwm st m bs ∗
       (match st with | none => dbFailed (GF := GF) γ | some _ => emp) ⊢
       rwRC (GF := GF) γ γc db f fd p := by
@@ -45,7 +46,7 @@ theorem rwRC_of_writerStC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (
 /-- Failing the handle under `metalock`, after a failed `commit`: `metaRC` failed, `rwRC`, and the
 committer's token at high water mark 0. -/
 theorem fail_handleC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat)
-    (mp' : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) :
+    (mp' : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) :
     dbOwner (GF := GF) γ t n ∗ writerStFC (GF := GF) γ γc db f fd p mp' fl hwm st m bs ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)) ∗ metaRC (GF := GF) γ db p ⊢
       |={⊤}=> ∃ b : Bool, db.[DB, go!"failed"] ↦ b ∗
@@ -115,7 +116,7 @@ theorem fail_handleC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : G
       · unfold dbFailed; iexact Hfailed
     · dsimp only
       icases Hst with ⟨%Hst, Htok1, #Hinv, Hwc⟩
-      imod fail_cur_inv γ p base len γm mp' hwm $$ [Hinv Htok1 Hcur1 Hcur] with ⟨Htok1, Hcur1, Hcur⟩
+      imod fail_cur_inv γ γ.ino base len γm mp' hwm $$ [Hinv Htok1 Hcur1 Hcur] with ⟨Htok1, Hcur1, Hcur⟩
       · iframe; iframe #
       imodintro
       iexists false
@@ -141,7 +142,7 @@ theorem DB.Commit.wp_proof_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := h
   intro γ γc db t n v Ht Hvp
   wp_start as ⟨Hdb, Hown⟩
   iunfold isDBC at Hdb
-  icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, %hboot, -⟩
+  icases Hdb with ⟨⟨%f, %fd, %p, %R, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, %hboot, -⟩
   ihave #Hpkg2 := Hpkg
   iunfold pkgFacts at Hpkg2
   icases Hpkg2 with ⟨#Hsync, %e1, %e2, #He1, -, %He, -⟩
@@ -214,7 +215,7 @@ theorem DB.Commit.wp_proof_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := h
     dsimp only
     icases Hst with ⟨%Hst, Htok1, #Hinv, Hwc⟩
     (try wp_auto)
-    imod metas_out γ p base len γm mx (curPgid mx) $$ [Hinv Htok1 Hcur1 Hout1 Hout]
+    imod metas_out γ γ.ino base len γm mx (curPgid mx) $$ [Hinv Htok1 Hcur1 Hout1 Hout]
       with ⟨Htok1, Hcur1, Hout1, Hout, Hc0, Hc1⟩
     · iframe; iframe #
     have hl : mx.length = 8192 := Hok.1
@@ -255,7 +256,7 @@ theorem DB.Commit.wp_proof_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := h
       rw [List.length_append, hl1]
       have : ((mx.drop 4112).take 64).length = 64 := by simp; omega
       rw [this]
-    imod metas_in γ p base len γm mx false (curPgid mx)
+    imod metas_in γ γ.ino base len γm mx false (curPgid mx)
         ((mx.drop 16).take 64 ++ (mx.drop 4112).take 64) hmc128 (fun _ => rfl)
         $$ [Htok1 Hcur1 Hout1 Hout Hc0 Hc1] with ⟨Htok1, Hcur1, Hout1, Hout⟩
     · rw [e1, e2]; iframe; iframe #
@@ -271,7 +272,7 @@ theorem DB.Commit.wp_proof_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := h
       iframe
       iexists B; iframe #; ipureintro; exact HT
     (try wp_auto)
-    wp_apply wp_commit γ γc db f fd p mx (some (base, len, γm)) m bs v Hok Ht (Hmok rfl) (by simp) Hvp
+    wp_apply wp_commit γ γc db f fd p R mx (some (base, len, γm)) m bs v Hok Ht (Hmok rfl) (by simp) Hvp
         (hboot _ _ Hvp)
       $$ [Hown Hcur1 Hmap1 Hout1 Hd H0 H1 Hw Hcls1 Htok1 Hwc] as %err Hr
     · iframe #

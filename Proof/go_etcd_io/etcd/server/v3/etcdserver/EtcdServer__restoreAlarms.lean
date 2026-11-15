@@ -31,7 +31,8 @@ theorem EtcdServer.restoreAlarms.wp_proof
     (hAS : v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) := by
   intro s lg d W Pk qo a0 dq S r hS hhas
-  wp_start as ⟨#Hlg, %Hlgnn, Hbe, #Hb, Ho, Hwb, Hpl, Htk, Hrb, %Hal, Ha0⟩
+  wp_start as ⟨#Hlg, #HlgnnZ, Hbe, #Hb, Ho, Hwb, Hpl, Htk, Hrb, %Hal, Ha0⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ HlgnnZ
   wp_auto
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit

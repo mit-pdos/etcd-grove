@@ -1,5 +1,5 @@
 /-
-`apierrors.NewResourceExpired` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 410: the status `Failure`, reason `Expired`, code 410. Lean-first (no Rocq counterpart).
+`apierrors.NewResourceExpired` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 410: the status `Failure`, reason `Expired`, code 410, no details (k8s etcd3 7e-2, D3). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -24,13 +24,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-/-- `apierrors.NewResourceExpired(...)`: a 410: the status `Failure`, reason `Expired`, code 410. -/
+/-- `apierrors.NewResourceExpired(...)`: a 410: the status `Failure`, reason `Expired`, code 410, no details (k8s etcd3 7e-2, D3). -/
 abbrev NewResourceExpired.spec : Prop :=
   ∀ (message : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors }}
     (App (Val (@! k8s_io.apimachinery.pkg.api.errors.NewResourceExpired)) (Val #message))
   {{ (p : Loc), RET #p; ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status, p ↦ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
-      ⌜st.Status' = go!"Failure" ∧ st.Reason' = go!"Expired" ∧ st.Code' = W32 410⌝ }}
+      ⌜st.Status' = go!"Failure" ∧ st.Reason' = go!"Expired" ∧ st.Code' = W32 410 ∧
+        st.Details' = null⌝ }}
 
 end spec
 

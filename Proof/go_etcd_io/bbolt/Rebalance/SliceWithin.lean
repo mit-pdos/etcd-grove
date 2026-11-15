@@ -17,6 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+
 open Iris Iris.BI Iris.ProofMode
 
 theorem delete_copy_list {A : Type} (vs : List A) (a : Nat) (ha : a < vs.length) :

@@ -7197,8 +7197,20 @@ class cancellableContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_cancelReason : ∀ (x : cancellableContext) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet cancellableContext.underlying go!"cancelReason") (PairV #x #y) (Val #(({ x with cancelReason' := y } : cancellableContext)))
   method_set : go.MethodSetIs cancellableContext.ty [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType cancellableContext.ty) [(go!"Cancel", (some (go.signature.Signature [go.error] false []))), (go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
+  Deadline_unfold : MethodUnfold cancellableContext.ty go!"Deadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Deadline"))) (App (Val (GoInstruction (StructFieldGet cancellableContext.ty go!"Context"))) (Var "$r"))))
+  Done_unfold : MethodUnfold cancellableContext.ty go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (StructFieldGet cancellableContext.ty go!"Context"))) (Var "$r"))))
+  Value_unfold : MethodUnfold cancellableContext.ty go!"Value" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (StructFieldGet cancellableContext.ty go!"Context"))) (Var "$r"))))
   ptr_Cancel_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Cancel" cancellableContext.Cancel.impl
+  ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Deadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Deadline"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"Context"))) (Var "$r")))))
+  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"Context"))) (Var "$r")))))
   ptr_Err_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Err" cancellableContext.Err.impl
+  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType cancellableContext.ty) go!"Value" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef cancellableContext.ty go!"Context"))) (Var "$r")))))
 
 attribute [instance] cancellableContext.TypeAssumptions.type_repr
   cancellableContext.TypeAssumptions.underlying
@@ -7212,8 +7224,14 @@ attribute [instance] cancellableContext.TypeAssumptions.type_repr
   cancellableContext.TypeAssumptions.set_cancelReason
   cancellableContext.TypeAssumptions.method_set
   cancellableContext.TypeAssumptions.ptr_method_set
+  cancellableContext.TypeAssumptions.Deadline_unfold
+  cancellableContext.TypeAssumptions.Done_unfold
+  cancellableContext.TypeAssumptions.Value_unfold
   cancellableContext.TypeAssumptions.ptr_Cancel_unfold
+  cancellableContext.TypeAssumptions.ptr_Deadline_unfold
+  cancellableContext.TypeAssumptions.ptr_Done_unfold
   cancellableContext.TypeAssumptions.ptr_Err_unfold
+  cancellableContext.TypeAssumptions.ptr_Value_unfold
 
 structure serverStreamWithCtx [GooseExts] where
   mk ::
@@ -7247,8 +7265,16 @@ class serverStreamWithCtx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   method_set : go.MethodSetIs serverStreamWithCtx.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStreamWithCtx.ty) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
   Context_unfold : MethodUnfold serverStreamWithCtx.ty go!"Context" serverStreamWithCtx.Context.impl
+  RecvMsg_unfold : MethodUnfold serverStreamWithCtx.ty go!"RecvMsg" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (StructFieldGet serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r"))))
+  SendMsg_unfold : MethodUnfold serverStreamWithCtx.ty go!"SendMsg" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (StructFieldGet serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r"))))
   ptr_Context_unfold : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"Context" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve serverStreamWithCtx.ty go!"Context"))) (App (Val (GoInstruction (GoLoad serverStreamWithCtx.ty))) (Var "$r"))))
+  ptr_RecvMsg_unfold : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"RecvMsg" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r")))))
+  ptr_SendMsg_unfold : MethodUnfold (go.GoType.PointerType serverStreamWithCtx.ty) go!"SendMsg" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef serverStreamWithCtx.ty go!"ServerStream"))) (Var "$r")))))
 
 attribute [instance] serverStreamWithCtx.TypeAssumptions.type_repr
   serverStreamWithCtx.TypeAssumptions.underlying
@@ -7259,7 +7285,11 @@ attribute [instance] serverStreamWithCtx.TypeAssumptions.type_repr
   serverStreamWithCtx.TypeAssumptions.method_set
   serverStreamWithCtx.TypeAssumptions.ptr_method_set
   serverStreamWithCtx.TypeAssumptions.Context_unfold
+  serverStreamWithCtx.TypeAssumptions.RecvMsg_unfold
+  serverStreamWithCtx.TypeAssumptions.SendMsg_unfold
   serverStreamWithCtx.TypeAssumptions.ptr_Context_unfold
+  serverStreamWithCtx.TypeAssumptions.ptr_RecvMsg_unfold
+  serverStreamWithCtx.TypeAssumptions.ptr_SendMsg_unfold
 
 structure kvServer [GooseExts] where
   mk ::

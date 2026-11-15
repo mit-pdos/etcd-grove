@@ -15,7 +15,7 @@ translate = ["*", "!init.*", "!snapResponseReadTimeout",
   # the package variables' initializers (errors, the stream table, timeouts, URL prefixes):
   # untranslated for now, run by `Init.lean`'s `opaqueInitsOk`; their values become facts with
   # the HTTP boundary (stage 2), where the proofs first read them
-  "!errMemberNotFound", "!errMemberRemoved", "!linkHeartbeatSize", "!linkHeartbeatMessage", "!supportedStream",
+  "!errMemberNotFound", "!errMemberRemoved", "!linkHeartbeatSize", "!supportedStream",
   "!errUnsupportedStreamType", "!statusErrorInterval", "!statusMonitoringInterval", "!proberInterval", "!errStopped",
   "!ConnWriteTimeout", "!ErrExceedSizeLimit", "!ErrClusterIDMismatch",
   "!errIncompatibleVersion"]

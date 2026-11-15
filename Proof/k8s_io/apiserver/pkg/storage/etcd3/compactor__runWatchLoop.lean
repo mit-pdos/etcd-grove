@@ -19,6 +19,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__UpdateCompactRe
 public import Spec.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
 public import Spec.k8s_io.klog.v2.Errorf
 public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
@@ -77,7 +79,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
           GoInterface.ok (client.watcherIfaceOf w) ∗
         client.isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
         EtcdGrove.context.watchCtx ctx cd ∗ optsAt sl opts ∗
-        ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
+        ⌜(opWatchModel key opts).isRangeWatchP rev = true ∧ ¬ opWatchPanics key opts ∧
           1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
         □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
         □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
@@ -85,7 +87,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
     {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
-        isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
+        isSpsc γw.spsc ch (watchStateElemP V.kv γw (opWatchModel key opts).watchNorm Q
           iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
             (GoInterface.ok ctx) n (opWatchModel key opts).key
             (opWatchModel key opts).base.rangeEnd)))
@@ -106,6 +108,8 @@ theorem compactor.runWatchLoop.wp_proof
     (wp_ContextForChannel : wait.ContextForChannel.spec (GF := GF) (hG := hG))
     (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+    (wp_Deadline : wait.channelContext.Deadline.spec (GF := GF) (hG := hG))
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (wp_After : time.After.spec (GF := GF) (hG := hG))
     (wp_getCompactRev : compactor.getCompactRev.spec (GF := GF) (hG := hG))
     (wp_UpdateCompactRevision : compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG))
@@ -132,10 +136,10 @@ theorem compactor.runWatchLoop.wp_proof
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
-  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
+  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Done wp_Err wp_Deadline wp_Value EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
     $$ [Pw Hint]
   · iframe #
-  imod chanCtx_watch wp_Done wp_Err sc γs γi $$ [Pw Hint] with ⟨%γdn, #Hwctx⟩
+  imod chanCtx_watch wp_Done wp_Err wp_Value sc γs γi $$ [Pw Hint] with ⟨%γdn, #Hwctx⟩
   · iframe #
   iunfold clientWatchOk at Hwo
   icases Hwo with ⟨%w, %Vw, #Hwf, #Hcw, %Hkst⟩
@@ -162,7 +166,7 @@ theorem compactor.runWatchLoop.wp_proof
     wp_apply (wp_getCompactRev c cl γk recorded γc (chanCtxVal sc) (chanCd γi)) $$ []
       as %cr %cur %err Hout
     · iframe #
-    icases Hout with (%Herr | ⟨%Hok, #Hrec⟩)
+    icases Hout with (⟨HerrF, %Herr⟩ | ⟨%Hok, #Hrec⟩)
     · -- the read failed: logged, the next iteration
       cases err with
       | nil => exact absurd rfl Herr
@@ -174,9 +178,20 @@ theorem compactor.runWatchLoop.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl -
+      iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_Errorf _ _ $$ []
+      -- the endpoints (a fresh `[]string`, owned) and the error (`fmt.argOk`)
+      wp_apply wp_Errorf _ _ _ _ $$ [$Hsl Hesl HerrF] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        isplitl [HerrF]
+        · iapply klog.argOkAt_of_argOk
+          isplitr
+          · ipureintro; decide
+          iexact HerrF
+        itrivial
       (try wp_auto)
       wp_for_post
       iframe
@@ -217,7 +232,7 @@ theorem compactor.runWatchLoop.wp_proof
       isplitr
       · ipureintro
         refine ⟨?_, ?_, hcur, ?_⟩
-        · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatch, OpFull.newOp,
+        · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatchP, OpFull.newOp,
             OpModel.zero, compactRevKey]
         · simp [opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit, withRevM,
             OpFull.newOp, OpModel.zero, compactRevKey]
@@ -243,6 +258,7 @@ theorem compactor.runWatchLoop.wp_proof
       iframe
     simp only [↓reduceIte]
     icases Hv with ⟨HP, Hcons⟩
+    ihave HP := watchStateElemP_elem _ _ _ _ _ _ _ $$ HP
     unfold watchStateElem
     icases HP with ⟨%r, %σ, %c0, %c1, #Hr, #HQ, -, -, #Hok, -, -⟩
     ihave #Hrk := respKeyOk_of_state γk recorded (keyWatchOp cur) (keyWatchOp_key cur)
@@ -251,7 +267,7 @@ theorem compactor.runWatchLoop.wp_proof
     (try wp_auto)
     wp_apply (wp_fromWatchResponse c γk recorded v) $$ [] as %cr' %err' Hout'
     · iframe #
-    icases Hout' with (%Herr' | ⟨%Hok', #Hrec'⟩)
+    icases Hout' with (⟨HerrF, %Herr'⟩ | ⟨%Hok', #Hrec'⟩)
     · cases err' with
       | nil => exact absurd rfl Herr'
       | ok ei =>
@@ -262,9 +278,20 @@ theorem compactor.runWatchLoop.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl -
+      iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_Errorf _ _ $$ []
+      -- the endpoints (a fresh `[]string`, owned) and the error (`fmt.argOk`)
+      wp_apply wp_Errorf _ _ _ _ $$ [$Hsl Hesl HerrF] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        isplitl [HerrF]
+        · iapply klog.argOkAt_of_argOk
+          isplitr
+          · ipureintro; decide
+          iexact HerrF
+        itrivial
       (try wp_auto)
       wp_for_post
       iframe

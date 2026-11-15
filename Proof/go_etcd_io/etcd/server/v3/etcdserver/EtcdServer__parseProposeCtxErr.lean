@@ -78,7 +78,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
     (hQ : isConnectedToQuorumSince.spec (GF := GF) (hG := hG))
     (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
     EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) := by
-  intro s E ρ err start Herr
+  intro s E ρ err start _
   wp_start as ⟨#Hsrv, Hrd, #Herrv⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
@@ -108,12 +108,16 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   ihave ⟨%eTO, #HeTO, #HaTO⟩ := errVarLeaf_get _ $$ HTO
   ihave ⟨%eTOLF, #HeTOLF, #HaTOLF⟩ := errVarLeaf_get _ $$ HTOLF
   ihave ⟨%eTOCL, #HeTOCL, #HaTOCL⟩ := errVarLeaf_get _ $$ HTOCL
+  ihave #HcE : (context.isCtxErr err : IProp GF) $$ []
+  · icases Herrv with (#H | #H)
+    · iapply context.isCtxErr_of_Canceled $$ Pctx H
+    · iapply context.isCtxErr_of_DeadlineExceeded $$ Pctx H
   wp_auto
-  wp_apply hIs err eC Herr $$ [] as %b1 %Hb1
+  wp_apply hIs err eC $$ [] as %b1 %Hb1
   · iframe #
   cases b1
   · (try wp_auto)
-    wp_apply hIs err eD Herr $$ [] as %b2 %Hb2
+    wp_apply hIs err eD $$ [] as %b2 %Hb2
     · iframe #
     cases b2
     · -- the `default` branch: `err` is `Canceled`'s or `DeadlineExceeded`'s, so one `Is` held

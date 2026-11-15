@@ -504,16 +504,16 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   iexists γr; iframe Hp Hqe
 
 /-- **A lock's spare reader slots make a thread pool** (Part B; the lease-read plan): the
-`actualMaxReaders - 1 = 2^30 - 2` slots `init_RWMutex` leaves after one, under
+`actualMaxReaders - 1 = 2^30 - 2` slots `init_RWMutex` leaves after one, a level-`leaseLvl` (0) pool, under
 `threadBound GF ≤ 2^30 - 1`. -/
 theorem slotsPool (N : Namespace) (Q : IProp GF) (E : CoPset) :
     ([∗list] _x ∈ List.replicate (sync.rwmutex.actualMaxReaders.toNat - 1) (), Q) ⊢
-      |={E}=> □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName, threadPool.isThreadPool N γp Q) := by
+      |={E}=> □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName, threadPool.isThreadPoolL N leaseLvl γp Q) := by
   iintro Hrest
   by_cases hb : threadBound GF ≤ 2 ^ 30 - 1
   · have hn : threadBound GF ≤ (sync.rwmutex.actualMaxReaders.toNat - 1) + 1 := by
       rw [sync.rwmutex.actualMaxReaders_unseal]; simp; omega
-    imod threadPool.init N Q E _ hn $$ Hrest with ⟨%γp, #Hpool⟩
+    imod threadPool.initL N leaseLvl Q E _ hn $$ Hrest with ⟨%γp, #Hpool⟩
     imodintro
     iintro !> %_
     iexists γp; iexact Hpool

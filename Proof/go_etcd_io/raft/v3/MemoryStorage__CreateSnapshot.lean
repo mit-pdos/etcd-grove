@@ -97,9 +97,10 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     wp_method_call
     wp_call
     ihave #Hsl := monoNatLbOwn_get γs.sl 1 _ $$ Hsl_inv
+    icases Hsn_inv with ⟨%s1, Hs1, #Hor⟩
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState Hents_f Hents Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hlog_inv Hen_inv Hcp_inv
-      Hsx_inv Hsl_inv Hlk]
+      Hsx_inv Hsl_inv Hs1 Hlk]
     · unfold memstorageInv
       iexists σp.prev, σp.ents, M, sv0
       simp only [named]
@@ -148,21 +149,21 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   have Hhi : uint.Z i ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by word
   obtain ⟨Hd0i, Hd0t⟩ := Hdummy
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: σp.ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es (dummy :: σp.ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
   · iframe Hls; ipureintro; exact Hl0.1
   wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
   · iframe He0
-  ihave Hf : memstorageFields ms σp $$ [HhardState Hents_f Hents_cap
+  ihave Hf : memstorageFields ms γs.sz σp $$ [HhardState Hents_f Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists hp, es, dummy, nfi, nli, nen, nte, nsn
     iframe # ∗
     ipureintro; exact ⟨Hd0i, Hd0t⟩
-  wp_apply wp_MemoryStorage_lastIndex ms σp Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms γs.sz σp Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_if_destruct
   · exfalso; word
   iunfold memstorageFields at Hf
@@ -171,7 +172,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   obtain ⟨Hd1i, Hd1t⟩ := Hdummy_1
   icases Hents_1 with #Hents_1
   clear Hcl Hl0
-  ihave %Hcl := entsRO_cons_len $$ Hents_1
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents_1
   -- the storage's snapshot, made whole in place
   wp_apply wp_EnsureSnapshot.1 sp0 (some sv0) $$ [Hsnap0] as %r ⟨Hr, %Hrsp⟩
   · simp only [snapOpt]; iexact Hsnap0
@@ -191,7 +192,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     rw [show (uint.Z i - uint.Z σp.prev.index').toNat =
       (uint.nat i - uint.nat σp.prev.index' - 1) + 1 by word, List.getElem?_cons_succ]
     exact HMe
-  icases entsRO_lookup es1 (dummy1 :: σp.ents) _ e (by rw [← Hk] at He; exact He) $$ Hents_1
+  icases entsROz_lookup _ es1 (dummy1 :: σp.ents) _ e (by rw [← Hk] at He; exact He) $$ Hents_1
     with ⟨%ls1, %lk, #Hls1, #Hek, %Hlk⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_load_slice_index es1 (sint.Z (i - σp.prev.index')) ls1 DFrac.discard lk (by word) $$ [Hls1] with -
@@ -210,7 +211,6 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     with ⟨Hsx_inv, Hsxh⟩
   imod mono_nat_own_update (uint.nat (memSnapMade i e.Term' cc bs).Metadata'.Index')
     (by simp only [memSnapMade]; word) $$ Hsl_inv with ⟨Hsl_inv, #Hsl⟩
-  iclear Hsn_inv
   -- `cs != nil`: the stored `ConfState` is a clone of `*cs`
   icases csPts_not_null $$ Hcs with ⟨Hcs, %Hcsnn⟩
   wp_if_destruct
@@ -244,11 +244,13 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     with ⟨Hjc, Hvn⟩
   imod memSnap_put_at ms γs J o _ ⊤ HN (memSnapMade i e.Term' cc bs) sp0
     $$ Hjc Hlko Hhk Hsnapshot Hsnap Hsxh Hvn with ⟨Hjc, Hlk, Hho⟩
+  -- the stored snapshot is open for writes (`memSnapLb γs 0`)
+  icases Hsn_inv with ⟨%s1, Hs1, -⟩
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HhardState_1
     Hents_f_1 Hents_1 Hents_cap_1 Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1
-    Hcs_snapshot_1 Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk]
+    Hcs_snapshot_1 Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hs1 Hlk]
   · unfold memstorageInv
     iexists σp.prev, σp.ents, M, memSnapMade i e.Term' cc bs
     simp only [named]

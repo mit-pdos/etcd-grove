@@ -39,13 +39,13 @@ theorem txn.Range.wp_proof
     txn.Range.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg kv γ r o withTotal ot te Q
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hr, #Hctx, #Hct, Hto, #Hnd, #Hlg, %Hvst, Hau⟩
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, hReadC, -⟩ := Hsh
   ihave Hau := txn.readAU_reach hpers hreach _ γ Q $$ Hkv Hau
   wp_auto
   wp_apply wp_with_defer as %defer defer
-  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto $Hlg]
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply time.wp_Now as %now -

@@ -44,7 +44,7 @@ theorem backend.backend.begin.wp_proof
   ihave #Hc : beginCtx b $$ [Hb]
   · iexact Hb
   iunfold beginCtx at Hc
-  icases Hc with ⟨%lg, #Hlg, %Hlgn, #Hmi⟩
+  icases Hc with ⟨%lg, #Hlg, #Hlgn, #Hmi⟩
   wp_auto
   wp_apply sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hrl, >Hdbp⟩
   wp_apply (hUB γd b db sync.rfrac D w) $$ [$Hdbp $Hown $Hwr] as %tx ⟨Hdbp, Hown, #Hisdb, #Htxdb, Htx⟩

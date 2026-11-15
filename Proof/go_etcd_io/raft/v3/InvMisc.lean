@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRaftlog
 public import Proof.go_etcd_io.raft.v3.InvTracker
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
+public import Proof.go_etcd_io.raft.v3.MsgOwnZ
 
 @[expose] public section
 
@@ -88,15 +89,19 @@ live in their own spec/postulates/proof/link collection; see notes/decisions.md.
 above): the pointee, read-only for good (nothing writes a `readIndexRequest` after
 `addRequest` allocates it, and `maybeAdvance` hands the pointers out), with the commit
 index read off it, and its request message frozen (stage R4: a `*pb.Message`, `msgOwn □`),
-holding the requester and the request's entries. Persistent. -/
-def ownReadreq (p : Loc) (q : ReadReq) : IProp GF :=
+holding the requester and the request's entries. Persistent. (out_size C3, step 3) At a content
+of bounded size under the node's flag `sz` (`msgOwnZ`): `responseToReadIndexReq` answers with the
+request's entries. -/
+def ownReadreq (sz : Bool) (p : Loc) (q : ReadReq) : IProp GF :=
   iprop(∃ (rv : readIndexRequest) (mm : MessageM) (sn : Option SnapshotM) (ctx : List w8)
       (rs : List Loc),
   "Hrv" ∷ p ↦□ rv ∗
-  "%Hrv_idx" ∷ ⌜rv.index' = q.index ∧ mm.From' = q.src⌝ ∗
-  "#Hrv_msg" ∷ msgOwn rv.req' DFrac.discard ⟨mm, q.ents, sn, ctx, rs⟩)
+  -- (out_size C3) not a `MsgSnap` (a `MsgReadIndex`): the size holds
+  "%Hrv_idx" ∷ ⌜rv.index' = q.index ∧ mm.From' = q.src ∧ mm.Type' ≠ MsgSnap⌝ ∗
+  "#Hrv_msg" ∷ msgOwnZ sz rv.req' DFrac.discard ⟨mm, q.ents, sn, ctx, rs⟩)
 
-instance ownReadreq_pers (p : Loc) (q : ReadReq) : Persistent (ownReadreq (GF := GF) p q) := by
+instance ownReadreq_pers (sz : Bool) (p : Loc) (q : ReadReq) :
+    Persistent (ownReadreq (GF := GF) sz p q) := by
   unfold ownReadreq
   repeat (first
     | infer_instance
@@ -105,17 +110,18 @@ instance ownReadreq_pers (p : Loc) (q : ReadReq) : Persistent (ownReadreq (GF :=
 
 /-- A pending `MsgReadIndex` (`pendingReadIndexMessages`) holding the record's pair `p`
 (`RdState.pend`): frozen (stage R4), its snapshot, context and responses unconstrained.
-Persistent. -/
-def ownPendRI (l : Loc) (p : MessageM × List EntryM) : IProp GF :=
+Persistent. (out_size C3, step 3) At a content of bounded size under `sz` (`msgOwnZ`). -/
+def ownPendRI (sz : Bool) (l : Loc) (p : MessageM × List EntryM) : IProp GF :=
   iprop(∃ (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
-    msgOwn l DFrac.discard ⟨p.1, p.2, sn, ctx, rs⟩)
+    msgOwnZ sz l DFrac.discard ⟨p.1, p.2, sn, ctx, rs⟩ ∗ ⌜p.1.Type' ≠ MsgSnap⌝)
 
-instance ownPendRI_pers (l : Loc) (p : MessageM × List EntryM) :
-    Persistent (ownPendRI (GF := GF) l p) := by
+instance ownPendRI_pers (sz : Bool) (l : Loc) (p : MessageM × List EntryM) :
+    Persistent (ownPendRI (GF := GF) sz l p) := by
   unfold ownPendRI
   repeat (first
     | infer_instance
-    | (refine @exists_persistent _ _ _ _ ?_; intro _))
+    | (refine @exists_persistent _ _ _ _ ?_; intro _)
+    | refine @sep_persistent _ _ _ _ ?_ ?_)
 
 /-- The `readOnly` object, as its methods (`addRequest`, `recvAck`, `AckedIndex`,
 `maybeAdvance`, `heartbeatCtx`) and `reset` see it: the struct, its `acks` map and its
@@ -131,7 +137,7 @@ prefix goes out as `↦*□` with no `ownSliceCap`: nobody but `ro` can write th
 
 Pointer-receiver methods read through `ro`, so the struct is owned here (`Hro`) --
 notes/false-statements.md. -/
-def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
+def ownReadOnly (sz : Bool) (ro : Loc) (r : ReadOnly) : IProp GF :=
   iprop(∃ (rov : readOnly) (ptrs : List Loc),
   "Hro" ∷ ro ↦ rov ∗
   "%Hro_conf" ∷ ⌜rov.confirmedReads' = r.confirmed⌝ ∗
@@ -141,7 +147,7 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
   "Hacks" ∷ rov.acks' ↦$ r.acks ∗
   "Hucr" ∷ rov.unconfirmedReads' ↦*□ ptrs ∗
   "Hucr_cap" ∷ ownSliceCap Loc rov.unconfirmedReads' (DFrac.own 1) ∗
-  "Hreqs" ∷ ([∗list] _k ↦ p;q ∈ ptrs;r.pending, ownReadreq p q))
+  "Hreqs" ∷ ([∗list] _k ↦ p;q ∈ ptrs;r.pending, ownReadreq sz p q))
 
 /-- The `ReadState`s of `r.readStates` (D6, stage R4): the slice of Go structs read-only, each
 one's `Index` the record's and its `RequestCtx` a read-only slice holding the record's bytes
@@ -175,26 +181,26 @@ field to `nil`, and a `Ready` that `node.go` abandons may still be sent later, a
 `r.readStates` was appended to; `responseToReadIndexReq` and `stepFollower` append in place
 into the slack (`wp_slice_append_persistent`), which leaves the elements handed out
 alone. -/
-def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
+def ownRaftMisc (sz : Bool) (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
     (rd : RdState) : IProp GF :=
   iprop(
   "HreadStates" ∷ readStatesPts readStates rd.states ∗
   "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
-  "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
+  "Hro_obj" ∷ ownReadOnly sz ro rd.ro ∗
   -- (stage R4) a `[]*pb.Message`: the pointers owned with the capacity, each message frozen
   "Hpri" ∷ (∃ pls : List Loc, pendingReadIndex ↦* pls ∗
-    [∗list] l;p ∈ pls;rd.pend, ownPendRI l p) ∗
+    [∗list] l;p ∈ pls;rd.pend, ownPendRI sz l p) ∗
   "Hpri_cap" ∷ ownSliceCap Loc pendingReadIndex (DFrac.own 1))
 
 /-- `reset` replaces `r.readOnly` with `newReadOnly(r.readOnly.option)`, so it reads
 the old object's `option` field; it reaches the object through `ownRaftPhysC_readOnly`
 (`InvRaftPhys.lean`), which also installs the new one. -/
-theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
-    ⊢ ownReadOnly (GF := GF) ro r -∗
+theorem ownReadOnly_option (sz : Bool) (ro : Loc) (r : ReadOnly) :
+    ⊢ ownReadOnly (GF := GF) sz ro r -∗
       ∃ (o : ReadOnlyOption),
         ⌜o = W64 0⌝ ∗
         ro.[readOnly, go!"option"] ↦ o ∗
-        (ro.[readOnly, go!"option"] ↦ o -∗ ownReadOnly ro r) := by
+        (ro.[readOnly, go!"option"] ↦ o -∗ ownReadOnly sz ro r) := by
   iintro Hro_obj
   unfold ownReadOnly
   icases Hro_obj with ⟨%rov, %ptrs, Hro_obj⟩

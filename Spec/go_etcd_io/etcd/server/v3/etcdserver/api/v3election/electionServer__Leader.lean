@@ -44,7 +44,7 @@ abbrev electionServer.Leader.spec : Prop :=
       structFieldRef v3electionpb.LeaderRequest go!"Name" req ↦□ nsl ∗ nsl ↦*□ name ∗
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq ∧
         v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name⌝ ∗
-      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Leader"))
       (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

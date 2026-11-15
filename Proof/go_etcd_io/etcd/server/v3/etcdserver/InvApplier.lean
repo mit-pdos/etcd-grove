@@ -325,6 +325,14 @@ holds (`Logger`). Not persistent. -/
 def srvLgReader (s : Loc) : IProp GF :=
   iprop(∃ mu : Loc, srvLgMuAddr s ↦□ mu ∗ sync.ownRWMutex mu (fun _ => iprop(True)))
 
+/-- **The server's logger is a zap logger** (persistent; premise fixes 6): `s.lg`, which never
+changes, holds a logger as zap's constructors build it (`zapLoggerOk`; `NewServer` stores
+`cfg.Logger`). What the family axioms that log through `s.Logger()` ask of `s`. -/
+def srvLoggerOk (s : Loc) : IProp GF := iprop(∃ lg : Loc, srvLgAddr s ↦□ lg ∗ zapLoggerOk lg)
+
+instance srvLoggerOk_persistent (s : Loc) : Persistent (srvLoggerOk (GF := GF) s) := by
+  unfold srvLoggerOk; infer_instance
+
 /-- The values of the server's fields the apply thread reads, and the post-lock hook. -/
 structure SrvFields where
   lg : Loc
@@ -642,7 +650,7 @@ rest buckets' resource is the backend's tracked buckets and `s.cluster`'s in-mem
 `srvApplyKV`.) -/
 def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗

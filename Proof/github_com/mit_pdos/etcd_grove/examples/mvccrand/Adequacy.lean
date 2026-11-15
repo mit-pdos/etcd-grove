@@ -10,7 +10,14 @@ watch stream's registrar and receiver running concurrently, every result of mvcc
 the tester's model (a failed check panics), then the store, the lessor and the backend closed --
 started from a fresh state (no package initialized, one thread): for every real execution of `n`
 steps, the main thread's result, if it has one, is `#()`, no thread is stuck, and no thread has
-ended in a panic. So no check of the tester fails, in any interleaving.
+ended in a panic. So no check of the tester fails, in any interleaving, within the executions it
+covers.
+
+**What it covers: each prefix of fewer than `2 ^ 28` steps** (as `mvccfull_adequate`, finding
+mvcc-r3-1, round 3, 2026-11-11). The execution's length is bounded by the hypothesis
+`n + 2 ≤ 2 ^ 28` (the thread bound). The theorem says no check fails in the first `2 ^ 28 - 2`
+steps of any interleaving, and nothing about later steps. Whether a complete run of `Main` fits
+under the bound has not been measured; `mvccfull`'s does not.
 
 It follows from `goose_adequacy_start_files` (`Proof/runtime/Start.lean`: Perennial's
 `goose_adequacy` whose WP proof also receives program start's rights, here `ETCD_VERIFY` off and the
@@ -26,13 +33,13 @@ program's package table `PkgTable.lean`) and `mvccrand.wp_Main` (`Link.lean`; `R
   the backend opening doesn't panic"), `dbFilesAbsent` (`mvccrand.db` absent at start and touched
   only by the backend) and `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
-* a pure fact of the lessor's configuration: `ckptEffectsOk` (`lease.NewLessor`'s);
 * the semantics: `go.Semantics` and the package assumptions (`mvccrand`'s, mvcc's, the server's,
   the cache's);
 * at every ghost-state instance: `sort.Slice`'s spec (`Spec/sort/Slice.lean`: specified, neither
-  proved nor assumed; the writer's lease checks sort with it) and the store's key-count premise
-  `keySized` (`etcdStorage_open.law`'s: the backend's read states hold fewer than `2 ^ 62` keys, a
-  genuine assumption, persistent).
+  proved nor assumed; the writer's lease checks sort with it). (Premise fixes 5, 2026-11-10) Until
+  then also the store's key-count premise `keySized` (the backend's read states hold fewer than
+  `2 ^ 62` keys), now proved (`mvcc.keySized_all`, from bbolt's address-space bound
+  `backend.rtxSnap_size`).
 -/
 module
 
@@ -107,10 +114,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
-    (Hks : ∀ hG : HeapGS .hasLC mvccrandGF,
-      ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-          mvcc.keySized (GF := mvccrandGF) (hG := heapWith hG lctx) γB P b : IProp mvccrandGF))
-    (Hck : ckptEffectsOk) (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
+    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (HFs : dbFilesAbsent mvccrandProgram [go!"mvccrand.db"])
     (HEnv : verifyEnvOff mvccrandProgram)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -136,13 +140,10 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   letI : HeapGS .hasLC mvccrandGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
   -- the hypotheses at this instance (`heapWith` of it, definitionally)
   have Hsort' : sort.Slice.spec (GF := mvccrandGF) := Hsort _
-  have Hks' : ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-      mvcc.keySized (GF := mvccrandGF) γB P b : IProp mvccrandGF) := Hks _
   unfold IsInit at Hinit
   rw [Hinit]
   haveI : ThreadBoundLe mvccrandGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccrandGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
-  ihave #Hks := Hks'
   iintro - - Hgs Htok Hrights Hfiles
   iunfold startRights at Hrights
   icases Hrights with ⟨-, -, -, -, #Hvoff⟩
@@ -153,8 +154,8 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold mvccrandProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
-  wp_apply (mvccrand.wp_Main Hsort' Hck Hdbo Hdbc) $$ [Hfile Htok]
-  · iframe Hfile Htok Hvoff Hks
+  wp_apply (mvccrand.wp_Main Hsort' Hdbo Hdbc) $$ [Hfile Htok]
+  · iframe Hfile Htok Hvoff
   ipureintro
   rfl
 

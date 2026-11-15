@@ -41,7 +41,7 @@ theorem reqCtx.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-    as %cctx %cd %cancel ⟨#Hcancel, #Hok, #Hce, #Hctx, %Hnone⟩
+    as %cctx %cd %cancel ⟨#Hcancel, #Hok, #Hce, #Hctx, %Hnone, #Hlib⟩
   (try wp_auto)
   wp_if_destruct
   · -- the bad principal: its token appended
@@ -54,9 +54,10 @@ theorem reqCtx.wp_proof
     simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd,
       show max (max (2 : Int) 0) 0 = 2 from rfl]
     (try wp_auto)
+    ihave #Hout0 := context.outgoingCtxOk_of_libCtxOk cctx $$ Hlib
     wp_apply wp_Append cctx cd _ (DFrac.own 1) go!"token" badToken (by unfold metadata.lowerKey; decide) $$ [Hksl]
-      as %c' ⟨%ci, %vs, %Hc', #Hctx', %Hmd, -⟩
-    · iframe; iexact Hctx
+      as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', #HoutC', %Hmd, -⟩
+    · iframe; iframe #
     (try wp_auto)
     ihave #Hall := client.ctxErrClientAllW_of wp_ErrAny hAs $$ Pctx
     iunfold client.ctxErrClientAllW at Hall
@@ -64,7 +65,7 @@ theorem reqCtx.wp_proof
     isplitr; · iexact Hcancel
     iexists ci, { cd with Values := vs }, GoInterface.ok cctx
     isplitr; · ipureintro; exact Hc'
-    isplitr; · iapply ctxOk_of_isContext; iexact Hctx'
+    isplitr; · iapply ctxOk_of_isContext; iframe Hctx' HoutC'
     isplitr; · iapply Hall; iexact Hctx'
     ipureintro
     exact ⟨Hnone, Hmd⟩

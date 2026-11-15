@@ -102,6 +102,7 @@ theorem stepLeader.wp_proof
     -- (slice 9) the gates at the decoded conf changes `cs`
     ispecialize Hgprep $$ %Hp %cs Hcc
     ispecialize Hgpack $$ %Hp %cs Hcc
+    rw [flag_moves (by rw [Hp]; exact movesB_MsgProp)]
     iapply wp_stepLeader_prop c wp_raft_bcastAppend wp_raft_appendEntry wp_raftLog_lastIndex
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
@@ -166,6 +167,7 @@ theorem stepLeader.wp_proof
       ipureintro; exact ⟨h.1, fun h' => Hp h'.1, h.2⟩
   by_cases Hcq : m.Type' = MsgCheckQuorum
   · -- (2026-10-17) `MsgCheckQuorum`
+    ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
     ispecialize Hgcq $$ %Hcq
     iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
       wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hcq (G s.outbox) (G' s.outbox)
@@ -196,6 +198,7 @@ theorem stepLeader.wp_proof
   by_cases Har : m.Type' = MsgAppResp
   · -- (slice 9) `MsgAppResp`: its gates; `Gc b N` back when `maybeCommit` ran
     have Hty := Har
+    ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
     ihave HΦ0 : iprop(▷ ∀ (err : GoInterface) (s' : NState),
         ownRaftPhysCV c c.voters r id s' ∗
         ((∃ (b : Bool) (N : w64), ⌜m.Reject' = false ∧
@@ -249,6 +252,20 @@ theorem stepLeader.wp_proof
     iframe HG
     ipureintro
     exact ⟨fun h => Hcq h.1, fun h => Har h.1⟩
+  -- (out_size C3) a read request is stored at its content (`msgInC`, with its size)
+  by_cases Hrix : m.Type' = MsgReadIndex
+  · rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard from
+      if_neg Hp, flag_moves (by rw [Hrix]; exact movesB_MsgReadIndex)]
+    ispecialize Hgriresp $$ %Hrix
+    ihave #Hgr := Hgrihb $$ %Hrix
+    iapply wp_stepLeader_readindex c
+      wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
+      r id s ml m ents ctx sn rs _ _ _ Hrix Hlead
+      (Hrdnz (Or.inr (Or.inr Hrix))).2 (Hri Hrix) G $$ [Hphys Hm HG Hgriresp] HΦG
+    iframe
+    iframe Hinit Hgr
+  -- every other type reads the message only
+  ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
     Hty | Hty | Hty
   rotate_right 7
@@ -333,14 +350,7 @@ theorem stepLeader.wp_proof
       (Or.inr (Or.inr (Or.inr (Or.inl Hty)))) G $$ [Hphys Hm HG] HΦG
     iframe
     iexact Hinit
-  · ispecialize Hgriresp $$ %Hty
-    ihave #Hgr := Hgrihb $$ %Hty
-    iapply wp_stepLeader_readindex c
-      wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead
-      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) G $$ [Hphys Hm HG Hgriresp] HΦG
-    iframe
-    iframe Hinit Hgr
+  · exact absurd Hty Hrix
 
 end proof
 

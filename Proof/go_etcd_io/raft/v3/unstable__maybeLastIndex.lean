@@ -30,7 +30,7 @@ theorem unstable.maybeLastIndex.wp_proof
   iNamed H
   open_unstable
   wp_auto
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   by_cases He : us.ents = []
   · have Hz : uv.entries'.len = W64 0 := by simp [He] at Hlen; word
     rw [decide_eq_true Hz]

@@ -128,7 +128,7 @@ instance revSeen_persistent (γh : GName) (σ σ' : KVState) :
 theorem histAuth_next (γh : GName) (σ σ' : KVState) (hn : KvNext σ σ') (hr : σ'.rev < 2 ^ 64)
     (hs0 : σ.kvs.Pairwise etcdKvLess) (hs : σ'.kvs.Pairwise etcdKvLess) :
     histAuth (GF := GF) γh σ ⊢ |==> (histAuth γh σ' ∗ revSeen γh σ σ') := by
-  rcases hn with rfl | ⟨hrev, hnew⟩
+  rcases hn with rfl | ⟨hrev, hnew, -⟩
   · iintro H
     imodintro
     iframe H

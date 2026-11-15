@@ -26,6 +26,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 namespace Write
@@ -39,7 +41,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 omit package_sem in
 /-- **`Delete`'s key as a `keyR` key** of the writer's view: the caller's (`heap dk`), or one the
 transaction returned (persistent heap bytes, or bytes of its view, `viewOf_agree`); given back. -/
-theorem delKey_keyR [HasExt osFsExt] (B : BNs) (tx : Loc) (r : TxReg) (v : View) (key : GoSlice)
+theorem delKey_keyR [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (tx : Loc) (r : TxReg) (v : View) (key : GoSlice)
     (kb : List w8) (dk : DFrac) (own : Bool) :
     (if own then key ↦*{dk} kb else txBytesDef (GF := GF) B tx key kb) ∗ reg tx B r ∗ viewOf r v ⊢
       ∃ kr, keyR v key kr kb ∗
@@ -76,7 +78,7 @@ theorem delKey_keyR [HasExt osFsExt] (B : BNs) (tx : Loc) (r : TxReg) (v : View)
     iexact H
 
 /-- A `keyR` key's bytes, lent by the writer's state (a view key through its cells). -/
-theorem keyR_wtxW_lend [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX)
+theorem keyR_wtxW_lend [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX)
     (key : GoSlice) (kr : KeyR) (kb : List w8) :
     wtxW (GF := GF) K tx r m X ∗ keyR X.v key kr kb ⊢ ∃ dq : DFrac, key ↦*{dq} kb ∗
       (key ↦*{dq} kb -∗ wtxW K tx r m X ∗ keyR X.v key kr kb) := by
@@ -104,7 +106,7 @@ theorem keyR_wtxW_lend [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (m : Boo
     ipureintro; exact Hin
 
 /-- The deferred line's lent resources: the closed transaction and `Delete`'s key. -/
-theorem delR_lend [HasExt osFsExt] (B : BNs) (N : Namespace) (tx : Loc) (T : TxView)
+theorem delR_lend [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (tx : Loc) (T : TxView)
     (key : GoSlice) (kb : List w8) (dk : DFrac) (own : Bool) :
     boltTxDef (GF := GF) B N tx 1 T ∗ (if own then key ↦*{dk} kb else txBytesDef B tx key kb) ⊢
       ∃ dq : DFrac, key ↦*{dq} kb ∗ (key ↦*{dq} kb -∗
@@ -139,7 +141,7 @@ theorem delAt_len (ins : List Inode) (ws : List WEntry) (kb : List w8) (hl : ins
   simp only [List.length_eraseIdx, List.length_append, List.length_take, List.length_drop]
   split <;> omega
 
-theorem Bucket.Delete.wp_writer [HasExt osFsExt]
+theorem Bucket.Delete.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_w.spec (GF := GF) (hG := hG))
     (hnode : Cursor.node.spec (GF := GF) (hG := hG))

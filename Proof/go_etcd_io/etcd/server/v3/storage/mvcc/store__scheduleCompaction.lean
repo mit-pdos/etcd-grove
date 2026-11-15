@@ -225,6 +225,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   -- the compaction's objects, read through the job's leased share (M2, the storage side, item 17)
   icases mvcc.fieldShareAt_acc s γ q o $$ Hfs with ⟨Hflds, #Hph, Hfclose⟩
   iunfold mvcc.storeFields at Hflds
@@ -785,7 +786,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h14 lg _ _ $$ []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     wp_for_post
     wp_apply time.wp_Now as %tn -

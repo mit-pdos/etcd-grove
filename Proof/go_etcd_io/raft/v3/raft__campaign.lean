@@ -319,7 +319,7 @@ theorem raft.campaign.wp_proof
       imod cellRO_alloc $$ «$v0» with #cTo
       imod cellRO_alloc $$ «$v1» with #cTe
       wp_auto
-      imod msgOwn_lit0 «$a0_ptr» _
+      imod msgOwnZ_lit0 _ «$a0_ptr» _
           ⟨vrespW32 pre, y, 0, s.term + W64 1, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
       · iframe «$a0» cTy cTo cTe
         isplitr
@@ -417,9 +417,9 @@ theorem raft.campaign.wp_proof
       imod cellRO_alloc $$ Hpty with #cTy
       imod cellRO_alloc $$ «$v3» with #cIx
       imod cellRO_alloc $$ «$v4» with #cLt
-      imod msgOwn_lit «$a0_ptr» _
+      imod msgOwnZ_lit _ «$a0_ptr» _
           ⟨vreqW32 pre, y, 0, s.term + W64 1, lastID.term', lastID.index', 0, 0, false, 0⟩
-          (transferCtx t) ⊤ $$ [«$a0»] with Hm
+          (transferCtx t) ⊤ (fun _ => transferCtx_len t) $$ [«$a0»] with Hm
       · iframe «$a0» cTy cTo cTe cIx cLt Hcl
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩

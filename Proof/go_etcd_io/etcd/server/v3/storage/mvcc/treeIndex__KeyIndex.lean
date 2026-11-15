@@ -30,7 +30,8 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   intro ti L keyi k
   wp_start as ⟨Hix, #Hkey⟩
   iunfold mvcc.ownIdxPriv at Hix
-  icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
+  icases Hix with ⟨%t, %lg, #Htree, #Hlg, #Hlgnn, Hmu, Htr⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
@@ -61,7 +62,6 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
     iexists t, lg
     iframe Hmu Htr
     iframe #
-    ipureintro; exact Hlgnn
   ipureintro; exact Hp
 
 end proof

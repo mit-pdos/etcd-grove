@@ -50,7 +50,7 @@ abbrev electionServer.Proclaim.spec : Prop :=
           v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) key⌝) ∗
       structFieldRef v3electionpb.ProclaimRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
       ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
-      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Proclaim"))
       (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

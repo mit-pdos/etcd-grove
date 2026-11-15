@@ -384,7 +384,7 @@ theorem akRead_granted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
           apply.authEndOf o.base.rangeEnd e ∧
           auth.granted (setupSt r) (auth.authInfoM info) o.key e .read⌝ := by
   rw [v3rpc.rangeAuthed, hγa]
-  iintro ⟨#Hf, #Hseen, #Htls⟩ ⟨%info, %m, %Hm, #Hcl, #Hb, -⟩
+  iintro ⟨#Hf, #Hseen, #Htls⟩ ⟨%info, %m, %Hm, #Hcl, #Hb, -, -⟩
   ihave %Hu := akUser_info s γa who tok info $$ [Hb Hseen Htls]
   · iframe Hb Hseen Htls
   unfold apply.rangeClassFrom

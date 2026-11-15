@@ -60,14 +60,14 @@ theorem readOnly.maybeAdvance.wp_proof
     (wp_JointConfig_CommittedIndex : quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG))
     (wp_readOnly_AckedIndex : readOnly.AckedIndex.spec (GF := GF) (hG := hG)) :
     readOnly.maybeAdvance.spec (GF := GF) (hG := hG) := by
-  intro ro r c v0 v1 s0 s1
+  intro sz ro r c v0 v1 s0 s1
   wp_start as H
   iNamed H
   wp_auto
   -- the indexer's contract, from `readOnly.AckedIndex`'s triple, with the whole object
   -- as its resource
   ihave #Hidx : isAckedIndexer (interface.mkOk (go.GoType.PointerType readOnly.ty) #ro)
-      (ownReadOnly ro r) (fun v => r.acks !! v) $$ []
+      (ownReadOnly sz ro r) (fun v => r.acks !! v) $$ []
   · unfold isAckedIndexer
     iexists _
     isplitr
@@ -77,7 +77,7 @@ theorem readOnly.maybeAdvance.wp_proof
     wp_start_folded as HP
     wp_apply wp_readOnly_AckedIndex $$ [$HP] as HP
     iapply HΦ $$ HP
-  wp_apply wp_JointConfig_CommittedIndex c_ptr (DFrac.own 1) c v0 v1 s0 s1 _ (ownReadOnly ro r)
+  wp_apply wp_JointConfig_CommittedIndex c_ptr (DFrac.own 1) c v0 v1 s0 s1 _ (ownReadOnly sz ro r)
       (fun v => r.acks !! v) Hc Hsz.1 Hsz.2 $$ [$c $Hv0 $Hv1 $Hown $Hidx]
     as %N ⟨c, Hv0, Hv1, Hown, %Hq⟩
   iNamed Hown

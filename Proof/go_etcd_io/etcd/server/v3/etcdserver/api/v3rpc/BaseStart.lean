@@ -91,11 +91,12 @@ instance v3rpc.metricsVars_persistent : Persistent (v3rpc.metricsVars (GF := GF)
   unfold v3rpc.metricsVars; infer_instance
 
 /-- **A generated `ServiceDesc`** at `d` (persistent): the service `sn`, the handler type
-`(*T)(nil)`, some methods and streams with distinct names. -/
+`(*T)(nil)`, some methods and streams with distinct names, every stream setting a stream flag. -/
 def v3rpc.descOk (d : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
   iprop(∃ (mds : List google_golang_org.grpc.MethodDesc)
       (sds : List google_golang_org.grpc.StreamDesc),
-    go_etcd_io.etcd.cache.v3.pbDescIs d sn (v3rpc.handlerTy T) mds sds ∗ ⌜(descNames mds sds).Nodup⌝)
+    go_etcd_io.etcd.cache.v3.pbDescIs d sn (v3rpc.handlerTy T) mds sds ∗
+    ⌜(descNames mds sds).Nodup ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝)
 
 instance v3rpc.descOk_persistent (d : Loc) (sn : GoString) (T : go.GoType) :
     Persistent (v3rpc.descOk (GF := GF) d sn T) := by
@@ -108,12 +109,12 @@ def v3rpc.svcDescsOk : IProp GF :=
       go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
         (v3rpc.handlerTy etcdserverpb.KVServer.ty) mds sds ∗
       ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods ∧
-        sds.map (·.StreamName') = [go!"RangeStream"]⌝) ∗
+        sds.map (·.StreamName') = [go!"RangeStream"] ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     (∃ (sds : List google_golang_org.grpc.StreamDesc),
       go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
         (v3rpc.handlerTy etcdserverpb.WatchServer.ty) [] sds ∗
       ⌜sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
-        [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)]⌝) ∗
+        [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)] ∧ sds.map (·.ClientStreams') = [true]⌝) ∗
     -- (the lease-src plan, 2026-11-02) the Lease service's methods and stream exactly
     (∃ (mds : List google_golang_org.grpc.MethodDesc)
         (sds : List google_golang_org.grpc.StreamDesc),
@@ -121,7 +122,8 @@ def v3rpc.svcDescsOk : IProp GF :=
         (v3rpc.handlerTy etcdserverpb.LeaseServer.ty) mds sds ∗
       ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.leaseDescMethods ∧
         sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
-          [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)]⌝) ∗
+          [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)] ∧
+        ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     v3rpc.descOk (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
       etcdserverpb.ClusterServer.ty ∗
     (∃ (mds : List google_golang_org.grpc.MethodDesc)

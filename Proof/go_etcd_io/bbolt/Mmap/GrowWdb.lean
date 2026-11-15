@@ -14,6 +14,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pure
@@ -57,15 +59,15 @@ end pure
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The writer side's file resources: `db.file`, the file, its fd and `OsMeta`, `db.datasz`, the
 `W` slots' cells and page-cache bytes. -/
 def growRes (K : BC) (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) : IProp GF :=
-  iprop(K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
-    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some m) ∗
+  iprop(K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) ∗
+    osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗ osMeta K.p.ino (DFrac.own 1) m ∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗ wCells w.ms W ∗ wBytes K.p W wb m.size)
 
 omit [GooseSemantics] hos in

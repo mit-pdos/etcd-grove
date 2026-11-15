@@ -28,22 +28,18 @@ theorem sameObj.wp_proof :
   intro a b
   wp_start as -
   wp_auto
-  by_cases h1 : a.Name' = b.Name'
-  · rw [decide_eq_true h1]
-    wp_auto
-    by_cases h2 : a.UID' = b.UID'
-    · rw [decide_eq_true h2]
-      wp_auto
-      rw [show decide (a.Value' = b.Value') = sameObjL a b by simp [sameObjL, h1, h2]]
-      iapply HΦ; itrivial
-    · rw [decide_eq_false h2]
-      wp_auto
-      rw [show false = sameObjL a b by simp [sameObjL, h1, h2]]
-      iapply HΦ; itrivial
-  · rw [decide_eq_false h1]
-    wp_auto
-    rw [show false = sameObjL a b by simp [sameObjL, h1]]
-    iapply HΦ; itrivial
+  rcases Bool.eq_false_or_eq_true (decide (a.Namespace' = b.Namespace')) with h1 | h1 <;>
+    rw [h1] <;> (try wp_auto) <;>
+    rcases Bool.eq_false_or_eq_true (decide (a.Name' = b.Name')) with h2 | h2 <;> (try rw [h2]) <;>
+    (try wp_auto) <;>
+    rcases Bool.eq_false_or_eq_true (decide (a.UID' = b.UID')) with h3 | h3 <;> (try rw [h3]) <;>
+    (try wp_auto) <;>
+    rcases Bool.eq_false_or_eq_true (decide (a.Value' = b.Value')) with h4 | h4 <;> (try rw [h4]) <;>
+    (try wp_auto) <;>
+    rcases Bool.eq_false_or_eq_true (decide (a.Node' = b.Node')) with h5 | h5 <;> (try rw [h5]) <;>
+    (try wp_auto)
+  all_goals (simp only [sameObjL, h1, h2, h3, h4, h5, Bool.true_and, Bool.false_and,
+      Bool.and_true, Bool.and_false]; iapply HΦ; itrivial)
 
 end proof
 

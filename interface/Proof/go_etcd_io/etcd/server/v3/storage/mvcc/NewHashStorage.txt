@@ -7,7 +7,7 @@ theorem mvcc.NewHashStorage.wp_proof : mvcc.NewHashStorage.spec
   ∀ (lg s : Loc),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ zapLoggerOk lg -∗
           (▷
               ∀ h,
                 mvcc.hashStorageOk h -∗

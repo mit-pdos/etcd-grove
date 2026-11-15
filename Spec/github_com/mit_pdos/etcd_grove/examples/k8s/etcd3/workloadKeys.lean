@@ -1,6 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`workloadKeys()` (k8s_etcd3.go): the workload's keys, `a`, `b`, `c`.
+`workloadKeys()` (`k8setcd3.go`): the workload's keys, `ns-1/pod-1`, `ns-1/pod-11`, `ns-2/pod-2`,
+`ns-11/pod-1` (stage 7e-0: namespaced, with a name prefix and a namespace prefix of another key).
 -/
 module
 
@@ -25,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- The workload's keys. -/
-abbrev wksD : List GoString := [go!"a", go!"b", go!"c"]
+abbrev wksD : List GoString := [go!"ns-1/pod-1", go!"ns-1/pod-11", go!"ns-2/pod-2", go!"ns-11/pod-1"]
 
 /-- See the file header. -/
 abbrev workloadKeys.spec : Prop :=

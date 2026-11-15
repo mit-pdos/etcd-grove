@@ -32,7 +32,8 @@ theorem mvcc.newTreeIndex.wp_proof
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
   intro γ lg n log₀
-  wp_start as ⟨%Hlgnn, Hnauth, Hcmp, #Hclb, #Hllb⟩
+  wp_start as ⟨#Hlgnn, Hnauth, Hcmp, #Hclb, #Hllb⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   wp_auto
   -- `btree.New(32, func(aki, bki) bool { return aki.Less(bki) })`
   wp_apply (wp_btree_New mvcc.kiPtrT (W64 32) _ mvcc.kiItemIs mvcc.kiItemLess) $$ [] as %t Ht
@@ -68,7 +69,7 @@ theorem mvcc.newTreeIndex.wp_proof
     iexists t, lg
     iframe tree lg RWMutex
     isplitl []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     iunfold mvcc.ownTree
     rw [show mvcc.itemsOfEntries [] = [] from rfl]
     iframe Ht

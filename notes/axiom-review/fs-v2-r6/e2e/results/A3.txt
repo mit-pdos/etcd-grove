@@ -1,0 +1,22 @@
+e2e: skew 3344, 30s x 1 rounds, 4 writers, 0 syncers, COMPACT=1 STABLE=0 CHURN=0 POOL=256 FILL=once
+check: /tmp/e2e/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 1: blocks 65536,65537,65538,65539; dm-0 stable_writes 0, loop 0
+write /tmp/e2e/mnt/f0: skew 3344 (addr % 4096 = 0xd10), fill once: 7606272 writes
+write /tmp/e2e/mnt/f1: skew 3344 (addr % 4096 = 0xd10), fill once: 8442880 writes
+write /tmp/e2e/mnt/f2: skew 3344 (addr % 4096 = 0xd10), fill once: 7880704 writes
+write /tmp/e2e/mnt/f3: skew 3344 (addr % 4096 = 0xd10), fill once: 7769088 writes
+@calls: 31698972
+@tears[752]: 10
+@window_us:
+[4, 8)                 3 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[8, 16)                1 |@@@@@@@@@@@@@@@@@                                   |
+[16, 32)               1 |@@@@@@@@@@@@@@@@@                                   |
+[32, 64)               3 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[64, 128)              1 |@@@@@@@@@@@@@@@@@                                   |
+[128, 256)             1 |@@@@@@@@@@@@@@@@@                                   |
+@zero_retry: 18
+WB-TORN lines: 0
+log: 17M
+log: 71 entries, 52 writes, 4 writes of a page 0, 0 torn, 0 with a mixed sector, 0 new-prefix cuts at the source page boundary (752)
+--- TORN lines: 0 at the source page boundary (all), then the first 20 of 0 others
+

@@ -90,15 +90,30 @@ good. -/
 abbrev todoCd (γ : context.ContextNames) : context.ContextDesc (IProp GF) :=
   ⟨∅, none, γ, iprop(True)⟩
 
-/-- **`context.TODO()` is quiet**: its `Err()` (the embedded `emptyCtx`'s) returns `nil`. -/
+/-- **`context.TODO()` is quiet**: its `Done()` and `Err()` (the embedded `emptyCtx`'s) return `nil`. -/
 theorem ctxQuiet_todo : ⊢ ctxQuiet (GF := GF) todoCtxVal := by
   unfold ctxQuiet
+  isplitl
+  · iintro !> %Φ HΦ
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    iexact HΦ
+  isplitl
+  · iintro !> %Φ HΦ
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    iexact HΦ
+  unfold ctxDeadline
   iintro !> %Φ HΦ
   wp_method_call
   wp_auto
   wp_method_call
   wp_auto
-  iexact HΦ
+  iapply HΦ
 
 /-- **`context.TODO()`'s `Err()` returns client errors** (`nil`, always), at a descriptor whose
 closed flag is `false` for good. -/
@@ -137,23 +152,38 @@ theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Et
   imodintro
   iexists (todoCd ⟨γc, γc⟩)
   isplitl []
-  · unfold ctxOk
-    iright
-    ileft
-    iapply ctxQuiet_todo
+  · iapply ctxOk_of_quiet
+    isplitl
+    · iapply ctxQuiet_todo
+    · iapply metadata.outgoingCtxOkC_todo
   iapply ctxErrClient_todo hAs ⟨γc, γc⟩
   iexact Hc
 
 /-- **`context.Background()` is quiet** (item 9, stage 2, 2026-10-18: the adequacy example's
-context): its `Err()` (the embedded `emptyCtx`'s) returns `nil`. -/
+context): its `Done()` and `Err()` (the embedded `emptyCtx`'s) return `nil`. -/
 theorem ctxQuiet_background : ⊢ ctxQuiet (GF := GF) context.backgroundCtxVal := by
   unfold ctxQuiet
+  isplitl
+  · iintro !> %Φ HΦ
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    iexact HΦ
+  isplitl
+  · iintro !> %Φ HΦ
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    iexact HΦ
+  unfold ctxDeadline
   iintro !> %Φ HΦ
   wp_method_call
   wp_auto
   wp_method_call
   wp_auto
-  iexact HΦ
+  iapply HΦ
 
 /-- **`context.Background()`'s `Err()` returns client errors** (`nil`, always), at a descriptor
 whose closed flag is `false` for good (as `ctxErrClient_todo`). -/
@@ -194,10 +224,10 @@ theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpcty
   imodintro
   iexists (todoCd ⟨γc, γc⟩)
   isplitl []
-  · unfold ctxOk
-    iright
-    ileft
-    iapply ctxQuiet_background
+  · iapply ctxOk_of_quiet
+    isplitl
+    · iapply ctxQuiet_background
+    · iapply metadata.outgoingCtxOkC_background
   iapply ctxErrClient_background hAs ⟨γc, γc⟩
   iexact Hc
 

@@ -1,9 +1,12 @@
 /-
-Trust boundary: `(*grpc.Server).Serve` (an axiom; see `Spec/google_golang_org/grpc/Server__Serve.lean`).
+The proof of `Spec/google_golang_org/grpc/Server__Serve.lean`: `Serve`'s body is the trusted model,
+whose spec `Proof/google_golang_org/grpc/model/Serve.lean` proves.
 -/
 module
 
 public import Spec.google_golang_org.grpc.Server__Serve
+public import Spec.google_golang_org.grpc.model.Serve
+public import GeneratedProof.google_golang_org.grpc
 
 @[expose] public section
 
@@ -19,17 +22,23 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : google_golang_org.grpc.Assumptions]
 
-/-- **Trust boundary** (item 4, the server start): grpc's `Serve` accepts connections on `lis` and
-serves each in goroutines of its own (what the calls do: `grpc.serve`, `grpc.serveStream`, from
-`grpc.start`'s tokens); it returns only with a non-nil error (the listener failed permanently, or
-the server was stopped), closing `lis`. Nothing it does touches the caller's resources.
-
-Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
-codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
-`grpcStreamServerAt`, `grpcServeTok`) comes only from `grpc.start`, under `grpcRepliesFit`, so no
-reply exceeds it. A reply in `(2 ^ 31 - 1, 2 ^ 48]` fails with `ResourceExhausted`. -/
-axiom grpc.Server.Serve.wp_proof : grpc.Server.Serve.spec (GF := GF) (hG := hG)
+/-- **`Serve` meets its spec** (per-type stage B, B1b; it was an axiom): its body is the trusted model
+(`Server.Serve.impl := model.Serve`), whose spec is proved over its leaves' axioms. -/
+theorem grpc.Server.Serve.wp_proof (hS : grpc.model.Serve.spec (GF := GF) (hG := hG)) :
+    grpc.Server.Serve.spec (GF := GF) (hG := hG) := by
+  intro gs lis γ
+  wp_start_folded as Htok
+  wp_method_call
+  unfold google_golang_org.grpc.Server.Serve.impl
+  wp_pure
+  iapply (hS gs lis γ) $$ Htok
+  iintro %err
+  inext
+  iintro -
+  iapply HΦ
+  itrivial
 
 end proof
 

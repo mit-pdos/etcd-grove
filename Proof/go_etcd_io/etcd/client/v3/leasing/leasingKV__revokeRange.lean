@@ -31,7 +31,7 @@ theorem leasingKV.revokeRange.wp_proof
     (hRLK : leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG)) :
     leasingKV.revokeRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs b e
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc, %Hbe⟩
+  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, %Hbe⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkv, #Hp, -, -, -, #HKV, -⟩
@@ -78,7 +78,7 @@ theorem leasingKV.revokeRange.wp_proof
   ihave #H0 := etcdReached_zero (GF := GF)
   ihave #HG := HKV $$ %ctx %cs %(pfx ++ b) %_ %([withRangeM L] : List (OpFull → OpFull)) %(W64 0)
   wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx Hopts H0
+  · iframe Hctx HctxC Hopts H0
     ipureintro
     refine ⟨by simp [opGetPanics, op_simps], by simp [op_simps], ?_⟩
     apply opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 2 ^ 27 + 2 ^ 26) (V := 0)
@@ -108,7 +108,7 @@ theorem leasingKV.revokeRange.wp_proof
   icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', -, #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
   ihave %Hks := etcdState_keys _ _ s' $$ Hs'
   wp_auto
-  wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $Hcc $Hgps $Hgkvs]
+  wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hgps $Hgkvs]
     as %m %err ⟨Hrd, -⟩
   · ipureintro
     exact rangeKvsOk_keys Hgok (fun w hw =>

@@ -153,7 +153,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
   | nil =>
   ihave #HRQ0' := HRQ0 $$ %rfl
   wp_auto
-  wp_apply HLg $$ [$HLR] as %lg ⟨%Hlg, HLR⟩
+  wp_apply HLg $$ [$HLR] as %lg ⟨#Hlg, HLR⟩
   wp_apply HRT as %d -
   wp_apply time.wp_NewTimer as %et %etc %γet #Het
   wp_apply time.wp_NewTimer as %rt %rtc %γrt #Hrt
@@ -248,7 +248,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
         iintro %fs ⟨-, -⟩
         (try wp_auto)
         wp_apply hW lg _ _ $$ []
-        · iframe #; ipureintro; exact Hlg
+        · iframe #
         (try wp_auto)
         wp_apply HIncS
         (try wp_auto)
@@ -300,7 +300,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     wp_apply HFC $$ [$HLR] as %fcn ⟨#Hfcn, HLR⟩
     (try wp_auto)
     wp_apply hI lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg
+    · iframe #
     rci_resend fcn
   -- `<-retryTimer.C`
   iapply BigAndL.bigAndL_cons.2
@@ -324,7 +324,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iintro %fs ⟨-, -⟩
     (try wp_auto)
     wp_apply hW lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg
+    · iframe #
     rci_resend fc
   -- `<-errorTimer.C`
   iapply BigAndL.bigAndL_cons.2
@@ -348,7 +348,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iintro %fs ⟨-, -⟩
     (try wp_auto)
     wp_apply hW lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg
+    · iframe #
     (try wp_auto)
     wp_apply HIncS
     rci_ret_err HaTO HrTO

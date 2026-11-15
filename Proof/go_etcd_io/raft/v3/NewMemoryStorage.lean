@@ -38,6 +38,7 @@ theorem memOk_new :
 theorem NewMemoryStorage.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG)) :
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
+  intro sz
   wp_start as #Hinit
   wp_auto
   wp_apply wp_slice_literal_ex (V := Loc)
@@ -50,13 +51,13 @@ theorem NewMemoryStorage.wp_proof
   have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue [])] = 1 := rfl
   simp only [Hsz]
   -- the dummy entry, a fresh zero `*pb.Entry`, frozen
-  imod entOwn_of_struct l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl $$ [Hl0] with He0
+  imod entRZ_of_struct sz l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl
+    (fun _ => Nat.zero_le _) $$ [Hl0] with #He0
   · iframe Hl0
     isplitl []; · iapply cellRO_null
     isplitl []; · iapply cellRO_null
     isplitl []; · iapply cellRO_null
     iapply ownSlice_nil
-  imod entOwn_freeze $$ He0 with #He0
   wp_auto
   iStructNamed «$r0»
   -- the lock's half of `hardState` and its counters
@@ -75,12 +76,14 @@ theorem NewMemoryStorage.wp_proof
   imod mono_list_own_alloc (GF := GF) [0] with ⟨%γjc, Hjc, #Hjlb⟩
   imod ghostVar_alloc (GF := GF) memSnapEmpty with ⟨%γsx, Hsx⟩
   icases (ghostVar_split_half γsx 1 memSnapEmpty).1 $$ Hsx with ⟨Hsx2, Hsx3⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γsl, Hsl0, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γsl, Hsl0, #Hsl0lb⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γpr, Hpr, -⟩
-  let γs : MemStorNames := ⟨γlog, γen, γek, γcp, γjc, γsx, γlk, γhk, γsl, γpr⟩
+  imod ghostVar_alloc (GF := GF) memSnapEmpty with ⟨%γs0, Hs0⟩
+  icases (ghostVar_split_half γs0 1 memSnapEmpty).1 $$ Hs0 with ⟨Hs01, Hs02⟩
+  let γs : MemStorNames := ⟨γlog, γen, γek, γcp, γjc, γsx, γlk, γhk, γsl, γpr, γs0, sz⟩
   imod sync.init_Mutex (memstorageInv «$r0_ptr» γs) ⊤ («$r0_ptr».[MemoryStorage, go!"Mutex"])
     $$ Mutex [hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term cs_snapshot Hsl_cap
-      Hlog Hen1 Hcp Hsx2 Hsl0 Hlk] with #Hmu
+      Hlog Hen1 Hcp Hsx2 Hsl0 Hs01 Hlk] with #Hmu
   · inext
     unfold memstorageInv
     iexists entryID.mk (W64 0) (W64 0), [], (∅ : GMap Nat EntryM).insert 0 (zero_val EntryM),
@@ -92,13 +95,13 @@ theorem NewMemoryStorage.wp_proof
       simp only [named]
       iframe
       isplitr
-      · iunfold entsRO; iunfold entsPts
+      · iunfold entsROz; iunfold entsPtsZ
         iexists [l0]
         iframe Hsl
         iapply (BigSepL2.bigSepL2_cons).2
         iframe He0
         rw [show (memPhys (entryID.mk (W64 0) (W64 0)) []).ents = [] from rfl]
-        iapply entsBig_nil
+        iapply entsBigZ_nil
       ipureintro; exact ⟨rfl, rfl⟩
     have h0 : uint.nat (W64 0) = 0 := rfl
     simp only [h0, List.length_nil, Nat.zero_add, Nat.add_zero]
@@ -116,8 +119,10 @@ theorem NewMemoryStorage.wp_proof
     · iexact Hsx2
     isplitl [Hsl0]
     · rw [show uint.nat memSnapEmpty.Metadata'.Index' = 0 from rfl]; iexact Hsl0
-    isplitr
-    · ileft; ipureintro; trivial
+    isplitl [Hs01]
+    · iexists memSnapEmpty
+      iframe Hs01
+      ileft; ipureintro; trivial
     isplitl [Hlk]
     · iunfold memKey; iexact Hlk
     isplitr
@@ -137,6 +142,8 @@ theorem NewMemoryStorage.wp_proof
   imodintro
   iapply HΦ $$ %«$r0_ptr» %γs
   isplitr
+  · ipureintro; rfl
+  isplitr
   · iunfold memStorLock; iframe Hpkg Hmu
   isplitr
   · iunfold memLog
@@ -145,8 +152,10 @@ theorem NewMemoryStorage.wp_proof
     ipureintro; right; simp
   isplitl [Hen2 Hek]
   · iunfold memEnd; iunfold memKey; iframe
-  isplitl [Hpr]
-  · iunfold memSnapNone; iexact Hpr
+  isplitl [Hpr Hs02]
+  · iunfold memSnapNone
+    iframe Hpr Hs02
+    rw [show uint.nat memSnapEmpty.Metadata'.Index' = 0 from rfl]; iexact Hsl0lb
   isplitl [HhardState cs_initialState]
   · unfold memStorMeta
     iexists _, null

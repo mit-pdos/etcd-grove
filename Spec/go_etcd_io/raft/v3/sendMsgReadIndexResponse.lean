@@ -30,7 +30,8 @@ keeps the message).
 
 raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), frozen (`msgOwn ml □`): the queue
 keeps the pointer (`ownReadreq`), `responseToReadIndexReq` shares its `Entries`; the record's
-scalars `m` and entries `ents` as before.
+scalars `m` and entries `ents` as before. (out_size C3) At a content of bounded size under the node's
+flag (`msgOwnZ s.gh.sn.sz`), as the queue keeps it, so that the response is.
 -/
 module
 
@@ -173,9 +174,11 @@ abbrev sendMsgReadIndexResponse.spec : Prop :=
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
   ents ≠ [] →
+  -- (out_size C3) a read request, not a `MsgSnap`
+  m.Type' ≠ MsgSnap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hm" ∷ msgOwn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+      "#Hm" ∷ msgOwnZ s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates below
       -- (2026-11-10, slice 14) indexed by the outbox, from `G o` before a send to `G` with the

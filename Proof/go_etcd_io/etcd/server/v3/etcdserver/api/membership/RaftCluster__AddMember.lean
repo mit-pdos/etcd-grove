@@ -60,7 +60,7 @@ local macro "log_line" : tactic => `(tactic| (
     | "zap.Bool" => (wp_apply wp_Bool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply wp_Info $$ []; ipureintro; exact Hlgnn)
+    | "Info" => (wp_apply wp_Info $$ []; iexact Hlgnn)
     | wp_auto)))
 
 set_option maxHeartbeats 1000000 in
@@ -74,7 +74,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
     (wp_Bool : zap.Bool.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.AddMember.spec (GF := GF) (hG := hG) := by
   intro c RM mem m dqb mm v3 lg cid bi Ps Qs HRM Hsz'
-  wp_start as ⟨#Hrc, Hcm, Hm, #Hlg, %Hlgnn, #Hcid, Hbe, Hd⟩
+  wp_start as ⟨#Hrc, Hcm, Hm, #Hlg, #Hlgnn, #Hcid, Hbe, Hd⟩
   iunfold membership.isRaftClusterG at Hrc
   ihave %Hmnn := (show membership.memberAt (GF := GF) m 1 mm ⊢ ⌜m ≠ null⌝ by
     unfold membership.memberAt; iintro ⟨%H, -⟩; ipureintro; exact H) $$ Hm

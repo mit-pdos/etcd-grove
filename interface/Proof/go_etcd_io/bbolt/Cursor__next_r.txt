@@ -2,15 +2,16 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.take_set_succ [hos : HasExt osFsExt] {α : Type} (l : List α) (n : Nat) (x : α) (hn : n
-    < l.length) : List.take (n + 1) (l.set n x) = List.take n l ++ [x]
+theorem bbolt.take_set_succ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] {α : Type}
+    (l : List α) (n : Nat) (x : α) (hn : n < l.length) : List.take (n + 1) (l.set n x) = List.take n
+    l ++ [x]
 
-theorem bbolt.Cursor.keyValue_r.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Cursor.keyValue_r.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Cursor.keyValue_r.spec = bbolt.Cursor.keyValue_r.spec
 
-theorem bbolt.Cursor.next_r.wp_proof [hos : HasExt osFsExt] (hg :
-    bbolt.Cursor.goToFirstElementOnTheStack_r.spec) (hkv : bbolt.Cursor.keyValue_r.spec) (hCnt :
-    bbolt.internal.common.Page.Count.spec) : bbolt.Cursor.next_r.spec
+theorem bbolt.Cursor.next_r.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hg : bbolt.Cursor.goToFirstElementOnTheStack_r.spec) (hkv : bbolt.Cursor.keyValue_r.spec) (hCnt
+    : bbolt.internal.common.Page.Count.spec) : bbolt.Cursor.next_r.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.next_r.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp c : Loc) (stk : GoSlice) (els : List go_etcd_io.bbolt.elemRef) (i s : Nat),
@@ -41,10 +42,11 @@ theorem bbolt.Cursor.next_r.wp_proof [hos : HasExt osFsExt] (hg :
                     (intoVal ()))
                   {{ Φ }}
 
-theorem bbolt.rdTxK.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx tx✝ :
-    Loc) (e_tx : tx = tx✝) (src src✝ : bbolt.PairSrc) (e_src : src = src✝) (q q✝ : Qp) (e_q : q =
-    q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) (v v✝ : bbolt.View) (e_v : v = v✝) : bbolt.rdTxK K tx
-    src q T v = bbolt.rdTxK K✝ tx✝ src✝ q✝ T✝ v✝
+theorem bbolt.rdTxK.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ : bbolt.BC)
+    (e_K : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (src src✝ : bbolt.PairSrc) (e_src : src = src✝)
+    (q q✝ : Qp) (e_q : q = q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) (v v✝ : bbolt.View) (e_v : v =
+    v✝) : bbolt.rdTxK K tx src q T v = bbolt.rdTxK K✝ tx✝ src✝ q✝ T✝ v✝
 
-theorem bbolt.Cursor.goToFirstElementOnTheStack_r.spec.congr_simp [hos : HasExt osFsExt] :
-    bbolt.Cursor.goToFirstElementOnTheStack_r.spec = bbolt.Cursor.goToFirstElementOnTheStack_r.spec
+theorem bbolt.Cursor.goToFirstElementOnTheStack_r.spec.congr_simp [ExtSemantics Fs.fsExt] [hos :
+    HasExt Fs.fsExt] : bbolt.Cursor.goToFirstElementOnTheStack_r.spec =
+    bbolt.Cursor.goToFirstElementOnTheStack_r.spec

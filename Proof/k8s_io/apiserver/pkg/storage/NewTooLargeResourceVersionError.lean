@@ -53,19 +53,32 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
       (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)))
     $$ [$Hasl] as %s -
   (try wp_auto)
-  wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, -⟩
+  wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %hst⟩
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
   iintro %csl ⟨Hcsl, -⟩
-  iStructNamed Hp
-  iStructNamed ErrStatus
-  iStructNamed Hd
-  (try wp_auto)
+  iapply wp_fupd
+  wp_auto
+  ipersist Hp
+  ipersist Hd
+  ipersist Hcsl
+  imodintro
   iapply HΦ
-  ipureintro
-  exact ⟨_, rfl⟩
+  unfold apierrors.tooLargeErrIs apierrors.apiErrAt apierrors.statusDetailsAt
+  iexists st, _
+  isplitl
+  · iexists p
+    isplitr
+    · ipureintro; rfl
+    iframe Hp
+    iright
+    iexists _
+    iframe Hd
+    iexact Hcsl
+  · ipureintro
+    exact ⟨hst.2.1, by simp⟩
 
 end proof
 

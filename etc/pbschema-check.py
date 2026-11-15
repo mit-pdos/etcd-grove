@@ -16,18 +16,20 @@ trip (D2). This check:
    and no reachable type has a proto2 unpacked repeated int32 or enum field, nor another unpacked
    repeated scalar numbered 16 or more (D1's 2x size bound);
 4. negative tests: the Go test must fail on the dump with a field added to a schema
-   (over-declared: `(5,[0])` in `raftpb.Entry`'s), and with a wire type removed
-   (under-declared: `ConfState`'s packed `2`);
+   (over-declared: `(5,[0])` in `raftpb.Entry`'s, and in the unreached `raftpb.ConfChange`'s), and
+   with a wire type removed (under-declared: `ConfState`'s packed `2`);
 5. runs the tests of `examples/pbschema` that need no dump: `TestD1PostMessage`/`TestD1PostEntry`
    (the decoder's post D1 of `UnmarshalPb.lean` at raftpb.Message/Entry, with the instances'
-   size, levels and decOk of `PerTypeMessage.lean`/`PerTypeEntry.lean`),
+   size, levels and decOk of `PerTypeMessage.lean`/raft's `PbEntryType.lean`),
    `TestD2P2EntryEncoder`/`TestD2P2MessageEncoder` (the round trip D2 and the encoder axioms
-   `entryEncC_ok`/`msgEncC_ok`), and `TestSizeBoundCondition` (step 3's size bound condition).
+   `entryEncC_ok`/`msgEncC_ok`), `TestSizeBoundCondition` (step 3's size bound condition), and
+   (out_size B2) `TestB2CCDecoderUf`/`TestB2MustUnmarshalCC` (the conf-change decoders' unknown fields
+   at their schemas) and `TestA3CCLen`/`TestA3CC2Len` (`proto.MarshalConfChange[V2]`'s `ccLenMax`).
 
     etc/pbschema-check.py        prints one line, exits 1 on a failure
 
 Never builds: the `.olean`s must be up to date (`lake build`). `$LAKE_OPTS` is passed to lake.
-Needs go (`GOTOOLCHAIN`, `GOWORK=off` are set).
+Needs go (`GOTOOLCHAIN`, etc/goose.py's `GO_TOOLCHAIN` unless set, and `GOWORK=off` are set).
 """
 import os
 import re
@@ -57,11 +59,19 @@ def lake(*args):
 
 
 # the tests of examples/pbschema that need no dump (d1post_test.go, descriptor_test.go)
-POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition)$"
+POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition|TestB2CCDecoderUf|TestB2MustUnmarshalCC|TestA3CCLen|TestA3CC2Len|TestC3DecodedFresh)$"
+
+
+def go_toolchain():
+    """etc/goose.py's pinned `GO_TOOLCHAIN` (`$GOTOOLCHAIN` overrides)."""
+    m = re.search(r'^GO_TOOLCHAIN = "([^"]+)"', open(os.path.join(ROOT, "etc", "goose.py")).read(), re.M)
+    if not m:
+        sys.exit("pbschema: FAILED: no GO_TOOLCHAIN in etc/goose.py")
+    return os.environ.get("GOTOOLCHAIN", m.group(1))
 
 
 def go_test(dump, run="^TestSchemas$"):
-    env = dict(os.environ, GOWORK="off", GOTOOLCHAIN=os.environ.get("GOTOOLCHAIN", "go1.27.1"),
+    env = dict(os.environ, GOWORK="off", GOTOOLCHAIN=go_toolchain(),
                PATH="/usr/local/go/bin:" + os.path.expanduser("~/go/bin") + ":" + os.environ["PATH"])
     if dump is not None:
         env["PBSCHEMA_DUMP"] = dump
@@ -114,7 +124,10 @@ def main():
         # negative tests: an over-declared and an under-declared schema must be refused
         over = re.sub(r"^(schema raftpb\.Entry \S+) ", r"\1 5:0 ", dump, flags=re.M)
         under = re.sub(r"^(schema raftpb\.ConfState \S+ 1:)0,2", r"\g<1>0", dump, flags=re.M)
-        for name, d in (("over-declared", over), ("under-declared", under)):
+        # (out_size B2 review m2) a schema no root reaches, checked against its own descriptor
+        unreached = re.sub(r"^(schema raftpb\.ConfChange \S+) ", r"\1 5:0 ", dump, flags=re.M)
+        for name, d in (("over-declared", over), ("under-declared", under),
+                        ("over-declared-unreached", unreached)):
             if d == dump:
                 fail.append(f"negative test {name}: the mutation did not apply")
                 continue
@@ -129,16 +142,16 @@ def main():
             fail.append("the Go D1/D2/P2 tests failed:\n" + "\n".join(
                 l for l in out.splitlines() if ("_test.go" in l and ("FAIL" in l or "Error" in l))
                 or l.startswith("--- FAIL") or l.startswith("FAIL")))
-        elif out.count("--- PASS") != 5:
-            fail.append(f"the Go D1/D2/P2 tests: {out.count('--- PASS')} passed, want 5 ({POST_TESTS})")
+        elif out.count("--- PASS") != 10:
+            fail.append(f"the Go D1/D2/P2 and ConfChange tests: {out.count('--- PASS')} passed, want 10 ({POST_TESTS})")
     if fail:
         print("pbschema: FAILED")
         for f in fail:
             print("  " + f)
         sys.exit(1)
     print(f"pbschema: ok ({len(table)} schemas, roots {', '.join(sorted(roots))}; "
-          f"2 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
-          f"Message) and the size bound condition passed)")
+          f"3 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
+          f"Message), the size bound condition, and the ConfChange decoders and length bound passed)")
 
 
 if __name__ == "__main__":

@@ -23,6 +23,8 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std OFE
 
 /-! ## Layout tactics (Perennial's `unsafememory` example's, renamed) -/

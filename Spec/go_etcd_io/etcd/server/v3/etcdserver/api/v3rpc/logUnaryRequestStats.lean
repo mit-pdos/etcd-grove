@@ -6,6 +6,7 @@ P3b). Lean-first (no Rocq counterpart); the vocabulary is
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -36,13 +37,17 @@ request's and response's sizes and contents (`proto.Size`, the messages' stringe
 `req` and `resp` (a decoded request, the response the handler returned, as `any`), which the
 messages' predicates do not cover field by field (the protobuf runtime's reflection, the size
 cache): after the handler both are read-only, which the wire models trust (as the runtime's own
-marshaling of the response, `notes/decisions.md`, "A generic gRPC specification"). -/
+marshaling of the response, `notes/decisions.md`, "A generic gRPC specification").
+(premise-fixes-7) `peer.FromContext(ctx)` reads `ctx.Value(peerKey{})`, and the log calls
+`peerInfo.Addr.String()`: the context is not nil and its peer is the transport's
+(`peer.peerCtxOk`: a typed nil `*Peer`, or one with a nil `Addr`, would panic). -/
 abbrev v3rpc.logUnaryRequestStats.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (warn : w64) (info : Loc) (start : time.Time)
+  ∀ (ctx : GoInterfaceOk) (lg : Loc) (warn : w64) (info : Loc) (start : time.Time)
     (req resp : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      ⌜lg ≠ null⌝ ∗ srvInfoIs info }}
-    (App (App (App (App (App (App (App (Val (@! v3rpc.logUnaryRequestStats)) (Val #ctx))
+      zapLoggerOk lg ∗ srvInfoIs info ∗ peer.peerCtxOk ctx }}
+    (App (App (App (App (App (App (App (Val (@! v3rpc.logUnaryRequestStats))
+      (Val #(GoInterface.ok ctx)))
       (Val #lg)) (Val #warn)) (Val #info)) (Val #start)) (Val #req)) (Val #resp))
   {{ RET #(); True }}
 

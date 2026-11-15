@@ -39,7 +39,7 @@ theorem backend.batchTxBuffered.commit.wp_proof
     ⟨%db0, %lg, %h, #Hbe, #-⟩
   · iframe #
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t', %rt', %db1, %lg', #-, #Hrt', #-, %-, #-, #-, #-, #Hrg, #-⟩
+    ⟨%t', %rt', %db1, %lg', #-, #Hrt', #-, #-, #-, #-, #-, #Hrg, #-⟩
   icombine Hrt Hrt' gives %Heq
   subst Heq
   wp_auto

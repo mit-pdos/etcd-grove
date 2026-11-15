@@ -71,11 +71,11 @@ theorem runChecks.wp_proof
     (wp_receive : watchCheck.receive.spec (GF := GF) (hG := hG))
     (wp_complete : watchCheck.complete.spec (GF := GF) (hG := hG)) :
     runChecks.spec (GF := GF) (hG := hG) := by
-  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hckpt hdbo
+  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hdbo
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Hfile, #Hks, Htok, #Hvoff⟩
+  wp_start as ⟨Hfile, Htok, #Hvoff⟩
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨ThreadBoundLe.le_of (2 ^ 28) (by omega)⟩
   wp_auto
   wp_apply wp_NewNop as %lg #Hlgz
@@ -83,11 +83,16 @@ theorem runChecks.wp_proof
   (try wp_auto)
   wp_apply wp_DefaultBackendConfig as %bc %Hbc
   (try wp_auto)
-  obtain ⟨hlim, hhooks⟩ := Hbc
+  obtain ⟨hlim, hhooks, hlgc⟩ := Hbc
+  -- (premise fixes 6) the logger `NewNop`'s, a zap logger, for `backend.New` and `mvcc.New`
+  ihave #Hlgo : zapLoggerOrNil lg $$ []
+  · iapply zapLoggerOk_orNil; iexact Hlgz
+  ihave #Hblgo : zapLoggerOrNil bc.Logger' $$ []
+  · rw [hlgc]; iexact Hlgo
   imod halloc with ⟨%gx, Hreg, HW⟩
   wp_apply (wp_bNew _ (rcP bc.BatchLimit') ∅ (fun _ => mvccW gx) (fun _ => iprop(True))
       backend.bFresh) $$ [Hfile HW Htok] as %r Hr
-  · iframe Hfile Htok Hvoff
+  · iframe Hfile Htok Hvoff Hblgo
     isplitr
     · ipureintro
       refine ⟨rcP_wf _ (by rw [hlim]; decide) (by rw [hlim]; decide), rfl⟩
@@ -112,8 +117,8 @@ theorem runChecks.wp_proof
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl
     omega
   imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
-    $$ [Hks Hreg Hnew] with Hbk
-  · iframe Hks Hreg Hnew
+    $$ [Hreg Hnew] with Hbk
+  · iframe Hreg Hnew
   iunfold rcBk at Hbk
   icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm, #Hsc, Hcen⟩
   icases ownToks_add_1 2 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
@@ -143,13 +148,11 @@ theorem runChecks.wp_proof
       [] (fun _ => W64 0) [] trivial (rcP_lease _) hrecs (by simp) (List.Perm.refl _))
     $$ [Hoh Hw1 Hrbo]
     as %l ⟨Hoh, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, #Hexp, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, #Hckpt, Hbeon, #Happly, Hstop, -, -, #Hlookup⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, -, -, #Hlookup⟩
   · rw [rcKB_P, rcKB_γB, rcKB_be]
     iframe Hcl Hisb Hoh Hw1
     isplitr
-    · ipureintro; exact Hlg
-    isplitr
-    · ipureintro; exact hckpt
+    · iright; iexact Hlgz
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
     isplitl [Hrbo]
@@ -184,7 +187,7 @@ theorem runChecks.wp_proof
       mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True) iprop(True)
       iprop(True)) $$ [Hsf Hlrd1 Hrdo Hlown]
     as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, ⟨%rd, Hrdo, Hdel⟩, Hlown, -, -⟩
-  · iframe Hsf Hlrd1 HisL Hrdo Hlown
+  · iframe Hsf Hlrd1 HisL Hrdo Hlown Hlgo
     isplitr
     · ipureintro; exact ⟨hbl, .start, rfl⟩
     isplitr

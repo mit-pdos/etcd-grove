@@ -46,7 +46,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     newReplica.spec (GF := GF) (hG := hG) := by
   intro γr vs id n st sts cs0 tick f ms γs hs K Htick Hnd Hvl Hcsm
   wp_start as ⟨#Hcci, #Hcl, #Hstats, #HisNode, Hdrv, Hraft, Hrun, Hcfg, #Hrec, #HmsInv, Hmeta,
-    Hsnap, #Hcs0, #Hsend, Hseq⟩
+    Hsnap, #Hcs0, #Hsend, Hseq, %Hmd⟩
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   try wp_auto
@@ -77,7 +77,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     $$ Hsdc Hsdoc with ⟨%γsd, -, #HsdH, HsdP, HsdC⟩
   -- the stored snapshot opened for the two writers (`run`'s `ApplySnapshot`, the snapshot
   -- goroutine's `CreateSnapshot`/`Compact`)
-  imod memSnapNone_open γs $$ Hsnap with #HsnLb
+  imod memSnapNone_open_empty γs $$ Hsnap with #HsnLb
   try wp_auto
   wp_apply wp_Clone.1 cs0 DFrac.discard (bootCS vs) $$ [$Hproto $Hcs0] as %csp ⟨-, Hcsp⟩
   try wp_auto
@@ -132,6 +132,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
   · unfold isReplica
     simp only [named]
     iframe #
+    ipureintro; exact Hmd
   ihave #HR : isReplicaR γr vs id «$r0_ptr» n st sts ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K⟩ $$ []
   · unfold isReplicaR
     simp only [named]

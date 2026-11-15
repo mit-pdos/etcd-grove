@@ -125,7 +125,7 @@ lessormethods.PromoteZero #dir {{ RET #(); True }}`, and the same for `GrantZero
 The server passes `cfg.Logger`, a real logger. So etcd is not affected: like zap-zero, this is a
 premise gap.
 
-### Proposed restatement (not applied)
+### Restatement (applied 2026-11-10, `dbe4904326`, with the pre's `⌜lg = null⌝ ∨ zapLoggerOk lg` as the user decided on 2026-11-07; first proposed as below)
 
 Take zap-zero's repair (a constructor-given persistent `zapLoggerOk lg`, sweep repairs 1) and carry
 it into the lessor:

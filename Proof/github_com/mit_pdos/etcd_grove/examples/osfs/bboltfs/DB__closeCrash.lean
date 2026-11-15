@@ -16,9 +16,10 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -29,10 +30,10 @@ theorem DB.close.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG 
     (wp_Flock : syscall.Flock.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
     DB.close.specCrash (GF := GF) (hG := hG) := by
-  intro db dq sl dsz m0 m1 f dqd fd name d p γc m bs fa fb Hdq
+  intro db dq sl dsz m0 m1 f dqd fd name d p R i γc m bs fa fb Hdq
   wp_start as ⟨#Hinv, Hd, Hs, H0, H1, Hm, Hfile, Hf, Hfd⟩
   (try wp_auto)
-  wp_apply wp_munmap db dq sl dsz m0 m1 p γc m bs fa fb Hdq $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hs, H0, H1, Hun⟩
+  wp_apply wp_munmap db dq sl dsz m0 m1 p R i γc m bs fa fb Hdq $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hs, H0, H1, Hun⟩
   · iframe
   (try wp_auto)
   wp_apply wp_Fd f fd name _ $$ [Hf] as Hf

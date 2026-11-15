@@ -14,7 +14,7 @@ per-call resources `S` and the KV's revision reader `R` (which `LeaseLeases`' `n
 and the handler's `fill` after it), both given back, at any context and lower bounds `n` (the auth
 store's published index) and `m` (the lessor's history `γl`); their answers are the server's
 (`ttlAns`, `leasesAns`): on success the response with the key check's verdict, on an error an
-`applyErrIs` error. The server meets it with `S := E.RD ∗ threadTok` and
+`applyErrIs` error. The server meets it with `S := E.RD ∗ levelTok 0` and
 `R := mvcc.api.mvccReaders E.γ 1`.
 
 **The handlers' answers** (`leaseTTLOut`, `leaseLeasesOut`): the server's response with its header
@@ -29,6 +29,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -96,8 +98,8 @@ def leasesAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) 
 def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
       (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
-        r ↦{dq} v }}
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ http.netCtxOk ci ∗ v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗
+        lease.lessorLb γl m ∗ r ↦{dq} v }}
       (App (App (Val (srvM s go!"LeaseTimeToLive")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗ r ↦{dq} v ∗
         ttlAns s E γl ci n m v resp err }})
@@ -105,7 +107,7 @@ def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : I
 /-- **The server's `LeaseLeases`** (one conjunct of `raftLeaseRead`). -/
 def lessorLeasesOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseLeases")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗
         leasesAns s E γl ci n m resp err }})

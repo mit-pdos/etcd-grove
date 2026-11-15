@@ -140,7 +140,7 @@ side bound to the request context's token. -/
 @[no_expose] def acRead (C : AuthC) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   match C with
   | .off => srvAuthLb s E
-  | .on _ => iprop(srvAuthLb s E ∗ srvAuthBound s E)
+  | .on _ => iprop(srvAuthLb s E ∗ □ (auth.tpReady E.authMode -∗ srvAuthBound s E))
 
 /-- **The lessor premise** (persistent): nothing off; on, the lessor finds no lease. -/
 @[no_expose] def acLessor (C : AuthC) (s : Loc) : IProp GF :=
@@ -372,11 +372,13 @@ theorem acRes_lend (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterface)
     unfold bkLendW
     iintro %d %_
     imodintro
-    iexists ∅
+    iexists iprop(emp)
     isplitr
-    · ipureintro; trivial
+    · iempintro
     isplitr
-    · iapply backend.rbPart_none
+    · iintro !> %r Hl Hr
+      iframe Hl Hr
+      ipureintro; exact ⟨∅, trivial, fun _ h => h.elim⟩
     iintro -
     imodintro
     iexact H
@@ -387,14 +389,12 @@ theorem acRes_lend (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterface)
     ihave HL := srvAuthApplyResB_lend s E st γa hC $$ HR
     unfold bkLendW
     iintro %d %hd
-    imod HL $$ %d %hd with ⟨%r, %Hq, Hp, Hback⟩
+    imod HL $$ %d %hd with ⟨%RL, HRL, #Hlaw, Hback⟩
     imodintro
-    iexists r
-    iframe Hp
-    isplitr
-    · ipureintro; exact Hq
-    iintro Hp
-    imod Hback $$ Hp with HR
+    iexists RL
+    iframe HRL Hlaw
+    iintro HRL
+    imod Hback $$ HRL with HR
     imodintro
     iframe HR
     iexact Hb
@@ -484,11 +484,11 @@ theorem acRead_lb (C : AuthC) (s : Loc) (E : apply.AEnv GF) :
   | on γa => dsimp only [acRead, AuthC.mode, AuthC.isOn]; iintro ⟨H, -⟩; iexact H
 
 theorem acRead_bound (C : AuthC) (γa : auth.AuthNames) (hM : C = .on γa) (s : Loc)
-    (E : apply.AEnv GF) : acRead C s E ⊢ srvAuthBound s E := by
+    (E : apply.AEnv GF) : acRead C s E ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E := by
   subst hM
   dsimp only [acRead, AuthC.mode, AuthC.isOn]
-  iintro ⟨-, H⟩
-  iexact H
+  iintro ⟨⟨-, #H⟩, #Hrdy⟩
+  iapply H $$ Hrdy
 
 end laws
 

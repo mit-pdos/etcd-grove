@@ -235,21 +235,25 @@ theorem raft.maybeSendSnapshot.wp_proof
     ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
     · iapply ownSlice_nil
     let mm : MessageM := ⟨W32 7, to, 0, 0, 0, 0, 0, 0, false, 0⟩
-    imod msgOwn_of_struct «$a0_ptr»
+    imod msgOwn_of_struct_uf «$a0_ptr»
       { state' := zeroValDef, Type' := pty, To' := «$v0_ptr», From' := null, Term' := null,
         LogTerm' := null, Index' := null, Entries' := slice.nil, Commit' := null, Vote' := null,
         Snapshot' := snap, Reject' := null, RejectHint' := null, Context' := slice.nil,
         Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
       [] ⟨mm, [], some sv, [], []⟩ ⊤ rfl
-      $$ [«$a0» Hsback Hnilr] with Hm
+      $$ [«$a0» Hsback Hnilr] with ⟨Hm, #Hpb⟩
     · iframe «$a0» cTy cTo Hnil Hnilb Hnilr
       simp only [snapOpt]
       iframe Hsback
       msg_nulls
       iapply BigSepL2.bigSepL2_nil.2; itrivial
+    -- (out_size C3) held at its content: a `MsgSnap`, whose size is not bounded
+    ihave Hm := msgOwnZ_of_uf s.gh.sn.sz «$a0_ptr» (DFrac.own 1) ⟨mm, [], some sv, [], []⟩
+      ⟨rfl, fun _ h => absurd rfl h⟩ $$ [Hm Hpb]
+    · iframe Hm Hpb
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
-      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns, Htz⟩)))
+      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, rfl, rfl, Hto, Hns, Htz⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl (by tr_none) $$ [$Hphys $Hm] as Hphys

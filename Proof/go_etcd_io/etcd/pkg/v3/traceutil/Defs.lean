@@ -19,6 +19,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import Perennial.Proof.fmt
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -50,12 +51,13 @@ def traceutil.ownFields (sl : GoSlice) : IProp GF :=
 
 /-- **The trace `t`, owned** (see the file header), empty (`TODO()`'s) or not as `e` says (its
 `isEmpty` field, written only at its creation: what `IsEmpty` reads; `EnsureTrace` keeps a
-context's trace that is not empty). -/
+context's trace that is not empty). Its logger is nil (`TODO()`'s) or a zap logger
+(`zapLoggerOrNil`; premise fixes 6: `LogWithStepThreshold` logs through it when not nil). -/
 def traceutil.ownTrace (t : Loc) (e : Bool) : IProp GF :=
   iprop(∃ (v : traceutil.Trace) (ss : List traceutil.step),
     t ↦ v ∗ traceutil.ownFields v.fields' ∗
     v.steps' ↦* ss ∗ ownSliceCap traceutil.step v.steps' (DFrac.own 1) ∗
-    ([∗list] st ∈ ss, traceutil.ownFields st.fields') ∗ ⌜v.isEmpty' = e⌝)
+    ([∗list] st ∈ ss, traceutil.ownFields st.fields') ∗ ⌜v.isEmpty' = e⌝ ∗ zapLoggerOrNil v.lg')
 
 /-- The trace's ownership (at emptiness `e`), if the context carries one. -/
 def traceutil.ownTraceOpt : Option Loc → Bool → IProp GF

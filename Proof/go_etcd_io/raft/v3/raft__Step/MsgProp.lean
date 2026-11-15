@@ -298,7 +298,7 @@ theorem wp_Step_MsgProp
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the proposal, its entry pointers owned
-        "Hm" ∷ msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
+        "Hm" ∷ msgInC s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-10-13) the conf-change entries' bytes
         "#Hcc" ∷ ccEntsOk ents cs ∗
         -- (2026-10-18, D19b stage 5) a time receipt, for `appendEntry`
@@ -352,7 +352,8 @@ theorem wp_Step_MsgProp
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
   intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf HL Hnors Htr
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc, HG, Hgates, HTp⟩
-  icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgInC_nn _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgInC_halfO _ _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
@@ -388,8 +389,8 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-    · iapply msgIn_prop Hty $$ Hm
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    · iapply msgInC_passP Hty (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
     have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
@@ -481,8 +482,8 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-    · iapply msgIn_prop Hty $$ Hm
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm Hmb $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    · iapply msgInC_passP Hty (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
     have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
@@ -537,9 +538,9 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
-    · isplitl [Hm]
-      · iapply msgIn_prop Hty $$ Hm
+      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc Hm Hmb $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
+    · isplitl [Hm Hmb]
+      · iapply msgInC_passP Hty (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
       · iintro _; iexists cs; iexact Hcc
     ihave HG := stepOut_leader R _ _ _ _ $$ HGo
     have Hres0 := Hres
@@ -679,6 +680,12 @@ theorem wp_Step_MsgProp
               (Int.le_refl _) Hlv) ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
+            (fun m hm h => by
+              have e : m.dst ∈ c.voters ∪ c.learners := (GMap.elem_of_subseteq _ _).1 Hpc _ (by
+                have := (Hms m hm).2.2.1 h
+                simp only [proposed, sendMsgs] at this
+                rw [Hspp] at this; exact this)
+              rw [← hc] at e; exact e)
       ileft; ipureintro; rfl
     · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
       -- `pendingConfIndex` moved, 2026-10-13)
@@ -735,8 +742,8 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-    · iapply msgIn_prop Hty $$ Hm
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm Hmb $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    · iapply msgInC_passP Hty (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
     have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm

@@ -47,7 +47,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
     (hHdr : EtcdServer.newHeader.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γr γl ctx cd r mid cid n m
-  wp_start as ⟨#Hsr, #Hhf, Hst, Hrk, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, %Hb1, %Hb2⟩
+  wp_start as ⟨#Hsr, #Hhf, Hst, Hrk, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, %Hb1, %Hb2⟩
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlr' := Hlr

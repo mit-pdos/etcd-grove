@@ -197,15 +197,26 @@ theorem isGrpcRpc_mono_with {Req Rep : ProtoMsg GF} (addr name : GoString) (P : 
     [Persistent P] (Spec Spec' : GrpcSpec Req Rep) (h : ∀ m Φ, P ∗ Spec' m Φ ⊢ Spec m Φ) :
     P ∗ isGrpcRpc addr name Spec ⊢ isGrpcRpc addr name Spec' := by
   iintro ⟨#HP, #H⟩
-  iunfold isGrpcRpc at H
-  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
   unfold isGrpcRpc
-  iexists mh, srv, ics, S
-  iframe Hs
-  unfold grpcMethodOk
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
+  iunfold isGrpcRpcMd at H
+  icases H with ⟨%γ, #Ha, #H⟩
+  iunfold isGrpcRpcAt at H
+  icases H with ⟨%c, %mh, %srv, #Hc, %Hin, #Hm⟩
+  unfold isGrpcRpcMd isGrpcRpcAt
+  iexists γ
+  iframe Ha
+  iexists c, mh, srv
+  iframe Hc
+  isplitr
+  · ipureintro; exact Hin
+  imodintro
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
   iframe
+  simp only [GrpcSpec.md]
+  icases HSpec with ⟨HSpec, #HΨe⟩
+  iframe HΨe
   iapply (h m Φ)
   isplitl []
   · iexact HP

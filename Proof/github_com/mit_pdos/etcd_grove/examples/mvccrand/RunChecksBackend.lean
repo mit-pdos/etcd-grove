@@ -234,12 +234,13 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
     [ThreadBoundLe GF (2 ^ 28)]
     (γB : backend.BNames) (b : Loc) (gx : GName) (lim : w64) (m : Nat)
     (hm : receiptBound GF + m + 2 ≤ backend.wbInit) :
-    □ (∀ (γ : backend.BNames) (P : backend.BParams) (b' : Loc), keySized (GF := GF) γ P b') ∗ mvccWReg gx ∗
+    mvccWReg gx ∗
       backend.newPostK γB (rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True)) (backend.bFresh (GF := GF)) b ∅ ⊢
     |={⊤}=> rcBk γB b gx lim m := by
   have hT : threadBound GF ≤ backend.rdPoolN :=
     ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq (by unfold backend.rdPoolN; rfl))
-  iintro ⟨#Hks, Hreg, Hnew⟩
+  iintro ⟨Hreg, Hnew⟩
+  ihave #Hks := mvcc.keySized_all (GF := GF)
   iunfold backend.newPostK at Hnew
   icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
   iunfold backend.bFresh at Hk
@@ -368,17 +369,19 @@ theorem backend_defaults :
   iframe #
 
 open go_etcd_io.etcd.server.v3.storage.backend in
-/-- **`DefaultBackendConfig(lg)`**: its configuration has the default batch limit and no hooks. -/
+/-- **`DefaultBackendConfig(lg)`**: its configuration has the default batch limit, no hooks and the
+logger `lg`. -/
 theorem wp_DefaultBackendConfig (lg : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.DefaultBackendConfig)) (Val #lg))
-    {{ (c : BackendConfig), RET #c; ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil⌝ }} := by
+    {{ (c : BackendConfig), RET #c;
+        ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil ∧ c.Logger' = lg⌝ }} := by
   wp_start as #Hpkg
   ihave ⟨#Hbi, #Hbl, #Hms⟩ := backend_defaults $$ Hpkg
   wp_auto
   iapply HΦ
   ipureintro
-  exact ⟨rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl⟩
 
 end config
 

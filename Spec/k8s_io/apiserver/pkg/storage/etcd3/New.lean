@@ -11,7 +11,9 @@ client, at the members `ms`), whose objects the codec, versioner, transformer an
 type is its `reflect` type's name).
 
 Premises: `prefix` is a clean absolute path (`path.Join("/", prefix)` is `prefix`, with no
-trailing `/`: `PathCleanAbs`), `resourcePrefix` starts with `/` and is not `/`. And the
+trailing `/`: `PathCleanAbs`), `resourcePrefix` starts with `/` and is not `/`; (stage 7e-2, #15,
+D2) the group-resource's fields are valid UTF-8 (the metrics' labels, attack R1) and the thread
+bound fits `collectorMux`'s reader tokens (the store's reader pool, `notes/bounds-plan.md`). And the
 `clientv3.Client`'s `ctx` field, read-only (`Ctx()`, for the feature checker): the client's
 `New` spec does not give it yet ("From the etcd client proof" of `notes/k8s-etcd3-plan.md`).
 -/
@@ -46,6 +48,8 @@ abbrev New.spec : Prop :=
     (pfx0 rp : GoString) (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource)
     (vi ti di : GoInterfaceOk) (lmc : k8s_io.apiserver.pkg.storage.etcd3.LeaseManagerConfig),
   path.PathCleanAbs pfx0 → go!"/" <+: rp → rp ≠ go!"/" →
+  utf8Valid gr.Group' → utf8Valid gr.Resource' → threadBound GF ≤ 2 ^ 30 - 1 →
+  prepareKeyM rp rp false = some rp →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)

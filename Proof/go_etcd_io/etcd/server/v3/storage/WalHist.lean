@@ -1,0 +1,135 @@
+/-
+**What a restart reads from a WAL's history** (WAL W4a, 2026-11-11; the approved W4 Draft's §1.3,
+`notes/decisions.md`, "WAL W4"). Lean-first. Trusted meaning: `walRead`, `walReadFrom` and `readEnt`
+are bootstrap's restart read (`ValidSnapshotEntries`, `newestSnapshotEntry`, `Open`, `ReadAll`,
+`Repair` once: S/etcdserver/bootstrap.go:449-506, 668-707; S/storage/wal/wal.go:478-623, 645-732 at
+the pin `b18c2d500`) as a pure function of the decoded records. The text is the Go reference of the
+WAL tester (`ref.go`), validated by W0's differential runs (23k images, 0 differential) and W3's
+targeted runs (`walReadFrom`: 0 violations relaxed).
+
+The history is over `EntryM` (`WalOp`); the extension (`GooseLang/Ext/AbsDisk/Impl.lean`) stores it
+over raw entries (`WalEnt`), which `WalEnt.toM`/`EntryM.toRaw` translate (a bijection).
+-/
+module
+
+public import GooseLang.Ext.AbsDisk.Impl
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open go_etcd_io.raft.v3
+
+section reader
+variable [GooseExts]
+
+/-- One WAL operation, over the model's entries. -/
+abbrev WalOp := WalOpG EntryM
+
+/-- **The WAL's history**: every `Save`/`SaveSnapshot` since `Create`, across restarts, in record
+order. A cut, `Close`, `Release` and a restart's read add nothing. -/
+abbrev WalHist := List WalOp
+
+/-- A raw entry as the model's entry. -/
+def _root_.Perennial.WalEnt.toM (e : WalEnt) : EntryM := EntryM.mk e.term e.index e.typ e.data
+
+/-- The model's entry as a raw entry. -/
+def EntryM.toRaw (e : EntryM) : WalEnt := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+
+theorem _root_.Perennial.WalEnt.toM_toRaw (e : EntryM) : e.toRaw.toM = e := rfl
+
+theorem EntryM.toRaw_toM (e : WalEnt) : e.toM.toRaw = e := rfl
+
+/-- An operation over raw entries as one over the model's. -/
+def _root_.Perennial.WalOpG.toM : WalOpG WalEnt → WalOp
+  | .save h es => .save h (es.map WalEnt.toM)
+  | .snap m => .snap m
+
+/-- An operation over the model's entries as one over raw entries. -/
+def _root_.Perennial.WalOpG.toRaw : WalOp → WalOpG WalEnt
+  | .save h es => .save h (es.map EntryM.toRaw)
+  | .snap m => .snap m
+
+theorem _root_.Perennial.WalOpG.toM_toRaw (o : WalOp) : o.toRaw.toM = o := by
+  cases o <;> simp [WalOpG.toRaw, WalOpG.toM, Function.comp_def, WalEnt.toM_toRaw]
+
+theorem _root_.Perennial.WalOpG.toRaw_toM (o : WalOpG WalEnt) : o.toM.toRaw = o := by
+  cases o <;> simp [WalOpG.toRaw, WalOpG.toM, Function.comp_def, EntryM.toRaw_toM]
+
+/-- A hard state is empty (`raft.IsEmptyHardState`; `saveState` writes no record for it). -/
+def hsEmptyP (h : HardStateM) : Prop := h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0
+
+/-- The last saved hard state (`w.state`: `MustSync`'s `prevst`; `ReadAll`'s returned state). -/
+def walLastHS (H : WalHist) : HardStateM :=
+  H.foldl (fun p o => match o with | .save h _ => phsNext p h | .snap _ => p) hsZero
+
+/-- Whether `Save(h, es)` syncs before returning, after `H` (`wal.go:1047`, `raft.MustSync`; a
+cut, `:1073`, syncs too: the margin). -/
+def walMustSync (H : WalHist) (h : HardStateM) (es : List EntryM) : Prop :=
+  es ≠ [] ∨ (¬ hsEmptyP h ∧ (h.Vote' ≠ (walLastHS H).Vote' ∨ h.Term' ≠ (walLastHS H).Term'))
+
+/-- `ReadAll`'s step on an entry `e` against the start index `b` and the entries so far
+(wal.go:498-517): at or below the start, empty; above, at `index - b - 1`, or `none` past the end
+(`ErrSliceOutOfRange`). -/
+def readEnt (b : Nat) (ents : List EntryM) (e : EntryM) : Option (List EntryM) :=
+  if uint.nat e.Index' ≤ b then some []
+  else if uint.nat e.Index' - b - 1 ≤ ents.length then some (ents.take (uint.nat e.Index' - b - 1) ++ [e])
+  else none
+
+/-- The fold from `σ`, checked (`walSaveSnap` as today's, WalRecs.lean). -/
+def walFoldChkFrom (σ : StorContents) : WalHist → Option StorContents
+  | [] => some σ
+  | .snap m :: H => walFoldChkFrom (walSaveSnap σ m) H
+  | .save h es :: H => do
+      let ents ← es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents
+      walFoldChkFrom { σ with hs := phsNext σ.hs h, ents := ents } H
+
+/-- Whether a restart keeps the operation: a snapshot record only at or below the commit `c`. -/
+def walKeep (c : Nat) : WalOp → Bool
+  | .snap m => uint.nat m.Index' ≤ c | .save _ _ => true
+
+/-- **What a restart reads from a WAL whose history is `I`, nothing purged** (Scope §2.1): the
+snapshot records above the last saved commit dropped, the rest folded; `none` when the read fails
+(bootstrap then `Fatal`s, or returns an error). [trusted meaning] -/
+def walRead (I : WalHist) : Option StorContents :=
+  walFoldChkFrom walFresh (I.filter (walKeep (uint.nat (walLastHS I).Commit')))
+
+/-- The newest snapshot record (highest index, the last of equal ones: bootstrap's
+`newestSnapshotEntry` and the tester's loop). -/
+def walNewest (H : WalHist) : Option SnapshotMetadataM :=
+  H.foldl (fun best o => match o with
+    | .snap m => match best with
+      | none => some m
+      | some b => if uint.nat b.Index' ≤ uint.nat m.Index' then some m else best
+    | .save _ _ => best) none
+
+/-- **… with the records before position `k ≥ 1` deleted by a purge** (W1.5's `walReadFrom`): the
+newest snapshot record of the rest at or below the last commit is the start; the fold runs over the
+rest from it. Correction to W1.5's Go: the fold starts from the purged prefix's hard state
+(`walLastHS (I.take k)`), which the first kept file's header repeats (`cut`, S/wal.go:844-862), and
+the commit is the whole history's (the same header). [trusted meaning] -/
+def walReadFrom (I : WalHist) (k : Nat) : Option StorContents :=
+  let c := uint.nat (walLastHS I).Commit'
+  let rest := (I.drop k).filter (walKeep c)
+  match walNewest rest with
+  | none => none
+  | some m => walFoldChkFrom ⟨walLastHS (I.take k), some (SnapshotM.mk [] m),
+      entryID.mk m.Term' m.Index', []⟩ rest
+
+/-- The read from position `k` on (`walRead` at `k = 0`). -/
+def walReadCut (I : WalHist) (k : Nat) : Option StorContents :=
+  if k = 0 then walRead I else walReadFrom I k
+
+/-- **The relaxed reader** (decided): what a restart may read from a WAL whose history is `I` and
+whose records before `p` may be purged. -/
+def walReadR (I : WalHist) (p : Nat) (σ : StorContents) : Prop :=
+  ∃ k ≤ p, walReadCut I k = some σ
+
+end reader
+
+end EtcdGrove
+end Perennial

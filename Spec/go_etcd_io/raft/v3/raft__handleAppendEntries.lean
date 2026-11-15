@@ -172,7 +172,9 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (out_size C3) at its content, of bounded size under the node's flag (`msgInC`): the entries
+      -- appended keep their sizes
+      "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the reply's hook gate, for the exit taken
       "HG" ∷ G ∗

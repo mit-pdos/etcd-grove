@@ -39,7 +39,7 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Q Hto Hcfg Htz
+  intro c r id s to ctx cl Q Hto Hcfg Htz Hcl
   rw [show (MsgHeartbeat : w32) = W32 8 from rfl]
   wp_start as H
   iNamed H
@@ -77,7 +77,8 @@ theorem raft.sendHeartbeat.wp_proof
   imod cellRO_alloc $$ «$v0» with #cTo
   wp_auto
   imod cellRO_alloc $$ «$v2» with #cCo
-  imod msgOwn_lit «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤ $$ [«$a0»] with Hm
+  imod msgOwnZ_lit s.gh.sn.sz «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤
+    (fun _ => Hcl) $$ [«$a0»] with Hm
   · iframe «$a0» cTy cTo cCo Hctx
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩

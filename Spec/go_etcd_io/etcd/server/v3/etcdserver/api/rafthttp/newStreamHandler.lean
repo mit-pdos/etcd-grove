@@ -21,14 +21,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`newStreamHandler(t, pg, r, id, cid)`** of a transport whose logger is set and whose id is
+/-- **`newStreamHandler(t, pg, r, id, cid)`** of a transport whose logger is a zap logger and whose id is
 `id`, the member owning `a`; `r` its `Raft`, `pg` a peer getter (`Get`, borrowing `Rs`), the
 transport's `AddRemote` returning: a stream handler of `a` (`streamHandlerOk`). -/
 abbrev rafthttp.newStreamHandler.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (t : Loc) (gi : GoInterfaceOk)
     (r : GoInterface) (id cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (lg : Loc),
-  lg ≠ null → Rh.owner a = id →
-  {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ id ∗
+  Rh.owner a = id →
+  {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ id ∗
       □ netRaftOk Rh.γn id γd Rs r ∗
       □ (∀ pid : w64, {{ Rs }}
           (App (Val #(methods gi.ty go!"Get" gi.v)) (Val #pid))

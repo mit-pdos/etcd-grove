@@ -5,6 +5,9 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.context.LibKeys
+public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -28,7 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseTimeToLive(ctx, r)`**, any goroutine, at a context, with the server's facts
 (`leaseTimeToLive`'s), the key check's resources (`checkLeaseTimeToLive.spec`'s: the auth store and
-lessor at lower bounds `n`, `m`, their readers, a thread token), reading `r`: on `nil`,
+lessor at lower bounds `n`, `m`, their readers, the level-0 token of the lessor's and the leases'
+leveled pools, `levelTok lease.lessorLvl`, also `leaseTimeToLive`'s), reading `r`: on `nil`,
 `leaseTimeToLive`'s response (owned, with its header owned), the request authenticated (`authedOutB`:
 `requireAuthInfo`'s) and, if it asks for the keys (`r.Keys`), auth disabled at a state no older than
 `n`, or its principal an admin at one or allowed to read every key of the lease `r.ID` at a lessor
@@ -45,7 +49,9 @@ response's `GrantedTTL` is the lease's TTL at an index `≥ m`, or the lease is 
 error `errors.Is` finds to be `lease.ErrLeaseNotFound` (`errIsTrue`) means it is absent from `m` on.
 The wrapper's own errors (`requireAuthInfo`'s, `checkLeaseTimeToLive`'s, `auth.ErrAuthOldRevision`)
 are auth package error variables, leaves holding errors other than `ErrLeaseNotFound`'s, for which
-`errIsTrue` is false (`authErrVarIs_not_leaseNotFound`). -/
+`errIsTrue` is false (`authErrVarIs_not_leaseNotFound`). (k8s 7f-4, T-h6) The context holds nothing
+at net/http's keys (`http.netCtxOk`, `leaseTimeToLive`'s). (k8s 7f-4, Addendum T-k) Its causes are
+context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`, `leaseTimeToLive`'s). -/
 abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
@@ -54,12 +60,12 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ http.netCtxOk ctx ∗ v3rpc.ctxCauseOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
-      threadTok ∗ r ↦{dq} v ∗
+      levelTok lease.lessorLvl ∗ r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗
           (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
             ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗

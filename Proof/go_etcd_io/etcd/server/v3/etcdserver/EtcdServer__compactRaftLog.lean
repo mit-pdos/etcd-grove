@@ -49,7 +49,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
   intro s snapi ms γs γr K scu l Hpos
   letI : MemStorReg GF := ⟨γr.reg⟩
-  wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, ⟨#Hmsi, #Hapl⟩, #Hslb, #Hfr, #Hscu⟩
+  wp_start as ⟨Hlr, #Hlgf, #Hlgn, #Hinf, #Hrs, ⟨#Hmsi, #Hapl⟩, #Hslb, #Hfr, #Hscu⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -60,7 +60,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
   · iPkgInit
   (try wp_auto)
   wp_apply hLg s l $$ [$Hlr] as ⟨-, Hlr⟩
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   (try wp_auto)
   -- `s.inflightSnapshots.Load()`
   wp_apply_core sync.atomic.Int64.wp_Load (srvInflightAddr s) (DFrac.own 1) $$ [] [-]
@@ -141,7 +141,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply hDebug l $$ []
-        · iframe #; ipureintro; exact Hlgn
+        · iframe #
         (try wp_auto)
         iapply HΦ
         iframe Hlr
@@ -166,7 +166,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
     rw [decide_eq_false hv]
     (try wp_auto)
     wp_apply hInfo l $$ []
-    · iframe #; ipureintro; exact Hlgn
+    · iframe #
     (try wp_auto)
     iapply HΦ
     iframe Hlr

@@ -78,13 +78,11 @@ axiom fmt.ErrorfWrap.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.StaticMethod.wp_proof
-axiom grpc.serve
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcPeerOpt
-axiom grpcServerAt
-axiom grpcServes
-axiom grpcServes_persistent
+axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof

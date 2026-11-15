@@ -32,7 +32,7 @@ theorem backend.backend.Close.wp_proof
   intro γ P W Pk b X Y
   wp_start as ⟨#Hb, #Hsc, Ho, HX, #Hreq⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, %Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
+    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, #Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
   unfold isStopChans isStopChansAt
   icases Hsc with ⟨%sc, %dc, %γsc, %γdc, #Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
   ihave #Hdcc := ownBroadcastChan_is_chan _ _ _ _ $$ Hdcb

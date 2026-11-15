@@ -12,13 +12,15 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -38,7 +40,7 @@ theorem pages_snoc (P : Nat → IProp GF) (hwm : Nat) (h2 : 2 ≤ hwm) :
 the invariant is open): the meta pages `mp'` and the high water mark `hwm + 1`, the meta cells back
 in the invariant holding the metas of `mp'`, unlent, and page `hwm` committed (`B`), its cells
 into the invariant, unlent under its fresh loan key `hwm`. -/
-theorem metas_publish (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
+theorem metas_publish (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName)
     (mp mp' : List w8) (hwm : Nat) (B : List w8) (hl : 4096 * (hwm + 1) ≤ len) (h2 : 2 ≤ hwm)
     (hmp' : mp'.length = 8192) :
     mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
@@ -125,24 +127,24 @@ failed, the meta cells back in the invariant holding whatever the failed write l
 `metaR`'s failed branch with half of the meta pages' bytes `X` and its half of `own`, and
 `dbFailed`; the committer's token, with `metaR`'s half, at high water mark 0. -/
 theorem meta_fail (γ : DBNames) (db : Loc) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
-    (mp : List w8) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128) (X : List (w8 × Bool))
+    (mp : List w8) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128) (X : List ByteG)
     (hX : X.length = 8192) (T : GMap Nat (Option w64)) (x : Nat × Nat) (t n : Nat) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
+    mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half true ∗ ghostVar γ.out (1 : Qp).half.half true ∗
       cellsB (GF := GF) base 16 (mc.take 64) ∗ cellsB (GF := GF) base 4112 (mc.drop 64) ∗
       db.[DB, go!"failed"] ↦ true ∗ monoNatAuthOwn γ.fail 1 0 ∗ ghostMapAuth γ.txs 1 T ∗
       ghostVar γ.own (1 : Qp).half x ∗ dbOwner (GF := GF) γ t n ∗ ghostVar γ.cls (1 : Qp).half false ∗
-      osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) X ⊢
+      osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) X ⊢
       |={⊤}=> metaR (GF := GF) γ db p ∗ dbFailed (GF := GF) γ ∗ dbOwner (GF := GF) γ t 0 ∗
         ghostVar γm (1 : Qp).half () ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, true, hwm) ∗ ghostVar γ.out (1 : Qp).half.half false := by
   iintro ⟨#Hinv, Htok, Hcur, Hcm, Ho1, Ho2, Hc0, Hc1, Hfl, Hfail, Hauth, Hown, Howner, Hcls, HX⟩
   iunfold dbOwner at Howner
   imod ghostVar_update_halves (t, 0) γ.own _ _ $$ Howner Hown with ⟨Howner, Hown⟩
-  imod fail_cur_inv γ p base len γm mp hwm $$ [Htok Hcur Hcm] with ⟨Htok, Hcur, Hcm⟩
+  imod fail_cur_inv γ γ.ino base len γm mp hwm $$ [Htok Hcur Hcm] with ⟨Htok, Hcur, Hcm⟩
   · iframe; iframe #
-  imod metas_in γ p base len γm mp true hwm mc hmc (fun h => by cases h)
+  imod metas_in γ γ.ino base len γm mp true hwm mc hmc (fun h => by cases h)
     $$ [Htok Hcur Ho1 Ho2 Hc0 Hc1] with ⟨Htok, Hcur, Ho1, Ho2⟩
   · iframe; iframe #
   imod mono_nat_own_update 1 (by omega) $$ Hfail with ⟨Hfail, Hlb⟩

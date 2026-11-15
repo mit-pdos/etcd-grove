@@ -86,10 +86,11 @@ theorem kvStorIface_inj (s1 s2 : Loc) : kvStorIface s1 = kvStorIface s2 → s1 =
     true_and] at h
   exact go.intoVal_inj h
 
-/-- The wrapper `s` holds the `MemoryStorage` `ms`, whose names are `γs` (persistent). -/
+/-- The wrapper `s` holds the `MemoryStorage` `ms`, whose names are `γs` (persistent). (out_size
+C3) The storage is unsized (`γs.sz = false`): kv's cluster bounds no proposed data. -/
 def kvStorRec (s ms : Loc) (γs : MemStorNames) : IProp GF :=
   iprop(s.[RStorage, go!"MemoryStorage"] ↦□ ms ∗
-    s ↪[KVStor.kvStorName (GF := GF)]□ kvStorRecOf ms γs)
+    s ↪[KVStor.kvStorName (GF := GF)]□ kvStorRecOf ms γs ∗ ⌜γs.sz = false⌝)
 
 instance kvStorRec_persistent (s ms : Loc) (γs : MemStorNames) :
     Persistent (kvStorRec (GF := GF) s ms γs) := by
@@ -98,7 +99,7 @@ instance kvStorRec_persistent (s ms : Loc) (γs : MemStorNames) :
 theorem kvStorRec_agree (s ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     ⊢ kvStorRec (GF := GF) s ms1 γs1 -∗ kvStorRec s ms2 γs2 -∗ ⌜ms1 = ms2 ∧ γs1 = γs2⌝ := by
   unfold kvStorRec
-  iintro ⟨-, #H1⟩ ⟨-, #H2⟩
+  iintro ⟨-, #H1, -⟩ ⟨-, #H2, -⟩
   icases ghostMapElem_agree _ _ _ _ _ _ $$ H1 H2 with %H
   ipureintro; exact kvStorRecOf_inj _ _ _ _ H
 
@@ -145,7 +146,8 @@ theorem kvLoc_pointsto_excl (l : Loc) (v1 v2 : Loc) (q : Qp) :
 
 /-- **A new wrapper joins the registry**: its `MemoryStorage` field, still wholly owned (so the
 wrapper is not registered yet), becomes the persistent record. -/
-theorem kvStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑kvStorN ⊆ E) :
+theorem kvStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑kvStorN ⊆ E)
+    (hsz : γs.sz = false) :
     ⊢ kvStorInv (GF := GF) -∗
       s.[RStorage, go!"MemoryStorage"] ↦ ms ={E}=∗
       kvStorRec s ms γs := by
@@ -182,6 +184,7 @@ theorem kvStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑
     imodintro
     unfold kvStorRec
     iframe Hf2 Hfrag
+    ipureintro; exact hsz
 
 /-! ### The vocabulary of a registered wrapper -/
 

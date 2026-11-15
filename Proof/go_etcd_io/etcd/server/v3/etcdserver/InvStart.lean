@@ -81,7 +81,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`isServer`'s fields but `w`** (persistent): `srvFieldsAt` without `s.w` (which `start` sets). -/
 def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
@@ -108,7 +108,10 @@ def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : 
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ v.cca ∗
     srvCfgFieldAddr s go!"ElectionTicks" ↦□ v.electionTicks ∗
     srvCfgFieldAddr s go!"TickMs" ↦□ v.tickMs ∗
-    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth E.RD ∗
+    -- (auth-schema-fix S1 option A) the store's request side once the token provider is ready
+    -- (`start` fires it, `srvTpPend_fire`)
+    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗
+    □ (auth.tpReady E.authMode -∗ isReqAuth v.auth E.RD) ∗
     structFieldRef EtcdServer go!"memberID" s ↦□ v.memberID ∗
     srvAtomicU64 (structFieldRef EtcdServer go!"lead" s) ∗
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
@@ -128,7 +131,7 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
   iprop(srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
@@ -220,6 +223,34 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
+/-- The token provider's readiness invariant's namespace (`srvTpInv`). -/
+def srvTpN : Namespace := nroot .@ "srvTpReady"
+
+/-- **The token provider's readiness invariant** at the cell `γy` (auth-schema-fix S1 option A,
+decided by etcd-grove-81, 2026-11-12): the simple provider's index waiter `NewServer` builds
+(`func(index) { return srv.applyWait.Wait(index) }`) reads `s.applyWait`, which Go sets only in
+`start` (`server.go:568`), so it may be called only once the server has started. The cell is
+pending (the invariant's half of its authority at `0`; the other half is `start`'s, `srvTpPend`)
+or shot (`auth.tpShot`), the closure's variable `srvp` then read-only at `s` (Go assigns it on
+`NewServer`'s error paths, `return nil, err`, so it is persisted only once `NewServer` returns `s`)
+and the field read-only, a `WaitTime` (`isWaitTime`, for any predicate: the waiter's contract asks
+only for a channel, `auth.anyRecv`). -/
+def srvTpInv (s srvp : Loc) (γy : GName) : IProp GF :=
+  inv srvTpN (iprop(monoNatAuthOwn γy (1 : Qp).half 0 ∨
+    (auth.tpShot γy ∗ srvp ↦□ s ∗ ∃ (wt : GoInterface) (P : w64 → IProp GF),
+      srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt P)))
+
+instance srvTpInv_persistent (s srvp : Loc) (γy : GName) :
+    Persistent (srvTpInv (GF := GF) s srvp γy) := by
+  unfold srvTpInv; infer_instance
+
+/-- **`start`'s right to fire the token provider's readiness** in the auth mode `M` (auth-schema-fix
+S1 option A): the other half of the cell's authority at `0`, with the invariant; in `on γa` the cell
+is the auth names' (`γa.rdy`), so firing it gives `auth.tpReady M` (`srvTpPend_fire`). -/
+def srvTpPend (s : Loc) (M : auth.AuthMode) : IProp GF :=
+  iprop(∃ (γy : GName) (srvp : Loc), ⌜∀ γa : auth.AuthNames, M = .on γa → γa.rdy = γy⌝ ∗
+    monoNatAuthOwn γy (1 : Qp).half 0 ∗ srvp ↦□ s ∗ srvTpInv s srvp γy)
+
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/
 def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -290,6 +321,8 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- the fields `start` sets
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
+    -- (auth-schema-fix S1 option A) the right to fire the token provider's readiness
+    "Htpp" ∷ srvTpPend s E.authMode ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
     "Hstop" ∷ (∃ c : Loc, srvStopAddr s ↦ c) ∗
     "Hstopping" ∷ (∃ c : Loc, srvStoppingAddr s ↦ c) ∗
@@ -357,6 +390,98 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- **The readiness invariant, allocated pending** (auth-schema-fix S1 option A): a fresh cell,
+the invariant's half at `0`, the other half returned (`NewServer` hands it to `start`). -/
+theorem srvTpInv_alloc (s srvp : Loc) :
+    ⊢ |={⊤}=> ∃ γy : GName, monoNatAuthOwn (GF := GF) γy (1 : Qp).half 0 ∗ srvTpInv s srvp γy := by
+  iintro
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γy, H, -⟩
+  have hf := (monoNatAuthOwn_fractional (GF := GF) γy 0).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hf
+  icases hf.1 $$ H with ⟨H1, H2⟩
+  imod inv_alloc srvTpN ⊤ (iprop(monoNatAuthOwn (GF := GF) γy (1 : Qp).half 0 ∨
+      (auth.tpShot γy ∗ srvp ↦□ s ∗ ∃ (wt : GoInterface) (P : w64 → IProp GF),
+        srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt P))) $$ [H1] with #Hinv
+  · inext; ileft; iexact H1
+  imodintro
+  iexists γy
+  iframe H2
+  iunfold srvTpInv
+  iexact Hinv
+
+/-- **The shot cell gives the closure's variable** (read-only at `s`) **and the server's
+`applyWait`** (read-only, a `WaitTime`), at a later credit. -/
+theorem srvTpInv_read (s srvp : Loc) (γy : GName) :
+    srvTpInv (GF := GF) s srvp γy ∗ auth.tpShot γy ∗ £ 1 ⊢
+      |={⊤}=> srvp ↦□ s ∗ ∃ (wt : GoInterface) (P : w64 → IProp GF),
+        srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt P := by
+  iintro ⟨#Hinv, #Hshot, Hlc⟩
+  iunfold srvTpInv at Hinv
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  icases Hi with (Hp | ⟨-, #Hs, %wt, %P, #Hw, #Hwt⟩)
+  · iunfold auth.tpShot at Hshot
+    icases monoNatLbOwn_valid γy (1 : Qp).half 0 1 $$ Hp Hshot with %Hv
+    exact absurd Hv.2 (by decide)
+  imod Hclose $$ [] with -
+  · inext; iright; iframe Hshot Hs; iexists wt, P; iframe Hw Hwt
+  imodintro
+  iframe Hs
+  iexists wt, P
+  iframe Hw Hwt
+
+/-- **`start` fires the readiness** once `s.applyWait` is set (read-only, a `WaitTime`), at a later
+credit: the provider is ready in the mode (`auth.tpReady M`). -/
+theorem srvTpPend_fire (s : Loc) (M : auth.AuthMode) (wt : GoInterface) (P : w64 → IProp GF) :
+    srvTpPend (GF := GF) s M ∗ srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt P ∗ £ 1 ⊢
+      |={⊤}=> auth.tpReady M := by
+  iintro ⟨Hpend, #Hw, #Hwt, Hlc⟩
+  iunfold srvTpPend at Hpend
+  icases Hpend with ⟨%γy, %srvp, %Hy, Hmine, #Hs, #Hinv⟩
+  iunfold srvTpInv at Hinv
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  icases Hi with (Hp | ⟨#Hshot, -⟩)
+  · imod monoNat_halves_update γy 0 1 (by omega) $$ Hp Hmine with ⟨-, -, #Hlb⟩
+    imod Hclose $$ [] with -
+    · inext; iright
+      isplitr
+      · iunfold auth.tpShot; iexact Hlb
+      iframe Hs
+      iexists wt, P; iframe Hw Hwt
+    imodintro
+    cases M with
+    | on γa =>
+      simp only [auth.tpReady]
+      rw [Hy γa rfl]
+      iunfold auth.tpShot; iexact Hlb
+    | off => simp only [auth.tpReady]; itrivial
+    | any => simp only [auth.tpReady]; itrivial
+  · iunfold auth.tpShot at Hshot
+    icases monoNatLbOwn_valid γy (1 : Qp).half 0 1 $$ Hmine Hshot with %Hv
+    exact absurd Hv.2 (by decide)
+
+/-- **A `WaitTime`'s channel is one a receive completes on with any outcome** (auth-schema-fix S1
+option A: the index waiter's contract, `auth.anyRecv`): both cases of `waitBcast`, as Perennial's
+`isContextDone_receive`. -/
+theorem waitBcast_anyRecv (ch : Loc) (Q : IProp GF) : waitBcast ch Q ⊢ auth.anyRecv ch := by
+  iintro #H
+  iunfold waitBcast at H
+  iunfold auth.anyRecv
+  icases H with (⟨%γ, #Hb⟩ | ⟨%γ, #Hic, #Hcl, -⟩)
+  · iexists γ
+    isplitr
+    · iapply ownBroadcastChan_is_chan $$ Hb
+    iintro !> %Φ HΦ
+    iapply broadcast_chan_receive _ _ _ _ _ $$ Hb
+    iintro -
+    iapply HΦ
+  · iexists γ
+    iframe Hic
+    iintro !> %Φ HΦ
+    iapply _root_.Perennial.context.closed_chan_receive $$ Hcl
+    iapply HΦ
+
 /-- One of `M ≥ 1` copies of `P`. -/
 theorem replicate_take1 (P : IProp GF) (M : Nat) (h : 1 ≤ M) :
     ([∗list] _x ∈ List.replicate M (), P) ⊢ P ∗ [∗list] _x ∈ List.replicate (M - 1) (), P := by
@@ -390,14 +515,14 @@ theorem replicate_map (P Q R : IProp GF) [Persistent R] (M : Nat) (h : R ∗ P �
 zero `wg` and `wgMu`, and the fields the protocol reads, the protocol (`srvGoAttachOk`), the
 closer's token (`run`'s shutdown's) and the reader slots of `wgMu`. -/
 theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc)
-    (hbound : 2 * threadBound GF ≤ 2 ^ 31) (hl : l ≠ null) :
+    (hbound : 2 * threadBound GF ≤ 2 ^ 31) :
     ⊢ srvStoppingAddr' s ↦□ ch -∗ ownStopChan ch γch iprop(True) .Pending -∗
       srvWgAddr s ↦ (zero_val sync.WaitGroup) -∗ srvWgMuAddr s ↦ (zero_val sync.RWMutex) -∗
-      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ raftPool (srvLgReader s) ={⊤}=∗
+      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ zapLoggerOk l -∗ raftPool (srvLgReader s) ={⊤}=∗
       ∃ γ : GoNames, srvGoAttachOk s γ ∗ token γ.close ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvWgReaderAt s γ := by
-  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #HrP
+  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #Hlz #HrP
   unfold ownStopChan
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
   imod sync.init_WaitGroup goAttachWGN (srvWgAddr s) $$ Hwg with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
@@ -435,8 +560,6 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   · iunfold srvGoAttachOk
     iexists ch, c
     iframe #
-    isplitr
-    · ipureintro; exact hl
     ipureintro; exact hbound
   imodintro
   iexists γ

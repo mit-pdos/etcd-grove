@@ -48,7 +48,7 @@ theorem unstable.restore.wp_proof
   iframe Hsp
   iapply ownUnstable_intro $$ Hu
   · iapply ownSliceCap_nil
-  · iapply entsPts_nil
+  · iapply entsPtsZ_nil
   · iapply (ownSnap_Some _ _).2
     iexists sv
     iframe HcM

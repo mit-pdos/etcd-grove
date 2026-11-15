@@ -17,6 +17,57 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `WithCancel` over a general `isContext` parent loses the parent's Done proposition (2026-11-14, k8s 7f-5a)
+
+What is missing: Perennial's `context.WithCancel.spec` gives the child
+`PDone := parent.PDone ∨ PDone'` only for a parent that is itself a `*cancelCtx` made by `WithCancel`
+(`isCancelCtxCtx`). For any other `isContext` parent (a `*valueCtx` over one, a `*timerCtx`, a
+wrapper whose `parentCancelCtx` succeeds), `wp_WithCancel_any` gives `PDone := True`: an observer of
+the child's closed Done channel learns nothing of why it closed.
+
+What Go does: the child's Done channel is closed by its own cancel function, or by
+`propagateCancel`: if the parent is already done (its Done channel closed), at once; otherwise
+`parentCancelCtx(parent)` finds the `*cancelCtx` `p` whose Done channel is the parent's (it checks
+`pdone == done` against `parent.Done()`), the child goes into `p.children`, and `p.cancel` closes
+`p.done` (the parent's Done channel) before it cancels its children. So whenever the child is closed
+by propagation, the parent's Done channel is already closed, and the parent's `isContextDone` gives
+`□ parent.PDone`.
+
+What the model should give: `wp_WithCancel` for any `isContext parent s` (with `HParentCC`) and any
+`PDone'`, the child `isContext` at `{ s with PDone := s.PDone ∨ PDone', Done_gn := γ' }`, its cancel
+needing `□ PDone'`. The missing link is in `isContext`'s `HParentCC`: it gives `isCancelCtx p` with an
+unknown Done proposition and channel. Strengthen it to say `p`'s Done channel is the parent's `ch`
+(or that `p`'s proposition gives `s.PDone`), true of every context the model makes (`*cancelCtx`,
+`*timerCtx`, value links over them), so that the children `p` cancels can be given
+`□ s.PDone`.
+
+Who needs it: the etcd3 watcher (k8s 7f-5a): `wc.ctx = WithCancel(WithRequireLeader(ctx))`, and the
+store watch's spec states the no-gap prefix unless the watch is cancelled, which a dropped event
+must witness from `wc.ctx`'s closed Done channel (`notes/k8s-7f5a-draft.md` §4, `kCancelPD`, §6
+risks). Workaround: none yet. If this is not in Perennial by 7f-5a-P's step 4 (the channel
+operations), a clearly marked local trust-boundary axiom with a Go test, a stop for etcd-grove-81's
+axiom review. Status: proposal, not yet on a Perennial branch.
+
+### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
+
+Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
+the input. Go's sort (pdqsort) is deterministic: the output is a function of the input slice and
+the comparator. etcd's sorted ranges (`txn.sortRangeResults`) need the reply to be a function of the
+store, so that a writing transaction's answer is fixed at commit (`notes/specs-only/batch-3b.md`,
+decision 1: `Txn.goSort`, and 2c's read registry, 3a's `applyStep_fun`). The general change: state
+the sort's result as `goSort less xs` for a pure, opaque-but-functional `goSort` with the
+sorted-permutation law, so any client can use determinism. Not shaped by one proof: determinism is
+a fact of Go's implementation every caller may rely on. Not yet proposed upstream.
+
+### Goose leaves a `select` case's variable unbound in the `default:` branch (2026-11-09, specs-only batch 2b)
+
+In etcd's `serverWatchStream.recvLoop` (`server/etcdserver/api/v3rpc/watch.go`), a type switch's
+`default:` branch reads the switched variable `uv`; the translation leaves `uv` unbound in that
+branch, so the branch is stuck in the model (a model artifact: Go runs it). Found while writing the
+specs-only branch's watch-server specs, which restrict the scope to well-formed client requests
+partly because of it (`notes/specs-only/batch-2b.md`). To fix in Goose (bind the switched value in
+every branch, `default` included); not yet reported upstream.
+
 ### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
 
 - **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
@@ -62,6 +113,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   in `WithCancel`'s and the deadline constructors' posts, for any parent with a `ctxValue`; a
   `*valueCtx` parent (grpc metadata) through `ctxValue_valueCtx` from its fields, which this
   repository's `WithValue` spec would have to state. P-RL2 not started; the 7f-4 Draft states it.
+  For 7f-4 (`notes/k8s-7f4-rebaseline.md`, R-1): grpc's run context gives its library facts only in
+  the WP form (`grpcRunCtx`), which does not cross `WithCancel`; the re-baseline proposes the chain
+  form in grpc's model.
+
+### The context model over an error predicate (2026-11-13, k8s 7f-4 Addendum T-h; option (a) of P-RL2)
+
+- **Missing.** Perennial's `*cancelCtx` model (`Perennial/Proof/context/Base.lean`: `cancelCtxInv`'s
+  `Herr`, `childCancelSpec`, `isContextDef`'s `#HErr`/`#HErrDone`; `cancelCtx.cancel.spec`,
+  `timerCtx.cancel.spec`; about 45 uses of `isCtxErr` in 12 files) fixes a context's error to
+  `isTypedErr ∧ isCtxErr` (`Canceled` or `DeadlineExceeded`). Go's derived contexts store whatever
+  their parent's `Err()` returns (`propagateCancel`'s already-done arm, `context.go:487`), so a child
+  of a context whose `Err` returns another error (etcd's require-leader wrapper: `ErrGRPCNoLeader`)
+  is outside the model. The general form: `isContext` and the cancelCtx invariants parametrized by
+  the predicate `E` the errors satisfy (`isCtxErr` by default), `WithCancel`/`WithDeadline`/
+  `WithTimeout` over a parent at `E` giving a child at `E ∨ isCtxErr`, and a `Value` clause that
+  speaks of the found `*cancelCtx` at `E`.
+- **Needed by.** `LeaseRenew`'s `WithTimeout` over the keep-alive stream's context (k8s 7f-4).
+- **Workaround here.** The trust-boundary axiom `v3rpc.wp_WithTimeout_weak` (Addendum T-h of
+  `notes/k8s-7f4-freeze.md`; written in Addendum T-j,
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WithTimeoutWeak.lean`), to delete when this
+  lands (its uses then follow from the general `WithTimeout` at `E := isCtxErr ∨ noLeaderErr`); with
+  it the opaque `context.madeCancelCtx` and its trusted law `madeCancelCtx_of_isCancelCtx`
+  (`Proof/context/MadeCancelCtx.lean`), which `v3rpc.ctxDoneErr`'s `Value`/parent-cancel clauses then
+  state as the general model's `*cancelCtx` at `E`.
+- **Status.** Proposed (decided by etcd-grove-81, 2026-11-13); not started.
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
@@ -857,6 +933,15 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Translate `reflect`'s type declarations (`translate_types`, or `Type` alone: an
   interface type, whose values Perennial represents as any interface's), keeping its functions
   names only. A Perennial change, designed and reviewed on its own.
+- **Two incoherent instances (2026-11-10, k8s 7e-2).** `Proof/reflect/Values.lean` now gives
+  `reflect.Type'` a higher-priority `TypedPointsto` (`type_typed_pointsto`: `heapTypedPointsto` from
+  the axiom `type_intoVal_inj : go.IntoValInj reflect.Type'`, so it depends on `hG` and `intoVal`) and
+  an `IntoValTypedUnderlying` axiom (`type_into_val_typed`), so that `getNewItemFunc` (which
+  allocates a `reflect.Type` cell) no longer reaches the generated `sorry`s. The generated
+  `Type'_typed_pointsto`/`Type'_into_val_typed` still exist, and the reflector's
+  `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
+  (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
+  unsound, but only a fix at the source (above) gives one instance.
 - **Status.** Not started.
 
 ### Goose: a names-only package's constants are values of unknown shape
@@ -2086,6 +2171,49 @@ rewriting anything: the name `decide_true` it uses now resolves ambiguously (Lea
 Iris-Lean's `BI.decide_true`, both in scope there), and the macro wraps the rewrite in `try`, so the
 failure is silent. Worked around locally in that file. General fix to propose: qualify the lemma
 name in the macro (`_root_.decide_true`), and consider failing loudly instead of `try`.
+## `strings.Cut` has no model (2026-11-08, k8s 7e-3b)
+
+- **What happened.** Perennial's `strings` translates `Cut` names-only (no body, no spec). The k8s
+  etcd3 driver's `splitKey` called it.
+- **Local workaround.** The driver (our test code) splits the key with a byte loop instead; no spec
+  or axiom added.
+- **Proposed (general; record only).** A model of `strings.Cut` (a translated body, or a spec:
+  `s[:i]`, `s[i+len(sep):]`, `true` at the first occurrence `i`; `s`, `""`, `false` if none) is a
+  candidate general addition to Perennial's `strings`.
+- **Status.** Recorded only.
+
+## `func.forRange` (range over a function) has no WP rule (2026-11-10, k8s 7e-2, branch `k8s-7e`)
+
+- **Missing.** Perennial defines `func.forRange n` (`Perennial/Golang/Defn/Loop.lean`, Go 1.23's
+  `for k, v := range f`) but proves no WP rule for it; `doFor` has `wp_for`.
+- **Needed by.** `store.GetList`'s `for chunk, chunkErr := range chunks`
+  (`k8s.io/apiserver/pkg/storage/etcd3/store.go:829`).
+- **Workaround here.** A local, proved lemma `wp_forRange2` (`n = 2`) in
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/ForRange.lean`: the caller proves the iterator's WP for
+  an abstract yield `GoFunc` holding a token `Tok` (forRange's `state` cell at `0` and its `exit`
+  cell untouched), with the yield's spec (the body's outcome `executeVal`/`continueVal` gives `Tok`
+  back and `true`; `breakVal`/`returnVal r` gives `Done bv` and `false`); after the iterator returns
+  with `Tok` or `Done bv`, the loop's outcome follows. Bodies that panic are not covered. Plus
+  `wp_app_recV` (a closure argument as a `GoFunc` value). No axiom.
+- **Proposed change.** The same rule in `Perennial/Golang/Theory/Loop.lean` for `n = 0, 1, 2`, with
+  a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
+- **Status.** Candidate; not started in Perennial.
+
+## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
+  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
+  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
+  below would remove it.
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
+
 ## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
 
 - **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
@@ -2128,3 +2256,86 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
   `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
 - **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
 - **Status.** Local lemma; to be proposed.
+
+## `fmt.Errorf`'s spec does not admit an error argument (`%w`) or a `Stringer` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's `fmt.Errorf.spec` requires `ArgsWf` (basic-typed arguments). Three calls the
+  specs-only branch specifies fall outside it: mvcc's `rangeKeys` (`fmt.Errorf("…: %w", ctx.Err())`,
+  `kvstore_txn.go:121`), raft confchange's `Changer.apply` (a `ConfChangeType`, which has `String`) and
+  raftpb's `ConfState.Equivalent` (four `*ConfState`s).
+- **Local workaround.** raftpb states a local assumed spec, `RaftPb.fmtErrorf.spec`
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`); mvcc's `rangeKeys` proof will rest on the model at
+  that step (`Mvcc.rangeCtxErr`'s laws: non-nil, fresh, none of mvcc's sentinels). Related: the entry
+  above (the model can be unfolded to learn false facts).
+- **Proposed (general; record only, nothing changed in Perennial).** `fmt.Errorf.spec` for a `%w` argument
+  (a fresh wrapping error whose `Unwrap` is the argument) and for arguments with a `String`/`Error`
+  method (the method's spec called with the caller's ownership).
+- **Status.** Recorded only.
+
+## OsFs: no `rename`, and no crash case reverting an unsynced rename (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's OsFs model has no `rename`, and its crash relation cannot bring back the file a
+  rename replaced when the directory was not fsynced afterwards. etcd renames onto live paths: defrag
+  (`os.Rename(tdbp, dbp)`, `backend.go:557`) and the snapshot install (`snap.dbFile_rename`), and fsyncs
+  the directory only in some paths.
+- **Local workaround.** The specs-only branch states `Snap.dbFile_rename` as a trusted triple and gives the
+  backend a `beRevert`/`beNoRevert` token with a revert case in `beCrash`
+  (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
+  The second crash pass (`notes/specs-only/verify/repair5-crash.md`, G-b) adds two more uses of the same
+  gap: a file renamed over while still open (`Backend.beDetached`, `applySnapshot`'s old backend, whose
+  open handle keeps the unlinked inode until `Close`), and its close or crash folding that inode's image
+  into the revert list (`beCloseUpd`'s detached form, `beDetached_crash`): both need OsFs's files to be
+  inodes a rename can unlink while open, not paths.
+- **Proposed (general; record only, nothing changed in Perennial).** OsFs `rename` with POSIX semantics,
+  its crash case (the old directory entry survives unless the directory was fsynced after the rename),
+  and a directory fsync.
+- **Status.** Recorded only.
+
+## The crash frame cannot take client-owned durable state out of an invariant opened inside atomic updates (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's crash frame (`CrashAdequacy.lean`) is proved at boot and gets only invariants
+  and its own closure. A program keeps its durable resources (etcd's `EtcdServer.diskState`; 4a's
+  `beHist`, 4c's `boltState`, the WAL's and the snapshotter's) in an invariant that the running code
+  opens inside callees' atomic updates (the WAL's `Save`, `SaveDBFrom`, bbolt commits). To apply a crash
+  law, the frame must take those resources out of the invariant; an accessor fired inside a callee's
+  atomic update cannot rule out that the frame already took them, since that needs the generation's
+  `notCrashed`, which only a thread's step owns (through the state interpretation).
+- **Local workaround.** The specs-only branch states the crash laws (`disk_crash`, `beCrash`,
+  `boltCrash`, ...) over resources held in the invariant and records the extraction as a gap
+  (`notes/specs-only/verify/repair2-crash.md`, decision 1; `top.md` K6).
+- **Proposed (general; record only, nothing changed in Perennial).** A crash-aware invariant: opened only
+  at a thread's step (which refutes `crashed`), and handed whole to the crash frame. Alternative: durable
+  extension operations whose atomic updates admit a `crashed` answer, refuted at their own step.
+- **Status.** Recorded only.
+
+## No WP step lemma refutes the generation's `crashed` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Every thread step's state interpretation holds the generation's `notCrashed`
+  (`Lifting.lean:752`, `goose_bstateInterp_eq`), and `notCrashed_crashed` (`CrashToken.lean:50`)
+  refutes `crashed` with it, but no lemma hands a WP step that fact: nothing proves
+  `crashed -∗ WP e {{ Φ }}` for an expression that takes a step, or lets an atomic step's proof use
+  `notCrashed` (a grep for uses of `notCrashed_crashed`, or for `crashed -∗ WP`, finds none).
+- **Who needs it.** The specs-only branch's per-generation tokens are a token **or the generation's
+  `crashed`** (raft's `nodeVacant`, 2e's `diskIdle`; `notes/specs-only/verify/repair4-raft-crash.md`,
+  open question D28), so that the crossing laws hold at every next generation, the current one
+  included; their realizations refute the `crashed` disjunct at the consumer's first step (raft's
+  `StartNode`/`RestartNode`, `NewServer`), which needs this lemma (`verify/F2-crash.md`, second tier
+  s1). Distinct from the crash-aware invariant entry above, which is about the crash frame taking
+  resources out of an invariant; this one is about a running thread ruling out `crashed`.
+- **Local workaround.** None needed in the statements: the realizations' text cites the step fact,
+  and the laws are stated as obligations.
+- **Proposed (general; record only, nothing changed in Perennial).** A lifting lemma
+  `wp_crashed_elim : ¬ IsValue e → crashed ⊢ WP e @ s; E {{ Φ }}` (the first step's state
+  interpretation gives `notCrashed`, hence `False`), and its atomic-step form for a step proof that
+  opens an invariant holding a `token ∨ crashed` disjunction.
+- **Status.** Recorded only.
+
+## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
+
+- **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a
+  `strings.Builder` and `fmt.Fprintf`, which Perennial does not specify.
+- **Local workaround.** Both are stated as assumed trust-boundary specs on the specs-only branch
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`, `raftpb/ConfChangesToString.lean`).
+- **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
+  and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
+- **Status.** Recorded only.

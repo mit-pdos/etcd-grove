@@ -1,0 +1,59 @@
+module
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInterceptor
+@[expose] public section
+noncomputable section
+namespace Perennial
+namespace EtcdGrove
+open Iris Iris.BI Iris.ProgramLogic Iris.ProofMode
+section s
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [gsem : google_golang_org.grpc.Assumptions]
+variable [vsem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- A `monitorLeader` map key: a `serverStreamWithCtx` whose stream is a pointer. -/
+abbrev sKey (t : go.GoType) (l c : Loc) : GoInterface :=
+  interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.ty
+    #(go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.mk
+      (interface.mkOk (go.PointerType t) #l) c)
+
+theorem sKey_eq (t t' : go.GoType) (l l' c c' : Loc) (Φ : val → IProp GF) :
+    Φ #(decide (sKey t l c = sKey t' l' c')) ⊢
+      WP (App (Val (GoInstruction (GoOp GoEquals google_golang_org.grpc.ServerStream.ty)))
+        (Val (PairV #(sKey t l c) #(sKey t' l' c')))) {{ Φ }} := by
+  iintro HΦ
+  wp_pures
+  by_cases ht : go.PointerType t = go.PointerType t'
+  · rw [ite_eq_left ht]
+    have ht' : t = t' := by simpa using ht
+    subst ht'
+    wp_pures
+    by_cases hl : l = l'
+    · subst hl
+      rw [show decide (l = l) = true by simp]
+      wp_pures
+      by_cases hc : c = c'
+      · subst hc
+        rw [show decide (c = c) = true by simp]
+        rw [show decide (sKey t l c = sKey t l c) = true by simp]
+        iexact HΦ
+      · rw [show decide (c = c') = false by simp [hc]]
+        have hk : decide (sKey t l c = sKey t l c') = false := by
+          simp [sKey, interface.mkOk, hc]
+        rw [hk]; iexact HΦ
+    · rw [show decide (l = l') = false by simp [hl]]
+      wp_pures
+      have hk : decide (sKey t l c = sKey t l' c') = false := by
+        simp [sKey, interface.mkOk, hl]
+      rw [hk]; iexact HΦ
+  · rw [ite_eq_right ht]
+    wp_pures
+    have hk : decide (sKey t l c = sKey t' l' c') = false := by
+      simp only [sKey, interface.mkOk, decide_eq_false_iff_not]
+      intro h; apply ht; simp_all
+    rw [hk]; iexact HΦ
+end s
+end EtcdGrove
+end Perennial

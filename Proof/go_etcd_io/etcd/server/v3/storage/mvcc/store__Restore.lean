@@ -115,6 +115,7 @@ theorem mvcc.store.Restore.wp_proof
     ihave #Hs' := Hs
     iunfold mvcc.isStore at Hs'
     iNamed Hs'
+    ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
     wp_auto
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
@@ -192,7 +193,7 @@ theorem mvcc.store.Restore.wp_proof
     icases HcL' with ⟨-, -, #Hllb0, -⟩
     wp_apply (hNewIdx ⟨γ.idx.hist, nv, γ.idx.log, γ.idx.crev, cm⟩ lg _ L) $$ [Hnauth Hcm]
       as %ti ⟨Hix, Hig, Hcmp0⟩
-    · iframe Hnauth Hcm; iframe #; ipureintro; exact Hlgnn
+    · iframe Hnauth Hcm; iframe #
     (try wp_auto)
     -- the revision round: the takeover at the store's compaction revision `c0`
     wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨HwlR, HR⟩
@@ -742,8 +743,6 @@ theorem mvcc.store.Restore.wp_proof
       iunfold mvcc.restoreOnP0
       iframe Hrst Hlc1 Hlc2 Hlc3 HcmK
       isplitr
-      · ipureintro; exact Hlgnn
-      isplitr
       · iexact Hlessor
       ipureintro; exact Hlok
     iunfold mvcc.restoreOnFin at HFin
@@ -823,6 +822,7 @@ theorem mvcc.store.Restore.wp_proof
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -883,7 +883,7 @@ theorem mvcc.store.Restore.wp_proof
   icases HcL' with ⟨-, -, #Hllb0, -⟩
   wp_apply (hNewIdx ⟨γ.idx.hist, nv, γ.idx.log, γ.idx.crev, cm⟩ lg _ L) $$ [Hnauth Hcm]
     as %ti ⟨Hix, Hig, Hcmp0⟩
-  · iframe Hnauth Hcm; iframe #; ipureintro; exact Hlgnn
+  · iframe Hnauth Hcm; iframe #
   (try wp_auto)
   -- `s.revMu.Lock()`; `currentRev = 1`; `compactMainRev = -1`; `s.revMu.Unlock()`: the takeover
   -- (`restore_takeover`), the lock released in restoring mode
@@ -1117,8 +1117,6 @@ theorem mvcc.store.Restore.wp_proof
       HLo]
     as ⟨⟨⟨Hrt1, -⟩, Hnc, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩, HLo⟩
   · iframe #; iframe Hrst Hlc1 Hlc2 HLo
-    isplitr
-    · ipureintro; exact Hlgnn
     ipureintro; exact Hlok
   wp_auto_lc 1
   icases HRevQ with ⟨Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv, HlogQ, Hold, Hnew, HcmK,

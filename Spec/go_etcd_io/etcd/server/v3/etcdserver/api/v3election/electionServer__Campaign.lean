@@ -47,7 +47,7 @@ abbrev electionServer.Campaign.spec : Prop :=
       structFieldRef v3electionpb.CampaignRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
       ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
         v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
-      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Campaign"))
       (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

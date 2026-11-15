@@ -41,7 +41,7 @@ theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
     wp_apply wp_GetRequestMetadata rc P ctx sl $$ [$Hinv] as %mp %err ⟨%Herr, %cm, Hm, #Hq⟩
     iapply HΨ
     isplitr
-    · ipureintro; left; exact Herr
+    · ipureintro; exact Herr
     iintro -
     iexists cm
     iframe Hm

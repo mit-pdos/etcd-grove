@@ -27,7 +27,7 @@ theorem etcdserverpb.RegisterAuthServer.wp_proof
     (wp_RegisterService : grpc.Server.RegisterService.spec (GF := GF) (hG := hG)) :
     etcdserverpb.RegisterAuthServer.spec (GF := GF) (hG := hG) := by
   intro gs srv ics sics svcs regs sregs sn ht mds sds
-  wp_start as ⟨Hs, #Hd, %Hsn, %Himpl, %Hnd, %Hnt⟩
+  wp_start as ⟨Hs, #Hd, %Hsn, %Himpl, %Hnd, %Hnt, %Hfl⟩
   obtain ⟨si, rfl, Hte⟩ := Hnt
   unfold testEmbeddedIface at Hte
   wp_auto
@@ -35,7 +35,7 @@ theorem etcdserverpb.RegisterAuthServer.wp_proof
   wp_auto
   wp_apply (wp_RegisterService gs _ (GoInterface.ok si) ics sics svcs regs sregs sn ht mds sds)
     $$ [Hs] as Hs
-  · iframe; iframe #; ipureintro; exact ⟨Hsn, Himpl, Hnd⟩
+  · iframe; iframe #; ipureintro; exact ⟨Hsn, Himpl, Hnd, Hfl⟩
   iapply HΦ
   iexact Hs
 

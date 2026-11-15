@@ -63,13 +63,21 @@ theorem minRV.wp_proof
       unfold minRVL; rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_pos (show (!false) = true from rfl)]]
     iapply HΦ; itrivial
   wp_auto
+  by_cases h62 : W64 (2 ^ 62) ≤ c.ResourceVersion'
+  · rw [decide_eq_true (show uint.Z c.ResourceVersion' ≥ uint.Z (W64 4611686018427387904) by word)]
+    wp_auto
+    rw [show ([] : GoString) = minRVL m d c true by
+      unfold minRVL; rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_pos h62]]
+    iapply HΦ; itrivial
+  rw [decide_eq_false (show ¬ uint.Z c.ResourceVersion' ≥ uint.Z (W64 4611686018427387904) by word)]
+  wp_auto
   by_cases h4 : m < W64 84
   · rw [decide_eq_true (show uint.Z m < uint.Z (W64 84) by word)]
     wp_auto
     wp_apply wp_rvBytes
     (try wp_auto)
     rw [show rvBytes c.ResourceVersion' = minRVL m d c true by
-      unfold minRVL; rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_pos (show m < 84 from h4)]]
+      unfold minRVL; rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg h62, if_pos (show m < 84 from h4)]]
     iapply HΦ; itrivial
   rw [decide_eq_false (show ¬ uint.Z m < uint.Z (W64 84) by word)]
   wp_auto
@@ -83,7 +91,7 @@ theorem minRV.wp_proof
       (try wp_auto)
       rw [show rvBytes (W64 1) = minRVL m d c true by
         unfold minRVL
-        rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg (show ¬ m < 84 from h4), if_pos (show m < 98 from h5), if_pos h6]; rfl]
+        rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg h62, if_neg (show ¬ m < 84 from h4), if_pos (show m < 98 from h5), if_pos h6]; rfl]
       iapply HΦ; itrivial
     · rw [decide_eq_false (show ¬ uint.Z c.ResourceVersion' ≤ uint.Z d by word)]
       wp_auto
@@ -91,14 +99,14 @@ theorem minRV.wp_proof
       (try wp_auto)
       rw [show rvBytes (c.ResourceVersion' - d) = minRVL m d c true by
         unfold minRVL
-        rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg (show ¬ m < 84 from h4), if_pos (show m < 98 from h5), if_neg h6]]
+        rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg h62, if_neg (show ¬ m < 84 from h4), if_pos (show m < 98 from h5), if_neg h6]]
       iapply HΦ; itrivial
   rw [decide_eq_false (show ¬ uint.Z m < uint.Z (W64 98) by word)]
   wp_auto
   wp_apply wp_rvBytes
   (try wp_auto)
   rw [show rvBytes (c.ResourceVersion' + d) = minRVL m d c true by
-    unfold minRVL; rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg (show ¬ m < 84 from h4), if_neg (show ¬ m < 98 from h5)]]
+    unfold minRVL; rw [if_neg (show ¬ m < 30 from h1), if_neg (show ¬ m < 45 from h2), if_neg (show ¬ m < 55 from h3), if_neg (by decide), if_neg h62, if_neg (show ¬ m < 84 from h4), if_neg (show ¬ m < 98 from h5)]]
   iapply HΦ; itrivial
 
 end proof

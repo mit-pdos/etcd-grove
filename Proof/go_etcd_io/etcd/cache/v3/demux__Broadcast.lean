@@ -450,7 +450,7 @@ theorem demux.Broadcast.wp_proof
   wp_auto
   wp_if_destruct
   · -- not initialized
-    wp_apply (lc := 1) errors.wp_New as %e ⟨-, #HeN⟩
+    wp_apply (lc := 1) wp_New_errStrOk as %e ⟨-, #HeNS⟩
     imod demux_lock_release d γd cap c0 regs views $$ [Hcore HminRev HmaxRev HactF HlagF Hact
       Hlag Hhist Hres Hregs Hviews Hlc1] with HP
     · isplitr
@@ -464,7 +464,7 @@ theorem demux.Broadcast.wp_proof
     have Hbc : broadcastCore cap c0 r = none := by simp [broadcastCore, Hif]
     iapply HΦ
     isplitl []
-    · iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN
+    · iexact HeNS
     rw [Hbc]
     dsimp only
     iframe

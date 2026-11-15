@@ -32,7 +32,7 @@ revision at most `maxCreateRev`; otherwise an error. -/
 abbrev waitDeletes.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (client : Loc) (pfx : GoString)
     (maxCreateRev lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
       context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ concPfxMax ∧ 0 ≤ sint.Z maxCreateRev⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDeletes))
       (Val #(GoInterface.ok ctx))) (Val #client)) (Val #pfx)) (Val #maxCreateRev))

@@ -177,7 +177,7 @@ theorem SetUp.wp_proof
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout⟩
+      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout, -⟩
     ihave #Hx : setupCtx s conn (GoInterface.ok cctx) $$ []
     · iunfold setupCtx; iframe Hctok Htls; ipureintro; exact Hout
     (try wp_auto)
@@ -383,7 +383,7 @@ theorem SetUp.wp_proof
         itrivial
     subst Herr7
     imod (setup_post_enable s E ρ conn _ γz γa hmode hc0 ⊤ (fun _ _ => CoPset.mem_full)
-      (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq7 with ⟨%hs, %Lset, %k, %r, #Hf, #HLs, %Hd, #Hk, #Hst⟩
+      (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq7 with ⟨%hs, %Lset, %k, %r, #Hf, #HLs, %Hd, #Hk, #Hst, %Lc, #HLc, %HLc⟩
     (try wp_auto)
     wp_apply Hcancel
     (try wp_auto)
@@ -391,7 +391,11 @@ theorem SetUp.wp_proof
     simp only [↓reduceIte]
     iexists γz, hs, Lset, k, r
     iframe Hf HLs Hk Hst
-    ipureintro; exact Hd
+    isplitr
+    · ipureintro; exact Hd
+    iexists Lc
+    iframe HLc
+    ipureintro; exact HLc
 
 end proof
 

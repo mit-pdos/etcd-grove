@@ -35,15 +35,15 @@ theorem v3rpc.newBackendQuota.wp_proof
     (wp_NewBackendQuota : storage.NewBackendQuota.spec (GF := GF) (hG := hG)) :
     v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) := by
   intro s lg qb name Hbuq
-  wp_start as ⟨#Hlg, %Hlgn, Hlr, #Hqb, Hbr⟩
+  wp_start as ⟨#Hlg, #Hlgn, Hlr, #Hqb, Hbr⟩
   wp_auto
   wp_apply wp_Logger s lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   iunfold srvBemuReader at Hbr
   icases Hbr with ⟨%γbe, Hbr⟩
   wp_apply wp_Backend s γbe $$ [Hbr] as %be ⟨Hbr, -⟩
   · iframe
-  wp_apply wp_NewBackendQuota _ _ _ _ Hbuq as %qv #Hq
+  wp_apply wp_NewBackendQuota _ _ _ _ Hbuq $$ [$Hlgn] as %qv #Hq
   iapply HΦ
   iframe
   iframe #

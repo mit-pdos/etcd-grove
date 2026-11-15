@@ -27,10 +27,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev versioner.PrepareObjectForStorage.spec : Prop :=
-  ∀ (p : Loc) (name uid val : GoString) (rv : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
+  ∀ (p : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ p ↦ v }}
     (App (Val #(methods github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.ty go!"PrepareObjectForStorage" #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.mk))) (Val #(interface.mkOk (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #p)))
-  {{ RET #GoInterface.nil; p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val (W64 0) }}
+  {{ RET #GoInterface.nil; p ↦ { v with ResourceVersion' := W64 0 } }}
 
 end spec
 

@@ -43,7 +43,7 @@ theorem txn.Put.wp_proof
     txn.Put.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -70,7 +70,7 @@ theorem txn.Put.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto $Hlg Hfsl Hfslc]
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iunfold traceutil.ownFields
     iexists _

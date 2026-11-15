@@ -49,16 +49,21 @@ theorem NewLeaseFromLeaseClient.wp_proof
     (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
-    wp_apply wp_GetLogger c $$ [] as %lg %Hlgnn
+    wp_apply wp_GetLogger c $$ [] as %lg #Hlgok
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
-    wp_apply wp_WithRequireLeader as %rc #HWC
+    have wp_WRL := wp_WithRequireLeader _root_.Perennial.context.backgroundCtxVal
+      { Values := ∅, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
+    wp_apply wp_WRL as %rc ⟨-, -, -, -, -, -, -, -, -, HWCb⟩
+    · iright; ipureintro; trivial
+    ispecialize HWCb $$ %trivial
+    icases HWCb with #HWC
     (try wp_auto)
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     iapply wp_fupd
-    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx⟩
+    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -, #HsctxO⟩
     (try wp_auto)
     ipersist donec
     ipersist stopCtx
@@ -88,20 +93,24 @@ theorem NewLeaseFromLeaseClient.wp_proof
     unfold lessorAtS
     iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    ipureintro; exact Hlgnn
   · (try wp_auto)
     rw [decide_eq_false Hcnn]
     (try wp_auto)
-    wp_apply wp_GetLogger c $$ [] as %lg %Hlgnn
+    wp_apply wp_GetLogger c $$ [] as %lg #Hlgok
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
-    wp_apply wp_WithRequireLeader as %rc #HWC
+    have wp_WRL := wp_WithRequireLeader _root_.Perennial.context.backgroundCtxVal
+      { Values := ∅, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
+    wp_apply wp_WRL as %rc ⟨-, -, -, -, -, -, -, -, -, HWCb⟩
+    · iright; ipureintro; trivial
+    ispecialize HWCb $$ %trivial
+    icases HWCb with #HWC
     (try wp_auto)
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     iapply wp_fupd
-    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx⟩
+    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -, #HsctxO⟩
     (try wp_auto)
     ipersist donec
     ipersist stopCtx
@@ -131,7 +140,6 @@ theorem NewLeaseFromLeaseClient.wp_proof
     unfold lessorAtS
     iexists dc, γd, sctx, _, lg, _, γr, rlc, sl
     iframe #
-    ipureintro; exact Hlgnn
 
 end proof
 

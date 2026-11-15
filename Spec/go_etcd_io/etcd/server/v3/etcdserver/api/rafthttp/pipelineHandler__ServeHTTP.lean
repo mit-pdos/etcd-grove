@@ -22,12 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A pipeline handler of the address `a`** at `h` (persistent): read-only for good, its logger
-set, its `Raft` the receiver's (`netRaftOk`, borrowing `Rs` per call), the member owning `a` its
+a zap logger, its `Raft` the receiver's (`netRaftOk`, borrowing `Rs` per call), the member owning `a` its
 local id, and `addRemoteFromRequest` of its transport returning on a request from another member
 (stage 6d: the transport's state gives it, the sender being a peer). -/
 def pipeHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
     IProp GF :=
-  iprop(∃ hv : rafthttp.pipelineHandler, h ↦□ hv ∗ ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.localID'⌝ ∗
+  iprop(∃ hv : rafthttp.pipelineHandler, h ↦□ hv ∗ zapLoggerOk hv.lg' ∗ ⌜Rh.owner a = hv.localID'⌝ ∗
     □ netRaftOk Rh.γn hv.localID' γd Rs hv.r' ∗
     □ (∀ (r : Loc) (R : http.HReq) (rd : GoInterface),
       {{ http.reqAt r R rd ∗ ⌜fromOkAt Rh hv.localID' R.hdr⌝ }}
@@ -57,7 +57,7 @@ abbrev rafthttp.pipelineHandler.ServeHTTP.spec : Prop :=
   R.host = a → R.path = go!"/raft" →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
     pipeHandlerOk Rh a γd Rs h -∗
-    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicket γk -∗
+    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicketOnce R γk -∗
     http.bodyReader rd R [] -∗ http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk none [] -∗
     http.respHdrs (GoInterface.ok wi) [] -∗
     ⌜go.typeSetContains wi.ty net.http.Flusher.ty = true⌝ -∗ Rs -∗

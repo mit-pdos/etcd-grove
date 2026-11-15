@@ -42,6 +42,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 namespace Write
@@ -53,7 +55,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- The writer's `tx.db` field out of `wtxW` and back. -/
-theorem putW_db_acc [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+theorem putW_db_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢ K.core ∗ tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db ∗
       (tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db -∗ wtxW K tx r m X) := by
   unfold wtxW wtxCore
@@ -93,7 +95,7 @@ theorem bboltErrVar_get (a : Loc) :
   iframe #
   ipureintro; intro h; cases h
 
-theorem Bucket.Put.wp_writer [HasExt osFsExt]
+theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hclone : cloneBytes.spec (GF := GF) (hG := hG))
     (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_w.spec (GF := GF) (hG := hG))

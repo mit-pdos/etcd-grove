@@ -60,7 +60,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
-      threadBound GF = max (n + 2) srvRevokeK →
+      threadBound GF = max (n + 2) srvLevelK →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
         iprop(([∗list] m ∈ ms, etcdstart.memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
         init body φ) :
@@ -90,7 +90,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
-      threadBound GF = max (n + 2) srvRevokeK →
+      threadBound GF = max (n + 2) srvLevelK →
       ∃ (X : Type) (T : X → IProp GF),
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))

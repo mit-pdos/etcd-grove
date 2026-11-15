@@ -29,7 +29,7 @@ abbrev Session.Ctx.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id }}
     (App (Val (s @!! go.GoType.PointerType Session.ty @!! go!"Ctx")) (Val #()))
-  {{ (c : GoInterfaceOk), RET #(GoInterface.ok c); ∃ cs, context.isContext c cs }}
+  {{ (c : GoInterfaceOk), RET #(GoInterface.ok c); ∃ cs, context.isContext c cs ∗ metadata.outgoingCtxOkC c }}
 
 end spec
 

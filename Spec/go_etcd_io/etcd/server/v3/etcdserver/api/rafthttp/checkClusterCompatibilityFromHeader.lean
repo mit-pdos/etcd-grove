@@ -23,12 +23,11 @@ variable [sem : go.Semantics]
 
 /-- **The handlers' header check**, on a received request's headers: `nil`, or one of the two
 errors it reports (`errIncompatibleVersion`, `ErrClusterIDMismatch`), or a panic (`semver`'s
-`MustParse` of an unparsable version header). -/
+`MustParse` of an unparsable version header). Of a zap logger (premise fixes 6: it logs the errors). -/
 abbrev rafthttp.checkClusterCompatibilityFromHeader.spec : Prop :=
   ∀ (lg : Loc) (localID cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (hm : Loc)
     (hs : List (GoString × GoString)),
-  lg ≠ null →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ zapLoggerOk lg ∗
       http.hdrAt hm hs }}
     (App (App (App (App (Val (@! rafthttp.checkClusterCompatibilityFromHeader)) (Val #lg))
       (Val #localID)) (Val #hm)) (Val #cid))

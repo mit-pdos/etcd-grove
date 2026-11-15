@@ -31,9 +31,9 @@ theorem NewSTMReadCommitted.wp_proof (hNew : NewSTM.spec (GF := GF) (hG := hG))
     (hWI : WithIsolation.spec (GF := GF) (hG := hG)) :
     NewSTMReadCommitted.spec (GF := GF) (hG := hG) := by
   intro ctx cs c pfx apply Q lo
-  wp_start as ⟨#Hctx, #Hcl, #Happ, #Hlo⟩
+  wp_start as ⟨#Hctx, #HctxC, #Hcl, #Happ, #Hlo⟩
   wp_auto
-  wp_apply hWAC ctx cs $$ [$Hpkg $Hctx] as %f0 #Hf0
+  wp_apply hWAC ctx cs $$ [$Hpkg $Hctx $HctxC] as %f0 #Hf0
   (try wp_auto)
   wp_apply hWI isoRC $$ [$Hpkg] as %f1 #Hf1
   (try wp_auto)

@@ -53,7 +53,8 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_start as ⟨#Hs, Hd, #HP, HO⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
-    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+    #Hto, #Hlg, #Hlgz, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -63,7 +64,7 @@ theorem rafthttp.pipeline.post.wp_proof
   (try wp_auto)
   wp_apply hNewBuffer d bs $$ [$Hd] as %bf Hbf
   (try wp_auto)
-  wp_apply hCreate lg u go!"/raft" _ (.fixed bs) _ urls uvs lid cid Hlgnn Hu.1 $$ [Hbf $Huvs]
+  wp_apply hCreate lg u go!"/raft" _ (.fixed bs) _ urls uvs lid cid Hlgnn Hu.1 rfl $$ [Hbf $Huvs]
     as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
   · rw [http.bodyHas_fixed]; iexact Hbf
   wp_apply (chan.wp_make2 (V := Unit) (W64 1))
@@ -77,9 +78,13 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_apply hBackground
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
-  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx, #Hbgc⟩
   (try wp_auto)
-  wp_apply hWithContext req _ (.fixed bs) ctx' $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
+  wp_apply hWithContext req _ (.fixed bs) ctx' $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr, #Hrctx⟩
+  ihave #Hrbg : http.reqCtxBg req' $$ []
+  · iunfold http.reqCtxBg
+    iexists ctx'
+    iframe #
   (try wp_auto)
   ipersist done
   ipersist cancel
@@ -145,8 +150,9 @@ theorem rafthttp.pipeline.post.wp_proof
     iexists st
     iframe #
     ipureintro
-    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
-      by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
+    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, ⟨lid, Hfrom.1, Hmem.1,
+      by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2.1 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩,
+      Hfrom.2.2⟩
   iunfold pipeReg at Hreg
   ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2
   ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []
@@ -157,7 +163,7 @@ theorem rafthttp.pipeline.post.wp_proof
   · ipureintro
     simp only [raftHttpNet, raftProto, snapStreamed]
     exact fun h => absurd h.2 (by decide)
-  wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hpr]
+  wp_apply HRT $$ [$Hreq $Hstr $Hrbg $Hso $Htk $Hpa $Hpr]
     as %resp %rerr ⟨Hreq, Hres⟩
   (try wp_auto)
   -- `done <- struct{}{}`: the future fulfilled
@@ -196,8 +202,8 @@ theorem rafthttp.pipeline.post.wp_proof
     iapply HΦ; iexact HberrS
   | nil =>
   wp_auto
-  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True) Hlgnn
-    $$ [$Hbsl $Hreq] as %cerr #Hcerr
+  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True)
+    $$ [$Hbsl $Hreq $Hlgz] as %cerr #Hcerr
   · unfold http.respAt
     iframe #
     ipureintro; exact Hrdnn

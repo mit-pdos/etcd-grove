@@ -33,7 +33,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
   wp_start as ⟨#Hcl, #Hap, #Hopts, #Hlo, %Hpre, %Hsz⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdSTMClient at Hcl'
-  icases Hcl' with ⟨%kv, %cctx, %ccs, #Hkv, #Htxn, #Hrtxn, #Hcf, #Hcc⟩
+  icases Hcl' with ⟨%kv, %cctx, %ccs, #Hkv, #Htxn, #Hrtxn, #Hcf, #Hcc, #HccC⟩
   wp_auto
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -87,7 +87,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
   rw [Hge, List.take_length]
   generalize hO : stmOptsFold os STMOpts.init = O at Hpre Hsz ⊢
   unfold stmOptionsOwn
-  icases Hop with ⟨%octx, %ocs, %psl, Hr, Hpsl, -, #Hoctx⟩
+  icases Hop with ⟨%octx, %ocs, %psl, Hr, Hpsl, -, #Hoctx, #HoctxC⟩
   ipersist Hr
   ipersist Hpsl
   ipersist opts
@@ -97,7 +97,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
   ihave %Hplen := ownSlice_len _ _ _ $$ Hpsl
   wp_if_destruct
   · -- no prefetch list
-    wp_apply hMk c pfx «$r0_ptr» _ octx ocs $$ [$Hpkg $Hcl $Hr $Hoctx] as %stmv ⟨%sp, %Hs, #Hms, Hstale⟩
+    wp_apply hMk c pfx «$r0_ptr» _ octx ocs $$ [$Hpkg $Hcl $Hr $Hoctx $HoctxC] as %stmv ⟨%sp, %Hs, #Hms, Hstale⟩
     · ipureintro; exact ⟨rfl, Hpre.1⟩
     subst Hs
     wp_apply hRun O.iso pfx sp P apply Q lo $$ [$Hpkg $Hms $Hstale $Hap $Hlo] as %resp %err #Hres
@@ -105,7 +105,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
     iexact Hres
   · -- a prefetch list: `apply` wrapped in a closure that gets the keys first
     ipersist f
-    wp_apply hMk c pfx «$r0_ptr» _ octx ocs $$ [$Hpkg $Hcl $Hr $Hoctx] as %stmv ⟨%sp, %Hs, #Hms, Hstale⟩
+    wp_apply hMk c pfx «$r0_ptr» _ octx ocs $$ [$Hpkg $Hcl $Hr $Hoctx $HoctxC] as %stmv ⟨%sp, %Hs, #Hms, Hstale⟩
     · ipureintro; exact ⟨rfl, Hpre.1⟩
     subst Hs
     wp_apply hRun O.iso pfx sp 0 _ Q lo $$ [$Hpkg $Hms $Hstale $Hlo] as %resp %err #Hres

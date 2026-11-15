@@ -1,7 +1,7 @@
 /-
 The package-initialization instances of `os` and `io/fs`, this repository's translations (project
 bboltfs's, `Code/os.lean`, `Code/io/fs.lean`: names only but for the types and the functions the
-Linux file extension osFsExt models), which every project translates against since 2026-11-03
+Linux file extension fsExt models), which every project translates against since 2026-11-03
 (`os=`, `io/fs=` in `etc/goose.py`; until then raft, the server and the k8s packages used
 Perennial's names-only `os`, which bbolt's `os.FileMode` fields cannot use). Here so that raft
 (its default logger loads `os.Stderr`), bbolt and minibolt share them: `IsPkgInit` must have one

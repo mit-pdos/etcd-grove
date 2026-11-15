@@ -52,7 +52,8 @@ abbrev raftLog.entries.spec : Prop :=
       (Val #maxSize))
   {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
       ownRaftLog l ls ∗
-      ((⌜err = interface.nil⌝ ∗ entsRO s es ∗
+      ((⌜err = interface.nil⌝ ∗ entsCutRO ls.sn.sz maxSize s es ∗
+        -- (out_size C3) at contents sized under the log's flag, cut at `maxSize` (`entsCutRO`)
         -- every entry returned is an entry of the log, and they are the log's from `i` on,
         -- cut short by `maxSize` (`raftLog.slice`)
         ⌜(∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧

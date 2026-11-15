@@ -31,7 +31,7 @@ theorem txnLeasing.Then.wp_proof : txnLeasing.Then.spec (GF := GF) (hG := hG) :=
   ihave #HosT := opsAt_leaves sl os ops Hmap $$ Hos
   unfold ownTxnLeasing
   icases Hown with ⟨%t, %B, %csl, %tsl, %esl, %tops, %eops, Htxn, HB, #HBs, Hlkv, #HLKV, Hctx,
-    #Hctxok, Hcsf, Hcsown, Hopst, Hopsown, Hopse, Heown, %Hops⟩
+    #Hctxok, #HctxC, Hcsf, Hcsown, Hopst, Hopsown, Hopse, Heown, %Hops⟩
   unfold opsOwn
   icases Hopsown with ⟨%vs, #Hvs, Hcap, %Hvlen, #Hv⟩
   ihave #Hos' := Hos

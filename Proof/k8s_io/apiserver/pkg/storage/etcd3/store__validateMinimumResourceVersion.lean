@@ -41,14 +41,14 @@ theorem store.validateMinimumResourceVersion.wp_proof
     subst hn
     wp_auto
     iapply HΦ
-    ipureintro
     have : ¬ uint.nat rev < uint.nat (W64 0) := by simp
     simp only [this, ↓reduceIte]
+    ipureintro; first | rfl | trivial
   · wp_auto
     rw [decide_eq_false hm]
     iunfold isStore at Hs
     icases Hs with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-      #Hcl, #Hone, #Hregs, #Hcon⟩
+      #Hcl, #Hone, #Hregs, #Hcon, -⟩
     iunfold contractOk at Hcon
     icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
     iunfold versionerOk at Hver
@@ -64,16 +64,15 @@ theorem store.validateMinimumResourceVersion.wp_proof
     by_cases hlt : uint.nat rev < uint.nat n'
     · rw [decide_eq_true (by word)]
       wp_auto
-      wp_apply wp_TooLarge as %err %herr
+      wp_apply wp_TooLarge as %err #Herr
       iapply HΦ
-      ipureintro
       simp only [hlt, ↓reduceIte]
-      exact herr
+      iexact Herr
     · rw [decide_eq_false (by word)]
       wp_auto
       iapply HΦ
-      ipureintro
       simp only [hlt, ↓reduceIte]
+      ipureintro; first | rfl | trivial
 
 end proof
 

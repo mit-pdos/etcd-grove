@@ -10,11 +10,14 @@ only for a kind that cannot be nil, which a pointer is not). `IsNil` is a method
 specified here, in `ValueOf`'s postcondition, as a persistent triple of the call as Goose
 translates it (`MethodResolve reflect.Value.ty "IsNil"` on the value: `reflect.Value` is
 axiomatized, without the underlying type `MethodResolve`'s step needs; the shape of
-`prometheus.HistogramVec.WithLabelValues`' observer).
+`prometheus.HistogramVec.WithLabelValues`' observer). Restated in stage 7e-2
+(`notes/k8s-7e-2-draft.md` §5.2, attacked T12): also its `Elem()` of a non-nil pointer, the
+addressable `Value` of the pointee (`reflElem`), as `reflect/value.go`'s `Elem` of a `Pointer` kind.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
+public import Proof.reflect.Values
 
 @[expose] public section
 
@@ -34,7 +37,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `reflect.ValueOf(i)` of an interface holding the pointer `p` of type `*T`: a value `v` whose
-`IsNil()` returns whether `p` is nil (persistent). -/
+`IsNil()` returns whether `p` is nil, and whose `Elem()`, for a non-nil `p`, is the addressable
+`Value` of the `T` at `p` (persistent). -/
 abbrev reflect.ValueOf.spec : Prop :=
   ∀ (T : go.GoType) (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect }}
@@ -44,7 +48,11 @@ abbrev reflect.ValueOf.spec : Prop :=
       □ ({{ True }}
           (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"IsNil")))
             (Val v)) (Val #()))
-        {{ RET #(decide (p = null)); True }}) }}
+        {{ RET #(decide (p = null)); True }}) ∗
+      □ ({{ ⌜p ≠ null⌝ }}
+          (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"Elem")))
+            (Val v)) (Val #()))
+        {{ (e : _root_.Perennial.reflect.Value), RET #e; ⌜reflectM.reflElem e T p⌝ }}) }}
 
 end spec
 

@@ -20,12 +20,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -34,17 +36,17 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 offset 0: whether its first `min(size, 8192)` bytes are all zero, or a read error (`fmt` formats
 it). -/
 abbrev DB.metasZero.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqdb dqf dq dqb : DFrac) (d : OsFd)
-    (xs : List (w8 × Bool)),
-  d.readable = true → d.path = p → xs.length < 2 ^ 62 →
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqdb dqf dq dqb : DFrac) (d : OsFd)
+    (xs : List ByteG),
+  d.readable = true → d.ino = p.ino → xs.length < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osBytes p 0 dqb xs }}
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"metasZero"))
       (Val #(W64 (xs.length : Int))))
   {{ (z : Bool) (err : GoInterface), RET (PairV #z #err);
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osBytes p 0 dqb xs ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ (z = true ↔ ∀ b ∈ (xs.map Prod.fst).take 8192, b = W8 0)⌝) ∨
        (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
 
@@ -52,7 +54,7 @@ theorem DB.metasZero.wp_proof_own
     (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG)) :
     DB.metasZero.spec_own (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d xs hrd hp hx
-  subst hp
+  rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp
   wp_start as ⟨#Hos, Hf, Hps, Hfo, Hfd, Hb⟩
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
@@ -90,7 +92,7 @@ theorem DB.metasZero.wp_proof_own
     have hsn : sint.nat (W64 (N : Int)) = N := by word
     rw [hsn]
     try wp_auto
-    wp_apply os.File.ReadAt.wp_held hRead f fd d.path dqf sl (List.replicate N (W8 0)) (W64 0) dq dqb
+    wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf sl (List.replicate N (W8 0)) (W64 0) dq dqb
       d xs _ hrd (by decide) (by rw [List.length_replicate]; omega)
       (by rw [List.length_replicate, show (W64 0).toNat = 0 from rfl]; omega) (by omega)
       $$ [Hfo Hsl Hfd Hb] as %n %err ⟨Hfo, Hfd, Hb, %vs', Hsl, %hr, #Hek⟩

@@ -39,7 +39,7 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db1, %lg2, #Ht, #-, #-, %-, #-, #-, #-, #-, #-, #-, #-, %HP⟩
+    ⟨%t, %rt, %db1, %lg2, #Ht, #-, #-, #-, #-, #-, #-, #-, #-, #-, #-, %HP⟩
   wp_apply wp_with_defer as %defer defer
   try wp_auto
   wp_method_call

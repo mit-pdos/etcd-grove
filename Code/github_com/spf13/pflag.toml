@@ -1,0 +1,5 @@
+# Names only (project k8s-apiserver): `*pflag.FlagSet`, which featuregate's
+# `MutableFeatureGate.AddFlag` names, so that goose translates featuregate's interfaces (the
+# driver's noStreaming calls `MutableVersionedFeatureGate.Set`). Types stay axiomatized.
+translate = ["!*"]
+imports = ["!*"]

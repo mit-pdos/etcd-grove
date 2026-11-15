@@ -20,34 +20,33 @@ def etcdstart.StartServer.spec : Prop :=
                           go!"http://" ++ peerAddr ∈ dir id →
                             rafthttp.bootCfg dir [id] →
                               utf8Valid name →
-                                ckptEffectsOk →
-                                  authRecordsFit →
-                                    apply.backendUnderQuota →
-                                      storage.diskOk →
-                                        ⊢
-                                          ∀ Φ,
-                                            isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-                                                zapLoggerOk lg ∗
-                                                  threadTok ∗
-                                                    etcdstart.bootPremise N [id] bootLog ctxs dir name name
-                                                        (etcdstart.urls1 name peerAddr client) id ∗
-                                                      etcdstart.commonPremises ∗
-                                                        context.isClosedchanInit ∗
-                                                          etcdstart.memberBoot γ ctxs ρ E₀ Φs id false lm ∗
-                                                            netHttpOk γn id ∗ etcdstart.memberFreshRes name { } γn -∗
-                                              (▷
-                                                  ∀ s err,
-                                                    ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                        ⌜err = GoInterface.nil⌝ ∗
-                                                          etcdstart.memberUp s ρ E₀ lg γn id lm ∗ leaseTTLRowR s [id] -∗
-                                                      Φ (intoVal s, intoVal err)) -∗
-                                                WP
-                                                  (((((intoVal
-                                                            (functions
-                                                              github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
-                                                              []))
-                                                          (intoVal name))
-                                                        (intoVal peerAddr))
-                                                      (intoVal client))
-                                                    (intoVal lg))
-                                                  {{ Φ }}
+                                authRecordsFit →
+                                  apply.backendUnderQuota →
+                                    storage.diskOk →
+                                      ⊢
+                                        ∀ Φ,
+                                          isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                              zapLoggerOk lg ∗
+                                                threadTok ∗
+                                                  etcdstart.bootPremise N [id] bootLog ctxs dir name name
+                                                      (etcdstart.urls1 name peerAddr client) id ∗
+                                                    etcdstart.commonPremises ∗
+                                                      context.isClosedchanInit ∗
+                                                        etcdstart.memberBoot γ ctxs ρ E₀ Φs id false lm ∗
+                                                          netHttpOk γn id ∗ etcdstart.memberFreshRes name { } γn -∗
+                                            (▷
+                                                ∀ s err,
+                                                  ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                      ⌜err = GoInterface.nil⌝ ∗
+                                                        etcdstart.memberUp s ρ E₀ lg γn id lm ∗ leaseTTLRowR s [id] -∗
+                                                    Φ (intoVal s, intoVal err)) -∗
+                                              WP
+                                                (((((intoVal
+                                                          (functions
+                                                            github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
+                                                            []))
+                                                        (intoVal name))
+                                                      (intoVal peerAddr))
+                                                    (intoVal client))
+                                                  (intoVal lg))
+                                                {{ Φ }}

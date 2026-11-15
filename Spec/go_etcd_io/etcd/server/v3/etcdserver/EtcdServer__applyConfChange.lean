@@ -104,10 +104,10 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (rs.bk.lookup go!"members").isSome ∧ (rs.bk.lookup go!"members_removed").isSome) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       (if v3 then iprop(
-        srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
+        srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
         srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
         srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
-        membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗ membership.rcCidAddr cl ↦□ cid ∗
+        membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗ membership.rcCidAddr cl ↦□ cid ∗
         dvCCPre s γs dv v ds ∗
         ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
@@ -124,8 +124,8 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
           go!"SetConsistentIndex")) (Val #i)) (Val #t)) {{ v, ⌜v = #()⌝ ∗ Adv }}) ∗
         Pre)
       else iprop(
-        srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
-        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+        srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
+        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
         membership.rcCidAddr cl ↦□ cid ∗
         ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗

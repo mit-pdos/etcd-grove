@@ -9,6 +9,7 @@ through zap (`Fatal`/`Panic` stop the process or panic, as bbolt expects of its 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -32,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 abbrev backend.newBoltLoggerZap.spec : Prop :=
   ∀ (cfg : BackendConfig),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      ⌜cfg.Logger' ≠ Loc.null⌝ }}
+      zapLoggerOk cfg.Logger' }}
     (App (Val (@! newBoltLoggerZap)) (Val #cfg))
   {{ (l : GoInterface), RET #l; boltLogger l ∗
       ⌜∃ lc : Loc, l = interface.mkOk (go.GoType.PointerType zapBoltLogger.ty) #lc⌝ }}

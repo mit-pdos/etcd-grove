@@ -27,15 +27,16 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- `RegisterWatchServer(gs, srv)` on a server being built registers the service of
 `Watch_ServiceDesc` (`grpcDescIs`, read-only; a service not registered yet, whose names are
-distinct) with the service value `srv` (implementing the descriptor's handler type, with no
+distinct and whose streams set a stream flag) with the service value `srv` (implementing the descriptor's handler type, with no
 `testEmbeddedByValue`): `grpc.Server.RegisterService`'s registration. -/
 abbrev etcdserverpb.RegisterWatchServer.spec : Prop :=
   ∀ (gs : Loc) (srv : GoInterface) (ics sics : List GoFunc) (svcs : List GoString)
-    (regs sregs : List (GoString × val × GoInterface)) (sn : GoString) (ht : GoInterface)
+    (regs sregs : List (GoString × GoFunc × GoInterface)) (sn : GoString) (ht : GoInterface)
     (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
   {{ grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗
       grpcDescIs (globalAddr etcdserverpb.Watch_ServiceDesc) sn ht mds sds ∗ ⌜sn ∉ svcs⌝ ∗
-      ⌜grpcImplements srv ht⌝ ∗ ⌜(descNames mds sds).Nodup⌝ ∗ ⌜grpcNoTestEmbedded srv⌝ }}
+      ⌜grpcImplements srv ht⌝ ∗ ⌜(descNames mds sds).Nodup⌝ ∗ ⌜grpcNoTestEmbedded srv⌝ ∗
+      ⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝ }}
     (App (App (Val (@! etcdserverpb.RegisterWatchServer))
       (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.Server.ty) #gs :
         GoInterface)))

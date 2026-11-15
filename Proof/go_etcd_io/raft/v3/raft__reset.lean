@@ -375,7 +375,7 @@ theorem raft.reset.wp_proof
   icases ownReadOnly_option $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
   wp_auto
   ihave Hro := Hroback $$ Hopt
-  wp_apply wp_newReadOnly _ Hosafe as %ro' Hro'
+  wp_apply wp_newReadOnly s.gh.sn.sz _ Hosafe as %ro' Hro'
   ihave Hphys := Hback $$ %ro' %(ReadOnly.mk [] ∅ (W64 0)) Hrof Hro'
   iapply HΦ $$ %pvsfin
   isplitl

@@ -117,6 +117,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
       refine ⟨?_, ?_, ?_⟩ <;> word
     · iexact Hlog
     icases Hsr with (⟨%Herr0, #Hs, %Hes, Hcap⟩ | ⟨%Hle0, -, -⟩)
+    ihave #Hs := entsCutRO_entsRO _ _ _ _ $$ Hs
     rotate_left
     · exfalso
       obtain ⟨⟨Hcb1, Hcb2, Hcb3⟩, Hcb4⟩ := Hcb

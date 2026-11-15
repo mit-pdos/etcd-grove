@@ -196,25 +196,10 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
 -- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
 -- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.
 
-/-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
-lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
-over `raftRequest`, installed when the `LeaseCheckpoint` feature is on), which proposes outside the
-request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal of a lease whose
-`remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
-approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
-`lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
-When it is exercised (revisited for a cluster that grants leases, the lease-grant plan's review
-S2, 2026-11-02): only with a lease in the lessor and the `LeaseCheckpoint` feature on. A cluster
-that grants none (`KVNames.lg = false`, the server's grant guard `False`) never has a lease, so
-neither call happens. In a granting cluster with the feature on, `Grant` on a primary lessor
-schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
-`checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
-(`server.go:394-406`): outside the verified request path, so the premise then has content. The
-examples leave the feature off (`examples/lib/etcdstart/common.go:96`: `le.cp == nil`, nothing is ever
-proposed), so for `examples/etcd/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
-this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
-the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
-opaque ckptEffectsOk : Prop
+-- (2026-11-12, approved by the user via etcd-grove-81) The opaque `ckptEffectsOk`, the lessor's
+-- checkpointer's effects (D14g), is deleted: no checkpointer is ever installed (`NewServer.spec`
+-- takes the `LeaseCheckpoint` feature off, `lessorInv` records `cp = nil`), so the loop never
+-- proposes and `Renew` never calls `cp`: it covered no call (`notes/decisions.md`, D14g superseded).
 
 /-- **The auth store's records fit bbolt's value bound** (opaque, a workload premise; unit N4,
 2026-10-17): a user's record grows with its roles and a role's with its permissions, each grant
@@ -273,17 +258,40 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
+    -- (restart S6a, approved by the user 2026-11-13 via etcd-grove-81) in the data directory's
+    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
+    -- restart's snapshotter writes the files of the first start's
+    "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+    -- (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; the first start only,
+    -- not `bootOkR`) the right to that snapshot directory: it holds no `.snap.db` file, and nothing
+    -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
+    -- names the one ghost map of its files (`snapDir_init`)
+    "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir') ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
     -- (2026-11-05: until then `rnStartCfg`'s conjuncts spelled out) the configuration and the
     -- peers (`rnStartCfg`), this node's id, the peers distinct, non-zero, this node among them,
     -- the cluster's voters, and the bootstrap log theirs
+    -- (premise-fixes-6) the wrapper's logger the configuration's (`bootstrapRaft`'s
+    -- `lg: cfg.Logger`, `bootstrap.go:546,557`), so a zap logger by the contracts' precondition
+    -- (`newRaftNode` logs through it; until then only `rnStartCfg`'s `bv.lg' ≠ null`)
     "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      bv.lg' = cfg.Logger' ∧
       cv.ID' = id ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
+    -- (out_size C2, 2026-11-12; approved by the user via etcd-grove-81) the fresh storage is sized
+    -- (`MemStorNames.sz`, a ghost choice: `Append` then takes only entry objects at contents with
+    -- `entSizeOk`, and `Entries` returns them cut at `maxSize`), as the node API's `isStorage` asks
+    -- of a cluster that bounds proposed data (the server's: `maxData = some 2^30`). True of Go: a
+    -- new member's storage is `bootstrapWAL`'s `MemoryStorage()` -- `raft.NewMemoryStorage()`,
+    -- `SetHardState`, and `Append` of the fresh WAL's entries, of which there are none
+    -- (`bootstrap.go`, `bootstrappedWAL.MemoryStorage`) -- so it holds only the dummy entry `{}`,
+    -- without data, which `Entries` never returns; every later entry is one the server's raft loop
+    -- appends from a `Ready` (`isRNMemStor`, `entsROz true`)
+    "%Hγsz" ∷ ⌜γs.sz = true⌝ ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
     "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple (∅ : GMap Loc MemStorNamesRec)) ∗
     -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs) the fresh storage as
@@ -294,7 +302,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- certificate registry's authority and the cap `1`.
     "#Hmlock" ∷ memStorLock bv.storage' γs ∗
     "#Hlog0" ∷ memLog γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ "Hend" ∷ memEnd γs 1 ∗
-    "Hsnone" ∷ memSnapNone γs ∗
+    "Hsnone" ∷ memSnapNone γs memSnapEmpty ∗
     "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
     "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
@@ -414,7 +422,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- tokens (`N` for the entries, seven for the construction) and the open token (`bootLeft`),
     -- not every token (`bFresh`: false after `bootstrap`'s own two write-backs; the bound is the
     -- contract's premise, `N + 7 + bootWB ≤ wbInit`, until then the post's `%HN`); and what
-    -- `bootstrap` adds: the store's registration right, `keySized` (`bootBackend_of_bootLeft`
+    -- `bootstrap` adds: the store's registration right (`bootBackend_of_bootLeft`
     -- turns `newPostK` into the resources `NewServer` uses)
     "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
@@ -424,9 +432,8 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
     "Hlate" ∷ mvcc.api.mvccWReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
@@ -566,7 +573,7 @@ reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any st
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs -∗
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs memSnapEmpty -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs (W64 0) (W64 0) := by
   subst Hms0
   iintro #Hpkg #Hrn #Hinv Hnone
@@ -587,15 +594,15 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.key) none 0 true _
+  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.key) none 0 (some memSnapEmpty) _
     $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
   · isplitr [Hnone]
     · iapply memStorAt_none_intro $$ Hinv
       iempintro
-    simp only [↓reduceIte]; iexact Hnone
+    simp only; iexact Hnone
   imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc, #Hcs⟩
   imodintro
-  have Hsv0 := Hsv.2 rfl
+  have Hsv0 := Hsv.2 _ rfl
   subst Hsv0
   subst Herr
   iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] []
@@ -790,16 +797,6 @@ theorem isRNTransport_of_live (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr
   iintro #HM #Htr
   rw [← hST] at *
   iapply isRNTransport_of_net γn lid E tr $$ HM Htr
-/-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
-checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
-closure over `raftRequest`). -/
-def lessorCkptOk (l : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ cp : GoFunc,
-      {{ True }} (App (Val #(methods li.ty go!"SetCheckpointer" li.v)) (Val #cp)) {{ RET #(); True }}))
-
-instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
-  unfold lessorCkptOk; infer_instance
 
 end transport
 

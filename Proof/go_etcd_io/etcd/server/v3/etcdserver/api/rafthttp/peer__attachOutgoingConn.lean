@@ -32,7 +32,8 @@ theorem rafthttp.peer.attachOutgoingConn.wp_proof
   wp_start as ⟨#Hp, Hc⟩
   ihave ⟨Hc, #Ht⟩ := outConnOk_fields _ _ _ _ _ $$ Hc
   iunfold peerStreams at Hp
-  icases Hp with ⟨%lg, %cw2, %cw1, %Rr2, %Rr1, #Hlg, %Hlgnn, #Hw2, #Hsw2, #Hw1, #Hsw1⟩
+  icases Hp with ⟨%lg, %cw2, %cw1, %Rr2, %Rr1, #Hlg, #Hlgz, #Hw2, #Hsw2, #Hw1, #Hsw1⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   (try wp_auto)
   cases ty
   all_goals

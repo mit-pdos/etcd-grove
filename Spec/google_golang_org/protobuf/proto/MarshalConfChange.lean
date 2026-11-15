@@ -10,6 +10,7 @@ the raft trees, 2026-10-16, this file was the only one importing the `Raft37` tr
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
 
@@ -46,13 +47,28 @@ as protobuf-go's decoder leaves them, which a re-decode puts back among the unkn
 wire type overrides that field, and garbage does not decode (the premise attack; Go:
 `examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails` and
 `TestRoundTripUnmarshalLeftovers`). Until then `pbMsg` admitted any bytes and this axiom was false
-of `ProtoReflect().SetUnknown`'s objects (which no translated code makes). -/
+of `ProtoReflect().SetUnknown`'s objects (which no translated code makes). (out_size B2, 2026-11-12:
+`notes/confchange-schema-empty.md`) The type's schema was `[]` until then, under which `ufWire`
+constrained nothing and the claim above did not hold; it is now `ccSchema` (`PbSchema.lean`).
+
+**The length** (out_size B2, A3', 2026-11-12, decided by etcd-grove-81): `len(Marshal(cc))` is
+`proto.Size`, the sum over the populated fields of tag and value (`encode.go`'s `sizeMessage`; a field
+never written is not encoded) and the unknown fields' bytes appended raw: at most `ccLenMax`
+(`PbContentOwn.lean`), which counts every field present, an enum sign-extended (a negative `int32` is
+a 10-byte varint), and each length's minimal varint. The premise keeps every length below `2^63`.
+The precondition is the content form `ccPtsCC` (today's `ownConfChange` with the unknown fields
+pinned: `own_ccPtsCC`, `ccPtsCC_own`), so that the bound can name them. Go: `TestA3CCLen` (gated,
+`etc/pbschema-check.py`). -/
 abbrev proto.MarshalConfChange.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownConfChange p dq m }}
+  ∀ (p : Loc) (dq : DFrac) (m : ConfChangeM) (uf : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
+      ccPtsCC (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p) dq (.v1 m uf) }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p)))
   {{ (d : GoSlice) (bs : List w8), RET (PairV #d #interface.nil);
-      ownConfChange p dq m ∗ d ↦* bs ∗ ⌜ccDecodeV1 bs = some m⌝ }}
+      ccPtsCC (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p) dq (.v1 m uf) ∗
+      d ↦* bs ∗
+      ⌜ccDecodeV1 bs = some m ∧
+        (ccSize (.v1 m uf) + 64 < 2 ^ 63 → bs.length ≤ ccLenMax (.v1 m uf))⌝ }}
 
 end spec
 

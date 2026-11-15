@@ -23,12 +23,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section bolt
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -100,7 +102,7 @@ statistics pointer `sp` and receipts' base `t0`; its namespace disjoint from OsF
 `Open`'s premise; `store_cells_agree` opens `pagesInv` around an OsFs step); the receipts' bound
 at most `2 ^ 62` (maintainer 12, item 1: `Open`'s `ReceiptBoundLe GF (2 ^ 62)`, recorded so that
 `Commit` bounds the next txid, `receipt_txid_lt`). -/
-def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
+def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
     IProp GF :=
   iprop(dblAt B db ∗ t0At B t0 ∗
     ⌜(t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62) ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN⌝ ∗
@@ -113,10 +115,10 @@ def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (
 /-- The core of an open database (what `beginTx`, `removeTx`, `freepages` and `loadFreelist`
 need). -/
 def isBoltCore (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
-  iprop(∃ (p : GoString) (sp : Loc) (t0 : Nat), isBoltCoreP B N db p sp t0)
+  iprop(∃ (p : BFile) (sp : Loc) (t0 : Nat), isBoltCoreP B N db p sp t0)
 
 /-- The full database at `db`, with its parameters. -/
-def isBoltP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
+def isBoltP (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
     IProp GF :=
   iprop(isBoltCoreP B N db p sp t0 ∗ sync.isMutex db.[DB, go!"rwlock"] (rwR B db p sp t0) ∗
     threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗ opnShot B)
@@ -124,7 +126,7 @@ def isBoltP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 :
 /-- **`db` is the database `B`/`N`** (design §3.8): what `isBolt db γ` is sealed to, with
 `B = bnsOf γ.gs`, `N = γ.ns`. -/
 def isBoltDef (B : BNs) (N : Namespace) (db : Loc) : IProp GF :=
-  iprop(∃ (p : GoString) (sp : Loc) (t0 : Nat), isBoltP B N db p sp t0)
+  iprop(∃ (p : BFile) (sp : Loc) (t0 : Nat), isBoltP B N db p sp t0)
 
 /-! ## Lemma statements (U5) -/
 
@@ -137,14 +139,14 @@ theorem receipt_txid_lt (t0 c : Nat) (ht0 : t0 < 2 ^ 62) (hrb : receiptBound GF 
   persistent_entails_left ((receipt_lt (GF := GF) (c - t0)).trans (pure_mono fun h => by omega))
 
 /-- The core's receipt facts: `t0 < 2 ^ 62` and `receiptBound GF ≤ 2 ^ 62`. -/
-theorem isBoltCoreP_receipts (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+theorem isBoltCoreP_receipts (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) : isBoltCoreP (GF := GF) B N db p sp t0 ⊢ ⌜t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62⌝ := by
   unfold isBoltCoreP
   iintro ⟨-, -, %H, -⟩
   ipureintro; exact H.1
 
 /-- **`receipt_txid_lt` from the core**: the receipts `⧗ (c - t0)` of the core's `t0`. -/
-theorem isBoltCoreP_txid_lt (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+theorem isBoltCoreP_txid_lt (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 c : Nat) :
     isBoltCoreP (GF := GF) B N db p sp t0 ∗ receipt (c - t0) ⊢ receipt (c - t0) ∗ ⌜c + 1 < 2 ^ 63⌝ := by
   iintro ⟨Hc, Hr⟩
@@ -152,7 +154,7 @@ theorem isBoltCoreP_txid_lt (B : BNs) (N : Namespace) (db : Loc) (p : GoString) 
   iapply receipt_txid_lt t0 c H.1 H.2
   iexact Hr
 
-instance isBoltCoreP_persistent (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+instance isBoltCoreP_persistent (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
   unfold isBoltCoreP dblAt t0At dbFixed dbLogger; infer_instance
 
@@ -180,7 +182,7 @@ theorem isBolt_db_agree (B : BNs) (N : Namespace) (db db' : Loc) :
   ipureintro; exact h.2
 
 /-- The core's parameters agree with the full database's. -/
-theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : GoString) (sp sp' : Loc)
+theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : BFile) (sp sp' : Loc)
     (t0 t0' : Nat) :
     isBoltP (GF := GF) B N db p sp t0 ∗ isBoltCoreP B N db p' sp' t0' ⊢ ⌜sp = sp' ∧ t0 = t0'⌝ := by
   unfold isBoltP isBoltCoreP dbFixed t0At

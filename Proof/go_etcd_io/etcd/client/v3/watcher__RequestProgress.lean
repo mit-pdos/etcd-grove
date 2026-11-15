@@ -38,11 +38,10 @@ theorem watcher.RequestProgress.wp_proof
     watcher.RequestProgress.spec (GF := GF) (hG := hG) := by
   intro V w ctx cs
   iloeb as IH
-  wp_start as ⟨#Hw, #Hctx⟩
+  wp_start as ⟨#Hw, #Hctx, #HctxO⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
-  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
-  obtain ⟨Hlgnn, -⟩ := Hlgb
+  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
   ihave #Hf' := Hf
   iunfold watchSrvFacts at Hf'
   icases Hf' with ⟨-, Hcf⟩
@@ -51,7 +50,8 @@ theorem watcher.RequestProgress.wp_proof
   iunfold ctxErrClientAllW at HcA
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
-  ihave #Hwctx := EtcdGrove.context.watchCtx_of_isContext ctx cs $$ Hctx
+  ihave #Hwctx := EtcdGrove.context.watchCtx_of_isContext ctx cs $$ [Hctx HctxO]
+  · iframe Hctx HctxO
   wp_auto
   wp_apply wp_key ctx cs $$ []
   · iframe #
@@ -119,7 +119,7 @@ theorem watcher.RequestProgress.wp_proof
       iframe #
       ipureintro; exact HGx.2.1
   iunfold isWGS at HG
-  icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
+  icases HG with ⟨%Hgnn, #Hcv, #Hsf, #Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
     #Hbdone, -⟩
   wp_auto

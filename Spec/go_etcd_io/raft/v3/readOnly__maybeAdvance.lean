@@ -69,8 +69,8 @@ smallest that rule it out: the answer is at most the quorum index of a non-empty
 some voter's acknowledgement. (`Hsz` is `MajorityConfig.CommittedIndex`'s.) The halves are
 lent to `CommittedIndex` and come back. -/
 abbrev readOnly.maybeAdvance.spec : Prop :=
-  ∀ (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly sz ro r ∗
       "%Hc" ∷ ⌜c.arr = [v0, v1]⌝ ∗
       "Hv0" ∷ ownIdsetQ v0 (DFrac.own 1) s0 ∗
       "Hv1" ∷ ownIdsetQ v1 (DFrac.own 1) s1 ∗
@@ -82,10 +82,10 @@ abbrev readOnly.maybeAdvance.spec : Prop :=
     (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"maybeAdvance")) (Val #c))
   {{ (sl : GoSlice) (N : w64), RET #sl;
       ⌜JCommittedIdx s0 s1 (fun v => (r.acks !! v).getD (W64 0)) N⌝ ∗
-      ownReadOnly ro (readonlyAdvance r N).1 ∗
+      ownReadOnly sz ro (readonlyAdvance r N).1 ∗
       ownIdsetQ v0 (DFrac.own 1) s0 ∗ ownIdsetQ v1 (DFrac.own 1) s1 ∗
       (∃ ptrs : List Loc, sl ↦*□ ptrs ∗
-         [∗list] _k ↦ p;q ∈ ptrs;(readonlyAdvance r N).2, ownReadreq p q) }}
+         [∗list] _k ↦ p;q ∈ ptrs;(readonlyAdvance r N).2, ownReadreq sz p q) }}
 
 end spec
 

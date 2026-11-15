@@ -36,7 +36,7 @@ theorem electionServer.Proclaim.wp_proof
     (hEH : concurrency.Election.Header.spec (GF := GF) (hG := hG)) :
     electionServer.Proclaim.spec (GF := GF) (hG := hG) := by
   intro es c req lk vsl name key val rev lease ctx cs maxReq
-  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hvf, #Hvs, %Hrecvv, #Hctx, #Hcc⟩
+  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hvf, #Hvs, %Hrecvv, #Hctx, #HctxC, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -62,7 +62,7 @@ theorem electionServer.Proclaim.wp_proof
   wp_auto
   simp only [hlk, decide_false]
   (try wp_auto)
-  wp_apply hSess es c lease ctx cs $$ [$Hes $Hok $Hctx $Hcc] as %s %err Hs
+  wp_apply hSess es c lease ctx cs $$ [$Hes $Hok $Hctx $HctxC $Hcc] as %s %err Hs
   icases Hs with (⟨%Hs, %γ, %id, #Hss, %Hid⟩ | %Hs)
   rotate_left
   · obtain ⟨rfl, Herr⟩ := Hs
@@ -90,7 +90,7 @@ theorem electionServer.Proclaim.wp_proof
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hEP e s γ c id name { key := key, rev := rev, sess := s, hdr := null } ctx cs val (W64 0) $$
-      [$Hcpkg $He $Hest $Hctx $Hlo] as %err Hp
+      [$Hcpkg $He $Hest $Hctx $HctxC $Hlo] as %err Hp
   · ipureintro; exact Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecvv) (by decide))
   icases Hp with (⟨%Hok2, %hdr, Hest, Hfacts⟩ | ⟨#Hpe, -⟩ | ⟨%Hne', -⟩)
   · obtain ⟨rfl, -⟩ := Hok2

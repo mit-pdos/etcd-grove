@@ -62,8 +62,8 @@ theorem isEtcdLease_of_lessor
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, -, -, -, -, -, -, -, #Hrem, -, -⟩
   unfold isEtcdLease
   isplitl
-  · iintro !> %ctx %cs %ttl %Φ !> #Hctx HΦ
-    ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
+  · iintro !> %ctx %cs %ttl %Φ !> ⟨#Hctx, #HctxO⟩ HΦ
+    ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
     iapply (wp_Grant l [addr] etcdLeaseGrantSpecAny
@@ -88,15 +88,15 @@ theorem isEtcdLease_of_lessor
       ipureintro; exact ⟨Hidnn, Hhnn⟩
     · ileft; ipureintro; exact Herr.1
   isplitl
-  · iintro !> %ctx %cs %id %Φ !> #Hctx HΦ
+  · iintro !> %ctx %cs %id %Φ !> ⟨#Hctx, #HctxO⟩ HΦ
     iapply (wp_KeepAlive l addr ctx cs id) $$ []
     · iframe #
     inext
     iintro %ch %err Hres
     iapply HΦ
     iexact Hres
-  · iintro !> %ctx %cs %id %Φ !> #Hctx HΦ
-    ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
+  · iintro !> %ctx %cs %id %Φ !> ⟨#Hctx, #HctxO⟩ HΦ
+    ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
     iapply (wp_Revoke l [addr] etcdLeaseRevokeSpec

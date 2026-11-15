@@ -43,11 +43,10 @@ abbrev runner.open.spec : Prop :=
     (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames) (ops : List OpM) (i : Nat) (mp : Loc)
     (m : MemberNames) (f : GoFunc) (n : Nat) (path : GoString) (D : backend.Data) (u : Bool)
     (b : Bnd) (Hl : List HRev) (obe ole okv : GoInterface),
-  logOk ks ops → n ≤ ops.length → ops.length < 2 ^ 38 → backend.dbOpenOk → ckptEffectsOk →
+  logOk ks ops → n ≤ ops.length → ops.length < 2 ^ 38 → backend.dbOpenOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   let σ := σOf ks ops n
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗
-      □ (∀ (γB : backend.BNames) (P : backend.BParams) (b' : Loc), keySized γB P b') ∗
       envVerifyOff ∗ threadTok ∗ histRd h γh ∗ monoListLbOwn γh.l (histAt ks ops n) ∗
       mF go!"id" mp ↦□ (W64 (i : Int)) ∗ mF go!"hook" mp ↦□ f ∗ hookOk mp f ∗
       mF go!"path" mp ↦ path ∗ mF go!"be" mp ↦ obe ∗ mF go!"le" mp ↦ ole ∗ mF go!"kv" mp ↦ okv ∗

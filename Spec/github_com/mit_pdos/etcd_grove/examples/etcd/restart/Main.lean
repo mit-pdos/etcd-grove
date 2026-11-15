@@ -32,6 +32,8 @@ abbrev Main.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  srvLevels (GF := GF) →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
   runPure id₁ id₂ id₃ ps ctxs boot →

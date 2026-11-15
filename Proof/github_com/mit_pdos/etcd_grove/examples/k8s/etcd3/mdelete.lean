@@ -75,7 +75,7 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     wp_apply wp_validateFor as %vf #Hvf
     iunfold validateD at Hvf
     (try wp_auto)
-    cases hr : rejects x.Reject' it.obj'.Value'
+    cases hr : rejects x.HasReject' x.Reject' it.obj'.Node'
     · wp_apply Hvf $$ [$c] as %err Hc Herr
       isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Herr
       icases Herr with %Herr
@@ -94,7 +94,7 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       ipureintro; exact ⟨rfl, rfl⟩
     · wp_apply Hvf $$ [$c] as %err Hc Herr
       isimp only [hr, ↓reduceIte] at Herr
-      icases Hi with ⟨-, -, -, -, #EV, -⟩
+      icases Hi with ⟨-, -, -, #EV, -⟩
       ihave %Hne := errVar_ne_nil _ err $$ [$EV $Herr]
       cases err with
       | nil => exact absurd rfl Hne

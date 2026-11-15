@@ -86,7 +86,9 @@ abbrev raftLog.maybeAppend.spec : Prop :=
   -- where `matchTerm` is exact
   uint.Z ls.fl ≤ uint.Z a.prev'.index' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "#Hents" ∷ entsRO a.entries' ents ∗
+      -- (out_size C3, 2026-11-12; until then `entsRO`) at contents of bounded size under the log's
+      -- flag (`ls.sn.sz`), for the unstable entries
+      "#Hents" ∷ entsROz ls.sn.sz a.entries' ents ∗
       "Hcap" ∷ ownSliceCap Loc a.entries' (DFrac.own 1) }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"maybeAppend"))
       (Val #a)) (Val #committed))

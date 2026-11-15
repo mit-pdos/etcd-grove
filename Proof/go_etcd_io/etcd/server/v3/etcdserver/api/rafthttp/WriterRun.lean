@@ -35,22 +35,24 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 /-- **`enc.encode(m)`** of the writer's encoder, of a message it may be given (it marshals, and on
 the msgappv2 stream is an `MsgApp` of raft's shape from `lid` to `pid`), with the permission to
-write any prefix of a frame of it from the encoder's state `s`: such a frame, or an error. -/
+write any prefix of a frame of it from the encoder's state `s`: such a frame, or an error;
+(raft-entsize §4, 2026-11-10) its content (`msgSzC`) of bounded size when `Sz` unless a link
+heartbeat. -/
 theorem wp_stream_encode
     (hMsg : rafthttp.messageEncoder.encode.spec (GF := GF) (hG := hG))
     (hV2 : rafthttp.msgAppV2Encoder.encode.spec (GF := GF) (hG := hG))
-    (ty : StreamTy) (lid pid : w64) (fs : Loc) (enc : GoInterface) (ei : GoInterfaceOk)
-    (Hei : enc = GoInterface.ok ei) (wi : GoInterfaceOk) (s : (ty.codec lid pid).S) (Wr A : List w8 → IProp GF) (h : List w8) (ml : Loc) (st : MsgSt)
+    (Sz : Prop) (ty : StreamTy) (lid pid : w64) (fs : Loc) (enc : GoInterface) (ei : GoInterfaceOk)
+    (Hei : enc = GoInterface.ok ei) (wi : GoInterfaceOk) (s : (ty.codec Sz lid pid).S) (Wr A : List w8 → IProp GF) (h : List w8) (ml : Loc) (st : MsgSt)
     (hok : MsgMarshals st ∧ (ty = .msgAppV2 → V2EncOk lid pid st)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        encOwn lid pid fs ty enc wi s ∗ writerAt wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
-        swMsgBound ml st ∗ □ (∀ (bs : List w8) (s' : (ty.codec lid pid).S) (k : Nat),
-          ⌜(ty.codec lid pid).F s (wireOf st) bs s'⌝ -∗ A (h ++ bs.take k)) }}
+        encOwn Sz lid pid fs ty enc wi s ∗ writerAt wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
+        msgSzC (Sz ∧ ¬isHB st.msg) ml st ∗ □ (∀ (bs : List w8) (s' : (ty.codec Sz lid pid).S) (k : Nat),
+          ⌜(ty.codec Sz lid pid).F s (wireOf st) bs s'⌝ -∗ A (h ++ bs.take k)) }}
       (App (Val #(methods ei.ty go!"encode" ei.v)) (Val #ml))
     {{ (err : GoInterface), RET #err; http.errStrOk err ∗
-        ∃ (h' : List w8) (s' : (ty.codec lid pid).S), Wr h' ∗ encOwn lid pid fs ty enc wi s' ∗
+        ∃ (h' : List w8) (s' : (ty.codec Sz lid pid).S), Wr h' ∗ encOwn Sz lid pid fs ty enc wi s' ∗
           (⌜err = GoInterface.nil⌝ -∗
-            ⌜∃ bs, (ty.codec lid pid).F s (wireOf st) bs s' ∧ h' = h ++ bs⌝) }} := by
+            ⌜∃ bs, (ty.codec Sz lid pid).F s (wireOf st) bs s' ∧ h' = h ++ bs⌝) }} := by
   cases ty with
   | msgAppV2 =>
     simp only [encOwn]
@@ -59,7 +61,7 @@ theorem wp_stream_encode
     subst He
     cases Hei
     (try wp_auto)
-    wp_apply hV2 e wi fs s lid pid ml st Wr A h (hok.2 rfl) $$ [$Henc $HWr]
+    wp_apply hV2 Sz e wi fs s lid pid ml st Wr A h (hok.2 rfl) $$ [$Henc $HWr]
       as %err ⟨#Herr, %h', %s', HWr, Henc, %Hok⟩
     · iframe #
       iintro !> %bs %cs' %k %Hf
@@ -83,17 +85,17 @@ theorem wp_stream_encode
     cases Hei
     (try wp_auto)
     ihave #HwrF := writerAt_F wi Wr A $$ Hwr
-    wp_apply hMsg e wi ml st Wr A h false hok.1 $$ [$HWr]
+    wp_apply hMsg (Sz ∧ ¬isHB st.msg) e wi ml st Wr A h false hok.1 $$ [$HWr]
       as %err ⟨#Herr, -, %h', HWr, %Hok⟩
     · iframe #
       iintro !> %bs %Hw
       isplitl
       · rw [show u64Be (W64 bs.length) = (msgFrame bs).take 8 by
           simp [msgFrame, u64Be_length]]
-        iapply HA $$ %(msgFrame bs) %() %8 %(MsgFrameOf.of_wire Hw.1 Hw.2.1 Hw.2.2)
+        iapply HA $$ %(msgFrame bs) %() %8 %(MsgFrameOf.of_wire Hw.1 Hw.2.1.enc Hw.2.2)
       · rw [show h ++ msgFrame bs = h ++ (msgFrame bs).take (msgFrame bs).length by
           rw [List.take_length]]
-        iapply HA $$ %(msgFrame bs) %() %(msgFrame bs).length %(MsgFrameOf.of_wire Hw.1 Hw.2.1 Hw.2.2)
+        iapply HA $$ %(msgFrame bs) %() %(msgFrame bs).length %(MsgFrameOf.of_wire Hw.1 Hw.2.1.enc Hw.2.2)
     iapply HΦ
     isplitr
     · iexact Herr
@@ -106,7 +108,7 @@ theorem wp_stream_encode
     iintro %Hnil
     ipureintro
     obtain ⟨bs, Hw, He, Hl, rfl⟩ := Hok Hnil
-    exact ⟨msgFrame bs, MsgFrameOf.of_wire Hw He Hl, rfl⟩
+    exact ⟨msgFrame bs, MsgFrameOf.of_wire Hw He.enc Hl, rfl⟩
 
 /-- **A response writer at a `200` is a writer** whose permission is the response's protocol
 (`respWrite_spec`). -/
@@ -129,10 +131,10 @@ theorem respWriter_writerAt (H : http.HttpNet GF) (hW : http.respWrite_spec H) (
   ipureintro; exact Hk
 
 /-- The writer's encoder is an interface value (`enc.encode` resolves its method). -/
-theorem encOwn_ok (lid pid : w64) (fs : Loc) (ty : StreamTy) (enc : GoInterface)
-    (wi : GoInterfaceOk) (s : (ty.codec lid pid).S) :
-    encOwn (GF := GF) lid pid fs ty enc wi s ⊢
-      encOwn lid pid fs ty enc wi s ∗ ⌜∃ ei, enc = GoInterface.ok ei⌝ := by
+theorem encOwn_ok (Sz : Prop) (lid pid : w64) (fs : Loc) (ty : StreamTy) (enc : GoInterface)
+    (wi : GoInterfaceOk) (s : (ty.codec Sz lid pid).S) :
+    encOwn (GF := GF) Sz lid pid fs ty enc wi s ⊢
+      encOwn Sz lid pid fs ty enc wi s ∗ ⌜∃ ei, enc = GoInterface.ok ei⌝ := by
   cases ty <;>
   · simp only [encOwn]
     iintro ⟨%e, %He, H⟩
@@ -147,13 +149,14 @@ theorem encOwn_ok (lid pid : w64) (fs : Loc) (ty : StreamTy) (enc : GoInterface)
 codec's state, of a message whose facts are the connection's next frame's, is in the response's
 protocol. -/
 theorem stream_perm (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (a : GoString)
-    (R : http.HReq) (γk γw : GName) (fr : List (MsgWire × List w8)) (s : (ty.codec lid pid).S)
-    (st : MsgSt) (Hc : Chain (ty.codec lid pid) (ty.codec lid pid).init fr s)
+    (R : http.HReq) (γk γw : GName) (fr : List (MsgWire × List w8))
+    (s : (ty.codec Rh.γn.N.Sz lid pid).S)
+    (st : MsgSt) (Hc : Chain (ty.codec Rh.γn.N.Sz lid pid) (ty.codec Rh.γn.N.Sz lid pid).init fr s)
     (Hown : Rh.owner R.host = lid) :
     ⊢ streamReg Rh γk (γw, ty, pid) -∗ ([∗list] i ↦ f ∈ fr, frameDep Rh.γn.N γw pid i f.1) -∗
       frameDep Rh.γn.N γw pid fr.length (wireOf st) -∗
-      □ (∀ (bs : List w8) (s' : (ty.codec lid pid).S) (k : Nat),
-          ⌜(ty.codec lid pid).F s (wireOf st) bs s'⌝ -∗
+      □ (∀ (bs : List w8) (s' : (ty.codec Rh.γn.N.Sz lid pid).S) (k : Nat),
+          ⌜(ty.codec Rh.γn.N.Sz lid pid).F s (wireOf st) bs s'⌝ -∗
           ((raftHttpNet Rh).proto a).resp R γk (W64 200) (chainBytes fr ++ bs.take k)) := by
   iintro #Hreg #Hfs #Hd
   iintro !> %bs %s' %k %Hf

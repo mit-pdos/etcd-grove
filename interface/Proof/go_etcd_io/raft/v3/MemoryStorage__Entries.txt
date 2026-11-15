@@ -33,7 +33,10 @@ theorem MemoryStorage.Entries.wp_proof [package_sem : Assumptions] (wp_GetIndex 
                     memLog γs (k + a.length) dq2 b ∗
                       (⌜err = ec⌝ ∗ memCompacted γs (uint.nat lo) ∨
                         ⌜err = GoInterface.nil⌝ ∗
-                          entsRO s es ∗
+                          (∃ cs,
+                              entsPtsC γs.sz s DFrac.discard cs ∗
+                                ⌜List.map EntryC.model cs = es ∧
+                                    (γs.sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
                             ⌜es ≠ [] ∧
                                 s.cap = s.len ∧
                                   es <+: List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b))⌝) -∗

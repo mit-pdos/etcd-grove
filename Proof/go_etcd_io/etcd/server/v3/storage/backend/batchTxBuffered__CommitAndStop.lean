@@ -37,7 +37,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   intro γ P W Pk b t X Y
   wp_start as ⟨#Hb, #Ht, Ho, Hq, HX, #Hreq⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
+    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, #-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
   wp_auto
   wp_method_call
   wp_call

@@ -125,6 +125,10 @@ theorem stepCandidate.wp_proof
   have Hmc : s.role ≠ .preCandidate → mvr = W32 6 := by
     intro Hp; rw [← Hmvr, ite_eq_right Hp]
   clear Hmvr
+  -- (out_size C3) the message at its content: its context's bound, and half of it read through the
+  -- getters (`msgInC_half`), the whole rebuilt for `handleAppendEntries`
+  icases msgInC_ctx _ _ _ _ $$ Hm with ⟨Hm, %Hctx⟩
+  icases msgInC_half _ _ _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: none of `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`, so it falls
@@ -345,6 +349,8 @@ theorem stepCandidate.wp_proof
     have Hterm' := (Hterm (Or.inr (Or.inl Hty))).1
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgApp, MsgProp]]
+    rw [show (if m.Type' = MsgProp then dqh else DFrac.discard) = DFrac.discard by
+      simp [Hty, MsgApp, MsgProp]]
     simp only [Hty, MsgApp]
     wp_auto
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -368,8 +374,11 @@ theorem stepCandidate.wp_proof
     wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
       ml m ents sn cl rs Gf G' Hwf Hnw Hconf Hfid Hty (fun h => by simp [becomeFollower] at h)
       (by simp only [becomeFollower, resetTo, resetTo0]; exact (Hterm (Or.inr (Or.inl Hty))).2)
-      $$ [$Hphys $Hm $HGf $Hga]
+      $$ [$Hphys Hm Hmb $HGf $Hga]
       as %s' ⟨Hphys, %Hres, HG⟩
+    · ihave Hm := Hmb $$ Hm
+      rw [flag_moves (by decide)]
+      iapply msgInC_flag _ _ (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h) $$ Hm
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -419,6 +428,8 @@ theorem stepCandidate.wp_proof
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
       ml _ _ _ m ents sn cl rs Gf (G' (s.outbox ++ [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }])) Hcommit Hfrom
       (by simp only [becomeFollower, resetTo, resetTo0]; exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2)
+      (fun h => Hctx (by rw [Hty, flag_moves movesB_MsgHeartbeat]; exact h)
+        (by rw [Hty]; simp [MsgHeartbeat, MsgSnap]))
       $$ [$Hphys $Hm $HGf $Hgh] as ⟨Hphys, -, HG⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe Hphys
@@ -502,6 +513,8 @@ theorem stepCandidate.wp_proof
       rw [Hty]; simp [MsgSnap, MsgApp, MsgHeartbeat, MsgVoteResp, MsgPreVoteResp]
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgSnap, MsgProp]]
+    rw [show (if m.Type' = MsgProp then dqh else DFrac.discard) = DFrac.discard by
+      simp [Hty, MsgSnap, MsgProp]]
     simp only [Hty, MsgSnap]
     wp_auto
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -519,6 +532,8 @@ theorem stepCandidate.wp_proof
         rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn =
           s.gh.sn by simp [becomeFollower, resetTo, resetTo0]]
         iexact Hc
+    ihave Hm := Hmb $$ Hm
+    ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
     wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
         ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hscope Hfid Hns
         (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) (by tr_none) $$ [$Hphys $Hm $Hcs]

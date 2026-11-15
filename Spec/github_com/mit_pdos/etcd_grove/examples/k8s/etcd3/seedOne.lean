@@ -1,11 +1,11 @@
 /- Lean-first (no Rocq counterpart).
 
-`seedOne(cli, st, k)` (k8s_etcd3.go): the put of the key `k`'s object of value `x` in the older
-encoding through the client `cli` (`New`'s, of the members `ms`: `Main`'s one member, `MainCluster`'s
+`seedOne(cli, st, k, rv)` (k8s_etcd3.go): the put of the key `k`'s object of value `x` in the older
+encoding (`v0 k`) through the client `cli` (`New`'s, of the members `ms`: `Main`'s one member, `MainCluster`'s
 three; a write sent at most once), during the seeding (`seedInv` at every member's KV names,
 `Main`'s half of the state at `σ`): its update fires at `σ` (`seed_au`), and the result
-is the store `st` with the item at the put's revision (`σ.rev + 1`), `Main`'s half at the put's
-next state; or `false`.
+is the store `st` with the item (`seedItem k rv`) at the put's revision `rv` (`σ.rev + 1`), `Main`'s
+half at the put's next state; or `false` (the put failed, or made another revision than `rv`).
 -/
 module
 
@@ -35,19 +35,19 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 abbrev seedOne.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γs : GName) (s0 : mstore) (g : GSt)
-    (k : GoString) (σ : KVState),
+    (k : GoString) (rv : w64) (σ : KVState),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   k.length < 256 → g.items.length + 1 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient cl (ms.map (·.addr)) V ∗ client.clientWriteOnce cl (ms.map (·.addr)) ∗
       ([∗list] y ∈ ms, client.kvRegsAt y) ∗ ([∗list] y ∈ ms, seedInv γs y.γr.kv) ∗ ghostVar γs (1 : Qp).half σ ∗ storeOwn s0 g }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne)) (Val #cl)) (Val #s0)) (Val #k))
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne)) (Val #cl)) (Val #s0)) (Val #k)) (Val #rv))
   {{ (s' : mstore) (ok : Bool), RET (PairV #s' #ok);
       ⌜ok = false⌝ ∨
       (⌜ok = true⌝ ∗ ghostVar γs (1 : Qp).half (kvOpStep (seedOp k) σ) ∗
-        storeOwn s' ⟨setItemL g.items ⟨k, ⟨k, go!"", go!"x", W64 ((σ.rev + 1 : Nat) : Int)⟩, false⟩,
-          W64 ((σ.rev + 1 : Nat) : Int)⟩ ∗ ⌜kvRevFits (σ.rev + 1)⌝) }}
+        storeOwn s' ⟨setItemL g.items (seedItem k rv), rv⟩ ∗
+        ⌜rv = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1)⌝) }}
 
 end spec
 

@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_KV_Range_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
-implements `KVServer` (a method-set fact) and whose `Range` meets `Spec` with the resource `S`
+implements `KVServer` (a method-set fact) and whose `Range` meets `Spec` with the resource `S` and the interceptors' resources `Rs`, which the chain lends the call (per-type stage B3)
 (`grpcHandlerOkMd`: at the run's incoming metadata; a plain spec is `GrpcSpec.md`'s), for messages
 whose types are `*RangeRequest`/`*RangeResponse` (a zero `*RangeRequest` is the request's blank),
 under the chain `ics` of transparent interceptors with their resources `Rs`, for requests with `Q`
@@ -42,7 +42,7 @@ abbrev etcdserverpb._KV_Range_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.KVServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.RangeRequest) -∗ Req.blank l) ∗
-      grpcHandlerOkMd #(methods srv.ty go!"Range" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOkMd #(methods srv.ty go!"Range" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗

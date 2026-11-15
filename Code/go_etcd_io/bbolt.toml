@@ -1,7 +1,7 @@
 # Project bbolt (etc/goose.py): bbolt v1.5.0 as etcd links it, from the fork's `goose-lean`
 # (upamanyus/bbolt), with bodies. Its `os`, `io/fs`, `syscall` and `golang.org/x/sys/unix` are
 # this repository's (project bboltfs's: the file calls are modeled by the Linux file extension
-# osFsExt); notes/bbolt-v2-infra.md.
+# fsExt, GooseLang/Ext/Fs); notes/bbolt-v2-infra.md.
 #
 # But `Options` stays an axiomatized type, and `DefaultOptions`' initializer (a literal of it)
 # untranslated: the backend's constructor and every example's `newBackend` rest on the

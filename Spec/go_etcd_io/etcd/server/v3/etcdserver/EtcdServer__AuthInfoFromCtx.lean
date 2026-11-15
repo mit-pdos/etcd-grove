@@ -6,6 +6,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
+public import Proof.context.LibKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -33,19 +35,52 @@ the unbound request side (the auth-mode merge, 2026-10-29: `spec` and `boundSpec
 G of `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). With auth
 on, the error is moreover `nil` or one of the auth package's error variables (`authErrVarIs`; the
 store returns only `ErrInvalidAuthToken`; the lease-expiry plan's E3, 2026-11-05, gated as the
-binding is). -/
+binding is). The context's library values are well formed (`context.libCtxOk`: the store reads its
+incoming metadata, and with `ClientCertAuthEnabled` its peer; premise-fixes-8). -/
 abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
   ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
       □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ RD }}
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗
+      context.libCtxOk ctx ∗ RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
       □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) ∗
       □ (⌜M.isOn = true⌝ → authErrVarIs err) }}
+
+/-- `s.AuthInfoFromCtx(ctx)` read by a caller holding a lower bound `n` of the auth store's
+published index (`auth.authPubLbM`; auth-guard-completeness G1, 2026-11-14,
+`notes/auth-guard-scope.md`, §2.2): `spec`'s post, and with auth on, why the request side gave no
+principal (`(nil, nil)`: the flag read `true` at a state no older than `n` and the context carries no
+token, or the flag read `false` at such a state, `auth.noPrincipalFrom`; the TLS fallback returns `nil`
+only after the store's `(nil, nil)`) and why it failed (`ErrInvalidAuthToken`: the flag read `true` at
+such a state and the context carries a token, `auth.tokRefusedFrom`; the token provider's contract says
+nothing more of a refused token). (G4, 2026-11-14) A principal comes with the flag read `true` at such a
+state (the store's, `store.go:1073`), or the server's TLS fallback is enabled (`srvTLSId`: only that;
+a principal from the fallback, `AuthInfoFromTLS`, `v3_server.go:1214`, comes with no flag read:
+`nonissues/etcd-auth-old-revision-auth-disabled.md`). -/
+abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
+  ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
+      □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗
+      context.libCtxOk ctx ∗ □ auth.authPubLbM M n ∗ RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
+      □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) ∗
+      □ (⌜M.isOn = true⌝ → authErrVarIs err) ∗
+      □ (⌜M.isOn = true⌝ → ∀ _ : a = null ∧ err = GoInterface.nil,
+        auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
+      □ (⌜M.isOn = true⌝ → ∀ _ : err ≠ GoInterface.nil,
+        auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom M n true ∗
+          auth.tokRefusedFrom M n (GoInterface.ok ctx)) ∗
+      □ (⌜M.isOn = true⌝ → ∀ _ : a ≠ null, auth.enabledVerdictFrom M n true ∨ srvTLSId s) }}
 
 end spec
 

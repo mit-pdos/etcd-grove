@@ -21,7 +21,7 @@ theorem backend.batchLocked_dl (γ : backend.BNames) (P : backend.BParams) (b : 
 theorem backend.isBackend_bt (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t :
     Loc) : backend.isBackend γ P W Pk b ∗ typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard
     ⊢ ∃ db lg h, typedPointsto (backend.beOf t) b DFrac.discard ∗ typedPointsto (backend.bF go!"lg"
-    b) lg DFrac.discard ∗ ⌜lg ≠ null⌝ ∗ typedPointsto (backend.bF go!"batchLimit" b) P.limit
+    b) lg DFrac.discard ∗ zapLoggerOk lg ∗ typedPointsto (backend.bF go!"batchLimit" b) P.limit
     DFrac.discard ∗ typedPointsto (backend.bF go!"hooks" b) h DFrac.discard ∗ backend.hooksSpec γ P
     Pk b t h ∗ sync.isMutex (backend.muOf t) (backend.batchFree γ P W Pk b t) ∗ backend.isDB db ∗
     ⌜P.Wf⌝
@@ -184,7 +184,7 @@ theorem backend.BSess.delBucket_S_other (st : backend.BSess) (bi : backend.Bucke
 theorem backend.isBackend_b (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) :
     backend.isBackend γ P W Pk b ⊢ ∃ t rt db lg, typedPointsto (backend.bF go!"batchTx" b) t
     DFrac.discard ∗ typedPointsto (backend.bF go!"readTx" b) rt DFrac.discard ∗ typedPointsto
-    (backend.bF go!"lg" b) lg DFrac.discard ∗ ⌜lg ≠ null⌝ ∗ backend.metricsInv b ∗ typedPointsto
+    (backend.bF go!"lg" b) lg DFrac.discard ∗ zapLoggerOk lg ∗ backend.metricsInv b ∗ typedPointsto
     (backend.beOf t) b DFrac.discard ∗ sync.isMutex (backend.muOf t) (backend.batchFree γ P W Pk b
     t) ∗ sync.isRWMutexGuard (backend.rmuOf (backend.baseOf rt)) (backend.rtRes γ P rt) ∗
     (sync.isRWMutexGuard (backend.bF go!"mu" b) fun q => typedPointsto (backend.bF go!"db" b) db

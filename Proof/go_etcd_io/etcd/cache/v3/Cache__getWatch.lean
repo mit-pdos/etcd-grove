@@ -35,11 +35,11 @@ theorem Cache.getWatch.wp_proof
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
-  icases HisICtx with ⟨%ics, #Hctxi, -⟩
+  icases HisICtx with ⟨%ics, #Hctxi, #HoCi, -⟩
   unfold cacheWriter
   icases Hw with ⟨Hdw, #Hwo, %B, Hbd⟩
   wp_auto
-  wp_apply wp_get c cf γr γd cap cf.ictx ics B $$ [$Hpkg $Hc $Hctxi $Hbd] as %resp %err Hres
+  wp_apply wp_get c cf γr γd cap cf.ictx ics B $$ [$Hpkg $Hc $Hctxi $HoCi $Hbd] as %resp %err Hres
   icases Hres with (⟨%Herr, Hbd, #HeS⟩ | ⟨%Herr, %R, #Hrev, Hbd, #Hrd, #Hlb, #Hslb, %HRb⟩)
   · -- the get failed: return its error
     obtain ⟨-, Hne⟩ := Herr

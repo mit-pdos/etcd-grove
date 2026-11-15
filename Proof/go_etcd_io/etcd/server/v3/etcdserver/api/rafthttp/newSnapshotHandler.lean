@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 theorem rafthttp.newSnapshotHandler.wp_proof :
     rafthttp.newSnapshotHandler.spec (GF := GF) (hG := hG) := by
-  intro Rh a γd Rs t r ss cid lg lid Rm Hlg Hown
-  wp_start as ⟨#Hlgf, #Hid, #Hraft, #Hss, #Hdir, #Harr⟩
+  intro Rh a γd Rs t r ss cid lg lid Rm Hown
+  wp_start as ⟨#Hlgf, #Hlgz, #Hid, #Hraft, #Hss, #Hdir, #Harr⟩
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   rw [_root_.decide_eq_false Hlg]
   ipersist «$r0»
@@ -36,7 +37,7 @@ theorem rafthttp.newSnapshotHandler.wp_proof :
   iunfold snapHandlerOk
   iexists _, Rm
   iframe #
-  ipureintro; exact ⟨Hlg, Hown⟩
+  ipureintro; exact Hown
 
 end proof
 

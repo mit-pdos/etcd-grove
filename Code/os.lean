@@ -981,6 +981,36 @@ noncomputable def File.Name.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- Open opens the named file for reading. If successful, methods on
+    the returned file can be used for reading; the associated file
+    descriptor has mode [O_RDONLY].
+    If there is an error, it will be of type [*PathError].
+
+    go: file.go:389:6 -/
+noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType File.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (Val O_RDONLY)
+  (Let "$a2" (Val #(W32 0))
+  (App (App (App (App (Val (GoInstruction (FuncResolve OpenFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType File.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
 /-- go: proc.go:18:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1975,10 +2005,14 @@ class File.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Close" File.Close.impl
   ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Fd" File.Fd.impl
   ptr_Name_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Name" File.Name.impl
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Read" File.Read.impl
   ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadAt" File.ReadAt.impl
+  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Readdirnames" File.Readdirnames.impl
+  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Seek" File.Seek.impl
   ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Stat" File.Stat.impl
   ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Sync" File.Sync.impl
   ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Truncate" File.Truncate.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Write" File.Write.impl
   ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteAt" File.WriteAt.impl
 
 attribute [instance] File.TypeAssumptions.type_repr
@@ -1990,10 +2024,14 @@ attribute [instance] File.TypeAssumptions.type_repr
   File.TypeAssumptions.ptr_Close_unfold
   File.TypeAssumptions.ptr_Fd_unfold
   File.TypeAssumptions.ptr_Name_unfold
+  File.TypeAssumptions.ptr_Read_unfold
   File.TypeAssumptions.ptr_ReadAt_unfold
+  File.TypeAssumptions.ptr_Readdirnames_unfold
+  File.TypeAssumptions.ptr_Seek_unfold
   File.TypeAssumptions.ptr_Stat_unfold
   File.TypeAssumptions.ptr_Sync_unfold
   File.TypeAssumptions.ptr_Truncate_unfold
+  File.TypeAssumptions.ptr_Write_unfold
   File.TypeAssumptions.ptr_WriteAt_unfold
 
 class fileStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2038,7 +2076,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   fileStat_instance : fileStat.TypeAssumptions
   errNoDeadline_unfold : FuncUnfold errNoDeadline [] errNoDeadline.impl
   errDeadlineExceeded_unfold : FuncUnfold errDeadlineExceeded [] errDeadlineExceeded.impl
+  Mkdir_unfold : FuncUnfold Mkdir [] Mkdir.impl
+  Open_unfold : FuncUnfold Open [] Open.impl
   OpenFile_unfold : FuncUnfold OpenFile [] OpenFile.impl
+  Rename_unfold : FuncUnfold Rename [] Rename.impl
+  Remove_unfold : FuncUnfold Remove [] Remove.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   runtime_args_unfold : FuncUnfold runtime_args [] runtime_args.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
@@ -2076,7 +2118,11 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.fileStat_instance
   Assumptions.errNoDeadline_unfold
   Assumptions.errDeadlineExceeded_unfold
+  Assumptions.Mkdir_unfold
+  Assumptions.Open_unfold
   Assumptions.OpenFile_unfold
+  Assumptions.Rename_unfold
+  Assumptions.Remove_unfold
   Assumptions.«init.0_unfold»
   Assumptions.runtime_args_unfold
   Assumptions.import_io_Assumption

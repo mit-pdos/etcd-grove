@@ -31,7 +31,7 @@ theorem v3rpc.NewQuotaKVServer.wp_proof
     (wp_NewKVServer : v3rpc.NewKVServer.spec (GF := GF) (hG := hG)) :
     v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) := by
   intro s A n lg qb Hbuq Hmx
-  wp_start as ⟨#HKV, #Hn, #Hlg, %Hlgn, #Hqb⟩
+  wp_start as ⟨#HKV, #Hn, #Hlg, #Hlgn, #Hqb⟩
   wp_auto
   wp_apply wp_NewKVServer s A n Hmx $$ [] as %kv ⟨%p, %cid, %mid', %Hkv, #Hp⟩
   · iframe #
@@ -57,7 +57,7 @@ theorem v3rpc.NewQuotaKVServer.wp_proof
   iunfold v3rpc.quotaAlarmerAt
   iexists go!"kv", lg, qb
   iframe #
-  ipureintro; exact ⟨Hlgn, Hbuq⟩
+  ipureintro; exact Hbuq
 
 end proof
 

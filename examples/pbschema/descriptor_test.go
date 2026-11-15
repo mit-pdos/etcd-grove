@@ -200,10 +200,22 @@ func TestSchemas(t *testing.T) {
 		}
 		walk(md)
 	}
+	// (out_size B2, 2026-11-12) a Lean schema no root reaches (the ConfChange types: no registration,
+	// their schemas read by pbMsg and the decoder axioms) is checked against its own descriptor,
+	// with the types it reaches; a name with no Go descriptor is an error.
 	for name := range lean {
-		if !seen[protoreflect.FullName(name)] {
-			t.Errorf("%s: a Lean schema no root reaches", name)
+		if seen[protoreflect.FullName(name)] {
+			continue
 		}
+		var md protoreflect.MessageDescriptor
+		if d, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(name)); err == nil {
+			md, _ = d.(protoreflect.MessageDescriptor)
+		}
+		if md == nil {
+			t.Errorf("%s: a Lean schema no root reaches, with no Go descriptor", name)
+			continue
+		}
+		walk(md)
 	}
 }
 

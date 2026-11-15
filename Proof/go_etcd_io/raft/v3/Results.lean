@@ -3,7 +3,8 @@ The raft v3.7 results (`notes/raft-retarget-plan.md`; ported into the parallel t
 stage R0 on, the raft tree since stage R6, 2026-10-16): `quorum`, `tracker` and `slices.Sort`; since stage R1
 `raftpb` (the getters, `Enum`, `Ensure*`, the conf-change codec, `ConfState.Equivalent`) and the
 nine protobuf-go axioms (`proto.*`, the trust boundary); since stage R2 `confchange` (with
-etcd-grove's `fmt.Errorf` axiom and `raftpb.ConfChangeType.String` at the trust boundary); since
+etcd-grove's `fmt.Errorf` axiom at the trust boundary, and `raftpb.ConfChangeType.String`'s until
+premise fixes 7); since
 stage R3 the log layer (`unstable`, `raftLog`, `MemoryStorage`, the size helpers, over read-only
 entries) and `MemoryStorage`'s instance of the `Storage` contract; since stage R4 `raft.go` over
 pointer messages (every function of the layer: the struct's helpers, the `Step` dispatch and its
@@ -87,11 +88,10 @@ namespace EtcdGrove
 
 -- raftpb (stage R1) and the protobuf trust boundary it rests on
 #print axioms proto.wp_CloneConfState
-#print axioms proto.wp_CloneEntry
 #print axioms proto.wp_CloneSnapshot
 #print axioms proto.wp_MarshalConfChange
 #print axioms proto.wp_MarshalConfChangeV2
-#print axioms proto.wp_SizeEntry
+#print axioms proto.wp_SizePb
 #print axioms proto.wp_UnmarshalConfChange
 #print axioms proto.wp_UnmarshalConfChangeV2
 #print axioms raftpb.ConfChangeSingle.wp_GetNodeId
@@ -150,7 +150,7 @@ namespace EtcdGrove
 #print axioms raftpb.Snapshot.wp_GetData
 #print axioms raftpb.Snapshot.wp_GetMetadata
 
--- confchange (stage R2), with etcd-grove's `fmt.Errorf` and `ConfChangeType.String` axioms
+-- confchange (stage R2), with etcd-grove's `fmt.Errorf` axiom
 #print axioms confchange.wp_incoming
 #print axioms confchange.wp_outgoing
 #print axioms confchange.wp_outgoingPtr
@@ -166,7 +166,6 @@ namespace EtcdGrove
 #print axioms confchange.Changer.wp_remove
 #print axioms confchange.Changer.wp_makeVoter
 #print axioms confchange.Changer.wp_makeLearner
-#print axioms raftpb.ConfChangeType.wp_String
 #print axioms confchange.Changer.wp_apply
 #print axioms confchange.Changer.wp_Simple
 #print axioms confchange.Changer.wp_EnterJoint
@@ -480,7 +479,8 @@ namespace EtcdGrove
 #print axioms memSnap_update
 #print axioms memSnapNone_open
 #print axioms memSnapNone_lb
-#print axioms memSnapNone_empty
+#print axioms memSnapNone_eq
+#print axioms memSnapNone_open_empty
 #print axioms memSnapLb_mono
 #print axioms Membership.Valid.snapListsOk'
 

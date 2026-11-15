@@ -164,7 +164,7 @@ theorem ghostRest_dynEnv_vote (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64
 family): the win's last phase (`winPend`) at the tally's state, and the rest of the mode's ghost state
 at `s`. -/
 def winGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (m : MessageM) : IProp GF :=
-  iprop(winPend γ id (toPState (votedState s m)) md.isDyn ∗ ghostRest γ md c id s)
+  iprop(winPend γ c id (toPState (votedState s m)) md.isDyn ∗ ghostRest γ md c id s)
 
 /-- **The win's first phase, a family's** (at the `BecomeLeader` gate, before the line): the vote's
 record (`ownRaftGhost_step_recordVote`, the response's `isMessage`) and the registration

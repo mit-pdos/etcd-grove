@@ -34,7 +34,7 @@ def mvcc.ownIdxPriv (ti : Loc) (L : List mvcc.IdxEntry) : IProp GF :=
           DFrac.discard ∗
         typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex go!"lg" ti) lg
             DFrac.discard ∗
-          ⌜lg ≠ null⌝ ∗ typedPointsto (mvcc.idxMuAddr ti) rwZero (DFrac.own 1) ∗ mvcc.ownTree t L 1)
+          zapLoggerOk lg ∗ typedPointsto (mvcc.idxMuAddr ti) rwZero (DFrac.own 1) ∗ mvcc.ownTree t L 1)
 
 theorem mvcc.idxFresh_split (γ : mvcc.IdxNames) : mvcc.idxFresh γ ⊢ |==> (monoNatAuthOwn γ.nev 1 0 ∗
     ghostVar γ.cmp 1 (-1, []) ∗ mvcc.crevLb γ (-1) ∗ monoListLbOwn γ.log [] ∗ mvcc.idxWriter γ [] []

@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 abbrev txn.WarnOfExpensiveReadOnlyTxnRequest.spec : Prop :=
   ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (r : Loc) (t : TxnModel) (resp : Loc)
     (err : GoInterface) (P : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ zapLoggerOk lg ∗
       txn.txnRequestIs r t ∗ P ∗
       (⌜resp = null⌝ ∨ txn.txnRespShow resp ∗
         txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #resp) P) }}

@@ -52,9 +52,15 @@ abbrev raftNode.stop.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); nodeVacant γ.node.cl γ.id ∗
       ∃ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S ∗ rnWalClosed γ r σ ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ ∗
+        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit ∧
+          -- (S1, r2db §4.1) the restart point's backend log at or below the stored commit (the
+          -- loop's fact `commit0 ≤ p.Commit'` with the restart data's `|a0| ≤ commit0`)
+          γ.a0.length ≤ σ.commit⌝ ∗
         -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (the restart's storage needs it)
-        walSnapCert γ.node.cl σ }}
+        walSnapCert γ.node.cl σ ∗
+        -- (S1, r2db §4.1) a committed log reaching the records' base, which the durable state's log
+        -- agrees with (`DurAgrees`): for the restart's `wal.restartOk` (S2)
+        (∃ l', isCommittedLogLb γ.node.cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) }}
 
 end spec
 

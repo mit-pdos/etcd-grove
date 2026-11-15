@@ -37,7 +37,7 @@ abbrev v3rpc.newBackendQuota.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
       srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb ∗ srvBemuReader s }}
     (App (App (Val (@! v3rpc.newBackendQuota)) (Val #s)) (Val #name))
   {{ (qv : GoInterface), RET #qv; apply.isQuota qv ∗ srvLgReader s ∗ srvBemuReader s }}

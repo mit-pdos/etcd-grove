@@ -2,8 +2,10 @@
 **`s.Start()` of a built member** (2026-10-22, D33). Lean-first (no Rocq counterpart).
 
 `wp_Start_built`: `EtcdServer.Start.spec` at the auth slot's `off` (`isServerBuilt_offC`) at what `newServer` returns (`memberBuilt`) and the
-thread token: the member started (`memberUp`). Two of `srvServeBuilt`'s `lgMu` reader slots and
-the downgrade monitor's go to `Start`. The step every example's member start took after
+thread token: the member started (`memberUp`). `srvServeBuilt`'s two `lgMu` reader slots and
+the downgrade monitor's go to `Start`; (per-type stage B2) `NewServer`'s raw stocks
+(`srvServeStock`) and the run pool's share of `Start`'s read-loop slots (`srvRunReadStock`) go to
+`memberUp`. The step every example's member start took after
 `NewServer` (putget's `Main`, putget3's and linkv3p's `startMember`), once; `StartServer` and
 `StartMember` use it, with `Start`'s result as a hypothesis.
 -/
@@ -45,11 +47,10 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     {{ RET #(); memberUp s ρ E₀ lg γn id m }} := by
   iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
   iunfold memberBuilt at Hmb
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, -, HWR, #Hlr, Hkeep⟩
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, -, #Hlr, Hkeep⟩
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
-  icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `Start.spec` at the slot's `off`
   imod isServerBuilt_offC s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb, Hl⟩
@@ -74,13 +75,21 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
   iunfold srvStartReaders at Hsr
   icases Hsr with ⟨Hrslots, -⟩
+  -- (per-type stage B2) the run pool's share of the read loop's slots
+  icases srvStartReaders_split s ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
   iapply HΦ
   iunfold memberUp
   iexists E, cfg, γw
-  iframe
-  iframe #
+  -- (the raw run-pool stocks first, framed explicitly: no bare `iframe` meets their
+  -- `srvRevokePoolN`-long lists)
   isplitr
   · ipureintro; exact HE
+  isplitl [Hstk]
+  · iexact Hstk
+  isplitl [Hrun]
+  · iexact Hrun
+  iframe
+  iframe #
   iunfold srvPeerCtl
   iexists τ
   iframe Hnm Htokp

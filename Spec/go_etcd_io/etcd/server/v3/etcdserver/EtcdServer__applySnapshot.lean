@@ -97,7 +97,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
+    (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
@@ -123,7 +123,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hlp : mvcc.leaseParams d.P)
     (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
+    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     -- (the backend-auth-split stage) the alarm bucket in the table
     (halbi : d.P.has mvcc.alarmBI ∧
@@ -173,7 +173,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        -- the apply thread's token, given back
        threadTok ∗
-       srvCfgAddr s ↦□ cfg ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
+       -- (premise-fixes-6, until then the pure premise `cfg.Logger' ≠ null`) the configuration's
+       -- logger a zap logger (`OpenSnapshotBackend`'s `openPre`)
+       srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
        snap.isSnapshotter ss ∗ backend.fileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
        backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
@@ -203,11 +205,14 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
        -- (2026-11-01, J8a-1, item 8) the directory's removal fact `srvSnapRm`, as the server's
-       -- bundle (`srvSnapRO`) has it (until then `snapTakenLb γt`, its first disjunct)
-       inv snapDirN (snapDirInv ss γd img (srvSnapRm γt γr)) ∗ monoNatAuthOwn γt 1 nt ∗
+       -- bundle (`srvSnapRO`) has it (until then `snapTakenLb γt`, its first disjunct); (restart
+       -- S6a) the member's removal counter `γt` (`snapRmM`), its authority at most the index plus one
+       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗ monoNatAuthOwn γt 1 nt ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
+       -- (premise-fixes-6) the cluster's logger, a zap logger (`RaftCluster.Recover`'s)
+       (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc) ∗
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗

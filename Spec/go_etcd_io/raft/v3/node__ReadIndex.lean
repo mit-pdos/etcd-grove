@@ -39,7 +39,9 @@ abbrev node.ReadIndex.spec : Prop :=
   -- cluster: `run` steps no message of this kind there
   Cluster.trace γ = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      rctx ↦*□ c ∗ isReadCtx γ N c Q }}
+      rctx ↦*□ c ∗ isReadCtx γ N c Q ∗
+      -- (raft-entsize §3, 2026-11-09) the context within the cluster's bound, if any
+      ⌜∀ b, γ.maxData = some b → c.length ≤ b⌝ }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok ctx))) (Val #rctx))
   {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}

@@ -105,6 +105,7 @@ def pbLeaseGrantResponseT : ProtoMsgT GF :=
 
 /-- **`pbLeaseGrantResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseGrantResponseT_repSat : (pbLeaseGrantResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.LeaseGrantResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.LeaseGrantResponse
         etcdserverpb.LeaseGrantResponse.ty), fun l => .rfl⟩,
@@ -221,6 +222,7 @@ def pbLeaseRevokeResponseT : ProtoMsgT GF :=
 
 /-- **`pbLeaseRevokeResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseRevokeResponseT_repSat : (pbLeaseRevokeResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.LeaseRevokeResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.LeaseRevokeResponse
         etcdserverpb.LeaseRevokeResponse.ty), fun l => .rfl⟩,
@@ -340,6 +342,7 @@ def pbLeaseTimeToLiveResponseT : ProtoMsgT GF :=
 
 /-- **`pbLeaseTimeToLiveResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseTimeToLiveResponseT_repSat : (pbLeaseTimeToLiveResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.LeaseTimeToLiveResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.LeaseTimeToLiveResponse
         etcdserverpb.LeaseTimeToLiveResponse.ty), fun l => .rfl⟩,
@@ -504,6 +507,7 @@ theorem leasesIs_of_sepL2 (ids : List w64) (ps : List Loc) :
 
 /-- **`pbLeaseLeasesResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseLeasesResponseT_repSat : (pbLeaseLeasesResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.LeaseLeasesResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.LeaseLeasesResponse
         etcdserverpb.LeaseLeasesResponse.ty), fun l => .rfl⟩,

@@ -213,7 +213,7 @@ theorem mvcc.NewStore.wp_proofR
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   intro _ lg b le cfg d γb γl P rd0 wq γi γok M Perm R r Ls hkH PreH QH PostH XH YH dqh
   have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
-  wp_start as ⟨⟨%Hcfg0, %hR⟩, #Hpkg, #HbkS, HbkT, #HcrT, Hreg, Himg, #Hrc0, #Hnd, Hrg, Hwt1, Hwt2,
+  wp_start as ⟨⟨%Hcfg0, %hR⟩, #Hzl, #Hpkg, #HbkS, HbkT, #HcrT, Hreg, Himg, #Hrc0, #Hnd, Hrg, Hwt1, Hwt2,
     Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hlown, %Hlok, Hifresh, Hok, #HokC, #HpF, #HpC, HrH, Hsup⟩
   -- the image, in either mode: the clean view of the cut entries, the records, the values' halves
   icases mvcc.restoreImageM_norm d γb _ r $$ Himg with ⟨%ents, Hview, Hnc, Hvals, %Himg⟩
@@ -247,13 +247,14 @@ theorem mvcc.NewStore.wp_proofR
   iintro %defer Hdefer
   (try wp_auto)
   -- `if lg == nil { lg = zap.NewNop() }`
-  wp_join iprop(∃ lg' : Loc, lg_ptr ↦ lg' ∗ ⌜lg' ≠ null⌝) with [lg] as ⟨%lg', lg, %Hlgnn⟩
+  wp_join iprop(∃ lg' : Loc, lg_ptr ↦ lg' ∗ zapLoggerOk lg') with [lg] as ⟨%lg', lg, #Hlz⟩
   · wp_apply hNop as %l #Hlz
-    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     (try wp_auto)
     wp_join_done
-    iexists l; iframe lg; ipureintro; exact Hl
-  · iexists lg; iframe lg; ipureintro; exact Hif
+    iexists l; iframe lg; iexact Hlz
+  · ihave #Hok := zapLoggerOrNil_ok lg Hif $$ Hzl
+    iexists lg; iframe lg; iexact Hok
+  ihave %Hlgnn := zapLoggerOk_ne_null lg' $$ Hlz
   -- the configuration's defaults: a zero batch limit is the default's (`1000`), so positive, and
   -- at most `rangeLimitMax` (the premise `batchLimitOk`)
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c ∗
@@ -274,7 +275,7 @@ theorem mvcc.NewStore.wp_proofR
   imod mvcc.idxFresh_image γi ([[], []] ++ R) r.crev hR.2 hcge $$ Hifresh
     with ⟨Hnauth0, Hcmpf, #Hclb0, #Hllb0, HiwNR, Hil, Hcu, #Hclbc, #Hiwlb⟩
   wp_apply (hNewIdx γi lg' _ ([[], []] ++ R)) $$ [Hnauth0 Hcmpf] as %ti ⟨Hix, Hig, Hcmp0⟩
-  · iframe Hnauth0 Hcmpf; iframe #; ipureintro; exact Hlgnn
+  · iframe Hnauth0 Hcmpf; iframe #
   -- the new index's lock at the records' compaction revision
   imod mvcc.idxLockG_raise γi _ r.crev ([[], []] ++ R) hcl $$ Hig Hcmp0 Hclbc Hllb0
     with ⟨Hig, Hcmp0⟩
@@ -293,7 +294,7 @@ theorem mvcc.NewStore.wp_proofR
   (try wp_auto)
   iStructNamed «$r0»
   wp_apply hHash as %hp #Hhs
-  · ipureintro; exact Hlgnn
+  · iexact Hlz
   (try wp_auto)
   wp_alloc rv as Hrv
   (try wp_auto)
@@ -849,7 +850,7 @@ theorem mvcc.NewStore.wp_proofR
       iexists (lease.lessorIface lp), lg', cfg2, hp
       simp only [named]
       iframe #
-      ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0⟩
+      ipureintro; exact ⟨Hcfg2, Hrb0⟩
     -- `s.mu`'s resource with the lag
     ihave Hmu' : mvcc.muInvLag (GF := GF) «$r0_ptr» γ r.crev r.finRev $$ [HcmA HcuM HwM]
     · iunfold mvcc.muInvLag
@@ -1048,7 +1049,7 @@ theorem mvcc.NewStore.wp_proofR
   wp_apply hR' $$ [$b $Hrt1 $Hreg $Hnc $HviewR $kvindex $Hix $Hig $Hiwlb $HcurA $HcmA $HP0 $HFw $HLk
       $HUl $HK $Hdisj $Hlown] as ⟨HFin, HLo⟩
   · iframe #
-    ipureintro; exact ⟨Hlgnn, Hlok⟩
+    ipureintro; exact Hlok
   imod HFin with HFin
   iunfold mvcc.nsFin at HFin
   icases HFin with ⟨#Hs, HmuI, Hright, Hcrf, Hfw, Hrevs, #Hcert, HlogQ, #HrgI, Hrt1, Hird1, HwsdL, HCt,

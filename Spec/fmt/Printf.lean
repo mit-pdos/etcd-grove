@@ -24,11 +24,11 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
 /-- **`fmt.Printf(format, args...)`** returns (a count and an error, not modelled), for
-arguments that are `fmt.argsOk`; the arguments' slice comes back. The output is not
-modelled. -/
+arguments that are `fmt.argsOk` under the format's verbs; the arguments' slice comes back. The
+output is not modelled. -/
 abbrev fmt.Printf.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (xs : List GoInterface) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk xs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk fmt.methodVerbs format xs }}
     (App (App (Val (@! _root_.Perennial.fmt.Printf)) (Val #format)) (Val #args_sl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); args_sl ↦*{dq} xs }}
 

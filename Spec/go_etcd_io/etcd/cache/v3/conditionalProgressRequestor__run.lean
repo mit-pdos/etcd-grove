@@ -34,7 +34,8 @@ abbrev conditionalProgressRequestor.run.spec : Prop :=
     (s : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isProgressRequestor p ∗
       isPrRun p (GoInterface.ok n) (GoInterface.ok clk) ri ∗ isClock clk ∗
-      isEtcdProgressNotifier n ∗ context.isContext ctx s }}
+      isEtcdProgressNotifier n ∗ context.isContext ctx s ∗
+      metadata.outgoingCtxOkC ctx }}
     (App (Val (p @!! go.GoType.PointerType conditionalProgressRequestor.ty @!! go!"run"))
       (Val #(GoInterface.ok ctx)))
   {{ RET #(); True }}

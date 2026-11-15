@@ -44,7 +44,7 @@ theorem raft.bcastHeartbeat.wp_proof
   icases Hsl with (⟨%Hpend, %Hsl⟩ | ⟨%Hne, Hsl, -⟩)
   · subst Hsl
     rw [show hbCtx s.rd.ro = [] by unfold hbCtx; simp [Hpend]]
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] G Hlead Htz $$ [$Hphys HG]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] G Hlead Htz (by simp) $$ [$Hphys HG]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
     · isplitr
       · iapply ownSlice_nil
@@ -56,7 +56,8 @@ theorem raft.bcastHeartbeat.wp_proof
     rw [(Hms m Hm).2]
   · imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     rw [show hbCtx s.rd.ro = u64Le (readonlyPosition s.rd.ro) by unfold hbCtx; simp [Hne]]
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ G Hlead Htz $$ [$Hphys $Hsl HG]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ G Hlead Htz
+      (by simp [u64Le_length, entBytesMax]) $$ [$Hphys $Hsl HG]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
     · iframe Hgate HG
     iapply HΦ

@@ -22,7 +22,10 @@ import (
 
 // TestTrafficReachesCases runs the traffic sequentially against a store and checks each answer
 // against the model step by step, counting the outcomes: the runs reach successes of every kind,
-// storage errors, rejections, and the rewrite of a non-canonical item.
+// storage errors, rejections, the rewrite of a non-canonical item, and lists of every mode,
+// scope and selector (with a too-large resource version, a stale answer at a past revision, a
+// continue token and a remaining count among them); the model's history has one store per
+// revision throughout.
 func TestTrafficReachesCases(t *testing.T) {
 	os.RemoveAll("k8setcd3s.etcd")
 	defer os.RemoveAll("k8setcd3s.etcd")
@@ -54,10 +57,11 @@ func TestTrafficReachesCases(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer kc.Close()
-	st, ok := seed(kc.Client)
-	if !ok {
-		t.Fatal("seed failed")
+	st0, h0, ok := seed(kc.Client)
+	if !ok || !noStreaming() {
+		t.Fatal("seed or the gate switch failed")
 	}
+	c := mcfg{st: st0, hist: histOf(h0)}
 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
 		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
 		decoder{}, versioner{})
@@ -66,30 +70,60 @@ func TestTrafficReachesCases(t *testing.T) {
 	}
 	counts := map[string]int{}
 	tbl := newCache()
-	for i := 0; i < 1500; i++ {
+	kinds := []string{"create", "delete", "update", "get", "list"}
+	errs := []string{"ok", "notfound", "exists", "rejected", "other", "invalid", "toolarge"}
+	for i := 0; i < 3000; i++ {
 		in := Gen(tbl, i%3)
-		before := st
+		before := c.st
 		out := call(s, in)
 		if out.Err == ENone && out.Name != "" {
-			tbl.put(in.Client, Obj{Name: out.Name, UID: out.UID, Value: out.Value, ResourceVersion: out.RV})
+			tbl.put(in.Client, objOf(out))
 		}
-		if out.Err == EOther && in.Kind == KGet {
-			if _, want := mstep(in, st); want.Err == EOther {
-				counts["get/toolarge"]++ // the store's too-large error, as the model's EOther
-			}
-		} else if out.Err == EOther {
+		if out.Err == EOther {
 			t.Fatalf("op %d %+v: unexpected error", i, in)
 		}
-		next, want := mstep(in, st)
+		next, want := seqStep(in, c)
 		if !outEqual(out, want) {
 			t.Fatalf("op %d %+v: got %+v, model %+v", i, in, out, want)
 		}
-		st = next
-		kinds := []string{"create", "delete", "update", "get"}
-		errs := []string{"ok", "notfound", "exists", "rejected", "other", "invalid"}
+		if histLen(next.hist) != next.st.rv {
+			t.Fatalf("op %d: %d stores in the history at revision %d", i, histLen(next.hist), next.st.rv)
+		}
+		c = next
 		counts[kinds[in.Kind]+"/"+errs[out.Err]]++
 		if in.UseCached {
 			counts[kinds[in.Kind]+"/cached/"+errs[out.Err]]++
+		}
+		if in.Kind == KList && out.Err == ENone {
+			req, _ := parseRV(in.MinRV)
+			mode := "latest"
+			if pastRead(in, req) {
+				mode = "past"
+				if req < c.st.rv && !listEqualAt(in, c, req, c.st.rv) {
+					counts["list/past/stale"]++ // the answer differs from the current store's
+				}
+			}
+			counts["list/"+mode]++
+			if in.Recursive {
+				counts["list/recursive"]++
+			} else {
+				counts["list/nonrecursive"]++
+			}
+			if out.Continue != "" {
+				counts["list/continue"]++
+			}
+			if out.HasRemaining {
+				counts["list/remaining"]++
+			}
+			if len(decodeItems(out.Items)) == 0 {
+				counts["list/empty"]++
+			}
+			counts[[]string{"list/field/everything", "list/field/name", "list/field/ns",
+				"list/field/node", "list/field/emptynode", "list/field/combined"}[in.Field]]++
+			if in.SelApp != "" {
+				counts["list/label/app"]++
+			}
+			counts[[]string{"list/match/legacy", "list/match/notolderthan", "list/match/exact"}[in.Match]]++
 		}
 		if in.Kind == KUpdate && in.IgnoreNotFound && out.Err == ENone {
 			if _, ok := lookup(before.items, in.Key); !ok {
@@ -109,9 +143,33 @@ func TestTrafficReachesCases(t *testing.T) {
 	for _, k := range []string{"create/ok", "create/exists", "delete/ok", "delete/notfound",
 		"delete/rejected", "update/ok", "update/notfound", "update/rejected", "get/ok",
 		"get/notfound", "update/noop-skip", "delete/invalid", "update/invalid", "get/toolarge",
-		"delete/cached/ok", "update/cached/ok", "update/ignorenotfound-create"} {
+		"delete/cached/ok", "update/cached/ok", "update/ignorenotfound-create",
+		"list/ok", "list/toolarge", "list/latest", "list/past", "list/past/stale", "list/recursive",
+		"list/nonrecursive", "list/continue", "list/remaining", "list/empty",
+		"list/field/everything", "list/field/name", "list/field/ns", "list/field/node",
+		"list/field/emptynode", "list/field/combined", "list/label/app", "list/match/legacy",
+		"list/match/notolderthan", "list/match/exact"} {
 		if counts[k] == 0 {
 			t.Errorf("no %s outcome", k)
 		}
 	}
+}
+
+// seqStep is the model's step on one configuration for a call that returned (no failed write):
+// its next configuration and its answer.
+func seqStep(in Input, c mcfg) (mcfg, Output) {
+	if in.Kind == KList {
+		return c, mlist(in, c)
+	}
+	st, o := mstep(in, c.st)
+	return advance(c, st, c.pend), o
+}
+
+// listEqualAt says whether a List's items at revision r are its items at revision r2 (as latest
+// reads of the stores at r and r2).
+func listEqualAt(in Input, c mcfg, r uint64, r2 uint64) bool {
+	in.MinRV, in.Match = "", MLegacy
+	a := mlist(in, mcfg{st: histAt(c.hist, r)})
+	b := mlist(in, mcfg{st: histAt(c.hist, r2)})
+	return a.Items == b.Items
 }

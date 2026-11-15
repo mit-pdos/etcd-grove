@@ -118,7 +118,8 @@ private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (id : w64) (rd
   icases readyRest_ents_type γc N id rd st ce es h L ms ss $$ H with ⟨H, %Hty⟩
   ihave #Hes : entsRO rd.Entries' es $$ [H]
   · iunfold readyRest at H
-    icases H with ⟨#Hes, -⟩
+    icases H with ⟨#HesO, -⟩
+    ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
     iexact Hes
   ihave %Hd := entsRO_data_len _ _ $$ Hes
   iframe H
@@ -274,7 +275,8 @@ theorem Replica.run.wp_proof
       ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G9 G10 G14 G17 Hin
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      icases Hrest with ⟨#HesO, Hmsl, Hmsok, -, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
       ihave %Hesl := entsPts_len _ _ _ $$ Hes
@@ -443,6 +445,9 @@ theorem Replica.run.wp_proof
       ihave #HmsInv' := HmsInv
       iunfold memStorInvP at HmsInv'
       icases HmsInv' with ⟨#Hlock, -, -⟩
+      ihave #HrecZ := Hrec
+      iunfold kdStorRec at HrecZ
+      icases HrecZ with ⟨-, -, %HszR⟩
       have Htrip : {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
             memStorLock ρ.ms ρ.γs ∗
             (if es = [] then emp else memLog ρ.γs k (DFrac.own 1) old ∗ memEnd ρ.γs (k + old.length))) ∗
@@ -451,9 +456,15 @@ theorem Replica.run.wp_proof
           {{ RET #interface.nil; entsPts rdv.Entries' DFrac.discard es ∗
             (if es = [] then emp else memLog ρ.γs k (DFrac.own 1) es ∗ memEnd ρ.γs (k + es.length)) }} := by
         iintro %Φ ⟨⟨#Hr, #Hl, Hb⟩, He⟩ HΦ
+        ihave He : entsPtsZ ρ.γs.sz rdv.Entries' DFrac.discard es $$ [He]
+        · rw [HszR]; iapply entsPts_entsPtsZ $$ He
         iapply wp_Append ρ.ms ρ.γs k old es rdv.Entries' DFrac.discard h1 h2 $$ [Hb He]
         · iframe Hr Hl Hb He
-        iexact HΦ
+        inext
+        iintro ⟨He, Hm⟩
+        iapply HΦ
+        iframe Hm
+        iapply entsPtsZ_entsPts $$ He
       wp_apply wp_SAppend st ρ.ms ρ.γs ip (imgSetHardState M (phsNext hd h)) rdv.Entries' DFrac.discard k
           es _ _ h1 hk9 hsz Htrip $$ [$Hpkg $Hrec $Hst' $Himage $Hes Hrange] as ⟨-, Hb, Himage⟩
       · iframe Hrange Hlock
@@ -643,7 +654,7 @@ theorem Replica.run.wp_proof
       try wp_auto
       -- sent first: at role leader (`readyLeaderMsgs`)
       wp_join iprop((⌜fb = true⌝ ∨ (rdv.Messages' ↦* List.map QMsg.loc ms ∗
-            [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
+            [∗list] q ∈ ms, iprop(msgOut γ.r.cluster q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
           r_ptr ↦ r ∗ rd_ptr ↦ rdv ∗ send_ptr ↦ f) at next with [Hmsl Hmsok Hlm r rd send]
         as ⟨Hmq, r, rd, send⟩
       · cases fb
@@ -1041,7 +1052,8 @@ theorem Replica.run.wp_proof
       ihave ⟨Hrest, %G7⟩ := readyRest_snap _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G7
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      icases Hrest with ⟨#HesO, Hmsl, Hmsok, -, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
@@ -1158,7 +1170,7 @@ theorem Replica.run.wp_proof
               memLog ρ.γs (uint.nat lo.snap.Metadata'.Index') DFrac.discard [memDummy lo.snap] ∗
               memEnd ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1)) }} := by
         iintro %Φ HP HΦ
-        iapply wp_ApplySnapshot ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) none k old lo.ptr _ lo.snap _ Hk
+        iapply wp_ApplySnapshot.1 ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) none k old lo.ptr _ lo.snap _ Hk
           (by word) $$ HP
         inext
         iintro ⟨Hs, Hc, Hd, He, -, -⟩
@@ -1223,6 +1235,9 @@ theorem Replica.run.wp_proof
       ihave #HmsInv' := HmsInv
       iunfold memStorInvP at HmsInv'
       icases HmsInv' with ⟨#Hlock, -, -⟩
+      ihave #HrecZ := Hrec
+      iunfold kdStorRec at HrecZ
+      icases HrecZ with ⟨-, -, %HszR⟩
       have Htrip2 : {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
             memStorLock ρ.ms ρ.γs ∗
             (if es = [] then emp else memLog ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1) (DFrac.own 1)
@@ -1234,10 +1249,16 @@ theorem Replica.run.wp_proof
             (if es = [] then emp else memLog ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
               memEnd ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1 + es.length)) }} := by
         iintro %Φ ⟨⟨#Hr, #Hl, Hb⟩, He⟩ HΦ
+        ihave He : entsPtsZ ρ.γs.sz rdv.Entries' DFrac.discard es $$ [He]
+        · rw [HszR]; iapply entsPts_entsPtsZ $$ He
         iapply wp_Append ρ.ms ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1) [] es rdv.Entries' DFrac.discard
           h1 h2 $$ [Hb He]
         · iframe Hr Hl Hb He
-        iexact HΦ
+        inext
+        iintro ⟨He, Hm⟩
+        iapply HΦ
+        iframe Hm
+        iapply entsPtsZ_entsPts $$ He
       wp_apply wp_SAppend st ρ.ms ρ.γs ip (imgSetHardState (imgApplySnapshot M lo.snap) (phsNext hd h))
           rdv.Entries' DFrac.discard (uint.nat lo.snap.Metadata'.Index' + 1) es _ _ h1
           (fun _ => by simp [imgSetHardState, imgApplySnapshot])
@@ -1351,7 +1372,7 @@ theorem Replica.run.wp_proof
       try wp_auto
       -- sent first: at role leader (`readyLeaderMsgs`)
       wp_join iprop((⌜fb = true⌝ ∨ (rdv.Messages' ↦* List.map QMsg.loc ms ∗
-            [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
+            [∗list] q ∈ ms, iprop(msgOut γ.r.cluster q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
           r_ptr ↦ r ∗ rd_ptr ↦ rdv ∗ send_ptr ↦ f) at next with [Hmsl Hmsok Hlm r rd send]
         as ⟨Hmq, r, rd, send⟩
       · cases fb

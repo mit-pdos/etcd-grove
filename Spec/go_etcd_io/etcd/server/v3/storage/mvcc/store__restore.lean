@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
@@ -98,7 +99,7 @@ abbrev mvcc.store.restore.spec : Prop :=
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockGAt γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length r.crev ∗
       mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗
+      zapLoggerOk lg ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP0 ∗
       mvcc.revFinW s dql r.fin RevP0 RevP ∗

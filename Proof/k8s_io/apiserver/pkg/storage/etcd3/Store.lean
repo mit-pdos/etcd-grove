@@ -10,7 +10,8 @@ Lean-first (no Rocq counterpart).
   never write them), its client `*kubernetes.Client` (`Kubernetes` is the client itself, as
   `kubernetes.New` sets it) over `New`'s `clientv3.Client` of the members (`isNewClient`,
   sending a write at most once, each member's KV registered, its workload admitting the store's
-  writes), and the contract (`contractOk`).
+  writes), the contract (`contractOk`), and the list path's fields (`storeListOk`: the aggregator
+  factory, `collectorMux`'s reader pool, the group-resource's UTF-8; stage 7e-2, #15).
 - `storageErrIs err code key rv`: `err` is a `*storage.StorageError` with these fields (what
   `NewKeyNotFoundError`, `NewKeyExistsError` return); `respIs`: a model answer as the error and
   the object a method leaves.
@@ -27,6 +28,10 @@ public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3.metrics
 public import GeneratedProof.k8s_io.apiserver.pkg.storage
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.AggrDefs
+public import Proof.unicode.utf8.Valid
+public import Perennial.Proof.sync.RWMutexThreads
 
 @[expose] public section
 
@@ -82,6 +87,42 @@ structure StoreCfg (GF : BundledGFunctors) (Obj : Type) where
 /-- The model's prefix: the store's keys (`pathPrefix` and the resource's). -/
 def StoreCfg.pfx (c : StoreCfg GF Obj) : GoString := c.pathPrefix ++ c.resourcePrefix
 
+/-- The share `q` of the store's `resourceSizeEstimator` field, `nil` (what a `collectorMux` read
+lock gives: nothing in the verified programs calls `EnableResourceSizeEstimation`, `store.go:677`). -/
+def rseNilR (sp : Loc) (q : Qp) : IProp GF :=
+  iprop(structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"resourceSizeEstimator" sp
+    ↦{DFrac.own q} (null : Loc))
+
+instance rseNilR_timeless (sp : Loc) (q : Qp) : Timeless (rseNilR (GF := GF) sp q) := by
+  unfold rseNilR; infer_instance
+
+instance rseNilR_fractional (sp : Loc) : Fractional (rseNilR (GF := GF) sp) where
+  fractional q1 q2 := by
+    unfold rseNilR
+    exact (typedPointsto_dfractional (GF := GF) _ (null : Loc)).dfractional (DFrac.own q1)
+      (DFrac.own q2)
+
+/-- The namespace of the stores' `collectorMux` reader pools. -/
+abbrev storePoolN : Namespace := nroot.@"k8sEtcd3StorePool"
+
+/-- **The list path's store fields** (stage 7e-2, #15, D2; persistent): the list error aggregator
+factory (`New`'s pick, read-only: `aggrFactoryOk`), `collectorMux`'s reader tokens in a thread pool
+(`notes/bounds-plan.md`: a reader borrows one with its thread token) guarding `resourceSizeEstimator
+↦ nil`, and the group-resource's labels valid UTF-8 (the metrics' labels, attack R1). -/
+def storeListOk (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
+  iprop(∃ (f : GoFunc) (γp : GName),
+    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"listErrAggrFactory" sp ↦□ f ∗
+    aggrFactoryOk f ∗
+    threadPool.isThreadPool storePoolN γp
+      (sync.ownRWMutex (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"collectorMux" sp)
+        (rseNilR sp)) ∗
+    ⌜utf8Valid c.gr.Group' ∧ utf8Valid c.gr.Resource'⌝ ∗
+    ⌜prepareKeyM c.resourcePrefix c.resourcePrefix false = some c.resourcePrefix⌝)
+
+instance storeListOk_persistent (sp : Loc) (c : StoreCfg GF Obj) :
+    Persistent (storeListOk sp c) := by
+  unfold storeListOk; infer_instance
+
 /-- **The store `sp`** (persistent; see the file header). -/
 def isStore (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
   iprop(⌜sp ≠ null⌝ ∗
@@ -106,7 +147,8 @@ def isStore (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
     isNewClient c.cl (c.ms.map client.SrvAt.addr) c.V ∗
     client.clientWriteOnce c.cl (c.ms.map client.SrvAt.addr) ∗
     ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
-    contractOk c.S c.codec c.vi c.ti c.di)
+    contractOk c.S c.codec c.vi c.ti c.di ∗
+    storeListOk sp c)
 
 instance isStore_persistent (sp : Loc) (c : StoreCfg GF Obj) : Persistent (isStore sp c) := by
   unfold isStore; infer_instance
@@ -119,7 +161,8 @@ def storageErrIs (err : GoInterface) (code : w64) (key : GoString) (rv : w64) : 
 
 /-- **An error whose outcome is unknown** (a method's first disjunct: its write, if any, may or may
 not have fired): not `nil`, and the client's (`clientErr`, `statusErrOk`, `errCellOk`: the store
-returns the client's errors unchanged), an `InternalError` (the transformer's failures, wrapped),
+returns the client's errors unchanged), an `InternalError` wrapping a transformer's failure
+(`ObjSpec.trErr`; stage 7e-4, (B), decided by etcd-grove-81),
 or the codec's own (`ObjSpec.encErr`). None is a `*StorageError` or a callback's error, which a
 caller tells apart by type or identity. -/
 def unkErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
@@ -127,7 +170,8 @@ def unkErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
     ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
         go_etcd_io.etcd.cache.v3.errCellOk err) ∨
       ⌜(∃ ie : k8s_io.apiserver.pkg.storage.InternalError,
-          err = interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) ∨
+          err = interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie ∧
+          c.S.trErr ie.err') ∨
         c.S.encErr err⌝))
 
 instance unkErr_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
@@ -155,13 +199,14 @@ theorem unkErr_client (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ Go
   ipureintro; exact hc
 
 open Iris.ProofMode in
-theorem unkErr_internal (c : StoreCfg GF Obj) (ie : k8s_io.apiserver.pkg.storage.InternalError) :
+theorem unkErr_internal (c : StoreCfg GF Obj) (ie : k8s_io.apiserver.pkg.storage.InternalError)
+    (ht : c.S.trErr ie.err') :
     ⊢ unkErr (GF := GF) c (interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) := by
   unfold unkErr
   isplitr
   · ipureintro; nofun
   iright
-  ipureintro; exact .inl ⟨ie, rfl⟩
+  ipureintro; exact .inl ⟨ie, rfl, ht⟩
 
 open Iris.ProofMode in
 theorem unkErr_enc (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInterface.nil)
@@ -175,7 +220,8 @@ theorem unkErr_enc (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInt
 /-- **A model answer, as the method leaves it** (`err` and the object `out`): an object at a
 resource version, the zero object, a key not found or existing (`StorageError`s with codes `1`,
 `2`), a failed precondition (`invalidErrIs`, code `4`), a callback's error (`KUserErr`), a minimum
-resource version above the read's (a `*apierrors.StatusError`, which no other answer is); the other
+resource version above the read's (the error `IsTooLargeResourceVersion` recognizes,
+`apierrors.tooLargeErrIs`: a `*apierrors.StatusError`, which no other answer is; stage 7e-2, #20); the other
 errors (`rvSetOnCreate`, not answered by the unary methods' specs yet) as any error. -/
 def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err out : GoInterface) : IProp GF :=
   match r with
@@ -189,9 +235,7 @@ def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err 
     iprop(⌜err ≠ GoInterface.nil ∧ KUserErr.is e err⌝ ∗ ∃ o rv', c.S.objAt out o rv')
   | .err (.invalidObj k) => iprop(invalidErrIs err k ∗ ∃ o rv', c.S.objAt out o rv')
   | .err (.tooLarge _ _) =>
-    iprop(⌜∃ l : Loc, err = interface.mkOk
-        (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
-      ∃ o rv', c.S.objAt out o rv')
+    iprop(apierrors.tooLargeErrIs err ∗ ∃ o rv', c.S.objAt out o rv')
   | .err _ => iprop(⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv', c.S.objAt out o rv')
 
 /-- **etcd's state is the store's** (D30i): sorted by key, and the store's invariant under its

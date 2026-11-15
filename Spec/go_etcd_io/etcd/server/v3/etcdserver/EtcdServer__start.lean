@@ -44,9 +44,11 @@ budget with its register set to `GoAttach`'s receipts' name `γg.run`, with `Sta
 registered name), and (R2c-4) the right to stop the server (`srvStopRight`, at its raft names
 `ρ.rd.raft.raft`, its member id and the configuration's data directory): `start` makes `stop`,
 on which `run` receives the stop requests, and `done`, whose close announces the stopped server's
-image escrowed for the right's claim (until then `run` never stopped). A new server: the apply
-thread from index `0` (each applied entry takes a write token, which bounds the applied index,
-`srvWTPool_bound`). -/
+image escrowed for the right's claim (until then `run` never stopped). The apply
+thread's ghost log from index `0` (`ai₀ = 0`; each applied entry takes a write token, which bounds
+the applied index, `srvWTPool_bound`); (restart S4, 2026-11-12) Go's from the start log `P` the
+construction premise carries (`srvBuiltRestartR`: `P = []` at a first start, the WAL snapshot's
+prefix of the backend's log at a restart). -/
 abbrev EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)

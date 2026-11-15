@@ -1,0 +1,10 @@
+tornsim /tmp/walx/ts 3000 50 6000 1:
+flush [33512, 37848), cut 37608 (in-page 744): FAIL read (etcd: "failed to read WAL, cannot be repaired"): walpb: crc mismatch: expected: b2b7a120 computed: 114fefc7: in file '0000000000000000-0000000000000000.wal' at position: 37208
+flush [47152, 51496), cut 51248 (in-page 2096): FAIL read (etcd: "failed to read WAL, cannot be repaired"): walpb: crc mismatch: expected: 37689a3b computed: c0cc10c2: in file '0000000000000000-0000000000000000.wal' at position: 50032
+flush [139992, 144200), cut 144088 (in-page 728): FAIL read (etcd: "failed to read WAL, cannot be repaired"): walpb: crc mismatch: expected: d3563b25 computed: 40f2979b: in file '0000000000000000-0000000000000000.wal' at position: 142776
+flush [144200, 148352), cut 148296 (in-page 840): FAIL read (etcd: "failed to read WAL, cannot be repaired"): walpb: crc mismatch: expected: f3b5ffad computed: 876c986e: in file '0000000000000000-0000000000000000.wal' at position: 144280
+flush [148352, 152608), cut 152448 (in-page 896): FAIL read (etcd: "failed to read WAL, cannot be repaired"): walpb: crc mismatch: expected: 6d88a17f computed: dc8d57b4: in file '0000000000000000-0000000000000000.wal' at position: 152048
+tornsim: 3000 saves, 2229 synced flushes, 812 cuts at a source page boundary: map[FAIL (cut%512 != 0):194 clean (cut%512 != 0):9 repaired (cut%512 != 0):597 repaired (cut%512 = 0):12]
+
+[exited with code 0]
+tornsim /tmp/walx/ts2 600 4100 8000 2: tornsim: 600 saves, 459 synced flushes, 467 cuts at a source page boundary: map[FAIL (cut%512 != 0):78 clean (cut%512 != 0):2 clean (cut%512 = 0):2 repaired (cut%512 != 0):379 repaired (cut%512 = 0):6]

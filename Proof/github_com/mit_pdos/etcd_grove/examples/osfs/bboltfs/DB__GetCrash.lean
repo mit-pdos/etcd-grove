@@ -19,9 +19,10 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -61,7 +62,7 @@ theorem DB.Get.wp_reader_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := hG)
   intro γ γc db t o
   wp_start as ⟨Hdb, Hrd, Hlast, Hoo⟩
   iunfold isDBC at Hdb
-  icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, -, -⟩
+  icases Hdb with ⟨⟨%f, %fd, %p, %R, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, -, -⟩
   iunfold pkgFacts at Hpkg
   icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He, %eof, #Heof, %Heof, -⟩
   wp_auto
@@ -127,13 +128,13 @@ theorem DB.Get.wp_reader_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := hG)
       rw [show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq] at *
       icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hq, Htok⟩
       icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hmd, Hpd⟩
-      imod meta_borrow γ p base len γm γl mp (curPgid mp) T sync.rfrac.half.half $$ [HinvL Hq Hcur Hout Hauth Hmd]
+      imod meta_borrow γ γ.ino base len γm γl mp (curPgid mp) T sync.rfrac.half.half $$ [HinvL Hq Hcur Hout Hauth Hmd]
         with ⟨Hq, Hcur, Hauth, Hk0, Hmc⟩
       · iframe; iframe #
-      imod page_borrow γ p base len γm γl mp (curPgid mp) (curRoot mp) sync.rfrac.half.half metaDep Hr2 Hrh
+      imod page_borrow γ γ.ino base len γm γl mp (curPgid mp) (curRoot mp) sync.rfrac.half.half metaDep Hr2 Hrh
         $$ [HinvL Hq Hcur Hpd] with ⟨Hq, Hcur, %Hlen2, %B', #HB', Hkr, Hbr⟩
       · iframe; iframe #
-      icases pageIs_agree p (curRoot mp) B B' $$ [HB HB'] with %HBB
+      icases pageIs_agree γ.ino (curRoot mp) B B' $$ [HB HB'] with %HBB
       · iframe #
       subst HBB
       obtain ⟨Hm0, Hm1⟩ := metasOf_take mp Hmpl
@@ -187,7 +188,7 @@ theorem DB.Get.wp_reader_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := hG)
       icases Hcb $$ Hc with ⟨Hc0, Hc1⟩
       icases Hb0 $$ Hc0 with Hc0
       icases Hb1 $$ Hc1 with Hc1
-      imod meta_return γ p base len γm γl T sync.rfrac.half.half (metasOf mp)
+      imod meta_return γ γ.ino base len γm γl T sync.rfrac.half.half (metasOf mp)
         $$ [HinvL Hq Hauth Hk0 Hc0 Hc1] with ⟨Hq, Hout, Hauth, Hmd⟩
       · iframe #; iunfold metaBytes; iframe
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaRC (GF := GF) γ db p)
@@ -254,7 +255,7 @@ theorem DB.Get.wp_reader_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := hG)
           (by omega) hl $$ Hbr with ⟨Hv, Hvb⟩
         wp_auto
         ihave Hbr := Hvb $$ Hv
-        imod page_return γ p base len γm γl (curRoot mp) sync.rfrac.half.half metaDep B Hr2
+        imod page_return γ γ.ino base len γm γl (curRoot mp) sync.rfrac.half.half metaDep B Hr2
           $$ [HinvL Hq Hkr Hbr] with ⟨Hq, Hpd⟩
         · iframe #; iframe
         ihave Htok := ((ghostVar_fractional γm ()).fractional metaDep metaDep).2 $$ [Hmd Hpd]
@@ -289,7 +290,7 @@ theorem DB.Get.wp_reader_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := hG)
         iframe #
       · rw [decide_eq_false hc]
         wp_auto
-        imod page_return γ p base len γm γl (curRoot mp) sync.rfrac.half.half metaDep B Hr2
+        imod page_return γ γ.ino base len γm γl (curRoot mp) sync.rfrac.half.half metaDep B Hr2
           $$ [HinvL Hq Hkr Hbr] with ⟨Hq, Hpd⟩
         · iframe #; iframe
         ihave Htok := ((ghostVar_fractional γm ()).fractional metaDep metaDep).2 $$ [Hmd Hpd]

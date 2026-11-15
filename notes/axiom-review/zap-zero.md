@@ -6,6 +6,17 @@ triples in `Spec/go_uber_org/zap/Logger__*.lean`) and `zapcore.CheckedEntry.Writ
 (`Spec/go_uber_org/zap/zapcore/CheckedEntry__Write.lean`). The Go code is zap v1.28.0, the version
 `examples/go.mod` pins, run with `GOTOOLCHAIN=go1.27.3`.
 
+## Repaired
+
+- `CheckedEntry.Write` and `Logger.Check`: by sweep repairs 1, R1-2 (`26e4cde863`): `Check` returns
+  `ce = null ∨ zapcore.zapEntry ce` (only below `DPanicLevel`), and `Write` consumes the exclusive
+  `zapEntry ce`, which rules out a second `Write` and a hand-built entry.
+- `Logger.{Debug,Info,Warn,Error,Fatal,Check}`: by premise fixes 6, part A (2026-11-11): the premise
+  `⌜l ≠ null⌝` became `zapLoggerOk l` (`Spec/go_uber_org/zap/Defs.lean`, given only by the
+  constructors), carried by every predicate that holds a logger (`notes/decisions.md`, "Premise
+  fixes 6, parts A and D"; `logger-family.md`, "Repaired"). `Logger.Panic` keeps `⌜l ≠ null⌝`
+  (decision D4: not refuted by a triple, see below). Go test: `examples/premisefix/zaplogger`.
+
 ## Verdict
 
 **Refuted (Go side). The Lean side has not been built yet.** Each logger spec's only premise is
@@ -93,7 +104,7 @@ The other functions follow the same shape:
   The methods of `badWS` are translated but never called in the proof. `#print axioms` should show
   only the axiom under review and the generic ones.
 
-## Reach and proposed restatement (not applied)
+## Reach and proposed restatement (applied since: see "Repaired")
 
 The plan's reach counts are `Panic` 84/17, `Error` 82/17, `Warn` 76/17, `Debug` 65/17, `Info` 63/17
 and `Fatal` 49/17. `Check` and `CheckedEntry.Write` are used only by

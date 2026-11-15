@@ -42,14 +42,14 @@ with the removed map's writer half at `rm`: with `v3`, it calls the backend's de
 interface `bi` read-only, whose triple the caller gives: the backend's buckets are the caller's,
 `Pd` to `Qd`) and moves the writer half to `rm` with `id` removed, and (D43 M5b, 2026-10-26) the
 in-memory members' apply-thread half (`clusterMem`) to `mem` without `id`; without, nothing. Its
-other reads are of read-only fields: the logger (non-nil), the cluster id. -/
+other reads are of read-only fields: the logger (a zap logger), the cluster id. -/
 abbrev membership.RaftCluster.RemoveMember.spec : Prop :=
   ∀ (c : Loc) (γ : GName) (rm : GMap w64 Bool) (mem : GMap w64 apply.MemberM) (id : w64) (dqb : DFrac)
     (v3 : Bool) (lg : Loc) (cid : w64) (bi : GoInterfaceOk) (Pd Qd : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       membership.isRaftClusterG c (membership.rcDyn γ) ∗ membership.rcRemovedOwn γ rm ∗
       membership.clusterMem c mem ∗
-      membership.rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ membership.rcCidAddr c ↦□ cid ∗
+      membership.rcLgAddr c ↦□ lg ∗ zapLoggerOk lg ∗ membership.rcCidAddr c ↦□ cid ∗
       membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗
       (if v3 then iprop(membership.beDeleteOk bi id Pd Qd ∗ Pd) else iprop(True)) }}
     (App (App (Val (c @!! go.GoType.PointerType

@@ -77,7 +77,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, -, -, #Haus, #Hle, -⟩
+  icases Hok with ⟨#Hlg, -, -, #Haus, #Hle, -⟩
   iunfold apply.envAus at Haus
   icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, -⟩
   iunfold apply.isApplyLessor at Hle

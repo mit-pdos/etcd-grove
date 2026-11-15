@@ -30,7 +30,7 @@ theorem txn.Count.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     txn.Count.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg kv γ key rangeEnd k e revision ot te Q
-  wp_start as ⟨Hkv, Hrd, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen, Hau⟩
+  wp_start as ⟨Hkv, Hrd, #Hk, #He, #Hctx, #Hct, Hto, #Hlg, %Hklen, Hau⟩
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
   iStructNamed «$a3»
@@ -53,7 +53,7 @@ theorem txn.Count.wp_proof
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     isplitr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     ipureintro; unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
   have hrz : sint.Z (W64 (σ.rev : Int)) = (σ.rev : Int) := by
     have := Hreachσ.2; unfold mvcc.api.MvccState.rev; word

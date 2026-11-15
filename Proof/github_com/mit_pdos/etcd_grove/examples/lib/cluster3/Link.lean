@@ -22,6 +22,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.holdToken
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
+public import Proof.google_golang_org.grpc.model.Serve
+public import Proof.google_golang_org.grpc.model.acceptRun
+public import Proof.google_golang_org.grpc.model.acceptRunConns
+public import Proof.google_golang_org.grpc.model.finishStream
+public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -100,9 +105,29 @@ theorem grpc.wp_KeepaliveEnforcementPolicy :
     EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
 
+theorem grpc.model.wp_acceptRun :
+    EtcdGrove.grpc.model.acceptRun.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.acceptRun.wp_proof
+
+theorem grpc.model.wp_acceptRunConns :
+    EtcdGrove.grpc.model.acceptRunConns.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.acceptRunConns.wp_proof
+
+theorem grpc.model.wp_respond :
+    EtcdGrove.grpc.model.respond.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.respond.wp_proof
+
+theorem grpc.model.wp_finishStream :
+    EtcdGrove.grpc.model.finishStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.finishStream.wp_proof
+
+theorem grpc.model.wp_Serve :
+    EtcdGrove.grpc.model.Serve.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.model.Serve.wp_proof grpc.model.wp_acceptRun grpc.model.wp_acceptRunConns grpc.model.wp_respond grpc.model.wp_finishStream
+
 theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
+  EtcdGrove.grpc.Server.Serve.wp_proof grpc.model.wp_Serve
 
 theorem wp_holdToken :
     EtcdGrove.cluster3.holdToken.spec (GF := GF) (hG := hG) :=
@@ -110,7 +135,7 @@ theorem wp_holdToken :
 
 theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.cluster3.StartMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds
+  EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
 theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.cluster3.StartCluster.spec (GF := GF) (hG := hG) :=

@@ -291,15 +291,17 @@ theorem pbRangeResponseT_repSat : (pbRangeResponseT (GF := GF)).RepSat := by
   imod (typedPointsto_dfractional (GF := GF) _ sl).dfractional_persist _ $$ HK with #HK
   imod (typedPointsto_dfractional (GF := GF) _ m.more).dfractional_persist _ $$ HM with #HM
   imod (typedPointsto_dfractional (GF := GF) _ m.count).dfractional_persist _ $$ HC with #HC
-  imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
   ihave #Hkvs := kvsIs_of_sepL2 m.kvs ps $$ Hkvs
   imodintro
   iframe Hs
-  unfold rangeRespMsg
-  isplitr
-  · ipureintro; exact Hnn
-  iexists h, sl, ps
-  iframe HH Hh HK Hsl Hkvs HM HC
+  simp only [rangeRespRecv, rangeRespKvsOwn]
+  isplitl [Hh]
+  · isplitr
+    · ipureintro; exact Hnn
+    iexists h
+    iframe HH Hh HM HC
+  iexists sl, ps
+  iframe HK Hsl Hkvs
 
 /-- **`PutRequest`'s registration** (the Scope's R, `[v5]`'s split registries: a method's request). -/
 axiom pbPutRequestT_reg :

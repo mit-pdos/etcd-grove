@@ -34,11 +34,11 @@ theorem NewStorage.wp_proof
   wp_start as ⟨#Hreg, #Hv⟩
   iapply wp_fupd
   wp_auto
-  wp_apply wp_NewMemoryStorage as %ms %γs ⟨Hl, Hlog, He, Hnone, Hmeta, Hfresh⟩
+  wp_apply wp_NewMemoryStorage false as %ms %γs ⟨%Hsz, Hl, Hlog, He, Hnone, Hmeta, Hfresh⟩
   irename «$r0» => Hs
   generalize «$r0_ptr» = s at *
   iStructNamed Hs
-  imod kvStor_register s ms γs ⊤ CoPset.subseteq_top $$ Hreg MemoryStorage with #Hrec
+  imod kvStor_register s ms γs ⊤ CoPset.subseteq_top Hsz $$ Hreg MemoryStorage with #Hrec
   ipersist voters
   imodintro
   iapply HΦ

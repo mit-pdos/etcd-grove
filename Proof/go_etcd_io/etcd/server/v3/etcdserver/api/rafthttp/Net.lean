@@ -21,7 +21,7 @@ image certificate `N.img i D` at the snapshot's index `i` (`netSnapBundle`). The
 transport saves the stream before it calls `Process` (`SaveDBFrom`: a temporary file, synced,
 renamed to `snapDBPath ss i` unless a file of that index is there, which it keeps). A member's
 **snapshot directory** is an invariant the receiver allocates and gives `Transport.Start`
-(`snapDirInv ss γd img Rm`, `snapDir_alloc`): the `.snap.db` files present (`M`, each with its
+(`snapDirInv ss γd img Rm`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
 `fileHolds` and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
 `snapSaved γd i`), each saved index absent from `M` with the receiver's removal fact `Rm i`. The
 transport only adds to it (a file it created, at an index absent from `M`); the receiver removes
@@ -39,6 +39,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Proof.go_etcd_io.raft.v3.PbMessage
+public import Proof.go_etcd_io.raft.v3.MsgOut
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.ThreadPool
@@ -73,6 +74,10 @@ structure NetPayload (GF : BundledGFunctors) [GooseExts] where
   once : MsgSt → Prop
   P_pers : ∀ st, Persistent (P st)
   dup : ∀ st, ¬ once st → ⊢ |==> O st
+  /-- (raft-entsize §4, 2026-11-10) whether the messages are of bounded size (`msgSizeOk`): the
+  size facts of the bundle, the frames and the received copy hold when `Sz` does (the server's: its
+  cluster states a bound on proposed data, `γ.cl.maxData ≠ none`), and are vacuous otherwise -/
+  Sz : Prop
   /-- (D22 S-i) what a snapshot message's database image `D` of index `i` carries (persistent):
   the sender's certificate, kept with the saved file in the receiver's directory -/
   img : w64 → backend.Data → IProp GF
@@ -115,19 +120,42 @@ goroutines marshal it after `Send` returns), its persistent part and its one-sho
 not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D38a) With no
 responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`).
 (2026-10-24, rafthttp stage 6d) Of the sender `lid`: a `MsgApp` of raft's shape (`AppShape`) from
-`lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages). -/
+`lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages).
+(raft-entsize §4, 2026-11-10) Frozen at a content of `st` (`msgRoC`; its snapshot's conf state
+without unknown fields), of bounded size when the payload says so (`N.Sz`): the content the
+transport encodes, which the receiver decodes back (`proto.Unmarshal`'s D2). (2026-11-10, the
+coordinator's decision) Of bounded size whatever the payload (until then only when `N.Sz`): the
+transport's encoders need a bound, and the server's cluster bounds proposed data. -/
 def netBundle (N : NetPayload GF) (lid : w64) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (□ N.P st) ∗ N.O st ∗
     ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝ ∗
+    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝)
+
+/-- **A message's content for the encoders** (persistent; raft-entsize §4, 2026-11-10): the
+message `ml` frozen at a content of `st` without unknown fields in its snapshot's conf state, below
+`2^47` bytes (what `swMsgBound` says, `msgSzC_swMsgBound`), and of bounded size when `Sz`
+(`msgSizeOk`): one content for both, so that the bytes the encoders write are the encoding of a
+content of bounded size, which the receiver decodes back (`proto.Unmarshal`'s D2). -/
+def msgSzC (Sz : Prop) (ml : Loc) (st : MsgSt) : IProp GF :=
+  iprop(∃ c : MsgC, msgRoC ml c ∗
+    ⌜c.model = st ∧ c.csUfNil ∧ msgSize c < 2 ^ 47 ∧ (Sz → msgSizeOk c)⌝)
+
+instance msgSzC_persistent (Sz : Prop) (ml : Loc) (st : MsgSt) :
+    Persistent (msgSzC (GF := GF) Sz ml st) := by
+  unfold msgSzC; infer_instance
 
 /-- **A snapshot message handed to `SendSnapshot`** (D22 S-i): the raft message `ml` of the merged
 message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only for good, as
 `netBundle`'s), and the right to read the merged message's reader `rc` (`readerStreams`), whose
 complete streams are bbolt images of some `D` (`boltImage`) with the payload's certificate
-`N.img i D` (for the server, `srvImage`: the committed state through `i`). -/
+`N.img i D` (for the server, `srvImage`: the committed state through `i`). (raft-entsize [r3c],
+2026-11-10) Frozen at a content below `2^47` bytes (`msgSzC False`, `swMsgBound`'s meaning): what
+the envelope's encoder needs (`createSnapBody`), derived by the sender
+(`createMergedSnapshotMessage`; until then the deleted axiom `swMsgBound_phys`'s). -/
 def netSnapBundle (N : NetPayload GF) (ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
+    msgSzC False ml st ∗
     (□ N.P st) ∗ N.O st ∗ ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = []⌝ ∗
     backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
     □ N.img sn.Metadata'.Index' D)
@@ -148,10 +176,12 @@ instance snapSaved_persistent (γd : GName) (i : w64) :
 /-- **The snapshot directory of the snapshotter `ss`** (see the file header): the files present
 `M`, each holding its data with its certificate (`img`), and the indices ever saved `E`
 (`snapSaved`), which include `M`'s; a saved index not in `M` has the receiver's removal fact
-`Rm i`. -/
+`Rm i`; (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81) `γd` is the ghost map
+the directory's right named (`snap.snapDirIs`, from `bootOk`'s `snap.snapDirOwn`, `snapDir_init`),
+so that every invariant the snapshot axioms take over these paths is this one. -/
 def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) : IProp GF :=
-  iprop(∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
+  iprop(snap.snapDirIs (snap.snapDBPath ss) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
     ghostMapAuth γd 1 E ∗ ⌜∀ i, M.lookup i ≠ none → E.lookup i ≠ none⌝ ∗
     ([∗map] i ↦ D ∈ M, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D) ∗
     □ (∀ i, ⌜E.lookup i ≠ none⌝ → snapSaved γd i) ∗
@@ -182,10 +212,16 @@ instance netSnapRecv_persistent (γd : GName) (st : MsgSt) :
 /-- **A message received by member `id`** at `ml`: a fresh copy, owned with its entries' slots
 and capacity, of a message `st` sent into the network to `id`, with its bundle; (D22 S-i) a
 `MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). (2026-10-22, D38a)
-Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`). -/
+Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`).
+(raft-entsize §4, 2026-11-10) The copy is owned at a content `c` (`msgPtsCC`) of the message's wire
+fields with no responses and no unknown fields in its snapshot's conf state (until then
+`msgPtsC ml 1 1 true st'` with `wireEq st st'` and no responses, the same by `msgPtsC_iff_CC`), of
+bounded size when the payload says so (`N.Sz`), but for a `MsgSnap`: what `stepIn_intro` takes. -/
 def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :=
-  iprop(∃ st st' : MsgSt, msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st' ∗
-    ⌜wireEq st st' ∧ st.msg.To' = id ∧ st'.resps = []⌝ ∗ (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
+  iprop(∃ (st : MsgSt) (c : MsgC), msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
+    ⌜c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧ c.csUfNil ∧ st.msg.To' = id ∧
+      (γn.N.Sz → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝ ∗
+    (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
 
 /-- **The receiver's `Raft`** (`rafthttp.Raft`, persistent): `Process` of a received message with
 a context the node API takes, given one of the receiver's resources `R` (back after the call),
@@ -349,6 +385,95 @@ theorem raftLoanL_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E)
 
 end pool
 
+
+/-! ### A frozen message's content form is its read-only content (raft-entsize §4) -/
+
+section contentRo
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+theorem bytesCC_bytesC (ds : GoSlice) (o : Option (List w8)) :
+    bytesCC (GF := GF) ds DFrac.discard o ⊢ bytesC ds o := by
+  rcases o with _ | bs
+  · simp only [bytesCC, bytesC]; iintro %H; ipureintro; exact H
+  · simp only [bytesCC, bytesC]; iintro ⟨%H, #Hs⟩; iframe Hs; ipureintro; exact H
+
+theorem csPtsCC_csRoC (p : Loc) (c : CSC) (al : Bool) :
+    csPtsCC (GF := GF) p DFrac.discard c al ⊢ csRoC p c := by
+  unfold csPtsCC csRoC
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, -, #Hpb⟩
+  iexists sv, sl, so, sn, pa
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  ipureintro; exact Hnn
+
+theorem csOptCC_csOptC (p : Loc) (o : Option CSC) :
+    csOptCC (GF := GF) p DFrac.discard o ⊢ csOptC p o := by
+  rcases o with _ | c
+  · simp only [csOptCC, csOptC]; iintro %H; ipureintro; exact H
+  · simp only [csOptCC, csOptC]
+    iintro (H | H)
+    · iapply csPtsCC_csRoC $$ H
+    · iapply csPtsCC_csRoC $$ H
+
+theorem smPtsCC_metaRoC (p : Loc) (m : SnapMetaC) :
+    smPtsCC (GF := GF) p DFrac.discard m ⊢ metaRoC p m := by
+  unfold smPtsCC metaRoC
+  iintro ⟨%pc, %pi, %pt, %Hnn, #HC, Hc, #HI, #cI, #HT, #cT, #Hpb⟩
+  ihave #Hc := csOptCC_csOptC _ _ $$ Hc
+  iexists pc, pi, pt
+  iframe HC Hc HI cI HT cT Hpb
+  ipureintro; exact Hnn
+
+theorem smOptCC_metaOptC (p : Loc) (o : Option SnapMetaC) :
+    smOptCC (GF := GF) p DFrac.discard o ⊢ metaOptC p o := by
+  rcases o with _ | m
+  · simp only [smOptCC, metaOptC]; iintro %H; ipureintro; exact H
+  · simp only [smOptCC, metaOptC]; iapply smPtsCC_metaRoC
+
+theorem ownSnapCC_snapRoC (p : Loc) (s : SnapC) :
+    ownSnapCC (GF := GF) p DFrac.discard s ⊢ snapRoC p s := by
+  unfold ownSnapCC snapRoC
+  iintro ⟨%ds, %pm, %Hnn, #HD, Hd, #HM, Hm, #Hpb⟩
+  ihave #Hd := bytesCC_bytesC _ _ $$ Hd
+  ihave #Hm := smOptCC_metaOptC _ _ $$ Hm
+  iexists ds, pm
+  iframe HD Hd HM Hm Hpb
+  ipureintro; exact Hnn
+
+theorem snapOptCC_snapOptC (p : Loc) (o : Option SnapC) :
+    snapOptCC (GF := GF) p DFrac.discard o ⊢ snapOptC p o := by
+  rcases o with _ | s
+  · simp only [snapOptCC, snapOptC]; iintro %H; ipureintro; exact H
+  · simp only [snapOptCC, snapOptC]; iapply ownSnapCC_snapRoC
+
+/-- **A read-only message at its content, without responses, is frozen at that content**
+(`msgRoC`): what a handed-out message (`msgOut`) gives the network's bundle. -/
+theorem msgPtsCC_msgRoC (l : Loc) (c : MsgC) (hr : c.resps = []) :
+    msgPtsCC (GF := GF) l DFrac.discard DFrac.discard false c ⊢ msgRoC l c := by
+  cases c with
+  | mk f rs =>
+  simp only [MsgC.resps] at hr
+  subst hr
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, #HTy, #cTy, #HTo, #cTo, #HFr, #cFr, #HTe, #cTe, #HLt, #cLt, #HIx, #cIx, #HCo, #cCo,
+    #HVo, #cVo, #HRj, #cRj, #HRh, #cRh, #HEs, #Hes, #Hents, -, #HSn, Hsn, #HCx, #Hcx, #HRs, #Hrs,
+    #Hpb⟩
+  ihave #Hsn := snapOptCC_snapOptC _ _ $$ Hsn
+  simp only [msgRoC, respsRoC, MsgC.f, MsgC.resps, List.map_nil] at *
+  isplitl
+  · unfold msgFRoC
+    iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+    iframe HTy cTy HTo cTo HFr cFr HTe cTe HLt cLt HIx cIx HCo cCo HVo cVo HRj cRj HRh cRh
+    iframe HEs Hes Hents HSn Hsn HCx Hcx HRs Hrs Hpb
+    ipureintro; exact Hnn
+  iempintro
+
+end contentRo
+
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -376,14 +501,20 @@ theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GM
   iexact Hs
 
 /-- **A member's snapshot directory, at names allocated before** (2026-10-26, D22 J2, R-loc: the
-names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory map's
-authority, empty, the directory's invariant (a fresh data directory: no `.snap.db` file). -/
-theorem snapDir_init (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
-    (Rm : w64 → IProp GF) (E : CoPset) :
-    ⊢ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗ inv snapDirN (snapDirInv ss γd img Rm) := by
-  iintro Ha
+names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory's right
+(`snap.snapDirOwn` at the data directory `dd`'s paths, which `ss`'s are: `bootOk`; restart S6a, M1)
+and the directory map's authority, empty, the directory's invariant (a fresh data directory: no
+`.snap.db` file), its map named by the right. -/
+theorem snapDir_init (ss : Loc) (dd : GoString) (hss : snap.snapDBPath ss = snap.snapDBPathOf dd)
+    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (E : CoPset) :
+    ⊢ snap.snapDirOwn (snap.snapDBPathOf dd) -∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗
+      inv snapDirN (snapDirInv ss γd img Rm) := by
+  iintro Ho Ha
+  imod (snap.snapDirOwn_claim (snap.snapDBPathOf dd) γd) $$ Ho with #Hdi
   imod (inv_alloc snapDirN E (snapDirInv ss γd img Rm)) $$ [Ha] with #Hi
   · iunfold snapDirInv
+    rw [hss]
+    iframe Hdi
     iexists (∅ : GMap w64 backend.Data), (∅ : GMap w64 Unit)
     iframe Ha
     isplitr
@@ -399,16 +530,12 @@ theorem snapDir_init (ss : Loc) (γd : GName) (img : w64 → backend.Data → IP
 -- (2026-10-27) `snapLocal_of_saved` (`snapSaved` as raft's `snapLocal`, by `RaftNames.reSnapLoc`)
 -- deleted with the server's port onto raft's node API: the server's clusters send no snapshot.
 
-/-- **A member's snapshot directory, allocated empty** (D22 S-i): what the receiver gives
-`Transport.Start` for its snapshotter `ss`, at the payload's certificate and its removal fact
-`Rm` (a fresh data directory: its snapshot directory has no `.snap.db` file). -/
-theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF)
-    (E : CoPset) : ⊢ |={E}=> ∃ γd : GName, inv snapDirN (snapDirInv ss γd img Rm) := by
-  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γd, Ha⟩
-  imod (snapDir_init ss γd img Rm E) $$ Ha with #Hi
-  imodintro
-  iexists γd
-  iexact Hi
+-- (restart S6a, M1, 2026-11-13: the axiom review's M1, approved by the user via etcd-grove-81)
+-- `snapDir_alloc` (an invariant for any `ss` from a fresh ghost map, no right to the directory)
+-- deleted, unused: a second invariant over one directory made `SaveDBFrom`'s kept-file branch give
+-- `snapSaved` of an index the second invariant did not know. The directory's right
+-- (`snap.snapDirOwn`, `bootOk`) is consumed by `snapDir_init`, and the invariant holds the record
+-- it makes (`snap.snapDirIs`).
 
 end lemmas
 

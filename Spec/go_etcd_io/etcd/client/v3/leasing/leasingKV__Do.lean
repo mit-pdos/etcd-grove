@@ -43,7 +43,7 @@ abbrev leasingKV.Do.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64) (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
       opFullAt opv o ∗ etcdReached lo ∗ leasingOpen γ q ∗ threadTok ∗
       ⌜(o.t = W64 2 → txnOpOf o ≠ none) ∧ (o.t ≠ W64 4 → OpShape opKeyMax opKeyMax opValMax o)⌝ ∗
       (⌜o.t = W64 4⌝ -∗ doTxnPre pfx opv) }}

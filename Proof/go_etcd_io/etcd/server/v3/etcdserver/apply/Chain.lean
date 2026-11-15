@@ -1506,6 +1506,49 @@ theorem bkRTOf_intro (E : AEnv GF) (B : mvcc.KBReal) :
   iframe Hrt
   ipureintro; exact Hok
 
+/-- **A write-back token of the tie's backend** (auth-schema-fix F1, 2026-11-12): a write-back
+token (`bkWT`) of the backend `d` that the environment's tie names (every backend the tie allows is
+`d`). What an admin request's batch transactions spend in the mode `on`: the auth store's
+`authBatchTx.Unlock` is `tx.Unlock(); tx.Commit()` (server/storage/schema/auth.go:112), each a
+write-back of the backend. -/
+def bkWTFor (E : AEnv GF) : IProp GF :=
+  iprop(∃ d : mvcc.KBReal, ⌜∀ B, (E.BkTie B ⊢ iprop(⌜B = d⌝))⌝ ∗ bkWT d)
+
+omit package_sem in
+open Iris.ProofMode in
+/-- At a tie naming one backend `d` (the server's, `srvBkTie d`), `bkWTFor` is `d`'s token. -/
+theorem bkWTFor_tie (E : AEnv GF) (d : mvcc.KBReal) (hd : E.BkTie = fun B => iprop(⌜B = d⌝)) :
+    bkWTFor E ⊢ bkWT d := by
+  iintro H
+  iunfold bkWTFor at H
+  icases H with ⟨%d', %h, Hw⟩
+  have h' : d = d' := by
+    apply Iris.pure_soundness (PROP := IProp GF)
+    refine (Iris.BI.pure_intro (rfl : d = d)).trans ?_
+    have := h d
+    rw [hd] at this
+    exact this
+  subst h'
+  iexact Hw
+
+omit package_sem in
+open Iris.ProofMode in
+/-- The token of the tie's backend `d`, at a tie naming `d`. -/
+theorem bkWTFor_intro (E : AEnv GF) (d : mvcc.KBReal) (hd : E.BkTie = fun B => iprop(⌜B = d⌝)) :
+    bkWT d ⊢ bkWTFor E := by
+  iintro Hw
+  iunfold bkWTFor
+  iexists d
+  iframe Hw
+  ipureintro
+  intro B
+  rw [hd]
+
+/-- **The write-back tokens an admin request is given** (auth-schema-fix F1, 2026-11-12): three
+`bkWTFor`, the most an on-mode admin request spends (`AuthEnable`'s: two for its batch's
+`Unlock`, one for its `ForceCommit`); each request uses what it needs and drops the rest. -/
+def adminWTs (E : AEnv GF) : IProp GF := iprop(bkWTFor E ∗ bkWTFor E ∗ bkWTFor E)
+
 /-- **The common precondition of a writing method** (`info`: the principal, A3; strict M1,
 2026-11-05: the draft's `mPreA`): the apply thread's resources without the backend's share, the
 chain's, and the backend's share with the critical-section contract at its lock's invariant, at
@@ -2049,12 +2092,12 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 
 /-! ## The layers' structs -/
 
-/-- **The backend's options** `opts` in the environment `E` (strict M1, 2026-11-05): a logger, the
+/-- **The backend's options** `opts` in the environment `E` (strict M1, 2026-11-05): a zap logger, the
 KV (a store handle of mvcc's API, `E.kv`, with the server's builders `envAus E`), and the
 components with their contracts at the batch lock `E.Pk B` of the current backend (tied by
 `E.BkTie`) and the hook `E.f`. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
-  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.γ ∗ ⌜opts.KV' = E.kv⌝ ∗ envAus E ∗
+  iprop(zapLoggerOk opts.Logger' ∗ isApplyKV opts.KV' E.γ ∗ ⌜opts.KV' = E.kv⌝ ∗ envAus E ∗
     isApplyLessor opts.Lessor' E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
     isAuthStore opts.AuthStore' E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
     isAlarmStore opts.AlarmStore' E.Pk E.f E.BkTie E.RW ∗

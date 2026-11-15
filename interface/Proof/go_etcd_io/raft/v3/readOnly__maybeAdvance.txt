@@ -6,11 +6,11 @@ theorem readOnly.maybeAdvance.wp_proof [package_sem : Assumptions] (wp_JointConf
     quorum.JointConfig.CommittedIndex.spec) (wp_readOnly_AckedIndex : readOnly.AckedIndex.spec) :
     readOnly.maybeAdvance.spec
   -- `Perennial.EtcdGrove.readOnly.maybeAdvance.spec`, unfolded:
-  ∀ (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64),
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hown" ∷ ownReadOnly ro r ∗
+            "Hown" ∷ ownReadOnly sz ro r ∗
               "%Hc" ∷ ⌜c.arr = [v0, v1]⌝ ∗
                 "Hv0" ∷ ownIdsetQ v0 (DFrac.own 1) s0 ∗
                   "Hv1" ∷ ownIdsetQ v1 (DFrac.own 1) s1 ∗
@@ -23,12 +23,12 @@ theorem readOnly.maybeAdvance.wp_proof [package_sem : Assumptions] (wp_JointConf
           (▷
               ∀ sl N,
                 (⌜JCommittedIdx s0 s1 (fun v => (r.acks !! v).getD (W64 0)) N⌝ ∗
-                    ownReadOnly ro (readonlyAdvance r N).fst ∗
+                    ownReadOnly sz ro (readonlyAdvance r N).fst ∗
                       ownIdsetQ v0 (DFrac.own 1) s0 ∗
                         ownIdsetQ v1 (DFrac.own 1) s1 ∗
                           ∃ ptrs,
                             ownSlice sl ptrs DFrac.discard ∗
-                              [∗list] p;q ∈ ptrs;(readonlyAdvance r N).snd, ownReadreq p q) -∗
+                              [∗list] p;q ∈ ptrs;(readonlyAdvance r N).snd, ownReadreq sz p q) -∗
                   Φ (intoVal sl)) -∗
             WP
               ((intoVal

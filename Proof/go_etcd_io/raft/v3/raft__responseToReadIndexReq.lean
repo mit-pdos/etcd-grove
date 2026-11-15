@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasMiscR
 public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.go_etcd_io.raft.v3.LemmasStepR
 
 @[expose] public section
 
@@ -102,8 +103,9 @@ theorem raft.responseToReadIndexReq.wp_proof
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.responseToReadIndexReq.spec (GF := GF) (hG := hG) := by
-  intro c r id s req m idx e es sn ctx rs
-  wp_start as ⟨Hphys, #Hreq⟩
+  intro c r id s req m idx e es sn ctx rs Hmty
+  wp_start as ⟨Hphys, #HreqZ⟩
+  ihave #Hreq := msgOwnZ_msgOwn _ _ _ _ $$ HreqZ
   wp_auto
   wp_apply wp_Message_GetFrom.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
     $$ [$Hreq] with -
@@ -137,8 +139,13 @@ theorem raft.responseToReadIndexReq.wp_proof
       wp_auto
       imod cellRO_alloc $$ «$v2» with #cIx
       iapply wp_fupd
-      wp_apply wp_Message_GetEntries.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
-        $$ [$Hreq] as %esl %els ⟨#Hesl, #Hents', -, -⟩
+      -- (out_size C3) the request's entries at their contents (`msgOwnZ`), its `Entries` field read
+      -- through the getter's body, so that the response shares them with their sizes
+      iunfold msgOwnZ at HreqZ
+      icases HreqZ with ⟨%cq, #Hcq, %Hcq⟩
+      icases msgPtsCC_acc_entries req _ _ _ cq $$ Hcq with
+        ⟨%esl, %els, %Hnn, #HEs, #Hesl, #Hents', -, -⟩
+      wp_apply wp_Message_GetEntries_field req _ esl Hnn $$ [$HEs] as -
       irename «$r0» => Hresp
       generalize «$r0_ptr» = lresp at *
       simp only
@@ -147,20 +154,27 @@ theorem raft.responseToReadIndexReq.wp_proof
       imod ownSlice_persist $$ Hnilb with #Hnilb
       ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
       · iapply ownSlice_nil
-      imod msgOwn_of_struct lresp
+      have Hents_eq : cq.f.entries.map EntryC.model = e :: es := congrArg MsgSt.ents Hcq.1
+      have Hcty : cq.model.msg.Type' ≠ MsgSnap := by rw [Hcq.1]; exact Hmty
+      imod msgOwnZ_of_structC s.gh.sn.sz lresp
         { state' := zeroValDef, Type' := pty, To' := qfr, From' := null, Term' := null,
           LogTerm' := null, Index' := «$v2_ptr», Entries' := esl, Commit' := null, Vote' := null,
           Snapshot' := null, Reject' := null, RejectHint' := null, Context' := slice.nil,
-          Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 } els ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ ⊤ rfl
+          Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 } els cq.f.entries
+        (readIndexRespMsg m idx) [] ⊤ rfl rfl
+        (fun hs _ => by
+          obtain ⟨-, h2, h3, h4⟩ := Hcq.2.2 hs Hcty
+          exact ⟨by simp, h3, h4⟩)
         $$ [Hresp Hnilr] with Hresp
       · simp only [readIndexRespMsg]
         iframe Hresp Hesl Hents' Hnilb Hnilr cTyR cFr cIx
-        simp only [snapOpt]
-        repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
-        ipureintro; trivial
+        repeat (first
+          | (isplitr; · (iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩))
+          | (iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩))
       imodintro
       iapply HΦ
-      rw [if_neg (show ¬(m.From' = W64 0 ∨ m.From' = id) by rintro (h | h) <;> contradiction)]
+      rw [if_neg (show ¬(m.From' = W64 0 ∨ m.From' = id) by rintro (h | h) <;> contradiction),
+        ← Hents_eq]
       iframe Hphys Hresp
 
 end proof

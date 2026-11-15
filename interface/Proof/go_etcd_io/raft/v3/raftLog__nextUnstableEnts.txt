@@ -9,7 +9,7 @@ theorem raftLog.nextUnstableEnts.wp_proof [package_sem : Assumptions] (wp_unstab
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls -∗
-          (▷ ∀ s, ownRaftLog l ls ∗ entsRO s (nextUnstable ls) -∗ Φ (intoVal s)) -∗
+          (▷ ∀ s, ownRaftLog l ls ∗ entsROz ls.sn.sz s (nextUnstable ls) -∗ Φ (intoVal s)) -∗
             WP
               ((intoVal
                   (methods raftLog.ty.PointerType

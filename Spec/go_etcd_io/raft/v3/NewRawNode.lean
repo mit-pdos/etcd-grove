@@ -104,6 +104,8 @@ abbrev NewRawNode.spec : Prop :=
   cv.ReadOnlyOption' = W64 0 →
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  -- (out_size C3) in a sized node, `MaxSizePerMsg` at most `entsCutMax` (`newRaft`'s premise)
+  (sn.sz = true → uint.nat cv.MaxSizePerMsg' ≤ entsCutMax) →
   cv.AsyncStorageWrites' = false →
   LogIndicesOk σ.prev σ.ents → σ.pend = [] →
   uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →

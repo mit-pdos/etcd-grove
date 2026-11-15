@@ -7,7 +7,9 @@ module
 public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadWhy
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -38,7 +40,13 @@ with auth off). A success gives:
 - the user bound to the context (`infoBoundM`, `True` off);
 - unless serializable, that state is at the read index's floor (`authFloorAt`).
 
-An error leaves `resp` unconstrained, as Go returns it.
+An error leaves `resp` unconstrained, as Go returns it, and says why if the auth checks refused it
+(`txnWhyOut`; auth-guard-completeness G4, 2026-11-14): with auth on, the request side's reasons, one
+of the transaction's range checks refusing the auth info the request side gave (`permWhy`, at states
+no older than `n`), or `doSerialize`'s revision re-check (`oldRevWhy`), or the error is the read
+index's or the read's own; with auth off or in the mode `any` the conjunct is `True` (`txnWhyOut_off`).
+Margin: the read's own errors include a done context's `%w`-wrapped error (`mvcc.ctxErrorf`), which
+Perennial's errorf model leaves opaque, so an auth error variable is not told apart from it here.
 
 *Writing*: the proposal path. The caller's permit (`txnPermitM`) gives the update its step and,
 with auth on, the transaction's shape checked against the permission cache and the update's
@@ -77,7 +85,7 @@ abbrev EtcdServer.Txn.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
+      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
       ⌜txn.txnReadonly t = true → txn.txnGetsOk t ∧ E.authMode ≠ .any⌝ ∗
       ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ srvApi.kvLogLb E.γs F ∗
@@ -95,7 +103,8 @@ abbrev EtcdServer.Txn.spec : Prop :=
                 txnClassFrom E.authMode m info t ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
                 (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m)) ∗
               txnReadOkM E.authOn E γr c F t Qr resp) ∨
-           (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))
+           (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+              txnWhyOut s E.authMode n (GoInterface.ok ctx) t err)))
       else
         iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp ∗
             □ (⌜E.authOn = true⌝ → ∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (L : List EntryModel),

@@ -204,7 +204,7 @@ theorem isMessage_snap_recontent (γ : RaftNames) (E : CoPset) (m : Msg) (c ai a
   iintro #Hinv #Hm #Hw #HA
   iunfold isMessage at Hm
   rw [Hty]
-  icases Hm with ⟨#Hl, -, ⟨%bL, %l, %fp, #Hp, %Hlt, #Hpf, -, -⟩, %Hnz, %Hds⟩
+  icases Hm with ⟨#Hl, -, ⟨%bL, %l, %fp, #Hp, %Hlt, #Hpf, -, -⟩, %Hnz, %Hds, #Hsd⟩
   iunfold commitWit at Hw
   icases Hw with ⟨%F, %HwF, #HrF, #HcF, #HcmF⟩
   -- the witness lowered to `ai`
@@ -249,7 +249,8 @@ theorem isMessage_snap_recontent (γ : RaftNames) (E : CoPset) (m : Msg) (c ai a
     isplitr; · ipureintro; exact HLt
     rw [← Htk]; iexact HcmFa
   isplitr; · ipureintro; exact Hnz
-  ipureintro; exact Hds
+  isplitr; · ipureintro; exact Hds
+  iexact Hsd
 
 end ghost
 

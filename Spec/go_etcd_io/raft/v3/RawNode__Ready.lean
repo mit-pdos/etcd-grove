@@ -120,15 +120,23 @@ abbrev RawNode.Ready.spec : Prop :=
       -- (2026-11-01, durability stage II (k)) at role leader (after the `Ready`'s soft state) the
       -- messages may be sent first (the node API's `readyLeaderMsgs`)
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts, outright (`snapToOk`: not to
+      -- the node, and in the dynamic mode to an id of a committed configuration; they read only the
+      -- committed log and the sender's configuration)
+      "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
       -- (2026-11-01, durability stage I fix G2) the soft state the node records
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-      "#Hents" ∷ entsRO rd.Entries' es ∗
+      -- (out_size C3, 2026-11-12; until then `entsRO`) at contents of bounded size in a cluster
+      -- bounding proposed data (`entsROz`)
+      "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages, a response at half
-      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      -- (out_size C3, 2026-11-12; until then `msgOwn` and each one's `snapUf`) at a content
+      -- (`msgOwnZ`): pinned (`sentOk`) and, in a cluster bounding proposed data, of bounded size
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
       -- each message's read credit (2026-10-13)
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗

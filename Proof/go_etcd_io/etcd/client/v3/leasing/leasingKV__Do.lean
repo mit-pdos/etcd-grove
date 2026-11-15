@@ -67,7 +67,7 @@ theorem leasingKV.Do.wp_proof
     (hTOR : EtcdGrove.TxnResponse.OpResponse.spec (GF := GF) (hG := hG)) :
     leasingKV.Do.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo q
-  wp_start as ⟨#Hlkv, #Hctx, #Hcc, #Hop, #Hlo, Hopen, Htok, %Hpre, Htxn⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, Hopen, Htok, %Hpre, Htxn⟩
   obtain ⟨Hput, Hshp⟩ := Hpre
   wp_auto
   ipersist lkv
@@ -79,7 +79,7 @@ theorem leasingKV.Do.wp_proof
   by_cases h1 : o.t = W64 1
   · simp only [decide_eq_true h1]
     wp_auto
-    wp_apply hget lkv γ pfx ctx cs opv o lo q $$ [$Hpkg $Hlkv $Hctx $Hop $Hlo $Hopen $Htok]
+    wp_apply hget lkv γ pfx ctx cs opv o lo q $$ [$Hpkg $Hlkv $Hctx $HctxC $Hop $Hlo $Hopen $Htok]
       as %ret %err ⟨Hopen, Htok, Hout⟩
     · ipureintro; exact ⟨h1, Hshp (fun h => absurd (h1.symm.trans h) (by decide))⟩
     try wp_auto
@@ -100,7 +100,7 @@ theorem leasingKV.Do.wp_proof
     · iframe #; iframe
     imodintro
     wp_auto
-    wp_apply hput lkv γ pfx ctx cs opv o top lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
+    wp_apply hput lkv γ pfx ctx cs opv o top lo $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
       as %pr %err ⟨Hrd, Hout⟩
     · ipureintro; exact ⟨h2, htop, Hshp (fun h => absurd (h2.symm.trans h) (by decide))⟩
     try wp_auto
@@ -130,7 +130,7 @@ theorem leasingKV.Do.wp_proof
     · iframe #; iframe
     imodintro
     wp_auto
-    wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
+    wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
       as %dr %err ⟨Hrd, Hout⟩
     · ipureintro; exact ⟨h3, Hshp (fun h => absurd (h3.symm.trans h) (by decide))⟩
     try wp_auto
@@ -154,7 +154,7 @@ theorem leasingKV.Do.wp_proof
     try wp_auto
     wp_apply hOpTxn $$ [$Hcv $op] as op
     try wp_auto
-    wp_apply hTxn lkv γ pfx ctx cs $$ [$Hpkg $Hlkv $Hctx] as %txn Ht
+    wp_apply hTxn lkv γ pfx ctx cs $$ [$Hpkg $Hlkv $Hctx $HctxC] as %txn Ht
     try wp_auto
     wp_apply hIf txn lkv γ pfx ctx cs LTxnBuild.empty opv.cmps' ms $$ [$Hpkg $Ht $Hcmps] as Ht
     · ipureintro; exact ⟨rfl, rfl, rfl⟩

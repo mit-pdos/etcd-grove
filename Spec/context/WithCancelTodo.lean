@@ -27,14 +27,19 @@ variable [package_sem : context.Assumptions]
 /-- `context.WithCancel(context.TODO())`: a cancellable context (`isContext`, no deadline, done
 only when cancelled) and its `cancel` function, callable from anywhere. What Go's `WithCancel`
 does for a parent that is never done (`propagateCancel` returns at once: `parent.Done()` is
-`nil`), as `context.WithCancelValCtx` says of etcd's `valCtx`. -/
+`nil`), as `context.WithCancelValCtx` says of etcd's `valCtx`. (premise-fixes-8, item 5) The new
+context answers every key that is not a `*int` as `TODO()` does (`ctxValueFrom`, what Perennial
+proves of `WithCancel(Background())`, `wp_WithCancel_Background_of`): Go's `ctx'` is a `*cancelCtx`
+whose `Context` field, `TODO()`, is never written, and whose `Value` at such a key is its parent's
+(`context.go`, `cancelCtx.Value` and `value`). -/
 abbrev context.WithCancelTodo.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(GoInterface.ok todoCtxVal)))
   {{ (ctx' : GoInterfaceOk) (γ' : context.ContextNames) (cancel : GoFunc),
       RET (PairV #(interface.ok ctx') #cancel);
       context.cancelSpec cancel γ' iprop(True) ∗
-      context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } }}
+      context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
+      _root_.Perennial.context.ctxValueFrom todoCtxVal ctx' }}
 
 end spec
 

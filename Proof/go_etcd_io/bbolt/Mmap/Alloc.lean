@@ -32,6 +32,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 /-- **`db.allocate(txid, count)`'s success** from the records `X` and writer side `w`: the
@@ -50,7 +52,7 @@ def dbAllocRes [GooseExts] (X Xr : WX) (w w' : WDb) (txid : w64) (count : Nat) (
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -328,9 +330,9 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iintro %sl2 ⟨Hsl2, -⟩
           wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
           · iframe
-            simp only [fmt.argsOk]
+            fmt_args_intro
             isplitl
-            · iapply fmtErrorOk_argOk $$ HeS
+            · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
             · itrivial
           try wp_auto
           iframe
@@ -572,9 +574,9 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             iintro %sl2 ⟨Hsl2, -⟩
             wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
             · iframe
-              simp only [fmt.argsOk]
+              fmt_args_intro
               isplitl
-              · iapply fmtErrorOk_argOk $$ HeOk
+              · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeOk
               · itrivial
             try wp_auto
             iapply HΦ
@@ -604,9 +606,9 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iintro %sl2 ⟨Hsl2, -⟩
           wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei ⟨-, #HiS, %Hty, %Hptr⟩
           · iframe
-            simp only [fmt.argsOk]
+            fmt_args_intro
             isplitl
-            · iapply fmtErrorOk_argOk $$ HeOk
+            · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeOk
             · itrivial
           try wp_auto
           iapply HΦ

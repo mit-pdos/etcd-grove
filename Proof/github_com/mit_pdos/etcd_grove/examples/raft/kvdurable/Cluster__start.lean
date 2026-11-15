@@ -145,7 +145,7 @@ theorem Cluster.start.wp_proof
   try wp_auto
   wp_apply (lc := 2) wp_fileOf γ vs dir c id $$ [$Hc]
   try wp_auto
-  wp_apply wp_newStorage bp $$ [$Hpkg] as %s0 ⟨%ms0, %ip0, %γs0, HmsF0, #Hsb0, #Himg0, Himage0,
+  wp_apply wp_newStorage bp $$ [$Hpkg] as %s0 ⟨%ms0, %ip0, %γs0, %Hsz0, HmsF0, #Hsb0, #Himg0, Himage0,
     #Hl0, #Hd00, Hend0, Hsn0, Hmeta0, Hfresh0⟩
   try wp_auto
   wp_bind (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Read)) _)
@@ -196,8 +196,8 @@ theorem Cluster.start.wp_proof
   · cases o' with
     | none =>
       simp only [kdFileVal, Option.isSome_none, Option.map_none]
-      imod kdStor_register s0 ms0 γs0 ⊤ (fun _ _ => CoPset.mem_full) $$ HstorInv HmsF0 with #Hrec0
-      imod memSnapNone_open γs0 $$ Hsn0 with #Hslb0
+      imod kdStor_register s0 ms0 γs0 ⊤ (fun _ _ => CoPset.mem_full) Hsz0 $$ HstorInv HmsF0 with #Hrec0
+      imod memSnapNone_open_empty γs0 $$ Hsn0 with #Hslb0
       try wp_auto
       isplitr
       · ipureintro; first | rfl | trivial
@@ -263,11 +263,9 @@ theorem Cluster.start.wp_proof
   icases Hrec' with ⟨#Hmsf, -⟩
   try wp_auto
   wp_apply wp_MSnapshot ms γs (kdJ γ.r.cluster γ.files) (some (uint.nat F.prev, kdFreshSnap F))
-    (uint.nat F.prev) false _ $$ [$Hraft Hfresh $Hcmp $ErrSnapUnavail]
+    (uint.nat F.prev) none _ $$ [$Hraft Hfresh $Hcmp $ErrSnapUnavail]
     as %snap %err ⟨-, %Herr, %sv, Hsn, %Hsv, Hfr⟩
-  · isplitl [Hfresh]
-    · rw [memStorAt_some]; iframe Hl Hfresh
-    · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+  · rw [memStorAt_some]; iframe Hl Hfresh
   icases Hfr with ⟨%Hsveq, Hfresh⟩
   subst Hsveq
   obtain ⟨HWf, Hp61, Hlen, Hidx, Hpsi, Hsil, Hpc, Hcl, Hterm⟩ := _root_.id HFok
@@ -431,7 +429,7 @@ theorem Cluster.start.wp_proof
   ihave %Htr := kdCluster_untraced γ vs $$ Hcl
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
-    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr HFok He0
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr Hmd HFok He0
     (by word) Hsc
     $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
   · iintro %K Hm Hi; iframe Hm Hi
@@ -448,7 +446,7 @@ theorem Cluster.start.wp_proof
       (kdContents (some F)) (kdInitCS (raft_kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
       (fun S' => iprop(kdWriter γ id S fo ∗ ⌜S' = S⌝))
       (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K)))
-      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS
+      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h)
       (by rw [HA]; simp only [kdContents_some_b, kdContents_some_commit]
           rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
           · left; rw [h1]; rfl
@@ -509,7 +507,7 @@ theorem Cluster.start.wp_proof
     $$ [$Hpkg $Hcci $Hcl $Hstats $Hseqs $HfInv $HisNode' $Hdrv $Hncfg $Hrun $Hrec $HmsInv $Hmeta
       $Himg $Himage $Hcert $Hwr $Hcmp $Hfz $Hfzt $Hslb $HK $HA $Hcso $Hap $Hcap $Hf]
     as %r ⟨Hr, Hstop⟩
-  · ipureintro; exact ⟨Hcfgm, HKv, HAok⟩
+  · ipureintro; exact ⟨Hcfgm, HKv, HAok, Hmd⟩
   try wp_auto
   iapply HΦ
   iframe Hr Hstop

@@ -11,7 +11,9 @@ maps and returns a boolean (`isFeatureGate`, `features/Defs.lean`); the gate is 
 anything else, and nothing in the program sets a feature, so the contract holds forever. For the
 same reason a feature answers its default for good: `CompactHashCheck`'s is `false`
 (`DefaultEtcdServerFeatureGates`, `{Default: false, PreRelease: Alpha}`; `featureIs`, audit B4a,
-2026-10-18, for `EtcdServer.monitorCompactHash`).
+2026-10-18, for `EtcdServer.monitorCompactHash`), and `LeaseCheckpoint`'s is `false`
+(`{Default: false, PreRelease: Alpha}`, `etcd_features.go:104`; stage B3, 2026-11-12, for
+`NewServer`, which then installs no lease checkpointer).
 
 The postcondition (D19a's rule for a closed theorem's hypotheses and the trust boundary) holds
 only fresh resources: a non-nil pointer and a persistent contract about its methods.
@@ -38,7 +40,7 @@ variable [sem : go.Semantics]
 
 /-- **`features.NewDefaultServerFeatureGate(name, lg)`** returns a non-nil `*featureGate` (as a
 `featuregate.FeatureGate`) meeting the feature gate's contract on the server's features, with
-`CompactHashCheck` off. -/
+`CompactHashCheck` and `LeaseCheckpoint` off. -/
 abbrev features.NewDefaultServerFeatureGate.spec : Prop :=
   ∀ (name : GoString) (lg : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features }}
@@ -50,7 +52,12 @@ abbrev features.NewDefaultServerFeatureGate.spec : Prop :=
       -- (audit B4a, 2026-10-18) `CompactHashCheck` at its default, off
       featureIs (interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p)
-        go!"CompactHashCheck" false }}
+        go!"CompactHashCheck" false ∗
+      -- (stage B3, 2026-11-12) `LeaseCheckpoint` at its default, off: `NewServer` installs no
+      -- checkpointer (`server.go:393-405`)
+      featureIs (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p)
+        go!"LeaseCheckpoint" false }}
 
 end spec
 

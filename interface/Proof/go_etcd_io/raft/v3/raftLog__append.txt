@@ -17,13 +17,13 @@ theorem raftLog.append.wp_proof [package_sem : Assumptions] (wp_raftLog_lastInde
         ∀ Φ,
           (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
               "Hlog" ∷ ownRaftLog l ls ∗
-                "Hes" ∷ entsPts es dq ents ∗
+                "Hes" ∷ entsPtsZ ls.sn.sz es dq ents ∗
                   "Hadopt" ∷
                     if logAdopts ls ents = true then ⌜dq = DFrac.discard⌝ ∗ ownSliceCap Loc es (DFrac.own 1) else True) -∗
             (▷
                 ∀ li,
                   ownRaftLog l (logTruncateAppend ls ents) ∗
-                      (if logAdopts ls ents = true then True else entsPts es dq ents) ∗
+                      (if logAdopts ls ents = true then True else entsPtsZ ls.sn.sz es dq ents) ∗
                         ⌜(logTruncateAppend ls ents).sents ++ (logTruncateAppend ls ents).uents =
                               plogTruncateAppend ls.prev (ls.sents ++ ls.uents) ents ∧
                             uint.Z li =

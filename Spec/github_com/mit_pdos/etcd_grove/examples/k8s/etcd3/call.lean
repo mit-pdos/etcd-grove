@@ -11,11 +11,17 @@ Premises: the input's key is one the store takes (`prepareKeyM`), its etcd key t
 cached object, if any, one the store's keys held (`cachedIn`), with no resource version
 precondition on an update (`CachedNoRV`, the scope premise D1 of stage 7b,
 `issues/k8s-etcd3-cached-noop-skips-preconditions.md`); a `Get`'s reads see the store's states;
-`errors.As`'s target (the client's context lemma).
+`errors.As`'s target (the client's context lemma). Stage 7e-4: a list (`listPre`: `GetList`'s
+updates, the first page's result at the answer's state: for the revision `R` its maker was given,
+`σ`'s unless the answer is `ETooLarge`, 7e-1's R1), `ETooLarge`, the thread token lent by `lintest` and the thread
+bound `GetList` needs; for a list, the store's resource prefix, decoder and versioner the driver's
+(`driver_listContractOk`) and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`, from
+`noStreaming`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
 
 @[expose] public section
 
@@ -43,23 +49,31 @@ abbrev call.spec : Prop :=
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     (sp : Loc) (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp GF)
-    [Timeless W] (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState → IProp GF),
-  c.S = driverSpec →
+    [Timeless W] (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState → IProp GF)
+    (QL : w64 → KVState → IProp GF) (PL : KVState → KVState → IProp GF),
+  c.S = driverSpec → c.resourcePrefix = go!"/objs" → c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
+  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
   c.pathPrefix ++ storeKeyL x.Key' = mkeyL x.Key' →
   InOk x → x.Val'.length ≤ 2 ^ 20 → CachedNoRV x →
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
+  (∀ R σ, QL R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
+  (∀ R σ σ', QL R σ ∗ PL σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ k8s.isStore sp c ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
-      cachedIn c x ∗ callPre c eD eU x W Φ Q }}
+      cachedIn c x ∗ rangeStreamOff ∗ threadTok ∗
+      (if x.Kind' = W64 4 then listPre c QL PL else callPre c eD eU x W Φ Q) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
         #sp))) (Val #x))
-  {{ (y : Output), RET #y; ⌜y = errOutL⌝ ∨
-      ∃ σ : KVState, callAt x Φ Q σ ∗ ⌜y = (kStep eD eU x (c.abs σ)).2⌝ }}
+  {{ (y : Output), RET #y; threadTok ∗ (⌜y = otherL⌝ ∨
+      ∃ σ : KVState, (if x.Kind' = W64 4 then
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
+        else callAt x Φ Q σ) ∗
+        ⌜y = callOut c eD eU x σ⌝) }}
 
 end spec
 

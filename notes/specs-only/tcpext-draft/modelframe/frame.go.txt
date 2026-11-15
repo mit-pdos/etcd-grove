@@ -1,0 +1,242 @@
+// Package modelframe is a DRAFT (design review, 2026-11-10) of the byte framing the trusted Go
+// models of net/http and google.golang.org/grpc put on their TCP connections
+// (notes/specs-only/tcp-extension-design.md, section 4.2). In the models it is not a package: a
+// standard-library package cannot import a module, so net/http's patch and grpc-go's patch each
+// carry a copy of this file, unexported. Standalone here so that it compiles and can be tested.
+//
+// A connection starts with a protocol preface that etcd's cmux classifies as the real protocol
+// would (cmux.HTTP2() reads HTTP/2's 24-byte client preface; cmux.HTTP1() reads a request line
+// ending in HTTP/1.1), then carries frames:
+//
+//	frame  = kind:u8 length:u32be payload[length]
+//	string = length:u32be bytes
+//	md     = count:u32be (string(key) count:u32be string(value)*)*
+//
+// Each frame goes out in one Write, so a failed Write reports how much of that frame (and nothing
+// after it) reached the peer; a writer abandons the connection after a failed Write. A reader
+// reads a frame's header, checks its length against its limit before allocating, then reads the
+// payload: partial reads are handled here (readFull) and nowhere else.
+package modelframe
+
+import (
+	"errors"
+	"io"
+	"net"
+)
+
+// GRPCPreface is HTTP/2's client connection preface (RFC 9113 section 3.4), what cmux.HTTP2()
+// matches.
+const GRPCPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+
+// Frame kinds. gRPC, client to server: the call's head, a message, the end of the client's
+// messages, a cancellation. Server to client: refused (never dispatched), the header metadata, a
+// message, the trailer (the status and the trailer metadata). HTTP, client to server (after the
+// request line): the request's head, a body chunk, the body's end, the body's abort. Server to
+// client: the response's head, a body chunk, the end.
+const (
+	GHead    byte = 0x01
+	GMsg     byte = 0x02
+	GClose   byte = 0x03
+	GCancel  byte = 0x04
+	GRefused byte = 0x10
+	GHeader  byte = 0x11
+	GSMsg    byte = 0x12
+	GTrailer byte = 0x13
+
+	HHead  byte = 0x21
+	HChunk byte = 0x22
+	HEnd   byte = 0x23
+	HAbort byte = 0x24
+	HResp  byte = 0x31
+	HRChunk byte = 0x32
+	HREnd  byte = 0x33
+)
+
+// ErrMalformed is a frame whose payload does not decode.
+var ErrMalformed = errors.New("modelframe: malformed frame")
+
+// TooLarge is a frame whose length is over the reader's limit (its kind and length are known;
+// the payload is not read, and the connection is then abandoned).
+type TooLarge struct {
+	Kind   byte
+	Length uint32
+}
+
+func (e *TooLarge) Error() string { return "modelframe: frame larger than the limit" }
+
+func putU32(b []byte, v uint32) []byte {
+	return append(b, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+}
+
+func getU32(b []byte) uint32 {
+	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3])
+}
+
+// Enc builds a payload.
+type Enc struct{ B []byte }
+
+func (e *Enc) U8(v byte)      { e.B = append(e.B, v) }
+func (e *Enc) U32(v uint32)   { e.B = putU32(e.B, v) }
+func (e *Enc) U64(v uint64)   { e.U32(uint32(v >> 32)); e.U32(uint32(v)) }
+func (e *Enc) Bytes(s []byte) { e.U32(uint32(len(s))); e.B = append(e.B, s...) }
+func (e *Enc) Str(s string)   { e.U32(uint32(len(s))); e.B = append(e.B, s...) }
+
+// MD encodes a metadata or header map (in the map's iteration order: the decoder rebuilds the
+// same map whatever the order).
+func (e *Enc) MD(md map[string][]string) {
+	e.U32(uint32(len(md)))
+	for k, vs := range md {
+		e.Str(k)
+		e.U32(uint32(len(vs)))
+		for _, v := range vs {
+			e.Str(v)
+		}
+	}
+}
+
+// Dec reads a payload; a short payload sets Bad, after which every read returns zero values.
+type Dec struct {
+	B   []byte
+	Bad bool
+}
+
+func (d *Dec) U8() byte {
+	if d.Bad || len(d.B) < 1 {
+		d.Bad = true
+		return 0
+	}
+	v := d.B[0]
+	d.B = d.B[1:]
+	return v
+}
+
+func (d *Dec) U32() uint32 {
+	if d.Bad || len(d.B) < 4 {
+		d.Bad = true
+		return 0
+	}
+	v := getU32(d.B)
+	d.B = d.B[4:]
+	return v
+}
+
+func (d *Dec) U64() uint64 {
+	hi := d.U32()
+	lo := d.U32()
+	return uint64(hi)<<32 | uint64(lo)
+}
+
+func (d *Dec) Bytes() []byte {
+	n := d.U32()
+	if d.Bad || uint64(len(d.B)) < uint64(n) {
+		d.Bad = true
+		return nil
+	}
+	s := d.B[:n:n]
+	d.B = d.B[n:]
+	return s
+}
+
+func (d *Dec) Str() string { return string(d.Bytes()) }
+
+func (d *Dec) MD() map[string][]string {
+	n := d.U32()
+	md := make(map[string][]string)
+	for i := uint32(0); i < n && !d.Bad; i++ {
+		k := d.Str()
+		m := d.U32()
+		var vs []string
+		for j := uint32(0); j < m && !d.Bad; j++ {
+			vs = append(vs, d.Str())
+		}
+		md[k] = append(md[k], vs...)
+	}
+	return md
+}
+
+// Done reports whether the payload decoded exactly (nothing short, nothing left).
+func (d *Dec) Done() bool { return !d.Bad && len(d.B) == 0 }
+
+// Frame is a frame's bytes: kind, length, payload.
+func Frame(kind byte, payload []byte) []byte {
+	b := make([]byte, 0, 5+len(payload))
+	b = append(b, kind)
+	b = putU32(b, uint32(len(payload)))
+	return append(b, payload...)
+}
+
+// WriteFrames writes frames (and a preface, if any) in one Write. It returns how many bytes went
+// out: on an error, a caller that wrote nothing (0) knows the peer saw nothing of them.
+func WriteFrames(c net.Conn, b []byte) (int, error) {
+	return c.Write(b)
+}
+
+// readFull reads exactly len(b) bytes: io.ReadFull's contract (io.EOF only if nothing was read,
+// io.ErrUnexpectedEOF after a part).
+func readFull(c net.Conn, b []byte) error {
+	n := 0
+	for n < len(b) {
+		m, err := c.Read(b[n:])
+		n += m
+		if n == len(b) {
+			return nil
+		}
+		if err != nil {
+			if err == io.EOF && n > 0 {
+				return io.ErrUnexpectedEOF
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+// ReadPreface reads len(p) bytes and reports whether they are p.
+func ReadPreface(c net.Conn, p string) (bool, error) {
+	b := make([]byte, len(p))
+	if err := readFull(c, b); err != nil {
+		return false, err
+	}
+	return string(b) == p, nil
+}
+
+// ReadLine reads a request line ending in "\r\n", at most max bytes (one byte at a time: the
+// model reads nothing past the line, so the frames after it are read by ReadFrame).
+func ReadLine(c net.Conn, max int) (string, error) {
+	var b []byte
+	one := make([]byte, 1)
+	for len(b) < max {
+		if err := readFull(c, one); err != nil {
+			if err == io.EOF && len(b) > 0 {
+				err = io.ErrUnexpectedEOF
+			}
+			return "", err
+		}
+		b = append(b, one[0])
+		if len(b) >= 2 && b[len(b)-2] == '\r' && b[len(b)-1] == '\n' {
+			return string(b[:len(b)-2]), nil
+		}
+	}
+	return "", ErrMalformed
+}
+
+// ReadFrame reads one frame whose payload is at most max bytes (else *TooLarge, the payload
+// unread). An end of file before the frame's first byte is io.EOF; inside it, io.ErrUnexpectedEOF.
+func ReadFrame(c net.Conn, max uint32) (byte, []byte, error) {
+	h := make([]byte, 5)
+	if err := readFull(c, h); err != nil {
+		return 0, nil, err
+	}
+	n := getU32(h[1:])
+	if n > max {
+		return h[0], nil, &TooLarge{Kind: h[0], Length: n}
+	}
+	p := make([]byte, n)
+	if err := readFull(c, p); err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return 0, nil, err
+	}
+	return h[0], p, nil
+}

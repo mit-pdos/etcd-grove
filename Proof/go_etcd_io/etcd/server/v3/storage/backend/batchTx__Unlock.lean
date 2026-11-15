@@ -30,7 +30,7 @@ theorem backend.batchTx.Unlock.wp_proof :
   intro γ P W Pk b t
   wp_start as ⟨#Hb, #Ht, Hown, Hfree⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   icases Hfree with (⟨%st, %db, Hph, Hg, %Hfo, HWR⟩ | ⟨Hpend, #Hbs⟩)
   · unfold batchPhys

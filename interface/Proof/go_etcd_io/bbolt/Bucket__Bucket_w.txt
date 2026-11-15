@@ -2,21 +2,21 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.Cursor_i.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.Cursor_i.spec =
-    bbolt.Bucket.Cursor_i.spec
+theorem bbolt.Bucket.Cursor_i.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Bucket.Cursor_i.spec = bbolt.Bucket.Cursor_i.spec
 
-theorem bbolt.Bucket.openBucket_w.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Bucket.openBucket_w.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Bucket.openBucket_w.spec = bbolt.Bucket.openBucket_w.spec
 
-theorem bbolt.Cursor.seek_w.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.seek_w.spec =
-    bbolt.Cursor.seek_w.spec
+theorem bbolt.Cursor.seek_w.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.seek_w.spec = bbolt.Cursor.seek_w.spec
 
-theorem bbolt.ownMap_nonnull_s (l : Loc) (dq : DFrac) (m : GMap GoString Loc) : ownMap l dq m ⊢ ⌜l ≠
-    null⌝
+theorem bbolt.ownMap_nonnull_s [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (l : Loc) (dq : DFrac) (m : GMap
+    GoString Loc) : ownMap l dq m ⊢ ⌜l ≠ null⌝
 
-theorem bbolt.Bucket.Bucket_w.wp_proof [hos : HasExt osFsExt] (hcur : bbolt.Bucket.Cursor_i.spec)
-    (hseek : bbolt.Cursor.seek_w.spec) (hopen : bbolt.Bucket.openBucket_w.spec) (hEq :
-    bytes.Equal.spec) : bbolt.Bucket.Bucket_w.spec
+theorem bbolt.Bucket.Bucket_w.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hcur : bbolt.Bucket.Cursor_i.spec) (hseek : bbolt.Cursor.seek_w.spec) (hopen :
+    bbolt.Bucket.openBucket_w.spec) (hEq : bytes.Equal.spec) : bbolt.Bucket.Bucket_w.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.Bucket_w.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (name : GoSlice)
     (nb : List w8) (kr : bbolt.KeyR) (g : Nat),

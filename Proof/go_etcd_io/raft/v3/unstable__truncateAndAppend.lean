@@ -51,14 +51,14 @@ theorem unstable.truncateAndAppend.wp_proof
   iunfold isLoggerVal at Hulgv
   icases Hulgv with ⟨%ulg, %Hulg, #Hlg⟩
   wp_auto
-  ihave %Hlen := entsPts_len $$ Hes
-  ihave %Hulen := entsPts_len $$ Hents
-  iunfold entsPts at Hes
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hes
+  ihave %Hulen := entsPtsZ_len _ _ _ _ $$ Hents
+  iunfold entsPtsZ at Hes
   icases Hes with ⟨%lsb, Hesl, #Hbb⟩
   icases Hents with #Hents
   ihave Hents' := Hents
-  iunfold entsRO at Hents'
-  iunfold entsPts at Hents'
+  iunfold entsROz at Hents'
+  iunfold entsPtsZ at Hents'
   icases Hents' with ⟨%lsu, #Hlsu, #Hbu⟩
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   obtain ⟨Hulen1, Hulen2⟩ := Hulen
@@ -68,7 +68,7 @@ theorem unstable.truncateAndAppend.wp_proof
   have Hne : 0 < ents.length := (List.getElem?_eq_some_iff.1 Hfirst).1
   simp only [show (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len) = True from
     eq_true ⟨by word, by word⟩, ↓reduceIte]
-  icases entsBig_lookup lsb ents 0 e0 Hfirst $$ Hbb with ⟨%l0, %Hl0, #Hl0⟩
+  icases entsBigZ_lookup_RO _ lsb ents 0 e0 Hfirst $$ Hbb with ⟨%l0, %Hl0, #Hl0⟩
   wp_apply wp_load_slice_index es (sint.Z (W64 0)) lsb dq l0 (by word) $$ [Hesl] as Hesl
   · iframe Hesl; ipureintro; simpa using Hl0
   wp_apply wp_Entry_GetIndex.1 l0 DFrac.discard e0 $$ [$Hl0] as -
@@ -85,10 +85,10 @@ theorem unstable.truncateAndAppend.wp_proof
     rw [List.take_of_length_le (by omega)]
     isplitl [Hu Hents_cap]
     · iapply ownUnstable_intro $$ Hu Hents_cap
-      · iunfold entsRO; iunfold entsPts
+      · iunfold entsROz; iunfold entsPtsZ
         iexists lsu ++ lsb
         iframe Hsl
-        iapply entsBig_app $$ [Hbu Hbb]
+        iapply entsBigZ_app $$ [Hbu Hbb]
         iframe Hbu Hbb
       · iexact Hsnap
       · iexact Hpksn
@@ -97,7 +97,7 @@ theorem unstable.truncateAndAppend.wp_proof
       refine ⟨?_, ?_, rfl⟩
       · unfold w64Min; rw [ite_eq_right (by omega)]
       · simp only [truncOffsetInProgress, ite_eq_left Hcont]
-    iunfold entsPts; iexists lsb; iframe Hesl Hbb
+    iunfold entsPtsZ; iexists lsb; iframe Hesl Hbb
   have Hguard : ¬e0.Index' = us.offset + uv.entries'.len := fun Heq => Hcont (by
     rw [Heq]; word)
   simp only [decide_eq_false Hguard]
@@ -125,7 +125,7 @@ theorem unstable.truncateAndAppend.wp_proof
       List.nil_append]
     isplitl
     · iapply ownUnstable_intro $$ Hu Hcap
-      · iunfold entsRO; iunfold entsPts; iexists lsb; iframe Hesl Hbb
+      · iunfold entsROz; iunfold entsPtsZ; iexists lsb; iframe Hesl Hbb
       · iexact Hsnap
       · iexact Hpksn
       · iexact Hlogger
@@ -160,8 +160,8 @@ theorem unstable.truncateAndAppend.wp_proof
   rw [Int.sub_self, Int.toNat_zero, subslice, List.drop_zero] at Hes0
   subst Hes0
   ihave Hs0' := Hs0e
-  iunfold entsRO at Hs0'
-  iunfold entsPts at Hs0'
+  iunfold entsROz at Hs0'
+  iunfold entsPtsZ at Hs0'
   icases Hs0' with ⟨%ls0, #Hs0, #Hb0⟩
   ihave %Hs0len := ownSlice_len $$ Hs0
   ihave Hs0cap := ownSliceCap_empty (V := Loc) s0 Hcap0.symm Hs0len.2
@@ -174,10 +174,10 @@ theorem unstable.truncateAndAppend.wp_proof
   · iapply HΦ
     isplitl [Hu Hsl_cap]
     · iapply ownUnstable_intro $$ Hu Hsl_cap
-      · iunfold entsRO; iunfold entsPts
+      · iunfold entsROz; iunfold entsPtsZ
         iexists ls0 ++ lsb
         iframe Hsl
-        iapply entsBig_app $$ [Hb0 Hbb]
+        iapply entsBigZ_app $$ [Hb0 Hbb]
         iframe Hb0 Hbb
       · iexact Hsnap
       · iexact Hpksn
@@ -187,7 +187,7 @@ theorem unstable.truncateAndAppend.wp_proof
       · unfold w64Min; rw [ite_eq_right (by omega)]
       · simp only [truncOffsetInProgress, ite_eq_right Hcont, ite_eq_right Hrep, w64Min]
         split <;> first | rfl | (apply BitVec.eq_of_toNat_eq; word) | omega
-    iunfold entsPts; iexists lsb; iframe Hesl Hbb
+    iunfold entsPtsZ; iexists lsb; iframe Hesl Hbb
   done
 
 end proof

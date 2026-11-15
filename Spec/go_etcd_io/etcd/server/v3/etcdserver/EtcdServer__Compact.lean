@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactMode
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactReq
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -81,7 +82,7 @@ abbrev EtcdServer.Compact.spec : Prop :=
       isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
       srvLgReader s ∗ E.RD ∗
       mvcc.api.mvccReaders E.γ 1 ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx none ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx none ∗
       kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret) ∗
       compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))

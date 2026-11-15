@@ -118,8 +118,10 @@ theorem node.stepWithWaitOption.wp_proof
   · -- a proposal: `propc <- pm`, then `<-pm.result`
     subst Hw
     wp_auto
+    icases msgInC_halfO _ m _ $$ Hm with ⟨Hm, Hmb⟩
     wp_apply wp_GetType.1 $$ [Hm] as Hm
     · iexact Hm
+    ihave Hm := Hmb $$ Hm
     wp_if_destruct
     rotate_left
     · exact absurd rfl Hif
@@ -255,8 +257,10 @@ theorem node.stepWithWaitOption.wp_proof
     iunfold fwdP at Hfwd
     icases Hfwd with ⟨%st, Hm, %Hty, #Hab, Htk⟩
     wp_auto
+    icases msgInC_halfO _ m _ $$ Hm with ⟨Hm, Hmb⟩
     wp_apply wp_GetType.1 $$ [Hm] as Hm
     · iexact Hm
+    ihave Hm := Hmb $$ Hm
     wp_if_destruct
     rotate_left
     · exact absurd Hty.1 Hif

@@ -24,7 +24,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`t.Start()`** on a transport `t` the caller owns whole (`NewServer`'s literal, its mutex
-fresh), its logger and stats set, for member `tv.ID` of the network `γn` (one with peer URLs),
+fresh), its logger a zap logger (`zapLoggerOk`, premise fixes 6) and its stats set, for member `tv.ID` of the network `γn` (one with peer URLs),
 its URLs read-only, its `Raft` the member's (`netRaftOk`: the calls the transport makes into it,
 each borrowing an `R`), its snapshotter and the snapshot directory, the network's HTTP side ready
 (`netHttpOk`: the streams' registry, the other members' hosts registered with the raft protocol),
@@ -47,7 +47,8 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
     (Rm : w64 → IProp GF) (uvs : List net.url.URL) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       t ↦ tv ∗
-      ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
+      zapLoggerOk tv.Logger' ∗
+      ⌜tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
         tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
         trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
       tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗

@@ -3,8 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.Bucket.Cursor.spec : Prop :=
-  ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (b : Loc) (n : GoString)
-    (m : bbolt.BktData),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx : Loc) (γ : bbolt.BoltName)
+    (q : Qp) (T : bbolt.TxView) (b : Loc) (n : GoString) (m : bbolt.BktData),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ q T ∗ bbolt.boltBkt tx γ b n (T.gen n) ∗ ⌜T.cur !! n = some m⌝ -∗

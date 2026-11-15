@@ -2,24 +2,26 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.Rollback.wp_reader [HasExt osFsExt] (wp_Rollback_r : bbolt.Tx.Rollback_r.spec) (tx
-    : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView) (hro : T.rw = false) : ⊢ ∀ Φ, bbolt.boltTx tx γ 1
-    T -∗ ▷ ((bbolt.txDone tx ∗ if T.rw = true then emp else threadTok) -∗ Φ (intoVal
-    GoInterface.nil)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Rollback"
-    (intoVal tx))) (intoVal ())) {{ Φ }}
+theorem bbolt.Tx.Rollback.wp_reader [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+    (wp_Rollback_r : bbolt.Tx.Rollback_r.spec) (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView)
+    (hro : T.rw = false) : ⊢ ∀ Φ, bbolt.boltTx tx γ 1 T -∗ ▷ ((bbolt.txDone tx ∗ if T.rw = true then
+    emp else threadTok) -∗ Φ (intoVal GoInterface.nil)) -∗ WP ((intoVal (methods
+    go_etcd_io.bbolt.Tx.ty.PointerType go!"Rollback" (intoVal tx))) (intoVal ())) {{ Φ }}
 
 theorem bbolt.txExclWGap_holds : bbolt.TxExclWGap
 
-theorem bbolt.txDone.congr_simp [HasExt osFsExt] (tx tx✝ : Loc) (e_tx : tx = tx✝) : bbolt.txDone tx
-    = bbolt.txDone tx✝
+theorem bbolt.txDone.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
+    Loc) (e_tx : tx = tx✝) : bbolt.txDone tx = bbolt.txDone tx✝
 
-theorem bbolt.Tx.Rollback.wp_proof (wp_Rollback_r : ∀ [inst : HasExt osFsExt],
-    bbolt.Tx.Rollback_r.spec) (wp_Assert : bbolt.internal.common.Assert.spec) (wp_Txid :
-    bbolt.internal.common.Meta.Txid.spec) (wp_FlRollback :
-    bbolt.internal.freelist.Interface.Rollback.spec) (wp_close : ∀ [inst : HasExt osFsExt],
-    bbolt.Tx.close_w.spec) : bbolt.Tx.Rollback.spec
+theorem bbolt.Tx.Rollback.wp_proof (wp_Rollback_r : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+    [inst_2 : HasExt Fs.fsExt], bbolt.Tx.Rollback_r.spec) (wp_Assert :
+    bbolt.internal.common.Assert.spec) (wp_Txid : bbolt.internal.common.Meta.Txid.spec)
+    (wp_FlRollback : bbolt.internal.freelist.Interface.Rollback.spec) (wp_close : ∀ [inst :
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Tx.close_w.spec) :
+    bbolt.Tx.Rollback.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Rollback.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx : Loc) (γ : bbolt.BoltName)
+    (T : bbolt.TxView),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ 1 T -∗
@@ -31,16 +33,18 @@ theorem bbolt.Tx.Rollback.wp_proof (wp_Rollback_r : ∀ [inst : HasExt osFsExt],
                 (intoVal ()))
               {{ Φ }}
 
-theorem bbolt.Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : bbolt.TxExclWGap) (wp_Assert :
-    bbolt.internal.common.Assert.spec) (wp_Txid : bbolt.internal.common.Meta.Txid.spec)
-    (wp_FlRollback : bbolt.internal.freelist.Interface.Rollback.spec) (wp_close :
-    bbolt.Tx.close_w.spec) (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView) (hrw : T.rw = true) :
-    ⊢ ∀ Φ, bbolt.boltTx tx γ 1 T -∗ ▷ ((bbolt.txDone tx ∗ if T.rw = true then emp else threadTok) -∗
-    Φ (intoVal GoInterface.nil)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType
-    go!"Rollback" (intoVal tx))) (intoVal ())) {{ Φ }}
+theorem bbolt.Tx.Rollback.wp_writer [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (hgap :
+    bbolt.TxExclWGap) (wp_Assert : bbolt.internal.common.Assert.spec) (wp_Txid :
+    bbolt.internal.common.Meta.Txid.spec) (wp_FlRollback :
+    bbolt.internal.freelist.Interface.Rollback.spec) (wp_close : bbolt.Tx.close_w.spec) (tx : Loc)
+    (γ : bbolt.BoltName) (T : bbolt.TxView) (hrw : T.rw = true) : ⊢ ∀ Φ, bbolt.boltTx tx γ 1 T -∗ ▷
+    ((bbolt.txDone tx ∗ if T.rw = true then emp else threadTok) -∗ Φ (intoVal GoInterface.nil)) -∗
+    WP ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Rollback" (intoVal tx))) (intoVal
+    ())) {{ Φ }}
 
 def bbolt.TxExclWGap : Prop :=
-  ∀ [inst : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (X : bbolt.WX) (c : bbolt.TxViewC),
+  ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg)
+    (X : bbolt.WX) (c : bbolt.TxViewC),
     r.db = K.db →
       bbolt.txExcl K.B K.p K.sp K.t0 tx r ∗ ghostVar r.n.v (Qp.half 1) (c, bbolt.TxX.wr X) ⊢
         ghostVar r.n.v 1 (c, bbolt.TxX.wr X) ∗
@@ -51,13 +55,15 @@ def bbolt.TxExclWGap : Prop :=
                   bbolt.wdbW K tx X.v w ∗
                     bbolt.txShape r.n.pg X extra ∗ ⌜bbolt.flViewU X w.fl ∧ bbolt.metaCopyOK X.t.mv w.C ∧ bbolt.treeOK w.C⌝
 
-theorem bbolt.Tx.Rollback.wp_proof' (hgap : bbolt.TxExclWGap) (wp_Rollback_r : ∀ [inst : HasExt
-    osFsExt], bbolt.Tx.Rollback_r.spec) (wp_Assert : bbolt.internal.common.Assert.spec) (wp_Txid :
-    bbolt.internal.common.Meta.Txid.spec) (wp_FlRollback :
-    bbolt.internal.freelist.Interface.Rollback.spec) (wp_close : ∀ [inst : HasExt osFsExt],
-    bbolt.Tx.close_w.spec) : bbolt.Tx.Rollback.spec
+theorem bbolt.Tx.Rollback.wp_proof' (hgap : bbolt.TxExclWGap) (wp_Rollback_r : ∀ [inst :
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Tx.Rollback_r.spec)
+    (wp_Assert : bbolt.internal.common.Assert.spec) (wp_Txid : bbolt.internal.common.Meta.Txid.spec)
+    (wp_FlRollback : bbolt.internal.freelist.Interface.Rollback.spec) (wp_close : ∀ [inst :
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Tx.close_w.spec) :
+    bbolt.Tx.Rollback.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Rollback.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx : Loc) (γ : bbolt.BoltName)
+    (T : bbolt.TxView),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ 1 T -∗

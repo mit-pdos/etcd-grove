@@ -34,7 +34,7 @@ theorem txn.warnOfExpensiveGenericRequest.wp_proof
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     txn.warnOfExpensiveGenericRequest.spec (GF := GF) (hG := hG) := by
   intro lg d now req pfx resp err
-  wp_start as ⟨%Hlg, #Hs⟩
+  wp_start as ⟨#Hlg, #Hs⟩
   iunfold txn.stringerOk at Hs
   icases Hs with ⟨%si, %Hsi, #HS⟩
   subst Hsi
@@ -56,7 +56,7 @@ theorem txn.warnOfExpensiveGenericRequest.wp_proof
   iintro %_ ⟨-, -⟩
   (try wp_auto)
   wp_apply hWarn
-  · ipureintro; exact Hlg
+  · iexact Hlg
   (try wp_auto)
   iunfold go_etcd_io.etcd.server.v3.lease.counterSpec at Hcs
   wp_apply Hcs

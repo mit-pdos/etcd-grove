@@ -32,7 +32,7 @@ theorem EtcdServer.NewUberApplier.wp_proof
     (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG)) :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) := by
   intro s lg a cl kv au le ci be fg quota wad dq T z Hbuq
-  wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
+  wp_start as ⟨#Hlg, #Hlgz, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
     #Hal, #HGet, HT⟩
   ihave #Hgate' := Hgate
   iunfold isFeatureGate at Hgate'

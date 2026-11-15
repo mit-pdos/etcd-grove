@@ -95,12 +95,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave HKV := (srvApplyKVM_C C s E ρ.wait x sa).2 $$ HKV
   ihave HtokR : srvTokRights E (ciEff γ st.k) $$ [HtokR]
   · rw [srvTokRights_eq C E _ hM]; iexact HtokR
-  icases srvApRes_cfg_size s γr (ghostOf rp A) $$ HAR with ⟨HAR, %hsz⟩
+  icases srvApRes_cfg_size s γr (ghostOf rp A) $$ HAR with ⟨HAR, %hsz20⟩
+  have hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61 := by omega
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
   iunfold srvFieldsAtM at Hfl
-  icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
+  icases Hfl with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, -, #Hsc,
@@ -162,9 +163,20 @@ theorem EtcdServer.applyAll.wp_proofBatch
         rw [this] at hg'; word
       rw [hc, hgg]; exact h
     · rw [hc]; omega
-  have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
-  -- (D22 J1b) the snapshot resources at the new applied index
-  ihave Hso := srvSnapOwn_mono s ci E γr _ ai ai' Hai' $$ Hso
+  -- (D22 J1b) the snapshot resources at the new ghost index (restart S6, CP2 route (C): `g ≤ g'`)
+  have Hgg' : uint.Z g ≤ uint.Z g' := by
+    have hm : (ghostOf rp A).length ≤ (ghostOf rp (A ++ unapplied ai ms)).length := by
+      have h1 := hGl A; have h2 := hGl (A ++ unapplied ai ms); omega
+    omega
+  ihave Hso := srvSnapOwn_mono s ci E γr _ g g' Hgg' $$ Hso
+  -- (restart S6a) the removal counter raised to the new applied index (`snapshot`'s `Release`),
+  -- staying at most the ghost index plus one (`ai' ≤ g'`)
+  iunfold srvSnapOwn at Hso
+  icases Hso with ⟨%γm, %c, #Hsro, %Hc, Hγm, Hsres⟩
+  imod snapRm_raise γm ai' g' c Hc (by word) $$ Hγm with ⟨%c', %Hc', Hγm, #Hrmlb⟩
+  ihave #Hsdir := srvSnapDir_of_RO s ci E γr γm $$ Hsro
+  ihave Hso : srvSnapOwn s ci E γr γ g' $$ [Hγm Hsres]
+  · iunfold srvSnapOwn; iexists γm, c'; iframe Hsro Hγm Hsres; ipureintro; exact Hc'
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
@@ -175,7 +187,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
   ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
   wp_apply hLg s sv.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply hV be sv.lg true bsl $$ []
   · iframe #
@@ -300,7 +312,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       iapply epCsAt_ne _ _ _ (by unfold ghostOf; exact List.append_ne_nil_of_left_ne_nil hL _) $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   have hS1 := hSINC.1 s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs nk γp
-    (w + (unapplied ai ms).length) TM ρ sa' q γn
+    (w + (unapplied ai ms).length) TM ρ sa' q γn γm
   rw [hon] at hS1
   -- the apply thread's tokens (`apply.applyTok`: its reader token of the store)
   ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
@@ -382,26 +394,29 @@ theorem EtcdServer.applyAll.wp_proofBatch
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -⟩
+        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
         obtain ⟨Hty, Hsbt⟩ := Htyb
         rw [hγn]
         -- (R2d'a A7) past the window after the batch, or no merged send at the batch's term
         -- (`winNoMergedSendR`, this member's `MsgSnap`: `isServerApplyAll`'s member id)
-        ihave ⟨%Hwt, Hm, HT⟩ : iprop(⌜rp.A₀.length ≤ (A ++ unapplied ai ms).length ∨ sm.msg.Term' ≠ rt⌝ ∗
+        ihave Hwt : iprop(|={⊤}=> ⌜rp.A₀.length ≤ (A ++ unapplied ai ms).length ∨ sm.msg.Term' ≠ rt⌝ ∗
             msgOwn m (DFrac.own 1) sm ∗ T) $$ [Hm HT]
         · iunfold winNoMergedSendR at Hwin
           icases Hwin with (%Hnil | #Hwin)
-          · iframe Hm HT; ipureintro; left
+          · imodintro; iframe Hm HT; ipureintro; left
             exact Nat.le_of_not_lt (fun h => by
               have := List.length_drop (l := rp.A₀) (i := (A ++ unapplied ai ms).length)
               rw [Hnil] at this; simp at this; omega)
           · rw [← hγn]
             by_cases hlt : uint.Z γn.t0 < uint.Z rt
-            · ihave ⟨%Hn, Hm, HT⟩ := Hwin $$ %hlt HT %γn.id %m %sm Hmidm Hm Hsm
+            · ihave Hw' := Hwin $$ %hlt HT %γn.id %m %sm Hmidm Hm Hsm
+              imod Hw' with ⟨%Hn, Hm, HT⟩
+              imodintro
               iframe Hm HT; ipureintro; right; exact Hn Hty
             · -- `rt ≤ t0`: the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s bound)
-              iframe Hm HT; ipureintro; right
+              imodintro; iframe Hm HT; ipureintro; right
               intro h; rw [h] at Hsbt; exact hlt Hsbt
+        imod Hwt with ⟨%Hwt, Hm, HT⟩
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
         obtain ⟨sn, hsn, -⟩ := Hsh.2 Hty
@@ -494,10 +509,17 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- the snapshot's reader slot; the reader goroutine's fork token comes back
             iunfold srvGoRes at Hgr
             icases Hgr with ⟨HgrW, HgT⟩
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd)
+            -- (raft-entsize [r3c]) the voters' conf state (the applied log is not empty)
+            ihave #Hcv0 : epCsCfg γr cs' $$ []
+            · icases Hecs with (%H0 | #H)
+              · exfalso; omega
+              · iexact H
+            iunfold epCsCfg at Hcv0
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd γr.raft hsz20
+              (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
-              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, HQd⟩
-            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
+              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #HszC, #Hcso, %Hcml, Hrs, HQd⟩
+            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT
             ihave Hgr : srvGoRes s $$ [HgrW HgT]
             · iunfold srvGoRes; iframe HgrW HgT
             imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
@@ -536,12 +558,12 @@ theorem EtcdServer.applyAll.wp_proofBatch
               ipureintro; exact Hst3.1
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
-              $$ [Hml Hsm' Hrs Himg] with Hbun
-            · iframe Hml Hsm' Hrs Himg
+              $$ [Hml HszC Hsm' Hrs Himg] with Hbun
+            · iframe Hml HszC Hsm' Hrs Himg
             (try wp_auto)
             wp_apply (hSMS s mg m rc sv.lg sv.memberID stg tr γN SN TSN lid) $$ [Hgr Hlr Hbun]
               as ⟨Hgr, Hlr⟩
-            · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun; ipureintro; exact Hlgnn
+            · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
               ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst''.2⟩

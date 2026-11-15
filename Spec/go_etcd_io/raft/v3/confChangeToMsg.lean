@@ -16,6 +16,7 @@ apart).
 module
 
 public import Proof.go_etcd_io.raft.v3.ApiVocab
+public import Proof.go_etcd_io.raft.v3.MsgOwnZ
 
 @[expose] public section
 
@@ -35,15 +36,19 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `confChangeToMsg(c)` for `c` holding `o`: a `MsgProp` (`propMsgM`) whose one entry is
 `ccEntryM o bs` (the entry type of `o` and the bytes carrying it, as `MarshalConfChange`
-returns them), and a `nil` error. (2026-10-16, stage R5: the message at `ml`, `msgIn ml 1`.) -/
+returns them), and a `nil` error. (2026-10-16, stage R5: the message at `ml`, `msgIn ml 1`.)
+(out_size C3, P5) The change at its optional content `oc` (`ccPtsCCo`), and the message at a content
+(`msgInC sz`, as `raft.Step` takes it), of bounded size under the flag `sz` when the change's size
+measure leaves room for the encoding's framing (`ccSize cc + 64 ≤ entBytesMax`). -/
 abbrev confChangeToMsg.spec : Prop :=
-  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeI c dq o }}
+  ∀ (c : GoInterface) (oc : Option ConfChangeIC) (dq : DFrac) (sz : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ccPtsCCo c dq oc ∗
+      ⌜sz = true → ∀ cc, oc = some cc → ccSize cc + 64 ≤ entBytesMax⌝ }}
     (App (Val #(functions confChangeToMsg [])) (Val #c))
   {{ (ml : Loc) (bs : List w8), RET (PairV #ml #interface.nil);
-      ownConfChangeI c dq o ∗
-      msgIn ml (DFrac.own 1) ⟨propMsgM, [ccEntryM o bs], none, [], []⟩ ∗
-      ⌜MarshalsConfChange o bs⌝ }}
+      ccPtsCCo c dq oc ∗
+      msgInC sz ml (DFrac.own 1) ⟨propMsgM, [ccEntryM (oc.map ConfChangeIC.model) bs], none, [], []⟩ ∗
+      ⌜MarshalsConfChange (oc.map ConfChangeIC.model) bs⌝ }}
 
 end spec
 

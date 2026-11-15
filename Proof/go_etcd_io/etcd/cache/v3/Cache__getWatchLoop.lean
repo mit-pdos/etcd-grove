@@ -89,11 +89,14 @@ theorem Cache.getWatchLoop.wp_proof
   wp_apply wp_Printf $$ [$Hfmt $Hsl] as %n %e2 -
   · try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     try simp only [List.set_cons_succ, List.set_cons_zero]
-    simp only [EtcdGrove.fmt.argsOk]
+    fmt_args_intro
     isplitr
-    · iapply EtcdGrove.time.Duration.String.argOk wp_DurStr
+    · fmt_arg_method; iapply EtcdGrove.time.Duration.String.argOk wp_DurStr
     isplitr
-    · simp only [EtcdGrove.fmt.argOk]; iright; ileft; iexact HeS'
+    · fmt_arg_method; simp only [EtcdGrove.fmt.argOk]; iright; ileft
+      isplitr
+      · iexact HeS'
+      · iapply errStrOk_noFormat; iexact HeS
     itrivial
   -- the backoff: `select` on `ctx.Done()` and `time.After(backoff)`
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone

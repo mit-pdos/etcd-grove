@@ -88,15 +88,20 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
     wp_apply hErrorf _ _ _ _ $$ [Hasl] as %e -
     · iframe #; iframe Hasl
       simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl,
-        List.set_cons_succ, List.set_cons_zero, fmt.argsOk, fmt.argOk]
+        List.set_cons_succ, List.set_cons_zero]
+      fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
       isplitr
       · ileft; ipureintro
         apply fmt.argWf_of_argsWf
         exact .cons_string _ _ .nil
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString server Hs $$ Hsp
+      · fmt_arg_method; iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString server Hs $$ Hsp
+        · ipureintro; fmt_method_none
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+      · fmt_arg_method; iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+        · ipureintro; fmt_method_none
       itrivial
     (try wp_auto)
     iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩
@@ -111,15 +116,20 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
     wp_apply hErrorf _ _ _ _ $$ [Hasl] as %e -
     · iframe #; iframe Hasl
       simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl,
-        List.set_cons_succ, List.set_cons_zero, fmt.argsOk, fmt.argOk]
+        List.set_cons_succ, List.set_cons_zero]
+      fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
       isplitr
       · ileft; ipureintro
         apply fmt.argWf_of_argsWf
         exact .cons_string _ _ .nil
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString server Hs $$ Hsp
+      · fmt_arg_method; iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString server Hs $$ Hsp
+        · ipureintro; fmt_method_none
       isplitr
-      · iright; iright; iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+      · fmt_arg_method; iright; iright; isplitr
+        · iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+        · ipureintro; fmt_method_none
       itrivial
     (try wp_auto)
     iapply HΦ; ipureintro; exact ⟨Hlsnn, Hlmnn⟩

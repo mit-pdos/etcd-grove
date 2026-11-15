@@ -45,7 +45,8 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, -, -, -, -, -, -, #Hc, -, #Hss, -⟩
+  icases Hok with ⟨#Hlg, -, -, -, -, -, -, #Hc, -, #Hss, -⟩
+  ihave %Hlgn := zapLoggerOk_ne_null _ $$ Hlg
   iunfold apply.isCluster at Hc
   icases Hc with ⟨%Hcnn, #HVer, -, #HSV, -⟩
   iunfold apply.isSnapshotServer at Hss
@@ -86,7 +87,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     iframe
   -- a downgrade: logged, a snapshot forced
   wp_if_destruct
-  · exact absurd Hif Hlg
+  · exact absurd Hif Hlgn
   wp_apply hVS as %s1 -
   · ipureintro; exact Hprev
   wp_apply hZS as %f1 -
@@ -99,7 +100,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   iintro %fsl -
   wp_auto
   wp_apply hInfo
-  · ipureintro; exact Hlg
+  · iexact Hlg
   rw [Hsi]
   wp_pures
   wp_bind (App (Val #(methods si.ty go!"ForceSnapshot" si.v)) (Val #()))

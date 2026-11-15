@@ -58,12 +58,14 @@ theorem rpctypes_etcdError_statusErrOk
     iexact HΦ
   isplitr
   · ipureintro; exact hty.1 #x
+  isplitr
   · unfold grpcErrMethodsOk
     isplitl
     · iintro %h
       simp [hty.2.1] at h
     · iintro %h
-      simp [hty.2.2] at h
+      simp [hty.2.2.1] at h
+  · ipureintro; exact hty.2.2.2
 
 /-- An `EtcdError` value is a client error, if any client error exists (`clientErr`'s first
 conjunct, `errors.AsTarget` of `EtcdError`, is about the type alone). -/
@@ -73,7 +75,7 @@ theorem rpctypes_etcdError_clientErr (hty : rpctypesEtcdErrorTy (GF := GF) (hG :
     clientErr (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) := by
   refine ⟨hc.1, fun ii h => ?_⟩
   cases h
-  exact ⟨hty.1 #x, rpctypes_etcdError_asTypeTyped x⟩
+  exact ⟨hty.1 #x, rpctypes_etcdError_asTypeTyped x, by simp [clientErrTys]⟩
 
 theorem rpctypes.Error.wp_proof
     (wp_ErrorDesc : rpctypes.ErrorDesc.spec (GF := GF) (hG := hG))

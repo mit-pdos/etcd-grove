@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 
@@ -71,7 +72,7 @@ abbrev featureInit : IProp GF :=
 
 /-- `features`' fact (sweep repairs 1, B5): once its `init` registered its features with the
 default gate, `DefaultFeatureGate` holds a gate with the specs of `k8sfeature.featureGateOk`
-(`Enabled` of the queried features, `Set` of one to `false`). -/
+(`Enabled` of the queried features, `Set` of one to its `k8sSetValue`). -/
 abbrev featuresInit : IProp GF :=
   iprop(∃ g : GoInterfaceOk,
     globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
@@ -147,6 +148,22 @@ instance k8s_io_apimachinery_pkg_util_wait_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
+  build_get_is_pkg_init_wf
+
+-- (version: moved from the cacher's Base, featuregate imports it)
+instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_version_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  build_get_is_pkg_init_wf
+
+-- (pflag: names only, what featuregate's interfaces name)
+instance github_com_spf13_pflag_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.github_com.spf13.pflag :=
+  define_is_pkg_init iprop(True)
+instance github_com_spf13_pflag_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.spf13.pflag :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_component_base_featuregate_is_pkg_init_inst :
@@ -403,6 +420,9 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoS
     iexact Hm
   isplitr
   · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact EtcdGrove.ErrorStringLeaf.noFormat
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h

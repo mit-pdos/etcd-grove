@@ -46,19 +46,25 @@ raft v3.7 (2026-10-15, stage R4): the fields are read through the getters (`m.Ge
 `m.GetLogTerm()`, `m.GetIndex()`, `m.GetEntries()`), and the `Entries` slice is lent as
 `GetEntries` lends it (`Spec/.../raftpb/Message__GetEntries.lean`): its pointers at the message's
 `dqe`, each entry read-only, the capacity when the message holds it (`cap`, `msgIn`), until the
-caller gives the slice back (with or without the capacity). -/
+caller gives the slice back (with or without the capacity).
+
+(out_size C3, 2026-11-12) At the message's content (`msgPtsCC`, a received `MsgApp`'s form, its
+entries' slice read-only): the entry objects are lent at their contents (`entRoC`), so that
+`handleAppendEntries` appends them to the log with their sizes (`msgInC`). The `Entries` field is
+read through `GetEntries`'s body (`wp_Message_GetEntries_field`): the getter's spec, over today's
+form, does not say that the slice it returns is the field's. The message is given back without the
+capacity (`maybeAppend` may adopt it). -/
 abbrev logSliceFromMsgApp.spec : Prop :=
-  ∀ (p : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ msgPtsC p dq dqe cap ms }}
+  ∀ (p : Loc) (cap : Bool) (c : MsgC),
+  c.csUfNil →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      msgPtsCC p (DFrac.own 1) DFrac.discard cap c }}
     (App (Val #(functions logSliceFromMsgApp [])) (Val #p))
   {{ (es : GoSlice) (els : List Loc),
-      RET #(logSlice.mk ms.msg.Term' (entryID.mk ms.msg.LogTerm' ms.msg.Index') es);
-      es ↦*{dqe} els ∗ ([∗list] q;e ∈ els;ms.ents, entRO q e) ∗
+      RET #(logSlice.mk c.model.msg.Term' (entryID.mk c.model.msg.LogTerm' c.model.msg.Index') es);
+      es ↦*□ els ∗ ([∗list] q;e ∈ els;c.f.entries, entRoC q e) ∗
       (if cap then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
-      (∀ (cap' : Bool) (els' : List Loc) (ents' : List EntryM),
-        es ↦*{dqe} els' -∗ ([∗list] q;e ∈ els';ents', entRO q e) -∗
-        (if cap' then ownSliceCap Loc es (DFrac.own 1) else emp) -∗
-        msgPtsC p dq dqe cap' { ms with ents := ents' }) }}
+      (es ↦*□ els -∗ msgPtsCC p (DFrac.own 1) DFrac.discard false c) }}
 
 end spec
 

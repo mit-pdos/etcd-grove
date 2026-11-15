@@ -26,14 +26,14 @@ variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
 /-- The spec's descriptor is Perennial's `bgDeadlineDesc` (no values, the deadline, Done
-proposition `True`); its `isClosedchanInit` premise is unused (Perennial derives it from
+proposition `True`), with Perennial's `ctxValueFrom`; its `isClosedchanInit` premise is unused (Perennial derives it from
 `isPkgInit`). -/
 theorem context.WithTimeoutBackground.wp_proof :
     context.WithTimeoutBackground.spec (GF := GF) (hG := hG) := by
   intro d
   iintro %Φ ⟨#Hpkg, -⟩ HΦ
   wp_apply (_root_.Perennial.context.wp_WithTimeout_Background d) $$ []
-    as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx, -⟩
+    as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx, #Hfrom⟩
   iapply HΦ
   iframe #
 

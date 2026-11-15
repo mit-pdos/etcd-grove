@@ -36,32 +36,39 @@ theorem v3rpc.kvServer.Compact.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid n aa E ctx cd r Pin Q
-  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hnil, #Hctx, HRD, HPin, #Hin⟩
+  intro p s A cid mid n aa E ctx cd r Pin Q na
+  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hlb, #Hctx, #Hlib, HRD, HPin, #Hin⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, -⟩
   (try wp_auto)
-  wp_apply (hP aa s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+  wp_apply (hP aa s E ctx cd na) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
   · iframe #
-  ihave #Hout := adminOut_of_adminOutB _ _ _ _ $$ Hout
+  ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout
   icases Hout with ⟨#Herr, #Htok⟩
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
-    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSe⟩
+    wp_apply (v3rpc.togRPCError_out hTog) $$ [] as %e ⟨%He, #HSe, #Hgo⟩
     · iframe #
       iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
     (try wp_auto)
     iapply HΦ
     iframe HRD
     iframe HSe
-    iunfold v3rpc.compactOut
+    iunfold v3rpc.compactOutC
     iright
     isplitr
     · ipureintro; exact ⟨rfl, He⟩
-    iright; iexact HPin
+    iright; iframe HPin
+    iexists (GoInterface.ok ei)
+    iframe Hgo
+    isplitr
+    · ipureintro; intro h; cases h
+    iunfold adminOutC at HoutC
+    icases HoutC with ⟨-, #Hw⟩
+    iapply Hw; intro h; cases h
   · (try wp_auto)
     ispecialize Htok $$ %rfl
     icases Htok with ⟨%ai, #Htk⟩
@@ -81,7 +88,7 @@ theorem v3rpc.kvServer.Compact.wp_proof
       isplitl
       rotate_left
       · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
-      iunfold v3rpc.compactOut
+      iunfold v3rpc.compactOutC
       ileft
       isplitr
       · ipureintro; exact ⟨rfl, Hrn⟩
@@ -102,7 +109,7 @@ theorem v3rpc.kvServer.Compact.wp_proof
         iapply HΦ
         iframe HRD
         iframe HSe
-        iunfold v3rpc.compactOut
+        iunfold v3rpc.compactOutC
         iright
         isplitr
         · ipureintro; exact ⟨rfl, He⟩

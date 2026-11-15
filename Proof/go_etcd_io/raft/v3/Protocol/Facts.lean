@@ -1371,7 +1371,11 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-29, S1) whether the network may duplicate a `MsgProp` (`RaftNames.dup`)
     (dup : Bool)
     -- (2026-11-11, trace-check S7 part 2) the trace's names (`RaftNames.reTrace`)
-    (tr : Option GName) :
+    (tr : Option GName)
+    -- (raft-entsize §2, 2026-11-09) the bound on proposed data (`RaftNames.maxData`): at most
+    -- `2^31`, and met by the boot log's entries
+    (md : Option Nat) (Hmd : ∀ b, md = some b → b ≤ 2 ^ 31)
+    (HmdL : ∀ b, md = some b → ∀ e ∈ L, e.Data'.length ≤ b) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1381,7 +1385,7 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
           γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
           γ.reDec = rdec ∧ γ.dup = dup ∧
-          γ.reTrace = tr⌝ ∗
+          γ.reTrace = tr ∧ γ.maxData = md⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
@@ -1389,6 +1393,8 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
         -- (2026-10-13) every read credit
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
   intro Hcne Hnz HLok Ht
+  have _ := Hmd
+  have _ := HmdL
   have HwfL := HLok.wf
   have Hones := HLok.terms
   have Hlen : (L.length : Int) < 2 ^ 64 := by have := HLok.1; omega
@@ -1416,6 +1422,8 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
   imod ghostVar_alloc (GF := GF) L with ⟨%γcl, Hcl0⟩
   -- (2026-10-14, reconfiguration stage B4) the winners table, empty
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := WinRec) with ⟨%γtb, Htba⟩
+  -- (raft-entsize §2) the handed-out objects' set, empty
+  imod ghost_map_alloc_empty (GF := GF) (K := Pos) (V := Unit) with ⟨%γout, Houta⟩
   icases ghostVar_split γcl L (1 : Qp).half (1 : Qp).half $$ [Hcl0]
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl0
@@ -1423,7 +1431,8 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup, tr, nsl⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup, tr, nsl, md,
+        γout⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1543,15 +1552,24 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
     iexists R0, ∅
     iframe Hpra Hrda Hnoop Hs0
     iapply (BigSepM.bigSepM_empty).2; iempintro
+  have e19 : γ0.out = γout := by rw [Hγ0]
+  imod inv_alloc (raftOutN γ0) E (raftOutBody γ0) $$ [Houta] with #Hout
+  · inext
+    unfold raftOutBody
+    iexists ∅
+    rw [e19]
+    iframe Houta
+    iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hinv' : raftCommitInv (GF := GF) γ0 $$ []
-  · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
+  · unfold raftCommitInv raftLogInv raftRegInv raftOutInv; iframe Hinv Hreg Hout
   ihave #Hc00 : isCommitted (GF := GF) γ0 [] $$ []
   · iapply isCommitted_mono γ0 [] L (List.nil_prefix) $$ Hc0
   imod alloc_nodes E γ0 ids Hnz $$ Hinv' Hc00 Hcinv' Hsl Hv Ht Ha Hc Hl Hw He Hlc Hrq with Hnodes
   imodintro
   iexists γ0
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
-    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
+    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
+    by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   iframe HCl Hcr Hcinv' Hnodes
@@ -1571,7 +1589,10 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     (certN : Namespace)
     (reg : Option GName)
     (rdec : Option GName)
-    (dup : Bool) :
+    (dup : Bool)
+    -- (raft-entsize §2) the bound on proposed data, as `ownRaftGhost_alloc_core_reg_tr`'s
+    (md : Option Nat) (Hmd : ∀ b, md = some b → b ≤ 2 ^ 31)
+    (HmdL : ∀ b, md = some b → ∀ e ∈ L, e.Data'.length ≤ b) :
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     BootWf L → (L ≠ [] → 1 ≤ uint.Z t) →
@@ -1581,14 +1602,14 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
           γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
           γ.reDec = rdec ∧ γ.dup = dup ∧
           -- (2026-11-09, Q8 stage 0) an untraced cluster (`RaftNames.reTrace`'s default)
-          γ.reTrace = none⌝ ∗
+          γ.reTrace = none ∧ γ.maxData = md⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) :=
   ownRaftGhost_alloc_core_reg_tr E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
-    reg rdec dup none
+    reg rdec dup none md Hmd HmdL
 
 /-- **The allocation's core**, with no registry of the snapshots made
 (`ownRaftGhost_alloc_core_reg` at `none`). -/
@@ -1619,12 +1640,13 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   intro a b c d
   iintro H
   imod ownRaftGhost_alloc_core_reg E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
-    none none false a b c d $$ H with ⟨%γ, %Hp, Hrest⟩
+    none none false none (fun _ h => by cases h) (fun _ h => by cases h) a b c d $$ H
+    with ⟨%γ, %Hp, Hrest⟩
   imodintro
   iexists γ
   iframe Hrest
   ipureintro
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, -, a13, -⟩ := Hp
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, -, a13, -, -⟩ := Hp
   exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩
 
 

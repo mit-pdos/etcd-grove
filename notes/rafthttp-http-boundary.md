@@ -58,7 +58,9 @@ sender proved about those bytes.
    `□ Resp_a(req, w)`. It ends with `EOF` or an error at any time.
    (Revised 2026-10-22: the first draft let the status be arbitrary, but a `403`/`410` is
    reported as `errMemberRemoved` on `Transport.ErrorC`, which stops the member, and today's
-   contract promises nothing on `ErrorC`. The handlers answer `403`/`410` only when `IsIDRemoved`
+   contract promises nothing on `ErrorC`. **Correction (2026-11-10):** no rafthttp handler writes a
+   `403` (the `writerToResponse` branch is dead, `issues/etcd-rafthttp-pipeline-process-error-panic.md`);
+   only the stream handler's `410` happens. The text below predates this. The handlers answer `403`/`410` only when `IsIDRemoved`
    holds of the sender, never in the static clusters proved:
    `nonissues/etcd-rafthttp-misaddressed-403-member-removed.md`.)
 5. **Failures.** Any `RoundTrip`, body read or `Write` may fail at any time; a cancelled request

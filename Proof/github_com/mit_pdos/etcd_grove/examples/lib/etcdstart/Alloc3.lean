@@ -23,9 +23,10 @@ at one member's names is every member's).
 The lease mode (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §1; `alloc1`'s shape):
 the cluster's KV names in the mode `lm`, each member booted in it (`memberBoot … cmp lm`, under
 `lease.runCfg lm lm`), and the client's `etcdKV` only in the mode `none` (a cluster that grants
-leases has none, `srvClusterBoot_alloc`). `lm ≠ .revocable` is a scope premise: the revocable mode
-collects grant ids at one prefix (`kvPfx`), which `srvMemberBoot_alloc` ties to one member's
-(`hpfx`); the Scope's step 2 lifts it.
+leases has none, `srvClusterBoot_alloc`). (Step 2, 2026-11-14, "Step 2 Scope": until then the scope
+premise `lm ≠ .revocable`) The cluster's grant prefixes are the members' (`idPfxsOf ps`), and in
+the revocable mode the members' ids are apart (`leaseIdsApart`: distinct in their 15 low bits), so
+that their lease ids never collide (`kvPfxOk`, `issues/etcd-lease-id-mask-member-prefix.md`).
 -/
 module
 
@@ -111,10 +112,12 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
     (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp)
-    -- (lease-mono3, 2026-11-06, Scope §1) the cluster's lease mode `lm`, not the revocable one
-    -- (whose single grant-id prefix `kvPfx` is one member's: the Scope's step 2)
-    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
-    (Hklg : γk.lm = lm)
+    -- (lease-mono3, 2026-11-06, Scope §1) the cluster's lease mode `lm`; (step 2, 2026-11-14;
+    -- until then `lm ≠ .revocable`) in the revocable mode the member's prefix one of the cluster's
+    -- grant prefixes, which meet their condition (`kvPfxOk`)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (Hklg : γk.lm = lm) (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)
+    (hpo : kvPfxOk γk)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
@@ -137,7 +140,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
   imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
-    (fun h => absurd (Hklg.symm.trans h) hrev)) $$ Hkv' Hp
+    (fun h => hpfx (Hklg.symm.trans h)) hpo) $$ Hkv' Hp
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc'⟩ := Hρ
@@ -176,19 +179,16 @@ allocation, on the start bundles' pieces; until hub step 7's steps 7-8 also used
 partition and restart examples and `cluster3`, which do not yet take the bundles). -/
 private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog ps ctxs boot)
-    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    -- (lease-mono3, 2026-11-06, Scope §1, `alloc1`'s) the cluster's lease mode, not the revocable one
-    -- (a scope premise: the revocable mode's grant ids are one member's prefix's, step 2's)
-    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
+    -- (lease-mono3, 2026-11-06, Scope §1, `alloc1`'s) the cluster's lease mode; (step 2,
+    -- 2026-11-14; until then `lm ≠ .revocable`) in the revocable mode the members' ids apart
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hap : lm = .revocable → leaseIdsApart [id₁, id₂, id₃])
     -- (2026-11-05, the compactor's three-member stage) the compaction mode and the cluster's
     -- retention (any at retention `0`: compactions only a client's)
     (cmp : Bool := false) (cret : Nat := 0) :
@@ -213,6 +213,10 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
+  have Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup :=
+    (hperm.map _).nodup_iff.1 Hbc.lowNodup
+  have Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0 :=
+    fun id hid => Hbc.lowNz id (hperm.mem_iff.2 hid)
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
@@ -247,14 +251,20 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
     simp only [xs, Ne.symm hp13, Ne.symm hp23, if_false]
   -- the peers `ps`, in `bootstrap`'s (sorted) order, a permutation of the members' ids
   -- (2026-11-03, the final whole-`bootOk` review's S1)
-  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 HB
+  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 Hbc
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
-      (fun h => Hnz _ (hperm.subset h) rfl) Hcc Hurl ((hperm.map _).nodup_iff.2 Hlow)
-      (fun id h => Hlow0 id (hperm.subset h)) cmp cret lm) $$ Hmarsh
+      (fun h => Hnz _ (hperm.subset h) rfl) cmp cret lm (idPfxOf (W16 (uint.Z id₁)))
+      (idPfxsOf [id₁, id₂, id₃]) (gpsOk_of_apart lm _ id₁ (by simp) hap)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, -⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  -- (lease-mono3 step 2) the cluster's names meet the grant prefixes' condition, each member's
+  -- prefix one of them
+  have hpo : kvPfxOk γk :=
+    kvPfxOk_of_apart γk [id₁, id₂, id₃] id₁ (by simp) hgp hgps (fun h => hap (hklg ▸ h))
+  have hmem : ∀ id ∈ [id₁, id₂, id₃], lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps :=
+    fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid
   isimp only [KVNames.lg, hklg] at Hetcd
   ihave Hms' := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
@@ -262,15 +272,15 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
   icases Hwns' with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ γm idx₁ cok₁ rev₁
       (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hrev hklg HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
+      hvs cmp hkc lm hrun hklg (hmem id₁ (by simp)) hpo HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
   imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ γm idx₂ cok₂ rev₂
       (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hrev hklg HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
+      hvs cmp hkc lm hrun hklg (hmem id₂ (by simp)) hpo HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
   imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ γm idx₃ cok₃ rev₃
       (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hrev hklg HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
+      hvs cmp hkc lm hrun hklg (hmem id₃ (by simp)) hpo HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network (rafthttp stage 6d; until then a slot per member): each peer address
   -- reserved for the raft protocol, so every member's transport may post to the others'
@@ -311,17 +321,14 @@ the network's raft protocol: each member's start bundle becomes its fresh bundle
 `γn` (`memberFreshRes`), what its first-start starter takes. -/
 theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog ps ctxs boot)
-    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString)
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (n₁ n₂ n₃ : GoString) (c₁ c₂ c₃ : Option GoString)
-    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hap : lm = .revocable → leaseIdsApart [id₁, id₂, id₃])
     (cmp : Bool := false) (cret : Nat := 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       memberStartRes (GF := GF) n₁ ⟨some a₁, c₁⟩ -∗ memberStartRes (GF := GF) n₂ ⟨some a₂, c₂⟩ -∗
@@ -346,8 +353,8 @@ theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
   iintro #Hmarsh ⟨#Hv₁, Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
-  imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hlow Hlow0 HB Hcc Hurl dir a₁ a₂ a₃ Hd0 Hhost Hrb
-      Hrb2 lm hrun hrev cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
+  imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
+      Hrb2 lm hrun hap cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
       Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩
   imodintro

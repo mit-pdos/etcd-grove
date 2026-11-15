@@ -22,12 +22,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section close
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -57,14 +59,14 @@ theorem DB.munmap.wp_proof_none : DB.munmap.spec_none (GF := GF) (hG := hG) := b
   iframe
 
 /-- What `close` unmaps: nothing, or a mapping of the file at `p` with its cells. -/
-def closeMapRes (p : GoString) : MapSt → IProp GF
+def closeMapRes (p : BFile) : MapSt → IProp GF
   | none => iprop(emp)
   | some (b, l) => iprop(∃ (m : OsMeta) (vf : Nat → val), ⌜0 < l ∧ m.maps !! b = some l⌝ ∗
-      osMeta p (DFrac.own 1) (some m) ∗ cellsR b 0 l vf)
+      osMeta p.ino (DFrac.own 1) m ∗ cellsR b 0 l vf)
 
 /-- `db.munmap()` of what `close` unmaps: the fields cleared, the error formattable. -/
 theorem DB.munmap.wp_closeRes (hMunmap : DB.munmap.spec (GF := GF) (hG := hG))
-    (db : Loc) (lg : GoInterface) (ms : MapSt) (p : GoString) (hdb : db ≠ null) :
+    (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (hdb : db ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
         db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
         mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
@@ -116,7 +118,7 @@ and the file's resources are lost (what `close` leaves of them is no one's: the 
 closed, D9), and so is the error (`Open` ignores it, `DB.Close`'s post says nothing of it). -/
 abbrev DB.close.spec_owned : Prop :=
   ∀ (db : Loc) (lg : GoInterface) (dqr : DFrac) (fli : GoInterface) (wa : GoFunc) (s : GoString)
-    (ms : MapSt) (p : GoString) (f : Loc),
+    (ms : MapSt) (p : BFile) (f : Loc),
   db ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗ db.[DB, go!"readOnly"] ↦{dqr} false ∗
@@ -226,9 +228,9 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
       iintro %sl2 ⟨Hsl2, -⟩
       wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei -
       · iframe
-        simp only [fmt.argsOk]
+        fmt_args_intro
         isplitl
-        · iapply fmtErrorOk_argOk $$ HeS
+        · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
         · itrivial
       try wp_auto
       wp_apply wp_slice_literal
@@ -254,9 +256,9 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         iintro %sl2 ⟨Hsl2, -⟩
         wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei -
         · iframe
-          simp only [fmt.argsOk]
+          fmt_args_intro
           isplitl
-          · iapply fmtErrorOk_argOk
+          · fmt_arg_method; iapply fmtErrorOk_argOk
             iapply fmtErrorOkOrNil_ne (GoInterface.ok _) (fun h => nomatch h) $$ HeC
           · itrivial
         try wp_auto

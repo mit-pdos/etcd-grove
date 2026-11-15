@@ -26,13 +26,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `w.newWatcherStreamBufLogger(ws, now)` (a non-nil logger, `now` returning a time): a block
+/-- `w.newWatcherStreamBufLogger(ws, now)` (a zap logger, `zapLoggerOk`, premise fixes 6: until then a non-nil one; `now` returning a time): a block
 logger whose log function reads the request's key, range end and revision and the buffer's
 length (`wsLogA`) and logs them. -/
 abbrev watchGRPCStream.newWatcherStreamBufLogger.spec : Prop :=
   ∀ (wgs ws lg : Loc) (key ed : GoString) (nowf : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsF wgs go!"lg" ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗ wsReqF ws go!"key" ↦□ key ∗ wsReqF ws go!"end" ↦□ ed ∗
+      zapLoggerOk lg ∗ wsReqF ws go!"key" ↦□ key ∗ wsReqF ws go!"end" ↦□ ed ∗
       (□ ∀ Φ : val → IProp GF, ▷ (∀ t : _root_.Perennial.time.Time, Φ #t) -∗
         WP (App (Val #nowf) (Val #())) {{ Φ }}) }}
     (App (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"newWatcherStreamBufLogger")) (Val #ws)) (Val #nowf))

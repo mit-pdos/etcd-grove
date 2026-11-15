@@ -48,7 +48,7 @@ it has its receipt back and no session of it is open: the post gives the receipt
 abbrev EtcdServer.monitorStorageVersion.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γp : WTNames) (r : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM on s E ρ ∗ srvSVRes s E ∗ srvWTPool E γp ∗
+      isServerReqM on s E ρ ∗ srvLoggerOk s ∗ srvSVRes s E ∗ srvWTPool E γp ∗
       dghostVar γp.reg DFrac.discard (some r) ∗ ownToks r 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorStorageVersion")) (Val #()))
   {{ RET #(); ownToks r 1 }}

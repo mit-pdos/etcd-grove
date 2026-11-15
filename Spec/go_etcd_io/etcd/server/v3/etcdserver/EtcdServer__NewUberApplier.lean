@@ -32,14 +32,15 @@ contract (`uberIs`, `uberOwn`) in every environment `E` for which `apply.NewUber
 (`backendOptsOk E opts`), given after the call (unit N4, 2026-10-17: the environment's post-lock
 hook is installed after the call, `server.go:412`; until then `backendOptsOk` was a premise, at
 any `TxnModeWriteWithSharedBuffer` and with `RaftStatus`/`SnapshotServer` unconstrained, which no
-caller could discharge). The alarm store is the real one (`isAlarmStore a`: its `Get`). -/
+caller could discharge). The alarm store is the real one (`isAlarmStore a`: its `Get`). The logger
+is a zap logger (`apply.NewUberApplier.spec`'s; premise-fixes-6). -/
 abbrev EtcdServer.NewUberApplier.spec : Prop :=
   ∀ (s lg a cl : Loc) (kv au le ci be fg : GoInterface) (quota : w64)
     (wad : time.Duration) (dq : DFrac) (T : IProp GF) (z : Bool),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvLgAddr s ↦□ lg ∗ srvKVAddr s ↦□ kv ∗ srvAlarmStoreAddr s ↦□ a ∗
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvKVAddr s ↦□ kv ∗ srvAlarmStoreAddr s ↦□ a ∗
       srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗ srvClusterAddr s ↦□ cl ∗
       srvCIAddr s ↦□ ci ∗ srvBeAddr s ↦{dq} be ∗
       srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗

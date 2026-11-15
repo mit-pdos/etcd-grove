@@ -56,7 +56,7 @@ func TestCachedNoopPrecondition(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer kc.Close()
-	st, ok := seed(kc.Client)
+	st, _, ok := seed(kc.Client)
 	if !ok {
 		t.Fatal("seed failed")
 	}
@@ -67,9 +67,9 @@ func TestCachedNoopPrecondition(t *testing.T) {
 		t.Fatal(err)
 	}
 	steps := []Input{
-		{Kind: KGet, Key: "a"},
-		{Kind: KUpdate, Key: "a", NoOp: true},
-		{Kind: KUpdate, Key: "a", NoOp: true, UseCached: true, HasPreRV: true},
+		{Kind: KGet, Key: "ns-1/pod-1"},
+		{Kind: KUpdate, Key: "ns-1/pod-1", NoOp: true},
+		{Kind: KUpdate, Key: "ns-1/pod-1", NoOp: true, UseCached: true, HasPreRV: true},
 	}
 	var cached Obj
 	for i, in := range steps {
@@ -84,7 +84,7 @@ func TestCachedNoopPrecondition(t *testing.T) {
 			t.Fatalf("the store no longer answers the cached no-op past its precondition")
 		}
 		if i == 0 {
-			cached = Obj{Name: out.Name, UID: out.UID, Value: out.Value, ResourceVersion: out.RV}
+			cached = objOf(out)
 		}
 		st = next
 	}

@@ -69,13 +69,15 @@ def srvPeersCover (γs : ServerRaftNames) (lid : w64) (_A : List EntryModel) (pr
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
-members of raft's boot configuration, of fewer than `2 ^ 61` members (2026-10-31, the snapshot
+members of raft's boot configuration, of at most `2 ^ 20` members (raft-entsize [r3c],
+2026-11-09: the directory's bound, `NewServer`'s `Hdirps`, kept by static membership, D3; what
+bounds the merged snapshot's conf state; 2026-10-31 to then fewer than `2 ^ 61`, the snapshot
 track: what certifying a snapshot takes, `SnapListsOk`; until then at most `2 ^ 62`), and
 (2026-11-02, the cluster-rows stage) every voter is one of them (`srvMemCover`: what makes an
 attribute request of a voter's id a member's, `UpdateAttributes`' premise). -/
 def srvMemOk (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
   (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.cfg) ∧
-    GMap.size γs.raft.cfg < 2 ^ 61 ∧ srvMemCover γs c0 A
+    GMap.size γs.raft.cfg ≤ 2 ^ 20 ∧ srvMemCover γs c0 A
 
 /-- A normal entry keeps the members' ids. -/
 theorem restEntry_normal_memKeys (c0 : w64) (m : EntryModel) (r : apply.RestM) (ht : m.typ = W32 0)
@@ -317,7 +319,7 @@ theorem memBoot_cover (bootLog : List EntryM) (e : EntryM) (he : e ∈ bootLog) 
 /-- **The rest model's members at the start of a new cluster** are the boot peers (`srvBootLogOk`). -/
 theorem srvMemOk_boot (γs : ServerRaftNames) (c0 : w64)
     (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.cfg = GMap.listToSet ps)
-    (hnd : ps.Nodup) (hlen : (ps.length : Int) < 2 ^ 61) (hb : srvBootLogOk ps γs.raft.boot) :
+    (hnd : ps.Nodup) (hlen : ps.length ≤ 2 ^ 20) (hb : srvBootLogOk ps γs.raft.boot) :
     srvMemOk γs c0 [] := by
   unfold srvMemOk
   rw [hpre, List.append_nil, restModel_nil, hcfg]
@@ -428,7 +430,7 @@ def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
       (prs : trIds),
     srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
     srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-    srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+    srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
     membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γr.raft cl tl lid prs ∗
     ⌜srvPeersCover γr.raft lid A prs ∧ srvMemOk γr.raft γr.kv.c0 A⌝ ∗ srvDynLog γr.raft lid)
 
@@ -464,18 +466,17 @@ theorem srvApRes_trStop (s : Loc) (γr : ReadNames) (A : List EntryModel) :
   iexists tl, γn, c, prs
   iframe H3 Hl
 
-/-- (2026-10-31, #11) **Fewer than `2^61` voters** (`srvMemOk`'s bound), the resource kept. -/
+/-- (2026-10-31, #11) **At most `2^20` voters** (`srvMemOk`'s bound; raft-entsize [r3c],
+2026-11-09: until then fewer than `2^61`), the resource kept. -/
 theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
-    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg < 2 ^ 61⌝ := by
+    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg ≤ 2 ^ 20⌝ := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   isplitl
   · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 Hd
     iframe
-    isplitr
-    · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.1
 
@@ -483,14 +484,12 @@ theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
 theorem srvApRes_cover (s : Loc) (γr : ReadNames) (A : List EntryModel) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜srvMemCover γr.raft γr.kv.c0 A⌝ := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   isplitl
   · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 Hd
     iframe
-    isplitr
-    · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.2
 
@@ -506,13 +505,13 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
     (ht : m.typ = W32 0) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr (A ++ [m]) := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
   iframe Hmr
   iframe #
   ipureintro
-  refine ⟨H7, Hp.1, ?_, Hp.2.2.1, srvMemCover_normal _ _ A m ht Hp.2.2.2⟩
+  refine ⟨Hp.1, ?_, Hp.2.2.1, srvMemCover_normal _ _ A m ht Hp.2.2.2⟩
   intro k hk
   rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
   exact Hp.2.1 k hk
@@ -717,7 +716,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
         (prs : trIds),
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
         srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
         membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γs cl tl lid prs ∗
         ⌜(cm.type = W32 0 → cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
@@ -731,14 +730,12 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   iintro ⟨H, -⟩
   unfold srvApRes
   icases H with ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
-    %H7, #H8, Hmr, %Hp, #Hd⟩
+    #H7, #H8, Hmr, %Hp, #Hd⟩
   iunfold srvDynLog at Hd
   icases Hd with %Hl
   obtain ⟨h0, hin, -⟩ := hok
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-  iframe H1 H2 H3 H4 H5 H6 H8 Hmr
-  isplitr
-  · ipureintro; exact H7
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 Hmr
   isplitr
   · ipureintro
     refine ⟨fun _ hne => Hp.1 _ hin hne, fun h1 => ?_, fun _ => ?_, Hl⟩
@@ -768,7 +765,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   iframe #
   iunfold srvDynLog
   ipureintro
-  exact ⟨H7, ⟨Hp.1, hmem⟩, Hl⟩
+  exact ⟨⟨Hp.1, hmem⟩, Hl⟩
 
 end lemmas
 

@@ -5,7 +5,9 @@ only, whose `Done()` channel belongs to a `*cancelCtx` chain (`isContext`'s `HPa
 `valCtx` is none: its `Done()` is the package's never-closed `valCtxCh`, so Go's
 `propagateCancel` takes its last branch (a goroutine waiting on the parent's or the child's
 `Done()`), which Perennial's model does not cover. Its premise on `inctx` is `watchCtx` (2026-11-04,
-W1 of Q1 (b); `isContext` until then): the axiom's file says why any such context will do.
+W1 of Q1 (b); `isContext` until then): the axiom's file says why any such context will do. Since the
+context sweep's fixes (2026-11-13, `notes/ctx-sweep-fixes.md`) `watchCtx` includes `isContext`'s
+`Value(&cancelCtxKey)` triple, which `parentCancelCtx(&valCtx{inctx})` calls.
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -45,7 +47,11 @@ a `*cancelCtx`'s `Value` at a key other than `&cancelCtxKey` is its parent's (`c
 `cancelCtx.Value`); grpc's key is its own `mdOutgoingKey{}`. Consistent with the other axioms over
 `outgoingOf` by the convention recorded for them (`notes/axiom-review/withtimeout-outgoing.md`,
 "Remarks"): each returns an existential context, and no spec equates two of them. The general fix,
-a `Value` contract for Perennial's `WithCancel`, is in `notes/perennial-changes.md`. -/
+a `Value` contract for Perennial's `WithCancel`, is in `notes/perennial-changes.md`. Since premise
+fixes 8 (approved by etcd-grove-81) the post also gives the chain form `metadata.outgoingCtxOkC ctx'`:
+`ctx'` is a `*cancelCtx` whose parent `&valCtx{inctx}` is of a type outside `valueSpecialTypes` that
+promotes `inctx.Value`, so the chain is the `cancelCtx` link then the raw `valCtx` link, whose `Value`
+at grpc's key is `inctx`'s (`watchCtx`'s `"#HOut"`, in the WP form by `outgoingCtxOk_of_C`). -/
 abbrev context.WithCancelValCtx.spec : Prop :=
   ∀ (p : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗
@@ -58,7 +64,8 @@ abbrev context.WithCancelValCtx.spec : Prop :=
       RET (PairV #(interface.ok ctx') #cancel);
       context.cancelSpec cancel γ' iprop(True) ∗
       context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
-      ⌜metadata.outgoingOf (GoInterface.ok ctx') = metadata.outgoingOf (GoInterface.ok inctx)⌝ }}
+      ⌜metadata.outgoingOf (GoInterface.ok ctx') = metadata.outgoingOf (GoInterface.ok inctx)⌝ ∗
+      metadata.outgoingCtxOkC ctx' }}
 
 end spec
 

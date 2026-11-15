@@ -29,7 +29,7 @@ theorem EtcdServer.ReportSnapshot.wp_proof :
   intro γn γd s id x stt
   wp_start as #Hok
   iunfold srvProcOk at Hok
-  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
+  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
     #Hsi, #Hcok, %HN, -⟩
   iunfold rnStepIfc at Hsi
   icases Hsi with ⟨%ni, %Hni, -, -, #HRU⟩

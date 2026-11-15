@@ -28,6 +28,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 
 @[expose] public section
 
@@ -146,6 +147,62 @@ with `Pin` untouched. -/
 def guardOut1 (Pin : IProp GF) (Q : GoInterface → IProp GF) (err : GoInterface) : IProp GF :=
   iprop(Q err ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Pin))
 
+/-- **Why `Alarm`'s guard refused** (auth-guard-completeness G3): the authenticated class's reason for
+a get (`AlarmRequest_GET`), the admin class's otherwise (as `alarmTok`). -/
+def alarmWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) (act : w32)
+    (e : GoInterface) : IProp GF :=
+  if act = W32 0 then authedWhy M n ctx e else adminWhy s M n ctx e
+
+/-- **A guarded wrapper's outcome with the guard's reason** (auth-guard-completeness G3): the inner
+call's answer, or `nil` and an error with `Pin` untouched, the guard's error `e0` (`togRPCError`'s
+argument: `grpcErrOut`) refused for the reason `W e0`. -/
+def guardOutC (Pin : IProp GF) (Q : Loc → GoInterface → IProp GF) (W : GoInterface → IProp GF)
+    (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop(Q resp err ∨ (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ Pin ∗
+    ∃ e0 : GoInterface, ⌜e0 ≠ GoInterface.nil⌝ ∗ W e0 ∗ grpcErrOut (fun _ => True) e0 err))
+
+/-- **A guarded stream wrapper's outcome with the guard's reason** (`Snapshot`). -/
+def guardOut1C (Pin : IProp GF) (Q : GoInterface → IProp GF) (W : GoInterface → IProp GF)
+    (err : GoInterface) : IProp GF :=
+  iprop(Q err ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Pin ∗
+    ∃ e0 : GoInterface, ⌜e0 ≠ GoInterface.nil⌝ ∗ W e0 ∗ grpcErrOut (fun _ => True) e0 err))
+
+/-- The reason dropped. -/
+theorem guardOut_of_C (Pin : IProp GF) (Q : Loc → GoInterface → IProp GF)
+    (W : GoInterface → IProp GF) (resp : Loc) (err : GoInterface) :
+    guardOutC Pin Q W resp err ⊢ guardOut Pin Q resp err := by
+  unfold guardOutC guardOut
+  iintro (HQ | ⟨%h, HP, -⟩)
+  · ileft; iexact HQ
+  · iright; iframe HP; ipureintro; exact h
+
+theorem guardOut1_of_C (Pin : IProp GF) (Q : GoInterface → IProp GF) (W : GoInterface → IProp GF)
+    (err : GoInterface) : guardOut1C Pin Q W err ⊢ guardOut1 Pin Q err := by
+  unfold guardOut1C guardOut1
+  iintro (HQ | ⟨%h, HP, -⟩)
+  · ileft; iexact HQ
+  · iright; iframe HP; ipureintro; exact h
+
+/-- The guard's branch. -/
+theorem guardOutC_guard (Pin : IProp GF) (Q : Loc → GoInterface → IProp GF)
+    (W : GoInterface → IProp GF) (e0 e : GoInterface) (he0 : e0 ≠ GoInterface.nil)
+    (he : e ≠ GoInterface.nil) :
+    Pin ∗ W e0 ∗ grpcErrOut (fun _ => True) e0 e ⊢ guardOutC Pin Q W null e := by
+  unfold guardOutC
+  iintro ⟨HP, HW, Hg⟩
+  iright; iframe HP; isplitr
+  · ipureintro; exact ⟨rfl, he⟩
+  iexists e0; iframe HW Hg; ipureintro; exact he0
+
+theorem guardOut1C_guard (Pin : IProp GF) (Q : GoInterface → IProp GF) (W : GoInterface → IProp GF)
+    (e0 e : GoInterface) (he0 : e0 ≠ GoInterface.nil) (he : e ≠ GoInterface.nil) :
+    Pin ∗ W e0 ∗ grpcErrOut (fun _ => True) e0 e ⊢ guardOut1C Pin Q W e := by
+  unfold guardOut1C
+  iintro ⟨HP, HW, Hg⟩
+  iright; iframe HP; isplitr
+  · ipureintro; exact he
+  iexists e0; iframe HW Hg; ipureintro; exact he0
+
 /-- **The server's `Compact`, guarded** (`kvServer.Compact`'s inner call; the file header): with
 the token `adminRes` of the request's auth info, the caller's `Pin` and the reader resource,
 answering as the KV contracts do: `nil` and a non-null response whose header `hdrW`/`hdrRevIn`
@@ -176,6 +233,29 @@ def compactOut (A : KVAns GF) (cid mid : w64) (Pin : IProp GF) (Q : Loc → IPro
       structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦□ h ∗
       hdrFilled h cid mid ∗ hdrRevOut A.revR h rv rv' ∗ Q resp) ∨
     (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ (Q null ∨ Pin)))
+
+/-- **`kvServer.Compact`'s outcome with the guard's reason** (auth-guard-completeness G3):
+`compactOut`, the guard's branch with its error `e0` (`togRPCError`'s argument) refused for the reason
+`W e0`. -/
+def compactOutC (A : KVAns GF) (cid mid : w64) (Pin : IProp GF) (Q : Loc → IProp GF)
+    (W : GoInterface → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+      structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦□ h ∗
+      hdrFilled h cid mid ∗ hdrRevOut A.revR h rv rv' ∗ Q resp) ∨
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ (Q null ∨ (Pin ∗
+      ∃ e0 : GoInterface, ⌜e0 ≠ GoInterface.nil⌝ ∗ W e0 ∗ grpcErrOut (fun _ => True) e0 err))))
+
+/-- The reason dropped. -/
+theorem compactOut_of_C (A : KVAns GF) (cid mid : w64) (Pin : IProp GF) (Q : Loc → IProp GF)
+    (W : GoInterface → IProp GF) (resp : Loc) (err : GoInterface) :
+    compactOutC A cid mid Pin Q W resp err ⊢ compactOut A cid mid Pin Q resp err := by
+  unfold compactOutC compactOut
+  iintro (H | ⟨%h, (HQ | ⟨HP, -⟩)⟩)
+  · ileft; iexact H
+  · iright; iframe HQ; ipureintro; exact h
+  · iright; isplitr
+    · ipureintro; exact h
+    · iright; iexact HP
 
 /-- **An error `togRPCError` can take, from the apply package's facts** (`ServerKV.lean`'s
 `srvErrIs_of_applyErrIs`, whose module the handlers' specs do not import). -/

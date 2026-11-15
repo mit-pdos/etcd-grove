@@ -146,23 +146,23 @@ variable [sem : go.Semantics]
 
 /-- **The store's write resource but the halves** (see the file header): the store's half of `be`
 with the backend's write contract, and the write token. -/
-def authWB (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) : IProp GF :=
-  iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
+def authWB (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) : IProp GF :=
+  iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T Wb) ∗
     T)
 
 /-- The write resource with exposed halves is `authWB` with the halves. -/
-theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
+theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) (b : Bool)
     (sc : AuthState) :
-    authWRx (GF := GF) st M P f T b sc ⊢
-      authWB st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc := by
+    authWRx (GF := GF) st M P f T Wb b sc ⊢
+      authWB st M P f T Wb ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc := by
   unfold authWRx authWB
   iintro ⟨Hbe, HT, Hfl, #Hev, Hca, #Hs⟩
   iframe Hbe HT Hfl Hev Hca Hs
 
-theorem authWRx_join (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
+theorem authWRx_join (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) (b : Bool)
     (sc : AuthState) :
-    authWB (GF := GF) st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗
-      authSnap M sc ⊢ authWRx st M P f T b sc := by
+    authWB (GF := GF) st M P f T Wb ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗
+      authSnap M sc ⊢ authWRx st M P f T Wb b sc := by
   unfold authWRx authWB
   iintro ⟨⟨Hbe, HT⟩, Hfl, #Hev, Hca, #Hs⟩
   iframe Hbe HT Hfl Hev Hca Hs

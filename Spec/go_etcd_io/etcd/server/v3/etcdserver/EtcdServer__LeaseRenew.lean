@@ -7,6 +7,9 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Code.net.http
+public import Proof.context.LibKeys
+public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -31,7 +34,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.LeaseRenew(ctx, id)`**, any goroutine, at a context, with the server's facts and the key
 check's resources (`LeaseTimeToLive.spec`'s), reader slots of the logger's lock and of the read
 loop's (`srvLgReader`, `srvReadReader`: `ensureLeadership`'s, and an unexpected error of the
-forwarding's context is logged), and the server's peer round tripper (`peerRt`, a
+forwarding's context is logged; `ensureLeadership` is called at level 0, its token returned before
+the check and `Renew` borrow from the level-0 pools), and the server's peer round tripper (`peerRt`, a
 `*http.Transport`: `NewServer` stores the bootstrap's `rafthttp.NewRoundTripper` one; a premise,
 as no construction spec states the field yet): on `nil`, a TTL and the renewal's key check passed
 (the last `checkLeaseRenew`'s: auth disabled at a state no older than `n`, or the principal an
@@ -45,20 +49,31 @@ unchecked (as `LeaseTimeToLive`'s, `issues/etcd-lease-timetolive-keys-toctou.md`
 the local lessor, which may lag the lessor that renews: a follower's, the leader's
 (`nonissues/etcd-lease-renew-keys-follower-lag.md`), and the leader's own with `FastLeaseKeepAlive`
 and the lease found, which skips `waitAppliedIndex` (entries committed but not yet applied). The
-revision re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
+revision re-check is not stated (`checkLeaseRenew.spec`'s margin).
+(k8s 7f-4, Addendum T-h0) The context holds nothing at net/http's keys, in the chain form
+(`http.netCtxOkC ctx`), which `Tracer.Start` and `WithTimeout` carry to the context `RenewHTTP`
+takes (`http.netCtxOk`). (k8s 7f-4, Addendum T-k: T-h4's form, pulled into T-k, decided by
+etcd-grove-81 with the user's approval, 2026-11-13) The context may be a stream handler's weak one
+(`srvCtxWeak`, the caller lending `levelTok v3rpc.ctxErrLvl`, returned): `Tracer.Start` keeps it weak,
+and the forwarding's `context.WithTimeout` child is `v3rpc.wp_WithTimeout_weak`'s; its causes are
+context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`, carried to the child, which `RenewHTTP`
+takes). The child's `Err()` may then be `ErrGRPCNoLeader` (or, read twice, `nil` the second time in
+the model), so the switch's default arm is reachable: it logs "Unexpected lease renew context error"
+and returns `ErrCanceled`. -/
 abbrev EtcdServer.LeaseRenew.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ctx ∗
+      http.netCtxOkC ctx ∗ v3rpc.ctxCauseOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       srvPeerRt s }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); E.RD ∗
-      threadTok ∗ srvLgReader s ∗ srvReadReader s γr ∗
+      levelTok lease.lessorLvl ∗ levelTok v3rpc.ctxErrLvl ∗ srvLgReader s ∗ srvReadReader s γr ∗
       ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E (GoInterface.ok ctx) n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}

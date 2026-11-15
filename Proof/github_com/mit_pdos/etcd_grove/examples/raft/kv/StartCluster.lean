@@ -293,7 +293,7 @@ theorem StartCluster.wp_proof
   -- receipts), then the store's invariant from the client's share, with the client's half of the
   -- store's state and the sequence-number tokens, and the store's registry of the snapshots made
   imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) (by omega)
-    with ⟨%γr, ⟨-, %Hsl0, %Hbl0, %Htr0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
+    with ⟨%γr, ⟨-, %Hsl0, %Hbl0, %Htr0, %Hmd0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γr.cluster kvRaftN $$ []
   · iapply readyFits_intro (GF := GF) γr.cluster kvRaftN (by rw [Hbl0]; omega)
@@ -339,14 +339,14 @@ theorem StartCluster.wp_proof
     · iframe Hvsl; ipureintro; exact Hid0
     wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
       as %st ⟨%ms, %γs, #Hrec, #Hvoters, #Hml, #Hmlog, Hmend, Hmsnap, -, Hfresh⟩
-    imod memSnapNone_open γs $$ Hmsnap with #Hsnap0
+    imod memSnapNone_open_empty γs $$ Hmsnap with #Hsnap0
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave Hboot := kvStorage_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex
       wp_Term wp_Entries st ms γs vsl clusterIds γr.cluster
-      (fun K => memStorInvP ms γs (kvJ γr.cluster K)) Htr0
+      (fun K => memStorInvP ms γs (kvJ γr.cluster K)) Htr0 Hmd0
       $$ Hpkg Hrec Hvoters Hvsl Hml Hfresh Hmlog Hmend []
     · iintro %K Hi; iexact Hi
     ihave Hau := kv_restartAu γr.cluster kvRaftN id0 kvBootContents kvBoot_holds $$ [HrS]
@@ -365,7 +365,7 @@ theorem StartCluster.wp_proof
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
-      rfl (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
+      rfl (fun h => absurd Hmd0 h) (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) kvConfState_is rfl Htr0)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
@@ -405,6 +405,8 @@ theorem StartCluster.wp_proof
       · ipureintro; rw [Hsl0]
       isplitr
       · ipureintro; exact Htr0
+      isplitr
+      · ipureintro; exact Hmd0
       ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
@@ -513,6 +515,9 @@ theorem StartCluster.wp_proof
       simp only [HMl, HSl, Option.getD_some]
       wp_apply (wp_New γr id0 n st _ K) $$ [Hnode HrS Hcfg Hrun Hseq]
       · iframe Hreg HisNode Hnode HrS Hcfg Hrun Hkc Hsrec Hseq Hrs
+        isplitr
+        rotate_left
+        · ipureintro; exact Hmd0
         unfold sendSpec
         imodintro
         iintro %src %msl %ms %Φ'

@@ -44,12 +44,12 @@ Where a method's class depends on the request's fields, both are listed. "Keys" 
 | `RoleAdd`, `RoleDelete`, `RoleGrantPermission`, `RoleRevokePermission`, `RoleList` | admin | apply, `needAdminPermission` |
 | `UserGet` | admin, or the user itself (`r.Name == authInfo.Username`) | apply, `authApplierV3.UserGet` |
 | `RoleGet` | admin, or a role the user has (`HasRole`) | apply, `authApplierV3.RoleGet` |
-| **Lock** `Lock` | the class of the calls it makes with the caller's context: `LeaseGrant` (authenticated), then the `concurrency.Mutex`'s `Txn`/`Put`/`Get`/`Watch` on the lock's prefix (RBAC write and read of `<name>/<lease>` and the prefix) | `v3lock/lock.go` through the embedded client |
+| **Lock** `Lock` | the class of the calls it makes with the caller's context: `LeaseGrant` (authenticated), then the `concurrency.Mutex`'s `Txn`/`Put`/`Get` on the lock's prefix (RBAC write and read of `<name>/<lease>` and the prefix), as the caller; its `Watch` (waiting for predecessors) **not as the caller** at the pin: the in-process client's watches share one stream (stream key `""`), opened with the first waiting caller's context, whose token the watch server checks every create against (etcd-io/etcd#17502, `issues/etcd-v3election-shared-watch-wrong-user.md`) | `v3lock/lock.go` through the embedded client |
 | `Unlock` | RBAC write `Key` (`Delete`) | `v3lock/lock.go` |
-| **Election** `Campaign` | as `Lock`: `LeaseGrant`, then `Txn`/`Put`/`Get`/`Watch` on the election's prefix | `v3election/election.go` |
+| **Election** `Campaign` | as `Lock`: `LeaseGrant`, then `Txn`/`Put`/`Get` on the election's prefix as the caller, and its `Watch` as the shared in-process stream's opener, not the caller (`issues/etcd-v3election-shared-watch-wrong-user.md`) | `v3election/election.go` |
 | `Proclaim` | RBAC write the leader key (`Txn` with `Put`) and read it | `v3election/election.go` |
 | `Leader` | RBAC read the prefix | `v3election/election.go` |
-| `Observe` (stream) | RBAC read the prefix (`Get`, `Watch`) | `v3election/election.go` |
+| `Observe` (stream) | RBAC read the prefix: `Get` as the caller, `Watch` as the shared in-process stream's opener (`issues/etcd-v3election-shared-watch-wrong-user.md`) | `v3election/election.go` |
 | `Resign` | RBAC write the leader key (`Txn` with `Delete`) | `v3election/election.go` |
 
 Counting: KV 6, Watch 1, Lease 5, Cluster 5, Maintenance 8, Auth 17, Lock 2, Election 5: 49.
@@ -277,7 +277,12 @@ client calls the table names, with the request's context, over the server's clie
 on `name/`; `Unlock`: the delete of the request's key; `Campaign` and `Leader`: an election on
 `name/`; `Proclaim` and `Resign`: the request's leader key (any key the caller names). `Observe` is
 translated, not proved. The class becomes the server's handlers' checks once the in-process client
-(`v3client.New(s)`) is shown to meet the contract (not translated yet).
+(`v3client.New(s)`) is shown to meet the contract (not translated yet). (2026-11-14) For the
+watches it does not, at the pin: the contract (`isEtcdRangeWatcher`) names no principal, and the
+in-process client shares one watch stream among all callers, opened with the first caller's context,
+so a waiting `Lock`/`Campaign`/`Observe`'s watch is checked as another user (etcd-io/etcd#17502,
+`issues/etcd-v3election-shared-watch-wrong-user.md`; reproduced at the pin). No result states the caller's principal for these
+services; the unary calls run as the caller only by the client contract's reading, not by a theorem.
 
 
 ## What is proved of the table (S5c in part, the simple provider's token check, 2026-10-25)
@@ -294,7 +299,8 @@ on the check (`tokenSimple_info_ctx`). The provider still is not shown to meet t
 The binding every row's principal rests on (`tokIssued`) now holds of etcd's default provider in
 `on γa`: `tokenSimple_okA` (`auth/TokenSimpleAdmin.lean`) proves the simple provider meets the
 contract, with `enable`/`disable`/`invalidateUser` from the admin side's share (`tpAdmin`), over two
-hypotheses (`ValidSpec`, `info`'s context; `RunSpec`, the TTL keeper's goroutine). The admin rows
+hypotheses (`ValidSpec`, `info`'s context, deleted by auth-schema-fix S1 on 2026-11-12, false of a nil
+context: `notes/auth-validspec-false.md`; `RunSpec`, the TTL keeper's goroutine). The admin rows
 that call the provider (`AuthEnable`, `AuthDisable`, `UserDelete`, `UserChangePassword`) take
 `tpAdmin` with their write resource (`notes/decisions.md`, "S5d of the auth plan").
 
@@ -303,6 +309,6 @@ that call the provider (`AuthEnable`, `AuthDisable`, `UserDelete`, `UserChangePa
 The binding every row's principal rests on: the simple token provider (etcd's default) is proved to
 meet the token contract with `info`'s context premise in the mode `on γa` with no hypothesis
 (`token_simple_ok`, the server's `Results.lean`), and its constructor (`token_simple_new`). The
-generic contract the store's invariant holds keeps `ValidSpec`; nothing produces the provider in the
+generic contract the store's invariant holds keeps `ValidSpec` (deleted since, auth-schema-fix S1); nothing produces the provider in the
 store yet (`NewAuthStore`, an axiom) (`notes/decisions.md`, "S5e of the auth plan").
 

@@ -32,7 +32,7 @@ theorem leasingKV.Put.wp_proof
     (hput : leasingKV.put.spec (GF := GF) (hG := hG)) :
     leasingKV.Put.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key val sl gs top lo
-  wp_start as ⟨#Hlkv, Htok, #Hctx, #Hcc, #Hopts, #Hlo, %Hpre⟩
+  wp_start as ⟨#Hlkv, Htok, #Hctx, #HctxC, #Hcc, #Hopts, #Hlo, %Hpre⟩
   iapply fupd_wp
   imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
   · iframe #; iframe
@@ -46,7 +46,7 @@ theorem leasingKV.Put.wp_proof
   · ipureintro; exact Hpan
   (try wp_auto)
   wp_apply (hput lkv γ pfx ctx cs opv (opPutModel key val gs) top lo)
-    $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo] as %pr %err ⟨Hrd, Hres⟩
+    $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo] as %pr %err ⟨Hrd, Hres⟩
   · ipureintro; exact ⟨Ht, Htop⟩
   imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
   · iframe #; iframe

@@ -1,15 +1,16 @@
 # bboltfs: the acceptance test of the Linux file extension
 
 The least code that exercises every rule of the Linux file extension
-(`GooseLang/Ext/OsFs/Impl.lean`, `notes/osfs-ext-plan.md`) that bbolt reaches. That code is
+(`GooseLang/Ext/Fs/Impl.lean`, `notes/fs-semantics-v2.md`) that bbolt reaches. That code is
 **minibolt** (`minibolt.go`), a two-meta-page store, and three programs over it. The OS calls
 are bbolt's own (`bolt_unix.go`, `bolt_linux.go`, `db.go`, `tx.go` of the fork
 `upamanyus/bbolt` `goose`), with bbolt's flags. The extension is good enough to approach bbolt
 when the three programs are proved.
 
-The trusted definitions themselves are checked by `GooseLang/Ext/OsFs/Tests.lean`. Those are
+The trusted definitions themselves are checked by `GooseLang/Ext/Fs/Tests.lean`. Those are
 lemmas about the step and crash relations: misuse is stuck, a crash may lose an unsynced byte
-and keeps a synced one, and so on. `linux_test.go` checks the Linux facts the model rests on
+and keeps a synced one, and so on; `examples/osfs/semantics/` explains each rule with a Go
+example. `linux_test.go` checks the Linux facts the model rests on
 where they are not obvious.
 
 ## The programs
@@ -18,7 +19,7 @@ where they are not obvious.
 |---|---|---|
 | `testMinibolt` (`programs.go`) | `{{ True }} testMinibolt(dir) {{ RET true }}` | the sequential rules: OpenFile (O_RDWR\|O_CREATE), Flock, Stat, init's WriteAts and Fdatasyncs, Mmap (longer than the file) and Madvise, metas read through unsafe views of the mapping, a commit's WriteAt seen through the mapping, the remap (Munmap, then a larger Mmap), the grow (Truncate, then Sync), Close, then Open again, whose page-size read uses ReadAt before the mapping |
 | `testMiniboltConcurrent` (`programs.go`) | the same | a `Get` and a `Snapshot` reader while the writer commits. The mapped loads are disjoint from the writer's in-flight changes. `Snapshot` (tx.go's `WriteTo`) copies the file with ReadAt up to the page the next commit writes, so the copy races that WriteAt, the Truncate and the meta WriteAt. Only the pages of its own transaction are claimed |
-| `BootMinibolt` (`minibolt.go`) | its panics never fire, however often the node crashes | the crash relation: unsynced bytes, bytes lost by a failed sync, a file created since boot, a size not yet durable |
+| `BootMinibolt` (`minibolt.go`) | its panics never fire, however often the node crashes | the crash relation: each unsynced byte any of its crash candidates (old, or a value a write since the last sync gave it, torn writes included), a file created since boot, a size not yet durable |
 
 A program's claim is about the runs with no environmental failure. The model lets any system
 call fail, and a program then stops and returns true (`envFailure`).
@@ -35,11 +36,14 @@ transactions under bbolt's locks. It differs from bbolt in two places, both bbol
   `issues/bbolt-commit-meta-error-frees-reader-pages.md`). minibolt marks the handle failed and
   refuses every later transaction.
 
-**The premise of the crash property, P1: no checksum collision on a torn meta (plan D1).** A
-meta slot is the 64 bytes at offset 16 of page 0 or 1. At a crash, take a slot some of whose
-bytes the crash relation makes arbitrary. If the image's 64 bytes there pass `Validate`
-(`magic` and `version` match, and `checksum` is the FNV-64a of the first 56 bytes), then they
-equal the meta of the last `WriteAt` to that slot, or the slot's durable bytes.
+**The premise of the crash property, P1: no checksum collision on a torn meta**
+(`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`). A meta slot is the 64
+bytes at offset 16 of page 0 or 1. A crash may leave each of its bytes any of its candidates, so a
+slot may come back as a byte-wise mix of two states (a torn write). P1: if the crash image's slot
+passes `Validate` (`magic` and `version` match, and `checksum` is the FNV-64a of the first 56 bytes),
+then it is the slot as of one change. For minibolt's runs this removes no real crash: between two
+syncs a slot holds one of two states, and no mix of such a pair validates except the two states
+(enumerated, `notes/axiom-review/fs-final/p1mix/`).
 
 ## What is not exercised
 

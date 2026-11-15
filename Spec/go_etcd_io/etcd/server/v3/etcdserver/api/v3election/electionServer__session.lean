@@ -31,7 +31,7 @@ to expire), or no session and an error. -/
 abbrev electionServer.session.spec : Prop :=
   ∀ (es c : Loc) (lease : w64) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
-      isElectionServer es c ∗ electionClientOk c ∗ context.isContext ctx cs ∗
+      isElectionServer es c ∗ electionClientOk c ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
       context.isCancelCtxCtx ctx cs }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"session"))
       (Val #(GoInterface.ok ctx))) (Val #lease))

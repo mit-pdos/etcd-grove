@@ -7,6 +7,7 @@ so those callers read as before. See `Spec/.../mvcc/store__restore.lean` for the
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 
 @[expose] public section
@@ -48,7 +49,7 @@ abbrev mvcc.store.restore.specNC : Prop :=
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
       mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗
+      zapLoggerOk lg ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP ∗
       mvcc.revLockW s q2 RevP RevK ∗
@@ -88,7 +89,7 @@ abbrev mvcc.store.restore.specNCc : Prop :=
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
       mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗
+      zapLoggerOk lg ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP ∗
       mvcc.revLockW s q2 RevP RevK ∗
@@ -117,8 +118,9 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
     mvcc.store.restore.specNC (GF := GF) (hG := hG) := by
   intro s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP RevK RevQ dqc
     q1 q2 γl Ls hR hq12
-  iintro %Φ ⟨#Hpkg, Hb, #Hbk, Hrt, Hnc, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
+  iintro %Φ ⟨#Hpkg, Hb, #Hbk, Hrt, Hnc, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, #Hlgnn, Hcur1, Hcmp,
     HRevP, HLk, HUl, HLs⟩ HΦ
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   have hrec : mvcc.recsOk ([[], []] ++ R) mvcc.CmpRecs.empty := by
     unfold mvcc.recsOk mvcc.CmpRecs.empty
     refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
@@ -170,7 +172,7 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
       (if R = [] then A else B) from fun A B => by by_cases h : R = [] <;> simp [h]]
     iframe Hpkg Hb Hbk' Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk HLs
     isplitl []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     ileft; ipureintro; first | rfl | trivial
   iintro !> H
   iapply HΦ
@@ -183,8 +185,9 @@ set_option maxHeartbeats 800000 in
 theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.specNCc (GF := GF) (hG := hG) := by
   intro s γ b le ti lg q RT dqb dqi R RevP RevK RevQ dqc q1 q2 γl Ls hR hq12
-  iintro %Φ ⟨#Hpkg, Hb, Hrt, Hnc, Hview, #Hcr, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
+  iintro %Φ ⟨#Hpkg, Hb, Hrt, Hnc, Hview, #Hcr, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, #Hlgnn, Hcur1, Hcmp,
     HRevP, HLk, HUl, HLs⟩ HΦ
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   have hrec : mvcc.recsOk ([[], []] ++ R) mvcc.CmpRecs.empty := by
     unfold mvcc.recsOk mvcc.CmpRecs.empty
     refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
@@ -234,7 +237,7 @@ theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := G
       iframe H1 H2 H3
     iframe Hpkg Hb Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk HLs
     isplitl []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     ileft; ipureintro; first | rfl | trivial
   iintro !> H
   iapply HΦ

@@ -31,7 +31,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`quotaLeaseServer.LeaseGrant` meets the embedded service's spec**, with the quota check's
-reader slots (`quotaRd`, from its spec). -/
+reader slots (`quotaRd`, from its spec); the inner `LeaseGrant` is handed the check's `lgMu` reader
+with `S` (per-type stage B3). -/
 theorem v3rpc.quotaLease_grantHandlerOk_of
     (wp_Grant : v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
@@ -39,7 +40,7 @@ theorem v3rpc.quotaLease_grantHandlerOk_of
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaLeaseServerAt q ls s ∗
-        grpcHandlerOwnOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ⊢
+        grpcHandlerOwnOk #(methods ls.ty go!"LeaseGrant" ls.v) iprop(S ∗ srvLgReader s) Spec ⊢
       grpcHandlerOwnOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩

@@ -46,7 +46,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 `isTreeIndex`), its `RWMutex` unlocked private memory, the tree and its key indexes owned. -/
 def ownIdxPriv (ti : Loc) (L : List IdxEntry) : IProp GF :=
   iprop(∃ (t lg : Loc), ti.[treeIndex, go!"tree"] ↦□ t ∗ ti.[treeIndex, go!"lg"] ↦□ lg ∗
-    ⌜lg ≠ null⌝ ∗ idxMuAddr ti ↦ rwZero ∗ ownTree t L 1)
+    zapLoggerOk lg ∗ idxMuAddr ti ↦ rwZero ∗ ownTree t L 1)
 
 /-- **The index lock's ghost part, before the lock exists** (`newTreeIndex` makes it; the rebuild
 advances it and puts it in the lock it makes): the events' count's authority at `n`, the
@@ -81,7 +81,8 @@ theorem idx_publish (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
         idxReader ti γ) := by
   iintro Hix Hg #Hw
   iunfold ownIdxPriv at Hix
-  icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
+  icases Hix with ⟨%t, %lg, #Htree, #Hlg, #Hlgnn, Hmu, Htr⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold idxLockG at Hg
   icases Hg with ⟨Hnauth, #Hclb, ⟨%log₀, #Hllb⟩, Hcmp⟩
   iunfold idxWriterLb at Hw
@@ -113,7 +114,6 @@ theorem idx_publish (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
     iexists t, lg
     simp only [named]
     iframe #
-    ipureintro; exact Hlgnn
   rw [← List.replicate_succ]
   iapply idxReaders_of_toks ti t γ (m + 1)
   isplitl []
@@ -169,7 +169,8 @@ theorem idx_publishAt (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
         idxReader ti γ) := by
   iintro Hix Hg #Hw
   iunfold ownIdxPriv at Hix
-  icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
+  icases Hix with ⟨%t, %lg, #Htree, #Hlg, #Hlgnn, Hmu, Htr⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold idxLockGAt at Hg
   icases Hg with ⟨Hnauth, #Hclb, ⟨%log₀, #Hllb, %Hl0⟩, Hcmp⟩
   iunfold idxWriterLb at Hw
@@ -201,7 +202,6 @@ theorem idx_publishAt (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
     iexists t, lg
     simp only [named]
     iframe #
-    ipureintro; exact Hlgnn
   rw [← List.replicate_succ]
   iapply idxReaders_of_toks ti t γ (m + 1)
   isplitl []

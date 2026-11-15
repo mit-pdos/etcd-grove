@@ -102,6 +102,7 @@ backend is one storage, `mvcc/EtcdBackend.lean`): `MvccStorage`, `storageVal`, `
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
@@ -407,11 +408,13 @@ instance storageReq_persistent (B : MvccStorage) (Pk X Y : IProp GF) :
     Persistent (storageReq (GF := GF) B Pk X Y) := by
   unfold storageReq; infer_instance
 
-/-- The `WatchResponse` value `v` is the response `r`. -/
+/-- The `WatchResponse` value `v` is the response `r`; its events are the receiver's own copies
+(`evOwn`: their fields read-only, their `PrevKv` fields owned; k8s 7f-3b, `newWatcherBatch` copies
+each event per watcher, and v3rpc's `sendWatch` writes `PrevKv`). -/
 def wrespIs (v : WatchResponse) (r : WResp) : IProp GF :=
   iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
     ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
-      [∗list] x ∈ ps.zip r.evs, evIs x.1 x.2)
+      [∗list] x ∈ ps.zip r.evs, evOwn x.1 x.2)
 
 /-- A compaction's channel: receiving on it does not panic. -/
 def compactChanOk (ch : GoChan) : IProp GF :=
@@ -754,7 +757,10 @@ the stream's: closed, unchanged (`ErrEmptyWatcherRange`); open, a watcher regist
 id, of the range, filtered by `fs`, from `watchLo σ startRev`, after the `k` responses sent so far,
 live. The update is asked only for a non-empty range (`⌜empty⌝ ∨ au`: the range check is `Watch`'s
 first statement, before the lock, `watcher.go` l.118-120; mvccfull's Freeze, 2026-11-10: until then
-`au` was asked always and handed back unused on an empty range). -/
+`au` was asked always and handed back unused on an empty range). The context: `context.TODO()` or
+one whose span is a span (`trace.spanCtxOk`; `Watch` reads only `trace.SpanFromContext(ctx)`; k8s
+7f-4, Addendum T-g: no `isContext`, the binder `cd` kept, so that etcd's stream handlers may pass a
+weak context). -/
 abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ι : WsName) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key endk fcs : GoSlice) (kk e : List w8) (fs : List (EvM → Bool)) (startRev : w64)
@@ -769,7 +775,7 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
       COMM Q σ S id }>)
   {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ mvccReaders γ 1 ∗
       (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨
-        (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) ∗
+        trace.spanCtxOk ctx) ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗
       (⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∨ au) }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
@@ -924,7 +930,9 @@ abbrev txnReadWrite.End.spec : Prop := ∀ t : Loc, Txn.End.contract (GF := GF) 
 abbrev watchStream.Watch.spec : Prop := ∀ w : Loc, WatchStream.Watch.contract (GF := GF) PWS #w
 -- (and likewise `Chan`, `RequestProgress`, `RequestProgressAll`, `Cancel`, `Close`, `Rev`)
 
-/-- **`mvcc.New(lg, be, le, cfg)`** over a storage `B` holding the history `σ.log` compacted at
+/-- **`mvcc.New(lg, be, le, cfg)`**, the logger nil (Go replaces it by `zap.NewNop()`) or a zap logger
+(`zapLoggerOrNil`; premise fixes 6, D2b, the user's approval 2026-11-11: until then any logger, and
+a zero `zap.Logger` reached `s.lg.Info`), over a storage `B` holding the history `σ.log` compacted at
 `σ.crev`, recording an unfinished compaction iff `u` (`mvccStorageFor`, from the storage's
 provider: `etcdStorage_open.law` at an image, a fresh file's `mvccImage_fresh.law` or a stopped
 store's `mvccImage_stop.law`): the watchable store at the state `σ` (nothing pending, reachable),
@@ -954,6 +962,8 @@ abbrev New.spec : Prop :=
     (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      -- (premise fixes 6, D2b) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil lg ∗
       mvccStorageFor B Pk σ.log σ.crev u ∗
       ⌜batchLimitOk cfg.CompactionBatchLimit' ∧ MvccReachable σ ∧ σ.pending = none⌝ ∗
       lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗
@@ -982,6 +992,8 @@ abbrev NewStore.spec : Prop :=
     (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      -- (premise fixes 6, D2b) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil lg ∗
       mvccStorageFor B Pk σ.log σ.crev u ∗
       ⌜batchLimitOk cfg.CompactionBatchLimit' ∧ MvccReachable σ ∧ σ.pending = none⌝ ∗
       lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗

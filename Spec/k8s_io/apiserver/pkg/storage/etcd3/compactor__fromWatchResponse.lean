@@ -6,11 +6,14 @@ counterpart).
 
 `resp.Err()` (an error response: its error); no event: `0`; else the last event's value parsed
 (`ParseInt`, its error on failure). On success the revision is a compaction revision (`recRevOk`):
-the response's events hold `keyValOk` values (`respKeyOk`, from the watch's read update).
+the response's events hold `keyValOk` values (`respKeyOk`, from the watch's read update). The error
+is one `fmt` formats by its `Error()` (`fmt.argOk`: `Err`'s, of a close error grpc's `status`
+accepts; klog-args-fix, 2026-11-14, for the caller's `klog.Errorf`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -38,7 +41,7 @@ abbrev compactor.fromWatchResponse.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"fromWatchResponse")) (Val #v))
   {{ (cr : w64) (err : GoInterface), RET (PairV #cr #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ recRevOk γk recorded cr) }}
+      (fmt.argOk err ∗ ⌜err ≠ GoInterface.nil⌝) ∨ (⌜err = GoInterface.nil⌝ ∗ recRevOk γk recorded cr) }}
 
 end spec
 

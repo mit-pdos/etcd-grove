@@ -6,7 +6,7 @@ The one-member examples (`putget`, `compacted`, `compactwatch`, `lease`, `leaseg
 `cache`, `txnlin`, `k8s/etcd3`) each defined the same two things, at their own configuration: `BootFacts`, `bootstrap`'s result for
 the member as Go computes it, and `premises`, the named Iris premises of their `Main` (`bootstrap`'s
 contract at the configuration, `proto.Marshal`'s at the bootstrap log, the raft wrapper's
-trust-boundary contracts, the deployment's `runsNoRequireLeader`; `compactwatch/Defs.lean`'s
+trust-boundary contracts (until 2026-11-13 also the deployment's `runsNoRequireLeader`); `compactwatch/Defs.lean`'s
 header says what each is). Here they are once, at the shared start's configuration of the member
 `name` and its two addresses (`cfgOk name name`, `urls1`, `Defs.lean`; the directory `dir1`), with
 `kvModel_boot`. Since 2026-11-04 (the user's request) the one-member examples' own names are
@@ -36,15 +36,16 @@ variable [GooseExts]
 program): the member id `id` (etcd's, from the configuration's peer URLs and cluster token) with
 its 16 low bits not `0` (D19c), and the bootstrap log `bl` with the peers' contexts `ctxs` (one conf
 change adding the member), each entry a conf change of id `0` that the server's
-`applyConfChange` takes. -/
-structure BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
-  idLow : uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog [id] ctxs bl
-  cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id]) e.Data'
-  /-- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs valid UTF-8 and
-  pairwise disjoint (`bootURLsOk`). -/
-  urls : bootURLsOk (LogEntry.toEntries bl 0)
+`applyConfChange` takes, the boot members' peer URLs valid UTF-8 and pairwise disjoint
+(`bootURLsOk`). (2026-11-09, raft-entsize [r3a]/[r3a']: the shared `BootCore` at `[id]`, which
+adds the bound on the boot entries, `bootDataOk`; until then its own structure, without it.) -/
+abbrev BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
+  BootCore [id] ctxs bl
+
+/-- The member id's 16 low bits are not `0` (`BootCore.lowNz` at `[id]`). -/
+theorem BootFacts.idLow {id : w64} {ctxs : List (List w8)} {bl : List LogEntry}
+    (h : BootFacts id ctxs bl) : uint.Z id % 2 ^ 16 ≠ 0 :=
+  h.lowNz id (List.mem_singleton_self id)
 
 /-- **The peer-URL directory of a one-member cluster** (D21 M2; `dirOne`): the member `id`'s peer
 URL `http://peer`. -/
@@ -101,8 +102,7 @@ def premises (name peer client : GoString)
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (dir1 peer id)) ∗
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    v3rpc.runsNoRequireLeader)
+    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 instance premises_persistent (name peer client : GoString) (N : Nat) (id : w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

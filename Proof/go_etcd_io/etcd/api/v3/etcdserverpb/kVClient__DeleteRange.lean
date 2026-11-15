@@ -66,7 +66,7 @@ theorem kVClient.DeleteRange.wp_proof
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ

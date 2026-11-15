@@ -343,7 +343,7 @@ def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemSto
       -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs, R1) the storage's
       -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
       -- empty snapshot; until then the application's snapshot token `memSnapTok`)
-      epCsOk cs -∗ memSnapNone γs -∗
+      epCsOk cs -∗ memSnapNone γs memSnapEmpty -∗
       (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))

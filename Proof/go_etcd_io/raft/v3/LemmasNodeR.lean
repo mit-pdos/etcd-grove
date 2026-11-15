@@ -80,10 +80,45 @@ theorem msgIn_of_scalar_struct (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj 
   imodintro
   iapply msgIn_of_msgPtsC_cap $$ Hmsg
 
+/-- (out_size C3) `msgIn_of_scalar_struct` at a content (`msgInC`, under any flag): no entries, no
+context, no unknown fields (a message of no size). -/
+theorem msgInC_of_scalar_struct (sz : Bool) (l : Loc) (pty pto pfr pTerm plt pix pco pvo prj prh : Loc)
+    (m : MessageM) (E : CoPset) (hcap : needsCap m = false) :
+    (l ↦ ({ state' := zeroValDef, Type' := pty, To' := pto, From' := pfr,
+                Term' := pTerm, LogTerm' := plt, Index' := pix, Entries' := slice.nil,
+                Commit' := pco, Vote' := pvo, Snapshot' := null, Reject' := prj,
+                RejectHint' := prh, Context' := slice.nil, Responses' := slice.nil,
+                unknownFields' := slice.nil, sizeCache' := 0 } : raftpb.Message) ∗
+      cellRO pty m.Type' ∗ cellRO pto m.To' ∗
+      cellRO pfr m.From' ∗ cellRO pTerm m.Term' ∗
+      cellRO plt m.LogTerm' ∗ cellRO pix m.Index' ∗
+      cellRO pco m.Commit' ∗ cellRO pvo m.Vote' ∗
+      cellRO prj m.Reject' ∗ cellRO prh m.RejectHint' : IProp GF) ⊢
+      |={E}=> msgInC sz l DFrac.discard ⟨m, [], none, [], []⟩ := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh⟩
+  ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnilb with #Hnilb
+  ihave Hnile : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod ownSlice_persist $$ Hnile with #Hnile
+  ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  iapply msgInC_of_struct sz l
+      { state' := zeroValDef, Type' := pty, To' := pto, From' := pfr,
+        Term' := pTerm, LogTerm' := plt, Index' := pix, Entries' := slice.nil,
+        Commit' := pco, Vote' := pvo, Snapshot' := null, Reject' := prj,
+        RejectHint' := prh, Context' := slice.nil, Responses' := slice.nil,
+        unknownFields' := slice.nil, sizeCache' := 0 }
+      DFrac.discard [] ⟨m, [], none, [], []⟩ E rfl rfl rfl rfl hcap
+      (fun _ => ⟨by simp, by simp⟩)
+  iframe Hl Hnile Hnilb Hnilr cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh
+  iapply BigSepL2.bigSepL2_nil.2; itrivial
+
 /-- `node.Step`'s argument opened (see the file header). -/
 theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
-    stepP (GF := GF) γ id ml ⊢ ∃ (dqe : DFrac) (st : MsgSt), msgIn ml dqe st ∗
-      ⌜0 ≤ sint.Z st.msg.Type'⌝ ∗ (msgIn ml dqe st -∗ stepP γ id ml) := by
+    stepP (GF := GF) γ id ml ⊢ ∃ (dqe : DFrac) (st : MsgSt), msgPtsC ml dqh dqe false st ∗
+      ⌜0 ≤ sint.Z st.msg.Type'⌝ ∗ (msgPtsC ml dqh dqe false st -∗ stepP γ id ml) := by
   iintro H
   unfold stepP
   icases H with (Hnet | Hfwd)
@@ -101,11 +136,13 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iapply Hcl $$ Hm
   · iunfold fwdP at Hfwd
     icases Hfwd with ⟨%st, Hm, %Hty, #Hab, Htk⟩
-    iexists DFrac.own 1, st
+    icases msgInC_halfO _ ml st $$ Hm with ⟨Hm, Hmb⟩
+    iexists dqh, st
     iframe Hm
     isplitr
     · ipureintro; rw [Hty.1]; decide
     iintro Hm
+    ihave Hm := Hmb $$ Hm
     iright
     iunfold fwdP
     iexists st

@@ -308,10 +308,11 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
       · iintro !> %h; cases h
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   ihave #Hc0 : committedAtLeast γr (W64 0) $$ []
-  · unfold committedAtLeast
+  · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   ihave #Hus := rangeUpd_srvsAt addr E γr cid mid (rangeWireOf (opGetModel key gs)) Q $$ Hdq
+  iapply wp_fupd
   iapply (v3.kv.wp_GetM api (srvsAt addr E γr cid mid) ci cd key sl gs R (W64 0) F Q) $$ [HR]
   · iframe #
     iframe
@@ -324,10 +325,12 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     iapply knownAt_srvsAt $$ []
     iframe #
   inext
-  iintro %resp %err ⟨HR, Hout⟩
+  iintro %resp %err ⟨HR, Hout, -⟩
+  imod rangeCallOut_persist _ _ _ $$ Hout with Hout
+  imodintro
   iapply HΦ
   iframe HR
-  iunfold rangeCallOut at Hout
+  iunfold rangeCallOutP at Hout
   icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse, -⟩)
   ihave #Hq := rangeAns_srvsAt addr E γr (W64 0) cid mid F _ Q m $$ Hq
   rotate_left
@@ -542,13 +545,13 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : appl
       isEtcdKVE (EM := v3rpc.etcdModelOfServer E γr false) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hall⟩
   unfold isEtcdKVE
-  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #Hopts, #Hlo, %Hpre⟩ HΦ
+  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #HctxO, #Hopts, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, Hss, -, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   iunfold ctxErrClientAll at Hall
   ihave #Hce := Hall $$ %ctx %cs Hctx
-  ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
+  ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
   iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hsz hrb)
     $$ [] [HΦ]

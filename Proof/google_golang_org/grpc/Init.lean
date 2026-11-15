@@ -2,10 +2,15 @@
 Package initialization of `google_golang_org.grpc`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
+initializer initializes its imports, runs the untranslated initializers of its variables (`X.init`,
+axioms of the translation), which the trust-boundary axiom `opaqueInitsOk` says run without
+panicking, but the first, `DefaultBackoffConfig.init`, whose trust-boundary axiom
+`DefaultBackoffConfig_init` also gives `EnableTracing`'s cell, holding `false`: Go allocates every
+package variable, zero-valued, before the first initializer runs, and `EnableTracing` (`var
+EnableTracing bool`, `trace.go:33` at v1.84.0) has no initializer of its own, so the names-only
+translation has no step that allocates it and the fact rides on the first initializer. Its
+untranslated `init` functions the trust-boundary axiom `initFuncsOk` says return.
 -/
 module
 
@@ -42,8 +47,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([DefaultBackoffConfig.init,
-        noOpRegisterHealthListenerFn.init,
+    ∀ v ∈ ([noOpRegisterHealthListenerFn.init,
         unaryStreamDesc.init,
         ErrClientConnClosing.init,
         errConnDrain.init,
@@ -92,6 +96,11 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0», init.«1», init.«2», init.«3», init.«4», init.«5»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
+/-- `DefaultBackoffConfig = BackoffConfig{MaxDelay: 120 * time.Second}` (`backoff.go`) runs without panicking, and `EnableTracing`'s cell holds `false` after it: Go allocates every package variable, zero-valued, before the first initializer runs, and `EnableTracing` (`var EnableTracing bool`, `trace.go:33` at grpc v1.84.0) has no initializer of its own, so its allocation is attributed to the package's first initializer (grpc's translation is names-only: its `initialize'` has no `GlobalAlloc`). No translated code writes `EnableTracing`; a program that writes it (etcd's `embed` at log level debug, grpc-proxy `--debug`) gets no proof: it would need the cell, which `finish` makes persistent. -/
+axiom DefaultBackoffConfig_init :
+    {{ (True : IProp GF) }} (App (Val DefaultBackoffConfig.init) (Val #()))
+    {{ RET #(); globalAddr EnableTracing ↦ false }}
+
 end google_golang_org.grpc
 end opaqueInits
 
@@ -115,10 +124,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk DefaultBackoffConfig.init (by mem_tac))
+  wp_apply DefaultBackoffConfig_init as HDefaultBackoffConfig
   wp_apply (opaqueInitsOk noOpRegisterHealthListenerFn.init (by mem_tac))
   wp_apply (opaqueInitsOk unaryStreamDesc.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrClientConnClosing.init (by mem_tac))
@@ -162,7 +172,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (initFuncsOk init.«3» (by mem_tac))
   wp_apply (initFuncsOk init.«4» (by mem_tac))
   wp_apply (initFuncsOk init.«5» (by mem_tac))
+  ipersist HDefaultBackoffConfig
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

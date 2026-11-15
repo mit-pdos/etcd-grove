@@ -32,21 +32,24 @@ abbrev time.Duration.String.spec : Prop :=
     (App (Val (d @!! _root_.Perennial.time.Duration.ty @!! go!"String")) (Val #()))
   {{ (s : GoString), RET #s; True }}
 
-/-- A `Duration` argument is `fmt.argOk`: its `String()` has `fmt.stringMethodSpec`. -/
+/-- A `Duration` argument is `fmt.argOk`: its `String()` has `fmt.stringMethodSpec`, and it has
+no `Format` or `Error` method. -/
 theorem time.Duration.String.argOk (H : time.Duration.String.spec (GF := GF) (hG := hG))
     (d : _root_.Perennial.time.Duration) :
     ⊢ fmt.argOk (GF := GF) (interface.mkOk _root_.Perennial.time.Duration.ty #d) := by
   simp only [fmt.argOk]
   iintro
   iright; iright
-  unfold fmt.stringMethodSpec
-  imodintro
-  iintro %Φ HΦ
-  iapply H d $$ [] [HΦ]
-  · itrivial
-  inext
-  iintro %s -
-  iapply HΦ
+  isplitr
+  · unfold fmt.stringMethodSpec
+    imodintro
+    iintro %Φ HΦ
+    iapply H d $$ [] [HΦ]
+    · itrivial
+    inext
+    iintro %s -
+    iapply HΦ
+  · ipureintro; fmt_method_none
 
 end spec
 

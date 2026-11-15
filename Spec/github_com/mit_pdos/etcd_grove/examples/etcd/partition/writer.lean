@@ -1,5 +1,5 @@
 /-
-`writer(clis, w, tried, lo, hi)` (`examples/etcd/partition/etcd_partition.go`; W4d of
+`writer(clis, w, tried, lo, hi)` (`examples/etcd/partition/linkv3p.go`; W4d of
 `notes/watch-cut-plan.md`, 2026-10-22; watchkv's `writer` with a client picked at random per put).
 Lean-first (no Rocq counterpart).
 

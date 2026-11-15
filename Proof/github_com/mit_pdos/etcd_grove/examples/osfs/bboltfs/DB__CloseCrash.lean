@@ -15,18 +15,19 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- What is left after unmapping a mapping: some state of the file. -/
-theorem unmappedC_own (p : GoString) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
+theorem unmappedC_own (p : GoString) (R : Roots) (i : Ino) (γc : GName) (m : OsMeta) (bs : List ByteG) (fa fb : Nat)
     (sl : GoSlice) (err : GoInterface) (hne : sl ≠ slice.nil) :
-    unmappedResC (GF := GF) p γc m bs fa fb sl err ⊢ ∃ s : CState, csOwn (GF := GF) p γc s := by
+    unmappedResC (GF := GF) p R i γc m bs fa fb sl err ⊢ ∃ s : CState, csOwnF (GF := GF) γc s := by
   unfold unmappedResC
   iintro (%Hnil | ⟨%b, %l, %vf, %e, -, Hu⟩)
   · exact absurd Hnil.1 hne
@@ -37,7 +38,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
   intro γ γc db t n
   wp_start as ⟨Hdb, Hown⟩
   iunfold isDBC at Hdb
-  icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, -, -⟩
+  icases Hdb with ⟨⟨%f, %fd, %p, %R, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, -, -⟩
   iunfold pkgFacts at Hpkg
   icases Hpkg with ⟨#Hsync, -⟩
   (try wp_auto)
@@ -102,7 +103,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     · iframe
     dsimp only [mapSlice, mapPtr0, mapPtr1, mapLen]
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd p
-        ⟨p, true, true⟩ p γc m bs 8192 (4096 * hwm) (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
+        ⟨γ.ino, true, true⟩ p R γ.ino γc m bs 8192 (4096 * hwm) (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
       as %errc ⟨Hd, Hdsz, H0, H1, -, -, -⟩
     · iframe; iframe #; unfold mappingResC; ileft; ipureintro; rfl
     (try simp only [↓reduceIte])
@@ -136,7 +137,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     icases Hrest0 with ⟨-, Htok0, #Hinv, Hf2, Hfd2⟩
     ihave Htok := (ghostVar_split_half γm 1 ()).2 $$ [Htok1 Htok0]
     · iframe
-    imod mapInv_close γ p base len γm $$ [Htok] with Hc
+    imod mapInv_close γ γ.ino base len γm $$ [Htok] with Hc
     · iframe; iframe #
     icases Hc with >Hc
     iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells at Hc
@@ -145,7 +146,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     cases Heq
     icases Hmo with (Hout2 | ⟨Hout2, %mc, Hc0, Hc1, %Hmc⟩)
     · icombine Hout1 Hout2 gives % ⟨_, Hbad⟩; cases Hbad
-    icases pagesCells_split p base (hwm - 2) 2 $$ Hpages with ⟨Hps, Hpc⟩
+    icases pagesCells_split γ.ino base (hwm - 2) 2 $$ Hpages with ⟨Hps, Hpc⟩
     rw [show 4096 * 2 = 8192 by rfl]
     ihave Hcells := mapCells_gather base hwm len Hw.1 Hl mc Hmc.1 $$ [Hwc Hc0 Hc1 Hpc]
     · iframe
@@ -166,7 +167,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hbase
     wp_apply wp_close db (DFrac.own 1) ⟨base, W64 len, W64 len⟩ (W64 len) (base +ₗ 16)
-        (base +ₗ 4112) f DFrac.discard fd p ⟨p, true, true⟩ p γc m bs 8192 (4096 * hwm) (fun _ => rfl)
+        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true⟩ p R γ.ino γc m bs 8192 (4096 * hwm) (fun _ => rfl)
         $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells]
       as %errc ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun, %Herr⟩, -, -⟩
     · iframe; iframe #
@@ -176,7 +177,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
       refine ⟨rfl, Hbase, ?_, ?_, Hw.2.2.1⟩
       · rw [BitVec.toInt_eq_toNat_cond, hlen]; split <;> omega
       · rw [Hmaps]; simp
-    ihave Hm := unmappedC_own p γc m bs 8192 (4096 * hwm) _ err hne $$ Hun
+    ihave Hm := unmappedC_own p R γ.ino γc m bs 8192 (4096 * hwm) _ err hne $$ Hun
     icases Hm with ⟨%s, Hm⟩
     rw [if_neg hne, if_neg hne, if_neg hne]
     imod ghostVar_update_halves none γ.map _ _ $$ Hmap1 Hmap0 with ⟨Hmap1, Hmap0⟩

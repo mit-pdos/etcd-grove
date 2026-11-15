@@ -203,7 +203,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-    · rw [ite_neg Hnprop]; iexact Hm
+    · iapply msgIn_nonprop Hnprop $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     ihave HG := stepOutG_of_not c m s R (fun h => by have := h.2.1; rw [this] at Hgt; omega) (LeadRan.of_ne (by rw [Hty]; w32_ne)) $$ HG
     have Hres0 := Hres
@@ -309,7 +309,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-        · rw [ite_neg Hnprop]; iexact Hm
+        · iapply msgIn_nonprop Hnprop $$ Hm
         ihave HG := stepOut_or R _ _ $$ HGo
         ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) (LeadRan.of_ne (by rw [Hty]; w32_ne)) $$ HG
         have Hres0 := Hres
@@ -375,7 +375,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hrole] at Hc; exact absurd Hc (by decide))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-        · rw [ite_neg Hnprop]; iexact Hm
+        · iapply msgIn_nonprop Hnprop $$ Hm
         ihave HG := stepOutG_or c m s R _ _ (LeadRan.of_ne (by rw [Hty]; w32_ne)) $$ HGo
         ihave HG := HG $$ %(fun hψ hc => hψ (Or.inr (Or.inr ⟨Or.inl ⟨hc.1, by first | exact hc.2.2.1 | rfl⟩, hc.2.2.2⟩)))
         have Hres0 := Hres
@@ -488,7 +488,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             refine .trans _ _ _ _ _ (StepR.recordVote (absMsg .voteResp m ents) (rOf s g) rfl Hto
               Hteq Hpr) ?_
             exact StepR.win _ (prvalsMatch pvs) ms Hpr (by rw [Hrc]; exact Hq) (Int.le_refl _) Hmt' Hms'
-              Hac
+              Hac (by rw [Hrc]; exact Hsn)
       · -- Leader: `stepLeader`'s `MsgVoteResp` arm only reads.
         simp only [stepFuncOf]
         wp_gets
@@ -505,7 +505,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s1 %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
-        · rw [ite_neg Hnprop]; iframe Hm; iintro %Hc; exact absurd Hc Hnprop
+        · isplitl [Hm]
+          · iapply msgIn_nonprop Hnprop $$ Hm
+          · iintro %Hc; exact absurd Hc Hnprop
         ihave HG := stepOut_leader R _ _ _ _ $$ HGo
         ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) (LeadRan.of_ne (by rw [Hty]; w32_ne)) $$ HG
         have Hres0 := Hres
@@ -549,7 +551,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-        · rw [ite_neg Hnprop]; iexact Hm
+        · iapply msgIn_nonprop Hnprop $$ Hm
         ihave HG := stepOut_or R _ _ $$ HGo
         ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) (LeadRan.of_ne (by rw [Hty]; w32_ne)) $$ HG
         have Hres0 := Hres

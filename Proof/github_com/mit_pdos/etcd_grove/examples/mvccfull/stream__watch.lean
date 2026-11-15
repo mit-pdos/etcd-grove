@@ -2,7 +2,7 @@
 
 The callees in call order: the `regs` counter (`ctrInv`), `genKey`, `genEnd`, `choose`, `pick`
 (the start's weights; `revHi_acc` or `WatchLemmas.cmpLo_acc_lt` for the start's bound), the filter
-closures (each its `filterSpec`, over mvcc's `evIs`), `s.mu`, `revLo_acc`, `context.TODO`, `Watch`
+closures (each its `filterSpec`, over mvcc's `evRd`), `s.mu`, `revLo_acc`, `context.TODO`, `Watch`
 (through `shapes.law`) with `WatchLemmas.register_au'`'s update, `revHi_acc` at the registered
 state's revision, `check`s, the watcher's position (floating in `[revLo + 1, revHi + 1]`, or at its
 start, nothing received: `recvEvs_fresh'`), the map and the order slice, `s.mu`'s release with the
@@ -247,14 +247,13 @@ theorem stream.watch.wp_proof
       · iunfold filterSpec
         iintro !> %e %ev %Φ' !> Hev HΦ'
         rw [← hf, ← recv_eq_func_mk]
-        iunfold evIs at Hev
-        icases Hev with ⟨%pp, %qq, %st', %uf, %sc, %Hnn, #Hept, -, -⟩
-        iStructNamedSuffix Hept "E"
+        iunfold evRd at Hev
+        icases Hev with ⟨%pp, %st', %uf, %sc, %Hnn, -, #HtyE, -, -, -, -⟩
         wp_auto
         iapply HΦ'
         ipureintro
         unfold evType
-        cases ev.del <;> rfl
+        cases hd : ev.del <;> simp [hd]
     · (try wp_auto)
       wp_if_destruct
       · (try wp_auto)
@@ -288,14 +287,13 @@ theorem stream.watch.wp_proof
         · iunfold filterSpec
           iintro !> %e %ev %Φ' !> Hev HΦ'
           rw [← hf, ← recv_eq_func_mk]
-          iunfold evIs at Hev
-          icases Hev with ⟨%pp, %qq, %st', %uf, %sc, %Hnn, #Hept, -, -⟩
-          iStructNamedSuffix Hept "E"
+          iunfold evRd at Hev
+          icases Hev with ⟨%pp, %st', %uf, %sc, %Hnn, -, #HtyE, -, -, -, -⟩
           wp_auto
           iapply HΦ'
           ipureintro
           unfold evType
-          cases ev.del <;> rfl
+          cases hd : ev.del <;> simp [hd]
       · iframe
         iunfold filtersImpl
         rw [show filterFs flt = [] from by unfold filterFs; rw [if_neg ‹¬flt = W64 1›, if_neg Hif]]

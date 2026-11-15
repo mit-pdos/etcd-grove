@@ -32,7 +32,8 @@ theorem mvcc.treeIndex.Insert.wp_proof
   intro ti L ki k gs m
   wp_start as ⟨Hix, %Hn, #Hkey, Hki, %Hnew⟩
   iunfold mvcc.ownIdxPriv at Hix
-  icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
+  icases Hix with ⟨%t, %lg, #Htree, #Hlg, #Hlgnn, Hmu, Htr⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -72,8 +73,6 @@ theorem mvcc.treeIndex.Insert.wp_proof
   iexists t, lg
   iframe Hmu
   iframe #
-  isplitl []
-  · ipureintro; exact Hlgnn
   iunfold mvcc.ownTree
   rw [mvcc.itemsOfEntries_btInsert]
   isplitl []

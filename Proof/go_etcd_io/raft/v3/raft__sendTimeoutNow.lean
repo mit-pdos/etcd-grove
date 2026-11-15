@@ -39,7 +39,7 @@ theorem raft.sendTimeoutNow.wp_proof
   imod cellRO_alloc $$ Hpty with #cTy
   imod cellRO_alloc $$ «$v0» with #cTo
   wp_auto
-  imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
+  imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
   · iframe «$a0» cTy cTo
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩

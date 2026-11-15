@@ -1,0 +1,146 @@
+e2e: skew 3344, 40s x 3 rounds, 8 writers, 1 syncers, COMPACT=1 STABLE=0 CHURN=0 POOL=256 FILL=once
+check: /tmp/e2e/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 1: blocks 65536,65537,65538,65539,65540,65541,65542,65543; dm-0 stable_writes 0, loop 0
+write /tmp/e2e/mnt/f0: skew 3344 (addr % 4096 = 0xd10), fill once: 10845184 writes
+write /tmp/e2e/mnt/f1: skew 3344 (addr % 4096 = 0xd10), fill once: 11032576 writes
+write /tmp/e2e/mnt/f2: skew 3344 (addr % 4096 = 0xd10), fill once: 11268096 writes
+write /tmp/e2e/mnt/f3: skew 3344 (addr % 4096 = 0xd10), fill once: 10984448 writes
+write /tmp/e2e/mnt/f4: skew 3344 (addr % 4096 = 0xd10), fill once: 11097088 writes
+write /tmp/e2e/mnt/f5: skew 3344 (addr % 4096 = 0xd10), fill once: 11202560 writes
+write /tmp/e2e/mnt/f6: skew 3344 (addr % 4096 = 0xd10), fill once: 11055104 writes
+write /tmp/e2e/mnt/f7: skew 3344 (addr % 4096 = 0xd10), fill once: 10944512 writes
+sync: 1470736 sync_file_range calls
+@calls: 88429665
+@tears[752]: 37
+@wb_ours: 1220940
+@wb_torn: 11
+@window_us:
+[1]                    1 |@@@@@                                               |
+[2, 4)                 1 |@@@@@                                               |
+[4, 8)                 2 |@@@@@@@@@@                                          |
+[8, 16)                1 |@@@@@                                               |
+[16, 32)               5 |@@@@@@@@@@@@@@@@@@@@@@@@@@                          |
+[32, 64)              10 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[64, 128)              8 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@           |
+[128, 256)             5 |@@@@@@@@@@@@@@@@@@@@@@@@@@                          |
+[256, 512)             4 |@@@@@@@@@@@@@@@@@@@@                                |
+@zero_retry: 60
+WB-TORN lines: 11
+log: 5.3G
+log: 1221033 entries, 1221012 writes, 1220948 writes of a page 0, 16341 torn, 16181 with a mixed sector, 11 new-prefix cuts at the source page boundary (752)
+IMAGE after write 11043, recovered: f0 one value 0x2d; f1 one value 0x01; f2 one value 0xd0; f3 one value 0x5e; f4 one value 0xb6; f5 one value 0xe5; f6 one value 0x4e; f7 TORN MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary)
+  boot exit 2: /tmp/e2e/crashmnt/f0: record 0x2d ok | /tmp/e2e/crashmnt/f1: record 0x01 ok | /tmp/e2e/crashmnt/f2: record 0xd0 ok | /tmp/e2e/crashmnt/f3: record 0x5e ok | /tmp/e2e/crashmnt/f4: record 0xb6 ok | /tmp/e2e/crashmnt/f5: record 0xe5 ok | /tmp/e2e/crashmnt/f6: record 0x4e ok | panic: /tmp/e2e/crashmnt/f7: torn sector 1: byte 512 = 0x5b, byte 752 = 0x5a
+check: /tmp/e2e/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 2: blocks 65536,65537,65538,65539,65540,65541,65542,65543; dm-0 stable_writes 0, loop 0
+write /tmp/e2e/mnt/f0: skew 3344 (addr % 4096 = 0xd10), fill once: 11253760 writes
+write /tmp/e2e/mnt/f1: skew 3344 (addr % 4096 = 0xd10), fill once: 11200512 writes
+write /tmp/e2e/mnt/f2: skew 3344 (addr % 4096 = 0xd10), fill once: 10774528 writes
+write /tmp/e2e/mnt/f3: skew 3344 (addr % 4096 = 0xd10), fill once: 10830848 writes
+write /tmp/e2e/mnt/f4: skew 3344 (addr % 4096 = 0xd10), fill once: 10660864 writes
+write /tmp/e2e/mnt/f5: skew 3344 (addr % 4096 = 0xd10), fill once: 11271168 writes
+write /tmp/e2e/mnt/f6: skew 3344 (addr % 4096 = 0xd10), fill once: 10706944 writes
+write /tmp/e2e/mnt/f7: skew 3344 (addr % 4096 = 0xd10), fill once: 11374592 writes
+sync: 1550856 sync_file_range calls
+@calls: 88073311
+@tears[752]: 30
+@wb_ours: 1235632
+@wb_torn: 8
+@window_us:
+[2, 4)                 1 |@@@@@                                               |
+[4, 8)                 2 |@@@@@@@@@@@                                         |
+[8, 16)                2 |@@@@@@@@@@@                                         |
+[16, 32)               3 |@@@@@@@@@@@@@@@@@                                   |
+[32, 64)               7 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            |
+[64, 128)              9 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[128, 256)             2 |@@@@@@@@@@@                                         |
+[256, 512)             4 |@@@@@@@@@@@@@@@@@@@@@@@                             |
+@zero_retry: 65
+WB-TORN lines: 8
+log: 5.4G
+log: 1235725 entries, 1235704 writes, 1235640 writes of a page 0, 16220 torn, 16053 with a mixed sector, 7 new-prefix cuts at the source page boundary (752)
+IMAGE after write 21005, recovered: f0 one value 0x26; f1 TORN MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); f2 one value 0xa5; f3 one value 0x44; f4 one value 0x6d; f5 one value 0xa0; f6 one value 0x2c; f7 one value 0x2b
+  boot exit 2: /tmp/e2e/crashmnt/f0: record 0x26 ok | panic: /tmp/e2e/crashmnt/f1: torn sector 1: byte 512 = 0x5b, byte 752 = 0x5a
+check: /tmp/e2e/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 3: blocks 65536,65537,65538,65539,65540,65541,65542,65543; dm-0 stable_writes 0, loop 0
+write /tmp/e2e/mnt/f0: skew 3344 (addr % 4096 = 0xd10), fill once: 11437056 writes
+write /tmp/e2e/mnt/f1: skew 3344 (addr % 4096 = 0xd10), fill once: 11032576 writes
+write /tmp/e2e/mnt/f2: skew 3344 (addr % 4096 = 0xd10), fill once: 10625024 writes
+write /tmp/e2e/mnt/f3: skew 3344 (addr % 4096 = 0xd10), fill once: 10631168 writes
+write /tmp/e2e/mnt/f4: skew 3344 (addr % 4096 = 0xd10), fill once: 10917888 writes
+write /tmp/e2e/mnt/f5: skew 3344 (addr % 4096 = 0xd10), fill once: 10708992 writes
+write /tmp/e2e/mnt/f6: skew 3344 (addr % 4096 = 0xd10), fill once: 11313152 writes
+write /tmp/e2e/mnt/f7: skew 3344 (addr % 4096 = 0xd10), fill once: 10655744 writes
+sync: 1496176 sync_file_range calls
+@calls: 87321686
+@tears[752]: 19
+@wb_ours: 1215602
+@wb_torn: 9
+@window_us:
+[2, 4)                 3 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                     |
+[4, 8)                 1 |@@@@@@@@@@                                          |
+[8, 16)                0 |                                                    |
+[16, 32)               0 |                                                    |
+[32, 64)               5 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[64, 128)              5 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[128, 256)             3 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                     |
+[256, 512)             1 |@@@@@@@@@@                                          |
+[512, 1K)              0 |                                                    |
+[1K, 2K)               0 |                                                    |
+[2K, 4K)               0 |                                                    |
+[4K, 8K)               1 |@@@@@@@@@@                                          |
+@zero_retry: 67
+WB-TORN lines: 9
+log: 5.3G
+log: 1215695 entries, 1215674 writes, 1215610 writes of a page 0, 15321 torn, 15146 with a mixed sector, 10 new-prefix cuts at the source page boundary (752)
+IMAGE after write 570, recovered: f0 one value 0xf9; f1 one value 0x66; f2 one value 0x00; f3 one value 0x90; f4 TORN MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); f5 one value 0x00; f6 one value 0x00; f7 one value 0x16
+  boot exit 2: /tmp/e2e/crashmnt/f0: record 0xf9 ok | /tmp/e2e/crashmnt/f1: record 0x66 ok | /tmp/e2e/crashmnt/f2: record 0x00 ok | /tmp/e2e/crashmnt/f3: record 0x90 ok | panic: /tmp/e2e/crashmnt/f4: torn sector 1: byte 512 = 0x75, byte 752 = 0x74
+--- TORN lines: 29 at the source page boundary (all), then the first 20 of 47853 others
+TORN write 11043: f7 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 91), (752, 90)]
+TORN write 14288: f1 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 149), (752, 148)]
+TORN write 15275: f2 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 71), (752, 70)]
+TORN write 20225: f0 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 7), (752, 6)]
+TORN write 31491: f2 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 251), (752, 250)]
+TORN write 35440: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 146), (752, 145)]
+TORN write 35856: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 65), (752, 64)]
+TORN write 37713: f7 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 93), (752, 92)]
+TORN write 38800: f5 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 54), (752, 53)]
+TORN write 42640: f5 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 243), (752, 242)]
+TORN write 773908: f5 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 200), (752, 199)]
+TORN write 21005: f1 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 91), (752, 90)]
+TORN write 40560: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 181), (752, 180)]
+TORN write 40568: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 183), (752, 182)]
+TORN write 40583: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 187), (752, 186)]
+TORN write 40591: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 190), (752, 189)]
+TORN write 43141: f6 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 201), (752, 200)]
+TORN write 43149: f6 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 213), (752, 212)]
+TORN write 570: f4 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 117), (752, 116)]
+TORN write 10648: f3 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 170), (752, 169)]
+TORN write 11562: f0 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 115), (752, 114)]
+TORN write 17622: f3 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 42), (752, 41)]
+TORN write 19659: f7 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 236), (752, 235)]
+TORN write 32449: f0 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 36), (752, 35)]
+TORN write 33682: f5 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 11), (752, 10)]
+TORN write 36814: f6 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 212), (752, 211)]
+TORN write 384603: f6 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 196), (752, 195)]
+TORN write 609705: f2 page 0: MIXED-SECTOR 2 runs, cut 752 (old prefix, cut at the source page boundary); runs [(0, 74), (752, 75)]
+TORN write 992980: f1 page 0: MIXED-SECTOR 2 runs, cut 752 (new prefix, cut at the source page boundary); runs [(0, 152), (752, 151)]
+TORN write 5: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 77), (1440, 76), (2240, 77)]
+TORN write 8: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 140), (1536, 139), (1568, 140)]
+TORN write 14: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 253), (312, 254), (736, 253)]
+TORN write 17: f6 page 0: MIXED-SECTOR 2 runs, cut 736 (new prefix, cut elsewhere); runs [(0, 53), (736, 52)]
+TORN write 18: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 64), (312, 65), (704, 64)]
+TORN write 39: f6 page 0: MIXED-SECTOR 2 runs, cut 1120 (new prefix, cut elsewhere); runs [(0, 243), (1120, 242)]
+TORN write 46: f6 page 0: MIXED-SECTOR 2 runs, cut 736 (new prefix, cut elsewhere); runs [(0, 108), (736, 107)]
+TORN write 51: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 226), (704, 227), (736, 226)]
+TORN write 54: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 49), (256, 50), (704, 49)]
+TORN write 59: f6 page 0: MIXED-SECTOR 2 runs, cut 800 (new prefix, cut elsewhere); runs [(0, 158), (800, 157)]
+TORN write 63: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 10), (312, 11), (704, 10)]
+TORN write 72: f6 page 0: MIXED-SECTOR 2 runs, cut 960 (new prefix, cut elsewhere); runs [(0, 190), (960, 189)]
+TORN write 79: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 11), (192, 12), (704, 11)]
+TORN write 92: f6 page 0: MIXED-SECTOR 2 runs, cut 736 (new prefix, cut elsewhere); runs [(0, 33), (736, 32)]
+TORN write 97: f6 page 0: MIXED-SECTOR 2 runs, cut 736 (new prefix, cut elsewhere); runs [(0, 125), (736, 124)]
+TORN write 100: f6 page 0: MIXED-SECTOR 2 runs, cut 64 (new prefix, cut elsewhere); runs [(0, 163), (64, 162)]
+TORN write 101: f6 page 0: MIXED-SECTOR 2 runs, cut 736 (new prefix, cut elsewhere); runs [(0, 173), (736, 172)]
+TORN write 103: f6 page 0: MIXED-SECTOR 2 runs, cut 736 (new prefix, cut elsewhere); runs [(0, 195), (736, 194)]
+TORN write 106: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 233), (512, 234), (576, 233)]
+TORN write 107: f6 page 0: MIXED-SECTOR 3 runs; runs [(0, 243), (312, 244), (704, 243)]

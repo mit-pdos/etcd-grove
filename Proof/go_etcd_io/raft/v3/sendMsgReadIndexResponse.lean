@@ -77,7 +77,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs G Hlead Htz Hne
+  intro c r id s ml m ents sn ctx rs G Hlead Htz Hne Hmty
   wp_start as ⟨Hphys, #Hm, HG, Hgresp, #Hgate⟩
   wp_auto
   -- `_, isVoter := r.trk.Voters[0][r.id]`
@@ -120,7 +120,7 @@ theorem sendMsgReadIndexResponse.wp_proof
         cases ents with
         | nil => exact absurd rfl Hne
         | cons e es => exact ⟨e, es, rfl⟩
-      wp_apply wp_raft_responseToReadIndexReq c r id s ml m s.logst.committed e es sn ctx rs
+      wp_apply wp_raft_responseToReadIndexReq c r id s ml m s.logst.committed e es sn ctx rs Hmty
         $$ [$Hphys $Hm] as %resp Hpost
       by_cases Hloc : m.From' = W64 0 ∨ m.From' = id
       · -- a local request: a `ReadState`
@@ -140,7 +140,9 @@ theorem sendMsgReadIndexResponse.wp_proof
       · -- a forwarded one: the response
         rw [ite_eq_right_of_eq_false _ _ (eq_false Hloc)]
         icases Hpost with ⟨Hphys, Hresp⟩
-        wp_apply wp_Message_GetTo.1 resp (DFrac.own 1) DFrac.discard false _ $$ [$Hresp] as Hresp
+        icases msgOwnZ_read _ _ _ $$ Hresp with ⟨Hresp, Hrback⟩
+        wp_apply wp_Message_GetTo.1 resp _ DFrac.discard false _ $$ [$Hresp] as Hresp
+        ihave Hresp := Hrback $$ Hresp
         rw [decide_eq_false (fun h => Hloc (Or.inl h))]
         wp_auto
         wp_apply wp_raft_send c r id s resp (readIndexRespMsg m s.logst.committed) (e :: es) none
@@ -181,7 +183,7 @@ theorem sendMsgReadIndexResponse.wp_proof
       wp_auto
       -- `switch r.readOnly.option`: `ReadOnlySafe`
       icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
-      icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
+      icases ownReadOnly_option _ ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
       wp_auto
       ihave Hro := Hroback $$ Hopt
       ihave Hphys := Hback $$ %ro %_ Hrof Hro
@@ -199,7 +201,7 @@ theorem sendMsgReadIndexResponse.wp_proof
       ihave Hphys := Hlogback $$ Hlog
       icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
       wp_auto
-      wp_apply wp_readOnly_addRequest $$ [$Hro $Hm] as Hro
+      wp_apply wp_readOnly_addRequest _ _ _ _ _ _ _ _ _ _ Hmty $$ [$Hro $Hm] as Hro
       ihave Hphys := Hback $$ %ro %_ Hrof Hro
       -- `recvAck(r.id, heartbeatCtx())`: the queue is not empty
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -245,7 +247,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     ihave Hphys := Hback $$ %tv Htrkf Htrk
     -- `switch r.readOnly.option`: `ReadOnlySafe`
     icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
-    icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
+    icases ownReadOnly_option _ ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
     wp_auto
     ihave Hro := Hroback $$ Hopt
     ihave Hphys := Hback $$ %ro %_ Hrof Hro
@@ -263,7 +265,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     icases ownRaftPhysC_readOnly c r id s $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
     wp_auto
-    wp_apply wp_readOnly_addRequest $$ [$Hro $Hm] as Hro
+    wp_apply wp_readOnly_addRequest _ _ _ _ _ _ _ _ _ _ Hmty $$ [$Hro $Hm] as Hro
     ihave Hphys := Hback $$ %ro %_ Hrof Hro
     -- `recvAck(r.id, heartbeatCtx())`: the queue is not empty
     wp_apply raft.wp_load_idC $$ Hphys as Hphys

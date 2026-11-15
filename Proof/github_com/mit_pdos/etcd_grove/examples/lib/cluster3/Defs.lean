@@ -221,7 +221,7 @@ theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqName
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗
     etcdstart.srvPeerCtl γn s id ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
+    isGrpcRpcMd client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpecE E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
@@ -247,31 +247,33 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
-gives, from the bridge's trust-boundary spec of `New`), and (D29) `a` is refusal-free if `b` is,
-and (D32) `a` serves `b`'s stream methods. -/
+/-- **The address `a` serves what `b` serves** (persistent; what a bridge's start gives, from the
+bridge's trust-boundary spec of `New`): the server listening at `b` is the one at `a` (per-type
+stage B: until then method by method, `grpcServes`), and (D29) `a` is refusal-free if `b` is. -/
 def forwards (a b : GoString) : IProp GF :=
-  iprop((□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-    grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S) ∗
-    ⌜noRefusalAt b → noRefusalAt a⌝ ∗
-    (□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-      grpcServesStream b name mh srv ics S -∗ grpcServesStream a name mh srv ics S))
+  iprop((□ ∀ γ : GName, grpcAddrIs b γ -∗ grpcAddrIs a γ) ∗ ⌜noRefusalAt b → noRefusalAt a⌝)
 
 instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) a b) := by
   unfold forwards; infer_instance
 
-/-- A method registered at `b` is registered at an address that forwards to `b`. -/
-theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpec Req Rep) :
-    forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec := by
+/-- A unary method registered with a metadata-indexed spec at `b` is registered at an address that
+forwards to `b` (`isGrpcRpc_forwards`'s; k8s 7e-1, the members' `Range` with its error outcome). -/
+theorem isGrpcRpcMd_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpecMd Req Rep) :
+    forwards (GF := GF) a b ∗ isGrpcRpcMd b name Spec ⊢ isGrpcRpcMd a name Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
-  icases Hf with ⟨#Hf, -, -⟩
-  unfold isGrpcRpc
-  icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-  iexists mh, srv, ics, S
+  icases Hf with ⟨#Hf, -⟩
+  unfold isGrpcRpcMd
+  icases Hr with ⟨%γ, #Ha, #Hm⟩
+  iexists γ
   isplitl
-  · iapply Hf $$ %name %mh %srv %ics %S Hs
+  · iapply Hf $$ %γ Ha
   · iexact Hm
+
+/-- A method registered at `b` is registered at an address that forwards to `b`. -/
+theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpec Req Rep) :
+    forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec :=
+  isGrpcRpcMd_forwards a b name (GrpcSpec.md Spec)
 
 /-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`
 (metadata-indexed, G2). -/
@@ -280,12 +282,12 @@ theorem isGrpcStream_forwards {Req Rep : StreamMsg GF} (a b name : GoString)
     forwards (GF := GF) a b ∗ isGrpcStreamMd b name Up Spec ⊢ isGrpcStreamMd a name Up Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
-  icases Hf with ⟨-, -, #Hf⟩
+  icases Hf with ⟨#Hf, -⟩
   unfold isGrpcStreamMd
-  icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-  iexists mh, srv, ics, S
+  icases Hr with ⟨%γ, #Ha, #Hm⟩
+  iexists γ
   isplitl
-  · iapply Hf $$ %name %mh %srv %ics %S Hs
+  · iapply Hf $$ %γ Ha
   · iexact Hm
 
 end forwards
@@ -353,7 +355,7 @@ theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
     memberAt γn s id ρ E cid mid R b c γ cmp .none =
   iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
+    isGrpcRpcMd c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpecE E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗

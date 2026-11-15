@@ -935,7 +935,7 @@ theorem Server.watch.wp_proof
                 iexists p, st
                 iframe #
                 ipureintro
-                exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+                exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
               | some n0v =>
                 (try simp only [Option.isSome_some, Option.getD_some])
                 (try wp_auto)
@@ -1241,7 +1241,7 @@ theorem Server.watch.wp_proof
                     iexists p, st
                     iframe #
                     ipureintro
-                    exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+                    exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
                 · (try wp_auto)
                   ihave Hxs := (BigSepL2.bigSepL2_nil (PROP := IProp GF) (Φ := fun _ x o => objAt (GF := GF) x (DFrac.own 1) o)).2 $$ []
                   · itrivial

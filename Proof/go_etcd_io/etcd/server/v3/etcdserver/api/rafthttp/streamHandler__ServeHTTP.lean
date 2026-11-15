@@ -53,8 +53,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
-    | "Debug" => (wp_apply hDebug hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Warn" => (wp_apply hWarn hlg _ _ $$ []; (iframe #))
+    | "Debug" => (wp_apply hDebug hlg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -69,7 +69,7 @@ local macro "reply_error" : tactic => `(tactic| (
     isplitr
     · ipureintro; decide
     simp only [http.hdrsReady]
-    iexists _; iframe; ipureintro; exact Hver
+    iexists _; iframe; ipureintro; exact ⟨Hver, Hrok⟩
   (try wp_auto)
   iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw))
 
@@ -92,7 +92,7 @@ local macro "stream_rest" : tactic => `(tactic| (
   iintro -
   · -- not removed (no member is: `netRaftOk`'s `IsIDRemoved`): the peer
     (try wp_auto)
-    rw [Hhvok.2.2]
+    rw [Hhvok.2]
     (try wp_auto)
     ihave #HG1 := HGet $$ %rid
     wp_bind (App (Val #(methods gi.ty go!"Get" gi.v)) (Val #rid))
@@ -104,10 +104,10 @@ local macro "stream_rest" : tactic => `(tactic| (
     · -- no peer: `AddRemote` with the request's `X-PeerURLs`, if any; `404`
       subst Hnil
       (try wp_auto)
-      wp_apply hHeaderGetPtr _ hm R.hdr _ $$ []
+      wp_apply hHeaderGetPtr _ hm hs _ $$ []
       · iframe #
       (try wp_auto)
-      by_cases hu : http.hdrGet R.hdr go!"X-PeerURLs" = []
+      by_cases hu : http.hdrGet hs go!"X-PeerURLs" = []
       · rw [hu]
         (try wp_auto)
         zap_log
@@ -123,8 +123,8 @@ local macro "stream_rest" : tactic => `(tactic| (
         iapply HA1 $$ [Hsl]
         · iframe Hsl
           ipureintro
-          refine ⟨Hrmem, ?_, Hrurls⟩
-          rw [← Hhvok.2.1, ← Hhost]; exact Hrne
+          refine ⟨Hrmem, ?_, peerURLsHdrOk_view Rh rid R.hdr hs Hview Hrurls⟩
+          rw [← Hhvok.1, ← Hhost]; exact Hrne
         inext
         iintro -
         (try wp_auto)
@@ -136,10 +136,10 @@ local macro "stream_rest" : tactic => `(tactic| (
       wp_apply hIDStringPtr _ DFrac.discard hid $$ [] as %ws ⟨-, %Hws⟩
       · iframe #
       (try wp_auto)
-      wp_apply hHeaderGetPtr _ hm R.hdr _ $$ []
+      wp_apply hHeaderGetPtr _ hm hs _ $$ []
       · iframe #
       (try wp_auto)
-      by_cases hto : http.hdrGet R.hdr go!"X-Raft-To" = ws
+      by_cases hto : http.hdrGet hs go!"X-Raft-To" = ws
       · -- `200`, flushed; the connection attached to the peer, then the wait for its close
         rw [hto]
         (try wp_auto)
@@ -153,10 +153,10 @@ local macro "stream_rest" : tactic => `(tactic| (
           isplitr
           · ipureintro; decide
           simp only [http.hdrsReady]
-          iexists _; iframe; ipureintro; exact Hver
+          iexists _; iframe; ipureintro; exact ⟨Hver, Hrok⟩
         rw [ite_cond_eq_true _ _ (eq_true hfl)]
         (try wp_auto)
-        wp_apply hFlush (raftHttpNet Rh) _ wi a R γk _ _ rfl $$ [Hw] as Hw
+        wp_apply hFlush (raftHttpNet Rh) _ wi a R γk (some _) _ rfl rfl $$ [Hw] as Hw
         · iframe Hw
         (try wp_auto)
         wp_apply hNewCN (connBack Rh wi a R γk) as %n ⟨%γ, #Hcr, Hcc, Htok⟩
@@ -172,7 +172,7 @@ local macro "stream_rest" : tactic => `(tactic| (
           iframe #
           iframe Hw
           isplitr
-          · ipureintro; exact ⟨Hhost ▸ Hhvok.2.1, Hhost, Hpath⟩
+          · ipureintro; exact ⟨Hhost ▸ Hhvok.1, Hhost, Hpath⟩
           iunfold closeRight
           iexists _
           isplitr
@@ -231,10 +231,11 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZError : zap.Error.spec (GF := GF) (hG := hG)) :
     rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG) := by
-  intro Rh a γd Rs h wi r R γk rd Hhost Hnp
+  intro Rh a γd Rs h wi r R γk rd Hhost Hpfx
+  have Hnp : R.path ≠ probingPath := streamPfx_ne_probing _ Hpfx
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd %hfl HRs
   iunfold streamHandlerOk at Hh
-  icases Hh with ⟨%hv, %gi, #Hhv, %Hhvok, #HtrID, #Hraft, #HGet, #HAddR, #HPfx⟩
+  icases Hh with ⟨%hv, %gi, #Hhv, #Hhvlg, %Hhvok, #HtrID, #Hraft, #HGet, #HAddR, #HPfx⟩
   iunfold netRaftOk at Hraft
   icases Hraft with ⟨%ri, %Hri, -, #HIR, -, -⟩
   obtain ⟨hlg, htr, hpg, hr, hid, hcid⟩ := hv
@@ -244,7 +245,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
   wp_pures
   ihave #HR0 := HR
   iunfold http.reqAt at HR
-  icases HR with ⟨#HMeth, ⟨%u, #HU, #HUP⟩, ⟨%hm, #HHm, #Hhs⟩, ⟨%ra, #HRA, %Hra⟩, #HB, %Hrdnn⟩
+  icases HR with ⟨#HMeth, ⟨%u, #HU, #HUP⟩, ⟨%hm, %hs, #HHm, #Hhs, %Hview⟩, ⟨%ra, #HRA, %Hra⟩, #HB, %Hrdnn⟩
   iStructNamed Hhv
   wp_auto
   wp_if_destruct
@@ -255,6 +256,8 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
     ihave Hhd := Hhcl $$ Hhm'
     have Hver : verHdrOk (http.hdrSet [] go!"Allow" go!"GET") :=
       verHdrOk_set _ _ _ (by decide) verHdrOk_nil
+    have Hrok : http.respHdrsOk (http.hdrSet [] go!"Allow" go!"GET") :=
+      respHdrsOk_set_raft _ _ _ (Or.inr (Or.inl rfl)) http.respHdrsOk_nil (by decide)
     (try wp_auto)
     wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
     · simp only [raftHttpNet]
@@ -263,12 +266,12 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
       isplitr
       · ipureintro; decide
       simp only [http.hdrsReady]
-      iexists _; iframe; ipureintro; exact Hver
+      iexists _; iframe; ipureintro; exact ⟨Hver, Hrok⟩
     (try wp_auto)
     iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
   -- a `GET`: a stream request
   ihave Hsr := raftProto_req_stream Rh R γk $$ Hreq
-  ihave #Hsr := Hsr $$ %(And.intro Hif Hnp)
+  ihave #Hsr := Hsr $$ %(And.intro Hif Hpfx)
   iunfold streamReq at Hsr
   icases Hsr with ⟨%c, #Hreg, %Hsq⟩
   obtain ⟨γw, ty, rid⟩ := c
@@ -299,8 +302,13 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
     right
     rw [http.hdrGet_hdrSet_eq]
     exact semver.semverValid_simple _ (by decide)
+  have Hrok : http.respHdrsOk (http.hdrSet (http.hdrSet [] go!"X-Server-Version" go!"3.8.0-alpha.0")
+      go!"X-Etcd-Cluster-ID" cs) :=
+    respHdrsOk_set_raft _ _ _ (Or.inl rfl)
+      (respHdrsOk_set_raft _ _ _ (Or.inr (Or.inr rfl)) http.respHdrsOk_nil (by decide))
+      (Hcs ▸ idStr_hdrValOk _)
   -- the header check
-  wp_apply hCheck hlg hid hcid hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
+  wp_apply hCheck hlg hid hcid hm hs $$ [$Hhs $Hhvlg] as %rv Hrv
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, -⟩
@@ -357,7 +365,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
         isplitr
         · ipureintro; decide
         simp only [http.hdrsReady]
-        iexists _; iframe; ipureintro; exact Hver
+        iexists _; iframe; ipureintro; exact ⟨Hver, Hrok⟩
       (try wp_auto)
       iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
     · iunfold EtcdGrove.errorsNewVar at HCM
@@ -373,7 +381,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
         isplitr
         · ipureintro; decide
         simp only [http.hdrsReady]
-        iexists _; iframe; ipureintro; exact Hver
+        iexists _; iframe; ipureintro; exact ⟨Hver, Hrok⟩
       (try wp_auto)
       iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
 

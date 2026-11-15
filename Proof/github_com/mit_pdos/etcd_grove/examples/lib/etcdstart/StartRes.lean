@@ -185,6 +185,18 @@ theorem memberRestartRes_intro (n : GoString) (p : GoString) (γn : NetNames GF)
   iintro ⟨Hd, Ha, Ho⟩
   iframe; try iframe #
 
+/-- **A restart bundle without addresses, from a member's stop** (restart S7.5: a member that serves
+no address, `restart1`'s): its disk image in the data directory `n ++ ".etcd"` alone. -/
+theorem memberRestartRes_intro0 (n : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ : ReqNames)
+    (id : w64) :
+    srvDiskImage (GF := GF) γ ρ id (n ++ go!".etcd") ⊢ memberRestartRes n {} γn γ ρ id := by
+  unfold memberRestartRes
+  simp only
+  iintro Hd
+  iframe Hd
+  try isplitl
+  all_goals iempintro
+
 /-! ## L2: the WAL's boot slot -/
 
 /-- **The WAL's boot slot, out of a fresh bundle without addresses** (to `NewServer`, through

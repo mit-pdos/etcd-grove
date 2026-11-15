@@ -30,12 +30,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.firstIndex.wp_proof
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     MemoryStorage.firstIndex.spec (GF := GF) (hG := hG) := by
-  intro ms σ Hb
+  intro ms sz σ Hb
   wp_start as Hf
   iNamed Hf
   iNamed Hf
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: σ.ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es (dummy :: σ.ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
   rw [ite_eq_left ⟨by word, by word⟩]

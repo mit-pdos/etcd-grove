@@ -33,12 +33,12 @@ migration, 2026-11-05: in place of the watchable store's names, whose tag it was
 its configuration's logger, request budget and progress interval (read-only; the interval at most
 `2 ^ 62` nanoseconds, the interval's lock invariant; the constructor raises a local copy to `100ms`
 if it is below, J8a-3: the fork no longer writes `s.Cfg`): a `WatchServer` holding a
-`*watchServer` (`isWatchServer`). -/
+`*watchServer` (`isWatchServer`). The configuration's logger nil or a zap logger (premise fixes 6). -/
 abbrev v3rpc.NewWatchServer.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (tag : GName) (wsl lg0 : Loc) (m d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.watchSrvOk s E tag ∗ srvKVAddr s ↦□ v3rpc.wsIface wsl ∗ v3rpc.srvIdsOk s ∗
-      srvCfgFieldAddr s go!"Logger" ↦□ lg0 ∗ srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ m ∗
+      srvCfgFieldAddr s go!"Logger" ↦□ lg0 ∗ zapLoggerOrNil lg0 ∗ srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ m ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ }}
     (App (Val (@! v3rpc.NewWatchServer)) (Val #s))
   {{ (ws : GoInterface), RET #ws; ∃ (p lg : Loc) (cid mid : w64),

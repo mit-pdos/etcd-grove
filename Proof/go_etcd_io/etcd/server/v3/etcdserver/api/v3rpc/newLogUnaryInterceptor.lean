@@ -33,7 +33,8 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
     (wp_log : v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG)) :
     v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) := by
   intro s lg wd
-  wp_start as ⟨#Hlg, %Hlgn, #Hwd⟩
+  wp_start as ⟨#Hlg, #Hlgn, #Hwd⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgn
   wp_pures
   wp_alloc_auto
   wp_pures
@@ -52,17 +53,21 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   icases Hk with ⟨Hk, -⟩
   iunfold srvHandlerCall at Hk
   wp_bind (App (App (Val #h) _) _)
+  ispecialize Hk $$ HR
   iapply (wp_wand (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (srvLgReader s -∗ Ψ v)))) $$ Hk
-  iintro %v ⟨%resp, %err, %Hv, -, HΨ⟩
+    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ srvLgReader s ∗ (srvLgReader s -∗ Ψ v)))) $$ Hk
+  iintro %v ⟨%resp, %err, %Hv, -, HR, HΨ⟩
   subst Hv
   wp_auto
   wp_apply wp_Logger s lg $$ [HR] as ⟨-, HR⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   wp_if_destruct
-  · exact absurd rfl Hlgn
+  · exact absurd rfl Hlgnn
+  ihave #Hlib := libCtxOk_of_runCtx ci $$ Hrc
+  iunfold context.libCtxOk at Hlib
+  icases Hlib with ⟨-, -, #Hpeer, -⟩
   wp_apply wp_log $$ []
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   iapply HΨ
   iexact HR
 

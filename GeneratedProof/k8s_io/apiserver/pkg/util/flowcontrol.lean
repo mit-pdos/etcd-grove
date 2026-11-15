@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apiserver.pkg.util.flowcontrol
 
@@ -34,25 +35,6 @@ noncomputable instance initializationSignal_into_val_typed :
 
 end def_
 end initializationSignal
-
-namespace StartFunction
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
-
-noncomputable instance StartFunction_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.StartFunction :=
-  sorry -- axiomatized type
-
-noncomputable instance StartFunction_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.StartFunction k8s_io.apiserver.pkg.util.flowcontrol.StartFunction.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end StartFunction
 
 namespace RequestDigest
 section def_

@@ -44,7 +44,7 @@ map keeps, with the in-memory members' apply-thread half at `mem` (`clusterMem`)
 backend's save (`c.be`, an interface `bi` read-only, whose triple the caller gives: the backend's
 buckets are the caller's, `Ps` to `Qs`) and puts `m` into the map, its half and the apply thread's
 half now at `mem` with `mm` at its id, the map's entry `m` (`clusterMemIn`, D43 M5e: `m` given up, the map holds it); without, nothing (`m`
-back). Its other reads are of read-only fields: the logger (non-nil), the cluster id, the local
+back). Its other reads are of read-only fields: the logger (a zap logger), the cluster id, the local
 id. -/
 abbrev membership.RaftCluster.AddMember.spec : Prop :=
   ∀ (c : Loc) (RM : membership.RcSide GF) (mem : GMap w64 apply.MemberM) (m : Loc) (dqb : DFrac)
@@ -53,7 +53,7 @@ abbrev membership.RaftCluster.AddMember.spec : Prop :=
   GMap.size (GMap.insert mm.id mm mem) ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       membership.isRaftClusterG c RM ∗ membership.clusterMem c mem ∗ membership.memberAt m 1 mm ∗
-      membership.rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ membership.rcCidAddr c ↦□ cid ∗
+      membership.rcLgAddr c ↦□ lg ∗ zapLoggerOk lg ∗ membership.rcCidAddr c ↦□ cid ∗
       membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗
       (if v3 then iprop(membership.beSaveOk bi m mm Ps Qs ∗ Ps) else iprop(True)) }}
     (App (App (Val (c @!! go.GoType.PointerType

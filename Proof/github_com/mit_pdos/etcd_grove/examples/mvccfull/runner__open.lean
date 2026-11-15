@@ -70,7 +70,7 @@ theorem runner.open.wp_proof
     (wp_Detach : lease.lessor.Detach.spec (GF := GF) (hG := hG))
     (wp_SRD : lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG)) :
     runner.open.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γh ops i mp m f n path D u b Hl obe ole okv hlog hn hlen hdbo hck hlim hcbl
+  intro _ _ x ks cfg wr h γh ops i mp m f n path D u b Hl obe ole okv hlog hn hlen hdbo hlim hcbl
   intro σ
   haveI := hpers.1
   haveI := isInc_persistent hpers
@@ -78,12 +78,12 @@ theorem runner.open.wp_proof
   haveI : Persistent (rnCtx (GF := GF) x ks cfg h γh) := by
     unfold rnCtx runnerKeys runnerH ctrInv; infer_instance
   haveI : Persistent (runnerKeys (GF := GF) x ks) := by unfold runnerKeys; infer_instance
-  wp_start as ⟨#Hctx, #Hks, #Hvoff, Htok, Hrd, #Hlb, #Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv,
+  wp_start as ⟨#Hctx, #Hvoff, Htok, Hrd, #Hlb, #Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv,
     Hrev, Hcmp, Hleases, Hfile, Himg, %Hrec, Hcarry, Hσw, Hbw⟩
   ihave #HctxK : writerCtx x ks cfg wr h γh $$ []
   · iexact Hctx
   iunfold writerCtx at Hctx
-  icases Hctx with ⟨#Hrn, #Hcfg, %Hmix, #Hrds, #Hpb, #Hps, #Hpl, #Hpt, %Hksl, ⟨%lg, #Hlg, %Hlgn⟩,
+  icases Hctx with ⟨#Hrn, #Hcfg, %Hmix, #Hrds, #Hpb, #Hps, #Hpl, #Hpt, %Hksl, ⟨%lg, #Hlg, #Hlgn⟩,
     -, -, -, -, -, -, -, %HOpsB⟩
   iunfold rnCtx at Hrn
   icases Hrn with ⟨#Hpkg, #Hpm, #Hkeys, %Hkne, #HrH, #Hhist, #Hcfgp, -⟩
@@ -128,13 +128,9 @@ theorem runner.open.wp_proof
       (leasesAfter ks ops n) rfl (mvccrand.rcP_lease _) hrecs1 hreq (by rw [hrecs2]))
     $$ [Hnoh Hwb1 Hrbn]
     as %l ⟨Hnoh, Hrbn, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, -, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, -, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
   · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
     iframe #; iframe
-    isplitr
-    · ipureintro; exact Hlgn
-    isplitr
-    · ipureintro; exact hck
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
     imodintro
@@ -181,6 +177,8 @@ theorem runner.open.wp_proof
     simp only [hW0, hb, decide_true, decide_false] <;> wp_auto
   all_goals
     -- `m.kv = mvcc.New(x.lg, m.be, m.le, scfg)`
+    -- (premise fixes 6) the runner's logger, a zap logger
+    ihave #Hlgo := zapLoggerOk_orNil lg $$ Hlgn
     rw [show (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #bnb : GoInterface) = storageVal (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) by
         rw [etcdStorage_val, mvccrand.rcKB_be]]

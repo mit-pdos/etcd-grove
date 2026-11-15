@@ -11,7 +11,10 @@ the standard base64 encoding `stdEnc` of its argument's bytes (the auth plan's E
 pointer, since `Encoding` is an axiomatized type (its methods are not even named). The fact is
 established by the trust-boundary axiom `StdEncoding_init` (`Proof/encoding/base64/Init.lean`,
 `etc/gen-init.py`). Until 2026-10-26 the instance (fact `True`) was in
-`k8s_io/apiserver/pkg/storage/etcd3/Base.lean`.
+`k8s_io/apiserver/pkg/storage/etcd3/Base.lean`. Restated in stage 7e-2 (`notes/k8s-7e-2-draft.md`
+§5.4, attacked T15): also `RawURLEncoding` (`storage.EncodeContinue`'s continue token), whose
+`EncodeToString` returns `rawUrlEnc` of its argument's bytes (`RawURLEncoding_init`); the fact is
+the two parts, `stdEncInit` and `rawUrlEncInit`.
 -/
 module
 
@@ -33,22 +36,40 @@ byte string. Opaque: what the proofs need is only that `selectPassword`'s decodi
 encoding has no error (its trust boundary, the auth plan's E2u), not the encoding itself. -/
 opaque stdEnc : List w8 → GoString
 
+/-- **base64's URL encoding without padding** (`RawURLEncoding.EncodeToString`) of a byte string.
+Opaque (stage 7e-2: the continue token's encoding; no property of it is used). -/
+opaque rawUrlEnc : List w8 → GoString
+
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **`encoding/base64`'s fact**: `StdEncoding` holds a fixed pointer `e` (Go never writes the
-variable after initialization), on which `EncodeToString(src)` returns `stdEnc` of `src`'s bytes,
-reading and keeping the slice (`(*Encoding).EncodeToString`: `make([]byte, enc.EncodedLen(len(src)))`,
-`enc.Encode(buf, src)`, `string(buf)`; no panic, no write to `src`). -/
-abbrev base64Init : IProp GF :=
+/-- **`encoding/base64`'s fact, `StdEncoding`'s part**: `StdEncoding` holds a fixed pointer `e` (Go
+never writes the variable after initialization), on which `EncodeToString(src)` returns `stdEnc` of
+`src`'s bytes, reading and keeping the slice (`(*Encoding).EncodeToString`:
+`make([]byte, enc.EncodedLen(len(src)))`, `enc.Encode(buf, src)`, `string(buf)`; no panic, no write
+to `src`). -/
+abbrev stdEncInit : IProp GF :=
   iprop(∃ e : Loc, globalAddr StdEncoding ↦□ e ∗
     □ ∀ (sl : GoSlice) (dq : DFrac) (d : List w8) (Φ : val → IProp GF),
       sl ↦*{dq} d -∗ ▷ (sl ↦*{dq} d -∗ Φ #(stdEnc d)) -∗
       WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"EncodeToString" #e)) (Val #sl))
         {{ Φ }})
+
+/-- **`encoding/base64`'s fact, `RawURLEncoding`'s part** (stage 7e-2): `RawURLEncoding =
+URLEncoding.WithPadding(NoPadding)` holds a fixed pointer, on which `EncodeToString(src)` returns
+`rawUrlEnc` of `src`'s bytes, reading and keeping the slice. -/
+abbrev rawUrlEncInit : IProp GF :=
+  iprop(∃ e : Loc, globalAddr RawURLEncoding ↦□ e ∗
+    □ ∀ (sl : GoSlice) (dq : DFrac) (d : List w8) (Φ : val → IProp GF),
+      sl ↦*{dq} d -∗ ▷ (sl ↦*{dq} d -∗ Φ #(rawUrlEnc d)) -∗
+      WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"EncodeToString" #e)) (Val #sl))
+        {{ Φ }})
+
+/-- **`encoding/base64`'s fact**: the two parts. -/
+abbrev base64Init : IProp GF := iprop(stdEncInit ∗ rawUrlEncInit)
 
 instance encoding_base64_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.encoding.base64 :=
@@ -61,6 +82,18 @@ instance encoding_base64_get_is_pkg_init_wf_inst :
 theorem base64Init_access :
     isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ base64Init (GF := GF) := by
   with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.encoding.base64
+
+theorem stdEncInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ stdEncInit (GF := GF) := by
+  iintro #H
+  ihave ⟨#H1, -⟩ := base64Init_access $$ H
+  iexact H1
+
+theorem rawUrlEncInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ rawUrlEncInit (GF := GF) := by
+  iintro #H
+  ihave ⟨-, #H2⟩ := base64Init_access $$ H
+  iexact H2
 
 end init
 

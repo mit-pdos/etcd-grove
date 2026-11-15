@@ -40,8 +40,8 @@ Brief for the prover: as `NewServer.lean:1040-1110` (the lessor's and the auth s
 `NewServer.lean:1415-1530` (`Hbo`, the rest) do at boot, with the boot's `d`, `γA`, `#hook`,
 `srvRestRWH d.γB (srvObjsOn …)` replaced by `d'`, `γ'`, `#g`, `E'.RW`. Unfold
 `apply.backendOptsOk`, `simp only [snapE_…]`, rewrite the options' fields (`hopts`).
-- `opts'.Logger' ≠ null`: `lg` is the old `srvFieldsAt`'s `v.lg` (agreement of the two `↦□` of
-  `srvLgAddr s`), `⌜v.lg ≠ null⌝`.
+- `zapLoggerOk opts'.Logger'` (premise-fixes-6: until then `opts'.Logger' ≠ null`): `lg` is the old
+  `srvFieldsAt`'s `v.lg` (agreement of the two `↦□` of `srvLgAddr s`), `zapLoggerOk v.lg` (`snap_lg_nn`).
 - `isApplyKV`: `txn.isKV` by its right disjunct at `{ γw with st := γw.st.withPhys p' }`
   (`mvcc.isWatchableStore_withPhys`, `RestorePre.lean`, rewrites the walk's `isWatchableStore ws E.s
   γw`; `hγw`); the `ReadView` field and `isReadView` from unfolding `isWatchableStore` (as

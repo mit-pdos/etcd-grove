@@ -130,7 +130,7 @@ theorem lease.Lease.Keys.wp_proof : lease.Lease.Keys.spec (GF := GF) (hG := hG) 
   icases Hlo with ⟨%Hnn, #Hguard, #Hrd, -, #Hpool, -⟩
   icases Hpool $$ %Hb with ⟨%γp, #Hpool⟩
   iapply fupd_wp
-  imod threadPool.borrow leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htt]
+  imod threadPool.borrowL leasePoolN leaseLvl γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htt]
     with ⟨Hslot, Hloan⟩
   · iframe #; iframe
   imodintro
@@ -191,7 +191,7 @@ theorem lease.Lease.Keys.wp_proof : lease.Lease.Keys.spec (GF := GF) (hG := hG) 
   iapply wp_fupd
   wp_apply (sync.RWMutex.wp_RUnlock (lsF go!"mu" l) (leaseItems γl l)) $$ [$Hlk Hsm HS He] as Hslot
   · inext; iunfold leaseItems; iexists sm, S, γr; iframe; iframe #
-  imod threadPool.giveBack leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Hloan Hslot]
+  imod threadPool.giveBackL leasePoolN leaseLvl γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Hloan Hslot]
     with Htt
   · iframe #; iframe
   imodintro

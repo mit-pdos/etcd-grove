@@ -91,11 +91,12 @@ def msgCodec : StreamCodec where
     simp [msgFrame, u64Be_length] at hl
 
 /-- **The msgappv2 stream's codec** on the connection from `frm` to `to`: from the zero state
-(`newMsgAppV2Encoder`'s and `newMsgAppV2Decoder`'s). -/
-def v2Codec (frm to : w64) : StreamCodec where
+(`newMsgAppV2Encoder`'s and `newMsgAppV2Decoder`'s); (raft-entsize §4, 2026-11-10) its frames'
+encodings of bounded size when `Sz` (`V2Frame`). -/
+def v2Codec (Sz : Prop) (frm to : w64) : StreamCodec where
   S := V2St
   init := ⟨W64 0, W64 0⟩
-  F := V2Frame frm to
+  F := V2Frame Sz frm to
   uniq h1 h2 h := V2Frame.unique h1 h2 h
   nonempty h := by
     rcases h with ⟨-, rfl, -⟩ | ⟨_, -, -, -, rfl, -⟩ | ⟨_, _, -, -, -, -, rfl, -⟩ <;> simp
@@ -234,9 +235,10 @@ def StreamTy.endpoint : StreamTy → GoString
   | .msgAppV2 => go!"/raft/stream/msgapp"
   | .message => go!"/raft/stream/message"
 
-/-- The codec of a stream of type `t` from `frm` to `to`. -/
-def StreamTy.codec : StreamTy → w64 → w64 → StreamCodec
-  | .msgAppV2, frm, to => v2Codec frm to
+/-- The codec of a stream of type `t` from `frm` to `to` (raft-entsize §4: the msgappv2 frames'
+encodings of bounded size when `Sz`). -/
+def StreamTy.codec (Sz : Prop) : StreamTy → w64 → w64 → StreamCodec
+  | .msgAppV2, frm, to => v2Codec Sz frm to
   | .message, _, _ => msgCodec
 
 /-- The path of the stream of type `t` read by `rid` (`streamReader.dial`'s
@@ -245,6 +247,14 @@ def streamPath (t : StreamTy) (rid : w64) : GoString := t.endpoint ++ go!"/" ++ 
 
 /-- The prober's path (`ProbingPrefix`'s value, `"/raft/probing"`; rafthttp stage 6c). -/
 def probingPath : GoString := go!"/raft/probing"
+
+/-- The stream handler's mux pattern (`RaftStreamPrefix + "/"`, `transport.go:164`): the requests
+under it are the stream handler's (http-boundary-fix, independent review, 2026-11-14). -/
+def streamPfx : GoString := go!"/raft/stream/"
+
+/-- A path under the stream prefix is not the prober's. -/
+theorem streamPfx_ne_probing (p : GoString) (h : streamPfx <+: p) : p ≠ probingPath := by
+  intro hp; subst hp; revert h; decide
 
 /-- A stream endpoint's segments. -/
 def StreamTy.segs : StreamTy → List (List w8)
@@ -363,7 +373,7 @@ request's registered connection, from the member owning the request's host to it
 def streamResp (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64) (w : List w8) :
     IProp GF :=
   iprop(⌜st = W64 200⌝ → ∃ c : StreamKey, streamReg Rh γk c ∗
-    streamSent (c.2.1.codec (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
+    streamSent (c.2.1.codec Rh.γn.N.Sz (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
 
 instance streamResp_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : Persistent (streamResp Rh R γk st w) := by
@@ -389,15 +399,24 @@ theorem verHdrOk_set (hs : List (GoString × GoString)) (k v : GoString)
   rw [http.hdrGet_hdrSet_ne _ _ _ _ hk]
   exact h
 
+/-- `Set` of one of the raft handlers' response headers (a fixed token key) to a value Go carries
+unchanged keeps `respHdrsOk`. -/
+theorem respHdrsOk_set_raft (hs : List (GoString × GoString)) (k v : GoString)
+    (hk : k = go!"X-Etcd-Cluster-ID" ∨ k = go!"Allow" ∨ k = go!"X-Server-Version")
+    (h : http.respHdrsOk hs) (hv : http.hdrValOk v) : http.respHdrsOk (http.hdrSet hs k v) := by
+  apply http.respHdrsOk_hdrSet _ _ _ h _ hv
+  rcases hk with rfl | rfl | rfl <;> decide
+
 /-- The snapshot handler's path (`RaftSnapshotPrefix`'s value, `"/raft/snapshot"`; rafthttp stage
 6c). -/
 def snapPath : GoString := go!"/raft/snapshot"
 
 /-- **A snapshot request** (rafthttp stage 6c; defined 2026-10-24, stage 7b, D42, was opaque): a
 `POST` to the snapshot path from another member (`fromOkAt`, as a pipeline request's), with a
-streamed body (`snapStreamed`), whose contract is `snapSReq`'s. -/
+streamed body (`snapStreamed`), whose contract is `snapSReq`'s; (http-boundary-fix, 2026-11-14)
+without an idempotency key (`http.noIdemKey`, as a pipeline request's). -/
 def snapReq (Rh : RaftHttp GF) (R : http.HReq) (_γk : GName) : IProp GF :=
-  iprop(⌜fromOkAt Rh (Rh.owner R.host) R.hdr⌝)
+  iprop(⌜fromOkAt Rh (Rh.owner R.host) R.hdr ∧ http.noIdemKey R.hdr⌝)
 
 instance snapReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     Persistent (snapReq Rh R γk) := by
@@ -437,10 +456,14 @@ and a `writerToResponse`'s, none here), and a `200` of
 another path than the prober's is a stream's (`streamResp`; the pipeline answers `204`), a
 `POST` to the snapshot path a snapshot sender's (`snapReq`), (D42) with a streamed body
 (`snapStreamed`, its contract `snapSReq`); its response headers are `verHdrOk`. The prober's `GET`s (`addPeerToProber`'s axiom) and their
-answers (`probing.NewHandler`'s) are anything else. -/
+answers (`probing.NewHandler`'s) are anything else. (http-boundary-fix, independent review,
+2026-11-14) A `GET` is a stream request only under the stream handler's pattern (`streamPfx`; was:
+any path but the prober's), so etcd's own names-only `GET`s of `/version` and `/members` (the
+version monitor, bootstrap) are in the protocol with no premise, as the prober's are; the mux
+answers them `404`. -/
 def raftProto (Rh : RaftHttp GF) : http.Proto GF where
   req R γk := iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
   req_pers R γk := by infer_instance
   resp R γk st w := iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
@@ -450,6 +473,26 @@ def raftProto (Rh : RaftHttp GF) : http.Proto GF where
   streamed R := snapStreamed R
   sreq R γk Pre Φ := snapSReq Rh R γk Pre Φ
   sreq_pers R γk Pre Φ := by infer_instance
+
+/-- (http-boundary-fix, 2026-11-14) **The raft protocol admits the server's own answers**
+(`http.Proto.srvOk`, which `http.reserve` asks): none is `200`, `403` or `410`. -/
+theorem raftProto_srvOk (Rh : RaftHttp GF) : (raftProto Rh).srvOk := by
+  refine ⟨fun R γk st w hst => ?_, fun _ => verHdrOk_nil⟩
+  have h200 : st ≠ W64 200 := by
+    intro h; subst h; simp [http.srvStatuses] at hst
+  have h403 : st ≠ W64 403 := by
+    intro h; subst h; simp [http.srvStatuses] at hst
+  have h410 : st ≠ W64 410 := by
+    intro h; subst h; simp [http.srvStatuses] at hst
+  show ⊢ iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+    (⌜R.path ≠ probingPath⌝ → streamResp Rh R γk st w))
+  iintro
+  isplitr
+  · ipureintro; exact ⟨fun _ => h403, h410⟩
+  · iintro %_
+    unfold streamResp
+    iintro %h
+    exfalso; exact h200 h
 
 /-- The raft network's HTTP network: every address's protocol is a raft member's. -/
 def raftHttpNet (Rh : RaftHttp GF) : http.HttpNet GF := ⟨fun _ => raftProto Rh⟩
@@ -548,7 +591,7 @@ theorem raftProto_req_of_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
     (h : R.meth = go!"POST") (hp : R.path = go!"/raft") :
     pipeReq Rh R γk ⊢ (raftProto Rh).req R γk := by
   show pipeReq Rh R γk ⊢ iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
   iintro #Hp
   isplitr
@@ -566,7 +609,7 @@ theorem raftProto_req_of_snap (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
     (h : R.meth = go!"POST") (hp : R.path = snapPath) :
     snapReq Rh R γk ⊢ (raftProto Rh).req R γk := by
   show snapReq Rh R γk ⊢ iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
   iintro #Hs
   isplitr
@@ -583,16 +626,16 @@ theorem raftProto_req_of_snap (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
 theorem raftProto_req_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     (raftProto Rh).req R γk ⊢ ⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk := by
   show iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk)) ⊢ _
   iintro ⟨Hp, -, -⟩
   iexact Hp
 
-/-- A member's protocol of a `GET` of another path than the prober's: a stream request. -/
+/-- A member's protocol of a `GET` under the stream prefix: a stream request. -/
 theorem raftProto_req_stream (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
-    (raftProto Rh).req R γk ⊢ ⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk := by
+    (raftProto Rh).req R γk ⊢ ⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk := by
   show iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk)) ⊢ _
   iintro ⟨-, Hs, -⟩
   iexact Hs
@@ -601,7 +644,7 @@ theorem raftProto_req_stream (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
 theorem raftProto_req_of_stream (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
     (h : R.meth = go!"GET") : streamReq Rh R γk ⊢ (raftProto Rh).req R γk := by
   show streamReq Rh R γk ⊢ iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
   iintro #Hs
   isplitr
@@ -773,8 +816,9 @@ theorem streamSent_compat (C : StreamCodec) (N : NetPayload GF) (γw : GName) (r
 /-- **The msgappv2 decoder's premise** from a stream's bytes. -/
 theorem streamSent_v2Compat (N : NetPayload GF) (γw : GName) (frm to : w64)
     (fr : List (MsgWire × List w8)) (s : V2St) (ys : List w8)
-    (Hfr : Chain (v2Codec frm to) (v2Codec frm to).init fr s) :
-    ⊢ streamSent (v2Codec frm to) N γw to (chainBytes fr ++ ys) -∗ ⌜V2Compat frm to s ys⌝ := by
+    (Hfr : Chain (v2Codec N.Sz frm to) (v2Codec N.Sz frm to).init fr s) :
+    ⊢ streamSent (v2Codec N.Sz frm to) N γw to (chainBytes fr ++ ys) -∗
+      ⌜V2Compat N.Sz frm to s ys⌝ := by
   iintro Hs
   ihave %H := streamSent_compat _ N γw to fr s ys Hfr $$ Hs
   ipureintro

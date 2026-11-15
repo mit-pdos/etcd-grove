@@ -36,9 +36,8 @@ abbrev store.validateMinimumResourceVersion.spec : Prop :=
     (App (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!
       go!"validateMinimumResourceVersion")) (Val #m)) (Val #rev))
   {{ (err : GoInterface), RET #err;
-      ⌜if uint.nat rev < uint.nat n then ∃ l : Loc, err = interface.mkOk
-          (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l
-        else err = GoInterface.nil⌝ }}
+      if uint.nat rev < uint.nat n then apierrors.tooLargeErrIs err
+        else ⌜err = GoInterface.nil⌝ }}
 
 end spec
 

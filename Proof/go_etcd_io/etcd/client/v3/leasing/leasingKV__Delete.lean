@@ -32,7 +32,7 @@ theorem leasingKV.Delete.wp_proof
     (hdel : leasingKV.delete.spec (GF := GF) (hG := hG)) :
     leasingKV.Delete.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key sl gs lo
-  wp_start as ⟨#Hlkv, Htok, #Hctx, #Hcc, #Hopts, #Hlo, %Hnp⟩
+  wp_start as ⟨#Hlkv, Htok, #Hctx, #HctxC, #Hcc, #Hopts, #Hlo, %Hnp⟩
   iapply fupd_wp
   imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
   · iframe #; iframe
@@ -43,7 +43,7 @@ theorem leasingKV.Delete.wp_proof
   wp_auto
   wp_apply hDel key sl gs $$ [$Hcv $Hopts] as %opv #Hop
   · ipureintro; exact Hnp.1
-  wp_apply (hdel lkv γ pfx ctx cs opv (opDeleteModel key gs) lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
+  wp_apply (hdel lkv γ pfx ctx cs opv (opDeleteModel key gs) lo) $$ [$Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
     as %dr %err ⟨Hrd, H⟩
   · ipureintro; exact Hnp.2
   imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok

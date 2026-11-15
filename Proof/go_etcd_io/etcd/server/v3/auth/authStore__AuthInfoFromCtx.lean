@@ -40,7 +40,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
   intro st R M ctx
-  wp_start as ⟨#Hinv, Hen⟩
+  wp_start as ⟨#Hinv, Hen, #Hinc, #Hrdy, #Hda⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
@@ -51,7 +51,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
   icases HeIT' with ⟨%eIT, #HeITa, -⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   wp_auto
   wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en ⟨Hen, -⟩
   cases en
@@ -64,7 +64,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     · iunfold authErrIs; ileft; ipureintro; rfl
     iunfold ctxBound; ileft; ipureintro; rfl
   wp_auto
-  wp_apply h_FromIncomingContext as %md %ok Hmd
+  wp_apply (h_FromIncomingContext ctx) $$ [$Hinc] as %md %ok Hmd
   icases Hmd with (⟨%Hok, %Hinc⟩ | ⟨%md0, %m, ⟨%Hok, %Hinc, %Hdom⟩, Hm, Hvals⟩)
   · subst Hok
     wp_auto
@@ -103,7 +103,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     · iframe Hts; ipureintro; exact hv0
     wp_apply strings.wp_TrimPrefix
     (try wp_auto)
-    wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok ⟨#Hai, #Hb⟩
+    wp_apply (h_authInfoFromToken st R M) $$ [$Hinv $Hrdy $Hda] as %ai %uok ⟨#Hai, #Hb⟩
     cases uok
     · (try wp_auto)
       wp_apply h_redactToken _ as %fp -
@@ -116,7 +116,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Warn
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       iapply HΦ
       iframe
@@ -179,7 +179,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       · iframe Hts; ipureintro; exact hv0
       wp_apply strings.wp_TrimPrefix
       (try wp_auto)
-      wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok ⟨#Hai, #Hb⟩
+      wp_apply (h_authInfoFromToken st R M) $$ [$Hinv $Hrdy $Hda] as %ai %uok ⟨#Hai, #Hb⟩
       cases uok
       · (try wp_auto)
         wp_apply h_redactToken _ as %fp -
@@ -192,7 +192,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply h_Warn
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         (try wp_auto)
         iapply HΦ
         iframe

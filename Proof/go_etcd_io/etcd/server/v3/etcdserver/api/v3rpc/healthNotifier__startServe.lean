@@ -39,7 +39,7 @@ theorem v3rpc.healthNotifier.startServe.wp_proof
     (hSS : grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG)) :
     v3rpc.healthNotifier.startServe.spec (GF := GF) (hG := hG) := by
   intro hc hs lg
-  wp_start as ⟨#Hhs, #Hh, #Hlg, %Hlgn⟩
+  wp_start as ⟨#Hhs, #Hh, #Hlg, #Hlgn⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -55,7 +55,7 @@ theorem v3rpc.healthNotifier.startServe.wp_proof
   iintro %zsl ⟨-, -⟩
   (try wp_auto)
   wp_apply (hInfo lg _ _)
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   (try wp_auto)
   wp_apply (hSet hs _ _)
   · iframe #

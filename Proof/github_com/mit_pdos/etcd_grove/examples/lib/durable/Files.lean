@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # `durable.Read`/`durable.Write`, per file (2026-10-31)
 
 The Go functions' specs (`Spec/github_com/mit_pdos/etcd_grove/examples/lib/durable/{Read,Write}.lean`)
-are the extension's, on the program's half of all the files (`durableOwn`). For a program that
+are the extension's, on the program's half of all the files (`durableOwnM o`; here the mode `none`, `durableOwn`). For a program that
 shares the files per file (`GooseLang/Ext/Durable/Files.lean`: `durableFilesInv γ N`, `dfile γ f o`),
 these are their per-file forms, from the specs (taken as hypotheses, as a proof takes its callees'):
 the logically atomic ones (the owner of the file's entry may keep it in an invariant of its own,
@@ -43,7 +43,8 @@ theorem Read.wp_file_au (wp_Read : Read.spec (GF := GF) (hG := hG)) (γ : GName)
         (dfile γ f o ={∅,⊤ \ ↑N}=∗ Φ (durableReadVal o))) -∗
       WP (App (Val (@! Read)) (Val #f)) {{ Φ }} := by
   iintro #Hinv HAU
-  iapply wp_Read f $$ %Φ
+  iapply wp_Read none none f trivial $$ %Φ
+  rw [durableOwnM_none]
   iapply durableFiles_read_au γ N ⊤ CoPset.subseteq_top f Φ $$ Hinv HAU
 
 /-- `Read(f)`, per file, with the entry in hand: `f`'s contents (`""` and `false` if there is no
@@ -71,7 +72,8 @@ theorem Write.wp_file_au (wp_Write : Write.spec (GF := GF) (hG := hG)) (γ : GNa
         (dfile γ f (some data) ={∅,⊤ \ ↑N}=∗ Φ #())) -∗
       WP (App (App (Val (@! Write)) (Val #f)) (Val #data)) {{ Φ }} := by
   iintro #Hinv HAU
-  iapply wp_Write f data $$ %Φ
+  iapply wp_Write none f data trivial $$ %Φ
+  rw [durableOwnM_none]
   iapply durableFiles_write_au γ N ⊤ CoPset.subseteq_top f data (Φ #()) $$ Hinv HAU
 
 /-- `Write(f, data)`, per file, with the entry in hand: `f`'s entry then holds `data`. -/

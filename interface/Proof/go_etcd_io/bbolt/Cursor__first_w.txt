@@ -2,13 +2,14 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.next_w.specQ.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.next_w.specQ =
-    bbolt.Cursor.next_w.specQ
+theorem bbolt.Cursor.next_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.next_w.specQ = bbolt.Cursor.next_w.specQ
 
-theorem bbolt.Cursor.first_w.wp_proofQ [hos : HasExt osFsExt] (hpn : bbolt.Bucket.pageNode_w.specQ)
-    (hg : bbolt.Cursor.goToFirstElementOnTheStack_w.specQ) (hnx : bbolt.Cursor.next_w.specQ) (hkv :
-    bbolt.Cursor.keyValue_ws.specQ) (hRP : bbolt.internal.common.InBucket.RootPage.spec) (hCnt :
-    bbolt.internal.common.Page.Count.spec) : bbolt.Cursor.first_w.specQ
+theorem bbolt.Cursor.first_w.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hpn : bbolt.Bucket.pageNode_w.specQ) (hg : bbolt.Cursor.goToFirstElementOnTheStack_w.specQ)
+    (hnx : bbolt.Cursor.next_w.specQ) (hkv : bbolt.Cursor.keyValue_ws.specQ) (hRP :
+    bbolt.internal.common.InBucket.RootPage.spec) (hCnt : bbolt.internal.common.Page.Count.spec) :
+    bbolt.Cursor.first_w.specQ
   -- `Perennial.EtcdGrove.bbolt.Cursor.first_w.specQ`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (X : bbolt.WX) (n : GoString) (bl : Loc) (rt : Nat)
     (c : Loc) (stk : GoSlice) (els : List go_etcd_io.bbolt.elemRef),
@@ -35,12 +36,12 @@ theorem bbolt.Cursor.first_w.wp_proofQ [hos : HasExt osFsExt] (hpn : bbolt.Bucke
                   (intoVal ()))
                 {{ Φ }}
 
-theorem bbolt.Cursor.keyValue_ws.specQ.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Cursor.keyValue_ws.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Cursor.keyValue_ws.specQ = bbolt.Cursor.keyValue_ws.specQ
 
-theorem bbolt.Bucket.pageNode_w.specQ.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Bucket.pageNode_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Bucket.pageNode_w.specQ = bbolt.Bucket.pageNode_w.specQ
 
-theorem bbolt.Cursor.goToFirstElementOnTheStack_w.specQ.congr_simp [hos : HasExt osFsExt] :
-    bbolt.Cursor.goToFirstElementOnTheStack_w.specQ =
+theorem bbolt.Cursor.goToFirstElementOnTheStack_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos :
+    HasExt Fs.fsExt] : bbolt.Cursor.goToFirstElementOnTheStack_w.specQ =
     bbolt.Cursor.goToFirstElementOnTheStack_w.specQ

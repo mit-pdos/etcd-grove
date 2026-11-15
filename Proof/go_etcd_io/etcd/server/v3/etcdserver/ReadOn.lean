@@ -78,7 +78,7 @@ def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
@@ -109,7 +109,10 @@ theorem isServerReadM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **The store's range check at a reader's lower bound, as the server keeps it** (the auth plan's
 E3s, 2026-10-27; persistent): the server's `authStore` field and `authStoreLbM` of it (with auth on,
-`IsRangePermitted`'s verdict no older than any lower bound of the published index). -/
+for any lower bound of the published index: `IsRangePermitted`'s verdict no older than it, the lease
+checks' methods at such states, and, auth-guard-completeness 2026-11-14, `IsRangePermitted`'s refusal
+with why it refused, `apply.isAuthStoreRangeLbR`). Its only builder, `authStoreKit_on`, supplies all
+three. -/
 def srvAuthLb (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au : GoInterface, srvAuthStoreAddr s ↦□ au ∗ authStoreLbM E.authMode au E.RD)
 
@@ -161,6 +164,69 @@ theorem srvAuthLb_rangeCheck (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) 
     iapply apply.rangeCheckFrom_of_permCheck3 $$ HP3
     intro γa h; cases h
 
+/-- `srvAuthLb_rangeCheck` with the refusal half (auth-guard-completeness, `isWatchPermitted`): with
+auth on, `authStoreLbM`'s row `apply.isAuthStoreRangeLbR`. -/
+theorem srvAuthLb_rangeCheckR (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) (n : Nat) :
+    srvAuthStoreAddr s ↦□ (GoInterface.ok ai) ∗ srvAuthLb s E ∗ □ auth.authPubLbM E.authMode n ∗
+      apply.permCheck3 ai go!"IsRangePermitted" E.RD E.authMode .read ⊢
+    □ (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (key re : GoSlice)
+      (k e : List w8) (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ E.RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty go!"IsRangePermitted" ai.v)) (Val #a)) (Val #key))
+        (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ E.RD ∗
+        authApplyErrIs err ∗
+        (⌜err = GoInterface.nil⌝ → apply.classResFrom E.authMode n info [(k, e, .read)]) ∗
+        auth.permRefusalM E.authMode n info k e .read err }}) := by
+  iintro ⟨#Hf, #HLb, #Hpub, HP3⟩
+  cases hM : E.authMode with
+  | on γa =>
+    iunfold srvAuthLb at HLb
+    icases HLb with ⟨%au, #Hf2, #HLbM⟩
+    icombine Hf Hf2 gives %Hau
+    subst Hau
+    rw [hM]
+    ihave #HLbR := authStoreLbM_rangeR γa _ E.RD $$ HLbM
+    ihave #HR := HLbR $$ Hpub
+    iapply apply.rangeCheckFromR_of_isAuthStoreRangeLbR $$ HR
+  | _ =>
+    iapply apply.rangeCheckFromR_of_permCheck3 $$ HP3
+    intro γa h; cases h
+
+/-- **The store's `Revision()` at the reader's lower bound** (auth-guard-completeness G4,
+`doSerialize`'s re-check): with auth on, the lease checks' row of `srvAuthLb` (`isAuthStoreLeaseLb`'s
+`Revision`, a state no older than `n`); otherwise `True`. -/
+theorem srvAuthLb_revision (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) (n : Nat) :
+    srvAuthStoreAddr s ↦□ (GoInterface.ok ai) ∗ srvAuthLb s E ∗ □ auth.authPubLbM E.authMode n ∗
+      □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
+        {{ (x : w64), RET #x; auth.revisionVerdict E.authMode x }}) ⊢
+    □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
+        {{ (x : w64), RET #x; auth.revisionVerdictFrom E.authMode n x }}) := by
+  iintro ⟨#Hf, #HLb, #Hpub, #HRev⟩
+  cases hM : E.authMode with
+  | on γa =>
+    iunfold srvAuthLb at HLb
+    icases HLb with ⟨%au, #Hf2, #HLbM⟩
+    icombine Hf Hf2 gives %Hau
+    subst Hau
+    ihave #HL : iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
+        isAuthStoreLeaseLb (GoInterface.ok ai) E.RD (.on γa) n) $$ []
+    · iapply authStoreLbM_lease γa _ E.RD; rw [← hM]; iexact HLbM
+    ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
+    · rw [← hM]; iexact Hpub
+    ihave #HLn := HL $$ Hpub'
+    iunfold isAuthStoreLeaseLb at HLn
+    icases HLn with ⟨%ai', %Hai', -, #HR, -⟩
+    cases Hai'
+    iexact HR
+  | _ =>
+    iintro !> %Φ !> - HΦ
+    iapply HRev $$ []
+    · itrivial
+    iintro !> %x -
+    iapply HΦ
+    unfold auth.revisionVerdictFrom; itrivial
+
 /-- **A successful `Range` in the auth mode `on`** (`rangeReadOk` with the deposit's committed log
 `L` at the mode's model, `kvModelM on`; `rangeReadOk` at `on = false`, by definition). -/
 def rangeReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
@@ -200,17 +266,6 @@ instance rangeErrAt_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
     (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (P : mvcc.Log → Int → Prop) :
     Persistent (rangeErrAt on E γr c F o Q P) := by
   unfold rangeErrAt; infer_instance
-
-/-- The future revision at the log `log` (`txn.rangeResult`'s first case): the request's revision
-above the log's last. -/
-def rangeFutureAt (o : OpFull) (log : mvcc.Log) (_crev : Int) : Prop :=
-  sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev
-
-/-- The compacted revision at the log `log` and compaction revision `crev` (`txn.rangeResult`'s
-fourth case): the revision read below `crev`. -/
-def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
-  sint.Z o.base.rev ≤ sint.Z (W64 ((log.length : Int) - 1)) ∧
-    sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev
 
 /-- **Which error a failed `Range` returns** (k8s etcd3 7c-2 part 2, S3, 2026-11-06): mvcc's
 `ErrFutureRev` or `ErrCompacted`, each with the read's facts at the error (`rangeErrAt`); an auth
@@ -837,13 +892,6 @@ theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
     iexists ci₀, L₀
     iframe HL
     ipureintro; exact ⟨Hci, h⟩
-
-/-- **The trivial lower bound** (E3u): any reader may take `0`; with `authFloorAt`, `Range.spec` with
-auth on at `n = 0` still checks a linearizable read no older than its read index. -/
-theorem authPubLbM_zero (M : auth.AuthMode) : ⊢ |==> auth.authPubLbM (GF := GF) M 0 := by
-  cases M with
-  | on γa => unfold auth.authPubLbM auth.authPubLb; exact monoNatLbOwn_0 γa.pub
-  | _ => unfold auth.authPubLbM; iintro; imodintro; itrivial
 
 /-- **A linearizable read's floor** (E3u): from the reader's bound `n` and the published auth state
 at an applied log through the read index (`appliedPubFrom`), a bound `m ≥ n` with the floor at it

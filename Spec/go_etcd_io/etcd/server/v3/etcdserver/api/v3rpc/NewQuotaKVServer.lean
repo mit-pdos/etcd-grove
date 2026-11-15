@@ -42,7 +42,7 @@ abbrev v3rpc.NewQuotaKVServer.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ v3rpc.raftKV s A ∗
       structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps"
         (structFieldRef EtcdServer go!"Cfg" s) ↦□ n ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb }}
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb }}
     (App (Val (@! v3rpc.NewQuotaKVServer)) (Val #s))
   {{ (kv : GoInterface), RET #kv; ∃ (q p : Loc) (cid mid' : w64),
       ⌜kv = interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q⌝ ∗

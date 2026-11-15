@@ -86,7 +86,7 @@ instance srDial_persistent (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : 
 the context. -/
 def srFixed0 (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) : IProp GF :=
   iprop(∃ (lg tr ps : Loc) (rc pc : GoChan) (γr γp : ChanNames),
-    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     cr.[rafthttp.streamReader, go!"peerID"] ↦□ pid ∗
     cr.[rafthttp.streamReader, go!"tr"] ↦□ tr ∗ tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     cr.[rafthttp.streamReader, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
@@ -127,8 +127,8 @@ variable [sem : go.Semantics]
 theorem srFixed_intro (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     ⊢ srFixed0 Rh lid pid γd cr -∗ cr.[rafthttp.streamReader, go!"ctx"] ↦□ GoInterface.ok ctx -∗
-      context.isContext ctx cd -∗ srFixed Rh lid pid γd cr := by
-  iintro #H0 #Hc #Hctx
+      context.isContext ctx cd -∗ context.bgCancelChild ctx -∗ srFixed Rh lid pid γd cr := by
+  iintro #H0 #Hc #Hctx #Hbg
   iunfold srFixed0 at H0
   icases H0 with ⟨%lg, %tr, %ps, %rc, %pc, %γr, %γp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9,
     #H10, #H11, #H12⟩
@@ -163,7 +163,7 @@ theorem wp_Is_errStrOk (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err target 
     {{ (b : Bool), RET #b; True }} := by
   iintro %Φ ⟨#Hpkg, #He⟩ HΦ
   iunfold http.errStrOk at He
-  icases He with (%Hn | ⟨%ei, %Hei, -, #Htree⟩)
+  icases He with (%Hn | ⟨%ei, %Hei, -, #Htree, -⟩)
   · subst Hn
     wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil target Htgt
       (fun _ _ h => by cases h) $$ [] as %b -

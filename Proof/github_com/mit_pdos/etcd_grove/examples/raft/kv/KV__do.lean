@@ -108,6 +108,7 @@ theorem KV.do.wp_proof
   ihave Hpau' := kv_propAu_dup γr d γo Hdne $$ Hinv Hop
   wp_apply wp_node_Propose n γr.cluster kvRaftN id b d context.backgroundCtxVal bgCd
     $$ [$Hraftinit $HisNode $Hbg $Hb $Hpau'] as %err -
+  · ipureintro; intro b h; simp [Hmd] at h
   cases err with
   | ok i =>
     -- dropped: propose again

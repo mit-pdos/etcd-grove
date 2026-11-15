@@ -416,9 +416,9 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
   | commit s n h1 h2 h3 h4 h5 =>
     intro r hp hc hz; subst hp
     exact StepR.pci_keep (.commit r n h1 h2 h3 h4 (hc ▸ h5)) (fun h => h) (fun h => h) hz
-  | sendApps s ms h1 h2 h3 _ =>
-    intro r hp _ hz; subst hp
-    exact StepR.pci_keep (.sendApps r ms h1 h2 h3) (fun h => h) (fun h => h) hz
+  | sendApps s ms h1 h2 h3 h4 =>
+    intro r hp hc hz; subst hp
+    exact StepR.pci_keep (.sendApps r ms h1 h2 h3 (by rw [hc]; exact h4)) (fun h => h) (fun h => h) hz
   | propForward m s h1 h2 h3 =>
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.propForward m r h1 h2 h3) (fun h => h) (fun h => h) hz

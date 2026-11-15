@@ -1,0 +1,9 @@
+$ BIN=.../bin ./e2e.sh
+leader m2 idle at snapshot 84
+armed at 35
+killed m3
+--- m3 restart
+{"level":"fatal","ts":"2026-11-11T15:27:31.859217Z","caller":"etcdserver/bootstrap.go:686","msg":"failed to read WAL, cannot be repaired","error":"wal: slice bounds out of range, snapshot[Index: 0, Term: 0], current entry[Index: 85, Term: 2], len(ents): 9","stacktrace":"go.etcd.io/etcd/server/v3/etcdserver.openWALFromSnapshot\n\
+
+# the WAL the kill left (records after the received snapshot record; e87 torn):
+8622329399208133/4 e6@2(57B) e7@2(57B) e8@2(24B) e9@2(25B) hs2/9458622329399208133/7 hs2/9458622329399208133/9 snap84@2 e85@2(57B) e86@2(60026B) e87@2(60026B) 

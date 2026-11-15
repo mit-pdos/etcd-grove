@@ -40,6 +40,8 @@ abbrev node.Propose.spec : Prop :=
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
+      -- (raft-entsize §3, 2026-11-09) the data within the cluster's bound, if any
+      ⌜∀ b, γ.maxData = some b → data.length ≤ b⌝ ∗
       □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
          <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }>) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))

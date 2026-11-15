@@ -5,6 +5,7 @@ the trust boundary (D39, the user's choice: the prober an axiom). Lean-first.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -26,7 +27,7 @@ abbrev rafthttp.addPeerToProber.spec : Prop :=
   ∀ (lg : Loc) (p : GoInterface) (id : GoString) (us : GoSlice) (dq : DFrac) (ss : List GoString)
     (name : GoString) (h : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      us ↦*{dq} ss }}
+      zapLoggerOrNil lg ∗ us ↦*{dq} ss }}
     (App (App (App (App (App (App (Val (@! rafthttp.addPeerToProber)) (Val #lg)) (Val #p))
       (Val #id)) (Val #us)) (Val #name)) (Val #h))
   {{ RET #(); us ↦*{dq} ss }}

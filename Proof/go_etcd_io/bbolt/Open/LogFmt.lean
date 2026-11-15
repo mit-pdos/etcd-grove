@@ -15,6 +15,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section fmts
@@ -56,6 +58,9 @@ set_option maxRecDepth 20000 in
 theorem fmtVerbs_mapErr : fmtVerbs go!"failed to map db file (%s): %v" = some [W8 115, W8 118] :=
   by decide
 set_option maxRecDepth 20000 in
+theorem fmtVerbs_syncErr : fmtVerbs go!"failed to sync db file (%s): %v" = some [W8 115, W8 118] :=
+  by decide
+set_option maxRecDepth 20000 in
 theorem fmtVerbs_txErr : fmtVerbs go!"starting readwrite transaction failed: %v" = some [W8 118] :=
   by decide
 
@@ -64,7 +69,7 @@ end fmts
 section args
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

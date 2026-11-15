@@ -65,7 +65,7 @@ theorem kVClient.Compact.wp_proof
     iframe
     try (ipureintro; first | exact Hsz | exact (by decide : wireSlack < grpcMsgMax) | (simp only [pbCompactionRequest]; decide))
   icases Hin' with ⟨%req', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ

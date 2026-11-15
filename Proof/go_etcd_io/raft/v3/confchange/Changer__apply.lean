@@ -11,7 +11,6 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
 public import Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.fmt.Errorf
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 
@@ -78,7 +77,6 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
-    (wp_ConfChangeType_String : raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetNodeId : raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetType : raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
@@ -189,8 +187,8 @@ theorem confchange.Changer.apply.wp_proof
       iintro %sl' ⟨Hsl', -⟩
       wp_auto
       -- a `ConfChangeType` argument: etcd-grove's `fmt.Errorf` (Perennial's admits basic types
-      -- only), with the enum's `String()` at the trust boundary
-      ihave #HS := wp_ConfChangeType_String cc.Type'
+      -- only); under `%d` Go prints it as an integer, calling no method (`fmt.argOkAt`'s integer
+      -- disjunct, premise fixes 6, D): the enum's `String()` is not called
       wp_apply wp_fmt_Errorf $$ [$Hsl'] as %e -
       · fmt_args_ok
       wp_for_post

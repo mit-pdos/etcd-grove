@@ -107,7 +107,7 @@ The new clauses, and why each is true of the Go code (`newLessor` `lessor.go:212
   holds with records too (`Recover`'s mode premise, live ids among the records', is vacuous at
   `L = []`).
 Everything else, the `runLoop` goroutine (`:245`) and what the post says of it (`lessorExpiredC`,
-`lessorGuard`, the `Lookup` clause, `lessorCkptOk`), the configuration, the reader slots, `rd`
+`lessorGuard`, the `Lookup` clause), the configuration, the reader slots, `rd`
 unset, `lessorBeOn`/`lessorApplyOk`, the stop right, is the original's, word for word: the loop
 does not read the bucket, and every lease it sends or `Lookup` returns is the map's, with `GA` of
 its id by the guard clause above.
@@ -115,7 +115,7 @@ its id by the guard clause above.
 **The empty bucket's clauses** (the statement until the Freeze; "the original" above), and why
 each is true of the Go code: **`NewLessor(lg, b, cl, cfg)`** over the real backend `d` (`b` its `*backend`; D14d): the
 lessor at `lp` (`lessorInv`, its configuration and `expiredC`, a reader slot of its lock for the
-store, the live set empty, `SetCheckpointer` returns), and the contract of its backend for the
+store, the live set empty), and the contract of its backend for the
 lessor's writes (`lessorBackend`), at the backend's batch lock `Pk` and any frozen post-lock hook
 `f`, with one write-back token per write and the reader's open share lent (D14f). The `Lease`
 bucket is in the backend's table, tracked, none of its keys a hook's (`mvcc.leaseParams d.P`, a
@@ -126,7 +126,11 @@ boot fact; 2026-11-01, E: so the bucket it creates is among the backend's ghost 
 Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the etcd pin):
 * `newLessor` allocates the lessor (its maps, `expiredC` a channel of 16, `stopC`, `doneC`), sets
   the configuration's fields (a zero `leaseRevokeRate` defaulted to 1000: so a positive rate, given
-  a non-negative one, `lessorCfg`; audit B4b, 2026-10-18), then `initAndRecover`:
+  a non-negative one, `lessorCfg`; audit B4b, 2026-10-18; and the logger `lg` as given, which the
+  pre asks to be nil or a zap logger, `zapLoggerOk`, and `lessorCfg` keeps: the lessor logs only
+  under `le.lg != nil` (`lessor.go:759,797`), and a non-nil zero `&zap.Logger{}` panics in its
+  `Debug`; the user's decision of 2026-11-07, sweep B3-2: until then the pre asked only
+  `lg ≠ null`), then `initAndRecover`:
   `b.BatchTx()`'s `LockOutsideApply` (no hook: the backend open, `bOpen`), `UnsafeCreateLeaseBucket`,
   `MustUnsafeGetAllLeases` (it decodes every record of the `Lease` bucket, a panic on an
   undecodable one: the bucket is empty, a part of any bucket set `S` containing `lease`,
@@ -142,10 +146,17 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   caller the other half, unit T3, L2b), with no lease to revoke (`leaseRevokers γl []`).
   (2026-11-01, the backend-auth-split stage: until then the whole writer's half `rbOwn`, in and out.)
   The range deleter `rd` is unset (`nil`): `newLessor` does not set it, and the caller owns the
-  half of the field that the lock does not hold (`rdOwn γl func.nil`, unit T3).
+  half of the field that the lock does not hold (`rdOwn γl func.nil`, unit T3). The checkpointer
+  `le.cp` is `nil` (`lessorExtra`; stage B3, 2026-11-12): `newLessor` does not set it
+  (`lessor.go:225-242`), and the model has no contract for `SetCheckpointer`, its only writer
+  (`lessor.go:274-279`), which `NewServer` calls only with the `LeaseCheckpoint` feature on
+  (`server.go:393-405`; `NewServer.spec` takes it off). (Until then the post also gave
+  `lessorCkptOk`, a contract for `SetCheckpointer`.)
 * `go l.runLoop()`: until the lessor is promoted it only takes its lock, finds no expired lease
   and no due checkpoint; once promoted it sends expired leases on `expiredC` (the server's `run`
-  receives them) and calls the checkpointer the server installed (`ckptEffectsOk`). **The grant
+  receives them) and would call the checkpointer if one were installed; with `cp` nil (above),
+  `findDueScheduledCheckpoints` returns `nil` (`lessor.go:772-775`) and nothing is proposed (until
+  2026-11-12 the pre took the opaque `ckptEffectsOk` for these calls; deleted, as they never happen). **The grant
   guard** (D19n, 2026-10-18): the caller picks a predicate `GA` on lease ids, saved and pinned in
   the lessor's ghost map (`lessorGuard γl GA`); `Grant` adds a lease only with `leaseGranted`
   (`GA` of its id, under the guard), which the lock keeps for every lease of the map
@@ -224,8 +235,9 @@ abbrev lease.NewLessor.spec : Prop :=
   S go!"lease" → mvcc.leaseParams d.P →
   backend.bktEnts ((r.lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc →
   (∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
-      ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
+      ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
       backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))
@@ -240,7 +252,7 @@ abbrev lease.NewLessor.spec : Prop :=
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl Lr ∅ ∗ lease.leaseEver γl (recs.map (·.1)) ∗ lease.leaseRevokers γl Lr ∗
-      lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
+      lease.rdOwn γl func.nil ∗
       lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
       lease.lessorStopTok lp ∗
       □ ([∗list] x ∈ recs, lease.leaseReqIs γl x.1 (reqOf x.1)) ∗

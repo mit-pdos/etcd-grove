@@ -24,15 +24,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `gs.RegisterService(sd, ss)` on a server being built, for a descriptor `sd` (`grpcDescIs`,
-read-only) of a service not registered yet, whose method and stream names are distinct, and a
-service value implementing its handler type, registers the service: its methods and streams under
-their full names, with their handlers and `ss`. -/
+read-only) of a service not registered yet, whose method and stream names are distinct and whose
+every stream descriptor sets `ClientStreams` or `ServerStreams` (per-type stage B, B1b: grpc calls
+an unflagged stream descriptor's handler directly, without the stream interceptor,
+`server.go:1446-1450`, test T10b; `grpcSrvNew`'s invariant), and a service value implementing its
+handler type, registers the service: its methods and streams under their full names, with their
+handlers and `ss`. -/
 abbrev grpc.Server.RegisterService.spec : Prop :=
   ∀ (gs sd : Loc) (ss : GoInterface) (ics sics : List GoFunc) (svcs : List GoString)
-    (regs sregs : List (GoString × val × GoInterface)) (sn : GoString) (ht : GoInterface)
+    (regs sregs : List (GoString × GoFunc × GoInterface)) (sn : GoString) (ht : GoInterface)
     (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
   {{ grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ grpcDescIs (GF := GF) sd sn ht mds sds ∗ ⌜sn ∉ svcs⌝ ∗
-      ⌜grpcImplements ss ht⌝ ∗ ⌜(descNames mds sds).Nodup⌝ }}
+      ⌜grpcImplements ss ht⌝ ∗ ⌜(descNames mds sds).Nodup⌝ ∗
+      ⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝ }}
     (App (App (Val (gs @!! go.GoType.PointerType google_golang_org.grpc.Server.ty @!! go!"RegisterService"))
       (Val #sd)) (Val #ss))
   {{ RET #(); grpcSrvNew gs ics sics (svcs ++ [sn]) (regs ++ descRegs sn mds ss)

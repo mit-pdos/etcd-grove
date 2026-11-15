@@ -1,0 +1,10 @@
+// fs-v2-r6 (a): short atomic copies of a buffered write by the process named $1: ext4's
+// write_end (ext4_da_write_end) called with copied < len, keyed by where the cut lands in the file
+// page ((pos + copied) % 4096). A key other than 0 is a mid-page cut.
+kprobe:ext4_da_write_end /comm == str($1)/ {
+  @calls = count();
+  if (arg4 < arg3) {
+    @short[(arg2 + arg4) % 4096] = count();
+    if ((arg2 + arg4) % 4096 != 0) { @midpage = count(); }
+  }
+}

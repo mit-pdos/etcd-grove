@@ -30,7 +30,7 @@ theorem mvcc.restoreIntoIndex.wp_proof (hKIput : mvcc.keyIndex.put.spec) (hKItom
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            ⌜lg ≠ null⌝ ∗
+            zapLoggerOk lg ∗
               mvcc.ownIdxPriv ti [] ∗
                 mvcc.rdCap Rd Tok ∗
                   Tok ∗

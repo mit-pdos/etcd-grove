@@ -9,7 +9,8 @@ theorem bbolt.erase_of_first {α : Type} [BEq α] [LawfulBEq α] (l : List α) (
     (hbefore : ∀ (k : Nat), k < j → l[k]? ≠ some x) (hat : l[j]? = some x) : l.erase x = List.take j
     l ++ List.drop (j + 1) l
 
-theorem bbolt.node.removeChild.wp_proof [hos : HasExt osFsExt] : bbolt.node.removeChild.spec
+theorem bbolt.node.removeChild.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    : bbolt.node.removeChild.spec
   -- `Perennial.EtcdGrove.bbolt.node.removeChild.spec`, unfolded:
   ∀ (n : Loc) (nv : go_etcd_io.bbolt.node) (cs : List Loc) (target : Loc),
     ⊢

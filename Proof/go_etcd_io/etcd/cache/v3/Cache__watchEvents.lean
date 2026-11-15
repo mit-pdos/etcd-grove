@@ -401,7 +401,7 @@ theorem Cache.watchEvents.wp_proof
   · iPkgInit
   unfold isCacheFields
   iNamed Hc
-  icases HisICtx with ⟨%ics, #Hctxi, #Hcci⟩
+  icases HisICtx with ⟨%ics, #Hctxi, #HoCi, #Hcci⟩
   ihave #Hctxi' := Hctxi
   iNamed Hctxi'
   imod monoNatLbOwn_0 (GF := GF) γr.epoch with #Hlb0
@@ -444,7 +444,7 @@ theorem Cache.watchEvents.wp_proof
     %([withPrefixM, withRevM rev, withProgressNotifyM, withCreatedNotifyM] : List (OpFull → OpFull))
     %rev
   wp_apply HW $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
-  · iframe Hctxi Hopts Hrd0
+  · iframe Hctxi HoCi Hopts Hrd0
     ipureintro
     exact ⟨(watchEvents_opts cf.pfx rev).1, (watchEvents_opts cf.pfx rev).2, Hrev,
       cacheWatch_size rev Hpfx⟩

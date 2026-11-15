@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart). One generation of `BootMinibolt(dir)` (`minibolt.go`): from
-the database file as the generation starts with it (`csOwn (dir ++ "/db") γc (csStart fo)`, a
-`Good` file, in its crash invariant), `BootMinibolt` reaches no panic. It is proved over the
+the database file as the generation starts with it (`csOwn (dir ++ "/db") R γc s V`, `StartSt`: absent or
+a file as on disk and `Good`, in its crash invariant), `BootMinibolt` reaches no panic. It is proved over the
 crash-aware specs of `Open`, `Get`, `Commit` and `Close` (hypotheses, as the other proofs take
 their callees' specs).
 
@@ -34,9 +34,23 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
+
+/-- The database file's name in `dir`. -/
+def dbB : GoString := go!"db"
+
+theorem dbB_ok : NameOk dbB := by decide
 
 section pure
 variable [GooseExts]
+
+/-- The bytes a start state has are a `goodImg`. -/
+theorem startSt_good {s : CState} (hs : StartSt s) : goodImg (startImg s) := by
+  rcases hs with rfl | ⟨i, vs, sz, rfl, hg⟩
+  · exact ⟨by simp [startImg], Or.inl ⟨by simp [startImg], fun i _ h => by simp [startImg] at h⟩⟩
+  · simp only [startImg, csStart, List.map_map]
+    have : (Prod.fst ∘ durB) = id := rfl
+    rw [this, List.map_id]; exact hg.1
 
 /-- `bootOk`'s first check: transaction `t ≤ 1` holds no value. -/
 theorem bootOk_le1 {t : Nat} {vo : Option w64} (h : bootOk t vo) (ht : t ≤ 1) : vo = none := by
@@ -63,7 +77,7 @@ theorem bootOk_next (x : w64) (h1 : 1 ≤ x.toNat) (h : x.toNat + 1 < 2 ^ 64) :
 end pure
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -75,27 +89,27 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
     (wp_Get : DB.Get.specCrash (GF := GF) (hG := hG))
     (wp_Commit : DB.Commit.specCrash (GF := GF) (hG := hG))
     (wp_Close : DB.Close.specCrash (GF := GF) (hG := hG))
-    (dir : GoString) (γc : GName) (fo : Option OsFile) (hg : Good fo) :
+    (dir : GoString) (R : Roots) (V : Hist) (j : Ino) (γc : GName) (s : CState)
+    (hd : lookupH R V dir = some (.dir j)) (hs : StartSt s) :
     {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗
-        csInv (GF := GF) dbCrashN (dir ++ go!"/db") γc (dbOk (dir ++ go!"/db")) ∗
-        csOwn (GF := GF) (dir ++ go!"/db") γc (csStart fo) ∗ threadTok }}
+        csInv (GF := GF) dbCrashN (child dir dbB) R γc Good dbOk ∗
+        csOwn (GF := GF) (child dir dbB) R γc s V ∗ threadTok }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt)) (Val #dir))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hpkg, #Hos, #Hci, Hown, Htok⟩
-  obtain ⟨t, vo, n, hfresh⟩ : ∃ t vo n, freshTx ((startImg fo).map (·, true)) = (t, vo, n) :=
+  obtain ⟨t, vo, n, hfresh⟩ : ∃ t vo n, freshTx ((startImg s).map durB) = (t, vo, n) :=
     ⟨_, _, _, rfl⟩
-  have hgi : goodImg (startImg fo) := by cases fo with
-    | none => exact ⟨by simp [startImg], Or.inl ⟨by simp [startImg], fun i _ h => by simp [startImg] at h⟩⟩
-    | some f => exact hg
+  have hgi : goodImg (startImg s) := startSt_good hs
   have hvp : bootOk t vo := by
-    have := goodImg_freshTx (startImg fo) hgi
+    have := goodImg_freshTx (startImg s) hgi
     rw [hfresh] at this; exact this
   have hb' : 1 ≤ t ∧ t + 1 < 2 ^ 64 := by
-    have htx := goodImg_freshTx_tx (startImg fo) hgi
+    have htx := goodImg_freshTx_tx (startImg s) hgi
     rw [hfresh] at htx
     exact ⟨htx.1, by omega⟩
   wp_auto
-  wp_apply wp_Open (dir ++ go!"/db") γc fo t vo n bootOk hg hfresh hvp (fun _ _ h => h) $$ [Hown]
+  try rw [show dir ++ go!"/db" = child dir dbB from rfl]
+  wp_apply wp_Open dir dbB R V j γc s t vo n bootOk dbB_ok hd hs hfresh hvp (fun _ _ h => h) $$ [Hown]
     as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, -, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)
   · iframe; iframe #
   rotate_left

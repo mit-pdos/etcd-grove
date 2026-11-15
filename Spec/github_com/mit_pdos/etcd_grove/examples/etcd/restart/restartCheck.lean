@@ -48,6 +48,8 @@ abbrev restartCheck.spec : Prop :=
     (Uok : BootURLs → Prop) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (id : w64) (γ : SrvRaft) (γn : NetNames GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  srvLevels (GF := GF) →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
   ρ.rd.kv.st = γr.kv.st →
@@ -59,7 +61,7 @@ abbrev restartCheck.spec : Prop :=
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ →
   plainEndpoint caddr →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
@@ -71,7 +73,13 @@ abbrev restartCheck.spec : Prop :=
       netAddrFree (GF := GF) caddr ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
-      context.isClosedchanInit ∗ netHttpOk γn id }}
+      context.isClosedchanInit ∗ netHttpOk γn id ∗
+      -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
+      etcdstart.memberRestartFacts γ ρ id ∗
+      -- (restart S7.4, `BuildServer.specRestart`'s) `ETCD_VERIFY` off for the run
+      envVerifyOff ∗
+      -- (restart S7.4) the restart-only rows: restart3's open row (R2s-A removes it)
+      □ (∀ A σ, srvRestartRows γ id A σ) }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.restartCheck))
       (Val #cl)) (Val #m)) (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #caddr))

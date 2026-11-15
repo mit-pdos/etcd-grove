@@ -556,7 +556,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     iunfold ownRaftGhostR
     iframe Hg Hfr
     ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readArrive m r h1 h2 h3) HB (noApp1 (by rw [h1]; decide)) HI)
-  | win r mt ms h1 h2 h3 h4 h5 h6 =>
+  | win r mt ms h1 h2 h3 h4 h5 h6 h7 =>
     iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
     iapply fupd_frame_left
     iframe Hregs
@@ -566,11 +566,11 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     imod ownRaftGhost_step_win γ r.cfg.cfg id r.p mt ms (B.toNat - γ.reBoot.length) h1 h2
       (by omega) h4 h5 (fun _ => h6)
       (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
-      (by omega) $$ Hrc Henv Hg with Hg
+      h7 (by omega) $$ Hrc Henv Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
-    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.win r mt ms h1 h2 h3 h4 h5 h6) HB noApp0 HI)
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.win r mt ms h1 h2 h3 h4 h5 h6 h7) HB noApp0 HI)
   | commit r n h1 h2 h3 h4 h5 =>
     iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
     iunfold ownRaftGhostR at Hown
@@ -583,7 +583,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     iunfold ownRaftGhostR
     iframe Hg Hfr
     ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.commit r n h1 h2 h3 h4 h5) HB noApp0 HI)
-  | sendApps r ms h1 h2 h3 =>
+  | sendApps r ms h1 h2 h3 h4 =>
     iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
     iapply fupd_frame_left
     iframe Hregs
@@ -592,11 +592,11 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
     imod ownRaftGhost_step_send_apps γ r.cfg.cfg id r.p ms h1 h2 (fun _ => h3)
       (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
-      $$ Henv Hg with Hg
+      h4 $$ Henv Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
-    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.sendApps r ms h1 h2 h3) HB noApp0 HI)
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.sendApps r ms h1 h2 h3 h4) HB noApp0 HI)
   | readAck m r N h1 h2 h3 h4 h5 h6 =>
     iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
     iapply fupd_frame_left

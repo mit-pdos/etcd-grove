@@ -38,8 +38,8 @@ theorem auth.authStore.AuthEnable.wp_tieB
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post en sc0 be
-  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post en sc0 be
+  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Hw1, Hw2, Hw3, Htpa, Hcs, %Hok, #Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   icases authErrVar_of_init .rootUserNotExist $$ Hpkg with ⟨%eRUN, #HeRUN⟩
@@ -47,7 +47,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
   iunfold tpAdmin at Htpa
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
@@ -78,7 +78,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   · -- enabled already: nothing
     (try wp_auto)
     wp_apply h_Info
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
@@ -139,11 +139,11 @@ theorem auth.authStore.AuthEnable.wp_tieB
   · -- no root user
     ihave %Hnone := userOut_null st0 (go!"root") $$ Hu
     (try wp_auto)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-    iapply HFC $$ HT
+    iapply HFC $$ [$HT $Hw3]
     inext
     iintro HT
     (try wp_auto)
@@ -188,11 +188,11 @@ theorem auth.authStore.AuthEnable.wp_tieB
     have hn : ¬ isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_false Hroot.symm
     simp only [Bool.not_false]
     (try wp_auto)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-    iapply HFC $$ HT
+    iapply HFC $$ [$HT $Hw3]
     inext
     iintro HT
     (try wp_auto)
@@ -229,7 +229,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   have hr : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
   have hstep : authEnableF false st0 = .next { st0 with enabled := true } := by
     simp [authEnableF, hroot, hr]
-  have Hfit := Hstep.2 _ _ rfl hstep
+  have Hfit := (Hstep.2.1 _ _ rfl hstep).1
   simp only [Bool.not_true]
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #true))
@@ -301,10 +301,10 @@ theorem auth.authStore.AuthEnable.wp_tieB
     all_goals simp
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   simp only [List.append_nil]
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [{ st0 with enabled := true }]) [HL $Hown]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [{ st0 with enabled := true }]) [HL $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL
@@ -312,7 +312,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
     ipureintro; exact Hl1
   (try wp_auto)
   wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-  iapply HFC $$ HT
+  iapply HFC $$ [$HT $Hw3]
   inext
   iintro HT
   (try wp_auto)

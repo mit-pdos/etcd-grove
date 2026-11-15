@@ -210,7 +210,8 @@ theorem mvcc.restoreIntoIndex.wp_proof
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     mvcc.restoreIntoIndex.spec (GF := GF) (hG := hG) := by
   intro lg ti ents Rd Tok e0
-  wp_start as ⟨%Hlg, Hix, #Hrc, Htok, %Hok, #Herr⟩
+  wp_start as ⟨#Hlgz, Hix, #Hrc, Htok, %Hok, #Herr⟩
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HrCK, -⟩
@@ -548,7 +549,8 @@ theorem mvcc.restoreIntoIndex.wp_proof
       have Hstep := mvcc.idxRestore_take_succ He'
       have Hnlt : n < ents.length := (List.getElem?_eq_some_iff.1 He').1
       iunfold mvcc.ownIdxPriv at Hix
-      icases Hix with ⟨%t, %lg', #Htree, #Hlg', %Hlgnn, Hmu, Htr⟩
+      icases Hix with ⟨%t, %lg', #Htree, #Hlg', #Hlgnn, Hmu, Htr⟩
+      ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
       icases mvcc.ownTree_sorted t L 1 $$ Htr with ⟨Htr, %Hsorted⟩
       have Hsorted' := (mvcc.itemsOfEntries_sorted_iff L).1 Hsorted
       cases okb
@@ -584,7 +586,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
             iexists t, lg'
             iframe Hmu Htr
             iframe #
-            ipureintro; exact Hlgnn
           wp_apply (hInsert ti L p e.kv.key gs' (mvcc.kiRestore e.kv.createRev e.rev e.kv.version)) $$ [$Hix $Hpk $Hki] as Hix
           · ipureintro; exact ⟨Hpn, Hnew⟩
           (try wp_auto)
@@ -639,7 +640,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
             iexists t, lg'
             iframe Hmu Htr
             iframe #
-            ipureintro; exact Hlgnn
           wp_apply (hInsert ti L p e.kv.key gs' (mvcc.kiRestoreTombstone e.rev)) $$ [$Hix $Hpk $Hki] as Hix
           · ipureintro; exact ⟨Hpn, Hnew⟩
           (try wp_auto)
@@ -725,8 +725,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
             iexists t, lg'
             iframe Hmu
             iframe #
-            isplitl []
-            · ipureintro; exact Hlgnn
             iunfold mvcc.ownTree
             have hset := mvcc.itemsOfEntries_set_same L hi (mvcc.kiPut kiM e.rev)
             simp only at hset
@@ -779,8 +777,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
               iexists t, lg'
               iframe Hmu
               iframe #
-              isplitl []
-              · ipureintro; exact Hlgnn
               iunfold mvcc.ownTree
               have hset := mvcc.itemsOfEntries_set_same L hi (mvcc.kiTombstone kiM e.rev)
               simp only at hset
@@ -821,7 +817,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
             iintro %flds -
             (try wp_auto)
             wp_apply (hWarn lg) $$ []
-            · iframe #; ipureintro; exact Hlg
+            · iframe #
             (try wp_auto)
             wp_for_post
             iframe Hrprod Hdefer
@@ -834,8 +830,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
               iexists t, lg'
               iframe Hmu
               iframe #
-              isplitl []
-              · ipureintro; exact Hlgnn
               iunfold mvcc.ownTree
               isplitl []
               · ipureintro; exact Hsorted

@@ -107,8 +107,9 @@ theorem rafthttp.Transport.removePeer_core
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
-    #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
+    #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
     #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   iunfold trProbers at Hprb
   icases Hprb with ⟨%pp, %sp, #Hppf, #Hppok, #Hspf, #Hspok⟩
@@ -137,8 +138,8 @@ theorem rafthttp.Transport.removePeer_core
       | "zap.String" => (wp_apply hZString as %_ -)
       | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
          iintro %_ ⟨-, -⟩)
-      | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-      | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+      | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
+      | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
       | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
       | wp_auto)
     iapply HΦ
@@ -183,8 +184,8 @@ theorem rafthttp.Transport.removePeer_core
       | "zap.String" => (wp_apply hZString as %_ -)
       | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
          iintro %_ ⟨-, -⟩)
-      | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-      | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+      | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
+      | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
       | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
       | wp_auto)
     iapply HΦ

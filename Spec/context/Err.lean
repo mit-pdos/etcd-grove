@@ -24,10 +24,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.context.Assumptions]
 
-/-- A non-nil `err`'s `Error()` returns some string (`fmt.stringMethodSpec`): what `fmt.argsOk`
-asks of an error argument. -/
+/-- A non-nil `err`'s `Error()` returns some string (`fmt.stringMethodSpec`), and its type has no
+`Format` method (premise-fixes-4: `context.Canceled`'s `*errors.errorString` and
+`DeadlineExceeded`'s `deadlineExceededError` have none): what `fmt.argsOk` asks of an error
+argument. -/
 def context.errStringOk (err : GoInterface) : IProp GF :=
-  iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → fmt.stringMethodSpec e go!"Error")
+  iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
+    fmt.stringMethodSpec e go!"Error" ∗ ⌜methodSet e.ty !! go!"Format" = none⌝)
 
 instance context.errStringOk_persistent (err : GoInterface) :
     Persistent (context.errStringOk (GF := GF) err) := by

@@ -1,0 +1,45 @@
+== walw steady 50..6000
+sync: 20625984 sync_file_range calls
+@writes: 954493
+== walw RESTART=5 RGAP=100 50..400
+sync: 22941376 sync_file_range calls
+run /tmp/walx/wb/mnt/w7: 6194 saves (4595 synced), 20739 entries, 1019672 data bytes, 919 restarts
+run /tmp/walx/wb/mnt/w0: 6240 saves (4625 synced), 20983 entries, 1020539 data bytes, 925 restarts
+run /tmp/walx/wb/mnt/w2: 6146 saves (4625 synced), 21000 entries, 1040232 data bytes, 925 restarts
+run /tmp/walx/wb/mnt/w4: 6102 saves (4630 synced), 20570 entries, 1034740 data bytes, 926 restarts
+run /tmp/walx/wb/mnt/w6: 6114 saves (4610 synced), 20730 entries, 1019533 data bytes, 922 restarts
+run /tmp/walx/wb/mnt/w3: 6257 saves (4685 synced), 21037 entries, 1040685 data bytes, 937 restarts
+run /tmp/walx/wb/mnt/w1: 6119 saves (4595 synced), 20747 entries, 1025725 data bytes, 919 restarts
+run /tmp/walx/wb/mnt/w5: 6259 saves (4680 synced), 21275 entries, 1040383 data bytes, 936 restarts
+@under_wb: 2800
+@under_wb_off:
+[0, 512)             366 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |
+[512, 1024)          335 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@     |
+[1024, 1536)         338 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@     |
+[1536, 2048)         368 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[2048, 2560)         352 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   |
+[2560, 3072)         323 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@       |
+[3072, 3584)         356 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  |
+[3584, 4096)         362 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |
+@writes: 42511
+== walw RESTART=5 RGAP=0 50..400
+sync: 23648320 sync_file_range calls
+run /tmp/walx/wb/mnt/w5: 6280 saves (4706 synced), 21033 entries, 1051627 data bytes, 941 restarts
+run /tmp/walx/wb/mnt/w0: 6220 saves (4655 synced), 21088 entries, 1032321 data bytes, 931 restarts
+run /tmp/walx/wb/mnt/w4: 6286 saves (4765 synced), 21234 entries, 1054949 data bytes, 953 restarts
+run /tmp/walx/wb/mnt/w1: 6248 saves (4675 synced), 21403 entries, 1044205 data bytes, 935 restarts
+run /tmp/walx/wb/mnt/w3: 6181 saves (4650 synced), 21123 entries, 1034856 data bytes, 930 restarts
+run /tmp/walx/wb/mnt/w6: 6265 saves (4750 synced), 21306 entries, 1064584 data bytes, 950 restarts
+run /tmp/walx/wb/mnt/w2: 6222 saves (4745 synced), 21355 entries, 1056152 data bytes, 949 restarts
+run /tmp/walx/wb/mnt/w7: 6428 saves (4760 synced), 21054 entries, 1048743 data bytes, 952 restarts
+@under_wb: 2755
+@under_wb_off:
+[0, 512)             345 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    |
+[512, 1024)          339 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@     |
+[1024, 1536)         367 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |
+[1536, 2048)         373 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[2048, 2560)         302 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@          |
+[2560, 3072)         334 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@      |
+[3072, 3584)         345 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    |
+[3584, 4096)         350 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    |
+@writes: 43184

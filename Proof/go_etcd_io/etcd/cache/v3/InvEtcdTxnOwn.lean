@@ -631,7 +631,7 @@ instance txnBuilderSpecO_persistent (t : GoInterfaceOk) (pfx : GoString)
 `kv.Txn(ctx)` returns a builder in its empty state. -/
 def isEtcdTxnKVO (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-    {{ context.isContext ctx cs }}
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
       (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok ctx)))
     {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
         ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpecO t pfx B }})
@@ -649,7 +649,8 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdDoKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (lo : w64),
-    {{ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 1 ∧ opSizeOk o⌝ }}
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
+        ⌜o.t = W64 1 ∧ opSizeOk o⌝ }}
       (App (App (Val #(methods kv.ty go!"Do" kv.v)) (Val #(GoInterface.ok ctx))) (Val #opv))
     {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
         kvGetResult pfx lo o r.get' err }})

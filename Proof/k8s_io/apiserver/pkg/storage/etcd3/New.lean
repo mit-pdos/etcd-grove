@@ -58,7 +58,7 @@ theorem New.wp_proof
     (wp_Ctx : Client.Ctx.spec (GF := GF) (hG := hG))
     (wp_TypeOf : reflect.TypeOf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1
+  intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1 hu1 hu2 htb hpk
   wp_start as ⟨#Hkc, #Hnc, #Hwo, #Hregs, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
@@ -116,7 +116,7 @@ theorem New.wp_proof
   cases b
   case' true =>
     (try wp_auto)
-    wp_apply wp_cea as %fa -
+    wp_apply wp_cea as %fa #Hfa
   all_goals
     (try wp_auto)
     wp_apply wp_rk as %rkf' -
@@ -150,9 +150,27 @@ theorem New.wp_proof
       (try wp_auto)
       irename : («$r0_ptr» ↦ (_ : k8s_io.apiserver.pkg.storage.etcd3.store) : IProp GF) => Hsto
       icases (typedPointsto_not_null_dup _ _ _) $$ Hsto with ⟨Hst, %Hsn⟩
-      ipersist Hst
-      ihave #Hst' := Hst
-      iStructNamed Hst'
+      iStructNamed Hst
+      -- (stage 7e-2, #15) `collectorMux`'s reader tokens in a pool guarding `resourceSizeEstimator ↦ nil`
+      imod (sync.init_RWMutex_threadPool (rseNilR «$r0_ptr») storePoolN _ (by omega)) $$
+        [resourceSizeEstimator] collectorMux with ⟨%γp, -, #Hpool⟩
+      · iunfold rseNilR
+        inext
+        iexact resourceSizeEstimator
+      ipersist client
+      ipersist codec
+      ipersist versioner
+      ipersist transformer
+      ipersist pathPrefix
+      ipersist groupResource
+      ipersist watcher
+      ipersist leaseManager
+      ipersist decoder
+      ipersist listErrAggrFactory
+      ipersist resourcePrefix
+      ipersist newListFunc
+      ipersist compactor
+      ipersist metricsTracker
       -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
       wp_apply Chk $$ []
       · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
@@ -173,8 +191,26 @@ theorem New.wp_proof
       iunfold isStore
       simp only
       iframe #
-      ipureintro
-      exact ⟨Hsn, Hlt⟩
+      isplitr
+      · ipureintro; exact Hsn
+      isplitr
+      · ipureintro; exact Hlt
+      iunfold storeListOk
+      iexists _, γp
+      isplitr
+      · iexact listErrAggrFactory
+      isplitr
+      · first
+        | iexact Hfa
+        | (iunfold aggrFactoryOk
+           iintro !> %Ψ HΨ
+           wp_apply wp_dla as %ag Hag
+           iapply HΨ $$ Hag)
+      isplitr
+      · iexact Hpool
+      isplitr
+      · ipureintro; exact ⟨hu1, hu2⟩
+      ipureintro; exact hpk
 
 end proof
 

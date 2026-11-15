@@ -25,6 +25,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+
 /-- `releaseRangeOne` with the code's order of the kept pairs. -/
 def releaseRangeOneGo (b e : w64) (p : Pending) : List w64 × Pending :=
   let both := p.ids.zip p.alloctx

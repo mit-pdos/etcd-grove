@@ -199,7 +199,11 @@ theorem releasePendingReadIndexMessages.wp_proof
         ⟨_, List.getElem?_eq_getElem (by omega)⟩
       ihave #Hpl := BigSepL2.bigSepL2_lookup Hl Hp $$ Hpls
       iunfold ownPendRI at Hpl
-      icases Hpl with ⟨%psn, %pctx, %prs, #Hpl⟩
+      icases Hpl with ⟨%psn, %pctx, %prs, #Hpl, %Hpty⟩
+      ihave #Hpl : msgOwnZ (GF := GF) (readRespondAll id { s with rd := { s.rd with pend := [] } }
+          ((pendReqs s).take (sint.nat n))).gh.sn.sz l DFrac.discard ⟨p.1, p.2, psn, pctx, prs⟩
+        $$ [Hpl]
+      · rw [readRespondAll_gh]; iexact Hpl
       rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, by word⟩)]
       wp_apply wp_load_slice_index pr (sint.Z n) _ (DFrac.own 1) l Hn.1 $$ [Hpri] as Hpri
       · iframe; ipureintro; exact Hl
@@ -210,7 +214,7 @@ theorem releasePendingReadIndexMessages.wp_proof
         (readRespondAll id { s with rd := { s.rd with pend := [] } }
           ((pendReqs s).take (sint.nat n))) l p.1 p.2 psn pctx prs G (by rw [Hcf.2.1]; exact Hlead)
         (by first | exact Hterm | simpa using Hterm | simp_all)
-        (Hpne p (List.mem_of_getElem? Hp)) $$ [$Hphys $Hpl HG] as %s' ⟨Hphys, %Hres, HG⟩
+        (Hpne p (List.mem_of_getElem? Hp)) Hpty $$ [$Hphys $Hpl HG] as %s' ⟨Hphys, %Hres, HG⟩
       · -- (Q8 stage 1, slice 6) the response's gate (at no event, at the caller's mode); no heartbeat
         iframe HG
         isplitr
@@ -274,7 +278,10 @@ theorem releasePendingReadIndexMessages.wp_proof
       ⟨_, List.getElem?_eq_getElem (by omega)⟩
     ihave #Hpl := BigSepL2.bigSepL2_lookup Hl Hp $$ Hpls
     iunfold ownPendRI at Hpl
-    icases Hpl with ⟨%psn, %pctx, %prs, #Hpl⟩
+    icases Hpl with ⟨%psn, %pctx, %prs, #Hpl, %Hpty⟩
+    ihave #Hpl : msgOwnZ (GF := GF) { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs }.gh.sn.sz
+        l DFrac.discard ⟨p.1, p.2, psn, pctx, prs⟩ $$ [Hpl]
+    · simp only [sendMsgs, relState]; iexact Hpl
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, by word⟩)]
     wp_apply wp_load_slice_index pr (sint.Z n) _ (DFrac.own 1) l Hn.1 $$ [Hpri] as Hpri
     · iframe; ipureintro; exact Hl
@@ -282,7 +289,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     wp_apply wp_sendMsgReadIndexResponse _ _ _
       { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } l p.1 p.2 psn pctx prs G Hlead
       (by first | exact Hterm | simpa using Hterm | simp_all)
-      (Hpne p (List.mem_of_getElem? Hp)) $$ [$Hphys $Hpl HG] as %s1 ⟨Hphys, %Hres, HG⟩
+      (Hpne p (List.mem_of_getElem? Hp)) Hpty $$ [$Hphys $Hpl HG] as %s1 ⟨Hphys, %Hres, HG⟩
     · -- (Q8 stage 1, slice 6) this request's heartbeats' gates, at the state with the first
       -- `n + 1` requests released; no response
       iframe HG

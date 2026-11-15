@@ -55,9 +55,10 @@ theorem Cache.validateGet.wp_proof
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, ⟨%eUR, #HeURp⟩, ⟨%eKR, #HeKR⟩, -, -, #HUR⟩
+  ihave ⟨#HeUR', %HfUR⟩ := HUR $$ HeURp
   ihave #HeUR : EtcdGrove.fmt.stringMethodSpec eUR go!"Error" $$ []
   · rw [show EtcdGrove.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
-    iapply HUR; iexact HeURp
+    iexact HeUR'
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto

@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Auth_RoleGrantPermission_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
-implements `AuthServer` (a method-set fact) and whose `RoleGrantPermission` meets `Spec` with the resource `S`, given
+implements `AuthServer` (a method-set fact) and whose `RoleGrantPermission` meets `Spec` with the resource `S` and the interceptors' resources `Rs`, which the chain lends the call (per-type stage B3), given
 what it owns of the decoded request (`grpcHandlerOwnOkMd`, at the run's metadata), for messages whose types are
 `*AuthRoleGrantPermissionRequest`/`*AuthRoleGrantPermissionResponse` (a zero `*AuthRoleGrantPermissionRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
@@ -42,7 +42,7 @@ abbrev etcdserverpb._Auth_RoleGrantPermission_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthRoleGrantPermissionRequest) -∗ Req.blank l) ∗
-      grpcHandlerOwnOkMd #(methods srv.ty go!"RoleGrantPermission" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOwnOkMd #(methods srv.ty go!"RoleGrantPermission" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗

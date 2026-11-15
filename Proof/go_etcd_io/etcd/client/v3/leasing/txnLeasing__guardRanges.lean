@@ -63,7 +63,7 @@ theorem txnLeasing.guardRanges.wp_proof
     (hCR : EtcdGrove.CreateRevision.spec (GF := GF) (hG := hG)) :
     txnLeasing.guardRanges.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl os
-  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #Hcc, #Hops, %Hos⟩
+  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hops, %Hos⟩
   ihave #HLKV' := HLKV
   iunfold isLeasingKV at HLKV'
   icases HLKV' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, #Hkvf, #Hpfxf, -, -, -,
@@ -146,7 +146,7 @@ theorem txnLeasing.guardRanges.wp_proof
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         (try wp_auto)
         have Hob := Hos o (List.mem_of_getElem? Hoi)
-        wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$HLKV $Hrd $Hsr $Hctx $Hcc]
+        wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$HLKV $Hrd $Hsr $Hctx $HctxC $Hcc]
           as %maxRev %err Hrd
         · ipureintro; exact Hob
         cases err with
@@ -200,7 +200,7 @@ theorem txnLeasing.guardRanges.wp_proof
           ihave #H0 := etcdReached_zero (GF := GF)
           obtain ⟨Hnp, Ht1, HnP, Hrev0⟩ := lastRevOp_facts o.key o.base.rangeEnd
           wp_apply HG $$ [] as %gresp %gerr #Hgres
-          · iframe Hctx Hopts H0
+          · iframe Hctx HctxC Hopts H0
             ipureintro; exact ⟨Hnp, Ht1, lastRevOp_size _ _ Hob.1 Hob.2⟩
           iunfold kvGetResult at Hgres
           icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)

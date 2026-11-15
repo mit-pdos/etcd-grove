@@ -57,9 +57,9 @@ theorem runtime.SetZeroValue.wp_proof
   · iframe #
     ipureintro; exact Hrt
   (try wp_auto)
-  wp_apply wp_Set v_ptr (DFrac.own 1) v z T p V x $$ [$Hvp $Hx] as ⟨-, Hx⟩
+  wp_apply wp_Set v_ptr (DFrac.own 1) v z T p V x (zero_val V) $$ [$Hvp $Hx] as ⟨-, Hx⟩
   · iframe #
-    ipureintro; exact ⟨Hv, Hz⟩
+    ipureintro; exact ⟨Hv, Or.inl ⟨Hz, rfl⟩⟩
   (try wp_auto)
   iapply HΦ
   iexact Hx

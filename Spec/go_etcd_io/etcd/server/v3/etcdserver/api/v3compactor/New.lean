@@ -30,11 +30,11 @@ with its run token, whose `Run` takes the environment's contracts (`runPre`: the
 `compactableOk` is at C1's permit, `modePermit`) and calls `Compact` only at revisions C1 allows;
 for another mode, an error. `γf` names the periodic mode's first sample
 (`firstSample γf`, which the server reads to bound young compactions; unused in revision mode). A nil `lg` is replaced by
-`zap.NewNop()`. (Until 2026-10-27 an axiom whose post was `True`.) -/
+`zap.NewNop()`; any other is a zap logger (`zapLoggerOrNil`, premise fixes 6). (Until 2026-10-27 an axiom whose post was `True`.) -/
 abbrev v3compactor.New.spec : Prop :=
   ∀ (lg : Loc) (mode : GoString) (ret : time.Duration) (E : CompactEnv GF),
   (mode = go!"periodic" → 10 ≤ sint.Z ret) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ zapLoggerOrNil lg }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New)) (Val #lg)) (Val #mode)) (Val #ret)) (Val #E.rg)) (Val #E.c))
   {{ (cp err : GoInterface), RET (PairV #cp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (RunTok : IProp GF) (γf : GName),

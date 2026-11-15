@@ -119,7 +119,7 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
         mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗ rangeRequestIs r o ∗
         mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-        (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜validSortTarget o⌝ ∗
+        (if nd then mvcc.neverDone cd else iprop(True)) ∗ zapLoggerOrNil lg ∗ ⌜validSortTarget o⌝ ∗
         readAU γ Q }}
       (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #r)) (Val #withTotal))
@@ -127,12 +127,10 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
         mvcc.api.mvccReaders γ 1 ∗ ⌜trace ≠ null⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ∃ σ : MvccState, Q σ ∗ ⌜Reach σ⌝ ∗
           rangeResultClient resp err σ.log (W64 (σ.rev : Int)) σ.crev o withTotal }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, #Hr, #Hctx, #Hct, Hto, Hnd, %Hlg, %Hvs, Hau⟩
+  wp_start_folded as ⟨#Hkv, Hrd, #Hr, #Hctx, #Hct, Hto, Hnd, #Hlg, %Hvs, Hau⟩
   ihave %Hset := rangeRequestIs_sortSet r o $$ Hr
   iapply (wp_Range ctx cd nd lg kv γ r o withTotal ot te Q) $$ [Hrd Hto Hnd Hau]
   · iframe # ∗
-    isplitr
-    · ipureintro; exact Hlg
     ipureintro; exact Hvs
   inext
   iintro %resp %tr %err ⟨Hrd, %Htr, Hte, -, %σ, HQ, %Hreach, #Hres, -, -⟩
@@ -206,7 +204,7 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
         mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗ kvBackend γ q B P f ∗
         isTxnLessor le (mvccLeases γ) ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
-        leasesKnown L (mvcc.stateAfter log) ∗
+        zapLoggerOrNil lg ∗ leasesKnown L (mvcc.stateAfter log) ∗
         lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
         ⌜TxnPreA log t⌝ ∗
         csA P f Pre Q Post ∗
@@ -234,10 +232,10 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
             (mvcc.leaseItemsOf (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
           (if txnReadonly t then iprop(Pre ∗ Qr σr)
            else iprop(Post ∗ ∃ σw : MvccState, ⌜σw.log = log⌝ ∗ Qw σw)))) }} := by
-  wp_start_folded as ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15⟩
+  wp_start_folded as ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16⟩
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw)
-    $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15]
-  · iframe Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15
+    $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16]
+  · iframe Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16
   inext
   iintro %resp %trace %err ⟨Hrd, Hkb, %σr, %Hσr, Hout⟩
   iapply HΦ

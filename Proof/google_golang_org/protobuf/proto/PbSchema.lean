@@ -9,9 +9,14 @@ levels (`PbModelC.levels`) are stated at.
 its Go descriptor): an over-declared schema makes D1 false (a decoded message's unknown fields are
 claimed `ufWire` at it), an under-declared one D2 (`Unmarshal (Marshal c) ≠ c`). A type not listed
 here gets `[]`, the weakest schema (`ufWire s uf → ufWire [] uf`: every number is routed to the
-unknown fields): that is what `pbMsg` claims of `HardState`, `ConfChange`, `ConfChangeSingle` and
-`ConfChangeV2`, which no registration models at their wire content (a schema there would make
-today's `proto.UnmarshalConfChange*` axioms, whose posts hold `pbMsg`, claim D1 at it).
+unknown fields): that is what `pbMsg` claims of `HardState`. (out_size B2, 2026-11-12, approved by
+etcd-grove-81: `notes/confchange-schema-empty.md`) `ConfChange`, `ConfChangeSingle` and
+`ConfChangeV2` have their real schemas, though no registration models them: `pbMsg` of them records
+the decoder-routed form, which `proto.MarshalConfChange[V2]`'s round trip needs, and the decoders'
+posts (`proto.UnmarshalConfChange*`, `pbutil.MustUnmarshalMessage`'s `ConfChange` case) claim it
+(Go: `examples/pbschema/confchange_test.go`, `TestB2CCDecoderUf`, `TestB2MustUnmarshalCC`; the
+descriptor check `etc/pbschema-check.py` reads these three against their descriptors too). Until
+then they were `[]`, under which those round trips were false of objects with unknown fields.
 
 Sources: `raftpb/raft.proto` at the fork's `565c2bd` (raft v3.7, proto2; every field number is
 below 16, so every tag is one byte):
@@ -25,6 +30,11 @@ below 16, so every tag is one byte):
 - `ConfState` (`raft.proto:127-142`): `voters` 1, `learners` 2, `voters_outgoing` 3,
   `learners_next` 4 (repeated `uint64`, proto2 so unpacked; the decoder takes both the unpacked
   varint and the packed `LEN`), `auto_leave` 5 (varint).
+- `ConfChange` (`raft.proto:151-160`): `id` 1, `type` 2, `node_id` 3 (varints), `context` 4
+  (length-delimited).
+- `ConfChangeSingle` (`raft.proto:164-167`): `type` 1, `node_id` 2 (varints).
+- `ConfChangeV2` (`raft.proto:201-205`): `transition` 1 (varint), `changes` 2, `context` 3
+  (length-delimited).
 -/
 module
 
@@ -57,11 +67,20 @@ def metaSchema : FieldSchema := [(1, [2]), (2, [0]), (3, [0])]
 /-- `raft.proto:127-142`: the repeated `uint64`s unpacked (`0`) or packed (`2`). -/
 def csSchema : FieldSchema := [(1, [0, 2]), (2, [0, 2]), (3, [0, 2]), (4, [0, 2]), (5, [0])]
 
+/-- `raft.proto:151-160`: `id` 1, `type` 2, `node_id` 3 (varints), `context` 4 (length-delimited). -/
+def ccSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [0]), (4, [2])]
+
+/-- `raft.proto:164-167`: `type` 1, `node_id` 2 (varints). -/
+def ccsSchema : FieldSchema := [(1, [0]), (2, [0])]
+
+/-- `raft.proto:201-205`: `transition` 1 (varint), `changes` 2, `context` 3 (length-delimited). -/
+def cc2Schema : FieldSchema := [(1, [0]), (2, [2]), (3, [2])]
+
 section schemas
 variable [GooseExts] [GoGlobalContext]
 
-/-- **The schema of a message type** (see the file header): the registered raftpb types', `[]`
-for every other type. -/
+/-- **The schema of a message type** (see the file header): the registered raftpb types' and the
+three conf-change types', `[]` for every other type. -/
 def pbSchemaOf (ty : go.GoType) : FieldSchema :=
   open Classical in
   if ty = raftpb.Entry.ty then entrySchema
@@ -69,6 +88,9 @@ def pbSchemaOf (ty : go.GoType) : FieldSchema :=
   else if ty = raftpb.Snapshot.ty then snapSchema
   else if ty = raftpb.SnapshotMetadata.ty then metaSchema
   else if ty = raftpb.ConfState.ty then csSchema
+  else if ty = raftpb.ConfChange.ty then ccSchema
+  else if ty = raftpb.ConfChangeSingle.ty then ccsSchema
+  else if ty = raftpb.ConfChangeV2.ty then cc2Schema
   else []
 
 theorem pbSchemaOf_entry : pbSchemaOf raftpb.Entry.ty = entrySchema := by

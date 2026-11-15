@@ -29,7 +29,8 @@ theorem rafthttp.startStreamWriter.wp_proof
     (hRun : rafthttp.streamWriter.run.spec (GF := GF) (hG := hG)) :
     rafthttp.startStreamWriter.spec (GF := GF) (hG := hG) := by
   intro Rh ty lid pid Rr lg ps fs r γd
-  wp_start as ⟨%Hlgnn, #Hps, %Hfsnn, #Hraft⟩
+  wp_start as ⟨#Hlgz, #Hps, %Hfsnn, #Hraft⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   wp_apply (chan.wp_make2 (V := Loc) (W64 4096))
   · ipureintro; exact ⟨by decide, by decide⟩
@@ -73,7 +74,7 @@ theorem rafthttp.startStreamWriter.wp_proof
   · iunfold swFixed
     iexists lg, ps, fs, r, γd, cc, sc, dc, γc, γs, γdn
     iframe #
-    ipureintro; exact ⟨Hlgnn, Hfsnn⟩
+    ipureintro; exact Hfsnn
   wp_apply wp_fork $$ [msgc working closer Hdb]
   · (try wp_auto)
     wp_apply hRun Rh ty lid pid Rr «$r0_ptr» mc $$ [msgc working closer Hdb]

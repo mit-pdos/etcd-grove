@@ -37,7 +37,7 @@ theorem WithTTL.wp_proof (hZI : zap.Int64.spec (GF := GF) (hG := hG))
   unfold sessionOptSpec
   imodintro
   iintro %p %o %lg
-  wp_start as ⟨Hp, %Hlg⟩
+  wp_start as ⟨Hp, #Hlg⟩
   wp_auto
   have hz : sint.Z (W64 0) = 0 := by decide
   rw [hz]
@@ -57,7 +57,7 @@ theorem WithTTL.wp_proof (hZI : zap.Int64.spec (GF := GF) (hG := hG))
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hW lg _ _ $$ []
-    · ipureintro; exact Hlg
+    · iexact Hlg
     (try wp_auto)
     iapply HΦ
     simp only [withTTLM, h, ↓reduceIte]

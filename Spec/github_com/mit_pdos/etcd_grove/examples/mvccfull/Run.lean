@@ -4,10 +4,10 @@
 it returns the report. For every configuration within the run's resource bounds and F1's scope
 (`runCfgOk`, below), from the package initialized, the configuration's weight slices (`mixOwn`, the
 read weights `wr`), every file a run may create absent (`fileHolds p ∅` for each of `filePathsM cfg`,
-`FilePaths.lean`), the store's key-count assumption (`keySized`, `etcdStorage_open.law`'s), the main
+`FilePaths.lean`), the main
 thread's token and `ETCD_VERIFY` unset (`backend.New`'s), and the environment premises mvccrand's
-`Run.spec` takes: the lessor's checkpoint premise (`ckptEffectsOk`), bbolt's `Open` and `Close`
-succeeding (`dbOpenOk`, `dbCloseOk`).
+`Run.spec` takes: bbolt's `Open` and `Close` succeeding (`dbOpenOk`, `dbCloseOk`; until
+2026-11-12 also the lessor's checkpoint premise `ckptEffectsOk`, deleted).
 
 **`runCfgOk`** (on the normalized configuration where `normalize` changes a field): F1's scope
 (`readMixOk` of `Mix.Read`: no hash read; `Readers.lean`); `0 ≤ Ops < 2 ^ 38` (the receipts' and
@@ -62,10 +62,9 @@ def runCfgOk (cfg : Config) (wr : List w64) : Prop :=
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
   ∀ (cfg : Config) (wr : List w64) [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
-  runCfgOk cfg wr → ckptEffectsOk → backend.dbOpenOk → backend.dbCloseOk →
+  runCfgOk cfg wr → backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗
       mixOwn cfg.Mix' wr ∗ ([∗list] p ∈ filePathsM cfg, backend.fileHolds p ∅) ∗
-      □ (∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc), keySized γB P b) ∗
       threadTok ∗ envVerifyOff }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)) (Val #cfg))
   {{ (rep : Report), RET #rep; True }}

@@ -155,6 +155,9 @@ structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj wher
     |==> objAt (interface.mkOk (go.GoType.PointerType objTy) #p) zero []
   /-- the errors the codec's `Encode` may return -/
   encErr : GoInterface → Prop
+  /-- the errors the transformer's methods may return (stage 7e-4, (B), decided by etcd-grove-81:
+  what `storage.InternalError` wraps) -/
+  trErr : GoInterface → Prop
 
 /-- **The objects' Go type** is a `runtime.Object` and a `metav1.Object`, and not a
 `runtime.Unstructured` (the type assertions the store and `meta.Accessor` make,
@@ -215,7 +218,8 @@ def transformerOk (S : ObjSpec GF Obj) (ti : GoInterfaceOk) : IProp GF :=
       ▷ (∀ (dsl : GoSlice) (st : Bool) (err : GoInterface),
           (match S.fromS v with
             | some (d, s) => ⌜err = GoInterface.nil ∧ st = s⌝ ∗ dsl ↦*□ d
-            | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
+            | none => ⌜err ≠ GoInterface.nil⌝ ∗ ⌜S.trErr err⌝ ∗
+              go_etcd_io.etcd.cache.v3.errStrOk err) -∗
           Φ (PairV (PairV #dsl #st) #err)) -∗
       WP (App (App (App (Val #(methods ti.ty go!"TransformFromStorage" ti.v)) (Val #ctx))
         (Val #vsl)) (Val #dctx)) {{ Φ }}) ∗
@@ -224,7 +228,7 @@ def transformerOk (S : ObjSpec GF Obj) (ti : GoInterfaceOk) : IProp GF :=
       dsl ↦*□ d -∗
       ▷ (∀ (vsl : GoSlice) (err : GoInterface),
           (⌜err = GoInterface.nil⌝ ∗ ∃ v, ⌜S.toS d v⌝ ∗ vsl ↦*□ v) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
+            (⌜err ≠ GoInterface.nil⌝ ∗ ⌜S.trErr err⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
           Φ (PairV #vsl #err)) -∗
       WP (App (App (App (Val #(methods ti.ty go!"TransformToStorage" ti.v)) (Val #ctx))
         (Val #dsl)) (Val #dctx)) {{ Φ }}))

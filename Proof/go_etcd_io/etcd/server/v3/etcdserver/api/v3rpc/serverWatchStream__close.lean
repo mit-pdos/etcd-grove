@@ -39,11 +39,11 @@ theorem v3rpc.serverWatchStream.close.wp_proof
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
-  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, #Hwstream,
+  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, #Hwstream,
     #Hinv, -⟩
   ihave %Hsh := hShapes.2.2.2 r.ws r.W.γm r.ι $$ Hwstream
   obtain ⟨ty, v, hws, -, -, -, -, -, hClose, -⟩ := Hsh
-  ihave Hau := v3rpc.close_au (v3rpc.cancelQ r.γs) hP r.ι r.γreg r.γtok r.γcl $$ [Htok]
+  ihave Hau := v3rpc.close_au (v3rpc.cancelQ r.γs) hP r.ι r.γreg r.γtok r.γpk r.γcl $$ [Htok]
   · iunfold v3rpc.wsInv at Hinv; iframe Hinv Htok
   rw [hws]
   ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -55,9 +55,9 @@ theorem v3rpc.serverWatchStream.close.wp_proof
   · iframe #
   wp_apply wp_broadcast_chan_close r.cc r.γcc iprop(True) $$ [$Hcc] as -
   · iintro !>; itrivial
-  wp_apply sync.join.WaitGroup.wp_Wait P n (v3rpc.swsF sws go!"wg") $$ [$Hadd] as -
+  wp_apply sync.join.WaitGroup.wp_Wait P n (v3rpc.swsF sws go!"wg") $$ [$Hadd] as ⟨HP, -⟩
   iapply HΦ
-  itrivial
+  iexact HP
 
 end proof
 

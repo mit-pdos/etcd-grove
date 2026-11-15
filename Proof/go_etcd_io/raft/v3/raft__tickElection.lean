@@ -125,9 +125,8 @@ theorem raft.tickElection.wp_proof
     isplitr
     · imodintro; iintro %Hc; exact absurd Hc.1 (by msg_ne)
     isplitl [Hmsg]
-    · rw [show (msgIn «$a0_ptr» DFrac.discard ⟨tickMsg MsgHup id, [], none, [], []⟩ : IProp GF) =
-          msgIn «$a0_ptr» DFrac.discard ⟨{ (zero_val MessageM) with Type' := W32 0, From' := id }, [], none, [], []⟩ from rfl]
-      iframe Hmsg
+    · isplitl [Hmsg]
+      · iapply msgIn_toC (by decide) _ _ _ $$ Hmsg
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
       imodintro
       iintro %ty %Hty

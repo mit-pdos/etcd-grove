@@ -205,11 +205,16 @@ none (raft keeps the bootstrap log in every node's log, which a newcomer's empty
 hold). The term budget, backed by time receipts (`receiptBound`), is the cluster's; so (U9) are the
 read requests' credits, and leader transfer is on in every cluster. -/
 theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
+    (dup : Bool) (sl : w64 → Option GName)
+    -- (raft-entsize §2, 2026-11-09) the bound on proposed data (`Cluster.maxData`): at most `2^31`,
+    -- and met by the bootstrap log's entries (both vacuous at `none`)
+    (md : Option Nat) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     (boot ≠ [] → BootLog vs ctxs boot) →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
-      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗
         -- (2026-11-09, Q8 stage 0, `notes/trace-validation-q6.md` item 9) an untraced cluster
         ⌜Cluster.trace γ = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
@@ -217,15 +222,15 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
         if boot = [] then joinAuth γ (GMap.listToSet vs)
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
-  intro Hrb Hne Hnd Hnz Hlen HB
+  intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
   unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace isCommittedLogLb raftState
-    nodeVacant
+    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace Cluster.maxData
+    isCommittedLogLb raftState nodeVacant
   by_cases hb : boot = []
   · subst hb
     rw [if_pos rfl]
     iintro -
-    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E Hrb Hne Hnd Hnz Hlen
+    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E md Hmd Hrb Hne Hnd Hnz Hlen
       with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
     imodintro
     iexists γ
@@ -236,7 +241,8 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     ipureintro; exact Hd.2.2.2
   · simp only [hb, ↓reduceIte]
     iintro Hm
-    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E Hrb Hne Hnd Hnz Hlen (HB hb)
+    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E md Hmd HmdB Hrb Hne Hnd
+      Hnz Hlen (HB hb)
       $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
     icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
       (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
@@ -480,6 +486,25 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (l : List 
   unfold isCluster isCommittedLogLb confAt ownSnapsMade snapshotCert
   exact ApiImpl.snapshotCert_make_impl γ N E HE l i t d m cs S Hlen Hlast Hok Hcs
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination, in the
+cluster's configurations**: a message with `snapTo` (a `Ready`'s, `readyRest_snapTo`; a sent one's,
+`sentMsg_snapTo`), if a `MsgSnap`, is not to its sender `id` and is to an id of a membership after a
+committed prefix (`confAt`), with a lower bound of the committed log covering it. The premise
+`confAt γ k0 m0` (any one; a cluster's boot membership `confAt γ 0 _` serves) witnesses that the
+cluster is in the client's decision mode (raft's dynamic mode), where `snapTo` carries the
+destination's configuration. So in a cluster whose committed memberships are all `simple {id}` (etcd's
+one-member cluster) no `MsgSnap` is ever sent (`srvRestartRows_single`). -/
+theorem snapTo_confAt (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (id : w64)
+    (st : MsgSt) (k0 : Nat) (m0 : Membership) (Hty : st.msg.Type' = MsgSnap) :
+    ⊢ isCluster (GF := GF) γ N -∗ confAt γ k0 m0 -∗ snapTo γ id st ={E}=∗
+      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership) (l : List LogEntry), confAt γ k m ∗
+        isCommittedLogLb γ l ∗ ⌜k ≤ l.length ∧ st.msg.To' ∈ m.ids⌝ := by
+  unfold isCluster confAt snapTo ApiImpl.isClusterU isCommittedLogLb
+  haveI := ApiImpl.clusterInv_persistent (GF := GF) γ N
+  haveI := ApiImpl.confAtU_persistent (GF := GF) γ k0 m0
+  iintro ⟨-, #Hci, -⟩ #Hc0 #Hs
+  iapply ApiImpl.snapTo_confAt_impl γ N E HE id st k0 m0 Hty $$ Hci Hc0 Hs
+
 end api
 
 section validLists
@@ -675,9 +700,13 @@ theorem storBnd_intro_untraced (γ : Cluster) (K : GName) (k c : Nat) (h : Clust
 -- given at the attach, before anything is delivered.
 
 /-- **The storage contract of the storage `st` of key `K`** (persistent; the frozen design's §2,
-`isStorageP` at the cluster's pieces). (2026-11-01, durability stage I-4: keyed by `K`.) -/
+`isStorageP` at the cluster's pieces). (2026-11-01, durability stage I-4: keyed by `K`.)
+(out_size C2) **Sized when the cluster bounds proposed data** (`γ.maxData ≠ none`): `Entries`
+returns objects at contents of bounded size, cut at `maxSize` when `maxSize ≤ 2^20` (`isStorageP`'s
+flag); what raft's `MsgApp` size bound and the handed-out entries' (`Cluster.outEnt_size`) rest on.
+A cluster without the bound (`maxData = none`, kv's) asks nothing more of its storage. -/
 def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
-  isStorageP (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
+  isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
 
 /-- (2026-11-01, durability stage I-4) **The storage `st` holds the contents `σ`**, as the storage
 contract states its log: compacted at the base, the base's entry (of the base's term) frozen, the

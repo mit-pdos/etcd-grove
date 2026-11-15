@@ -32,11 +32,11 @@ theorem txnLeasing.guard.wp_proof
     (hGR : txnLeasing.guardRanges.spec (GF := GF) (hG := hG)) :
     txnLeasing.guard.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl os
-  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #Hcc, #Hops, %Hos⟩
+  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hops, %Hos⟩
   wp_auto
   wp_apply hGK $$ [$Hlkvf $HLKV $Hrd $Hops] as %c1 ⟨Hlkvf, Hrd, %ms1, #Hc1, Hcap1, %Hg1⟩
   (try wp_auto)
-  wp_apply hGR $$ [$Hlkvf $Hctxf $HLKV $Hrd $Hsr $Hctx $Hcc $Hops] as %c2 %err
+  wp_apply hGR $$ [$Hlkvf $Hctxf $HLKV $Hrd $Hsr $Hctx $HctxC $Hcc $Hops] as %c2 %err
     ⟨Hlkvf, Hctxf, Hrd, Hres⟩
   · ipureintro; exact Hos
   ihave #Hc1' := (cmpsAt_listRel _ _).1 $$ Hc1

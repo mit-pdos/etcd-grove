@@ -354,7 +354,7 @@ theorem rwInv_readAu (γk : KVNames) (γc γt γp : GName) (c : StoreCfg GF Obj)
           isimp only [↓reduceIte] at Hcommit
           imod Hcommit $$ [Hkv HW] with HΦ
           · iframe Hkv HW
-            ipureintro; exact ⟨Hroom, Hwf, (hok.id σ Hwf hm.2).symm, Or.inl rfl⟩
+            ipureintro; exact ⟨Hroom, Hwf, (hok.id σ Hwf hm.2).symm, Or.inl rfl, keysIn_refl _ _⟩
           imod dghostVar_update (some σ) γc none $$ Hγc with Hγc
           imod dghostVar_persist γc 1 _ $$ Hγc with #Hγc
           imod Hclose $$ [HΦ] with -

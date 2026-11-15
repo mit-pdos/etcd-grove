@@ -42,7 +42,7 @@ theorem backend.batchTx.unsafePut.wp_proof
   intro γ P W Pk b t st bk bi key value kb vb dk seq Hk0 Hk1
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
+    ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
   icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
@@ -63,7 +63,7 @@ theorem backend.batchTx.unsafePut.wp_proof
     try iintro %_ ⟨_, -⟩
     try wp_auto
     wp_apply hFatal lg $$ [] as %v Hf
-    · ipureintro; exact Hlgn
+    · iexact Hlgn
     iexfalso
     iexact Hf
   obtain ⟨Hn, Hnn⟩ := Hn
@@ -100,7 +100,7 @@ theorem backend.batchTx.unsafePut.wp_proof
     try iintro %_ ⟨_, -⟩
     try wp_auto
     wp_apply hFatal lg $$ [] as %v Hf
-    · ipureintro; exact Hlgn
+    · iexact Hlgn
     iexfalso
     iexact Hf
 

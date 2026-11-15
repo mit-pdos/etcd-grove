@@ -7,7 +7,7 @@ theorem mvcc.eventBatch.add.wp_proof : mvcc.eventBatch.add.spec
   ∀ (eb : Loc) (B : mvcc.EventBatch) (e : Loc) (ev : mvcc.EvM),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.ownEventBatch eb B ∗ mvcc.evIs e ev -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.ownEventBatch eb B ∗ mvcc.evOwn e ev -∗
           ▷ (mvcc.ownEventBatch eb (mvcc.ebAdd B ev) -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Apply(clis, input)` (`examples/etcd/partition/etcd_partition.go`; the partition plan's S3a, 2026-10-20): one
+`Apply(clis, input)` (`examples/etcd/partition/linkv3p.go`; the partition plan's S3a, 2026-10-20): one
 operation through a client of `clis` picked at random (`primitive.RandomUint64 % len(clis)`),
 `etcd_txnlin.Apply(clis[i], input)` (linkv's `Apply` until 2026-10-20, `notes/linkv3p-txn-plan.md`).
 Logically atomic against the instance's model as linkvtxn's `Apply` (`Spec/.../linkvtxn/Apply.lean`,

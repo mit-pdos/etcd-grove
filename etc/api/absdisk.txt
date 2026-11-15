@@ -1,0 +1,13 @@
+# The abstract-disk extension's importable modules (WAL W4a revision round 2, 2026-11-12, M-1 of the
+# second Freeze review): what proofs outside `GooseLang/Ext/AbsDisk/` may import
+# (`etc/api-check.py etc/api/absdisk.txt --check`). Rule 1 forbids `import all` of them outside the
+# directory, so `Specs`' sealed handle authority (`absHandleAuth`, `@[no_expose]`) and its private
+# allocation and mode-change lemmas stay out of reach: outside `Specs.lean` a WAL handle is
+# allocated, or its mode changed, only through the step specs (`wp_WalCreate`, `wp_WalOpenHandle`,
+# `wp_WalReadFail`, `wp_WalNamedOpen`).
+
+inside GooseLang/Ext/AbsDisk/
+
+importable GooseLang.Ext.AbsDisk.Impl
+importable GooseLang.Ext.AbsDisk.Paths
+importable GooseLang.Ext.AbsDisk.Specs

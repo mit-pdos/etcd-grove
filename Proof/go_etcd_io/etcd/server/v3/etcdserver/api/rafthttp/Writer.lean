@@ -51,7 +51,7 @@ those there); (stage 5b) its wire content, of size below `2^47` bytes (`swMsgBou
 the content in stage A of the per-type models: the writer sizes and marshals the content, and sums
 the sizes of up to 2049 messages into an `int` it adds to a counter, which must not be negative). -/
 def swMsg (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ msgSzC Rh.γn.N.Sz ml st ∗ □ Rh.γn.N.P st ∗
     Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (ty = .msgAppV2 → V2EncOk lid pid st)⌝)
@@ -89,8 +89,8 @@ def outConnOk (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (conn : Loc) : 
 
 /-- **The encoder `enc` of a stream of type `ty`** writing to `wi`, at the codec's state `s`
 (exclusive): a `*msgAppV2Encoder` (`v2EncOwn`) or a `*messageEncoder` (its writer, read-only). -/
-def encOwn (lid pid : w64) (fs : Loc) :
-    (ty : StreamTy) → GoInterface → GoInterfaceOk → (ty.codec lid pid).S → IProp GF
+def encOwn (Sz : Prop) (lid pid : w64) (fs : Loc) :
+    (ty : StreamTy) → GoInterface → GoInterfaceOk → (ty.codec Sz lid pid).S → IProp GF
   | .msgAppV2, enc, wi, s => iprop(∃ e : Loc,
       ⌜enc = interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Encoder.ty) #e⌝ ∗
       v2EncOwn e wi fs s)
@@ -104,10 +104,10 @@ connection registered as `(γw, ty, pid)`; and the right to close `cl`. -/
 def swLive (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (fs : Loc) (enc fl cl : GoInterface) :
     IProp GF :=
   iprop(∃ (wi : GoInterfaceOk) (a : GoString) (R : http.HReq) (γk γw : GName)
-      (fr : List (MsgWire × List w8)) (s : (ty.codec lid pid).S),
-    ⌜fl = GoInterface.ok wi⌝ ∗ encOwn lid pid fs ty enc wi s ∗
+      (fr : List (MsgWire × List w8)) (s : (ty.codec Rh.γn.N.Sz lid pid).S),
+    ⌜fl = GoInterface.ok wi⌝ ∗ encOwn Rh.γn.N.Sz lid pid fs ty enc wi s ∗
     http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk (some (W64 200)) (chainBytes fr) ∗
-    ⌜Chain (ty.codec lid pid) (ty.codec lid pid).init fr s⌝ ∗
+    ⌜Chain (ty.codec Rh.γn.N.Sz lid pid) (ty.codec Rh.γn.N.Sz lid pid).init fr s⌝ ∗
     ([∗list] i ↦ f ∈ fr, frameDep Rh.γn.N γw pid i f.1) ∗
     streamReg Rh γk (γw, ty, pid) ∗
     ⌜Rh.owner R.host = lid ∧ R.host = a ∧ R.path = streamPath ty pid⌝ ∗
@@ -131,7 +131,7 @@ def swRunOwn (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (cw : Loc) (mc :
     typedPointsto (cw.[rafthttp.streamWriter, go!"closer"]) cl (DFrac.own (1 : Qp).half) ∗
     isChanBag γm mc (swMsg Rh ty lid pid))
 
-/-- **A stream writer's fixed fields** (persistent): its logger (not `nil`), ids, peer status,
+/-- **A stream writer's fixed fields** (persistent): its logger (a zap logger), ids, peer status,
 follower stats (not `nil`: the msgappv2 encoder counts into it), `Raft` (whose calls take one of
 the resources `Rr`), mutex, and channels: `connc` a bag of attached connections, `stopc` and
 `done` broadcast channels (`stop` closes the one, `run` the other). -/
@@ -139,7 +139,7 @@ def swFixed (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (
     IProp GF :=
   iprop(∃ (lg ps fs : Loc) (r : GoInterface) (γd : GName) (cc sc dc : GoChan)
       (γc γs γdn : ChanNames),
-    cw.[rafthttp.streamWriter, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    cw.[rafthttp.streamWriter, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     cw.[rafthttp.streamWriter, go!"localID"] ↦□ lid ∗
     cw.[rafthttp.streamWriter, go!"peerID"] ↦□ pid ∗
     cw.[rafthttp.streamWriter, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗

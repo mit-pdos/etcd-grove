@@ -7,6 +7,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -42,25 +44,36 @@ corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3s, 2026-10-27)
 views in the mode (`isServerReqM on`, `isServerReadM on`; `spec` at `on = false`, by definition).
 `doSerialize` reads only fields both modes share. With auth on (E3zb, 2026-10-28) the auth info
 `chk` passed on is the caller's (`infoBoundM`: the empty one, or bound to the context's token),
-given `AuthInfoFromCtx`'s binding with auth on (`AuthInfoFromCtx.spec`). -/
+given `AuthInfoFromCtx`'s binding with auth on (`AuthInfoFromCtx.spec`).
+
+(auth-guard-completeness G4, 2026-11-14; `notes/auth-guard-scope.md`, §2.5) **Why it refused.** At a
+lower bound `n` of the auth store's published index (`auth.authPubLbM`) with the store's checks at
+such bounds (`srvAuthLb`, as `Range`'s), and with `chk`'s refusal `R info err` of the auth info it
+was passed: on an error, with auth on, the request side's reasons (`AuthInfoFromCtx`'s, `reqSideWhy`),
+`chk`'s refusal of the auth info the request side gave (`infoWhy`: the anonymous one, or one bound to
+the request), or the revision re-check's (`oldRevWhy`: a state no older than `n` whose revision is
+not the info's); `serialWhy`. `R := fun _ _ => True` and `n = 0` give back the reason-free triple, with the premises `srvAuthLb s E`
+and `□ auth.authPubLbM E.authMode 0` added (`specOff` discharges both with auth off). -/
 abbrev EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
-    (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
+    (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF)
+    (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF) (t : Loc) (e : Bool) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ mvcc.txnCtx ctx cd ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
+      □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
         {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
         {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ E.RD ∗ authApplyErrIs err ∗
-            (∀ _ : err = GoInterface.nil, C info) }}) ∗
+            (∀ _ : err = GoInterface.nil, C info) ∗ (∀ _ : err ≠ GoInterface.nil, R info err) }}) ∗
       {{ G ∗ traceutil.ownTrace t e }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
       traceutil.ownTrace t e ∗ E.RD }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
       (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
   {{ (err : GoInterface), RET #err; E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err ∗
-        ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
+        serialWhy s E.authMode n (GoInterface.ok ctx) err R ∗ ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
 
 end spec
 

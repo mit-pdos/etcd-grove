@@ -48,24 +48,9 @@ instance srvWatchBuilt_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvWatchBuilt (GF := GF) s E) := by
   unfold srvWatchBuilt; infer_instance
 
-/-- **The watch store `NewServer` builds, with `n` of the store's reader tokens** (watch.txt's run
-slots, 2026-10-20, watchkv: `v3rpc.watchRunSlot` takes reader slots per watch stream; until then
-`NewServer` dropped them): `srvWatchBuilt`'s facts and `n` reader tokens of the store
-(`mvcc.api.mvccReaders E.γ n`: a watch stream's `Watch`, `RequestProgress`, `Rev` each borrow one).
-(The `lean` merge, 2026-11-06, the reader tokens: until then `n` reader slots of the watchable
-store's locks, `mvcc.watchReader`, at internal names `γw` with the watch-token pool and the mode tag;
-the API's reader tokens are what a stop hands `backend.Close` back, `srvWatchReaders_readers`.) -/
-def srvWatchReaders (s : Loc) (E : apply.AEnv GF) (n : Nat) : IProp GF :=
-  iprop(srvWatchBuilt s E ∗ mvcc.api.mvccReaders E.γ n)
-
-/-- **The watch service's reader tokens** (R2c review round 2's N3): what a stop hands the backend's
-`Close` (`srvStopReaders_intro`). -/
-theorem srvWatchReaders_readers (s : Loc) (E : apply.AEnv GF) (n : Nat) :
-    srvWatchReaders s E n ⊢ mvcc.api.mvccReaders E.γ n := by
-  iintro HWR
-  iunfold srvWatchReaders at HWR
-  icases HWR with ⟨-, Hr⟩
-  iexact Hr
+-- (Per-type stage B3, 2026-11-11) `srvWatchReaders s E n`, `srvWatchBuilt` with `n` of the store's
+-- reader tokens for the watch service's run slots, and its law `srvWatchReaders_readers` are gone:
+-- the watch loops borrow the server's gRPC run pool (`srvRunPool`).
 
 -- (D22 J1b, 2026-11-01) `srvKVCloser` moved to `SnapRO.lean` (`srvSnapRes` holds it).
 

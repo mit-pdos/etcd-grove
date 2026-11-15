@@ -77,7 +77,7 @@ theorem Cluster.Disrupt.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG))
     try wp_auto
     wp_apply context.wp_Background
     try wp_auto
-    wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx⟩
+    wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     ihave #Hnc : nodeCtx ctx' cd $$ []
     · unfold nodeCtx; iright; iexact Hctx

@@ -69,8 +69,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | "Debug" => (wp_apply hDebug lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
+    | "Debug" => (wp_apply hDebug lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -153,12 +153,16 @@ local macro "status_switch" : tactic => `(tactic| (
     iintro %asl ⟨Hasl, -⟩
     wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
     · iframe #; iframe Hasl
-      simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
-        fmt.argsOk, fmt.argOk]
+      try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+      fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
       isplitr
-      · iright; iright; iapply id_stringMethodSpec hIDString $$ Htyp
+      · fmt_arg_method; iright; iright; isplitr
+        · iapply id_stringMethodSpec hIDString $$ Htyp
+        · ipureintro; fmt_method_none
       isplitr
-      · iright; iright; iapply id_stringMethodSpec hIDString $$ Htyp
+      · fmt_arg_method; iright; iright; isplitr
+        · iapply id_stringMethodSpec hIDString $$ Htyp
+        · ipureintro; fmt_method_none
       itrivial
     ret_err
   rw [_root_.decide_eq_false (show ¬ rst = W64 404 from h404)]
@@ -231,8 +235,8 @@ local macro "status_switch" : tactic => `(tactic| (
       iintro %asl ⟨Hasl, -⟩
       wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
       · iframe #; iframe Hasl
-        simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
-          fmt.argsOk, fmt.argOk]
+        try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+        fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
         isplitr
         · ileft; ipureintro
           apply fmt.argWf_of_argsWf
@@ -249,8 +253,8 @@ local macro "status_switch" : tactic => `(tactic| (
   iintro %asl ⟨Hasl, -⟩
   wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
   · iframe #; iframe Hasl
-    simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
-      fmt.argsOk, fmt.argOk]
+    try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+    fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
     isplitr
     · ileft; ipureintro
       apply fmt.argWf_of_argsWf
@@ -293,8 +297,9 @@ theorem rafthttp.streamReader.dial.wp_proof
   wp_start as ⟨#Hf, #Hd⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
-  icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
-    #Hlid, -, -, -, -, -, -, #Hmu, #Hctxf, #Hctx⟩
+  icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
+    #Hlid, -, -, -, -, -, -, #Hmu, #Hctxf, #Hctx, #Hbgc⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold srDial at Hd
   icases Hd with ⟨#Hcfg, %ec, #Herrc⟩
   iunfold srCfg at Hcfg
@@ -356,7 +361,7 @@ theorem rafthttp.streamReader.dial.wp_proof
   -- `http.NewRequest("GET", uu.String(), nil)`: no error
   wp_apply hURLString uu_ptr _ { u with Path' := streamPath ty lid } hu1 hu2 hu3 hu4 hu5 hu6 hu7 hu8 hu9 $$ [$uu] as uu
   ihave Hnb := hNilBody
-  wp_apply hNewRequest go!"GET" _ GoInterface.nil (.fixed []) u.Host' (streamPath ty lid) rfl hhost
+  wp_apply hNewRequest go!"GET" _ GoInterface.nil (.fixed []) u.Host' (streamPath ty lid) rfl hhost (by cases ty <;> rfl)
     (Or.inr rfl) $$ [Hnb] as %req ⟨Hreq, Hstr⟩
   · rw [http.bodyHas_fixed]; iexact Hnb
   (try wp_auto)
@@ -375,10 +380,14 @@ theorem rafthttp.streamReader.dial.wp_proof
     unfold http.reqRest
     iexact Hrest
   (try wp_auto)
-  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, %Hpu, Hreq⟩
+  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, %Hpu, -, Hreq⟩
   · iframe #
   (try wp_auto)
-  wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
+  wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr, #Hrctx⟩
+  ihave #Hrbg : http.reqCtxBg req' $$ []
+  · iunfold http.reqCtxBg
+    iexists ctx
+    iframe #
   (try wp_auto)
   ihave #Hfmtp : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
@@ -429,7 +438,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     · ipureintro
       simp only [raftHttpNet, raftProto, snapStreamed]
       exact fun h => absurd h.1 (by decide)
-    wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
+    wp_apply HRT $$ [$Hreq $Hstr $Hrbg $Hso $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
     (try wp_auto)
     icases Hres with (⟨%Herr, #HerrS, -⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, #Hrc⟩)
     · -- `RoundTrip` failed
@@ -511,7 +520,7 @@ theorem rafthttp.streamReader.dial.wp_proof
       ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) DFrac.discard
       wp_apply hErrorf _ slice.nil [] DFrac.discard (by decide) $$ [Hnil] as %x ⟨-, %msg, -, -, #HM⟩
       · iframe #
-        simp only [fmt.argsOk]; itrivial
+        fmt_args_intro; itrivial
       (try wp_auto)
       iapply HΦ
       isplitr

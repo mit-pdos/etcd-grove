@@ -41,7 +41,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, -, -, -, #Hcl, #Hrs, -⟩
+  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, -, -, -, #Hcl, #Hrs, -⟩
   iStructNamed Hopts
   iunfold apply.isCluster at Hcl
   icases Hcl with ⟨%Hcn, -, #HID, -⟩

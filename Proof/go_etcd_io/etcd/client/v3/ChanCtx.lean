@@ -16,8 +16,13 @@ names `γi`, `BroadcastInternal.lean`), the context is closed exactly when `sc` 
 module
 
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Perennial.Proof.context.NewErrorString
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
+public import Proof.context.LibKeys
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -47,6 +52,57 @@ abbrev chanCd (γi : BroadcastInternalNames) : context.ContextDesc (IProp GF) :=
   ⟨∅, none, ⟨γi.doneGn, γi.doneGn⟩, iprop(True)⟩
 
 end defs
+
+section valueLaws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A `channelContext` answers `nil` at every key** (premise-fixes-7). -/
+theorem chanCtx_valueNil (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+    (sc : GoChan) (k : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
+      context.valueAt (chanCtxVal sc) k (· = GoInterface.nil) := by
+  iintro #Pw
+  unfold context.valueAt
+  iintro !> %Φ HΦ
+  iapply (wp_Value sc k) $$ [Pw]
+  · iexact Pw
+  inext
+  iintro -
+  iapply HΦ
+  ipureintro; rfl
+
+/-- **A `channelContext`'s library values are well formed** (`nil` at each key). -/
+theorem chanCtx_libCtxOk (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+    (sc : GoChan) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
+      context.libCtxOk (chanCtxVal sc) := by
+  iintro #Pw
+  iapply context.libCtxOk_of_nil
+  iintro !> %k -
+  iapply chanCtx_valueNil wp_Value sc k $$ Pw
+
+/-- **A `channelContext` has no outgoing metadata, in the chain form** (`metadata.outgoingCtxOkC`):
+its `Value` is its own method (not one of the `context` package's types), so the WP form gives
+it. -/
+theorem chanCtx_outgoingCtxOkC [_root_.Perennial.context.Assumptions]
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+    (sc : GoChan) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
+      metadata.outgoingCtxOkC (chanCtxVal sc) := by
+  iintro #Pw
+  iapply metadata.outgoingCtxOkC_raw
+  · simp [_root_.Perennial.context.valueSpecialTypes,
+      k8s_io.apimachinery.pkg.util.wait.channelContext.ty,
+      _root_.Perennial.context.valueCtx.ty, _root_.Perennial.context.cancelCtx.ty,
+      _root_.Perennial.context.withoutCancelCtx.ty, _root_.Perennial.context.timerCtx.ty,
+      _root_.Perennial.context.backgroundCtx.ty, _root_.Perennial.context.todoCtx.ty]
+  iapply context.outgoingCtxOk_of_libCtxOk
+  iapply chanCtx_libCtxOk wp_Value sc $$ Pw
+
+end valueLaws
 
 section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -83,16 +139,21 @@ theorem canceledOk_of_init
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := client.clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
-    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs $$ Hm
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat $$ Hm
   isplitr
   · ipureintro; exact ⟨nofun, Hc⟩
   iframe Hs
   iapply errCellOk_of_cell x _ (by simp [clientErrMsgs]) $$ Hcell
 
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
-header): `ctxOk` (its third case, `ctxErrs`) and `ctxErrClient`, at `chanCd γi`. -/
+header): `ctxOk` (its third case, `ctxErrs`: since premise fixes 5 also `Done()`, which returns
+`sc`, whose done flag is `chanCd γi`'s closed flag) and `ctxErrClient`, at `chanCd γi`. -/
 theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [wait_sem : k8s_io.apimachinery.pkg.util.wait.Assumptions]
+    (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+    (wp_Deadline : wait.channelContext.Deadline.spec (GF := GF) (hG := hG))
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (sc : GoChan) (γs : ChanNames) (γi : BroadcastInternalNames) (Q : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ∗
@@ -103,8 +164,25 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
   · iPkgInit
   -- (k8s etcd3 7c-2 part 2, S7) `Canceled`'s description, neither read error's
   ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, -⟩ := EtcdGrove.ContextReadErrs.descs $$ Pctx
-  ihave #He : ctxErrs (chanCtxVal sc) (chanCd γi) $$ []
-  · unfold ctxErrs
+  -- (premise fixes 5) `Done()` returns `stopCh`, a broadcast channel whose done flag is the
+  -- descriptor's closed flag
+  ihave #HDn : ctxDone (chanCtxVal sc) (chanCd γi) $$ []
+  · unfold ctxDone
+    iintro !> %Φ HΦ
+    iapply (wp_Done sc) $$ [Pw]
+    · iexact Pw
+    inext
+    iintro -
+    iapply HΦ
+    unfold ctxDoneCh
+    iright
+    iexists γs, γi, Q
+    iframe Hint
+    iintro !> Hdn
+    iunfold context.ContextClosed
+    iexact Hdn
+  ihave #He : ctxErrsErr (chanCtxVal sc) (chanCd γi) $$ []
+  · unfold ctxErrsErr
     iintro !> %cl %Φ Hcl HΦ
     iapply (wp_Err sc γs γi Q cl) $$ [Hcl]
     · iframe Pw Hint
@@ -141,11 +219,34 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
         simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false,
           not_or, Hdc]
         decide
+  -- (premise fixes 8, N1) `Deadline()` returns `(zero, false)`
+  ihave #HDl : ctxDeadline (chanCtxVal sc) $$ []
+  · unfold ctxDeadline
+    iintro !> %Φ HΦ
+    iapply (wp_Deadline sc) $$ [Pw]
+    · iexact Pw
+    inext
+    iintro %t -
+    iapply HΦ
+  -- (premise fixes 8, N2, N3) `Value(&cancelCtxKey)` is `nil`, and no `AfterFunc`
+  ihave #HWc : ctxWithCancelOk (chanCtxVal sc) $$ []
+  · unfold ctxWithCancelOk
+    isplitl
+    · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
+      · intro v hv vi hvi; subst hv; cases hvi
+      iapply chanCtx_valueNil wp_Value sc _ $$ Pw
+    · ipureintro
+      go_type_set
   isplitr
-  · iapply ctxOk_of_errs $$ He
+  · iapply ctxOk_of_errs
+    isplitl
+    · unfold ctxErrs
+      iframe HDn He HDl HWc
+    · iapply chanCtx_outgoingCtxOkC wp_Value sc $$ Pw
   rw [ctxErrClient_eq_errs]; iexact He
 
 end proofs
+
 
 end EtcdGrove
 end Perennial

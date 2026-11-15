@@ -301,7 +301,7 @@ theorem readsAt_empty (pfx : GoString) : ⊢ readsAt (GF := GF) pfx ∅ ∅ := b
 an empty prefetch map. -/
 theorem stmStale_ser_init (lvl : w64) (hlvl : isoSer lvl = true) (pfx : GoString) (p c : Loc)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (rs ws pm : Loc) :
-    isEtcdSTMClient c pfx ∗ context.isContext ctx cs ∗
+    isEtcdSTMClient c pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
       structFieldRef stm go!"client" (structFieldRef stmSerializable go!"stm" p) ↦□ c ∗
       structFieldRef stm go!"ctx" (structFieldRef stmSerializable go!"stm" p) ↦□
         GoInterface.ok ctx ∗
@@ -314,7 +314,7 @@ theorem stmStale_ser_init (lvl : w64) (hlvl : isoSer lvl = true) (pfx : GoString
   have hb : stmBase lvl p = structFieldRef stmSerializable go!"stm" p := by simp [stmBase, hlvl]
   unfold stmStale stmEnv stmOptsOwn stmPreOwn
   simp only [hb, hlvl, ↓reduceIte]
-  iintro ⟨#Hcl, #Hctx, #Hc, #Hx, Hr, Hw, Ho, #Hcf, Hpf, Hpm⟩
+  iintro ⟨#Hcl, #Hctx, #HctxC, #Hc, #Hx, Hr, Hw, Ho, #Hcf, Hpf, Hpm⟩
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave #Hre := readsAt_empty (GF := GF) pfx
   iframe
@@ -326,7 +326,7 @@ theorem stmStale_ser_init (lvl : w64) (hlvl : isoSer lvl = true) (pfx : GoString
 `[WithSerializable()]`. -/
 theorem stmStale_stm_init (lvl : w64) (hlvl : isoSer lvl = false) (pfx : GoString) (p c : Loc)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (rs ws : Loc) (sl : GoSlice) :
-    isEtcdSTMClient c pfx ∗ context.isContext ctx cs ∗
+    isEtcdSTMClient c pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
       structFieldRef stm go!"client" p ↦□ c ∗
       structFieldRef stm go!"ctx" p ↦□ GoInterface.ok ctx ∗
       structFieldRef stm go!"rset" p ↦ rs ∗
@@ -337,7 +337,7 @@ theorem stmStale_stm_init (lvl : w64) (hlvl : isoSer lvl = false) (pfx : GoStrin
   have hb : stmBase lvl p = p := by simp [stmBase, hlvl]
   unfold stmStale stmEnv stmOptsOwn
   simp only [hb, hlvl, Bool.false_eq_true, ↓reduceIte]
-  iintro ⟨#Hcl, #Hctx, #Hc, #Hx, Hr, Hw, Ho, #Hopts, #Hcf⟩
+  iintro ⟨#Hcl, #Hctx, #HctxC, #Hc, #Hx, Hr, Hw, Ho, #Hopts, #Hcf⟩
   iframe
   iframe #
   ipureintro

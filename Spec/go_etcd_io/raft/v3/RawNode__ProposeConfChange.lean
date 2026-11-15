@@ -46,6 +46,7 @@ module
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
 
@@ -140,14 +141,18 @@ theorem ccEntsOk_cc (o : ConfChangeIM) (bs : List w8) (H : MarshalsConfChange (s
 /-- See the file header. -/
 abbrev RawNode.ProposeConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM)
-    (dq : DFrac),
+    (cc : ConfChangeIC) (dq : DFrac),
   -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
   -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
   -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
   γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "Hc" ∷ ownConfChangeI c dq (some o) ∗
+      -- (raft-entsize §3, [r3e]) the conf change at its content `cc` (its unknown fields pinned),
+      -- of model `o`, its size within the cluster's bound on proposed data, if any; given back at
+      -- its model
+      "Hc" ∷ ccPtsCC c dq cc ∗
+      "%Hmd" ∷ ⌜cc.model = o ∧ ∀ b, γ.maxData = some b → ccSize cc + 64 ≤ b⌝ ∗
       -- (2026-10-27) the proposal tracked under its key (until then `CCAllowed γ o`, a change the
       -- cluster's policy admits)
       "Harg" ∷ ccPropArg γ o }}

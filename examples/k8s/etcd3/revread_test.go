@@ -27,6 +27,7 @@ import (
 //   - a compacted revision fails with an error == rpctypes.ErrCompacted (interpretListError's
 //     test) whose description is "etcdserver: mvcc: required revision has been compacted";
 //   - the descriptions are the server-side ErrGRPC* ones (the trust statements' claim).
+//
 // It also checks List's Count with Continue set (the documentation mismatch the Scope found).
 func TestReadAtRevision(t *testing.T) {
 	os.RemoveAll("k8setcd3r.etcd")
@@ -91,6 +92,12 @@ func TestReadAtRevision(t *testing.T) {
 	g, err = kc.Kubernetes.Get(ctx, "k", kubernetes.GetOptions{})
 	if err != nil || g.KV == nil || string(g.KV.Value) != "v2" {
 		t.Fatalf("Get latest: %v %v", g.KV, err)
+	}
+	// a List at a past revision (k8s 7e-1, Client.List.spec): the prefix's key-values then, its
+	// count then, the response's revision the current one
+	lp, err := kc.Kubernetes.List(ctx, "k", kubernetes.ListOptions{Revision: r1})
+	if err != nil || len(lp.Kvs) != 1 || string(lp.Kvs[0].Value) != "v1" || lp.Count != 1 || lp.Revision != r2 {
+		t.Fatalf("List at %d: %v (count %d) at revision %d, %v", r1, lp.Kvs, lp.Count, lp.Revision, err)
 	}
 
 	// a future revision

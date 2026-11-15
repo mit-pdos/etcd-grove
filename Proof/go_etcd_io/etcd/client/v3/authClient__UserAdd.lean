@@ -36,12 +36,18 @@ theorem authClient.UserAdd.wp_proof
   ihave %Hvn := typedPointsto_not_null _ _ _ $$ «$v2»
   ipersist «$v2»
   ihave #Hopt : userOptsFalse (GF := GF) «$v2_ptr» $$ []
-  · unfold userOptsFalse auth.userOptsAt
+  · unfold userOptsFalse auth.userOptsAt auth.userOptsIs
+    iexists some []
+    isplitr
+    · ipureintro; exact auth.userOptsUfOk_empty
     iright
     isplitr
     · ipureintro; exact Hvn
-    iexists _, _, _
-    iexact «$v2»
+    iexists _, _, _, []
+    isplitr
+    · ipureintro; rfl
+    iframe «$v2»
+    iapply ownSlice_nil
   ihave Hsend : (pbAuthUserAddRequest (GF := GF)).send «$a1_ptr» ⟨name, pw⟩ $$ [«$a1»]
   · simp only [pbAuthUserAddRequest]
     iexists _
@@ -60,7 +66,7 @@ theorem authClient.UserAdd.wp_proof
   icases Hres with (⟨%Herr, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
+    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
@@ -70,7 +76,7 @@ theorem authClient.UserAdd.wp_proof
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ

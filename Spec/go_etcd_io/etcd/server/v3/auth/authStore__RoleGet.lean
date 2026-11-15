@@ -29,12 +29,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 `hs`: the backend's `GetRole` (a read transaction: the hook does not run) and the reply of the
 latest state (`roleGetOut`); the authority and the write resource kept. -/
 abbrev auth.authStore.RoleGet.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (r : Loc) (name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleGetReqIs r name ∗ authOwn M hs ∗ authWR st M P f T }}
+      roleGetReqIs r name ∗ authOwn M hs ∗ authWR st M P f T Wb }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGet")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T Wb ∗
       ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ roleGetOut sta name resp err }}
 
 end spec

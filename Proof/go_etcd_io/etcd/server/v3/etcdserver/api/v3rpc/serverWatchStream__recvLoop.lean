@@ -19,6 +19,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -54,7 +55,7 @@ set_option hygiene false in
 stream's producer at its sends). -/
 macro "recv_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ HRD Htt Hrdr sws «$res0»
+  iframe HΦ HRD Hrdr sws «$res0»
   iexists _, _
   iframe Hrt Hprod Hpool))
 
@@ -63,9 +64,9 @@ set_option hygiene false in
 macro "recv_ret_nil" : tactic => `(tactic| (
   wp_for_post
   iapply HΦ
-  iframe Htt Hrdr
+  iframe Hrdr HRD
   isplitr
-  · ipureintro; left; rfl
+  · ileft; ipureintro; rfl
   iexists _; iexact Hprod))
 
 section proof
@@ -194,13 +195,13 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd L0 sent0
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Htt, Hrdr⟩
+  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Hrdr⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
   have := v3rpc.srvWOk_persistent hP r.W r.srv.wsl v3rpc.wsN
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
-  icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
+  icases Hsws' with ⟨%Hnn, #Hzl, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hinv, #HW, #Hspsc, #Hcc,
     #Hmu⟩
   iunfold v3rpc.wsInv at Hinv
@@ -209,7 +210,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   rw [hws]
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
-  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
+  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc, -⟩
   iunfold v3rpc.upOk at Hup
   iunfold v3rpc.watchSrvOk at Hsrv
   icases Hsrv with ⟨#Hrso, #Hauth, #Hvars, #Htag, #HaLb⟩
@@ -236,7 +237,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   icases HeOld with ⟨%aOld, #HaOldg, %HaOldL, -⟩
   icases HeEmpty with ⟨%aEmp, #HaEmpg, %HaEmpL, -⟩
   icases HeDenied with ⟨%aDen, #HaDeng, %HaDenL, -⟩
-  iunfold v3rpc.msgErrVar at HmCompacted HmInv HmOld HmEmpty HmDenied HmWC
+  iunfold v3rpc.msgErrVar at HmCompacted HmInv HmOld HmEmpty HmDenied
   icases HmCompacted with ⟨%eC, #HeCg, #HeCm⟩
   icases HmInv with ⟨%eInv, #HeInvg, #HeInvm⟩
   icases HmOld with ⟨%eOld, #HeOldg, #HeOldm⟩
@@ -251,7 +252,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   wp_for Hinv
   rw [Hsi]
   wp_apply HRecv $$ Hrt as %req %err Hrr
-  icases Hrr with (⟨%Herr, %m, Hreq, HUp, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ | ⟨%Hne, #Hse, Hrt⟩)
+  icases Hrr with (⟨%Herr, %m, Hreq, HUp, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ |
+    ⟨%Hne, #Hse, #Hso, Hrt⟩)
   · -- a request
     subst Herr
     imod v3rpc.ansPool_mint_snoc r.γa L m $$ Hpool with ⟨Hpool, Hans⟩
@@ -266,15 +268,15 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     · wp_for_post
       iapply HΦ
       isplitr
-      · ipureintro; left; rfl
-      iframe Htt Hrdr
+      · ileft; ipureintro; rfl
+      iframe Hrdr HRD
       iexists sent; iexact Hprod
     iunfold v3rpc.watchReqRecv at Hreq
     icases Hreq with ⟨%u, #Hu, Hm⟩
     rcases m with c | cid | _ | _
     · -- create
       ihave ⟨%Hok, #Hpub⟩ := Hup $$ HUp
-      obtain ⟨Hpkv, Hfrag, Hfil, Hwid0⟩ := Hok
+      obtain ⟨Hfrag, Hfil, Hwid0⟩ := Hok
       ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L (.create c) $$ Hrt
       icases Hm with ⟨%cr, Hon, Hcr⟩
       iunfold v3rpc.oneofCreate at Hon
@@ -321,7 +323,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
       wp_apply hPerm sws r Up Dn _ ci cd cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
-        (DFrac.own 1) (DFrac.own 1) c.bound $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls⟩
+        (DFrac.own 1) (DFrac.own 1) c.bound $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls, -⟩
       · iframe #
         ipureintro
         split
@@ -448,14 +450,15 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
+        -- (k8s 7f-4 item 7) the stream's context is a weak one: `Tracer.Start`'s second arm
+        ihave #Hsvo : trace.spanValOk ci $$ []
+        · iunfold context.libCtxOk at Hlibc
+          icases Hlibc with ⟨-, -, -, #H⟩
+          iexact H
+        wp_apply (hStart tr ci cd _ _) $$ [] as %ctx' %sp ⟨⟨%vs, -, -⟩, -, -, -, -, #Hspw, -, -⟩
         · iframe #
-          iunfold mvcc.txnCtx
-          iright; iexact Hctxis
-        ihave #Hctx'' := Hctxw $$ Hctxis
-        -- the run's context's span is a span (`grpcRunCtx`), and so is the traced context's
-        ihave #Hspc := Hspw $$ [Hrunctx]
-        · iapply spanCtxOk_of_runCtx; iexact Hrunctx
+        -- the stream's context's span is a span, and so is the traced context's
+        ihave #Hspc := Hspw $$ Hspanc
         -- the filters: none (`watchReqOk`)
         ihave #Hfi : mvcc.filtersImpl (GF := GF) fsl [] $$ []
         · iunfold mvcc.filtersImpl
@@ -466,14 +469,14 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           simp only [List.zip_nil_left]
           iapply BigSepL.bigSepL_nil.2; iempintro
         -- `Watch`'s update (O1): from the run's invariant and the server's peek
-        ihave Hwau := v3rpc.watch_au (v3rpc.cancelQ r.γs) hP r.W r.srv.wsl r.ι r.γreg r.γtok r.γcl
+        ihave Hwau := v3rpc.watch_au (v3rpc.cancelQ r.γs) hP r.W r.srv.wsl r.ι r.γreg r.γtok r.γpk r.γcl
           (if c.key = [] then [W8 0] else c.key) (if c.rangeEnd = [W8 0] then [] else c.rangeEnd)
-          es2 c.startRev $$ [Hinv HW]
+          es2 c.startRev c.prevKv $$ [Hinv HW]
         · iframe #
         rw [Hwid0]
         wp_apply (hWatch r.W.γm r.ι ctx' { cd with Values := vs } ks' es2 fsl
           (if c.key = [] then [W8 0] else c.key) (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) []
-          c.startRev (v3rpc.watchQ r.W r.ι r.γreg r.γtok (if c.key = [] then [W8 0] else c.key)
+          c.startRev (v3rpc.watchQ r.W r.ι r.γreg r.γtok r.γpk c.prevKv (if c.key = [] then [W8 0] else c.key)
             (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) es2 c.startRev))
           $$ [$Hrdr $Hwau] as %id' %werr ⟨Hrdr, Hwres⟩
         · iframe #
@@ -486,7 +489,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               go.GoStringLt (if c.key = [] then [W8 0] else c.key)
                 (if c.rangeEnd = [W8 0] then [] else c.rangeEnd))⌝ ∗
               ∃ (σ : mvcc.api.MvccState) (i : v3rpc.RegInfo), v3rpc.regIs r.γreg id' i ∗
-                v3rpc.idTok r.γtok id' ∗ mvcc.api.wsSentLb r.ι i.k ∗ r.W.histLb σ.log ∗
+                v3rpc.idTok r.γtok id' ∗ v3rpc.pkIs r.γpk id' c.prevKv ∗ mvcc.api.wsSentLb r.ι i.k ∗
+                r.W.histLb σ.log ∗
                 ⌜σ.pending = none ∧ i.lo = mvcc.api.watchLo σ c.startRev ∧
                   i.rg = mvcc.watchRangeOf (if c.key = [] then [W8 0] else c.key)
                     (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) es2 c.startRev id'⌝)) $$ [Hwres]
@@ -504,18 +508,18 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               exact ⟨Herr, Hrng0⟩
             iexists σ
             iexact HQ
-        icases Hout with (#Hge | ⟨%Hwe, %σ, %i, #Hreg, Hidt, #Hk, Hlog, %Hi⟩)
+        icases Hout with (#Hge | ⟨%Hwe, %σ, %i, #Hreg, Hidt, #Hpki, #Hk, Hlog, %Hi⟩)
         rotate_left
         · -- registered
           obtain ⟨Hwe, Hrng⟩ := Hwe
           subst Hwe
           obtain ⟨-, Hilo, Hirg⟩ := Hi
           wp_auto
-          wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
+          wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk) $$ []
             as ⟨Hlk, HP⟩
           · iframe #
           iunfold v3rpc.swsMu at HP
-          icases HP with ⟨%PM, %VM, %FM, HPm, HVm, HFm, %HVF⟩
+          icases HP with ⟨%PM, %VM, %FM, HPm, HVm, HFm, %HVF, #Hvm⟩
           wp_join iprop(∃ PM' : GMap w64 Bool, ownMap r.pm (DFrac.own 1) PM' ∗ sws_ptr ↦ sws ∗
               id_ptr ↦ id' ∗ creq_ptr ↦ cr) at next with [HPm sws id creq]
               as ⟨%PM', HPm, sws, id, creq⟩
@@ -526,17 +530,44 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.pm PM id' true)
                 $$ [$HPm] as HPm
               wp_join_done
-          rw [Hpkv]
-          wp_auto
+          -- (k8s 7f-3b) `prevKV[id] = true` if the request asks for previous key-values
+          wp_join iprop(∃ VM' : GMap w64 Bool, ownMap r.vm (DFrac.own 1) VM' ∗
+              □ (∀ (id : w64) (b : Bool), ⌜VM' !! id = some b⌝ -∗ ⌜b = true⌝ ∗
+                v3rpc.pkIs r.γpk id true) ∗
+              sws_ptr ↦ sws ∗ id_ptr ↦ id' ∗ creq_ptr ↦ cr) at next with [HVm sws id creq]
+              as ⟨%VM', HVm, #Hvm', sws, id, creq⟩
+          · cases hpk : c.prevKv
+            · wp_auto
+              wp_join_done
+              iexists VM
+              iframe
+              iframe #
+            · wp_auto
+              wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.vm VM id' true)
+                $$ [$HVm] as HVm
+              wp_join_done
+              iexists _
+              iframe
+              iintro !> %x %b %hb
+              by_cases h : id' = x
+              · subst h
+                rw [show (<[id' := true]>VM) !! id' = some true from GMap.lookup_insert _ _ _] at hb
+                cases (Option.some.inj hb)
+                isplitr
+                · ipureintro; rfl
+                iexact Hpki
+              · rw [show (<[id' := true]>VM) !! x = VM !! x from GMap.lookup_insert_ne _ _ h] at hb
+                iapply Hvm $$ %x %b %hb
           rw [Hfrag]
           wp_auto
-          wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+          wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk)
             $$ [$Hlk HPm HVm HFm]
           · iframe #
             inext
             iunfold v3rpc.swsMu
-            iexists PM', VM, FM
+            iexists PM', VM', FM
             iframe
+            iframe #
             ipureintro; exact HVF
           ws_rev
           wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
@@ -590,7 +621,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                 · by_cases h2 : c.rangeEnd = [W8 0]
                   · simp [h2, Hes2.2 h1]
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1]
-              iframe Hreg Hidt Hk
+              iframe Hreg Hidt Hk Hpki
               isplitl [Hlog]
               · -- the first revision: the start revision, or the certified log's length
                 by_cases h0 : c.startRev = W64 0
@@ -680,7 +711,6 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           wp_auto
           wp_apply hZErr $$ []
           · iframe #
-            ipureintro; exact Hnn.2
           err_msg eDen HeDenm
           wp_auto
           wp_join_done
@@ -702,7 +732,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       rw [decide_eq_false Hcrn]
       wp_auto
       -- `Cancel`'s update (O2), with the client's cancel request
-      ihave Hcau := v3rpc.cancel_au (v3rpc.cancelQ r.γs) hP r.ι r.γreg r.γtok r.γcl cid $$ [Hinv]
+      ihave Hcau := v3rpc.cancel_au (v3rpc.cancelQ r.γs) hP r.ι r.γreg r.γtok r.γpk r.γcl cid $$ [Hinv]
       · iframe Hinv
         iunfold v3rpc.cancelQ
         iexists _
@@ -757,33 +787,35 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             itrivial
           iintro !> Hprod
           wp_auto
-          wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
+          wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk) $$ []
             as ⟨Hlk, HP⟩
           · iframe #
           iunfold v3rpc.swsMu at HP
-          icases HP with ⟨%PM, %VM, %FM, HPm, HVm, HFm, %HVF⟩
+          icases HP with ⟨%PM, %VM, %FM, HPm, HVm, HFm, %HVF, #Hvm⟩
           wp_apply (wp_mapDelete r.pm PM cid go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
             $$ [$HPm] as HPm
           wp_apply (wp_mapDelete r.vm VM cid go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
             $$ [$HVm] as HVm
           wp_apply (wp_mapDelete r.fm FM cid go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
             $$ [$HFm] as HFm
-          wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+          wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk)
             $$ [$Hlk HPm HVm HFm]
           · iframe #
             inext
             iunfold v3rpc.swsMu
             iexists _, _, _
             iframe
-            ipureintro
-            intro id
-            constructor
-            · by_cases h : id = cid
+            isplitr
+            · ipureintro
+              intro id
+              by_cases h : id = cid
               · subst h; exact GMap.lookup_delete_eq _ _
-              · rw [GMap.lookup_delete_ne _ (Ne.symm h)]; exact (HVF id).1
-            · by_cases h : id = cid
-              · subst h; exact GMap.lookup_delete_eq _ _
-              · rw [GMap.lookup_delete_ne _ (Ne.symm h)]; exact (HVF id).2
+              · rw [GMap.lookup_delete_ne _ (Ne.symm h)]; exact HVF id
+            iintro !> %id %b %hb
+            by_cases h : id = cid
+            · subst h; rw [GMap.lookup_delete_eq] at hb; cases hb
+            · rw [GMap.lookup_delete_ne _ (Ne.symm h)] at hb
+              iapply Hvm $$ %id %b %hb
           recv_next
         iapply BigAndL.bigAndL_cons.2
         isplit
@@ -812,12 +844,12 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_auto
       rw [decide_eq_false Hcrn]
       wp_auto
-      wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
+      wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk) $$ []
         as ⟨Hlk, HP⟩
       · iframe #
       wp_apply (hRPA r.W.γm r.ι) $$ [$Hrdr] as %b Hrdr
       · iframe #
-      wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
+      wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk)
         $$ [$Hlk $HP]
       recv_next
     · -- other: excluded (`watchReqOk`)
@@ -829,7 +861,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     subst Heq
     wp_apply hIs (· = GoInterface.ok eofE) (fun _ => False) (GoInterface.ok eofE)
       (GoInterface.ok eofE) (fun tii h => by cases h; exact HeofL.1.1)
-      (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b -
+      (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b ⟨-, %HbT, -⟩
     · iframe #
       isplitl
       · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2.1
@@ -837,13 +869,10 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     wp_if_destruct
     rotate_left
     · recv_ret_nil
-    wp_for_post
-    iapply HΦ
-    isplitr
-    · ipureintro; right; exact HeofL.2
-    iframe Htt Hrdr
-    iexists _; iexact Hprod
+    -- `errors.Is(err, io.EOF)` of `io.EOF` itself is `true`
+    exact absurd (HbT _ rfl HeofL.1.1 rfl) (by simp)
   · -- another error
+    ihave #Hse0 := Hse
     iunfold v3rpc.streamErr at Hse
     icases Hse with ⟨%Hty, #HseT⟩
     ihave ⟨%S, %M, #Ht, %HS⟩ := HseT $$ %(GoInterface.ok eofE)
@@ -858,8 +887,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_for_post
       iapply HΦ
       isplitr
-      · ipureintro; right; exact Hty
-      iframe Htt Hrdr
+      · iright; iframe Hse0 Hso
+
+      iframe Hrdr HRD
       iexists _; iexact Hprod
     · exact absurd rfl Hne
 

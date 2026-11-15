@@ -19,7 +19,7 @@ theorem unstable.stableTo.wp_proof [package_sem : Assumptions] (wp_unstable_mayb
                               us' =
                                 { ents := List.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat us.ents,
                                   offset := id.index' + W64 1, inprogress := w64Max us.inprogress (id.index' + W64 1),
-                                  snap := us.snap, ksn := us.ksn, sip := us.sip }) ∧
+                                  snap := us.snap, ksn := us.ksn, sip := us.sip, sz := us.sz }) ∧
                             (¬UnstableHit us id → us' = us)⌝ -∗
                       Φ (intoVal ())) -∗
                 WP

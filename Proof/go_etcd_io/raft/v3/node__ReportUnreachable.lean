@@ -85,8 +85,8 @@ private theorem node.ReportUnreachable.wp_raw
   imod cellRO_alloc $$ Hpty with #cTy
   wp_auto
   imod cellRO_alloc $$ «$v1» with #cFr
-  imod msgIn_of_scalar_struct «$v0_ptr» pty null «$v1_ptr» null null null null null null null
-      { (zero_val MessageM) with Type' := W32 10, From' := to } ⊤ $$ [«$v0»] with Hmsg
+  imod msgInC_of_scalar_struct γ.raft.maxData.isSome «$v0_ptr» pty null «$v1_ptr» null null null null null null null
+      { (zero_val MessageM) with Type' := W32 10, From' := to } ⊤ rfl $$ [«$v0»] with Hmsg
   · iframe «$v0» cTy cFr
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩

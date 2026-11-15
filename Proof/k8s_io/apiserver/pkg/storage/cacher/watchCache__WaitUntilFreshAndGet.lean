@@ -46,7 +46,7 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
     (wp_AddEvent : tracing.Span.AddEvent.spec (GF := GF) (hG := hG)) :
     watchCache.WaitUntilFreshAndGet.spec (GF := GF) (hG := hG) := by
   intro wc γ Ψ parseRV ctxPre curRV ctx rvs key
-  wp_start as ⟨#Hwc, #Hget, Hcp, Htok⟩
+  wp_start as ⟨#Hwc, #Hget, Hcp, Htok, #Hsc⟩
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.store $$ []
   · iPkgInit
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -54,7 +54,13 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
   iunfold wcGetOk at Hget
   icases Hget with ⟨%cfg, %vi, %f, #Hcfg, #Hvi, #Hf, #Hparse, #Hcur⟩
   (try wp_auto)
-  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp %Hsp
+  ihave #Hsc0 := Hsc
+  iunfold k8sctx.spanCtx at Hsc0
+  icases Hsc0 with ⟨%ci, %Hci, #Hspv, #Htrk⟩
+  rw [Hci]
+  wp_apply (wp_SpanFromContext ci) $$ [] as %sp %Hsp
+  · iframe #
+  rw [← Hci]
   (try wp_auto)
   wp_if_destruct
   -- `""`: the current revision

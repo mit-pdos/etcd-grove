@@ -3,7 +3,7 @@ title: pbEnc_ok is inconsistent: a caller-built PbType proves False
 found: 2026-11-07
 by: axiom sweep B1-1 (etcd-grove-c9), notes/axiom-sweep-plan.md on branch axiom-sweep
 blocks-proof: yes
-status: open; fix decided (per-type axioms, its own stage), not started
+status: fixed by per-type stage A (lean de9c19e020, 2026-11-10): pbEnc_ok deleted; encodings keyed on wire content of registered types (entryEncC_ok, msgEncC_ok, *_reg)
 ---
 # `pbEnc_ok` is inconsistent: a caller-built `PbType` proves `False`
 
@@ -29,7 +29,7 @@ model at a quantifier that no Go fact supports.
 
 ## Proof
 
-yes: every result whose `#print axioms` lists `pbEnc_ok` is vacuous until the fix lands.
+yes (until 2026-11-10): every result whose `#print axioms` listed `pbEnc_ok` was vacuous until the fix landed. Fixed: no result lists it any more (etc/tcb-baseline.txt).
 
 **The derivation.** Branch `axiom/pbenc-inconsistent`, commit `f238daef0c` (not on `lean`), file
 `Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/pbenc/False.lean`:

@@ -28,10 +28,10 @@ theorem unstable.shrinkEntriesArray.wp_proof :
   iNamed H
   open_unstable
   icases Hents with #Hents
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   ihave Hents' := Hents
-  iunfold entsRO at Hents'
-  iunfold entsPts at Hents'
+  iunfold entsROz at Hents'
+  iunfold entsPtsZ at Hents'
   icases Hents' with ⟨%ls, #Hls, #Hb⟩
   ihave %Hlsl := ownSlice_len $$ Hls
   wp_auto
@@ -41,7 +41,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
     · iapply HΦ
       iapply ownUnstable_intro $$ Hu
       · iapply ownSliceCap_nil
-      · rw [He]; iapply entsPts_nil
+      · rw [He]; iapply entsPtsZ_nil
       · iexact Hsnap
       · iexact Hpksn
       · iexact Hlogger
@@ -65,7 +65,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       wp_auto
       iapply HΦ
       iapply ownUnstable_intro $$ Hu Hsl_cap
-      · iunfold entsRO; iunfold entsPts; iexists ls; iframe Hsl Hb
+      · iunfold entsROz; iunfold entsPtsZ; iexists ls; iframe Hsl Hb
       · iexact Hsnap
       · iexact Hpksn
       · iexact Hlogger

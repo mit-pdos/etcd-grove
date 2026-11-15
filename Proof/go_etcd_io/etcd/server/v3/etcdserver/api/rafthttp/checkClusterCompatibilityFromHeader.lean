@@ -46,7 +46,7 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option maxRecDepth 8000 in
@@ -62,8 +62,9 @@ theorem rafthttp.checkClusterCompatibilityFromHeader.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZError : zap.Error.spec (GF := GF) (hG := hG)) :
     rafthttp.checkClusterCompatibilityFromHeader.spec (GF := GF) (hG := hG) := by
-  intro lg localID cid hm hs Hlgnn
-  wp_start as #Hhs
+  intro lg localID cid hm hs
+  wp_start as ⟨#Hlgz, #Hhs⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, -⟩

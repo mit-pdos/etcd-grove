@@ -70,16 +70,29 @@ theorem bootLogOk_noEmptyV2 {ps : List w64} {L : List EntryM} (H : BootLogOk ps 
   have := congrArg (fun x : w32 => uint.Z x) h
   revert this; decide
 
+/-- An entry of `LogEntry.toEntries boot base` has the data of an entry of `boot`. -/
+theorem toEntries_data_mem {boot : List LogEntry} {base : Nat} {e : EntryM}
+    (he : e ∈ LogEntry.toEntries boot base) : ∃ e0 ∈ boot, e.Data' = e0.data := by
+  unfold LogEntry.toEntries at he
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem he
+  rw [List.length_mapIdx] at hi
+  refine ⟨boot[i], List.getElem_mem hi, ?_⟩
+  simp [List.getElem_mapIdx, LogEntry.toEntryM]
+
 /-- **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
 `cluster_alloc` at a non-empty `boot`), (2026-11-11, trace-check S7 part 2) of the trace mode `tr`
 (`cluster_alloc_traced`; `cluster_alloc_boot_impl` is this at `none`). -/
 theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (tr : Option GName) (E : CoPset) :
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (tr : Option GName) (E : CoPset)
+    -- (raft-entsize §2) the bound on proposed data (`RaftNames.maxData`): at most `2^31`, and met
+    -- by the bootstrap log's entries
+    (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31)
+    (HmxdB : ∀ b, mxd = some b → ∀ e ∈ boot, e.data.length ≤ b) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     BootLog vs ctxs boot →
     ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
         ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
-          γ.raft.reTrace = tr⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+          γ.raft.reTrace = tr ∧ γ.raft.maxData = mxd⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
@@ -107,10 +120,14 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
     (fun _ _ => True) (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud md tab) none
     (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) sl
-    (N .@ "raft") N (some g) (some gd) dup tr Hcne Hnz' Hwf
+    (N .@ "raft") N (some g) (some gd) dup tr mxd Hmxd
+    (fun b hb e he => by
+      obtain ⟨e0, he0, hd⟩ := toEntries_data_mem he
+      rw [hd]; exact HmxdB b hb e0 he0)
+    Hcne Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0, Hmxd'⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx, #Hblb⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
@@ -153,14 +170,20 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
     isplitr
     · unfold clusterInv
       iframe Hcinv Hinv HspT
-      ipureintro; exact HNs
+      isplitr
+      · ipureintro; exact HNs
+      ipureintro; intro b hb
+      refine ⟨Hmxd b (Hmxd' ▸ hb), fun e he => ?_⟩
+      rw [HbootL] at he
+      obtain ⟨e0, he0, hd⟩ := toEntries_data_mem he
+      rw [hd]; exact HmxdB b (Hmxd' ▸ hb) e0 he0
     iframe Hpool
     ipureintro; exact Hrb
   imodintro
   iexists γ
   iframe Hops Hctx Hdc Hblb
   isplitr
-  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length], Htr0⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length], Htr0, Hmxd'⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

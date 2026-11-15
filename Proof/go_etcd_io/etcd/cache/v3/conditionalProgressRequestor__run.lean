@@ -44,7 +44,7 @@ theorem conditionalProgressRequestor.run.wp_proof
     (wp_Printf : EtcdGrove.fmt.Printf.spec (GF := GF) (hG := hG)) :
     conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) := by
   intro p n clk ri ctx s
-  wp_start as ⟨#Hp, #Hrun, #Hclk, #Hn, #Hctx⟩
+  wp_start as ⟨#Hp, #Hrun, #Hclk, #Hn, #Hctx, #HoC⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -154,7 +154,7 @@ theorem conditionalProgressRequestor.run.wp_proof
             try wp_auto
             wp_apply HReset as %rb -
             iunfold isEtcdProgressNotifier at Hn
-            wp_apply Hn $$ [$Hctx] as %err #Herr
+            wp_apply Hn $$ [$Hctx $HoC] as %err #Herr
             cases err with
             | nil =>
               wp_auto
@@ -166,9 +166,10 @@ theorem conditionalProgressRequestor.run.wp_proof
               isplitr
               · ipureintro; rfl
               iintro %sl ⟨Hsl, -⟩
+              ihave ⟨#HeS0, %HeF⟩ := Herr $$ %e %rfl
               ihave #HeS : EtcdGrove.fmt.stringMethodSpec e go!"Error" $$ []
               · rw [show EtcdGrove.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
-                iapply Herr; ipureintro; rfl
+                iexact HeS0
               wp_apply wp_Printf $$ [$Hfmt $Hsl] as %nb %e2 -
               · fmt_args_ok
               wp_for_post

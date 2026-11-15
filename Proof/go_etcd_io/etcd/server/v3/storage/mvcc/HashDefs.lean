@@ -19,6 +19,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -35,9 +36,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **A hash storage** `h` (persistent): its logger, not nil. -/
+/-- **A hash storage** `h` (persistent): its logger, a zap logger (`zapLoggerOk`; premise fixes 6:
+until then only not nil, and `Store` logs through it). -/
 def mvcc.hashStorageOk (h : Loc) : IProp GF :=
-  iprop(∃ lg : Loc, structFieldRef hashStorage go!"lg" h ↦□ lg ∗ ⌜lg ≠ null⌝)
+  iprop(∃ lg : Loc, structFieldRef hashStorage go!"lg" h ↦□ lg ∗ zapLoggerOk lg)
 
 instance mvcc.hashStorageOk_persistent (h : Loc) : Persistent (mvcc.hashStorageOk (GF := GF) h) := by
   unfold mvcc.hashStorageOk; infer_instance

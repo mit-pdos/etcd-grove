@@ -1,0 +1,23 @@
+diff --git a/client/v3/kubernetes/client.go b/client/v3/kubernetes/client.go
+index 5159c15..070d6fc 100644
+--- a/client/v3/kubernetes/client.go
++++ b/client/v3/kubernetes/client.go
+@@ -68,6 +68,10 @@ func (k Client) Get(ctx context.Context, key string, opts GetOptions) (resp GetR
+ }
+ 
+ func (k Client) List(ctx context.Context, prefix string, opts ListOptions) (resp ListResponse, err error) {
++	// Verification only (a no-op in Go): a prophecy of the response's revision, which identifies
++	// the state the response reflects, so that the proof knows, at each state the read may be
++	// served at, whether it is the response's.
++	p := primitive.NewProph()
+ 	rangeStart := prefix
+ 	if opts.Continue != "" {
+ 		rangeStart = opts.Continue
+@@ -80,6 +84,7 @@ func (k Client) List(ctx context.Context, prefix string, opts ListOptions) (resp
+ 	resp.Kvs = rangeResp.Kvs
+ 	resp.Count = rangeResp.Count
+ 	resp.Revision = rangeResp.Header.Revision
++	p.ResolveU64(uint64(resp.Revision))
+ 	return resp, nil
+ }
+ 

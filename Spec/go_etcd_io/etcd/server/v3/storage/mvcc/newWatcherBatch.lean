@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `newWatcherBatch(wg, evs)`: `nil` if the group is empty, else the batch of each member that
 gets an event (`batchOf`: the events its range holds at or above its `minRev`, in order, each
-batch a copy of the events sharing their key-values). The members' states (`minRev` is read)
+batch holding its own copies of the events: `evOwn`, a fresh `mvccpb.Event` per member and
+event, sharing the key-value, k8s 7f-3b). The members' states (`minRev` is read)
 are the caller's: `ST` has those of all members. -/
 abbrev mvcc.newWatcherBatch.spec : Prop :=
   ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (ST : GMap Loc mvcc.WatcherSt) (evs : GoSlice)

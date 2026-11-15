@@ -1,8 +1,8 @@
 /-
 `Tx.write_ext` (bbolt, internal; maintainer 12, item 3 of `notes/bbolt-proof-plan.md`): `tx.write()`
 with dirty pages past the end of the file. Under `NoGrowSync`, `DB.grow` does not truncate, so the
-dirty pages may lie past the file's end (inside the mapping); `WriteAt` extends the file (OsFs's
-`pwrite`, `os.File.WriteAt.spec`: the zero gap past the old end, then the data). `Tx.write.spec`
+dirty pages may lie past the file's end (inside the mapping); `WriteAt` extends the file (the file extension's
+`pwrite`, `os.File.WriteAt.specExt`: the zero gap past the old end, then the data). `Tx.write.spec`
 (`Proof/go_etcd_io/bbolt/Tx__write.lean`, proved) is the case of pages inside the file. Proof:
 `Proof/go_etcd_io/bbolt/Tx__write_ext.lean` (`Commit/WriteExtRun.Tx.write_ext_gen`).
 -/
@@ -18,12 +18,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -31,7 +33,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`tx.write()`, the dirty pages anywhere in the mapping** (`Tx.write.spec` but the pages need
 not lie inside the file). The target slots are the pages' `bufSlots bufs` and the tail `T`: every
 slot of the mapping not wholly inside the file is one of them (a write past the end fills the gap
-before it with zeros, which needs the gap's cells: `os.File.WriteAt.spec`'s `mcellsAny`), all as
+before it with zeros, which needs the gap's cells: `os.File.WriteAt.specExt`'s `mcellsAny`), all as
 `wrSlotsSz` (`Inv/WSlots`) at the file's size, a slot across the file's end holding at least its
 part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping's whole slots (the partial last slot `l / 4096` is never written) or
 where it ended (`om.size ≤ om'.size ≤ max om.size (4096 * (l / 4096))`), a tail slot inside the old file keeps its
@@ -59,16 +61,16 @@ abbrev Tx.write_ext.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      osMeta K.p (DFrac.own 1) (some om) ∗ wrSlotsSz b K.p (bufSlots bufs ++ T) wb om.size }}
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      osMeta K.p.ino (DFrac.own 1) om ∗ wrSlotsSz b K.p (bufSlots bufs ++ T) wb om.size }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗ tx.[Tx, go!"db"] ↦{dq} K.db ∗
       (∃ pml' : Loc, tx.[Tx, go!"pages"] ↦ pml' ∗ pml' ↦$ (∅ : GMap w64 Loc)) ∗
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.p (DFrac.own 1) (some om') ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om.size ≤ om'.size ∧ om'.size ≤ max om.size (4096 * (l / 4096)) ∧ om'.maps = om.maps ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
           (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧

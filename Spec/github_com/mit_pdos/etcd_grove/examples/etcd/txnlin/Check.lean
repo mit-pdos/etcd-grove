@@ -51,7 +51,7 @@ abbrev Check.spec : Prop :=
       context.isClosedchanInit ∗
       isNewClient cl [ep] V ∗ EtcdGrove.client.clientWriteOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
-      isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+      isGrpcRpcMd ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpecE E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γr γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E γr cid mid) ∗

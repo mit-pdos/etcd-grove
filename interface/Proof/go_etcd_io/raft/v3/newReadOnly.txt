@@ -4,10 +4,10 @@
 
 theorem newReadOnly.wp_proof [package_sem : Assumptions] : newReadOnly.spec
   -- `Perennial.EtcdGrove.newReadOnly.spec`, unfolded:
-  ∀ (o : ReadOnlyOption),
+  ∀ (sz : Bool) (o : ReadOnlyOption),
     o = W64 0 →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-            (▷ ∀ ro', ownReadOnly ro' { pending := [], acks := ∅, confirmed := W64 0 } -∗ Φ (intoVal ro')) -∗
+            (▷ ∀ ro', ownReadOnly sz ro' { pending := [], acks := ∅, confirmed := W64 0 } -∗ Φ (intoVal ro')) -∗
               WP ((intoVal (functions newReadOnly [])) (intoVal o)) {{ Φ }}

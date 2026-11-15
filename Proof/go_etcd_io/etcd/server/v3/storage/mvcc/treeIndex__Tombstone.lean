@@ -39,6 +39,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   icases Hinit with ⟨⟨%e, #Herr⟩, -, -, -, -, -, -, -, -⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, #Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf

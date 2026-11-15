@@ -290,7 +290,7 @@ theorem node.run.gated_of
     iunfold propP at HP
     icases HP with (⟨%d, %γr, Hm, #Hent, Htk, #Hho, Hprod⟩ | ⟨%Hres, Hfwd⟩)
     · -- `m := pm.m; m.From = new(r.id)`
-      icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
+      icases msgInC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
       imod cellRO_alloc $$ «$r0» with #c0
       ihave Hm := Hback $$ %_ %id Hpf c0
@@ -332,7 +332,7 @@ theorem node.run.gated_of
     · -- a proposal forwarded by a peer (2026-10-10): no result channel
       iunfold fwdP at Hfwd
       icases Hfwd with ⟨%st, Hm, %Hty, #Hm0, Htk, #Hfg⟩
-      icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
+      icases msgInC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
       imod cellRO_alloc $$ «$r0» with #c0
       ihave Hm := Hback $$ %_ %id Hpf c0
@@ -448,6 +448,8 @@ theorem node.run.gated_of
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
+    -- (out_size C3) read through half of it (`msgInC_halfD`), rebuilt for the step
+    icases msgInC_halfD _ ml st $$ Hm with ⟨Hm, Hmb⟩
     -- `IsResponseMsg(m.GetType()) && !IsLocalMsgTarget(m.GetFrom()) &&
     -- r.trk.Progress[m.GetFrom()] == nil`
     wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -484,6 +486,7 @@ theorem node.run.gated_of
     -- `r.Step(m)`
     all_goals (
       try wp_auto
+      ihave Hm := Hmb $$ Hm
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
       icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
@@ -893,8 +896,8 @@ theorem node.run.gated_of
     ihave Hg : iprop(∃ (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan),
         ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false L ∗
         entsRO rdv'.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
-        entsRO rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
-        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+        entsROz γ.raft.maxData.isSome rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
+        ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
@@ -935,6 +938,7 @@ theorem node.run.gated_of
         ihave #Hrdw := phsWit_of_hsWit_next γ.raft rs.phs hrd _ $$ Hhsw
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
           Hce_ok Hhlb Hphl $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
+        ihave #Hents := entsROz_of_nil γ.raft.maxData.isSome _ $$ Hents
         iexists ce, [], [], none
         iframe Hrn Hce Hcommitted Hents
         isplitl []
@@ -1011,7 +1015,7 @@ theorem node.run.gated_of
     -- (2026-11-01, durability stage II (k)/(n)) the hand-out and the cut, inside the send's update
     imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
       CoPset.subseteq_top $$ Hhh Hsl Hfree Hrn
-      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, %Hrf⟩
+      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, %Hrf⟩
     -- (step 4) the escrow's key for the handed-out messages (the driver's claim), at the commit
     imod rtk_keyG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk with ⟨Hrtk, Hel⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
@@ -1093,7 +1097,7 @@ theorem node.run.gated_of
       unfold readyCut
       iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
       rw [Hgid]
-      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead
+      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead Hmss
       isplitr
       · ipureintro; rfl
       -- (2026-11-02, durability stage II (q)) the hand-out's `ReadyFacts`

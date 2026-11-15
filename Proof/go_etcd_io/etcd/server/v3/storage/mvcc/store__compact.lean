@@ -139,7 +139,7 @@ theorem mvcc.store.compact.wp_proof
       wp_join with [hash]
       · (try wp_auto)
         wp_apply (h7 lg) $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         wp_join_done
       · (try wp_auto)
         wp_apply (h6 shs h) $$ [$HhsOk]
@@ -167,7 +167,7 @@ theorem mvcc.store.compact.wp_proof
       iintro %flds -
       (try wp_auto)
       wp_apply (h5 lg) $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       wp_apply mvcc.wp_context_TODO_body
       (try wp_auto)

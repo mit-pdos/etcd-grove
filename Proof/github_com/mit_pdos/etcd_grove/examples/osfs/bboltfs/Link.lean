@@ -62,7 +62,9 @@ namespace osfs_bboltfs
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section links
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+
+open Fs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -169,9 +171,13 @@ theorem DB.wp_Get :
     EtcdGrove.osfs_bboltfs.DB.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.osfs_bboltfs.DB.Get.wp_proof DB.wp_meta wp_pageAt
 
+theorem os.File.wp_ReadAtRacy :
+    EtcdGrove.os.File.ReadAt.specRacy (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.ReadAt.wp_proofRacy
+
 theorem DB.wp_Snapshot :
     EtcdGrove.osfs_bboltfs.DB.Snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.osfs_bboltfs.DB.Snapshot.wp_proof DB.wp_meta wp_pageAt _root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proofRacy
+  EtcdGrove.osfs_bboltfs.DB.Snapshot.wp_proof DB.wp_meta wp_pageAt os.File.wp_ReadAtRacy
 
 theorem wp_initPages :
     EtcdGrove.osfs_bboltfs.initPages.spec (GF := GF) (hG := hG) :=
@@ -211,7 +217,7 @@ theorem os.fileStat.wp_Size :
 
 theorem wp_Open :
     EtcdGrove.osfs_bboltfs.Open.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.osfs_bboltfs.Open.wp_proof os.wp_OpenFile os.File.wp_Name wp_flock os.File.wp_Stat os.fileStat.wp_Size os.File.wp_Close DB.wp_close DB.wp_readPageSize DB.wp_init DB.wp_mmap
+  EtcdGrove.osfs_bboltfs.Open.wp_proof os.wp_OpenFile _root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreate os.File.wp_Name wp_flock os.File.wp_Stat os.fileStat.wp_Size os.File.wp_Close DB.wp_close DB.wp_readPageSize DB.wp_init DB.wp_mmap
 
 theorem wp_envFailure :
     EtcdGrove.osfs_bboltfs.envFailure.spec (GF := GF) (hG := hG) :=

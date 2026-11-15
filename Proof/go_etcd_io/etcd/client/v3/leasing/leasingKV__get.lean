@@ -50,11 +50,11 @@ theorem leasingKV.get.wp_proof
     (hML : leasingKV.monitorLease.spec (GF := GF) (hG := hG)) :
     leasingKV.get.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo q
-  wp_start as ⟨#Hlkv, #Hctx, #Hop, #Hlo, %Ho, Hopen, Htok⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hop, #Hlo, %Ho, Hopen, Htok⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
+    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #HlctxC, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
   -- a reader slot borrowed with the thread's token
   iapply wp_fupd
   iapply fupd_wp
@@ -73,7 +73,7 @@ theorem leasingKV.get.wp_proof
   cases b
   · -- the session is not ready: the client's `Do`
     wp_auto
-    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
+    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
     · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
@@ -98,7 +98,7 @@ theorem leasingKV.get.wp_proof
   · -- not a get the cache serves: the client's `Do`
     subst Hret Hok
     wp_auto
-    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
+    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
     · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
@@ -128,7 +128,7 @@ theorem leasingKV.get.wp_proof
         $$ [$Hpkg $Hcache $Hrd $Hpeek] as %mb ⟨Hrd, %st, #Hseen, %Hmb⟩
       cases mb
       · wp_auto
-        wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
+        wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
         · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
         try wp_auto
         wp_apply hRG $$ [$Hcv $resp] as resp
@@ -148,7 +148,7 @@ theorem leasingKV.get.wp_proof
         · ipureintro; exact concurrency.keyOp_not_panics
         obtain ⟨-, hkk, hke, -, -⟩ := keyGet_fields o.key
         wp_apply hAcq lkv γ pfx ctx cs o.key opK (opGetModel o.key []) lo
-          $$ [$Hpkg $Hlkv $Hrd $Hctx $HopK $Hlo] as %resp %err ⟨Hrd, Hacq⟩
+          $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $HopK $Hlo] as %resp %err ⟨Hrd, Hacq⟩
         · ipureintro
           refine ⟨keyGet_txnOpOf _, hkk, hke, ?_, ?_, ?_⟩ <;> simp [op_simps, (show o.key.length ≤ 2 ^ 27 from Ho.2.1)]
         icases Hacq with (⟨%Hne, %Hresp⟩ | ⟨%Heq, Hacq⟩)
@@ -256,7 +256,7 @@ theorem leasingKV.get.wp_proof
           try wp_auto
           wp_apply wp_with_defer as %defer defer
           try wp_auto
-          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx] as Hrd
+          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC] as Hrd
           · ipureintro; rw [Hrev]; refine ⟨?_, ?_, Ho.2.1⟩ <;> omega
           try wp_auto
           wp_apply wp_leasingWg_Done lkv γ $$ [$Hsync $Hwg $Hwginv $Hrun] as Hloan
@@ -282,7 +282,7 @@ theorem leasingKV.get.wp_proof
         ipureintro
         exact ⟨he0.2.symm, Hrev.symm, Hlo_r⟩
     · wp_auto
-      wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
+      wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
       · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
       try wp_auto
       wp_apply hRG $$ [$Hcv $r] as r

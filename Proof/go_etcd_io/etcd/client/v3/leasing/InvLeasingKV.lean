@@ -216,7 +216,8 @@ def leasingWgRunningOwed (γ : LeasingNames) : IProp GF := ownToks γ.wo 1
 
 /-- **What the monitors (unit 5) use of the client** `cl` (persistent): its `KV` field is `kv`, its
 `Watcher` a range watcher of the whole keyspace, its `Lease` a lease client, and it is a session
-client whose session options (`sessionOpts` `osl`) give a cancelable context. -/
+client whose session options (`sessionOpts` `osl`) give a cancelable context.
+The session options' context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isLeasingClient (cl : Loc) (kv : GoInterfaceOk) (osl : GoSlice) : IProp GF :=
   iprop(structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok kv ∗
     (∃ w : GoInterfaceOk, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
@@ -226,7 +227,7 @@ def isLeasingClient (cl : Loc) (kv : GoInterfaceOk) (osl : GoSlice) : IProp GF :
       (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),
       concurrency.isEtcdSessionClient cl cctx ∗ concurrency.sessOptsAt osl gs ∗
       ⌜(concurrency.sessOptsFold gs (concurrency.SessionOpts.init cctx)).ctx = GoInterface.ok pctx⌝ ∗
-      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs)
+      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs ∗ metadata.outgoingCtxOkC pctx)
 
 instance isLeasingClient_persistent (cl : Loc) (kv : GoInterfaceOk) (osl : GoSlice) :
     Persistent (isLeasingClient (GF := GF) cl kv osl) := by
@@ -244,7 +245,8 @@ abbrev lkvReader (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
 that the prefixed key fits beside the user's key in leasing's requests ("Leasing's sizes"). -/
 @[word_unfold] def leasingPfxMax : Nat := 2 ^ 26
 
-/-- **The leasing KV** `lkv` of the lease prefix `pfx` (persistent; see the module docstring). -/
+/-- **The leasing KV** `lkv` of the lease prefix `pfx` (persistent; see the module docstring).
+Its context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
   iprop(∃ (cl : Loc) (kv : GoInterfaceOk) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (cancel : GoFunc) (osl : GoSlice),
@@ -256,7 +258,7 @@ def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
     structFieldRef leasingKV go!"cancel" lkv ↦□ cancel ∗
     structFieldRef leasingKV go!"sessionOpts" lkv ↦□ osl ∗
     isEtcdKV kv [] ∗ isEtcdDoKV kv [] ∗ isEtcdTxnKVO kv [] ∗ isLeasingClient cl kv osl ∗
-    context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+    context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
     lkvCache lkv γ pfx ∗
     sync.isWaitGroup (lkvWg lkv) γ.wg leasingWgWGN ∗ inv leasingWgN (leasingWgInv γ) ∗
     threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) ∗
@@ -292,12 +294,13 @@ instance isLeasingCancel_persistent (lkv : Loc) : Persistent (isLeasingCancel (G
 trust boundary about the client, as the cache's `isEtcdClient`): its `KV` field's gets, `Do`s of a
 get and transactions over the whole keyspace, what the monitors use (`isLeasingClient`: the
 watcher, the leases, a session client whose options give a cancelable context), and its context
-(the `ctx` field `cl.Ctx()` returns) a cancelable one (`newClient` makes it with `WithCancel`). -/
+(the `ctx` field `cl.Ctx()` returns) a cancelable one (`newClient` makes it with `WithCancel`).
+The client's context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isLeasingEtcdClient (cl : Loc) (osl : GoSlice) : IProp GF :=
   iprop(∃ (kv : GoInterfaceOk) (cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     isEtcdKV kv [] ∗ isEtcdDoKV kv [] ∗ isEtcdTxnKVO kv [] ∗ isLeasingClient cl kv osl ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ GoInterface.ok cctx ∗
-    context.isContext cctx ccs ∗ context.isCancelCtxCtx cctx ccs)
+    context.isContext cctx ccs ∗ context.isCancelCtxCtx cctx ccs ∗ metadata.outgoingCtxOkC cctx)
 
 instance isLeasingEtcdClient_persistent (cl : Loc) (osl : GoSlice) :
     Persistent (isLeasingEtcdClient (GF := GF) cl osl) := by
@@ -387,7 +390,8 @@ def opsOwn (sl : GoSlice) (os : List OpFull) : IProp GF :=
 
 /-- **A `*txnLeasing` being built** (see the module docstring): `txn` of the leasing KV `lkv`,
 with the context `ctx`, has been given `b`; its inner client builder `t` (state `B`) has the same
-comparisons and the operations' `TxnOp`s. -/
+comparisons and the operations' `TxnOp`s.
+Its context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def ownTxnLeasing (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (b : LTxnBuild) : IProp GF :=
   iprop(∃ (t : GoInterfaceOk) (B : TxnBuild → IProp GF) (csl tsl esl : GoSlice)
@@ -396,7 +400,7 @@ def ownTxnLeasing (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : Go
     txnBuilderSpecO t [] B ∗
     structFieldRef txnLeasing go!"lkv" txn ↦ lkv ∗ isLeasingKV lkv γ pfx ∗
     structFieldRef txnLeasing go!"ctx" txn ↦ GoInterface.ok ctx ∗ context.isContext ctx cs ∗
-    structFieldRef txnLeasing go!"cs" txn ↦ csl ∗ cmpsOwn csl b.cmps ∗
+    metadata.outgoingCtxOkC ctx ∗ structFieldRef txnLeasing go!"cs" txn ↦ csl ∗ cmpsOwn csl b.cmps ∗
     structFieldRef txnLeasing go!"opst" txn ↦ tsl ∗ opsOwn tsl b.thenOs ∗
     structFieldRef txnLeasing go!"opse" txn ↦ esl ∗ opsOwn esl b.elseOs ∗
     ⌜b.thenOps = some tops ∧ b.elseOps = some eops⌝)

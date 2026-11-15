@@ -90,8 +90,11 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
        have Hs := Hsh1 h'
        unfold AppShape at Hs ⊢; simp only at Hs ⊢; exact Hs)
     | (simp only at h; exact absurd h (by tyd))
-  -- (raft-final) no transfer message here
-  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)
+  -- (raft-final) no transfer message here; (raft-entsize [r3c]) a `MsgSnap` has no entries and no
+  -- context (`SendOk`'s)
+  · first
+    | exact fun _ => ⟨Hsents, Hsctx⟩
+    | (intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd))
   -- (2026-10-22, D38a) no responses (the premise)
   · first | exact Hrs | (simp only; exact Hrs)
   · intro h
@@ -121,20 +124,26 @@ set_option hygiene false in
 of `r.id` or of `r.Term` (stored into the message as `m.Term = new(r.Term)`), each followed by
 `getter_simp`. -/
 local macro "get_type" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  icases msgOwnZ_read s.gh.sn.sz _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetType.1 $$ [Hm] as Hm
   (· iexact Hm)
+  ihave Hm := Hmb $$ Hm
   getter_simp [$args,*]))
 
 set_option hygiene false in
 local macro "get_term" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  icases msgOwnZ_read s.gh.sn.sz _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetTerm.1 $$ [Hm] as Hm
   (· iexact Hm)
+  ihave Hm := Hmb $$ Hm
   getter_simp [$args,*]))
 
 set_option hygiene false in
 local macro "get_to" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  icases msgOwnZ_read s.gh.sn.sz _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetTo.1 $$ [Hm] as Hm
   (· iexact Hm)
+  ihave Hm := Hmb $$ Hm
   getter_simp [$args,*]))
 
 set_option hygiene false in
@@ -146,7 +155,7 @@ set_option hygiene false in
 local macro "load_term" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   imod cellRO_alloc $$ «$r0» with #cTe
-  icases msgPtsC_store_Term _ _ _ _ $$ Hm with ⟨%pte, HTe, HbackT⟩
+  icases msgOwnZ_store_Term s.gh.sn.sz _ _ $$ Hm with ⟨%pte, HTe, HbackT⟩
   wp_auto
   ihave Hm := HbackT $$ %_ %s.term HTe cTe
   getter_simp [$args,*]))
@@ -367,14 +376,17 @@ theorem raft.send.wp_proof
   -- (2026-10-19, D21 M2r) the node's id nonzero, and the modes' facts
   icases ownRaftPhysC_id_nz c r id s $$ Hphys with ⟨%Hidnz, Hphys⟩
   wp_auto
+  icases msgOwnZ_read s.gh.sn.sz _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetFrom.1 $$ [$Hm] as Hm
+  ihave Hm := Hmb $$ Hm
   obtain ⟨src, Hsrc_eq⟩ : ∃ src, src = if m.From' = W64 0 then id else m.From' := ⟨_, rfl⟩
-  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ ml ∗ msgOwn ml (DFrac.own 1) ⟨{ m with From' := src }, ents, sn, ctx, rs⟩ ∗
+  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ ml ∗
+      msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨{ m with From' := src }, ents, sn, ctx, rs⟩ ∗
       ownRaftPhysCV c c.voters r id s)
     with [r m Hm Hphys] as ⟨r, m, Hm, Hphys⟩
   · wp_apply raft.wp_load_idC $$ Hphys as Hphys
     imod cellRO_alloc $$ «$r0» with #c0
-    icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
+    icases msgOwnZ_store_From s.gh.sn.sz _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
     wp_auto
     ihave Hm := Hback $$ %_ %id Hpf c0
     rw [show src = id by rw [Hsrc_eq, ite_eq_left (by simpa using Hif)]]
@@ -403,7 +415,7 @@ theorem raft.send.wp_proof
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
-    (⟨HSnap, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
+    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
     ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto

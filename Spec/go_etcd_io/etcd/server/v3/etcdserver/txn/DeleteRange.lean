@@ -32,6 +32,7 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 caller's update (`delAU`), the range's keys at `σ₀` deleted, committed by the caller's two
 updates (`delPend o σ₀ true`), the response; or, with `PrevKv`, the range read's context error
 (not at a context never canceled), nothing deleted (`delPend o σ₀ false = []`). `Post` either way.
+The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
@@ -44,7 +45,7 @@ abbrev txn.DeleteRange.spec : Prop :=
       txn.deleteRangeRequestIs dr o ∗
       lease.leaseOwn (mvccLeases γ) L I ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAU γ o I R }}
+      zapLoggerOrNil lg ∗ txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAU γ o I R }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);

@@ -38,10 +38,8 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
        (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
   iintro H
   iunfold rnMsgR at H
-  icases H with (⟨%to, %ty, #Hat, %Hty, HM⟩ | Hs)
-  · iunfold msgAt at Hat
-    icases Hat with ⟨%st, #Hm, %Hst⟩
-    obtain ⟨rfl, rfl⟩ := Hst
+  icases H with (⟨%st, #Hmo, %Hty, HM⟩ | Hs)
+  · ihave #Hm := (letI := srvStor (GF := GF) γ.node; msgOut_msgOwn γ.node.cl m DFrac.discard st) $$ Hmo
     iexists DFrac.discard, st
     iframe Hm
     isplit
@@ -56,7 +54,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc⟩
+    icases Hs with ⟨%st, Hm, %Hty, #Hsm, Hc, #Huf⟩
     iexists DFrac.own 1, st
     iframe Hm
     isplit
@@ -65,7 +63,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     · iintro %_ Hm
       iunfold rnSnapMsg
       iexists st
-      iframe Hm Hsm Hc
+      iframe Hm Hsm Hc Huf
       ipureintro; exact Hty
 
 /-- `m.GetTo()` at any fraction. -/
@@ -328,7 +326,7 @@ theorem raftNode.processMessages.wp_proof
           iintro %fsl -
           wp_auto
           wp_apply wp_Warn lg _ _ $$ [$Hzap]
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           ihave Hsi : (srvInit : IProp GF) $$ []
           · iapply isPkgInit_access $$ Hpkg
           iunfold srvInit at Hsi

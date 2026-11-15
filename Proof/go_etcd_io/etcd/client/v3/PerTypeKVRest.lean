@@ -98,6 +98,7 @@ def pbCompactionResponseT : ProtoMsgT GF :=
 
 /-- **`pbCompactionResponseT`'s reply model is satisfiable.** -/
 theorem pbCompactionResponseT_repSat : (pbCompactionResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.CompactionResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.CompactionResponse etcdserverpb.CompactionResponse.ty),
       fun l => .rfl⟩,
@@ -185,6 +186,7 @@ def pbPutResponseT : ProtoMsgT GF :=
 
 /-- **`pbPutResponseT`'s reply model is satisfiable.** -/
 theorem pbPutResponseT_repSat : (pbPutResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.PutResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.PutResponse etcdserverpb.PutResponse.ty),
       fun l => .rfl⟩,
@@ -250,6 +252,7 @@ def pbDeleteRangeResponseT : ProtoMsgT GF :=
 
 /-- **`pbDeleteRangeResponseT`'s reply model is satisfiable.** -/
 theorem pbDeleteRangeResponseT_repSat : (pbDeleteRangeResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.DeleteRangeResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.DeleteRangeResponse etcdserverpb.DeleteRangeResponse.ty),
       fun l => .rfl⟩,
@@ -1081,6 +1084,7 @@ end
 
 /-- **`pbTxnResponseT`'s reply model is satisfiable.** -/
 theorem pbTxnResponseT_repSat : (pbTxnResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.TxnResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.TxnResponse etcdserverpb.TxnResponse.ty),
       fun l => .rfl⟩,

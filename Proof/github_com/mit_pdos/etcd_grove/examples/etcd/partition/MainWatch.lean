@@ -119,8 +119,8 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb Hrb48
-    HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
+  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
+    HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
   ihave #Heo : client.eofOk (GF := GF) $$ []
@@ -170,7 +170,7 @@ theorem MainWatch.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
-  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms)
     $$ [Hstart Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -286,7 +286,8 @@ theorem MainWatch.wp_proof
   -- `wctx, cancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %wctx %γc %cancel ⟨#Hcancel, #Hwctx, -⟩
+    as %wctx %γc %cancel ⟨#Hcancel, #Hwctx, -, #Hwfrom⟩
+  ihave #HwC := metadata.outgoingCtxOkC_bgFrom wctx $$ Hwfrom
   (try wp_auto)
   -- the watch's options (the cache's `watchEvents`')
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -355,7 +356,7 @@ theorem MainWatch.wp_proof
       List (OpFull → OpFull))
     %(W64 1)
   wp_apply HW $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
-  · iframe Hwctx Hopts
+  · iframe Hwctx HwC Hopts
     isplitl []
     · ipureintro
       exact ⟨(watchEvents_opts wkPfx (W64 1)).1, (watchEvents_opts wkPfx (W64 1)).2, by decide⟩
@@ -416,7 +417,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₁ HRange₁]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
         isplitr
@@ -432,7 +433,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₂ HRange₂]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
         isplitr
@@ -448,7 +449,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₃ HRange₃]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
         isplitr
@@ -460,11 +461,11 @@ theorem MainWatch.wp_proof
     itrivial
   -- (D29) the bridges' addresses are refusal-free: every client's writes are sent at most once
   ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha

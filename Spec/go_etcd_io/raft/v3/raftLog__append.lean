@@ -77,14 +77,16 @@ abbrev raftLog.append.spec : Prop :=
         uint.Z e.Index' = uint.Z e0.Index' + (k : Int)) ∧
      uint.Z e0.Index' + (ents.length : Int) < 2^64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "Hes" ∷ entsPts es dq ents ∗
+      -- (out_size C3, 2026-11-12; until then `entsPts`) at contents of bounded size under the log's
+      -- flag (its storage names', `ls.sn.sz`), which the unstable entries keep
+      "Hes" ∷ entsPtsZ ls.sn.sz es dq ents ∗
       "Hadopt" ∷ (if logAdopts ls ents
                   then iprop(⌜dq = DFrac.discard⌝ ∗ ownSliceCap Loc es (DFrac.own 1))
                   else iprop(True)) }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"append")) (Val #es))
   {{ (li : w64), RET #li;
       ownRaftLog l (logTruncateAppend ls ents) ∗
-      (if logAdopts ls ents then iprop(True) else iprop(entsPts es dq ents)) ∗
+      (if logAdopts ls ents then iprop(True) else iprop(entsPtsZ ls.sn.sz es dq ents)) ∗
       ⌜(logTruncateAppend ls ents).sents ++ (logTruncateAppend ls ents).uents
           = plogTruncateAppend ls.prev (ls.sents ++ ls.uents) ents ∧
         uint.Z li = uint.Z ls.prev.index'

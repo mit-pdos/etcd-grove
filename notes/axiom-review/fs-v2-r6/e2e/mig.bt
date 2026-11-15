@@ -1,0 +1,11 @@
+// fs-v2-r6 e2e, diagnostic: how often compaction migrates a page of a "tearw" writer
+// (try_to_migrate_one on a vma of its mm: the PTE replaced by a migration entry), and how often
+// the writer's own user-mode stores meet such an entry (migration_entry_wait).
+kprobe:ext4_da_write_end /comm == "tearw"/ { @mm[(uint64)curtask->mm] = 1; }
+kprobe:try_to_migrate_one {
+  $mm = (uint64)((struct vm_area_struct *)arg1)->vm_mm;
+  if (@mm[$mm] == 1) { @migrate_ours = count(); }
+  @migrate_all = count();
+}
+kprobe:migration_entry_wait /comm == "tearw"/ { @entry_wait_ours = count(); }
+END { clear(@mm); }

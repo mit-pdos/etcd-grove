@@ -5,6 +5,7 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import GeneratedProof.go_uber_org.zap
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -21,10 +22,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `l.Debug(msg, fields...)` (a non-nil logger) returns: logging has no effect here. -/
+/-- `l.Debug(msg, fields...)` (a zap logger, `zapLoggerOk l`; premise fixes 6: a zero `&zap.Logger{}` panics) returns: logging has no effect here. -/
 abbrev zap.Logger.Debug.spec : Prop :=
   ∀ (l : Loc) (msg : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ zapLoggerOk l }}
     (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Debug")) (Val #msg)) (Val #fields))
   {{ RET #(); True }}
 

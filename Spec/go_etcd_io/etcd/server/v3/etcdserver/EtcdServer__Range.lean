@@ -8,6 +8,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadWhy
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -34,7 +36,8 @@ lower bound `n` of the auth store's published index the reader holds (`srvAuthLb
 (`kvStM E.authOn`: a client's `Get` update, or nothing). Success: the auth store's
 `IsRangePermitted` passed for some auth info at states no older than some `m ≥ n`
 (`apply.rangeClassFrom`: with auth off, a pass), the info the caller's (`infoBoundM`: with auth on,
-the empty user or one bound to the context's token) and, for a linearizable read with auth on, no
+the empty user or one bound to the context's token), the store published through `m`
+(`auth.authPubLbM`: the auth3 A2 read barrier, 2026-11-14) and, for a linearizable read with auth on, no
 older than the auth state the committed log through the read index left (`authFloorAt`); and the
 txn package's answer at a certified log of at least two revisions, after the read index unless
 serializable, the header's id fields owned, a linearizable one at the mode's model of a committed
@@ -42,7 +45,13 @@ raft log `L` at which the deposit gave `□ Q L` (`rangeReadOkM`). Failure: no r
 the gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, mvcc's `ErrFutureRev`, or
 the context's), and which (`rangeErrOut`, k8s etcd3 7c-2 part 2, S3: mvcc's `ErrFutureRev` and
 `ErrCompacted` with the read's facts at the error, `rangeErrAt`). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
-modes' former specs). -/
+modes' former specs). (auth-guard-completeness G4, 2026-11-14) And why, if the auth checks refused
+it (`rangeWhyOut`): with auth on, the request side's reasons, the read check of `[key, e)` refusing
+the auth info the request side gave (`permWhy`, at states no older than `n`), or `doSerialize`'s
+revision re-check (`oldRevWhy`), or the error is the read index's or the read's own; with auth off
+or in the mode `any` the conjunct is `True` (`rangeWhyOut_off`). An auth error variable is the first
+case, or `rangeKeys`' wrapped context error, which Perennial's errorf model leaves opaque
+(`rangeWhy_of_authErr`). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
@@ -50,7 +59,7 @@ abbrev EtcdServer.Range.spec : Prop :=
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
       kvDep γr.kv Q (kvStM E.authOn γr.kv) ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
@@ -58,11 +67,11 @@ abbrev EtcdServer.Range.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
           (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m info o ∗
-            infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
+            infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗ auth.authPubLbM E.authMode m ∗
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM E.authOn E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-          rangeErrOut E.authOn E γr c F o Q err)) }}
+          rangeErrOut E.authOn E γr c F o Q err ∗ rangeWhyOut s E.authMode n (GoInterface.ok ctx) o err)) }}
 
 end spec
 

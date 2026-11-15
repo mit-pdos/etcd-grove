@@ -26,15 +26,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `newTokenProviderSimple(lg, iw, ttl)`: a provider `p` whose index waiter is `iw` (read-only);
-for a positive TTL, under fresh names, the provider's read-only facts (`simpleOk`: its logger, not
-nil, `zap.NewNop()`'s for a nil `lg`, and its mutex with the lock invariant: no token, no keeper),
+/-- `newTokenProviderSimple(lg, iw, ttl)`, for a logger nil or a zap logger (`zapLoggerOrNil`;
+premise fixes 6: the provider's `enable` logs through it): a provider `p` whose index waiter is `iw` (read-only);
+for a positive TTL, under fresh names, the provider's read-only facts (`simpleOk`: its logger, a zap
+logger, `zap.NewNop()`'s for a nil `lg`, and its mutex with the lock invariant: no token, no keeper),
 the admin side's share (`simpleAdmin`, no keeper) and the authority over the rights to issue tokens
 (`γf`, empty). For a TTL not positive nothing is promised beyond the waiter (the lock invariant
 records a positive TTL, which the keeper's `run` needs). -/
 abbrev auth.newTokenProviderSimple.spec : Prop :=
   ∀ (lg : Loc) (iw : GoFunc) (ttl : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg))
       (Val #iw)) (Val #ttl))
   {{ (p : Loc), RET #p; auth.tsF go!"indexWaiter" p ↦□ iw ∗

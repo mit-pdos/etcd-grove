@@ -28,7 +28,7 @@ variable [_root_.Perennial.bytes.Assumptions]
 theorem codec.Encode.wp_proof (wp_encodeObj : encodeObj.spec (GF := GF) (hG := hG))
     (wp_Write : bytes.Buffer.Write.spec (GF := GF) (hG := hG)) :
     codec.Encode.spec (GF := GF) (hG := hG) := by
-  intro p dq name uid val rv b bs
+  intro p dq v b bs
   wp_start as ⟨Hp, Hb⟩
   ihave #Pby : isPkgInit (PROP := IProp GF) pkg_id.bytes $$ []
   · iPkgInit

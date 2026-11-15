@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG)) :
     leasingKV.waitRescind.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key rev
-  wp_start as ⟨#Hlkv, #Hctx, #Hcc, %Hrev⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hcc, %Hrev⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
@@ -44,7 +44,8 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
   iintro %defer Hdefer
   (try wp_auto)
   wp_apply context.wp_WithCancel iprop(True) ctx cs $$ [$Hctx $Hcc]
-      as %ctx' %γ' %cancel' ⟨#Hcancel, #Hctx', #Hcc'⟩
+      as %ctx' %γ' %cancel' ⟨#Hcancel, #Hctx', #Hcc', #Hfrom'⟩
+  ihave #HctxC' := metadata.outgoingCtxOkC_from ctx ctx' $$ [$Hfrom' $HctxC]
   ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
   (try wp_auto)
   wp_apply wp_WithRev (rev + W64 1) as %f #Hf
@@ -71,7 +72,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
   wp_auto
   obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatch_opts (pfx ++ key) (rev + W64 1)
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
-  · iframe Hctx' Hopts
+  · iframe Hctx' HctxC' Hopts
     ipureintro
     refine ⟨Hw1, Hw2, by word, ?_, keyWatch_size _ _ (by simp only [List.length_append]; word)⟩
     rw [Hw3, Hw4]; intro k _; exact List.nil_prefix

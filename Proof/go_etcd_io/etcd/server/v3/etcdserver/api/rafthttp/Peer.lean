@@ -23,11 +23,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The peer `p` of `pid` at the member `lid`, its stream writers** (persistent): its logger (not
-`nil`), and its two stream writers, of `lid` to `pid` (`swFixed`). -/
+/-- **The peer `p` of `pid` at the member `lid`, its stream writers** (persistent): its logger (a zap
+logger), and its two stream writers, of `lid` to `pid` (`swFixed`). -/
 def peerStreams (Rh : RaftHttp GF) (lid pid : w64) (p : Loc) : IProp GF :=
   iprop(∃ (lg cw2 cw1 : Loc) (Rr2 Rr1 : IProp GF),
-    p.[rafthttp.peer, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    p.[rafthttp.peer, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     p.[rafthttp.peer, go!"msgAppV2Writer"] ↦□ cw2 ∗ swFixed Rh .msgAppV2 lid pid Rr2 cw2 ∗
     p.[rafthttp.peer, go!"writer"] ↦□ cw1 ∗ swFixed Rh .message lid pid Rr1 cw1)
 

@@ -357,7 +357,7 @@ theorem lease.lessor.Revoke.wp_proof
       ihave Ha := Hback $$ %(C4.delete id) Hcl
       imod lessor_live_revoke _ lp L (C4.delete id) id $$ [$Ha $Hg $Hfr] with ⟨Ha, Hg, Hfr⟩
       iunfold lessorExtra at Hx
-      icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+      icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
       icases (BigSepM.bigSepM_delete (Φ := fun i x => leaseMeta (GF := GF) i x 1) HM2l).1 $$ Hmeta
         with ⟨Hml, Hmeta⟩
       iunfold leaseMeta at Hml
@@ -469,7 +469,7 @@ theorem lease.lessor.Revoke.wp_proof
           iexact H
         isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
         · iunfold lessorExtra
-          iexists dc, np, h, hx, cp, _
+          iexists dc, np, h, hx, _
           iframe
         iexists γr, _; iframe Hpr Hhl
         ipureintro; exact ⟨_, hlast'⟩

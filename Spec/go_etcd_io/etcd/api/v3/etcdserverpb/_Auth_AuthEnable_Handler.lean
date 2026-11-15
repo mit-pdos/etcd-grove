@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Auth_AuthEnable_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
-implements `AuthServer` (a method-set fact) and whose `AuthEnable` meets `Spec` with the resource `S`, given
+implements `AuthServer` (a method-set fact) and whose `AuthEnable` meets `Spec` with the resource `S` and the interceptors' resources `Rs`, which the chain lends the call (per-type stage B3), given
 what it owns of the decoded request (`grpcHandlerOwnOkMd`, at the run's metadata), for messages whose types are
 `*AuthEnableRequest`/`*AuthEnableResponse` (a zero `*AuthEnableRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
@@ -42,7 +42,7 @@ abbrev etcdserverpb._Auth_AuthEnable_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthEnableRequest) -∗ Req.blank l) ∗
-      grpcHandlerOwnOkMd #(methods srv.ty go!"AuthEnable" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOwnOkMd #(methods srv.ty go!"AuthEnable" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗

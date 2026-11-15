@@ -25,10 +25,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- `newTrace(op, lg, fields...)`, the fields owned: a fresh trace, owned, keeping them. -/
+/-- `newTrace(op, lg, fields...)`, the fields owned, the logger nil or a zap logger (premise fixes 6:
+the trace logs through it when not nil, `LogWithStepThreshold`): a fresh trace, owned, keeping them. -/
 abbrev traceutil.newTrace.spec : Prop :=
   ∀ (op : GoString) (lg : Loc) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownFields fields }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownFields fields ∗
+      zapLoggerOrNil lg }}
     (App (App (App (Val (@! go_etcd_io.etcd.pkg.v3.traceutil.newTrace)) (Val #op)) (Val #lg)) (Val #fields))
   {{ (t : Loc), RET #t; ⌜t ≠ null⌝ ∗ traceutil.ownTrace t false }}
 

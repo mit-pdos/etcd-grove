@@ -370,12 +370,12 @@ theorem Reflector.list.wp_proof
         (try wp_auto)
         wp_apply (wp_Errorf _ _ _ _) $$ [$Hfmt $Hsl2 Hae] as %e2 ⟨-, -⟩
         · rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
-          simp only [List.set_cons_succ, List.set_cons_zero, fmt.argsOk]
+          fmt_args_intro
           isplitr
-          · simp only [fmt.argOk]
+          · simp only [fmt.argOkAt]
             ileft; ipureintro; apply fmt.argWf_of_argsWf; exact .cons_string _ _ .nil
           isplitl [Hae]
-          · iexact Hae
+          · fmt_arg_method; iexact Hae
           itrivial
         (try wp_auto)
         wp_apply (wp_LogIfLong tr _)

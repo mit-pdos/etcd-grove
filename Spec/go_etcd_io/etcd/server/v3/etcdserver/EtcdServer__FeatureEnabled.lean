@@ -23,13 +23,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.FeatureEnabled(f)` of a registered feature `f`: some boolean (the feature gate's
-contract, `isFeatureGate`; a feature not registered panics). -/
+contract, `isFeatureGate`; a feature not registered panics); `b'` when the caller knows the gate
+answers `b'` for `f` (`ob = some b'` with `featureIs fg f b'`; stage B3, 2026-11-12, for
+`NewServer`'s `LeaseCheckpoint`). -/
 abbrev EtcdServer.FeatureEnabled.spec : Prop :=
-  ∀ (s : Loc) (fg : GoInterface) (f : GoString),
+  ∀ (s : Loc) (fg : GoInterface) (f : GoString) (ob : Option Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗ ⌜f ∈ serverFeatures⌝ }}
+      srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗ ⌜f ∈ serverFeatures⌝ ∗
+      (match ob with | some b' => featureIs fg f b' | none => emp) }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"FeatureEnabled")) (Val #f))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; ⌜∀ b', ob = some b' → b = b'⌝ }}
 
 end spec
 

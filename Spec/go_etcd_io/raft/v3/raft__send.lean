@@ -133,6 +133,8 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
      out = [absMsgFrom ty m id s.term ents ctx])
   ∨
   ((m.Type' = MsgSnap ∧
+    -- (raft-entsize [r3c], 2026-11-09) no entries and no context (`SentMsgShape`)
+    ents = [] ∧ ctx = [] ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     -- (2026-10-19, D21 M3) not in the no-snapshot mode
@@ -264,7 +266,11 @@ abbrev raft.send.spec : Prop :=
   (s.gh.tr ≠ none → ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ .snap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (out_size C3, 2026-11-12; until then `msgOwn` with a `MsgSnap`'s `snapUfT`) held at a
+      -- content (`msgOwnZ`, at the node's flag `s.gh.sn.sz`): pinned (`sentOk`) and, in a cluster
+      -- bounding proposed data, of bounded size unless a `MsgSnap` -- what the outbox keeps (`msgQ`)
+      -- for the content a `Ready` hands out
+      "Hm" ∷ msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: valid or received, as the node's storage names pin it, `tsSrc`) a
       -- `MsgSnap`'s snapshot certified (`tsSrc_ne` for any other type)
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗

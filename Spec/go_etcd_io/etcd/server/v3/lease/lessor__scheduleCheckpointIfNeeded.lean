@@ -27,7 +27,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 remaining TTL exceeds the checkpoint interval (`int64(le.checkpointInterval.Seconds())`, a float
 converted to an integer), pushes a fresh item (the lease's id, `time.Now()` plus the interval)
 onto the checkpoint heap (`heap.Push`), after a debug log line. It reads `le.cp`, the lease's
-`remainingTTL` and `ttl`, and the read-only configuration; the heap stays a queue of items. -/
+`remainingTTL` and `ttl`, and the read-only configuration; the heap stays a queue of items. The
+log line is `le.lg.Debug` under `le.lg != nil` (`lessor.go:759`), and `lessorCfg`'s logger is nil
+or a zap logger (`zapLoggerOk`; 2026-11-10, the user's decision of 2026-11-07, sweep B3-2: until
+then unconstrained, and a zero `&zap.Logger{}` panicked here), whose `Debug` does not panic. -/
 abbrev lease.lessor.scheduleCheckpointIfNeeded.spec : Prop :=
   ∀ (lp l : Loc) (cp : GoFunc) (h : GoSlice) (hx : List (Loc × w64)) (r t : w64)
     (dq1 dq2 dq3 : DFrac),

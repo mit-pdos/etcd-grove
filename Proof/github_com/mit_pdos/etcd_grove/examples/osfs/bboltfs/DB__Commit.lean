@@ -16,13 +16,15 @@ public import Perennial.Proof.sync.Results
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -113,7 +115,7 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
       · unfold dbFailed; iexact Hfailed
     · dsimp only
       icases Hst with ⟨%Hst, Htok1, #Hinv, Hwc⟩
-      imod fail_cur_inv γ p base len γm mp' hwm $$ [Hinv Htok1 Hcur1 Hcur] with ⟨Htok1, Hcur1, Hcur⟩
+      imod fail_cur_inv γ γ.ino base len γm mp' hwm $$ [Hinv Htok1 Hcur1 Hcur] with ⟨Htok1, Hcur1, Hcur⟩
       · iframe; iframe #
       imodintro
       iexists false
@@ -219,7 +221,7 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     dsimp only
     icases Hst with ⟨%Hst, Htok1, #Hinv, Hwc⟩
     (try wp_auto)
-    imod metas_out γ p base len γm mx (curPgid mx) $$ [Hinv Htok1 Hcur1 Hout1 Hout]
+    imod metas_out γ γ.ino base len γm mx (curPgid mx) $$ [Hinv Htok1 Hcur1 Hout1 Hout]
       with ⟨Htok1, Hcur1, Hout1, Hout, Hc0, Hc1⟩
     · iframe; iframe #
     have hl : mx.length = 8192 := Hok.1
@@ -260,7 +262,7 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       rw [List.length_append, hl1]
       have : ((mx.drop 4112).take 64).length = 64 := by simp; omega
       rw [this]
-    imod metas_in γ p base len γm mx false (curPgid mx)
+    imod metas_in γ γ.ino base len γm mx false (curPgid mx)
         ((mx.drop 16).take 64 ++ (mx.drop 4112).take 64) hmc128 (fun _ => rfl)
         $$ [Htok1 Hcur1 Hout1 Hout Hc0 Hc1] with ⟨Htok1, Hcur1, Hout1, Hout⟩
     · rw [e1, e2]; iframe; iframe #

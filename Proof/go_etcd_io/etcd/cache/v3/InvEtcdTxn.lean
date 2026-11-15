@@ -882,7 +882,7 @@ instance txnBuilderSpecX_persistent (t : GoInterfaceOk) (pfx : GoString)
 makes of `client.KV`, as `isEtcdKV`): `kv.Txn(ctx)` returns a builder in its empty state. -/
 def isEtcdTxnKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-    {{ context.isContext ctx cs }}
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
       (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok ctx)))
     {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
         ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpec t pfx B }})
@@ -966,7 +966,7 @@ definition, the assumption a caller makes of `client.KV`, beside `isEtcdTxnKV` f
 method): `kv.Txn(ctx)` returns a builder in its empty state. -/
 def isEtcdReadTxnKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-    {{ context.isContext ctx cs }}
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
       (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok ctx)))
     {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
         ∃ B : Option (List OpFull) → IProp GF, B none ∗ readTxnBuilderSpec t pfx B }})
@@ -1006,7 +1006,8 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdDeleteKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
+        etcdReached lo ∗
         ⌜¬ opDeletePanics key gs ∧
           KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
           opSizeOk (opDeleteModel key gs)⌝ }}
@@ -1232,6 +1233,26 @@ def OpFull.isRangeWatch (rev : w64) (o : OpFull) : Bool :=
     o.base.filterPut = false ∧ o.base.filterDelete = false)
 
 omit EM in
+/-- A watch of the range of `o` from revision `rev`, with `WithPrevKV` allowed (k8s 7f-3a/3c,
+`clientv3.Watcher`'s `Watch`): as `isRangeWatch`, without `o.base.prevKV = false`. -/
+def OpFull.isRangeWatchP (rev : w64) (o : OpFull) : Bool :=
+  decide (o.t = W64 1 ∧ o.base.rev = rev ∧ o.base.fragment = false ∧
+    o.base.filterPut = false ∧ o.base.filterDelete = false)
+
+omit EM in
+/-- The old condition is the new one without `WithPrevKV`. -/
+theorem OpFull.isRangeWatch_eq (rev : w64) (o : OpFull) :
+    o.isRangeWatch rev = (o.isRangeWatchP rev && !o.base.prevKV) := by
+  unfold OpFull.isRangeWatch OpFull.isRangeWatchP
+  cases o.base.prevKV <;> simp [and_left_comm]
+
+omit EM in
+/-- A range watch without `WithPrevKV` is one with it allowed. -/
+theorem OpFull.isRangeWatchP_of {rev : w64} {o : OpFull} (h : o.isRangeWatch rev = true) :
+    o.isRangeWatchP rev = true := by
+  rw [OpFull.isRangeWatch_eq] at h; simp only [Bool.and_eq_true] at h; exact h.1
+
+omit EM in
 /-- A delete event's `*KeyValue` `l`: its `Value` (some byte slice) and `Lease` fields can be read
 (read-only). -/
 def delKvAt (l : Loc) : IProp GF :=
@@ -1323,7 +1344,7 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
         ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
           0 ≤ sint.Z rev ∧
           KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd ∧
@@ -1371,7 +1392,7 @@ instance isChanAny_persistent (γ : ChanNames) (ch : Loc) :
 def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
   iprop(
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ttl : w64),
-      {{ context.isContext ctx cs }}
+      {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
         (App (App (Val #(methods l.ty go!"Grant" l.v)) (Val #(GoInterface.ok ctx))) (Val #ttl))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           ⌜err ≠ GoInterface.nil⌝ ∨
@@ -1383,13 +1404,13 @@ def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
             structFieldRef etcdserverpb.ResponseHeader go!"Revision" hdr ↦□ r ∗
             etcdReached r) }}) ∗
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (id : w64),
-      {{ context.isContext ctx cs }}
+      {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
         (App (App (Val #(methods l.ty go!"KeepAlive" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))
       {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err);
           ⌜err ≠ GoInterface.nil⌝ ∨
           (⌜err = GoInterface.nil⌝ ∗ ∃ γ : ChanNames, isChanAny γ ch) }}) ∗
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (id : w64),
-      {{ context.isContext ctx cs }}
+      {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
         (App (App (Val #(methods l.ty go!"Revoke" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           ⌜err ≠ GoInterface.nil⌝ ∨

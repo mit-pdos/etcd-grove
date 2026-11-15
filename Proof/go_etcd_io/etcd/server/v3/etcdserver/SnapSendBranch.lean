@@ -207,7 +207,7 @@ theorem isBackendNH_of_hooksAt (γ : backend.BNames) (P : backend.BParams) (W Pk
   iintro ⟨#Hb, #Hh⟩
   iunfold backend.isBackend at Hb
   iunfold backend.hooksAt at Hh
-  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h', #Ht, #Hrt, #Hlim, #Hlg, %Hlg0, #Hh', #Hbe, #Htm, -,
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h', #Ht, #Hrt, #Hlim, #Hlg, #Hlg0, #Hh', #Hbe, #Htm, -,
     #Hmu, #Hrmu, #Htmu, #Hcmu, #Hci, #Hmet, #Hdbmu, #Hdb, %Hwf, #Hdbf⟩
   icombine Hh Hh' gives %Heq
   subst Heq
@@ -215,8 +215,6 @@ theorem isBackendNH_of_hooksAt (γ : backend.BNames) (P : backend.BParams) (W Pk
   imodintro
   iexists t, rt, tm, db, lg
   iframe #
-  isplitr
-  · ipureintro; exact Hlg0
   ipureintro; exact Hwf
 
 
@@ -341,11 +339,12 @@ theorem srvFrozenTerm_bound (γs : MemStorNames) (ai at' : w64) :
 /-- **The merged message as the network's snapshot bundle** (`netSnapBundle`, `sendMergedSnap`'s
 premise): read-only, of a `MsgSnap` the node `sid` sent (`srv_merged_sent`), with new credits (a
 `MsgSnap` is no `MsgProp`, `msgCredits_intro`), the reader's streams of the image `D`, and the
-image's certificate at the snapshot's index (`merged_image`). -/
+image's certificate at the snapshot's index (`merged_image`); (raft-entsize [r3c], 2026-11-10) at
+the content `createMergedSnapshotMessage` gives (`msgSzC False`). -/
 theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgSt) (sid : w64)
     (c : ConfStateM) (ai at' : w64) (D : backend.Data) (hty : st.msg.Type' = MsgSnap) :
     letI := srvStor (GF := GF) γ
-    msgOwn ml DFrac.discard (mergedSt st c ai at') ∗
+    msgOwn ml DFrac.discard (mergedSt st c ai at') ∗ msgSzC False ml (mergedSt st c ai at') ∗
       sentMsg γ.cl srvClusterN sid { st with snap := some (memSnapMade ai at' c []) } ∗
       backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
       □ (srvNet (GF := GF) γ).img ai D ⊢ |==> netSnapBundle (srvNet γ) ml rc := by
@@ -354,14 +353,14 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   letI := srvStor (GF := GF) γ
   rw [show ({ st with snap := some (memSnapMade ai at' c []) } : MsgSt) = mergedSt st c ai at'
     from rfl]
-  iintro ⟨#Hm, #Hs, Hrs, #Himg⟩
+  iintro ⟨#Hm, #Hsw, #Hs, Hrs, #Himg⟩
   ihave %Hsh := sentMsg_shape γ.cl srvClusterN sid _ $$ Hs
   imod msgCredits_intro γ.cl srvClusterN (mergedSt st c ai at')
     hP with HO
   imodintro
   iunfold netSnapBundle
   iexists mergedSt st c ai at', SnapshotM.mk [] (SnapshotMetadataM.mk c ai at'), D
-  iframe Hm Hrs Himg
+  iframe Hm Hsw Hrs Himg
   isplitr
   · iintro !>
     simp only [srvNet]
@@ -459,14 +458,16 @@ theorem bkLendW_none (E : apply.AEnv GF) :
   unfold bkLendW
   iintro %d %_
   imodintro
-  iexists ∅
+  iexists iprop(emp)
   isplitr
-  · ipureintro; trivial
+  · iempintro
   isplitr
-  · iapply backend.rbPart_none
-  iintro -
+  · iintro !> %r Hl Hr
+    iframe Hl Hr
+    ipureintro; exact ⟨∅, trivial, fun _ h => h.elim⟩
+  iintro Hl
   imodintro
-  iempintro
+  iexact Hl
 
 /-- **The store invariant of a server, in either auth mode** (`srvKVInvs`', `srvKVInvsOn`'s), with
 its witness and permit persistent and timeless (`envWitOk`). -/
@@ -617,7 +618,7 @@ theorem mergedCreate_window
   icases Hrt with ⟨Hrdt, Hopn⟩
   -- the lent buckets (#7-on: the auth buckets, with auth on)
   iunfold bkLendW at HL
-  imod HL $$ %d %hBT with ⟨%ra, %hQA, Hpa, Hlb⟩
+  imod HL $$ %d %hBT with ⟨%RL, Hpa, #Hlaw, Hlb⟩
   -- the snapshot's write-back token
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hl1 Hg with ⟨Ht1, Hg⟩
   -- the rest buckets, at the image of the applied log's leases (lease-expiry)
@@ -633,7 +634,7 @@ theorem mergedCreate_window
     backend.rbPart d.γB (restSet E.authMode)
       (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
-    backend.rbPart d.γB SA ra) $$ [Hrc Hrn Hpa]
+    RL) $$ [Hrc Hrn Hpa]
   · iframe Hrc Hrn Hpa
   have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
     simp [mvcc.KBReal.P, hn]
@@ -654,7 +655,7 @@ theorem mergedCreate_window
         backend.rbPart d.γB (restSet E.authMode)
           (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
-        backend.rbPart d.γB SA ra)) ∗
+        RL)) ∗
       srvApi.wSt E.γs x.log x.crev))
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
@@ -663,12 +664,12 @@ theorem mergedCreate_window
         backend.rbPart d.γB (restSet E.authMode)
           (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
-        backend.rbPart d.γB SA ra)) ∗
+        RL)) ∗
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)))
   iexists (fun D : backend.Data =>
     iprop(srvApi.wSt (GF := GF) E.γs x.log x.crev ∗
       mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
-      ⌜∀ n, SA n → D.lookup n = ra.lookup n⌝))
+      ⌜∃ ra, QA ra ∧ ∀ n, SA n → D.lookup n = ra.lookup n⌝))
   isplitr
   · iapply srvKVCommitOk_of_kv hsh kv E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)
       (applyThread γ st) (freezeY γ st) emp
@@ -694,21 +695,25 @@ theorem mergedCreate_window
           backend.rbPart d.γB (restSet E.authMode)
             (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
-          backend.rbPart d.γB SA ra))
+          RL))
         (fun dd r => ciObs (ciEff γ st.k) dd ∧
           (∀ n, (membership.clusterBkts n ∨ restSet E.authMode n) → r.lookup n =
             (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n) ∧
-          ∀ n, SA n → r.lookup n = ra.lookup n))
+          ∃ ra, QA ra ∧ ∀ n, SA n → r.lookup n = ra.lookup n))
       $$ [HmB Ho Hwb Htok HR Hws]
       as %sp %D ⟨Hsn, Ho, HR, HmB, Hws, %HQD, %Hre, %u, #Him⟩
     · iframe #; iframe HmB Ho Hwb Htok HR Hws
       rw [hPkd]
-      iintro !> %dd %r HR' HPk Hhk Hrb'
-      iapply (snapObsA γ d.γB d.P hcK st (restSet E.authMode)
+      iintro !> %dd %r ⟨HY, Hrc, Hrn, HRL⟩ HPk Hhk Hrb'
+      icases Hlaw $$ %r HRL Hrb' with ⟨%Hra, -, Hrb'⟩
+      ihave Hnone := backend.rbPart_none (GF := GF) d.γB ∅
+      ihave %Hob := (snapObsA γ d.γB d.P hcK st (restSet E.authMode)
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk SA ra)
-        $$ HR' HPk Hhk Hrb'
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk (fun _ => False) ∅)
+        $$ [HY Hrc Hrn Hnone] HPk Hhk Hrb'
+      · iframe HY Hrc Hrn Hnone
+      ipureintro; exact ⟨Hob.1, Hob.2.1, Hra⟩
     iapply HΦ
     simp only []
     iframe Hsn Hmr Ho HR HmB Hws
@@ -723,7 +728,8 @@ theorem mergedCreate_window
           bkRestAtM_of_obs E γr A d f D hRB hrbD Hfb, Hre⟩
       iexists u; iexact Him
     ipureintro
-    intro n h
+    obtain ⟨ra, hQA, hraD⟩ := hraD
+    refine ⟨ra, hQA, fun n h => ?_⟩
     have := hraD n h
     simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
     exact this
@@ -792,7 +798,7 @@ theorem mergedCreate_window
       ipureintro; exact Hmi
     isplitl [HRA]
     · iexact HRA
-    ipureintro; exact ⟨⟨ra, hQA, Hra'⟩, hok, rfl⟩
+    ipureintro; exact ⟨Hra', hok, rfl⟩
 
 /-- **The leased rest image of an observed snapshot, auth off** (`merged_image`'s rest part): the
 mode-off rest buckets `bkRestAtM .off` of the applied log, at its leases where the cluster grants

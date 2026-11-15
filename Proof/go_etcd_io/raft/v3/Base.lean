@@ -195,7 +195,7 @@ def stmapV : GoArray GoString 4 :=
 path compares against (each a non-nil interface value installed by the package
 initializer; a proof that reads one needs the points-to, the load being through
 `GlobalVarAddr`, and the disequality, to decide `err == ErrX` when `err` is `nil`), the
-global RNG, `emptyState`, and the role names `stmap`. -/
+global RNG, `emptyState`, the role names `stmap`, and the logger's mutex. -/
 def isInitialized : IProp GF :=
   iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
       (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
@@ -275,7 +275,13 @@ def isInitialized : IProp GF :=
       go!"requested index is older than the existing snapshot" ∗
     -- (Q8 stage 1, slice 2, 2026-11-09) `stmap`, the role names `StateType.String` returns
     -- (`r.state.String()`, every traced event's `role`); nothing but the initializer writes it
-    "#stmap" ∷ (globalAddr stmap ↦□ stmapV : IProp GF))
+    "#stmap" ∷ (globalAddr stmap ↦□ stmapV : IProp GF) ∗
+    -- (premise-fixes-4, 2026-11-10) `raftLoggerMu` (`logger.go`), a mutex owning `raftLogger`,
+    -- which `SetLogger` writes and `getLogger` reads under it (until then the initializer dropped
+    -- both, and the server took `SetLogger`'s triple as a premise, `rnSetLoggerOk`, false in the
+    -- model: nothing owned the globals)
+    "#HloggerMu" ∷ sync.isMutex (globalAddr raftLoggerMu)
+      iprop(∃ l : GoInterface, (globalAddr raftLogger ↦ l : IProp GF)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

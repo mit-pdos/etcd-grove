@@ -32,14 +32,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`quotaKVServer.Put` meets the embedded service's spec** (metadata-indexed, E3zb), with the quota check's
-reader slots (`quotaRd`, from its spec). -/
+reader slots (`quotaRd`, from its spec); the inner method is handed the check's `lgMu` reader with
+`S` (per-type stage B3). -/
 theorem v3rpc.quotaKV_putHandlerOkMd_of
     (wp_Put : v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep) (q s : Loc) (kv : GoInterfaceOk)
     (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Put" kv.v) S Spec ⊢
+        v3rpc.quotaKVServerAt q kv s ∗
+          grpcHandlerOkMd #(methods kv.ty go!"Put" kv.v) iprop(S ∗ srvLgReader s) Spec ⊢
       grpcHandlerOkMd (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
@@ -55,14 +57,16 @@ theorem v3rpc.quotaKV_putHandlerOkMd_of
   iframe
 
 /-- **`quotaKVServer.Put` meets the embedded service's spec**, with the quota check's
-reader slots (`quotaRd`, from its spec). -/
+reader slots (`quotaRd`, from its spec); the inner method is handed the check's `lgMu` reader with
+`S` (per-type stage B3). -/
 theorem v3rpc.quotaKV_putHandlerOk_of
     (wp_Put : v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
     (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Put" kv.v) S Spec ⊢
+        v3rpc.quotaKVServerAt q kv s ∗
+          grpcHandlerOk #(methods kv.ty go!"Put" kv.v) iprop(S ∗ srvLgReader s) Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
@@ -73,14 +77,16 @@ theorem v3rpc.quotaKV_putHandlerOk_of
   iexact Hh
 
 /-- **`quotaKVServer.Txn` meets (the vertical slice's unit V2; as `Put`'s) the embedded service's
-spec** (metadata-indexed, E3zb), with the quota check's reader slots (`quotaRd`, from its spec). -/
+spec** (metadata-indexed, E3zb), with the quota check's reader slots (`quotaRd`, from its spec); the inner method is handed the check's `lgMu` reader with
+`S` (per-type stage B3). -/
 theorem v3rpc.quotaKV_txnHandlerOkMd_of
     (wp_Txn : v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep) (q s : Loc) (kv : GoInterfaceOk)
     (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Txn" kv.v) S Spec ⊢
+        v3rpc.quotaKVServerAt q kv s ∗
+          grpcHandlerOkMd #(methods kv.ty go!"Txn" kv.v) iprop(S ∗ srvLgReader s) Spec ⊢
       grpcHandlerOkMd (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
@@ -96,14 +102,16 @@ theorem v3rpc.quotaKV_txnHandlerOkMd_of
   iframe
 
 /-- **`quotaKVServer.Txn` meets (the vertical slice's unit V2; as `Put`'s) the embedded service's
-spec**, with the quota check's reader slots (`quotaRd`, from its spec). -/
+spec**, with the quota check's reader slots (`quotaRd`, from its spec); the inner method is handed the check's `lgMu` reader with
+`S` (per-type stage B3). -/
 theorem v3rpc.quotaKV_txnHandlerOk_of
     (wp_Txn : v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
     (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec ⊢
+        v3rpc.quotaKVServerAt q kv s ∗
+          grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) iprop(S ∗ srvLgReader s) Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn")
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩

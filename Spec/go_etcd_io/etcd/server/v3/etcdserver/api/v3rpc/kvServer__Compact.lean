@@ -6,6 +6,7 @@ vocabulary `v3rpc/InvAuthAdmin.lean` and `v3rpc/InvKV.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -31,20 +32,23 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- `s.Compact(ctx, r)`: `s.aa.isPermitted(ctx)` (the `*AuthAdmin` `aa` of the `*kvServer`:
 `NewKVServer`'s `&AuthAdmin{s}`, a premise until `kvServerIs` records it), then the server's
 `Compact` (the guarded contract `compactOk`: callable only with the token `adminRes` of the
-request's auth info), whose header the handler fills; the outcome `compactOut`. -/
+request's auth info), whose header the handler fills; the outcome `compactOut`.
+(auth-guard-completeness G3, 2026-11-14) For a caller holding a lower bound `na` of the auth
+store's published index: the guard's branch names its error before `togRPCError` and the admin class's
+reason (`compactOutC`, `adminWhy`). -/
 abbrev v3rpc.kvServer.Compact.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) (aa : Loc) (E : apply.AEnv GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)
-    (Q : Loc → IProp GF),
+    (Q : Loc → IProp GF) (na : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.kvServerIs p s A cid mid n ∗
       structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"aa" p ↦□ aa ∗
-      v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ Pin ∗
+      v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode na ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
       v3rpc.compactOk s E A Pin (GoInterface.ok ctx) r Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
-      v3rpc.compactOut A cid mid Pin Q resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
+      v3rpc.compactOutC A cid mid Pin Q (adminWhy s E.authMode na (GoInterface.ok ctx)) resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

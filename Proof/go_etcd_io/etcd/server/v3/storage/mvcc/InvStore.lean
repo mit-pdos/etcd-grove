@@ -5144,7 +5144,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hle" ∷ s.[store, go!"le"] ↦□ le ∗
     "#Hlessor" ∷ isLessor le γ.leases ∗
     "#Hlg" ∷ s.[store, go!"lg"] ↦□ lg ∗
-    "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
+    "#Hlgnn" ∷ zapLoggerOk lg ∗
     "#Hmu" ∷ sync.isRWMutexGuard (muAddr s) (muInv s γ) ∗
     "#HrevMu" ∷ sync.isRWMutexGuard (revMuAddr s) (revMuInv s γ) ∗
     "#Hcfg" ∷ s.[store, go!"cfg"] ↦□ scfg ∗

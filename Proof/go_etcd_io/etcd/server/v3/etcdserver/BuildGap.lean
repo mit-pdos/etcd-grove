@@ -217,12 +217,21 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   · iexact Hr
   isplitr
   · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
+    -- (raft-entsize §4) the content the bundle carries, of bounded size under a data bound
+    ihave %Hshm := (letI := srvStor (GF := GF) γw.node;
+      sentMsg_shape (GF := GF) γw.node.cl srvClusterN γw.id st) $$ Hrm
+    ihave %Hmd := srvRaftLogInv_maxData ρ.raft $$ Hr
+    ihave #Hcc := (letI := srvStor (GF := GF) γw.node;
+      msgOut_netContent γw.node.cl m st (2 ^ 30) (by rw [hraft]; exact Hmd) Hns
+        Hshm.1.2.2.2.2.2.2.2) $$ Hmo
+    -- (raft-entsize §2) today's form of the handed-out message (the bundle's)
+    ihave #Hmo := (letI := srvStor (GF := GF) γw.node; msgOut_msgOwn γw.node.cl m DFrac.discard st) $$ Hmo
     rw [hraft, hid] at *
     isplitl [Hc]
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
       iexists st
-      iframe Hmo Hrm Hc
+      iframe Hmo Hrm Hc Hcc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
@@ -260,12 +269,12 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Htpp, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, #Hkv, #HisKV, %HkvE⟩, HWB, #HNR, #Hcv, %Hbound, #Hrvkb,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap Hrvkb
-  iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
+  iframe Hloop Hsend Happly Hrdone Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
   iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hwpend Hrunh Hwth Hwtl
   isplitr
   · unfold srvFieldsBuiltNA

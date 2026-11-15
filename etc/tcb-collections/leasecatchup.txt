@@ -34,6 +34,7 @@ axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
+axiom Perennial.encoding.base64.RawURLEncoding_init
 axiom Perennial.encoding.base64.StdEncoding_init
 axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
@@ -123,7 +124,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.disconnectedPe
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberNotFound_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.receivedBytes_init
@@ -228,6 +228,7 @@ axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
+axiom Perennial.google_golang_org.grpc.DefaultBackoffConfig_init
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -258,6 +259,7 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
+axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
@@ -286,6 +288,7 @@ axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless
 axiom backend.rtxSnap
 axiom backend.rtxSnap_persistent
+axiom backend.rtxSnap_size
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
@@ -343,7 +346,6 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
@@ -390,7 +392,6 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
-axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
@@ -399,27 +400,28 @@ axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
-axiom grpc.serve
-axiom grpc.serveStream
+axiom grpc.model.acceptRun.wp_proof
+axiom grpc.model.acceptRunConns.wp_proof
+axiom grpc.model.finishStream.wp_proof
+axiom grpc.model.respond.wp_proof
 axiom grpc.start
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
+axiom grpcConnsLink
 axiom grpcDialOptIs
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcPeerOpt
 axiom grpcProtoCodec
+axiom grpcReplyTo
 axiom grpcResolverAt
-axiom grpcServeTok
-axiom grpcServerAt
-axiom grpcServes
-axiom grpcServesStream
-axiom grpcServesStream_persistent
-axiom grpcServes_persistent
+axiom grpcSrvCfgRaw
+axiom grpcSrvCfg_agree
+axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcSrvOpt
 axiom grpcStatsHandlerOk
-axiom grpcStreamServerAt
 axiom grpcWrotePeer
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_health_v1.RegisterHealthServer.wp_proof
@@ -467,6 +469,7 @@ axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
+axiom incomingOf_cancelCtx
 axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
@@ -543,7 +546,6 @@ axiom prometheus.nameFree
 axiom prometheus.nameUnclaimed
 axiom prometheus.wp_counterOptsLit
 axiom proto.CloneConfState.wp_proof
-axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
@@ -553,7 +555,6 @@ axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.MarshalPb.wp_proof
 axiom proto.Size.wp_proof
-axiom proto.SizeEntry.wp_proof
 axiom proto.SizeMessage.wp_proof
 axiom proto.SizePb.wp_proof
 axiom proto.Unmarshal.wp_proof
@@ -566,7 +567,7 @@ axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
-axiom raftpb.ConfChangeType.String.wp_proof
+axiom raftpb.MessageType.String.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
@@ -609,10 +610,8 @@ axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
-axiom strconv.Itoa.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String_ptr.wp_proof
@@ -644,6 +643,8 @@ axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
+axiom v3rpc.ctxCauseOk_cancellable
+axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg

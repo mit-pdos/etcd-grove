@@ -33,7 +33,7 @@ theorem auth.decomposeOpts.wp_proof (h_Error : zap.Logger.Error.spec (GF := GF) 
     (h_String : zap.String.spec (GF := GF) (hG := hG)) :
     auth.decomposeOpts.spec (GF := GF) (hG := hG) := by
   intro lg optstr
-  wp_start as %Hlg
+  wp_start as #Hzl
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO, -⟩
@@ -96,8 +96,12 @@ theorem auth.decomposeOpts.wp_proof (h_Error : zap.Logger.Error.spec (GF := GF) 
       wp_if_destruct
       · -- a key given twice: the error
         wp_if_destruct
-        · exfalso; first | exact Hlg rfl | (apply Hlg; assumption)
-        · wp_apply h_String _ _ as %f1 -
+        · (try wp_auto)
+          wp_for_post
+          iapply HΦ
+          iright; ipureintro; exact ⟨by simp, by simp only [List.length_cons] at Hslen ⊢; word⟩
+        · ihave #Hlgok := zapLoggerOrNil_ok lg Hif $$ Hzl
+          wp_apply h_String _ _ as %f1 -
           (try wp_auto)
           simp only [Hb0', Hb1', _root_.and_self, ↓reduceIte]
           wp_apply wp_load_slice_index pl (sint.Z (W64 0)) _ _ k (by decide) $$ [$Hpl] as Hpl
@@ -110,7 +114,7 @@ theorem auth.decomposeOpts.wp_proof (h_Error : zap.Logger.Error.spec (GF := GF) 
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply h_Error
-          · ipureintro; exact Hlg
+          · iexact Hlgok
           (try wp_auto)
           wp_for_post
           iapply HΦ
@@ -131,8 +135,12 @@ theorem auth.decomposeOpts.wp_proof (h_Error : zap.Logger.Error.spec (GF := GF) 
         ipureintro; word
     · -- not one `key=value` pair: the error
       wp_if_destruct
-      · exfalso; first | exact Hlg rfl | (apply Hlg; assumption)
-      · wp_apply h_String _ _ as %f1 -
+      · (try wp_auto)
+        wp_for_post
+        iapply HΦ
+        iright; ipureintro; exact ⟨by simp, by simp only [List.length_cons] at Hslen ⊢; word⟩
+      · ihave #Hlgok := zapLoggerOrNil_ok lg Hif $$ Hzl
+        wp_apply h_String _ _ as %f1 -
         (try wp_auto)
         wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
         isplitr
@@ -140,7 +148,7 @@ theorem auth.decomposeOpts.wp_proof (h_Error : zap.Logger.Error.spec (GF := GF) 
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply h_Error
-        · ipureintro; exact Hlg
+        · iexact Hlgok
         (try wp_auto)
         wp_for_post
         iapply HΦ

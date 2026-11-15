@@ -11,28 +11,27 @@ theorem RaftLink.node.wp_ApplyConfChange [package_sem : Assumptions] : node.Appl
         e.isConfChange →
           Membership.applyChange o' v.membership = some m' →
             Membership.applyChange o v.membership = some m' →
-              (γ.trace ≠ none → m' = v.membership) →
-                ⊢
-                  ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                        isNode n γ N id ∗
-                          isCluster γ N ∗
-                            confDecided γ k (ConfDecision.apply o') ∗
-                              ownConfChangeI c DFrac.discard (some o) ∗
-                                nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
-                      (▷
-                          ∀ csp cs,
-                            csPts csp (DFrac.own 1) cs true ∗
-                                  nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
-                                ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
-                              Φ (intoVal csp)) -∗
-                        WP
-                          ((intoVal
-                              (methods node.ty.PointerType
-                                go!"ApplyConfChange"
-                                (intoVal n)))
-                            (intoVal c))
-                          {{ Φ }}
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      isNode n γ N id ∗
+                        isCluster γ N ∗
+                          confDecided γ k (ConfDecision.apply o') ∗
+                            ownConfChangeI c DFrac.discard (some o) ∗
+                              nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
+                    (▷
+                        ∀ csp cs,
+                          csPts csp (DFrac.own 1) cs true ∗
+                                nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
+                              ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
+                            Φ (intoVal csp)) -∗
+                      WP
+                        ((intoVal
+                            (methods node.ty.PointerType
+                              go!"ApplyConfChange"
+                              (intoVal n)))
+                          (intoVal c))
+                        {{ Φ }}
 
 theorem RaftLink.confchange.Changer.wp_LeaveJoint_api [package_sem : Assumptions] :
     confchange.Changer.LeaveJoint.apiSpec
@@ -99,20 +98,19 @@ theorem RaftLink.node.wp_TransferLeadership [package_sem : Assumptions] :
   -- `Perennial.EtcdGrove.node.TransferLeadership.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
-    γ.trace = none →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
-            ▷ (True -∗ Φ (intoVal ())) -∗
-              WP
-                ((((intoVal
-                        (methods node.ty.PointerType
-                          go!"TransferLeadership"
-                          (intoVal n)))
-                      (intoVal (GoInterface.ok ctx)))
-                    (intoVal lead))
-                  (intoVal transferee))
-                {{ Φ }}
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP
+              ((((intoVal
+                      (methods node.ty.PointerType
+                        go!"TransferLeadership"
+                        (intoVal n)))
+                    (intoVal (GoInterface.ok ctx)))
+                  (intoVal lead))
+                (intoVal transferee))
+              {{ Φ }}
 
 theorem RaftLink.confchange.Changer.wp_EnterJoint_api [package_sem : Assumptions] :
     confchange.Changer.EnterJoint.apiSpec
@@ -121,19 +119,20 @@ theorem RaftLink.node.wp_ReadIndex [package_sem : Assumptions] : node.ReadIndex.
   -- `Perennial.EtcdGrove.node.ReadIndex.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    γ.trace = none →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
-            (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-              WP
-                (((intoVal
-                      (methods node.ty.PointerType go!"ReadIndex"
-                        (intoVal n)))
-                    (intoVal (GoInterface.ok ctx)))
-                  (intoVal rctx))
-                {{ Φ }}
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            isNode n γ N id ∗
+              nodeCtx ctx cd ∗
+                ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q ∗ ⌜∀ (b : Nat), γ.maxData = some b → c.length ≤ b⌝ -∗
+          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              (((intoVal
+                    (methods node.ty.PointerType go!"ReadIndex"
+                      (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                (intoVal rctx))
+              {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
     MemoryStorage.FirstIndex.spec
@@ -165,62 +164,65 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit →
-                        max σ.b (uint.nat cv.Applied') ≤ a →
-                          a ≤ σ.commit →
-                            γ.bootLen ≤ σ.commit →
-                              confStateIs csm m →
-                                TraceLoggerOk cv.TraceLogger' →
-                                  γ.trace = none →
-                                    ⊢
-                                      ∀ Φ,
-                                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                            typedPointsto c cv (DFrac.own 1) ∗
-                                              isLogger lok ∗
-                                                isCluster γ N ∗
-                                                  nodeVacant γ cv.ID' ∗
-                                                    readyFits γ N ∗
-                                                      AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N,
-                                                            ∅ <{ raftState γ cv.ID' S, COMM Q S }> ∗
-                                                        confAt γ a m ∗
-                                                          restartStorage γ (GoInterface.ok si) σ csm
-                                                            (uint.nat cv.Applied') F -∗
-                                          (▷
-                                              ∀ nd,
-                                                (∃ n S l K,
-                                                    ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                      isNode n γ N cv.ID' ∗
-                                                        isCommittedLogLb γ l ∗
-                                                          ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
-                                                            ⌜List.drop σ.b (LogEntry.toEntries l 0) =
-                                                                  List.take (l.length - σ.b) σ.ents⌝ ∗
-                                                              nodeDriver n γ N
-                                                                  { storage := GoInterface.ok si, delivered := l,
-                                                                    hardState := σ.hs, handling := none, key := K,
-                                                                    durable := S, role := StateFollower } ∗
-                                                                nodeConfig n γ N { applied := a, membership := m } ∗
-                                                                  nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
-                                                  Φ (intoVal nd)) -∗
-                                            WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
+                        uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit →
+                          max σ.b (uint.nat cv.Applied') ≤ a →
+                            a ≤ σ.commit →
+                              γ.bootLen ≤ σ.commit →
+                                confStateIs csm m →
+                                  ⊢
+                                    ∀ Φ,
+                                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                          typedPointsto c cv (DFrac.own 1) ∗
+                                            isLogger lok ∗
+                                              isCluster γ N ∗
+                                                nodeVacant γ cv.ID' ∗
+                                                  readyFits γ N ∗
+                                                    AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+                                                          <{ raftState γ cv.ID' S, COMM Q S }> ∗
+                                                      confAt γ a m ∗
+                                                        restartStorage γ (GoInterface.ok si) σ csm (uint.nat cv.Applied')
+                                                          F -∗
+                                        (▷
+                                            ∀ nd,
+                                              (∃ n S l K,
+                                                  ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                    isNode n γ N cv.ID' ∗
+                                                      isCommittedLogLb γ l ∗
+                                                        ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
+                                                          ⌜List.drop σ.b (LogEntry.toEntries l 0) =
+                                                                List.take (l.length - σ.b) σ.ents⌝ ∗
+                                                            nodeDriver n γ N
+                                                                { storage := GoInterface.ok si, delivered := l,
+                                                                  hardState := σ.hs, handling := none, key := K,
+                                                                  durable := S, role := StateFollower } ∗
+                                                              nodeConfig n γ N { applied := a, membership := m } ∗
+                                                                nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
+                                                Φ (intoVal nd)) -∗
+                                          WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_Snapshot [package_sem : Assumptions] : MemoryStorage.Snapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Snapshot.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat) (b : Bool)
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat) (t : Option SnapshotM)
     (esu : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             memStorAt ms γs J o iprop(emp) ∗
               memCompacted γs c ∗
-                (if b = true then memSnapNone γs else emp) ∗
+                (match t with
+                  | some s => memSnapNone γs s
+                  | none => emp) ∗
                   typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
           (▷
               ∀ snap err,
-                ((if b = true then memSnapNone γs else emp) ∗
+                ((match t with
+                    | some s => memSnapNone γs s
+                    | none => emp) ∗
                     ⌜err = GoInterface.nil⌝ ∗
                       ∃ sv,
                         ownSnapW snap (DFrac.own 1) sv ∗
-                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
+                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ ∀ (s : SnapshotM), t = some s → sv = s⌝ ∗
                             match o with
                             | some (c0, sv0) => ⌜sv = sv0⌝ ∗ memStorFresh ms γs c0 sv0
                             | none => ⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) -∗
@@ -303,44 +305,43 @@ theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      cv.Applied' = W64 0 →
-                        csm.Voters' = [] →
-                          csm.VotersOutgoing' = [] →
-                            csm.Learners' = [] →
-                              csm.LearnersNext' = [] →
-                                csm.AutoLeave' = false →
-                                  vs = List.map Peer.ID' pv →
-                                    TraceLoggerOk cv.TraceLogger' →
-                                      γ.trace = none →
-                                        ⊢
-                                          ∀ Φ,
-                                            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                                typedPointsto c cv (DFrac.own 1) ∗
-                                                  isLogger lok ∗
-                                                    nodeBoot γ N vs ctxs cv.ID' ∗
-                                                      nodeVacant γ cv.ID' ∗
-                                                        AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @
-                                                              ⊤ \ ↑N, ∅ <{ raftState γ cv.ID' S, COMM Q }> ∗
-                                                          restartStorage γ (GoInterface.ok si)
-                                                              { hs := hsZero, snap := none,
-                                                                base := { term' := W64 0, index' := W64 0 }, ents := [] }
-                                                              csm 0 F ∗
-                                                            ownSlice peers pv dq ∗ peersCtx pv ctxs -∗
-                                              (▷
-                                                  ∀ nd,
-                                                    (∃ n K,
-                                                        ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                          nodeStartedFresh n γ N vs ctxs cv.ID' ∗
-                                                            isNode n γ N cv.ID' ∗
-                                                              nodeDriver n γ N
-                                                                  (NodeDriverState.init (GoInterface.ok si) K) ∗
-                                                                nodeConfig n γ N
-                                                                    { applied := 0,
-                                                                      membership := Membership.simple (listToSet vs) } ∗
-                                                                  nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
-                                                      Φ (intoVal nd)) -∗
-                                                WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers))
-                                                  {{ Φ }}
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
+                        cv.Applied' = W64 0 →
+                          csm.Voters' = [] →
+                            csm.VotersOutgoing' = [] →
+                              csm.Learners' = [] →
+                                csm.LearnersNext' = [] →
+                                  csm.AutoLeave' = false →
+                                    vs = List.map Peer.ID' pv →
+                                      ⊢
+                                        ∀ Φ,
+                                          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                              typedPointsto c cv (DFrac.own 1) ∗
+                                                isLogger lok ∗
+                                                  nodeBoot γ N vs ctxs cv.ID' ∗
+                                                    nodeVacant γ cv.ID' ∗
+                                                      AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N,
+                                                            ∅ <{ raftState γ cv.ID' S, COMM Q }> ∗
+                                                        restartStorage γ (GoInterface.ok si)
+                                                            { hs := hsZero, snap := none,
+                                                              base := { term' := W64 0, index' := W64 0 }, ents := [] }
+                                                            csm 0 F ∗
+                                                          ownSlice peers pv dq ∗ peersCtx pv ctxs -∗
+                                            (▷
+                                                ∀ nd,
+                                                  (∃ n K,
+                                                      ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                        nodeStartedFresh n γ N vs ctxs cv.ID' ∗
+                                                          isNode n γ N cv.ID' ∗
+                                                            nodeDriver n γ N
+                                                                (NodeDriverState.init (GoInterface.ok si) K) ∗
+                                                              nodeConfig n γ N
+                                                                  { applied := 0,
+                                                                    membership := Membership.simple (listToSet vs) } ∗
+                                                                nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
+                                                    Φ (intoVal nd)) -∗
+                                              WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers))
+                                                {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_LastIndex [package_sem : Assumptions] :
     MemoryStorage.LastIndex.spec
@@ -414,7 +415,10 @@ theorem RaftLink.MemoryStorage.wp_Entries [package_sem : Assumptions] : MemorySt
                     memLog γs (k + a.length) dq2 b ∗
                       (⌜err = ec⌝ ∗ memCompacted γs (uint.nat lo) ∨
                         ⌜err = GoInterface.nil⌝ ∗
-                          entsRO s es ∗
+                          (∃ cs,
+                              entsPtsC γs.sz s DFrac.discard cs ∗
+                                ⌜List.map EntryC.model cs = es ∧
+                                    (γs.sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
                             ⌜es ≠ [] ∧
                                 s.cap = s.len ∧
                                   es <+: List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b))⌝) -∗
@@ -481,68 +485,157 @@ theorem RaftLink.confchange.Changer.wp_Simple_api [package_sem : Assumptions] :
 
 theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:
-  ⊢
-    ∀ Φ,
-      isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-        (▷
-            ∀ ms γs,
-              memStorLock ms γs ∗
-                  memLog γs 0 DFrac.discard [zero_val EntryM] ∗
-                    memEnd γs 1 ∗
-                      memSnapNone γs ∗
-                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
-                          memStorFresh ms γs 0 memSnapEmpty -∗
-                Φ (intoVal ms)) -∗
-          WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
+  ∀ (sz : Bool),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+          (▷
+              ∀ ms γs,
+                ⌜γs.sz = sz⌝ ∗
+                    memStorLock ms γs ∗
+                      memLog γs 0 DFrac.discard [zero_val EntryM] ∗
+                        memEnd γs 1 ∗
+                          memSnapNone γs memSnapEmpty ∗
+                            memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
+                              memStorFresh ms γs 0 memSnapEmpty -∗
+                  Φ (intoVal ms)) -∗
+            WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_ApplySnapshot [package_sem : Assumptions] :
     MemoryStorage.ApplySnapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.ApplySnapshot.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat) (old : List EntryM)
-    (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
-    j ≤ uint.nat sv.Metadata'.Index' →
-      uint.nat sv.Metadata'.Index' < 2 ^ 61 →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                memStorAt ms γs J o
-                    iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
-                  memLog γs j (DFrac.own 1) old ∗
-                    memEnd γs (j + old.length) ∗
-                      snapArg sp dq sv ∗
-                        memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
-              ▷
-                  ((ownSnapM sp dq sv ∗
-                      memCompacted γs (uint.nat sv.Metadata'.Index') ∗
-                        memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
-                          memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
-                            memSnapLb γs (uint.nat sv.Metadata'.Index') ∗
-                              match o with
-                              | some (c, snd) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
-                              | none => emp) -∗
-                    Φ (intoVal GoInterface.nil)) -∗
-                WP
-                  ((intoVal
-                      (methods MemoryStorage.ty.PointerType
-                        go!"ApplySnapshot"
-                        (intoVal ms)))
-                    (intoVal sp))
-                  {{ Φ }}
+  (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat) (old : List EntryM)
+      (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
+      j ≤ uint.nat sv.Metadata'.Index' →
+        uint.nat sv.Metadata'.Index' < 2 ^ 61 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  memStorAt ms γs J o
+                      iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
+                    memLog γs j (DFrac.own 1) old ∗
+                      memEnd γs (j + old.length) ∗
+                        snapArg sp dq sv ∗
+                          memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                ▷
+                    ((ownSnapM sp dq sv ∗
+                        memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+                          memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+                            memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
+                              memSnapLb γs (uint.nat sv.Metadata'.Index') ∗
+                                match o with
+                                | some (c, snd) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+                                | none => emp) -∗
+                      Φ (intoVal GoInterface.nil)) -∗
+                  WP
+                    ((intoVal
+                        (methods MemoryStorage.ty.PointerType
+                          go!"ApplySnapshot"
+                          (intoVal ms)))
+                      (intoVal sp))
+                    {{ Φ }}) ∧
+    (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
+        (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
+        uint.nat sv.Metadata'.Index' = 0 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
+                    memLog γs 1 (DFrac.own 1) old ∗
+                      memEnd γs (1 + old.length) ∗
+                        memLog γs 0 DFrac.discard [memDummy sv] ∗
+                          snapArg sp dq sv ∗
+                            memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                ▷
+                    ((ownSnapM sp dq sv ∗
+                        memCompacted γs 0 ∗
+                          memLog γs 0 DFrac.discard [memDummy sv] ∗
+                            memEnd γs 1 ∗
+                              memSnapLb γs 0 ∗
+                                match o with
+                                | some (c, snd) => memStorFresh ms γs c sv
+                                | none => emp) -∗
+                      Φ (intoVal GoInterface.nil)) -∗
+                  WP
+                    ((intoVal
+                        (methods MemoryStorage.ty.PointerType
+                          go!"ApplySnapshot"
+                          (intoVal ms)))
+                      (intoVal sp))
+                    {{ Φ }}) ∧
+      (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat) (old : List EntryM)
+          (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface) (s0 : SnapshotM),
+          j ≤ uint.nat sv.Metadata'.Index' →
+            uint.nat sv.Metadata'.Index' < 2 ^ 61 →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      memStorAt ms γs J o
+                          iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
+                        memLog γs j (DFrac.own 1) old ∗
+                          memEnd γs (j + old.length) ∗
+                            snapArg sp dq sv ∗
+                              memSnapNone γs s0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                    ▷
+                        ((ownSnapM sp dq sv ∗
+                            memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+                              memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+                                memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
+                                  memSnapNone γs sv ∗
+                                    match o with
+                                    | some (c, snd) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+                                    | none => emp) -∗
+                          Φ (intoVal GoInterface.nil)) -∗
+                      WP
+                        ((intoVal
+                            (methods MemoryStorage.ty.PointerType
+                              go!"ApplySnapshot"
+                              (intoVal ms)))
+                          (intoVal sp))
+                        {{ Φ }}) ∧
+        ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
+          (dq : DFrac) (sv : SnapshotM) (eood : GoInterface) (s0 : SnapshotM),
+          uint.nat sv.Metadata'.Index' = 0 →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
+                      memLog γs 1 (DFrac.own 1) old ∗
+                        memEnd γs (1 + old.length) ∗
+                          memLog γs 0 DFrac.discard [memDummy sv] ∗
+                            snapArg sp dq sv ∗
+                              memSnapNone γs s0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                  ▷
+                      ((ownSnapM sp dq sv ∗
+                          memCompacted γs 0 ∗
+                            memLog γs 0 DFrac.discard [memDummy sv] ∗
+                              memEnd γs 1 ∗
+                                memSnapNone γs sv ∗
+                                  match o with
+                                  | some (c, snd) => memStorFresh ms γs c sv
+                                  | none => emp) -∗
+                        Φ (intoVal GoInterface.nil)) -∗
+                    WP
+                      ((intoVal
+                          (methods MemoryStorage.ty.PointerType
+                            go!"ApplySnapshot"
+                            (intoVal ms)))
+                        (intoVal sp))
+                      {{ Φ }}
 
 theorem RaftLink.node.wp_ForgetLeader [package_sem : Assumptions] : node.ForgetLeader.spec
   -- `Perennial.EtcdGrove.node.ForgetLeader.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    γ.trace = none →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
-            (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-              WP
-                ((intoVal
-                    (methods node.ty.PointerType
-                      go!"ForgetLeader" (intoVal n)))
-                  (intoVal (GoInterface.ok ctx)))
-                {{ Φ }}
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods node.ty.PointerType
+                    go!"ForgetLeader" (intoVal n)))
+                (intoVal (GoInterface.ok ctx)))
+              {{ Φ }}
 
 theorem RaftLink.node.wp_ReportUnreachable [package_sem : Assumptions] : node.ReportUnreachable.spec
   -- `Perennial.EtcdGrove.node.ReportUnreachable.spec`, unfolded:
@@ -562,19 +655,18 @@ theorem RaftLink.node.wp_ReportUnreachable [package_sem : Assumptions] : node.Re
 theorem RaftLink.node.wp_ReportSnapshot [package_sem : Assumptions] : node.ReportSnapshot.spec
   -- `Perennial.EtcdGrove.node.ReportSnapshot.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
-    γ.trace = none →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
-            ▷ (True -∗ Φ (intoVal ())) -∗
-              WP
-                (((intoVal
-                      (methods node.ty.PointerType
-                        go!"ReportSnapshot"
-                        (intoVal n)))
-                    (intoVal to))
-                  (intoVal status))
-                {{ Φ }}
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+          ▷ (True -∗ Φ (intoVal ())) -∗
+            WP
+              (((intoVal
+                    (methods node.ty.PointerType
+                      go!"ReportSnapshot"
+                      (intoVal n)))
+                  (intoVal to))
+                (intoVal status))
+              {{ Φ }}
 
 theorem RaftLink.wp_IsEmptyHardState [package_sem : Assumptions] : IsEmptyHardState.spec
   -- `Perennial.EtcdGrove.IsEmptyHardState.spec`, unfolded:
@@ -610,9 +702,9 @@ theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemorySto
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                 memStorLock ms γs ∗
                   (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
-                    entsPts s dq es -∗
+                    entsPtsZ γs.sz s dq es -∗
               ▷
-                  ((entsPts s dq es ∗
+                  ((entsPtsZ γs.sz s dq es ∗
                       if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) -∗
                     Φ (intoVal GoInterface.nil)) -∗
                 WP
@@ -622,29 +714,29 @@ theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemorySto
 
 theorem RaftLink.node.wp_ProposeConfChange [package_sem : Assumptions] : node.ProposeConfChange.spec
   -- `Perennial.EtcdGrove.node.ProposeConfChange.spec`, unfolded:
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    γ.trace = none →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              isNode n γ N id ∗
-                nodeCtx ctx cd ∗
-                  ownConfChangeI c dq (some o) ∗
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+    (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            isNode n γ N id ∗
+              nodeCtx ctx cd ∗
+                ccPtsCC c dq cc ∗
+                  ⌜cc.model = o ∧ ∀ (b : Nat), γ.maxData = some b → ccSize cc + 64 ≤ b⌝ ∗
                     □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
                           ⌜MarshalsConfChange (some o) bs⌝ ∗
                             ownCommittedOps γ
                               (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
                           COMM True }> -∗
-            (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-              WP
-                (((intoVal
-                      (methods node.ty.PointerType
-                        go!"ProposeConfChange"
-                        (intoVal n)))
-                    (intoVal (GoInterface.ok ctx)))
-                  (intoVal c))
-                {{ Φ }}
+          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+            WP
+              (((intoVal
+                    (methods node.ty.PointerType
+                      go!"ProposeConfChange"
+                      (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                (intoVal c))
+              {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_SetHardState [package_sem : Assumptions] :
     MemoryStorage.SetHardState.spec
@@ -671,8 +763,9 @@ theorem RaftLink.node.wp_Propose [package_sem : Assumptions] : node.Propose.spec
             isNode n γ N id ∗
               nodeCtx ctx cd ∗
                 ownSlice data_sl data DFrac.discard ∗
-                  □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
-                        ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
+                  ⌜∀ (b : Nat), γ.maxData = some b → data.length ≤ b⌝ ∗
+                    □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
+                          ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
           (▷ ∀ err, propErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))

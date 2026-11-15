@@ -1,5 +1,5 @@
 /- Lean-first (no Rocq counterpart). `db.commit(m, v)`'s crash-aware spec: `DB.commit.spec`
-(`DB__commit.lean`) over the crash invariant of the database file (`csInv dbCrashN p γc (dbOk p)`,
+(`DB__commit.lean`) over the crash invariant of the database file (`csInv dbCrashN p R γc Good dbOk`,
 `DBCrash.lean`): the writer's part is `writerStC` (`writerSt` with `writerFileC`), `metalock`'s
 resource `metaRC`, and on success `rwlock`'s resource is `rwRC`. Each file operation keeps the
 invariant's states `dbOk` (the `*_okS` lemmas of `CrashImg.lean`); the new current root page
@@ -19,9 +19,10 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,38 +31,38 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- `writerSt` over the crash invariant `γc`: with `writerFileC`, the writer's state of the file
 `m`, `bs`. -/
 def writerStC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
-    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) : IProp GF :=
+    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFileC (GF := GF) γc db f fd p mp fl hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
       writerCells (GF := GF) base hwm len
     | none => writerExtra (GF := GF) γ f fd p mp fl hwm)
 
 /-- `writerStF` over the crash invariant `γc`. -/
 def writerStFC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
-    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List (w8 × Bool)) : IProp GF :=
+    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFileC (GF := GF) γc db f fd p mp true hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    writerFileC (GF := GF) γc γ.ino db f fd p mp true hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
       writerCells (GF := GF) base hwm len
     | none => writerExtra (GF := GF) γ f fd p mp fl hwm)
 
 /-- See the file header. -/
 abbrev DB.commit.specCrash : Prop :=
-  ∀ (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (st : MapSt)
-    (m : OsMeta) (bs : List (w8 × Bool)) (v : w64),
+  ∀ (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (R : Roots) (mp : List w8) (st : MapSt)
+    (m : OsMeta) (bs : List ByteG) (v : w64),
   metaPagesOk mp → (curMeta mp).txid'.toNat + 1 < 2 ^ 64 →
-  m.ok = true → st ≠ none → γ.vp ((curMeta mp).txid'.toNat + 1) (some v) →
+  True → st ≠ none → γ.vp ((curMeta mp).txid'.toNat + 1) (some v) →
   bootOk ((curMeta mp).txid'.toNat + 1) (some v) →
-  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN p γc (dbOk p) ∗
+  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN p R γc Good dbOk ∗
       db.[DB, go!"file"] ↦□ f ∗
       sync.isMutex db.[DB, go!"metalock"] (metaRC (GF := GF) γ db p) ∗
       sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p) ∗
@@ -76,7 +77,7 @@ abbrev DB.commit.specCrash : Prop :=
           dbLast (GF := GF) γ ((curMeta mp).txid'.toNat + 1)) ∨
       (⌜err ≠ interface.nil⌝ ∗ (∃ n', dbOwner (GF := GF) γ (curMeta mp).txid'.toNat n') ∗
         ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta)
-          (bs' : List (w8 × Bool)),
+          (bs' : List ByteG),
           writerStFC (GF := GF) γ γc db f fd p mp' fl hwm st' m' bs' ∗
           (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ))) }}
 

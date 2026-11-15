@@ -32,10 +32,11 @@ set_option hygiene false in
 caller's lease. -/
 local macro "newsession_rest" sid:term:max lid:term:max : tactic => `(tactic| (
     wp_apply context.wp_WithCancel iprop(True) pctx pcs $$ [$(frameH `Hpctx) $(frameH `Hpcc)]
-        as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
+        as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc', #Hfrom'⟩
+    ihave #HC' := metadata.outgoingCtxOkC_from pctx ctx' $$ [$(frameH `Hfrom') $(frameH `HpC)]
     ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
     (try wp_auto)
-    wp_apply HKA $$ [$(frameH `Hctx')] as %ka %err Hres
+    wp_apply HKA $$ [$(frameH `Hctx') $(frameH `HC')] as %ka %err Hres
     icases Hres with (%Herr | ⟨%Herr, Hka⟩)
     · cases err with
       | nil => exact absurd rfl Herr
@@ -128,12 +129,12 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
     (hCtx : Client.Ctx.spec (GF := GF) (hG := hG)) :
     NewSession.spec (GF := GF) (hG := hG) := by
   intro client cctx sl gs pctx pcs
-  wp_start as ⟨#Hcl, #Hopts, %Hpc, #Hpctx, #Hpcc⟩
+  wp_start as ⟨#Hcl, #Hopts, %Hpc, #Hpctx, #Hpcc, #HpC⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdSessionClient at Hcl'
   icases Hcl' with ⟨#Hcf, #Hlease, #Hlg⟩
   (try wp_auto)
-  wp_apply hGL client $$ [$Hlg] as %lg %Hlg0
+  wp_apply hGL client $$ [$Hlg] as %lg #Hlg0
   (try wp_auto)
   wp_apply hCtx client cctx $$ [$Hcf]
   (try wp_auto)
@@ -163,7 +164,7 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
     ihave #Hg := Hf $$ %(sint.nat n) %f %g %Hfi %Hgi
     unfold sessionOptSpec
     wp_apply Hg $$ [$Hop] as Hop
-    · ipureintro; exact Hlg0
+    · iexact Hlg0
     wp_for_post
     iframe
     iexists n + W64 1, f
@@ -195,7 +196,7 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
   icases Hl2 with ⟨#HGrant, #HKA, -⟩
   wp_if_destruct
   · (try wp_auto)
-    wp_apply HGrant $$ [$Hpctx] as %resp %err Hres
+    wp_apply HGrant $$ [$Hpctx $HpC] as %resp %err Hres
     icases Hres with (%Herr | ⟨%Herr, %gid, %hdr, %r, #HID, %Hid, #Hhdr, %Hhdrnn, #Hrev, #Hreached⟩)
     · cases err with
       | nil => exact absurd rfl Herr

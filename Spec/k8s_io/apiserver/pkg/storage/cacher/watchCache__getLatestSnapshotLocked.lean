@@ -8,6 +8,7 @@ the load), with the caller's fact `Ψ st`, and no index. Lean-first (no Rocq cou
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.DefsWC
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -31,7 +32,8 @@ variable [btree_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 abbrev watchCache.getLatestSnapshotLocked.spec : Prop :=
   ∀ (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) (ctx : GoInterface) (mv : GoSlice)
     (q : Qp) (st : SnapSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ wcLockPSt wc γ q st }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ wcLockPSt wc γ q st ∗
+      k8sctx.spanCtx ctx }}
     (App (App (App (Val (wc @!! go.GoType.PointerType watchCache.ty @!! go!"getLatestSnapshotLocked")) (Val #ctx)) (Val #false)) (Val #mv))
   {{ (p : Loc), RET (PairV #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.cacher.store.btreeStore.ty) #p) #(go!"" : GoString));
       wcLockPSt wc γ q st ∗ isSnap p st.1 st.2 ∗ □ Ψ st }}

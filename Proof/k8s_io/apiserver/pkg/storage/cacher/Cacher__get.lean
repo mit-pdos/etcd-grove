@@ -41,7 +41,7 @@ theorem Cacher.get.wp_proof
     (wp_WaitUntilFreshAndGet : watchCache.WaitUntilFreshAndGet.spec (GF := GF) (hG := hG)) :
     Cacher.get.spec (GF := GF) (hG := hG) := by
   intro cp wc γ Ψ parseRV ctxPre curRV ctx key rvs
-  wp_start as ⟨#Hwcf, #Hwc, #Hget, Hcp, Htok⟩
+  wp_start as ⟨#Hwcf, #Hwc, #Hget, Hcp, Htok, #Hsc⟩
   (try wp_auto)
   wp_apply (wp_WaitUntilFreshAndGet wc γ Ψ parseRV ctxPre curRV ctx rvs key) $$ [Hcp Htok]
     as %obj %ex %rv %err ⟨Htok, Hres⟩

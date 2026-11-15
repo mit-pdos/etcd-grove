@@ -81,7 +81,8 @@ once; any other message may be duplicated, its credits made anew (`msgCredits_in
 D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
 the server's clusters send no snapshot); (2026-11-03, the auth-on pair's F8) in the cluster's auth
 mode, `srvImageM γ.authOn` (`srvImageOn` when it runs auth on). (2026-10-31, S1: moved here from `InvBuild`, for
-`isServerApplyAll`'s transport.) -/
+`isServerApplyAll`'s transport.) (raft-entsize §4, 2026-11-10) Its messages are of bounded size when the
+cluster states a bound on proposed data (`Sz`). -/
 def srvNet (γ : SrvRaft) : NetPayload GF :=
   letI := srvStor (GF := GF) γ
   { P := fun st => iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
@@ -89,6 +90,7 @@ def srvNet (γ : SrvRaft) : NetPayload GF :=
     once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
     P_pers := fun st => by infer_instance
     dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
+    Sz := γ.cl.maxData ≠ none
     img := fun i D => srvImageM γ.authOn γ i D
     img_pers := fun i D => by infer_instance }
 
@@ -138,7 +140,7 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- `sendMergedSnap` writes
     srvInflight s ∗
     -- (2026-10-26) the logger, which `compactRaftLog` logs with
-    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ zapLoggerOk l) ∗
     -- (2026-10-31, S1) the raft wrapper's started transport, of the server's network
     -- (`srvNet`), which `sendMergedSnap` sends the merged snapshot through
     (∃ (tr : GoInterface) (γn : NetNames GF) (lid : w64) (S TS : IProp GF),

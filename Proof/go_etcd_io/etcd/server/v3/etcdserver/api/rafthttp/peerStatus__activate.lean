@@ -38,7 +38,8 @@ theorem rafthttp.peerStatus.activate.wp_proof
   intro s
   wp_start as #Hs
   iunfold peerStatusOk at Hs
-  icases Hs with ⟨%lg, %lid, %id, #Hlg, %Hlgnn, #Hlid, #Hid, #Hmu⟩
+  icases Hs with ⟨%lg, %lid, %id, #Hlg, #Hlgz, #Hlid, #Hid, #Hmu⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vAP, #HAP, %HAPl⟩, -⟩
@@ -59,7 +60,7 @@ theorem rafthttp.peerStatus.activate.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hInfo lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     wp_apply wp_Now as %t' -
     (try wp_auto)
     wp_apply hIDStringPtr _ DFrac.discard lid $$ [$Hlid] as %ls ⟨-, %Hls⟩

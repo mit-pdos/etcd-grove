@@ -3,7 +3,7 @@
 `RoleGrantPermission` sorts a role's permissions by key: `sort.Sort(permSlice(role.KeyPermission))`,
 `permSlice.Less` comparing the keys with `bytes.Compare`. Over the pairs (message, wire
 permission) the slice holds (`permsOwn`: the slice of the messages, each message read-only with its
-wire permission, `ownPermW`), the three methods meet Perennial's `isSorter` for the keys' order
+wire permission, `ownPermS`), the three methods meet Perennial's `isSorter` for the keys' order
 (`keyLt`, `GrantPermLemmas.lean`).
 -/
 module
@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- The slice `s` of permission messages, as the pairs `l`: the slice of the messages, and each
 message read-only, holding its wire permission. -/
 def auth.permsOwn (s : GoSlice) (l : List (Loc × PermW)) : IProp GF :=
-  iprop(s ↦* l.map Prod.fst ∗ □ (∀ x : Loc × PermW, ⌜x ∈ l⌝ → ownPermW x.1 x.2))
+  iprop(s ↦* l.map Prod.fst ∗ □ (∀ x : Loc × PermW, ⌜x ∈ l⌝ → ownPermS x.1 x.2))
 
 /-- **`permSlice(s)` is a sorter** of `permsOwn s` by the keys (`keyLt`). -/
 theorem auth.permSlice_isSorter (s : GoSlice) :
@@ -77,9 +77,9 @@ theorem auth.permSlice_isSorter (s : GoSlice) :
     ihave #Ha' := Ha $$ [] ; · ipureintro; exact List.mem_of_getElem? Ha
     ihave #Hb' := Hb $$ [] ; · ipureintro; exact List.mem_of_getElem? Hb
     iclear Ha Hb
-    iunfold ownPermW at Ha' Hb'
-    icases Ha' with ⟨%Hann, %ast, %ak, %are, %auf, %asc, #Hap, #Hak, -⟩
-    icases Hb' with ⟨%Hbnn, %bst, %bk, %bre, %buf, %bsc, #Hbp, #Hbk, -⟩
+    iunfold ownPermS at Ha' Hb'
+    icases Ha' with ⟨%Hann, %ast, %ak, %are, %asc, #Hap, #Hak, -⟩
+    icases Hb' with ⟨%Hbnn, %bst, %bk, %bre, %bsc, #Hbp, #Hbk, -⟩
     icases typedPointsto_split _ _ _ $$ Hap with #Hap
     icases typedPointsto_split _ _ _ $$ Hbp with #Hbp
     simp only [TypedPointsto.typedPointstoDef]

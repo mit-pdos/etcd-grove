@@ -26,7 +26,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem encodeV0.wp_proof (wp_encodeWith : encodeWith.spec (GF := GF) (hG := hG)) :
     encodeV0.spec (GF := GF) (hG := hG) := by
-  intro name uid val
+  intro v
   wp_start
   wp_auto
   wp_apply wp_encodeWith as %sl Hsl

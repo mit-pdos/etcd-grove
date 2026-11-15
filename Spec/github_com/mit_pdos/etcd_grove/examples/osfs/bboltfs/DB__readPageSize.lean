@@ -9,13 +9,15 @@ public import Proof.os.Base
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -24,15 +26,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- See the file header. -/
 abbrev DB.readPageSize.spec : Prop :=
   ∀ (db f : Loc) (dqd : DFrac) (fd : w64) (name : GoString) (dqf dq dqm dqb : DFrac) (d : OsFd)
-    (m : OsMeta) (xs : List (w8 × Bool)),
+    (m : OsMeta) (xs : List ByteG),
   d.readable = true → xs.length = 2 * 4096 → 2 * 4096 ≤ m.size →
   {{ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile (GF := GF) f fd name dqf ∗
-      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path dqm (some m) ∗
-      osBytes (GF := GF) d.path 0 dqb xs }}
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m ∗
+      osBytes (GF := GF) d.ino 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"readPageSize")) (Val #()))
   {{ (ps : w64) (ok : Bool) (err : GoInterface), RET (PairV (PairV #ps #ok) #err);
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      osMeta d.path dqm (some m) ∗ osBytes d.path 0 dqb xs ∗
+      osMeta d.ino dqm m ∗ osBytes d.ino 0 dqb xs ∗
       ⌜err = interface.nil →
         (ok = true → ∃ i < 2, metaValid (fileMeta (xs.map Prod.fst) i) ∧
           ps = W64 (uint.Z (fileMeta (xs.map Prod.fst) i).pageSize')) ∧

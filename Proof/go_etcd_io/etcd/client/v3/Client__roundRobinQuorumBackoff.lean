@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **Trust boundary** (item 5): `roundRobinQuorumBackoff(w, j)` returns a closure that reads
 `len(c.Endpoints())` (an `RWMutex` read), computes `quorum = n/2 + 1` (at least 1: no division
-by zero), logs at debug level with `c.GetLogger()` (non-nil, `isClientLogger`) and returns
+by zero), logs at debug level with `c.GetLogger()` (a zap logger, `isClientLogger`) and returns
 `jitterUp(w, j)` (float arithmetic and `rand.Float64`, which return) or `0`: it returns. -/
 axiom Client.roundRobinQuorumBackoff.wp_proof : Client.roundRobinQuorumBackoff.spec (GF := GF) (hG := hG)
 

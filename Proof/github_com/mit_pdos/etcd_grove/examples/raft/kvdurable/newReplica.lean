@@ -73,7 +73,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     Htick HMhs Hok Hholds Hap61 Hrafted Ho Hlap Hpl Hlc Hid1 Hid9 Hsz Hapsi
   wp_start as ⟨#Hcci, #Hcl, #Hstats, #Hseqs, #HfInv, #HisNode, Hdrv, Hcfg, Hrun, #Hrec, #HmsInv,
     Hmeta, #Himg, Himage, #Hcert, Hwr, #Hcomp, #Hfz, #Hfro, #HsnLbM, HK, HA, #Hcs0, %Hcsm, #Hap,
-    #Hca, %Hval, %HAok, #Hsend⟩
+    #Hca, %Hval, %HAok, #Hsend, %Hmd⟩
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   -- the `dmu` names
@@ -198,7 +198,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
   · unfold isReplica
     simp only [named]
     iframe #
-    ipureintro; exact ⟨Hid1, Hid9⟩
+    ipureintro; exact ⟨⟨Hid1, Hid9⟩, Hmd⟩
   ihave #HR : isReplicaR γ vs dir id «$r0_ptr» n st sts sq
       ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm⟩⟩ $$ []
   · unfold isReplicaR

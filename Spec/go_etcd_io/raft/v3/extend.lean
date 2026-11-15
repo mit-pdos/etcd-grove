@@ -45,16 +45,17 @@ proof now takes it from the model instead. What is trusted is unchanged
 (notes/STATUS.md, "Not checked by Lean": Perennial's Go semantics).
 
 Both inputs are only read and come back at their fractions; the result is fresh and
-fully owned. -/
+fully owned. (out_size C3) At the entries' contents (`entsPtsC sz`): the result holds the same entry
+objects, so `raftLog.slice`'s cut carries over. -/
 abbrev extend.spec : Prop :=
-  ∀ (dst vals : GoSlice) (ds vs : List EntryM) (dq1 dq2 : DFrac),
+  ∀ (sz : Bool) (dst vals : GoSlice) (ds vs : List EntryC) (dq1 dq2 : DFrac),
   sint.Z dst.cap < (ds.length : Int) + (vs.length : Int) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hdst" ∷ entsPts dst dq1 ds ∗
-      "Hvals" ∷ entsPts vals dq2 vs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hdst" ∷ entsPtsC sz dst dq1 ds ∗
+      "Hvals" ∷ entsPtsC sz vals dq2 vs }}
     (App (App (Val #(functions extend [])) (Val #dst)) (Val #vals))
   {{ (s : GoSlice), RET #s;
-      entsPts s (DFrac.own 1) (ds ++ vs) ∗ ownSliceCap Loc s (DFrac.own 1) ∗
-      entsPts dst dq1 ds ∗ entsPts vals dq2 vs }}
+      entsPtsC sz s (DFrac.own 1) (ds ++ vs) ∗ ownSliceCap Loc s (DFrac.own 1) ∗
+      entsPtsC sz dst dq1 ds ∗ entsPtsC sz vals dq2 vs }}
 
 end spec
 

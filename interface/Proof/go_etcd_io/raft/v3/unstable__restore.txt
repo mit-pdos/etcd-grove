@@ -16,7 +16,8 @@ theorem unstable.restore.wp_proof [package_sem : Assumptions] (wp_Snapshot_GetMe
                 (ownSnapS sp dq sv ∗
                     ownUnstable u
                       { ents := [], offset := sv.Metadata'.Index' + W64 1, inprogress := sv.Metadata'.Index' + W64 1,
-                        snap := some (snapId sv), ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists] } -∗
+                        snap := some (snapId sv), ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
+                        sz := us.sz } -∗
                   Φ (intoVal ())) -∗
               WP
                 ((intoVal (methods unstable.ty.PointerType go!"restore" (intoVal u)))

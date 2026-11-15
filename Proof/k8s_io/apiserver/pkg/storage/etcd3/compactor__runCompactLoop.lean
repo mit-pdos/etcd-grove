@@ -16,6 +16,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__UpdateCompactRe
 public import Spec.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
 public import Spec.k8s_io.utils.clock.RealClock__After
 public import Spec.k8s_io.klog.v2.Errorf
 public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
@@ -50,6 +52,8 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_ContextForChannel : wait.ContextForChannel.spec (GF := GF) (hG := hG))
     (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+    (wp_Deadline : wait.channelContext.Deadline.spec (GF := GF) (hG := hG))
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (wp_ClockAfter : clock.RealClock.After.spec (GF := GF) (hG := hG))
     (wp_Compact : Compact.spec (GF := GF) (hG := hG))
     (wp_UpdateCompactRevision : compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG))
@@ -70,7 +74,7 @@ theorem compactor.runCompactLoop.wp_proof
   · iPkgInit
   ihave #Pklog : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 $$ []
   · iPkgInit
-  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
+  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Done wp_Err wp_Deadline wp_Value EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
     $$ [Pw Hint]
   · iframe #
   (try wp_auto)
@@ -104,7 +108,7 @@ theorem compactor.runCompactLoop.wp_proof
   · iintro %t
     (try wp_auto)
     wp_apply (wp_Compact cl ms V γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret)
-        $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr⟩
+        $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr, Herrf⟩
     · iframe #
     cases err with
     | ok ei =>
@@ -116,9 +120,20 @@ theorem compactor.runCompactLoop.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %sl -
+      iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_Errorf _ _ $$ []
+      -- the endpoints (a fresh `[]string`, owned) and the round's error (`fmt.argOk`, Compact's)
+      wp_apply wp_Errorf _ _ _ _ $$ [$Hsl Hesl Herrf] as -
+      · iframe #
+        klog_args_intro
+        isplitl [Hesl]
+        · iapply klog.argOkAt_strSlice $$ Hesl
+        isplitl [Herrf]
+        · iapply klog.argOkAt_of_argOk
+          isplitr
+          · ipureintro; decide
+          iexact Herrf
+        itrivial
       (try wp_auto)
       wp_for_post
       iframe

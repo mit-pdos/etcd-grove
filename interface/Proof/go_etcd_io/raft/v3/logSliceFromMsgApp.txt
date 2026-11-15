@@ -4,26 +4,21 @@
 
 theorem logSliceFromMsgApp.wp_proof [package_sem : Assumptions] (wp_Message_GetTerm :
     raftpb.Message.GetTerm.spec) (wp_Message_GetLogTerm : raftpb.Message.GetLogTerm.spec)
-    (wp_Message_GetIndex : raftpb.Message.GetIndex.spec) (wp_Message_GetEntries :
-    raftpb.Message.GetEntries.spec) : logSliceFromMsgApp.spec
+    (wp_Message_GetIndex : raftpb.Message.GetIndex.spec) : logSliceFromMsgApp.spec
   -- `Perennial.EtcdGrove.logSliceFromMsgApp.spec`, unfolded:
-  ∀ (p : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ msgPtsC p dq dqe cap ms -∗
-          (▷
-              ∀ es els,
-                (ownSlice es els dqe ∗
-                    ([∗list] q;e ∈ els;ms.ents, entRO q e) ∗
-                      (if cap = true then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
-                        ∀ cap' els' ents',
-                          ownSlice es els' dqe -∗
-                            ([∗list] q;e ∈ els';ents', entRO q e) -∗
-                              (if cap' = true then ownSliceCap Loc es (DFrac.own 1) else emp) -∗
-                                msgPtsC p dq dqe cap'
-                                  { msg := ms.msg, ents := ents', snap := ms.snap, ctx := ms.ctx, resps := ms.resps }) -∗
-                  Φ
-                    (intoVal
-                      { term' := ms.msg.Term', prev' := { term' := ms.msg.LogTerm', index' := ms.msg.Index' },
-                        entries' := es })) -∗
-            WP ((intoVal (functions logSliceFromMsgApp [])) (intoVal p)) {{ Φ }}
+  ∀ (p : Loc) (cap : Bool) (c : MsgC),
+    c.csUfNil →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ msgPtsCC p (DFrac.own 1) DFrac.discard cap c -∗
+            (▷
+                ∀ es els,
+                  ownSlice es els DFrac.discard ∗
+                      ([∗list] q;e ∈ els;c.f.entries, entRoC q e) ∗
+                        (if cap = true then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
+                          (ownSlice es els DFrac.discard -∗ msgPtsCC p (DFrac.own 1) DFrac.discard false c) -∗
+                    Φ
+                      (intoVal
+                        { term' := c.model.msg.Term',
+                          prev' := { term' := c.model.msg.LogTerm', index' := c.model.msg.Index' }, entries' := es })) -∗
+              WP ((intoVal (functions logSliceFromMsgApp [])) (intoVal p)) {{ Φ }}

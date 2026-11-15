@@ -55,11 +55,11 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
+  intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hmms Hasync
     Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh
   wp_start as ⟨Hc, #Hlg, HR, HFI, HLI, HInit, Hcs0⟩
   wp_auto
-  wp_apply wp_newRaft c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
+  wp_apply wp_newRaft c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hmms
     Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh
     $$ [$Hc $Hlg $HR $HFI $HLI $HInit $Hcs0] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost, #Hnc, Hcap⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»

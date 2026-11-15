@@ -48,7 +48,7 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
   unfold isServerM srvFieldsAtM
   iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn, %Hrdb⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
   icases Hv with ⟨%v, Hf⟩
-  icases Hf with ⟨#Hlg, %Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
+  icases Hf with ⟨#Hlg, #Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
     #Hclv, #Hrc, #Hq, #Hlm, #Hmid, #Hli, #He, #Ht, #Hn, #Has, #Hbeh⟩
   -- (2026-11-02) the new backend with the server's hooks: the old one's hooks are `s.beHooks`
   iunfold srvBeHooked at Hbeh
@@ -81,7 +81,7 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
     rw [snapE_lg, snapE_authMode]
     iframe #
     ipureintro
-    exact ⟨Hlgn, ⟨rfl, rfl, hgnn⟩, hok⟩
+    exact ⟨⟨rfl, rfl, hgnn⟩, hok⟩
   iframe #
   ipureintro; exact Hrdb
 

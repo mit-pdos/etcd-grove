@@ -24,11 +24,18 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem item_eq_iff (a b : item) : a = b ↔
-    a.key' = b.key' ∧ a.obj'.Name' = b.obj'.Name' ∧ a.obj'.UID' = b.obj'.UID' ∧
-    a.obj'.Value' = b.obj'.Value' ∧ a.obj'.ResourceVersion' = b.obj'.ResourceVersion' ∧
+    a.key' = b.key' ∧
+    a.obj'.Namespace' = b.obj'.Namespace' ∧
+    a.obj'.Name' = b.obj'.Name' ∧
+    a.obj'.UID' = b.obj'.UID' ∧
+    a.obj'.Value' = b.obj'.Value' ∧
+    a.obj'.Node' = b.obj'.Node' ∧
+    a.obj'.App' = b.obj'.App' ∧
+    a.obj'.ResourceVersion' = b.obj'.ResourceVersion' ∧
+    a.obj'.Annotated' = b.obj'.Annotated' ∧
     a.canon' = b.canon' := by
-  obtain ⟨_, ⟨_, _, _, _⟩, _⟩ := a
-  obtain ⟨_, ⟨_, _, _, _⟩, _⟩ := b
+  obtain ⟨_, ⟨_, _, _, _, _, _, _, _⟩, _⟩ := a
+  obtain ⟨_, ⟨_, _, _, _, _, _, _, _⟩, _⟩ := b
   simp [and_assoc]
 
 theorem storeEqual.wp_proof : storeEqual.spec (GF := GF) (hG := hG) := by

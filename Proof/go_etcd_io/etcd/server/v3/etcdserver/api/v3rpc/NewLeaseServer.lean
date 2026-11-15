@@ -35,7 +35,7 @@ theorem v3rpc.NewLeaseServer.wp_proof
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG)) :
     v3rpc.NewLeaseServer.spec (GF := GF) (hG := hG) := by
   intro s A lg0
-  wp_start as ⟨#HKV, #Hlg0⟩
+  wp_start as ⟨#HKV, #Hlg0, #Hlg0z⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -53,18 +53,17 @@ theorem v3rpc.NewLeaseServer.wp_proof
   icases Hhv with ⟨%Hhv, #HrevS, #Hrs⟩
   obtain ⟨Hc, Hm, Hsg⟩ := Hhv
   iapply wp_fupd
-  wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗ ∃ lg : Loc, ⌜lg ≠ null⌝ ∗
+  wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗ ∃ lg : Loc, zapLoggerOk lg ∗
       typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"lg"
         «$r0_ptr») lg (DFrac.own 1)) with [lg srv]
-    as ⟨srv, %lg, %Hlg, lgf⟩
+    as ⟨srv, %lg, #Hlg, lgf⟩
   · wp_apply hNop as %l #Hlz
-    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     (try wp_auto)
     wp_join_done
     iframe
-    ipureintro; exact Hl
+    iexact Hlz
   · iframe
-    ipureintro; exact Hif
+    iapply zapLoggerOrNil_ok _ Hif; iexact Hlg0z
   (try wp_auto)
   ipersist lgf
   imodintro
@@ -77,9 +76,7 @@ theorem v3rpc.NewLeaseServer.wp_proof
   iframe #
   rw [Hc, Hm, Hsg]
   iframe #
-  isplitr
-  · ipureintro; exact Hpn
-  ipureintro; exact Hlg
+  ipureintro; exact Hpn
 
 end proof
 

@@ -697,7 +697,7 @@ The Draft regenerates the exact list (`etc/importers.py --uses runsNoRequireLead
   (`interface/Proof/.../lib/etcdstart/*.txt`).
 - Each Draft shows the diff.
 
-**Vacuity**, as for 7e: until the per-type landing (`pbEnc_ok`), sweep repairs 1 and the grpc serve
+**Vacuity (resolved 2026-11-12: per-type stages A and B and sweep repairs 1 landed)**, as for 7e: until the per-type landing (`pbEnc_ok`), sweep repairs 1 and the grpc serve
 pool's fix, these theorems are vacuous or rest on false axioms. 7f's value arrives with them.
 
 ## 8. The Go prototype
@@ -751,6 +751,17 @@ The whole package passes (`go test .`, 177 s, under the cap), and so does lintes
 | 7f-5b | the concurrent branch (scheduler, collector, per-event goroutines; the ordered queue of response channels); risk: `WaitGroup.Add` during `Wait` (§5.3) | 1000-1600 | 7f-5a |
 | 7f-6 | the driver: `genWatch`, `runWatch`, `watchEvents`, `Apply`/`Gen`/`Check`, `Main*`, adequacy, the three closed theorems | 2000-3000 | 7f-1, 7f-2, 7f-5a/5b; **7e-4** (kInv's `hist[R] = absK (stateAt L R)`, which `watchOkL_of_stream` needs); stage B (adequacy's thread bound) |
 | total | | 12800-20900 (was 10200-16100) | |
+
+**7f-6 and the watch's context (decided by etcd-grove-81, 2026-11-14, the 7f-5a re-review).** The
+store watch's spec (`notes/k8s-7f5a-draft.md` §2) promises the no-gap prefix only while the watch is
+live: not stopped by the consumer (`kLive`) and the caller's context not done (`□ cd.PDone`
+refutable). Under `WithTimeout(Background())` (`PDone := True`) only the subsequence is promised (a
+watch past its deadline can skip events, `nonissues/k8s-etcd3-watcher-gap-after-cancel.md`). So 7f-6
+moves the driver's watch context from `WithTimeout(Background())` to `WithCancel(Background())` with
+a Done proposition the driver owns (`wp_WithCancel_Background`'s `PDone'`, an exclusive token
+refuted until the driver cancels): a Go driver change with its own Go test (the watch still ends:
+the driver cancels it where the timeout fired), and the driver checks the events received before it
+stops the watch or cancels.
 
 **The order.**
 - 7f-1 and 7f-2 start once 81 approves this revision. 7f-1 touches lintest only. 7f-2 is pure,

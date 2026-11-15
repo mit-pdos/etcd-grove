@@ -143,12 +143,13 @@ theorem v3rpc.Server.wp_proof
     (hInit : grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG)) :
     v3rpc.Server.spec (GF := GF) (hG := hG) := by
   intro _
-  intro s C d gsl gvs Hbuq
+  intro s C d gsl gvs Hbuq Htb30
   wp_start as ⟨#Hc, Hlr, Hbr, Hgo, #Hd, %Hdb, #Hgvs, %Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
-  icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
+  icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, #Hlg0n, #Hlg, #Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
-    #Htos, #Hmcs, #Hnrl⟩
+    #Htos, #Hmcs⟩
+  ihave #Hlg0o := zapLoggerOk_orNil _ $$ Hlg0n
   -- the six `ServiceDesc`s: `v3rpc`'s package fact (item 8)
   ihave #Hdescs : (v3rpc.svcDescsOk : IProp GF) $$ []
   · ihave #Pv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
@@ -181,10 +182,10 @@ theorem v3rpc.Server.wp_proof
   · iframe #; iframe
   (try wp_auto)
   wp_apply (hMetrics C.mt C.lg0) as %pm #Hpm
-  · iframe #; ipureintro; exact Hlg0n
+  · iframe #
   (try wp_auto)
   wp_apply (hLogIc s C.lg C.wd) as %il #Hil
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   (try wp_auto)
   wp_apply (hPromU pm) as %im #Him
   · iframe #
@@ -203,6 +204,7 @@ theorem v3rpc.Server.wp_proof
   (try wp_auto)
   wp_apply (hSIc s C.c C.ch C.mid C.tm C.et) $$ [Hgo Hlr] as %is ⟨#His, Hgo, Hlr⟩
   · iframe; iframe #
+    ipureintro; exact Htb30
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoFunc) (l := [ims, is])
   isplitr
@@ -339,14 +341,15 @@ theorem v3rpc.Server.wp_proof
   ihave #HdM := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdM
   wp_apply (hNewKV s C.A C.n C.lg C.qb Hbuq Hmx) $$ []
     as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   subst Hkv
   (try wp_auto)
   wp_apply (hRegKV gs _ _ _ [] [] [] _ _ kmds ksds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
     refine ⟨List.not_mem_nil, ⟨etcdserverpb.KVServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
-      v3rpc.kvDesc_nodup kmds ksds HkvD, ⟨_, rfl, v3rpc.ServerMethodSets.kv_te⟩⟩
+      v3rpc.kvDesc_nodup kmds ksds ⟨HkvD.1, HkvD.2.1⟩, ⟨_, rfl, v3rpc.ServerMethodSets.kv_te⟩,
+      HkvD.2.2⟩
     exact v3rpc.ServerMethodSets.kv_impl
   (try wp_auto)
   wp_apply (hNewW s C.E C.tag C.wsl C.lg0 C.m d)
@@ -358,18 +361,24 @@ theorem v3rpc.Server.wp_proof
   · iframe; iframe #
     ipureintro
     refine ⟨by decide, ⟨etcdserverpb.WatchServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
-      v3rpc.watchDesc_nodup wsds HwD, ⟨_, rfl, v3rpc.ServerMethodSets.watch_te⟩⟩
-    exact v3rpc.ServerMethodSets.watch_impl
+      v3rpc.watchDesc_nodup wsds HwD.1, ⟨_, rfl, v3rpc.ServerMethodSets.watch_te⟩, ?_⟩
+    · exact v3rpc.ServerMethodSets.watch_impl
+    · intro sd hsd
+      left
+      have h := List.mem_map_of_mem (f := (·.ClientStreams')) hsd
+      rw [HwD.2] at h
+      simpa using h
   (try wp_auto)
   wp_apply (hNewL s C.A C.lg0 C.lg C.qb Hbuq) $$ [] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, #Hql, #Hlps⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   subst Hlv
   (try wp_auto)
   wp_apply (hRegL gs _ _ _ _ _ _ _ _ lmds lsds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
     refine ⟨by decide, ⟨etcdserverpb.LeaseServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
-      v3rpc.leaseDesc_nodup lmds lsds HlD, ⟨_, rfl, v3rpc.ServerMethodSets.lease_te⟩⟩
+      v3rpc.leaseDesc_nodup lmds lsds ⟨HlD.1, HlD.2.1⟩, ⟨_, rfl, v3rpc.ServerMethodSets.lease_te⟩,
+      HlD.2.2⟩
     exact v3rpc.ServerMethodSets.lease_impl
   (try wp_auto)
   wp_apply (hNewC s C.c) as %pc -
@@ -378,8 +387,8 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hRegC gs _ _ _ _ _ _ _ _ cmds csds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
-    refine ⟨by decide, ⟨etcdserverpb.ClusterServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HcD,
-      ⟨_, rfl, v3rpc.ServerMethodSets.cluster_te⟩⟩
+    refine ⟨by decide, ⟨etcdserverpb.ClusterServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HcD.1,
+      ⟨_, rfl, v3rpc.ServerMethodSets.cluster_te⟩, HcD.2⟩
     exact v3rpc.ServerMethodSets.cluster_impl
   (try wp_auto)
   wp_apply (hNewA s) as %pa #Hpa
@@ -389,15 +398,18 @@ theorem v3rpc.Server.wp_proof
     ipureintro
     refine ⟨by decide, ⟨etcdserverpb.AuthServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
       v3rpc.authDesc_nodup amds asds HaD,
-      ⟨_, rfl, v3rpc.ServerMethodSets.auth_te⟩⟩
-    exact v3rpc.ServerMethodSets.auth_impl
+      ⟨_, rfl, v3rpc.ServerMethodSets.auth_te⟩, ?_⟩
+    · exact v3rpc.ServerMethodSets.auth_impl
+    · intro sd hsd
+      rw [List.map_eq_nil_iff.mp HaD.2] at hsd
+      cases hsd
   (try wp_auto)
   wp_apply hHealth as %hs ⟨%Hhs, #Hhsrv⟩
   (try wp_auto)
   wp_apply (hNotif hs s C.lg C.fg) $$ [Hlr] as %hn Hlr
-  · iframe; iframe #; ipureintro; exact ⟨Hhs, Hlgn⟩
+  · iframe; iframe #; ipureintro; exact Hhs
   (try wp_auto)
-  wp_apply (hRegH gs hs) $$ [Hgs] as ⟨%rs, %srs, Hgs, %Hrs⟩
+  wp_apply (hRegH gs hs) $$ [Hgs] as ⟨%rs, %srs, Hgs, %Hrs1, %Hrs2⟩
   · iframe; iframe #; ipureintro; decide
   (try wp_auto)
   wp_apply (hNewM s C.A C.lg0 C.wsl hn) as %mv %Hmv
@@ -407,8 +419,8 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hRegM gs _ _ _ _ _ _ _ _ mmds msds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
-    refine ⟨by decide, ⟨etcdserverpb.MaintenanceServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HmD,
-      ⟨_, rfl, v3rpc.ServerMethodSets.maint_te⟩⟩
+    refine ⟨by decide, ⟨etcdserverpb.MaintenanceServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HmD.1,
+      ⟨_, rfl, v3rpc.ServerMethodSets.maint_te⟩, HmD.2⟩
     exact v3rpc.ServerMethodSets.maint_impl
   (try wp_auto)
   wp_apply (hInit pm gs) $$ [Hgs] as Hgs
@@ -425,7 +437,7 @@ theorem v3rpc.Server.wp_proof
       have := v3rpc.kvRegs_sub q kmds HkvD.1 x hx
       simp [List.mem_append, this]
     constructor
-    · have := v3rpc.watchSReg_mem pw wsds HwD
+    · have := v3rpc.watchSReg_mem pw wsds HwD.1
       simp [List.mem_append, this]
     constructor
     · intro x hx
@@ -435,8 +447,13 @@ theorem v3rpc.Server.wp_proof
     · intro x hx
       have := v3rpc.leaseRegs_sub ql lmds HlD.1 x hx
       simp [List.mem_append, this]
-    · have := v3rpc.leaseSReg_mem ql lsds HlD.2
+    constructor
+    · have := v3rpc.leaseSReg_mem ql lsds HlD.2.1
       simp [List.mem_append, this]
+    · exact v3rpc.server_nodup kmds lmds cmds amds mmds ksds wsds lsds csds asds msds _ _ _ _ _ _
+        rs srs (v3rpc.kvDesc_nodup kmds ksds ⟨HkvD.1, HkvD.2.1⟩) (v3rpc.watchDesc_nodup wsds HwD.1)
+        (v3rpc.leaseDesc_nodup lmds lsds ⟨HlD.1, HlD.2.1⟩) HcD.1
+        (v3rpc.authDesc_nodup amds asds HaD) HmD.1 Hrs2 Hrs1
   iframe
   iframe #
   ipureintro

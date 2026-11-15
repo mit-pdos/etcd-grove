@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -45,19 +46,19 @@ def btW (γ : BNames) (t : Loc) (st : BSess) : IProp GF :=
 nil), the batch limit, the hooks, the batch lock, bbolt's database. -/
 theorem isBackend_bt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
     isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
-      ∃ (db lg : Loc) (h : GoInterface), beOf t ↦□ b ∗ bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗
+      ∃ (db lg : Loc) (h : GoInterface), beOf t ↦□ b ∗ bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗
         bF go!"batchLimit" b ↦□ P.limit ∗ bF go!"hooks" b ↦□ h ∗ hooksSpec γ P Pk b t h ∗
         sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗ isDB db ∗ ⌜P.Wf⌝ := by
   iintro ⟨#Hb, #Ht⟩
   unfold isBackend
-  icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
+  icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #-,
     #Hhs, #Hm, #-, #-, #-, #-, #-, #-, #Hdb, %HP, -⟩
   icombine Ht Ht' gives %Heq
   subst Heq
   iexists db, lg, h
   iframe #
   ipureintro
-  exact ⟨Hlgn, HP⟩
+  exact HP
 
 /-- (2026-11-04, R2b-3c) **The backend's bbolt database and its file**: the `db` field's guard
 (`Close` reads it under `b.mu`), the database, the ghost record of it and the file it is. -/
@@ -78,19 +79,19 @@ transaction and the read transaction. -/
 theorem isBackend_b (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     isBackend γ P W Pk b ⊢
       ∃ (t rt db lg : Loc), bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗
-        bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ metricsInv b ∗ beOf t ↦□ b ∗
+        bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ metricsInv b ∗ beOf t ↦□ b ∗
         sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
         sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
         sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
         isDB db ∗ cacheInv γ ∗ ⌜P.Wf⌝ := by
   iintro #Hb
   unfold isBackend
-  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, #Hrt, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, #Hrt, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #-,
     #Hhs, #Hm, #Hrm, #-, #-, #Hci, #Hmi, #Hmu, #Hdb, %HP, -⟩
   iexists t, rt, db, lg
   iframe #
   ipureintro
-  exact ⟨Hlgn, HP⟩
+  exact HP
 
 /-- `atomic.StoreInt64` on one of the backend's metrics fields. -/
 theorem wp_metricStore (b : Loc) (f : GoString) (v : w64)

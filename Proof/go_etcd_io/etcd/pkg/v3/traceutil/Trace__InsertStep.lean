@@ -33,7 +33,7 @@ theorem traceutil.Trace.InsertStep.wp_proof :
   intro t e at' st msg fields
   wp_start as ⟨Ht, Hf, %Hat⟩
   iunfold traceutil.ownTrace at Ht
-  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He, #Hlz⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hss
   ihave %Hswf := ownSlice_wf _ _ _ $$ Hss
   wp_auto
@@ -79,6 +79,7 @@ theorem traceutil.Trace.InsertStep.wp_proof :
       iframe H1
       iapply BigSepL.bigSepL_cons.2
       iframe
+    (try iframe Hlz)
     ipureintro; exact He
   · wp_apply wp_slice_literal (V := traceutil.step)
       [({ time' := st, msg' := msg, fields' := fields, isSubTraceStart' := false, isSubTraceEnd' := false } : traceutil.step)]
@@ -97,6 +98,7 @@ theorem traceutil.Trace.InsertStep.wp_proof :
     isplitl [Hsf Hf]
     · iapply BigSepL.bigSepL_snoc.2
       iframe
+    (try iframe Hlz)
     ipureintro; exact He
 
 end proof

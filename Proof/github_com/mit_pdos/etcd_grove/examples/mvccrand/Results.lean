@@ -9,12 +9,13 @@ counterpart).
   deletes, transactions, lease grants and revokes, reads), the readers and a watch stream's
   registrar and receiver run concurrently, every result of mvcc checked against the tester's model
   (a check that fails panics), then the store, the lessor and the backend closed -- returns; so
-  every check passes. From the package's `isPkgInit`, the file's emptiness, `keySized`, the thread
-  and receipt bounds, `ckptEffectsOk`, `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
+  every check passes. From the package's `isPkgInit`, the file's emptiness, the thread
+  and receipt bounds, `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
   succeeding; 2026-11-08: until then `runChecks`' result, which admitted `backend.New`'s panic)
   (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/Main.lean`), and the hypothesis
   `sort.Slice.spec` (`Spec/sort/Slice.lean`: specified, neither proved nor assumed). The closed
-  theorem over it is `Adequacy.lean`'s `mvccrand_adequate`.
+  theorem over it is `Adequacy.lean`'s `mvccrand_adequate`, about executions of fewer than `2 ^ 28`
+  steps: each prefix of a run up to that length, not necessarily a complete run (mvcc-r3-1).
 -/
 module
 

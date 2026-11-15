@@ -33,10 +33,10 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
     (wp_waitDelete : waitDelete.spec (GF := GF) (hG := hG)) :
     waitDeletes.spec (GF := GF) (hG := hG) := by
   intro ctx cs client pfx maxCreateRev lo
-  wp_start as ⟨#Hcl, #Hctx, #Hcc, #Hlo, %Hp⟩
+  wp_start as ⟨#Hcl, #Hctx, #HctxC, #Hcc, #Hlo, %Hp⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, -, -, #HKV, -, -, -⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, -, -, -, #HKV, -, -, -⟩
   wp_auto
   wp_apply wp_WithLastCreate as %sl1 ⟨#Hsl1, Hcap1⟩
   wp_apply wp_WithMaxCreateRev maxCreateRev as %f #Hf
@@ -84,7 +84,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   ihave #HG := HKV $$ %ctx %cs %pfx %gsl
     %(withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM maxCreateRev]) %lo'
   wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx Hopts Hlo'
+  · iframe Hctx HctxC Hopts Hlo'
     ipureintro
     exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev,
       lastCreateOp_size maxCreateRev Hp.2.1⟩
@@ -164,7 +164,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   have HR0 : 0 ≤ sint.Z R := by
     have := Hrevs w Hws
     omega
-  wp_apply wp_waitDelete ctx cs client pfx w.key R $$ [$Hcl $Hctx $Hcc] as %werr Hwd
+  wp_apply wp_waitDelete ctx cs client pfx w.key R $$ [$Hcl $Hctx $HctxC $Hcc] as %werr Hwd
   · ipureintro
     exact ⟨Hwf'.2 w Hws, HR0, by have hk := Hkeys w Hws; unfold etcdKeyMax at hk; omega⟩
   icases Hwd with (%Hwne | ⟨%Hwnil, -⟩)

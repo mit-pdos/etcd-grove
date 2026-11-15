@@ -2,11 +2,16 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem entsSize.wp_proof [package_sem : Assumptions] (wp_proto_SizeEntry : proto.SizeEntry.spec) :
+theorem entsSize.wp_proof [package_sem : Assumptions] (wp_SizePb : proto.SizePb.spec) :
     entsSize.spec
   -- `Perennial.EtcdGrove.entsSize.spec`, unfolded:
-  ∀ (s : GoSlice) (es : List EntryM) (dq : DFrac),
+  ∀ (sz : Bool) (s : GoSlice) (cs : List EntryC) (dq : DFrac),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPts s dq es -∗
-          (▷ ∀ n, entsPts s dq es -∗ Φ (intoVal n)) -∗ WP ((intoVal (functions entsSize [])) (intoVal s)) {{ Φ }}
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPtsC sz s dq cs -∗
+          (▷
+              ∀ n,
+                entsPtsC sz s dq cs ∗
+                    ⌜sz = true → (List.map entrySize cs).sum < 2 ^ 64 → uint.nat n = (List.map entrySize cs).sum⌝ -∗
+                  Φ (intoVal n)) -∗
+            WP ((intoVal (functions entsSize [])) (intoVal s)) {{ Φ }}

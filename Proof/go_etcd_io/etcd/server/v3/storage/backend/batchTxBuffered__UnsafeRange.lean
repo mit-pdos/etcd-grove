@@ -39,7 +39,7 @@ theorem backend.batchTxBuffered.UnsafeRange.wp_proof
     ipureintro
     exact Htx
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
   icases Hl with ⟨%t', %db, #Ht', Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb', Hwtx, #Htxdb, Hmu⟩,

@@ -1115,7 +1115,7 @@ theorem kv_entry_grantFresh (γ : ServerRaftNames) (γk : KVNames)
   ipureintro
   intro hd gid hg
   have hnd : (logRevGrantIds γk.lm L).Nodup := by
-    rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
+    exact kvGrantIds_nodup_of HU
   exact grantId_fresh_transfer γk.lm A L m Hp.2.1 Hp.2.2 hnd hd gid hg
 
 open Iris.ProofMode in
@@ -1142,7 +1142,7 @@ theorem kv_grantLog_nodup (γ : ServerRaftNames) (γk : KVNames) (A : List Entry
   ipureintro
   intro hlm
   have hnd : (logRevGrantIds γk.lm L).Nodup := by
-    rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
+    exact kvGrantIds_nodup_of HU
   have h1 := Hp.2.2.filterMap (leRevGrantId γk.lm)
   rw [filterMap_leRevGrantId_opsOf, ← logRevGrantIds_noFill γk.lm L Hp.2.1] at h1
   have hn := hnd.sublist h1.sublist

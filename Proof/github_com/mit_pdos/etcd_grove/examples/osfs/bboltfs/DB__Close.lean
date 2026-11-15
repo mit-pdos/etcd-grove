@@ -14,13 +14,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.MapInv
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -43,11 +45,11 @@ theorem errnoErr_ne_nil' (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil 
 
 /-- After `close`'s successful `Munmap` of the whole mapping: the file's `OsMeta`, of the same
 size, with no mapping. -/
-theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
+theorem close_unmapped (p : Ino) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
     (hm : m.maps = {[base := len]}) (hb : 0 < base.addr) (herr : err = interface.nil) :
     unmappedRes (GF := GF) p m ⟨base, W64 len, W64 len⟩ err ⊢
-      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗
-        ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ m'.maps = ∅⌝ := by
+      ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
+        ⌜m'.size = m.size ∧ (m'.dhi = m.dhi ∧ m'.dlo = m.dlo) ∧ m'.maps = ∅⌝ := by
   unfold unmappedRes
   iintro (%Hnil | ⟨%b, %l, %vf, %e, %Heq, Hu⟩)
   · exfalso
@@ -58,7 +60,7 @@ theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err
     by_cases he : e = 0
     · icases Hu with (⟨-, Hm⟩ | ⟨%He, -⟩)
       · iexists _; iframe
-        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp only [hm]; exact GMap.delete_singleton _ _
+        ipureintro; refine ⟨rfl, ⟨rfl, rfl⟩, ?_⟩; simp only [hm]; exact GMap.delete_singleton _ _
       · exact absurd he He
     · exact absurd herr (errnoErr_ne_nil' e he)
 
@@ -133,7 +135,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     · iframe
     dsimp only [mapSlice, mapPtr0, mapPtr1, mapLen]
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd p
-        ⟨p, true, true⟩ p m (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
+        ⟨γ.ino, true, true⟩ γ.ino m (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
       as %errc ⟨Hd, Hdsz, H0, H1, -, -, -⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try simp only [↓reduceIte])
@@ -170,7 +172,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     icases Hrest0 with ⟨-, Htok0, #Hinv, Hf2, Hfd2⟩
     ihave Htok := (ghostVar_split_half γm 1 ()).2 $$ [Htok1 Htok0]
     · iframe
-    imod mapInv_close γ p base len γm $$ [Htok] with Hc
+    imod mapInv_close γ γ.ino base len γm $$ [Htok] with Hc
     · iframe; iframe #
     icases Hc with >Hc
     iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells at Hc
@@ -179,7 +181,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     cases Heq
     icases Hmo with (Hout2 | ⟨Hout2, %mc, Hc0, Hc1, %Hmc⟩)
     · icombine Hout1 Hout2 gives % ⟨_, Hbad⟩; cases Hbad
-    icases pagesCells_split p base (hwm - 2) 2 $$ Hpages with ⟨Hps, Hpc⟩
+    icases pagesCells_split γ.ino base (hwm - 2) 2 $$ Hpages with ⟨Hps, Hpc⟩
     rw [show 4096 * 2 = 8192 by rfl]
     ihave Hcells := mapCells_gather base hwm len Hw.1 Hl mc Hmc.1 $$ [Hwc Hc0 Hc1 Hpc]
     · iframe
@@ -200,7 +202,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hbase
     wp_apply wp_close db (DFrac.own 1) ⟨base, W64 len, W64 len⟩ (W64 len) (base +ₗ 16)
-        (base +ₗ 4112) f DFrac.discard fd p ⟨p, true, true⟩ p m (fun _ => rfl)
+        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true⟩ γ.ino m (fun _ => rfl)
         $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells]
       as %errc ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun, %Herr⟩, -, -⟩
     · iframe; iframe #
@@ -255,7 +257,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       obtain ⟨rfl, Hok, rfl, HTn⟩ := Hok
       icombine Hown Hown3 gives % ⟨_, Heq⟩
       cases Heq
-      ihave Hmx := osBytes_join p mxw mxc 0 (by rw [Hw.2.2.1, Hmx.1]) $$ [Hmxw Hmb]
+      ihave Hmx := osBytes_join γ.ino mxw mxc 0 (by rw [Hw.2.2.1, Hmx.1]) $$ [Hmxw Hmb]
       · iframe
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
         $$ [$Hmeta $Hsync $Hl2 Hfl Hcur Hcls2 Hauth Hout Hfa Hlast Hown3]
@@ -286,15 +288,15 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       · ileft
         isplitr
         · ipureintro; exact herrc
-        ihave Hm := close_unmapped p m base len err Hmaps Hbase (Herr herrc) $$ Hun
+        ihave Hm := close_unmapped γ.ino m base len err Hmaps Hbase (Herr herrc) $$ Hun
         icases Hm with ⟨%m', Hm, %Hm'⟩
         unfold dbClosed
         iexists m', mx, mxw, tail, B
         iframe; iframe #
         ipureintro
-        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, rfl, by omega, by omega, ?_, Hm'.2.2,
+        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1.1, Hok, rfl, rfl, by omega, by omega, ?_, Hm'.2.2,
           by have := (Hw.2.2.2.2 rfl).2.2.2.2.1; omega, by have := (Hw.2.2.2.2 rfl).2.2.2.2.2.1; omega⟩
-        rw [Hm'.2.1]; exact Hok0 rfl
+        rw [Hm'.2.1.1, Hm'.2.1.2]; exact (Hw.2.2.2.2 rfl).2.1.2
       · iright; ileft; ipureintro; exact herrc
 
 end proof

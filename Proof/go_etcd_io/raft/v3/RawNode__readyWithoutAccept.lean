@@ -176,8 +176,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · rfl
     · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.1.2.2.1 (.inl h))
   wp_auto
-  wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
+  wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #HentsZ⟩
   · iframe Hlog
+  ihave #Hents := entsROz_entsRO _ _ _ $$ HentsZ
   -- `rn.applyUnstableEntries()` is `!asyncStorageWrites`
   wp_method_call
   wp_call
@@ -436,7 +437,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
                  ownSliceCap Loc msl (DFrac.own 1) -∗
                  sl1 ↦* ms1.map QMsg.loc ∗ ownSliceCap Loc sl1 (DFrac.own 1)) ∗
       "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
-      "Hown2" ∷ ([∗list] q ∈ ms2, qOwn q) ∗
+      "Hown2" ∷ ([∗list] q ∈ ms2, qOwn s.gh.sn.sz q) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms2.length : Int)⌝)
     $$ [i m rd Hmsgs Hmsgs_cap HmsgsAA Hown2]
   · iexists W64 0, sl1, null
@@ -463,12 +464,16 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · iframe
       ipureintro
       exact Hmml
-    icases bigSepL_acc_same (fun q => qOwn (GF := GF) q) ms2 _ mm Hmm_lookup $$ Hown2
+    icases bigSepL_acc_same (fun q => qOwn (GF := GF) s.gh.sn.sz q) ms2 _ mm Hmm_lookup $$ Hown2
       with ⟨Hmm, Hown2⟩
-    wp_apply (wp_Message_GetTo.1 mm.loc (DFrac.own 1) DFrac.discard false mm.st) $$ [$Hmm]
+    icases msgOwnZ_read s.gh.sn.sz mm.loc mm.st $$ Hmm
+      with ⟨Hmm, Hmmb⟩
+    wp_apply (wp_Message_GetTo.1 mm.loc dqh DFrac.discard false mm.st) $$ [$Hmm]
       as Hmm
+    ihave Hmm := Hmmb $$ Hmm
     ihave Hown2 := Hown2 $$ Hmm
-    have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    have HnB := sint_loop_succ n sl2.len ms2.length Hn Hl2 Hlt
+    have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := HnB.1
     wp_if_destruct
     · -- to oneself: kept for `acceptReady`
       wp_for_post
@@ -476,7 +481,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       iexists n + W64 1, msl, mm.loc
       rw [HnS, nonself_take_succ _ _ _ _ Hmm_lookup, ite_pos' rfl, List.append_nil]
       iframe
-      ipureintro; word
+      ipureintro; exact HnB.2
     · -- to another node: handed out
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
@@ -498,11 +503,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
       rw [HnS, nonself_take_succ _ _ _ _ Hmm_lookup, ite_neg' Hif, ← List.append_assoc,
         List.map_append (l₁ := ms1 ++ _), List.map_cons, List.map_nil]
       iframe
-      ipureintro; word
+      ipureintro; exact HnB.2
   -- the loop is done: every message of `msgsAfterAppend` seen
   have Hn2 : sint.nat n = ms2.length := by
     have : ¬ sint.Z n < sint.Z sl2.len := by simpa using Hif
-    word
+    exact sint_loop_done n sl2.len ms2.length Hn Hl2 this
   rw [show ms2.take (sint.nat n) = ms2 from List.take_of_length_le (by omega)]
   -- the messages handed out: those of `r.msgs` and those of `msgsAfterAppend` to others, at
   -- `readyDq`; kept, the halves of the responses (`respHalf` of `r.msgs`'s, inside `Hundo`;
@@ -513,11 +518,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases qOwns_other_ready id ms2 Hresp2 $$ Hown2 with ⟨H2r, Hother⟩
   ihave Hundo : iprop(msl ↦* (ms1 ++ nonself id ms2).map QMsg.loc -∗
       ownSliceCap Loc msl (DFrac.own 1) -∗
-      ([∗list] q ∈ ms1 ++ nonself id ms2, msgOwn q.loc (readyDq q.st) q.st) -∗
+      ([∗list] q ∈ ms1 ++ nonself id ms2, msgOwnZ s.gh.sn.sz q.loc (readyDq q.st) q.st) -∗
       sl1 ↦* ms1.map QMsg.loc ∗ ownSliceCap Loc sl1 (DFrac.own 1) ∗
-      ([∗list] q ∈ ms1, qOwn q) ∗
+      ([∗list] q ∈ ms1, qOwn s.gh.sn.sz q) ∗
       ([∗list] q ∈ ms2.filter (fun q => !isSelfQ id q),
-        msgOwn q.loc (DFrac.own (1 : Qp).half) q.st)) $$ [Hundo H1h]
+        msgOwnZ s.gh.sn.sz q.loc (DFrac.own (1 : Qp).half) q.st)) $$ [Hundo H1h]
   · iintro Hm Hc Ho
     icases BigSepL.bigSepL_append.1 $$ Ho with ⟨Ho1, Ho2⟩
     icases Hundo $$ Hm Hc with ⟨Hm, Hc⟩
@@ -613,6 +618,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iapply outboxRelP_isRaftMsgs_ns γ id s (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto Hnsout Hxf
       Hnl.2.2
       $$ Ho Hqc Hxw
+  -- (restart S7.3, 2026-11-14) and have their `MsgSnap` facts once the outbox's snapshots have
+  -- their destination facts
+  ihave #Hmsnap : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
+      [∗list] q ∈ ms1 ++ nonself id ms2, snapToOk γ id q.st)) $$ []
+  · iintro !> #Ho
+    rw [show s.outbox = (toPState s).outbox from rfl]
+    iapply outboxRelP_snapTo γ id (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto $$ Ho
   -- the `Ready`'s soft state: `nil` (the role `prevSoftSt`'s, the node's), or the node's
   ihave #Hrdlead : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
       ⌜(sp = null → ss = none) ∧
@@ -722,6 +734,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
         show (fp0.length : Int) ≤ _
         omega
   icases Hsnl with ⟨%L, Hrdz, Hsnapz, %Hpsn, %HLc⟩
+  -- (out_size C3) the node's size flag is the cluster's (`certLink`)
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, -⟩
   ihave Hphys := ownRaftPhysReady_lt0 cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false L.isSome
     $$ Hphys
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
@@ -733,7 +748,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hrdlead Hrntr
+      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead Hrntr
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
@@ -747,13 +762,14 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitr
   · iexact Hdeliv'
   isplitr
-  · iexact Hents
+  · have Hsn : s.logst.sn = s.gh.sn := Hgh_unst.1.2.2
+    rw [← Hszl, ← Hsn]; iexact HentsZ
   isplitl [Hmsgs]
   · iexact Hmsgs
   isplitl [Hmsgs_cap]
   · iexact Hmsgs_cap
   isplitl [H1r H2r]
-  · iapply BigSepL.bigSepL_append.2; iframe H1r H2r
+  · rw [← Hszl]; iapply BigSepL.bigSepL_append.2; iframe H1r H2r
   isplitr
   · ipureintro; exact Hmsgs_term
   isplitr

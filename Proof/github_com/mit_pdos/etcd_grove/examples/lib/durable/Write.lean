@@ -24,12 +24,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assu
 
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_proof :
     github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec (GF := GF) (hG := hG) :=
-  fun name data => by
+  fun o name data h => by
   iintro %Φ HAU
   wp_func_call
   unfold github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.impl
   wp_pures
-  iapply wp_DurableWrite_atomic $$ HAU
+  iapply wp_DurableWrite_atomic o name data h $$ HAU
 
 end proof
 

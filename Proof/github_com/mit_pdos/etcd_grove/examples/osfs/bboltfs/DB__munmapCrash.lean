@@ -14,9 +14,10 @@ namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -25,7 +26,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 theorem DB.munmap.wp_proof_crash
     (wp_Munmap : golang_org.x.sys.unix.Munmap.specCrashS (GF := GF) (hG := hG)) :
     DB.munmap.specCrash (GF := GF) (hG := hG) := by
-  intro db dq sl dsz m0 m1 p γc m bs fa fb Hdq
+  intro db dq sl dsz m0 m1 p R i γc m bs fa fb Hdq
   wp_start as ⟨Hd, Hs, H0, H1, Hm⟩
   unfold mappingResC
   icases Hm with (%Hnil | ⟨%base, %len, %vf, %Hsl, #Hos, #Hinv, Hm, Hc⟩)
@@ -44,7 +45,7 @@ theorem DB.munmap.wp_proof_crash
     wp_auto
     rw [decide_eq_false hne]
     wp_auto
-    wp_apply wp_Munmap base len p dbCrashN γc (dbOk p) m bs fa fb vf Hlen Hb dbCrashN_disj
+    wp_apply wp_Munmap base len i dbCrashN p R γc Good dbOk m bs fa fb vf Hlen Hb dbCrashN_disj
         (hok _) $$ [Hos Hinv Hm Hc] as %e He
     · iframe; iframe #
     (try wp_auto)

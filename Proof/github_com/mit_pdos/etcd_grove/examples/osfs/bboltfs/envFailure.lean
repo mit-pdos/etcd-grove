@@ -10,6 +10,8 @@ public import Perennial.Spec.sync.atomic.AddUint64
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 

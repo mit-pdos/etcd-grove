@@ -50,7 +50,9 @@ abbrev New.spec : Prop :=
       (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗ id ↪[γr.seq] (W64 0) ∗
       -- what `run` holds of the storage (`runStor`, persistent)
       runStor γr K st ∗
-      sendSpec send γr.cluster }}
+      sendSpec send γr.cluster ∗
+      -- (raft-entsize §2, 2026-11-09) no bound on proposed data (the replica's `%Hmd`)
+      ⌜γr.cluster.maxData = none⌝ }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kv.New))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))
       (Val #send))

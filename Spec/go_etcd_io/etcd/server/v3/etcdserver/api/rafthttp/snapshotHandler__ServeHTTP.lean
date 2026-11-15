@@ -28,7 +28,7 @@ transport returning on a request from another member (as `pipeHandlerOk`). -/
 def snapHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
     IProp GF :=
   iprop(∃ (hv : rafthttp.snapshotHandler) (Rm : w64 → IProp GF), h ↦□ hv ∗
-    ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.localID'⌝ ∗
+    zapLoggerOk hv.lg' ∗ ⌜Rh.owner a = hv.localID'⌝ ∗
     □ netRaftOk Rh.γn hv.localID' γd Rs hv.r' ∗
     snap.isSnapshotter hv.snapshotter' ∗ inv snapDirN (snapDirInv hv.snapshotter' γd Rh.γn.N.img Rm) ∗
     □ (∀ (r : Loc) (R : http.HReq) (rd : GoInterface),
@@ -61,7 +61,7 @@ abbrev rafthttp.snapshotHandler.ServeHTTP.spec : Prop :=
   R.host = a → R.path = snapPath →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
     snapHandlerOk Rh a γd Rs h -∗
-    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicket γk -∗
+    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicketOnce R γk -∗
     http.reqBody (raftHttpNet Rh) a R γk rd -∗
     http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk none [] -∗
     http.respHdrs (GoInterface.ok wi) [] -∗ Rs -∗

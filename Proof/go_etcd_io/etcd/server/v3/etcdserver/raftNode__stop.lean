@@ -60,12 +60,12 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     iapply broadcast_chan_receive dnc γ.done _ _ .Unknown $$ Hdnci
     iintro ⟨#Hesc, _⟩
     imod rn_esc_take E γ apc (storage.walOf st') A $$ Hapci Hesc Hsc Happ Hlc5 Hlc6
-      with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc⟩
+      with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc, #Hl'⟩
     wp_auto
     iapply HΦ
     iframe Hvac
     iexists S, σ
-    iframe HrS Hσc
+    iframe HrS Hσc Hl'
     isplitl [Hcl]
     · iunfold rnWalClosed; iexists st'; iframe Hst Hcl
     ipureintro; exact Hord
@@ -82,12 +82,12 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     iapply broadcast_chan_receive dnc γ.done _ _ .Unknown $$ Hdnci
     iintro ⟨#Hesc, _⟩
     imod rn_esc_take E γ apc (storage.walOf st') A $$ Hapci Hesc Hsc Happ Hlc3 Hlc4
-      with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc⟩
+      with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc, #Hl'⟩
     wp_auto
     iapply HΦ
     iframe Hvac
     iexists S, σ
-    iframe HrS Hσc
+    iframe HrS Hσc Hl'
     isplitl [Hcl]
     · iunfold rnWalClosed; iexists st'; iframe Hst Hcl
     ipureintro; exact Hord

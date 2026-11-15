@@ -14,9 +14,9 @@ theorem MemoryStorage.Append.wp_proof [package_sem : Assumptions] (wp_MemoryStor
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                 memStorLock ms γs ∗
                   (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
-                    entsPts s dq es -∗
+                    entsPtsZ γs.sz s dq es -∗
               ▷
-                  ((entsPts s dq es ∗
+                  ((entsPtsZ γs.sz s dq es ∗
                       if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) -∗
                     Φ (intoVal GoInterface.nil)) -∗
                 WP

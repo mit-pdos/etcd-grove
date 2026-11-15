@@ -39,8 +39,8 @@ theorem kv.Delete.wp_generic
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api conn addr ci cd opv (opDeleteModel key gs) (fun _ _ _ _ => iprop(False))
-      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd $$ [Hrun]
-    as %r %err Hout
+      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd (fun _ => iprop(True)) $$ [Hrun]
+    as %r %err ⟨-, Hout⟩
   · iframe #
     isplitl [Hrun]; rotate_left
     · ipureintro; exact Hsz
@@ -60,7 +60,7 @@ theorem kv.Delete.wp_generic
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
+    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
@@ -70,7 +70,7 @@ theorem kv.Delete.wp_generic
     iframe Hm
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
@@ -141,7 +141,7 @@ theorem kv.Delete.wp_proof
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
+    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
@@ -152,7 +152,7 @@ theorem kv.Delete.wp_proof
     iframe Hm
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ

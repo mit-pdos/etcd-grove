@@ -495,6 +495,46 @@ def bootURLsOk (bootLog : List EntryM) : Prop :=
   (∀ mm ∈ bootMembers bootLog, ∀ u ∈ mm.peerURLs, utf8Valid u) ∧
   (bootMembers bootLog).Pairwise fun a b => ∀ u ∈ a.peerURLs, u ∉ b.peerURLs
 
+/-- **The bound on a boot entry's data** (raft-entsize, [r3a'], 2026-11-09): `2 ^ 27` bytes, under
+the cluster's `maxData` (`2 ^ 30`) with room to spare. -/
+@[word_unfold] def bootCtxMax : Nat := 2 ^ 27
+
+/-- **The boot log's entries are small** (raft-entsize, the user's decision of 2026-11-09, [r3a']):
+every entry of the bootstrap log `bl` has data of at most `bootCtxMax - 64` bytes. It bounds the
+boot entries themselves, not their contexts: an entry's data is tied to its context only through
+`MarshalsConfChange`, an opaque encoding that bounds no length. True of every real deployment (a
+boot entry is `ConfChange{0, id, ctx, 0}` with `ctx` a member's JSON, 81 bytes by default, H6). -/
+def bootDataOk (bl : List LogEntry) : Prop := ∀ e ∈ bl, e.data.length + 64 ≤ bootCtxMax
+
+/-- **A bootstrap's results, as Go computes them**, for the peers `ps` with the contexts `ctxs`
+and the bootstrap log `bl` (raft-entsize, [r3a], 2026-11-09): the log is the node API's `BootLog`,
+each entry a conf change of id `0` that the server's `applyConfChange` takes (`ccBootOk`), the boot
+members' peer URLs valid UTF-8 and pairwise disjoint (`bootURLsOk`), the peers' 16 low bits
+distinct and not `0` (D21e (A)), and the entries small (`bootDataOk`). What every example's
+`BootFacts` and the server's cluster allocation take. -/
+structure BootCore (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
+  boot : BootLog ps ctxs bl
+  cc : ∀ e ∈ LogEntry.toEntries bl 0,
+    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
+  urls : bootURLsOk (LogEntry.toEntries bl 0)
+  lowNodup : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup
+  lowNz : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0
+  /-- the one bound on the boot log (`bootDataOk`) -/
+  data : bootDataOk bl
+
+/-- **The members' ids are apart for their lease ids** (lease-mono3 step 2, 2026-11-14,
+`notes/lease-mono3-plan.md`, "Step 2 Scope"): the peers' 15 low bits are distinct. `LeaseGrant`
+gives a grant with no ID its member's next request id with bit 63 cleared, and a request id carries
+its member id's 16 low bits in bits 48-63 (`idPfxOf`): members whose ids agree in their 15 low bits
+generate colliding lease ids (`issues/etcd-lease-id-mask-member-prefix.md`). A premise of a cluster
+of several members in the revocable lease mode (`cluster3.StartCluster.spec`'s); `BootCore`'s
+`lowNodup` is the 16-bit condition. A member id depends only on the configuration (its peer URLs and
+the cluster token), so a Go test checks it per example: `TestMemberIDs` in
+`examples/etcd/leasecatchup/leasecatchup_test.go` (cluster3's configuration) and in
+`examples/etcd/auth3/auth3_test.go` (auth3's), and `TestGrantEveryMember`
+(`examples/etcd/leasecatchup/leasecatchup_grant_test.go`) for the configuration it runs. -/
+def leaseIdsApart (ps : List w64) : Prop := (ps.map (fun id => uint.Z id % 2 ^ 15)).Nodup
+
 /-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes** (D43 M5d). -/
 def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m
@@ -765,7 +805,12 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     ⌜bootURLsOk γ.raft.boot⌝ ∗
     -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced cluster
     -- (`cluster_alloc`'s): `StartNode`'s/`RestartNode`'s premise
-    ⌜Cluster.trace γ.raft.cl = none⌝)
+    ⌜Cluster.trace γ.raft.cl = none⌝ ∗
+    -- (raft-entsize §2, 2026-11-10) the cluster's bound on proposed data, `2^30` (`cluster_alloc`'s
+    -- `md`): what the node API's size premises (`Propose`'s data, `ReadIndex`'s context,
+    -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
+    -- `maxData = none`
+    ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
@@ -795,6 +840,13 @@ def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
   unfold srvRaftLogInv; infer_instance
+
+/-- (raft-entsize §2, 2026-11-10) The server's cluster bounds proposed data at `2^30`. -/
+theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
+  unfold srvRaftLogInv srvClusterOk
+  iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
+  ipureintro; exact H
 
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by

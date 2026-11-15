@@ -17,7 +17,7 @@ ids only, the plan's E3), so it stays absent at every later index, among them th
 **The pure premises:** as `leasegrant`'s (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/Main.lean`)
 but `lease.leasesNoExpiry`: the member id and bootstrap log Go computes (`BootFacts`); the thread and
 time-receipt bounds; the write budget; the named workload and effect premises of the server's
-construction (`ckptEffectsOk`, `authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`,
+construction (`authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`,
 `storage.diskOk`); the deployment's peers answering the lease handler's path (`leasePeersOk`); Go's
 method sets of the gRPC service values and `errors.As`'s target.
 -/
@@ -51,12 +51,13 @@ abbrev Main.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
-  -- (revoke-open, 2026-11-06) the revocation's goroutines' levels 0–3 (`srvRevokeLevels`)
-  threadBound GF ≤ 2 ^ 28 → srvRevokeLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
+  -- (revoke-open, 2026-11-06) the revocation's goroutines' levels 0–3, and (k8s 7f-4) a stream
+  -- run's level 4 (`srvLevels`)
+  threadBound GF ≤ 2 ^ 28 → srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
     receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   leasePeersOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

@@ -35,7 +35,7 @@ theorem rafthttp.createPostRequest.wp_proof
     (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (hSetPeer : rafthttp.setPeerURLsHeader.spec (GF := GF) (hG := hG)) :
     rafthttp.createPostRequest.spec (GF := GF) (hG := hG) := by
-  intro lg u path body K ct urls uvs fr cid Hlg Hu
+  intro lg u path body K ct urls uvs fr cid Hlg Hu Hpath
   wp_start as ⟨Hbody, #Hurls⟩
   obtain ⟨hs1, hs2, hs3, hs4, hs5, hs6, hs7, hs8, hs9, hhost⟩ := Hu
   wp_auto
@@ -43,7 +43,7 @@ theorem rafthttp.createPostRequest.wp_proof
       hs9) $$ [uu] as uu
   · iexact uu
   (try wp_auto)
-  wp_apply (hNewRequest go!"POST" _ body K u.Host' path rfl hhost (Or.inl rfl)) $$ [Hbody]
+  wp_apply (hNewRequest go!"POST" _ body K u.Host' path rfl hhost Hpath (Or.inl rfl)) $$ [Hbody]
     as %req ⟨Hreq, Hstr⟩
   · iexact Hbody
   (try wp_auto)
@@ -89,14 +89,20 @@ theorem rafthttp.createPostRequest.wp_proof
     iunfold http.reqRest at Hrest
     iunfold http.reqRest
     iexact Hrest
-  wp_apply (hSetPeer req _ urls uvs) $$ [Hreq] as ⟨%hs, %Hhs, %Hpu, Hreq⟩
+  wp_apply (hSetPeer req _ urls uvs) $$ [Hreq] as ⟨%hs, %Hhs, %Hpu, %Hidem, Hreq⟩
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
   iexists hs
   iframe Hreq Hstr
   ipureintro
-  refine ⟨?_, Hpu⟩
+  refine ⟨?_, Hpu, ?_⟩
+  rotate_left
+  · apply Hidem
+    simp only
+    repeat (first
+      | exact http.noIdemKey_nil
+      | apply http.noIdemKey_hdrSet _ _ _ _ (by decide) (by decide))
   rw [Hhs _ (by decide)]
   simp only
   rw [http.hdrGet_hdrSet_ne _ _ _ _ (by decide), http.hdrGet_hdrSet_ne _ _ _ _ (by decide),

@@ -28,7 +28,7 @@ theorem Session.Client.wp_proof : Session.Client.spec (GF := GF) (hG := hG) := b
   wp_start as #Hs
   unfold isSession
   icases Hs with ⟨%ops, %o, %octx, %ocs, %ctx, %cs, %cancel, %donec, #HC, #HO, #HI, #Hx, #Hcn,
-    #HD, #Hops, %Ho, #Hoctx, #Hctx, #Hcancel, #Hdone, #Hlease⟩
+    #HD, #Hops, %Ho, #Hoctx, #HoctxC, #Hctx, #HctxC, #Hcancel, #Hdone, #Hlease⟩
   wp_auto
   iapply HΦ
   itrivial

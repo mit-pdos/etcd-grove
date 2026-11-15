@@ -14,7 +14,7 @@ theorem raftLog.entries.wp_proof [package_sem : Assumptions] (wp_raftLog_lastInd
                 ∀ s es err,
                   ownRaftLog l ls ∗
                       (⌜err = GoInterface.nil⌝ ∗
-                          entsRO s es ∗
+                          entsCutRO ls.sn.sz maxSize s es ∗
                             ⌜(∀ (e : EntryM), e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
                                 es <+: plogFrom ls.prev (ls.sents ++ ls.uents) i⌝ ∨
                         ⌜s = slice.nil ∧ uint.Z i ≤ uint.Z ls.fl⌝ ∗

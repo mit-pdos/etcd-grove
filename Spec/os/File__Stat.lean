@@ -22,9 +22,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -34,10 +35,10 @@ variable [os.Assumptions]
 abbrev os.File.Stat.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq dqm : DFrac) (d : OsFd) (m : OsMeta),
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
-      osMeta (GF := GF) d.path dqm (some m) }}
+      osMeta (GF := GF) d.ino dqm m }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Stat")) (Val #()))
   {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err);
-      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.path dqm (some m) ∗
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.ino dqm m ∗
       ((∃ fs : Loc, ⌜err = interface.nil ∧
           fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
           os.ownFileStat fs (W64 m.size)) ∨

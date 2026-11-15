@@ -41,7 +41,10 @@ what the gRPC layer needs of the error `UserAdd` hands it, `applyErrIs`.) (frome
 2026-11-06) The error's `Error()` returns one string on every call (it returned some string): the
 errors `GenerateFromPassword` returns are `ErrPasswordTooLong` (an `errors.New` value, its cell
 never written again) and `InvalidCostError` (an `int`: `Error()` formats the value), so a stable
-`Error()` is true of bcrypt, and grpc's `status.FromError` takes it as the description. -/
+`Error()` is true of bcrypt, and grpc's `status.FromError` takes it as the description.
+(premise-fixes-4) Neither has a `Format` method (`*errorString`'s method set is `{Error}`,
+`InvalidCostError`'s `{Error}`), so `fmt` prints the error through `Error()`
+(`examples/premisefix/fmtarg`, `TestNoFormatter`). -/
 abbrev bcrypt.GenerateFromPassword.spec : Prop :=
   ∀ (pw : GoSlice) (p : List w8) (dp : DFrac) (cost : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt ∗ pw ↦*{dp} p }}
@@ -50,7 +53,7 @@ abbrev bcrypt.GenerateFromPassword.spec : Prop :=
       pw ↦*{dp} p ∗
       ((∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧
           methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
-          methodSet ei.ty !! go!"GRPCStatus" = none ∧
+          methodSet ei.ty !! go!"GRPCStatus" = none ∧ methodSet ei.ty !! go!"Format" = none ∧
           (_root_.Perennial.errors.IsPointerError ei ∨
             ((∀ T, ei.ty ≠ go.GoType.PointerType T) ∧ SafeMapKey (GF := GF) go.error err))⌝ ∗
           ∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗

@@ -26,8 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 theorem rafthttp.newPeerStatus.wp_proof :
     rafthttp.newPeerStatus.spec (GF := GF) (hG := hG) := by
-  intro lg lid id Hlg
-  wp_start as -
+  intro lg lid id
+  wp_start as #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   iapply wp_fupd
   wp_auto
   rw [_root_.decide_eq_false Hlg]
@@ -47,7 +48,6 @@ theorem rafthttp.newPeerStatus.wp_proof :
   iunfold peerStatusOk
   iexists lg, lid, id
   iframe #
-  ipureintro; exact Hlg
 
 end proof
 

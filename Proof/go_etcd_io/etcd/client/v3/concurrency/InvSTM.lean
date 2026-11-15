@@ -311,11 +311,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- The `*stmOptions` `p` holds `o` (owned): its level, its prefetch keys (an owned slice, with
-its capacity: `WithPrefetch` appends), and some context. -/
+its capacity: `WithPrefetch` appends), and some context.
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def stmOptionsOwn (p : Loc) (o : STMOpts) : IProp GF :=
   iprop(∃ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (sl : GoSlice),
     p ↦ ({ iso' := o.iso, ctx' := GoInterface.ok ctx, prefetch' := sl } : stmOptions) ∗
-    sl ↦* o.prefetch ∗ ownSliceCap GoString sl (DFrac.own 1) ∗ context.isContext ctx cs)
+    sl ↦* o.prefetch ∗ ownSliceCap GoString sl (DFrac.own 1) ∗ context.isContext ctx cs ∗
+    metadata.outgoingCtxOkC ctx)
 
 /-- The `STMOption` closure `f` changes options modelled by `o` into `g o`. -/
 def stmOptSpec (f : GoFunc) (g : STMOpts → STMOpts) : IProp GF :=
@@ -340,12 +342,13 @@ instance stmOptsAt_persistent (sl : GoSlice) (gs : List (STMOpts → STMOpts)) :
 
 /-- **The client, as an STM uses it** (persistent): its `KV` answers transactions
 (`isEtcdTxnKV`, the commit) and read transactions (`isEtcdReadTxnKV`, the gets), for the prefix
-`pfx`; its `ctx` field holds a context (`client.Ctx()`, `NewSTM`'s default). -/
+`pfx`; its `ctx` field holds a context (`client.Ctx()`, `NewSTM`'s default).
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isEtcdSTMClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ isEtcdTxnKV kv pfx ∗ isEtcdReadTxnKV kv pfx ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" client ↦□ GoInterface.ok cctx ∗
-    context.isContext cctx ccs)
+    context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx)
 
 instance isEtcdSTMClient_persistent (client : Loc) (pfx : GoString) :
     Persistent (isEtcdSTMClient (GF := GF) client pfx) := by
@@ -433,11 +436,13 @@ instance writesAt_persistent (pfx : GoString) (wsMap : GMap GoString stmPut)
 /-! ## The fields of an STM -/
 
 /-- The `stm` (struct) at `b`: its client and context (read-only), the client's contract for
-`pfx` (persistent). -/
+`pfx` (persistent).
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def stmEnv (pfx : GoString) (b : Loc) : IProp GF :=
   iprop(∃ (c : Loc) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
     structFieldRef stm go!"client" b ↦□ c ∗ isEtcdSTMClient c pfx ∗
-    structFieldRef stm go!"ctx" b ↦□ GoInterface.ok ctx ∗ context.isContext ctx cs)
+    structFieldRef stm go!"ctx" b ↦□ GoInterface.ok ctx ∗ context.isContext ctx cs ∗
+    metadata.outgoingCtxOkC ctx)
 
 instance stmEnv_persistent (pfx : GoString) (b : Loc) : Persistent (stmEnv (GF := GF) pfx b) := by
   unfold stmEnv; infer_instance

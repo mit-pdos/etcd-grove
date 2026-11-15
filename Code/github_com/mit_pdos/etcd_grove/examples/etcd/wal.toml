@@ -1,0 +1,8 @@
+# With bodies (WAL W4c): the WAL robustness tester. `purgeRound` names only, its body axiomatized
+# (the decision Q2 of the W4c plan, etcd-grove-81, 2026-11-12): one round of fileutil.purgeFile's
+# loop on the WAL directory, whose trust-boundary axiom (`Proof/.../examples/etcd/wal/purgeRound.lean`)
+# moves the abstract disk's purge positions and takes the open WAL's purge right.
+translate = ["*", "!purgeRound"]
+imports = ["*"]
+
+translate_types = true

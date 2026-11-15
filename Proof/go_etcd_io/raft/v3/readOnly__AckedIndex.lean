@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- One map lookup. -/
 theorem readOnly.AckedIndex.wp_proof : readOnly.AckedIndex.spec (GF := GF) (hG := hG) := by
-  intro ro r voterID
+  intro sz ro r voterID
   wp_start as Hown
   iNamed Hown
   iunfold ownReadOnly at Hown

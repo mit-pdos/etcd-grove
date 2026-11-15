@@ -124,6 +124,7 @@ axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
+axiom Perennial.google_golang_org.grpc.DefaultBackoffConfig_init
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -167,6 +168,7 @@ axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless
 axiom backend.rtxSnap
 axiom backend.rtxSnap_persistent
+axiom backend.rtxSnap_size
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless

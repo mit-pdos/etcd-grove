@@ -1,0 +1,234 @@
+wal: 30s x 10 rounds, 16 writers (50..6000 data bytes a Save), 2 syncers, COMPACT=1 STABLE=0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 1: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 38459 saves (29015 synced), 130692 entries, 87329780 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 39279 saves (29523 synced), 133132 entries, 89221603 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 38766 saves (29060 synced), 130867 entries, 88085002 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 38032 saves (28538 synced), 128554 entries, 86219881 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 37389 saves (27993 synced), 125737 entries, 85020506 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 38692 saves (29092 synced), 131381 entries, 87469293 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 38252 saves (28704 synced), 129018 entries, 86288315 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 38569 saves (28942 synced), 129831 entries, 87644498 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 38466 saves (29040 synced), 131015 entries, 87389358 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 38400 saves (28942 synced), 130431 entries, 87137328 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 38007 saves (28481 synced), 128015 entries, 86217817 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 37927 saves (28382 synced), 127781 entries, 86108008 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 37914 saves (28444 synced), 127851 entries, 86247150 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 38760 saves (29120 synced), 130835 entries, 87842140 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 38579 saves (29035 synced), 130499 entries, 87629730 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 38024 saves (28565 synced), 128358 entries, 86201827 data bytes, 0 restarts
+sync: 21222272 sync_file_range calls
+sync: 22252544 sync_file_range calls
+@calls: 862590
+@wb_ours: 862386
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 2: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 34117 saves (25736 synced), 115997 entries, 77582276 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 34267 saves (25743 synced), 116082 entries, 77973062 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 35651 saves (26698 synced), 120247 entries, 80893518 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 34035 saves (25566 synced), 115038 entries, 77407468 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 34612 saves (25925 synced), 116401 entries, 78695651 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 34156 saves (25661 synced), 115973 entries, 77120479 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 34626 saves (25977 synced), 116742 entries, 78242832 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 34028 saves (25506 synced), 114223 entries, 77474339 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 34625 saves (26140 synced), 117980 entries, 78614438 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 33536 saves (25289 synced), 114006 entries, 76072641 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 34072 saves (25526 synced), 114794 entries, 77307638 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 34293 saves (25685 synced), 115665 entries, 77939793 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 34266 saves (25735 synced), 115605 entries, 78041722 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 34996 saves (26263 synced), 118029 entries, 79361421 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 34280 saves (25790 synced), 116132 entries, 77744892 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 33887 saves (25484 synced), 114775 entries, 76985434 data bytes, 0 restarts
+sync: 21861824 sync_file_range calls
+sync: 21542976 sync_file_range calls
+@calls: 768518
+@wb_ours: 768568
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 3: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 36112 saves (27228 synced), 122722 entries, 81978922 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 35646 saves (26759 synced), 120643 entries, 80932534 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 35591 saves (26648 synced), 120005 entries, 80726800 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 36313 saves (27248 synced), 122688 entries, 82420050 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 35358 saves (26479 synced), 119050 entries, 80362395 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 36887 saves (27727 synced), 125054 entries, 83339921 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 36241 saves (27197 synced), 122151 entries, 81880952 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 35908 saves (26923 synced), 120618 entries, 81675153 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 36282 saves (27399 synced), 123580 entries, 82428804 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 36676 saves (27645 synced), 124567 entries, 83165118 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 35821 saves (26840 synced), 120698 entries, 81187488 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 36398 saves (27244 synced), 122636 entries, 82691373 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 35858 saves (26913 synced), 120960 entries, 81634667 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 35986 saves (27033 synced), 121487 entries, 81616826 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 36259 saves (27292 synced), 122792 entries, 82237462 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 35674 saves (26803 synced), 120514 entries, 80829375 data bytes, 0 restarts
+sync: 21653888 sync_file_range calls
+sync: 22472960 sync_file_range calls
+@calls: 809252
+@wb_ours: 805180
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 4: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 41631 saves (31412 synced), 141428 entries, 94604236 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 42100 saves (31624 synced), 142617 entries, 95542490 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 41622 saves (31212 synced), 140404 entries, 94551377 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 41229 saves (30951 synced), 139350 entries, 93466496 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 41942 saves (31392 synced), 141260 entries, 95306382 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 41929 saves (31486 synced), 142188 entries, 94652891 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 41020 saves (30763 synced), 138393 entries, 92520195 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 41231 saves (30911 synced), 138458 entries, 93633619 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 42039 saves (31693 synced), 142923 entries, 95193256 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 41841 saves (31516 synced), 142129 entries, 94859728 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 41041 saves (30798 synced), 138349 entries, 93243192 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 41693 saves (31207 synced), 140469 entries, 94792041 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 42700 saves (32065 synced), 143865 entries, 97221510 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 41501 saves (31183 synced), 140112 entries, 94030748 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 40999 saves (30834 synced), 138572 entries, 93073448 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 41318 saves (30995 synced), 139353 entries, 93569534 data bytes, 0 restarts
+sync: 21954624 sync_file_range calls
+sync: 22452352 sync_file_range calls
+@calls: 911652
+@wb_ours: 901102
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 5: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 42398 saves (31994 synced), 144090 entries, 96391157 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 43004 saves (32312 synced), 145673 entries, 97603670 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 43206 saves (32379 synced), 145760 entries, 98150603 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 42602 saves (31971 synced), 143914 entries, 96490325 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 43264 saves (32360 synced), 145558 entries, 98181213 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 42400 saves (31847 synced), 143831 entries, 95745005 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 43298 saves (32483 synced), 146130 entries, 97703029 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 43207 saves (32378 synced), 145111 entries, 98064617 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 42775 saves (32211 synced), 145234 entries, 96729025 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 43538 saves (32753 synced), 147635 entries, 98665536 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 42937 saves (32216 synced), 144620 entries, 97564309 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 42602 saves (31897 synced), 143646 entries, 96951033 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 42679 saves (32050 synced), 143802 entries, 97182265 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 43179 saves (32423 synced), 145751 entries, 97766330 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 43055 saves (32345 synced), 145595 entries, 97715907 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 42862 saves (32164 synced), 144675 entries, 97129135 data bytes, 0 restarts
+sync: 21314048 sync_file_range calls
+sync: 21454720 sync_file_range calls
+@calls: 935680
+@wb_ours: 935691
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 6: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 46127 saves (34815 synced), 157053 entries, 104821358 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 46865 saves (35254 synced), 159053 entries, 106401467 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 47018 saves (35226 synced), 158446 entries, 106706960 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 46662 saves (34983 synced), 157344 entries, 105466386 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 45900 saves (34365 synced), 154526 entries, 104324509 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 45968 saves (34508 synced), 155929 entries, 103783688 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 45859 saves (34398 synced), 154796 entries, 103448229 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 47298 saves (35464 synced), 158956 entries, 107490906 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 47267 saves (35582 synced), 160532 entries, 106936500 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 47557 saves (35731 synced), 161079 entries, 107696388 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 45984 saves (34523 synced), 155163 entries, 104632977 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 46414 saves (34736 synced), 156780 entries, 105690521 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 45682 saves (34303 synced), 154033 entries, 104116768 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 46045 saves (34582 synced), 155395 entries, 104396636 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 47212 saves (35472 synced), 159588 entries, 107251568 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 46352 saves (34767 synced), 156292 entries, 104966775 data bytes, 0 restarts
+sync: 23160448 sync_file_range calls
+sync: 23360832 sync_file_range calls
+@calls: 1012303
+@wb_ours: 1001754
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 7: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 40126 saves (30274 synced), 136316 entries, 91116332 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 38885 saves (29221 synced), 131709 entries, 88278475 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 39113 saves (29322 synced), 132097 entries, 88871471 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 39064 saves (29341 synced), 132085 entries, 88599230 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 40602 saves (30383 synced), 136686 entries, 92313543 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 39184 saves (29442 synced), 133022 entries, 88523130 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 39230 saves (29400 synced), 132253 entries, 88378095 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 39683 saves (29778 synced), 133424 entries, 90168192 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 39463 saves (29773 synced), 134285 entries, 89552366 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 40719 saves (30672 synced), 138222 entries, 92365151 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 39421 saves (29566 synced), 132846 entries, 89536177 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 40331 saves (30172 synced), 135874 entries, 91623894 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 40273 saves (30197 synced), 135644 entries, 91544490 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 39349 saves (29565 synced), 132778 entries, 89222620 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 40361 saves (30377 synced), 136514 entries, 91661016 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 39911 saves (29959 synced), 134739 entries, 90456954 data bytes, 0 restarts
+sync: 22818240 sync_file_range calls
+sync: 22251712 sync_file_range calls
+@calls: 871428
+@wb_ours: 866064
+@zero_retry: 1
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 8: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 36125 saves (27239 synced), 122768 entries, 82007371 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 36217 saves (27185 synced), 122558 entries, 82193480 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 34999 saves (26204 synced), 117962 entries, 79389879 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 36285 saves (27230 synced), 122606 entries, 82375820 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 35421 saves (26524 synced), 119241 entries, 80485707 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 35546 saves (26705 synced), 120542 entries, 80230577 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 36195 saves (27162 synced), 121962 entries, 81768961 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 35476 saves (26600 synced), 119181 entries, 80725060 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 35351 saves (26690 synced), 120413 entries, 80282793 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 36765 saves (27716 synced), 124898 entries, 83385724 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 35162 saves (26344 synced), 118397 entries, 79697862 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 35449 saves (26544 synced), 119558 entries, 80615512 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 35790 saves (26864 synced), 120763 entries, 81485143 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 35749 saves (26842 synced), 120605 entries, 81083119 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 35754 saves (26913 synced), 121186 entries, 81072654 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 36171 saves (27178 synced), 122206 entries, 81960179 data bytes, 0 restarts
+sync: 21691520 sync_file_range calls
+sync: 22279552 sync_file_range calls
+@calls: 772563
+@wb_ours: 774549
+@zero_retry: 1
+WB-TORN lines: 0
+losetup: /dev/loop1: detach failed: No such device or address
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 9: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 31634 saves (23851 synced), 107528 entries, 71943027 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 30536 saves (22942 synced), 103341 entries, 69441996 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 30840 saves (23098 synced), 104112 entries, 70072883 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 30754 saves (23065 synced), 103767 entries, 69984815 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 30795 saves (23043 synced), 103439 entries, 70038522 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 30939 saves (23213 synced), 104869 entries, 69774854 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 31096 saves (23348 synced), 105045 entries, 70236153 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 30820 saves (23121 synced), 103609 entries, 70163913 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 31162 saves (23533 synced), 106190 entries, 70723287 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 31951 saves (24117 synced), 108678 entries, 72572933 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 30712 saves (22997 synced), 103498 entries, 69672634 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 30691 saves (22985 synced), 103504 entries, 69830306 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 31351 saves (23541 synced), 106066 entries, 71341207 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 31139 saves (23400 synced), 105069 entries, 70740192 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 30982 saves (23311 synced), 105046 entries, 70281228 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 30982 saves (23291 synced), 105136 entries, 70440879 data bytes, 0 restarts
+sync: 23094656 sync_file_range calls
+sync: 22829696 sync_file_range calls
+@calls: 691271
+@wb_ours: 700372
+WB-TORN lines: 0
+check: /tmp/walx/r3/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 10: no log; loop stable_writes 0
+run /tmp/walx/r3/mnt/w0: 38489 saves (29041 synced), 130801 entries, 87419388 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w1: 38817 saves (29172 synced), 131473 entries, 88125055 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w10: 37698 saves (28256 synced), 127255 entries, 85659348 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w11: 38705 saves (29060 synced), 130867 entries, 87738375 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w12: 38396 saves (28746 synced), 129220 entries, 87303275 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w13: 37908 saves (28504 synced), 128629 entries, 85695356 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w14: 38540 saves (28911 synced), 129923 entries, 86882266 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w15: 38382 saves (28801 synced), 129207 entries, 87209000 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w2: 37723 saves (28493 synced), 128644 entries, 85762583 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w3: 37864 saves (28544 synced), 128634 entries, 85921012 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w4: 38513 saves (28865 synced), 129665 entries, 87418036 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w5: 38708 saves (28962 synced), 130374 entries, 87903440 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w6: 37537 saves (28162 synced), 126564 entries, 85413351 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w7: 38373 saves (28818 synced), 129536 entries, 86979633 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w8: 38286 saves (28812 synced), 129509 entries, 86910735 data bytes, 0 restarts
+run /tmp/walx/r3/mnt/w9: 38185 saves (28680 synced), 128889 entries, 86555179 data bytes, 0 restarts
+sync: 21357184 sync_file_range calls
+sync: 21419840 sync_file_range calls
+@calls: 864571
+@wb_ours: 860698
+WB-TORN lines: 0

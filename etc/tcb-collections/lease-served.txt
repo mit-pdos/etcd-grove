@@ -82,15 +82,11 @@ axiom grpc.GenericClientStream.Context.wp_proof
 axiom grpc.GenericClientStream.Recv.wp_proof
 axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.StaticMethod.wp_proof
-axiom grpc.serve
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcPeerOpt
-axiom grpcServerAt
-axiom grpcServes
-axiom grpcServesStream
-axiom grpcServesStream_persistent
-axiom grpcServes_persistent
+axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof

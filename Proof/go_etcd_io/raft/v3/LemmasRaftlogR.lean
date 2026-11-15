@@ -54,6 +54,21 @@ theorem entsPts_same_ptr_len (s1 s2 : GoSlice) (dq : DFrac) (es : List EntryM) :
   iexists ls
   iframe Hs2 Hb
 
+/-- (out_size C3) The list form at another slice value over the same elements (`ents[:len:len]`). -/
+theorem entsPtsC_same_ptr_len (sz : Bool) (s1 s2 : GoSlice) (dq : DFrac) (cs : List EntryC) :
+    cs ≠ [] → s1.ptr = s2.ptr → s1.len = s2.len → sint.Z s2.len ≤ sint.Z s2.cap →
+    entsPtsC (GF := GF) sz s1 dq cs ⊢ entsPtsC sz s2 dq cs := by
+  intro Hne Hptr Hlen Hcap
+  unfold entsPtsC
+  iintro ⟨%ls, Hs, #Hb, %Hz⟩
+  ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+  have Hnl : ls ≠ [] := by
+    intro h; apply Hne; rw [h] at Hl; exact List.eq_nil_of_length_eq_zero Hl.symm
+  ihave Hs2 := ownSlice_same_ptr_len s1 s2 dq ls Hnl Hptr Hlen Hcap $$ Hs
+  iexists ls
+  iframe Hs2 Hb
+  ipureintro; exact Hz
+
 end lemmas
 
 end EtcdGrove

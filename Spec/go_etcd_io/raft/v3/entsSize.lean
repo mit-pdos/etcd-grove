@@ -21,19 +21,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `entsSize(ents)`: the summed encoded size of the entries. The value is
-unspecified, since `Entry.Size` (pointer receiver) is (`spec_Entry__Size.v`);
-`raftLog.slice` only compares it against `maxSize` to decide whether to append the
-unstable part of its result, and either answer is fine.
+/-- `entsSize(ents)`: the summed encoded size of the entries (`util.go:274`).
 
-raft v3.7 (stage R3, 2026-10-15): the size of each entry is `proto.Size(ent)` (`util.go:277`,
-`proto.SizeEntry.spec`: some `n ≥ 0`), not gogoproto's `Entry.Size`; the statement is unchanged
-(the value was unspecified already). -/
+(out_size C3) The entries at their contents (`entsPtsC sz`). When they are sized, the result is the
+sum of protobuf's sizes (`entrySize`), if that sum is below `2^64` (each size is `proto.SizePb`'s at
+`Entry`'s registered instance, exact for a sized entry; the `uint64` sum wraps silently above):
+`raftLog.slice` compares it against `maxSize` to cut the unstable part it appends. -/
 abbrev entsSize.spec : Prop :=
-  ∀ (s : GoSlice) (es : List EntryM) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPts s dq es }}
+  ∀ (sz : Bool) (s : GoSlice) (cs : List EntryC) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPtsC sz s dq cs }}
     (App (Val #(functions entsSize [])) (Val #s))
-  {{ (n : w64), RET #n; entsPts s dq es }}
+  {{ (n : w64), RET #n; entsPtsC sz s dq cs ∗
+      ⌜sz = true → (cs.map entrySize).sum < 2 ^ 64 → uint.nat n = (cs.map entrySize).sum⌝ }}
 
 end spec
 

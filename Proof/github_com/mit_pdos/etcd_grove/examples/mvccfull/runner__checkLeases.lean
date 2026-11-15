@@ -176,9 +176,13 @@ theorem runner.checkLeases.wp_proof
     have hRB : receiptBound GF ≤ 2 ^ 62 := by
       have : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
       omega
+    -- `Leases()` takes the level-0 token (the lessor's and the leases' pools are level 0)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
     wp_apply (wp_Leases v.lp (mvccLeases v.ι.kv) mL) $$ [Htok]
       as %sl %ls ⟨Htok, Hsl, ⟨%iL, %HiL, #Hmap⟩, -⟩
     · iframe #; iframe; ipureintro; exact ⟨hTB, hRB⟩
+    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
+    · iframe Htok Htok1
     ihave ⟨Hlo, %Hids⟩ := Hback $$ %iL %ls %HiL Hmap
     have hLnd : (leasesAfter ks ops v.ops).Nodup :=
       ((logOk_leases ks Hkl ops hlog v.ops).1).imp (fun h => by intro e; subst e; omega)

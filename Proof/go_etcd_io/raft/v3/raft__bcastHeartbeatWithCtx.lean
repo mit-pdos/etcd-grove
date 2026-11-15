@@ -58,7 +58,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) := by
-  intro c r id s ctx cl G Hlead Htz
+  intro c r id s ctx cl G Hlead Htz Hcl
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -133,7 +133,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       wp_auto
       wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl
           (fun cm => G ((s.outbox ++ ms) ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))
-          Hii (by exact Hicfg) (by exact Htz) $$ [$Hphys HG]
+          Hii (by exact Hicfg) (by exact Htz) Hcl $$ [$Hphys HG]
         as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm', HG⟩
       · iframe Hctx
         -- (Q8 stage 1, slice 5) the caller's gate for this heartbeat, at `s`

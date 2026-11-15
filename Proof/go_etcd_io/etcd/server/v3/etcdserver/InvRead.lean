@@ -105,7 +105,7 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
     srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
@@ -244,6 +244,18 @@ def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (t : TxnModel) (
       ⌜irrWireOf (apply.withHeader (irrTxn tw) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
     srvMaybeDeposited ρ (irrTxn tw)))
 
+/-- The future revision at the log `log` (`txn.rangeResult`'s first case): the request's revision
+above the log's last. -/
+def rangeFutureAt (o : OpFull) (log : mvcc.Log) (_crev : Int) : Prop :=
+  sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev
+
+/-- The compacted revision at the log `log` and compaction revision `crev` (`txn.rangeResult`'s
+fourth case): the revision read below `crev`. (In `ReadOn` until 2026-11-10, moved here for the
+client's `etcdRangeSpecE`.) -/
+def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
+  sint.Z o.base.rev ≤ sint.Z (W64 ((log.length : Int) - 1)) ∧
+    sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev
+
 /-- The server's KV invariants, of the read side (`isServerRead`'s; G2's follow-up, 2026-10-30: the server's law,
 until then the client's). -/
 theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -348,8 +360,8 @@ theorem applyErrIs_of_isCtxErr :
   · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
     icombine Hcv HeD gives %Hce
     subst Hce
-    obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
-    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
+    obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
+    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
 
 /-- **`rangeKeys`' context error (and its `%w` wrappings) is one the gRPC layer can take**
 (`applyErrIs`; errorf-wrap, 2026-11-06, in place of `applyErrIs_errorf`, which learnt from

@@ -3,6 +3,7 @@
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
 public import Perennial.ProgramLogic.Bounds
@@ -74,6 +75,8 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
     (R : mvcc.Log) (r : mvcc.CmpRecs) (Ls : List w64)
     (hk : Option val) (Pre Q Post X Y : IProp GF) (dq : DFrac),
   {{ ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
+      -- (premise fixes 6) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil lg ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         mvcc.storeSessT b s γ P) ∗

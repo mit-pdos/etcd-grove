@@ -26,12 +26,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`newQuotaApplierV3(lg, cfg, be, app)`**: the quota applier over `app` (an applier of the chain `c`) and a backend quota: an applier of the chain `quota c`. -/
+/-- **`newQuotaApplierV3(lg, cfg, be, app)`**: the quota applier over `app` (an applier of the chain `c`) and a backend quota: an applier of the chain `quota c`. A zap logger (`NewBackendQuota` logs through it;
+premise fixes 6). -/
 abbrev apply.newQuotaApplierV3.spec : Prop :=
   ∀ (lg : Loc) (cfg : w64) (be app : GoInterface),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ zapLoggerOk lg }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3))
       (Val #lg)) (Val #cfg)) (Val #be)) (Val #app))
   {{ (a : GoInterface), RET #a;

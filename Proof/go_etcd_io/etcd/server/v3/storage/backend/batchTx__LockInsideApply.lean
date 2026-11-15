@@ -38,7 +38,7 @@ theorem backend.batchTx.LockInsideApply.wp_proof
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
+    ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   wp_auto
   wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HPk⟩, Ho⟩

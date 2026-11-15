@@ -42,7 +42,7 @@ theorem v3rpc.getServerMetrics.wp_proof
     (hErr : zap.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) := by
   intro mt lg
-  wp_start as %Hlgn
+  wp_start as #Hlgn
   -- `metricsServerLock`: `v3rpc`'s package fact (item 8)
   ihave #Hvars : (v3rpc.metricsVars : IProp GF) $$ []
   · ihave Hvi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
@@ -112,7 +112,7 @@ theorem v3rpc.getServerMetrics.wp_proof
       iintro %zsl ⟨-, -⟩
       (try wp_auto)
       wp_apply (hWarn lg _ _)
-      · iframe #; ipureintro; exact Hlgn
+      · iframe #
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock $$ [$Hvars $Hlocked Hm]
       · iunfold v3rpc.metricsP

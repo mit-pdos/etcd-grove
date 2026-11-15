@@ -48,7 +48,7 @@ theorem mget.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       (try wp_auto)
       have : mgetL x g = otherL := by simp [mgetL, hp]
       rw [this]
-      simp only [otherL]
+      simp only [otherL, errOutL]
       iapply HΦ
       itrivial
   | some m =>
@@ -58,10 +58,10 @@ theorem mget.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
-      have : mgetL x g = otherL := by
+      have : mgetL x g = tooLargeL := by
         simp only [mgetL, hp]; rw [if_pos (by rw [← Hr]; word)]
       rw [this]
-      simp only [otherL]
+      simp only [tooLargeL, errOutL]
       iapply HΦ
       itrivial
     have hle : ¬ uint.nat g.rv < uint.nat req := by rw [← Hr]; word
@@ -84,7 +84,7 @@ theorem mget.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         (try wp_auto)
         have : mgetL x g = zeroOutL := by simp [mgetL, hp, hle, hn, hi]
         rw [this]
-        simp only [zeroOutL]
+        simp only [zeroOutL, errOutL]
         iapply HΦ
         (try ipureintro; trivial)
     · have hn : (lookupL g.items x.Key').2 = true := hok.symm

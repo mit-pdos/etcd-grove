@@ -37,9 +37,10 @@ theorem rafthttp.startRemote.wp_proof
   iapply wp_fupd
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
-  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
+  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, #Hlgz,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
     %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
@@ -47,7 +48,7 @@ theorem rafthttp.startRemote.wp_proof
   wp_apply hNewPicker urls uvs (peerURL Rh pid) Hne Hurls $$ [] as %pk #Hpk
   · iframe #
   (try wp_auto)
-  wp_apply hNewStatus lg lid pid Hlgnn as %ps #Hps
+  wp_apply hNewStatus lg lid pid $$ [$Hlgz] as %ps #Hps
   (try wp_auto)
   obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
   subst hpl
@@ -62,8 +63,6 @@ theorem rafthttp.startRemote.wp_proof
     iunfold pipeFixed
     iexists t, pk, ec, lg, turls, tuvs, lid, cid, prt, ps, null, r, lid, γd
     iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
     isplitr
     · ipureintro; exact ⟨Hmem, Hnp⟩
     ipureintro; exact Hturls
@@ -86,7 +85,6 @@ theorem rafthttp.startRemote.wp_proof
   · iunfold remoteOk
     iexists lg, ps, pl
     iframe #
-    ipureintro; exact Hlgnn
   iunfold remoteStop
   iexists pl
   iframe; iframe #

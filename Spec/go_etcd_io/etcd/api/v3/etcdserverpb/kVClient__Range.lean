@@ -27,23 +27,25 @@ for a metadata-indexed spec `Spec` the server registered for the method (since 2
 plan's E3zc; a plain one is `GrpcSpec.md`) and the caller's `Φ` at every metadata an attempt may
 deliver (`attemptPre`): `Invoke` of
 `"/etcdserverpb.KV/Range"` with `grpc.StaticMethod()` before the options, into a new
-`*RangeResponse`: the call's answer (`rangeCallOut`, the run's `Φ`); the request comes back. The
+`*RangeResponse`: the call's answer (`rangeCallOut`, the run's `Φ`), at an error the caller's error
+outcome `Ψe` (`ifcErrOut`; k8s 7e-1); the request comes back. The
 request has no unknown fields (a struct literal) and its encoding is below `grpcMsgMax` (2026-10-30:
 grpc marshals before it checks a size, `grpcInvokerOk`). -/
 abbrev kVClient.Range.spec : Prop :=
   ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse)
     (Φ : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
-    (vs : List GoInterface),
+    (vs : List GoInterface) (Ψe : GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (rangeReqOp req k e) Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (rangeReqOp req k e) Φ Ψe ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil ∧ (pbRangeRequest (GF := GF)).wireLen (rangeReqOp req k e) < grpcMsgMax⌝ }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Φ resp err }}
+      (∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Φ resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ -∗ ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψe err) }}
 
 end spec
 

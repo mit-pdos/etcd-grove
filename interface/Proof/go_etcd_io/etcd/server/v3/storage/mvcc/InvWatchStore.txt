@@ -37,6 +37,9 @@ theorem mvcc.watcherMeta_agree (γ : mvcc.WsNames) (w : Loc) (γw γw' : mvcc.Wa
 theorem mvcc.evsWf_pos (γ : mvcc.WsNames) (r : mvcc.WatchRange) (lo : Nat) (evs : List mvcc.EvM) (d
     : Nat) : mvcc.evsWf γ r lo evs d ⊢ ⌜∀ (ev : mvcc.EvM), ev ∈ evs → mvcc.evPos ev⌝
 
+theorem mvcc.respPk_nil (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (r : mvcc.RespM)
+    (h : r.evs = []) (ps : List Loc) : ownSlice v.Events' ps DFrac.discard ⊢ mvcc.respPk v r
+
 def mvcc.WatcherNames.countable : Pos.Countable mvcc.WatcherNames :=
   Pos.Countable.ofInjective
     (fun g =>
@@ -535,7 +538,7 @@ def mvcc.respIs (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (r : 
   iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
       ∃ ps,
         ownSlice v.Events' ps DFrac.discard ∗
-          ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evIs x.fst x.snd)
+          ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evRd x.fst x.snd)
 
 theorem mvcc.evLog_sealed (γ : mvcc.StoreNames) (L : mvcc.Log) : mvcc.evLog γ L ⊢ mvcc.idxSealed
     γ.idx L
@@ -584,7 +587,7 @@ def mvcc.WsState.vicBelow (σ : mvcc.WsState) (N : Nat) : Prop :=
     ∀ (w : Loc) (st : mvcc.WatcherSt), σ.Wo !! w = some st → sint.Z st.minRev ≤ ↑N
 
 def mvcc.filterSpec (f : GoFunc) (p : mvcc.EvM → Bool) : IProp GF :=
-  iprop(□ ∀ e ev, □ ∀ Φ, mvcc.evIs e ev -∗ (▷ ∀ b, ⌜b = p ev⌝ -∗ Φ (intoVal b)) -∗ WP ((intoVal f) (intoVal e)) {{ Φ }})
+  iprop(□ ∀ e ev, □ ∀ Φ, mvcc.evRd e ev -∗ (▷ ∀ b, ⌜b = p ev⌝ -∗ Φ (intoVal b)) -∗ WP ((intoVal f) (intoVal e)) {{ Φ }})
 
 def mvcc.regsOk (RI : GMap Loc Nat) (sent : List mvcc.RespM) : Prop :=
   ∀ (w : Loc) (n k : Nat) (x : mvcc.RespM), RI !! w = some n → n ≤ k → sent[k]? = some x → x.id = W64 (-1) → w ∈ x.regs
@@ -833,6 +836,10 @@ theorem mvcc.wsFields_fractional (s : Loc) (γ : mvcc.WsNames) : Fractional (mvc
 theorem mvcc.isWatchableStore_noCompactor (s st : Loc) (γ : mvcc.WsNames) (h : γ.st.cm = false) :
     mvcc.isWatchableStore s st γ ⊢ mvcc.noCompactor γ.st
 
+def mvcc.respPk (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (r : mvcc.RespM) : IProp
+    GF :=
+  iprop(∃ ps, ownSlice v.Events' ps DFrac.discard ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evPk x.fst x.snd)
+
 theorem mvcc.rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : mvcc.WsNames) : Persistent (mvcc.rdIs
     rd s st γ)
 
@@ -856,6 +863,10 @@ theorem mvcc.isWatchTxnWrite_bt (tw s st : Loc) (γ : mvcc.WsNames) (trace : Loc
     γ.st bt
 
 theorem mvcc.regWit_nil (γc : mvcc.WatchChanNames) : ⊢ mvcc.regWit γc []
+
+def mvcc.respsPk (vs : List go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (rs : List
+    mvcc.RespM) : IProp GF :=
+  [∗list] x ∈ vs.zip rs, mvcc.respPk x.fst x.snd
 
 def mvcc.notifiedLent (γ : mvcc.WsNames) : Option (Qp × mvcc.Log) → IProp GF :=
   match x✝ with
@@ -1043,17 +1054,18 @@ def mvcc.watchChanInv (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNames)
           "%Hpre" ∷ ⌜recv <+: sent⌝ ∗
             "%Hinfl" ∷ ⌜chanInflight s = some vs⌝ ∗
               "#Hvs" ∷ mvcc.respsIs vs (List.drop recv.length sent) ∗
-                ("#Hok" ∷ □ [∗list] r ∈ sent, mvcc.respOk r) ∗
-                  "Hregl" ∷ ghostVar γc.regl (Qp.half 1) L ∗
-                    ("Hcl" ∷ if chanIsClosed s = true then ghostVar γc.regl (Qp.half 1) L else True) ∗
-                      "Hreg" ∷ ghostMapAuth γc.reg 1 (mvcc.regMap L) ∗
-                        "%Hnd" ∷ ⌜L.Nodup ∧ ∀ (x : mvcc.RespM), x ∈ sent → x.w ∈ L⌝ ∗
-                          ("#Hrf" ∷ □ [∗list] w ∈ L, mvcc.chanRegFact γc w) ∗
-                            ("#Hrt" ∷ □ [∗list] w ∈ L, mvcc.chanRegW γ γc w) ∗
-                              ("#Hpf" ∷ □ [∗list] r ∈ sent, iprop(⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog)) ∗
-                                "Hsentl" ∷ mvcc.sentAuth γ γc sent L ∗
-                                  ("Hws" ∷ [∗list] w ∈ L, mvcc.chanWatcher γ γc (chanIsClosed s) sent w) ∗
-                                    "Hapi" ∷ mvcc.chanApi γ ch γc sent recv)
+                "Hpk" ∷ mvcc.respsPk vs (List.drop recv.length sent) ∗
+                  ("#Hok" ∷ □ [∗list] r ∈ sent, mvcc.respOk r) ∗
+                    "Hregl" ∷ ghostVar γc.regl (Qp.half 1) L ∗
+                      ("Hcl" ∷ if chanIsClosed s = true then ghostVar γc.regl (Qp.half 1) L else True) ∗
+                        "Hreg" ∷ ghostMapAuth γc.reg 1 (mvcc.regMap L) ∗
+                          "%Hnd" ∷ ⌜L.Nodup ∧ ∀ (x : mvcc.RespM), x ∈ sent → x.w ∈ L⌝ ∗
+                            ("#Hrf" ∷ □ [∗list] w ∈ L, mvcc.chanRegFact γc w) ∗
+                              ("#Hrt" ∷ □ [∗list] w ∈ L, mvcc.chanRegW γ γc w) ∗
+                                ("#Hpf" ∷ □ [∗list] r ∈ sent, iprop(⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog)) ∗
+                                  "Hsentl" ∷ mvcc.sentAuth γ γc sent L ∗
+                                    ("Hws" ∷ [∗list] w ∈ L, mvcc.chanWatcher γ γc (chanIsClosed s) sent w) ∗
+                                      "Hapi" ∷ mvcc.chanApi γ ch γc sent recv)
 
 theorem mvcc.evsWf_doomed (γ : mvcc.WsNames) (r : mvcc.WatchRange) (lo : Nat) (evs : List mvcc.EvM)
     (d : Nat) (L : mvcc.Log) (h : d ≤ List.length L ∨ d ≤ lo) (hne : evs ≠ [] → lo < d) (hpos : ∀

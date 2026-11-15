@@ -10,11 +10,14 @@ premises on every path (`ev = 0` or `Seen`, the header revision reached or `0`),
 compaction revision recorded and reached. No panic: the else arm's `Kvs[0]` reads the key the failed
 compare says is present (`casPost`). The cluster in compaction mode with no retention (`cmp`,
 `cret = 0`: K1's client-only mode, `v3compactor.bootCfg_off`), so the compaction needs only the
-revision reached. A `ParseInt` failure returns no revision (`crev = 0`); an error returns none.
+revision reached. A `ParseInt` failure returns no revision (`crev = 0`); an error returns none, and
+is one `fmt` formats by its `Error()` (`fmt.argOk`: the client's errors, `kvErr`; klog-args-fix,
+2026-11-14, for the caller's `klog.Errorf`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -53,7 +56,7 @@ abbrev Compact.spec : Prop :=
   {{ (cv cr crev : w64) (err : GoInterface), RET (PairV (PairV (PairV #cv #cr) #crev) #err);
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       (⌜cv = W64 0⌝ ∨ Seen) ∗ revOk γk cr ∗ recRevOk γk recorded crev ∗
-      ⌜err ≠ GoInterface.nil → crev = W64 0⌝ }}
+      ⌜err ≠ GoInterface.nil → crev = W64 0⌝ ∗ fmt.argOk err }}
 
 end spec
 

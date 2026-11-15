@@ -20,15 +20,15 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
                     "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms false L ∗
                         "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
                           "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-                            "#Hents" ∷ entsRO rd.Entries' es ∗
+                            "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
                               "Hmsgs" ∷ ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
                                 "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
-                                  ("Hmsgs_own" ∷ [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+                                  ("Hmsgs_own" ∷ [∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
                                     "%Hmsgs_term" ∷ ⌜∀ (q : QMsg), q ∈ ms → uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
                                       "Habandon" ∷
                                           (ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) -∗
                                             ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
-                                              ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+                                              ([∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) -∗
                                                 ownRawNodeReady γ rn id rs rd ce es ms false L -∗
                                                   ∃ n u c,
                                                     ⌜ms.length ≤ n ∧

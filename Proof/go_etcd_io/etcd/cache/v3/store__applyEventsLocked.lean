@@ -450,7 +450,7 @@ theorem store.applyEventsLocked.wp_proof
             · ipureintro; rfl
             iintro %asl ⟨Hasl, -⟩
             wp_auto
-            wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hfmt $Hasl] as %err #HeS
+            wp_apply wp_Errorf_errStrOk _ _ _ ?wf $$ [$Hfmt $Hasl] as %err #HeS
             case wf =>
               try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
               repeat' first
@@ -475,7 +475,7 @@ theorem store.applyEventsLocked.wp_proof
             rw [applyEventsLocked_btDelete_of_find_none Hf]
             iapply HΦ
             isplitl []
-            · iapply errStrOk_ok; unfold errorStringSpec; iexact HeS
+            · iexact HeS
             rw [Happ]
             iunfold storeLockedPhys
             iunfold storeLatestTree

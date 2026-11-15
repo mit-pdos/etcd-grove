@@ -29,7 +29,7 @@ theorem backend.New.wp_proof
     (hNB : backend.newBackend.spec (GF := GF) (hG := hG)) :
     backend.New.spec (GF := GF) (hG := hG) := by
   intro _ cfg P D W Pk K
-  wp_start as ⟨Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
+  wp_start as ⟨#Hzl, Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   wp_auto
   wp_apply (hNB cfg P D W Pk K) $$ [Hfile Hmk Htok] as %r Hr
   · iframe

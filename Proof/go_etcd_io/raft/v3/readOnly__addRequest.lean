@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem readOnly.addRequest.wp_proof : readOnly.addRequest.spec (GF := GF) (hG := hG) := by
-  intro ro r commitIndex req m ents sn ctx rs
+  intro sz ro r commitIndex req m ents sn ctx rs Hty
   wp_start as ⟨Hown, #Hreq⟩
   iNamed Hown
   unfold ownReadOnly
@@ -52,7 +52,7 @@ theorem readOnly.addRequest.wp_proof : readOnly.addRequest.spec (GF := GF) (hG :
   iexists _, m, sn, ctx, rs
   iframe «$sl0» Hreq
   ipureintro
-  exact ⟨rfl, rfl⟩
+  exact ⟨rfl, rfl, Hty⟩
 
 end proof
 

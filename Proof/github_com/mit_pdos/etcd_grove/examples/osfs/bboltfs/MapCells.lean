@@ -7,7 +7,7 @@ the cells `[lo, lo + B.length)`, holding `B`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Store
-public import GooseLang.Ext.OsFs.Truncate
+public import GooseLang.Ext.Fs.Truncate
 
 @[expose] public section
 
@@ -17,7 +17,12 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+/-- What a mapped cell holding the byte `b` shows. -/
+abbrev Fs.byteCell [GooseExts] (b : w8) : val := toCellVal (some b)
 
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
@@ -138,28 +143,28 @@ theorem cellsR_bounds (base : Loc) (n : Nat) (vf : Nat → val) (h : 0 < n) :
 end cells
 
 section agree
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-theorem osBytes_cons (p : GoString) (off : Nat) (dq : DFrac) (x : w8 × Bool) (xs : List (w8 × Bool)) :
+theorem osBytes_cons (p : Ino) (off : Nat) (dq : DFrac) (x : ByteG) (xs : List ByteG) :
     osBytes (L := L) p off dq (x :: xs) ⊣⊢ osByte (L := L) p off dq x ∗ osBytes (L := L) p (off + 1) dq xs := by
   unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
 
-theorem osBytes_nil (p : GoString) (off : Nat) (dq : DFrac) :
+theorem osBytes_nil (p : Ino) (off : Nat) (dq : DFrac) :
     osBytes (L := L) p off dq [] ⊣⊢ emp := by
   unfold osBytes; exact bytesG_nil _ _ _ _
 
 /-- The client halves of mapped cells `[lo, lo + xs.length)` hold the bytes `xs` of the file, of
 which the client holds a fraction, given its `OsMeta`. -/
-theorem cellsR_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac) (m : OsMeta)
+theorem cellsR_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ∀ (xs : List (w8 × Bool)) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
-    ⊢ osInv (L := L) -∗ osMeta (L := L) p dqm (some m) -∗ osBytes (L := L) p lo dqb xs -∗
+    ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
+    ⊢ osInv (L := L) -∗ osMeta (L := L) p dqm m -∗ osBytes (L := L) p lo dqb xs -∗
       cellsR base lo xs.length vf -∗
-      (osMeta (L := L) p dqm (some m) -∗ osBytes (L := L) p lo dqb xs -∗
+      (osMeta (L := L) p dqm m -∗ osBytes (L := L) p lo dqb xs -∗
         cellsB base lo (xs.map Prod.fst) -∗ WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
   | [], lo, vf, _ => by

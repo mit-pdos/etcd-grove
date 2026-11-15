@@ -185,8 +185,8 @@ theorem read.Read.LinearizableReadNotify.wp_proof
         · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
           icombine Hcv HeD gives %Hce
           cases Hce
-          obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
-          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
+          obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
+          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
           ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
           · iPkgInit
           iapply HΦ; iunfold readReader; iframe Hrr Ha

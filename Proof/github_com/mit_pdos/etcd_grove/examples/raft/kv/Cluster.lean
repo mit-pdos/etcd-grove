@@ -102,7 +102,7 @@ def kvPeerOk (γ : Cluster) (id : w64) (nd : GoInterface) : IProp GF :=
     -- (2026-11-12, trace-check implementation step 1) an untraced cluster: `stepIn_intro` takes the
     -- message's token, free there (`sentTok_untraced`)
     ⌜Cluster.trace γ = none⌝ ∗
-    ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+    ⌜γ.maxData = none⌝ ∗ ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     isNode n γ kvRaftN id)
 
 instance kvPeerOk_persistent (γ : Cluster) (id : w64) (nd : GoInterface) :

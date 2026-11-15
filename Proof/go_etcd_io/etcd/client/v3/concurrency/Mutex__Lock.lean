@@ -47,9 +47,9 @@ theorem Mutex.Lock.wp_proof
     (wp_Unlock : Mutex.Unlock.spec (GF := GF) (hG := hG)) :
     Mutex.Lock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #Hcc, #Hlo⟩
+  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hcc, #Hlo⟩
   wp_auto
-  wp_apply wp_tryAcquire m s γ client id pfx st ctx cs lo $$ [$Hm $Hst $Hctx $Hlo]
+  wp_apply wp_tryAcquire m s γ client id pfx st ctx cs lo $$ [$Hm $Hst $Hctx $HctxC $Hlo]
     as %resp %err Hres
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
@@ -138,12 +138,12 @@ theorem Mutex.Lock.wp_proof
   have Hpos := (Hrevs ow How).1
   have Hrev1 : 0 < sint.Z (rev - W64 1) := by word
   wp_apply wp_Client s γ client id $$ [$Hsess]
-  wp_apply wp_waitDeletes ctx cs client pfx (rev - W64 1) r $$ [$Hcl $Hctx $Hcc $Hr]
+  wp_apply wp_waitDeletes ctx cs client pfx (rev - W64 1) r $$ [$Hcl $Hctx $HctxC $Hcc $Hr]
     as %werr Hwd
   · ipureintro; exact ⟨Hpfx, Hpl, Int.le_of_lt Hrev1⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, #Hctxf, #Hcctx, #HKV, -, -, -⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, #Hctxf, #Hcctx, #HcctxC, #HKV, -, -, -⟩
   icases Hwd with (%Hwne | ⟨%Hwnil, %R0, %sw, #HR0, #Hsw, %Hw⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
       cases werr with
@@ -154,7 +154,7 @@ theorem Mutex.Lock.wp_proof
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     wp_apply wp_Unlock m s γ client id pfx ⟨key, rev, st.hdr⟩ cctx ccs (W64 0)
-      $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $H0] as %uerr Hu
+      $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr Hu
     · unfold mutexState; iframe; ipureintro; exact Hkln
     iapply HΦ
     iright; iright
@@ -168,7 +168,7 @@ theorem Mutex.Lock.wp_proof
   iunfold isEtcdKV at HKV
   ihave #HG := HKV $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %R0
   wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx Hopts HR0
+  · iframe Hctx HctxC Hopts HR0
     ipureintro
     exact ⟨keyOp_not_panics, (keyOp_t key).1, keyOp_size Hkln⟩
   iunfold kvGetResult at Hgres
@@ -182,7 +182,7 @@ theorem Mutex.Lock.wp_proof
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     wp_apply wp_Unlock m s γ client id pfx ⟨key, rev, st.hdr⟩ cctx ccs (W64 0)
-      $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $H0] as %uerr Hu
+      $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr Hu
     · unfold mutexState; iframe; ipureintro; exact Hkln
     iapply HΦ
     iright; iright

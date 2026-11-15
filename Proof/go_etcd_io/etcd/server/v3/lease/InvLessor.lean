@@ -26,6 +26,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.ThreadPool
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -800,17 +801,22 @@ in `leaseMeta`). -/
 def leaseExpiry (l : Loc) (q : Qp) : IProp GF :=
   iprop(∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e)
 
+/-- The level of a lease's two reader pools (per-type stage B, r5 §3.3: level 0, every borrow
+sequential). -/
+abbrev leaseLvl : Nat := 0
+
 def leasePoolN : Namespace := nroot .@ "lease_pool"
 
 /-- The namespace of a lease's pool of `expiryMu`'s reader slots (the lease-read plan). -/
 def leaseExpPoolN : Namespace := nroot .@ "lease_exp_pool"
 
 /-- A lease of the map (persistent): not nil, its lock guarding its item set, the lessor's
-reader-side invariant, and (Part B) a thread pool of its lock's reader slots, from which a reader
-borrows one with its thread token (`threadPool`, Perennial's `ThreadPool.lean`): `Grant` gives it
+reader-side invariant, and (Part B) a thread pool of its lock's reader slots, at level `leaseLvl`
+(0), from which a reader borrows one with its level-0 token (`threadPool.isThreadPoolL`,
+Perennial's `ThreadPool.lean`): `Grant` gives it
 every slot but the owner's (`closerAt`), `actualMaxReaders - 1 = 2^30 - 2` of them, enough when at
 most `2^30 - 1` threads are live (`threadBound GF ≤ 2^30 - 1`, the premise under which the pool
-exists: `threadPool.init` needs `threadBound ≤ n + 1`; found by Part B's Probe). (The lease-read
+exists: `threadPool.initL` needs `threadBound ≤ n + 1`; found by Part B's Probe). (The lease-read
 plan, 2026-10-31) The same of `l.expiryMu`: its guard (`leaseExpiry`) and a pool of its reader
 slots, from which `Remaining()` borrows one (`LeaseLeases`' sort, on a gRPC goroutine); `Grant`
 gives it every slot but the one whose guard it keeps. -/
@@ -818,9 +824,9 @@ def isLeaseObj (γl : GName) (l : Loc) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ sync.isRWMutexGuard (lsF go!"mu" l) (leaseItems γl l) ∗ lessorRdInv γl ∗
     sync.isRWMutexGuard (lsF go!"expiryMu" l) (leaseExpiry l) ∗
     □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName,
-      threadPool.isThreadPool leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))) ∗
+      threadPool.isThreadPoolL leasePoolN leaseLvl γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))) ∗
     □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γe : GName,
-      threadPool.isThreadPool leaseExpPoolN γe
+      threadPool.isThreadPoolL leaseExpPoolN leaseLvl γe
         (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l))))
 
 instance isLeaseObj_persistent (γl : GName) (l : Loc) : Persistent (isLeaseObj (GF := GF) γl l) := by
@@ -902,15 +908,14 @@ def leaseMeta (id : w64) (l : Loc) (q : Qp) : IProp GF :=
 
 /-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
 the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
-`cp`, and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
+`cp`, `nil` (no checkpointer is installed: `NewLessor.spec`; stage B3, 2026-11-12), and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
 fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it). -/
 def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (cp : GoFunc)
-      (b : GoInterface),
+  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
     lF go!"demotec" lp ↦{DFrac.own q} dc ∗
     lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
-    lF go!"cp" lp ↦{DFrac.own q} cp ∗
+    lF go!"cp" lp ↦{DFrac.own q} func.nil ∗
     ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗
     lF go!"b" lp ↦{DFrac.own q.half} b)
 
@@ -962,13 +967,16 @@ instance clusterOk_persistent (cl : GoInterface) : Persistent (clusterOk (GF := 
 and nothing writes after (`minLeaseTTL`, `checkpointPersist`, `cluster` with its contract,
 `checkpointInterval`, `lg`, `leaseRevokeRate`, positive: `Promote` indexes the sorted leases'
 first when there are at least `leaseRevokeRate` of them, so a rate below `1` with no lease panics;
-audit B4b, 2026-10-18). -/
+audit B4b, 2026-10-18). (2026-11-10, the user's decision of 2026-11-07, sweep B3-2) The logger
+`lg` is nil or a zap logger (`zapLoggerOk`): the lessor logs only through `le.lg != nil` guards
+(`scheduleCheckpointIfNeeded`, `findDueScheduledCheckpoints`, `lessor.go:759,797`), and a non-nil
+zero `&zap.Logger{}` panics in its `Debug`; until then `lg` was unconstrained. -/
 def lessorCfg (lp : Loc) : IProp GF :=
   iprop(∃ (mt : w64) (cpp : Bool) (cl : GoInterface) (ci : _root_.Perennial.time.Duration)
       (lg : Loc) (rr : w64),
     lF go!"minLeaseTTL" lp ↦□ mt ∗ lF go!"checkpointPersist" lp ↦□ cpp ∗
     lF go!"cluster" lp ↦□ cl ∗ clusterOk cl ∗
-    lF go!"checkpointInterval" lp ↦□ ci ∗ lF go!"lg" lp ↦□ lg ∗
+    lF go!"checkpointInterval" lp ↦□ ci ∗ lF go!"lg" lp ↦□ lg ∗ (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
     lF go!"leaseRevokeRate" lp ↦□ rr ∗ ⌜0 < sint.Z rr⌝)
 
 set_option synthInstance.maxHeartbeats 200000 in
@@ -1050,15 +1058,19 @@ theorem leaseOwn_eq {γl : GName} {L : List w64} {I J : GMap LeaseItem w64} (h :
 def lessorRdOf (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, lessorPin γl lp ∗ lessorRd lp γl)
 
+/-- The level of the lessor's reader pool (per-type stage B, r5 §3.3: level 0, every borrow
+sequential). -/
+abbrev lessorLvl : Nat := 0
+
 /-- The namespace of the lessor's reader pool. -/
 def lessorPoolN : Namespace := nroot .@ "lessor_pool"
 
 /-- **The lessor's reader pool** (persistent; the lease-src plan, 2026-11-02): a thread pool of
-reader slots of the lessor of `γl` (`lessorRdOf`), any of which a goroutine borrows with its thread
-token for one lessor call (`Lookup`, `Leases`) and gives back after (`lessorRdPool_borrow`). The
+reader slots of the lessor of `γl` (`lessorRdOf`), at level `lessorLvl` (0), any of which a
+goroutine borrows with its level-0 token for one lessor call (`Lookup`, `Leases`) and gives back after (`lessorRdPool_borrow`). The
 server makes it of `NewLessor`'s slots it does not keep (`NewServer`). -/
 def lessorRdPool (γl : GName) : IProp GF :=
-  iprop(∃ γp : GName, threadPool.isThreadPool lessorPoolN γp (lessorRdOf γl))
+  iprop(∃ γp : GName, threadPool.isThreadPoolL lessorPoolN lessorLvl γp (lessorRdOf γl))
 
 instance lessorRdPool_persistent (γl : GName) : Persistent (lessorRdPool (GF := GF) γl) := by
   unfold lessorRdPool; infer_instance
@@ -1147,11 +1159,12 @@ inductive KeysBy where
   | reader (m : Nat)
 
 /-- **What `l.Keys()` of the lease `l` of `id` takes**: the owner's half of the item set and a
-reader slot of `l.mu`; or, for a reader, `l` the lease of `id` at an index no earlier than `m`, and a
-thread token, with which it borrows a slot from `l`'s pool (at most `2^30 - 1` live threads). -/
+reader slot of `l.mu`; or, for a reader, `l` the lease of `id` at an index no earlier than `m`, and the
+level-0 token of `l`'s leveled pool (`levelTok leaseLvl`), with which it borrows a slot from it (at
+most `2^30 - 1` live threads). -/
 def keysPre (γl : GName) (l : Loc) (id : w64) : KeysBy → IProp GF
   | .owner I => iprop(leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))
-  | .reader m => iprop(leaseLiveFrom γl m id l ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝)
+  | .reader m => iprop(leaseLiveFrom γl m id l ∗ levelTok leaseLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝)
 
 /-- **What `l.Keys()` returned `ks` says**: for the owner, exactly the keys `I` attaches to `id`;
 for a reader, the keys of `l` at an index no earlier than `m` (`leaseKeysFrom`). -/
@@ -1164,7 +1177,7 @@ theorem keysPre_owner (γl : GName) (l : Loc) (id : w64) (I : GMap LeaseItem w64
       iprop(leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) := rfl
 theorem keysPre_reader (γl : GName) (l : Loc) (id : w64) (m : Nat) :
     keysPre (GF := GF) γl l id (.reader m) =
-      iprop(leaseLiveFrom γl m id l ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝) := rfl
+      iprop(leaseLiveFrom γl m id l ∗ levelTok leaseLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝) := rfl
 theorem keysPost_owner (γl : GName) (l : Loc) (id : w64) (ks : List GoString) (I : GMap LeaseItem w64) :
     keysPost (GF := GF) γl l id ks (.owner I) =
       iprop(⌜∀ k : GoString, k ∈ ks ↔ I.lookup (LeaseItem.mk k) = some id⌝) := rfl
@@ -1455,19 +1468,19 @@ theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w6
     ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIS
 
-/-- **A reader slot borrowed from the lessor's pool** with the thread token, and the step that
-gives it back for the token. -/
+/-- **A reader slot borrowed from the lessor's pool** with the level-0 token (`levelTok lessorLvl`),
+and the step that gives it back for the token. -/
 theorem lessorRdPool_borrow (γl : GName) (E : CoPset) (HN : ↑lessorPoolN ⊆ E) :
-    lessorRdPool (GF := GF) γl ∗ threadTok ⊢
-      |={E}=> ▷ lessorRdOf γl ∗ (lessorRdOf γl ={E}=∗ threadTok) := by
+    lessorRdPool (GF := GF) γl ∗ levelTok lessorLvl ⊢
+      |={E}=> ▷ lessorRdOf γl ∗ (lessorRdOf γl ={E}=∗ levelTok lessorLvl) := by
   unfold lessorRdPool
   iintro ⟨⟨%γp, #Hp⟩, Ht⟩
-  imod threadPool.borrow lessorPoolN γp (lessorRdOf γl) E HN $$ [Ht] with ⟨HR, Hl⟩
+  imod threadPool.borrowL lessorPoolN lessorLvl γp (lessorRdOf γl) E HN $$ [Ht] with ⟨HR, Hl⟩
   · iframe Hp Ht
   imodintro
   iframe HR
   iintro HR
-  iapply threadPool.giveBack lessorPoolN γp (lessorRdOf γl) E HN
+  iapply threadPool.giveBackL lessorPoolN lessorLvl γp (lessorRdOf γl) E HN
   iframe Hp Hl HR
 
 /-- **The owner's item map's facts, through the txn layer's resource**: its keys short, its

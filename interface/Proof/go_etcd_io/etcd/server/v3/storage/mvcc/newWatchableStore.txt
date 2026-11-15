@@ -13,41 +13,42 @@ theorem mvcc.newWatchableStore.wp_proof (hNop : zap.NewNop.spec) (hNewStore : mv
     ⊢
       ∀ Φ,
         (⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
-            isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-              (∀ s γ, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ → mvcc.storeSessT b s γ P) ∗
-                (∀ s γ,
-                    ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-                      mvcc.restoreFixM d γ -∗ mvcc.storeBackendTR b s γ P r) ∗
-                  (∀ γ,
+            zapLoggerOrNil lg ∗
+              isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+                (∀ s γ, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ → mvcc.storeSessT b s γ P) ∗
+                  (∀ s γ,
                       ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-                        mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
-                          (mvcc.kbRecs γ.kb γ.bucket r) r) ∗
-                    mvcc.restoreRegM d ∗
-                      mvcc.restoreImageM d γb ([[], []] ++ R) r ∗
-                        mvcc.restoreRcptM d ([[], []] ++ R) ∗
-                          mvcc.kbNoDelOff (some d) ∗
-                            mvcc.kbRegRight (some d) ∗
-                              mvcc.kbWT (some d) ∗
+                        mvcc.restoreFixM d γ -∗ mvcc.storeBackendTR b s γ P r) ∗
+                    (∀ γ,
+                        ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+                          mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
+                            (mvcc.kbRecs γ.kb γ.bucket r) r) ∗
+                      mvcc.restoreRegM d ∗
+                        mvcc.restoreImageM d γb ([[], []] ++ R) r ∗
+                          mvcc.restoreRcptM d ([[], []] ++ R) ∗
+                            mvcc.kbNoDelOff (some d) ∗
+                              mvcc.kbRegRight (some d) ∗
                                 mvcc.kbWT (some d) ∗
-                                  mvcc.kbSRM (some d) ∗
-                                    ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d)) ∗
-                                      lease.lessorRdOf γl ∗
-                                        mvcc.isLessor le γl ∗
-                                          lease.rdOwn γl rd0 ∗
-                                            lease.leaseOwn γl Ls ∅ ∗
-                                              ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
-                                                    mvcc.pendItems ([[], []] ++ R) [] !! it = some lid →
-                                                      lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
-                                                mvcc.idxFresh γi ∗
-                                                  ghostMapAuth γok 1 M ∗
-                                                    (⌜([[], []] ++ R).length ≤ 2⌝ ∨
-                                                        W64 ↑([[], []] ++ R).length ↪[γok]□ [[], []] ++ R ∨
-                                                          W64 0 ↪[γok]□ []) ∗
-                                                      (⌜r.finRev = -1⌝ ∨ □ Perm r.finRev) ∗
-                                                        (⌜r.crev = -1⌝ ∨ □ Perm r.crev) ∗
-                                                          mvcc.resumeCtxM d r P hk Pre Q Post dq X Y ∗
-                                                            if r.resumes = true then mvcc.kbWTSupplyM (some d)
-                                                            else True) -∗
+                                  mvcc.kbWT (some d) ∗
+                                    mvcc.kbSRM (some d) ∗
+                                      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d)) ∗
+                                        lease.lessorRdOf γl ∗
+                                          mvcc.isLessor le γl ∗
+                                            lease.rdOwn γl rd0 ∗
+                                              lease.leaseOwn γl Ls ∅ ∗
+                                                ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
+                                                      mvcc.pendItems ([[], []] ++ R) [] !! it = some lid →
+                                                        lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
+                                                  mvcc.idxFresh γi ∗
+                                                    ghostMapAuth γok 1 M ∗
+                                                      (⌜([[], []] ++ R).length ≤ 2⌝ ∨
+                                                          W64 ↑([[], []] ++ R).length ↪[γok]□ [[], []] ++ R ∨
+                                                            W64 0 ↪[γok]□ []) ∗
+                                                        (⌜r.finRev = -1⌝ ∨ □ Perm r.finRev) ∗
+                                                          (⌜r.crev = -1⌝ ∨ □ Perm r.crev) ∗
+                                                            mvcc.resumeCtxM d r P hk Pre Q Post dq X Y ∗
+                                                              if r.resumes = true then mvcc.kbWTSupplyM (some d)
+                                                              else True) -∗
           (▷
               ∀ s,
                 (∃ st γ,

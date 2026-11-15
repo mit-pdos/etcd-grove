@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -70,8 +71,11 @@ over a nil WAL, or one opened and not read, `Close`, `Save`, `SaveSnap` and `Syn
 opaque walReady (w : Loc) : Prop
 
 /-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL records a snapshot** (opaque, a named
-premise about the program's environment, as `releaseOk`): `wal.SaveSnapshot`'s write and sync of a
-well-formed snapshot record do not fail (I/O). -/
+premise about the program's environment, as `releaseOk`): no write or sync of the WAL's records by
+`wal.Save` or `wal.SaveSnapshot` fails (I/O), in any incarnation of the program. Its uses: the `Save`
+and `SaveSnapshot` laws commit only under it (a failure gives `¬ walSaveOk`: `WAL__Save`'s post,
+`walSaveRn_spec`), and `bootstrapRestartContract`'s premise takes it (out_size C3, the restart clause:
+no `Save` into the sized WAL failed, `walRecs`' and `walFiles`' `sized`). -/
 opaque walSaveOk : Prop
 
 /-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL closes** (opaque, a named premise about
@@ -156,7 +160,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **What opening a database file holding `D` needs besides the file** (see the file header). -/
 def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
-  iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
+  iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗ zapLoggerOk cfg.Logger' ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
     hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
@@ -165,14 +169,14 @@ def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterfa
 /-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
 theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
     (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
-    iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
+    iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗ zapLoggerOk cfg.Logger' ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
       hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ) ∗
       envVerifyOff) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
-  iintro ⟨%Hc, Hg, #Hh, Hmk, #Hvoff⟩
+  iintro ⟨%Hc, #Hzl, Hg, #Hh, Hmk, #Hvoff⟩
   iunfold openPre
-  iframe Hg Hh Hvoff
+  iframe Hg Hh Hvoff Hzl
   isplitr
   · ipureintro; exact Hc
   iintro %γ ⟨Hk, Hf⟩

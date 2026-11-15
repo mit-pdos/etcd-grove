@@ -17,6 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+
 section errptr
 variable [GooseExts] [GoGlobalContext]
 

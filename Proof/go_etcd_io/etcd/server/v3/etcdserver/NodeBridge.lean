@@ -128,8 +128,8 @@ theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInte
     · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
       icombine Hcv HeD gives %Hce
       cases Hce
-      obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
-      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
+      obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
+      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
 
 /-- **The error of a `node` call that hands a message to `run`** (`nodeErr`: `nil`, `ErrStopped`,
 or the context's), as the gRPC layer takes it (`applyErrIs`). -/
@@ -263,15 +263,12 @@ theorem isRNMemStor_of_memstorage (γ : RNNames) :
   letI : MemStorReg GF := ⟨γ.reg⟩
   iintro ⟨#Hpkg, #Hreg, #Hlock⟩
   iunfold isRNMemStor
-  iintro !> %sl %esL %es %Φ !> ⟨#Hsl, #Hents, Hright⟩ HΦ
+  iintro !> %sl %es %Φ !> ⟨#Hents, Hright⟩ HΦ
   iunfold rnAppendRight at Hright
   icases Hright with ⟨Hright, %Hfit⟩
   obtain ⟨Hfits, Hcons⟩ := Hfit
-  ihave #Hpts : entsPts sl DFrac.discard (es.map EntryModel.toM) $$ []
-  · iunfold entsPts
-    iexists esL
-    iframe Hsl
-    iapply entRO_of_entriesAt esL es $$ Hents
+  ihave #Hpts : entsPtsZ γ.γs.sz sl DFrac.discard (es.map EntryModel.toM) $$ []
+  · iapply entsPtsZ_true $$ Hents
   iunfold appendRight at Hright
   icases Hright with (%Hnil | ⟨%e0, %old, %Hh, Hl, He⟩)
   · -- nothing to append
@@ -385,6 +382,13 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, %H, -⟩
     ipureintro; exact H
+  ihave %Hmd : ⌜E.γr.raft.raft.cl.maxData = some (2 ^ 30)⌝ $$ []
+  · ihave #Hcl := Hinv
+    iunfold srvRaftLogInv at Hcl
+    icases Hcl with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -393,7 +397,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   · iexact Hinv
   isplitr
   · iapply srvPropWits_of E.γr.raft $$ Hinv
-  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg, Hlc⟩ HΦ
+  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, %Hlen, Harg, Hlc⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
   iunfold srvPropArg at Harg
   icases Harg with ⟨Hfr, Hau, #HQinv⟩
@@ -405,6 +409,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   wp_apply wp_Propose γ.nl E.γr.raft.raft.cl srvClusterN γ.id dsl data ctx cd $$ [Hapi]
     as %err #Herr
   · iframe #
+    -- (raft-entsize §3) the cluster's bound on proposed data (`2^30`), above the server's `2^27`
+    isplitr
+    · ipureintro; intro b h; rw [Hmd] at h; cases h; omega
     rw [Hdup]
     iexact Hapi
   iapply HΦ
@@ -517,6 +524,11 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   · iunfold srvClusterOk at Hcl
     icases Hcl with ⟨#H, -⟩
     iexact H
+  -- (raft-entsize §3) the cluster's bound on proposed data (`srvClusterOk`)
+  ihave %Hmd : ⌜γ.node.cl.maxData = some (2 ^ 30)⌝ $$ []
+  · iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -538,7 +550,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
-    icases Hcv with ⟨Hcv, #Hrok⟩
     iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
@@ -571,7 +582,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
-        iframe Hrok
         iunfold rnView
         iunfold srvCfgView
         iexists v
@@ -589,9 +599,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
     obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
-    icases Hcv with ⟨Hcv, #Hrok⟩
     -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
-    -- `rnWinInstallAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
+    -- derived since S1, `rnRestartOk_winAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
     have Hab : γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index' :=
       hwa.imp_right Nat.le_of_lt
     iunfold rnView at Hcv
@@ -666,7 +675,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
-        iframe Hrok
         iunfold rnView
         rw [hgA]
         iunfold srvCfgView
@@ -722,6 +730,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
       (srvReadQ E.γr.raft Qr) ctx cd Htr $$ [] as %err #Herr
     · iframe #
+      -- (raft-entsize §3) the read context's 8 bytes, within the cluster's bound (`2^30`)
+      ipureintro; intro b h; rw [Hmd] at h; cases h; rw [beBytes_length]; omega
     ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
     iapply HΦ
     isplitr

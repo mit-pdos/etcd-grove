@@ -46,7 +46,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     (hSp : EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG)) :
     Mutex.tryAcquire.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
+  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -148,10 +148,10 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   ipersist HslC
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, #HTxn, -, -⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, -, #HTxn, -, -⟩
   (try wp_auto)
   iunfold isEtcdTxnKV at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpec at HBs
   icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit, -⟩
   -- `wp_apply_raw`: `wp_apply`'s post-processing fails (unknown free variable) on a

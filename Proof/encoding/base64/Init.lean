@@ -2,14 +2,15 @@
 Package initialization of `encoding.base64`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
-`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
-(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
+k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
+`EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
 Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
-axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
-`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
-buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
-`opaqueInitsOk` the others.
+axioms `StdEncoding_init` and `RawURLEncoding_init` state the ones the fact reads
+(`NewEncoding(encodeStd)`, `URLEncoding.WithPadding(NoPadding)`: fixed `*Encoding`s whose
+`EncodeToString` allocates its output buffer, `Encode`s into it and returns it as a string: no
+panic, no write to its argument), `opaqueInitsOk` the others.
 -/
 module
 
@@ -45,14 +46,18 @@ runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([URLEncoding.init,
-        RawStdEncoding.init,
-        RawURLEncoding.init] : List val),
+        RawStdEncoding.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument's bytes, reading and keeping the slice. -/
 axiom StdEncoding_init :
     {{ (True : IProp GF) }} (App (Val StdEncoding.init) (Val #()))
-    {{ RET #(); _root_.Perennial.encoding.base64.base64Init (GF := GF) }}
+    {{ RET #(); _root_.Perennial.encoding.base64.stdEncInit (GF := GF) }}
+
+/-- `RawURLEncoding = URLEncoding.WithPadding(NoPadding)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the URL base64 encoding without padding `rawUrlEnc` of its argument's bytes, reading and keeping the slice (stage 7e-2, `notes/k8s-7e-2-draft.md` §5.4, attacked T15). -/
+axiom RawURLEncoding_init :
+    {{ (True : IProp GF) }} (App (Val RawURLEncoding.init) (Val #()))
+    {{ RET #(); _root_.Perennial.encoding.base64.rawUrlEncInit (GF := GF) }}
 
 end encoding.base64
 end opaqueInits
@@ -81,13 +86,20 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply StdEncoding_init as #HStdEncoding
   wp_apply (opaqueInitsOk URLEncoding.init (by mem_tac))
   wp_apply (opaqueInitsOk RawStdEncoding.init (by mem_tac))
-  wp_apply (opaqueInitsOk RawURLEncoding.init (by mem_tac))
+  wp_apply RawURLEncoding_init as #HRawURLEncoding
   iframe Hown
   imodintro
   isplitr
   · ipureintro
     exact isPanic_intoVal _
   is_pkg_init_finish
+  isplitl []
+  · imodintro; itrivial
+  imodintro
+  unfold _root_.Perennial.encoding.base64.base64Init
+  isplitl
+  · iexact HStdEncoding
+  iexact HRawURLEncoding
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

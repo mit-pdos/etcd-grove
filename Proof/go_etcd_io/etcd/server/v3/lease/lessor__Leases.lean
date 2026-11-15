@@ -37,9 +37,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- What `leasesByExpiry`, a sorter over the slice `sl`, holds: the pointers of `l`, a permutation
-of `ls0`, and a thread token (for `Less`'s `Remaining()`). -/
+of `ls0`, and the level-0 token of the leases' pools (for `Less`'s `Remaining()`). -/
 def lease.sorterR (sl : GoSlice) (ls0 : List (Loc × w64)) (l : List (Loc × w64)) : IProp GF :=
-  iprop(sl ↦* l.map Prod.fst ∗ threadTok ∗ ⌜l.Perm ls0⌝)
+  iprop(sl ↦* l.map Prod.fst ∗ levelTok leaseLvl ∗ ⌜l.Perm ls0⌝)
 
 /-- `leasesByExpiry` over the slice `sl` permutes the (pointer, id) list `ls0` of leases. -/
 theorem lease.sorter_byExpiry
@@ -158,7 +158,7 @@ theorem lease.lessor.Leases.wp_proof
   ihave %Hszlt := preceipt_lt _ $$ Hsz
   -- the leases' `ID` facts, from their `leaseMeta`s
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
   icases lease.leaseMeta_ids M _ $$ Hmeta with ⟨Hmeta, #Hids⟩
   wp_apply (hUL lp lm M _) $$ [$Hlm $HM] as %sl %ls ⟨Hlm, HM, Hsl, %Hls0⟩
   obtain ⟨Hnd, Hpairs⟩ := Hls0
@@ -189,7 +189,7 @@ theorem lease.lessor.Leases.wp_proof
     · ipureintro; exact HL
     iframe Hsz Hls
     isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
+    · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
     iexists γr, hs
     iframe Hpr Hhl
     ipureintro; exact ⟨Tq, Hlast⟩

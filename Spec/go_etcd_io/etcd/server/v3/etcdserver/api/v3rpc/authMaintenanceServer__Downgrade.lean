@@ -6,6 +6,7 @@ vocabulary `v3rpc/InvAuthAdmin.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -30,20 +31,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- `ams.Downgrade(ctx, r)`: the admin guard (`isPermitted`), then the embedded `maintenanceServer`'s `Downgrade` (names
 only, taken as the guarded contract `guardedOk2`: callable only with the token
-`adminRes` of the request's auth info); the outcome `guardOut`: the inner call's
-answer, or `nil` and an error with `Pin` untouched. -/
+`adminRes` of the request's auth info); the outcome `guardOutC`: the inner call's
+answer, or `nil` and an error with `Pin` untouched, the guard's error `e0` given to `togRPCError`
+(`grpcErrOut`), refused for the reason `adminWhy`, for a caller holding a lower bound `n` of the auth
+store's published index (auth-guard-completeness G3, 2026-11-14). -/
 abbrev v3rpc.authMaintenanceServer.Downgrade.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)
-    (Q : Loc → GoInterface → IProp GF),
+    (Q : Loc → GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ Pin ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
       v3rpc.guardedOk2 (adminRes E.authMode) Pin E.RD
         (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Downgrade" ms (GoInterface.ok ctx) r
         Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Downgrade"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOut Pin Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOutC Pin Q (adminWhy s E.authMode n (GoInterface.ok ctx)) resp err }}
 
 end spec
 

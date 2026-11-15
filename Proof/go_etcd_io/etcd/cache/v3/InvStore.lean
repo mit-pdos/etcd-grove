@@ -181,12 +181,14 @@ def snapModel (st : StoreState) (rev : w64) : SnapResult :=
 
 /-- A watch event, as the store reads it: its type (`mvccpb.Event_EventType`: `0` put,
 `1` delete), its key (`string(ev.Kv.Key)`), its `*KeyValue` and that one's
-`ModRevision`. -/
+`ModRevision`; (k8s 7f-3a) its `PrevKv` pointer (`nil` unless the watch asked for `WithPrevKV`;
+the default keeps the models built before it, `client.evModelOf`). -/
 structure EvModel where
   typ : w32
   key : GoString
   kv : Loc
   rev : w64
+  prevKv : Loc := null
 
 /-- The events' revisions do not decrease (etcd's watch stream; `Apply` needs it so that
 the history's revisions increase). -/

@@ -43,11 +43,14 @@ theorem v3rpc.quotaLeaseServer.LeaseGrant.wp_proof
   cases err with
   | ok ei => cases Herr
   | nil =>
+    iunfold v3rpc.quotaRd at Hqr
+    icases Hqr with ⟨Hlg, Hbm⟩
     wp_auto
     iunfold grpcHandlerOwnOk at Hh
-    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS Hown HSpec] as %resp %err' ⟨HS, Hres, #Hse⟩
+    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS Hlg Hown HSpec] as %resp %err' ⟨⟨HS, Hlg⟩, Hres, #Hse⟩
     · iframe; iframe #
     iapply HΦ
+    iunfold v3rpc.quotaRd
     iframe
     iframe Hse
 

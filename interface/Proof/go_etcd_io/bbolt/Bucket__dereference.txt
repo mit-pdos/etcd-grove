@@ -2,12 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.derefRel_of_step [hos : HasExt osFsExt] (X X' : bbolt.WX) (h : bbolt.derefStep X X')
-    (hd : bbolt.objsDisj X.t) (hpre : bbolt.derefPre X) (hreach : bbolt.liveReach X) (hcov :
-    bbolt.bktCov X' X.rl) : bbolt.derefRel X X'
+theorem bbolt.derefRel_of_step [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (X X' :
+    bbolt.WX) (h : bbolt.derefStep X X') (hd : bbolt.objsDisj X.t) (hpre : bbolt.derefPre X) (hreach
+    : bbolt.liveReach X) (hcov : bbolt.bktCov X' X.rl) : bbolt.derefRel X X'
 
-theorem bbolt.Bucket.dereference.wp_proof [hos : HasExt osFsExt] (hRoot : bbolt.node.root.spec) (hND
-    : bbolt.node.dereference.spec) : bbolt.Bucket.dereference.spec
+theorem bbolt.Bucket.dereference.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hRoot : bbolt.node.root.spec) (hND : bbolt.node.dereference.spec) :
+    bbolt.Bucket.dereference.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.dereference.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX),
     bbolt.derefPre X →

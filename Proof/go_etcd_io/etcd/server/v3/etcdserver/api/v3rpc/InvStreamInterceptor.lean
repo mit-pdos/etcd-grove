@@ -4,37 +4,20 @@
 Lean-first (no Rocq counterpart).
 
 * `v3rpc.streamsMapIs smap` (persistent): the `*streamsMap` `monitorLeader` returns: its `mu` a
-  mutex whose invariant says the `streams` field holds an empty map. The map stays empty because
-  the only insertion (`smap.streams[ss] = struct{}{}`) is in the interceptor's require-leader
-  branch, which `runsNoRequireLeader` excludes; the monitor goroutine only replaces it by a fresh
-  empty map. So its `for ss := range smap.streams` body never runs.
-* `v3rpc.runsNoRequireLeader` (persistent; **a premise about the deployment**): no client of the
-  server asks for a leader on a stream. For every run context grpc gives a handler (`isContext ci
-  cd ∗ grpcRunCtx ci`), `metadata.FromIncomingContext(ci)` meets its generic triple
-  (`metadata.FromIncomingContext.spec`: no metadata, or a fresh map of non-empty fresh slices),
-  and in the map the key `rpctypes.MetadataRequireLeaderKey` (`"hasleader"`, the value `kl` of
-  the package variable) has no value or one whose first element is not
-  `rpctypes.MetadataHasLeader` (`"true"`, the value `hl`): the condition of the interceptor's
-  `if ks := md[MetadataRequireLeaderKey]; len(ks) > 0 && ks[0] == MetadataHasLeader` is false.
-  The slice's clients (the recipes, the cache) never call `clientv3.WithRequireLeader`, which is
-  what puts the pair in a stream's outgoing metadata; the premise is to be discharged by the
-  client-side derivation (W-C). It is deliberately weak: a `hasleader` key with another value is
-  allowed, and the API-version and metrics paths are proved for any metadata.
-
-Why the require-leader branch is excluded rather than proved (`notes/decisions.md`, "The stream
-interceptor's require-leader premise"): it wraps the stream in a `serverStreamWithCtx` whose
-context is `newCancellableContext(ss.Context())`, which the handler would need as a run context
-(`isContext ∗ grpcRunCtx`): (1) Perennial's `WithCancel` over a general `isContext` parent
-(`wp_WithCancel_any`; the strong `context.WithCancel.spec` needs a `*cancelCtx` parent) relates
-the child's `Value` to nothing of the parent's, so `grpcRunCtx` does not transfer; (2)
-`cancellableContext.Err()` returns the stored reason after `Cancel`'s unlock and before
-`c.cancel()`, a non-nil `Err()` while `Done()` is open, against `context.Context`'s contract, so
-the wrapper is not an `isContext` (`issues/etcd-stream-interceptor-err-before-done.md`).
+  mutex whose invariant says the `streams` field holds a map (owned under the local key instance
+  `v3rpc.streamKeys`, `StreamMapKey.lean`) whose every key is a `serverStreamWithCtx` (`v3rpc.sKey t
+  ls l`) over a wrapper `l` with its handle (`v3rpc.ccHandle`, `InvCancellable.lean`; k8s 7f-4): the
+  interceptor's require-leader branch inserts such keys, and the monitor cancels each
+  (`l.Cancel(ErrGRPCNoLeader)`) and waits for its context's `Done`.
+(k8s 7f-4, step 6, the user's decision of 2026-11-08) The deployment premise `v3rpc.runsNoRequireLeader`
+(no client asks for a leader on a stream), which excluded the interceptor's require-leader branch, is
+deleted: the branch is proved (the wrapper's handle, `srvCtxWeak`, the weak stream end
+`srvRawStreamIsW`; `notes/k8s-7f4-freeze.md`), so the closed theorems no longer assume it.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
-public import Proof.google_golang_org.grpc.InvGrpcStream
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.StreamMapKey
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvCancellable
 public import Spec.google_golang_org.grpc.metadata.FromIncomingContext
 
 @[expose] public section
@@ -56,11 +39,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- The invariant of a `*streamsMap`'s mutex: the `streams` field holds an empty map (see the file
-header). -/
+/-- A key of the monitor's map: a `serverStreamWithCtx` over a wrapper with its handle
+(persistent). -/
+def v3rpc.streamKeyOk (k : GoInterface) : IProp GF :=
+  iprop(∃ (t : go.GoType) (ls l : Loc) (c1 : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⌜k = v3rpc.sKey t ls l⌝ ∗ v3rpc.ccHandle l c1 cd)
+
+instance v3rpc.streamKeyOk_persistent (k : GoInterface) :
+    Persistent (v3rpc.streamKeyOk (GF := GF) k) := by
+  unfold v3rpc.streamKeyOk; infer_instance
+
+attribute [local instance 1100] v3rpc.streamKeys in
+/-- The invariant of a `*streamsMap`'s mutex: the `streams` field holds a map (under the key
+instance `v3rpc.streamKeys`) whose keys are `v3rpc.streamKeyOk` (see the file header). -/
 def v3rpc.streamsMapInv (smap : Loc) : IProp GF :=
-  iprop(∃ mp : GoMap, structFieldRef v3rpc.streamsMap go!"streams" smap ↦ mp ∗
-    mp ↦$ (∅ : GMap GoInterface Unit))
+  iprop(∃ (mp : GoMap) (m : GMap GoInterface Unit),
+    structFieldRef v3rpc.streamsMap go!"streams" smap ↦ mp ∗ mp ↦$ m ∗
+    [∗map] k ↦ _u ∈ m, v3rpc.streamKeyOk k)
 
 /-- **The `*streamsMap` `smap`** (persistent; see the file header). -/
 def v3rpc.streamsMapIs (smap : Loc) : IProp GF :=
@@ -69,26 +64,6 @@ def v3rpc.streamsMapIs (smap : Loc) : IProp GF :=
 instance v3rpc.streamsMapIs_persistent (smap : Loc) :
     Persistent (v3rpc.streamsMapIs (GF := GF) smap) := by
   unfold v3rpc.streamsMapIs; infer_instance
-
-/-- **No stream asks for a leader** (persistent; a premise about the deployment, see the file
-header): at every run context, `metadata.FromIncomingContext` gives no metadata, or metadata in
-which the require-leader key's values (if any) do not start with `"true"`. -/
-def v3rpc.runsNoRequireLeader : IProp GF :=
-  iprop(□ ∀ (kl hl : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ kl -∗
-    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ hl -∗
-    context.isContext ci cd -∗ grpcRunCtx ci -∗
-    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata }}
-      (App (Val (@! google_golang_org.grpc.metadata.FromIncomingContext))
-        (Val #(GoInterface.ok ci)))
-    {{ (md : GoMap) (ok : Bool), RET (PairV #md #ok);
-        ⌜ok = false⌝ ∨ ∃ m : GMap GoString GoSlice, md ↦$ m ∗
-          [∗map] k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ ∗
-            ⌜k = kl → vs.head? ≠ some hl⌝ }})
-
-instance v3rpc.runsNoRequireLeader_persistent :
-    Persistent (v3rpc.runsNoRequireLeader (GF := GF)) := by
-  unfold v3rpc.runsNoRequireLeader; infer_instance
 
 end defs
 

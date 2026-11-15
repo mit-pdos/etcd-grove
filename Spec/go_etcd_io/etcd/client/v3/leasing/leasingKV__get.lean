@@ -31,7 +31,7 @@ abbrev leasingKV.get.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64) (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
       ⌜o.t = W64 1 ∧ OpShape opKeyMax opKeyMax opValMax o⌝ ∗ leasingOpen γ q ∗ threadTok }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"get")) (Val #(GoInterface.ok ctx))) (Val #opv))
   {{ (ret : Loc) (err : GoInterface), RET (PairV #ret #err); leasingOpen γ q ∗ threadTok ∗

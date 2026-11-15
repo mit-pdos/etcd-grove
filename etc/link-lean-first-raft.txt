@@ -108,18 +108,18 @@ raftpb_SnapshotMetadata__GetTerm:
 raftpb_Snapshot__GetData:
 raftpb_Snapshot__GetMetadata:
 proto_CloneConfState:
-proto_CloneEntry:
+proto_ClonePb:
 proto_CloneSnapshot:
 proto_MarshalConfChange:
 proto_MarshalConfChangeV2:
-proto_SizeEntry:
+proto_SizePb:
 proto_UnmarshalConfChange:
 proto_UnmarshalConfChangeV2:
 
 # Stage R2: confchange (the old proof's 22 functions, `ccs ...*pb.ConfChangeSingle` read through
 # the getters, `toConfChangeSingle`/`Restore` on a `*pb.ConfState`), with etcd-grove's
-# `fmt.Errorf` axiom (linked in `Proof/fmt/Link.lean`) and `ConfChangeType.String` at the trust
-# boundary (protobuf plumbing, names-only in the v3.7 translation; the old proof's axiom restated).
+# `fmt.Errorf` axiom (linked in `Proof/fmt/Link.lean`). (`ConfChangeType.String`, an axiom here
+# until premise fixes 7, is no longer called: `%d` prints the enum as an integer.)
 confchange_incoming:
 confchange_outgoing:
 confchange_outgoingPtr:
@@ -135,12 +135,11 @@ confchange_Changer__initProgress: confchange_incoming tracker_NewInflights confc
 confchange_Changer__remove: confchange_incoming confchange_outgoing confchange_nilAwareDelete
 confchange_Changer__makeVoter: confchange_Changer__initProgress confchange_incoming confchange_nilAwareDelete
 confchange_Changer__makeLearner: confchange_Changer__initProgress confchange_Changer__remove confchange_outgoing confchange_nilAwareAdd
-confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeType__String raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
+confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
 fmt_Errorf: @
 # A done context's `Err()` is `Canceled` or `DeadlineExceeded` (etcd-grove's trust boundary of
 # `context`, `Proof/context/Link.lean`; stage R7c): `node.stepWithWaitOption`'s `return ctx.Err()`.
 context_ErrDone: @
-raftpb_ConfChangeType__String:
 confchange_Changer__Simple: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
 confchange_Changer__EnterJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_incoming confchange_outgoingPtr confchange_outgoing confchange_Changer__apply confchange_checkAndReturn
 confchange_Changer__LeaveJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_nilAwareAdd confchange_outgoing confchange_incoming confchange_outgoingPtr confchange_checkAndReturn
@@ -151,8 +150,8 @@ confchange_Restore: confchange_toConfChangeSingle confchange_Changer__Simple con
 pbEntryID: raftpb_Entry__GetTerm raftpb_Entry__GetIndex
 payloadSize: raftpb_Entry__GetData
 payloadsSize: payloadSize
-entsSize: proto_SizeEntry
-limitSize: proto_SizeEntry
+entsSize: proto_SizePb
+limitSize: proto_SizePb
 extend:
 unstable__maybeFirstIndex: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 unstable__maybeLastIndex: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
@@ -278,11 +277,13 @@ isHardStateEqual: raftpb_HardState__GetTerm raftpb_HardState__GetVote raftpb_Har
 IsEmptyHardState: isHardStateEqual
 MustSync: raftpb_HardState__GetVote raftpb_HardState__GetTerm
 IsEmptySnap: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+# (premise-fixes-4, 2026-11-10) the package logger, under `raftLoggerMu` (`isInitialized`)
+SetLogger:
 assertConfStatesEquivalent: raftpb_ConfState__Equivalent
 raft__hardState:
 raft__loadState: raftLog__lastIndex raftpb_HardState__GetCommit raftpb_HardState__GetTerm raftpb_HardState__GetVote
 getBasicStatus: raft__hardState raft__softState
-logSliceFromMsgApp: raftpb_Message__GetTerm raftpb_Message__GetLogTerm raftpb_Message__GetIndex raftpb_Message__GetEntries
+logSliceFromMsgApp: raftpb_Message__GetTerm raftpb_Message__GetLogTerm raftpb_Message__GetIndex
 stepCandidate: raft__poll raft__becomeLeader raft__becomeFollower raft__bcastAppend raft__handleAppendEntries raft__handleHeartbeat raft__handleSnapshot raft__campaign raftpb_Message__GetType raftpb_Message__GetFrom raftpb_Message__GetTerm raftpb_Message__GetReject
 readOnly__addRequest:
 raft__hasUnappliedConfChanges: raftLog__scan raftpb_Entry__GetType
@@ -313,7 +314,7 @@ raft__maybeSendAppend: tracker_Progress__IsPaused tracker_Progress__SentEntries 
 raft__campaign: raft__becomeCandidate raft__becomePreCandidate raft__poll raft__send voteRespMsgType raft__promotable quorum_JointConfig__IDs raftLog__lastEntryID slices_Sort raftpb_MessageType__Enum
 raft__handleAppendEntries: logSliceFromMsgApp raftLog__maybeAppend raftLog__term raftLog__zeroTermOnOutOfBounds raftLog__lastIndex raftLog__findConflictByTerm raft__send raftpb_Message__GetCommit raftpb_Message__GetIndex raftpb_Message__GetLogTerm raftpb_Message__GetFrom raftpb_MessageType__Enum
 raft__Step: raft__hup raft__becomeFollower voteRespMsgType raft__send stepCandidate stepFollower stepLeader traceReceiveMessage raftLog__lastEntryID raftLog__isUpToDate raftLog__stableTo raft__appliedTo raft__appliedSnap raft__reduceUncommittedSize entsSize payloadsSize raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo raftpb_Message__GetLogTerm raftpb_Message__GetIndex raftpb_Message__GetCommit raftpb_Message__GetReject raftpb_Message__GetEntries raftpb_Message__GetSnapshot raftpb_Message__GetContext raftpb_Entry__GetIndex raftpb_MessageType__Enum
-raft__appendEntry: raftLog__lastIndex raft__increaseUncommittedSize traceReplicate raftLog__append raft__send proto_CloneEntry raftpb_MessageType__Enum
+raft__appendEntry: raftLog__lastIndex raft__increaseUncommittedSize traceReplicate raftLog__append raft__send proto_ClonePb raftpb_MessageType__Enum
 raft__restore: raftLog__matchTerm raftLog__lastEntryID raftLog__commitTo raftLog__restore raftpb_EnsureConfState
 # Stage R4 (G3): stepLeader, with fmt.Sprintf (the Raft37 copy of the old proof) and
 # DescribeConfChange (a trust-boundary axiom: the refusal's log string)

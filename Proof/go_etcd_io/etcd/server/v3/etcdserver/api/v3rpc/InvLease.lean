@@ -218,7 +218,7 @@ def leaseRevokeOut (E : apply.AEnv GF) (cid mid : w64) (resp : Loc) (err : GoInt
 
 /-- **The `*LeaseServer` `p`** that `NewLeaseServer(s)` built (persistent; see the file header):
 its header (`hdrIs`, at the KV parameters `A` `newHeader` was given), `le` the server `s`, and (the
-keep-alive stage, 2026-11-01: its loop logs) `lg` some non-nil logger (the configuration's, or
+keep-alive stage, 2026-11-01: its loop logs) `lg` a zap logger (premise fixes 6: the configuration's, or
 `zap.NewNop()`'s). -/
 def leaseServerAt (p s : Loc) (A : KVAns GF) (cid mid : w64) : IProp GF :=
   iprop(⌜p ≠ null⌝ ∗
@@ -226,7 +226,7 @@ def leaseServerAt (p s : Loc) (A : KVAns GF) (cid mid : w64) : IProp GF :=
       s A cid mid ∗
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"le" p ↦□
       (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface) ∗
-    ∃ lg : Loc, ⌜lg ≠ null⌝ ∗
+    ∃ lg : Loc, zapLoggerOk lg ∗
       structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"lg" p ↦□ lg)
 
 instance leaseServerAt_persistent (p s : Loc) (A : KVAns GF) (cid mid : w64) :

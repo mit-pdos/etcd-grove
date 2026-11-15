@@ -321,6 +321,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {sz : Bool}
 
 /-- (2026-11-11, trace-check Q8 stage 1 slice 28n) **The trace logger, in either mode**, before a
 `Ready` opens the struct (`ownRaftPhysReady`'s `Hf_traceLogger`): untraced, the struct's nil logger
@@ -482,12 +483,12 @@ theorem dlvKeysAt_lookup (sn : StorNames) (n : Nat) (L : List EntryM) (j : Nat) 
     iprop((n + j + 1) ↪[sn.gd]□ e.Term' : IProp GF)) h) $$ H
 
 
-/-- A queued message's ownership. -/
-abbrev qOwn (q : QMsg) : IProp GF := msgOwn q.loc (DFrac.own 1) q.st
+/-- A queued message's ownership (out_size C3: at a content, `msgOwnZ`, under the node's flag). -/
+abbrev qOwn (sz : Bool) (q : QMsg) : IProp GF := msgOwnZ sz q.loc (DFrac.own 1) q.st
 
 /-- A self-addressed `msgsAfterAppend` message, owned (`emp` for any other). -/
-def selfOwn (id : w64) (q : QMsg) : IProp GF :=
-  if isSelfQ id q then qOwn q else iprop(emp)
+def selfOwn (sz : Bool) (id : w64) (q : QMsg) : IProp GF :=
+  if isSelfQ id q then qOwn sz q else iprop(emp)
 
 /-- Half of a `msgsAfterAppend` message to another node (`emp` for a self-addressed one):
 what the node keeps of the responses a `Ready` hands out. -/
@@ -504,35 +505,32 @@ theorem dfrac_half_half : (DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half :
 
 /-- A message handed out: at `readyDq`, the other half (`respHalf`) kept. -/
 theorem qOwn_ready (q : QMsg) :
-    qOwn (GF := GF) q ⊢ msgOwn q.loc (readyDq q.st) q.st ∗ respHalf q := by
+    qOwn (GF := GF) sz q ⊢ msgOwnZ sz q.loc (readyDq q.st) q.st ∗ respHalf q := by
   iintro H
   unfold readyDq respHalf
   by_cases h : RespType q.st.msg.Type'
   · simp only [h, ↓reduceIte]
-    iapply (msgOwn_split q.loc (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) q.st)
-    rw [dfrac_half_half]
-    iexact H
+    iapply msgOwnZ_halves sz q.loc q.st $$ H
   · simp only [h, ↓reduceIte]
     iframe H
 
 /-- ... and back. -/
 theorem qOwn_unready (q : QMsg) :
-    msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ respHalf q ⊢ qOwn q := by
+    msgOwnZ (GF := GF) sz q.loc (readyDq q.st) q.st ∗ respHalf q ⊢ qOwn sz q := by
   iintro ⟨H1, H2⟩
   unfold readyDq respHalf
   by_cases h : RespType q.st.msg.Type'
   · simp only [h, ↓reduceIte]
     unfold qOwn
-    rw [← dfrac_half_half]
-    iapply msgOwn_combine
+    iapply msgOwnZ_unhalves sz q.loc q.st
     iframe H1 H2
   · simp only [h, ↓reduceIte]
     iexact H1
 
 /-- Owning a queue's messages is owning the self-addressed ones and the others (2026-10-16). -/
 theorem qOwns_self_split (id : w64) (l : List QMsg) :
-    ([∗list] q ∈ l, qOwn (GF := GF) q) ⊣⊢
-      ([∗list] q ∈ l, selfOwn id q) ∗ [∗list] q ∈ l.filter (fun q => !isSelfQ id q), qOwn q := by
+    ([∗list] q ∈ l, qOwn (GF := GF) sz q) ⊣⊢
+      ([∗list] q ∈ l, selfOwn sz id q) ∗ [∗list] q ∈ l.filter (fun q => !isSelfQ id q), qOwn sz q := by
   induction l with
   | nil => simp only [List.filter_nil]; exact ⟨by iintro -; isplitl <;> iempintro, by iintro -; iempintro⟩
   | cons q l ih =>
@@ -572,9 +570,9 @@ theorem qOwns_self_split (id : w64) (l : List QMsg) :
 
 /-- The messages to others, owned, are their halves twice. -/
 theorem qOwns_other_halves (id : w64) (l : List QMsg) :
-    ([∗list] q ∈ l.filter (fun q => !isSelfQ id q), msgOwn (GF := GF) q.loc (DFrac.own (1 : Qp).half) q.st) ∗
+    ([∗list] q ∈ l.filter (fun q => !isSelfQ id q), msgOwnZ (GF := GF) sz q.loc (DFrac.own (1 : Qp).half) q.st) ∗
       ([∗list] q ∈ l, otherHalf id q) ⊣⊢
-      [∗list] q ∈ l.filter (fun q => !isSelfQ id q), qOwn q := by
+      [∗list] q ∈ l.filter (fun q => !isSelfQ id q), qOwn sz q := by
   induction l with
   | nil => simp only [List.filter_nil]; exact ⟨by iintro -; iempintro, by iintro -; isplitl <;> iempintro⟩
   | cons q l ih =>
@@ -600,26 +598,23 @@ theorem qOwns_other_halves (id : w64) (l : List QMsg) :
         isplitl [Hq1 Hq2]
         · unfold otherHalf; simp only [h, Bool.false_eq_true, ↓reduceIte]
           unfold qOwn
-          rw [← e]
-          iapply msgOwn_combine
+          iapply msgOwnZ_unhalves sz q.loc q.st
           iframe Hq1 Hq2
         iapply ih.1; iframe H1 H2
       · iintro H
         icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hq, H⟩
         icases ih.2 $$ H with ⟨H1, H2⟩
-        ihave Hq : msgOwn q.loc (DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half) q.st $$ [Hq]
-        · rw [e]; iexact Hq
-        icases msgOwn_split q.loc _ _ q.st $$ Hq with ⟨Hq1, Hq2⟩
+        icases msgOwnZ_halves sz q.loc q.st $$ Hq with ⟨Hq1, Hq2⟩
         isplitl [Hq1 H1]
         · iapply BigSepL.bigSepL_cons.2; iframe Hq1 H1
         iapply BigSepL.bigSepL_cons.2
         iframe H2
         unfold otherHalf; simp only [h, Bool.false_eq_true, ↓reduceIte]; iexact Hq2
 
-/-- `msgQ`s are the messages owned and their contributions. -/
+/-- `msgQ`s are the messages owned and their contributions (out_size C3: at contents, `qOwn`). -/
 theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
-    ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) q a) ⊣⊢
-      ⌜List.Forall₂ (fun q a => msgAbs q.st a) l as_⌝ ∗ [∗list] q ∈ l, qOwn q := by
+    ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) sz q a) ⊣⊢
+      ⌜List.Forall₂ (fun q a => msgAbs q.st a) l as_⌝ ∗ [∗list] q ∈ l, qOwn sz q := by
   induction l generalizing as_ with
   | nil =>
     cases as_ with
@@ -628,7 +623,7 @@ theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
       · iintro -; isplitr
         · ipureintro; exact List.Forall₂.nil
         · iempintro
-      · iintro -; iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) q a)).2; iempintro
+      · iintro -; iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2; iempintro
     | cons a as' =>
       constructor
       · iintro H; ihave %Hl := BigSepL2.bigSepL2_length $$ H; simp at Hl
@@ -642,7 +637,7 @@ theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
     | cons a as' =>
       constructor
       · iintro H
-        icases (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) q a)).1 $$ H with ⟨Hq, H⟩
+        icases (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) sz q a)).1 $$ H with ⟨Hq, H⟩
         icases (ih as').1 $$ H with ⟨%Hf, H⟩
         unfold msgQ
         icases Hq with ⟨Hq, %Ha⟩
@@ -653,18 +648,19 @@ theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
         icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hq, H⟩
         cases Hf with
         | cons Ha Hf =>
-          iapply (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) q a)).2
+          iapply (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2
           isplitl [Hq]
           · unfold msgQ; iframe Hq; ipureintro; exact Ha
           iapply (ih as').2
           isplitr
           · ipureintro; exact Hf
-          iexact H
+          iframe H
 
-/-- `outboxRel` is its pure part and the messages owned (2026-10-16, stage R5). -/
+/-- `outboxRel` is its pure part and the messages owned (2026-10-16, stage R5; out_size C3: at
+contents). -/
 theorem outboxRel_split (o : List Msg) (ms1 ms2 : List QMsg) :
-    outboxRel (GF := GF) o ms1 ms2 ⊢
-      ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn q) ∗ [∗list] q ∈ ms2, qOwn q := by
+    outboxRel (GF := GF) sz o ms1 ms2 ⊢
+      ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn sz q) ∗ [∗list] q ∈ ms2, qOwn sz q := by
   iintro H
   unfold outboxRel
   icases H with ⟨%as1, %as2, %Ho, H1, H2⟩
@@ -674,8 +670,8 @@ theorem outboxRel_split (o : List Msg) (ms1 ms2 : List QMsg) :
   ipureintro; exact ⟨as1, as2, Ho, Hf1, Hf2⟩
 
 theorem outboxRel_join (o : List Msg) (ms1 ms2 : List QMsg) :
-    ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn (GF := GF) q) ∗ ([∗list] q ∈ ms2, qOwn q) ⊢
-      outboxRel o ms1 ms2 := by
+    ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn (GF := GF) sz q) ∗ ([∗list] q ∈ ms2, qOwn sz q) ⊢
+      outboxRel sz o ms1 ms2 := by
   iintro ⟨%Hp, H1, H2⟩
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   unfold outboxRel
@@ -815,7 +811,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
-    (Htr : ∀ x ∈ o, MsgTrOk γ x) :
+    (Htr : ∀ x ∈ o, MsgTrOk γ x)
+    -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
+    (Hsn : SnapNotSelf id q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -899,6 +897,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
   isplitr
   · ipureintro; exact Hfr
   -- (raft-final) the stamped transfer request's witness, out of `xfW`
+  isplitr
+  rotate_left
+  · ipureintro; exact Hsn
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
@@ -922,7 +923,9 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
-    (Htr : ∀ x ∈ o, MsgTrOk γ x) :
+    (Htr : ∀ x ∈ o, MsgTrOk γ x)
+    -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
+    (Hsn : SnapNotSelf id q.st) :
     ([∗list] x ∈ o, R x) ⊢ qCert γ q -∗ xfW γ s -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -1008,6 +1011,9 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
   isplitr
   · ipureintro; exact Hfr
   -- (raft-final) the stamped transfer request's witness, out of `xfW`
+  isplitr
+  rotate_left
+  · ipureintro; exact Hsn
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
@@ -1063,7 +1069,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
     "HmsgsAA_cap" ∷ ownSliceCap Loc sl2 (DFrac.own 1) ∗
     "%Houtbox" ∷ ⌜outboxRelP s.outbox ms1 ms2⌝ ∗
-    "Hself" ∷ ([∗list] q ∈ ms2, selfOwn id q) ∗
+    "Hself" ∷ ([∗list] q ∈ ms2, selfOwn s.gh.sn.sz id q) ∗
     "Hother" ∷ ([∗list] q ∈ ms2, otherHalf id q) ∗
     "%HmsgsAA_ok" ∷ ⌜QOk id s.term ms1 ms2⌝ ∗
     "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
@@ -1076,11 +1082,11 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     -- (2026-11-11, slice 28n) with the self-addressed ones, among the queues (`MsSub`)
     "%Hmslen" ∷ ⌜MsSub id ms ms1 ms2⌝ ∗
     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
-               ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+               ([∗list] q ∈ ms, msgOwnZ s.gh.sn.sz q.loc (readyDq q.st) q.st) -∗
                sl1 ↦* ms1.map QMsg.loc ∗ ownSliceCap Loc sl1 (DFrac.own 1) ∗
-               ([∗list] q ∈ ms1, qOwn q) ∗
+               ([∗list] q ∈ ms1, qOwn s.gh.sn.sz q) ∗
                ([∗list] q ∈ ms2.filter (fun q => !isSelfQ id q),
-                 msgOwn q.loc (DFrac.own (1 : Qp).half) q.st)) ∗
+                 msgOwnZ s.gh.sn.sz q.loc (DFrac.own (1 : Qp).half) q.st)) ∗
     -- the log, after the storage's hand-out if `h` (2026-10-10, `ownRaftLog_handout`); (D22 S-d3a)
     -- with a snapshot (`lt`), the storage itself lent (`ownRaftLog_lend`)
     "Hlog" ∷ ownRaftLog s.log (rdyLog h lt s.logst dk) ∗
@@ -1090,7 +1096,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         r.[raft, go!"Vote"] ↦ s.vote -∗
         r.[raft, go!"readStates"] ↦ rs' -∗
         readStatesPts rs' rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
-        ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend⌝ -∗
+        ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend ∧ g.sn.sz = s.gh.sn.sz⌝ -∗
         r.[raft, go!"raftLog"] ↦ s.log -∗
         r.[raft, go!"state"] ↦ stateW64 s.role -∗
         r.[raft, go!"lead"] ↦ s.lead -∗
@@ -1098,7 +1104,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ownSliceCap Loc sl1' (DFrac.own 1) -∗
         r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
         ownSliceCap Loc sl2' (DFrac.own 1) -∗
-        outboxRel o ms1' ms2' -∗
+        outboxRel g.sn.sz o ms1' ms2' -∗
         ⌜QOk id s.term ms1' ms2'⌝ -∗
         ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
@@ -1517,6 +1523,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- role only of a leader (or with no message)
   "#Hmsgl" ∷ □ (([∗list] x ∈ s.outbox, ⌜x.dst ≠ id⌝ -∗ isMessage γ x) -∗
     [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+  -- (restart S7.3, 2026-11-14) the messages handed out have their `MsgSnap` facts once the
+  -- outbox's snapshots have their destination facts (`snapToOk`; outright, `ownRaftGhost_snap_keep`)
+  "#Hmsnap" ∷ □ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
+    [∗list] q ∈ ms, snapToOk γ id q.st) ∗
   "#Hrdlead" ∷ (∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
     ⌜(rd.SoftState' = null → ss = none) ∧
       (roleAfter rs.role ss = StateLeader → ms = [] ∨ s.role = .leader)⌝) ∗
@@ -1619,7 +1629,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan)
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = []) :
     ⊢ rd.Messages' ↦* ms.map QMsg.loc -∗ ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+      ([∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) -∗
       ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L -∗
       ∃ (n : Nat) (u : Bool) (c : w64),
         ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
@@ -1634,6 +1644,13 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s $$ [Hghost]
+  · iExactEq Hghost; simp
+  icases ownStepGhost_certLink γ _ c id s $$ Hghost with ⟨#Hcl, Hghost⟩
+  iunfold certLink at Hcl
+  icases Hcl with ⟨-, -, %Hszl, -⟩
+  ihave Hown : ([∗list] q ∈ ms, msgOwnZ s.gh.sn.sz q.loc (readyDq q.st) q.st) $$ [Hown]
+  · rw [Hszl]; iexact Hown
   icases Hundo $$ Hmsgs Hmsgs_cap Hown with ⟨Hm1, Hc1, Hown1, Hhalf⟩
   ihave Hoth := (qOwns_other_halves id ms2).1 $$ [Hhalf Hother]
   · iframe Hhalf Hother
@@ -1646,7 +1663,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iExactEq Hlog; rfl
   let g : NGhost := { s.gh with outlb := ms1.length + ms2.length, unst := decide (nextUnstable s.logst ≠ []) }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
+    Hf_readStates HreadStates HreadStates_cap %(⟨rfl, rfl, rfl⟩ : _ ∧ _ ∧ _)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(⟨fun h => .inl (of_decide_eq_true h), Hgh_unst.1.2⟩ : GhLogOk g s.logst)
@@ -2175,6 +2192,21 @@ theorem ownRaftGhost_leader_keep (γ : RaftNames) (id : w64) (ps : PState) {md :
   iapply (BigSepL.bigSepL_mono (Φ := fun _ m => outMsgOk (GF := GF) γ id ps πc (virt V πc) m)
     fun _ => outMsgOk_leader γ id ps πc (virt V πc) _ Hrole) $$ Hout
 
+/-- (restart S7.3, 2026-11-14) **The outbox's snapshots' destination facts, outright**
+(`outMsgOk_snapDst`): read off the ghost state as a persistent fact, behind no fragment of the
+batch's maps (they read only the committed log and the sender's configuration at its step). -/
+theorem ownRaftGhost_snap_keep (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
+    ownRaftGhost (GF := GF) γ id ps md ⊢
+      □ ([∗list] m ∈ ps.outbox, ⌜m.ty = .snap⌝ -∗ snapDstOk γ m.dst) := by
+  unfold ownRaftGhost
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  iintro !>
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ m => outMsgOk (GF := GF) γ id ps πc (virt V πc) m)
+    fun _ => by
+      iintro #H %Hty
+      iapply outMsgOk_snapDst γ id ps πc (virt V πc) _ Hty $$ H) $$ Hout
+
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
 right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
 the atomic update of `readyc <- rd`, giving the right to the application with the `Ready`;
@@ -2211,6 +2243,9 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       softStateIs rd.SoftState' ss ∗ ⌜rd.SoftState' = null → ss = none⌝ ∗
       ([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) ∗
       □ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, at once (not behind `W`'s
+      -- fragments: they read only the committed log and the sender's configuration at its step)
+      ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
   iintro #Hh Hlive Hfree H
@@ -2351,7 +2386,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   icases ownRaftLog_caught _ _ $$ Hlog with ⟨#Hcu, Hlog⟩
   icases ownStepGhost_certLink γ _ c id s $$ Hghost with ⟨#Hcl, Hghost⟩
   iunfold certLink at Hcl
-  icases Hcl with ⟨-, Hcl⟩
+  icases Hcl with ⟨-, Hcl, -⟩
   iunfold ctCommitted at Hcl
   icases Hcl with ⟨%Lc, #HLc, %HLct⟩
   rw [← Hgh_unst.1.2.2] at HLct
@@ -2433,6 +2468,13 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   -- at role leader, the outbox's messages to others need no promise (R9), read before the cut
   icases (entails_wand (persistent_entails_left (ownRaftGhost_leader_keep γ id (toPState s))))
     $$ Hghost with ⟨Hghost, #Hlo⟩
+  -- (restart S7.3) the outbox's snapshots' destination facts, outright, read before the cut
+  icases (entails_wand (persistent_entails_left (ownRaftGhost_snap_keep γ id (toPState s))))
+    $$ Hghost with ⟨Hghost, #Hsk⟩
+  ihave #Hmss : iprop([∗list] q ∈ ms, snapToOk γ id q.st) $$ []
+  · iapply Hmsnap
+    rw [show s.outbox = (toPState s).outbox from rfl]
+    iexact Hsk
   icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ id (toPState s)))) $$ Hghost
     with ⟨Hghost, %fp0, %Hfp0, #Hfr0, -⟩
   have Hpvl : ∀ l, L = some l → s.logst.prev = snapId l.snap ∧ s.logst.sents = [] := fun l hl =>
@@ -2589,7 +2631,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     iexists s, c, fp, ds, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hrdsoft
-      Hrdrs Hce Hce_cap Hents Hsloc Hmsgl Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
+      Hrdrs Hce Hce_cap Hents Hsloc Hmsgl Hmsnap Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
@@ -2621,7 +2663,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     rw [Hpl] at HL ⊢
     rw [Hes]
     exact ⟨HL, Hri.1, Hri.2⟩
-  iframe Hlive Hpb Hss Hmw Hml
+  iframe Hlive Hpb Hss Hmw Hml Hmss
   isplitr
   · ipureintro; exact Hssl.1
   ipureintro; exact Hfacts
@@ -2827,6 +2869,9 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   ihave #Hmsgl : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.dst ≠ id⌝ -∗ isMessage γ x) -∗
       [∗list] q ∈ ([] : List QMsg), isRaftMsg γ id q.st)) $$ []
   · iintro !> -; iapply BigSepL.bigSepL_nil.2; iempintro
+  ihave #Hmsnap : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
+      [∗list] q ∈ ([] : List QMsg), snapToOk γ id q.st)) $$ []
+  · iintro !> -; iapply BigSepL.bigSepL_nil.2; iempintro
   ihave #Hrdlead : iprop(∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
       ⌜(rd.SoftState' = null → ss = none) ∧
         (roleAfter rs.role ss = StateLeader → ([] : List QMsg) = [] ∨ s.role = .leader)⌝) $$ []
@@ -2866,7 +2911,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
-    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hrdlead Hrntr
+    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead Hrntr
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2

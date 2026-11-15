@@ -184,7 +184,7 @@ theorem v3rpc.togRPCError.wp_proof
       simp only [google_golang_org.grpc.codes.OK]
       exact fun h => absurd (go.intoVal_inj h) (by decide)
     inext
-    iintro %e ⟨%He, #Hse, %Hd⟩
+    iintro %e ⟨%He, #Hse, %Hd, -⟩
     wp_auto
     iapply HΦ
     isplitr

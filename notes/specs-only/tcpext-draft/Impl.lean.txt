@@ -1,0 +1,332 @@
+/-
+DRAFT (design review, 2026-11-10; not in the repository, not in Perennial).
+
+The TCP extension of GooseLang [Trusted definitions!]: the TCP sockets of Linux as one process
+sees them through `socket`/`bind`/`listen`/`accept4`, `connect`, `read`, `write`, `close` and the
+socket options, between the nodes of a distributed program (`DistLang.lean`). Design and
+justification: `notes/specs-only/tcp-extension-design.md` (specs-only worktree), section 2.
+
+It is named after `net` (`tcpExt.name`): this repository translates `net` itself (names and types,
+as `os`), and the trusted model `TrustedCode/net.lean` (`net.Listen`, `(*Dialer).DialContext`,
+`(*TCPListener).Accept`, `(*TCPConn).Read`, ...) calls the operations below and makes Go's values
+and errors. Above `net`, everything is Go code: etcd's listener and connection wrappers
+(translated), and the trusted Go models of `net/http` and `google.golang.org/grpc`, which frame
+their requests as bytes on the connections.
+
+* **State.** Local (per node, like a process's fd table): the node's index and its socket fds.
+  Global (the network): the deployment's address plan (fixed: which node may listen at which
+  address string), the address bindings, the listeners with their backlogs, and every
+  connection's two byte pipes.
+* **A crash** empties the node's fd table (its process is gone, and its kernel closed its
+  sockets). DistLang's crash cannot change the global state, so the dead process's listeners and
+  connections stay in it, reachable by no fd; what the peers then see is what the step rules
+  below always allow (an end of file once caught up, an error at any time, or nothing), and the
+  node's next `Listen` of one of its addresses rebinds it.
+* **Nondeterminism.** Every operation that makes a system call may fail with any errno Go does
+  not handle internally (`Fails`; Go retries `EINTR`, waits on `EAGAIN`, retries `accept`'s
+  `ECONNABORTED`), or report its deadline (`eDeadline`, Go's `os.ErrDeadlineExceeded`); a read
+  returns 1..n of the unread bytes; a read with no unread bytes may return end of file; a failed
+  write appended a prefix of its bytes; the blocking operations (`Accept`, `Dial`, `Read`,
+  `Write`) may wait (stutter).
+* **What never happens on a connection:** bytes lost from the middle, reordered, duplicated,
+  altered, or delivered to anyone but the other end's holder.
+* **Stuck (misuse or outside the model):** an fd not in the table or of the wrong kind; `Listen`
+  of an address that is not the node's in the plan; `Dial` of an address outside the plan.
+
+Result convention (`#errno`, as `syscall`): `0` success; `EBADF` exactly when the fd was closed
+by this process (Go's `ErrClosed`); `eDeadline` a deadline; otherwise an errno from `Fails`.
+-/
+module
+
+public import Perennial.GooseLang.Lang
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace Tcp
+
+/-! ## State -/
+
+/-- An endpoint's address, as Go's `net.TCPAddr` holds it (IPv4: four bytes). -/
+structure Addr where
+  ip : List w8
+  port : w64
+
+/-- An address string of the deployment: the node that may listen at it, and its parsed form
+(the deployment's end theorem states, by `decide`, that the string is `ip:port`'s text). -/
+structure PlanAddr where
+  node : Nat
+  addr : Addr
+
+/-- One direction of a connection: the bytes written so far, and how many the reader consumed. -/
+structure Pipe where
+  data : List w8 := []
+  rd : Nat := 0
+
+inductive Side where
+  | dialer
+  | acceptor
+deriving DecidableEq
+
+/-- A listener: its address string, whether it is open (accepts new connections), and the
+connections dialed to it and not yet accepted, oldest first. -/
+structure LisRec where
+  addr : GoString
+  isOpen : Bool
+  backlog : List Nat
+
+/-- A connection: the dialer's local address (an ephemeral port, chosen at the dial), the
+listener's address, and its two pipes. -/
+structure ConnRec where
+  dAddr : Addr
+  aAddr : Addr
+  /-- Dialer to acceptor. -/
+  up : Pipe
+  /-- Acceptor to dialer. -/
+  dn : Pipe
+
+/-- The network. -/
+structure Global where
+  /-- The deployment's addresses. Fixed: an execution starts with it, no step changes it. -/
+  plan : GMap GoString PlanAddr
+  /-- Each address's current listener (the last one bound at it; it may be closed, or a dead
+  process's). -/
+  bound : GMap GoString Nat
+  lis : GMap Nat LisRec
+  conns : GMap Nat ConnRec
+  /-- Fresh identities of listeners and connections. -/
+  next : Nat
+
+instance : Inhabited Global := ⟨⟨∅, ∅, ∅, ∅, 0⟩⟩
+
+/-- What an fd refers to: a listener, or one end of a connection. -/
+inductive Sock where
+  | lis (l : Nat)
+  | conn (c : Nat) (s : Side)
+
+/-- An fd: its socket, and whether this process closed it (a closed fd stays in the table, so
+that its number is never reused within the process's life: Go's `poll.FD` keeps a closed fd's
+operations returning `ErrClosed`, never another socket's). -/
+structure FdEnt where
+  sock : Sock
+  closed : Bool
+
+/-- A node's part: its index (the plan's `node`), and its socket fds. -/
+structure Local where
+  node : Nat
+  fds : GMap w64 FdEnt
+
+instance : Inhabited Local := ⟨⟨0, ∅⟩⟩
+
+/-- The TCP extension. It has no values of its own: fds are integers, as in `os`. -/
+@[reducible] def tcpExt : GooseExt where
+  name := "net"
+  Val := Empty
+  LocalState := Local
+  GlobalState := Global
+
+/-! ## Constants (linux/amd64) -/
+
+def EINTR : w64 := 4
+def EBADF : w64 := 9
+def EAGAIN : w64 := 11
+def ECONNABORTED : w64 := 103
+/-- Not an errno: Go's poller's deadline (`os.ErrDeadlineExceeded`). -/
+def eDeadline : w64 := 0x10000
+
+/-- The failures a system call may report to Go's `net`: any errno but those Go handles itself
+(`EINTR` retried, `EAGAIN` a wait in the poller) and `EBADF` (reserved for an fd this process
+closed: an open fd's socket is never invalid), or the poller's deadline. Deadlines are not
+tracked (the clock is arbitrary, `time.Now` is): any blocking operation may time out. -/
+def Fails (e : w64) : Prop := e ≠ 0 ∧ e ≠ EINTR ∧ e ≠ EAGAIN ∧ e ≠ EBADF
+
+/-- `accept4`'s failures: `Fails`, and not `ECONNABORTED` (which Go's `accept` retries). -/
+def AcceptFails (e : w64) : Prop := Fails e ∧ e ≠ ECONNABORTED
+
+/-! ## Helpers -/
+
+def ConnRec.inP (r : ConnRec) : Side → Pipe
+  | .dialer => r.dn
+  | .acceptor => r.up
+
+def ConnRec.outP (r : ConnRec) : Side → Pipe
+  | .dialer => r.up
+  | .acceptor => r.dn
+
+def ConnRec.setIn (r : ConnRec) (s : Side) (p : Pipe) : ConnRec :=
+  match s with
+  | .dialer => { r with dn := p }
+  | .acceptor => { r with up := p }
+
+def ConnRec.setOut (r : ConnRec) (s : Side) (p : Pipe) : ConnRec :=
+  match s with
+  | .dialer => { r with up := p }
+  | .acceptor => { r with dn := p }
+
+/-- The end's own address and its peer's. -/
+def ConnRec.localAddr (r : ConnRec) : Side → Addr
+  | .dialer => r.dAddr
+  | .acceptor => r.aAddr
+
+def ConnRec.remoteAddr (r : ConnRec) : Side → Addr
+  | .dialer => r.aAddr
+  | .acceptor => r.dAddr
+
+def Local.fdOpen (σ : Local) (fd : w64) (s : Sock) : Prop := σ.fds !! fd = some ⟨s, false⟩
+
+def Local.fdClosed (σ : Local) (fd : w64) : Prop := ∃ s, σ.fds !! fd = some ⟨s, true⟩
+
+/-- A number the process may get from `socket`/`accept4`: any nonnegative fd not in its table. -/
+def Local.freshFd (σ : Local) (fd : w64) : Prop := 0 ≤ fd.toInt ∧ σ.fds !! fd = none
+
+def Local.addFd (σ : Local) (fd : w64) (s : Sock) : Local :=
+  { σ with fds := <[fd := ⟨s, false⟩]> σ.fds }
+
+/-- The process may bind `a`: no open fd of its own refers to the listener bound at `a`. (Only
+the plan's node listens at `a`, so a listener bound there and held by no open fd of the node's
+live process is closed or a dead process's: Linux freed the port, and Go's `SO_REUSEADDR`
+lets a new socket bind it with old connections in `TIME_WAIT`.) -/
+def Bindable (σ : Local) (g : Global) (a : GoString) : Prop :=
+  match g.bound !! a with
+  | none => True
+  | some l => ∀ fd, σ.fds !! fd ≠ some ⟨.lis l, false⟩
+
+/-- A read of at most `n` bytes from the pipe `p`: `(p', bytes, errno)`. A zero-byte read returns
+at once (Go's `poll.FD.Read`). Otherwise: 1..n unread bytes; end of file, if the reader is
+caught up (the writer closed its end, or its process died, which its kernel reports as a close;
+the reader cannot tell a live writer from a dead one, so this is allowed whenever it is caught
+up); or a failure. -/
+def ReadsFrom (p : Pipe) (n : Nat) (p' : Pipe) (out : List w8) (e : w64) : Prop :=
+  if n = 0 then p' = p ∧ out = [] ∧ e = 0 else
+  (∃ k, 0 < k ∧ k ≤ n ∧ p.rd + k ≤ p.data.length ∧ out = (p.data.drop p.rd).take k ∧
+      p' = { p with rd := p.rd + k } ∧ e = 0) ∨
+  (p.data.length ≤ p.rd ∧ p' = p ∧ out = [] ∧ e = 0) ∨
+  (Fails e ∧ p' = p ∧ out = [])
+
+/-- A write of `d` to the pipe `p`: `(p', written, errno)`: all of it, or a prefix and a failure
+(Go's `poll.FD.Write` loops until all is written or a call fails, and reports the count). -/
+def WritesTo (p : Pipe) (d : List w8) (p' : Pipe) (k : Nat) (e : w64) : Prop :=
+  (p' = { p with data := p.data ++ d } ∧ k = d.length ∧ e = 0) ∨
+  (∃ j, j ≤ d.length ∧ Fails e ∧ p' = { p with data := p.data ++ d.take j } ∧ k = j)
+
+/-! ## The step -/
+
+section step
+variable [GooseExts] [GoGlobalContext]
+
+abbrev res (v : val) (e : w64) : Expr := Val (PairV v (#e))
+
+/-- An address as a Go value: `(ip, port)`. -/
+abbrev addrV (a : Addr) : val := PairV (#a.ip) (#a.port)
+
+def IsTcpStep (op : String) (v : val) (σ : Local) (g : Global) (e' : Expr) (σ' : Local)
+    (g' : Global) : Prop :=
+  match op with
+  /- `Listen(a)` (`socket`, `bind`, `listen`): `#a ↦ ((#fd, addr), #errno)`. A new open listener
+  bound at `a` (rebinding it from a closed or dead listener), or a failure (`EADDRINUSE`, ...).
+  `a` must be this node's in the plan. -/
+  | "Listen" => ∃ (a : GoString) (pa : PlanAddr), v = #a ∧ g.plan !! a = some pa ∧
+      pa.node = σ.node ∧
+      ((∃ fd, Bindable σ g a ∧ σ.freshFd fd ∧
+          g' = { g with next := g.next + 1, bound := <[a := g.next]> g.bound,
+                        lis := <[g.next := ⟨a, true, []⟩]> g.lis } ∧
+          σ' = σ.addFd fd (.lis g.next) ∧ e' = res (PairV (#fd) (addrV pa.addr)) 0) ∨
+       (∃ e, Fails e ∧ σ' = σ ∧ g' = g ∧
+          e' = res (PairV (#(0 : w64)) (addrV pa.addr)) e))
+  /- `Accept(fd)` (`accept4`): `#fd ↦ ((#fd', remote), #errno)`. The oldest unaccepted
+  connection, its acceptor end now the new fd's; a failure at any time; `EBADF` once closed. -/
+  | "Accept" => ∃ fd : w64, v = #fd ∧
+      ((σ.fdClosed fd ∧ σ' = σ ∧ g' = g ∧ e' = res (PairV (#(0 : w64)) (addrV ⟨[], 0⟩)) EBADF) ∨
+       (∃ (l : Nat) (lr : LisRec), σ.fdOpen fd (.lis l) ∧ g.lis !! l = some lr ∧
+        ((∃ c cs r fd', lr.backlog = c :: cs ∧ g.conns !! c = some r ∧ σ.freshFd fd' ∧
+            g' = { g with lis := <[l := { lr with backlog := cs }]> g.lis } ∧
+            σ' = σ.addFd fd' (.conn c .acceptor) ∧
+            e' = res (PairV (#fd') (addrV r.dAddr)) 0) ∨
+         (∃ e, AcceptFails e ∧ σ' = σ ∧ g' = g ∧
+            e' = res (PairV (#(0 : w64)) (addrV ⟨[], 0⟩)) e))))
+  /- `Dial(a)` (`socket`, `connect`): `#a ↦ ((#fd, local), #errno)`. A new connection in the
+  backlog of the open listener bound at `a` (a dead process's included: its backlog is never
+  accepted), the dialer's end the new fd's, its local address any; or a failure (refused,
+  unreachable, timed out). `a` must be in the plan. -/
+  | "Dial" => ∃ (a : GoString) (pa : PlanAddr), v = #a ∧ g.plan !! a = some pa ∧
+      ((∃ (l : Nat) (lr : LisRec) (fd : w64) (da : Addr), g.bound !! a = some l ∧ g.lis !! l = some lr ∧ lr.isOpen ∧
+          σ.freshFd fd ∧
+          g' = { g with next := g.next + 1,
+                        lis := <[l := { lr with backlog := lr.backlog ++ [g.next] }]> g.lis,
+                        conns := <[g.next := ⟨da, pa.addr, {}, {}⟩]> g.conns } ∧
+          σ' = σ.addFd fd (.conn g.next .dialer) ∧
+          e' = res (PairV (#fd) (addrV da)) 0) ∨
+       (∃ e, Fails e ∧ σ' = σ ∧ g' = g ∧ e' = res (PairV (#(0 : w64)) (addrV ⟨[], 0⟩)) e))
+  /- `Read(fd, n)` (`read`): `(#fd, #n) ↦ (#bytes, #errno)` (`ReadsFrom`); `EBADF` once closed. -/
+  | "Read" => ∃ (fd n : w64), v = PairV (#fd) (#n) ∧ σ' = σ ∧
+      ((σ.fdClosed fd ∧ g' = g ∧ e' = res (#([] : List w8)) EBADF) ∨
+       (∃ c s r p' out e, σ.fdOpen fd (.conn c s) ∧ g.conns !! c = some r ∧
+          ReadsFrom (r.inP s) n.toNat p' out e ∧
+          g' = { g with conns := <[c := r.setIn s p']> g.conns } ∧ e' = res (#out) e))
+  /- `Write(fd, d)` (`write`, looped): `(#fd, #d) ↦ (#written, #errno)` (`WritesTo`); `EBADF`
+  once closed. A write after the peer closed or died may succeed (no one reads it) or fail. -/
+  | "Write" => ∃ (fd : w64) (d : List w8), v = PairV (#fd) (#d) ∧ σ' = σ ∧
+      ((σ.fdClosed fd ∧ g' = g ∧ e' = res (#(0 : w64)) EBADF) ∨
+       (∃ c s r p' k e, σ.fdOpen fd (.conn c s) ∧ g.conns !! c = some r ∧
+          WritesTo (r.outP s) d p' k e ∧
+          g' = { g with conns := <[c := r.setOut s p']> g.conns } ∧
+          e' = res (#(W64 k)) e))
+  /- `Close(fd)` (`close`): `#fd ↦ #errno`. The fd is closed (a blocked operation on it then
+  returns `EBADF`); a listener stops accepting connections (new dials fail; its backlog is
+  never accepted); a connection end needs nothing more (the peer may see end of file once caught
+  up, as always). `EBADF` if already closed. -/
+  | "Close" => ∃ fd : w64, v = #fd ∧
+      ((σ.fdClosed fd ∧ σ' = σ ∧ g' = g ∧ e' = Val (#EBADF)) ∨
+       (∃ s, σ.fdOpen fd s ∧ σ' = { σ with fds := <[fd := ⟨s, true⟩]> σ.fds } ∧
+          e' = Val (#(0 : w64)) ∧
+          match s with
+          | .conn _ _ => g' = g
+          | .lis l => ∃ lr, g.lis !! l = some lr ∧
+              g' = { g with lis := <[l := { lr with isOpen := false }]> g.lis }))
+  /- `Check(fd)`: `#fd ↦ #errno`, `0` if open, `EBADF` if closed. What the socket-option and
+  deadline setters (`SetDeadline`, `SetReadDeadline`, `SetWriteDeadline`, `SetKeepAlive`,
+  `SetKeepAlivePeriod`, `SetNoDelay`) do to the model: nothing but this check, since deadlines
+  and keepalive only make failures, which are always possible. -/
+  | "Check" => ∃ fd : w64, v = #fd ∧ σ' = σ ∧ g' = g ∧
+      ((σ.fdClosed fd ∧ e' = Val (#EBADF)) ∨ (∃ s, σ.fdOpen fd s ∧ e' = Val (#(0 : w64))))
+  | _ => False
+
+/-- The operations that may wait (stutter): `accept4`, `connect`, `read` and `write` block. -/
+def waitOps : List String := ["Accept", "Dial", "Read", "Write"]
+
+/-- The step: an operation's step, or a wait. The heap never changes. -/
+def TcpStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (σ : Local) (g : Global)
+    (e' : Expr) (h' : GMap Loc (NonAtomic val)) (σ' : Local) (g' : Global) : Prop :=
+  h' = h ∧
+    (IsTcpStep op v σ g e' σ' g' ∨
+     (op ∈ waitOps ∧ σ' = σ ∧ g' = g ∧ e' = ExternalOp tcpExt.name op (Val v)))
+
+end step
+
+/-! ## Crash -/
+
+/-- A crash: the node's process is gone and its kernel closed its sockets: its fd table is
+empty. Its node index is kept (its plan addresses are still its own). The global state is not
+the crash's to change (DistLang): the dead process's listeners and connections stay, held by no
+fd. -/
+def TcpCrash (σ σ' : Local) : Prop := σ'.node = σ.node ∧ σ'.fds = ∅
+
+instance tcp_semantics : ExtSemantics tcpExt where
+  step := TcpStep
+  crash := TcpCrash
+
+/-! ## Start (what the adequacy statement's initial-state predicates will say) -/
+
+/-- A node's initial part: its index, no fds. -/
+def LocalInit (i : Nat) (σ : Local) : Prop := σ.node = i ∧ σ.fds = ∅
+
+/-- The network at the start: the deployment's plan, nothing bound, no sockets. -/
+def GlobalInit (plan : GMap GoString PlanAddr) (g : Global) : Prop :=
+  g.plan = plan ∧ g.bound = ∅ ∧ g.lis = ∅ ∧ g.conns = ∅ ∧ g.next = 0
+
+end Tcp
+end Perennial
+
+end

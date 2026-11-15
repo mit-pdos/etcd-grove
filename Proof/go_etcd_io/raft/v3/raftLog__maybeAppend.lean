@@ -87,18 +87,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The suffix of an entry slice from `k` on (`s[k:]`). -/
-private theorem entsPts_drop (k : w64) (s : GoSlice) (dq : DFrac) (es : List EntryM)
+/-- The suffix of an entry slice from `k` on (`s[k:]`); (out_size C3) at contents of bounded size
+under a flag. -/
+private theorem entsPtsZ_drop (sz : Bool) (k : w64) (s : GoSlice) (dq : DFrac) (es : List EntryM)
     (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z s.len) :
-    entsPts (GF := GF) s dq es ⊢ entsPts (slice.slice s Loc k s.len) dq (es.drop (sint.nat k)) := by
+    entsPtsZ (GF := GF) sz s dq es ⊢
+      entsPtsZ sz (slice.slice s Loc k s.len) dq (es.drop (sint.nat k)) := by
   iintro H
-  iunfold entsPts at H
+  iunfold entsPtsZ at H
   icases H with ⟨%lps, Hs, #Hb⟩
   icases (ownSlice_split_all k s dq lps hk).1 $$ Hs with ⟨-, Hs⟩
-  iunfold entsPts
+  iunfold entsPtsZ
   iexists lps.drop (sint.nat k)
   iframe Hs
-  iapply entsBig_drop
+  iapply entsBigZ_drop
   iexact Hb
 
 theorem raftLog.maybeAppend.wp_proof
@@ -111,7 +113,8 @@ theorem raftLog.maybeAppend.wp_proof
   wp_start as H
   iNamed H
   wp_auto
-  ihave %Hlen := entsPts_len _ _ _ $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
+  ihave #HentsR := entsROz_entsRO _ _ _ $$ Hents
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnwl, Hlog⟩
@@ -148,7 +151,7 @@ theorem raftLog.maybeAppend.wp_proof
       have := Hwf k e Hk
       omega
     wp_apply wp_raftLog_findConflict _ ls _ _ ents Hge Hgefl
-      $$ [$Hlog $Hents] as ⟨Hlog, -⟩
+      $$ [$Hlog $HentsR] as ⟨Hlog, -⟩
     have Hlni : a.prev'.index' + a.entries'.len = W64 (uint.Z a.prev'.index' + (ents.length : Int)) := by
       word
     rw [Hlni]
@@ -208,7 +211,7 @@ theorem raftLog.maybeAppend.wp_proof
       rw [decide_eq_false (by word)]
       wp_auto
       -- the batch from the conflict on: `a.entries[k:]`
-      ihave #Hdrop := entsPts_drop (W64 (k : Int)) a.entries' DFrac.discard ents (by word) $$ Hents
+      ihave #Hdrop := entsPtsZ_drop _ (W64 (k : Int)) a.entries' DFrac.discard ents (by word) $$ Hents
       ihave %Hcapwf := ownSliceCap_wf _ _ $$ Hcap
       icases (ownSliceCap_slice a.entries' (W64 (k : Int)) (DFrac.own 1) (by word)).1 $$ Hcap
         with Hcap'

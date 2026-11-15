@@ -35,7 +35,7 @@ abbrev lockerMutex.Lock.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗
       structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" client ↦□ GoInterface.ok cctx ∗
-      context.isContext cctx ccs ∗ context.isCancelCtxCtx cctx ccs ∗ etcdReached lo }}
+      context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx ∗ context.isCancelCtxCtx cctx ccs ∗ etcdReached lo }}
     (App (Val (lm @!! go.GoType.PointerType lockerMutex.ty @!! go!"Lock")) (Val #()))
   {{ (r : val), RET r; structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
       ((⌜r = #()⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc),

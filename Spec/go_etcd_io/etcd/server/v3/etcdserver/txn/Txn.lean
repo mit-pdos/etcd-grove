@@ -40,7 +40,7 @@ server's transaction at `log` (`srvRunTxn`), its response with header revision `
 the leases still known; a write request's under the batch lock (`Post`) and committed by the
 caller's updates (`Qw σ`), a read-only one on the read transaction (`Pre`). No size premise: every
 sort's from `Txn.Range`'s `stateOk`, at the read transaction or at the write transaction's pending
-state.
+state. The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The wand's `PathsIgnOk`: decided by
@@ -53,7 +53,7 @@ abbrev txn.Txn.specSole : Prop :=
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.kvBackend γ q B P f ∗
       txn.isTxnLessor le (mvccLeases γ) ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
-      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗ zapLoggerOrNil lg ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
       lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
       ⌜txn.TxnPreA log t⌝ ∗
@@ -95,7 +95,8 @@ abbrev txn.Txn.specSole : Prop :=
 /-- **`Txn(...)` at a reader** (the server's read-only transactions): a read-only request, the
 read transaction at the state `σ` of the caller's update (`Q σ`), any context. One of `checkTxn`'s
 errors; or the server's run at `σ.log`, header revision `σ.rev`; or the context done during a
-range: `fmt.Errorf`'s error, the response partly filled.
+range: `fmt.Errorf`'s error, the response partly filled. A zap logger (`txn` logs a read-only
+transaction's error through it; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
@@ -106,7 +107,7 @@ abbrev txn.Txn.specRead : Prop :=
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.isTxnLessor le (mvccLeases γ) ∗
       txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
-      traceutil.ownTraceOpt ot te ∗ ⌜lg ≠ null ∧ txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗
+      traceutil.ownTraceOpt ot te ∗ zapLoggerOk lg ∗ ⌜txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗
       txn.readAU γ Q }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))

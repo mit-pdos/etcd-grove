@@ -65,46 +65,42 @@ theorem wp_Snapshot_GetMetadata_E (p : Loc) (dq : DFrac) (s : SnapshotM) :
     iframe
     iframe Hpb
 
-/-- `cloned[i].Term = new(r.Term)` (`appendEntry`, `raft.go:818`): a fresh cell stored into the
-clone, which raft owns. -/
-theorem entOwn_store_Term (l : Loc) (e : EntryM) :
-    entOwn (GF := GF) l e ⊢
+/-- `cloned[i].Term = new(r.Term)` (`appendEntry`, `raft.go:836`): a fresh cell stored into the
+clone, which raft owns (out_size C3: at its content, `proto.ClonePb`'s owned `decC`). -/
+theorem entPtsCC_store_Term (l : Loc) (c : EntryC) :
+    entPtsCC (GF := GF) l (DFrac.own 1) c ⊢
       ∃ p : Loc, l.[raftpb.Entry, go!"Term"] ↦ p ∗
-        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Term"] ↦ p' -∗ cellRO p' v -∗
-          entOwn l { e with Term' := v }) := by
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Term"] ↦ p' -∗ p' ↦□ v -∗
+          entPtsCC l (DFrac.own 1) { c with term := some v }) := by
   iintro H
-  simp only [entOwn]
-  iunfold entPts at H
-  iNamed H
+  unfold entPtsCC
+  icases H with ⟨%pt, %pi, %pty, %ds, %Hnn, HT, #cT, HI, #cI, HY, #cY, HD, #Hd, #Hpb⟩
   iexists pt
   iframe HT
-  iintro %p' %v HT #cT'
-  iunfold entPts
-  iexists p', pi, pty, ds, uf
+  iintro %p' %v HT #Hp'
+  iexists p', pi, pty, ds
   isplitr
   · ipureintro; exact Hnn
-  iframe
-  iframe cT' cI cY Hd Hpb
+  iframe HT HI HY HD cI cY Hd Hpb
+  simp only [optCell]; iexact Hp'
 
-/-- `cloned[i].Index = new(li + 1 + uint64(i))` (`appendEntry`, `raft.go:819`). -/
-theorem entOwn_store_Index (l : Loc) (e : EntryM) :
-    entOwn (GF := GF) l e ⊢
+/-- `cloned[i].Index = new(li + 1 + uint64(i))` (`appendEntry`, `raft.go:837`). -/
+theorem entPtsCC_store_Index (l : Loc) (c : EntryC) :
+    entPtsCC (GF := GF) l (DFrac.own 1) c ⊢
       ∃ p : Loc, l.[raftpb.Entry, go!"Index"] ↦ p ∗
-        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Index"] ↦ p' -∗ cellRO p' v -∗
-          entOwn l { e with Index' := v }) := by
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Index"] ↦ p' -∗ p' ↦□ v -∗
+          entPtsCC l (DFrac.own 1) { c with index := some v }) := by
   iintro H
-  simp only [entOwn]
-  iunfold entPts at H
-  iNamed H
+  unfold entPtsCC
+  icases H with ⟨%pt, %pi, %pty, %ds, %Hnn, HT, #cT, HI, #cI, HY, #cY, HD, #Hd, #Hpb⟩
   iexists pi
   iframe HI
-  iintro %p' %v HI #cI'
-  iunfold entPts
-  iexists pt, p', pty, ds, uf
+  iintro %p' %v HI #Hp'
+  iexists pt, p', pty, ds
   isplitr
   · ipureintro; exact Hnn
-  iframe
-  iframe cT cI' cY Hd Hpb
+  iframe HT HI HY HD cT cY Hd Hpb
+  simp only [optCell]; iexact Hp'
 
 end lemmas
 

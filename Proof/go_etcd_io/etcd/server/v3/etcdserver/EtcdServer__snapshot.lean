@@ -11,7 +11,7 @@ snapshot certified first (`srv_snap_make`: registered in the cluster's registry,
 `Panic` is dead; `ep.memorySnapshotIndex := ep.appliedi`; `verifyConsistentIndexIsLatest(snap,
 ci)` (the consistent index read through its interface, `wp_ci_get`); with `toDisk`, `SaveSnap`
 (`saveSnapOk`), `ep.diskSnapshotIndex := ep.appliedi`, `Release` (the removal facts below `ai` from
-the applied index's lower bound), the `Info` log.
+the removal counter's lower bound; restart S6a: until then the applied index's), the `Info` log.
 -/
 module
 
@@ -108,11 +108,11 @@ theorem EtcdServer.snapshot.wp_proof
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q γn Hloop Hci Hrel
+  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q γn γm Hloop Hci Hrel
     Hpos Hsz Hwso Hγn Hpre
   cases toDisk
   all_goals (
-  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv, %Hkve⟩, #Hwp, Hai,
+  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hsdir, #Hrmlb, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv, %Hkve⟩, #Hwp, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   -- (R2b-1 stage 5) the applied log's committed lower bound, kept from `srvSnapStor`
   iunfold srvSnapStor at Hstor
@@ -125,7 +125,7 @@ theorem EtcdServer.snapshot.wp_proof
   iunfold isServerCI at Hsci'
   icases Hsci' with ⟨#Hcif, #Hcii, #Hcinv⟩
   iunfold srvFieldsAtM at Hfl'
-  icases Hfl' with ⟨#Hlg, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -⟩
+  icases Hfl' with ⟨#Hlg, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, -, -, -⟩
@@ -148,7 +148,7 @@ theorem EtcdServer.snapshot.wp_proof
   · iPkgInit
   wp_auto
   wp_apply hLg s sv.lg $$ [$Hlr] as ⟨-, Hlr⟩
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto))
   · -- no disk: straight to `CreateSnapshot`
     iunfold epConfState at Hcs
@@ -256,9 +256,9 @@ theorem EtcdServer.snapshot.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hLg s sv.lg $$ [$Hlr] as ⟨-, Hlr⟩
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     wp_apply hInfo sv.lg $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     (try wp_auto)
     wp_apply hKV s kv $$ []
     · iframe #
@@ -347,7 +347,15 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       -- `SaveSnap`, `Release`
       iunfold srvSnapDisk at Hdisk
-      icases Hdisk with ⟨%stp, %ss, %γd, %img, %Rm, %Hstp, #Hstf, #Hsave, #Hdinv, #Hrm⟩
+      icases Hdisk with ⟨%stp, #Hstf, #Hsave⟩
+      -- (restart S6a) `Release`'s directory, at the same storage
+      iunfold srvSnapDir at Hsdir
+      icases Hsdir with ⟨%stp', %ss, %γd, %img, %Rm, %Hstp, #Hstf', #Hdinv, #Hrm⟩
+      icombine Hstf Hstf' gives %Hstpeq
+      have Hstpeq' : stp = stp' := by
+        simp only [interface.mkOk, GoInterface.ok.injEq] at Hstpeq
+        injection Hstpeq with _ h; exact go.intoVal_inj h
+      subst Hstpeq'
       (try wp_auto)
       ihave #Hsnap' := HsnapV
       iunfold ownSnapV at Hsnap'
@@ -359,7 +367,7 @@ theorem EtcdServer.snapshot.wp_proof
         (memSnapMade ai at' c []).Metadata'
         iprop(token γn.wal.app ∗ walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.storage.ty) #stp))
-          (uint.nat (memSnapMade ai at' c []).Metadata'.Index')) $$ Hsave
+          (uint.nat (memSnapMade ai at' c []).Metadata'.Index')) true $$ Hsave
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
       subst Hsieq
       iunfold rnWalTokA at Hwt
@@ -420,12 +428,11 @@ theorem EtcdServer.snapshot.wp_proof
       · iframe #
         iintro !> %j %hj
         iapply Hrm
-        iunfold appliedAtLeast at Hal
         iapply monoNatLbOwn_le (uint.nat j + 1) (by
           have h : uint.Z j < uint.Z ai := hj
           have := uint_nat_eq j
           have := uint_nat_eq ai
-          omega) $$ Hal
+          omega) $$ Hrmlb
       have hrerr : rerr = GoInterface.nil := by
         rcases Hrerr with h | h
         · exact h
@@ -442,7 +449,7 @@ theorem EtcdServer.snapshot.wp_proof
       iintro %fsl2 ⟨-, -⟩
       (try wp_auto)
       wp_apply hInfo sv.lg $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
       iexists stLoaded γ st

@@ -67,8 +67,9 @@ theorem mvcc.store.restore.wp_proof
     have hok := mvcc.logEnts_restoreOk ([[], []] ++ R) hb.1 hcs rfl
     have hsub : ents.Sublist (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) := hcut.1
     have hokE : mvcc.RestoreEntsOk ents := mvcc.restoreOk_sublist hok hsub
-    wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
+    wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, #Hlgnn, Hcur1, Hcmp,
       HRevP0, HFw, HLk, HUl, HK, Hrcp, HLs⟩
+    ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
     iunfold mvcc.restoreViewR at Hview
     simp only [hR0, Bool.false_eq_true, ↓reduceIte] at *
     icases Hview with ⟨Hbv, Hcr⟩
@@ -141,7 +142,7 @@ theorem mvcc.store.restore.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply (hInfo lg) $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         (try wp_auto)
         icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional dqc dql).1 $$
           [Hcm] with ⟨Hcmp, Hcm2⟩
@@ -186,8 +187,6 @@ theorem mvcc.store.restore.wp_proof
     -- `rkvc, revc := restoreIntoIndex(s.lg, s.kvindex)` over the image's entries
     wp_apply (hRII lg ti ents Rd TokB e0) $$ [$Hix $HtB] as %rkvc %revc ⟨%γk, %γr, #Hsk, Hprod, #Hsr, Hcons⟩
     · iframe #
-      isplitr
-      · ipureintro; exact Hlgnn
       ipureintro; exact hokE
     (try wp_auto)
     -- the chunk loop: the entries from `r` on are those not sent yet
@@ -634,7 +633,7 @@ theorem mvcc.store.restore.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply (hInfo lg) $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     (try wp_auto)
     -- what `restore` has now; the resumed compaction, if any (`resumeK`)
     ihave HD : mvcc.restoreDone s (GoInterface.ok bi) ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT NC RevQ
@@ -670,7 +669,7 @@ theorem mvcc.store.restore.wp_proof
       iintro %gsl ⟨-, -⟩
       (try wp_auto)
       wp_apply (hInfo lg) $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
       iframe Hown
@@ -688,7 +687,7 @@ theorem mvcc.store.restore.wp_proof
       iintro %gsl ⟨-, -⟩
       (try wp_auto)
       wp_apply (hWarn lg) $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
       iframe Hown
@@ -703,8 +702,9 @@ theorem mvcc.store.restore.wp_proof
     rw [h2] at h
     exact List.sublist_nil.1 h
   subst hents
-  wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
+  wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, #Hlgnn, Hcur1, Hcmp,
     HRevP0, HFw, HLk, HUl, HK, -, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.restoreViewR at Hview
   simp only [↓reduceIte]
   icases Hview with ⟨Hbv, %Hmr⟩
@@ -781,8 +781,6 @@ theorem mvcc.store.restore.wp_proof
   wp_apply (hRII lg ti [] (fun _ _ => iprop(False)) iprop(True) e0) $$ [$Hix]
     as %rkvc %revc ⟨%γk, %γr, #Hsk, Hprod, #Hsr, Hcons⟩
   · iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
     ipureintro
     exact ⟨List.Pairwise.nil, fun e h => by cases h⟩
   (try wp_auto)
@@ -905,7 +903,7 @@ theorem mvcc.store.restore.wp_proof
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply (hInfo lg) $$ []
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto)
   -- nothing resumed: `restore` has what it ends with
   iunfold mvcc.resumeK at HK

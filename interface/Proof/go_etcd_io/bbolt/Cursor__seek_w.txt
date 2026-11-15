@@ -2,9 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.seek_w.wp_proofQ [hos : HasExt osFsExt] (hsw : bbolt.Cursor.search_w.specQ)
-    (hkv : bbolt.Cursor.keyValue_w.specQ) (hRP : bbolt.internal.common.InBucket.RootPage.spec) :
-    bbolt.Cursor.seek_w.specQ
+theorem bbolt.Cursor.seek_w.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hsw : bbolt.Cursor.search_w.specQ) (hkv : bbolt.Cursor.keyValue_w.specQ) (hRP :
+    bbolt.internal.common.InBucket.RootPage.spec) : bbolt.Cursor.seek_w.specQ
   -- `Perennial.EtcdGrove.bbolt.Cursor.seek_w.specQ`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (X : bbolt.WX) (bl c : Loc) (stk : GoSlice)
     (els0 : List go_etcd_io.bbolt.elemRef) (key : GoSlice) (kb : List w8) (kr : bbolt.KeyR),
@@ -37,25 +37,27 @@ theorem bbolt.Cursor.seek_w.wp_proofQ [hos : HasExt osFsExt] (hsw : bbolt.Cursor
                     (intoVal key))
                   {{ Φ }}
 
-theorem bbolt.wtxW_ltree_len [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m :
-    Bool) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (p : w64) (lf : Bool) (ws : List bbolt.WEntry)
-    (hB : X.t.bs !! bl = some B) (hloc : bbolt.bktLocalOK X bl) (hl : bbolt.ltree X bl p = some (lf,
-    ws)) : bbolt.wtxW K tx r m X ⊢ bbolt.wtxW K tx r m X ∗ ⌜ws.length < 2 ^ 63⌝
+theorem bbolt.wtxW_ltree_len [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (K :
+    bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (p
+    : w64) (lf : Bool) (ws : List bbolt.WEntry) (hB : X.t.bs !! bl = some B) (hloc :
+    bbolt.bktLocalOK X bl) (hl : bbolt.ltree X bl p = some (lf, ws)) : bbolt.wtxW K tx r m X ⊢
+    bbolt.wtxW K tx r m X ∗ ⌜ws.length < 2 ^ 63⌝
 
-theorem bbolt.Cursor.keyValue_w.specQ.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Cursor.keyValue_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Cursor.keyValue_w.specQ = bbolt.Cursor.keyValue_w.specQ
 
-theorem bbolt.wtxWQ_ltree_len [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m
-    : Bool) (q : Qp) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (p : w64) (lf : Bool) (ws : List
-    bbolt.WEntry) (hB : X.t.bs !! bl = some B) (hloc : bbolt.bktLocalOK X bl) (hl : bbolt.ltree X bl
-    p = some (lf, ws)) : bbolt.wtxWQ K tx r m q X ⊢ bbolt.wtxWQ K tx r m q X ∗ ⌜ws.length < 2 ^ 63⌝
+theorem bbolt.wtxWQ_ltree_len [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (K :
+    bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (X : bbolt.WX) (bl : Loc) (B :
+    bbolt.BRec) (p : w64) (lf : Bool) (ws : List bbolt.WEntry) (hB : X.t.bs !! bl = some B) (hloc :
+    bbolt.bktLocalOK X bl) (hl : bbolt.ltree X bl p = some (lf, ws)) : bbolt.wtxWQ K tx r m q X ⊢
+    bbolt.wtxWQ K tx r m q X ∗ ⌜ws.length < 2 ^ 63⌝
 
-theorem bbolt.Cursor.search_w.specQ.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.search_w.specQ
-    = bbolt.Cursor.search_w.specQ
+theorem bbolt.Cursor.search_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.search_w.specQ = bbolt.Cursor.search_w.specQ
 
-theorem bbolt.Cursor.seek_w.wp_proof [hos : HasExt osFsExt] (hsw : bbolt.Cursor.search_w.specQ) (hkv
-    : bbolt.Cursor.keyValue_w.specQ) (hRP : bbolt.internal.common.InBucket.RootPage.spec) :
-    bbolt.Cursor.seek_w.spec
+theorem bbolt.Cursor.seek_w.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hsw : bbolt.Cursor.search_w.specQ) (hkv : bbolt.Cursor.keyValue_w.specQ) (hRP :
+    bbolt.internal.common.InBucket.RootPage.spec) : bbolt.Cursor.seek_w.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.seek_w.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (bl c : Loc) (stk : GoSlice)
     (els0 : List go_etcd_io.bbolt.elemRef) (key : GoSlice) (kb : List w8) (kr : bbolt.KeyR),

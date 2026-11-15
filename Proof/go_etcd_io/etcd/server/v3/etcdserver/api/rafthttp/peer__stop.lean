@@ -39,7 +39,7 @@ local macro "ps_log" : tactic => `(tactic| (
     | "zap.String" => (wp_apply hZString as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)))
 
@@ -56,9 +56,10 @@ theorem rafthttp.peer.stop.wp_proof
   intro Rh lid pid γd R p
   wp_start as ⟨#Hp, Hst⟩
   iunfold peerOk at Hp
-  icases Hp with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, %Hlgnn,
+  icases Hp with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, #Hlgz,
     #Hlid, #Hpid, -, -, -, -, -, -, #Hcw2, #Hf2, #Hcw1, #Hf1, #Hpl, -, #Hss, -, #Hcr2, #Hsr2, #Hst2,
     #Hcr1, #Hsr1, #Hst1, -, -, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold peerStop at Hst
   icases Hst with ⟨%cw2', %cw1', %pl', %ss', %sc, %γs, %cf, %γc, #Hsc, Hsb, #Hcf, #Hcancel,
     #Hcw2', Hsw2, #Hcw1', Hsw1, #Hpl', Hpls, #Hss', Hsns⟩

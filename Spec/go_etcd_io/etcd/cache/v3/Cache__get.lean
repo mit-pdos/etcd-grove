@@ -38,7 +38,8 @@ abbrev Cache.get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (B : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ cacheBound cf B }}
+      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ metadata.outgoingCtxOkC ctx ∗
+      cacheBound cf B }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"get")) (Val #(GoInterface.ok ctx)))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheBound cf B ∗ errStrOk err) ∨

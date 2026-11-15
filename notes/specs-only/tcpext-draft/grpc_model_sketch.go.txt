@@ -1,0 +1,241 @@
+//go:build ignore
+
+// DRAFT SKETCH (design review, 2026-11-10), not compiled: the shape of the trusted grpc-go model
+// (notes/specs-only/tcp-extension-design.md, section 4.3). In the design it is a patch of
+// grpc-go v1.84.0's own source (package grpc): new unexported files like this one, and the
+// bodies of the reached methods that grpc-go implements with its HTTP/2 transport, balancers and
+// channelz replaced by calls into them. Everything else the program reaches stays grpc-go's own
+// code, translated: the option constructors and serverOptions/dialOptions/callInfo,
+// chainUnaryServerInterceptors, invoke (call.go), the ServiceDesc registry, status, codes,
+// metadata, peer, resolver, resolver/manual, health.
+//
+// One gRPC stream per TCP connection; frames of modelframe (copied into the package).
+// choose() is the model's nondeterministic choice: a trusted declaration whose GooseLang body is
+// an arbitrary boolean, and whose Go body (for running the program over the model) is false
+// unless a test knob says otherwise.
+
+package grpc
+
+// ---------------------------------------------------------------------------------------------
+// Server
+
+// Serve: grpc-go's own Serve (accept loop with its backoff on temporary errors, ErrServerStopped
+// after Stop) with channelz removed; each accepted connection goes to serveModelConn.
+func (s *Server) Serve(lis net.Listener) error {
+	s.mu.Lock()
+	if s.lis == nil { // Stop or GracefulStop ran
+		s.mu.Unlock()
+		lis.Close()
+		return ErrServerStopped
+	}
+	s.serveWG.Add(1)
+	defer s.serveWG.Done()
+	s.lis[lis] = true
+	s.mu.Unlock()
+	defer func() { s.mu.Lock(); if s.lis != nil { delete(s.lis, lis) }; s.mu.Unlock() }()
+	var tempDelay time.Duration
+	for {
+		rawConn, err := lis.Accept() // the program's listener chain runs (etcd's wrappers, cmux)
+		if err != nil {
+			if ne, ok := err.(interface{ Temporary() bool }); ok && ne.Temporary() {
+				tempDelay = nextDelay(tempDelay) // 5ms doubling to 1s, grpc-go's
+				time.Sleep(tempDelay)
+				continue
+			}
+			if s.quit.HasFired() {
+				return nil
+			}
+			return err
+		}
+		tempDelay = 0
+		s.serveWG.Add(1)
+		go func() { s.serveModelConn(rawConn); s.serveWG.Done() }()
+	}
+}
+
+// serveModelConn: the preface, then one stream: refused (never dispatched) or dispatched once.
+func (s *Server) serveModelConn(c net.Conn) {
+	if ok, _ := readPreface(c, grpcPreface); !ok {
+		c.Close()
+		return
+	}
+	mc := &modelSrvConn{conn: c}
+	if !s.addModelConn(mc) { // stopped: close, as handleRawConn does after Stop
+		c.Close()
+		return
+	}
+	defer s.removeModelConn(mc) // signals s.cv: GracefulStop/Stop wait for the conns to go
+	k, p, err := readFrame(c, maxHeaderListSize)
+	if err != nil || k != gHead {
+		c.Close()
+		return
+	}
+	h, ok := decodeHead(p) // method, timeout, metadata
+	if !ok {
+		c.Close()
+		return
+	}
+	s.mu.Lock()
+	refuse := s.draining || choose() // GOAWAY/MaxConcurrentStreams, over-approximated
+	if !refuse {
+		mc.dispatched = true // read under s.mu by drain: never refused afterwards
+	}
+	s.mu.Unlock()
+	if refuse {
+		writeFrames(c, frame(gRefused, nil)) // the client may retry it transparently
+		c.Close()
+		return
+	}
+	st := newModelServerStream(s, mc, h) // its context: incoming md (metadata.NewIncomingContext),
+	// peer (peer.NewContext with c.RemoteAddr()/LocalAddr()), the client's timeout
+	// (context.WithTimeout), canceled by the reader goroutine on gCancel, an error or EOF.
+	go st.readLoop() // client frames: gMsg into a queue, gClose, gCancel / errors cancel the ctx
+	s.handleModelStream(st) // grpc-go's handleStream shape: lookup, then unary or streaming
+	c.Close()
+}
+
+// handleModelStream: grpc-go's handleStream: "/service/method" lookup (Unimplemented "unknown
+// service %v" / "unknown method %v for service %v"), then processUnaryRPC/processStreamingRPC's
+// observable behavior without stats, binlog, compression, channelz. No recover: a handler's
+// panic is the program's.
+func (s *Server) handleModelStream(st *modelServerStream) {
+	srv, md, sd, ok := s.lookup(st.method)
+	if !ok {
+		st.finish(status.Newf(codes.Unimplemented, unknownMsg(st.method)))
+		return
+	}
+	if md != nil { // unary
+		dec := func(v any) error {
+			b, err := st.recvOne(s.opts.maxReceiveMessageSize) // ResourceExhausted "grpc: received
+			if err != nil {                                     // message larger than max (%d vs. %d)"
+				return err                                       // checked on the frame's length
+			}
+			if err := s.getCodec().Unmarshal(b, v); err != nil { // the program's CustomCodec
+				return status.Errorf(codes.Internal, "grpc: error unmarshalling request: %v", err)
+			}
+			return nil
+		}
+		reply, appErr := md.Handler(srv.serviceImpl, st.ctx, dec, s.opts.unaryInt)
+		if appErr != nil {
+			appStatus, ok := status.FromError(appErr)
+			if !ok {
+				appStatus = status.FromContextError(appErr) // server.go:1461-1465
+			}
+			st.finish(appStatus)
+			return
+		}
+		if err := st.sendMsg(reply); err != nil { // codec Marshal, MaxSendMsgSize check
+			st.finish(statusOf(err))
+			return
+		}
+		st.finish(status.New(codes.OK, ""))
+		return
+	}
+	// streaming: the handler with a ServerStream over st, through s.opts.streamInt
+	var appErr error
+	if s.opts.streamInt == nil {
+		appErr = sd.Handler(srv.serviceImpl, st)
+	} else {
+		info := &StreamServerInfo{FullMethod: st.method, IsClientStream: sd.ClientStreams,
+			IsServerStream: sd.ServerStreams}
+		appErr = s.opts.streamInt(srv.serviceImpl, st, info, sd.Handler)
+	}
+	st.finish(statusOfApp(appErr)) // gTrailer: code, encodeGrpcMessage(msg), trailer md
+}
+
+// GracefulStop / Stop: grpc-go's stop(graceful) with the transports replaced: close the
+// listeners, wait for Serve goroutines, then drain (mark draining: undispatched streams are
+// refused) or close every model connection; wait until no connection is left; GracefulStop also
+// waits for the handlers (grpc-go's handlersWG), Stop does not.
+
+// ---------------------------------------------------------------------------------------------
+// Client
+
+// The ClientConn keeps grpc-go's dialOptions (real option constructors) and, in place of its
+// balancer and subchannels: the resolver wrapper (implements resolver.ClientConn: UpdateState
+// records the endpoints' addresses, ParseServiceConfig accepts exactly
+// {"loadBalancingPolicy": "round_robin"} and panics on anything else, which the model does not
+// cover), every address ever reported, the idle state (the resolver is built at the first RPC
+// and, when no RPC is active, the ClientConn may go idle: resolver Close, later Build again, as
+// grpc-go's idleness manager), the active streams, closed.
+
+// newModelClientStream is newClientStream's model: call options (real callInfo), then the first
+// attempt. Invoke is grpc-go's own invoke over it (SendMsg, CloseSend, RecvMsg).
+func newModelClientStream(ctx context.Context, desc *StreamDesc, cc *ClientConn, method string,
+	opts ...CallOption) (ClientStream, error) {
+	if err := cc.enterRPC(); err != nil { // ErrClientConnClosing; exits idle (resolver Build)
+		return nil, err
+	}
+	c := defaultCallInfo()
+	for _, o := range append(cc.dopts.callOptions, opts...) {
+		if err := o.before(c); err != nil { // WaitForReady, MaxCall*Size, Peer, ...
+			cc.exitRPC()
+			return nil, toRPCErr(err)
+		}
+	}
+	cs := &modelClientStream{ctx: ctx, cc: cc, desc: desc, method: method, callInfo: c}
+	if err := cs.attempt(); err != nil {
+		cc.exitRPC()
+		return nil, err
+	}
+	go cs.watchCtx() // ctx done: gCancel, close the connection
+	return cs, nil
+}
+
+// attempt: pick an address, dial, write the preface and the head in one Write; retry
+// (transparently) while provably nothing was dispatched: the dial failed, or the head did not
+// get out whole. Called with cs.mu held after the first attempt (retries from RecvMsg).
+func (cs *modelClientStream) attempt() error {
+	for {
+		if err := cs.ctx.Err(); err != nil {
+			return status.FromContextError(err).Err()
+		}
+		if cs.cc.isClosed() {
+			return ErrClientConnClosing
+		}
+		addr, ok := cs.cc.pickAny() // any address the resolver reported since the build
+		if !ok {
+			if cs.callInfo.failFast {
+				return status.Error(codes.Unavailable, ownMsgNoAddrs)
+			}
+			cs.cc.waitAddrs(cs.ctx) // until an UpdateState or ctx done
+			continue
+		}
+		conn, err := cs.cc.dial(cs.ctx, addr) // dopts' context dialer, else
+		if err != nil {                       // (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+			if cs.callInfo.failFast {
+				return status.Error(codes.Unavailable, "connection error: "+err.Error())
+			}
+			continue // WaitForReady: keep trying
+		}
+		md, err := cs.outgoingMD() // metadata.FromOutgoingContext + PerRPCCredentials (program code)
+		if err != nil {
+			conn.Close()
+			return err
+		}
+		head := frame(gHead, encodeHead(cs.method, cs.ctx, md))
+		n, err := writeFrames(conn, append([]byte(grpcPreface), head...))
+		if err == nil {
+			cs.conn = conn
+			return cs.replay() // a transparent retry resends the buffered messages (and close-send)
+		}
+		conn.Close()
+		if n == len(grpcPreface)+len(head) {
+			return ownErr(err) // the head may be whole at the server: no transparent retry
+		}
+		// the head never got out whole: the server cannot have dispatched it: retry
+	}
+}
+
+// SendMsg: codec Marshal (grpc's proto codec: proto.Marshal), MaxCallSendMsgSize check
+// (ResourceExhausted "grpc: trying to send message larger than max (%d vs. %d)"), buffered for a
+// transparent retry until committed, one gMsg frame. A failed write: io.EOF (the status comes from
+// RecvMsg), as grpc-go. CloseSend: gClose, buffered likewise.
+
+// RecvMsg: the next server frame. gRefused (only before anything was received): a transparent
+// retry, attempt() under cs.mu, then go on. gHeader: the header metadata; commits. gSMsg:
+// MaxCallRecvMsgSize on the length, codec Unmarshal (Internal on failure); commits. gTrailer:
+// io.EOF for OK, else the status (decodeGrpcMessage of the message); Peer/Trailer call options'
+// after(). An error or an end of file before the trailer: an own error, any non-OK code with one
+// of grpc-go's own messages (C5), or the context's status if ctx is done. For a unary call
+// (!desc.ServerStreams) a second message is Internal "cardinality violation", as grpc-go.

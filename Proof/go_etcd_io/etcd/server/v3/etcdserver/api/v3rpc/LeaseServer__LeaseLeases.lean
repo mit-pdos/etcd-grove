@@ -43,7 +43,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S ci cd r n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hpub, #Hllb⟩
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hpub, #Hllb⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩

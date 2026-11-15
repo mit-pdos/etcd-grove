@@ -257,7 +257,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     Election.observe.spec (GF := GF) (hG := hG) := by
   intro e s γs client id pfx ctx cs ch γ sent L Rl
-  wp_start as ⟨#He, #Hctx, #Hcc, #Hch, Hprod, Hauth, #HRl, %HL, %HRl0⟩
+  wp_start as ⟨#He, #Hctx, #HctxC, #Hcc, #Hch, Hprod, Hauth, #HRl, %HL, %HRl0⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -267,7 +267,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   wp_apply wp_Client s γs client id $$ [$Hpkg $Hsess]
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, #Hwf, -, -, #HKV, -, -, #HW⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, #Hwf, -, -, -, #HKV, -, -, #HW⟩
   iunfold isObserveChan at Hch
   ipersist e
   ipersist ch
@@ -300,7 +300,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   (try wp_auto)
   ihave #HG := HKV $$ %ctx %cs %pfx %slf %(withTopM (W64 2) (W64 1)) %Rl
   wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx Hslf HRl
+  · iframe Hctx HctxC Hslf HRl
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres
@@ -348,7 +348,8 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     -- `Watch` needs `0 ≤ rev`: `R0 ≥ Rl ≥ 0` (the loop keeps `0 ≤ Rl`, from `Observe`'s `lo`)
     have HR0pos : 0 ≤ sint.Z R0 := by omega
     wp_apply context.wp_WithCancel iprop(True) ctx cs $$ [$Hctx $Hcc]
-        as %ctxB %γB %cancelB ⟨#HcancelB, #HctxB, #HccB⟩
+        as %ctxB %γB %cancelB ⟨#HcancelB, #HctxB, #HccB, #HfromB⟩
+    ihave #HctxCB := metadata.outgoingCtxOkC_from ctx ctxB $$ [$HfromB $HctxC]
     ihave #HcancelB' := context.cancel_spec_forget _ _ _ $$ HcancelB
     iunfold getRespRev at HgRev
     icases HgRev with ⟨%ghdr, #Hgh, %Hghnn, #HghR⟩
@@ -378,7 +379,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       %pfx %optsSl %([withRevM R0, withPrefixM] : List (OpFull → OpFull)) %R0
     (try wp_auto)
     wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hwcons, #Hcur0⟩
-    · iframe HctxB Hopts
+    · iframe HctxB HctxCB Hopts
       ipureintro
       refine ⟨Hw1, Hw2, HR0pos, ?_⟩
       rw [Hw3, Hw4]
@@ -627,7 +628,8 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     iintro Hprod
     (try wp_auto)
     wp_apply context.wp_WithCancel iprop(True) ctx cs $$ [$Hctx $Hcc]
-        as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
+        as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc', #Hfrom'⟩
+    ihave #HctxC' := metadata.outgoingCtxOkC_from ctx ctx' $$ [$Hfrom' $HctxC]
     ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
     ihave #Hctx2 := Hctx'
     iNamedPrefix Hctx2 "C"
@@ -667,7 +669,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       %v.key %optsSl %([withRevM (R + W64 1)] : List (OpFull → OpFull)) %(R + W64 1)
     (try wp_auto)
     wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hwcons, #Hcur0⟩
-    · iframe Hctx' Hopts
+    · iframe Hctx' HctxC' Hopts
       ipureintro
       refine ⟨Hw1, Hw2, by word, ?_,
         watchSizeOk_keyWatch (R + W64 1) (by unfold etcdKeyMax at Hvk; omega)⟩

@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.Logger.wp_proof : EtcdServer.Logger.spec (GF := GF) (hG := hG) := by
   intro s l
-  wp_start as ⟨#Hlg, %Hnn, Hrd⟩
+  wp_start as ⟨#Hlg, #Hnn, Hrd⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold srvLgReader at Hrd
@@ -36,7 +36,7 @@ theorem EtcdServer.Logger.wp_proof : EtcdServer.Logger.spec (GF := GF) (hG := hG
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk] as Hh
   · inext; itrivial
   iapply HΦ
-  iframe %Hnn
+  iframe Hnn
   iunfold srvLgReader
   iexists mu
   iframe Hmu Hh

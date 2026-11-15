@@ -39,7 +39,8 @@ at their wire content:
   `Unmarshal (Marshal c) ≠ c`); an over-declared one (a number the message does not have) makes D1
   false (Go's successful decode of such a field claims a `ufWire` it does not satisfy).
 - **The data/encoder split** (`[v6]` §5 item 7): `PbModelC` is the type's data (its `PbType`, `C`,
-  `roC`, `modelOf`, `levels`, `size`, `tree` and the proved `ro_iff`, `roC_ufValid`), a constant
+  `roC`, `modelOf`, `levels`, `size`, `tree`, `decC` and the proved `ro_iff`, `roC_ufValid`,
+  `decC_dec`), a constant
   that mentions no axiom; `PbEncC T` its encoder part, the encoding `enc` and its one trusted fact
   `enc_ok`, a Prop field that each registered instance fills with its own axiom; `PbTypeC` the
   pair (`data`, `encd`), what the registry holds. `Sat` is stated over the data part, so a `Sat`
@@ -124,15 +125,21 @@ structure PbModelC (GF : BundledGFunctors) extends PbType GF where
   size : C → Nat
   /-- The normalizing store of a model (`Store.lean`). -/
   tree : M → VTree
-  /-- **The contents whose decoded message `dec` describes** (trusted, with `dec`): `dec` takes a
-  model, which may forget part of what Go's decoder leaves (a `Message`'s snapshot `ConfState`'s
-  unknown fields, which `dec` fixes to none); without `decOk` Go's decoded message is not described
-  (true of Go: the receiver then owns nothing it can use). -/
+  /-- **The contents whose decoded message `dec` describes**: `dec` takes a model, which may forget
+  part of what Go's decoder leaves (a `Message`'s snapshot `ConfState`'s unknown fields, which `dec`
+  fixes to none); the decoded object at such a content is `dec` at its model (`decC_dec`), at any
+  other only `decC`. -/
   decOk : C → Prop
   /-- `ro` is a frozen message at some wire content (proved). -/
   ro_iff : ∀ l m, ro l m ⊣⊢ ∃ c, roC l c ∗ ⌜modelOf c = m⌝
   /-- A frozen message's unknown fields are valid (proved, from `pbMsg`'s index). -/
   roC_ufValid : ∀ l c, roC l c ⊢ ⌜∀ p ∈ levels c, ufWire p.1 p.2⌝
+  /-- **The decoded object at its wire content** (trusted, with `dec`): an owned `*T` holding exactly
+  `c` (every level's unknown fields, presence and nil versus empty), what `proto.Unmarshal` and
+  `proto.Clone` leave. -/
+  decC : Loc → C → IProp GF
+  /-- The decoded object at a content `dec` describes is `dec` at its model (proved). -/
+  decC_dec : ∀ l c, decOk c → decC l c ⊢ dec l (modelOf c)
 
 attribute [instance] PbModelC.roC_persistent
 

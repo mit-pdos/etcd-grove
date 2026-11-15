@@ -33,7 +33,8 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 lease, which it knows from `L`: so none is left unused); else one write
 transaction, begun at the state `σ₀` of the caller's update (`putAU`), its `ErrKeyNotFound` (no
 change) or its put committed (`putPend o σ₀`) by the caller's two updates, the hook run once under
-the batch lock (`Post`). The caller's pin, if any, is in its `R`.
+the batch lock (`Post`). The caller's pin, if any, is in its `R`. The logger nil or a zap logger (`EnsureTrace`'s;
+premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
@@ -45,7 +46,7 @@ abbrev txn.Put.spec : Prop :=
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.isTxnLessor le (mvccLeases γ) ∗
       lease.lessorUser (mvccLeases γ) L I ∗ txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
-      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ zapLoggerOrNil lg ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗
       (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then txn.putAU γ o L I R
        else iprop(True)) }}

@@ -311,8 +311,6 @@ local macro "succ_tail" : tactic => `(tactic| (
       (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef Hpre Hupd Hwt Hrt Hrb]
     as ⟨Hbef, Hpost⟩
   · iframe #; iframe
-    isplitr
-    · ipureintro; exact Hclgnn
     try simp only [↓reduceIte]
     iframe #
     iframe
@@ -503,13 +501,13 @@ theorem EtcdServer.applyConfChange.wp_proof
     clear Hv3p Hloc
     obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
         membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
-    wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hcl, #Hclg, %Hclgnn, #Hcid, Hcc, Hcs, #Hbh, #Hbhi, #Htr, #Hmid,
+    wp_start as ⟨#Hlg, #Hlgnn, Hlr, #Hcl, #Hclg, #Hclgnn, #Hcid, Hcc, Hcs, #Hbh, #Hbhi, #Htr, #Hmid,
       Hmr, HRS⟩
     try wp_method_call
     try wp_call
     wp_auto
     wp_apply hLogger $$ [Hlr] as ⟨-, Hlr⟩
-    · iframe #; iframe; ipureintro; exact Hlgnn
+    · iframe Hlg; iframe #; iframe
     rw [HRO]
     iunfold srvRestOwnH at HRS
     iunfold srvRestOwn at HRS
@@ -588,8 +586,6 @@ theorem EtcdServer.applyConfChange.wp_proof
       iprop(True) iprop(True) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef]
       as ⟨Hbef, Hpost⟩
     · iframe #; iframe
-      isplitr
-      · ipureintro; exact Hclgnn
       simp only [Bool.false_eq_true, ↓reduceIte]
       itrivial
     try simp only [Bool.false_eq_true, ↓reduceIte]
@@ -659,14 +655,14 @@ theorem EtcdServer.applyConfChange.wp_proof
   obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
       membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
   clear Hdyn Hdv Hloc
-  wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
+  wp_start as ⟨#Hlg, #Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, #Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
     #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hwt, ⟨%W, #HisBk⟩, #Hplh, %Hfnn, Hhook, Hupd,
     Hlens, Hsci, Hpre⟩
   wp_method_call
   wp_call
   wp_auto
   wp_apply hLogger $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe; ipureintro; exact Hlgnn
+  · iframe Hlg; iframe #; iframe
   -- the rest buckets, the members and the cluster's backend field
   subst HγB
   rw [HRO]
@@ -749,7 +745,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       iintro %fsl ⟨-, -⟩
       wp_auto
       wp_apply hError $$ []
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       icases ownConfChange_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
       wp_auto
       ipersist «$r0»

@@ -110,7 +110,7 @@ abbrev apply.Apply.kvSpecL : Prop :=
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM)
     (ci : apply.Chain) (L : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberKVC ua E ci L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      apply.uberKVC ua E ci L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
       (∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
         apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.cmpOwn E x.crev) ∗
       apply.certPreVW v3 E x.chain rq x.log
@@ -172,7 +172,7 @@ theorem apply.uberKVC_of (hUA : apply.uberApplier.Apply.kvSpecL (GF := GF) (hG :
 theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.kvSpecL (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs ci L hh
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hkv, #Hcp, %Hprem, #HF, Htt, HFS, HSp, HRO, HL, %Hx⟩
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, #Hcp, %Hprem, #HF, Htt, HFS, HSp, HRO, HL, %Hx⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   iunfold apply.uberKVC at Hfor
   icases Hfor with ⟨%p, %Hua, #Htr⟩
@@ -194,8 +194,6 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
           apply.kvOutL E.authMode hh (auth.authInfoM (apply.principalOf rq)) ci rq x.log o⌝)))
       $$ [HRD HK Hown Hkv Htt HFS HSp HRO HL] as %ar %id' ⟨HRD, %Hid', Hout⟩
   · iframe # HRD HK Hown Hkv Htt HFS HSp HRO HL
-    isplitr
-    · ipureintro; exact Hlg
     isplitr
     · ipureintro; exact ⟨Hdec, Hid⟩
     iexists ⟨go.GoType.PointerType uberApplier.ty, #p⟩

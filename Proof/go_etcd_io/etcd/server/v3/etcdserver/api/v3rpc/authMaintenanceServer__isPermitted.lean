@@ -30,17 +30,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.authMaintenanceServer.isPermitted.wp_proof
     (hP : v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG) := by
-  intro p ms aa s E ctx cd
-  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, HRD⟩
+  intro p ms aa s E ctx cd n
+  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.amsIs at Hams
   icases Hams with ⟨%Hpn, #Hms, #Haaf⟩
   (try wp_auto)
-  wp_apply (hP aa s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+  wp_apply (hP aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #Hout⟩
   · iframe #
   (try wp_auto)
   iapply HΦ
-  iframe HRD
-  iapply adminOut_of_adminOutB _ _ _ _ $$ Hout
+  iframe HRD Hout
 
 end proof
 

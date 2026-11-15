@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -44,6 +44,17 @@ globs = ["RaftWitness.+"]
 [[lean_lib]]
 name = "PorcupineDag"
 globs = ["PorcupineDag.+"]
+
+# The spec plan (notes/specs-only/README.md): intermediate specs for all of etcd over opaque
+# predicates, without proofs, judged against the Go requirement snippets of examples/specreq/; the
+# real proofs (Spec/, Proof/) converge toward them (CLAUDE.md, "The spec plan and convergence").
+# SpecPlan/Spec/<pkg>/, modules SpecPlan.Spec.*: it imports only the shared translations
+# (GeneratedProof, GooseLang) and Perennial, and nothing outside it imports it (its namespaces are
+# the main tree's). A default target (3238 modules, about 2h20m of CPU, measured 2026-11-12);
+# etc/specs-build.sh builds a few of its modules.
+[[lean_lib]]
+name = "SpecPlan"
+globs = ["SpecPlan.+"]
 
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest

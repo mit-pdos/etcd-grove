@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 /-- `m.InitializeMetrics(gs)` on a server being built returns it as it was. -/
 abbrev grpc_prometheus.ServerMetrics.InitializeMetrics.spec : Prop :=
   ∀ (m gs : Loc) (ics sics : List GoFunc) (svcs : List GoString)
-    (regs sregs : List (GoString × val × GoInterface)),
+    (regs sregs : List (GoString × GoFunc × GoInterface)),
   {{ promSrvMetrics (GF := GF) m ∗ grpcSrvNew gs ics sics svcs regs sregs }}
     (App (Val (m @!! go.GoType.PointerType github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty @!! go!"InitializeMetrics"))
       (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.Server.ty) #gs : GoInterface)))

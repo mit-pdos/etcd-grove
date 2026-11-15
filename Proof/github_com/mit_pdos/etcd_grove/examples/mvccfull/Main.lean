@@ -51,8 +51,8 @@ theorem Main.wp_proof
     (wp_MainConfig : MainConfig.spec (GF := GF) (hG := hG))
     (wp_Run : Run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro _ _ hckpt hdbo hdbc
-  wp_start as ⟨Hfiles, #Hks, Htok, #Hvoff⟩
+  intro _ _ hdbo hdbc
+  wp_start as ⟨Hfiles, Htok, #Hvoff⟩
   (try wp_auto)
   wp_apply wp_MainConfig as %mx Hmix
   iunfold mainMixOwn at Hmix
@@ -60,9 +60,9 @@ theorem Main.wp_proof
   have hcfg := mainConfig_ok mx
   (try wp_auto)
   wp_apply (wp_Run (mainConfigM go!"mvccfull" mx)
-      [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] hcfg hckpt hdbo hdbc)
-    $$ [Hfiles Hks Htok Hvoff Hs Ho Hc Hr Hrd Ha Hst] as %rep -
-  · iframe Hks Htok Hvoff
+      [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] hcfg hdbo hdbc)
+    $$ [Hfiles Htok Hvoff Hs Ho Hc Hr Hrd Ha Hst] as %rep -
+  · iframe Htok Hvoff
     isplitl [Hs Ho Hc Hr Hrd Ha Hst]
     · iunfold mixOwn
       simp only [mainConfigM]

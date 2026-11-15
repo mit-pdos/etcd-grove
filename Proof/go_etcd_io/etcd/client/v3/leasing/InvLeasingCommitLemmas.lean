@@ -255,7 +255,7 @@ theorem ownTxnLeasing_ops (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString)
     ownTxnLeasing txn lkv γ pfx ctx cs b ⊢
       ⌜∃ tops eops, b.thenOps = some tops ∧ b.elseOps = some eops⌝ := by
   unfold ownTxnLeasing
-  iintro ⟨%t, %B, %csl, %tsl, %esl, %tops, %eops, -, -, -, -, -, -, -, -, -, -, -, -, -, %h⟩
+  iintro ⟨%t, %B, %csl, %tsl, %esl, %tops, %eops, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %h⟩
   ipureintro; exact ⟨tops, eops, h⟩
 
 /-- **Reading a transaction being built**: its fields (owned), what they hold (read-only, the
@@ -268,7 +268,8 @@ theorem ownTxnLeasing_acc (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString)
       structFieldRef txnLeasing go!"cs" txn ↦ csl ∗
       structFieldRef txnLeasing go!"opst" txn ↦ tsl ∗
       structFieldRef txnLeasing go!"opse" txn ↦ esl ∗
-      □ (isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ cmpsSetAt csl b.cmps ∗
+      □ (isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
+        cmpsSetAt csl b.cmps ∗
         opsAt tsl b.thenOs ∗ opsAt esl b.elseOs) ∗
       ⌜b.thenOps = some tops ∧ b.elseOps = some eops⌝ ∗
       (structFieldRef txnLeasing go!"lkv" txn ↦ lkv -∗
@@ -277,7 +278,7 @@ theorem ownTxnLeasing_acc (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString)
         structFieldRef txnLeasing go!"opst" txn ↦ tsl -∗
         structFieldRef txnLeasing go!"opse" txn ↦ esl -∗ ownTxnLeasing txn lkv γ pfx ctx cs b) := by
   unfold ownTxnLeasing
-  iintro ⟨%t, %B, %csl, %tsl, %esl, %tops, %eops, Ht, HB, #HBs, Hl, #Hlkv, Hc, #Hctx, Hcs, Hcso,
+  iintro ⟨%t, %B, %csl, %tsl, %esl, %tops, %eops, Ht, HB, #HBs, Hl, #Hlkv, Hc, #Hctx, #HctxC, Hcs, Hcso,
     Hts, Htso, Hes, Heso, %Hops⟩
   iexists csl, tsl, esl, tops, eops
   iframe Hl Hc Hcs Hts Hes
@@ -355,7 +356,7 @@ theorem opsAt_app (sl : GoSlice) (vs1 vs2 : List go_etcd_io.etcd.client.v3.Op)
 theorem isLeasingKV_cache (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
     isLeasingKV (GF := GF) lkv γ pfx ⊢ lkvCache lkv γ pfx := by
   unfold isLeasingKV
-  iintro ⟨%cl, %kv, %ctx, %cs, %cancel, %osl, -, -, -, -, -, -, -, -, -, -, -, -, -, Hc, -⟩
+  iintro ⟨%cl, %kv, %ctx, %cs, %cancel, %osl, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hc, -⟩
   iexact Hc
 
 /-- The leasing KV's client `KV`, with its transactions, and its prefix. -/

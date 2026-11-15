@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -188,8 +189,10 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
     clientEndpointsAt cl eps ∗
     -- (2026-11-05, k8s-etcd3 plan's client item 6) its `ctx`, read-only (`Ctx()` returns it);
     -- (sweep repairs 1, B5) not nil (`context.WithCancel(ctx)`'s), and its `Maintenance` (a
-    -- `*maintenance`) and endpoints mutex `epMu`, read-only: what `CheckClient`'s guard reads
-    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝) ∗
+    -- `*maintenance`) and endpoints mutex `epMu`, read-only: what `CheckClient`'s guard reads;
+    -- (premise-fixes-8 C2) with no outgoing metadata, in the chain form (a child of `TODO()`)
+    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝ ∗
+      ∃ cxo : GoInterfaceOk, ⌜cx = GoInterface.ok cxo⌝ ∗ metadata.outgoingCtxOkC cxo) ∗
     clientCheckFields cl)
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
@@ -214,6 +217,18 @@ theorem isNewClient_ctx [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rp
   iexists cx
   iexact H
 
+/-- **`New`'s client's context has no outgoing metadata** (premise-fixes-8 C2), in the chain form:
+it is `WithCancel(TODO())`'s. -/
+theorem isNewClient_ctxC [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ⊢ ∃ cx : GoInterfaceOk, clientF cl go!"ctx" ↦□ GoInterface.ok cx ∗
+      metadata.outgoingCtxOkC cx := by
+  unfold isNewClient
+  iintro ⟨-, -, -, -, -, -, -, ⟨%cx, #H, -, %cxo, %Hcx, #HC⟩, -⟩
+  subst Hcx
+  iexists cxo
+  iframe #
+
 /-- (Sweep repairs 1, B5) **`New`'s client's context is not nil.** -/
 theorem isNewClient_ctxOk [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) :
@@ -221,8 +236,11 @@ theorem isNewClient_ctxOk [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3
       (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝) ∗
         clientCheckFields cl := by
   unfold isNewClient
-  iintro ⟨-, -, -, -, -, -, -, #H, #F⟩
-  iframe H F
+  iintro ⟨-, -, -, -, -, -, -, ⟨%cx, #H, %Hnn, -⟩, #F⟩
+  iframe F
+  iexists cx
+  iframe H
+  ipureintro; exact Hnn
 
 /-- **The client's watcher, once the watch server's facts are supplied** (D19f): `New`'s client
 with `watchAddrFacts V` at its endpoint has a `Watcher` field that is a `*watcher` over the

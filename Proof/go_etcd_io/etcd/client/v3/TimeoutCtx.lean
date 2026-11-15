@@ -38,7 +38,9 @@ variable [rpctypes_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`context.WithTimeout(context.Background(), d)` for a client call** (see the file header): the
-context, `ctxOk` and `ctxErrClient` (and the `isContext` they come from), and its `cancel`. -/
+context, `ctxOk` and `ctxErrClient` (and the `isContext` they come from), the chain form of
+its having no outgoing metadata (`metadata.outgoingCtxOkC`, from `Background()`'s values), and its
+`cancel`. -/
 theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
@@ -51,20 +53,22 @@ theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (
         (cancel : GoFunc), RET (PairV #(interface.ok ctx') #cancel);
         □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
           WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-        ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗ _root_.Perennial.context.isContext ctx' cd }} := by
+        ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗ _root_.Perennial.context.isContext ctx' cd ∗
+        metadata.outgoingCtxOkC ctx' }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init
     iexact Hpkg
   ihave #Hall := ctxErrClientAllW_of wp_ErrAny hAs $$ Hpkg
   iunfold ctxErrClientAllW at Hall
-  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, #Hfrom⟩
   · iframe #
+  ihave #HC := metadata.outgoingCtxOkC_bgFrom ctx' $$ Hfrom
   iapply HΦ
   iframe #
   isplitr
   · iapply ctxOk_of_isContext
-    iexact Hctx
+    iframe Hctx HC
   iapply Hall
   iexact Hctx
 
@@ -83,20 +87,20 @@ theorem wp_WithTimeout_bgMd (hWT : context.WithTimeoutBackgroundMd.spec (GF := G
         □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
           WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
         ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗ _root_.Perennial.context.isContext ctx' cd ∗
-        ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ }} := by
+        ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ ∗ context.libCtxOk ctx' }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init
     iexact Hpkg
   ihave #Hall := ctxErrClientAllW_of wp_ErrAny hAs $$ Hpkg
   iunfold ctxErrClientAllW at Hall
-  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd⟩
+  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd, #Hlib, #HCo⟩
   · iframe #
   iapply HΦ
   iframe #
   isplitr
   · iapply ctxOk_of_isContext
-    iexact Hctx
+    iframe Hctx HCo
   isplitl
   · iapply Hall
     iexact Hctx

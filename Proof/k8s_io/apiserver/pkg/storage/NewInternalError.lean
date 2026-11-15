@@ -33,7 +33,7 @@ theorem storage.NewInternalError.wp_proof : storage.NewInternalError.spec (GF :=
   iunfold go_etcd_io.etcd.cache.v3.errorStringSpec at Hes
   wp_apply Hes as %s
   iapply HΦ
-  itrivial
+  ipureintro; rfl
 
 end proof
 

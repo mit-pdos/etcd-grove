@@ -54,7 +54,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, -⟩
+  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, -⟩
   iunfold apply.envAus at Haus
   icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, #Hfloor⟩
   iunfold apply.isApplyKV at Hkv
@@ -104,9 +104,10 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iStructNamed Hopts
   wp_auto
   wp_apply hTODO
+  ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o 1 B (E.Pk B)
       Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _)
-      $$ [$Hkv $Hmr $Hr $Hown $Hkb $Hcs $Hau]
+      $$ [$Hkv $Hmr $Hr $Hown $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, HPost, ⟨%te', Htrc⟩, -, %σ₀, -, Hout⟩
   · isplitr
     · iapply mvcc.txnCtx_todo

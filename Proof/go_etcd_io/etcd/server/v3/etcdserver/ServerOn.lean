@@ -102,7 +102,10 @@ def srvReqBuiltM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : 
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ v.cca ∗
     srvCfgFieldAddr s go!"ElectionTicks" ↦□ v.electionTicks ∗
     srvCfgFieldAddr s go!"TickMs" ↦□ v.tickMs ∗
-    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth E.RD ∗
+    -- (auth-schema-fix S1 option A) the store's request side once the token provider is ready
+    -- (`start` fires it, `srvTpPend_fire`)
+    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗
+    □ (auth.tpReady E.authMode -∗ isReqAuth v.auth E.RD) ∗
     structFieldRef EtcdServer go!"memberID" s ↦□ v.memberID ∗
     srvAtomicU64 (structFieldRef EtcdServer go!"lead" s) ∗
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
@@ -205,6 +208,8 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hwci" ∷ waitClosecInit ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
+    -- (auth-schema-fix S1 option A) the right to fire the token provider's readiness
+    "Htpp" ∷ srvTpPend s E.authMode ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
     "Hstop" ∷ (∃ c : Loc, srvStopAddr s ↦ c) ∗
     "Hstopping" ∷ (∃ c : Loc, srvStoppingAddr s ↦ c) ∗
@@ -531,11 +536,20 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
   · iexact Hr
   isplitr
   · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
+    -- (raft-entsize §4) the content the bundle carries, of bounded size under a data bound
+    ihave %Hshm := (letI := srvStor (GF := GF) γw.node;
+      sentMsg_shape (GF := GF) γw.node.cl srvClusterN γw.id st) $$ Hrm
+    ihave %Hmd := srvRaftLogInv_maxData ρ.raft $$ Hr
+    ihave #Hcc := (letI := srvStor (GF := GF) γw.node;
+      msgOut_netContent γw.node.cl m st (2 ^ 30) (by rw [hraft]; exact Hmd) Hns
+        Hshm.1.2.2.2.2.2.2.2) $$ Hmo
+    -- (raft-entsize §2) today's form of the handed-out message (the bundle's)
+    ihave #Hmo := (letI := srvStor (GF := GF) γw.node; msgOut_msgOwn γw.node.cl m DFrac.discard st) $$ Hmo
     rw [hraft, hid] at *
     isplitl [Hc]
     · iunfold srvMsgNet
       iexists st
-      iframe Hmo Hrm Hc
+      iframe Hmo Hrm Hc Hcc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo

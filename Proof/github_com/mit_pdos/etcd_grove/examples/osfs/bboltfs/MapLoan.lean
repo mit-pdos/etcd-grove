@@ -22,6 +22,8 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
@@ -30,14 +32,14 @@ namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 def metasOf (mp : List w8) : List w8 := (mp.drop 16).take 64 ++ (mp.drop 4112).take 64
 
 section loans
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 
 /-- The mapping's invariant, at its loan tokens `γl`. -/
-abbrev mapInvL (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
+abbrev mapInvL (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
   inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ())
 
 /-- What a resource proves, keeping it. -/
@@ -93,7 +95,7 @@ theorem pages_acc (P : Nat → IProp GF) (r hwm : Nat) (h1 : 2 ≤ r) (h2 : r < 
   rw [range_set _ _ _ hg]
   iexact H
 
-theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem meta_borrow (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (mp : List w8) (hwm : Nat) (T : GMap Nat (Option w64)) (q : Qp) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
@@ -141,7 +143,7 @@ theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
-theorem meta_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem meta_return (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (T : GMap Nat (Option w64)) (q : Qp) (mc : List w8) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostMapAuth γ.txs (1 : Qp).half T ∗
@@ -190,7 +192,7 @@ theorem meta_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
-theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem page_borrow (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (mp : List w8) (hwm r : Nat) (q s : Qp) (h1 : 2 ≤ r) (h2 : r < hwm) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ghostVar γm s () ⊢
@@ -224,7 +226,7 @@ theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iframe
 
 /-- A committed page's contents, from the invariant. -/
-theorem page_pageIs (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem page_pageIs (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (mp : List w8) (hwm r : Nat) (q : Qp) (h1 : 2 ≤ r) (h2 : r < hwm) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ⊢
@@ -253,7 +255,7 @@ theorem page_pageIs (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
-theorem page_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem page_return (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (r : Nat) (q s : Qp) (B : List w8) (h1 : 2 ≤ r) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗ r ↪[γl]{#s.half.half} B ∗
       bytesPointsto (GF := GF) (base +ₗ ((4096 * r : Nat) : Int)) (DFrac.own s.half.half) B ⊢
@@ -303,8 +305,8 @@ theorem metaLent_unlent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one, Qp.val_half] at Hbad
     grind
 
-theorem osBytes_disc_agree (p : GoString) :
-    ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
+theorem osBytes_disc_agree (p : Ino) :
+    ∀ (xs ys : List ByteG) (off : Nat), xs.length = ys.length →
     osBytes (GF := GF) p off DFrac.discard xs ∗ osBytes (GF := GF) p off DFrac.discard ys ⊢ ⌜xs = ys⌝
   | [], [], _, _ => by iintro -; ipureintro; rfl
   | [], _ :: _, _, h => by simp at h
@@ -321,17 +323,17 @@ theorem osBytes_disc_agree (p : GoString) :
     rw [Hxy.2, Hr]
 
 /-- Two views of a committed page agree. -/
-theorem pageIs_agree (p : GoString) (r : Nat) (B B' : List w8) :
+theorem pageIs_agree (p : Ino) (r : Nat) (B B' : List w8) :
     pageIs (GF := GF) p r B ∗ pageIs (GF := GF) p r B' ⊢ ⌜B = B'⌝ := by
   unfold pageIs
   iintro ⟨⟨%Hl, H1⟩, ⟨%Hl', H2⟩⟩
-  icases osBytes_disc_agree p (B.map (·, true)) (B'.map (·, true)) (4096 * r)
+  icases osBytes_disc_agree p (B.map durB) (B'.map durB) (4096 * r)
     (by simp only [List.length_map]; omega) $$ [H1 H2] with %H
   · iframe
   ipureintro
   have := congrArg (List.map Prod.fst) H
   simp only [List.map_map] at this
-  have e : (Prod.fst ∘ fun x : w8 => (x, true)) = id := rfl
+  have e : (Prod.fst ∘ durB) = id := rfl
   rw [e, List.map_id, List.map_id] at this
   exact this
 

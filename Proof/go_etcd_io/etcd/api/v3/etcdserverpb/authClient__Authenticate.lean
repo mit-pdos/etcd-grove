@@ -62,7 +62,7 @@ theorem etcdserverpb.authClient.Authenticate.wp_proof
   · iframe #
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
-  icases Hres with (⟨%Herr, %t, Hrecv, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %t, Hrecv, -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ

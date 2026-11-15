@@ -40,10 +40,14 @@ FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.657s
 
 ## Proof
 
-no: the mvcc API has no spec of `Hash` yet (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`,
-"Still out (no proof today): `HashByRev`, `Hash`, `Hashes`"), and no linked result reaches
-`store.hash`; the goosed fork predates #22609, so a spec of `Hash` would need the fix cherry-picked
-(a racy read has no proof).
+Stated, not fixed: batch 3e's (specs-only) trusted `HashStorage.Hash.contract` and
+`HashByRev.contract` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) take a share of
+`mvccRestoreGate`, which `Restore` takes whole, so no hash runs concurrently with a restore: the
+torn read of the interface `s.b` (two words) and `hashByRev`'s read of the old storage after
+`s.mu` is released are excluded by that premise, an obligation of the server (its snapshot install
+excludes hashing). The unlocked read of `s.currentRev` (one word) still races the writers' bump; Go's
+memory model gives it some value written, and the spec states no value. The open alternative is to
+cherry-pick #22609 into the goosed fork (then the premise can go).
 
 ## Notes
 

@@ -108,7 +108,8 @@ end addrs
 /-- **etcd's resolver, dialed with plain endpoints, resolves to them** (an axiom; see the file
 header): `EtcdManualResolver.Build` sets the manual resolver's initial state to `state()`, one
 endpoint per endpoint at `endpoint.Interpret(ep)` (`translateEndpoint`'s address: `ep` itself for
-a plain one), with the round-robin service config (each attempt to one of them); its scheme is
+a plain one), with the round-robin service config (each attempt to one of them; no retry policy,
+which `grpcResolverAt` claims since k8s 7e-1); its scheme is
 `Schema`. One plain endpoint until 2026-10-21 (`notes/decisions.md` D27). -/
 axiom etcdResolver_grpc {GF : BundledGFunctors} [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     (r : Loc) (eps : List GoString) :

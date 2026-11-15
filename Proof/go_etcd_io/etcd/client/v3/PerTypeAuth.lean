@@ -61,12 +61,18 @@ theorem treeWp_userOpts (Φ : val → IProp GF) :
   imod (typedPointsto_dfractional (GF := GF) p _).dfractional_persist _ $$ Hp with #Hp
   imodintro
   iapply H
-  unfold userOptsFalse auth.userOptsAt
+  unfold userOptsFalse auth.userOptsAt auth.userOptsIs
+  iexists some []
+  isplitr
+  · ipureintro; exact auth.userOptsUfOk_empty
   iright
   isplitr
   · ipureintro; exact Hnn
-  iexists _, _, _
-  iexact Hp
+  iexists _, _, _, []
+  isplitr
+  · ipureintro; rfl
+  iframe Hp
+  iapply ownSlice_nil
 
 /-- **The store of a user addition**: its name and password (`HashedPassword` empty, as the
 client sends it), its `Options`. -/
@@ -465,6 +471,7 @@ def pbAuthUserAddResponseT : ProtoMsgT GF :=
     tree := emptyRepTree etcdserverpb.AuthUserAddResponse.ty }
 
 theorem pbAuthUserAddResponseT_repSat : (pbAuthUserAddResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.AuthUserAddResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.AuthUserAddResponse etcdserverpb.AuthUserAddResponse.ty),
       fun l => .rfl⟩,
@@ -497,6 +504,7 @@ def pbAuthUserGrantRoleResponseT : ProtoMsgT GF :=
     tree := emptyRepTree etcdserverpb.AuthUserGrantRoleResponse.ty }
 
 theorem pbAuthUserGrantRoleResponseT_repSat : (pbAuthUserGrantRoleResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.AuthUserGrantRoleResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.AuthUserGrantRoleResponse
         etcdserverpb.AuthUserGrantRoleResponse.ty), fun l => .rfl⟩,
@@ -529,6 +537,7 @@ def pbAuthRoleAddResponseT : ProtoMsgT GF :=
     tree := emptyRepTree etcdserverpb.AuthRoleAddResponse.ty }
 
 theorem pbAuthRoleAddResponseT_repSat : (pbAuthRoleAddResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.AuthRoleAddResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.AuthRoleAddResponse etcdserverpb.AuthRoleAddResponse.ty),
       fun l => .rfl⟩,
@@ -562,6 +571,7 @@ def pbAuthRoleGrantPermissionResponseT : ProtoMsgT GF :=
 
 theorem pbAuthRoleGrantPermissionResponseT_repSat :
     (pbAuthRoleGrantPermissionResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.AuthRoleGrantPermissionResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.AuthRoleGrantPermissionResponse
         etcdserverpb.AuthRoleGrantPermissionResponse.ty), fun l => .rfl⟩,
@@ -594,6 +604,7 @@ def pbAuthEnableResponseT : ProtoMsgT GF :=
     tree := emptyRepTree etcdserverpb.AuthEnableResponse.ty }
 
 theorem pbAuthEnableResponseT_repSat : (pbAuthEnableResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.AuthEnableResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.AuthEnableResponse etcdserverpb.AuthEnableResponse.ty),
       fun l => .rfl⟩,
@@ -630,6 +641,7 @@ def pbAuthenticateResponseT : ProtoMsgT GF :=
   { pbAuthenticateResponse with tree := authenticateRepTree }
 
 theorem pbAuthenticateResponseT_repSat : (pbAuthenticateResponseT (GF := GF)).RepSat := by
+  apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
   refine ⟨⟨etcdserverpb.AuthenticateResponse, inferInstance, inferInstance,
       (inferInstance : IntoValTyped etcdserverpb.AuthenticateResponse
         etcdserverpb.AuthenticateResponse.ty), fun l => .rfl⟩,

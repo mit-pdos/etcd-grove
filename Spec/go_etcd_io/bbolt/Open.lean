@@ -17,13 +17,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 /- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
-whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` at
 the head of each triple (a section variable is dropped from a definition that does not use it),
 and in the signature of each vocabulary predicate, so that every statement carries it (checked
 with `#check`). -/
@@ -52,16 +54,18 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
   a necessity. Fewer than `2 ^ 62` receipts, so that the commits' txids (below `2 ^ 62` in a file
   `fileHolds` accepts) stay below `2 ^ 63` and do not wrap. -/
 abbrev Open.spec : Prop :=
-  ∀ [HasExt osFsExt] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
-    (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM)
-    (D : Data),
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [ThreadBoundLe GF (2 ^ 29)]
+    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (path : GoString) (mode : w32) (opts : Loc)
+    (dq : DFrac) (o : OptsM) (D : Data) (R : Roots) (V : Hist),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗
-      fileHolds path D ∗
+      osTree (DFrac.own 1) R V ∗ pathHolds R V path D ∗
       optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ γ : BoltName, ⌜γ.ns = N⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
-       ⌜err ≠ GoInterface.nil⌝) }}
+      (∃ V', osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
+            ⌜γ.ns = N ∧ lookupH R V' path = some (.file i)⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
+         ⌜err ≠ GoInterface.nil⌝)) }}
 
 end spec
 

@@ -12,7 +12,7 @@ or `memberUpOn`'s, at its apply environment `E`, request names `ρ`, read names 
 configuration `cfg`: `isServerReqM E.authOn`, `isServerReadM E.authOn`, `srvAuthLb`), the right to
 listen on `addr` (`netAddrFree`), and the **caller's ghost step** `G` from what `v3rpc.Server` and
 `Listen` return (`grpcUpM E.authOn`: the KV answers in the mode, the Auth and Lease services'
-registrations) to the right to serve (`grpcServeTok`) and the caller's `Q`: an error, or `Q` at the
+registrations) to the right to serve (`grpcServeTok`, at some server name) and the caller's `Q`: an error, or `Q` at the
 KV server's cluster and member ids and the watch server's state. One spec for both modes (the auth
 component's stage 5, 2026-11-05; until then `Serve.specOn` with auth on): an auth-off caller reads
 its `grpcUp` off the step's input by `grpcUpM_false` at its mode `false` (its views by
@@ -22,9 +22,10 @@ caller's because what it registers at the address differs among the examples (et
 refusal-freedom first, `etcd_noRefusal`); it is a wand, which may hold the caller's own resources
 (the request slots `memberUp` left) in its closure.
 
-**The pure premises** (in the precondition): the configuration's logger not `nil`, no tracer
-options, no progress-notify interval (`memberUp`'s); `v3rpc.Server`'s (the gRPC service values'
-method sets, the backend under its quota); the auth mode not `.any` (`raftKV_serverM`'s).
+**The premises** (in the precondition): the configuration's logger a zap logger (`zapLoggerOk`;
+`v3rpc.Server` logs through it; premise fixes 6, until then not `nil`), no tracer options, no
+progress-notify interval (`memberUp`'s); `v3rpc.Server`'s (the gRPC service values' method sets,
+the backend under its quota); the auth mode not `.any` (`raftKV_serverM`'s).
 -/
 module
 
@@ -54,14 +55,17 @@ abbrev Serve.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (Q : w64 → w64 → v3rpc.WSrv GF → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      ⌜cfg.Logger' ≠ null ∧ cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0 ∧
-        v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ E.authMode ≠ .any⌝ ∗
+      zapLoggerOk cfg.Logger' ∗
+      ⌜cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0 ∧
+        v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ E.authMode ≠ .any ∧
+        threadBound GF ≤ 2 ^ 28⌝ ∗
       netAddrFree (GF := GF) addr ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-      srvServeFacts s E cfg ∗ srvWatchReaders s E 64 ∗ v3rpc.runsNoRequireLeader ∗
+      srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
-        grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗ grpcServeTok gs lis ∗ Q cid mid R) }}
+        grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗
+          (∃ γ, grpcServeTok gs lis γ) ∗ Q cid mid R) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve))
       (Val #s)) (Val #addr))
   {{ (err : GoInterface), RET #err;

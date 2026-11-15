@@ -30,7 +30,7 @@ theorem invalidObj.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG)) 
   wp_start as -
   wp_auto
   wp_apply wp_storeKey
-  simp only [invalidObjL, mkeyL]
+  simp only [invalidObjL, mkeyL, errOutL]
   iapply HΦ
   (try ipureintro; trivial)
 

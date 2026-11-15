@@ -10,9 +10,9 @@ pools backed by thread tokens (`threadPool.isThreadPoolL`), borrowed with one le
 | level | what |
 |---|---|
 | 0 | a started goroutine's slot in `s.wg` (`goAttachInv`) |
-| 1 | `wg.Add`'s pending token; `raftPool` (`lgMu`); the inner pool `I` (`leadTimeMu` ∗ `E.RD`) |
-| 2 | the outer pool `B` (`wgMu` ∗ `read.mux`) |
-| 3 | `ensureLeadership`'s token |
+| 1 | `wg.Add`'s pending token; `raftPool` (`lgMu`) |
+| 2 | the outer pool `B` (`wgMu` ∗ `read.mux`); the inner pool `I` (`leadTimeMu` ∗ `E.RD`; per-type stage B: moved from 1, so that a gRPC run holds `raftPool` and `I` at once) |
+| 3 | `ensureLeadership`'s token; (per-type stage B) the gRPC run pool |
 
 Levels 0–1 exist at every thread bound; levels 2–3 need `srvRevokeLevels` (`srvRevokeK` levels,
 `RevokeLevels.lean`), which only the revocable run configuration carries (`lease.runCfg`,
@@ -25,7 +25,9 @@ takes from them only through narrow laws, one per use: the pools' borrows and gi
 `srvRevokeInnerLoan_giveBack`), `raftPool` (`srvRevokeCtx_raftPool`), the bound `ensureLeadership`
 takes (`srvRevokeCtx_bound`), the views (`srvRevokeCtx_views`), `WithRoot`'s premise
 (`srvRevokeCtx_withRoot`), the credential (`srvRevokeCtx_cred`) and the context
-(`srvRevokeCtx_ctx`).
+(`srvRevokeCtx_ctx`). (Per-type stage B2) A gRPC run borrows `I` from the built part a member
+holds (`srvRevokeBuilt_innerBorrow`, in `srvServeStock`), and the run pool's `initL` takes the bound
+from it (`srvRevokeBuilt_bound`).
 -/
 module
 
@@ -68,10 +70,24 @@ def srvRevokesLeases (E : apply.AEnv GF) (ρ : ReqNames) : Prop :=
 configuration carries it (`lease.runCfg`), so no other spec names the bound. -/
 def srvRevokeLevels : Prop := srvRevokeK ≤ threadBound GF
 
-/-- `srvRevokeLevels` at a thread bound `max m srvRevokeK` (the etcd examples' adequacy lemmas'). -/
-theorem srvRevokeLevels_of_max {m : Nat} (h : threadBound GF = max m srvRevokeK) :
-    srvRevokeLevels (GF := GF) := by
-  unfold srvRevokeLevels; rw [h]; exact Nat.le_max_right _ _
+/-- **The level bound a serving member needs** (per-type stage B, r5 §3.3): levels
+`0 … srvLevelK - 1` of a thread token exist. Taken only where a gRPC run's adapter borrows level 3
+(the served theorems, the serving Main/Start specs) and a stream run lends level 4 (k8s 7f-4); one
+more than `srvRevokeLevels` (`srvRevokeLevels_of_srvLevels`). -/
+def srvLevels : Prop := srvLevelK ≤ threadBound GF
+
+theorem srvRevokeLevels_of_srvLevels (h : srvLevels (GF := GF)) : srvRevokeLevels (GF := GF) := by
+  unfold srvLevels srvLevelK at h; unfold srvRevokeLevels; omega
+
+/-- `srvLevels` at a thread bound `max m srvLevelK`. -/
+theorem srvLevels_of_max {m : Nat} (h : threadBound GF = max m srvLevelK) :
+    srvLevels (GF := GF) := by
+  unfold srvLevels; rw [h]; exact Nat.le_max_right _ _
+
+/-- `srvRevokeLevels` at a thread bound `max m srvLevelK` (the etcd examples' adequacy lemmas'). -/
+theorem srvRevokeLevels_of_max {m : Nat} (h : threadBound GF = max m srvLevelK) :
+    srvRevokeLevels (GF := GF) :=
+  srvRevokeLevels_of_srvLevels (srvLevels_of_max h)
 
 /-- The copies in each of the revocation's pools: one fewer than the server's thread bound's limit
 (`threadBound GF ≤ backend.rdPoolN`, `isServerBuilt`'s `%Hbound`), what `threadPool.initL` needs. -/
@@ -100,11 +116,11 @@ instance srvRevokeOuterPool_persistent (s : Loc) (γr : ReadNames) (γg : GoName
   iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeOuterN 2 γ
     iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) ∗ threadPool.ownThreadLoan γ)
 
-/-- **The inner pool `I`** (revoke-open Q7; level 1; sealed): what an inner goroutine holds for its
+/-- **The inner pool `I`** (revoke-open Q7; level 2, per-type stage B: until then 1; sealed): what an inner goroutine holds for its
 `WithRoot` and `LeaseRevoke`, a reader slot of `leadTimeMu` and the auth store's reader resource.
 Built by `NewServer` from `leadTimeMu`'s rest and `E.RD`'s supply (Q6; `srvRevokeInnerPool_intro`). -/
 @[no_expose] def srvRevokeInnerPool (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeInnerN 1 γ
+  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeInnerN 2 γ
     iprop(srvLeadTimeReader s ∗ E.RD))
 
 instance srvRevokeInnerPool_persistent (s : Loc) (E : apply.AEnv GF) :
@@ -113,7 +129,7 @@ instance srvRevokeInnerPool_persistent (s : Loc) (E : apply.AEnv GF) :
 
 /-- **A loan of the inner pool** (sealed; exclusive). -/
 @[no_expose] def srvRevokeInnerLoan (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeInnerN 1 γ
+  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeInnerN 2 γ
     iprop(srvLeadTimeReader s ∗ E.RD) ∗ threadPool.ownThreadLoan γ)
 
 /-- **The outer pool, from a level-2 thread pool of its slots** (`start`). -/
@@ -129,7 +145,7 @@ theorem srvRevokeOuterPool_intro (s : Loc) (γr : ReadNames) (γg : GoNames) (γ
 /-- **The inner pool, from a pool of `leadTimeMu`'s slots** (`NewServer`, which pairs the slots
 in their own form: `srvLeadTimeReader` unfolded). (Moved from `NewServer.lean`, review round 1.) -/
 theorem srvRevokeInnerPool_intro (s : Loc) (E : apply.AEnv GF) (γ : GName) :
-    threadPool.isThreadPoolL srvRevokeInnerN 1 γ
+    threadPool.isThreadPoolL srvRevokeInnerN 2 γ
         iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ E.RD) ⊢
       srvRevokeInnerPool s E := by
   unfold srvRevokeInnerPool srvLeadTimeReader
@@ -184,7 +200,8 @@ revocation never runs, `srvRevokesLeases`). (Review round 1, NIT 3.3, 2026-11-06
     □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
     □ (|==> idCred ρ.ids 1) ∗
     (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx))
+      srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+        trace.spanCtxOk ctx ∗ context.startTimeOk ctx))
 
 instance srvRevokeCtx_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (γg : GoNames) : Persistent (srvRevokeCtx (GF := GF) s E ρ γr γg) := by
@@ -197,7 +214,8 @@ theorem srvRevokeCtx_intro (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
       □ (|==> idCred ρ.ids 1) ∗
       (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx) ⊢
+        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+        trace.spanCtxOk ctx ∗ context.startTimeOk ctx) ⊢
     srvRevokeCtx s E ρ γr γg := by
   unfold srvRevokeCtx; exact .rfl
 
@@ -235,11 +253,11 @@ theorem srvRevokeOuterLoan_giveBack (s : Loc) (γr : ReadNames) (γg : GoNames) 
   iframe Hl Hwr Hrd
   iexact HB
 
-/-- **Borrow the inner pool's slots** with level 1 of a thread token (and a later credit): an inner
+/-- **Borrow the inner pool's slots** with level 2 of a thread token (and a later credit): an inner
 goroutine's, for `WithRoot` and `LeaseRevoke`. -/
 theorem srvRevokeCtx_innerBorrow (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (γg : GoNames) (Em : CoPset) (HN : ↑srvRevokeInnerN ⊆ Em) :
-    £ 1 ∗ srvRevokeCtx (GF := GF) s E ρ γr γg ∗ levelTok 1 ⊢
+    £ 1 ∗ srvRevokeCtx (GF := GF) s E ρ γr γg ∗ levelTok 2 ⊢
       |={Em}=> (srvLeadTimeReader s ∗ E.RD) ∗ srvRevokeInnerLoan s E := by
   iintro ⟨Hlc, #H, H1⟩
   iunfold srvRevokeCtx at H
@@ -248,7 +266,7 @@ theorem srvRevokeCtx_innerBorrow (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
   icases Hb with ⟨#HI, -, -, -⟩
   iunfold srvRevokeInnerPool at HI
   icases HI with ⟨%γ, #HI⟩
-  imod threadPool.borrowL_lc srvRevokeInnerN 1 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
+  imod threadPool.borrowL_lc srvRevokeInnerN 2 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
     $$ [Hlc HI H1] with ⟨HR, Hl⟩
   · iframe Hlc H1; iexact HI
   imodintro
@@ -258,16 +276,66 @@ theorem srvRevokeCtx_innerBorrow (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
   iframe Hl
   iexact HI
 
-/-- **Give the inner pool's slots back**, for level 1 of the token. -/
+/-- **Give the inner pool's slots back**, for level 2 of the token. -/
 theorem srvRevokeInnerLoan_giveBack (s : Loc) (E : apply.AEnv GF) (Em : CoPset)
     (HN : ↑srvRevokeInnerN ⊆ Em) :
-    srvRevokeInnerLoan (GF := GF) s E ∗ srvLeadTimeReader s ∗ E.RD ⊢ |={Em}=> levelTok 1 := by
+    srvRevokeInnerLoan (GF := GF) s E ∗ srvLeadTimeReader s ∗ E.RD ⊢ |={Em}=> levelTok 2 := by
   iintro ⟨Hl, Hlt, HRD⟩
   iunfold srvRevokeInnerLoan at Hl
   icases Hl with ⟨%γ, #HI, Hl⟩
-  iapply threadPool.giveBackL srvRevokeInnerN 1 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
+  iapply threadPool.giveBackL srvRevokeInnerN 2 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
   iframe Hl Hlt HRD
   iexact HI
+
+/-- **Borrow the inner pool's slots from the built part** (per-type stage B2, r5 §3.3): a gRPC run's
+level-2 loan, from what a member `NewServer` built holds (`srvServeStock`'s `srvRevokeBuilt`), with
+level 2 of a thread token and a later credit; given back with `srvRevokeInnerLoan_giveBack`. -/
+theorem srvRevokeBuilt_innerBorrow (s : Loc) (E : apply.AEnv GF) (Em : CoPset)
+    (HN : ↑srvRevokeInnerN ⊆ Em) :
+    £ 1 ∗ srvRevokeBuilt (GF := GF) s E ∗ levelTok 2 ⊢
+      |={Em}=> (srvLeadTimeReader s ∗ E.RD) ∗ srvRevokeInnerLoan s E := by
+  iintro ⟨Hlc, #Hb, H2⟩
+  iunfold srvRevokeBuilt at Hb
+  icases Hb with ⟨#HI, -, -, -⟩
+  iunfold srvRevokeInnerPool at HI
+  icases HI with ⟨%γ, #HI⟩
+  imod threadPool.borrowL_lc srvRevokeInnerN 2 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
+    $$ [Hlc HI H2] with ⟨HR, Hl⟩
+  · iframe Hlc H2; iexact HI
+  imodintro
+  iframe HR
+  iunfold srvRevokeInnerLoan
+  iexists γ
+  iframe Hl
+  iexact HI
+
+/-- **The two pools a gRPC run borrows from the built part** (per-type stage B3, r5 §3.4): `raftPool`'s
+`lgMu` readers at level 1 and the inner pool `I` (`leadTimeMu` ∗ `E.RD`) at level 2, as the
+adapters (`grpcRunOkMd_of_pools`) take them. -/
+theorem srvRevokeBuilt_runPools (s : Loc) (E : apply.AEnv GF) :
+    srvRevokeBuilt (GF := GF) s E ⊢ ∃ γ₁ γ₂ : GName,
+      threadPool.isThreadPoolL raftPoolN 1 γ₁ (srvLgReader s) ∗
+      threadPool.isThreadPoolL srvRevokeInnerN 2 γ₂ iprop(srvLeadTimeReader s ∗ E.RD) := by
+  iintro #Hb
+  iunfold srvRevokeBuilt at Hb
+  icases Hb with ⟨#HI, #Hp, -, -⟩
+  iunfold srvRevokeInnerPool at HI
+  icases HI with ⟨%γ₂, #HI⟩
+  iunfold raftPool at Hp
+  icases Hp with ⟨%γ₁, #Hp⟩
+  iexists γ₁, γ₂
+  iframe #
+
+/-- The server's thread bound within the backend's pool of readers, out of the revocation's built
+part (`NewServer`'s premise; per-type stage B2: what the gRPC run pool's `threadPool.initL` needs,
+`srvRunPool_init`). -/
+theorem srvRevokeBuilt_bound (s : Loc) (E : apply.AEnv GF) :
+    srvRevokeBuilt (GF := GF) s E ⊢ ⌜threadBound GF ≤ backend.rdPoolN⌝ := by
+  iintro #Hb
+  iunfold srvRevokeBuilt at Hb
+  icases Hb with ⟨-, -, -, %Hbnd⟩
+  ipureintro
+  exact Hbnd
 
 /-- The transport's pool of `lgMu` readers (the outer goroutine's `Logger()`). -/
 theorem srvRevokeCtx_raftPool (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
@@ -345,7 +413,8 @@ theorem srvRevokeCtx_ctx (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
     (γg : GoNames) :
     srvRevokeCtx (GF := GF) s E ρ γr γg ⊢
       ∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx := by
+        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+        trace.spanCtxOk ctx ∗ context.startTimeOk ctx := by
   iintro #H
   iunfold srvRevokeCtx at H
   icases H with ⟨-, -, -, -, Hc⟩

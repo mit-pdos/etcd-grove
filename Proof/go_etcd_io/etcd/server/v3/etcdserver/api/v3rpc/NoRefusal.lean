@@ -54,7 +54,7 @@ structure, not identity (`notes/read-retry-plan.md` R1), and `IsLearner`'s spec 
 boolean, so the voter fact rests on this axiom too. -/
 axiom etcd_noRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface) (E : apply.AEnv GF)
     (ρ : ReqNames) (ics sics : List GoFunc) (svcs : List GoString)
-    (regs sregs : List (GoString × val × GoInterface)) :
+    (regs sregs : List (GoString × GoFunc × GoInterface)) :
   (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) → E.authOn = false →
   isServerReq s E ρ ∗
     v3rpc.quotaKVServerAt q
@@ -84,7 +84,7 @@ is not excluded by `ccLogOk` (the conf-change policy of the raft log invariant: 
 part of what this axiom assumes, as for `etcd_noRefusal`. -/
 axiom etcd_noOtherRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface)
     (E : apply.AEnv GF) (ρ : ReqNames) (ics sics : List GoFunc) (svcs : List GoString)
-    (regs sregs : List (GoString × val × GoInterface)) :
+    (regs sregs : List (GoString × GoFunc × GoInterface)) :
   (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) →
   isServerReqM E.authOn s E ρ ∗
     v3rpc.quotaKVServerAt q

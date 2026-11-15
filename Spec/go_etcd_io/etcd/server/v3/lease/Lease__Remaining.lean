@@ -22,16 +22,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- `l.Remaining()` (read-locks `l.expiryMu`), on any goroutine, with a thread token, with which it
-borrows a reader slot of `l.expiryMu` from the lease's pool (at most `2^30 - 1` live threads): some
+/-- `l.Remaining()` (read-locks `l.expiryMu`), on any goroutine, with the level-0 token of the
+lease's leveled pool (`levelTok leaseLvl`), with which it borrows a reader slot of `l.expiryMu` from
+that pool (at most `2^30 - 1` live threads): some
 duration (the time until the expiry, read off the clock, or `MaxInt64` if the expiry is unset); no
 claim on it (it changes with the clock and with `refresh`). -/
 abbrev lease.Lease.Remaining.spec : Prop :=
   ∀ (γl : GName) (l : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLeaseObj γl l ∗
-      threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+      levelTok leaseLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (Val (l @!! go.GoType.PointerType Lease.ty @!! go!"Remaining")) (Val #()))
-  {{ (d : _root_.Perennial.time.Duration), RET #d; threadTok }}
+  {{ (d : _root_.Perennial.time.Duration), RET #d; levelTok leaseLvl }}
 
 end spec
 

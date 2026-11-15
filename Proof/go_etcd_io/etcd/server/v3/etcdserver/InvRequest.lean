@@ -78,9 +78,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
+public import Proof.go_etcd_io.etcd.server.v3.auth.WhyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
+public import Proof.context.LibKeys
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
@@ -91,6 +93,7 @@ public import Perennial.Ghost.Token
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 
 @[expose] public section
 
@@ -216,6 +219,12 @@ structure KVNames where
   lease-expiry plan's X7 option (iii), 2026-11-04, the user's: the field is the cluster's lease mode
   `lm`, `KVNames.lg` its grant flag; `.revocable` admits the server's revocations.) -/
   lm : lease.Mode := .none
+  /-- (lease-mono3 step 2, 2026-11-14, `notes/lease-mono3-plan.md`, "Step 2 Scope") **The cluster's
+  grant prefixes**: its members' request-id generators' prefixes, one for every member, as `cmp`.
+  In the revocable mode each member's grants carry generated ids of its own prefix, which the KV
+  invariant requires to be one of these, and these to be distinct once `LeaseGrant`'s mask clears
+  bit 63 (`kvPfxOk`). `[]` (the default) in a cluster that boots no member in the revocable mode. -/
+  gps : List w64 := []
 
 
 /-- **Whether the cluster's requests may grant leases** (the lease-expiry plan's X7 option (iii),
@@ -516,18 +525,22 @@ theorem logRevGrantIds_none (lm : lease.Mode) (L : List EntryModel) (h : ∀ m �
   unfold entryRevGrantId
   rw [if_neg (h m hm)]
 
-/-- **The prefix of the revocable-mode grant ids** (the lease-expiry plan's E3 (c), 2026-11-05):
-in the revocable mode the KV names' id prefix (the one member's generator's), `0` otherwise (no
-such id). -/
-def kvPfx (γk : KVNames) : w64 := if γk.lm = .revocable then γk.ids.pfx else 0
+/-- **The grant prefixes' condition** (the lease-expiry plan's E3 (c), 2026-11-05; lease-mono3
+step 2, 2026-11-14: until then one prefix, `kvPfx`, the one member's): in the revocable mode, the
+member's own generator prefix is one of the cluster's grant prefixes `gps`, and these are distinct
+after `LeaseGrant`'s mask (`issues/etcd-lease-id-mask-member-prefix.md`: members whose prefixes
+agree but in bit 63 generate colliding lease ids). -/
+def kvPfxOk (γk : KVNames) : Prop :=
+  γk.lm = .revocable → γk.ids.pfx ∈ γk.gps ∧ (γk.gps.map (· &&& leaseIdMask)).Nodup
 
 /-- **The KV invariant's generated grant ids** (the lease-expiry plan's E3 (b)): the log's
 revocable-mode grant ids are the ids `U` masked, each `U`'s claim right owned (so `U` has no
-repeat); (E3 (c)) each of the prefix `kvPfx`, so that the masked ids have no repeat either
-(`leaseIdMask_nodup_of_pfx`). -/
+repeat); (E3 (c); lease-mono3 step 2) each of one of the cluster's grant prefixes `gps`, which are
+distinct after the mask (`kvPfxOk`), so that the masked ids have no repeat either
+(`leaseIdMask_nodup_of_pfxs`). -/
 def kvGrantIds (γk : KVNames) (L : List EntryModel) : IProp GF :=
   iprop(∃ U : List w64, ⌜logRevGrantIds γk.lm L = U.map (· &&& leaseIdMask) ∧ U.Nodup ∧
-      ∀ u ∈ U, idPfx u = kvPfx γk⌝ ∗
+      (∀ u ∈ U, idPfx u ∈ γk.gps) ∧ kvPfxOk γk⌝ ∗
     [∗list] u ∈ U, idUnclaimed γk.ids u)
 
 instance kvGrantIds_timeless (γk : KVNames) (L : List EntryModel) :
@@ -572,12 +585,13 @@ theorem grantIdOwn_cmp (γk : KVNames) (rq : apply.IRRModel) (h : compactPropOk 
   grantIdOwn_nonGrant γk rq (by rw [h.1.1]; decide)
 
 /-- The empty log has no grant. -/
-theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds γk.lm L = []) :
+theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds γk.lm L = [])
+    (hp : kvPfxOk γk) :
     ⊢ kvGrantIds (GF := GF) γk L := by
   iunfold kvGrantIds
   iexists []
   isplitr
-  · ipureintro; exact ⟨h, List.nodup_nil, fun _ h => (List.not_mem_nil h).elim⟩
+  · ipureintro; exact ⟨h, List.nodup_nil, fun _ h => (List.not_mem_nil h).elim, hp⟩
   iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
   itrivial
 
@@ -621,14 +635,14 @@ theorem kvGrantIds_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel) (
         unfold rqRevGrantId at hr; split at hr
         · next h => exact h.1
         · cases hr
-      refine ⟨?_, List.nodup_append.2 ⟨HU.2.1, List.pairwise_singleton _ u, ?_⟩, ?_⟩
+      refine ⟨?_, List.nodup_append.2 ⟨HU.2.1, List.pairwise_singleton _ u, ?_⟩, ?_, HU.2.2.2⟩
       · rw [logRevGrantIds_snoc, he, hr, HU.1, Hgu.1]; simp
       · intro a ha b hb; rw [List.mem_singleton] at hb; subst hb; intro hab; subst hab; exact hin ha
       · intro a ha
         rcases List.mem_append.1 ha with ha | ha
-        · exact HU.2.2 a ha
+        · exact HU.2.2.1 a ha
         · rw [List.mem_singleton] at ha; subst ha
-          unfold kvPfx; rw [if_pos hrev]; exact Hgu.2
+          rw [Hgu.2]; exact (HU.2.2.2 hrev).1
     iapply BigSepL.bigSepL_snoc.2
     iframe HUs Hu
 
@@ -662,6 +676,111 @@ theorem leaseIdMask_nodup_of_pfx (U : List w64) (p : w64) (hU : U.Nodup)
     (hp : ∀ u ∈ U, idPfx u = p) : (U.map (· &&& leaseIdMask)).Nodup :=
   List.pairwise_map.2 (hU.imp_of_mem fun hx hy hne heq =>
     hne (leaseIdMask_inj_pfx _ _ ((hp _ hx).trans (hp _ hy).symm) heq))
+
+/-- The mask commutes with taking the prefix: `idPfx (u &&& mask) = idPfx u &&& mask`. -/
+theorem idPfx_leaseIdMask (u : w64) : idPfx (u &&& leaseIdMask) = idPfx u &&& leaseIdMask := by
+  unfold idPfx
+  rw [BitVec.and_assoc, BitVec.and_comm leaseIdMask, ← BitVec.and_assoc]
+
+/-- A map with no repeat on a list is injective on it. -/
+theorem list_inj_on_of_nodup_map {α β : Type} {f : α → β} :
+    ∀ {P : List α}, (P.map f).Nodup → ∀ {a b : α}, a ∈ P → b ∈ P → f a = f b → a = b
+  | [], _, _, _, ha, _, _ => absurd ha (List.not_mem_nil)
+  | c :: P, hP, a, b, ha, hb, hab => by
+    rw [List.map_cons, List.nodup_cons] at hP
+    rcases List.mem_cons.1 ha with ea | ha' <;> rcases List.mem_cons.1 hb with eb | hb'
+    · rw [ea, eb]
+    · subst ea; exact absurd (hab ▸ List.mem_map_of_mem hb') hP.1
+    · subst eb; exact absurd (hab.symm ▸ List.mem_map_of_mem ha') hP.1
+    · exact list_inj_on_of_nodup_map hP.2 ha' hb' hab
+
+/-- **Distinct ids whose prefixes are among prefixes distinct after the mask stay distinct after
+the mask** (lease-mono3 step 2: the members' generators' ids; two ids equal after the mask have
+prefixes equal after the mask, so one prefix, `leaseIdMask_inj_pfx`). -/
+theorem leaseIdMask_nodup_of_pfxs (U P : List w64) (hU : U.Nodup)
+    (hp : ∀ u ∈ U, idPfx u ∈ P) (hP : (P.map (· &&& leaseIdMask)).Nodup) :
+    (U.map (· &&& leaseIdMask)).Nodup := by
+  refine List.pairwise_map.2 (hU.imp_of_mem fun {a b} hx hy hne heq => hne ?_)
+  refine leaseIdMask_inj_pfx a b ?_ heq
+  have hm : idPfx a &&& leaseIdMask = idPfx b &&& leaseIdMask := by
+    rw [← idPfx_leaseIdMask, ← idPfx_leaseIdMask, heq]
+  exact list_inj_on_of_nodup_map hP (hp a hx) (hp b hy) hm
+
+/-! **The members' grant prefixes from `leaseIdsApart`** (lease-mono3 step 2, 2026-11-14): what a
+cluster's start (`etcdstart.alloc3`, and auth3's) gives `srvClusterBoot_alloc`'s `hgps` and
+`srvMemberBoot_alloc`'s `hpfx`/`hpo`: the grant prefixes are the members' (`idPfxsOf ps`). -/
+
+/-- A member id's prefix, after `LeaseGrant`'s mask: its 15 low bits in bits 48-62. -/
+theorem idPfxOf_mask_toNat (id : w64) :
+    (idPfxOf (W16 (uint.Z id)) &&& leaseIdMask).toNat = ((W16 (uint.Z id)).toNat % 2 ^ 15) * 2 ^ 48 := by
+  rw [BitVec.toNat_and, idPfxOf_toNat]
+  have hm : (leaseIdMask : w64).toNat = 2 ^ 63 - 1 := rfl
+  rw [hm, Nat.and_two_pow_sub_one_eq_mod]
+  have hlt := (W16 (uint.Z id)).isLt
+  omega
+
+/-- **The members' prefixes are distinct after the mask** when their ids are apart. -/
+theorem idPfxsOf_mask_nodup (ps : List w64) (h : leaseIdsApart ps) :
+    ((idPfxsOf ps).map (· &&& leaseIdMask)).Nodup := by
+  unfold idPfxsOf
+  rw [List.map_map]
+  apply idutil_nodup_map _ _ ps h
+  intro a _ b _ hab
+  have h1 := congrArg BitVec.toNat hab
+  simp only [Function.comp_apply] at h1
+  rw [idPfxOf_mask_toNat, idPfxOf_mask_toNat] at h1
+  have h2 : (W16 (uint.Z a)).toNat % 2 ^ 15 = (W16 (uint.Z b)).toNat % 2 ^ 15 := by omega
+  have ha := idPfxOf_low a
+  have hb := idPfxOf_low b
+  have h3 : ((W16 (uint.Z a)).toNat : Int) % 2 ^ 15 = ((W16 (uint.Z b)).toNat : Int) % 2 ^ 15 := by
+    exact_mod_cast h2
+  have ha' : ((W16 (uint.Z a)).toNat : Int) = uint.Z a % 2 ^ 16 := ha
+  have hb' : ((W16 (uint.Z b)).toNat : Int) = uint.Z b % 2 ^ 16 := hb
+  show uint.Z a % 2 ^ 15 = uint.Z b % 2 ^ 15
+  rw [ha', hb'] at h3
+  omega
+
+/-- A member's prefix is one of the members'. -/
+theorem idPfxOf_mem_idPfxsOf (ps : List w64) (id : w64) (hid : id ∈ ps) :
+    idPfxOf (W16 (uint.Z id)) ∈ idPfxsOf ps :=
+  List.mem_map_of_mem hid
+
+/-- **`srvClusterBoot_alloc`'s `hgps`** at a member's prefix and the members' prefixes. -/
+theorem gpsOk_of_apart (lm : lease.Mode) (ps : List w64) (id : w64) (hid : id ∈ ps)
+    (hap : lm = .revocable → leaseIdsApart ps) :
+    lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ idPfxsOf ps ∧
+      ((idPfxsOf ps).map (· &&& leaseIdMask)).Nodup :=
+  fun h => ⟨idPfxOf_mem_idPfxsOf ps id hid, idPfxsOf_mask_nodup ps (hap h)⟩
+
+/-- **The grant prefixes' condition of a member's KV names**: its prefix a member's, the grant
+prefixes the members', the members apart in the revocable mode. -/
+theorem kvPfxOk_of_apart (γk : KVNames) (ps : List w64) (id : w64) (hid : id ∈ ps)
+    (hpfx : γk.ids.pfx = idPfxOf (W16 (uint.Z id))) (hgps : γk.gps = idPfxsOf ps)
+    (hap : γk.lm = .revocable → leaseIdsApart ps) : kvPfxOk γk := by
+  intro h
+  rw [hpfx, hgps]
+  exact gpsOk_of_apart γk.lm ps id hid hap h
+
+/-- Outside the revocable mode a log has no grant id. -/
+theorem logRevGrantIds_nonRev (lm : lease.Mode) (L : List EntryModel) (h : lm ≠ .revocable) :
+    logRevGrantIds lm L = [] := by
+  unfold logRevGrantIds
+  rw [List.filterMap_eq_nil_iff]
+  intro m _
+  unfold entryRevGrantId rqRevGrantId
+  split
+  · cases h' : apply.irrDecode m.data <;> simp [h]
+  · rfl
+
+/-- **The log's grant ids are distinct**, from `kvGrantIds`' pure part (the masked ids of distinct
+ids of the grant prefixes, `leaseIdMask_nodup_of_pfxs`; none outside the revocable mode). -/
+theorem kvGrantIds_nodup_of {γk : KVNames} {L : List EntryModel} {U : List w64}
+    (HU : logRevGrantIds γk.lm L = U.map (· &&& leaseIdMask) ∧ U.Nodup ∧
+      (∀ u ∈ U, idPfx u ∈ γk.gps) ∧ kvPfxOk γk) :
+    (logRevGrantIds γk.lm L).Nodup := by
+  by_cases hrev : γk.lm = .revocable
+  · rw [HU.1]; exact leaseIdMask_nodup_of_pfxs U γk.gps HU.2.1 HU.2.2.1 (HU.2.2.2 hrev).2
+  · rw [logRevGrantIds_nonRev _ _ hrev]; exact List.nodup_nil
 
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
@@ -697,19 +816,22 @@ instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
 /-- **Two KV names the KV invariant cannot tell apart** (R2d-1, Q8 (a), 2026-11-06): they agree on
 every field `kvInv` reads (the state's variable `st`, the start values `c0`, `ch0`, `log0`, the
 claims' map `ids.issued` and its wait names `ids.wn`, the cluster's compaction mode `cmp`, its
-requested log `rlog`, retention `cret` and lease mode `lm`, the generated ids' prefix `kvPfx`),
-and may differ on a member's own (`cok`, `hi`, `hist`, the slots). `kvInv_congr`'s hypothesis, and
-what `restartNames` keeps of the KV names: a restarted member reuses the cluster's invariant. -/
+requested log `rlog`, retention `cret` and lease mode `lm`, the grant prefixes `gps`; lease-mono3
+step 2: until then the one prefix `kvPfx`), and may differ on a member's own (`cok`, `hi`, `hist`,
+the slots, the prefix) as long as the grant prefixes' condition holds of both or of neither
+(`kvPfxOk`, which reads the member's prefix). `kvInv_congr`'s hypothesis, and what `restartNames`
+keeps of the KV names: a restarted member reuses the cluster's invariant. -/
 abbrev kvCongr (γk γk' : KVNames) : Prop :=
   γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
     γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.cmp = γk'.cmp ∧
-    γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lm = γk'.lm ∧ kvPfx γk = kvPfx γk'
+    γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lm = γk'.lm ∧ γk.gps = γk'.gps ∧
+    (kvPfxOk γk ↔ kvPfxOk γk')
 
 /-- `kvCongr` is symmetric. -/
 theorem kvCongr.symm {γk γk' : KVNames} (h : kvCongr γk γk') : kvCongr γk' γk := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
   exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm, h7.symm, h8.symm, h9.symm,
-    h10.symm, h11.symm⟩
+    h10.symm, h11.symm, h12.symm⟩
 
 /-- **The KV invariant reads only the cluster's KV names** (stage M4; R2d-1: from `NewServerAlloc`, over `kvCongr`): the state's variable, the
 start values and the claims' map; not a member's certificate map, its applied
@@ -717,10 +839,10 @@ height or its slots and prefix. -/
 theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     (h : kvCongr γk γk') :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
-  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12⟩ := h
+  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
   unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
     cmpEntryOk kvModel kvStQ KVNames.lg kvLogSmall
-  rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
+  rw [propext h13, h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
 
 /-- **A client's persistent atomic update of the KV by `f`** (2026-10-15, unit T2): `□ Q` of the
 state it linearized at. Persistent: a write's may be applied more than once (the client's retry
@@ -1091,7 +1213,8 @@ open Iris.ProofMode in
 /-- **The law of the log's grant ids** (the lease-expiry plan's E3 (b)): with the KV invariant, the
 revocable-mode grant ids of a prefix `L₀` of the requested log (`srvReqLogLb`) are distinct
 generated ids masked: `U` has no repeat (each id's claim right is exclusive), and its ids share the
-prefix `kvPfx` (E3 (c)), so the masked ids are distinct (`leaseIdMask_nodup_of_pfx`). -/
+prefixes `gps`, distinct after the mask (E3 (c), `kvPfxOk`), so the masked ids are distinct
+(`leaseIdMask_nodup_of_pfxs`). -/
 theorem kv_grantIds_nodup (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E)
     (L₀ : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvReqLogLb γ L₀ ={E}=∗
@@ -1111,15 +1234,10 @@ theorem kv_grantIds_nodup (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (h
   imodintro
   ipureintro
   obtain ⟨R, rfl⟩ := Hpre
-  have hU := HU.1
-  unfold logRevGrantIds at hU ⊢
-  rw [List.filterMap_append] at hU
-  have hT : L₀.filterMap (entryRevGrantId γk.lm) =
-      (U.take (L₀.filterMap (entryRevGrantId γk.lm)).length).map (· &&& leaseIdMask) := by
-    rw [List.map_take, ← hU, List.take_left]
-  rw [hT]
-  exact leaseIdMask_nodup_of_pfx _ (kvPfx γk) (HU.2.1.sublist (List.take_sublist _ _))
-    (fun u hu => HU.2.2 u (List.mem_of_mem_take hu))
+  have hnd := kvGrantIds_nodup_of HU
+  unfold logRevGrantIds at hnd ⊢
+  rw [List.filterMap_append] at hnd
+  exact hnd.sublist (List.sublist_append_left _ _)
 
 omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/
@@ -1444,9 +1562,16 @@ instance kvBatch_persistent (γr : ReadNames) (c ai : w64) (A ms : List EntryMod
 /-- The applied index is at least `i` (persistent). -/
 def appliedAtLeast (γr : ReadNames) (i : w64) : IProp GF := monoNatLbOwn γr.applied (uint.nat i)
 
-/-- The cluster's committed index is at least `i` (persistent: what a caller knew). -/
+/-- **The cluster's committed index is at least `i`** (persistent: what a caller knew): a lower
+bound of the member's own committed index (`s.committedIndex`, `γr.committed`), or (the auth3 A2
+read barrier, 2026-11-14) a committed raft log at least `i` long, known by any client of any
+member. The second disjunct is sound for every reader of the bound: `srvRLogLb` is a lower bound of
+the cluster's committed log, which is all the read loop needs of a caller's bound
+(`committedAtLeast_log`: raft's `ReadIndex` takes a committed log at least the bound long; etcd's
+read index is the leader's commit index, at least every entry committed before the request). -/
 def committedAtLeast (γr : ReadNames) (i : w64) : IProp GF :=
-  monoNatLbOwn γr.committed (uint.nat i)
+  iprop(monoNatLbOwn γr.committed (uint.nat i) ∨
+    ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z i ≤ uint.Z γr.raft.ai0 + L.length⌝)
 
 instance appliedAtLeast_persistent (γr : ReadNames) (i : w64) :
     Persistent (appliedAtLeast (GF := GF) γr i) := by
@@ -1493,7 +1618,20 @@ theorem committedAtLeast_le (γr : ReadNames) (i j : w64) (h : uint.Z j ≤ uint
   iintro H
   iunfold committedAtLeast at H
   iunfold committedAtLeast
-  iapply monoNatLbOwn_le (uint.nat j) (by word) $$ H
+  icases H with (H | ⟨%L, #HL, %HLi⟩)
+  · ileft; iapply monoNatLbOwn_le (uint.nat j) (by word) $$ H
+  · iright; iexists L; iframe HL; ipureintro; word
+
+/-- A lower bound of the member's committed index is a `committedAtLeast`. -/
+theorem committedAtLeast_of_lb (γr : ReadNames) (i : w64) :
+    monoNatLbOwn (GF := GF) γr.committed (uint.nat i) ⊢ committedAtLeast γr i := by
+  iintro H; iunfold committedAtLeast; ileft; iexact H
+
+/-- A committed raft log at least `i` long is a `committedAtLeast` (the second disjunct). -/
+theorem committedAtLeast_of_rlog (γr : ReadNames) (i : w64) (L : List EntryModel)
+    (h : uint.Z i ≤ uint.Z γr.raft.ai0 + L.length) :
+    srvRLogLb (GF := GF) γr.raft L ⊢ committedAtLeast γr i := by
+  iintro H; iunfold committedAtLeast; iright; iexists L; iframe H; ipureintro; exact h
 
 /-- **A batch's last entry is committed** (persistent; 2026-10-14, unit C2a): the committed index
 has reached the batch's last index (the raft loop's `updateCommittedIndex` before it hands the
@@ -2104,8 +2242,11 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
         (data : List w8) (Q : List EntryModel → IProp GF),
       -- (2026-10-16, stage R7b, B3) non-empty data: raft's `node.Propose` wants it (D6: an empty
       -- proposal would be a leader's own entry); the server's request marshals to a non-empty
-      -- string (`irrWireOf`, `processInternalRaftRequestOnce`)
-      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q ∗ £ 1 }}
+      -- string (`irrWireOf`, `processInternalRaftRequestOnce`); (raft-entsize §3, 2026-11-10) at
+      -- most `2^27` bytes (`processInternalRaftRequestOnce`'s `MaxRequestBytes` check, under
+      -- `etcdMaxRequestBytesOk`): within the cluster's bound on proposed data (`maxData = 2^30`)
+      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ ⌜data.length ≤ 2 ^ 27⌝ ∗
+          srvPropArg γ data Q ∗ £ 1 }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}))
@@ -2470,21 +2611,23 @@ theorem committedAtLeast_log (s : Loc) (γr : ReadNames) (n : w64) (E : CoPset)
     ⊢ srvCommittedInv (GF := GF) s γr -∗ committedAtLeast γr n ={E}=∗
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z n ≤ uint.Z γr.raft.ai0 + L.length⌝ := by
   iintro #Hinv #Hn
-  iunfold srvCommittedInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%v, Hv, Hauth, ⟨%L, #HL, %HvL⟩⟩
   iunfold committedAtLeast at Hn
-  ihave %Hle := monoNatLbOwn_valid γr.committed _ _ _ $$ Hauth Hn
-  imod Hclose $$ [Hv Hauth] with -
-  · inext; iexists v; iframe Hv Hauth; iexists L; iframe HL; ipureintro; exact HvL
-  imodintro
-  iexists L
-  iframe HL
-  ipureintro
-  have h := Hle.2
-  have h1 := uint_nat_eq n
-  have h2 := uint_nat_eq v
-  omega
+  icases Hn with (#Hn | ⟨%L0, #HL0, %HL0⟩)
+  · iunfold srvCommittedInv at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with ⟨%v, Hv, Hauth, ⟨%L, #HL, %HvL⟩⟩
+    ihave %Hle := monoNatLbOwn_valid γr.committed _ _ _ $$ Hauth Hn
+    imod Hclose $$ [Hv Hauth] with -
+    · inext; iexists v; iframe Hv Hauth; iexists L; iframe HL; ipureintro; exact HvL
+    imodintro
+    iexists L
+    iframe HL
+    ipureintro
+    have h := Hle.2
+    have h1 := uint_nat_eq n
+    have h2 := uint_nat_eq v
+    omega
+  · imodintro; iexists L0; iframe HL0; ipureintro; exact HL0
 
 /-- **The writer's half of the committed index's authority** at `v` (unit 4c's
 `updateCommittedIndex`; unused in 4b). -/
@@ -2618,22 +2761,51 @@ def authInfoIs (a : Loc) (user : GoString) (rev : w64) : IProp GF :=
 def authInfoOpt (a : Loc) : IProp GF :=
   iprop(⌜a = null⌝ ∨ ∃ user rev, authInfoIs a user rev)
 
+/-- **A `txnCtx`'s `Done()` is one the auth store may select on** (T-e'): `nil` (`doneNil`) or an
+`isContext`'s. -/
+theorem auth.ctxDoneAny_of_txnCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    mvcc.txnCtx ctx cd ⊢ auth.ctxDoneAny ctx := by
+  iintro #H
+  unfold mvcc.txnCtx
+  icases H with (#Hn | #Hc)
+  · unfold auth.ctxDoneAny mvcc.doneNil
+    iintro !> %Φ !> - HΦ
+    iapply Hn $$ []
+    · itrivial
+    iintro !> -
+    iapply HΦ
+    ileft; ipureintro; rfl
+  · iapply auth.ctxDoneAny_of_isContext ctx cd $$ Hc
+
 /-- **The auth store's request side** (persistent): `AuthInfoFromCtx(ctx)`, with the caller's
 reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
 `enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
 `applyErrIs`; 2026-10-12, unit 3a; and `nil` or one of the auth package's error variables,
-`authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
-store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
-apply package's `isAuthStore`. -/
+`authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`); (premise-fixes-8 S2) each call on a context whose
+library values are well formed (`context.libCtxOk`, which the request path carries from the gRPC run
+context). Of the real store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
+apply package's `isAuthStore`. (k8s 7f-4, T-e and T-e', decided by etcd-grove-81) Of the context,
+its library values and its `Done()`: with auth off, `AuthInfoFromCtx` returns at
+`!as.IsAuthEnabled()` and `AuthInfoFromTLS` reads only the peer and the metadata (`Value` at grpc's
+keys; fork `673da07c8f` `server/auth/store.go:1073`); with auth on and a simple token, the token
+check (`tokenSimple.isValidSimpleToken`, `server/auth/simple_token.go:239-243`) also selects on
+`ctx.Done()`, which Go evaluates on entry: it returns nil or a context's Done channel
+(`auth.ctxDoneAny`; `notes/auth-validspec-false.md`). Neither reads `Err`/`Deadline`, so a stream
+handler's weak context (`srvCtxWeak`) is one too: a `txnCtx` gives `ctxDoneAny`
+(`auth.ctxDoneAny_of_txnCtx`), and so does `srvCtxWeak` (`auth.ctxDoneAny_of_srvCtxWeak`). The whole
+`libCtxOk` is kept although the store reads only its incoming and peer parts: every caller carries
+it anyway (the request path from grpc's run context, the stream paths from the chain form), and the
+same premise as `checkLeaseRenew`'s and the request path's internal specs keeps one context fact
+across them (`notes/k8s-7f4-freeze.md`, Revision 1, m1). -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ RD }}
+    □ (∀ ctx : GoInterfaceOk,
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err }}) ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd }}
+    □ (∀ ctx : GoInterfaceOk,
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc), RET #a; authInfoOpt a }}))
 
@@ -2649,14 +2821,47 @@ E2c; in `on γa`, its user is one the token was issued to). Stated beside
 auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
 `isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). Its error is moreover `nil` or one of the auth
 package's error variables (`authApplyErrIs`, the real store's `auth.authErrIs`; the lease-expiry
-plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrLeaseNotFound`). -/
+plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrLeaseNotFound`).
+
+(auth-guard-completeness G1, 2026-11-14; `notes/auth-guard-scope.md`, §2.2) Also the three calls
+the guards make, read by a caller holding a lower bound `n` of the store's published index
+(`auth.authPubLbM`): `IsAuthEnabled` with its flag at a state no older than `n` (the store's
+`IsAuthEnabled.specLb`); `AuthInfoFromCtx` with why it gave no principal (`auth.noPrincipalFrom`) or
+an error (`ErrInvalidAuthToken`, the flag read `true` at such a state and a token in the context:
+`auth.tokRefusedFrom`), and with a principal the flag read `true` at such a state (G4), of the store's
+`AuthInfoFromCtx.specLb`; and `IsAdminPermitted`, the auth
+info `nil` or not (`auth.authInfoAt`), with both halves of its verdict at states no older than `n`
+(`auth.adminVerdictFromO`), of the store's `IsAdminPermitted.specLbO`. Here rather than in the
+reader's `authStoreLbM` (the Scope's draft): `AuthInfoFromCtx` calls the token provider, ready only
+once the server has started (`auth.tpReady`), as this row is; and the guards' reason-free specs, which
+take this row (`srvAuthAt`) and not `srvAuthLb`, follow from the specs with reasons. The lease checks'
+`isAuthStoreLeaseLb` (through `srvAuthLb`) has `IsAuthEnabled` and `IsAdminPermitted` at a lower
+bound too, the latter only for a non-`nil` auth info and its passing half: the lease specs' row,
+which auth-on-leases owns (D5). -/
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ RD }}
+    □ (∀ ctx : GoInterfaceOk,
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
+          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}) ∗
+    □ (∀ n : Nat,
+      {{ auth.authPubLbM M n ∗ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
+      {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdictFrom M n b }}) ∗
+    □ (∀ (n : Nat) (ctx : GoInterfaceOk),
+      {{ auth.authPubLbM M n ∗ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
+        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a ∗
+          (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
+          (∀ _ : err ≠ GoInterface.nil, auth.authErrOf .invalidAuthToken err ∗
+            auth.enabledVerdictFrom M n true ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) ∗
+          (∀ _ : a ≠ null, auth.enabledVerdictFrom M n true) }}) ∗
+    □ (∀ (n : Nat) (a : Loc) (oinfo : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
+      {{ auth.authPubLbM M n ∗ auth.authInfoAt a dq oinfo ∗ RD }}
+        (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
+      {{ (err : GoInterface), RET #err; RD ∗ auth.authInfoAt a dq oinfo ∗ authApplyErrIs err ∗
+          auth.adminVerdictFromO M n oinfo err }}))
 
 instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
     Persistent (isReqAuthBound (GF := GF) st RD M) := by

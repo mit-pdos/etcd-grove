@@ -229,7 +229,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       iunfold mvcc.api.watchBack at HBack
       icases HBack with ⟨⟨%σ, %S, HQ, %HSc⟩, Hids, %lm', Hm, %Hrep⟩
       wp_auto
-      wp_apply hspan $$ [$Hctx] as %sp #Hsp
+      wp_apply (hspan ctx cd) $$ [$Hctx] as %sp #Hsp
       iunfold trace.isSpan at Hsp
       icases Hsp with ⟨%si, %hsi, #HEnd, -⟩
       subst hsi

@@ -293,8 +293,9 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
+  iapply wp_fupd
   wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q [] hsz) $$ []
-    as %resp %err ⟨-, Hout⟩
+    as %resp %err ⟨-, Hout, -⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel key []).base.sortSet = false from rfl]
@@ -303,9 +304,11 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     first
       | rfl
       | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp)
-  iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, #Hke⟩)
-  · ileft
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, #Hq⟩ | ⟨%Herr, #Hke⟩)
+  · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
+    imodintro
+    iapply HΦ
+    ileft
     isplitl []
     · ipureintro; exact Herr
     ihave Hs := rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
@@ -315,7 +318,9 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     iframe Hm HQ
     ipureintro
     exact ⟨(srvRangeOk_getKey key _ _ _ hsel).1, hrev, hb⟩
-  · iright
+  · imodintro
+    iapply HΦ
+    iright
     isplitl
     · ipureintro; exact Herr.1
     · iexact Hke

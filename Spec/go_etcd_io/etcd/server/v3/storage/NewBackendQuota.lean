@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -39,7 +40,7 @@ covers as it covers the current one's. The callers pass a real backend (`srvBeIf
 abbrev storage.NewBackendQuota.spec : Prop :=
   ∀ (lg : Loc) (cfg : w64) (be : GoInterface) (name : GoString),
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ zapLoggerOk lg }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewBackendQuota)) (Val #lg))
       (Val #cfg)) (Val #be)) (Val #name))
   {{ (q : GoInterface), RET #q; apply.isQuota q }}

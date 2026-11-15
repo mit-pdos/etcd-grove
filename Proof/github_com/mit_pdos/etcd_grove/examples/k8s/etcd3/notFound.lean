@@ -30,7 +30,7 @@ theorem notFound.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG)) :
   wp_start as -
   wp_auto
   wp_apply wp_storeKey
-  simp only [notFoundL, mkeyL]
+  simp only [notFoundL, mkeyL, errOutL]
   iapply HΦ
   (try ipureintro; trivial)
 

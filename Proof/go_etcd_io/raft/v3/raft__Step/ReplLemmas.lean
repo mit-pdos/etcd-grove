@@ -63,20 +63,6 @@ structure raft.Step.ReplPbPostulates : Prop where
 
 namespace StepProof
 
-/-- A message `Step` received, off a proposal, as the `stepX` specs take it. (Over any
-capacity flag `cap`, `msgIn`'s `needsCap st.msg`, so that it applies to a `msgIn` unfolded by a
-generic `msgPtsC` lemma.) -/
-theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} {cap : Bool} (h : m.Type' ≠ MsgProp) :
-    msgPtsC (GF := GF) ml (DFrac.own 1) DFrac.discard cap st ⊢
-      msgPtsC ml (DFrac.own 1) (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) cap st := by
-  simp only [h, ↓reduceIte]; exact .rfl
-
-/-- A proposal `Step` received, as the `stepX` specs take it. -/
-theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} {cap : Bool} (h : m.Type' = MsgProp) :
-    msgPtsC (GF := GF) ml (DFrac.own 1) (DFrac.own 1) cap st ⊢
-      msgPtsC ml (DFrac.own 1) (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) cap st := by
-  simp only [h, ↓reduceIte]; exact .rfl
-
 /-- `m.GetSnapshot()` of a message holding no snapshot: `nil`. -/
 theorem wp_GetSnapshot_none (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) (h : ms.snap = none) :
@@ -117,15 +103,16 @@ theorem wp_GetEntries_ro (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
   iapply Hback $$ %cap %els %ms.ents Hes Hents Hcap
 
 /-- A freshly allocated `&pb.Message{...}` with scalar fields only (`Entries`, `Context`,
-`Responses` nil, `Snapshot` nil): an owned message holding `mm` and nothing else. -/
-theorem msgOwn_of_scalars (l : Loc) (v : raftpb.Message) (mm : MessageM) (E : CoPset) :
+`Responses` nil, `Snapshot` nil): an owned message holding `mm` and nothing else (out_size C3:
+held at its content, `msgOwnZ`, under any flag). -/
+theorem msgOwn_of_scalars (sz : Bool) (l : Loc) (v : raftpb.Message) (mm : MessageM) (E : CoPset) :
     (⌜v.Entries' = slice.nil ∧ v.Snapshot' = null ∧ v.Context' = slice.nil ∧
        v.Responses' = slice.nil ∧ v.unknownFields' = slice.nil⌝ ∗ l ↦ v ∗ cellRO v.Type' mm.Type' ∗ cellRO v.To' mm.To' ∗
       cellRO v.From' mm.From' ∗ cellRO v.Term' mm.Term' ∗
       cellRO v.LogTerm' mm.LogTerm' ∗ cellRO v.Index' mm.Index' ∗
       cellRO v.Commit' mm.Commit' ∗ cellRO v.Vote' mm.Vote' ∗
       cellRO v.Reject' mm.Reject' ∗ cellRO v.RejectHint' mm.RejectHint' : IProp GF) ⊢
-      |={E}=> msgOwn l (DFrac.own 1) ⟨mm, [], none, [], []⟩ := by
+      |={E}=> msgOwnZ sz l (DFrac.own 1) ⟨mm, [], none, [], []⟩ := by
   iintro ⟨%Hv, Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh⟩
   obtain ⟨Hes, Hsn, Hcx, Hrs, Hu⟩ := Hv
   ihave Hnil : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
@@ -136,12 +123,15 @@ theorem msgOwn_of_scalars (l : Loc) (v : raftpb.Message) (mm : MessageM) (E : Co
   imod ownSlice_persist $$ Hnilb with #Hnilb
   ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
   · iapply ownSlice_nil
-  iapply msgOwn_of_struct l v [] _ E Hu
-  iframe Hl cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh
-  rw [Hes, Hsn, Hcx, Hrs]
-  simp only [snapOpt]
-  iframe Hnil Hnilb Hnilr
-  iapply BigSepL2.bigSepL2_nil.2; itrivial
+  imod msgOwn_of_struct_uf l v [] ⟨mm, [], none, [], []⟩ E Hu $$ [Hl Hnilr] with ⟨Hm, #Hp⟩
+  · iframe Hl cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh
+    rw [Hes, Hsn, Hcx, Hrs]
+    simp only [snapOpt]
+    iframe Hnil Hnilb Hnilr
+    iapply BigSepL2.bigSepL2_nil.2; itrivial
+  imodintro
+  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ _ => ⟨rfl, rfl, by simp⟩⟩
+  iframe Hm Hp
 
 end StepProof
 

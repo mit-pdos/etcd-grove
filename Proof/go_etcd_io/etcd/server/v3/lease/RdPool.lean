@@ -33,7 +33,7 @@ variable [sem : go.Semantics]
 theorem lessorRdPool_init (γl : GName) (E : CoPset) (n : Nat) (Hn : threadBound GF ≤ n + 1) :
     ([∗list] _x ∈ List.replicate n (), lessorRdOf (GF := GF) γl) ⊢ |={E}=> lessorRdPool γl := by
   iintro Hs
-  imod threadPool.init lessorPoolN (lessorRdOf γl) E n Hn $$ Hs with ⟨%γp, #Hp⟩
+  imod threadPool.initL lessorPoolN lessorLvl (lessorRdOf γl) E n Hn $$ Hs with ⟨%γp, #Hp⟩
   imodintro
   unfold lessorRdPool
   iexists γp

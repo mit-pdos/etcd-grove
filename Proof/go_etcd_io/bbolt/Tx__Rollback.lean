@@ -24,6 +24,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -34,7 +36,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A reader's `Rollback`** (the public triple's read case): its `rdTxK` with a pool loan. -/
-theorem Tx.Rollback.wp_reader [HasExt osFsExt]
+theorem Tx.Rollback.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (wp_Rollback_r : Tx.Rollback_r.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (T : TxView) (hro : T.rw = false) :
     {{ boltTx (GF := GF) tx γ 1 T }}
@@ -62,25 +64,25 @@ whole agreed state, the `done` half, `rwlock`'s token, the writer side's half of
 and the writer side as `Commit` sees it (`wdbW`), with its page tokens, `flViewU` and (batches 43.1,
 44.4) `metaCopyOK` and `treeOK`. -/
 def TxExclWGap : Prop :=
-  ∀ [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (X : WX) (c : TxViewC), r.db = K.db →
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (K : BC) (tx : Loc) (r : TxReg) (X : WX) (c : TxViewC), r.db = K.db →
     txExcl (GF := GF) K.B K.p K.sp K.t0 tx r ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ⊢
       ghostVar r.n.v 1 (c, TxX.wr X) ∗ ghostVar r.n.done (1 : Qp).half false ∗
       sync.ownMutex K.db.[DB, go!"rwlock"] ∗ ghostVar K.B.cls (1 : Qp).half false ∗
       ∃ (w : WDb) (extra : GMap Nat Unit), wdbW K tx X.v w ∗ txShape r.n.pg X extra ∗
         ⌜flViewU X w.fl ∧ metaCopyOK X.t.mv w.C ∧ treeOK w.C⌝
 
-private instance BC_full_persistent_rb [HasExt osFsExt] (K : BC) : Persistent (K.full (GF := GF)) := by
+private instance BC_full_persistent_rb [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (K : BC) : Persistent (K.full (GF := GF)) := by
   unfold BC.full isBoltP; infer_instance
 
-private instance viewOf_persistent_rb [HasExt osFsExt] (r : TxReg) (v : View) :
+private instance viewOf_persistent_rb [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (r : TxReg) (v : View) :
     Persistent (viewOf (GF := GF) r v) := by
   unfold viewOf; infer_instance
 
-private instance BC_core_persistent_rb [HasExt osFsExt] (K : BC) : Persistent (K.core (GF := GF)) := by
+private instance BC_core_persistent_rb [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (K : BC) : Persistent (K.core (GF := GF)) := by
   unfold BC.core; infer_instance
 
 /-- **A writer's `Rollback`** (the public triple's write case), given `TxExclWGap`. -/
-theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
+theorem Tx.Rollback.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (hgap : TxExclWGap (GF := GF))
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
@@ -201,13 +203,13 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
 
 /-- **`Tx.Rollback`**, given `TxExclWGap` (the writer's exclusive part as `Commit` sees it). -/
 theorem Tx.Rollback.wp_proof' (hgap : TxExclWGap (GF := GF))
-    (wp_Rollback_r : ∀ [HasExt osFsExt], Tx.Rollback_r.spec (GF := GF) (hG := hG))
+    (wp_Rollback_r : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Rollback_r.spec (GF := GF) (hG := hG))
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_close : ∀ [HasExt osFsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
+    (wp_close : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.Rollback.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T
+  intro _ _ _ tx γ T
   by_cases hrw : T.rw = true
   · exact Tx.Rollback.wp_writer hgap wp_Assert wp_Txid wp_FlRollback wp_close tx γ T hrw
   · exact Tx.Rollback.wp_reader wp_Rollback_r tx γ T (Bool.eq_false_iff.2 hrw)
@@ -215,7 +217,7 @@ theorem Tx.Rollback.wp_proof' (hgap : TxExclWGap (GF := GF))
 /-- **`TxExclWGap` holds** (batch 34: `txExcl`'s writer branch carries the closed flag's half,
 `ws = wLive X.v w.C`, `wdbOK w`, the mapping at the view's base and the view `w.C`'s). -/
 theorem txExclWGap_holds : TxExclWGap (GF := GF) := by
-  intro _ K tx r X c hdb
+  intro _ _ _ K tx r X c hdb
   iintro ⟨Hx, Hv⟩
   iunfold txExcl at Hx
   icases Hx with ⟨%c', %x, Hv', Hd, Hx⟩
@@ -236,11 +238,11 @@ theorem txExclWGap_holds : TxExclWGap (GF := GF) := by
     ipureintro; exact ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
   ipureintro; exact Hok.2.2.2
 
-theorem Tx.Rollback.wp_proof (wp_Rollback_r : ∀ [HasExt osFsExt], Tx.Rollback_r.spec (GF := GF) (hG := hG))
+theorem Tx.Rollback.wp_proof (wp_Rollback_r : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Rollback_r.spec (GF := GF) (hG := hG))
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_close : ∀ [HasExt osFsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
+    (wp_close : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.Rollback.spec (GF := GF) (hG := hG) :=
   Tx.Rollback.wp_proof' txExclWGap_holds wp_Rollback_r wp_Assert wp_Txid wp_FlRollback wp_close
 

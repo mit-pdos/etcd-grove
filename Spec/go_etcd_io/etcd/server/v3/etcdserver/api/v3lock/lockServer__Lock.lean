@@ -46,7 +46,7 @@ abbrev lockServer.Lock.spec : Prop :=
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq ∧
         v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name⌝ ∗
       structFieldRef v3lockpb.LockRequest go!"Lease" req ↦□ lease ∗
-      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
     (App (App (Val (ls @!! go.GoType.PointerType lockServer.ty @!! go!"Lock"))
       (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

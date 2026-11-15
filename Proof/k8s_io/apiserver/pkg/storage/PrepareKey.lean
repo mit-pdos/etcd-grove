@@ -59,7 +59,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -76,7 +76,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -93,7 +93,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -110,7 +110,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -127,7 +127,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -144,7 +144,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -161,7 +161,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -178,7 +178,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -195,7 +195,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -211,7 +211,7 @@ theorem storage.PrepareKey.wp_proof
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hsl] as %e -
     · iframe #
-      simp only [EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+      fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
       · ileft; ipureintro; exact argWf_string _
       · itrivial
@@ -235,7 +235,7 @@ theorem storage.PrepareKey.wp_proof
       wp_apply wp_Errorf $$ [$Hsl] as %e -
       · iframe #
         rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
-        simp only [List.set, EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+        simp only [List.set]; fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
         isplitl
         · ileft; ipureintro; exact argWf_string _
         isplitl
@@ -262,7 +262,7 @@ theorem storage.PrepareKey.wp_proof
         wp_apply wp_Errorf $$ [$Hsl] as %e -
         · iframe #
           rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
-          simp only [List.set, EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+          simp only [List.set]; fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
           isplitl
           · ileft; ipureintro; exact argWf_string _
           isplitl
@@ -286,7 +286,7 @@ theorem storage.PrepareKey.wp_proof
         wp_apply wp_Errorf $$ [$Hsl] as %e -
         · iframe #
           rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
-          simp only [List.set, EtcdGrove.fmt.argsOk, EtcdGrove.fmt.argOk]
+          simp only [List.set]; fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
           isplitl
           · ileft; ipureintro; exact argWf_string _
           isplitl

@@ -13,7 +13,14 @@ streams per member running concurrently, every result of mvcc checked against th
 and read in full, and closed -- started from a fresh state (no package initialized, one thread):
 for every real execution of `n` steps, the main thread's result, if it has one, is `#()`, no thread
 is stuck, and no thread has ended in a panic. So no check of the tester fails, in any
-interleaving.
+interleaving, within the executions it covers.
+
+**What it covers: each prefix of fewer than `2 ^ 28` steps** (finding mvcc-r3-1, round 3,
+2026-11-11). The execution's length is bounded by the hypothesis `n + 2 ≤ 2 ^ 28` (the thread
+bound), and a full-size run of `Main` (12000 writer steps, with readers and watch streams on two
+members, each over a bbolt-backed store) takes more steps than that. The theorem therefore says no
+check fails in the first `2 ^ 28 - 2` steps of any interleaving. It says nothing about a run's later
+steps, and in particular it does not say that a complete run of `Main` returns.
 
 As `mvccrand_adequate` (`examples/mvccrand/Adequacy.lean`; `notes/decisions.md`, "mvccrand's closed
 theorem"): from `goose_adequacy_start_files` (`Proof/runtime/Start.lean`), with the trivial
@@ -29,12 +36,11 @@ the tester's lease checks compare the lessor's list against the model's without 
   do not fail for the environment's reasons), `dbFilesAbsent` of `Main`'s files (absent at start,
   touched only by the backend) and `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
-* a pure fact of the lessor's configuration: `ckptEffectsOk` (`lease.NewLessor`'s);
 * the semantics: `go.Semantics` and the package assumptions (`mvccfull`'s, mvcc's, the server's,
-  the cache's);
-* at every ghost-state instance: the store's key-count premise `keySized` (`etcdStorage_open.law`'s:
-  the backend's read states hold fewer than `2 ^ 62` keys, a genuine assumption, persistent).
-Nothing beyond mvccrand's.
+  the cache's).
+Nothing beyond mvccrand's. (Until premise fixes 5, 2026-11-10, also the store's key-count premise
+`keySized` at every ghost-state instance; now proved, `mvcc.keySized_all`, from bbolt's address-space
+bound `backend.rtxSnap_size`.)
 -/
 module
 
@@ -204,10 +210,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hks : ∀ hG : HeapGS .hasLC mvccfullGF,
-      ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-          mvcc.keySized (GF := mvccfullGF) (hG := heapWith hG lctx) γB P b : IProp mvccfullGF))
-    (Hck : ckptEffectsOk) (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
+    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (HFs : dbFilesAbsent mvccfullProgram
       (mvccfull.filePathsM (mvccfull.mainConfigM go!"mvccfull"
         (zeroValDef : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix))))
@@ -233,14 +236,10 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   subst Hlctx
   subst HL
   letI : HeapGS .hasLC mvccfullGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
-  -- the hypothesis at this instance (`heapWith` of it, definitionally)
-  have Hks' : ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-      mvcc.keySized (GF := mvccfullGF) γB P b : IProp mvccfullGF) := Hks _
   unfold IsInit at Hinit
   rw [Hinit]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
-  ihave #Hks := Hks'
   iintro - - Hgs Htok Hrights Hfiles
   iunfold startRights at Hrights
   icases Hrights with ⟨-, -, -, -, #Hvoff⟩
@@ -250,8 +249,8 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold mvccfullProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
-  wp_apply (mvccfull.wp_Main Hck Hdbo Hdbc) $$ [Hfiles Htok]
-  · iframe Hfiles Htok Hvoff Hks
+  wp_apply (mvccfull.wp_Main Hdbo Hdbc) $$ [Hfiles Htok]
+  · iframe Hfiles Htok Hvoff
   ipureintro
   rfl
 

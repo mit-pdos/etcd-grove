@@ -118,7 +118,7 @@ theorem New.wp_proof
     New.spec (GF := GF) (hG := hG) := by
   intro hrbI lg le cfg B Pk γl rd0 σ u Ls dq f Pre Q' Post X Y
   have hrb : receiptBound GF ≤ 2 ^ 48 := hrbI.receiptBound_le
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, %Hpre, Hlrd, #Hle, Hro, HLo, %HLs, Hif⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hzl, Hfor, %Hpre, Hlrd, #Hle, Hro, HLo, %HLs, Hif⟩ HΦ
   obtain ⟨hcfg, hreach, hpend⟩ := Hpre
   -- 1-2. the index's names; the storage at its image (`newStore_of_storage`)
   imod idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
@@ -144,7 +144,7 @@ theorem New.wp_proof
     $$ [HbkT HcrT Himg Hrcpt HndO Hrg Hreg Hw1 Hw2 Hsr Hrts Hlrd Hro HLo Hifresh Hok0 Hctx]
     as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -, #Hrdc⟩, #Hhk, Htw, Hcok, Hrds, Hcl, Hfrag, Hret,
       #Hcp, #Hwreg, Hnc, HLo, HrB, Hlc1⟩
-  · iframe Hpkg Hle Hro Hifresh Hok0 Hsess HbkT HcrT Himg Hrcpt HndO Hrg Hreg Hw1 Hw2 Hsr Hrts
+  · iframe Hpkg Hzl Hle Hro Hifresh Hok0 Hsess HbkT HcrT Himg Hrcpt HndO Hrg Hreg Hw1 Hw2 Hsr Hrts
       Hlrd HLo Hctx
     isplitr
     · ipureintro; exact ⟨hcfg, hlok⟩

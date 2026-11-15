@@ -15,6 +15,13 @@ etcdstart_StartServer: etcdstart_newServer EtcdServer__Start
 # (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
 # nothing (`examples/etcd/restart` keeps its listeners)
 etcdstart_BuildServer: etcdstart_newServer
+# (restart S7.4, 2026-11-14) at a restart: `newServerMode` over `NewServer.specR` (linked in the
+# server's `Link.lean`), the restarted names allocated from the cluster's facts (the mvcc API's
+# nonempty names, a proved law)
+etcdserver_NewServer+R: @
+etcdstart_newServerMode+Restart: =mvcc.api.mvccApi_names_nonempty_law_holds features_NewDefaultServerFeatureGate etcdserver_NewServer+R
+etcdstart_newServer+Restart: etcdstart_newServerMode+Restart
+etcdstart_BuildServer+Restart: etcdstart_newServer+Restart
 # (M2, notes/m2-plan.md) `StartCompactingServer` and (periodic mode, 2026-11-02)
 # `StartPeriodicServer`: `StartServer` over `newServerMode` in revision and periodic mode
 etcdstart_StartCompactingServer: etcdstart_newServerMode EtcdServer__Start
@@ -30,7 +37,14 @@ etcdstart_StartMember: etcdstart_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @
-grpc_Server__Serve:
+# (per-type stage B) `Serve` is the trusted model (`Server.Serve.impl := model.Serve`), proved over
+# its leaves' axioms (model-only names, `google.golang.org/grpc#model.*`)
+grpc_Server__Serve: model_Serve
+model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream
+model_acceptRun:
+model_acceptRunConns:
+model_respond:
+model_finishStream:
 grpc_KeepaliveEnforcementPolicy:
 etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve
 # `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked

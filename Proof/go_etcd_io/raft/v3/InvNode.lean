@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
+public import Proof.go_etcd_io.raft.v3.MsgOut
 -- the implementation (`InvApi.lean`, `InvApiDyn.lean`), not exported
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiView
@@ -82,6 +83,11 @@ update is persistent (`node.Propose`'s `□?γ.dup`), and so are a `MsgProp`'s c
 simulation's ghost names (`TraceSim.traceDir`), for a traced cluster; `none` for every other, which
 sees none of the node API's traced-only premises (`TracedApiDraft.lean`). Fixed at allocation. -/
 @[no_expose] def Cluster.trace (γ : Cluster) : Option GName := γ.raft.reTrace
+
+/-- **The cluster's bound on proposed data** (raft-entsize §2, 2026-11-09): chosen by the client at
+allocation (`cluster_alloc`'s `md`; `none`, no bound, for a cluster that states none). The size law
+of the objects a `Ready` hands out is conditioned on it. -/
+@[no_expose] def Cluster.maxData (γ : Cluster) : Option Nat := γ.raft.maxData
 
 /-- **The committed requested entries, the client's** (exclusive): `opsOf` of the committed log.
 Raft changes it only by firing an update the client gave it, when the requested entry commits;
@@ -361,6 +367,42 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
     sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
   unfold sentMsg; exact ApiImpl.sentMsg_appFrom_impl γ N src st
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A message's `MsgSnap` facts, in the
+cluster `γ`** (persistent; raft's `snapToOk` at the cluster's raft names): a `MsgSnap` from node `id`
+is not to `id`, and, in raft's dynamic mode only, to a voter or learner of a committed log's
+configuration (in the static mode nothing more). Clients read it through
+`InvNodeRule.snapTo_confAt`. -/
+@[no_expose] def snapTo (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
+  snapToOk γ.raft id st
+
+instance snapTo_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
+    Persistent (snapTo (GF := GF) γ id st) := by
+  unfold snapTo; infer_instance
+
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A sent `MsgSnap`'s destination** (`snapToOk`):
+not its sender `src` (`send`'s panic), and, in raft's dynamic mode only, a voter or learner of a
+committed log's configuration (`snapDstOk`: the sender's tracker's when it sent it); see
+`InvNodeRule.snapTo_confAt`. -/
+theorem sentMsg_snapTo (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ snapTo γ src st := by
+  unfold sentMsg ApiImpl.sentMsg snapTo
+  iintro ⟨-, #H, -⟩
+  iapply isRaftMsg_snapTo $$ H
+
+/-- (raft-entsize [r3c], 2026-11-09) **A sent `MsgSnap` has no entries and no context**
+(`SentMsgShape`'s: raft builds it as `pb.Message{To, Type: MsgSnap, Snapshot}`,
+`maybeSendSnapshot`): what bounds the size of etcd's merged snapshot message, which keeps the rest
+of raft's message. -/
+theorem sentMsg_snap_empty (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ ⌜st.msg.Type' = MsgSnap → st.ents = [] ∧ st.ctx = []⌝ := by
+  unfold sentMsg
+  iintro Hs
+  iunfold ApiImpl.sentMsg at Hs
+  icases Hs with ⟨-, Hr, -⟩
+  iunfold isRaftMsg at Hr
+  icases Hr with ⟨%Hsh, -⟩
+  ipureintro; exact fun h => Hsh.2.2.2.2.2.2.1 (Or.inr (Or.inr h))
+
 /-- (open) **What a sent message carries for its receiver's `Step`** (today `rdCred`, one for a
 `MsgReadIndex`, and `stTks`, a forwarded proposal's tickets). -/
 @[no_expose] def msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
@@ -474,18 +516,26 @@ exclusion (a stamped `MsgTransferLeader` carries its destination's leadership, `
 (2026-10-27, for etcd's server: no premise on a forwarded proposal's context. 2026-10-29, stage U4:
 no pre-vote premise: a node at term `0` has an empty log and grants a pre-vote request. 2026-10-29,
 stage U7: `node.Step` takes its own time receipt, no tick credit for a `MsgTimeoutNow`.) -/
-theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
+theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt)
+    (c : MsgC) :
     st.msg.To' = id →
+    -- (raft-entsize §2, 2026-11-09) the object at a content `c` (`msgPtsCC`; until then
+    -- `msgPtsC ml 1 1 true ⟨st…, []⟩`, which is `c`'s model with no unknown fields in its snapshot's
+    -- conf state, `msgPtsC_iff_CC`), of bounded size in a cluster with a bound on proposed data,
+    -- but a `MsgSnap`
+    c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ → c.csUfNil →
+    (∀ b, γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) →
     sentMsg (GF := GF) γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
+      msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ∗
       -- (2026-11-12, trace-check implementation step 1: the design's F2) the message's token
       -- (`sentTok_untraced` at an untraced cluster)
       sentTok γ st ⊢
     |==> stepIn γ N id ml := by
-  intro H3
+  intro H3 Hc Hcs Hsz
   unfold sentMsg msgCredits stepIn snapLocalMsg sentTok
-  exact ApiImpl.stepIn_intro_impl γ N id ml src st H3
+  unfold Cluster.maxData at Hsz
+  exact ApiImpl.stepIn_intro_impl γ N id ml src st c H3 Hc Hcs Hsz
 
 /-- (raft-final, 2026-10-29, U7: the design's §2.5, C12's `sentMsg_shape`) **A sent message has the
 shape raft sends** (`SentMsgShape`: its type, a nonzero sender, stamped or not by type, from another
@@ -637,6 +687,119 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       -- above the commit index, which starts at the bootstrap log's length
       ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝)
 
+/-! ## The objects a `Ready` hands out (raft-entsize §2, 2026-11-09) -/
+
+/-- **The message `m` was handed out at the content `c`** (persistent, sealed): an element of the
+cluster's monotone set of the objects its `Ready`s handed out, at the content they were handed out
+with. The size law of the handed-out objects (raft-entsize, a later step) reads it. -/
+@[no_expose] def Cluster.outObj (γ : Cluster) (m : Loc) (c : MsgC) : IProp GF := outObjR γ.raft m c
+
+/-- **The entry `e` was handed out at the content `c`** (persistent, sealed). -/
+@[no_expose] def Cluster.outEnt (γ : Cluster) (e : Loc) (c : EntryC) : IProp GF := outEntR γ.raft e c
+
+instance Cluster.outObj_persistent (γ : Cluster) (m : Loc) (c : MsgC) :
+    Persistent (γ.outObj (GF := GF) m c) := by
+  unfold Cluster.outObj; infer_instance
+
+instance Cluster.outEnt_persistent (γ : Cluster) (e : Loc) (c : EntryC) :
+    Persistent (γ.outEnt (GF := GF) e c) := by
+  unfold Cluster.outEnt; infer_instance
+
+/-- **A handed-out message is of bounded size** (raft-entsize §2, derived from the tracked
+`out_size`): in a cluster with a bound on proposed data, unless a `MsgSnap`. -/
+theorem Cluster.outObj_size (γ : Cluster) (m : Loc) (c : MsgC) (b : Nat) :
+    γ.outObj (GF := GF) m c ⊢ ⌜γ.maxData = some b → c.model.msg.Type' ≠ MsgSnap → msgSizeOk c⌝ := by
+  unfold Cluster.outObj Cluster.maxData
+  exact outObjR_size γ.raft m c b
+
+/-- **A handed-out entry is of bounded size** (raft-entsize §2, derived from the tracked
+`out_size`): in a cluster with a bound on proposed data. -/
+theorem Cluster.outEnt_size (γ : Cluster) (e : Loc) (c : EntryC) (b : Nat) :
+    γ.outEnt (GF := GF) e c ⊢ ⌜γ.maxData = some b → entSizeOk c⌝ := by
+  unfold Cluster.outEnt Cluster.maxData
+  exact outEntR_size γ.raft e c b
+
+/-- **A message a `Ready` hands out**: owned at `dq` (its entries and `Context` frozen, no capacity:
+as `msgOwn`) holding `st`, at a content `c` raft pinned (`MsgC.sentOk`: its snapshot's conf state
+without unknown fields, and a `MsgSnap` without top-level unknown fields, the literal's), handed out
+at that content (`Cluster.outObj`). -/
+def msgOut (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF :=
+  iprop(∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ c.sentOk⌝ ∗ γ.outObj l c)
+
+/-- **A `Ready`'s entries** (persistent): the read-only slice `s` of entry objects, each at a
+content handed out (`Cluster.outEnt`), holding `es`. -/
+def readyEnts (γ : Cluster) (s : GoSlice) (es : List EntryM) : IProp GF :=
+  iprop(∃ (els : List Loc) (cs : List EntryC), s ↦*□ els ∗
+    ([∗list] p;c ∈ els;cs, entPtsCC p DFrac.discard c ∗ γ.outEnt p c) ∗
+    ⌜cs.map EntryC.model = es⌝)
+
+instance readyEnts_persistent (γ : Cluster) (s : GoSlice) (es : List EntryM) :
+    Persistent (readyEnts (GF := GF) γ s es) := by
+  unfold readyEnts; infer_instance
+
+/-- A message handed out is owned as today's `msgOwn`. -/
+theorem msgOut_msgOwn (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
+    msgOut (GF := GF) γ l dq st ⊢ msgOwn l dq st := by
+  unfold msgOut Cluster.outObj
+  exact msgOutR_msgOwn γ.raft l dq st
+
+instance msgOut_discard_persistent (γ : Cluster) (l : Loc) (st : MsgSt) :
+    Persistent (msgOut (GF := GF) γ l DFrac.discard st) := by
+  unfold msgOut; infer_instance
+
+/-- **A handed-out message, frozen read-only** (raft-entsize §2): at the content it was handed out
+with (what the server's transport keeps of it). -/
+theorem msgOut_persist_fupd (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) (E : CoPset) :
+    msgOut (GF := GF) γ l dq st ⊢ |={E}=> msgOut γ l DFrac.discard st := by
+  unfold msgOut
+  iintro ⟨%c, Hc, %Hm, #Ho⟩
+  imod msgPtsCC_persist l dq c $$ Hc with Hc
+  imodintro
+  iexists c
+  iframe Hc Ho
+  ipureintro; exact Hm
+
+/-- **The `MsgSnap` law**: a handed-out `MsgSnap` has no top-level unknown fields. -/
+theorem msgOut_snap (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
+    msgOut (GF := GF) γ l dq st ⊢
+      ∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ γ.outObj l c ∗
+        ⌜c.model = st ∧ c.csUfNil ∧ (st.msg.Type' = MsgSnap → c.f.uf = [])⌝ := by
+  unfold msgOut Cluster.outObj
+  exact msgOutR_snap γ.raft l dq st
+
+/-- **A handed-out message is of bounded size** (raft-entsize §2, from `Cluster.outObj_size`, the
+tracked `out_size`): at its content, in a cluster with a bound on proposed data, unless a `MsgSnap`.
+What the server's transport derives its encoder's size bound from (rafthttp, a later step). -/
+theorem msgOut_size (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) (b : Nat) :
+    msgOut (GF := GF) γ l dq st ⊢
+      ∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗
+        ⌜c.model = st ∧ (γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝ := by
+  unfold msgOut
+  iintro ⟨%c, Hc, %Hm, #Ho⟩
+  ihave %Hsz := Cluster.outObj_size γ l c b $$ Ho
+  iexists c
+  iframe Hc
+  ipureintro
+  refine ⟨Hm.1, fun h1 h2 => Hsz h1 ?_⟩
+  rw [Hm.1]; exact h2
+
+/-- A `Ready`'s entries are today's read-only entries. -/
+theorem readyEnts_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
+    readyEnts (GF := GF) γ s es ⊢ entsRO s es := by
+  unfold readyEnts Cluster.outEnt
+  exact ApiImpl.readyEntsU_entsRO γ s es
+
+/-- (out_size C3) **A `Ready`'s entries are sized** in a cluster with a bound on proposed data
+(from `Cluster.outEnt_size`): the slice of objects frozen at contents of bounded size. -/
+theorem readyEnts_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Nat)
+    (hmd : γ.maxData = some b) :
+    readyEnts (GF := GF) γ s es ⊢
+      ∃ (ls : List Loc) (cs : List EntryC), s ↦*□ ls ∗ ([∗list] l;c ∈ ls;cs, entRoC l c) ∗
+        ⌜cs.map EntryC.model = es ∧ ∀ c ∈ cs, entSizeOk c⌝ := by
+  unfold readyEnts Cluster.outEnt
+  unfold Cluster.maxData at hmd
+  exact ApiImpl.readyEntsU_sized γ s es b hmd
+
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
 vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages `ms` (each owned
@@ -648,9 +811,11 @@ state `h` (`nil` or not: `hsOpt`) and the soft state `ss` (`softStateIs`; until 
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
     (ms : List QMsg) (ss : Option (w64 × StateType)) : IProp GF :=
-  iprop(entsRO rd.Entries' es ∗
+  iprop(readyEnts γ rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts (`snapToOk`, `readyRest_snapTo`)
+    ([∗list] q ∈ ms, snapTo γ id q.st) ∗
     hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -681,9 +846,21 @@ instance readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : Li
 messages as `readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport
 takes. -/
 theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
-    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOut (GF := GF) γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
       readyMsgs γ N id ms ⊢
     [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe Hc Hs
+  iapply msgOut_msgOwn $$ Ho
+
+/-- (raft-entsize §2) `readyMsgs_sent` keeping each message's content as handed out (`msgOut`). -/
+theorem readyMsgs_sentC (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOut (GF := GF) γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
   unfold readyMsgs
   refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
   intro _ _
@@ -727,7 +904,7 @@ theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
       readyRest γ N id rd st ce es h none ms ss := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   unfold readyRest readySnap
-  iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
+  iintro ⟨-, -, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
   ipureintro
   intro e0 he
   exact (Hb e0 he).2
@@ -758,13 +935,13 @@ theorem readyRest_indices (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
   cases L with
   | none =>
     unfold readySnap
-    iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
+    iintro ⟨-, -, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
     ipureintro
     intro e0 he
     exact (Hb e0 he).1
   | some l =>
     unfold readySnap
-    iintro ⟨-, -, -, -, -, -, ⟨%Hf, -⟩, -⟩
+    iintro ⟨-, -, -, -, -, -, -, ⟨%Hf, -⟩, -⟩
     ipureintro
     intro e0 he j e hj
     have HI := Hf.2.2.2.2.2.2.2.2.2
@@ -790,8 +967,22 @@ theorem readyRest_facts (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (
       ⌜ReadyRestFacts st ce es h L⌝ := by
   refine (persistent_entails_left ?_).trans .rfl
   unfold readyRest
-  iintro ⟨-, -, -, -, -, -, -, %H⟩
+  iintro ⟨-, -, -, -, -, -, -, -, %H⟩
   ipureintro; exact H
+
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `Ready`'s messages' `MsgSnap` facts**
+(`snapToOk`), at its receive, before the batch is durable: each `MsgSnap` is not to the node `id`
+and, in raft's dynamic mode only, to a voter or learner of a committed log's configuration; see
+`InvNodeRule.snapTo_confAt`. -/
+theorem readyRest_snapTo (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      [∗list] q ∈ ms, snapTo γ id q.st := by
+  refine (persistent_entails_left ?_).trans .rfl
+  unfold readyRest
+  iintro ⟨-, -, -, #H, -⟩
+  iexact H
 
 /-- (G4) **The hard state's commit index does not move back.** -/
 theorem readyRest_commit_mono (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -1268,10 +1459,10 @@ theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Name
       readyRest γ N id rd st ce es h L ms ss ∗
         ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
   unfold readyFits readyRest
-  iintro ⟨%Hf, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn, %Hrf⟩
+  iintro ⟨%Hf, Hes, Hm, Hms, #Hst, Hh, Hss, %Hx, Hsn, %Hrf⟩
   obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
   isplitl
-  · iframe Hes Hm Hms Hh Hss Hsn
+  · iframe Hes Hm Hms Hst Hh Hss Hsn
     ipureintro; exact ⟨⟨Lx, H1, Hhd, H3, HLx⟩, Hrf⟩
   · ipureintro
     intro e0 he0

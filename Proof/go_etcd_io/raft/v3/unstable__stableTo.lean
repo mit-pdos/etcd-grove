@@ -60,10 +60,10 @@ theorem unstable.stableTo.wp_proof
   · close_unstable
   open_unstable_again
   icases Hents with #Hents
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   ihave Hents' := Hents
-  iunfold entsRO at Hents'
-  iunfold entsPts at Hents'
+  iunfold entsROz at Hents'
+  iunfold entsPtsZ at Hents'
   icases Hents' with ⟨%ls, #Hls, #Hb⟩
   ihave %Hlsl := ownSlice_len $$ Hls
   ihave #Hulgv : isLoggerVal uv.logger' $$ [Hlogger]
@@ -116,13 +116,13 @@ theorem unstable.stableTo.wp_proof
     rw [subslice_def, List.take_of_length_le (by word)]
     congr 1
     word
-  ihave #Hents2 : entsRO (slice.slice uv.entries' Loc (id.index' + W64 1 - us.offset)
+  ihave #Hents2 : entsROz us.sz (slice.slice uv.entries' Loc (id.index' + W64 1 - us.offset)
       uv.entries'.len) (us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat) $$ [Hls2 Hb]
   · rw [← Hsub]
-    iunfold entsRO; iunfold entsPts
+    iunfold entsROz; iunfold entsPtsZ
     iexists _
     iframe Hls2
-    iapply entsBig_subslice $$ Hb
+    iapply entsBigZ_subslice $$ Hb
   wp_apply wp_unstable_shrinkEntriesArray u
       { us with ents := us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat,
                 offset := id.index' + W64 1,

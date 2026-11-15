@@ -32,7 +32,7 @@ theorem NewResourceExpired.wp_proof : NewResourceExpired.spec (GF := GF) (hG := 
   iexists _
   iframe
   ipureintro
-  exact ⟨rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl⟩
 
 end proof
 

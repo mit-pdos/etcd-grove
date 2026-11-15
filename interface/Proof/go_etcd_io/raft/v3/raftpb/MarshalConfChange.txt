@@ -8,12 +8,17 @@ theorem raftpb.MarshalConfChange.wp_proof [package_sem : Assumptions] (wp_ConfCh
     proto.MarshalConfChange.spec) (wp_proto_MarshalConfChangeV2 : proto.MarshalConfChangeV2.spec) :
     raftpb.MarshalConfChange.spec
   -- `Perennial.EtcdGrove.raftpb.MarshalConfChange.spec`, unfolded:
-  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
+  ∀ (c : GoInterface) (oc : Option ConfChangeIC) (dq : DFrac),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeI c dq o -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ccPtsCCo c dq oc -∗
           (▷
               ∀ data bs,
-                ownConfChangeI c dq o ∗ ownSlice data bs (DFrac.own 1) ∗ ⌜MarshalsConfChange o bs⌝ -∗
-                  Φ ((intoVal (confChangeEntryType o), intoVal data), intoVal GoInterface.nil)) -∗
+                ccPtsCCo c dq oc ∗
+                    ownSlice data bs (DFrac.own 1) ∗
+                      ⌜MarshalsConfChange (Option.map ConfChangeIC.model oc) bs⌝ ∗
+                        ⌜∀ (cc : ConfChangeIC), oc = some cc → ccSize cc + 64 < 2 ^ 63 → bs.length ≤ ccLenMax cc⌝ -∗
+                  Φ
+                    ((intoVal (confChangeEntryType (Option.map ConfChangeIC.model oc)), intoVal data),
+                      intoVal GoInterface.nil)) -∗
             WP ((intoVal (functions raftpb.MarshalConfChange [])) (intoVal c)) {{ Φ }}

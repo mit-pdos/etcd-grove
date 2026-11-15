@@ -5,12 +5,12 @@
 theorem MemoryStorage.lastIndex.wp_proof [package_sem : Assumptions] (wp_GetIndex :
     raftpb.Entry.GetIndex.spec) : MemoryStorage.lastIndex.spec
   -- `Perennial.EtcdGrove.MemoryStorage.lastIndex.spec`, unfolded:
-  ∀ (ms : Loc) (σ : StorState),
+  ∀ (ms : Loc) (sz : Bool) (σ : StorState),
     uint.Z σ.prev.index' + ↑σ.ents.length < 2 ^ 61 →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hf" ∷ memstorageFields ms σ -∗
-            (▷ ∀ li, ⌜uint.Z li = uint.Z σ.prev.index' + ↑σ.ents.length⌝ ∗ memstorageFields ms σ -∗ Φ (intoVal li)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hf" ∷ memstorageFields ms sz σ -∗
+            (▷ ∀ li, ⌜uint.Z li = uint.Z σ.prev.index' + ↑σ.ents.length⌝ ∗ memstorageFields ms sz σ -∗ Φ (intoVal li)) -∗
               WP
                 ((intoVal
                     (methods MemoryStorage.ty.PointerType go!"lastIndex"

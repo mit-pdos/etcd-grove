@@ -8,13 +8,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -29,7 +31,7 @@ def mmapPre (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (f
   | none =>
     iprop(⌜m.maps = ∅⌝ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm ∗
       ghostVar γ.out (1 : Qp).half false ∗
-      [∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) p r B)
+      [∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) γ.ino r B)
 
 /-- See the file header. -/
 abbrev DB.mmap.spec : Prop :=
@@ -46,11 +48,11 @@ abbrev DB.mmap.spec : Prop :=
   {{ (err : GoInterface), RET #err; ∃ (st' : MapSt) (m' : OsMeta),
       ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st' ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st' ∗
-      writerFile (GF := GF) γ db f fd p mp fl hwm st' m' ∗ ⌜m'.size = m.size ∧ m'.ok = m.ok⌝ ∗
+      writerFile (GF := GF) γ db f fd p mp fl hwm st' m' ∗ ⌜m'.size = m.size ∧ True⌝ ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (len : Nat) (γm : GName),
           ⌜st' = some (base, len, γm) ∧ m'.maps = {[base := len]} ∧ m.size ≤ len ∧
             sint.Z minsz ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-          ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+          ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
           writerCells (GF := GF) base hwm len) ∨
        (⌜err ≠ interface.nil ∧ st' = none⌝ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm)) }}
 

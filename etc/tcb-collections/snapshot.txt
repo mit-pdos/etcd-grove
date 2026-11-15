@@ -21,6 +21,7 @@ roots ^EtcdServer\.wp_createMergedSnapshotMessage$
 roots ^wp_newSnapshotReaderCloser$
 roots ^EtcdServer\.wp_sendMergedSnap$
 axiom DescribeConfChange.wp_proof
+axiom apply.irrDecode_utf8
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.backend.Snapshot.wp_proof
@@ -82,7 +83,6 @@ axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
-axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
@@ -146,7 +146,7 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
-axiom raftpb.ConfChangeType.String.wp_proof
+axiom raftpb.MessageType.String.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -171,9 +171,7 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
-axiom strconv.Itoa.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof

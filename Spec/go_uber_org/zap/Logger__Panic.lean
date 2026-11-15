@@ -23,7 +23,9 @@ variable [sem : go.Semantics]
 
 /-- `l.Panic(msg, fields...)` (a non-nil logger) logs, then panics with the message (zapcore's
 `CheckedEntry.Write`: `panic(ce.Message)`), whatever the logger's core (a nop logger too:
-`Panic`/`Fatal` entries are always written). -/
+`Panic`/`Fatal` entries are always written). A zero `&zap.Logger{}` panics too, with a runtime
+error in place of the message, which only a `recover` that inspects the value tells apart: the
+premise stays `l ≠ null` (premise fixes 6, D4). -/
 abbrev zap.Logger.Panic.spec : Prop :=
   ∀ (l : Loc) (msg : GoString) (fields : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ }}

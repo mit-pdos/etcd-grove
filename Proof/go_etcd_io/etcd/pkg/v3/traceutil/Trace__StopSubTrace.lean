@@ -28,7 +28,7 @@ theorem traceutil.Trace.StopSubTrace.wp_proof :
   intro t e fields
   wp_start as ⟨Ht, Hf⟩
   iunfold traceutil.ownTrace at Ht
-  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He, #Hlz⟩
   wp_auto
   wp_apply wp_slice_literal (V := traceutil.step)
     [({ time' := zero_val _root_.Perennial.time.Time, msg' := zero_val GoString, fields' := fields, isSubTraceStart' := false, isSubTraceEnd' := true } : traceutil.step)]
@@ -47,6 +47,7 @@ theorem traceutil.Trace.StopSubTrace.wp_proof :
   isplitl [Hsf Hf]
   · iapply BigSepL.bigSepL_snoc.2
     iframe
+  (try iframe Hlz)
   ipureintro; exact He
 
 end proof

@@ -25,10 +25,11 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
 /-- **`fmt.Sprintf(format, args...)`** returns some string, for arguments that are
-`fmt.argsOk`; the arguments' slice comes back. The output is not modelled. -/
+`fmt.argsOk` under the format's verbs; the arguments' slice comes back. The output is not
+modelled. -/
 abbrev fmt.SprintfArgs.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (xs : List GoInterface) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk xs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk fmt.methodVerbs format xs }}
     (App (App (Val #(functions _root_.Perennial.fmt.Sprintf [])) (Val #format)) (Val #args_sl))
   {{ (s : GoString), RET #s; args_sl ↦*{dq} xs }}
 

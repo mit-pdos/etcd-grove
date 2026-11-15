@@ -31,6 +31,7 @@ abbrev mkSTM.spec : Prop :=
   ∀ (c : Loc) (pfx : GoString) (op : Loc) (ov : stmOptions) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdSTMClient c pfx ∗ op ↦□ ov ∗ context.isContext ctx cs ∗
+      metadata.outgoingCtxOkC ctx ∗
       ⌜ov.ctx' = GoInterface.ok ctx ∧ isoValid ov.iso'⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.mkSTM)) (Val #c)) (Val #op))
   {{ (s : GoInterface), RET #s; ∃ p : Loc, ⌜s = GoInterface.ok (stmIface ov.iso' p)⌝ ∗

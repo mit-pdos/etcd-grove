@@ -31,7 +31,7 @@ abbrev txnLeasing.guardRanges.spec : Prop :=
     (cs : context.ContextDesc (IProp GF)) (dq : DFrac) (sl : GoSlice) (os : List OpFull),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗
-      sessionReady γ ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ opsAt sl os ∗
+      sessionReady γ ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗ opsAt sl os ∗
       ⌜∀ o ∈ os, o.key.length ≤ opKeyMax ∧ o.base.rangeEnd.length ≤ opKeyMax⌝ }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"guardRanges")) (Val #sl))
   {{ (cmps : GoSlice) (err : GoInterface), RET (PairV #cmps #err);

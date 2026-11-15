@@ -1,0 +1,53 @@
+package modelframe
+
+import (
+	"net"
+	"reflect"
+	"testing"
+)
+
+// A round trip over a real loopback TCP connection, with the reader reading a byte at a time.
+func TestRoundTrip(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	md := map[string][]string{"a": {"1", "2"}, "token": {"x"}}
+	go func() {
+		c, err := net.Dial("tcp", l.Addr().String())
+		if err != nil {
+			return
+		}
+		var e Enc
+		e.Str("/etcdserverpb.KV/Range")
+		e.U8(1)
+		e.U64(5e9)
+		e.MD(md)
+		b := append([]byte(GRPCPreface), Frame(GHead, e.B)...)
+		b = append(b, Frame(GMsg, []byte("hello"))...)
+		WriteFrames(c, b)
+		c.Close()
+	}()
+	c, err := l.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok, err := ReadPreface(c, GRPCPreface)
+	if !ok || err != nil {
+		t.Fatal(ok, err)
+	}
+	k, p, err := ReadFrame(c, 1<<20)
+	if err != nil || k != GHead {
+		t.Fatal(k, err)
+	}
+	d := Dec{B: p}
+	m, has, to, md2 := d.Str(), d.U8(), d.U64(), d.MD()
+	if !d.Done() || m != "/etcdserverpb.KV/Range" || has != 1 || to != 5e9 || !reflect.DeepEqual(md, md2) {
+		t.Fatal(m, has, to, md2)
+	}
+	k, p, err = ReadFrame(c, 4)
+	if tl, ok := err.(*TooLarge); !ok || tl.Length != 5 || k != GMsg || p != nil {
+		t.Fatal(k, p, err)
+	}
+}

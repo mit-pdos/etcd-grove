@@ -31,13 +31,6 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-/-- `updated`'s object, field by field (`updated`'s spec). -/
-private theorem updatedL_eq (x : Input) (o : Obj) :
-    updatedL x o = Obj.mk (if x.NoOp' = true then o.Name' else if o.Name' = [] then x.Key' else o.Name')
-      o.UID' (if x.NoOp' = true then o.Value' else x.Val') o.ResourceVersion' := by
-  unfold updatedL
-  cases x.NoOp' <;> rfl
-
 set_option hygiene false in
 /-- `mupdate`'s write: `setItem` of the updated object at the next resource version. -/
 local macro "set_tail" : tactic => `(tactic| (
@@ -84,45 +77,38 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       ipureintro; exact ⟨rfl, rfl⟩
     (try simp only [hi])
     (try wp_auto)
-    rw [show (zero_val Obj) = Obj.mk [] [] [] (W64 0) from rfl]
+    rw [show (zero_val Obj) = zObj from rfl]
     wp_apply wp_preOk
-    cases hp : preOkL x (Obj.mk [] [] [] (W64 0))
+    cases hp : preOkL x zObj
     · (try wp_auto)
       wp_apply wp_invalidObj
       iapply HΦ
-      have : mupdateL x g = (g, invalidObjL x.Key') := by
-        simp only [mupdateL, hn, hi, hp, zObj, Bool.not_false, Bool.not_true, Bool.true_and, Bool.false_eq_true, ↓reduceIte, eq_self_iff_true,
-          if_true, _root_.false_and, Bool.and_true, Bool.and_false, Bool.true_eq_false]
+      have : mupdateL x g = (g, invalidObjL x.Key') := by simp [mupdateL, hn, hi, hp]
       rw [this]
       iframe Hk
       ipureintro; exact ⟨Hr, rfl⟩
     (try wp_auto)
-    wp_apply wp_updated x cur_ptr (DFrac.own 1) [] [] [] (W64 0) $$ [$cur] as %q %err ⟨Hcur, Herr⟩
-    cases hr : rejects x.Reject' []
+    wp_apply wp_updated x cur_ptr (DFrac.own 1) zObj $$ [$cur] as %q %err ⟨Hcur, Herr⟩
+    have hz : zObj.Node' = [] := rfl
+    cases hr : rejects x.HasReject' x.Reject' []
     · isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Herr
       icases Herr with ⟨%Herr, Hq⟩
       obtain ⟨rfl, Hqn⟩ := Herr
       (try wp_auto)
-      have hm : mupdateL x g = (⟨setItemL g.items ⟨x.Key', Obj.mk
-          (if x.NoOp' = true then [] else x.Key')
-          [] (if x.NoOp' = true then [] else x.Val') (g.rv + W64 1), true⟩,
-          g.rv + W64 1⟩, objOutL (Obj.mk
-          (if x.NoOp' = true then [] else x.Key')
-          [] (if x.NoOp' = true then [] else x.Val') (g.rv + W64 1))) := by
-        simp only [mupdateL, updatedL_eq, hn, hi, zObj, hp, hr, Bool.not_false, Bool.not_true, Bool.true_and, Bool.false_eq_true, ↓reduceIte, eq_self_iff_true,
-          if_true, _root_.false_and, Bool.and_true, Bool.and_false, Bool.true_eq_false]
+      have hm : mupdateL x g = (⟨setItemL g.items ⟨x.Key', { updGo x zObj with
+          ResourceVersion' := g.rv + W64 1 }, true⟩, g.rv + W64 1⟩,
+          objOutL { updGo x zObj with ResourceVersion' := g.rv + W64 1 }) := by
+        simp [mupdateL, hn, hi, hp, hz, hr]
       set_tail
     · isimp only [hr, ↓reduceIte, if_true] at Herr
-      icases Hi with ⟨-, -, -, -, -, #EV⟩
+      icases Hi with ⟨-, -, -, -, #EV⟩
       ihave %Hne := errVar_ne_nil _ err $$ [$EV $Herr]
       cases err with
       | nil => exact absurd rfl Hne
       | ok ei =>
         (try wp_auto)
         iapply HΦ
-        have : mupdateL x g = (g, rejectedL) := by
-          simp only [mupdateL, hn, hi, zObj, hp, hr, Bool.not_false, Bool.not_true, Bool.true_and, Bool.false_eq_true, ↓reduceIte, eq_self_iff_true,
-          if_true, _root_.false_and, Bool.and_true, Bool.and_false, Bool.true_eq_false]
+        have : mupdateL x g = (g, rejectedL) := by simp [mupdateL, hn, hi, hp, hz, hr]
         rw [this]
         iframe Hk
         ipureintro; exact ⟨Hr, rfl⟩
@@ -138,32 +124,22 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       iframe Hk
       ipureintro; exact ⟨Hr, rfl⟩
     (try wp_auto)
-    wp_apply wp_updated x cur_ptr (DFrac.own 1) it.obj'.Name' it.obj'.UID' it.obj'.Value'
-      it.obj'.ResourceVersion' $$ [$cur] as %q %err ⟨Hcur, Herr⟩
-    cases hr : rejects x.Reject' it.obj'.Value'
+    wp_apply wp_updated x cur_ptr (DFrac.own 1) it.obj' $$ [$cur] as %q %err ⟨Hcur, Herr⟩
+    cases hr : rejects x.HasReject' x.Reject' it.obj'.Node'
     · isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Herr
       icases Herr with ⟨%Herr, Hq⟩
       obtain ⟨rfl, Hqn⟩ := Herr
       (try wp_auto)
       wp_apply wp_sameObj
-      have hmodel : ¬ (sameObjL (Obj.mk
-          (if x.NoOp' = true then it.obj'.Name' else if it.obj'.Name' = [] then x.Key' else it.obj'.Name')
-          it.obj'.UID' (if x.NoOp' = true then it.obj'.Value' else x.Val') it.obj'.ResourceVersion')
-          it.obj' = true ∧ it.canon' = true) →
-          mupdateL x g = (⟨setItemL g.items ⟨x.Key', Obj.mk
-            (if x.NoOp' = true then it.obj'.Name' else if it.obj'.Name' = [] then x.Key' else it.obj'.Name')
-            it.obj'.UID' (if x.NoOp' = true then it.obj'.Value' else x.Val') (g.rv + W64 1), true⟩,
-            g.rv + W64 1⟩, objOutL (Obj.mk
-            (if x.NoOp' = true then it.obj'.Name' else if it.obj'.Name' = [] then x.Key' else it.obj'.Name')
-            it.obj'.UID' (if x.NoOp' = true then it.obj'.Value' else x.Val') (g.rv + W64 1))) := by
+      have hmodel : ¬ (sameObjL (updGo x it.obj') it.obj' = true ∧ it.canon' = true) →
+          mupdateL x g = (⟨setItemL g.items ⟨x.Key', { updGo x it.obj' with
+            ResourceVersion' := g.rv + W64 1 }, true⟩, g.rv + W64 1⟩,
+            objOutL { updGo x it.obj' with ResourceVersion' := g.rv + W64 1 }) := by
         intro hne
-        simp only [mupdateL, updatedL_eq, hn, ← hit, ↓reduceIte, _root_.true_and, Bool.not_true,
-          Bool.false_and, Bool.false_eq_true, hp, hr]
+        simp only [mupdateL, hn, ← hit, ↓reduceIte, _root_.true_and, Bool.not_true,
+          Bool.false_and, Bool.false_eq_true, hp, hr, updatedL]
         rw [if_neg hne]
-      cases hs : sameObjL (Obj.mk
-          (if x.NoOp' = true then it.obj'.Name' else if it.obj'.Name' = [] then x.Key' else it.obj'.Name')
-          it.obj'.UID' (if x.NoOp' = true then it.obj'.Value' else x.Val') it.obj'.ResourceVersion')
-          it.obj'
+      cases hs : sameObjL (updGo x it.obj') it.obj'
       · (try wp_auto)
         have hm := hmodel (by simp [hs])
         set_tail
@@ -178,13 +154,13 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
           wp_apply wp_objOut
           iapply HΦ
           have : mupdateL x g = (g, objOutL it.obj') := by
-            simp only [mupdateL, updatedL_eq, hn, ← hit, hr, hp]
+            simp only [mupdateL, hn, ← hit, hr, hp, updatedL]
             simp [hs, hc, hp, hr]
           rw [this]
           iframe Hk
           ipureintro; exact ⟨Hr, rfl⟩
     · isimp only [hr, ↓reduceIte, if_true] at Herr
-      icases Hi with ⟨-, -, -, -, -, #EV⟩
+      icases Hi with ⟨-, -, -, -, #EV⟩
       ihave %Hne := errVar_ne_nil _ err $$ [$EV $Herr]
       cases err with
       | nil => exact absurd rfl Hne

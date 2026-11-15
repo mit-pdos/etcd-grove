@@ -45,7 +45,8 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
   intro s failure reason
   wp_start as #Hs
   iunfold peerStatusOk at Hs
-  icases Hs with ⟨%lg, %lid, %id, #Hlg, %Hlgnn, #Hlid, #Hid, #Hmu⟩
+  icases Hs with ⟨%lg, %lid, %id, #Hlg, #Hlgz, #Hlid, #Hid, #Hmu⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vAP, #HAP, %HAPl⟩, ⟨%vDP, #HDP, %HDPl⟩, -⟩
@@ -102,7 +103,7 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply hDebug lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Ha Ht]
       · inext
@@ -123,7 +124,7 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hWarn lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     (try wp_auto)
     wp_apply hIDStringPtr _ DFrac.discard lid $$ [$Hlid] as %ls ⟨-, %Hls⟩
     wp_apply hIDStringPtr _ DFrac.discard id $$ [$Hid] as %ids' ⟨-, %Hids'⟩

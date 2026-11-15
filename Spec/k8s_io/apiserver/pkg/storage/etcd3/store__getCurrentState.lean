@@ -40,7 +40,7 @@ abbrev store.getCurrentState.spec : Prop :=
     (v : _root_.Perennial.reflect.Value) (p : Loc) (ign : Bool)
     (R : w64 → w64 → KVState → IProp GF),
   c.pfx <+: key → key.length ≤ opKeyMax →
-  (∀ R0 m σ, R R0 m σ ⊢ ⌜kvWf c σ⌝) →
+  (∀ R0 m σ, R R0 m σ ⊢ ⌜kvWf c σ⌝) → utf8Valid verb →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ }}
     (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType

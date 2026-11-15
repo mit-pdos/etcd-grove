@@ -150,6 +150,9 @@ abbrev newRaft.spec : Prop :=
   cv.ReadOnlyOption' = W64 0 →
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  -- (out_size C3) in a sized node, `MaxSizePerMsg` at most `entsCutMax` (the starters' premise):
+  -- a `MsgApp`'s entries are cut at it
+  (sn.sz = true → uint.nat cv.MaxSizePerMsg' ≤ entsCutMax) →
   LogIndicesOk σ.prev σ.ents → σ.pend = [] →
   uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →

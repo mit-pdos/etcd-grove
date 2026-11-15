@@ -77,7 +77,8 @@ theorem stream.receive.wp_proof
   ihave #HhF : rF go!"h" T.ep.x ↦□ T.ep.h $$ []
   · iunfold runnerH at HrH; iexact HrH
   iunfold wrespIs at Hresp
-  icases Hresp with ⟨%Hfl, %ps, #Hps, %Hpsl, #Hevs⟩
+  icases Hresp with ⟨%Hfl, %ps, #Hps, %Hpsl, Hevs⟩
+  icases (evOwns_split _ 1).1 $$ Hevs with ⟨#Hevs, -⟩
   iunfold smuBody at HB
   icases HB with ⟨Hwm, Hord, Hevl, Hreg, Hrcv0, #Hlb, %Hknown, Hwats⟩
   ihave %Hrs := ghostVar_agree T.σs.rcv _ _ _ _ $$ Hrcv0 Hhalf
@@ -524,8 +525,8 @@ theorem stream.receive.wp_proof
         have hz : (ps.zip r.evs)[sint.nat j]? = some (pk, evk) := by
           rw [List.getElem?_zip_eq_some]; exact ⟨hpk, hevk⟩
         ihave #Hevk := BigSepL.bigSepL_lookup hz $$ Hevs
-        iunfold evIs at Hevk
-        icases Hevk with ⟨%pp, %qq, %st', %uf, %sc, %Hnn, #Hept, #Hkvf, -⟩
+        iunfold evRd at Hevk
+        icases Hevk with ⟨%pp, %st', %uf, %sc, %Hnn, #HstE, #HtyE, #Hept, #HufE, #HscE, #Hkvf⟩
         iunfold kvPtrFixed at Hkvf
         icases Hkvf with ⟨%kks, %vs, %st2, %uf2, %sc2, #Hks, #Hvs, #Hkp⟩
         obtain ⟨⟨r1, ch1⟩, hEp, hevp⟩ := recv_ev_get hE hevk
@@ -536,7 +537,6 @@ theorem stream.receive.wp_proof
         have hr1Z : sint.Z (W64 (r1 : Int)) = r1 := by word
         have hle := hevle evk (List.mem_of_getElem? hevk)
         simp only at Hnn
-        iStructNamedSuffix Hept "E"
         iStructNamedSuffix Hkp "K"
         (try wp_auto)
         wp_apply wp_check

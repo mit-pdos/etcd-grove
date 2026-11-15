@@ -206,7 +206,7 @@ theorem store.conditionalDelete.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
   ihave #Psg : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage $$ []
@@ -224,7 +224,7 @@ theorem store.conditionalDelete.wp_proof
     ipureintro; exact h.1
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci cd go!"deleteGet" key v p false
-      (rdQ γc γp c key (stepHand c (delStep key (c.S.preOk pr) validate))) hk hkl hR) $$ [] as %f #Hf
+      (rdQ γc γp c key (stepHand c (delStep key (c.S.preOk pr) validate))) hk hkl hR (by decide)) $$ [] as %f #Hf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)

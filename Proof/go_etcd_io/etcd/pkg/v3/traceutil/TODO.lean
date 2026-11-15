@@ -45,7 +45,9 @@ theorem traceutil.TODO.wp_proof : traceutil.TODO.spec (GF := GF) (hG := hG) := b
   isplitl []
   · iapply BigSepL.bigSepL_nil.2
     iempintro
-  ipureintro; rfl
+  isplitr
+  · ipureintro; rfl
+  iapply zapLoggerOrNil_null
 
 end proof
 

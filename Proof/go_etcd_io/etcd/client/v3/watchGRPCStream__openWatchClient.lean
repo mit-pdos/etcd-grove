@@ -38,7 +38,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
     (wp_backoff : watchGRPCStream.backoffIfUnavailable.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.openWatchClient.spec (GF := GF) (hG := hG) := by
   intro V wgs ci cd callSl vs
-  wp_start as ⟨#Fctx, #Hctx, #Fremote, #Fcall, #Hvs, #Hcall, #Hfacts⟩
+  wp_start as ⟨#Fctx, #Hctx, #HctxO, #Fremote, #Fcall, #Hvs, #Hcall, #Hfacts⟩
   ihave #Hfacts' : watchSrvFacts V $$ [Hfacts]
   · iexact Hfacts
   iunfold watchSrvFacts at Hfacts'
@@ -47,7 +47,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, -, -, -, #Hcea, #Hvars, -⟩
   iunfold ctxErrClientAllW at Hcea
   ihave #Hce := Hcea $$ %ci %cd Hctx
-  ihave #Hcok := ctxOk_of_isContext ci cd $$ Hctx
+  ihave #Hcok := ctxOk_of_isContext ci cd $$ [$Hctx $HctxO]
   wp_auto
   simp only [_root_.Perennial.time.Millisecond]
   try wp_auto

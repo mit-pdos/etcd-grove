@@ -12,6 +12,7 @@ step, as `BackendHooks.OnPreCommitUnsafe`'s spec states it).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -39,7 +40,7 @@ def isBackendNH (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (h : GoI
     IProp GF :=
   iprop(□ ∃ (t rt tm db lg : Loc),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
-    bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
+    bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
     rtmuOf (baseOf rt) ↦□ tm ∗
     sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
     sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
@@ -64,15 +65,13 @@ theorem isBackend_of_hooks (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Lo
   iintro ⟨#Hnh, #Hhs⟩
   iloeb as IH
   iunfold isBackendNH at Hnh
-  icases Hnh with ⟨%t, %rt, %tm, %db, %lg, #Ht, #Hrt, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #Htm, #Hm,
+  icases Hnh with ⟨%t, %rt, %tm, %db, %lg, #Ht, #Hrt, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #Htm, #Hm,
     #Hrm, #Htmg, #Hcm, #Hci, #Hmi, #Hmu, #Hdb, %HP, #Hdbf, #Hv⟩
   ihave #Hs := Hhs $$ IH %t Ht
   iunfold isBackend
   iintro !>
   iexists t, rt, tm, db, lg, h
   iframe #
-  isplitr
-  · ipureintro; exact Hlgn
   ipureintro; exact HP
 
 end defs

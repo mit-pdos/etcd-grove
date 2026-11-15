@@ -35,6 +35,12 @@ theorem srvApi_wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     StartNode.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact wp_StartNode
 
+/-- (restart S3 item 5, 2026-11-11) raft's `RestartNode`, `bootstrappedRaft.newRaftNode`'s restart
+branch, at the server's storage model. -/
+theorem srvApi_wp_RestartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+    RestartNode.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact wp_RestartNode
+
 /-- (2026-10-30, the repair) raft's `node.Stop` (its whole running token to `nodeStopped`), the
 `Stop` clause of `isRaftNodeIfc` (until then the premise `rnStopOk`). -/
 theorem srvApi_wp_Stop : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
@@ -104,6 +110,15 @@ theorem srvApi_wp_MemEntries : MemoryStorage.Entries.spec (GF := GF) (hG := hG) 
 entries: raft's linked result at the server's any-storage model, as above. -/
 theorem srvApi_wp_MemAppend : MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
   letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Append
+
+/-- (restart S3, D2 (b), 2026-11-11) `NewMemoryStorage` and `MemoryStorage.SetHardState`, which the
+restarted storage's `bootstrappedWAL.MemoryStorage` runs: raft's linked results at the server's
+any-storage model, as above. -/
+theorem srvApi_wp_NewMemoryStorage : NewMemoryStorage.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact wp_NewMemoryStorage
+
+theorem srvApi_wp_MemSetHardState : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_SetHardState
 
 end links
 
