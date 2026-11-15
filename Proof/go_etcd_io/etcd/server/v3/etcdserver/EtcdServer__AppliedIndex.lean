@@ -28,21 +28,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- In either auth mode (E3r). -/
-theorem EtcdServer.AppliedIndex.wp_proofM (on : Bool)
+theorem EtcdServer.AppliedIndex.wp_proof
     (hG' : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG)) :
-    EtcdServer.AppliedIndex.specM (GF := GF) (hG := hG) on := by
-  intro s E γr
+    EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG) := by
+  intro on s E γr
   wp_start as #Hinv
   wp_auto
   wp_apply hG' on s E γr $$ [] as %v #Hv
   · iframe #
   iapply HΦ
   iexact Hv
-
-theorem EtcdServer.AppliedIndex.wp_proof
-    (hG' : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG)) :
-    EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG) :=
-  fun on => EtcdServer.AppliedIndex.wp_proofM on hG'
 
 end proof
 
