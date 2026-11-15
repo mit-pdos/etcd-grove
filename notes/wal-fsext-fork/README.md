@@ -3,7 +3,10 @@
 **Pushed** (the user's request, 2026-11-14) as upamanyus/etcd branch `goose-lean-walfs`, head
 `3df9b265f7e7fd752cd85e7a8191a824f632313d`, on `2eaeb872b` (`lean`'s etcd pin, one `snap` commit past
 `0b50f0426`): `2af9e3ec9` (0001), `313217f52` (0002), `e54378a5f` (0003), `594861caf` (0004), `3df9b265f`
-(0005). `go test ./storage/wal/...` passes but for `TestWALByteMix`, which by design reports the synthetic
+(0005), then `e115818f5` (0006, 2026-11-15: `WAL.Sync` takes `w.mu`, the fix of the reproduced data race
+`issues/etcd-wal-sync-releaselockto-race.md`, with its test; the user's decision: fork changes only for
+demonstrated bugs). Head **`e115818f501dbc5987bf228740b76f26491eca1d`**, pseudo-version
+`v3.0.0-20261115085855-e115818f501d`. `go test ./storage/wal/...` passes but for `TestWALByteMix`, which by design reports the synthetic
 stale-old-byte mixes (808 and 50 wrong, 0 over zeros; `nonissues/etcd-wal-record-type-outside-crc.md`);
 `./fileutil/...` passes. The pin moves to it when `lean` is merged (it pins `2eaeb872b`; `LinuxFs/` is gone
 there: the per-byte file layer is back in the main tree, `003d52e8ff`).
