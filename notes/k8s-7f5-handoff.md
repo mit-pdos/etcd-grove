@@ -48,7 +48,11 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
 - **New `ErrOk.lean`:** `kErrOk_errorString` (over `errors.AsLeaf`). Still to write: `kErrOk` of a client error
   (`clientErr ∗ statusErrOk`: `*status.Error` needs E1 (`grpcStatusRO`, `(*Status).Code`); all non-`*errorString`
   types need `errors.AsLeafTy`, DRAFT trusted text `Spec/errors/AsLeafTy.lean`, NOT approved: take it as a
-  hypothesis) and of a `*StatusError` with a `Failure` status (E5's `NewResourceExpired`, E6).
+  hypothesis) and of a `*StatusError` with a `Failure` status (E5's `NewResourceExpired`, E6): its `Error()` is
+  names-only (no spec, no body: translate `StatusError.Error` with its body in
+  `Code/k8s_io/apimachinery/pkg/api/errors.toml`, as `StatusError.Status` was, then `etc/goose.py`; no trusted text).
+- Targeted build after these changes green: `/shared/tmp/k8s7f5a-p4/build-step5a.log` (7488 jobs, the WatchDefs
+  importers' leaves and `watchChan__sync`).
 - **Specs:** `watchChan__syncPaginated`, `watchChan__sync` (proved over syncPaginated), `watchChan__startWatching`.
 - **Next, in order:** (1) syncPaginated's proof (template: `kubernetes/Client__List.lean`'s `client_range_any`;
   pages via `ListPages.lean`'s `fromL_kp`/`fromL_next`; each kv via `parseKV` + `ipersist` + `kProd_queue` with
