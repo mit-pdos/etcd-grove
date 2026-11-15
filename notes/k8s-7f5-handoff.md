@@ -27,6 +27,36 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, fourteenth 7f-5 agent): error leaves done; step 4 in progress
+
+81's decisions (questions.md, 2026-11-15, fourteenth agent): InfoS stays a callee hypothesis (Go test
+`examples/premisefix/watcherctx/infos_test.go`, passes; axiom at step 7); the error leaves over an internal
+predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
+
+- **Done** (`02e9261728`): `k8s.kErrOk err` (`WatchDefs.lean`, section `errs`: comparable dynamic type,
+  `Error()`/no `Format`, `etcdError.Code`, `grpcError.GRPCStatus().Code`, `errors.As(&corrupt)` false,
+  `APIStatus.Status` a Failure) with `wp_kErrOk_eq` (the comparison where `go_eq_interface` leaves it:
+  `wp_bind (ite _ _ _); iapply wp_kErrOk_eq $$ Heq`); `isCancelError`, `interpretWatchError`,
+  `transformErrorToEvent` (post: the event and the status owned; the caller persists the status for
+  `statusFailureAt`), `logWatchChannelErr` proved, no new text. `StatusError.Status` translated with its
+  body (`errors.toml`; rebuilds most of the tree).
+- **Step 4, written:** `Spec/.../watchChan__queueEvent.lean` (generic in the SPSC protocol and in `cdw`),
+  `watchChan__sendEvent.lean`, `watchChan__sendError.lean` (an abstract send commit `£1∗£1∗£1 -∗ ∀ Φ, ▷ (Q -∗ Φ)
+  -∗ sendAu γch v Φ`, and for sendError `context.cancelSpec cf γc Pc ∗ □ Pc`); proofs: see the commits after.
+- **Finding (design, not a Draft statement): `resultChan`'s two producers cannot use `spsc_send_au`.** It takes
+  the producer token and `P sent.length v` before the send, and every invariant is at `nroot` (`isSpsc` too),
+  so `kResInv` cannot be opened at the commit. Route (no Draft or Perennial change): allocate ONE invariant
+  `inv nroot (spscInv γ.res (kResElem …) R ∗ kResInv …)`, give the consumer `isSpsc` by Iris's `inv_split_l`,
+  and prove a local send lemma (a copy of `spsc_send_au`'s proof, `Spsc.lean:405`, taking the token and the
+  element's `P` from `kResInv` inside the opened invariant). That lemma discharges sendEvent/sendError's
+  abstract commit (`Hsend`). Not written yet.
+- **Next:** the step-4 proofs (pattern: `Reflector__startResync.lean` for `HDone` + `wp_select_blocking`,
+  `watchGRPCStream__unicastResponse.lean` for the send clause and `wp_auto_lc 3`); the combined-invariant send
+  lemma; then step 5. Pitfalls: `cases h : go.typeSetContains …` also rewrites the Iris hypotheses' premises
+  (then `Hcode $$ %trivial`); `wp_method_call` rewrites the first `methods` in the goal, Iris context included
+  (clear hypotheses mentioning other methods first); a `fmt.argOk` hypothesis is not persistent (`ihave H`, and
+  name it in `wp_apply … $$ [$Hsl H]`); `--goal L` needs a column inside the tactic (`L:2`).
+
 ## START HERE (2026-11-15, thirteenth 7f-5 agent): step 3 leaves done but the error leaves; STOPPED on the error design (E1-E6) and InfoS
 
 - **Proved** (Spec + Proof each, lean-checked, targeted `lake build` green, no `sorry`): `watchChan.transform`
