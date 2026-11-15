@@ -93,8 +93,9 @@ theorem Main.wp_proof
   subst Hok
   wp_auto
   iunfold clusterUp at Hup
-  icases Hup with ⟨%γk, %γn, %ss, %bs, %cls, %svs, #Hss, #Hbs, #Hcls, %Hal, #Hregs, Hctl, Hobs,
+  icases Hup with ⟨%γk, %γn, %ss, %bs, %cls, %svs, #Hss, #Hbs, Hcls, %Hal, #Hregs, Hctl, Hobs,
     #Hnc, Hetcd⟩
+  imod ownSlice_persist _ _ _ $$ Hcls with #Hcls
   obtain ⟨Hclen, Hsva, Hlog, Hsv⟩ := Hal
   -- `go cluster3.Partitioner(srvs, brs, sched)`
   wp_apply wp_fork $$ [Hobs Hctl]

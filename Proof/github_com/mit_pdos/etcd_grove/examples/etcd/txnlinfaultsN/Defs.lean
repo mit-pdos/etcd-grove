@@ -114,7 +114,7 @@ the members as the clients reach them (`svs`, each at its bridge's address), the
 def clusterUp (k : Nat) (bootLog : List EntryM) (srvs brs clis : GoSlice) : IProp GF :=
   iprop(∃ (γk : KVNames) (γn : NetNames GF) (ss : List Loc) (bs : List GoInterface)
       (cls : List Loc) (svs : List (EtcdGrove.client.SrvAt GF)),
-    srvs ↦*□ ss ∗ brs ↦*□ bs ∗ clis ↦*□ cls ∗
+    srvs ↦*□ ss ∗ brs ↦*□ bs ∗ clis ↦* cls ∗
     ⌜cls.length = k ∧ svs.map EtcdGrove.client.SrvAt.addr = bridges k ∧ γk.log0 = [[], []] ∧
       ∀ sv ∈ svs, sv.γr.kv.st = γk.st ∧ noRefusalAt sv.addr⌝ ∗
     ([∗list] sv ∈ svs, EtcdGrove.client.kvRegsAt sv) ∗

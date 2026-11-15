@@ -105,12 +105,12 @@ func startCluster(k uint64, lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.
 		baddrs[i] = ba
 	}
 	clis := make([]*clientv3.Client, k)
-	for i := uint64(0); i < k; i++ {
+	for j := uint64(0); j < k; j++ {
 		cli, err := etcdstart.NewClients(baddrs, lg)
 		if err != nil {
 			return nil, nil, nil, false
 		}
-		clis[i] = cli
+		clis[j] = cli
 	}
 	return srvs, brs, clis, true
 }
