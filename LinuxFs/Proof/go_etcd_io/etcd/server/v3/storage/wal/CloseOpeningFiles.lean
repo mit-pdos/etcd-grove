@@ -37,16 +37,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
-/-- The `k`th file of the tie, open on the segment `g`: its `*os.File`, fd and locks. -/
-def walTieFile (dir : GoString) (write : Bool) (fls : List Loc) (k : Nat) (g : SegG) : IProp GF :=
-  iprop(∃ (fd : w64) (lo lk : Option Bool), os.ownFile (fls.getD k null) fd (child dir g.name) (DFrac.own 1) ∗
-    osFd fd (DFrac.own 1) (walSegFd write lo lk g.ino) ∗ fdLocks fd (walSegFd write lo lk g.ino))
-
-/-- The `k`th file, any name and fd state (what a lock's `Close` needs). -/
-def walFileAt (fls : List Loc) (k : Nat) : IProp GF :=
-  iprop(∃ (fd : w64) (nm : GoString) (d : OsFd), os.ownFile (fls.getD k null) fd nm (DFrac.own 1) ∗
-    osFd fd (DFrac.own 1) d ∗ fdLocks fd d)
-
 theorem walTieFile_at (dir : GoString) (write : Bool) (fls : List Loc) (k : Nat) (g : SegG) :
     walTieFile (GF := GF) dir write fls k g ⊢ walFileAt fls k := by
   unfold walTieFile walFileAt
@@ -83,6 +73,7 @@ theorem walTie_files (dir : GoString) (write : Bool) :
     rw [hS]
     unfold walFileS
     icases Hs with ⟨-, Hf, Hfd, Hlks, -, Hm, Hb⟩
+    ihave Hlks := fdLocksW_locks _ _ $$ Hlks
     icases ih $$ H with ⟨Hsg, Hfs⟩
     isplitl [Hm Hb Hsg]
     · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2

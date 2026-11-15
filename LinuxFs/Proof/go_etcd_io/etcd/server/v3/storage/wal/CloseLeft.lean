@@ -13,7 +13,6 @@ held. Exactly what `wal.Repair.specHeld` takes but the client's half of the call
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenLastDefs
 
@@ -33,19 +32,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The layout facts `wal.Repair.specHeld` takes of the directory's names `hj`, the names `X` the claim leaves
-out, the named segments `segs` and the last `gL`. -/
-def CloseLeftOk (dir : GoString) (X : List GoString) (hj : NamesH) (segs : List SegG) (gL : SegG) : Prop :=
-  (∀ b ∈ X, walNameP b = false) ∧ SegsNamed segs hj.cur ∧ walInos hj.cur = segs.map (·.ino) ∧
-    (segs.map (·.ino)).Nodup ∧ (segs.map (·.name)).Pairwise (fun a b => go.GoStringLt a b) ∧
-    (∀ g ∈ segs, ∃ sq ix : Nat, g.name = walFileName sq ix) ∧ segs.getLast? = some gL ∧
-    dir.length < 2 ^ 59
-
 /-- **What a failed `Close` of a failed read leaves** (see the file header). -/
-def walCloseLeft (R : Roots) (dir : GoString) : IProp GF :=
-  iprop(∃ (j : Ino) (X : List GoString) (hj : NamesH) (segs : List SegG) (gL : SegG) (qd : Qp)
+def walCloseLeft (dir : GoString) : IProp GF :=
+  iprop(∃ (R : Roots) (j : Ino) (X : List GoString) (hj : NamesH) (segs : List SegG) (gL : SegG) (qd : Qp)
       (k : LockKind) (fd : w64),
-    ⌜CloseLeftOk dir X hj segs gL⌝ ∗ osSharedInv R ∗ osPathS R dir (DFrac.own qd) j ∗
+    ⌜CloseLeftOk X hj segs gL⌝ ∗ osSharedInv R ∗ osPathS R dir (DFrac.own qd) j ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osLock k gL.ino fd ∗ fileutil.lockKind k ∗ osCallPerm (1 : Qp).half)
 

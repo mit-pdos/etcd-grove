@@ -48,12 +48,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specFailed (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-      WalFs.walAreaOk walCodec Mr R jr r ∗ walReadFailedF w dir }}
+      WalFs.walAreaOk walCodec Mr R jr r ∗ walReadFailedF Mr w dir }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
       (WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft R dir) }}
+        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir) }}
 
 end spec
 

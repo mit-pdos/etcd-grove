@@ -30,19 +30,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- **`Repair` after `Close.specFailed`'s error** (see the file header): with what the failed `Close`
-left (`walCloseLeft R dir`) and the client's half of the call permission, `Repair(lg, dir)` returns
-`false`, and both are kept. -/
+left (`walCloseLeft dir`) and the client's half of the call permission, `Repair(lg, dir)` returns
+`false`, and both are kept (`dir` shorter than `2^59`, `Open`'s premise, which the caller knows). -/
 theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) (hG := hG))
-    (lg : Loc) (R : Roots) (dir : GoString) (Φ : val → IProp GF) :
+    (lg : Loc) (dir : GoString) (hdir : dir.length < 2 ^ 59) (Φ : val → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗ zapLoggerOk lg -∗
-      osInv (GF := GF) -∗ walCloseLeft (GF := GF) R dir -∗ osCallPerm (GF := GF) (1 : Qp).half -∗
-      (∀ b : Bool, ⌜b = false⌝ -∗ walCloseLeft (GF := GF) R dir -∗ osCallPerm (GF := GF) (1 : Qp).half -∗
+      osInv (GF := GF) -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (1 : Qp).half -∗
+      (∀ b : Bool, ⌜b = false⌝ -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (1 : Qp).half -∗
         Φ #b) -∗
       WP (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir)) {{ Φ }} := by
   iintro #Hpi #Hzap #Hos Hleft Hp HΦ
   unfold walCloseLeft
-  icases Hleft with ⟨%j, %X, %hj, %segs, %gL, %qd, %k, %fd, %hok, #Hsh, Hpath, Hnm, Hlk, #Hk, Hp2⟩
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hok
+  icases Hleft with ⟨%R, %j, %X, %hj, %segs, %gL, %qd, %k, %fd, %hok, #Hsh, Hpath, Hnm, Hlk, #Hk, Hp2⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hok
+  have h8 := hdir
   have hs := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hs
   ihave Hperm := hs.2 $$ [Hp Hp2]
@@ -54,9 +55,9 @@ theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) 
   iintro %b ⟨%hb, Hpath, Hperm, Hnm, Hlk⟩
   ihave ⟨Hp1, Hp2⟩ := hs.1 $$ Hperm
   iapply HΦ $$ %b %hb [Hpath Hnm Hlk Hp1] Hp2
-  iexists j, X, hj, segs, gL, qd, k, fd
+  iexists R, j, X, hj, segs, gL, qd, k, fd
   iframe; iframe #
-  ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+  ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
 
 end proof
 

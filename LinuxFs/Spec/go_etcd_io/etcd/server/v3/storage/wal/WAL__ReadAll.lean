@@ -63,7 +63,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (
   {{ (mdp : GoSlice) (hp : Loc) (sl : GoSlice) (err : GoInterface),
       RET (PairV (PairV (PairV #mdp #hp) #sl) #err);
       osPathS R r (DFrac.own qp) jr ∗ osCallPerm qc ∗ ∃ d : WalDur, Q d ∗
-      ((⌜err ≠ GoInterface.nil⌝ ∗ walReadFailedF w dir) ∨
+      ((⌜err ≠ GoInterface.nil⌝ ∗ walReadFailedF Mr w dir) ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ (σ : StorContents) (esL : List Loc),
         ⌜walReadAllOk (d.H.map WalOpG.toM) d.cut s σ⌝ ∗ P.hsIn hp σ.hs ∗ sl ↦*□ esL ∗
         walEntsIn P esL σ.ents ∗ mdp ↦*□ d.metadata ∗ walOpenWF P Mr w dir ∗
