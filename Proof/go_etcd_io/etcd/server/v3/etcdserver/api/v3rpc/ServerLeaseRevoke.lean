@@ -1,8 +1,8 @@
 /-
 **The server's `LeaseRevoke` meets the handler's contract, mode-gated** (the lease-expiry plan's X6,
 2026-11-04, `notes/lease-expiry-plan.md`): `lessorRevokeOk s E S` (`InvLease.lean`) from the server's
-`EtcdServer.LeaseRevoke.spec`, in a cluster that revokes leases (`srvRevokesLeases`: the revocable
-lease mode, auth off), at a run's resource `S` lending the request path's readers; `ServerLeaseGrant`'s
+`EtcdServer.LeaseRevoke.spec` at auth off (`isServerReq`), in a cluster that revokes leases (`srvRevokesLeases`: the revocable
+lease mode), at a run's resource `S` lending the request path's readers; `ServerLeaseGrant`'s
 `lessorGrantOkLive_of_server` mirrored. Lean-first (no Rocq counterpart).
 -/
 module
@@ -54,16 +54,24 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
-  wp_apply (hLR s E ρ ci cd r id h) $$ [Hlt HRD] as %resp %err ⟨Hlt, HRD, Hans⟩
+  -- auth off (the server's view `isServerReq`): the off permit, the off result
+  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
+  have hLR' := hLR s E ρ ci cd r id (fun _ => iprop(True))
+  rw [hoff, isServerReqM_false] at hLR'
+  wp_apply hLR' $$ [Hlt HRD] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
-    iunfold leaseRevokeReqRO
-    iunfold leaseRevokeReqIs at Hreq
-    iexact Hreq
+    isplitr
+    · ipureintro; exact h
+    isplitr
+    · iunfold leaseRevokeReqRO
+      iunfold leaseRevokeReqIs at Hreq
+      iexact Hreq
+    iapply leaseRevokePermitM_false
   ihave HSr := Hback $$ [Hlt HRD]
   · iframe Hlt HRD
   iapply HΦ
   iframe HSr
-  icases Hans with (⟨%He, Hresp⟩ | ⟨%He, #HaE⟩)
+  icases Hans with (⟨%He, Hresp, -, -⟩ | ⟨%He, #HaE⟩)
   · obtain ⟨rfl, hnn⟩ := He
     iunfold leaseRevokedResp at Hresp
     icases Hresp with ⟨%hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown⟩
