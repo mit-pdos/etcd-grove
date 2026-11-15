@@ -99,6 +99,21 @@ theorem iuOf_mem (ms : List GMember) (hnd : (ms.map (·.Name')).Nodup) (m : GMem
       simp only [hne, decide_false]
       exact ih hnd.2 hm'
 
+/-- A member's name is not among those of the members before it (the names distinct). -/
+theorem name_not_mem_take (ms : List GMember) (hnd : (ms.map (·.Name')).Nodup) (j : Nat)
+    (m : GMember) (h : ms[j]? = some m) : m.Name' ∉ (ms.take j).map (·.Name') := by
+  rw [← List.take_append_drop j ms, List.map_append, List.nodup_append] at hnd
+  obtain ⟨-, -, hdisj⟩ := hnd
+  intro hm
+  have hd : m ∈ ms.drop j := List.mem_of_getElem? (i := 0) (by rw [List.getElem?_drop]; simpa using h)
+  exact hdisj _ hm _ (List.mem_map_of_mem hd) rfl
+
+/-- The names of the members up to one more. -/
+theorem take_succ_names (ms : List GMember) (j : Nat) (m : GMember) (h : ms[j]? = some m) (n : GoString) :
+    n ∈ (ms.take (j + 1)).map (·.Name') ↔ n ∈ (ms.take j).map (·.Name') ∨ n = m.Name' := by
+  rw [List.take_succ, h]
+  simp [or_comm, eq_comm]
+
 /-! ## Decimal digits -/
 
 theorem digitChar_digit (d : Nat) (hd : d < 10) :

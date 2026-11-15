@@ -42,12 +42,12 @@ func StartMembers(ms []Member, token string, lg *zap.Logger) ([]*etcdserver.Etcd
 		cluster[m.Name] = types.URLs{{Scheme: "http", Host: m.Peer}}
 	}
 	srvs := make([]*etcdserver.EtcdServer, len(ms))
-	for i, m := range ms {
+	for j, m := range ms {
 		s, err := StartMember(m.Name, cluster[m.Name], m.Peer, m.Client, cluster, token, lg)
 		if err != nil {
 			return nil, err
 		}
-		srvs[i] = s
+		srvs[j] = s
 	}
 	return srvs, nil
 }
