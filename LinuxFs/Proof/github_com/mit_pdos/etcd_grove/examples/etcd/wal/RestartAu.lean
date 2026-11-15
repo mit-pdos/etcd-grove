@@ -214,6 +214,10 @@ instance walSnapsAt_persistent' (ps : List Loc) (l : List (w64 × w64)) :
     Persistent (walSnapsAt (GF := GF) ps l) := by
   unfold walSnapsAt; infer_instance
 
+instance walEntsIn_persistent' (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) :
+    Persistent (walEntsIn P esL es) := by
+  unfold walEntsIn; infer_instance
+
 /-- **`&walpb.Snapshot{Index: p, Term: q}` frozen** (`restartRead`'s `Open` argument): its getters read
 the cells' values. As `CreateSnap.walSnapAt_lit`, with any values. -/
 theorem walSnapIdTerm_lit (l pi pt : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)

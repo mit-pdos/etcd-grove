@@ -263,7 +263,211 @@ theorem restartRead.wp_proof
     iapply tInv_openAu W e γ (tWithOpens o (l ++ [pr.1])) cd dc pr hcr hcd hok2
     iframe; iframe #
   subst hod
-  sorry
+  have hll3 : (l ++ [pr.1]).length ≤ 2 := by simp only [List.length_append, List.length_singleton]; omega
+  icases Hr with (⟨%herr, Htok, Hperm⟩ | ⟨%herr, -, Hopening, Hph⟩)
+  · cases err2 with
+    | nil => exact absurd rfl herr
+    | ok ie =>
+      wp_auto
+      simp only [readFail]
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      iframe
+      isplitr
+      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
+      itrivial
+  cases err2 with
+  | ok ie => cases herr
+  | nil =>
+  wp_auto
+  -- `ReadAll`
+  have hnp1 : some pr = walNewestPair (walValidSnaps ((walOpenRaise pr dc).H.map WalOpG.toM)
+      (walOpenRaise pr dc).cut) := by
+    simp only [walOpenRaise, hdH, hdcut]; exact hnp.symm
+  wp_apply (wp_readAll W e.R e.jr e.area (tWalDir e.area) go!"wal" w pr qp (1 : Qp).half
+      (fun dd => iprop(⌜dd = walOpenRaise pr dc⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc)))) hia hca)
+      $$ [Hpath Hph Hopening Hwo]
+    as %mdp %hp %esl %err3 ⟨Hpath, Hph, %dd, ⟨%hdd, Hwo⟩, Hr3⟩
+  · iframe; iframe #
+    iapply tInv_readAu W e γ (walOpenRaise pr dc)
+      (fun dd => some pr = walNewestPair (walValidSnaps (dd.H.map WalOpG.toM) dd.cut)) hnp1
+    iframe; iframe #
+  subst hdd
+  icases Hr3 with (⟨%herr3, Hfail⟩ | ⟨%herr3, %σ, %esL, %hra, #Hhs, #Hesl, #Hents, -, Hwf, #Hnm2, #Hsl2,
+    #Hlen2, Hpw⟩)
+  · -- the read failed: `Close`, then `Repair` once
+    cases err3 with
+    | nil => exact absurd rfl herr3
+    | ok ie3 =>
+    wp_auto
+    wp_apply (wp_closeF W e.R e.jr e.area w (tWalDir e.area)) $$ [Hfail] as %errc Hc
+    · iframe; iframe #
+    cases errc with
+    | ok iec =>
+      wp_auto
+      simp only [readFail]
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      iframe
+      isplitr
+      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
+      itrivial
+    | nil =>
+    icases Hc with (⟨Htok, Hph2⟩ | %hc)
+    rotate_left
+    · exact absurd rfl hc
+    wp_auto
+    cases rep
+    rotate_left
+    · -- already repaired: the read fails
+      wp_auto
+      simp only [readFail]
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      iframe
+      isplitr
+      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
+      itrivial
+    wp_auto
+    ihave Hperm := osCallPerm_halfJoin 1 $$ Hph Hph2
+    wp_apply (wp_repair W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
+        (fun od => iprop(⌜od = some (walOpenRaise pr dc)⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc))))
+        hia hnm hca hdl) $$ [Hpath Hres Hperm Htok Hwo]
+      as %b ⟨Hpath, Hres, Hperm, Htok, %od, ⟨%hod, Hwo⟩⟩
+    · iframe; iframe #
+      iapply tInv_dirAu W e γ (walOpenRaise pr dc)
+      iframe; iframe #
+    cases b
+    · -- `Repair` failed: the read fails
+      wp_auto
+      simp only [readFail]
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      iframe
+      isplitr
+      · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+      rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
+      itrivial
+    icases Htok with (Htok | %hb)
+    rotate_left
+    · cases hb
+    wp_auto
+    wp_for_post
+    iframe
+    iexists true, l ++ [pr.1], walOpenRaise pr dc, _
+    simp only [named]
+    iframe
+    ipureintro
+    refine ⟨?_, hdH, hdcut, hok2⟩
+    simp only [List.length_append, List.length_singleton, ↓reduceIte]
+    simp only [Bool.false_eq_true, ↓reduceIte] at hll
+    omega
+  -- the read succeeded
+  cases err3 with
+  | ok ie3 => cases herr3
+  | nil =>
+  wp_auto
+  ihave #Hhg := walHsIn_hsGet $$ Hhs
+  dsimp only
+  try wp_auto
+  wp_apply (wp_hsGetTerm hp σ.hs) $$ [Hhg]
+  · iexact Hhg
+  try wp_auto
+  wp_apply (wp_hsGetVote hp σ.hs) $$ [Hhg]
+  · iexact Hhg
+  try wp_auto
+  wp_apply (wp_hsGetCommit hp σ.hs) $$ [Hhg]
+  · iexact Hhg
+  try wp_auto
+  -- the entries, read back
+  wp_apply (wp_slice_make2 (V := entry) (W64 0)) as %rs0 ⟨Hrs, Hrcap⟩
+  · ipureintro; decide
+  try wp_auto
+  ihave %hlesl := ownSlice_len $$ Hesl
+  iunfold walEntsIn at Hents
+  ihave %hlents := BigSepL2.bigSepL2_length (PROP := IProp GF) $$ Hents
+  ihave HI3 : (∃ (j : w64) (rs : GoSlice),
+      "i" ∷ i_ptr ↦ j ∗
+      "c" ∷ c_ptr ↦ (contents.mk ⟨σ.hs.Term', σ.hs.Vote', σ.hs.Commit'⟩ pr.1 pr.2 rs) ∗
+      "Hrs" ∷ rs ↦* ((σ.ents.take (sint.nat j)).map tFromRaft) ∗
+      "Hrcap" ∷ ownSliceCap entry rs (DFrac.own 1) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z esl.len⌝ : IProp GF) $$ [i c Hrs Hrcap]
+  · iexists W64 0, rs0
+    simp only [named, show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.map_nil,
+      List.replicate_zero]
+    iframe
+    ipureintro; constructor <;> word
+  wp_for HI3
+  obtain ⟨hj0, hjl⟩ := Hj
+  wp_if_destruct
+  · have hjlt : sint.nat j < esL.length := by rw [hlesl.1]; word
+    obtain ⟨re, hre⟩ : ∃ re, esL[sint.nat j]? = some re := ⟨_, List.getElem?_eq_getElem hjlt⟩
+    obtain ⟨me, hme⟩ : ∃ me, σ.ents[sint.nat j]? = some me :=
+      ⟨_, List.getElem?_eq_getElem (hlents ▸ hjlt)⟩
+    ihave #Hre := BigSepL2.bigSepL2_lookup (PROP := IProp GF) hre hme $$ Hents
+    have hkb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z esl.len := ⟨hj0, Hif⟩
+    try rw [ite_eq_left_of_eq_true _ _ (eq_true hkb)]
+    wp_apply wp_load_slice_index esl (sint.Z j) esL DFrac.discard re hj0 $$ [Hesl] as -
+    · iframe #; ipureintro; exact hre
+    wp_apply (wp_fromRaft re me) $$ [Hre]
+    · iframe #
+    try wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %osl ⟨Hosl, -⟩
+    try wp_auto
+    wp_apply (wp_slice_append (V := entry) rs _ _ _ (DFrac.own 1)) $$ [Hrs Hrcap Hosl]
+      as %rs' ⟨Hrs, Hrcap, -⟩
+    · iframe
+    try wp_auto
+    wp_for_post
+    iframe
+    iexists j + W64 1, rs'
+    simp only [named]
+    have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+    rw [hj1, List.take_add_one, hme]
+    simp only [Option.toList, List.map_append, List.map_cons, List.map_nil]
+    iframe
+    ipureintro; constructor <;> word
+  -- the read's result
+  have hjn : sint.nat j = σ.ents.length := by rw [← hlents, hlesl.1]; word
+  rw [hjn, List.take_length]
+  ipersist Hrs
+  try wp_auto
+  simp only [readOK]
+  try wp_auto
+  wp_for_post
+  iapply HΦ
+  have hH1 : (walOpenRaise pr dc).H = d.H := hdH
+  have hra' : WalEnc.walReadAllOk (d.H.map WalOpG.toM) (walOpenRaise pr dc).cut pr σ := by
+    rw [← hH1]; exact hra
+  have hrb' : WalEnc.walReadsBack ((walOpenRaise pr dc).H.map WalOpG.toM) := by
+    rw [hH1]; exact hrb _ _ _ hra'
+  obtain ⟨img, himg, hI, hR⟩ := tRead_of_readAll (c := ⟨⟨σ.hs.Term', σ.hs.Vote', σ.hs.Commit'⟩, pr.1, pr.2,
+      σ.ents.map tFromRaft⟩) hok2 hra hrb' rfl rfl rfl rfl
+  rw [hH1] at hI
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hll3, hdH, hdcut, hok2⟩
+  simp only [↓reduceIte]
+  rw [hH1] at *
+  iframe
+  iexists ⟨⟨σ.hs.Term', σ.hs.Vote', σ.hs.Commit'⟩, pr.1, pr.2, σ.ents.map tFromRaft⟩
+  iframe #
+  isplitl []
+  · iunfold contentsRep
+    iframe #
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  ipureintro
+  exact ⟨img, himg, hI, hR⟩
 
 end proof
 
