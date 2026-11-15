@@ -587,6 +587,91 @@ theorem watchChan.syncPaginated.wp_proof
     ipureintro
     exact ⟨by decide, by simp, rfl, fun _ _ => rfl⟩
   wp_for HJ
+  wp_if_destruct
+  · obtain ⟨hj0, hjk, hpsl, hpse⟩ := Hj
+    have Hif' : sint.Z j < sint.Z sl2.len := by
+      first | exact Hif | (have h := go.intoVal_inj Hif; simpa using h)
+    have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl2.len := ⟨hj0, Hif'⟩
+    have hjlt : sint.nat j < mm.kvs.length := by
+      rw [← Hlen, Hsll.1]
+      simp only [sint.nat, sint.Z] at hj0 Hif' ⊢
+      omega
+    simp only [hb, _root_.and_self, ↓reduceIte]
+    obtain ⟨v, hv⟩ : ∃ v, mm.kvs[sint.nat j]? = some v := ⟨_, List.getElem?_eq_getElem hjlt⟩
+    obtain ⟨pq, hq⟩ : ∃ q, ps[sint.nat j]? = some q :=
+      ⟨_, List.getElem?_eq_getElem (by rw [Hlen]; exact hjlt)⟩
+    have hq' : ps'[(sint.Z j).toNat]? = some pq := by rw [← hq]; exact hpse _ (Nat.le_refl _)
+    wp_apply wp_load_slice_index sl2 (sint.Z j) ps' _ pq hj0 $$ [$Hsl2] as Hsl2
+    · ipureintro; exact hq'
+    ihave #Hkv := Hall $$ %(sint.nat j) %pq %v %hq %hv
+    iunfold txn.kvIs at Hkv
+    icases Hkv with ⟨%keySl, %valSl, #Hk, #Hksl, #Hcr, #Hmr, #Hver, #Hvf, #Hvsl, #Hlease, %Hnn'⟩
+    (try wp_auto)
+    wp_apply (wp_parseKV pq v σ0) $$ [] as %p ⟨%ev, Hp, #Hev⟩
+    · iframe #
+      iunfold kvValAt
+      iexists keySl, valSl
+      iframe #
+    ipersist Hp
+    ihave #Hea : eventAt σ0 p (KRaw.kv v) $$ []
+    · iunfold eventAt
+      iexists ev
+      iframe Hp Hev
+    have hv' : mm.kvs[sint.nat j]'hjlt = v := by
+      simpa [List.getElem?_eq_getElem hjlt] using hv
+    have hok : kRawStreamOk inS m σ0 σ0.rev
+        (I ++ (mm.kvs.take (sint.nat j)).map KRaw.kv ++ [KRaw.kv v]) := by
+      apply kInit_ok (fun _ => Nat.le_refl _)
+      have := queue_prefix hI hpre (sint.nat j) hjlt
+      rw [hv'] at this
+      exact this.trans (kInitRaws_prefix inS m σ0 σ0.rev hf)
+    ihave ⟨%S, %Qs, Hsc, HQs, Hdrop⟩ := kProd_queue γ cd inS m Q chI p (KRaw.kv v) _ lb0 lb0 σ0.rev
+      σ0 σ0 hst0 hok $$ Hspsc Hea HQ0 HQ0 Hps
+    (try wp_auto)
+    wp_apply (wp_queueEvent wc chI lg ctx (kCdw γ cd) γ.inc.chanName p S Qs) $$ [Hsc] as Hres
+    · iframe #
+      iexact Hsc
+    ihave ⟨Hps, Hpe⟩ : (kProdSt γ cd (I ++ (mm.kvs.take (sint.nat j)).map KRaw.kv ++ [KRaw.kv v]) ∗
+        dghostVar γ.prodEx (DFrac.own q) false : IProp GF) $$ [Hres HQs Hdrop Hpe]
+    · icases Hres with (HQs' | ⟨#Hpd, HS⟩)
+      · iframe Hpe
+        iapply HQs $$ HQs'
+      · ihave H2 := Hdrop $$ %q HS
+        iapply H2
+        · iintro !>
+          unfold kCdw
+          iexact Hpd
+        · iexact Hpe
+    (try wp_auto)
+    have hjps : sint.Z j < (ps'.length : Int) := by
+      rw [hpsl, Hsll.1]; simp only [sint.nat, sint.Z] at hj0 Hif' ⊢; omega
+    simp only [hb, _root_.and_self, ↓reduceIte]
+    wp_apply (wp_store_slice_index sl2 (sint.Z j) ps' (null : Loc)) $$ [$Hsl2] as Hsl2
+    · ipureintro; exact ⟨hj0, hjps⟩
+    (try wp_auto)
+    wp_for_post
+    have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by
+      have := hjlt; have := Hsll.1; simp only [sint.nat, sint.Z] at hjlt hj0 Hif' ⊢; word
+    iframe
+    iexists j + W64 1, j, pq, keySl, ps'.set (sint.Z j).toNat null
+    simp only [named]
+    rw [hj1]
+    iframe
+    isplitl [Hps]
+    · iExactEq Hps
+      rw [List.take_succ, List.getElem?_eq_getElem hjlt, hv', List.map_append, List.append_assoc]
+      rfl
+    isplitr
+    · iright
+      iexists v
+      iframe Hksl
+      ipureintro
+      simpa using hv
+    ipureintro
+    refine ⟨by word, by omega, by simp [hpsl], ?_⟩
+    intro k hk
+    rw [List.getElem?_set_ne (by simp only [sint.nat, sint.Z] at hk hj0 ⊢; omega)]
+    exact hpse k (by omega)
   sorry
 
 end proof
