@@ -112,7 +112,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases Hfl with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmidm, #Hmscb, #Hrnf, #Hrnsi⟩, #Hsc,
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γb, %Hγb, #Hmidm, #Hmscb, #Hrnf, #Hrnsi⟩, #Hsc,
     ⟨%stg, #Hstgf, #Hstgc⟩, -, #Hinf, -, ⟨%tr, %γN, %lid, %SN, %TSN, #Htrf, #Htr, %HγN⟩, %Hkv0⟩
   ihave #HstgS := Hstgc
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -400,11 +400,11 @@ theorem EtcdServer.applyAll.wp_proofBatch
         iunfold rnSnapMsg at HP
         icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -, #Huf⟩
         obtain ⟨Hty, Hsbt⟩ := Htyb
-        rw [Hγm]
+        rw [Hγb]
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
         obtain ⟨sn, hsn, -⟩ := Hsh.2 Hty
-        ihave %Hsnp := srv_sentSnap_pos γr γm.id sm sn Hty hsn $$ [Hrli' Hsm]
+        ihave %Hsnp := srv_sentSnap_pos γr γb.id sm sn Hty hsn $$ [Hrli' Hsm]
         · iframe Hrli' Hsm
         -- two Go steps' time receipts (`m`'s zero value, `GetTerm`'s method value), for the merge
         -- window's write tokens
@@ -456,32 +456,33 @@ theorem EtcdServer.applyAll.wp_proofBatch
             iunfold isServerCI at Hsci2
             icases Hsci2 with ⟨#Hcif, #Hci, #Hinv⟩
             (try wp_auto)
-            wp_apply (wp_ci_get hCI γ ci b st'' Hst''.1.1) $$ [Hst Hbe] as ⟨Hst, Hbe⟩
+            wp_apply_core (wp_ci_get hCI γ ci b st'' Hst''.1.1) $$ [Hst Hbe] [-]
             · iframe Hcipkg Hci Hinv Hst Hbe
+            iintro ⟨Hst, Hbe⟩
             have hLd := stLoaded_ciEff γ st''
             have hLp := stLoaded_pending γ st''
             have Hst4 : loopOk γ (stLoaded γ st'') ai' ∧ ciEff γ (stLoaded γ st'').k = ciEff γ st'.k :=
-              ⟨⟨by rw [hLp]; exact Hst''.1.1, by rw [hLd]; exact Hst''.1.2⟩, by rw [hLd]; exact Hst''.2⟩
-            generalize stLoaded γ st'' = st4 at Hst Hst4 hLd
+              ⟨⟨by rw [hLp]; exact Hst''.1.1, by rw [stLoaded_p, hLd]; exact Hst''.1.2⟩, by rw [hLd]; exact Hst''.2⟩
+            generalize stLoaded γ st'' = st4 at Hst4 hLd ⊢
             (try wp_auto)
             wp_if_destruct
             · -- inside the window: deferred, reported failed (raft probes again)
               wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
               · iframe #; iframe Hm
               (try wp_auto)
-              wp_apply (hRSn γm s sm.msg.To' (W64 2)) $$ []
+              wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
               · iframe #
               (try wp_auto)
               iapply Hfin $$ %st4 %Hst4 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
             -- past the window: the consistent index at most the applied index, so the backend's
             -- log `A₀` is within Go's (`kvBatchR`'s `ai₀ + |A₀| ≤ ciEff`)
             have hW : rp.A₀.length ≤ (A ++ unapplied ai ms).length := by
-              have hge : uint.Z (ciEff γ st.k) ≤ uint.Z (ciEff γ st4.k) := by
-                rw [Hst4.2]
+              have hge : uint.Z (ciEff γ st.k) ≤ uint.Z (ciEff γ st''.k) := by
+                rw [Hst''.2]
                 rcases hci' with ⟨-, hc⟩ | hc
-                · rw [hc]
+                · rw [hc]; exact Int.le_refl _
                 · rw [hc]; omega
-              have hnl : ¬ uint.Z ai' < uint.Z (ciEff γ st4.k) := by
+              have hnl : ¬ uint.Z ai' < uint.Z (ciEff γ st''.k) := by
                 intro h; apply Hif; first | exact h | word
               have h0 : (0 : Int) ≤ uint.Z γr.raft.ai0 := by word
               have := uint_nat_eq ai'
@@ -563,7 +564,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iframe Hcso Hc0
             subst Hcc
             ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
-            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γm.id ct sm sn hpos h61 hsz hlenZ
+            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γb.id ct sm sn hpos h61 hsz hlenZ
                 hltA Hcs0 Hty hsn (by word) (by have := hnA; have := uint_nat_eq ai'; omega)
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
@@ -575,7 +576,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               iframe Hsrv Hka Hmimg
               ipureintro; exact Hst3.1
             imod Hmi with ⟨Hka, #Himg⟩
-            imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
+            imod srvMerged_bundle γr.raft.raft m rc sm γb.id c ai' at' D Hty
               $$ [Hml HszC Hsm' Hrs Himg] with Hbun
             · iframe Hml HszC Hsm' Hrs Himg
             (try wp_auto)
@@ -587,8 +588,20 @@ theorem EtcdServer.applyAll.wp_proofBatch
               ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst4.2⟩
             iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
           · (try wp_auto)
+            wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
+            · iframe #; iframe Hm
+            (try wp_auto)
+            wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
+            · iframe #
+            (try wp_auto)
             iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
         · (try wp_auto)
+          wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
+          · iframe #; iframe Hm
+          (try wp_auto)
+          wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
+          · iframe #
+          (try wp_auto)
           iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
       · itrivial
     iapply BigAndL.bigAndL_nil.2

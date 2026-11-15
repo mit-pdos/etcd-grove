@@ -125,6 +125,10 @@ theorem stLoaded_ciEff (γ : ApplyNames) (st : ApplyState) : ciEff γ (stLoaded 
   · rw [if_pos h]; simp only [ciEff, h, ite_self, ↓reduceIte]
   · rw [if_neg h]
 
+/-- Loading keeps the next index `p`. -/
+theorem stLoaded_p (γ : ApplyNames) (st : ApplyState) : (stLoaded γ st).p = st.p := by
+  unfold stLoaded; split <;> rfl
+
 /-- Loading keeps the pending flag. -/
 theorem stLoaded_pending (γ : ApplyNames) (st : ApplyState) : (stLoaded γ st).pending = st.pending := by
   unfold stLoaded; split <;> rfl

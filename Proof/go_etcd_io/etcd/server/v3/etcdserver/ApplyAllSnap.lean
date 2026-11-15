@@ -836,18 +836,21 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
               · iPkgInit
               ihave #Hsci2 := Hsrv1
+              iunfold isServer at Hsci2
               icases Hsci2 with ⟨-, #Hsci3, -⟩
               iunfold isServerCI at Hsci3
               icases Hsci3 with ⟨#Hcif, #Hci, #Hinv⟩
-              wp_apply (wp_ci_get hCI γ' ci b' st' hlo'.1) $$ [Hst Hbe] as ⟨Hst, Hbe⟩
+              (try wp_auto)
+              wp_apply_core (wp_ci_get hCI γ' ci b' st' hlo'.1) $$ [Hst Hbe] [-]
               · iframe Hcipkg Hci Hinv Hst Hbe
+              iintro ⟨Hst, Hbe⟩
               have hlo4 : loopOk γ' (stLoaded γ' st') sv.Metadata'.Index' :=
-                ⟨by rw [stLoaded_pending]; exact hlo'.1, by rw [stLoaded_ciEff]; exact hlo'.2⟩
+                ⟨by rw [stLoaded_pending]; exact hlo'.1, by rw [stLoaded_p, stLoaded_ciEff]; exact hlo'.2⟩
               have hci4 : ciEff γ' (stLoaded γ' st').k = sv.Metadata'.Index' := by rw [stLoaded_ciEff]; exact hci'
-              generalize stLoaded γ' st' = st4 at Hst hlo4 hci4
+              generalize stLoaded γ' st' = st4 at hlo4 hci4 ⊢
               (try wp_auto)
               wp_if_destruct
-              · exfalso; rw [hci4] at Hif; first | exact (lt_irrefl _ Hif) | (simp at Hif) | word
+              · exfalso; rw [hci'] at Hif; first | exact (lt_irrefl _ Hif) | (simp at Hif) | word
               -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
               ihave #HsrvM : isServerM false s γ' ci TM' E' ρ γr $$ []
               · rw [isServerM_false]; iexact Hsrv1
@@ -1388,18 +1391,21 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
             · iPkgInit
             ihave #Hsci2 := Hsrv1
+            iunfold isServerM at Hsci2
             icases Hsci2 with ⟨-, #Hsci3, -⟩
             iunfold isServerCI at Hsci3
             icases Hsci3 with ⟨#Hcif, #Hci, #Hinv⟩
-            wp_apply (wp_ci_get hCI γ' ci b' st' hlo'.1) $$ [Hst Hbe] as ⟨Hst, Hbe⟩
+            (try wp_auto)
+            wp_apply_core (wp_ci_get hCI γ' ci b' st' hlo'.1) $$ [Hst Hbe] [-]
             · iframe Hcipkg Hci Hinv Hst Hbe
+            iintro ⟨Hst, Hbe⟩
             have hlo4 : loopOk γ' (stLoaded γ' st') sv.Metadata'.Index' :=
-              ⟨by rw [stLoaded_pending]; exact hlo'.1, by rw [stLoaded_ciEff]; exact hlo'.2⟩
+              ⟨by rw [stLoaded_pending]; exact hlo'.1, by rw [stLoaded_p, stLoaded_ciEff]; exact hlo'.2⟩
             have hci4 : ciEff γ' (stLoaded γ' st').k = sv.Metadata'.Index' := by rw [stLoaded_ciEff]; exact hci'
-            generalize stLoaded γ' st' = st4 at Hst hlo4 hci4
+            generalize stLoaded γ' st' = st4 at hlo4 hci4 ⊢
             (try wp_auto)
             wp_if_destruct
-            · exfalso; rw [hci4] at Hif; first | exact (lt_irrefl _ Hif) | (simp at Hif) | word
+            · exfalso; rw [hci'] at Hif; first | exact (lt_irrefl _ Hif) | (simp at Hif) | word
             ihave #HW' : srvWTPool E' γp $$ []
             · obtain ⟨-, p, P, f, cc, RO, RW, hE⟩ := hbs
               rw [hE]
