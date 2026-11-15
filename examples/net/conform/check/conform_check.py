@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """The conformance checker's command (README.md, "Running it").
 
-  conform_check.py check PATH... [--plan FILE] [--witness DIR] [-v]
+  conform_check.py check PATH... [--plan FILE] [--witness DIR] [--calls-out DIR] [-v]
       check each run (a trace directory, a directory of them, or a .tar.gz of the sample);
-      exit 0 if every run is ADMITTED or OUT OF SCOPE with no finding, 2 if one is NOT ADMITTED
+      exit 0 if every run is ADMITTED or OUT OF SCOPE with no finding, 2 if one is NOT ADMITTED;
+      --calls-out writes each run's processes and calls, verbatim, for the Lean replay
+      (`lake exe nettcp-replay`; README.md, "Certification in Lean")
   conform_check.py table PATH... [--json FILE]
       check every run under PATH and print one line per run: verdict, time, sizes
   conform_check.py mutate PATH... [-n N] [--seed S]
@@ -45,6 +47,24 @@ def _wname(run):
     return run.name.replace("/", "_").replace(":", "_").strip("_") + ".witness.json"
 
 
+def calls_json(run):
+    """The run as the Lean replay reads it (README.md, "Certification in Lean", the calls file):
+    every node process (its header's pid, node, t0, t1 and timens, and its driver's exit event's
+    time, if any), every driver (pid, node, timens: the exit events' clock) and every call (its B
+    and E records as the tracer wrote them; E null if the call never returned). Nothing is mapped
+    or interpreted here: the replay applies the mapping itself."""
+    procs = []
+    for p in run.procs:
+        h = p.header
+        ex = run.pevents.get(p.pid, {}).get("exit")
+        procs.append({"pid": p.pid, "node": p.node, "t0": h.get("t0"), "t1": h.get("t1"),
+                      "timens": h.get("timens"), "exit": ex["t"] if ex is not None else None})
+    drivers = [{"pid": d.pid, "node": d.node, "timens": d.header.get("timens")} for d in run.drivers]
+    calls = [{"pid": c.proc.pid, "b": c.b, "e": c.e} for p in run.procs for c in p.calls]
+    return {"format": "nettcp-calls", "version": 1, "run": run.name, "procs": procs,
+            "drivers": drivers, "calls": calls}
+
+
 def cmd_check(a):
     bad = 0
     for run in _runs(a.paths):
@@ -56,6 +76,10 @@ def cmd_check(a):
             os.makedirs(a.witness, exist_ok=True)
             with open(os.path.join(a.witness, _wname(run)), "w") as fp:
                 json.dump(res["witness"], fp)
+        if a.calls_out:
+            os.makedirs(a.calls_out, exist_ok=True)
+            with open(os.path.join(a.calls_out, _wname(run)[:-len(".witness.json")] + ".calls.json"), "w") as fp:
+                json.dump(calls_json(run), fp)
     return 2 if bad else 0
 
 
@@ -133,6 +157,7 @@ def main():
         p.add_argument("-v", "--verbose", action="store_true")
         if name == "check":
             p.add_argument("--witness", help="write each admitted run's witness (JSON) into this directory")
+            p.add_argument("--calls-out", help="write each run's processes and calls (JSON) into this directory")
         if name == "table":
             p.add_argument("--json", help="also write the rows as JSON")
         if name == "mutate":

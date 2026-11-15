@@ -86,5 +86,12 @@ globs = ["LinuxFs.+"]
 name = "NetTcp"
 globs = ["NetTcp.+"]
 
+# The Lean certification of the TCP conformance checker's witnesses
+# (examples/net/conform/check/README.md, "Certification in Lean"): replays a witness and the run's
+# traced calls through the proved deciders of GooseLang/Ext/Tcp/Decide.lean.
+[[lean_exe]]
+name = "nettcp-replay"
+root = "GooseLang.Ext.Tcp.Replay"
+
 [leanOptions]
 linter.unusedSectionVars = false
