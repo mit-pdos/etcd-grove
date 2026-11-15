@@ -9,7 +9,7 @@ membership), `applied` at `|D|`, a compaction point `c ≤ snapIndex ≤ applied
 it (`frozenTo`), `reconf` unset. The store's committed logs hold no conf entry (`kv_noConf`,
 `KvRunSnap.lean`: a committed conf entry is raft's empty `ConfChangeV2`, which no position of the
 voters' membership holds), so the `ApplyConfChange` branch is refuted and every position keeps
-`kvMembership`. A `Ready` without a snapshot: its entries appended with its committed ones frozen
+`kvMembership γr`. A `Ready` without a snapshot: its entries appended with its committed ones frozen
 (`append_none_pre`/`append_none_post`, `KvRunFrozen.lean`), its committed entries applied, the
 reads answered, `Advance` (the view's `skippedIn` by `skippedIn_noConf`); then, every `snapEvery`
 entries, a snapshot at the applied index (`kv_snap_make`'s validity, the frozen entry there,
@@ -36,10 +36,10 @@ vocabulary; and the loop's new state, by the snapshot's loan. A committed conf-c
 type `2` (`kv_committed_conf`).
 
 **Raft's cluster with snapshots and reconfiguration (2026-10-28, stage U4a).** The loop holds the
-node's view of its configuration (`nodeConfig`) at the voters' membership `kvMembership`, past the
+node's view of its configuration (`nodeConfig`) at the voters' membership `kvMembership γr`, past the
 conf entries applied (`confAt` beside it), none after it in the committed log delivered
 (`NoConfChangeIn`), and none at all unless `reconf` is set. A conf entry is decided by the store's
-rule (`confPolicy_decide`, `kvRule_decide`): its change applied, which keeps `kvMembership`
+rule (`confPolicy_decide`, `kvRule_decide`): its change applied, which keeps `kvMembership γr`
 (`kvMembership_rm`), and `node.ApplyConfChange.unifiedSpec` moves the view past it. `Advance`
 (`node.Advance.unifiedSpec`) takes the view (every conf entry delivered applied) and, after a
 snapshot `Ready`, its certificate, and puts the view at the snapshot's index (its membership the
@@ -223,7 +223,7 @@ theorem KV.run.wp_proof
     iframe Hdrv Hraft Hrun Hown rd pending applied snapIndex reconf
     isplitl [Hcfg]
     · unfold appNode
-      iexists ⟨0, kvMembership⟩
+      iexists ⟨0, (kvMembership γr)⟩
       iframe Hcfg Hdl
       isplitl []
       · iapply skippedIn_noConf γr.cluster [] 0 0 (fun _ _ _ h _ => absurd h (Nat.not_lt_zero _))
@@ -406,7 +406,7 @@ theorem KV.run.wp_proof
       · iexfalso
         iapply nodeRunning_stopped n γr.cluster kvRaftN 1
         iframe Hrun Hstop
-      ihave Hview : appNode γr n (D ++ ce) (D ++ ce).length kvMembership $$ [Hcfg]
+      ihave Hview : appNode γr n (D ++ ce) (D ++ ce).length (kvMembership γr) $$ [Hcfg]
       · unfold appNode
         iexists v
         iframe Hcfg Hdl Hsk
@@ -438,7 +438,7 @@ theorem KV.run.wp_proof
         -- `&pb.ConfState{Voters: r.storage.voters}`: the voters read-only
         imod csPts_of_struct_ro «$a1_ptr»
             (⟨zero_val _, vsl, slice.nil, slice.nil, slice.nil, null, slice.nil, 0⟩ : raftpb.ConfState)
-            (kvConfState kvVoters) ⊤ rfl $$ [«$a1»] with #Hcs
+            (kvConfState γr.voters) ⊤ rfl $$ [«$a1»] with #Hcs
         · iframe «$a1»
           iframe Hvs
           repeat (isplitr; · iapply ownSlice_nil)
@@ -462,17 +462,18 @@ theorem KV.run.wp_proof
         have Ha61 : uint.Z a' < 2 ^ 61 := by have := H61 (by omega); word
         have Hlen' : (D ++ ce).length = uint.nat a' := Ha'.symm
         imod kv_snap_make γr (D ++ ce) a' e.Term' (encState kvs ops) Hlen' (by word) Ha61 Hlast
-            (snapListsOk_voters kvVoters e.Term' a' _ (by decide) (by decide) (by decide) (by decide) Ha61)
+            (snapListsOk_voters γr.voters e.Term' a' _ γr.votersOk.ne γr.votersOk.zero γr.votersOk.nodup
+              (by have := γr.votersOk.len; omega) Ha61)
             HSE $$ Hcl Hap HcaF with #Hsv
         ihave #HSV : (kvJ γr.cluster Kst).SV
-            (memSnapMade a' e.Term' (kvConfState kvVoters) (encState kvs ops)) $$ []
+            (memSnapMade a' e.Term' (kvConfState γr.voters) (encState kvs ops)) $$ []
         · unfold kvJ; iexact Hsv
         ihave #HDL : (kvJ γr.cluster Kst).DL (uint.nat a') $$ []
         · unfold kvJ
           iapply nodeCommitLb_mono γr.cluster Kst (D ++ ce).length _ (by omega) $$ HclD
         -- `r.storage.CreateSnapshot(applied, cs, data)`
         wp_apply kvStorage.wp_CreateSnapshot wp_MemoryStorage_CreateSnapshot st ms γs (kvJ γr.cluster Kst)
-            a' e «$a1_ptr» DFrac.discard (kvConfState kvVoters) dsl (encState kvs ops) eood
+            a' e «$a1_ptr» DFrac.discard (kvConfState γr.voters) dsl (encState kvs ops) eood
           $$ [$Hrec $Hraftinit $HmsInv $He $HSV $HDL $HsnLb $Hcs' $Hdsl $Heood] as %snap' %err ⟨-, #HsLb, -⟩
         try wp_auto
         -- `if applied > snapMargin { r.storage.Compact(applied - snapMargin) }`
@@ -643,12 +644,12 @@ theorem KV.run.wp_proof
       iapply nodeRunning_stopped n γr.cluster kvRaftN 1
       iframe Hrun Hstop
     imod kv_noConf γr (strip l.dlv) ⊤ CoPset.subseteq_top $$ Hinv Hcl HcL with ⟨-, #HcaS⟩
-    ihave #HcaS' : confAt γr.cluster (uint.nat l.snap.Metadata'.Index') kvMembership $$ []
+    ihave #HcaS' : confAt γr.cluster (uint.nat l.snap.Metadata'.Index') (kvMembership γr) $$ []
     · rw [← Hslen]; iexact HcaS
-    ihave %Hm := confAt_agree γr.cluster _ m2 kvMembership $$ [Hca2 HcaS']
+    ihave %Hm := confAt_agree γr.cluster _ m2 (kvMembership γr) $$ [Hca2 HcaS']
     · iframe Hca2 HcaS'
     subst Hm
-    ihave Hview := appNode_snap γr n (strip l.dlv) _ kvMembership Hslen $$ [Hcfg Hdl]
+    ihave Hview := appNode_snap γr n (strip l.dlv) _ (kvMembership γr) Hslen $$ [Hcfg Hdl]
     · iframe Hcfg Hdl
     ihave #Hfz2 := frozenTo_snap (GF := GF) γs (strip l.dlv) _ Hslen
     -- `if !reconf && applied-snapIndex >= snapEvery`: no (the snapshot `Ready` applied nothing)

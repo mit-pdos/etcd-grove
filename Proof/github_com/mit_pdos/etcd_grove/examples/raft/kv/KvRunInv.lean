@@ -55,7 +55,7 @@ def kvRunInv (γr : RKVNames) (id : w64) (K : GName) (r n st : Loc) (γs : MemSt
     "Hraft" ∷ raftState γr.cluster id S ∗
     "Hrun" ∷ nodeRunning n γr.cluster kvRaftN 1 ∗
     "Hown" ∷ runOwn γr r D ∗
-    "Hview" ∷ appNode γr n D D.length kvMembership ∗
+    "Hview" ∷ appNode γr n D D.length (kvMembership γr) ∗
     "pending" ∷ pp ↦ pv ∗
     "Hpv" ∷ pv ↦* ps ∗
     "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
