@@ -35475,3 +35475,15 @@ return while the lock is held, or an error, and `Repair` returns `false` (`wal.R
 **`purgeRound` returns to the tester** (approved by the user with the lock semantics, "use that to prove the
 code that we can't yet reason about"): not done in unit `locks`, session 2; what it needs is in
 `notes/wal-units/locks.md`, session 2.
+
+**Coverage (the user's decision, 2026-11-15): (a) for now.** The premise covers every file under the roots
+(etcd's data directory): the specs assume `hS : ∀ st i, S.ino st i` (the no-error specs' first premise,
+`WAL.sync.specNoErr`, `Close.specNoErr`, `SaveSnapshot.specNoErr`, ..., each docstring saying so). Narrowing
+to the WAL's own files (a set given by the WAL's paths, which needs a data-step lifting that sees the tree)
+is later work; the premise is stated generally, so it can replace (a) without touching the semantics.
+
+**Not an I/O error: `EFBIG` at `maxBytes`** (unit `noioerr`, second session). A write that reaches ext4's
+`s_maxbytes` fails whatever the premise (no success exists there), so an error-free flush needs the tail's
+stream to end before it: the no-error specs that write take a sealed handle with room
+(`walOpenWFR P Mr w dir k`, `HandleRoom.lean`). How a client comes by it is open (the user's decision,
+`notes/wal-units/noioerr.md`, second session).

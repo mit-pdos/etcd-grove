@@ -96,3 +96,120 @@ So `fsSemWithS (NoIoErr S) Q` is a valid semantics for `fsSQ_crash_adequacy` (wh
 
 Next step: item 1 with `B := ⌜xs = []⌝`, after the flush/encode specs gain their "nothing written, no
 error" clause.
+
+## Session 2 (2026-11-15, branch `wal-c-noioerr2`, base `origin/wal-int`)
+
+The user's decisions of 2026-11-15: **coverage (a)** for now (the premise covers every file under the
+roots, etcd's data directory: the specs take `∀ st i, Sio.ino st i`; recorded in `notes/decisions.md`, the
+noioerr entry, and in each spec's docstring); fork changes only for demonstrated bugs (etcd's Go unchanged).
+
+### Item 1: zero-byte writes are never reached (obstacle 1 moot)
+
+The WAL never hands its `*os.File` an empty slice on the paths the server panics on: every write to the tail
+goes through the encoder's `ioutil.PageWriter` (`encode` -> `write` -> `PageWriter.Write`; `flush` ->
+`PageWriter.Flush`), and the page writer calls its writer only in two places, both non-empty:
+`flush` writes `buf[:bufferedBytes]` only when `bufferedBytes != 0` (pagewriter.go:107-111), and `Write`
+writes `p[:pages*pageBytes]` only when `len(p) > pageBytes` (`pages >= 1`, pagewriter.go:86-88); its
+recursive `pw.Write(p)` of the rest is buffered (the rest fits below the watermark). So `encoder.flush` with
+nothing pending makes no `Write` and returns `nil`, and the trusted empty-`Write` branch (arbitrary errno, no
+`fsExt` step, `os.File.Write.wp_empty`) is never reached. No trusted-model change is needed.
+
+Made checkable without changing any existing statement:
+
+- `io.writerStreamPNE wi ok W B` (`Proof/io/WriterStream.lean`): `io.writerStreamP` for the calls with a
+  non-empty `xs` only; `io.writerStreamP_NE`: every guarded stream is one.
+- The page writer and the encoder over it (obstacle 2, the ledger's proposal (1), done this way): new specs
+  `PageWriter.flush.specNE`, `Flush.specNE`, `Write.specNE`, `encoder.flush.specPNE`, `wal.write.specNE`,
+  `encoder.encode.specGNE`, `WAL.saveCrc.specNE`, identical to the existing ones but over
+  `io.writerStreamPNE`. Their proofs are the old ones with the non-emptiness discharged at the two writer
+  calls (`flush`: the buffer's length is `bb ≠ 0`; `Write`: `P = len/pB * pB ≥ pB > 0`); the old specs are
+  now their instances (`wp_proof` from `wp_proofNE` by `io.writerStreamP_NE`), taking the NE callee specs.
+  A writer whose every non-empty `Write` succeeds (`B` false) thus makes `flush` and `encode` succeed, and
+  "nothing pending, no error" needs no separate clause.
+
+### The error-free tail writer, `sync`, `Close`, `SaveSnapshot`
+
+- `TailWriterWNE.lean` (lemmas): `wp_tailWriteAtWNE` (the `WriteAt` loop over `wp_tailPWriteFinishWNE`,
+  every errno 0: no `EINTR`, no error exit; premise: the write's end at most `maxBytes`, so every attempt
+  starts below it), `wp_tailWriteWNE`, the guard `tailOkWNE` (`tailOkW` and the stream's end at most
+  `maxBytes`) and **`wal.tailWriterWNE`**: `io.writerStreamPNE (wal.fileWi f) (tailOkWNE …) (walTailWS …)
+  (fun _ _ => False)`.
+- `WAL.sync.specNoErr`, `sync.specCNoErr` (`Spec/…/WAL__syncNoErr.lean`; proof `WAL__syncNoErr.lean`,
+  `wp_coreNE`: `wp_core` over `wal.tailWriterWNE`, `flush.specPNE` and `fileutil.Fdatasync.wp_tailWNE`):
+  `sync.spec`/`specC`'s success arm, always, when `o0 + |out| + |pend| ≤ maxBytes`.
+- `encoder.encode.specTailNoErr` (`encoder__encodeTailNoErr.lean`): `specTail`'s success arm, when the
+  encoder's bytes and the frame end at most at `maxBytes`.
+- **`WAL.Close.specNoErr`** (`WAL__CloseNoErr.lean`): `Close.spec`'s success arm with `err = nil`, from
+  `walOpenWFR P Mr w dir 0`; the lock files' close errors are ignored by the code, the directory's `Close`
+  is `os.File.Close.wp_dirSNE`.
+- **`WAL.SaveSnapshot.specNoErr`** (`WAL__SaveSnapshotNoErr.lean`): `SaveSnapshot.spec`'s success arm, from
+  `walOpenWFR P Mr w dir (|encSnap md| + 64)` (the frame is at most the data plus 64,
+  `frame_walRecEnc_tight`).
+- All linked (`etc/gen-link.py --walfs`; `etc/link_walfs.py` now also emits the implicit section variables
+  an instance names, `{Sio : IoSet}` of `[FsStepSat (NoIoErr Sio)]`). The old specs of the page writer and
+  `write` are no longer linked results (nothing reaches them: their callers' proofs take the NE specs); they
+  are still proved (`wp_proof`).
+
+### A premise that is not an I/O error: `EFBIG` at `maxBytes` (decision left for the user)
+
+`fsExt` bounds every file at ext4's `s_maxbytes` (`maxBytes = 0xffffffff000`, `wal-maxb14`): a write that
+reaches it fails with `EFBIG`, and `NoIoErr` keeps that error (no success exists there). So an error-free
+flush needs the tail's stream (written and pending) to end at most at `maxBytes`, which the handle does not
+record (`walOpenWF` keeps `o0 + |out| ≤ sz ≤ maxBytes` only; the stream-end fact was withdrawn because
+`SaveSnapshot` never cuts, ledger 2026-11-14). The specs above take it as **a sealed handle with room**,
+`walOpenWFR P Mr w dir k` (`HandleRoom.lean`: `walOpenWF` with `o0 + |out| + |pend| + k ≤ maxBytes`;
+`walOpenWFR_wf`: it is a `walOpenWF`). How a client comes by it is the user's decision; options:
+
+1. **Room laws on the existing specs' posts** (recommended): `Create`'s post gives `walOpenWFR … K` for a
+   large `K` (the fresh tail is the header records, below `2^42`); `Save`'s post after a cut likewise; a
+   law `walOpenWF ⊢ walOpenWFR … 0`-style is false in general, so a long run of `SaveSnapshot`s without a
+   `Save` must carry the room itself (each `SaveSnapshot.specNoErr` consumes `|frame|` of it; its post
+   would return `walOpenWFR … (k - |frame|)`). The server alternates `Save` and the apply thread's
+   `SaveSnap`, so the room comes back at each cut; this needs a statement of the server's `Save` rhythm.
+2. **A public measure of the tail** (`walOpenWFn … n`, `n` the stream's end, `walOpenWF ⊣⊢ ∃ n, …`), each
+   spec's post saying how `n` moves; the premise `n + k ≤ maxBytes` on the no-error specs.
+3. **A premise on the whole history's encoded size** in the update's precondition (needs a peek law,
+   `d.H = h.H`, and a pure bound of the tail's stream by the history's bytes); undischargeable for a long run
+   (the model's history grows without bound).
+
+No change to the trusted semantics is involved (EFBIG is the configuration's limit, measured).
+
+### `ReleaseLockTo` (item 2): not done; the plan
+
+`ReleaseLockTo` makes no I/O call that can fail into its result (S/wal.go:1013-1053: the locks' `Close`
+errors are ignored), so `ReleaseLockTo.specNoErr` needs no `NoIoErr` at all, only that every lock's file name
+is a WAL file name (`parseWALName(filepath.Base(l.Name()))` succeeds). Lemmas exist
+(`baseModel_child_walFileName`, `scanWalName_walFileName`, `CutName.lean`). The handle does not record it:
+the tail's name does (`walDirH`: `name = child pd nm0`, `nm0 = walFileName sq ix`), the non-tail locks'
+(`walLockH`) do not. The change: `walLockH` records `∃ pd sq ix, nm = child pd (walFileName sq ix)`;
+its producers are `readAll_splitLeft` (`ReadAllLocks.lean`, from the segments' names, `WalAbsD`'s) and
+`cut` (`WAL__cut.lean:889`, the old tail demoted, from `walDirH`'s fact); its consumers' `icases` patterns
+(`WAL__Close`, `WAL__CloseU`, `WAL__CloseOpening`, `WAL__ReleaseLockTo`, `ReleaseLocks`) gain one
+component. **Not done this session** because `wal-c-locks` rewrites exactly `walLockH` (a new conjunct),
+`ReadAllLocks.lean` and `WAL__cut.lean`: doing it after that branch lands avoids a three-way conflict. Then
+`walLockNamed` carries the fact and the error arm of the name loop is refuted.
+
+### `Create` (item 3): not done
+
+`Create.specNoErr` needs no-error variants of every call of its 1322-line proof (the `RemoveAll`s,
+`CreateDirAll`, `OpenFile`, `Preallocate`, `WriteAt` of the metadata, `Fdatasync`, `syncDir`, `OpenDir`, the
+directory `Fsync`, `renameWAL`, `cleanupWAL`), each over `wp_ext_post` (the path calls through `Sio.path`,
+covered by (a)), then the proof copied with the error arms refuted. Its encodes can use `encode.specGNE`/
+`saveCrc.specNE` over a no-error writer on the fresh segment (the tail's `tailWriterWNE` or the length-bounded
+`os.File.writerStream`, whose empty-write case `writerStreamPNE` now avoids). The fresh tail is far below
+`maxBytes`, so `Create` needs no room premise (and its post can give `walOpenWFR … K`, option 1 above).
+Not started: `wal-c-locks` also edits `Create.lean`, `CreateHandle.lean`, `CreateSeg.lean`.
+
+### Build
+
+`lake build` of the WAL's `Link` and the tester's `Link` (2026-11-15; every module touched is below them),
+no error, no `sorry`, no axiom. Also `WAL.Sync.specNoErr` (`WAL__SyncNoErr.lean`: the room `k` kept) and
+`SaveSnapshot.specNoErr` returning `walOpenWFR … k` from `walOpenWFR … (k + |encSnap md| + 64)` (option 1's
+shape). `etc/gen-link.py --wal-tester`/`--durable` outputs unchanged.
+
+### Next steps
+
+1. The user's decision on the room (above); then `Create`'s post (and `Save`'s) giving `walOpenWFR`.
+2. After `wal-c-locks` lands: `walLockH`'s name fact and `ReleaseLockTo.specNoErr`; re-run this session's
+   copies (`wp_coreNE`, `wp_tailWriteAtWNE`, `Close.wp_proofNoErr`) over its changed `osFd`/`walTailW`.
+3. `Create.specNoErr` (the os-level no-error variants first), `Save.specNoErr` (with room for its batch).
