@@ -153,7 +153,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-        ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+        ⌜st.pending = false ∧ entryOkOn E.lm x m ∧ m.typ = W32 0 ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
         (ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝) ∗
@@ -164,7 +164,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗
         srvWT E ∗ srvFS s ∗ ⧗ 1 ∗ apply.adminWTs E ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
         srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
-        ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧
+        ⌜st.pending = false ∧ entryOkOn E.lm x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))

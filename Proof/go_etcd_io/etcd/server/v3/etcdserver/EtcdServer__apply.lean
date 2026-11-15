@@ -1127,14 +1127,15 @@ local macro "cc_kv_appliedOn" : tactic => `(tactic| (
     imod srvApplyKVOn_writer hPers hReach s E γr srvAuthSt0 ρ.wait xj saj $$ Hkvi HKV with
       ⟨HKV, #Hcert, -, -, %Hwf⟩
     have Hlxj : xj.log.length < 2 ^ 63 := by obtain ⟨_, _, hw⟩ := Hwf; omega
-    have hcc0 : kvEntryOn γr.kv.c0 xj.chain (saj, xj.log) m = (saj, xj.log) :=
+    have hcc0 : kvEntryOn γr.kv.c0 xj.chain (saj, xj.log, kvLeasesOn γr.kv srvAuthSt0 (A ++ ms.take (sint.nat j))) m =
+        (saj, xj.log, kvLeasesOn γr.kv srvAuthSt0 (A ++ ms.take (sint.nat j))) :=
       kvEntryOn_cc _ _ _ m (by rw [h1]; decide)
-    imod kv_applied_step_on E γr srvAuthSt0 (A ++ ms.take (sint.nat j)) m xj saj
+    imod kv_applied_step_on E γr srvAuthSt0 (A ++ ms.take (sint.nat j)) m xj saj _
       (by rw [hcc0]; exact Hlxj) $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
     ihave Hka : kvAppliedLOn γr.raft γr.kv srvAuthSt0 (A ++ ms.take (sint.nat j) ++ [m])
-        (saj, xj.log) $$ [Hka]
+        (saj, xj.log, kvLeasesOn γr.kv srvAuthSt0 (A ++ ms.take (sint.nat j))) $$ [Hka]
     · irevert Hka; rw [hcc0]; iintro Hka; iexact Hka
-    ihave ⟨Hka, #HkL⟩ := kvApplied_nextOn γr (A ++ ms.take (sint.nat j)) m xj saj m.index hiA
+    ihave ⟨Hka, #HkL⟩ := kvApplied_nextOn γr (A ++ ms.take (sint.nat j)) m xj saj _ m.index hiA
       Hpe.2.2.1 $$ Hka
     imod applied_predepositM true s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
       $$ Hainv Hao Hlog HkL with Hpre
@@ -1341,7 +1342,8 @@ theorem EtcdServer.apply.wp_proofOn
           srvWTTaken γp.cnt (w + ms.length) ∗
           (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
             ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr g' x'.log ∗
-            kvAppliedOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ ms)) x' sa' ∗
+            kvAppliedOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ ms)) x' sa'
+              (kvLeasesOn γr.kv srvAuthSt0 (ghostOf rp (A ++ ms))) ∗
             srvRestR E γr rp (A ++ ms)) ∗
           ⌜uint.Z g' = uint.Z γr.raft.ai0 + (ghostOf rp (A ++ ms)).length ∧
             (ms.getLast?).map EntryModel.index = some appliedi ∧
@@ -1387,7 +1389,7 @@ theorem EtcdServer.apply.wp_proofOn
     -- the entry's premise at the KV's log, from its shape and the log's smallness (D19c's move)
     imod srvApplyKVOn_small hPers hReach hRB s E γr srvAuthSt0 ρ.wait xj saj $$ Hkvi HKV with ⟨%Hsmall, HKV⟩
     icases srvApplyKVOn_authOn s E ρ.wait xj saj $$ HKV with ⟨HKV, %HaOnj⟩
-    have hOk1 : m.typ = W32 0 → entryOkOn xj m := fun ht =>
+    have hOk1 : m.typ = W32 0 → entryOkOn E.lm xj m := fun ht =>
       entryOkOn_of_shape xj m (hEok m hmem) ht Hsmall.1 Hsmall.2 (HaOnj.trans hAuthOn)
     have hjn' : ((sint.nat j : Nat) : Int) = sint.Z j := by
       unfold sint.nat; exact Int.toNat_of_nonneg Hj.1
