@@ -240,7 +240,7 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
         iapply BigSepL.bigSepL_singleton.2; iexact HB2b
       wp_apply wp_ReadAt f' fd' p (DFrac.own sync.rfrac.half) buf
           (List.replicate ((curPgid mp + 1) * 4096) (zero_val w8)) (W64 0) (DFrac.own sync.rfrac.half)
-          ⟨γ.ino, true, true, none, none⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
+          ⟨γ.ino, true, true, none, some true⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
         $$ [Hf Hbuf Hfd Hrs] as %n %err ⟨Hf, Hfd, Hrs, %vs', Hbuf, %Hres⟩
       · iframe; iframe #
       obtain ⟨-, Heofpe, T, l, rfl⟩ := Heof

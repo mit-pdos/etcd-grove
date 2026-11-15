@@ -299,7 +299,7 @@ half, and all of it while there is no mapping). -/
 def mapRest (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (q : Qp) : MapSt → IProp GF
   | some (base, len, γm) => iprop(⌜0 < base.addr⌝ ∗ ghostVar γm q.half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
       os.ownFile (GF := GF) f fd p (DFrac.own q.half) ∗
-      osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true, none, none⟩)
+      osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true, none, some true⟩)
   | none => emp
 
 instance mapInv_persistent (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName) :
@@ -362,8 +362,8 @@ theorem mapBody_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString)
     haveI := ghostVar_half_fractional (GF := GF) γm ()
     haveI : Fractional (fun q : Qp => os.ownFile (GF := GF) f fd p (DFrac.own q.half)) :=
       fractional_half_of (ownFile_fractional (GF := GF) f fd p)
-    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true, none, none⟩) :=
-      fractional_half_of (osFd_fractional (GF := GF) fd ⟨γ.ino, true, true, none, none⟩)
+    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true, none, some true⟩) :=
+      fractional_half_of (osFd_fractional (GF := GF) fd ⟨γ.ino, true, true, none, some true⟩)
     haveI : Persistent (mapInv (GF := GF) γ γ.ino base len γm) := by unfold mapInv; infer_instance
     infer_instance
 
@@ -433,7 +433,7 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
   iprop(∃ (mxc tail : List ByteG) (fsz : Nat),
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, none⟩ ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩ ∗
     osMeta (GF := GF) γ.ino (DFrac.own 1) m ∗
     osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail ∗
@@ -441,13 +441,27 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
       (fl = false → mxc.map Prod.fst = mp ∧ ((∀ x ∈ mxc, x = durB x.1) ∧ m.dhi ≤ m.dlo) ∧ fsz = m.size ∧
         0 ≤ fd.toInt ∧ 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 30 ∧ mapLen st ≤ 2 ^ 30)⌝)
 
+/-- The tokens of the database fd's description, which holds `flock`'s exclusive lock. -/
+theorem db_lockToks (i : Ino) (fd : w64) :
+    osLock (GF := GF) .flock i fd ⊢ lockToks (GF := GF) fd ⟨i, true, true, none, some true⟩ := by
+  iintro H
+  unfold lockToks
+  isplitl []
+  · iapply lockTok_none; simp [OsFd.lk]
+  · iapply (lockTok_some (GF := GF) .flock fd _ rfl).2; iexact H
+
+/-- The writer's half of `cls` while the database is open, with the token of the `flock` lock its
+fd holds (`Open`'s `flock`, over the lock semantics of 2026-11-15), which `close` gives back. -/
+def clsOpen (γ : DBNames) (fd : w64) : IProp GF :=
+  iprop(ghostVar γ.cls (1 : Qp).half false ∗ osLock (GF := GF) .flock γ.ino fd)
+
 /-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
 of `cur`, and `mmaplock`'s halves of the file and its fd. -/
 def writerExtra (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, none⟩)
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true, none, some true⟩)
 
 /-- `rwlock`'s resource (see the file header): the writer's part of an open database, with a
 mapping or, after a failed remap, without one (and the handle failed); or, once closed, the
@@ -456,7 +470,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
   iprop((∃ (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta),
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗ clsOpen (GF := GF) γ fd ∗
     ⌜fl = false → True⌝ ∗
     match st with
     | some (base, len, γm) =>

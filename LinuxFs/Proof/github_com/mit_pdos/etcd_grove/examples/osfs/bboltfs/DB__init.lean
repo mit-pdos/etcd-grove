@@ -144,7 +144,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have he2 : (xs.take 16384).length =
       min ((W64 0).toNat + F.length) m.size - (W64 0).toNat := by
     rw [List.length_take, hw00, hF]; omega
-  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, none⟩ m
+  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, some true⟩ m
       (xs.take 16384) rfl hw0' (by rw [hw00]; omega) (by rw [hw00, hF]; omega) (by rw [hF]; omega)
       (by rw [hF]; omega) he2
       $$ [Hinv Hf Hfirst Hfd Hm Hw Hc]
@@ -174,7 +174,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS1 : pwSize m.size 0 F.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ (by omega), hF]
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, none⟩ (pwPost m 0 F.length F.length) 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ (pwPost m 0 F.length F.length) 0
       (ys ++ xs.drop 16384) (OsMeta.covers_whole _ (by
         show _ = pwSize m.size 0 F.length
         rw [hS1, List.length_append, List.length_drop, hysl, hxs]; omega)) $$ [Hinv Hfd Hm Hb] as %e ⟨Hfd, Hs⟩
@@ -239,7 +239,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   ihave Hc := (hmc1 4096 (4096 + D1.length)).2 $$ []
   · iempintro
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 4096) (W64 8192)) D1
-      (DFrac.own 1) (W64 4096) dq ⟨i, true, true, none, none⟩ m1 ((A.drop 4096).take 4096) rfl hw4'
+      (DFrac.own 1) (W64 4096) dq ⟨i, true, true, none, some true⟩ m1 ((A.drop 4096).take 4096) rfl hw4'
       (by rw [hw4, hm1s]; omega) (by rw [hw4, hD1l]; omega) (by rw [hD1l]; omega) (by rw [hD1l]; omega)
       he2 $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
     as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %Hres2, Hm, Hw, Hc, -⟩
@@ -273,7 +273,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS2 : pwSize m1.size 4096 D1.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ (by omega), hD1l, hm1s]; omega
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, none⟩
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩
       (pwPost m1 4096 D1.length D1.length) 0
       (A.take 4096 ++ (ys2 ++ A.drop 8192)) (OsMeta.covers_whole _ (by
         show _ = pwSize m1.size 4096 D1.length
@@ -328,7 +328,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   ihave Hc := (hmc2 0 (0 + D0.length)).2 $$ []
   · iempintro
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 0) (W64 4096)) D0
-      (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, none⟩ m2 (B.take 4096) rfl hw0z'
+      (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, some true⟩ m2 (B.take 4096) rfl hw0z'
       (by rw [hw0z]; omega) (by rw [hw0z, hD0l]; omega) he0 (by omega) he3 $$ [Hinv Hf Hbuf0 Hfd Hm Hb0 Hc]
     as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %Hres3, Hm, Hw, Hc, -⟩
   · rw [hw0z]; iframe Hf Hm Hb0 Hc Hbuf0 Hfd; iframe #
@@ -356,7 +356,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS3 : pwSize m2.size 0 D0.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ he0, hD0l, hm2s]; omega
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, none⟩ (pwPost m2 0 D0.length D0.length) 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ (pwPost m2 0 D0.length D0.length) 0
       (ys3 ++ B.drop 4096) (OsMeta.covers_whole _ (by
         show _ = pwSize m2.size 0 D0.length
         rw [hS3]; simp only [List.length_append, List.length_drop, hys3l, hBl]; omega))

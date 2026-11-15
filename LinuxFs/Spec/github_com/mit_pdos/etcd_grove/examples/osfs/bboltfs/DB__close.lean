@@ -31,7 +31,7 @@ abbrev DB.close.spec : Prop :=
   {{ osInv (GF := GF) ∗ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗
       db.[DB, go!"meta0"] ↦{dq} m0 ∗ db.[DB, go!"meta1"] ↦{dq} m1 ∗ mappingRes (GF := GF) p m sl ∗
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) d }}
+      osFd (GF := GF) fd (DFrac.own 1) d ∗ lockToks (GF := GF) fd d }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
   {{ (err : GoInterface), RET #err; db.[DB, go!"dataref"] ↦{dq} slice.nil ∗
       db.[DB, go!"datasz"] ↦{dq} (if sl = slice.nil then dsz else W64 0) ∗

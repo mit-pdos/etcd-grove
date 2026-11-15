@@ -68,6 +68,8 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     | false =>
       icases Hrest with ⟨-, -, -, Hown3, -⟩
       iapply ghostVar_halves3 γ.own (t, n) x _; iframe
+  iunfold clsOpen at Hcls1
+  icases Hcls1 with ⟨Hcls1, Hlk⟩
   icombine Hcls1 Hcls2 gives % ⟨_, Hc⟩
   cases Hc
   unfold mapR mapBody
@@ -102,8 +104,9 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     ihave Hfd := osFd_join fd _ $$ [Hfd1 Hfd2]
     · iframe
     dsimp only [mapSlice, mapPtr0, mapPtr1, mapLen]
+    ihave Hlt := db_lockToks γ.ino fd $$ Hlk
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd p
-        ⟨γ.ino, true, true, none, none⟩ p R γ.ino γc m bs 8192 (4096 * hwm) (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
+        ⟨γ.ino, true, true, none, some true⟩ p R γ.ino γc m bs 8192 (4096 * hwm) (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd Hlt]
       as %errc ⟨Hd, Hdsz, H0, H1, -, -, -⟩
     · iframe; iframe #; unfold mappingResC; ileft; ipureintro; rfl
     (try simp only [↓reduceIte])
@@ -166,9 +169,10 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     have hne : (⟨base, W64 len, W64 len⟩ : GoSlice) ≠ slice.nil := by
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hbase
+    ihave Hlt := db_lockToks γ.ino fd $$ Hlk
     wp_apply wp_close db (DFrac.own 1) ⟨base, W64 len, W64 len⟩ (W64 len) (base +ₗ 16)
-        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true, none, none⟩ p R γ.ino γc m bs 8192 (4096 * hwm) (fun _ => rfl)
-        $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells]
+        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true, none, some true⟩ p R γ.ino γc m bs 8192 (4096 * hwm) (fun _ => rfl)
+        $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells Hlt]
       as %errc ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun, %Herr⟩, -, -⟩
     · iframe; iframe #
       unfold mappingResC; iright; iexists base, W64 len, vf
