@@ -65,3 +65,20 @@ threading in `EtcdServer__run`), hubs `AuthCompRows` (2), `InvStart`, `InvBuild`
 newServerMode.specRestart`, restart1 `startMember`, `RestartRowsSingle.lean` deleted, restart3 drafts);
 `winNoMergedSendR`/`srvSnapBagN` defs (`ApplyRDefs`); Results docstring; SpecPlan ledger + text; interfaces;
 then the Freeze package (hard stop).
+
+### A1 status at the context stop (2026-11-15)
+- Committed: `a7664b099b` (pins, translation, specs/hubs), `3e2cf89fec` (applyAll's merge and ApplyAllSnap over
+  the guard: both pass `etc/lean-check.py -a`), `8f3676d5d6` (server `Link.lean`: applyAll's three new callees,
+  `etc/link-lean-first-server.txt`).
+- `run_job_body` no longer passes window rows (keeps a framed `T`; the run still passes `token γwp`): not yet
+  checked (`EtcdServer__run.lean` and everything importing `InvApplyAll`/`InvStart`/`InvServer` need a build).
+- New internal lemmas: `stLoaded_ciEff`, `stLoaded_pending`, `stLoaded_p` (`InvServer.lean`).
+- Pattern for the guard read: `wp_apply_core (wp_ci_get hCI γ ci b st hp) $$ [Hst Hbe] [-]`, then
+  `iintro ⟨Hst, Hbe⟩`; `generalize stLoaded γ st = st4 at … ⊢`; the value returned is `ciEff γ st.k` (old st).
+- Next (g2): delete `srvWinPend` and its hub rows (positional `icases`/`iframe` at: `AuthCompRows.lean`
+  229/391/671/678/687/694, `InvBuild.lean` 335, `InvStart.lean` 290, `ServerOn.lean` 186, `StartOn.lean` 95/208/214,
+  `ModeSpecs.lean` 584/593, `BuildGap.lean` 272/278, `EtcdServer__start.lean` 635/640, `NewServer.lean`
+  2062/2248, `NewServerR.lean` 1144/2024, `EtcdServer__run.lean` 905/906 and the `token γwp` threading
+  1210-1452 → `T := iprop(True)`); then row 4, `rnSnapMsg`'s bound, `srvRestartRows` (list above); then a full
+  build (flock, 64G), interfaces (server, etcdstart, raft untouched), SpecPlan ledger entry, tcb `--check`
+  (unchanged expected), the Freeze package (hard stop).
