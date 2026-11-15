@@ -242,7 +242,7 @@ theorem bootAreaCl_not {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     {Ls : GMap GoString WalLay} {V : Hist} (hst : WalsStart C Mr R jr s Ls V.now) :
     ¬ (WalDirClaimOf Ls (bootAreaCl V jr) ∨ NameClaimOf jr Ls (bootAreaCl V jr)) := by
   rintro (⟨dir, lay, hl, hj, -⟩ | ⟨-, dir, lay, hl, hN⟩)
-  · exact hst.2.2.2.2.2 dir lay hl hj.symm
+  · exact (hst.2.2.2.2.2 dir lay hl).1 hj.symm
   · unfold bootAreaCl bootN at hN; cases hN
 
 /-- The tagged temporary directories (`walAreaRes`'s `tmpClTouch`). -/
