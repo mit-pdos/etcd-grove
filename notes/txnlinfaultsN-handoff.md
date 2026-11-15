@@ -13,9 +13,14 @@ Plan: `notes/txnlinfaultsN-plan.md`. Statement draft: `notes/txnlinfaultsN-draft
 - Proof: `Base`, `Defs`, `Dir`, specs and proofs of `bridgeAddr`, `holdToken`, `startCluster`, `Main`
   (lake build of the modules green, kernel included).
 
+- Decided by etcd-grove-81 (2026-11-15): the `StartMembers` snapshot parameters and bounds +6 accepted.
+- Prepared (independent of the statement): `PkgTable`/`Init` (`etc/gen-init.py`, `--check` clean, built),
+  `MainLinked.lean` (`etcd_txnlinfaultsN.wp_Main`, checked, 0 errors), the collection
+  `etc/tcb-collections/txnlinfaultsN.txt` (untracked: roots only; commit with `Results.lean` and its baseline).
+
 ## Next, in order
-1. HARD STOP (current): the statement review (`notes/txnlinfaultsN-draft.md`).
-2. Link: `etc/gen-init.py` (add txnlinfaultsN to ROOTS/PROGRAMS: `PkgTable`, `Init`), a `MainLinked.lean`
+1. HARD STOP (current): the statement is with the user (`notes/txnlinfaultsN-draft.md`); do not land.
+2. Link (done: `PkgTable`/`Init`, `MainLinked`; left: `Adequacy`, `Results`, collection baseline): a `MainLinked.lean`
    (as putgetN's: `Main.wp_proof zap.NewNop.wp_proof (startCluster.wp_proof etcdstart.wp_Members
    etcdstart.wp_StartMembers etcdstart.wp_Serve etcdstart.wp_NewClients cluster3.wp_StartBridge
    bridgeAddr.wp_proof strconv... holdToken.wp_proof mvcc.api.mvccApi_names_nonempty_law_holds
