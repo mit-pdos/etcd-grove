@@ -27,6 +27,42 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-15, seventeenth 7f-5 agent): step 5 statements written, sync proved; syncPaginated/startWatching proofs next
+
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json` (lean-check: `LAKE_OPTS=...`); restart the lean-check server
+  (`--stop`) when it sits at "line 1".
+- **Design fix (form, in questions.md):** a `queueEvent` that takes the element's resource before the send cannot
+  serve `kInElem`: a dropped event's index would already be in `γ.raws`. `queueEvent` now takes the commit form
+  (`S ∧ (£1∗£1∗£1 -∗ ∀ Φ, ▷ (Q -∗ Φ) -∗ sendAu γch e Φ)`, post `Q ∨ (□ cdw.PDone ∗ S)`); `sendError` likewise
+  (`S ∧ commit`, post `Q ∨ S`: 81's "keep the alive token outside the wand"). `sendEvent` still returns the commit
+  (step 6: give it the same form).
+- **Design fix (form):** `kErrOk`'s comparison conjunct was "with any value", unprovable for a pointer error (no step
+  for `GoEquals` on a non-`Loc`); now pure: of type `*errorString`, a `Loc`; of type `EtcdError`, an `EtcdError`
+  (the two comparands, `context.Canceled` and `rpctypes.ErrCompacted`); `wp_kErrOk_eq_ptr`/`_etcd` replace
+  `wp_kErrOk_eq` (isCancelError, interpretWatchError re-proved).
+- **New `WatchProd.lean`:** `kIncTok` (SPSC producer half + half of `γ.raws`' authority), `kInc_commit`,
+  `kProdSt γ cd I` (the producer's raws a subsequence of `I`, all of it unless cancelled), `kCdw`, `kProd_drop`,
+  `kProd_queue` (the conjunction `queueEvent` takes and the state at `I ++ [r]` after either outcome), pure `kProdAt`
+  (watch phase: `I` = initial part ++ a `KRawSeg` from `st` to the cursor `c`; `kProdAt_ok/_step/_hist/_start`,
+  `kInit_ok`, `kRawStreamSub_of_ok`), `kInitRaws`, `kWcProd` (the fields/channels bundle), `kStartPre`.
+- **New `ErrOk.lean`:** `kErrOk_errorString` (over `errors.AsLeaf`). Still to write: `kErrOk` of a client error
+  (`clientErr ∗ statusErrOk`: `*status.Error` needs E1 (`grpcStatusRO`, `(*Status).Code`); all non-`*errorString`
+  types need `errors.AsLeafTy`, DRAFT trusted text `Spec/errors/AsLeafTy.lean`, NOT approved: take it as a
+  hypothesis) and of a `*StatusError` with a `Failure` status (E5's `NewResourceExpired`, E6).
+- **Specs:** `watchChan__syncPaginated`, `watchChan__sync` (proved over syncPaginated), `watchChan__startWatching`.
+- **Next, in order:** (1) syncPaginated's proof (template: `kubernetes/Client__List.lean`'s `client_range_any`;
+  pages via `ListPages.lean`'s `fromL_kp`/`fromL_next`; each kv via `parseKV` + `ipersist` + `kProd_queue` with
+  `kInit_ok`; first page fires `Q lbf` (re-armed reads for later pages, `kvSameHist_at` to the first page's store);
+  errors: `interpretListError` (E5; strengthen `listErrF`'s first arm to `kClientErr` so that `kErrOk` follows, a
+  stronger post) and `fmt.ErrorfPlain` → `kErrOk_errorString`); (2) the kErrOk lemmas above; (3) startWatching
+  (the client watch loop: `compactor__runWatchLoop.lean` is the receive-loop template; `kProdAt` along responses,
+  the later of two states by `kvSameHist`; errors E2/E4/E6 → kErrOk; `kProdExited` set before each `sendError`
+  and before closing `watchClosedCh`, `wp_broadcast_chan_close`). STOP before step 6.
+- **Open for 81 (questions.md):** (a) `errors.AsLeafTy` (trusted, generalizes AsLeaf); (b) the Draft's `uint.Z n <
+  2^63` premise of `store.Watch` lets `WithRev(n + 1)` overflow for a watch without initial events at `n = 2^63-1`
+  (the client `Watch` spec needs `1 ≤ rev`): `kStartPre` asks `uint.Z r0 + 1 < 2^63` there; the Draft premise
+  needs `< 2^63 - 1`; (c) `Pos.Countable KRaw` has no instance (a binder of every spec; step 6 derives one).
+
 ## START HERE (2026-11-15, sixteenth 7f-5 agent, final): E2, E4, E5 done; lean merged (9e678b61e7, e9e pin); step 5 next
 
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json`; `.lake/packages` links only iris, batteries, Qq. A full build
