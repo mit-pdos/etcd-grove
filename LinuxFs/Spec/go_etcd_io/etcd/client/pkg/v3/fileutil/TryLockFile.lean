@@ -5,8 +5,9 @@ each opens the file (`os.OpenFile(path, flag, perm)`), tries an exclusive lock o
 (`fcntl(F_OFD_SETLK)` or `flock(LOCK_EX|LOCK_NB)`), closes it on a lock error (replaced by
 `ErrLocked` when `errors.Is(err, EWOULDBLOCK)`), and returns `&LockedFile{f}`.
 
-As `LockFile`'s spec (generic in the open, `fileutil.OpenTriple`; post `fileutil.lockPost`: the lock
-is not modelled), plus: an error is one whose `Error()` returns (`errOk`), as `wal.openWALFiles`
+As `LockFile`'s spec (generic in the open, `fileutil.OpenTriple`; post `fileutil.lockPost`: on
+success the fd holds an exclusive lock of the package's kind with its token, `osLock k i fd`, so no
+other open file description held one; `flag` writes), plus: an error is one whose `Error()` returns (`errOk`), as `wal.openWALFiles`
 wraps it with `%w` (`fmt.ErrorfErrs`). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/TryLockFile.lean`, over the hypothesis
 `errors.IsErrno.spec`. W5 of `notes/wal-fsext-plan.md`; Lean-first.
@@ -37,6 +38,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.TryLockFile.spec : Prop :=
   ∀ (path : GoString) (flag : w64) (perm : w32) (P : IProp GF) (X : Type)
     (A : X → Bool → IProp GF) (C : X → Ino → Prop),
   fileutil.OpenTriple P path flag perm A C →
+  decide ((flag ||| W64 0x80000).toNat % 4 ≠ O_RDONLY) = true →
   {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
       P }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TryLockFile)) (Val #path))

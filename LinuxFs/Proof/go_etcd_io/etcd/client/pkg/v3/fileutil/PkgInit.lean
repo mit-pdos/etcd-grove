@@ -7,7 +7,7 @@ The package fact of `client/pkg/v3/fileutil` (the part's translation, with bodie
   `ArbitraryInt`; `syscall.FcntlFlock.wp_getlk`), so the fact allows **both** (`ofd`, a boolean, the
   same for the two variables);
 * `wrlck` (lock_linux.go): the write-lock description `{Type: F_WRLCK, Whence: SEEK_SET, Start: 0,
-  Len: 0}` (the other fields zero);
+  Len: 0}` (the other fields zero: `Pid` 0, which `F_OFD_SETLK` needs);
 * `ErrLocked` (lock.go, `errors.New("fileutil: file already locked")`): an error whose `Error()`
   returns (`errOk`).
 
@@ -62,7 +62,7 @@ abbrev fileutil.fileutilInit : IProp GF :=
       globalAddr go_etcd_io.etcd.client.pkg.v3.fileutil.linuxLockFile ↦□ fileutil.lockFn ofd ∗
       globalAddr go_etcd_io.etcd.client.pkg.v3.fileutil.linuxTryLockFile ↦□ fileutil.tryLockFn ofd) ∗
     (∃ w : syscall.Flock_t, globalAddr go_etcd_io.etcd.client.pkg.v3.fileutil.wrlck ↦□ w ∗
-      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0⌝) ∗
+      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧ w.Pid' = W32 0⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.client.pkg.v3.fileutil.ErrLocked ↦□ GoInterface.ok e ∗ errOk e))
 
