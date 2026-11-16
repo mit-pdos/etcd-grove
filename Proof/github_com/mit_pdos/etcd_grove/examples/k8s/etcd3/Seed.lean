@@ -147,13 +147,22 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+/-- A seed's put commits one change at most (`KvOne`, 7f-6 C). -/
+theorem seedOp_one (k : GoString) (σ : KVState) : k8s.KvOne σ (kvOpStep (seedOp k) σ) := by
+  simp only [seedOp, kvOpStep]
+  split
+  · exact k8s.kvOne_refl σ
+  split
+  · exact k8s.kvOne_refl σ
+  · exact k8s.kvOne_commit _ _ (by simp)
+
 /-- The seeded key-values at each revision: none at `0` and `1`, the first seed's at `2`, both
 after. -/
 def seedKvs (r : Nat) : List EtcdKv := if r ≤ 1 then [] else if r = 2 then [kvA] else [kvA, kvB]
 
 theorem σs2_at_kvs (r : Nat) (hr : r ≤ 3) : (σs2.at r).kvs = seedKvs r := by
-  have h1 : k8s.KvNext σb σs1 := k8s.kvNext_step _ _ (by simp [seedOp, KVOp.isKV])
-  have h2 : k8s.KvNext σs1 σs2 := k8s.kvNext_step _ _ (by simp [seedOp, KVOp.isKV])
+  have h1 : k8s.KvNext σb σs1 := k8s.kvNext_step _ _ (by simp [seedOp, KVOp.isKV]) (seedOp_one _ _)
+  have h2 : k8s.KvNext σs1 σs2 := k8s.kvNext_step _ _ (by simp [seedOp, KVOp.isKV]) (seedOp_one _ _)
   unfold seedKvs
   by_cases e3 : r = 3
   · subst e3
