@@ -10,6 +10,7 @@ As `MDefs.lean` for the model's stores: the Go values of `watch.go`'s check and 
   `wevsOwn s evs`, the Go slice `s` holds events whose models are `evs`, read-only;
 - `wevsOwnM s evs`, the same owned (a fresh slice), which persists into `wevsOwn s evs`;
 - `reliableLoL x req lo0`, the start of the window a request pins (`reliableLo`);
+- `watchListOkL`, `keptL`, `rejectsL`: `watchOkL`'s parts, as the Go helpers compute them;
 - `chgOf ch`, the model's change (`Chg`) of a Go `change` (the previous and current objects present
   only when `hasPrev`/`hasCur`).
 -/
@@ -72,6 +73,25 @@ start `lo0`. -/
 def reliableLoL (x : Input) (req lo0 : Nat) : Nat :=
   if x.Match' = W64 1 then (if 0 < req then max lo0 (req + 1) else lo0)
   else if 0 < req then req + 1 else lo0
+
+/-- The check of a watch-list's events (`watchListOk`; `watchOkL`'s `SendInit = 2` branch). -/
+def watchListOkL (x : Input) (req : Nat) (evs : List WEv) (h : HSt) : Bool :=
+  match evs.findIdx? (fun e => e.t = 3) with
+  | none => initialPrefixOkL x req evs h
+  | some b =>
+    let bm := evs.getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩
+    let brv := uint.nat bm.o.ResourceVersion'
+    if !bm.o.Annotated' then false
+    else if (req ≠ 0 ∧ brv < req) ∨ brv < 1 ∨ uint.nat h.st.rv < brv then false
+    else if !evsEqL (initialEventsL x (histN h.hist brv)) (evs.take b) then false
+    else reliableOkL x req (evs.drop b) h
+
+/-- The events `checkedEvents` keeps: those that are not errors. -/
+def keptL (all : List WEv) : List WEv := all.filter fun e => e.t ≠ 4
+
+/-- `checkedEvents` rejects: a bad event, or a kept one above the revision `rv`. -/
+def rejectsL (all : List WEv) (rv : Nat) : Bool :=
+  all.any (fun e => 5 ≤ e.t) || (keptL all).any (fun e => rv < uint.nat e.o.ResourceVersion')
 
 theorem Obj_eq_iff (a b : Obj) : a = b ↔
     a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
