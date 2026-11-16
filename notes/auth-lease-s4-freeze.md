@@ -1,4 +1,4 @@
-# auth-lease S4 item 4: the Freeze package (rev 1, 2026-11-16)
+# auth-lease S4 item 4: the Freeze package (rev 1, 2026-11-16; rev 2 stopped at L1, §8)
 
 For etcd-grove-02. Branch `auth-lease-s4`. Draft `notes/auth-lease-s4-draft.md` §3 lists the exported
 texts S4 changes; C5′'s (item 3) and etcdstart's (item 2) are already in the tree. This file gives the
@@ -386,3 +386,87 @@ findings and how each is to be handled in rev 2:
 
 **Not done:** rev 2, then rounds 2 and 3. The session stopped here (its context was large; L2 and L3 need
 decisions before rev 2 can be written).
+
+## 8. Rev 2: stopped at the L1 hard stop (2026-11-16)
+
+Rev 2 began with the driver's proof sketch, as decided. It stopped before any text changed: **the L1 premise
+(the member installs no snapshot) cannot be discharged by the driver.** Nothing in §1–§5 has changed since rev 1.
+K1, C1, C2 (D-h), C3 (D-i), R1, R2 and the second-tier items do not depend on L1 and are ready to apply on resume.
+
+### 8.1 L1: why the driver cannot discharge "no snapshot install"
+
+- **Go.** No member installs a snapshot in the program's runs. A follower installs one only when the leader sends
+  `MsgSnap`, and raft's `maybeSendAppend` sends one only if the follower's next entries are compacted from the
+  leader's storage. With `NoSnapCatchUp = 2^48`, `compactRaftLog` compacts to `compactIdx snapi 2^48 = 1` while
+  `snapi ≤ 2^48` (`Spec/.../EtcdServer__compactRaftLog.lean`), and every follower's `Next` is at least 2 after
+  bootstrap. So the claim holds as long as the log stays below 2^48 entries, which the theorem's `n + 2 ≤ 2^28`
+  steps ensure. Without a bound on steps it is false: a follower that lags 2^48 entries gets a snapshot.
+- **The proofs today.** Nothing in them excludes an install:
+  - raft's queued-message certificate admits any `MsgSnap` whose snapshot is certified (`qCert`,
+    `InvRawnodeReady.lean:548`);
+  - the raft-level no-snapshot mode `RaftNames.reNoSnap` ("leaders' progress stays at `Next ≥ 2`, storage's first
+    index at most 2") was dropped at raft's level (U8 v2; `UniNames.noSnap : γ.raft.reNoSnap = false`);
+  - etcd creates a certified raft snapshot every `SnapshotCount` (= `DefaultSnapshotCount`) applied entries. The
+    log length is unbounded in the logic: elections add entries, and no time receipt is tied to log indices.
+  - auth3's results say the same: "the proof covers snapshot installs … but this run never reaches one".
+- **What discharging it needs** (none of it is driver work):
+  - (i) a raft fact: no `MsgSnap` while the storage's first index is at most 2 and every follower's `Next ≥ 2`.
+    This is the dropped mode's invariant, now as a raft API fact.
+  - (ii) etcd's compaction at index 1 only while `snapi ≤ 2^48`, which `compactRaftLog.spec` already gives.
+  - (iii) a bound `< 2^48` on log indices, from time receipts (`receiptBound GF ≤ 2^48` is already fixed by the
+    adequacy theorem, `etcdstart`'s `Hrb48`), so raft's log append would have to carry a receipt per index.
+  - (iv) a server-level mode or fact that carries (i)–(iii) to the per-member law.
+  This is a change to raft's API and invariant (sealed package, `etc/api/raft.txt`) plus a server-level mode.
+  Estimate: 5–10 agent-days. Uncertain: (iii) has no precedent here.
+
+### 8.2 Options (to etcd-grove-02 / the user)
+
+1. **Cluster-level no-install fact** (8.1 (i)–(iv)). It keeps the approved program and the law as decided (L1).
+   Cost 5–10 days, and a raft API change.
+2. **The law weakened in a restore window** (review r1's alternative). It is true at every member. The driver
+   cannot exclude a restore, so checks 3–5's lessor-side refusals (`TimeToLive` with keys, `Leases`, for `u` and
+   `v`) become unprovable. That is Draft §8's fallback: run but not panic-checked. It changes the approved program
+   (D1), and it goes to the user.
+3. **A different program.** The withdrawn fallback, or a program whose lessor-side checks are asked where no
+   install can occur. No candidate is known: a leader can also step down and install a snapshot.
+
+**Recommendation:** option 1 if the stage's budget allows, since it is true of Go and keeps the approved theorem.
+Otherwise option 2, to the user.
+
+### 8.3 L2 and L3 under the sketch: a lighter realization of (a) (for review with the L1 decision)
+
+The driver's sketch found that the client already holds a view of the lease-key history. A KV state
+`σ : KVState` keeps every revision's changes (`σ.changes`, `σ.at r`), and each key-value carries its lease, so
+`mvcc.leaseItemsOf (σ.at r).kvs` is the item map at every revision. The client half `etcdKV γk σ` is that view.
+Every change of it needs its holder's update (`kvAu1G`), and the driver keeps it in a cell (its invariant), as
+`authHistCell` does. So (a) needs no new server ghost state (no `γk.lhist`, no new per-write update):
+
+```lean
+/-- `k` is on the lease `id` at every revision of `σ` from `r₀` on. -/
+def leaseKeptIn (σ : KVState) (r₀ : Nat) (id : w64) (k : GoString) : Prop :=
+  r₀ ≤ σ.rev ∧ ∀ r, r₀ ≤ r → r ≤ σ.rev → (mvcc.leaseItemsOf (σ.at r).kvs).lookup ⟨k⟩ = some id
+-- the law's conclusion (replacing §5.2's ∃ A … leaseHeldThrough):
+--   ∃ m, lessorLb γl m ∗ □ ∀ i σl, ⌜m ≤ i⌝ -∗ lessorAt γl i σl -∗
+--     ∀ σ, etcdKV γr.kv σ ={E}=∗ etcdKV γr.kv σ ∗ ⌜leaseKeptIn σ (readRev log) id k → lsHolds σl id k⌝
+```
+
+- **The sketch** (checks 3–5):
+  - The driver's cell holds `etcdKV σ` with `leaseKeptIn σ r_put Lz z/lease`, and the same for `(Lu, a/lease)`
+    until it issues the final revocation.
+  - Every update it hands out keeps the cell:
+    - a re-delivered `Put(z/lease, Lz)` keeps the pair;
+    - `u`'s `Revoke(Lz)` and leased `Put(a/x, Lz)` are refuted at their commit. The grant, told at `u`'s token
+      (C1), needs write on `z/lease`, which `u` lacks;
+    - `v`'s `Revoke(Lu)` is refuted the same way.
+  - `r_put ≤` barrier 2's read revision, by the floors.
+  - At a check's reply, the driver opens the cell and applies the law. The result is `lsHolds` at every index
+    `≥ m`, which is the probe's `leaseHoldsFrom`, so `leaseKeysVerdict_refused` refutes the passed verdict.
+  - Checks 1–2 and the end checks do not use the law. They use C1, C2 (D-h), R1 and K1 as dispositioned.
+- **L3:** the hypothesis is in `KVState` terms, which both modes' models produce. So the law is stated over
+  `isServerReadM E.authOn` with no `hon` and no literal. At auth off the same Go argument holds over the off model. Where `kvInv` holds the whole state (a granting
+  cluster), the premise `etcdKV σ` is contradictory, so the law holds there trivially. To be checked in the proof.
+- **Proof obligations this adds:**
+  - liveness from the items: in the model, an attached key's lease is live, because a revocation deletes its keys
+    at a revision and a put on a dead lease is refused;
+  - the state at a committed prefix is a revision-prefix of the state `etcdKV` holds.
+  Both are model or server lemmas.

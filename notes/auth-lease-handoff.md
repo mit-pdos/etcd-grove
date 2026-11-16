@@ -1,37 +1,36 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16)
+## START HERE (S4, 2026-11-16, rev 2 stopped)
 
-- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`, off lean `6a63774988`, authN landed). S0–S3c on lean.
-- **Stage S4**: `etcd_authlease_safe` for `k` members; Draft `notes/auth-lease-s4-draft.md` (statement §2 APPROVED by
-  the user, D1–D9 decided, §7 the work order). Decisions and forms: `questions.md` (untracked), "auth-lease S4".
-- **Done:** item 0 Draft + Go `examples/etcd/authlease/` (`5baacbd07a`, `647aadf78b`); item 2 auth start at a lease
-  mode (`7b126d3e4e`, forms ACCEPTED by etcd-grove-02); item 3 the C5′ merge (D5; `2bddb5967a`:
-  off contracts `raftLessor`/`lessorGrantOk(G)`/`lessorRevokeOk` and their `_false` bridges deleted; the seven
-  client results at `v3rpc.raftLessorM E.authOn s E ρ S`, the two handler results with `hoff : E.authOn = false`;
-  `lessorGrantOkL(_server)` → `lessorGrantOkLM(_server)`; mode baseline 453 → 448; forms in `questions.md`).
-- **Item 4 (Freeze package) drafted:** `notes/auth-lease-s4-freeze.md` (texts old → new, Go evidence, §0 departures
-  from Draft §3: D-a–D-g; F4 the `ErrLeaseNotFound` arms; §5 the per-member law and its fallback). Texts type-checked in
-  `Scratch/S4Freeze.lean` (untracked; copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`; `etc/lean-check.py -a`: 0 errors).
-  Review round 1 (`/shared/tmp/auth-lease-s4/freeze-review-r1.md`): 12 first-tier findings, dispositions in the Freeze
-  file §7, NOT applied yet (rev 2 pending: K1, C1–C3, R1–R2, L1 mechanical-ish; L2, L3 need decisions).
-- **Next, in order:** etcd-grove-02's decisions on L2 (lease-item history view, rec. (a)), L3 (mode form, user),
-  D-h/D-i; rev 2 of the Freeze; review rounds 2–3; then items 5–10 (Draft §7), with the Freeze's
-  internal forms (§1.5 `kvDepPre` at the lease mode, §4.4 `leaseTTLOut`/`leaseLeasesOut`, §5.4 `lessorFollows`).
-- **Open decisions:** the Freeze's §6 and §7 (L2, L3, D-h, D-i); item 3's forms (in `questions.md`).
-- **Token:** `authlease-3354335` (ports 16000/17000); search `/shared/tmp/auth-lease-s4/tokensearch/` (`go run . authlease 16000`).
+- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). S0–S3c on lean. Draft `notes/auth-lease-s4-draft.md`
+  (statement approved). Decisions: `questions.md` (untracked), "auth-lease S4", "S4 Freeze r1 decisions", "S4 Freeze rev 2: L1 stop".
+- **Done:** item 0 Draft and Go (`5baacbd07a`, `647aadf78b`); item 2 (`7b126d3e4e`); item 3, the C5′ merge (`2bddb5967a`);
+  item 4, the Freeze rev 1 and review r1 (`c4f188d250`).
+- **Rev 2: HARD STOP at L1** (Freeze §8). The per-member law needs "the member installs no snapshot". The driver
+  cannot discharge it: raft's proof admits any certified `MsgSnap` (the `reNoSnap` mode was dropped at raft's level),
+  and the log length has no in-logic bound below `NoSnapCatchUp = 2^48`. Options are in §8.2: (1) a cluster-level
+  no-install fact (raft API change plus a receipt bound on indices, 5–10 days, recommended), or (2) Draft §8's
+  fallback (changes D1, to the user).
+- **Found with the sketch (§8.3):** L2's (a) needs no new ghost. The client's `etcdKV σ` already records each key's
+  lease at every revision (`σ.at r`), so the law takes `leaseKeptIn σ r₀ id k`, which also makes L3 mode-generic.
+  This is for review with the L1 decision.
+- **Next on resume, in order:**
+  1. the L1 decision;
+  2. apply K1, C1, C2 (D-h), C3 (D-i), R1, R2 and the second tier (all independent of L1) to `Scratch/S4Freeze.lean`
+     (copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`) and the Freeze file;
+  3. restate §5 by §8.3, as the L1 decision has it;
+  4. run `etc/lean-check.py -a`;
+  5. review rounds r2–r3 (`/shared/tmp/auth-lease-s4/freeze-review-r{2,3}.md`);
+  6. items 5–10.
+- **Token:** `authlease-3354335` (ports 16000/17000).
 - **Pitfalls:**
   - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
-    --packages=/shared/tmp/manifest-e9e.json build …` (logs `/shared/tmp/auth-lease-s4/*.log`); `etc/gates.sh` only under
-    `flock /shared/tmp/etcd-grove-full-build.lock`. Rebuild scope: `etc/importers.py --git <rev> --leaves`.
-  - The lease contracts are only `…M` now: an auth-off user rewrites `E.authOn` to `false` (`rw [hoff]`) before
-    `iintro`, then uses `raftLessorM_grantG false`/`raftLessorM_revoke false` and the handler specs at `false`.
-  - Ports 20000–21999 are taken by another session's `k8setcd3.test`; `restartN` and `authN` share 29000/30000.
-  - Go: `GOWORK=off`, `PATH=/usr/local/go/bin:$HOME/go/bin:$PATH`, under `systemd-run --scope -q -p MemoryMax=32G`;
-    `AUTHLEASE_MEMBERS=k` fixes `TestMainRun`'s member count.
-  - The lessor-side refusals (`TimeToLive` with keys, `Leases`) need the per-member lessor law (Draft §4.3, §8 risk 1);
-    probe `Scratch/S4Probe.lean` (untracked; copy in `/shared/tmp/auth-lease-s4/`).
-  - Mode gate: write `E.authOn` + `hon`, never a literal `true`, in the new package (no new baseline line).
+    --packages=/shared/tmp/manifest-e9e.json build …`. Run `etc/gates.sh` only under
+    `flock /shared/tmp/etcd-grove-full-build.lock`.
+  - Check: `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json etc/lean-check.py -a Scratch/S4Freeze.lean`.
+  - Auth-off lease users: `rw [hoff]` before `iintro`, then `raftLessorM_grantG false` / `raftLessorM_revoke false`.
+  - Mode gate: no literal `true` in the new package (L3).
+  - Ports 20000–21999 belong to another session.
 
 # History
 
