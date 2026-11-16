@@ -7,8 +7,10 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/cache 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compacted 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/lease 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leaseN 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/partition 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/putget 1
@@ -33,8 +35,10 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/cache 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compacted 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/lease 2
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leaseN 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry 2
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/partition 7
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/putget 2
