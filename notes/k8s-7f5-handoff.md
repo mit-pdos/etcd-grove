@@ -3,8 +3,32 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, third 7f-5b agent): H2 applied; step 1 done; step 3 in part (serial, processEvents, Stop, ResultChan)
+## START HERE (2026-11-16, fourth 7f-5b agent): run, createWatchChan PROVED; watcher.Watch next
 
+- **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Done (this session, all unlinked, lean-check clean without --fast):** `d1c5ec30d4` `watchChan.run` (spec: Draft §4 with
+  store.Watch's six-part read law; `rwg` init/Add_top/Wait, broadcast `watchClosedCh`, `kRes_close_au`). `33971175af`
+  `watcher.createWatchChan` (spec: `kWcCons … ∗ initialRev ↦ rev ∗ kProdSt ∗ prodEx ∗ kProcSt … 1 ∗ spscConsumer γ.res [] ∗
+  kLive`, any `m Q`); WatchCons: `kWatch_alloc` (all the watch's ghost state after `WithCancel`), `clientWatchOk_ctxErr`
+  (wc.ctx's `ctxErrClient` from the client watcher's facts); **storeWatchOk gains `∃ ot, watcher.objectType ↦□ ot`** (the
+  loggers read it; New's post must give it, plan step 5) — forms listed in questions.md (fourth agent).
+- **Next, in order:** `watcher.Watch` (Go `watcher.go:142-163`: HasSuffix check, getStartWatchResourceVersion with `R` from
+  `store.GetCurrentResourceVersion.spec` (its `Q R m := fun _ => Q 0`-style, see startWatching's use at its line ~367),
+  createWatchChan, `go wc.run(isInitialEventsEndBookmarkRequired, areInitialEventsRequired)` (= `kModeOf`'s bmReq/forceInit),
+  `flowcontrol.WatchInitialized` (needs `context.valueAt` of the init-signal key: from `k8sCtxOk`), post `k8sWatch` from
+  `watchChan.Stop/ResultChan.spec` + `kResChan_isSpsc`); `store.Watch` (prepareKey, `ParseResourceVersion` via `versionerOk`,
+  `watchContext` over `WithRequireLeader.spec` + `WithRequireLeaderLaws` (`isContext_of_post`), `watchCtx_of_isContext`);
+  then Draft step 4 (concurrent), step 5 (link list, Results, land-stop checks).
+- **Pitfalls:** after `cases emp`, a bare `emp` is BI `emp` (write `false`/`true`). `kInElem γ` vs a structure-updated γ:
+  not unified by `iexact`; prove `kInElem γ = kInElem γ'` by `unfold …; rfl` and `rw`. A `wp_apply` may run to the
+  function's end: `iapply wp_fupd` BEFORE the last call if you need `ipersist`/`imod` at the end. `iunfold context.cancelSpec`
+  before `iapply` of a cancel. Go locals captured by a goroutine: `ipersist` them before `wp_fork_tok`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...`; lean-check
+  `--max-open 2`, `--stop` before builds. A WatchDefs edit rebuilds WatchCons' chain in lean-check in ~1 min.
+
+## History (older START HERE sections, newest first; the commits say the rest)
+
+### START HERE (2026-11-16, third 7f-5b agent)
 - **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
 - **Done (this session):** H2 (a)+(b) applied `e6ad966eac` (fields.Everything.spec, `storageInit` + `everythingOk`,
   gen-init SPECIAL, Init regenerated). `740fc6ce26`: H2 (c) `selPredOkW` (SelDefs; filter/acceptAll/prepareObjs/
@@ -28,7 +52,6 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...` (common-rules'
   last section); lean-check `--max-open 2`, `--stop` before builds. A SelDefs/WatchDefs edit rebuilds all etcd3.
 
-## History (older START HERE sections, newest first; the commits say the rest)
 
 ### START HERE (2026-11-16, second 7f-5b agent, end of context): H1 applied; H2 texts reviewed, awaiting 02
 
