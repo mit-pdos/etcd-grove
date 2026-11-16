@@ -333,7 +333,7 @@ theorem walsOk_moved {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
   obtain ⟨lay, nm', hj, hl, hia, hjr, hnm, hwd, hab, hco⟩ := hw dir' d' hd'
   have hjne := hA.ne hl
   refine ⟨lay, nm', hj, hl, hia, hjr, hnm, (walDirClaim_moved (hA.ne hl)).2 hwd, hab,
-    hco.1, crashOkW_moved H hco.2 hjr hjne ?_⟩
+    hco.1, crashOkW_moved H hco.2.1 hjr hjne ?_, hco.2.2⟩
   by_cases hdd : dir' = dir
   · subst hdd
     left

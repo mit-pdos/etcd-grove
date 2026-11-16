@@ -199,7 +199,10 @@ theorem walsOk_syncIdle {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, hcr⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       rw [e] at hjr hnm hc habs hcr
-      obtain ⟨⟨e0, hF⟩, -⟩ := hcr
+      obtain ⟨⟨e0, hF⟩, -, hz⟩ := hcr
+      have hzS : SegsZf (lay.pg ++ (syncLay lay pre g0).segs.dropLast) := by
+        have e : (syncLay lay pre g0).segs.dropLast = lay.segs.dropLast := by simp [syncLay, hs]
+        rw [e]; exact hz
       have hnd := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
       have hsF : (unpurge lay.pg lay).segs = (lay.pg ++ pre) ++ [g0] := by simp [hs]
       refine ⟨syncLay lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
@@ -210,7 +213,7 @@ theorem walsOk_syncIdle {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       exact ⟨⟨e0, walAbsD_syncIdle (d := walFullD d lay.pg lay) hF hsF hex hid.2.1⟩,
         ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
           (crashOk_syncIdle (d := walFullD d lay.pg lay) hF hsF hex
-            ((tailSynced_unpurge _ habs.nonempty).2 hid.synced) hnd hok)⟩⟩
+            ((tailSynced_unpurge _ habs.nonempty).2 hid.synced) hnd hok)⟩, hzS⟩
     · obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
   · have e : dir' ≠ dir := by rintro rfl; rw [hd] at hn; cases hn

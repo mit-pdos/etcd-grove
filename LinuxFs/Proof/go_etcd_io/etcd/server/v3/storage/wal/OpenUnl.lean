@@ -52,7 +52,7 @@ theorem walFullOk_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     {cl : List Claim} {n : Nat} (u : Nat) (h : WalFullOk C Mr d lay cl n) :
     WalFullOk C Mr { d with unl := u } lay cl n :=
   ⟨let ⟨e, ha⟩ := h.1; ⟨e, walAbsD_unl (d := walFullD d lay.pg lay) u ha⟩,
-    crashOkW_unl (d := walFullD d lay.pg lay) u h.2⟩
+    crashOkW_unl (d := walFullD d lay.pg lay) u h.2.1, h.2.2⟩
 
 theorem tailBound_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} (u : Nat)
     (h : TailBound C Mr d lay) : TailBound C Mr { d with unl := u } lay := h.congr rfl rfl

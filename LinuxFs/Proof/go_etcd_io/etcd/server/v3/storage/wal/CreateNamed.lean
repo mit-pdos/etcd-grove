@@ -78,14 +78,14 @@ theorem crashOkW_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
 theorem walFullOk_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (h : WalFullOk C Mr d lay cl n0) :
     WalFullOk C Mr d lay cl n :=
-  ⟨h.1, crashOkW_mono hn h.2⟩
+  ⟨h.1, crashOkW_mono hn h.2.1, h.2.2⟩
 
 /-- `WalFullOk` with `named` raised (as `crashOkW_named`). -/
 theorem walFullOk_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (hok : WalFullOk C Mr d lay cl n0)
     (hname : ∀ m', RegionCrashed cl n m' → ∃ J, m'.entry lay.jr lay.nm = some (.dir J)) :
     WalFullOk C Mr { d with named := true } lay cl n :=
-  ⟨let ⟨e, ha⟩ := hok.1; ⟨e, walAbsD_named true ha⟩, crashOkW_named hn hok.2 hname⟩
+  ⟨let ⟨e, ha⟩ := hok.1; ⟨e, walAbsD_named true ha⟩, crashOkW_named hn hok.2.1 hname, hok.2.2⟩
 
 /-- **The invariant's pure facts at a bigger commit bound.** -/
 theorem walsOk_mono {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}

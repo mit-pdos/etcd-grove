@@ -522,11 +522,14 @@ theorem walFullOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     (hlen : g.bs.length = g0.bs.length)
     (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (hok : WalFullOk C Mr d lay cl n) : WalFullOk C Mr d (tailLay lay pre g wr') cl n := by
-  obtain ⟨⟨e0, hF⟩, hcr⟩ := hok
+  obtain ⟨⟨e0, hF⟩, hcr, hz⟩ := hok
   have hF' := walAbsD_full_tail habs hF habs' hs hino hname hnd rfl rfl (Nat.le_refl _)
   unfold WalFullOk
   simp only [tailLay_pg]
-  refine ⟨⟨e0, hF'⟩, ?_⟩
+  refine ⟨⟨e0, hF'⟩, ?_, by
+    have e : (tailLay lay pre g wr').segs.dropLast = lay.segs.dropLast := by
+      simp [tailLay, hs]
+    rw [e]; exact hz⟩
   rw [← tailLay_unpurge] at hF' ⊢
   exact crashOkW_tail hC hF hF' hZ hB hnd (by simp [hs]) hino hlen hzf hcr
 

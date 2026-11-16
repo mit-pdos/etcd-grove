@@ -93,12 +93,12 @@ theorem walsOk_append {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
   · by_cases e : dir' = dir
     · subst e
       rw [walAppS_lookup] at hd'; cases hd'
-      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, ⟨⟨e0, hF⟩, -⟩⟩ := h1 dir' d hd
+      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, ⟨⟨e0, hF⟩, -, hz⟩⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       subst e
       exact ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, walAbsD_snoc o habs (fun _ => hZ) hfit,
         ⟨e0, walAbsD_snoc (d := walFullD d lay1.pg lay1) o hF (fun _ => hZ) hfit⟩,
-        crashOkW_of_crashOk (crashOk_snoc (d := walFullD d lay1.pg lay1) o hok)⟩
+        crashOkW_of_crashOk (crashOk_snoc (d := walFullD d lay1.pg lay1) o hok), hz⟩
     · rw [walAppS_lookup_ne s dir d o e] at hd'
       exact h1 dir' d' hd'
   · have e : dir' ≠ dir := by rintro rfl; rw [walAppS_lookup] at hn; cases hn

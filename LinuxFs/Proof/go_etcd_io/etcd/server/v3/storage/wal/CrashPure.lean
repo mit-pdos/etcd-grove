@@ -475,7 +475,7 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         (∀ s ∈ g.om.rz, s ∈ f.rzs) ∧ ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c)
     (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
     ∃ o, CrashGood C Mr jr s Ls m' st' dir d o := by
-  obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, -, ⟨ents0, habs⟩, alt, halt, hcok⟩ := hok.1 dir d hd
+  obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, -, ⟨ents0, habs⟩, ⟨alt, halt, hcok⟩, -⟩ := hok.1 dir d hd
   -- the crash condition is the full layout's (the segments removed since the last directory sync back)
   have hf : ∀ g ∈ (unpurge lay.pg lay).segs, _ := fun g hg => hfiles g (mem_segsAll_all hLs hg)
   have hw1G := w1G_of_W1 C st st' m' (unpurge lay.pg lay) (segRzOf (unpurge lay.pg lay)) hw1 htree
@@ -550,7 +550,7 @@ def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDi
   (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → m.entry jr nm = none) ∧
   (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J)) ∧
   (∀ dir lay, Ls !! dir = some lay → SegsNamed lay.segs (entsOf m lay.j)) ∧
-  (∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr ∧ lay.pg = [])
+  (∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr ∧ lay.pg = [] ∧ SegsZf lay.segs)
 
 /-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
 the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
@@ -676,10 +676,16 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
   · -- no WAL's directory is the area's (the crash keeps each layout's directory)
     intro dir lay' h
     obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay' h
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hn⟩ := (hF dir d hd).2.2 d' lay' hFd
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hi, hn⟩ := (hF dir d hd).2.2 d' lay' hFd
     obtain ⟨lay, -, -, hLs, -⟩ := hok.1 dir d hd
     rw [(hn lay hLs).1]
-    exact ⟨hjne dir lay hLs, (hn lay hLs).2.1⟩
+    refine ⟨hjne dir lay hLs, (hn lay hLs).2.1, fun g hg z hz => ?_⟩
+    -- the crash's segments are their files' images (`initMeta`): zeros known from the last page's end
+    obtain ⟨-, f, -, hom, -⟩ := hi g hg
+    rw [hom] at hz ⊢
+    simp only [initMeta, Option.some.injEq] at hz ⊢
+    subst hz
+    exact le_pageEnd _
   · refine segsAll_nodup_sub hok.2.2.1 (fun dir lay h => ?_)
     obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay h
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, h5, -, hn⟩ := (hF dir d hd).2.2 d' lay hFd

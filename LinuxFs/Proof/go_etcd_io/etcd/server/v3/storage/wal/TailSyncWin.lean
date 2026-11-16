@@ -392,7 +392,10 @@ theorem walsOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
       obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, hcr⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       rw [e] at hjr hnm hc habs hcr
-      obtain ⟨⟨e0, hF⟩, -⟩ := hcr
+      obtain ⟨⟨e0, hF⟩, -, hz⟩ := hcr
+      have hzS : SegsZf (lay.pg ++ (syncLayW lay pre g0).segs.dropLast) := by
+        have e : (syncLayW lay pre g0).segs.dropLast = lay.segs.dropLast := by simp [syncLayW, syncLay, hs]
+        rw [e]; exact hz
       have hnd := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
       have hsF : (unpurge lay.pg lay).segs = (lay.pg ++ pre) ++ [g0] := by simp [hs]
       refine ⟨syncLayW lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
@@ -402,7 +405,7 @@ theorem walsOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
       rw [← syncLayW_unpurge]
       exact ⟨⟨e0, walAbsD_syncW (d := walFullD d lay.pg lay) hF hsF hx htail hwz⟩,
         ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
-          (crashOk_syncW (d := walFullD d lay.pg lay) hC hF hsF hx htail hZ hwz hnd hzf hok)⟩⟩
+          (crashOk_syncW (d := walFullD d lay.pg lay) hC hF hsF hx htail hZ hwz hnd hzf hok)⟩, hzS⟩
     · rw [walSyncS_lookup_ne s dir d e] at hd'
       obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩

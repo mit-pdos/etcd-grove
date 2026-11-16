@@ -547,7 +547,15 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       subst hd'
       refine ⟨lay, nm, hJ, GMap.lookup_insert_eq .., hin, hlay.1, hlay.2.1,
         ⟨X, hX, hlay.2.2 ▸ mem_createClaims_J, hlay.2.2 ▸ hJcoh⟩, habs,
-        walFullOk_of_nil hpg habs (crashOkW_of_crashOk ?_)⟩
+        walFullOk_of_nil hpg habs ?_ (crashOkW_of_crashOk ?_)⟩
+      · -- a fresh WAL has one segment: none before the last
+        intro g' hg'
+        have h1 := habs.cuts_le
+        have h2 := habs.cuts.2.2
+        have hH : (walDurFresh md).H.length = 0 := by simp [walDurFresh]
+        have := List.length_pos_of_mem hg'
+        rw [List.length_dropLast] at this
+        omega
       exact crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hex hdur htail hold0 hz hgone
     · simp only [createSt, GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hd'
       obtain ⟨lay', nm', hj', hL', hin', hjr', hnm', hW, habs', hco'⟩ := h1 dir' d' hd'
@@ -556,8 +564,8 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
         (Nat.le_trans hs hsx) htw hnw
       refine ⟨lay', nm', hj'', by rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hL', hin',
         hjr', hnm', hW', habs'', ?_⟩
-      exact ⟨hco'.1, crashOkW_create_other hco'.2 hjr' (hnm' ▸ inArea_ne hin hin' hdd)
-        (hnm' ▸ not_inArea_tmp hin' htmp) hc hcoh hs hne hnmN htmpN hcnm' hctmp hothers htw hnw⟩
+      exact ⟨hco'.1, crashOkW_create_other hco'.2.1 hjr' (hnm' ▸ inArea_ne hin hin' hdd)
+        (hnm' ▸ not_inArea_tmp hin' htmp) hc hcoh hs hne hnmN htmpN hcnm' hctmp hothers htw hnw, hco'.2.2⟩
   · have hdd : dir' ≠ dir := by
       rintro rfl; simp [createSt, GMap.lookup_insert_eq] at hn'
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]

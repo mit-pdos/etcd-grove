@@ -102,12 +102,14 @@ theorem walsOk_tailA {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       rw [e] at hjr hnm hc habs hcr
       have hnd := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
-      obtain ⟨⟨e0, hF⟩, hcrF⟩ := hcr
+      obtain ⟨⟨e0, hF⟩, hcrF, hz⟩ := hcr
       have hF' := walAbsD_full_tail habs hF (habs' _ habs) hs hino hname hnd rfl rfl (Nat.le_refl _)
       refine ⟨tailLay lay pre g wr', nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc, habs' _ habs, ?_⟩
       unfold WalFullOk
       simp only [tailLay_pg]
-      refine ⟨⟨e0, hF'⟩, ?_⟩
+      refine ⟨⟨e0, hF'⟩, ?_, by
+        have e : (tailLay lay pre g wr').segs.dropLast = lay.segs.dropLast := by simp [tailLay, hs]
+        rw [e]; exact hz⟩
       rw [← tailLay_unpurge]
       exact crashOkW_tailA hnd (by simp [hs]) (hstep e0 hF hnd) hcrF
     · obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'

@@ -57,7 +57,7 @@ theorem dirKeysOk_cutSynced {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : I
     rw [he, hl] at hl'
     cases hl'
     obtain ⟨lay1, nmA, hjA, hl1, hinA, hjrA, hnmA, hwdA, habs, hfo⟩ := hok.1 dir d hd
-    obtain ⟨-, alt, halt, hcr⟩ := hfo
+    obtain ⟨-, ⟨alt, halt, hcr⟩, -⟩ := hfo
     rw [hl] at hl1
     cases hl1
     have hg0F : (unpurge lay.pg lay).segs.getLast? = some g0 := by

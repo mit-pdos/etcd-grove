@@ -416,7 +416,9 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     have hjc := hc _ hjm
     simp only at hjc
     refine ⟨lay, nm, hj, hL, hin, hjr, hnm, ⟨walTmps, walTmps_not_wal, hjm, ?_⟩, ?_,
-      walFullOk_of_nil (hst.2.2.2.2.2 dir lay hL).2 habs (crashOkW_of_crashOk ?_)⟩
+      walFullOk_of_nil (hst.2.2.2.2.2 dir lay hL).2.1 habs
+        ((hst.2.2.2.2.2 dir lay hL).2.2.mono (fun g hg => (List.dropLast_sublist _).subset hg))
+        (crashOkW_of_crashOk ?_)⟩
     · exact claimCoh_init _ _ _ (by rw [hjc]) (fun b _ => by rw [hjc])
     · rw [hjc]; exact walAbsD_restrictTmps habs
     · refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
@@ -446,7 +448,7 @@ theorem crashOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (
   intro dir d lay0 hd hL0
   obtain ⟨lay, nm, hL, hin, hjr, hnm, he, habs, hfit, h1, h2, h3, hlast⟩ := hst.1 dir d hd
   rw [show lay0 = lay from Option.some.inj (hL0.symm.trans hL)]
-  have hpg := (hst.2.2.2.2.2 dir lay hL).2
+  have hpg := (hst.2.2.2.2.2 dir lay hL).2.1
   rw [hpg, unpurge_nil hpg, walFullD_nil habs.cut.1]
   obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
   have hjc := hc _ hjm
@@ -480,7 +482,7 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   obtain ⟨lay', nm, hL', hin, -, -, he, ha, -⟩ := hst.1 dir d hd
   rw [hL] at hL'; cases hL'
   obtain ⟨h, hjm⟩ := hdirs nm lay.j hin.1 he
-  rw [(hst.2.2.2.2.2 dir lay hL).2, List.nil_append]
+  rw [(hst.2.2.2.2.2 dir lay hL).2.1, List.nil_append]
   refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_⟩
   · have e := hc _ hm
     simp only at e
@@ -681,7 +683,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt, %Har, Hfs, %Hp⟩
   obtain ⟨-, -, hnd, hstart, hsegs⟩ := Hp
   have hpg0 : ∀ dir lay, Ls !! dir = some lay → lay.pg = [] := fun dir lay hl =>
-    (hstart.2.2.2.2.2 dir lay hl).2
+    (hstart.2.2.2.2.2 dir lay hl).2.1
   ihave Hoth := Hoth $$ %Ls %hstart
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
