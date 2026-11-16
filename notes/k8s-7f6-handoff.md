@@ -1,35 +1,40 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, fourth 7f-6 agent): stage D in progress (consume next)
+## START HERE (2026-11-16, fifth 7f-6 agent): stage D done, at its land stop
 
-- **Branch:** `k8s-7f6` (lean `8448906500` + D commits). Go target `k8s-7f6-target` `88a1646324`
-  (lean's B1 split + D's Go; watch tests pass). Scratch worktree of it: `/shared/tmp/k8s7f6d/target`.
-- **Done:** D's Go + translation (dfc8fc428d); the annAt change (f969619c10, ledger 2026-11-16 "the
-  watch's annotated object...", decided by etcd-grove-02): `WatchSpec GF Obj` with `annAt`, every
-  binder `WatchSpec GF Obj`, 7f-5's proofs unchanged, etcd3 store `Results` builds (no etcd3 API list,
-  so no interface files); `WRun.lean` (`driverW`, `watchOptsV`, `predOk_driverW`, `lastObjL`,
-  `dobj_countable`, `doneTok`/`donePD`, `kCancelled_refute`, `kSeen`, `kStopOk`,
-  `monoList_idxs_agree`); proved: `watchOptions` (returns the cell owned, `sendInitOwn`: persist it in
-  `watchEvents`), `toWEvent` (`kWEvRel`), `encodeWEvents` (`encWEventsL`, no premise), `lastObj`;
-  `consume.spec` and the select helpers `wp_select_bag_bag`/`wp_select_bag_spsc` (`consume.lean`).
-- **Next, in order:** `consume.wp_proof` (callees: `toWEvent`, `time.NewTimer`/`After`/`Timer.Stop`;
-  loop invariant: received `recv`, `kes`, `wes`, slice `sl ↦* ws` + cap, `Forall₂ kWEvRel`,
-  `[∗list] idx γ.evs kes`, `kSeen kes`, `spscConsumer γ.res recv`, `kLive`, `doneTok`; per element:
-  `monoList_idxs_agree` makes the element's prefix `kes`, `kCancelled_refute` drops its cancellation
-  branch); then `watchEvents` (WithCancel(Background()) with `PDone' := donePD γd`, `doneTok` from
-  `dghostVar_alloc`, `outgoingCtxOkC_bgFrom`/`k8sCtxOk_bgFrom`/`ctxErrClient`, `store.Watch.spec`,
-  consume, Stop with `kLive`, `dghostVar_persist` the token, cancel), `runWatch`; link list; land stop.
-- **Stage E obligations from B:** still open (History, third agent).
-- **Pitfalls:** lean-check stalls at "elaborating line 1" on `consume.lean` even with its imports built
-  (twice, ~10 min each; `lake build` of the file takes ~1 min): iterate with lake builds there.
-  `wp_start as H` (not a ⟨Hpkg, H⟩ pattern: wp_start extracts isPkgInit); `iunfold X at H` for
-  hypotheses; a returned fresh cell cannot be persisted at `Φ` (no update there): return it owned.
-  `wp_if_destruct` on `#!decide P` gives the `P` branch first.
+- **Branch:** `k8s-7f6` (lean `3a0a47deb1` merged, `a7c843fab8`). Go target `k8s-7f6-target`
+  `88a1646324`. Decisions: worktree `questions.md` (untracked; annAt and D forms ACCEPTED).
+- **Done (D):** Go + translation (dfc8fc428d); annAt (f969619c10); `WRun.lean`, `watchOptions`,
+  `toWEvent`, `encodeWEvents`, `lastObj` (1702ae42de, c651ec6b1f, 6b2fe2f294); `consume.wp_proof`
+  (8981aeebbf); `watchEvents`/`runWatch` specs and proofs over `store.Watch.spec`, and the whole watch
+  run linked in the driver's `Link` (`etc/link-lean-first-k8setcd3.txt`, 5cef7d43b5). Nothing linked
+  calls `runWatch` yet: no closed statement moved.
+- **Specs (internal, forms):** `watchEvents.spec`: store.Watch's premises with `opts := watchOptsV x p`
+  (key, parsed `MinRV`), pre `isStore`, `storeWatchOk sp c driverW γk`, feature gates, `Q`'s updates;
+  post `failed → sieOfL x = some false ∧ n = 0`, else `wevsOwnM sl wes`, `Forall₂ kWEvRel kes wes`,
+  `kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive') (kModeOf (sieOfL x) x.Bookmarks' n) Q kes`.
+  `runWatch.spec`: the same premises only for `x.Skip' = false`; post `wFailedOut` (skipped or failed)
+  or `wEventsOut (encWEventsL wes)` with `lastObjL wes`.
+- **Next:** the coordinator's go for etc/land.sh (no commits while it lands); then stage E (Scope §5:
+  the wiring, `Apply`'s `KWatch` branch over `runWatch.spec`) and the stage E obligations (History).
+- **Pitfalls:** lean-check "elaborating line 1" forever = an import that does not build (here: a new
+  Spec file with an error, `isStore` must be `k8s.isStore`). `lake build` the new imports first and
+  read its errors; then lean-check works (consume.lean: ~1 min fresh, then seconds per edit).
+  `wp_if_destruct`/`wp_apply` already run `wp_auto` (a following `wp_auto` fails "no progress");
+  `wp_apply (lc := 2) f` gives `Hlc1 Hlc2` for a select; Go constants (`hiccupDuration`) need
+  `simp only [<pkg>.hiccupDuration]` before `wp_auto` sees them; a `wp_join` over a branch that
+  `return`s needs `(Q := fun v => (⌜v = executeVal⌝ ∗ …) ∨ (⌜v = returnVal #()⌝ ∗ …))`; spatial
+  hypotheses the case needs (`timer`) go in its `with [...]`; reduce `if ok = true` with
+  `rw [ite_eq_left rfl]`/`rw [ite_eq_right Bool.false_ne_true]`.
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
   lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
   `flock /shared/tmp/etcd-grove-full-build.lock`.
 
 ## History
+
+### 2026-11-16, fourth 7f-6 agent: D's Go, annAt, WRun, the leaves, consume.spec
+
+- Stopped at consume.wp_proof (done by the fifth agent); see the commits above.
 
 ### 2026-11-16, fourth 7f-6 agent: stage D started, stopped on the annotation defect (resolved)
 
