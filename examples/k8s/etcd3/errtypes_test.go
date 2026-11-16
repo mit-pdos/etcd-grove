@@ -9,13 +9,11 @@ import (
 	"testing"
 	"time"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/credentials"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
-	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
 // clientErrTys are the dynamic types (%T) of the errors etcd's client returns, as k8s 7e-1's
@@ -83,7 +81,7 @@ func errTypesOps(kc *kubernetes.Client, rng *rand.Rand, mk func() (context.Conte
 // and on a closed client. Each schedule runs in a process of its own (inChild). The claim is about
 // every run, so this is evidence, not proof.
 func TestClientErrorTypes(t *testing.T) {
-	for name, sched := range partitionSchedules() {
+	for name, sched := range partitionSchedules(3) {
 		t.Run(name, func(t *testing.T) {
 			inChild(t, "TestClientErrorTypes", name, func(t *testing.T) { clientErrorTypes(t, sched) })
 		})
@@ -91,21 +89,9 @@ func TestClientErrorTypes(t *testing.T) {
 }
 
 func clientErrorTypes(t *testing.T, sched []cluster3.Step) {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	srvs, brs, kc, ok := startCluster(3, zap.NewNop())
 	if !ok {
-		t.Fatal("StartCluster failed")
-	}
-	kc, err := kubernetes.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
-		DialTimeout:          etcdstart.DialTimeout,
-		DialKeepAliveTime:    etcdstart.KeepAliveTime,
-		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
-		Logger:               lg,
-	})
-	if err != nil {
-		t.Fatal(err)
+		t.Fatal("startCluster failed")
 	}
 	et := &errTypes{seen: map[string]int{}, ok: map[string]int{}, msgs: map[string]string{}}
 	var total time.Duration

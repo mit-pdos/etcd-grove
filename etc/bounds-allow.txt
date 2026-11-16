@@ -100,7 +100,7 @@ wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcd
 # from the bound; `GetList` -> `pagedChunks` -> `getList` carry it to the reader token they borrow with the
 # caller's `threadTok` (`getResourceSizeEstimator`). The store, the lock's owner, should take it once in
 # `isStore` (from `New`) instead of on every list call.
-spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__getList|store__pagedChunks)\.lean$  # the store's list path (7e-2): the RWMutex reader-slot bound, to move into isStore (follow-up)
+spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__getList|store__pagedChunks|store__Watch)\.lean$  # the store's list path (7e-2): the RWMutex reader-slot bound, to move into isStore (follow-up; store__Watch: its getResourceSizeEstimator, moved from the Draft 2026-11-16)
 # The k8s etcd3 driver (7e-4): `call`, `Apply` and `Check` pass the same bound on to the store's
 # `GetList` (`Main` takes it from the adequacy theorem's constants, as before); they go once the store's
 # `isStore` holds it (the follow-up above).

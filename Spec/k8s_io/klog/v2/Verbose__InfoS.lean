@@ -1,9 +1,10 @@
 /-
 `v.InfoS(msg, keysAndValues...)` (klog, names-only): structured logging, a no-op for the watcher's
-results. **Candidate trust-boundary text, NOT an axiom** (k8s 7f-5a-P, 2026-11-15): stated so that
-`blockLogger.recordWait`'s proof can take it as a callee hypothesis, as `parseEvent`'s takes
-`mvccpb.Event_EventType.StringPtr.spec`; whether it becomes an axiom (and in what form) is for
-etcd-grove-81's axiom review. Restricted to the call shape the watcher makes
+results. The trust boundary: an axiom, `Proof/k8s_io/klog/v2/Verbose__InfoS.lean` (T5-g, decided by
+etcd-grove-81 2026-11-15: a callee hypothesis of `blockLogger.recordWait`'s proof until the package's
+linking, 7f-5a-P step 7). Go evidence: `examples/premisefix/watcherctx/infos_test.go`
+(`TestKlogInfoSDisabledReturns`, `TestKlogInfoSEnabledReturns`: the call shape at `-v=0` and `-v=3`,
+adversarial strings, ints and durations, the arguments' slice unchanged). Restricted to the call shape the watcher makes
 (`block_logger.go:69-75`): keys and values whose dynamic types are `string`, `int`,
 `time.Duration` or `schema.GroupResource` (klog's text serializer formats them through
 `fmt`/`String()`, which return for these types). Lean-first (no Rocq counterpart).
