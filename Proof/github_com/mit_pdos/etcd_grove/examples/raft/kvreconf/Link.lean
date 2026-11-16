@@ -32,9 +32,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluste
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster__tick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.RandomConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.RandomConfigN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.RandomOptions
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.RandomOptionsN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica__applyConf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica__applyEntry
@@ -416,6 +419,18 @@ theorem raft_kvreconf.wp_Run [AllG GF] [KvrStor GF] :
 theorem raft_kvreconf.wp_Main :
     raft_kvreconf.Main.spec (GF := GF) (hG := hG) :=
   raft_kvreconf.Main.wp_proof raft_kvreconf.wp_RandomConfig lintest.wp_CounterClock raft_kvreconf.wp_Run raft_kvreconf.Cluster.wp_Stop
+
+theorem raft_kvreconf.wp_RandomOptionsN :
+    raft_kvreconf.RandomOptionsN.spec (GF := GF) (hG := hG) :=
+  raft_kvreconf.RandomOptionsN.wp_proof raft_kvreconf.wp_RandomOptions
+
+theorem raft_kvreconf.wp_RandomConfigN :
+    raft_kvreconf.RandomConfigN.spec (GF := GF) (hG := hG) :=
+  raft_kvreconf.RandomConfigN.wp_proof raft_kvreconf.wp_RandomOptionsN raft_kvreconf.wp_below
+
+theorem raft_kvreconf.wp_MainN :
+    raft_kvreconf.MainN.spec (GF := GF) (hG := hG) :=
+  raft_kvreconf.MainN.wp_proof raft_kvreconf.wp_RandomConfigN lintest.wp_CounterClock raft_kvreconf.wp_Run raft_kvreconf.Cluster.wp_Stop
 
 end links_hasLC
 
