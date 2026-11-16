@@ -51,6 +51,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Durabl
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.PkgTable
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Main
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.MainN
 public import Proof.runtime.Threads
 
 @[expose] public section
@@ -129,9 +130,61 @@ theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ipureintro
   rfl
 
+
+/-- `MainN`'s spec at `durableGF` (2026-11-16, kvraftN), as `kdMainSpec`. -/
+abbrev kdMainNSpec : Prop :=
+  ∀ [hG : HeapGS HasLC.hasLC durableGF] [go.Semantics]
+    [github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions],
+    raft_kvdurable.MainN.spec (GF := durableGF) (hG := hG)
+
+/-- The store's program on `k` voters, its replicas' files in `dir`: the package's initialization,
+then `MainN(dir, k)`. -/
+def kvdurableProgramN [GoSemanticsFunctions] (dir : GoString) (k : Nat) : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.MainN) #dir #(W64 (k : Int))
+
+/-- **Porcupine never rejects the durable store's trace on `k` voters** (2026-11-16, kvraftN), from
+`MainN`'s spec: `kvdurable_adequate_of` for `kvdurableProgramN dir k`, `1 ≤ k ≤ 1000`, none of the files
+of the replicas `1 … k + 4` in `dir` among the initial files. -/
+theorem kvdurableN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
+    [hLog : log.NewModel]
+    (wp_MainN : kdMainNSpec) (dir : GoString) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvdurableProgramN dir k], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  refine durable_init_adequate (GF := durableGF)
+    github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.initialize'
+    ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.MainN) #dir #(W64 (k : Int)))
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g Hlctx Hinit Hthreads n κs t2
+    σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC durableGF := heapWith hG lctx
+  have Hbound : receiptBound durableGF ≤ 2 ^ 61 := by rw [HN]; omega
+  unfold progOkS
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.getIsPkgInit_wf, ?_⟩
+  iintro #Hpkg - Hown
+  ihave #Hcc : context.isClosedchanInit (GF := durableGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
+  have hk4 : uint.nat (W64 (k : Int)) + 4 = k + 4 := by word
+  wp_apply (wp_MainN dir _ (W64 (k : Int)) (by word) (by word) Hbound (by rw [hk4]; exact Hfiles))
+    $$ [Hpkg Hcc Hown]
+  · iframe #
+    iexact Hown
+  ipureintro
+  rfl
+
 end adequacy
 
 end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.kvdurable_adequate_of
+#print axioms Perennial.EtcdGrove.kvdurableN_adequate_of

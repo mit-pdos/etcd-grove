@@ -31,7 +31,7 @@ abbrev RandomConfig.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RandomConfig)) (Val #()))
   {{ (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Config), RET #cfg;
-      ⌜kdOptsOk cfg.Options' ∧ cfg.Clients' = W64 4 ∧ cfg.Ops' = W64 100 ∧
+      ⌜kdOptsOk cfg.Options' ∧ cfg.Options'.MaxReplicas' = W64 9 ∧ cfg.Clients' = W64 4 ∧ cfg.Ops' = W64 100 ∧
         1 ≤ sint.Z cfg.Proposers' ∧ sint.Z cfg.Proposers' ≤ 3⌝ }}
 
 end spec

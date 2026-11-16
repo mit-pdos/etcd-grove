@@ -141,7 +141,7 @@ theorem Cluster.start.wp_proof
   ihave #Hinit := isInitialized_access $$ Hraft
   iunfold isInitialized at Hinit
   iNamed Hinit
-  have Hvnd : vs.Nodup := by rw [Ho.2]; exact raft_kvreconf.bootVoters_nodup _ (by have := Ho.1.2.1; word)
+  have Hvnd : vs.Nodup := by rw [Ho.2.1]; exact raft_kvreconf.bootVoters_nodup _ (by have := Ho.1.2.1.1; have := Ho.1.2.1.2; word)
   try wp_auto
   wp_apply (lc := 2) wp_fileOf γ vs dir c id $$ [$Hc]
   try wp_auto
@@ -310,8 +310,8 @@ theorem Cluster.start.wp_proof
           · simp [raft_kvreconf.logHist, raft_kvreconf.histOf]
           · simp at h
         · simp only [Membership.ids, Membership.simple, GMap.union_empty_r_L]
-          rw [GMap.size_list_to_set vs Hvnd, Ho.2, raft_kvreconf.bootVoters_length]
-          have := Ho.1.2.1; word
+          rw [GMap.size_list_to_set vs Hvnd, Ho.2.1, raft_kvreconf.bootVoters_length]
+          have := Ho.1.2.1.1; have := Ho.1.2.1.2; word
         · unfold kdInitCS; rw [if_pos (by word)]; exact raft_kvreconf.bootCS_is vs Hvnd
       ileft; ipureintro; word
     · -- a snapshot
@@ -424,7 +424,7 @@ theorem Cluster.start.wp_proof
     · rw [h0]; simp
     · exact (HFSH.2.2.2.2.2.2.2.2.1 F.snap (by simp only [kdContents]; rw [if_neg h0])).2
   have Hnid0 : id ≠ W64 0 := by intro h; rw [h] at Hid1; simp at Hid1
-  wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
+  wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by have := Ho.1.2.1.2; have := Ho.2.2; word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
   obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
