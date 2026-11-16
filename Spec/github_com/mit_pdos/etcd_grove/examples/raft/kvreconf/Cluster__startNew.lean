@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `c.startNew()` (cluster.go): a replica of a fresh id started (`RestartNode` as a newcomer:
-`joinAuth_join`) and added to the cluster, unless the cluster has `maxReplicas` already.
+`joinAuth_join`) and added to the cluster, unless the cluster has `opts.MaxReplicas` already (2026-11-16, kvraftN: until then the constant `maxReplicas = 9`).
 -/
 module
 

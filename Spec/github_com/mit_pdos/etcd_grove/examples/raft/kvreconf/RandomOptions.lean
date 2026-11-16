@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `RandomOptions()` (cluster.go): random options a cluster may run with (`OptsOk`, what
-`StartCluster` takes): one to five voters, a window of one, four or 256 inflight messages, and a
+`StartCluster` takes): one to five voters, at most `9` replicas (`MaxReplicas`; 2026-11-16, kvraftN), a window of one, four or 256 inflight messages, and a
 size limit that is not zero for both sizes (the committed size is set to `4 KiB` when both
 random choices are `0`).
 -/

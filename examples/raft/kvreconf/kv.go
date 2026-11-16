@@ -239,7 +239,7 @@ func validConf(cs *pb.ConfState, cc *pb.ConfChangeV2) bool {
 	// the configurations the protocol admits have fewer than 2^62 members, and a snapshot's conf
 	// state lists at most 2^62 ids in all (a joint configuration's voters may be listed twice, as
 	// incoming and outgoing): checked as fewer than 2^61 members (never reached here, with at most
-	// maxReplicas of them, but checked so that a change it accepts is one raft's protocol allows and
+	// opts.MaxReplicas of them, but checked so that a change it accepts is one raft's protocol allows and
 	// a snapshot at its configuration one raft's storage takes: the store's decision on a committed
 	// conf entry, the same at every replica)
 	return err == nil && uint64(len(after)) < 1<<61
