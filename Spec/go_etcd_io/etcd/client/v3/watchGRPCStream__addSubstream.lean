@@ -47,7 +47,7 @@ abbrev watchGRPCStream.addSubstream.spec : Prop :=
       wgsF wgs go!"substreams" ↦{dq'} m ∗
       (if decide (addFails id ca rs) then
         iprop(wsF ws go!"id" ↦ wid0 ∗ ownMap m (DFrac.own 1) M ∗
-          ∃ e' : GoInterface, wgsF wgs go!"closeErr" ↦ e' ∗ statusErrOk e')
+          ∃ e' : GoInterface, wgsF wgs go!"closeErr" ↦ e' ∗ closeErrOk e')
       else
         iprop(wsF ws go!"id" ↦ id ∗ ownMap m (DFrac.own 1) (<[id := ws]> M) ∗
           wgsF wgs go!"closeErr" ↦ e)) }}

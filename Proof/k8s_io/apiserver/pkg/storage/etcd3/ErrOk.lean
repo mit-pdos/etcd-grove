@@ -186,16 +186,17 @@ theorem kErrOk_none_api (e : GoInterfaceOk)
   iintro !> %h'
   rw [h] at h'; cases h'
 
-/-- **An error of etcd's client is one the watcher's error paths accept** (`kClientErr`: one of
-`clientErrTys`, a leaf grpc's `status` accepts; a `*status.Error`'s status is read-only, E1). -/
-theorem kErrOk_client [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+/-- **An error of etcd's client is one the watcher's error paths accept** (one of `clientErrTys`, a
+leaf grpc's `status` accepts, a pointer if an `*errors.errorString` (`errPtrOk`); a `*status.Error`'s
+status is read-only, E1). -/
+theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG))
     (wp_ECode : rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG))
-    (wp_SCode : status.Status.Code.spec (GF := GF) (hG := hG)) (err : GoInterface) :
-    isPkgInit (PROP := IProp GF) pkg_id.errors ⊢ kClientErr err -∗ kErrOk err := by
-  iintro #Perr #H
-  iunfold kClientErr at H
-  icases H with ⟨%Hc, #Hs, #Hcl⟩
+    (wp_SCode : status.Status.Code.spec (GF := GF) (hG := hG)) (err : GoInterface)
+    (Hc : err ≠ GoInterface.nil ∧ clientErr err) (Hptr : errPtrOk err) :
+    isPkgInit (PROP := IProp GF) pkg_id.errors ⊢ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
+      kErrOk err := by
+  iintro #Perr #Hs
   obtain ⟨hne0, hc⟩ := Hc
   cases err with
   | nil => exact absurd rfl hne0
@@ -274,9 +275,7 @@ theorem kErrOk_client [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     · iapply kErrOk_none_api
       go_type_set <;> simp
   · -- an `*errors.errorString` (`io.EOF`, `context.Canceled`): a pointer (`errCellOk`)
-    iunfold go_etcd_io.etcd.cache.v3.errCellOk at Hcl
-    ihave ⟨%x, %m', %Hx, -⟩ := Hcl $$ %(⟨_, v⟩ : GoInterfaceOk) %(And.intro rfl rfl)
-    obtain ⟨hx, -⟩ := Hx
+    obtain ⟨x, hx⟩ := Hptr _ rfl rfl
     simp only at hx
     subst hx
     iapply (kErrOk_intro wp_AsLeafTy _ ⟨fun _ => ⟨x, rfl⟩, fun h => by
@@ -312,6 +311,19 @@ theorem kErrOk_client [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
       go_type_set <;> simp
     · iapply kErrOk_none_api
       go_type_set <;> simp
+
+/-- **An error of etcd's client is one the watcher's error paths accept** (`kClientErr`; its cell
+gives the pointer, `errPtrOk_of_cell`). -/
+theorem kErrOk_client [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG))
+    (wp_ECode : rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG))
+    (wp_SCode : status.Status.Code.spec (GF := GF) (hG := hG)) (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.errors ⊢ kClientErr err -∗ kErrOk err := by
+  iintro #Perr #H
+  iunfold kClientErr at H
+  icases H with ⟨%Hc, #Hs, #Hcl⟩
+  ihave %Hp := errPtrOk_of_cell err $$ Hcl
+  iapply (kErrOk_clientP wp_AsLeafTy wp_ECode wp_SCode err Hc Hp) $$ Perr Hs
 
 /-- **A `*StatusError` with a `Failure` status is one the watcher's error paths accept**
 (`StatusError.Error` returns its message, `Status` its status: both translated). -/

@@ -343,13 +343,39 @@ instance streamErr_persistent (err : GoInterface) : Persistent (streamErr (GF :=
 error, a context error, or `io.EOF` (a `SendMsg` on a stream the server ended), as the unary
 attempt's errors (`grpcInvokerOk`). Since k8s 7e-1 (2026-11-10, approved by etcd-grove-81) its
 dynamic type is one of `clientErrTys` (through `clientErr`), with the bounds `grpcInvokerOk` names:
-no dial option beyond `GrpcDialOpt`'s, per-RPC credentials that return no error, no retry policy. -/
+no dial option beyond `GrpcDialOpt`'s, per-RPC credentials that return no error, no retry policy.
+
+Since k8s 7f-5 (T-CE, approved by etcd-grove-81 2026-11-16) the error is no caller's `errors.New` value
+(`errCellOk`: if it is an `*errors.errorString`, it is `io.EOF`'s or `context.Canceled`'s, its cell
+holding `"EOF"` or `"context canceled"`), as the unary attempt's (`grpcInvokerOk`, D37), from the same
+grpc code (v1.84, `stream.go`): `clientStream`'s `SendMsg`, `RecvMsg` and `CloseSend` return what
+`withRetry` returns, `toRPCErr(op(...))` once committed (`:939`), an attempt's error, which is
+`io.EOF` (`:1254`, `:1298`), a status error (`status.Errorf`, `:1065`, `:1090`; `prepareMsg`'s, `encode`/`compress`'s) or
+`toRPCErr`'s (`:1301`), or a retry's (`newAttemptLocked`: `toRPCErr(ctx.Err())`,
+`ErrClientConnClosing`; `shouldRetry` with no retry policy returns the attempt's error);
+`newClientStream`'s errors are status errors or `toRPCErr`'s (`:359-552`, `waitForResolvedAddrs`:
+`status.FromContextError`, `ErrClientConnClosing`); `toRPCErr` (`rpc_util.go:1133-1157`) passes only
+`nil` and `io.EOF` through and turns `context.Canceled`/`DeadlineExceeded` into status errors.
+etcd's stream interceptor (`retry_interceptor.go`, `withMax(0)`: no retrying stream) adds only
+`getToken`'s errors, the unary `Authenticate`'s (which carry `errCellOk`). Checked by
+`examples/k8s/etcd3`'s `TestStreamErrorCells` (Watch and LeaseKeepAlive streams' `NewStream`, `Send`,
+`Recv`, `CloseSend` errors under partitions, cancellations, deadlines, stopped members and a closed
+client: only `*status.Error` and `io.EOF`'s value; 20 runs). -/
 def cliStreamErr (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-    streamErr err)
+    go_etcd_io.etcd.cache.v3.errCellOk err ∗ streamErr err)
 
 instance cliStreamErr_persistent (err : GoInterface) : Persistent (cliStreamErr (GF := GF) err) := by
   unfold cliStreamErr; infer_instance
+
+open Iris.ProofMode in
+/-- A stream error may close a client watch (`closeErrOk`). -/
+theorem cliStreamErr_closeErrOk (err : GoInterface) :
+    cliStreamErr (GF := GF) err ⊢ closeErrOk err := by
+  unfold cliStreamErr
+  iintro ⟨%h, #Hs, #Hc, -⟩
+  ihave %hp := errPtrOk_of_cell err $$ Hc
+  iapply (closeErrOk_intro err ⟨fun _ => h.2, hp⟩) $$ Hs
 
 /-- `err` is `io.EOF`'s value. -/
 def eofIs (err : GoInterface) : IProp GF :=

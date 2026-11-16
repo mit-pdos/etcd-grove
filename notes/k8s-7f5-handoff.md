@@ -1,24 +1,33 @@
-# k8s 7f-5 handoff (2026-11-13; branch `k8s-7f5`, worktree `/shared/etcd-grove-k8s7f`)
+# k8s 7f-5 handoff (branch `k8s-7f5`, worktree `/shared/etcd-grove-k8s7f`)
 
-**Read first:** `notes/k8s-7f5-scope.md` (this stage's Scope, for etcd-grove-81's review),
-`notes/k8s-7f-scope.md` (the parent plan; §2, §4, §5.3), `notes/k8s-7f4-freeze.md` (the context-key
-refutations T-h..T-k: the lesson for every trusted context text), `/shared/tmp/coord-81/common-rules.md`,
-the worktree's untracked `questions.md` (decisions; never re-add it tracked).
+**Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
+re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## Done
-- Branch `k8s-7f5` off lean `222c3fcff7` (k8s-7f4 merged and deleted).
-- The Scope (`notes/k8s-7f5-scope.md`), reviewed: 81 decided Q1-Q7 as recommended (§8 there, questions.md).
-- S0 (enumeration, Go evidence `examples/premisefix/watcherctx`, Goose dry run, the driver's
-  `watchList()`, the no-other-mutator check) and S1 (T5-b in `CtxKeys.lean`, T5-c in `Gate.lean` with
-  `watchList`'s spec/proof and the `Main*` proofs; T5-d text only): `notes/k8s-7f5-freeze.md`.
+## START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE closed; land-stop checks green; HARD STOP before land.sh
 
-## State
-- Dependencies (Scope §2): 7f-3 **missing** (not started); 7c-3 and 7e-1 **landed** (7c-3 folded into
-  7e-1, 7e Freeze `8809f94d74`); sweep repairs B5 **landed with `featureOff` only** (`featureOn` is
-  this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
-- No Lean edited. Nothing built on this branch.
+- **Head:** `k8s-7f5` past `bf5fda1900` (lean `bc64cbfc5e` merged; nothing newer on lean). Steps 1-5 of 7f-5a are on lean.
+- **Done (6a39b61246 and after):** T-CE (trusted, approved by 81): `cliStreamErr` gains `errCellOk`
+  (`InvGrpcStream.lean`; Go test `examples/k8s/etcd3/streamerr_test.go`, 20/20 runs). Client vocabulary `errPtrOk`/
+  `closeErrP`/`closeErrOk` (`ClientErr.lean`) through the client watch: the element's error arm, `closeErrPub`, `errP`,
+  `runCore`, the stream specs; `rpctypes.Error`/`WatchResponse.Err` posts carry `errPtrOk`. Ledger 2026-11-16.
+  startWatching uses `watcher.Watch.spec` through `client_Watch_field` (placeholder deleted; needs `ContextReadErrs`).
+  Nonissue `etcd-watch-refused-create-err-plain` (errCellOk of a close error is false). Forms: questions.md.
+- **Checks:** full build green (`/shared/tmp/k8s7f-ce/full3.log`); tcb --check matches the baseline (no axiom/sorry
+  change); gen-interface --check, api-check, bounds, mode ok; STATUS entry added (oldest moved to status-history).
+- **Next, in order:** (1) 81's go, then `etc/land.sh` (`LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
+  PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9`, GOWORK unset); (2) step 6 (`Pos.Countable KRaw`, `sendEvent`'s
+  commit form); (3) step 7: link startWatching, syncPaginated and the new callee specs (T5-f axioms).
+- **Open for 81:** errorsNewOk's body changed (now `closeErrOk`), and `watchConnFacts`, inside `isClientWatcher`,
+  holds it: the premise of the linked `client_watcher_progressNotifier` means more (always discharged by
+  `errorsNewOk_of` through NewWatcher). Recommend accepting.
+- **Pitfalls:** run and serveSubstream: `etc/lean-check.py --fast --split` (~1 min each). The element's error arm
+  is `closeErrOk`: extract `statusErrOk` with `closeErrOk_status`. `ContainerStateTerminated...` lines in a build log
+  match a grep for "Terminated". Earlier pitfalls: History.
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; full builds under the flock and the 64G cap.
 
-## For 7f-5a: klog's `printf` boundary is restricted (klog-args-fix, 2026-11-14)
+## History (older START HERE sections, newest first; the commits say the rest)
+
+### For 7f-5a: klog's `printf` boundary is restricted (klog-args-fix, 2026-11-14)
 
 `klog.Errorf.wp_proof` and `klog.Verbose.Infof.wp_proof` now take the arguments' slice and
 `klog.argsOk f xs` (`Spec/k8s_io/klog/v2/Args.lean`), given back: Go refuted "any arguments"
@@ -27,7 +36,8 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
-## START HERE (2026-11-16, nineteenth 7f-5 agent): step 5 DONE (startWatching proved over a PENDING client spec); land-stop checks
+
+### START HERE (2026-11-16, nineteenth 7f-5 agent): step 5 DONE (startWatching proved over a PENDING client spec); land-stop checks
 
 - **watchChan.startWatching PROVED** (`Proof/.../etcd3/watchChan__startWatching.lean`, no sorry, lake-built), over the
   callee hypotheses incl. a **PENDING** `clientWatchCE.spec` (defined in that file): E2's remaining gap, the client
@@ -44,11 +54,14 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   step 7. First check what grpc's stream `Recv` trust-boundary texts give of their errors; any trusted text goes to 81.
   Then strengthen the client watch's element (ledger entry) with `clientErr`/`errCellOk` of the close error and prove it
   through `closeErrPub`, WatchRun, `watchGRPCStream.run`/`serveSubstream`. Step 6 after 81's word.
+- **7f-6 plan (the user's planning note, 2026-11-16, via etcd-grove-81):** state the cluster and partition TestCorrectness
+  theorems for k members (1 ≤ k ≤ 1000) on the generic `etcdstart.Members`/`StartMembers` start, as
+  putgetN/txnlinfaultsN/restartN do, not for 3 members.
 - Proof pitfalls met: `pkill -f` on a pattern kills your own shell; `word` errors with an unused `[HasExt idIssueExt]`
   section variable (removed); `iunfold kvAu` in the context breaks `wp_for`'s simp (unfold only in the side goal);
   `emp` is a Bool variable of these specs (write `iprop(emp)` for BI emp in terms).
 
-## START HERE (2026-11-15, eighteenth 7f-5 agent, final): steps 1-2 DONE (syncPaginated proved, ErrOk), step 3 (startWatching) next
+### START HERE (2026-11-15, eighteenth 7f-5 agent, final): steps 1-2 DONE (syncPaginated proved, ErrOk), step 3 (startWatching) next
 
 - **Decided by 81 this round** (questions.md): previous forms accepted; store.Watch premise `uint.Z n < 2^63 - 1`
   (ledger, Draft §3, `Draft7f5a.lean`: done); `Pos.Countable KRaw` at step 6; **errors.AsLeafTy APPROVED**: now an
@@ -74,7 +87,7 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
 - **Rebuild cost:** cache `Base.lean` changed: everything importing it rebuilds (~15 min for ErrOk's imports).
   Targeted build of the changed definitions' users: `/shared/tmp/k8s7f5a-p4/build-step5b.log`.
 
-## START HERE (2026-11-15, seventeenth 7f-5 agent): step 5 statements written, sync proved; syncPaginated/startWatching proofs next
+### START HERE (2026-11-15, seventeenth 7f-5 agent): step 5 statements written, sync proved; syncPaginated/startWatching proofs next
 
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json` (lean-check: `LAKE_OPTS=...`); restart the lean-check server
   (`--stop`) when it sits at "line 1".
@@ -114,7 +127,7 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   (the client `Watch` spec needs `1 ≤ rev`): `kStartPre` asks `uint.Z r0 + 1 < 2^63` there; the Draft premise
   needs `< 2^63 - 1`; (c) `Pos.Countable KRaw` has no instance (a binder of every spec; step 6 derives one).
 
-## START HERE (2026-11-15, sixteenth 7f-5 agent, final): E2, E4, E5 done; lean merged (9e678b61e7, e9e pin); step 5 next
+### START HERE (2026-11-15, sixteenth 7f-5 agent, final): E2, E4, E5 done; lean merged (9e678b61e7, e9e pin); step 5 next
 
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json`; `.lake/packages` links only iris, batteries, Qq. A full build
   at the e9e pin (before E4's final form and E5's proof) was green but for the then-new handleCompacted spec
@@ -132,7 +145,7 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
 - Pitfalls: the lean-check server sometimes sits at "line 1" after imports change though they build: `--stop`
   and re-run; never `pkill -f` a pattern in your own command line.
 
-## START HERE (2026-11-15, sixteenth 7f-5 agent, latest): E4 done, E5 WIP; lean merged at the e9e pin
+### START HERE (2026-11-15, sixteenth 7f-5 agent, latest): E4 done, E5 WIP; lean merged at the e9e pin
 
 - **Pin:** lean merged (`cbae1bea7d`, lean 73cffb21d3, Perennial e9e6351d9). Use
   `--packages=/shared/tmp/manifest-e9e.json` everywhere; `.lake/packages` is now a real directory linking only
@@ -150,7 +163,7 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
 - Then step 5 (with `-- pending E1`/`-- pending E3`), apply E1 with it; STOP before step 6 (Perennial now has
   `wp_WithCancel_ctx` for it).
 
-## START HERE (2026-11-15, sixteenth 7f-5 agent, later): ghost steps done, E2 done; STOPPED on a soundness finding (fmt.ErrorfPlain)
+### START HERE (2026-11-15, sixteenth 7f-5 agent, later): ghost steps done, E2 done; STOPPED on a soundness finding (fmt.ErrorfPlain)
 
 - 81's decisions after the axiom review (questions.md): E3 and T5-f's pointer form approved (add as trusted text
   when step 5 needs them, tcb diff exactly that); E1 approved with fixes 1-5, applied to §11.2 (`be44d3c8e9`);
@@ -172,7 +185,7 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   inside `spsc_send_commit_inv`: step 6 (`run`'s `Wait`) needs `kResAlive` back from an aborted send; revisit
   `spsc_send_commit_inv` then (keep `T` outside the wand, e.g. an Iris `∧`).
 
-## START HERE (2026-11-15, sixteenth 7f-5 agent): Go evidence for E1, E3 and T5-f-ptr written; review package with 81
+### START HERE (2026-11-15, sixteenth 7f-5 agent): Go evidence for E1, E3 and T5-f-ptr written; review package with 81
 
 81's decisions (questions.md, sixteenth agent): previous forms accepted; `alive` stays a parameter until step 6;
 Go evidence for E1/E3 first, then 81 has the package reviewed (not applied until 81 says so). The user (via 81)
@@ -189,7 +202,7 @@ drafted in `notes/k8s-7f5a-draft.md` §11.5, same review package, not an axiom y
 - **Next, in order (unchanged):** `kResInv_send_acc`, `kResInv_filter` (fifteenth agent's (1) below), E2/E4/E5
   spec changes, step 5 with `-- pending E1`/`-- pending E3` hypotheses. STOP before step 6.
 
-## START HERE (2026-11-15, fifteenth 7f-5 agent): send lemma, kResChan, Error step done; processor step next
+### START HERE (2026-11-15, fifteenth 7f-5 agent): send lemma, kResChan, Error step done; processor step next
 
 81's decisions (questions.md, fifteenth agent): E1-E6 reviewed (`notes/k8s-7f5a-draft.md` §11.1-11.4); E1 refuted
 as written and folded, with the latent `*Status` immutability assumption of `status.FromError`/`status.Code`
@@ -227,7 +240,7 @@ existing `NewTooLargeResourceVersionError` spec.
   (induct on the length, `List.dropLast_concat_getLast`); `BigSepL.bigSepL_intro` needs `Intuitionistic`, which a
   mono-list lb does not get: use `bigSepL_forall_elim`.
 
-## START HERE (2026-11-15, fourteenth 7f-5 agent): error leaves done; step 4 in progress
+### START HERE (2026-11-15, fourteenth 7f-5 agent): error leaves done; step 4 in progress
 
 81's decisions (questions.md, 2026-11-15, fourteenth agent): InfoS stays a callee hypothesis (Go test
 `examples/premisefix/watcherctx/infos_test.go`, passes; axiom at step 7); the error leaves over an internal
@@ -266,7 +279,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   (clear hypotheses mentioning other methods first); a `fmt.argOk` hypothesis is not persistent (`ihave H`, and
   name it in `wp_apply … $$ [$Hsl H]`); `--goal L` needs a column inside the tactic (`L:2`).
 
-## START HERE (2026-11-15, thirteenth 7f-5 agent): step 3 leaves done but the error leaves; STOPPED on the error design (E1-E6) and InfoS
+### START HERE (2026-11-15, thirteenth 7f-5 agent): step 3 leaves done but the error leaves; STOPPED on the error design (E1-E6) and InfoS
 
 - **Proved** (Spec + Proof each, lean-checked, targeted `lake build` green, no `sorry`): `watchChan.transform`
   (`29741e6a08`; callees `prepareObjs`, `filter`, `acceptAll`); `flowcontrol.initializationSignalFrom`,
@@ -291,7 +304,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   shell); the lean-check server can sit at "line 1" for 40 min when an import fails to build: build the import with
   `lake build` to see the error.
 
-## START HERE (2026-11-15, twelfth 7f-5 agent, final): A-C done and built; prepareObjs proved; next `transform`
+### START HERE (2026-11-15, twelfth 7f-5 agent, final): A-C done and built; prepareObjs proved; next `transform`
 
 - Full build after B/C: green but for the draft then in `watchChan__prepareObjs` (`/shared/tmp/k8s7f5a-p2/full2.log`;
   the only other break, `validateRevisions`' `simp only [eventAt]`, fixed); `gen-interface --check` of every
@@ -311,7 +324,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   `e.kv.modRev` inside the conditions); `omit [DecidableEq Obj] in` for `Contract.lean` lemmas used over a
   spec's `Obj`.
 
-## (superseded) twelfth 7f-5 agent, later: 81 decided A-C; B and C done in the tree (build pending)
+### (superseded) twelfth 7f-5 agent, later: 81 decided A-C; B and C done in the tree (build pending)
 
 - **(A)** goose proposal written: `notes/perennial-changes.md`, "Goose: the pointer method of an axiomatized value
   method"; `StringPtr.spec` stays a callee hypothesis of `parseEvent.wp_proof` until the pin moves (step 7).
@@ -331,7 +344,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
 - Full build after B/C: `/shared/tmp/k8s7f5a-p2/full1.log` (started before the `Contract.lean` instances and the
   WatchDefs additions: rebuild once more).
 
-## START HERE (2026-11-15, twelfth 7f-5 agent): step 3 partly done; STOPPED on three decisions (A-C)
+### START HERE (2026-11-15, twelfth 7f-5 agent): step 3 partly done; STOPPED on three decisions (A-C)
 
 - **Proved** (Spec + Proof each, lean-checked, no `sorry` but the hypotheses noted): `mvccpb.Event.IsCreate`,
   `Event.GetType`, `Event.GetKv`, `KeyValue.GetCreateRevision`, `KeyValue.GetModRevision`
@@ -356,7 +369,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   `rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl]` first); `versionerOk`/`watchContractOk`/`selPredOk`
   have no `Persistent` instance on the name: `unfold` them before `wp_start` and destructure there.
 
-## START HERE (2026-11-15, eleventh 7f-5 agent): 7f-5a-P step 2 done, step 3 started
+### START HERE (2026-11-15, eleventh 7f-5 agent): 7f-5a-P step 2 done, step 3 started
 
 - **Step 2 rest** (`601ff6080f`, `WatchDefs.lean` §"Along one history"): `kvSameHist_changesAt`/`_revEvents`,
   `kRangeEvsL_hist`/`_mem`, `kRawRevOk` (an etcd event's mod revision ≤ the state's: `transform` reads the
@@ -396,7 +409,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   leaf took 22 min the first time), `tcb --check` (`PUT` went from an axiom to a definition).
 - The Draft's header still describes the moved vocabulary; fix it when the triple moves to `Spec/`.
 
-## START HERE (2026-11-15, tenth 7f-5 agent, final): M1 LANDED (lean `2dbf6503cc`); 7f-5a-P steps 1-2a done
+### START HERE (2026-11-15, tenth 7f-5 agent, final): M1 LANDED (lean `2dbf6503cc`); 7f-5a-P steps 1-2a done
 
 - M1 landed via `etc/land.sh` (lean `2dbf6503cc`, gates all passed, `/shared/tmp/k8s7f5a-p/land.log`).
 - **Step 1** (`920165edf8`): `etcd3.toml` translates `parseEvent` and `watchChan.startWatching` with bodies;
@@ -426,7 +439,7 @@ predicate; E1-E6 drafted only (`notes/k8s-7f5a-draft.md` §11).
   `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json`. goose: `--perennial /shared/perennial-ddc0f0acc`
   (the worktree has no `.lake/packages/perennial`), GOWORK unset.
 
-## START HERE (2026-11-15, tenth 7f-5 agent, later): M1 done on the branch; STOPPED before land.sh
+### START HERE (2026-11-15, tenth 7f-5 agent, later): M1 done on the branch; STOPPED before land.sh
 
 81 decided M1 (questions.md 2026-11-15): the client spec strengthened. Done (`0e0f6c771e`, lean
 `6c7ff6d645` merged in `7d0e5b97d8`; ledger entry "the client watch's progress notification at the
@@ -440,7 +453,7 @@ status-history, append only), `etc/land.sh`; then the Draft's KTail needs no cha
 notification is now `≤ σ.rev`), and 7f-5a-P steps 1-5 (Draft §6), steps 4-5 over the premise
 `isContext wc.ctx { cd with PDone := cd.PDone ∨ kCancelPD γ cd }`; stop before step 6.
 
-## START HERE (2026-11-15, tenth 7f-5 agent): re-review fixes M2/m1/m2 done; STOPPED on M1 (client spec)
+### START HERE (2026-11-15, tenth 7f-5 agent): re-review fixes M2/m1/m2 done; STOPPED on M1 (client spec)
 
 Branch `k8s-7f5` fast-forwarded to lean `7d9d727fba` (it already contained the branch); full build
 17553 jobs (`/shared/tmp/k8s7f5a-p/full1.log`). 81's decisions on the independent re-review are in
@@ -453,7 +466,7 @@ entry); waiting on 81 for the client-spec strengthening. **Next, on 81's answer:
 7f-5a-P steps 1-5 (Draft §6); steps 4-5 take `isContext wc.ctx { cd with PDone := cd.PDone ∨
 kCancelPD γ cd }` as a premise; stop before step 6.
 
-## START HERE (2026-11-14, ninth 7f-5 agent): review fixes of the 7f-5a Draft done; STOPPED for 81's re-review
+### START HERE (2026-11-14, ninth 7f-5 agent): review fixes of the 7f-5a Draft done; STOPPED for 81's re-review
 
 81 accepted D1-D7 and decided the review's fixes (questions.md, 2026-11-14). Done on `k8s-7f5`
 (see the commit after `0b8c92dd0b`): `Draft7f5a.lean` restated (the no-gap prefix only while the
@@ -469,7 +482,7 @@ change (`/shared/tmp/k8s7f5a-fix/tcb.log`). **Next, on 81's re-review:** T5-e's 
 the Draft's §6; before its step 4, settle the `WithCancel`-keeps-`PDone` gap (§6 risks); align
 `klog.Warningf.spec` with `notes/klog-args-fix.md` once it exists.
 
-## START HERE (2026-11-14, eighth 7f-5 agent): 7f-5a-D Draft written; STOPPED at S3 for etcd-grove-81
+### START HERE (2026-11-14, eighth 7f-5 agent): 7f-5a-D Draft written; STOPPED at S3 for etcd-grove-81
 
 The Draft of the etcd3 watcher's serial branch is in the unlinked
 `Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`; builds with
@@ -484,7 +497,7 @@ axiom-tok, land T5-e on its own; then 7f-5a-P in the Draft's §6 order (move the
 monoList ghost lists need `Pos.Countable` (Draft: `watchEvent_countable`, `kwev_countable`; `KRaw`
 needs one too, today an instance argument of `kInElem`/`kResInv`).
 
-## START HERE (2026-11-14, seventh 7f-5 agent, final): 7f-3 LANDED; next 7f-5a-D, a fresh agent
+### START HERE (2026-11-14, seventh 7f-5 agent, final): 7f-3 LANDED; next 7f-5a-D, a fresh agent
 
 7f-3 is complete and landed (7f-3c approved by etcd-grove-81, including keeping `isRangeWatch`,
 `watchStateElem`, `watchStateRespOk`, `respAt` beside the P-forms for the cache; lean hash in STATUS /
@@ -502,7 +515,7 @@ for etcd-grove-81's review**; no Lean proofs before it. Worktree `/shared/etcd-g
 `k8s-7f5` (merge lean first). Build: see the earlier sections (flock + `systemd-run --scope -p
 MemoryMax=64G`, `--packages=/shared/tmp/manifest-ddc.json`); long proofs: `etc/lean-check.py --fast --split`.
 
-## Handoff point (2026-11-14, seventh 7f-5 agent): 7f-3c done on the branch; checkpoint (not landed)
+### Handoff point (2026-11-14, seventh 7f-5 agent): 7f-3c done on the branch; checkpoint (not landed)
 
 Done on `k8s-7f5` (commits `b9e66b2591`..`cb54e77c51`; decisions in questions.md, 2026-11-14 7f-3c entry):
 - Step 1: `client.rawRespOk` is the Draft's `rawRespOkP` in place (`WatchStateDefs.lean`, with
@@ -528,7 +541,7 @@ Done on `k8s-7f5` (commits `b9e66b2591`..`cb54e77c51`; decisions in questions.md
 Next on 81's go: merge lean, STATUS entry (oldest to status-history, append only), `etc/land.sh`.
 Then 7f-3 is complete; next stage per the Scope (7f-5's T5-c/T5-d).
 
-## Handoff point (2026-11-14, sixth 7f-5 agent, final): 7f-3b v3rpc part LANDED; 7f-3c next (a fresh agent)
+### Handoff point (2026-11-14, sixth 7f-5 agent, final): 7f-3b v3rpc part LANDED; 7f-3c next (a fresh agent)
 
 81 approved the v3rpc part as is (step 4 moved to 7f-3c, the `γpk`/`pkIs` map, the nonissue); landed
 via `etc/land.sh` (hash in STATUS / the landing log `/shared/tmp/k8s7f3b-v3rpc/land.log`).
@@ -551,7 +564,7 @@ via `etc/land.sh` (hash in STATUS / the landing log `/shared/tmp/k8s7f3b-v3rpc/l
    `specP` and reads elements through `watchStateElemP_elem`.
 Report the interface/statement changes to 81 before landing, as for 7f-3b.
 
-## Handoff point (2026-11-14, sixth 7f-5 agent): 7f-3b v3rpc part done on the branch; checkpoint (not landed)
+### Handoff point (2026-11-14, sixth 7f-5 agent): 7f-3b v3rpc part done on the branch; checkpoint (not landed)
 
 Done (`35fdc186ad` and the commit after it on `k8s-7f5`; questions.md entries of 2026-11-14):
 - Steps 1-3, 5, 6 of the list below. `recvLoop` records `prevKV[id] = true` (`swsMu`, the Draft's
@@ -582,7 +595,7 @@ Pitfalls: in a `local macro` a `$$ [$H]` is an antiquotation (write `$$ [H]` and
 `--goal` inside a macro body does not work (use a deliberate `done`); `rw … at H` on an Iris
 hypothesis fails (rewrite the goal, or `irevert`).
 
-## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED (lean `570cea0725`); v3rpc part next
+### Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED (lean `570cea0725`); v3rpc part next
 
 Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
 the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
@@ -629,7 +642,7 @@ and `wp_for`'s clean-up silently fails (`Hif : #(decide …) = #true` undecoded,
 FIRST error before reading later ones. `etc/lean-check.py` incremental runs once gave a spurious
 `(kernel) application type mismatch` on `moveVictims` that `lake build` did not.
 
-## Handoff point (2026-11-13, fourth 7f-5 agent, final): T5-a LANDED (lean `7112e7c0d6`); 7f-3b next
+### Handoff point (2026-11-13, fourth 7f-5 agent, final): T5-a LANDED (lean `7112e7c0d6`); 7f-3b next
 
 T5-a landed via `etc/land.sh` (gates all passed, `/shared/tmp/k8s7f3a/land3.log`): the translation of
 `WithRequireLeader`/grpc metadata reverted (`WithPrevKV` kept), the restated axiom with its four-part
@@ -645,7 +658,7 @@ to 81 before landing 7f-3b**; then v3rpc (`recvLoop` with `swsMuP`, `sendLoop`'s
 `rawRespOkP`, `watchReqOkP`), then the examples/client readers. `Draft7f3a.lean` holds the S1-S9
 statements.
 
-## Handoff point (2026-11-13, end of the fourth 7f-5 agent): T5-a decomposed; land after 81 sees the flag
+### Handoff point (2026-11-13, end of the fourth 7f-5 agent): T5-a decomposed; land after 81 sees the flag
 
 81 decided (a): the axiom's `watchCtx ctx s -∗ watchCtx c s` decomposed (no trunc line). Done in
 `873034096c`: `Done()`/`Err()` WP transfers, **plus a `Value(&cancelCtxKey)` WP transfer (not in 81's
@@ -662,7 +675,7 @@ Next, in order: 81's word on the third part; if the axiom-tok log is clean, `etc
 etcd_auth_safe landing may be ahead); report the lean hash. Then 7f-3b per the design below (81
 approved: `wrespIs` itself carries `evOwn`; report the mvcc interface diff before landing 7f-3b).
 
-## Handoff point (2026-11-13, fourth 7f-5 agent, later): T5-a approved; land BLOCKED by the axiom-tok gate
+### Handoff point (2026-11-13, fourth 7f-5 agent, later): T5-a approved; land BLOCKED by the axiom-tok gate
 
 81's review: approved as written (freeze note "T5-a review"); STATUS entry added; lean merged
 (`51ee20f154`, clean; the merge adds no trusted text but ours). `etc/land.sh` (log
@@ -678,7 +691,7 @@ Perennial.context.isContextDone", inside `watchCtx`'s `#HDone` over the program-
 
 7f-3b: design drafted (below), no Lean written.
 
-## 7f-3b design (D2), started 2026-11-13 by the fourth 7f-5 agent; no Lean written yet
+### 7f-3b design (D2), started 2026-11-13 by the fourth 7f-5 agent; no Lean written yet
 
 Go (fork pin 0b50f0426): `newWatcherBatch` (`watcher_group.go:79-96`) allocates a fresh
 `&mvccpb.Event{Type, Kv, PrevKv}` per (watcher, event); the three send sites
@@ -713,7 +726,7 @@ element predicate hands it over), or (b) a second response predicate for the Pre
 persistent `wrespIs`. Order: vocabulary + laws first (built), then mvcc proofs bottom-up, then the
 interface diff (STOP before landing per 81), then v3rpc's recvLoop/sendLoop with `swsMuP`.
 
-## Handoff point (2026-11-13, fourth 7f-5 agent): T5-a fallback done; STOPPED for 81's axiom review
+### Handoff point (2026-11-13, fourth 7f-5 agent): T5-a fallback done; STOPPED for 81's axiom review
 
 Done (on `k8s-7f5`, not landed; lean has moved on, merge it before landing):
 - `17c793098e`: translation of `WithRequireLeader` and grpc metadata's helpers
@@ -734,7 +747,7 @@ Next: 81's axiom review of the T5-a addendum; apply its fixes; `etc/tcb-report.p
 only if the text changed the baseline (expected: no line change, the axiom's name is the same);
 merge lean; land on 81's go. Then 7f-3b (D2: mvcc's response contract hands over an owned `PrevKv`).
 
-## Handoff point (2026-11-13, end of the third 7f-5 agent): S2 decided; T5-a fallback next
+### Handoff point (2026-11-13, end of the third 7f-5 agent): S2 decided; T5-a fallback next
 
 81's S2 decisions (2026-11-13, also in questions.md):
 - **D1 fallback.** Restate `WithRequireLeader.wp_proof` (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`,
@@ -762,7 +775,7 @@ Next, in order: revert the translation as above; the restated axiom with its Go 
 (expected: same count, `WithRequireLeader.wp_proof` changed text; collections that reach it);
 STOP for 81's axiom review. Then 7f-3b.
 
-## Handoff point (2026-11-13, third 7f-5 agent): 7f-3a at S2 (STOPPED for 81's review)
+### Handoff point (2026-11-13, third 7f-5 agent): 7f-3a at S2 (STOPPED for 81's review)
 
 Done (on `k8s-7f5`, not landed):
 - Translation config (Q2) applied: client `WithPrevKV`/`WithRequireLeader`; grpc metadata's
@@ -785,7 +798,7 @@ matches the baseline (869 axioms, 4 sorries); `etc/goose.py --check` passes.
 
 Next (after 81's decisions D1-D3): 7f-3b (mvcc event ownership, v3rpc recvLoop/sendLoop), 7f-3c (client, swap, users).
 
-## Handoff point (2026-11-13, second 7f-5 agent): S1 LANDED (lean `be36a0f818`); 7f-3a next
+### Handoff point (2026-11-13, second 7f-5 agent): S1 LANDED (lean `be36a0f818`); 7f-3a next
 
 S1 with the review's fixes landed (`0d873a9ee5`, `be36a0f818`; freeze note "S1 review"; gates all
 passed; trust base 869 axioms, 4 sorries). The branch `k8s-7f5` is lean now; continue on it.
@@ -822,7 +835,7 @@ passed; trust base 869 axioms, 4 sorries). The branch `k8s-7f5` is lean now; con
      compactor, `etcdstart.Collect`).
 3. STOP (S2): report the statements and the config's trust-base effect.
 
-## Handoff point (2026-11-13, end of the first 7f-5 agent's context): S1 reviewed; fixes next
+### Handoff point (2026-11-13, end of the first 7f-5 agent's context): S1 reviewed; fixes next
 
 S1 (`c46c52934c`) passed 81's axiom review with one MAJOR and minors. **Do these, in order** (81's
 decisions, verbatim in the worktree's `questions.md`, last entry; review journal
@@ -868,7 +881,7 @@ decisions, verbatim in the worktree's `questions.md`, last entry; review journal
    noting the temporary premise of Q6 is not yet introduced (7f-5a). Merge lean, land via
    `etc/land.sh` on 81's go, report.
 
-## Next, in order
+### Next, in order
 1. DONE (`23af282dca`): S1 built (full build passes), checks in `notes/k8s-7f5-freeze.md` "Checks"
    (tcb: NEW `k8sfeature.featureOn_persistent`, also in collection k8setcd3; not updated). STOPPED for
    81's axiom review of S1.
@@ -878,7 +891,7 @@ decisions, verbatim in the worktree's `questions.md`, last entry; review journal
 3. 7f-3b/3c, and 7f-5a's Draft in parallel (Q1), STOP (S3) at the Draft.
 4. Left from S0: the many-watches check (Scope §5: `isClientWatcher` persistent, repeated `Watch`).
 
-## Pitfalls
+### Pitfalls
 - Every trusted text over a context must state every `ctx.Value` key the modelled code reads,
   and the methods called on what it returns (APF's `Signal()`: `apf_context.go:50-51`).
 - `prevKv` none is reachable without compaction (`issues/etcd-watch-prevkv-before-created.md`): the
@@ -888,7 +901,7 @@ decisions, verbatim in the worktree's `questions.md`, last entry; review journal
   (`~/go/pkg/mod/github.com/upamanyus/etcd/{client,server,api}/v3@v3.0.0-20261112123031-0b50f04262d9`);
   `.lake/go-src/etcd` is at another revision.
 
-## Build
+### Build
 Every lake command with `--packages=/shared/tmp/manifest-ddc.json` (scripts: `LAKE_OPTS=...`), under
 `systemd-run --scope -q -p MemoryMax=64G`; full builds also under `flock /shared/tmp/etcd-grove-build.lock`.
 Go tests under `systemd-run --scope -q -p MemoryMax=32G`, `GOWORK=off`, `PATH=/usr/local/go/bin:$HOME/go/bin:$PATH`.

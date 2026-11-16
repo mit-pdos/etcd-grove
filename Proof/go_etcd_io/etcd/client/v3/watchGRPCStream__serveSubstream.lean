@@ -50,7 +50,7 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (hcpl : P.γ.cpl = true) :
     monoListAuthOwn (GF := GF) P.γ.cur 1 C ∗ eventsAt v.Events' r.events ∗
       watchHdrOwn v.Header' r ∗ ⌜dispOk P.rev hiB hiA r⌝ ∗
-      statusErrOk v.closeErr' ∗
+      closeErrOk v.closeErr' ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ (c2 c2' : w64) (σ : KVState), monoListIdxOwn P.γ.cur2 i c2 ∗
         monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOkP P.o σ c2 c2' v r ∗
         eventsPkAt v.Events' r.events) ∗
@@ -599,7 +599,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     imod publish_elem V P C sent.length v0 r hiB hiA HC.1 HC.2
       ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ HPkc.2 $$ [Hauth Hhdr] with ⟨Hauth, Helem⟩
     · iframe Hauth Hev Hok Hhdr Hc2e Hrow Hcmp
-      rw [Hv.2.1]; iapply statusErrOk_nil
+      rw [Hv.2.1]; iapply closeErrOk_nil
     imodintro
     iapply spsc_send_au P.γ.spsc P.outc _ _ sent v0 _ $$ Houtc [$Hlc1 $Hlc2 $Hlc3] [$Hprod $Helem]
     inext
@@ -826,7 +826,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
                 isplitl []
                 · iapply (watchHdrOwn_nil _ _ Hcr.2).2; iexact Hhdr
                 isplitl []
-                · rw [Hv.2.1]; iapply statusErrOk_nil
+                · rw [Hv.2.1]; iapply closeErrOk_nil
                 isplitr
                 · iintro !> %h
                   exact absurd Hcr.2 h

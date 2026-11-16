@@ -80,7 +80,7 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
         v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs' Dn ∗
         monoListAuthOwn G.γep 1
           (eps ++ [((γs', sent.length, γc, i, auth.mdTokenOf md) : EpInfo)])) ∨
-       (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err ∗
+       (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err ∗
         sspscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps)) }}
 
 end spec
