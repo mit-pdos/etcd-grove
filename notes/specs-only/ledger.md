@@ -2666,3 +2666,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
+
+## 2026-11-16: three more closed theorems over the file extension (decision A, landing `wal-lean`)
+
+- **Specs.** `etcd_leaseN_adequate`/`etcd_leaseN_safe`, `etcd_leaseexpiryN_adequate`/`etcd_leaseexpiryN_safe`,
+  `etcd_authN_adequate`/`etcd_authN_safe` (new on `lean` since the last merge, `523c2a5495`).
+- **Defect.** As the 25 earlier ones: the bodied `fileutil`'s package initializer probes `F_OFD_GETLK` over
+  `fsExt`, so `[idIssueExt]` (`TrivialExt.lean`) no longer has the extension the server's initialization needs.
+- **Change.** As `putgetN`'s: the extensions are `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`), one new
+  premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`; every other premise and the conclusion unchanged.
+- **Decision.** The user's decision (A) of 2026-11-15 for this class of change; listed for the user's review
+  with the earlier 25.
