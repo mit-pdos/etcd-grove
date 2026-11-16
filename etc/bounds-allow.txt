@@ -57,13 +57,13 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|ru
 # joins them with the writer's shares.
 stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(start|end)Epoch\.lean$
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
-# The restart example's raft-handler swap, by its owner, the swap (`examples/etcd/restart`, restart3 C3,
+# The restart example's raft-handler swap, by its owner, the swap (`examples/etcd/restart`, restart3 C3, and its copy in `examples/etcd/restartN`,
 # 2026-11-15; decided by etcd-grove-81): like the reader pools, the swap owns its pool of the current
 # incarnation's `srvServeRes` copies and its slot tokens (`swTok`), `httpProcSlots` of them;
 # `newMember` builds it from `BuildServer`'s serving copies (`sw_alloc`), `ServeHTTP` trades a slot
 # token for a copy and back (`sw_enter`/`sw_exit`), and `set` installs a new incarnation's copies
 # (`sw_install`).
-stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/etcd/restart/(Swap|raftSwap)\.lean$
+stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/etcd/restartN?/(Swap|raftSwap)\.lean$
 
 # mvccfull's writer owns its log and so its model's revisions (F1 Prove, 2026-11-10): the writer's
 # helpers `end` and `gen` take the member's revision with room for the next two (`rev + 2 < 2 ^ 63`),
