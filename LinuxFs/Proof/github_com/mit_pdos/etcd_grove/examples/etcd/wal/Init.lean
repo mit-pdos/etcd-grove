@@ -9,11 +9,14 @@ module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgInit
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Perennial.Proof.strings.Link
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Init
+public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.Init
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import LinuxFs.Proof.go_etcd_io.raft.v3.InitPb
 public import LinuxFs.Proof.go_uber_org.zap.Init
+public import LinuxFs.Proof.os.Init
 public import LinuxFs.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -54,12 +57,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
-      EtcdGrove.ExternalInit.github_com_goose_lang_primitive _root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+      EtcdGrove.ExternalInit.github_com_goose_lang_primitive _root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
