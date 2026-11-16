@@ -2946,6 +2946,32 @@ theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) 
   iapply ownRaftPhysC_toS
   iexact H
 
+/-- (auth-lease S4, 2026-11-16, L-r5) **The no-snapshot mode set to `b`** on the static-mode physical
+state of a node outside it (`Bootstrap`'s: the cluster's mode, `NsLink`): at `true`, with the
+storage's cap (`storCapF`) and the mode's facts of the log (`LogNsOk`). -/
+theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b : Bool)
+    (Hns0 : s.gh.ns = false)
+    (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
+      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap) :
+    ⊢ (⌜b = false⌝ ∨ storCapF (GF := GF) s.logst.storage 1) -∗ ownRaftPhys cfg r id s -∗
+      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b } } := by
+  cases b with
+  | false =>
+    have e : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
+      rw [show (false : Bool) = s.gh.ns from Hns0.symm]
+    rw [e]
+    iintro _ H
+    iexact H
+  | true =>
+    obtain ⟨h1, h2, h3, h4, h5⟩ := Hb rfl
+    iintro (%h | #Hcap) H
+    · cases h
+    ihave H := ownRaftPhys_toC' $$ H
+    ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg))
+      (V := (CfgM.simple cfg (domSet s.progress \ cfg)).voters) r id s h1 h2 h3 h4 h5 $$ Hcap H
+    iapply ownRaftPhysC_toS
+    iexact H
+
 /-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
 new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,
 a pre-campaign's, a transfer's campaign). -/

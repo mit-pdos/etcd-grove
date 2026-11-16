@@ -131,6 +131,26 @@ private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c :
     iright
     ipureintro; omega
 
+/-- (auth-lease S4, 2026-11-16, L-r5) **In the cluster's no-snapshot mode, a storage meeting the
+contract is never compacted past `1`** (`storCapF`): its bound's justification (`storBnd`) caps it. -/
+private theorem isStorage_storCapF (γ : Cluster) (K : GName) (st : Storage) :
+    ⊢ EtcdGrove.isStorage (GF := GF) γ K st -∗
+      (⌜γ.raft.reNoSnap = false⌝ ∨ storCapF st 1) ∗ EtcdGrove.isStorage γ K st := by
+  iintro Hst
+  unfold EtcdGrove.isStorage
+  ihave #Hst := Hst
+  iframe Hst
+  cases h : γ.raft.reNoSnap
+  · ileft; ipureintro; rfl
+  · iright
+    iunfold isStorageP at Hst
+    icases Hst with ⟨%i, %Hstok, -, -, -, -, -, #Hbound, -⟩
+    iunfold storCapF
+    iintro !> %c Hc
+    imod Hbound $$ %c Hc with Hb
+    ihave %H := EtcdGrove.storBnd_cap γ K c $$ Hb
+    imodintro; ipureintro; exact H (by unfold clusterNoSnap; exact h)
+
 /-- Raft's reading of the contract's `DL` for a valid snapshot: the node on the storage committed
 up to its index, so raft certified the term there (or handed out a snapshot past it, or the attach
 recorded it). (2026-11-01, durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
@@ -308,7 +328,7 @@ private theorem wp_StartNode_impl
     EtcdGrove.StartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.spec
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Hv Hvo Hl Hln
-    Hal Hvs Hnsm
+    Hal Hvs
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx⟩
   ihave #Hboot0 := Hboot
   iunfold EtcdGrove.nodeBoot at Hboot
@@ -418,17 +438,13 @@ private theorem wp_StartNode_impl
   imod dghostVar_alloc (GF := GF)
     ((DurMaps.empty, (RaftState.init, W64 0)) : DurMaps × (RaftState × StateType)) with ⟨%gbw, Hbw⟩
   have Hne : vs ≠ [] := by intro h; rw [h] at Hid; cases Hid
-  have Hns : γ.raft.reNoSnap = false := by
-    unfold clusterNoSnap at Hnsm; cases h : γ.raft.reNoSnap
-    · rfl
-    · exact absurd h Hnsm
   -- `setupNode`: `NewRawNode` (its storage the empty view at the fresh names), `Bootstrap`,
   -- `newNode`
   wp_auto
   wp_apply wp_setupNode γ.raft (γ.mode inferInstance) c cv lok si sn σv hsZero csm
     iprop(Rb ∗ storAuths sn σv) iprop(∃ K, storKeyNames K sn ∗ F K) peers dq pv vs ctxs
     γ.raft.reBoot H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx rfl Happ rfl rfl rfl rfl rfl rfl ⟨rfl, rfl, rfl⟩ Hv Hvo
-    Hl Hln Hal rfl rfl Hvs Hne Hnd Hnz (by omega) Hid Hcfg rfl Hbl Hns
+    Hl Hln Hal rfl rfl Hvs Hne Hnd Hnz (by omega) Hid Hcfg rfl Hbl
     $$ [Hc HRb HA Hpeers Hg]
     as %np ⟨⟨%K, #HKn, HF⟩, %nv, %rn, Hnp, %Hnvrn, Hchans, Hrn, Hpeers⟩
   · iframe Hc Hlg Hpeers Hctx Hmarsh Hcb Hlink
@@ -469,6 +485,8 @@ private theorem wp_StartNode_impl
       · iunfold EtcdGrove.nodeCommitLb
         ihave H := nodeCommitLbU_zero (GF := GF) γ K
         iExactEq H; rfl
+      -- (auth-lease S4, L-r5) the storage's cap in the cluster's no-snapshot mode (`Bootstrap`'s)
+      icases isStorage_storCapF γ K _ $$ Hst with ⟨#Hcap, Hst⟩
       imodintro
       isplitl [Hst]
       · iapply isStorage_of_V
@@ -505,6 +523,7 @@ private theorem wp_StartNode_impl
         ipureintro
         exact ⟨He0, Nat.le_refl _, by simp [StorState.kOut, σv], by simp [StorState.kOut, σv],
           Nat.le_refl _⟩
+      iframe Hcap
       iexists K
       iframe HKn HF
     -- the bootstrap state's volatile half, in the cluster's dynamic mode

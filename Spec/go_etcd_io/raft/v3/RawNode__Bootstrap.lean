@@ -61,9 +61,6 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
-  -- (raft-final phase 2) outside the cluster's no-snapshot mode (dropped at raft's level: a node's
-  -- `NGhost.ns` is off, `NsCap`)
-  γ.reNoSnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
       rawNodeFresh rn id si ∅ sdr pre s ∗
@@ -75,7 +72,10 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1, over
       -- the node's storage names, U8 v2; until then also, D21 M3, the no-snapshot mode's storage cap
       -- `NsCap`)
-      certLink γ s.gh.sn }}
+      certLink γ s.gh.sn ∗
+      -- (auth-lease S4, 2026-11-16, L-r5; D21 M3 revived) in the cluster's no-snapshot mode, the
+      -- storage never compacted past index `1` (`storCapF`, the mode's cap `NsCap`)
+      (⌜γ.reNoSnap = false⌝ ∨ storCapF (interface.ok si) 1) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Bootstrap")) (Val #peers))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗

@@ -82,7 +82,6 @@ abbrev setupNode.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
-  γ.reNoSnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- `NewRawNode`'s boot bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
@@ -92,7 +91,10 @@ abbrev setupNode.spec : Prop :=
       (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) ∗
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
+              -- (auth-lease S4, 2026-11-16, L-r5) in the cluster's no-snapshot mode, the storage's
+              -- cap (`Bootstrap`'s)
+              ((⌜γ.reNoSnap = false⌝ ∨ storCapF (interface.ok si) 1) ∗ R') }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
       certLink γ sn }}

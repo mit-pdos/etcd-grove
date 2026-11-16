@@ -90,7 +90,10 @@ once `InitialState` returned, with raft's bound at `c` (`nodeAppliedLb`, every l
 `nodeAppliedLb_mono`) and the stored snapshot's validity (the client's certificate, and raft's
 commit bound at its index). It consumes the token: a storage is attached once. -/
 theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (c : Nat)
-    (sv : SnapshotM) (E : CoPset) :
+    (sv : SnapshotM) (E : CoPset)
+    -- (auth-lease S4, 2026-11-16, decided by etcd-grove-02) in the cluster's no-snapshot mode, the
+    -- compaction point at most `1` (`memStorJ.B`'s cap, L-r2)
+    (Hcap : clusterNoSnap γ → c ≤ 1) :
     ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs c sv -∗ nodeAppliedLb γ K c -∗
       (⌜sv.Metadata'.Index' = W64 0⌝ ∨ snapshotValid γ sv ∗
         nodeCommitLb γ K (uint.nat sv.Metadata'.Index')) ={E}=∗
