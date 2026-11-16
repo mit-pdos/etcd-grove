@@ -610,3 +610,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   decodes). Nothing else. Uses of the spec as a hypothesis drop the gate argument and prove the new law.
 - **Decision.** (1) planned by the Scope (Q6); (2) option (A), decided by etcd-grove-02, 2026-11-16; producer 7f-6
   (stage C's `KvOne` in `KvNext`). Both reported again at the land stop.
+- **Third defect (found at 7f-5b step 1).** `transform` needs `0 ≤ sint.Z modRev` of each raw event (its proof uses
+  `W64 (sint.nat modRev) = modRev`); nothing in the spec bounds `σ.rev` (`kvWfHist` bounds the unsigned `modRev`
+  only, the client watch gives no `kvRevFits`). Without it the stream facts are false at `σ.rev ≥ 2^63` (`kEvOfL`'s
+  `rv = sint.nat modRev = 0`; Go's `UpdateObject(obj, uint64(rev))` the wrapped value).
+- **Proposed change (3).** The first read law also gains `∧ kvRevFits σ.rev` (`σ.rev + 3 < 2^63`).
+- **Decision (3).** Decided by etcd-grove-02, 2026-11-16; producer 7f-6 (the reads its `Q` fires at give `kvRevFits`).

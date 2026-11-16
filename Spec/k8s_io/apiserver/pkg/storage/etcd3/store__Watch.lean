@@ -38,7 +38,7 @@ a watch of the prepared key's scope from the parsed resource version `n`, with `
 context (an `isContext` with grpc's outgoing metadata, client errors and the Kubernetes keys), with
 the caller's read updates `Q lb` (`Q lb σ`: a state of one history at revision at least `lb`;
 `Q σ.rev` handed out after a firing at `σ`; its states' revisions put only values that decode under
-the store's prefix, `kvWritesDec`: ledger, "store.Watch without `concurrentDecodeOff`"), returns an error (only `getCurrentStorageRV`'s, for RV 0 with `SendInitialEvents = false`), or `nil`
+the store's prefix, `kvWritesDec`, and its revision fits an `int64`, `kvRevFits`: ledger, "store.Watch without `concurrentDecodeOff`"), returns an error (only `getCurrentStorageRV`'s, for RV 0 with `SendInitialEvents = false`), or `nil`
 and the consumer's view
 (`k8sWatch`, live while the caller has not stopped it and its context `cd` is not done). No thread
 token: the watch's three goroutines get theirs at their `go` statements. -/
@@ -48,7 +48,8 @@ abbrev store.Watch.spec : Prop :=
     (W : WatchSpec Obj) (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (opts : k8s_io.apiserver.pkg.storage.ListOptions) (k : GoString) (n : w64)
     (sie : Option Bool) (sel : Obj → Bool) (emp : Bool) (Q : Nat → KVState → IProp GF),
-  (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ⌝) →
+  (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ ∧
+    kvRevFits σ.rev⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   (∀ x ∈ c.ms, noRefusalAt x.addr) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
