@@ -1,27 +1,39 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, lean merged; Freeze rev 3 READY FOR REVIEW: hard stop)
+## START HERE (S4, 2026-11-16, Freeze FROZEN; items 5-10 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
-- **Done:** raft L-r0..L-r6 (`f1540674ea`, `0d81d23b6f`), server (`d54c9155f6`), drivers (`a86afd08dc`, `782fc63bd3`;
-  ACCEPTED by etcd-grove-02 with the `2^48 ≤ catchUp` premise form and the 9 interface moves); merge of lean
-  `523c2a5495` (clean, no textual conflicts; leaseN/leaseexpiryN build unchanged: this branch has not yet changed the
-  client lease specs, items 5-6 do). Full build of the merge passes (`/shared/tmp/auth-lease-s4/merge1.log`); checks:
-  `/shared/tmp/auth-lease-s4/chk-merge/summary.log`.
-- **Freeze:** rev 3 (`notes/auth-lease-s4-freeze.md` §10; `Scratch/S4Freeze.lean`, copy
-  `/shared/tmp/auth-lease-s4/S4Freeze.lean`, 0 errors). Round 2 (`freeze-review-r2.md`): S1/S2/H1/T1 applied in rev 3.
-  Round 3 (`freeze-review-r3.md`) and round 4 (`freeze-review-r4.md`, on etcd-grove-02's request): no first-tier
-  finding; their second tier applied (Freeze §7 "Round 3", "Round 4"). D-a..D-g, D-i, D-j, D-k (forms), `lessorLawMask`
-  ACCEPTED by etcd-grove-02 (conditional on round 4, which found nothing first-tier); D-h with the user.
-  Ledger entry for H1/S1/T1 in `notes/specs-only/ledger.md`. Decisions asked: Freeze §6 items 1-9.
-- **Next:** WAIT for the Freeze review (etcd-grove-02 and the user). After approval, Draft §7 items 5-10: write the
-  Scratch texts into the tree (client items 5-6, server/law item 7 with `lessorFollows` per §5.4), D-k's exact
-  texts (`srvClusterBootOn_alloc`/`allocNOnM` `ns`, authlease at `true`) at item 9's stop.
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`,
+  all checks at baseline: tcb 877/4, 65 collections, interfaces, bounds 390, mode 448); Freeze rev 3 + rounds 2-4
+  (`fcc8b0985e`, `c30c95e91e`); **Freeze FROZEN** (`209e3c68e6`, tag `auth-lease-s4-frozen`): the frozen texts are
+  `notes/auth-lease-s4-frozen.lean.txt` with per-text hashes in the Freeze header. A change beyond them is a thaw: STOP.
+- **Next, in order (Draft §7):**
+  5. leased KV at auth on (client): Freeze §1 + §9 K1 (`etcdPutSpecOn`/`M`, `etcdTxnSpecOn`/`M` filters, `txnUpdAtOn`'s write
+     branch, `client_put_on` over options `gs`; server side `putPermitM_of_dep`, `ServerKVOn.lean:369-397`). Files naming them:
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Run.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/ClientOn.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkCalls.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/run.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/run.lean
+    - Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean
+    - Proof/go_etcd_io/etcd/client/v3/Results.lean
+    - Proof/go_etcd_io/etcd/client/v3/AuthnServedOn.lean
+    - Proof/go_etcd_io/etcd/client/v3/LeaseGrantServed.lean
+    - Proof/go_etcd_io/etcd/client/v3/KVServiceOn.lean
+    - Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth/SetUp.lean
+  6. F3 lease contract (client): §2, §3 (C1/C3/D-h/D-i), the v3rpc H1 chain (§7 Round 3/4 tables: `LeaseServer.{LeaseGrant,
+     LeaseRevoke}.spec`, `lessorGrantOkGM`/`lessorRevokeOkM`, `EtcdServer.{LeaseGrant,LeaseRevoke}.spec`, `requireAuthInfo.specC`,
+     `authedFrom` + instance + bridge in `LeaseCheck.lean`).
+  7. read handlers (§4, §10 T1) and the per-member law (§5, §10 S1, `lessorLawMask`; the tie per §5.4 / R4-5).
+  8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP: `Main.wp_proof` proved). 10. linking, gates,
+     then the land stop (merge lean first: it is 61053b1f3c or later).
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; checks with
-  `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`; `etc/lean-check.py --max-open 2`, `--stop` before builds.
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`; `etc/lean-check.py --max-open 2`, `--stop` before builds and at
+  the end. `etc/importers.py --uses NAME FILE` to find what a changed statement breaks.
 - **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail or time out: `have` first.
-  `receiptBound` is a `Nat`. A Monitor grepping the build log for `error` floods (the log prints `#print axioms`
-  lists with `errors` package names): wait on the build's exit instead.
+  `receiptBound` is a `Nat`. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
+  `v3rpc.LeaseServer.ty` must be written `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty` outside its namespace.
 
 # History
 
