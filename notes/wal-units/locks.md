@@ -742,3 +742,75 @@ found false; the internal lemma statements below changed with the invariant).
    not run (no linked function added or changed).
 
 **Decisions left for the user**: none new. **No new axiom, no `sorry`. No Go bug found.**
+
+### Session 9 (2026-11-16, branch `wal-c-purge6`, base `origin/wal-int` `9c80540ca7`)
+
+**Done: item 1** (session 8's "Item 1, left"), all new files but `PurgeWals.lean` (split, statement kept). Built with
+`lake build` (`PurgeAu`, `PurgeLend`, and the three `Link`s, unchanged). No new axiom, no `sorry`, nothing trusted
+changed, no Go changed, no client-facing spec changed (so no ledger entry).
+
+- **`purgeCommit_pure`** (`PurgeCommitPure.lean`, `cutCommit_pure`'s shape): after the removal of `bt` (the first
+  named segment `g0`, not the last) under the WAL directory's claim, the invariant's pure conjuncts hold at
+  `purSt s dir p k` (`purD p k`: `pur := max pur p`, `cut := k`; with `k` the next segment's start it is
+  `walPurgeD d lay p`), the layout `purgeLayP lay g0`, the claim `purgeClaim` (logged `rmFileEnt`, the names
+  `purgeNames X bt hj = restrictN (.except X) (delete bt hj.cur)`, `rmFileOutN`'s). Pieces: `walsNamed_purge` (a crash
+  keeping the removal names the other segments as the new claim, `g0` with the removed ones, `segsNamedC_pg`; one
+  dropping it, the old condition: the segments are the same list), `dirKeysOk_purge` (keys and `DirClaimsOk` as
+  `dirKeysOk_cut`; the crash conditions, no cut pending, over the logged claim), `absentNone_purge`, `dirsOk_purge`
+  (`walk_treeSetE_file`: a walk to a directory reads no file entry), `segsAll_purge_mem`/`_nodup`,
+  `crashOkA_full_purge` (split out of `walFullOk_purge`, which now uses it), `purge_first_seg` (the smallest `.wal`
+  name of the claim, with a larger one, is the first segment's, not the last, its sequence `first`).
+- **The client's commit, `walPurgeAcc dir Pc`** (`PurgeDefs.lean`; session 4's shape, made concrete):
+  `□ (Pc -∗ AACC <{∃∃ d, walDiskAt dir d, ABORT Pc}> @ walAuMask, ∅ <{∀∀ p k, ⌜d.cut ≤ k ≤ p ≤ d.unl⌝ ∗ walDiskAt dir
+  {d with pur := max d.pur p, cut := k}, COMM Pc}>)`: a token `Pc` and a persistent accessor, so a round commits once
+  per removal. The removal commits `p := d.unl`, `k` the next segment's start (`d.cut ≤ k` by `segStart_le_succ`,
+  `k ≤ d.unl` by the handle's range).
+- **The resources** (`PurgeAuLemmas.lean`): `segsAll_sep_same`, `laysResF_purge`, `walTailsRes_purge` (the tail, its
+  fields and the last segment unchanged: `tailIdle_purgeLayP`, `repOld_purgeLayP`), `walParked_purge` (the claim out,
+  `o.D`; its others a submap, `walOthersL_replSub` over `bigSepM_subseteq`: the new names `purgeNames` are some of the
+  old, `purgeNames_sub`, since a claim's `cur` is not known restricted to its names outside the `os` invariant).
+- **`walPurge_osAUnc`** (`PurgeAu.lean`, `walCut_osAUnc`'s shape): the update for `os.Remove.specFileSncN` (the claim
+  `(j, .except X, hj)` at `1/2 + 1/4`, the purger keeping a quarter in `walPurgeP` with the keys, the tail record,
+  `walOutFrag o`, `walCutFrag none`, the range `walTailsFrag {dir ↦ γt} {dir ↦ b}`, `Pc`). Premises: `bt` names `i`,
+  the smallest `.wal` name, a larger one exists, `bt = walFileName sq ix` (`sq < 2^64`), `LkRel hj tg.cuts nm0 ls b`,
+  `bt ≠ nm0`, `bt ∉ ls` (the purger's lock excludes the last: `walDirLks_purgeStep`). Commit: no cut pending, the tail
+  record gives `d`/`lay`, `LksOk` gives `b ≤ d.unl`, `purge_first_seg`, `LkRel_purge` (cuts sorted from `WalAbsD`),
+  the client's accessor, `walGhost_upd` to `purSt`, `purgeCommit_pure`, the resources, `walsAt_repl`,
+  `walNamesRes_congr`/`_insert`.
+- **The handle's side** (`PurgeLend.lean`): `walOpenWF_lend` (the sealed handle lends its half of the directory's
+  claim, the path, a quarter of the call permission, `walOutFrag`, `walDirLks`, the tail key and record, `walCutFrag
+  none`, with `walDirH`'s facts; back with names `hj'` such that `WalSub hj hj' nm0`: only `.wal` names removed, never
+  the tail's), over `walDirH_lend`; `walDirLks_purgeStep` (with the purger's `osLock` on the inode: the range, the
+  removed name no lock's, and the range back after a removal, `LkRel_subAt`); `WalSubAt`, `walSub_trans_at`.
+
+**Not done: item 2, `purgeRound`** (Go untouched). **The obstacle found** (the next session's first problem):
+`purgeRound` keeps the names ending in `"wal"` (`strings.HasSuffix(names[i], "wal")`, as etcd's `purgeFile`), not
+the `.wal` names (`walNameP`), and `fileutil.ReadDir` lists the whole directory, which the invariant knows only
+through the claim `(j, .except X, hj)`:
+1. Names in `X` (outside the claim): `ReadDir.spec` says nothing of them, and the purger has no claim to open or
+   remove one. Every key is minted with `X = walTmps` (`Create`'s `hXt`, the boot's `.except walTmps`), but
+   `DirKeysOk` records only `∀ b ∈ X, walNameP b = false` and `walDirH` only `walTmps ⊆ X`. Fix: add `X = walTmps`
+   to `DirKeysOk`'s key clause (sites: `Create`'s commit, the boot, the steps that copy the clause), and a ghost-step
+   look `walInv -∗ walDirKey dir j X ={⊤}=∗ ⌜X = walTmps⌝` for the purger.
+2. Non-`.wal` names of the claim ending in `"wal"` (the invariant's "others", `walOthers`: leftover files, any
+   name): the round may open, lock and remove one, and one may sort among the segments. Either (a) a second update
+   `walPurgeOther_osAUnc` (no client commit, the state unchanged: the claim logged at a non-`.wal` name, its
+   `tmpEnt` dropped from `walOthers`, a file by `tmpEnt`; the crash conditions read only `.wal` names), with the
+   loop's invariant "every `.wal` name below `fs[n]` is removed" (the listing holds every `.wal` name of the claim,
+   which no one else changes while the handle is lent); or (b) an invariant that no name of a WAL directory ending
+   in `"wal"` is not a `.wal` name (the WAL creates none, but it must hold through crashes: a `CrashOk`-like clause
+   on names). Recommended: (a), local to the purge.
+3. Not the tail: `n + max < |fs|` does not give a larger `.wal` name when other names end in `"wal"`; the tail's
+   lock does (`TryLockFile` of the tail fails), but `walTailW` holds `fdLocksW fd ⟨i, rd, true, lo, lk⟩` with `lk`
+   unknown; needs `lk = some true` recorded (as `walLockHI`'s `∃ k, d.lk k = some true`), or the purge law refuting
+   via `walLockHI_ofTail`. Then `hlast` is `nm0` (the largest `.wal` name, `walDirH`).
+Then: `fileutil.TryLockFile` through `fileutil.OpenTriple` with `os.OpenFile` on the claim (the inode `hj` maps the
+name to), `os.Remove.specFileSncN` with `walPurge_osAUnc`, the lock's `Close`, the spec with `walPurgeAcc` (the
+tester's `TInv` supplies it: its oracle covers the purge, session 5), `opOwnSnap` re-proved, retranslation, the Go
+tests, the `decisions.md` follow-up.
+
+**Item 3, links**: the WAL `Link`, the tester's `Link` and `durable`'s `Link` rebuilt (`lake build`, unchanged: no
+linked function changed); `etc/gen-link.py --walfs/--durable/--wal-tester --check` all pass.
+
+**Decisions left for the user**: none new (item 2's obstacle has an internal fix, no Go change). **No new axiom, no
+`sorry`. No Go bug found.**
