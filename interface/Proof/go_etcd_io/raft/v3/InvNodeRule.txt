@@ -74,11 +74,11 @@ theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (vs : List w64
     → (boot ≠ [] → BootLog vs ctxs boot) → (∀ (b : Nat), md = some b → b ≤ 2 ^ 31) → (∀ (b : Nat),
     md = some b → ∀ (e : LogEntry), e ∈ boot → e.data.length ≤ b) → ⊢ (if boot = [] then emp else
     bootMarshal vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧
-    γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster
-    γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗
-    ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗ nodeVacant γ id)) ∗ if boot = [] then
-    joinAuth γ (listToSet vs) else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs
-    id
+    γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ⌜¬clusterNoSnap γ⌝ ∗ ownCommittedOps γ boot ∗
+    ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple
+    (listToSet vs)) ∗ ownSnapsMade γ [] ∗ ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗
+    nodeVacant γ id)) ∗ if boot = [] then joinAuth γ (listToSet vs) else isCommittedLogLb γ boot ∗
+    [∗list] id ∈ vs, nodeBoot γ N vs ctxs id
 
 theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec) (s : SnapRec) :
     ownSnapsMade γ S ∗ snapMade γ s ⊢ ⌜s ∈ S⌝

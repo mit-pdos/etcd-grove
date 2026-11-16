@@ -1,27 +1,22 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, drivers: STOPPED on kv's `kvCluster`)
+## START HERE (S4, 2026-11-16, L1 option 1 drivers done: checkpoint)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries).
-- **Done (this commit):** kv storage justifications `kvJ`/`kvrJ`/`kdJ` with the cap (option A, user-approved);
-  `cluster_alloc`'s post `⌜¬ clusterNoSnap γ⌝` → `srvClusterBoot_alloc` → `memberBoot_of`/`memberBoots_of` →
-  `memberBoot`, `memberRestartFacts`, `memberRestartBoot` (`%Hnsn`); `NewServer.spec`'s premise at newServerMode
-  (`¬ clusterNoSnap`), `specR`'s at the restart; auth drivers: `StartMemberAuth.spec` premise
-  `clusterNoSnap γ.cl → receiptBound ≤ catchUp`, `StartMembersAuth.spec` `∀ x ∈ xs, …`, authN/auth3/auth from
-  `Hcu48` (2^48); kvreconf/kvdurable `isReplica` `%Hnsn`, `newReplica.spec` pure premise, discharged from
-  `bootLen = 0` (`clusterNoSnap_boot`); `kd_restartStorage` premise; `RestartNode`'s new arg in kv/kvreconf/kvdurable.
-  Freeze §5: `Scratch/S4Freeze.lean` (copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`) and Freeze §9 table:
-  `memberNoSnapInstall` → `clusterNoSnap γr.raft.raft.cl` (not yet re-checked: needs the build).
-- **Open (STOP):** `kv/KV__run.lean` compacts at `a' - 10` (line ~495) and needs `¬ clusterNoSnap γr.cluster`;
-  kv's only carrier is its vocabulary (`kvCluster`/`isReplica`, in the exported `kv_run`, `kv_New`, …).
-  Proposal: `kvCluster γr` gains `⌜¬ clusterNoSnap γr.cluster⌝` (produced only by `kvCluster_alloc`, from
-  `cluster_alloc`); no statement text changes. Line ~565 (ApplySnapshot) the same fact.
-- **Next after the go:** kv fix; full build (`full2.log` had 11 failures, all fixed but kv's KV__run); then
-  `etc/tcb-report.py --check` + collections, `gen-interface --check` on every list, Scratch check; report.
-- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; logs
-  `/shared/tmp/auth-lease-s4/full{1,2}.log`, `t3.log`.
-- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` block that names a local can fail with
-  "unknown free variable" or time out (`whnf`): prove the fact in a `have` before and pass the name.
+- **Done:** raft L-r0..L-r6 (`f1540674ea`, `0d81d23b6f`), server (`d54c9155f6`), drivers (`a86afd08dc` + this commit):
+  `kvJ`/`kvrJ`/`kdJ` with the cap; `cluster_alloc`'s `¬ clusterNoSnap` → `srvClusterBoot_alloc` → `memberBoot`/
+  `memberRestartFacts`/`memberRestartBoot`; `kvCluster` gains it (kv's `KV__run`); kvreconf/kvdurable `isReplica`
+  `%Hnsn`; `NewServer.spec` premise now `clusterNoSnap γ.cl → 2^48 ≤ SnapshotCatchUpEntries` (so no new
+  `receiptBound` in specs: bounds at baseline), auth drivers `→ 2^48 ≤ catchUp`. Freeze §5: `Scratch/S4Freeze.lean`
+  (copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`) over `clusterNoSnap γr.raft.raft.cl`, checks with 0 errors.
+- **Checked** (`full5.log`): full build passes; `tcb-report --check` matches the baseline (870 axioms, 4 sorries);
+  all 63 collections pass; bounds 377 = baseline; mode 448 = baseline; interfaces regenerated (9 files: raft
+  `InvNodeRule`, etcdstart `Alloc3`, `AllocN`, `Defs`, `Restart`, `StartMemberAuth`, `StartMembersAuth` (Proof and Spec)).
+- **Next:** Freeze review rounds r2–r3, then items 5–10 (Draft §7); authlease's allocation sets the flag `true`
+  (`cluster_alloc_ns`; `memberBootOn` carries no mode fact, by design).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` block naming a local can fail ("unknown free
+  variable") or time out: prove it in a `have` first. `receiptBound` is a `Nat` (cast in `Int` goals: `omega`).
 
 ## Previous START HERE (S4, 2026-11-16, L1 option 1: raft + L-r5 + server committed; STOPPED at the checkpoint)
 

@@ -82,9 +82,7 @@ theorem startMember.wp_proof
   -- `NewServer(cfg)` with auth on
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
   icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
-  have Hcu48 : receiptBound GF ≤ uint.Z (W64 281474976710656) := by
-    have : uint.Z (W64 281474976710656) = 2 ^ 48 := by word
-    omega
+  have Hcu48 : (2 : Int) ^ 48 ≤ uint.Z (W64 281474976710656) := by word
   wp_apply (wp_NewServer _ ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩
       γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule)
       (fun _ => Hcu48) hc0 hch hlog hkcmp

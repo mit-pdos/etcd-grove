@@ -2282,7 +2282,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iexists _; iexact SnapshotCountS
   isplitl [SnapshotCatchUpEntriesS]
   · iexists _; iframe SnapshotCatchUpEntriesS
-    ipureintro; intro hm; exact Hscum (by rw [HρRaft] at hm; exact hm)
+    ipureintro; intro hm
+    have := Hscum (by rw [HρRaft] at hm; exact hm)
+    omega
   isplitl [wg]
   · iexact wg
   isplitl [wgMu]

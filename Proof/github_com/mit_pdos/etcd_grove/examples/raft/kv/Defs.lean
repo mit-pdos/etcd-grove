@@ -370,7 +370,10 @@ conf entries decided by `kvRule`, the membership of no entry the voters', and th
 of the snapshots made. -/
 def kvCluster (γr : RKVNames) : IProp GF :=
   iprop(isCluster γr.cluster kvRaftN ∗ confPolicy γr.cluster kvConfN kvRule ∗
-    confAt γr.cluster 0 (kvMembership γr) ∗ kvSnapInv γr)
+    confAt γr.cluster 0 (kvMembership γr) ∗ kvSnapInv γr ∗
+    -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`cluster_alloc`'s): the run's
+    -- compactions past index `1` (`kvJ`'s cap)
+    ⌜¬ clusterNoSnap γr.cluster⌝)
 
 instance kvCluster_persistent (γr : RKVNames) : Persistent (kvCluster (GF := GF) γr) := by
   unfold kvCluster; infer_instance

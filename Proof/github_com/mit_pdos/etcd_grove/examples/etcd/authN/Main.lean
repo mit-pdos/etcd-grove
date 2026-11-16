@@ -243,9 +243,7 @@ theorem Main.wp_proof
   · iExactEq Hmsl; rw [hkn]
   iclear Hmsl
   (try wp_auto)
-  have Hcu48 : receiptBound GF ≤ uint.Z (W64 281474976710656) := by
-    have : uint.Z (W64 281474976710656) = 2 ^ 48 := by word
-    omega
+  have Hcu48 : (2 : Int) ^ 48 ≤ uint.Z (W64 281474976710656) := by word
   wp_apply (wp_StartMembersAuth N token (W64 10000) (W64 281474976710656) msl lg ((members k).zip gs) ps
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .none Htb Hrb48 HrbN HwbN

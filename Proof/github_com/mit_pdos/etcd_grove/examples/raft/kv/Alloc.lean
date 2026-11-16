@@ -116,7 +116,7 @@ theorem kvCluster_alloc (E : CoPset) (vs : List w64) (hv : KvVotersOk vs) (S0 : 
   imod cluster_alloc (GF := GF) kvRaftN vs [] [] false (fun _ => none) none E Hrb hv.ne hv.nodup
       hv.zero hv.len (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
       $$ [] with
-    ⟨%γ, %Hγ, -, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hslots, -⟩
+    ⟨%γ, %Hγ, %Hnsn, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hslots, -⟩
   · iempintro
   imod confPolicy_alloc γ kvConfN kvRule E $$ Hdec with #Hpol
   imod rkvInv_alloc (GF := GF) E vs hv γ S0 $$ Hops HU with ⟨%γr, ⟨%Hγr, %Hvs⟩, #Hinv, Hval, Hseqs⟩
@@ -129,6 +129,7 @@ theorem kvCluster_alloc (E : CoPset) (vs : List w64) (hv : KvVotersOk vs) (S0 : 
   iframe Hinv Hval Hseqs Hslots
   unfold kvCluster
   iframe Hiscl Hpol Hca0 Hsinv
+  ipureintro; exact Hnsn
 
 end alloc
 

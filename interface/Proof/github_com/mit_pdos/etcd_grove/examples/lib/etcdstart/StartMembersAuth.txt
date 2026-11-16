@@ -35,41 +35,43 @@ theorem etcdstart.StartMembersAuth.wp_proof (wp_StartMemberAuth : etcdstart.Star
                           authRecordsFit →
                             apply.backendUnderQuota →
                               storage.diskOk →
-                                ⊢
-                                  ∀ Φ,
-                                    (isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-                                        zapLoggerOk lg ∗
-                                          threadTok ∗
-                                            ownSlice msl (List.map (fun x => x.fst) xs) DFrac.discard ∗
-                                              etcdstart.commonPremises ∗
-                                                context.isClosedchanInit ∗
-                                                  [∗list] x ∈ xs,
-                                                    etcdstart.memberPreOn N token (List.map (fun x => x.fst) xs) ps
-                                                      bootLog ctxs dir Φs γn x m) -∗
-                                      (▷
-                                          ∀ ssl err,
+                                (∀ (x : etcdstart.GMember × etcdstart.MemberG GF),
+                                    x ∈ xs → clusterNoSnap x.snd.γ.cl → 2 ^ 48 ≤ uint.Z catchUp) →
+                                  ⊢
+                                    ∀ Φ,
+                                      (isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                          zapLoggerOk lg ∗
                                             threadTok ∗
-                                                (⌜err ≠ GoInterface.nil⌝ ∨
-                                                  ⌜err = GoInterface.nil⌝ ∗
-                                                    ∃ ss,
-                                                      ownSlice ssl ss (DFrac.own 1) ∗
-                                                        [∗list] s;x ∈ ss;xs,
-                                                          iprop(threadTok -∗
-                                                              ∃ γa,
-                                                                etcdstart.memberUpOn s x.snd.ρ x.snd.E lg γn x.snd.id γa
-                                                                  m)) -∗
-                                              Φ (intoVal ssl, intoVal err)) -∗
-                                        WP
-                                          ((((((intoVal
-                                                      (functions
-                                                        github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
-                                                        []))
-                                                    (intoVal msl))
-                                                  (intoVal token))
-                                                (intoVal snapCount))
-                                              (intoVal catchUp))
-                                            (intoVal lg))
-                                          {{ Φ }}
+                                              ownSlice msl (List.map (fun x => x.fst) xs) DFrac.discard ∗
+                                                etcdstart.commonPremises ∗
+                                                  context.isClosedchanInit ∗
+                                                    [∗list] x ∈ xs,
+                                                      etcdstart.memberPreOn N token (List.map (fun x => x.fst) xs) ps
+                                                        bootLog ctxs dir Φs γn x m) -∗
+                                        (▷
+                                            ∀ ssl err,
+                                              threadTok ∗
+                                                  (⌜err ≠ GoInterface.nil⌝ ∨
+                                                    ⌜err = GoInterface.nil⌝ ∗
+                                                      ∃ ss,
+                                                        ownSlice ssl ss (DFrac.own 1) ∗
+                                                          [∗list] s;x ∈ ss;xs,
+                                                            iprop(threadTok -∗
+                                                                ∃ γa,
+                                                                  etcdstart.memberUpOn s x.snd.ρ x.snd.E lg γn x.snd.id γa
+                                                                    m)) -∗
+                                                Φ (intoVal ssl, intoVal err)) -∗
+                                          WP
+                                            ((((((intoVal
+                                                        (functions
+                                                          github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
+                                                          []))
+                                                      (intoVal msl))
+                                                    (intoVal token))
+                                                  (intoVal snapCount))
+                                                (intoVal catchUp))
+                                              (intoVal lg))
+                                            {{ Φ }}
 
 theorem etcdstart.StartMemberAuth.spec.congr_simp : etcdstart.StartMemberAuth.spec =
     etcdstart.StartMemberAuth.spec
