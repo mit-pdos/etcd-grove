@@ -1,6 +1,29 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, L1 option 1 drivers done: checkpoint)
+## START HERE (S4, 2026-11-16, lean merged; Freeze rev 3 READY FOR REVIEW: hard stop)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
+- **Done:** raft L-r0..L-r6 (`f1540674ea`, `0d81d23b6f`), server (`d54c9155f6`), drivers (`a86afd08dc`, `782fc63bd3`;
+  ACCEPTED by etcd-grove-02 with the `2^48 ≤ catchUp` premise form and the 9 interface moves); merge of lean
+  `523c2a5495` (clean, no textual conflicts; leaseN/leaseexpiryN build unchanged: this branch has not yet changed the
+  client lease specs, items 5-6 do). Full build of the merge passes (`/shared/tmp/auth-lease-s4/merge1.log`); checks:
+  `/shared/tmp/auth-lease-s4/chk-merge/summary.log`.
+- **Freeze:** rev 3 (`notes/auth-lease-s4-freeze.md` §10; `Scratch/S4Freeze.lean`, copy
+  `/shared/tmp/auth-lease-s4/S4Freeze.lean`, 0 errors). Round 2 (`freeze-review-r2.md`): S1/S2/H1/T1 applied in rev 3.
+  Round 3 (`freeze-review-r3.md`): no first-tier finding; its second tier applied (Freeze §7 "Round 3").
+  Ledger entry for H1/S1/T1 in `notes/specs-only/ledger.md`. Decisions asked: Freeze §6 items 1-9.
+- **Next:** WAIT for the Freeze review (etcd-grove-02 and the user). After approval, Draft §7 items 5-10: write the
+  Scratch texts into the tree (client items 5-6, server/law item 7 with `lessorFollows` per §5.4), D-k's exact
+  texts (`srvClusterBootOn_alloc`/`allocNOnM` `ns`, authlease at `true`) at item 9's stop.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; checks with
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`; `etc/lean-check.py --max-open 2`, `--stop` before builds.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail or time out: `have` first.
+  `receiptBound` is a `Nat`. A Monitor grepping the build log for `error` floods (the log prints `#print axioms`
+  lists with `errors` package names): wait on the build's exit instead.
+
+# History
+
+## Previous START HERE (S4, 2026-11-16, L1 option 1 drivers done: checkpoint)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries).
 - **Done:** raft L-r0..L-r6 (`f1540674ea`, `0d81d23b6f`), server (`d54c9155f6`), drivers (`a86afd08dc` + this commit):
@@ -75,8 +98,6 @@
   - `leaseTTLRow` needs `[go_etcd_io.etcd.server.v3.etcdserver.Assumptions]` in the section.
   - Auth-off lease users: `rw [hoff]` before `iintro`. Mode gate: no literal `true` in the new package (L3).
   - Ports 20000–21999 belong to another session.
-
-# History
 
 Plan: `notes/auth-lease-scope.md` (approved; §0, §2, §5, §7). Decisions Q1–Q9: `questions.md`,
 section "auth-lease". Worktree `/shared/etcd-grove-rs56`, branch `auth-lease` (off lean `89ef103d5b`,

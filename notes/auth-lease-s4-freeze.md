@@ -1,4 +1,4 @@
-# auth-lease S4 item 4: the Freeze package (rev 2, 2026-11-16; L1 option 1 approved, feasibility §8.4; rev 2's texts §9)
+# auth-lease S4 item 4: the Freeze package (rev 3, 2026-11-16; L1 option 1 approved, feasibility §8.4; rev 2's texts §9, rev 3's §10)
 
 For etcd-grove-02. Branch `auth-lease-s4`. Draft `notes/auth-lease-s4-draft.md` §3 lists the exported
 texts S4 changes; C5′'s (item 3) and etcdstart's (item 2) are already in the tree. This file gives the
@@ -23,6 +23,10 @@ changes. §4.4 strengthens two frozen `Spec/` posts of proved functions.
 | D-e | new `isEtcdLeaseOn` + `client_lessor_isEtcdLeaseOn_served` | new results `client_lease_grant_on`, `client_lease_revoke_on` on the concrete `*lessor` (§3) | an interface bundle is for a client that does not know the concrete type ("Canonical specs are per (concrete type, method)"). The driver holds `isNewClient`'s `lessorAt lp eps`, the concrete `*lessor`. These are the siblings of `client_put_on` |
 | D-f | (not in §3) | **§4.4: `EtcdServer.LeaseTimeToLive.spec`/`LeaseLeases.spec` posts strengthened**, plus v3rpc's `leaseTTLOut`/`leaseLeasesOut` | without it a refused `TimeToLive`/`Leases` cannot be told from a successful one (finding F4 below) |
 | D-g | per-member law `lessor_keys_of_read` | exact statement §5, with new pure vocabulary | |
+| D-h | (not in §3) | S3c's `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` take a caller's `n` (`authPubLbM`), reply `leaseCheckT … n (fun _ => True)`; server `LeaseGrant.spec`/`LeaseRevoke.spec`/`requireAuthInfo.specC` posts gain `authedFrom … n` (§10) | check 1's token-less/bad-token `Grant` refusal (r1 C2; rev 2's form false, r2 H1) |
+| D-i | (not in §3) | `clientTokAt` gains the client's `Lease` over the same connection; `New`'s post strengthened (§9) | r1 C3 |
+| D-j | (not in §3) | `client_put_on` generalized to options `gs` (§9) | r1 K1 |
+| D-k | (not in §3) | the cluster allocations take the no-snapshot flag: `srvClusterBootOn_alloc`/`srvClusterBoot_alloc` `(ns : Bool := false) (hns : ns = true → boot ≠ [])`, post `clusterNoSnap γ.cl ↔ ns = true`; etcdstart's `allocNOnM` takes `ns` and returns the mode at its members' cluster (§10) | the law's premise needs a producer (r2 S2); Draft §7 items 5-10, authlease at `true` |
 
 ## 1. The KV specs' lease filters (client/v3 `KVServiceOn.lean`)
 
@@ -103,6 +107,8 @@ authkv/auth3/authN clients (`etcd_auth.client_Put_on…`). Each consumer dischar
 
 ## 2. The lease client's specs at the metadata form (`Spec/…/client/v3/`)
 
+(The token sentence below is superseded by §9's second-tier row: a user client's token comes from its per-RPC credentials.)
+
 **Go** (`client/v3/lease.go`, `retry.go`). `lessor.Grant`/`Revoke`/`TimeToLive`/`Leases` call
 `l.remote.LeaseX(ctx, req, l.callOpts...)`. `retryLeaseClient.LeaseX` appends
 `withRetryPolicy(repeatable)`. The interceptor sends each attempt with the context's outgoing
@@ -151,6 +157,8 @@ the caller's `kvAu1G … (kvOpStep (.leaseGrant id ttl))` / `(.leaseRevoke id)` 
 which fires it at the entry's apply (S3a F3, S3b).
 
 ### 3.1 `client_lease_grant_on` (client/v3 `ResultsOn.lean`, new): probe §3.1
+
+(**Superseded** by §9's C1/C2 rows and §10's H1 row: no `kvOpAu1`, no `∃ tok`; the update is told the grant at the attempt's token. The text below is rev 1's, kept for the record.)
 
 ```lean
 {{ isPkgInit client ∗ lessorRemoteAt l [addr] ∗
@@ -330,7 +338,7 @@ vocabulary would double it.
 The server has no fact today tying lessor history indices to applied prefixes. `srvRestAt` holds the apply
 thread's half of the live set (`ltHalf E T.ids`) at entry boundaries, and mvcc's `lease.leaseOwn γ L I`
 ties the lessor's current items to the store's pending items. Neither is historical. The law needs
-**one new internal conjunct**, `lessorFollows E γr A` in `srvRestT` (all modes share it). It is a
+**one new internal conjunct**, `lessorFollows E γr A` (rev 3: in an invariant inside `lessorLawMask`, the member's store invariant `kvsN` first, else the lessor's own, whose namespace is then added to the mask; not in `srvRestT`, which a later index cannot reach) (all modes share it). It is a
 persistent mono-list, appended by the apply thread, mapping each applied index to the lessor index at
 that point, plus a pointwise claim on each history snapshot: the agreement of §5.3 between the
 boundaries `A`, `A ++ [e]`. Each lessor-touching applier maintains it: the Put, Txn, Delete,
@@ -361,7 +369,14 @@ raft-path refusal. That changes the approved program (D1) and goes to the user.
 4. **D-f / F4** (two frozen `Spec/` posts strengthened, proved code). Recommend: accept; without it checks
    1, 3–5 are unprovable.
 5. **D-g** (the law's statement §5.2, `hon`-scoped, and the new internal conjunct §5.4). Recommend:
-   accept, with §5.4's fallback order.
+   accept, with §5.4's fallback order. (Rev 3: the law as §10, mode-generic, over the member's floor.)
+6. **D-h** (rev 3's `n`-relative check on grant/revoke, `authedFrom`, four proved server/v3rpc specs
+   strengthened, §10). Recommend: accept; true of Go (`v3_server.go:1277-1290`), and check 1 needs it.
+7. **D-i, D-j** (§9). Recommend: accept (r1's C3, K1; r2 and r3 found them sound).
+8. **D-k** (the allocations' `ns` flag, §10): frozen as forms (the delta below), exact texts written with item
+   9 and shown at its stop. Recommend: accept as forms (default `false`: no other caller's text changes).
+9. **`lessorLawMask`** (new exported vocabulary, §10): its body may gain the tie's namespace in item 7 (a form).
+   Recommend: accept.
 
 Review rounds: `/shared/tmp/auth-lease-s4/freeze-review-r*.md` (§7).
 
@@ -389,6 +404,16 @@ findings and how each is to be handled in rev 2:
 
 **Not done:** rev 2, then rounds 2 and 3. The session stopped here (its context was large; L2 and L3 need
 decisions before rev 2 can be written).
+
+### Round 2 (fresh `spec-reviewer`, `/shared/tmp/auth-lease-s4/freeze-review-r2.md`, on rev 2): 4 first-tier findings, applied in rev 3 (§10)
+
+Resolved and stale: K1, C1, C3, R2 and r1's second tier. Confirmed: `clusterNoSnap` excludes exactly the
+snapshot-install and restart windows (`readySnap_mode`, `rnRestartOk_mode`); `opGrantTN` matches the permits;
+§4.4's `LeaseLeases.specN` sound. First tier: **S1** (the law's threshold `log.length` is false: `log` may extend
+what the member had applied), **S2** (no allocation produces `clusterNoSnap`), **H1** (D-h's
+`□ (E.authOn → ∃ info, …)` false of Go: with auth disabled a token-less grant succeeds), **T1** (R1's no-keys arm has
+no server spec to come from). Second tier: S3 (the probe lemma per index), S4 (mask), S5 (the model's timing),
+S6 (the off-mode claim), §0's table, §2/§3.1 superseded text, Txn views, premise split, §4.3's two extra premises.
 
 ## 8. Rev 2: stopped at the L1 hard stop (2026-11-16)
 
@@ -519,7 +544,7 @@ def leaseKeptIn (σ : KVState) (r₀ : Nat) (id : w64) (k : GoString) : Prop :=
     - `u`'s `Revoke(Lz)` and leased `Put(a/x, Lz)` are refuted at their commit. The grant, told at `u`'s token
       (C1), needs write on `z/lease`, which `u` lacks;
     - `v`'s `Revoke(Lu)` is refuted the same way.
-  - `r_put ≤` barrier 2's read revision, by the floors.
+  - `r_put ≤` barrier 2's read revision, by the floors. (Rev 3: the law's threshold is the member's own floor `F`, the log of barrier 2's read at that member, `F.length - 1 ≥ r_put`; §10.)
   - At a check's reply, the driver opens the cell and applies the law. The result is `lsHolds` at every index
     `≥ m`, which is the probe's `leaseHoldsFrom`, so `leaseKeysVerdict_refused` refutes the passed verdict.
   - Checks 1–2 and the end checks do not use the law. They use C1, C2 (D-h), R1 and K1 as dispositioned.
@@ -611,8 +636,48 @@ Each r1 finding, applied (the Scratch name in brackets; old texts §1–§5 abov
 | C3 / D-i | `clientTokAt` gains `∃ lp, Client.Lease ↦□ *lessor lp ∗ lessorRemoteAtC lp conn eps`; `New`'s post (`InvClientNewResult.lean:180`, today `lessorAt lp eps`) strengthened to name the connection. | `clientTokAtN` |
 | R1 | the TTL spec's success: `leaseCheckT s E (mdTokenOf md) n (fun info => if req.2 then leaseKeysVerdictFrom … else True)` (authentication with or without keys), and the TTL-row fact kept (second tier). Proof risk (review r1): the no-keys arm from `authedOutB` may need `requireAuthInfo.specC`'s `n`-relative form. | `etcdLeaseTTLSpecMd` |
 | R2 | `hγa` dropped and `γl` freed (the lease-read contract's); the result is the one read registration, renamed `etcd_lease_read_served`, the specs `…SpecMd` (any mode); `etcd_leaseReadMethodsOk`'s texts become corollaries. If the proof finds a use of `hγa`, it comes back as a marked scope restriction. | `etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`, `etcd_lease_read_served_stmt` |
-| L1 | option 1 (approved by the user 2026-11-16; §8.4): the law's premise `clusterNoSnap γr.raft.raft.cl` (pure, of the names), in place of rev 2's placeholder parameter `memberNoSnapInstall s E γr` | `lessor_keys_of_read_stmt` |
-| L2, L3 | §8.3 (accepted): `leaseHeldOn`/`leaseHeldThrough` deleted; `leaseKeptIn σ r₀ id k` (pure, `KVState`); the law over `isServerReadM E.authOn` (no `hon`), its conclusion against `etcdKV γr.kv σ` at any mask with `kvN`, `srvRaftN`, threshold the read's revision `log.length`; `srvRLogLb A₀` and `ai0 + |A₀| ≤ c` gone (the read's revision replaces them) | `leaseKeptIn`, `lsHolds`, `lessor_keys_of_read_stmt` |
+| L1 | (mask and threshold superseded by §10) option 1 (approved by the user 2026-11-16; §8.4): the law's premise `clusterNoSnap γr.raft.raft.cl` (pure, of the names), in place of rev 2's placeholder parameter `memberNoSnapInstall s E γr` | `lessor_keys_of_read_stmt` |
+| L2, L3 | (threshold `log.length` and mask superseded by §10) §8.3 (accepted): `leaseHeldOn`/`leaseHeldThrough` deleted; `leaseKeptIn σ r₀ id k` (pure, `KVState`); the law over `isServerReadM E.authOn` (no `hon`), its conclusion against `etcdKV γr.kv σ` at any mask with `kvN`, `srvRaftN`, threshold the read's revision `log.length`; `srvRLogLb A₀` and `ai0 + |A₀| ≤ c` gone (the read's revision replaces them) | `leaseKeptIn`, `lsHolds`, `lessor_keys_of_read_stmt` |
 | second tier | full texts of `retryLeaseClient.LeaseRevoke/LeaseTimeToLive/LeaseLeases` (§2.3). `kv.Put.spec`'s docstring: "etcd's auth-off Put spec". §2's token sentence corrected: a user client's token comes from its per-RPC credentials, which grpc sends first (`attemptTokOk`); only the bad-token client's token is in the context. §4.4: `checkLeaseLeases.spec`'s error post strengthened from `applyErrIs` to the auth package's error variables (as `checkLeaseTimeToLive.spec`'s `authErrVarIs`), a frozen-spec change of a proved function, certain. The v3rpc contract's `ttlAns`/`leasesAns` (`InvLeaseRead.lean:65-93`) change with §4.4 (the −1 arm's check; no auth-on empty listing). `raftLeaseRead_server` (`v3rpc/Results.lean:2083`) re-proves them. `ErrLeaseNotFound`'s message fact in `etcdserver` (`errMsgOk`, the lease package's init): to check in item 7. | `retryLeaseClient.*.specN` |
 
-**Not done:** review rounds 2–3 (after the L1 decision).
+**Not done (rev 2):** review rounds 2–3 (after the L1 decision). Round 2: §7; rev 3: §10.
+
+## 10. Rev 3 (2026-11-16, review r2's dispositions; `Scratch/S4Freeze.lean`, `etc/lean-check.py -a`: 0 errors)
+
+| finding | change | Scratch |
+|---|---|---|
+| S1 | the law's premise is the member's own store floor `srvApi.kvLogLb E.γs F` (member-local: the apply thread publishes it at its applied log, `InvApplier.lean:983`; a read's result carries one at the log it read, `InvRead.lean:184`), threshold `F.length - 1` (`kvStateOf_rev`), in place of `readLogOk γr c log` / `log.length`. The driver needs `r_put ≤ F.length - 1` at the check's member, from barrier 2's read result there | `lessor_keys_of_read_stmt` |
+| S2 / D-k | listed as an exported-text change (§0 D-k): the allocations take `ns` (default `false`, so every other caller keeps its text) and return `clusterNoSnap γ.cl ↔ ns = true`; `allocNOnM` likewise; `StartMembersAuth`'s `clusterNoSnap → 2^48 ≤ catchUp` is then discharged by `NoSnapCatchUp`. Exact texts with item 9 (the driver), before its stop; the boot path in the mode is checked free of `¬ clusterNoSnap` then (restart-only sites are fine) | (prose) |
+| H1 / D-h | registrations: `∃ n, auth.authPubLbM E.authMode n ∗ …` (the caller's bound), reply `v3rpc.leaseCheckT s E (mdTokenOf md) n (fun _ => True)`; client results take `authPubLbM E.authMode n` and carry the same; server `LeaseGrant.specN`/`LeaseRevoke.specN`: pre `□ authPubLbM n`, success `authedFrom s E.authMode n ctx` (new vocabulary, `AuthWhy.lean`: disabled at `≥ n`, or a principal bound to the context) | `etcdLeaseGrantSpecOnN`, `etcdLeaseRevokeSpecOnN`, `client_lease_{grant,revoke}_on_stmt`, `authedFrom`, `EtcdServer.LeaseGrant.specN`, `EtcdServer.LeaseRevoke.specN` |
+| T1 | `requireAuthInfo.specCN`: success also `authedFrom … n` (true of Go: `nil` only if the flag read `false` after `n`, or the token names a principal); `LeaseTimeToLive.specN`'s both arms `leaseCheckFrom … n (fun info => if Keys then leaseKeysVerdictFrom … else True)` | `EtcdServer.requireAuthInfo.specCN`, `EtcdServer.LeaseTimeToLive.specN` |
+| S3 | the driver applies the law at the verdict's own index (it destructures `leaseKeysFrom`/`leaseAbsentFrom`'s `(i, σl)`); the probe lemma `leaseKeysVerdict_refused` is restated per index in item 9 (not exported) | (item 9) |
+| S4 | the mask adds `srvApi.kvsN`: the tie (§5.4's `lessorFollows`) lives in the member's store invariant, not in `srvRestT`; §5.4's first option is revised accordingly | `lessor_keys_of_read_stmt` |
+| S5 | stated in the law's docstring as a proof obligation: `etcdKV`'s `σ` is the model of the committed log; a member applies only committed entries | docstring |
+| S6 | the docstring says: if the off-mode case fails in the proof, the law is restated at `isServerReadM true` and comes back for review | docstring |
+| second tier | §0 rows D-h..D-k; §2/§3.1 marked superseded; `txnViews_stmt` type-checked; `client_put_on_stmt`'s conjunction premise split; §4.3's `srvRevokeBuilt`/`srvRunPool`: kept for now, dropped at item 7 if the proof does not use them (as R2's `hγa`) | `txnViews_stmt`, `client_put_on_stmt` |
+
+### Round 3 (fresh `spec-reviewer`, `/shared/tmp/auth-lease-s4/freeze-review-r3.md`, on rev 3): no first-tier finding
+
+S1, S2 (in design), H1, T1 resolved: `kvLogLb E.γs` is member-local (`KVStoreCore.lean:54, 84-89`, per-member
+store names `etcdstart/AllocN.lean:160-195`); the threshold is sound (Go attaches before the revision is
+published; the model advances at commit); the driver gets `F` from `client_range_on`'s reply at the member
+(`KVService.lean:319-330`); `authedFrom` is what `requireAuthInfo` returns `nil` on; the old specs follow at
+`n = 0`. Second tier, applied (rev 3, same day; Scratch 0 errors):
+
+| finding | change |
+|---|---|
+| R3-1 mask | `lessorLawMask : CoPset := ↑kvN ∪ ↑srvRaftN ∪ ↑srvApi.kvsN` (exported with its body); the law's `⌜lessorLawMask ⊆ Em⌝`; item 7 may add the tie's namespace to the body (a form; §6 item 9) |
+| R3-2 D-k | frozen as forms (§6 item 8): `srvClusterBootOn_alloc`/`srvClusterBoot_alloc` `(ns : Bool := false) (hns : ns = true → boot ≠ [])`, post conjunct `clusterNoSnap γ.cl ↔ ns = true` (`srvClusterBoot_alloc`'s `¬ clusterNoSnap` becomes its `ns = false` instance); `allocNOnM` `(ns : Bool := false)`, post `⌜clusterNoSnap γ.cl ↔ ns = true⌝` at the cluster its `memberBootOn`s share; exact texts at item 9's stop |
+| R3-3 H1 chain | listed: v3rpc's `lessorGrantOkGM`/`lessorRevokeOkM` (`v3rpc/LeaseOn.lean:67-97`) take the caller's `n` and return `leaseCheckT … n (fun _ => True)`; the exported `lessorGrantOkLiveM_server`/`lessorRevokeOkM_server` (`v3rpc/Results.lean:2112-2125`) re-proved over them (statements change with the contracts) |
+| R3-4 | the law's docstring says why the floor is member-local |
+| R3-5 | §5.4, §8.3, §9's L1/L2 rows marked superseded by §10 |
+| R3-6 | `authedFrom` kept (the server's own term, below the lease layer); bridge law `leaseCheckFrom_of_authedFrom` exported (Scratch `…_stmt`); `authedOutB … nil` kept in the posts (existing callers read it; dropping it weakens the post) |
+| R3-7 | `⌜err = nil⌝ -∗` form in `requireAuthInfo.specCN`; `authPubLbM` unboxed in the Grant/Revoke specs as in TTL/Leases (it is persistent) |
+| R3-8 | §6 lists D-h..D-k and the mask; Scratch header rev 3 |
+
+Uncertain items left to the proofs (r3): mvcc reporting lessor pushes to the tie (item 7; fallback §5.4); that
+`leaseKeysVerdictFrom`'s witness agrees with `lsHolds`'s item map (item 9's per-index probe lemma); the law at
+auth off (S6's fallback in the docstring); the other callers of `LeaseTimeToLive.spec` adapt in their bodies.
+
+**Status:** rev 3 is ready for the Freeze review (etcd-grove-02 and the user). No further spec-reviewer round:
+round 3 found no first-tier fix; its second-tier ones are applied above.

@@ -605,3 +605,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
+
+## 2026-11-16: auth-lease S4 Freeze rev 2 (review r2): D-h and the lessor law's threshold
+
+- **Spec.** Freeze drafts (not yet in `Spec/`): `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn`'s D-h reply fact;
+  `lessor_keys_of_read`'s threshold; `EtcdServer.LeaseTimeToLive.spec`'s no-keys arm (R1).
+- **Defect.** D-h's `□ (E.authOn = true → ∃ info, principalBoundT …)` is false of Go (with auth disabled in the store,
+  `requireAuthInfo` returns `nil` and a token-less grant succeeds; `E.authOn` is the component, not the flag). The law's
+  threshold `log.length` over `readLogOk γr c log` is false (`log` may extend what the member applied; also off by one).
+  R1's no-keys arm has no server spec to come from (`authedOutB`'s disabled arm is unanchored).
+- **Evidence.** `/shared/tmp/auth-lease-s4/freeze-review-r2.md` (H1, S1, T1); `v3_server.go:1277-1280`;
+  `kvStateOf_rev` (`KVModelDefs.lean:988`).
+- **Proposed change.** Freeze rev 3 (§10 of `notes/auth-lease-s4-freeze.md`): `n`-relative `leaseCheckT … n` replies
+  with a new `authedFrom` on `requireAuthInfo.specC`/`LeaseGrant.spec`/`LeaseRevoke.spec`; the law over the member's
+  store floor `kvLogLb E.γs F`, threshold `F.length - 1`.
+- **Decision.** Pending (Freeze review by etcd-grove-02 and the user).
