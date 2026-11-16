@@ -11,10 +11,13 @@
   Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Results Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Results`
   (logs `/shared/tmp/leaseN/build*.log`). `etc/lean-check.py --max-open 2 --fast` for single files (`LAKE_OPTS=--packages=...`),
   `--stop` before a build and at the end of a turn.
-- Next, in order: the two Results build clean; collections' baselines (`etc/tcb-report.py --collection
-  etc/tcb-collections/leaseN.txt`: expected the union of lease/leaseexpiry and putgetN, no new axiom -- a new one is a
-  HARD STOP); interfaces/api/layout checks; STATUS entry; merge lean; full build and gates under
-  `flock /shared/tmp/etcd-grove-full-build.lock`; STOP before `etc/land.sh`.
+- Done this run too: full build clean; trust base unchanged (877, 4); collections `leaseN.txt` (648 = leasekv ∪ putgetN)
+  and `leaseexpiryN.txt` (649 = leaseexpiry ∪ putgetN), no sorry; etcdstart interface regenerated (`kv_lease_served_go`);
+  STATUS entry (oldest moved to status-history).
+- OPEN (etcd-grove-02): bounds +11 (leaseN 6, leaseexpiryN 5; putgetN/authN pattern), gates fail on it until decided
+  (then edit `etc/bounds-baseline.txt`); the collection baselines are new trust-base text to review.
+- Next: gates under `flock /shared/tmp/etcd-grove-full-build.lock` (LAKE_PACKAGES=/shared/tmp/manifest-e9e.json,
+  PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9, GOWORK unset); STOP before `etc/land.sh`.
 - Then (D10): `leasecatchupN`, a stage of its own.
 
 **Pitfalls**
