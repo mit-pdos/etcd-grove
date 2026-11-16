@@ -6,7 +6,7 @@
 - **Stage S4**: `etcd_authlease_safe` for `k` members; Draft `notes/auth-lease-s4-draft.md` (statement §2 APPROVED by
   the user, D1–D9 decided, §7 the work order). Decisions and forms: `questions.md` (untracked), "auth-lease S4".
 - **Done:** item 0 Draft + Go `examples/etcd/authlease/` (`5baacbd07a`, `647aadf78b`); item 2 auth start at a lease
-  mode (`7b126d3e4e`, forms ACCEPTED by etcd-grove-02); item 3 the C5′ merge (D5; commit after this handoff edit:
+  mode (`7b126d3e4e`, forms ACCEPTED by etcd-grove-02); item 3 the C5′ merge (D5; `2bddb5967a`:
   off contracts `raftLessor`/`lessorGrantOk(G)`/`lessorRevokeOk` and their `_false` bridges deleted; the seven
   client results at `v3rpc.raftLessorM E.authOn s E ρ S`, the two handler results with `hoff : E.authOn = false`;
   `lessorGrantOkL(_server)` → `lessorGrantOkLM(_server)`; mode baseline 453 → 448; forms in `questions.md`).
