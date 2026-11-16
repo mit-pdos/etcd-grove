@@ -194,7 +194,7 @@ theorem stateOk_closeErr (o : OpFull) (Q : KVState → IProp GF) (c c' : w64)
     stateOk (GF := GF) o Q c c' v r ⊢ go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' := by
   unfold stateOk watchStateRespOk
   iintro ⟨%σ, -, (⟨%H, #He⟩ | %H | %H | ⟨%H, -⟩)⟩
-  · iexact He
+  · iapply closeErrOk_status $$ He
   all_goals
     have hn : v.closeErr' = GoInterface.nil :=
       Classical.byContradiction fun h => H.1 (Or.inl h)

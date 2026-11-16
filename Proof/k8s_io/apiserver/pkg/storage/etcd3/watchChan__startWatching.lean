@@ -18,12 +18,9 @@ one (a segment, `kRawSeg_chg1`, each a prefix of it, `kProdAt_ok`), an error res
 `parseEvent` error is sent after `kProdExited` is set (the cancel's proposition, `kCancelPD`), and the
 channel's closing closes `watchClosedCh` (`kProdExited`, the broadcast's).
 
-**PENDING (E2's remaining gap, for etcd-grove-81):** the client watch's close error. `kErrOk` of an
-error response's `Err()` needs the close error to be a client error with its cell (`clientErr`,
-`errCellOk`; `WatchResponse.Err` then gives them of its result), but the client watch's element
-(`watchStateRespOk`) gives only `statusErrOk` of it. Until the client's watch spec says so, the proof
-takes the stronger client watch as a hypothesis, `clientWatchCE.spec` (below): `client_Watch_field`'s
-triple with `closeErrK` of each response's close error in the element.
+**The client watch's close error** (E2; ledger 2026-11-16): the element's error arm gives
+`closeErrOk` of it (a client error, a pointer if an `*errors.errorString`), and `WatchResponse.Err`
+of its result, which `kErrOk_clientP` turns into `kErrOk`.
 -/
 module
 
@@ -69,53 +66,6 @@ namespace k8s
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver
-
-section pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **A watch response's close error is a client error** (PENDING, see the file header): `nil`, or a
-client error (`clientErr`), and an `*errors.errorString` one is a cell of the client's messages
-(`errCellOk`). -/
-def closeErrK (e : GoInterface) : IProp GF :=
-  iprop(⌜e ≠ GoInterface.nil → clientErr e⌝ ∗ go_etcd_io.etcd.cache.v3.errCellOk e)
-
-instance closeErrK_persistent (e : GoInterface) : Persistent (closeErrK (GF := GF) e) := by
-  unfold closeErrK; infer_instance
-
-/-- **PENDING (E2's remaining gap)**: `client_Watch_field`'s triple with `closeErrK` of each
-response's close error in the element. A hypothesis of `startWatching`'s proof until the client
-watch's spec gives it (see the file header). -/
-abbrev clientWatchCE.spec : Prop :=
-  ∀ (cl w : Loc) (V : client.WEnv GF) (γ : KVNames) (ctx : GoInterfaceOk)
-    (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (opts : List (OpFull → OpFull)) (rev : w64) (Q : KVState → IProp GF) (n : Nat),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isPkgInit (PROP := IProp GF) pkg_id.context ∗
-        structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
-          GoInterface.ok (client.watcherIfaceOf w) ∗
-        client.isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
-        EtcdGrove.context.watchCtx ctx cd ∗ optsAt sl opts ∗
-        ⌜(opWatchModel key opts).isRangeWatchP rev = true ∧ ¬ opWatchPanics key opts ∧
-          1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
-        □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
-        □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) }}
-      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
-          go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
-    {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
-        isSpsc γw.spsc ch (fun i v => iprop(watchStateElemP V.kv γw (opWatchModel key opts).watchNorm Q
-          iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
-            (GoInterface.ok ctx) n (opWatchModel key opts).key
-            (opWatchModel key opts).base.rangeEnd)) i v ∗ closeErrK v.closeErr'))
-          (fun _ => iprop(True)) ∗
-        spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-        monoListIdxOwn γw.cur 0 (rev - W64 1) }}
-
-end pending
 
 section pure
 variable [GooseExts]
@@ -293,7 +243,7 @@ theorem watchChan.startWatching.wp_proof
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithPrevKV : WithPrevKV.spec (GF := GF) (hG := hG))
     (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
-    (wp_WatchCE : clientWatchCE.spec (GF := GF) (hG := hG)) -- PENDING (file header)
+    (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_getRSE : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG))
     (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     (wp_IsPN : WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG))
@@ -741,7 +691,7 @@ theorem watchChan.startWatching.wp_proof
   icases Hra' with ⟨#Hkr, -⟩
   obtain ⟨hrw, hnp, hsz, hnorm, hkey, hre, hpk⟩ := startOp_facts kp recur (r1 + W64 1) hkp hkpl
   have hrev1 : 1 ≤ sint.Z (r1 + W64 1) := by have := Hr1.2; word
-  wp_apply (wp_WatchCE c.cl w Vw γk ctx (kCdw γ cd) kp osl (startOps recur (r1 + W64 1)) (r1 + W64 1)
+  wp_apply (client_Watch_field wp_Watch c.cl w Vw γk ctx (kCdw γ cd) kp osl (startOps recur (r1 + W64 1)) (r1 + W64 1)
       (Q 0) 0) $$ [] as %wch %γw ⟨#Hwsp, Hcons, #Hcur0⟩
   · iunfold kvReadAu at Hkr
     iunfold kvAu at Hkr
@@ -814,7 +764,7 @@ theorem watchChan.startWatching.wp_proof
     iapply HΦ
     iframe
   simp only [↓reduceIte]
-  icases Hv with ⟨⟨HP', #Hce⟩, Hcons⟩
+  icases Hv with ⟨HP', Hcons⟩
   iunfold watchStateElemP at HP'
   icases HP' with ⟨%r, %σ, %c0, %c1, #Hr, #HQσ, #Hi0, #Hi1, #Hok, -, -⟩
   ihave #Hi0' : monoListIdxOwn γw.cur rs.length c0 $$ []
@@ -849,8 +799,8 @@ theorem watchChan.startWatching.wp_proof
       ipureintro
       refine ⟨h1, by rw [hc, hI]; exact h2, Nat.le_refl _, ⟨rfl, rfl, Or.inl (List.prefix_refl _)⟩⟩
   obtain ⟨hst0, hat, hle, hhist⟩ := Hj
-  -- the close error is one grpc's `status` accepts
-  ihave #Hse : go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' $$ []
+  -- the close error is a watch's (`closeErrOk`)
+  ihave #Hse : closeErrOk v.closeErr' $$ []
   · iunfold watchStateRespOkP at Hok
     icases Hok with ⟨Hok1, -⟩
     iunfold watchStateRespOk at Hok1
@@ -861,26 +811,22 @@ theorem watchChan.startWatching.wp_proof
         have := H.1; unfold watchErr at this
         simp only [not_or, ne_eq, Decidable.not_not] at this; exact this.1
       rw [hn]
-      iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+      iapply closeErrOk_nil
+  ihave #Hsce := closeErrOk_status _ $$ Hse
   wp_auto
-  wp_apply (wp_Err wres_ptr v (DFrac.own 1)) $$ [$wres $Hse] as %err ⟨wres, %Herr, -, -, -, -⟩
+  wp_apply (wp_Err wres_ptr v (DFrac.own 1)) $$ [$wres $Hsce] as %err ⟨wres, %Herr, -, -, -, -, -⟩
   cases err with
   | ok ei =>
     -- an error response: logged and sent
     wp_auto
-    wp_apply (wp_Err wres_ptr v (DFrac.own 1)) $$ [$wres $Hse] as %err2
-      ⟨wres, %Herr2, -, #Hes2, %Hcl2, #Hcell2⟩
+    wp_apply (wp_Err wres_ptr v (DFrac.own 1)) $$ [$wres $Hsce] as %err2
+      ⟨wres, %Herr2, -, #Hes2, %Hcl2, -, %Hptr2⟩
     have hne2 : err2 ≠ interface.nil := by
       intro h; rw [h] at Herr2; have := Herr2.1 rfl; have := Herr.2 this; cases this
-    iunfold closeErrK at Hce
-    icases Hce with ⟨%Hcl, #Hcell⟩
+    ihave %Hce := closeErrOk_pure _ $$ Hse
     ihave #Hok : kErrOk err2 $$ []
-    · iapply (kErrOk_client wp_AsLeafTy wp_ECode wp_SCode) $$ Perr
-      iunfold kClientErr
-      iframe Hes2
-      isplitr
-      · ipureintro; exact ⟨hne2, Hcl2 EtcdGrove.rpctypesEtcdError_asTarget Hcl⟩
-      iapply Hcell2 $$ Hcell
+    · iapply (kErrOk_clientP wp_AsLeafTy wp_ECode wp_SCode err2
+        ⟨hne2, Hcl2 EtcdGrove.rpctypesEtcdError_asTarget Hce.1⟩ (Hptr2 Hce.2)) $$ Perr Hes2
     (try wp_auto)
     wp_apply wp_logWatchChannelErr
     · iframe #

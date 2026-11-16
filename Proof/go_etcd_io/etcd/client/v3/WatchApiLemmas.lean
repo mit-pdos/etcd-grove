@@ -77,14 +77,14 @@ theorem ownBroadcastChan_dup_unknown (ch : GoChan) (γ : ChanNames) (Q : IProp G
 
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **A canceled response with no events** (a fresh zero header, a close error grpc's `status`
-accepts) is any position's element of a watch's channel (`outcElem`, D47: an error, at a firing
+accepts, `closeErrOk`) is any position's element of a watch's channel (`outcElem`, D47: an error, at a firing
 `σ0` of the read update, the second cursor standing still). -/
 theorem outcElem_canceled (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
     (Au : IProp GF) (σ0 : KVState) (i : Nat) (c : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (hv : v.Events' = slice.nil ∧ v.CompactRevision' = W64 0 ∧ v.Canceled' = true ∧
       v.Created' = false ∧ v.Header' ≠ null) :
     structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" v.Header' ↦□ W64 0 ∗
-      go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' ∗ □ Q σ0 ∗
+      closeErrOk v.closeErr' ∗ □ Q σ0 ∗
       monoListIdxOwn γ.cur2 i c ∗ monoListIdxOwn γ.cur2 (i + 1) c ⊢
     outcElem γk γ o Q Au (i : Int) v := by
   obtain ⟨he, hc, hca, hcr, hh⟩ := hv

@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-16: the client watch's element (`watchStateRespOk`, `client_Watch_field`) -- too weak for a user: a watch response's close error has no known dynamic type
+
+- **Spec.** `Proof/go_etcd_io/etcd/client/v3/WatchStateDefs.lean`, `watchStateRespOk` (and the server-side
+  `rawRespOk`), the element of every client `Watch` spec (`Spec/go_etcd_io/etcd/client/v3/
+  Client__Watch*.lean`, `client_Watch_field`); the plan's client watch (`SpecPlan/Spec/go_etcd_io/etcd/
+  client/v3/`) states no close error at all.
+- **Defect.** Too weak: the error arm gives only `statusErrOk v.closeErr'`. k8s's `watchChan.startWatching`
+  hands `wres.Err()` to `sendError`/`isCancelError`, which need the error's dynamic type (one of
+  `clientErrTys`, a leaf) and, for an `*errors.errorString`, that it is a pointer (`kErrOk`'s `==` with
+  `context.Canceled`). The placeholder `clientWatchCE.spec` asked `clientErr` and `errCellOk`; `errCellOk`
+  is FALSE: a refused create's close error is `rpctypes.Error(errors.New(resp.CancelReason))`, an
+  `*errors.errorString` holding the server's message (permission denied, `"mvcc: watcher range is empty"`).
+- **Evidence.** `watchChan__startWatching.lean`'s pending hypothesis (7f-5a-P step 5); Go:
+  `nonissues/etcd-watch-refused-create-err-plain.md` (its test); the stream errors' shape:
+  `examples/k8s/etcd3/streamerr_test.go` (T-CE).
+- **Proposed change.** New client vocabulary `errPtrOk e` (an `*errors.errorString` error is a pointer) and
+  `closeErrOk e := statusErrOk e ∗ ⌜(e ≠ nil → clientErr e) ∧ errPtrOk e⌝`; the element's error arm, `run`'s
+  published close error (`closeErrPub`), the stream's `closeErr` field and the receive errors (`errP`) carry
+  `closeErrOk` in place of `statusErrOk`. Needs the trusted `cliStreamErr` to give `errCellOk` (T-CE).
+  startWatching then uses the client's `Watch` spec instead of `clientWatchCE.spec`.
+- **Decision.** Accepted with `errPtrOk`, not `errCellOk` (etcd-grove-81, 2026-11-16); T-CE approved (same).
+
 ## 2026-11-15: `fmt.ErrorfPlain.spec` (trust boundary) -- false for a flagged `w` verb (`%+w`, `%-5w`): the premise `¬ List.IsInfix "%w" format` lets them through
 
 - **Spec.** `Spec/fmt/ErrorfPlain.lean`, `fmt.ErrorfPlain.spec`; its axiom `fmt.ErrorfPlain.wp_proof`

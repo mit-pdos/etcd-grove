@@ -36,7 +36,8 @@ that `EtcdError` is an `errors.As` target (`clientErr`'s type-only first conjunc
 keeps `clientErr`, `ErrCompacted`/`ErrFutureRev` are `EtcdError` values, and a cancel reason's
 `status.Error` is a `*status.Error` leaf. (k8s 7f-5a-P step 5) An `*errors.errorString` result is the
 close error's own cell (`errCellOk`: `rpctypes.Error` keeps it; the other results are of other
-types). -/
+types). (k8s 7f-5, ledger 2026-11-16) An `*errors.errorString` result is a pointer if the close error is
+(`errPtrOk`). -/
 abbrev WatchResponse.Err.spec : Prop :=
   ∀ (wr : Loc) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wr ↦{dq} resp ∗
@@ -50,7 +51,9 @@ abbrev WatchResponse.Err.spec : Prop :=
       statusErrOk err ∗
       ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
         (resp.closeErr' ≠ interface.nil → clientErr resp.closeErr') → clientErr err⌝ ∗
-      □ (errCellOk resp.closeErr' -∗ errCellOk err) }}
+      □ (errCellOk resp.closeErr' -∗ errCellOk err) ∗
+      -- (k8s 7f-5, 2026-11-16) a pointer if an `*errors.errorString`, if the close error is
+      ⌜errPtrOk resp.closeErr' → errPtrOk err⌝ }}
 
 end spec
 

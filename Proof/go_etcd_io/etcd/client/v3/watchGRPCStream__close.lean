@@ -76,7 +76,8 @@ theorem watchGRPCStream.close.wp_proof
         inext
         iintro %e He0
         iunfold errP at He0
-        icases He0 with ⟨%Hne, Hor, #Hse, -⟩
+        icases He0 with ⟨%Hne, Hor, #Hsec, -⟩
+        ihave #Hse := closeErrOk_status _ $$ Hsec
         ihave %Hce : ⌜clientErr e⌝ $$ [Hor]
         · icases Hor with (#Hcs | #He)
           · iunfold cliStreamErr at Hcs

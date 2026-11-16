@@ -112,6 +112,20 @@ theorem errorsNewOk_of
     simp only [go.isInterfaceType]
     intro h
     simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty] at h
+  unfold closeErrOk
+  isplitl
+  rotate_left
+  · ipureintro
+    refine ⟨fun _ => ⟨hAs, fun ii h => ?_⟩, errPtrOk_ptr x⟩
+    cases h
+    refine ⟨ErrorStringLeaf.leaf _, ?_, by simp [clientErrTys]⟩
+    unfold errors.AsTypeTyped
+    have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =
+        go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := go.is_underlying
+    rw [hu]
+    simp only [go.isInterfaceType]
+    intro h
+    simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty] at h
   unfold statusErrOk
   iintro !> %e %he
   cases he
@@ -201,6 +215,21 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
   · ipureintro
     exact ⟨nofun, Hc⟩
   iexact Hs
+
+/-- **`io.EOF` is a pointer** (`errPtrOk`; k8s 7f-5): its value is `errors.New("EOF")`'s
+(`io.eof_of_init`). -/
+theorem eofPtr_of_init [_root_.Perennial.io.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.io ⊢ □ ∀ err : GoInterface, eofIs err -∗ ⌜errPtrOk err⌝ := by
+  iintro #Hpkg
+  ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hpkg
+  iunfold _root_.Perennial.errors.newVar at Hv
+  icases Hv with ⟨%x, #Hpt, -⟩
+  iintro !> %err #He
+  iunfold eofIs at He
+  icombine Hpt He gives %Heq
+  subst Heq
+  ipureintro
+  exact errPtrOk_ptr x
 
 /-- **Every context's `Err()` returns client errors** (see the file header). -/
 theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]

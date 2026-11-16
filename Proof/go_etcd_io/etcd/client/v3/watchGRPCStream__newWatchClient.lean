@@ -625,8 +625,11 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     | nil => exact absurd rfl Herr
     | ok e =>
       (try wp_auto)
-      wp_apply wp_Error (GoInterface.ok e) $$ [$Hse] as %err' ⟨%Hne', #Hse', -⟩
+      ihave #Hse0 := closeErrOk_status _ $$ Hse
+      ihave %Hp0 := closeErrOk_pure _ $$ Hse
+      wp_apply wp_Error (GoInterface.ok e) $$ [$Hse0] as %err' ⟨%Hne', #Hse1, %Hc', -, -, %Hq'⟩
       · ipureintro; simp
+      ihave #Hse' := closeErrOk_intro _ ⟨fun _ => Hc' (Hp0.1 (by simp)), Hq' Hp0.2⟩ $$ Hse1
       iapply HΦ
       iexists m', r, rc', γrc', ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))
       iframe
