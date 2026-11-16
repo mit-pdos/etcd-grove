@@ -415,3 +415,65 @@ inits (`bufio`, `hash.crc32`, `path.filepath` `opaqueInitsOk`, `walFsyncSec_init
    entries, and the two axiom-tok allow lines above.
 2. A re-merge if `wal-int` moves again (`etc/wal-lean-remerge.py 16f1121760`).
 3. `notes/STATUS.md` (the coordinator), the session registry.
+
+## Session 5 (2026-11-16)
+
+Setup: a fresh worktree (local branch `wal-lean-s5`, pushing to `origin/wal-lean`: a pruned worktree still holds
+the local `wal-lean`), base `origin/wal-lean` `bb9b700d8e`, session 4's `.lake` copied from its worktree.
+
+### Re-merge of `origin/wal-int` `602084697f`
+
+Locks sessions 7-10 (the purge: `WalLay.pg`/`WalFullOk`/`SegsZf`, the purge's crash argument, commit and update,
+the handle's lending, `X = walTmps` in `DirClaimExcl`/`walDirKey`, `PurgeOther.lean`; `purgeRound` restored in
+the tester with its Go body, proved, `opOwnSnap` re-proved; notes). `git -c merge.renameLimit=30000 merge
+origin/wal-int`, then `etc/wal-lean-remerge.py 16f1121760`: every `LinuxFs/` file merged clean into its place
+(18 new WAL proof files under `Proof/.../storage/wal/`, the tester's `purgeRound` spec and proof and
+`OwnSnapPurge.lean` under `WalTester/`). The tester's goose configuration
+`Code/.../examples/etcd/wal.toml`, which `wal-int` changed (a comment only: every function translated), stays
+deleted here (`WalTester/`'s configuration is absent, which translates every function; `etc/goose.py`'s comment
+already says so). `etc/goose.py --project etcd-wal`: the merged `WalTester/` translation (with `purgeRound`'s
+body) is what the pinned translator produces (0 files updated; `--check` via the gates); `etc/gen-init.py`: 234
+files up to date. The tester's `Link.lean` (the one conflict) and the other two links regenerated
+(`--walfs`, `--durable`: unchanged; `--wal-tester`: `purgeRound` linked). No file needed this branch's renames
+(§7 of `notes/wal-lean-integration.md`); every import of the new files resolves.
+
+Note: the 2026-11-16 ledger entry ("`purgeRound` restored ...") names the tester's spec by its `wal-int` path
+(`LinuxFs/Spec/...`); on this branch it is `WalTester/Spec/.../examples/etcd/wal/member__opOwnSnap.lean`.
+
+### Build and gates
+
+- Full niced `lake build`: **OK** (18446 jobs), no repair needed.
+- `etc/gates.sh`: **all passed** (tcb 886 axioms, 4 sorries, matching the baseline: the purge adds no axiom;
+  collections 59 match; axiom-tok 832 walked; goose 45 projects up to date; gen-init; model-param 38
+  registrations; pbschema ok; bounds 351; mode 315; api; import-all; interfaces ok; the k8s checks).
+- `etc/gen-link.py --walfs/--durable/--wal-tester --check`, `etc/gen-specs-pkginit.py --check`: up to date.
+- `etc/tcb-report.py --check` matches, so `--update` is a no-op; no collection changed; no interface changed.
+
+### TCB against `origin/lean` (`b18b4f6951`)
+
+`origin/lean`'s baseline: 870 axioms, 4 sorries; this branch: 886 axioms, 4 sorries (the same 4: `lean`'s
+axiomatized-type instances). Removed: `wal.opaqueInitsOk` (the names-only WAL's package init). Added (17): the
+bodied WAL's package inits (`bufio.opaqueInitsOk`, `hash.crc32.opaqueInitsOk`, `path.filepath.opaqueInitsOk`,
+`wal.walFsyncSec_init`, `wal.walWriteBytes_init`, `wal.walWriteSec_init`, `walpb.initFuncsOk`,
+`walpb.opaqueInitsOk`) and its trust-boundary specs (`binary.ReadInt64LE`, `fmt.SprintfWalName`,
+`fmt.SscanfWalName`, `io.ReadFull`, `proto.MarshalAppendCachedRecord`, `pbRecordC_reg`, `pbSnapC_reg`,
+`recEncC_ok`, `snapEncC_ok`). The names-only WAL's 12 function axioms (`wal.Create.wp_proof`, ...,
+`WAL.Sync.wp_proof`) are gone with it; no result on `lean` reached them, so `lean`'s baseline did not list them.
+
+### What is left before `etc/land.sh`
+
+1. **`origin/lean` is not merged**: it is 281 commits ahead of this branch's last merge of it (`etc/land.sh`
+   checks that `lean` is merged). A merge of `origin/lean`, a full build and the gates come first.
+2. The user's review (sessions 3-4's lists): the file-lock semantics (`GooseLang/Ext/Fs/Impl.lean`'s `OsFd` lock
+   fields, the `FcntlFlock`/`Flock` models, `os.File.Close.spec`'s `lockToks`), `wal-int`'s earlier pending trusted
+   changes (`notes/wal-fsext-plan.md` §3), the no-I/O-error premise (`NoIoErr`), the 21 restated example closed
+   theorems (`Hfs : FsInit ...`), the two `pbSchemaOf` entries, the two axiom-tok allow lines, the tester's
+   closed theorem (not stated).
+3. A re-merge if `wal-int` moves again (`etc/wal-lean-remerge.py 602084697f`).
+4. The session registry `/shared/etcd-grove-sessions.md` does not exist on this machine: not recorded.
+
+### `notes/STATUS.md`
+
+The landing-ready entry (2026-11-16) is at the front of "Last updated"; it supersedes this branch's own
+2026-11-15 "in progress" entry (which said the build failed for 13 adequacy theorems), moved to
+`notes/status-history.md`'s list instead of the oldest entry, so the line keeps ten and no stale claim stays.
