@@ -7,7 +7,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.WatchCons
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.WatchConc
 
 @[expose] public section
 
