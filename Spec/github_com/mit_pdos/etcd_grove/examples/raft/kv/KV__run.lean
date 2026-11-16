@@ -48,7 +48,7 @@ abbrev KV.run.spec : Prop :=
       -- (2026-11-01, durability layer 4) the node's durable state, at its start: the store keeps
       -- nothing durable and enters each `Ready`'s batch at once (`readyEnter`)
       raftState γr.cluster id RaftState.init ∗
-      nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
+      nodeConfig n γr.cluster kvRaftN ⟨0, (kvMembership γr)⟩ ∗
       -- (2026-10-30) the node runs: the store never stops it
       nodeRunning n γr.cluster kvRaftN 1 ∗
       runOwn γr r [] ∗

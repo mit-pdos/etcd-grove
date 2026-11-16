@@ -109,6 +109,9 @@ noncomputable def Gen [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kv.Check"
 
+noncomputable def MainN [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/raft/kv.MainN"
+
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kv.Main"
 
@@ -593,19 +596,19 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0"))))))))
 
-/-- Main starts a cluster of three replicas connected in process and runs a randomized
-    linearizability test of the store on it: 4 clients of 25 operations each, on random
-    replicas, traced with a counter clock and checked by porcupine; it panics unless
+/-- MainN starts a cluster of k replicas, the voters 1 to k, connected in process and runs a
+    randomized linearizability test of the store on it: 4 clients of 25 operations each, on
+    random replicas, traced with a counter clock and checked by porcupine; it panics unless
     porcupine answers Ok.
 
     go: check.go:137:6 -/
-noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+noncomputable def MainN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(W64 1))
-  (Let "$v1" (Val #(W64 2))
-  (Let "$v2" (Val #(W64 3))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v2")))])))))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k"))
+  (Let "voters" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "voters"))
   (App (App (Val (GoInstruction (FuncResolve StartCluster []))) (Val #())) (Var "$a0")))
   (Let "kvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -620,7 +623,34 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Pair (Var "kvs") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Pair (Var "kvs") (Var "$r0")))))))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")))))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "voters"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "voters") (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$r0")))))))))))
+  (Val #())))
+
+/-- Main is MainN on three replicas.
+
+    go: check.go:149:6 -/
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (FuncResolve MainN []))) (Val #())) (Var "$a0")))))
   (Val #())))
 
 /-- go: cluster.go:17:20 -/
@@ -3280,6 +3310,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Model_unfold : FuncUnfold Model [] Model.impl
   Gen_unfold : FuncUnfold Gen [] Gen.impl
   Check_unfold : FuncUnfold Check [] Check.impl
+  MainN_unfold : FuncUnfold MainN [] MainN.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   deliverable_unfold : FuncUnfold deliverable [] deliverable.impl
   deliver_unfold : FuncUnfold deliver [] deliver.impl
@@ -3321,6 +3352,7 @@ attribute [instance] Assumptions.Input_instance
   Assumptions.Model_unfold
   Assumptions.Gen_unfold
   Assumptions.Check_unfold
+  Assumptions.MainN_unfold
   Assumptions.Main_unfold
   Assumptions.deliverable_unfold
   Assumptions.deliver_unfold
