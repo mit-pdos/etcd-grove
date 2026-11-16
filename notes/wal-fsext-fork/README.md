@@ -1,5 +1,12 @@
 # Fork commits for the WAL over fsExt (pushed 2026-11-14)
 
+**Rebased and pushed 2026-11-16** (landing on `lean`): `lean` moved its etcd pin to `6e8f0c004` (restart3 A1,
+`server/etcdserver/server.go` only), not an ancestor of `e115818f5`, so the six fixes (0001-0006) were rebased
+onto it without conflicts: upamanyus/etcd branch **`goose-lean-walfs2`**, head
+`8c28a4296f1699c699bc4d59459c691bcff995f0` (pseudo-version `v3.0.0-20261115085855-8c28a4296f16`), whose tree is
+`e115818f5`'s plus `6e8f0c004`'s `server.go` change. `etc/goose.py` and the examples' `go.mod` pin it. The
+branch `goose-lean-walfs` (`e115818f5`, on `2eaeb872b`) stays as it was (no force-push).
+
 **Pushed** (the user's request, 2026-11-14) as upamanyus/etcd branch `goose-lean-walfs`, head
 `3df9b265f7e7fd752cd85e7a8191a824f632313d`, on `2eaeb872b` (`lean`'s etcd pin, one `snap` commit past
 `0b50f0426`): `2af9e3ec9` (0001), `313217f52` (0002), `e54378a5f` (0003), `594861caf` (0004), `3df9b265f`

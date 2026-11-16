@@ -363,7 +363,8 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
   (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
   (`-lean-root go.etcd.io/raft/v3=`).
-- From the same fork (branch `goose-lean-walfs`, the WAL's fixes: `notes/wal-fsext-fork/README.md`),
+- From the same fork (branch `goose-lean-walfs2`, the WAL's fixes 0001-0006 rebased onto `lean`'s etcd pin
+  `6e8f0c004`, head `8c28a4296`: `notes/wal-fsext-fork/README.md`),
   etcd's real WAL with bodies over the per-byte file extension's `os`: `server/v3/storage/wal` (but
   `version.go`, `metrics.go`), `wal/walpb`, `client/pkg/v3/fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`, and
   the standard-library packages they call that Perennial does not translate (`bufio`'s `Reader`,
