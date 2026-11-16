@@ -79,6 +79,10 @@ theorem RandomOptions.wp_proof (wp_below : below.spec (GF := GF) (hG := hG))
   try wp_auto
   have hv : 1 ≤ uint.Z (W64 1 + v) ∧ uint.Z (W64 1 + v) ≤ 5 := by
     have := Hv.2 (by decide); constructor <;> word
+  have hvm : uint.Z (W64 1 + v) ≤ uint.Z (W64 9) ∧ uint.Z (W64 9) < 2 ^ 60 := by
+    constructor
+    · have := hv.2; word
+    · decide
   have hi : 0 < sint.Z x2 ∧ sint.Z x2 ≤ 256 := by
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hx2
     rcases hx2 with rfl | rfl | rfl <;> decide
@@ -89,15 +93,15 @@ theorem RandomOptions.wp_proof (wp_below : below.spec (GF := GF) (hG := hG))
     · try wp_auto
       iapply HΦ
       ipureintro
-      exact ⟨hv.1, hv.2, hi.1, hi.2, Or.inl (show W64 4096 ≠ W64 0 by decide)⟩
+      exact ⟨hv.1, hvm, hi.1, hi.2, Or.inl (show W64 4096 ≠ W64 0 by decide)⟩
     · try wp_auto
       iapply HΦ
       ipureintro
-      exact ⟨hv.1, hv.2, hi.1, hi.2, Or.inl Hif⟩
+      exact ⟨hv.1, hvm, hi.1, hi.2, Or.inl Hif⟩
   · try wp_auto
     iapply HΦ
     ipureintro
-    exact ⟨hv.1, hv.2, hi.1, hi.2, Or.inr Hif⟩
+    exact ⟨hv.1, hvm, hi.1, hi.2, Or.inr Hif⟩
 
 end proof
 

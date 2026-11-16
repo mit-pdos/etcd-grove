@@ -84,7 +84,7 @@ theorem mintOk_next (n : w64) (Mi : GMap w64 (List w8)) (RS : GMap w64 w64)
 /-- The caller's id is one of `readSeqsInv`'s. -/
 theorem freshIds_get (id : w64) (h1 : 1 ≤ uint.nat id) (h9 : uint.nat id ≤ 9) :
     (freshIds 0)[uint.nat id]? = some id := by
-  unfold freshIds
+  unfold freshIds raft_kvreconf.freshIdsM
   rw [List.filter_eq_self.2 (by intro a _; simp)]
   rw [List.getElem?_map, List.getElem?_range (by omega)]
   simp only [Option.map_some]

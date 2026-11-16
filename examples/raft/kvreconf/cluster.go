@@ -76,7 +76,8 @@ func hasID(ids []uint64, id uint64) bool {
 
 // Options are a cluster's size and raft's options.
 type Options struct {
-	Voters            uint64 // the bootstrap configuration's, 1 to 5
+	Voters            uint64 // the bootstrap configuration's, 1 to MaxReplicas
+	MaxReplicas       uint64 // bounds the replicas a cluster starts (removed ones keep running)
 	PreVote           bool
 	CheckQuorum       bool
 	StepDownOnRemoval bool
@@ -92,6 +93,7 @@ type Options struct {
 func RandomOptions() Options {
 	o := Options{
 		Voters:            1 + below(5),
+		MaxReplicas:       9,
 		PreVote:           oneIn(2),
 		CheckQuorum:       oneIn(2),
 		StepDownOnRemoval: oneIn(2),
@@ -105,8 +107,13 @@ func RandomOptions() Options {
 	return o
 }
 
-// maxReplicas bounds the replicas a cluster starts (removed ones keep running).
-const maxReplicas = 9
+// RandomOptionsN are RandomOptions' random options on k voters, with up to k + 4 replicas (MainN's).
+func RandomOptionsN(k uint64) Options {
+	o := RandomOptions()
+	o.Voters = k
+	o.MaxReplicas = k + 4
+	return o
+}
 
 // Cluster is a cluster of replicas connected in process: every replica it started (removed
 // ones keep running: they may be added back), the next fresh id and operation id, and the
@@ -166,11 +173,11 @@ func (c *Cluster) config(id uint64, st *Storage) *raft.Config {
 // startNew starts a replica of a fresh id that is in no configuration yet (raft.RestartNode on
 // an empty storage whose initial configuration is the bootstrap's: it waits for a leader to send
 // it the log or a snapshot) and returns its id;
-// ok is false if the cluster has started maxReplicas already.
+// ok is false if the cluster has started opts.MaxReplicas already.
 func (c *Cluster) startNew() (uint64, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if len(c.replicas) >= maxReplicas {
+	if uint64(len(c.replicas)) >= c.opts.MaxReplicas {
 		return 0, false
 	}
 	id := c.nextID
