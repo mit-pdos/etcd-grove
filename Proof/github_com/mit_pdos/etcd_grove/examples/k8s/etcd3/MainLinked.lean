@@ -47,7 +47,7 @@ variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 /-- **The driver's `startCluster(k)`** (stage A of `notes/k8s-7f6-scope.md`), over the examples'
 shared start's linked `Members`, `StartMembers`, `Serve`, cluster3's `StartBridge` and the kubernetes
 client's `New`, as txnlinfaultsN's. -/
-theorem wp_startCluster :
+theorem wp_startCluster [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.startCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcdstart.wp_Serve kubernetes.wp_New cluster3.wp_StartBridge

@@ -15,7 +15,9 @@ unregistered), the bridges' addresses free, the thread token and the cluster's n
 up (`k8s_etcd3N.clusterUp`).
 
 **The pure premises:** txnlinfaultsN's `startCluster`'s (the member count, the ids, `BootFacts`, the
-budgets) and v3rpc's method sets (`etcdstart.Serve`'s).
+budgets) and v3rpc's method sets (`etcdstart.Serve`'s). The bounds the adequacy theorem fixes
+(`threadBound`, `receiptBound`) are instance binders (`ThreadBoundLe`, `ReceiptBoundLe`), the form
+`notes/bounds-plan.md` prefers, as `MainCluster.spec`'s.
 -/
 module
 
@@ -44,11 +46,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 abbrev startCluster.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (lg : Loc),
+    (lg : Loc)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   1 ≤ k → k ≤ 1000 → ids.length = k →
   BootFacts ids ps ctxs boot →
-  threadBound GF ≤ 2 ^ 28 →
-  srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  srvLevels (GF := GF) →
   N + 7 + bootWB ≤ backend.wbInit →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →

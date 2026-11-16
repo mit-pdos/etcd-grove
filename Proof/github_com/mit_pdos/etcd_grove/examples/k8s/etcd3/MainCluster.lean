@@ -75,7 +75,6 @@ theorem MainCluster.wp_proof
     Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
-  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
   wp_start as ⟨Hstart, Hbrs, Htok, #Hprem⟩
@@ -100,7 +99,7 @@ theorem MainCluster.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
   -- the cluster and its client (`startCluster(k, lg)`)
-  wp_apply (wp_startCluster k N ids ps ctxs boot lg hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf
+  wp_apply (wp_startCluster k N ids ps ctxs boot lg hk1 hk Hlen Hbf HLv HwbN Haf
       Hbuq Hrf Hdbo Hms) $$ [Hstart Hbrs Htok] as %srvs %brs %kc %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
