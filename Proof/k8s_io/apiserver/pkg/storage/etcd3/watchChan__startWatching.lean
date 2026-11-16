@@ -994,7 +994,36 @@ theorem watchChan.startWatching.wp_proof
         have := sint_nat_W64_le rv
         rw [hmod]; omega
       ihave #Hpko' := prevKvOk_hist _ σ σ' ev ee.prevKv hhist hle hmr $$ Hpko
+      ihave #Hea' := Hea
+      iunfold EtcdGrove.eventAt at Hea'
+      icases Hea' with ⟨%k0, -, -, -, -, -, %Hnn⟩
       wp_auto
+      wp_apply (wp_RecordEtcdEvent c.gr Hutf.1 Hutf.2)
+      (try wp_auto)
+      wp_apply (wp_parseEvent l ee ev _ σ') $$ [] as %pe %perr Hpout
+      · iframe #
+        ipureintro; exact Hnn
+      icases Hpout with (⟨%Hpe, %x, Hx, #Hkx⟩ | ⟨⟨%Hpe, -⟩, %x, %hx, #Hx⟩)
+      rotate_left
+      · -- the event without its previous key-value: logged and sent
+        subst hx
+        ihave #Hok := kErrOk_errorString wp_AsLeafTy x $$ Perr Hx
+        (try wp_auto)
+        wp_apply wp_logWatchChannelErr
+        · iframe #
+        (try wp_auto)
+        wp_apply (wp_prod_sendError wp_sendError wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur q
+          _) $$ [Hpe Halive] as Halive
+        · iframe #
+          iframe
+        (try wp_auto)
+        wp_for_post
+        (try wp_auto)
+        wp_for_post
+        (try wp_auto)
+        iapply HΦ
+        iframe
+      subst Hpe
       sorry
     · -- the response is queued: the next one
       have h2 : ¬ sint.Z n < sint.Z v.Events'.len := fun h => Hif (by simp [h])
