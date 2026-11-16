@@ -14,7 +14,7 @@ Done:
   (`notes/kvdurableN-draft.md`, Evidence); liveness, decided by etcd-grove-02. Runs 9-20 were killed with the old session.
 - Forced-options comparison (Q9's "confirm not new": run 8's options through `Main`'s path vs `MainN(3)`), one run each in
   parallel from 14:44 UTC (`/shared/tmp/kvraftN/forced/forced2.sh`, binary `kvdurable-forced.test`; its source, a temporary
-  `zz_forced_test.go`, is not kept): at 51 min neither path had finished (2h timeout); results in `forced2.txt`.
+  `zz_forced_test.go`, is not kept): both paths timed out at 2 h (one run each; not new with `MainN`); `forced2.txt`.
 - Full build at `481ff6f024` ok; `etc/gates.sh`: all ok but bounds 379 vs 378 (kvdurable `MainN.spec`'s `receiptBound`,
   accepted in advance, Q9), recorded (`etc/bounds-check.py --check --update`); tcb 877/4 and mode 453 unchanged.
 
