@@ -50,7 +50,7 @@ theorem changeAtL_drop_cons (ps qs : List item) (i : Nat) (r : Nat) (p q : item)
     (List.getElem?_eq_some_iff.1 hq).2]
   rfl
 
-theorem item_eq_iff (a b : item) :
+theorem item_eq_iff3 (a b : item) :
     a = b ↔ a.key' = b.key' ∧ a.obj' = b.obj' ∧ a.canon' = b.canon' := by
   obtain ⟨_, _, _⟩ := a
   obtain ⟨_, _, _⟩ := b
@@ -134,7 +134,7 @@ theorem changeAt.wp_proof : changeAt.spec (GF := GF) (hG := hG) := by
             repeat' wp_if_destruct
             all_goals first
               | (have hpq : pi = ci := by
-                   rw [item_eq_iff, Obj_eq_iff]; and_intros <;> assumption
+                   rw [item_eq_iff3, Obj_eq_iff]; and_intros <;> assumption
                  wp_for_post
                  iframe
                  iexists k + W64 1
@@ -148,7 +148,7 @@ theorem changeAt.wp_proof : changeAt.spec (GF := GF) (hG := hG) := by
                  simp only [decide_eq_false hlt, decide_eq_false hlt2, decide_eq_true hpq,
                    Bool.false_eq_true, ↓reduceIte])
               | (have hpq : pi ≠ ci := fun h => by
-                   rw [item_eq_iff, Obj_eq_iff] at h; simp_all
+                   rw [item_eq_iff3, Obj_eq_iff] at h; simp_all
                  wp_for_post
                  iapply HΦ
                  ipureintro

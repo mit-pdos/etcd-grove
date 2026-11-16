@@ -145,7 +145,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
   -- the continuation, with the goroutine's token curried (`lintest`'s post gives it back)
   obtain ⟨Φt, hΦt⟩ : ∃ Φt : val → IProp GF, Φt = fun v => iprop(threadTok -∗ Φ v) := ⟨_, rfl⟩
   have hioOk : ∀ y : Output, ⊢ (k8setcd3S (GF := GF) g0).ioOk (boxIn x) (boxOut y) :=
-    fun y => by simp only [k8setcd3S]; ipureintro; exact ⟨x, y, rfl, rfl⟩
+    fun y => by
+      simp only [k8setcd3S]; ipureintro
+      refine ⟨x, y, rfl, rfl, ?_⟩
+      rcases Hgen.2.1 with h | h | h | h | h <;> rw [h] <;> decide
   have hfin : ∀ y : Output, contAt g0 x y Φt ∗ threadTok ⊢ Φ #(boxOut y) := by
     intro y
     subst hΦt

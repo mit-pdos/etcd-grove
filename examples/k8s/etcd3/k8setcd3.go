@@ -1201,10 +1201,17 @@ func closure(s state) state {
 	return out
 }
 
-// step returns the configurations c steps to by (in, out): a call that returned no error took
-// effect and answered the model's output; a failed write becomes pending; a failed read does
+// step returns the configurations c steps to by (in, out): a watch keeps c if its events pass the
+// watch check against c's history (watchOk), and drops it otherwise; a call that returned no error
+// took effect and answered the model's output; a failed write becomes pending; a failed read does
 // nothing.
 func step(c mcfg, in Input, out Output) []mcfg {
+	if in.Kind == KWatch {
+		if !watchOk(in, out, c) {
+			return nil
+		}
+		return []mcfg{c}
+	}
 	if out.Err == EOther {
 		if isWrite(in) {
 			pend := make([]Input, 0, len(c.pend)+1)

@@ -17,7 +17,7 @@ As `MDefs.lean` for the model's stores: the Go values of `watch.go`'s check and 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatchStream
 
 @[expose] public section
 
@@ -150,11 +150,6 @@ theorem wevOf_ne_obj (w w2 : WEvent) (h : ¬ w.Obj' = w2.Obj') :
   simp only [wevOf]
   intro ⟨_, ho⟩
   exact h ho
-
-theorem bmStepL_none_foldl (es : List WEv) : es.foldl bmStepL none = none := by
-  induction es with
-  | nil => rfl
-  | cons e es ih => simpa [List.foldl_cons, bmStepL] using ih
 
 /-- `bookmarksOkL` stops at the first event its step rejects. -/
 theorem bookmarksOkL_false_of (evs : List WEv) (k : Nat) (e : WEv) (st : Nat × Nat × Bool)

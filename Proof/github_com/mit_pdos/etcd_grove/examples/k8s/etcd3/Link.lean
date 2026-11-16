@@ -17,13 +17,17 @@ public import Proof.k8s_io.apimachinery.pkg.runtime.SetZeroValue
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.addConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.appendHist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bookmarksOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cachedObj
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.changeAt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.checkedEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__Decode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__DecodeListItem
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.delItem
@@ -38,10 +42,13 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.evRange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.eventsEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSelFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__Empty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__Matches
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__RequiresExactMatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.firstBookmark
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs
@@ -52,6 +59,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histLen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformFromStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformToStorage
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialPrefixOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.inputEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.isWrite
@@ -74,6 +83,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mupdate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newCache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.noStreaming
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.nonBookmarks
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.notFound
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.objLabels
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.objOf
@@ -92,6 +102,8 @@ public import Proof.reflect.MakeSlice
 public import Proof.reflect.Value__Set
 public import Proof.reflect.Value__Type
 public import Proof.reflect.Zero
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableLo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
 public import Proof.k8s_io.apimachinery.pkg.runtime.Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvBytes
@@ -104,6 +116,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toEvent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.tryUpdateFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.uidOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.updated
@@ -113,7 +126,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner_
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__PrepareObjectForStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateObject
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wantEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchListOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.withPre
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadApps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadKeys
@@ -311,6 +327,10 @@ theorem wp_advance :
     EtcdGrove.k8s_etcd3.advance.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.advance.wp_proof wp_appendHist
 
+theorem wp_bookmarksOk :
+    EtcdGrove.k8s_etcd3.bookmarksOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.bookmarksOk.wp_proof
+
 theorem cache.wp_get :
     EtcdGrove.k8s_etcd3.cache.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.cache.get.wp_proof
@@ -322,6 +342,14 @@ theorem cache.wp_put :
 theorem wp_cachedObj :
     EtcdGrove.k8s_etcd3.cachedObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.cachedObj.wp_proof
+
+theorem wp_changeAt :
+    EtcdGrove.k8s_etcd3.changeAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.changeAt.wp_proof
+
+theorem wp_checkedEvents :
+    EtcdGrove.k8s_etcd3.checkedEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.checkedEvents.wp_proof
 
 theorem wp_lookup :
     EtcdGrove.k8s_etcd3.lookup.spec (GF := GF) (hG := hG) :=
@@ -398,6 +426,10 @@ theorem wp_removeAt :
 theorem wp_closure :
     EtcdGrove.k8s_etcd3.closure.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.closure.wp_proof wp_addConfig wp_mstep wp_removeAt wp_advance
+
+theorem wp_decodeWEvents :
+    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
 
 theorem decoder.wp_DecodeListItem :
     EtcdGrove.k8s_etcd3.decoder.DecodeListItem.spec (GF := GF) (hG := hG) :=
@@ -511,9 +543,57 @@ theorem wp_mlist :
     EtcdGrove.k8s_etcd3.mlist.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.mlist.wp_proof wp_parseRV wp_pastRead wp_histAt wp_predicate wp_storeKey wp_keyInScope wp_listOptions wp_encodeItems k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs k8s.storage.wp_PrepareKey k8s.storage.wp_PrepareContinueToken
 
+theorem wp_firstBookmark :
+    EtcdGrove.k8s_etcd3.firstBookmark.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.firstBookmark.wp_proof
+
+theorem wp_initialEvents :
+    EtcdGrove.k8s_etcd3.initialEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialEvents.wp_proof wp_predicate wp_storeKey wp_keyInScope k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem wp_eventsEqual :
+    EtcdGrove.k8s_etcd3.eventsEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.eventsEqual.wp_proof
+
+theorem wp_initialPrefixOk :
+    EtcdGrove.k8s_etcd3.initialPrefixOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialPrefixOk.wp_proof wp_initialEvents wp_histAt wp_eventsEqual
+
+theorem wp_evRange :
+    EtcdGrove.k8s_etcd3.evRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.evRange.wp_proof
+
+theorem wp_reliableLo :
+    EtcdGrove.k8s_etcd3.reliableLo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.reliableLo.wp_proof
+
+theorem wp_toEvent :
+    EtcdGrove.k8s_etcd3.toEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.toEvent.wp_proof wp_predicate k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem wp_wantEvents :
+    EtcdGrove.k8s_etcd3.wantEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.wantEvents.wp_proof wp_changeAt wp_toEvent wp_histAt wp_storeKey wp_keyInScope
+
+theorem wp_nonBookmarks :
+    EtcdGrove.k8s_etcd3.nonBookmarks.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.nonBookmarks.wp_proof
+
+theorem wp_reliableOk :
+    EtcdGrove.k8s_etcd3.reliableOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.reliableOk.wp_proof wp_eventsEqual wp_evRange wp_reliableLo wp_wantEvents wp_nonBookmarks
+
+theorem wp_watchListOk :
+    EtcdGrove.k8s_etcd3.watchListOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchListOk.wp_proof wp_firstBookmark wp_initialPrefixOk wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOk
+
+theorem wp_watchOk :
+    EtcdGrove.k8s_etcd3.watchOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchOk.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOk wp_reliableOk
+
 theorem wp_step :
     EtcdGrove.k8s_etcd3.step.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.step.wp_proof wp_isWrite wp_mstep wp_outEqual wp_mlist wp_advance
+  EtcdGrove.k8s_etcd3.step.wp_proof wp_isWrite wp_mstep wp_outEqual wp_mlist wp_advance wp_watchOk
 
 theorem wp_histOf :
     EtcdGrove.k8s_etcd3.histOf.spec (GF := GF) (hG := hG) :=

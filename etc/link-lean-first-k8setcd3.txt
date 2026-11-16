@@ -64,7 +64,25 @@ SelectionPredicate__Empty: @
 PrepareKey: @
 PrepareContinueToken: @
 mlist: parseRV pastRead histAt predicate storeKey keyInScope listOptions encodeItems SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs PrepareKey PrepareContinueToken
-step: isWrite mstep outEqual mlist advance
+# (7f-6 stage B) the watch check (`watch.go`): `watchOk` and its helpers, which `step` calls on a
+# watch
+eventsEqual:
+bookmarksOk:
+changeAt:
+toEvent: predicate SelectionPredicate__Matches labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs
+initialEvents: predicate storeKey keyInScope SelectionPredicate__Matches labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs
+evRange:
+reliableLo:
+wantEvents: changeAt toEvent histAt storeKey keyInScope
+nonBookmarks:
+reliableOk: eventsEqual evRange reliableLo wantEvents nonBookmarks
+initialPrefixOk: initialEvents histAt eventsEqual
+firstBookmark:
+checkedEvents:
+watchListOk: firstBookmark initialPrefixOk histAt initialEvents eventsEqual reliableOk
+decodeWEvents: parseRV decodeObj
+watchOk: decodeWEvents checkedEvents bookmarksOk parseRV watchListOk reliableOk
+step: isWrite mstep outEqual mlist advance watchOk
 etcd3_Model: step addConfig closure configEqual histOf
 #
 # the codec, versioner, transformer and decoder (`codec.go`)

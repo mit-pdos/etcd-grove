@@ -1,10 +1,12 @@
 /- Lean-first (no Rocq counterpart).
 
 `step(c, in, out)` (k8s_etcd3.go): the configurations `c` steps to by `(in, out)` (`stepL`): a
-call that returned no error took effect and answered the model's output (a list `mlist`'s, which
-changes nothing; any other call `mstep`'s, the history advanced); a failed write becomes pending;
-a failed read does nothing. Its premises bound the lengths (`mstep`'s, the pending list's `make`,
-and `advance`'s history).
+watch keeps `c` if `watchOk` passes, and drops it otherwise; a call that returned no error took
+effect and answered the model's output (a list `mlist`'s, which changes nothing; any other call
+`mstep`'s, the history advanced); a failed write becomes pending; a failed read does nothing. Its
+premises bound the lengths (`mstep`'s, the pending list's `make`, and `advance`'s history) and,
+on a watch only, `watchOk`'s: the configuration's revision and the watch's parsed minimum
+resource version below `2^63` (discharged at stage E, where watches reach `Step`).
 -/
 module
 
@@ -33,7 +35,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 abbrev step.spec : Prop :=
   ∀ (c : mcfg) (g : GCfg) (x : Input) (y : Output),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ cfgOwn c g ∗ ⌜g.st.st.items.length + 1 < 2 ^ 63 ∧ g.pend.length + 1 < 2 ^ 63 ∧
-        g.st.hist.length + 1 < 2 ^ 64⌝ }}
+        g.st.hist.length + 1 < 2 ^ 64 ∧
+        (x.Kind' = W64 5 → uint.Z g.st.st.rv < 2 ^ 63 ∧
+          ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63)⌝ }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step)) (Val #c)) (Val #x)) (Val #y))
   {{ (r : GoSlice) (cs : List mcfg), RET #r;
       r ↦* cs ∗ [∗list] c';g' ∈ cs;stepL g x y, cfgOwn c' g' }}

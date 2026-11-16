@@ -11,12 +11,12 @@ effect (`pend`). As linkvtxn's `Steps.lean`, here are the pure forms of
 (`PCfg HSt Input`: the model is stated on the Go records, `KModel.lean`), so no abstraction:
 
 - `CfgEquiv`, `setOf`, `GClosed`, `GOk`, `ClosureOk` as in linkvtxn;
-- **`step_closure_ok`**: `Step`'s result, the `closure` of `stepAllL gs x y`, represents
-  `ppost S x (ansOf y)` and is closed.
+- **`step_closure_ok`**: on an input other than a watch, `Step`'s result, the `closure` of
+  `stepAllL gs x y`, represents `ppost S x (ansOf y)` and is closed.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatch
 
 @[expose] public section
 
@@ -43,9 +43,13 @@ instance GCfg_decEq : DecidableEq GCfg := fun a b =>
 /-- `addConfig(s, c)`: `s`, or `s` with `c` appended if no configuration of `s` equals it. -/
 def addConfigL (gs : List GCfg) (g : GCfg) : List GCfg := if g ∈ gs then gs else gs ++ [g]
 
-/-- `step(c, in, out)`. -/
+/-- `step(c, in, out)`: a watch (kind 5) keeps `g` if `watchOkL` passes (`KWatch.lean`); the
+model's step (`kSpec`) covers the other kinds only, so the lemmas relating `stepL` to it
+(`stepL_sound`, `stepL_complete`, `step_closure_ok`) take `x.Kind' ≠ W64 5` (stage E gives
+watches their meaning). -/
 def stepL (g : GCfg) (x : Input) (y : Output) : List GCfg :=
-  if y.Err' = W64 4 then (if isWriteL x then [⟨g.st, x :: g.pend⟩] else [g])
+  if x.Kind' = W64 5 then (if watchOkL x y g.st then [g] else [])
+  else if y.Err' = W64 4 then (if isWriteL x then [⟨g.st, x :: g.pend⟩] else [g])
   else if y = (kstepL x g.st).2 then [⟨(kstepL x g.st).1, g.pend⟩] else []
 
 /-- `Step`'s inner loop, over one configuration's steps. -/
@@ -370,9 +374,10 @@ theorem ansOf_err (y : Output) : ansOf y = .err ↔ y.Err' = W64 4 := by
 
 variable {st0} in
 /-- A configuration's step by `stepL` is a `PStep`. -/
-theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (g' : GCfg) (hg' : g' ∈ stepL g x y) :
-    linkv.PStep (kSpec st0) g x (ansOf y) g' := by
+theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (hk : x.Kind' ≠ W64 5) (g' : GCfg)
+    (hg' : g' ∈ stepL g x y) : linkv.PStep (kSpec st0) g x (ansOf y) g' := by
   unfold stepL at hg'
+  rw [if_neg hk] at hg'
   by_cases he : y.Err' = W64 4
   · rw [(ansOf_err y).2 he]
     rw [if_pos he] at hg'
@@ -393,11 +398,12 @@ theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (g' : GCfg) (hg' : g' �
 
 variable {st0} in
 /-- A `PStep` of a configuration equivalent to `g` is one of `stepL g`, up to equivalence. -/
-theorem stepL_complete (g : GCfg) (x : Input) (y : Output) (c c₁ : GCfg)
+theorem stepL_complete (g : GCfg) (x : Input) (y : Output) (hk : x.Kind' ≠ W64 5) (c c₁ : GCfg)
     (he : CfgEquiv g c) (hs : linkv.PStep (kSpec st0) c x (ansOf y) c₁) :
     ∃ g' ∈ stepL g x y, CfgEquiv g' c₁ := by
   have hst : c.st = g.st := he.1.symm
   unfold stepL
+  rw [if_neg hk]
   generalize hO : ansOf y = o at hs
   cases hs with
   | ok =>
@@ -474,6 +480,11 @@ theorem stepL_bounded (n : Nat) (g : GCfg) (x : Input) (y : Output) (hb : Bounde
   unfold stepL at hg'
   split at hg'
   · split at hg'
+    · simp only [List.mem_singleton] at hg'; subst hg'
+      exact ⟨by omega, by omega, hb3⟩
+    · cases hg'
+  split at hg'
+  · split at hg'
     · next hw =>
       simp only [List.mem_singleton] at hg'; subst hg'
       refine ⟨?_, ?_, ?_⟩
@@ -503,7 +514,8 @@ theorem stepAllL_bounded (n : Nat) (gs : List GCfg) (x : Input) (y : Output)
 /-- **`Step`'s result** (see the file header): the `closure` `out` of `stepAllL gs x y`
 represents `ppost S x (ansOf y)` and is closed. -/
 theorem step_closure_ok (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Input) (y : Output)
-    (hS : GOk st0 gs S) (hc : ClosureOk st0 (stepAllL gs x y) out) (hcl : GClosed st0 out) :
+    (hk : x.Kind' ≠ W64 5) (hS : GOk st0 gs S) (hc : ClosureOk st0 (stepAllL gs x y) out)
+    (hcl : GClosed st0 out) :
     GOk st0 out (linkv.ppost (kSpec st0) S x (ansOf y)) := by
   refine ⟨hcl, ?_⟩
   obtain ⟨hgs, rfl⟩ := hS
@@ -512,13 +524,13 @@ theorem step_closure_ok (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Inp
   constructor
   · rintro ⟨c₀, c, c₁, ⟨g₀, hg₀, he₀⟩, hr₀, hs, hr₁⟩
     obtain ⟨g, hg, he⟩ := hgs g₀ hg₀ c (he₀.reach.trans hr₀)
-    obtain ⟨g₁, hg₁, he₁⟩ := stepL_complete g x y c c₁ he hs
+    obtain ⟨g₁, hg₁, he₁⟩ := stepL_complete g x y hk c c₁ he hs
     have hm : g₁ ∈ stepAllL gs x y := (mem_stepAllL gs x y g₁).2 ⟨g, hg, hg₁⟩
     exact hc.2 g₁ hm c' (he₁.reach.trans hr₁)
   · rintro ⟨g', hg', he'⟩
     obtain ⟨g₁, hg₁, hr⟩ := hc.1 g' hg'
     obtain ⟨g, hg, hs⟩ := (mem_stepAllL gs x y g₁).1 hg₁
-    have hcs := stepL_sound (st0 := st0) g x y g₁ hs
+    have hcs := stepL_sound (st0 := st0) g x y hk g₁ hs
     exact ⟨g, g, g₁, ⟨g, hg, CfgEquiv.refl _⟩, .refl _, hcs, hr.trans he'.reach⟩
 
 /-- A representation is empty only when its list is. -/
