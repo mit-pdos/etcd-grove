@@ -6,8 +6,9 @@ on the generic start (`etcdstart.Members`/`StartMembers`), as putgetN, txnlinfau
 This stage: `etcd_lease_safe` and `etcd_leaseexpiry_safe`; and whether `etcd_leasegrant_safe` and
 `etcd_leasecatchup_safe` fold in.
 
-**HARD STOP: the statements (§2) go to the user.** Done in this run: this plan, the Go programs and their tests
-(§1). No Lean is written.
+**Status (2026-11-16):** the statements (§2) APPROVED by the user, 2026-11-16, via etcd-grove-02, as drafted;
+D1-D12 (§8) decided by etcd-grove-02 as recommended (D9: leasegrantN deferred; D10: leasecatchupN queued next).
+Lean work in §6's order, leaseN first (it may land on its own).
 
 ## 0. Summary
 
