@@ -171,6 +171,8 @@ theorem New.wp_proof
       ipersist newListFunc
       ipersist compactor
       ipersist metricsTracker
+      ipersist s
+      ipersist «$r0»
       -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
       wp_apply Chk $$ []
       · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
@@ -188,29 +190,48 @@ theorem New.wp_proof
       isplitr
       · ipureintro; rfl
       iexists mt, lt
-      iunfold isStore
-      simp only
-      iframe #
-      isplitr
-      · ipureintro; exact Hsn
-      isplitr
-      · ipureintro; exact Hlt
-      iunfold storeListOk
-      iexists _, γp
-      isplitr
-      · iexact listErrAggrFactory
-      isplitr
-      · first
-        | iexact Hfa
-        | (iunfold aggrFactoryOk
-           iintro !> %Ψ HΨ
-           wp_apply wp_dla as %ag Hag
-           iapply HΨ $$ Hag)
-      isplitr
-      · iexact Hpool
-      isplitr
-      · ipureintro; exact ⟨hu1, hu2⟩
-      ipureintro; exact hpk
+      isplitl []
+      · iunfold isStore
+        simp only
+        iframe #
+        isplitr
+        · ipureintro; exact Hsn
+        isplitr
+        · ipureintro; exact Hlt
+        iunfold storeListOk
+        iexists _, γp
+        isplitr
+        · iexact listErrAggrFactory
+        isplitr
+        · first
+          | iexact Hfa
+          | (iunfold aggrFactoryOk
+             iintro !> %Ψ HΨ
+             wp_apply wp_dla as %ag Hag
+             iapply HΨ $$ Hag)
+        isplitr
+        · iexact Hpool
+        isplitr
+        · ipureintro; exact ⟨hu1, hu2⟩
+        ipureintro; exact hpk
+      · iintro !> %W %γk #Hcw #Hwco #Hni
+        ihave Hw := «$r0»
+        iStructNamed Hw
+        iunfold storeWatchOk
+        iexists _, nf, _, _
+        iframe #
+        isplitr
+        · iintro !> %ctx %Φ Hwp
+          wp_auto
+          wp_bind (App (Val _) (Val _))
+          iapply (wp_wand) $$ [Hwp]
+          · iexact Hwp
+          iintro %v ⟨%n, %err, %Hv, HR⟩
+          subst Hv
+          wp_auto
+          iexact HR
+        iintro !> %Φ Hwp
+        iexact Hwp
 
 end proof
 

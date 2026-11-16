@@ -323,7 +323,7 @@ theorem Main.wp_proof
     wp_apply wp_newObj as %o %ho
     iapply HΦ'
     ipureintro; exact ho
-  icases Hnew with ⟨%Herr, %mt, %lt, #Hstore⟩
+  icases Hnew with ⟨%Herr, %mt, %lt, #Hstore, -⟩
   subst Herr
   wp_auto
   -- the driver's invariant at the seeded state, and `Check`

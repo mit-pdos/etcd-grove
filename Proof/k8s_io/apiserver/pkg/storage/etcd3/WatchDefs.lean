@@ -766,7 +766,7 @@ instance sendInitIs_persistent (p : Loc) (sie : Option Bool) : Persistent (sendI
 /-- **The store's watcher** (persistent; the store invariant's growth, produced by `New`): the
 store's `watcher` field holds a `*watcher` whose fields are the store's (client, codec, versioner,
 transformer, group-resource), a `newFunc` making the zero object, `getCurrentStorageRV` calling the
-store's `GetCurrentResourceVersion`, `getResourceSizeEstimator` calling the store's (which answers
+store's `GetCurrentResourceVersion` (whose result is a pair), `getResourceSizeEstimator` calling the store's (which answers
 `nil`: `storeListOk`'s `rseNilR`); the client's watcher over the cluster's KV `γk`; the watch path's
 object contract; the object type's name (`objectType`, the block loggers'; `createWatchChan`). -/
 def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) : IProp GF :=
@@ -786,7 +786,8 @@ def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVN
     newItemOk c.S nf ∗
     □ (∀ (ctx : GoInterface) (Φ : val → IProp GF),
       WP (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!
-        go!"GetCurrentResourceVersion")) (Val #ctx)) {{ Φ }} -∗
+        go!"GetCurrentResourceVersion")) (Val #ctx))
+        {{ v, ∃ (n : w64) (err : GoInterface), ⌜v = PairV #n #err⌝ ∗ Φ v }} -∗
       WP (App (Val #crv) (Val #ctx)) {{ Φ }}) ∗
     □ (∀ Φ : val → IProp GF,
       WP (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!

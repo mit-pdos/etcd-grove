@@ -353,6 +353,9 @@ theorem watchChan.startWatching.wp_proof
       as %n %err Hout
     · iframe #
       iapply readAus_crv $$ Hra
+    iexists n, err
+    isplitr
+    · ipureintro; rfl
     icases Hout with (⟨%Herr, Herr2⟩ | ⟨%Herr, %σ1, #HQ1, %Hσ1⟩)
     · -- the read's error: sent
       ihave #Hok : kErrOk err $$ [Herr2]

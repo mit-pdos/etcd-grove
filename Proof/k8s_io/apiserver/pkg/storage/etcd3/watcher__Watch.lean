@@ -94,6 +94,9 @@ theorem watcher.Watch.wp_proof
       iexists m, e
       isplitr
       · ipureintro; rfl
+      iexists m, e
+      isplitr
+      · ipureintro; rfl
       icases Hout with (⟨%He, -⟩ | ⟨%He, %σ1, #HQ1, %Hσ1⟩)
       · ileft; ipureintro; exact He
       · iright
@@ -241,6 +244,9 @@ theorem watcher.Watch.wp_proof
         isplitr
         · iapply ctxOk_of_isContext $$ [$Hctx $Hmd]
         iapply readAus_crv $$ Hra
+      iexists m, e
+      isplitr
+      · ipureintro; rfl
       iexists m, e
       isplitr
       · ipureintro; rfl
