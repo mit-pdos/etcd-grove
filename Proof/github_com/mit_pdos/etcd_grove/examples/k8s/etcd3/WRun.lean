@@ -7,6 +7,7 @@ Lean-first (no Rocq counterpart).
   (`SetAnnotations` of the initial-events-end annotation; ledger 2026-11-16);
 - `predWV x b`, `watchOptsV x p`: `watchOptions(in)`'s predicate (`predicate(in)` with
   `AllowWatchBookmarks := b`) and options (`SendInitialEvents` the cell `p`, `sieOfL x`);
+- `lastObjL`: `lastObj`'s answer;
 - `predOk_driverW`: that predicate selects as `predicate(in)` (`selD x`, `predEmptyL x`).
 -/
 module
@@ -40,6 +41,10 @@ def predWV (x : Input) (b : Bool) : k8s_io.apiserver.pkg.storage.SelectionPredic
 /-- `watchOptions(in)`, its `SendInitialEvents` the cell `p` (`null` for none). -/
 def watchOptsV (x : Input) (p : Loc) : k8s_io.apiserver.pkg.storage.ListOptions :=
   ⟨x.MinRV', matchOptL x, predWV x x.Bookmarks', x.Recursive', false, p, false⟩
+
+/-- `lastObj(evs)`: the object of the last event that is neither an Error nor a bad event. -/
+def lastObjL (evs : List WEv) : Option Obj :=
+  (evs.reverse.find? fun e => decide (e.t ≠ 4 ∧ e.t ≠ 5)).map (·.o)
 
 end vals
 
