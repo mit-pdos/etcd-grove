@@ -4,9 +4,11 @@
 review's findings fixed as 81 decided): §8 lists each change, old → new. The sections below
 describe the revised Draft.
 
-Branch `k8s-7f5`, worktree `/shared/etcd-grove-k8s7f`. The statements are in the unlinked
-`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`). It builds with
-`lake build Proof.k8s_io.apiserver.pkg.storage.etcd3.Draft7f5a`, and nothing imports it. No proofs.
+Branch `k8s-7f5`, worktree `/shared/etcd-grove-k8s7f`. The statements were in the unlinked
+`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`); its vocabulary
+moved to `WatchDefs.lean` during 7f-5a-P, and on 2026-11-16 (decided by etcd-grove-02) the triple moved
+verbatim to `Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean` (`k8s.store.Watch.spec`, a
+hypothesis of 7f-6: changes through the ledger) and the Draft file was deleted.
 The plan is `notes/k8s-7f5-scope.md` (§5, §6 row 7f-5a-D, decisions §8) and the parent
 `notes/k8s-7f-scope.md` §2.1, §5.3, §9. The Go is apiserver `9c4ec15b8038`,
 `pkg/storage/etcd3/{store.go:1142-1163, watcher.go, event.go}`.

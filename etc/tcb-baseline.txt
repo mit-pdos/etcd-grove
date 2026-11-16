@@ -580,7 +580,9 @@ axiom k8sfeature.featureOn_persistent
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
+axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom klog.Warningf.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
@@ -610,6 +612,8 @@ axiom metadata.FromOutgoingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
+axiom metrics.RecordEtcdBookmark.wp_proof
+axiom metrics.RecordEtcdEvent.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
 axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
@@ -620,6 +624,7 @@ axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
+axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
@@ -774,6 +779,7 @@ axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
+axiom status.Status.Code.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
@@ -843,6 +849,7 @@ axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
+axiom wait.Jitter.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walFiles
 axiom withVersion.wp_proof

@@ -1,33 +1,9 @@
 /-
-Lean-first (no Rocq counterpart).
-
-# k8s 7f-5a-D: the Draft of the etcd3 watcher's serial branch (UNLINKED; hard stop S3)
-
-Statements only, no proofs; `notes/k8s-7f5a-draft.md` explains each in plain words. Nothing imports
-this file. After etcd-grove-81's review, its definitions move to `WatchDefs.lean` (the vocabulary)
-and `Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean` (the triple), and this file goes.
-
-1. **The ideal stream** (pure, generic in the store's object type, over etcd's history read as a
-   `KVState`): `KWEv` (a watch event as the consumer sees it), `kEvOfL` (an etcd event's watch event,
-   as `transform` computes it from the event and the key's record at the revision before),
-   `kInitialL` (a watch-list's initial events), `KTail` (the events of a watch from a cursor, with
-   progress bookmarks), `kModeOf` (what the request asks: initial events, the initial-events-end
-   bookmark, the requested revision), **`kStreamOk`** (the events received, Error events removed,
-   are a prefix of the ideal stream from a start point), **`kStreamSub`** (a subsequence of it) and
-   **`kStartOk`** (the start point is the revision of a state the caller's read update fired at,
-   or the requested one).
-2. **The consumer's view**, `k8sWatch`: `ResultChan()` returns an SPSC channel (`isSpsc`, the
-   consumer's half) whose `i`-th element is a `watch.Event` (`wevAt`) and carries the persistent
-   fact that the first `i + 1` events' models are `kStreamSub`, and `kStreamOk` unless the watch is
-   no longer live (`kCancelled`: stopped by the consumer, or its context done); `Stop()` takes
-   `kLive` (or `kStopped`) and gives `kStopped`.
-3. **`store.Watch.spec`** (`Draft.store.Watch.spec`).
-4. **The protocol** (the proof's ghost state, internal): `KRaw` (an `*event` the producer queues),
-   `kRawStreamOk`/`kRawStreamSub`, `kInElem` (the `incomingEventChan` SPSC's element), `kResInv`
-   (the `resultChan`'s two producers: the producer token in an invariant), `kCancelPD` (`wc.cancel`'s
-   Done proposition).
-5. **Trusted texts T5-f** as statements (`def … .spec : Prop`, no axiom; the axioms land in 7f-5a-P):
-   `klog.Warningf.spec` (`klog.Errorf.spec`'s restricted form), `mvccpb.Event_EventType.String.spec`.
+`(*store).Watch(ctx, key, opts)` (`k8s.io/apiserver/pkg/storage/etcd3/store.go:1142-1152`; k8s 7f-5a,
+`notes/k8s-7f5a-draft.md` §3, reviewed with the Draft; moved verbatim from the Draft file
+`Draft7f5a.lean`, where it was `Draft.store.Watch.spec`, 2026-11-16, decided by etcd-grove-02). A
+hypothesis of 7f-6 (branch `k8s-7f6`): any change goes through the ledger
+(`notes/specs-only/ledger.md`). Not proved yet (7f-5a-P step 6). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -40,19 +16,13 @@ public import Spec.k8s_io.klog.v2.Args
 
 @[expose] public section
 
-set_option linter.unusedSectionVars false
-
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 namespace k8s
-namespace Draft
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
-
-
-/-! ## 3. The triple -/
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -103,7 +73,6 @@ abbrev store.Watch.spec : Prop :=
 
 end spec
 
-end Draft
 end k8s
 end EtcdGrove
 end Perennial

@@ -4,8 +4,8 @@
 valid UTF-8 (as `RecordEtcdRequest`'s: once the apiserver registers the metrics, a label that is not
 valid UTF-8 panics in `WithLabelValues`; the store has them, `storeListOk`). Go evidence:
 `examples/premisefix/watcherctx/draft7f5a_test.go`, `TestRecordEtcdEventBookmarkLabels`. The etcd3
-watcher's `startWatching` takes it as a callee spec; the trust-boundary axiom comes with the
-package's linking (7f-5a-P step 7). Lean-first (no Rocq counterpart).
+watcher's `startWatching` takes it as a callee spec. The trust boundary: an axiom,
+`Proof/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdEvent.lean` (7f-5a-P step 7). Lean-first (no Rocq counterpart).
 -/
 module
 

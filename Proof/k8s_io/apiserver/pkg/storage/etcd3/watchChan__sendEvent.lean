@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem watchChan.sendEvent.wp_proof
     (wp_recordWait : blockLogger.recordWait.spec (GF := GF) (hG := hG)) :
     watchChan.sendEvent.spec (GF := GF) (hG := hG) := by
-  intro wc ch lg ev ctx cdw γch v dq Q
+  intro wc ch lg ev ctx cdw γch v dq S Q
   wp_start as ⟨#Hch, #Hctxf, #Hlg, #Hbl, #Hctx, #Hchan, Hev, Hsend⟩
   ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
@@ -50,6 +50,7 @@ theorem watchChan.sendEvent.wp_proof
     · ipureintro; exact ⟨rfl, rfl⟩
     isplit
     · iexact Hchan
+    icases Hsend with ⟨-, Hsend⟩
     iapply Hsend $$ [$Hlc1 $Hlc2 $Hlc3]
     inext
     iintro HQ
@@ -81,6 +82,7 @@ theorem watchChan.sendEvent.wp_proof
     iapply HΦ
     iframe
     iright
+    icases Hsend with ⟨HS, -⟩
     iframe
     isplitr
     · ipureintro; rfl
