@@ -1,4 +1,61 @@
-# auth-lease S4 item 4: the Freeze package (rev 3, 2026-11-16; L1 option 1 approved, feasibility §8.4; rev 2's texts §9, rev 3's §10)
+# auth-lease S4 item 4: the Freeze package — **FROZEN 2026-11-16** (rev 3 + round 4, `c30c95e91e`)
+
+**FROZEN.** Approved by etcd-grove-02 (D-a..D-g, D-i, D-j, D-k as forms with texts at item 9's stop, `lessorLawMask`)
+and by the user, 2026-11-16, via etcd-grove-02 (D-h, with its R4-1 completion: the two v3rpc `LeaseServer` handler
+`specN`s). The frozen texts are those of `notes/auth-lease-s4-frozen.lean.txt` (a committed copy of
+`Scratch/S4Freeze.lean` at `c30c95e91e`; sha256 `3755f583f1de3e37a1edcf1c0aff7e10591819d844291382f4e7625fb9ef13b8`),
+each under its `…N`/`…_stmt`/`…Md` name, to land under the old name (or the `_stmt`'s theorem name); plus D-k's forms
+(§7 "Round 4", R4-2) and the change lists of §7's Round 3/4 tables. Tag `auth-lease-s4-frozen` (local). Any change to
+one of these beyond this Freeze is a thaw: STOP. Per-text sha256 (first 16 hex digits, of the text from its
+`def`/`abbrev` line to the next blank line or declaration):
+
+| text | sha256 |
+|---|---|
+| `leaseKeptIn` | `841ff1846a7a73d5` |
+| `lsHolds` | `83e56ee7f04a51a2` |
+| `lessorLawMask` | `99b9ecc117245dc3` |
+| `lessor_keys_of_read_stmt` | `ded83b3967df4d8b` |
+| `etcdPutSpecOnN` | `ef26c4af67cc3878` |
+| `etcdPutSpecMN` | `e48757033026e041` |
+| `etcdTxnSpecOnN` | `60a5d4332266564e` |
+| `etcdTxnSpecMN` | `e995659d61d89cc4` |
+| `putViews_stmt` | `5d8b9fb9000ab96a` |
+| `txnViews_stmt` | `61ac6ca399d1be4f` |
+| `lessorRemoteAtC` | `06567d858a8f886e` |
+| `lessorRemoteAt_conn_stmt` | `550ab87b369649d2` |
+| `lessor.Grant.specN` | `6da630fddcfcaf82` |
+| `lessor.Revoke.specN` | `b2d7171cbff53fae` |
+| `lessor.TimeToLive.specN` | `515037635718cea7` |
+| `lessor.Leases.specN` | `0b1a5042dddcc93c` |
+| `retryLeaseClient.LeaseGrant.specN` | `310f9e9337bb7b2c` |
+| `retryLeaseClient.LeaseRevoke.specN` | `d28b524b835b9836` |
+| `retryLeaseClient.LeaseTimeToLive.specN` | `39ffc8978ecaf6c5` |
+| `retryLeaseClient.LeaseLeases.specN` | `e3356e1db185ceaa` |
+| `opGrantTN` | `4dde8ce5efe7cc32` |
+| `clientGrantN` | `338a4ac9602aca8f` |
+| `clientOpAuOnN` | `90ec9fec2da5981d` |
+| `txnUpdAtOnN` | `f251f684091862e8` |
+| `clientTokAtN` | `c0b5d8921849bfe3` |
+| `etcdLeaseGrantSpecOnN` | `fc3cecd1587fff6e` |
+| `etcdLeaseRevokeSpecOnN` | `3f2f0e320c10b66d` |
+| `client_lease_grant_on_stmt` | `dece8639d44fae5f` |
+| `client_lease_revoke_on_stmt` | `1d44b7fe3a1bdde3` |
+| `client_put_on_stmt` | `d6537a3649eb68a1` |
+| `etcdLeaseTTLSpecMd` | `37e2705ab3aaafaf` |
+| `etcdLeaseLeasesSpecMd` | `171d33241966faf4` |
+| `etcd_lease_read_served_stmt` | `5454fb8e8acf0d42` |
+| `authedFrom` | `eeef314757983d8e` |
+| `authedFrom_persistent_stmt` | `4f6d8e75ec8470b7` |
+| `leaseCheckFrom_of_authedFrom_stmt` | `66b3c669572ed943` |
+| `EtcdServer.requireAuthInfo.specCN` | `cb2ffdbc09e172c9` |
+| `EtcdServer.LeaseGrant.specN` | `0d36bbc40988ea6a` |
+| `EtcdServer.LeaseRevoke.specN` | `225db8076121beb4` |
+| `EtcdServer.LeaseTimeToLive.specN` | `f2a59c8cd2cca26c` |
+| `EtcdServer.LeaseLeases.specN` | `87bd74c4049007c6` |
+| `v3rpc.LeaseServer.LeaseGrant.specN` | `7e2bbc2503a427fb` |
+| `v3rpc.LeaseServer.LeaseRevoke.specN` | `10c3d2a3c56471a9` |
+
+## History: the package (rev 3, 2026-11-16; L1 option 1 approved, feasibility §8.4; rev 2's texts §9, rev 3's §10)
 
 For etcd-grove-02. Branch `auth-lease-s4`. Draft `notes/auth-lease-s4-draft.md` §3 lists the exported
 texts S4 changes; C5′'s (item 3) and etcdstart's (item 2) are already in the tree. This file gives the
