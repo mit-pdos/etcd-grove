@@ -906,7 +906,39 @@ theorem watchChan.startWatching.wp_proof
   iunfold watchStateRespOkP at Hok
   icases Hok with ⟨#Hok1, #Hpk⟩
   cases hpn : r.isProgressNotify
-  · sorry
+  · -- events (none, or the revisions `(c0, c1]`)
+    ihave ⟨#Hevs, %Hseg⟩ : (eventsIs r.events
+        (kRangeEvsL σ inS (sint.nat c0 + 1) (sint.nat c1 + 1)) ∗
+        ⌜KRawSeg σ inS (sint.nat c0) (sint.nat c1)
+            ((kRangeEvsL σ inS (sint.nat c0 + 1) (sint.nat c1 + 1)).map KRaw.ev) ∧
+          0 ≤ sint.Z c1 ∧ (r.events ≠ [] → sint.nat c1 ≤ σ.rev)⌝ : IProp GF) $$ []
+    · iunfold watchStateRespOk at Hok1
+      icases Hok1 with (⟨%H, -⟩ | %H | %H | ⟨%H, #Hes⟩)
+      · exact absurd H.1 hnw
+      · obtain ⟨-, he, -, hc⟩ := H
+        rw [hc]
+        have h0 : kRangeEvsL σ inS (sint.nat c0 + 1) (sint.nat c0 + 1) = [] := by
+          unfold kRangeEvsL; simp
+        rw [h0, he]
+        isplitl
+        · unfold eventsIs
+          isplitl
+          · ipureintro; rfl
+          iintro !> %i %e %ev %h
+          simp at h
+        ipureintro
+        exact ⟨KRawSeg.nil _, Hc0, fun h => absurd rfl h⟩
+      · rw [hpn] at H; exact absurd H.2.1 (by decide)
+      · obtain ⟨-, hne, h0, hlt, hrv, -, -⟩ := H
+        rw [← hscope]
+        iframe Hes
+        ipureintro
+        have h1 : sint.nat c0 < sint.nat c1 := by word
+        have h2 : sint.nat c1 ≤ σ.rev := by word
+        rw [hscope]
+        exact ⟨kRawSeg_chg1 h1 h2, by omega, fun _ => h2⟩
+    wp_auto
+    sorry
   · -- a progress notification: `KRaw.bm` at the header's revision
     have hev0 := isProgressNotify_events hpn
     iunfold watchStateRespOk at Hok1
