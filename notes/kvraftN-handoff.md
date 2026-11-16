@@ -12,14 +12,16 @@ Done:
   `freshIdsM`, specs and proofs of `RandomOptionsN`, `RandomConfigN`, `MainN` (`1 ≤ k < 2^59`). Every kvreconf and
   kvdurable module but `Link`/`Results`/`Adequacy*` builds (verified 2026-11-16, targets `/shared/tmp/kvraftN/targets.txt`).
   `TestMainN` 20 runs at 18296d64f7: all PASS (k = 1 ×4, 3 ×6, 5 ×4, 7 ×6; 1.5 to 15 s each) (`/shared/tmp/kvraftN/kvreconf-runs20.txt`, logs `run<i>.log`).
-- Draft of `raft_kvreconfN_porcupine_safe`: `notes/kvreconfN-draft.md` (Lean text and plain reading). **Waiting for the
-  user's approval (via etcd-grove-02).**
+- `raft_kvreconfN_porcupine_safe` approved by the user (2026-11-16, via etcd-grove-02; `notes/kvreconfN-draft.md`) and
+  linked (`da91401f22`): `kvreconfProgramN`, `kvreconfN_adequate_of`, `raft_kvreconfN_adequate`, `kvreconf_MainN`, the
+  closed theorem in `Results.lean` (same 328 axioms as `raft_kvreconf_porcupine_safe`). lean merged (up to date at
+  e9f67cdb20), full build ok, gates (`/shared/tmp/kvraftN/gates-kvreconf.log`) all ok but bounds: 365 vs 364 (`MainN.spec`'s
+  `receiptBound`, as kv's Q6); STATUS entry. **Waiting for the bounds decision (then `etc/bounds-check.py --check
+  --update`) and the coordinator's go to land.**
 
 Next, in order:
-1. After approval: `kvreconfProgramN`, `kvreconfN_adequate_of` (`Adequacy.lean`, as kv's `kvN_adequate_of`),
-   `raft_kvreconfN_adequate` (`AdequacyLinked.lean`), the closed theorem (`Results.lean`, the draft's text);
-   `etc/gen-link.py` for kvreconf; tcb `--check` (kvreconf collection unchanged), interfaces, bounds; STATUS entry; ask
-   the coordinator before `etc/land.sh`.
+1. On the coordinator's go: merge lean, `LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
+   PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9 etc/land.sh` (GOWORK unset).
 2. kvdurable (R2) up to its statement stop (scope: ids `≤ max` in five specs, `kdFileNames_nodup` by `decimalB_inj`,
    the files premise over `1 … k + 4`; draw its test k from {1, 3, 5}: k = 7 once took 15 min).
 
