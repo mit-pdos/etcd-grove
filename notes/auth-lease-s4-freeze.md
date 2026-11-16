@@ -1,4 +1,4 @@
-# auth-lease S4 item 4: the Freeze package (rev 2, 2026-11-16; L1 open, §8; rev 2's texts §9)
+# auth-lease S4 item 4: the Freeze package (rev 2, 2026-11-16; L1 option 1 approved, feasibility §8.4; rev 2's texts §9)
 
 For etcd-grove-02. Branch `auth-lease-s4`. Draft `notes/auth-lease-s4-draft.md` §3 lists the exported
 texts S4 changes; C5′'s (item 3) and etcdstart's (item 2) are already in the tree. This file gives the
@@ -528,6 +528,73 @@ def leaseKeptIn (σ : KVState) (r₀ : Nat) (id : w64) (k : GoString) : Prop :=
     at a revision and a put on a dead lease is refused;
   - the state at a committed prefix is a revision-prefix of the state `etcdKV` holds.
   Both are model or server lemmas.
+
+### 8.4 Option 1, feasibility check (2026-11-16, after the user's approval; no tree edits)
+
+Read off the tree at `5d142952af` (raft, server, examples). **Verdict: feasible, and the snapshot path is not
+disturbed; but the revised estimate is 11–14 agent-days (centre ~12.5), at or past the ~12-day stop line.**
+STOPPED here for etcd-grove-02's go.
+
+**What survives of M3** (more than §8.2a assumed at raft's step level, less at the API and server):
+
+| piece | state | work |
+|---|---|---|
+| `RaftNames.reNoSnap`, `reNoSnap_ok` (`P/Ghost.lean:348-352`), `NsLink`, `NsLink.boot` | live | none |
+| `NGhost.ns`, kept by every step (`hg : s'.gh.ns = s.gh.ns` in every step lemma) | live | none |
+| `LogNsOk` (no snap, `prev ≤ 1`, `committed ≥ 1`, outbox no `MsgSnap`), `LogNsKeep` (`InvRaftPhys.lean:739-866`) | **maintained generically** in every step proof | none |
+| `PrOkN ns`/`PrLo`, one lemma per `Progress` method (`Defs.lean:818-940`); `reset`'s `HliP`, `applyConfChange`'s `Hli2` (a new peer at `Next ≥ 2`), `stepLeader`'s rejection clause (`Rest.lean:1137,1703`), `becomeLeader` | **maintained generically** | none |
+| `ownRaftPhysC_nsOut` (outbox, mode ⇒ no `MsgSnap`), `ownRaftGhost_noSnap_of_commit`, `qCert`'s `reNoSnap = true` disjunct, `LemmasReadyR`'s `Hns` | live | none |
+| `NsCap ns st` | **`⌜ns = false⌝`** (`InvRaftPhys.lean:849`): makes `ns = true` unreachable | redefine as `⌜ns = false⌝ ∨ storCapF st 1`, `storCapF st k := □ ∀ c, storCompacted st c ={⊤}=∗ ⌜c ≤ k⌝` (triples are at `⊤`) |
+| `maybeSendAppend`'s two `ns = true` branches (`raft__maybeSendAppend.lean:153,441`) | `iexfalso` from `NsCap` | real proofs: `PrLo` (`Next ≥ 2`) + `LogNsOk` (`prev ≤ 1`) + `storCapF` against `storPast st Next` |
+| `ownRaftPhysC_sn` (gives `ns = false ∧ sn`) | 17 callers; only `RawNode__Step:149`, `InvNodeRun:711` (`MsgSnap → ns = false`) and `maybeSendSnapshot:107` use the `ns` half | split off the `sn` half; the two `Step` sites take `MsgSnap → reNoSnap = false` from the message (L-r4) via `NsLink`; `maybeSendSnapshot` takes `ns = false` as a premise (its caller's branch is dead at `true`) |
+| setting the mode at boot (`ownRaftPhysC_set_ns`) | **deleted** (`ce370ad2a8`) | revive from `ce370ad2a8^` at `Bootstrap` (`setupNode`/`StartNode`), the cap from the storage contract (L-r2) |
+| the storage cap (`MemStorNames.cap`, `storCap`, `memCutInv`'s `Hccap`) | **deleted**; the U8 v2 contract bounds compaction by `storBnd γ K c` (`∃ k ≥ c, nodeAppliedLb γ K k`, `InvNodeRule.lean:628`) and `memStorJ.B k := nodeAppliedLb γ K k` (`MemstorageApi.lean:43`) | no `MemStorNames.cap`: the cap goes into the API's justification instead (L-r2), which `isStorageP`'s `Hbound` already carries to raft |
+| the API names (`DecNames`: `reNoSnap = false`, `InvApi.lean:171`; `UniNames.noSnap`, 3 callers `InvApi.lean:2243,2340,2928`) | flag forced off | flag free (L-r1); the 3 callers case on it (at `true` the message/Ready has no snapshot) |
+| the snapshot `Ready` (`readySnap … (some l)`, `InvNode.lean:623`; `readyData`'s U9 note) | no mode guard since U9 | L-r3 |
+| `Bootstrap`/`setupNode` specs' `γ.reNoSnap = false →` (`Spec/…/RawNode__Bootstrap.lean:66`, `setupNode.lean:85`), `StartNode` (`StartNode.lean:421`) | premise | dropped (stronger specs); `RestartNode` keeps `reNoSnap = false` |
+| the Protocol-level allocations (`ownRaftGhost_alloc_boot … (ns nx)`, `Facts.lean:1749`; `ResultsDyn.lean:138`) | take `ns` | the API's allocation passes it through (L-r6) |
+| server `srvMsgNoSnap` (`InvBuild.lean:120`) | live (ordinary messages) | none |
+| server `compactRaftLog.spec`/`compactIdx` (`Spec/…/EtcdServer__compactRaftLog.lean`) | `compactIdx = 1` iff `snapi ≤ scu`; no mode | premise `reNoSnap = true → uint.Z snapi ≤ uint.Z scu`, so `B 1` holds |
+| the apply pool `srvWTPool`, `srvWTPool_bound` (`InvApplier.lean:1150,1541-1560`) | live; **but the clause `appliedi ≤ count` went with J5** (the counter is now `w`, raised by the entries applied, independent of `ai`, because an install raises `ai`) | re-add `reNoSnap = true → uint.nat ai ≤ w` through `apply`, `applyAll`, `applyEntries`, `snapshotIfNeededAndCompactRaftLog`, `applySnapshot` (dead at `true`), `run`; initial `ai ≤ w` at a fresh start (to check: `srvWTStock_alloc`'s counter at `0`) |
+| `scu` (`InvApplyAll.lean:142`: `∃ scu, …SnapshotCatchUpEntries ↦□ scu`) | no fact | the row gains `reNoSnap = true → receiptBound GF ≤ uint.Z scu + 1`, set by `NewServer` from the configuration (etcdstart: `NoSnapCatchUp = 2^48`, `Hrb48`) |
+
+**The snapshot path (restart, partition, linkv3p, crashreconf, leasesnap, kv/kvdurable/kvreconf).** At flag
+`false` every revived piece is today's invariant: `NsCap false st ⊣⊢ True`, the ns-branches are the ones they
+already take, `RestartNode` already demands `reNoSnap = false`. What their **proof bodies** see (statements
+unchanged): (i) the justification's new conjunct `⌜γ.raft.reNoSnap = true → k ≤ 1⌝` at their `Compact`/
+`ApplySnapshot`/attach sites (server `compactRaftLog`, `InvRestart`, `NodeStart`, `raftNode__start`; kv's
+`KV__run`, kvdurable's own storage `Storage__Compact`/`ApplySnapshot`/`openStorage`, kvreconf's
+`Replica__snapshot`), discharged by `flag = false` (lemmas `storBnd_off`/`memStorJ_off`); (ii) their allocations
+pass `false` and keep it in their names (`UniNames.noSnap` today) for (i). No snapshot-branch logic changes.
+
+**The raft API laws to add** (sealed API, `etc/api/raft.txt`; `interface/` diff to review):
+- **L-r0** vocabulary `clusterNoSnap (γ : Cluster) : Prop := γ.raft.reNoSnap = true` (`ApiVocab`), so that
+  clients never name the raft field.
+- **L-r1** `DecNames`/`UniNames` without `reNoSnap = false` (the flag is the cluster's choice); `UniNames.noSnap`
+  deleted; `clusterNoSnap_boot : clusterNoSnap γ → γ.raft.reBoot ≠ []`.
+- **L-r2** `storBnd γ K c := ∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k ∗ ⌜clusterNoSnap γ → k ≤ 1⌝`, `memStorJ.B` likewise;
+  `storBnd_off`, `memStorJ_B_off : ¬ clusterNoSnap γ → (B k ⊣⊢ nodeAppliedLb γ K k)`.
+- **L-r3** `readySnap_mode : readySnap γ N id rd st ce es (some l) ⊢ ⌜¬ clusterNoSnap γ⌝` (a snapshot `Ready`
+  only outside the mode; from `nodeSnapLocal`'s stepped `MsgSnap`).
+- **L-r4** `sentMsg_mode : sentMsg γ N src st ⊢ ⌜clusterNoSnap γ → st.msg.Type' ≠ MsgSnap⌝`.
+- **L-r5** `StartNode`/`setupNode`/`Bootstrap` specs without `reNoSnap = false` (the cap comes from L-r2's
+  `isStorage`); `RestartNode` unchanged.
+- **L-r6** the API's cluster allocation takes the flag `ns` with `ns = true → boot ≠ []`.
+
+Server (internal, proved specs; forms): `compactRaftLog.spec`'s premise; the `ai ≤ w` clause in the apply-loop
+specs; the `scu` row; `NewServer`/`bootOk` take the flag; then the Freeze §5 premise
+`memberNoSnapInstall s E γr` becomes `⌜clusterNoSnap γr.raft.raft.cl⌝` (pure, of the names), and item 7's
+`applySnapshot` arm is dead at it by L-r3.
+
+**Revised estimate** (agent-days): raft 5–6 (NsCap/storCapF 0.5; `maybeSendAppend` 0.5; `ownRaftPhysC_sn`
+split and the two `Step` sites 0.5; boot `set_ns` revival 1–1.5; L-r1/L-r2 and their clients in raft 1; L-r3/L-r4
+in the sealed `sentMsg`/`readySnap` 1–1.5; interfaces 0.5); server 4–5 (`compactRaftLog` 0.5; the `ai ≤ w` clause
+through six specs 1.5–2; the `scu` row and `NewServer` 1; names/allocation `NewServerAlloc{,On}`, `NodeStart`,
+`SrvRaftLog`, `InvBuild` 1); examples and drivers 1 (`allocNOnM`/`memberBootOn` flag, the kv examples' `false`,
+authlease `true`); builds, tcb collections, review 1. **Total 11–14, centre ~12.5**, against §8.2a's 6–9: the
+differences are the `ai ≤ w` clause (gone with J5, not with T-S), L-r3/L-r4 (U9 dropped the `Ready`'s mode guard),
+and the clients of L-r2. Risk: L-r3/L-r4 go through the sealed `sentMsg`/`snapLocalMsg` vocabulary, whose
+proofs I have not read; if they need a new ghost record, +1–2.
 
 ## 9. Rev 2's texts (2026-11-16; `Scratch/S4Freeze.lean`, `etc/lean-check.py -a`: 0 errors)
 

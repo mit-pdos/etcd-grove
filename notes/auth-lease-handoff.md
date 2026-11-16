@@ -1,33 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, Freeze rev 2 done but L1)
+## START HERE (S4, 2026-11-16, L1 option 1: feasibility done, STOPPED for the go)
 
 - **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). S0–S3c on lean. Draft `notes/auth-lease-s4-draft.md`
   (statement approved). Decisions: `questions.md` (untracked), "auth-lease S4", "S4 Freeze r1 decisions", "S4 Freeze rev 2: L1 stop".
-- **Done:** item 0 Draft and Go (`5baacbd07a`, `647aadf78b`); item 2 (`7b126d3e4e`); item 3, the C5′ merge (`2bddb5967a`);
-  item 4, the Freeze rev 1 and review r1 (`c4f188d250`); the L1 stop (`ef4c34650e`); **rev 2's texts** (this commit):
-  - Freeze §9 lists every change (K1, C1, C2/D-h, C3/D-i, R1, R2, L2/L3 per §8.3, the second tier);
-  - the texts are in `Scratch/S4Freeze.lean` (untracked; copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`);
-    `etc/lean-check.py -a`: 0 errors.
-- **Open: L1, with the user.** The per-member law takes `memberNoSnapInstall s E γr` as a marked placeholder
-  parameter of its statement. Options are in Freeze §8.2; option 1 (reviving D21 M3's no-snapshot mode) is costed in
-  §8.2a at 6–9 days, a raft API change. etcd-grove-02 recommends it.
-- **Next, in order:**
-  1. the L1 decision;
-  2. if option 1: the placeholder becomes `reNoSnap = true` of the names (§8.2a), and the M3 revival is a stage of
-     its own;
-  3. review rounds r2–r3 with fresh `spec-reviewer`s (`/shared/tmp/auth-lease-s4/freeze-review-r{2,3}.md`);
-  4. items 5–10 (Draft §7).
+- **Done:** items 0, 2, 3 (`5baacbd07a`, `647aadf78b`, `7b126d3e4e`, `2bddb5967a`); item 4 Freeze rev 1 + r1 (`c4f188d250`),
+  L1 stop (`ef4c34650e`), rev 2's texts (`5d142952af`; `Scratch/S4Freeze.lean`, copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`);
+  **L1 option 1 approved by the user**; its feasibility check: Freeze **§8.4** (this commit, no tree edits).
+- **§8.4 in one line:** feasible, snapshot path untouched (flag `false` = today's invariant; proof bodies of the
+  snapshot examples gain only a trivial `flag = false` conjunct at `Compact`/`ApplySnapshot`); estimate **11–14 days**
+  (centre ~12.5, over the ~12 stop line); raft API laws L-r0..L-r6 listed there.
+- **Next, in order (on the go):**
+  1. raft (§8.4 table order): `NsCap`/`storCapF`; `maybeSendAppend`'s two branches; `ownRaftPhysC_sn` split; boot
+     `set_ns` (revive from `ce370ad2a8^`); L-r0..L-r6; `etc/gen-interface.py etc/api/raft.txt`;
+  2. server: `compactRaftLog` premise, the `ai ≤ w` clause (apply-loop specs), the `scu` row, `NewServer`, names;
+  3. drivers/examples: flag `false` everywhere, authlease `true`; `etc/tcb-report.py --check` + collections;
+  4. Freeze §5: `memberNoSnapInstall` → `⌜clusterNoSnap γr.raft.raft.cl⌝`; review rounds r2–r3
+     (`/shared/tmp/auth-lease-s4/freeze-review-r{2,3}.md`); then items 5–10 (Draft §7).
 - **Token:** `authlease-3354335` (ports 16000/17000).
 - **Pitfalls:**
   - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
     --packages=/shared/tmp/manifest-e9e.json build …`. Run `etc/gates.sh` only under
     `flock /shared/tmp/etcd-grove-full-build.lock`.
-  - Check: `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json etc/lean-check.py -a Scratch/S4Freeze.lean`
-    (about 1 min fresh).
+  - Check: `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json etc/lean-check.py -a Scratch/S4Freeze.lean`.
   - `leaseTTLRow` needs `[go_etcd_io.etcd.server.v3.etcdserver.Assumptions]` in the section.
-  - Auth-off lease users: `rw [hoff]` before `iintro`.
-  - Mode gate: no literal `true` in the new package (L3).
+  - Auth-off lease users: `rw [hoff]` before `iintro`. Mode gate: no literal `true` in the new package (L3).
   - Ports 20000–21999 belong to another session.
 
 # History
