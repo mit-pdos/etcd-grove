@@ -2,8 +2,9 @@
 
 ## `Main()` (check.go), the top-level driver
 
-`StartCluster([]uint64{1, 2, 3})`, then `Check(kvs, lintest.CounterClock(), 4, 25)`, the
-randomized linearizability test, then a panic unless porcupine answers `Ok`. It returns: it
+`MainN(3)` (2026-11-15, kvraftN: until then its body, `StartCluster([]uint64{1, 2, 3})`): the
+voters `1, 2, 3`, `StartCluster`, then `Check(kvs, lintest.CounterClock(), 4, 25)`, the randomized
+linearizability test, then a panic unless porcupine answers `Ok`. It returns: it
 never panics, so porcupine's check of the recorded trace always passes. Everything else (the
 storage registry; raft's ghost state, budget and credits; the store's invariant; the clock) is
 allocated in the proof, from what package initialization provides (`isPkgInit` of the store's

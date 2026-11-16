@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kv/StartCluster.lean
 Rocq counterpart).
 
 The cluster bring-up of the store's `Main`, at any storage registry (`[KVStor GF]`), over raft's
-unified API (2026-10-30, stage P of the client repair): raft's cluster of the voters `1, 2, 3`
+unified API (2026-10-30, stage P of the client repair): raft's cluster of the voters `vs` (2026-11-15, kvraftN: until then `1, 2, 3`)
 with no boot log, its conf entries decided by the store's rule, the store's invariant and its
 registry of the snapshots made (`kvCluster_alloc`: `cluster_alloc`, `confPolicy_alloc` at
 `kvConfN`, `rkvInv_alloc`, `kvSnapInv_alloc`), then a first loop over the voters: each storage
@@ -12,7 +12,7 @@ at the empty contents (`kvStorage_bootStorage`), whose frame, the storage's inva
 the key `K` raft names, comes back in `RestartNode`'s post; with `memSnapNone_open`'s `memSnapLb γs 0`
 it makes `runStor`. `RestartNode` (2026-11-01, durability layer 4: from allocation's `raftState` at
 `RaftState.init` and `nodeVacant`, its update firing at once and leaving `raftState`; `HardState{}`,
-the conf state `kvConfState clusterIds`: the voters, no `AutoLeave`) gives the node, its driver token
+the conf state `kvConfState vs`: the voters, no `AutoLeave`) gives the node, its driver token
 at the storage's key, its configuration view and its running token `nodeRunning … 1`, into `peers`
 and `storages` (`drvRes`). Then the transfer budget and the `send`
 closure (`deliver`), and a second loop that starts each replica (`New`), appends it to `kvs` and
@@ -122,11 +122,6 @@ theorem bigSepM_constMap {V : Type} (l : List w64) (v : V) (hnd : l.Nodup)
     iframe H1
     iapply IH (List.nodup_cons.mp hnd).2 $$ H2
 
-/-- The cluster's voters. -/
-abbrev clusterIds : List w64 := kvVoters
-
-theorem clusterIds_nodup : clusterIds.Nodup := by decide
-
 theorem constMap_lookup_isSome {V : Type} (l : List w64) (v : V) (k : w64) :
     (constMap l v !! k).isSome ↔ k ∈ l := by
   induction l with
@@ -140,20 +135,6 @@ theorem constMap_lookup_isSome {V : Type} (l : List w64) (v : V) (k : w64) :
     · subst h; rw [GMap.lookup_insert_eq]; simp
     · rw [GMap.lookup_insert_ne _ _ h, IH]
       simp [List.mem_cons, Ne.symm h]
-
-/-- The cluster has more than one voter. -/
-theorem clusterIds_size : 1 < GMap.size (GMap.listToSet clusterIds) := by
-  rw [GMap.size_eq_length _ clusterIds clusterIds_nodup]
-  · decide
-  intro k
-  rw [listToSet_constMap, constMap_lookup_isSome]
-
-/-- The cluster has a voter. -/
-theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
-  intro h
-  have := clusterIds_size
-  rw [h, GMap.size_empty] at this
-  omega
 
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
@@ -183,11 +164,14 @@ abbrev nodeConfig (id : w64) (st : Loc) : Config :=
     DisableProposalForwarding' := false, DisableConfChangeValidation' := false,
     StepDownOnRemoval' := true, TraceLogger' := GoInterface.nil }
 
-theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
+theorem nodeConfig_valid (vs : List w64) (hv : KvVotersOk vs) (id : w64) (st : Loc) (h : id ∈ vs) :
     ConfigValid (nodeConfig id st) := by
-  simp only [clusterIds, kvVoters, List.mem_cons, List.not_mem_nil, or_false] at h
+  have hz : id ≠ W64 0 := fun e => hv.zero (e ▸ h)
+  obtain ⟨h1, h2⟩ := hv.ids id h
   unfold ConfigValid
-  rcases h with rfl | rfl | rfl <;> simp <;> decide
+  refine ⟨hz, h1, h2, ?_⟩
+  simp
+  word
 
 /-- The fresh storage's contents: the zero hard state, no snapshot, the base `⟨0, 0⟩`, no
 entries (2026-11-01, durability stage II (l)). -/
@@ -255,7 +239,7 @@ def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF 
     isNode n γr.cluster kvRaftN id ∗
     nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
     raftState γr.cluster id RaftState.init ∗
-    EtcdGrove.nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
+    EtcdGrove.nodeConfig n γr.cluster kvRaftN ⟨0, (kvMembership γr)⟩ ∗
     (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     nodeRunning n γr.cluster kvRaftN 1 ∗
     id ↪[γr.seq] W64 0 ∗ runStor γr K st)
@@ -277,44 +261,43 @@ theorem StartCluster.wp_proof
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  intro vsl Hrb
+  intro vsl vs Hvs Hrb
   wp_start as ⟨#HstorInv, #Hvsl⟩
-  rw [show ([W64 1, W64 2, W64 3] : List w64) = clusterIds from rfl]
   ihave %Hvlen := ownSlice_len _ _ _ $$ Hvsl
-  have Hvlen3 : sint.Z vsl.len = 3 := by
+  have HvsLen := Hvs.len
+  have Hvlen3 : sint.Z vsl.len = vs.length := by
     have h := Hvlen.1
-    simp only [clusterIds, kvVoters, List.length_cons, List.length_nil] at h
     word
   wp_auto
   wp_apply wp_map_make1 (K := w64) (V := GoInterface) as %mP HmP
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mS HmS
-  -- the cluster (the voters `1, 2, 3`, with snapshots and reconfiguration, its conf entries
+  -- the cluster (the voters `vs`, with snapshots and reconfiguration, its conf entries
   -- decided by the store's rule `kvRule` (2026-10-28); its term budget backed by the time
   -- receipts), then the store's invariant from the client's share, with the client's half of the
   -- store's state and the sequence-number tokens, and the store's registry of the snapshots made
-  imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) (by omega)
-    with ⟨%γr, ⟨-, %Hsl0, %Hbl0, %Hmd0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
+  imod kvCluster_alloc (GF := GF) ⊤ vs Hvs (constMap vs (W64 0)) (by omega)
+    with ⟨%γr, ⟨%Hγv, -, %Hsl0, %Hbl0, %Hmd0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γr.cluster kvRaftN $$ []
   · iapply readyFits_intro (GF := GF) γr.cluster kvRaftN (by rw [Hbl0]; omega)
-  ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
+  ihave Hseqs := bigSepM_constMap vs (W64 0) Hvs.nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
     (Φ := fun _ id => iprop(raftState (GF := GF) γr.cluster id RaftState.init ∗
       nodeVacant γr.cluster id))
-    (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := clusterIds)).2 $$ [Hboots Hseqs]
+    (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := vs)).2 $$ [Hboots Hseqs]
   · iframe Hboots Hseqs
   -- the nodes
   ihave IH1 : iprop(∃ (k : w64) (idv : w64) (M : GMap w64 GoInterface) (S : GMap w64 Loc),
       "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "HmP" ∷ mP ↦$ M ∗ "HmS" ∷ mS ↦$ S ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3⌝ ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ vs.length⌝ ∗
       "#Hpeers" ∷ ([∗map] id ↦ nd ∈ M, kvPeerOk γr.cluster id nd) ∗
-      "Hdone" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
+      "Hdone" ∷ ([∗list] id ∈ vs.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
         ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr id nd st) ∗
-      "Htodo" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k),
+      "Htodo" ∷ ([∗list] id ∈ vs.drop (sint.nat k),
         (raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id) ∗
           id ↪[γr.seq] W64 0) ∗
-      "%Hdom" ∷ ⌜∀ id, id ∈ clusterIds.drop (sint.nat k) → M !! id = none ∧ S !! id = none⌝)
+      "%Hdom" ∷ ⌜∀ id, id ∈ vs.drop (sint.nat k) → M !! id = none ∧ S !! id = none⌝)
     $$ [i id HmP HmS Htodo]
   · iexists W64 0, _, ∅, ∅
     iframe i id HmP HmS
@@ -329,23 +312,23 @@ theorem StartCluster.wp_proof
     ipureintro; intro id _; exact ⟨rfl, rfl⟩
   wp_for IH1
   wp_if_destruct
-  · have Hlt : sint.Z k < 3 := by word
-    have Hlt' : sint.nat k < clusterIds.length := by simp [clusterIds, kvVoters]; word
-    obtain ⟨id0, Hid0⟩ : ∃ id0, clusterIds[sint.nat k]? = some id0 :=
+  · have Hlt : sint.Z k < vs.length := by word
+    have Hlt' : sint.nat k < vs.length := by word
+    obtain ⟨id0, Hid0⟩ : ∃ id0, vs[sint.nat k]? = some id0 :=
       ⟨_, List.getElem?_eq_getElem Hlt'⟩
     have Hbnd : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z vsl.len := ⟨Hk.1, by word⟩
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z k) _ DFrac.discard id0 Hk.1 $$ [Hvsl] as -
     · iframe Hvsl; ipureintro; exact Hid0
-    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
+    wp_apply (wp_NewStorage _ vs) $$ [$HstorInv $Hvsl]
       as %st ⟨%ms, %γs, #Hrec, #Hvoters, #Hml, #Hmlog, Hmend, Hmsnap, -, Hfresh⟩
     imod memSnapNone_open_empty γs $$ Hmsnap with #Hsnap0
-    have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
+    have Hid0m : id0 ∈ vs := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave Hboot := kvStorage_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex
-      wp_Term wp_Entries st ms γs vsl clusterIds γr.cluster
+      wp_Term wp_Entries st ms γs vsl vs γr.cluster
       (fun K => memStorInvP ms γs (kvJ γr.cluster K)) Hmd0
       $$ Hpkg Hrec Hvoters Hvsl Hml Hfresh Hmlog Hmend []
     · iintro %K Hi; iexact Hi
@@ -358,15 +341,15 @@ theorem StartCluster.wp_proof
     iunfold kvCluster at Hkc'
     icases Hkc' with ⟨#Hiscl, -, #Hca0, -⟩
     wp_apply (wp_RestartNode γr.cluster kvRaftN _ (nodeConfig id0 st) qLogger
-      ⟨go.GoType.PointerType rStorageTy, #st⟩ kvBootContents (raft_kv.kvConfState clusterIds) 0
-      kvMembership
+      ⟨go.GoType.PointerType rStorageTy, #st⟩ kvBootContents (raft_kv.kvConfState vs) 0
+      (kvMembership γr)
       (fun S => iprop(raftState γr.cluster id0 S ∗ ⌜S = RaftState.init⌝))
       (fun K => memStorInvP ms γs (kvJ γr.cluster K))
-      (nodeConfig_valid id0 st Hid0m) rfl rfl
+      (nodeConfig_valid vs Hvs id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (fun h => absurd Hmd0 h) (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
-      (by rw [Hbl0]; simp [StorContents.commit]) kvConfState_is)
+      (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr))
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl
@@ -379,9 +362,9 @@ theorem StartCluster.wp_proof
     subst HS
     subst Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
-    have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
+    have Hnd' : (vs.drop (sint.nat k)).Nodup := Hvs.nodup.sublist (List.drop_sublist _ _)
     rw [Hdrop] at Hnd'
-    have Hid0n : id0 ∉ clusterIds.drop (sint.nat k + 1) := (List.nodup_cons.mp Hnd').1
+    have Hid0n : id0 ∉ vs.drop (sint.nat k + 1) := (List.nodup_cons.mp Hnd').1
     obtain ⟨HM0, HS0⟩ := Hdom id0 (by rw [Hdrop]; exact List.mem_cons_self)
     wp_apply wp_mapInsert go.uint64 mP M id0 _ $$ [$HmP] as HmP
     wp_apply wp_mapInsert go.uint64 mS S id0 st $$ [$HmS] as HmS
@@ -415,8 +398,8 @@ theorem StartCluster.wp_proof
             ⌜M !! id = some nd ∧ S !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st')) ?_)
           $$ Hdone
         intro j x Hx
-        have Hxt : x ∈ clusterIds.take (sint.nat k) := List.mem_of_getElem? Hx
-        have Hne : x ≠ id0 := take_drop_ne clusterIds clusterIds_nodup (sint.nat k) x id0 Hxt
+        have Hxt : x ∈ vs.take (sint.nat k) := List.mem_of_getElem? Hx
+        have Hne : x ≠ id0 := take_drop_ne vs Hvs.nodup (sint.nat k) x id0 Hxt
           (by rw [Hdrop]; exact List.mem_cons_self)
         iintro ⟨%nd, %st', %Hl, Hres⟩
         iexists nd, st'
@@ -441,15 +424,16 @@ theorem StartCluster.wp_proof
           iframe Hrec
         unfold runStor
         iexists ms, γs, vsl
+        rw [Hγv]
         iframe Hrec HmsInv Hsnap0 Hvoters Hvsl
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
     rw [GMap.lookup_insert_ne _ _ (Ne.symm Hne), GMap.lookup_insert_ne _ _ (Ne.symm Hne)]
     exact Hdom id (by rw [Hdrop]; exact List.mem_cons_of_mem _ Hid)
-  · have Hk3 : sint.nat k = 3 := by word
+  · have Hk3 : sint.nat k = vs.length := by word
     rw [Hk3]
-    simp only [show clusterIds.take 3 = clusterIds from rfl, show clusterIds.drop 3 = [] from rfl]
+    simp only [List.take_length, List.drop_length]
     clear Hdom Hk3
     imod ownMap_persist mP _ M $$ HmP with #HmP
     imod ownMap_persist mS _ S $$ HmS with #HmS
@@ -473,9 +457,9 @@ theorem StartCluster.wp_proof
     ihave IH2 : iprop(∃ (k : w64) (idv : w64) (ksl : GoSlice) (rs : List Loc),
         "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "kvs" ∷ kvs_ptr ↦ ksl ∗
         "Hks" ∷ ksl ↦* rs ∗ "Hkcap" ∷ ownSliceCap Loc ksl (DFrac.own 1) ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3⌝ ∗ "%Hrs" ∷ ⌜rs.length = sint.nat k⌝ ∗
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ vs.length⌝ ∗ "%Hrs" ∷ ⌜rs.length = sint.nat k⌝ ∗
         "#Hregs" ∷ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗
-        "Hdrv" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
+        "Hdrv" ∷ ([∗list] id ∈ vs.drop (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
           ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr id nd st))
       $$ [i id kvs Hnil Hncap Hdone]
     · iexists W64 0, _, slice.nil, []
@@ -493,9 +477,9 @@ theorem StartCluster.wp_proof
       iapply (BigSepL.bigSepL_nil).2; iempintro
     wp_for IH2
     wp_if_destruct
-    · have Hlt : sint.Z k < 3 := by word
-      have Hlt' : sint.nat k < clusterIds.length := by simp [clusterIds, kvVoters]; word
-      obtain ⟨id0, Hid0⟩ : ∃ id0, clusterIds[sint.nat k]? = some id0 :=
+    · have Hlt : sint.Z k < vs.length := by word
+      have Hlt' : sint.nat k < vs.length := by word
+      obtain ⟨id0, Hid0⟩ : ∃ id0, vs[sint.nat k]? = some id0 :=
         ⟨_, List.getElem?_eq_getElem Hlt'⟩
       have Hbnd : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z vsl.len := ⟨Hk.1, by word⟩
       simp only [Hbnd, _root_.and_self, ↓reduceIte]
@@ -554,7 +538,7 @@ theorem StartCluster.wp_proof
       iframe Hregs
       iexists γp
       iexact Hisreg
-    · have Hk3' : sint.nat k = 3 := by word
+    · have Hk3' : sint.nat k = vs.length := by word
       iapply HΦ
       iexists γr, rs
       iframe Hks Hval Hregs

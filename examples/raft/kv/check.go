@@ -130,13 +130,22 @@ func Check(kvs []*KV, clock lintest.Clock, clients int, ops int) porcupine.Check
 	return lintest.Run(Model(), apply, Gen, clock, clients, ops, 0)
 }
 
-// Main starts a cluster of three replicas connected in process and runs a randomized
-// linearizability test of the store on it: 4 clients of 25 operations each, on random
-// replicas, traced with a counter clock and checked by porcupine; it panics unless
+// MainN starts a cluster of k replicas, the voters 1 to k, connected in process and runs a
+// randomized linearizability test of the store on it: 4 clients of 25 operations each, on
+// random replicas, traced with a counter clock and checked by porcupine; it panics unless
 // porcupine answers Ok.
-func Main() {
-	kvs := StartCluster([]uint64{1, 2, 3})
+func MainN(k uint64) {
+	var voters []uint64
+	for id := uint64(1); id <= k; id++ {
+		voters = append(voters, id)
+	}
+	kvs := StartCluster(voters)
 	if Check(kvs, lintest.CounterClock(), 4, 25) != porcupine.Ok {
 		panic("kv: porcupine rejected the store's trace")
 	}
+}
+
+// Main is MainN on three replicas.
+func Main() {
+	MainN(3)
 }
