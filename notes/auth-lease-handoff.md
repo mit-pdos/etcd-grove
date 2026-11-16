@@ -1,29 +1,72 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, item 7b: STOPPED at a design decision before any tree edit)
+## START HERE (S4, 2026-11-16, item 7b: option 2 APPROVED; plan below, no Lean edit yet)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head `0455d1a2f7` + this handoff. Decisions:
-  `questions.md` (gitignored; last entries: "Item 7a accepted", "Item 7b: the tie needs a push-side window").
-- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); Freeze FROZEN (`209e3c68e6`, tag
-  `auth-lease-s4-frozen`); items 5 (`ef5f154062`), 6 (`dcaa5c5d18`), 7a (`0455d1a2f7`, forms (a)-(g) accepted by
-  etcd-grove-02).
-- **7b finding (read only, no edits):** Freeze §5.4's method (posts strengthened to report each pushed index; a
-  mono-list tie written by the apply thread at entry boundaries) cannot cover a snapshot pushed by the entry still being
-  applied when the law's inner wand fires (a reader sees mid-entry snapshots; the law's conclusion is pure, now). That
-  snapshot's fact must be deposited at push time, in the lessor's invariant, and the pusher (`Attach`/`Detach`, called by
-  mvcc's `put`/`delete`) can only prove it with a premise from the entry level: the entry's target item map. So a
-  token + premise must be threaded from the apply loop down to `Attach`/`Detach`, through frozen specs of earlier stages
-  (mvcc API `Txn.Put/DeleteRange.contract`, `mvccDeleter`; `txn.Put/DeleteRange/Txn.spec` "frozen" in strict M1). Design
-  and options (1 siblings / 2 thaw in place / 3 Freeze §5.4 fallback): `questions.md`, "Item 7b". Waiting on etcd-grove-02.
-- **Next, in order (after the decision):** 7b per the chosen option; 8. goose `authlease`, gen-init; 9. driver (STOP: D-k's
-  exact texts; STOP: `Main.wp_proof` proved); 10. linking, gates, land stop (merge lean first).
-- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
-  `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`.
-  Logs `/shared/tmp/auth-lease-s4/i{5,6,7}-*.log` (grep `^error`; ~1M lines of `#print axioms`).
-- **Pitfalls:** `errIsTrue` is not persistent: rebuild it inside a `□`. A `wp_if_destruct` may already reduce
-  `if v.Keys'`: `(try simp only [hK, ↓reduceIte])`. lean-check after an edit to `InvLeaseRead`/`QuotaLeaseLemmas`
-  rebuilds client `Results` (~30 min): build through the slot first. An `iprop` hypothesis is not a Lean one (state an
-  entailment lemma); in `wp_apply (… (by …))` a `by` naming a local can time out (`have` first).
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` ("Item 7b", "Item 7b decision"),
+  ledger `notes/specs-only/ledger.md` (2026-11-16, 7b entry: add each thawed statement old → new as it lands).
+- **Done:** raft, server, drivers (`f1540674ea` .. `782fc63bd3`); Freeze FROZEN (`209e3c68e6`, tag `auth-lease-s4-frozen`);
+  items 5 (`ef5f154062`), 6 (`dcaa5c5d18`), 7a (`0455d1a2f7`, accepted); 7b design and decision (this commit).
+- **Decision (user via etcd-grove-02):** thread a lessor *window token* IN PLACE through the frozen write chain; NO
+  `…specW` siblings. STOP if it reaches a closed theorem's statement, needs an axiom, `sorry` or trusted text, or makes
+  a thawed statement weaker for an existing client.
+- **Next:** 7b per the plan below (report at its completion); 8. goose `authlease`, gen-init; 9. driver (STOP: D-k's texts;
+  STOP: `Main.wp_proof`); 10. linking, gates, land stop (merge lean first).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; leaves: `etc/importers.py
+  --git <base> --leaves`. lean-check: one server, `--max-open 2`, `--stop` before builds and at the end of a turn.
+- **Pitfalls:** `errIsTrue` is not persistent (rebuild it in a `□`). An `iprop` hypothesis is not a Lean one (state an
+  entailment lemma). In `wp_apply (… (by …))`, a `by` naming a local can time out (`have` first). Build logs: grep `^error`.
+
+## 7b plan (why: `questions.md`, "Item 7b")
+
+**Core idea.** A snapshot pushed in the middle of an entry must carry its fact when it is pushed. The apply loop opens a
+*window* per entry, `w = (start, T)`, with `T` the item map of the model after the entry. The lessor's invariant keeps
+every snapshot `j ≥ start` *stable*: `∀ k, hs[start](k) = T(k) → hs[j](k) = T(k)`. Only `Attach`/`Detach` change
+items, so only they need the window, with the premise `winStep w I I'`: every item an op changes goes to its target,
+`∀ k, I k ≠ I' k → I' k = T k`. At `w = none` the premise is `True`.
+
+Steps (bottom up; build each layer's leaves before the next):
+1. **Lessor ghost** (`Proof/.../lease/InvLessor.lean`, `LessorHist.lean`, `LessorLemmas.lean`, `NewLessor`):
+   - `LessorRdNames` gains a name (sed `γr.2.2.2.2` → `γr.2.2.2.2.1` in `lease/`; ~10 sites).
+   - `lessorRdBody` gains the windows mono-list (auth ½ invariant, ½ owner), stability per window, and `itemsLive`
+     (every item's lease in the snapshot's lease map).
+   - `leaseOwnW γl L I w` (`w : Option LWin`) holds the owner's half. Define `leaseOwn γl L I := leaseOwnW γl L I none`
+     (so `leaseOwn`'s clients do not change).
+   - Push lemmas `hist_append(_set)`/`grant_hist`/recover take the window obligation.
+   - New lemmas: `win_open` (owner: `none` → `some (hs.length-1, T)`, opening `lessorRdN`) and `win_close` (→ `none`,
+     returning the persistent `□ ∀ j σ, start ≤ j ≤ end → lessorAt j σ → stable`).
+2. **Lessor specs**: `lessor.Attach/Detach.spec` take `leaseOwnW … w` + `winStep`. `Revoke.spec` takes `w` for its
+   deletes, which go through `mvccDeleter` + `Txn.DeleteRange.contract`. Grant, Recover and Lookup stay at `none` (no
+   item change), unless the apply loop needs `w` across them, in which case `w` passes through unchanged.
+3. **mvcc** (`Spec/.../storage/mvcc/`): `storeTxnWrite__{put,delete,deleteRange,Put,DeleteRange}`,
+   `metricsTxnWrite__{Put,DeleteRange}`, the `watchableStoreTxnWrite` wrappers (find them), `Api.lean`'s
+   `Txn.Put/DeleteRange.contract` and `mvccDeleter`, `writeView__{Put,DeleteRange}` + `Api/WriteViewApi.lean`'s
+   `writeView_*_api`, `ApiLaws.lean` if it mentions them. Premise in the op's terms: `winStep w (pendItems log pend)
+   (pendItems log (pend ++ ops))`. restore/New/NewStore stay at `leaseOwn` (`none`).
+4. **server txn** (`Spec/.../etcdserver/txn/`): `put, Put, deleteRange, DeleteRange, txn, Txn, executeTxn` (+ the `check*`
+   specs only if they carry `lessorUser`). `lessorUser` gets a `W` form (`lessorUserW`, `lessorUser := … none`). Premise
+   at the request level: the request's whole change list moves each item at most once, toward `T`.
+5. **Pure lemma** (new, server txn or apply): within one entry each key's lease item changes at most once along the
+   prefixes of its change list (`txnShape`, `siblingSafeL`, `checkIntervals`, `put`'s same-lease early return), so
+   `winStep` holds at each op for `T` = the items after the entry.
+6. **applier** (`Proof/.../etcdserver/apply/`): `Contracts.lean` (`revokeClause`, `isApplyLessor(Any)`, the put/txn
+   contracts), `applierV3backend__{Put,DeleteRange,Txn,LeaseRevoke}`, `AuthApplyLatest{Put,Txn}`, `WriteLemmas`,
+   `checkLeasePuts(Keys)`. Then `Chain.lean`: per entry, `win_open` with the model's `T`, the op, `win_close`; record
+   the window ↔ model tie (start/end revisions, `srvRLogLb` of the entry) persistently, in a mono-list owned by the
+   lessor's window or by `kvsN`.
+7. **The law** `lessor_keys_of_read` (new `LessorFollows.lean`, re-exported from server `Results`), at the frozen text.
+   `lessorLawMask` gains `↑lease.lessorRdN` (approved form). Proof: `m` = the history's last index once `F` is applied.
+   For `i ≥ m`, find `i`'s window; stability, `itemsLive` and `leaseKeptIn` at the window's two revisions (both
+   `≥ F.length-1`, both `≤ σ.rev` by S5) give `lsHolds`. The S6 off-mode check is in the law's docstring.
+8. Links (`etc/gen-link.py --server`, mvcc, lease), the examples (mvccfull/mvccrand: they stay at `none`), the
+   interfaces (`etc/gen-interface.py etc/api/mvcc.txt`), the ledger rows, `cmpfrozen.py`, then report.
+
+**Thawed statements (approved; record each old → new in the ledger as it lands):** `lease.lessor.Attach.spec`,
+`Detach.spec`, `Revoke.spec`; mvcc `storeTxnWrite.{put,delete,deleteRange,Put,DeleteRange}.spec`,
+`metricsTxnWrite.{Put,DeleteRange}.spec`, `watchableStoreTxnWrite.{Put,DeleteRange}.spec`, `Txn.Put.contract`,
+`Txn.DeleteRange.contract`, `mvccDeleter`, `writeView.{Put,DeleteRange}.spec`/`writeView_*_api`; txn
+`put/Put/deleteRange/DeleteRange/txn/Txn/executeTxn.spec`; apply `revokeClause`, `isApplyLessor`, `isApplyLessorAny`,
+the applier put/delete/txn contracts, `applierV3backend.{Put,DeleteRange,Txn,LeaseRevoke}.spec`. Check first:
+`etc/tcb-report.py` exported results and the `Results` statements must not mention these (closed theorems: STOP).
 
 # History
 

@@ -620,3 +620,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with a new `authedFrom` on `requireAuthInfo.specC`/`LeaseGrant.spec`/`LeaseRevoke.spec`; the law over the member's
   store floor `kvLogLb E.γs F`, threshold `F.length - 1`.
 - **Decision.** Pending (Freeze review by etcd-grove-02 and the user).
+
+## 2026-11-16: auth-lease S4 item 7b: the lessor window token threaded in place (thaw approved)
+
+- **Spec.** The write chain from the apply loop to `lease.lessor.Attach`/`Detach` (the list, old → new, in
+  `notes/auth-lease-handoff.md`, "7b plan").
+- **Defect.** The per-member lessor law (`lessor_keys_of_read`, Freeze §5) cannot be proved for a snapshot pushed by
+  the entry still being applied. Its fact must be stored in the lessor's invariant at push time, and `Attach`/`Detach`
+  can prove it only with the entry's target item map (`questions.md`, "Item 7b").
+- **Evidence.** The design review of 2026-11-16 (read only). Each encoding that skips a push-site premise fails: a
+  frozen-item set, per-key tokens, a self-dropping window hidden in `leaseOwn`, epoch tags.
+- **Proposed change.** Every statement of the chain takes `lease.leaseOwnW γl L I w` (`w : Option LWin`) in place of
+  `lease.leaseOwn γl L I`, plus the premise `winStep w I I'`, which is trivial at `none`. `leaseOwn γl L I` becomes
+  `leaseOwnW γl L I none`, so a client that holds `leaseOwn` discharges the new premise trivially: no client's
+  statement gets weaker.
+- **Decision.** Approved by the user, 2026-11-16, via etcd-grove-02: option 2 (in place; no `…specW` siblings). Limits:
+  STOP if the change reaches a closed theorem's statement, needs an axiom, `sorry` or trusted text, or makes a thawed
+  statement weaker for an existing client. `lessorLawMask` gains `lessorRdN` (the form approved with the Freeze).
