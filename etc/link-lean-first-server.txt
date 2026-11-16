@@ -947,7 +947,8 @@ fmt_SprintfID:
 fmt_SprintfArgs:
 zap_Bool:
 ioutil_NewLimitedBufferReader:
-errors_AsLeaf:
+errors_AsLeaf: errors_AsLeafTy
+errors_AsLeafTy:
 context_TODO:
 v2stats_FollowerStats__Fail:
 context_WithCancelBackground:
