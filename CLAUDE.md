@@ -280,6 +280,14 @@ Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`MainLinked.lea
 reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
 not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
 
+**Per top-level theorem, without a build**: `etc/theorem-loc.py THEOREM...` (e.g.
+`etcd_putget3_safe`) counts, read off the source text, the Lean lines the theorem trusts (its TCB:
+the axioms of its `etc/tcb-collections` file and the definitions its statement and those axioms are
+written in, split into premises and axioms) and the Go code lines its proof verifies (the functions
+whose `wp_proof` theorems it reaches, outside this repository and in it). It approximates
+`etc/tcb-report.lean` (see its `--help` for what it does not follow); its axioms are only as current
+as the collection's baseline. `--list-tcb`/`--list-verified` list what it counted, `--json` keeps it.
+
 ## Proof writing
 
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
