@@ -15,6 +15,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
+public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
