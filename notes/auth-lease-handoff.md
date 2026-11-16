@@ -19,7 +19,7 @@
   and 16-bit nonzero; search program `/shared/tmp/auth-lease-s4/tokensearch/` (`go run . authlease 16000`). If the
   ports change, the token must be searched again.
 - **Pitfalls:**
-  - `.lake/build` here dates from 2026-11-13 (raft `Base` stale): every Lean check first rebuilds most of the tree.
+  - `.lake/build` was from 2026-11-13; rebuilt 2026-11-16 up to etcdstart `Defs` and `LeaseCheck` (4193 jobs); the rest is stale.
     Build under `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
     --packages=/shared/tmp/manifest-e9e.json build …` (log of the first targeted build:
     `/shared/tmp/auth-lease-s4/build1.log`).
