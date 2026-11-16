@@ -27,6 +27,19 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE unit, step 1 done, HARD STOP (trusted text)
+
+- Step 1 (what grpc's stream texts give of their errors): `cliStreamErr` (`InvGrpcStream.lean:347`) has
+  `clientErr`, `statusErrOk`, `streamErr`, no `errCellOk` and no pointer fact for an `*errorString`: closing
+  the gap needs trusted text (T-CE: `cliStreamErr` gains `errCellOk`, D37's evidence). Proposed text and
+  evidence: questions.md, twentieth agent; waiting for 81.
+- Finding: `errCellOk` of the close error is false (refused create: `addSubstream`'s `errors.New(CancelReason)`;
+  Go test `/shared/tmp/k8s7f-ce/closeerr_refused_test.go`). The element should carry `clientErr` + a weaker
+  `errPtrOk` (an `*errorString` is a pointer with some message), which is all `kErrOk` uses.
+- No Lean edited. Next after 81's word: ledger entry, `errPtrOk` (client vocabulary), strengthen
+  `errorsNewOk`/`rpctypes.Error`/`eofOk` posts with it, the element (`watchStateRespOk`'s error arm), then
+  closeErrPub, WatchRun, run, serveSubstream, startWatching.
+
 ## START HERE (2026-11-16, nineteenth 7f-5 agent): step 5 DONE (startWatching proved over a PENDING client spec); land-stop checks
 
 - **watchChan.startWatching PROVED** (`Proof/.../etcd3/watchChan__startWatching.lean`, no sorry, lake-built), over the
