@@ -2,8 +2,8 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Cluster__startNew.lean`. Lean-first
 (no Rocq counterpart).
 
-kvreconf's, with the replica started by `Cluster.start`: under `c.mu`, with fewer than `maxReplicas`
-replicas (the map's keys are `1 … nextID-1`, so `nextID ≤ 9`), the fresh id `nextID` is joined
+kvreconf's, with the replica started by `Cluster.start`: under `c.mu`, with fewer than `opts.MaxReplicas`
+replicas (the map's keys are `1 … nextID-1`, so `nextID ≤ MaxReplicas`), the fresh id `nextID` is joined
 (`joinAuth_join`: its durable state at `RaftState.init` and its vacant id), its file's invariant
 allocated at no contents from the lock's fresh entries (`kdFile_alloc`: the writer's half for
 `start`), the next-id bound raised (`repKnown`), and the incarnation `start` returns put in the map.
@@ -55,12 +55,19 @@ theorem Cluster.startNew.wp_proof
   iunfold clusterLockInv at HL
   iNamed HL
   obtain ⟨HdomR, HdomU, Hvn, Hn10⟩ := Hdom
+  have HM := Ho.1.2.1
+  have Hγm := Ho.2.2
   have Hsz : GMap.size R = uint.nat nid - 1 :=
-    raft_kvreconf.size_of_keys R (uint.nat nid) (by omega) (by omega) HdomR
+    raft_kvreconf.size_of_keys R (uint.nat nid) (by have := HM.2; word) (by omega) HdomR
   try wp_auto
   wp_apply wp_map_len_lt mR R _ $$ [$HR] as ⟨HR, %Hlt⟩
+  ihave #Hos := Hopts
+  icases typedPointsto_split _ _ _ $$ Hos with Hos
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hos with ⟨-, #oR, -⟩
+  try wp_auto
   wp_if_destruct
-  · -- `maxReplicas` started: nothing changes
+  · -- `opts.MaxReplicas` started: nothing changes
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hcur
       Hstops Hfiles]
@@ -71,7 +78,7 @@ theorem Cluster.startNew.wp_proof
       ipureintro; exact ⟨HdomR, HdomU, Hvn, Hn10⟩
     try wp_auto
     iapply HΦ; iintro %h; cases h
-  have Hn9 : uint.nat nid < 10 := by word
+  have Hn9 : uint.nat nid ≤ γ.max := by rw [← Hγm]; word
   have Hnid0 : nid ≠ W64 0 := by intro h; rw [h] at Hvn; simp at Hvn
   try wp_auto
   ihave #Hcl' := Hcl
@@ -81,8 +88,9 @@ theorem Cluster.startNew.wp_proof
   imod joinAuth_join γ.r.cluster kdRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
   -- the id's file: its invariant at no contents, the writer's half for `start`
   have e2 : uint.nat (nid + W64 1) = uint.nat nid + 1 := by word
-  have Hfr : raft_kvreconf.freshIds (uint.nat nid) = nid :: raft_kvreconf.freshIds (uint.nat (nid + W64 1)) := by
-    rw [raft_kvreconf.freshIds_cons _ Hn9, e2]; congr 1; word
+  have Hfr : raft_kvreconf.freshIdsM γ.max (uint.nat nid) =
+      nid :: raft_kvreconf.freshIdsM γ.max (uint.nat (nid + W64 1)) := by
+    rw [raft_kvreconf.freshIdsM_cons _ _ Hn9, e2]; congr 1; word
   rw [Hfr]
   icases Hfiles with ⟨⟨Hdf, %g, Hg⟩, Hfiles⟩
   imod kdFile_alloc γ dir nid ⊤ g $$ Hdf Hg HrS with ⟨#HfInv, Hwr⟩

@@ -82,9 +82,9 @@ theorem mintOk_next (n : w64) (Mi : GMap w64 (List w8)) (RS : GMap w64 w64)
       · exact raft_kvreconf.mintedRead_insert _ _ _ _ HRM0 (Hok.2.2.2 c h)
 
 /-- The caller's id is one of `readSeqsInv`'s. -/
-theorem freshIds_get (id : w64) (h1 : 1 ≤ uint.nat id) (h9 : uint.nat id ≤ 9) :
-    (freshIds 0)[uint.nat id]? = some id := by
-  unfold freshIds raft_kvreconf.freshIdsM
+theorem freshIds_get (m : Nat) (id : w64) (h1 : 1 ≤ uint.nat id) (h9 : uint.nat id ≤ m) :
+    (raft_kvreconf.freshIdsM m 0)[uint.nat id]? = some id := by
+  unfold raft_kvreconf.freshIdsM
   rw [List.filter_eq_self.2 (by intro a _; simp)]
   rw [List.getElem?_map, List.getElem?_range (by omega)]
   simp only [Option.map_some]
@@ -213,11 +213,11 @@ theorem readSeqs.next.wp_proof : readSeqs.next.spec (GF := GF) (hG := hG) := by
   -- `last + 1`, minted for `id`
   have Hl : uint.Z last + 1 < 2 ^ 64 := by
     word
-  icases BigSepL.bigSepL_lookup_acc_impl (freshIds_get id Hid1 Hid9) $$ Hids
+  icases BigSepL.bigSepL_lookup_acc_impl (freshIds_get γ.max id Hid1 Hid9) $$ Hids
     with ⟨⟨%ns, Hfr, %Hns⟩, Hback⟩
   imod kd_mint_next γ id ns last key l0 Hns Hl Hk $$ Hinv Hfr Hl0 with ⟨Hfr, #Hmint, #Hrc, #Hra⟩
   have Hl1 : uint.Z (last + W64 1) = uint.Z last + 1 := by word
-  ihave Hids : iprop([∗list] i ∈ freshIds 0, ∃ ns : w64, i ↪[γ.r.rseq] ns ∗
+  ihave Hids : iprop([∗list] i ∈ raft_kvreconf.freshIdsM γ.max 0, ∃ ns : w64, i ↪[γ.r.rseq] ns ∗
       ⌜uint.Z ns ≤ uint.Z (last + W64 1)⌝) $$ [Hback Hfr]
   · iapply Hback
     · imodintro

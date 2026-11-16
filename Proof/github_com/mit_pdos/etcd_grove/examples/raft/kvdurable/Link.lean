@@ -38,9 +38,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Clust
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Cluster__tick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.MainN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RandomConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RandomConfigN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RandomOptions
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RandomOptionsN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__applyConf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__applyEntry
@@ -586,6 +589,18 @@ theorem wp_Run [AllG GF] [KdStor GF] :
 theorem wp_Main :
     EtcdGrove.raft_kvdurable.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Main.wp_proof wp_RandomConfig lintest.wp_CounterClock wp_Run Cluster.wp_Stop
+
+theorem wp_RandomOptionsN :
+    EtcdGrove.raft_kvdurable.RandomOptionsN.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.raft_kvdurable.RandomOptionsN.wp_proof wp_RandomOptions
+
+theorem wp_RandomConfigN :
+    EtcdGrove.raft_kvdurable.RandomConfigN.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.raft_kvdurable.RandomConfigN.wp_proof wp_RandomOptionsN wp_below
+
+theorem wp_MainN :
+    EtcdGrove.raft_kvdurable.MainN.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.raft_kvdurable.MainN.wp_proof wp_RandomConfigN lintest.wp_CounterClock wp_Run Cluster.wp_Stop
 
 end links_hasLC
 

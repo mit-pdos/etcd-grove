@@ -112,7 +112,7 @@ theorem kvExt_trans {a b d : KVState} (h1 : k8s.KvExt a b) (h2 : k8s.KvExt b d) 
   ⟨h1.1.trans h2.1, h1.2.1.trans h2.2.1, h1.2.2.trans h2.2.2⟩
 
 theorem kvNext_ext {σ σ' : KVState} (hn : k8s.KvNext σ σ') : k8s.KvExt σ σ' := by
-  rcases hn with rfl | ⟨-, -, h⟩
+  rcases hn with rfl | ⟨-, -, h, -⟩
   · exact kvExt_refl _
   · exact h
 
@@ -127,7 +127,7 @@ theorem kvExt_sameHist {σ σ' : KVState} (h : k8s.KvExt σ σ') :
 theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : k8s.KvNext σ σ') :
     revOwn (GF := GF) γ σ ⊢ |==> revOwn γ σ' := by
   iintro H
-  rcases hn with he | ⟨hr, -, hext⟩
+  rcases hn with he | ⟨hr, -, hext, -⟩
   · rw [he]; imodintro; iexact H
   iunfold revOwn at H
   icases H with ⟨%Mr, HA, -, %Hok⟩
@@ -188,11 +188,11 @@ theorem histOwn_next (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ �
   iframe Hs
   iunfold shistOwn
   iframe Hh
-  rcases hn with he | ⟨hrv, hnew, hext⟩
+  rcases hn with he | ⟨hrv, hnew, hext, hone⟩
   · subst he
     iexact Ho
   obtain ⟨K, hK⟩ := hK
-  have h1 := chgOf_pfx_one σ σ' (Or.inr ⟨hrv, hnew, hext⟩) hrv hw hw' K hK
+  have h1 := chgOf_pfx_one σ σ' (Or.inr ⟨hrv, hnew, hext, hone⟩) hrv hw hw' K hK
   iunfold oneKeyRevs
   imodintro
   iintro %r %hr

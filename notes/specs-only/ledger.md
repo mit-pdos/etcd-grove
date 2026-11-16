@@ -592,3 +592,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `uint.Z r0 + 1 < 2^63` in that case.
 - **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-16: the store's update report gains "one change per step" (k8s 7f-6 C, F1)
+
+- **Spec.** `KvNext` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Updates.lean`), in the posts of `k8sAu1` and `k8sAuRW`
+  (what a write's firing tells its caller); `kvNext_step`, `k8sAu1_kvAu1`, `k8sAuRW_kvAu1`, `k8sAusRW_kvAu1`.
+- **Defect.** `KvNext` tells the caller only the next state, so its history (`oneKeyRevs`, over state differences) cannot
+  exclude a revision of two changes of one key, where the store's watch (`kStreamOk`, over etcd's events, one per change)
+  delivers two events and the driver's check one: the bridge to `StreamOkL` is false without it.
+- **Evidence.** `notes/k8s-7f6c-plan.md` §2 (the counterexample); the store sends single-operation transactions
+  (`putTxn`, `delTxn`, `OptimisticPut`/`OptimisticDelete`).
+- **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
+  `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
+- **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).

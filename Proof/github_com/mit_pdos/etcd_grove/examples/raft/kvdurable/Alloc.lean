@@ -9,7 +9,7 @@ What `StartCluster.spec` takes allocated, and the client's half of the store's s
 from its caller, `Run`):
 
 * `kdRkvInv_alloc`: the store's invariant (kvreconf's `rkvInv_alloc`, at kvdurable's names), with
-  the read sequence of every id `0 … 9` at `0` (`freshIds 0`, what `StartCluster` takes);
+  the read sequence of every id `0 … m` at `0` (`freshIdsM m 0`, `m` the replica bound `opts.MaxReplicas`, `γ.max`; until 2026-11-16 `9`);
 * `kdSnapInv_alloc`: the registry of the snapshots made, none yet;
 * `kdWr_alloc`: a writer variable per id;
 * `kd_alloc`: all of it: `kdCluster`, the voters' durable states, vacant slots, files and writer
@@ -45,32 +45,37 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
+/-- The ids `0 … m`: `0`, then the founders' ids `1 … m`. -/
+theorem freshIdsM_zero (m : Nat) : raft_kvreconf.freshIdsM m 0 = W64 0 :: raft_kvreconf.bootVoters m := by
+  rw [raft_kvreconf.freshIdsM_cons m 0 (by omega), ← raft_kvreconf.allIdsM_split m 0 (by omega)]
+  rfl
+
 /-- **The store's invariant** over raft's cluster `γc` (kvreconf's `rkvInv_alloc`): the other names
 are the caller's. -/
-theorem kdRkvInv_alloc (E : CoPset) (γc : Cluster) (γn γs files cur crt : GName)
+theorem kdRkvInv_alloc (E : CoPset) (m : Nat) (hm : m < 2 ^ 62) (γc : Cluster) (γn γs files cur crt : GName)
     (wr : w64 → GName) :
     ⊢ ownCommittedOps (GF := GF) γc [] -∗ ownReadCtxs γc ∅ ={E}=∗
       ∃ γ : KdNames, ⌜γ.r.cluster = γc ∧ γ.r.nid = γn ∧ γ.files = files ∧ γ.wr = wr ∧
-          γ.cur = cur ∧ γ.crt = crt⌝ ∗ rkvInv γ ∗
+          γ.cur = cur ∧ γ.crt = crt ∧ γ.max = m⌝ ∗ rkvInv γ ∗
         rkvVal γ raft_kvreconf.kvEmpty ∗ ghostVar γ.r.opn (1 : Qp).half (W64 0) ∗
-        [∗list] id ∈ raft_kvreconf.freshIds 0, id ↪[γ.r.rseq] W64 0 := by
+        [∗list] id ∈ raft_kvreconf.freshIdsM m 0, id ↪[γ.r.rseq] W64 0 := by
   iintro Hops HU
   imod ghostVar_alloc (GF := GF) ([] : List (List w8)) with ⟨%γv, Hv⟩
   icases (ghostVar_split_half (GF := GF) γv 1 ([] : List (List w8))).1 $$ Hv with ⟨Hv1, Hv2⟩
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γo, Ho⟩
   icases (ghostVar_split_half (GF := GF) γo 1 (W64 0)).1 $$ Ho with ⟨Ho1, Ho2⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := List w8) with ⟨%γmi, HMi⟩
-  imod ghost_map_alloc (GF := GF) (raft_kvreconf.lifeConstMap (raft_kvreconf.freshIds 0) (W64 0))
+  imod ghost_map_alloc (GF := GF) (raft_kvreconf.lifeConstMap (raft_kvreconf.freshIdsM m 0) (W64 0))
     with ⟨%γrs, HRS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γrm, HRM⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γop, HO⟩
   imod ghost_map_alloc_empty (GF := GF) (K := GName) (V := raft_kvreconf.ReadRec) with ⟨%γrd, HRD⟩
-  let γ : KdNames := ⟨⟨γc, γv, γo, γmi, γrs, γrm, γop, γn, γs, γrd⟩, files, wr, cur, crt⟩
+  let γ : KdNames := ⟨⟨γc, γv, γo, γmi, γrs, γrm, γop, γn, γs, γrd⟩, files, wr, cur, crt, m⟩
   imod inv_alloc kdRkvN E (rkvInvBody (GF := GF) γ) $$ [Hops Hv1 HU Ho1 HMi HRS HRM HO HRD]
     with #Hinv
   · inext
     unfold rkvInvBody
-    iexists [], W64 0, ∅, raft_kvreconf.lifeConstMap (raft_kvreconf.freshIds 0) (W64 0), ∅, ∅, ∅
+    iexists [], W64 0, ∅, raft_kvreconf.lifeConstMap (raft_kvreconf.freshIdsM m 0) (W64 0), ∅, ∅, ∅
     isplitl [Hops Hv1 HU Ho1 HMi HRS HRM HO]
     · unfold kvCore
       simp only [show raft_kvreconf.logHist ([] : List LogEntry) = [] from rfl]
@@ -94,19 +99,21 @@ theorem kdRkvInv_alloc (E : CoPset) (γc : Cluster) (γn γs files cur crt : GNa
   imodintro
   iexists γ
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   unfold rkvInv rkvVal
   iframe Hinv Ho2
   isplitl [Hv2]
   · iexists []
     iframe Hv2
     ipureintro; rfl
-  have Hnd : (raft_kvreconf.freshIds 0).Nodup := by decide
-  ihave Hl := raft_kvreconf.bigSepM_keys (fun k x => iprop(k ↪[γrs] x)) (raft_kvreconf.freshIds 0)
-    (raft_kvreconf.lifeConstMap (raft_kvreconf.freshIds 0) (W64 0)) Hnd
+  have Hnd : (raft_kvreconf.freshIdsM m 0).Nodup := by
+    rw [freshIdsM_zero m]
+    exact List.nodup_cons.2 ⟨raft_kvreconf.bootVoters_zero m hm, raft_kvreconf.bootVoters_nodup m hm⟩
+  ihave Hl := raft_kvreconf.bigSepM_keys (fun k x => iprop(k ↪[γrs] x)) (raft_kvreconf.freshIdsM m 0)
+    (raft_kvreconf.lifeConstMap (raft_kvreconf.freshIdsM m 0) (W64 0)) Hnd
     (fun k => by rw [raft_kvreconf.lifeConstMap_lookup]; split <;> simp_all) $$ Hels
   iapply (BigSepL.bigSepL_mono (Φ := fun _ k => iprop(∃ x,
-    ⌜raft_kvreconf.lifeConstMap (raft_kvreconf.freshIds 0) (W64 0) !! k = some x⌝ ∗ k ↪[γrs] x)) ?_) $$ Hl
+    ⌜raft_kvreconf.lifeConstMap (raft_kvreconf.freshIdsM m 0) (W64 0) !! k = some x⌝ ∗ k ↪[γrs] x)) ?_) $$ Hl
   intro j k hj
   iintro ⟨%x, %hx, H⟩
   rw [raft_kvreconf.lifeConstMap_lookup, ite_eq_left (List.mem_of_getElem? hj)] at hx
@@ -149,10 +156,10 @@ theorem kdWr_alloc (g0 : RaftState × Option GoString) : ∀ ids : List w64, ids
     exact .rfl
 
 /-- The voters' files and writer variables, and the fresh ids', from every id's. -/
-theorem kd_split_ids (k : Nat) (hk : k ≤ 9) (Φ : w64 → IProp GF) :
-    ([∗list] i ∈ raft_kvreconf.allIds, Φ i) ⊢
-      ([∗list] i ∈ raft_kvreconf.bootVoters k, Φ i) ∗ [∗list] i ∈ raft_kvreconf.freshIds (k + 1), Φ i := by
-  rw [← raft_kvreconf.allIds_split k hk]
+theorem kd_split_ids (m k : Nat) (hk : k ≤ m) (Φ : w64 → IProp GF) :
+    ([∗list] i ∈ raft_kvreconf.bootVoters m, Φ i) ⊢
+      ([∗list] i ∈ raft_kvreconf.bootVoters k, Φ i) ∗ [∗list] i ∈ raft_kvreconf.freshIdsM m (k + 1), Φ i := by
+  rw [← raft_kvreconf.allIdsM_split m k hk]
   exact (BigSepL.bigSepL_append).1
 
 /-- **Everything `StartCluster` takes allocated** (see the file header), for options a cluster may
@@ -160,21 +167,22 @@ run with, from the files' invariant and every id's file, absent. -/
 theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Ho : kdOptsOk o) :
     ⊢ durableFilesInv (GF := GF) γf kdFilesN -∗
-      ([∗list] i ∈ raft_kvreconf.allIds, dfile γf (kdFileName dir i) none) ={E}=∗
+      ([∗list] i ∈ raft_kvreconf.bootVoters (uint.nat o.MaxReplicas'), dfile γf (kdFileName dir i) none) ={E}=∗
       ∃ γ : KdNames,
-        ⌜γ.files = γf ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.snapLoc = (fun _ => none) ∧
+        ⌜γ.files = γf ∧ γ.max = uint.nat o.MaxReplicas' ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.snapLoc = (fun _ => none) ∧
           γ.r.cluster.bootLen = 0 ∧ γ.r.cluster.maxData = none⌝ ∗ kdCluster γ (raft_kvreconf.bootVoters (uint.nat o.Voters')) ∗
         ([∗list] id ∈ raft_kvreconf.bootVoters (uint.nat o.Voters'), raftState γ.r.cluster id RaftState.init ∗ nodeVacant γ.r.cluster id ∗
           dfile γ.files (kdFileName dir id) none ∗
           ∃ g : RaftState × Option GoString, ghostVar (γ.wr id) (1 : Qp) g) ∗
         joinAuth γ.r.cluster (GMap.listToSet (raft_kvreconf.bootVoters (uint.nat o.Voters'))) ∗
-        ([∗list] i ∈ raft_kvreconf.freshIds ((raft_kvreconf.bootVoters (uint.nat o.Voters')).length + 1), dfile γ.files (kdFileName dir i) none ∗
+        ([∗list] i ∈ raft_kvreconf.freshIdsM γ.max ((raft_kvreconf.bootVoters (uint.nat o.Voters')).length + 1), dfile γ.files (kdFileName dir i) none ∗
           ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g) ∗
         ghostVar γ.r.opn (1 : Qp).half (W64 0) ∗ monoNatAuthOwn γ.r.nid 1 0 ∗
-        ([∗list] i ∈ raft_kvreconf.freshIds 0, i ↪[γ.r.rseq] W64 0) ∗
+        ([∗list] i ∈ raft_kvreconf.freshIdsM γ.max 0, i ↪[γ.r.rseq] W64 0) ∗
         ghostMapAuth γ.cur 1 (∅ : GMap w64 Loc) ∗ crasher γ ∗ rkvVal γ raft_kvreconf.kvEmpty := by
-  obtain ⟨Hv1, Hv5, -⟩ := Ho
-  have Hk9 : uint.nat o.Voters' ≤ 9 := by word
+  obtain ⟨Hv1, ⟨HvM, HM⟩, -⟩ := Ho
+  have Hk9 : uint.nat o.Voters' ≤ uint.nat o.MaxReplicas' := by word
+  have HMn : uint.nat o.MaxReplicas' < 2 ^ 60 := by word
   have Hlen := raft_kvreconf.bootVoters_length (uint.nat o.Voters')
   iintro #Hfiles Hfs
   -- raft's cluster, with no bootstrap log
@@ -191,22 +199,22 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γn, Hn, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γcur, Hcur⟩
   imod token_alloc (GF := GF) with ⟨%γcrt, Hcrt⟩
-  imod kdWr_alloc (GF := GF) (RaftState.init, none) raft_kvreconf.allIds
-    (raft_kvreconf.bootVoters_nodup 9 (by omega)) with ⟨%wr, Hwr⟩
-  imod kdRkvInv_alloc E γc γn 0 γf γcur γcrt wr $$ Hops HU with
+  imod kdWr_alloc (GF := GF) (RaftState.init, none) (raft_kvreconf.bootVoters (uint.nat o.MaxReplicas'))
+    (raft_kvreconf.bootVoters_nodup _ (by omega)) with ⟨%wr, Hwr⟩
+  imod kdRkvInv_alloc E (uint.nat o.MaxReplicas') (by omega) γc γn 0 γf γcur γcrt wr $$ Hops HU with
     ⟨%γ, %Hγ, Hinv, Hval, Hopn, Hrseq⟩
-  obtain ⟨Hγc, Hγn, Hγf, Hγwr, Hγcur, Hγcrt⟩ := Hγ
+  obtain ⟨Hγc, Hγn, Hγf, Hγwr, Hγcur, Hγcrt, Hγm⟩ := Hγ
   imod kdSnapInv_alloc γ E $$ [Hsm] with Hsnap
   · rw [Hγc]; iexact Hsm
   imodintro
   iexists γ
-  rw [Hγc, Hγn, Hγf, Hγwr, Hγcur]
-  icases kd_split_ids (uint.nat o.Voters') Hk9 _ $$ Hfs with ⟨HfV, HfF⟩
-  icases kd_split_ids (uint.nat o.Voters') Hk9 _ $$ Hwr with ⟨HwV, HwF⟩
+  rw [Hγc, Hγn, Hγf, Hγwr, Hγcur, Hγm]
+  icases kd_split_ids _ (uint.nat o.Voters') Hk9 _ $$ Hfs with ⟨HfV, HfF⟩
+  icases kd_split_ids _ (uint.nat o.Voters') Hk9 _ $$ Hwr with ⟨HwV, HwF⟩
   rw [Hlen]
   iframe Hja Hopn Hn Hrseq Hcur Hval
   isplitr
-  · ipureintro; exact ⟨rfl, Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2⟩
+  · ipureintro; exact ⟨rfl, rfl, Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2⟩
   isplitl [Hsnap Hinv]
   · unfold kdCluster
     rw [Hγc, Hγf]
@@ -230,7 +238,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   isplitl [HfF HwF]
   · ihave HF := (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => dfile (GF := GF) γf (kdFileName dir id) none)
         (Ψ := fun _ id => ghostVar (GF := GF) (wr id) (1 : Qp) (RaftState.init, (none : Option GoString)))
-        (l := raft_kvreconf.freshIds (uint.nat o.Voters' + 1))).2 $$ [HfF HwF]
+        (l := raft_kvreconf.freshIdsM (uint.nat o.MaxReplicas') (uint.nat o.Voters' + 1))).2 $$ [HfF HwF]
     · iframe HfF HwF
     iapply (BigSepL.bigSepL_mono ?_) $$ HF
     intro k id hk

@@ -8,7 +8,7 @@ traffic (`Put`, `Get`, `Read`) traced with `clock`, and porcupine checks the tra
 with no timeout. For options a cluster may run with (`kdOptsOk`), any clock with `clockSpec` (whose
 invariants are not `lintestN`), under `lintest.Run`'s bounds on the clients and operations, fewer
 than `2^31 - 2` proposers (the `WaitGroup`'s counter, the disruptions' and the crashes' goroutines
-added), raft's step bound (`StartCluster`'s), and the files of every replica id `1 … 9` in `dir`
+added), raft's step bound (`StartCluster`'s), and the files of every replica id `1 … cfg.MaxReplicas` in `dir`
 absent, owned in a files' invariant (`durableFilesInv`, `dfile`: what `Main` allocates from the
 program's files): porcupine answers `Ok`, and the cluster is returned running, with the crasher's
 token (the crashes are over; what `Stop` takes).
@@ -50,7 +50,7 @@ abbrev Run.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable ∗
       context.isClosedchanInit ∗ kdStorInv ∗ lintest.clockSpec clockVal Eclk clock ∗ clockVal t0 ∗
       durableFilesInv γf kdFilesN ∗
-      [∗list] i ∈ raft_kvreconf.allIds, dfile γf (kdFileName dir i) none }}
+      [∗list] i ∈ raft_kvreconf.bootVoters (uint.nat cfg.Options'.MaxReplicas'), dfile γf (kdFileName dir i) none }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Run)) (Val #cfg))
       (Val #clock)) (Val #dir))
   {{ (res : GoString) (c : Loc), RET (PairV #res #c);
