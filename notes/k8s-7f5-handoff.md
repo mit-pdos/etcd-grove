@@ -13,6 +13,9 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
   `isContext_of_post`, the `Err` transfer for `ctxErrClient`, the `Value` transfer for the APF key). `8372b01ad9`
   step 4: `WatchConc.lean` (`kResOf`, `kRcElem`, `kQElem`), specs+proofs of `scheduleEventProcessing`,
   `collectEventProcessing`, `concurrentProcessEvents` (its spec now imports WatchConc).
+- **STOPPED (hard stop, questions.md, fifth agent):** `storeWatchOk`'s `getCurrentStorageRV` clause is unprovable
+  from `New` (Goose's closure destructures the call's pair); recommended a pair-shaped clause. Wait for 02's answer.
+  WIP of New's post: `/shared/tmp/k8s7f5b/new-post-wip.patch` (apply, then prove the two WP clauses).
 - **Next, in order:** (1) `New`'s stronger post: add `□ ∀ W γk, clientWatchOk cl γk -∗ watchContractOk S W codec -∗
   newItemOk S nf -∗ storeWatchOk sp c W γk` (no new premise; the watcher `w`'s fields must be split and persisted in
   New's proof, `s` persisted for the `getCurrentStorageRV` closure, `objectType` from both `newFunc` branches).
