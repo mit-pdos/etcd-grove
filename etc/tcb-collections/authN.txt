@@ -1,0 +1,16 @@
+# authN (examples/etcd/authN; notes/authN-plan.md, 2026-11-15; statement approved by the user 2026-11-16
+# via etcd-grove-81): auth3 for every member count 1 <= k <= 1000. `k` members in one program, each
+# started with auth on (etcdstart.StartMembersAuth) and serving its raft handler on its own peer listener,
+# then authN's `run` across them (every member's gRPC API served, root's barrier read at every member, the
+# principals at members 0, 1 mod k and 2 mod k). The results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Results.lean: `authN_Main` and the closed theorem
+# `etcd_authN_safe`/`etcd_authN_adequate`, which also rests on the package initializers' axioms and on D22's
+# `authSchemaSrv`, a named hypothesis this report does not show. Expected: auth3's axioms.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/authN.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/authN.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/authN.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Results\.lean$
