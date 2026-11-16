@@ -1,5 +1,37 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
+## START HERE (S4, 2026-11-16)
+
+- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`, off lean `6a63774988`, authN landed). S0–S3c,
+  S3a2 are on lean (History below).
+- **Stage S4** (user + etcd-grove-81): `etcd_authlease_safe` for `k` members, `1 ≤ k ≤ 1000`, on authN's
+  `StartMembersAuth`; leased put (`WithLease`, `Put`/`Txn`), linearizable `Lease.Grant`/`Revoke` (F3), read handlers
+  at auth on, `memberBootOn`'s `lg = false` dropped, C5′ pair merged; no new literal modes.
+- **Done (2026-11-16):** Draft rev 1 `notes/auth-lease-s4-draft.md` (program, statement, changed texts §3, token §6,
+  work order §7, decisions D1–D9 §9); Go `examples/etcd/authlease/` with tests, passing (Draft §1; logs
+  `/shared/tmp/auth-lease-s4/runs.log`); probe `Scratch/S4Probe.lean` (untracked, checked clean with `etc/lean-check.py -a`; copy in `/shared/tmp/auth-lease-s4/`; the refusal from the per-member
+  lessor law's output, Draft §4.3). **STOPPED at the Draft (hard stop: the statement).**
+- **Next, in order** (after etcd-grove-02's / the user's answer): Draft §7: build the worktree; etcdstart boot at the
+  revocable mode; C5′ merge; Freeze package for §3's texts (hard stop); leased KV at auth on; F3; read handlers +
+  per-member lessor law; goose `authlease`; driver; linking (hard stops at `Main.wp_proof` and before `etc/land.sh`).
+- **Open decisions:** D1–D9 (Draft §9), all with recommendations.
+- **Token:** `authlease-3354335` (ports 16000/17000): first `authlease-<n>` whose 1000 member ids are 15-bit distinct
+  and 16-bit nonzero; search program `/shared/tmp/auth-lease-s4/tokensearch/` (`go run . authlease 16000`). If the
+  ports change, the token must be searched again.
+- **Pitfalls:**
+  - `.lake/build` here dates from 2026-11-13 (raft `Base` stale): every Lean check first rebuilds most of the tree.
+    Build under `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
+    --packages=/shared/tmp/manifest-e9e.json build …` (log of the first targeted build:
+    `/shared/tmp/auth-lease-s4/build1.log`).
+  - Ports 20000–21999 are taken by another session's `k8setcd3.test`; `restartN` and `authN` share 29000/30000.
+  - Go: `GOWORK=off`, `PATH=/usr/local/go/bin:$HOME/go/bin:$PATH`, under `systemd-run --scope -q -p MemoryMax=32G`;
+    `AUTHLEASE_MEMBERS=k` fixes `TestMainRun`'s member count; a run takes ≈ 15 s of `Main` + 5–25 s of re-checks.
+  - The lessor-side refusals (`TimeToLive` with keys, `Leases`) need the per-member lessor law over a window
+    (Draft §4.3, §8 risk 1); the raft-path ones (revoke, leased put) are S3a–S3c's model.
+  - Mode gate: write `E.authOn` + `hon`, never a literal `true`, in the new package (no new baseline line).
+
+# History
+
 Plan: `notes/auth-lease-scope.md` (approved; §0, §2, §5, §7). Decisions Q1–Q9: `questions.md`,
 section "auth-lease". Worktree `/shared/etcd-grove-rs56`, branch `auth-lease` (off lean `89ef103d5b`,
 with `auth-lease-scope` merged).
