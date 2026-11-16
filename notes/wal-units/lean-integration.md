@@ -477,3 +477,64 @@ bodied WAL's package inits (`bufio.opaqueInitsOk`, `hash.crc32.opaqueInitsOk`, `
 The landing-ready entry (2026-11-16) is at the front of "Last updated"; it supersedes this branch's own
 2026-11-15 "in progress" entry (which said the build failed for 13 adequacy theorems), moved to
 `notes/status-history.md`'s list instead of the oldest entry, so the line keeps ten and no stale claim stays.
+
+## Session 6 (2026-11-16)
+
+Setup: a fresh worktree (local branch `wal-lean-s6`, pushing to `origin/wal-lean`: a pruned worktree still holds
+the local `wal-lean`), base `origin/wal-lean` `d1dba07c89`, session 5's `.lake` copied from its worktree.
+
+### The etcd pin: `lean` moved it
+
+`origin/lean` (`bc64cbfc5e`, 385 commits ahead of the merge base `dd068e790f`) pins the etcd fork at `6e8f0c004`
+(restart3 A1: `applyAll` defers a merged snapshot inside the replay window, `server.go` only), on `2eaeb872b`;
+this branch's `e115818f5` (`goose-lean-walfs`, fixes 0001-0006) is also on `2eaeb872b`, so `lean`'s pin is **not
+an ancestor** of it. The six commits were rebased onto `6e8f0c004` here, deterministically (each keeps its
+author, committer and both dates: `.lake/s6/rebase.sh`, not committed; it cherry-picks `2eaeb872b..e115818f5`
+with `GIT_COMMITTER_*` taken from each original), with no conflict: **`8c28a4296f1699c699bc4d59459c691bcff995f0`**,
+whose tree is `e115818f5`'s plus `6e8f0c004`'s `server.go` change. Anyone rerunning the same cherry-picks with
+those dates gets the same hash. **It is not on GitHub yet: the coordinator must push it** (as
+`goose-lean-walfs`, force, or a new branch), e.g. from this worktree's clone (`.lake/s6/full.git`, branch `goose-lean-walfs-rebased`), or by rerunning, in
+a checkout of the fork at `6e8f0c004`:
+
+    for c in $(git rev-list --reverse 2eaeb872b..e115818f5); do
+      GIT_COMMITTER_NAME="$(git log -1 --format=%cn $c)" GIT_COMMITTER_EMAIL="$(git log -1 --format=%ce $c)" \
+      GIT_COMMITTER_DATE="$(git log -1 --format=%cD $c)" git cherry-pick $c
+    done   # HEAD must be 8c28a4296f16
+
+ Until then
+`etc/goose.py` needs `--src etcd=<checkout at 8c28a4296>` (or `$ETCD_SRC`) and Go needs the module from a local
+clone (this session: a full clone of the fork holding the commit, `url.<file>.insteadOf` in a private
+`GIT_CONFIG_GLOBAL`, a private `GOMODCACHE`, `GOPRIVATE=github.com/upamanyus/etcd`). The pin
+(`etc/goose.py`), the three `go.mod`s and the featuregate allow list name
+`v3.0.0-20261115085855-8c28a4296f16`; the `go.sum` entries were computed from that local clone (content hashes:
+the same once the commit is on GitHub). `etc/goose.py --check` (every project; etcd from the local checkout):
+all up to date, i.e. the merged `Code/` is what `8c28a4296` translates to (`lean`'s `etcdserver` and this
+branch's WAL packages are disjoint).
+
+### Merge of `origin/lean` (`2d48f42af2`)
+
+`git -c merge.renameLimit=30000 merge origin/lean`: 35 conflicts, none in trusted text (`lean` changed no
+`GooseLang/Ext/Fs`, `TrustedCode/` or `os`/`syscall` file; its trusted additions are the TCP extension's, in the
+part `NetTcp/`, and `mvccpb`/k8s goose configurations, none touching this branch's). No `LinuxFs/` file changed on
+`lean`, so `etc/wal-lean-remerge.py` was not needed.
+- `etc/goose.py`, `examples/{,k8s/compactor/,k8s/etcd3/}go.{mod,sum}`, `etc/featuregate-allow.txt`: the pin above.
+- `etc/gen-init.py`: both parts (`WalTester/`'s `wt_inits` and `lean`'s new `NetTcp/` `nt_inits`), both run.
+- `lakefile.toml`: both sides' libraries (`WalTester`, and `lean`'s `Robustness`, `NetTcp`, `nettcp-replay`).
+- `Proof/go_etcd_io/etcd/cache/v3/Base.lean`: both imports (zap's `PkgInit`, `lean`'s `StatusRO`).
+- `etc/mode-baseline.txt`: `lean`'s count (the gate's ratchet settled it, below).
+- 17 `PkgTable.lean`s, `nonissues/INDEX.md`: regenerated (`etc/gen-init.py`, `etc/issues-status.py --index`);
+  `gen-init` also rewrote `lean`'s new examples' `Init.lean`s (the file extension's variables) and the `NetTcp/`
+  copies of `os`'s and `io/fs`'s `Init.lean` and `PkgInitExt` (now over this branch's bodied `os`).
+- Notes (`decisions.md`, `perennial-changes.md`, `specs-only/ledger.md`): both sides' entries
+  (`perennial-changes.md`: `lean` moved the `WithCancel` entry to landed; its stale heading dropped).
+  `STATUS.md`'s Last updated line: this branch's 2026-11-16 entry and `lean`'s nine newest; the other ten
+  (this branch's nine 2026-11-14 entries, eight already in `lean`'s history list, and `lean`'s oldest) to
+  `status-history.md`'s list, one copy each (both sides had a different duplicated 2026-11-12 entry in the
+  2026-10-22..31 section: both copies there dropped, the entries stay in the 2026-11 list).
+
+After the merge: **`lean`'s four new etcd closed theorems** restated as session 3's decision (A) did for the
+others (`0e62a352c4`): `etcd_putgetN_adequate`/`_safe`, `etcd_restart3_adequate`/`_safe`
+(`examples/etcd/restart`), `etcd_restartN_adequate`/`_safe`, `etcd_txnlinfaultsN_adequate`/`_safe`: extensions
+`etcdFsExts`, one new premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`, conclusions unchanged. **For the
+user's review with the other 21** (25 in all). `SpecPlan/Spec/PkgInit/` regenerated (`txnlinfaultsN`,
+`etcdstart`: the WAL's packages in their closure).
