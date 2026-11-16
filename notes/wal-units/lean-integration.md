@@ -538,3 +538,35 @@ others (`0e62a352c4`): `etcd_putgetN_adequate`/`_safe`, `etcd_restart3_adequate`
 `etcdFsExts`, one new premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`, conclusions unchanged. **For the
 user's review with the other 21** (25 in all). `SpecPlan/Spec/PkgInit/` regenerated (`txnlinfaultsN`,
 `etcdstart`: the WAL's packages in their closure).
+
+Then `origin/lean` moved to `e9f67cdb20` (kvraftN, 7 commits): merged (`963acd7d51`), conflicts only in
+`STATUS.md`'s Last updated line and `status-history.md`'s list (resolved the same way).
+
+### Build and gates
+
+- Full niced `lake build` after the first merge and the four restatements: **OK** (18827 jobs), no repair needed
+  (`lean`'s `NetTcp/` builds over this branch's bodied `os`).
+- `etc/gates.sh` (with the local-fork Go environment above): first run failed only on the four new example
+  collections (`putgetN`, `restart3`, `restartN`, `txnlinfaultsN`: the bodied WAL's package inits in, the
+  names-only WAL's `wal.opaqueInitsOk` out, as for the other 16 example collections; updated with
+  `--check --update`) and on reader-slot (needs the etcd Go source at `.lake/goose/etcd`, which
+  `etc/goose.py` does not clone when the project comes from `--src`: linked to the local checkout). Second
+  run: **all passed** (build 18830 jobs; tcb 886 axioms, 4 sorries, matching; collections 64 match;
+  axiom-tok; goose 49 projects; gen-init 237; reader-slot; model-param 38; pbschema; bounds 363; mode 447;
+  api; import-all; interfaces ok, so no interface changed; the k8s checks). After the kvraftN merge, a third run: **all passed** (build 18832 jobs; tcb 886/4;
+  collections 64 match; bounds 364, `lean`'s +1).
+- `etc/gen-specs-pkginit.py`: regenerated (`9ca20682f9`), `--check` clean; `etc/gen-link.py --walfs/--durable/
+  --wal-tester --check`: clean; `etc/tcb-report.py --check`: matches, `--update` a no-op.
+
+### TCB against `origin/lean`
+
+Unchanged from session 5: `origin/lean` 870 axioms, 4 sorries; this branch 886, the same 4 sorries. Removed
+`wal.opaqueInitsOk`; added the same 17 (the bodied WAL's package inits and trust-boundary specs, session 5's
+list). `lean`'s 281+ commits added no axiom this branch lacks (the baseline merged clean and matches).
+
+### What is left before `etc/land.sh`
+
+1. **Push the fork commit `8c28a4296`** (above). Until it is on GitHub, `etc/goose.py --check` (in
+   `etc/gates.sh` and CI) and every Go build of the examples fail on a clean machine.
+2. The user's review (sessions 3-5's list, with the four new restated theorems: 25 in all).
+3. A re-merge if `wal-int` or `lean` moves again.
