@@ -3,21 +3,25 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, 7f-5b agent): Draft written, checkpoint
+## START HERE (2026-11-16, 7f-5b agent): HARD STOP 2, transform's `kRawDecOk` (Draft §7)
 
-- **Head:** `k8s-7f5` = lean `edf33c7a14` + the 7f-5b notes commits (WaitGroup stop `5a20d0cfa4`, Draft).
-- **Decided (02, questions.md):** option (a), the local wait-group idiom `InvRunWg.lean` over Perennial's raw
-  `Add`/`Done`/`Wait` specs; this session also does 7f-5a step 6 (run, serial/processEvents, Stop, ResultChan,
-  createWatchChan, watcher.Watch, store.Watch). Perennial entry: `notes/perennial-changes.md`, first "Open".
-- **Draft:** `notes/k8s-7f5b-draft.md` (idiom §2, concurrent protocol §3, specs §4, forms §5: `kCdw` gets the
-  child's `Done_gn`, `kInElemX`, `kWcCons`, `kProcSt`; plan §6). Ledger: "store.Watch without
-  `concurrentDecodeOff`" (the only exported change).
-- **Next, after 02's word on the Draft:** §6 steps 1-5 in order; checkpoint after step 3.
-- **Pitfalls:** `transform` never errors (its spec: `err = nil`), so both consumers' `sendError` arms are dead.
-  Top-level wait-group slots are NOT token-backed (startWatching takes a whole `threadTok`); only the
-  scheduler's per-event slots are (level 1 pending, level 0 started).
-- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; full builds under the flock and the 64G cap;
-  `etc/lean-check.py --fast --split` for long proofs.
+- **Head:** `k8s-7f5` = lean `edf33c7a14` + 7f-5b notes (`5a20d0cfa4` WaitGroup stop, `484c470b3a` Draft) + the
+  commit of this note.
+- **Decided (02, questions.md):** option (a), local wait-group idiom; this session also does 7f-5a step 6.
+- **Draft:** `notes/k8s-7f5b-draft.md` (§2 idiom, §3 concurrent protocol, §4 specs, §5 forms, §6 plan). **§7: the
+  blocker**, OPEN for 02 (both branches): `store.Watch.spec`'s read laws do not give `transform`'s `kRawDecOk` for a
+  value put and overwritten within one revision; recommended (A) a fourth read law `kvWritesDec` (exported change).
+- **Work in progress, NOT in the tree** (unverified; my 58-min timeout killed the recheck while the server rebuilt
+  the etcd3 import chain after the WatchDefs edit): `/shared/tmp/k8s7f5b/kcdw.patch` (`git apply`: the `KWatchNames.wcDone`
+  field, `kCdw`'s `Done_gn := γ.wcDone`, Draft §5; WatchDefs and WatchProd checked clean, startWatching/syncPaginated
+  not yet) and `/shared/tmp/k8s7f5b/InvRunWg.lean` (Draft §2, tokJoinL's proofs adapted, never checked; goes to
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/`).
+- **Next, after 02's word on §7:** apply the patch, a targeted `lake build` of the etcd3 proofs (not lean-check: the
+  import rebuild is long), check `InvRunWg.lean`; then Draft §6 steps 1, 3, 4, 5.
+- **Pitfalls:** a WatchDefs edit rebuilds every etcd3 importer (the lean-check server sits at "line 1" for many
+  minutes). `transform` never errors under its spec. Top-level wait-group slots are not token-backed.
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere (lean-check: `LAKE_OPTS=...`); full builds under
+  the flock and the 64G cap; `etc/lean-check.py --fast --split` for long proofs.
 
 ## History (older START HERE sections, newest first; the commits say the rest)
 

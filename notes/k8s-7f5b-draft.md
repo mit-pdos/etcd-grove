@@ -157,11 +157,11 @@ argument.) `concurrentDecodeOff` is deleted from `WatchDefs.lean` once nothing u
 ## 5. Form fixes and new pure lemmas
 
 - **`kCdw` takes the child's Done name.** `kCdw γ cd := { cd with PDone := cd.PDone ∨ kCancelPD γ cd }`
-  keeps `cd.Done_gn`, but `wp_WithCancel_ctx` gives `{ s with PDone := …, Done_gn := γ' }`, so
-  `createWatchChan` cannot produce `kWcProd`'s `isContext ctx (kCdw γ cd)`. New: `kCdw γ cd γc` with
-  `Done_gn := γc`, `kWcProd`'s existing `∃ γc` (its `cancelSpec cf γc …`) used for it. Internal:
-  `startWatching.spec`'s text is unchanged (it names `kWcProd`); its proof and syncPaginated's
-  re-checked.
+  kept `cd.Done_gn`, but `wp_WithCancel_ctx` gives `{ s with PDone := …, Done_gn := γ' }`, so
+  `createWatchChan` could not produce `kWcProd`'s `isContext ctx (kCdw γ cd)`. New: a field
+  `KWatchNames.wcDone` and `Done_gn := γ.wcDone`. `createWatchChan` allocates `stop`/`prodEx`/`procEx`
+  before `WithCancel` (`kCancelPD` reads only those) and builds `γ` after it. Internal: no Spec text
+  changes (`k8sWatch` does not read the field); the proofs naming `kCdw` re-checked.
 - `kInElem` refactored as `∃ …, kInElemX …` (same meaning).
 - `kInElemX_transformOk` (pure, from `□ Q lb σ`'s `kvWfHist`, the scope inside the store's prefix and
   `kRawStreamSub`): the raw event satisfies `transform`'s premises (`kRawDecOk c.S.dec σ r`, its
@@ -181,3 +181,29 @@ argument.) `concurrentDecodeOff` is deleted from `WatchDefs.lean` once nothing u
    for the serial branch only and `concurrentDecodeOff` kept (02's option), the drop at step 5.
 
 **Estimate: 2100-2800 Lean lines, 2-3 agent contexts.**
+
+## 7. BLOCKER (2026-11-16): `transform`'s premise `kRawDecOk` is not derivable (both branches)
+
+Both consumers (serial and collector) call `transform`, whose spec needs `kRawDecOk c.S.dec σ r` of
+the received raw event. `store.Watch.spec`'s read laws give `kvWf`, `kvWfHist` (every key-value under
+the prefix of every *state* `σ.at r` decodes) and `kvKeysShort`. An etcd event's value is the value
+right after *its own change* (`mvcc.evsOfRevM`: `applyChanges` of the revision's first `i + 1`
+changes), so a value put and overwritten in the same revision is in no state, and `kvWfHist` says
+nothing of it. etcd does admit such revisions (`NoDupKeysPerRev` is not an invariant of etcd:
+`issues/etcd-txn-delete-then-ignore-put.md`, `issues/etcd-txn-check-intervals-sibling.md`), and the
+client's response facts give only `kvLogOkTo` (`LogWf'` has no per-revision uniqueness). In Go such a
+value, if it does not decode, makes `transform` return an error: the watcher sends an Error event and
+stops (safe; Error events are dropped by the checker). Only the proof is stuck. Options:
+
+- **(A) RECOMMENDED: a fourth read law in `store.Watch.spec`**, `kvWritesDec c σ`: every value a
+  revision up to `σ.rev` puts under the store's prefix decodes (`∀ r ≤ σ.rev, ∀ ch ∈ σ.changesAt r,
+  ∀ k v l, ch = .put k v l → c.pfx <+: k → c.S.dec v ≠ none`). With `evsOfRevM_mem` (an event's value
+  is a change's put value) it gives `kRawDecOk` of a put event; the previous value (`kPrevAt`, a state's
+  record) is `kvWfHist`'s. **Exported change** (7f-6 must produce it: in its runs only the k8s store and
+  the compactor write, each value an encoding of the driver's objects). Ledger entry at the change.
+- (B) No exported change: prove `transform`'s error path (`prepareObjs`/`decodeObj` returning the
+  transformer's or the codec's error, with `kErrOk` of it for `sendError`). The transformer's contract
+  (`transformerOk`) gives `S.trErr err ∗ errStrOk err` only, not `kErrOk`'s conjuncts (`errors.As` of
+  `corruptObjectDeletedError`, `APIStatus`, ...), so this likely needs new trusted text or a stronger
+  codec contract, and ~400-800 more lines; the consumers then also prove their `sendError` arms.
+- (C) Restrict the ideal stream to revisions with distinct keys: changes `kStreamOk`'s meaning (exported).
