@@ -1,18 +1,23 @@
 /-
 `MainCluster`'s callees linked (step 1 of "k8s etcd3 over cluster3" in `notes/k8s-etcd3-plan.md`,
-2026-11-06), by hand as the k8s compactor's `MainLinked.lean`: `k8s_etcd3.MainCluster.wp_proof`
-applied to the linked results of the driver (its `Link.lean`, generated: `seed`, `Check`, the
-contract's callees, as `wp_Main` takes them), of the three-member cluster (`cluster3`'s `Link.lean`)
-and to `clusterConfig`'s proof; `MainPartition`'s the same, with the cluster's `Partitioner`
-(step 2, 2026-11-07). `Results.lean` restates them.
+2026-11-06; `k` members since stage A of `notes/k8s-7f6-scope.md`, 2026-11-16), by hand as the k8s
+compactor's `MainLinked.lean`: `k8s_etcd3.MainCluster.wp_proof` applied to the linked results of the
+driver (its `Link.lean`, generated: `seed`, `Check`, the contract's callees, as `wp_Main` takes them)
+and to `startCluster`'s proof over the examples' shared start (`etcdstart`'s and `cluster3`'s
+`Link.lean`, as txnlinfaultsN's `MainLinked.lean`); `MainPartition`'s the same, with the cluster's
+`Partitioner`. `Results.lean` restates them.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.clusterConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.startCluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bridgeAddr
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.holdToken
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 
 @[expose] public section
 
@@ -39,17 +44,24 @@ variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 
-theorem wp_clusterConfig : EtcdGrove.k8s_etcd3.clusterConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.clusterConfig.wp_proof
+/-- **The driver's `startCluster(k)`** (stage A of `notes/k8s-7f6-scope.md`), over the examples'
+shared start's linked `Members`, `StartMembers`, `Serve`, cluster3's `StartBridge` and the kubernetes
+client's `New`, as txnlinfaultsN's. -/
+theorem wp_startCluster :
+    EtcdGrove.k8s_etcd3.startCluster.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
+    etcdstart.wp_Serve kubernetes.wp_New cluster3.wp_StartBridge
+    (EtcdGrove.k8s_etcd3.bridgeAddr.wp_proof etcdstart.strconv.wp_FormatUint)
+    EtcdGrove.k8s_etcd3.holdToken.wp_proof mvcc.api.mvccApi_names_nonempty_law_holds
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
 
 /-- **The driver's `MainCluster` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic
-premises of its callees' linked results (`Main`'s, and the three-member cluster's). -/
+premises of its callees' linked results (`Main`'s, and the `k`-member start's). -/
 theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.MainCluster.wp_proof zap.wp_NewNop wp_clusterConfig cluster3.wp_StartCluster
-    kubernetes.wp_New wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj
+  EtcdGrove.k8s_etcd3.MainCluster.wp_proof zap.wp_NewNop wp_startCluster wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj
     runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage
     versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion
     identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode
@@ -61,8 +73,8 @@ premises of its callees' linked results (`MainCluster`'s, and the cluster's `Par
 theorem wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.MainPartition.wp_proof zap.wp_NewNop wp_clusterConfig cluster3.wp_StartCluster
-    cluster3.wp_Partitioner kubernetes.wp_New wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig
+  EtcdGrove.k8s_etcd3.MainPartition.wp_proof zap.wp_NewNop wp_startCluster
+    cluster3.wp_Partitioner wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig
     wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject
     versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion
     versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage
