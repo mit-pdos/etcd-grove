@@ -3,7 +3,26 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, twenty-first 7f-5 agent): steps 6-prep and 7's linking done; land-stop checks
+## START HERE (2026-11-16, 7f-5b agent): HARD STOP on the WaitGroup check, nothing else started
+
+- **Head:** `k8s-7f5` = lean `edf33c7a14` (7f-5a step 7 landed) plus this note's commit.
+- **7f-5b's first check (Scope row 7f-5b; 7f-scope §5.3):** `run` waits on `resultChanWG` while the
+  scheduler (a member, its own count held) does `wg.Add(1); go …` per event. Perennial's raw
+  `WaitGroup.Add.spec` allows it (`oldc ≠ 0` needs no waiter state); its thread-token joins
+  (`tokJoin`, `tokJoinL`) do not: only the exclusive `ownAdder` may `Add`, and `Wait` consumes it.
+  Recorded: `notes/perennial-changes.md`, first "Open" entry. Options with 02 (questions.md).
+- **Not done either (7f-5a step 6):** `serialProcessEvents`/`processEvents`, `run`, `Stop`,
+  `ResultChan`, `createWatchChan`, `watcher.Watch`, `store.Watch` are unproved; 7f-5b's proof
+  needs `run`'s, so step 6 comes first (or with it).
+- **Next, after 02's answer:** if the local idiom (option a) is approved: a Draft
+  `notes/k8s-7f5b-draft.md` (the idiom, the specs of `concurrentProcessEvents`,
+  `scheduleEventProcessing`, `collectEventProcessing`, the store.Watch change: drop
+  `concurrentDecodeOff`), committed, checkpoint; then the proofs.
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; full builds under the flock and the 64G cap.
+
+## History (older START HERE sections, newest first; the commits say the rest)
+
+### START HERE (2026-11-16, twenty-first 7f-5 agent): steps 6-prep and 7's linking done; land-stop checks
 
 - **Head:** `k8s-7f5` past `bdbeb422b1` (lean `ee15ea8d45` merged: clientWatchCE landed). 81's go needed for land.sh.
 - **Done (`bdbeb422b1`):** `kraw_countable` (WatchDefs; the `[Pos.Countable KRaw]` binders dropped everywhere);
@@ -26,8 +45,6 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
   GetRevision, ...) are listed plain here, with their callees. run/serveSubstream: `lean-check --fast --split`.
   Dropping an instance binder shifts the `intro _ _ Obj _ _ …` patterns of the proofs.
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; full builds under the flock and the 64G cap.
-
-## History (older START HERE sections, newest first; the commits say the rest)
 
 ### START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE closed (landed ee15ea8d45)
 
