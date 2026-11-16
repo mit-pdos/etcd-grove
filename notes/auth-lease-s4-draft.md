@@ -1,5 +1,8 @@
 # auth-lease S4: `etcd_authlease_safe` for k members (Draft, rev 1, 2026-11-16)
 
+**Status (2026-11-16):** the statement (§2) APPROVED by the user via etcd-grove-02, as drafted, `KeepAlive` left to
+S7; D1–D9 (§9) decided by etcd-grove-02 as recommended (`questions.md`, "auth-lease S4"). Lean work in §7's order.
+
 For etcd-grove-02 and the user. Branch `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`, off lean `6a63774988`,
 authN landed). Stage decided by the user and etcd-grove-81: the closed theorem `etcd_authlease_safe` for `k`
 members, `1 ≤ k ≤ 1000`, on authN's generic auth start (`etcdstart.StartMembersAuth`), with leases at auth on: the
