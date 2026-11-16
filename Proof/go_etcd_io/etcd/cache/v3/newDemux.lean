@@ -64,7 +64,7 @@ theorem newDemux.wp_proof
     wp_apply wp_load_slice_index p (sint.Z (W64 0)) (ev0 :: ls') DFrac.discard ev0 H0 $$ [] as -
     · iframe Hsl; ipureintro; rfl
     ihave He0 := Hev $$ %0 %ev0 %e0 %rfl %rfl
-    iunfold eventAt at He0
+    ihave He0 := eventAt_elim $$ He0
     icases He0 with ⟨%keySl, #Htyp, #Hkv, #Hkey, #Hks, #Hmod⟩
     wp_auto
     rw [show e0.rev = batchRev (e0 :: es) from rfl]

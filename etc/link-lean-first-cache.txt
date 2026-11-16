@@ -122,7 +122,7 @@ rpctypes_ErrorDesc: status_FromError
 rpctypes_EtcdError__Error:
 rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 status_Error:
-WatchResponse__Err: rpctypes_Error status_Error
+WatchResponse__Err: rpctypes_Error status_Error rpctypes_EtcdError__Error
 # The trust boundary (etcd-grove axioms, linked in `Proof/fmt/Link.lean`, `@`): `fmt.Errorf` and `fmt.Printf` for arguments that are
 # basic or have an `Error()`/`String()` returning some string (`fmt.argsOk`,
 # `Spec/fmt/Errorf.lean`): the `%w` of `ErrUnsupportedRequest`, the log lines of the progress

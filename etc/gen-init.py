@@ -936,7 +936,7 @@ SPECIAL[_K3] = dict(
 the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
 importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
-`defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
+`defaultWatcherMaxLimit`, kept read-only in the fact) and its translated `init` functions: `compact.go`'s makes
 `endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
@@ -966,7 +966,8 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
              'Proof.strconv.ParseBool'],
     vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
     table_vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
-    finish=FIN_PRE[:6] + ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iexact Hreg'],
+    finish=['ipersist HdefaultWatcherMaxLimit'] + FIN_PRE[:6] +
+        ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iframe Hreg', 'iexact HdefaultWatcherMaxLimit'],
     alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
                  'typeToMessage': 'Loc', 'errTooMany': 'GoInterface', 'endpointsMap': 'Loc',
                  'endpointsMapMu': '_root_.Perennial.sync.Mutex'},

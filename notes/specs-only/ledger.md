@@ -488,6 +488,59 @@ One entry for the frozen texts S3b changes (Draft §6's table); the evidence of 
 - **Proposed change.** The pure conjunct gains `l ≠ x.log → txn.PathsLeaseOk (stateAfter x.log) lt.ids (t'.branch …)`.
 - **Decision.** D7 approved (etcd-grove-81, 2026-11-15).
 
+## 2026-11-15: a delivered watch event's pointers are not known to be non-nil (k8s 7f-5a-P, B)
+
+- **Spec.** `EtcdGrove.eventAt` (`Proof/go_etcd_io/etcd/cache/v3/InvStore.lean`, exported through the client's
+  `eventsAt`/`respAt`/`watchStateElemP`).
+- **Defect.** It drops `ev ≠ null ∧ e.kv ≠ null`, which its producer has (`mvcc.evRd`), so the etcd3 watcher's
+  `parseEvent` cannot be called on a delivered event: its `e.IsCreate()` reads the type and revisions through the
+  getters, which answer defaults on a nil pointer (with `p = null` the model's `IsCreate` is `true`).
+- **Proposed change.** `eventAt ev e` gains `⌜ev ≠ null ∧ e.kv ≠ null⌝`; produced by `WatchContent.evIs_facts`;
+  `eventAt_elim` keeps its statement (a weakening).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, (B)).
+
+## 2026-11-15: a codec's decoding of empty data (k8s 7f-5a-P, C)
+
+- **Spec.** `ObjCodec` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Contract.lean`), hence `kvWfHist`'s `dec v ≠ none`.
+- **Defect.** Nothing excludes an empty stored value that decodes; for one, the watcher's `prepareObjs` drops the
+  previous object (`len(e.prevValue) > 0` fails) and `transform` calls `filter(nil)`, where `kEvOfL` decodes it.
+- **Proposed change.** A field `dec_nil : ObjCodec.dec [] = none` (Kubernetes codecs reject empty data), discharged
+  for the examples' codec.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, (C)).
+
+## 2026-11-15: the client watch's close error has no known dynamic type (k8s 7f-5a-P, E2)
+
+- **Spec.** `WatchResponse.Err.spec` (`Spec/go_etcd_io/etcd/client/v3/WatchResponse__Err.lean`; proved).
+- **Defect.** Its post gives a non-nil error only nil-iff and `errStrOk`; the etcd3 watcher's `sendError` needs
+  its type facts (`kErrOk`: `etcdError`/`grpcError`/`APIStatus` assertions, comparability).
+- **Evidence.** `client/v3/watch.go:123-135`: `v3rpc.Error(closeErr)`, `ErrCompacted`, `v3rpc.Error(status.Error(
+  FailedPrecondition, reason))`, `ErrFutureRev`; `rpctypes.Error`'s post keeps `clientErr`; the close error's
+  sources carry it (`cliStreamErr`, `errorsNewOk`, `ctxErrClientAllW`), but for `io.EOF` (`eofIs` only) and
+  `*status.Error`'s `isLeafError` (gaps). Review: `notes/k8s-7f5a-draft.md` §11.1.
+- **Proposed change.** The post gains `clientErr err ∗ statusErrOk err` of a non-nil result (only conjuncts added;
+  its six callers untouched; no `Results`/`Adequacy*`/`MainLinked` names it).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, E2).
+
+## 2026-11-15: GetCurrentResourceVersion's error arm is bare (k8s 7f-5a-P, E4)
+
+- **Spec.** `store.GetCurrentResourceVersion.spec` (proved).
+- **Defect.** Its error arm is `err ≠ nil` only; `startWatching` hands it to `sendError` (`watcher.go:456-460`, when
+  `initialRev > 0 ∧ forceInitialEvents`), which needs `kErrOk`.
+- **Evidence.** `store.go:741-742`: the client `Get`'s error, or `fmt.Errorf("the current resource version must be
+  greater than 0")`; both branches in the proof.
+- **Proposed change.** The arm gains `(clientErr err ∗ statusErrOk err) ∨ kFmtErr err` (the E3 form, an
+  `*errors.errorString`, once E3's text is approved).
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, E4).
+
+## 2026-11-15: interpretListError is specified only when not paging (k8s 7f-5a-P, E5)
+
+- **Spec.** `interpretListError.spec` (proved; `paging` fixed to `false`).
+- **Defect.** `syncPaginated` calls it with `paging = true`.
+- **Evidence.** `errors.go:66-89`: paging and `ErrCompacted` go to `handleCompactedErrorForPaging` (`EncodeContinue`,
+  whose error branch calls the untranslated `HandleError`, avoided when the caller shows `encOkL`).
+- **Proposed change.** One triple over any `paging` (premise `paging = true → encOkL …` of the keys), post `listErr c e`.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15, E5).
+
 ## 2026-11-15: auth on implies no lease granted (auth-lease S3c; Draft `notes/auth-lease-s3c-draft.md` rev 6)
 
 One entry for the frozen, exported and hub texts S3c changes (Draft §10's table); the evidence of each is the Draft's section.
@@ -506,3 +559,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `Md` registrations (C4, C7, C8).
 - **Decision.** Approved (etcd-grove-81, 2026-11-15, the S3c Freeze, conditional on review round 5, which found no
   first-tier problem).
+
+## 2026-11-15: store.Watch's revision bound (k8s 7f-5a-P step 5)
+
+- **Spec.** The Draft's `store.Watch.spec` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean`, not yet in `Spec/`).
+- **Defect.** Its premise `uint.Z n < 2^63` admits `n = 2^63 - 1` for a watch without initial events, whose
+  `startWatching` asks the client for `WithRev(n + 1)`, which wraps negative; the client's `Watch` spec needs `1 ≤ rev`
+  (in Go etcd then answers a compacted or invalid watch: no panic, but the proof's start point is not a revision).
+- **Evidence.** `watcher.go` `startWatching` (`clientv3.WithRev(wc.initialRev + 1)`); `kStartPre` (`WatchProd.lean`) asks
+  `uint.Z r0 + 1 < 2^63` in that case.
+- **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
+- **Decision.** Approved (etcd-grove-81, 2026-11-15).

@@ -64,7 +64,7 @@ theorem store.validateMinimumResourceVersion.wp_proof
     by_cases hlt : uint.nat rev < uint.nat n'
     · rw [decide_eq_true (by word)]
       wp_auto
-      wp_apply wp_TooLarge as %err #Herr
+      wp_apply wp_TooLarge as %err ⟨#Herr, -⟩
       iapply HΦ
       simp only [hlt, ↓reduceIte]
       iexact Herr

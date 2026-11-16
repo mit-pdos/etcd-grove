@@ -12,7 +12,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__GetCurrentResourceV
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
-public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorfPlain
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
@@ -45,7 +45,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (wp_prepareKey : store.prepareKey.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG))
-    (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG)) :
     store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd k Q hk hkl
   wp_start as ⟨#Hst, #Hctx, #Hce, Hau⟩
@@ -91,7 +91,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
   wp_apply (wp_RecordEtcdRequest go!"getCurrentResourceVersion" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
   · iexact Hse
-  icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, -, -⟩)
+  icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, %Hcerr, #Hcell⟩)
   · -- the client read the state σ
     subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
@@ -102,7 +102,8 @@ theorem store.GetCurrentResourceVersion.wp_proof
     · have hz : (W64 (σ.rev : Int)) = W64 0 := by rw [h0]; rfl
       rw [hz]
       (try wp_auto)
-      wp_apply (wp_Errorf _ slice.nil [] (DFrac.own 1)) $$ [] as %e -
+      wp_apply (wp_ErrorfPlain _ slice.nil [] (DFrac.own 1) (by refine ⟨_, rfl, ?_⟩; decide)) $$ []
+        as %x ⟨-, %msg, -, -, #HE⟩
       · iframe #
         isplitl
         · iapply ownSlice_nil
@@ -110,8 +111,16 @@ theorem store.GetCurrentResourceVersion.wp_proof
       (try wp_auto)
       iapply HΦ
       ileft
-      ipureintro
-      simp
+      isplitr
+      · ipureintro; simp
+      iright
+      iexists x
+      isplitr; · ipureintro; rfl
+      unfold fmt.stringMethodSpec
+      iintro !> %Φ' HΦ'
+      iapply HE
+      inext
+      iapply HΦ'
     · have hnz : (W64 (σ.rev : Int)) ≠ W64 0 := by
         intro h; apply h0; have := congrArg (fun w : w64 => w.toNat) h; simp at this; omega
       (try wp_auto)
@@ -134,8 +143,12 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (try wp_auto)
     iapply HΦ
     ileft
-    ipureintro
-    exact Hgerr
+    isplitr
+    · ipureintro; exact Hgerr
+    ileft
+    isplitr
+    · ipureintro; exact Hcerr
+    iexact Hcell
 
 end proof
 
