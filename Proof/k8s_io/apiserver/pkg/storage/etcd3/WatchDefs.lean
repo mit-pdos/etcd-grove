@@ -768,7 +768,7 @@ store's `watcher` field holds a `*watcher` whose fields are the store's (client,
 transformer, group-resource), a `newFunc` making the zero object, `getCurrentStorageRV` calling the
 store's `GetCurrentResourceVersion`, `getResourceSizeEstimator` calling the store's (which answers
 `nil`: `storeListOk`'s `rseNilR`); the client's watcher over the cluster's KV `γk`; the watch path's
-object contract. -/
+object contract; the object type's name (`objectType`, the block loggers'; `createWatchChan`). -/
 def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) : IProp GF :=
   iprop(∃ (wp : Loc) (nf crv rse : GoFunc),
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"watcher" sp ↦□ wp ∗
@@ -793,7 +793,8 @@ def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVN
         go!"getResourceSizeEstimator")) (Val #())) {{ Φ }} -∗
       WP (App (Val #rse) (Val #())) {{ Φ }}) ∗
     clientWatchOk c.cl γk ∗
-    watchContractOk c.S W c.codec)
+    watchContractOk c.S W c.codec ∗
+    ∃ ot : GoString, structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"objectType" wp ↦□ ot)
 
 instance storeWatchOk_persistent (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) :
     Persistent (storeWatchOk sp c W γk) := by

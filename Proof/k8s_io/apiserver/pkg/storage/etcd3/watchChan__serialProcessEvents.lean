@@ -57,7 +57,7 @@ theorem watchChan.serialProcessEvents.wp_proof
   ihave #Hsw' := Hsw
   iunfold storeWatchOk at Hsw'
   icases Hsw' with ⟨%wp', %nf, %crv, %rse', #Hsw2, -, #Hwcodec, #Hwnf, -, #Hwvi, #Hwti, -, -,
-    #Hnio, -, -, -, #Hwco⟩
+    #Hnio, -, -, -, #Hwco, -⟩
   ihave %Hwp := typedPointsto_agree_wand _ _ _ _ _ $$ Hsw1 Hsw2
   subst Hwp
   ihave #Hrc' := Hrc

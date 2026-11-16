@@ -397,6 +397,113 @@ theorem kRes_close_au [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec O
   · iexfalso
     iapply kResAlive_closed $$ [$HT $HC]
 
+/-- **The watch's ghost state** (`createWatchChan`, after `WithCancel`; `notes/k8s-7f5b-draft.md` §5):
+over the names `γ0` gives (`kCancelPD`'s `stop`, `prodEx`, `procEx`, made before `WithCancel`, and `wc.ctx`'s
+`wcDone`), and the two channels made empty, the SPSCs of `incomingEventChan` and of `resultChan` (its
+one invariant with the producers' `kResInv`), the raw and sent events' lists, `procd` and `alive`: the
+producer's state (`kProdSt`), the processing side's (`kProcSt`, the whole `alive`), and the
+consumer's half of `resultChan`. -/
+theorem kWatch_alloc [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ0 : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (chI chR : Loc) (γcI γcR : ChanNames) :
+    ⊢ isChan chI γcI Loc -∗ ownChan γcI Loc (.Buffered []) -∗
+      isChan chR γcR k8s_io.apimachinery.pkg.watch.Event -∗
+      ownChan γcR k8s_io.apimachinery.pkg.watch.Event (.Buffered []) -∗
+      dghostVar γ0.procEx (DFrac.own 1) false ={⊤}=∗
+      ∃ (inc res : SpscNames) (raws evs procd alive : GName),
+        isSpsc inc chI (kInElem { γ0 with inc := inc, res := res, raws := raws, evs := evs } cd inS m Q)
+          (fun _ => iprop(False)) ∗
+        kResChan c W { γ0 with inc := inc, res := res, raws := raws, evs := evs } cd sel emp inS m Q
+          procd alive chR ∗
+        kProdSt { γ0 with inc := inc, res := res, raws := raws, evs := evs } cd [] ∗
+        kProcSt { γ0 with inc := inc, res := res, raws := raws, evs := evs } procd alive 1 ∗
+        spscConsumer res ([] : List k8s_io.apimachinery.pkg.watch.Event) := by
+  iintro #HcI HoI #HcR HoR Hpx
+  imod mono_list_own_alloc (GF := GF) ([] : List KRaw) with ⟨%raws, Hr, #Hrlb⟩
+  ihave ⟨Hr1, Hr2⟩ : monoListAuthOwn (GF := GF) raws (1 : Qp).half ([] : List KRaw) ∗
+      monoListAuthOwn (GF := GF) raws (1 : Qp).half ([] : List KRaw) $$ [Hr]
+  · iapply ((monoListAuthOwn_fractional (GF := GF) raws ([] : List KRaw)).fractional
+      (1 : Qp).half (1 : Qp).half).1
+    rw [Qp.half_add_half]; iexact Hr
+  imod mono_list_own_alloc (GF := GF) ([] : List (KWEv Obj)) with ⟨%evs, He, -⟩
+  imod dghostVar_alloc (GF := GF) (0 : Nat) with ⟨%procd, Hpd⟩
+  icases dghostVar_halves _ _ $$ Hpd with ⟨Hpd1, Hpd2⟩
+  imod dghostVar_alloc (GF := GF) false with ⟨%alive, Hal⟩
+  imod start_spsc chI (kInElem { γ0 with raws := raws } cd inS m Q) (fun _ => iprop(False)) γcI
+    $$ HcI [HoI] with ⟨%inc, #Hinc, Hip, Hic⟩
+  · iright; iexact HoI
+  imod dghostVar_alloc (GF := GF) ([] : List k8s_io.apimachinery.pkg.watch.Event) with ⟨%γsent, Hsent⟩
+  icases dghostVar_halves _ _ $$ Hsent with ⟨HsentA, HsentF⟩
+  imod dghostVar_alloc (GF := GF) ([] : List k8s_io.apimachinery.pkg.watch.Event) with ⟨%γrecv, Hrecv⟩
+  icases dghostVar_halves _ _ $$ Hrecv with ⟨HrecvA, HrecvF⟩
+  let res : SpscNames := ⟨γcR, γsent, γrecv⟩
+  let γ : KWatchNames := { γ0 with inc := inc, res := res, raws := raws, evs := evs }
+  imod inv_alloc nroot ⊤ iprop(spscInv res (kResElem c W γ cd sel emp inS m Q) (fun _ => iprop(True)) ∗
+      (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive))
+    $$ [HoR HsentA HrecvA HsentF He Hpd1] with #Hinv
+  · inext
+    isplitl [HoR HsentA HrecvA]
+    · iapply spscInv_intro res _ _ (.Buffered []) [] [] (by simp [inflight]) $$ HoR HsentA HrecvA
+      simp only [spscInvMatch]
+      iapply BigSepL.bigSepL_nil.2
+      iempintro
+    · ileft
+      unfold kResInv
+      iexists [], [], [], default
+      unfold spscProducer
+      iframe
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iexact Hrlb
+      isplitr
+      · ipureintro; rfl
+      ileft; ipureintro; rfl
+  imodintro
+  iexists inc, res, raws, evs, procd, alive
+  have hP : kInElem (GF := GF) { γ0 with inc := inc, res := res, raws := raws, evs := evs } cd inS m Q =
+      kInElem { γ0 with raws := raws } cd inS m Q := by
+    unfold kInElem kCancelled kStopped kProcExited; rfl
+  rw [hP]
+  isplitr
+  · iexact Hinc
+  isplitr
+  · unfold kResChan
+    iframe #
+  isplitl [Hip Hr1 Hr2]
+  · unfold kProdSt kIncTok
+    isplitl [Hip Hr1]
+    · iexists [], []
+      iframe
+      ipureintro; rfl
+    · iexists []
+      iframe
+      isplitr
+      · ipureintro; exact List.Sublist.refl _
+      · ileft; ipureintro; rfl
+  isplitl [Hic Hpd2 Hal Hpx]
+  · unfold kProcSt kResAlive
+    iframe
+  unfold spscConsumer
+  iexact HrecvF
+
+/-- **Every context's `Err()` returns client errors**, from the client's watcher (its connection's
+facts, `ctxErrClientAllW`): `createWatchChan`'s `wc.ctx`. -/
+theorem clientWatchOk_ctxErr (cl : Loc) (γk : KVNames) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) :
+    clientWatchOk (GF := GF) cl γk ∗ context.isContext ctx cs ⊢ ctxErrClient ctx cs := by
+  iintro ⟨#Hcw, #Hctx⟩
+  iunfold clientWatchOk at Hcw
+  icases Hcw with ⟨%w, %V, -, #Hw, -⟩
+  iunfold client.isClientWatcher at Hw
+  icases Hw with ⟨%cs', %vs, -, -, -, -, -, -, -, Hsf, -⟩
+  iunfold client.watchSrvFacts at Hsf
+  icases Hsf with ⟨-, Hcf⟩
+  iunfold client.watchConnFacts at Hcf
+  icases Hcf with ⟨-, -, -, -, -, -, #Hca, -, -⟩
+  iunfold client.ctxErrClientAllW at Hca
+  iapply Hca $$ Hctx
+
 end stores
 
 /-! ## `storage.Everything` (`createWatchChan`'s predicate for an empty one; k8s 7f-5b H2 (c)) -/
