@@ -629,3 +629,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
+
+## 2026-11-16: the watch's annotated object is not expressible for the driver (k8s 7f-6 D)
+
+- **Spec.** `store.Watch.spec`'s vocabulary (`Proof/k8s_io/apiserver/pkg/storage/etcd3/WatchDefs.lean`):
+  `WatchSpec.annotate : Obj → Obj`, `watchContractOk`'s second conjunct (`AnnotateInitialEventsEndBookmark`'s post
+  `S.objAt x (W.annotate o) rv`), `wevAt` (`S.objAt v.Object' (if e.ann then W.annotate e.o else e.o) …`); through
+  them `New.spec`'s `storeWatchOk` (given `watchContractOk S W codec`).
+- **Defect.** No `W : WatchSpec DObj` satisfies `watchContractOk driverSpec W codec`, so the driver can never produce
+  the `storeWatchOk` that `store.Watch.spec` takes (the 7f-6 closed theorems could not be linked). The driver's
+  `driverSpec.objAt` is `objAtD x o rv := ∃ p n, … ∗ p ↦ o.toObj n`, and `DObj.toObj` sets `Annotated' := false`
+  (`DObj` has no annotation; every stored object is unannotated). Go's `AnnotateInitialEventsEndBookmark` on the
+  driver's `*Obj` calls `SetAnnotations`, which sets `Annotated = true` (`examples/k8s/etcd3/k8setcd3.go:306-314`):
+  the post `objAtD x (W.annotate o) rv` is false for every `annotate`. For the same reason `toWEvent` cannot give the
+  bridge's `kWEvRel e w` (`KWatchBridge.lean`, `kToWEv`: `Annotated' := e.ann`) from `wevAt` for the annotated bookmark,
+  the event `watchOk` checks the annotation of (`watchListOk`).
+- **Evidence.** Code reading of the three definitions and the Go driver; found writing stage D's `toWEvent` spec.
+- **Proposed change.** `WatchSpec` describes the annotated object by an ownership predicate instead of a function on
+  bodies: `structure WatchSpec (GF) (Obj) where annAt : GoInterface → Obj → GoString → IProp GF` ("`x` holds the body
+  `o`, annotated, at `rv`"); `watchContractOk`'s annotate conjunct posts `W.annAt x o rv`; `wevAt` reads
+  `if e.ann then W.annAt v.Object' e.o rv' else S.objAt v.Object' e.o rv'`. The driver's `W`: `annAt x o rv := ∃ p n,
+  ⌜x = mkOk (*Obj) p ∧ p ≠ null ∧ rv = rvStr n⌝ ∗ p ↦ { o.toObj n with Annotated' := true }`. Users: `WatchDefs`
+  (3 places), `watchChan__transform`'s spec and proof (the bookmark), `New.spec` (the `W` binder's type);
+  `store.Watch.spec`'s statement changes only in `W`'s type. No trust-base change.
+- **Decision.** Pending (to etcd-grove-02).

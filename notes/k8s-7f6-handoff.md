@@ -1,6 +1,37 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, third 7f-6 agent): stage B done, at the land stop
+## START HERE (2026-11-16, fourth 7f-6 agent): stage D started, STOPPED on a spec defect
+
+- **Branch:** `k8s-7f6` (lean `8448906500` + this checkpoint). Go target `k8s-7f6-target` now `88a1646324`
+  (watch.go = lean's B1 split + D's functions; its watch tests pass, 83.7 s). Its scratch worktree:
+  `/shared/tmp/k8s7f6d/target`.
+- **Done (this checkpoint):** D's Go (`runWatch`, `watchEvents`, `consume`, the timing constants) on
+  `k8s-7f6`'s watch.go with its translation (`etc/goose.py --project k8s-apiserver`; `gen-init --check`
+  clean; Code/GeneratedProof modules build). No Lean spec or proof of D yet.
+- **Risks checked:** context producers exist (`wp_WithCancel_Background_of` gives `ctxValueFrom`;
+  `metadata.outgoingCtxOkC_bgFrom`, `k8sctx.k8sCtxOk_bgFrom`; `ctxErrClient` from `ContextErrsClient`);
+  Perennial's `time` specs (`NewTimer`/`isTimer` a chan bag, `After`, `Timer.Stop`, `Sleep`, `Since`, `Now`)
+  exist; an SPSC receive in a `select` is `spsc_rcv_au`'s `recvAu` (precedent `watchChan__serialProcessEvents`).
+- **BLOCKER (ledger 2026-11-16, "the watch's annotated object is not expressible for the driver"):**
+  no `W : WatchSpec DObj` satisfies `watchContractOk driverSpec W codec` (`objAtD` pins `Annotated' = false`,
+  Go's annotate sets it), so `storeWatchOk` is unobtainable for the driver and `toWEvent` cannot give
+  `kWEvRel` for the annotated bookmark. Proposed: `WatchSpec.annAt` (ownership predicate) in place of
+  `annotate`. Waiting for etcd-grove-02's decision.
+- **Next, after the decision:** (if accepted) the WatchDefs/transform/New change (whoever the coordinator
+  names), then D in order: `watchOptions`, `toWEvent`, `encodeWEvents`, `lastObj`, `consume`, `watchEvents`,
+  `runWatch` (Scope §5; post: `WFailed`, or the encoded events `ws` with `Forall₂ kWEvRel kes ws` and either
+  `kNonErr kes = []` or `□ Q lb σ ∗ □ Q lb0 σ0 ∗ ⌜kStartOk m σ0 st ∧ kStreamOk … σ st kes⌝`: what
+  `streamOkL_of_kStreamOk` takes). Done token: `PDone' := dghostVar γd discard true`, driver holds the
+  full `false`, updates it after `Stop`, then `cancel`.
+- **Stage E obligations from B:** still open (History, third agent).
+- **Pitfalls:** as in B (below); `etc/goose.py` with GOWORK unset; the Code change rebuilds every importer.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`.
+
+## History
+
+### 2026-11-16, third 7f-6 agent: stage B done (landed)
 
 - **Branch:** `k8s-7f6` (lean `d559d8bc9f` merged). Go target: `k8s-7f6-target` (`4952cb3b91`): its
   watch.go predates the B1 split: **port the B1 split (and B2's `step`) there before stage D.**
@@ -33,8 +64,6 @@
   builds; gates under `flock /shared/tmp/etcd-grove-full-build.lock`. Go: `cd examples/k8s/etcd3;
   GOWORK=off go test -run 'TestWatchOkEdges|TestGenWatchCases' .`; translation:
   `PATH=/usr/local/go/bin:$PATH etc/goose.py --project k8s-apiserver` (GOWORK unset).
-
-## History
 
 ### 2026-11-16, second 7f-6 agent: B1
 
