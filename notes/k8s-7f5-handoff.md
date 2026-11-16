@@ -27,6 +27,18 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-16, twentieth 7f-5 agent, continued): clientWatchCE closed; land-stop checks
+
+- 81 decided (questions.md): T-CE approved; element with `clientErr` + `errPtrOk`; nonissue written.
+- Done (commit 6a39b61246 and after): `examples/k8s/etcd3/streamerr_test.go` (`TestStreamErrorCells`, 20/20 runs
+  pass, `/shared/tmp/k8s7f-ce/stream20.txt`); T-CE in `InvGrpcStream.lean` (`cliStreamErr` + `errCellOk`, docstring
+  with the grpc citations and the test); ledger entry (2026-11-16, the client watch's element); `closeErrOk`/`closeErrP`/
+  `errPtrOk` (`ClientErr.lean`) through the client watch (element, `closeErrPub`, `errP`, `runCore`, the stream
+  specs); startWatching over `watcher.Watch.spec` (placeholder deleted); nonissue `etcd-watch-refused-create-err-plain`.
+  Forms: questions.md (twentieth agent). run/serveSubstream checked with lean-check --fast --split.
+- Next: full build (flock, 64G) and the land-stop checks (tcb --check: the trusted diff is T-CE only, no axiom/sorry
+  change expected; gen-interface; bounds/mode; STATUS). HARD STOP before etc/land.sh. Then step 6/7.
+
 ## START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE unit, step 1 done, HARD STOP (trusted text)
 
 - Step 1 (what grpc's stream texts give of their errors): `cliStreamErr` (`InvGrpcStream.lean:347`) has
