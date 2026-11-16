@@ -1,6 +1,40 @@
 # kvraftN: handoff
 
-## START HERE (2026-11-16, etcd-grove-02's kvraftN agent)
+## START HERE (2026-11-16, etcd-grove-02's replacement kvraftN agent)
+
+Branch `kvraftN`, worktree `/shared/etcd-grove-restartN`. Scope: `notes/kvraftN-scope.md` (R2; `B = 1000`).
+The stage's last part, kvdurable, is linked; what is left is landing it.
+
+Done:
+- kv, kvreconf: landed (lean `e9f67cdb20`, `5d2a12df97`).
+- kvdurable: `raft_kvdurableN_porcupine_safe` approved (user, 2026-11-16, via etcd-grove-02; Q9) and linked
+  (`0286152792`: `MainN` linked, `kvdurableProgramN`, `raft_kvdurableN_adequate`, `Results.lean`); lean merged (`9bc869c902`);
+  STATUS entry (`481ff6f024`).
+- Go: `TestMainN` runs 1-7 PASS, run 8 (k = 3, `MaxInflightMsgs 1`, `MaxSizePerMsg 0`) hit the 60-min timeout
+  (`notes/kvdurableN-draft.md`, Evidence); liveness, decided by etcd-grove-02. Runs 9-20 were killed with the old session.
+- Forced-options comparison (Q9's "confirm not new": run 8's options through `Main`'s path vs `MainN(3)`), one run each in
+  parallel from 14:44 UTC (`/shared/tmp/kvraftN/forced/forced2.sh`, binary `kvdurable-forced.test`; its source, a temporary
+  `zz_forced_test.go`, is not kept): at 51 min neither path had finished (2h timeout); results in `forced2.txt`.
+- Full build at `481ff6f024` ok; `etc/gates.sh`: all ok but bounds 379 vs 378 (kvdurable `MainN.spec`'s `receiptBound`,
+  accepted in advance, Q9), recorded (`etc/bounds-check.py --check --update`); tcb 877/4 and mode 453 unchanged.
+
+Next, in order:
+1. Land, only on etcd-grove-02's go (merge lean first if it moved):
+   `LAKE_PACKAGES=/shared/tmp/manifest-e9e.json PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9 etc/land.sh` (GOWORK unset).
+
+Pitfalls:
+- Builds (full or targeted): `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build [TARGET...]`
+  (common rules, "Memory: two build slots"; no extra flock/systemd-run; exit 143: retry once, then report). Gates:
+  `flock /shared/tmp/etcd-grove-full-build.lock` with `LAKE_PACKAGES=... PERENNIAL_CHECKOUT=...`, GOWORK unset.
+- lean-check: `--max-open 2`, `--stop` before builds and at the end of a turn; `free -g` ≥ 30 GB available first.
+- `.lake/packages` links only iris, batteries, Qq (a stray perennial copy was moved to `/shared/tmp/kvraftN/perennial-aside`).
+- Go: GOWORK=off, 32G cap, in the background; kvdurable k = 5 runs take ~6 min, some option draws far longer.
+- Keep voter lists symbolic (no `decide` on boot voter lists, no bare `iframe` over their `[∗list]`).
+- `Scratch/` (untracked): the old session's probes (`KdNDraft.lean` = `/shared/tmp/kvraftN/KdNDraft.lean`); not built.
+
+## History
+
+### Earlier START HERE (kvdurable to the approval stop)
 
 Branch `kvraftN`, worktree `/shared/etcd-grove-restartN`. Scope: `notes/kvraftN-scope.md` (R2 for kvreconf, kvdurable;
 `B = 1000`; each closed statement goes to the user before linking).
@@ -34,8 +68,6 @@ Pitfalls:
   32G cap; run them in the background.
 - Keep voter lists symbolic (no `decide` on `bootVoters k`, no bare `iframe` over their `[∗list]`).
 - The existing closed theorems keep their text (`Main()` sets `MaxReplicas = 9`).
-
-## History
 
 ### kv and kvreconf (2026-11-16)
 
