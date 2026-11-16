@@ -2,8 +2,8 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Cluster__startNew.lean`. Lean-first
 (no Rocq counterpart).
 
-Under `c.mu`: with fewer than `maxReplicas` replicas (the map's keys are `1 … nextID-1`, so
-`nextID ≤ 9`), the fresh id `nextID` is joined (`joinAuth_join`: not among the started ids; its
+Under `c.mu`: with fewer than `opts.MaxReplicas` replicas (the map's keys are `1 … nextID-1`, so
+`nextID ≤ MaxReplicas`), the fresh id `nextID` is joined (`joinAuth_join`: not among the started ids; its
 durable state at `RaftState.init` and its vacant id), its storage allocated and registered
 (`kvrStor_alloc`), its node restarted from the fresh storage (`RestartNode`, the bootstrap voters at
 `0` from the store's cluster, its update fired at once, `kvr_restartAu`; 2026-11-01, durability
@@ -81,11 +81,18 @@ theorem Cluster.startNew.wp_proof
   iunfold clusterLockInv at HL
   iNamed HL
   obtain ⟨HdomR, HdomU, Hvn, Hn10⟩ := Hdom
-  have Hsz : GMap.size R = uint.nat nid - 1 := size_of_keys R (uint.nat nid) Hn10 (by omega) HdomR
+  have HM := Ho.1.2.1
+  have Hsz : GMap.size R = uint.nat nid - 1 :=
+    size_of_keys R (uint.nat nid) (by have := HM.2; word) (by omega) HdomR
   try wp_auto
   wp_apply wp_map_len_lt mR R _ $$ [$HR] as ⟨HR, %Hlt⟩
+  ihave #Hos := Hopts
+  icases typedPointsto_split _ _ _ $$ Hos with Hos
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hos with ⟨-, #oR, -⟩
+  try wp_auto
   wp_if_destruct
-  · -- `maxReplicas` started: nothing changes
+  · -- `opts.MaxReplicas` started: nothing changes
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps
       Hrseq Hstp Htoks]
@@ -96,7 +103,7 @@ theorem Cluster.startNew.wp_proof
       ipureintro; exact ⟨HdomR, HdomU, Hvn, Hn10⟩
     try wp_auto
     iapply HΦ; itrivial
-  have Hn9 : uint.nat nid < 10 := by word
+  have Hn9 : uint.nat nid ≤ uint.nat o.MaxReplicas' := by word
   try wp_auto
   wp_apply wp_NewMemoryStorage false $$ [$Hraft] as %ms %γs ⟨%Hsz, #Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
   try wp_auto
@@ -106,7 +113,7 @@ theorem Cluster.startNew.wp_proof
   have Hnid0 : nid ≠ W64 0 := by intro h; rw [h] at Hvn; simp at Hvn
   wp_apply wp_config γr vs c nid «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
   obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
-  have Hvnd : vs.Nodup := by rw [Ho.2]; exact bootVoters_nodup _ (by have := Ho.1.2.1; word)
+  have Hvnd : vs.Nodup := by rw [Ho.2]; exact bootVoters_nodup _ (by have := HM.1; have := HM.2; word)
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
   icases Hcl' with ⟨#Hic, -, #Hca0, -, -⟩
@@ -155,15 +162,17 @@ theorem Cluster.startNew.wp_proof
   wp_apply wp_sender γr vs c nid $$ [$Hc $Hknown] as %f #Hf
   -- the id's read-sequence element
   have e2 : uint.nat (nid + W64 1) = uint.nat nid + 1 := by word
-  have Hfr : freshIds (uint.nat nid) = nid :: freshIds (uint.nat (nid + W64 1)) := by
-    rw [freshIds_cons _ Hn9, e2]; congr 1; word
-  ihave Hrseq : iprop([∗list] i ∈ nid :: freshIds (uint.nat (nid + W64 1)), i ↪[γr.rseq] W64 0)
+  have Hfr : freshIdsM (uint.nat o.MaxReplicas') (uint.nat nid) =
+      nid :: freshIdsM (uint.nat o.MaxReplicas') (uint.nat (nid + W64 1)) := by
+    rw [freshIdsM_cons _ _ Hn9, e2]; congr 1; word
+  ihave Hrseq : iprop([∗list] i ∈ nid :: freshIdsM (uint.nat o.MaxReplicas') (uint.nat (nid + W64 1)),
+      i ↪[γr.rseq] W64 0)
     $$ [Hrseq]
   · rw [← Hfr]; iexact Hrseq
   icases (BigSepL.bigSepL_cons (Φ := fun _ i => iprop(i ↪[γr.rseq] W64 0))).1 $$ Hrseq
     with ⟨Hseq, Hrseq⟩
   have Hvl : (vs.length : Int) < 2 ^ 61 := by
-    rw [Ho.2, bootVoters_length]; have := Ho.1.2.1; word
+    rw [Ho.2, bootVoters_length]; have := HM.1; have := HM.2; word
   wp_apply (wp_newReplica γr vs nid n «$r0_ptr» (c.[RCluster, go!"Stats"]) bp tk f ms γs _ K Htk Hvnd
       Hvl (bootCS_is vs Hvnd))
     $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap

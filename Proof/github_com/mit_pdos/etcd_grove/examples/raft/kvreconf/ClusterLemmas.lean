@@ -25,7 +25,7 @@ namespace raft_kvreconf
 theorem bootVoters_length (k : Nat) : (bootVoters k).length = k := by
   simp [bootVoters]
 
-theorem bootVoters_mem (k : Nat) (hk : k ≤ 10) (i : w64) :
+theorem bootVoters_mem (k : Nat) (hk : k < 2 ^ 62) (i : w64) :
     i ∈ bootVoters k ↔ 1 ≤ uint.nat i ∧ uint.nat i ≤ k := by
   simp only [bootVoters, List.mem_map, List.mem_range]
   constructor
@@ -34,7 +34,7 @@ theorem bootVoters_mem (k : Nat) (hk : k ≤ 10) (i : w64) :
     refine ⟨uint.nat i - 1, by omega, ?_⟩
     word
 
-theorem bootVoters_nodup (k : Nat) (hk : k ≤ 10) : (bootVoters k).Nodup := by
+theorem bootVoters_nodup (k : Nat) (hk : k < 2 ^ 62) : (bootVoters k).Nodup := by
   unfold bootVoters
   rw [List.Nodup, List.pairwise_map]
   refine List.Pairwise.imp_of_mem ?_ (List.nodup_range (n := k))
@@ -44,7 +44,7 @@ theorem bootVoters_nodup (k : Nat) (hk : k ≤ 10) : (bootVoters k).Nodup := by
   apply hne
   word
 
-theorem bootVoters_zero (k : Nat) (hk : k ≤ 10) : W64 0 ∉ bootVoters k := by
+theorem bootVoters_zero (k : Nat) (hk : k < 2 ^ 62) : W64 0 ∉ bootVoters k := by
   rw [bootVoters_mem k hk]; intro h; have := h.1; word
 
 theorem bootVoters_getElem (k : Nat) (j : Nat) (hj : j < k) :
@@ -52,7 +52,7 @@ theorem bootVoters_getElem (k : Nat) (j : Nat) (hj : j < k) :
   simp [bootVoters, hj]
 
 /-- A map whose keys are exactly `1 … nid-1` has `nid - 1` entries. -/
-theorem size_of_keys {V : Type} (R : GMap w64 V) (nid : Nat) (hn : nid ≤ 10) (h1 : 1 ≤ nid)
+theorem size_of_keys {V : Type} (R : GMap w64 V) (nid : Nat) (hn : nid < 2 ^ 62) (h1 : 1 ≤ nid)
     (hR : ∀ i, (R !! i).isSome ↔ 1 ≤ uint.nat i ∧ uint.nat i < nid) :
     GMap.size R = nid - 1 := by
   rw [GMap.size_eq_length R (bootVoters (nid - 1)) (bootVoters_nodup _ (by omega)), bootVoters_length]
@@ -60,10 +60,10 @@ theorem size_of_keys {V : Type} (R : GMap w64 V) (nid : Nat) (hn : nid ≤ 10) (
   rw [bootVoters_mem _ (by omega), hR]
   omega
 
-theorem freshIds_cons (k : Nat) (hk : k < 10) :
-    freshIds k = W64 (k : Int) :: freshIds (k + 1) := by
-  unfold freshIds
-  have : ∀ n, n ≤ 10 → k < n →
+theorem freshIdsM_cons (m k : Nat) (hk : k ≤ m) :
+    freshIdsM m k = W64 (k : Int) :: freshIdsM m (k + 1) := by
+  unfold freshIdsM
+  have : ∀ n, n ≤ m + 1 → k < n →
       ((List.range n).filter (fun i => decide (k ≤ i))).map (fun i : Nat => W64 (i : Int)) =
       W64 (k : Int) :: ((List.range n).filter (fun i => decide (k + 1 ≤ i))).map
         (fun i : Nat => W64 (i : Int)) := by
@@ -82,7 +82,11 @@ theorem freshIds_cons (k : Nat) (hk : k < 10) :
         have h1 : (List.range k).filter (fun i => decide (k + 1 ≤ i)) = [] := by
           rw [List.filter_eq_nil_iff]; intro a ha; simp at ha; simp; omega
         simp [h0, h1]
-  exact this 10 (by omega) hk
+  exact this (m + 1) (by omega) (by omega)
+
+theorem freshIds_cons (k : Nat) (hk : k < 10) :
+    freshIds k = W64 (k : Int) :: freshIds (k + 1) :=
+  freshIdsM_cons 9 k (by omega)
 
 section cs
 variable [GooseExts]

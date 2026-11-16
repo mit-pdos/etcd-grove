@@ -19,7 +19,6 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -437,9 +436,6 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
-axiom grpc.GenericServerStream.Context.wp_proof
-axiom grpc.GenericServerStream.Recv.wp_proof
-axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
@@ -561,7 +557,6 @@ axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
-axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
@@ -581,12 +576,6 @@ axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
-axiom pbLeaseGrantRequestT_reg
-axiom pbLeaseGrantResponseT_reg
-axiom pbLeaseLeasesRequestT_reg
-axiom pbLeaseLeasesResponseT_reg
-axiom pbLeaseTimeToLiveRequestT_reg
-axiom pbLeaseTimeToLiveResponseT_reg
 axiom pbMessageC_reg
 axiom pbPutRequestT_reg
 axiom pbPutResponseT_reg
@@ -637,7 +626,6 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.MessageType.String.wp_proof
-axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -688,7 +676,6 @@ axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
-axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
@@ -741,10 +728,7 @@ axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.incomingOf_cancellableContext
-axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom v3rpc.pbWatchRequestT_reg
-axiom v3rpc.pbWatchResponseT_reg
 axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof

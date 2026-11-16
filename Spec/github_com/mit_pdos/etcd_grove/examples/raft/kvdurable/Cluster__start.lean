@@ -38,7 +38,7 @@ attribute [local instance] kdStorageModel
 abbrev Cluster.start.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) (id : w64) (S : RaftState)
     (o : Option StorFile),
-  1 ≤ uint.nat id → uint.nat id ≤ 9 →
+  1 ≤ uint.nat id → uint.nat id ≤ γ.max →
   {{ isClusterC γ vs dir c ∗ kdFileInv γ dir id ∗ nodeVacant γ.r.cluster id ∗
       kdWriter γ id S o ∗ repKnown γ id }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"start")) (Val #id))

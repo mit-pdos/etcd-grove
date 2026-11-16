@@ -63,6 +63,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the clusterN Scope (2026-11-15): putget3 with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN',
+         # leaseN (2026-11-16, notes/leaseN-plan.md): the lease examples with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN',
          # txnlinfaultsN (2026-11-15, notes/txnlinfaultsN-plan.md): partition with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
@@ -92,6 +95,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
          # the auth3 Scope's A1 (2026-11-14): authkv with three members
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
+         # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.authN',
          # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
@@ -2870,6 +2875,10 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
@@ -2884,6 +2893,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.auth3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':

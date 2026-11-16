@@ -1,12 +1,19 @@
 /-
 `(*Event_EventType).String()` (k8s 7f-5a-P: the etcd3 watcher's `parseEvent` calls `e.Type.String()`
 on the field's address, `etcd3.lean`'s `MethodResolve (PointerType Event_EventType.ty) "String"`):
-the value method `Event_EventType.String` of the value read at the pointer, so some string, the
-pointer's value unchanged (read-only). In Go the pointer's method is the value method of `*l`; the
-translation does not say so for a names-only value method (goose emits the `ptr_M_unfold` of a value
-method only when the method is not axiomatized), so no proof derives this from
-`mvccpb.Event_EventType.String.spec` yet: `parseEvent.wp_proof` takes it as a callee spec, and its
-discharge is open (`notes/k8s-7f5-handoff.md`). Lean-first.
+some string, the pointer's value unchanged (read-only). The trust boundary: an axiom,
+`Proof/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__StringPtr.lean` (T5-f over the pointer receiver,
+approved by the user 2026-11-15 via etcd-grove-81; `notes/k8s-7f5a-draft.md` §11.5). Why it is
+faithful: `String` is a value method (`kv.pb.go:50`); the method set of `*Event_EventType` contains it
+by Go's method-set rule ("the method set of a pointer to a defined type T is the set of all methods
+declared with receiver *T or T"), as the compiler's wrapper that reads `*l` and calls the value method:
+so the call reads the value at `l` (the read-only points-to), writes nothing, and returns what the
+value method returns, some string for every value once mvccpb is initialized (`String` reads the
+enum's descriptor, which `file_kv_proto_init` fills; unknown values print as numbers); a nil `l`
+panics, which `l ↦□ t` excludes. Go evidence: `examples/premisefix/eventtypestr/` (the pointer call
+equals the value call for named, unknown, negative and extreme values, through every call form;
+read-only under `-race`; nil panics). When goose emits the `ptr_M_unfold` of an axiomatized value
+method (`notes/perennial-changes.md`), this becomes a theorem of a value axiom. Lean-first.
 -/
 module
 

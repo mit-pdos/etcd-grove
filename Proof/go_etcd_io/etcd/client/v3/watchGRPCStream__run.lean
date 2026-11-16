@@ -137,7 +137,7 @@ theorem watchGRPCStream.run.wp_proof
       simp only [client.RunSt.init, client.RunSt.reconnect]
       iframe
       iframe Hse
-      ihave #Hnil := statusErrOk_nil (GF := GF)
+      ihave #Hnil := closeErrOk_nil (GF := GF)
       iframe Hnil
       isplitr
       · ipureintro; exact HgOk0
@@ -174,7 +174,7 @@ theorem watchGRPCStream.run.wp_proof
       iexists client.RunSt.init.reconnect l1, ∅, [], m1, s1, GoInterface.nil
       simp only [client.RunSt.init, client.RunSt.reconnect]
       iframe
-      ihave #Hnil := statusErrOk_nil (GF := GF)
+      ihave #Hnil := closeErrOk_nil (GF := GF)
       iframe Hnil
       isplitr
       · ipureintro; rfl
@@ -873,7 +873,7 @@ theorem watchGRPCStream.run.wp_proof
                 S1.CL = S.CL ∧ S1.CS = S.CS⌝ ∗
               wgsF G.wgs go!"substreams" ↦ mref ∗ ownMap mref (DFrac.own 1) S1.M ∗
               wgsF G.wgs go!"resuming" ↦ s ∗ s ↦* S1.l ∗ ownSliceCap Loc s (DFrac.own 1) ∗
-              wgsF G.wgs go!"closeErr" ↦ e' ∗ statusErrOk e' ∗
+              wgsF G.wgs go!"closeErr" ↦ e' ∗ closeErrOk e' ∗
               ([∗list] j ∈ S1.ansd, client.ansH γs j) ∗ ([∗list] X ∈ S1.regs, client.idH γs X) ∗
               ([∗map] ws ↦ _u ∈ U, client.wsElem V G n γs S1 ws) ∗ monoNatAuthOwn G.γend 1 n)))
           isplitl [pbresp Hsub Hm Hres Hs Hscap HcF Hans Hids Hidn Hels Hat Hwid Hca Hcrs Hhdr Hcr Hcomp Hfr Hev
@@ -2563,7 +2563,8 @@ theorem watchGRPCStream.run.wp_proof
       inext
       iintro %err Herr
       iunfold errP at Herr
-      icases Herr with ⟨%Hen, #Herrk, #Hse, Hpback⟩
+      icases Herr with ⟨%Hen, #Herrk, #Hsec, Hpback⟩
+      ihave #Hse := closeErrOk_status _ $$ Hsec
       wp_auto
       wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh %Hbh
       · iframe Hse HGctx
@@ -2605,7 +2606,7 @@ theorem watchGRPCStream.run.wp_proof
           · iexact HG
           iapply client.runExit_of_core V G γs b n mi clm csm closeErr_ptr err
           iframe
-          iframe Hse
+          iframe Hsec
         (try wp_auto)
         wp_apply wp_backoff G.wgs G.ctx G.cd bo err $$ [] as %bo' -
         · iframe Hse Hvars HGctx Fctx
@@ -2905,7 +2906,7 @@ theorem watchGRPCStream.run.wp_proof
       · iexact HG
       iapply client.runExit_of_core V G γs b n mi clm csm closeErr_ptr err
       iframe
-      iframe Hse
+      iframe Hsec
     -- ctx.Done
     iapply BigAndL.bigAndL_cons.2
     isplit
@@ -2921,7 +2922,7 @@ theorem watchGRPCStream.run.wp_proof
       wp_for_post
       isplitr
       · ipureintro; rfl
-      ihave #Hnil := statusErrOk_nil (GF := GF)
+      ihave #Hnil := closeErrOk_nil (GF := GF)
       iexists mi
       rw [hV]
       isplitr
@@ -2996,7 +2997,7 @@ theorem watchGRPCStream.run.wp_proof
       · wp_for_post
         isplitr
         · ipureintro; rfl
-        ihave #Hnil := statusErrOk_nil (GF := GF)
+        ihave #Hnil := closeErrOk_nil (GF := GF)
         iexists mi
         rw [hV]
         isplitr

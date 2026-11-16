@@ -1,6 +1,9 @@
 package kvdurable
 
 import (
+	"math/rand"
+	"os"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -155,7 +158,7 @@ func TestStorageRoundTrip(t *testing.T) {
 }
 
 func TestPutGetRead(t *testing.T) {
-	c := StartCluster(Options{Voters: 3, MaxSizePerMsg: 1 << 20, MaxInflightMsgs: 256}, t.TempDir())
+	c := StartCluster(Options{Voters: 3, MaxReplicas: 9, MaxSizePerMsg: 1 << 20, MaxInflightMsgs: 256}, t.TempDir())
 	defer c.Stop()
 	if v := c.Get("k"); v != "" {
 		t.Fatalf("initial Get = %q", v)
@@ -177,6 +180,23 @@ func TestPutGetRead(t *testing.T) {
 
 func TestMain_(t *testing.T) {
 	Main(t.TempDir())
+}
+
+// TestMainN runs MainN on one random odd member count from {1, 3, 5} (7 once took 15 minutes:
+// notes/kvraftN-scope.md); KVDURABLE_MEMBERS overrides it (1 to 1000, the bound of
+// raft_kvdurableN_porcupine_safe).
+func TestMainN(t *testing.T) {
+	ks := []uint64{1, 3, 5}
+	k := ks[rand.Intn(len(ks))]
+	if s := os.Getenv("KVDURABLE_MEMBERS"); s != "" {
+		v, err := strconv.ParseUint(s, 10, 64)
+		if err != nil || v < 1 || v > 1000 {
+			t.Fatalf("KVDURABLE_MEMBERS=%q: not a member count in 1..1000", s)
+		}
+		k = v
+	}
+	t.Logf("kvdurable: k=%d (rerun with KVDURABLE_MEMBERS=%d)", k, k)
+	MainN(t.TempDir(), k)
 }
 
 // TestRounds runs rounds of Main's test, each with its own random options, and checks that

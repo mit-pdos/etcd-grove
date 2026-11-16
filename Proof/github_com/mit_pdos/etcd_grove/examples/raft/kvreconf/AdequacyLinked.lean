@@ -52,9 +52,35 @@ theorem raft_kvreconf_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   kvreconf_adequate_of kvreconf_wp_Main_kvrGF σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
+
+/-- `MainN`'s linked result at `kvrGF` (2026-11-16, kvraftN). -/
+theorem kvreconf_wp_MainN_kvrGF : kvrMainNSpec := by
+  intros
+  exact raft_kvreconf.wp_MainN
+
+/-- **Porcupine never rejects the reconfiguring store's trace on `k` voters** (`kvreconfN_adequate_of`,
+`Adequacy.lean`, with `MainN`'s linked result; 2026-11-16, kvraftN): every real execution of
+`kvreconfProgramN k`, `1 ≤ k ≤ 1000` (the store package's initialization, then `MainN(k)`, which starts
+a cluster of random options on the voters `1 … k`, with up to `k + 4` replicas, runs the randomized
+linearizability test under configuration changes and leadership disruptions, panics unless porcupine
+answers `Ok`, and stops the cluster) from a fresh state with one thread, of `n < 2^61` steps: the main
+thread's result, if any, is `#()`; no thread is stuck; no thread has ended in a panic. -/
+theorem raft_kvreconfN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
+    [hLog : log.NewModel] (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvreconfProgramN k], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  kvreconfN_adequate_of kvreconf_wp_MainN_kvrGF k hk1 hk σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+
 end adequacy
 
 end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.raft_kvreconf_adequate
+#print axioms Perennial.EtcdGrove.raft_kvreconfN_adequate

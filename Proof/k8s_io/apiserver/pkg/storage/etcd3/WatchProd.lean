@@ -104,7 +104,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [Pos.Countable KRaw]
 
 instance eventAt_persistent (σ : KVState) (p : Loc) (r : KRaw) :
     Persistent (eventAt (GF := GF) σ p r) := by
@@ -288,7 +287,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] [Pos.Countable KRaw]
+variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj]
 
 /-- **A watch-list's initial raw events** at the start point `st` (`syncPaginated`'s pages):
 the key-values in scope of the store at `st`, in key order. -/

@@ -53,7 +53,7 @@ abbrev newReplica.spec : Prop :=
   -- (2026-11-01, stage II (j), the start functions) the id among the cluster's (`isReplica`), the
   -- membership's size (`repOwn`), and the replicated state at the stored snapshot's index (the
   -- snapshotter's `known`, the image's snapshot index's lower bound): what S2 missed
-  1 ≤ uint.nat id → uint.nat id ≤ 9 → GMap.size m.ids < 2 ^ 61 →
+  1 ≤ uint.nat id → uint.nat id ≤ γ.max → GMap.size m.ids < 2 ^ 61 →
   ap.length = uint.nat M.snap.Metadata'.Index' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable ∗ context.isClosedchanInit ∗
       kdCluster γ vs ∗ isStats sts ∗ isReadSeqs γ sq ∗ kdFileInv γ dir id ∗

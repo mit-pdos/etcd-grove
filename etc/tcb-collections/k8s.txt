@@ -18,6 +18,7 @@ axiom NewMaintenance.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom apierrors.HasStatusCause.wp_proof
 axiom apierrors.IsTimeout.wp_proof
+axiom apierrors.NewInternalError.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.String.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
@@ -38,6 +39,7 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
+axiom errors.AsLeafTy.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
@@ -74,12 +76,17 @@ axiom insecure.NewCredentials.wp_proof
 axiom k8sfeature.featureOff_persistent
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
+axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom klog.Warningf.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
+axiom metrics.RecordEtcdBookmark.wp_proof
+axiom metrics.RecordEtcdEvent.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
 axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
+axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom pbAuthenticateRequestT_reg
 axiom pbAuthenticateResponseT_reg
 axiom pbCompactionRequestT_reg
@@ -118,6 +125,7 @@ axiom rpctypes.errDesc_etcdError
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom status.Status.Code.wp_proof
 axiom strconv.FormatInt.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
@@ -125,12 +133,14 @@ axiom strings.Contains.wp_proof
 axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
+axiom time.Duration.Seconds.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.Start.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
+axiom wait.Jitter.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Duration.wp_proof

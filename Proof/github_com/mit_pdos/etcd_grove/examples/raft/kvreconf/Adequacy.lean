@@ -44,6 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequa
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.PkgTable
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Main
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 
@@ -156,9 +157,53 @@ theorem kvreconf_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ipureintro
   rfl
 
+
+/-- `MainN`'s spec at `kvrGF` (2026-11-16, kvraftN), as `kvrMainSpec`. -/
+abbrev kvrMainNSpec : Prop :=
+  ∀ [hG : HeapGS HasLC.hasLC kvrGF] [go.Semantics]
+    [github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions],
+    raft_kvreconf.MainN.spec (GF := kvrGF) (hG := hG)
+
+/-- The store's program on `k` voters: the package's initialization, then `MainN(k)`. -/
+def kvreconfProgramN [GoSemanticsFunctions] (k : Nat) : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN) #(W64 (k : Int))
+
+/-- **Porcupine never rejects the reconfiguring store's trace on `k` voters** (2026-11-16, kvraftN),
+from `MainN`'s spec: `kvreconf_adequate_of` for `kvreconfProgramN k`, `1 ≤ k ≤ 1000`. -/
+theorem kvreconfN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
+    [hLog : log.NewModel]
+    (wp_MainN : kvrMainNSpec) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvreconfProgramN k], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  refine init_adequate (GF := kvrGF) github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.initialize'
+    ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN) #(W64 (k : Int)))
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩
+    ⟨trivial, trivial⟩ Hlctx Hinit Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC kvrGF := heapWith hG lctx
+  have Hbound : receiptBound kvrGF ≤ 2 ^ 61 := by rw [HN]; omega
+  unfold progOk0
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.getIsPkgInit_wf, ?_⟩
+  iintro #Hpkg -
+  ihave #Hcc : context.isClosedchanInit (GF := kvrGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
+  wp_apply (wp_MainN (W64 (k : Int)) (by word) (by word) Hbound) $$ [Hpkg Hcc]
+  · iframe #
+  ipureintro
+  rfl
+
 end adequacy
 
 end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.kvreconf_adequate_of
+#print axioms Perennial.EtcdGrove.kvreconfN_adequate_of

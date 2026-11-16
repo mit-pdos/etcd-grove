@@ -121,7 +121,7 @@ instance eventsIs_persistent (es : List EvModel) (evs : List mvcc.EvM) :
 stream is at revision `c` and leaving it at `c'` (see the file header). -/
 def watchStateRespOk (o : OpFull) (σ : KVState) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
-  iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
+  iprop((⌜watchErr v ∧ c' = c⌝ ∗ closeErrOk v.closeErr') ∨
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
     ⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z c ∧ sint.Z c ≤ sint.Z r.hdrRev ∧
       c' = r.hdrRev ∧ sint.Z r.hdrRev ≤ (σ.rev : Int) ∧
@@ -418,7 +418,7 @@ key-values fixed (`mvcc.kvPtrFixed`, the API's `evIs`'s); (k8s 7f-3c, the Draft'
 the events the log's up to their `PrevKv` pointers, each pointer `prevKvLogOk` of its event. -/
 def rawRespOk (W : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
-  iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
+  iprop((⌜watchErr v ∧ c' = c⌝ ∗ closeErrOk v.closeErr') ∨
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
     (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z c ∧ sint.Z c ≤ sint.Z r.hdrRev ∧
         c' = r.hdrRev ∧ sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗

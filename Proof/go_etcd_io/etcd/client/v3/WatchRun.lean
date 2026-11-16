@@ -518,10 +518,10 @@ adder, `run`'s thread token, `donec` not yet closed. -/
 def runExit (V : WEnv GF) (G : WgsPrm GF) (cep clm : Loc) : IProp GF :=
   iprop(∃ (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) (ce e : GoInterface) (mref : Loc)
       (s : GoSlice) (n : Nat),
-    cep ↦ ce ∗ statusErrOk ce ∗ ownMap clm (DFrac.own 1) S.CL ∗
+    cep ↦ ce ∗ closeErrOk ce ∗ ownMap clm (DFrac.own 1) S.CL ∗
     wgsF G.wgs go!"substreams" ↦ mref ∗ ownMap mref (DFrac.own 1) S.M ∗
     wgsF G.wgs go!"resuming" ↦ s ∗ sliceOwn s S.l ∗
-    wgsF G.wgs go!"closeErr" ↦ e ∗ statusErrOk e ∗ ⌜gOk S U⌝ ∗
+    wgsF G.wgs go!"closeErr" ↦ e ∗ closeErrOk e ∗ ⌜gOk S U⌝ ∗
     ghostMapAuth G.γws 1 U ∗ ([∗map] ws ↦ _u ∈ U, wsElem V G n γs S ws) ∗
     wgAdder G.wgs ∗ threadTok ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗
     monoNatAuthOwn G.γend 1 n)
@@ -536,7 +536,7 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm
     ownMap clm (DFrac.own 1) S.CL ∗ ownMap csm (DFrac.own 1) S.CS ∗
     wgsF G.wgs go!"substreams" ↦ mref ∗ ownMap mref (DFrac.own 1) S.M ∗
     wgsF G.wgs go!"resuming" ↦ s ∗ sliceOwn s S.l ∗
-    wgsF G.wgs go!"closeErr" ↦ e ∗ statusErrOk e ∗
+    wgsF G.wgs go!"closeErr" ↦ e ∗ closeErrOk e ∗
     cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ sspscConsumer G.γr rcv ∗
     ⌜rcv.length = b + S.Dm.length⌝ ∗
     (∃ tok, epochSt G γs b i tok ∗
@@ -550,7 +550,7 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm
 
 theorem runExit_of_core (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat)
     (clm csm cep : Loc) (ce : GoInterface) :
-    runCore V G γs b n i clm csm ∗ cep ↦ ce ∗ statusErrOk ce ⊢ runExit V G cep clm := by
+    runCore V G γs b n i clm csm ∗ cep ↦ ce ∗ closeErrOk ce ⊢ runExit V G cep clm := by
   iintro ⟨Hc, Hcep, #Hce⟩
   unfold runCore
   icases Hc with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, -, Hsub, Hm, Hres, Hs, HcF, #He, -, -, -,
@@ -1444,7 +1444,7 @@ theorem reg_pre_cmp (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
         · iunfold rawRespOk; ileft
           isplitr
           · ipureintro; exact ⟨hv, rfl⟩
-          simp only [wrOf]; iapply statusErrOk_nil
+          simp only [wrOf]; iapply closeErrOk_nil
         iapply cur2Ok_mono V γs B.rr x.id rg lo c2 hevs (List.prefix_append _ _) $$ Hc)
     iframe Hc2
     iframe #

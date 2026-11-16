@@ -715,6 +715,18 @@ instance kwev_countable [Pos.Countable Obj] : Pos.Countable (KWEv Obj) :=
       obtain ⟨rfl, rfl, rfl, rfl⟩ := h'
       rfl)
 
+/-- `KRaw` is countable (the producer's raw-event ghost list `γ.raws`), through
+`EtcdKv ⊕ (mvcc.EvM ⊕ (Nat × Bool))`. -/
+instance kraw_countable : Pos.Countable KRaw :=
+  .ofInjective
+    (fun r => Pos.Countable.encode (match r with
+      | .kv v => (Sum.inl v : EtcdKv ⊕ (mvcc.EvM ⊕ (Nat × Bool)))
+      | .ev e => Sum.inr (Sum.inl e)
+      | .bm r a => Sum.inr (Sum.inr (r, a))))
+    (fun a b h => by
+      have h' := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all)
+
 /-- **The watch path's additions to the store's object contract** (proved for the driver's codec in
 7f-5a-P; not trusted): the initial-events-end annotation's effect on a body. -/
 structure WatchSpec (Obj : Type) where
@@ -996,7 +1008,7 @@ from the start point `st` (`kStartOk` at a fired `σ0`): a subsequence of the id
 prefix of it unless the watch is no longer live or the processing goroutine has exited (which the
 processing goroutine refutes at each receipt: it has not). -/
 def kInElem (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (inS : GoString → Bool)
-    (m : KWatchMode) (Q : Nat → KVState → IProp GF) [Pos.Countable KRaw] (i : Int) (p : Loc) :
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (i : Int) (p : Loc) :
     IProp GF :=
   iprop(∃ (r : KRaw) (raws : List KRaw) (lb lb0 st : Nat) (σ σ0 : KVState),
     eventAt σ p r ∗ ⌜raws.length = i.toNat⌝ ∗
@@ -1013,7 +1025,7 @@ not counted). The facts of `raws` are kept here (unless empty), so that a `sendE
 producer can state the element's: `kRawStreamSub`, and `kRawStreamOk` unless the watch is no longer
 live. `run` closes the channel after both producers have exited (`resultChanWG`), taking the token
 from here. -/
-def kResInv [Pos.Countable Obj] [Pos.Countable KRaw] (c : StoreCfg GF Obj) (γ : KWatchNames)
+def kResInv [Pos.Countable Obj] (c : StoreCfg GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd : GName) : IProp GF :=
   iprop(∃ (sent : List k8s_io.apimachinery.pkg.watch.Event) (evs : List (KWEv Obj))

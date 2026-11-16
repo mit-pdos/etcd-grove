@@ -147,7 +147,7 @@ theorem watchChan.syncPaginated.wp_proof
     (wp_parseKV : parseKV.spec (GF := GF) (hG := hG))
     (wp_queueEvent : watchChan.queueEvent.spec (GF := GF) (hG := hG)) :
     watchChan.syncPaginated.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
+  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
   wp_start as ⟨#Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
   ihave #Hwc' := Hwc

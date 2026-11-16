@@ -4,10 +4,11 @@
 // while proposers propose random configuration changes, replicas take snapshots and compact their
 // logs at random, the network drops, duplicates, delays and reorders messages, leadership is
 // disrupted, and replicas crash and restart from their files; then porcupine's check of the trace
-// and a check that the members converge. With no flags it runs kvdurable.Main. The flags run more
+// and a check that the members converge. With no flags it runs kvdurable.Main (-members k: kvdurable.MainN(k)). The flags run more
 // rounds, larger ones.
 //
 //	go run ./cmd/kvdurablecheck
+//	go run ./cmd/kvdurablecheck -members 5
 //	go run ./cmd/kvdurablecheck -rounds 20 -clients 8 -ops 300 -proposers 3 -crash 20ms
 package main
 
@@ -18,8 +19,8 @@ import (
 	"time"
 
 	"github.com/anishathalye/porcupine"
-	"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
 )
 
 // tempDir is a fresh temporary directory; it exits on failure.
@@ -41,8 +42,17 @@ func main() {
 	disrupt := flag.Duration("disrupt", 30*time.Millisecond, "average pause between leadership disruptions (0: none)")
 	crash := flag.Duration("crash", 40*time.Millisecond, "average pause between crashes (0: none)")
 	clock := flag.String("clock", "counter", "the trace's clock: counter or monotonic")
+	members := flag.Uint64("members", 0, "voters of each cluster (0: random, 1 to 5); with -rounds 0, run kvdurable.MainN(dir, members)")
 	flag.Parse()
 
+	if *rounds == 0 && *members != 0 {
+		dir := tempDir()
+		start := time.Now()
+		kvdurable.MainN(dir, *members)
+		os.RemoveAll(dir)
+		fmt.Printf("kvdurable.MainN(%d): porcupine answered Ok (%v)\n", *members, time.Since(start).Round(time.Millisecond))
+		return
+	}
 	if *rounds == 0 {
 		dir := tempDir()
 		start := time.Now()
@@ -53,6 +63,9 @@ func main() {
 	}
 	for i := 0; i < *rounds; i++ {
 		cfg := kvdurable.RandomConfig()
+		if *members != 0 {
+			cfg = kvdurable.RandomConfigN(*members)
+		}
 		cfg.Clients, cfg.Ops = *clients, *ops
 		if *proposers != 0 {
 			cfg.Proposers = *proposers

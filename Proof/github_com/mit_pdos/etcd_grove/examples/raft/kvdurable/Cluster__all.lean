@@ -57,7 +57,7 @@ theorem Cluster.all.wp_proof : Cluster.all.spec (GF := GF) (hG := hG) := by
   try wp_auto
   obtain ⟨HdomR, HdomU, Hvn, Hn10⟩ := Hdom
   have Hv1 : 1 ≤ vs.length := by
-    rw [Ho.2, raft_kvreconf.bootVoters_length]; have := Ho.1.1; word
+    rw [Ho.2.1, raft_kvreconf.bootVoters_length]; have := Ho.1.1; word
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (K := w64) (V := Loc)
