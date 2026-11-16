@@ -1024,7 +1024,52 @@ theorem watchChan.startWatching.wp_proof
         iapply HΦ
         iframe
       subst Hpe
-      sorry
+      ipersist Hx
+      ihave #Hepe : eventAt σ' pe (KRaw.ev ev) $$ []
+      · iunfold eventAt
+        iexists x
+        iframe Hx Hkx
+      have hjm : sint.nat n < (evs.map KRaw.ev).length := by
+        rw [List.length_map, ← HlenE, ← Hlen]; exact hjl
+      have hok : kRawStreamOk inS m σ' st
+          (I ++ (evs.map KRaw.ev).take (sint.nat n) ++ [KRaw.ev ev]) := by
+        have h := kProdAt_ok hat hsegS' (List.take_prefix (sint.nat n + 1) (evs.map KRaw.ev))
+        rw [List.take_add_one, List.getElem?_map, hev] at h
+        simpa [List.append_assoc] using h
+      ihave ⟨%S, %Qs, Hsc, HQs, Hdrop⟩ := kProd_queue γ cd inS m Q chI pe _ _ lbc lb0 st σ' σ0 hst0 hok
+        $$ Hspsc Hepe HQ' HQ0 Hps
+      wp_auto
+      wp_apply (wp_queueEvent wc chI lg ctx (kCdw γ cd) γ.inc.chanName pe S Qs) $$ [Hsc] as Hres
+      · iframe #
+        iexact Hsc
+      ihave ⟨Hps, Hpe⟩ : (kProdSt γ cd (I ++ (evs.map KRaw.ev).take (sint.nat n) ++ [KRaw.ev ev]) ∗
+          dghostVar γ.prodEx (DFrac.own 1) false : IProp GF) $$ [Hres HQs Hdrop Hpe]
+      · icases Hres with (HQs' | ⟨#Hpd, HS⟩)
+        · iframe Hpe
+          iapply HQs $$ HQs'
+        · ihave H2 := Hdrop $$ %1 HS
+          iapply H2
+          · iintro !>
+            unfold kCdw
+            iexact Hpd
+          · iexact Hpe
+      (try wp_auto)
+      wp_for_post
+      have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by
+        have h1 := Hsll.1; have h4 := Hn
+        simp only [sint.nat, sint.Z] at h1 h4 Hif hjl ⊢; word
+      iframe
+      iexists n + W64 1, l
+      simp only [named]
+      iframe
+      isplitl [Hps]
+      · iExactEq Hps
+        rw [hn1, List.take_add_one, List.getElem?_map, hev]
+        simp [List.append_assoc]
+      ipureintro
+      have h1 := Hsll.1; have h4 := Hn
+      simp only [sint.nat, sint.Z] at h1 h4 Hif hjl ⊢
+      constructor <;> word
     · -- the response is queued: the next one
       have h2 : ¬ sint.Z n < sint.Z v.Events'.len := fun h => Hif (by simp [h])
       have hnl : sint.nat n = ls.length := by
