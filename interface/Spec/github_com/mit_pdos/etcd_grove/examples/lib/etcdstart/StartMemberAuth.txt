@@ -7,7 +7,7 @@ def etcdstart.StartMemberAuth.spec : Prop :=
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice) (iu : GoString → List net.url.URL)
     (Uok : BootURLs → Prop) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
-    (γn : NetNames GF),
+    (γn : NetNames GF) (m : lease.Mode),
     threadBound GF ≤ 2 ^ 28 →
       receiptBound GF ≤ 2 ^ 48 →
         receiptBound GF ≤ N + 1 →
@@ -40,7 +40,7 @@ def etcdstart.StartMemberAuth.spec : Prop :=
                                                               id ∗
                                                             etcdstart.commonPremises ∗
                                                               context.isClosedchanInit ∗
-                                                                etcdstart.memberBootOn γ ctxs ρ E₀ Φs id ∗
+                                                                etcdstart.memberBootOn γ ctxs ρ E₀ Φs id false m ∗
                                                                   netHttpOk γn id ∗
                                                                     etcdstart.memberFreshRes name
                                                                       { peer := some peerAddr } γn -∗
@@ -48,7 +48,7 @@ def etcdstart.StartMemberAuth.spec : Prop :=
                                                   ∀ s err,
                                                     (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
                                                         ⌜err = GoInterface.nil⌝ ∗
-                                                          ∃ γa, etcdstart.memberUpOn s ρ E₀ lg γn id γa) -∗
+                                                          ∃ γa, etcdstart.memberUpOn s ρ E₀ lg γn id γa m) -∗
                                                       Φ (intoVal s, intoVal err)) -∗
                                                 WP
                                                   ((((((((((intoVal

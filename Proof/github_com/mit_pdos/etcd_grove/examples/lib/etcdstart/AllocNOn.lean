@@ -44,15 +44,18 @@ theorem sameCluster_of_gOkOn (γ : SrvRaft) (γk : KVNames) (g g' : MemberG GF)
     ?_, ?_, ?_, ?_⟩ <;> rw [hr, hr']
 
 /-- **Every member's `memberBootOn`, from the cluster's allocation with auth on**: `memberBoots_of`
-with `memberBootOn_of`. -/
-theorem memberBootsOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
+with `memberBootOn_ofM`, at the lease mode `lm` (auth-lease S4, 2026-11-16). -/
+theorem memberBootsOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
     (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (γm : mvcc.api.MvccName) (idx : w64 → srvApi.KVSNames) (cok rev reg : w64 → GName)
     (xs : w64 → GName)
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg = false) (L : List w64)
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hne : lm = .revocable → lease.leasesNoExpiry) (Hklm : γk.lm = lm) (hpo : kvPfxOk γk)
+    (L : List w64) (hpfx : ∀ id ∈ L, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)
     (HΦ : ∀ id ∈ L, Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) (idx id).slog)
     (Hx : ∀ id ∈ L, xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
@@ -70,7 +73,7 @@ theorem memberBootsOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
         ghostMapAuth (rev id) 1 (∅ : GMap w64 Unit) ∗
         ghostMapAuth (reg id) 1 (∅ : GMap Loc MemStorNamesRec)) ==∗
       ∃ gs : List (MemberG GF), ⌜gs.map (·.id) = L ∧ ∀ g ∈ gs, memberGOkOn γ γk g⌝ ∗
-        [∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id := by
+        [∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm := by
   induction L with
   | nil =>
     iintro #_ #_ #_ #_ #_ #_ _ _ _
@@ -87,11 +90,12 @@ theorem memberBootsOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
     icases Hms with ⟨Hm, Hms⟩
     icases Hws with ⟨Hw, Hws⟩
     icases Hns with ⟨⟨Hi, Hc, Hr, Hg⟩, Hns⟩
-    imod (memberBootOn_of γ ps ctxs (reg q) issued cnt wn fs γk Φs q γm (idx q) (cok q) (rev q)
-        (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hc0 Hch Hlog Hvs Hkc Hklg
-        (HΦ q (by simp)))
+    imod (memberBootOn_ofM γ ps ctxs (reg q) issued cnt wn fs γk Φs q γm (idx q) (cok q) (rev q)
+        (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hc0 Hch Hlog Hvs Hkc
+        lm hrun hne Hklm (hpfx q (by simp)) hpo (HΦ q (by simp)))
       $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm Hw Hg Hi Hc Hr with ⟨%ρ, %Hρ, Hb⟩
-    imod (ih (fun id h => HΦ id (List.mem_cons_of_mem _ h))
+    imod (ih (fun id h => hpfx id (List.mem_cons_of_mem _ h))
+        (fun id h => HΦ id (List.mem_cons_of_mem _ h))
         (fun id h => Hx id (List.mem_cons_of_mem _ h)))
       $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hws Hns with ⟨%gs, %Hgs, Hbs⟩
     imodintro
@@ -109,14 +113,18 @@ theorem memberBootsOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
 /-- **What `Main` takes of the ghost state with auth on, for a cluster of any size**: `allocN`'s with
 the mode-`on` allocators (`alloc3On`'s), for the members `ms` whose ids are `ids` in the members'
 order, `id0` one of them: every member's `memberBootOn` at names of one cluster (`memberGOkOn`), the
-head KV names' store at the boot state and the auth history's view. -/
-theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : ps.Perm ids)
+head KV names' store at the boot state and the auth history's view; (auth-lease S4, 2026-11-16) at the
+lease mode `lm`, in the revocable mode with the members' ids apart (`leaseIdsApart`) and no lease
+expiring. -/
+theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : ps.Perm ids)
     (id0 : w64) (hid0 : id0 ∈ ids)
     (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString) (ms : List (GoString × GoString × Option GoString))
     (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h ∈ ms.map (·.2.1))
-    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hnx : lm = .revocable → lease.leasesNoExpiry) (hap : lm = .revocable → leaseIdsApart ids) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       ([∗list] m ∈ ms, memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ={⊤}=∗
       ∃ (γ : SrvRaft) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
@@ -126,7 +134,7 @@ theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm 
         gs.map (·.id) = ids ∧ (∀ g ∈ gs, memberGOkOn γ γk g) ∧
         γk.c0 = W64 0 ∧ γk.log0 = [[], []]⌝ ∗
       (□ ∀ lid : w64, netHttpOk γn lid) ∗
-      ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id) ∗
+      ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm) ∗
       ([∗list] m ∈ ms, memberFreshRes m.1 ⟨some m.2.1, m.2.2⟩ γn) ∗
       etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
       authHistView γk [srvAuthSt0] := by
@@ -145,15 +153,17 @@ theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm 
   imod (newServerNames_allocL (GF := GF) ids Hidnd) with ⟨%idx, %cok, %rev, %reg, Hns⟩
   have γm : mvcc.api.MvccName := Classical.choice hne.1
   imod (srvClusterBootOn_alloc (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
-      Hpsne Hnz) $$ Hmarsh
+      Hpsne Hnz lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
+      (gpsOk_of_apart lm ids id0 hid0 hap)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
-  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, -, -⟩ := Hγ
-  have hklg : γk.lg = false := by rw [KVNames.lg_eq, hklm]; rfl
+  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, hgp, hgps⟩ := Hγ
+  have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklm ▸ h))
   ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
-  imod (memberBootsOn_of γ ps ctxs issued cnt wn fs γk (ΦsOf ids idx) γm idx cok rev reg (xsOf ids idx)
-      hiss hwn hfs hc0 hch hlog hvs hkc hklg ids
+  imod (memberBootsOn_ofM γ ps ctxs issued cnt wn fs γk (ΦsOf ids idx) γm idx cok rev reg (xsOf ids idx)
+      hiss hwn hfs hc0 hch hlog hvs hkc lm hrun hnx hklm hpo ids
+      (fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid)
       (fun id hid => ΦsOf_at ids idx Hipnd id hid) (fun id hid => xsOf_at ids idx Hipnd id hid))
     $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hwns Hns with ⟨%gs, %Hgs, Hbs⟩
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
@@ -174,6 +184,32 @@ theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm 
     exact ⟨hvs, by rw [hboot]; exact hrule, rfl, Hγn.1, Hγn.2, Hgs.1, Hgs.2, hc0, hlog⟩
   iexact Hnet
 
+
+
+/-- **What `Main` takes of the ghost state with auth on, for a cluster of any size**, at the lease mode
+`none` (`allocNOnM`'s). -/
+theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : ps.Perm ids)
+    (id0 : w64) (hid0 : id0 ∈ ids)
+    (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot)
+    (dir : w64 → List GoString) (ms : List (GoString × GoString × Option GoString))
+    (Hd0 : dir 0 = [])
+    (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h ∈ ms.map (·.2.1))
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
+      ([∗list] m ∈ ms, memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ={⊤}=∗
+      ∃ (γ : SrvRaft) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+        (γn : NetNames GF) (gs : List (MemberG GF)),
+      ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
+        γ.boot = LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir = dir ∧
+        gs.map (·.id) = ids ∧ (∀ g ∈ gs, memberGOkOn γ γk g) ∧
+        γk.c0 = W64 0 ∧ γk.log0 = [[], []]⌝ ∗
+      (□ ∀ lid : w64, netHttpOk γn lid) ∗
+      ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id) ∗
+      ([∗list] m ∈ ms, memberFreshRes m.1 ⟨some m.2.1, m.2.2⟩ γn) ∗
+      etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
+      authHistView γk [srvAuthSt0] :=
+  allocNOnM hne ids ps hperm id0 hid0 ctxs boot Hbc dir ms Hd0 Hhost Hrb Hrb2 .none lease.runCfg_none
+    (fun h => nomatch h) (fun h => nomatch h)
 
 end alloc
 

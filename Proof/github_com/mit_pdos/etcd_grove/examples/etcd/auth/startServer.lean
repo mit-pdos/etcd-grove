@@ -51,7 +51,7 @@ theorem startServer.wp_proof
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, hlgf⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, -⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -107,7 +107,7 @@ theorem startServer.wp_proof
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
       -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
-      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf))
+      (lease.bootCfg_none _ _ (lease.runCfg_lm hslg))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
@@ -199,6 +199,8 @@ theorem startServer.wp_proof
   ihave #Hrd' : isServerReadM E.authOn srv E ρ.rd $$ []
   · rw [hon]; iexact Hrd
   iclear Hreq Hrd
+  ihave #Hlr : etcdstart.srvLeaseRd srv E .none $$ []
+  · iapply etcdstart.srvLeaseRd_of_srvInv srv E .none _ $$ Hlsrv
   iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
   -- (per-type stage B2) the raw run-pool stocks first, framed explicitly; the pure part last (the
   -- configuration is found by the framing)
@@ -220,6 +222,7 @@ theorem startServer.wp_proof
       iapply srvTLSId_false srv $$ [Ht]
       iframe Ht
       iExactEq Hcca; rfl
+    -- (auth-lease S4) the lessor's reader side `Hlr` is framed by `iframe #` above
     iapply HBF; ipureintro; first | rfl | trivial
   ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
 

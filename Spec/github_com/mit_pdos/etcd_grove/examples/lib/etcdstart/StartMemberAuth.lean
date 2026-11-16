@@ -37,7 +37,9 @@ abbrev StartMemberAuth.spec : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    -- (auth-lease S4, 2026-11-16) the cluster's lease mode
+    (m : lease.Mode),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
@@ -52,7 +54,7 @@ abbrev StartMemberAuth.spec : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremiseOn N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBootOn γ ctxs ρ E₀ Φs id ∗
+      memberBootOn γ ctxs ρ E₀ Φs id false m ∗
       netHttpOk γn id ∗
       memberFreshRes name ⟨some peerAddr, none⟩ γn }}
     (App (App (App (App (App (App (App (App (App
@@ -61,7 +63,7 @@ abbrev StartMemberAuth.spec : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ γa : auth.AuthNames, memberUpOn s ρ E₀ lg γn id γa) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ γa : auth.AuthNames, memberUpOn s ρ E₀ lg γn id γa m) }}
 
 end spec
 

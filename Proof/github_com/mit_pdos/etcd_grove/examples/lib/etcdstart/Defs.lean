@@ -522,7 +522,7 @@ enabled and the KV invariant in the mode `on` from the auth store's start state 
 `srvAuthSt0`). -/
 def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64)
-    (cmp : Bool := false) : IProp GF :=
+    (cmp : Bool := false) (m : lease.Mode := .none) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
       ρ.rd.kv.log0 = [[], []] ∧
@@ -533,10 +533,12 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       E₀.Nx = srvApi.kvNx ρ.rd true ∧
       -- (2026-11-02, the lease-grant plan's D2) `NewServer`'s premise on a cluster that grants
       -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
-      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise at some mode
-      (∃ m : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m) ∧
-      -- (the lease-grant stage, 2.13) `NewServer.specM true`'s: auth on grants none
-      ρ.rd.kv.lg = false⌝ ∗
+      -- lease-expiry plan's Part C) as the lease subsystem's sealed premise, (auth-lease S4,
+      -- 2026-11-16, Draft D8) at the mode `m`
+      lease.runCfg (GF := GF) ρ.rd.kv.lm m ∧
+      -- (auth-lease S4, D8; until then `ρ.rd.kv.lg = false`, "auth on grants none") `lease.bootCfg`'s
+      -- auth row (auth-lease S3c): with auth on, in the revocable mode no lease expires
+      (m = .revocable → lease.leasesNoExpiry)⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
@@ -555,8 +557,8 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
 
 /-- **The member's compaction mode, read off its boot bundle with auth on** (`memberBoot_cmp`'s). -/
 theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
-    memberBootOn γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBootOn γ ctxs ρ E₀ Φs id cmp := by
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) (m : lease.Mode := .none) :
+    memberBootOn γ ctxs ρ E₀ Φs id cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBootOn γ ctxs ρ E₀ Φs id cmp m := by
   iintro H
   iunfold memberBootOn at H
   icases H with ⟨%Hρ, Hr⟩
@@ -573,7 +575,7 @@ request and read views in the mode (`isServerReqM true`, `isServerReadM true`) a
 check at a reader's lower bound (`srvAuthLb`), what `Serve.spec` takes at `E.authOn`; otherwise as
 `memberUp` (per-type stage B2: with its raw run-pool stocks too). -/
 def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (γa : auth.AuthNames) : IProp GF :=
+    (id : w64) (γa : auth.AuthNames) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
     ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
@@ -587,7 +589,9 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
     -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
     -- and (C1's A4, 2026-10-31) its `Authenticate` side (`srvAuthStoreOn`)
-    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
+    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗
+    -- (auth-lease S4, 2026-11-16) the lessor's reader side at the lease mode (`memberUp`'s)
+    srvLeaseRd s E m)
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on

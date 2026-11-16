@@ -97,7 +97,7 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
     · ipureintro
       exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog],
         hpfx, rfl, trivial, by rw [hkc', hkc], trivial,
-        ⟨.none, by rw [hklg', hlm]; exact lease.runCfg_none (GF := GF)⟩, by rw [KVNames.lg_eq, hklg', hlm]; rfl⟩
+        by rw [hklg', hlm]; exact lease.runCfg_none (GF := GF), fun h => nomatch h⟩
     iunfold idNoZero
     rw [hiss', hiss]
     iexact H0

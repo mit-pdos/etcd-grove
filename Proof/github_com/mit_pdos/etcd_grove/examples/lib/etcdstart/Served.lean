@@ -208,7 +208,7 @@ B3, 2026-11-11, also the reader stocks the gRPC runs took, 64 of each kind, and 
 reader tokens, `srvWatchReaders`.) -/
 theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) :
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) (m : lease.Mode := .none) :
     ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
         cfg.WatchProgressNotifyInterval' = 0⌝ ∗
       srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
@@ -216,19 +216,19 @@ theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
       srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
       srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗
       ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
-      srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
-    memberUpOn (GF := GF) s ρ E₀ lg γn id γa := by
+      srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗ srvLeaseRd s E m ⊢
+    memberUpOn (GF := GF) s ρ E₀ lg γn id γa m := by
   iintro ⟨%HEc, H⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   irevert H
   rw [hon]
-  iintro ⟨Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, Hrslots, Hctl, #Htls, #HBF⟩
+  iintro ⟨Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, Hrslots, Hctl, #Htls, #HBF, #Hlrd⟩
   iunfold memberUpOn
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
   isplitl [Hstk]; · iexact Hstk
   isplitl [Hrun]; · iexact Hrun
-  iframe Hreq Hrd Hlb Hwb Hsf Htls HBF
+  iframe Hreq Hrd Hlb Hwb Hsf Htls HBF Hlrd
   iframe
 
 /-- **A member started with auth on, for serving** (N6, 2026-11-06; `memberUp_served`'s): what
@@ -236,8 +236,8 @@ theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
 check (`srvAuthLb`), the TLS fallback off and the auth store's `Authenticate` side besides. The rest
 (`srvWatchBuilt`) is dropped. -/
 theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
-    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) :
-    memberUpOn (GF := GF) s ρ E₀ lg γn id γa ⊢
+    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (m : lease.Mode := .none) :
+    memberUpOn (GF := GF) s ρ E₀ lg γn id γa m ⊢
       ∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
         ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
           cfg.WatchProgressNotifyInterval' = 0⌝ ∗
@@ -249,7 +249,7 @@ theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
   iintro Hup
   iunfold memberUpOn at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, Hrun, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, -, #Hwb, #Hsf,
-    Hbemu, Hctl, #Htls, #HBF⟩
+    Hbemu, Hctl, #Htls, #HBF, -⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc

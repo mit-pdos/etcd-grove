@@ -13,8 +13,16 @@
   lessor law's output, Draft §4.3). Commits `5baacbd07a`, `647aadf78b`.
 - **Approved (2026-11-16):** the statement as drafted (user, via etcd-grove-02), `KeepAlive` left to S7; D1–D9 as
   recommended (etcd-grove-02). `questions.md`, "auth-lease S4".
-- **Next, in order:** Draft §7: build the worktree; etcdstart boot at the
-  revocable mode; C5′ merge; Freeze package for §3's texts (hard stop); leased KV at auth on; F3; read handlers +
+- **Item 2 done (2026-11-16, checkpoint):** etcdstart's auth start at a lease mode (`memberBootOn`/`memberUpOn`/
+  `memberPreOn` `m := .none`, `lg = false` replaced by `runCfg … m ∧ (m = .revocable → leasesNoExpiry)`;
+  `memberUpOn` + `srvLeaseRd s E m`; `StartMember(s)Auth.spec` + `(m : lease.Mode)`; `memberBootOn_ofM`,
+  `memberBootsOn_ofM`, `allocNOnM` with `hap`; forms in `questions.md`). Full build GREEN (17941 jobs,
+  `/shared/tmp/auth-lease-s4/build4.log`); mode gate 453 = baseline; etcdstart interfaces regenerated.
+- **Next, in order:** Draft §7 item 3, the C5′ merge (scope found: besides the seven client results, the off
+  contracts are used by v3rpc `InvLeaseGrant`'s `lessorGrantOkL` (exported `lessorGrantOkL_server`),
+  `ServerLeaseGrant`/`ServerLeaseRevoke`'s `_off` lemmas and `lessorGrantOkG_mono`, client `LeaseGrantServed`
+  (`etcd_leaseGrantHandlerOkG/L`, the methods lemmas at `lessorGrantOkL`/`lessorGrantOkG`), and the `_false` laws;
+  ~11 files, all at `…M` with `E.authOn`); then Freeze package for §3's texts (hard stop); leased KV at auth on; F3; read handlers +
   per-member lessor law; goose `authlease`; driver; linking (hard stops at `Main.wp_proof` and before `etc/land.sh`).
 - **Open decisions:** none.
 - **Token:** `authlease-3354335` (ports 16000/17000): first `authlease-<n>` whose 1000 member ids are 15-bit distinct
