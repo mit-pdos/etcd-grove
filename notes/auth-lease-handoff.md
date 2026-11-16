@@ -1,36 +1,37 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, item 7 part 1 (read handlers) done; item 7 part 2 (the law, §5) next)
+## START HERE (S4, 2026-11-16, item 7b: STOPPED at a design decision before any tree edit)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries:
-  etcd-grove-02's items 5-6 acceptance and GO for 7; "Item 7a": the forms of this part).
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head `0455d1a2f7` + this handoff. Decisions:
+  `questions.md` (gitignored; last entries: "Item 7a accepted", "Item 7b: the tie needs a push-side window").
 - **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); Freeze FROZEN (`209e3c68e6`, tag
-  `auth-lease-s4-frozen`, texts `notes/auth-lease-s4-frozen.lean.txt`; a change beyond them is a thaw: STOP); item 5
-  (`ef5f154062`); item 6 (`dcaa5c5d18`); **item 7a** (this commit): §4.4 F4/§10 T1 (`EtcdServer.LeaseTimeToLive.spec`
-  over `requireAuthInfo.specC`, `LeaseLeases.spec`'s never-`ErrLeaseNotFound`, `checkLeaseLeases.spec`'s
-  `authApplyErrIs`), v3rpc `ttlAns`/`leasesAns`/`leaseTTLOut` (check on both arms, factored)/`leaseLeasesOut` (empty arm
-  gone), §4.1-4.3 (`etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`, `etcd_lease_read_served` in `LeaseReadServed.lean`).
-  Frozen texts compared equal (`/shared/tmp/auth-lease-s4/scripts/cmpfrozen.py`).
-- **Next, in order:** 7b. the per-member law (Freeze §5, §10 S1/S4/S5/S6, R4-5): `leaseKeptIn`, `lsHolds`,
-  `lessorLawMask`, `lessor_keys_of_read` (est. 4-6 days). Design lead (2026-11-16, read only): only a writer holding
-  BOTH `lessorMu` (under `le.mu`) and the owner's `leaseClosers` (inside `leaseOwn`, held by the apply thread through
-  mvcc's write view) appends to the lessor history (`InvLessor.lean:922-1036`), and the last snapshot's item map is the
-  owner's `I`, which mvcc ties to `pendItems σ.log changes` (`WriteViewApi.lean:207-275`). So every history snapshot's
-  items are `pendItems` of the applied log and a prefix of the entry's changes: the tie can be a mono-list (applied log
-  ↦ history length) kept by the store invariant (`kvsN`), pushed where mvcc's writes end. Backend batch-Unlock window
-  (heads-up 2026-11-16): the law and the lease reads read the lessor's memory, not the backend: not affected (recheck
-  if the tie ever reads the backend). 8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP:
-  `Main.wp_proof` proved). 10. linking, gates, land stop (merge lean first).
+  `auth-lease-s4-frozen`); items 5 (`ef5f154062`), 6 (`dcaa5c5d18`), 7a (`0455d1a2f7`, forms (a)-(g) accepted by
+  etcd-grove-02).
+- **7b finding (read only, no edits):** Freeze §5.4's method (posts strengthened to report each pushed index; a
+  mono-list tie written by the apply thread at entry boundaries) cannot cover a snapshot pushed by the entry still being
+  applied when the law's inner wand fires (a reader sees mid-entry snapshots; the law's conclusion is pure, now). That
+  snapshot's fact must be deposited at push time, in the lessor's invariant, and the pusher (`Attach`/`Detach`, called by
+  mvcc's `put`/`delete`) can only prove it with a premise from the entry level: the entry's target item map. So a
+  token + premise must be threaded from the apply loop down to `Attach`/`Detach`, through frozen specs of earlier stages
+  (mvcc API `Txn.Put/DeleteRange.contract`, `mvccDeleter`; `txn.Put/DeleteRange/Txn.spec` "frozen" in strict M1). Design
+  and options (1 siblings / 2 thaw in place / 3 Freeze §5.4 fallback): `questions.md`, "Item 7b". Waiting on etcd-grove-02.
+- **Next, in order (after the decision):** 7b per the chosen option; 8. goose `authlease`, gen-init; 9. driver (STOP: D-k's
+  exact texts; STOP: `Main.wp_proof` proved); 10. linking, gates, land stop (merge lean first).
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
   `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`.
   Logs `/shared/tmp/auth-lease-s4/i{5,6,7}-*.log` (grep `^error`; ~1M lines of `#print axioms`).
-- **Pitfalls:** `errIsTrue` is not persistent: rebuild it inside a `□` (`LeaseServer__LeaseTimeToLive`). A
-  `wp_if_destruct` may already reduce `if v.Keys'`: `(try simp only [hK, ↓reduceIte])`. lean-check after an edit to
-  `InvLeaseRead`/`QuotaLeaseLemmas` rebuilds client `Results` (~30 min): build through the slot first. Older pitfalls:
-  an `iprop` hypothesis is not a Lean one (state an entailment lemma); in `wp_apply (… (by …))` a `by` naming a local
-  can time out (`have` first).
+- **Pitfalls:** `errIsTrue` is not persistent: rebuild it inside a `□`. A `wp_if_destruct` may already reduce
+  `if v.Keys'`: `(try simp only [hK, ↓reduceIte])`. lean-check after an edit to `InvLeaseRead`/`QuotaLeaseLemmas`
+  rebuilds client `Results` (~30 min): build through the slot first. An `iprop` hypothesis is not a Lean one (state an
+  entailment lemma); in `wp_apply (… (by …))` a `by` naming a local can time out (`have` first).
 
 # History
+
+## Previous START HERE (S4, 2026-11-16, item 7a done; 7b next)
+
+- 7b's design lead then: only a writer holding `lessorMu` and the owner's `leaseClosers` appends to the lessor history
+  (`InvLessor.lean:922-1036`); the last snapshot's item map is the owner's `I`, which mvcc ties to `pendItems σ.log
+  changes` (`WriteViewApi.lean:207-275`); the tie as a mono-list in `kvsN`. Superseded by the 7b finding above.
 
 ## Previous START HERE (S4, 2026-11-16, items 5-6 done; item 7 next)
 
