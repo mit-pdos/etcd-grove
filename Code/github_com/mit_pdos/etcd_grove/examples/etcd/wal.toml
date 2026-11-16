@@ -1,6 +1,7 @@
 # With bodies (WAL W4c): the WAL robustness tester. (`purgeRound`, names only with a trust-boundary
-# axiom from 2026-11-12, was dropped from the tester on 2026-11-15, notes/decisions.md "WAL tester
-# over fsExt: Go changes": every function is translated.)
+# axiom from 2026-11-12, was dropped from the tester on 2026-11-15 and restored with its body on
+# 2026-11-16, proved over the lock model: notes/decisions.md "WAL tester over fsExt: `purgeRound`
+# restored". Every function is translated.)
 translate = ["*"]
 imports = ["*"]
 

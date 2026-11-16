@@ -816,3 +816,54 @@ linked function changed); `etc/gen-link.py --walfs/--durable/--wal-tester --chec
 
 **Decisions left for the user**: none new (item 2's obstacle has an internal fix, no Go change). **No new axiom, no
 `sorry`. No Go bug found.**
+
+### Session 10 (2026-11-16, branch `wal-c-purge7`, base `origin/wal-int` `39a18155e4`)
+
+**Done: items 1-3** (session 9's three in-proof fixes, `purgeRound` restored and proved, the links). Built with
+`lake build`: the WAL `Link`, the tester's `Link`, `durable`'s `Link` (and every module below), the main tree's
+tester `Init`. No new axiom, no `sorry`, nothing trusted changed. The only Go change is the restored `purgeRound`
+(the user's approval). `etc/gen-link.py --walfs/--durable/--wal-tester --check`, `etc/goose.py --check --project
+etcd-wal`, `etc/gen-init.py --check` pass. Go: `go test ./etcd/wal/...` and the crash harness (`TestRobust`, 50
+chains posix with F-Z/F-N, 30 chains kill) pass.
+
+- **Fix 1, `X = walTmps`** (deviation from session 9's plan, same fact, less churn): not in `DirKeysOk`'s key clause
+  (40 files destructure it) but (a) in `DirClaimExcl` (`Inv.lean`), whose first conjunct was `∀ b ∈ X, ¬ ".wal.broken"
+  <:+ b` and is now `X = walTmps` (`DirClaimExcl.not_broken` derives the old fact; sites: `CreateKeys`, the boot's
+  `Crash.lean`, `RepairPre`, `BrokenAu`), and (b) in the key itself: `walDirKey dir j X := dir ↪□ (j, X) ∗ ⌜X =
+  walTmps⌝` (`Ghost.lean`; `walDirKey_insert`/`walDirKeysAuth_get` take the fact, `OpenPinTake`'s pin reads it from
+  `DirClaimsOk`, `Create`'s commit has `hXt`), so a purger holding only the key reads it with no invariant opening
+  (`walDirKey_tmps`). `walTmps` moved to a new module `TmpNames.lean` (imported by `Cut.lean` and `Ghost.lean`).
+- **Fix 2, a leftover's removal** (`PurgeOther.lean`, session 9's option (a)): `nonwalHist_pure` (`BrokenPure.lean`:
+  `brokenHist_pure` generalized over the crash fact `NonWalCrash` and the area's two conditions; `brokenHist_pure` is
+  now its instance), `rmOtherCommit_pure` (a removal at a non-`.wal` name: `nonWalCrash_rm` over
+  `regionCrashed_purge`, `dirsOk_purge`, `absentNone_purge`), `walParked_rmOther` (the claim's others fewer),
+  `walPurgeOther_osAUnc` (the update, no client commit, state unchanged; `walPurgeOP`/`walPurgeOQ`).
+- **Fix 3, the tail protected by its lock** (`PurgeLend.lean`): `walTailLk fd i` (the tail's description and its
+  `fdLocksW`, the handle's `walTailW` conjunct) is lent by `walOpenWF_lend` (statement: one more existential `tfd`,
+  the lent `walTailLk tfd ino`, and the back wand takes it); `walTailLk_excl` refutes a purger's lock on `ino`.
+- **`purgeRound` restored** (Go at `bb9a9866b6^`, its call in `opOwnSnap`), retranslated (both trees; the main
+  tree's tester `Init.lean` and the part's regenerated). `notes/decisions.md`: a new entry "WAL tester over fsExt:
+  `purgeRound` restored" (item 5 of the earlier one marked reversed); the main tree's goose configuration comment.
+- **`purgeRound.spec`** (`LinuxFs/Spec/.../examples/etcd/wal/purgeRound.lean`, new): from `walOpenWF P Mr w dir`,
+  `walPurgeAcc dir Pc`, `Pc`, `walInv`, `osInv`, `max < 2^63`, back the handle and `Pc`.
+- **`purgeRound.wp_proof`** (`purgeRound.lean`): `ReadDir` under the handle's half of the claim (`X = walTmps`, so every
+  name ending in `"wal"` is in the claim, `pr_not_tmps`); the filter loop; the removal loop's invariant (the claim's
+  `.wal` names among `fs[n:]`, its entries at `fs[n:]` as listed, `WalSub`; `pr_step`, `pr_walSubAt`,
+  `pr_mem_drop_cases` over the kept names' strict order). Per name: a file (`pr_fileOf`: a `.wal` name's by
+  `walInv_walFiles`, new in `PurgeRoundLaws.lean`; a leftover's by `walInv_lendOther`/`unlendOther`), `TryLockFile`
+  over `purge_openTriple` (`walOpen_triple` restated), `walTailLk_excl` (not the tail's name), `walDirLks_purgeStep`
+  (not a locked segment's; `LkRel` gives its `walFileName`), `pr_remove` (the `os.Remove` triple: `walPurge_osAUnc` with
+  the smallest-name and larger-name premises, or `walPurgeOther_osAUnc`), the lock's `Close` (`wp_lockedClose`).
+- **`opOwnSnap` re-proved** (`member__opOwnSnap.lean`) with the round: `OwnSnapPurge.lean` (new) has the raise
+  (`tPurCand`, `tPurNames`, the loop prefix `tPurPre`, what it keeps), `tCandOk_purge`/`tMemOk_purge` (a removal stays
+  accounted for: no pending open, so the invariant's candidate's unlock bound is `c.unl ≤ c.pur`), and
+  `tInv_purgeAcc` (the repeatable commit from `TInv`; token `tPurgeTok`: the member's halves of the WAL state and the
+  oracle, `tMemOk`, `tMemHs`, the history fixed). **Statement change** (ledger 2026-11-16): `member.opOwnSnap.spec`
+  takes and gives back `m.lg`/`m.walDir` (the round loads them; `member.step` passes them).
+- **Links**: the tester's `Link` regenerated (106 results; `purgeRound`, `ReadDir`, `TryLockFile`, `os.Remove`'s
+  `specFileSncN`, `strings.HasSuffix`, `syscall.Flock`, ... linked); the WAL's and `durable`'s unchanged.
+
+**Not run**: `etc/tcb-report.py --check` (needs every root built; the machine is shared). No axiom was added, so
+no baseline change is expected.
+
+**Decisions left for the user**: none new. **No new axiom, no `sorry`. No Go bug found.**

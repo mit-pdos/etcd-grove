@@ -35433,7 +35433,24 @@ The tester (`examples/etcd/wal`, our own example) changed as the W4c unit logs r
    approved trust-boundary axiom (`Proof/.../examples/etcd/wal/purgeRound.lean`, main tree), its spec,
    `PurgeBody.lean` and the Go evidence `purge_test.go`; the main tree's goose configuration now translates
    every function. It returns with a lock model (`notes/wal-fsext-plan.md` gap 3, Q1). `etc/tcb-baseline.txt`
-   did not list it (no result reached it), so no baseline change.
+   did not list it (no result reached it), so no baseline change. (Reversed 2026-11-16: the next entry.)
+
+## WAL tester over fsExt: `purgeRound` restored (2026-11-16 · the user's approval, item 5 of "WAL tester over fsExt: Go changes" reversed · unit `locks`, session 10, branch `wal-c-purge7`)
+
+With the lock model in `fsExt` (unit `locks`, `notes/wal-units/locks.md`), the tester's `purgeRound` (one round of
+`fileutil.purgeFile`'s loop on the WAL directory: the names ending in `"wal"`, sorted, the oldest beyond `max`
+removed, each after `TryLockFile` takes its lock) is restored exactly as it was before `bb9a9866b6`, with its call
+in `opOwnSnap` (every candidate's purge bound raised to its unlock bound, the oracle stored, then the round with
+`max = 1 + choose(3)`). It is now **proved**, not axiomatized: `purgeRound.wp_proof` over `fileutil.ReadDir`,
+`TryLockFile` (with `os.OpenFile`), `os.Remove` (`specFileSncN`) and the locked file's `Close`, with the WAL's
+removal updates (`walPurge_osAUnc` for a segment, `walPurgeOther_osAUnc` for a leftover whose name ends in
+`"wal"` but not `".wal"`) and the handle lent (`walOpenWF_lend`). Its spec takes the caller's repeatable commit
+(`walPurgeAcc`), which the tester supplies from its invariant (`tInv_purgeAcc`: its oracle covers every removal
+once the purge bounds are raised, session 5's check). `opOwnSnap`'s spec now takes and gives back the member's
+`lg` and `walDir` fields (the round reads them; ledger 2026-11-16). No new axiom; the main tree's goose
+configuration still translates every function (now `purgeRound` with its body). The Go evidence `purge_test.go`
+stays retired (it was evidence for the axiom). Its Go tests and the crash harness pass (`go test ./etcd/wal/...`;
+`TestRobust` 50 chains posix with F-Z/F-N, 30 chains kill: no violation).
 
 ## fsExt: no I/O errors on chosen files (2026-11-15 · the user's approval of the environment assumption; the statement decided by unit `noioerr` · branch `wal-c-noioerr`)
 

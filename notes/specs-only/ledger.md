@@ -2149,3 +2149,18 @@ coordinator, and those marked [user] for the user. `Sp/` = `LinuxFs/Spec/go_etcd
   before `walReleasePos`, `cutStart_le_releasePos`).
 - **Decision.** Made (the client-facing change is a premise every caller meets by calling `Open` first; the
   server's `openWALFromSnapshot` does the same, not translated in the part).
+
+## 2026-11-16: `purgeRound` restored in the tester (unit `locks`, session 10) -- `member.opOwnSnap.spec` takes the `lg`/`walDir` fields
+
+- **Spec.** `etcd_wal.member.opOwnSnap.spec` (the tester's; `LinuxFs/Spec/.../examples/etcd/wal/member__opOwnSnap.lean`).
+- **Defect.** With `purgeRound` restored (the user's approval, `notes/decisions.md` "WAL tester over fsExt: `purgeRound`
+  restored"), `opOwnSnap` calls `purgeRound(m.lg, m.walDir, …)`, which loads the member's `lg` and `walDir` fields;
+  `memLive` does not hold them (as for `member.restart`, whose spec takes them), so the old precondition does not
+  allow the call.
+- **Evidence.** `wal.go`'s `opOwnSnap`; `member.step.spec`, its only caller, holds both fields
+  (`m.[member, "lg"] ↦ lg ∗ m.[member, "walDir"] ↦ tWalDir e.area`).
+- **Change (made).** A binder `lg`; the precondition and the postcondition (both outcomes) take
+  `m.[member, "lg"] ↦ lg ∗ m.[member, "walDir"] ↦ tWalDir e.area`, as `member.restart.spec`'s. `member.step`'s proof
+  passes them through. New spec: `etcd_wal.purgeRound.spec` (the handle `walOpenWF`, the caller's repeatable commit
+  `walPurgeAcc dir Pc` and its token `Pc`, `max < 2^63`; back the handle and `Pc`).
+- **Decision.** Made (the tester's internal spec; the call needs the fields).
