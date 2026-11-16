@@ -999,7 +999,7 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     iright
     iright
     isplitl []
-    · ipureintro; exact ⟨hro, hpl.1, hpl.2, txnNestOk_of_plain _ hp hin⟩
+    · ipureintro; exact ⟨hro, Or.inl hpl.1, hpl.2, txnNestOk_of_plain _ hp hin⟩
     iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)
@@ -1102,7 +1102,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
     iright
     isplitl []
     · ipureintro
-      exact ⟨hro, hupd⟩
+      exact ⟨hro, Or.inl hupd.1, hupd.2⟩
     iexact Hau
   icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)
   · ihave %Hq := txnReplied_Q _ _ _ _ _ _ _ _ _ _ hro $$ Hr

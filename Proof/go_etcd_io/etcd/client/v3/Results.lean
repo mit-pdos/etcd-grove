@@ -1211,7 +1211,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases Hspec with ⟨#HΨe, %F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF,
       v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
-      ⌜v3rpc.kvDepPreM E.authOn d (.put o)⌝ ∗
+      ⌜v3rpc.kvDepPreML E.authOn ρ.kv.lm d (.put o)⌝ ∗
       ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗
         (⌜E.authOn = false⌝ → kvRevLb ρ.rd.kv m.hdr.revision) -∗
         (⌜E.authOn = true⌝ → v3rpc.writeGrantOn s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) (irrPut o)) -∗
@@ -1245,7 +1245,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iexact H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
   iapply wp_fupd
-  iapply (v3rpc.put_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F d 0) $$
+  iapply (v3rpc.put_end_to_endML p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F d 0) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
@@ -1900,7 +1900,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
   ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
-      ⌜v3rpc.kvDepPre d (.txn t.cmps ts es)⌝ ∗
+      ⌜v3rpc.kvDepPreL (E.authOn = true ∧ ρ.kv.lm = .revocable) d (.txn t.cmps ts es)⌝ ∗
       ⌜(txn.txnReadonly t = true ∧ ((d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q)) ∨
         (txn.txnReadonly t = false ∧ d = .op1 (.txn t) Q)⌝) $$ [Hnp]
   · icases Hnp with (%Hro | ⟨%Hrs, #Hau⟩ | ⟨%Hw, Hau⟩)
@@ -1935,7 +1935,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       right
       have hfl := v3rpc.txnModelOf_ops Hmod
       obtain ⟨-, hpl, hnz, hn1, hn2, hs1, hs2⟩ := Hw
-      exact ⟨⟨Q, rfl⟩, hpl, hnz,
+      exact ⟨⟨Q, rfl⟩, hpl.imp id (fun h => ⟨⟨h.1, h.2.1⟩, h.2.2⟩), hnz,
         siblingSafeL_of_model ts t.thenOps hfl.1 hs1,
         siblingSafeL_of_model es t.elseOps hfl.2 hs2, hn1, hn2⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
@@ -1948,7 +1948,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   ihave Hu := HNR
   imod Hu with Hid
   iapply wp_fupd
-  iapply (v3rpc.txn_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
+  iapply (v3rpc.txn_end_to_endML p s E ρ γr c cid mid n (GoInterface.ok ci) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
     isplitl []

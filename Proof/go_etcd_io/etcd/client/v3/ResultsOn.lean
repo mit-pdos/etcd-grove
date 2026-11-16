@@ -46,51 +46,52 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`kv.Put(ctx, key, val)` through a `*kv` over `conn` to a member with auth on** (as
-`client_put_any` at one member): etcd's `Put` with auth on registered at `addr`, the floor `F`
-and the caller's update told the put's grant (`clientOpAuOn`), persistent or on a client that sends
-a write at most once; `nil` and the
-reply with `putReplied` and the put's grant at the token of some attempt's metadata, or an
-error. -/
+/-- **`kv.Put(ctx, key, val, opts...)` through a `*kv` over `conn` to a member with auth on** (as
+`client_put_any` at one member): etcd's `Put` with auth on registered at `addr`, the options `gs`
+(auth-lease S4, D-j; the no-option form is `gs := []`) building a request that does not panic, of
+lease `0` or at the revocable lease mode (`etcdPutSpecOn`'s filter), the floor `F` and the caller's
+update told the put's grant (`clientOpAuOn`), persistent or on a client that sends a write at most
+once; `nil` and the reply with `putReplied` and the put's grant at the token of some attempt's
+metadata, or an error. -/
 theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
-    (hsz : opSizeOk (opPutModel key val [])) :
+    (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
+    (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val gs))
+    (hpn : ¬ (opPutModel key val gs).putPanics)
+    (ht : (opPutModel key val gs).t = W64 2)
+    (hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0 ∨ ρ.kv.lm = .revocable) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        (□ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q ∨
+        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
+        (□ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putWireOf (opPutModel key val gs))) Q ∨
           (writeOnce api [addr] ∗
-            clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q)) }}
+            clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putWireOf (opPutModel key val gs))) Q)) }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
-            putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
+            putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
+              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #HF, #Hctx', #Hce, #Hopts, Hau⟩ HΦ
-  have Hpm : ¬ (opPutModel key val []).putPanics ∧ (opPutModel key val []).t = W64 2 := by
-    refine ⟨?_, rfl⟩
-    unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
-    simp
-  iapply (v3.kv.wp_PutG api conn [addr] ci cd key val sl [] (etcdPutSpecOn s E ρ cid mid)
-    (fun m => iprop(putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
+  have Hpm : ¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 := ⟨hpn, ht⟩
+  iapply (v3.kv.wp_PutG api conn [addr] ci cd key val sl gs (etcdPutSpecOn s E ρ cid mid)
+    (fun m => iprop(putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
       ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
-        v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))))) $$ [Hau]
+        v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))))) $$ [Hau]
   · iframe #
     isplitl []
     · ipureintro; exact Hpm
-    rw [show putWireOf (opPutModel key val []) = putKeyOp key val from rfl]
     have h : (srvApi.kvLogLb E.γs F ∗
-          clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q : IProp GF) ⊢
+          clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putWireOf (opPutModel key val gs))) Q : IProp GF) ⊢
         attemptPre conn (GoInterface.ok ci) (etcdPutSpecOn s E ρ cid mid)
-          (putKeyOp key val)
-          (fun (m : PutRespM) => iprop(putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
+          (putWireOf (opPutModel key val gs))
+          (fun (m : PutRespM) => iprop(putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val)))) := by
+              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs))))) := by
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
       iintro %md %Hmd
@@ -101,7 +102,7 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
       iframe HF
       iexists Q
       isplitr
-      · ipureintro; rfl
+      · ipureintro; exact hl
       isplitl [Hau]
       · iapply clientOpAuOn_attempt s E ρ conn (GoInterface.ok ci) md _ Q Hmd $$ Hau
       iintro %m Hm Hg
@@ -141,6 +142,39 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     isplitl
     · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
     · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
+
+/-- The no-option request: it does not panic, is a put, and is `putKeyOp key val` (lease `0`). -/
+theorem opPutModel_nil_ok (key val : GoString) :
+    ¬ (opPutModel key val []).putPanics ∧ (opPutModel key val []).t = W64 2 ∧
+      putWireOf (opPutModel key val []) = putKeyOp key val := by
+  refine ⟨?_, rfl, rfl⟩
+  unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
+  simp
+
+/-- **`client_put_on` with no option** (`gs := []`, lease `0`). -/
+theorem client_put_on_nil (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val [])) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        kvObjAtC api conn [addr] ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
+        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        (□ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q ∨
+          (writeOnce api [addr] ∗
+            clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q)) }}
+      (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
+            putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
+            ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
+  obtain ⟨hpn, ht, hw⟩ := opPutModel_nil_ok key val
+  rw [← hw]
+  exact client_put_on api conn addr s E ρ cid mid ci cd key val sl [] Q F hsz hpn ht
+    (Or.inl (by rw [hw]; rfl))
 
 /-- **`kv.Get(ctx, key, opts...)` through a `*kv` over `conn` to a member with auth on** (as
 `client_range_any` at one member): etcd's `Range` with auth on registered at `addr`, the member's

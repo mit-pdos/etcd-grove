@@ -9,7 +9,7 @@ carries it (`txnPermit`), and the gRPC layer gives it (`txnShape_of_check`): `ch
 (`opsCheck`: keys not empty, sort targets valid) and `checkIntervals` (`intervalsOk`: no put of a
 key a delete of the transaction removes, by `check_gives_nodup`), with the wire's no-`[0]` range
 end (`txnNoZeroEnd`, so no from-key delete: `issues/etcd-txn-delete-then-ignore-put.md`), the
-plainness the server's permit takes (`txn.txnPlain`: gets at revision `0`), and two client
+plainness the server's permit takes (`txn.txnLeased`, which `txn.txnPlain` gives: gets at revision `0`), and two client
 premises: no nested transaction puts a key a later sibling deletes (`ReqOp.siblingSafeL`,
 `check_gives_nodup`'s; stronger than the `IgnoreValue` puts need, which only meet earlier
 deletes: `issues/etcd-txn-check-intervals-sibling.md`), and no get, at any depth, is a sort cut by
@@ -49,10 +49,10 @@ theorem validSortTarget_of_rangeCheck (o : OpFull) (h : rangeCheck o = none) :
   exact Classical.not_not.1 h3
 
 mutual
-/-- **Every get of a checked plain operation**, at any depth, is within the model, given that
+/-- **Every get of a checked leased operation** (`txn.opLeased`: plain but for its puts' leases), at any depth, is within the model, given that
 none is a sort cut by the limit. -/
 theorem opGets_of_check : ∀ (n : Int) (u : ReqOp) (t : TxnOp), opCheck n u = none →
-    ReqOp.toTxnOp u = some t → txn.opPlain t → txn.OpNoCut t → txn.OpGetsOk t
+    ReqOp.toTxnOp u = some t → txn.opLeased t → txn.OpNoCut t → txn.OpGetsOk t
   | _, .range o, t, hc, ht, hp, hn => by
     simp only [ReqOp.toTxnOp, Option.some.injEq] at ht; subst ht
     exact ⟨hp, validSortTarget_of_rangeCheck o hc, hn⟩
@@ -74,7 +74,7 @@ theorem opGets_of_check : ∀ (n : Int) (u : ReqOp) (t : TxnOp), opCheck n u = n
       split at hc
       · cases hc
       rename_i hts0
-      simp only [txn.opPlain] at hp
+      simp only [txn.opLeased] at hp
       simp only [txn.OpNoCut] at hn
       exact ⟨opsGets_of_check _ ts ts' hts0 hts hp.1 hn.1,
         opsGets_of_check _ es es' hc hes hp.2 hn.2⟩
@@ -82,7 +82,7 @@ theorem opGets_of_check : ∀ (n : Int) (u : ReqOp) (t : TxnOp), opCheck n u = n
   | _, .empty, _, hc, _, _, _ => by simp [opCheck] at hc
 
 theorem opsGets_of_check : ∀ (n : Int) (us : List ReqOp) (ts : List TxnOp), opsCheck n us = none →
-    ReqOp.toTxnOps us = some ts → txn.opsPlain ts → txn.OpsNoCut ts → txn.OpsGetsOk ts
+    ReqOp.toTxnOps us = some ts → txn.opsLeased ts → txn.OpsNoCut ts → txn.OpsGetsOk ts
   | _, [], ts, _, ht, _, _ => by
     simp only [ReqOp.toTxnOps, Option.some.injEq] at ht; subst ht; trivial
   | n, u :: us, ts, hc, ht, hp, hn => by
@@ -143,7 +143,7 @@ theorem txnShape_of_check (n : Int) (cs : List CmpModel) (ts es : List ReqOp)
     (hck : txnReqOk n cs ts es) (hivT : intervalsOk ts) (hivE : intervalsOk es)
     (hz : txnOpsNoZeroEnd ts' ∧ txnOpsNoZeroEnd es')
     (hsib : ReqOp.siblingSafeL ts ∧ ReqOp.siblingSafeL es)
-    (hpl : txn.txnPlain { cmps := cs, thenOps := ts', elseOps := es' })
+    (hpl : txn.txnLeased { cmps := cs, thenOps := ts', elseOps := es' })
     (hnc : txn.OpsNoCut ts' ∧ txn.OpsNoCut es') :
     txn.txnShape { cmps := cs, thenOps := ts', elseOps := es' } := by
   have hok := (txnCheck_ok_iff n cs ts es).1 hck

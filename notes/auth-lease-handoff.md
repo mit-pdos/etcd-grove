@@ -1,6 +1,35 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, Freeze FROZEN; items 5-10 next)
+## START HERE (S4, 2026-11-16, item 5 done; item 6 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`);
+  **Freeze FROZEN** (`209e3c68e6`, tag `auth-lease-s4-frozen`; texts `notes/auth-lease-s4-frozen.lean.txt`, hashes in
+  the Freeze header; a change beyond them is a thaw: STOP); **item 5** (this commit): Freeze §1 + K1 under the old names
+  (texts checked equal to the frozen ones), `client_put_on` over `gs` (at today's `clientOpAuOn`; item 6 widens it);
+  forms in `questions.md` ("Item 5"). Built: every library leaf importing the changed files (`etc/importers.py --git
+  c8e05b5db9 --leaves`, minus `Scratch`/`notes`): passes. Not yet run: tcb/interfaces/bounds (at the land stop).
+- **Next, in order (Draft §7):**
+  6. F3 lease contract (client): §2 (`lessorRemoteAtC` in `InvLease.lean`, the four `lessor.*`/`retryLeaseClient.*`
+     specs at `GrpcSpecMd` + `□ ▷ attemptPre`; the `leaseClient.*` stub specs need the same Md form (a form: kVClient.Put's;
+     `etcdConn_InvokeMd`, `reqPre_box`)), §3 (C1 `opGrantT` lease rows, C3/D-i `clientTokAt` + `New`'s post, D-h
+     registrations), the v3rpc H1 chain (§7 Round 3/4 tables; `requireAuthInfo.specC` + `authedFrom` (`AuthWhy.lean`,
+     instance) + `leaseCheckFrom_of_authedFrom` (`LeaseCheck.lean`); `EtcdServer.LeaseGrant` uses `requireAuthInfo.spec`
+     on the span ctx `ctx1`: needs an `authedFrom_ctx` (as `authedOutB_ctx`, `LeaseReqOn.lean:279`)).
+  7. read handlers (§4, §10 T1) and the per-member law (§5, §10 S1, `lessorLawMask`; the tie per §5.4 / R4-5).
+  8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP: `Main.wp_proof` proved). 10. linking, gates,
+     then the land stop (merge lean first: it is 61053b1f3c or later).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
+  `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`
+  (Scratch/notes targets are unknown to lake). Logs `/shared/tmp/auth-lease-s4/i5-*.log`.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail or time out: `have` first.
+  `receiptBound` is a `Nat`. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
+  `v3rpc.LeaseServer.ty` must be written `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty` outside its namespace.
+  Build logs are huge (~1M lines of `#print axioms`): grep `^error`.
+
+# History
+
+## Previous START HERE (S4, 2026-11-16, Freeze FROZEN; items 5-10 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
 - **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`,
@@ -35,7 +64,6 @@
   `receiptBound` is a `Nat`. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
   `v3rpc.LeaseServer.ty` must be written `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty` outside its namespace.
 
-# History
 
 ## Previous START HERE (S4, 2026-11-16, L1 option 1 drivers done: checkpoint)
 
