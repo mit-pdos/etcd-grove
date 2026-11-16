@@ -15,7 +15,7 @@ to agree with the invariant's at the opening; the call gets the other quarter. `
 * *Commit* (the unlink logged at `x` by a call begun at `s0`): no cut pending; the tail record gives the WAL
   `d` and its layout `lay` (`tg`'s cuts are `lay`'s); the locked range is at most `d.unl` (`LksOk`); `bt` is the
   first segment's name, not the last (`purge_first_seg`: the smallest `.wal` name, with a larger one), so the
-  removed segment ends at or before `b ≤ d.unl` (`hb`, `walDirLks_purge`'s); the caller's repeatable commit
+  removed segment ends at or before `b ≤ d.unl` (`LkRel_purge`); the caller's repeatable commit
   (`walPurgeAcc`) moves the client's state with `p := d.unl` and the read position to the next segment's
   start; the invariant moves to `purSt` (`purgeCommit_pure`, `walTailsRes_purge`, `laysResF_purge`,
   `walParked_purge`), the claim replaced by its logged successor (`purgeClaim`).
@@ -26,6 +26,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeAuLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllGive
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeSafe
 
 @[expose] public section
 
@@ -64,18 +65,20 @@ def walPurgeQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (γ :
   | some (x, s0) => walPurgeP (W := W) dir j X (purgeClaim j X hj bt i x s0).2.2 γ tg γt b o Pc
 
 /-- **A purge's update for `os.Remove.specFileSncN`** (see the file header). The premises, over the handle's
-view: `bt` names `i` in the claim, the smallest `.wal` name, not the only one; its sequence `sq` (below
-`2^64`, the cuts' count too) with the next segment's start at most the locked range's `b`
-(`walDirLks_purge`). -/
+view: `bt` names `i` in the claim, the smallest `.wal` name, not the only one; its sequence `sq` below
+`2^64`; the handle's locked range `b` (`LkRel`, `walDirLks`'s), `bt` neither the tail's name `nm0` nor a
+locked segment's (the purger's lock on `i` excludes the latter: `walDirLks_purge`), so the segment ends at
+or before `b` (`LkRel_purge`). -/
 theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG) (γt : GName)
     (b : Nat) (o : WalOut) (Pc : IProp GF) (bt : GoString) (i : Ino) (sq ix : Nat)
+    (nm0 : GoString) (ls : List (GoString × Ino))
     (hoD : (j, NameSet.except X) ∈ o.D)
     (hcur : hj.cur !! bt = some (.file i)) (hbtw : walNameP bt = true)
     (hfirst : ∀ b' n, hj.cur !! b' = some n → walNameP b' = true → b' = bt ∨ go.GoStringLt bt b')
     (hlast : ∃ b' n, hj.cur !! b' = some n ∧ walNameP b' = true ∧ go.GoStringLt bt b')
-    (hbt : bt = walFileName sq ix) (hsq : sq < 2 ^ 64) (hcl : tg.2.2.1.length < 2 ^ 64)
-    (hb : segStart tg.2.2.1 (sq + 1) ≤ b) :
+    (hbt : bt = walFileName sq ix) (hsq : sq < 2 ^ 64) (hlk : LkRel hj tg.2.2.1 nm0 ls b)
+    (h0 : bt ≠ nm0) (hnl : bt ∉ ls.map (·.1)) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗ walPurgeAcc (W := W) dir Pc -∗
       walPurgeP (W := W) dir j X hj γ tg γt b o Pc -∗
       osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
@@ -213,9 +216,10 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       have hnd : (walInos hj1.cur).Nodup := by
         rw [habs.names.1]; exact segsAll_nodup_segs Hok.2.2.1 hl1
       obtain ⟨g0, gs, hs, hgs, hi, hsqf⟩ := purge_first_seg habs hsn hnd hcur hbtw hfirst hlast hbt hsq
-        (by rw [← hcuts]; exact hcl)
+        (by rw [← hcuts]; exact hlk.2.1)
       subst hi
       have hp : segStart lay1.cuts (lay1.first + 1) ≤ d.unl := by
+        have hb := (LkRel_purge hlk (by rw [hcuts]; exact habs.cuts.2.1) hcur hbtw h0 hnl hbt hsq).2
         rw [← hsqf, ← hcuts]; exact Nat.le_trans hb hbu
       have hlen := habs.cuts.2.2
       rw [hs] at hlen
