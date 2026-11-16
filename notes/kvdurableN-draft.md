@@ -1,6 +1,7 @@
 # Draft: `raft_kvdurableN_porcupine_safe` (kvraftN, R2; for the user's review)
 
-Status: **draft, not linked**. Scope: `notes/kvraftN-scope.md`, "kvreconf and kvdurable: two options",
+Status: **approved by the user, 2026-11-16, via etcd-grove-02, as drafted; linked** (kvdurable's `Adequacy.lean`,
+`AdequacyLinked.lean`, `Results.lean`). Scope: `notes/kvraftN-scope.md`, "kvreconf and kvdurable: two options",
 (R2). Modeled on `raft_kvreconfN_porcupine_safe` (approved 2026-11-16, `notes/kvreconfN-draft.md`) and on
 `raft_kvdurable_porcupine_safe` (kvdurable's `Results.lean`), whose text stays unchanged.
 
