@@ -966,7 +966,36 @@ theorem watchChan.startWatching.wp_proof
       · simp
     wp_for IH2
     wp_if_destruct
-    · sorry
+    · -- the next event: parsed, then queued
+      have hjl : sint.nat n < ls.length := by
+        have h1 := Hsll.1; have h4 := Hn; simp only [sint.nat, sint.Z] at h1 h4 Hif ⊢; omega
+      obtain ⟨l, hl⟩ : ∃ l, ls[sint.nat n]? = some l := ⟨_, List.getElem?_eq_getElem hjl⟩
+      obtain ⟨ee, hee⟩ : ∃ e, r.events[sint.nat n]? = some e :=
+        ⟨_, List.getElem?_eq_getElem (by rw [← Hlen]; exact hjl)⟩
+      obtain ⟨ev, hev⟩ : ∃ e, evs[sint.nat n]? = some e :=
+        ⟨_, List.getElem?_eq_getElem (by rw [← HlenE, ← Hlen]; exact hjl)⟩
+      have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z v.Events'.len := ⟨Hn.1, Hif⟩
+      rw [ite_eq_left Hbnd]
+      icases ownSlice_elem_acc (sint.Z n) l v.Events' DFrac.discard ls Hn.1 hl $$ Hls with ⟨#Hle, -⟩
+      ihave #Hea := HevE $$ %(sint.nat n) %l %ee %hl %hee
+      ihave #Hei := HevI $$ %(sint.nat n) %ee %ev %hee %hev
+      ihave #Hpkf := HpkE $$ %(sint.nat n) %l %ee %hl %hee
+      have hev' : (σ.rangeEvents (opWatchModel kp (startOps recur (r1 + W64 1))).watchNorm
+          (sint.nat c0 + 1) (sint.nat c1 + 1))[sint.nat n]? = some ev := by
+        rw [hscope, hevs]; exact hev
+      iunfold respPkOk at Hpk
+      ihave #Hpko := Hpk $$ %(sint.nat n) %ee %ev %hee %hev'
+      have hmr : sint.nat ev.kv.modRev - 1 ≤ σ.rev := by
+        have hmem : ev ∈ kRangeEvsL σ inS (sint.nat c0 + 1) (sint.nat c1 + 1) := by
+          rw [hevs]; exact List.mem_of_getElem? hev
+        obtain ⟨-, rv, -, hrv, hmod⟩ := kRangeEvsL_mem hmem
+        have hne : r.events ≠ [] := by intro h; rw [h] at hee; simp at hee
+        have := hc1le hne
+        have := sint_nat_W64_le rv
+        rw [hmod]; omega
+      ihave #Hpko' := prevKvOk_hist _ σ σ' ev ee.prevKv hhist hle hmr $$ Hpko
+      wp_auto
+      sorry
     · -- the response is queued: the next one
       have h2 : ¬ sint.Z n < sint.Z v.Events'.len := fun h => Hif (by simp [h])
       have hnl : sint.nat n = ls.length := by
