@@ -14,10 +14,12 @@ Done:
   `TestMainN` 20 runs at 18296d64f7: all PASS (k = 1 ×4, 3 ×6, 5 ×4, 7 ×6; 1.5 to 15 s each) (`/shared/tmp/kvraftN/kvreconf-runs20.txt`, logs `run<i>.log`).
 - `raft_kvreconfN_porcupine_safe` approved by the user (2026-11-16, via etcd-grove-02; `notes/kvreconfN-draft.md`) and
   linked (`da91401f22`): `kvreconfProgramN`, `kvreconfN_adequate_of`, `raft_kvreconfN_adequate`, `kvreconf_MainN`, the
-  closed theorem in `Results.lean` (same 328 axioms as `raft_kvreconf_porcupine_safe`). lean merged (`c204a00618`, after authN's landing), full build ok (17947
-  jobs), gates (`/shared/tmp/kvraftN/gates-kvreconf2.log`) all ok but bounds: 378 vs 377 (kvreconf spec-receipt 4 vs 3:
-  `MainN.spec`'s `receiptBound`, as kv's Q6); tcb 870/4, collections 63 match; STATUS entry. **Waiting for the bounds
-  decision (then `etc/bounds-check.py --check --update`) and the coordinator's go to land.**
+  closed theorem in `Results.lean` (same 328 axioms as `raft_kvreconf_porcupine_safe`). lean merged again (`a48cf8827d`, at ee15ea8d45 after k8s-7f5),
+  bounds +1 accepted (Q8, etcd-grove-02) and recorded (`b1da2fa1a4`). **`etc/land.sh` failed (2026-11-16 04:43, lean
+  unchanged)**: every gate ok (tcb 870/4, 63 collections, bounds 378/378, mode, api, interfaces) but "k8s client
+  error types" (`examples/k8s/etcd3` `TestClientErrorTypes`: `cluster3.StartCluster failed` in all three attempts; came in
+  with k8s-7f5; it passed in this branch's gates before that merge). Log `/shared/tmp/kvraftN/land-kvreconf.log`.
+  Waiting for the coordinator.
 
 Next, in order:
 1. On the coordinator's go: merge lean, `LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
