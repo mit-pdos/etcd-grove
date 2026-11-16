@@ -1,5 +1,5 @@
 /-
-`s.labelFieldEmpty()` (`selection_predicate.go:153-155`): both selectors empty. Proved from the translated body (stage 7e-2, `notes/k8s-7e-2-draft.md` §4.3). Lean-first (no
+`s.labelFieldEmpty()` (`selection_predicate.go:153-155`): both selectors empty (only their `Empty`, `selEmptyOk`: k8s 7f-5b, for `storage.Everything`). Proved from the translated body (stage 7e-2, `notes/k8s-7e-2-draft.md` §4.3). Lean-first (no
 Rocq counterpart).
 -/
 module
@@ -24,9 +24,9 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.Assumptions]
 
 /-- See the file header. -/
 abbrev storage.SelectionPredicate.labelFieldEmpty.spec : Prop :=
-  ∀ (pp : Loc) (dq : DFrac) (p : k8s_io.apiserver.pkg.storage.SelectionPredicate) (le fe : Bool) (lm fm : GMap GoString GoString → Bool),
+  ∀ (pp : Loc) (dq : DFrac) (p : k8s_io.apiserver.pkg.storage.SelectionPredicate) (le fe : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage ∗ pp ↦{dq} p ∗
-      labelSelOk p.Label' le lm ∗ fieldSelOk p.Field' fe fm }}
+      selEmptyOk p.Label' le ∗ selEmptyOk p.Field' fe }}
     (App (Val (pp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.SelectionPredicate.ty @!! go!"labelFieldEmpty")) (Val #()))
   {{ RET #(le && fe); pp ↦{dq} p }}
 

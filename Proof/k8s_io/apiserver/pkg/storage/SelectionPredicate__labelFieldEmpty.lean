@@ -26,12 +26,12 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.Assumptions]
 
 theorem storage.SelectionPredicate.labelFieldEmpty.wp_proof
     : storage.SelectionPredicate.labelFieldEmpty.spec (GF := GF) (hG := hG) := by
-  intro pp dq p le fe lm fm
+  intro pp dq p le fe
   wp_start as ⟨Hp, #Hl, #Hf⟩
-  iunfold labelSelOk at Hl
-  iunfold fieldSelOk at Hf
-  icases Hl with ⟨%li, %hli, #HlE, #HlM⟩
-  icases Hf with ⟨%fi, %hfi, #HfE, #HfM⟩
+  iunfold selEmptyOk at Hl
+  iunfold selEmptyOk at Hf
+  icases Hl with ⟨%li, %hli, #HlE⟩
+  icases Hf with ⟨%fi, %hfi, #HfE⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
   iStructNamed Hp
   wp_auto

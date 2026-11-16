@@ -37,7 +37,9 @@ theorem storage.SelectionPredicate.Matches.wp_proof
   (try wp_auto)
   wp_apply (wp_MatchesSharding pp dq p x hs) $$ [$Hp] as Hp
   (try wp_auto)
-  wp_apply (wp_labelFieldEmpty pp dq p le fe lm fm) $$ [$Hp $Hl $Hf] as Hp
+  ihave #Hle := labelSelOk_empty _ _ _ $$ Hl
+  ihave #Hfe := fieldSelOk_empty _ _ _ $$ Hf
+  wp_apply (wp_labelFieldEmpty pp dq p le fe) $$ [$Hp $Hle $Hfe] as Hp
   cases hlf : (le && fe)
   · (try wp_auto)
     icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩

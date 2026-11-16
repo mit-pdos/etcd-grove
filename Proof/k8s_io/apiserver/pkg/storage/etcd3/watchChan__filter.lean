@@ -28,14 +28,16 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem watchChan.filter.wp_proof : watchChan.filter.spec (GF := GF) (hG := hG) := by
   intro Obj S wc p sel emp x o rv
-  unfold selPredOk
+  unfold selPredOkW
   wp_start as ⟨#Hp, ⟨%Hsel, #Hmatch, #Hempty⟩, Hx⟩
   wp_auto
   wp_apply Hempty $$ [$Hp] as #Hp
-  wp_if_destruct
-  · wp_apply Hmatch $$ [$Hp] [$Hx] as #Hp Hx
+  cases emp
+  · wp_auto
+    wp_apply Hmatch $$ %rfl [$Hp] [$Hx] as #Hp Hx
     iapply HΦ; iexact Hx
-  · rw [Hsel.2 rfl o]
+  · wp_auto
+    rw [Hsel.2 rfl o]
     iapply HΦ; iexact Hx
 
 end proof
