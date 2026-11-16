@@ -1,21 +1,27 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, drivers: HARD STOP on kv's exported storage results)
+## START HERE (S4, 2026-11-16, drivers: STOPPED on kv's `kvCluster`)
 
-- Raft L-r0..L-r6 and the server stage ACCEPTED (etcd-grove-02; `questions.md`). Full build of `d54c9155f6`
-  (`/shared/tmp/auth-lease-s4/full1.log`): 7 modules fail, nothing else.
-  - `kv/KVStorageInstance` (`kvJ_bnd`), `kvreconf/KvrStorageApi` (`kvrJ_bnd`), `kvdurable/KdStorageApi`: the
-    examples' `MemJust` copies (`kvJ`/`kvrJ`/`kdJ`, `B k := nodeAppliedLb γ K k`) no longer match L-r2's `storBnd`.
-    **HARD STOP:** `kv/Results.lean`'s exported `kv_storage_isStorage` (and `kv_bootStorage`) are written over `kvJ`;
-    either `kvJ.B` gains `⌜clusterNoSnap γ → k ≤ 1⌝` (text unchanged, meaning changes only in the mode;
-    recommended, mirrors `memStorJ`) or the theorems gain `¬ clusterNoSnap γ`. kvreconf/kvdurable results do not
-    mention their copies.
-  - `etcdstart/newServerMode`, `StartMemberAuth`, `auth3/startMember`, `auth/startServer`: positional args of
-    `NewServer.spec` (the new scu premise). Internal; discharge from `Hrb48` with `NoSnapCatchUp = 2^48`, or
-    `¬ clusterNoSnap` where the catch-up is arbitrary. `newServerMode.wp_proofRestart` needs `¬ clusterNoSnap γ.cl`
-    for `NewServer.specR`: plan, `cluster_alloc`'s post gains `¬ clusterNoSnap γ` (stronger), carried into
-    `memberRestartFacts`.
-- Next after the go: those fixes, rebuild, `tcb-report --check` + collections, `gen-interface --check`, Freeze §5.
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries).
+- **Done (this commit):** kv storage justifications `kvJ`/`kvrJ`/`kdJ` with the cap (option A, user-approved);
+  `cluster_alloc`'s post `⌜¬ clusterNoSnap γ⌝` → `srvClusterBoot_alloc` → `memberBoot_of`/`memberBoots_of` →
+  `memberBoot`, `memberRestartFacts`, `memberRestartBoot` (`%Hnsn`); `NewServer.spec`'s premise at newServerMode
+  (`¬ clusterNoSnap`), `specR`'s at the restart; auth drivers: `StartMemberAuth.spec` premise
+  `clusterNoSnap γ.cl → receiptBound ≤ catchUp`, `StartMembersAuth.spec` `∀ x ∈ xs, …`, authN/auth3/auth from
+  `Hcu48` (2^48); kvreconf/kvdurable `isReplica` `%Hnsn`, `newReplica.spec` pure premise, discharged from
+  `bootLen = 0` (`clusterNoSnap_boot`); `kd_restartStorage` premise; `RestartNode`'s new arg in kv/kvreconf/kvdurable.
+  Freeze §5: `Scratch/S4Freeze.lean` (copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`) and Freeze §9 table:
+  `memberNoSnapInstall` → `clusterNoSnap γr.raft.raft.cl` (not yet re-checked: needs the build).
+- **Open (STOP):** `kv/KV__run.lean` compacts at `a' - 10` (line ~495) and needs `¬ clusterNoSnap γr.cluster`;
+  kv's only carrier is its vocabulary (`kvCluster`/`isReplica`, in the exported `kv_run`, `kv_New`, …).
+  Proposal: `kvCluster γr` gains `⌜¬ clusterNoSnap γr.cluster⌝` (produced only by `kvCluster_alloc`, from
+  `cluster_alloc`); no statement text changes. Line ~565 (ApplySnapshot) the same fact.
+- **Next after the go:** kv fix; full build (`full2.log` had 11 failures, all fixed but kv's KV__run); then
+  `etc/tcb-report.py --check` + collections, `gen-interface --check` on every list, Scratch check; report.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; logs
+  `/shared/tmp/auth-lease-s4/full{1,2}.log`, `t3.log`.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` block that names a local can fail with
+  "unknown free variable" or time out (`whnf`): prove the fact in a `have` before and pass the name.
 
 ## Previous START HERE (S4, 2026-11-16, L1 option 1: raft + L-r5 + server committed; STOPPED at the checkpoint)
 

@@ -163,6 +163,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
           γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
+        -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`cluster_alloc`'s)
+        ⌜¬ clusterNoSnap γ.cl⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInv ⟨γ, [], W64 0⟩ γk ∗
         (if γk.lg then iprop(True) else etcdKV γk (kvModelSt γk (bootEntries γ.boot))) ∗
@@ -236,7 +238,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl (some (2 ^ 30)) ⊤ Hrb Hne Hnd Hnz
       (by omega) (fun _ => HB) (fun _ h => by cases h; omega)
       (fun _ h e he => by cases h; have := Hbc.data e he; unfold bootCtxMax at this; omega)) $$ [Hmarsh]
-    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
+    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, %Hns, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots
   icases Hboots with ⟨#Hbl0c, Hboots⟩
@@ -310,6 +312,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   isplitr
   · ipureintro
     exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  isplitr
+  · ipureintro; rw [hcl]; exact Hns
   isplitl [Hps Hfs Hsd Hboots Hslots]
   · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
     ihave Hbc : iprop([∗list] id ∈ ps, ((nodeBoot γ.cl srvClusterN ps ctxs id ∗

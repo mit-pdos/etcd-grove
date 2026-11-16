@@ -81,7 +81,7 @@ theorem StartCluster.wp_proof
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h) (fun _ h => by cases h)
     (fun _ h => by cases h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, -, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []
@@ -265,7 +265,8 @@ theorem StartCluster.wp_proof
           memStorInvP ms γs' (kvrJ γr.cluster K)))
         HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
         (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
-        (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd))
+        (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd)
+        (fun h => by have := clusterNoSnap_boot _ h; simp_all))
       $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta,
         #HmsInv⟩
@@ -295,7 +296,9 @@ theorem StartCluster.wp_proof
         K Htk Hvnd Hvl (bootCS_is _ Hvnd))
       $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
         $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
-    · ipureintro; exact Hmd
+    · isplitr
+      · ipureintro; exact Hmd
+      ipureintro; intro h; have := clusterNoSnap_boot _ h; first | omega | (simp_all; done)
     have HRn : R !! k = none := by
       cases h : R !! k with
       | none => rfl

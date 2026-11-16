@@ -243,11 +243,15 @@ theorem Main.wp_proof
   · iExactEq Hmsl; rw [hkn]
   iclear Hmsl
   (try wp_auto)
+  have Hcu48 : receiptBound GF ≤ uint.Z (W64 281474976710656) := by
+    have : uint.Z (W64 281474976710656) = 2 ^ 48 := by word
+    omega
   wp_apply (wp_StartMembersAuth N token (W64 10000) (W64 281474976710656) msl lg ((members k).zip gs) ps
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .none Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hxok Haf Hbuq Hdbo
+      (fun _ _ _ => Hcu48)) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩

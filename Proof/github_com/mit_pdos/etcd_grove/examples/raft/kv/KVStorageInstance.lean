@@ -286,7 +286,11 @@ theorem kvJ_bnd (γ : Cluster) (K : GName) (c : Nat) :
   unfold memBnd storBnd kvJ; exact .rfl
 
 theorem kvJ_B0 (γ : Cluster) (K : GName) : ⊢ (kvJ (GF := GF) γ K).B 0 := by
-  unfold kvJ; exact nodeAppliedLb_zero γ K
+  show ⊢ iprop(nodeAppliedLb γ K 0 ∗ ⌜clusterNoSnap γ → 0 ≤ 1⌝)
+  iintro
+  isplitr
+  · iapply (nodeAppliedLb_zero (GF := GF) γ K)
+  ipureintro; intro _; omega
 
 /-- **The store's storage meets the storage contract of key `K`** (under `kvStorageModel`). -/
 theorem kvStorage_isStorage

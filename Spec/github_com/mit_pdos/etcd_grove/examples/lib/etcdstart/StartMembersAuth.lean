@@ -47,6 +47,9 @@ abbrev StartMembersAuth.spec : Prop :=
   (∀ x ∈ xs, x.2.γ.vs = ps ∧ x.2.γ.rule = srvRule (W64 0) bootLog ∧ x.2.γ.boot = bootLog ∧
     γn.N = srvNet x.2.γ ∧ go!"http://" ++ x.1.Peer' ∈ dir x.2.id) →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  -- (auth-lease S4, 2026-11-16) in raft's no-snapshot mode, the catch-up at least the receipts'
+  -- bound (`StartMemberAuth.spec`'s)
+  (∀ x ∈ xs, clusterNoSnap x.2.γ.cl → receiptBound GF ≤ uint.Z catchUp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗ commonPremises ∗
       context.isClosedchanInit ∗

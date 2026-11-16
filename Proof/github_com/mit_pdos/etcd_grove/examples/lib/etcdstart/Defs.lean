@@ -239,6 +239,8 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
       -- leases (the open cases, `srvGrantOpen`): `alloc1`'s names grant none; (2026-11-04, the
       -- lease-expiry plan's Part C) as the lease subsystem's sealed premise, (X2) at the mode `m`
       lease.runCfg (GF := GF) ρ.rd.kv.lm m⌝ ∗
+    -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode (`cluster_alloc`'s)
+    ⌜¬ clusterNoSnap γ.cl⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗

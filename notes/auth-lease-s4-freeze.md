@@ -285,6 +285,9 @@ def lsHolds (σ : lease.LSnap) (id : w64) (k : GoString) : Prop :=
 
 ### 5.2 The law
 
+(Superseded in form by rev 2, §9: `lessor_keys_of_read_stmt` in `Scratch/S4Freeze.lean`. L1, 2026-11-16: the
+law's premise is the pure `clusterNoSnap γr.raft.raft.cl`, raft's per-cluster no-snapshot mode, §8.4.)
+
 ```lean
 theorem lessor_keys_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (log : mvcc.Log)
     (A₀ : List EntryModel) (id : w64) (k : GoString) (hon : E.authOn = true)
@@ -608,7 +611,7 @@ Each r1 finding, applied (the Scratch name in brackets; old texts §1–§5 abov
 | C3 / D-i | `clientTokAt` gains `∃ lp, Client.Lease ↦□ *lessor lp ∗ lessorRemoteAtC lp conn eps`; `New`'s post (`InvClientNewResult.lean:180`, today `lessorAt lp eps`) strengthened to name the connection. | `clientTokAtN` |
 | R1 | the TTL spec's success: `leaseCheckT s E (mdTokenOf md) n (fun info => if req.2 then leaseKeysVerdictFrom … else True)` (authentication with or without keys), and the TTL-row fact kept (second tier). Proof risk (review r1): the no-keys arm from `authedOutB` may need `requireAuthInfo.specC`'s `n`-relative form. | `etcdLeaseTTLSpecMd` |
 | R2 | `hγa` dropped and `γl` freed (the lease-read contract's); the result is the one read registration, renamed `etcd_lease_read_served`, the specs `…SpecMd` (any mode); `etcd_leaseReadMethodsOk`'s texts become corollaries. If the proof finds a use of `hγa`, it comes back as a marked scope restriction. | `etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`, `etcd_lease_read_served_stmt` |
-| L1 | open (§8): the law's premise `memberNoSnapInstall s E γr`, a **parameter of the statement** (no definition), marked as the placeholder | `lessor_keys_of_read_stmt` |
+| L1 | option 1 (approved by the user 2026-11-16; §8.4): the law's premise `clusterNoSnap γr.raft.raft.cl` (pure, of the names), in place of rev 2's placeholder parameter `memberNoSnapInstall s E γr` | `lessor_keys_of_read_stmt` |
 | L2, L3 | §8.3 (accepted): `leaseHeldOn`/`leaseHeldThrough` deleted; `leaseKeptIn σ r₀ id k` (pure, `KVState`); the law over `isServerReadM E.authOn` (no `hon`), its conclusion against `etcdKV γr.kv σ` at any mask with `kvN`, `srvRaftN`, threshold the read's revision `log.length`; `srvRLogLb A₀` and `ai0 + |A₀| ≤ c` gone (the read's revision replaces them) | `leaseKeptIn`, `lsHolds`, `lessor_keys_of_read_stmt` |
 | second tier | full texts of `retryLeaseClient.LeaseRevoke/LeaseTimeToLive/LeaseLeases` (§2.3). `kv.Put.spec`'s docstring: "etcd's auth-off Put spec". §2's token sentence corrected: a user client's token comes from its per-RPC credentials, which grpc sends first (`attemptTokOk`); only the bad-token client's token is in the context. §4.4: `checkLeaseLeases.spec`'s error post strengthened from `applyErrIs` to the auth package's error variables (as `checkLeaseTimeToLive.spec`'s `authErrVarIs`), a frozen-spec change of a proved function, certain. The v3rpc contract's `ttlAns`/`leasesAns` (`InvLeaseRead.lean:65-93`) change with §4.4 (the −1 arm's check; no auth-on empty listing). `raftLeaseRead_server` (`v3rpc/Results.lean:2083`) re-proves them. `ErrLeaseNotFound`'s message fact in `etcdserver` (`errMsgOk`, the lease package's init): to check in item 7. | `retryLeaseClient.*.specN` |
 

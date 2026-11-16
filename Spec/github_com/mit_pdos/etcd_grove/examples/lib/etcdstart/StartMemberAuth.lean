@@ -48,6 +48,9 @@ abbrev StartMemberAuth.spec : Prop :=
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  -- (auth-lease S4, 2026-11-16) in raft's no-snapshot mode, the catch-up at least the receipts'
+  -- bound (`NewServer.spec`'s)
+  (clusterNoSnap γ.cl → receiptBound GF ≤ uint.Z catchUp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
       threadTok ∗

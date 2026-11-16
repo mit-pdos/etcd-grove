@@ -42,7 +42,7 @@ theorem StartMemberAuth.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMemberAuth.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn m Htb Hrb48
-    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq Hdbo
+    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq Hdbo Hcu
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
   -- `http.Serve`); the rest to `NewServer`
@@ -75,7 +75,8 @@ theorem StartMemberAuth.wp_proof
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
   icases memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd m hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd m hraft (by rw [hboot]; exact hrule)
+      (fun h => by simpa using Hcu h) hc0 hch hlog hkcmp
       ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))

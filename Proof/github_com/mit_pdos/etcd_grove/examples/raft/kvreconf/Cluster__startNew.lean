@@ -131,7 +131,8 @@ theorem Cluster.startNew.wp_proof
         memStorInvP ms γs (kvrJ γr.cluster K)))
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
-      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd))
+      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd)
+      (fun h => by have := clusterNoSnap_boot _ h; omega))
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
     as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
@@ -168,7 +169,9 @@ theorem Cluster.startNew.wp_proof
       Hvl (bootCS_is vs Hvnd))
     $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
       $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
-  · ipureintro; exact Hmd
+  · isplitr
+    · ipureintro; exact Hmd
+    ipureintro; intro h; have := clusterNoSnap_boot _ h; first | omega | (simp_all; done)
   have HRn : R !! nid = none := by
     cases h : R !! nid with
     | none => rfl

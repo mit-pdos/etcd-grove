@@ -270,7 +270,9 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     (∀ b, md = some b → b ≤ 2 ^ 31) →
     (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
-      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗
+        -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode
+        ⌜¬ clusterNoSnap γ⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
@@ -283,7 +285,9 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
   imodintro
   iexists γ
   iframe H
-  ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2.1⟩
+  isplitr
+  · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2.1⟩
+  ipureintro; intro h; exact absurd (Hd.2.2.2.2.1 h) (by decide)
 
 /-! ## Joining -/
 

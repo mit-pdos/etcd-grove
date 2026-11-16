@@ -183,7 +183,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
     (raft_kvreconf.bootVoters_nodup _ (by omega)) (raft_kvreconf.bootVoters_zero _ (by omega))
     (by rw [Hlen]; word) (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
     $$ [] with
-    ⟨%γc, %Hd, Hops, HU, #Hcl, Hdec, #Hca, Hsm, Hrs, Hja⟩
+    ⟨%γc, %Hd, -, Hops, HU, #Hcl, Hdec, #Hca, Hsm, Hrs, Hja⟩
   · simp only [↓reduceIte]; iempintro
   simp only [↓reduceIte] at Hd ⊢
   imod confPolicy_alloc γc kdConfN raft_kvreconf.kvrRule E $$ Hdec with #Hpol
