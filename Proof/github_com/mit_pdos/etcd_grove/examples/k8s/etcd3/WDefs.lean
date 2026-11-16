@@ -8,6 +8,7 @@ As `MDefs.lean` for the model's stores: the Go values of `watch.go`'s check and 
 
 - `wevOf w`, the model's event (`WEv`) of a Go `WEvent` (its type as a natural number);
   `wevsOwn s evs`, the Go slice `s` holds events whose models are `evs`, read-only;
+- `wevsOwnM s evs`, the same owned (a fresh slice), which persists into `wevsOwn s evs`;
 - `chgOf ch`, the model's change (`Chg`) of a Go `change` (the previous and current objects present
   only when `hasPrev`/`hasCur`).
 -/
@@ -45,10 +46,25 @@ instance wevsOwn_persistent (s : GoSlice) (evs : List WEv) :
     Persistent (wevsOwn (GF := GF) s evs) := by
   unfold wevsOwn; infer_instance
 
+/-- The Go slice `s` holds events whose models are `evs`, owned (a fresh slice a function returns). -/
+def wevsOwnM (s : GoSlice) (evs : List WEv) : IProp GF :=
+  iprop(∃ ws : List WEvent, s ↦* ws ∗ ⌜ws.map wevOf = evs⌝)
+
 /-- The model's change of a Go `change`. -/
 def chgOf (ch : change) : Chg :=
   ⟨ch.key', if ch.hasPrev' then some ch.prev' else none,
     if ch.hasCur' then some ch.cur' else none, uint.nat ch.rv'⟩
+
+theorem wevsOwnM_persist (s : GoSlice) (evs : List WEv) :
+    wevsOwnM (GF := GF) s evs ⊢ |==> wevsOwn s evs := by
+  unfold wevsOwnM wevsOwn
+  iintro ⟨%ws, Hs, %He⟩
+  imod ownSlice_persist _ _ _ $$ Hs with #Hs
+  imodintro
+  iexists ws
+  isplit
+  · iexact Hs
+  · ipureintro; exact He
 
 theorem Obj_eq_iff (a b : Obj) : a = b ↔
     a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
