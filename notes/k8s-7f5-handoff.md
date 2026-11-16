@@ -3,7 +3,34 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, second 7f-5b agent, end of context): H1 applied; H2 texts reviewed, awaiting 02
+## START HERE (2026-11-16, third 7f-5b agent): H2 applied; step 1 done; step 3 in part (serial, processEvents, Stop, ResultChan)
+
+- **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Done (this session):** H2 (a)+(b) applied `e6ad966eac` (fields.Everything.spec, `storageInit` + `everythingOk`,
+  gen-init SPECIAL, Init regenerated). `740fc6ce26`: H2 (c) `selPredOkW` (SelDefs; filter/acceptAll/prepareObjs/
+  transform take it), `labelFieldEmpty.spec` over `selEmptyOk` (forms, questions.md), `WatchCons.lean`
+  (`kRaw_transformOk`, `kWcCons`, `kProcSt`, `rwgN`, `kRes_evCommit`, `kRes_filterStep`, `wp_Empty_everything`,
+  `everything_selPredOkW`), `serialProcessEvents` PROVED. `d88142b205`: `processEvents` PROVED (both branches;
+  `concurrentProcessEvents.spec` stated, a hypothesis). `346f95c6ca`: `Stop`, `ResultChan` PROVED. All unlinked.
+- **Next, in order (Draft §6):** step 3 rest: `run` (spec: Draft §4; holds `rwgAdder`; forks startWatching via
+  `rwg.wp_Add_top` + `wp_fork_tok` (see processEvents' proof), then processEvents with `n = 1`; after `Wait`, close
+  `resultChan` through `kResChan`'s invariant (`kResInv` → `kResClosed`, R := True); `watchClosedCh` a broadcast
+  (`start_broadcast`) whose Q is `kProdExited γ`); `createWatchChan` (pred `Empty()` → `everything_selPredOkW` with
+  `storageInit`'s `Everything`, else `selPredOk_W`; `wp_WithCancel_ctx`, names before it, Draft §5); `watcher.Watch`;
+  `store.Watch` (`kp ≠ []` from `prepareKeyM_ne_nil`; `c.pfx <+: kp` from `prepareKeyM_prefix`). Then step 4
+  (concurrent: WatchConc, schedule, collect, concurrentProcessEvents), step 5 (link list, Results, land-stop checks:
+  tcb + collections (fields.Everything's axiom text changed), interfaces (`etc/gen-interface.py`), bounds, STATUS).
+- **Pitfalls:** `wp_start` takes `isPkgInit` itself (don't name it in the pattern). `wp_for HI` destructs HI's
+  existential. In a loop, `return` needs `wp_for_post` before the deferred calls; ghost steps go before the
+  `wp_auto` that runs `continue`. Credits: `wp_apply (lc := 3) context.isContext_Done ...`. Fork: `wp_apply
+  wp_fork_tok` then `iintro Htok` (no `inext`). `etc/gen-specs-pkginit.py` has no `--help`: it REGENERATES (the
+  untracked SpecPlan/Spec/PkgInit files dated Nov 13 are stale leftovers, not this branch's; leave them).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...` (common-rules'
+  last section); lean-check `--max-open 2`, `--stop` before builds. A SelDefs/WatchDefs edit rebuilds all etcd3.
+
+## History (older START HERE sections, newest first; the commits say the rest)
+
+### START HERE (2026-11-16, second 7f-5b agent, end of context): H1 applied; H2 texts reviewed, awaiting 02
 
 - **Head:** `k8s-7f5` past `3d68958e4d`. lean is `54c7fb38f0`; merge it (and k8s-7f6c's `KvOne`) before the land stop.
 - **Done:** step 1 in part (`87fef18b7d`): `kvWritesDec` (ListDefs); `store.Watch.spec` new: first read law
@@ -23,7 +50,6 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
   `prepareKeyM_prefix`; Go's `SelectionPredicate.Matches` never calls the selectors' `Matches` when `labelFieldEmpty`.
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json`; targeted `lake build` of leaves (the step-1 one took 5 min).
 
-## History (older START HERE sections, newest first; the commits say the rest)
 
 ### START HERE (2026-11-16, 7f-5b agent, end of context): Draft §6 step 2 done; steps 1, 3-5 next
 
