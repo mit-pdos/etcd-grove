@@ -18,15 +18,19 @@ goes to the user before linking (hard stop).
   and its proof (`kvBootVoters`, `kvBootVoters_ok`, `kvBootVoters_snoc`, `MainN.lean`); `Main.wp_proof` from `wp_MainN`.
   Every kv module but `Link`, `Results`, `Adequacy*` builds.
 
+## Linked (2026-11-16)
+
+`raft_kvN_porcupine_safe` approved by the user (2026-11-16, via etcd-grove-81); linked (`Link.lean`, `kvProgramN`,
+`kvN_adequate_of`, `raft_kvN_adequate`, `Results.lean`); lean `bc64cbfc5e` merged; full build ok; tcb `--check` ok (870, 4),
+kv collection unchanged (13 axioms, 0 sorries); mode ok; interfaces ok; STATUS entry. Blocking the land: bounds 364 vs
+363 (`MainN.spec`'s `receiptBound`, as `Main.spec`'s), waiting for etcd-grove-81's decision (then
+`etc/bounds-check.py --check --update`, land with `etc/land.sh`).
+
 ## Next, in order
 
-1. (after the user approves `raft_kvN_porcupine_safe`) `etc/link-lean-first-kv.txt`: `kv_MainN: kv_StartCluster kv_Check
-   CounterClock`, `kv_Main: kv_MainN`; regenerate `Link.lean` (`etc/gen-link.py --kv`). Until then `Link.lean` does not
-   build (it calls `Main.wp_proof` with the old callees).
-2. `Adequacy.lean`: `kvMainNSpec`, `kvProgramN k`, `kvN_adequate_of`; `AdequacyLinked.lean`: `raft_kvN_adequate`;
-   `Results.lean`: `kv_MainN`, `raft_kvN_porcupine_safe`, the `StartCluster`/alloc docstrings (voters `vs`);
-   `etc/tcb-collections/kv.txt` roots; full build, gates.
-3. kvreconf (R2), its stop; kvdurable (R2), its stop.
+1. Bounds decision, land kv (`LAKE_PACKAGES=/shared/tmp/manifest-e9e.json PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9
+   etc/land.sh`, GOWORK unset).
+2. kvreconf (R2) up to its statement stop; then kvdurable (R2), its stop.
 
 ## Open observations
 
