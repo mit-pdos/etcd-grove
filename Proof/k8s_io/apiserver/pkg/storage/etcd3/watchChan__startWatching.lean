@@ -800,7 +800,19 @@ theorem watchChan.startWatching.wp_proof
     $$ [$Hwsp $Hcons] as %v %ok Hv
   cases ok
   · -- the channel closed: the producer exits
-    sorry
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hv with ⟨-, %Hv⟩
+    wp_auto
+    wp_for_post
+    imod kProdExited_set γ $$ Hpe with #Hex
+    (try wp_auto)
+    wp_apply (wp_broadcast_chan_close wcc γb (kProdExited γ)) $$ [Hbc]
+    · iframe #
+      iframe
+    iintro -
+    (try wp_auto)
+    iapply HΦ
+    iframe
   simp only [↓reduceIte]
   icases Hv with ⟨⟨HP', #Hce⟩, Hcons⟩
   iunfold watchStateElemP at HP'
