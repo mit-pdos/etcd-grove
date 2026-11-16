@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"github.com/anishathalye/porcupine"
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
-	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 )
 
@@ -27,7 +26,7 @@ type failCounts struct {
 	// each member's leader changes observed (to another nonzero leader), and the distinct
 	// leaders
 	mu      sync.Mutex
-	last    [3]uint64
+	last    [3]uint64 // 3 members
 	changes int
 	leaders map[uint64]bool
 	// the model's work during porcupine's check: Step and Equal calls, the time in them, and the
@@ -66,30 +65,12 @@ func timedModel(m porcupine.Model, fc *failCounts) porcupine.Model {
 // mainPartitionCounted is MainPartition (diagnostics only: not the theorem's program) with Check's
 // apply wrapped to count the calls' outcomes in fc.
 func mainPartitionCounted(clients int, ops int, sched []cluster3.Step, fc *failCounts) porcupine.CheckResult {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	srvs, brs, kc, ok := startCluster(3, zap.NewNop())
 	if !ok {
 		return porcupine.Unknown
 	}
-	kc, err := kubernetes.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
-		DialTimeout:          etcdstart.DialTimeout,
-		DialKeepAliveTime:    etcdstart.KeepAliveTime,
-		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
-		Logger:               lg,
-	})
-	if err != nil {
-		return porcupine.Unknown
-	}
-	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() {
-		return porcupine.Unknown
-	}
-	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
-		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
-		decoder{}, versioner{})
-	if err != nil {
+	s, st0, h0, ok := testStore(kc)
+	if !ok {
 		return porcupine.Unknown
 	}
 	go cluster3.Partitioner(srvs, brs, sched)
@@ -149,7 +130,7 @@ func mainPartitionCounted(clients int, ops int, sched []cluster3.Step, fc *failC
 // the schedules exercise the model's pending writes) and the leaders observed.
 func TestPartitionFailures(t *testing.T) {
 	only := os.Getenv("K8SETCD3_SCHED")
-	for name, sched := range partitionSchedules() {
+	for name, sched := range partitionSchedules(3) {
 		if only != "" && name != only {
 			continue
 		}
@@ -182,7 +163,7 @@ func TestPartitionScale(t *testing.T) {
 	if os.Getenv("K8SETCD3_SCALE") == "" {
 		t.Skip("set K8SETCD3_SCALE to run")
 	}
-	sched := partitionSchedules()["election"]
+	sched := partitionSchedules(3)["election"]
 	inChild(t, "TestPartitionScale", "", func(t *testing.T) {
 		fc := failCounts{leaders: map[uint64]bool{}}
 		start := time.Now()
@@ -199,4 +180,20 @@ func TestPartitionScale(t *testing.T) {
 			t.Fatalf("scale: %v, want Ok", r)
 		}
 	})
+}
+
+// testStore is MainCluster's steps after the start (seed, the features, etcd3.New) over the client
+// kc, for the diagnostics.
+func testStore(kc *kubernetes.Client) (storage.Interface, mstore, []mstore, bool) {
+	st0, h0, ok := seed(kc.Client)
+	if !ok || !noStreaming() || !watchList() {
+		return nil, mstore{}, nil, false
+	}
+	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
+		decoder{}, versioner{})
+	if err != nil {
+		return nil, mstore{}, nil, false
+	}
+	return s, st0, h0, true
 }

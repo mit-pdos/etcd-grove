@@ -1,14 +1,17 @@
 package etcd3
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
+	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
@@ -49,19 +52,33 @@ func TestModelNoopRewrite(t *testing.T) {
 	}
 }
 
-// TestMainCluster runs MainCluster once, in a process of its own (inChild): the store's history
-// over the three-member cluster is linearizable under Model (MainCluster panics otherwise), and the
-// run reaches the check.
+// testK is the member count of the cluster tests: K8SETCD3_K, 3 by default.
+func testK(t *testing.T) uint64 {
+	v := os.Getenv("K8SETCD3_K")
+	if v == "" {
+		return 3
+	}
+	k, err := strconv.ParseUint(v, 10, 64)
+	if err != nil || k == 0 || k > maxMembers {
+		t.Fatalf("K8SETCD3_K=%q: want 1 to %d", v, maxMembers)
+	}
+	return k
+}
+
+// TestMainCluster runs MainCluster once, at testK members, in a process of its own (inChild): the
+// store's history over the cluster is linearizable under Model (MainCluster panics otherwise), and
+// the run reaches the check.
 func TestMainCluster(t *testing.T) {
+	k := testK(t)
 	inChild(t, "TestMainCluster", "", func(t *testing.T) {
-		r := MainCluster(4, 60)
+		r := MainCluster(k, 4, 60)
 		if r != porcupine.Ok {
-			t.Fatalf("MainCluster: %v, want Ok", r)
+			t.Fatalf("MainCluster(%d): %v, want Ok", k, r)
 		}
 	})
 }
 
-// inChild runs body, which starts a cluster on clusterConfig's fixed ports and leaves it running,
+// inChild runs body, which starts a cluster on fixed ports and leaves it running,
 // in a process of its own: the test binary re-executed on the test test (and its subtest sub, if
 // not empty), in a fresh data directory, with K8SETCD3_CHILD set. The parent removes the directory
 // once the child has exited, so no member runs while its files are removed (a member whose files
@@ -104,88 +121,136 @@ func inChild(t *testing.T, test string, sub string, body func(t *testing.T)) {
 	}
 }
 
-// TestMemberIDs checks clusterConfig's member ids, as etcd computes them from the names, peer URLs
-// and token: their low 16 bits are nonzero and distinct (cluster3's premise on the ids).
-func TestMemberIDs(t *testing.T) {
-	cfg := clusterConfig()
-	urls, err := types.NewURLsMap(cfg.Name1 + "=http://" + cfg.Peer1 + "," + cfg.Name2 + "=http://" +
-		cfg.Peer2 + "," + cfg.Name3 + "=http://" + cfg.Peer3)
+// maxMembers is the bound of the cluster theorems' member count.
+const maxMembers = 1000
+
+// idsOf returns the member ids etcd computes for startCluster(k)'s cluster at the token token (from
+// the peer URLs, as bootstrap does), without starting it.
+func idsOf(t *testing.T, k uint64, token string) []types.ID {
+	ms := etcdstart.Members("k8setcd3N", k, PeerBase, ClientBase)
+	urls := types.URLsMap{}
+	for _, m := range ms {
+		u, err := types.NewURLs([]string{"http://" + m.Peer})
+		if err != nil {
+			t.Fatal(err)
+		}
+		urls[m.Name] = u
+	}
+	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), token, urls)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), cfg.Token, urls)
-	if err != nil {
-		t.Fatal(err)
-	}
+	return cl.MemberIDs()
+}
+
+// idsOk says whether the ids' 16 low bits are distinct and not 0.
+func idsOk(ids []types.ID) bool {
 	seen := map[uint64]bool{}
-	for _, id := range cl.MemberIDs() {
+	for _, id := range ids {
 		low := uint64(id) & 0xffff
-		t.Logf("member %x (%s): low 16 bits %#x", uint64(id), cl.Member(id).Name, low)
 		if low == 0 || seen[low] {
-			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
+			return false
 		}
 		seen[low] = true
 	}
+	return true
 }
 
-// partitionSchedules are TestMainPartition's schedules, by name.
-func partitionSchedules() map[string][]cluster3.Step {
+// TestMemberIDs checks the cluster theorems' premise on the member ids (their 16 low bits distinct
+// and not 0: etcd's request ids carry them as the member's prefix) for every member count
+// 1 <= k <= maxMembers, from the ids etcd computes for startCluster(k)'s cluster. It starts no
+// cluster. (The ids of the first k members do not depend on k, so k = maxMembers decides it.)
+func TestMemberIDs(t *testing.T) {
+	for k := uint64(1); k <= maxMembers; k++ {
+		ids := idsOf(t, k, Token)
+		if uint64(len(ids)) != k || !idsOk(ids) {
+			t.Fatalf("k=%d: the ids' low 16 bits are zero or repeated", k)
+		}
+	}
+}
+
+// TestFindToken (only with K8SETCD3_FIND_TOKEN set) prints the first "k8setcd3N-<i>" at which
+// TestMemberIDs passes: how Token was chosen.
+func TestFindToken(t *testing.T) {
+	if os.Getenv("K8SETCD3_FIND_TOKEN") == "" {
+		t.Skip("set K8SETCD3_FIND_TOKEN to run")
+	}
+	for i := 0; i < 100000; i++ {
+		tok := "k8setcd3N-" + strconv.Itoa(i)
+		if idsOk(idsOf(t, maxMembers, tok)) {
+			t.Logf("token %s", tok)
+			return
+		}
+	}
+	t.Fatal("none found")
+}
+
+// TestAddrs checks the members' and bridges' addresses at k = 3.
+func TestAddrs(t *testing.T) {
+	ms := etcdstart.Members("k8setcd3N", 3, PeerBase, ClientBase)
+	for i, m := range ms {
+		want := etcdstart.Member{
+			Name:   fmt.Sprintf("k8setcd3N-%d", i),
+			Peer:   fmt.Sprintf("127.0.0.1:%d", 20000+i),
+			Client: fmt.Sprintf("127.0.0.1:%d", 21000+i),
+		}
+		if m != want {
+			t.Fatalf("member %d: got %v, want %v", i, m, want)
+		}
+		if b := bridgeAddr(uint64(i)); b != fmt.Sprintf("127.0.0.1:%d", 22000+i) {
+			t.Fatalf("bridge %d: got %s", i, b)
+		}
+	}
+}
+
+// cutSteps returns the steps that, after delay, cut (or mend, if !cut) member m's links to the k-1
+// others.
+func cutSteps(delay time.Duration, k int, m int, cut bool) []cluster3.Step {
+	kind := cluster3.PeerCut
+	if !cut {
+		kind = cluster3.PeerMend
+	}
+	var steps []cluster3.Step
+	for o := 0; o < k; o++ {
+		if o != m {
+			steps = append(steps, cluster3.Step{Delay: delay, Kind: kind, A: m, B: o})
+			delay = 0
+		}
+	}
+	return steps
+}
+
+// partitionSchedules are the partition tests' schedules for k members, by name. (At k = 1 the peer
+// steps are empty: a member has no link to cut; the client steps remain.)
+func partitionSchedules(k int) map[string][]cluster3.Step {
 	ms := time.Millisecond
-	// each member isolated in turn from the two others (both directions), then mended: the
-	// leader is isolated in one of the three rounds
+	// each member isolated in turn from the others (both directions), then mended: the leader is
+	// isolated in one of the rounds
 	var isolate []cluster3.Step
-	for m := 0; m < 3; m++ {
-		first := true
-		for o := 0; o < 3; o++ {
-			if o != m {
-				d := time.Duration(0)
-				if first {
-					d = 150 * ms
-					first = false
-				}
-				isolate = append(isolate, cluster3.Step{Delay: d, Kind: cluster3.PeerCut, A: m, B: o})
-			}
-		}
-		first = true
-		for o := 0; o < 3; o++ {
-			if o != m {
-				d := time.Duration(0)
-				if first {
-					d = 300 * ms
-					first = false
-				}
-				isolate = append(isolate, cluster3.Step{Delay: d, Kind: cluster3.PeerMend, A: m, B: o})
-			}
-		}
-	}
-	// each member in turn cut off from the two others for 3s, longer than the election timeout
-	// (1-2s: TickMs 100, ElectionTicks 10), then mended: the round of the leader forces a new
-	// election
+	// each member in turn cut off from the others for 3s, longer than the election timeout (1-2s:
+	// TickMs 100, ElectionTicks 10), then mended: the round of the leader forces a new election
 	var election []cluster3.Step
-	for m := 0; m < 3; m++ {
-		first := true
-		for o := 0; o < 3; o++ {
-			if o != m {
-				d := time.Duration(0)
-				if first {
-					d = 100 * ms
-					first = false
-				}
-				election = append(election, cluster3.Step{Delay: d, Kind: cluster3.PeerCut, A: m, B: o})
-			}
-		}
-		first = true
-		for o := 0; o < 3; o++ {
-			if o != m {
-				d := time.Duration(0)
-				if first {
-					d = 3 * time.Second
-					first = false
-				}
-				election = append(election, cluster3.Step{Delay: d, Kind: cluster3.PeerMend, A: m, B: o})
-			}
+	for m := 0; m < k; m++ {
+		isolate = append(isolate, cutSteps(150*ms, k, m, true)...)
+		isolate = append(isolate, cutSteps(300*ms, k, m, false)...)
+		election = append(election, cutSteps(100*ms, k, m, true)...)
+		election = append(election, cutSteps(3*time.Second, k, m, false)...)
+	}
+	// the clients' connections to each member closed, twice
+	var drop []cluster3.Step
+	for r := 0; r < 2; r++ {
+		for m := 0; m < k; m++ {
+			drop = append(drop, cluster3.Step{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: m})
 		}
 	}
+	// one round modeled on the k8s compactor's TestMainPartition: member 0 isolated with the last
+	// member's bridge blackholed, then mended, the last member unblackholed and member (1 mod k)'s
+	// connections dropped
+	mixed := cutSteps(100*ms, k, 0, true)
+	mixed = append(mixed, cluster3.Step{Kind: cluster3.ClientBlackhole, A: k - 1})
+	mixed = append(mixed, cutSteps(300*ms, k, 0, false)...)
+	mixed = append(mixed, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: k - 1},
+		cluster3.Step{Kind: cluster3.ClientDrop, A: 1 % k})
 	return map[string][]cluster3.Step{
 		"isolate":  isolate,
 		"election": election,
@@ -195,44 +260,26 @@ func partitionSchedules() map[string][]cluster3.Step {
 			{Delay: 100 * ms, Kind: cluster3.ClientBlackhole, A: 0},
 			{Delay: 10 * time.Second, Kind: cluster3.ClientUnblackhole, A: 0},
 		},
-		// the clients' connections to each member closed, repeatedly
-		"drop": {
-			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 0},
-			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 1},
-			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 2},
-			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 0},
-			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 1},
-			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 2},
-		},
-		// one round modeled on the k8s compactor's TestMainPartition: member 0 isolated with member
-		// 2's bridge blackholed, then mended, member 2 unblackholed and member 1's connections
-		// dropped
-		"mixed": {
-			{Delay: 100 * ms, Kind: cluster3.PeerCut, A: 0, B: 1},
-			{Kind: cluster3.PeerCut, A: 0, B: 2},
-			{Kind: cluster3.ClientBlackhole, A: 2},
-			{Delay: 300 * ms, Kind: cluster3.PeerMend, A: 0, B: 1},
-			{Kind: cluster3.PeerMend, A: 0, B: 2},
-			{Kind: cluster3.ClientUnblackhole, A: 2},
-			{Kind: cluster3.ClientDrop, A: 1},
-		},
+		"drop":  drop,
+		"mixed": mixed,
 	}
 }
 
-// TestMainPartition runs MainPartition once per schedule (K8SETCD3_SCHED names one; all by
-// default), each in a process of its own (inChild): the store's history over the partitioned
+// TestMainPartition runs MainPartition at testK members once per schedule (K8SETCD3_SCHED names
+// one; all by default), each in a process of its own (inChild): the store's history over the partitioned
 // cluster is linearizable under Model (MainPartition panics otherwise), and the run reaches the
 // check.
 func TestMainPartition(t *testing.T) {
 	only := os.Getenv("K8SETCD3_SCHED")
-	for name, sched := range partitionSchedules() {
+	k := testK(t)
+	for name, sched := range partitionSchedules(int(k)) {
 		if only != "" && name != only {
 			continue
 		}
 		t.Run(name, func(t *testing.T) {
 			inChild(t, "TestMainPartition", name, func(t *testing.T) {
 				start := time.Now()
-				r := MainPartition(4, 60, sched)
+				r := MainPartition(k, 4, 60, sched)
 				t.Logf("%s: %v in %v", name, r, time.Since(start))
 				if r != porcupine.Ok {
 					t.Fatalf("MainPartition(%s): %v, want Ok", name, r)
