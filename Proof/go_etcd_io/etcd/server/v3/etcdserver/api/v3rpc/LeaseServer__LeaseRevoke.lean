@@ -35,14 +35,14 @@ theorem v3rpc.LeaseServer.LeaseRevoke.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid on E ρ S ci cd r m Q
-  wp_start as ⟨#Hls, #HR, HS, #Hctx, #Hrc, #Hr, Hp⟩
+  intro p s A cid mid on E ρ S ci cd r m Q n
+  wp_start as ⟨#Hls, #HR, HS, #Hn, #Hctx, #Hrc, #Hr, Hp⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
   iunfold v3rpc.lessorRevokeOkM at HR
   wp_auto
-  wp_apply HR $$ %ci %cd %r %m %Q [HS Hp] as %resp %err ⟨HS, Hans, Hres⟩
+  wp_apply HR $$ %ci %cd %r %m %Q %n [HS Hp] as %resp %err ⟨HS, Hans, Hres⟩
   · iframe; iframe #
   iunfold v3rpc.leaseRevokeAns at Hans
   icases Hans with (⟨%Hok, Hh⟩ | #Hse)

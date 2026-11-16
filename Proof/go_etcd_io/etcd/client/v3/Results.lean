@@ -3809,8 +3809,9 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
   iapply wp_fupd
   -- (auth-lease S3c) the handler's spec at auth off, the off permit
   ihave #HLM := v3rpc.raftLessorM_grantG false s E ρ S $$ HL
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn0
   iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E ρ S
-      (fun _ _ => iprop(True)) (fun _ => True) ci cd r m (fun _ _ => iprop(True))) $$ [HS Hid]
+      (fun _ _ => iprop(True)) (fun _ => True) ci cd r m (fun _ _ => iprop(True)) 0) $$ [HS Hid]
   · iframe; iframe #
     isplitr
     · ipureintro; trivial
@@ -3870,8 +3871,9 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply wp_fupd
   -- (auth-lease S3c) the handler's spec at auth off, the off permit
   ihave #HLR := v3rpc.raftLessorM_revoke false s E ρ S $$ HL
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn0
   iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E ρ S ci cd r m
-      (fun _ => iprop(True))) $$ [HS]
+      (fun _ => iprop(True)) 0) $$ [HS]
   · iframe; iframe #
     iunfold leaseRevokePermitM
     itrivial

@@ -1,6 +1,37 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, item 5 done; item 6 next)
+## START HERE (S4, 2026-11-16, items 5-6 done; item 7 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries,
+  "Item 5", "Item 6": the forms decided, for the checkpoint report).
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`);
+  **Freeze FROZEN** (`209e3c68e6`, tag `auth-lease-s4-frozen`; texts `notes/auth-lease-s4-frozen.lean.txt`; a change
+  beyond them is a thaw: STOP); **item 5** (`ef5f154062`): Freeze §1 + K1; **item 6** (this commit): §2 (Md lessor/retry/
+  stub specs, `lessorRemoteAtC`, `LessorPlain.lean` for plain callers), §3 C1 (`opGrantT` lease rows), C3/D-i
+  (`clientTokAt` + Lease; `newClient` proves it), D-h (registrations, `client_lease_grant_on`/`_revoke_on` in
+  `ResultsOn.lean`), H1 chain (`authedFrom` + `authedFrom_ctx` in `AuthWhy`, `leaseCheckFrom_of_authedFrom` in
+  `LeaseCheck`, `requireAuthInfo.specC`, server `LeaseGrant`/`LeaseRevoke.spec`, v3rpc contracts + handler specs).
+  Frozen texts compared equal to the tree's (script in the item-6 entry of `questions.md`: all but `opGrantT`/
+  `clientGrant`, equal in meaning). Built: every library leaf importing files changed since `ef5f154062`.
+- **Next, in order (Draft §7):**
+  7. read handlers (§4: `EtcdServer.LeaseTimeToLive/LeaseLeases.specN` (T1, F4), v3rpc `leaseTTLOut`/`leaseLeasesOut`,
+     `etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`, `etcd_lease_read_served`; `requireAuthInfo.specC` already carries
+     `authedFrom`) and the per-member law (§5, §10 S1/S4, `leaseKeptIn`, `lsHolds`, `lessorLawMask`,
+     `lessor_keys_of_read`; the tie per §5.4 / R4-5: the big one, est. 4-6 days).
+  8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP: `Main.wp_proof` proved). 10. linking, gates,
+     then the land stop (merge lean first: it is 61053b1f3c or later).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
+  `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`
+  (Scratch/notes targets are unknown to lake). Logs `/shared/tmp/auth-lease-s4/i{5,6}-*.log`.
+- **Pitfalls:** an `iprop` hypothesis is not a Lean one (`unfold … at H` fails: state an entailment lemma, as
+  `kvOpAuOn_leaseGrant`). `opGrantT`'s match does not reduce under `iexact`. `attemptPre_md` did not `iapply` in
+  `LessorPlain` (unfold `attemptPre` by hand). In a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail
+  or time out: `have` first. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
+  Build logs are huge (~1M lines of `#print axioms`): grep `^error`.
+
+# History
+
+## Previous START HERE (S4, 2026-11-16, item 5 done; item 6 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
 - **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`);
@@ -27,7 +58,6 @@
   `v3rpc.LeaseServer.ty` must be written `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty` outside its namespace.
   Build logs are huge (~1M lines of `#print axioms`): grep `^error`.
 
-# History
 
 ## Previous START HERE (S4, 2026-11-16, Freeze FROZEN; items 5-10 next)
 

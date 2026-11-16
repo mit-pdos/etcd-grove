@@ -59,7 +59,9 @@ only when the context carries a token (nothing more: the token provider's contra
 token it refuses, and the simple provider may refuse a token any time its keeper deletes it). So the
 check refuses with no other error, whatever the principal's roles; with the history frozen from `n`
 on, auth enabled and a token in the context, only `ErrInvalidAuthToken` remains
-(`authed_served_of_frozen`). `spec` follows (`wp_proof`). -/
+(`authed_served_of_frozen`). (Auth-lease S4, Freeze §10 T1/H1) on `nil`, the caller authenticated
+relative to `n` (`authedFrom`: the flag read `false` after `n`, or a principal bound to the context).
+`spec` follows (`wp_proof`). -/
 abbrev EtcdServer.requireAuthInfo.specC : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (n : Nat),
@@ -69,6 +71,7 @@ abbrev EtcdServer.requireAuthInfo.specC : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; E.RD ∗ authedOutC s E.authMode n (GoInterface.ok ctx) err ∗
+      (⌜err = GoInterface.nil⌝ -∗ authedFrom s E.authMode n (GoInterface.ok ctx)) ∗
       authErrVarIs err }}
 
 end spec

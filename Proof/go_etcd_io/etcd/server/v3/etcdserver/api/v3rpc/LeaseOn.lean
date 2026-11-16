@@ -15,6 +15,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseKeepAlive
 
 @[expose] public section
 
@@ -67,14 +68,16 @@ lease's TTL by the request's). -/
 def lessorGrantOkGM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
     (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop := fun _ => True) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64)
-      (Q : w64 → KVState → IProp GF),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗ leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
+      (Q : w64 → KVState → IProp GF) (n : Nat),
+    {{ S ∗ auth.authPubLbM E.authMode n ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
+        leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
         leaseGrantPermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m.1 Q }}
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
           structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
-          leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q) }})
+          leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q ∗
+          leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True))) }})
 
 instance lessorGrantOkGM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
@@ -89,12 +92,13 @@ def lessorGrantOkM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S 
 the caller's result `leaseRevokeResT`. -/
 def lessorRevokeOkM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64)
-      (Q : KVState → IProp GF),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseRevokeReqIs r id ∗
+      (Q : KVState → IProp GF) (n : Nat),
+    {{ S ∗ auth.authPubLbM E.authMode n ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseRevokeReqIs r id ∗
         leaseRevokePermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) id Q }}
       (App (App (Val (srvM s go!"LeaseRevoke")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseRevokeAns E resp err ∗
-        (⌜err ≠ GoInterface.nil⌝ ∨ leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) id Q) }})
+        (⌜err ≠ GoInterface.nil⌝ ∨ (leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) id Q ∗
+          leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True)))) }})
 
 instance lessorGrantOkM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) : Persistent (lessorGrantOkM on s E ρ S) := by
@@ -185,16 +189,16 @@ theorem lessorGrantOkGM_mono (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
       lessorGrantOkGM on s E ρ S G' R' := by
   iintro ⟨#HGG, #HL⟩
   unfold lessorGrantOkGM
-  iintro %ci %cd %r %m %Q !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, %HR', Hp⟩ HΦ
-  wp_apply HL $$ %ci %cd %r %m %Q [HS0 Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
+  iintro %ci %cd %r %m %Q %n !> %Φ ⟨HS0, Hn, Hctx, Hrc, Hreq, Hid, %HR', Hp⟩ HΦ
+  wp_apply HL $$ %ci %cd %r %m %Q %n [HS0 Hn Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
   · iframe; ipureintro; exact hR m HR'
   iapply HΦ
   iframe HSr Hans
-  icases Hg with (%Hne | ⟨%id, #Hid, Hg, Hres⟩)
+  icases Hg with (%Hne | ⟨%id, #Hid, Hg, Hres, Hck⟩)
   · ileft; ipureintro; exact Hne
   iright
   iexists id
-  iframe Hid Hres
+  iframe Hid Hres Hck
   iapply HGG $$ %m %id Hg
 
 end lemmas

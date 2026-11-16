@@ -47,6 +47,14 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
     iframe HRD
     isplitr
     rotate_left
+    isplitr
+    · iintro -
+      iunfold authedFrom
+      rcases (Bool.eq_false_or_eq_true E.authMode.isOn).symm with hon | hon
+      · iright
+        iexists ({ Username' := [], Revision' := W64 0 } : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+        iintro !> %h; rw [hon] at h; cases h
+      · ileft; iapply HbLb; ipureintro; exact hon
     · iunfold authErrVarIs; ileft; ipureintro; rfl
     iunfold authedOutC
     isplitr
@@ -81,6 +89,8 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
       iframe HRD
       isplitr
       rotate_left
+      isplitr
+      · iintro %h; cases h
       · iapply Hae; ipureintro; exact Hon
       iunfold authedOutC
       isplitr
@@ -120,6 +130,9 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
         (try wp_auto)
         iapply HΦ
         iframe HRD HvUE
+        isplitr
+        rotate_left
+        · iintro %h; first | cases h | simp_all
         iunfold authedOutC
         isplitr
         · iunfold authedOutB
@@ -148,6 +161,12 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
         iframe HRD
         isplitr
         rotate_left
+        isplitr
+        · iintro -
+          iunfold authedFrom
+          iright
+          iexists { Username' := user, Revision' := rev }
+          iintro !> -; iexact Hpb
         · iunfold authErrVarIs; ileft; ipureintro; rfl
         iunfold authedOutC
         isplitr
@@ -175,7 +194,7 @@ theorem EtcdServer.requireAuthInfo.wp_proof
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   iapply (EtcdServer.requireAuthInfo.wp_proofC hAI s E ctx cd 0) $$ [HRD]
   · iframe; iframe #
-  iintro !> %err ⟨HRD, #Hout, #Hv⟩
+  iintro !> %err ⟨HRD, #Hout, -, #Hv⟩
   iapply HΦ
   iframe HRD Hv
   iapply authedOutB_of_C $$ Hout

@@ -151,6 +151,25 @@ instance authedOutC_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err 
     Persistent (authedOutC (GF := GF) s M n ctx err) := by
   unfold authedOutC; infer_instance
 
+/-- **The caller authenticated, relative to `n`** (persistent; auth-lease S4, Freeze §4.4/§10 T1/H1): auth
+disabled at a state no older than `n`, or a principal bound to the context (`requireAuthInfo`'s success:
+it returns `nil` only when the flag reads `false`, read after the caller's `n` was published, or when the
+context's token names a principal). -/
+def authedFrom (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) : IProp GF :=
+  iprop(auth.enabledVerdictFrom M n false ∨
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, □ (⌜M.isOn = true⌝ → principalBound s M ctx (some info)))
+
+instance authedFrom_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) :
+    Persistent (authedFrom (GF := GF) s M n ctx) := by
+  unfold authedFrom; infer_instance
+
+/-- `authedFrom` depends on the context only through its incoming metadata. -/
+theorem authedFrom_ctx (s : Loc) (M : auth.AuthMode) (n : Nat) (c c' : GoInterface)
+    (h : metadata.incomingOf c = metadata.incomingOf c') :
+    authedFrom (GF := GF) s M n c ⊢ authedFrom s M n c' := by
+  have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
+  unfold authedFrom principalBound; rw [ht]
+
 /-- **The admin check's outcome with its reason** (persistent): `adminOutB`, and on an error the
 reason (`adminWhy`). -/
 def adminOutC (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface) : IProp GF :=

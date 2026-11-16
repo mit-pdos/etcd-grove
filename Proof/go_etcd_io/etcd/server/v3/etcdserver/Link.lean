@@ -1764,13 +1764,13 @@ theorem EtcdServer.wp_LeaderChanged :
     EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaderChanged.wp_proof notify.Notifier.wp_Receive
 
-theorem EtcdServer.wp_requireAuthInfo :
-    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtxLb
+theorem EtcdServer.wp_requireAuthInfoC :
+    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb
 
 theorem EtcdServer.wp_LeaseGrant :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseGrant.wp_proof idutil.Generator.wp_Next EtcdServer.wp_requireAuthInfo EtcdServer.wp_raftRequest LeaseGrantRequest.wp_GetTTL traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
+  EtcdServer.LeaseGrant.wp_proof idutil.Generator.wp_Next EtcdServer.wp_requireAuthInfoC EtcdServer.wp_raftRequest LeaseGrantRequest.wp_GetTTL traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
 
 theorem EtcdServer.wp_checkLeaseLeases :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) :=
@@ -1826,7 +1826,11 @@ theorem EtcdServer.wp_LeaseRenew :
 
 theorem EtcdServer.wp_LeaseRevoke :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseRevoke.wp_proof EtcdServer.wp_requireAuthInfo EtcdServer.wp_raftRequest LeaseRevokeRequest.wp_GetID traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
+  EtcdServer.LeaseRevoke.wp_proof EtcdServer.wp_requireAuthInfoC EtcdServer.wp_raftRequest LeaseRevokeRequest.wp_GetID traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
+
+theorem EtcdServer.wp_requireAuthInfo :
+    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtxLb
 
 theorem EtcdServer.wp_checkLeaseTimeToLive :
     EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=
@@ -1843,10 +1847,6 @@ theorem EtcdServer.wp_LeaseTimeToLive :
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
-
-theorem EtcdServer.wp_requireAuthInfoC :
-    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb
 
 theorem EtcdServer.wp_MemberList :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=

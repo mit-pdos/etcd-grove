@@ -23,6 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
+public import Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed
 
 @[expose] public section
 
@@ -454,6 +455,155 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 end on
+
+section leaseOn
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- A lease grant's update at a token is the grant's permit's (`opGrantT`'s lease row, Freeze C1). -/
+theorem kvOpAuOn_leaseGrant (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (id ttl : w64) (Q : KVState → IProp GF) :
+    v3rpc.kvOpAuOn (GF := GF) s E ρ tok (.leaseGrant id ttl) Q ⊢
+      ∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
+        kvAu1G ρ.kv (kvOpStep (.leaseGrant id ttl))
+          (writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseGrant id ttl) L₀) Q := by
+  unfold v3rpc.kvOpAuOn v3rpc.opGrantT; exact .rfl
+
+/-- A lease revocation's update at a token is the revocation's permit's. -/
+theorem kvOpAuOn_leaseRevoke (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (id : w64) (Q : KVState → IProp GF) :
+    v3rpc.kvOpAuOn (GF := GF) s E ρ tok (.leaseRevoke id) Q ⊢
+      ∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
+        kvAu1G ρ.kv (kvOpStep (.leaseRevoke id))
+          (writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseRevoke id) L₀) Q := by
+  unfold v3rpc.kvOpAuOn v3rpc.opGrantT; exact .rfl
+
+/-- **`l.Grant(ctx, ttl)` on the client's `*lessor` over `conn` to a member with auth on** (auth-lease S4,
+Freeze §3.1, F3; `client_put_on`'s shape): etcd's `LeaseGrant` with auth on registered at `addr`, the
+caller's lower bound `n` of the published auth index, and, for every id the lease may get, the caller's
+update told the grant (`clientOpAuOn`, persistent: the call may be retried); `nil` with the response's
+fields, its lease id not `NoLease`, its revision reached, the lease live in the lessor's history with the
+request's TTL, and at the token of some attempt's metadata the caller's result (`leaseGrantResT`) and
+`requireAuthInfo`'s check relative to `n` (`leaseCheckT`); or an error. -/
+theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat) (ttl : w64)
+    (Q : w64 → KVState → IProp GF) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn [addr] ∗ auth.authPubLbM E.authMode n ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn s E ρ γl) ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗
+      □ (∀ id : w64, clientOpAuOn s E ρ conn (GoInterface.ok ci) (.leaseGrant id ttl) (Q id)) }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
+      (Val #(GoInterface.ok ci))) (Val #ttl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseGrantRespM) (h : Loc),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ m.id ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"TTL" resp ↦□ m.ttl ∗
+        ⌜m.id ≠ W64 0⌝ ∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
+        (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
+        ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+          v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }} := by
+  iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hctx, #Hce, #Hau⟩ HΦ
+  iapply (v3.lessor.wp_Grant l conn [addr] (etcdLeaseGrantSpecOn s E ρ γl)
+    (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
+        (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
+        ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+          v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
+    ci cd ttl) $$ [] HΦ
+  iframe Pc Hrem Hreg Hctx Hce
+  iintro !>
+  inext
+  unfold attemptPre
+  iintro %md %Hmd
+  unfold etcdLeaseGrantSpecOn
+  isplitr
+  · iintro !> %_; itrivial
+  isplitr
+  · ipureintro; rfl
+  iexists n
+  iframe Hn
+  iexists Q
+  isplitr
+  · cases hon : E.authOn
+    · iapply leaseGrantPermitM_false
+    · simp only [leaseGrantPermitM]
+      iintro %id
+      ihave Hau1 := Hau $$ %id
+      ihave H := clientOpAuOn_attempt s E ρ conn (GoInterface.ok ci) md _ (Q id) Hmd $$ Hau1
+      iapply kvOpAuOn_leaseGrant $$ H
+  iintro %m %Hid #Hre Hlive Hres #Hck
+  isplitr
+  · ipureintro; exact Hid
+  iframe Hre
+  isplitl [Hlive]
+  · iexact Hlive
+  iexists md
+  iframe Hres Hck
+  ipureintro; exact Hmd
+
+/-- **`l.Revoke(ctx, id)` on the client's `*lessor` over `conn` to a member with auth on** (auth-lease
+S4, Freeze §3.2; as `client_lease_grant_on`). -/
+theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat) (id : w64)
+    (Q : KVState → IProp GF) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn [addr] ∗ auth.authPubLbM E.authMode n ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn s E ρ) ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗
+      □ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.leaseRevoke id) Q }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
+      (Val #(GoInterface.ok ci))) (Val #id))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
+        ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+          v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }} := by
+  iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hctx, #Hce, #Hau⟩ HΦ
+  iapply (v3.lessor.wp_Revoke l conn [addr] (etcdLeaseRevokeSpecOn s E ρ)
+    (fun m => iprop(etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
+        ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+          v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
+    ci cd id) $$ [] HΦ
+  iframe Pc Hrem Hreg Hctx Hce
+  iintro !>
+  inext
+  unfold attemptPre
+  iintro %md %Hmd
+  unfold etcdLeaseRevokeSpecOn
+  isplitr
+  · iintro !> %_; itrivial
+  iexists n
+  iframe Hn
+  iexists Q
+  isplitr
+  · cases hon : E.authOn
+    · iapply leaseRevokePermitM_false
+    · simp only [leaseRevokePermitM]
+      ihave H := clientOpAuOn_attempt s E ρ conn (GoInterface.ok ci) md _ Q Hmd $$ Hau
+      iapply kvOpAuOn_leaseRevoke $$ H
+  iintro %m #Hre Hres #Hck
+  isplitr
+  · iexact Hre
+  iexists md
+  iframe Hres Hck
+  ipureintro; exact Hmd
+
+end leaseOn
 
 end client
 end EtcdGrove

@@ -206,7 +206,8 @@ theorem hdrBoundM_tok (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (hm : ap
 /-- **A write's grant, as the server tells the client's update** (the auth-mode merge's step 5,
 2026-10-29): `writeGrantG` of the write's request (for a transaction, of some wire transaction of
 it), the header bound to the caller's token (`hdrBoundT`), past the client's lower bound `L₀` of
-the requested log. -/
+the requested log. (Auth-lease S4, Freeze C1) A lease grant's and revocation's likewise (`irrLeaseGrant`,
+`irrLeaseRevoke`: the grant `leaseGrantPermitM`/`leaseRevokePermitM` hand the server). -/
 def opGrantT (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) :
     KVOp → List EntryModel → KVState → IProp GF
   | .put o, L₀ => writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrPut o) L₀
@@ -214,6 +215,10 @@ def opGrantT (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoStrin
     writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrDeleteRange o) L₀
   | .txn t, L₀ => fun σ => iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
       writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrTxn tw) L₀ σ)
+  | .leaseGrant id ttl, L₀ =>
+    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrLeaseGrant id ttl) L₀
+  | .leaseRevoke id, L₀ =>
+    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrLeaseRevoke id) L₀
   | _, _ => fun _ => iprop(True)
 
 /-- **A write's update with auth on, at the token `tok`** (the auth-mode merge's 5a, 2026-10-29):

@@ -225,7 +225,8 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
           ihave ⟨Hr, %Hrnn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
           iStructNamed Hr
           ipersist ID
-          wp_apply hLR s E ρ ctx cd _ id (fun _ => iprop(True)) $$ [Ilt IRD] as %resp %err ⟨Ilt, IRD, Hres⟩
+          imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn0
+          wp_apply hLR s E ρ ctx cd _ id (fun _ => iprop(True)) 0 $$ [Ilt IRD] as %resp %err ⟨Ilt, IRD, Hres⟩
           · rw [hoff, isServerReqM_false]
             iframe #; iframe Ilt IRD
             isplitr

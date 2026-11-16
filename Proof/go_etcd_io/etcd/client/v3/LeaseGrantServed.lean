@@ -121,29 +121,38 @@ the caller's update `Q` handed over in the grant's permit at the token of the at
 its header revision etcd has reached, its lease live in the lessor's history from some index with
 the request's TTL (`etcdLeaseGrantSpecLive`'s fact), and the caller's result at the token
 (`v3rpc.leaseGrantResT`: with auth on, the grant published at a log and `Q` of the model's state
-after it). An error carries nothing (`□ ∀ d, Ψe d`, `etcdPutSpecOn`'s HS-4). -/
+after it). An error carries nothing (`□ ∀ d, Ψe d`, `etcdPutSpecOn`'s HS-4). (Auth-lease S4, D-h) For a
+caller holding a lower bound `n` of the published auth index, the reply also carries `requireAuthInfo`'s
+check at the attempt's token relative to `n` (`leaseCheckT … n (fun _ => True)`: auth disabled at a state no
+older than `n`, or a principal bound to the token); `Q` is of the model's state **before** the grant. -/
 def etcdLeaseGrantSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName) :
     GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   fun md (req : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ⌜req.2 = W64 0⌝ ∗ ∃ Q : w64 → KVState → IProp GF,
+    iprop((□ ∀ d, Ψe d) ∗ ⌜req.2 = W64 0⌝ ∗ ∃ n : Nat, auth.authPubLbM E.authMode n ∗
+      ∃ Q : w64 → KVState → IProp GF,
       leaseGrantPermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) req.1 Q ∗
       ∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
         (∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i m.id l ∗ lease.leaseReqIs γl m.id req.1) -∗
-        v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) req.1 m.id Q -∗ Φ m)
+        v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) req.1 m.id Q -∗
+        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
+        Φ m)
 
 /-- **etcd's `LeaseRevoke` with auth on** (auth-lease S3c, Draft §7.2; as `etcdLeaseGrantSpecOn`):
 the caller's update `Q` handed over in the revocation's permit at the token of the attempt's
 metadata; a reply's header revision etcd has reached, and the caller's result at the token
 (`v3rpc.leaseRevokeResT`: with auth on, the revocation granted and published at a log and `Q` of
-the model's state after it). An error carries nothing. -/
+the model's state after it). An error carries nothing. (Auth-lease S4, D-h) With the same `n`-relative
+check as `etcdLeaseGrantSpecOn`. -/
 def etcdLeaseRevokeSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse :=
   fun md (id : w64) (Φ : LeaseRevokeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : KVState → IProp GF,
+    iprop((□ ∀ d, Ψe d) ∗ ∃ n : Nat, auth.authPubLbM E.authMode n ∗ ∃ Q : KVState → IProp GF,
       leaseRevokePermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) id Q ∗
       ∀ m : LeaseRevokeRespM, etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
-        v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗ Φ m)
+        v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗
+        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
+        Φ m)
 
 end specsOn
 
@@ -181,9 +190,10 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn0
   -- (auth-lease S3c) the handler's spec at auth off, the off permit
   iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E ρ S G R ci cd r m
-      (fun _ _ => iprop(True)))
+      (fun _ _ => iprop(True)) 0)
     $$ [HS Hid]
   · iframe; iframe #
     isplitr
@@ -246,12 +256,12 @@ theorem etcdLeaseGrantHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) := by
   iintro ⟨#Pv, #Hat, #HL⟩
   unfold grpcHandlerOwnOkMd etcdLeaseGrantSpecOn
-  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, ⟨#HΨe, %Hm0, %Q, Hperm, Hk⟩⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, ⟨#HΨe, %Hm0, %n, #Hn, %Q, Hperm, Hk⟩⟩ HΨ
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
   iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E.authOn E ρ S (v3rpc.grantLiveG E)
-      (fun m => m.2 = W64 0) ci cd r m Q) $$ [HS Hid Hperm]
+      (fun m => m.2 = W64 0) ci cd r m Q n) $$ [HS Hid Hperm]
   · iframe HS Hid; iframe #
     isplitr [Hperm]
     · ipureintro; exact Hm0
@@ -261,7 +271,7 @@ theorem etcdLeaseGrantHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iintro %resp %err ⟨HS, Hout, Hg, #HSe⟩
   iunfold v3rpc.leaseGrantOut at Hout
   icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
-  · icases Hg with (%Hne | ⟨%id', #Hid', Hgr, Hres⟩)
+  · icases Hg with (%Hne | ⟨%id', #Hid', Hgr, Hres, #Hck⟩)
     · exact absurd Hok.1 Hne
     iunfold v3rpc.leaseHdrOut at Hh
     icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩
@@ -291,12 +301,14 @@ theorem etcdLeaseGrantHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         ipureintro; exact Hhn
       · iunfold v3rpc.grantLiveG at Hgr
         ihave #Hre := v3rpc.etcdReached_of_srvRevLb E ρ.rd E.authOn rv hNx $$ Hreach
-        iapply Hk $$ [] [] [Hgr] [Hres]
+        iapply Hk $$ [] [] [Hgr] [Hres] []
         · ipureintro; exact Hid0
         · iexact Hre
         · iexact Hgr
         · rw [← auth.ctxTokenOf_md]
           iexact Hres
+        · rw [← auth.ctxTokenOf_md]
+          iexact Hck
     · iintro -
       iapply HΨe
   · imodintro
@@ -320,10 +332,10 @@ theorem etcdLeaseRevokeHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
         (etcdLeaseRevokeSpecOn s E ρ) := by
   iintro ⟨#Pv, #Hat, #HL⟩
   unfold grpcHandlerOkMd etcdLeaseRevokeSpecOn
-  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, ⟨#HΨe, %Q, Hperm, Hk⟩⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, ⟨#HΨe, %n, #Hn, %Q, Hperm, Hk⟩⟩ HΨ
   rw [show (pbLeaseRevokeRequest (GF := GF)).recv r m = v3rpc.leaseRevokeReqIs r m from rfl]
   iapply wp_fupd
-  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid E.authOn E ρ S ci cd r m Q) $$ [HS Hperm]
+  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid E.authOn E ρ S ci cd r m Q n) $$ [HS Hperm]
   · iframe HS; iframe #
     rw [auth.ctxTokenOf_md]
     iexact Hperm
@@ -331,7 +343,7 @@ theorem etcdLeaseRevokeHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   iintro %resp %err ⟨HS, Hout, Hg, #HSe⟩
   iunfold v3rpc.leaseRevokeOut at Hout
   icases Hout with (⟨%Hok, Hh⟩ | %Herr)
-  · icases Hg with (%Hne | Hres)
+  · icases Hg with (%Hne | ⟨Hres, #Hck⟩)
     · exact absurd Hok.1 Hne
     iunfold v3rpc.leaseHdrOut at Hh
     icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩
@@ -356,10 +368,12 @@ theorem etcdLeaseRevokeHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
         iframe #
         ipureintro; exact Hhn
       · ihave #Hre := v3rpc.etcdReached_of_srvRevLb E ρ.rd E.authOn rv hNx $$ Hreach
-        iapply Hk $$ [] [Hres]
+        iapply Hk $$ [] [Hres] []
         · iexact Hre
         · rw [← auth.ctxTokenOf_md]
           iexact Hres
+        · rw [← auth.ctxTokenOf_md]
+          iexact Hck
     · iintro -
       iapply HΨe
   · imodintro

@@ -26,6 +26,7 @@ state no older than `n`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthLeaseLb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
 public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__Keys
@@ -137,6 +138,21 @@ theorem principalBoundOn_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (
   · ihave #Hb' := Hb $$ %rfl
     iintro !> %-
     iapply principalBound_of_ctxBoundOrTLS s E.authMode ctx a user rev $$ [$Hb' $Hai]
+
+/-- **The bridge to the lease checks** (auth-lease S4, Freeze §4.4, R3-6): `authedFrom` is
+`leaseCheckFrom … (fun _ => True)`'s content. -/
+theorem leaseCheckFrom_of_authedFrom (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat) :
+    authedFrom s E.authMode n ctx ⊢ leaseCheckFrom s E ctx n (fun _ => iprop(True)) := by
+  unfold authedFrom leaseCheckFrom
+  iintro (#H | ⟨%info, #Hb⟩)
+  · ileft; iexact H
+  · iright
+    iexists info
+    isplitr
+    · iintro !> %h
+      iapply Hb
+      ipureintro; exact h
+    · iright; itrivial
 
 /-- `principalBound` depends on the context only through its incoming metadata. -/
 theorem principalBound_ctx (s : Loc) (M : auth.AuthMode) (c c' : GoInterface)
