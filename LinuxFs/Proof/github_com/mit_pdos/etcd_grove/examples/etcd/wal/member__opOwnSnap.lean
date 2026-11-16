@@ -9,6 +9,8 @@ public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.name
 public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__ReleaseLockTo
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OwnSnapAu
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OwnSnapPurge
+public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.purgeRound
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.CandsLemmas
 
 @[expose] public section
@@ -82,10 +84,11 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     (wp_nameBound : nameBound.spec (GF := GF) (hG := hG))
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_Release : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) (walRaftP (GF := GF)) walRaftMr)
+    (wp_purge : purgeRound.spec (GF := GF) (hG := hG)) :
     member.opOwnSnap.spec (GF := GF) (hG := hG) := by
-  intro W e γ m qc o hf hroom
-  wp_start as Hlive
+  intro W e γ m lg qc o hf hroom
+  wp_start as ⟨Hlive, Hlg, Hwdir⟩
   iunfold memLive at Hlive
   icases Hlive with ⟨%w, %v, %os, %c, %d, %t, %vo, %cm, %bs, %l, %tm, %M, %r, %rv, Hres, Ht, Hv, Hc, Hb,
     Hl, Htm, HM, Hr, Hrv, Hpw, %Hfacts⟩
@@ -93,6 +96,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
   wp_auto
   wp_if_destruct
   · iapply HΦ
+    iframe Hlg Hwdir
     simp only [↓reduceIte]
     iexists o
     isplitl
@@ -121,6 +125,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
   cases b1
   · try wp_auto
     iapply HΦ
+    iframe Hlg Hwdir
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro; trivial
   try wp_auto
@@ -357,28 +362,205 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     | ok ie =>
       wp_auto
       iapply HΦ
+      iframe Hlg Hwdir
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; trivial
     | nil =>
       wp_auto
-      iapply HΦ
-      simp only [↓reduceIte]
-      iexists tRaiseNames (tSnapO o a ta) a
-      isplitl
-      · iunfold memLive
-        iexists w, v1, tRaiseNames (tSnapO o a ta) a, tRaiseCand (tSnapO o a ta) a c, tReleaseD d1 a, t, vo,
-          cm, a, l, tm, M, r, rv1
-        iframe
-        isplitl [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
-        · iunfold memSaveRes
+      wp_apply wp_choose $$ [$Hrv] as %k2 ⟨⟨%rv2, Hrv⟩, %hk2⟩
+      rw [if_neg (by word)] at hk2
+      try wp_auto
+      wp_if_destruct
+      · -- the purge round: every candidate's purge bound raised, the oracle stored, the round
+        generalize ho2 : tRaiseNames (tSnapO o a ta) a = o2 at *
+        generalize hc2 : tRaiseCand (tSnapO o a ta) a c = c2 at *
+        generalize hd2 : tReleaseD d1 a = d2 at *
+        have hmk2 : tCandMark o2 c2 = tCandMark (tSnapO o a ta) c := by rw [← ho2, ← hc2]; rfl
+        have hH2 : d2.H = d1.H := by rw [← hd2]; rfl
+        have hcw2 : tCheckWf o2 := by rw [← ho2]; exact tCheckWf_raise hcw1 a
+        have hhs2 : tMemHs o2 d2 := by rw [← ho2, ← hd2]; exact tMemHs_raise hhs1 a
+        have hsim2 : tMemSim o2 c2 a l cm := by rw [← ho2, ← hc2]; exact tMemSim_raise hsim.2 a
+        have hlen2 : (tEncodeOracle o2).length = (tEncodeOracle o).length + 56 := by
+          rw [← ho2, tRaiseNames_length, tEncodeOracle_snapO]
+        iunfold oracleRep at Hrep
+        icases Hrep with ⟨%Hof2, Hcands2, #Hsince2, Hsincecap2, #Hopens2, Hopenscap2⟩
+        iunfold candsOwn at Hcands2
+        icases Hcands2 with ⟨%cvs2, Hcs2, Hcscap2, #Hcel2⟩
+        ihave %Hcslen2 := ownSlice_len $$ Hcs2
+        ihave HJ : (∃ (ci : w64) (vs' : List cand),
+            "ci" ∷ ci_ptr ↦ ci ∗ "Hcs" ∷ v1.cands' ↦* vs' ∗
+            "Hel2" ∷ candsElems vs' (tPurPre o2 (sint.nat ci)) ∗
+            "%Hci" ∷ ⌜0 ≤ sint.Z ci ∧ sint.Z ci ≤ sint.Z v1.cands'.len ∧ vs'.length = cvs2.length⌝ : IProp GF)
+            $$ [ci Hcs2]
+        · iexists W64 0, cvs2
+          rw [show sint.nat (W64 0) = 0 from rfl, tPurPre_zero]
           iframe
-          iframe H1 H2 H3 H4 H13 H15
           isplitl []
-          · rw [tRaiseNames_mark]; iexact H16
-          · rw [tReleaseD_H]; iexact H17
-        ipureintro
-        exact ⟨hok2, tMemHs_raise hhs1 a, hfl, tCheckWf_raise hcw1 a, tMemSim_raise hsim.2 a⟩
-      · ipureintro; rw [tRaiseNames_length, tEncodeOracle_snapO]; exact Nat.le_refl _
+          · iexact Hcel2
+          ipureintro; refine ⟨by word, by word, rfl⟩
+        ihave %Hcs2len := candsElems_length $$ Hcel2
+        wp_for HJ
+        icases Hel2 with #Hel2
+        ihave %Hel_len := candsElems_length $$ Hel2
+        have hrl : (tPurPre o2 (sint.nat ci)).length = o2.cands.length := tPurPre_length _ _
+        by_cases hlt : sint.Z ci < sint.Z v1.cands'.len
+        · rw [if_pos (by simp [hlt])]
+          have hil : sint.nat ci < vs'.length := by
+            have : sint.nat ci < sint.nat v1.cands'.len := by word
+            omega
+          obtain ⟨cv, Hcv⟩ : ∃ cv, vs'[sint.nat ci]? = some cv := ⟨_, List.getElem?_eq_getElem hil⟩
+          have hil2 : sint.nat ci < o2.cands.length := by omega
+          obtain ⟨cd, Hcd⟩ : ∃ cd, o2.cands[sint.nat ci]? = some cd :=
+            ⟨_, List.getElem?_eq_getElem hil2⟩
+          icases candsElems_lookup vs' _ (sint.nat ci) cv Hcv $$ Hel2 with ⟨%cd', %Hcd', #Hcdr⟩
+          rw [tPurPre_get _ Hcd] at Hcd'
+          cases Hcd'
+          iunfold candRep at Hcdr
+          icases Hcdr with ⟨%Hcdf, #Hcdh⟩
+          have hb : 0 ≤ sint.Z ci ∧ sint.Z ci < sint.Z v1.cands'.len := ⟨Hci.1, hlt⟩
+          icases ownSlice_elem_acc (sint.Z ci) cv v1.cands' (DFrac.own 1) vs' Hci.1
+            (by simpa [sint.nat] using Hcv) $$ Hcs with ⟨Hcv, Hcsback⟩
+          have hci1 : sint.nat (ci + W64 1) = sint.nat ci + 1 := by word
+          wp_auto
+          iterate 4 (try simp only [hb, _root_.and_self, ↓reduceIte]; try wp_auto)
+          wp_if_destruct
+          · iterate 6 (try simp only [hb, _root_.and_self, ↓reduceIte]; try wp_auto)
+            wp_for_post
+            ihave Hcs := Hcsback $$ Hcv
+            iframe
+            iexists ci + W64 1, _
+            iframe
+            rw [hci1, ← tPurPre_set _ Hcd]
+            isplitl []
+            · iapply candsElems_set
+              isplitl []
+              · iexact Hel2
+              iunfold candRep
+              isplitr
+              · ipureintro
+                simp only [tPurCand]
+                rw [if_pos (by rw [← Hcdf.1, ← Hcdf.2]; word)]
+                exact ⟨Hcdf.1, Hcdf.1⟩
+              · rw [tPurCand_h]; iexact Hcdh
+            ipureintro
+            refine ⟨by word, by word, by rw [List.length_set]; exact Hci.2.2⟩
+          · wp_for_post
+            ihave Hcs := Hcsback $$ Hcv
+            have hset : vs'.set (sint.Z ci).toNat cv = vs' := by
+              apply List.ext_getElem?
+              intro n
+              rw [List.getElem?_set]
+              split
+              · rename_i hn
+                subst hn
+                exact Hcv.symm
+              · rfl
+            rw [hset]
+            iframe
+            iexists ci + W64 1, vs'
+            iframe
+            rw [hci1, ← tPurPre_set _ Hcd]
+            have hrc : tPurCand cd = cd := by
+              simp only [tPurCand]
+              rw [if_neg (by rw [← Hcdf.1, ← Hcdf.2]; word)]
+            rw [hrc]
+            have hset2 : (tPurPre o2 (sint.nat ci)).set (sint.nat ci) cd = tPurPre o2 (sint.nat ci) := by
+              have hg := tPurPre_get o2 Hcd
+              obtain ⟨hlt3, heq⟩ := List.getElem?_eq_some_iff.1 hg
+              conv => lhs; rw [← heq]
+              exact List.set_getElem_self hlt3
+            rw [hset2]
+            isplitl []
+            · iexact Hel2
+            ipureintro
+            refine ⟨by word, by word, Hci.2.2⟩
+        · rw [if_neg (by simp [hlt])]
+          simp only [hlt, decide_false, Bool.false_eq_true, ↓reduceIte]
+          have hcin : sint.nat ci = o2.cands.length := by
+            have : sint.nat ci = sint.nat v1.cands'.len := by word
+            omega
+          have hok4 := tMemOk_pur hok2
+          have hsm4 : tOrSmall (tPurNames o2) := by
+            unfold tOrSmall; rw [tPurNames_length, hlen2]; unfold tOrRoom at hroom; omega
+          wp_auto
+          ihave Hrep : oracleRep v1 (tPurNames o2) $$ [Hcs Hcscap2 Hsincecap2 Hopenscap2]
+          · iunfold oracleRep
+            isplitr
+            · ipureintro; exact Hof2
+            iframe
+            isplitl
+            · iunfold candsOwn; iexists vs'; iframe
+              rw [← tPurPre_all _ (k := sint.nat ci) (by omega)]; iexact Hel2
+            · simp only [tPurNames]; iframe #
+          ihave #Hrel2 : tRelI (W := W) e.area (tPurNames o2) (some d2) $$ [H16 H15]
+          · iunfold tRelI
+            simp only [show (tPurNames o2).created = true from hok4.1, ↓reduceIte]
+            iexists d2, tPurCand c2
+            isplitr
+            · ipureintro; exact ⟨rfl, hok4.2.1, tMemOk_candOk0 hok4, tCheckWf_pur hcw2⟩
+            isplitl
+            · rw [tPurNames_mark, hmk2]; iexact H16
+            · iexact H15
+          wp_apply (wp_store W e γ v1 o2 (tPurNames o2) (some d2) qc hf hsm4)
+            $$ [H5 H6 Hrep H11 H12] as ⟨H5, H6, Hrep, H11, H12⟩
+          · iframe; iframe #
+          try wp_auto
+          wp_apply wp_choose $$ [$Hrv] as %k3 ⟨⟨%rv3, Hrv⟩, %hk3⟩
+          rw [if_neg (by word)] at hk3
+          try wp_auto
+          ihave #H13c := H13
+          iunfold WalFs.walAreaOk at H13c
+          icases H13c with ⟨#Hwinv, -⟩
+          ihave #Hacc := tInv_purgeAcc W e γ (tPurNames o2) (tPurCand c2) d2.H (tPurNames_all _) $$ H3
+          wp_apply (wp_purge W walRaftP walRaftMr e.R e.jr e.area lg w (tWalDir e.area) (W64 1 + k3)
+              (tPurgeTok W γ (tPurNames o2) (tPurCand c2) d2.H) (by word)) $$ [H14 H11 H12] as ⟨H14, Htok⟩
+          · iframe; iframe #
+            unfold tPurgeTok
+            iexists d2
+            iframe
+            ipureintro; exact ⟨hok4, tMemHs_pur hhs2, rfl⟩
+          unfold tPurgeTok
+          icases Htok with ⟨%d3, H12, H11, %hd3⟩
+          obtain ⟨hok5, hhs5, hH5⟩ := hd3
+          try wp_auto
+          iapply HΦ
+          iframe Hlg Hwdir
+          simp only [↓reduceIte]
+          iexists tPurNames o2
+          isplitl
+          · iunfold memLive
+            iexists w, v1, tPurNames o2, tPurCand c2, d3, t, vo, cm, a, l, tm, M, r, rv3
+            iframe
+            isplitl [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
+            · iunfold memSaveRes
+              iframe
+              iframe H1 H2 H3 H4 H13 H15
+              isplitl []
+              · rw [tPurNames_mark, hmk2]; iexact H16
+              · rw [hH5, hH2]; iexact H17
+            ipureintro
+            exact ⟨hok5, hhs5, hfl, tCheckWf_pur hcw2, tMemSim_pur hsim2⟩
+          · ipureintro; rw [tPurNames_length, hlen2]; exact Nat.le_refl _
+      · try wp_auto
+        iapply HΦ
+        iframe Hlg Hwdir
+        simp only [↓reduceIte]
+        iexists tRaiseNames (tSnapO o a ta) a
+        isplitl
+        · iunfold memLive
+          iexists w, v1, tRaiseNames (tSnapO o a ta) a, tRaiseCand (tSnapO o a ta) a c, tReleaseD d1 a, t, vo,
+            cm, a, l, tm, M, r, rv2
+          iframe
+          isplitl [H5 H6 H7 H8 H9 Hrep H11 H12 H14]
+          · iunfold memSaveRes
+            iframe
+            iframe H1 H2 H3 H4 H13 H15
+            isplitl []
+            · rw [tRaiseNames_mark]; iexact H16
+            · rw [tReleaseD_H]; iexact H17
+          ipureintro
+          exact ⟨hok2, tMemHs_raise hhs1 a, hfl, tCheckWf_raise hcw1 a, tMemSim_raise hsim.2 a⟩
+        · ipureintro; rw [tRaiseNames_length, tEncodeOracle_snapO]; exact Nat.le_refl _
 
 end proof
 

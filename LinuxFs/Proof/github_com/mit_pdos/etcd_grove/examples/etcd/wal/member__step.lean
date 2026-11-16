@@ -184,7 +184,8 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     ihave Hlive := memLive_intro W e γ m w v o os c d _ t vo cm bs l tm M r rv1 hok hhs hfl hwf hms
       $$ [Hres Ht Hv Hc Hb Hl Htm HM Hr Hrv Hpw]
     · iframe; iunfold memFields; iframe
-    wp_apply (wp_opOwnSnap W e γ m _ o hf (tOrRoom_mono hroom (by omega))) $$ [$Hlive] as %b Hpost
+    wp_apply (wp_opOwnSnap W e γ m lg _ o hf (tOrRoom_mono hroom (by omega))) $$ [$Hlive $Hlg $Hwd]
+      as %b ⟨Hlg, Hwd, Hpost⟩
     try wp_auto
     iapply HΦ
     iframe Hpth Hares Hlg Hwd
