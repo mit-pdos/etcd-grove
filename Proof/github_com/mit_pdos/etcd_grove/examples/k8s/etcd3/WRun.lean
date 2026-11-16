@@ -8,6 +8,8 @@ Lean-first (no Rocq counterpart).
 - `predWV x b`, `watchOptsV x p`: `watchOptions(in)`'s predicate (`predicate(in)` with
   `AllowWatchBookmarks := b`) and options (`SendInitialEvents` the cell `p`, `sieOfL x`);
 - `lastObjL`: `lastObj`'s answer;
+- `doneTok`/`donePD` (the driver's Done token), `kSeen` (what the received events satisfy),
+  `kStopOk`;
 - `predOk_driverW`: that predicate selects as `predicate(in)` (`selD x`, `predEmptyL x`).
 -/
 module
@@ -117,6 +119,80 @@ theorem predOk_driverW
     wp_apply (wp_Empty pp dq (predWV x b) _ _ _ _ rfl) $$ [$Hp $Hl $Hf] as Hp
     simp only [predEmptyL]
     iapply HΨ $$ Hp
+
+/-- **The driver's Done token** (`watchEvents`' context `WithCancel(Background())`, whose `PDone` is
+`donePD γd`): held until the driver stops reading, it refutes the context's being done. -/
+def doneTok (γd : GName) : IProp GF := dghostVar γd (DFrac.own 1) false
+
+/-- The Done proposition of the driver's context: the driver has given up its token. -/
+def donePD (γd : GName) : IProp GF := dghostVar γd DFrac.discard true
+
+instance donePD_persistent (γd : GName) : Persistent (donePD (GF := GF) γd) := by
+  unfold donePD; infer_instance
+
+theorem doneTok_donePD (γd : GName) : doneTok (GF := GF) γd ∗ donePD γd ⊢ False := by
+  unfold doneTok donePD
+  iintro ⟨H1, H2⟩
+  ihave %H := dghostVar_agree γd false (DFrac.own 1) true DFrac.discard $$ H1 H2
+  cases H
+
+/-- **A live watch whose context the driver can refute is not cancelled.** -/
+theorem kCancelled_refute (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (γd : GName)
+    (hcd : cd.PDone = donePD γd) :
+    kLive γ ∗ doneTok γd ∗ kCancelled γ cd ⊢ False := by
+  unfold kLive kCancelled kStopped
+  iintro ⟨Hl, Ht, Hc⟩
+  icases Hc with (Hs | #Hd)
+  · ihave %H := dghostVar_agree γ.stop false (DFrac.own 1) true DFrac.discard $$ Hl Hs
+    cases H
+  · rw [hcd]
+    iapply doneTok_donePD γd $$ [$Ht $Hd]
+
+/-- **What the driver knows of the store events `kes` it received** (`kResElem`'s, with the
+cancellation refuted): all Error events, or a prefix of the ideal stream from a start point tied to
+a state its read update fired at, read at another. -/
+def kSeen (c : StoreCfg GF DObj) (sel : DObj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (kes : List (KWEv DObj)) : IProp GF :=
+  iprop(⌜kNonErr kes = []⌝ ∨
+    ∃ (lb lb0 st : Nat) (σ σ0 : KVState), □ Q lb σ ∗ □ Q lb0 σ0 ∗
+      ⌜kStartOk m σ0 st ∧ kStreamOk c.S.dec sel emp c.S.zero inS m σ st kes⌝)
+
+/-- **`Stop()` of the store watch `wi`** (`k8sWatch`'s, persistent). -/
+def kStopOk (wi : GoInterface) (γ : KWatchNames) : IProp GF :=
+  iprop(∃ wo : GoInterfaceOk, ⌜wi = GoInterface.ok wo⌝ ∗
+    □ (∀ Φ : val → IProp GF, (kLive γ ∨ kStopped γ) -∗ ▷ (kStopped γ -∗ Φ #()) -∗
+      WP (App (Val #(methods wo.ty go!"Stop" wo.v)) (Val #())) {{ Φ }}))
+
+instance kStopOk_persistent (wi : GoInterface) (γ : KWatchNames) :
+    Persistent (kStopOk (GF := GF) wi γ) := by
+  unfold kStopOk; infer_instance
+
+/-- Two lists of mono-list elements at the same indices are equal. -/
+theorem monoList_idxs_agree {A : Type} [Pos.Countable A] (γ : GName) :
+    ∀ (L1 L2 : List A), L1.length = L2.length →
+      ([∗list] j ↦ x ∈ L1, monoListIdxOwn (GF := GF) γ j x) ⊢
+        ([∗list] j ↦ x ∈ L2, monoListIdxOwn γ j x) -∗ ⌜L1 = L2⌝ := by
+  intro L1
+  induction hn : L1.length generalizing L1 with
+  | zero =>
+    intro L2 h
+    rw [List.length_eq_zero_iff.1 hn, List.length_eq_zero_iff.1 h.symm]
+    iintro _ _; ipureintro; rfl
+  | succ n ih =>
+    intro L2 h
+    have hne1 : L1 ≠ [] := by intro h1; subst h1; simp at hn
+    have hne2 : L2 ≠ [] := by intro h2; subst h2; simp at h
+    rw [← List.dropLast_concat_getLast hne1, ← List.dropLast_concat_getLast hne2]
+    have hn1 : L1.dropLast.length = n := by simp [List.length_dropLast, hn]
+    have hn2 : n = L2.dropLast.length := by simp [List.length_dropLast, ← h]
+    iintro H1 H2
+    icases BigSepL.bigSepL_snoc.1 $$ H1 with ⟨H1, Ha⟩
+    icases BigSepL.bigSepL_snoc.1 $$ H2 with ⟨H2, Hb⟩
+    ihave %He := ih L1.dropLast hn1 L2.dropLast hn2 $$ H1 H2
+    rw [hn1, ← hn2]
+    ihave %Hab := mono_list_idx_agree γ n (L1.getLast hne1) (L2.getLast hne2) $$ Ha Hb
+    ipureintro
+    rw [He, Hab]
 
 end defs
 
