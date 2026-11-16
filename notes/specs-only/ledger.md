@@ -592,3 +592,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `uint.Z r0 + 1 < 2^63` in that case.
 - **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-16: store.Watch without `concurrentDecodeOff` (k8s 7f-5b)
+
+- **Spec.** `k8s.store.Watch.spec` (`Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean`; a hypothesis of the 7f-6 lines).
+- **Defect.** Its premise `concurrentDecodeOff` (the default gate has `ConcurrentWatchObjectDecode` off) was the temporary
+  premise of Q6 (`notes/k8s-7f5-scope.md`): only the serial branch of `processEvents` was planned for 7f-5a.
+- **Evidence.** 7f-5b proves both branches of `processEvents` (`notes/k8s-7f5b-draft.md` §§2-4); `Enabled` of a queried
+  feature returns some `b` under `featureGateOk` with no gate fact.
+- **Proposed change.** The precondition's `watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗` becomes
+  `watchListOn ∗ rangeStreamOff ∗`; nothing else. Uses of the spec as a hypothesis drop the argument.
+- **Decision.** Planned by the Scope (Q6); reported at the 7f-5b Draft checkpoint and again at the land stop.
