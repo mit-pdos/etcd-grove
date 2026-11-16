@@ -1,11 +1,12 @@
 /- Lean-first (no Rocq counterpart).
 
-`StartCluster(voters)` (cluster.go), on the voters `1, 2, 3`: a replica of the store on a raft
-node of each (raft's `RestartNode`; the store proposes no configuration change), with its
+`StartCluster(voters)` (cluster.go), on any voters `vs` raft takes (`KvVotersOk`: nonempty, no
+repeats, no id `0`, `2^64-1` or `2^64-2`, fewer than `2^62`; 2026-11-15, kvraftN: until then the
+voters `1, 2, 3`): a replica of the store on a raft node of each (raft's `RestartNode`; the store proposes no configuration change), with its
 storage, the transport between them (`deliver`) and each node's ticks (`tick`). Everything the
 cluster needs is allocated here, from nothing but the storage registry (`kvStorInv`, for the
 storages): raft's ghost state, the store's invariant. It returns the replicas (a fresh
-slice of three, of one store, `isKV γr`) and the client's half of the store's state, the empty
+slice of one per voter, of one store, `isKV γr`) and the client's half of the store's state, the empty
 store (`rkvVal γr kvEmpty`).
 -/
 module
@@ -33,16 +34,16 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev StartCluster.spec : Prop :=
-  ∀ (vsl : GoSlice),
+  ∀ (vsl : GoSlice) (vs : List w64), KvVotersOk vs →
   -- the time receipts' bound (D19b, 2026-10-18): raft's term budget is backed by receipts
   -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`,
   -- the receipts' bound within `2^61`; until then `2^64 - 2`)
   receiptBound GF ≤ 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv ∗ kvStorInv (GF := GF) ∗
-      vsl ↦*□ [W64 1, W64 2, W64 3] }}
+      vsl ↦*□ vs }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kv.StartCluster)) (Val #vsl))
   {{ (ksl : GoSlice), RET #ksl; ∃ (γr : RKVNames) (rs : List Loc), ksl ↦* rs ∗
-      ⌜rs.length = 3⌝ ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ rkvVal γr kvEmpty }}
+      ⌜rs.length = vs.length⌝ ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ rkvVal γr kvEmpty }}
 
 end spec
 

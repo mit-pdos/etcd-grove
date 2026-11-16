@@ -98,8 +98,23 @@ abbrev rKVTy [GooseExts] [GoGlobalContext] : go.GoType :=
 
 /-! ## The store's ghost state -/
 
-/-- The ghost names of a store's cluster. -/
+/-- **What the store needs of its voters** (2026-11-15, kvraftN: until then the voters were `1, 2, 3`):
+what raft's cluster allocation takes (`cluster_alloc`: a nonempty list without repeats, without the id `0`,
+shorter than `2^62`) and what `RestartNode` takes of each node's id (`ConfigValid`: neither `2^64-1` nor
+`2^64-2`). -/
+structure KvVotersOk (vs : List w64) : Prop where
+  ne : vs ≠ []
+  nodup : vs.Nodup
+  zero : W64 0 ∉ vs
+  len : (vs.length : Int) < 2 ^ 62
+  ids : ∀ id ∈ vs, id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614
+
+/-- The ghost names of a store's cluster, with its voters (2026-11-15, kvraftN: until then the
+constant `1, 2, 3`). -/
 structure RKVNames where
+  /-- the cluster's voters, each with a replica (`StartCluster`'s argument) -/
+  voters : List w64
+  votersOk : KvVotersOk voters
   /-- raft's cluster (`Cluster`), in the store's namespace `kvRaftN` -/
   cluster : Cluster
   /-- the store's history (`ghostVar`, halves: `rkvInv`'s and the client's, `rkvVal`) -/
@@ -142,9 +157,6 @@ def MintOk [GooseExts] (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8))
 
 section ccfg
 variable [GooseExts]
-
-/-- The voters of the store's cluster. -/
-abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
 
 /-- **The committed requested entries are normal** (2026-10-30, stage F: the store proposes no
 configuration change since `RemoveMember` was removed, D4): every entry the store asked for is a
@@ -299,9 +311,9 @@ reconfiguration, `InvNodeRule.lean`; 2026-10-30, stage F: the decisions through 
 
 The store's raft cluster is `isCluster`'s, its conf entries decided by the store's rule `kvRule`
 (each conf entry's change as `proto.Unmarshal` decodes it), recorded by raft's decision authority
-(`confPolicy γ kvConfN kvRule`, `ConfPolicy.lean`), from the voters' membership `kvMembership`.
+(`confPolicy γ kvConfN kvRule`, `ConfPolicy.lean`), from the voters' membership `kvMembership γr`.
 The store proposes no conf change (`NormalReqs`), so no committed entry is one and every position
-keeps `kvMembership` (`skippedIn_noConf`, `confAt_skipped`). The snapshots the replicas make are in
+keeps `kvMembership γr` (`skippedIn_noConf`, `confAt_skipped`). The snapshots the replicas make are in
 raft's registry (`ownSnapsMade`), which the store keeps in an invariant (`kvSnapInv`), each record
 with what it promises (`kvSnapRecOk`, kvreconf's: until 2026-10-30 also the voters' membership and
 no conf entry in the prefix): the committed prefix it covers, the membership there, its data the
@@ -314,7 +326,7 @@ variable [GooseExts]
 def kvRule : ConfRule := fun _ _ e => ccDecode e
 
 /-- The membership of the store's voters. -/
-abbrev kvMembership : Membership := Membership.simple (GMap.listToSet kvVoters)
+abbrev kvMembership (γr : RKVNames) : Membership := Membership.simple (GMap.listToSet γr.voters)
 
 end cluster
 
@@ -358,7 +370,7 @@ conf entries decided by `kvRule`, the membership of no entry the voters', and th
 of the snapshots made. -/
 def kvCluster (γr : RKVNames) : IProp GF :=
   iprop(isCluster γr.cluster kvRaftN ∗ confPolicy γr.cluster kvConfN kvRule ∗
-    confAt γr.cluster 0 kvMembership ∗ kvSnapInv γr)
+    confAt γr.cluster 0 (kvMembership γr) ∗ kvSnapInv γr)
 
 instance kvCluster_persistent (γr : RKVNames) : Persistent (kvCluster (GF := GF) γr) := by
   unfold kvCluster; infer_instance
@@ -454,7 +466,7 @@ token), and the cluster's voters (`Storage.voters`), the configuration of every 
 def runStor (γr : RKVNames) (K : GName) (st : Loc) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames) (vsl : GoSlice),
     kvStorRec st ms γs ∗ memStorInvP ms γs (kvJ γr.cluster K) ∗ memSnapLb γs 0 ∗
-    st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ kvVoters)
+    st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ γr.voters)
 
 instance runStor_persistent (γr : RKVNames) (K : GName) (st : Loc) :
     Persistent (runStor (GF := GF) γr K st) := by
