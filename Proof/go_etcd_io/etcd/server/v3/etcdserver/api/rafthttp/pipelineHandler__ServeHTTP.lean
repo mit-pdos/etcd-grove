@@ -255,7 +255,10 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             simp only [interface.mkOk]
             wp_auto
             wp_apply hAs xs writerErr_ptr (zero_val _) hAsT (ErrorStringLeaf.leaf _)
-              ErrorStringNotWriter.notIn $$ [$writerErr] as writerErr
+              ErrorStringNotWriter.notIn
+              (fun h => by
+                exfalso; rw [go.is_underlying (t := rafthttp.writerToResponse.ty)] at h
+                simp [rafthttp.writerToResponse.underlying, go.isInterfaceType] at h) $$ [$writerErr] as writerErr
             wp_apply hIDStringPtr _ DFrac.discard hv.localID' $$ [$localID] as %ls ⟨-, %_⟩
             wp_apply hZString as %f1 -
             wp_apply hZError as %f2 -

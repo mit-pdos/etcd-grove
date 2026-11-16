@@ -4,7 +4,10 @@
 # has (`state protoimpl.MessageState`, ...).
 # For `client/v3/concurrency` (`waitDelete` compares an event's type with `Event_DELETE`): the
 # event type constants.
-translate = ["!*", "KeyValue", "Event", "Event_PUT", "Event_DELETE"]
+# k8s 7f-5a-P: `Event.IsCreate` (the etcd3 watcher's `parseEvent`, called through the client's alias
+# `clientv3.Event`) with the getters it reads and the constant `PUT`.
+translate = ["!*", "KeyValue", "Event", "Event_PUT", "Event_DELETE", "PUT", "Event.IsCreate",
+  "Event.GetType", "Event.GetKv", "KeyValue.GetCreateRevision", "KeyValue.GetModRevision"]
 imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports

@@ -427,6 +427,9 @@ def driverCodec : ObjCodec DObj where
   fromS v := some (v, false)
   toS d v := v = d
   fromS_toS d v h := by rw [h]
+  fromS_nil_decode d st h := by
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    rw [← h.1]; exact decodeObjD_none [] (by unfold decodeD; simp)
   parseRV := parseRVD
   fmtRV := rvStr
   parse_fmt := parseRVD_rvStr

@@ -1066,7 +1066,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
           icases ownSlice_elem_acc (sint.Z (v.Events'.len - W64 1)) l v.Events' DFrac.discard ls
             Hbnd.1 Hl $$ Hls with ⟨#Hle, -⟩
           ihave #He' := Hevat $$ %(sint.nat (v.Events'.len - W64 1)) %l %e %Hl %He
-          iunfold eventAt at He'
+          ihave He' := eventAt_elim $$ He'
           icases He' with ⟨%keySl, #Htyp, #HevKv, -, -, #HmR⟩
           (try wp_auto)
           isplitr

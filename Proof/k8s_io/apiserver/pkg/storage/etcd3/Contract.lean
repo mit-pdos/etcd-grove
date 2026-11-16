@@ -67,6 +67,10 @@ structure ObjCodec (Obj : Type) where
   /-- `v` is a value the transformer may write for the data `d` -/
   toS : GoString → GoString → Prop
   fromS_toS : ∀ d v, toS d v → fromS v = some (d, false)
+  /-- an empty stored value does not decode (k8s 7f-5a-P, ledger 2026-11-15 (C)): Kubernetes codecs
+  reject empty data (`runtime.Decode` of no bytes fails: "Object 'Kind' is missing"), so a stored value
+  that decodes is not empty, as the watcher's `prepareObjs` needs (`len(e.prevValue) > 0`) -/
+  fromS_nil_decode : ∀ d st, fromS [] = some (d, st) → decode d = none
   /-- the versioner's parse of a resource version string -/
   parseRV : GoString → Option w64
   /-- the versioner's rendering of a resource version -/
@@ -101,6 +105,19 @@ def ObjCodec.dec (C : ObjCodec Obj) : Dec Obj := fun v =>
   match C.fromS v with
   | none => none
   | some (d, st) => (C.decode d).map fun o => (o, !st && decide (C.encode o = d))
+
+omit [DecidableEq Obj] in
+/-- An empty stored value does not decode (`ObjCodec.fromS_nil_decode`). -/
+theorem ObjCodec.dec_nil (C : ObjCodec Obj) : C.dec [] = none := by
+  unfold ObjCodec.dec
+  cases h : C.fromS [] with
+  | none => rfl
+  | some p => simp [C.fromS_nil_decode p.1 p.2 h]
+
+omit [DecidableEq Obj] in
+/-- A stored value that decodes is not empty. -/
+theorem ObjCodec.ne_nil_of_dec (C : ObjCodec Obj) (v : GoString) (h : C.dec v ≠ none) : v ≠ [] := by
+  rintro rfl; exact h C.dec_nil
 
 /-- **What the store writes reads as the object, canonical** (D30g). -/
 theorem ObjCodec.dec_toS_encode (C : ObjCodec Obj) (o : Obj) (v : GoString)
@@ -208,6 +225,10 @@ def versionerOk (S : ObjSpec GF Obj) (vi : GoInterfaceOk) : IProp GF :=
             | none => err ≠ GoInterface.nil⌝ -∗ Φ (PairV #n #err)) -∗
       WP (App (Val #(methods vi.ty go!"ParseResourceVersion" vi.v)) (Val #s)) {{ Φ }}))
 
+instance versionerOk_persistent (S : ObjSpec GF Obj) (vi : GoInterfaceOk) :
+    Persistent (versionerOk S vi) := by
+  unfold versionerOk; infer_instance
+
 /-- The transformer's methods: `TransformFromStorage` (the stored value's data and staleness, or
 an error if it does not read) and `TransformToStorage` (a value for the data), for any context
 and authenticated data. -/
@@ -232,6 +253,10 @@ def transformerOk (S : ObjSpec GF Obj) (ti : GoInterfaceOk) : IProp GF :=
           Φ (PairV #vsl #err)) -∗
       WP (App (App (App (Val #(methods ti.ty go!"TransformToStorage" ti.v)) (Val #ctx))
         (Val #dsl)) (Val #dctx)) {{ Φ }}))
+
+instance transformerOk_persistent (S : ObjSpec GF Obj) (ti : GoInterfaceOk) :
+    Persistent (transformerOk S ti) := by
+  unfold transformerOk; infer_instance
 
 /-- The decoder's `Decode(data, x, rev)`: the object the data decodes to, at resource version
 `rev`, or an error (the object then holds something). -/

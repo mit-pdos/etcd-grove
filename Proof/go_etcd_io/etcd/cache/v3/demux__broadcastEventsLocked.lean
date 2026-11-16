@@ -212,7 +212,7 @@ theorem demux.broadcastEventsLocked.wp_proof
   wp_apply wp_load_slice_index evSl (sint.Z (W64 0)) ls DFrac.discard evp0 (by decide) $$ [] as -
   · iframe Hsl; ipureintro; exact Hevp0_lookup
   ihave He0 := Hev $$ %0 %evp0 %e0 %Hevp0_lookup %He0_lookup
-  iunfold eventAt at He0
+  ihave He0 := eventAt_elim $$ He0
   icases He0 with ⟨%keySl0, #Htyp0, #Hkv0, #Hkey0, #Hks0, #Hmod0⟩
   wp_auto
   have HlastZ : 0 ≤ sint.Z (evSl.len - W64 1) ∧ sint.Z (evSl.len - W64 1) < sint.Z evSl.len := by
@@ -228,7 +228,7 @@ theorem demux.broadcastEventsLocked.wp_proof
   wp_apply wp_load_slice_index evSl (sint.Z (evSl.len - W64 1)) ls DFrac.discard evpL HlastZ.1 $$ [] as -
   · iframe Hsl; ipureintro; rw [Hlastn]; exact HevpL_lookup
   ihave HeL := Hev $$ %(evs.length - 1) %evpL %eL %HevpL_lookup %HeL_lookup
-  iunfold eventAt at HeL
+  ihave HeL := eventAt_elim $$ HeL
   icases HeL with ⟨%keySlL, #HtypL, #HkvL, #HkeyL, #HksL, #HmodL⟩
   wp_auto
   -- the pure facts about the response
@@ -378,7 +378,7 @@ theorem demux.broadcastEventsLocked.wp_proof
         wp_apply wp_load_slice_index evSl (sint.Z j) ls DFrac.discard evpj Hj.1 $$ [] as -
         · iframe Hsl; ipureintro; exact Hevpj_lookup
         ihave Hej := Hev $$ %(sint.nat j) %evpj %ej %Hevpj_lookup %Hej_lookup
-        iunfold eventAt at Hej
+        ihave Hej := eventAt_elim $$ Hej
         icases Hej with ⟨%keySlj, #Htypj, #Hkvj, #Hkeyj, #Hksj, #Hmodj⟩
         wp_auto
         wp_if_destruct
