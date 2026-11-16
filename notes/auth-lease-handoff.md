@@ -1,6 +1,23 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, L1 option 1: raft + L-r5 + server committed; STOPPED at the checkpoint)
+## START HERE (S4, 2026-11-16, drivers: HARD STOP on kv's exported storage results)
+
+- Raft L-r0..L-r6 and the server stage ACCEPTED (etcd-grove-02; `questions.md`). Full build of `d54c9155f6`
+  (`/shared/tmp/auth-lease-s4/full1.log`): 7 modules fail, nothing else.
+  - `kv/KVStorageInstance` (`kvJ_bnd`), `kvreconf/KvrStorageApi` (`kvrJ_bnd`), `kvdurable/KdStorageApi`: the
+    examples' `MemJust` copies (`kvJ`/`kvrJ`/`kdJ`, `B k := nodeAppliedLb γ K k`) no longer match L-r2's `storBnd`.
+    **HARD STOP:** `kv/Results.lean`'s exported `kv_storage_isStorage` (and `kv_bootStorage`) are written over `kvJ`;
+    either `kvJ.B` gains `⌜clusterNoSnap γ → k ≤ 1⌝` (text unchanged, meaning changes only in the mode;
+    recommended, mirrors `memStorJ`) or the theorems gain `¬ clusterNoSnap γ`. kvreconf/kvdurable results do not
+    mention their copies.
+  - `etcdstart/newServerMode`, `StartMemberAuth`, `auth3/startMember`, `auth/startServer`: positional args of
+    `NewServer.spec` (the new scu premise). Internal; discharge from `Hrb48` with `NoSnapCatchUp = 2^48`, or
+    `¬ clusterNoSnap` where the catch-up is arbitrary. `newServerMode.wp_proofRestart` needs `¬ clusterNoSnap γ.cl`
+    for `NewServer.specR`: plan, `cluster_alloc`'s post gains `¬ clusterNoSnap γ` (stronger), carried into
+    `memberRestartFacts`.
+- Next after the go: those fixes, rebuild, `tcb-report --check` + collections, `gen-interface --check`, Freeze §5.
+
+## Previous START HERE (S4, 2026-11-16, L1 option 1: raft + L-r5 + server committed; STOPPED at the checkpoint)
 
 - **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). Plan: Freeze `notes/auth-lease-s4-freeze.md` §8.4;
   GO and form decisions: `questions.md` (last entries, etcd-grove-02).
