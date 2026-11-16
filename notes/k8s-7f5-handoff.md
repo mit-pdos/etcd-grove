@@ -38,7 +38,12 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   step 7, T5-f approved), `OptsOwn.lean`.
 - **errors.AsLeaf derived** from AsLeafTy (81's decision): premise for a non-interface target, the two rafthttp callers
   discharge it; `etc/link-lean-first-server.txt` (`errors_AsLeaf: errors_AsLeafTy`), server `Link.lean` regenerated.
-- lean merged (4d6437b44a). Land-stop checks: see the latest report / `notes/k8s-7f5-freeze.md` if written.
+- lean merged (4d6437b44a). Land-stop checks all green (full build, tcb + collections updated: AsLeaf out, AsLeafTy in,
+  k8s gains fmt.ErrorfPlain; links, api, interfaces, bounds, mode); steps 1-5 landed on 81's go.
+- **OPEN, next unit (81, 2026-11-16): `clientWatchCE`** (unlinked hypothesis of startWatching's proof): close it before
+  step 7. First check what grpc's stream `Recv` trust-boundary texts give of their errors; any trusted text goes to 81.
+  Then strengthen the client watch's element (ledger entry) with `clientErr`/`errCellOk` of the close error and prove it
+  through `closeErrPub`, WatchRun, `watchGRPCStream.run`/`serveSubstream`. Step 6 after 81's word.
 - Proof pitfalls met: `pkill -f` on a pattern kills your own shell; `word` errors with an unused `[HasExt idIssueExt]`
   section variable (removed); `iunfold kvAu` in the context breaks `wp_for`'s simp (unfold only in the side goal);
   `emp` is a Bool variable of these specs (write `iprop(emp)` for BI emp in terms).
