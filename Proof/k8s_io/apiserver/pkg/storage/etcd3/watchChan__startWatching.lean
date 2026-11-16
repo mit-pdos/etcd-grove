@@ -491,6 +491,104 @@ theorem watchChan.startWatching.wp_proof
     iexact HΦ
   try subst Hv
   wp_auto
+  -- the initial events
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ wc_ptr ↦ wc ∗
+      dghostVar γ.prodEx (DFrac.own 1) false ∗ kResAlive alive q ∗ threadTok ∗
+      (kResAlive alive q ∗ threadTok -∗ Φ #()) ∗
+      ∃ (r1 : w64) (I : List KRaw) (st : Nat),
+        structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ r1 ∗
+        kProdSt γ cd I ∗ ⌜uint.nat r1 = st ∧ uint.Z r1 + 1 < 2 ^ 63⌝ ∗
+        ((∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗ ⌜kStartOk m σ0 st ∧
+            (m.forceInit = true → st = σ0.rev ∧ I = kInitRaws inS σ0 st) ∧
+            (m.forceInit = false → I = [])⌝) ∨
+          ⌜m.forceInit = false ∧ 0 < m.req ∧ st = m.req ∧ I = []⌝)) ∨
+      (⌜v = returnVal #()⌝ ∗ Φ #())))
+    at next with [wc Hir Hpe Halive Htok HΦ Hps]
+  · cases hf : m.forceInit
+    · -- none
+      wp_auto
+      ileft
+      isplitr; · ipureintro; rfl
+      iframe wc Hpe Halive Htok HΦ
+      by_cases hr : 0 < m.req
+      · obtain ⟨h1, h2⟩ := HPn hf hr
+        iexists r0, [], m.req
+        iframe Hir Hps
+        isplitr; · ipureintro; exact ⟨h1, h2⟩
+        iright; ipureintro; exact ⟨rfl, hr, rfl, rfl⟩
+      · icases HP0 with (%H | ⟨%lb0, %σ0, #HQ0, %H⟩)
+        · exfalso; rcases H with H | H
+          · simp_all
+          · exact hr H
+        obtain ⟨rfl, hfit⟩ := H
+        have hfit' := hfit.lt
+        iexists W64 (σ0.rev : Int), [], σ0.rev
+        iframe Hir Hps
+        isplitr; · ipureintro; constructor <;> word
+        ileft
+        iexists lb0, σ0
+        iframe HQ0
+        ipureintro
+        refine ⟨?_, ⟨fun h => absurd h (by decide), fun _ => rfl⟩⟩
+        unfold kStartOk; simp [hr]
+        all_goals (intro h; simp [hf] at h)
+    · -- `sync()`
+      wp_auto
+      wp_apply (wp_sync Obj wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf 1 hQ hH hR
+          hf (Hlbf hf)) $$ [Hir Hps Hpe] as %err ⟨Hpe, Hout⟩
+      · iframe #
+        iframe
+      icases Hout with (⟨%Herr, %lb0, %σ0, #HQ0, %Hσ0, Hir, Hps⟩ | ⟨#Hok, %r', Hir⟩)
+      · subst Herr
+        obtain ⟨hst0, hfit⟩ := Hσ0
+        have hfit' := hfit.lt
+        wp_auto
+        ileft
+        isplitr; · ipureintro; rfl
+        iframe wc Hpe Halive Htok HΦ
+        iexists W64 (σ0.rev : Int), kInitRaws inS σ0 σ0.rev, σ0.rev
+        iframe Hir Hps
+        isplitr; · ipureintro; constructor <;> word
+        ileft
+        iexists lb0, σ0
+        iframe HQ0
+        ipureintro
+        exact ⟨hst0, ⟨fun _ => ⟨rfl, rfl⟩, fun h => absurd h (by decide)⟩⟩
+      · -- logged and sent
+        ihave #Hok' := Hok
+        iunfold kErrOk at Hok'
+        icases Hok' with ⟨%e, %He, -, #Hstr, %Hfmt, -⟩
+        subst He
+        ihave HerrF : fmt.argOk (GF := GF) (GoInterface.ok e) $$ []
+        · unfold fmt.argOk
+          iright; ileft
+          iframe #
+          ipureintro; exact Hfmt
+        wp_auto
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %sl ⟨Hsl, -⟩
+        (try wp_auto)
+        wp_apply wp_Errorf _ _ _ _ $$ [$Hsl HerrF] as -
+        · iframe #
+          klog_args_intro
+          isplitl [HerrF]
+          · iapply klog.argOkAt_of_argOk
+            isplitr
+            · ipureintro; decide
+            iexact HerrF
+          itrivial
+        (try wp_auto)
+        wp_apply (wp_prod_sendError wp_sendError wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur q
+          _) $$ [Hpe Halive] as Halive
+        · iframe #
+          iframe
+        (try wp_auto)
+        iright
+        isplitr; · ipureintro; rfl
+        iapply HΦ
+        iframe
   sorry
 
 end proof
