@@ -652,4 +652,5 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   ⌜x = mkOk (*Obj) p ∧ p ≠ null ∧ rv = rvStr n⌝ ∗ p ↦ { o.toObj n with Annotated' := true }`. Users: `WatchDefs`
   (3 places), `watchChan__transform`'s spec and proof (the bookmark), `New.spec` (the `W` binder's type);
   `store.Watch.spec`'s statement changes only in `W`'s type. No trust-base change.
-- **Decision.** Pending (to etcd-grove-02).
+- **Decision.** Accepted as proposed, decided by etcd-grove-02, 2026-11-16; made by the 7f-6 stage D agent on `k8s-7f6`
+  (7f-5's landed proofs: bodies only).

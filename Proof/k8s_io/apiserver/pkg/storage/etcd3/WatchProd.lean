@@ -302,7 +302,7 @@ def kInitRaws (inS : GoString → Bool) (σ : KVState) (st : Nat) : List KRaw :=
 proposition, grpc's outgoing metadata and client errors), `wc.cancel` (whose proposition is
 `kCancelPD`), the size estimator function (the store's), the incoming channel (`kInElem`'s
 SPSC) with its block logger, and `resultChan` (`kResChan`). -/
-def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (ctx : GoInterfaceOk)
     (kp : GoString) (recur : Bool) : IProp GF :=
@@ -333,7 +333,7 @@ def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatch
 
 set_option synthInstance.maxSize 4096 in
 set_option synthInstance.maxHeartbeats 400000 in
-instance kWcProd_persistent (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj)
+instance kWcProd_persistent (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj)
     (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool)
     (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName)
     (ctx : GoInterfaceOk) (kp : GoString) (recur : Bool) :

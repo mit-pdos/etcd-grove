@@ -218,21 +218,21 @@ def kResClosed (alive : GName) : IProp GF := dghostVar alive (DFrac.own 1) true
 /-- **`resultChan`**: the channel, and ONE invariant holding the SPSC's state with the consumer's
 element `kResElem`, and the producers' `kResInv` (or, once closed, `kResClosed`). The consumer's
 `isSpsc` is its first half (`kResChan_isSpsc`); the producers send through `spsc_send_commit_inv`. -/
-def kResChan (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+def kResChan (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (ch : Loc) : IProp GF :=
   iprop(isChan ch γ.res.chanName k8s_io.apimachinery.pkg.watch.Event ∗
     inv nroot iprop(spscInv γ.res (kResElem c W γ cd sel emp inS m Q) (fun _ => iprop(True)) ∗
       (kResInv c γ cd sel emp inS m Q procd ∨ kResClosed alive)))
 
-instance kResChan_persistent (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+instance kResChan_persistent (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (ch : Loc) :
     Persistent (kResChan c W γ cd sel emp inS m Q procd alive ch) := by
   unfold kResChan; infer_instance
 
 /-- The consumer's view of `resultChan`. -/
-theorem kResChan_isSpsc (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+theorem kResChan_isSpsc (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (ch : Loc) :
     kResChan c W γ cd sel emp inS m Q procd alive ch ⊢
@@ -417,7 +417,7 @@ theorem monoList_idx_lb_snoc {A : Type} [Pos.Countable A] (γ : GName) (raws raw
 (`kResAlive`) sends an Error event `v` (type `ERROR`, a failure status): the element is `kResElem`'s
 at the next index (its model `⟨4, z, 0, false⟩`; the stream facts are the raw events' so far, the
 Error event adding nothing to the non-error part), and `kResInv` takes the event. -/
-theorem kResInv_err_acc (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+theorem kResInv_err_acc (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (q : Qp)
     (v : k8s_io.apimachinery.pkg.watch.Event) (hv : v.Type' = go!"ERROR") :
@@ -592,7 +592,7 @@ theorem kResInv_step (c : StoreCfg GF Obj) (γ : KWatchNames)
 `σr`, and the event `v` holding it (`wevAt`): the element sent is `kResElem`'s at the next index, and
 after the send `kResInv` holds `raws' ++ [r]` and `evs ++ [e]`, the goroutine's half of `procd` at
 `n + 1`. -/
-theorem kResInv_send_acc (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+theorem kResInv_send_acc (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (q : Qp) (n : Nat)
     (r : KRaw) (raws' : List KRaw) (lbr lb0 st : Nat) (σr σ0 : KVState) (e : KWEv Obj)
