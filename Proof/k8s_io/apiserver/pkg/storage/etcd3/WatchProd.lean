@@ -200,9 +200,10 @@ def kProdSt (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (I : List K
     ⌜List.Sublist raws I⌝ ∗ (⌜raws = I⌝ ∨ kCancelled γ cd ∨ kProcExited γ))
 
 /-- The context descriptor of `wc.ctx` the producer reads (`WithCancel`'s, keeping the parent's
-`PDone`: §10 of `notes/k8s-7f5a-draft.md`). -/
+`PDone`: §10 of `notes/k8s-7f5a-draft.md`), with its own Done name (`wp_WithCancel_ctx`'s `γ'`;
+`notes/k8s-7f5b-draft.md` §5). -/
 def kCdw (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) : context.ContextDesc (IProp GF) :=
-  { cd with PDone := iprop(cd.PDone ∨ kCancelPD γ cd) }
+  { cd with PDone := iprop(cd.PDone ∨ kCancelPD γ cd), Done_gn := γ.wcDone }
 
 /-- **A drop, seen by the running producer** (`prodEx`'s fraction at `false`): `wc.ctx` is done, so
 the watch is no longer live or the processing goroutine has exited. -/

@@ -854,6 +854,8 @@ structure KWatchNames where
   prodEx : GName
   /-- whether the processing goroutine has exited (set before its `sendError`; internal) -/
   procEx : GName
+  /-- the Done name of `wc.ctx` (`WithCancel`'s child; `kCdw`; internal) -/
+  wcDone : context.ContextNames
 
 /-- **The consumer has not stopped the watch** (exclusive; `k8sWatch` gives it): `Stop` takes it
 (or `kStopped`). Excludes `kStopped` (`dghostVar`'s full fraction against a discarded one). -/
