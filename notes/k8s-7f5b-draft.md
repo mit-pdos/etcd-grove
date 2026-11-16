@@ -207,3 +207,16 @@ stops (safe; Error events are dropped by the checker). Only the proof is stuck. 
   `corruptObjectDeletedError`, `APIStatus`, ...), so this likely needs new trusted text or a stronger
   codec contract, and ~400-800 more lines; the consumers then also prove their `sendError` arms.
 - (C) Restrict the ideal stream to revisions with distinct keys: changes `kStreamOk`'s meaning (exported).
+
+**Decision (etcd-grove-02, 2026-11-16): (A).** The law, in `ListDefs.lean` beside `kvWfHist`:
+```lean
+def kvWritesDec (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
+  ∀ r, r ≤ σ.rev → ∀ ch ∈ σ.changesAt r, ∀ k v l, ch = .put k v l → c.pfx <+: k → c.S.dec v ≠ none
+```
+`store.Watch.spec`'s first read law becomes `⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧
+kvWritesDec c σ⌝` (ledger, "store.Watch without `concurrentDecodeOff`"). **What 7f-6 must prove**: of every state its
+`Q` fires at, that each value its revisions put under the store's prefix decodes. In 7f-6's runs the writers are the
+k8s store (one put or delete per revision, an encoding of a driver object: `KvOne` of stage C's `KvNext`) and the
+compactor (outside the prefix), so it is the encoding round trip at each put, the same fact `kvWfHist` is proved from
+for the final values. The consumer's lemma (`kInElemX_transformOk`, Draft §5): a put event's value via
+`evsOfRevM_mem` and `kvWritesDec`; a previous value (`kPrevAt`, a state's record) via `kvWfHist`.

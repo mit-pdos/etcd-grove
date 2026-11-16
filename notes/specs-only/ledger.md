@@ -600,6 +600,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   premise of Q6 (`notes/k8s-7f5-scope.md`): only the serial branch of `processEvents` was planned for 7f-5a.
 - **Evidence.** 7f-5b proves both branches of `processEvents` (`notes/k8s-7f5b-draft.md` §§2-4); `Enabled` of a queried
   feature returns some `b` under `featureGateOk` with no gate fact.
-- **Proposed change.** The precondition's `watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗` becomes
-  `watchListOn ∗ rangeStreamOff ∗`; nothing else. Uses of the spec as a hypothesis drop the argument.
-- **Decision.** Planned by the Scope (Q6); reported at the 7f-5b Draft checkpoint and again at the land stop.
+- **Second defect (found drafting 7f-5b, both branches).** The read laws (`kvWf`, `kvWfHist`, `kvKeysShort`) do not
+  give `transform`'s premise `kRawDecOk`: an etcd event's value is the value right after its own change, so a value
+  put and overwritten within one revision is in no state `kvWfHist` covers (etcd admits such revisions:
+  `issues/etcd-txn-delete-then-ignore-put.md`, `issues/etcd-txn-check-intervals-sibling.md`). `notes/k8s-7f5b-draft.md` §7.
+- **Proposed change.** (1) The precondition's `watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗` becomes
+  `watchListOn ∗ rangeStreamOff ∗`. (2) The first read law `Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧
+  kvKeysShort σ⌝` gains `∧ kvWritesDec c σ` (every value a revision up to `σ.rev` puts under the store's prefix
+  decodes). Nothing else. Uses of the spec as a hypothesis drop the gate argument and prove the new law.
+- **Decision.** (1) planned by the Scope (Q6); (2) option (A), decided by etcd-grove-02, 2026-11-16; producer 7f-6
+  (stage C's `KvOne` in `KvNext`). Both reported again at the land stop.
