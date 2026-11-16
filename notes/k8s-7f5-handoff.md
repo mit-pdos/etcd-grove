@@ -23,8 +23,6 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
   `prepareKeyM_prefix`; Go's `SelectionPredicate.Matches` never calls the selectors' `Matches` when `labelFieldEmpty`.
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json`; targeted `lake build` of leaves (the step-1 one took 5 min).
 
-### START HERE (2026-11-16, second 7f-5b agent): step 1 in part; HARD STOPS H1, H2 open (superseded)
-
 ## History (older START HERE sections, newest first; the commits say the rest)
 
 ### START HERE (2026-11-16, 7f-5b agent, end of context): Draft §6 step 2 done; steps 1, 3-5 next
