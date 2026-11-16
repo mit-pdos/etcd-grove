@@ -4,21 +4,24 @@
 
 - **Branch:** `k8s-7f6` past lean `54c7fb38f0`. Go target: `k8s-7f6-target` (`4952cb3b91`; its watch.go
   predates the B1 split below: port the split there before D). Decisions: worktree `questions.md`.
-- **Done (B1), proofs checked with `--fast` (full `lake build` pending):** `WDefs` (`wevOf`,
-  `wevsOwn`/`wevsOwnM`, `chgOf`, `reliableLoL`, `watchListOkL`, `keptL`, `rejectsL`, `dec_true`,
-  `cfgOwn_rv`); spec+proof of `eventsEqual`, `bookmarksOk`, `changeAt`, `toEvent`, `initialEvents`,
-  `evRange`, `reliableLo`, `wantEvents`, `nonBookmarks`, `reliableOk`, `initialPrefixOk`,
-  `firstBookmark`, `checkedEvents`, `watchListOk`, `watchOk`. Go: `reliableOk`/`watchOk` split into
-  those helpers, translation regenerated (79d056c186).
-- **Next, in order:** `decodeWEvents` proof (spec written; string `Index`/`Slice` semantics in
-  Perennial `Golang/Defn/String.lean`; invariant `decWEventsL s = (decWEventsL (s.drop i)).map (pre ++ ·)`);
-  B2 (`step`'s `KWatch` branch first in Go, `stepL`, `step.spec` premise for `Kind = 5`:
-  `uint.Z g.st.st.rv < 2^63` and MinRV below `2^63`; lemmas unfolding `stepL`); add every new proof
-  to `etc/link-lean-first-k8setcd3.txt`, `etc/gen-link.py --k8setcd3 > .../Link.lean`; full build;
-  gates; land stop.
+- **Done (B1, complete):** `WDefs` (`wevOf`, `wevsOwn`/`wevsOwnM`, `chgOf`, `reliableLoL`,
+  `watchListOkL`, `keptL`, `rejectsL`, `dec_true`/`dec_false`, `cfgOwn_rv`); spec+proof of every
+  check function: `eventsEqual`, `bookmarksOk`, `changeAt`, `toEvent`, `initialEvents`, `evRange`,
+  `reliableLo`, `wantEvents`, `nonBookmarks`, `reliableOk`, `initialPrefixOk`, `firstBookmark`,
+  `checkedEvents`, `watchListOk`, `watchOk`, `decodeWEvents` (062592fb62). Go: `reliableOk`/`watchOk`
+  split into those helpers (79d056c186), `decodeWEvents` overflow-free length check; translations
+  regenerated. Not yet linked (no caller yet: B2's `step`).
+- **Next, in order (B2):** Go `step`: `if in.Kind == KWatch { if !watchOk(in, out, c) {return nil};
+  return []mcfg{c} }` first; translate; `stepL` gains `if x.Kind' = W64 5 then (if watchOkL x y g.st
+  then [g] else [])`; `step.spec` gets `x.Kind' = W64 5 → uint.Z g.st.st.rv < 2^63 ∧ MinRV bound`;
+  `step.wp_proof` takes `watchOk.spec`. `KSteps.stepL_sound`/`stepL_complete`/`stepL_bounded` unfold
+  `stepL` and have NO `kInOk` premise: a watch's `[g]` is not a `PStep` unless the model's step covers
+  it, so they need `x.Kind' ≠ W64 5` (threaded from `kInOk` through `Step`'s proofs, `Model.lean`) or
+  `kSpec`'s step must treat watches. Decide before editing (it may touch `Model.lean`'s statements).
+  Then link list `etc/link-lean-first-k8setcd3.txt` (all B1 functions, `step: ... watchOk`), `etc/gen-link.py
+  --k8setcd3`, full build, gates, land stop.
 - **Open decision (for the report):** `watchOk.spec`'s two premises (store revision and MinRV below
-  `2^63`) reach `step.spec` as a premise on watch inputs only; discharged at stage E (`InOk` has the
-  MinRV bound; the revision bound from the model's histories, `KWatchStream`).
+  `2^63`) reach `step.spec` as a premise on watch inputs only; discharged at stage E.
 - **Pitfalls:**
   - A missing import `.olean` (an import that failed to build) makes a lean-check worker spin at
     "elaborating line 1" forever (the first agent's 38-min runaway; mine too): build the imports
