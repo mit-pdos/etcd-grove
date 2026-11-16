@@ -38,15 +38,6 @@ theorem findIdx?_at {α : Type} (p : α → Bool) (l : List α) (j : Nat) (e : �
       rw [List.findIdx?_cons, ha]
       simp [ih j hj (fun x hx => hpre x (by simp [hx]))]
 
-include sem in
-theorem dec_true {P : Prop} {d : Decidable P} (h : (#(@decide P d) : val) = #true) : P :=
-  Classical.byContradiction fun hp => by
-    rw [decide_eq_false hp] at h; have := go.intoVal_inj h; simp at this
-
-include sem in
-theorem dec_false {P : Prop} {d : Decidable P} (h : ¬ (#(@decide P d) : val) = #true) : ¬ P :=
-  fun hp => h (by rw [decide_eq_true hp])
-
 theorem firstBookmark.wp_proof : firstBookmark.spec (GF := GF) (hG := hG) := by
   intro s evs
   wp_start as #Hs

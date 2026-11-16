@@ -28,7 +28,7 @@ namespace EtcdGrove
 namespace k8s_etcd3
 
 open Iris Iris.BI
-open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (WEvent change Obj Input)
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (WEvent change Obj Input mcfg)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -92,6 +92,23 @@ def keptL (all : List WEv) : List WEv := all.filter fun e => e.t ≠ 4
 /-- `checkedEvents` rejects: a bad event, or a kept one above the revision `rv`. -/
 def rejectsL (all : List WEv) (rv : Nat) : Bool :=
   all.any (fun e => 5 ≤ e.t) || (keptL all).any (fun e => rv < uint.nat e.o.ResourceVersion')
+
+include sem in
+/-- A Go boolean value `#(decide P)` that is `#true`: `P` (a loop condition `wp_if_destruct` leaves
+as a value equation). -/
+theorem dec_true {P : Prop} {d : Decidable P} (h : (#(@decide P d) : val) = #true) : P :=
+  Classical.byContradiction fun hp => by
+    rw [decide_eq_false hp] at h; have := go.intoVal_inj h; simp at this
+
+include sem in
+/-- See `dec_true`. -/
+theorem dec_false {P : Prop} {d : Decidable P} (h : ¬ (#(@decide P d) : val) = #true) : ¬ P :=
+  fun hp => h (by rw [decide_eq_true hp])
+
+theorem cfgOwn_rv (c : mcfg) (g : GCfg) : cfgOwn (GF := GF) c g ⊢ ⌜c.st'.rv' = g.st.st.rv⌝ := by
+  unfold cfgOwn storeOwn
+  iintro ⟨⟨-, %h⟩, -⟩
+  ipureintro; exact h
 
 theorem Obj_eq_iff (a b : Obj) : a = b ↔
     a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧

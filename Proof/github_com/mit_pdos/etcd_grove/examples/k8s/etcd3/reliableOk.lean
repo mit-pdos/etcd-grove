@@ -36,11 +36,6 @@ theorem reliableOkL_eq (x : Input) (req : Nat) (evs : List WEv) (h : HSt) (lo0 h
       else evsEqL (eventsInL x h.hist (reliableLoL x req lo0) hi) (evs.filter fun e => e.t ≠ 3) := by
   unfold reliableOkL reliableLoL; rw [hR]
 
-theorem cfgOwn_rv (c : mcfg) (g : GCfg) : cfgOwn (GF := GF) c g ⊢ ⌜c.st'.rv' = g.st.st.rv⌝ := by
-  unfold cfgOwn storeOwn
-  iintro ⟨⟨-, %h⟩, -⟩
-  ipureintro; exact h
-
 theorem reliableOk.wp_proof
     (wp_eventsEqual : eventsEqual.spec (GF := GF) (hG := hG))
     (wp_evRange : evRange.spec (GF := GF) (hG := hG))
