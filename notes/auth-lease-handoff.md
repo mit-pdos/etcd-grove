@@ -10,12 +10,15 @@
   off contracts `raftLessor`/`lessorGrantOk(G)`/`lessorRevokeOk` and their `_false` bridges deleted; the seven
   client results at `v3rpc.raftLessorM E.authOn s E ρ S`, the two handler results with `hoff : E.authOn = false`;
   `lessorGrantOkL(_server)` → `lessorGrantOkLM(_server)`; mode baseline 453 → 448; forms in `questions.md`).
-- **Next, in order:** item 4, the Freeze package for Draft §3's texts (HARD STOP: exact old → new Lean texts, checked
-  with `etc/lean-check.py`; C5′'s and item 2's already in the tree, the rest to write: `etcdPutSpecOn`/`M`,
-  `etcdTxnSpecOn`, `kv.Put.spec`, the lease client specs at `GrpcSpecMd`, `isEtcdLeaseOn` +
-  `client_lessor_isEtcdLeaseOn_served`, `etcdLeaseTTLSpecOn`/`etcdLeaseLeasesSpecOn` + `etcd_lease_read_auth_served_on`,
-  `lessor_keys_of_read`); then items 5–10 (Draft §7).
-- **Open decisions:** none (item 3's forms go with the next checkpoint report).
+- **Item 4 (Freeze package) drafted:** `notes/auth-lease-s4-freeze.md` (texts old → new, Go evidence, §0 departures
+  from Draft §3: D-a–D-g; F4 the `ErrLeaseNotFound` arms; §5 the per-member law and its fallback). Texts type-checked in
+  `Scratch/S4Freeze.lean` (untracked; copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`; `etc/lean-check.py -a`: 0 errors).
+  Review round 1 (`/shared/tmp/auth-lease-s4/freeze-review-r1.md`): 12 first-tier findings, dispositions in the Freeze
+  file §7, NOT applied yet (rev 2 pending: K1, C1–C3, R1–R2, L1 mechanical-ish; L2, L3 need decisions).
+- **Next, in order:** etcd-grove-02's decisions on L2 (lease-item history view, rec. (a)), L3 (mode form, user),
+  D-h/D-i; rev 2 of the Freeze; review rounds 2–3; then items 5–10 (Draft §7), with the Freeze's
+  internal forms (§1.5 `kvDepPre` at the lease mode, §4.4 `leaseTTLOut`/`leaseLeasesOut`, §5.4 `lessorFollows`).
+- **Open decisions:** the Freeze's §6 and §7 (L2, L3, D-h, D-i); item 3's forms (in `questions.md`).
 - **Token:** `authlease-3354335` (ports 16000/17000); search `/shared/tmp/auth-lease-s4/tokensearch/` (`go run . authlease 16000`).
 - **Pitfalls:**
   - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
