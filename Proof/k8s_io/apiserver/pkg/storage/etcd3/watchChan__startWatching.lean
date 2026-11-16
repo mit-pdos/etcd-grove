@@ -788,6 +788,13 @@ theorem watchChan.startWatching.wp_proof
       iframe HQ0
       ipureintro; rw [hst1]; exact H
     · iright; ipureintro; exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2, hst1⟩
+  have hscope : ∀ (σ : KVState) (lo hi : Nat),
+      σ.rangeEvents (opWatchModel kp (startOps recur (r1 + W64 1))).watchNorm lo hi =
+        kRangeEvsL σ inS lo hi := by
+    intro σ lo hi
+    apply rangeEvents_scope
+    intro k
+    rw [hnorm, hkey, hre, inRange_scope kp recur (fun _ => hkp) k, hinS]
   wp_for HJ
   wp_apply (wp_spsc_receive (t := go_etcd_io.etcd.client.v3.WatchResponse.ty) γw.spsc wch _ _ rs)
     $$ [$Hwsp $Hcons] as %v %ok Hv
@@ -876,7 +883,80 @@ theorem watchChan.startWatching.wp_proof
     iapply HΦ
     iframe
   | nil =>
-  sorry
+  have hnw : ¬ watchErr v := by
+    have := Herr.1 rfl; unfold watchErr
+    simp only [not_or, ne_eq, Decidable.not_not, Bool.not_eq_true]; exact this
+  iunfold respAtP at Hr
+  icases Hr with ⟨#Hra, #Hpks⟩
+  ihave Hpre1 := respAt_isProgressPre v r $$ Hra
+  wp_auto
+  wp_apply (wp_IsPN wres_ptr v r (DFrac.own 1)) $$ [$wres $Hpre1] as wres
+  iunfold watchStateRespOkP at Hok
+  icases Hok with ⟨#Hok1, #Hpk⟩
+  cases hpn : r.isProgressNotify
+  · sorry
+  · -- a progress notification: `KRaw.bm` at the header's revision
+    have hev0 := isProgressNotify_events hpn
+    iunfold watchStateRespOk at Hok1
+    icases Hok1 with (⟨%H, -⟩ | %H | %H | ⟨%H, -⟩)
+    · exact absurd H.1 hnw
+    · rw [hpn] at H; exact absurd H.2.2.1 (by decide)
+    rotate_left
+    · exact absurd hev0 H.2.1
+    obtain ⟨-, -, h0, hle0, rfl, hrv, hnone, -⟩ := H
+    iunfold respAt at Hra
+    icases Hra with ⟨-, #Hhdr, -⟩
+    wp_auto
+    wp_apply (wp_GetRevision v.Header' r.hdrRev)
+    · iframe #
+    wp_apply wp_progressNotifyEvent as %p ⟨%ev, Hp, %Hpev⟩
+    ipersist Hp
+    have hseg : KRawSeg σ inS (sint.nat c0) (sint.nat r.hdrRev) [KRaw.bm (sint.nat r.hdrRev) false] := by
+      apply kRawSeg_bm1
+      · word
+      · word
+      · rw [← hscope]; exact hnone
+    have hseg' := kRawSeg_hist hhist hle hseg
+    have hok := kProdAt_ok hat hseg' (List.prefix_refl _)
+    ihave #Hea : eventAt σ' p (KRaw.bm (sint.nat r.hdrRev) false) $$ []
+    · iunfold eventAt
+      iexists _
+      iframe Hp
+      unfold kEvIs
+      ipureintro
+      refine ⟨?_, Hpev.2.1, Hpev.2.2⟩
+      rw [Hpev.1]; word
+    ihave ⟨%S, %Qs, Hsc, HQs, Hdrop⟩ := kProd_queue γ cd inS m Q chI p _ I lbc lb0 st σ' σ0 hst0 hok
+      $$ Hspsc Hea HQ' HQ0 Hps
+    wp_apply (wp_queueEvent wc chI lg ctx (kCdw γ cd) γ.inc.chanName p S Qs) $$ [Hsc] as Hres
+    · iframe #
+      iexact Hsc
+    ihave ⟨Hps, Hpe⟩ : (kProdSt γ cd (I ++ [KRaw.bm (sint.nat r.hdrRev) false]) ∗
+        dghostVar γ.prodEx (DFrac.own 1) false : IProp GF) $$ [Hres HQs Hdrop Hpe]
+    · icases Hres with (HQs' | ⟨#Hpd, HS⟩)
+      · iframe Hpe
+        iapply HQs $$ HQs'
+      · ihave H2 := Hdrop $$ %1 HS
+        iapply H2
+        · iintro !>
+          unfold kCdw
+          iexact Hpd
+        · iexact Hpe
+    (try wp_auto)
+    wp_apply (wp_RecordEtcdBookmark c.gr Hutf.1 Hutf.2)
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists rs ++ [v], r.hdrRev, I ++ [KRaw.bm (sint.nat r.hdrRev) false]
+    simp only [named]
+    iframe
+    isplitr; · iexact Hi1'
+    isplitr; · ipureintro; word
+    ileft
+    iexists lb0, lbc, σ0, σ'
+    iframe HQ0 HQ'
+    ipureintro
+    exact ⟨hst0, kProdAt_step hat hseg'⟩
 
 end proof
 
