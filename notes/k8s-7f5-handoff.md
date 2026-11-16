@@ -3,28 +3,32 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, fourth 7f-5b agent): run, createWatchChan PROVED; watcher.Watch next
+## START HERE (2026-11-16, fourth 7f-5b agent, end of context): run, createWatchChan, watcher.Watch PROVED; store.Watch next
 
 - **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
-- **Done (this session, all unlinked, lean-check clean without --fast):** `d1c5ec30d4` `watchChan.run` (spec: Draft §4 with
-  store.Watch's six-part read law; `rwg` init/Add_top/Wait, broadcast `watchClosedCh`, `kRes_close_au`). `33971175af`
-  `watcher.createWatchChan` (spec: `kWcCons … ∗ initialRev ↦ rev ∗ kProdSt ∗ prodEx ∗ kProcSt … 1 ∗ spscConsumer γ.res [] ∗
-  kLive`, any `m Q`); WatchCons: `kWatch_alloc` (all the watch's ghost state after `WithCancel`), `clientWatchOk_ctxErr`
-  (wc.ctx's `ctxErrClient` from the client watcher's facts); **storeWatchOk gains `∃ ot, watcher.objectType ↦□ ot`** (the
-  loggers read it; New's post must give it, plan step 5) — forms listed in questions.md (fourth agent).
-- **Next, in order:** `watcher.Watch` (Go `watcher.go:142-163`: HasSuffix check, getStartWatchResourceVersion with `R` from
-  `store.GetCurrentResourceVersion.spec` (its `Q R m := fun _ => Q 0`-style, see startWatching's use at its line ~367),
-  createWatchChan, `go wc.run(isInitialEventsEndBookmarkRequired, areInitialEventsRequired)` (= `kModeOf`'s bmReq/forceInit),
-  `flowcontrol.WatchInitialized` (needs `context.valueAt` of the init-signal key: from `k8sCtxOk`), post `k8sWatch` from
-  `watchChan.Stop/ResultChan.spec` + `kResChan_isSpsc`); `store.Watch` (prepareKey, `ParseResourceVersion` via `versionerOk`,
-  `watchContext` over `WithRequireLeader.spec` + `WithRequireLeaderLaws` (`isContext_of_post`), `watchCtx_of_isContext`);
-  then Draft step 4 (concurrent), step 5 (link list, Results, land-stop checks).
-- **Pitfalls:** after `cases emp`, a bare `emp` is BI `emp` (write `false`/`true`). `kInElem γ` vs a structure-updated γ:
-  not unified by `iexact`; prove `kInElem γ = kInElem γ'` by `unfold …; rfl` and `rw`. A `wp_apply` may run to the
-  function's end: `iapply wp_fupd` BEFORE the last call if you need `ipersist`/`imod` at the end. `iunfold context.cancelSpec`
-  before `iapply` of a cancel. Go locals captured by a goroutine: `ipersist` them before `wp_fork_tok`.
+- **Done (this session, all unlinked; targeted lake build green, `/shared/tmp/k8s7f5b/build-s3b.log`):** `d1c5ec30d4`
+  `watchChan.run` (Draft §4 with store.Watch's six-part read law). `33971175af` `watcher.createWatchChan`; WatchCons
+  `kWatch_alloc`, `clientWatchOk_ctxErr`; **storeWatchOk gains `∃ ot, watcher.objectType ↦□ ot`** (FLAGGED for 02,
+  questions.md). `2072fedae6` the k8s `watcher.Watch` (spec on the require-leader ctx: `isContext`, `outgoingCtxOkC`,
+  `ctxErrClient`, `valueAt ci initSignalKeyAny initSignalRes`, prepared key `kp` with `c.pfx <+: kp`, `kp ≠ []`, short,
+  recursive ⇒ ends in `/`); `readAus_crv` moved from startWatching's file to WatchProd.
+- **Next, in order:** (1) `store.Watch` (`store.go:1142-1152`): `prepareKey.spec` (k = pathPrefix ++ k'; `c.pfx <+: k`
+  from `prepareKeyM_prefix`, `≠ []` from `prepareKeyM_ne_nil`, the `/` suffix from `prepareKeyM`'s def), the versioner's
+  `ParseResourceVersion` (`versionerOk`'s 4th triple, from isStore's `contractOk`), `watchContext.spec` over
+  `WithRequireLeader.spec` (pre: `watchCtx_of_isContext`; post → `WithRequireLeader.isContext_of_post`; `ctxErrClient`
+  through the `Err` transfer; `valueAt` of the init-signal key through the `Value` triple transfer, needs
+  `initSignalKeyAny`'s type ≠ `mdOutgoingKey`; from `k8sCtxOk ci`'s 4th conjunct), `|==> readAus` → `imod`.
+  (2) Draft step 4 (concurrent branch). (3) step 5: link list (NOTE: the k8s `watcher.Watch.spec` shadows the client's
+  `EtcdGrove.watcher.Watch.spec` inside `namespace k8s`; startWatching and compactor__runWatchLoop name the client's
+  unqualified: qualify them, and the link-list key `watcher__Watch: @` is the client's), `New`'s post must give
+  `storeWatchOk` (with `objectType`), Results, land-stop checks.
+- **Pitfalls:** after `cases emp`, a bare `emp` is BI `emp`. `kInElem γ` vs a structure-updated γ: prove equality by
+  `unfold …; rfl`, `rw`. A `wp_apply` may run to the function's end: `iapply wp_fupd` BEFORE the last call to keep an
+  update modality. `iunfold context.cancelSpec` before `iapply`. Go locals a goroutine captures: `ipersist` before
+  `wp_fork_tok`. `cases hr : opts.Recursive'` rewrites HΦ but not later field loads: `rw [hr]` after them, pass `_`.
+  A Fork's post needs `ipureintro; exact isPanic_intoVal ()` after `iframe Htok`.
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...`; lean-check
-  `--max-open 2`, `--stop` before builds. A WatchDefs edit rebuilds WatchCons' chain in lean-check in ~1 min.
+  `--max-open 2`, `--stop` before builds and at the end.
 
 ## History (older START HERE sections, newest first; the commits say the rest)
 
