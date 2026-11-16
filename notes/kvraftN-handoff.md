@@ -15,21 +15,18 @@ Done:
 - `raft_kvreconfN_porcupine_safe` approved by the user (2026-11-16, via etcd-grove-02; `notes/kvreconfN-draft.md`) and
   linked (`da91401f22`): `kvreconfProgramN`, `kvreconfN_adequate_of`, `raft_kvreconfN_adequate`, `kvreconf_MainN`, the
   closed theorem in `Results.lean` (same 328 axioms as `raft_kvreconf_porcupine_safe`). lean merged again (`a48cf8827d`, at ee15ea8d45 after k8s-7f5),
-  bounds +1 accepted (Q8, etcd-grove-02) and recorded (`b1da2fa1a4`). **`etc/land.sh` failed (2026-11-16 04:43, lean
-  unchanged)**: every gate ok (tcb 870/4, 63 collections, bounds 378/378, mode, api, interfaces) but "k8s client
-  error types" (`examples/k8s/etcd3` `TestClientErrorTypes`: `cluster3.StartCluster failed` in all three attempts; came in
-  with k8s-7f5; it passed in this branch's gates before that merge). Log `/shared/tmp/kvraftN/land-kvreconf.log`.
-  Waiting for the coordinator.
+  bounds +1 accepted (Q8, etcd-grove-02) and recorded (`b1da2fa1a4`). **Landed: lean `5d2a12df97`** (etcd-grove-02 reran `etc/land.sh`; the first
+  run's k8s gate failure was two gate runs at once on fixed ports, not this branch).
 
 Next, in order:
-1. On the coordinator's go: merge lean, `LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
-   PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9 etc/land.sh` (GOWORK unset).
-2. kvdurable (R2) up to its statement stop (scope: ids `≤ max` in five specs, `kdFileNames_nodup` by `decimalB_inj`,
-   the files premise over `1 … k + 4`; draw its test k from {1, 3, 5}: k = 7 once took 15 min).
+1. kvdurable (R2) up to its statement stop (scope: ids `≤ max` in five specs, `kdFileNames_nodup` by `decimalB_inj`,
+   the files premise over `1 … k + 4`; draw its test k from {1, 3, 5}: k = 7 once took 15 min). Form (decided by etcd-grove-02): a `max` field on
+   `KdNames` for the replica bound.
 
 Pitfalls:
 - Builds: `lake --packages=/shared/tmp/manifest-e9e.json build $(cat /shared/tmp/kvraftN/targets.txt)` under
-  `systemd-run --scope -q -p MemoryMax=64G` (full builds also under `flock /shared/tmp/etcd-grove-build.lock`).
+  `systemd-run --scope -q -p MemoryMax=64G` (full builds also under `flock /shared/tmp/etcd-grove-build.lock`; `etc/gates.sh` under `flock
+  /shared/tmp/etcd-grove-full-build.lock`).
 - Go: `/shared/tmp/kvraftN/runs20.sh` (GOWORK=off, 32G cap; ~6 s a run); run it in the background.
 - Keep voter lists symbolic (no `decide` on `bootVoters k`, no bare `iframe` over their `[∗list]`).
 - `raft_kvreconf_porcupine_safe`'s text must stay unchanged (`Main()` sets `MaxReplicas = 9`).
