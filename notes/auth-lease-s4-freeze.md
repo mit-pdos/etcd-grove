@@ -1,4 +1,4 @@
-# auth-lease S4 item 4: the Freeze package (rev 1, 2026-11-16; rev 2 stopped at L1, §8)
+# auth-lease S4 item 4: the Freeze package (rev 2, 2026-11-16; L1 open, §8; rev 2's texts §9)
 
 For etcd-grove-02. Branch `auth-lease-s4`. Draft `notes/auth-lease-s4-draft.md` §3 lists the exported
 texts S4 changes; C5′'s (item 3) and etcdstart's (item 2) are already in the tree. This file gives the
@@ -389,9 +389,10 @@ decisions before rev 2 can be written).
 
 ## 8. Rev 2: stopped at the L1 hard stop (2026-11-16)
 
-Rev 2 began with the driver's proof sketch, as decided. It stopped before any text changed: **the L1 premise
-(the member installs no snapshot) cannot be discharged by the driver.** Nothing in §1–§5 has changed since rev 1.
-K1, C1, C2 (D-h), C3 (D-i), R1, R2 and the second-tier items do not depend on L1 and are ready to apply on resume.
+Rev 2 began with the driver's proof sketch, as decided. It stopped at the first hard stop: **the L1 premise
+(the member installs no snapshot) cannot be discharged by the driver.** On etcd-grove-02's go, rev 2 then applied
+everything independent of L1 (§9), with §5's law carrying L1 as a marked placeholder parameter
+`memberNoSnapInstall`. L1 itself goes to the user.
 
 ### 8.1 L1: why the driver cannot discharge "no snapshot install"
 
@@ -433,7 +434,64 @@ K1, C1, C2 (D-h), C3 (D-i), R1, R2 and the second-tier items do not depend on L1
 **Recommendation:** option 1 if the stage's budget allows, since it is true of Go and keeps the approved theorem.
 Otherwise option 2, to the user.
 
-### 8.3 L2 and L3 under the sketch: a lighter realization of (a) (for review with the L1 decision)
+
+### 8.2a Option 1, costed: how much of D21 M3 comes back
+
+D21 M3 (`notes/decisions.md`, "D21 M3 carried out", 2026-10-19) proved exactly this fact for putget/putget3, and T-S
+lifted it so that snapshots are covered. What is still in the tree, and what went:
+
+| piece | M3 (2026-10-19) | today |
+|---|---|---|
+| the cluster's mode | `RaftNames.reNoSnap`, `reNoSnap_ok` (bootstrap log) | **kept** (field; `UniNames.noSnap` forces `false`) |
+| the node's flag | `NGhost.ns`, `NsLink`, kept by every step | **kept** (`StepGhostMode.lean`), always `false` (`ownRaftPhys`'s `Hnsoff`) |
+| the leader's progress clause | `PrLo` (`Next ≥ 2`, replicate ⇒ `Match ≥ 1`, not `StateSnapshot`) in `PrOkN` | **kept as text** (`Defs.lean:708-714`, 73 mentions); its proofs at `ns = true` are vacuous now and must be redone |
+| the storage cap | `MemStorNames.cap`, `storCap`, `memCutInv`'s `Hccap`; `NsCap` = `storCap storage 1` | **gone**: `NsCap ns _ := ⌜ns = false⌝` (`InvRaftPhys.lean:849`); `storCap` left in 3 files only |
+| the server's no-`MsgSnap` | `srvMsgNoSnap` from `isRaftMsg`; `"%Hone"` removed | `srvMsgNoSnap` **kept**, still used for ordinary messages (`ServerOn.lean:78`); `MsgSnap`s now go through the applier's bag (`isRNMsgSnapC`, `InvApplyAll.lean:134`) and `sendMergedSnap` |
+| the run bound | `receiptBound ≤ SnapshotCatchUpEntries + 1` through the apply pool's count (`appliedi ≤ a`, `a < receiptBound`) | **the pool is kept** (`srvWTPool`, `⧗ a`, `InvApplier.lean:1150`); `etcdstart` already has `Hrb48 : receiptBound GF ≤ 2^48` and the examples set catch-up `2^48`, so the bound is free; the clause `appliedi ≤ a` must be re-checked |
+| compaction | `compactRaftLog` at index 1 while `snapi ≤ scu` | **kept** in `compactRaftLog.spec` (`compactIdx`) |
+| the fork's fix (A1) | raft's stale-`appResp` fix, so (N) `firstIndex ≤ Next ≤ lastIndex + 1` holds | **kept** (the pinned raft has it, `issues/raft-stale-term-appresp-index-zero-ack.md`) |
+
+**The plan.**
+
+1. **Raft (sealed API, `etc/api/raft.txt`).** Let the mode be on again. `NsCap` regains `storCap storage 1` at
+   `ns = true` (the cap comes back on `MemoryStorage`: `MemStorNames.cap`, `Compact`/`ApplySnapshot` take
+   `index ≤ cap`). Then re-prove `PrLo` at the leader in the mode, so that `maybeSendAppend`'s `ErrCompacted`
+   branches are dead. The API gains one fact: in the no-snapshot mode a `Ready` hands out no `MsgSnap`, and
+   `qCert`'s `reNoSnap = true` disjunct becomes live. Files: `InvRaftPhys`, `Defs` (`PrOkN`),
+   `StepGhostMode`, `MemstorageApi` and the `MemoryStorage` proofs (`Compact`, `ApplySnapshot`), `raft.go`'s
+   progress branches (`maybeSendAppend`, `handleAppendEntries`' reject path), `ApiVocab`, `InvApi`
+   (`UniNames.noSnap` becomes a choice), `StartNode`'s allocation (`ownRaftGhost_alloc_boot`). **3–5 days**,
+   the bulk of the work. M3 took about that from scratch, and the progress clauses' text survives.
+2. **Server.**
+   - In the mode, the applier's `MsgSnap` bag stays empty, so `sendMergedSnap` never runs.
+   - `applySnapshot` is reached only with an empty snapshot, so no `Recover`/`Restore`.
+   - The storage cap holds: `compactRaftLog` compacts at `compactIdx = 1` because `snapi ≤ appliedi <
+     receiptBound ≤ 2^48 = scu`. The pool's `appliedi ≤ a` clause gives this, and it is re-added if it went
+     with T-S.
+   - `NewServer` and `bootOk` take the mode at the cluster's allocation (`ServerRaftNames`), where the boot
+     premise has `scu = NoSnapCatchUp`.
+   - **`memberNoSnapInstall s E γr` becomes `⌜γr.raft…reNoSnap = true⌝`**, a pure fact of the names, i.e. a mode
+     of the state and not a token. Files: `InvApplyAll`, `ApplyAllSnap`, `EtcdServer__applySnapshot`,
+     `EtcdServer__compactRaftLog`, `NewServer`/`NewServerR`, `InvBoot`, `InvApplier`.
+   - **2–3 days.**
+3. **Allocation and drivers.** `allocNOnM` and `memberBootOn` take the mode (all members `NoSnapCatchUp`); every
+   closed example keeps `reNoSnap = false`, or `true` where it boots with these settings (its choice, proof
+   bodies only); authlease takes `true`. **0.5–1 day.**
+4. **The bound.** The receipt bound is already the adequacy theorem's: `receiptBound GF ≤ 2^48` (`Hrb48`, fixed by
+   `ReceiptBoundLe` in `etcdstart`). Nothing new is needed from `threadBound`. The only bound fact needed is
+   `snapi ≤ appliedi < receiptBound`, from the apply pool. **No new trusted text.**
+
+**Total 6–9 agent-days.** It is a raft API change (sealed package) and needs an `interface/` diff review of raft's
+API. Risks:
+- (a) the T-S changes to `MemoryStorage` and `compactRaftLog` may have removed more than the cap, which would add
+  1–2 days;
+- (b) every cluster that today needs `reNoSnap = false` (snapshot-taking examples: partition, linkv3p, restart)
+  keeps it, so the mode must stay a choice, not a default.
+
+The alternative (option 2) costs nothing in Lean but changes the approved program (checks 3–5's lessor
+refusals unchecked).
+
+### 8.3 L2 and L3 under the sketch: a lighter realization of (a) (ACCEPTED by etcd-grove-02, 2026-11-16)
 
 The driver's sketch found that the client already holds a view of the lease-key history. A KV state
 `σ : KVState` keeps every revision's changes (`σ.changes`, `σ.at r`), and each key-value carries its lease, so
@@ -470,3 +528,21 @@ def leaseKeptIn (σ : KVState) (r₀ : Nat) (id : w64) (k : GoString) : Prop :=
     at a revision and a put on a dead lease is refused;
   - the state at a committed prefix is a revision-prefix of the state `etcdKV` holds.
   Both are model or server lemmas.
+
+## 9. Rev 2's texts (2026-11-16; `Scratch/S4Freeze.lean`, `etc/lean-check.py -a`: 0 errors)
+
+Each r1 finding, applied (the Scratch name in brackets; old texts §1–§5 above where unchanged):
+
+| finding | change | Scratch |
+|---|---|---|
+| K1 | `txnUpdAtOn`'s write branch: `txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)` (internal); `client_put_on` generalized to options `gs` (`optsAt sl gs`, the request `putWireOf (opPutModel key val gs)`, premises `opSizeOk`, `¬ putPanics ∧ t = 2`, and the filter `leaseID = 0 ∨ ρ.kv.lm = .revocable`), at `etcdPutSpecOnN`. **D-j**: an exported result restated; the no-option form is the instance `gs := []`. `putPermitM_of_dep` (`ServerKVOn.lean:369-397`, `Or.inl hl`) is the one server-side place that changes. | `txnUpdAtOnN`, `client_put_on_stmt` |
+| C1 | `v3rpc.opGrantT` gains the lease rows (`writeGrantG … (irrLeaseGrant id ttl)` / `(irrLeaseRevoke id)`, header at the token), so `clientGrant`/`clientOpAuOn` cover lease operations. The lease results take `lessorRemoteAtC l conn [addr]` and `□ clientOpAuOn … (.leaseGrant id ttl) (Q id)` (`∀ id`) / `(.leaseRevoke id) Q`; post `∃ md, ⌜clientAttemptMd conn ci md⌝ ∗ leaseGrantResT/leaseRevokeResT … (mdTokenOf md) …` (`client_put_on`'s shape; no `∃ tok`). | `opGrantTN`, `clientGrantN`, `clientOpAuOnN`, `client_lease_{grant,revoke}_on_stmt` |
+| C2 / D-h | `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` (S3c registrations): the reply also gets `□ (⌜E.authOn = true⌝ → ∃ info, principalBoundT s E.authMode (mdTokenOf md) info)` (`requireAuthInfo`'s fact, which `EtcdServer.LeaseGrant.spec`'s `authedOutB` gives); the client results carry it at their `md`. Docstring: `Q` of the state **before** the grant. | `etcdLeaseGrantSpecOnN`, `etcdLeaseRevokeSpecOnN` |
+| C3 / D-i | `clientTokAt` gains `∃ lp, Client.Lease ↦□ *lessor lp ∗ lessorRemoteAtC lp conn eps`; `New`'s post (`InvClientNewResult.lean:180`, today `lessorAt lp eps`) strengthened to name the connection. | `clientTokAtN` |
+| R1 | the TTL spec's success: `leaseCheckT s E (mdTokenOf md) n (fun info => if req.2 then leaseKeysVerdictFrom … else True)` (authentication with or without keys), and the TTL-row fact kept (second tier). Proof risk (review r1): the no-keys arm from `authedOutB` may need `requireAuthInfo.specC`'s `n`-relative form. | `etcdLeaseTTLSpecMd` |
+| R2 | `hγa` dropped and `γl` freed (the lease-read contract's); the result is the one read registration, renamed `etcd_lease_read_served`, the specs `…SpecMd` (any mode); `etcd_leaseReadMethodsOk`'s texts become corollaries. If the proof finds a use of `hγa`, it comes back as a marked scope restriction. | `etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`, `etcd_lease_read_served_stmt` |
+| L1 | open (§8): the law's premise `memberNoSnapInstall s E γr`, a **parameter of the statement** (no definition), marked as the placeholder | `lessor_keys_of_read_stmt` |
+| L2, L3 | §8.3 (accepted): `leaseHeldOn`/`leaseHeldThrough` deleted; `leaseKeptIn σ r₀ id k` (pure, `KVState`); the law over `isServerReadM E.authOn` (no `hon`), its conclusion against `etcdKV γr.kv σ` at any mask with `kvN`, `srvRaftN`, threshold the read's revision `log.length`; `srvRLogLb A₀` and `ai0 + |A₀| ≤ c` gone (the read's revision replaces them) | `leaseKeptIn`, `lsHolds`, `lessor_keys_of_read_stmt` |
+| second tier | full texts of `retryLeaseClient.LeaseRevoke/LeaseTimeToLive/LeaseLeases` (§2.3). `kv.Put.spec`'s docstring: "etcd's auth-off Put spec". §2's token sentence corrected: a user client's token comes from its per-RPC credentials, which grpc sends first (`attemptTokOk`); only the bad-token client's token is in the context. §4.4: `checkLeaseLeases.spec`'s error post strengthened from `applyErrIs` to the auth package's error variables (as `checkLeaseTimeToLive.spec`'s `authErrVarIs`), a frozen-spec change of a proved function, certain. The v3rpc contract's `ttlAns`/`leasesAns` (`InvLeaseRead.lean:65-93`) change with §4.4 (the −1 arm's check; no auth-on empty listing). `raftLeaseRead_server` (`v3rpc/Results.lean:2083`) re-proves them. `ErrLeaseNotFound`'s message fact in `etcdserver` (`errMsgOk`, the lease package's init): to check in item 7. | `retryLeaseClient.*.specN` |
+
+**Not done:** review rounds 2–3 (after the L1 decision).
