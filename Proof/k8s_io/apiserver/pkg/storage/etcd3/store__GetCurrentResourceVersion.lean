@@ -148,7 +148,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     ileft
     isplitr
     · ipureintro; exact Hcerr
-    iframe Hse Hcell
+    iexact Hcell
 
 end proof
 
