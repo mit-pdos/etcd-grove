@@ -1,6 +1,42 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, second 7f-6 agent): stage B1 in progress
+## START HERE (2026-11-16, third 7f-6 agent): stage B done, at the land stop
+
+- **Branch:** `k8s-7f6` (lean `d559d8bc9f` merged). Go target: `k8s-7f6-target` (`4952cb3b91`): its
+  watch.go predates the B1 split: **port the B1 split (and B2's `step`) there before stage D.**
+  Decisions: worktree `questions.md` ("Stage B1 decisions", "Stage B2: forms").
+- **Done:** B0 (pure watch.go, `KWatch = 5`); B1 (062592fb62: spec+proof of every check function,
+  `WDefs`); B2 (d99e51907d): Go `step`'s `KWatch` branch first (`watchOk`), translation; `stepL` gains
+  `if x.Kind' = W64 5 then (if watchOkL x y g.st then [g] else [])`; `step.spec` premise
+  `x.Kind' = W64 5 → rv < 2^63 ∧ parsed MinRV < 2^63`; `step.wp_proof` over `watchOk.spec`;
+  `stepL_sound`/`stepL_complete`/`step_closure_ok`/`step_result` take `x.Kind' ≠ W64 5`, from
+  `k8setcd3S`'s `ioOk` (now `∃ x y, … ∧ x.Kind' ≠ W64 5`), discharged in `Apply.lean` from `GenIn`;
+  all B1 functions linked (`etc/link-lean-first-k8setcd3.txt`). No closed statement moved.
+- **Next:** the coordinator's go, then `etc/land.sh` (`LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
+  PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9`, GOWORK unset). No commits while it lands.
+  Then stage D (Scope §5): `consume`, `watchEvents`, `runWatch` over `store.Watch.spec`; deferred from
+  B to D/E: `genWatch`/`genWatchFrom`, `watchOptions`, `toWEvent`, `encodeWEvents`, `lastObj`.
+- **Stage E obligations (from B):** (a) `ioOk`'s `x.Kind' ≠ W64 5` goes: `kSpec` must give watches
+  their meaning (a watch keeps the configuration iff `watchOkL`), then `stepL_sound`/`_complete` drop
+  the premise; (b) discharge `step.spec`'s watch premises (store revision < 2^63: `HistWf`; parsed
+  MinRV < 2^63: `WatchInOk` of `Gen`'s draws) where watches reach `Step`.
+- **Pitfalls:**
+  - A missing import `.olean` makes a lean-check worker spin at "elaborating line 1": build the
+    imports with `lake build` first and read its errors.
+  - Every proof file of the package lands in `Link.lean`'s one environment: a lemma name used in two
+    proof files clashes only there (B2: `item_eq_iff` of `changeAt` vs `storeEqual`, renamed
+    `item_eq_iff3`; WDefs' `bmStepL_none_foldl` was KWatchStream's, now imported).
+  - `go.min`: `FuncUnfold.func_unfold` then `simp only`; `wp_if_destruct` cannot split a projection
+    (`cases h : ch.hasCur'` first); a returned fresh slice: persist it in the caller.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`, stopped before
+  builds; gates under `flock /shared/tmp/etcd-grove-full-build.lock`. Go: `cd examples/k8s/etcd3;
+  GOWORK=off go test -run 'TestWatchOkEdges|TestGenWatchCases' .`; translation:
+  `PATH=/usr/local/go/bin:$PATH etc/goose.py --project k8s-apiserver` (GOWORK unset).
+
+## History
+
+### 2026-11-16, second 7f-6 agent: B1
 
 - **Branch:** `k8s-7f6` past lean `54c7fb38f0`. Go target: `k8s-7f6-target` (`4952cb3b91`; its watch.go
   predates the B1 split below: port the split there before D). Decisions: worktree `questions.md`.
@@ -10,39 +46,7 @@
   `reliableLo`, `wantEvents`, `nonBookmarks`, `reliableOk`, `initialPrefixOk`, `firstBookmark`,
   `checkedEvents`, `watchListOk`, `watchOk`, `decodeWEvents` (062592fb62). Go: `reliableOk`/`watchOk`
   split into those helpers (79d056c186), `decodeWEvents` overflow-free length check; translations
-  regenerated. Not yet linked (no caller yet: B2's `step`).
-- **Next, in order (B2):** Go `step`: `if in.Kind == KWatch { if !watchOk(in, out, c) {return nil};
-  return []mcfg{c} }` first; translate; `stepL` gains `if x.Kind' = W64 5 then (if watchOkL x y g.st
-  then [g] else [])`; `step.spec` gets `x.Kind' = W64 5 → uint.Z g.st.st.rv < 2^63 ∧ MinRV bound`;
-  `step.wp_proof` takes `watchOk.spec`. `KSteps.stepL_sound`/`stepL_complete`/`stepL_bounded` unfold
-  `stepL` and have NO `kInOk` premise: a watch's `[g]` is not a `PStep` unless the model's step covers
-  it, so they need `x.Kind' ≠ W64 5` (threaded from `kInOk` through `Step`'s proofs, `Model.lean`) or
-  `kSpec`'s step must treat watches. Decide before editing (it may touch `Model.lean`'s statements).
-  Then link list `etc/link-lean-first-k8setcd3.txt` (all B1 functions, `step: ... watchOk`), `etc/gen-link.py
-  --k8setcd3`, full build, gates, land stop.
-- **Open decision (for the report):** `watchOk.spec`'s two premises (store revision and MinRV below
-  `2^63`) reach `step.spec` as a premise on watch inputs only; discharged at stage E.
-- **Pitfalls:**
-  - A missing import `.olean` (an import that failed to build) makes a lean-check worker spin at
-    "elaborating line 1" forever (the first agent's 38-min runaway; mine too): build the imports
-    with `lake build` first and read its errors.
-  - `go.min`/`go.max`: `have hmin : (#(functions go.min [go.uint64, go.uint64]) : val) = min.impl
-    go.uint64 2 := FuncUnfold.func_unfold (f := go.min) (type_args := List.replicate 2 go.uint64)`,
-    then `simp only [hmin]` before `wp_auto`.
-  - `wp_if_destruct` cannot split `#ch.hasCur'` (a projection): `cases h : ch.hasCur'` first; it
-    does run to the end of a branch (then `wp_for_post`, no `wp_auto`), and closes contradictory
-    branches itself. A struct `!=` splits into one `if` per field (`item_eq_iff`, `Obj_eq_iff`).
-  - A returned fresh slice: post `wevsOwnM` (owned); persist it in the caller (`wevsOwnM_persist`):
-    `imod` cannot run once the goal is `Φ v`.
-  - Rules: every lake build through `/shared/tmp/build-slot.sh`; lean-check `--max-open 2`, stopped
-    before builds and at the end of a turn.
-- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
-  lean-check with `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`; gates under
-  `flock /shared/tmp/etcd-grove-full-build.lock`. Go: `cd examples/k8s/etcd3; GOWORK=off go test
-  -run 'TestWatchOkEdges|TestGenWatchCases' .`; translation: `PATH=/usr/local/go/bin:$PATH
-  etc/goose.py --project k8s-apiserver` (GOWORK unset).
-
-## History
+  regenerated. Linked with B2's `step`.
 
 ### 2026-11-16, first 7f-6 agent: B0
 
