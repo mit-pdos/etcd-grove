@@ -2,6 +2,7 @@
 # Counts may only go down; rewrite with `etc/bounds-check.py --check --update`.
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/authN 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/cache 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compacted 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 1
@@ -19,7 +20,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/watch 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/compactor 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/cluster3 3
-spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 10
+spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 12
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 3
 spec-thread go_etcd_io/etcd/server/v3/etcdserver 10
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
@@ -27,6 +28,7 @@ spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth 5
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/authN 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/cache 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compacted 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 2
@@ -45,7 +47,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/compactor 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/cluster3 4
-spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 16
+spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 20
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv 1
