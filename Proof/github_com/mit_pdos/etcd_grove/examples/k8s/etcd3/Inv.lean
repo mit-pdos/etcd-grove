@@ -340,7 +340,7 @@ def keysOk (σ : KVState) : Prop :=
 /-- A step extends the history: the states agree at every revision of the first. -/
 theorem kvNext_at {σ σ' : KVState} (hn : k8s.KvNext σ σ') (r : Nat) (hr : r ≤ σ.rev) :
     σ'.at r = σ.at r := by
-  rcases hn with rfl | ⟨hrv, -, hext⟩
+  rcases hn with rfl | ⟨hrv, -, hext, -⟩
   · rfl
   · obtain ⟨hc, hb, hp⟩ := hext
     exact (k8s.kvSameHist_at σ σ' r ⟨hc, hb, Or.inl hp⟩ hr (by omega)).symm

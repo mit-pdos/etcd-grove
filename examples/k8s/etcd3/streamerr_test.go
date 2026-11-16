@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
-	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
 // streamErrCell is "" when err has the shape the trusted cliStreamErr promises (T-CE, k8s 7f-5,
@@ -114,11 +113,11 @@ func streamOps(conn *grpc.ClientConn, rng *rand.Rand, ctx context.Context, se *s
 // error a grpc client stream of etcd's client connection returns (NewStream, Send, Recv,
 // CloseSend; Watch and LeaseKeepAlive streams) has one of clientErrTys' types, and an
 // *errors.errorString one is io.EOF or context.Canceled itself (errCellOk), over a three-member
-// cluster under each partition schedule (client connections blackholed and dropped, peers cut),
+// cluster (startCluster(3)) under each partition schedule (client connections blackholed and dropped, peers cut),
 // with cancellations and short deadlines, after the members are stopped, and on a closed client.
 // Each schedule runs in a process of its own (inChild). Evidence, not proof.
 func TestStreamErrorCells(t *testing.T) {
-	for name, sched := range partitionSchedules() {
+	for name, sched := range partitionSchedules(3) {
 		t.Run(name, func(t *testing.T) {
 			inChild(t, "TestStreamErrorCells", name, func(t *testing.T) { streamErrorCells(t, sched) })
 		})
@@ -126,22 +125,11 @@ func TestStreamErrorCells(t *testing.T) {
 }
 
 func streamErrorCells(t *testing.T, sched []cluster3.Step) {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	srvs, brs, kc, ok := startCluster(3, zap.NewNop())
 	if !ok {
-		t.Fatal("StartCluster failed")
+		t.Fatal("startCluster failed")
 	}
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
-		DialTimeout:          etcdstart.DialTimeout,
-		DialKeepAliveTime:    etcdstart.KeepAliveTime,
-		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
-		Logger:               lg,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	cli := kc.Client
 	conn := cli.ActiveConnection()
 	se := &streamErrs{seen: map[string]int{}, msgs: map[string]string{}}
 	var total time.Duration
