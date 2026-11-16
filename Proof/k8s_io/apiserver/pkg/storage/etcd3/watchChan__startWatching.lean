@@ -237,7 +237,7 @@ theorem kProdExited_set (γ : KWatchNames) :
 end lemmas
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -937,8 +937,61 @@ theorem watchChan.startWatching.wp_proof
         have h2 : sint.nat c1 ≤ σ.rev := by word
         rw [hscope]
         exact ⟨kRawSeg_chg1 h1 h2, by omega, fun _ => h2⟩
+    obtain ⟨hsegS, hc1, hc1le⟩ := Hseg
+    have hsegS' := kRawSeg_hist hhist hle hsegS
+    generalize hevs : kRangeEvsL σ inS (sint.nat c0 + 1) (sint.nat c1 + 1) = evs at hsegS hsegS' ⊢
+    iunfold respAt at Hra
+    icases Hra with ⟨#HevA, -, -⟩
+    iunfold eventsAt at HevA
+    icases HevA with ⟨%ls, #Hls, %Hlen, #HevE⟩
+    iunfold eventsPkAt at Hpks
+    icases Hpks with ⟨%ls', #Hls', %Hlen', #HpkE⟩
+    ihave %Hlseq := ownSlice_agree _ _ _ _ _ $$ Hls Hls'
+    subst Hlseq
+    iunfold eventsIs at Hevs
+    icases Hevs with ⟨%HlenE, #HevI⟩
+    ihave %Hsll := ownSlice_len $$ Hls
     wp_auto
-    sorry
+    ihave IH2 : (∃ (n : w64) (e0 : Loc), "i" ∷ i_ptr ↦ n ∗ "e" ∷ e_ptr ↦ e0 ∗
+        "Hps" ∷ kProdSt γ cd (I ++ (evs.map KRaw.ev).take (sint.nat n)) ∗
+        "Hpe" ∷ dghostVar γ.prodEx (DFrac.own 1) false ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ls.length : Int)⌝ : IProp GF) $$ [i e Hps Hpe]
+    · iexists W64 0, _
+      simp only [named]
+      iframe i e Hpe
+      isplitl [Hps]
+      · iExactEq Hps; rw [show sint.nat (W64 0) = 0 from rfl]; simp
+      ipureintro; constructor
+      · decide
+      · simp
+    wp_for IH2
+    wp_if_destruct
+    · sorry
+    · -- the response is queued: the next one
+      have h2 : ¬ sint.Z n < sint.Z v.Events'.len := fun h => Hif (by simp [h])
+      have hnl : sint.nat n = ls.length := by
+        have h1 := Hsll.1
+        have h3 := Hsll.2
+        have h4 := Hn
+        simp only [sint.nat, sint.Z] at h1 h2 h3 h4 ⊢; omega
+      (try wp_auto)
+      (try simp only [decide_eq_false h2])
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists rs ++ [v], c1, I ++ evs.map KRaw.ev
+      simp only [named]
+      iframe
+      isplitr; · iexact Hi1'
+      isplitl [Hps]
+      · iExactEq Hps
+        rw [hnl, Hlen, HlenE, ← List.length_map (f := KRaw.ev), List.take_length]
+      isplitr; · ipureintro; exact hc1
+      ileft
+      iexists lb0, lbc, σ0, σ'
+      iframe HQ0 HQ'
+      ipureintro
+      exact ⟨hst0, kProdAt_step hat hsegS'⟩
   · -- a progress notification: `KRaw.bm` at the header's revision
     have hev0 := isProgressNotify_events hpn
     iunfold watchStateRespOk at Hok1
