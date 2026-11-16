@@ -34,6 +34,17 @@ abbrev fields.Everything.spec : Prop :=
       {{ True }} (App (Val #(methods i.ty go!"Empty" i.v)) (Val #())) {{ RET #true; True }} }}
 ```
 
+New file header (review finding 1):
+```
+`fields.Everything()` (`k8s.io/apimachinery/pkg/fields`, `selector.go:76`, names-only here): it
+returns `andTerm{}` (a non-nil, length-0 value of the slice type `andTerm`); the spec says it
+returns a non-nil `Selector` whose `Empty()` is `true` (`andTerm.Empty`, value receiver,
+`selector.go:190`: `true` on `nil` or length 0, before its loop; pure, so the triple is
+persistent), for `storage.Everything` (`storageInit`, 2026-11-16, k8s 7f-5b H2). Evidence:
+`examples/premisefix/watcherctx/everything_test.go`. The trust boundary: an axiom,
+`Proof/k8s_io/apimachinery/pkg/fields/Everything.lean`. Lean-first (no Rocq counterpart).
+```
+
 ## (b) The storage package fact (`storageInit`, `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`)
 
 Proved by the generated `Proof/k8s_io/apiserver/pkg/storage/Init.lean` (`etc/gen-init.py`'s SPECIAL for
@@ -62,8 +73,11 @@ abbrev storageInit : IProp GF :=
     globalAddr k8s_io.apiserver.pkg.storage.tooLargeResourceVersionCauseMsg ↦□ tl ∗
     globalAddr k8s_io.apiserver.pkg.storage.Everything ↦□ p ∗ everythingOk p)
 ```
-The read-only points-to is taken at initialization: no translated code writes `storage.Everything` (the
-apiserver's readers copy it: `cacher/lister_watcher.go:109`, `etcd3/watcher.go:178`).
+The read-only points-to is taken at initialization from the whole points-to. No code writes
+`storage.Everything`: in the translation, its one reader is `etcd3/watcher.go:178` (`etcd3.lean:9633`, a
+load); in all of k8s.io at the pins (tests included) and in `examples/`, every use copies it (`grep` for
+assignments and `&storage.Everything`: none). The untranslated side is the only part of (b)'s soundness
+the logic does not check (review finding 2).
 
 ## (c) Internal (a form): `selPredOkW`
 
@@ -74,5 +88,6 @@ when `emp = false`), with a law from `selPredOk` and one for `Everything` (`sel 
 
 ## Review
 
-`/shared/tmp/k8s7f5b/axiom-review-everything.md` (an independent `axiom`-skill review); findings and their
-resolution below once in.
+`/shared/tmp/k8s7f5b/axiom-review-everything.md` (an independent `axiom`-skill review, 2026-11-16): READY WITH
+CHANGES, no counterexample; (a) and (b) unchanged. Findings (both minor, documentation): (1) the spec file's header
+(new header above); (2) (b)'s soundness note named an untranslated reader (reworded above). Both applied.

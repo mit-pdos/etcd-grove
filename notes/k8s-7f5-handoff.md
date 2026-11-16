@@ -3,28 +3,27 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, second 7f-5b agent): step 1 in part; HARD STOPS H1, H2 open (questions.md)
+## START HERE (2026-11-16, second 7f-5b agent, end of context): H1 applied; H2 texts reviewed, awaiting 02
 
-- **Head:** `k8s-7f5` past `e733cc121a` (the step-1 commit). lean is `54c7fb38f0`; merge it (and k8s-7f6c's
-  `KvOne`, when landed) before the land stop.
-- **Done (step 1, in part):** `kvWritesDec` (ListDefs, beside `kvWfHist`); `store.Watch.spec` as decided (fourth
-  read law `kvWritesDec c σ`, `concurrentDecodeOff` dropped; docstring); `concurrentDecodeOff` deleted from
-  WatchDefs; `incomingEventChan`'s SPSC `R := False` (form: a consumer must refute a closed channel). Targeted
-  build: `/shared/tmp/k8s7f5b/step1-build.log`.
-- **OPEN, hard stops (questions.md, "7f-5b step 1"):** **H1** (exported): `transform` needs `0 ≤ sint.Z modRev`,
-  underivable without a bound on `σ.rev`; recommended `kvRevFits σ.rev` in the first read law. **H2** (trust
-  base): `createWatchChan`'s `storage.Everything` for an empty predicate: `fields.Everything.spec` says
-  nothing; recommended (a) strengthen it like `labels.Everything.spec` (`Empty()` returns true), (b) the storage
-  package fact records `Everything`, (c) internal `selPredOkW` for transform/filter/acceptAll.
-- **Next, in order (Draft §6), after 02's answers:** rest of step 1 in a new module (`WatchCons.lean`:
-  `kInElemX` with `kInElem_eq` (no WatchDefs edit), `kWcCons` with `⌜c.pfx <+: kp⌝`, `kProcSt`, a strengthened copy
-  of `evsOfRevM_mem` (`ev.del = false → the change is a put`), `kInElemX_transformOk`: membership in the ideal
-  stream via `kRawStreamSub`, `kRangeEvsL_mem`, `kRawRevOk` for `kPrevAt`'s revision); (3) serial and wiring:
-  run needs a local `spsc_close` over `kResChan`'s one invariant (as `spsc_send_au_inv`), `start_broadcast` for
-  `watchClosedCh`, `alive` split ½/½; (4) concurrent; (5) link etc.
-- **Pitfalls:** as below; `KVState.revEvents r = evsOfRevM r (σ.at (r-1)).kvs (σ.changesAt r)`; scope keys
-  are under `c.pfx` via `prepareKeyM_prefix` (store__GuaranteedUpdate.lean:411).
-- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; targeted `lake build` of leaves.
+- **Head:** `k8s-7f5` past `3d68958e4d`. lean is `54c7fb38f0`; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Done:** step 1 in part (`87fef18b7d`): `kvWritesDec` (ListDefs); `store.Watch.spec` new: first read law
+  `⌜lb ≤ σ.rev ∧ kvWf ∧ kvWfHist ∧ kvKeysShort ∧ kvWritesDec c σ ∧ kvRevFits σ.rev⌝`, `concurrentDecodeOff`
+  dropped and deleted (ledger "store.Watch without `concurrentDecodeOff`", third defect = H1); incoming SPSC
+  `R := False` (form). H2 (`3d68958e4d` + this commit): `notes/k8s-7f5b-everything.md` (texts (a) `fields.Everything.spec`,
+  (b) `storageInit`'s `Everything ↦□ p ∗ everythingOk p`, (c) `selPredOkW`), Go test
+  `examples/premisefix/watcherctx/everything_test.go` (passes, -race), review
+  `/shared/tmp/k8s7f5b/axiom-review-everything.md` (READY WITH CHANGES, two doc findings, applied in the note).
+- **OPEN:** 02's approval of H2 (a)/(b). After it: edit the axiom spec (+ new header), `Base.lean`'s `storageInit` +
+  `everythingOk`, gen-init SPECIAL (keep both Everything posts, `ipersist HEverything`), regenerate, tcb/collections.
+- **Next (Draft §6), may run over (a)/(b) as hypotheses:** rest of step 1 in `WatchCons.lean` (`kInElemX` +
+  `kInElem` equation, `kWcCons` with `⌜c.pfx <+: kp⌝`, `kProcSt`, strengthened `evsOfRevM_mem` copy, `kInElemX_transformOk`
+  using `kvRevFits`, `kRawStreamSub`, `kRangeEvsL_mem`, `kRawRevOk`), `selPredOkW` (c); step 3 (run needs a local
+  close over `kResChan`'s one invariant, as `spsc_send_au_inv`; `start_broadcast` for `watchClosedCh`; alive ½/½); 4; 5.
+- **Pitfalls:** `KVState.revEvents r = evsOfRevM r (σ.at (r-1)).kvs (σ.changesAt r)`; scope keys under `c.pfx` via
+  `prepareKeyM_prefix`; Go's `SelectionPredicate.Matches` never calls the selectors' `Matches` when `labelFieldEmpty`.
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json`; targeted `lake build` of leaves (the step-1 one took 5 min).
+
+### START HERE (2026-11-16, second 7f-5b agent): step 1 in part; HARD STOPS H1, H2 open (superseded)
 
 ## History (older START HERE sections, newest first; the commits say the rest)
 
