@@ -151,6 +151,12 @@ theorem kProdAt_join {inS : GoString → Bool} {m : KWatchMode} {σc σ : KVStat
   · exact ⟨kProdAt_hist hh (by assumption) h, Nat.le_refl _, ⟨rfl, rfl, Or.inl (List.prefix_refl _)⟩⟩
   · exact ⟨h, by omega, kvSameHist_symm hh⟩
 
+/-- The ideal raw stream's initial part: the initial events and the bookmark if asked. -/
+theorem kRawIdealL_nil (inS : GoString → Bool) (m : KWatchMode) (σ : KVState) (st : Nat) :
+    kRawIdealL inS m σ st [] = if m.forceInit then
+      kInitRaws inS σ st ++ (if m.bmReq then [KRaw.bm st true] else []) else [] := by
+  unfold kRawIdealL kInitRaws; split <;> simp
+
 /-- Without initial events, at a positive requested revision, any state is a start. -/
 theorem kStart_any {inS : GoString → Bool} {m : KWatchMode} {st : Nat} (σ : KVState)
     (hf : m.forceInit = false) (hr : 0 < m.req) (hst : st = m.req) :
@@ -589,6 +595,215 @@ theorem watchChan.startWatching.wp_proof
         isplitr; · ipureintro; rfl
         iapply HΦ
         iframe
+  iintro (⟨%Hv, wc, Hpe, Halive, Htok, HΦ, %r1, %I, %st, Hir, Hps, %Hr1, #HS⟩ | ⟨%Hv, HΦ⟩)
+  rotate_left
+  · try subst Hv
+    wp_auto
+    iexact HΦ
+  try subst Hv
+  wp_auto
+  -- the initial-events-end bookmark
+  wp_join (Q := fun v => iprop(⌜v = executeVal⌝ ∗ wc_ptr ↦ wc ∗
+      dghostVar γ.prodEx (DFrac.own 1) false ∗
+      structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ r1 ∗
+      ∃ I' : List KRaw, kProdSt γ cd I' ∗
+        ((∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗ ⌜kStartOk m σ0 st ∧ kProdAt inS m σ0 st st I'⌝) ∨
+          ⌜m.forceInit = false ∧ 0 < m.req ∧ st = m.req ∧ I' = []⌝)))
+    at next with [wc Hir Hpe Hps]
+  · cases hb : m.bmReq
+    · wp_auto
+      iframe
+      isplitr; · ipureintro; rfl
+      icases HS with (⟨%lb0, %σ0, #HQ0, %H⟩ | %H)
+      · ileft
+        iexists lb0, σ0
+        iframe HQ0
+        ipureintro
+        obtain ⟨hst0, hf1, hf2⟩ := H
+        refine ⟨hst0, ?_⟩
+        cases hf : m.forceInit
+        · rw [hf2 hf]
+          have := kProdAt_start (inS := inS) (m := m) (σ := σ0) (st := st) (fun h => by simp [hf] at h)
+          rwa [kRawIdealL_nil, hf] at this
+        · obtain ⟨h1, h2⟩ := hf1 hf
+          rw [h2]
+          have := kProdAt_start (inS := inS) (m := m) (σ := σ0) (st := st) (fun _ => by omega)
+          rw [kRawIdealL_nil] at this; simpa [hf, hb] using this
+      · iright; ipureintro; exact H
+    · have hf := hbm hb
+      icases HS with (⟨%lb0, %σ0, #HQ0, %H⟩ | %H)
+      rotate_left
+      · exfalso; rw [hf] at H; exact absurd H.1 (by decide)
+      obtain ⟨hst0, hf1, -⟩ := H
+      obtain ⟨hst, hI⟩ := hf1 hf
+      subst hI
+      have hr1 : r1 = W64 (st : Int) := by
+        have := Hr1.1; have := Hr1.2; word
+      wp_auto
+      wp_apply wp_progressNotifyEvent as %p ⟨%ev, Hp, %Hev⟩
+      ipersist Hp
+      ihave #Hea : eventAt σ0 p (KRaw.bm st true) $$ []
+      · iunfold eventAt
+        iexists _
+        iframe Hp
+        unfold kEvIs
+        ipureintro
+        exact ⟨by rw [Hev.1, hr1], Hev.2.1, rfl⟩
+      have hok : kRawStreamOk inS m σ0 st (kInitRaws inS σ0 st ++ [KRaw.bm st true]) := by
+        apply kInit_ok (fun _ => by omega)
+        rw [kRawIdealL_nil]; simp [hf, hb]
+      ihave ⟨%S, %Qs, Hsc, HQs, Hdrop⟩ := kProd_queue γ cd inS m Q chI p (KRaw.bm st true) _ lb0 lb0 st
+        σ0 σ0 hst0 hok $$ Hspsc Hea HQ0 HQ0 Hps
+      wp_apply (wp_queueEvent wc chI lg ctx (kCdw γ cd) γ.inc.chanName p S Qs) $$ [Hsc] as Hres
+      · iframe #
+        iexact Hsc
+      ihave ⟨Hps, Hpe⟩ : (kProdSt γ cd (kInitRaws inS σ0 st ++ [KRaw.bm st true]) ∗
+          dghostVar γ.prodEx (DFrac.own 1) false : IProp GF) $$ [Hres HQs Hdrop Hpe]
+      · icases Hres with (HQs' | ⟨#Hpd, HS⟩)
+        · iframe Hpe
+          iapply HQs $$ HQs'
+        · ihave H2 := Hdrop $$ %1 HS
+          iapply H2
+          · iintro !>
+            unfold kCdw
+            iexact Hpd
+          · iexact Hpe
+      (try wp_auto)
+      iframe
+      isplitr; · ipureintro; rfl
+      ileft
+      iexists lb0, σ0
+      iframe HQ0
+      ipureintro
+      refine ⟨hst0, ?_⟩
+      have := kProdAt_start (inS := inS) (m := m) (σ := σ0) (st := st) (fun _ => by omega)
+      rw [kRawIdealL_nil] at this; simpa [hf, hb] using this
+  iintro ⟨%Hv, wc, Hpe, Hir, %I, Hps, #HS⟩
+  try subst Hv
+  wp_auto
+  -- the watch's options
+  wp_apply wp_WithRev as %f1 #Hf1
+  wp_apply wp_WithPrevKV as %f2 #Hf2
+  wp_apply (wp_slice_literal (V := GoFunc) [f1, f2])
+  isplitr
+  · ipureintro; rfl
+  iintro %sl0 ⟨Hsl0, Hcap0⟩
+  imod ownSlice_persist _ _ _ $$ Hsl0 with #Hsl0
+  generalize hosl : slice.mk sl0 _ _ = osl0
+  ihave Ho0 : optsOwn (GF := GF) osl0 [withRevM (r1 + W64 1), withPrevKVM] $$ [Hcap0]
+  · iunfold optsOwn
+    iexists [f1, f2]
+    iframe Hsl0 Hcap0
+    isplitr
+    · ipureintro; rfl
+    iintro !> %i %f %g %Hf %Hg
+    rcases i with _ | _ | i
+    · cases Hf; cases Hg; iexact Hf1
+    · cases Hf; cases Hg; iexact Hf2
+    · simp at Hf
+  wp_auto
+  wp_join (Q := fun v => iprop(⌜v = executeVal⌝ ∗ ∃ osl : GoSlice, opts_ptr ↦ osl ∗
+      optsOwn (GF := GF) osl (startOps recur (r1 + W64 1)))) at next with [opts Ho0]
+  · cases recur
+    · wp_auto
+      isplitr; · ipureintro; rfl
+      iexists osl0
+      iframe opts
+      iExactEq Ho0
+      rfl
+    · wp_auto
+      wp_apply wp_WithPrefix as %f3 #Hf3
+      wp_apply (wp_slice_literal (V := GoFunc) [f3])
+      isplitr
+      · ipureintro; rfl
+      iintro %sl3 ⟨Hsl3, -⟩
+      (try wp_auto)
+      wp_apply (wp_optsOwn_append _ _ _ f3 withPrefixM) $$ [Ho0 Hsl3] as %o3 Ho3
+      · iframe Ho0 Hsl3 Hf3
+      (try wp_auto)
+      isplitr; · ipureintro; rfl
+      iexists o3
+      iframe opts
+      iExactEq Ho3
+      rfl
+  iintro ⟨%Hv, %osl, opts, Ho⟩
+  try subst Hv
+  wp_auto
+  -- the client watch of the scope from `initialRev + 1`
+  icases optsOwn_optsAt _ _ $$ Ho with ⟨#HoAt, -⟩
+  ihave #Hcwo' := Hcwo
+  iunfold clientWatchOk at Hcwo'
+  icases Hcwo' with ⟨%w, %Vw, #Hwf, #Hcw, %Hkst⟩
+  ihave #Hwctx := context.watchCtx_of_isContext ctx (kCdw γ cd) $$ [Hctx Hoc]
+  · iframe #
+  ihave #Hra' := Hra
+  iunfold readAus at Hra'
+  icases Hra' with ⟨#Hkr, -⟩
+  obtain ⟨hrw, hnp, hsz, hnorm, hkey, hre, hpk⟩ := startOp_facts kp recur (r1 + W64 1) hkp hkpl
+  have hrev1 : 1 ≤ sint.Z (r1 + W64 1) := by have := Hr1.2; word
+  wp_apply (wp_WatchCE c.cl w Vw γk ctx (kCdw γ cd) kp osl (startOps recur (r1 + W64 1)) (r1 + W64 1)
+      (Q 0) 0) $$ [] as %wch %γw ⟨#Hwsp, Hcons, #Hcur0⟩
+  · iunfold kvReadAu at Hkr
+    iunfold kvAu at Hkr
+    iframe #
+    isplitr
+    · ipureintro; exact Hkst
+    isplitr
+    · ipureintro; exact ⟨hrw, hnp, hrev1, hsz⟩
+    iintro !> %h
+    exact absurd h.2 (Nat.lt_irrefl 0)
+  (try wp_auto)
+  -- the size estimator: `nil`
+  wp_bind (App (Val #rse) (Val _))
+  iapply Hrse
+  wp_apply (wp_getRSE Obj sp c) $$ [Htok] as Htok
+  · iframe #
+    iframe
+  (try wp_auto)
+  have hcur0 : r1 + W64 1 - W64 1 = r1 := by word
+  ihave #Hcur1 : monoListIdxOwn γw.cur 0 r1 $$ []
+  · iExactEq Hcur0; rw [hcur0]
+  have hst1 : sint.nat r1 = st := by have := Hr1.1; have := Hr1.2; word
+  ihave HJ : (∃ (rs : List go_etcd_io.etcd.client.v3.WatchResponse) (cur : w64) (I : List KRaw),
+      "Hcons" ∷ spscConsumer γw.spsc rs ∗ "#Hcur" ∷ monoListIdxOwn γw.cur rs.length cur ∗
+      "Hps" ∷ kProdSt γ cd I ∗ "Hpe" ∷ dghostVar γ.prodEx (DFrac.own 1) false ∗
+      "Halive" ∷ kResAlive alive q ∗ "Htok" ∷ threadTok ∗
+      "HΦ" ∷ (kResAlive alive q ∗ threadTok -∗ Φ #()) ∗
+      "Hbc" ∷ ownBroadcastChan wcc γb (kProdExited γ) Broadcast.Pending ∗
+      "%Hc0" ∷ ⌜0 ≤ sint.Z cur⌝ ∗
+      "#HP" ∷ ((∃ (lb0 lbc : Nat) (σ0 σc : KVState), □ Q lb0 σ0 ∗ □ Q lbc σc ∗
+          ⌜kStartOk m σ0 st ∧ kProdAt inS m σc st (sint.nat cur) I⌝) ∨
+        ⌜m.forceInit = false ∧ 0 < m.req ∧ st = m.req ∧ I = [] ∧ sint.nat cur = st⌝) : IProp GF)
+      $$ [Hcons Hps Hpe Halive Htok HΦ Hbc]
+  · iexists [], r1, I
+    simp only [named, List.length_nil]
+    iframe
+    isplitr
+    · iexact Hcur1
+    isplitr
+    · ipureintro; have := Hr1.2; word
+    icases HS with (⟨%lb0, %σ0, #HQ0, %H⟩ | %H)
+    · ileft
+      iexists lb0, lb0, σ0, σ0
+      iframe HQ0
+      ipureintro; rw [hst1]; exact H
+    · iright; ipureintro; exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2, hst1⟩
+  wp_for HJ
+  wp_apply (wp_spsc_receive (t := go_etcd_io.etcd.client.v3.WatchResponse.ty) γw.spsc wch _ _ rs)
+    $$ [$Hwsp $Hcons] as %v %ok Hv
+  cases ok
+  · -- the channel closed: the producer exits
+    sorry
+  simp only [↓reduceIte]
+  icases Hv with ⟨⟨HP', #Hce⟩, Hcons⟩
+  iunfold watchStateElemP at HP'
+  icases HP' with ⟨%r, %σ, %c0, %c1, #Hr, #HQσ, #Hi0, #Hi1, #Hok, -, -⟩
+  ihave #Hi0' : monoListIdxOwn γw.cur rs.length c0 $$ []
+  · iExactEq Hi0; simp
+  ihave #Hi1' : monoListIdxOwn γw.cur (rs ++ [v]).length c1 $$ []
+  · iExactEq Hi1; simp
+  ihave %Hc0e := mono_list_idx_agree γw.cur _ c0 cur $$ Hi0' Hcur
+  subst Hc0e
   sorry
 
 end proof
