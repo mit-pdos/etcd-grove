@@ -43,7 +43,7 @@ abbrev gone.spec : Prop :=
       ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.gone)) (Val #cl))
       (Val #id))
-  {{ (b : bool), RET #b; if b then lease.leaseAbsentFrom γl m id else True }}
+  {{ (b : Bool), RET #b; if b then lease.leaseAbsentFrom γl m id else True }}
 
 end spec
 

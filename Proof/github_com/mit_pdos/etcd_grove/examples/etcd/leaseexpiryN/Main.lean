@@ -267,7 +267,11 @@ theorem Main.wp_proof
     rw [List.length_zip, ← hglen, Nat.min_self, membersOf_length]
   -- `run(srvs, ms, lg)`
   ihave Hcfree : [∗list] x ∈ (members k).zip gs, netAddrFree (GF := GF) x.1.Client' $$ [Hcfree]
-  · rw [← hxs1, BigSepL.bigSepL_map] at *; iexact Hcfree
+  · have e : ([∗list] x ∈ (members k).zip gs, netAddrFree (GF := GF) x.1.Client') =
+        [∗list] m ∈ members k, netAddrFree (GF := GF) m.Client' := by
+      conv => rhs; rw [← hxs1]
+      rw [BigSepL.bigSepL_map]
+    rw [e]; iexact Hcfree
   wp_apply (wp_run ssl msl lg ss ((members k).zip gs) γn (by rw [List.length_zip]; omega)
       (fun x hx => members_client_plain k _ (List.of_mem_zip hx).1)
       (fun x hx => Hlmg x.2 (List.of_mem_zip hx).2)

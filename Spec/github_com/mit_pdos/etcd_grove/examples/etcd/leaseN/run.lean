@@ -14,6 +14,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Base
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 

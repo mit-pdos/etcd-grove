@@ -76,10 +76,12 @@ theorem gone.wp_proof
         (try wp_auto)
         wp_for_post
         iframe
+        iexists _; iframe
       · rw [decide_eq_false hin]
         (try wp_auto)
         wp_for_post
         iapply HΦ
+        simp only [↓reduceIte]
         iunfold lease.leaseIdsAt at Hids
         icases Hids with ⟨%τ, %Hτ, #Hτat⟩
         iunfold lease.leaseAbsentFrom
@@ -95,9 +97,9 @@ theorem gone.wp_proof
       | ok ei => ?_
       (try wp_auto)
       wp_for_post
-      iapply HΦ; itrivial
+      iapply HΦ; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   · (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
 end proof
 

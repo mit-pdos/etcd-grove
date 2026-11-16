@@ -78,7 +78,7 @@ theorem run.wp_proof
     iframe
     isplitl
     · iapply BigSepL.bigSepL_nil.2; itrivial
-    ipureintro; exact ⟨by decide, by omega, Or.inl rfl⟩
+    ipureintro; exact ⟨by decide, by omega, Or.inl trivial⟩
   wp_for IH
   wp_if_destruct
   · have hlt : sint.nat n < xs.length := by have := Hmsll.1; simp at this; word
@@ -163,7 +163,7 @@ theorem run.wp_proof
   -- every member served
   have hnk : sint.nat n = xs.length := by have := Hmsll.1; simp at this; word
   ihave #Hsv : [∗list] x ∈ xs, client.etcdLeaseReadAt (GF := GF) x.1.Client' $$ []
-  · iExactEq Hsv; rw [hnk, List.take_of_length_le (le_refl _)]
+  · iExactEq Hsv; rw [hnk, List.take_of_length_le (Nat.le_refl _)]
   have hVne : xs.length = 0 ∨ Nonempty (client.WEnv GF) := by rw [← hnk]; exact Hn.2.2
   iclear Hups Hcfree
   (try wp_auto)

@@ -41,7 +41,7 @@ abbrev check.spec : Prop :=
       zapLoggerOk lg ∗ client.etcdLeaseReadAt addr }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.check)) (Val #addr))
       (Val #lg))
-  {{ (b : bool), RET #b; True }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 

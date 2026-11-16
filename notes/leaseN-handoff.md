@@ -1,32 +1,32 @@
 # leaseN handoff
 
-## START HERE (2026-11-16)
+## START HERE (2026-11-16, second agent)
 
-- Branch `leaseN`, worktree `/shared/etcd-grove-leaseN`, off lean `5d2a12df97`. Not landed, not pushed.
-- Stage: `etcd_lease_safe` and `etcd_leaseexpiry_safe` at `k` members (`1 ≤ k ≤ 1000`) on the generic start, as N
-  versions beside the one-member theorems. The plan: `notes/leaseN-plan.md`.
-- Done (this run, one commit on top of lean):
-  - the plan (statements §2, decisions D1-D12 §8);
-  - Go: `examples/etcd/leaseN` (reads at every member, mode none, token `leaseN-2422`, ports 10000/11000) and
-    `examples/etcd/leaseexpiryN` (a grant through every member, each member's listing polled until its lease is gone,
-    then listed again; token `leaseexpiryN-1973196`, 15-bit apart; ports 12000/13000, its tests 14000-14306);
-  - tests pass (`TestMemberIDs`, `TestMembers`, `TestMainRun` for k ∈ {1,2,3,5,7,9}, `TestRunChecked`,
-    `TestTTLThroughFollowerPanics`), log `/shared/tmp/leaseN/runs.log`.
-- **Open: HARD STOP, the statements (plan §2) and D1-D12 with the user.** Nothing in Lean yet.
-- Next, in order (after approval): plan §6 items 1-6 (build, translation and gen-init, leaseN's proofs, leaseN's
-  linking and landing stop, leaseexpiryN's proofs, its linking and landing stop).
-- Then (D10): `leasecatchupN`, a stage of its own (Figure 2 row, 3 members today).
+- Branch `leaseN`, worktree `/shared/etcd-grove-leaseN`. Not landed, not pushed. Statements (plan §2) APPROVED
+  (1f781da0d6); D1-D12 decided (questions.md).
+- Done: plan, Go and tests (first run); translation, Base, Init/PkgTable (1f781da0d6); Lean drafts of both programs
+  (7260497c12, `etcdstart.kv_lease_served_go` added); drafts fixed until the proofs check (this run, see the log
+  below and the next commit).
+- Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build
+  Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Results Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Results`
+  (logs `/shared/tmp/leaseN/build*.log`). `etc/lean-check.py --max-open 2 --fast` for single files (`LAKE_OPTS=--packages=...`),
+  `--stop` before a build and at the end of a turn.
+- Next, in order: the two Results build clean; collections' baselines (`etc/tcb-report.py --collection
+  etc/tcb-collections/leaseN.txt`: expected the union of lease/leaseexpiry and putgetN, no new axiom -- a new one is a
+  HARD STOP); interfaces/api/layout checks; STATUS entry; merge lean; full build and gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`; STOP before `etc/land.sh`.
+- Then (D10): `leasecatchupN`, a stage of its own.
 
 **Pitfalls**
-- The one-member leaseexpiry check (`TimeToLive` not found, then `Leases`) panics through a follower: the examples'
-  peer listeners answer `/leases/internal` with 404, read as not found (`TestTTLThroughFollowerPanics`). Do not port it.
-- A member's "not listed" says something only of a lessor that held the lease: each member checks the lease granted
-  through itself (the proposer applied the grant before answering).
-- auth-lease S4 (`/shared/etcd-grove-rs56`) changes the client lease specs (`lessor.*.spec` to the metadata form) and
-  the C5′ contracts: do not edit those modules; expect to adapt proof bodies at merge (plan D12).
+- Range loops (`for j := range ms`) still load `ms[j]`: the invariant tracks the hidden counter `i_ptr` and `j_ptr`, and the
+  body first does `wp_load_slice_index msl`.
+- `simp only [...] at *` also rewrites the `have`s (it turned `hnz` into `True`): rewrite the goal or one hypothesis.
+- Do not port the one-member leaseexpiry check (TTL then listing): false through a follower (`TestTTLThroughFollowerPanics`).
+- auth-lease S4 (`/shared/etcd-grove-rs56`) changes the client lease specs: do not edit those modules (plan D12).
 - Go tests: `GOWORK=off PATH=/usr/local/go/bin:$HOME/go/bin:$PATH`, under `systemd-run --scope -q -p MemoryMax=32G`;
-  `/shared/tmp/leaseN/runs.sh` reruns the matrix. Do not stop members in tests whose peers still serve the raft
-  handler (net/http logs the handler's recovered "raft: stopped" panic).
-- No `.lake/build` here yet: seed only per the common rules' disk section, else targeted builds with
-  `--packages=/shared/tmp/manifest-e9e.json`.
-- STATUS.md's "Last updated" entry is left for landing (nothing landed in this run).
+  `/shared/tmp/leaseN/runs.sh` reruns the matrix.
+
+## History
+
+- 2026-11-16 (first agent): plan, Go programs and tests (`/shared/tmp/leaseN/runs.log`, all pass at k in {1,2,3,5,7,9,15}),
+  statements approved; translation; Lean drafts (unchecked). Died mid-run (tmux killed).

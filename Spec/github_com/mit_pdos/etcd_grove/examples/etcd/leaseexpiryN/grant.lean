@@ -43,7 +43,7 @@ abbrev grant.spec : Prop :=
     (Q : LeaseGrantRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗
       isNewClient cl eps V ∗
-      isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (grantTTL, W64 0) Q ∗
+      isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (W64 1, W64 0) Q ∗
       ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.grant)) (Val #cl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

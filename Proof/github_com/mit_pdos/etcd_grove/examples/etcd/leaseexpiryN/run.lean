@@ -50,6 +50,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **A served member's lease facts** (the serve loop's accumulated fact), at its client address: the
 live grant and the listing registered there at its lessor `γl`'s history, and the lessor's reader
@@ -222,7 +223,7 @@ theorem run.wp_proof
   -- every member served
   have hnk : sint.nat n = xs.length := by have := Hmsll.1; simp at this; word
   ihave #Hsv : [∗list] x ∈ xs, srvdL (GF := GF) x.1.Client' $$ []
-  · iExactEq Hsv; rw [hnk, List.take_of_length_le (le_refl _)]
+  · iExactEq Hsv; rw [hnk, List.take_of_length_le (Nat.le_refl _)]
   iclear Hups Hcfree
   (try wp_auto)
   -- `clis := make([]*clientv3.Client, len(ms))`, `ids := make([]clientv3.LeaseID, len(ms))`
@@ -251,7 +252,8 @@ theorem run.wp_proof
     · iExactEq Hidsl; rw [hkn]
     isplitl
     · iapply BigSepL.bigSepL_nil.2; itrivial
-    ipureintro; exact ⟨by decide, by omega, rfl, rfl⟩
+    have h00 : sint.nat (W64 0) = 0 := rfl
+    ipureintro; exact ⟨by decide, by omega, h00.symm, h00.symm⟩
   wp_for IG
   wp_if_destruct
   · have hlt : sint.nat n < xs.length := by word
@@ -347,7 +349,7 @@ theorem run.wp_proof
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     iexists n + W64 1, n, xj.1, cs ++ [cl], gids ++ [mg.id]
     rw [hn1]
-    iframe #
+    iframe; iframe #
     have hcz : (sint.Z n).toNat = cs.length := by rw [hnz, Hn.2.2.1]
     have hgz : (sint.Z n).toNat = gids.length := by rw [hnz, Hn.2.2.2]
     isplitl [Hclsl]
@@ -358,21 +360,21 @@ theorem run.wp_proof
     · iExactEq Hidsl
       rw [hgz, set_replicate_snoc _ _ _ _ (by omega)]
       simp only [List.length_append, List.length_singleton]
-    ipureintro; simp; omega
+    ipureintro; refine ⟨by word, by omega, by simp [Hn.2.2.1], by simp [Hn.2.2.2]⟩
   -- every member granted: the slices hold the clients and the lease ids
   have hnk2 : sint.nat n = xs.length := by word
   have hcsl : cs.length = xs.length := by omega
   have hgsl : gids.length = xs.length := by omega
-  rw [hcsl, hgsl, Nat.sub_self, List.replicate_zero, List.append_nil, List.append_nil] at *
+  simp only [hcsl, hgsl, Nat.sub_self, List.replicate_zero, List.append_nil]
   imod ownSlice_persist _ _ _ $$ Hclsl with #Hclsl
   imod ownSlice_persist _ _ _ $$ Hidsl with #Hidsl
   ihave %Hcll := ownSlice_len $$ Hclsl
   ihave %Hidl := ownSlice_len $$ Hidsl
   (try wp_auto)
   -- the check loop
-  ihave IB : (∃ (n : w64), "j" ∷ j_ptr ↦ n ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length⌝ : IProp GF) $$ [j]
-  · iexists W64 0
+  ihave IB : (∃ (n jv : w64), "i" ∷ i_ptr ↦ n ∗ "j" ∷ j_ptr ↦ jv ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length⌝ : IProp GF) $$ [i j]
+  · iexists W64 0, _
     iframe
     ipureintro; exact ⟨by decide, by simp⟩
   wp_for IB
@@ -383,10 +385,19 @@ theorem run.wp_proof
     have hnz : (sint.Z n).toNat = sint.nat n := by word
     have Hb2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z clsl.len := ⟨Hn.1, by have := Hcll.1; word⟩
     have Hb3 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z idsl.len := ⟨Hn.1, by have := Hidl.1; word⟩
-    ihave #Hgj := BigSepL.bigSepL_lookup (List.getElem?_zip_eq_some.2 ⟨Hcj_lookup, Hidj_lookup⟩) $$ Hgr
+    have hzj : (cs.zip gids)[sint.nat n]? = some (cj, idj) :=
+      List.getElem?_zip_eq_some.2 ⟨Hcj_lookup, Hidj_lookup⟩
+    ihave #Hgj := BigSepL.bigSepL_lookup hzj $$ Hgr
     iunfold grantedAt at Hgj
     icases Hgj with ⟨%eps, %V, %γl, %i, %σ, %Hσ, #Hnc, #Hrls, #Hσat, #HrdInv⟩
     ihave #Hlb := lease.lessorAt_lb γl i σ $$ Hσat
+    (try wp_auto)
+    -- the range's element (`ms[j]`, unused)
+    list_elem xs (sint.nat n) as xj
+    have Hbm : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z msl.len := ⟨Hn.1, Hif⟩
+    simp only [Hbm, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index msl (sint.Z n) _ _ xj.1 Hbm.1 $$ [Hmsl] as -
+    · iframe #; ipureintro; rw [hnz, List.getElem?_map, Hxj_lookup]; rfl
     (try wp_auto)
     simp only [Hb2, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index clsl (sint.Z n) _ _ cj Hb2.1 $$ [Hclsl] as -
@@ -403,7 +414,7 @@ theorem run.wp_proof
     · (try wp_auto)
       wp_for_post
       iapply HΦ; ipureintro; right; rfl
-    simp only [ite_true] at *
+    isimp only [↓reduceIte] at Hb
     iunfold lease.leaseAbsentFrom at Hb
     icases Hb with ⟨%k, %ρa, %Hρa, #Hρat⟩
     ihave #Hlbk := lease.lessorAt_lb γl k ρa $$ Hρat
@@ -454,7 +465,7 @@ theorem run.wp_proof
     (try wp_auto)
     wp_for_post
     iframe
-    iexists n + W64 1
+    iexists n + W64 1, n
     iframe
     ipureintro; constructor <;> word
   (try wp_auto)
