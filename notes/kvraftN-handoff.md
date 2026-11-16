@@ -14,10 +14,10 @@ Done:
   `TestMainN` 20 runs at 18296d64f7: all PASS (k = 1 ×4, 3 ×6, 5 ×4, 7 ×6; 1.5 to 15 s each) (`/shared/tmp/kvraftN/kvreconf-runs20.txt`, logs `run<i>.log`).
 - `raft_kvreconfN_porcupine_safe` approved by the user (2026-11-16, via etcd-grove-02; `notes/kvreconfN-draft.md`) and
   linked (`da91401f22`): `kvreconfProgramN`, `kvreconfN_adequate_of`, `raft_kvreconfN_adequate`, `kvreconf_MainN`, the
-  closed theorem in `Results.lean` (same 328 axioms as `raft_kvreconf_porcupine_safe`). lean merged (up to date at
-  e9f67cdb20), full build ok, gates (`/shared/tmp/kvraftN/gates-kvreconf.log`) all ok but bounds: 365 vs 364 (`MainN.spec`'s
-  `receiptBound`, as kv's Q6); STATUS entry. **Waiting for the bounds decision (then `etc/bounds-check.py --check
-  --update`) and the coordinator's go to land.**
+  closed theorem in `Results.lean` (same 328 axioms as `raft_kvreconf_porcupine_safe`). lean merged (`c204a00618`, after authN's landing), full build ok (17947
+  jobs), gates (`/shared/tmp/kvraftN/gates-kvreconf2.log`) all ok but bounds: 378 vs 377 (kvreconf spec-receipt 4 vs 3:
+  `MainN.spec`'s `receiptBound`, as kv's Q6); tcb 870/4, collections 63 match; STATUS entry. **Waiting for the bounds
+  decision (then `etc/bounds-check.py --check --update`) and the coordinator's go to land.**
 
 Next, in order:
 1. On the coordinator's go: merge lean, `LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
