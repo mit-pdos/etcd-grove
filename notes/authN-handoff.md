@@ -28,8 +28,8 @@ linking). Rules: /shared/tmp/coord-81/common-rules.md.
 2. authN: `Base`, `Defs` (premises over `members k`, bootPremiseOn; putgetN's `BootFacts`/`dirN` reused),
    `Dir` (authN's members' addresses: all peers and all clients; addresses' perm/nodup/lit), `run`
    (serve loop, set-up via member 0, barrier loop, principals at 0, 1 % k, 2 % k), `Main`.
-3. HARD STOP (current): statement in plain words vs etcd_auth3_safe (`notes/authN-draft.md`).
-4. Link: MainLinked, Adequacy (`etcd_adequate_members` with all start bundles), Results, PkgTable/Init
+3. (done) Statement approved by the user, 2026-11-16, via etcd-grove-81.
+4. (done 2026-11-16) Link: MainLinked, Adequacy (`etcd_adequate_members` with all start bundles), Results, PkgTable/Init
    (`etc/gen-init.py`), etcdstart Link entries (`etc/link-lean-first-common.txt`, `etc/gen-link.py --common`),
    `etc/api/etcdstart.txt`, collection `etc/tcb-collections/authN.txt`, interfaces, bounds, gates.
 
@@ -59,3 +59,10 @@ linking). Rules: /shared/tmp/coord-81/common-rules.md.
 ## Build
 `systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-e9e.json build <targets>`;
 check files with `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json etc/lean-check.py`.
+
+## State (2026-11-16, linked)
+MainLinked (hbcfg by `rafthttp.bootCfg_of_le`, `StartMemberAuth` over `server_new_auth_on hD22`), Adequacy, Results,
+PkgTable/Init, collection `etc/tcb-collections/authN.txt` (678 axioms, identical to auth3's), etcdstart API list,
+interfaces and layout baseline, mode-allow entries, bounds +13 / mode +6 baselines, STATUS entry. Full build green,
+`tcb-report --check` 870/4. Next: `etc/land.sh` (LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
+PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9, GOWORK unset).
