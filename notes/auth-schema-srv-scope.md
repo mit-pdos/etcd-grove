@@ -183,3 +183,7 @@ hook-bucket writer. (5) Memory: the auth chains' modules are large (the 64G cap;
   fancy update.
 - **Q9 (R1 elsewhere).** **Recommend** a short check, outside this stage, of the other trusted readers of
   hook buckets written with deletes (membership's, the lessor's) against the window.
+
+**Known limit of A0's write discipline** (the A0 review's O2): `AuthSess` lets no batch session put and delete in one
+auth bucket, so a future auth step that does (a user rename, say) would not be verifiable against this contract
+without a different read model. The store at the pin has no such step.

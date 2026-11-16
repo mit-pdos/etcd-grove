@@ -652,7 +652,11 @@ which `RUnlock()` turns back into `R` (2026-11-16, the second refutation's fix, 
 one state for all three buckets, which Go breaks: `batchTxBuffered.Unlock` writes a step's puts
 back and releases the read lock before it commits the step's deletes,
 `nonissues/etcd-auth-readtx-delete-window-mixed-state.md`; per bucket the view is a recorded
-state because the write contract's sessions never put and delete in one bucket, `AuthSess`);
+state: the write-back is atomic against `RLock` (under `readTx`'s lock, `batch_tx.go:328-360`,
+keeping each key's last put, `tx_buffer.go:96-115`), so in the window a bucket the session only put
+into is at the session's state and one it only deleted from at the state before, and the write
+contract's sessions never put and delete in one bucket, `AuthSess`; the `auth` bucket is only ever
+put into, so it is never behind the others);
 and, for a caller holding the admin side's authority at `hs`
 (`authOwn`: outside a batch transaction, so no write is pending), every bucket at one state, the
 latest (`Hs (BkView.uni st)`, `histLast M hs st`; the auth plan's E2r, 2026-10-26: the apply thread, the store's only writer,

@@ -415,13 +415,14 @@ def BkView.uni (st : AuthState) : BkView := ⟨st, st, st⟩
 
 /-- **A read transaction's view in the mode `M`, each bucket at a state no older than `i`**
 (persistent): in `on γa`, each bucket at a recorded state of the history at an index at least
-`i`, the users' bucket's index not above the `auth` bucket's (what `CheckPassword`, the one reader
-of the user and the revision in one transaction, relies on); otherwise each bucket at a state of
-the mode (`authSnapFrom`). -/
+`i`, the users' and the roles' buckets' indices not above the `auth` bucket's (the `auth` bucket is
+only ever put into, so in the backend's window it is at the session's state; `CheckPassword`, the
+one reader of two buckets, relies on the users' half; the A0 review's F1: Go gives both); otherwise
+each bucket at a state of the mode (`authSnapFrom`). -/
 def authViewSnapFrom (M : AuthMode) (i : Nat) (v : BkView) : IProp GF :=
   match M with
   | .on γa => iprop(∃ ja ju jr : Nat, authStateAt γa ja v.atAuth ∗ authStateAt γa ju v.atUsers ∗
-      authStateAt γa jr v.atRoles ∗ ⌜i ≤ ju ∧ ju ≤ ja ∧ i ≤ jr⌝)
+      authStateAt γa jr v.atRoles ∗ ⌜i ≤ ju ∧ i ≤ jr ∧ ju ≤ ja ∧ jr ≤ ja⌝)
   | _ => iprop(authSnapFrom M i v.atAuth ∗ authSnapFrom M i v.atUsers ∗ authSnapFrom M i v.atRoles)
 
 instance authViewSnapFrom_persistent (M : AuthMode) (i : Nat) (v : BkView) :
