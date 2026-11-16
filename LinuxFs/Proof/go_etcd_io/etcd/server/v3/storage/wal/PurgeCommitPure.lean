@@ -30,6 +30,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeWals
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutCommit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenUnl
 public import LinuxFs.Spec.os.RemoveN
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.LockRange
 
 @[expose] public section
 
@@ -448,6 +449,63 @@ theorem dirKeysOk_purge {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
       rcases mem_replClaim_cases hc' with he | ⟨hc'', -⟩
       · rw [he] at hcj; exact absurd hcj.symm hj'j
       · exact hc''
+
+/-! ## The removed name is the first segment's -/
+
+/-- **The smallest `.wal` name of the directory, not its only one, is the first segment's** (not the last),
+and its sequence number is `first` (the handle's bound on it, `walDirLks_purge`, then bounds the segment's
+end). -/
+theorem purge_first_seg {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {E : Ents}
+    {bt : GoString} {i : Ino} {sq ix : Nat}
+    (habs : WalAbsD C Mr d lay E) (hsn : SegsNamed lay.segs E) (hnd : (walInos E).Nodup)
+    (hcur : E !! bt = some (.file i)) (hbtw : walNameP bt = true)
+    (hfirst : ∀ b n, E !! b = some n → walNameP b = true → b = bt ∨ go.GoStringLt bt b)
+    (hlast : ∃ b n, E !! b = some n ∧ walNameP b = true ∧ go.GoStringLt bt b)
+    (hbt : bt = walFileName sq ix) (hsq : sq < 2 ^ 64) (hcl : lay.cuts.length < 2 ^ 64) :
+    ∃ g0 gs, lay.segs = g0 :: gs ∧ gs ≠ [] ∧ i = g0.ino ∧ sq = lay.first := by
+  obtain ⟨g0, gs, hs⟩ : ∃ g0 gs, lay.segs = g0 :: gs := by
+    cases h : lay.segs with
+    | nil => exact absurd h habs.nonempty
+    | cons g0 gs => exact ⟨g0, gs, rfl⟩
+  have hp := habs.names.2
+  rw [hs, List.map_cons, List.pairwise_cons] at hp
+  -- a `.wal` name of `E` is a segment's
+  have hseg : ∀ b n, E !! b = some n → walNameP b = true → ∃ g ∈ lay.segs, g.name = b := by
+    intro b n hb hw
+    obtain ⟨i', rfl⟩ := hsn.2 b n hw hb
+    have hi := mem_walInos hw hb
+    rw [habs.names.1] at hi
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
+    exact ⟨g, hg, walName_unique_nd hnd (hsn.1 g hg).1 hw (hsn.1 g hg).2 hb⟩
+  have hg0 := hsn.1 g0 (by rw [hs]; simp)
+  have hg0n : g0.name = bt := by
+    obtain ⟨g, hg, hgn⟩ := hseg bt _ hcur hbtw
+    rcases hfirst g0.name _ hg0.2 hg0.1 with h | h
+    · exact h
+    · rw [hs] at hg
+      rcases List.mem_cons.1 hg with rfl | hg'
+      · rw [hgn] at h; exact absurd h (go.goStringLt_irrefl _)
+      · have := hp.1 _ (List.mem_map_of_mem hg')
+        rw [hgn] at this; exact absurd h (go.goStringLt_asymm this)
+  have hi : i = g0.ino := by
+    rw [hg0n, hcur] at hg0; exact Node.file.inj (Option.some.inj hg0.2)
+  have hgs : gs ≠ [] := by
+    obtain ⟨b, n, hb, hw, hlt⟩ := hlast
+    obtain ⟨g, hg, rfl⟩ := hseg b n hb hw
+    rw [hs] at hg
+    rcases List.mem_cons.1 hg with rfl | hg'
+    · rw [hg0n] at hlt; exact absurd hlt (go.goStringLt_irrefl _)
+    · exact List.ne_nil_of_mem hg'
+  refine ⟨g0, gs, hs, hgs, hi, ?_⟩
+  obtain ⟨ix0, hix0⟩ := habs.seqName 0 g0 (by rw [hs]; rfl)
+  rw [hg0n, hbt] at hix0
+  have hm := (walFileName_inj hix0).1
+  have hlen := habs.cuts.2.2
+  rw [hs] at hlen
+  have hgl : 1 ≤ gs.length := List.length_pos_iff.2 hgs
+  simp only [List.length_cons] at hlen
+  rw [Nat.mod_eq_of_lt hsq, Nat.mod_eq_of_lt (by omega)] at hm
+  omega
 
 /-! ## The commit -/
 
