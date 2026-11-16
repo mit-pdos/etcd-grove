@@ -270,7 +270,10 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
+    -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode at least the
+    -- receipts' bound (`isServerApplyAll`'s, `compactRaftLog` at index `1`)
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜clusterNoSnap γr.raft.raft.cl → receiptBound GF ≤ uint.Z n⌝) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
@@ -350,7 +353,10 @@ def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInt
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
       γn.a0 = A₀ ∧ P <+: A₀ ∧ lastTermIs P at₀ ∧
       (∀ m ∈ A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
-      uint.Z ai₀ + A₀.length + 1 < 2 ^ 64⌝ ∗
+      uint.Z ai₀ + A₀.length + 1 < 2 ^ 64 ∧
+      -- (auth-lease S4, 2026-11-16) in the cluster's no-snapshot mode a first start
+      -- (`rnRestartOk_mode`)
+      (clusterNoSnap γn.node.cl → A₀ = [])⌝ ∗
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
       rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft A₀) ∗
     srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ (W64 P.length) ∗
@@ -1051,7 +1057,7 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
   iframe Hloop Happly
   isplitr
   · ipureintro
-    refine ⟨h1, h2, ⟨hc, hp, ha⟩, h4, List.nil_prefix, Or.inl rfl, by simp, ?_⟩
+    refine ⟨h1, h2, ⟨hc, hp, ha⟩, h4, List.nil_prefix, Or.inl rfl, by simp, ?_, fun _ => rfl⟩
     subst ha; simp <;> word
   isplitl [Hsnap]
   · iexists ms
@@ -1060,6 +1066,15 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
   iapply srvRestartAtR_first $$ [Hst]
   iframe Hst
   ipureintro; exact hc0
+
+/-- (auth-lease S4, 2026-11-16) **In the cluster's no-snapshot mode the raft node's restart log is
+empty** (`rnRestartOk_mode`). -/
+theorem isRaftNode_mode (E : RNEnv GF) (γn : RNNames) (r : Loc) :
+    isRaftNode E γn r ⊢ ⌜clusterNoSnap γn.node.cl → γn.a0 = []⌝ := by
+  iintro #Hrn
+  iunfold isRaftNode at Hrn
+  iNamed Hrn
+  iapply rnRestartOk_mode γn $$ Hrok
 
 /-- **Rows 6 and 7 from row 8** (restart S4, Q38 (a)): the raft node's restart log `γn.a0`
 (`rnRestartOk`'s `srvRLogLb`, or empty) has normal or v1 conf entries (`srvIdxOkW`) and room past it

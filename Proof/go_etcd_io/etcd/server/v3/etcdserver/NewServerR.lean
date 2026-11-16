@@ -236,7 +236,7 @@ theorem NewServer.wp_proofRG
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
     NewServer.specR (GF := GF) (hG := hG) := by
   haveI := Hp.1
-  intro cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hc0 Hch0 Hlog0 Hkcmp Hcbl
+  intro cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0 Hlog0 Hkcmp Hcbl
     Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hlbc Hbco Hfnc
     Hdwd Hbwb
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
@@ -429,7 +429,7 @@ theorem NewServer.wp_proofRG
     ipureintro
     exact ⟨⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, HwalR, by omega, Hcfg0,
       Hcfgsz, Hba, Hac, Hblc, Hsw.1, walReadFacts_F3 σ Hwrf, Hcsv,
-      restart_cs_bound cs γ.cfg Hcsv Hcfgsz⟩, Hγsz⟩
+      restart_cs_bound cs γ.cfg Hcsv Hcfgsz, Hnsm⟩, Hγsz⟩
   clear Hrcfg
   (try wp_auto)
   -- the configuration, field by field from here on
@@ -2470,7 +2470,8 @@ theorem NewServer.wp_proofRG
   isplitl [SnapshotCountS]
   · iexists _; iexact SnapshotCountS
   isplitl [SnapshotCatchUpEntriesS]
-  · iexists _; iexact SnapshotCatchUpEntriesS
+  · iexists _; iframe SnapshotCatchUpEntriesS
+    ipureintro; intro hm; exact absurd (by rw [HρRaft] at hm; exact hm) Hnsm
   isplitl [wg]
   · iexact wg
   isplitl [wgMu]

@@ -131,7 +131,10 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
+    -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode at least the
+    -- receipts' bound (`isServerApplyAll`'s, `compactRaftLog` at index `1`)
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜clusterNoSnap γr.raft.raft.cl → receiptBound GF ≤ uint.Z n⌝) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗

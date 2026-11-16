@@ -69,7 +69,10 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length ≤ n⌝ ∗
+        (A ++ unapplied ai ms).length ≤ n ∧
+        -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode, the applied
+        -- index within the write tokens taken (`snapshotIfNeededAndCompactRaftLog`'s)
+        (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w)⌝ ∗
       isServerC C s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the

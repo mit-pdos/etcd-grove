@@ -95,7 +95,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   simp only [srvRunH_applyAll_specBatch]
   wp_start as ⟨%hP, #HsrvC, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
-  obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA⟩ := hP
+  obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA, hnsw⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
   ihave #Hsrv := (isServerM_C C s γ ci TM E ρ γr).2 $$ HsrvC
@@ -326,6 +326,9 @@ theorem EtcdServer.applyAll.wp_proofBatch
   · iunfold apply.applyTok; iexact Hmr
   wp_apply hS1 hok'
       hciL0 Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1 hγn hpre
+      (fun hm => by
+        have h1 := hnsw hm; have h2 := hAL; have h3 := hlenA; rw [List.length_append] at h3
+        have h4 := uint_nat_eq ai; omega)
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
     as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe

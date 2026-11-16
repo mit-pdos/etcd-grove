@@ -543,7 +543,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     ihave #Hsa' := Hsa
     iunfold isServerApplyAll at Hsa'
     icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmidm, #Hmscb, #Hrnf, #Hrnsi⟩, #Hscf,
-      ⟨%stg, #Hstgf, #Hstgc⟩, ⟨%scu, #Hscuf⟩, #Hinf, -,
+      ⟨%stg, #Hstgf, #Hstgc⟩, ⟨%scu, #Hscuf, -⟩, #Hinf, -,
       ⟨%tr, %γNt, %lidt, %SN, %TSN, #Htrf2, #Htr, %HγNt⟩, %Hkv0⟩
     ihave #Hcfg' := Hcfg $$ %sc %scu Hscf Hscuf
     -- `s.applySnapshot(ep, apply)`, (2026-11-02, the backend-auth-split stage) with the apply
@@ -1082,7 +1082,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmidm, #Hmscb, #Hrnf, #Hrnsi⟩, #Hscf,
-    ⟨%stg, #Hstgf, #Hstgc⟩, ⟨%scu, #Hscuf⟩, #Hinf, -,
+    ⟨%stg, #Hstgf, #Hstgc⟩, ⟨%scu, #Hscuf, -⟩, #Hinf, -,
     ⟨%tr, %γNt, %lidt, %SN, %TSN, #Htrf2, #Htr, %HγNt⟩, %Hkv0⟩
   ihave #Hcfg' := Hcfg $$ %sc %scu Hscf Hscuf
   -- `s.applySnapshot(ep, apply)`, in the mode `on`

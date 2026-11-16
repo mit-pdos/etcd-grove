@@ -415,7 +415,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   haveI := Hp.1
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hscum Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
@@ -2281,7 +2281,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   isplitl [SnapshotCountS]
   · iexists _; iexact SnapshotCountS
   isplitl [SnapshotCatchUpEntriesS]
-  · iexists _; iexact SnapshotCatchUpEntriesS
+  · iexists _; iframe SnapshotCatchUpEntriesS
+    ipureintro; intro hm; exact Hscum (by rw [HρRaft] at hm; exact hm)
   isplitl [wg]
   · iexact wg
   isplitl [wgMu]

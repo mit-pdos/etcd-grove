@@ -330,7 +330,10 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
     -- (2026-10-30, the repair, P10: no run-length premise; until then the receipts' bound at most
     -- the value `start` sets, `5000` for `0`, plus one)
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
+    -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode at least the
+    -- receipts' bound (`isServerApplyAll`'s, `compactRaftLog` at index `1`)
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜clusterNoSnap γr.raft.raft.cl → receiptBound GF ≤ uint.Z n⌝) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     -- the ghost state `start` hands on
