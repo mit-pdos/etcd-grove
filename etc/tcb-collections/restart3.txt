@@ -336,7 +336,7 @@ axiom dbFileAbsent
 axiom encoding.json.Unmarshal.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
-axiom errors.AsLeaf.wp_proof
+axiom errors.AsLeafTy.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
