@@ -129,6 +129,28 @@ theorem purgeNames_bt {X : List GoString} {bt : GoString} {hj : NamesH} : purgeN
   unfold purgeNames restrictN
   rw [GMap.lookup_filter, GMap.lookup_delete]; rfl
 
+/-- The names after the removal are some of the claim's. -/
+theorem purgeNames_sub {X : List GoString} {bt b : GoString} {hj : NamesH} {n : Node}
+    (h : purgeNames X bt hj !! b = some n) : hj.cur !! b = some n := by
+  unfold purgeNames restrictN at h
+  rw [GMap.lookup_filter] at h
+  by_cases hb : b = bt
+  · subst hb; rw [GMap.lookup_delete] at h; simp at h
+  · rw [GMap.lookup_delete_ne _ (Ne.symm hb)] at h
+    cases hc : hj.cur !! b with
+    | none => rw [hc] at h; simp at h
+    | some v =>
+      rw [hc] at h
+      by_cases hm : (NameSet.except X).Mem b
+      · simp [Option.filter, hm] at h; rw [h]
+      · simp [Option.filter, hm] at h
+
+/-- The client's state after a purge's commit stays below the real one. -/
+theorem walDurLe_purD {dc d : WalDur} (h : walDurLe dc d) (p k : Nat) :
+    walDurLe { dc with pur := max dc.pur p, cut := k } (purD p k d) := by
+  obtain ⟨h1, h2, h3, -, h5, h6, h7, h8⟩ := h
+  exact ⟨h1, h2, by simp [purD, h3], rfl, h5, h6, h7, h8⟩
+
 /-- The `.wal` names of the names after the removal: those of the directory without `bt`. -/
 theorem purgeNames_wal {X : List GoString} {bt : GoString} {hj : NamesH} (hX : ∀ b ∈ X, walNameP b = false) :
     ∀ b, walNameP b = true → purgeNames X bt hj !! b = GMap.delete bt hj.cur !! b := by
