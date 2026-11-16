@@ -831,7 +831,9 @@ panic, no write to its argument), `opaqueInitsOk` the others.''',
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
-`tooLargeResourceVersionCauseMsg` hold strings.
+`tooLargeResourceVersionCauseMsg` hold strings, and `Everything` holds, for good, a predicate with no
+shard selector whose label and field selectors' `Empty()` is `true` (`everythingOk`, from the two
+axioms' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -850,12 +852,17 @@ its imports and runs the translated initializers.''',
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
-        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ -',
+        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ ⟨%il, %Hil, -, #HlE⟩',
         'try wp_auto',
-        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
+        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ ⟨%ifd, %Hif, #HfE⟩',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
-           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg',
+            'ipersist HEverything'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _, _', 'iframe #',
+            'unfold _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.everythingOk',
+            'isplitr', '· ipureintro; rfl',
+            'isplitr', '· iexists il; iframe #; ipureintro; exact Hil',
+            'iexists ifd; iframe #; ipureintro; exact Hif'],
 )
 
 # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md): their facts are `True`; their
