@@ -34,10 +34,11 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- **`(*store).Watch(ctx, key, opts)`** (`store.go:1142-1152`; see `notes/k8s-7f5a-draft.md` §3):
 a watch of the prepared key's scope from the parsed resource version `n`, with `WatchList` on,
-`EtcdRangeStream` off and (temporarily, Q6) `ConcurrentWatchObjectDecode` off, under the caller's
+`EtcdRangeStream` off (either value of `ConcurrentWatchObjectDecode`), under the caller's
 context (an `isContext` with grpc's outgoing metadata, client errors and the Kubernetes keys), with
 the caller's read updates `Q lb` (`Q lb σ`: a state of one history at revision at least `lb`;
-`Q σ.rev` handed out after a firing at `σ`), returns an error (only `getCurrentStorageRV`'s, for RV 0 with `SendInitialEvents = false`), or `nil`
+`Q σ.rev` handed out after a firing at `σ`; its states' revisions put only values that decode under
+the store's prefix, `kvWritesDec`: ledger, "store.Watch without `concurrentDecodeOff`"), returns an error (only `getCurrentStorageRV`'s, for RV 0 with `SendInitialEvents = false`), or `nil`
 and the consumer's view
 (`k8sWatch`, live while the caller has not stopped it and its context `cd` is not done). No thread
 token: the watch's three goroutines get theirs at their `go` statements. -/
@@ -47,7 +48,7 @@ abbrev store.Watch.spec : Prop :=
     (W : WatchSpec Obj) (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (opts : k8s_io.apiserver.pkg.storage.ListOptions) (k : GoString) (n : w64)
     (sie : Option Bool) (sel : Obj → Bool) (emp : Bool) (Q : Nat → KVState → IProp GF),
-  (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
+  (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   (∀ x ∈ c.ms, noRefusalAt x.addr) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
@@ -56,7 +57,7 @@ abbrev store.Watch.spec : Prop :=
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧
         uint.Z n < 2 ^ 63 - 1 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
-      watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗
+      watchListOn ∗ rangeStreamOff ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗
       k8sctx.k8sCtxOk ci ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗

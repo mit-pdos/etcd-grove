@@ -123,7 +123,7 @@ theorem kInc_commit (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (ch p : Loc) (r : KRaw) (raws : List KRaw)
     (lb lb0 st : Nat) (σ σ0 : KVState) (hst : kStartOk m σ0 st)
     (hsub : kRawStreamSub inS m σ st (raws ++ [r])) :
-    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(True)) -∗ eventAt σ p r -∗
+    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(False)) -∗ eventAt σ p r -∗
       □ Q lb σ -∗ □ Q lb0 σ0 -∗
       (⌜kRawStreamOk inS m σ st (raws ++ [r])⌝ ∨ kCancelled γ cd ∨ kProcExited γ) -∗
       kIncTok γ -∗ monoListAuthOwn γ.raws (1 : Qp).half raws -∗
@@ -136,7 +136,7 @@ theorem kInc_commit (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
   · iframe
   unfold isSpsc
   icases Hspsc with ⟨#Hchan, #Hinv⟩
-  ihave #Hinv' : inv nroot iprop(spscInv γ.inc (kInElem γ cd inS m Q) (fun _ => iprop(True)) ∗
+  ihave #Hinv' : inv nroot iprop(spscInv γ.inc (kInElem γ cd inS m Q) (fun _ => iprop(False)) ∗
       True) $$ []
   · iapply inv_alter $$ Hinv
     inext; imodintro
@@ -145,7 +145,7 @@ theorem kInc_commit (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
     · isplitl [H]; · iexact H
       itrivial
     · iintro ⟨H, -⟩; iexact H
-  iapply spsc_send_commit_inv γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(True)) iprop(True)
+  iapply spsc_send_commit_inv γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(False)) iprop(True)
     (kIncTok γ) (monoListAuthOwn γ.raws (1 : Qp).half (raws ++ [r])) p $$ Hchan Hinv' [] HT
     [Hev Hok Hh]
   · iintro !> HT -
@@ -236,7 +236,7 @@ theorem kProd_queue (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (ch p : Loc) (r : KRaw) (I : List KRaw)
     (lb lb0 st : Nat) (σ σ0 : KVState) (hst : kStartOk m σ0 st)
     (hok : kRawStreamOk inS m σ st (I ++ [r])) :
-    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(True)) -∗ eventAt σ p r -∗
+    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(False)) -∗ eventAt σ p r -∗
       □ Q lb σ -∗ □ Q lb0 σ0 -∗ kProdSt γ cd I -∗
       ∃ S Qs : IProp GF, (S ∧ (£ 1 ∗ £ 1 ∗ £ 1 -∗ ∀ Φ : IProp GF, ▷ (Qs -∗ Φ) -∗
           sendAu γ.inc.chanName p Φ)) ∗
@@ -325,7 +325,7 @@ def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatch
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"incomingEventChan" wc ↦□ chI ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"incomingEventLogger" wc ↦□ lg ∗
     blockLoggerOk lg ∗
-    isSpsc γ.inc chI (kInElem γ cd inS m Q) (fun _ => iprop(True)) ∗
+    isSpsc γ.inc chI (kInElem γ cd inS m Q) (fun _ => iprop(False)) ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"resultChan" wc ↦□ chR ∗
     kResChan c W γ cd sel emp inS m Q procd alive chR ∗
     context.isContext ctx (kCdw γ cd) ∗ metadata.outgoingCtxOkC ctx ∗ ctxErrClient ctx (kCdw γ cd) ∗

@@ -755,17 +755,6 @@ instance watchContractOk_persistent (S : ObjSpec GF Obj) (W : WatchSpec Obj) (co
     Persistent (watchContractOk S W codec) := by
   unfold watchContractOk; infer_instance
 
-/-- **The default gate has `ConcurrentWatchObjectDecode` off** (persistent; the TEMPORARY premise of
-Q6, removed by 7f-5b): `processEvents` takes the serial branch. Producer: the driver's
-`Set("ConcurrentWatchObjectDecode=false")` (the table `k8sSetValue` already maps it to `false`). -/
-def concurrentDecodeOff : IProp GF :=
-  iprop(∃ g : GoInterfaceOk,
-    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
-    k8sfeature.featureOff g go!"ConcurrentWatchObjectDecode")
-
-instance concurrentDecodeOff_persistent : Persistent (concurrentDecodeOff (GF := GF)) := by
-  unfold concurrentDecodeOff; infer_instance
-
 /-- `SendInitialEvents` (a `*bool`) is `sie`: `nil` for none, a read-only cell for some. -/
 def sendInitIs (p : Loc) : Option Bool → IProp GF
   | none => iprop(⌜p = null⌝)

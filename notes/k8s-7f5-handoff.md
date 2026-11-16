@@ -3,7 +3,32 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, 7f-5b agent, end of context): Draft §6 step 2 done; steps 1, 3-5 next
+## START HERE (2026-11-16, second 7f-5b agent): step 1 in part; HARD STOPS H1, H2 open (questions.md)
+
+- **Head:** `k8s-7f5` past `e733cc121a` (the step-1 commit). lean is `54c7fb38f0`; merge it (and k8s-7f6c's
+  `KvOne`, when landed) before the land stop.
+- **Done (step 1, in part):** `kvWritesDec` (ListDefs, beside `kvWfHist`); `store.Watch.spec` as decided (fourth
+  read law `kvWritesDec c σ`, `concurrentDecodeOff` dropped; docstring); `concurrentDecodeOff` deleted from
+  WatchDefs; `incomingEventChan`'s SPSC `R := False` (form: a consumer must refute a closed channel). Targeted
+  build: `/shared/tmp/k8s7f5b/step1-build.log`.
+- **OPEN, hard stops (questions.md, "7f-5b step 1"):** **H1** (exported): `transform` needs `0 ≤ sint.Z modRev`,
+  underivable without a bound on `σ.rev`; recommended `kvRevFits σ.rev` in the first read law. **H2** (trust
+  base): `createWatchChan`'s `storage.Everything` for an empty predicate: `fields.Everything.spec` says
+  nothing; recommended (a) strengthen it like `labels.Everything.spec` (`Empty()` returns true), (b) the storage
+  package fact records `Everything`, (c) internal `selPredOkW` for transform/filter/acceptAll.
+- **Next, in order (Draft §6), after 02's answers:** rest of step 1 in a new module (`WatchCons.lean`:
+  `kInElemX` with `kInElem_eq` (no WatchDefs edit), `kWcCons` with `⌜c.pfx <+: kp⌝`, `kProcSt`, a strengthened copy
+  of `evsOfRevM_mem` (`ev.del = false → the change is a put`), `kInElemX_transformOk`: membership in the ideal
+  stream via `kRawStreamSub`, `kRangeEvsL_mem`, `kRawRevOk` for `kPrevAt`'s revision); (3) serial and wiring:
+  run needs a local `spsc_close` over `kResChan`'s one invariant (as `spsc_send_au_inv`), `start_broadcast` for
+  `watchClosedCh`, `alive` split ½/½; (4) concurrent; (5) link etc.
+- **Pitfalls:** as below; `KVState.revEvents r = evsOfRevM r (σ.at (r-1)).kvs (σ.changesAt r)`; scope keys
+  are under `c.pfx` via `prepareKeyM_prefix` (store__GuaranteedUpdate.lean:411).
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; targeted `lake build` of leaves.
+
+## History (older START HERE sections, newest first; the commits say the rest)
+
+### START HERE (2026-11-16, 7f-5b agent, end of context): Draft §6 step 2 done; steps 1, 3-5 next
 
 - **Head:** `k8s-7f5` = lean `edf33c7a14` + 7f-5b commits (Draft `484c470b3a`, §7 `d5a7529c3e`, decision `768cad6d15`, and
   the commit of this note). **lean is now `54c7fb38f0`** (7f-6 stage A): merge it before the land stop.
@@ -23,7 +48,6 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere (lean-check: `LAKE_OPTS=...`); full builds under
   the flock and the 64G cap; `etc/lean-check.py --fast --split` for long proofs.
 
-## History (older START HERE sections, newest first; the commits say the rest)
 
 ### START HERE (2026-11-16, twenty-first 7f-5 agent): steps 6-prep and 7's linking done; land-stop checks
 
