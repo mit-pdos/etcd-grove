@@ -31,13 +31,13 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`ls.LeaseRevoke(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
-(`leaseServerAt`), whose lease methods meet the contract `raftLessor s E S`, in a gRPC run (its
+(`leaseServerAt`), whose `LeaseRevoke` meets the contract `lessorRevokeOkM on s E ρ S`, in a gRPC run (its
 context, the resource `S`), on a decoded request: `ls.le.LeaseRevoke(ctx, r)`, then the header
 filled: `S` back, and the server's response with its header filled by the cluster `cid` and the
 member `mid`, its revision not `0` and reached (and nothing else), or `nil` and a non-nil error
 (`leaseGrantOut`, `leaseRevokeOut`). (Auth-lease S3c, decision D6/C5′, 2026-11-15: the revocation
-contract alone, at the auth mode `on`, `lessorRevokeOkM on s E ρ S` (until then `raftLessor s E S`,
-of which only the revocation is called), with the client's `Q` and the server's permit at the request
+contract alone, at the auth mode `on` (until then the auth-off `raftLessor s E S`, deleted by the
+C5′ merge, of which only the revocation is called), with the client's `Q` and the server's permit at the request
 context's token, handed through, and on success the client's result `leaseRevokeResT`.) -/
 abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)

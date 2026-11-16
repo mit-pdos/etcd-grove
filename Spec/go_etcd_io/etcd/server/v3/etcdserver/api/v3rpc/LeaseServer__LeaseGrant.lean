@@ -31,7 +31,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`ls.LeaseGrant(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
-(`leaseServerAt`), whose `LeaseGrant` meets the grant contract `lessorGrantOkG s E S G` (the
+(`leaseServerAt`), whose `LeaseGrant` meets the grant contract `lessorGrantOkGM on s E ρ S G R` (the
 lease-grant plan's (F2): the grant contract alone, with the success fact `G`), in a gRPC run (its
 context, the resource `S`), on a decoded request: `ls.le.LeaseGrant(ctx, r)`, then the header
 filled: `S` back, and the server's response with its header filled by the cluster `cid` and the
@@ -41,7 +41,7 @@ request and it (2026-11-05, the lease-expiry plan's E3/R5: the granted TTL; unti
 id only). (E3, 2026-11-04) The request is one the contract's filter `R` covers. (Auth-lease S3c, decision D6/C5′,
 2026-11-15: the contract at the auth mode `on`, `lessorGrantOkGM on s E ρ S G R`, with the client's `Q`
 and the server's permit at the request context's token, handed through unchanged, and on success the
-client's result `leaseGrantResT`; at `on = false` the auth-off contract, `lessorGrantOkGM_false`.) -/
+client's result `leaseGrantResT`; at `on = false` the permit and the result are `True`.) -/
 abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk)

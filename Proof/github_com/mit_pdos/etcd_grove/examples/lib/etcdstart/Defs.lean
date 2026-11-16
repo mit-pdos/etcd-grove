@@ -282,7 +282,7 @@ closed lease example, 2026-11-02, `notes/lease-ex-plan.md`): (the lease-expiry p
 2026-11-04, the user's (a)) `NewServer`'s `lease.srvInv` at `m`, at some auth mode; until then its
 reader side only (`srvLessorRd`, `lessorRdPool`), which the served lease reads take
 (`raftLeaseRead_server`, `srvLeaseRd_lessorRd`), and which the monotone mode's grant takes whole
-(`v3rpc.lessorGrantOkL_server`). (Restart S7.2', 2026-11-14, the restarted-lessor check of
+(`v3rpc.lessorGrantOkLM_server`). (Restart S7.2', 2026-11-14, the restarted-lessor check of
 `notes/restart-s7-probe.md`, P3) Or, in the mode `none` only, the lessor at any first snapshot
 (`lease.srvInvAt`): a restarted member's `NewLessor` recovers the image's leases
 (`NewServer.specR`'s post), and the mode `none`'s consumers take only the reader side; the modes that

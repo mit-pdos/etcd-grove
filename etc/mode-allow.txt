@@ -16,8 +16,6 @@
 * corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
 lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
 lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/KVServiceOn\.lean::etcdRangeSpecE_M::  # (k8s 7e-1, registration (A), etcd-grove-81 2026-11-10) the client-side Range registration `etcdRangeSpecE` (auth off) gives the server's `etcdRangeSpecM false`: a bridge at its literal, as etcdRangeSpecM_false
-lit-mode bridge ^Proof/go_etcd_io/etcd/client/v3/Results\.lean::(etcd_leaseRevokeHandlerOk|etcd_leaseGrantHandlerOk)::  # (auth-lease S3c, Draft §10) the auth-off client results instantiate the lease handler specs (at the mode since S3c) at a literal `false` through the `_false` bridges
-* pair ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(LeaseOn|InvLease)\.lean::(lessorGrantOkGM|lessorGrantOkM|lessorRevokeOkM|raftLessorM|lessorGrantOkG|lessorGrantOk|lessorRevokeOk|raftLessor)::  # (auth-lease S3c, decision C5′, etcd-grove-81 2026-11-15) the lease contracts at the mode beside the auth-off ones, for the cleanup stage to merge
 
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
 lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$

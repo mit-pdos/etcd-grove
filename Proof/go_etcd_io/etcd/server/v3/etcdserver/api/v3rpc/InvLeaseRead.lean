@@ -5,7 +5,7 @@ Rocq counterpart).
 
 `lease.go`'s `LeaseServer.LeaseTimeToLive` and `LeaseServer.LeaseLeases` call the server's methods
 of the same name (`ls.le`, the server `s`: `leaseServerAt`) and fill the response's header. As the
-unary write handlers over `raftLessor` (`InvLease.lean`), they are over a contract, discharged from
+unary write handlers over `raftLessorM` (`LeaseOn.lean`), they are over a contract, discharged from
 the server's proved specs (`ServerLeaseRead.lean`, `raftLeaseRead_of_server`).
 
 **The contract** (`raftLeaseRead s E γl S R`, persistent; `lessorTTLOk`, `lessorLeasesOk`): the

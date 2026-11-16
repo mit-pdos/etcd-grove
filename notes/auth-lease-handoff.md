@@ -2,42 +2,32 @@
 
 ## START HERE (S4, 2026-11-16)
 
-- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`, off lean `6a63774988`, authN landed). S0–S3c,
-  S3a2 are on lean (History below).
-- **Stage S4** (user + etcd-grove-81): `etcd_authlease_safe` for `k` members, `1 ≤ k ≤ 1000`, on authN's
-  `StartMembersAuth`; leased put (`WithLease`, `Put`/`Txn`), linearizable `Lease.Grant`/`Revoke` (F3), read handlers
-  at auth on, `memberBootOn`'s `lg = false` dropped, C5′ pair merged; no new literal modes.
-- **Done (2026-11-16):** Draft rev 1 `notes/auth-lease-s4-draft.md` (program, statement, changed texts §3, token §6,
-  work order §7, decisions D1–D9 §9); Go `examples/etcd/authlease/` with tests, passing (Draft §1; logs
-  `/shared/tmp/auth-lease-s4/runs.log`); probe `Scratch/S4Probe.lean` (untracked, checked clean with `etc/lean-check.py -a`; copy in `/shared/tmp/auth-lease-s4/`; the refusal from the per-member
-  lessor law's output, Draft §4.3). Commits `5baacbd07a`, `647aadf78b`.
-- **Approved (2026-11-16):** the statement as drafted (user, via etcd-grove-02), `KeepAlive` left to S7; D1–D9 as
-  recommended (etcd-grove-02). `questions.md`, "auth-lease S4".
-- **Item 2 done (2026-11-16, checkpoint):** etcdstart's auth start at a lease mode (`memberBootOn`/`memberUpOn`/
-  `memberPreOn` `m := .none`, `lg = false` replaced by `runCfg … m ∧ (m = .revocable → leasesNoExpiry)`;
-  `memberUpOn` + `srvLeaseRd s E m`; `StartMember(s)Auth.spec` + `(m : lease.Mode)`; `memberBootOn_ofM`,
-  `memberBootsOn_ofM`, `allocNOnM` with `hap`; forms in `questions.md`). Full build GREEN (17941 jobs,
-  `/shared/tmp/auth-lease-s4/build4.log`); mode gate 453 = baseline; etcdstart interfaces regenerated.
-- **Next, in order:** Draft §7 item 3, the C5′ merge (scope found: besides the seven client results, the off
-  contracts are used by v3rpc `InvLeaseGrant`'s `lessorGrantOkL` (exported `lessorGrantOkL_server`),
-  `ServerLeaseGrant`/`ServerLeaseRevoke`'s `_off` lemmas and `lessorGrantOkG_mono`, client `LeaseGrantServed`
-  (`etcd_leaseGrantHandlerOkG/L`, the methods lemmas at `lessorGrantOkL`/`lessorGrantOkG`), and the `_false` laws;
-  ~11 files, all at `…M` with `E.authOn`); then Freeze package for §3's texts (hard stop); leased KV at auth on; F3; read handlers +
-  per-member lessor law; goose `authlease`; driver; linking (hard stops at `Main.wp_proof` and before `etc/land.sh`).
-- **Open decisions:** none.
-- **Token:** `authlease-3354335` (ports 16000/17000): first `authlease-<n>` whose 1000 member ids are 15-bit distinct
-  and 16-bit nonzero; search program `/shared/tmp/auth-lease-s4/tokensearch/` (`go run . authlease 16000`). If the
-  ports change, the token must be searched again.
+- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`, off lean `6a63774988`, authN landed). S0–S3c on lean.
+- **Stage S4**: `etcd_authlease_safe` for `k` members; Draft `notes/auth-lease-s4-draft.md` (statement §2 APPROVED by
+  the user, D1–D9 decided, §7 the work order). Decisions and forms: `questions.md` (untracked), "auth-lease S4".
+- **Done:** item 0 Draft + Go `examples/etcd/authlease/` (`5baacbd07a`, `647aadf78b`); item 2 auth start at a lease
+  mode (`7b126d3e4e`, forms ACCEPTED by etcd-grove-02); item 3 the C5′ merge (D5; commit after this handoff edit:
+  off contracts `raftLessor`/`lessorGrantOk(G)`/`lessorRevokeOk` and their `_false` bridges deleted; the seven
+  client results at `v3rpc.raftLessorM E.authOn s E ρ S`, the two handler results with `hoff : E.authOn = false`;
+  `lessorGrantOkL(_server)` → `lessorGrantOkLM(_server)`; mode baseline 453 → 448; forms in `questions.md`).
+- **Next, in order:** item 4, the Freeze package for Draft §3's texts (HARD STOP: exact old → new Lean texts, checked
+  with `etc/lean-check.py`; C5′'s and item 2's already in the tree, the rest to write: `etcdPutSpecOn`/`M`,
+  `etcdTxnSpecOn`, `kv.Put.spec`, the lease client specs at `GrpcSpecMd`, `isEtcdLeaseOn` +
+  `client_lessor_isEtcdLeaseOn_served`, `etcdLeaseTTLSpecOn`/`etcdLeaseLeasesSpecOn` + `etcd_lease_read_auth_served_on`,
+  `lessor_keys_of_read`); then items 5–10 (Draft §7).
+- **Open decisions:** none (item 3's forms go with the next checkpoint report).
+- **Token:** `authlease-3354335` (ports 16000/17000); search `/shared/tmp/auth-lease-s4/tokensearch/` (`go run . authlease 16000`).
 - **Pitfalls:**
-  - `.lake/build` was from 2026-11-13; rebuilt 2026-11-16 up to etcdstart `Defs` and `LeaseCheck` (4193 jobs); the rest is stale.
-    Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
-    --packages=/shared/tmp/manifest-e9e.json build …` (logs `/shared/tmp/auth-lease-s4/build*.log`); `etc/gates.sh`
-    only under `flock /shared/tmp/etcd-grove-full-build.lock` (fixed-port Go tests).
+  - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
+    --packages=/shared/tmp/manifest-e9e.json build …` (logs `/shared/tmp/auth-lease-s4/*.log`); `etc/gates.sh` only under
+    `flock /shared/tmp/etcd-grove-full-build.lock`. Rebuild scope: `etc/importers.py --git <rev> --leaves`.
+  - The lease contracts are only `…M` now: an auth-off user rewrites `E.authOn` to `false` (`rw [hoff]`) before
+    `iintro`, then uses `raftLessorM_grantG false`/`raftLessorM_revoke false` and the handler specs at `false`.
   - Ports 20000–21999 are taken by another session's `k8setcd3.test`; `restartN` and `authN` share 29000/30000.
   - Go: `GOWORK=off`, `PATH=/usr/local/go/bin:$HOME/go/bin:$PATH`, under `systemd-run --scope -q -p MemoryMax=32G`;
-    `AUTHLEASE_MEMBERS=k` fixes `TestMainRun`'s member count; a run takes ≈ 15 s of `Main` + 5–25 s of re-checks.
-  - The lessor-side refusals (`TimeToLive` with keys, `Leases`) need the per-member lessor law over a window
-    (Draft §4.3, §8 risk 1); the raft-path ones (revoke, leased put) are S3a–S3c's model.
+    `AUTHLEASE_MEMBERS=k` fixes `TestMainRun`'s member count.
+  - The lessor-side refusals (`TimeToLive` with keys, `Leases`) need the per-member lessor law (Draft §4.3, §8 risk 1);
+    probe `Scratch/S4Probe.lean` (untracked; copy in `/shared/tmp/auth-lease-s4/`).
   - Mode gate: write `E.authOn` + `hon`, never a literal `true`, in the new package (no new baseline line).
 
 # History
