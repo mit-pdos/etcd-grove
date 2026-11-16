@@ -801,9 +801,11 @@ through the claim `(j, .except X, hj)`:
    in `"wal"` is not a `.wal` name (the WAL creates none, but it must hold through crashes: a `CrashOk`-like clause
    on names). Recommended: (a), local to the purge.
 3. Not the tail: `n + max < |fs|` does not give a larger `.wal` name when other names end in `"wal"`; the tail's
-   lock does (`TryLockFile` of the tail fails), but `walTailW` holds `fdLocksW fd ⟨i, rd, true, lo, lk⟩` with `lk`
-   unknown; needs `lk = some true` recorded (as `walLockHI`'s `∃ k, d.lk k = some true`), or the purge law refuting
-   via `walLockHI_ofTail`. Then `hlast` is `nm0` (the largest `.wal` name, `walDirH`).
+   lock does (`TryLockFile` of the tail fails): `walTailW`'s `fdLocksW fd ⟨i, rd, true, lo, lk⟩` gives the lock held
+   (`fdLocksW_excl`, as `walLockHI_ofTail` uses it), so a law `walOpenWF ∗ osLock k i fd' ∗ lockKind k ⊢ ⌜i ≠ ino⌝`
+   (`walLockHI_excl`'s argument on the tail's description; the lend then also returns the tail's `osFd`/`fdLocksW`,
+   or the law is stated on `walOpenWF` itself) gives `bt ≠ nm0`. Then `hlast` is `nm0` (the largest `.wal` name,
+   `walDirH`).
 Then: `fileutil.TryLockFile` through `fileutil.OpenTriple` with `os.OpenFile` on the claim (the inode `hj` maps the
 name to), `os.Remove.specFileSncN` with `walPurge_osAUnc`, the lock's `Close`, the spec with `walPurgeAcc` (the
 tester's `TInv` supplies it: its oracle covers the purge, session 5), `opOwnSnap` re-proved, retranslation, the Go
