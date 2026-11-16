@@ -44,6 +44,9 @@ whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klo
   step 7. First check what grpc's stream `Recv` trust-boundary texts give of their errors; any trusted text goes to 81.
   Then strengthen the client watch's element (ledger entry) with `clientErr`/`errCellOk` of the close error and prove it
   through `closeErrPub`, WatchRun, `watchGRPCStream.run`/`serveSubstream`. Step 6 after 81's word.
+- **7f-6 plan (the user's planning note, 2026-11-16, via etcd-grove-81):** state the cluster and partition TestCorrectness
+  theorems for k members (1 ≤ k ≤ 1000) on the generic `etcdstart.Members`/`StartMembers` start, as
+  putgetN/txnlinfaultsN/restartN do, not for 3 members.
 - Proof pitfalls met: `pkill -f` on a pattern kills your own shell; `word` errors with an unused `[HasExt idIssueExt]`
   section variable (removed); `iunfold kvAu` in the context breaks `wp_for`'s simp (unfold only in the side goal);
   `emp` is a Bool variable of these specs (write `iprop(emp)` for BI emp in terms).
