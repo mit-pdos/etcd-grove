@@ -429,6 +429,8 @@ const (
 	KUpdate = 2
 	KGet    = 3
 	KList   = 4
+	// (7f) a watch (watch.go)
+	KWatch = 5
 )
 
 // The resource version matches of a list (Input.Match: metav1.ResourceVersionMatch's "",

@@ -34,6 +34,7 @@ public import Proof.k8s_io.apimachinery.pkg.labels.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
 public import Proof.k8s_io.apimachinery.pkg.types.Init
+public import Proof.k8s_io.apimachinery.pkg.watch.Init
 public import Proof.k8s_io.apiserver.pkg.storage.Init
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Init
 public import Proof.k8s_io.apiserver.pkg.storage.value.Init
@@ -87,6 +88,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) errBadRV _ as HerrBadRV
   wp_apply wp_GlobalAlloc (V := GoInterface) errBadData _ as HerrBadData
   wp_apply wp_GlobalAlloc (V := GoInterface) errNotObj _ as HerrNotObj
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apimachinery.pkg.watch.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd28⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd27⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
