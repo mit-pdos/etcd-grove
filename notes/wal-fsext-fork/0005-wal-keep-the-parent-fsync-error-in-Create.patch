@@ -1,0 +1,30 @@
+From 0bc171ac19fe835993d062e8ef1f484c2fb16f73 Mon Sep 17 00:00:00 2001
+From: Upamanyu Sharma <sharma.upamanyu@gmail.com>
+Date: Sat, 14 Nov 2026 10:45:01 +0000
+Subject: [PATCH 5/5] wal: keep the parent fsync error in Create
+
+After a failed fsync of the parent directory, close it with pdir.Close() instead of dirCloser(), which overwrote perr with the close's nil and made Create return (nil, nil) without cleanup.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/storage/wal/wal.go | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/server/storage/wal/wal.go b/server/storage/wal/wal.go
+index 39f647d10..f3c36a433 100644
+--- a/server/storage/wal/wal.go
++++ b/server/storage/wal/wal.go
+@@ -239,7 +239,9 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (_ *WAL, retErr err
+ 	}
+ 	start := time.Now()
+ 	if perr = fileutil.Fsync(pdir); perr != nil {
+-		dirCloser()
++		// close the parent without dirCloser, which would overwrite perr with the close's result:
++		// a successful close would then make Create return (nil, nil) and skip the cleanup
++		pdir.Close()
+ 		lg.Warn(
+ 			"failed to fsync the parent data directory file",
+ 			zap.String("parent-dir-path", filepath.Dir(w.dir)),
+-- 
+2.53.0
+

@@ -9,7 +9,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.github_com.Masterminds.semver.v3.PkgInit
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

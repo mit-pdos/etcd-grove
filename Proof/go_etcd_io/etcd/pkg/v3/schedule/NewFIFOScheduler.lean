@@ -19,7 +19,7 @@ set_option linter.unusedSectionVars false
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3 schedule
+open Iris Iris.BI Iris.ProofMode _root_.Perennial.go_etcd_io.etcd.pkg.v3 schedule
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

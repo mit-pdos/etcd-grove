@@ -3,7 +3,8 @@
 shrinking it, through a non-negative fd (`OpenFile` gives one; the model panics on a closed file's
 -1): with the whole of the file's `OsMeta` (no change in flight on it), the bytes it cuts off
 (`[sz, size)`, whole; none if it grows the file) and the client's halves of the cells of every
-mapping over the range where the sizes part. The model (`TrustedCode/os.lean`) is the extension's
+mapping over the range the resize announces (where the sizes part, to the end of the page holding
+the larger end: `rsHi`). The model (`TrustedCode/os.lean`) is the extension's
 two steps (`wp_osFtruncateStart`, `wp_osFtruncateFinish`, a resize to `sz`), retried on `EINTR`.
 On success the resize landed (`os.ftDone`: the `OsMeta` it leaves, the bytes it grew the file
 over, zeros, and the cells showing the new contents); on failure it landed or did not
@@ -40,7 +41,7 @@ abbrev os.File.Truncate.spec : Prop :=
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
       osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
       osBytes (GF := GF) d.ino (min m.size sz.toNat) (DFrac.own 1) xs ∗
-      mcellsAny (GF := GF) m.maps (min m.size sz.toNat) (max m.size sz.toNat) }}
+      mcellsAny (GF := GF) m.maps (min m.size sz.toNat) (rsHi true m.size sz.toNat) }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ os.ftDone d.ino m sz.toNat) ∨

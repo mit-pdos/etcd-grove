@@ -298,11 +298,18 @@ PROJECTS = [
         # (`ReportSnapshot`), so that a merged image is always at its own index and a dropped one
         # does not leave the follower in `StateSnapshot` (notes/restart3-a0-draft.md §3, §8; D-A0-1,
         # approved by the user via etcd-grove-81; D-A0-6).
+        # Then (the WAL over fsExt, 2026-11-14) branch `goose-lean-walfs`: the WAL's local fixes
+        # 0001-0005 (notes/wal-fsext-fork/README.md: `NewFileReader`'s Stat, `Create`'s cleanup, the
+        # byte-mix tests, `N.tmp` opened with `O_TRUNC`, `Create`'s parent close) and 0006 (2026-11-15:
+        # `WAL.Sync` takes `w.mu`, issues/etcd-wal-sync-releaselockto-race.md, the reproduced data
+        # race with `ReleaseLockTo`), first on 2eaeb872b (3df9b265f, e115818f5), rebased (2026-11-16,
+        # wal-lean session 6) onto 6e8f0c004 with each commit's author, committer and dates kept:
+        # 8c28a4296.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="6e8f0c004c15d59f9fa03fa646965ab3df63e359",
+        rev="8c28a4296f1699c699bc4d59459c691bcff995f0",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -320,7 +327,15 @@ PROJECTS = [
                     "github.com/grpc-ecosystem=",
                     # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
                     # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
-                    "encoding/base64="],
+                    "encoding/base64=",
+                    # (the WAL over fsExt, 2026-11-15: notes/wal-lean-integration.md) the
+                    # standard-library packages the WAL calls that Perennial does not translate:
+                    # `bufio`'s Reader and `path/filepath`'s lexical functions (over
+                    # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
+                    "bufio=", "path/filepath=", "internal/filepathlite=",
+                    # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
+                    # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
+                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -410,11 +425,16 @@ PROJECTS = [
             # v3.7 retarget, 2026-10-16: `newRaftNode`'s dead logger branch, the WAL
             # `bootstrappedRaft.newRaftNode` wraps)
             "go.etcd.io/etcd/client/pkg/v3/logutil",
+            # (the WAL over fsExt, 2026-11-13; in the main tree since 2026-11-15) the real WAL with
+            # bodies (wal.toml: but version.go and metrics.go, names only), `walpb`, `fileutil`,
+            # `pkg/v3/ioutil` (PageWriter) and `pkg/v3/crc`, and the standard-library packages they
+            # call that nothing else translates (`hash/crc32` names only; `bufio`'s `Reader` and
+            # `path/filepath`'s lexical functions, over `internal/filepathlite`, with bodies)
             "go.etcd.io/etcd/server/v3/storage/wal",
-            # types and names only (WAL W4a, 2026-11-11): the WAL's record types (`walpb.Snapshot`,
-            # which the read path's specs name) and `fileutil` (`TouchDirAll`, the WAL tester's call)
             "go.etcd.io/etcd/server/v3/storage/wal/walpb",
             "go.etcd.io/etcd/client/pkg/v3/fileutil",
+            "go.etcd.io/etcd/pkg/v3/crc",
+            "hash/crc32", "bufio", "path/filepath", "internal/filepathlite",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
@@ -539,7 +559,8 @@ PROJECTS = [
                os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
-               os.path.join("github_com", "grpc_ecosystem")],
+               os.path.join("github_com", "grpc_ecosystem"),
+               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
@@ -604,6 +625,19 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")],
+        # (2026-11-14, W4c U2: notes/wal-fsext-w4c-plan.md) translated with its bodies into the part
+        # `WalTester/` too (until 2026-11-15 `LinuxFs/`), over the main tree's `os` (fsExt) and
+        # `path/filepath`, where its specs are proved (no trusted function:
+        # `WalTester/Code/.../examples/lib/durable.toml` absent); the main tree's stays trusted over
+        # `durableExt` for kvdurable, kvfile and etcdstart (notes/wal-lean-integration.md)
+        parts=[Part(
+            root="WalTester",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
+                        "github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                        "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                        "internal/filepathlite="],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
     Project(
         name="prophkv",
@@ -1160,15 +1194,24 @@ PROJECTS = [
         # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
         # restart's read against the crash-aware WAL spec, with its reference state in a durable
         # file (lib/durable). A package of the examples' Go module (examples/go.mod); its imports
-        # are the etcd project's translations (`wal`, `walpb`, `fileutil` names-only). Its crash
+        # are the etcd project's translations (`wal`, `walpb`, `fileutil` with bodies). Its crash
         # driver (`*_test.go`, `crashtest/`) is Go-only.
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "wal"),
-        # `os` and `io/fs` are this repository's (as the etcd project's), so that the translation
-        # and the WAL's specs can be imported together
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
+        # (2026-11-14, W4c U1: notes/wal-fsext-w4c-plan.md) translated with its bodies (`purgeRound`
+        # too) over the per-byte file extension's `os`, the WAL, `fileutil`, `walpb` (the main tree's)
+        # and `lib/durable` with bodies, all in the part `WalTester/` (until 2026-11-15 `LinuxFs/`;
+        # `WalTester/Code/.../examples/etcd/wal.toml` absent: every function translated): the main
+        # tree's `lib/durable` is the trusted one (notes/wal-lean-integration.md). The absDisk
+        # tester's main-tree translation retired with it (2026-11-15).
+        root="WalTester",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/etcd/wal=WalTester",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                    "internal/filepathlite="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
     ),

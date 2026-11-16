@@ -150,7 +150,8 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
   auth.tokIssued_agree γa t u1 u2
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 variable [go_gctx : GoGlobalContext]
 
 /-- **The authentication example is safe, in the operational semantics** (`etcd_auth_adequate`,
@@ -207,7 +208,9 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_auth.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([authkvProgram], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -216,7 +219,7 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_auth_adequate Hctx Hcec hD22 id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem
-    σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

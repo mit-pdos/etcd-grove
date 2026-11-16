@@ -605,9 +605,14 @@ def regShape (env : Environment) (t : Expr) : IO (Option String × Option (Name 
     | .bvar i => if idx.contains i then return (some "a registry argument repeated", none) else idx := idx.push i
     | .const `Iris.HasLC.hasLC _ => pure ()  -- the heap's later-credit flag, fixed
     | _ => return (some "a registry argument is not a bound variable", none)
+  -- a key or value argument is a bound variable, or the heap's later-credit flag (fixed, as for
+  -- the registry's arguments: a value defined over `{hlc : HasLC}` is applied to `HasLC.hasLC`,
+  -- the WAL's `pbRecordC`/`pbSnapC`, 2026-11-15)
   let closedApp (e : Expr) : Option Name :=
     match e.consumeMData.getAppFn with
-    | .const c _ => if e.consumeMData.getAppArgs.all (·.consumeMData.isBVar) then some c else none
+    | .const c _ =>
+      if e.consumeMData.getAppArgs.all fun a =>
+          a.consumeMData.isBVar || a.consumeMData.isConstOf `Iris.HasLC.hasLC then some c else none
     | _ => none
   let some kc := closedApp key | return (some "the key is not a constant at bound variables", none)
   let some vc := closedApp v | return (some "the value is not a constant at bound variables", none)

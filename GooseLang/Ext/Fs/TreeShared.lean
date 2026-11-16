@@ -1,0 +1,612 @@
+/-
+**The shared mode of the tree: its API** (`notes/wal-fsext-i2-design.md`; its "Review and decisions"
+and "Implementation log"). Concurrent metadata calls, each holding a fraction of a call permission
+(`osCallPerm`); shared directory fds that hold nothing (`osDirFdS`); region ownership by name claims
+(`osNames j N dq h`: the names `N` of the directory `j`, with what is known of them, `NamesH`); the
+log's length and entries as persistent facts (`osLogLb`, `osLogEnt`); the mode switch
+(`wp_osShare`); the extension-level specs of the shared mode; what a region concludes of a crash
+(`crashRest_region`). Untrusted.
+
+The resources (all of the generation's ghost state):
+* `osSharedInv R`: the shared mode's invariant, on the roots `R`: the shared history, the claims'
+  authority (`NamesCoh`: each claim's history is the history's, the claims of a directory are
+  disjoint and cover its names), the log's length and entries. Every shared spec takes it, with
+  `↑osShN ⊆ E`.
+* `osNames j N dq h`: a claim. Whole, its holder may change those names (with a call that began
+  after their last change, `h.next ≤ s`); a fraction keeps them from changing (a spine).
+* `osPathS R p dq j`: the path `p` leads to the directory `j`: fractions of the claims on each of
+  its components.
+* `osCallPerm q`, `osCallS t s q`: a fraction of the call permission; the call `t` in flight, begun
+  at the log's length `s`, holding `q` of the permission. A directory operation (`mkdir`, `rmdir`,
+  a directory's rename) needs a call holding all of it (`DirOpExcl`).
+* `osGuardS t s g`: the guard call `t` in flight (begun at the log's length `s`, holding `g` of the
+  permission): a call that never logs, ended by `LstatDir`; while it is in flight no directory is
+  renamed, and a `mkdir`/`rmdir` may be done by a call holding the rest of the permission, begun no
+  earlier (`wp_osMkdirSG`, `wp_osRmdirSG`). `os.RemoveAll`'s model holds one.
+* `osLogLb n`, `osLogEnt x e`: the log has at least `n` entries; its entry `x` is `e` (persistent).
+* `osDirFdS fd j ph`: the shared directory fd `fd`, on the directory `j`, its read at `ph`.
+
+Every statement is proved in a `TreeShared*.lean` module.
+-/
+module
+
+public import GooseLang.Ext.Fs.TreeCrashCommit
+public import GooseLang.Ext.Fs.TreeSpecsOpen
+public import GooseLang.Ext.Fs.TreeSpecsMeta
+public import GooseLang.Ext.Fs.TreeCutProof
+public import GooseLang.Ext.Fs.TreeSharedSwitch
+public import GooseLang.Ext.Fs.TreeSharedCrash
+public import GooseLang.Ext.Fs.TreeSharedLaws
+public import GooseLang.Ext.Fs.TreeSharedClaims
+public import GooseLang.Ext.Fs.TreeSharedDirFd
+public import GooseLang.Ext.Fs.TreeSharedCallEnd
+public import GooseLang.Ext.Fs.TreeSharedOpenDir
+public import GooseLang.Ext.Fs.TreeSharedMeta
+public import GooseLang.Ext.Fs.TreeSharedRead
+public import GooseLang.Ext.Fs.TreeSharedCreate
+public import GooseLang.Ext.Fs.TreeSharedGuard
+public import GooseLang.Ext.Fs.TreeSharedOut
+
+@[expose] public section
+
+noncomputable section
+
+set_option autoImplicit false
+
+namespace Perennial
+namespace Fs
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
+
+
+/-! ## The laws of the resources (fancy updates in the shared invariant) -/
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+variable {s : Stuckness} {E : CoPset}
+
+theorem osCallPerm_split (q1 q2 : Qp) :
+    osCallPerm (L := L) (q1 + q2) ⊣⊢ osCallPerm (L := L) q1 ∗ osCallPerm (L := L) q2 := by
+  unfold osCallPerm; exact gElem_split _ _ _ q1 q2 ()
+
+theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := by
+  unfold osCallPerm
+  iintro H
+  icases gElem_valid _ _ _ _ _ $$ H with %hv
+  ipureintro; exact DFrac.valid_own.1 hv
+
+/-- Splitting a claim along a finite set of names `M`. -/
+theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
+    (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osNames (L := L) j N (DFrac.own 1) h ={E}=∗
+      osNames (L := L) j (N.inter M) (DFrac.own 1) (h.restrict j (N.inter M)) ∗
+      osNames (L := L) j (N.diff M) (DFrac.own 1) (h.restrict j (N.diff M)) :=
+  osNames_split' R j N M h hE
+
+/-- Two claims of a directory merged, as a set with their names (`N''`). -/
+theorem osNames_merge (R : Roots) (j : Ino) (N N' N'' : NameSet) (h h' : NamesH)
+    (hN : ∀ b, N''.Mem b ↔ N.Mem b ∨ N'.Mem b) (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osNames (L := L) j N (DFrac.own 1) h -∗
+      osNames (L := L) j N' (DFrac.own 1) h' ={E}=∗
+      ∃ h'', osNames (L := L) j N'' (DFrac.own 1) h'' ∗
+        ⌜h''.restrict j N = h.restrict j N ∧ h''.restrict j N' = h'.restrict j N' ∧
+          h''.next = max h.next h'.next⌝ :=
+  osNames_merge' R j N N' N'' h h' hN hE
+
+/-- A claim under another key of the same names. -/
+theorem osNames_rekey (R : Roots) (j : Ino) (N N' : NameSet) (h : NamesH) (hN : N.Same N')
+    (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osNames (L := L) j N (DFrac.own 1) h ={E}=∗
+      osNames (L := L) j N' (DFrac.own 1) h :=
+  osNames_rekey' R j N N' h hN hE
+
+/-- The log is at least as long as a claim knows. -/
+theorem osNames_next (R : Roots) (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH)
+    (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osNames (L := L) j N dq h ={E}=∗
+      osNames (L := L) j N dq h ∗ osLogLb (L := L) h.next :=
+  osNames_next' R j N dq h hE
+
+/-- **The claims held are one log's** (their entries its entries), a log whose entries' calls began
+no later than they took effect (`Starts`): what a client needs to compare the crashes of different
+lists of its claims (W4's drop of a claim, `notes/wal-fsext-plan.md`). -/
+theorem osClaims_log (R : Roots) (cl : List (Claim × DFrac)) (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osClaims L cl ={E}=∗ osClaims L cl ∗
+      ⌜∃ log : List LogEntry, Starts log ∧
+        ∀ c ∈ cl, ∀ x e Es, (x, e, Es) ∈ c.1.2.2.ents → log[x]? = some e⌝ :=
+  osClaims_log' L R cl E hE
+
+theorem osLogLb_le {n : Nat} (n' : Nat) (h : n' ≤ n) :
+    osLogLb (L := L) n ⊢ osLogLb (L := L) n' := by
+  unfold osLogLb
+  letI := (gooseOsGS (L := L)).osAllG
+  iintro H
+  iapply monoNatLbOwn_le n' h $$ H
+
+/-- A spine's claims split. -/
+theorem osPathS_frac (R : Roots) (p : GoString) (q1 q2 : Qp) (j : Ino) :
+    osPathS (L := L) R p (DFrac.own (q1 + q2)) j ⊣⊢
+      osPathS (L := L) R p (DFrac.own q1) j ∗ osPathS (L := L) R p (DFrac.own q2) j :=
+  osPathS_frac' R p q1 q2 j
+
+/-- A spine extended by a claim's fraction on a name holding a directory. -/
+theorem osPathS_child (R : Roots) (d b : GoString) (dq : DFrac) (j J : Ino) (h : NamesH)
+    (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
+    osPathS (L := L) R d dq j -∗ osNames (L := L) j (.only [b]) dq h -∗
+      osPathS (L := L) R (child d b) dq J :=
+  osPathS_child' R d b dq j J h hb hJ
+
+/-- A root of the shared invariant's roots is a path to its directory (the roots are well-formed:
+`osPathS` records it). -/
+theorem osPathS_root (R : Roots) (r : GoString) (j0 : Ino) (dq : DFrac) (hr : (r, j0) ∈ R)
+    (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R ={E}=∗ osPathS (L := L) R r dq j0 :=
+  osPathS_root' R r j0 dq hr hE
+
+end laws
+
+/-! ## The mode switch and `CallBegin` -/
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+variable {s : Stuckness} {E : CoPset}
+
+/-- **The mode switch**, at any step of the extension: the whole legacy history `V` (no legacy call
+or directory fd) for the shared mode's resources: its invariant, the whole call permission, the
+log's length, a claim on all names of every directory of the tree. Irreversible. -/
+theorem wp_osShare (R : Roots) (V : Hist) (op : String) (v : val) (hv : v.isPanic = false)
+    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
+      (osSharedInv (L := L) R -∗ osCallPerm (L := L) 1 -∗ osLogLb (L := L) V.2.length -∗
+        ([∗list] j ∈ (GMap.toList V.now).map (·.1),
+          osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
+        WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
+      WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} :=
+  wp_osShare' R V op v hE Φ
+
+/-- **`CallBegin()`** in the shared mode, with a fraction `q` of the call permission: a call in
+flight holding it, begun at a log length `s0` at least any the caller knew. -/
+theorem wp_osCallBeginS (R : Roots) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) q -∗ osLogLb (L := L) n -∗
+      (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osCallS (L := L) t s0 q -∗ osLogLb (L := L) s0 -∗
+        Φ (osTokV t)) -∗
+      WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} :=
+  wp_osCallBeginS' R q n hE hE' Φ
+
+/-- **`CallBegin()` of a guard** in the shared mode, with a fraction `g` of the call permission: a
+guard call in flight holding it, begun at a log length `s0` at least any the caller knew. -/
+theorem wp_osCallBeginGuardS (R : Roots) (g : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) g -∗ osLogLb (L := L) n -∗
+      (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osGuardS (L := L) t s0 g -∗ osLogLb (L := L) s0 -∗
+        Φ (osTokV t)) -∗
+      WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} :=
+  wp_osCallBeginGuardS' R g n hE hE' Φ
+
+/-- **`lstat(2)`'s "is it a directory" ending a guard**, of any path of the roots (a root followed
+by valid components; it need not exist): the guard's fraction back, nothing changes. -/
+theorem wp_osLstatDirGuardS (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
+    (hp : ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osGuardS (L := L) t sg g -∗
+      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → e ≠ 0⌝ -∗ osCallPerm (L := L) g -∗
+        Φ (PairV (#isDir) (#e))) -∗
+      WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV t) (#p)))) @ s; E {{ Φ }} :=
+  wp_osLstatDirGuardS' R p t sg g hp hE hE' Φ
+
+/-! ## Metadata steps. Each ends its call (`osCallPerm q` back); a claim written whole, with
+`h.next ≤ s0`. -/
+
+/-- **`unlink(2)`** of `d/b` (the file `i`), `d` the directory `j`. -/
+theorem wp_osUnlinkS (R : Roots) (d b : GoString) (j i : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (hb : NameOk b) (hi : h.cur !! b = some (.file i)) (hs : h.next ≤ s0)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.file i), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osUnlinkS' R d b j i dq h k s0 q hb hi hs hE hE' Φ
+
+/-- **`unlink(2)`** of a name holding nothing or a directory: an errno, no effect. -/
+theorem wp_osUnlinkS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (hb : NameOk b) (hi : ∀ i, h.cur !! b ≠ some (.file i))
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osUnlinkS_none' R d b j dq dqn h k s0 q hb hi hE hE' Φ
+
+/-- **`rename(2)`** of the file `d/bs` (inode `i`) onto `d'/bt` (a file or nothing), the names in
+two claims (of `j` and `j'`; distinct keys). -/
+theorem wp_osRenameFileS (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N N' : NameSet)
+    (dq dq' : DFrac) (h h' : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs) (hbt : NameOk bt)
+    (hN : N.Mem bs) (hN' : N'.Mem bt) (hkey : (j, N) ≠ (j', N'))
+    (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h'.cur !! bt ≠ some (.dir J))
+    (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osPathS (L := L) R d' dq' j' -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osNames (L := L) j' N' (DFrac.own 1) h' -∗
+      osCallS (L := L) k s0 q -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osPathS (L := L) R d' dq' j' -∗
+                ((⌜e ≠ 0⌝ ∗ osNames (L := L) j N (DFrac.own 1) h ∗ osNames (L := L) j' N' (DFrac.own 1) h') ∨
+         ∃ x, osLogged (L := L) x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) ∗
+           osNames (L := L) j N (DFrac.own 1) (h.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (GMap.delete bs h.cur)) ∗
+           osNames (L := L) j' N' (DFrac.own 1) (h'.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (<[bt := .file i]> h'.cur))) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
+        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameFileS' R d bs d' bt j j' i N N' dq dq' h h' k s0 q hbs hbt hN hN' hkey hsrc htgt hs hs' hE hE' Φ
+
+/-- **`rename(2)`** of the file `d/bs` onto `d/bt`, both names in one claim. -/
+theorem wp_osRenameFileS1 (R : Roots) (d bs bt : GoString) (j i : Ino) (N : NameSet)
+    (dq : DFrac) (h : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs) (hbt : NameOk bt)
+    (hN : N.Mem bs) (hN' : N.Mem bt) (hne : bs ≠ bt)
+    (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h.cur !! bt ≠ some (.dir J))
+    (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osNamesAfter (L := L) j N h ⟨.rename j bs j bt (.file i) (h.cur !! bt), s0⟩
+          (<[bt := .file i]> (GMap.delete bs h.cur)) (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
+        (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameFileS1' R d bs bt j i N dq h k s0 q hbs hbt hN hN' hne hsrc htgt hs hE hE' Φ
+
+/-- **`rename(2)`** of the directory `d/bs` (inode `J`) to the free name `d/bt`, by a call holding
+the whole call permission (no other call in flight, `DirOpExcl`). -/
+theorem wp_osRenameDirS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : NameSet) (dq : DFrac)
+    (h : NamesH) (k s0 : Nat) (hbs : NameOk bs) (hbt : NameOk bt) (hN : N.Mem bs) (hN' : N.Mem bt)
+    (hne : bs ≠ bt) (hsrc : h.cur !! bs = some (.dir J)) (htgt : h.cur !! bt = none)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 1 -∗
+      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+        osNamesAfter (L := L) j N h ⟨.rename j bs j bt (.dir J) none, s0⟩
+          (<[bt := .dir J]> (GMap.delete bs h.cur)) (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
+        (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameDirS' R d bs bt j J N dq h k s0 hbs hbt hN hN' hne hsrc htgt hE hE' Φ
+
+/-- **`rename(2)`** of a source naming nothing: an errno, no effect. -/
+theorem wp_osRenameAbsentS (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N : NameSet)
+    (dq dq' dqn : DFrac) (h : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs) (hbt : NameOk bt)
+    (hN : N.Mem bs) (hsrc : h.cur !! bs = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
+        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameAbsentS' R d bs d' bt j j' N dq dq' dqn h k s0 q hbs hbt hN hsrc hE hE' Φ
+
+/-- **`mkdir(2)`** of the free name `d/b`, by a call holding the whole call permission: the new
+directory `J` comes with a claim on all its names, empty, that no call begun before the `mkdir`
+can use (`hJ.next = x + 1`). -/
+theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
+    (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 1 -∗
+      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+        ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
+         ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
+           osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osMkdirS' R d b j dq h k s0 hb hn hE hE' Φ
+
+/-- **`mkdir(2)` under a guard**: `wp_osMkdirS` with a call holding `q` of the permission and the
+guard `t` (begun no later) the rest. -/
+theorem wp_osMkdirSG (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 t sg : Nat) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      osGuardS (L := L) t sg g -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg g -∗
+        osPathS (L := L) R d dq j -∗
+        ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
+         ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
+           osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osMkdirSG' R d b j dq h k s0 t sg q g hqg hsg hb hn hE hE' Φ
+
+/-- **`rmdir(2)`** of the directory `d/b` (inode `J`), empty (its whole claim, with no name), by a
+call holding the whole call permission. -/
+theorem wp_osRmdirS (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 : Nat) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 1 -∗
+      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osRmdirS' R d b j J dq h hJ k s0 hb hd he hE hE' Φ
+
+/-- **`rmdir(2)` under a guard**: `wp_osRmdirS` with a call holding `q` of the permission and the
+guard `t` (begun no later) the rest. -/
+theorem wp_osRmdirSG (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 t sg : Nat) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 q -∗
+      osGuardS (L := L) t sg g -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg g -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osRmdirSG' R d b j J dq h hJ k s0 t sg q g hqg hsg hb hd he hE hE' Φ
+
+/-- **`rmdir(2)`** of a name holding nothing or a file: an errno, no effect. -/
+theorem wp_osRmdirS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (hb : NameOk b) (hi : ∀ J, h.cur !! b ≠ some (.dir J))
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osRmdirS_none' R d b j dq dqn h k s0 q hb hi hE hE' Φ
+
+/-- **`lstat(2)`'s "is it a directory"** of `d/b`, with a fraction of the claim on `b`. -/
+theorem wp_osLstatDirS (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (hb : NameOk b) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → (∃ J, h.cur !! b = some (.dir J)) ∧ e ≠ 0⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) j (.only [b]) dqn h -∗ Φ (PairV (#isDir) (#e))) -∗
+      WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E
+        {{ Φ }} :=
+  wp_osLstatDirS' R d b j dq dqn h k s0 q hb hE hE' Φ
+
+/-! ## Opens -/
+
+/-- **`open(2)` with `O_CREAT`, without `O_TRUNC`** (flags `fl`), of `d/b`, a name holding a file or nothing: the file, or
+a new one (its `create` logged; on failure perhaps). -/
+theorem wp_osOpenCreateS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
+    (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
+         (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
+            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.create j b i, s0⟩ : LogEntry) (<[b := .file i]> h.cur)) ∗
+            osMeta (L := L) i (DFrac.own 1) newMeta ∗
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
+         (⌜e ≠ 0 ∧ fd = -1⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h)) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} :=
+  wp_osOpenCreateS' R d b j dq h k s0 q fl hfl hcr (.inl htr) hb hnd hs hE hE' Φ
+
+/-- **`open(2)` of `d/b`, a name holding the file `i`, without `O_TRUNC`** (with or without
+`O_CREAT`, any access mode), with a fraction of a claim on names containing `b`: no entry; on
+success a fresh fd on `i`. -/
+theorem wp_osOpenFileS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
+    (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
+    (hi : h.cur !! b = some (.file i)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} :=
+  wp_osOpenFileS' R d b j i N dq dqn h k s0 q fl hfl htr hb hN hi hE hE' Φ
+
+/-- **`open(2)` of a directory, read-only**: a shared directory fd, holding nothing; a failure is
+not `ENOENT`. -/
+theorem wp_osOpenDirS (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
+      osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗
+        osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
+        {{ Φ }} :=
+  wp_osOpenDirS' R p j dq k s0 q hE hE' Φ
+
+/-- **`open(2)` read-only of the directory `d/b`**, with a fraction of a claim on names of `d`'s
+directory containing `b`, holding the directory `J`: a shared directory fd on `J`; a failure is not
+`ENOENT`. -/
+theorem wp_osOpenDirChildS (R : Roots) (d b : GoString) (j J : Ino) (N : NameSet) (dq dqn : DFrac)
+    (h : NamesH) (k s0 : Nat) (q : Qp) (hb : NameOk b) (hN : N.Mem b)
+    (hJ : h.cur !! b = some (.dir J)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        (⌜e = 0⌝ -∗ osDirFdS (L := L) fd J .idle) -∗ Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flRO)))))
+        @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk HΦ
+  iapply wp_osOpenDirGenS' R (child d b) J
+    iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h) k s0 q
+    (fun st Γn hw hR hcoh => by
+      iintro HA HP
+      icases pathNames_of R d dq j N dqn h st Γn hR hcoh $$ HA HP with %hpn
+      ipureintro
+      rw [pathNames_child hw hpn hb hN, hJ]) hE hE' Φ $$ Hinv Hsi [Hp Hn] Hk
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hn
+  iintro %fd %e %hr Hq ⟨Hp, Hn⟩ Hfd
+  iapply HΦ $$ %fd %e %hr Hq Hp Hn Hfd
+
+/-! ## Shared directory fds -/
+
+/-- **`fsync(2)` of a shared directory fd**: on success, the log's first `n` entries committed. -/
+theorem wp_osDirSyncS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) (hE : ↑osN ⊆ E)
+    (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗
+      osLogLb (L := L) n -∗
+      (∀ e : w64, osDirFdS (L := L) fd j ph -∗ (⌜e ≠ 0⌝ ∨ osCommitLb (L := L) n) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirSyncS' R fd j ph n hE hE' Φ
+
+/-- **`close(2)` of a shared directory fd.** -/
+theorem wp_osDirCloseS (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDirFdS (L := L) fd j ph -∗ (∀ e : w64, Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "DirClose" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirCloseS' fd j ph hE Φ
+
+/-- **`FdKind` of a shared directory fd**: a directory's. -/
+theorem wp_osFdKindDirS (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDirFdS (L := L) fd j ph -∗ (osDirFdS (L := L) fd j ph -∗ Φ (#(1 : w64))) -∗
+      WP (ExternalOp fsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osFdKindDirS' fd j ph hE Φ
+
+/-- **One step of a read of a shared directory fd**, with a claim on the names `N` (a fraction;
+nothing of them changed since the read began, `h.next ≤ r0`): a name (in `N`: one there, not yet
+returned), the end (once every name of `N` there was returned), or an errno. -/
+theorem wp_osDirReadNextS (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : Nat)
+    (rs : List GoString) (fresh : Bool) (dq : DFrac) (h : NamesH)
+    (hfr : fresh = true → rs = []) (hr0 : fresh = false → h.next ≤ r0)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗
+      osDirFdS (L := L) fd j (if fresh then .idle else .reading N r0 rs) -∗
+      osNames (L := L) j N dq h -∗
+      (∀ v, osNames (L := L) j N dq h -∗
+        (∃ r0', ⌜fresh = false → r0' = r0⌝ ∗ ⌜fresh = true → h.next ≤ r0'⌝ ∗
+          ((∃ b, ⌜v = rdName b ∧ NameOk b ∧ (N.Mem b → (h.cur !! b).isSome ∧ b ∉ rs)⌝ ∗
+              osDirFdS (L := L) fd j (.reading N r0' (b :: rs))) ∨
+           (⌜v = rdEnd ∧ ∀ b, N.Mem b → (h.cur !! b).isSome → b ∈ rs⌝ ∗
+              osDirFdS (L := L) fd j .done) ∨
+           (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading N r0' rs)))) -∗
+        Φ v) -∗
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirReadNextS' R fd j N r0 rs fresh dq h hfr hr0 hE hE' Φ
+
+/-- **One step of a read of a shared directory fd on the directory `d/b`**, `wp_osDirReadNextS` with
+a spine to `d` and a fraction of a claim on names of `d`'s directory containing `b`, holding `J`: an
+errno is not `ENOENT` (the directory is in the tree). -/
+theorem wp_osDirReadNextChildS (R : Roots) (fd : w64) (d b : GoString) (jp J : Ino) (Np : NameSet)
+    (dqp dqn : DFrac) (hp : NamesH) (N : NameSet) (r0 : Nat) (rs : List GoString) (fresh : Bool)
+    (dq : DFrac) (h : NamesH) (hb : NameOk b) (hNp : Np.Mem b) (hJ : hp.cur !! b = some (.dir J))
+    (hfr : fresh = true → rs = []) (hr0 : fresh = false → h.next ≤ r0)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗
+      osDirFdS (L := L) fd J (if fresh then .idle else .reading N r0 rs) -∗
+      osNames (L := L) J N dq h -∗ osPathS (L := L) R d dqp jp -∗ osNames (L := L) jp Np dqn hp -∗
+      (∀ v, osNames (L := L) J N dq h -∗ osPathS (L := L) R d dqp jp -∗
+        osNames (L := L) jp Np dqn hp -∗
+        (∃ r0', ⌜fresh = false → r0' = r0⌝ ∗ ⌜fresh = true → h.next ≤ r0'⌝ ∗
+          ((∃ b, ⌜v = rdName b ∧ NameOk b ∧ (N.Mem b → (h.cur !! b).isSome ∧ b ∉ rs)⌝ ∗
+              osDirFdS (L := L) fd J (.reading N r0' (b :: rs))) ∨
+           (⌜v = rdEnd ∧ ∀ b, N.Mem b → (h.cur !! b).isSome → b ∈ rs⌝ ∗
+              osDirFdS (L := L) fd J .done) ∨
+           (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ v = rdErr e⌝ ∗
+              osDirFdS (L := L) fd J (.reading N r0' rs)))) -∗
+        Φ v) -∗
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hfd Hn Hp Hnp HΦ
+  iapply wp_osDirReadNextGenS' R fd J N r0 rs fresh dq h
+    iprop(osPathS (L := L) R d dqp jp ∗ osNames (L := L) jp Np dqn hp)
+    (fun st => PathNames st d jp Np hp) False
+    (fun st Γn hR hcoh => pathNames_of R d dqp jp Np dqn hp st Γn hR hcoh)
+    (fun st hw hpn hr => hr (by
+      have := pathNames_child hw hpn hb hNp; rw [hJ] at this; exact reach_of_lookup this))
+    hfr hr0 hE hE' Φ $$ Hinv Hsi Hfd Hn [Hp Hnp]
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hnp
+  iintro %v Hn ⟨Hp, Hnp⟩ ⟨%r0', %h1, %h2, Hv⟩
+  iapply HΦ $$ %v Hn Hp Hnp
+  iexists r0'
+  isplitr
+  · ipureintro; exact h1
+  isplitr
+  · ipureintro; exact h2
+  icases Hv with (Hv | Hv | ⟨%e, %he, Hfd⟩)
+  · ileft; iexact Hv
+  · iright; ileft; iexact Hv
+  · iright; iright; iexists e; iframe Hfd; ipureintro
+    exact ⟨he.1, fun h0 => he.2.2 h0, he.2.1⟩
+
+/-- **One step of a blind read of a shared directory fd** (no claim): a valid name, the end, or an
+errno. -/
+theorem wp_osDirReadNextBlind (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (hph : ph ≠ .done)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗
+      (∀ v, ((∃ b, ⌜v = rdName b ∧ NameOk b⌝ ∗ osDirFdS (L := L) fd j (.reading (.only []) 0 [])) ∨
+          (⌜v = rdEnd⌝ ∗ osDirFdS (L := L) fd j .done) ∨
+          (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading (.only []) 0 []))) -∗
+        Φ v) -∗
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirReadNextBlind' R fd j ph hph hE hE' Φ
+
+end specs
+
+/-! ## Crashes -/
+
+section crash
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
+
+/-- **What a region concludes of a crash** of a generation `L` in the shared mode: from its claims
+and a lower bound on the committed prefix, `RegionCrashed` of the new generation's tree. -/
+theorem crashRest_region (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (cl : List (Claim × DFrac)) (n : Nat) (E : CoPset)
+    (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
+      osClaims L cl -∗ osCommitLb (L := L) n ={E}=∗
+      ⌜RegionCrashed (cl.map (·.1)) n V'.now⌝ ∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl :=
+  crashRest_region' Q L L' D tt V' R cl n E hE
+
+/-- **The tree after a crash is well formed** over the shared invariant's roots (`closed_cut`: the
+shared mode's disciplines make the replay of the kept entries a tree). -/
+theorem crashRest_treeWf (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ={E}=∗
+      ⌜TreeWf R V'.now⌝ ∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' :=
+  crashRest_treeWf' Q L L' D tt V' R E hE
+
+/-- **The tree after a crash, in the shared mode**: the new generation's history, whole (the new
+generation starts in the legacy mode), the crashed tree with the shared invariant's roots. -/
+theorem crashRest_treeS (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
+      ⌜V'.2 = []⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' :=
+  crashRest_treeS' Q L L' D V' R E hE
+
+end crash
+
+end Fs
+end Perennial
+
+end

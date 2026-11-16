@@ -136,7 +136,7 @@ def writerFileC (γc : GName) (i : Ino) (db f : Loc) (fd : w64) (p : GoString) (
   iprop(∃ fsz : Nat,
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨i, true, true, none, some true⟩ ∗
     csOwnF (GF := GF) γc (some (i, ⟨m, bs, 8192, 4096 * hwm, .idle⟩)) ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧
       (∀ M : GMap Loc Nat, dbOk (some (i, ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩))) ∧
@@ -164,7 +164,7 @@ def rwRC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) : I
   iprop((∃ (mp : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (bs : List ByteG),
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
-    writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st m bs ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    writerFileC (GF := GF) γc γ.ino db f fd p mp fl hwm st m bs ∗ clsOpen (GF := GF) γ fd ∗
     ⌜fl = false → True⌝ ∗
     match st with
     | some (base, len, γm) =>

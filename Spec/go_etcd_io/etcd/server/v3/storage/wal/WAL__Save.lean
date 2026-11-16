@@ -1,72 +1,79 @@
 /-
-`(*wal.WAL).Save` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user; revision 1 after the Freeze review: no index `2^64-1` in `Save`/`SaveSnapshot`, decided by etcd-grove-81) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (S/ = `server/storage/wal/`, line numbers of `c90b03b56`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`(*wal.WAL).Save` over `fsExt` (W6 of `notes/wal-fsext-plan.md`; the main tree's axiom
+`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean` restated with plan §3's binder changes:
+over `fsExt`, the WAL layer (`walAreaOk`, `WalFs`'s vocabulary) and the handle `walOpenWF`; the update
+at `walAuMask` (plan §11); the error arm honest (Q6)). S/ = `server/storage/wal/` at the pin with the
+local fork patches. To be proved in `Proof/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`.
+Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
-public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
-public import Spec.go_uber_org.zap.Defs
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI
+open Fs WalEnc WalFs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt absDiskExt]
-variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-/-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): one premise on the entries: every index is below
-`2^64-1` (WAL W4a.2 revision 1, the review's B1, decided by etcd-grove-81: at that index a cut's file
-name `max(w.enti, w.snapi)+1` wraps to 0, a restart's `Open` can then select the wrapped file, and
-`ReadAll`'s read of the whole history is false, Go tests `zz_review_wrap0_test.go`; raft never reaches
-the index, nonissue `etcd-wal-segment-name-wraps`). The atomic update commits
-before the call writes a record (a crash mid-call leaves an image of `H ++ [op]` past the mark,
-`walImg`): the entries' records, then `st`'s unless it is empty (`saveState`). On success the WAL has
-written the history up to its new length (`walLenLb`), and if the save must sync (`walMustSync`:
-entries, or a changed vote or term) it has fdatasynced every record so far (`walSyncedLb`; also
-when it cut, which syncs). An error is an I/O failure (`¬ storage.walSaveOk`). `Save` of an empty
-state and no entries writes nothing (S/wal.go:1079, its shortcut; Go test `rev2-tests`
-`TestRev2SaveEmptyWritesNothing`) while the model appends `save hsZero []`: no reader sees it
-(`walFoldChkFrom_phantom`, `walLastHS_phantom`, `walRead_phantom`), and positions after it only
-shift. The flag `sized` is kept: a `Save` with `sized = false` applies only to a WAL whose flag is
-already false, which none reaches (`walDurFresh` is sized; no step clears it): callers save sized
-entries. Stated over `walDiskAt` (W4a.1, 2026-11-12, finding F-W4b-1; revision 1): the update moves
-the history only. The purge positions `unl`/`pur` and the read position `cut` are unchanged: a cut
-unlocks no file holding a record: it re-locks its new segment under its final name (S/wal.go:928-930)
-while the old tail stays locked, and the new segment holds only header records until then (a purge
-that deletes oldest first and stops at the first file it cannot lock, as `fileutil.purgeFile` does,
-stops before it; a W4c obligation on the tester's `purgeRound`); S/wal.go:864-938; Go test
-`w4a1-tests` `TestW4a1SaveKeepsPurgePositions`. The metadata is unchanged: each cut rewrites `w.metadata`, the
-same bytes, at the new segment's head (S/wal.go:900). The mark and `named` are lower bounds
-(`walDiskAt`), which nothing in `Save` lowers (a cut fsyncs the WAL directory, not its parent). The
-body (`WalBodies.walSave_body`): `"WalAppend"` is the commit; then, the update consumed, it performs
-`"WalSync"` of the new length from its handle's fact alone (`walOpenW_lenLb`, `wp_WalSyncLen`). -/
-abbrev wal.WAL.Save.spec : Prop :=
-  ∀ (w : Loc) (dir : GoString) (hp : Loc) (hs : HardStateM) (sl : GoSlice) (esL : List Loc)
-    (es : List EntryM) (sized : Bool) (Q : WalDur → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ walOpenW w dir ∗ hsOpt hp hs ∗ sl ↦*□ esL ∗
-      walSaveEnts sized esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
-      AU <{ ∃∃ d : WalDur, walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ ⊤, ∅
-        <{ walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
+/-- **`raft.MustSync` over the client's hard states** (raft's `rawnode.go`: `entsnum != 0 ||
+st.GetVote() != prevst.GetVote() || st.GetTerm() != prevst.GetTerm()`; a law of `P`, as
+`WalPbIn.IsEmptyLaw`: the part cannot import the main tree's raft specs, plan §10). -/
+abbrev WalPbIn.MustSyncLaw (P : WalPbIn GF) : Prop :=
+  ∀ (p1 p2 : Loc) (h1 h2 : HardStateM) (n : w64),
+  {{ P.hsIn p1 h1 ∗ P.hsIn p2 h2 }}
+    (App (App (App (Val (@! go_etcd_io.raft.v3.MustSync)) (Val #p1)) (Val #p2)) (Val #n))
+  {{ (b : Bool), RET #b; ⌜b = true ↔ (n ≠ W64 0 ∨ h1.Vote' ≠ h2.Vote' ∨ h1.Term' ≠ h2.Term')⌝ }}
+
+/-- **A nil hard state, a fresh zero one** (`Save`'s `st == nil`/`w.state == nil` cases, S/wal.go:1100-1105):
+a nil pointer holds only the zero state (`WalPbIn`'s "nil read as the zero state"), and a freshly
+allocated `raftpb.HardState{}` holds it (a law of `P`: its hidden fields are the client's to keep). -/
+abbrev WalPbIn.ZeroLaw (P : WalPbIn GF) : Prop :=
+  (∀ hs : HardStateM, P.hsIn null hs ⊢ ⌜hs = hsZero⌝) ∧
+  ∀ (p : Loc) (E : CoPset),
+    p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> P.hsIn p hsZero
+
+/-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): every entry index below `2^64-1` (a cut's name
+would wrap, as the main tree's spec says), and each entry's encoding below `2^40` bytes (each record
+must fit a frame, whose length field has 56 bits, and the encoder's `2^47`; ledger 2026-11-14, "no
+bound on the records' size"; the batch bound of "the batch's size" is withdrawn: the tail's stream stays
+below ext4's `s_maxbytes` by the writes' success, `fsExt`'s `maxBytes`). The update commits right after `w.mu.Lock()`, before any
+record is encoded (a crash mid-call leaves an image of `H ++ [op]` past the mark, `walImg`); then
+the entries' records, `st`'s unless empty (`saveState`), then a `sync` if `MustSync`, or a `cut`
+if the tail reached `SegmentSizeBytes` (which syncs). `Save` of an empty state and no entries
+writes nothing (S/wal.go:1079) while the model appends `save hsZero []` (no reader sees it).
+*Success*: the handle, `Q d`, the history written to its new length (`walLenLb`), and synced if
+the save must sync (`walMustSync`). *Error* (an I/O failure of a write, the flush, the fdatasync, a
+`Seek` or the cut): the update has committed (`Q d`); the handle is lost (its encoder may have
+written part of a frame; a write after a failed one would break the per-byte crash invariant,
+plan §3), and with it the purge right and the lock token. `walMustSync`/`walSyncedLb` assume
+`unsafeNoSync` false (the handle says so). -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
+  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (hp : Loc) (hs : HardStateM)
+    (sl : GoSlice) (esL : List Loc) (es : List EntryM) (sized : Bool) (Q : WalDur → IProp GF),
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ P.hsIn hp hs ∗ sl ↦*□ esL ∗
+      walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
+      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))
-  {{ (err : GoInterface), RET #err; walOpenW w dir ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗ walLenLb w dir (d.H.length + 1) ∗
-          (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ walSyncedLb dir (d.H.length + 1))) ∨
-       ⌜¬ storage.walSaveOk⌝) }}
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ walOpenWF P Mr w dir ∗ ∃ d : WalDur, Q d ∗
+          WalFs.walLenLb w dir (d.H.length + 1) ∗
+          (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (d.H.length + 1))) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d) }}
 
 end spec
 

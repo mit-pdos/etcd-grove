@@ -147,6 +147,13 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
   --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
+- `WalTester/` is another: etcd's WAL tester (`examples/etcd/wal`, project `etcd-wal`) and the library it
+  keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
+  and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
+  `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
+  two translations", decided 2026-11-15). Its modules declare the main `durable`'s names, so nothing outside it imports it;
+  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
+  ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
@@ -373,6 +380,15 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
   (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
   (`-lean-root go.etcd.io/raft/v3=`).
+- From the same fork (branch `goose-lean-walfs2`, the WAL's fixes 0001-0006 rebased onto `lean`'s etcd pin
+  `6e8f0c004`, head `8c28a4296`: `notes/wal-fsext-fork/README.md`),
+  etcd's real WAL with bodies over the per-byte file extension's `os`: `server/v3/storage/wal` (but
+  `version.go`, `metrics.go`), `wal/walpb`, `client/pkg/v3/fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`, and
+  the standard-library packages they call that Perennial does not translate (`bufio`'s `Reader`,
+  `path/filepath`'s lexical functions over `internal/filepathlite`, `hash/crc32` names only); its proofs
+  are `Proof/go_etcd_io/etcd/server/v3/storage/wal/` (`Link.lean`: `etc/gen-link.py --walfs`; trust
+  base `etc/tcb-collections/wal-fsext.txt`). Until 2026-11-15 in the part `LinuxFs/`, with the main
+  tree's names-only WAL beside it (`notes/wal-lean-integration.md`).
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,

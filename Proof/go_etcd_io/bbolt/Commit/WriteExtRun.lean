@@ -457,21 +457,21 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
       wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om2 xs rfl h0
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) (dbFd K.p.ino) om2 xs rfl h0
         (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn]; omega)
-        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
+        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %EE, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
         rw [htn, ← fileOwn_eq]
         iframe
-      obtain ⟨hjja, hale, -, hysp, -, hres⟩ := Hjj
+      obtain ⟨hjja, hale, -, -, -, hysp, -, hres⟩ := Hjj
       have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       rw [hcl] at hjjle
-      have hm3 : (pwPost om2 (4096 * c.1.toNat + w) aa jj).size =
+      have hm3 : (os.pwPostE om2 (4096 * c.1.toNat + w) aa jj EE).size =
             pwSize om2.size (4096 * c.1.toNat + w) jj ∧
-          (pwPost om2 (4096 * c.1.toNat + w) aa jj).maps = om2.maps :=
-        ⟨rfl, by simp only [pwPost, announce_maps]⟩
-      generalize pwPost om2 (4096 * c.1.toNat + w) aa jj = om3 at hm3 ⊢
+          (os.pwPostE om2 (4096 * c.1.toNat + w) aa jj EE).maps = om2.maps :=
+        ⟨rfl, by simp only [os.pwPostE, pwPost, announce_maps]⟩
+      generalize os.pwPostE om2 (4096 * c.1.toNat + w) aa jj EE = om3 at hm3 ⊢
       have hyl : ys.length = min (4096 * c.1.toNat + w + cs)
           (pwSize om2.size (4096 * c.1.toNat + w) jj) - min (4096 * c.1.toNat + w) om2.size := by
         have := congrArg List.length hysp

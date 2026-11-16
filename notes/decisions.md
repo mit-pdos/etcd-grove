@@ -40114,6 +40114,33 @@ autonomously to keep making progress towards proving the wal specs"):**
   second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
   `fsExt` (the user: not wanted).
 
+## WAL over fsExt: `N.tmp` opened with `O_TRUNC` (2026-11-13 · decided by the coordinator, the user away; the fork push pending the user · branch `wal-otrunc`)
+
+**The finding** (`nonissues/etcd-wal-record-type-outside-crc.md`): a WAL record's CRC covers its
+`Data` only. A power loss that keeps an unsynced frame but its one-byte Type (frame byte 9) gives a
+record of the type under it, with a valid CRC. Over a zero byte that is Type 0, a `ReadAll` error every
+read spec allows; over a stale type byte it is wrong content with no CRC collision (an entry read as a
+hard state or a snapshot record). In the fork (which syncs `ReadAll`'s zeroing, F-Z) the only stale
+bytes under a fresh frame are a reused `N.tmp`'s remnant: `filePipeline.alloc` opens `N.tmp` without
+`O_TRUNC`, so the headers of a cut interrupted by a crash stay after the next cut's shorter headers
+(`nonissues/etcd-wal-cut-reuses-stale-tmp.md`). `TestWALTypeTearStaleTmp` builds such an image.
+
+**Decision:** the fork's `alloc` opens `N.tmp` with `O_TRUNC` (`createNewWALFile(fpath, true)`,
+`goose-lean-walfs`, `notes/wal-fsext-fork/0004-*.patch`; not pushed, pending the user). Every byte
+under a fresh frame is then zero (the truncated, preallocated file, or the synced zeroing of F-Z), and
+W1's target is plain "no CRC-32C collision on the `Data` of a frame whose bytes under it were zero":
+a torn non-`Data` byte is the intended byte or 0, and the byte-mix argument of the nonissue shows every
+acceptance with wrong content is then a collision on `Data`.
+
+**Rejected:** keeping the reused `N.tmp` and adding a premise that an accepted frame's aligned 8-byte
+word holding the Type (frame bytes 8-15) comes back whole. It contradicts `fsExt`'s per-byte crash
+model ("Byte-level crash candidates"), which is the trusted semantics every file proof runs over, and
+it would be a second world premise the CRC evidence does not support; also a stale clause in W1
+tracking the remnant's bytes, which `OsState` cannot express and which the fix makes unnecessary.
+
+**Supersedes** the "Decision (stale `N.tmp`): no fork change" of `notes/wal-fsext-plan.md` §8 (and
+§6 Q3's "otherwise: a nonissue and W1's stale clause"): the stale-`N.tmp` restart is still safe on its
+own (a nonissue), but the Type tear over its remnant is not, so the fork fix is taken after all.
 ## `trace.otelSpan` narrowed to providers of otel's own components (2026-11-13 · approved by etcd-grove-81 · branch `otelspan-narrow`)
 
 The context sweep's minors (a) and (b) (`notes/ctx-sweep-fixes.md`; the refutation, the producers and
@@ -40348,6 +40375,112 @@ deleted), so `kaDn` changes with it. The TLS fallback stays admitted (a certific
 change to Part B's frozen statements; the three check proofs use `principalBoundOn_of_ctxBound`
 (`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
 unchanged.
+
+## WAL tester over fsExt: Go changes (2026-11-15 · the user's decision, "Fixup the tester as needed" · branch `wal-c-tester2`)
+
+The tester (`examples/etcd/wal`, our own example) changed as the W4c unit logs recommended
+(`notes/wal-fsext-w4c-plan.md` U1 log mismatches 1-3, U6; `notes/wal-units/tester.md` eighth session;
+`notes/wal-units/ops.md`). Behaviour otherwise identical; its Go tests and the crash harness
+(`TestRobust`, 30 chains posix/F-Z/F-N: no violation) pass.
+
+1. **`restartRead` reads the newest pair through `GetIndex()`/`GetTerm()`** (was `*snaps[i].Index`,
+   `*snaps[i].Term`): `ValidSnapshotEntries.spec` gives each snapshot as `walSnapIdTerm`, whose model
+   reads a nil field as 0 and tracks no presence, so the loads were not provable (a nil field would make
+   the model stuck). Same behaviour in Go (every record the tester writes has both fields set).
+2. **`saveSnap`'s conf state is `{Voters: [1], AutoLeave: new(bool)}`**, raft's canonical form
+   (`ProgressTracker.ConfState()` sets `AutoLeave`), so `walSnapAt`'s `snapEnc c = Mr.encSnap md` holds
+   for the WAL's raftpb model (U4's `walCsCanon`). The encoding of a set `false` is what raft writes.
+3. **`Boot(area, orDir, seed, nOps)`**: the WAL area (the WAL is `area/wal`) and the oracle's directory
+   (the oracle `orDir/state`) are the environment's, the two `fsExt` roots of U3's boot premise 3; `Boot`
+   no longer calls `TouchDirAll(data)`/`TouchDirAll(memberDir)` (they have no spec there: `data` is above
+   a root, `memberDir` is the root). `Main(area, orDir)`; the harness creates `data/member` beside
+   `oracle` and calls `Boot(root+"/data/member", root+"/oracle", …)` (its `-killdir mkdir` sites are now
+   only `kn_test`'s). In the proofs `TEnv` holds `area`/`orDir` in place of `root`; `tWalDir area`,
+   `tOrPath orDir` (`tArea`, `tDataDir`, `tOrDir` gone).
+4. **The oracle's size**: `fits(o, room)` (oracle.go) says whether `len(encodeOracle(o)) + room ≤
+   maxOracle = 2^30` (`durable.Write`'s 1 GiB premise). `step` returns false (the member goes down,
+   `StatusDown`) unless `fits(m.o, oracleRoom = 256)` (every operation adds at most 184 bytes:
+   `tOrRoom`); `restart` returns false unless `fits(m.o, 16)` before `restartRead` (its two opens) and
+   `fits(m.o, 0)` before storing `checkRestart`'s oracle. Chosen over a `storeOracle` that refuses: that
+   would have changed every operation's spec (a false arm at each store) where the checks at the two places
+   the oracle can grow without a bound known to the caller keep the proved specs and their `tOrRoom`
+   premises. `member.restart.spec` loses its two size premises.
+5. **`purgeRound` dropped** with its call in `opOwnSnap` (and the purge bound's raise before it): its only
+   purpose was exercising the WAL's file lock, which `fsExt` does not model. Retired with it: its
+   approved trust-boundary axiom (`Proof/.../examples/etcd/wal/purgeRound.lean`, main tree), its spec,
+   `PurgeBody.lean` and the Go evidence `purge_test.go`; the main tree's goose configuration now translates
+   every function. It returns with a lock model (`notes/wal-fsext-plan.md` gap 3, Q1). `etc/tcb-baseline.txt`
+   did not list it (no result reached it), so no baseline change. (Reversed 2026-11-16: the next entry.)
+
+## WAL tester over fsExt: `purgeRound` restored (2026-11-16 · the user's approval, item 5 of "WAL tester over fsExt: Go changes" reversed · unit `locks`, session 10, branch `wal-c-purge7`)
+
+With the lock model in `fsExt` (unit `locks`, `notes/wal-units/locks.md`), the tester's `purgeRound` (one round of
+`fileutil.purgeFile`'s loop on the WAL directory: the names ending in `"wal"`, sorted, the oldest beyond `max`
+removed, each after `TryLockFile` takes its lock) is restored exactly as it was before `bb9a9866b6`, with its call
+in `opOwnSnap` (every candidate's purge bound raised to its unlock bound, the oracle stored, then the round with
+`max = 1 + choose(3)`). It is now **proved**, not axiomatized: `purgeRound.wp_proof` over `fileutil.ReadDir`,
+`TryLockFile` (with `os.OpenFile`), `os.Remove` (`specFileSncN`) and the locked file's `Close`, with the WAL's
+removal updates (`walPurge_osAUnc` for a segment, `walPurgeOther_osAUnc` for a leftover whose name ends in
+`"wal"` but not `".wal"`) and the handle lent (`walOpenWF_lend`). Its spec takes the caller's repeatable commit
+(`walPurgeAcc`), which the tester supplies from its invariant (`tInv_purgeAcc`: its oracle covers every removal
+once the purge bounds are raised, session 5's check). `opOwnSnap`'s spec now takes and gives back the member's
+`lg` and `walDir` fields (the round reads them; ledger 2026-11-16). No new axiom; the main tree's goose
+configuration still translates every function (now `purgeRound` with its body). The Go evidence `purge_test.go`
+stays retired (it was evidence for the axiom). Its Go tests and the crash harness pass (`go test ./etcd/wal/...`;
+`TestRobust` 50 chains posix with F-Z/F-N, 30 chains kill: no violation).
+
+## fsExt: no I/O errors on chosen files (2026-11-15 · the user's approval of the environment assumption; the statement decided by unit `noioerr` · branch `wal-c-noioerr`)
+
+etcd's server panics (`lg.Panic`) when `wal.Create`, `SaveSnapshot`, `ReleaseLockTo`, `Close` or `Reopen`
+fail, and `fsExt` lets every system call fail, so those panics are reachable. The user approved an
+environment assumption, "no I/O errors on these files", made on executions (not an opaque `diskOk`, and
+not "no panic at these sites", which would assume the conclusion).
+
+**Decision.** A premise on steps, `NoIoErr S` (`GooseLang/Ext/Fs/Premises.lean`), a filter of
+`fsSemWithS` like minibolt's P1: for the calls on a file or path `S : IoSet` covers (files by inode at the
+step, paths by the call's argument), the errno is 0 **whenever the semantics has an outcome with errno 0
+for that call from that state**. Phrasing it relative to the semantics' own successes, rather than
+listing errnos per call, makes `StepKeeps` hold by construction (`noIoErr_keeps`, proved; the kept step is
+that success) and makes it exclude nothing the configuration's limits force: `EFBIG` at `maxBytes`,
+`EMFILE`, a path call that cannot succeed, stay. The lock calls are not covered (independent of the lock
+semantics being added on `wal-c-locks`). In Iris, `FsStepSat (NoIoErr S)` with `wp_ext_post`/`wp_ext_postS`
+(`WpPost.lean`) turns the existing specs into error-free ones without re-proving them. Go example:
+`examples/osfs/semantics/premise_no_io_err.go` (evidence: assumed).
+
+**Open** (`notes/wal-units/noioerr.md`): the Iris specs so far take every inode covered; restricting to the
+WAL's files needs a data-step lifting that sees the tree. Recommended for the server's theorem: every
+inode of the roots' trees (the roots being the data directory), pending the user.
+
+## fsExt: file locks per open file description (2026-11-15 · the user's approval of the lock semantics in principle, and their decision on blocking locks · branch `wal-c-locks`)
+
+`fsExt` keeps, in each open file description (`OsFd`), its OFD lock (`ofd`) and its `flock` lock (`flk`);
+`LockStep` is the one rule of both calls; `close` and a crash release them (design, evidence, review list:
+`notes/wal-units/locks.md` §2-§4). The trusted change is approved in principle and pending the user's review
+of its text (`notes/wal-units/locks.md` §4).
+
+**Blocking locks may fail at any time** (the user, 2026-11-15): a blocking `F_OFD_SETLKW`/`flock` may return any
+errno with no change, even while another description holds the lock; no assumption that a waiting lock never
+fails is added. Consequence for etcd's boot path (`openWALFromSnapshot` ignores a failed `w.Close()` and calls
+`Repair`, whose `openLast` takes a blocking `LockFile` on the still-held last segment,
+`nonissues/etcd-bootstrap-repair-close-error-hang.md`): both outcomes are covered by partial correctness: no
+return while the lock is held, or an error, and `Repair` returns `false` (`wal.Repair.specHeld`,
+`openLast.specHeld`, proved over `fileutil.lockPost_held`).
+
+**`purgeRound` returns to the tester** (approved by the user with the lock semantics, "use that to prove the
+code that we can't yet reason about"): not done in unit `locks`, session 2; what it needs is in
+`notes/wal-units/locks.md`, session 2.
+
+**Coverage (the user's decision, 2026-11-15): (a) for now.** The premise covers every file under the roots
+(etcd's data directory): the specs assume `hS : ∀ st i, S.ino st i` (the no-error specs' first premise,
+`WAL.sync.specNoErr`, `Close.specNoErr`, `SaveSnapshot.specNoErr`, ..., each docstring saying so). Narrowing
+to the WAL's own files (a set given by the WAL's paths, which needs a data-step lifting that sees the tree)
+is later work; the premise is stated generally, so it can replace (a) without touching the semantics.
+
+**Not an I/O error: `EFBIG` at `maxBytes`** (unit `noioerr`, second session). A write that reaches ext4's
+`s_maxbytes` fails whatever the premise (no success exists there), so an error-free flush needs the tail's
+stream to end before it: the no-error specs that write take a sealed handle with room
+(`walOpenWFR P Mr w dir k`, `HandleRoom.lean`). How a client comes by it is open (the user's decision,
+`notes/wal-units/noioerr.md`, second session).
 
 ## auth-lease S2: the apply layer at the latest state over the lease owner's resource (2026-11-15 · Freeze approved by etcd-grove-81 · branch `auth-lease`)
 

@@ -12,13 +12,12 @@ theorem bbolt.fdatasync.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : Has
         isPkgInit pkg_id.go_etcd_io.bbolt ∗
             Fs.osInv ∗
               typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"file" db) f dqf ∗
-                bbolt.fileOwn f fd p.path dq ∗
-                  Fs.osFd fd dq { ino := i, readable := true, writable := true } ∗ Fs.osMeta i (DFrac.own 1) m -∗
+                bbolt.fileOwn f fd p.path dq ∗ Fs.osFd fd dq (bbolt.dbFd i) ∗ Fs.osMeta i (DFrac.own 1) m -∗
           (▷
               ∀ err,
                 typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"file" db) f dqf ∗
                     bbolt.fileOwn f fd p.path dq ∗
-                      Fs.osFd fd dq { ino := i, readable := true, writable := true } ∗
+                      Fs.osFd fd dq (bbolt.dbFd i) ∗
                         (∃ m', Fs.osMeta i (DFrac.own 1) m' ∗ ⌜m'.size = m.size ∧ m'.maps = m.maps⌝) ∗
                           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err) -∗
                   Φ (intoVal err)) -∗

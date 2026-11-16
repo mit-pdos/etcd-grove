@@ -29,6 +29,7 @@ public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.internal.oserror
+public import Perennial.Code.internal.stringslite
 public import Perennial.Code.io
 public import Perennial.Code.iter
 public import Perennial.Code.log
@@ -68,6 +69,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | go_etcd_io_raft_v3_tracker : ExternalInit pkg_id.go_etcd_io.raft.v3.tracker _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+  | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | k8s_io_utils_third_party_forked_golang_btree : ExternalInit pkg_id.k8s_io.utils.third_party.forked.golang.btree _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize'

@@ -46,7 +46,8 @@ import (
 // allocation failure in the write path after a short copy (assumed: no
 // allocation failure in the write path; a short copy during a page migration
 // then ENOMEM in write_begin stops mid-page; from the kernel source, not
-// measured).
+// measured; the same assumption covers ftruncate's zeroing of the page holding
+// the old end, data_truncate_tail_zeros.go).
 // This is a rule of the call's result: a process killed during the copy can
 // leave a mid-page prefix in the page cache, which a crash's per-byte rule
 // covers. Go's File.ReadAt and File.WriteAt loop over short counts, which is

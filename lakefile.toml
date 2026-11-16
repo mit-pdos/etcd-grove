@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan", "Robustness", "NetTcp"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "NetTcp"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -78,6 +78,16 @@ globs = ["SpecPlan.+"]
 [[lean_lib]]
 name = "Bbolt"
 globs = ["Bbolt.+"]
+
+# etcd's WAL tester (examples/etcd/wal) and examples/lib/durable with its bodies over the per-byte
+# file extension (notes/wal-lean-integration.md), translated by etc/goose.py's project etcd-wal and
+# project durable's part into a parallel tree (WalTester/{Code,GeneratedProof,Spec,Proof}/): the
+# main tree keeps durable trusted over durableExt (kvdurable's), so the two declare the same names;
+# nothing outside WalTester imports it. (Until 2026-11-15 they were in the part LinuxFs/, with the
+# WAL and the file layer, now the main tree's.)
+[[lean_lib]]
+name = "WalTester"
+globs = ["WalTester.+"]
 
 # Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
 # every run of its nodes (the real programs) with crashes, the network's faults and any clients,

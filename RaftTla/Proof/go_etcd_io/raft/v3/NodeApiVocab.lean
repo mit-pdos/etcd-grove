@@ -14,6 +14,7 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvMemstorage
 public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 public import RaftTla.Proof.go_etcd_io.raft.v3.ApiVocab
+public import RaftTla.Proof.go_etcd_io.raft.v3.NodeApiVocabCore
 
 @[expose] public section
 
@@ -123,21 +124,6 @@ has stored nothing (`RaftState.init`). (2026-11-01, durability stage I-8: the ke
 durable state added.) -/
 def NodeDriverState.init (stor : Storage) (K : GName) : NodeDriverState :=
   ⟨stor, [], hsZero, none, K, RaftState.init, W64 0⟩
-
-/-- A storage's contents (durability, candidate 12 §2): hard state, snapshot, log base, entries
-above it. -/
-structure StorContents where
-  hs : HardStateM
-  snap : Option SnapshotM
-  base : entryID
-  ents : List EntryM
-
-/-- The base's index. -/
-def StorContents.b (σ : StorContents) : Nat := uint.nat σ.base.index'
-/-- The last index. -/
-def StorContents.last (σ : StorContents) : Nat := σ.b + σ.ents.length
-/-- The stored commit index. -/
-def StorContents.commit (σ : StorContents) : Nat := uint.nat σ.hs.Commit'
 
 /-- **At a restart, the storage holds `S`** (candidate 12 §2, with the user's amendment of review
 1's R1): its log starts at a point `σ.base` at or above `S.base`, within `S`'s log (the term at

@@ -46,8 +46,7 @@ theorem bbolt.Tx.write_ext.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : 
                                                     go!"WriteAt" (intoVal f))
                                                   dqw ∗
                                                 bbolt.fileOwn f fd K.p.path (DFrac.own 1) ∗
-                                                  Fs.osFd fd (DFrac.own 1)
-                                                      { ino := K.p.ino, readable := true, writable := true } ∗
+                                                  Fs.osFd fd (DFrac.own 1) (bbolt.dbFd K.p.ino) ∗
                                                     Fs.osMeta K.p.ino (DFrac.own 1) om ∗
                                                       bbolt.wrSlotsSz b K.p (bbolt.bufSlots bufs ++ T) wb om.size -∗
                               (▷
@@ -71,8 +70,7 @@ theorem bbolt.Tx.write_ext.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : 
                                                     go!"WriteAt" (intoVal f))
                                                   dqw ∗
                                                 bbolt.fileOwn f fd K.p.path (DFrac.own 1) ∗
-                                                  Fs.osFd fd (DFrac.own 1)
-                                                      { ino := K.p.ino, readable := true, writable := true } ∗
+                                                  Fs.osFd fd (DFrac.own 1) (bbolt.dbFd K.p.ino) ∗
                                                     ∃ om' wb',
                                                       Fs.osMeta K.p.ino (DFrac.own 1) om' ∗
                                                         ⌜om.size ≤ om'.size ∧

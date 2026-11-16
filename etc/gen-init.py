@@ -123,10 +123,8 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
-# (WAL W4c, 2026-11-12) the WAL robustness tester (examples/etcd/wal): no package variables, its
-# fact `True` (`Base.lean`), so no `SPECIAL`; `fileutil` and `walpb` (names-only, facts `True`, their
-# own `Base.lean`) join the closure through it
-ROOTS.append('github_com.mit_pdos.etcd_grove.examples.etcd.wal')
+# (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
+# `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -530,6 +528,214 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 )
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
+
+# (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
+# `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the
+# main tree's: `SPECIAL['os']`, `SPECIAL['io.fs']` below).
+# (2026-11-14, `wal.Exist`'s `errors.Is(err, os.ErrNotExist)`) `os` also records
+# `ErrNotExist`'s error (some error, for good).
+# (2026-11-14, `WAL.Close` of a nil `dirFile`: the nil-receiver `(*File).Close` returns `os.ErrInvalid`,
+# `Spec/os/File__CloseNil.lean`) `os` also records `ErrInvalid`'s error.
+_lfs_fs_ex = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard)'
+_lfs_fs_ex_nn = ('(∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr '
+                 '_root_.Perennial.io.fs.ErrExist) e DFrac.discard)')
+# (2026-11-14, the closed-file `(*os.File).Close` returns `&PathError{"close", name, ErrClosed}`,
+# `Spec/os/File__CloseClosed.lean`) `io/fs` and `os` record `ErrClosed`'s error as
+# one `fmt` formats (`fmtErrorOk`: internal/oserror's `errors.New`, `errorString_fmtErrorOk`).
+# (2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' `errors.Is(err, os.ErrNotExist)` on errors with `errIsTerm`,
+# a pointer target) `io/fs` and `os` record `ErrNotExist`'s error as an `*errorString`
+# (internal/oserror's `errors.New`).
+_lfs_fs_ne = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard)'
+_lfs_fs_ne_ptr = ('(∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) (interface.mkOk '
+                  '(go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)')
+_lfs_fs_cl = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)'
+_lfs_fs_cl_ok = ('(∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr '
+                 '_root_.Perennial.io.fs.ErrClosed) e DFrac.discard)')
+LFS_IOFS = dict(SPECIAL['io.fs'])
+LFS_IOFS['doc'] = SPECIAL['io.fs']['doc'].replace('hold some error for good.',
+    'hold some error for good, `ErrExist` a non-nil one, `ErrNotExist` an `*errorString`, `ErrClosed` one `fmt`\nformats.')
+LFS_IOFS['imports'] = SPECIAL['io.fs']['imports'] + ['Proof.errors.ErrorStringOk']
+# (`is_pkg_init_finish` proves the pure conjunct and frames `ErrClosed`'s `fmtErrorOk`)
+LFS_IOFS['finish'] = ['ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl'] + SPECIAL['io.fs']['finish']
+LFS_OS = dict(SPECIAL['os'])
+LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's).")
+LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
+                                    .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace(_lfs_fs_ne, _lfs_fs_ne_ptr).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
+                                   for l in SPECIAL['os']['before']['dirBufPool']]}
+LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'ipersist HErrInvalid',
+                    'ipersist HErrClosed', 'iframe Hown', 'imodintro', 'isplitr',
+                    '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish']
+
+# (WAL leaf specs, 2026-11-13) the part's bufio, internal/filepathlite and path/filepath: their
+# translated `errors.New` variables; fact `True` (`PkgInit.lean`).
+_BUFIO_ERRS = ['ErrInvalidUnreadByte', 'ErrInvalidUnreadRune', 'ErrBufferFull', 'ErrNegativeCount',
+               'errNegativeRead', 'errNegativeWrite', 'ErrTooLong', 'ErrNegativeAdvance',
+               'ErrAdvanceTooFar', 'ErrBadReadCount', 'ErrFinalToken']
+SPECIAL['bufio'] = dict(
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types=_ALLOC_ANY,
+    before={'errorRune': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} #E{i}'
+                     for i in range(len(_BUFIO_ERRS))]},
+    finish=['iframe Hown', 'is_pkg_init_finish'],
+)
+for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', 'SkipDir')]:
+    SPECIAL[_p] = dict(
+        imports=['Perennial.Proof.errors.NewVar'],
+        alloc_types=_ALLOC_ANY,
+        before={_k: ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 #E0']},
+        finish=['iframe Hown', 'is_pkg_init_finish'],
+    )
+
+# (WAL W6, 2026-11-13) the part's `pkg/v3/ioutil` (the page writer): `defaultBufferBytes`, a
+# translated `var` (`128 * 1024`), read-only for good (`PkgInit.lean`)
+LFS_SPECIAL = {}  # the part's packages whose main-tree namesake has another configuration
+LFS_SPECIAL['go_etcd_io.etcd.pkg.v3.ioutil'] = dict(
+    doc='''Its fact (`ioutilInit`, `PkgInit.lean`): `defaultBufferBytes` holds `128 * 1024`, read-only for
+good. Its initializer stores that value and runs the untranslated initializers of its other variables
+(`X.init`, axioms of the translation), which the trust-boundary axiom `opaqueInitsOk` says run without
+panicking.''',
+    alloc_types={'defaultBufferBytes': 'w64'},
+    finish=['ipersist HdefaultBufferBytes'] + FIN_PRE[:-2],
+)
+# (WAL package init, 2026-11-13) the part's `walpb`: `ErrCRCMismatch`, a translated `errors.New`
+LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal.walpb'] = dict(
+    doc='''Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
+returns (`errOk`) and on which `errors.Is` returns for every pointer target (`errIsTerm`: an `*errorString`
+leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated `errors.New` call, record.go;
+Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
+initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
+`opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm'],
+    alloc_types={'ErrCRCMismatch': 'GoInterface'},
+    before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
+                               'try wp_auto']},
+    finish=['ipersist HErrCRCMismatch', 'ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ {Hd:errors}'] +
+           FIN_PRE[:6] + [
+        'imodintro', 'unfold EtcdGrove.walpb.walpbInit', 'iexists _',
+        'iframe HErrCRCMismatch TC', 'unfold EtcdGrove.errOk', "iintro !> %Φ' HΦ'", 'iapply EC', 'inext', "iapply HΦ'"],
+)
+# (WAL package init, 2026-11-13) the part's `fileutil`: the lock functions, chosen by its `init`'s
+# `F_OFD_GETLK` probe (`syscall.FcntlFlock.wp_getlk`: any errno, so either), `wrlck`, `ErrLocked`
+LFS_SPECIAL['go_etcd_io.etcd.client.pkg.v3.fileutil'] = dict(
+    doc='''Its fact (`fileutilInit`, `PkgInit.lean`): the lock functions `linuxLockFile`/`linuxTryLockFile`
+(both OFD's or both `flock`'s), the write-lock description `wrlck` and `ErrLocked` (an error whose
+`Error()` returns), read-only for good. Its initializer stores `ErrLocked` (a translated `errors.New`),
+`wrlck` (a struct literal) and the `flock` functions, initializes its imports and runs its translated
+`init` function (lock_linux.go), which probes OFD locks with `F_OFD_GETLK` on fd 0 and switches both
+functions to OFD's on success: the probe's errno is any (`syscall.FcntlFlock.wp_getlk`), so either
+outcome.''',
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.syscall.FileOps'],
+    vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
+    alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
+                 'ErrLocked': 'GoInterface'},
+    before={'ErrLocked': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xL #EL',
+                          'try wp_auto']},
+    after={'init.«0»': [
+        "wp_apply (_root_.Perennial.EtcdGrove.syscall.FcntlFlock.wp_getlk _ _ _) $$ getlk as %e ⟨%v', Hv, %hv⟩",
+        'try wp_auto', 'ipersist Hwrlck', 'ipersist HErrLocked',
+        'ihave #Hrest : (∃ e : GoInterfaceOk, globalAddr ErrLocked ↦□ GoInterface.ok e ∗ EtcdGrove.errOk e) ∗',
+        '    (∃ w : syscall.Flock_t, globalAddr wrlck ↦□ w ∗',
+        "      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧",
+        "        w.Pid' = W32 0⌝) $$ []",
+        '· isplitl []', '  · unfold EtcdGrove.errOk', '    iexists _', '    iframe HErrLocked',
+        "    iintro !> %Φ' HΦ'", '    iapply EL', '    inext', "    iapply HΦ'",
+        '  · iexists _', '    iframe Hwrlck', '    ipureintro', '    exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
+        'by_cases he : e = 0'] +
+        [l for ofd, eq, simps in
+         [('true', 'interface.nil', '↓reduceIte'),
+          ('false', 'interface.mkOk syscall.Errno.ty #e', '↓reduceIte, Bool.false_eq_true')]
+         for l in [f'· rw [show errnoErr e = {eq} from by unfold errnoErr; simp only [he, ↓reduceIte]]',
+                   '  wp_auto', '  ipersist HlinuxLockFile', '  ipersist HlinuxTryLockFile'] +
+                  ['  ' + x for x in FIN_PRE[:6]] +
+                  ['  imodintro', '  unfold EtcdGrove.fileutil.fileutilInit', '  icases Hrest with ⟨Hr1, Hr2⟩',
+                   '  iframe Hr1 Hr2', f'  iexists {ofd}',
+                   f'  simp only [EtcdGrove.fileutil.lockFn, EtcdGrove.fileutil.tryLockFn, {simps}]',
+                   '  iframe HlinuxLockFile HlinuxTryLockFile']]},
+    # (the `init` function's steps close the proof, in both branches)
+    finish=[],
+)
+# (WAL package init, 2026-11-13) the part's WAL: the CRC table, the metrics, the segment size, the
+# error variables
+_WAL_NEW_ERRS = [('errBadWALName', 'BW'), ('ErrMetadataConflict', 'MC'), ('ErrFileNotFound', 'FN'),
+                 ('ErrSnapshotMismatch', 'SM'), ('ErrSnapshotNotFound', 'SN'),
+                 ('ErrSliceOutOfRange', 'SO'), ('ErrDecoderNotFound', 'DN')]
+_WAL_ERRS = ['errBadWALName', 'ErrMetadataConflict', 'ErrFileNotFound', 'ErrCRCMismatch',
+             'ErrSnapshotMismatch', 'ErrSnapshotNotFound', 'ErrSliceOutOfRange', 'ErrDecoderNotFound']
+
+
+def _walErrVar(x, tag):
+    """The fact's clause of the error variable `x`, from `errors.New`'s `E<tag>`."""
+    return [f'ihave #V{x} : (EtcdGrove.wal.errVar {x} : IProp GF) $$ []',
+            '· unfold EtcdGrove.wal.errVar', '  iexists _', f'  iframe H{x}', '  isplitl []',
+            '  · unfold EtcdGrove.errOk', "    iintro !> %Φ' HΦ'", f'    iapply E{tag}', '    inext', "    iapply HΦ'",
+            f'  · iapply EtcdGrove.errIsTerm_errorString x{tag}; iexact {{Hd:errors}}']
+
+
+def _walMetric(x, spec):
+    return dict(doc=f'/-- `{x} = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/',
+                post=f'∃ h : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok h ∗ EtcdGrove.wal.{spec} h',
+                pat='⟨%h@, H@, #S@⟩')
+
+
+LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'] = dict(
+    doc='''Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
+metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
+`openWALFiles`, read-only for good. Its initializer
+allocates its variables, initializes its imports and runs their initializers: the metrics'
+untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
+translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbInit`), `crcTable =
+crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
+function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
+says returns.''',
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.hash.crc32.MakeTable', 'Proof.errors.ErrIsTerm'],
+    custom={'walFsyncSec': _walMetric('walFsyncSec', 'histSpec'),
+            'walWriteSec': _walMetric('walWriteSec', 'histSpec'),
+            'walWriteBytes': _walMetric('walWriteBytes', 'gaugeAddSpec')},
+    alloc_types=dict({x: 'GoInterface' for x in _WAL_ERRS}, crcTable='Loc', openWALFilesFn='GoFunc',
+                     SegmentSizeBytes='w64'),
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #E{t}',
+                     'try wp_auto'] for x, t in _WAL_NEW_ERRS},
+                ErrCRCMismatch=['try wp_auto',
+                    'ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []',
+                    '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.wal.walpb}',
+                    'icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩', 'try wp_auto'],
+                crcTable=['try wp_auto',
+                          'rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
+                          'wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab',
+                          'try wp_auto']),
+    finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'walFsyncSec',
+                                                    'walWriteSec', 'walWriteBytes', 'openWALFilesFn']] +
+           [l for x, t in _WAL_NEW_ERRS for l in _walErrVar(x, t)] +
+           ['ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []',
+            '· unfold EtcdGrove.wal.errVar', '  iexists _', '  iframe HErrCRCMismatch HpbOk HpbT'] +
+           FIN_PRE[:6] +
+           ['imodintro', 'unfold EtcdGrove.wal.walInit EtcdGrove.WalFs.walCrcTable EtcdGrove.wal.metricsInit',
+            'iframe #'],
+)
+# (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
+# translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
+# main tree's (`Proof/go_etcd_io/raft/v3/Init.lean`'s steps): its cells (all `nil`) frozen, its hidden
+# fields in the `protobuf` invariant
+# (W4c U2, 2026-11-14) the part's `examples/lib/durable`: `mu`, a mutex guarding nothing
+LFS_SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.durable'] = dict(
+    doc='''Its fact (`durable.durableInit`, `PkgInit.lean`): `mu` is a mutex guarding nothing (the calls are
+serialized in the proofs by the file's handle). Its initializer allocates `mu` and initializes its
+imports.''',
+    alloc_types={'mu': '_root_.Perennial.sync.Mutex'},
+    finish=['imod sync.init_Mutex iprop(True) ⊤ (globalAddr mu) $$ Hmu [] with #HM', '· inext; itrivial'] +
+           FIN_PRE[:6],
+)
+LFS_SPECIAL['io.fs'] = LFS_IOFS
+LFS_SPECIAL['os'] = LFS_OS
+# (2026-11-15, the WAL in the main tree: notes/wal-lean-integration.md) the part `LinuxFs/`'s
+# configurations are the main tree's (its raft root, names-only, went: the WAL imports the main raft);
+# `examples/lib/durable` with bodies is the part `WalTester/`'s (`WT_SPECIAL`, `wt_inits`)
+WT_SPECIAL = {'github_com.mit_pdos.etcd_grove.examples.lib.durable':
+              LFS_SPECIAL.pop('github_com.mit_pdos.etcd_grove.examples.lib.durable')}
+SPECIAL.update(LFS_SPECIAL)
 
 SPECIAL['internal.poll'] = dict(
     doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
@@ -2423,7 +2629,7 @@ def gen(p, cfg=None):
     A('variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]')
     A('variable [sem : go.Semantics]')
     A(f'variable [package_sem : _root_.Perennial.{p}.Assumptions]')
-    _SP = SPECIAL
+    _SP = {**SPECIAL, **WT_SPECIAL}
     vs = list(cfg.get('vars', []))
     for q in sorted(cl):
         for v in _SP.get(q, {}).get('vars', []):
@@ -2609,7 +2815,9 @@ by the proof; it stays so that the statement is unchanged.
 
 
 def gen_ext():
-    exts = sorted({x for p in packages() for x in inv[p]['imports'] if external(x)})
+    exts = {x for p in packages() for x in inv[p]['imports'] if external(x)}
+    wt = wt_inventory()
+    exts = sorted(exts | {x for p in WT_PKGS for x in wt[p]['imports'] if x in inv and external(x)})
     mods = sorted({code_module(q) for q in exts})
     L = [EXT_DOC, 'module', '', 'public import Proof.runtime.PkgInit']
     L += [f'public import {m}' for m in mods]
@@ -3037,6 +3245,51 @@ def tla_outs():
     return [(f'{TLA_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in outs]
 
 
+# The part `WalTester/` (notes/wal-lean-integration.md): the WAL tester and `examples/lib/durable` with
+# its bodies, whose Go path the main tree's trusted `durable` has too. Their initializers are generated
+# as the main tree's, from the part's translation (`WT_ROOT/Code`, over the main tree's for the rest)
+# and instances (`WT_ROOT/Proof`, over the main tree's), with the imports of the part's modules
+# prefixed. The Perennial packages only they import join the main `PkgInitExt` (`gen_ext`).
+WT_ROOT = 'WalTester'
+WT_PKGS = ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
+           'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
+
+
+def wt_inventory():
+    """The part's translation over the main tree's (the part's inventory lists Perennial's packages too,
+    which the main tree may translate itself: `os`)."""
+    out = dict(inv)
+    for q, d in inventory(f'{WT_ROOT}/Code').items():
+        if not d['perennial']:
+            out[q] = d
+    return out
+
+
+def wt_inits():
+    """The part's `Init.lean` files."""
+    global inv, inst
+    saved = inv, inst
+    raw = []
+    try:
+        inv = wt_inventory()
+        inst = {**inst, **{k: [(f'{WT_ROOT}/Proof/' + f, fact) for f, fact in v]
+                           for k, v in instances(f'{WT_ROOT}/Proof/').items()}}
+        for p in WT_PKGS:
+            raw.append(gen(p, WT_SPECIAL.get(p, SPECIAL.get(p))))
+    finally:
+        inv, inst = saved
+    part_mods = {path[:-len('.lean')].replace('/', '.') for path, _ in raw}
+
+    def imp(m):
+        x = m.group(2)
+        if x.startswith(f'Proof.{WT_ROOT}.'):
+            x = x[len('Proof.'):]
+        elif os.path.exists(f'{WT_ROOT}/{x.replace(".", "/")}.lean') or x in part_mods:
+            x = f'{WT_ROOT}.{x}'
+        return m.group(1) + x
+    return [(f'{WT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+
+
 # The part `NetTcp/` (the TCP extension's `net` and the programs over it, `examples/net/`; project
 # nettcp): `net` is a Go path the main tree translates too (names only), so the part's packages'
 # initializers are generated as `LinuxFs/`'s, from the part's translation and instances, with the
@@ -3127,6 +3380,7 @@ def main(argv):
         outs += [dag_closures(), dag_init(),
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
+        outs += wt_inits()
         outs += nt_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None

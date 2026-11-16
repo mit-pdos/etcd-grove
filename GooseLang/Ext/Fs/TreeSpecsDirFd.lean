@@ -1,6 +1,6 @@
 /-
 WP specs of the steps on a directory fd (`Impl.lean`): `FdKind` of a directory fd, `DirSync`,
-`DirClose`, `DirReadNext`; and the state facts that adding, moving on and removing a directory fd
+`DirClose`, `DirReadNext`; the query `PathKind` of a path; and the state facts that adding, moving on and removing a directory fd
 keep (used by `TreeSpecsOpen.lean` too). A directory fd holds a fraction of the tree's history from its
 open to its close (`rdRes`), of which its phase's view `g` is the directory's (`dview`). Untrusted.
 -/
@@ -169,13 +169,13 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
       (osDirFd (L := L) fd dq x -∗ Φ (#(1 : w64))) -∗
       WP (ExternalOp fsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "FdKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "FdKind" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -192,7 +192,7 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
-    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr ⟨hnf, ⟨df, hdf⟩, rfl⟩⟩, hfr, hr⟩
+    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr (.inl ⟨hnf, ⟨df, hdf⟩, rfl⟩)⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -200,8 +200,10 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   obtain ⟨fd', hv, hst, hres⟩ := Hst
   subst st'
   cases go.intoVal_inj hv
-  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩
+  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩ | ⟨-, hd, -⟩
   · rw [hnf] at hd; cases hd
+  rotate_left
+  · rw [hdf] at hd; cases hd
   imod worlds_close (filesSame_refl st) Hr Hfr rfl hw hc $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     HAd HAdf HAc Hrd Hcr with ⟨Hw, Hn⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -218,6 +220,70 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   iapply wp_value'
   iapply HΦ; (try unfold osDirFd); iexact Hfd
 
+/-- What `PathKind(p)` answers in `st` (`IsFsStep`): `1` for a `TreeName`, `0` for a root, `2` for
+a strict ancestor of a root. -/
+def PathKindIs (st : OsState) (p : GoString) (k : w64) : Prop :=
+  st.TreeName p ∧ k = 1 ∨ ¬ st.TreeName p ∧ (∃ rj ∈ st.fs.roots, rj.1 = p) ∧ k = 0 ∨
+    ¬ st.TreePath p ∧ st.AboveRoot p ∧ k = 2
+
+/-- **`PathKind(p)`**, the query of where a path is, with a fraction of the tree's roots `R` and
+history `V`, for a path it answers on (`PathKindIs`); nothing changes. -/
+theorem wp_osPathKind (p : GoString) (R : Roots) (V : Hist) (dq : DFrac)
+    (hp : ∃ k, PathKindIs (Hist.st R V) p k) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) dq R V -∗
+      (∀ k : w64, ⌜PathKindIs (Hist.st R V) p k⌝ -∗
+        osTree (L := L) dq R V -∗ Φ (#k)) -∗
+      WP (ExternalOp fsExt.name "PathKind" (Val (#p))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hh HΦ
+  iapply wp_fs_stepT "PathKind" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_tree _ _ _) $$ Hinv Hh
+  iintro Hh %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  unfold treeWorld
+  icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
+  obtain ⟨hw, hc⟩ := Hns
+  icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hstep : ∃ e', IsFsStep "PathKind" (#p) st e' st := by
+    obtain ⟨k, hk⟩ := hp
+    rcases hk with ⟨ht, -⟩ | ⟨ht, hr, -⟩ | ⟨ht, ha, -⟩
+    · exact ⟨_, p, rfl, rfl, .inl ⟨ht, rfl⟩⟩
+    · exact ⟨_, p, rfl, rfl, .inr (.inl ⟨ht, hr, rfl⟩)⟩
+    · exact ⟨_, p, rfl, rfl, .inr (.inr ⟨ht, ha, rfl⟩)⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨e0, he0⟩ := hstep
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
+    exact ⟨_, h, st, he0, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsFsStep] at Hst
+  obtain ⟨p', hv, hst, hres⟩ := Hst
+  subst st'
+  cases go.intoVal_inj hv
+  imod worlds_close (filesSame_refl st) Hr Hfr rfl hw hc $$ [HAb HAm HAf HAt Htok Hcells Hσ]
+    HAd HAdf HAc Hrd Hcr with ⟨Hw, Hn⟩
+  · unfold osWorld; iframe; ipureintro; exact Hwc
+  imodintro
+  iexists Γb, Γm, Γf, Γt, V, Γdf, Γc
+  try unfold osWorld
+  try unfold treeWorld
+  isplitl [Hw]
+  · iexact Hw
+  isplitl [Hn]
+  · iexact Hn
+  rcases hres with ⟨ht, rfl⟩ | ⟨ht, ha, rfl⟩ | ⟨ht, ha, rfl⟩
+  · iapply wp_value'
+    iapply HΦ $$ %(1 : w64) %(.inl ⟨ht, rfl⟩) Hh
+  · iapply wp_value'
+    iapply HΦ $$ %(0 : w64) %(.inr (.inl ⟨ht, ha, rfl⟩)) Hh
+  · iapply wp_value'
+    iapply HΦ $$ %(2 : w64) %(.inr (.inr ⟨ht, ha, rfl⟩)) Hh
+
 /-- **`fsync(2)` of a directory fd**: any errno; the ghost state as it was (a commit only narrows
 what a crash may leave). -/
 theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN ⊆ E)
@@ -226,13 +292,13 @@ theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN ⊆
       (∀ e : w64, osDirFd (L := L) fd dq x -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "DirSync" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "DirSync" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -290,13 +356,13 @@ theorem wp_osDirClose (fd : w64) (x : Ino × DirPh) (hE : ↑osN ⊆ E) (Φ : va
       (∀ e : w64, rdBack (L := L) x -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "DirClose" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "DirClose" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "DirClose" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -323,7 +389,7 @@ theorem wp_osDirClose (fd : w64) (x : Ino × DirPh) (hE : ↑osN ⊆ E) (Φ : va
   icases (BigSepM.bigSepM_delete (M := GMap w64)
     (Φ := fun (_ : w64) (x : Ino × DirPh) => rdPart (gooseOsGS (L := L)) x) Hfl).1 $$ Hrd
     with ⟨Hx, Hrd⟩
-  imod gAuth_delete _ _ _ _ _ $$ HAdf Hfd with HAdf
+  imod gFdElem_delete _ _ _ _ _ $$ HAdf Hfd with HAdf
   imod worlds_close hs Hr Hfr rfl (fsTreeWf_delDfd hw fd) (treeCoh_delDfd hc fd)
     $$ [HAb HAm HAf HAt Htok Hcells Hσ] HAd HAdf HAc [Hrd] Hcr with ⟨Hw, Hn⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -368,13 +434,13 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
               osDirFd (L := L) fd (DFrac.own 1) (j, .reading rs g q))) -∗ Φ v) -∗
       WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "DirReadNext" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "DirReadNext" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -413,7 +479,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
   · ipureintro
     obtain ⟨hfr', hr⟩ := step_filesSame (h := h) Hwc.1
       (filesSame_setDfd st fd { df with rd := .reading u s r }) Hag
-    exact ⟨_, h, _, ⟨fd, df, u, s, r, rfl, hdf, hcur', .inr (.inr ⟨1, by decide, rfl, rfl⟩)⟩,
+    exact ⟨_, h, _, ⟨fd, df, u, s, r, rfl, hdf, hcur', .inr (.inr ⟨1, by decide, fun h => absurd h (by decide), rfl, rfl⟩)⟩,
       hfr', hr⟩
   inext
   iintro %e' %h' %st' %Hst
@@ -438,7 +504,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
       ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (st.fs.roots, V)) -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf -∗
-        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd (DFrac.own 1)
+        gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd (DFrac.own 1)
           (j, if fresh then DirPh.idle g q else .reading rs g q) -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc -∗
         ([∗map] k ↦ v ∈ <[fd := (j, ph')]> Γdf, rdPart (gooseOsGS (L := L)) v) -∗
@@ -451,7 +517,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
     have hc' := treeCoh_setDfd (fd := fd) (df' := { df with rd := rd' }) (x := (j, ph')) hc
       hino.symm hok hrd
     iintro Hw HAd HAdf Hfd HAc Hrd Hcr
-    imod gAuth_update _ _ _ _ _ (j, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
+    imod gFdElem_update _ _ _ _ _ (j, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
     imod worlds_close (filesSame_setDfd st fd _) Hr Hfr' rfl hw' hc' $$ Hw HAd HAdf HAc [Hrd] Hcr
       with ⟨Hw, Hn⟩
     · unfold rdRes; iexact Hrd
@@ -467,7 +533,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
     (try unfold osDirFd); iexact Hfd
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
-  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, hst, rfl⟩
+  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, -, hst, rfl⟩
   · -- a name
     have hb : (g.now !! b).isSome := by
       have := (hus b).2.1; rw [hsb] at this

@@ -71,7 +71,8 @@ attribute [irreducible] splicePipe.ty
 
 axiom splicePipe.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom maxCopyFileRangeRound [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def maxCopyFileRangeRound [GooseExts] [GoGlobalContext] : val :=
+  #(2147479552 : Int)
 
 axiom mutexClosed [GooseExts] [GoGlobalContext] : val
 
@@ -288,6 +289,72 @@ noncomputable def newPipe [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def destroyPipe [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/poll.destroyPipe"
+
+/-- go: copy_file_range_linux.go:28:6 -/
+noncomputable def handleCopyFileRangeErr.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Lam "copied"
+  (Lam "written"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "written" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "written"))
+  (Let "copied" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "copied"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 38)))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 1))))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 95))))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 5))))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 22))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 18)))))))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "copied")) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "written")) (Val #(W64 0)))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))
+  (App (Val doExecute)
+  (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.internal.poll where
   pkgImportedPkgs := [pkg_id.internal.syscall.unix, pkg_id.sync, pkg_id.syscall, pkg_id.errors]
@@ -795,6 +862,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   SysFile_instance : SysFile.TypeAssumptions
   splicePipeFields_instance : splicePipeFields.TypeAssumptions
   splicePipe_instance : splicePipe.TypeAssumptions
+  handleCopyFileRangeErr_unfold : FuncUnfold handleCopyFileRangeErr [] handleCopyFileRangeErr.impl
   import_unix_Assumption : _root_.Perennial.internal.syscall.unix.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
@@ -809,6 +877,7 @@ attribute [instance] Assumptions.errNetClosing_instance
   Assumptions.SysFile_instance
   Assumptions.splicePipeFields_instance
   Assumptions.splicePipe_instance
+  Assumptions.handleCopyFileRangeErr_unfold
   Assumptions.import_unix_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_syscall_Assumption

@@ -1,8 +1,8 @@
 /-
-WP specs of the Linux file extension's data operations (`Impl.lean`): `close`, `flock`, `FdKind` of a
+WP specs of the Linux file extension's data operations (`Impl.lean`): `FdKind` of a
 file's fd, `fstat`, `pread`, `fsync`, `mmap`, `munmap`, loads of mapped cells. `pwrite` is in
-`Write.lean`, `ftruncate` in `Truncate.lean`/`TruncateShrink.lean`, `fallocate` and the OFD lock in
-`Falloc.lean`; the resources and the step lemma in `World.lean`. Untrusted.
+`Write.lean`, `ftruncate` in `Truncate.lean`/`TruncateShrink.lean`, `fallocate` in `Falloc.lean`, `close`
+and the locks in `Locks.lean`; the resources and the step lemma in `World.lean`. Untrusted.
 
 **Resources** (`World.lean`): `osByte i b dq (x, c)`, `osBytes i off dq xs`, `osMeta i dq m`,
 `osFd fd dq d`, `osInv`; a mapped cell's other half is the client's, an ordinary heap points-to.
@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail⟩
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -43,53 +43,6 @@ theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf 
     fds := rfl
     meta_some := fun p m h => by
       obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h; exact ⟨f, hf, hm.fds X⟩ }
-
-/-- `close(fd)`, with the whole fd. Whatever the errno, the fd is gone. -/
-theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
-    {{ osInv (L := L) ∗ osFd (L := L) fd (DFrac.own 1) d }}
-      (ExternalOp fsExt.name "Close" (Val (#fd))) @ s; E
-    {{ (e : w64), RET #e; True }} := by
-  iintro %Φ ⟨#Hinv, Hfd⟩ HΦ
-  iapply wp_os_step "Close" (#fd) Φ (by simp) hE (by simp [DataOp]) $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %h Hw
-  unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
-  obtain ⟨hwf, hcoh⟩ := Hwc
-  unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
-  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
-  have hwf' : ∀ X : GMap w64 OsFd, (∀ fd d, X !! fd = some d → st.proc.fds !! fd = some d) →
-      OsWf (st.setProc { st.proc with fds := X }) := fun X hX =>
-    osWf_fds hwf X (fun fd d h => hwf.fds fd d (hX fd d h))
-  have hdel : ∀ fd' d', (GMap.delete fd st.proc.fds) !! fd' = some d' → st.proc.fds !! fd' = some d' := by
-    intro fd' d' h; rw [GMap.lookup_delete_iff] at h; split at h
-    · cases h
-    · exact h
-  imodintro
-  isplitr
-  · ipureintro
-    exact ⟨_, h, (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds }),
-      ⟨fd, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same (hwf' _ hdel) rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) Hag⟩
-  inext
-  iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  simp only [IsFsStep] at Hst
-  obtain ⟨fd', e, d', hv, hfd', rfl, rfl⟩ := Hst
-  cases go.intoVal_inj hv
-  imod gAuth_delete _ _ _ _ _ $$ HAf Hfd with HAf
-  imod cells_same hwf (hwf' _ hdel) Hr Hfr rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) $$ [Hσ Hcells]
-    with ⟨Hσ, Hcells⟩
-  · iframe
-  imodintro
-  iexists Γb, Γm, (GMap.delete fd Γf), Γt
-  iframe
-  isplitr
-  · ipureintro; refine ⟨hwf' _ hdel, ?_⟩; rw [hcoh.fds]; exact osCoh_fds hcoh _
-  iapply wp_value'
-  iapply HΦ
-  itrivial
 
 /-- A read that returns all it reached: a successful outcome. -/
 theorem full_read (r : List w8) : ∃ k, k ≤ r.length ∧ (0 < k ∨ r = []) ∧
@@ -132,6 +85,48 @@ theorem coh_meta {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf �
   obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h
   exact ⟨f, hf, hm⟩
 
+/-- **No file is larger than `maxBytes`** (the model's bound, `Impl.lean`: ext4's `s_maxbytes` on C;
+the invariant `OsWf.sizes`): before any step of a non-value `e`, an update that reaches an `OsMeta`
+(opening invariants, mask `E`) learns that its size is at most `maxBytes`, and gives it back. -/
+theorem wp_osMeta_sizeU (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) :
+    (|={E}=> ∃ (i : Ino) (dq : DFrac) (m : OsMeta), osMeta (L := L) i dq m ∗
+      (⌜m.size ≤ maxBytes⌝ -∗ osMeta (L := L) i dq m ={E}=∗ WP e @ s; E {{ Φ }})) ⊢
+      WP e @ s; E {{ Φ }} := by
+  iintro H
+  iapply wp_ext_acc (X := fsExt) e Φ h
+  iintro %σ %g Hl Hg
+  imod H with ⟨%i, %dq, %m, Hm, Hk⟩
+  icases (os_local_ctx_eq σ).mp $$ Hl with Hl
+  unfold osCtx osCtxF osMeta
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  obtain ⟨f, hf, hmo⟩ := coh_meta Hwc.2 Hml
+  have hsz : m.size ≤ maxBytes := by have := Hwc.1.sizes i f hf; rw [hmo.size]; omega
+  imod Hk $$ %hsz Hm with Hwp
+  imodintro
+  iframe Hg Hwp
+  iapply (os_local_ctx_eq σ).mpr
+  unfold osCtx osCtxF
+  iframe Hns Hof
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  ipureintro; exact Hwc
+
+/-- `wp_osMeta_sizeU` for an `OsMeta` at hand: `m.size ≤ maxBytes` before any step. -/
+theorem wp_osMeta_size (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) (i : Ino) (dq : DFrac)
+    (m : OsMeta) :
+    ⊢ osMeta (L := L) i dq m -∗
+      (⌜m.size ≤ maxBytes⌝ -∗ osMeta (L := L) i dq m -∗ WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }} := by
+  iintro Hm Hk
+  iapply wp_osMeta_sizeU e Φ h
+  imodintro
+  iexists i, dq, m
+  iframe Hm
+  iintro %hsz Hm
+  imodintro
+  iapply Hk $$ %hsz Hm
+
 /-- A size `fstat` may see is past every byte below the size that no change in flight may change. -/
 theorem statSees_gt {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
     {f : OsFile} {b sz : Nat} (hf : st.file i = some f) (hb : b < f.size)
@@ -149,42 +144,8 @@ theorem statSees_gt {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γ
     unfold TokInfo.lo TokInfo.hi at hnr; unfold TokInfo.target at hlo
     cases hkk : ti.kind with
     | write off data => simp only [hkk] at hnr hlo; omega
-    | truncate sz' => simp only [hkk] at hnr hlo; omega
-
-/-- `flock(fd, how)`: any errno. -/
-theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
-      (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd HΦ
-  iapply wp_os_step "Flock" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %h Hw
-  unfold osWorld
-  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
-  obtain ⟨hwf, hcoh⟩ := Hwc
-  unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
-  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
-  imodintro
-  isplitr
-  · ipureintro
-    exact ⟨_, h, st, ⟨fd, how, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same hwf rfl rfl Hag⟩
-  inext
-  iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  simp only [IsFsStep] at Hst
-  obtain ⟨fd', how', e, d', hv, -, rfl, rfl⟩ := Hst
-  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
-  · iframe
-  imodintro
-  iexists Γb, Γm, Γf, Γt
-  iframe
-  isplitr
-  · ipureintro; exact ⟨hwf, hcoh⟩
-  iapply wp_value'
-  iapply HΦ $$ Hfd
+    | truncate sz' => have := le_pageEnd (max ti.m0.size sz'); simp only [hkk] at hnr hlo; omega
+    | falloc sz' => simp only [hkk] at hnr hlo; omega
 
 /-- `FdKind(fd)` of a file's fd: `0`. -/
 theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
@@ -198,7 +159,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   imodintro
@@ -212,7 +173,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
   simp only [IsFsStep] at Hst
   obtain ⟨fd', hv, rfl, hres⟩ := Hst
   cases go.intoVal_inj hv
-  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩
+  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩ | ⟨hn, -⟩
   · imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
     · iframe
     imodintro
@@ -222,6 +183,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
     · ipureintro; exact ⟨hwf, hcoh⟩
     iapply wp_value'
     iapply HΦ $$ Hfd
+  · rw [hfd] at hn; cases hn
   · rw [hfd] at hn; cases hn
 
 /-- `fstat(fd)`'s size, with a fraction of the file's `OsMeta`: its size, or an errno. -/
@@ -238,7 +200,7 @@ theorem wp_osFstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hq
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -295,7 +257,7 @@ theorem wp_osPRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup hcoh d.ino off.toNat dqb xs $$ HAb Htok Hbs with %Hbl
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hq
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -376,7 +338,7 @@ theorem wp_osPRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup hcoh d.ino lo dqb xs $$ HAb Htok Hbs with %Hbl
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   obtain ⟨f, hf⟩ := hwf.fds fd d hfd
@@ -474,7 +436,7 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup_list hcoh d.ino rs $$ HAb Htok Hbs with %Hbl
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   obtain ⟨f, hf⟩ := hwf.fds fd d hfd
@@ -533,11 +495,27 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
     %(fun he ht x hx k hk h1 h2 => by
       have h := (key x hx k hk h1 h2).1; rw [hemp he ht] at h; simp at h) Hfd Hbs
 
-/-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from the
-end of the size's last page on (`OsFile.synced`). -/
+/-- Where a sync makes zeros known from: the size if the page cache is known zero from it to the end
+of its page (`cz`), else the end of that page (`OsFile.synced`: past it the disk holds zeros). -/
+def OsMeta.syncZ (m : OsMeta) : Nat := if pageEnd m.size ≤ m.cz then m.size else pageEnd m.size
+
+/-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from
+`syncZ` on (`OsFile.synced`: the end of the size's last page, or the size itself if the page cache is
+known zero to that end); no resize stamps known (every byte durable, no candidate stamped by one). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
   { m with
-    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageUp m.size), tc := ∅ }
+    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some m.syncZ, tc := ∅, rz := [] }
+
+theorem OsMeta.size_le_syncZ (m : OsMeta) : m.size ≤ m.syncZ := by
+  unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
+
+theorem OsMeta.syncZ_le (m : OsMeta) : m.syncZ ≤ pageEnd m.size := by
+  unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
+
+/-- A sync of a file whose page cache is known zero from its size to the end of its page makes the
+zeros known from the size on. -/
+theorem OsMeta.synced_zf_size (m : OsMeta) (h : pageEnd m.size ≤ m.cz) : m.synced.zf = some m.size := by
+  simp [OsMeta.synced, OsMeta.syncZ, h]
 
 /-- The `n` bytes from `lo` hold every byte below the size that `m` says may not be durable (those
 in `[dlo, dhi)`). -/
@@ -582,7 +560,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
   icases bytesG_lookup _ d.ino lo _ xs Γb $$ HAb Hbs with %Hbl
   icases bytesG_lookup _ d.ino lo2 _ ys Γb $$ HAb Hys with %Hbl2
   icases bytesG_lookup_runs _ d.ino Γb rs $$ HAb Hrs with %Hrl
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -594,7 +572,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
   let f' := f.synced (InflightAt st d.ino ·)
   have hszf := hwf.sizes d.ino f hf
   have hwfS : OsWf (st.setFile d.ino f') :=
-    osWf_setFile' hwf hf (by simp [f', OsFile.synced]) (fun b p hp => by
+    osWf_setFile' hwf hf (by simp only [f', OsFile.synced]; omega) (fun b p hp => by
       simp only [f', OsFile.synced, if_neg (hnoI b), List.mem_singleton] at hp; subst hp; simp)
   have hcvS : cellView (st.setFile d.ino f') = cellView st :=
     cellView_congr hwf hwfS rfl (fun q => by
@@ -635,15 +613,51 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
       · refine ⟨by simp [OsMeta.synced, hmo.size, f', synced_size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size], hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, fun _ h => by simp [OsMeta.synced] at h,
+          ?_,
+          fun b hb => by
+            simp only [f', synced_size] at hb
+            simp only [f', OsFile.synced, if_neg (hnoI b)]
+            exact diskByte_past hb⟩
+        rotate_right
+        · intro z hz b hb
+          simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
+          have hsz := hmo.size
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          by_cases hpb : pageEnd m.size ≤ b
+          · rw [diskByte_past (by rw [← hsz]; exact hpb)]
+          · unfold OsMeta.syncZ at hb
+            split at hb
+            · unfold diskByte; split
+              · exact hmo.cz b (by omega) (by omega)
+              · rfl
+            · omega
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
-          refine ⟨by rw [hmo.size]; exact le_pageUp _, fun b hb => ?_⟩
+          have hsz := hmo.size
+          refine ⟨by have := m.size_le_syncZ; simp only [synced_size]; omega, fun b hb => ?_⟩
           rw [synced_cand f _ b (hnoI b)]
           simp only [f', OsFile.synced, if_neg (hnoI b)]
-          rw [diskByte_past (by rw [← hmo.size]; exact hb)]
+          by_cases hpb : pageEnd m.size ≤ b
+          · rw [diskByte_past (by rw [← hsz]; exact hpb)]
+          · unfold OsMeta.syncZ at hb
+            split at hb
+            · rename_i hcz
+              have h0 : diskByte f.cache f.size b = 0 := by
+                unfold diskByte; split
+                · exact hmo.cz b (by omega) (by omega)
+                · rfl
+              rw [h0]
+            · omega
         · intro b c _ hc; simp [OsMeta.synced] at hc
+        · intro b hb hbz
+          have hsz := hmo.size
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          simp only [OsMeta.synced] at hbz
+          unfold diskByte; split
+          · exact hmo.cz b (by simp only [f', synced_size] at hb; omega) hbz
+          · rfl
       · intro b x hx
         rw [lookup_insertBytes] at hx
         split at hx
@@ -768,7 +782,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (x
 resources' candidates now relate to the state's through the cut `c` (`CandRel`), the candidates
 known past the size are forgotten, and zeros are known from the end of the size's last page on. -/
 def OsMeta.bsynced (m : OsMeta) (c : Nat) : OsMeta :=
-  { m with cut := some c, zf := some (pageUp m.size), tc := ∅ }
+  { m with cut := some c, zf := some (pageEnd m.size), tc := ∅ }
 
 /-- The resource's candidates' stamps are at most `S` if the state's are and the cut is. -/
 theorem CandRel.stamps_le {o : Option Nat} {cs sc : Cands} (h : CandRel o cs sc) {S : Nat}
@@ -805,7 +819,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -817,7 +831,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
   let f' := f.synced (InflightAt st d.ino ·)
   have hszf := hwf.sizes d.ino f hf
   have hwfS : OsWf (st.setFile d.ino f') :=
-    osWf_setFile' hwf hf (by simp [f', OsFile.synced]) (fun b p hp => by
+    osWf_setFile' hwf hf (by simp only [f', OsFile.synced]; omega) (fun b p hp => by
       simp only [f', OsFile.synced, if_neg (hnoI b), List.mem_singleton] at hp; subst hp; simp)
   have hcvS : cellView (st.setFile d.ino f') = cellView st :=
     cellView_congr hwf hwfS rfl (fun q => by
@@ -852,15 +866,31 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
       · refine ⟨by simp [OsMeta.bsynced, hmo.size, f', synced_size],
           by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.lo; omega,
           by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.hi; omega, hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, hmo.rz, ?_,
+          fun b hb => by
+            simp only [f', synced_size] at hb
+            simp only [f', OsFile.synced, if_neg (hnoI b)]
+            exact diskByte_past hb⟩
+        rotate_right
+        · intro z hz b hb
+          simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          rw [diskByte_past (by rw [← hmo.size]; exact hb)]
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz
-          refine ⟨by rw [hmo.size]; exact le_pageUp _, fun b hb => ?_⟩
+          refine ⟨by rw [hmo.size]; exact le_pageEnd _, fun b hb => ?_⟩
           rw [synced_cand f _ b (hnoI b)]
           simp only [f', OsFile.synced, if_neg (hnoI b)]
           rw [diskByte_past (by rw [← hmo.size]; exact hb)]
         · intro b c _ hc; simp [OsMeta.bsynced] at hc
+        · intro b hb hbz
+          have hsz := hmo.size
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          simp only [OsMeta.bsynced] at hbz
+          unfold diskByte; split
+          · exact hmo.cz b (by simp only [f', synced_size] at hb; omega) hbz
+          · rfl
       · intro b x hx
         obtain ⟨f1, hf1, hb, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ hx
         rw [hf] at hf1; cases hf1
@@ -917,7 +947,7 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -1315,7 +1345,7 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   iintro %σ %g Hl Hg
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
@@ -1343,10 +1373,10 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ), (GMap.size σ.proc.inflight); iframe
   imodintro
-  isplitl [HAb HAm HAf HAt Htok Hv Hns]
+  isplitl [HAb HAm HAf HAt Htok Hv Hns Hof]
   · iapply (os_local_ctx_eq σ).mpr
     unfold osCtx osCtxF
-    iframe Hns
+    iframe Hns Hof
     iexists Γb, Γm, Γf, Γt
     iframe
     ipureintro; exact ⟨hwf, hcoh⟩

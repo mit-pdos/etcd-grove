@@ -33,11 +33,11 @@ sync bookkeeping changes (durability is out of scope); an error is a `fmtErrorOk
 abbrev fdatasync.spec : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : BFile) (i : Ino) (m : OsMeta) (dqf dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dq ∗ osFd fd dq ⟨i, true, true⟩ ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dq ∗ osFd fd dq (dbFd i) ∗
       osMeta i (DFrac.own 1) m }}
     (App (Val #(functions fdatasync [])) (Val #db))
   {{ (err : GoInterface), RET #err; db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dq ∗
-      osFd fd dq ⟨i, true, true⟩ ∗
+      osFd fd dq (dbFd i) ∗
       (∃ m' : OsMeta, osMeta i (DFrac.own 1) m' ∗ ⌜m'.size = m.size ∧ m'.maps = m.maps⌝) ∗
       (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
 

@@ -19,6 +19,7 @@ The entries stay frozen (`entRoC`, as `msgPtsC`'s `entRO`) and so does the `Cont
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.PbContent
+public import RaftTla.Proof.go_etcd_io.raft.v3.PbContentOwnCore
 
 @[expose] public section
 
@@ -408,17 +409,6 @@ theorem msgPtsC_iff_CC (l : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) :
     iapply msgPtsCC_msgPtsC l dq dqe cap c hu $$ H
 
 /-! ### Entries -/
-
-/-- **A `*Entry` at `dq` holding exactly the content `c`** (raft-entsize §2: `entPts`'s content
-form; `entRoC` is its `discard` instance up to the fraction's form). -/
-def entPtsCC (l : Loc) (dq : DFrac) (c : EntryC) : IProp GF :=
-  iprop(∃ (pt pi pty : Loc) (ds : GoSlice),
-    ⌜l ≠ null⌝ ∗
-    l.[raftpb.Entry, go!"Term"] ↦{dq} pt ∗ optCell pt c.term ∗
-    l.[raftpb.Entry, go!"Index"] ↦{dq} pi ∗ optCell pi c.index ∗
-    l.[raftpb.Entry, go!"Type"] ↦{dq} pty ∗ optCell pty c.type ∗
-    l.[raftpb.Entry, go!"Data"] ↦{dq} ds ∗ bytesC ds c.data ∗
-    pbMsg raftpb.Entry l c.uf)
 
 /-- A read-only entry at its content is persistent (a `Ready`'s entries, raft-entsize §2). -/
 instance entPtsCC_discard_persistent (l : Loc) (c : EntryC) :

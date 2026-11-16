@@ -6,6 +6,7 @@ consumes (`notes/decisions.md`, "D22 S-b carried out").
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
+public import Proof.go_etcd_io.raft.v3.Protocol.CommitWitCore
 
 @[expose] public section
 
@@ -49,36 +50,6 @@ instance hsWit_persistent (γ : RaftNames) (h : HardStateM) (n : Nat) :
 instance hsWit_timeless (γ : RaftNames) (h : HardStateM) (n : Nat) :
     Timeless (hsWit (GF := GF) γ h n) := by
   unfold hsWit; infer_instance
-
-/-- (D22l) Hard states in ghost variables (`node.go`'s `dlv`, `rof`). -/
-instance hardStateM_countable : Pos.Countable HardStateM :=
-  .ofInjective (fun h => Pos.Countable.encode (h.Term', h.Vote', h.Commit'))
-    (by
-      rintro ⟨_, _, _⟩ ⟨_, _, _⟩ h
-      have h := Pos.encode_inj h
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3⟩ := h
-      subst h1 h2 h3; rfl)
-
-/-- (D22l) The zero hard state (`nil`'s, `NewRawNode`'s on an empty storage). -/
-abbrev hsZero : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
-
-/-- (D22l) `prevHardSt`'s update by an accepted `Ready` of hard state `h` (`acceptReady`: `if
-!IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`; a `nil` `HardState` reads as the
-zero record): `h` unless it is empty. -/
-def phsNext (p h : HardStateM) : HardStateM :=
-  if h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0 then p else h
-
-theorem phsNext_empty (p h : HardStateM)
-    (H : h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) : phsNext p h = p := by
-  unfold phsNext; rw [if_pos H]
-
-theorem phsNext_ne (p h : HardStateM)
-    (H : ¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0)) : phsNext p h = h := by
-  unfold phsNext; rw [if_neg H]
-
-theorem phsNext_zero (p : HardStateM) : phsNext p (HardStateM.mk (W64 0) (W64 0) (W64 0)) = p :=
-  phsNext_empty p _ ⟨rfl, rfl, rfl⟩
 
 /-- (D22l) What a hard state raft once had says (persistent; `ownRawNode` keeps it of
 `prevHardSt`): nothing for the zero record, else the witness of its term and commit index. -/

@@ -12,7 +12,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
