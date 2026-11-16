@@ -16,7 +16,7 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
 - **store.Watch.spec moved** (etcd-grove-02, for 7f-6): verbatim to `Spec/.../etcd3/store__Watch.lean`
   (`k8s.store.Watch.spec`); `Draft7f5a.lean` deleted. 7f-6 uses it as a hypothesis: changes only through the ledger.
 - **Checks:** full build green (`/shared/tmp/k8s7f5-s7/full.log`); tcb 874 → 881 (seven axioms newly reached),
-  k8s collection +10, others match; links, api, interfaces, bounds, mode ok; STATUS entry (oldest moved).
+  k8s collection +10, others match; links, api, interfaces, bounds (store__Watch allowed with the list path), mode ok; gates.sh all ok but bounds before the allow entry (`/shared/tmp/k8s7f5-s7/gates.log`); STATUS entry (oldest moved).
 - **Next, in order:** (1) 81's go, `etc/land.sh` (`LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
   PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9`, GOWORK unset); (2) the rest of the plan's step 6 (Draft §6):
   `serialProcessEvents`/`processEvents`, `run` (needs `kResAlive` back from an aborted send: sendEvent's `S`),
