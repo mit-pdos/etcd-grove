@@ -74,7 +74,7 @@ theorem walsOk_cover {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
     fun dd hdd m' hr => hdirs dd hdd m' (hc.sub m' hr)⟩
   obtain ⟨lay, nm, hj, hl, hia, hjr, hnm, hwd, hab, hco⟩ := hw dir d hd'
   exact ⟨lay, nm, hj, hl, hia, hjr, hnm, (walDirClaim_cover hc (hA.ne hl)).1 hwd, hab,
-    crashOkW_cover hc hco⟩
+    hco.1, crashOkW_cover hc hco.2.1, hco.2.2⟩
 
 /-- **`AbsentNone` carries over.** -/
 theorem absentNone_cover {s : AbsDiskState} {jr : Ino} {cl cl' : List Claim} {n : Nat}

@@ -245,17 +245,19 @@ theorem wp_tailPWriteStartW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     obtain ⟨z0, hz0, rfl⟩ := hz
     have := hzf0 z0 hz0
     split <;> omega
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
-  have hstep : TailCrashStep walCodec Mr dw lay pre g0 g' lay.wr cl nn :=
-    tailCrashStep_any walCodec_ok habs (habs' ents habs) hZ hB hnd hs rfl hzf0 hzf'
+  have hstep : TailCrashStepF walCodec Mr dw lay pre g0 g' lay.wr cl nn := by
+    intro e0 hF hndF
+    have hF' := walAbsD_full_tail habs hF (habs' ents habs) hs rfl rfl hndF rfl rfl (Nat.le_refl _)
+    rw [← tailLay_unpurge] at hF'
+    exact tailCrashStep_any walCodec_ok hF hF' hZ hB hndF (by simp [hs]) rfl hzf0 hzf'
   imod tailVar_update γ _ _ (tailG dw (tailLay lay pre g' lay.wr) g'.ino (F' !! g'.ino)) $$ Hv Hv'
     with ⟨Hv, Hv'⟩
   ihave Hb := Hclose $$ %g' %lay.wr %F' [] [Htok Hp2 Hs2] Hv'
   · ipureintro
     exact ⟨hino.symm, rfl, fun i hi => GMap.lookup_insert_ne _ _ (fun h => hi (h.symm.trans hino.symm)),
       Or.inl rfl,
-      walsOk_tailA hW hdw hl hs rfl (by simp [g', segAnnW_om, hcut0]) habs' hstep,
-      fun K c h => dirKeysOk_tailA hdw hl hstep h, trivial⟩
+      walsOk_tailA hW hdw hl hs rfl rfl (by simp [g', segAnnW_om, hcut0]) habs' hstep,
+      fun K c h => dirKeysOk_tailA hW hdw hl hstep h, trivial⟩
   · rw [show F' !! g'.ino = some fl from GMap.lookup_insert _ _ _]
     dsimp only [fl]
     rw [show g'.ino = d.ino from hino.symm]
@@ -394,14 +396,16 @@ theorem wp_tailPWriteFinishW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStr
   have hzf' : ∀ z, g'.om.zf = some z → g'.bs.length ≤ z := fun z hz => by
     rw [show g'.bs.length = (pwPostK true fl.m fl.off fl.data k fl.n).size from hmL.1.1]
     exact hmL.1.2.2.1.ge z hz
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
-  have hstep : TailCrashStep walCodec Mr dw lay pre g0 g' (max lay.wr (fl.off + k)) cl nn :=
-    tailCrashStep_any walCodec_ok habs (habs' ents habs) hZ hB hnd hs rfl hzf0 hzf'
+  have hstep : TailCrashStepF walCodec Mr dw lay pre g0 g' (max lay.wr (fl.off + k)) cl nn := by
+    intro e0 hF hndF
+    have hF' := walAbsD_full_tail habs hF (habs' ents habs) hs rfl rfl hndF rfl rfl (Nat.le_refl _)
+    rw [← tailLay_unpurge] at hF'
+    exact tailCrashStep_any walCodec_ok hF hF' hZ hB hndF (by simp [hs]) rfl hzf0 hzf'
   ihave Hb := Hclose $$ %g' %(max lay.wr (fl.off + k)) %F' [] [Hm2 Hb2] Hv'
   · ipureintro
     exact ⟨rfl, rfl, fun i' hi => GMap.lookup_delete_ne _ (Ne.symm hi), Or.inr hZ,
-      walsOk_tailA hW hdw hl hs rfl (by simp only [g', segFinW]; rw [pwPostK_cut]; exact hmc) habs' hstep,
-      fun K c h => dirKeysOk_tailA hdw hl hstep h, trivial⟩
+      walsOk_tailA hW hdw hl hs rfl rfl (by simp only [g', segFinW]; rw [pwPostK_cut]; exact hmc) habs' hstep,
+      fun K c h => dirKeysOk_tailA hW hdw hl hstep h, trivial⟩
   · rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     dsimp only
     unfold segRes

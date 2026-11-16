@@ -78,6 +78,7 @@ public import Spec.time.Duration__Seconds
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.MetaZf
 
 @[expose] public section
 
@@ -575,6 +576,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_method_call
   wp_call
   (try wp_auto)
+  -- the old tail's zeros known from its size on (`MetaOk.zf`): it joins the segments before the last
+  iapply Fs.wp_osMeta_zfGe _ _ rfl h1.ino _ m $$ Hm
+  iintro %hm0z Hm
   wp_apply wp_Name f2 fd2 _ _ $$ [$Hf2] as Hf2
   (try wp_auto)
   -- the new segment
@@ -639,7 +643,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
     (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
     (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
-    (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ ⟨sq, ix, hnm0, rfl⟩ hbtw hcurbt hbs0 hm0x
+    (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ ⟨sq, ix, hnm0, rfl⟩ hbtw hcurbt hbs0 hm0x hm0z
     rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
   · iunfold walCutP
     iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed

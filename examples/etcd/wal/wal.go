@@ -12,6 +12,7 @@
 //     SaveSnapshot, then a Save of the hard state (commit at the snapshot) and entries above it,
 //     then Sync;
 //   - the apply thread's own snapshots: SaveSnapshot at or below the commit, ReleaseLockTo;
+//   - the purge goroutine: rounds of fileutil.purgeFile's loop;
 //   - Sync, a graceful Close followed by a restart, small segment sizes (cuts).
 //
 // # The check
@@ -35,9 +36,13 @@
 package wal
 
 import (
+	"os"
+	"strings"
+
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
 
+	"go.etcd.io/etcd/client/pkg/v3/fileutil"
 	etcdwal "go.etcd.io/etcd/server/v3/storage/wal"
 	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
 	"go.etcd.io/raft/v3/raftpb"
@@ -263,6 +268,34 @@ func checkRestart(o oracle, c contents) oracle {
 	return oracle{created: true, cands: next, since: make([]walOp, 0), synced: 0, lastHS: c.hs, opens: make([]uint64, 0)}
 }
 
+// purgeRound is one round of fileutil.purgeFile's loop on the WAL directory (the server's WAL
+// purge, suffix "wal", keeping max files): the oldest files beyond max removed, each only if its
+// lock can be taken.
+func purgeRound(lg *zap.Logger, dir string, max uint64) {
+	names, err := fileutil.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	fs := make([]string, 0)
+	for i := 0; i < len(names); i++ {
+		if strings.HasSuffix(names[i], "wal") {
+			fs = append(fs, names[i])
+		}
+	}
+	for n := uint64(0); n+max < uint64(len(fs)); n++ {
+		f := dir + "/" + fs[n]
+		l, err2 := fileutil.TryLockFile(f, os.O_WRONLY, fileutil.PrivateFileMode)
+		if err2 != nil {
+			return
+		}
+		if os.Remove(f) != nil {
+			l.Close()
+			return
+		}
+		l.Close()
+	}
+}
+
 // member is one incarnation's state: the open WAL, the reference, and the raft-like state the
 // operations are generated from.
 type member struct {
@@ -482,11 +515,10 @@ func (m *member) opTerm() bool {
 	return m.save(m.hs(), make([]entry, 0))
 }
 
-// opOwnSnap is the apply thread's snapshot at or below the commit and its ReleaseLockTo. Before
-// ReleaseLockTo(a), every candidate's unlock bound is raised to nameBound of its history at a
-// (ReleaseLockTo unlocks below it). (The purge goroutine's rounds, purgeRound, were dropped
-// with the move onto the Linux file extension, which models no file locks; they return with a
-// lock model: notes/decisions.md, "WAL tester over fsExt: Go changes".)
+// opOwnSnap is the apply thread's snapshot at or below the commit, its ReleaseLockTo, and
+// possibly a purge round. Before ReleaseLockTo(a), every candidate's unlock bound is raised to
+// nameBound of its history at a (ReleaseLockTo unlocks below it); before the purge round, every
+// candidate's purge bound is raised to its unlock bound (the round deletes only unlocked files).
 func (m *member) opOwnSnap() bool {
 	if m.commit <= m.base {
 		return true
@@ -508,6 +540,15 @@ func (m *member) opOwnSnap() bool {
 	storeOracle(m.orPath, m.o)
 	if m.w.ReleaseLockTo(a) != nil {
 		return false
+	}
+	if m.r.choose(2) == 0 {
+		for ci := 0; ci < len(m.o.cands); ci++ {
+			if m.o.cands[ci].unl > m.o.cands[ci].pur {
+				m.o.cands[ci].pur = m.o.cands[ci].unl
+			}
+		}
+		storeOracle(m.orPath, m.o)
+		purgeRound(m.lg, m.walDir, 1+m.r.choose(3))
 	}
 	m.base = a
 	return true

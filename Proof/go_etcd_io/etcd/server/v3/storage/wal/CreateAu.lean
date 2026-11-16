@@ -212,7 +212,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hctmp : h.cur !! tmp = some (.dir J))
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (htmpS : AreaSlot tmp) (hJjr : J ≠ jr)
     (hlb : h.next ≤ lb) (hJlb : hJ.next ≤ lb)
-    (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) (hsegs : lay.segs = [g]) (hbs : g.bs ≠ [])
+    (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) (hsegs : lay.segs = [g]) (hpg : lay.pg = [])
+    (hbs : g.bs ≠ [])
     (hJcoh : ClaimCoh hJ J (.except X)) (hX : ∀ b ∈ X, walNameP b = false) (hXt : X = walTmps)
     (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
     (hdur : ∀ y ∈ g.bs, y = durB y.1) (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
@@ -382,7 +383,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       obtain ⟨hok', han'⟩ := walsOk_create (x := x) (st := s0) Hok Han.1 hsd hin' hc hcoh
         (Nat.le_trans hlb hls) hsx hne hnmN htmpN hctmp hothers htmp htw hJjr hlay hJcoh
         (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz (by rw [hsegs]; simp)
-        hdisj (by rw [hsegs]; simpa using hcut) Han.2 htmpS
+        hdisj (by rw [hsegs]; simpa using hcut) hpg Han.2 htmpS
       -- the ghost state, the client's commit, the creating entry
       imod walGhost_upd s (createSt s dir md) M (absLe_createSt hsd)
         (walKeysInArea_createSt hin') (fun n hn => hn.insert rfl (by simp [walDurFresh]))
@@ -434,10 +435,10 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         | some v =>
           obtain ⟨lay1, -, hl1, -⟩ := Hdko.1 dir v.1 v.2 e
           rw [hLd] at hl1; cases hl1
-      imod walDirKey_insert K dir J X hKd $$ Hdk with ⟨Hdk, #Hkey⟩
+      imod walDirKey_insert K dir J X hKd hXt $$ Hdk with ⟨Hdk, #Hkey⟩
       imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
         (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
-        hsegs hino hJo $$ Hpk Ho with ⟨Hpk, Ho⟩
+        hsegs hpg hino hJo $$ Hpk Ho with ⟨Hpk, Ho⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
       -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)
@@ -474,7 +475,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           dsimp only [renCur]
           iframe Hl1 Hα Hl2 HJ
         isplitl [Hlays Hm1 Hb1]
-        · iapply laysResF_insert _ Ls dir lay hLd
+        · iapply laysResF_insert _ Ls dir lay hLd hpg
           isplitl [Hm1 Hb1]
           · rw [hsegs]
             iapply BigSepL.bigSepL_singleton.2
@@ -501,7 +502,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · ipureintro
           exact walsNamed_create (x := x) (st := s0) Hok Hnm hnew hc hcoh (Nat.le_trans hlb hls) hne
             hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC hJcoh
-            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _))
+            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _)) hpg
         isplitl [Hpk]
         · unfold createClaims; iexact Hpk
         isplitl [Hdk Hcp]
@@ -510,7 +511,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           ipureintro
           exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin'
             hc hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
-            (Nat.le_trans hJlb hls) hX hXt habs hex hdur' htail hold0 hz
+            (Nat.le_trans hJlb hls) hX hXt habs hex hdur' htail hold0 hz hpg
         iframe Hnms
         ipureintro
         exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers

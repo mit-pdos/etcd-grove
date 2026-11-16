@@ -75,6 +75,18 @@ theorem crashOkW_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
       refine Or.inr ⟨lay0, h0, crashTo_named hct ?_⟩
       rw [h1, h2]; exact hname m' hr
 
+theorem walFullOk_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (h : WalFullOk C Mr d lay cl n0) :
+    WalFullOk C Mr d lay cl n :=
+  ⟨h.1, crashOkW_mono hn h.2.1, h.2.2⟩
+
+/-- `WalFullOk` with `named` raised (as `crashOkW_named`). -/
+theorem walFullOk_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (hok : WalFullOk C Mr d lay cl n0)
+    (hname : ∀ m', RegionCrashed cl n m' → ∃ J, m'.entry lay.jr lay.nm = some (.dir J)) :
+    WalFullOk C Mr { d with named := true } lay cl n :=
+  ⟨let ⟨e, ha⟩ := hok.1; ⟨e, walAbsD_named true ha⟩, crashOkW_named hn hok.2.1 hname, hok.2.2⟩
+
 /-- **The invariant's pure facts at a bigger commit bound.** -/
 theorem walsOk_mono {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n)
@@ -83,7 +95,7 @@ theorem walsOk_mono {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s :
   refine ⟨fun dir d hd => ?_, h2, h3, h4, fun dir nm hin hn' m' hr => h5 dir nm hin hn' m'
     (regionCrashed_mono hn hr), fun dd hdd m' hr => h6 dd hdd m' (regionCrashed_mono hn hr)⟩
   obtain ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, ha, hok⟩ := h1 dir d hd
-  exact ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, ha, crashOkW_mono hn hok⟩
+  exact ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, ha, walFullOk_mono hn hok⟩
 
 /-- The step raising `named` of the WAL in `dir`. -/
 def setNamed (s : AbsDiskState) (dir : GoString) : AbsDiskState :=
@@ -118,7 +130,7 @@ theorem walsOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
       obtain ⟨lay0, nm0, hj0, hlay0, hin0, hjr0, hnm0, -, -, hco⟩ := hok0
       rw [hlay] at hlay0; cases hlay0
       refine ⟨lay, nm', hj, hlay, by rw [harea]; exact hin', hjr, hnm, hcl, walAbsD_named true ha, ?_⟩
-      refine crashOkW_named hn hco fun m' hr => ⟨J, ?_⟩
+      refine walFullOk_named hn hco fun m' hr => ⟨J, ?_⟩
       rw [hjr, hnm, regionCrashed_lastWrite hc hN hl hx hr, hJ]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
       obtain ⟨lay, nm', hj, hlay, hin', rest⟩ := h1 dir' d' hd'
@@ -181,8 +193,8 @@ theorem dirKeysOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     rw [hl'] at hlay; cases hlay
     have hnmeq : nm' = nm := inArea_name hin' hin
     subst hnmeq
-    exact crashOkA_none_named hn (hk.2.1 dir' d lay hd hl' hcd) fun m' hr => ⟨J, by
-      rw [hjr, hnm, regionCrashed_lastWrite hc hN hl hx hr, hJ]⟩
+    exact crashOkA_none_named (d := walFullD d lay.pg lay) hn (hk.2.1 dir' d lay hd hl' hcd)
+      fun m' hr => ⟨J, by rw [unpurge_jr, unpurge_nm, hjr, hnm, regionCrashed_lastWrite hc hN hl hx hr, hJ]⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
     exact crashOkA_mono hn (hk.2.1 dir' d' lay hd' hl' hcd)
 

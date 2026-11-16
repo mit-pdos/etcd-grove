@@ -72,7 +72,7 @@ theorem walsOk_namedBy {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
       obtain ⟨lay0, nm0, hj0, hlay0, hin0, hjr0, hnm0, -, -, hco⟩ := hok.1 dir' d hd
       rw [hlay] at hlay0; cases hlay0
       refine ⟨lay, nm', hj, hlay, by rw [harea]; exact hin', hjr, hnm, hcl, walAbsD_named true ha, ?_⟩
-      refine crashOkW_named hn hco fun m' hr => ?_
+      refine walFullOk_named hn hco fun m' hr => ?_
       rw [hjr, hnm]; exact hname m' hr
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
       obtain ⟨lay, nm', hj, hlay, hin', rest⟩ := h1 dir' d' hd'
@@ -113,8 +113,8 @@ theorem dirKeysOk_namedBy {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino
     rw [hl'] at hlay; cases hlay
     have hnmeq : nm' = nm := inArea_name hin' hin
     subst hnmeq
-    exact crashOkA_none_named hn (hk.2.1 dir' d lay hd hl' hcd) fun m' hr => by
-      rw [hjr, hnm]; exact hname m' hr
+    exact crashOkA_none_named (d := walFullD d lay.pg lay) hn (hk.2.1 dir' d lay hd hl' hcd)
+      fun m' hr => by rw [unpurge_jr, unpurge_nm, hjr, hnm]; exact hname m' hr
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
     exact crashOkA_mono hn (hk.2.1 dir' d' lay hd' hl' hcd)
 

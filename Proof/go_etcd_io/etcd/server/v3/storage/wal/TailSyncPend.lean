@@ -61,7 +61,7 @@ theorem syncLay_anyP {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hK : DirKeysOk C Mr jr s Ls cl n K none)
     (habs : WalAbsD C Mr d lay ents) :
     ∃ L : WalLay, L.segs = pre ++ [syncTail g0] ∧ L.j = lay.j ∧ L.nm = lay.nm ∧
-      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ TailZeros L ∧
+      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ L.pg = lay.pg ∧ TailZeros L ∧
       TailBound C Mr { d with m := d.H.length } L ∧
       WalsOk C Mr R jr (walSyncS s dir d) (<[dir := L]> Ls) cl n ∧
       DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := L]> Ls) cl n K none := by
@@ -69,10 +69,10 @@ theorem syncLay_anyP {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
   by_cases hex : SegExact g0
   · have hZ' : TailZeros lay := hZ.elim id fun hp => tailZeros_of_pendEx ((habs.last g0 hg0).1 hex) hp hwz
     exact syncLay_any hC hW hd hl hs htail hZ' hzf hK habs
-  · have hok : CrashOk C Mr d lay cl n :=
+  · have hok : CrashOk C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n :=
       (crashOkA_none_iff _ _ _ _ _ _).1 (hK.2.1 dir d lay hd hl (by simp))
     have hZ0 : TailZ0 lay := hZ.elim TailZ0.of_zeros TailZ0.of_pend
-    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW0 hZ0,
+    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW0 hZ0,
       tailBound_syncW habs hs htail,
       walsOk_syncW hC hW hd hl hs htail hZ0 hzf hex hwz hok,
       dirKeysOk_syncW hC hW hd hl hs htail hZ0 hzf hex hwz hK⟩
@@ -249,7 +249,7 @@ theorem walInvBody_syncP (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots
   icases Htlc with ⟨Htlc, -⟩
   have hmH : d.m ≤ d.H.length := habs.synced.1
   -- the synced layout: `syncLay`, or `syncLayW` in a resize window; F-Z either way
-  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLZ, hLB, hLW, hLK⟩ :=
+  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLpg, hLZ, hLB, hLW, hLK⟩ :=
     syncLay_anyP hC HW hd hl hs htail hZP hwz hzf Hdko habs
   have e : tailG d Lw (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
     rw [htg]; unfold tailG; rw [hLc, hLw]; rfl
@@ -282,18 +282,15 @@ theorem walInvBody_syncP (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots
     isplitr
     · ipureintro; exact Har
     isplitl [Hpre Hseg Hrest]
-    · iapply (laysResF_map (L := L) F _).2
-      iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-        iprop([∗list] g ∈ lay.segs, segResF (L := L) F g))).2
-      isplitl [Hpre Hseg]
-      · rw [hLs]
-        iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-        iframe Hpre
-        iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
-        unfold segResF
-        rw [show F !! (syncTail g0).ino = none from hF]
-        iexact Hseg
-      · iapply (laysResF_map (L := L) F _).1 $$ Hrest
+    · iapply laysResF_put (L := L) F Ls dir lay Lw hLpg
+      iframe Hrest
+      rw [hLs]
+      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+      iframe Hpre
+      iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+      unfold segResF
+      rw [show F !! (syncTail g0).ino = none from hF]
+      iexact Hseg
     isplitr
     · ipureintro; exact hLW
     isplitr
@@ -318,9 +315,9 @@ theorem walInvBody_syncP (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots
     · ipureintro; exact ⟨absentNone_sync Hab.1, dirsAvoid_sync Hab.2⟩
     isplitr
     · ipureintro
-      exact walsNamed_relay hl hs hLs hLj rfl rfl HNm
+      exact walsNamed_relay hl hs hLs hLj rfl rfl hLpg HNm
     isplitl [Hpk]
-    · iapply walParked_relay Ls cl dir lay Lw pre g0 (syncTail g0) hl hs hLs hLj
+    · iapply walParked_relay Ls cl dir lay Lw pre g0 (syncTail g0) hl hs hLs hLj hLpg
         rfl (by simp [syncTail]) $$ Hpk
     isplitl [Hdk Hcp]
     · iexists K, none

@@ -37,14 +37,6 @@ open Iris Fs WalEnc
 section pure
 variable [GooseExts]
 
-/-- **The layout as of the last directory sync**: `lay` with the removed-not-durable segments `pg` put
-back in front. -/
-def unpurge (pg : List SegG) (lay : WalLay) : WalLay :=
-  { lay with first := lay.first - pg.length, segs := pg ++ lay.segs }
-
-@[simp] theorem unpurge_nil (lay : WalLay) : unpurge [] lay = lay := by
-  simp [unpurge]
-
 /-- **A purge does not move the layout as of the last directory sync.** -/
 theorem unpurge_purge (pg : List SegG) (lay : WalLay) (g0 : SegG) (gs : List SegG)
     (hs : lay.segs = g0 :: gs) (hf : pg.length ≤ lay.first) :
@@ -56,39 +48,6 @@ theorem unpurge_purge (pg : List SegG) (lay : WalLay) (g0 : SegG) (gs : List Seg
     List.singleton_append, WalLay.mk.injEq, and_true, true_and]
   omega
 
-theorem drop_len_append {α : Type} (pg l : List α) (q : Nat) : (pg ++ l).drop (pg.length + q) = l.drop q := by
-  rw [List.drop_append]; simp
-
-/-- **`CrashTo` of the layout gives it of the layout with `pg` put back** (a crash that keeps none of the
-removed segments). -/
-theorem crashTo_unpurge {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {m' : Tree}
-    {fo : Ino → Option Fs.OsFile} (pg : List SegG) (hf : pg.length ≤ lay.first)
-    (h : CrashTo C Mr d lay m' fo) : CrashTo C Mr d (unpurge pg lay) m' fo := by
-  rcases h with h | ⟨q, I, hent, hq, hinos, hI, hlen, hst, hk, hlast⟩
-  · exact Or.inl h
-  refine Or.inr ⟨pg.length + q, I, hent, ?_, ?_, hI, hlen, ?_, ?_, ?_⟩
-  · simp only [unpurge, List.length_append]; omega
-  · simp only [unpurge]; rw [drop_len_append]; exact hinos
-  · simp only [unpurge]
-    have e : lay.first - pg.length + (pg.length + q) = lay.first + q := by omega
-    rw [e]; exact hst
-  · intro k g hg hlt
-    simp only [unpurge] at hg hlt ⊢
-    rw [drop_len_append] at hg
-    have e : lay.first - pg.length + (pg.length + q) + k = lay.first + q + k := by omega
-    rw [e] at hlt ⊢
-    exact hk k g hg hlt
-  · intro g hg
-    have hne : lay.segs ≠ [] := by intro e; rw [e] at hq; simp at hq
-    simp only [unpurge] at hg
-    have e : (pg ++ lay.segs).getLast? = lay.segs.getLast? := by
-      rw [List.getLast?_append]
-      cases h' : lay.segs.getLast? with
-      | none => exact absurd (List.getLast?_eq_none_iff.1 h') hne
-      | some _ => simp
-    rw [e] at hg
-    exact hlast g hg
-
 /-- **A purge's raise keeps `CrashTo`** (it reads `pur` only as an upper bound, never `cut`). -/
 theorem crashTo_purgeD {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay F : WalLay} {m' : Tree}
     {fo : Ino → Option Fs.OsFile} (p : Nat) (h : CrashTo C Mr d F m' fo) :
@@ -99,22 +58,12 @@ theorem crashTo_purgeD {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay F : Wa
   simp only [walPurgeD]
   exact Nat.le_trans hst (by omega)
 
-/-- **`CrashTo` does not read the read position**: the crash condition of the full layout can be stated
-for the WAL with `cut` at the full layout's first segment (where `WalAbsD` puts it). -/
-theorem crashTo_cut_iff {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {F : WalLay} {m' : Tree}
-    {fo : Ino → Option Fs.OsFile} (c : Nat) :
-    CrashTo C Mr { d with cut := c } F m' fo ↔ CrashTo C Mr d F m' fo := Iff.rfl
-
 /-! ## The static relation of the full layout
 
 The invariant keeps, besides `WalAbsD d lay ents` (the directory as it is), the static relation of the full
 layout `unpurge pg lay` for the WAL with `cut` at its first segment (`walFullD`), over the entries with the
 removed-not-durable names back: what the crash proof's `crashTo_start` and the crash step lemmas take, applied
 to the full layout instead of `lay`. -/
-
-/-- The WAL with its read position at the full layout's first segment. -/
-def walFullD (d : WalDur) (pg : List SegG) (lay : WalLay) : WalDur :=
-  { d with cut := segStart lay.cuts (lay.first - pg.length) }
 
 /-- `WalAbsD` reads `pur` only as an upper bound on `cut`. -/
 theorem WalAbsD.pur_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
@@ -124,10 +73,9 @@ theorem WalAbsD.pur_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
 
 /-- With nothing removed, the full layout is the layout. -/
 theorem walAbsD_full_nil {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr (walFullD d [] lay) (unpurge [] lay) ents := by
-  rw [unpurge_nil]
-  show WalAbsD C Mr { d with cut := segStart lay.cuts (lay.first - 0) } lay ents
-  rw [Nat.sub_zero, ← h.cut.1]
+    (hpg : lay.pg = []) (h : WalAbsD C Mr d lay ents) :
+    WalAbsD C Mr (walFullD d [] lay) (unpurge [] lay) ents := by
+  rw [unpurge_nil hpg, walFullD_nil h.cut.1]
   exact h
 
 /-- **A purge keeps the full layout's static relation** (the full layout does not move,

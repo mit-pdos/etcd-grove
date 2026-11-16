@@ -331,15 +331,17 @@ theorem walsOk_moved {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
     absentOk_of_absentNone (absentNone_moved H han hin hpres hbrk),
     dirsOk_moved H hdirs hav ⟨nm, hin.1, .inl rfl⟩ hbS⟩
   obtain ⟨lay, nm', hj, hl, hia, hjr, hnm, hwd, hab, hco⟩ := hw dir' d' hd'
+  have hjne := hA.ne hl
   refine ⟨lay, nm', hj, hl, hia, hjr, hnm, (walDirClaim_moved (hA.ne hl)).2 hwd, hab,
-    crashOkW_moved H hco hjr (hA.ne hl) ?_⟩
+    hco.1, crashOkW_moved H hco.2.1 hjr hjne ?_, hco.2.2⟩
   by_cases hdd : dir' = dir
   · subst hdd
     left
     have e : nm' = nm := List.append_cancel_left (hia.2.symm.trans hin.2)
     exact ⟨hnm.trans e, hnamed d' hd'⟩
   · right
-    exact moved_other_names hok0 hin hbrk hl hdd
+    have := moved_other_names hok0 hin hbrk hl hdd
+    exact this
 
 /-- **`WalsCreateOk` after the rename** (the claim keeps its names). -/
 theorem walsCreateOk_moved {jr : Ino} {cl : List Claim} {N : NameSet} {h : NamesH} {x st : Nat}
@@ -399,7 +401,8 @@ theorem dirKeysOk_moved {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
       have e : nm' = nm := List.append_cancel_left (hia.2.symm.trans hin.2)
       exact crashOkA_moved_self H hc0 hjr (hnm.trans e) (hnamed d hd)
     · obtain ⟨n1, n2⟩ := moved_other_names hwo hin hbrk hl hdd
-      exact crashOkA_moved_other H hc0 (fun _ h0 => by cases h0) hjr n1 n2 (hA.ne hl)
+      have hjne := hA.ne hl
+      exact crashOkA_moved_other H hc0 (fun _ h0 => by cases h0) hjr n1 n2 hjne
 
 /-- **`WalsAt` after the rename**: the renamed WAL's name holds nothing in the logged claim. -/
 theorem walsAt_moved {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}

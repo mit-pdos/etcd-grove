@@ -125,7 +125,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
-    (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr) :
+    (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr) (hpg : lay.pg = []) :
     DirKeysOk C Mr jr (createSt s dir md) (<[dir := lay]> Ls)
       (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n
       (<[dir := (J, X)]> K) c := by
@@ -192,7 +192,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       rw [GMap.lookup_insert_eq] at hl'
       cases hl'
       rw [hlay.2.2]
-      refine ⟨X, hJ, ⟨hJjr, hX, hnewOnce, hJcoh, hnewEx⟩, by rw [hXt]; exact walTmps_not_broken,
+      refine ⟨X, hJ, ⟨hJjr, hX, hnewOnce, hJcoh, hnewEx⟩, hXt,
         fun c' hc' hne' hcj b hb => ?_⟩
       rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
       · exact (hne' he).elim
@@ -213,6 +213,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       rw [GMap.lookup_insert_eq] at hl'
       simp only [Option.some.injEq] at hl'
       subst hd' hl'
+      rw [hpg, unpurge_nil hpg, walFullD_nil habs.cut.1]
       exact (crashOkA_none_iff _ _ _ _ _ _).2
         (crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hexL hdur htail hold0 hz hgone)
     · simp only [createSt, GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hd'
@@ -243,7 +244,7 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (htw : walNameP tmp = false) (hnw : walNameP nm = false)
     (hlj : lay.j = J) (hX : ∀ b ∈ X, walNameP b = false)
     (hsn : SegsNamed lay.segs hJ.cur) (hJC : SegsNamedC lay.segs hJ.cur)
-    (hJcoh : ClaimCoh hJ J (.except X)) (hJn : ∀ xe ∈ hJ.ents, xe.1 < n) :
+    (hJcoh : ClaimCoh hJ J (.except X)) (hJn : ∀ xe ∈ hJ.ents, xe.1 < n) (hpg : lay.pg = []) :
     WalsNamed (<[dir := lay]> Ls)
       (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n := by
   classical
@@ -265,6 +266,7 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     · obtain ⟨K, hK⟩ := (regionCrashed_iff _ _ _).1 hr
       have hKJ : ∀ xe ∈ hJ.ents, K xe.1 := fun xe hxe =>
         hK.2.1 _ mem_createClaims_J xe.1 xe.2.1 xe.2.2 hxe (hJn xe hxe)
+      rw [hpg, List.nil_append]
       refine segsNamedC_congr_ents (fun b hb => ?_) hJC
       have hbX : (NameSet.except X).Mem b := fun hbX => by rw [hX b hbX] at hb; cases hb
       rw [entsOf_entry, hlj, hK.2.2 _ mem_createClaims_J b hbX]
@@ -497,7 +499,8 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
     (CR : GMap GoString (NameSet × NamesH × Ino)) (jr : Ino) (dir : GoString) (N : NameSet)
     (h : NamesH) (h' : NamesH) (J : Ino) (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG)
     (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J) (hLd : Ls !! dir = none)
-    (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino)
+    (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hpg : lay.pg = [])
+    (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino)
     (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o ==∗
       walParked (L := L) (W := W) (<[dir := lay]> Ls)
@@ -526,9 +529,9 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
   · iapply (segsAll_sep_map (fun x => iprop(if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x))
       _).2
     iapply (BigSepM.bigSepM_insert (Φ := fun (_ : GoString) (lay : WalLay) =>
-      iprop([∗list] x ∈ lay.segs, if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x)) hLd).2
+      iprop([∗list] x ∈ lay.pg ++ lay.segs, if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x)) hLd).2
     isplitr
-    · rw [hsegs]
+    · rw [hpg, hsegs, List.nil_append]
       iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)
         (Φ := fun _ x => iprop(if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x))).2
       rw [if_pos (List.mem_cons_self ..)]
@@ -537,7 +540,7 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
       Ls).1 $$ Hs
     iapply BigSepM.bigSepM_mono (fun {k lay'} hl => ?_) $$ Hs
     iapply BigSepL.bigSepL_mono (fun {i x} hx => ?_)
-    have hx' : x.ino ≠ g.ino := hino x (mem_segsAll hl (List.mem_of_getElem? hx))
+    have hx' : x.ino ≠ g.ino := hino x (mem_segsAll_all hl (List.mem_of_getElem? hx))
     have e : (x.ino ∈ g.ino :: o'.O) ↔ x.ino ∈ o'.O := by
       simp only [List.mem_cons, hx', _root_.false_or]
     simp only [propext e]

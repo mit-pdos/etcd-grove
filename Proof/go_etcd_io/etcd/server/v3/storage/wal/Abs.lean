@@ -87,6 +87,11 @@ structure WalLay where
   /-- Where the frames found at the generation's start end in the last segment (0 for a segment
   this generation created). -/
   z0 : Nat
+  /-- The segments removed (purged) since the last sync of the WAL directory, in name order, just
+  before `first` (unit `locks`, session 7): a crash may bring back any suffix of them, so the crash
+  condition is stated on the layout with them back (`unpurge`), and the invariant keeps their halves
+  (`segsAll` lists them). -/
+  pg : List SegG := []
 
 /-- The history as the encoding layer has it. -/
 def histM (d : WalDur) : WalHist := d.H.map WalOpG.toM
@@ -518,6 +523,19 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   history's length (`cutPos`), which the invariant's step bound bounds (`walStepsLb`). -/
   seqName : ∀ k (g : SegG), lay.segs[k]? = some g → ∃ ix : Nat, g.name = walFileName (lay.first + k) ix
 
+/-- `WalAbsD` does not read the removed segments (`pg`). -/
+theorem WalAbsD.setPg {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (x : List SegG) : WalAbsD C Mr d { lay with pg := x } ents :=
+  ⟨h.names, h.cuts, h.nameBound, h.cut, h.metas, h.intact, h.last, h.synced, h.lastSynced, h.fit,
+    h.tailStop, h.nonempty, h.cutPos, h.seqName⟩
+
+/-- `WalAbsD` reads the read position only through `cut`. -/
+theorem WalAbsD.setCut {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) {c : Nat} (hc : c = segStart lay.cuts lay.first)
+    (hp : 0 < lay.first → c ≤ d.pur) : WalAbsD C Mr { d with cut := c } lay ents :=
+  ⟨h.names, h.cuts, h.nameBound, ⟨hc, hp⟩, h.metas, h.intact, h.last, h.synced, h.lastSynced, h.fit,
+    h.tailStop, h.nonempty, h.cutPos, h.seqName⟩
+
 /-- **The last segment's facts, no resize window open on it.** -/
 theorem WalAbsD.lastEx {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (h : WalAbsD C Mr d lay ents) (hex : TailExact lay) (g : SegG) (hg : lay.segs.getLast? = some g) :
@@ -814,6 +832,63 @@ theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay
         exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm
       exact AsOfW.congr (fun b hb1 hb2 => (hbyte b hb1 hb2).2.symm)
         (fun b hb1 hb2 => (hbyte b hb1 hb2).1.symm) hrz h1
+
+/-! ## The layout as of the last directory sync (unit `locks`, session 7) -/
+
+/-- **The layout as of the last directory sync**: `lay` with the removed-not-durable segments `pg` put
+back in front (nothing removed since: `pg := []`). -/
+def unpurge (pg : List SegG) (lay : WalLay) : WalLay :=
+  { lay with first := lay.first - pg.length, segs := pg ++ lay.segs, pg := [] }
+
+/-- The WAL with its read position at the full layout's first segment. -/
+def walFullD (d : WalDur) (pg : List SegG) (lay : WalLay) : WalDur :=
+  { d with cut := segStart lay.cuts (lay.first - pg.length) }
+
+@[simp] theorem unpurge_cuts (pg : List SegG) (lay : WalLay) : (unpurge pg lay).cuts = lay.cuts := rfl
+@[simp] theorem unpurge_segs (pg : List SegG) (lay : WalLay) : (unpurge pg lay).segs = pg ++ lay.segs := rfl
+@[simp] theorem unpurge_first (pg : List SegG) (lay : WalLay) :
+    (unpurge pg lay).first = lay.first - pg.length := rfl
+@[simp] theorem unpurge_jr (pg : List SegG) (lay : WalLay) : (unpurge pg lay).jr = lay.jr := rfl
+@[simp] theorem unpurge_nm (pg : List SegG) (lay : WalLay) : (unpurge pg lay).nm = lay.nm := rfl
+@[simp] theorem unpurge_j (pg : List SegG) (lay : WalLay) : (unpurge pg lay).j = lay.j := rfl
+@[simp] theorem unpurge_old (pg : List SegG) (lay : WalLay) : (unpurge pg lay).old = lay.old := rfl
+@[simp] theorem unpurge_wr (pg : List SegG) (lay : WalLay) : (unpurge pg lay).wr = lay.wr := rfl
+@[simp] theorem unpurge_so (pg : List SegG) (lay : WalLay) : (unpurge pg lay).so = lay.so := rfl
+@[simp] theorem unpurge_z0 (pg : List SegG) (lay : WalLay) : (unpurge pg lay).z0 = lay.z0 := rfl
+@[simp] theorem unpurge_pg (pg : List SegG) (lay : WalLay) : (unpurge pg lay).pg = [] := rfl
+
+theorem unpurge_nil {lay : WalLay} (h : lay.pg = []) : unpurge [] lay = lay := by
+  cases lay; simp only [unpurge] at h ⊢; subst h; simp
+
+/-- The full layout's last segment is the layout's (it has one). -/
+theorem unpurge_getLast? (pg : List SegG) {lay : WalLay} (hne : lay.segs ≠ []) :
+    (unpurge pg lay).segs.getLast? = lay.segs.getLast? := by
+  simp only [unpurge_segs]
+  rw [List.getLast?_append]
+  cases h' : lay.segs.getLast? with
+  | none => exact absurd (List.getLast?_eq_none_iff.1 h') hne
+  | some _ => simp
+
+@[simp] theorem walFullD_H (d : WalDur) (pg : List SegG) (lay : WalLay) : (walFullD d pg lay).H = d.H := rfl
+@[simp] theorem walFullD_m (d : WalDur) (pg : List SegG) (lay : WalLay) : (walFullD d pg lay).m = d.m := rfl
+@[simp] theorem walFullD_pur (d : WalDur) (pg : List SegG) (lay : WalLay) :
+    (walFullD d pg lay).pur = d.pur := rfl
+@[simp] theorem walFullD_unl (d : WalDur) (pg : List SegG) (lay : WalLay) :
+    (walFullD d pg lay).unl = d.unl := rfl
+@[simp] theorem walFullD_metadata (d : WalDur) (pg : List SegG) (lay : WalLay) :
+    (walFullD d pg lay).metadata = d.metadata := rfl
+@[simp] theorem walFullD_named (d : WalDur) (pg : List SegG) (lay : WalLay) :
+    (walFullD d pg lay).named = d.named := rfl
+@[simp] theorem walFullD_sized (d : WalDur) (pg : List SegG) (lay : WalLay) :
+    (walFullD d pg lay).sized = d.sized := rfl
+
+theorem walFullD_nil {d : WalDur} {lay : WalLay} (h : d.cut = segStart lay.cuts lay.first) :
+    walFullD d [] lay = d := by
+  cases d; simp only [walFullD, List.length_nil, Nat.sub_zero] at h ⊢; rw [h]
+
+/-- The crash does not read the read position. -/
+theorem walCrash_walFullD (d : WalDur) (pg : List SegG) (lay : WalLay) (o : Option WalDur) :
+    walCrash (walFullD d pg lay) o ↔ walCrash d o := Iff.rfl
 
 /-! ## The crash condition -/
 

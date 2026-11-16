@@ -167,22 +167,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- The segments' parts, layout by layout. -/
 theorem laysResF_map (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) :
-    laysResF (L := L) F Ls ⊣⊢ [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.segs, segResF (L := L) F g := by
+    laysResF (L := L) F Ls ⊣⊢
+      [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g := by
   unfold laysResF segsAll
   rw [BigSepL.bigSepL_flatMap (PROP := IProp GF)]
   exact (BigSepM.bigSepM_toList (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] g ∈ lay.segs, segResF (L := L) F g)) (m := Ls)).symm
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g)) (m := Ls)).symm
 
-/-- **One more layout's segments.** -/
+/-- **One more layout's segments** (nothing removed from it). -/
 theorem laysResF_insert (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoString)
-    (lay : WalLay) (hd : Ls !! dir = none) :
+    (lay : WalLay) (hd : Ls !! dir = none) (hpg : lay.pg = []) :
     ([∗list] g ∈ lay.segs, segResF (L := L) F g) ∗ laysResF (L := L) F Ls ⊢
       laysResF (L := L) F (<[dir := lay]> Ls) := by
   iintro ⟨Hs, Hl⟩
   iapply (laysResF_map (L := L) F _).2
   ihave Hl := (laysResF_map (L := L) F Ls).1 $$ Hl
   iapply (BigSepM.bigSepM_insert (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] g ∈ lay.segs, segResF (L := L) F g)) hd).2
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g)) hd).2
+  rw [hpg, List.nil_append]
   iframe Hs Hl
 
 /-- **The segments' parts with the writes in flight changed off them.** -/

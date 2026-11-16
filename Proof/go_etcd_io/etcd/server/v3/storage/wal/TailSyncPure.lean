@@ -187,16 +187,17 @@ theorem walsOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     (hs : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hex : SegExact g0)
-    (hok : CrashOk C Mr d lay cl n) :
+    (hok : CrashOk C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n) :
     WalsOk C Mr R jr (walSyncS s dir d) (<[dir := syncLay lay pre g0]> Ls) cl n := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hW
   have hsub : ∀ dir' lay', (<[dir := syncLay lay pre g0]> Ls) !! dir' = some lay' →
-      ∃ lay1, Ls !! dir' = some lay1 ∧ (lay'.segs.map (·.ino)).Sublist (lay1.segs.map (·.ino)) := by
+      ∃ lay1, Ls !! dir' = some lay1 ∧
+        ((lay'.pg ++ lay'.segs).map (·.ino)).Sublist ((lay1.pg ++ lay1.segs).map (·.ino)) := by
     intro dir' lay' h
     by_cases e : dir' = dir
     · subst e
       rw [GMap.lookup_insert] at h; cases h
-      exact ⟨lay, hl, by rw [syncLay_inos lay pre g0 hs]; exact List.Sublist.refl _⟩
+      exact ⟨lay, hl, sub_pg rfl (by rw [syncLay_inos lay pre g0 hs]; exact List.Sublist.refl _)⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h
       exact ⟨lay', h, List.Sublist.refl _⟩
   refine ⟨fun dir' d' hd' => ?_, fun dir' hn => ?_, segsAll_nodup_sub h3 hsub, fun g' hg' => ?_,
@@ -204,14 +205,23 @@ theorem walsOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
   · by_cases e : dir' = dir
     · subst e
       rw [walSyncS_lookup] at hd'; cases hd'
-      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, -⟩ := h1 dir' d hd
+      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, hcr⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
-      rw [e] at hjr hnm hc habs
-      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
-      exact ⟨syncLay lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
-        walAbsD_sync habs hs hex htail,
-        ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
-          (crashOk_sync hC habs hs htail hZ hnd hzf hex hok)⟩⟩
+      rw [e] at hjr hnm hc habs hcr
+      obtain ⟨⟨e0, hF⟩, -, hz⟩ := hcr
+      have hzS : SegsZf (lay.pg ++ (syncLay lay pre g0).segs.dropLast) := by
+        have e : (syncLay lay pre g0).segs.dropLast = lay.segs.dropLast := by simp [syncLay, hs]
+        rw [e]; exact hz
+      have hnd := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
+      have hsF : (unpurge lay.pg lay).segs = (lay.pg ++ pre) ++ [g0] := by simp [hs]
+      refine ⟨syncLay lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
+        walAbsD_sync habs hs hex htail, ?_⟩
+      unfold WalFullOk
+      simp only [syncLay_pg]
+      rw [← syncLay_unpurge]
+      exact ⟨⟨e0, walAbsD_sync (d := walFullD d lay.pg lay) hF hsF hex htail⟩, ⟨none, (fun _ h => nomatch h),
+        (crashOkA_none_iff _ _ _ _ _ _).2
+          (crashOk_sync (d := walFullD d lay.pg lay) hC hF hsF htail hZ hnd hzf hex hok)⟩, hzS⟩
     · rw [walSyncS_lookup_ne s dir d e] at hd'
       obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
@@ -223,11 +233,12 @@ theorem walsOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     · subst e
       rw [GMap.lookup_insert] at hl'; cases hl'
       simp only [syncLay, List.mem_append, List.mem_singleton] at hg''
-      rcases hg'' with hg'' | rfl
+      rcases hg'' with hg'' | hg'' | rfl
+      · exact h4 g' (mem_segsAll_pg hl hg'')
       · exact h4 g' (mem_segsAll hl (by rw [hs]; exact List.mem_append_left _ hg''))
       · exact h4 g0 (mem_segsAll hl (by rw [hs]; simp))
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-      exact h4 g' (mem_segsAll hl' hg'')
+      exact h4 g' (mem_segsAll_all hl' hg'')
   · have e : dir' ≠ dir := by rintro rfl; rw [walSyncS_lookup] at hn; cases hn
     rw [walSyncS_lookup_ne s dir d e] at hn
     exact h5 dir' nm hin hn
@@ -254,12 +265,14 @@ theorem dirKeysOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
     · subst e
       rw [GMap.lookup_insert] at hl'; cases hl'
       rw [walSyncS_lookup] at hd'; cases hd'
-      obtain ⟨lay1, nm1, hj1, hl1, -, -, -, -, habs, -⟩ := hW.1 dir' d hd
+      obtain ⟨lay1, nm1, hj1, hl1, -, -, -, -, habs, ⟨⟨e0, hF⟩, -⟩⟩ := hW.1 dir' d hd
       rw [hl] at hl1; cases hl1
-      have hnd : (lay.segs.map (·.ino)).Nodup :=
-        ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+      have hnd := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
       have hok := (crashOkA_none_iff _ _ _ _ _ _).1 (h2 dir' d lay hd hl (by simp))
-      exact (crashOkA_none_iff _ _ _ _ _ _).2 (crashOk_sync hC habs hs htail hZ hnd hzf hex hok)
+      simp only [syncLay_pg]
+      rw [← syncLay_unpurge]
+      exact (crashOkA_none_iff _ _ _ _ _ _).2
+        (crashOk_sync (d := walFullD d lay.pg lay) hC hF (by simp [hs]) htail hZ hnd hzf hex hok)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
       rw [walSyncS_lookup_ne s dir d e] at hd'
       exact h2 dir' d' lay' hd' hl' hc
@@ -279,7 +292,7 @@ with the last replaced by one of the same name and inode. -/
 theorem walsNamed_relay {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
     {lay lay' : WalLay} {pre : List SegG} {g0 g : SegG} (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0]) (hs' : lay'.segs = pre ++ [g]) (hj : lay'.j = lay.j)
-    (hname : g.name = g0.name) (hino : g.ino = g0.ino)
+    (hname : g.name = g0.name) (hino : g.ino = g0.ino) (hpg : lay'.pg = lay.pg)
     (h : WalsNamed Ls cl n) : WalsNamed (<[dir := lay']> Ls) cl n := by
   intro dir' l hl'
   by_cases e : dir' = dir
@@ -298,10 +311,25 @@ theorem walsNamed_relay {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} 
       rcases hy with hy | rfl
       · exact ⟨y, by simp [hy], rfl⟩
       · exact ⟨g, by simp, hino⟩
+    have hsubP : ∀ x ∈ lay'.pg ++ lay'.segs, ∃ y ∈ lay.pg ++ lay.segs,
+        y.name = x.name ∧ y.ino = x.ino := by
+      intro x hx
+      rw [hpg] at hx
+      rcases List.mem_append.1 hx with hx | hx
+      · exact ⟨x, List.mem_append_left _ hx, rfl, rfl⟩
+      · obtain ⟨y, hy, e1, e2⟩ := hsub x hx
+        exact ⟨y, List.mem_append_right _ hy, e1, e2⟩
+    have hsubP' : ∀ y ∈ lay.pg ++ lay.segs, ∃ x ∈ lay'.pg ++ lay'.segs, x.ino = y.ino := by
+      intro y hy
+      rw [hpg]
+      rcases List.mem_append.1 hy with hy | hy
+      · exact ⟨y, List.mem_append_left _ hy, rfl⟩
+      · obtain ⟨x, hx, e⟩ := hsub' y hy
+        exact ⟨x, List.mem_append_right _ hx, e⟩
     obtain ⟨h1, h2⟩ := h dir' lay hl
     rw [hj]
     exact ⟨fun hj' hw => segsNamed_congr hsub (h1 hj' hw),
-      fun m' hr => segsNamedC_congr hsub hsub' (h2 m' hr)⟩
+      fun m' hr => segsNamedC_congr hsubP hsubP' (h2 m' hr)⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
     exact h dir' l hl'
 

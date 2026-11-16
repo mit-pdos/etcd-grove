@@ -80,9 +80,22 @@ theorem walsNamed_tail {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {
       rcases hy with hy | rfl
       · exact ⟨y, Or.inl hy, rfl⟩
       · exact ⟨g, Or.inr rfl, hino⟩
+    have hsubP : ∀ x ∈ lay.pg ++ (tailLay lay pre g wr').segs, ∃ y ∈ lay.pg ++ lay.segs,
+        y.name = x.name ∧ y.ino = x.ino := by
+      intro x hx
+      rcases List.mem_append.1 hx with hx | hx
+      · exact ⟨x, List.mem_append_left _ hx, rfl, rfl⟩
+      · obtain ⟨y, hy, e1, e2⟩ := hsub x hx
+        exact ⟨y, List.mem_append_right _ hy, e1, e2⟩
+    have hsubP' : ∀ y ∈ lay.pg ++ lay.segs, ∃ x ∈ lay.pg ++ (tailLay lay pre g wr').segs, x.ino = y.ino := by
+      intro y hy
+      rcases List.mem_append.1 hy with hy | hy
+      · exact ⟨y, List.mem_append_left _ hy, rfl⟩
+      · obtain ⟨x, hx, e⟩ := hsub' y hy
+        exact ⟨x, List.mem_append_right _ hx, e⟩
     obtain ⟨h1, h2⟩ := h dir' lay hl
     exact ⟨fun hj hw => segsNamed_congr hsub (h1 hj hw),
-      fun m' hr => segsNamedC_congr hsub hsub' (h2 m' hr)⟩
+      fun m' hr => segsNamedC_congr hsubP hsubP' (h2 m' hr)⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
     exact h dir' lay' hl'
 
@@ -112,7 +125,7 @@ theorem dirKeysOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
     {K : GMap GoString (Ino × List GoString)} {c : Option GoString} {dir : GoString}
     {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
-    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hname : g.name = g0.name)
     (hlen : g.bs.length = g0.bs.length) (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
     (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents)
@@ -131,10 +144,14 @@ theorem dirKeysOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
       rw [hd] at hd'; cases hd'
       obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hcl, habs, hcr⟩ := hW.1 dir' d hd
       rw [hl] at hl1; cases hl1
-      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
-      have hnd' : ((tailLay lay pre g wr').segs.map (·.ino)).Nodup := by
-        rw [hs] at hnd; simpa [tailLay, hino] using hnd
-      exact crashOkA_tail hC habs (habs' _ habs) hZ hB hnd' hs rfl hino rfl rfl rfl rfl rfl hlen hzf
+      obtain ⟨⟨e0, hF⟩, -⟩ := hcr
+      have hnd := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+      have hF' := walAbsD_full_tail habs hF (habs' _ habs) hs hino hname hnd rfl rfl (Nat.le_refl _)
+      have hnd' : (((lay.pg ++ pre) ++ [g]).map (·.ino)).Nodup := by
+        rw [hs] at hnd; simpa [hino] using hnd
+      simp only [tailLay_pg]
+      rw [← tailLay_unpurge] at hF' ⊢
+      exact crashOkA_tail hC hF hF' hZ hB hnd' (by simp [hs]) rfl hino rfl rfl rfl rfl rfl hlen hzf
         (fun la h => by cases h) (h2 dir' d lay hd hl hc)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
       exact h2 dir' d' lay' hd' hl' hc
@@ -177,23 +194,62 @@ theorem walTailKey_lookup (T : GMap GoString GName) (dir : GoString) (γ : GName
   unfold walTailsAuth walTailKey
   exact ghost_map_lookup
 
-/-- The segments' parts, the layout of `dir` apart. -/
+/-- The segments' parts, the named segments of the layout of `dir` apart (its removed ones, `pg`, stay
+in the rest: `laysResF_put` puts them back with new named segments). -/
 theorem laysResF_del (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
     (hl : Ls !! dir = some lay) :
     laysResF (L := L) F Ls ⊣⊢ ([∗list] g ∈ lay.segs, segResF (L := L) F g) ∗
-      laysResF (L := L) F (Iris.Std.delete Ls dir) := by
-  refine (laysResF_map (L := L) F Ls).trans ?_
-  refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] g ∈ lay.segs, segResF (L := L) F g)) hl).trans ?_
-  exact sep_congr .rfl (laysResF_map (L := L) F _).symm
+      laysResF (L := L) F (<[dir := { lay with segs := [] }]> Ls) := by
+  constructor
+  · iintro Hl
+    ihave Hl := (laysResF_map (L := L) F Ls).1 $$ Hl
+    icases (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g)) hl).1 $$ Hl with ⟨Hs, Hl⟩
+    icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hp, Hs⟩
+    iframe Hs
+    iapply (laysResF_map (L := L) F _).2
+    iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).2
+    simp only [List.append_nil]
+    iframe Hp Hl
+  · iintro ⟨Hs, Hl⟩
+    ihave Hl := (laysResF_map (L := L) F _).1 $$ Hl
+    icases (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).1 $$ Hl with ⟨Hp, Hl⟩
+    iapply (laysResF_map (L := L) F Ls).2
+    iapply (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+      iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g)) hl).2
+    iframe Hl
+    iapply BigSepL.bigSepL_append.2
+    simp only [List.append_nil]
+    iframe Hs Hp
+
+/-- **The layout of `dir` put back** with new named segments (its removed ones unchanged). -/
+theorem laysResF_put (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
+    (hpg : lay'.pg = lay.pg) :
+    ([∗list] g ∈ lay'.segs, segResF (L := L) F g) ∗
+      laysResF (L := L) F (<[dir := { lay with segs := [] }]> Ls) ⊢
+      laysResF (L := L) F (<[dir := lay']> Ls) := by
+  iintro ⟨Hs, Hl⟩
+  ihave Hl := (laysResF_map (L := L) F _).1 $$ Hl
+  iapply (laysResF_map (L := L) F _).2
+  icases (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).1 $$ Hl with ⟨Hp, Hl⟩
+  iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, segResF (L := L) F g))).2
+  iframe Hl
+  iapply BigSepL.bigSepL_append.2
+  simp only [List.append_nil, hpg]
+  iframe Hs
+  iexact Hp
 
 /-- The segments of every layout, layout by layout (any `Φ`). -/
 theorem segsAll_sep_map (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) :
-    ([∗list] g ∈ segsAll Ls, Φ g) ⊣⊢ [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.segs, Φ g := by
+    ([∗list] g ∈ segsAll Ls, Φ g) ⊣⊢ [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.pg ++ lay.segs, Φ g := by
   unfold segsAll
   rw [BigSepL.bigSepL_flatMap (PROP := IProp GF)]
   exact (BigSepM.bigSepM_toList (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] g ∈ lay.segs, Φ g)) (m := Ls)).symm
+    iprop([∗list] g ∈ lay.pg ++ lay.segs, Φ g)) (m := Ls)).symm
 
 /-- **A resource per segment, with a tail replaced** (`Φ g0 ⊢ Φ g`). -/
 theorem segsAll_sep_tail (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (dir : GoString)
@@ -203,13 +259,13 @@ theorem segsAll_sep_tail (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (d
       [∗list] x ∈ segsAll (<[dir := tailLay lay pre g wr']> Ls), Φ x := by
   refine (segsAll_sep_map Φ Ls).1.trans ?_
   refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] x ∈ lay.segs, Φ x)) hl).1.trans ?_
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x)) hl).1.trans ?_
   refine Entails.trans ?_ (segsAll_sep_map Φ _).2
   refine Entails.trans ?_ (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-    iprop([∗list] x ∈ lay.segs, Φ x))).2
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x))).2
   refine sep_mono ?_ .rfl
   simp only [tailLay]
-  rw [hs]
+  rw [hs, ← List.append_assoc, ← List.append_assoc]
   refine (BigSepL.bigSepL_append (PROP := IProp GF)).1.trans ?_
   refine Entails.trans ?_ (BigSepL.bigSepL_append (PROP := IProp GF)).2
   refine sep_mono .rfl ?_
@@ -347,16 +403,21 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   -- the other segments' parts, unchanged
   have hpre_ne : ∀ g' ∈ pre, g'.ino ≠ g0.ino := by
     intro g' hg' he
-    have h := hnd.1 dir lay hl
+    have h := segsAll_nodup_segs hW3 hl
     rw [hs, List.map_append, List.nodup_append] at h
     exact h.2.2 g'.ino (List.mem_map_of_mem hg') g0.ino (by simp) he
-  have hrest_ne : ∀ g' ∈ segsAll (Iris.Std.delete Ls dir), g'.ino ≠ g0.ino := by
+  have hrest_ne : ∀ g' ∈ segsAll (<[dir := { lay with segs := [] }]> Ls), g'.ino ≠ g0.ino := by
     intro g' hg' he
     obtain ⟨dir', lay', hl', hg''⟩ := segsAll_mem hg'
-    change GMap.delete dir Ls !! dir' = some lay' at hl'
-    have hne : dir' ≠ dir := by rintro rfl; rw [GMap.lookup_delete_eq] at hl'; cases hl'
-    have hl'' : Ls !! dir' = some lay' := by rwa [GMap.lookup_delete_ne _ (Ne.symm hne)] at hl'
-    exact hnd.2 dir' dir lay' lay hne hl'' hl g' hg'' g0 hg0m he
+    by_cases hne : dir' = dir
+    · subst hne
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      simp only [List.append_nil] at hg''
+      have h := hnd.1 dir' lay hl
+      rw [List.map_append, List.nodup_append] at h
+      exact h.2.2 g'.ino (List.mem_map_of_mem hg'') g0.ino (List.mem_map_of_mem hg0m) he
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)] at hl'
+      exact hnd.2 dir' dir lay' lay hne hl' hl g' hg'' g0 (List.mem_append_right _ hg0m) he
   ihave Hrest := laysResF_congr (L := L) F F' _ (fun g' hg' => hF' _ (hrest_ne g' hg')) $$ Hrest
   ihave Hpre : [∗list] g' ∈ pre, segResF (L := L) F' g' $$ [Hpre]
   · iapply BigSepL.bigSepL_mono (fun {k g'} hk => ?_) $$ Hpre
@@ -367,19 +428,16 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   isplitr
   · ipureintro; exact Har
   isplitl [Hpre Hseg Hrest]
-  · iapply (laysResF_map (L := L) F' _).2
-    iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
-      iprop([∗list] g ∈ lay.segs, segResF (L := L) F' g))).2
-    isplitl [Hpre Hseg]
-    · simp only [tailLay]
-      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-      iframe Hpre
-      iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
-      iexact Hseg
-    · iapply (laysResF_map (L := L) F' _).1 $$ Hrest
+  · iapply laysResF_put (L := L) F' Ls dir lay (tailLay lay pre g wr') rfl
+    iframe Hrest
+    simp only [tailLay]
+    iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+    iframe Hpre
+    iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+    iexact Hseg
   isplitr
   · ipureintro
-    exact walsOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hcut hlen hzf hZ hB habs'
+    exact walsOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hname hcut hlen hzf hZ hB habs'
   isplitr
   · ipureintro; exact HWC
   isplitl [HTa HTm Hvn HL]
@@ -413,7 +471,8 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       obtain ⟨hd', hl', hg', hZ', hB'⟩ := hp'
       have hg'm : g' ∈ lay'.segs := List.mem_of_getLast? hg'
       have he : F' !! g'.ino = F !! g'.ino :=
-        hF' _ (hnd.2 k dir lay' lay hne hl' hl g' hg'm g0 hg0m)
+        hF' _ (hnd.2 k dir lay' lay hne hl' hl g' (List.mem_append_right _ hg'm) g0
+          (List.mem_append_right _ hg0m))
       iexists d', lay', g'
       rw [he]
       iframe Hv''
@@ -429,7 +488,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   · iexists K, cp
     iframe Hdk Hcp
     ipureintro
-    exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hlen hzf hZ hB habs' Hdko
+    exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hname hlen hzf hZ hB habs' Hdko
   isplitr
   · ipureintro
     exact walsAt_insert hl rfl rfl HAt

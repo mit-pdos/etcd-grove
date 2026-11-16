@@ -98,7 +98,7 @@ theorem walInvBody_pinIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     mem_segsAll hl (List.mem_of_mem_drop hg)
   have hnd : ((lay.segs.drop (k lay)).map (·.ino)).Nodup := by
     rw [List.map_drop]
-    exact (((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl).sublist (List.drop_sublist _ _)
+    exact (segsAll_nodup_segs HW.2.2.1 hl).sublist (List.drop_sublist _ _)
   imod walParked_takeSegs (L := L) (W := W) Ls cl ∅ WalOut.empty (lay.segs.drop (k lay)) hS
     (fun _ _ h => by cases h) hnd $$ Hpk Ho with ⟨Hpk, Ho, HS, -⟩
   imod walParked_takeClaim (L := L) (W := W) Ls cl ∅ _ (lay.j, .except X, hj) hcX
@@ -118,7 +118,7 @@ theorem walInvBody_pinIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur := by
     rw [hnm]
     exact ⟨hA, hjr, hX, hcoh, habs, hidle dir d lay hd hl,
-      ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl, (HNm dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩⟩
+      segsAll_nodup_segs HW.2.2.1 hl, (HNm dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩⟩
   imodintro
   iexists lay, X, hj
   iframe HS Hnm Hl Htf Hnf Hkey

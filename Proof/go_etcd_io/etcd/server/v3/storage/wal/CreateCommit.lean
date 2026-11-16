@@ -523,7 +523,7 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
     (hnd : (lay.segs.map (·.ino)).Nodup)
     (hdisj : ∀ g ∈ lay.segs, ∀ g' ∈ segsAll Ls, g.ino ≠ g'.ino)
-    (hcut : ∀ g ∈ lay.segs, g.om.cut = none)
+    (hcut : ∀ g ∈ lay.segs, g.om.cut = none) (hpg : lay.pg = [])
     (hav : DirsAvoid R jr s) (htmpS : AreaSlot tmp) :
     WalsOk C Mr R jr (createSt s dir md) (<[dir := lay]> Ls)
       (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n ∧
@@ -546,7 +546,15 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       subst hd'
       refine ⟨lay, nm, hJ, GMap.lookup_insert_eq .., hin, hlay.1, hlay.2.1,
         ⟨X, hX, hlay.2.2 ▸ mem_createClaims_J, hlay.2.2 ▸ hJcoh⟩, habs,
-        crashOkW_of_crashOk ?_⟩
+        walFullOk_of_nil hpg habs ?_ (crashOkW_of_crashOk ?_)⟩
+      · -- a fresh WAL has one segment: none before the last
+        intro g' hg'
+        have h1 := habs.cuts_le
+        have h2 := habs.cuts.2.2
+        have hH : (walDurFresh md).H.length = 0 := by simp [walDurFresh]
+        have := List.length_pos_of_mem hg'
+        rw [List.length_dropLast] at this
+        omega
       exact crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hex hdur htail hold0 hz hgone
     · simp only [createSt, GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hd'
       obtain ⟨lay', nm', hj', hL', hin', hjr', hnm', hW, habs', hco'⟩ := h1 dir' d' hd'
@@ -555,8 +563,8 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
         (Nat.le_trans hs hsx) htw hnw
       refine ⟨lay', nm', hj'', by rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hL', hin',
         hjr', hnm', hW', habs'', ?_⟩
-      exact crashOkW_create_other hco' hjr' (hnm' ▸ inArea_ne hin hin' hdd)
-        (hnm' ▸ not_inArea_tmp hin' htmp) hc hcoh hs hne hnmN htmpN hcnm' hctmp hothers htw hnw
+      exact ⟨hco'.1, crashOkW_create_other hco'.2.1 hjr' (hnm' ▸ inArea_ne hin hin' hdd)
+        (hnm' ▸ not_inArea_tmp hin' htmp) hc hcoh hs hne hnmN htmpN hcnm' hctmp hothers htw hnw, hco'.2.2⟩
   · have hdd : dir' ≠ dir := by
       rintro rfl; simp [createSt, GMap.lookup_insert_eq] at hn'
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]
@@ -566,25 +574,28 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
   · obtain ⟨n1, n2⟩ := (segsAll_nodup_iff Ls).1 h3
     refine (segsAll_nodup_iff _).2 ⟨fun dir' lay' hl => ?_, fun d1 d2 l1 l2 hne' hl1 hl2 => ?_⟩
     · by_cases hdd : dir' = dir
-      · subst hdd; rw [GMap.lookup_insert_eq] at hl; cases hl; exact hnd
+      · subst hdd; rw [GMap.lookup_insert_eq] at hl; cases hl; rw [hpg, List.nil_append]; exact hnd
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl; exact n1 dir' lay' hl
     · by_cases e1 : d1 = dir
       · subst e1
         rw [GMap.lookup_insert_eq] at hl1; cases hl1
         rw [GMap.lookup_insert_ne _ _ hne'] at hl2
-        exact fun g hg g' hg' => hdisj g hg g' (mem_segsAll hl2 hg')
+        rw [hpg, List.nil_append]
+        exact fun g hg g' hg' => hdisj g hg g' (mem_segsAll_all hl2 hg')
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm e1)] at hl1
         by_cases e2 : d2 = dir
         · subst e2
           rw [GMap.lookup_insert_eq] at hl2; cases hl2
-          exact fun g hg g' hg' => (hdisj g' hg' g (mem_segsAll hl1 hg)).symm
+          rw [hpg, List.nil_append]
+          exact fun g hg g' hg' => (hdisj g' hg' g (mem_segsAll_all hl1 hg)).symm
         · rw [GMap.lookup_insert_ne _ _ (Ne.symm e2)] at hl2
           exact n2 d1 d2 l1 l2 hne' hl1 hl2
   · intro g hg
     obtain ⟨dir', lay', hl, hg'⟩ := segsAll_mem hg
     by_cases hdd : dir' = dir
-    · subst hdd; rw [GMap.lookup_insert_eq] at hl; cases hl; exact hcut g hg'
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl; exact h4 g (mem_segsAll hl hg')
+    · subst hdd; rw [GMap.lookup_insert_eq] at hl; cases hl
+      rw [hpg, List.nil_append] at hg'; exact hcut g hg'
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl; exact h4 g (mem_segsAll_all hl hg')
 
 end pure
 

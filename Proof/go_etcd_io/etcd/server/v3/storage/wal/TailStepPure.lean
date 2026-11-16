@@ -38,6 +38,35 @@ variable [GooseExts]
 def tailLay (lay : WalLay) (pre : List SegG) (g : SegG) (wr : Nat) : WalLay :=
   { lay with segs := pre ++ [g], wr := wr }
 
+/-- A tail step of the full layout is the full layout of the tail step. -/
+theorem tailLay_unpurge (pg : List SegG) (lay : WalLay) (pre : List SegG) (g : SegG) (wr : Nat) :
+    tailLay (unpurge pg lay) (pg ++ pre) g wr = unpurge pg (tailLay lay pre g wr) := by
+  simp [tailLay, unpurge, List.append_assoc]
+
+@[simp] theorem tailLay_pg (lay : WalLay) (pre : List SegG) (g : SegG) (wr : Nat) :
+    (tailLay lay pre g wr).pg = lay.pg := rfl
+
+/-- **The full layout's relation after a tail step** (the last segment replaced by one of the same inode
+and name; the history and the cuts kept). -/
+theorem walAbsD_full_tail {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : WalLay}
+    {pre : List SegG} {g0 g : SegG} {wr' : Nat} {e e' e0 : Ents}
+    (habs : WalAbsD C Mr d lay e)
+    (hF : WalAbsD C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) e0)
+    (habs' : WalAbsD C Mr d' (tailLay lay pre g wr') e')
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hname : g.name = g0.name)
+    (hnd : ((lay.pg ++ lay.segs).map (·.ino)).Nodup)
+    (hH : d'.H = d.H) (hmd : d'.metadata = d.metadata) (hpur : d.pur ≤ d'.pur) :
+    WalAbsD C Mr (walFullD d' lay.pg (tailLay lay pre g wr')) (unpurge lay.pg (tailLay lay pre g wr'))
+      e0 :=
+  walAbsD_full_same habs hF habs' rfl rfl rfl hnd hH hmd hpur
+    (fun b hb => by
+      simp only [tailLay, List.mem_append, List.mem_singleton] at hb
+      rcases hb with hb | rfl
+      · exact ⟨b, by rw [hs]; exact List.mem_append_left _ hb, Or.inl rfl⟩
+      · exact ⟨g0, by rw [hs]; simp, Or.inl hname.symm⟩)
+    (by rw [hF.names.1]; simp [tailLay, hs, hino])
+
+
 /-- **The tail `g0` as the first step of a write of `data` at `off` announces it** (`SegFl.Ok`). -/
 def segAnn (g0 : SegG) (off : Nat) (data : List w8) (n : Nat) : SegG :=
   { g0 with om := cfMeta g0.om off data.length,
@@ -484,24 +513,46 @@ theorem crashOkW_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     rw [hs, List.map_append, List.nodup_append] at hnd
     exact hnd.2.2 g'.ino (List.mem_map_of_mem hg'p) g0.ino (by simp) (by rw [he, hino])
 
+/-- **The full layout's condition after a tail step** (`crashOkW_tail` on the full layout). -/
+theorem walFullOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents ents' : Ents} {pre : List SegG} {g0 g : SegG} {wr' : Nat} {cl : List Claim} {n : Nat}
+    (habs : WalAbsD C Mr d lay ents) (habs' : WalAbsD C Mr d (tailLay lay pre g wr') ents')
+    (hZ : TailZeros lay) (hB : TailBound C Mr d lay) (hnd : ((lay.pg ++ lay.segs).map (·.ino)).Nodup)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hname : g.name = g0.name)
+    (hlen : g.bs.length = g0.bs.length)
+    (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
+    (hok : WalFullOk C Mr d lay cl n) : WalFullOk C Mr d (tailLay lay pre g wr') cl n := by
+  obtain ⟨⟨e0, hF⟩, hcr, hz⟩ := hok
+  have hF' := walAbsD_full_tail habs hF habs' hs hino hname hnd rfl rfl (Nat.le_refl _)
+  unfold WalFullOk
+  simp only [tailLay_pg]
+  refine ⟨⟨e0, hF'⟩, ?_, by
+    have e : (tailLay lay pre g wr').segs.dropLast = lay.segs.dropLast := by
+      simp [tailLay, hs]
+    rw [e]; exact hz⟩
+  rw [← tailLay_unpurge] at hF' ⊢
+  exact crashOkW_tail hC hF hF' hZ hB hnd (by simp [hs]) hino hlen hzf hcr
+
 /-- **`WalsOk` with a WAL's layout replaced by a tail step's** (see the file header). -/
 theorem walsOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
     {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
     {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
-    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hcut : g.om.cut = none)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hname : g.name = g0.name)
+    (hcut : g.om.cut = none)
     (hlen : g.bs.length = g0.bs.length) (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
     (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents) :
     WalsOk C Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl n := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hW
   have hsub : ∀ dir' lay', (<[dir := tailLay lay pre g wr']> Ls) !! dir' = some lay' →
-      ∃ lay1, Ls !! dir' = some lay1 ∧ (lay'.segs.map (·.ino)).Sublist (lay1.segs.map (·.ino)) := by
+      ∃ lay1, Ls !! dir' = some lay1 ∧
+        ((lay'.pg ++ lay'.segs).map (·.ino)).Sublist ((lay1.pg ++ lay1.segs).map (·.ino)) := by
     intro dir' lay' h
     by_cases e : dir' = dir
     · subst e
       rw [GMap.lookup_insert] at h; cases h
-      refine ⟨lay, hl, ?_⟩
+      refine ⟨lay, hl, sub_pg rfl ?_⟩
       rw [hs]; simp [tailLay, hino]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h
       exact ⟨lay', h, List.Sublist.refl _⟩
@@ -512,9 +563,9 @@ theorem walsOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
       obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, hcr⟩ := h1 dir' d hd
       have e : lay1 = lay := by rw [hl] at hl1; exact (Option.some.inj hl1).symm
       rw [e] at hjr hnm hc habs hcr
-      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
+      have hnd := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
       exact ⟨tailLay lay pre g wr', nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc, habs' _ habs,
-        crashOkW_tail hC habs (habs' _ habs) hZ hB hnd hs hino hlen hzf hcr⟩
+        walFullOk_tail hC habs (habs' _ habs) hZ hB hnd hs hino hname hlen hzf hcr⟩
     · obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
   · have e : dir' ≠ dir := by rintro rfl; rw [hd] at hn; cases hn
@@ -524,11 +575,12 @@ theorem walsOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     · subst e
       rw [GMap.lookup_insert] at hl'; cases hl'
       simp only [tailLay, List.mem_append, List.mem_singleton] at hg''
-      rcases hg'' with hg'' | rfl
+      rcases hg'' with hg'' | hg'' | rfl
+      · exact h4 g' (mem_segsAll_pg hl hg'')
       · exact h4 g' (mem_segsAll hl (by rw [hs]; exact List.mem_append_left _ hg''))
       · exact hcut
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-      exact h4 g' (mem_segsAll hl' hg'')
+      exact h4 g' (mem_segsAll_all hl' hg'')
 
 end pure
 

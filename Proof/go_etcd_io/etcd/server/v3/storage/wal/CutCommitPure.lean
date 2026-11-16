@@ -244,6 +244,46 @@ theorem walInos_insert_last {E : Ents} {bt : GoString} {i : Ino} (hbt : walNameP
 
 /-! ## Crashes of the claims after the commit -/
 
+/-- **Entries listing given segments** (unit `locks`, session 7): segments with increasing `.wal` names
+are the `.wal` files of a directory (the full layout's entries, `WalFullOk`). -/
+theorem walInos_realize (segs : List SegG) (hp : (segs.map (·.name)).Pairwise go.GoStringLt)
+    (hw : ∀ g ∈ segs, walNameP g.name = true) :
+    ∃ E : Ents, walInos E = segs.map (·.ino) ∧ ∀ b e, E !! b = some e → ∃ g ∈ segs, g.name = b := by
+  suffices H : ∀ r : List SegG, (r.reverse.map (·.name)).Pairwise go.GoStringLt →
+      (∀ g ∈ r.reverse, walNameP g.name = true) →
+      ∃ E : Ents, walInos E = r.reverse.map (·.ino) ∧ ∀ b e, E !! b = some e → ∃ g ∈ r.reverse, g.name = b by
+    have := H segs.reverse (by simpa using hp) (by simpa using hw)
+    simpa using this
+  intro r
+  induction r with
+  | nil =>
+    intro _ _
+    refine ⟨∅, ?_, fun b e h => by simp at h⟩
+    simp [walInos, walNames, GMap.toList_empty]
+  | cons g r' ih =>
+    intro hp hw
+    simp only [List.reverse_cons] at hp hw ⊢
+    rw [List.map_append, List.pairwise_append] at hp
+    obtain ⟨E, hE, hkeys⟩ := ih hp.1 (fun g' hg' => hw g' (List.mem_append_left _ hg'))
+    have hlt : ∀ g' ∈ r'.reverse, go.GoStringLt g'.name g.name := fun g' hg' =>
+      hp.2.2 _ (List.mem_map_of_mem hg') _ (by simp)
+    have hnone : E !! g.name = none := by
+      cases h : E !! g.name with
+      | none => rfl
+      | some e =>
+        obtain ⟨g', hg', he⟩ := hkeys _ e h
+        exact absurd (he ▸ hlt g' hg') (go.goStringLt_irrefl _)
+    refine ⟨<[g.name := Node.file g.ino]> E, ?_, fun b e h => ?_⟩
+    · rw [walInos_insert_last (hw g (by simp)) hnone (fun b e _ he => ?_), hE]
+      · simp
+      · obtain ⟨g', hg', rfl⟩ := hkeys b e he
+        exact hlt g' hg'
+    · by_cases hb : b = g.name
+      · exact ⟨g, by simp, hb.symm⟩
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hb)] at h
+        obtain ⟨g', hg', e'⟩ := hkeys b e h
+        exact ⟨g', List.mem_append_left _ hg', e'⟩
+
 theorem entsOf_treeDel_ne (m' : Tree) {j j' : Ino} (bt : GoString) (h : j' ≠ j) :
     entsOf (treeDel m' j bt) j' = entsOf m' j' := by
   apply GMap.ext; intro b

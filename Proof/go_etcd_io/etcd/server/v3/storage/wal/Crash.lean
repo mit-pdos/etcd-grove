@@ -416,7 +416,9 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     have hjc := hc _ hjm
     simp only at hjc
     refine ⟨lay, nm, hj, hL, hin, hjr, hnm, ⟨walTmps, walTmps_not_wal, hjm, ?_⟩, ?_,
-      crashOkW_of_crashOk ?_⟩
+      walFullOk_of_nil (hst.2.2.2.2.2 dir lay hL).2.1 habs
+        ((hst.2.2.2.2.2 dir lay hL).2.2.mono (fun g hg => (List.dropLast_sublist _).subset hg))
+        (crashOkW_of_crashOk ?_)⟩
     · exact claimCoh_init _ _ _ (by rw [hjc]) (fun b _ => by rw [hjc])
     · rw [hjc]; exact walAbsD_restrictTmps habs
     · refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
@@ -438,13 +440,16 @@ theorem crashOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
     (hst : WalsStart C Mr R jr s Ls V.now) :
-    ∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → CrashOkA C Mr d lay none cl 0 := by
+    ∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay →
+      CrashOkA C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) none cl 0 := by
   have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
       restrictN c.2.1 (entsOf V.now c.1)⟩ := fun c h => by rw [hcl c h, namesOf_nil hV]
   have hlog : ∀ c ∈ cl, c.2.2.ents = [] := fun c h => by rw [hc c h]
   intro dir d lay0 hd hL0
   obtain ⟨lay, nm, hL, hin, hjr, hnm, he, habs, hfit, h1, h2, h3, hlast⟩ := hst.1 dir d hd
   rw [show lay0 = lay from Option.some.inj (hL0.symm.trans hL)]
+  have hpg := (hst.2.2.2.2.2 dir lay hL).2.1
+  rw [hpg, unpurge_nil hpg, walFullD_nil habs.cut.1]
   obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
   have hjc := hc _ hjm
   simp only at hjc
@@ -477,6 +482,7 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   obtain ⟨lay', nm, hL', hin, -, -, he, ha, -⟩ := hst.1 dir d hd
   rw [hL] at hL'; cases hL'
   obtain ⟨h, hjm⟩ := hdirs nm lay.j hin.1 he
+  rw [(hst.2.2.2.2.2 dir lay hL).2.1, List.nil_append]
   refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_⟩
   · have e := hc _ hm
     simp only at e
@@ -495,7 +501,7 @@ theorem walsAt_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (hst : WalsStart C Mr R jr s Ls V.now) : WalsAtS jr Ls cl := by
   intro dir lay hL
-  refine ⟨hst.2.2.2.2.2 dir lay hL, fun N h hm hN => ?_⟩
+  refine ⟨(hst.2.2.2.2.2 dir lay hL).1, fun N h hm hN => ?_⟩
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
     cases h : s.wal !! dir with
     | none => rw [hst.2.1 dir h] at hL; cases hL
@@ -532,9 +538,9 @@ theorem dirClaimsOk_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   obtain ⟨honce, hex⟩ := hdirs1 nm lay.j h hin.1 he hjm
   have hjc := hcl _ hjm
   simp only at hjc
-  refine ⟨walTmps, h, ⟨hst.2.2.2.2.2 dir lay hL, walTmps_not_wal, honce, ?_,
+  refine ⟨walTmps, h, ⟨(hst.2.2.2.2.2 dir lay hL).1, walTmps_not_wal, honce, ?_,
     fun c' hc' hne hcj b hb => hex c' hc' hne hcj b (fun hbX => by
-      rw [walTmps_not_wal b hbX] at hb; cases hb)⟩, walTmps_not_broken, hex⟩
+      rw [walTmps_not_wal b hbX] at hb; cases hb)⟩, rfl, hex⟩
   exact claimCoh_init _ _ _ (by rw [hjc, namesOf_nil hV])
     (fun b _ => by rw [hjc, namesOf_nil hV])
 
@@ -676,11 +682,13 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   unfold walStart
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt, %Har, Hfs, %Hp⟩
   obtain ⟨-, -, hnd, hstart, hsegs⟩ := Hp
+  have hpg0 : ∀ dir lay, Ls !! dir = some lay → lay.pg = [] := fun dir lay hl =>
+    (hstart.2.2.2.2.2 dir lay hl).2.1
   ihave Hoth := Hoth $$ %Ls %hstart
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
     obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
-    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem hg
+    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem_nil hpg0 hg
     exact (hsegs dir lay hl g hg').1
   obtain ⟨l0, hp0, hs0⟩ := List.subperm_of_subset hnd hsub
   obtain ⟨rest, hrest⟩ := hs0.exists_perm_append
@@ -691,13 +699,13 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     refine (BigSepL.bigSepL_submseteq hperm).trans ?_
     rw [BigSepL.bigSepL_map]
     refine (BigSepL.bigSepL_mono (fun {k g} hk => ?_)).trans BigSepL.bigSepL_sep_eqv.1
-    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem (List.mem_of_getElem? hk)
+    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem_nil hpg0 (List.mem_of_getElem? hk)
     obtain ⟨-, f, hf, hom, hbs⟩ := hsegs dir lay hl g hg'
     rw [hf]
     exact segStart_halves L g f hom hbs
   have hcut : ∀ g ∈ segsAll Ls, g.om.cut = none := by
     intro g hg
-    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem hg
+    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem_nil hpg0 hg
     obtain ⟨-, f, -, hom, -⟩ := hsegs dir lay hl g hg'
     rw [hom]; rfl
   -- the claims, halved

@@ -120,10 +120,10 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
   iintro Ha
   cases e : K !! dir with
   | none =>
-    obtain ⟨X2, hj2, hD, -⟩ := hK.2.2 dir lay hl
+    obtain ⟨X2, hj2, hD, hx2⟩ := hK.2.2 dir lay hl
     obtain ⟨hXe, hje⟩ := hD.eq_of_mem hX hc
     subst hXe hje
-    imod walDirKey_insert (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
+    imod walDirKey_insert (W := W) K dir lay.j X e hx2.1 $$ Ha with ⟨Ha, Hk⟩
     imodintro
     iexists _
     iframe Ha Hk
@@ -136,7 +136,9 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
     subst hlj
     obtain ⟨hXe, -⟩ := DirClaimOk.eq_of_mem (jr := jr) ⟨hjr, hX1, ho, hco, hex⟩ hX hc
     subst hXe
-    icases walDirKeysAuth_get (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
+    obtain ⟨X2, hj2, hD2, hx2⟩ := hK.2.2 dir lay hl
+    obtain ⟨hXe2, -⟩ := hD2.eq_of_mem hX hc
+    icases walDirKeysAuth_get (W := W) K dir lay.j X e (by rw [hXe2]; exact hx2.1) $$ Ha with ⟨Ha, Hk⟩
     imodintro
     iexists K
     iframe Ha Hk
@@ -176,7 +178,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     mem_segsAll hl (List.mem_of_mem_drop hg)
   have hnd : ((lay.segs.drop (k lay)).map (·.ino)).Nodup := by
     rw [List.map_drop]
-    exact (((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl).sublist (List.drop_sublist _ _)
+    exact (segsAll_nodup_segs HW.2.2.1 hl).sublist (List.drop_sublist _ _)
   imod walParked_takeSegs (L := L) (W := W) Ls cl ∅ WalOut.empty (lay.segs.drop (k lay)) hS
     (fun _ _ h => by cases h) hnd $$ Hpk Ho with ⟨Hpk, Ho, HS, -⟩
   -- the directory's claim
@@ -197,7 +199,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ (lay.segs.map (·.ino)).Nodup ∧
       SegsNamed lay.segs hj.cur := by
     rw [hnm]
-    exact ⟨hA, hjr, hX, hcoh, habs, ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl,
+    exact ⟨hA, hjr, hX, hcoh, habs, segsAll_nodup_segs HW.2.2.1 hl,
       (HNm dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩⟩
   cases write with
   | false =>

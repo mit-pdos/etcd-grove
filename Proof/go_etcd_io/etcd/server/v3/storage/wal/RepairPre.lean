@@ -137,7 +137,7 @@ theorem walInvBody_keyExcl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   obtain ⟨hXe, -⟩ := hD2.eq_of_mem hX hm
   rw [← hXe] at hx2
   isplitr
-  · ipureintro; exact hx2.1
+  · ipureintro; exact hx2.not_broken
   iexists Ls, cl, n, F
   iframe Hg Hcl0 Hcm Hlays HCR Htl Hpk Hnms
   isplitr

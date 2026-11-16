@@ -166,18 +166,15 @@ theorem laysResF_cut (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoS
   iintro ⟨Hl, Hg⟩
   ihave Hl := laysResF_congr (L := L) F (GMap.delete g.ino F) Ls hF $$ Hl
   icases (laysResF_del (L := L) _ Ls dir lay hl).1 $$ Hl with ⟨Hs, Hrest⟩
-  iapply (laysResF_map (L := L) _ _).2
-  iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (la : WalLay) =>
-    iprop([∗list] x ∈ la.segs, segResF (L := L) (GMap.delete g.ino F) x))).2
-  isplitl [Hs Hg]
-  · simp only [cutLay]
-    iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-    iframe Hs
-    iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
-    unfold segResF
-    rw [GMap.lookup_delete_eq]
-    iexact Hg
-  · iapply (laysResF_map (L := L) _ _).1 $$ Hrest
+  iapply laysResF_put (L := L) _ Ls dir lay (cutLay lay b g wr) rfl
+  iframe Hrest
+  simp only [cutLay]
+  iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+  iframe Hs
+  iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+  unfold segResF
+  rw [GMap.lookup_delete_eq]
+  iexact Hg
 
 /-- **The parked halves after the cut**: the handle (holding the record of what is out, `o`) takes
 the new segment out and deposits the old tail's halves (`segResP g0`, idle: no change in flight on
@@ -200,11 +197,16 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
   have hg0m : g0 ∈ lay.segs := by rw [hs]; simp
   have hpre : ∀ g' ∈ pre, g'.ino ≠ g0.ino := by
     intro g' hg' he
-    have h := hnd'.1 dir lay hl
+    have h := segsAll_nodup_segs hnd hl
     rw [hs, List.map_append, List.nodup_append] at h
     exact h.2.2 g'.ino (List.mem_map_of_mem hg') g0.ino (by simp) he
-  have hother : ∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, g'.ino ≠ g0.ino :=
-    fun k la hk hla g' hg' => hnd'.2 k dir la lay hk hla hl g' hg' g0 hg0m
+  have hpg0 : ∀ g' ∈ lay.pg, g'.ino ≠ g0.ino := by
+    intro g' hg' he
+    have h := hnd'.1 dir lay hl
+    rw [List.map_append, List.nodup_append] at h
+    exact h.2.2 g'.ino (List.mem_map_of_mem hg') g0.ino (List.mem_map_of_mem hg0m) he
+  have hother : ∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.pg ++ la.segs, g'.ino ≠ g0.ino :=
+    fun k la hk hla g' hg' => hnd'.2 k dir la lay hk hla hl g' hg' g0 (List.mem_append_right _ hg0m)
   unfold walParked
   iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf Hp
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
@@ -232,12 +234,23 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
     iapply (segsAll_sep_map _ _).2
     ihave Hs := (segsAll_sep_map _ _).1 $$ Hs
     ihave ⟨Hd, Hrest⟩ := (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (la : WalLay) =>
-      iprop([∗list] x ∈ la.segs, if x.ino ∈ O then emp else segResP (L := L) x)) hl).1 $$ Hs
+      iprop([∗list] x ∈ la.pg ++ la.segs, if x.ino ∈ O then emp else segResP (L := L) x)) hl).1 $$ Hs
     iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (la : WalLay) =>
-      iprop([∗list] x ∈ la.segs, if x.ino ∈ g.ino :: O.filter (· ≠ g0.ino) then emp
+      iprop([∗list] x ∈ la.pg ++ la.segs, if x.ino ∈ g.ino :: O.filter (· ≠ g0.ino) then emp
         else segResP (L := L) x))).2
     isplitl [Hd Hp]
     · simp only [cutLay]
+      icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hd with ⟨Hpg, Hd⟩
+      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+      isplitl [Hpg]
+      · iapply BigSepL.bigSepL_mono (fun {k x} hk => ?_) $$ Hpg
+        have hx := List.mem_of_getElem? hk
+        have h1 : x.ino ≠ g0.ino := hpg0 x hx
+        have h2 : x.ino ≠ g.ino := hino x (mem_segsAll_pg hl hx)
+        have e : (x.ino ∈ g.ino :: O.filter (· ≠ g0.ino)) ↔ x.ino ∈ O := by
+          simp [h1, h2]
+        simp only [propext e]
+        exact .rfl
       rw [hs]
       icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hd with ⟨Hpre, Hlast⟩
       iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
@@ -273,7 +286,7 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
       refine BigSepL.bigSepL_mono (fun {i x} hi => ?_)
       have hx := List.mem_of_getElem? hi
       have h1 : x.ino ≠ g0.ino := hother k la hne hk' x hx
-      have h2 : x.ino ≠ g.ino := hino x (mem_segsAll hk' hx)
+      have h2 : x.ino ≠ g.ino := hino x (mem_segsAll_all hk' hx)
       have e : (x.ino ∈ g.ino :: O.filter (· ≠ g0.ino)) ↔ x.ino ∈ O := by
         simp [h1, h2]
       simp only [propext e]

@@ -260,6 +260,13 @@ flushed and durable, the tail synced up to what is written. -/
 def syncLay (lay : WalLay) (pre : List SegG) (g : SegG) : WalLay :=
   { lay with segs := pre ++ [syncTail g], so := lay.wr }
 
+theorem syncLay_unpurge (pg : List SegG) (lay : WalLay) (pre : List SegG) (g : SegG) :
+    syncLay (unpurge pg lay) (pg ++ pre) g = unpurge pg (syncLay lay pre g) := by
+  simp [syncLay, unpurge, List.append_assoc]
+
+@[simp] theorem syncLay_pg (lay : WalLay) (pre : List SegG) (g : SegG) :
+    (syncLay lay pre g).pg = lay.pg := rfl
+
 theorem syncLay_getElem? {lay : WalLay} {pre : List SegG} {g0 : SegG} (hs : lay.segs = pre ++ [g0])
     (k : Nat) : (syncLay lay pre g0).segs[k]? =
       (lay.segs[k]?).map (fun g => if k = pre.length then syncTail g else g) := by

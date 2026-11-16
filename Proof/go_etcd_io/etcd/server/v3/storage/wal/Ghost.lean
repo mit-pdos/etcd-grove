@@ -30,6 +30,7 @@ module
 
 public import GooseLang.Ext.AbsDisk.Specs
 public import GooseLang.Ext.Fs.NamesGhost
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpNames
 
 @[expose] public section
 
@@ -506,10 +507,12 @@ instance walDirKeysAuth_timeless (K : GMap GoString (Fs.Ino × List GoString)) :
 invariant holds half of that claim, once among its claims, the only claim of `j` holding a `.wal`
 name (`DirKeysOk`); an open handle holds the other half, which it can then match to the invariant's
 at an update's opening, where the file system's shared invariant cannot be opened. Made by
-`Create`'s commit and by `ReadAll`; fixed for the generation. -/
+`Create`'s commit and by `ReadAll`; fixed for the generation. The names left out are the pipeline's
+(`X = walTmps`, as `DirClaimsOk` has it of every WAL directory's claim): a purge, holding only the key and
+the handle's half, knows every other name of the directory is in the claim (unit `locks`, session 10). -/
 def walDirKey (dir : GoString) (j : Fs.Ino) (X : List GoString) : IProp GF :=
   letI := walAllG (W := W)
-  dir ↪[W.γdk]□ (j, X)
+  iprop(dir ↪[W.γdk]□ (j, X) ∗ ⌜X = walTmps⌝)
 
 instance walDirKey_persistent (dir : GoString) (j : Fs.Ino) (X : List GoString) :
     Persistent (walDirKey (W := W) dir j X) := by
@@ -1057,12 +1060,19 @@ theorem walDirKey_lookup (K : GMap GoString (Fs.Ino × List GoString)) (dir : Go
     ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir j X -∗ ⌜K !! dir = some (j, X)⌝ := by
   unfold walDirKeysAuth walDirKey
   letI := walAllG (W := W)
-  iintro ⟨Ha, -⟩ Hk
+  iintro ⟨Ha, -⟩ ⟨Hk, -⟩
   iapply ghost_map_lookup $$ Ha Hk
+
+/-- **A directory key's names left out are the pipeline's** (unit `locks`, session 10). -/
+theorem walDirKey_tmps (dir : GoString) (j : Fs.Ino) (X : List GoString) :
+    walDirKey (W := W) dir j X ⊢ ⌜X = walTmps⌝ := by
+  unfold walDirKey
+  iintro ⟨-, %h⟩
+  ipureintro; exact h
 
 /-- **A new directory key** (`Create`'s commit, `ReadAll`), the directory without one. -/
 theorem walDirKey_insert (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
-    (X : List GoString) (hK : K !! dir = none) :
+    (X : List GoString) (hK : K !! dir = none) (hX : X = walTmps) :
     ⊢@{IProp GF} walDirKeysAuth (W := W) K ==∗
       walDirKeysAuth (W := W) (<[dir := (j, X)]> K) ∗ walDirKey (W := W) dir j X := by
   unfold walDirKeysAuth walDirKey
@@ -1070,21 +1080,25 @@ theorem walDirKey_insert (K : GMap GoString (Fs.Ino × List GoString)) (dir : Go
   iintro ⟨Ha, Hm⟩
   imod ghost_map_insert_persist dir (j, X) hK $$ Ha with ⟨Ha, #Hk⟩
   imodintro
-  iframe Ha Hk
-  iapply (BigSepM.bigSepM_insert (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
-    iprop(k ↪[W.γdk]□ x)) hK).2
-  iframe Hk Hm
+  isplitl [Ha Hm]
+  · iframe Ha
+    iapply (BigSepM.bigSepM_insert (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
+      iprop(k ↪[W.γdk]□ x)) hK).2
+    iframe Hk Hm
+  · iframe Hk; ipureintro; exact hX
 
 /-- **A key of the generation, found in the authority** (its copy). -/
 theorem walDirKeysAuth_get (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
-    (X : List GoString) (hK : K !! dir = some (j, X)) :
+    (X : List GoString) (hK : K !! dir = some (j, X)) (hX : X = walTmps) :
     ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKeysAuth (W := W) K ∗ walDirKey (W := W) dir j X := by
   unfold walDirKeysAuth walDirKey
   letI := walAllG (W := W)
   iintro ⟨Ha, #Hm⟩
   iframe Ha Hm
-  iapply (BigSepM.bigSepM_lookup (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
-    iprop(k ↪[W.γdk]□ x)) hK) $$ Hm
+  isplitl []
+  · iapply (BigSepM.bigSepM_lookup (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
+      iprop(k ↪[W.γdk]□ x)) hK) $$ Hm
+  · ipureintro; exact hX
 
 theorem walSyncedLb_mono (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
     ⊢@{IProp GF} walSyncedLb (W := W) dir n -∗ walSyncedLb (W := W) dir n' := by

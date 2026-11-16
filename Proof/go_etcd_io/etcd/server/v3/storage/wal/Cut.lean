@@ -35,6 +35,8 @@ the alternative dropped (`crashOk_of_alt`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeFull
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpNames
 
 @[expose] public section
 
@@ -50,9 +52,6 @@ section cut
 variable [GooseExts]
 
 /-! ## The pipeline's names -/
-
-/-- The file pipeline's names (`fmt.Sprintf("%d.tmp", fp.count%2)`, file_pipeline.go:77). -/
-def walTmps : List GoString := [go!"0.tmp", go!"1.tmp"]
 
 theorem walTmps_not_wal : ∀ b ∈ walTmps, walNameP b = false := by
   intro b hb
@@ -134,6 +133,34 @@ def CrashOkW (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : 
   ∃ alt : Option WalLay, (∀ lay0, alt = some lay0 → AltOk C Mr d lay lay0) ∧
     CrashOkA C Mr d lay alt cl n
 
+/-- **The zeros known past each of the segments `gs` start at or past its size** (`MetaOk.zf`'s; unit
+`locks`, session 8). The invariant records it of the segments before the last (`WalFullOk`): a purge's crash
+argument brings a removed segment's file back as its durable image, a crash its halves allow
+(`FileCrashedR`) only so (`fileCrashedR_durSeg`, `PurgeStep.lean`). -/
+def SegsZf (gs : List SegG) : Prop := ∀ g ∈ gs, ∀ z, g.om.zf = some z → g.om.size ≤ z
+
+theorem SegsZf.mono {gs gs' : List SegG} (h : SegsZf gs) (hs : ∀ g ∈ gs', g ∈ gs) : SegsZf gs' :=
+  fun g hg => h g (hs g hg)
+
+/-- **What the invariant says of a WAL's crashes, purges pending** (unit `locks`, session 7): stated on
+the layout as of the last directory sync (`unpurge lay.pg lay`, the removed-not-durable segments back),
+for the WAL with `cut` at that layout's first segment (`walFullD`): its static relation over some entries
+(the directory's `.wal` entries as of that sync) and the crash condition; and (session 8) the zeros known
+past each segment before the last start at or past its size (`SegsZf`). With nothing removed
+(`lay.pg = []`) it is `CrashOkW d lay` and `SegsZf` of the segments but the last (`walFullOk_of_nil`). -/
+def WalFullOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : List Claim)
+    (n : Nat) : Prop :=
+  (∃ ents0, WalAbsD C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) ents0) ∧
+    CrashOkW C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) cl n ∧
+    SegsZf (lay.pg ++ lay.segs.dropLast)
+
+theorem walFullOk_of_nil {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {cl : List Claim} {n : Nat} (hpg : lay.pg = []) (habs : WalAbsD C Mr d lay ents)
+    (hz : SegsZf lay.segs.dropLast) (h : CrashOkW C Mr d lay cl n) : WalFullOk C Mr d lay cl n := by
+  unfold WalFullOk
+  rw [hpg, walFullD_nil habs.cut.1, unpurge_nil hpg, List.nil_append]
+  exact ⟨⟨ents, habs⟩, h, hz⟩
+
 theorem crashOkA_none_iff (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay)
     (cl : List Claim) (n : Nat) : CrashOkA C Mr d lay none cl n ↔ CrashOk C Mr d lay cl n := by
   constructor
@@ -184,6 +211,13 @@ def cutLay (lay : WalLay) (b : Nat) (g : SegG) (wr : Nat) : WalLay :=
     wr := wr
     so := wr
     z0 := 0 }
+
+theorem cutLay_unpurge (pg : List SegG) (lay : WalLay) (b : Nat) (g : SegG) (wr : Nat) :
+    cutLay (unpurge pg lay) b g wr = unpurge pg (cutLay lay b g wr) := by
+  simp [cutLay, unpurge, List.append_assoc]
+
+@[simp] theorem cutLay_pg (lay : WalLay) (b : Nat) (g : SegG) (wr : Nat) :
+    (cutLay lay b g wr).pg = lay.pg := rfl
 
 end cut
 

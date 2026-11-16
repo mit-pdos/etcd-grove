@@ -85,7 +85,7 @@ theorem brokenCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino
   obtain ⟨X2, hj2, hD2, hx2⟩ := hDK.2.2 dir lay hl
   obtain ⟨hXe, hje2⟩ := hD2.eq_of_mem hX hcl
   rw [← hXe, ← hje2] at hx2
-  have hbX : bt ∉ X := fun hm => hx2.1 bt hm hbt
+  have hbX : bt ∉ X := fun hm => hx2.not_broken bt hm hbt
   have hbtw := walNameP_broken hbt
   have hcoh' : ClaimCoh (hj.log x (crEnt lay.j bt i s0) (<[bt := .file i]> hj.cur)) lay.j
       (.except X) :=

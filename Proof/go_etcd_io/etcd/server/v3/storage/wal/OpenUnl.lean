@@ -48,6 +48,12 @@ theorem crashOkW_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   obtain ⟨⟨ents0, ha⟩, rest⟩ := halt lay0 h0
   exact ⟨⟨ents0, walAbsD_unl u ha⟩, rest⟩
 
+theorem walFullOk_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {cl : List Claim} {n : Nat} (u : Nat) (h : WalFullOk C Mr d lay cl n) :
+    WalFullOk C Mr { d with unl := u } lay cl n :=
+  ⟨let ⟨e, ha⟩ := h.1; ⟨e, walAbsD_unl (d := walFullD d lay.pg lay) u ha⟩,
+    crashOkW_unl (d := walFullD d lay.pg lay) u h.2.1, h.2.2⟩
+
 theorem tailBound_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} (u : Nat)
     (h : TailBound C Mr d lay) : TailBound C Mr { d with unl := u } lay := h.congr rfl rfl
 
@@ -110,7 +116,7 @@ theorem walsOk_unl {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : 
   obtain ⟨d, u, hd, rfl⟩ := unlSt_some hd'
   obtain ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, habs, hcr⟩ := h1 dir' d hd
   exact ⟨lay, nm, hj, hl, by rw [unlSt_area]; exact hin, hjr, hnm, hc, walAbsD_unl u habs,
-    crashOkW_unl u hcr⟩
+    walFullOk_unl u hcr⟩
 
 theorem dirKeysOk_unl {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {K : GMap GoString (Ino × List GoString)}
