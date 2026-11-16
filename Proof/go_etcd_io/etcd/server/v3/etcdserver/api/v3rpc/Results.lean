@@ -2114,7 +2114,7 @@ theorem lessorGrantOkLive_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
       isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorGrantOkG s E S (grantLiveG E) R :=
-  lessorGrantOkLive_of_server EtcdServer.wp_LeaseGrant s E ρ S h R hR
+  lessorGrantOkLive_of_server_off EtcdServer.wp_LeaseGrant s E ρ S h R hR
 
 /-- **The revoke contract, discharged mode-gated** (`lessorRevokeOk_of_server` at the linked
 `EtcdServer.LeaseRevoke`; the lease-expiry plan's X6, 2026-11-04), in a cluster that revokes leases
@@ -2126,6 +2126,29 @@ theorem lessorRevokeOk_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S :
       isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
       lessorRevokeOk s E S :=
+  lessorRevokeOk_of_server_off EtcdServer.wp_LeaseRevoke s E ρ S h
+
+/-- **The grant contract at the mode-free fact, in the environment's auth mode, discharged**
+(auth-lease S3c, Draft §7.3; `lessorGrantOkLive_of_server` at the linked `EtcdServer.LeaseGrant`):
+the server's view at `E.authOn`, the contract `lessorGrantOkGM E.authOn` (the client's update passed
+through, the result at the request context's token). -/
+theorem lessorGrantOkLiveM_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (R : w64 × w64 → Prop) (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0)
+    (h : srvGrantsLeases E ρ) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorGrantOkGM E.authOn s E ρ S (grantLiveG E) R :=
+  lessorGrantOkLive_of_server EtcdServer.wp_LeaseGrant s E ρ S h R hR
+
+/-- **The revoke contract, in the environment's auth mode, discharged** (auth-lease S3c, Draft §7.3;
+`lessorRevokeOk_of_server` at the linked `EtcdServer.LeaseRevoke`), in a cluster that revokes leases. -/
+theorem lessorRevokeOkM_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+    (h : srvRevokesLeases E ρ) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
+      lessorRevokeOkM E.authOn s E ρ S :=
   lessorRevokeOk_of_server EtcdServer.wp_LeaseRevoke s E ρ S h
 
 /-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's

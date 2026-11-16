@@ -388,7 +388,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           · -- the mode on: `resultΨOn`, the mode-`on` model and the auth layer's verdict
             rw [resultΨM_true]
             iunfold resultΨOn at Hres
-            icases Hres with ⟨%ar, %lb, %st, %Hx, HTr, Hri, #HeW⟩
+            icases Hres with ⟨%ar, %lb, %st, %ltw, %Hx, HTr, Hri, #HeW⟩
             subst Hx
             wp_auto_lc 3
             iunfold entryWitOn at HeW
@@ -442,7 +442,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hg Hv
             isplitr
             · ipureintro
-              refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ?_, Hst.2.2.2.2⟩
+              refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ltw, ?_, by rw [Hst.2.2.1]; exact Hst.2.2.2.2⟩
               rw [Hst.2.2.1]; exact hlbw
             -- (E3x) the admin result's tie, at the state the entry met
             isplitr

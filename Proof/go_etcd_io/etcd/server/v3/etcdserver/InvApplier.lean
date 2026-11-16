@@ -504,43 +504,49 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 ids the server gives its lessor (`lease.NewLessor`'s `GA`): only a lease that meets it can be
 granted, and the lessor's `expiredC` carries only such leases. (The lease-grant plan's D1,
 2026-11-02; until then `False`, D45.) It holds in a cluster whose requests may grant leases
-(`lg`, the KV names' `KVNames.lg`, which is whether the lease mode grants: `lease.runCfg_lg`), with
-auth off (`on = false`: the auth layer's checks of a leased put assume the lessor finds no lease,
-`lookupNil`); with `lg = false` or auth on it is `False` as before, so `run`'s receive from
-`expiredC` is dead there. (The lease-expiry plan's X1, 2026-11-04: until then also under the
-deployment premise `lease.leasesNoExpiry`, which made the receive dead whatever the cluster; now
-the monotone mode's receive is dead by `lease.runCfg_noExpiry` and the revocable mode's revokes.)
+(`lg`, the KV names' `KVNames.lg`, which is whether the lease mode grants: `lease.runCfg_lg`); with
+auth on, also "no lease expires during the run" (`lease.leasesNoExpiry`; auth-lease S3c, decision C1,
+2026-11-15: until then auth off was required, the guard `False` at auth on, because the auth layer's
+leased-put checks assumed the lessor finds no lease, which they no longer do since S2). With
+`lg = false` it is `False`, so `run`'s receive from `expiredC` is dead there; with auth on it is dead
+too, by the payload's `¬ leasesNoExpiry` (`srvGrantGuard_expired_off`). `NewServer` proves the auth-on
+half from its boot slot (`lease.bootCfg_noExpiry`). (The lease-expiry plan's X1, 2026-11-04: the
+monotone mode's receive is dead by `lease.runCfg_noExpiry` and the revocable mode's revokes.)
 It takes the grant flag `lg`, not the mode: the guard is the lessor's, whose callers (`NewServer`,
 the server's field predicates through `E.lg`) have the flag, and the mode is `lg`'s refinement
-only where the expiry arm needs it (`run`, from `lease.runCfg`).
-**Auth off is required** (the plan's question 2, settled 2026-11-02): with auth on, the auth layer's
-`srvLessorNil` (every lease the lessor looks up is absent) is what its leased-put and transaction
-checks rest on, and a granted lease would refute it; the lease-granting example is auth off. -/
+only where the expiry arm needs it (`run`, from `lease.runCfg`). -/
 def srvGrantGuard (lg on : Bool) : w64 → IProp GF :=
-  fun _ => iprop(⌜lg = true ∧ on = false⌝)
+  fun _ => iprop(⌜lg = true ∧ (on = true → lease.leasesNoExpiry)⌝)
 
 instance srvGrantGuard_persistent (lg on : Bool) (id : w64) :
     Persistent (srvGrantGuard (GF := GF) lg on id) := by
   unfold srvGrantGuard; infer_instance
 
 omit package_sem in
-/-- With `lg = false` or auth on the guard is `False`. -/
-theorem srvGrantGuard_false (lg on : Bool) (h : lg = false ∨ on = true) (id : w64) :
-    srvGrantGuard (GF := GF) lg on id ⊢ False := by
-  unfold srvGrantGuard
-  iintro %Hg
-  rcases h with h | h <;> simp_all
-
-omit package_sem in
-/-- (the lease-expiry plan's X1) **An expired slice meets the guard**: the cluster grants leases and
-auth is off (the slice is non-empty). -/
+/-- (the lease-expiry plan's X1) **An expired slice meets the guard**: the cluster grants leases and,
+with auth on, no lease expires (the slice is non-empty). -/
 theorem srvGrantGuard_expired (lg on : Bool) (ls : GoSlice) :
-    lease.expiredLeases (srvGrantGuard (GF := GF) lg on) ls ⊢ ⌜lg = true ∧ on = false⌝ := by
+    lease.expiredLeases (srvGrantGuard (GF := GF) lg on) ls ⊢
+      ⌜lg = true ∧ (on = true → lease.leasesNoExpiry)⌝ := by
   unfold lease.expiredLeases srvGrantGuard
   iintro ⟨%ps, %Hne, -, Hps⟩
   obtain ⟨p, ps', rfl⟩ := List.exists_cons_of_ne_nil Hne
   icases BigSepL.bigSepL_cons.1 $$ Hps with ⟨⟨-, %id, -, %Hg⟩, -⟩
   ipureintro; exact Hg
+
+omit package_sem in
+/-- (auth-lease S3c) **An expired slice delivered with `¬ leasesNoExpiry` (the lessor's `expiredC`
+payload) is of a granting cluster with auth off**: `run`'s expiry arm's auth-off fact. -/
+theorem srvGrantGuard_expired_off (lg on : Bool) (ls : GoSlice) :
+    iprop(⌜¬ lease.leasesNoExpiry⌝ ∗ lease.expiredLeases (srvGrantGuard (GF := GF) lg on) ls) ⊢
+      ⌜lg = true ∧ on = false⌝ := by
+  iintro ⟨%Hnx, Hls⟩
+  ihave %Hg := srvGrantGuard_expired lg on ls $$ Hls
+  ipureintro
+  refine ⟨Hg.1, ?_⟩
+  cases h : on
+  · rfl
+  · exact absurd (Hg.2 h) Hnx
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose

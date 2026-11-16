@@ -635,7 +635,7 @@ theorem NewServer.wp_proofRG
     imodintro
     rcases hGA with hg | hn
     · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
-        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, rfl⟩))
+        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, fun h => absurd h (by decide)⟩))
       iempintro
     · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
   -- (restart) the boot's buckets: the image's lease bucket put back (`D`'s)
@@ -650,9 +650,6 @@ theorem NewServer.wp_proofRG
   -- (restart) the lessor's history starts at the recovered snapshot (`HlAt0`, `NewLessor`'s), not
   -- `lessorAt_empty`'s
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 (appliedTable ρ.rd A).ids).1 $$ Hlt
-  ihave #Hlnil : iprop(□ (⌜false = true⌝ → apply.lookupNil (lease.lessorIface lp))) $$ []
-  · iintro !> %hon
-    iapply (lookupNil_of_guard lp ρ.rd.kv.lg false (Or.inr hon)) $$ Hllk'
   ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg false) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
@@ -1078,11 +1075,6 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrna0, Hrnt0, Hrnc0, Hrns0, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14,
     Hrn15, Hrnwal⟩ := Hrnames
-  -- (restart) the restart-only rows (`srvRestartRows`, D3): the installer's `rnSnapTermAbove` and
-  -- `isServerBuiltC`'s `Hwpend`
-  iunfold srvRestartRows at Hrows
-  have hrows : γrn.node = γ ∧ γrn.id = id ∧ γrn.pre = [] ∧ γrn.a0 = A ∧ γrn.t0 = σ.hs.Term' ∧
-      ρ.rd.raft.raft = γ := ⟨Hrn1, by rw [Hrn5, Hrid], Hrn6, Hrna0, Hrnt0, by rw [HρRaft]⟩
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1137,11 +1129,6 @@ theorem NewServer.wp_proofRG
     rw [hidr]
     iframe Hwmeta Hwpurge
   ipersist memberID
-  -- (restart S7.3) the rows, once the member id field is read-only
-  ihave #Hmid0 : srvMemberIDAddr s ↦□ id $$ []
-  · rw [← Hid]; iexact memberID
-  ihave Hrows := Hrows $$ %s %ρ.rd %γrn %hrows Hmid0
-  imod Hrows with ⟨HsTA, Hwpend⟩
   ipersist beHooks
   ipersist stats
   -- (restart) the member's snapshot directory: the image's invariant (its first start's, at raft's
@@ -1508,11 +1495,10 @@ theorem NewServer.wp_proofRG
   -- `Stop` names it (`srvTrStop`)
   ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [HsTA] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
-  · iexact HsTA
   · iexact Hfix
   · iexact Htrf
   · iexact HlatestTs
@@ -1834,10 +1820,6 @@ theorem NewServer.wp_proofRG
     · iapply rwLens_authBeOn
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
-  -- (the auth plan's E3zb) the lessor finds no lease
-  ihave #HLnil : iprop(□ (⌜false = true⌝ → srvLessorNil s)) $$ []
-  · iintro !> %hon
-    simp at hon
   -- (authkv's Main) with auth on, the store's cost field; (C1's A4) and its `Authenticate` side
   ihave #HBF : iprop(□ (⌜false = true⌝ → srvAuthStoreOn s RD)) $$ []
   · iintro !> %hon
@@ -1874,9 +1856,9 @@ theorem NewServer.wp_proofRG
   -- (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's slot
   -- (restart) at the snapshot `NewLessor` recovered of the image's `lease` bucket
   ihave HLsrv : lease.srvInvAt false s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) m
-      (lease.recMap (recs.zip ls), ∅, lease.recTTLs minTTLsecs recs) $$ [HLnil HpeerRt HlessRd HlPool' HlAt0]
+      (lease.recMap (recs.zip ls), ∅, lease.recTTLs minTTLsecs recs) $$ [HpeerRt HlessRd HlPool' HlAt0]
   · iapply lease.srvInvAt_intro
-    iframe HLnil HpeerRt HlessRd HlPool'
+    iframe HpeerRt HlessRd HlPool'
     simp only
     rw [Hγl]
     iframe Hlmode HlAt0
@@ -2021,7 +2003,7 @@ theorem NewServer.wp_proofRG
   have hidr : γrn.id = id := by rw [Hrn5, Hrid]
   unfold srvBuiltR srvBuiltRC
   simp only [AuthC.isOn]
-  iframe Htpp' HsCI Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwpend Hwth Hwtl
+  iframe Htpp' HsCI Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwth Hwtl
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
@@ -2085,7 +2067,7 @@ theorem NewServer.wp_proofRG
     iframe NHmsc Hinfl
     isplitr
     · iexists γrn
-      iframe NHmsci
+      iframe NHmsci HNodeC HstepI
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
       rw [hidr, ← Hid]; iexact memberID
@@ -2355,6 +2337,7 @@ theorem NewServer.wp_proofRG
       simp [Hc0, HρRaft]
     isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe HltS HlEv]
     · -- the rest buckets at the image's log (`srvRest_restart`)
+      simp only [AuthC.isOn, srvRestM_false]
       iapply (srvRest_restart _ ρ.rd A D d M hMo bc.cl' (srvObjsOn alst astl lp bc.cl' d.be)
         (W64 0) γ.boot rfl hpre Hc0 (by rw [HρRaft]) HbkR
         (fun h => Hng h))
@@ -2380,7 +2363,7 @@ theorem NewServer.wp_proofRG
             iframe Hlgd
             iintro !>
             iunfold srvGrantGuard
-            ipureintro; exact ⟨rfl, rfl⟩
+            ipureintro; exact ⟨rfl, fun h => absurd h (by decide)⟩
           rw [show (decide (ρ.rd.kv.lm = .mono)) = decide (m = .mono) by
             rw [lease.bootCfg_lm Hlbc]]
           iexact Hlmode

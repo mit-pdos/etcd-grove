@@ -132,7 +132,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
     icases ownSlice_elem_acc (sint.Z n) l v'.Events' DFrac.discard ls Hn.1 Hl $$ Hls
       with ⟨#Hle, -⟩
     ihave #He := Hev $$ %(sint.nat n) %l %e %Hl %He
-    iunfold eventAt at He
+    ihave He := eventAt_elim $$ He
     icases He with ⟨%keySl, #Htyp, -⟩
     wp_auto
     wp_if_destruct

@@ -157,7 +157,8 @@ def etcdstart.grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
                         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
                             srvStreamInterceptorWOk is iprop(True) ∗
-                              srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr)
+                              srvLgReader s ∗
+                                srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
 theorem etcdstart.srvLeaseRd_srvInv [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (E : apply.AEnv GF) (m :

@@ -10,8 +10,8 @@ inner chain's outcome, with every checked permission granted there (`passedL`), 
 
 The checked permissions are the model's with the range end as the check saw it (`authEndOf`:
 equal unless the request's `RangeEnd` is a non-`nil` empty slice). A `Put`'s lease check
-(`checkLeasePuts`) is ruled out by the premise `lookupNil` (the lessor finds no lease): with a
-lease, its keys' checks can refuse beyond the request's own permissions.
+(`checkLeasePuts`) is decided at the latest state over the lease owner's resource (auth-lease S2;
+until then ruled out by a premise "the lessor finds no lease", `lookupNil`, deleted in S3c).
 -/
 module
 
@@ -48,6 +48,25 @@ def authOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM
     (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3) (oc : Outcome) : Prop :=
   (oc = .rejected .auth ∧ refusedL M hs ai perms) ∨
     (chainStep backendStep c rq log oc ∧ passedL M hs ai perms)
+
+/-- **The outcome `oc` decided at the latest state for the checked permissions `perms` and the leases
+`ids`** (auth-lease S2: `authOutL` with `checkLeasePuts`' part, at the owner's item map `I`): the auth
+layer's rejection with a permission or a lease refused, or the inner chain `c`'s outcome with all of them
+granted. -/
+def authOutLL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (c : Chain)
+    (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ids : List w64) (oc : Outcome) : Prop :=
+  (oc = .rejected .auth ∧ (refusedL M hs ai perms ∨ ∃ id ∈ ids, leaseRefusedL M hs ai I id)) ∨
+    (chainStep backendStep c rq log oc ∧ passedL M hs ai perms ∧
+      ∀ id ∈ ids, leasePassedL M hs ai I id)
+
+/-- `authOutL` is `authOutLL` with no lease. -/
+theorem authOutL_iff (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (c : Chain)
+    (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (oc : Outcome) :
+    authOutL M hs ai c rq log perms oc ↔ authOutLL M hs ai c rq log perms I [] oc := by
+  unfold authOutL authOutLL
+  simp
 
 /-- The range end a check saw keeps the cache's shape. -/
 theorem reqShape_authEndOf (k m e : GoString) (he : authEndOf m e) (h : auth.reqShape k m) :
@@ -103,12 +122,16 @@ instance authIsL_persistent (E : AEnv GF) (p : Loc) (L : List auth.AuthState →
     Persistent (authIsL E p L) := by
   unfold authIsL; infer_instance
 
-/-- `kvPostF` with the outcome's property `X` (`authOutL` for the auth applier's methods). -/
+/-- `kvPostF` with the outcome's property `X` (`authOutL` for the auth applier's methods); (auth-lease
+S2, Q5) with `kvPostF`'s lease class at the owner's item map of the state before the request; (S3a,
+Draft rev 5 §3a) with `kvPostF`'s lease exactness at the live set of `kvOwnAt`. -/
 def kvPostFL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc ∧ X oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc)
+    (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
+    chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `rangePost` with the outcome's property `X`. -/
 def rangePostL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -116,16 +139,6 @@ def rangePostL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
     (X : Outcome → Prop) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ X oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
     kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ chainClass E.authMode info c rq oc)
-
-/-- **The lessor finds no lease** (`Lookup` returns `nil`): a premise of the `Put`'s exact verdict
-(see the file header). -/
-def lookupNil (le : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
-    □ (∀ id : w64, {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; ⌜l = null⌝ }}))
-
-instance lookupNil_persistent (le : GoInterface) : Persistent (lookupNil (GF := GF) le) := by
-  unfold lookupNil; infer_instance
 
 /-- **The certificates of the outcomes `X` admits** (`certPre`'s, for the outcomes of `c` meeting
 `X` only; the auth plan's E3f): with the verdict at the latest state, a KV request the auth layer
@@ -150,12 +163,14 @@ instance certPreVW_persistent (v3 : Bool) (E : AEnv GF) (c : Chain) (rq : IRRMod
     (log : mvcc.Log) (X : Outcome → Prop) : Persistent (certPreVW v3 E c rq log X) := by
   unfold certPreVW; split <;> infer_instance
 
-/-- `putPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+/-- `putPre` with the certificates of the outcomes `X` admits (`certPreW`); (auth-lease S3a2, Draft §3) at the
+live set `T` of the method's resources, the outcomes also lease-exact at `T`. -/
 def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
-    txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
+    ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
+      mPreAt E c a info log T Pre Q Post)
 
 /-- `deletePre` with the certificates of the outcomes `X` admits (`certPreW`). -/
 def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -164,12 +179,13 @@ def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
     certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
 
-/-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
+/-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`), at the live set (as `putPreW`). -/
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
-    txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
+    txn.txnRequestIs r t ∗ ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
+      mPreAt E c a info log T Pre Q Post)
 
 end defs
 
@@ -221,6 +237,30 @@ theorem certPreW_inner (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (lo
   iintro !> %oc %hs
   iapply H $$ %oc %(⟨by simp only [chainStep]; split <;> simp [hs], h oc hs⟩)
 
+/-- **Past the auth layer's check, at the live set `T`** (auth-lease S3a2, Draft §3): the latest certificate of
+the outcomes meeting `X` and lease-exact at `T` is the inner chain's `certPreT` at `T`, when every inner outcome
+meets `X`. -/
+theorem certPreW_innerT (E : AEnv GF) (on : Bool) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (T : List w64) (X : Outcome → Prop) (h : ∀ oc, chainStep backendStep c rq log oc → X oc) :
+    certPreW E (.auth on c) rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ⊢
+      certPreT E c rq log T := by
+  iintro #H
+  iunfold certPreW at H
+  iunfold certPreT
+  iintro !> %oc %hs
+  iapply H $$ %oc %(⟨by simp only [chainStep]; split <;> simp [hs.1], h oc hs.1, hs.2⟩)
+
+/-- **The dispatch's tie** (auth-lease S3a2, Draft §3): a certificate whose lease-exactness at `T` is guarded by
+`E.lg` is one at the live set `L` of the method's resources, when the two agree in a cluster that grants
+leases. -/
+theorem certPreW_tie (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
+    (L T : List w64) (X : Outcome → Prop) (hLT : E.lg = true → L = T) :
+    certPreW E c rq log (fun oc => X oc ∧ (E.lg = true → leaseExactL T rq log oc)) ⊢
+      certPreW E c rq log (fun oc => X oc ∧ leaseExactL L rq log oc) := by
+  iapply certPreW_mono
+  intro oc ⟨hx, hl⟩
+  exact ⟨hx, fun hg => hLT hg ▸ hl⟩
+
 theorem rangePostL_rangePost (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
     (resp : Loc) (err : GoInterface) (X : Outcome → Prop) :
@@ -243,6 +283,7 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
         log F R Pre Post X := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
   ihave HPre := csContract_pre _ _ _ _ _ $$ Hcs
+  ihave Hkv := kvOwn_rejected E log rq .auth (by decide) $$ Hkv
   iunfold kvPostFL
   iexists (.rejected .auth)
   isplitr
@@ -254,7 +295,9 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
   · iapply chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
   · iright; iexact HPre
-  iapply chainClass_auth_rejected
+  isplitl []
+  · iapply chainClass_auth_rejected
+  · iapply chainLeaseClass_auth_rejected
 
 /-- `auth_pass_kvPostF` with the outcome's property, of every inner outcome. -/
 theorem auth_pass_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
@@ -264,12 +307,13 @@ theorem auth_pass_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       kvPostF E c inner info' rq log F R Pre Post -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ reqClass E.authMode info rq -∗
+      reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
       kvPostFL E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
         log F R Pre Post X := by
-  iintro #Happ Hpost Hinfo #Hcls
+  iintro #Happ Hpost Hinfo #Hcls #Hlc
   iunfold kvPostF at Hpost
   iunfold kvPostFL
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -⟩
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -, -⟩
   iexists oc
   iframe HR Hkv HPP
   isplitr
@@ -280,7 +324,9 @@ theorem auth_pass_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
   ihave Hres := chainResAny_of c inner info' $$ Hres
   isplitl [Hinfo Hres]
   · iapply chainRes_auth_in c p inner info $$ Happ Hinfo Hres
-  iapply chainClass_auth_pass $$ Hcls
+  isplitl []
+  · iapply chainClass_auth_pass $$ Hcls
+  · iapply chainLeaseClass_auth_pass $$ Hlc
 
 end proof
 
@@ -465,6 +511,8 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   ihave #Hst' := Hst
   iunfold apply.isAuthStoreL at Hst'
   icases Hst' with ⟨%sti, %Hsti, -, #HRange, #HDel, -⟩
+  ihave #Hrl0 : apply.reqLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq $$ []
+  · iapply apply.reqLeaseClass_noLease; rw [Hk.2.1]; exact ⟨by decide, by decide, by decide⟩
   iunfold apply.permCheck3L at HRange
   iunfold apply.permCheck3L at HDel
   ihave #Hr' := Hr
@@ -548,7 +596,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc
+    iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc Hrl0
     intro oc hoc
     refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
     rw [hpk]
@@ -623,7 +671,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc
+  iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc Hrl0
   intro oc hoc
   refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
   rw [hpk]

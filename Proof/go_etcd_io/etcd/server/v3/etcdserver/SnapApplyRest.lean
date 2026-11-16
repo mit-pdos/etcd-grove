@@ -43,43 +43,43 @@ cluster's and the rest part's, the rest model's after `A'` with the records of t
 at the TTLs `f` (`srvRestAt`'s; none in a cluster that grants none); (the lease-expiry plan's
 S2–S4, Probe 4, 2026-11-05) in a cluster that grants leases, with the apply thread's half of the
 live set at the table's ids, the permits, the table's requests and its half of the ids the lessor
-ever had (`srvRest_close`). -/
+ever had (`srvRest_close`); (auth-lease S3a §5) at the mode's table (`srvRestM_close`). -/
 theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci : Loc)
     (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
     (al ast lp cl : Loc) (bk : GMap GoString backend.BktData) (memI : GMap w64 apply.MemberM)
-    (A' : List EntryModel) (hγB : d'.γB = γB) (f : w64 → w64)
+    (A' : List EntryModel) (hγB : d'.γB = γB) (f : w64 → w64) (on : Bool)
     -- (P6.2, 2026-11-03) the rest model's buckets the image's at the cluster's and the rest
     -- part's (until then everywhere: with auth on, the rest model does not model the admin writes)
     (hbk : ∀ n, membership.clusterBkts n ∨ restSet E.authMode n →
-      (apply.restLeasesWith f (srvIds E (appliedTable γr A').ids)
+      (apply.restLeasesWith f (srvIds E (appliedTableM on γr A').ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup n = bk.lookup n)
     (hmem : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
-    (hf : E.lg = true → leaseTTLsGeReq (appliedTable γr A') f) :
+    (hf : E.lg = true → leaseTTLsGeReq (appliedTableM on γr A') f) :
     backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
       backend.rbPart d'.γB (restSet E.authMode) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-      apply.ltHalf E (srvIds E (appliedTable γr A').ids) ∗ srvGrantIf E ∗
-      srvReqsIf E (appliedTable γr A') ∗ srvEver E A' ⊢
-    srvRest (snapE E γ' TM' ci d' g γB al ast lp cl d'.be) γr A' := by
+      apply.ltHalf E (srvIds E (appliedTableM on γr A').ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTableM on γr A') ∗ srvEver E A' ⊢
+    srvRestM on (snapE E γ' TM' ci d' g γB al ast lp cl d'.be) γr A' := by
   subst hγB
   iintro ⟨H0, H1, H2, H3, H4, H5, H6, HLt, #HG, #HQ, HU⟩
-  iapply srvRest_close
+  iapply srvRestM_close
   iexists f
   isplitr
   · ipureintro; exact hf
-  generalize hr : apply.restLeasesWith f (srvIds E (appliedTable γr A').ids)
+  generalize hr : apply.restLeasesWith f (srvIds E (appliedTableM on γr A').ids)
     (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')) = r at hbk
   have hrm : r.mem = memI := by rw [← hr, apply.restLeasesWith_mem]; exact hmem
   have hmi : memIdOk memI := hmem ▸ restModel_memIdOk' _ _ _
   have hrp : restPresent r.bk := hr ▸ restPresent_restLeasesWith _ _ _
     (restPresent_restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))
-  rw [show srvIds (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) (appliedTable γr A').ids =
-    srvIds E (appliedTable γr A').ids from rfl, hr, snapE_RO,
+  rw [show srvIds (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) (appliedTableM on γr A').ids =
+    srvIds E (appliedTableM on γr A').ids from rfl, hr, snapE_RO,
     show apply.ltHalf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be)
-      (srvIds E (appliedTable γr A').ids) = apply.ltHalf E (srvIds E (appliedTable γr A').ids) from rfl,
+      (srvIds E (appliedTableM on γr A').ids) = apply.ltHalf E (srvIds E (appliedTableM on γr A').ids) from rfl,
     show srvGrantIf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) = srvGrantIf E from rfl,
-    show srvReqsIf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) (appliedTable γr A') =
-      srvReqsIf E (appliedTable γr A') from rfl,
+    show srvReqsIf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) (appliedTableM on γr A') =
+      srvReqsIf E (appliedTableM on γr A') from rfl,
     show srvEver (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) A' = srvEver E A' from rfl]
   iframe HLt HG HQ HU
   unfold srvRestOwnH srvRestOwn srvObjsOn

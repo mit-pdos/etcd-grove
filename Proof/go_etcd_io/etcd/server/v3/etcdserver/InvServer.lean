@@ -118,6 +118,21 @@ loaded if it was 0. -/
 def stLoaded (γ : ApplyNames) (st : ApplyState) : ApplyState :=
   if st.k = W64 0 then { st with k := γ.m0.1 } else st
 
+/-- Loading keeps the effective consistent index (restart3 A1: the merge's window guard). -/
+theorem stLoaded_ciEff (γ : ApplyNames) (st : ApplyState) : ciEff γ (stLoaded γ st).k = ciEff γ st.k := by
+  unfold stLoaded
+  by_cases h : st.k = W64 0
+  · rw [if_pos h]; simp only [ciEff, h, ite_self, ↓reduceIte]
+  · rw [if_neg h]
+
+/-- Loading keeps the next index `p`. -/
+theorem stLoaded_p (γ : ApplyNames) (st : ApplyState) : (stLoaded γ st).p = st.p := by
+  unfold stLoaded; split <;> rfl
+
+/-- Loading keeps the pending flag. -/
+theorem stLoaded_pending (γ : ApplyNames) (st : ApplyState) : (stLoaded γ st).pending = st.pending := by
+  unfold stLoaded; split <;> rfl
+
 /-- Loading is idempotent: a loaded state stays as it is (`srvCiC`'s condition). -/
 theorem stLoaded_idem (γ : ApplyNames) (st : ApplyState) :
     stLoaded γ (stLoaded γ st) = stLoaded γ st := by

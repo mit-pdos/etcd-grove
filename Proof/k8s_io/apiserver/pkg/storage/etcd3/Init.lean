@@ -6,7 +6,7 @@ Its fact (`EtcdGrove.k8s.registryFact`, `RegistryDefs.lean`): `endpointsMapMu` i
 the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
 importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
-`defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
+`defaultWatcherMaxLimit`, kept read-only in the fact) and its translated `init` functions: `compact.go`'s makes
 `endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
@@ -249,6 +249,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imod Hmask with _
   imodintro
   try wp_auto
+  ipersist HdefaultWatcherMaxLimit
   iframe Hown
   imodintro
   isplitr
@@ -257,7 +258,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   imodintro
   unfold EtcdGrove.k8s.registryFact
-  iexact Hreg
+  iframe Hreg
+  iexact HdefaultWatcherMaxLimit
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -260,7 +260,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     icases srvLeaseRd_srvInv s E .mono (by decide) $$ Hlr with ⟨%on, #Hli⟩
     ihave #HGL := v3rpc.lessorGrantOkL_server s E ρ iprop(client.etcdRunSlot s E γr ∗ levelTok 0)
-        ⟨hlg, Hoff⟩ (by rw [hm]; decide) on $$ []
+        hlg (by rw [hm]; decide) on $$ []
     · iframe #
       isplitr
       · iintro !>
@@ -318,7 +318,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     icases srvLeaseRd_srvInv s E .revocable (by decide) $$ Hlr with ⟨%on, #Hli⟩
     ihave #HGL := v3rpc.lessorGrantOkLive_server s E ρ
-        iprop(client.etcdRunSlot s E γr ∗ levelTok 0) ⟨hlg, Hoff⟩ (fun q => q.2 = W64 0)
+        iprop(client.etcdRunSlot s E γr ∗ levelTok 0) hlg (fun q => q.2 = W64 0)
         (fun _ h _ => h) $$ []
     · iframe #
       isplitr

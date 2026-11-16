@@ -111,6 +111,10 @@ def irrDeleteRange (op : OpFull) : apply.IRRModel :=
 /-- `&pb.InternalRaftRequest{Txn: r}` for `r` holding the wire transaction `tw` (E3e: its model
 `tw.toModel` until then). -/
 def irrTxn (tw : txn.TxnModelW) : apply.IRRModel := { apply.irrEmpty with txnW := some tw }
+/-- `&pb.InternalRaftRequest{LeaseGrant: r}` for `r` of id `id` and TTL `ttl` (auth-lease S3b). -/
+def irrLeaseGrant (id ttl : w64) : apply.IRRModel := { apply.irrEmpty with leaseGrant := some ⟨id, ttl⟩ }
+/-- `&pb.InternalRaftRequest{LeaseRevoke: r}` for `r` of id `id` (auth-lease S3b). -/
+def irrLeaseRevoke (id : w64) : apply.IRRModel := { apply.irrEmpty with leaseRevoke := some id }
 
 @[simp] theorem irrTxn_txn (tw : txn.TxnModelW) : (irrTxn tw).txn = some tw.toModel := rfl
 @[simp] theorem irrTxn_txnW (tw : txn.TxnModelW) : (irrTxn tw).txnW = some tw := rfl

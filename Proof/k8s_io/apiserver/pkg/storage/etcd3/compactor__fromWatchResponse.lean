@@ -56,7 +56,7 @@ theorem compactor.fromWatchResponse.wp_proof
     -- an error response: `Err()` again, non-nil too, and `fmt.argOk` (its `errStrOk`, from the
     -- close error's `statusErrOk`)
     (try wp_auto)
-    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hse] as %err2 ⟨resp, %Herr2, #Hes2⟩
+    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hse] as %err2 ⟨resp, %Herr2, #Hes2, -, -⟩
     (try wp_auto)
     iapply HΦ
     ileft

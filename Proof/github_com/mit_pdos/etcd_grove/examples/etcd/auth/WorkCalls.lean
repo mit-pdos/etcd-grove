@@ -751,7 +751,7 @@ theorem putReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : O
   iintro H
   iunfold putReplied at H
   icases H with ⟨%_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
-  ipureintro; exact HP
+  ipureintro; exact HP.choose_spec.2
 
 /-- A delete's reply holds its update's result. -/
 theorem deleteReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
@@ -760,7 +760,7 @@ theorem deleteReplied_Q (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o 
   iintro H
   iunfold deleteReplied at H
   icases H with ⟨%_, %_, %_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
-  ipureintro; exact HP
+  ipureintro; exact HP.choose_spec.2
 
 /-- **What every call of `Work`'s holds** (persistent): the client's `KV` field over `conn`, whose
 attempts carry `who`'s tokens, the member's KV methods with auth on, the TLS refutation, the
@@ -924,7 +924,7 @@ theorem txnReplied_Q (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mv
   rw [hro]
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases H with ⟨%_, %_, %_, %_, %_, %_, %_, %_, -, -, -, -, -, %HP⟩
-  ipureintro; exact HP
+  ipureintro; exact HP.choose_spec.2
 
 /-- **A writing transaction's reply, read as itself** (no range end `[0]`, `irrNoZeroEnd_txn`): its
 update's result, and its responses those of its branch run on some state. -/
@@ -943,7 +943,7 @@ theorem txnReplied_facts (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F 
   have ht : t' = t := hzt (irrNoZeroEnd_txn tw t htw hz)
   subst ht
   ipureintro
-  exact ⟨HP, _, _, skip, hsucc, hrel⟩
+  exact ⟨HP.choose_spec.2, _, _, skip, hsucc, hrel⟩
 
 /-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
 permission cache decides): a reply with no error was granted to `who` (`hop`: a granted

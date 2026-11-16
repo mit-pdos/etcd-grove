@@ -54,6 +54,16 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 open mvcc.api (mvccLeases)
 
+/-- **`imageLeasesAt` in the auth mode `on`** (auth-lease S3a, Draft rev 5 §4, review r3 F2): the image's
+lease bucket at the mode's table (`appliedTableM on`; off, `imageLeasesAt`'s). -/
+def imageLeasesAtM [GooseExts] (on : Bool) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
+    (A' : List EntryModel) : Prop :=
+  imageLeasesAtT γr (appliedTableM on γr A') P D A'
+
+theorem imageLeasesAtM_false [GooseExts] (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
+    (A' : List EntryModel) : imageLeasesAtM false γr P D A' = imageLeasesAt γr P D A' := by
+  unfold imageLeasesAtM; rw [appliedTableM_false, imageLeasesAt_eq_T]
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -233,7 +243,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-    lease.leaseOwn (mvccLeases E.γ) Lr ∅ ∗ lease.lessorRdOf (mvccLeases E.γ) ∗
+    lease.leaseOwn (mvccLeases E.γ) Lr (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM E.authOn γr.kv A'))) ∗
+      lease.lessorRdOf (mvccLeases E.γ) ∗
     lease.leaseRevokers (mvccLeases E.γ) Lr ∗
     apply.ltHalf E Lr ∗ apply.ltHalf E Lr ∗ apply.everOwn E (U ++ recs.map (·.1)) ∗
     □ ([∗list] x ∈ recs, lease.leaseReqIs (mvccLeases E.γ) x.1 (reqOf x.1)) ∗
@@ -307,7 +318,7 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
-    srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗
+    srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRestM on E' γr A' ∗
     -- (the mvcc merge) `lean`'s `srvKVCloserW s E'` was here: over the API the close right is the
     -- apply thread's `mvccOpen` (`srvApplyKVM`'s `cmpOwn`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
@@ -328,7 +339,7 @@ theorem srvSnapAppliedG_off (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci 
   obtain ⟨-, p, P, f, c', RO, RW, rfl⟩ := Hp.1
   have e : srvOpenQ (E.onBe p P f c' RO RW).authMode = (1 : Qp).half := by
     show srvOpenQ E.authMode = _; rw [hoff]; rfl
-  rw [e, isServerM_false, srvApplyKVM_false]
+  rw [e, isServerM_false, srvApplyKVM_false, srvRestM_false]
   iexists γ', TM', _, b', st', d', x', cs', L
   isplitr
   · ipureintro; exact Hp

@@ -36,9 +36,11 @@ theorem apply.applierV3Capped.Put.wp_proof :
   icases Hai with ⟨-, -, #Hev⟩
   icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hk, -, -, Hm⟩
-  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  icases Hpre with ⟨%Hk, -, %T, -, Hm⟩
+  icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave Hm := apply.mPreRest_of_at _ _ _ _ _ _ $$ Hm
   icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
+  ihave Hkv := apply.kvOwn_rejected E log rq .noSpace (by decide) $$ Hkv
   wp_auto
   iapply HΦ
   iframe Htt

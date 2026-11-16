@@ -34,6 +34,7 @@ public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
 public import Proof.google_golang_org.grpc.status.ErrDesc
 public import Proof.go_uber_org.zap.PkgInit
+public import Proof.google_golang_org.grpc.status.StatusRO
 
 @[expose] public section
 
@@ -324,16 +325,22 @@ instance errorMsgIs_persistent (e : GoInterfaceOk) (m : GoString) :
 (persistent; unit P3a), if `e`'s type has them (both are called through a type assertion):
 `GRPCStatus() *Status` (`status.FromError`/`Code`/`Convert`) and `Is(error) bool`
 (`errors.Is`, for any target). (fromerror-stable, 2026-11-06) `GRPCStatus()` returns one fixed
-status `s` (grpc's `*Status` is immutable: `Proto()` clones, nothing exported writes it), so the
-code and message `status.FromError` reads are the error's (`statusCode`, `errDesc`); and `Is`
-returns `true` only for a target with the same description (`errors.IsStatusErr`'s
-post: an `Is` that answered `true` regardless would refute it). -/
+status `s`, so the code and message `status.FromError` reads are the error's (`statusCode`,
+`errDesc`); and `Is` returns `true` only for a target with the same description
+(`errors.IsStatusErr`'s post: an `Is` that answered `true` regardless would refute it).
+(k8s 7f-5a-P step 5, E1, approved by etcd-grove-81 2026-11-15) The status `s` is read-only with the
+error's code (`grpcStatusRO s (statusCode e)`): grpc's `*Status` is not immutable in Go (a
+whole-struct assignment `*s = *t` from any package copies its unexported fields); the fact is a
+guarantee of the producer that built `s` (with `status.New`/`Error`) and never writes it after, as
+grpc and etcd do (`examples/premisefix/grpcstatusro`; `notes/k8s-7f5a-draft.md` §11.2); a status
+may be shared (package-level `status.Error` values). -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    ∃ s : Loc, □ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+    ∃ s : Loc, (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
       WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
+      EtcdGrove.grpcStatusRO s (EtcdGrove.statusCode (GoInterface.ok e))) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
     □ ∀ (target : GoInterface) (Φ : val → IProp GF),
       ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗

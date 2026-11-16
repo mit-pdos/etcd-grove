@@ -145,6 +145,12 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `etc/specs-build-all.sh`), imports only the shared translations (`GeneratedProof`, `GooseLang`) and
   Perennial, and nothing outside it imports it (its namespaces are the main tree's). No `Link`/`Results`:
   the trust-base and verified-code scripts see nothing of it.
+- `Robustness/` (lean_lib `Robustness`): the generic statement of robustness theorems (runs of a
+  deployment's real programs with crashes, the network's faults and arbitrary clients; assumptions on
+  the environment's events only; guarantees on the observed trace, e.g. `LinearizableTrace`), and
+  `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
+  kernel and the harness, never by the program): `notes/robustness.md`. A program's statement lives
+  with its proofs (`Proof/.../examples/raft/kvnet/Robust.lean`).
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
@@ -280,6 +286,14 @@ Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`MainLinked.lea
 `Proof/` and a part's `<root>/Proof/`; Lean runs grouped by the part roots a module
 reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
 not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
+
+**Per top-level theorem, without a build**: `etc/theorem-loc.py THEOREM...` (e.g.
+`etcd_putget3_safe`) counts, read off the source text, the Lean lines the theorem trusts (its TCB:
+the axioms of its `etc/tcb-collections` file and the definitions its statement and those axioms are
+written in, split into premises and axioms) and the Go code lines its proof verifies (the functions
+whose `wp_proof` theorems it reaches, outside this repository and in it). It approximates
+`etc/tcb-report.lean` (see its `--help` for what it does not follow); its axioms are only as current
+as the collection's baseline. `--list-tcb`/`--list-verified` list what it counted, `--json` keeps it.
 
 ## Proof writing
 

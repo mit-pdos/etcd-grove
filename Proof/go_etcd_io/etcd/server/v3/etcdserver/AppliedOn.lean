@@ -320,12 +320,12 @@ theorem srvApplyKVM_true (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
   rfl
 
 /-- **The KV model's applied state in the mode `on`** (step 1): `kvApplied` off (the start's auth
-state `st₀` and the latest `st` unused), `kvAppliedOn` on. -/
+state `st₀` and the latest `st` unused), `kvAppliedOn` on, at the model's table (auth-lease S3a). -/
 def kvAppliedM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) : IProp GF :=
   match on with
   | false => kvApplied γ γk A x
-  | true => kvAppliedOn γ γk st₀ A x st
+  | true => kvAppliedOn γ γk st₀ A x st (kvLeasesOn γk st₀ A)
 
 theorem kvAppliedM_false (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) :
@@ -333,7 +333,8 @@ theorem kvAppliedM_false (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
 
 theorem kvAppliedM_true (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (x : apply.ApplyKV) (st : auth.AuthState) :
-    kvAppliedM (GF := GF) true γ γk st₀ A x st = kvAppliedOn γ γk st₀ A x st := rfl
+    kvAppliedM (GF := GF) true γ γk st₀ A x st = kvAppliedOn γ γk st₀ A x st (kvLeasesOn γk st₀ A) :=
+  rfl
 
 end server
 

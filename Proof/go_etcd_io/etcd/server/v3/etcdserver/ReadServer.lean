@@ -54,7 +54,7 @@ theorem isReadServer_of_serverM (on : Bool)
     (hFC : EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG))
     (hNR : EtcdServer.NextRequestID.spec (GF := GF) (hG := hG))
     (hRT : EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG))
-    (hAI : EtcdServer.AppliedIndex.specM (GF := GF) (hG := hG) on)
+    (hAI : EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -153,7 +153,7 @@ theorem isReadServer_of_serverM (on : Bool)
   -- `AppliedIndex()`
   isplitr
   · iintro !> %Φ !> - HΦ
-    wp_apply hAI s E γr $$ [] as %i #Hi
+    wp_apply hAI on s E γr $$ [] as %i #Hi
     · iframe #
     iapply HΦ
     iexact Hi
@@ -205,7 +205,7 @@ theorem isReadServer_of_server
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
         (idCred ρ.ids 1) :=
-  isReadServer_of_serverM false hAW hDone hStop hLC hFC hNR hRT (hAI false) hLg s E ρ γr hρ
+  isReadServer_of_serverM false hAW hDone hStop hLC hFC hNR hRT hAI hLg s E ρ γr hρ
 
 end proof
 

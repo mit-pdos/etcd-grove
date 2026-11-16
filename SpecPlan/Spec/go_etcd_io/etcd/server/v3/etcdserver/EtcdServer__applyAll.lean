@@ -20,12 +20,16 @@ non-empty hard state, and then the guard fails) and its snapshot's index is at m
 a batch, requested in `req/go_etcd_io_raft_v3.md`, "from 2d (round 1)"; the applied term is the
 batch's last entry's, or the snapshot's, or an earlier batch's, each at most `B.term`) and the
 thread's configuration (`ep.confState` at its point `c ≥ appliedi`), then `sendMergedSnap.spec`
-(with `srvStarted`).
+(with `srvStarted`). (2026-11-15, the verified fork's commit `6e8f0c004`, ledger entry of that date)
+Inside the replay window (`appliedi < consistIndex.ConsistentIndex()`, read with
+`consistentIndex.ConsistentIndex.spec`) the merge is deferred: `ReportSnapshot(m.GetTo(),
+SnapshotFailure)` in its place; a `MsgSnap` the term or index guard drops is reported the same way.
 
 **Changes** from `specs-ref`'s `applyAll.specBatch` (about 60 conjuncts over the restart point, the
 window, the receipts' bound, the auth component, `kvAppliedM`, `srvRestR`, the WAL token, ...): over
 `applyThread` and `applyBatch`; any batch (with or without a snapshot, any restart point); the
-merged snapshot's guard is the code's (`m.term = raftTerm`, `index ≤ appliedi`), with no window
+merged snapshot's guard is the code's (`m.term = raftTerm`, `index ≤ appliedi`, and since the fork's
+`6e8f0c004` past the replay window, `appliedi ≥ ConsistentIndex()`), with no window
 premise (`winNoMergedSendR`, false at a restart, is gone: the history is the cluster's, so a merged
 snapshot at any applied index is valid).
 

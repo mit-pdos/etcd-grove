@@ -99,23 +99,6 @@ theorem EtcdServer.RoleAdd.wp_proof : EtcdServer.RoleAdd.spec (GF := GF) (hG := 
       ipureintro; exact ⟨rfl, He⟩
     · exact absurd rfl He
 
-/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
-theorem EtcdServer.RoleAdd.wp_proofOn
-    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
-    EtcdServer.RoleAdd.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd Qa r name F
-  let Hh := adminHistAu (GF := GF) s E ρ ctx (irrRoleAdd name) Qa
-  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
-  ihave #Hc : authRaftOk s ctx (irrRoleAdd name) etcdserverpb.AuthRoleAddResponse.ty (adminPreOn s E ρ ctx cd F Hh)
-      (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty) $$ []
-  · iapply authRaftOk_on hRR s E ρ ctx cd (irrRoleAdd name) F _ _ Qa _ rfl rfl (adminPropOk_roleAdd name Hn)
-      (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
-  wp_apply EtcdServer.RoleAdd.wp_proof s ctx r name (adminPreOn s E ρ ctx cd F Hh)
-      (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty) $$ [HP] as %resp %err H
-  · iframe # HP
-  iapply HΦ
-  iexact H
-
 end proof
 
 end EtcdGrove

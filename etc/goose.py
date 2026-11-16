@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, txnlinfaultsN, restartN, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -285,16 +285,24 @@ PROJECTS = [
         # `SaveDBFrom` links its file into place (`os.Link`), so that of two concurrent saves of one
         # index exactly one puts its file in place and the other keeps it
         # (nonissues/etcd-snap-savedbfrom-concurrent-rename.md; the user's decision via etcd-grove-81).
-        # Then (the WAL over fsExt, 2026-11-14) branch `goose-lean-walfs` (on 2eaeb872b), head
-        # 3df9b265f: the WAL's local fixes 0001-0005 (notes/wal-fsext-fork/README.md: `NewFileReader`'s
-        # Stat, `Create`'s cleanup, the byte-mix tests, `N.tmp` opened with `O_TRUNC`, `Create`'s
-        # parent close). Then (2026-11-15) e115818f5 on it: `WAL.Sync` takes `w.mu` (0006,
-        # issues/etcd-wal-sync-releaselockto-race.md, the reproduced data race with `ReleaseLockTo`).
+        # Then (restart3 A1, 2026-11-15) 6e8f0c004 (branch `restart3-ag`, on 2eaeb872b; to be pushed
+        # to `goose-lean`): `applyAll`'s merge defers a merged snapshot inside the replay window
+        # (`ep.appliedi < ConsistentIndex()`) and reports every dropped `MsgSnap` failed
+        # (`ReportSnapshot`), so that a merged image is always at its own index and a dropped one
+        # does not leave the follower in `StateSnapshot` (notes/restart3-a0-draft.md §3, §8; D-A0-1,
+        # approved by the user via etcd-grove-81; D-A0-6).
+        # Then (the WAL over fsExt, 2026-11-14) branch `goose-lean-walfs`: the WAL's local fixes
+        # 0001-0005 (notes/wal-fsext-fork/README.md: `NewFileReader`'s Stat, `Create`'s cleanup, the
+        # byte-mix tests, `N.tmp` opened with `O_TRUNC`, `Create`'s parent close) and 0006 (2026-11-15:
+        # `WAL.Sync` takes `w.mu`, issues/etcd-wal-sync-releaselockto-race.md, the reproduced data
+        # race with `ReleaseLockTo`), first on 2eaeb872b (3df9b265f, e115818f5), rebased (2026-11-16,
+        # wal-lean session 6) onto 6e8f0c004 with each commit's author, committer and dates kept:
+        # 8c28a4296.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="e115818f501dbc5987bf228740b76f26491eca1d",
+        rev="8c28a4296f1699c699bc4d59459c691bcff995f0",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -691,6 +699,45 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
     Project(
+        name="nettcp",
+        # The TCP extension's `net` and the programs proved over it (`examples/net/`,
+        # notes/net-tcp.md): this repository's translation of `net` (the interfaces; `conn`, `TCPConn`,
+        # `TCPListener`, `OpError` and the functions the examples call trusted,
+        # `NetTcp/TrustedCode/net.lean`, over `tcpExt`, `GooseLang/Ext/Tcp`), and the examples'
+        # packages. In the part `NetTcp/` (configured by `NetTcp/Code/**.toml`): the main tree's
+        # `net` is names only, with the axioms etcd's server proofs use, so the part declares the
+        # same names and nothing outside it imports it. A package of the examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "net"),
+        root="NetTcp",
+        # (v3, 2026-11-14) `os`, `syscall`, `internal/poll`, `io/fs`, `internal/syscall` are the
+        # main tree's, as every project's (`net`'s errors are their values: `*os.SyscallError`,
+        # `poll.ErrNetClosing`, `poll.ErrDeadlineExceeded`).
+        lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp", "os=", "syscall=",
+                    "io/fs=", "internal/poll=", "internal/syscall="],
+        packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
+                  "./shutdown", "./preface",
+                  # each node a command of its example, its own process (examples/net/README.md)
+                  "./echo/cmd/server",
+                  "./echo/cmd/client",
+                  "./echo/cmd/junk",
+                  "./framed/cmd/server",
+                  "./framed/cmd/client",
+                  "./framed/cmd/junk",
+                  "./acceptloop/cmd/server",
+                  "./acceptloop/cmd/client",
+                  "./duplex/cmd/server",
+                  "./duplex/cmd/client",
+                  "./halfclose/cmd/server",
+                  "./halfclose/cmd/client",
+                  "./preface/cmd/server",
+                  "./preface/cmd/client",
+                  "./preface/cmd/junk",
+                  "./shutdown/cmd/node"],
+        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
+    ),
+    Project(
         name="durablekv",
         # kv made durable (`examples/raft/kvfile`): each replica's raft state in a file of the
         # durable package, rewritten whole before the messages that depend on it are sent;
@@ -1008,11 +1055,46 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putget3")],
     ),
     Project(
+        name="putgetN",
+        # putget3 with any number of members (notes/clusterN-scope.md): Main(k) starts k members
+        # in-process (etcdstart.Members, etcdstart.StartMembers), each serving its raft handler on
+        # its own peer listener, a client's Put and Get through the first. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd project's translations
+        # (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "putgetN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putgetN")],
+    ),
+    Project(
+        name="txnlinfaultsN",
+        # linkv3p (examples/etcd/partition) with any number of members (notes/txnlinfaultsN-plan.md):
+        # Main(k, clients, ops, sched) starts k members in-process (etcdstart.Members,
+        # etcdstart.StartMembers), each serving its gRPC API (etcdstart.Serve) behind a bridge
+        # (cluster3.StartBridge), k clients of every bridge, cluster3's partitioner on the schedule
+        # and partition's Check (txnlin's workload). A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd, partition, cluster3, lintest and porcupine
+        # projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "txnlinfaultsN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlinfaultsN")],
+    ),
+    Project(
         name="restart3",
-        # putget3 with a follower stopped (HardStop) and started again on its data directory
-        # (notes/restart-plan.md): the WAL replayed, a snapshot found in it, the member caught
-        # up by a snapshot. A package of the examples' Go module (examples/go.mod); its imports
-        # are the etcd project's translations (names reached through the empty root).
+        # The three-member restart example (restart3, notes/restart3-scope.md §4): in-process Puts
+        # through member 1 before and while a follower is stopped (HardStop), the follower started
+        # again on its data directory (the WAL replayed past a snapshot record, a merged snapshot
+        # installed), its peer address served by the example's swap handler, and an in-process
+        # Range at it checked exactly. A package of the examples' Go module (examples/go.mod); its
+        # imports are the etcd project's translations (names reached through the empty root).
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "restart"),
@@ -1020,6 +1102,23 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
+    ),
+    Project(
+        name="restartN",
+        # restart3 with any number of members (notes/restartN-plan.md): Run(k) starts k members
+        # in-process (etcdstart.Members, StartMembers' steps with each peer address served through
+        # the example's swap handler), in-process Puts through member 0 before and while a follower
+        # is stopped (HardStop), the follower started again on its data directory (a merged snapshot
+        # installed), and an in-process Range at it checked exactly. A package of the examples' Go
+        # module (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "restartN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restartN")],
     ),
     Project(
         name="restart1",

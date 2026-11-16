@@ -1,13 +1,11 @@
 /-
-The trust boundary: `errors.As` of an `errors.New` error against a target type whose type set
-does not contain `*errorString` (Perennial's `errors.As.spec` allows any result). Go's `As`
-(`errors/wrap.go`) returns `false` for a nil error, else walks `err`'s tree: `err` is not
-assignable to the target's type (its type is not in the type set), it has no `As` method, and no
-`Unwrap` method ends the walk with `false`, the target not written.
+Proof of `Spec/errors/AsLeaf.lean`: `errors.AsLeafTy` at `*errorString` (k8s 7f-5a-P, decided by
+etcd-grove-81 2026-11-15: it was an axiom, which `AsLeafTy` generalizes).
 -/
 module
 
 public import Spec.errors.AsLeaf
+public import Spec.errors.AsLeafTy
 
 @[expose] public section
 
@@ -25,7 +23,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
-axiom errors.AsLeaf.wp_proof : errors.AsLeaf.spec (GF := GF) (hG := hG)
+theorem errors.AsLeaf.wp_proof (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) :
+    errors.AsLeaf.spec (GF := GF) (hG := hG) := by
+  intro x l T' _ _ T _ v hT hl hts hu
+  exact wp_AsLeafTy ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ l v hT hl hts hu
 
 end proof
 

@@ -115,8 +115,12 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (strict M1's, kept by R4, 2026-11-07) the image's history attaches no lease to a key (the
     -- server's KV model's, `kvRaftOf_restorable`: leases are granted and revoked, `hlease` and
     -- `lessor.Recover` restore their records, but no put carries one), so `KV.Restore.contract` has
-    -- no pending item, and its `leaseOwn (mvccLeases E.γ) L ∅` is met at `Recover`'s live set
-    (hnl : mvcc.LogNoLease (kvModelM E.authOn γr.kv A'))
+    -- no pending item, and its `leaseOwn (mvccLeases E.γ) L ∅` is met at `Recover`'s live set.
+    -- (auth-lease S3a, Draft rev 5 §5, frozen) With auth on, a key the image's history attaches
+    -- to a lease attaches it to a live one of the mode's table (`keysLeasesLive`): every pending
+    -- item's lease is in `Recover`'s live set (`store.Restore.spec`'s premise)
+    (hnl : if E.authOn then ∀ k id, mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM true γr.kv A')) !! ⟨k⟩ = some id →
+      id ∈ (appliedTableM true γr A').ids else mvcc.LogNoLease (kvModelM false γr.kv A'))
     (hbr : mvcc.bridgeParams d.P)
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
@@ -149,7 +153,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty, at a cluster that
     -- grants none) the image's lease bucket the records of its log's live leases
-    (hlease : imageLeasesAt γr d.P D A')
+    (hlease : imageLeasesAtM E.authOn γr d.P D A')
     -- (the lease-expiry plan's S2–S4, Probe 4, DRAFT 2026-11-05) the applied log after an empty
     -- prefix (`applyAll`'s raft names) and the KV names' lease mode the environment's
     -- (`srvSnapRO`'s): what the granting walk's table lemmas take (`ImageLeases.lean`)
@@ -185,7 +189,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        storage.isBackendHooks hk
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
-       srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRestRp E γr A r0 ∗
+       srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRestRpM E.authOn E γr A r0 ∗
        -- (S2–S4, review r1 F1) in either auth mode, the image's log committed (until then the `on`
        -- arm's alone, `snapAuthResM`)
        srvRLogLb γr.raft A' ∗

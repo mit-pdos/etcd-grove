@@ -219,7 +219,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       ihave %Hkse := etcdState_keys e.rev [] se $$ Hse
       have Hepos : 0 < sint.Z e.rev := by
         have := Hrevse v Hvse; rw [Hvm] at this; omega
-      iunfold eventAt at Hev
+      ihave Hev := eventAt_elim $$ Hev
       icases Hev with ⟨%ekeySl, #HeT, #HeKv, #HeK, #HeKs, #HeM⟩
       wp_auto
       wp_apply wp_bytes_to_string ekeySl e.key DFrac.discard $$ [$HeKs] as -

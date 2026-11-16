@@ -67,7 +67,7 @@ theorem revEvents_plan (P : List (GoString × GoString)) (σ : KVState) (r : Nat
   obtain ⟨cs, hcs⟩ : ∃ cs, σ.log[m]? = some cs := ⟨_, List.getElem?_eq_getElem hml⟩
   obtain ⟨k, v, hkv, rfl⟩ := hW.2 m cs h2 hcs
   -- the state before the revision, sorted, its records created at positive revisions
-  have hrev : σ.revEvents m = (kvStateOf σ.log).revEvents m := by rw [← he]
+  have hrev : σ.revEvents m = (kvStateOf σ.log σ.leases).revEvents m := by rw [← he]
   rw [revEvents_kvStateOf σ.log m (by omega) (by omega)] at hrev
   have hgd : σ.log.getD m [] = [mvcc.Change.put k v (W64 0)] := by
     simp [List.getD, hcs]
@@ -124,7 +124,7 @@ theorem rangeEvents_plan (P : List (GoString × GoString)) (pfx : GoString) (o :
     simp only [KVState.log, KVState.rev, List.length_cons, hc]; omega
   -- revision `1` has no event
   have h1 : σ.revEvents 1 = [] := by
-    have hrev : σ.revEvents 1 = (kvStateOf σ.log).revEvents 1 := by rw [← hok.1]
+    have hrev : σ.revEvents 1 = (kvStateOf σ.log σ.leases).revEvents 1 := by rw [← hok.1]
     by_cases hl : 1 ≤ σ.log.length - 1
     · rw [revEvents_kvStateOf σ.log 1 (by omega) hl] at hrev
       obtain ⟨cs, hcs⟩ : ∃ cs, σ.log[1]? = some cs := ⟨_, List.getElem?_eq_getElem (by omega)⟩

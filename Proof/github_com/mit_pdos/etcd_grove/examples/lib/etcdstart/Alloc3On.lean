@@ -90,7 +90,8 @@ theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (
   have hlm : γk.lm = .none := by simpa [KVNames.lg_eq] using Hklg
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInvOn_reg γ reg γk $$ Hkv
-  imod (srvMemberBootOn_alloc (GF := GF) { γ with reg := reg } cnt γk id cok) $$ Hkv' Hp [Hwt0]
+  imod (srvMemberBootOn_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
+      (fun h => by rw [hlm] at h; cases h) (fun h => by rw [hlm] at h; cases h)) $$ Hkv' Hp [Hwt0]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc'⟩ := Hρ
@@ -192,7 +193,8 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
       (fun h => Hnz _ (hperm.subset h) rfl)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklg⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, -, -⟩ := Hγ
+  have hklg : γk.lg = false := by rw [KVNames.lg_eq, hklm]; rfl
   ihave Hms' := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩

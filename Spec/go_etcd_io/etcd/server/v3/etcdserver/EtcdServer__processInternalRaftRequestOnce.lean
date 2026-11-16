@@ -53,7 +53,8 @@ the mode `E.authOn`; the mode-off form, `specOff`, is a
 corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): `spec`'s,
 with the proposer's view of the server, the wait's results and the KV model of the mode
 (`isServerReqM`; the applied result `resPostM`: in the mode `on` with the auth state the entry met
-and the auth layer's verdict the model's grant there, `authTie`), and the proposal's permission at the header the server stamps
+and the auth layer's verdict the model's grant there, the outcome lease-exact at the model's table,
+`authTie`), and the proposal's permission at the header the server stamps
 (`reqPropOkM`: in the mode `on` the check reads the request's principal, which the server fills in
 from the context before it proposes; the result `Qh hm` is at that header `hm`, the one the post
 names); (E3t, 2026-10-27) with auth on, the auth state after the entry published (`pubAfterM`);

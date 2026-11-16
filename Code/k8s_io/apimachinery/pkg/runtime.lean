@@ -896,6 +896,50 @@ noncomputable def Encode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty)))) (Pair (Var "buf") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- Decode is a convenience wrapper for decoding data into an Object.
+
+    go: codec.go:56:6 -/
+noncomputable def Decode.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "d"
+  (Lam "data"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Object.ty))) (App (Val (GoInstruction (GoZeroVal Object.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc Decoder.ty))) (Var "d"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Val UntypedNil))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil Object.ty))) (Val UntypedNil))
+  (App (App (App (App (Val (GoInstruction (MethodResolve Decoder.ty go!"Decode"))) (App (Val (GoInstruction (GoLoad Decoder.ty))) (Var "d"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc Object.ty))) (App (Val (GoInstruction (GoZeroVal Object.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Object.ty))) (Var "obj"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Object.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Object.ty))) (Pair (Var "obj") (Var "$r0")))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
 /-- SetZeroValue would set the object of objPtr to zero value of its type.
 
     go: helper.go:196:6 -/
@@ -3278,6 +3322,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ProtobufMarshaller_instance : ProtobufMarshaller.TypeAssumptions
   ProtobufReverseMarshaller_instance : ProtobufReverseMarshaller.TypeAssumptions
   Encode_unfold : FuncUnfold Encode [] Encode.impl
+  Decode_unfold : FuncUnfold Decode [] Decode.impl
   SetZeroValue_unfold : FuncUnfold SetZeroValue [] SetZeroValue.impl
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
@@ -3365,6 +3410,7 @@ attribute [instance] Assumptions.Allocator_instance
   Assumptions.ProtobufMarshaller_instance
   Assumptions.ProtobufReverseMarshaller_instance
   Assumptions.Encode_unfold
+  Assumptions.Decode_unfold
   Assumptions.SetZeroValue_unfold
   Assumptions.import_bytes_Assumption
   Assumptions.import_io_Assumption

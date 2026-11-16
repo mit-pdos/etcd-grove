@@ -1,7 +1,10 @@
 /-
 `errors.As(err, target)` of an `errors.New` error whose type is outside the target's type set: the
 trust boundary (rafthttp stage 4: the pipeline handler's `errors.As(err, &writerToResponse)` on
-`Process`'s error). Lean-first.
+`Process`'s error). Lean-first. (k8s 7f-5a-P, decided by etcd-grove-81 2026-11-15) Derived from
+`errors.AsLeafTy` (`Proof/errors/AsLeaf.lean`), whose instance it is at `*errorString`; it takes
+`AsLeafTy`'s premise for a non-interface target (distinct underlying types), which the two rafthttp
+callers (an interface target) meet vacuously.
 -/
 module
 
@@ -34,6 +37,8 @@ abbrev errors.AsLeaf.spec : Prop :=
     _root_.Perennial.errors.isLeafError
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ →
     go.typeSetContains (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) T = false →
+    (go.isInterfaceType (underlying T) = false →
+      underlying (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) ≠ underlying T) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ l ↦ v }}
       (App (App (Val (@! _root_.Perennial.errors.As))
         (Val #(interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x)))

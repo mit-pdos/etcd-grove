@@ -1,0 +1,21 @@
+--- /root/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261113113003-2eaeb872bce9/etcdserver/server.go	2026-11-13 11:30:53.417678611 +0000
++++ etcdserver/server.go	2026-11-15 01:52:51.546738850 +0000
+@@ -1011,8 +1011,16 @@
+ 		// its applied index, or which was installed in an earlier term and applied before any
+ 		// batch of raftTerm.
+ 		if m.GetTerm() == apply.raftTerm && m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi {
+-			merged := s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi, ep.confState)
+-			s.sendMergedSnap(merged)
++			if ep.appliedi < s.consistIndex.ConsistentIndex() {
++				// replay window (A0 probe): the backend is ahead of the applied index; defer the
++				// snapshot so that a merged image is always at its own index
++				s.Logger().Info("A0PROBE: merged snapshot deferred in the replay window",
++					zap.Uint64("applied-index", ep.appliedi), zap.Uint64("to", m.GetTo()))
++				s.ReportSnapshot(m.GetTo(), raft.SnapshotFailure)
++			} else {
++				merged := s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi, ep.confState)
++				s.sendMergedSnap(merged)
++			}
+ 		}
+ 	default:
+ 	}

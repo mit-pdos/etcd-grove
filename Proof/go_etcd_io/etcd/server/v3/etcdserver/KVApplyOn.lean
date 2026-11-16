@@ -41,22 +41,23 @@ open Classical in
 relation the auth applier's triples give, the auth plan's E2s): a normal entry with data that
 decodes to `rq` is, above `c₀` and of an admin kind, a successor of its admin step
 (`adminStateR`), the log kept; a KV request the auth layer refuses at `s.1` (the latest state:
-`auth.isOpPermitted.specL`, E2r), nothing; otherwise the entry's write at `s.1` (`kvEntry`). -/
-def outcomeOn (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (m : EntryModel)
-    (o : auth.AuthState × mvcc.Log) : Prop :=
+`auth.isOpPermitted.specL`, E2r), nothing; otherwise the entry's write at `s.1` (`kvEntry`). (Auth-lease
+S3a: on the triple state, the guard `authKVKind` with the lease part, the write at the table.) -/
+def outcomeOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel) (o : OnState) : Prop :=
   if m.typ = W32 0 ∧ m.data ≠ [] then
     match apply.irrDecode m.data with
     | some rq =>
       if uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true then
         adminStateR rq s.1 o.1 ∧ o.2 = s.2
-      else if apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq then o = s
-      else o = (s.1, kvEntry c₀ ch [] s.2 m)
+      else if apply.authKVKind (apply.dispatchKind rq) = true ∧
+          ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq then o = s
+      else o = (s.1, kvEntry c₀ ch s.2.2 s.2.1 m, kvTable c₀ ch s.2.2 m)
     | none => o = s
-  else o = (s.1, kvEntry c₀ ch [] s.2 m)
+  else o = (s.1, kvEntry c₀ ch s.2.2 s.2.1 m, kvTable c₀ ch s.2.2 m)
 
 /-- **At a determinate entry, every outcome the apply thread may reach is the model's**
 (`kvEntryOn`): an admin entry's successor is the unique one (`adminNext_of_det`). -/
-theorem outcomeOn_eq (c₀ : w64) (ch : apply.Chain) (s o : auth.AuthState × mvcc.Log)
+theorem outcomeOn_eq (c₀ : w64) (ch : apply.Chain) (s o : OnState)
     (m : EntryModel) (hd : entryDetOn c₀ s m) (ho : outcomeOn c₀ ch s m o) :
     o = kvEntryOn c₀ ch s m := by
   unfold outcomeOn at ho
@@ -88,7 +89,7 @@ theorem outcomeOn_eq (c₀ : w64) (ch : apply.Chain) (s o : auth.AuthState × mv
 
 /-- **The model's outcome is one the apply thread may reach** (`outcomeOn_eq`'s converse, at a
 determinate entry): so `outcomeOn` at a determinate entry is exactly the model's step. -/
-theorem outcomeOn_model (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem outcomeOn_model (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hd : entryDetOn c₀ s m) : outcomeOn c₀ ch s m (kvEntryOn c₀ ch s m) := by
   by_cases hm : m.typ = W32 0 ∧ m.data ≠ []
   · cases hdec : apply.irrDecode m.data with
@@ -100,7 +101,8 @@ theorem outcomeOn_model (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × m
         refine ⟨?_, trivial⟩
         simp only [adminNext, dif_pos hdet]
         exact (Classical.choose_spec hdet).1
-      · by_cases hr : apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq
+      · by_cases hr : apply.authKVKind (apply.dispatchKind rq) = true ∧
+            ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq
         · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg ha, if_pos hr]
         · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg ha, if_neg hr]
   · simp only [outcomeOn, kvEntryOn, if_neg hm]
@@ -116,16 +118,16 @@ an admin entry or a refused one keeps it (`kvModelOn_snoc_admin`, `kvModelOn_sno
 
 /-- **What a newly committed entry `m` must be, after the committed log `L`, in the mode `on`**:
 admitted and determinate at the model's state after `L`. -/
-def commitOkOn (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+def commitOkOn (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     (L : List EntryModel) (m : EntryModel) : Prop :=
-  plainEntryOn m ∧ entryDetOn c₀ (kvRaftOfOn c₀ ch s₀ L) m
+  plainEntryOn lm m ∧ entryDetOn c₀ (kvRaftOfOn c₀ ch s₀ L) m
 
 /-- **The committed log stays a mode-`on` log, determinate**, extended by an entry meeting the
 committer's obligation. -/
-theorem logOn_snoc (c₀ : w64) (ch : apply.Chain)
-    (s₀ : auth.AuthState × mvcc.Log) (L : List EntryModel) (m : EntryModel)
-    (hp : plainLogOn L) (hd : detLogOn c₀ ch s₀ L) (hc : commitOkOn c₀ ch s₀ L m) :
-    plainLogOn (L ++ [m]) ∧ detLogOn c₀ ch s₀ (L ++ [m]) := by
+theorem logOn_snoc (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain)
+    (s₀ : OnState) (L : List EntryModel) (m : EntryModel)
+    (hp : plainLogOn lm L) (hd : detLogOn c₀ ch s₀ L) (hc : commitOkOn lm c₀ ch s₀ L m) :
+    plainLogOn lm (L ++ [m]) ∧ detLogOn c₀ ch s₀ (L ++ [m]) := by
   refine ⟨fun x hx => ?_, detLogOn_snoc c₀ ch s₀ L m hd hc.2⟩
   rcases List.mem_append.1 hx with h | h
   · exact hp x h
@@ -149,14 +151,31 @@ theorem kvEntry_alarmChain_on (c₀ : w64) (lt : LeaseTable) (log : mvcc.Log) (e
       · rfl
   · rfl
 
+/-- The auth layer does not change an entry's table either (`chainTable`). -/
+theorem kvTable_alarmChain_on (c₀ : w64) (lt : LeaseTable) (e : EntryModel) :
+    kvTable c₀ (apply.alarmChain true false false) lt e =
+      kvTable c₀ (apply.alarmChain false false false) lt e := by
+  have hc : ∀ rq, chainTable (apply.alarmChain true false false) rq lt =
+      chainTable (apply.alarmChain false false false) rq lt := by
+    intro rq
+    simp only [apply.alarmChain, apply.baseChain, Bool.false_eq_true, ↓reduceIte, chainTable]
+  unfold kvTable dispatchTable
+  split
+  · split
+    · rfl
+    · split
+      · rename_i rq _; rw [hc rq]
+      · rfl
+  · rfl
+
 /-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
 (`kvRaftOf_length_le`'s counterpart). -/
-theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
-    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.length ≤ s₀.2.length + A.length := by
+theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
+    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.1.length ≤ s₀.2.1.length + A.length := by
   induction A generalizing s₀ with
   | nil => simp [kvRaftOfOn_nil]
   | cons m A ih =>
-    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.length ≤ _
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.1.length ≤ _
     have h := ih (kvEntryOn c₀ ch s₀ m)
     rcases kvEntryOn_grow c₀ ch s₀ m with he | ⟨cs, he⟩
     · rw [he] at h; simp only [List.length_cons]; omega
@@ -166,8 +185,8 @@ theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthSt
 /-- **The mode-`on` model of a log with short keys, from a start with none, has none**
 (`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
 theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
-    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logPutsOk A →
-      mvcc.LogPutsLe etcdKeyMax s₀.2 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
+    ∀ (s₀ : OnState) (A : List EntryModel), logPutsOk A →
+      mvcc.LogPutsLe etcdKeyMax s₀.2.1 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2.1
   | s₀, [], _, hl => hl
   | s₀, m :: A, hA, hl => by
     have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
@@ -181,9 +200,9 @@ theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
         · exact hl
         · split
           · exact hl
-          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+          · exact kvEntry_keys c₀ ch s₀.2.2 s₀.2.1 m hm hl
       · exact hl
-    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+    · exact kvEntry_keys c₀ ch s₀.2.2 s₀.2.1 m hm hl
 
 end pure
 
@@ -195,38 +214,50 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- (2026-11-05, H-rr1) **The mode-`on` KV model of a small log has room** (`kvRoom_model`'s). -/
-theorem kvRoom_modelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
-    (h : kvLogSmall γk L) : kvRoom (kvStateOf (kvModelOn γk st₀ L)) := by
+theorem kvRoom_modelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) {lt : LeaseTable}
+    (h : kvLogSmall γk L) : kvRoom (kvStateOf (kvModelOn γk st₀ L) lt) := by
   apply kvRoom_stateOf
-  have := kvRaftOfOn_length_le γk.c0 γk.ch0 (st₀, γk.log0) L
+  have := kvRaftOfOn_length_le γk.c0 γk.ch0 (st₀, γk.log0, []) L
   unfold kvModelOn; unfold kvLogSmall at h; simp only at this; omega
 
 /-- The mode-`on` model after `L ++ [e]` is the step of `e` from the model after `L`. -/
 theorem kvModelOn_snoc (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) :
     kvModelOn γk st₀ (L ++ [e]) =
-      (kvEntryOn γk.c0 γk.ch0 (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L) e).2 := by
+      (kvEntryOn γk.c0 γk.ch0 (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L) e).2.1 := by
   unfold kvModelOn; rw [kvRaftOfOn_snoc]
 
-/-- **A granted plain write's entry steps the KV state by its request** (`kvModel_snoc_state`'s
-counterpart), at the start's chain with auth on, above the consistent index: the auth state after
-`L` lets it through (`kvGranted`). -/
+/-- The mode-`on` table after `L ++ [e]` is the step of `e` from the model after `L`. -/
+theorem kvLeasesOn_snoc (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (e : EntryModel) :
+    kvLeasesOn γk st₀ (L ++ [e]) =
+      (kvEntryOn γk.c0 γk.ch0 (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L) e).2.2 := by
+  unfold kvLeasesOn; rw [kvRaftOfOn_snoc]
+
+/-- **A granted entry steps the KV state by its request** (`kvModel_snoc_state`'s counterpart), at
+the start's chain with auth on, above the consistent index: the auth state after `L` lets it through
+(`kvGrantedL`, its lease part at the model's lease items, when the auth layer checks its kind).
+(Auth-lease S3a: the state with the model's table, for every request kind.) -/
 theorem kvModelOn_snoc_granted (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) (rq : apply.IRRModel) (hch : γk.ch0 = apply.alarmChain true false false)
     (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
     (hna : apply.needAdminPermission rq = false)
-    (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq)
-    (hpc : plainCover rq) :
-    kvStateOf (kvModelOn γk st₀ (L ++ [e])) = kvReqStep rq (kvStateOf (kvModelOn γk st₀ L)) := by
-  rw [kvModelOn_snoc, kvEntryOn_of_granted _ _ _ e rq hdec hna hg]
-  have hm : (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).2 = kvModelOn γk st₀ L := rfl
+    (hg : apply.authKVKind (apply.dispatchKind rq) = true →
+      kvGrantedL (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1
+        (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelOn γk st₀ L))) rq) :
+    kvStateOf (kvModelOn γk st₀ (L ++ [e])) (kvLeasesOn γk st₀ (L ++ [e])) =
+      kvReqStep rq (kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)) := by
+  rw [kvModelOn_snoc, kvLeasesOn_snoc, kvEntryOn_of_granted _ _ _ e rq hdec hna hg]
+  have hm : (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).2.1 = kvModelOn γk st₀ L := rfl
+  have hl : (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).2.2 = kvLeasesOn γk st₀ L := rfl
   simp only
-  rw [hm, hch, kvEntry_alarmChain_on, kvEntry_base γk.c0 _ _ e rq ht hd hdec hidx]
-  rw [← kvStateOf_backendLog [] rq _ ?_, backendTable_plain rq [] hpc]
+  rw [hm, hl, hch, kvEntry_alarmChain_on, kvTable_alarmChain_on,
+    kvEntry_base γk.c0 _ _ e rq ht hd hdec hidx, kvTable_base γk.c0 _ e rq ht hd hdec hidx]
+  rw [kvStateOf_backendLog _ rq _ ?_]
   intro he
   apply h0
-  have hp := kvRaftOfOn_extends γk.c0 γk.ch0 (st₀, γk.log0) L
+  have hp := kvRaftOfOn_extends γk.c0 γk.ch0 (st₀, γk.log0, []) L
   unfold kvModelOn at he
   rw [he] at hp
   exact List.prefix_nil.1 hp
@@ -240,15 +271,45 @@ theorem kvModelOn_snoc_admin (γk : KVNames) (st₀ : auth.AuthState) (L : List 
   rw [kvModelOn_snoc, kvEntryOn_admin _ _ _ e rq ht hd hdec hidx ha]
   rfl
 
-/-- **A KV entry the auth state after `L` refuses keeps the KV log.** -/
+/-- **An admin entry keeps the table.** -/
+theorem kvLeasesOn_snoc_admin (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
+    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
+    (ha : apply.needAdminPermission rq = true) :
+    kvLeasesOn γk st₀ (L ++ [e]) = kvLeasesOn γk st₀ L := by
+  rw [kvLeasesOn_snoc, kvEntryOn_admin _ _ _ e rq ht hd hdec hidx ha]
+  rfl
+
+/-- **A request the auth state after `L` refuses keeps the model's state.** -/
+theorem kvRaftOfOn_snoc_refused (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
+    (hdec : apply.irrDecode e.data = some rq) (hna : apply.needAdminPermission rq = false)
+    (hk : apply.authKVKind (apply.dispatchKind rq) = true)
+    (hr : ¬ kvGrantedL (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1
+      (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelOn γk st₀ L))) rq) :
+    kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) (L ++ [e]) =
+      kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L := by
+  rw [kvRaftOfOn_snoc, kvEntryOn_of_refused _ _ _ e rq ht hd hdec hna hk hr]
+
+/-- **A request the auth state after `L` refuses keeps the KV log.** -/
 theorem kvModelOn_snoc_refused (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hna : apply.needAdminPermission rq = false)
-    (hk : apply.isKVKind (apply.dispatchKind rq) = true)
-    (hr : ¬ kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq) :
+    (hk : apply.authKVKind (apply.dispatchKind rq) = true)
+    (hr : ¬ kvGrantedL (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1
+      (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelOn γk st₀ L))) rq) :
     kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L := by
-  rw [kvModelOn_snoc, kvEntryOn_of_refused _ _ _ e rq ht hd hdec hna hk hr]
-  rfl
+  unfold kvModelOn; rw [kvRaftOfOn_snoc_refused γk st₀ L e rq ht hd hdec hna hk hr]
+
+/-- **A request the auth state after `L` refuses keeps the table.** -/
+theorem kvLeasesOn_snoc_refused (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
+    (hdec : apply.irrDecode e.data = some rq) (hna : apply.needAdminPermission rq = false)
+    (hk : apply.authKVKind (apply.dispatchKind rq) = true)
+    (hr : ¬ kvGrantedL (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1
+      (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelOn γk st₀ L))) rq) :
+    kvLeasesOn γk st₀ (L ++ [e]) = kvLeasesOn γk st₀ L := by
+  unfold kvLeasesOn; rw [kvRaftOfOn_snoc_refused γk st₀ L e rq ht hd hdec hna hk hr]
 
 end commit
 
@@ -280,15 +341,15 @@ instance kvCertInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : 
 state and KV log `s`: `A` committed, `s` its mode-`on` model, the log certified, the longest
 certified length (`kvAppliedL`'s). -/
 def kvAppliedLOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (A : List EntryModel)
-    (s : auth.AuthState × mvcc.Log) : IProp GF :=
-  iprop(srvRLogLb γ A ∗ ghostVar γk.hi (1 : Qp).half s.2.length ∗ kvCert γk s.2 ∗
-    ⌜s = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) A⌝)
+    (s : OnState) : IProp GF :=
+  iprop(srvRLogLb γ A ∗ ghostVar γk.hi (1 : Qp).half s.2.1.length ∗ kvCert γk s.2.1 ∗
+    ⌜s = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) A⌝)
 
-/-- `kvAppliedLOn` of the apply thread's state `x` and its latest auth state `st`, at the start's
-chain (`kvApplied`'s). -/
+/-- `kvAppliedLOn` of the apply thread's state `x`, its latest auth state `st` and the model's lease
+table `lt` (auth-lease S3a), at the start's chain (`kvApplied`'s). -/
 def kvAppliedOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (A : List EntryModel)
-    (x : apply.ApplyKV) (st : auth.AuthState) : IProp GF :=
-  iprop(kvAppliedLOn γ γk st₀ A (st, x.log) ∗ ⌜x.chain = γk.ch0⌝)
+    (x : apply.ApplyKV) (st : auth.AuthState) (lt : LeaseTable) : IProp GF :=
+  iprop(kvAppliedLOn γ γk st₀ A (st, x.log, lt) ∗ ⌜x.chain = γk.ch0⌝)
 
 /-- The namespace of the server's tie of the auth store's history to the log (H5). -/
 def authTieN : Namespace := nroot .@ "auth_tie"
@@ -320,21 +381,24 @@ instance kvNxOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   unfold kvNxOn; infer_instance
 
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
-store's history's tie to the log (`authHistTie`); (the lease-grant merge, 2026-11-03) a cluster that
-grants no lease (`NewServer.spec`'s `on = true → ρ.rd.kv.lg = false`): what the snapshot install's
-revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). (Strict M1, 2026-11-06, as
+store's history's tie to the log (`authHistTie`). (Strict M1, 2026-11-06, as
 `srvKVInvs`: the tie `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store
 invariant `kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
 witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`. Merge of `lean`,
 2026-11-06: #7-on's `E.cmp = false` dropped, the API's image covering a compacting store; restored
 by R6, 2026-11-07, as `γr.kv.cmp = false`, `lean`'s scope restriction, dropped by accident: the
 on-mode image certificate is at `crevOf γr.kv A`, `-1`, which the apply thread's compaction
-revision meets only when the cluster never compacts, `kvCpOk`.) -/
+revision meets only when the cluster never compacts, `kvCpOk`.) (Auth-lease S3a, Draft rev 5 §3: the model's lease mode the
+environment's, `γr.kv.lm = E.lm`, and the raft prefix empty, `γr.raft.pre = []`, so the model's table and
+`srvRest`'s agree, `appliedTableM_eq_model`. From the lease-grant merge, 2026-11-03, until S3a's §6 also
+`γr.kv.lg = false`, a cluster that grants no lease: dropped once the apply thread's grant and revocation arms
+were proved.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
     authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
-    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗ ⌜γr.kv.cmp = false ∧ γr.kv.lg = false⌝)
+    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗
+    ⌜γr.kv.cmp = false ∧ γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by
@@ -352,15 +416,15 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The apply thread certifies the mode-`on` model's log after the next committed entry**
 (`kv_cert_step`'s counterpart). -/
 theorem kv_cert_step_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
-    (hE : ↑kvcN ⊆ E) (A : List EntryModel) (m : EntryModel) (s s' : auth.AuthState × mvcc.Log)
-    (hs' : s' = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) (A ++ [m]))
-    (hg : s'.2 = s.2 ∨ ∃ cs, s'.2 = s.2 ++ [cs]) (hlen : s'.2.length < 2 ^ 63) :
+    (hE : ↑kvcN ⊆ E) (A : List EntryModel) (m : EntryModel) (s s' : OnState)
+    (hs' : s' = kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) (A ++ [m]))
+    (hg : s'.2.1 = s.2.1 ∨ ∃ cs, s'.2.1 = s.2.1 ++ [cs]) (hlen : s'.2.1.length < 2 ^ 63) :
     ⊢ kvCertInvOn (GF := GF) γ γk st₀ -∗ kvAppliedLOn γ γk st₀ A s -∗ srvRLogLb γ (A ++ [m]) ={E}=∗
       kvAppliedLOn γ γk st₀ (A ++ [m]) s' := by
   iintro #Hinv Ha #Hlb
   iunfold kvAppliedLOn at Ha
   icases Ha with ⟨#HA, Hhi, #Hc, %Hl⟩
-  have hm' : kvModelOn γk st₀ (A ++ [m]) = s'.2 := by unfold kvModelOn; rw [hs']
+  have hm' : kvModelOn γk st₀ (A ++ [m]) = s'.2.1 := by unfold kvModelOn; rw [hs']
   rcases hg with hg | ⟨cs, hg⟩
   · imodintro
     iunfold kvAppliedLOn
@@ -372,19 +436,19 @@ theorem kv_cert_step_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
     icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
     ihave %Hhe := ghostVar_agree γk.hi _ _ _ _ $$ Hhi Hhi'
     rw [hg] at hlen hm'
-    have hfresh : C.lookup (W64 ((s.2 ++ [cs]).length : Int)) = none := by
-      cases h : C.lookup (W64 ((s.2 ++ [cs]).length : Int)) with
+    have hfresh : C.lookup (W64 ((s.2.1 ++ [cs]).length : Int)) = none := by
+      cases h : C.lookup (W64 ((s.2.1 ++ [cs]).length : Int)) with
       | none => rfl
       | some l'' =>
         obtain ⟨h1, h2, h3, -⟩ := Hok.1 _ _ h
         have := w64_len_inj _ _ hlen h3 h2
         simp only [List.length_append, List.length_singleton] at this
         omega
-    imod ghost_map_insert_persist _ (s.2 ++ [cs]) hfresh $$ HC with ⟨HC, #He⟩
-    imod ghostVar_update_halves (s.2 ++ [cs]).length γk.hi _ _ $$ Hhi Hhi' with ⟨Hhi, Hhi'⟩
+    imod ghost_map_insert_persist _ (s.2.1 ++ [cs]) hfresh $$ HC with ⟨HC, #He⟩
+    imod ghostVar_update_halves (s.2.1 ++ [cs]).length γk.hi _ _ $$ Hhi Hhi' with ⟨Hhi, Hhi'⟩
     ihave %Hcmp := srvRLogLb_prefix γ (A ++ [m]) Lb $$ [Hlb HLb]
     · iframe Hlb HLb
-    have hold : ∀ n l2, C.lookup n = some l2 → l2.length ≤ (s.2 ++ [cs]).length := by
+    have hold : ∀ n l2, C.lookup n = some l2 → l2.length ≤ (s.2.1 ++ [cs]).length := by
       intro n l2 hn
       have := (Hok.1 n l2 hn).1
       simp only [List.length_append, List.length_singleton]
@@ -392,7 +456,7 @@ theorem kv_cert_step_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
     imod Hclose $$ [HC Hhi'] with -
     · inext
       rcases Hcmp with h | h
-      · iexists C.insert (W64 ((s.2 ++ [cs]).length : Int)) (s.2 ++ [cs]), (s.2 ++ [cs]).length, Lb
+      · iexists C.insert (W64 ((s.2.1 ++ [cs]).length : Int)) (s.2.1 ++ [cs]), (s.2.1 ++ [cs]).length, Lb
         iframe HC Hhi' HLb
         ipureintro
         refine ⟨?_, Hok.2⟩
@@ -402,7 +466,7 @@ theorem kv_cert_step_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
         · exact ⟨Nat.le_refl _, rfl, hlen, A ++ [m], h, hm'⟩
         · obtain ⟨-, h2, h3, A', h4, h5⟩ := Hok.1 n l2 hn
           exact ⟨hold n l2 hn, h2, h3, A', h4, h5⟩
-      · iexists C.insert (W64 ((s.2 ++ [cs]).length : Int)) (s.2 ++ [cs]), (s.2 ++ [cs]).length,
+      · iexists C.insert (W64 ((s.2.1 ++ [cs]).length : Int)) (s.2.1 ++ [cs]), (s.2.1 ++ [cs]).length,
           A ++ [m]
         iframe HC Hhi' Hlb
         ipureintro
@@ -427,12 +491,13 @@ thread's state (`entryDetOn`), the chain the start's (auth on), and the state af
 model's (`kvEntryOn`), certified. -/
 theorem kv_applied_step_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (m : EntryModel) (x : apply.ApplyKV) (st : auth.AuthState)
-    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63) :
-    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st -∗
+    (lt : LeaseTable)
+    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log, lt) m).2.1.length < 2 ^ 63) :
+    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st lt -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntryOn m ∧ entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = γr.kv.ch0 ∧
+      ⌜plainEntryOn γr.kv.lm m ∧ entryDetOn γr.kv.c0 (st, x.log, lt) m ∧ x.chain = γr.kv.ch0 ∧
         x.chain = apply.alarmChain true false false⌝ ∗
-      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) := by
+      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log, lt) m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
   icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, -⟩
@@ -440,17 +505,17 @@ theorem kv_applied_step_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.A
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_log_plain_on γr.raft γr.kv st₀ (A ++ [m]) $$ HkI HrI Hlb with %Hpc
   obtain ⟨Hpl, Hdet, Hch0⟩ := Hpc
-  ihave %Hl : iprop(⌜(st, x.log) = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (st₀, γr.kv.log0) A⌝) $$ [Ha]
+  ihave %Hl : iprop(⌜(st, x.log, lt) = kvRaftOfOn γr.kv.c0 γr.kv.ch0 (st₀, γr.kv.log0, []) A⌝) $$ [Ha]
   · iunfold kvAppliedLOn at Ha; icases Ha with ⟨-, -, -, %h⟩; ipureintro; exact h
-  have hs' : kvEntryOn γr.kv.c0 x.chain (st, x.log) m =
-      kvRaftOfOn γr.kv.c0 γr.kv.ch0 (st₀, γr.kv.log0) (A ++ [m]) := by
+  have hs' : kvEntryOn γr.kv.c0 x.chain (st, x.log, lt) m =
+      kvRaftOfOn γr.kv.c0 γr.kv.ch0 (st₀, γr.kv.log0, []) (A ++ [m]) := by
     rw [kvRaftOfOn_snoc, ← Hl, Hch]
-  have hd : entryDetOn γr.kv.c0 (st, x.log) m := by
+  have hd : entryDetOn γr.kv.c0 (st, x.log, lt) m := by
     have h := Hdet A.length m (by simp)
     rw [List.take_left' rfl, ← Hl] at h
     exact h
-  imod kv_cert_step_on γr.raft γr.kv st₀ ⊤ (fun _ _ => CoPset.mem_full) A m (st, x.log) _ hs'
-    (kvEntryOn_grow γr.kv.c0 x.chain (st, x.log) m) hlen $$ HcI Ha Hlb with Ha
+  imod kv_cert_step_on γr.raft γr.kv st₀ ⊤ (fun _ _ => CoPset.mem_full) A m (st, x.log, lt) _ hs'
+    (kvEntryOn_grow γr.kv.c0 x.chain (st, x.log, lt) m) hlen $$ HcI Ha Hlb with Ha
   imodintro
   iframe Ha
   ipureintro
@@ -461,18 +526,19 @@ outcome, E2s): any outcome `o` the apply thread reaches on `m` (`outcomeOn`) is 
 `kvAppliedLOn`. -/
 theorem kv_applied_out_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (m : EntryModel) (x : apply.ApplyKV) (st : auth.AuthState)
-    (o : auth.AuthState × mvcc.Log)
-    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63)
-    (hout : entryDetOn γr.kv.c0 (st, x.log) m → outcomeOn γr.kv.c0 x.chain (st, x.log) m o) :
-    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st -∗
+    (lt : LeaseTable) (o : OnState)
+    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log, lt) m).2.1.length < 2 ^ 63)
+    (hout : entryDetOn γr.kv.c0 (st, x.log, lt) m →
+      outcomeOn γr.kv.c0 x.chain (st, x.log, lt) m o) :
+    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st lt -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntryOn m ∧ x.chain = apply.alarmChain true false false⌝ ∗
+      ⌜plainEntryOn γr.kv.lm m ∧ x.chain = apply.alarmChain true false false⌝ ∗
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) o := by
   iintro #Hinvs Ha #Hlb
-  imod kv_applied_step_on E γr st₀ A m x st hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
+  imod kv_applied_step_on E γr st₀ A m x st lt hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hd, -, hch⟩ := Hp
   have ho := hout hd
-  rw [outcomeOn_eq γr.kv.c0 x.chain (st, x.log) o m hd ho]
+  rw [outcomeOn_eq γr.kv.c0 x.chain (st, x.log, lt) o m hd ho]
   imodintro
   iframe Ha
   ipureintro
@@ -510,19 +576,19 @@ theorem kvInvOn_keysA (γr : ReadNames) (st₀ : auth.AuthState) (A : List Entry
   iintro #HkI #HrI #HA
   iunfold kvInvOn at HkI
   iinv HkI with >Hi Hclose
-  icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+  icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw, HG⟩
   ihave #Hw2 := Hw
   iunfold kvWorkOn at Hw2
   icases Hw2 with ⟨%Hws, -⟩
   imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
   ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-  imod Hclose $$ [HLf Hσ' Hh] with -
-  · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+  imod Hclose $$ [HLf Hσ' Hh HG] with -
+  · inext; iexists Lf; iframe HLf Hσ' Hh Hw HG; ipureintro; exact Hok'
   imodintro
   ipureintro
   obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
-    (st₀, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+    (st₀, γr.kv.log0, []) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
   unfold kvModelOn
   rw [hAL]
   exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2.1
