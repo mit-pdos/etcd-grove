@@ -3,7 +3,7 @@ title: authSchemaSrv is false (lend grants writes; write-back budget; two encodi
 found: 2026-11-12
 by: S0 of the etcd_auth_safe Scope, axiom-skill review (report /shared/tmp/auth-safe/s0/report.md, Go tests /shared/tmp/auth-safe/s0/tests/)
 blocks-proof: yes (for an auth closed theorem); no closed *_safe theorem rests on it
-status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there
+status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there. **Refuted again 2026-11-16** (the read contract's one-state snapshot, below): open, the fix to be decided (`notes/auth-schema-srv-scope.md`, Q1)
 ---
 # `authSchemaSrv` is false
 
@@ -42,3 +42,24 @@ F3 and F4 are also etcd code facts unreachable from etcd's request path (nonissu
   three per applied entry in the apply loop (`srvWTPool_take_extraOn`), and for the boot two from
   NewServer (`authKitIn`) beside the kit's two.
 Trusted text old → new with Go evidence: `/shared/tmp/auth-safe/freeze-fix.md`.
+
+## Second refutation (2026-11-16, the auth-schema-srv Scope): a read sees a half-applied step
+
+`auth.authReadTxOk` (the read contract `authSchemaSrv`, `authSchemaSnap` and `authSchemaBoot` give,
+through `authBackendOk`) promises each `RLock` one recorded state (`authSnap`; at a published lower
+bound, `authSnapFrom`). Go's `batchTxBuffered.Unlock` writes a session's puts back into the read
+buffer, releases `readTx`'s lock, and only then commits the delete it has pending, so a read
+transaction in between sees the step's puts over bbolt's old snapshot: after `UserDelete(u)`, the new
+revision with `u` still present, a state no step recorded. Go test (fails at the fork pin 6e8f0c004):
+`nonissues/etcd-auth-readtx-delete-window-mixed-state/zz_authschema_window_test.go`
+(`TestAuthSchemaReadWindowMixedState`, the auth store's real `UserAdd`/`UserDelete` and the read
+calls of `CheckPassword`'s closure). The Go behavior is a nonissue (etcd's `Authenticate` re-reads the
+user at apply): `nonissues/etcd-auth-readtx-delete-window-mixed-state.md`.
+
+Consequences: `authSchemaSrv` is false, so `etcd_auth_safe`, `etcd_auth3_safe`, `etcd_authN_safe`
+(which take it as `hD22`) are vacuous until it is restated; the proved
+`auth.authStore.CheckPassword.spec` (`passwordChecked`: "the revision of a recorded state that has the
+user") is false of Go too (proved over the false contract: it reads the user and the revision in one
+transaction). The latest-state clause (a reader with the write token) is true. Per bucket the read is
+one recorded state (no admin step deletes and puts in the same auth bucket), which is what the fix
+options build on: `notes/auth-schema-srv-scope.md`, §2 and Q1.
