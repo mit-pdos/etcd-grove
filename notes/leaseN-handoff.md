@@ -14,10 +14,11 @@
 - Done this run too: full build clean; trust base unchanged (877, 4); collections `leaseN.txt` (648 = leasekv ∪ putgetN)
   and `leaseexpiryN.txt` (649 = leaseexpiry ∪ putgetN), no sorry; etcdstart interface regenerated (`kv_lease_served_go`);
   STATUS entry (oldest moved to status-history).
-- OPEN (etcd-grove-02): bounds +11 (leaseN 6, leaseexpiryN 5; putgetN/authN pattern), gates fail on it until decided
-  (then edit `etc/bounds-baseline.txt`); the collection baselines are new trust-base text to review.
-- Next: gates under `flock /shared/tmp/etcd-grove-full-build.lock` (LAKE_PACKAGES=/shared/tmp/manifest-e9e.json,
-  PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9, GOWORK unset); STOP before `etc/land.sh`.
+- Decided by etcd-grove-02: bounds +11, both collection baselines and the forms ACCEPTED. Gates passed except bounds
+  (`/shared/tmp/leaseN/gates1.log`).
+- Next: WAIT until etcd-grove-02 says kvraftN has landed; then merge lean (STATUS "Last updated": one copy of each entry,
+  10 entries; status-history append-only, `wc -l` at least lean's), `etc/bounds-check.py --check --update` (expect 390),
+  commit, STOP and report the head. etcd-grove-02 runs `etc/land.sh`.
 - Then (D10): `leasecatchupN`, a stage of its own.
 
 **Pitfalls**
