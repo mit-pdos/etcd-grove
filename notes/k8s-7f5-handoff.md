@@ -3,7 +3,33 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, fourth 7f-5b agent, end of context): run, createWatchChan, watcher.Watch PROVED; store.Watch next
+## START HERE (2026-11-16, fifth 7f-5b agent): store.Watch and the concurrent branch PROVED; step 5 next
+
+- **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Decided (02, questions.md):** storeWatchOk's `objectType` conjunct ACCEPTED; keep the k8s `watcher.Watch.spec` name
+  (qualify the client's at linking); run/createWatchChan forms ACCEPTED.
+- **Done (this session, unlinked; lean-check `--fast` green, kernel check of store.Watch green):** `2e0d171918`
+  `store.Watch` (prepareKey; ParseResourceVersion via `versionerOk`; `watchContext` over `WithRequireLeader`:
+  `isContext_of_post`, the `Err` transfer for `ctxErrClient`, the `Value` transfer for the APF key). `8372b01ad9`
+  step 4: `WatchConc.lean` (`kResOf`, `kRcElem`, `kQElem`), specs+proofs of `scheduleEventProcessing`,
+  `collectEventProcessing`, `concurrentProcessEvents` (its spec now imports WatchConc).
+- **Next, in order:** (1) `New`'s stronger post: add `□ ∀ W γk, clientWatchOk cl γk -∗ watchContractOk S W codec -∗
+  newItemOk S nf -∗ storeWatchOk sp c W γk` (no new premise; the watcher `w`'s fields must be split and persisted in
+  New's proof, `s` persisted for the `getCurrentStorageRV` closure, `objectType` from both `newFunc` branches).
+  (2) link list `etc/link-lean-first-k8s-etcd3.txt` (new entries: store__Watch, watcher__Watch (k8s; the existing key
+  `watcher__Watch: @` is the client's), createWatchChan, run, processEvents, serial/concurrent, schedule, collect,
+  Stop, ResultChan, watchContext, WithRequireLeader), `etc/gen-link.py`, Results. (3) land stop: merge lean, full build
+  via the slot wrapper, tcb-report --check + collections (fields.Everything's axiom text changed), interfaces,
+  bounds, STATUS, gates under the full-build lock; STOP before land.sh.
+- **Pitfalls:** after `cases he : kRawToEv …`, Iris hyps are already rewritten (no `rw [he]`). Loop locals
+  written in the body (`e`, `r`, `processingResponse`) must be in the `wp_for` invariant (`"x" ∷ x_ptr ↦ v`).
+  `iStructNamed p` clashes with locals of the same field name (`wc`): `irename wc => Hwcv` first. Credits from a
+  second `isContext_Done (lc := 3)` reuse the names `Hlc1..3`. `persistent_entails_left (threadToks_lt 1)` gives
+  `threadToks 1 ∗ ⌜1 < T⌝`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...`; lean-check
+  `--max-open 2`, `--stop` before builds and at the end.
+
+### START HERE (2026-11-16, fourth 7f-5b agent, end of context): run, createWatchChan, watcher.Watch PROVED
 
 - **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
 - **Done (this session, all unlinked; targeted lake build green, `/shared/tmp/k8s7f5b/build-s3b.log`):** `d1c5ec30d4`
