@@ -294,6 +294,7 @@ theorem evIs_facts (e : Loc) (ev : mvcc.EvM) :
   unfold eventAt evModelOf
   iexists ks
   iframe #
+  ipureintro; exact Hn
 
 /-- mvcc events, as their fields but `PrevKv`. -/
 theorem evIss_evRds (ps : List Loc) (evs : List mvcc.EvM) :

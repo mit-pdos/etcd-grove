@@ -97,12 +97,13 @@ theorem StartCluster.wp_proof
     (wp_start : Cluster.start.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  intro γ o dir Hok
+  intro γ o dir Hok Hγm
   dsimp only
   wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, %Htr0, %Hsl, %Hmd, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
     Hrseqs, Hcur⟩
-  obtain ⟨HV1, HV5, Hm1, Hm2, Hsz⟩ := Hok
-  have HVn : uint.nat o.Voters' ≤ 5 := by word
+  obtain ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩ := Hok
+  have HVn : uint.nat o.Voters' ≤ uint.nat o.MaxReplicas' := by word
+  have HMn : uint.nat o.MaxReplicas' < 2 ^ 60 := by word
   have HV0 : 1 ≤ uint.nat o.Voters' := by word
   try wp_auto
   icases typedPointsto_split _ _ _ $$ opts with Hopt
@@ -217,7 +218,7 @@ theorem StartCluster.wp_proof
     unfold isReadSeqs
     iframe #
     ipureintro
-    exact ⟨⟨⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩, Hdup, Hbl0, Htr0, Hsl, Hmd⟩
+    exact ⟨⟨⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial, Hγm.symm⟩, Hdup, Hbl0, Htr0, Hsl, Hmd⟩
   -- every voter known: the next-id bound raised at once
   imod mono_nat_own_update (uint.nat o.Voters' + 1) (by omega) $$ HnidA with ⟨HnidA, #Hlb⟩
   try wp_auto

@@ -14,12 +14,16 @@ checker in porcupine's, the files' `Read`/`Write` in the `durable` package's pro
 * **The cluster** (`kvdurable_StartCluster`, `kvdurable_Stop`).
 * **The randomized test** (`kvdurable_Run`) and **the top-level driver** (`kvdurable_Main`):
   `{{ isPkgInit kvdurable ∗ context.isClosedchanInit ∗ durableOwn fs }} Main(dir) {{ RET #(); True
-  }}`, none of the replicas' files in `dir` among `fs`, for executions of fewer than `2^63` steps.
+  }}`, none of the replicas' files in `dir` among `fs`, for executions of fewer than `2^63` steps;
+  on `k` voters (`kvdurable_MainN`, 2026-11-16, kvraftN): the same of `MainN(dir, k)`, `1 ≤ k < 2^59`,
+  up to `k + 4` replicas, none of the files of `1 … k + 4` in `dir` among `fs`.
 * **Adequacy** (`raft_kvdurable_porcupine_safe`, from `AdequacyLinked.lean`'s `raft_kvdurable_adequate`): the
-  same in the operational semantics, with package initialization proved (`Init.lean`).
+  same in the operational semantics, with package initialization proved (`Init.lean`); and on `k` voters
+  (`raft_kvdurableN_porcupine_safe`, from `raft_kvdurableN_adequate`; 2026-11-16, kvraftN), for every
+  `1 ≤ k ≤ 1000`.
 
 Every result here assumes `[NaInvG GF]` (the linked results of `Link.lean` take it), except the
-closed `raft_kvdurable_porcupine_safe`, whose bundle `durableGF` provides it.
+closed `raft_kvdurable_porcupine_safe` and `raft_kvdurableN_porcupine_safe`, whose bundle `durableGF` provides it.
 -/
 module
 
@@ -76,6 +80,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.A
 variable [NaInvG GF]
 
 theorem kvdurable_Main : raft_kvdurable.Main.spec (GF := GF) (hG := hG) := raft_kvdurable.wp_Main
+theorem kvdurable_MainN : raft_kvdurable.MainN.spec (GF := GF) (hG := hG) := raft_kvdurable.wp_MainN
 
 end main
 
@@ -89,6 +94,7 @@ end main
 #print axioms kvdurable_Stop
 #print axioms kvdurable_Run
 #print axioms kvdurable_Main
+#print axioms kvdurable_MainN
 
 section closed
 attribute [local instance] durableExts durableExtsSemantics durableExtsInterp durableExts_hasExt
@@ -119,6 +125,42 @@ theorem raft_kvdurable_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantic
 end closed
 
 #print axioms raft_kvdurable_porcupine_safe
+
+section closedN
+attribute [local instance] durableExts durableExtsSemantics durableExtsInterp durableExts_hasExt
+variable [go_gctx : GoGlobalContext]
+
+/-- **The durable store's randomized linearizability test never fails, on any number of voters**
+(`raft_kvdurableN_adequate`, `AdequacyLinked.lean`; kvraftN; statement approved by the user,
+2026-11-16, via etcd-grove-02): for every member count `1 ≤ k ≤ 1000`,
+every real execution of `kvdurableProgramN dir k` -- the store package's initialization, then
+`MainN(dir, k)`: a cluster of random options on the bootstrap voters `1 … k`, which may start up to
+`k + 4` replicas, with its files in `dir`, 4 clients of 100 random `Put`s, `Get`s and `Read`s, one to
+three proposers of configuration changes, leadership disruptions, crashes with restarts from the
+files, porcupine's check of the trace, and a panic unless it answers `Ok` -- from a fresh state with
+one thread whose files hold none of the files of the replicas `1 … k + 4` in `dir`, of `n < 2^61`
+steps, has no stuck thread and no thread that ended in a panic: porcupine always answers `Ok`.
+`raft_kvdurable_porcupine_safe` is `Main(dir)` (one to five voters drawn at random, up to 9
+replicas); nothing below `2^59` bounds `k` in the proof (`MainN.spec`), `1000` is the bound of the
+paper's figure. -/
+theorem raft_kvdurableN_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
+    [hLog : log.NewModel] (dir : GoString)
+    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvdurableProgramN dir k], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  raft_kvdurableN_adequate dir k hk1 hk σ g Hlctx Hinit Hthreads Hfiles n Hn κs t2 σ2 Hsteps
+
+end closedN
+
+#print axioms raft_kvdurableN_porcupine_safe
 
 end EtcdGrove
 end Perennial

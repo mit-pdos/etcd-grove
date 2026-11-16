@@ -260,7 +260,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     icases srvLeaseRd_srvInv s E .mono (by decide) $$ Hlr with ⟨%on, #Hli⟩
     ihave #HGL := v3rpc.lessorGrantOkL_server s E ρ iprop(client.etcdRunSlot s E γr ∗ levelTok 0)
-        ⟨hlg, Hoff⟩ (by rw [hm]; decide) on $$ []
+        hlg (by rw [hm]; decide) on $$ []
     · iframe #
       isplitr
       · iintro !>
@@ -318,7 +318,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     icases srvLeaseRd_srvInv s E .revocable (by decide) $$ Hlr with ⟨%on, #Hli⟩
     ihave #HGL := v3rpc.lessorGrantOkLive_server s E ρ
-        iprop(client.etcdRunSlot s E γr ∗ levelTok 0) ⟨hlg, Hoff⟩ (fun q => q.2 = W64 0)
+        iprop(client.etcdRunSlot s E γr ∗ levelTok 0) hlg (fun q => q.2 = W64 0)
         (fun _ h _ => h) $$ []
     · iframe #
       isplitr
@@ -400,6 +400,29 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     with ⟨%γ, Ht, -, -, Hr, Hl⟩
   imodintro
   iframe Hr Hl
+  iexists γ
+  iexact Ht
+
+/-- **`kv_lease_served`, with the `GoAttach` resources given back** (leaseN, 2026-11-16,
+`notes/leaseN-plan.md`): `kv_lease_served`'s post and the member's `srvGoRes` (the thread token it
+holds), which a loop serving the members one after another passes on to the next member. -/
+theorem kv_lease_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
+    (Hrf : grpcRepliesFit) (hP : leasePeersOk) (hρ : ρ.rd = γr) (m : lease.Mode)
+    (hm : ρ.rd.kv.lm = m) (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
+        kvServeStocks s E γr ∗
+        grpcUp s E ρ γr gs lis addr cid mid R ⊢
+      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
+        etcdLeaseServedAt m addr s E ρ γr cid mid := by
+  iintro H
+  imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
+    with ⟨%γ, Ht, Hgo, -, Hr, Hl⟩
+  imodintro
+  iframe Hgo Hr Hl
   iexists γ
   iexact Ht
 

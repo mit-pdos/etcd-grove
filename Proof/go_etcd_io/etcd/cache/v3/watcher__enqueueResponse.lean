@@ -80,7 +80,7 @@ theorem watcher.enqueueResponse.wp_proof
           list_elem r.events (sint.nat i) as e
           icases event with ⟨%ev0, event⟩
           ihave #Hev := Hevs $$ %(sint.nat i) %ev %e %Hev_lookup %He_lookup
-          unfold eventAt
+          ihave #Hev := eventAt_elim $$ Hev
           icases Hev with ⟨%keySl, #HType, #HKv, #HKey, #HkeySl, #HMod⟩
           simp only [show (0 ≤ sint.Z i ∧ sint.Z i < sint.Z resp.Events'.len) from ⟨Hi.1, Hif⟩]
           wp_apply wp_load_slice_index resp.Events' (sint.Z i) ls DFrac.discard ev (by word) $$ [] as -

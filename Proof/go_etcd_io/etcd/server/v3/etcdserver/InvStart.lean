@@ -34,6 +34,7 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 
@@ -160,8 +161,10 @@ raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d'a A7,
-    -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
+    -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s); (restart3 A1,
+    -- 2026-11-15) the wrapper's node and its inbound methods, for `ReportSnapshot`
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+      rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
     -- (2026-10-31, S1) the started transport, of the server's network
@@ -279,12 +282,6 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
       -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
       γn.a0 = []⌝ ∗
-    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
-    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
-    -- until R2d'b; free at a first start, `srvWinPend_first`)
-    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which

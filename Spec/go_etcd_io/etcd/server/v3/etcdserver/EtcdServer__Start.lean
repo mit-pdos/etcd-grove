@@ -45,7 +45,7 @@ abbrev EtcdServer.Start.spec : Prop :=
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
-      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ acLessor C s ∗ threadTok ∗
+      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ threadTok ∗
       srvLgReader s ∗ srvLgReader s ∗
       -- (D19i part 2) the storage version monitor's backend access (`NewServer`'s)
       srvSVRes s E ∗

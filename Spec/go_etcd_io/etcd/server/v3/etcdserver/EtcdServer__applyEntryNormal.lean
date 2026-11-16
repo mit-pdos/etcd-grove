@@ -48,8 +48,8 @@ to the waiter (`srvAppliedPre`). **The KV model**: the apply thread at the mode'
 committed raft log `A` through `v` (`kvAppliedM E.authOn`, from the server's start state
 `srvAuthSt0`), at `A ++ [m]` after, the entry above the start's consistent index `c0`; the voters
 members of the rest state at `A` (`srvMemCover`: with `entryWaitOk`'s `attrEntryOk`, `dispatch`'s
-`restReqOk`; the cluster-rows stage, 2026-11-02). **With auth on** (only): the server's lessor finds
-no lease (`srvLessorNilM`), one time receipt (an admin step's cost) under the receipts' bound, and
+`restReqOk`; the cluster-rows stage, 2026-11-02). **With auth on** (only; auth-lease S3c: until then also
+the server's lessor finding no lease, `srvLessorNilM`): one time receipt (an admin step's cost) under the receipts' bound, and
 the rights to issue tokens at the consistent index (`srvTokRights`, `True` off), at the entry's
 index after it. The receipt and the bound are both cases' (R2d'a swap batch 4, 2026-11-07: one
 `if E.authOn` and one `receiptBound` premise, outside the `if v3`; until then each case had its
@@ -83,12 +83,12 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       (if E.authOn then iprop(⧗ 1 ∗ apply.adminWTs E) else iprop(True)) ∗
       ⌜E.authOn = true → receiptBound GF ≤ 2 ^ 48⌝ ∗
       (if v3 then iprop(
-        isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗
+        isServerM E.authOn s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
         srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvWT E ∗
         srvFS s ∗ srvAppliedOwn γr v ∗
         appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-        kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+        kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestM E.authOn E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗
         srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
@@ -102,7 +102,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
         isServerM E.authOn s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
         applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗
         srvWT E ∗ srvFS s ∗
-        committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗ srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
+        committedAtLeast γr m.index ∗ srvRestRpM E.authOn E γr A₀ r ∗ srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOkM E.authOn E.lm x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
           (E.authOn = true → x.chain = γr.kv.ch0) ∧
@@ -115,14 +115,14 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
           srvApplyKVM E.authOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
           entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗
           kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗
-          srvRest E γr (A ++ [m])) ∗
+          srvRestM E.authOn E γr (A ++ [m])) ∗
         (ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩) ∗
         srvTokRights E m.index)
       else iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKVM E.authOn s E ρ.wait x' sa ∗
           ⌜entryStep m false x x' out⌝) ∗
-        srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st)) }}
+        srvRestRpM E.authOn E γr A₀ (restEntryV2 m r) ∗ applyThread γ st)) }}
 
 end spec
 

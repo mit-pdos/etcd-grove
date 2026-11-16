@@ -146,6 +146,34 @@ theorem keysIn_optPut (pfx k v : GoString) (rev : w64) (g : Bool) (hk : pfx <+: 
   · simp [linkv.MStore.put, hk', linkv.absSt]
   · rfl
 
+/-- **`OptimisticPut`'s step commits one change at most** (7f-6 C, `KvOne`). -/
+theorem kvOne_optPut (k v : GoString) (rev : w64) (g : Bool) (σ : KVState) :
+    KvOne σ (kvOpStep (.txn (kubernetes.optPutTxn k v rev g)) σ) := by
+  rw [kvOpStep_optPut]
+  cases g <;>
+  · simp only [linkv.opOf, putTxn, kvOpStep, Bool.false_eq_true, ↓reduceIte]
+    split
+    · apply kvOne_commit
+      simp only [txn.srvRunTxn]
+      cases txn.txnOk σ.kvs _ <;>
+        simp [linkv.txnOf, TxnModel.branch, linkv.tOpOf, txn.srvOps, txn.srvOp]
+    · exact kvOne_refl σ
+
+/-- **`OptimisticDelete`'s step commits one change at most** (7f-6 C, `KvOne`): one key's delete. -/
+theorem kvOne_optDel (k : GoString) (rev : w64) (g : Bool) (σ : KVState) :
+    KvOne σ (kvOpStep (.txn (kubernetes.optDelTxn k rev g)) σ) := by
+  rw [kvOpStep_optDel]
+  have hl := linkv.rangeIn_delOp_length σ.kvs (KVState.kvs_sorted σ) k
+  cases g <;>
+  · simp only [linkv.opOf, delTxn, kvOpStep, Bool.false_eq_true, ↓reduceIte]
+    split
+    · apply kvOne_commit
+      simp only [txn.srvRunTxn]
+      cases txn.txnOk σ.kvs _ <;>
+        simp [linkv.txnOf, TxnModel.branch, linkv.tOpOf, txn.srvOps, txn.srvOp] <;>
+        split at hl <;> omega
+    · exact kvOne_refl σ
+
 /-- **`OptimisticDelete`'s step adds no key** (stage 7e-4). -/
 theorem keysIn_optDel (pfx k : GoString) (rev : w64) (g : Bool) (hk : pfx <+: k) (σ : KVState)
     (hs : σ.kvs.Pairwise etcdKvLess) :

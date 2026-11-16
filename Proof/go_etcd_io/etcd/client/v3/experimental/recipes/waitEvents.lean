@@ -110,7 +110,7 @@ theorem waitEvents.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := h
       with ⟨#Hle, -⟩
     ihave #He := Hev $$ %(sint.nat n) %l %e %Hl %He
     ihave #He' := He
-    iunfold eventAt at He'
+    ihave He' := eventAt_elim $$ He'
     icases He' with ⟨%keySl, #Htyp, -⟩
     obtain ⟨t, Ht⟩ : ∃ t, ts[sint.nat i]? = some t :=
       ⟨_, List.getElem?_eq_getElem (by word)⟩

@@ -142,7 +142,7 @@ theorem Run.wp_proof
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -,
-      Hlis⟩
+      Hlis, -⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
     imod (etcdstart.kvServeStocks_pools srv E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩

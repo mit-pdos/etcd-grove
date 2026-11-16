@@ -65,14 +65,14 @@ theorem EtcdServer.Start.wp_proof
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  wp_start as ⟨%hC, Hb, Hnil, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd, Hrc⟩
+  wp_start as ⟨%hC, Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd, Hrc⟩
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
   -- (2026-11-02, the cluster-rows stage) the member id field, a voter: the monitors' permission
   icases isServerBuiltC_mid C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HmidS, %HmidcS⟩
   wp_auto
-  wp_apply hStart s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hnil]
+  wp_apply hStart s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, %γg, #Hwp, #Hreg, Hgo, Hright⟩
-  · iframe #; iframe Hb Hnil; ipureintro; exact ⟨hm, hRB, Hrb, Hai0⟩
+  · iframe #; iframe Hb; ipureintro; exact ⟨hm, hRB, Hrb, Hai0⟩
   iunfold srvStarted at Hst
   iNamed Hst
   ihave Hgr : srvGoResAt s γg $$ [Hgo Htok]

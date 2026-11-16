@@ -3,6 +3,9 @@ package kv
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -83,6 +86,22 @@ func TestPutGet(t *testing.T) {
 
 func TestMainPasses(t *testing.T) {
 	Main()
+}
+
+// TestMainN runs MainN on one random odd member count from {1, 3, 5, 7}; KV_MEMBERS overrides
+// it (1 to 1000, the bound of raft_kvN_porcupine_safe).
+func TestMainN(t *testing.T) {
+	ks := []uint64{1, 3, 5, 7}
+	k := ks[rand.Intn(len(ks))]
+	if s := os.Getenv("KV_MEMBERS"); s != "" {
+		v, err := strconv.ParseUint(s, 10, 64)
+		if err != nil || v < 1 || v > 1000 {
+			t.Fatalf("KV_MEMBERS=%q: not a member count in 1..1000", s)
+		}
+		k = v
+	}
+	t.Logf("kv: k=%d (rerun with KV_MEMBERS=%d)", k, k)
+	MainN(k)
 }
 
 // TestRead reads through read-index on every replica after Puts, on a cluster connected by

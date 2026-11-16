@@ -110,7 +110,9 @@ theorem rpctypes.Error.wp_proof
     · ipureintro; exact id
     isplitr
     · ipureintro; rfl
-    iintro !> #H; iexact H
+    isplitl
+    · iintro !> #H; iexact H
+    · ipureintro; exact id
   | some v =>
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
@@ -136,9 +138,12 @@ theorem rpctypes.Error.wp_proof
       · ipureintro; exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
       isplitr
       · ipureintro; rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
-      iintro !> -
-      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
-      simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
+      isplitl
+      · iintro !> -
+        iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
+        simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
+      · ipureintro; intro _
+        exact errPtrOk_of_ty _ (by simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty])
     · wp_auto
       wp_apply HMsg
       wp_apply HCode
@@ -151,9 +156,12 @@ theorem rpctypes.Error.wp_proof
       · ipureintro; exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
       isplitr
       · ipureintro; rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
-      iintro !> -
-      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
-      simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
+      isplitl
+      · iintro !> -
+        iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
+        simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
+      · ipureintro; intro _
+        exact errPtrOk_of_ty _ (by simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty])
 
 end proof
 

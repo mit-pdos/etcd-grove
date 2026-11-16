@@ -20,6 +20,8 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll Perennial.Etc
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll Perennial.EtcdGrove.etcdstart.GenAll.wp_proof  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev Perennial.EtcdGrove.MaxRev.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev Perennial.EtcdGrove.etcdstart.MaxRev.wp_proof  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members Perennial.EtcdGrove.Members.wp_proof  # missing: a proof file proves its spec
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members Perennial.EtcdGrove.etcdstart.Members.wp_proof  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient Perennial.EtcdGrove.NewClient.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient Perennial.EtcdGrove.etcdstart.NewClient.wp_proof  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient Perennial.EtcdGrove.isNewClient.congr_simp  # exposed by a proof file (theorem)
@@ -44,6 +46,22 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServe
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.StartMember.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.etcdstart.StartMember.wp_proof  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.EtcdServer.RaftHandler.spec.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.NewServer.specM.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.StartMemberAuth.wp_proof  # missing: a proof file proves its spec
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.etcdstart.StartMemberAuth.wp_proof  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.etcdstart.memberUpOn.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.StartMembers.wp_proof  # missing: a proof file proves its spec
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.NewMember.spec.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.StartMembers.wp_proof  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.memberUp.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth Perennial.EtcdGrove.StartMembersAuth.wp_proof  # missing: a proof file proves its spec
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth Perennial.EtcdGrove.etcdstart.StartMemberAuth.spec.congr_simp  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth Perennial.EtcdGrove.etcdstart.StartMembersAuth.wp_proof  # exposed by a proof file (theorem)
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth Perennial.EtcdGrove.etcdstart.memberUpOn.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.StartPeriodicServer.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.StartPeriodicServer.wp_proof  # exposed by a proof file (theorem)
@@ -78,7 +96,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perenn
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.srvBuiltG.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.srvBuiltR.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.srvNetMember.congr_simp  # exposed by a proof file (theorem)
-Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.srvRestartRows.congr_simp  # exposed by a proof file (theorem)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Attempted Perennial.EtcdGrove.Attempted.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Attempted Perennial.EtcdGrove.etcdstart.Attempted.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.BuildServer.spec  # missing: a spec file declares its spec
@@ -96,6 +113,8 @@ Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll Perennial.Etcd
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll Perennial.EtcdGrove.etcdstart.GenAll.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev Perennial.EtcdGrove.MaxRev.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev Perennial.EtcdGrove.etcdstart.MaxRev.spec  # exposed by a spec file (def)
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members Perennial.EtcdGrove.Members.spec  # missing: a spec file declares its spec
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members Perennial.EtcdGrove.etcdstart.Members.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient Perennial.EtcdGrove.NewClient.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient Perennial.EtcdGrove.etcdstart.NewClient.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients Perennial.EtcdGrove.NewClients.spec  # missing: a spec file declares its spec
@@ -108,6 +127,12 @@ Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.etcdstart.StartCompactingServer.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.StartMember.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennial.EtcdGrove.etcdstart.StartMember.spec  # exposed by a spec file (def)
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.StartMemberAuth.spec  # missing: a spec file declares its spec
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth Perennial.EtcdGrove.etcdstart.StartMemberAuth.spec  # exposed by a spec file (def)
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.StartMembers.spec  # missing: a spec file declares its spec
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers Perennial.EtcdGrove.etcdstart.StartMembers.spec  # exposed by a spec file (def)
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth Perennial.EtcdGrove.StartMembersAuth.spec  # missing: a spec file declares its spec
+Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth Perennial.EtcdGrove.etcdstart.StartMembersAuth.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.StartPeriodicServer.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.StartPeriodicServer.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.StartServer.spec  # missing: a spec file declares its spec

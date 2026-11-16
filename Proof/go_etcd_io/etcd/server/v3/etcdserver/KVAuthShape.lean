@@ -227,7 +227,7 @@ theorem rolesSorted_adminNext (rq : apply.IRRModel) (st : auth.AuthState) (h : r
     exact rolesSorted_adminStateR rq st _ h (Classical.choose_spec hd).1
   · exact h
 
-theorem rolesSorted_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+theorem rolesSorted_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (h : rolesSorted s.1) : rolesSorted (kvEntryOn c₀ ch s m).1 := by
   unfold kvEntryOn
   split
@@ -241,7 +241,7 @@ theorem rolesSorted_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : auth.AuthStat
   · exact h
 
 /-- **The users' roles stay sorted along the whole model** (of any log). -/
-theorem rolesSorted_kvRaftOfOn (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+theorem rolesSorted_kvRaftOfOn (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     (A : List EntryModel) (h : rolesSorted s₀.1) : rolesSorted (kvRaftOfOn c₀ ch s₀ A).1 := by
   induction A generalizing s₀ with
   | nil => exact h
@@ -354,7 +354,7 @@ theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : roles
 /-- **The model's state after any log is sorted**, from a sorted start (the server's,
 `bump bootState`). -/
 theorem rolesSorted_model_boot (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log)
-    (A : List EntryModel) : rolesSorted (kvRaftOfOn c₀ ch (auth.bump auth.bootState, log₀) A).1 :=
+    (A : List EntryModel) : rolesSorted (kvRaftOfOn c₀ ch (auth.bump auth.bootState, log₀, []) A).1 :=
   rolesSorted_kvRaftOfOn c₀ ch _ A (rolesSorted_bump _ rolesSorted_bootState)
 
 end pure

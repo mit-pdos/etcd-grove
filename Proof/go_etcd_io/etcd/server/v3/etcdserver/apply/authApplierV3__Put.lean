@@ -35,10 +35,10 @@ theorem apply.authApplierV3.Put.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
-  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
-  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
-  ihave ⟨Hard, %L, Hu, Hkv⟩ := apply.mPreRest_lend E log Pre Q Post $$ Hm
+  icases Hpre with ⟨%Hk, #Hr, %T, #Hcp, Hm⟩
+  ihave #Hcp := apply.certPreT_auth E E.authOn c rq log T $$ Hcp
+  icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave ⟨Hard, Hu, Hkv⟩ := apply.mPreRestAt_lend E log T Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -49,7 +49,7 @@ theorem apply.authApplierV3.Put.wp_proof
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
-  wp_apply (hPut st le E.γ E.Pk E.f E.BkTie E.RD E.authMode E.RW _ info (DFrac.own 1) r o L
+  wp_apply (hPut st le E.γ E.Pk E.f E.BkTie E.RD E.authMode E.RW _ info (DFrac.own 1) r o T
       (mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [$Hst $HleA $Hinfo $Hard $Hu $Hr]
     as %err ⟨Hinfo, Hard, Hu, #HeI, %Hoff, #Hcls⟩
   ihave Hkv := Hkv $$ Hard Hu
@@ -61,6 +61,7 @@ theorem apply.authApplierV3.Put.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
+    ihave Hkv := apply.mPreRest_of_at _ _ _ _ _ _ $$ Hkv
     icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
     iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
       Hres Hcs
@@ -81,7 +82,7 @@ theorem apply.authApplierV3.Put.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
+    iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ
   iframe Htt

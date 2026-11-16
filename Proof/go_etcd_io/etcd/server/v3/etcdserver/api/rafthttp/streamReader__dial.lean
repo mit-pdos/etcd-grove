@@ -151,7 +151,7 @@ local macro "status_switch" : tactic => `(tactic| (
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
+    wp_apply hErrorf _ _ _ _ (by refine ⟨_, rfl, ?_⟩; decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
     · iframe #; iframe Hasl
       try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
       fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
@@ -233,7 +233,7 @@ local macro "status_switch" : tactic => `(tactic| (
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
+      wp_apply hErrorf _ _ _ _ (by refine ⟨_, rfl, ?_⟩; decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
       · iframe #; iframe Hasl
         try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
         fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
@@ -251,7 +251,7 @@ local macro "status_switch" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
+  wp_apply hErrorf _ _ _ _ (by refine ⟨_, rfl, ?_⟩; decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
   · iframe #; iframe Hasl
     try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
     fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
@@ -518,7 +518,7 @@ theorem rafthttp.streamReader.dial.wp_proof
       · iframe Hmu Hlocked; inext; iexact Hinv
       (try wp_auto)
       ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) DFrac.discard
-      wp_apply hErrorf _ slice.nil [] DFrac.discard (by decide) $$ [Hnil] as %x ⟨-, %msg, -, -, #HM⟩
+      wp_apply hErrorf _ slice.nil [] DFrac.discard (by refine ⟨_, rfl, ?_⟩; decide) $$ [Hnil] as %x ⟨-, %msg, -, -, #HM⟩
       · iframe #
         fmt_args_intro; itrivial
       (try wp_auto)

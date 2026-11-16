@@ -484,7 +484,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       icases ownSlice_elem_acc (sint.Z n) l wv.Events' DFrac.discard ls Hn.1 Hl $$ Hls
         with ⟨#Hle, -⟩
       ihave #He := Hev $$ %(sint.nat n) %l %ev0 %Hl %He
-      iunfold eventAt at He
+      ihave He := eventAt_elim $$ He
       icases He with ⟨%keySl', #Htyp, #HevKv, -⟩
       ihave #Hevok' := Hevok $$ %(sint.nat n) %ev0 %He
       iunfold rangeWatchEvOk at Hevok'
@@ -773,7 +773,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
         icases ownSlice_elem_acc (sint.Z n) l wv.Events' DFrac.discard ls Hn.1 Hl $$ Hls
           with ⟨#Hle, -⟩
         ihave #He := Hev $$ %(sint.nat n) %l %ev0 %Hl %He
-        iunfold eventAt at He
+        ihave He := eventAt_elim $$ He
         icases He with ⟨%keySl', #Htyp, #HevKv, -⟩
         ihave #Hevok' := Hevok $$ %(sint.nat n) %ev0 %He
         iunfold rangeWatchEvOk at Hevok'

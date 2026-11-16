@@ -24,6 +24,12 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
 # (auth3 A1, 2026-11-14) the three-member allocation with auth on
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
+# (putgetN, the clusterN Scope, 2026-11-15) a cluster of any size: the members' vocabulary and the allocation
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
+# (authN, 2026-11-15) the k-member start with auth on
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersAuthDefs
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocNOn
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 # the package's initialization
@@ -32,6 +38,10 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer

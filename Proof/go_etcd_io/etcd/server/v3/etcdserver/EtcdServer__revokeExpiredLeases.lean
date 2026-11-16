@@ -63,12 +63,10 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ v γr γg γcx rv SP ls
   wp_start as ⟨#Hf, #Hrf, #Hexp, #Hrvk, %Hpre, Htok⟩
-  obtain ⟨hlm, hlev⟩ := Hpre
+  obtain ⟨hlm, hlev, hoff⟩ := Hpre
   have hlevK : srvRevokeK ≤ threadBound GF := hlev
-  -- auth off, from the slice's grant guard
-  ihave %Hg := srvGrantGuard_expired E.lg E.authMode.isOn ls $$ Hexp
-  have hoff : E.authOn = false := Hg.2
-  have hRL : srvRevokesLeases E ρ := ⟨hlm, hoff⟩
+  -- auth off: a premise (auth-lease S3c; until then from the slice's grant guard)
+  have hRL : srvRevokesLeases E ρ := hlm
   -- the bundle's laws
   ihave %Hbnd30 := srvRevokeCtx_bound s E ρ γr γg $$ Hrvk
   ihave ⟨#Hreq, #Hrd⟩ := srvRevokeCtx_views s E ρ γr γg hoff $$ Hrvk
@@ -227,11 +225,16 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
           ihave ⟨Hr, %Hrnn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
           iStructNamed Hr
           ipersist ID
-          wp_apply hLR s E ρ ctx cd _ id hRL $$ [Ilt IRD] as %resp %err ⟨Ilt, IRD, Hres⟩
-          · iframe #; iframe Ilt IRD
-            iunfold leaseRevokeReqRO
-            iframe ID
-            ipureintro; exact Hrnn
+          wp_apply hLR s E ρ ctx cd _ id (fun _ => iprop(True)) $$ [Ilt IRD] as %resp %err ⟨Ilt, IRD, Hres⟩
+          · rw [hoff, isServerReqM_false]
+            iframe #; iframe Ilt IRD
+            isplitr
+            · ipureintro; exact hRL
+            isplitr
+            · iunfold leaseRevokeReqRO
+              iframe ID
+              ipureintro; exact Hrnn
+            iapply leaseRevokePermitM_false
           (try wp_auto)
           ihave Hdone : iprop(|={⊤}=> Ψ #()) $$ [HΨ Irun I1 It3 IloanI Ilt IRD]
           · imod srvRevokeInnerLoan_giveBack s E ⊤ (fun _ _ => CoPset.mem_full)

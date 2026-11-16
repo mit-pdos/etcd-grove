@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.quotaLeaseServer.LeaseGrant.wp_proof
     (wp_check : v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro Req Rep Spec q s ls S m Φ' ci cd r
+  intro Req Rep Spec q s ls S m Φ' Ψe ci cd r
   wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, Hown, HSpec⟩
   rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseGrant")]
   wp_call
@@ -46,8 +46,8 @@ theorem v3rpc.quotaLeaseServer.LeaseGrant.wp_proof
     iunfold v3rpc.quotaRd at Hqr
     icases Hqr with ⟨Hlg, Hbm⟩
     wp_auto
-    iunfold grpcHandlerOwnOk at Hh
-    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS Hlg Hown HSpec] as %resp %err' ⟨⟨HS, Hlg⟩, Hres, #Hse⟩
+    iunfold grpcHandlerOwnOkMd at Hh
+    wp_apply Hh $$ %m %Φ' %Ψe %ci %cd %r [HS Hlg Hown HSpec] as %resp %err' ⟨⟨HS, Hlg⟩, Hres, Hd, #Hse⟩
     · iframe; iframe #
     iapply HΦ
     iunfold v3rpc.quotaRd

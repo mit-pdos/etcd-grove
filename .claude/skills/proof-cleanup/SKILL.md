@@ -11,6 +11,14 @@ whether an unfinished proof's `sorry` or a plan in `notes/` still needs it. Make
 simpler: invariants with fewer cases or conjuncts, intermediate specs that say only what their
 callers use, proofs that are shorter or more direct. How to get there is up to you.
 
+**Read first:** `examples/README.md`, the index of cleanups the user picked as the kind wanted, each
+with the evidence that the current proofs do not need what goes. Open the ones whose kind matches what you are
+looking at, not all of them. When the user picks or approves a cleanup, add it as an example (what
+is there, why the current proofs do not need it, how that was found, what goes, the checks; one
+sitting to read), with a row in the index. Judge the proofs as they are: that something is left over
+from an earlier design is not a reason to delete it, but read that history for why it was chosen,
+so the cleanup does not bring back a problem the old design solved.
+
 **Constraints:**
 
 - **Top-level results do not change.** The exported results keep their exact statements, and so

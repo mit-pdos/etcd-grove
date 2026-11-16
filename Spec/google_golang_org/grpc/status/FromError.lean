@@ -6,6 +6,7 @@ for `client/v3/leasing`'s `acquire`, the client's `ContextError`, `rpctypes.Erro
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.google_golang_org.grpc.status.StatusRO
 
 @[expose] public section
 
@@ -22,12 +23,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The gRPC status code of an error** (opaque): what `status.FromError(err).Code()` returns.
-grpc's `FromError` reads the status embedded in the error value (`GRPCStatus()`, or `Unknown` for
-an error that has none, `OK` for `nil`), so the code is a function of the error; nothing more is
-said of it. (The watch slice's unit W-C: `isHaltErr` compares it.) -/
-opaque statusCode [GooseExts] : GoInterface → w32
 
 /-- `status.FromError(err)` of an error grpc's `status` accepts (`statusErrOk`: `nil`, or a leaf
 error whose `Error()` and `GRPCStatus()` (if it has one) return; it calls both, and `errors.As`)

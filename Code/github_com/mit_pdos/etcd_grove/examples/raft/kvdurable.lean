@@ -91,9 +91,6 @@ noncomputable def image.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] image.ty
 
-@[reducible] noncomputable def maxReplicas [GooseExts] [GoGlobalContext] : val :=
-  #(9 : Int)
-
 @[reducible] noncomputable def stepTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000000)
 
@@ -136,17 +133,26 @@ noncomputable def Gen [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def RandomConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.RandomConfig"
 
+noncomputable def RandomConfigN [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.RandomConfigN"
+
 noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.Run"
 
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.Main"
 
+noncomputable def MainN [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.MainN"
+
 noncomputable def hasID [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.hasID"
 
 noncomputable def RandomOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.RandomOptions"
+
+noncomputable def RandomOptionsN [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.RandomOptionsN"
 
 noncomputable def StartCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvdurable.StartCluster"
@@ -612,6 +618,31 @@ noncomputable def RandomConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Config.ty))) (Var "$res0")))))
 
+/-- RandomConfigN is RandomConfig on k voters, with up to k + 4 replicas (RandomOptionsN): MainN's.
+
+    go: check.go:133:6 -/
+noncomputable def RandomConfigN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k"))
+  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
+  (App (App (Val (GoInstruction (FuncResolve RandomOptionsN []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Val #(W64 4))
+  (Let "$v2" (Val #(W64 100))
+  (Let "$v3" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))))
+  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
+  (Let "$v5" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val #(W64 1000000))))
+  (Let "$v6" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 40)) (Val #(W64 1000000))))
+  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Options")) (ElementExpression Options.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Clients")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"Ops")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Proposers")) (ElementExpression go.int (Var "$v3"))), (KeyedElement (some (KeyField go!"ReconfPause")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"DisruptPause")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"CrashPause")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v6")))])))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Config.ty))) (Var "$res0")))))
+
 /-- Run starts a cluster with its files in the directory dir (which must exist and hold none of
     them) and runs cfg.Clients clients of cfg.Ops operations of Gen's traffic on it, traced with the
     given clock, while cfg.Proposers proposers reconfigure it (Reconfigure), leadership is disrupted
@@ -620,7 +651,7 @@ noncomputable def RandomConfig.impl [GooseExts] [GoGlobalContext] : val :=
     It returns porcupine's answer and the cluster, still running (the tests check that it
     converges, then stop it).
 
-    go: check.go:139:6 -/
+    go: check.go:152:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "clock"
@@ -797,7 +828,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
     whose executions are meant to cover raft's uses by a durable application (the package's
     comment), and the one to prove never panics.
 
-    go: check.go:185:6 -/
+    go: check.go:198:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -828,6 +859,45 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "res") (Var "$r0"))))))))))))))
   (Val #())))
+
+/-- MainN is Main on k voters, with up to k + 4 replicas (RandomConfigN), the replicas' files in the
+    directory dir (which must exist and hold none of them): the program of
+    raft_kvdurableN_porcupine_safe.
+
+    go: check.go:209:6 -/
+noncomputable def MainN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "dir"
+  (Lam "k"
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k"))
+  (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dir"))
+  (Let "__p" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
+  (App (App (Val (GoInstruction (FuncResolve RandomConfigN []))) (Val #())) (Var "$a0")))
+  (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock []))) (Val #())) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve Run []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Cluster.ty)))) (Val #())))
+  (Let "res" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "res")) (Val #(go!"Ok"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"kvdurable: porcupine rejected the store's trace")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Cluster.ty)))) (Pair (Var "c") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "res") (Var "$r0")))))))))))))))
+  (Val #()))))
 
 /-- go: cluster.go:22:20 -/
 noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1064,31 +1134,32 @@ noncomputable def hasID.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- RandomOptions are options chosen at random.
 
-    go: cluster.go:104:6 -/
+    go: cluster.go:105:6 -/
 noncomputable def RandomOptions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Options.ty))) (App (Val (GoInstruction (GoZeroVal Options.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (Let "$a0" (Val #(W64 5))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))
-  (Let "$v1" (Let "$a0" (Val #(W64 2))
-  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Val #(W64 9))
   (Let "$v2" (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
   (Let "$v3" (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
-  (Let "$v4" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (Let "$v0" (Val #(W64 0))
+  (Let "$v4" (Let "$a0" (Val #(W64 2))
+  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (Let "$v0" (Val #(W64 0))
   (Let "$v1" (Val #(W64 256))
   (Let "$v2" (Val #(W64 4096))
   (Let "$v3" (Val #(W64 1048576))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v3")))])))))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 4))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))))
-  (Let "$v5" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.int)))) (Pair (Let "$v0" (Val #(W64 1))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.int)))) (Pair (Let "$v0" (Val #(W64 1))
   (Let "$v1" (Val #(W64 4))
   (Let "$v2" (Val #(W64 256))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.int)))) (LiteralValue [(KeyedElement none (ElementExpression go.int (Var "$v0"))), (KeyedElement none (ElementExpression go.int (Var "$v1"))), (KeyedElement none (ElementExpression go.int (Var "$v2")))]))))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 3))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))))
-  (App (Val (GoInstruction (CompositeLiteral Options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Voters")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"PreVote")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"CheckQuorum")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"StepDownOnRemoval")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral Options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Voters")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"MaxReplicas")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"PreVote")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"CheckQuorum")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"StepDownOnRemoval")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v5"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v6")))])))))))))
   (Let "o" (App (Val (GoInstruction (GoAlloc Options.ty))) (App (Val (GoInstruction (GoZeroVal Options.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (Let "$v0" (Val #(W64 0))
@@ -1116,13 +1187,42 @@ noncomputable def RandomOptions.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Options.ty))) (Pair (Var "o") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Options.ty))) (Var "$res0")))))
 
+/-- RandomOptionsN are RandomOptions' random options on k voters, with up to k + 4 replicas (MainN's).
+
+    go: cluster.go:123:6 -/
+noncomputable def RandomOptionsN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Options.ty))) (App (Val (GoInstruction (GoZeroVal Options.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve RandomOptions []))) (Val #())) (Val #()))
+  (Let "o" (App (Val (GoInstruction (GoAlloc Options.ty))) (App (Val (GoInstruction (GoZeroVal Options.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")) (Val #(W64 4))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Options.ty))) (Var "o"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Options.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Options.ty go!"MaxReplicas"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Options.ty go!"Voters"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Options.ty))) (Pair (Var "o") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Options.ty))) (Var "$res0")))))
+
 /-- StartCluster starts a cluster of opts.Voters voters, of ids 1 to opts.Voters, with their files
     in the directory dir, which must exist and hold none of the replicas' files: each a
     raft.RestartNode on an empty storage whose initial configuration is the bootstrap one (the
     voters), as a newcomer's (startNew); the log starts empty and the first leader is elected from
     that configuration.
 
-    go: cluster.go:144:6 -/
+    go: cluster.go:151:6 -/
 noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "opts"
   (Lam "dir"
@@ -1193,7 +1293,7 @@ noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- itoa is n in decimal.
 
-    go: cluster.go:160:6 -/
+    go: cluster.go:167:6 -/
 noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1235,7 +1335,7 @@ noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- fileOf is the durable file of replica id.
 
-    go: cluster.go:173:19 -/
+    go: cluster.go:180:19 -/
 noncomputable def Cluster.fileOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1261,7 +1361,7 @@ noncomputable def Cluster.fileOf.impl [GooseExts] [GoGlobalContext] : val :=
     commit index -- at which the replicated state is the snapshot's or older: the entries up to the
     snapshot's index are skipped, Replica.applyEntry).
 
-    go: cluster.go:185:19 -/
+    go: cluster.go:192:19 -/
 noncomputable def Cluster.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1475,7 +1575,7 @@ noncomputable def Cluster.start.impl [GooseExts] [GoGlobalContext] : val :=
     replica in between (the crashed incarnation's node is stopped: it takes no message), and no two
     incarnations of a replica run at once.
 
-    go: cluster.go:224:19 -/
+    go: cluster.go:231:19 -/
 noncomputable def Cluster.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1509,7 +1609,7 @@ noncomputable def Cluster.restart.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- tick is a random tick interval, 1 to 4ms: the replicas' clocks run at different rates.
 
-    go: cluster.go:234:19 -/
+    go: cluster.go:241:19 -/
 noncomputable def Cluster.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1527,7 +1627,7 @@ noncomputable def Cluster.tick.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- config is raft's configuration of node id on storage st, restarted at the applied index applied.
 
-    go: cluster.go:239:19 -/
+    go: cluster.go:246:19 -/
 noncomputable def Cluster.config.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1562,9 +1662,9 @@ noncomputable def Cluster.config.impl [GooseExts] [GoGlobalContext] : val :=
 /-- startNew starts a replica of a fresh id that is in no configuration yet (start, with no file:
     raft.RestartNode on an empty storage whose initial configuration is the bootstrap's; it waits
     for a leader to send it the log or a snapshot) and returns its id;
-    ok is false if the cluster has started maxReplicas already.
+    ok is false if the cluster has started opts.MaxReplicas already.
 
-    go: cluster.go:260:19 -/
+    go: cluster.go:267:19 -/
 noncomputable def Cluster.startNew.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1603,8 +1703,8 @@ noncomputable def Cluster.startNew.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"nextID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"nextID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #(W64 1))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Replica.ty))))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"replicas"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.PointerType Replica.ty))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReplicas)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType Replica.ty))))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"replicas"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.PointerType Replica.ty))]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Options.ty go!"MaxReplicas"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))))))
   (Let "$r0" (Val #(W64 0))
   (Let "$r1" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1629,7 +1729,7 @@ noncomputable def Cluster.startNew.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- all is every replica, in no particular order.
 
-    go: cluster.go:274:19 -/
+    go: cluster.go:281:19 -/
 noncomputable def Cluster.all.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1676,7 +1776,7 @@ noncomputable def Cluster.all.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- random is a random replica.
 
-    go: cluster.go:285:19 -/
+    go: cluster.go:292:19 -/
 noncomputable def Cluster.random.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1700,7 +1800,7 @@ noncomputable def Cluster.random.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- replica is replica id, or nil.
 
-    go: cluster.go:291:19 -/
+    go: cluster.go:298:19 -/
 noncomputable def Cluster.replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1730,7 +1830,7 @@ noncomputable def Cluster.replica.impl [GooseExts] [GoGlobalContext] : val :=
 /-- randomMember is a random member (voter or learner) of a random replica's configuration, or,
     one time in four or if that has none, a random replica.
 
-    go: cluster.go:299:19 -/
+    go: cluster.go:306:19 -/
 noncomputable def Cluster.randomMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1798,7 +1898,7 @@ noncomputable def Cluster.randomMember.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- sender is the transport of replica from's messages.
 
-    go: cluster.go:312:19 -/
+    go: cluster.go:319:19 -/
 noncomputable def Cluster.sender.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "from"
@@ -1824,7 +1924,7 @@ noncomputable def Cluster.sender.impl [GooseExts] [GoGlobalContext] : val :=
 /-- send hands each message of replica from to the network (deliver), each as a fresh copy (the
     wire's: copyMsg).
 
-    go: cluster.go:318:19 -/
+    go: cluster.go:325:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "from"
@@ -1865,7 +1965,7 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
     proto.Clone, it does not copy the entries, so its proof needs no model of the message's wire
     encoding.
 
-    go: cluster.go:332:6 -/
+    go: cluster.go:339:6 -/
 noncomputable def copyMsg.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
@@ -1914,7 +2014,7 @@ noncomputable def copyMsg.impl [GooseExts] [GoGlobalContext] : val :=
     a leader waits for it before it sends the follower anything else), which the network may
     also report as failed when it was delivered.
 
-    go: cluster.go:355:19 -/
+    go: cluster.go:362:19 -/
 noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -2008,7 +2108,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
     only before stepping it: the target keeps the message and writes it (`Node.Step` sets its
     `From`, a forward sets its `To`: issues/nonissues/raft-step-writes-caller-message.md).
 
-    go: cluster.go:384:19 -/
+    go: cluster.go:391:19 -/
 noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -2097,7 +2197,7 @@ noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dropped tells the sender of a dropped message so.
 
-    go: cluster.go:411:19 -/
+    go: cluster.go:418:19 -/
 noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"
@@ -2126,7 +2226,7 @@ noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
 /-- do runs one operation through the log: it gives it a fresh id and proposes it at a random
     member until one answers (the same encoding each time: it takes effect once).
 
-    go: cluster.go:424:19 -/
+    go: cluster.go:431:19 -/
 noncomputable def Cluster.«do».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "kind"
@@ -2205,7 +2305,7 @@ noncomputable def Cluster.«do».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Put sets key's value to val.
 
-    go: cluster.go:444:19 -/
+    go: cluster.go:451:19 -/
 noncomputable def Cluster.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -2223,7 +2323,7 @@ noncomputable def Cluster.Put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Get returns key's value ("" for a key never set), through the log.
 
-    go: cluster.go:449:19 -/
+    go: cluster.go:456:19 -/
 noncomputable def Cluster.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -2247,7 +2347,7 @@ noncomputable def Cluster.Get.impl [GooseExts] [GoGlobalContext] : val :=
     answer, is for the proof only (it tells the proof, at each change of the store, whether the
     key's value then is the answer: the read's linearization point); it has no effect.
 
-    go: cluster.go:457:19 -/
+    go: cluster.go:464:19 -/
 noncomputable def Cluster.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -2301,7 +2401,7 @@ noncomputable def Cluster.Read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Stop stops every replica.
 
-    go: cluster.go:469:19 -/
+    go: cluster.go:476:19 -/
 noncomputable def Cluster.Stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -2326,7 +2426,7 @@ noncomputable def Cluster.Stop.impl [GooseExts] [GoGlobalContext] : val :=
     applied the most to agree with it: the same applied index, the same configuration and the
     same store contents. It returns an error describing the disagreement otherwise.
 
-    go: cluster.go:478:19 -/
+    go: cluster.go:485:19 -/
 noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "timeout"
@@ -2367,7 +2467,7 @@ noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- agree is Converged's check, once.
 
-    go: cluster.go:490:19 -/
+    go: cluster.go:497:19 -/
 noncomputable def Cluster.agree.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -2568,7 +2668,7 @@ noncomputable def Cluster.agree.impl [GooseExts] [GoGlobalContext] : val :=
     commit and applied indices, configuration, log's first and last indices and latest
     snapshot, and, for a leader, its followers' progress.
 
-    go: cluster.go:524:19 -/
+    go: cluster.go:531:19 -/
 noncomputable def Cluster.Dump.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -7704,6 +7804,7 @@ attribute [instance] Input.TypeAssumptions.type_repr
 structure Options [GooseExts] where
   mk ::
   Voters' : w64
+  MaxReplicas' : w64
   PreVote' : Bool
   CheckQuorum' : Bool
   StepDownOnRemoval' : Bool
@@ -7712,10 +7813,11 @@ structure Options [GooseExts] where
   MaxInflightMsgs' : w64
 
 noncomputable instance Options.zero_val [GooseExts] : ZeroVal Options :=
-  ⟨Options.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Options.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Options.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Voters" go.uint64),
+(go.field_decl.FieldDecl go!"MaxReplicas" go.uint64),
 (go.field_decl.FieldDecl go!"PreVote" go.bool),
 (go.field_decl.FieldDecl go!"CheckQuorum" go.bool),
 (go.field_decl.FieldDecl go!"StepDownOnRemoval" go.bool),
@@ -7738,6 +7840,8 @@ class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
   get_Voters : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Voters") #x (Val #(x.Voters'))
   set_Voters : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Voters") (PairV #x #y) (Val #(({ x with Voters' := y } : Options)))
+  get_MaxReplicas : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"MaxReplicas") #x (Val #(x.MaxReplicas'))
+  set_MaxReplicas : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"MaxReplicas") (PairV #x #y) (Val #(({ x with MaxReplicas' := y } : Options)))
   get_PreVote : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"PreVote") #x (Val #(x.PreVote'))
   set_PreVote : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"PreVote") (PairV #x #y) (Val #(({ x with PreVote' := y } : Options)))
   get_CheckQuorum : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"CheckQuorum") #x (Val #(x.CheckQuorum'))
@@ -7757,6 +7861,8 @@ attribute [instance] Options.TypeAssumptions.type_repr
   Options.TypeAssumptions.underlying
   Options.TypeAssumptions.get_Voters
   Options.TypeAssumptions.set_Voters
+  Options.TypeAssumptions.get_MaxReplicas
+  Options.TypeAssumptions.set_MaxReplicas
   Options.TypeAssumptions.get_PreVote
   Options.TypeAssumptions.set_PreVote
   Options.TypeAssumptions.get_CheckQuorum
@@ -8733,10 +8839,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Model_unfold : FuncUnfold Model [] Model.impl
   Gen_unfold : FuncUnfold Gen [] Gen.impl
   RandomConfig_unfold : FuncUnfold RandomConfig [] RandomConfig.impl
+  RandomConfigN_unfold : FuncUnfold RandomConfigN [] RandomConfigN.impl
   Run_unfold : FuncUnfold Run [] Run.impl
   Main_unfold : FuncUnfold Main [] Main.impl
+  MainN_unfold : FuncUnfold MainN [] MainN.impl
   hasID_unfold : FuncUnfold hasID [] hasID.impl
   RandomOptions_unfold : FuncUnfold RandomOptions [] RandomOptions.impl
+  RandomOptionsN_unfold : FuncUnfold RandomOptionsN [] RandomOptionsN.impl
   StartCluster_unfold : FuncUnfold StartCluster [] StartCluster.impl
   itoa_unfold : FuncUnfold itoa [] itoa.impl
   copyMsg_unfold : FuncUnfold copyMsg [] copyMsg.impl
@@ -8804,10 +8913,13 @@ attribute [instance] Assumptions.Input_instance
   Assumptions.Model_unfold
   Assumptions.Gen_unfold
   Assumptions.RandomConfig_unfold
+  Assumptions.RandomConfigN_unfold
   Assumptions.Run_unfold
   Assumptions.Main_unfold
+  Assumptions.MainN_unfold
   Assumptions.hasID_unfold
   Assumptions.RandomOptions_unfold
+  Assumptions.RandomOptionsN_unfold
   Assumptions.StartCluster_unfold
   Assumptions.itoa_unfold
   Assumptions.copyMsg_unfold

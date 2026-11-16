@@ -573,6 +573,12 @@ theorem rafthttp.bootCfg_of (dir : w64 → List GoString) (ps : List w64)
     (hdir : ∀ f, dir f ≠ [] ↔ f ∈ ps) (hlen : ps.length ≤ 3) : rafthttp.bootCfg dir ps :=
   ⟨hdir, by unfold peersMax; omega⟩
 
+/-- `rafthttp.bootCfg` from the directory's members (`hdir`), at most `peersMax` of them (the
+clusters of any size, `examples/etcd/putgetN`; the clusterN Scope, 2026-11-15). -/
+theorem rafthttp.bootCfg_of_le (dir : w64 → List GoString) (ps : List w64)
+    (hdir : ∀ f, dir f ≠ [] ↔ f ∈ ps) (hlen : ps.length ≤ peersMax) : rafthttp.bootCfg dir ps :=
+  ⟨hdir, hlen⟩
+
 /-- **What the server's proof takes from `rafthttp.bootCfg`**: the directory's members are raft's
 peers (the transport's `AddPeer`s and its handler's sender lookup). -/
 theorem rafthttp.bootCfg_mem {dir : w64 → List GoString} {ps : List w64}

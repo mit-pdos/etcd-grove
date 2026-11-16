@@ -144,7 +144,8 @@ def lessorGrantOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
 history is it at `G id := ∃ i, leaseGrantedAt (mvcc.api.mvccLeases E.γ) i id` (`lessorGrantOkL`). The request
 filter `R` (the lease-expiry plan's E3, 2026-11-04; `True` by default): the requests the contract
 covers, by their `(TTL, ID)`; in the revocable lease mode those with `ID = 0` only
-(`EtcdServer.LeaseGrant.spec`'s premise there). (2026-11-05, the lease-expiry plan's E3/R5: the
+(`EtcdServer.LeaseGrant.spec`'s premise there). (Auth-lease S3b: the server's spec is at the auth
+mode since; this contract is its auth-off instance, `isServerReq`, the mode's in S3c, decision D6.) (2026-11-05, the lease-expiry plan's E3/R5: the
 granted TTL) `G` takes the request `m` before the id: the live fact `grantLiveG` bounds the lease's
 TTL by the request's. -/
 def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 × w64 → w64 → IProp GF)

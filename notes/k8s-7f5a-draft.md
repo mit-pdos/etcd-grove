@@ -4,9 +4,11 @@
 review's findings fixed as 81 decided): §8 lists each change, old → new. The sections below
 describe the revised Draft.
 
-Branch `k8s-7f5`, worktree `/shared/etcd-grove-k8s7f`. The statements are in the unlinked
-`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`). It builds with
-`lake build Proof.k8s_io.apiserver.pkg.storage.etcd3.Draft7f5a`, and nothing imports it. No proofs.
+Branch `k8s-7f5`, worktree `/shared/etcd-grove-k8s7f`. The statements were in the unlinked
+`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`); its vocabulary
+moved to `WatchDefs.lean` during 7f-5a-P, and on 2026-11-16 (decided by etcd-grove-02) the triple moved
+verbatim to `Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean` (`k8s.store.Watch.spec`, a
+hypothesis of 7f-6: changes through the ledger) and the Draft file was deleted.
 The plan is `notes/k8s-7f5-scope.md` (§5, §6 row 7f-5a-D, decisions §8) and the parent
 `notes/k8s-7f-scope.md` §2.1, §5.3, §9. The Go is apiserver `9c4ec15b8038`,
 `pkg/storage/etcd3/{store.go:1142-1163, watcher.go, event.go}`.
@@ -142,7 +144,8 @@ key, recursive or not) and mode (`kModeOf`). The premises:
     and `AnnotateInitialEventsEndBookmark`. Both are proved for the driver's codec, not trusted.
 - The request:
   - the key prepares and is short;
-  - the resource version parses, below `2^63`;
+  - the resource version parses, below `2^63 - 1` (so that `WithRev(n + 1)` is a positive `int64`;
+    ledger 2026-11-15, "store.Watch's revision bound");
   - `ProgressNotify` and `RecordTimestamps` are false (D6);
   - `SendInitialEvents` is read-only (`sendInitIs`);
   - the predicate is `selPredOk` (7e's).
@@ -179,7 +182,7 @@ abbrev store.Watch.spec : Prop :=
   {{ isPkgInit etcd3 ∗ isStore sp c ∗ storeWatchOk sp c W γk ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧
-        uint.Z n < 2 ^ 63 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
+        uint.Z n < 2 ^ 63 - 1 ∧ opts.ProgressNotify' = false ∧ opts.RecordTimestamps' = false⌝ ∗
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
       watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗
@@ -437,3 +440,298 @@ walk stop at `isContextDone` (a truncation, and the allow file adds no new `trun
 T5-a's `watchCtx`. Same meaning. **`klog.Warningf.spec`** now takes `klog.Errorf.spec`'s form
 (`args ↦*{dq} xs ∗ klog.argsOk f xs`, given back), as `notes/klog-args-fix.md` asks.
 
+
+## 10. Independent re-review (2026-11-15), old → new
+
+81's decisions in `questions.md` (2026-11-15); ledger entry of 2026-11-15 in `notes/specs-only/ledger.md`.
+
+- **M1, the start progress notification: decided by 81 (2026-11-15): the client spec strengthened (ledger 2026-11-15; `watchStateRespOk`'s progress arm now always `hdrRev ≤ σ.rev`), so `KTail.bm` holds the start notification unchanged.** The analysis that led there: The client's `watchStateRespOk`
+  admits a progress notification at the watch's start (`hdrRev = c`, `c + 1 = rev`) with no
+  `σ.rev` bound (`WatchStateDefs.lean:125-128`); `startWatching` queues it as `KRaw.bm hdrRev
+  false`, which `KRawTail.bm`/`KTail.bm` (`p ≤ σ.rev`) cannot hold. The Draft-local fix (`bm`
+  admits `p = c` without the bound) would serve 7f-5a's own proof but not its consumer: 7f-6's
+  bridge to the driver's `TailOk` needs `p ≤ hs.length`, and the driver's check rejects any event
+  above the configuration's revision (`watchOkL`, `KWatch.lean:209`), while 7f-6's traffic (as the
+  upstream test's) draws future resource versions for legacy watches (`notes/k8s-7f-scope.md` §1):
+  a start bookmark at a future `req` would fail the check. etcd never sends one (`progressIfSync`
+  returns unless `rev ≥ w.startRev`, `watchable_store.go:539` at the pin): the client spec is
+  looser than etcd. Not changed in the Draft; the alternative, `hdrRev ≤ σ.rev` in the client's
+  start disjunct (an exported client spec), waits on 81.
+- **M2, the processor's cancel.** Old: `kCancelPD := kStopped ∨ kProdExited ∨ □ cd.PDone`, and the
+  docstring derived `kCancelled` for the producer from it. New: `KWatchNames.procEx`,
+  `kProcExited γ` (persistent; set by the processing goroutine before its `sendError`, whose
+  deferred `wc.cancel()` follows), `kCancelPD := kStopped ∨ kProdExited ∨ kProcExited ∨ □ cd.PDone`;
+  the producer's own `sendError` sets `kProdExited` before it; the producer, which refutes only
+  `kProdExited`, keeps `kProcExited` as a third disjunct of `kInElem`'s no-gap fact
+  (`kRawStreamOk ∨ kCancelled ∨ kProcExited`), refuted by the processor at each receipt.
+- **m1, the error arm.** Old: `⌜err ≠ nil⌝`. New: `⌜err ≠ nil ∧ sie = some false ∧ uint.nat n = 0⌝`
+  (under the premises the only error is `getStartWatchResourceVersion`'s `getCurrentStorageRV`,
+  `watcher.go:193-217`: prepareKey, ParseResourceVersion, the recursive suffix and
+  `ProgressNotify` are excluded by premises).
+- **m2, `1 ≤ st`.** `kvWf` does not give `1 ≤ σ.rev`, nor does a firing (`kvAu` tells `kvRoom`).
+  Old: `kStartOk`'s watch-list arm `st = σ0.rev ∧ max m.req 1 ≤ st`. New: `st = σ0.rev ∧ m.req ≤ st`;
+  a consumer whose `Q` gives `1 ≤ σ.rev` reads `1 ≤ st` from the element's `□ Q lb0 σ0`.
+- **The `WithCancel` gap.** Option (a): `notes/perennial-changes.md`'s entry now has the decision and
+  a design sketch (`HParentCC` gives `□ (Pp -∗ s.PDone)` of the `*cancelCtx` it finds; a new
+  `wp_WithCancel_ctx`). Steps 4-5 take `isContext wc.ctx { cd with PDone := cd.PDone ∨ kCancelPD γ cd }`
+  as a premise; step 6 waits on (a).
+
+## 11. The error leaves (7f-5a-P step 3, decided by etcd-grove-81 2026-11-15)
+
+§5 expected the watcher's error leaves to need no new text over `clientErrTys`; that was wrong
+(questions.md, thirteenth agent). 81 decided the route:
+
+- **An internal predicate `kErrOk err`** (`WatchDefs.lean`): the error's calls on the error paths
+  behave, stated over its own dynamic type and methods: `==` with any error returns (a comparable
+  dynamic type); `Error()` returns and no `Format` method; as an `etcdError`, `Code()` returns; as a
+  `grpcError`, `GRPCStatus()` returns some `s` and `s.Code()` returns; `errors.As(err,
+  &(*corruptObjectDeletedError))` returns `false`; as an `APIStatus`, `Status()` returns a `Failure`
+  status. `isCancelError`, `interpretWatchError`, `transformErrorToEvent`, `logWatchChannelErr` (step 3)
+  and `sendError` (step 4) are proved over it, with no new text. (`(*StatusError).Status`, a one-line
+  getter, is now translated with its body, `Code/k8s_io/apimachinery/pkg/api/errors.toml`: less
+  trusted text, no spec added.)
+- **The producers prove `kErrOk`** of each error they hand to `sendError` (step 5): `startWatching`'s
+  (the client watch's close error `wres.Err()`, `GetCurrentResourceVersion`'s via
+  `getStartWatchResourceVersion`, `parseEvent`'s `fmt.Errorf`, `sync`'s), `syncPaginated`'s
+  (`interpretListError(err, true, …)` of the client's `Get` error, its own `fmt.Errorf`), and
+  `transform`'s (none reachable under `kvWfHist`, `prepareObjs`' spec).
+- **The candidate texts E1-E6**, drafted here for review when step 5 needs them. None is in Lean;
+  none is an axiom. Each says what `kErrOk` needs of it.
+
+**E1. `(*grpc/status.Status).Code()` returns** (trusted text; grpc's `internal/status` is names
+only). Candidate: `∀ s : Loc, {{ True }} methods (*Status) "Code" #s #() {{ (c : codes.Code), RET #c;
+True }}`. Go (`internal/status/status.go`): `if s == nil || s.s == nil { return codes.OK }; return
+codes.Code(s.s.Code)`, a read of an immutable proto field (grpc never writes a `*Status` after
+`New`; `Proto()` clones). Stronger form, if a consumer wants the code: `RET #(statusCode s)` over the
+cache's `grpcErrMethodsOk` status. Go check to write: `Code()` of `nil`, of `status.New(c, m)` for
+every code, of `FromError`'s results. Needed by `kErrOk`'s `grpcError` conjunct for a `*status.Error`.
+
+**E2. The client watch's close error has a known dynamic type** (a proved spec strengthened, no
+trusted text): `WatchResponse.Err()`'s post gives only nil-iff and `errStrOk`, and the watch state
+keeps only `statusErrOk closeErr`. Candidate: `watchStateDefs`' close error carries `clientErr
+closeErr` (exported client vocabulary: ledger entry first, interface regenerated), and `Err()`'s
+post returns it, or one of `ErrCompacted`/`ErrFutureRev` (`EtcdError` values, `rpctypesInit`).
+`kErrOk` of a `clientErr` error then follows per type: `*status.Error` (E1; `GRPCStatus` from
+`grpcErrMethodsOk`; comparable pointer; `errors.As` false by a leaf-error `As` spec for this type,
+see E3's note), `EtcdError` (its `Code()` translated or specified: rpctypes' `Code` is a field read;
+comparable struct, needs `AsTypeTyped`), the context errors (`*errorString`: `errors.AsLeaf.spec`;
+`deadlineExceededError`: a struct with no fields, comparable; neither is an `etcdError`,
+`grpcError` or `APIStatus` by method sets).
+
+**E3. `fmt.Errorf` without `%w` returns an `errors.New` error** (trusted-text strengthening of
+EtcdGrove's `fmt.Errorf.spec`): its post says only `kFmtErr` (Error, no Format, a pointer error).
+Candidate: for a format with no `%w`, the result is `interface.mkOk (*errors.errorString) #x` (Go:
+`fmt.Errorf` returns `errors.New(s)` unless a `%w` verb is present, `fmt/errors.go`). Then
+`kErrOk` follows: `*errorString`'s method set is `{Error}` (no `Code`, `GRPCStatus`, `Status`,
+`Format`), a comparable pointer, and `errors.AsLeaf.spec` (exists) gives `As` false. The watcher's
+two are `parseEvent`'s (`%q %d %s`) and `syncPaginated`'s (no verb). Go check: `reflect.TypeOf` of
+both is `*errors.errorString`.
+
+**E4. `GetCurrentResourceVersion`'s error is the client's** (a proved spec strengthened): its error
+arm is a bare `err ≠ nil`. Candidate: the error is the client `Get`'s (`clientErr err ∗ statusErrOk
+err`), as the proof already has it inside. `startWatching` sends it when `initialRev > 0 ∧
+forceInitialEvents` (through `getStartWatchResourceVersion` in `Watch`, before the goroutines: then
+it is `Watch`'s error, not `sendError`'s; check in step 5 which path reaches `sendError`).
+
+**E5. `interpretListError(err, true, k, p)`** (a new proved spec; translated): the `paging = true`
+branch calls `handleCompactedErrorForPaging` (`storage.EncodeContinue`, `utilruntime.HandleError`,
+`NewResourceExpired`, a write of `ListMeta.Continue`) for `ErrCompacted`, else returns `err`.
+Candidate post: `err' = err` (when `err ≠ ErrCompacted`) or a `*StatusError` held with a `Failure`
+status (`NewResourceExpired`). Needs specs of `EncodeContinue` (translated? check) and `HandleError`
+(names only: a no-op text, trusted, if reached).
+
+**E6. `storage.NewTooLargeResourceVersionError`** (a spec of a translated function, or a text if
+not translated): reached only by `validateMinimumResourceVersion`'s callers, not by the watcher's
+`sendError` under 7f-5a's premises (the watch path has no minimum RV check); listed because §5 did.
+Candidate post: `tooLargeErrIs err` with a `Failure` status (`NewTimeoutError` is translated).
+Drop it if step 5 confirms it unreachable.
+
+### 11.1 The review of E1-E6 and 81's decisions (2026-11-15)
+
+Review: `/shared/tmp/claude-0/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/tasks/ae2c182bd754ca744.output`
+(final report). E1 refuted as written (`{{True}} Code #s` over any `Loc`: `*s = *status.New(...)` races
+with the read); E2 fine with two gaps; E3, E4, E5 fixed; E6 reachable (`watcher.go:462-464`). The
+review also exposed a latent assumption of two existing axioms, `status.FromError` and `status.Code`
+(`notes/axiom-review/grpc-status-immutability.md`), folded into E1's package below. Proved-spec changes
+(E2, E4, E5) are made with ledger entries; trusted texts (E1's package, E3) are drafted here, one package
+for 81's review, not applied; step 5 takes them as `-- pending E1`/`-- pending E3` hypotheses.
+
+### 11.2 The E1 package (trusted text; approved by etcd-grove-81 2026-11-15 with fixes 1-5 below, applied to this text; not yet in Lean)
+
+Review: `/shared/tmp/claude-0/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/tasks/a5b3d2b2a50b33811.output`
+(no counterexample). Fixes applied here: (1) no nil case, and the law `grpcStatusRO s c ⊢ ⌜s ≠ null⌝`;
+(2) "fresh per call" dropped (shared statuses are fine); (3) "nobody writes" reworded as "whose `Code()`/
+`Message()` never change" (protobuf's internal size cache is written by `proto.Marshal`); (4) the
+`ctxErrsErr` line rechecked; (5) the pass-through paths checked (end of (d)). Fix 6 (optional) taken in (c).
+
+**New opaque vocabulary** (in `Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusCode`):
+`grpcStatusRO (s : Loc) (c : w32) : IProp GF`, persistent: "`s` is a non-nil `*Status`, built by
+`status.New`/`Error` (or grpc's other constructors) and never written after, whose `Code()` is `c` and
+whose `Code()` and `Message()` never change". Opaque because grpc's `Status` is an axiomatized type (no
+points-to can be stated). Law (an axiom of the opaque vocabulary, or part of its definition if it is
+stated as `⌜s ≠ null⌝ ∗ opaque`): `grpcStatusRO s c ⊢ ⌜s ≠ null⌝`.
+
+**(a) `grpcErrMethodsOk`'s `GRPCStatus` conjunct** gains the returned status's facts:
+```
+(⌜methodSet e.ty !! "GRPCStatus" = some (Signature [] false [*internal/status.Status])⌝ →
+  ∃ s : Loc, (□ ∀ Φ, ▷ Φ #s -∗ WP (methods e.ty "GRPCStatus" e.v) #() {{ Φ }}) ∗
+    grpcStatusRO s (statusCode (GoInterface.ok e)))
+```
+Docstring (`Base.lean:325`) corrected: grpc's `*Status` is not immutable in Go (a whole-struct
+assignment `*s = *t` from any package copies its unexported fields); the fact is a guarantee of the
+producer that built `s` (with `status.New`/`Error`) and never writes it after; a status may be shared
+(package-level `status.Error` values: grpc's `ErrClientConnClosing`, `errContextCanceled`/`errContextDeadline`,
+etcd's `ErrGRPC*`).
+
+**(b) The `Status` methods over `grpcStatusRO`** (replaces E1; an axiom in
+`Proof/google_golang_org/grpc/status/StatusRO.lean`):
+`∀ s c, {{ grpcStatusRO s c }} (s @!! *Status @!! "Code") #() {{ RET #c; True }}` (Go:
+`return codes.Code(s.s.Code)` for a non-nil `s` with a non-nil `s.s`, as every constructor builds it: a
+read of a status whose code never changes). `Proto()`, `Message()` as needed by (c) only (not exported
+unless a proof needs them).
+
+**(c) `status.FromError.spec` and `status.Code.spec`**: statements unchanged (they take `statusErrOk
+err`, which now carries `grpcStatusRO s (statusCode e)` for an error with `GRPCStatus`); the
+docstrings say that `FromError`/`Code` read the returned `*s` through `Proto()`/`Code()`, justified by
+`grpcStatusRO`, and the pointer added today to the axiom-review note goes away. Fix 6 (optional, taken
+if cheap when applying): `FromError`'s post also gives `grpcStatusRO s (statusCode err)` of the status it
+returns (for an error with `GRPCStatus` it returns that very pointer; otherwise one it built with `New`).
+
+**(d) The producers that build a status** (each trusted text whose post gives `statusErrOk` of
+an error with a `GRPCStatus` method now also promises `grpcStatusRO` of its status, through (a); no
+statement changes, the meaning of `statusErrOk` does):
+- `status.Error.spec`, `status.Errorf.spec` (`Proof/google_golang_org/grpc/status/Error.lean`,
+  `Errorf.lean`): `&Error{s: New(c, msg)}`, `*Error.GRPCStatus` returns `e.s` (never
+  written after); the code is `c`, so the post may also say `statusCode err = c` (optional).
+- grpc's invoker and stream texts (`Proof/google_golang_org/grpc/InvGrpc.lean`: `grpcInvokerOk`'s
+  attempt error, `grpcDecOk` (`toRPCErr`'s `*status.Error`); `InvGrpcStream.lean`: `cliStreamErr`, the
+  `RecvMsg`/`SendMsg`/`Send` error arms at lines 434, 477, 543): grpc builds each `*status.Error` with
+  `status.New`/`Err()`/`NewWithProto` or `FromContextError`, or returns a shared package-level one
+  (`ErrClientConnClosing`, `clientconn.go:70`; `toRPCErr` maps `context.Canceled`/`DeadlineExceeded` to
+  `errContextCanceled`/`errContextDeadline`, `rpc_util.go:1129-1130`), never written after; `io.EOF`,
+  `io.ErrUnexpectedEOF` have no `GRPCStatus`.
+- `ctxErrsErr` (fix 4, rechecked): it is a premise on the program's context (the caller proves it), not a
+  grpc promise; its `statusErrOk err` of `Err()`'s result now also requires `grpcStatusRO` for an error
+  with `GRPCStatus`, which `context.Canceled`/`DeadlineExceeded` (`*errorString`, `deadlineExceededError`)
+  lack, so nothing changes for the contexts in use. Through grpc, those context errors become the shared
+  `errContextCanceled`/`errContextDeadline` (`toRPCErr`), covered by the invoker/stream line above.
+- rpctypes' and v3rpc's package-initializer axioms for the `ErrGRPC*` values
+  (`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean`, `.../etcdserver/api/v3rpc/Init.lean`):
+  `status.Error(...)` at init, never written.
+- **The pass-through paths (fix 5)**: grpc returns some errors unchanged, so its texts' `grpcStatusRO`
+  of them must come from the program's callback specs. Checked: (i) `toRPCErr` returns as is an error
+  `FromError` accepts; on the client it is reached by the codec's errors (grpc's default proto codec only:
+  `grpcInvokerOk`'s docstring, `dialOptsAt`), the transport's (grpc's own), and the context's `Err()`
+  (`ctxErrsErr`/`ctxOk`, which require `statusErrOk`, now with `grpcStatusRO`); (ii) per-RPC credentials:
+  `perRPCCredsOk` requires `GetRequestMetadata` to return `err = nil` (k8s 7e-1's soundness fix), so the
+  pass-through of a credentials error (`http2_client.go:697-702,733-738`) is unreachable; (iii) client
+  interceptors (`chainWP`): an interceptor's error goes back to the caller, not into grpc, so grpc's texts
+  promise nothing of it; (iv) the server's handler errors (`grpcHandlerOk`) are written to the wire
+  (`RawStatusProto`, read-only) and rebuilt on the client by `NewWithProto`; `grpcDecOk`'s errors are
+  grpc's own. No callback hands grpc an error whose status grpc's texts then promise without the
+  callback's spec requiring `statusErrOk`.
+**Go evidence (written 2026-11-15, sixteenth agent): `examples/premisefix/grpcstatusro/`** (main examples
+module, the etcd fork at the etcd pin, grpc v1.84.0; `GOWORK=off GOTOOLCHAIN=go1.27.3 go test -race`, 32G
+cap, all pass, `/shared/tmp/k8s7f5a-p3/e1.log`):
+- `nowrite_test.go` (static): type-checks from source every non-standard package depending on
+  `internal/status` in the closures of etcd's client, `etcdserver`, `v3rpc`, `rpctypes` and `cache` (37
+  packages) and of `k8s.io/apiserver/pkg/storage/etcd3` (11 k8s packages, the watcherctx module), and finds
+  no write to a `Status`, its `*spb.Status`, or an `Error`'s `*Status`: no assignment, `++`, range
+  assignment or `&` reaching the field `s`, no whole-struct write `*p = *q` of a `Status`/`Error`, no `&`
+  of an existing one, no `unsafe.Pointer` of one; the field `s` read only inside `internal/status`, in
+  `Code`, `Message`, `Proto` (clone), `Details`, `Error.Is` (`proto.Equal`), `RawStatusProto`,
+  `Error.Error`, `Error.GRPCStatus`; `RawStatusProto` called only twice, in the server's
+  `http2_server.go` (`writeEarlyAbort`, `writeStatus`), its result used only as `p.GetDetails()`,
+  `proto.Marshal(p)`, `pretty.ToJSON(p)`. `TestScannerDetects` is the negative control (a whole-struct
+  write, `&*s`, `unsafe.Pointer(s)` are reported). Not covered statically: generic code over a `*T`,
+  reflection (the race test below observes the running code).
+- `TestStatusErrorProducers`: `status.Error`/`Errorf`/`New(c, m).Err()` for every code: `nil` for OK,
+  else a `*status.Error` whose `GRPCStatus()` is one pointer, fresh per call, `Code() = c`, `Message() =
+  m`, unchanged after every read API (`FromError` (which returns the same pointer), `Code`, `Convert`, a
+  mutated `Proto()` clone, `Details`, `WithDetails`, `errors.Is`, `Error`, `rpctypes.Error`/`ErrorDesc`).
+  `TestNilStatusCode`: a nil `*Status`'s `Code()` is OK.
+- `TestErrGRPCInitializers`: rpctypes' `error.go` parsed: each of its 63 `ErrGRPC*` initializers is
+  `status.Error(codes.X, "lit")` (one more variable is an alias), the test's explicit list is the file's,
+  each status has that code and message, pairwise distinct pointers; the 57 values of `errStringToError`
+  are those variables; the 53 values of v3rpc's `toGRPCErrorMap` are those variables or
+  `ErrMemberNotEnoughStarted`/`ErrTooManyRequests` (EtcdErrors, no `GRPCStatus`).
+- `TestInvokerAndStreamErrors` (under `-race`): a real grpc server on `bufconn`; the errors of
+  `ClientConn.Invoke` and of a client stream's `RecvMsg`/`SendMsg` for every code, with details, for the
+  server's shared `ErrGRPC*` values, a cancelled/expired context (before and during the call), a closed
+  connection (`ErrClientConnClosing`, grpc's package-level `status.Error`, shared and never written) and
+  a stopped server (115 errors per run): `GRPCStatus()` fixed, `Code()` the expected code, read by four
+  goroutines concurrently (~35000 reads) while grpc runs and shuts down, with no race reported and the
+  codes unchanged at the end; `io.EOF` has no `GRPCStatus`.
+- `TestWholeStructWriteChangesCode`, the negative (the reviewer's point, sequential form of `TestE1Race`):
+  `*s = *status.New(...)` through the `GRPCStatus()` pointer changes `status.Code(err)`.
+
+**(e) What `kErrOk` then gets**: its `grpcError` conjunct (`s.Code()` returns) follows from (a) and
+(b) for any `statusErrOk` error; E1 as a separate text disappears.
+
+### 11.3 The E3 text (DRAFT, trusted; not applied)
+
+`fmt.Errorf.spec` gains, in its post: when `fmt.fmtDirectives format = some ds ∧ ∀ d ∈ ds, d.verb ≠
+'w'`, the result is `interface.mkOk (*errors.errorString) #p` for a fresh `p` (keeping
+`stringMethodSpec`). Go: `errorf` wraps whenever a directive's verb is `w`, including `%[1]w`, `%+w`,
+`%-5w`, even for a non-error argument (`fmt/print.go:1052,1146`; the reviewer's run gives
+`*fmt.wrapError` for all three), and otherwise returns `errors.New(s)` (`fmt/errors.go`; `Errorf` also
+returns `errors.New(format)` when there is no argument and no `%`). (`%[1]w` is refused by
+`fmtDirectives` (`none`, an argument index), so the text claims nothing of it; `%+w`, `%-5w` parse as `w`
+directives and are excluded.) A `%w` with no argument left does not wrap (`missingArg` comes first,
+`print.go:1142-1146`): the premise is conservative there.
+
+**Go evidence (written 2026-11-15, sixteenth agent): `examples/premisefix/errorfwrap/`** (go1.27.3, all
+pass, `/shared/tmp/k8s7f5a-p3/e3.log`): `TestWatcherFormats` (parseEvent's `event.go:69`, syncPaginated's
+`watcher.go:354`, GetCurrentResourceVersion's `store.go:742`: `*errors.errorString`, fresh per call, and
+`fmtDirectives` of each has no `w`); `TestWVerbFormsWrap` (`%w`, `%[1]w`, `%+w`, `%-5w`, `%#w`, `% w`,
+`%05.2w`, `%w` of an int, two `%w`, `%[2]w`: a wrap with `Unwrap`); `TestMissingArgNoWrap`;
+`TestDirectivesPortExamples` (a Go transcription of `fmt.fmtDirectivesAux` gives the Lean file's 13
+examples); `TestNoWDirectiveGivesErrorString` (200000 random formats over verbs, flags, digits, `.`, `*`,
+`[`, `]`, `%`, `w`, a multi-byte rune and invalid UTF-8, 0-3 arguments of mixed types: all 117672 with
+`some ds` and no `w` give `*errors.errorString`; 39685 of the 54107 with a `w` directive wrap).
+
+### 11.4 E2, E4, E5, E6 (proved specs)
+
+- E2: `WatchResponse.Err()`'s post gives `clientErr err ∗ statusErrOk err` of a non-nil result (four
+  cases: `v3rpc.Error(closeErr)`, `ErrCompacted`, `v3rpc.Error(status.Error(FailedPrecondition,
+  reason))`, `ErrFutureRev`). Gaps to find or derive: `eofIs e → clientErr e`; `isLeafError` of a
+  `*status.Error` (method-set fact).
+- E4: `GetCurrentResourceVersion`'s error arm: `(clientErr err ∗ statusErrOk err) ∨` the E3 form (its
+  own `fmt.Errorf("the current resource version must be greater than 0")`); reachable from `sendError`
+  (`watcher.go:456-460`).
+- E5: `interpretListError.spec` generalized over `paging` (one triple); the caller shows `encOkL`.
+- E6: the existing `NewTooLargeResourceVersionError` spec (`tooLargeErrIs`); `kErrOk` proved from it.
+
+### 11.5 T5-f's `Event_EventType.String` over the pointer receiver (DRAFT, trusted; not applied)
+
+Decided by the user (2026-11-15, via etcd-grove-81): step 7 does not wait for the parked goose change
+(`ptr_M_unfold` for an axiomatized value method, `notes/perennial-changes.md`); T5-f's axiom is restated
+over the pointer receiver, the form `parseEvent.wp_proof` already takes as a callee hypothesis
+(`Spec/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__StringPtr.lean`):
+
+```
+mvccpb.Event_EventType.StringPtr.spec : Prop :=
+  ∀ (l : Loc) (t : w32),
+  {{ isPkgInit mvccpb ∗ l ↦□ t }}
+    (l @!! PointerType Event_EventType.ty @!! "String") #()
+  {{ (s : GoString), RET #s; True }}
+```
+
+The change: the axiom `mvccpb.Event_EventType.StringPtr.wp_proof` in a new
+`Proof/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__StringPtr.lean`, with the header's "no proof derives
+this yet" replaced by the trust statement below; the value axiom `Event_EventType.String.wp_proof` (T5-f)
+is removed if nothing else uses it (today only the Draft's statement mentions it; to check at step 7), so
+the trust base trades one axiom for one. Why it is faithful: `String` is a value method (`kv.pb.go:50`);
+the method set of `*Event_EventType` contains it by Go's method-set rule ("the method set of a pointer to
+a defined type T is the set of all methods declared with receiver *T or T"), as the compiler's wrapper
+that reads `*l` and calls the value method: so the call reads the value at `l` (the read-only
+points-to), writes nothing, and returns what the value method returns, some string for every value
+(T5-f's claim, `TestEventTypeStringReturns`); a nil `l` panics, which `l ↦□ t` excludes. When the goose
+change lands, the pointer form becomes a theorem of the value axiom and this axiom goes.
+
+**Go evidence: `examples/premisefix/eventtypestr/`** (`-race`, go1.27.3, all pass,
+`/shared/tmp/k8s7f5a-p3/t5f.log`): `TestPtrStringIsValueString` (named, unknown, negative and extreme
+values: `p.String()`, through a `fmt.Stringer` holding `p`, a method value, the method expression
+`(*Event_EventType).String(p)`, and `(&e.Type).String()` on a `*mvccpb.Event` (parseEvent's shape) all
+equal `t.String()`, the value unchanged); `TestPtrStringReadsOnly` (8 goroutines calling `String` through
+one pointer while others read `*p`, no race reported); `TestPtrStringNil` (a nil pointer panics).

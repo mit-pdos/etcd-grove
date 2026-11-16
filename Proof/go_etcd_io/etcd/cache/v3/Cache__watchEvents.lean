@@ -527,7 +527,7 @@ theorem Cache.watchEvents.wp_proof
       iapply HΨ
       itrivial
     ihave #Hcse := watchRespOk_closeErr $$ Hok
-    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hcse] as %err ⟨resp, %Herr, #HwE⟩
+    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hcse] as %err ⟨resp, %Herr, #HwE, -, -⟩
     cases err with
     | ok e =>
       -- `resp.Err() != nil`: reset `ready`, return the error

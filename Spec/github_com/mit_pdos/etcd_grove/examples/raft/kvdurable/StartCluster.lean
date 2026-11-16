@@ -5,7 +5,7 @@ files in the directory `dir`, holding none of them: from the files' entries at `
 file invariant allocated at the empty storage, with the id's durable state at `RaftState.init` and
 its slot from the cluster's allocation, `cluster_alloc`), each voter started by `Cluster.start`
 (`RestartNode` on an empty storage at the bootstrap configuration) under `c.mu`. The caller
-allocates the names `γ`, with the read-sequence elements of the ids `0..9` at `0` (the store's
+allocates the names `γ`, with the read-sequence elements of the ids `0 … opts.MaxReplicas` at `0` (`γ.max`) (the store's
 `readSeqs` lock holds them: `isReadSeqs`) and the empty map of the current incarnations (`γ.cur`;
 2026-11-01, the crasher: the crasher's token `crasher γ`, which `Crash` takes, is the caller's from
 the allocation too, as no incarnation is being restarted).
@@ -37,7 +37,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev StartCluster.spec : Prop :=
   ∀ (γ : KdNames) (o : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options) (dir : GoString),
-  kdOptsOk o →
+  kdOptsOk o → γ.max = uint.nat o.MaxReplicas' →
   let vs := raft_kvreconf.bootVoters (uint.nat o.Voters')
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable ∗ context.isClosedchanInit ∗ kdCluster γ vs ∗
       kdStorInv ∗ ⌜γ.r.cluster.dup = true⌝ ∗ ⌜γ.r.cluster.bootLen = 0⌝ ∗
@@ -53,10 +53,10 @@ abbrev StartCluster.spec : Prop :=
         dfile γ.files (kdFileName dir id) none ∗
         ∃ g : RaftState × Option GoString, ghostVar (γ.wr id) (1 : Qp) g) ∗
       joinAuth γ.r.cluster (GMap.listToSet vs) ∗
-      ([∗list] i ∈ raft_kvreconf.freshIds (vs.length + 1), dfile γ.files (kdFileName dir i) none ∗
+      ([∗list] i ∈ raft_kvreconf.freshIdsM γ.max (vs.length + 1), dfile γ.files (kdFileName dir i) none ∗
         ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g) ∗
       ghostVar γ.r.opn (1 : Qp).half (W64 0) ∗ monoNatAuthOwn γ.r.nid 1 0 ∗
-      ([∗list] i ∈ raft_kvreconf.freshIds 0, i ↪[γ.r.rseq] W64 0) ∗
+      ([∗list] i ∈ raft_kvreconf.freshIdsM γ.max 0, i ↪[γ.r.rseq] W64 0) ∗
       ghostMapAuth γ.cur 1 (∅ : GMap w64 Loc) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.StartCluster)) (Val #o)) (Val #dir))
   {{ (c : Loc), RET #c; isClusterC γ vs dir c }}

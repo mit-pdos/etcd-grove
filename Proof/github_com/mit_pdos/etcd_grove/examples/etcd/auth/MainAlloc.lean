@@ -61,11 +61,11 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
       (by simp) (by simpa using Hid0.symm)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklg⟩ := Hγ
-  have hlm : γk.lm = .none := by simpa [KVNames.lg_eq] using hklg
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hlm, -, -⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
-  imod (srvMemberBootOn_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp [Hwn]
+  imod (srvMemberBootOn_alloc (GF := GF) γ cnt γk id cok (fun h => by rw [hlm] at h; cases h)
+      (fun h => by rw [hlm] at h; cases h)) $$ Hkv Hp [Hwn]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc'⟩ := Hρ

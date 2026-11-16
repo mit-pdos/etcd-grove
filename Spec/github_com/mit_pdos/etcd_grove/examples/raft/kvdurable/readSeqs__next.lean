@@ -2,7 +2,7 @@
 
 `s.next()` (kv.go): a fresh read sequence number, one counter for the cluster's every replica and
 incarnation (a read's context outlives its incarnation). For the caller's replica `id` (`1 ≤ id ≤
-9`) and the key `key` of its read, the number `seq` it issues moves `id`'s last read sequence number
+γ.max`) and the key `key` of its read, the number `seq` it issues moves `id`'s last read sequence number
 (`γ.r.rseq`) to it, minting the read context `readCtxB id seq key` there (in the store's invariant,
 `rkvInv`: `(id, seq) ↪[rmint]□ …`) and committing it, once, to the read seeing at least the committed
 log `l0` the reader knows (`isReadCtx`, `readCtxAfter`: kvreconf's `kvr_mint_read`; the context is
@@ -36,7 +36,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev readSeqs.next.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (s : Loc) (id : w64) (key : List w8) (l0 : List LogEntry),
-  1 ≤ uint.nat id → uint.nat id ≤ 9 → (key.length : Int) < 2 ^ 64 →
+  1 ≤ uint.nat id → uint.nat id ≤ γ.max → (key.length : Int) < 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable ∗ isReadSeqs γ s ∗
       kdCluster γ vs ∗ isCommittedLogLb γ.r.cluster l0 }}
     (App (Val (s @!! go.GoType.PointerType kReadSeqsTy @!! go!"next")) (Val #()))

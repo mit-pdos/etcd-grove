@@ -48,11 +48,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r id hv
-  obtain ⟨hlm, hoff⟩ := hv
+  intro s E ρ ctx cd r id Q
   have hRR := hRR0 s E ρ
-  rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, #Hreq⟩
+  wp_start as ⟨%hlm, #Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, #Hreq, Hperm⟩
   iunfold leaseRevokeReqRO at Hreq
   icases Hreq with ⟨%hr, #HID⟩
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
@@ -92,13 +90,23 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
   (try wp_auto)
-  -- `requireAuthInfo`: `nil` with auth off
+  -- `requireAuthInfo`: `nil` with auth off; with auth on, its error is returned
   wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
   · iframe #; iframe Hrd
-  iunfold authedOutB at Hae
-  icases Hae with ⟨-, %Hoffe, -⟩
-  have hae : aerr = GoInterface.nil := Hoffe (by rw [← apply.AEnv.authOn_eq]; exact hoff)
-  subst hae
+  ihave #Hae0 := authedOutB_ctx s E.authMode _ _ aerr Hinc1 $$ Hae
+  (try wp_auto)
+  rcases aerr with ae | _
+  · -- refused
+    (try wp_auto)
+    wp_apply HEnd
+    (try wp_auto)
+    iapply HΦ
+    iframe Hlt Hrd
+    iright
+    iunfold authedOutB at Hae
+    icases Hae with ⟨#HaE, -⟩
+    iframe HaE
+    ipureintro; exact ⟨rfl, by intro h; cases h⟩
   (try wp_auto)
   -- `&pb.InternalRaftRequest{LeaseRevoke: r}`
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
@@ -134,14 +142,14 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   ipersist ClusterMemberAttrSet
   ipersist DowngradeInfoSet
   ipersist DowngradeVersionTest
-  let rq : apply.IRRModel := { apply.irrEmpty with leaseRevoke := some id }
+  let rq : apply.IRRModel := irrLeaseRevoke id
   have Hk : apply.dispatchKind rq = .leaseRevoke := by
-    simp [rq, apply.dispatchKind, apply.irrEmpty]
+    simp [rq, irrLeaseRevoke, apply.dispatchKind, apply.irrEmpty]
   have Hrk : apply.revokeKindOk rq :=
-    ⟨Hk, by simp [rq, apply.needAdminPermission, apply.irrEmpty],
-      by simp [rq, apply.noSideEffect, apply.irrEmpty]⟩
+    ⟨Hk, by simp [rq, irrLeaseRevoke, apply.needAdminPermission, apply.irrEmpty],
+      by simp [rq, irrLeaseRevoke, apply.noSideEffect, apply.irrEmpty]⟩
   have HnzW : irrNoZeroEnd rq := by
-    refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [rq, apply.irrEmpty] at h
+    refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [rq, irrLeaseRevoke, apply.irrEmpty] at h
   have Hshape : rqShape ρ.kv.lm rq := by
     refine ⟨fun on => ⟨by rw [Hk]; decide, by rw [Hk]; intro h; cases h⟩, fun log hs => ?_⟩
     have hput : apply.putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
@@ -149,7 +157,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     exact (apply.rqOk_leaseRevoke _ _ _ Hk).2 ⟨hlm, Hrk, hput.1, hput.2⟩
   ihave #HirrNo : irrNoHdrIs «$a1_ptr» rq $$ []
   · iunfold irrNoHdrIs
-    simp only [rq, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField, apply.leaseRevokeIs]
+    simp only [rq, irrLeaseRevoke, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField, apply.leaseRevokeIs]
     isplitr
     · ipureintro; exact Hirrn
     isplitr
@@ -160,82 +168,189 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   imod monoListLbOwn_nil (GF := GF) E.γs.slog with #HF0
   ihave #HF : srvApi.kvLogLb E.γs [] $$ []
   · iunfold srvApi.kvLogLb; iexact HF0
-  imod Hcred with Hc
-  wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
-      (apply.irrDepthOk_of_txnW_none rfl)
-      $$ [Hlt Hrd Hc Header] as %resp %err ⟨Hlt, Hrd, Hres⟩
-  · iframe # Hlt Hrd Hc
-    isplitr
-    · rw [isServerReqM_false]; iexact Hsrv
-    isplitr
-    · iunfold reqPropOkM
-      try dsimp only
-      isplitl
+  cases hon : E.authOn
+  · -- auth off
+    rw [hon] at hRR
+    imod Hcred with Hc
+    wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
+        (apply.irrDepthOk_of_txnW_none rfl)
+        $$ [Hlt Hrd Hc Header] as %resp %err ⟨Hlt, Hrd, Hres⟩
+    · iframe # Hlt Hrd Hc
+      isplitr
+      · iunfold reqPropOkM
+        try dsimp only
+        isplitl
+        rotate_left
+        · ipureintro; exact attrIdOk_of_kind _ rq (by rw [Hk]; intro hk; cases hk)
+        iexists (fun _ => iprop(True))
+        isplitl
+        · iunfold reqPropOk
+          iright; iright
+          isplitr
+          · ipureintro; exact ⟨Or.inr ⟨hlm, Hrk⟩, Hshape, HnzW, rfl⟩
+          iapply grantIdOwn_nonGrant ρ.kv rq (by rw [Hk]; intro hk; cases hk)
+        ipureintro; rfl
+      iexists _; iexact Header
+    (try wp_auto)
+    icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, -, Hok, -, -, -⟩ | ⟨%Hre, #HaE, -⟩)
+    · subst Herr
+      have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
+      subst Hrq
+      iunfold appliedOkM at Hok
+      icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, -, -, -, Hans⟩
+      have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseRevoke := by
+        rw [← Hk]; exact Hwire.2.2.1.trans rfl
+      iunfold revokeAnsM at Hans
+      rw [if_pos Hk']
+      have hlr' : (apply.withHeader rq hm).leaseRevoke = some id := rfl
+      iunfold apply.revokeAnswer at Hans
+      rw [hlr']
+      icases Hans with ⟨%r', %Hresp, Hans⟩
+      icases Hans with (⟨-, Hri⟩ | %Hne)
       rotate_left
-      · ipureintro; exact attrIdOk_of_kind _ rq (by rw [Hk]; intro hk; cases hk)
-      iexists (fun _ => iprop(True))
-      isplitl
-      · iunfold reqPropOk
-        iright; iright
-        isplitr
-        · ipureintro; exact ⟨Or.inr ⟨hlm, Hrk⟩, Hshape, HnzW, rfl⟩
-        iapply grantIdOwn_nonGrant ρ.kv rq (by rw [Hk]; intro hk; cases hk)
-      ipureintro; rfl
-    iexists _; iexact Header
-  (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, -, Hok, -, -, -⟩ | ⟨%Hre, #HaE, -⟩)
-  · subst Herr
-    have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
-    subst Hrq
-    iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, -, -, -, Hans⟩
-    have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseRevoke := by
-      rw [← Hk]; exact Hwire.2.2.1.trans rfl
-    iunfold revokeAnsM at Hans
-    rw [if_pos Hk']
-    have hlr' : (apply.withHeader rq hm).leaseRevoke = some id := rfl
-    iunfold apply.revokeAnswer at Hans
-    rw [hlr']
-    icases Hans with ⟨%r', %Hresp, Hans⟩
-    icases Hans with (⟨-, Hri⟩ | %Hne)
-    rotate_left
-    · exact absurd rfl Hne
-    subst Hresp
-    iunfold apply.revokeRespIs at Hri
-    icases Hri with ⟨%Hrn, %log, Hhdr⟩
-    iunfold apply.grantHdr at Hhdr
-    icases Hhdr with ⟨Hown, %hh, %rv, #Hh, #Hrv, #Hic, #Hcok, %Hrvl⟩
-    (try wp_auto)
-    wp_apply HEnd
-    (try wp_auto)
-    iapply HΦ
-    iframe Hlt Hrd
-    ileft
-    isplitr
-    · ipureintro
-      refine ⟨rfl, ?_⟩
-      exact Hrn
-    iunfold leaseRevokedResp
-    iexists hh, rv
-    iframe Hh Hrv Hown
-    isplitr
-    · ipureintro; intro h; subst h; simp at Hrvl; omega
-    iunfold srvRevLb
-    iexists log
-    iframe Hic Hcok
-    ipureintro; omega
-  · obtain ⟨rfl, Hne⟩ := Hre
-    (try wp_auto)
-    rcases err with ei | _
-    · (try wp_auto)
+      · exact absurd rfl Hne
+      subst Hresp
+      iunfold apply.revokeRespIs at Hri
+      icases Hri with ⟨%Hrn, %log, Hhdr⟩
+      iunfold apply.grantHdr at Hhdr
+      icases Hhdr with ⟨Hown, %hh, %rv, #Hh, #Hrv, #Hic, #Hcok, %Hrvl⟩
+      (try wp_auto)
       wp_apply HEnd
       (try wp_auto)
       iapply HΦ
       iframe Hlt Hrd
-      iright
-      iframe HaE
-      ipureintro; exact ⟨rfl, Hne⟩
-    · exact absurd rfl Hne
+      ileft
+      isplitr
+      · ipureintro
+        refine ⟨rfl, ?_⟩
+        exact Hrn
+      isplitl [Hown]
+      · iunfold leaseRevokedResp
+        iexists hh, rv
+        iframe Hh Hrv Hown
+        isplitr
+        · ipureintro; intro h; subst h; simp at Hrvl; omega
+        iunfold srvRevLb
+        iexists log
+        iframe Hic Hcok
+        ipureintro; omega
+      isplitr
+      · iexact Hae0
+      iunfold leaseRevokeResM; itrivial
+    · obtain ⟨rfl, Hne⟩ := Hre
+      (try wp_auto)
+      rcases err with ei | _
+      · (try wp_auto)
+        wp_apply HEnd
+        (try wp_auto)
+        iapply HΦ
+        iframe Hlt Hrd
+        iright
+        iframe HaE
+        ipureintro; exact ⟨rfl, Hne⟩
+      · exact absurd rfl Hne
+  · -- auth on (auth-lease S3b)
+    rw [hon] at hRR
+    -- (auth-lease S3b) the client's update, fired at the commit when granted
+    imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
+    imod Hcred with Hc
+    wp_apply hRR ctx1 _ «$a1_ptr» rq (revokeQhOn ρ.kv id γc Q) [] rfl
+        (apply.irrDepthOk_of_txnW_none rfl)
+        $$ [Hlt Hrd Hc Header Hperm] as %resp %err ⟨Hlt, Hrd, Hres⟩
+    · iframe # Hlt Hrd Hc
+      isplitl [Hperm]
+      · iapply leaseRevokePermit_reqPropOk ρ.raft ρ.kv _ _ id Q γc
+          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) ⟨hlm, Hrk⟩ $$ Hperm
+      iexists _; iexact Header
+    (try wp_auto)
+    icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, -, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, -⟩)
+    · subst Herr
+      have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
+      subst Hrq
+      iunfold appliedOkM at Hok
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hda, -, -, -, -, -, -, -, -, Hans⟩
+      have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseRevoke := by
+        rw [← Hk]; exact Hwire.2.2.1.trans rfl
+      obtain ⟨-, -, -, Hmo, -⟩ := Hstep0
+      -- (auth-lease S3b) a success is not the auth layer's refusal (whose answer is its error), so
+      -- the revocation was granted (`authTie`)
+      iunfold apply.dispatchAnswer at Hda
+      rw [Hk']
+      icases Hda with ⟨%r'', -, Hro⟩
+      ihave %Hne : ⌜o ≠ .rejected .auth⌝ $$ [Hro]
+      · cases o with
+        | applied _ _ => ipureintro; intro h; cases h
+        | rejected k =>
+          cases k
+          case auth =>
+            iunfold apply.revokeOutcomeIs at Hro
+            simp only [apply.rejErrIs]
+            icases Hro with ⟨-, %Hn, -⟩
+            exact absurd rfl Hn
+          all_goals (ipureintro; intro h; cases h)
+      have Hga := grantedAt_of_dispatched ρ.kv _ Lq x.log o skip (by rw [Hk']; rfl) Hne Hmo
+      iunfold revokeAnsM at Hans
+      rw [if_pos Hk']
+      have hlr' : (apply.withHeader rq hm).leaseRevoke = some id := rfl
+      iunfold apply.revokeAnswer at Hans
+      rw [hlr']
+      icases Hans with ⟨%r', %Hresp, Hans⟩
+      icases Hans with (⟨-, Hri⟩ | %Hne)
+      rotate_left
+      · exact absurd rfl Hne
+      subst Hresp
+      iunfold apply.revokeRespIs at Hri
+      icases Hri with ⟨%Hrn, %log, Hhdr⟩
+      iunfold apply.grantHdr at Hhdr
+      icases Hhdr with ⟨Hown, %hh, %rv, #Hh, #Hrv, #Hic, #Hcok, %Hrvl⟩
+      wp_auto_lc 1
+      -- the client's result
+      iunfold revokeQhOn at HQq
+      iunfold grantedRes at HQq
+      icases HQq with (⟨-, #HQr⟩ | %Hng)
+      rotate_left
+      · exact absurd Hga Hng
+      imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
+      (try wp_auto)
+      wp_apply HEnd
+      (try wp_auto)
+      iapply HΦ
+      iframe Hlt Hrd
+      ileft
+      isplitr
+      · ipureintro
+        refine ⟨rfl, ?_⟩
+        exact Hrn
+      isplitl [Hown]
+      · iunfold leaseRevokedResp
+        iexists hh, rv
+        iframe Hh Hrv Hown
+        isplitr
+        · ipureintro; intro h; subst h; simp at Hrvl; omega
+        iunfold srvRevLb
+        iexists log
+        iframe Hic Hcok
+        ipureintro; omega
+      isplitr
+      · iexact Hae0
+      iunfold leaseRevokeResM
+      iexists hm, Lq
+      iframe HpAf HQ
+      isplitr
+      · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+      ipureintro; exact Hga
+    · obtain ⟨rfl, Hne⟩ := Hre
+      (try wp_auto)
+      rcases err with ei | _
+      · (try wp_auto)
+        wp_apply HEnd
+        (try wp_auto)
+        iapply HΦ
+        iframe Hlt Hrd
+        iright
+        iframe HaE
+        ipureintro; exact ⟨rfl, Hne⟩
+      · exact absurd rfl Hne
 
 end proof
 

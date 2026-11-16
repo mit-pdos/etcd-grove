@@ -4,8 +4,8 @@ E3k, 2026-10-27). Lean-first (no Rocq counterpart).
 
 `uberKVL_of_base`: the uber-applier's base applier's auth layer as `NewUberApplier` leaves it
 (`uberBaseAuth`, `uberIs`'s `baseAuth`), its store's checks at the latest state (`isAuthStoreL`, the real store's from
-its invariant: `isAuthStoreL_of_authInv`) and its lessor finding no lease (`lookupNil`) give its
-latest-state KV triples (`uberKVL`, at the inner chain `quota` over `backend`), through the auth
+its invariant: `isAuthStoreL_of_authInv`) give its latest-state KV triples (auth-lease S2: until then
+also its lessor finding no lease, `lookupNil`) (`uberKVL`, at the inner chain `quota` over `backend`), through the auth
 applier's (`applierKVL_auth`, E2y).
 -/
 module
@@ -39,11 +39,12 @@ theorem apply.uberKVL_of_base
     (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
     (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
     (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (hRev : apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG))
     (ua : GoInterface) (E : apply.AEnv GF) (au le : GoInterface) (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberBaseAuth ua E au le ∗ apply.isAuthStoreL au E.RD E.authMode L ∗ apply.lookupNil le ⊢
+      apply.uberBaseAuth ua E au le ∗ apply.isAuthStoreL au E.RD E.authMode L ⊢
       apply.uberKVL ua E (.quota .backend) L := by
-  iintro ⟨#Hpkg, #Hb, #HsL, #Hnil⟩
+  iintro ⟨#Hpkg, #Hb, #HsL⟩
   iunfold apply.uberBaseAuth at Hb
   icases Hb with ⟨%p, %opts, %Hpo, #Hu⟩
   obtain ⟨Hua, Hau, Hle⟩ := Hpo
@@ -58,13 +59,9 @@ theorem apply.uberKVL_of_base
   · iunfold apply.authIsL
     iexists opts.AuthStore'
     iframe Has HsL
-  ihave #Hln : apply.lessorNil pa $$ []
-  · iunfold apply.lessorNil
-    iexists opts.Lessor'
-    iframe Hle Hnil
-  ihave #Hkvl := apply.applierKVL_auth hRange hDel hPut hTxn E (.quota .backend) inner pa L $$
-    [Hpkg Hai HaL Hln Hin]
-  · iframe Hpkg Hai HaL Hln Hin
+  ihave #Hkvl := apply.applierKVL_auth hRange hDel hPut hTxn hRev E (.quota .backend) inner pa L $$
+    [Hpkg Hai HaL Hin]
+  · iframe Hpkg Hai HaL Hin
   iunfold apply.uberKVL
   iexists p, opts
   isplitr

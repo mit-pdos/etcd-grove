@@ -43,7 +43,7 @@ abbrev New.spec : Prop :=
       nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
       -- (2026-11-01, durability layer 4) its durable state, at its start
       raftState γr.cluster id RaftState.init ∗
-      nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
+      nodeConfig n γr.cluster kvRaftN ⟨0, (kvMembership γr)⟩ ∗
       -- (2026-10-30) the node runs: the store never stops it
       nodeRunning n γr.cluster kvRaftN 1 ∗
       kvCluster γr ∗

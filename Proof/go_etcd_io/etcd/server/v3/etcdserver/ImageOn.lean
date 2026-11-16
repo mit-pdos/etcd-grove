@@ -81,18 +81,26 @@ theorem authBucketsAt_after (r : GMap GoString backend.BktData) :
   · intro n; simp [auth.bump, auth.bootState]
   · intro n v h; simp at h
 
+/-- **`D` holds the rest model's buckets but the auth ones, with the records of the leases `T`**
+(auth-lease S3a, Draft rev 5 §5: the auth-on image carries the leases, as the off leased image
+`bkRestAtL` does): at some TTLs `f` at least the table's requests. -/
+def bkRestAtNAL (T : LeaseTable) (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
+    (D : backend.Data) : Prop :=
+  ∃ f : w64 → w64, leaseTTLsGeReq T f ∧ ∀ n ∈ restBuckets, ¬ auth.authBkts n →
+    D.lookup n = (apply.restLeasesWith f T.ids (restModel c0 bootLog L)).bk.lookup n
+
 /-- **The mode-`on` image certificate's server parts** (pure; R4, 2026-11-07, `imageRestAt`'s
 mode-on twin: `lean`'s `imageAtOn` without its `Key`-bucket/compaction-records and `IdxWf`
 conjuncts, which mvcc's `mvccImage` holds): the meta keys, the rest buckets but the auth ones the
-rest model's at the raft log `L` (an auth-on log grants no lease, `kvTableOf_plainOn`, so the lease
-bucket is the model's, empty), and the auth buckets the auth state after the server's entries `A`
+rest model's at the raft log `L` with (auth-lease S3a, Draft rev 5 §5) the records of the mode-on
+model's leases at `L` (`bkRestAtNAL`; until then an auth-on log granted no lease and the lease bucket
+was the model's, empty), and the auth buckets the auth state after the server's entries `A`
 (`srvAuthAtLog`). -/
 def imageRestAtOn (γk : KVNames) (st₀ : auth.AuthState) (bootLog : List EntryM) (i : w64)
     (L A : List EntryModel) (D : backend.Data) : Prop :=
   backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-    (∀ n ∈ restBuckets, ¬ auth.authBkts n →
-      D.lookup n = bkRestOf γk.c0 bootLog L n) ∧
+    bkRestAtNAL (kvLeasesOn γk st₀ L) γk.c0 bootLog L D ∧
     authBucketsAt (srvAuthAtLog γk st₀ A) D
 
 /-- **`dbImage` in the mode `on`** (persistent): of a committed prefix `A` of the server's log

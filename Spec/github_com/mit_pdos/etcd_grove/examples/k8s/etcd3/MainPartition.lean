@@ -1,20 +1,30 @@
 /- Lean-first (no Rocq counterpart).
 
-`MainPartition(clients, ops, sched)` (`examples/k8s/etcd3/k8setcd3.go`; step 2 of "k8s etcd3 over
-cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-07): `MainCluster` under the partition schedule
-`sched`. Once the store is made, `cluster3.Partitioner` runs the schedule on a goroutine of its
-own (peer cuts and mends, a member's bridge blackholed or unblackholed, its client connections
-dropped) while `Check`'s clients run.
+`MainPartition(k, clients, ops, sched)` (`examples/k8s/etcd3/k8setcd3.go`; stage A of
+`notes/k8s-7f6-scope.md`, 2026-11-16: `k` members, the user's decision (b)): `MainCluster` with
+`cluster3.Partitioner` running the schedule (peer cuts and mends, a bridge blackholed or
+unblackholed, its connections dropped; steps name members by index, out-of-range ones do nothing)
+while `Check`'s clients run, for every schedule. `MainCluster`'s: The cluster and its client (`startCluster(k)`: the members on
+`etcdstart.Members`/`StartMembers`, each behind a bridge, a kubernetes client of the `k` bridges
+configured as etcd's clients are in practice: `etcdstart`'s dial and keepalive timeouts, the default
+retries), the seed keys (`seed`), the Kubernetes etcd3 store over the client (`etcd3.New`, as
+`Main`'s) and `Check(s, st0, clients, ops, 0)`, with a panic if porcupine reports the history
+`Illegal`. `k = 0` returns `Unknown`.
 
-**The triple:** `MainCluster.spec`'s, with the schedule read-only (`sched ↦*□ steps`, for *every*
-list of steps, as the k8s compactor's `MainPartition.spec`): `MainPartition(clients, ops, sched)`
-does not panic and returns `Ok` (the check ran: the history is linearizable) or `Unknown` (a step
-before the check failed).
+**The triple:** from the package's `isPkgInit`, the members' start bundles (each member's WAL
+directory fresh, its peer and client addresses free, the peer's HTTP protocol unregistered), the
+bridges' addresses free, the schedule (`sched ↦*□ steps`), the main thread's token and the
+cluster's named premises (`k8s_etcd3N.premises`), `MainPartition(k, clients, ops, sched)` does not
+panic and returns `Ok` (the check
+ran: the history is linearizable) or `Unknown` (a step before the check failed). The pure premises
+are `Main`'s (`Main.spec`), with `1 ≤ k ≤ 1000`, the ids in the members' order and the cluster's
+boot facts (`k8s_etcd3N.BootFacts`, putgetN's) for the one member's. The bounds the adequacy theorem
+fixes (`threadBound`, `receiptBound`) are instance binders (`ThreadBoundLe`, `ReceiptBoundLe`).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Cluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ClusterN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
@@ -42,13 +52,14 @@ abbrev MainPartition.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   -- (per-type stage B3) the levels of a thread token the members' gRPC runs use
   srvLevels (GF := GF) →
-  cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot →
+  1 ≤ k → k ≤ 1000 → ids.length = k →
+  k8s_etcd3N.BootFacts ids ps ctxs boot →
   N + 7 + bootWB ≤ backend.wbInit →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
@@ -57,10 +68,12 @@ abbrev MainPartition.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      cluster3.startRes (GF := GF) clusterCfg ∗ sched ↦*□ steps ∗ threadTok ∗
-      cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
-      (Val #clients)) (Val #ops)) (Val #sched))
+      ([∗list] m ∈ k8s_etcd3N.startOf (k8s_etcd3N.members k),
+        etcdstart.memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ∗
+      ([∗list] b ∈ k8s_etcd3N.bridges k, netAddrFree (GF := GF) b) ∗
+      sched ↦*□ steps ∗ threadTok ∗ k8s_etcd3N.premises k N ids ps ctxs boot }}
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
+      (Val #(W64 k))) (Val #clients)) (Val #ops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}
 
 end spec

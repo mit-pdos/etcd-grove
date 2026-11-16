@@ -412,7 +412,7 @@ theorem status.wp_Error :
 
 theorem WatchResponse.wp_Err :
     WatchResponse.Err.spec (GF := GF) (hG := hG) :=
-  WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
+  WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error rpctypes.EtcdError.wp_Error
 
 theorem ringBuffer.wp_PeekOldest :
     ringBuffer.PeekOldest.spec (GF := GF) (hG := hG) :=

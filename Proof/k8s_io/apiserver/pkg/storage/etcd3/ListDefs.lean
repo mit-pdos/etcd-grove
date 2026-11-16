@@ -334,6 +334,27 @@ theorem kClientErr_unkErr (c : StoreCfg GF Obj) (err : GoInterface) :
   iintro ⟨%h, #Hs, #Hc⟩
   iapply (unkErr_client c err h.1 h.2) $$ Hc Hs
 
+/-- **`listErr` with the status's `Failure`** (k8s 7f-5a-P, E5: `interpretListError`'s post; the
+watcher's `sendError` needs an `APIStatus` error's status to be a `Failure`). The first arm is the
+client's error itself (`kClientErr`, 7f-5a-P step 5: `kErrOk` follows from it; `unkErr` by
+`kClientErr_unkErr`). -/
+def listErrF (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
+  iprop(kClientErr err ∨ ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status,
+    apierrors.apiErrAt err (.status st []) ∗
+    ⌜st.Reason' = go!"Expired" ∧ st.Code' = W32 410 ∧ st.Status' = go!"Failure"⌝)
+
+instance listErrF_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
+    Persistent (listErrF c err) := by
+  unfold listErrF; infer_instance
+
+theorem listErrF_listErr (c : StoreCfg GF Obj) (err : GoInterface) :
+    listErrF c err ⊢ listErr c err := by
+  unfold listErrF listErr
+  iintro (#H | ⟨%st, #H, %h⟩)
+  · ileft; iapply kClientErr_unkErr $$ H
+  · iright; iexists st; isplitl; · iexact H
+    ipureintro; exact ⟨h.1, h.2.1⟩
+
 /-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
 by its description (`errDesc`, D29), a future revision only if the state `Q` fired at (for some
 revision argument `R`, R1) is below `rev` (`rangeErrSound`'s future half). -/

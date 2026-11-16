@@ -180,7 +180,8 @@ theorem store.Create.wp_proof
           iintro HAU
           unfold kvOpAu1
           iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial
-            (fun σ hw => keysIn_optPut _ _ _ _ _ hpfx σ hw.1)) $$ HAU
+            (fun σ hw => keysIn_optPut _ _ _ _ _ hpfx σ hw.1)
+            (fun σ _ => kvOne_optPut _ _ _ _ σ)) $$ HAU
       ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         (m := go!"OptimisticPut")]

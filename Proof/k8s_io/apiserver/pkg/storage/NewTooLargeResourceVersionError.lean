@@ -67,18 +67,22 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
   imodintro
   iapply HΦ
   unfold apierrors.tooLargeErrIs apierrors.apiErrAt apierrors.statusDetailsAt
-  iexists st, _
-  isplitl
-  · iexists p
-    isplitr
-    · ipureintro; rfl
+  isplitr
+  · iexists st, _
+    isplitl
+    · iexists p
+      isplitr
+      · ipureintro; rfl
+      iframe Hp
+      iright
+      iexists _
+      iframe Hd
+      iexact Hcsl
+    · ipureintro
+      exact ⟨hst.2.1, by simp⟩
+  · iexists p, st
     iframe Hp
-    iright
-    iexists _
-    iframe Hd
-    iexact Hcsl
-  · ipureintro
-    exact ⟨hst.2.1, by simp⟩
+    ipureintro; exact ⟨rfl, hst.1⟩
 
 end proof
 

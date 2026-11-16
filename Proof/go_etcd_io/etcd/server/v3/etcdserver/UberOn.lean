@@ -6,16 +6,14 @@ Lean-first (no Rocq counterpart).
 The construction leaves, with auth on, the uber-applier's base applier's auth layer at the
 server's store and lessor (`srvUberBase`, `srvUberRowM true`, from `NewUberApplier`'s post).
 `srv_uberKVL` gives from it the apply thread's latest-state KV triples (`apply.uberKVL`, what
-`srvApplyKVOn` and `apply.Apply.kvSpecL` take), over two facts of the server's fields:
-
-- `srvStoreLatest s E L`: its auth store's checks at the latest state for the family `L`
-  (`isAuthStoreL`); the real store meets it from its invariant (`apply.isAuthStoreL_of_authInv`)
-  when the environment's reader resource is the store's (`auth.authRd`), its family
-  `auth.latestRes`; the server's rows do not yet carry the store's invariant, so it is a premise;
-- `srvLessorNil s`: its lessor finds no lease (`apply.lookupNil`): the server's lessor is the real
-  one (`lease.NewLessor`), whose lookups find only leases granted under its grant guard, which the
-  server makes `False` (`srvGrantGuard`, D45), so `NewServer`'s post gives it (the auth plan's
-  E3zb, 2026-10-28: `lookupNil_of_guard`; until then a named premise).
+`srvApplyKVOn` and `apply.Apply.kvSpecL` take), over one fact of the server's fields,
+`srvStoreLatest s E L`: its auth store's checks at the latest state for the family `L`
+(`isAuthStoreL`); the real store meets it from its invariant (`apply.isAuthStoreL_of_authInv`)
+when the environment's reader resource is the store's (`auth.authRd`), its family
+`auth.latestRes`; the server's rows do not yet carry the store's invariant, so it is a premise.
+(Until auth-lease S3c, 2026-11-15, also `srvLessorNil s`, the lessor finding no lease, from a grant
+guard `False` at auth on; the KV triples stopped reading it at S2, and S3c deleted it with
+`srvLessorNilM` and `lookupNil_of_guard`.)
 
 The admin side (`srv_uberAuthStepsL_on`, E3n): the built part's store fact and the apply thread's
 auth row (`srvAuthApplyResB`, whose admin steps are at the environment's hook since E3n) give the
@@ -55,42 +53,6 @@ instance srvStoreLatest_persistent (s : Loc) (E : apply.AEnv GF)
     (L : List auth.AuthState → IProp GF) : Persistent (srvStoreLatest s E L) := by
   unfold srvStoreLatest; infer_instance
 
-/-- **The lessor finds no lease, in the mode `on` only** (the auth-mode merge's step 1,
-2026-10-29): `True` off. -/
-def srvLessorNilM (on : Bool) (s : Loc) : IProp GF :=
-  match on with
-  | false => iprop(True)
-  | true => srvLessorNil s
-
-instance srvLessorNilM_persistent (on : Bool) (s : Loc) : Persistent (srvLessorNilM (GF := GF) on s) := by
-  cases on <;> unfold srvLessorNilM <;> infer_instance
-
-theorem srvLessorNilM_false (s : Loc) : srvLessorNilM (GF := GF) false s = iprop(True) := rfl
-
-theorem srvLessorNilM_true (s : Loc) : srvLessorNilM (GF := GF) true s = srvLessorNil s := rfl
-
-/-- **The lessor finds no lease when its grant guard is `False`** (the auth plan's E3zb,
-2026-10-28): `NewLessor`'s `Lookup` clause at the guard `srvGrantGuard lg on` (D45; the lease-grant
-plan's D1: `False` when the cluster grants no lease or auth is on) is `lookupNil`'s. -/
-theorem lookupNil_of_guard (lp : Loc) (lg on : Bool) (h : lg = false ∨ on = true) :
-    □ (∀ id : w64,
-        {{ True }} (App (Val (lp @!! go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ srvGrantGuard lg on id) }}) ⊢
-      apply.lookupNil (GF := GF) (lease.lessorIface lp) := by
-  iintro #HL
-  iunfold apply.lookupNil
-  iexists (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty) #lp)
-  isplitr
-  · ipureintro; rfl
-  iintro !> %id %Φ !> - HΦ
-  ispecialize HL $$ %id
-  iapply HL
-  · itrivial
-  iintro !> %l (%Hn | ⟨-, #Hg⟩)
-  · iapply HΦ; ipureintro; exact Hn
-  · iexfalso; iapply srvGrantGuard_false lg on h id $$ Hg
-
 /-- **The weaker `Lookup` clause** (`isApplyLessor`'s, `lessorLookupOk`'s): a non-nil result is the
 lease of its id. -/
 theorem lookupOk_of_guard (lp : Loc) (GA : w64 → IProp GF) :
@@ -127,22 +89,20 @@ theorem srv_uberKVL
     (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
     (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
     (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (hRev : apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (L : List auth.AuthState → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvStoreLatest s E L ∗ srvLessorNil s ⊢
+      srvUberBase s ua E ∗ srvStoreLatest s E L ⊢
       apply.uberKVL ua E (.quota .backend) L := by
-  iintro ⟨#Hpkg, #Hb, #Hst, #Hln⟩
+  iintro ⟨#Hpkg, #Hb, #Hst⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -⟩
   iunfold srvStoreLatest at Hst
   icases Hst with ⟨%au', #Hauf', #HL⟩
-  iunfold srvLessorNil at Hln
-  icases Hln with ⟨%le', #Hlef', #Hnil⟩
   icombine Hauf Hauf' gives %Ha
-  icombine Hlef Hlef' gives %Hl
-  subst Ha Hl
-  iapply apply.uberKVL_of_base hRange hDel hPut hTxn ua E au le L
-  iframe Hpkg Hub HL Hnil
+  subst Ha
+  iapply apply.uberKVL_of_base hRange hDel hPut hTxn hRev ua E au le L
+  iframe Hpkg Hub HL
 
 /-- **The server's uber-applier's KV triples at the latest state, with auth on** (the auth plan's
 E3l): `srv_uberKVL` with `srvStoreLatest` discharged by the built part's store fact
@@ -154,13 +114,14 @@ theorem srv_uberKVL_on
     (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
     (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
     (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (hRev : apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames)
     (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvLessorNil s ⊢
+      srvUberBase s ua E ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         apply.uberKVL ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) := by
-  iintro ⟨#Hpkg, #Hb, #Hln⟩
+  iintro ⟨#Hpkg, #Hb⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
@@ -172,8 +133,8 @@ theorem srv_uberKVL_on
   ihave #HLc := HL $$ %γc
   iexists stl
   iframe Hauf
-  iapply srv_uberKVL hRange hDel hPut hTxn s ua E (auth.latestResC stl (.on γa) γc)
-  iframe Hpkg Hln
+  iapply srv_uberKVL hRange hDel hPut hTxn hRev s ua E (auth.latestResC stl (.on γa) γc)
+  iframe Hpkg
   isplitr
   · iunfold srvUberBase
     iexists (auth.authIface stl), le

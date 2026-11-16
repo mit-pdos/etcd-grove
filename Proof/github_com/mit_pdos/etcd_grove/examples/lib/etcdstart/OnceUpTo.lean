@@ -84,7 +84,7 @@ theorem srvOnce_of_plan (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst
   iunfold kvReadAu at Hau
   iunfold kvAu at Hau
   imod (srvKVFacts_fire V γ hst L (fun σ => iprop(⌜Pw σ.changes⌝))) $$ [Hk HL Hau]
-    with ⟨%C, #HQ, %HC⟩
+    with ⟨%C, %lt, #HQ, %HC⟩
   · iframe Hk Hau
     rw [Ht.1]
     iexact HL

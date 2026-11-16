@@ -36,7 +36,8 @@ noncomputable def Event.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Event.ty
 
-axiom PUT [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def PUT [GooseExts] [GoGlobalContext] : val :=
+  #(W32 0)
 
 axiom DELETE [GooseExts] [GoGlobalContext] : val
 
@@ -95,6 +96,123 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def file_kv_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_init"
+
+/-- IsCreate returns true if the event tells that the key is newly created.
+
+    go: extension.go:18:17 -/
+noncomputable def Event.IsCreate.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Event.ty)))) (Var "e"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals Event_EventType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Event.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "e"))) (Val #())) (Val PUT))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType KeyValue.ty) go!"GetCreateRevision"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Event.ty) go!"GetKv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "e"))) (Val #()))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType KeyValue.ty) go!"GetModRevision"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Event.ty) go!"GetKv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "e"))) (Val #()))) (Val #())))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: kv.pb.go:130:20 -/
+noncomputable def KeyValue.GetCreateRevision.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType KeyValue.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType KeyValue.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType KeyValue.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
+
+/-- go: kv.pb.go:137:20 -/
+noncomputable def KeyValue.GetModRevision.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType KeyValue.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType KeyValue.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType KeyValue.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
+
+/-- go: kv.pb.go:213:17 -/
+noncomputable def Event.GetType.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Event_EventType.ty))) (App (Val (GoInstruction (GoZeroVal Event_EventType.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Event.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val Event_PUT)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Event_EventType.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Event.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Event.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Event_EventType.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad Event_EventType.ty))) (Var "$res0"))))))
+
+/-- go: kv.pb.go:220:17 -/
+noncomputable def Event.GetKv.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType KeyValue.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType KeyValue.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Event.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType KeyValue.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType KeyValue.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Event.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Event.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType KeyValue.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KeyValue.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.mvccpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
@@ -202,6 +320,8 @@ class KeyValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_sizeCache : ∀ (x : KeyValue) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : KeyValue)))
   method_set : go.MethodSetIs KeyValue.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyValue.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCreateRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetModRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetVersion", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_GetCreateRevision_unfold : MethodUnfold (go.GoType.PointerType KeyValue.ty) go!"GetCreateRevision" KeyValue.GetCreateRevision.impl
+  ptr_GetModRevision_unfold : MethodUnfold (go.GoType.PointerType KeyValue.ty) go!"GetModRevision" KeyValue.GetModRevision.impl
 
 attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.underlying
@@ -225,6 +345,8 @@ attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.set_sizeCache
   KeyValue.TypeAssumptions.method_set
   KeyValue.TypeAssumptions.ptr_method_set
+  KeyValue.TypeAssumptions.ptr_GetCreateRevision_unfold
+  KeyValue.TypeAssumptions.ptr_GetModRevision_unfold
 
 structure Event [GooseExts] where
   mk ::
@@ -273,6 +395,9 @@ class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_sizeCache : ∀ (x : Event) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Event)))
   method_set : go.MethodSetIs Event.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKv", (some (go.signature.Signature [] false [(go.GoType.PointerType KeyValue.ty)]))), (go!"GetPrevKv", (some (go.signature.Signature [] false [(go.GoType.PointerType KeyValue.ty)]))), (go!"GetType", (some (go.signature.Signature [] false [Event_EventType.ty]))), (go!"IsCreate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsModify", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_GetKv_unfold : MethodUnfold (go.GoType.PointerType Event.ty) go!"GetKv" Event.GetKv.impl
+  ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Event.ty) go!"GetType" Event.GetType.impl
+  ptr_IsCreate_unfold : MethodUnfold (go.GoType.PointerType Event.ty) go!"IsCreate" Event.IsCreate.impl
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
@@ -290,6 +415,9 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.set_sizeCache
   Event.TypeAssumptions.method_set
   Event.TypeAssumptions.ptr_method_set
+  Event.TypeAssumptions.ptr_GetKv_unfold
+  Event.TypeAssumptions.ptr_GetType_unfold
+  Event.TypeAssumptions.ptr_IsCreate_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Event_EventType_instance : Event_EventType.TypeAssumptions

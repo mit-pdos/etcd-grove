@@ -61,8 +61,17 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the multi-member lease example (2026-11-06, notes/lease-mono3-plan.md)
          'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
+         # the clusterN Scope (2026-11-15): putget3 with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN',
+         # leaseN (2026-11-16, notes/leaseN-plan.md): the lease examples with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN',
+         # txnlinfaultsN (2026-11-15, notes/txnlinfaultsN-plan.md): partition with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
          'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
+         # restartN (2026-11-15, notes/restartN-plan.md): restart3 with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.restartN',
          # restart S7 (2026-11-14, notes/restart-s7-scope.md): one member stopped and restarted
          'github_com.mit_pdos.etcd_grove.examples.etcd.restart1',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter',
@@ -86,6 +95,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
          # the auth3 Scope's A1 (2026-11-14): authkv with three members
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
+         # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.authN',
          # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
@@ -540,6 +551,29 @@ literal).''',
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
+# (v3, 2026-11-14) the part `NetTcp/`'s `net` (project nettcp, the TCP extension's): `errTimeout`
+# and `ErrClosed` translated, `errClosed` a trusted model that allocates its variable
+# (`NetTcp/TrustedCode/net.lean`); the rest trusted initializers that do nothing.
+NT_SPECIAL = {}
+NT_SPECIAL['net'] = dict(
+    doc='''Its fact (`Base.lean`'s `isInit`): `ErrClosed` and `errClosed` hold `poll.ErrNetClosing`,
+`errTimeout` a `*timeoutError`. Its initializer initializes its imports, allocates `errTimeout` and
+`ErrClosed` and runs their translated initializers (`&timeoutError{}`, `errClosed`), runs the
+trusted model of `errClosed`'s (which allocates it and stores `poll.ErrNetClosing`'s value) and the
+trusted initializers of its other variables (models in `TrustedCode/` that do nothing).''',
+    alloc_types=_ALLOC_ANY,
+    before={'errTimeout': ['(try wp_auto)', 'wp_alloc_anon', 'wp_auto']},
+    trusted={'errClosed': ['wp_call',
+                           'rw [show (go!"net.errClosed" : GoString) = errClosed by rfl]',
+                           'wp_apply wp_GlobalAlloc (V := _) errClosed _ as HerrClosed',
+                           '(try wp_auto)'],
+             },
+    finish=['ipersist HerrTimeout', 'ipersist HerrClosed', 'ipersist HErrClosed', 'iframe Hown',
+            'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'is_pkg_init_finish', 'unfold isInit closedErr', 'imodintro',
+            'iframe HErrClosed HerrClosed', 'iexists _', 'iexact HerrTimeout'],
+)
+
 # (2026-10-26) `ValidString` with its body: the tables it reads are translated
 SPECIAL['unicode.utf8'] = dict(
     doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
@@ -912,7 +946,7 @@ SPECIAL[_K3] = dict(
 the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
 importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
-`defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
+`defaultWatcherMaxLimit`, kept read-only in the fact) and its translated `init` functions: `compact.go`'s makes
 `endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
@@ -942,7 +976,8 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
              'Proof.strconv.ParseBool'],
     vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
     table_vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
-    finish=FIN_PRE[:6] + ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iexact Hreg'],
+    finish=['ipersist HdefaultWatcherMaxLimit'] + FIN_PRE[:6] +
+        ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iframe Hreg', 'iexact HdefaultWatcherMaxLimit'],
     alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
                  'typeToMessage': 'Loc', 'errTooMany': 'GoInterface', 'endpointsMap': 'Loc',
                  'endpointsMapMu': '_root_.Perennial.sync.Mutex'},
@@ -2617,6 +2652,10 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.restart1':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.restart':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.restartN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
@@ -2633,6 +2672,14 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':
@@ -2645,6 +2692,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.auth3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
@@ -2988,6 +3037,83 @@ def tla_outs():
     return [(f'{TLA_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in outs]
 
 
+# The part `NetTcp/` (the TCP extension's `net` and the programs over it, `examples/net/`; project
+# nettcp): `net` is a Go path the main tree translates too (names only), so the part's packages'
+# initializers are generated as `LinuxFs/`'s, from the part's translation and instances, with the
+# imports of the part's modules prefixed, and a `PkgInitExt` without raft.
+NT_ROOT = 'NetTcp'
+NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
+    [f'github_com.mit_pdos.etcd_grove.examples.net.{p}' for p in
+     ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']]
+# Each example's nodes, a command each (`examples/net/<ex>/cmd/<node>`): the programs.
+NT_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
+            'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
+            'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
+            'shutdown': ['node']}
+NT_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
+            for ex, ns in NT_NODES.items() for n in ns]
+# The part's programs whose adequacy theorem needs the package table of their import closure (as
+# `PROGRAMS`): the root package and the table's file under `NT_ROOT`.
+NT_PROGRAMS = {f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}':
+               f'Proof/github_com/mit_pdos/etcd_grove/examples/net/{ex}/cmd/{n}/PkgTable.lean'
+               for ex, ns in NT_NODES.items() for n in ns}
+
+
+# The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
+# translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
+NT_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
+
+
+def nt_prefix(txt, made=()):
+    """`txt` with its imports of the part's modules (those with a file under `NT_ROOT`, or among the
+    paths `made`, generated in the same run) prefixed."""
+    def imp(m):
+        x = m.group(2)
+        f = f'{NT_ROOT}/{x.replace(".", "/")}.lean'
+        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
+            x = f'{NT_ROOT}.{x}'
+        return m.group(1) + x
+    return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
+
+
+def nt_inits(ext_txt):
+    """The part's `Init.lean` files and `PkgInitExt.lean`."""
+    global inv, inst
+    saved = inv, inst
+    outs = []
+    try:
+        inv = inventory(f'{NT_ROOT}/Code')
+        inst = instances(f'{NT_ROOT}/Proof/')
+        # (v3, 2026-11-14) the main tree's `os` and the packages it imports, which `net` imports
+        # (`etc/goose.py`'s nettcp lean roots): their translations and instances are the main tree's
+        for p in NT_MAIN:
+            inv[p] = saved[0][p]
+            inst[p] = saved[1][p]
+        # their `Init.lean` copied into the part, over the part's `PkgInitExt` (the main tree's
+        # imports raft's translation, and declares the same names)
+        nt_main = [(f'{NT_ROOT}/{path}', txt) for path, txt in
+                   (gen(p, SPECIAL.get(p)) for p in NT_MAIN)]
+        made = {path for path, _ in nt_main}
+        outs += [(path, nt_prefix(txt, made)) for path, txt in nt_main]
+        for p in NT_PKGS:
+            if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
+                path, txt = gen(p, NT_SPECIAL.get(p, SPECIAL.get(p)))
+                outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
+        made = {path for path, _ in outs}
+        for p, path in NT_PROGRAMS.items():
+            path, txt = gen_table(p, path)
+            outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
+    finally:
+        inv, inst = saved
+    drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
+    ext = '\n'.join(l for l in ext_txt.split('\n') if not any(d in l for d in drop))
+    i = ext.index('\nmodule\n') + 1
+    note = (f'-- The copy for the part `{NT_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
+            f'-- the same, without raft, protobuf and the B-tree (which the part does not import).\n')
+    outs.append((f'{NT_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
+    return outs
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -3001,6 +3127,7 @@ def main(argv):
         outs += [dag_closures(), dag_init(),
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
+        outs += nt_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

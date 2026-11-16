@@ -49,18 +49,20 @@ theorem watchGRPCStream.addSubstream.wp_proof
     wp_bind (App (Val #(functions _root_.Perennial.errors.New [])) (Val #rs))
     iapply HeN
     inext
-    iintro %e1 %He1 #Hs1
+    iintro %e1 %He1 #Hs1c
+    ihave %Hp1 := closeErrOk_pure _ $$ Hs1c
+    ihave #Hs1 := closeErrOk_status _ $$ Hs1c
     (try wp_auto)
     ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
     · iPkgInit
-    wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, -⟩
+    wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, %Hc2, -, -, %Hq2⟩
     · ipureintro; exact He1.1
     (try wp_auto)
     wp_apply wp_sspsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
     (try wp_auto)
     iapply HΦ
     iframe
-    iexact Hs2
+    iapply (closeErrOk_intro _ ⟨fun _ => Hc2 He1.2, Hq2 Hp1.2⟩) $$ Hs2
   wp_if_destruct
   · rw [ite_eq_right (by rw [decide_eq_true_iff]; unfold addFails at *; simp_all)]
     (try wp_auto)
@@ -81,18 +83,20 @@ theorem watchGRPCStream.addSubstream.wp_proof
     wp_bind (App (Val #(functions _root_.Perennial.errors.New [])) (Val #rs))
     iapply HeN
     inext
-    iintro %e1 %He1 #Hs1
+    iintro %e1 %He1 #Hs1c
+    ihave %Hp1 := closeErrOk_pure _ $$ Hs1c
+    ihave #Hs1 := closeErrOk_status _ $$ Hs1c
     (try wp_auto)
     ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
     · iPkgInit
-    wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, -⟩
+    wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, %Hc2, -, -, %Hq2⟩
     · ipureintro; exact He1.1
     (try wp_auto)
     wp_apply wp_sspsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
     (try wp_auto)
     iapply HΦ
     iframe
-    iexact Hs2
+    iapply (closeErrOk_intro _ ⟨fun _ => Hc2 He1.2, Hq2 Hp1.2⟩) $$ Hs2
   · simp only [Bool.not_true]
     rw [ite_eq_right (by rw [decide_eq_true_iff]; unfold addFails at *; simp_all)]
     (try wp_auto)

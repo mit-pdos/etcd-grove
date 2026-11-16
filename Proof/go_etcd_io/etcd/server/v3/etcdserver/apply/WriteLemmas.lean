@@ -62,6 +62,31 @@ theorem kvOwn_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : In
   · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
   iframe Hll Hrd
 
+/-- The thread's KV resources at the live set `L`, from the split's pieces (auth-lease S3a). -/
+theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) (L : List w64) :
+    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
+      txn.leasesKnown L (mvcc.stateAfter log) ∗
+      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗ ltHalf E L ∗
+      E.RD ⊢ kvOwnAt E log L := by
+  iintro ⟨Hw, Htie, Hbk, Hhk, Hk, Hu, Hlt, Hrd⟩
+  iunfold kvOwnAt
+  isplitl [Hw]
+  · iexists cr; iexact Hw
+  isplitl [Hbk Hhk Htie]
+  · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
+  iframe Hk Hu Hlt Hrd
+
+/-- **Two writer halves at different logs are impossible** (each holds a half of `γs.st`). -/
+theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
+    srvApi.wSt (GF := GF) γs l c ∗ srvApi.wSt γs l' c' ⊢ False := by
+  unfold srvApi.wSt
+  iintro ⟨⟨Hs, -⟩, ⟨Hs', -⟩⟩
+  icombine Hs Hs' gives %H
+  exfalso
+  have := H.2
+  simp only [Prod.mk.injEq] at this
+  exact h this.1
+
 /-- **`mPostW` at the backend**, from the split's pieces, the caller's outcome and the reader
 token back. -/
 theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Post : IProp GF)
@@ -133,6 +158,121 @@ theorem mPre_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
   icases H with ⟨Hw, Hll, Hrd, Hb⟩
   iunfold mPre
   iframe
+
+/-- **`mPreRest` at the live set `T`** (auth-lease S3a2): `mPreAt` without the chain's resources. -/
+def mPreRestAt (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
+      srvApi.csContractA (E.Pk B) E.f Pre Q Post)
+
+/-- `mPreAt` is `mPreRestAt` and the chain's resources. -/
+theorem mPreAt_split_chain (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (T : List w64)
+    (Pre Q Post : IProp GF) :
+    mPreAt E c a info log T Pre Q Post ⊢ mPreRestAt E log T Pre Q Post ∗ chainRes c a info := by
+  iintro H
+  iunfold mPreAt at H
+  icases H with ⟨Hw, Hll, Hrd, Hres, Hb⟩
+  iunfold mPreRestAt
+  iframe
+
+/-- `mPreAt` from `mPreRestAt` and the chain's resources. -/
+theorem mPreAt_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (T : List w64)
+    (Pre Q Post : IProp GF) :
+    mPreRestAt E log T Pre Q Post ∗ chainRes c a info ⊢ mPreAt E c a info log T Pre Q Post := by
+  iintro ⟨H, Hres⟩
+  iunfold mPreRestAt at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold mPreAt
+  iframe
+
+/-- `mPreRestAt` forgets its live set. -/
+theorem mPreRest_of_at (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) :
+    mPreRestAt E log T Pre Q Post ⊢ mPreRest E log Pre Q Post := by
+  iintro H
+  iunfold mPreRestAt at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold leasesLiveAt at Hll
+  icases Hll with ⟨Hk, Hu, Hlt⟩
+  iunfold mPreRest
+  iframe Hw Hrd Hb
+  iunfold leasesLive
+  iexists T
+  iframe
+
+/-- The auth store's reader resource and the lease owner's resource at `T` of `mPreRestAt`, lent out
+(`mPreRest_lend` at the live set: the lender gives back the same `T`). -/
+theorem mPreRestAt_lend (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) :
+    mPreRestAt E log T Pre Q Post ⊢ E.RD ∗
+      lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+        mPreRestAt E log T Pre Q Post) := by
+  iintro H
+  iunfold mPreRestAt at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold leasesLiveAt at Hll
+  icases Hll with ⟨#Hk, Hu, Hlt⟩
+  iframe Hrd Hu
+  iintro Hrd Hu
+  iunfold mPreRestAt
+  iframe Hw Hrd Hb
+  iunfold leasesLiveAt
+  iframe Hk Hu Hlt
+
+/-- **The `ltHalf` agreement at `mPreAt`'s live set** (`kvOwnAt_ltHalf`'s): in a cluster that grants leases,
+`mPreAt`'s live set is the other half's. -/
+theorem mPreAt_ltHalf (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (L T : List w64)
+    (Pre Q Post : IProp GF) :
+    mPreAt E c a info log L Pre Q Post ∗ ltHalf E T ⊢
+      ⌜E.lg = true → L = T⌝ ∗ mPreAt E c a info log L Pre Q Post ∗ ltHalf E T := by
+  unfold mPreAt leasesLiveAt ltHalf
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨H, -⟩
+    isplitl []
+    · ipureintro; intro h'; cases h'
+    iframe H
+    try itrivial
+  · simp only [↓reduceIte]
+    iintro ⟨⟨Hw, ⟨Hk, Hu, Hlt⟩, Hrd, Hres, Hb⟩, HT⟩
+    icombine Hlt HT gives %H
+    iframe Hw Hk Hu Hlt Hrd Hres Hb HT
+    ipureintro; intro _; exact H.2
+
+/-- **`putPre` from the class track's certificate** (auth-lease S3a2, Draft §1's `putPre_of_old`): `certPre`
+at every outcome, the request, and `mPre` split at its live set. -/
+theorem putPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (o : OpFull)
+    (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (h : rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log) :
+    certPre E c rq log ∗ txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post ⊢
+      putPre E c a info r rq o log Pre Q Post := by
+  iintro ⟨#Hcp, #Hr, Hm⟩
+  ihave ⟨%T, Hm⟩ := (mPre_iff_at E c a info log Pre Q Post).1 $$ Hm
+  iunfold putPre
+  isplitr; · ipureintro; exact h
+  iframe Hr
+  iexists T
+  iframe Hm
+  iapply certPreT_of_certPre; iexact Hcp
+
+/-- **`txnPre` from the class track's certificate** (as `putPre_of_mPre`). -/
+theorem txnPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (t : TxnModel)
+    (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (h : rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log) :
+    certPre E c rq log ∗ txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post ⊢
+      txnPre E c a info r rq t log Pre Q Post := by
+  iintro ⟨#Hcp, #Hr, Hm⟩
+  ihave ⟨%T, Hm⟩ := (mPre_iff_at E c a info log Pre Q Post).1 $$ Hm
+  iunfold txnPre
+  isplitr; · ipureintro; exact h
+  iframe Hr
+  iexists T
+  iframe Hm
+  iapply certPreT_of_certPre; iexact Hcp
 
 /-- **A rejection**: the thread's KV resources and `Pre` back. -/
 theorem mPreRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :

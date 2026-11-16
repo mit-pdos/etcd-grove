@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- The generated handler of `Lease.LeaseRevoke`: decode a `*LeaseRevokeRequest`, call `srv.LeaseRevoke` (directly or
 through the interceptor chain, with `info.FullMethod = "/etcdserverpb.Lease/LeaseRevoke"`), as every
-generated unary handler (`wp_unaryHandler`; the build checks that this handler's body is
+generated unary handler (`wp_unaryHandlerMd`; the build checks that this handler's body is
 `unaryHandlerImpl` at these arguments). -/
 theorem etcdserverpb._Lease_LeaseRevoke_Handler.wp_proof :
     etcdserverpb._Lease_LeaseRevoke_Handler.spec (GF := GF) (hG := hG) :=
-  wp_unaryHandler etcdserverpb._Lease_LeaseRevoke_Handler etcdserverpb.LeaseServer.ty
+  wp_unaryHandlerMd etcdserverpb._Lease_LeaseRevoke_Handler etcdserverpb.LeaseServer.ty
     etcdserverpb.LeaseRevokeRequest.ty etcdserverpb.LeaseRevokeResponse.ty go!"LeaseRevoke" go!"/etcdserverpb.Lease/LeaseRevoke"
 
 end proof

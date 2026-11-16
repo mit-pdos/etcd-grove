@@ -127,6 +127,18 @@ func RandomConfig() Config {
 	}
 }
 
+// RandomConfigN is RandomConfig on k voters, with up to k + 4 replicas (RandomOptionsN): MainN's.
+func RandomConfigN(k uint64) Config {
+	return Config{
+		Options:      RandomOptionsN(k),
+		Clients:      4,
+		Ops:          100,
+		Proposers:    1 + int(below(3)),
+		ReconfPause:  10 * time.Millisecond,
+		DisruptPause: 30 * time.Millisecond,
+	}
+}
+
 // Run starts a cluster and runs cfg.Clients clients of cfg.Ops operations of Gen's traffic on
 // it, traced with the given clock, while cfg.Proposers proposers reconfigure it (Reconfigure)
 // and leadership is disrupted (Disrupt); once the clients are done, it stops the proposers and
@@ -172,6 +184,16 @@ func Run(cfg Config, clock lintest.Clock) (porcupine.CheckResult, *Cluster) {
 // the one to prove never panics.
 func Main() {
 	res, c := Run(RandomConfig(), lintest.CounterClock())
+	if res != porcupine.Ok {
+		panic("kvreconf: porcupine rejected the store's trace")
+	}
+	c.Stop()
+}
+
+// MainN is Main on k voters, with up to k + 4 replicas (RandomConfigN): the program of
+// raft_kvreconfN_porcupine_safe.
+func MainN(k uint64) {
+	res, c := Run(RandomConfigN(k), lintest.CounterClock())
 	if res != porcupine.Ok {
 		panic("kvreconf: porcupine rejected the store's trace")
 	}

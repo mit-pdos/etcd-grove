@@ -38,7 +38,7 @@ theorem Cluster.config.wp_proof : Cluster.config.spec (GF := GF) (hG := hG) := b
   iNamed Hc
   icases typedPointsto_split _ _ _ $$ Hopts with Hos
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hos with ⟨#oV, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
+  icases Hos with ⟨#oV, #oR, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
   wp_auto
   irename «$r0» => Hp
   generalize «$r0_ptr» = p at *

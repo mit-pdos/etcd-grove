@@ -177,7 +177,7 @@ theorem status.wp_Error :
 
 theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
+  EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error rpctypes.EtcdError.wp_Error
 
 theorem v3.wp_getPrefix :
     EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=

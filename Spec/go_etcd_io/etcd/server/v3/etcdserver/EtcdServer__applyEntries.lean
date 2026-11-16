@@ -40,8 +40,8 @@ buckets `srvRestR` and the batch `kvBatchR`. **A first start** (`rp = RestartPt.
 the old first-start text: `ghostOf_first`, `srvRestR_first`, `kvBatchR_first` (given `ai0 ≤ ciEff`, a
 first start's `ai0 = 0`), and `uint.Z ai = ai0 + |A|` (`kvBatch`'s). In the environment's auth mode
 (`E.authOn`): the server's view (`isServerM`), the committed log's shapes (`logShapeM`), the applier
-state (`srvApplyKVM`), the apply thread's model (`kvAppliedM`); with auth on only, the lessor finding no
-lease (`srvLessorNilM`), the receipts' bound and the token rights (`srvTokRights`, `True` off).
+state (`srvApplyKVM`), the apply thread's model (`kvAppliedM`); with auth on only (auth-lease S3c: until then
+also the lessor finding no lease, `srvLessorNilM`), the receipts' bound and the token rights (`srvTokRights`, `True` off).
 
 The contract (until swap batch 3, `ModeSpecs.lean`'s `applyEntries.specOff`'s account, at `A` for
 the ghost log): `s.applyEntries(ep, ap)`, by the apply thread: the entries of `ap` (consecutive from
@@ -78,14 +78,14 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) →
   uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗
+      isServerM E.authOn s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       epCsAt ρ.raft (ghostOf rp A) cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗
       srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗ appliedLogAt γr g x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ srvFS s ∗
-      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
+      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestRM E.authOn E γr rp A ∗
       kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
       dvView ρ.raft dv (ghostOf rp A) ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       srvApRes s γr (ghostOf rp A) ∗ srvTokRights E (ciEff γ st.k) }}
@@ -102,7 +102,7 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr g' x'.log ∗
           kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' ∗
-          srvRestR E γr rp (A ++ unapplied ai ms)) ∗
+          srvRestRM E.authOn E γr rp (A ++ unapplied ai ms)) ∗
         ⌜uint.Z g' = uint.Z γr.raft.ai0 + (ghostOf rp (A ++ unapplied ai ms)).length ∧
           loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧

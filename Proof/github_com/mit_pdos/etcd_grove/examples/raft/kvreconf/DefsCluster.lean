@@ -96,19 +96,26 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 /-- The store's options struct. -/
 abbrev ROptions [GooseExts] := github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options
 
-/-- The options a cluster may run with (`RandomOptions`): one to five voters, a positive window
-of inflight messages, and a size limit that is not zero for both (raft's `RestartNode` premises). -/
+/-- The options a cluster may run with (`RandomOptions`, `RandomOptionsN`): at least one voter and no
+more than the replicas the cluster may start, fewer than `2^60` of those (2026-11-16, kvraftN: until
+then one to five voters, at most `9` replicas), a positive window of inflight messages, and a size
+limit that is not zero for both (raft's `RestartNode` premises). -/
 def OptsOk [GooseExts] (o : ROptions) : Prop :=
-  1 ≤ uint.Z o.Voters' ∧ uint.Z o.Voters' ≤ 5 ∧
+  1 ≤ uint.Z o.Voters' ∧
+  (uint.Z o.Voters' ≤ uint.Z o.MaxReplicas' ∧ uint.Z o.MaxReplicas' < 2 ^ 60) ∧
   0 < sint.Z o.MaxInflightMsgs' ∧ sint.Z o.MaxInflightMsgs' ≤ 256 ∧
   (o.MaxCommittedSizePerReady' ≠ W64 0 ∨ o.MaxSizePerMsg' ≠ W64 0)
 
 /-- The bootstrap voters of `k` voters: `1, …, k`. -/
 def bootVoters (k : Nat) : List w64 := (List.range k).map (fun i : Nat => W64 ((i : Int) + 1))
 
-/-- The ids from `k` to `9` (`maxReplicas`): those not started yet, whose read-sequence elements the
-cluster's lock holds. -/
-def freshIds (k : Nat) : List w64 := ((List.range 10).filter (fun i => k ≤ i)).map (fun i : Nat => W64 (i : Int))
+/-- The ids from `k` to `m` (`opts.MaxReplicas`): those not started yet, whose read-sequence elements
+the cluster's lock holds. -/
+def freshIdsM (m k : Nat) : List w64 :=
+  ((List.range (m + 1)).filter (fun i => k ≤ i)).map (fun i : Nat => W64 (i : Int))
+
+/-- `freshIdsM` at `9` replicas (kvdurable's `maxReplicas`). -/
+abbrev freshIds (k : Nat) : List w64 := freshIdsM 9 k
 
 /-- The bootstrap configuration's conf state: the voters `vs`. -/
 def bootCS [GooseExts] (vs : List w64) : ConfStateM := ConfStateM.mk vs [] [] [] false
@@ -259,7 +266,7 @@ instance repKnown_persistent (γr : RNames) (id : w64) : Persistent (repKnown (G
 def stopper (γr : RNames) : IProp GF := ghostVar γr.stp (1 : Qp).half false
 
 /-- **The cluster's lock invariant** (see the file header). -/
-def clusterLockInv (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
+def clusterLockInv (γr : RNames) (vs : List w64) (m : Nat) (c : Loc) : IProp GF :=
   iprop(∃ (mR : Loc) (R : GMap w64 Loc) (nid nop : w64) (U : GSet w64) (b : Bool),
     "HmR" ∷ c.[RCluster, go!"replicas"] ↦ mR ∗
     "HR" ∷ mR ↦$ R ∗
@@ -270,9 +277,9 @@ def clusterLockInv (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
     "Hjoin" ∷ joinAuth γr.cluster U ∗
     "%Hdom" ∷ ⌜(∀ i, (R !! i).isSome ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       (∀ i, i ∈ U ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
-      vs.length < uint.nat nid ∧ uint.nat nid ≤ 10⌝ ∗
+      vs.length < uint.nat nid ∧ uint.nat nid ≤ m + 1⌝ ∗
     "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γr vs id r) ∗
-    "Hrseq" ∷ ([∗list] i ∈ freshIds (uint.nat nid), i ↪[γr.rseq] W64 0) ∗
+    "Hrseq" ∷ ([∗list] i ∈ freshIdsM m (uint.nat nid), i ↪[γr.rseq] W64 0) ∗
     "Hstp" ∷ ghostVar γr.stp (1 : Qp).half b ∗
     "Htoks" ∷ (if b then iprop(True) else [∗map] _id ↦ r ∈ R, repStop γr vs r))
 
@@ -302,7 +309,7 @@ def isClusterC (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
     "#Hboot" ∷ c.[RCluster, go!"boot"] ↦□ bp ∗
     "#HbootCS" ∷ ownCSM bp DFrac.discard (bootCS vs) ∗
     "#Hstats" ∷ isStats (c.[RCluster, go!"Stats"]) ∗
-    "#Hmu" ∷ sync.isMutex (c.[RCluster, go!"mu"]) (clusterLockInv γr vs c))
+    "#Hmu" ∷ sync.isMutex (c.[RCluster, go!"mu"]) (clusterLockInv γr vs (uint.nat o.MaxReplicas') c))
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in

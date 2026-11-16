@@ -57,6 +57,13 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|ru
 # joins them with the writer's shares.
 stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(start|end)Epoch\.lean$
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
+# The restart example's raft-handler swap, by its owner, the swap (`examples/etcd/restart`, restart3 C3, and its copy in `examples/etcd/restartN`,
+# 2026-11-15; decided by etcd-grove-81): like the reader pools, the swap owns its pool of the current
+# incarnation's `srvServeRes` copies and its slot tokens (`swTok`), `httpProcSlots` of them;
+# `newMember` builds it from `BuildServer`'s serving copies (`sw_alloc`), `ServeHTTP` trades a slot
+# token for a copy and back (`sw_enter`/`sw_exit`), and `set` installs a new incarnation's copies
+# (`sw_install`).
+stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/etcd/restartN?/(Swap|raftSwap)\.lean$
 
 # mvccfull's writer owns its log and so its model's revisions (F1 Prove, 2026-11-10): the writer's
 # helpers `end` and `gen` take the member's revision with room for the next two (`rev + 2 < 2 ^ 63`),
@@ -93,7 +100,7 @@ wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcd
 # from the bound; `GetList` -> `pagedChunks` -> `getList` carry it to the reader token they borrow with the
 # caller's `threadTok` (`getResourceSizeEstimator`). The store, the lock's owner, should take it once in
 # `isStore` (from `New`) instead of on every list call.
-spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__getList|store__pagedChunks)\.lean$  # the store's list path (7e-2): the RWMutex reader-slot bound, to move into isStore (follow-up)
+spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__getList|store__pagedChunks|store__Watch)\.lean$  # the store's list path (7e-2): the RWMutex reader-slot bound, to move into isStore (follow-up; store__Watch: its getResourceSizeEstimator, moved from the Draft 2026-11-16)
 # The k8s etcd3 driver (7e-4): `call`, `Apply` and `Check` pass the same bound on to the store's
 # `GetList` (`Main` takes it from the adequacy theorem's constants, as before); they go once the store's
 # `isStore` holds it (the follow-up above).

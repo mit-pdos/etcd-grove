@@ -70,7 +70,7 @@ theorem watcher.RequestProgress.wp_proof
     iunfold errorsNewOk at HeN
     wp_apply HeN as %e %He #Hse
     iapply HΦ
-    iexact Hse
+    iapply closeErrOk_status $$ Hse
   by_cases hm : m = map.nil
   · simp only [hm, _root_.decide_true]
     wp_auto
@@ -79,7 +79,7 @@ theorem watcher.RequestProgress.wp_proof
     iunfold errorsNewOk at HeN
     wp_apply HeN as %e %He #Hse
     iapply HΦ
-    iexact Hse
+    iapply closeErrOk_status $$ Hse
   simp only [hm, _root_.decide_false]
   wp_auto
   wp_apply wp_map_lookup1 go.string go_etcd_io.etcd.client.v3.watchGRPCStream.ty.PointerType m M ckey
@@ -186,7 +186,7 @@ theorem watcher.RequestProgress.wp_proof
     | ok i =>
       wp_auto
       iapply HΦ
-      iexact Hse
+      iapply closeErrOk_status $$ Hse
     | nil =>
       wp_auto
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty)

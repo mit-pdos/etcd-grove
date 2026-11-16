@@ -198,6 +198,41 @@ noncomputable def reasonAndCodeForError [GooseExts] [GoGlobalContext] : GoString
 noncomputable def NewClientErrorReporter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewClientErrorReporter"
 
+/-- Error implements the Error interface.
+
+    go: errors.go:71:23 -/
+noncomputable def StatusError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty go!"Message"))) (App (Val (GoInstruction (StructFieldRef StatusError.ty go!"ErrStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "e")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- Status allows access to e's status without having to know the detailed workings
+    of StatusError.
+
+    go: errors.go:77:23 -/
+noncomputable def StatusError.Status.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (App (Val (GoInstruction (StructFieldRef StatusError.ty go!"ErrStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (Var "$res0"))))))
+
 /-- NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
 
     go: errors.go:145:6 -/
@@ -386,6 +421,8 @@ class StatusError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_ErrStatus : ∀ (x : StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status), go.IsGoStepPureDetTagged under (StructFieldSet StatusError.underlying go!"ErrStatus") (PairV #x #y) (Val #(({ x with ErrStatus' := y } : StatusError)))
   method_set : go.MethodSetIs StatusError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusError.ty) [(go!"DebugError", (some (go.signature.Signature [] false [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType StatusError.ty) go!"Error" StatusError.Error.impl
+  ptr_Status_unfold : MethodUnfold (go.GoType.PointerType StatusError.ty) go!"Status" StatusError.Status.impl
 
 attribute [instance] StatusError.TypeAssumptions.type_repr
   StatusError.TypeAssumptions.underlying
@@ -393,6 +430,8 @@ attribute [instance] StatusError.TypeAssumptions.type_repr
   StatusError.TypeAssumptions.set_ErrStatus
   StatusError.TypeAssumptions.method_set
   StatusError.TypeAssumptions.ptr_method_set
+  StatusError.TypeAssumptions.ptr_Error_unfold
+  StatusError.TypeAssumptions.ptr_Status_unfold
 
 abbrev APIStatus [GooseExts] : Type := GoInterface
 

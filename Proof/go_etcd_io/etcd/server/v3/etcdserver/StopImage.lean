@@ -100,27 +100,27 @@ of the applied log (`bkRestAtM`, `mergedImgM`'s). -/
 theorem stop_obs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64)
     (A : List EntryModel) (d : mvcc.KBReal) (f : w64 → w64) (st : ApplyState) (W : IProp GF)
     (D : backend.Data) (hcK : ciKeys d.P) (hRB : ∀ n ∈ restBuckets, d.P.RB n = true)
-    (hci : ciEff γA st.k = ai) (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    (hci : ciEff γA st.k = ai) (hfb : E.lg = true → leaseTTLsGeReq (appliedTableM E.authOn γr A) f) :
     freezeY γA st ∗
       backend.rbOwnIn d.γB membership.clusterBkts
-        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+        (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
       backend.rbPart d.γB (restSet E.authMode)
-        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+        (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
       backend.bStopView d.γB d.P W (batchLockInv γA (metaTM d.γB d.P)) D ⊢
     ⌜backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
         go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
       (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
         go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-      bkRestAtM E.authMode (if E.lg then kvLeases γr.kv (γr.raft.pre ++ A) else []) γr.kv.c0
+      bkRestAtM E.authMode (if E.lg then appliedTableM E.authOn γr A else []) γr.kv.c0
         γr.raft.raft.boot (γr.raft.pre ++ A) D⌝ := by
   iintro ⟨HY, Hrc, Hrn, Hsv⟩
   iunfold backend.bStopView at Hsv
   icases Hsv with ⟨-, HPk, -, Hhk, Hr, -, -⟩
   ihave Hnone := backend.rbPart_none (GF := GF) d.γB (∅ : GMap GoString backend.BktData)
   ihave %h := snapObsA γA d.γB d.P hcK st (restSet E.authMode)
-    (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+    (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk (fun _ => False) ∅
     $$ %(backend.hkData d.P D) %(backend.rbData d.P D) [HY Hrc Hrn Hnone] HPk Hhk Hr
   · iframe HY Hrc Hrn Hnone
@@ -170,6 +170,8 @@ theorem stop_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   icases Hmi with ⟨%hmi, %u, #Him⟩
   obtain ⟨hci', hterm, hrest, hre⟩ := hmi
   rw [hM] at hrest
+  simp only [auth.AuthMode.isOn, appliedTableM_false] at hrest
+  unfold appliedTable at hrest
   have hpre : γr.raft.pre = [] := by rw [hraft]
   have hn : E.lg = false → (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
     intro hlg

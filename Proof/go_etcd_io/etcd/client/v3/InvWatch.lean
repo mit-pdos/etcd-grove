@@ -325,10 +325,10 @@ theorem srvWLaws_model (W : v3rpc.SrvW GF) (L : mvcc.Log) :
 /-- **`errors.New`'s errors are client errors grpc's `status` accepts** (a package fact of
 `errors`, persistent: an `*errorString` is a leaf error with `Error` only; Perennial's model of
 `errors.New` says it is a pointer error whose `Error()` returns the message, and the model has no
-method sets). -/
+method sets). (k8s 7f-5, 2026-11-16) One a watch may close with (`closeErrOk`: a pointer). -/
 def errorsNewOk : IProp GF :=
   iprop(□ ∀ (msg : GoString) (Φ : val → IProp GF),
-    ▷ (∀ e : GoInterface, ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ -∗ statusErrOk e -∗ Φ #e) -∗
+    ▷ (∀ e : GoInterface, ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ -∗ closeErrOk e -∗ Φ #e) -∗
     WP (App (Val (@! _root_.Perennial.errors.New)) (Val #msg)) {{ Φ }})
 
 instance errorsNewOk_persistent : Persistent (errorsNewOk (GF := GF)) := by
@@ -1208,13 +1208,13 @@ def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
 `io.EOF`, which grpc's `status` accepts, and (D25) `respc`'s producer side, handed back to `run`
 for the next stream. -/
 def errP (γr : SpscNames) (γep : GName) (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil⌝ ∗ (cliStreamErr err ∨ eofIs err) ∗ statusErrOk err ∗
+  iprop(⌜err ≠ GoInterface.nil⌝ ∗ (cliStreamErr err ∨ eofIs err) ∗ closeErrOk err ∗
     prodBack γr γep)
 
 /-- **What `donec`'s closing publishes**: `run` stopped with the close error `e` (read-only for
 good), one grpc's `status` accepts. -/
 def closeErrPub (wgs : Loc) : IProp GF :=
-  iprop(∃ e : GoInterface, wgsF wgs go!"closeErr" ↦□ e ∗ statusErrOk e)
+  iprop(∃ e : GoInterface, wgsF wgs go!"closeErr" ↦□ e ∗ closeErrOk e)
 
 instance closeErrPub_persistent (wgs : Loc) : Persistent (closeErrPub (GF := GF) wgs) := by
   unfold closeErrPub; infer_instance

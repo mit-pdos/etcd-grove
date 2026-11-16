@@ -1,9 +1,7 @@
-# Translated with bodies: the store the survey is about (notes/k8s-etcd3-goose.md), except
-# what the pinned Goose rejects (names only, bodies axiomatized; `store.GetList`, gap G2, translates
-# since Perennial `caa9d07ee`, range over a function):
-# - `parseEvent`, `watchChan.startWatching` (the store's watch, not verified): names only. They
-#   select fields of a `*clientv3.Event`, an alias of `mvccpb.Event`, which Goose translates since
-#   G1 (Perennial `898c0ddc5`); `compactor.fromWatchResponse` (the compactor's watch loop, Q1 (b)
-#   of notes/k8s-compactor-plan.md) is translated with its body since 2026-11-04.
-translate = ["*", "!parseEvent", "!watchChan.startWatching"]
+# Translated with bodies: the store the survey is about (notes/k8s-etcd3-goose.md); `store.GetList`,
+# gap G2, translates since Perennial `caa9d07ee` (range over a function); `parseEvent` and
+# `watchChan.startWatching` (the store's watch, k8s 7f-5a-P; names only until then) select fields of
+# a `*clientv3.Event`, an alias of `mvccpb.Event`, which Goose translates since G1 (Perennial
+# `898c0ddc5`).
+translate = ["*"]
 imports = ["*"]

@@ -418,8 +418,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
-  have Hlgon : on = true → ρ.rd.kv.lg = false := fun h => by
-    rw [KVNames.lg_eq, lease.bootCfg_auth Hlbc h]; rfl
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
@@ -774,10 +772,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod (lease.lessorAt_empty γl ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hlrdinv $HlEv]
     with ⟨#Hl0, HlEv⟩
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 ([] : List w64)).1 $$ Hlt
-  -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
-  ihave #Hlnil : iprop(□ (⌜on = true⌝ → apply.lookupNil (lease.lessorIface lp))) $$ []
-  · iintro !> %hon
-    iapply (lookupNil_of_guard lp ρ.rd.kv.lg on (Or.inr hon)) $$ Hllk'
+  -- (the auth plan's E3zb) its `Lookup`'s weaker clause
   ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg on) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
@@ -1910,13 +1905,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iapply rwLens_authBeOn
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
-  -- (the auth plan's E3zb) the lessor finds no lease
-  ihave #HLnil : iprop(□ (⌜on = true⌝ → srvLessorNil s)) $$ []
-  · iintro !> %hon
-    iunfold srvLessorNil
-    iexists (lease.lessorIface lp)
-    ihave #Hln := Hlnil $$ %hon
-    iframe lessor Hln
   -- (authkv's Main) with auth on, the store's cost field; (C1's A4) and its `Authenticate` side
   ihave #HBF : iprop(□ (⌜on = true⌝ → srvAuthStoreOn s RD)) $$ []
   · iintro !> %hon
@@ -1951,9 +1939,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #HlPool' : lease.lessorRdPool (GF := GF) (mvcc.api.mvccLeases γm) $$ []
   · rw [Hγl]; iexact HlPool
   -- (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's slot
-  ihave #HLsrv : lease.srvInv on s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) m $$ [HLnil HpeerRt HlessRd HlPool']
+  ihave #HLsrv : lease.srvInv on s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) m $$ [HpeerRt HlessRd HlPool']
   · iapply lease.srvInv_intro
-    iframe HLnil HpeerRt HlessRd HlPool'
+    iframe HpeerRt HlessRd HlPool'
     simp only
     rw [Hγl]
     iframe Hlmode Hl0
@@ -2066,8 +2054,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · iexact Hrvkb
     iexact HstkP
-  -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
-  imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
   -- (auth-schema-fix S1 option A) `srv` read-only from here on (it holds `s`): the readiness's
   ipersist srv
   imodintro
@@ -2208,7 +2194,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe NHmsc Hinfl
     isplitr
     · iexists γrn
-      iframe NHmsci
+      iframe NHmsci HNodeC HstepI
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
       have hidr : γrn.id = id := by rw [Hrn5, Hrid]
@@ -2236,13 +2222,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         · iexact HkvSG
         ipureintro
         -- (#7-on) auth on, the compaction mode off (`specG`'s `cmp = true → on = false`)
-        -- (the lease-grant merge) and a cluster that grants no lease (`specG`'s `on → lg = false`)
         have hcf : cmp = false := by
           cases hc : cmp
           · rfl
           · exact absurd (Hcon hc) (by decide)
         refine ⟨⟨⟨fun _ => inferInstance, fun _ => inferInstance, fun _ => inferInstance,
-          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, Hlgon rfl⟩
+          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, by first | trivial | rfl, by simp [HρRaft]⟩
         all_goals first | exact True.intro | rfl | exact hcf
       · iapply srvUberOn_of_kit hKit
         iPkgInit
@@ -2252,10 +2237,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     unfold srvErM
     simp only
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
-  isplitl [Hwpt]
-  · -- (R2d'a A10 item 5) at a first start `Hwpend` is free (`srvWinPend_first`)
-    iapply srvWinPend_first _ _ _ Hrna0 γwp
-    iexact Hwpt
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
   isplitl [Hwth]
@@ -2403,11 +2384,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         dsimp only
         simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
         by_cases hlg : ρ.rd.kv.lg = true
-        · have hon : on = false := by
-            cases on
-            · rfl
-            · rw [Hlgon rfl] at hlg; cases hlg
-          simp only [hlg, ↓reduceIte]
+        · simp only [hlg, ↓reduceIte]
           rw [Hγl]
           isplitl []
           · iintro !> %lid
@@ -2416,7 +2393,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             iframe Hlgd
             iintro !>
             iunfold srvGrantGuard
-            ipureintro; exact ⟨rfl, hon⟩
+            ipureintro
+            refine ⟨rfl, fun hon => lease.bootCfg_noExpiry Hlbc hon ?_⟩
+            intro h; simp [KVNames.lg_eq, h] at hlg
           rw [show (decide (ρ.rd.kv.lm = .mono)) = decide (m = .mono) by
             rw [lease.bootCfg_lm Hlbc]]
           iexact Hlmode

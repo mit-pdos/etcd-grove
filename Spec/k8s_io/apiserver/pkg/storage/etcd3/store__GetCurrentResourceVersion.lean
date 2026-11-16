@@ -10,12 +10,17 @@ A linearizable read of etcd's revision: the store reads its resource prefix thro
 the revision's). The caller's `Q` gives what it needs of `σ`: for the cached GET, that its
 revision is at least etcd's at the call's start (the update fires within the call). For now the
 resource prefix is a valid key (`PrepareKey` succeeds, as `store.Get`'s premise).
+
+(k8s 7f-5a-P, E4, ledger 2026-11-15) The error is the client `Get`'s (`clientErr`, `statusErrOk`, `errCellOk`) or
+the store's own `fmt.Errorf` for a `0` revision (an `*errors.errorString` whose `Error()` returns,
+`fmt.ErrorfPlain`): the watcher's `sendError` needs its type facts.
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -50,7 +55,13 @@ abbrev store.GetCurrentResourceVersion.spec : Prop :=
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GetCurrentResourceVersion"))
       (Val #(GoInterface.ok ci)))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗
+        ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+          go_etcd_io.etcd.cache.v3.errCellOk err) ∨
+          ∃ x : Loc, ⌜err = interface.mkOk
+            (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
+            fmt.stringMethodSpec ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+              go!"Error")) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState,
         □ Q (W64 (σ.rev : Int)) (kubernetes.modAt (c.pathPrefix ++ k) σ) σ ∗
         ⌜n = W64 (σ.rev : Int) ∧ 0 < σ.rev⌝) }}

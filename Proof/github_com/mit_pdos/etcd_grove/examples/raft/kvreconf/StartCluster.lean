@@ -70,8 +70,9 @@ theorem StartCluster.wp_proof
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro o Hok Hrb
   wp_start as ⟨#Hcci, #HstorInv⟩
-  obtain ⟨HV1, HV5, Hm1, Hm2, Hsz⟩ := Hok
-  have HVn : uint.nat o.Voters' ≤ 5 := by word
+  obtain ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩ := Hok
+  have HVn : uint.nat o.Voters' ≤ uint.nat o.MaxReplicas' := by word
+  have HMn : uint.nat o.MaxReplicas' < 2 ^ 60 := by word
   have HV0 : 1 ≤ uint.nat o.Voters' := by word
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
@@ -91,7 +92,7 @@ theorem StartCluster.wp_proof
   imod mono_nat_own_alloc (GF := GF) (uint.nat o.Voters' + 1) with ⟨%γn, HnidA, #Hlb⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γs, Hstp⟩
   icases (ghostVar_split_half (GF := GF) γs 1 false).1 $$ Hstp with ⟨Hstp1, Hstp2⟩
-  imod rkvInv_alloc ⊤ γ γn γs $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hopn, Hrseqs⟩
+  imod rkvInv_alloc ⊤ (uint.nat o.MaxReplicas') (by omega) γ γn γs $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hopn, Hrseqs⟩
   obtain ⟨Hγc, Hγn, Hγs⟩ := Hγr
   subst Hγc Hγn Hγs
   imod kvrSnapInv_alloc γr ⊤ $$ Hsm with #Hsinv
@@ -114,7 +115,7 @@ theorem StartCluster.wp_proof
   ihave #Hos := opts
   icases typedPointsto_split _ _ _ $$ Hos with Hos
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hos with ⟨#oV, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
+  icases Hos with ⟨#oV, #oR, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
   ihave %Hv3nn := typedPointsto_not_null $$ «$v3»
   icases typedPointsto_split _ _ _ $$ «$v3» with Hv3
   simp only [TypedPointsto.typedPointstoDef]
@@ -187,21 +188,20 @@ theorem StartCluster.wp_proof
   · iPkgInit
   try wp_auto
   wp_apply wp_Mutex_Lock_fresh (cl.[RCluster, go!"mu"])
-    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) cl) $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
+    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) (uint.nat o.MaxReplicas') cl) $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
   ihave #Hc : isClusterC γr (bootVoters (uint.nat o.Voters')) cl $$ []
   · unfold isClusterC
     iexists o, «$v3_ptr»
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, Hsl, Hmd, Hbl, Htr, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, Hmd, Hbl, Htr, ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
-  have HVv : uint.nat o.Voters' ≤ 9 := by omega
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
   -- the founders' tokens with their read-sequence elements, and the fresh ids' elements
-  ihave Hrseqs : iprop([∗list] id ∈ bootVoters (uint.nat o.Voters') ++ freshIds (uint.nat o.Voters' + 1),
-      id ↪[γr.rseq] W64 0) $$ [Hrseqs]
-  · rw [allIds_split _ HVv]; iexact Hrseqs
+  ihave Hrseqs : iprop([∗list] id ∈ bootVoters (uint.nat o.Voters') ++
+      freshIdsM (uint.nat o.MaxReplicas') (uint.nat o.Voters' + 1), id ↪[γr.rseq] W64 0) $$ [Hrseqs]
+  · rw [allIdsM_split _ _ HVn]; iexact Hrseqs
   icases (BigSepL.bigSepL_append (Φ := fun _ id => iprop(id ↪[γr.rseq] W64 0))).1 $$ Hrseqs
     with ⟨Hrs1, Hrseq⟩
   ihave Htodo := (BigSepL.bigSepL_sep_eqv

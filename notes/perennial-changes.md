@@ -17,41 +17,66 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `WithCancel` over a general `isContext` parent loses the parent's Done proposition (2026-11-14, k8s 7f-5a)
+### `errors.Is` with a struct-valued target: `net.ErrClosed` (2026-11-14, branch `net-tcp`)
 
-**Status (2026-11-15): in Perennial** (`cbccb8321`, `2d8857406`: `wp_WithCancel_ctx`,
-`wp_propagateCancel_ctx`, `HParentCC`'s continuation with `□ (□ Pp -∗ s.PDone)`), and pinned here
-since the pin moved to `c6b39d4f8` for goose's `-tags` (branch `trace-check-merge-lean2`). The
-workaround below is still in place; nothing here uses the new lemmas yet.
+`errors.Is.spec` (`Perennial/Spec/errors/Is.lean`) admits only a `nil` or pointer target
+(`IsPointerError`), because Go's `==` on a target of another comparable type compares it with the
+tree's errors of its type and can panic on uncomparable fields. `net.ErrClosed` is
+`poll.ErrNetClosing`, the value `errNetClosing{}` of an empty struct, so `errors.Is(err,
+net.ErrClosed)`, the check every Go client of `net` makes, has no spec: a client proof is stuck there
+(sound: less defined). The TCP semantics v3 gives the closed kind's `Err` as that value
+(`NetTcp/Proof/net/Base.lean`, `closedErr`), and `NetTcp/Proof/net/ErrorsIs.lean` proves only the
+`os.ErrDeadlineExceeded` (pointer) target. The general fix: a spec for a target whose dynamic type
+is comparable and whose tree's errors of that type are comparable too (a struct with comparable
+fields, here none), a premise like `TreeTyped`. Not done here (no Perennial change for one proof).
 
-What is missing: Perennial's `context.WithCancel.spec` gives the child
-`PDone := parent.PDone ∨ PDone'` only for a parent that is itself a `*cancelCtx` made by `WithCancel`
-(`isCancelCtxCtx`). For any other `isContext` parent (a `*valueCtx` over one, a `*timerCtx`, a
-wrapper whose `parentCancelCtx` succeeds), `wp_WithCancel_any` gives `PDone := True`: an observer of
-the child's closed Done channel learns nothing of why it closed.
+Two related gaps of this repository's own translations, not Perennial's: the main tree's `os`
+(`Code/os.toml`, names only) has no body for `(*SyscallError).Unwrap` (nor `Error`, `Timeout`), so
+`errors.Is` on a `sys` error is stuck at its `Err`; and `internal/poll`'s package fact
+(`Proof/internal/poll/PkgInit.lean`) says only that `ErrDeadlineExceeded` holds some error, not
+`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise.
 
-What Go does: the child's Done channel is closed by its own cancel function, or by
-`propagateCancel`: if the parent is already done (its Done channel closed), at once; otherwise
-`parentCancelCtx(parent)` finds the `*cancelCtx` `p` whose Done channel is the parent's (it checks
-`pdone == done` against `parent.Done()`), the child goes into `p.children`, and `p.cancel` closes
-`p.done` (the parent's Done channel) before it cancels its children. So whenever the child is closed
-by propagation, the parent's Done channel is already closed, and the parent's `isContextDone` gives
-`□ parent.PDone`.
+### `copy`'s count is only `sint.nat n = min …` (2026-11-14, branch `net-tcp`)
 
-What the model should give: `wp_WithCancel` for any `isContext parent s` (with `HParentCC`) and any
-`PDone'`, the child `isContext` at `{ s with PDone := s.PDone ∨ PDone', Done_gn := γ' }`, its cancel
-needing `□ PDone'`. The missing link is in `isContext`'s `HParentCC`: it gives `isCancelCtx p` with an
-unknown Done proposition and channel. Strengthen it to say `p`'s Done channel is the parent's `ch`
-(or that `p`'s proposition gives `s.PDone`), true of every context the model makes (`*cancelCtx`,
-`*timerCtx`, value links over them), so that the children `p` cancels can be given
-`□ s.PDone`.
+- **The gap.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) returns `n` with
+  `sint.nat n = min vs.length vs'.length`, which leaves `n`'s sign free when the minimum is 0 (a
+  negative `w64` has `sint.nat` 0). Go's `copy` returns the minimum itself.
+- **Effect here.** `net.Conn.Read`'s spec (`NetTcp/Spec/net/Conn__Read.lean`, `ReadOut`), whose model
+  returns `copy`'s count, can promise only the same, so a caller that reads 0 bytes cannot conclude
+  `k = 0` (`wire.ReadFull` gets around it with `ReadOutcome`'s "a read of m > 0 bytes returns some").
+- **Proposed (general; record only).** `wp_slice_copy`'s post with `n = W64 (min …)` (or
+  `0 ≤ sint.Z n` beside the existing fact).
+- **Status.** Recorded only.
 
-Who needs it: the etcd3 watcher (k8s 7f-5a): `wc.ctx = WithCancel(WithRequireLeader(ctx))`, and the
-store watch's spec states the no-gap prefix unless the watch is cancelled, which a dropped event
-must witness from `wc.ctx`'s closed Done channel (`notes/k8s-7f5a-draft.md` §4, `kCancelPD`, §6
-risks). Workaround: none yet. If this is not in Perennial by 7f-5a-P's step 4 (the channel
-operations), a clearly marked local trust-boundary axiom with a Go test, a stop for etcd-grove-81's
-axiom review. Status: proposal, not yet on a Perennial branch.
+### Goose: the pointer method of an axiomatized value method (2026-11-15, k8s 7f-5a-P; decided by etcd-grove-81: proposal (A))
+
+What is missing: for a named type `T` with a value method `M`, Go's method set of `*T` contains `M`,
+and `(*T).M` called on `p` is `T.M` called on `*p` (the spec, "Method sets" and "Method values": an
+auto-dereference). goose's `ptr_method_set` already lists `M` for `*T`, but the unfolding
+`ptr_M_unfold : MethodUnfold (PointerType T) M (λ "$r", MethodResolve T M (![T] "$r"))` is emitted
+only when `M` is not axiomatized (`goose/lean_types.go:322`, `if GetAction(T.M) == Axiomatize
+{ continue }`). For a names-only value method the pointer call is then stuck in the model: no proof
+reaches the value method's spec (an axiom at the trust boundary) from `MethodResolve (PointerType T)
+M p`.
+
+Who needs it: the etcd3 watcher's `parseEvent` calls `e.Type.String()` on the field's address
+(`etcd3.lean`, `MethodResolve (PointerType mvccpb.Event_EventType.ty) "String"`); the value method
+is T5-f's axiom `mvccpb.Event_EventType.String.wp_proof`. Workaround here: `parseEvent.wp_proof` takes
+`mvccpb.Event_EventType.StringPtr.spec` (the pointer call returns a string) as a callee hypothesis,
+unproved until the pin moves; it is needed only at the store watch's link (7f-5a-P step 7). No axiom
+added.
+
+The general change (goose only): drop the `Axiomatize` skip for the value-receiver case of the `*T`
+loop, i.e. emit `ptr_M_unfold` for every value method of `T` whatever its action, keeping the skip
+for pointer-receiver methods (their unfolding names `T.M.impl`, which an axiomatized method lacks;
+an embedded-field method keeps its current treatment). Sound: the emitted body is the language's
+rule, it names no implementation, only `MethodResolve T M` of the loaded value, which the semantics
+resolves to whatever `methods T M` is (an axiomatized method stays uninterpreted). Expected diff: one
+condition in `lean_types.go`; regenerated translations gain one `ptr_M_unfold` field (and its
+`attribute [instance]` line) per axiomatized value method of a translated type (the `TypeAssumptions`
+classes of names-only and types-only packages: `mvccpb.Event_EventType`'s `String`, `Descriptor`,
+`Enum`, ...); no proof changes, since a new instance only unsticks calls. Not yet proposed upstream
+(through etcd-grove-81; no Perennial edit here).
 
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
@@ -1087,7 +1112,9 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Workaround here.** (1) `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/
   WaitGroupAdd.lean`, `wgJoin_wp_Add4_of` (`wp_Add_of`'s proof with four ghost steps; proved, no
   trust). (2) `Spec/fmt/SprintfID.lean`, a trust-boundary axiom for `types.ID` arguments (as
-  `SprintfNamed`, `SprintfClientPtr`).
+  `SprintfNamed`, `SprintfClientPtr`). Also (1) (2026-11-14, branch `net-tcp`): acceptloop's
+  `Call` (`wg.Add(2)`), `NetTcp/.../examples/net/acceptloop/Join.lean`'s `wp_Add_many`, a copy of
+  `examples/mvccrand/RunChecksJoin.lean`'s (the part cannot import the main tree).
 - **Proposed.** (1) `wp_Add_of` for a delta `n` (`0 < n`, the bound `num_added + n < 2^31`),
   giving `n` `ownDone`s (a `[∗list]` over `List.replicate n`); the `Add(1)` statement derived.
   (2) `wp_Sprintf` over arguments whose `String`/`Error` method has a given spec (a WP returning
@@ -1216,6 +1243,25 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `WithCancel` over any `isContext` parent keeps the parent's Done proposition (landed 2026-11-15, Perennial `cbccb8321`, `2d8857406`, `e9e6351d9`; pin bumped 2026-11-15)
+
+- **Was missing.** `wp_WithCancel_any` gave the child of a general `isContext` parent (a `*valueCtx`
+  over a `*cancelCtx`, a `*timerCtx`, a wrapper whose `parentCancelCtx` succeeds) the Done
+  proposition `True`, so an observer of the child's closed Done channel learned nothing of why it
+  closed (k8s 7f-5a: `wc.ctx = WithCancel(WithRequireLeader(ctx))`).
+- **Landed in Perennial** (`docs/design/context-withcancel-parent-done.md`, tier 3: proofs and
+  proved specs only). `isContext` states two more things: `"#HParentCC"`'s `*cancelCtx` comes as
+  `isCancelCtxOf p γp Pp` with `□ (□ Pp -∗ s.PDone)`, and `"#HErrDone"` gives `□ s.PDone` once the
+  context is done. New `wp_WithCancel_ctx` (the child at `s.PDone ∨ PDone'`),
+  `wp_propagateCancel_ctx`, `childCancelSpec_mono`; `wp_WithCancel_any` and
+  `wp_propagateCancel_any` keep their statements. The design doc's audit of this repository's
+  axioms producing `isContext` (transfers over delegating wrappers, Done proposition `True`,
+  existential descriptors) found none made false.
+- **Pin bump fallout.** `SrvCtxWeak.lean`'s `srvCtxWeak_of_isContext` proves the two new clauses
+  (from `srvCtxWeak`'s `#HErrDone`/`#HParentCC`), and one intro pattern in
+  `cancellableContext__Err.lean`; no statement changed, trust base unchanged. 7f-5a-P's step 6
+  (`createWatchChan`) can now produce the child's description from `wp_WithCancel_ctx`.
 
 ### `Context.Value` at keys other than `&cancelCtxKey`; goose's multi-type type-switch case (landed 2026-11-08, Perennial `f137bdd8a` and `ddc0f0acc`; pin bumped 2026-11-08)
 
@@ -2344,3 +2390,17 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
 - **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
   and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
 - **Status.** Recorded only.
+
+## The SPSC idiom has no send for a producer token kept in another invariant (2026-11-15, branch `k8s-7f5`)
+
+`spsc_send_au` (`Golang/Theory/Chan/Idioms/Spsc.lean`) takes `spscProducer γ sent ∗ P sent.length v`
+before the send, and `isSpsc` puts its invariant at `nroot`, so no other invariant can be open at the
+commit. A channel with two producers that alternate under a protocol (the etcd3 watcher's `resultChan`:
+`sendEvent` from the processing goroutine, `sendError` from either goroutine) cannot keep the token in
+its own invariant and still expose `isSpsc` to its consumer. Local workaround (7f-5a-P, not yet written):
+one invariant `inv nroot (spscInv γ P R ∗ X)`, the consumer's `isSpsc` by Iris's `inv_split_l`, and a
+local copy of `spsc_send_au` whose token and element resource come from `X` at the commit (an accessor
+`X ==∗ ∃ sent, spscProducer γ sent ∗ P sent.length v ∗ (spscProducer γ (sent ++ [v]) ==∗ X ∗ Q)`, plus
+`X ⊢ ∃ sent, spscProducer γ sent ∗ (spscProducer γ sent -∗ X)` to refute the closed states). General
+fix to propose on its own: that lemma in `Spsc.lean` (`spsc_send_au_inv`), or `isSpsc` with a namespace
+parameter.

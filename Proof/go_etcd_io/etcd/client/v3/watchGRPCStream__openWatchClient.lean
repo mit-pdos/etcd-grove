@@ -53,7 +53,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   try wp_auto
   ihave HI : iprop(∃ (b : w64) (e wsv : GoInterface), "backoff" ∷ backoff_ptr ↦ b ∗
       "err" ∷ err_ptr ↦ e ∗ "ws" ∷ ws_ptr ↦ wsv ∗
-      "He" ∷ (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ statusErrOk e)) $$ [backoff err ws]
+      "He" ∷ (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e)) $$ [backoff err ws]
   · iexists _, _, _
     iframe
     ileft; ipureintro; rfl
@@ -73,9 +73,9 @@ theorem watchGRPCStream.openWatchClient.wp_proof
           cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
           cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
           v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
-        (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err)) -∗ Φ (PairV #ws #err)) ∗
+        (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err)) -∗ Φ (PairV #ws #err)) ∗
         w_ptr ↦ wgs ∗ backoff_ptr ↦ b ∗ err_ptr ↦ e ∗ ws_ptr ↦ wsv ∗
-        (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ statusErrOk e))
+        (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e))
       $$ [] [HΦ w backoff err ws He] []
   · iapply BigSepL2.bigSepL2_singleton.2
     iintro ⟨HΦ, w, backoff, err, ws, He⟩
@@ -96,7 +96,9 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         iapply Hce $$ %Broadcast.Done [] 
         · iexact Hcl
         inext
-        iintro %err' %Hne %- #Hse' - -
+        iintro %err' %Hne %Hcl' #Hse0 #Hcell' -
+        ihave %Hp' := errPtrOk_of_cell _ $$ Hcell'
+        ihave #Hse' := closeErrOk_intro _ ⟨fun _ => Hcl', Hp'⟩ $$ Hse0
         wp_auto
         wp_for_post
         iapply HΦ
@@ -147,6 +149,8 @@ theorem watchGRPCStream.openWatchClient.wp_proof
       ihave #Hse' := Hse
       iunfold cliStreamErr at Hse'
       icases Hse' with ⟨%Hok, #Hst, -⟩
+      ihave #Hsec := cliStreamErr_closeErrOk _ $$ Hse
+      ihave %Hpc := closeErrOk_pure _ $$ Hsec
       wp_auto
       wp_apply wp_isHaltErr ci cd err' $$ [] as %bh %Hbh
       · iframe #
@@ -162,9 +166,10 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         iframe #
         ipureintro; exact Hok.1
       · wp_auto
-        wp_apply wp_rpctypes_Error err' $$ [] as %err2 ⟨%Hne2, #Hse2, -⟩
+        wp_apply wp_rpctypes_Error err' $$ [] as %err2 ⟨%Hne2, #Hse20, %Hc2, -, -, %Hq2⟩
         · iframe #
           ipureintro; exact Hok.1
+        ihave #Hse2 := closeErrOk_intro _ ⟨fun _ => Hc2 Hok.2, Hq2 Hpc.2⟩ $$ Hse20
         wp_for_post
         iapply HΦ
         iright

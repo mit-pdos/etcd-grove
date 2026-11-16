@@ -40349,6 +40349,29 @@ change to Part B's frozen statements; the three check proofs use `principalBound
 (`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
 unchanged.
 
+## auth-lease S2: the apply layer at the latest state over the lease owner's resource (2026-11-15 · Freeze approved by etcd-grove-81 · branch `auth-lease`)
+
+The design is `notes/auth-lease-s2-draft.md` (three review rounds, `/shared/tmp/auth-lease/s2-review-r*.md`).
+The five choices approved: the lease class stops at the auth applier's methods (`kvPostFL`, Q5; nothing past
+the methods reads it, so the Scope's "carried through dispatch" is dropped); the four latest layer triples
+(`dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `uberKVC`, `Apply.kvSpecL`) widen to the revocation
+(`authKVKind`, `rqOk E.lm`, the revocation's resources as `dispatch.spec` threads them) instead of a parallel
+revocation family; the server-side readers of the latest verdict take the auth-on log's `plainCover` (no
+lease), discharged inside the proofs (`authOutL_of_kvOutL`, `kvShapedL_of_log`, `authTie_of_kvOutL`), until S3's
+model has a lease table; `LeaseRevoke.specL`'s floor is `[]`; the class and latest tracks stay separate. No
+closed theorem's statement changed; `srvLessorNil` stays a premise of `srv_uberKVL{,_on}` (unused) until S3.
+
+## `fmt.ErrorfPlain`: no `w` directive, not no `%w` infix (2026-11-15 · decided by etcd-grove-81 · branch `errorfplain-fix`)
+
+The axiom's premise `¬ List.IsInfix go!"%w" format` was a byte search, and `%+w`, `%-5w`, `% w`, `%#w`,
+`%05.2w` escape it while Go wraps at each (`notes/axiom-review/errorfplain.md`, `examples/axiomcx/errorfplain`).
+The premise is now stated on the same parse `fmt.argsOk` reads: `fmt.fmtDirectives format = some ds` with no
+directive of verb `w` (E3's text, `notes/k8s-7f5a-draft.md` §11.3, tested by `examples/premisefix/errorfwrap`).
+Stating it on the parse rather than on the bytes means the premise and `argsOk` cannot disagree on what a
+directive is; a format the parser refuses (`*`, `[n]`, a long digit run) is excluded, conservatively. The post
+is unchanged. Kept as its own axiom rather than derived from `fmt.Errorf.spec`: E3 is not yet applied there
+(k8s 7f-5a); once it is, `ErrorfPlain` can become a corollary and the axiom go.
+
 ## The `lean` merge, stage 2: both the trace mode and the sized contents (2026-11-15 · decided by the merging session; for the user's review before landing · branch `trace-check-merge-lean2`)
 
 `lean` (`dd068e790f`) merged into `trace-check` (`342e0068f3`; stage 1 had stopped at `63d962df7c`,
