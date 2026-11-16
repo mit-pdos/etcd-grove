@@ -27,6 +27,22 @@ the same form (`notes/klog-args-fix.md`, "For 7f-5a: the restricted `Warningf`")
 whose `Error()` returns (`fmt.argOk err`), discharged by `klog_args_intro`, `klog.argOkAt_of_argOk`,
 `itrivial`. A width or precision of more than 7 digits no longer parses (`fmt.maxNumDigits`).
 
+## START HERE (2026-11-16, nineteenth 7f-5 agent): step 5 DONE (startWatching proved over a PENDING client spec); land-stop checks
+
+- **watchChan.startWatching PROVED** (`Proof/.../etcd3/watchChan__startWatching.lean`, no sorry, lake-built), over the
+  callee hypotheses incl. a **PENDING** `clientWatchCE.spec` (defined in that file): E2's remaining gap, the client
+  watch's close error as `clientErr` + `errCellOk` (questions.md, OPEN for 81). Not linked (step 7).
+- Forms (questions.md, nineteenth agent): startWatching spec + `threadTok`, `bmReq → forceInit`, the resource prefix's
+  length; stronger posts: parseEvent (errorString), GetCurrentResourceVersion (`errCellOk`), NewTooLarge (`Failure`),
+  `WatchResponse.Err` (`errCellOk` transfer); new `WithPrevKV`, `metrics.RecordEtcdEvent/Bookmark` specs (axioms at
+  step 7, T5-f approved), `OptsOwn.lean`.
+- **errors.AsLeaf derived** from AsLeafTy (81's decision): premise for a non-interface target, the two rafthttp callers
+  discharge it; `etc/link-lean-first-server.txt` (`errors_AsLeaf: errors_AsLeafTy`), server `Link.lean` regenerated.
+- lean merged (4d6437b44a). Land-stop checks: see the latest report / `notes/k8s-7f5-freeze.md` if written.
+- Proof pitfalls met: `pkill -f` on a pattern kills your own shell; `word` errors with an unused `[HasExt idIssueExt]`
+  section variable (removed); `iunfold kvAu` in the context breaks `wp_for`'s simp (unfold only in the side goal);
+  `emp` is a Bool variable of these specs (write `iprop(emp)` for BI emp in terms).
+
 ## START HERE (2026-11-15, eighteenth 7f-5 agent, final): steps 1-2 DONE (syncPaginated proved, ErrOk), step 3 (startWatching) next
 
 - **Decided by 81 this round** (questions.md): previous forms accepted; store.Watch premise `uint.Z n < 2^63 - 1`
