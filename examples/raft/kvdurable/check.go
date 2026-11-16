@@ -129,6 +129,19 @@ func RandomConfig() Config {
 	}
 }
 
+// RandomConfigN is RandomConfig on k voters, with up to k + 4 replicas (RandomOptionsN): MainN's.
+func RandomConfigN(k uint64) Config {
+	return Config{
+		Options:      RandomOptionsN(k),
+		Clients:      4,
+		Ops:          100,
+		Proposers:    1 + int(below(3)),
+		ReconfPause:  10 * time.Millisecond,
+		DisruptPause: 30 * time.Millisecond,
+		CrashPause:   40 * time.Millisecond,
+	}
+}
+
 // Run starts a cluster with its files in the directory dir (which must exist and hold none of
 // them) and runs cfg.Clients clients of cfg.Ops operations of Gen's traffic on it, traced with the
 // given clock, while cfg.Proposers proposers reconfigure it (Reconfigure), leadership is disrupted
@@ -184,6 +197,17 @@ func Run(cfg Config, clock lintest.Clock, dir string) (porcupine.CheckResult, *C
 // comment), and the one to prove never panics.
 func Main(dir string) {
 	res, c := Run(RandomConfig(), lintest.CounterClock(), dir)
+	if res != porcupine.Ok {
+		panic("kvdurable: porcupine rejected the store's trace")
+	}
+	c.Stop()
+}
+
+// MainN is Main on k voters, with up to k + 4 replicas (RandomConfigN), the replicas' files in the
+// directory dir (which must exist and hold none of them): the program of
+// raft_kvdurableN_porcupine_safe.
+func MainN(dir string, k uint64) {
+	res, c := Run(RandomConfigN(k), lintest.CounterClock(), dir)
 	if res != porcupine.Ok {
 		panic("kvdurable: porcupine rejected the store's trace")
 	}

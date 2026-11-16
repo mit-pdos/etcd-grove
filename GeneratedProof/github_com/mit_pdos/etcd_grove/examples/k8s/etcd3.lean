@@ -9,8 +9,10 @@ public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.lintest
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.client.v3.kubernetes
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.io
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
@@ -23,6 +25,7 @@ public import GeneratedProof.k8s_io.apiserver.pkg.storage
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.value
 public import GeneratedProof.k8s_io.apiserver.pkg.util.feature
+public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time

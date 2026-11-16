@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-16: the client watch's element (`watchStateRespOk`, `client_Watch_field`) -- too weak for a user: a watch response's close error has no known dynamic type
+
+- **Spec.** `Proof/go_etcd_io/etcd/client/v3/WatchStateDefs.lean`, `watchStateRespOk` (and the server-side
+  `rawRespOk`), the element of every client `Watch` spec (`Spec/go_etcd_io/etcd/client/v3/
+  Client__Watch*.lean`, `client_Watch_field`); the plan's client watch (`SpecPlan/Spec/go_etcd_io/etcd/
+  client/v3/`) states no close error at all.
+- **Defect.** Too weak: the error arm gives only `statusErrOk v.closeErr'`. k8s's `watchChan.startWatching`
+  hands `wres.Err()` to `sendError`/`isCancelError`, which need the error's dynamic type (one of
+  `clientErrTys`, a leaf) and, for an `*errors.errorString`, that it is a pointer (`kErrOk`'s `==` with
+  `context.Canceled`). The placeholder `clientWatchCE.spec` asked `clientErr` and `errCellOk`; `errCellOk`
+  is FALSE: a refused create's close error is `rpctypes.Error(errors.New(resp.CancelReason))`, an
+  `*errors.errorString` holding the server's message (permission denied, `"mvcc: watcher range is empty"`).
+- **Evidence.** `watchChan__startWatching.lean`'s pending hypothesis (7f-5a-P step 5); Go:
+  `nonissues/etcd-watch-refused-create-err-plain.md` (its test); the stream errors' shape:
+  `examples/k8s/etcd3/streamerr_test.go` (T-CE).
+- **Proposed change.** New client vocabulary `errPtrOk e` (an `*errors.errorString` error is a pointer) and
+  `closeErrOk e := statusErrOk e ∗ ⌜(e ≠ nil → clientErr e) ∧ errPtrOk e⌝`; the element's error arm, `run`'s
+  published close error (`closeErrPub`), the stream's `closeErr` field and the receive errors (`errP`) carry
+  `closeErrOk` in place of `statusErrOk`. Needs the trusted `cliStreamErr` to give `errCellOk` (T-CE).
+  startWatching then uses the client's `Watch` spec instead of `clientWatchCE.spec`.
+- **Decision.** Accepted with `errPtrOk`, not `errCellOk` (etcd-grove-81, 2026-11-16); T-CE approved (same).
+
 ## 2026-11-15: `fmt.ErrorfPlain.spec` (trust boundary) -- false for a flagged `w` verb (`%+w`, `%-5w`): the premise `¬ List.IsInfix "%w" format` lets them through
 
 - **Spec.** `Spec/fmt/ErrorfPlain.lean`, `fmt.ErrorfPlain.spec`; its axiom `fmt.ErrorfPlain.wp_proof`
@@ -570,3 +592,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `uint.Z r0 + 1 < 2^63` in that case.
 - **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15).
+
+## 2026-11-16: the store's update report gains "one change per step" (k8s 7f-6 C, F1)
+
+- **Spec.** `KvNext` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Updates.lean`), in the posts of `k8sAu1` and `k8sAuRW`
+  (what a write's firing tells its caller); `kvNext_step`, `k8sAu1_kvAu1`, `k8sAuRW_kvAu1`, `k8sAusRW_kvAu1`.
+- **Defect.** `KvNext` tells the caller only the next state, so its history (`oneKeyRevs`, over state differences) cannot
+  exclude a revision of two changes of one key, where the store's watch (`kStreamOk`, over etcd's events, one per change)
+  delivers two events and the driver's check one: the bridge to `StreamOkL` is false without it.
+- **Evidence.** `notes/k8s-7f6c-plan.md` §2 (the counterexample); the store sends single-operation transactions
+  (`putTxn`, `delTxn`, `OptimisticPut`/`OptimisticDelete`).
+- **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
+  `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
+- **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).

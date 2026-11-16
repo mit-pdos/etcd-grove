@@ -36,6 +36,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +47,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -61,6 +63,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
 
 // ---------------------------------------------------------------------------------------------
@@ -1742,39 +1745,99 @@ func Main(clients int, ops int) porcupine.CheckResult {
 	return r
 }
 
-// clusterConfig is MainCluster's three-member cluster (examples/lib/cluster3): its own token, names
-// and addresses, not the other examples', so that their tests can run at once.
-func clusterConfig() cluster3.Config {
-	return cluster3.Config{
-		Token: "k8setcd3c", Name1: "k8setcd3c-1", Name2: "k8setcd3c-2", Name3: "k8setcd3c-3",
-		Peer1: "127.0.0.1:24041", Peer2: "127.0.0.1:24042", Peer3: "127.0.0.1:24043",
-		Client1: "127.0.0.1:24051", Client2: "127.0.0.1:24052", Client3: "127.0.0.1:24053",
-		Bridge1: "127.0.0.1:24061", Bridge2: "127.0.0.1:24062", Bridge3: "127.0.0.1:24063",
-		SnapCount: 1, SnapCatchUp: 1,
+// The cluster's members' address ranges (MainCluster, MainPartition: k members, as
+// examples/etcd/txnlinfaultsN's): member i's peer address is 127.0.0.1:(PeerBase+i) (its one peer
+// URL http://<addr>, served by its raft handler), its client address 127.0.0.1:(ClientBase+i)
+// (served by its gRPC server), and its bridge's address 127.0.0.1:(BridgeBase+i) (the bridge to its
+// client address, which the client dials). Not another example's, and below Linux's ephemeral
+// ports, so that the examples' tests can run at once.
+const (
+	PeerBase   uint64 = 20000
+	ClientBase uint64 = 21000
+	BridgeBase uint64 = 22000
+)
+
+// Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL,
+// etcd computes each member's id. It is the first "k8setcd3N-<i>" at which the ids' 16 low bits
+// are distinct and not 0 for every k <= 1000 (the premise on the ids; TestMemberIDs checks it), as
+// txnlinfaultsN's.
+const Token = "k8setcd3N-6285"
+
+// The members' snapshot settings (cluster3's, as the three-member cluster had): a disk snapshot
+// every SnapCount applied entries, raft's log then compacted to SnapCatchUp entries below it, so
+// that a member a cut kept behind is caught up by a snapshot.
+const (
+	SnapCount   uint64 = 1
+	SnapCatchUp uint64 = 1
+)
+
+// bridgeAddr is member i's bridge address, 127.0.0.1:(BridgeBase+i), the number in decimal (as
+// etcdstart.Members writes the members' addresses).
+func bridgeAddr(i uint64) string {
+	return "127.0.0.1:" + strconv.FormatUint(BridgeBase+i, 10)
+}
+
+// holdToken sleeps forever (cluster3's): startCluster runs it on a goroutine of its own beside each
+// member's gRPC server, which touches no lock; the proof hands that goroutine's thread token to the
+// member's serving, as cluster3.StartMember does.
+func holdToken() {
+	for {
+		time.Sleep(time.Hour)
 	}
 }
 
-// MainCluster is Main over a three-member cluster: it starts the cluster (cluster3.StartCluster),
-// connects a kubernetes client to the three members' bridges, configured as etcd's clients are in
-// practice (etcdstart.NewClients' timeouts and keepalive, the default retries: a write is retried
-// only after a refusal, which the members never send, so it is sent at most once), seeds the keys,
-// makes the store and runs Check; it panics if porcupine finds the history illegal. An error from a
-// step before Check ends MainCluster without a check.
-func MainCluster(clients int, ops int) porcupine.CheckResult {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	_, _, ok := cluster3.StartCluster(cfg, lg)
-	if !ok {
-		return porcupine.Unknown
+// startCluster starts the k members of a new cluster (etcdstart.Members, etcdstart.StartMembers,
+// as examples/etcd/txnlinfaultsN starts them), then, for each member in order, its gRPC server on
+// its client address (etcdstart.Serve, with a holdToken goroutine beside it) and a bridge to that
+// address (cluster3.StartBridge), and connects a kubernetes client to the k bridges, configured as
+// etcd's clients are in practice (etcdstart's timeouts and keepalive, the default retries: a write
+// is retried only after a refusal, which the members never send, so it is sent at most once). It
+// returns the members, the bridges and the client, and false if a step failed.
+func startCluster(k uint64, lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge,
+	*kubernetes.Client, bool) {
+	ms := etcdstart.Members("k8setcd3N", k, PeerBase, ClientBase)
+	srvs, err := etcdstart.StartMembers(ms, Token, SnapCount, SnapCatchUp, lg)
+	if err != nil {
+		return nil, nil, nil, false
+	}
+	brs := make([]bridge.Bridge, k)
+	baddrs := make([]string, k)
+	for i := uint64(0); i < k; i++ {
+		go holdToken()
+		if err := etcdstart.Serve(srvs[i], ms[i].Client); err != nil {
+			return nil, nil, nil, false
+		}
+		ba := bridgeAddr(i)
+		br, err := cluster3.StartBridge(ba, ms[i].Client)
+		if err != nil {
+			return nil, nil, nil, false
+		}
+		brs[i] = br
+		baddrs[i] = ba
 	}
 	kc, err := kubernetes.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
+		Endpoints:            baddrs,
 		DialTimeout:          etcdstart.DialTimeout,
 		DialKeepAliveTime:    etcdstart.KeepAliveTime,
 		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
 		Logger:               lg,
 	})
 	if err != nil {
+		return nil, nil, nil, false
+	}
+	return srvs, brs, kc, true
+}
+
+// MainCluster is Main over a k-member cluster (startCluster), seeds the keys, makes the store and
+// runs Check; it panics if porcupine finds the history illegal. A failed start, an error from a
+// step before Check, or k = 0, ends MainCluster without a check.
+func MainCluster(k uint64, clients int, ops int) porcupine.CheckResult {
+	if k == 0 {
+		return porcupine.Unknown
+	}
+	lg := zap.NewNop()
+	_, _, kc, ok := startCluster(k, lg)
+	if !ok {
 		return porcupine.Unknown
 	}
 	st0, h0, ok := seed(kc.Client)
@@ -1794,26 +1857,18 @@ func MainCluster(clients int, ops int) porcupine.CheckResult {
 	return r
 }
 
-// MainPartition is MainCluster under the partition schedule sched: once the store is made, the
-// schedule runs (cluster3.Partitioner, on a goroutine of its own) while Check's clients run. A call
-// to a member cut off from its clients ends when keepalive closes its dead transport (etcdstart's
-// KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
-// effect later or never).
-func MainPartition(clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
-	if !ok {
+// MainPartition is MainCluster under the partition schedule sched (its steps name members by
+// index, below k): once the store is made, the schedule runs (cluster3.Partitioner, on a goroutine
+// of its own) while Check's clients run. A call to a member cut off from its clients ends when
+// keepalive closes its dead transport (etcdstart's KeepAliveTime/KeepAliveTimeout); a write that
+// fails is kept pending by the model (it takes effect later or never).
+func MainPartition(k uint64, clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
+	if k == 0 {
 		return porcupine.Unknown
 	}
-	kc, err := kubernetes.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
-		DialTimeout:          etcdstart.DialTimeout,
-		DialKeepAliveTime:    etcdstart.KeepAliveTime,
-		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
-		Logger:               lg,
-	})
-	if err != nil {
+	lg := zap.NewNop()
+	srvs, brs, kc, ok := startCluster(k, lg)
+	if !ok {
 		return porcupine.Unknown
 	}
 	st0, h0, ok := seed(kc.Client)

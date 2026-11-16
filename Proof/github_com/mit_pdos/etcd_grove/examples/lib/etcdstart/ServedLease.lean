@@ -403,6 +403,29 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iexists γ
   iexact Ht
 
+/-- **`kv_lease_served`, with the `GoAttach` resources given back** (leaseN, 2026-11-16,
+`notes/leaseN-plan.md`): `kv_lease_served`'s post and the member's `srvGoRes` (the thread token it
+holds), which a loop serving the members one after another passes on to the next member. -/
+theorem kv_lease_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
+    (Hrf : grpcRepliesFit) (hP : leasePeersOk) (hρ : ρ.rd = γr) (m : lease.Mode)
+    (hm : ρ.rd.kv.lm = m) (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
+        kvServeStocks s E γr ∗
+        grpcUp s E ρ γr gs lis addr cid mid R ⊢
+      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
+        etcdLeaseServedAt m addr s E ρ γr cid mid := by
+  iintro H
+  imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
+    with ⟨%γ, Ht, Hgo, -, Hr, Hl⟩
+  imodintro
+  iframe Hgo Hr Hl
+  iexists γ
+  iexact Ht
+
 /-- **`kv_lease_served`, with the member's `Watch` stream and its refusal freedom** (lease-mono3's
 pass 2(c), 2026-11-06; the shape of `client.etcd_kv_started_with`'s post, for `cluster3.StartMember`
 in a lease mode, whose `memberServed` keeps the watch stream and `noRefusalAt` in every mode): under

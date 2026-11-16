@@ -7,8 +7,10 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/cache 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compacted 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/lease 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leaseN 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/partition 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/putget 1
@@ -33,8 +35,10 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/cache 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compacted 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/lease 2
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leaseN 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry 2
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/partition 7
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/putget 2
@@ -56,8 +60,8 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kv 3
-spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvdurable 2
-spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvreconf 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvdurable 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvreconf 4
 spec-receipt go_etcd_io/etcd/server/v3/etcdserver 15
 spec-receipt go_etcd_io/etcd/server/v3/lease 1
 spec-readers go_etcd_io/etcd/cache/v3 6

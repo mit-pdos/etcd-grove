@@ -37,7 +37,7 @@ abbrev watchGRPCStream.closeSubstream.spec : Prop :=
   ∀ (V : WEnv GF) (wgs ws : Loc) (id : w64) (e : GoInterface) (dq1 dq2 dq3 : DFrac) (m : Loc)
     (M : GMap w64 Loc) (s : GoSlice) (l : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ closingBody V ws ∗
-      wsF ws go!"id" ↦ id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗ statusErrOk e ∗
+      wsF ws go!"id" ↦ id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗ closeErrOk e ∗
       wgsF wgs go!"substreams" ↦{dq2} m ∗ ownMap m (DFrac.own 1) M ∗
       wgsF wgs go!"resuming" ↦{dq3} s ∗ s ↦* l }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"closeSubstream")) (Val #ws))
