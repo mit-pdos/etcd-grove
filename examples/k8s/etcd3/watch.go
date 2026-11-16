@@ -225,7 +225,7 @@ func decodeWEvents(s string) ([]WEvent, bool) {
 	var evs []WEvent
 	i := 0
 	for i < len(s) {
-		if len(s) < i+18 {
+		if len(s)-i < 18 {
 			return nil, false
 		}
 		t, a := int(s[i]), s[i+1]
