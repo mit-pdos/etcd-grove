@@ -2,18 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def tracingEventRep (p : Loc) (e : TraceEv) : IProp GF :=
-  iprop(∃ g a b,
-      typedPointsto p g DFrac.discard ∗
-        ⌜g.Name' = e.name ∧
-              g.NodeID' = e.nid ∧
-                g.State'.Term' = e.term ∧
-                  g.State'.Vote' = e.vote ∧
-                    g.State'.Commit' = e.commit ∧ g.Role' = e.role ∧ g.LogSize' = e.logSize ∧ g.Conf'.arr = [a, b]⌝ ∗
-          ownSlice a e.conf.fst DFrac.discard ∗
-            ownSlice b e.conf.snd DFrac.discard ∗
-              tracingMsgRep g.Message' e.msg ∗ tracingCCRep g.ConfChange' e.cc ∗ tracingPropsRep g.Properties' e)
-
 theorem trace_append (γt : GName) (L : List TraceEv) (e : TraceEv) : ⊢ traceAuth γt L -∗ traceFrag
     γt L ==∗ traceAuth γt (L ++ [e]) ∗ traceFrag γt (L ++ [e])
 
@@ -42,41 +30,6 @@ structure TraceEv : Type where
   propMatch : Option w64
   propNext : Option w64
 
-def tracingPropsRep (m : GoMap) (e : TraceEv) : IProp GF :=
-  iprop(⌜m = null⌝ ∗ ⌜e.propCC = none ∧ e.propMatch = none ∧ e.propNext = none⌝ ∨
-      ∃ pm pc,
-        ownMap m DFrac.discard pm ∗
-          ⌜(e.propCC.isSome = true ↔
-                  pm !! go!"cc" = some (interface.mkOk TracingConfChange.ty.PointerType (intoVal pc))) ∧
-                (e.propCC.isNone = true → pm !! go!"cc" = none) ∧
-                  (∀ (w : w64),
-                      e.propMatch = some w ↔
-                        pm !! go!"match" = some (interface.mkOk go.uint64 (intoVal w))) ∧
-                    (e.propMatch = none → pm !! go!"match" = none) ∧
-                      (∀ (w : w64),
-                          e.propNext = some w ↔
-                            pm !! go!"next" = some (interface.mkOk go.uint64 (intoVal w))) ∧
-                        (e.propNext = none → pm !! go!"next" = none) ∧
-                          ∀ (k : List w8),
-                            ¬k ∈ [go!"cc", go!"match", go!"next"] →
-                              pm !! k = none⌝ ∗
-            tracingCCRep pc e.propCC)
-
-theorem tracingMsgRep_persistent (p : Loc) (o : Option TraceMsg) : Persistent (tracingMsgRep p o)
-
-def isTraceLogger (γt : GName) (tl : GoInterface) : IProp GF :=
-  iprop(⌜tl = GoInterface.nil⌝ ∨
-      ∃ l,
-        ⌜tl = GoInterface.ok l⌝ ∗
-          □
-            ∀ p e Q,
-              tracingEventRep p e -∗
-                AU <{ ∃∃ L, traceAuth γt L }> @ ⊤, ∅ <{ traceAuth γt (L ++ [e]), COMM Q }> -∗
-                  WP
-                    ((intoVal (methods l.ty go!"TraceEvent" l.v))
-                      (intoVal p))
-                    {{ v, ⌜v = intoVal ()⌝ ∗ Q }})
-
 structure TraceCC : Type where
   changes : List (GoString × GoString)
   newconf : List GoString
@@ -93,21 +46,6 @@ structure TraceMsg : Type where
   vote : GoString
   reject : Bool
   rejectHint : w64
-
-theorem isTraceLogger_persistent (γt : GName) (tl : GoInterface) : Persistent (isTraceLogger γt tl)
-
-theorem tracingPropsRep_persistent (m : GoMap) (e : TraceEv) : Persistent (tracingPropsRep m e)
-
-def tracingCCRep (p : Loc) (o : Option TraceCC) : IProp GF :=
-  match o with
-  | none => iprop(⌜p = null⌝)
-  | some c =>
-    iprop(∃ g chs,
-        typedPointsto p g DFrac.discard ∗
-          ownSlice g.Changes' chs DFrac.discard ∗
-            ⌜List.map (fun x => (x.NodeID', x.Action')) chs = c.changes⌝ ∗ ownSlice g.NewConf' c.newconf DFrac.discard)
-
-theorem tracingCCRep_persistent (p : Loc) (o : Option TraceCC) : Persistent (tracingCCRep p o)
 
 theorem trace_alloc : ⊢ |==> ∃ γt, traceAuth γt [] ∗ traceFrag γt []
 
@@ -134,25 +72,6 @@ theorem trace_agree (γt : GName) (L1 L2 : List TraceEv) : ⊢ traceAuth γt L1 
 def traceAuth (γt : GName) (L : List TraceEv) : IProp GF :=
   ghostVar γt (Qp.half 1) L
 
-def tracingMsgRep (p : Loc) (o : Option TraceMsg) : IProp GF :=
-  match o with
-  | none => iprop(⌜p = null⌝)
-  | some m =>
-    iprop(∃ g,
-        typedPointsto p g DFrac.discard ∗
-          ⌜g.Type' = m.typ ∧
-              g.Term' = m.term ∧
-                g.From' = m.frm ∧
-                  g.To' = m.to ∧
-                    g.EntryLength' = m.entries ∧
-                      g.LogTerm' = m.logTerm ∧
-                        g.Index' = m.index ∧
-                          g.Commit' = m.commit ∧ g.Vote' = m.vote ∧ g.Reject' = m.reject ∧ g.RejectHint' = m.rejectHint⌝)
-
 def traceCC_countable : Pos.Countable TraceCC :=
   countableOfLeftInverse (fun c => (c.changes, c.newconf)) (fun p => { changes := p.fst, newconf := p.snd })
     traceCC_countable._proof_1
-
-theorem isTraceLogger_nil (γt : GName) : ⊢ isTraceLogger γt GoInterface.nil
-
-theorem tracingEventRep_persistent (p : Loc) (e : TraceEv) : Persistent (tracingEventRep p e)

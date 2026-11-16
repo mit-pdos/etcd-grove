@@ -126,6 +126,23 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
   `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
   --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
+- `RaftTla/` is another: raft's `with_tla` build (`state_trace.go`: the trace hooks with their
+  bodies), for raft's TLA+ trace validation (`examples/raft/tracecheck`) and nothing else. The main
+  tree translates and verifies raft WITHOUT the tag (the build etcd ships, `state_trace_nop.go`:
+  empty hooks), and every theorem outside `RaftTla/` is about that build. `RaftTla/{Code,
+  GeneratedProof}/` hold raft's own package translated with `-tags with_tla` (project `raft-tla`)
+  and the trace check's harness (project `tracecheck`'s part). Its specs and proofs of raft are
+  **generated copies** of the main tree's modules, imports redirected (`etc/gen-raft-tla.py`, files
+  starting with its marker line; `--check` in `etc/gates.sh` and CI): one proof text, compiled
+  against each build. Never edit a copy: edit the main tree's file and rerun the script. A raft file
+  of the main tree must therefore compile in both trees (name nothing that only one build has, and
+  do not unfold `isTraceLogger`). What differs between the builds is hand-written once per tree, at
+  the same module path: `InvTraceLogger` (the logger's contract: nil only in the main tree, the
+  `TraceEvent` method in `RaftTla/`), the eleven hooks' proofs (their specs are shared), raft's
+  `Init`, and `Link` (`etc/gen-link.py --raft-tla`, list `etc/link-lean-first-raft-tla.txt`);
+  `RaftTla/` alone has the hooks' helpers and the trace check's specs and proofs (its `Init` and
+  `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
+  `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py

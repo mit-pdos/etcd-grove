@@ -15,6 +15,7 @@ the configuration's premises make `startTraceC` (`startTraceC_intro`).
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedNodeApi
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

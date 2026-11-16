@@ -9,6 +9,7 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.traceSendMessage
 public import RaftTla.Spec.go_etcd_io.raft.v3.traceEvent
 public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftTla.Proof.go_etcd_io.raft.v3.TracedMsgRep
 
 @[expose] public section
 

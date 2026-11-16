@@ -29,7 +29,7 @@ One spec for both modes (Q8 stage 1, slice 2, 2026-11-09), by the node's mode `s
 `trOwn s.gh.tr` lends raft's state only when traced (an untraced caller, holding the struct open or
 not, gives nothing), and `TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q` is a nil logger and `Q`
 untraced, the logger's contract and the caller's update for any `NodeEvOf` event traced. Its traced
-instance is the Draft's `traceNodeEvent.tracedSpec` (`TracedHooks.lean`). `evt.String()` panics past
+instance is the Draft's `traceNodeEvent.tracedSpec` (`TracedNodeEventHook.lean`). `evt.String()` panics past
 the event names (review round 1's F1), hence the premise. Until slice 2: `⌜TraceLoggerOk tl⌝`,
 giving `True` (increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceNodeEvent.spec : Prop :=

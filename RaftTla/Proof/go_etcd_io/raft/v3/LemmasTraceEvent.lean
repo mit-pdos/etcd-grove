@@ -7,6 +7,7 @@ of the message argument, either case), moved out of the proof file (`traceEvent.
 module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.makeTracingMessage
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

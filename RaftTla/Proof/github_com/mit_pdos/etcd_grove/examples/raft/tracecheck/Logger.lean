@@ -8,6 +8,7 @@ Lean-first (no Rocq counterpart). Trace-check's layer D (2026-11-09).
 module
 
 public import RaftTla.Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder__TraceEvent
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

@@ -18,6 +18,8 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import RaftTla.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Spec.strconv.FormatUint
 public import RaftTla.Proof.go_etcd_io.raft.v3.LemmasTraceEvent
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
+public import RaftTla.Proof.go_etcd_io.raft.v3.TracedMsgRep
 
 @[expose] public section
 

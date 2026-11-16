@@ -10,6 +10,7 @@ the append under the lock) and returns with the update's `Q`.
 module
 
 public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Recorder
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

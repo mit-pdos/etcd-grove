@@ -11,6 +11,7 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.traceConfChangeEvent
 public import RaftTla.Spec.go_etcd_io.raft.v3.traceEvent
 public import RaftTla.Spec.go_etcd_io.raft.v3.formatConf
 public import RaftTla.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

@@ -2,8 +2,7 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceInitState.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
-    traceNodeEvent.spec) : traceInitState.spec
+theorem traceInitState.wp_proof [package_sem : Assumptions] : traceInitState.spec
   -- `Perennial.EtcdGrove.traceInitState.spec`, unfolded:
   ∀ (r : Loc) (tl : GoInterface) (tr : Option GName) (E : TraceEv → Prop) (Q R : IProp GF),
     ⊢

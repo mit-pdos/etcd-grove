@@ -2,9 +2,7 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceReceiveMessage.wp_proof [package_sem : Assumptions] (wp_traceEvent : traceEvent.spec)
-    (wp_GetType : raftpb.Message.GetType.spec) (wp_Sleep : time.Sleep.spec) :
-    traceReceiveMessage.spec
+theorem traceReceiveMessage.wp_proof [package_sem : Assumptions] : traceReceiveMessage.spec
   -- `Perennial.EtcdGrove.traceReceiveMessage.spec`, unfolded:
   ∀ (r ml : Loc) (tl : GoInterface) (tr : Option GName) (oE : Option (TraceEv → Prop)) (Q R : IProp GF),
     ⊢

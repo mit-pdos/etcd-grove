@@ -6,6 +6,7 @@ module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedMsg
 public import RaftTla.Proof.go_etcd_io.raft.v3.RaftReadLend
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

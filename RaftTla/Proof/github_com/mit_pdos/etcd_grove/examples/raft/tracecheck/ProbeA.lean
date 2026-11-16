@@ -52,6 +52,7 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.node__Step
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedNodeApi
 public import RaftTla.Proof.go_etcd_io.raft.v3.ConfchangeApi
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedLinked
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

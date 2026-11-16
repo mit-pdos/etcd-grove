@@ -21,6 +21,7 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Message__GetVote
 public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
 public import RaftTla.Spec.go_etcd_io.raft.v3.raftpb.Message__GetRejectHint
 public import Spec.strconv.FormatUint
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

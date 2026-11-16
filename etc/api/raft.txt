@@ -175,6 +175,8 @@ importable Proof.go_etcd_io.raft.v3.InvBig
 # (2026-11-09) the trace-check example's recorder and converter: the trace mode's ghost state
 # (`InvTrace`) and the simulation of the TLA spec by raft's events (`TraceSim`)
 importable Proof.go_etcd_io.raft.v3.InvTrace
+# the logger's contract, per build (this tree: the build without `with_tla`, nil only; `RaftTla/`: the real one)
+importable Proof.go_etcd_io.raft.v3.InvTraceLogger
 importable Proof.go_etcd_io.raft.v3.TraceSim
 # (Q13, 2026-11-09) the simulation's invariant at the end of the run (`simInv_end`), for `Main`'s
 # pure obligations (`tracecheck/MainSim.lean`), with the modules it publicly imports

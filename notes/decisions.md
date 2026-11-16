@@ -40402,3 +40402,64 @@ not simply add up:
   the build etcd ships (`state_trace_nop.go`). Whether to cover both builds by one proof (an internal
   assumptions class with the hooks' bodies as a disjunction, the closed theorems over the generated
   class) is the user's open question.
+
+## One raft proof for both builds: the main tree without `with_tla`, `RaftTla/` with it (2026-11-16 · the user's direction · branch `trace-check-merge-lean2`)
+
+**Supersedes, in part,** "The `lean` merge, stage 2" above: its "the build translated is chosen by
+goose's `-tags`" stays, its `RAFT_TAGS` (raft and every project reaching it translated with
+`with_tla`) and its "Not decided here" do not.
+
+The user (2026-11-16): "Cover both raft builds with one proof as much as possible to avoid repetition.
+I only want `with_tla` to be set for the tla-check top-level theorem. All the other theorems should be
+about Go code built without `with_tla`." A theorem about etcd or the kv examples over the `with_tla`
+translation is about a build nobody ships; the stage-2 merge had made every raft theorem one.
+
+- **Two translations.** Project `raft` is untagged again: `Code/go_etcd_io/raft/v3.lean` is
+  `origin/lean`'s, byte for byte (`state_trace_nop.go`: eleven empty hooks, `TraceLogger` an empty
+  interface). Project `raft-tla` translates raft's own package with `-tags with_tla` into the part
+  `RaftTla/` (its subpackages have no build constraint and stay the main tree's); project
+  `tracecheck`'s harness (package `tracecheck`, which runs raft with a recording logger) is a part on
+  it, its checker (`tracecheck/etcdraft`, which does not import raft) stays in the main tree.
+- **One proof text.** Two translations of one Go package declare the same Lean names, so no module can
+  import both, and a proof compiled once is about one of them. What can be shared is the source:
+  `etc/gen-raft-tla.py` copies into `RaftTla/` every main-tree module that reaches raft's translation
+  and that the trace check needs (950 modules: raft's specs, proofs, `Inv*`, the protocol; the few
+  library specs raft's proofs import), redirecting imports. The copies carry a marker line and are
+  checked (`--check`, in `etc/gates.sh` and CI) like the Goose translations. A proof is written
+  once, in the main tree, and compiled against each build.
+- **The build-specific layer**, hand-written once per tree at the same module path, with the same
+  exported names and statements where both have them:
+  - `InvTraceLogger` (split from `InvTrace`): `isTraceLogger γt tl`. Main: `⌜tl = nil⌝`, with
+    `isTraceLogger_ne_nil`. `RaftTla/`: the real contract (a `TraceEvent` method that appends the
+    event to the trace atomically) and the event's representation (`tracing*Rep`).
+  - the eleven hooks' proofs. Their **specs are shared** and state both modes. Main: the traced half
+    (`TraceFire (some γd) …`, `trCapB (some …)`) holds `isTraceLogger` of a non-nil logger, absurd
+    there (`TraceNopLemmas.lean`: `traceFire_nop` and its `Opt`/`N` forms), and the untraced half is
+    met by an empty function. `RaftTla/`: the proofs of the bodies, as on trace-check.
+  - raft's `Init` (the tagged build also initializes `strconv` and `time`) and `Link`
+    (`etc/gen-link.py --raft-tla`, list `etc/link-lean-first-raft-tla.txt`: the previous list, with
+    the hooks' helpers).
+  - `RaftTla/` only: the helpers' specs and proofs (`traceEvent`, `traceNodeEvent`,
+    `makeTracingState`, `makeTracingMessage`, `formatConf`, `stateMachineEventType.String`),
+    `LemmasTraceEvent`, `TracedConfChangeHook`, `TracedMsgRep`, `TracedNodeEventHook`, and the trace
+    check (`raft_tracecheck_safe`, `raft_tracecheck_accepts`).
+- **What the main tree's theorems now say.** Raft's statements keep the trace mode (`γ.reTrace`,
+  `Cluster.trace`, the gates): they are the shared text. In the main tree the traced mode is
+  uninhabited past the hooks (no logger meets the contract), so every closed theorem there (the kv
+  examples, etcd) is about the shipped build with a nil `TraceLogger`, as on `lean` before the
+  merge. No statement of the main tree changed in the split.
+- **Rejected.** (1) One compilation over a hand-written assumptions class with the hooks' bodies as
+  a disjunction: the two generated `Code` modules cannot be imported together, so the class would
+  have to restate the whole package's `FuncUnfold`s by hand, and each closed theorem would still
+  need an instance from its generated class, in a module that imports the other tree's names.
+  (2) Excluding `state_trace*.go` from the translation and axiomatizing the hooks: axioms where
+  there are proofs. (3) Keeping `with_tla` everywhere (stage 2): the user's objection above.
+- **Cost.** Raft's proofs compile twice: the `RaftTla` library is 1031 modules of its own (950
+  copies, 81 hand-written or translated; 3808 Lake jobs with what they import); `lake build` builds
+  both (`defaultTargets`). The copies are committed (as the
+  translations are), so a raft proof change is a diff in two places, the second generated.
+  A shared file that names something of one build fails in the other tree's compile, which is the
+  check that the proof is build-agnostic.
+- **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
+  (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
+  `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.

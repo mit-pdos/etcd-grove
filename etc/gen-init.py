@@ -2955,6 +2955,39 @@ def dag_init():
 
 
 
+# The part `RaftTla/` (raft's `with_tla` build, etc/gen-raft-tla.py): the closed trace-check program
+# (`examples/raft/tracecheck`) runs that build, so its `Init.lean` and `PkgTable.lean` are generated
+# from the part's translations over the main tree's (the part translates raft's own package and the
+# program; everything else is the main tree's), with the imports redirected as etc/gen-raft-tla.py
+# redirects those of the modules it copies.
+TLA_ROOT = 'RaftTla'
+TLA_PROGRAM = 'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck'
+
+
+def tla_outs():
+    """The part's generated `Init.lean` and `PkgTable.lean` of the trace-check program."""
+    global inv, inst
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'gen_raft_tla', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gen-raft-tla.py'))
+    grt = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(grt)
+    redirect = grt.plan()[4]
+    saved = inv, inst
+    try:
+        inv = dict(inv)
+        inv.update({q: d for q, d in inventory(f'{TLA_ROOT}/Code').items() if not d['perennial']})
+        inst = dict(inst)
+        inst.update(instances(f'{TLA_ROOT}/Proof/'))
+        outs = [gen(TLA_PROGRAM, SPECIAL.get(TLA_PROGRAM)),
+                gen_table(TLA_PROGRAM, f'Proof/{dirof(TLA_PROGRAM)}/PkgTable.lean')]
+    finally:
+        inv, inst = saved
+    def imp(m):
+        return m.group(1) + redirect(m.group(2))
+    return [(f'{TLA_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in outs]
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -2967,6 +3000,7 @@ def main(argv):
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init(),
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
+        outs += tla_outs()
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

@@ -15,6 +15,7 @@ module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.TraceSim
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Rep
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

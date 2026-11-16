@@ -30,6 +30,7 @@ module
 
 public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Base
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvTrace
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 

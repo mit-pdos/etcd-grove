@@ -5,6 +5,7 @@ module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.traceNodeEvent
 public import RaftTla.Spec.go_etcd_io.raft.v3.traceEvent
+public import RaftTla.Proof.go_etcd_io.raft.v3.TracedMsgRep
 
 @[expose] public section
 

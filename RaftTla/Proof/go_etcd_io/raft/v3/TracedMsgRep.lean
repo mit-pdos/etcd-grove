@@ -6,6 +6,7 @@ Lean-first (no Rocq counterpart). Laws of the trace event's `Properties` map rep
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedMsg
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 
@@ -19,9 +20,8 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [StorageModel GF] [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The properties' representation reads only the event's three properties. -/
 theorem tracingPropsRep_congr (m : GoMap) (e e' : TraceEv) (h1 : e.propCC = e'.propCC)

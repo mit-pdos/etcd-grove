@@ -18,6 +18,7 @@ public import Spec.context.WithTimeoutBackground
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
+public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
 
