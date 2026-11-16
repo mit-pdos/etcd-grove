@@ -4,8 +4,9 @@ Scope: `/shared/etcd-grove-k8s7f6/notes/k8s-7f6-scope.md` §3, §5 row C; Draft 
 §1-2. Target: from the store's `kStreamOk` (`WatchDefs.lean`, over `KVState`, `DObj`) to the driver's
 `StreamOkL` (`KWatchStream.lean`, over `HSt`, `Obj`), the premise of `watchOkL_of_stream`.
 
-**Status: HARD STOP at the checkpoint.** The bridge needs one fact of etcd's history (F1 below) that
-neither the store spec's `Q` laws, nor `KRelH`, nor `oneKeyRevs` gives. Nothing proved yet.
+**Status.** F1 was a hard stop (§2); decided by etcd-grove-02 2026-11-16: option 1, `KvNext` gains
+`KvOne` (at most one change per step), every producer re-proved. Then the bridge as below, with the
+forms of §4.
 
 ## 1. The target statement
 
@@ -118,3 +119,14 @@ Alternative: F1 stays a named premise of the bridge, and its producer is decided
     tail), then `histWf_of_krel`, `kStreamOk_hist`, `kModeOk_of`.
 
 Estimate 700-1100 lines, as the Scope's.
+
+## 4. Forms decided while proving (form decided by the agent, reviewed at checkpoint)
+
+- `KHistW.keys` dropped; `streamOkL_of_kStreamOk` and `histWf_of_krel` take `hlk : "/objs/" <+: x.WKey'`
+  instead (as `refine_list`'s `hlk`; `genWatchFrom`'s keys are all `ResourcePrefix + "/" + …`): the scope
+  is then under `"/registry/objs/"`, every key in it a name's.
+- `histWf_of_krel` takes `k`, `hk`, `hlk` (it reads the events through `evAtL_eq`).
+- F1's form: `KvOne σ σ'` (`Updates.lean`): `∀ cs ∈ σ'.changes.drop σ.changes.length, cs.length ≤ 1`, the
+  fourth conjunct of `KvNext`'s step; `kvNext_step`/`kvNext_commit` take it (`hone`, `cs.length ≤ 1`);
+  `k8sAu1_kvAu1`, `k8sAuRW_kvAu1`, `k8sAusRW_kvAu1` take `hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)`,
+  discharged by `kvOne_optPut`/`kvOne_optDel` (`Steps.lean`) and `seedOp_one` (`Seed.lean`).
