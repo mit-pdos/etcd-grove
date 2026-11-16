@@ -62,6 +62,12 @@ if ! python3 etc/gen-btree-link.py > "$tmp/l.lean" 2>/dev/null || ! cmp -s "$tmp
   echo "links: $bfile differs from gen-btree-link"; links=FAILED
 fi
 echo "links: $links"; [ "$links" = ok ] || fail=1
+# 2b. RaftTla/'s generated copies of the main tree's raft specs and proofs (raft's `with_tla` build)
+if python3 etc/gen-raft-tla.py --check > "$tmp/tla.log" 2>&1; then
+  echo "$(tail -1 "$tmp/tla.log")"
+else
+  echo "gen-raft-tla: FAILED"; tail -10 "$tmp/tla.log"; fail=1
+fi
 return $fail
 }
 

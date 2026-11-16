@@ -66,6 +66,9 @@ WORK = os.path.join(ROOT, ".lake", "goose")
 # The Go toolchain the translations are generated with (the module docstring says why).
 GO_TOOLCHAIN = "go1.27.3"
 
+# Project raft's pin (projects raft and raft-tla translate two builds of it).
+RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
+
 
 @dataclass
 class Part:
@@ -104,7 +107,7 @@ class Project:
     local: str = None
     # Additional Go build tags the packages are loaded with, beside `goose` (goose's and proofgen's
     # `-tags`, Perennial c6b39d4f8). Every package of one program must be translated with the same
-    # tags: see RAFT_TAGS below.
+    # tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones with any.
     tags: list = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
@@ -136,7 +139,7 @@ PROJECTS = [
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="d2c16c558247d0a07b96986fc348a003dad80f6e",
+        rev=RAFT_REV,
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         # (`os`, `io/fs`: this repository's translations, project bboltfs's, not Perennial's; every
@@ -1418,20 +1421,57 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvwitness")],
     ),
     Project(
+        name="raft-tla",
+        # Raft in its `with_tla` build (`state_trace.go`: the trace hooks with their bodies, the
+        # `TraceLogger` interface with its `TraceEvent` method, the `Tracing*` types), for raft's
+        # TLA+ trace validation (project tracecheck) and nothing else: every other project is on
+        # project raft's translation, the build etcd ships (`state_trace_nop.go`). The same source
+        # and pin as project raft, loaded with `-tags with_tla`; only raft's own package, into the
+        # parallel tree RaftTla (module RaftTla.Code.go_etcd_io.raft.v3): its subpackages, whose
+        # files have no build constraint, are the main tree's. RaftTla's specs and proofs of raft
+        # are the main tree's, copied by etc/gen-raft-tla.py, but for the few files about the
+        # trace hooks' bodies (notes/decisions.md, "One raft proof for both builds").
+        repo="https://github.com/upamanyus/etcd",
+        rev=RAFT_REV,
+        root="RaftTla",
+        lean_roots=["go.etcd.io/raft/v3=RaftTla", "go.etcd.io/raft/v3/confchange=",
+                    "go.etcd.io/raft/v3/quorum=", "go.etcd.io/raft/v3/raftpb=",
+                    "go.etcd.io/raft/v3/tracker=", "google.golang.org=", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("go_etcd_io", "raft")],
+        counted_modules=[],
+        tags=["with_tla"],
+    ),
+    Project(
         name="tracecheck",
         # Raft's TLA+ trace validation, closed (notes/trace-validation-plan.md): the concurrent
         # harness of raft.Nodes with Main (package tracecheck), and the Go transcription of
         # etcdraft.tla and Traceetcdraft.tla its checker (package etcdraft; not its ndjson reader
         # nor its porcupine model, pmodel, which only cross-check). A Go module of its own, whose
         # go.mod replaces go.etcd.io/raft/v3 by the fork at project raft's pin (GO_MOD_PINS), loaded
-        # in the `with_tla` build (RAFT_TAGS). Its raft is project raft's (main tree).
+        # in the `with_tla` build. The checker (package etcdraft, which does not import raft) is
+        # translated into the main tree; the harness (package tracecheck) into RaftTla, on project
+        # raft-tla's raft.
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "tracecheck"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "google.golang.org=",
                     "github.com/anishathalye/porcupine="],
-        packages=[".", "./etcdraft"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "tracecheck")],
+        packages=["./etcdraft"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "tracecheck",
+                            "etcdraft")],
+        parts=[Part(
+            root="RaftTla",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/tracecheck=RaftTla",
+                        "github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft=",
+                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftTla",
+                        "go.etcd.io/raft/v3/confchange=", "go.etcd.io/raft/v3/quorum=",
+                        "go.etcd.io/raft/v3/raftpb=", "go.etcd.io/raft/v3/tracker=",
+                        "google.golang.org=", "github.com/anishathalye/porcupine="],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft",
+                                "tracecheck")])],
+        tags=["with_tla"],
     ),
     Project(
         name="bbolt-bank",
@@ -1476,24 +1516,6 @@ PROJECTS = [
     ),
 ]
 
-# Raft is translated in its `with_tla` build, the one with the trace hooks' bodies
-# (`state_trace.go`, `//go:build with_tla`; without the tag `state_trace_nop.go`'s empty hooks,
-# `TraceLogger = interface{}` and the empty `TracingEvent`): the hooks' specs and the trace check
-# (examples/raft/tracecheck) are about them. A build tag is a property of a whole build, so every
-# project whose packages reach this raft (it lists raft's `-lean-root`) is loaded with it too, or its
-# translation would see the other build's declarations of raft. Not the witness experiment's
-# projects: their raft is another commit, translated in its default build as before. (Until
-# 2026-11-15 a fork commit put the hooks under the `goose` tag instead, kept unpushed in
-# etc/fork-patches/: no change of raft's source is needed for this.)
-RAFT_TAGS = ["with_tla"]
-for _p in PROJECTS:
-    if _p.name in ("raft-witness", "kvwitness"):
-        continue
-    if _p.name == "raft" or any(r.startswith("go.etcd.io/raft/v3=")
-                                for _, roots, _, _ in [(None, _p.lean_roots, None, None)] +
-                                [(None, q.lean_roots, None, None) for q in _p.parts]
-                                for r in roots):
-        _p.tags = list(RAFT_TAGS)
 
 
 # The Go modules of this repository that build the examples against the forks, and which project's

@@ -47,7 +47,6 @@ module
 public import Proof.go_etcd_io.raft.v3.TracedCap
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.traceCommit
-public import Spec.go_etcd_io.raft.v3.traceNodeEvent
 public import Spec.go_etcd_io.raft.v3.traceSendMessage
 public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
 public import Spec.go_etcd_io.raft.v3.traceBecomeFollower
@@ -74,18 +73,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The `Commit` path, traced -/
-
-/-- **`traceNodeEvent(evt, r)`, traced** (`traceNodeEvent.spec` with the gate): reads the logger;
-nil, it returns, giving `Q`; otherwise it reads `r`'s state (`ownRaftPhysCV`, given back) to build
-the event, a `NodeEvOf` one, and fires the caller's update with it. -/
-abbrev traceNodeEvent.tracedSpec : Prop :=
-  ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
-  -- `evt.String()` panics past the event names (review round 1's F1)
-  uint.nat evt < evtNames.length →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
-      ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q }}
-    (App (App (Val #(functions traceNodeEvent [])) (Val #evt)) (Val #r))
-  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
 
 /-- **`traceCommit(r)`, traced**: the `Commit` line, logged at the end of `maybeCommit` (its
 `defer`), with raft's commit index already moved. The caller's phase: the node's server `a` is a

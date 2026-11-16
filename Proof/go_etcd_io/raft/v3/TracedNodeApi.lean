@@ -35,7 +35,7 @@ public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Proof.go_etcd_io.raft.v3.TracedAdvanceSpec
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TraceSimEnd
-public import Proof.go_etcd_io.raft.v3.InvTrace
+public import Proof.go_etcd_io.raft.v3.InvTraceLogger
 import Proof.go_etcd_io.raft.v3.TracedApiDraft
 import Proof.go_etcd_io.raft.v3.TracedRecvTok
 

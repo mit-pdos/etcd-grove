@@ -101,9 +101,11 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.listers.core.v1',
          # the trace checker (2026-11-09, layer C of notes/trace-validation-plan.md): its fact says
          # what `Invariants` holds (`Violated`'s proof reads it)
-         'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft',
-         # the closed trace-check program (2026-11-11, S7 of notes/trace-validation-plan.md)
-         'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck']
+         'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft']
+# (the closed trace-check program, `examples/raft/tracecheck`, was a root from 2026-11-11, S7 of
+# notes/trace-validation-plan.md; it runs raft's `with_tla` build and is in the tree `RaftTla/`
+# since the split of raft's two builds, so its `Init.lean` and `PkgTable.lean` are no longer
+# generated here)
 # (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
@@ -2661,8 +2663,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester

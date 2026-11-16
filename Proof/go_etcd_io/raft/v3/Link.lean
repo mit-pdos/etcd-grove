@@ -83,7 +83,6 @@ public import Proof.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Proof.go_etcd_io.raft.v3.entsSize
 public import Proof.go_etcd_io.raft.v3.extend
 public import Proof.fmt.Sprintf
-public import Proof.go_etcd_io.raft.v3.formatConf
 public import Proof.go_etcd_io.raft.v3.getBasicStatus
 public import Proof.go_etcd_io.raft.v3.getProgressCopy
 public import Proof.go_etcd_io.raft.v3.getStatus
@@ -92,8 +91,6 @@ public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.limitSize
 public import Proof.go_etcd_io.raft.v3.lockedRand__Intn
 public import Proof.go_etcd_io.raft.v3.logSliceFromMsgApp
-public import Proof.go_etcd_io.raft.v3.makeTracingMessage
-public import Proof.go_etcd_io.raft.v3.makeTracingState
 public import Proof.go_etcd_io.raft.v3.needStorageAppendRespMsg
 public import Proof.go_etcd_io.raft.v3.needStorageApplyMsg
 public import Proof.go_etcd_io.raft.v3.needStorageApplyRespMsg
@@ -285,11 +282,9 @@ public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 public import Proof.go_etcd_io.raft.v3.setupNode
 public import Proof.slices.Sort
-public import Proof.go_etcd_io.raft.v3.stateMachineEventType__String
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
 public import Proof.go_etcd_io.raft.v3.stepLeader
-public import Proof.strconv.FormatUint
 public import Proof.strconv.Itoa
 public import Proof.strings.Join
 public import Proof.go_etcd_io.raft.v3.traceBecomeCandidate
@@ -298,9 +293,7 @@ public import Proof.go_etcd_io.raft.v3.traceBecomeLeader
 public import Proof.go_etcd_io.raft.v3.traceChangeConfEvent
 public import Proof.go_etcd_io.raft.v3.traceCommit
 public import Proof.go_etcd_io.raft.v3.traceConfChangeEvent
-public import Proof.go_etcd_io.raft.v3.traceEvent
 public import Proof.go_etcd_io.raft.v3.traceInitState
-public import Proof.go_etcd_io.raft.v3.traceNodeEvent
 public import Proof.go_etcd_io.raft.v3.traceReady
 public import Proof.go_etcd_io.raft.v3.traceReceiveMessage
 public import Proof.go_etcd_io.raft.v3.traceReplicate
@@ -562,109 +555,9 @@ theorem wp_newReadOnly [StorageModel GF] :
     newReadOnly.spec (GF := GF) (hG := hG) :=
   newReadOnly.wp_proof
 
-theorem stateMachineEventType.wp_String :
-    stateMachineEventType.String.spec (GF := GF) (hG := hG) :=
-  stateMachineEventType.String.wp_proof
-
-theorem strconv.wp_FormatUint :
-    strconv.FormatUint.spec (GF := GF) (hG := hG) :=
-  strconv.FormatUint.wp_proof
-
-theorem raft.wp_hardState [StorageModel GF] :
-    raft.hardState.spec (GF := GF) (hG := hG) :=
-  raft.hardState.wp_proof
-
-theorem wp_makeTracingState [StorageModel GF] :
-    makeTracingState.spec (GF := GF) (hG := hG) :=
-  makeTracingState.wp_proof raft.wp_hardState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit strconv.wp_FormatUint
-
-theorem slices.wp_Sort :
-    slices.«Sort».spec (GF := GF) (hG := hG) :=
-  slices.«Sort».wp_proof
-
-theorem quorum.MajorityConfig.wp_Slice :
-    quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG) :=
-  quorum.MajorityConfig.Slice.wp_proof slices.wp_Sort
-
-theorem wp_formatConf :
-    formatConf.spec (GF := GF) (hG := hG) :=
-  formatConf.wp_proof strconv.wp_FormatUint
-
-theorem StateType.wp_String :
-    StateType.String.spec (GF := GF) (hG := hG) :=
-  StateType.String.wp_proof
-
-theorem raftpb.Message.wp_GetLogTerm :
-    raftpb.Message.GetLogTerm.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetLogTerm.wp_proof
-
-theorem raftpb.Message.wp_GetEntries :
-    raftpb.Message.GetEntries.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetEntries.wp_proof
-
-theorem raftpb.Message.wp_GetIndex :
-    raftpb.Message.GetIndex.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetIndex.wp_proof
-
-theorem raftpb.Message.wp_GetType :
-    raftpb.Message.GetType.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetType.wp_proof
-
-theorem raftpb.Message.wp_GetSnapshot :
-    raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetSnapshot.wp_proof
-
-theorem strconv.wp_Itoa :
-    strconv.Itoa.spec (GF := GF) (hG := hG) :=
-  strconv.Itoa.wp_proof
-
-theorem raftpb.MessageType.wp_String :
-    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
-  raftpb.MessageType.String.wp_proof strconv.wp_Itoa
-
-theorem raftpb.Message.wp_GetTerm :
-    raftpb.Message.GetTerm.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetTerm.wp_proof
-
-theorem raftpb.Message.wp_GetFrom :
-    raftpb.Message.GetFrom.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetFrom.wp_proof
-
-theorem raftpb.Message.wp_GetTo :
-    raftpb.Message.GetTo.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetTo.wp_proof
-
-theorem raftpb.Message.wp_GetCommit :
-    raftpb.Message.GetCommit.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetCommit.wp_proof
-
-theorem raftpb.Message.wp_GetVote :
-    raftpb.Message.GetVote.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetVote.wp_proof
-
-theorem raftpb.Message.wp_GetReject :
-    raftpb.Message.GetReject.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetReject.wp_proof
-
-theorem raftpb.Message.wp_GetRejectHint :
-    raftpb.Message.GetRejectHint.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetRejectHint.wp_proof
-
-theorem wp_makeTracingMessage :
-    makeTracingMessage.spec (GF := GF) (hG := hG) :=
-  makeTracingMessage.wp_proof raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetEntries raftpb.Message.wp_GetIndex raftpb.Message.wp_GetType raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.MessageType.wp_String raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetCommit raftpb.Message.wp_GetVote raftpb.Message.wp_GetReject raftpb.Message.wp_GetRejectHint strconv.wp_FormatUint
-
-theorem wp_traceEvent [StorageModel GF] :
-    traceEvent.spec (GF := GF) (hG := hG) :=
-  traceEvent.wp_proof stateMachineEventType.wp_String strconv.wp_FormatUint wp_makeTracingState raftLog.wp_lastIndex quorum.MajorityConfig.wp_Slice wp_formatConf StateType.wp_String wp_makeTracingMessage
-
-theorem wp_traceNodeEvent [StorageModel GF] :
-    traceNodeEvent.spec (GF := GF) (hG := hG) :=
-  traceNodeEvent.wp_proof wp_traceEvent
-
 theorem wp_traceInitState [StorageModel GF] :
     traceInitState.spec (GF := GF) (hG := hG) :=
-  traceInitState.wp_proof wp_traceNodeEvent
+  traceInitState.wp_proof
 
 theorem raftpb.ConfChangeType.wp_Enum :
     raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
@@ -780,7 +673,15 @@ theorem confchange.wp_Restore :
 
 theorem wp_traceConfChangeEvent [StorageModel GF] :
     traceConfChangeEvent.spec (GF := GF) (hG := hG) :=
-  traceConfChangeEvent.wp_proof wp_traceEvent quorum.MajorityConfig.wp_Slice wp_formatConf
+  traceConfChangeEvent.wp_proof
+
+theorem slices.wp_Sort :
+    slices.«Sort».spec (GF := GF) (hG := hG) :=
+  slices.«Sort».wp_proof
+
+theorem quorum.MajorityConfig.wp_Slice :
+    quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.Slice.wp_proof slices.wp_Sort
 
 theorem tracker.ProgressTracker.wp_ConfState :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) :=
@@ -844,7 +745,7 @@ theorem raft.wp_reset [StorageModel GF] :
 
 theorem wp_traceBecomeFollower [StorageModel GF] :
     traceBecomeFollower.spec (GF := GF) (hG := hG) :=
-  traceBecomeFollower.wp_proof wp_traceNodeEvent
+  traceBecomeFollower.wp_proof
 
 theorem raft.wp_becomeFollower [StorageModel GF] :
     raft.becomeFollower.spec (GF := GF) (hG := hG) :=
@@ -866,9 +767,13 @@ theorem raft.wp_softState [StorageModel GF] :
     raft.softState.spec (GF := GF) (hG := hG) :=
   raft.softState.wp_proof
 
+theorem raft.wp_hardState [StorageModel GF] :
+    raft.hardState.spec (GF := GF) (hG := hG) :=
+  raft.hardState.wp_proof
+
 theorem wp_traceBecomeCandidate [StorageModel GF] :
     traceBecomeCandidate.spec (GF := GF) (hG := hG) :=
-  traceBecomeCandidate.wp_proof wp_traceNodeEvent
+  traceBecomeCandidate.wp_proof
 
 theorem raft.wp_becomeCandidate [StorageModel GF] :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) :=
@@ -900,7 +805,23 @@ theorem raft.wp_poll [StorageModel GF] :
 
 theorem wp_traceSendMessage [StorageModel GF] :
     traceSendMessage.spec (GF := GF) (hG := hG) :=
-  traceSendMessage.wp_proof wp_traceEvent raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom
+  traceSendMessage.wp_proof
+
+theorem raftpb.Message.wp_GetFrom :
+    raftpb.Message.GetFrom.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetFrom.wp_proof
+
+theorem raftpb.Message.wp_GetType :
+    raftpb.Message.GetType.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetType.wp_proof
+
+theorem raftpb.Message.wp_GetTerm :
+    raftpb.Message.GetTerm.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetTerm.wp_proof
+
+theorem raftpb.Message.wp_GetTo :
+    raftpb.Message.GetTo.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetTo.wp_proof
 
 theorem raft.wp_send [StorageModel GF] :
     raft.send.spec (GF := GF) (hG := hG) :=
@@ -948,7 +869,7 @@ theorem raftpb.Entry.wp_GetType :
 
 theorem wp_traceBecomeLeader [StorageModel GF] :
     traceBecomeLeader.spec (GF := GF) (hG := hG) :=
-  traceBecomeLeader.wp_proof wp_traceNodeEvent
+  traceBecomeLeader.wp_proof
 
 theorem raftpb.Entry.wp_GetData :
     raftpb.Entry.GetData.spec (GF := GF) (hG := hG) :=
@@ -968,7 +889,7 @@ theorem raft.wp_increaseUncommittedSize [StorageModel GF] :
 
 theorem wp_traceReplicate [StorageModel GF] :
     traceReplicate.spec (GF := GF) (hG := hG) :=
-  traceReplicate.wp_proof wp_traceNodeEvent raftpb.Entry.wp_GetType
+  traceReplicate.wp_proof
 
 theorem unstable.wp_truncateAndAppend [StorageModel GF] :
     unstable.truncateAndAppend.spec (GF := GF) (hG := hG) :=
@@ -1030,6 +951,14 @@ theorem raft.wp_maybeSendSnapshot [StorageModel GF] :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) :=
   raft.maybeSendSnapshot.wp_proof raftLog.wp_snapshot raftLog.wp_firstIndex wp_IsEmptySnap tracker.Progress.wp_BecomeSnapshot raft.wp_send raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.MessageType.wp_Enum
 
+theorem raftpb.Message.wp_GetLogTerm :
+    raftpb.Message.GetLogTerm.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetLogTerm.wp_proof
+
+theorem raftpb.Message.wp_GetIndex :
+    raftpb.Message.GetIndex.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetIndex.wp_proof
+
 theorem wp_logSliceFromMsgApp [StorageModel GF] :
     logSliceFromMsgApp.spec (GF := GF) (hG := hG) :=
   logSliceFromMsgApp.wp_proof raftpb.Message.wp_GetTerm raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetIndex
@@ -1062,6 +991,10 @@ theorem raftLog.wp_findConflictByTerm [StorageModel GF] :
     raftLog.findConflictByTerm.spec (GF := GF) (hG := hG) :=
   raftLog.findConflictByTerm.wp_proof raftLog.wp_term
 
+theorem raftpb.Message.wp_GetCommit :
+    raftpb.Message.GetCommit.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetCommit.wp_proof
+
 theorem raft.wp_handleAppendEntries [StorageModel GF] :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) :=
   raft.handleAppendEntries.wp_proof wp_logSliceFromMsgApp raftLog.wp_maybeAppend raftLog.wp_term raftLog.wp_zeroTermOnOutOfBounds raftLog.wp_lastIndex raftLog.wp_findConflictByTerm raft.wp_send raftpb.Message.wp_GetCommit raftpb.Message.wp_GetIndex raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetFrom raftpb.MessageType.wp_Enum
@@ -1086,9 +1019,21 @@ theorem raft.wp_restore [StorageModel GF] :
     raft.restore.spec (GF := GF) (hG := hG) :=
   raft.restore.wp_proof raftLog.wp_matchTerm raftLog.wp_lastEntryID raftLog.wp_commitTo raftLog.wp_restore raftpb.wp_EnsureConfState
 
+theorem raftpb.Message.wp_GetSnapshot :
+    raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetSnapshot.wp_proof
+
 theorem raft.wp_handleSnapshot [StorageModel GF] :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) :=
   raft.handleSnapshot.wp_proof raft.wp_restore raftLog.wp_lastIndex raft.wp_send raftpb.Message.wp_GetSnapshot raftpb.wp_EnsureSnapshot raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.MessageType.wp_Enum
+
+theorem raftpb.Message.wp_GetReject :
+    raftpb.Message.GetReject.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetReject.wp_proof
+
+theorem raftpb.Message.wp_GetEntries :
+    raftpb.Message.GetEntries.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetEntries.wp_proof
 
 theorem readOnly.wp_heartbeatCtx [StorageModel GF] :
     readOnly.heartbeatCtx.spec (GF := GF) (hG := hG) :=
@@ -1108,7 +1053,7 @@ theorem raft.wp_bcastHeartbeat [StorageModel GF] :
 
 theorem wp_traceCommit [StorageModel GF] :
     traceCommit.spec (GF := GF) (hG := hG) :=
-  traceCommit.wp_proof wp_traceNodeEvent
+  traceCommit.wp_proof
 
 theorem quorum.MajorityConfig.wp_CommittedIndex :
     quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG) :=
@@ -1220,7 +1165,11 @@ theorem raftpb.ConfChangeV2.wp_AsV2 :
 
 theorem wp_traceChangeConfEvent [StorageModel GF] :
     traceChangeConfEvent.spec (GF := GF) (hG := hG) :=
-  traceChangeConfEvent.wp_proof wp_traceEvent raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 raftpb.ConfChangeSingle.wp_GetType raftpb.ConfChangeSingle.wp_GetNodeId strconv.wp_FormatUint
+  traceChangeConfEvent.wp_proof
+
+theorem raftpb.Message.wp_GetRejectHint :
+    raftpb.Message.GetRejectHint.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetRejectHint.wp_proof
 
 theorem raftpb.EntryType.wp_Enum :
     raftpb.EntryType.Enum.spec (GF := GF) (hG := hG) :=
@@ -1232,7 +1181,7 @@ theorem tracker.ProgressTracker.wp_QuorumActive :
 
 theorem wp_traceReceiveMessage [StorageModel GF] :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=
-  traceReceiveMessage.wp_proof wp_traceEvent raftpb.Message.wp_GetType _root_.Perennial.time.wp_Sleep
+  traceReceiveMessage.wp_proof
 
 theorem raftLog.wp_isUpToDate [StorageModel GF] :
     raftLog.isUpToDate.spec (GF := GF) (hG := hG) :=
@@ -1372,7 +1321,7 @@ theorem raftLog.wp_acceptApplying [StorageModel GF] :
 
 theorem wp_traceReady [StorageModel GF] :
     traceReady.spec (GF := GF) (hG := hG) :=
-  traceReady.wp_proof wp_traceNodeEvent
+  traceReady.wp_proof
 
 theorem raftLog.wp_hasNextOrInProgressUnstableEnts [StorageModel GF] :
     raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG) :=
@@ -1409,6 +1358,10 @@ theorem wp_getStatus [StorageModel GF] :
 theorem wp_SetLogger :
     SetLogger.spec (GF := GF) (hG := hG) :=
   SetLogger.wp_proof
+
+theorem StateType.wp_String :
+    StateType.String.spec (GF := GF) (hG := hG) :=
+  StateType.String.wp_proof
 
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
@@ -1450,9 +1403,21 @@ theorem raftpb.ConfState.wp_GetVotersOutgoing :
     raftpb.ConfState.GetVotersOutgoing.spec (GF := GF) (hG := hG) :=
   raftpb.ConfState.GetVotersOutgoing.wp_proof
 
+theorem strconv.wp_Itoa :
+    strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  strconv.Itoa.wp_proof
+
+theorem raftpb.MessageType.wp_String :
+    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.MessageType.String.wp_proof strconv.wp_Itoa
+
 theorem raftpb.Message.wp_GetResponses :
     raftpb.Message.GetResponses.spec (GF := GF) (hG := hG) :=
   raftpb.Message.GetResponses.wp_proof
+
+theorem raftpb.Message.wp_GetVote :
+    raftpb.Message.GetVote.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetVote.wp_proof
 
 theorem raftpb.Snapshot.wp_GetData :
     raftpb.Snapshot.GetData.spec (GF := GF) (hG := hG) :=

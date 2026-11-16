@@ -41,19 +41,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceNodeEvent.tracedSpec_of_spec (h : traceNodeEvent.spec (GF := GF) (hG := hG)) :
-    traceNodeEvent.tracedSpec (GF := GF) (hG := hG) := by
-  intro evt c r id s tl Q Hevt
-  iintro %Φ ⟨#Hpkg, #Htl, Hphys, Hfire⟩ HΦ
-  icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
-  ihave Hown := trOwn_physLend _ c r id s $$ Hown
-  iapply h evt c r id s tl Q _ Hevt $$ [$Hpkg $Htl $Hown $Hfire]
-  inext
-  iintro ⟨Hown, HQ⟩
-  iapply HΦ
-  iframe HQ
-  iapply Hback $$ Hown
-
 theorem traceBecomeFollower.tracedSpec_of_spec (h : traceBecomeFollower.spec (GF := GF) (hG := hG)) :
     traceBecomeFollower.tracedSpec (GF := GF) (hG := hG) := by
   intro c r id s tl Q

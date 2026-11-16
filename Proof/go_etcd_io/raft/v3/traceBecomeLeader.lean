@@ -1,10 +1,11 @@
-/-
-Port of election_proof/proof_traceBecomeLeader.v.
--/
+/- Lean-first (no Rocq counterpart). `traceBecomeLeader` in raft's build without `with_tla`
+(`state_trace_nop.go`): an empty function, against the spec both builds share. The gate gives its
+`Q` with nothing logged (`TraceNopLemmas.lean`: the traced mode is empty in this build). The
+`with_tla` build's proof is `RaftTla/`'s module of this name. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
-public import Spec.go_etcd_io.raft.v3.traceNodeEvent
+public import Proof.go_etcd_io.raft.v3.TraceNopLemmas
 
 @[expose] public section
 
@@ -22,15 +23,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceBecomeLeader.wp_proof
-    (wp_traceNodeEvent : traceNodeEvent.spec (GF := GF) (hG := hG)) :
-    traceBecomeLeader.spec (GF := GF) (hG := hG) := by
+theorem traceBecomeLeader.wp_proof : traceBecomeLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s tl Q
   wp_start as ⟨#Htl, Hown, Hfire⟩
-  wp_auto
-  ihave Hown := trOwn_physLend _ c r id s $$ Hown
-  wp_apply wp_traceNodeEvent (W64 3) c r id s tl Q _ (by decide) $$ [$Htl $Hown $Hfire] as HR
-  iapply HΦ $$ HR
+  ihave HQ := traceFire_nop $$ Hfire
+  iapply HΦ
+  iframe Hown HQ
 
 end proof
 

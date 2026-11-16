@@ -20,7 +20,7 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$
+roots ^RaftTla/Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link\.lean$
 axiom DescribeConfChange.wp_proof
 axiom ccDecodeV2_nil

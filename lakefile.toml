@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -27,6 +27,19 @@ rev = "c6b39d4f8c0e6d4a08a615a4023516b8079a3b37"
 name = "EtcdGrove"
 globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+", "Proof.+",
          "GooseLang.+"]
+
+# Raft's `with_tla` build (`state_trace.go`: the trace hooks with their bodies), for raft's TLA+ trace
+# validation (examples/raft/tracecheck) and nothing else: the main tree translates and verifies the
+# build without the tag, the one etcd ships. RaftTla/{Code,GeneratedProof}/ are etc/goose.py's
+# projects raft-tla (raft's own package) and tracecheck (the harness); RaftTla/{Spec,Proof}/ are the
+# main tree's specs and proofs of raft, copied by etc/gen-raft-tla.py (the files with its marker:
+# one proof source, compiled against both builds), and the hand-written modules specific to the
+# build (the logger's contract, the hooks' proofs, the package initializer) and to the trace check.
+# It imports the main tree, but not its raft, and nothing outside it imports it: its modules declare
+# the main raft's names.
+[[lean_lib]]
+name = "RaftTla"
+globs = ["RaftTla.+"]
 
 # The witness experiment (notes/raft-witness.md): raft with witness support (a candidate for
 # etcd-io/raft#133) and the key-value store on it, in a parallel tree with the same layout

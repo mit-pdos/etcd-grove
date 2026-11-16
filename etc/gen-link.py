@@ -28,6 +28,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Link.lean
        etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
+       etc/gen-link.py --raft-tla > RaftTla/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
@@ -342,6 +343,14 @@ LEAN_FIRST = {
                        "go_etcd_io.raft.v3.Assumptions",
                        "The Raft proof of the witness experiment (raft v3.7 plus the read-index "
                        "fix and witness support, `RaftWitness/`)", ["", "RaftWitness"]),
+    # raft's `with_tla` build (the parallel tree RaftTla/, project raft-tla of etc/goose.py): the
+    # same proofs as `--raft`'s, compiled against that build (etc/gen-raft-tla.py), with the trace
+    # hooks' own proofs and their helpers' (`traceEvent`, `traceNodeEvent`, ...), which exist in
+    # that build only. A module of the part is linked in place of the main tree's.
+    "--raft-tla": ("link-lean-first-raft-tla.txt", "go_etcd_io.raft.v3",
+                   "go_etcd_io.raft.v3.Assumptions",
+                   "The Raft proof in raft's `with_tla` build (`RaftTla/`: the trace hooks with their "
+                   "bodies, for the trace check)", ["", "RaftTla"]),
     "--kvwitness": ("link-lean-first-kvwitness.txt",
                     "github_com.mit_pdos.etcd_grove.examples.raft.kvwitness go_etcd_io.raft.v3 "
                     "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
@@ -945,7 +954,7 @@ if cache:
         seen_links.add(mod)
         src = open(link_file(mod)).read()
         links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
-        todo.extend(re.findall(r"^public import ((?:RaftWitness\.)?Proof\.\S+\.Link)$", src, re.M))
+        todo.extend(re.findall(r"^public import ((?:(?:RaftWitness|RaftTla)\.)?Proof\.\S+\.Link)$", src, re.M))
     here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
     # an `@` callee's result named, in its Link, by the name `result` gives but in another
     # namespace than this one's (the client's `v3.clientv3.wp_New`, in `EtcdGrove.client`, called

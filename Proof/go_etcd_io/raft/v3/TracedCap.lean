@@ -38,7 +38,7 @@ specification's acknowledgements and leaders' match indices), so that a leader's
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.InvTrace
+public import Proof.go_etcd_io.raft.v3.InvTraceLogger
 public import Proof.go_etcd_io.raft.v3.TraceSimLemmas
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TraceSimFacts
