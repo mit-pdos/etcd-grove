@@ -3,29 +3,36 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE closed; land-stop checks green; HARD STOP before land.sh
+## START HERE (2026-11-16, twenty-first 7f-5 agent): steps 6-prep and 7's linking done; land-stop checks
 
-- **Head:** `k8s-7f5` past `bf5fda1900` (lean `bc64cbfc5e` merged; nothing newer on lean). Steps 1-5 of 7f-5a are on lean.
-- **Done (6a39b61246 and after):** T-CE (trusted, approved by 81): `cliStreamErr` gains `errCellOk`
-  (`InvGrpcStream.lean`; Go test `examples/k8s/etcd3/streamerr_test.go`, 20/20 runs). Client vocabulary `errPtrOk`/
-  `closeErrP`/`closeErrOk` (`ClientErr.lean`) through the client watch: the element's error arm, `closeErrPub`, `errP`,
-  `runCore`, the stream specs; `rpctypes.Error`/`WatchResponse.Err` posts carry `errPtrOk`. Ledger 2026-11-16.
-  startWatching uses `watcher.Watch.spec` through `client_Watch_field` (placeholder deleted; needs `ContextReadErrs`).
-  Nonissue `etcd-watch-refused-create-err-plain` (errCellOk of a close error is false). Forms: questions.md.
-- **Checks:** full build green (`/shared/tmp/k8s7f-ce/full3.log`); tcb --check matches the baseline (no axiom/sorry
-  change); gen-interface --check, api-check, bounds, mode ok; STATUS entry added (oldest moved to status-history).
-- **Next, in order:** (1) 81's go, then `etc/land.sh` (`LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
-  PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9`, GOWORK unset); (2) step 6 (`Pos.Countable KRaw`, `sendEvent`'s
-  commit form); (3) step 7: link startWatching, syncPaginated and the new callee specs (T5-f axioms).
-- **Open for 81:** errorsNewOk's body changed (now `closeErrOk`), and `watchConnFacts`, inside `isClientWatcher`,
-  holds it: the premise of the linked `client_watcher_progressNotifier` means more (always discharged by
-  `errorsNewOk_of` through NewWatcher). Recommend accepting.
-- **Pitfalls:** run and serveSubstream: `etc/lean-check.py --fast --split` (~1 min each). The element's error arm
-  is `closeErrOk`: extract `statusErrOk` with `closeErrOk_status`. `ContainerStateTerminated...` lines in a build log
-  match a grep for "Terminated". Earlier pitfalls: History.
+- **Head:** `k8s-7f5` past `bdbeb422b1` (lean `ee15ea8d45` merged: clientWatchCE landed). 81's go needed for land.sh.
+- **Done (`bdbeb422b1`):** `kraw_countable` (WatchDefs; the `[Pos.Countable KRaw]` binders dropped everywhere);
+  `sendEvent.spec` in the commit form (`S ∧ commit`, post `(true ∗ Q) ∨ (false ∗ □ PDone ∗ S)`); linked in the k8s
+  etcd3 `Link.lean`: startWatching, sync, syncPaginated, sendError, queueEvent, recordWait, parseEvent, parseKV,
+  progressNotifyEvent, logWatchChannelErr, isCancelError, interpretWatchError, transformErrorToEvent (list:
+  `etc/link-lean-first-k8s-etcd3.txt`, the "step 7" block). New axioms: `metrics.RecordEtcdEvent/Bookmark` (T5-f),
+  `mvccpb.Event_EventType.StringPtr` (T5-f §11.5), `klog.Verbose.InfoS` (T5-g); the unreached value
+  `Event_EventType.String` axiom removed (its spec kept). Forms: questions.md (twenty-first agent).
+- **store.Watch.spec moved** (etcd-grove-02, for 7f-6): verbatim to `Spec/.../etcd3/store__Watch.lean`
+  (`k8s.store.Watch.spec`); `Draft7f5a.lean` deleted. 7f-6 uses it as a hypothesis: changes only through the ledger.
+- **Checks:** full build green (`/shared/tmp/k8s7f5-s7/full.log`); tcb 874 → 881 (seven axioms newly reached),
+  k8s collection +10, others match; links, api, interfaces, bounds, mode ok; STATUS entry (oldest moved).
+- **Next, in order:** (1) 81's go, `etc/land.sh` (`LAKE_PACKAGES=/shared/tmp/manifest-e9e.json
+  PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9`, GOWORK unset); (2) the rest of the plan's step 6 (Draft §6):
+  `serialProcessEvents`/`processEvents`, `run` (needs `kResAlive` back from an aborted send: sendEvent's `S`),
+  `Stop`, `ResultChan`, `createWatchChan` (`wp_WithCancel_ctx`), `watcher.Watch`, `store.Watch` (`kWcProd`'s
+  `kp ≠ []` from `prepareKeyM_ne_nil`); (3) plan step 7: `New`'s stronger post, `Results`.
+- **Pitfalls:** gen-link's `@` callees resolve to another Link's namespace: client-side leaves (WithLimit, WithPrefix,
+  GetRevision, ...) are listed plain here, with their callees. run/serveSubstream: `lean-check --fast --split`.
+  Dropping an instance binder shifts the `intro _ _ Obj _ _ …` patterns of the proofs.
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; full builds under the flock and the 64G cap.
 
 ## History (older START HERE sections, newest first; the commits say the rest)
+
+### START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE closed (landed ee15ea8d45)
+
+- T-CE, `closeErrOk` through the client watch; startWatching on `watcher.Watch.spec`; nonissue
+  `etcd-watch-refused-create-err-plain`. errorsNewOk's body `closeErrOk` accepted (etcd-grove-01).
 
 ### For 7f-5a: klog's `printf` boundary is restricted (klog-args-fix, 2026-11-14)
 
