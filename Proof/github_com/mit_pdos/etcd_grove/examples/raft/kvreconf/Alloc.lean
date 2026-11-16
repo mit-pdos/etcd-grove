@@ -8,13 +8,13 @@ differs):
 
 * `rkvInv_alloc`: the store's invariant over raft's cluster, from what `cluster_alloc` hands the
   client (no committed requested entry, no read context used), with every possible replica id's
-  read sequence at `0` (`allIds`, the ids `1 … 9`: `maxReplicas`), the next operation id at `0`;
+  read sequence at `0` (the ids `1 … opts.MaxReplicas`; `allIds` at `9`, kvdurable's), the next operation id at `0`;
   the next-id bound and the stopper's flag are the caller's names (`γn`, `γs`). It gives the
   client's half of the store's state (`kvEmpty`), the lock's half of `γr.opn`, and the read
   sequence elements.
 * `kvrSnapInv_alloc`: the registry of the snapshots made, from raft's `ownSnapsMade γ []`.
 * `isStats_alloc`: a zero `Stats`'s counters, each in its invariant.
-* `allIds_split`: the ids `1 … 9` are the founders `bootVoters k` and the fresh ids above them.
+* `allIdsM_split`: the ids `1 … m` are the founders `bootVoters k` and the fresh ids above them.
 -/
 module
 
@@ -53,20 +53,29 @@ theorem lifeConstMap_lookup {V : Type} (l : List w64) (v : V) (k : w64) :
     · subst h; rw [GMap.lookup_insert_eq]; simp
     · rw [GMap.lookup_insert_ne _ _ h, IH]; simp [List.mem_cons, Ne.symm h]
 
-theorem allIds_split (k : Nat) (hk : k ≤ 9) : bootVoters k ++ freshIds (k + 1) = allIds := by
-  induction h : 9 - k generalizing k with
+theorem freshIdsM_past (m : Nat) : freshIdsM m (m + 1) = [] := by
+  unfold freshIdsM
+  rw [List.map_eq_nil_iff, List.filter_eq_nil_iff]
+  intro a ha; simp at ha; simp; omega
+
+/-- The ids `1 … m` are the founders `1 … k` and the fresh ids above them (2026-11-16, kvraftN: until
+then at `m = 9`, `allIds_split`). -/
+theorem allIdsM_split (m k : Nat) (hk : k ≤ m) : bootVoters k ++ freshIdsM m (k + 1) = bootVoters m := by
+  induction h : m - k generalizing k with
   | zero =>
-    have : k = 9 := by omega
+    have : k = m := by omega
     subst this
-    have : freshIds 10 = [] := by decide
-    rw [this, List.append_nil]
+    rw [freshIdsM_past, List.append_nil]
   | succ n IH =>
     have IH' := IH (k + 1) (by omega) (by omega)
-    rw [← IH', freshIds_cons (k + 1) (by omega)]
+    rw [← IH', freshIdsM_cons m (k + 1) (by omega)]
     have : bootVoters (k + 1) = bootVoters k ++ [W64 ((k : Int) + 1)] := by
       simp [bootVoters, List.range_succ]
     rw [this, List.append_assoc]
     congr 3
+
+theorem allIds_split (k : Nat) (hk : k ≤ 9) : bootVoters k ++ freshIds (k + 1) = allIds :=
+  allIdsM_split 9 k hk
 
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -78,18 +87,18 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [StorageModel GF] [AllG GF]
 
 /-- **The store's invariant** over raft's cluster `γ` (see the file header). -/
-theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (γn γs : GName) :
+theorem rkvInv_alloc (E : CoPset) (m : Nat) (hm : m < 2 ^ 62) (γ : Cluster) (γn γs : GName) :
     ⊢ ownCommittedOps (GF := GF) γ [] -∗ ownReadCtxs γ ∅ ={E}=∗
       ∃ γr : RNames, ⌜γr.cluster = γ ∧ γr.nid = γn ∧ γr.stp = γs⌝ ∗ rkvInv γr ∗
         rkvVal γr kvEmpty ∗ ghostVar γr.opn (1 : Qp).half (W64 0) ∗
-        [∗list] id ∈ allIds, id ↪[γr.rseq] W64 0 := by
+        [∗list] id ∈ bootVoters m, id ↪[γr.rseq] W64 0 := by
   iintro Hops HU
   imod ghostVar_alloc (GF := GF) ([] : List (List w8)) with ⟨%γv, Hv⟩
   icases (ghostVar_split_half (GF := GF) γv 1 ([] : List (List w8))).1 $$ Hv with ⟨Hv1, Hv2⟩
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γo, Ho⟩
   icases (ghostVar_split_half (GF := GF) γo 1 (W64 0)).1 $$ Ho with ⟨Ho1, Ho2⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := List w8) with ⟨%γmi, HMi⟩
-  imod ghost_map_alloc (GF := GF) (lifeConstMap allIds (W64 0)) with ⟨%γrs, HRS, Hels⟩
+  imod ghost_map_alloc (GF := GF) (lifeConstMap (bootVoters m) (W64 0)) with ⟨%γrs, HRS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γrm, HRM⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γop, HO⟩
   imod ghost_map_alloc_empty (GF := GF) (K := GName) (V := ReadRec) with ⟨%γrd, HRD⟩
@@ -98,7 +107,7 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (γn γs : GName) :
     with #Hinv
   · inext
     unfold rkvInvBody
-    iexists [], W64 0, ∅, lifeConstMap allIds (W64 0), ∅, ∅, ∅
+    iexists [], W64 0, ∅, lifeConstMap (bootVoters m) (W64 0), ∅, ∅, ∅
     isplitl [Hops Hv1 HU Ho1 HMi HRS HRM HO]
     · unfold kvCore
       simp only [show logHist ([] : List LogEntry) = [] from rfl]
@@ -129,10 +138,10 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (γn γs : GName) :
   · iexists []
     iframe Hv2
     ipureintro; rfl
-  ihave Hl := bigSepM_keys (fun k x => iprop(k ↪[γrs] x)) allIds (lifeConstMap allIds (W64 0))
-    (bootVoters_nodup 9 (by omega)) (fun k => by rw [lifeConstMap_lookup]; split <;> simp_all)
+  ihave Hl := bigSepM_keys (fun k x => iprop(k ↪[γrs] x)) (bootVoters m) (lifeConstMap (bootVoters m) (W64 0))
+    (bootVoters_nodup m hm) (fun k => by rw [lifeConstMap_lookup]; split <;> simp_all)
     $$ Hels
-  iapply (BigSepL.bigSepL_mono (Φ := fun _ k => iprop(∃ x, ⌜lifeConstMap allIds (W64 0) !! k = some x⌝ ∗
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ k => iprop(∃ x, ⌜lifeConstMap (bootVoters m) (W64 0) !! k = some x⌝ ∗
     k ↪[γrs] x)) ?_) $$ Hl
   intro j k hj
   iintro ⟨%x, %hx, H⟩

@@ -56,7 +56,7 @@ theorem Cluster.startNew.wp_proof
   iNamed HL
   obtain ⟨HdomR, HdomU, Hvn, Hn10⟩ := Hdom
   have Hsz : GMap.size R = uint.nat nid - 1 :=
-    raft_kvreconf.size_of_keys R (uint.nat nid) Hn10 (by omega) HdomR
+    raft_kvreconf.size_of_keys R (uint.nat nid) (by omega) (by omega) HdomR
   try wp_auto
   wp_apply wp_map_len_lt mR R _ $$ [$HR] as ⟨HR, %Hlt⟩
   wp_if_destruct

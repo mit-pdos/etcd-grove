@@ -57,7 +57,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kv 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvdurable 2
-spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvreconf 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvreconf 4
 spec-receipt go_etcd_io/etcd/server/v3/etcdserver 15
 spec-receipt go_etcd_io/etcd/server/v3/lease 1
 spec-readers go_etcd_io/etcd/cache/v3 6
