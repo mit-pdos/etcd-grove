@@ -755,17 +755,6 @@ instance watchContractOk_persistent (S : ObjSpec GF Obj) (W : WatchSpec Obj) (co
     Persistent (watchContractOk S W codec) := by
   unfold watchContractOk; infer_instance
 
-/-- **The default gate has `ConcurrentWatchObjectDecode` off** (persistent; the TEMPORARY premise of
-Q6, removed by 7f-5b): `processEvents` takes the serial branch. Producer: the driver's
-`Set("ConcurrentWatchObjectDecode=false")` (the table `k8sSetValue` already maps it to `false`). -/
-def concurrentDecodeOff : IProp GF :=
-  iprop(∃ g : GoInterfaceOk,
-    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
-    k8sfeature.featureOff g go!"ConcurrentWatchObjectDecode")
-
-instance concurrentDecodeOff_persistent : Persistent (concurrentDecodeOff (GF := GF)) := by
-  unfold concurrentDecodeOff; infer_instance
-
 /-- `SendInitialEvents` (a `*bool`) is `sie`: `nil` for none, a read-only cell for some. -/
 def sendInitIs (p : Loc) : Option Bool → IProp GF
   | none => iprop(⌜p = null⌝)
@@ -777,9 +766,9 @@ instance sendInitIs_persistent (p : Loc) (sie : Option Bool) : Persistent (sendI
 /-- **The store's watcher** (persistent; the store invariant's growth, produced by `New`): the
 store's `watcher` field holds a `*watcher` whose fields are the store's (client, codec, versioner,
 transformer, group-resource), a `newFunc` making the zero object, `getCurrentStorageRV` calling the
-store's `GetCurrentResourceVersion`, `getResourceSizeEstimator` calling the store's (which answers
+store's `GetCurrentResourceVersion` (whose result is a pair), `getResourceSizeEstimator` calling the store's (which answers
 `nil`: `storeListOk`'s `rseNilR`); the client's watcher over the cluster's KV `γk`; the watch path's
-object contract. -/
+object contract; the object type's name (`objectType`, the block loggers'; `createWatchChan`). -/
 def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) : IProp GF :=
   iprop(∃ (wp : Loc) (nf crv rse : GoFunc),
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"watcher" sp ↦□ wp ∗
@@ -797,14 +786,16 @@ def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVN
     newItemOk c.S nf ∗
     □ (∀ (ctx : GoInterface) (Φ : val → IProp GF),
       WP (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!
-        go!"GetCurrentResourceVersion")) (Val #ctx)) {{ Φ }} -∗
+        go!"GetCurrentResourceVersion")) (Val #ctx))
+        {{ v, ∃ (n : w64) (err : GoInterface), ⌜v = PairV #n #err⌝ ∗ Φ v }} -∗
       WP (App (Val #crv) (Val #ctx)) {{ Φ }}) ∗
     □ (∀ Φ : val → IProp GF,
       WP (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!
         go!"getResourceSizeEstimator")) (Val #())) {{ Φ }} -∗
       WP (App (Val #rse) (Val #())) {{ Φ }}) ∗
     clientWatchOk c.cl γk ∗
-    watchContractOk c.S W c.codec)
+    watchContractOk c.S W c.codec ∗
+    ∃ ot : GoString, structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"objectType" wp ↦□ ot)
 
 instance storeWatchOk_persistent (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) :
     Persistent (storeWatchOk sp c W γk) := by
@@ -854,6 +845,8 @@ structure KWatchNames where
   prodEx : GName
   /-- whether the processing goroutine has exited (set before its `sendError`; internal) -/
   procEx : GName
+  /-- the Done name of `wc.ctx` (`WithCancel`'s child; `kCdw`; internal) -/
+  wcDone : context.ContextNames
 
 /-- **The consumer has not stopped the watch** (exclusive; `k8sWatch` gives it): `Stop` takes it
 (or `kStopped`). Excludes `kStopped` (`dghostVar`'s full fraction against a discarded one). -/

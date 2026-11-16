@@ -43,9 +43,9 @@ attribute [local instance] kdStorageModel
 /-- The persistent facts of an incarnation `repStop` holds: its file's invariant and its id's bounds. -/
 theorem repStop_info (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) :
     repStop (GF := GF) γ vs dir id r ⊢
-      repStop γ vs dir id r ∗ kdFileInv γ dir id ∗ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ 9⌝ := by
+      repStop γ vs dir id r ∗ kdFileInv γ dir id ∗ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max⌝ := by
   iintro H
-  ihave #Hp : iprop(kdFileInv γ dir id ∗ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ 9⌝) $$ [H]
+  ihave #Hp : iprop(kdFileInv γ dir id ∗ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max⌝) $$ [H]
   · iunfold repStop at H
     icases H with ⟨H, -⟩
     iunfold repStopper at H

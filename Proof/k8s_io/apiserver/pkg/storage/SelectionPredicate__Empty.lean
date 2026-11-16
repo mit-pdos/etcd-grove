@@ -35,7 +35,9 @@ theorem storage.SelectionPredicate.Empty.wp_proof
   (try wp_auto)
   wp_apply (wp_ShardingEnabled pp dq p hs) $$ [$Hp] as Hp
   (try wp_auto)
-  wp_apply (wp_labelFieldEmpty pp dq p le fe lm fm) $$ [$Hp $Hl $Hf] as Hp
+  ihave #Hle := labelSelOk_empty _ _ _ $$ Hl
+  ihave #Hfe := fieldSelOk_empty _ _ _ $$ Hf
+  wp_apply (wp_labelFieldEmpty pp dq p le fe) $$ [$Hp $Hle $Hfe] as Hp
   (try wp_auto)
   iapply HΦ $$ Hp
 

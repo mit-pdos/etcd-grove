@@ -63,6 +63,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the clusterN Scope (2026-11-15): putget3 with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN',
+         # leaseN (2026-11-16, notes/leaseN-plan.md): the lease examples with any number of members
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN',
          # txnlinfaultsN (2026-11-15, notes/txnlinfaultsN-plan.md): partition with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
@@ -831,7 +834,9 @@ panic, no write to its argument), `opaqueInitsOk` the others.''',
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
-`tooLargeResourceVersionCauseMsg` hold strings.
+`tooLargeResourceVersionCauseMsg` hold strings, and `Everything` holds, for good, a predicate with no
+shard selector whose label and field selectors' `Empty()` is `true` (`everythingOk`, from the two
+axioms' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -850,12 +855,17 @@ its imports and runs the translated initializers.''',
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
-        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ -',
+        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ ⟨%il, %Hil, -, #HlE⟩',
         'try wp_auto',
-        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
+        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ ⟨%ifd, %Hif, #HfE⟩',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
-           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg',
+            'ipersist HEverything'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _, _', 'iframe #',
+            'unfold _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.everythingOk',
+            'isplitr', '· ipureintro; rfl',
+            'isplitr', '· iexists il; iframe #; ipureintro; exact Hil',
+            'iexists ifd; iframe #; ipureintro; exact Hif'],
 )
 
 # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md): their facts are `True`; their
@@ -2664,6 +2674,10 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.partition':

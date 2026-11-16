@@ -31,7 +31,9 @@ theorem storage.SelectionPredicate.MatchesObjectAttributes.wp_proof
   intro pp dq p le fe lm fm lp fp L F
   wp_start as ⟨Hp, #Hl, #Hf, #HL, #HF⟩
   (try wp_auto)
-  wp_apply (wp_labelFieldEmpty pp dq p le fe lm fm) $$ [$Hp $Hl $Hf] as Hp
+  ihave #Hle := labelSelOk_empty _ _ _ $$ Hl
+  ihave #Hfe := fieldSelOk_empty _ _ _ $$ Hf
+  wp_apply (wp_labelFieldEmpty pp dq p le fe) $$ [$Hp $Hle $Hfe] as Hp
   iunfold labelSelOk at Hl
   iunfold fieldSelOk at Hf
   icases Hl with ⟨%li, %hli, #HlE, #HlM⟩

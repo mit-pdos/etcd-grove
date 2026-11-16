@@ -42,7 +42,7 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
   · iPkgInit
   ihave #Hsg : (k8s_io.apiserver.pkg.storage.etcd3.storageInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsg with ⟨%rw, %tl, -, #Htl⟩
+  icases Hsg with ⟨%rw, %tl, %_, -, #Htl, -, -⟩
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr

@@ -48,7 +48,7 @@ abbrev watchChan.transform.spec : Prop :=
         GoInterface.ok vi ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"transformer" wp ↦□
         GoInterface.ok ti ∗
-      selPredOk S p sel emp ∗ transformerOk S ti ∗ versionerOk S vi ∗ watchContractOk S W codec ∗
+      selPredOkW S p sel emp ∗ transformerOk S ti ∗ versionerOk S vi ∗ watchContractOk S W codec ∗
       newItemOk S nf ∗ ep ↦□ x ∗ kEvIs σ x r }}
     (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
       go!"transform")) (Val #ep))

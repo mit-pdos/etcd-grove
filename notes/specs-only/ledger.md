@@ -593,6 +593,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15).
 
+## 2026-11-16: store.Watch without `concurrentDecodeOff` (k8s 7f-5b)
+
+- **Spec.** `k8s.store.Watch.spec` (`Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean`; a hypothesis of the 7f-6 lines).
+- **Defect.** Its premise `concurrentDecodeOff` (the default gate has `ConcurrentWatchObjectDecode` off) was the temporary
+  premise of Q6 (`notes/k8s-7f5-scope.md`): only the serial branch of `processEvents` was planned for 7f-5a.
+- **Evidence.** 7f-5b proves both branches of `processEvents` (`notes/k8s-7f5b-draft.md` §§2-4); `Enabled` of a queried
+  feature returns some `b` under `featureGateOk` with no gate fact.
+- **Second defect (found drafting 7f-5b, both branches).** The read laws (`kvWf`, `kvWfHist`, `kvKeysShort`) do not
+  give `transform`'s premise `kRawDecOk`: an etcd event's value is the value right after its own change, so a value
+  put and overwritten within one revision is in no state `kvWfHist` covers (etcd admits such revisions:
+  `issues/etcd-txn-delete-then-ignore-put.md`, `issues/etcd-txn-check-intervals-sibling.md`). `notes/k8s-7f5b-draft.md` §7.
+- **Proposed change.** (1) The precondition's `watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗` becomes
+  `watchListOn ∗ rangeStreamOff ∗`. (2) The first read law `Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧
+  kvKeysShort σ⌝` gains `∧ kvWritesDec c σ` (every value a revision up to `σ.rev` puts under the store's prefix
+  decodes). Nothing else. Uses of the spec as a hypothesis drop the gate argument and prove the new law.
+- **Decision.** (1) planned by the Scope (Q6); (2) option (A), decided by etcd-grove-02, 2026-11-16; producer 7f-6
+  (stage C's `KvOne` in `KvNext`). Both reported again at the land stop.
+- **Third defect (found at 7f-5b step 1).** `transform` needs `0 ≤ sint.Z modRev` of each raw event (its proof uses
+  `W64 (sint.nat modRev) = modRev`); nothing in the spec bounds `σ.rev` (`kvWfHist` bounds the unsigned `modRev`
+  only, the client watch gives no `kvRevFits`). Without it the stream facts are false at `σ.rev ≥ 2^63` (`kEvOfL`'s
+  `rv = sint.nat modRev = 0`; Go's `UpdateObject(obj, uint64(rev))` the wrapped value).
+- **Proposed change (3).** The first read law also gains `∧ kvRevFits σ.rev` (`σ.rev + 3 < 2^63`).
+- **Decision (3).** Decided by etcd-grove-02, 2026-11-16; producer 7f-6 (the reads its `Q` fires at give `kvRevFits`).
+
 ## 2026-11-16: the store's update report gains "one change per step" (k8s 7f-6 C, F1)
 
 - **Spec.** `KvNext` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Updates.lean`), in the posts of `k8sAu1` and `k8sAuRW`

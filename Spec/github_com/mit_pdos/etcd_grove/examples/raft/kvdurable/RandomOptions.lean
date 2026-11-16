@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.A
 abbrev RandomOptions.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RandomOptions)) (Val #()))
-  {{ (o : KOptions), RET #o; ⌜kdOptsOk o⌝ }}
+  {{ (o : KOptions), RET #o; ⌜kdOptsOk o ∧ o.MaxReplicas' = W64 9⌝ }}
 
 end spec
 

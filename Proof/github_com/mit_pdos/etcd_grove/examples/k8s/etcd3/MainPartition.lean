@@ -208,7 +208,7 @@ theorem MainPartition.wp_proof
     wp_apply wp_newObj as %o %ho
     iapply HΦ'
     ipureintro; exact ho
-  icases Hnew with ⟨%Herr, %mt, %lt, #Hstore⟩
+  icases Hnew with ⟨%Herr, %mt, %lt, #Hstore, -⟩
   subst Herr
   wp_auto
   -- `go cluster3.Partitioner(srvs, brs, sched)`: every member's place in the network, every bridge
