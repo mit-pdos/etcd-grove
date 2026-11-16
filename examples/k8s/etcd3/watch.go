@@ -402,18 +402,9 @@ func watchOk(in Input, out Output, c mcfg) bool {
 	if !ok {
 		return false
 	}
-	var evs []WEvent
-	for _, ev := range all {
-		if ev.Type >= WBad {
-			return false
-		}
-		if ev.Type == WError {
-			continue
-		}
-		if ev.Obj.ResourceVersion > c.st.rv {
-			return false
-		}
-		evs = append(evs, ev)
+	evs, ok := checkedEvents(all, c.st.rv)
+	if !ok {
+		return false
 	}
 	if !bookmarksOk(evs) {
 		return false
@@ -423,29 +414,59 @@ func watchOk(in Input, out Output, c mcfg) bool {
 		return false
 	}
 	if in.SendInit == 2 {
-		b := -1
-		for i, ev := range evs {
-			if ev.Type == WBookmark {
-				b = i
-				break
-			}
-		}
-		if b < 0 {
-			return initialPrefixOk(in, req, evs, c)
-		}
-		if !evs[b].Obj.Annotated {
-			return false
-		}
-		brv := evs[b].Obj.ResourceVersion
-		if (req != 0 && brv < req) || brv < 1 || brv > c.st.rv {
-			return false
-		}
-		if !eventsEqual(initialEvents(in, histAt(c.hist, brv)), evs[:b]) {
-			return false
-		}
-		evs = evs[b:]
+		return watchListOk(in, req, evs, c)
 	}
 	return reliableOk(in, req, evs, c)
+}
+
+// checkedEvents is the events that are not errors, or false if one is bad or, an error aside,
+// has a resource version above rv.
+func checkedEvents(all []WEvent, rv uint64) ([]WEvent, bool) {
+	var evs []WEvent
+	for _, ev := range all {
+		if ev.Type >= WBad {
+			return nil, false
+		}
+		if ev.Type == WError {
+			continue
+		}
+		if ev.Obj.ResourceVersion > rv {
+			return nil, false
+		}
+		evs = append(evs, ev)
+	}
+	return evs, true
+}
+
+// firstBookmark is the index of the first bookmark, or -1.
+func firstBookmark(evs []WEvent) int {
+	for i, ev := range evs {
+		if ev.Type == WBookmark {
+			return i
+		}
+	}
+	return -1
+}
+
+// watchListOk is the check of a watch-list (SendInitialEvents): the initial events at the
+// initial-events-end bookmark's revision, then the events after it; a watch that ended before
+// that bookmark, a prefix of the initial events at some revision.
+func watchListOk(in Input, req uint64, evs []WEvent, c mcfg) bool {
+	b := firstBookmark(evs)
+	if b < 0 {
+		return initialPrefixOk(in, req, evs, c)
+	}
+	if !evs[b].Obj.Annotated {
+		return false
+	}
+	brv := evs[b].Obj.ResourceVersion
+	if (req != 0 && brv < req) || brv < 1 || brv > c.st.rv {
+		return false
+	}
+	if !eventsEqual(initialEvents(in, histAt(c.hist, brv)), evs[:b]) {
+		return false
+	}
+	return reliableOk(in, req, evs[b:], c)
 }
 
 // initialPrefixOk: the events are a prefix of the initial events at some revision from the
@@ -475,6 +496,20 @@ func reliableOk(in Input, req uint64, evs []WEvent, c mcfg) bool {
 	if len(evs) == 0 {
 		return true
 	}
+	lo, hi := evRange(evs)
+	lo = reliableLo(in, req, lo)
+	if in.Match == MExact && req == 0 {
+		return false
+	}
+	if hi > c.st.rv+1 {
+		return false
+	}
+	return eventsEqual(wantEvents(in, lo, hi, c), nonBookmarks(evs))
+}
+
+// evRange is the revisions the events mark (eventResourceVersionRange): from the least event's
+// revision (a bookmark's plus one) to the greatest event's plus one (a bookmark's), exclusive.
+func evRange(evs []WEvent) (uint64, uint64) {
 	lo, hi := ^uint64(0), uint64(0)
 	for _, ev := range evs {
 		rv := ev.Obj.ResourceVersion
@@ -486,19 +521,27 @@ func reliableOk(in Input, req uint64, evs []WEvent, c mcfg) bool {
 			hi = max(hi, rv+1)
 		}
 	}
+	return lo, hi
+}
+
+// reliableLo is the start of the window the request pins (watchRevisionRange): after the
+// requested revision, for NotOlderThan only if the events start before it.
+func reliableLo(in Input, req uint64, lo uint64) uint64 {
 	if in.Match == MNotOlderThan {
 		if req > 0 {
-			lo = max(lo, req+1)
+			return max(lo, req+1)
 		}
-	} else if req > 0 {
-		lo = req + 1
+		return lo
 	}
-	if in.Match == MExact && req == 0 {
-		return false
+	if req > 0 {
+		return req + 1
 	}
-	if hi > c.st.rv+1 {
-		return false
-	}
+	return lo
+}
+
+// wantEvents is the changes' events in scope at the revisions [lo, hi) (from 2: revision 1 is the
+// empty store).
+func wantEvents(in Input, lo uint64, hi uint64, c mcfg) []WEvent {
 	var want []WEvent
 	for r := max(lo, 2); r < hi; r++ {
 		ch, ok := changeAt(histAt(c.hist, r-1), histAt(c.hist, r), r)
@@ -509,13 +552,18 @@ func reliableOk(in Input, req uint64, evs []WEvent, c mcfg) bool {
 			want = append(want, ev)
 		}
 	}
+	return want
+}
+
+// nonBookmarks is the events that are not bookmarks.
+func nonBookmarks(evs []WEvent) []WEvent {
 	var got []WEvent
 	for _, ev := range evs {
 		if ev.Type != WBookmark {
 			got = append(got, ev)
 		}
 	}
-	return eventsEqual(want, got)
+	return got
 }
 
 // What the check cannot see (as upstream's validator): a watch whose window the request does not
