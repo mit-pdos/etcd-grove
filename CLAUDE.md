@@ -311,6 +311,10 @@ written in, split into premises and axioms) and the Go code lines its proof veri
 whose `wp_proof` theorems it reaches, outside this repository and in it). It approximates
 `etc/tcb-report.lean` (see its `--help` for what it does not follow); its axioms are only as current
 as the collection's baseline. `--list-tcb`/`--list-verified` list what it counted, `--json` keeps it.
+`etc/theorem-tcb.py THEOREM... [-o DIR]` writes that TCB out to read (default: a fresh temporary
+directory): `TCB.lean` in reading order (the statement, its premises, then each axiom with the
+definitions it brings in), the same declarations in a trimmed copy of the tree, and a `README.md`
+with the counts by part and file.
 
 ## Proof writing
 
