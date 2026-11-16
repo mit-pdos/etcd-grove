@@ -34,36 +34,54 @@ abbrev kdClockN : Namespace := nroot.@"kvdurable_clock"
 theorem lintestN_kdClockN : (↑lintest.lintestN : CoPset) ⊆ ⊤ \ ↑kdClockN :=
   mask_ndot_ne' nroot "lintest" "kvdurable_clock" (by decide)
 
-/-- The ids' decimal names (`itoa`'s), one digit each. -/
-theorem allIds_decimal :
-    raft_kvreconf.allIds.map (fun i : w64 => decimalB (uint.nat i)) =
-      [decimalB 1, decimalB 2, decimalB 3, decimalB 4, decimalB 5, decimalB 6, decimalB 7,
-        decimalB 8, decimalB 9] := by
-  rfl
+/-- Two lists of decimal digits with the same bytes are equal. -/
+private theorem digits_map_inj {l1 l2 : List Char} (f : Char → w8)
+    (hf : ∀ c d, c.isDigit → d.isDigit → f c = f d → c = d)
+    (h1 : ∀ c ∈ l1, c.isDigit) (h2 : ∀ c ∈ l2, c.isDigit) (h : l1.map f = l2.map f) : l1 = l2 := by
+  induction l1 generalizing l2 with
+  | nil => cases l2 <;> simp_all
+  | cons a t IH =>
+    cases l2 with
+    | nil => simp at h
+    | cons b u =>
+      simp only [List.map_cons, List.cons.injEq] at h
+      simp only [List.mem_cons, forall_eq_or_imp] at h1 h2
+      rw [hf a b h1.1 h2.1 h.1, IH h1.2 h2.2 h.2]
 
-/-- The replicas' files in `dir` are distinct names. -/
-theorem kdFileNames_nodup (dir : GoString) :
-    (raft_kvreconf.allIds.map (kdFileName dir)).Nodup := by
-  have Hd : (raft_kvreconf.allIds.map (fun i : w64 => decimalB (uint.nat i))).Nodup := by
-    have hdig : ∀ n, n < 10 → decimalB n = [W8 ((Nat.digitChar n).toNat : Int)] := fun n h => by
-      unfold decimalB; rw [Nat.toDigits_of_lt_base h]; rfl
-    rw [allIds_decimal]
-    rw [hdig 1 (by decide), (Nat.digitChar_eq_one (n := 1)).2 rfl]
-    rw [hdig 2 (by decide), (Nat.digitChar_eq_two (n := 2)).2 rfl]
-    rw [hdig 3 (by decide), (Nat.digitChar_eq_three (n := 3)).2 rfl]
-    rw [hdig 4 (by decide), (Nat.digitChar_eq_four (n := 4)).2 rfl]
-    rw [hdig 5 (by decide), (Nat.digitChar_eq_five (n := 5)).2 rfl]
-    rw [hdig 6 (by decide), (Nat.digitChar_eq_six (n := 6)).2 rfl]
-    rw [hdig 7 (by decide), (Nat.digitChar_eq_seven (n := 7)).2 rfl]
-    rw [hdig 8 (by decide), (Nat.digitChar_eq_eight (n := 8)).2 rfl]
-    rw [hdig 9 (by decide), (Nat.digitChar_eq_nine (n := 9)).2 rfl]
-    decide
+/-- `itoa`'s decimal names are distinct (2026-11-16, kvraftN: until then nine one-digit names,
+checked by `decide`). -/
+theorem decimalB_inj (m n : Nat) (h : decimalB m = decimalB n) : m = n := by
+  unfold decimalB at h
+  have hf : ∀ c d : Char, c.isDigit → d.isDigit →
+      W8 (c.toNat : Int) = W8 (d.toNat : Int) → c = d := by
+    intro c d hc hd he
+    simp only [Char.isDigit, Bool.and_eq_true, decide_eq_true_eq] at hc hd
+    have hc' : c.toNat ≤ 57 := hc.2
+    have hd' : d.toNat ≤ 57 := hd.2
+    have := congrArg (fun w : w8 => uint.nat w) he
+    apply Char.toNat_inj.mp; word
+  have hl : Nat.toDigits 10 m = Nat.toDigits 10 n :=
+    digits_map_inj _ hf (fun c hc => Nat.isDigit_of_mem_toDigits (by decide) (by decide) hc)
+      (fun c hc => Nat.isDigit_of_mem_toDigits (by decide) (by decide) hc) h
+  rw [← Nat.ofDigitChars_ten_toDigits (n := m), hl, Nat.ofDigitChars_ten_toDigits]
+
+/-- The files of the replicas `1 … m` in `dir` are distinct names. -/
+theorem kdFileNamesM_nodup (dir : GoString) (m : Nat) (hm : m < 2 ^ 62) :
+    ((raft_kvreconf.bootVoters m).map (kdFileName dir)).Nodup := by
+  have Hd := raft_kvreconf.bootVoters_nodup m hm
   unfold List.Nodup at Hd ⊢
-  rw [List.pairwise_map] at Hd ⊢
+  rw [List.pairwise_map]
   refine Hd.imp ?_
   intro a b hab heq
+  apply hab
   unfold kdFileName at heq
-  exact hab (List.append_cancel_left heq)
+  have := decimalB_inj _ _ (List.append_cancel_left heq)
+  word
+
+/-- The replicas' files in `dir` are distinct names (`Main`'s nine). -/
+theorem kdFileNames_nodup (dir : GoString) :
+    (raft_kvreconf.allIds.map (kdFileName dir)).Nodup :=
+  kdFileNamesM_nodup dir 9 (by omega)
 
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt durableExt]
@@ -118,7 +136,10 @@ theorem Main.wp_proof
       (fun {_ i} hk => by rw [Hfs i (List.mem_of_getElem? hk)])) $$ Hfs'
   try wp_auto
   wp_apply wp_RandomConfig as %cfg %Hcfg
-  obtain ⟨Hopts, Hcl, Hops, Hp1, Hp3⟩ := Hcfg
+  obtain ⟨Hopts, Hmax, Hcl, Hops, Hp1, Hp3⟩ := Hcfg
+  ihave Hfs' : iprop([∗list] i ∈ raft_kvreconf.bootVoters (uint.nat cfg.Options'.MaxReplicas'),
+      dfile (GF := GF) γf (kdFileName dir i) none) $$ [Hfs']
+  · rw [Hmax, show uint.nat (W64 9) = 9 from rfl]; iexact Hfs'
   ihave #Hlpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest
     $$ []
   · iPkgInit
