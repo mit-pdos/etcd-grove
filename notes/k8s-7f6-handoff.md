@@ -1,35 +1,40 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, fourth 7f-6 agent): stage D started, STOPPED on a spec defect
+## START HERE (2026-11-16, fourth 7f-6 agent): stage D in progress (consume next)
 
-- **Branch:** `k8s-7f6` (lean `8448906500` + this checkpoint). Go target `k8s-7f6-target` now `88a1646324`
-  (watch.go = lean's B1 split + D's functions; its watch tests pass, 83.7 s). Its scratch worktree:
-  `/shared/tmp/k8s7f6d/target`.
-- **Done (this checkpoint):** D's Go (`runWatch`, `watchEvents`, `consume`, the timing constants) on
-  `k8s-7f6`'s watch.go with its translation (`etc/goose.py --project k8s-apiserver`; `gen-init --check`
-  clean; Code/GeneratedProof modules build). No Lean spec or proof of D yet.
-- **Risks checked:** context producers exist (`wp_WithCancel_Background_of` gives `ctxValueFrom`;
-  `metadata.outgoingCtxOkC_bgFrom`, `k8sctx.k8sCtxOk_bgFrom`; `ctxErrClient` from `ContextErrsClient`);
-  Perennial's `time` specs (`NewTimer`/`isTimer` a chan bag, `After`, `Timer.Stop`, `Sleep`, `Since`, `Now`)
-  exist; an SPSC receive in a `select` is `spsc_rcv_au`'s `recvAu` (precedent `watchChan__serialProcessEvents`).
-- **BLOCKER (ledger 2026-11-16, "the watch's annotated object is not expressible for the driver"):**
-  no `W : WatchSpec DObj` satisfies `watchContractOk driverSpec W codec` (`objAtD` pins `Annotated' = false`,
-  Go's annotate sets it), so `storeWatchOk` is unobtainable for the driver and `toWEvent` cannot give
-  `kWEvRel` for the annotated bookmark. Proposed: `WatchSpec.annAt` (ownership predicate) in place of
-  `annotate`. Waiting for etcd-grove-02's decision.
-- **Next, after the decision:** (if accepted) the WatchDefs/transform/New change (whoever the coordinator
-  names), then D in order: `watchOptions`, `toWEvent`, `encodeWEvents`, `lastObj`, `consume`, `watchEvents`,
-  `runWatch` (Scope §5; post: `WFailed`, or the encoded events `ws` with `Forall₂ kWEvRel kes ws` and either
-  `kNonErr kes = []` or `□ Q lb σ ∗ □ Q lb0 σ0 ∗ ⌜kStartOk m σ0 st ∧ kStreamOk … σ st kes⌝`: what
-  `streamOkL_of_kStreamOk` takes). Done token: `PDone' := dghostVar γd discard true`, driver holds the
-  full `false`, updates it after `Stop`, then `cancel`.
+- **Branch:** `k8s-7f6` (lean `8448906500` + D commits). Go target `k8s-7f6-target` `88a1646324`
+  (lean's B1 split + D's Go; watch tests pass). Scratch worktree of it: `/shared/tmp/k8s7f6d/target`.
+- **Done:** D's Go + translation (dfc8fc428d); the annAt change (f969619c10, ledger 2026-11-16 "the
+  watch's annotated object...", decided by etcd-grove-02): `WatchSpec GF Obj` with `annAt`, every
+  binder `WatchSpec GF Obj`, 7f-5's proofs unchanged, etcd3 store `Results` builds (no etcd3 API list,
+  so no interface files); `WRun.lean` (`driverW`, `watchOptsV`, `predOk_driverW`, `lastObjL`,
+  `dobj_countable`, `doneTok`/`donePD`, `kCancelled_refute`, `kSeen`, `kStopOk`,
+  `monoList_idxs_agree`); proved: `watchOptions` (returns the cell owned, `sendInitOwn`: persist it in
+  `watchEvents`), `toWEvent` (`kWEvRel`), `encodeWEvents` (`encWEventsL`, no premise), `lastObj`;
+  `consume.spec` and the select helpers `wp_select_bag_bag`/`wp_select_bag_spsc` (`consume.lean`).
+- **Next, in order:** `consume.wp_proof` (callees: `toWEvent`, `time.NewTimer`/`After`/`Timer.Stop`;
+  loop invariant: received `recv`, `kes`, `wes`, slice `sl ↦* ws` + cap, `Forall₂ kWEvRel`,
+  `[∗list] idx γ.evs kes`, `kSeen kes`, `spscConsumer γ.res recv`, `kLive`, `doneTok`; per element:
+  `monoList_idxs_agree` makes the element's prefix `kes`, `kCancelled_refute` drops its cancellation
+  branch); then `watchEvents` (WithCancel(Background()) with `PDone' := donePD γd`, `doneTok` from
+  `dghostVar_alloc`, `outgoingCtxOkC_bgFrom`/`k8sCtxOk_bgFrom`/`ctxErrClient`, `store.Watch.spec`,
+  consume, Stop with `kLive`, `dghostVar_persist` the token, cancel), `runWatch`; link list; land stop.
 - **Stage E obligations from B:** still open (History, third agent).
-- **Pitfalls:** as in B (below); `etc/goose.py` with GOWORK unset; the Code change rebuilds every importer.
+- **Pitfalls:** lean-check stalls at "elaborating line 1" on `consume.lean` even with its imports built
+  (twice, ~10 min each; `lake build` of the file takes ~1 min): iterate with lake builds there.
+  `wp_start as H` (not a ⟨Hpkg, H⟩ pattern: wp_start extracts isPkgInit); `iunfold X at H` for
+  hypotheses; a returned fresh cell cannot be persisted at `Φ` (no update there): return it owned.
+  `wp_if_destruct` on `#!decide P` gives the `P` branch first.
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
   lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
   `flock /shared/tmp/etcd-grove-full-build.lock`.
 
 ## History
+
+### 2026-11-16, fourth 7f-6 agent: stage D started, stopped on the annotation defect (resolved)
+
+- D's Go and translation; the defect (no `W : WatchSpec DObj` satisfies `watchContractOk driverSpec`)
+  recorded and accepted as `annAt`.
 
 ### 2026-11-16, third 7f-6 agent: stage B done (landed)
 

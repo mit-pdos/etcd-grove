@@ -33,6 +33,14 @@ namespace k8s_etcd3
 open Iris Iris.BI Iris.ProofMode k8s
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (WEvent Obj Input)
 
+/-- `DObj` is countable (the store watch's ghost list of the received models, `k8sWatch`). -/
+instance dobj_countable : Pos.Countable DObj :=
+  .ofInjective (fun o => Pos.Countable.encode (o.ns, o.name, o.uid, o.val, o.node, o.app))
+    (fun a b h => by
+      have h' := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h'
+      exact (DObj.ext_iff' a b).2 h')
+
 section vals
 variable [GooseExts] [GoSemanticsFunctions] [GoGlobalContext]
 
