@@ -103,8 +103,9 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
       iframe Hfd
       iexists dq', r'
       iframe Hrev
+    iframe Hauth Hchk
     ileft
-    iframe #
+    iexact Hf
   · obtain ⟨rfl, Hen⟩ := Hn
     cases err with
     | nil => exact absurd rfl Hen
@@ -149,6 +150,12 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
           · iapply typedPointsto_combine _ _ _ Hrn
             simp only [TypedPointsto.typedPointstoDef]
             iframe
+          ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+          · iunfold errIsTrue
+            iexists S', I', U'
+            iframe Htree
+            ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
+          ihave ⟨-, #Hauth, #Hchk⟩ := Hnf $$ %eNF HNF Hit
           ihave %Hvn := typedPointsto_not_null _ _ _ $$ «$v0»
           iStructNamed «$v0»
           ihave Hwh : v3rpc.hdrW «$v0_ptr» $$ [ClusterId MemberId RaftTerm LeaderId]
@@ -181,16 +188,18 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
             iframe Hfd
             iexists dq', r'
             iframe Hrev
+          iframe Hauth Hchk
           iright
           isplitr
           · ipureintro; rfl
           iintro !> #Hrow
-          ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+          ihave Hit2 : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
           · iunfold errIsTrue
             iexists S', I', U'
             iframe Htree
             ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
-          iapply Hnf $$ %eNF HNF Hit Hrow
+          ihave ⟨Hab, -, -⟩ := Hnf $$ %eNF HNF Hit2
+          iapply Hab $$ Hrow
 
 end proof
 

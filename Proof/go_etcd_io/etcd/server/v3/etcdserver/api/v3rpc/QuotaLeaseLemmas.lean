@@ -155,6 +155,46 @@ theorem v3rpc.quotaLease_leasesHandlerOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpe
   inext
   iexact HΨ
 
+/-- **`quotaLeaseServer.LeaseTimeToLive`** (the embedded service's, promoted) meets the metadata-indexed
+spec the embedded service's meets (auth-lease S4, Freeze §4: `etcd_lease_read_served`). -/
+theorem v3rpc.quotaLease_ttlHandlerOkMd {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)
+    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) :
+    v3rpc.quotaLeaseServerAt (GF := GF) q ls s ∗
+        grpcHandlerOkMd #(methods ls.ty go!"LeaseTimeToLive" ls.v) S Spec ⊢
+      grpcHandlerOkMd (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseTimeToLive")
+        S Spec := by
+  iintro ⟨#Hq, #Hh⟩
+  iunfold v3rpc.quotaLeaseServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hls, -⟩
+  unfold grpcHandlerOkMd
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ Hpre HΨ
+  rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseTimeToLive")]
+  wp_pures
+  wp_auto
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %r Hpre
+  inext
+  iexact HΨ
+
+/-- **`quotaLeaseServer.LeaseLeases`** (the embedded service's, promoted) meets the metadata-indexed
+spec the embedded service's meets (auth-lease S4, Freeze §4: `etcd_lease_read_served`). -/
+theorem v3rpc.quotaLease_leasesHandlerOkMd {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)
+    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) :
+    v3rpc.quotaLeaseServerAt (GF := GF) q ls s ∗
+        grpcHandlerOkMd #(methods ls.ty go!"LeaseLeases" ls.v) S Spec ⊢
+      grpcHandlerOkMd (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseLeases")
+        S Spec := by
+  iintro ⟨#Hq, #Hh⟩
+  iunfold v3rpc.quotaLeaseServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hls, -⟩
+  unfold grpcHandlerOkMd
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ Hpre HΨ
+  rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseLeases")]
+  wp_pures
+  wp_auto
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %r Hpre
+  inext
+  iexact HΨ
+
 end lemmas
 
 end EtcdGrove

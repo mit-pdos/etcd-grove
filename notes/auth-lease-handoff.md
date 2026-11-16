@@ -1,6 +1,38 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, items 5-6 done; item 7 next)
+## START HERE (S4, 2026-11-16, item 7 part 1 (read handlers) done; item 7 part 2 (the law, §5) next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries:
+  etcd-grove-02's items 5-6 acceptance and GO for 7; "Item 7a": the forms of this part).
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); Freeze FROZEN (`209e3c68e6`, tag
+  `auth-lease-s4-frozen`, texts `notes/auth-lease-s4-frozen.lean.txt`; a change beyond them is a thaw: STOP); item 5
+  (`ef5f154062`); item 6 (`dcaa5c5d18`); **item 7a** (this commit): §4.4 F4/§10 T1 (`EtcdServer.LeaseTimeToLive.spec`
+  over `requireAuthInfo.specC`, `LeaseLeases.spec`'s never-`ErrLeaseNotFound`, `checkLeaseLeases.spec`'s
+  `authApplyErrIs`), v3rpc `ttlAns`/`leasesAns`/`leaseTTLOut` (check on both arms, factored)/`leaseLeasesOut` (empty arm
+  gone), §4.1-4.3 (`etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`, `etcd_lease_read_served` in `LeaseReadServed.lean`).
+  Frozen texts compared equal (`/shared/tmp/auth-lease-s4/scripts/cmpfrozen.py`).
+- **Next, in order:** 7b. the per-member law (Freeze §5, §10 S1/S4/S5/S6, R4-5): `leaseKeptIn`, `lsHolds`,
+  `lessorLawMask`, `lessor_keys_of_read` (est. 4-6 days). Design lead (2026-11-16, read only): only a writer holding
+  BOTH `lessorMu` (under `le.mu`) and the owner's `leaseClosers` (inside `leaseOwn`, held by the apply thread through
+  mvcc's write view) appends to the lessor history (`InvLessor.lean:922-1036`), and the last snapshot's item map is the
+  owner's `I`, which mvcc ties to `pendItems σ.log changes` (`WriteViewApi.lean:207-275`). So every history snapshot's
+  items are `pendItems` of the applied log and a prefix of the entry's changes: the tie can be a mono-list (applied log
+  ↦ history length) kept by the store invariant (`kvsN`), pushed where mvcc's writes end. Backend batch-Unlock window
+  (heads-up 2026-11-16): the law and the lease reads read the lessor's memory, not the backend: not affected (recheck
+  if the tie ever reads the backend). 8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP:
+  `Main.wp_proof` proved). 10. linking, gates, land stop (merge lean first).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
+  `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`.
+  Logs `/shared/tmp/auth-lease-s4/i{5,6,7}-*.log` (grep `^error`; ~1M lines of `#print axioms`).
+- **Pitfalls:** `errIsTrue` is not persistent: rebuild it inside a `□` (`LeaseServer__LeaseTimeToLive`). A
+  `wp_if_destruct` may already reduce `if v.Keys'`: `(try simp only [hK, ↓reduceIte])`. lean-check after an edit to
+  `InvLeaseRead`/`QuotaLeaseLemmas` rebuilds client `Results` (~30 min): build through the slot first. Older pitfalls:
+  an `iprop` hypothesis is not a Lean one (state an entailment lemma); in `wp_apply (… (by …))` a `by` naming a local
+  can time out (`have` first).
+
+# History
+
+## Previous START HERE (S4, 2026-11-16, items 5-6 done; item 7 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries,
   "Item 5", "Item 6": the forms decided, for the checkpoint report).
@@ -28,8 +60,6 @@
   `LessorPlain` (unfold `attemptPre` by hand). In a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail
   or time out: `have` first. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
   Build logs are huge (~1M lines of `#print axioms`): grep `^error`.
-
-# History
 
 ## Previous START HERE (S4, 2026-11-16, item 5 done; item 6 next)
 

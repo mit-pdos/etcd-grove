@@ -36,7 +36,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.LeaseTimeToLive.wp_proof
-    (hReq : EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG))
+    (hReq : EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG))
     (hChk : EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG))
     (hTTL : EtcdServer.leaseTimeToLive.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -66,8 +66,9 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   (try wp_auto)
-  wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout, #Hav⟩
+  wp_apply (hReq s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hfrom, #Hav⟩
   · iframe #
+  ihave #Hout := authedOutB_of_C s E.authMode n _ err $$ HoutC
   ihave #Hout' := Hout
   iunfold authedOutB at Hout'
   icases Hout' with ⟨#Herr, -⟩
@@ -81,6 +82,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     isplitr
     · ipureintro; exact ⟨rfl, by intro h; cases h⟩
     iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $Hav]
+  ihave #Hfr := Hfrom $$ %rfl
+  ihave #Hcf := leaseCheckFrom_of_authedFrom s E (GoInterface.ok ctx) n $$ Hfr
   (try wp_auto)
   ihave ⟨Hreq, %Hrn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
   iStructNamed Hreq
@@ -146,7 +149,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         iframe Hout
         isplitl [Hw Hhv]
         · iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
-        (try simp only [↓reduceIte]); iexact Hchk
+        (try simp only [hK, ↓reduceIte]); iexact Hchk
       | true =>
         (try wp_auto)
         wp_apply (hAS s _) as -
@@ -164,7 +167,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
           iframe Hout
           isplitl [Hw Hhv]
           · iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
-          (try simp only [↓reduceIte]); iexact Hchk
+          (try simp only [hK, ↓reduceIte]); iexact Hchk
         · -- `return nil, auth.ErrAuthOldRevision`
           (try wp_auto)
           iapply HΦ
@@ -180,8 +183,14 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         iapply HΦ
         iframe HRD Htok Hreq
         iright
-        iframe He2 Hnf
-        ipureintro; exact ⟨rfl, Hne⟩
+        iframe He2
+        isplitr
+        · ipureintro; exact ⟨rfl, Hne⟩
+        iintro !> %e #He Hi
+        isplitl [Hi]
+        · iapply Hnf $$ He Hi
+        iframe Hout
+        (try simp only [hK, ↓reduceIte]); iexact Hchk
       · exact absurd rfl Hne
   | false =>
     (try wp_auto)
@@ -212,15 +221,21 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       iframe Hout
       isplitl [Hw Hhv]
       · iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
-      (try simp only [↓reduceIte, Bool.false_eq_true]); itrivial
+      (try simp only [hK, Bool.false_eq_true, ↓reduceIte]); iexact Hcf
     · obtain ⟨rfl, Hne⟩ := Hn
       rcases err2 with ei | _
       · (try wp_auto)
         iapply HΦ
         iframe HRD Htok Hreq
         iright
-        iframe He2 Hnf
-        ipureintro; exact ⟨rfl, Hne⟩
+        iframe He2
+        isplitr
+        · ipureintro; exact ⟨rfl, Hne⟩
+        iintro !> %e #He Hi
+        isplitl [Hi]
+        · iapply Hnf $$ He Hi
+        iframe Hout
+        (try simp only [hK, Bool.false_eq_true, ↓reduceIte]); iexact Hcf
       · exact absurd rfl Hne
 
 end proof

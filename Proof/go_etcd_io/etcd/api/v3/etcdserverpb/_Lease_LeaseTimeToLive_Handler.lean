@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- The generated handler of `Lease.LeaseTimeToLive`: decode a `*LeaseTimeToLiveRequest`, call `srv.LeaseTimeToLive` (directly or
 through the interceptor chain, with `info.FullMethod = "/etcdserverpb.Lease/LeaseTimeToLive"`), as every
-generated unary handler (`wp_unaryHandler`; the build checks that this handler's body is
+generated unary handler (`wp_unaryHandlerMd`; the build checks that this handler's body is
 `unaryHandlerImpl` at these arguments). -/
 theorem etcdserverpb._Lease_LeaseTimeToLive_Handler.wp_proof :
     etcdserverpb._Lease_LeaseTimeToLive_Handler.spec (GF := GF) (hG := hG) :=
-  wp_unaryHandler etcdserverpb._Lease_LeaseTimeToLive_Handler etcdserverpb.LeaseServer.ty
+  wp_unaryHandlerMd etcdserverpb._Lease_LeaseTimeToLive_Handler etcdserverpb.LeaseServer.ty
     etcdserverpb.LeaseTimeToLiveRequest.ty etcdserverpb.LeaseTimeToLiveResponse.ty go!"LeaseTimeToLive" go!"/etcdserverpb.Lease/LeaseTimeToLive"
 
 end proof

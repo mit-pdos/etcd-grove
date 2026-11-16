@@ -38,8 +38,9 @@ contract's per-call resources `S` and the header's revision reader `A.revR`, at 
 lower bounds `n`, `m`, on the request `r`: `s.LeaseTimeToLive(ctx, r)`, `ErrLeaseNotFound`
 (`errors.Is`) turned into a fresh response with `TTL` `-1`, another error through `togRPCError`,
 then the header filled. Everything back, and `leaseTTLOut`: on success the response, about the
-asked lease (its `ID` the request's), with its header filled and the server's verdict (the request authenticated, with `r.Keys` the key check's),
-or the not-found response; on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
+asked lease (its `ID` the request's), with its header filled and the server's verdict (the request
+authenticated and the check passed relative to `n`, with `r.Keys` the key check's), on the server's
+response or the not-found response alike (auth-lease S4, Freeze §4.4 F4, §10 T1); on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
 wire model's persistent fields (`pbLeaseGrantRequest.recv`'s form): the stage that links the
 handler to the gRPC server reconciles them. (k8s 7f-4, T-h6) The context holds nothing at net/http's
 keys (`http.netCtxOk`, which grpc's run context gives: `netCtxOk_of_runCtx`). (k8s 7f-4, Addendum T-k)

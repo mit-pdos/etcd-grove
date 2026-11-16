@@ -1842,7 +1842,7 @@ theorem EtcdServer.wp_leaseTimeToLive :
 
 theorem EtcdServer.wp_LeaseTimeToLive :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfo EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_AuthStore
+  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfoC EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_AuthStore
 
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=

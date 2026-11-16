@@ -450,9 +450,7 @@ theorem etcd_leaseLeasesHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     iStructNamedSuffix Hw "_f"
     ipersist Header_f
     ipersist Leases_f
-    icases Hres with (⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩ | ⟨%Hon, -, -⟩)
-    rotate_left
-    · rw [hoff] at Hon; cases Hon
+    icases Hres with ⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩
     ihave %Hnd := lease.leaseIdsAt_nodup γl i ids $$ Hids
     imod grants_listed γl G m i ids Hmi $$ [HG] with %HGl
     · iframe #; iexact HG
@@ -688,11 +686,11 @@ theorem etcd_leaseTTLHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   inext
   iintro %resp %err ⟨HS, Hrev, -, Hout, #HSe⟩
   iunfold v3rpc.leaseTTLOut at Hout
-  icases Hout with (⟨%Hok, %w, Hw, %Hid, Hh, Harm⟩ | %Herr)
+  icases Hout with (⟨%Hok, %w, Hw, %Hid, Hh, -, -, Harm⟩ | %Herr)
   · ihave #Hf : □ (leaseTTLRow s γl -∗
         (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
         lease.leaseAbsentFrom γl m v.ID') $$ [Harm]
-    · icases Harm with (⟨-, -, #Hf⟩ | ⟨-, #Hnf⟩)
+    · icases Harm with (#Hf | ⟨-, #Hnf⟩)
       · iexact Hf
       · iintro !> #Hrow
         iright
@@ -768,9 +766,7 @@ theorem etcd_leaseLeasesHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid
     iStructNamedSuffix Hw "_f"
     ipersist Header_f
     ipersist Leases_f
-    icases Hres with (⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩ | ⟨%Hon, -, -⟩)
-    rotate_left
-    · rw [hoff] at Hon; cases Hon
+    icases Hres with ⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩
     iunfold v3rpc.leasesHdrDone at Hh
     icases Hh with ⟨Hfd, %dq, %rv, %log, Hrv, -, -⟩
     iunfold v3rpc.hdrFilled at Hfd
