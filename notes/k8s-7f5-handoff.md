@@ -14,7 +14,7 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
   `concurrentProcessEvents.spec` stated, a hypothesis). `346f95c6ca`: `Stop`, `ResultChan` PROVED. All unlinked.
 - **Next, in order (Draft §6):** step 3 rest: `run` (spec: Draft §4; holds `rwgAdder`; forks startWatching via
   `rwg.wp_Add_top` + `wp_fork_tok` (see processEvents' proof), then processEvents with `n = 1`; after `Wait`, close
-  `resultChan` through `kResChan`'s invariant (`kResInv` → `kResClosed`, R := True); `watchClosedCh` a broadcast
+  `resultChan` with `kRes_close_au` (WatchCons, checked; as `wp_spsc_close` over `chan.wp_close`, needs `kResAlive alive 1`); `watchClosedCh` a broadcast
   (`start_broadcast`) whose Q is `kProdExited γ`); `createWatchChan` (pred `Empty()` → `everything_selPredOkW` with
   `storageInit`'s `Everything`, else `selPredOk_W`; `wp_WithCancel_ctx`, names before it, Draft §5); `watcher.Watch`;
   `store.Watch` (`kp ≠ []` from `prepareKeyM_ne_nil`; `c.pfx <+: kp` from `prepareKeyM_prefix`). Then step 4

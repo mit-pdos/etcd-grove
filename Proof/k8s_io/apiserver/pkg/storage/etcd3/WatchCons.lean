@@ -311,6 +311,92 @@ theorem kRes_filterStep [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec
   imodintro
   iframe
 
+set_option maxHeartbeats 800000 in
+/-- **`run`'s close of `resultChan`** (after `resultChanWG.Wait()`, holding the whole alive token): the
+producer token out of `kResInv` into the closed SPSC (`R := True`), `kResClosed` left in the invariant (a
+copy of Perennial's `spsc_close_au` over `kResChan`'s one invariant). -/
+theorem kRes_close_au [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+    (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
+    (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (chR : Loc)
+    (Φ : IProp GF) :
+    ⊢ kResChan c W γ cd sel emp inS m Q procd alive chR -∗ £ 1 -∗ kResAlive alive 1 -∗ ▷ Φ -∗
+      closeAu γ.res.chanName k8s_io.apimachinery.pkg.watch.Event Φ := by
+  unfold kResChan closeAu
+  iintro ⟨#Hchan, #Hinv⟩ Hlc1 HT Hcont
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
+  icases Hi with ⟨Hi, HX⟩
+  icases HX with (HI | HC)
+  · unfold kResInv
+    icases HI with ⟨%sent, %evs, %raws, %σ, Hprod, -⟩
+    unfold kResAlive
+    imod dghostVar_update true alive false $$ HT with HC
+    icases spscInv_elim _ _ _ $$ Hi with ⟨%s, %sent0, %recv, Hch, HsentI, HrecvI, %Hrel, Hm⟩
+    unfold spscProducer
+    ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hprod HsentI
+    subst Heq
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    iexists s
+    iframe Hch
+    cases s with
+    | Buffered buff =>
+      dsimp only
+      iintro Hoc
+      imod Hmask with -
+      imod Hclose $$ [Hoc HsentI HrecvI Hm Hprod HC] with -
+      · inext
+        isplitr [HC]
+        · iapply spscInv_intro γ.res _ _ (.Closed buff) sent recv (by simpa [inflight] using Hrel)
+            $$ Hoc HsentI HrecvI
+          cases buff with
+          | nil =>
+            simp only [spscInvMatch, spscProducer]
+            isplitl [Hprod]
+            · iexact Hprod
+            · ileft; itrivial
+          | cons w ws =>
+            simp only [spscInvMatch, spscProducer]
+            isplitl [Hm]
+            · iexact Hm
+            isplitl [Hprod]
+            · iexact Hprod
+            · ileft; itrivial
+        · iright; unfold kResClosed; iexact HC
+      imodintro
+      iexact Hcont
+    | Idle =>
+      dsimp only
+      iintro Hoc
+      imod Hmask with -
+      imod Hclose $$ [Hoc HsentI HrecvI Hprod HC] with -
+      · inext
+        isplitr [HC]
+        · iapply spscInv_intro γ.res _ _ (.Closed []) sent recv (by simpa [inflight] using Hrel)
+            $$ Hoc HsentI HrecvI
+          simp only [spscInvMatch, spscProducer]
+          isplitl [Hprod]
+          · iexact Hprod
+          · ileft; itrivial
+        · iright; unfold kResClosed; iexact HC
+      imodintro
+      iexact Hcont
+    | Closed d =>
+      dsimp only
+      cases d with
+      | nil =>
+        simp only [spscInvMatch, spscProducer]
+        icases Hm with ⟨Hp2, -⟩
+        iapply dghostVar_three_halves $$ Hprod HsentI Hp2
+      | cons _ _ =>
+        simp only [spscInvMatch, spscProducer]
+        icases Hm with ⟨-, Hp2, -⟩
+        iapply dghostVar_three_halves $$ Hprod HsentI Hp2
+    | _ => itrivial
+  · iexfalso
+    iapply kResAlive_closed $$ [$HT $HC]
+
 end stores
 
 /-! ## `storage.Everything` (`createWatchChan`'s predicate for an empty one; k8s 7f-5b H2 (c)) -/
