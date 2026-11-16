@@ -9,6 +9,7 @@ As `MDefs.lean` for the model's stores: the Go values of `watch.go`'s check and 
 - `wevOf w`, the model's event (`WEv`) of a Go `WEvent` (its type as a natural number);
   `wevsOwn s evs`, the Go slice `s` holds events whose models are `evs`, read-only;
 - `wevsOwnM s evs`, the same owned (a fresh slice), which persists into `wevsOwn s evs`;
+- `reliableLoL x req lo0`, the start of the window a request pins (`reliableLo`);
 - `chgOf ch`, the model's change (`Chg`) of a Go `change` (the previous and current objects present
   only when `hasPrev`/`hasCur`).
 -/
@@ -26,7 +27,7 @@ namespace EtcdGrove
 namespace k8s_etcd3
 
 open Iris Iris.BI
-open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (WEvent change Obj)
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (WEvent change Obj Input)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -65,6 +66,12 @@ theorem wevsOwnM_persist (s : GoSlice) (evs : List WEv) :
   isplit
   · iexact Hs
   · ipureintro; exact He
+
+/-- The start of the window a request pins (`reliableLo`; `reliableOkL`'s `lo`), from the events'
+start `lo0`. -/
+def reliableLoL (x : Input) (req lo0 : Nat) : Nat :=
+  if x.Match' = W64 1 then (if 0 < req then max lo0 (req + 1) else lo0)
+  else if 0 < req then req + 1 else lo0
 
 theorem Obj_eq_iff (a b : Obj) : a = b ↔
     a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧

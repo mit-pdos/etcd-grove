@@ -1,6 +1,43 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, first 7f-6 agent, end of context): stage B started (B0 done)
+## START HERE (2026-11-16, second 7f-6 agent): stage B1 in progress
+
+- **Branch:** `k8s-7f6` past lean `54c7fb38f0`. Go target: `k8s-7f6-target` (`4952cb3b91`; its watch.go
+  predates the B1 split below: port the split there before D). Decisions: worktree `questions.md`.
+- **Done (B1):** `WDefs` (`wevOf`, `wevsOwn`/`wevsOwnM`, `chgOf`, `reliableLoL`); spec+proof of
+  `eventsEqual`, `bookmarksOk` (213724b5e0), `changeAt`, `toEvent`, `initialEvents`. Go: `reliableOk`
+  and `watchOk` split into helpers (`evRange`, `reliableLo`, `wantEvents`, `nonBookmarks`;
+  `checkedEvents`, `firstBookmark`, `watchListOk`), translation regenerated (79d056c186): one
+  helper per branchy part, so no proof continues in 5-20 copies after an `if`.
+- **In progress (untracked or uncommitted):** `evRange`, `reliableLo`, `nonBookmarks`, `wantEvents`,
+  `reliableOk`, `initialPrefixOk` (specs written; proofs partly).
+- **Next, in order:** finish those; `decodeWEvents`, `checkedEvents`, `firstBookmark`,
+  `watchListOk`, `watchOk` (premises: `uint.Z g.st.st.rv < 2^63`, MinRV parses below `2^63`: `InOk`'s);
+  B2 (`step`'s `KWatch` branch, `stepL`, `step.wp_proof`, lemmas unfolding `stepL`); link file
+  `etc/link-lean-first-k8setcd3.txt` + `etc/gen-link.py --k8setcd3`; land stop.
+- **Pitfalls:**
+  - A missing import `.olean` (an import that failed to build) makes a lean-check worker spin at
+    "elaborating line 1" forever (the first agent's 38-min runaway; mine too): build the imports
+    with `lake build` first and read its errors.
+  - `go.min`/`go.max`: `have hmin : (#(functions go.min [go.uint64, go.uint64]) : val) = min.impl
+    go.uint64 2 := FuncUnfold.func_unfold (f := go.min) (type_args := List.replicate 2 go.uint64)`,
+    then `simp only [hmin]` before `wp_auto`.
+  - `wp_if_destruct` cannot split `#ch.hasCur'` (a projection): `cases h : ch.hasCur'` first; it
+    does run to the end of a branch (then `wp_for_post`, no `wp_auto`), and closes contradictory
+    branches itself. A struct `!=` splits into one `if` per field (`item_eq_iff`, `Obj_eq_iff`).
+  - A returned fresh slice: post `wevsOwnM` (owned); persist it in the caller (`wevsOwnM_persist`):
+    `imod` cannot run once the goal is `Φ v`.
+  - Rules: every lake build through `/shared/tmp/build-slot.sh`; lean-check `--max-open 2`, stopped
+    before builds and at the end of a turn.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check with `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`; gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`. Go: `cd examples/k8s/etcd3; GOWORK=off go test
+  -run 'TestWatchOkEdges|TestGenWatchCases' .`; translation: `PATH=/usr/local/go/bin:$PATH
+  etc/goose.py --project k8s-apiserver` (GOWORK unset).
+
+## History
+
+### 2026-11-16, first 7f-6 agent: B0
 
 - **Branch:** `k8s-7f6` past lean `54c7fb38f0` (stage A landed there). Watch Go target: branch
   `k8s-7f6-target` (`4952cb3b91`). Decisions: worktree `questions.md` (untracked). Scope §5.
@@ -55,8 +92,6 @@
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere (lean-check: `LAKE_OPTS=...`);
   full builds under `flock /shared/tmp/etcd-grove-build.lock`, gates under
   `flock /shared/tmp/etcd-grove-full-build.lock` (both `systemd-run --scope -q -p MemoryMax=64G`).
-
-## History
 
 ### 2026-11-16, Scope (on `k8s-7f6-target`)
 The Scope and the whole Go change with watches (200/200 repeated runs at k ∈ {1,3,5}, 39/39 serial
