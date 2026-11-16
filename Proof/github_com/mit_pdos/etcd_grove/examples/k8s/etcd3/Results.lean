@@ -25,22 +25,25 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   Kubernetes packages' semantics assumptions (the method-set facts `objTyOk` and
   `storageErrTyOk` follow from them).
 * **`k8setcd3_MainCluster`** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`; step 1 of "k8s etcd3
-  over cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-06): `MainCluster(clients, ops)` -- `Main`
-  over a three-member cluster (`cluster3`, the client of its three bridges with etcd's default
-  retries) -- does not panic and returns `Ok` or `Unknown`
+  over cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-06; `k` members since stage A of
+  `notes/k8s-7f6-scope.md`, 2026-11-16, approved by the user): `MainCluster(k, clients, ops)` --
+  `Main` over a `k`-member cluster (`startCluster`: the examples' generic start, each member behind a
+  bridge, the client of the `k` bridges with etcd's default retries) -- does not panic and returns
+  `Ok` or `Unknown`, for every `1 ≤ k ≤ 1000`
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`).
 * **`k8s_etcd3_cluster_safe`** (`Adequacy.lean`'s `k8s_etcd3_cluster_adequate`): its closed
-  theorem, `k8s_etcd3_safe`'s conclusion for `MainCluster(clients, ops)`, under the cluster's
-  hypotheses (its boot facts and premises at `clusterCfg`, its nine addresses unclaimed, its three
-  data directories distinct and fresh) for the one member's.
+  theorem, `k8s_etcd3_safe`'s conclusion for `MainCluster(k, clients, ops)`, for every
+  `1 ≤ k ≤ 1000`, under the cluster's hypotheses (its boot facts in putgetN's list form and premises
+  at its members, its `3k` addresses unclaimed, its `k` data directories fresh) for the one member's.
 * **`k8setcd3_MainPartition`** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`; step 2 of "k8s
-  etcd3 over cluster3", 2026-11-07): `MainPartition(clients, ops, sched)` -- `MainCluster` with
+  etcd3 over cluster3", 2026-11-07; `k` members since stage A): `MainPartition(k, clients, ops,
+  sched)` -- `MainCluster` with
   `cluster3.Partitioner` running the schedule (peer cuts and mends, a bridge blackholed or
   unblackholed, its connections dropped) while `Check`'s clients run -- does not panic and returns
   `Ok` or `Unknown`, for every schedule
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`).
 * **`k8s_etcd3_partition_safe`** (`Adequacy.lean`'s `k8s_etcd3_partition_adequate`): its closed
-  theorem, `k8s_etcd3_cluster_safe`'s conclusion for `MainPartition(clients, ops, sched)` with the
+  theorem, `k8s_etcd3_cluster_safe`'s conclusion for `MainPartition(k, clients, ops, sched)` with the
   schedule `steps` built as a slice literal (`schedLit`), for every `steps` of fewer than `2 ^ 63`
   steps, under `k8s_etcd3_cluster_safe`'s hypotheses.
 
@@ -150,7 +153,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     Hmul HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 
-/-- **The Kubernetes etcd3 store's linearizability instance over three members is safe, in the
+/-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe, in the
 operational semantics** (`k8s_etcd3_cluster_adequate`, see the file header and `Adequacy.lean`). -/
 theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
@@ -161,34 +164,34 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
+    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
     (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
-    (HNs : prometheus.namesUnclaimed (k8setcd3CProgram clients ops) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3CProgram clients ops) k8setcd3CAddrs)
-    (HDs : dataDirsAbsent (k8setcd3CProgram clients ops) k8setcd3CDataDirs)
+    (HNs : prometheus.namesUnclaimed (k8setcd3CProgram k clients ops) k8setcd3Names)
+    (HAs : addrsUnclaimed (k8setcd3CProgram k clients ops) (k8s_etcd3N.k8setcd3NAddrs k))
+    (HDs : dataDirsAbsent (k8setcd3CProgram k clients ops) (k8s_etcd3N.k8setcd3NDirs k))
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (k8setcd3CProgram clients ops))
+    (HEnv : verifyEnvOff (k8setcd3CProgram k clients ops))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
-        id₁ id₂ id₃ ps ctxs boot)
+      ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([k8setcd3CProgram clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hsteps : RealNsteps n ([k8setcd3CProgram k clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_cluster_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops
+  k8s_etcd3_cluster_adequate Hctx k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
     Hc0 Hc31 Hops Hmul HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
+/-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
 header and `Adequacy.lean`; the `zap.Logger` and `errors.IsCtxErr` axioms it once rested on were
 refuted and are repaired since premise fixes 6: see the file header). -/
@@ -201,8 +204,9 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
+    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
     (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
@@ -210,24 +214,23 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8setcd3PProgram clients ops steps) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3PProgram clients ops steps) k8setcd3CAddrs)
-    (HDs : dataDirsAbsent (k8setcd3PProgram clients ops steps) k8setcd3CDataDirs)
+    (HNs : prometheus.namesUnclaimed (k8setcd3PProgram k clients ops steps) k8setcd3Names)
+    (HAs : addrsUnclaimed (k8setcd3PProgram k clients ops steps) (k8s_etcd3N.k8setcd3NAddrs k))
+    (HDs : dataDirsAbsent (k8setcd3PProgram k clients ops steps) (k8s_etcd3N.k8setcd3NDirs k))
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (k8setcd3PProgram clients ops steps))
+    (HEnv : verifyEnvOff (k8setcd3PProgram k clients ops steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
-        id₁ id₂ id₃ ps ctxs boot)
+      ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([k8setcd3PProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hsteps' : RealNsteps n ([k8setcd3PProgram k clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_partition_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops
+  k8s_etcd3_partition_adequate Hctx k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
     Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2
     Hsteps' Hn
 

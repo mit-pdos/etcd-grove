@@ -2,8 +2,10 @@
 `Event_EventType.String(t)` (names-only; k8s 7f-5a, T5-f: the etcd3 watcher's `parseEvent` error for
 a `nil` `PrevKv`, Q5): returns some string, for every value, once mvccpb is initialized (`String`
 reads the enum's descriptor, which `file_kv_proto_init` fills; unknown values print as numbers).
-The trust boundary: an axiom, `Proof/go_etcd_io/etcd/api/v3/mvccpb/Event_EventType__String.lean`.
-Lean-first.
+No axiom (k8s 7f-5a-P step 7, `notes/k8s-7f5a-draft.md` §11.5): the watcher calls `String` through
+the pointer, whose trust boundary is `Event_EventType__StringPtr.lean`; this value form is kept as the
+statement the pointer form becomes a theorem of once goose unfolds an axiomatized value method's
+pointer method (`notes/perennial-changes.md`). Lean-first.
 -/
 module
 

@@ -204,7 +204,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] [Pos.Countable KRaw]
+variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj]
 
 /-- **A producer of `resultChan` is still running** (`alive`'s fraction `q`, value `false`): each of
 the two goroutines that may send holds one until it exits; `run`, after `resultChanWG.Wait()`, holds
@@ -350,7 +350,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] [Pos.Countable KRaw]
+variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj]
 
 /-- A lower bound of a mono list gives each of its elements at its index. -/
 theorem monoList_lb_idx_all {A : Type} [Pos.Countable A] (γ : GName) (l : List A) :
