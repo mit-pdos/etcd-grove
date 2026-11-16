@@ -847,10 +847,11 @@ theorem auth.authStore.isOpPermitted.wp_lbR
   iunfold authReadTxLockedFrom at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
-  iunfold authTxReads at Hreads
+  icases Htx with ⟨%v, %Hs, Htok, #Hsnap0, #Hreads⟩
+  ihave #Hsnap := authViewSnapFrom_users M n v $$ Hsnap0
+  iunfold authTxReadsV at Hreads
   icases Hreads with ⟨#Hrds, #HRU⟩
-  iunfold authReaderOk at Hrds
+  iunfold authReaderOkV at Hrds
   icases Hrds with ⟨#HUG, -, -, -, -⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #info.Username'))
@@ -859,7 +860,7 @@ theorem auth.authStore.isOpPermitted.wp_lbR
   iintro %u ⟨Htok, Hu⟩
   wp_auto
   wp_if_destruct
-  · ihave %Hnone := userOut_null sta info.Username' $$ Hu
+  · ihave %Hnone := userOut_null v.atUsers info.Username' $$ Hu
     wp_apply h_String _ _ as %f -
     (try wp_auto)
     wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f]
@@ -885,10 +886,10 @@ theorem auth.authStore.isOpPermitted.wp_lbR
       iframe HePDa
       ipureintro; simp
     isplitl []
-    · iapply (permVerdictFrom_noUser M n info k e (permOp pt) (GoInterface.ok ePD) sta
+    · iapply (permVerdictFrom_noUser M n info k e (permOp pt) (GoInterface.ok ePD) v.atUsers
         (fun h => by cases h) Hnone) $$ Hev Hsnap
-    · iapply (permRefusalM_noUser M n info k e (permOp pt) (GoInterface.ok ePD) cur sta h0 hcur Hnone) $$ Hev Hrv Hsnap HoPD
-  ihave Hu' := userOut_some u sta info.Username' Hif $$ Hu
+    · iapply (permRefusalM_noUser M n info k e (permOp pt) (GoInterface.ok ePD) cur v.atUsers h0 hcur Hnone) $$ Hev Hrv Hsnap HoPD
+  ihave Hu' := userOut_some u v.atUsers info.Username' Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   wp_apply h_hasRootRole $$ [$Hu] as %root ⟨Hu, %Hroot⟩
   · ipureintro; rw [Hur.2.1]; exact Hur.2.2
@@ -915,9 +916,9 @@ theorem auth.authStore.isOpPermitted.wp_lbR
         iframe HePDa
         ipureintro; simp
       isplitl []
-      · iapply (permVerdictFrom_cache_refused M n info k e pt (GoInterface.ok ePD) sta roles
+      · iapply (permVerdictFrom_cache_refused M n info k e pt (GoInterface.ok ePD) v.atUsers roles
           (fun h => by cases h) Hur.1 hn) $$ Hev Hsnap Hcv
-      · iapply (permRefusalM_cache_refused M n info k e pt (GoInterface.ok ePD) cur sta roles h0 hcur Hur.1 hn) $$ Hev Hrv Hsnap Hcv HoPD
+      · iapply (permRefusalM_cache_refused M n info k e pt (GoInterface.ok ePD) cur v.atUsers roles h0 hcur Hur.1 hn) $$ Hev Hrv Hsnap Hcv HoPD
     · (try wp_auto)
       wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
       iapply HRU $$ Htok
@@ -930,7 +931,7 @@ theorem auth.authStore.isOpPermitted.wp_lbR
       isplitl []
       · iunfold authErrIs; ileft; ipureintro; rfl
       isplitl []
-      · iapply (permVerdictFrom_cache_pass M n info k e pt cur sta roles h0 hcur Hur.1) $$ Hrv Hsnap Hcv
+      · iapply (permVerdictFrom_cache_pass M n info k e pt cur v.atUsers roles h0 hcur Hur.1) $$ Hrv Hsnap Hcv
       · iapply (permRefusalM_nil M n info k e (permOp pt))
   · have hroot : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
     (try wp_auto)
@@ -945,7 +946,7 @@ theorem auth.authStore.isOpPermitted.wp_lbR
     isplitl []
     · iunfold authErrIs; ileft; ipureintro; rfl
     isplitl []
-    · iapply (permVerdictFrom_root M n info k e (permOp pt) cur sta roles h0 hcur Hur.1 hroot) $$ Hrv Hsnap
+    · iapply (permVerdictFrom_root M n info k e (permOp pt) cur v.atUsers roles h0 hcur Hur.1 hroot) $$ Hrv Hsnap
     · iapply (permRefusalM_nil M n info k e (permOp pt))
 
 /-- `specLb`, of `specLbR` (the refusal half dropped). -/

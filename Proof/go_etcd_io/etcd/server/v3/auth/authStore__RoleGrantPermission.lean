@@ -283,7 +283,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     (try wp_auto)
     wp_apply HBatch as %tx Htx
     iunfold authBatchTxOk at Htx
-    icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+    icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
     subst Hti
     ihave #HLk' := HLk
     iunfold authBatchTxLk at HLk'
@@ -292,7 +292,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
     iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
     inext
-    iintro ⟨%st0, HL, Hown, %Hl0⟩
+    iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
     (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #name))
     iapply HRGX $$ %st0 %Post %name HL
@@ -302,7 +302,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     wp_if_destruct
     · ihave %Hrnone := auth.roleOutX_null st0 name $$ Hrl
       (try wp_auto)
-      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
       · ipureintro; exact Hl0
       (try wp_auto)
       iapply HΦ
@@ -548,19 +548,19 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       have hrn : ({ rr with perms := xs'.map Prod.snd } : RoleRec).name = name := Hrrn
       generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
-      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) [HL Hrm]
-      · iframe HL Hrm; ipureintro; rw [hrn]
-        exact ⟨List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
+      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hsw Hrm]
+      · iframe HL Hsw Hrm; ipureintro; rw [hrn]
+        exact ⟨by decide, List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
           Hnamelen, hgp⟩
       inext
-      iintro ⟨HL, Hrr⟩
+      iintro ⟨HL, Hsw, Hrr⟩
       (try wp_auto)
       ihave HL : Lk (putRole st0 name (grantPerms ps w)) Post $$ [HL]
       · iExactEq HL; rw [hrn]
       obtain ⟨Hrevfit, Hfit, -⟩ := Hok st0 Hl0
       have Hfit' := (Hfit _ _ hstep rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstep $$ Hcap
-      wp_apply (h_commitRevision st R M P f T Wb ti Lk (putRole st0 name (grantPerms ps w)) Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putRole st0 name (grantPerms ps w)) Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 =>
@@ -619,7 +619,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name (grantPerms ps w))]) [HL $Hown $Hw1 $Hw2]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name (grantPerms ps w))]) [HL $Hsw $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL

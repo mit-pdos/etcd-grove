@@ -341,7 +341,7 @@ theorem newAuthStore_on
   -- `tx := be.BatchTx()`, locked: the latest state
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -350,7 +350,7 @@ theorem newAuthStore_on
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   have Hst0 : st0 = stl := by
     simp only [histLast] at Hl0; rw [hlast] at Hl0; cases Hl0; rfl
   subst Hst0
@@ -519,7 +519,7 @@ theorem newAuthStore_on
   · -- revision `0` (the buckets were empty): the first revision committed
     have h0 : st0.revision = 0 := by rw [← hxr]; rfl
     (try wp_auto)
-    wp_apply (h_commit «$r0_ptr» R (.on γa) P f T Wb ti Lk st0 Post hs st0) $$ [HL Hown]
+    wp_apply (h_commit «$r0_ptr» R (.on γa) P f T Wb ti Lk Sw st0 Post hs st0) $$ [HL Hown]
       as ⟨%rev, %Hrev, HL, Hown⟩
     · iframe #; iframe
       ipureintro
@@ -568,7 +568,7 @@ theorem newAuthStore_on
   (try wp_auto)
   -- `tx.Unlock()`, `be.ForceCommit()`
   wp_bind (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
-  iapply HUnlock $$ %sta %Post %hs' [$HL $Hown $Hw2 $Hw3]
+  iapply HUnlock $$ %sta %Post %hs' [$HL $Hsw $Hown $Hw2 $Hw3]
   · ipureintro; exact Hsta.1
   inext
   iintro ⟨HPost, HT, Hown⟩

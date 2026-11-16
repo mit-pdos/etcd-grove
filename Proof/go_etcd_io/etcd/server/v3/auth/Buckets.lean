@@ -392,6 +392,84 @@ theorem authSnapFrom_zero (M : AuthMode) (st : AuthState) :
 theorem authSnap_any (st : AuthState) : ⊢ authSnap (GF := GF) .any st := by
   unfold authSnap; ipureintro; trivial
 
+/-! ## A read transaction's view: a state per bucket (2026-11-16)
+
+A read transaction of the auth buckets sees each bucket at a recorded state, not all three at one
+(`notes/auth-schema-srv-refuted.md`, "Second refutation"; Q1 (a) of
+`notes/auth-schema-srv-scope.md`, approved by the user via etcd-grove-02): the backend's batch
+`Unlock` writes a step's puts back to the read buffer and releases the read lock before it commits
+the step's deletes, so a reader in between sees the buckets the step put into at the step's state
+and those it deleted from at the state before. The `auth` bucket (the flag and the revision) is
+only ever put into, so it is never behind the users' bucket. -/
+
+/-- **What a read transaction sees** of the auth buckets: the state its `auth` bucket (the flag
+and the revision, `atAuth`), its `authUsers` bucket (`atUsers`) and its `authRoles` bucket
+(`atRoles`) are at. -/
+structure BkView where
+  atAuth : AuthState
+  atUsers : AuthState
+  atRoles : AuthState
+
+/-- The view of every bucket at one state `st`. -/
+def BkView.uni (st : AuthState) : BkView := ⟨st, st, st⟩
+
+/-- **A read transaction's view in the mode `M`, each bucket at a state no older than `i`**
+(persistent): in `on γa`, each bucket at a recorded state of the history at an index at least
+`i`, the users' bucket's index not above the `auth` bucket's (what `CheckPassword`, the one reader
+of the user and the revision in one transaction, relies on); otherwise each bucket at a state of
+the mode (`authSnapFrom`). -/
+def authViewSnapFrom (M : AuthMode) (i : Nat) (v : BkView) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ ja ju jr : Nat, authStateAt γa ja v.atAuth ∗ authStateAt γa ju v.atUsers ∗
+      authStateAt γa jr v.atRoles ∗ ⌜i ≤ ju ∧ ju ≤ ja ∧ i ≤ jr⌝)
+  | _ => iprop(authSnapFrom M i v.atAuth ∗ authSnapFrom M i v.atUsers ∗ authSnapFrom M i v.atRoles)
+
+instance authViewSnapFrom_persistent (M : AuthMode) (i : Nat) (v : BkView) :
+    Persistent (authViewSnapFrom (GF := GF) M i v) := by
+  unfold authViewSnapFrom; cases M <;> infer_instance
+
+/-- **A read transaction's view in the mode `M`**: as `authViewSnapFrom` with no lower bound. -/
+def authViewSnap (M : AuthMode) (v : BkView) : IProp GF := authViewSnapFrom M 0 v
+
+instance authViewSnap_persistent (M : AuthMode) (v : BkView) :
+    Persistent (authViewSnap (GF := GF) M v) := by
+  unfold authViewSnap; infer_instance
+
+/-- The users' bucket of a view no older than `i` is a state no older than `i`. -/
+theorem authViewSnapFrom_users (M : AuthMode) (i : Nat) (v : BkView) :
+    authViewSnapFrom (GF := GF) M i v ⊢ authSnapFrom M i v.atUsers := by
+  cases M
+  · simp only [authViewSnapFrom]; iintro ⟨-, H, -⟩; iexact H
+  · simp only [authViewSnapFrom]; iintro ⟨-, H, -⟩; iexact H
+  · simp only [authViewSnapFrom, authSnapFrom]
+    iintro ⟨%ja, %ju, %jr, -, #H, -, %Hj⟩
+    iexists ju; iframe H; ipureintro; exact Hj.1
+
+/-- The users' bucket of a view is a state of the mode. -/
+theorem authViewSnap_users (M : AuthMode) (v : BkView) :
+    authViewSnap (GF := GF) M v ⊢ authSnap M v.atUsers := by
+  unfold authViewSnap
+  iintro H
+  iapply authSnapFrom_snap
+  iapply authViewSnapFrom_users $$ H
+
+/-- A view no older than `i` is a view. -/
+theorem authViewSnapFrom_snap (M : AuthMode) (i : Nat) (v : BkView) :
+    authViewSnapFrom (GF := GF) M i v ⊢ authViewSnap M v := by
+  unfold authViewSnap
+  cases M
+  · simp only [authViewSnapFrom]
+    iintro ⟨#Ha, #Hu, #Hr⟩
+    isplitl []; · iapply authSnapFrom_zero; iapply authSnapFrom_snap $$ Ha
+    isplitl []; · iapply authSnapFrom_zero; iapply authSnapFrom_snap $$ Hu
+    iapply authSnapFrom_zero; iapply authSnapFrom_snap $$ Hr
+  · simp only [authViewSnapFrom, authSnapFrom]
+    iintro -; isplitl []; · itrivial
+    isplitl [] <;> itrivial
+  · simp only [authViewSnapFrom]
+    iintro ⟨%ja, %ju, %jr, #Ha, #Hu, #Hr, %Hj⟩
+    iexists ja, ju, jr; iframe Ha Hu Hr; ipureintro; omega
+
 end defs
 
 end auth

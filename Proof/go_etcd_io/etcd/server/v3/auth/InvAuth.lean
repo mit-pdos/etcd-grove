@@ -582,15 +582,83 @@ instance authTxReads_persistent (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthSt
     Persistent (authTxReads (GF := GF) ti R Hs) := by
   unfold authTxReads; infer_instance
 
+/-- **The reads of a read transaction** `ti` under the held token `Hs v` of the view `v` (a state
+per bucket, `BkView`; 2026-11-16, the second refutation's fix): as `authReaderOk`, each read
+at its bucket's state: `UnsafeGetUser` and `UnsafeGetAllUsers` at the users' (`v.atUsers`),
+`UnsafeGetRole` at the roles' (`v.atRoles`), `UnsafeReadAuthEnabled` and
+`UnsafeReadAuthRevision` at the `auth` bucket's (`v.atAuth`). -/
+def authReaderOkV (ti : GoInterfaceOk) (Hs : BkView → IProp GF) : IProp GF :=
+  iprop(□ (∀ (v : BkView) (name : GoString),
+      {{ Hs v }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
+      {{ (u : Loc), RET #u; Hs v ∗ userOut u v.atUsers name }}) ∗
+    □ (∀ (v : BkView) (name : GoString),
+      {{ Hs v }} (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #name))
+      {{ (r : Loc), RET #r; Hs v ∗ roleOut r v.atRoles name }}) ∗
+    □ (∀ v : BkView,
+      {{ Hs v }} (App (Val #(methods ti.ty go!"UnsafeReadAuthEnabled" ti.v)) (Val #()))
+      {{ (b : Bool), RET #b; Hs v ∗ ⌜b = v.atAuth.enabled⌝ }}) ∗
+    □ (∀ v : BkView,
+      {{ Hs v }} (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
+      {{ (x : w64), RET #x; Hs v ∗ ⌜uint.nat x = v.atAuth.revision⌝ }}) ∗
+    □ (∀ v : BkView,
+      {{ Hs v }} (App (Val #(methods ti.ty go!"UnsafeGetAllUsers" ti.v)) (Val #()))
+      {{ (s : GoSlice) (us : List Loc) (names : List GoString), RET #s; Hs v ∗ s ↦* us ∗
+          ⌜us.length = names.length ∧ names.Nodup ∧
+            ∀ n, n ∈ names ↔ (v.atUsers.users !! n).isSome⌝ ∗
+          [∗list] x ∈ us.zip names, userOut x.1 v.atUsers x.2 }}))
+
+instance authReaderOkV_persistent (ti : GoInterfaceOk) (Hs : BkView → IProp GF) :
+    Persistent (authReaderOkV (GF := GF) ti Hs) := by
+  unfold authReaderOkV; infer_instance
+
+/-- **A read transaction's reads under the held token** `Hs v` of the view `v`: the reads
+(`authReaderOkV`), and `RUnlock()` turns the token back into `R`. -/
+def authTxReadsV (ti : GoInterfaceOk) (R : IProp GF) (Hs : BkView → IProp GF) : IProp GF :=
+  iprop(authReaderOkV ti Hs ∗
+    □ (∀ v : BkView,
+      {{ Hs v }} (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #())) {{ RET #(); R }}))
+
+instance authTxReadsV_persistent (ti : GoInterfaceOk) (R : IProp GF) (Hs : BkView → IProp GF) :
+    Persistent (authTxReadsV (GF := GF) ti R Hs) := by
+  unfold authTxReadsV; infer_instance
+
+/-- A token of a view with every bucket at one state reads that state. -/
+theorem authTxReadsV_uni (ti : GoInterfaceOk) (R : IProp GF) (Hs : BkView → IProp GF) :
+    authTxReadsV (GF := GF) ti R Hs ⊢ authTxReads ti R (fun st => Hs (BkView.uni st)) := by
+  iintro #H
+  iunfold authTxReadsV at H
+  icases H with ⟨#Hr, #HU⟩
+  iunfold authReaderOkV at Hr
+  icases Hr with ⟨#H1, #H2, #H3, #H4, #H5⟩
+  iunfold authTxReads
+  isplitl []
+  · iunfold authReaderOk
+    isplitl []
+    · iintro !> %st %name !>; ihave #Hx := H1 $$ %(BkView.uni st) %name; dsimp only [BkView.uni]; iexact Hx
+    isplitl []
+    · iintro !> %st %name !>; ihave #Hx := H2 $$ %(BkView.uni st) %name; dsimp only [BkView.uni]; iexact Hx
+    isplitl []
+    · iintro !> %st !>; ihave #Hx := H3 $$ %(BkView.uni st); dsimp only [BkView.uni]; iexact Hx
+    isplitl []
+    · iintro !> %st !>; ihave #Hx := H4 $$ %(BkView.uni st); dsimp only [BkView.uni]; iexact Hx
+    · iintro !> %st !>; ihave #Hx := H5 $$ %(BkView.uni st); dsimp only [BkView.uni]; iexact Hx
+  · iintro !> %st !>; ihave #Hx := HU $$ %(BkView.uni st); dsimp only [BkView.uni]; iexact Hx
+
 /-- **The backend's read transaction** `tx` (an `AuthReadTx`, not nil; a contract) for the read
-resource `R` in the mode `M`: `RLock()` turns `R` into the held token `Hs st` of a state `st` of
-the mode (`authSnap M st`), under which its reads are the state's (`authTxReads`) and which
-`RUnlock()` turns back into `R`; and, for a caller holding the admin side's authority at `hs`
-(`authOwn`: outside a batch transaction, so no write is pending), the state is the latest
-(`histLast M hs st`; the auth plan's E2r, 2026-10-26: the apply thread, the store's only writer,
+resource `R` in the mode `M`: `RLock()` turns `R` into the held token `Hs v` of a view `v`, a
+state per auth bucket (`authViewSnap M v`: in `on γa` each recorded, the users' bucket's not later
+than the `auth` bucket's), under which each read is its bucket's state's (`authTxReadsV`) and
+which `RUnlock()` turns back into `R` (2026-11-16, the second refutation's fix, Q1 (a): until then
+one state for all three buckets, which Go breaks: `batchTxBuffered.Unlock` writes a step's puts
+back and releases the read lock before it commits the step's deletes,
+`nonissues/etcd-auth-readtx-delete-window-mixed-state.md`; per bucket the view is a recorded
+state because the write contract's sessions never put and delete in one bucket, `AuthSess`);
+and, for a caller holding the admin side's authority at `hs`
+(`authOwn`: outside a batch transaction, so no write is pending), every bucket at one state, the
+latest (`Hs (BkView.uni st)`, `histLast M hs st`; the auth plan's E2r, 2026-10-26: the apply thread, the store's only writer,
 reads what its last batch committed; a real backend's `Unlock` writes its batch back to the read
 buffer before the next read transaction begins); and, for a reader holding a lower bound `i` of the
-history's published index (`authPubLbM`), a state no older than `i` (`authSnapFrom`; the auth
+history's published index (`authPubLbM`), each bucket at a state no older than `i` (`authViewSnapFrom`; the auth
 plan's E3g, 2026-10-27, the reads' freshness the user chose: a state is published only once its
 batch is committed, so a real backend's read transaction begun afterwards sees it or a later one).
 (The auth plan's S1, 2026-10-23; until then: a token holding no state, `UnsafeGetUser` returning
@@ -604,29 +672,30 @@ authHistHalf γa hs`): no batch of the apply thread's is open, so the read buffe
 batch committed. -/
 def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
+  | .on γa => iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : BkView → IProp GF,
       □ (∀ q : Qp, {{ R ∗ authCur γc q }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap (.on γa) st ∗ authCur γc q }}) ∗
+        {{ RET #(); ∃ v : BkView, Hs v ∗ authViewSnap (.on γa) v ∗ authCur γc q }}) ∗
       □ (∀ (i : Nat) (q : Qp),
         {{ R ∗ authPubLbM (.on γa) i ∗ authCur γc q }}
           (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom (.on γa) i st ∗ authCur γc q }}) ∗
+        {{ RET #(); ∃ v : BkView, Hs v ∗ authViewSnapFrom (.on γa) i v ∗ authCur γc q }}) ∗
       □ (∀ hs : List AuthState,
         {{ R ∗ authWTok γc ∗ authHistHalf γa hs }}
           (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap (.on γa) st ∗ authWTok γc ∗
+        {{ RET #(); ∃ st : AuthState, Hs (BkView.uni st) ∗ authSnap (.on γa) st ∗ authWTok γc ∗
             authHistHalf γa hs ∗ ⌜hs.getLast? = some st⌝ }}) ∗
-      authTxReads ti R Hs)
-  | _ => iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
+      authTxReadsV ti R Hs)
+  | _ => iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : BkView → IProp GF,
     □ ({{ R }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-      {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st }}) ∗
+      {{ RET #(); ∃ v : BkView, Hs v ∗ authViewSnap M v }}) ∗
     □ (∀ hs : List AuthState,
       {{ R ∗ authOwn M hs }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-      {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authOwn M hs ∗ ⌜histLast M hs st⌝ }}) ∗
+      {{ RET #(); ∃ st : AuthState, Hs (BkView.uni st) ∗ authSnap M st ∗ authOwn M hs ∗
+          ⌜histLast M hs st⌝ }}) ∗
     □ (∀ i : Nat,
       {{ R ∗ authPubLbM M i }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-      {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom M i st }}) ∗
-    authTxReads ti R Hs)
+      {{ RET #(); ∃ v : BkView, Hs v ∗ authViewSnapFrom M i v }}) ∗
+    authTxReadsV ti R Hs)
 
 instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) (M : AuthMode)
     (γc : AuthBkNames) : Persistent (authReadTxOk (GF := GF) tx R M γc) := by
@@ -989,7 +1058,7 @@ theorem authReadTxOk_latest (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γ
     iexists ti
     isplitr
     · ipureintro; exact h
-    iexists Hs
+    iexists (fun st => Hs (BkView.uni st))
     isplitr
     · iintro !> %hs %q %γw %Φ !> ⟨HR, Hown, Hw, Hc⟩ HΦ
       simp only [authOwn, authWHeldM, authWHeld, beCurM]
@@ -1011,14 +1080,14 @@ theorem authReadTxOk_latest (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γ
       isplitl [HT Hb']
       · iframe HT Hb'
       ipureintro; exact Hl
-    iexact Hr
+    iapply authTxReadsV_uni $$ Hr
   | off =>
     simp only [authReadTxOk]
     iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
     iexists ti
     isplitr
     · ipureintro; exact h
-    iexists Hs
+    iexists (fun st => Hs (BkView.uni st))
     isplitr
     · iintro !> %hs %q %γw %Φ !> ⟨HR, Hown, Hw, Hc⟩ HΦ
       iapply H2 $$ %hs [HR Hown]
@@ -1029,14 +1098,14 @@ theorem authReadTxOk_latest (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γ
       iexists st
       iframe Hst Hsn Hown Hw Hc
       ipureintro; exact Hl
-    iexact Hr
+    iapply authTxReadsV_uni $$ Hr
   | any =>
     simp only [authReadTxOk]
     iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
     iexists ti
     isplitr
     · ipureintro; exact h
-    iexists Hs
+    iexists (fun st => Hs (BkView.uni st))
     isplitr
     · iintro !> %hs %q %γw %Φ !> ⟨HR, Hown, Hw, Hc⟩ HΦ
       iapply H2 $$ %hs [HR Hown]
@@ -1047,7 +1116,7 @@ theorem authReadTxOk_latest (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γ
       iexists st
       iframe Hst Hsn Hown Hw Hc
       ipureintro; exact Hl
-    iexact Hr
+    iapply authTxReadsV_uni $$ Hr
 
 /-- Two shares merge, at the first's names (in `on γa` the names agree). -/
 theorem beCurM_merge (M : AuthMode) (q1 q2 : Qp) (γ1 γ2 : AuthBkNames) :
@@ -1082,14 +1151,14 @@ freshness clause, each over `authCurM M q γc` (in `on γa`, the currency `authC
 R-D2, 2026-11-04: until then over `beP`'s share `beCurM`, which held it). -/
 theorem authReadTxOk_rd (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) :
     authReadTxOk (GF := GF) tx R M γc ⊢ ∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-      ∃ Hs : AuthState → IProp GF,
+      ∃ Hs : BkView → IProp GF,
       □ (∀ q : Qp, {{ R ∗ authCurM M q γc }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authCurM M q γc }}) ∗
+        {{ RET #(); ∃ v : BkView, Hs v ∗ authViewSnap M v ∗ authCurM M q γc }}) ∗
       □ (∀ (i : Nat) (q : Qp),
         {{ R ∗ authPubLbM M i ∗ authCurM M q γc }}
           (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom M i st ∗ authCurM M q γc }}) ∗
-      authTxReads ti R Hs := by
+        {{ RET #(); ∃ v : BkView, Hs v ∗ authViewSnapFrom M i v ∗ authCurM M q γc }}) ∗
+      authTxReadsV ti R Hs := by
   cases M with
   | on γa =>
     simp only [authReadTxOk, authCurM]
@@ -1169,11 +1238,12 @@ theorem authReadTxOk_rd (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : 
     iexact Hr
 
 /-- **A locked read transaction** `tx` for the read resource `R` in the mode `M` (what
-`lockedReadTx` returns): the held token `Hs sta` of a state `sta` of the mode, under which its
-reads are the state's (`authTxReads`) and which `RUnlock()` turns back into `R`. -/
+`lockedReadTx` returns): the held token `Hs v` of a view `v` of the mode (a state per bucket,
+`authViewSnap`), under which each read is its bucket's state's (`authTxReadsV`) and which
+`RUnlock()` turns back into `R`. -/
 def authReadTxLocked (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-    ∃ (sta : AuthState) (Hs : AuthState → IProp GF), Hs sta ∗ authSnap M sta ∗ authTxReads ti R Hs)
+    ∃ (v : BkView) (Hs : BkView → IProp GF), Hs v ∗ authViewSnap M v ∗ authTxReadsV ti R Hs)
 
 /-- **A locked read transaction at the latest state** of the admin side's authority `hs` (what
 `lockedReadTx` returns to a caller holding `authOwn M hs`; the auth plan's E2r): as
@@ -1310,6 +1380,33 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-! ## The write side (the auth plan's S4, 2026-10-24) -/
 
+/-- **A batch session's writes to the users' or the roles' bucket** (2026-11-16, the second
+refutation's fix): none yet, puts only, or deletes only. -/
+inductive BkW where
+  | idle
+  | puts
+  | dels
+  deriving DecidableEq
+
+/-- **What a batch session has written** to the users' bucket and to the roles' bucket (the
+`auth` bucket, the flag and the revision, is only ever put into). The write contract
+(`authBatchTxLk(R)`) lets no session put into and delete from one bucket: the backend's `Unlock`
+writes the session's puts back to the read buffer, releases the read lock and only then commits
+its deletes, so a read transaction in between would see such a bucket in neither the session's
+state nor the one before (Go test
+`nonissues/etcd-auth-readtx-delete-window-mixed-state/zz_authschema_perbucket_test.go`,
+`TestAuthSchemaReadMixedBucketSession`); with puts only it sees the bucket after the session, with
+deletes only before it (`authViewSnap`). The store's admin steps meet it: `UserDelete` deletes in
+the users' bucket and puts only the revision, `RoleDelete` deletes in the roles' bucket and puts
+users and the revision; every other step only puts. -/
+structure AuthSess where
+  users : BkW
+  roles : BkW
+  deriving DecidableEq
+
+/-- A session that has written nothing. -/
+def AuthSess.init : AuthSess := ⟨.idle, .idle⟩
+
 /-- **The batch transaction's lock token** `Lk st X`: the backend's auth buckets hold the state
 `st` (pending: the transaction's writes change it), `X` is given back at `Unlock`. The batch
 transaction `ti` (an `AuthBatchTx`; a contract, as the lessor's `leaseBatchTx`) with the hook `P
@@ -1332,6 +1429,9 @@ D14f) and the mode `M`:
   roles (`ownRole`: no unknown fields in the role's message nor in its permissions', `ownPermS`,
   the review's MAJ-1); `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
+- the session's writes are tracked by a token `Sw w` (`AuthSess`, 2026-11-16, the second refutation's
+  fix): `Lock()` gives `Sw AuthSess.init`, a put into the users' (the roles') bucket needs that the
+  session deleted nothing there and a delete that it put nothing there, `Unlock()` takes it back;
 - `Unlock()`, with the whole authority at a history whose latest state is the token's (the
   admin side appends the step's state before unlocking) and two write-back tokens `Wb`: `X`, the
   token and the admin side's authority back (the lock keeps its share). (auth-schema-fix F1,
@@ -1345,37 +1445,43 @@ The records' sizes are not bounded here (the real backend's put of a record abov
 bound is fatal: `nonissues/etcd-auth-record-too-large-fatal.md`, the premise `authRecordsFit` of
 `NewAuthStore`'s axiom, which the derivation of this contract from the real backend will take). -/
 def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (Lk : AuthState → IProp GF → IProp GF) : IProp GF :=
+    (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF) : IProp GF :=
   iprop(□ (∀ (hs : List AuthState) (Pre Q Post : IProp GF),
       {{ srvApi.csContractA P f Pre Q Post ∗ T ∗ authOwn M hs }}
         (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
-      {{ RET #(); ∃ st : AuthState, Lk st Post ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ }}) ∗
+      {{ RET #(); ∃ st : AuthState, Lk st Post ∗ Sw AuthSess.init ∗ authOwnF M hs ∗
+          ⌜histLast M hs st⌝ }}) ∗
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec),
-      {{ Lk st X ∗ ownUser u ur ∗
-          ⌜ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧ ur.name.length ≤ backend.maxKeySize ∧
-            ∀ x ∈ ur.roles, utf8Valid x⌝ }}
+    □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ownUser u ur ∗
+          ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
+            ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
-      {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ ownUser u ur }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
-      {{ RET #(); Lk (delUser st name) X }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role),
-      {{ Lk st X ∗ ownRole r rr ∗
-          ⌜0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
+      {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
+          ownUser u ur }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
+        (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
+      {{ RET #(); Lk (delUser st name) X ∗ Sw { w with users := .dels } }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ownRole r rr ∗
+          ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
+            rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
-      {{ RET #(); Lk (putRole st rr.name ps) X ∗ ownRole r rr }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
-      {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X }}) ∗
+      {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
+        (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
+      {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X ∗
+          Sw { w with roles := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (b : Bool),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
       {{ RET #(); Lk { st with enabled := b } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (rev : w64),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState),
-      {{ Lk st X ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ ∗ Wb ∗ Wb }}
+    □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ ∗ Wb ∗ Wb }}
         (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
       {{ RET #(); X ∗ T ∗ authOwn M hs }}) ∗
     -- the reads with the message as `proto.Unmarshal` returns it, the caller's (appended; the
@@ -1390,8 +1496,8 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
       {{ (r : Loc), RET #r; Lk st X ∗ roleOutX r st name }}))
 
 instance authBatchTxLk_persistent (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
-    Persistent (authBatchTxLk ti M P f T Wb Lk) := by
+    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF) :
+    Persistent (authBatchTxLk ti M P f T Wb Lk Sw) := by
   unfold authBatchTxLk; infer_instance
 
 /-- **The backend's batch transaction's lock** (the auth plan's S4f, 2026-10-25; what the real
@@ -1402,37 +1508,42 @@ state. A real backend meets it with `∃ st, buckets(st) ∗ authLockI M st` amo
 lock protects; the store's view (`authBatchTxLk`) follows by joining the share with the admin
 side's authority (`authBatchTxLk_of_R`). -/
 def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (Lk : AuthState → IProp GF → IProp GF) : IProp GF :=
+    (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF) : IProp GF :=
   iprop(□ (∀ (Pre Q Post : IProp GF),
       {{ srvApi.csContractA P f Pre Q Post ∗ T }}
         (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
-      {{ RET #(); ∃ st : AuthState, Lk st Post ∗ authLockI M st }}) ∗
+      {{ RET #(); ∃ st : AuthState, Lk st Post ∗ Sw AuthSess.init ∗ authLockI M st }}) ∗
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec),
-      {{ Lk st X ∗ ownUser u ur ∗
-          ⌜ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧ ur.name.length ≤ backend.maxKeySize ∧
-            ∀ x ∈ ur.roles, utf8Valid x⌝ }}
+    □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ownUser u ur ∗
+          ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
+            ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
-      {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ ownUser u ur }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
-      {{ RET #(); Lk (delUser st name) X }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role),
-      {{ Lk st X ∗ ownRole r rr ∗
-          ⌜0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
+      {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
+          ownUser u ur }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
+        (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
+      {{ RET #(); Lk (delUser st name) X ∗ Sw { w with users := .dels } }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ownRole r rr ∗
+          ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
+            rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
-      {{ RET #(); Lk (putRole st rr.name ps) X ∗ ownRole r rr }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
-      {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X }}) ∗
+      {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
+        (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
+      {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X ∗
+          Sw { w with roles := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (b : Bool),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
       {{ RET #(); Lk { st with enabled := b } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (rev : w64),
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
-    □ (∀ (st : AuthState) (X : IProp GF),
-      {{ Lk st X ∗ authLockI M st ∗ Wb ∗ Wb }}
+    □ (∀ (st : AuthState) (X : IProp GF) (w : AuthSess),
+      {{ Lk st X ∗ Sw w ∗ authLockI M st ∗ Wb ∗ Wb }}
         (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
       {{ RET #(); X ∗ T }}) ∗
     -- the reads with the message as `proto.Unmarshal` returns it, the caller's (appended; the
@@ -1447,15 +1558,16 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
       {{ (r : Loc), RET #r; Lk st X ∗ roleOutX r st name }}))
 
 instance authBatchTxLkR_persistent (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
-    Persistent (authBatchTxLkR ti M P f T Wb Lk) := by
+    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF) :
+    Persistent (authBatchTxLkR ti M P f T Wb Lk Sw) := by
   unfold authBatchTxLkR; infer_instance
 
 /-- **The backend's batch transaction** `tx` (a contract): some lock token (`authBatchTxLk`). -/
 def authBatchTxOk (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-    ∃ Lk : AuthState → IProp GF → IProp GF, authBatchTxLk ti M P f T Wb Lk)
+    ∃ (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF),
+      authBatchTxLk ti M P f T Wb Lk Sw)
 
 instance authBatchTxOk_persistent (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
     (T Wb : IProp GF) : Persistent (authBatchTxOk tx M P f T Wb) := by
@@ -1544,7 +1656,8 @@ lock token of the backend's contract (`authBatchTxLkR`). -/
 def authBatchTxOkR (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-    ∃ Lk : AuthState → IProp GF → IProp GF, authBatchTxLkR ti M P f T Wb Lk)
+    ∃ (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF),
+      authBatchTxLkR ti M P f T Wb Lk Sw)
 
 instance authBatchTxOkR_persistent (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
     (T Wb : IProp GF) : Persistent (authBatchTxOkR tx M P f T Wb) := by
@@ -1571,8 +1684,8 @@ instance authWBackendOkR_persistent (be : GoInterface) (M : AuthMode) (P : IProp
 /-- **The store's view of the backend's lock** (the auth plan's S4f): `Lock()` joins the lock's
 share with the admin side's authority, `Unlock()` splits it off again. -/
 theorem authBatchTxLk_of_R (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
-    authBatchTxLkR (GF := GF) ti M P f T Wb Lk ⊢ authBatchTxLk ti M P f T Wb Lk := by
+    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF) :
+    authBatchTxLkR (GF := GF) ti M P f T Wb Lk Sw ⊢ authBatchTxLk ti M P f T Wb Lk Sw := by
   iintro #H
   iunfold authBatchTxLkR at H
   icases H with ⟨#HL, #HRd, #H1, #H2, #H3, #H4, #H5, #H6, #HU, #H7, #H8⟩
@@ -1581,14 +1694,14 @@ theorem authBatchTxLk_of_R (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f
   · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hcs, HT, Hown⟩ HΦ
     iapply HL $$ %Pre %Q %Post [$Hcs $HT]
     inext
-    iintro ⟨%st, HLk, HI⟩
+    iintro ⟨%st, HLk, Hsw, HI⟩
     ihave ⟨Hown, %Hl⟩ := authOwn_lockI_join M hs st $$ Hown HI
     iapply HΦ
-    iexists st; iframe HLk Hown; ipureintro; exact Hl
+    iexists st; iframe HLk Hsw Hown; ipureintro; exact Hl
   iframe #
-  iintro !> %st %X %hs %Φ !> ⟨HLk, Hown, %Hl, Hw1, Hw2⟩ HΦ
+  iintro !> %st %X %hs %w %Φ !> ⟨HLk, Hsw, Hown, %Hl, Hw1, Hw2⟩ HΦ
   ihave ⟨Hown, HI⟩ := authOwnF_lockI_split M hs st Hl $$ Hown
-  iapply HU $$ %st %X [$HLk $HI $Hw1 $Hw2]
+  iapply HU $$ %st %X %w [$HLk $Hsw $HI $Hw1 $Hw2]
   inext
   iintro ⟨HX, HT⟩
   iapply HΦ
@@ -1598,12 +1711,12 @@ theorem authBatchTxOk_of_R (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f :
     (T Wb : IProp GF) : authBatchTxOkR (GF := GF) tx M P f T Wb ⊢ authBatchTxOk tx M P f T Wb := by
   iintro H
   iunfold authBatchTxOkR at H
-  icases H with ⟨%ti, %Hti, %Lk, #H⟩
+  icases H with ⟨%ti, %Hti, %Lk, %Sw, #H⟩
   iunfold authBatchTxOk
   iexists ti
   isplitr
   · ipureintro; exact Hti
-  iexists Lk
+  iexists Lk, Sw
   iapply authBatchTxLk_of_R $$ H
 
 /-- **The store's view of the backend's write side** (the auth plan's S4f): its transactions
@@ -2038,7 +2151,7 @@ theorem authReadTxOk_recover (tx : GoInterface) (R : IProp GF) (M : AuthMode) (�
     iexists ti
     isplitr
     · ipureintro; exact h
-    iexists Hs
+    iexists (fun st => Hs (BkView.uni st))
     isplitr
     · iintro !> %hs %N %γc₀ %Φ !> ⟨HR, ⟨Hhh, Hcur⟩, ⟨HT, Hb, Hcu⟩⟩ HΦ
       iapply H3 $$ %(hs ++ N) [HR HT Hhh]
@@ -2049,14 +2162,14 @@ theorem authReadTxOk_recover (tx : GoInterface) (R : IProp GF) (M : AuthMode) (�
       iexists st
       iframe Hst Hsn Hhh Hcur HT Hb Hcu
       ipureintro; exact Hl
-    iexact Hr
+    iapply authTxReadsV_uni $$ Hr
   | off =>
     simp only [authReadTxOk, authOwnPM, recoverOut]
     iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
     iexists ti
     isplitr
     · ipureintro; exact h
-    iexists Hs
+    iexists (fun st => Hs (BkView.uni st))
     isplitr
     · iintro !> %hs %N %γc₀ %Φ !> ⟨HR, Hown, Hout⟩ HΦ
       iapply H2 $$ %(hs ++ N) [HR Hown]
@@ -2067,14 +2180,14 @@ theorem authReadTxOk_recover (tx : GoInterface) (R : IProp GF) (M : AuthMode) (�
       iexists st
       iframe Hst Hsn Hown Hout
       ipureintro; exact Hl
-    iexact Hr
+    iapply authTxReadsV_uni $$ Hr
   | any =>
     simp only [authReadTxOk, authOwnPM, recoverOut]
     iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
     iexists ti
     isplitr
     · ipureintro; exact h
-    iexists Hs
+    iexists (fun st => Hs (BkView.uni st))
     isplitr
     · iintro !> %hs %N %γc₀ %Φ !> ⟨HR, Hown, Hout⟩ HΦ
       iapply H2 $$ %(hs ++ N) [HR Hown]
@@ -2085,7 +2198,7 @@ theorem authReadTxOk_recover (tx : GoInterface) (R : IProp GF) (M : AuthMode) (�
       iexists st
       iframe Hst Hsn Hown Hout
       ipureintro; exact Hl
-    iexact Hr
+    iapply authTxReadsV_uni $$ Hr
 
 /-- **The freshness at the latest state's revision** (the auth plan's E3h): with the whole
 authority at `hs` whose latest state `s` has the revision `r'`, the published index (an index of

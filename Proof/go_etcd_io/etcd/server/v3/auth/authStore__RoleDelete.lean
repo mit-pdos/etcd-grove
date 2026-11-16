@@ -186,7 +186,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   clear Hif
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -195,7 +195,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨-, #HGR, -, -, #HGA⟩
@@ -208,7 +208,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   wp_if_destruct
   · -- no such role
     ihave %Hnone := roleOut_null st0 role $$ Hrole
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -238,9 +238,10 @@ theorem auth.authStore.RoleDelete.wp_tie
   ihave Hrole' := roleOut_some _ st0 role Hif $$ Hrole
   icases Hrole' with ⟨%ps, %rr, %Hrr, -⟩
   wp_bind (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #role))
-  iapply HDelR $$ %st0 %Post %role HL
+  iapply HDelR $$ %st0 %Post %role %AuthSess.init [$HL $Hsw]
+  · ipureintro; decide
   inext
-  iintro HL
+  iintro ⟨HL, Hsw⟩
   (try wp_auto)
   obtain ⟨st1, hst1⟩ : ∃ s, s = ({ st0 with roles := GMap.delete role st0.roles } : AuthState) :=
     ⟨_, rfl⟩
@@ -256,18 +257,22 @@ theorem auth.authStore.RoleDelete.wp_tie
   obtain ⟨io, hio⟩ : ∃ io, io = i_ptr := ⟨_, rfl⟩
   subst hio
   -- the users loop: the first k users revoked the role
-  ihave IHo : iprop(∃ (k : w64) (uv : Loc) (sk : AuthState),
+  ihave IHo : iprop(∃ (k : w64) (uv : Loc) (sk : AuthState) (ws : AuthSess),
       "i" ∷ io ↦ k ∗
       "user" ∷ user_ptr ↦ uv ∗
       "HL" ∷ Lk sk Post ∗
+      "Hsw" ∷ Sw ws ∗
+      "%Hws" ∷ ⌜ws.users ≠ .dels⌝ ∗
       "Hs" ∷ s ↦* us ∗
       "Husers" ∷ ([∗list] x ∈ (us.zip names).drop (sint.nat k), userOut x.1 st1 x.2) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ us.length ∧ sk.enabled = st1.enabled ∧
         sk.revision = st1.revision ∧ sk.roles = st1.roles ∧
         auth.usersAfter st1.users names (sint.nat k) role sk.users⌝)
-    $$ [i user HL Hs Husers]
-  · iexists W64 0, _, st1
+    $$ [i user HL Hsw Hs Husers]
+  · iexists W64 0, _, st1, _
     iframe
+    isplitr
+    · ipureintro; decide
     ipureintro
     exact ⟨by word, by word, rfl, rfl, rfl, auth.usersAfter_zero _ _ _⟩
   wp_for IHo
@@ -408,8 +413,10 @@ theorem auth.authStore.RoleDelete.wp_tie
       (try wp_auto)
       wp_for_post
       iframe
-      iexists k + W64 1, u, sk
+      iexists k + W64 1, u, sk, ws
       iframe
+      isplitr
+      · ipureintro; exact Hws
       isplitl [Husers]
       · rw [hksucc]; iexact Husers
       ipureintro
@@ -426,28 +433,30 @@ theorem auth.authStore.RoleDelete.wp_tie
     have hnmlen : nm.length ≤ backend.maxKeySize := Hnames st0 Hl0 nm (by simp [hlook0])
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #uu))
     iapply HPutU $$ %sk %Post %uu
-      %({ ur with roles := roles' } : UserRec)
-      [HL Huu]
-    · iframe HL
+      %({ ur with roles := roles' } : UserRec) %ws
+      [HL Hsw Huu]
+    · iframe HL Hsw
       isplitl [Huu]
       · iunfold ownUser
         iexists zeroValDef, unm, upw, sl, uo, (0 : w32)
         iframe Huu Hunm Hupw Hsl' Huo
       ipureintro
-      refine ⟨hsorted', by
+      refine ⟨Hws, hsorted', by
           rw [Hurn]; exact List.length_pos_iff.2 ((Hok true st0 Hl0).2.2.2.1 nm (by simp [hlook0])),
         by rw [Hurn]; exact hnmlen, fun x hx => ?_⟩
       rw [hroles'] at hx
       exact (Hok true st0 Hl0).2.2.1 nm roles hlook0 x (Hurr ▸ (List.mem_filter.1 hx).1)
     inext
-    iintro ⟨HL, -⟩
+    iintro ⟨HL, Hsw, -⟩
     (try wp_auto)
     wp_for_post
     iframe
-    iexists k + W64 1, u, (putUser sk nm roles')
+    iexists k + W64 1, u, (putUser sk nm roles'), { ws with users := .puts }
     iframe
     isplitl [HL]
     · iExactEq HL; rw [Hurn]
+    isplitr
+    · ipureintro; simp
     isplitl [Husers]
     · rw [hksucc]; iexact Husers
     ipureintro
@@ -479,7 +488,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (roleDeleteF en role) st0 (bump (delRole st0 role)) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
-  wp_apply (h_commitRevision st R M P f T Wb ti Lk (delRole st0 role) Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (delRole st0 role) Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delRole _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -525,7 +534,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (delRole st0 role)]) [HL $Hown $Hw1 $Hw2]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (delRole st0 role)]) [HL $Hsw $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL

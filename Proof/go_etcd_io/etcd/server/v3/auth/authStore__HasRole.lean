@@ -46,7 +46,7 @@ theorem auth.authStore.HasRole.wp_proof
   (try wp_auto)
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -55,7 +55,7 @@ theorem auth.authStore.HasRole.wp_proof
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨#HUG, -, -, -, -⟩
@@ -65,7 +65,7 @@ theorem auth.authStore.HasRole.wp_proof
   inext
   iintro %u ⟨HL, Hu⟩
   (try wp_auto)
-  wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+  wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
   · ipureintro; exact Hl0
   (try wp_auto)
   wp_if_destruct

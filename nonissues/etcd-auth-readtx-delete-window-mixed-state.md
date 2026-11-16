@@ -40,7 +40,10 @@ yes: the trusted read contract `auth.authReadTxOk` that `authSchemaSrv` (and `au
 `etcd_authN_safe`, promises every `RLock` (plain and at a published lower bound) one recorded auth
 state; this read is in none. The hypothesis is false, so those theorems are vacuous until it is
 restated (`notes/auth-schema-srv-refuted.md`, "Second refutation"; `notes/auth-schema-srv-scope.md`).
-The latest-state clause (a reader holding the write token) is true: no auth batch is open.
+The latest-state clause (a reader holding the write token) is true: no auth batch is open. Restated 2026-11-16 (branch auth-schema-srv, A0): a recorded state per
+bucket, the users' not later than the revision's, with the write contract's sessions never putting and deleting
+in one bucket; `zz_authschema_perbucket_test.go` checks it (`TestAuthSchemaReadPerBucket` passes over the store's
+admin steps; `TestAuthSchemaReadMixedBucketSession` shows why the write side's discipline is needed).
 
 ## Notes
 

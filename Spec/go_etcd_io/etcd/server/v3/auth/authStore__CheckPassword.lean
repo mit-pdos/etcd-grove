@@ -28,8 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.CheckPassword(username, password)`** with a reader slot of `enabledMu` and of `beMu` and
 the backend's read resource `R` (a request's, as the permission checks'): `IsAuthEnabled`, the
 user and the revision under the locked read transaction, then bcrypt's comparison of the stored
-hash outside the lock; the answer `passwordChecked` (the revision of a recorded state that has the
-user, auth enabled), the slots and `R` kept. -/
+hash outside the lock; the answer `passwordChecked` (auth enabled, the user in a recorded state and
+the revision of a recorded state not earlier than it: the read transaction's view has a state per
+bucket; 2026-11-16, until then one recorded state with both, which Go breaks), the slots and `R`
+kept. -/
 abbrev auth.authStore.CheckPassword.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (username password : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗

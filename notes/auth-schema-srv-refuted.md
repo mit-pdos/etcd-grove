@@ -63,3 +63,16 @@ user") is false of Go too (proved over the false contract: it reads the user and
 transaction). The latest-state clause (a reader with the write token) is true. Per bucket the read is
 one recorded state (no admin step deletes and puts in the same auth bucket), which is what the fix
 options build on: `notes/auth-schema-srv-scope.md`, §2 and Q1.
+
+### The fix (A0, 2026-11-16, branch auth-schema-srv; Q1 (a), approved by the user via etcd-grove-02)
+
+The read contract gives a view, a state per bucket (`auth.BkView`: the `auth` bucket's, `authUsers`',
+`authRoles`'), each recorded at an index at least the reader's lower bound, the users' index not above the
+`auth` bucket's (`auth.authViewSnap(From)`, `Buckets.lean`); each read is at its bucket's state
+(`authReaderOkV`). The latest clause (with the write token) keeps one state. `passwordChecked`: the user in a
+recorded state, the revision of a not-earlier one. Per bucket the view is recorded only if no batch session puts
+and deletes in one bucket (`TestAuthSchemaReadMixedBucketSession` fails otherwise), so the write contract
+`authBatchTxLk(R)` gains a session token `Sw : AuthSess → IProp` (`Lock` gives `Sw AuthSess.init`; a put into
+the users' or roles' bucket needs no delete there in the session, a delete no put; `Unlock` takes it). The
+store's admin steps meet it. Go: `TestAuthSchemaReadPerBucket` (the store's steps, 0 per-bucket violations,
+the old text's control fails ~15k times a run). Ledger: `notes/specs-only/ledger.md`, 2026-11-16.
