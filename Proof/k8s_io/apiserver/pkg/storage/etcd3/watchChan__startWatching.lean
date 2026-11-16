@@ -804,6 +804,78 @@ theorem watchChan.startWatching.wp_proof
   · iExactEq Hi1; simp
   ihave %Hc0e := mono_list_idx_agree γw.cur _ c0 cur $$ Hi0' Hcur
   subst Hc0e
+  -- the later of the producer's state and the response's
+  ihave ⟨%lb0, %lbc, %σ0, %σ', #HQ0, #HQ', %Hj⟩ : (∃ (lb0 lbc : Nat) (σ0 σ' : KVState),
+      □ Q lb0 σ0 ∗ □ Q lbc σ' ∗ ⌜kStartOk m σ0 st ∧ kProdAt inS m σ' st (sint.nat c0) I ∧
+        σ.rev ≤ σ'.rev ∧ kvSameHist σ σ'⌝ : IProp GF) $$ []
+  · icases HP with (⟨%lb0, %lbc, %σ0, %σc, #HQ0, #HQc, %H⟩ | %H)
+    · ihave %Hh := hH _ _ σc σ $$ [HQc HQσ]
+      · iframe HQc HQσ
+      obtain ⟨hat, hle, hhist⟩ := kProdAt_join H.2 Hh
+      by_cases hcr : σc.rev ≤ σ.rev
+      · iexists lb0, 0, σ0, σ
+        iframe HQ0 HQσ
+        ipureintro
+        simp only [hcr, ↓reduceIte] at hat hle hhist
+        exact ⟨H.1, hat, hle, hhist⟩
+      · iexists lb0, lbc, σ0, σc
+        iframe HQ0 HQc
+        ipureintro
+        simp only [hcr, ↓reduceIte] at hat hle hhist
+        exact ⟨H.1, hat, hle, hhist⟩
+    · obtain ⟨hf, hr, hst, hI, hc⟩ := H
+      obtain ⟨h1, h2⟩ := kStart_any (inS := inS) σ hf hr hst
+      iexists 0, 0, σ, σ
+      iframe HQσ
+      ipureintro
+      refine ⟨h1, by rw [hc, hI]; exact h2, Nat.le_refl _, ⟨rfl, rfl, Or.inl (List.prefix_refl _)⟩⟩
+  obtain ⟨hst0, hat, hle, hhist⟩ := Hj
+  -- the close error is one grpc's `status` accepts
+  ihave #Hse : go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' $$ []
+  · iunfold watchStateRespOkP at Hok
+    icases Hok with ⟨Hok1, -⟩
+    iunfold watchStateRespOk at Hok1
+    icases Hok1 with (⟨-, #H⟩ | %H | %H | ⟨%H, -⟩)
+    · iexact H
+    all_goals
+      have hn : v.closeErr' = interface.nil := by
+        have := H.1; unfold watchErr at this
+        simp only [not_or, ne_eq, Decidable.not_not] at this; exact this.1
+      rw [hn]
+      iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+  wp_auto
+  wp_apply (wp_Err wres_ptr v (DFrac.own 1)) $$ [$wres $Hse] as %err ⟨wres, %Herr, -, -, -, -⟩
+  cases err with
+  | ok ei =>
+    -- an error response: logged and sent
+    wp_auto
+    wp_apply (wp_Err wres_ptr v (DFrac.own 1)) $$ [$wres $Hse] as %err2
+      ⟨wres, %Herr2, -, #Hes2, %Hcl2, #Hcell2⟩
+    have hne2 : err2 ≠ interface.nil := by
+      intro h; rw [h] at Herr2; have := Herr2.1 rfl; have := Herr.2 this; cases this
+    iunfold closeErrK at Hce
+    icases Hce with ⟨%Hcl, #Hcell⟩
+    ihave #Hok : kErrOk err2 $$ []
+    · iapply (kErrOk_client wp_AsLeafTy wp_ECode wp_SCode) $$ Perr
+      iunfold kClientErr
+      iframe Hes2
+      isplitr
+      · ipureintro; exact ⟨hne2, Hcl2 EtcdGrove.rpctypesEtcdError_asTarget Hcl⟩
+      iapply Hcell2 $$ Hcell
+    (try wp_auto)
+    wp_apply wp_logWatchChannelErr
+    · iframe #
+    (try wp_auto)
+    wp_apply (wp_prod_sendError wp_sendError wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur q
+      _) $$ [Hpe Halive] as Halive
+    · iframe #
+      iframe
+    (try wp_auto)
+    wp_for_post
+    (try wp_auto)
+    iapply HΦ
+    iframe
+  | nil =>
   sorry
 
 end proof
