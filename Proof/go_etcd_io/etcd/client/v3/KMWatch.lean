@@ -475,8 +475,9 @@ theorem watchRespOk_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoStri
   iunfold kmSeenQ at HQ
   icases HQ with ⟨#Hlb, -⟩
   unfold watchStateRespOk watchRespOk
-  icases Hok with (⟨%H, #Hs⟩ | %H | %H | ⟨%H, #Hev⟩)
-  · ileft; iframe Hs; ipureintro; exact H
+  icases Hok with (⟨%H, #Hs0⟩ | %H | %H | ⟨%H, #Hev⟩)
+  · ihave #Hs := closeErrOk_status _ $$ Hs0
+    ileft; iframe Hs; ipureintro; exact H
   · iright; ileft; ipureintro; exact H
   · iright; iright; ileft
     obtain ⟨hne, hpn, hc0, hch, hc', hle, hnil, hok⟩ := H

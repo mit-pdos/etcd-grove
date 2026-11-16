@@ -57,7 +57,7 @@ theorem respKeyOk_of_state (γk : KVNames) (recorded : w64 → IProp GF) (o : Op
   isplitr
   · unfold watchStateRespOk
     icases Hw with (⟨%H, #He⟩ | %H | %H | ⟨%H, -⟩)
-    · iexact He
+    · iapply closeErrOk_status $$ He
     all_goals
       have hn : v.closeErr' = GoInterface.nil :=
         Classical.byContradiction fun h => H.1 (Or.inl h)
