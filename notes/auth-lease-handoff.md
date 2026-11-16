@@ -10,7 +10,9 @@
   `/shared/tmp/auth-lease-s4/chk-merge/summary.log`.
 - **Freeze:** rev 3 (`notes/auth-lease-s4-freeze.md` §10; `Scratch/S4Freeze.lean`, copy
   `/shared/tmp/auth-lease-s4/S4Freeze.lean`, 0 errors). Round 2 (`freeze-review-r2.md`): S1/S2/H1/T1 applied in rev 3.
-  Round 3 (`freeze-review-r3.md`): no first-tier finding; its second tier applied (Freeze §7 "Round 3").
+  Round 3 (`freeze-review-r3.md`) and round 4 (`freeze-review-r4.md`, on etcd-grove-02's request): no first-tier
+  finding; their second tier applied (Freeze §7 "Round 3", "Round 4"). D-a..D-g, D-i, D-j, D-k (forms), `lessorLawMask`
+  ACCEPTED by etcd-grove-02 (conditional on round 4, which found nothing first-tier); D-h with the user.
   Ledger entry for H1/S1/T1 in `notes/specs-only/ledger.md`. Decisions asked: Freeze §6 items 1-9.
 - **Next:** WAIT for the Freeze review (etcd-grove-02 and the user). After approval, Draft §7 items 5-10: write the
   Scratch texts into the tree (client items 5-6, server/law item 7 with `lessorFollows` per §5.4), D-k's exact

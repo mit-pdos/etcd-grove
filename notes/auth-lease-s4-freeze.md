@@ -10,7 +10,7 @@ statements are `Prop` definitions, so the probe holds no proof and no `sorry`.
 `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json etc/lean-check.py -a Scratch/S4Freeze.lean`: 0 errors.
 
 **Trusted text: none new.** Every text below is the spec of proved code or a proved law. No axiom
-changes. §4.4 strengthens two frozen `Spec/` posts of proved functions.
+changes. §4.4 strengthens two frozen `Spec/` posts of proved functions (rev 3: seven in all, §7 "Round 4": `EtcdServer.{LeaseGrant,LeaseRevoke,LeaseTimeToLive,LeaseLeases}`, `requireAuthInfo.specC`, `v3rpc.LeaseServer.{LeaseGrant,LeaseRevoke}`).
 
 ## 0. Where this departs from Draft §3
 
@@ -26,7 +26,7 @@ changes. §4.4 strengthens two frozen `Spec/` posts of proved functions.
 | D-h | (not in §3) | S3c's `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn` take a caller's `n` (`authPubLbM`), reply `leaseCheckT … n (fun _ => True)`; server `LeaseGrant.spec`/`LeaseRevoke.spec`/`requireAuthInfo.specC` posts gain `authedFrom … n` (§10) | check 1's token-less/bad-token `Grant` refusal (r1 C2; rev 2's form false, r2 H1) |
 | D-i | (not in §3) | `clientTokAt` gains the client's `Lease` over the same connection; `New`'s post strengthened (§9) | r1 C3 |
 | D-j | (not in §3) | `client_put_on` generalized to options `gs` (§9) | r1 K1 |
-| D-k | (not in §3) | the cluster allocations take the no-snapshot flag: `srvClusterBootOn_alloc`/`srvClusterBoot_alloc` `(ns : Bool := false) (hns : ns = true → boot ≠ [])`, post `clusterNoSnap γ.cl ↔ ns = true`; etcdstart's `allocNOnM` takes `ns` and returns the mode at its members' cluster (§10) | the law's premise needs a producer (r2 S2); Draft §7 items 5-10, authlease at `true` |
+| D-k | (not in §3) | the cluster allocations take the no-snapshot flag: `srvClusterBootOn_alloc`/`srvClusterBoot_alloc` `(ns : Bool := false)` (rev 3, r4's R4-2: no `hns`; was `(hns : ns = true → boot ≠ [])`), post `clusterNoSnap γ.cl ↔ ns = true`; etcdstart's `allocNOnM` takes `ns` and returns the mode at its members' cluster (§10) | the law's premise needs a producer (r2 S2); Draft §7 items 5-10, authlease at `true` |
 
 ## 1. The KV specs' lease filters (client/v3 `KVServiceOn.lean`)
 
@@ -192,6 +192,8 @@ interface, and the driver unfolds them as `etcd_auth.client_Put_on` does: a driv
 
 ### 4.1 `etcdLeaseTTLSpecOn s E γl` (client/v3 `LeaseReadServed.lean`, new): probe §4.1
 
+(**Superseded** by §9's R1/R2 rows: `etcdLeaseTTLSpecMd`, any mode; and §10's T1.)
+
 ```lean
 fun md (req : w64 × Bool) Φ Ψe =>
   iprop((□ ∀ d, Ψe d) ∗ ∃ n m : Nat, auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
@@ -218,6 +220,8 @@ exactly those leases (admin passes; else read on every key of each), then the au
 
 ### 4.3 `etcd_lease_read_auth_served_on` (client/v3 `AuthnServedOn.lean`, new): probe §4.3
 
+(**Superseded** by §9's R2 row: `hγa` dropped, `etcd_lease_read_served`.)
+
 The sibling of `etcd_lease_auth_served_on` (D6). Its premises: `hγa : E.authMode = .on γa`, the lease
 server (`quotaLeaseServerAt`, `leaseServerAt`), the lease-read contract `v3rpc.raftLeaseRead s E
 (mvccLeases E.γ) (E.RD ∗ levelTok 0) (mvccReaders E.γ 1)` (as `etcd_leaseReadMethodsOk`, at the lessor
@@ -226,6 +230,8 @@ server (`quotaLeaseServerAt`, `leaseServerAt`), the lease-read contract `v3rpc.r
 `grpcUpOn`'s `grpcLeaseUp` already holds the four unary registrations (`v3rpc.leaseRegs`).
 
 ### 4.4 Finding F4: the `ErrLeaseNotFound` arms (frozen `Spec/` posts strengthened)
+
+(The TTL arms' `authedOutB ∗ (if Keys …)` are **superseded** by §10's T1: `leaseCheckFrom … n (fun info => if Keys …)` on both arms.)
 
 `LeaseServer.LeaseTimeToLive`/`LeaseLeases` (`v3rpc/lease.go:62-91`) turn an error with
 `errors.Is(err, lease.ErrLeaseNotFound)` into a **successful** reply: TTL `-1`, or an empty listing.
@@ -370,7 +376,7 @@ raft-path refusal. That changes the approved program (D1) and goes to the user.
    1, 3–5 are unprovable.
 5. **D-g** (the law's statement §5.2, `hon`-scoped, and the new internal conjunct §5.4). Recommend:
    accept, with §5.4's fallback order. (Rev 3: the law as §10, mode-generic, over the member's floor.)
-6. **D-h** (rev 3's `n`-relative check on grant/revoke, `authedFrom`, four proved server/v3rpc specs
+6. **D-h** (rev 3's `n`-relative check on grant/revoke, `authedFrom`, proved server/v3rpc specs (the full list: §7 "Round 4")
    strengthened, §10). Recommend: accept; true of Go (`v3_server.go:1277-1290`), and check 1 needs it.
 7. **D-i, D-j** (§9). Recommend: accept (r1's C3, K1; r2 and r3 found them sound).
 8. **D-k** (the allocations' `ns` flag, §10): frozen as forms (the delta below), exact texts written with item
@@ -667,7 +673,7 @@ published; the model advances at commit); the driver gets `F` from `client_range
 | finding | change |
 |---|---|
 | R3-1 mask | `lessorLawMask : CoPset := ↑kvN ∪ ↑srvRaftN ∪ ↑srvApi.kvsN` (exported with its body); the law's `⌜lessorLawMask ⊆ Em⌝`; item 7 may add the tie's namespace to the body (a form; §6 item 9) |
-| R3-2 D-k | frozen as forms (§6 item 8): `srvClusterBootOn_alloc`/`srvClusterBoot_alloc` `(ns : Bool := false) (hns : ns = true → boot ≠ [])`, post conjunct `clusterNoSnap γ.cl ↔ ns = true` (`srvClusterBoot_alloc`'s `¬ clusterNoSnap` becomes its `ns = false` instance); `allocNOnM` `(ns : Bool := false)`, post `⌜clusterNoSnap γ.cl ↔ ns = true⌝` at the cluster its `memberBootOn`s share; exact texts at item 9's stop |
+| R3-2 D-k | frozen as forms (§6 item 8): `srvClusterBootOn_alloc`/`srvClusterBoot_alloc` `(ns : Bool := false)` (r4's R4-2: appended after `hgps`, no `hns`), post conjunct `clusterNoSnap γ.cl ↔ ns = true` (`srvClusterBoot_alloc`'s `¬ clusterNoSnap` becomes its `ns = false` instance); `allocNOnM` `(ns : Bool := false)`, post `⌜clusterNoSnap γ.cl ↔ ns = true⌝` at the cluster its `memberBootOn`s share; exact texts at item 9's stop |
 | R3-3 H1 chain | listed: v3rpc's `lessorGrantOkGM`/`lessorRevokeOkM` (`v3rpc/LeaseOn.lean:67-97`) take the caller's `n` and return `leaseCheckT … n (fun _ => True)`; the exported `lessorGrantOkLiveM_server`/`lessorRevokeOkM_server` (`v3rpc/Results.lean:2112-2125`) re-proved over them (statements change with the contracts) |
 | R3-4 | the law's docstring says why the floor is member-local |
 | R3-5 | §5.4, §8.3, §9's L1/L2 rows marked superseded by §10 |
@@ -679,5 +685,25 @@ Uncertain items left to the proofs (r3): mvcc reporting lessor pushes to the tie
 `leaseKeysVerdictFrom`'s witness agrees with `lsHolds`'s item map (item 9's per-index probe lemma); the law at
 auth off (S6's fallback in the docstring); the other callers of `LeaseTimeToLive.spec` adapt in their bodies.
 
-**Status:** rev 3 is ready for the Freeze review (etcd-grove-02 and the user). No further spec-reviewer round:
+**Status (superseded by Round 4 below):** rev 3 is ready for the Freeze review (etcd-grove-02 and the user). No further spec-reviewer round:
 round 3 found no first-tier fix; its second-tier ones are applied above.
+
+### Round 4 (fresh `spec-reviewer`, `/shared/tmp/auth-lease-s4/freeze-review-r4.md`, on `fcc8b0985e`, asked by etcd-grove-02): no first-tier finding
+
+Round 3's R3-1, R3-4, R3-5, R3-7, R3-8 stale; R3-2 resolved as a form; R3-3/R3-6 completed below. Confirmed:
+`AEnv.authOn` is `E.authMode.isOn` (`apply/Chain.lean:762`), so `leaseCheckFrom_of_authedFrom` is true;
+`authedFrom` is exactly `requireAuthInfo`'s `nil` case in all three modes; the expiry path revokes under
+`WithRoot` (`server.go:881`); `lessorLawMask` is satisfiable by drivers with their own namespaces, and adding a
+fixed namespace to its body later is a body-only form. Second tier, applied (Scratch 0 errors):
+
+| finding | change |
+|---|---|
+| R4-1 H1 list | the complete list of frozen `Spec/` texts strengthened (proved functions): `EtcdServer.{LeaseGrant,LeaseRevoke}.spec` (pre `authPubLbM n`, success `authedFrom … n`), `EtcdServer.LeaseTimeToLive.spec` (T1), `EtcdServer.LeaseLeases.spec` (F4), `requireAuthInfo.specC` (T1), and **`v3rpc.LeaseServer.LeaseGrant.spec`/`LeaseRevoke.spec`** (new binder `n`, pre `auth.authPubLbM E.authMode n`, success `leaseCheckT s E (ctxTokenOf (ok ci)) n (fun _ => True)`; Scratch `v3rpc.LeaseServer.{LeaseGrant,LeaseRevoke}.specN`). Contracts: `lessorGrantOkGM`/`lessorRevokeOkM` take `n` inside their triple's binders and return the check. Same text, stronger meaning: `lessorGrantOkLM`, `raftLessorM`, `lessorGrantOkLM_server` (`v3rpc/Results.lean:2099`), `lessorGrantOkLiveM_server`, `lessorRevokeOkM_server`, and the seven `raftLessorM`-premised `client/v3/Results.lean` results (`:3799, 3861, 4100, 4207, 4256, 4314, 4346`; their premises harder to produce, produced by the `…_server` theorems). Proof bodies only (supply `n := 0` by `authPubLbM_zero`, or the registration's `n`): `etcd_leaseGrantHandlerOkGR`, `etcdLeaseGrantHandlerOkMd`, `etcdLeaseRevokeHandlerOkMd` (`LeaseGrantServed.lean`), `revokeExpiredLeases` |
+| R4-2 D-k | `hns` dropped (it follows from `BootCore`'s `boot.length = ps.length` and `ps ≠ []`); `(ns : Bool := false)` appended after `hgps` in `srvClusterBoot(On)_alloc` and `allocNOnM`, so no caller's text changes; callers destructuring the pure post change in their bodies only |
+| R4-3 | `authedFrom_persistent` (instance, `AuthWhy.lean`; Scratch `authedFrom_persistent_stmt`); the bridge `leaseCheckFrom_of_authedFrom` lives in `LeaseCheck.lean`, which gains `public import …AuthWhy` if not already reached |
+| R4-4 | §4.1, §4.3, §4.4 marked superseded; header and §6 item 6 counts corrected (seven frozen specs) |
+| R4-5 | §5.4's fallback is `lessorRdInv` at `lessorRdN` (the `leaseOwn` under the lessor's mutex cannot be opened in a fancy update); if the tie ever needs a per-location namespace, `lessorLawMask`'s signature changes and it comes back for review |
+
+**Status:** rev 3 (with rounds 3 and 4's second tier applied) is ready for the Freeze review. Round 4 found
+nothing first-tier against D-a..D-g, D-i, D-j, D-k or `lessorLawMask` (ACCEPTED by etcd-grove-02 on that
+condition); D-h is with the user.
