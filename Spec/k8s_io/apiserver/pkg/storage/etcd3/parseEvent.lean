@@ -4,7 +4,8 @@
 `ev` (`eventIs`) with its `PrevKv` pointer read at the state `σ`
 (`prevKvOk`): a fresh `*event`, owned, holding `ev` (`kEvIs`'s `.ev` case: its previous value the
 key's record before, for an event that is not a create), or, only for a non-create event without
-`PrevKv` (Q5, `issues/etcd-watch-prevkv-before-created.md`), an error `fmt.Errorf` made. Proved
+`PrevKv` (Q5, `issues/etcd-watch-prevkv-before-created.md`), an error `fmt.Errorf` made: its format has
+no `%w`, so an `*errors.errorString` (`fmt.ErrorfPlain`; 7f-5a-P step 5, for `kErrOk`). Proved
 (k8s 7f-5a-P step 3). Lean-first (no Rocq counterpart).
 -/
 module
@@ -39,7 +40,11 @@ abbrev parseEvent.spec : Prop :=
   {{ (q : Loc) (err : GoInterface), RET (PairV #q #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ x : k8s_io.apiserver.pkg.storage.etcd3.event, q ↦ x ∗
         kEvIs σ x (KRaw.ev ev)) ∨
-      (⌜err ≠ GoInterface.nil ∧ e.prevKv = null ∧ ¬ v3rpc.evIsCreate ev⌝ ∗ kFmtErr err) }}
+      (⌜err ≠ GoInterface.nil ∧ e.prevKv = null ∧ ¬ v3rpc.evIsCreate ev⌝ ∗
+        ∃ x : Loc, ⌜err = interface.mkOk
+          (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
+          fmt.stringMethodSpec ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+            go!"Error") }}
 
 end spec
 

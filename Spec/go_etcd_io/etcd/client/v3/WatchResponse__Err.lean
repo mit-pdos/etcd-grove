@@ -34,7 +34,9 @@ panic). (k8s 7f-5a-P, E2, ledger 2026-11-15) The error is one grpc's `status` ac
 `nil` included) and a client error (`clientErr`) whenever the close error is one (or is `nil`), given
 that `EtcdError` is an `errors.As` target (`clientErr`'s type-only first conjunct): `rpctypes.Error`
 keeps `clientErr`, `ErrCompacted`/`ErrFutureRev` are `EtcdError` values, and a cancel reason's
-`status.Error` is a `*status.Error` leaf. -/
+`status.Error` is a `*status.Error` leaf. (k8s 7f-5a-P step 5) An `*errors.errorString` result is the
+close error's own cell (`errCellOk`: `rpctypes.Error` keeps it; the other results are of other
+types). -/
 abbrev WatchResponse.Err.spec : Prop :=
   ∀ (wr : Loc) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wr ↦{dq} resp ∗
@@ -47,7 +49,8 @@ abbrev WatchResponse.Err.spec : Prop :=
       □ (errStrOk resp.closeErr' -∗ errStrOk err) ∗
       statusErrOk err ∗
       ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-        (resp.closeErr' ≠ interface.nil → clientErr resp.closeErr') → clientErr err⌝ }}
+        (resp.closeErr' ≠ interface.nil → clientErr resp.closeErr') → clientErr err⌝ ∗
+      □ (errCellOk resp.closeErr' -∗ errCellOk err) }}
 
 end spec
 

@@ -8,6 +8,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.parseEvent
 public import Spec.go_etcd_io.etcd.api.v3.mvccpb.Event__IsCreate
 public import Spec.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType__StringPtr
 public import Perennial.Proof.time.Link
+public import Spec.fmt.ErrorfPlain
 
 @[expose] public section
 
@@ -32,7 +33,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem parseEvent.wp_proof
     (wp_IsCreate : mvccpb.Event.IsCreate.spec (GF := GF) (hG := hG))
     (wp_String : mvccpb.Event_EventType.StringPtr.spec (GF := GF) (hG := hG))
-    (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG)) :
     parseEvent.spec (GF := GF) (hG := hG) := by
   intro p e ev o σ
   wp_start as ⟨⟨%Hp, %Hkvn⟩, #Hea, #Heis, #Hpk, #Hpko⟩
@@ -110,7 +111,8 @@ theorem parseEvent.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
-      wp_apply wp_Errorf $$ [$Hsl] as %er ⟨-, #Herr, %Hms, %Hpe⟩
+      wp_apply (wp_ErrorfPlain _ _ _ _ (by refine ⟨_, rfl, ?_⟩; decide)) $$ [$Hsl]
+        as %x ⟨-, %msg, -, -, #HE⟩
       · iframe #
         rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl]
         try simp only [List.set_cons_succ, List.set_cons_zero]
@@ -120,10 +122,14 @@ theorem parseEvent.wp_proof
       iright
       isplitr
       · ipureintro; exact ⟨by simp, Hif, hnc⟩
-      unfold kFmtErr
-      iexists er
-      iframe #
-      ipureintro; exact ⟨rfl, Hms, Hpe⟩
+      iexists x
+      isplitr
+      · ipureintro; rfl
+      unfold fmt.stringMethodSpec
+      iintro !> %Φ' HΦ'
+      iapply HE
+      inext
+      iapply HΦ'
     · -- `PrevKv` set: the key's record before
       ihave ⟨%r, %Hr, #Hpkv⟩ : ∃ r : KVRec, ⌜σ.at (sint.nat ev.kv.modRev - 1) !! ev.kv.key = some r⌝ ∗
           kvValAt e.prevKv (KVRec.toKv ev.kv.key r) $$ [Hpko]

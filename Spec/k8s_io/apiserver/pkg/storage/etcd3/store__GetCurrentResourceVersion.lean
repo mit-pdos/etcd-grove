@@ -11,7 +11,7 @@ the revision's). The caller's `Q` gives what it needs of `σ`: for the cached GE
 revision is at least etcd's at the call's start (the update fires within the call). For now the
 resource prefix is a valid key (`PrepareKey` succeeds, as `store.Get`'s premise).
 
-(k8s 7f-5a-P, E4, ledger 2026-11-15) The error is the client `Get`'s (`clientErr`, `statusErrOk`) or
+(k8s 7f-5a-P, E4, ledger 2026-11-15) The error is the client `Get`'s (`clientErr`, `statusErrOk`, `errCellOk`) or
 the store's own `fmt.Errorf` for a `0` revision (an `*errors.errorString` whose `Error()` returns,
 `fmt.ErrorfPlain`): the watcher's `sendError` needs its type facts.
 -/
@@ -56,7 +56,8 @@ abbrev store.GetCurrentResourceVersion.spec : Prop :=
       (Val #(GoInterface.ok ci)))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       (⌜err ≠ GoInterface.nil⌝ ∗
-        ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err) ∨
+        ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+          go_etcd_io.etcd.cache.v3.errCellOk err) ∨
           ∃ x : Loc, ⌜err = interface.mkOk
             (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
             fmt.stringMethodSpec ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩

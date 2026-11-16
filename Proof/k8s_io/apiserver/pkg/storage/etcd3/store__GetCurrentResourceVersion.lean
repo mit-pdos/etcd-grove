@@ -91,7 +91,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
   wp_apply (wp_RecordEtcdRequest go!"getCurrentResourceVersion" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
   · iexact Hse
-  icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, %Hcerr, -⟩)
+  icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, %Hcerr, #Hcell⟩)
   · -- the client read the state σ
     subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
@@ -148,7 +148,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     ileft
     isplitr
     · ipureintro; exact Hcerr
-    iexact Hse
+    iframe Hse Hcell
 
 end proof
 

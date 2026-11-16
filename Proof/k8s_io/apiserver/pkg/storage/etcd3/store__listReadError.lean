@@ -79,7 +79,7 @@ theorem store.listReadError.wp_proof
     cases e2
     all_goals
       wp_auto
-      wp_apply wp_TooLarge as %e #He
+      wp_apply wp_TooLarge as %e ⟨#He, -⟩
       iapply HΦ
       ileft
       iframe He HQ

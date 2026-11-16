@@ -12,8 +12,10 @@ the start point, and a prefix unless the watch is no longer live or the processi
 (each element `kInElem`). Before each `sendError` it sets `kProdExited` (`kCancelPD`'s producer arm, for
 `wc.cancel()`). Its premises are what `run` (step 6) has: the watch channel's fields (`kWcProd`),
 `initialRev` (`kStartPre`), the caller's read updates, the producer's ghost state, a running producer of
-`resultChan` (`kResAlive`, given back for `resultChanWG.Done()`) and the broadcast channel. Lean-first
-(no Rocq counterpart).
+`resultChan` (`kResAlive`, given back for `resultChanWG.Done()`) and the broadcast channel; the
+goroutine's thread token (`getResourceSizeEstimator` borrows a reader slot with it); a bookmark asked
+only with initial events (`kModeOf`'s), and the resource prefix's key short enough
+(`GetCurrentResourceVersion`'s premise). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -49,6 +51,8 @@ abbrev watchChan.startWatching.spec : Prop :=
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  (m.bmReq = true → m.forceInit = true) →
+  (c.pathPrefix ++ c.resourcePrefix).length ≤ opKeyMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ rangeStreamOff ∗
       isStore sp c ∗ storeWatchOk sp c W γk ∗
       kWcProd wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur ∗
@@ -56,10 +60,10 @@ abbrev watchChan.startWatching.spec : Prop :=
       kStartPre m Q r0 ∗ readAus c γk (Q 0) ∗
       (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev)) ∗
       kProdSt γ cd [] ∗ dghostVar γ.prodEx (DFrac.own 1) false ∗ kResAlive alive q ∗
-      ownBroadcastChan wcc γb (kProdExited γ) Broadcast.Pending }}
+      ownBroadcastChan wcc γb (kProdExited γ) Broadcast.Pending ∗ threadTok }}
     (App (App (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
       go!"startWatching")) (Val #wcc)) (Val #m.bmReq)) (Val #m.forceInit))
-  {{ RET #(); kResAlive alive q }}
+  {{ RET #(); kResAlive alive q ∗ threadTok }}
 
 end spec
 

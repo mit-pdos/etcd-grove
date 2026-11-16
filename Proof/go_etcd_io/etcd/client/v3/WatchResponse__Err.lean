@@ -76,7 +76,7 @@ theorem WatchResponse.Err.wp_proof
   | ok i =>
     wp_auto
     rw [hce]
-    wp_apply wp_rpctypes_Error (GoInterface.ok i) $$ [$Hcse] as %err' ⟨%Hne, #Hw, %Hce, -⟩
+    wp_apply wp_rpctypes_Error (GoInterface.ok i) $$ [$Hcse] as %err' ⟨%Hne, #Hw, %Hce, %-, #Hcell⟩
     · ipureintro; simp
     iapply HΦ
     iframe
@@ -87,7 +87,9 @@ theorem WatchResponse.Err.wp_proof
       iapply errStrOk_of_statusErrOk; iexact Hw
     isplitl []
     · iexact Hw
-    ipureintro; intro _ hc; exact Hce (hc (by simp))
+    isplitl []
+    · ipureintro; intro _ hc; exact Hce (hc (by simp))
+    iexact Hcell
   | nil =>
     wp_auto
     wp_if_destruct
@@ -102,8 +104,12 @@ theorem WatchResponse.Err.wp_proof
       rw [hx]
       isplitl []
       · iapply rpctypes_etcdError_statusErrOk wp_EErr Hty
-      ipureintro; intro hAs _
-      exact rpctypes_etcdError_clientErr Hty GoInterface.nil ⟨hAs, fun _ h => by cases h⟩ x
+      isplitl []
+      · ipureintro; intro hAs _
+        exact rpctypes_etcdError_clientErr Hty GoInterface.nil ⟨hAs, fun _ h => by cases h⟩ x
+      iintro !> -
+      iapply errCellOk_of_ty
+      unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; simp
     cases hca : resp.Canceled'
     · wp_auto
       iapply HΦ
@@ -114,8 +120,11 @@ theorem WatchResponse.Err.wp_proof
       · imodintro; iintro -; iapply errStrOk_nil
       isplitl []
       · iapply statusErrOk_nil'
-      ipureintro; intro hAs _
-      exact ⟨hAs, fun _ h => by cases h⟩
+      isplitl []
+      · ipureintro; intro hAs _
+        exact ⟨hAs, fun _ h => by cases h⟩
+      iintro !> -
+      iapply errCellOk_nil
     · wp_auto
       wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
       wp_if_destruct
@@ -130,14 +139,18 @@ theorem WatchResponse.Err.wp_proof
         rw [hx]
         isplitl []
         · iapply rpctypes_etcdError_statusErrOk wp_EErr Hty
-        ipureintro; intro hAs _
-        exact rpctypes_etcdError_clientErr Hty GoInterface.nil ⟨hAs, fun _ h => by cases h⟩ x
+        isplitl []
+        · ipureintro; intro hAs _
+          exact rpctypes_etcdError_clientErr Hty GoInterface.nil ⟨hAs, fun _ h => by cases h⟩ x
+        iintro !> -
+        iapply errCellOk_of_ty
+        unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; simp
       · -- a cancel reason: `rpctypes.Error(status.Error(codes.FailedPrecondition, reason))`
         wp_apply wp_status_Error as %e1 ⟨%He1, #He1s, -, %He1ty⟩
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)
-        wp_apply wp_rpctypes_Error e1 $$ [] as %e2 ⟨%He2, #Hw, %Hce, -⟩
+        wp_apply wp_rpctypes_Error e1 $$ [] as %e2 ⟨%He2, #Hw, %Hce, %-, #Hcell⟩
         · iframe #; ipureintro; exact He1
         obtain ⟨e1o, rfl⟩ : ∃ e1o, e1 = GoInterface.ok e1o := by
           cases e1 with
@@ -153,8 +166,15 @@ theorem WatchResponse.Err.wp_proof
         · imodintro; iintro -; iapply errStrOk_of_statusErrOk; iexact Hw
         isplitl []
         · iexact Hw
-        ipureintro; intro hAs _
-        exact Hce (clientErr_statusError e1o Hl1 (He1ty e1o rfl) hAs)
+        isplitl []
+        · ipureintro; intro hAs _
+          exact Hce (clientErr_statusError e1o Hl1 (He1ty e1o rfl) hAs)
+        iintro !> -
+        iapply Hcell
+        iapply errCellOk_of_ty
+        rw [He1ty e1o rfl]
+        unfold google_golang_org.grpc.internal.status.Error.ty _root_.Perennial.errors.errorString.ty
+        simp
 
 end proof
 
