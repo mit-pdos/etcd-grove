@@ -1,4 +1,4 @@
-# k8s 7f-6 stage A: the closed statements, old → new (2026-11-16; HARD STOP before linking)
+# k8s 7f-6 stage A: the closed statements, old → new (2026-11-16; APPROVED by the user 2026-11-16 via etcd-grove-02)
 
 Stage A of `notes/k8s-7f6-scope.md` §5: the cluster and partition theorems for `k` members,
 `1 ≤ k ≤ 1000`, on the generic `etcdstart.Members`/`StartMembers` start (the user's decision (b),
