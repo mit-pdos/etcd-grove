@@ -151,6 +151,15 @@ theorem kProdAt_join {inS : GoString → Bool} {m : KWatchMode} {σc σ : KVStat
   · exact ⟨kProdAt_hist hh (by assumption) h, Nat.le_refl _, ⟨rfl, rfl, Or.inl (List.prefix_refl _)⟩⟩
   · exact ⟨h, by omega, kvSameHist_symm hh⟩
 
+/-- Without initial events, at a positive requested revision, any state is a start. -/
+theorem kStart_any {inS : GoString → Bool} {m : KWatchMode} {st : Nat} (σ : KVState)
+    (hf : m.forceInit = false) (hr : 0 < m.req) (hst : st = m.req) :
+    kStartOk m σ st ∧ kProdAt inS m σ st st [] := by
+  refine ⟨?_, ?_⟩
+  · unfold kStartOk; simp [hf, hr, hst]
+  · have := kProdAt_start (inS := inS) (m := m) (σ := σ) (st := st) (fun h => by simp [hf] at h)
+    unfold kRawIdealL at this; simpa [hf] using this
+
 end pure
 
 section lemmas
@@ -196,6 +205,21 @@ theorem prevKvOk_hist (o : OpFull) (σ σ' : KVState) (ev : mvcc.EvM) (pk : Loc)
       rw [← kvSameHist_at σ σ' _ hh hr (by omega)]; exact h
   · iintro %h; ipureintro; exact h
 
+/-- The read updates at the members, as `GetCurrentResourceVersion` takes them. -/
+theorem readAus_crv (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) :
+    readAus c γk Q ⊢ ∀ (R m' : w64), |==> □ [∧list] x ∈ c.ms,
+      ⌜(fun (_ _ : w64) => Q) R m' = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv ((fun (_ _ : w64) => Q) R m') := by
+  unfold readAus
+  iintro ⟨-, #H⟩ %R %m'
+  imodintro
+  imodintro
+  iapply (BigAndL.bigAndL_intro (P := iprop(□ [∗list] x ∈ c.ms, kvReadAu x.γr.kv Q))
+    (fun k x hk => ?_)) $$ H
+  iintro #H'
+  ihave #Hx := BigSepL.bigSepL_lookup hk $$ H'
+  iright
+  iexact Hx
+
 /-- **The producer exits** (before a `sendError` or the closing): `prodEx` set, for good. -/
 theorem kProdExited_set (γ : KWatchNames) :
     ⊢ dghostVar (GF := GF) γ.prodEx (DFrac.own 1) false ==∗ kProdExited γ := by
@@ -213,6 +237,39 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+
+/-- **The producer's `sendError`** (then it returns): `kProdExited` set first (`kCancelPD`'s producer
+arm, for `wc.cancel()`), the commit from `kResChan`, the running-producer token back. -/
+theorem wp_prod_sendError [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (wp_sendError : watchChan.sendError.spec (GF := GF) (hG := hG))
+    {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] [Pos.Countable KRaw] (wc sp : Loc)
+    (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames) (cd : context.ContextDesc (IProp GF))
+    (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool) (m : KWatchMode)
+    (Q : Nat → KVState → IProp GF) (procd alive : GName) (ctx : GoInterfaceOk) (kp : GoString)
+    (recur : Bool) (q : Qp) (err : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
+        kWcProd wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur ∗ kErrOk err ∗
+        dghostVar γ.prodEx (DFrac.own 1) false ∗ kResAlive alive q }}
+      (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
+        go!"sendError")) (Val #err))
+    {{ RET #(); kResAlive alive q }} := by
+  iintro %Φ ⟨#Hpkg, #Hwc, #Hok, Hpe, Halive⟩ HΦ
+  iunfold kWcProd at Hwc
+  icases Hwc with ⟨%wp, %chI, %chR, %lg, %cf, %rse, %γc, -, -, -, -, -, -,
+    #Hfctx, #Hfcf, #Hcs, -, -, -, -, -, -, #HfR, #Hrc, #Hctx, -, -, -⟩
+  imod kProdExited_set γ $$ Hpe with #Hex
+  ihave #Hrc' := Hrc
+  iunfold kResChan at Hrc'
+  icases Hrc' with ⟨#HchR, -⟩
+  wp_apply (wp_sendError wc chR ctx (kCdw γ cd) γ.res.chanName cf γc (kCancelPD γ cd) err
+      (kResAlive alive q) iprop(kResAlive alive q ∗ emp)) $$ [Halive] as Hres
+  · iframe #
+    isplitr
+    · iintro !>; unfold kCancelPD; iright; ileft; iexact Hex
+    iapply kRes_errCommit $$ Hrc Halive
+  iapply HΦ
+  icases Hres with (⟨Ha, -⟩ | Ha) <;> iexact Ha
 
 theorem watchChan.startWatching.wp_proof
     (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG))
@@ -278,6 +335,162 @@ theorem watchChan.startWatching.wp_proof
   ihave #Hspsc' := Hspsc
   iunfold isSpsc at Hspsc'
   icases Hspsc' with ⟨#HchI, -⟩
+  ihave ⟨%HPf, %HPn, #HP0⟩ : (⌜m.forceInit = true → uint.nat r0 = m.req ∧ uint.Z r0 < 2 ^ 63⌝ ∗
+      ⌜m.forceInit = false → 0 < m.req → uint.nat r0 = m.req ∧ uint.Z r0 + 1 < 2 ^ 63⌝ ∗
+      (⌜m.forceInit = true ∨ 0 < m.req⌝ ∨
+        ∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗ ⌜r0 = W64 (σ0.rev : Int) ∧ kvRevFits σ0.rev⌝) :
+      IProp GF) $$ [Hpre]
+  · iunfold kStartPre at Hpre
+    cases hf : m.forceInit
+    · isimp only [Bool.false_eq_true, ↓reduceIte] at Hpre
+      by_cases hr : 0 < m.req
+      · isimp only [hr, ↓reduceIte] at Hpre
+        icases Hpre with %H
+        isplitr; · ipureintro; simp
+        isplitr; · ipureintro; intro _ _; exact H
+        ileft; ipureintro; right; exact hr
+      · isimp only [hr, ↓reduceIte] at Hpre
+        isplitr; · ipureintro; simp
+        isplitr; · ipureintro; intro _ h; exact absurd h hr
+        iright; iexact Hpre
+    · isimp only [↓reduceIte] at Hpre
+      icases Hpre with %H
+      isplitr; · ipureintro; intro _; exact H
+      isplitr; · ipureintro; simp
+      ileft; ipureintro; left; rfl
+  wp_auto
+  -- the check: initial events at a positive requested revision
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ wc_ptr ↦ wc ∗
+      forceInitialEvents_ptr ↦ m.forceInit ∗
+      structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ r0 ∗
+      dghostVar γ.prodEx (DFrac.own 1) false ∗ kResAlive alive q ∗ threadTok ∗
+      (kResAlive alive q ∗ threadTok -∗ Φ #()) ∗
+      ∃ lbf : Nat, readAus c γk (Q lbf) ∗ ⌜m.forceInit = true → m.req ≤ lbf⌝) ∨
+      (⌜v = returnVal #()⌝ ∗ Φ #())))
+    at next with [wc forceInitialEvents Hir Hpe Halive Htok HΦ]
+  · by_cases hck : 0 < sint.Z r0 ∧ m.forceInit = true
+    rotate_left
+    · -- no check: the read updates from `Q 0`
+      by_cases h0 : 0 < sint.Z r0
+      · have hf : m.forceInit = false := by
+          cases hf : m.forceInit
+          · rfl
+          · exact absurd ⟨h0, hf⟩ hck
+        rw [decide_eq_true (show sint.Z (W64 0) < sint.Z r0 from h0)]
+        wp_auto
+        rw [hf]
+        wp_auto
+        ileft
+        iframe
+        isplitr; · ipureintro; rfl
+        iexists 0
+        iframe Hra
+        ipureintro
+        intro h; cases h
+      · rw [decide_eq_false (show ¬ sint.Z (W64 0) < sint.Z r0 from h0)]
+        wp_auto
+        ileft
+        iframe
+        isplitr; · ipureintro; rfl
+        iexists 0
+        iframe Hra
+        ipureintro
+        intro hf
+        obtain ⟨h1, h2⟩ := HPf hf
+        have : uint.nat r0 = 0 := by
+          have h0' : sint.Z r0 ≤ 0 := by simpa using h0
+          word
+        omega
+    obtain ⟨h0, hf⟩ := hck
+    rw [hf, decide_eq_true (show sint.Z (W64 0) < sint.Z r0 from h0)]
+    obtain ⟨hr0, hr0'⟩ := HPf hf
+    wp_auto
+    wp_bind (App (Val #crv) (Val _))
+    iapply Hcrv
+    wp_apply (wp_GetCRV Obj sp c ctx (kCdw γ cd) c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ []
+      as %n %err Hout
+    · iframe #
+      iapply readAus_crv $$ Hra
+    icases Hout with (⟨%Herr, Herr2⟩ | ⟨%Herr, %σ1, #HQ1, %Hσ1⟩)
+    · -- the read's error: sent
+      ihave #Hok : kErrOk err $$ [Herr2]
+      · icases Herr2 with (⟨%Hc, #Hs, #Hcl⟩ | ⟨%x, %hx, #Hx⟩)
+        · iapply (kErrOk_client wp_AsLeafTy wp_ECode wp_SCode) $$ Perr
+          iunfold kClientErr
+          iframe #
+          ipureintro; exact ⟨Herr, Hc⟩
+        · subst hx
+          iapply (kErrOk_errorString wp_AsLeafTy x) $$ Perr Hx
+      cases err with
+      | nil => exact absurd rfl Herr
+      | ok ei =>
+      wp_auto
+      wp_apply (wp_prod_sendError wp_sendError wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur q
+        _) $$ [Hpe Halive] as Halive
+      · iframe #
+        iframe
+      (try wp_auto)
+      iright
+      isplitr; · ipureintro; rfl
+      iapply HΦ
+      iframe
+    obtain ⟨hn, hσpos⟩ := Hσ1
+    subst Herr hn
+    wp_auto
+    by_cases hlt : uint.Z (W64 (σ1.rev : Int)) < uint.Z r0
+    · -- above the current revision: `NewTooLargeResourceVersionError`
+      rw [decide_eq_true hlt]
+      wp_auto
+      ihave #Pw : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait $$ []
+      · iPkgInit
+      ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+      · iPkgInit
+      ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage $$ []
+      · iPkgInit
+      wp_apply wp_Jitter as %j -
+      (try wp_auto)
+      wp_apply wp_Seconds as %fl -
+      (try wp_auto)
+      wp_apply wp_ArbitraryInt as %ai -
+      (try wp_auto)
+      wp_apply wp_TooLarge as %e ⟨-, %l, %st, %Hst, #Hl⟩
+      obtain ⟨rfl, hst⟩ := Hst
+      ihave #Hok := kErrOk_statusError wp_AsLeafTy l st hst $$ Perr Hl
+      (try wp_auto)
+      wp_apply (wp_prod_sendError wp_sendError wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur q
+        _) $$ [Hpe Halive] as Halive
+      · iframe #
+        iframe
+      (try wp_auto)
+      iright
+      isplitr; · ipureintro; rfl
+      iapply HΦ
+      iframe
+    · rw [decide_eq_false hlt]
+      ihave Hra1 := Hre $$ %0 %σ1 HQ1
+      imod Hra1 with #Hra1
+      wp_auto
+      ileft
+      iframe
+      isplitr; · ipureintro; rfl
+      iexists σ1.rev
+      iframe Hra1
+      ipureintro
+      intro _
+      rw [← hr0]
+      have : uint.Z r0 ≤ uint.Z (W64 (σ1.rev : Int)) := by omega
+      have h2 : uint.Z (W64 (σ1.rev : Int)) ≤ σ1.rev := by
+        simp only [uint.Z, W64, BitVec.toNat_ofInt]; omega
+      have h3 : (uint.nat r0 : Int) = uint.Z r0 := by simp [uint.nat, uint.Z]
+      omega
+  iintro (⟨%Hv, wc, forceInitialEvents, Hir, Hpe, Halive, Htok, HΦ, %lbf, #Hraf, %Hlbf⟩ |
+    ⟨%Hv, HΦ⟩)
+  rotate_left
+  · try subst Hv
+    wp_auto
+    iexact HΦ
+  try subst Hv
+  wp_auto
   sorry
 
 end proof
