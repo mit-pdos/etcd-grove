@@ -161,21 +161,6 @@ theorem prevKvOk_hist (o : OpFull) (σ σ' : KVState) (ev : mvcc.EvM) (pk : Loc)
       rw [← kvSameHist_at σ σ' _ hh hr (by omega)]; exact h
   · iintro %h; ipureintro; exact h
 
-/-- The read updates at the members, as `GetCurrentResourceVersion` takes them. -/
-theorem readAus_crv (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) :
-    readAus c γk Q ⊢ ∀ (R m' : w64), |==> □ [∧list] x ∈ c.ms,
-      ⌜(fun (_ _ : w64) => Q) R m' = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv ((fun (_ _ : w64) => Q) R m') := by
-  unfold readAus
-  iintro ⟨-, #H⟩ %R %m'
-  imodintro
-  imodintro
-  iapply (BigAndL.bigAndL_intro (P := iprop(□ [∗list] x ∈ c.ms, kvReadAu x.γr.kv Q))
-    (fun k x hk => ?_)) $$ H
-  iintro #H'
-  ihave #Hx := BigSepL.bigSepL_lookup hk $$ H'
-  iright
-  iexact Hx
-
 /-- **The producer exits** (before a `sendError` or the closing): `prodEx` set, for good. -/
 theorem kProdExited_set (γ : KWatchNames) :
     ⊢ dghostVar (GF := GF) γ.prodEx (DFrac.own 1) false ==∗ kProdExited γ := by

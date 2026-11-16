@@ -350,6 +350,21 @@ def kStartPre (m : KWatchMode) (Q : Nat → KVState → IProp GF) (r0 : w64) : I
   else if 0 < m.req then iprop(⌜uint.nat r0 = m.req ∧ uint.Z r0 + 1 < 2 ^ 63⌝)
   else iprop(∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗ ⌜r0 = W64 (σ0.rev : Int) ∧ kvRevFits σ0.rev⌝)
 
+/-- The read updates at the members, as `GetCurrentResourceVersion` takes them. -/
+theorem readAus_crv (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) :
+    readAus c γk Q ⊢ ∀ (R m' : w64), |==> □ [∧list] x ∈ c.ms,
+      ⌜(fun (_ _ : w64) => Q) R m' = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv ((fun (_ _ : w64) => Q) R m') := by
+  unfold readAus
+  iintro ⟨-, #H⟩ %R %m'
+  imodintro
+  imodintro
+  iapply (BigAndL.bigAndL_intro (P := iprop(□ [∗list] x ∈ c.ms, kvReadAu x.γr.kv Q))
+    (fun k x hk => ?_)) $$ H
+  iintro #H'
+  ihave #Hx := BigSepL.bigSepL_lookup hk $$ H'
+  iright
+  iexact Hx
+
 end prod
 
 end k8s
