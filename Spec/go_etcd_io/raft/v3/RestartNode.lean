@@ -86,6 +86,9 @@ abbrev RestartNode.spec : Prop :=
   -- the bootstrap log within the stored commit [scope]
   γ.bootLen ≤ σ.commit →
   confStateIs csm m →
+  -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`clusterNoSnap`; until then
+  -- every cluster's names, `UniNames`): a restarted node may hold a snapshot
+  ¬ clusterNoSnap γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacant γ cv.ID' ∗
       -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`

@@ -19,10 +19,23 @@ theorem Membership.Valid.snapListsOk {m : Membership} {cs : ConfStateM} {t i : w
 theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Persistent (skippedIn γ
     l a b)
 
+theorem cluster_alloc_ns [package_sem : Assumptions] (N : Namespace) (vs : List w64) (ctxs : List
+    (List w8)) (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (md : Option Nat) (E :
+    CoPset) (ns : Bool) (Hns : ns = true → boot ≠ []) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] →
+    vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → (boot ≠ [] → BootLog vs ctxs boot) → (∀ (b :
+    Nat), md = some b → b ≤ 2 ^ 31) → (∀ (b : Nat), md = some b → ∀ (e : LogEntry), e ∈ boot →
+    e.data.length ≤ b) → ⊢ (if boot = [] then emp else bootMarshal vs ctxs (LogEntry.toEntries boot
+    0)) ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md ∧
+    (clusterNoSnap γ ↔ ns = true)⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗
+    ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗
+    ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗ nodeVacant γ id)) ∗ if boot = [] then
+    joinAuth γ (listToSet vs) else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs
+    id
+
 def (sealed) confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF
 
 def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
-  iprop(∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k)
+  iprop(∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k ∗ ⌜clusterNoSnap γ → k ≤ 1⌝)
 
 theorem committed_confDecodes [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : isCluster γ N ∗ isCommittedLogLb γ l ⊢ ⌜∀ (e : LogEntry), e ∈ l → e.isConfChange →
@@ -44,6 +57,9 @@ theorem snapshotCert_made [package_sem : Assumptions] (γ : Cluster) (N : Namesp
     isCluster γ N ∗ snapshotCert γ N k ⊢ ∃ l m, isCommittedLogLb γ l ∗ confAt γ l.length m ∗
     snapMade γ { index := l.length, conf := m, data := k.dat } ∗ ⌜l.length = uint.nat k.sid.index' ∧
     Option.map LogEntry.term l.getLast? = some k.sid.term' ∧ k.cl.Is m ∧ k.al = m.autoLeave⌝
+
+theorem storBnd_off [package_sem : Assumptions] (γ : Cluster) (K : GName) (c k : Nat) (h :
+    ¬clusterNoSnap γ) (hk : c ≤ k) : nodeAppliedLb γ K k ⊢ storBnd γ K c
 
 def (sealed) joinAuth (γ : Cluster) (U : GSet w64) : IProp GF
 
@@ -130,6 +146,12 @@ theorem joinAuth_join [package_sem : Assumptions] (γ : Cluster) (N : Namespace)
     raftState γ id RaftState.init ∗ nodeVacant γ id
 
 theorem snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) : Timeless (snapshotValid γ sv)
+
+theorem storBnd_cap [package_sem : Assumptions] (γ : Cluster) (K : GName) (c : Nat) : storBnd γ K c
+    ⊢ ⌜clusterNoSnap γ → c ≤ 1⌝
+
+theorem storBnd_le_one [package_sem : Assumptions] (γ : Cluster) (K : GName) (c k : Nat) (hk : c ≤
+    k) (h1 : k ≤ 1) : nodeAppliedLb γ K k ⊢ storBnd γ K c
 
 theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (sv :
     SnapshotM) : 0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 → isCluster γ

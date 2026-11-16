@@ -66,8 +66,10 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
   to ≠ id →
   s.progress !! to = some pr →
-  -- (U8 v2, 2026-10-29) in every mode: until then outside the no-snapshot mode
-  -- (`s.gh.ns = false`), which is now off at raft's level (`NsCap`)
+  -- outside the no-snapshot mode (auth-lease S4, 2026-11-16, D21 M3 revived; from U8 v2,
+  -- 2026-10-29, in every mode, the mode being off at raft's level): `maybeSendAppend` never falls
+  -- back to a snapshot in it (`NsCap`, `PrLo`)
+  s.gh.ns = false →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

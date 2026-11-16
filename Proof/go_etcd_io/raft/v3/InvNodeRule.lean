@@ -203,11 +203,67 @@ a bootstrap log, or with one (and the bootstrap log committed) for `StartNode` w
 `nodeBoot`. Without a bootstrap log, the join authority at the voters (2026-10-29, stage U4); with one
 none (raft keeps the bootstrap log in every node's log, which a newcomer's empty storage does not
 hold). The term budget, backed by time receipts (`receiptBound`), is the cluster's; so (U9) are the
-read requests' credits, and leader transfer is on in every cluster. -/
-theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+read requests' credits, and leader transfer is on in every cluster. (auth-lease S4, 2026-11-16, L-r6)
+And the cluster's no-snapshot mode (`clusterNoSnap`) the caller's choice `ns`, only with a bootstrap
+log. -/
+theorem cluster_alloc_ns (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (dup : Bool) (sl : w64 → Option GName)
     -- (raft-entsize §2, 2026-11-09) the bound on proposed data (`Cluster.maxData`): at most `2^31`,
     -- and met by the bootstrap log's entries (both vacuous at `none`)
+    (md : Option Nat) (E : CoPset)
+    -- (auth-lease S4, 2026-11-16, L-r6) the no-snapshot mode, only with a bootstrap log
+    (ns : Bool) (Hns : ns = true → boot ≠ []) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    (boot ≠ [] → BootLog vs ctxs boot) →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
+    ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md ∧
+          (clusterNoSnap γ ↔ ns = true)⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
+        confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
+        ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
+        if boot = [] then joinAuth γ (GMap.listToSet vs)
+        else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
+  intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.maxData isCommittedLogLb
+    raftState nodeVacant clusterNoSnap
+  by_cases hb : boot = []
+  · subst hb
+    rw [if_pos rfl]
+    iintro -
+    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E md Hmd Hrb Hne Hnd Hnz Hlen
+      with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
+    imodintro
+    iexists γ
+    rw [if_pos rfl]
+    iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
+    ipureintro
+    obtain ⟨h1, h2, h3, h4, h5⟩ := Hd
+    refine ⟨h1, h2, h3, h4, ?_⟩
+    rw [h5]; cases ns
+    · exact Iff.rfl
+    · exact absurd rfl (Hns rfl)
+  · simp only [hb, ↓reduceIte]
+    iintro Hm
+    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E md Hmd HmdB ns Hns Hrb Hne
+      Hnd Hnz Hlen (HB hb)
+      $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
+    icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
+      (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
+        ApiImpl.nodeVacantU γ id))).1 $$ Hbs with ⟨#Hbs, Hrs⟩
+    imodintro
+    iexists γ
+    iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
+    ipureintro
+    obtain ⟨h1, h2, h3, h4, h5⟩ := Hd
+    exact ⟨h1, h2, h3, h4, by rw [h5]⟩
+
+/-- **A new cluster of the voters `vs`, outside the no-snapshot mode** (`cluster_alloc_ns` at
+`false`; the statement before auth-lease S4). -/
+theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (dup : Bool) (sl : w64 → Option GName)
     (md : Option Nat) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     (boot ≠ [] → BootLog vs ctxs boot) →
@@ -221,32 +277,13 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
         if boot = [] then joinAuth γ (GMap.listToSet vs)
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
   intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
-  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.maxData isCommittedLogLb
-    raftState nodeVacant
-  by_cases hb : boot = []
-  · subst hb
-    rw [if_pos rfl]
-    iintro -
-    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E md Hmd Hrb Hne Hnd Hnz Hlen
-      with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
-    imodintro
-    iexists γ
-    rw [if_pos rfl]
-    iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
-    ipureintro; exact Hd
-  · simp only [hb, ↓reduceIte]
-    iintro Hm
-    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E md Hmd HmdB Hrb Hne Hnd
-      Hnz Hlen (HB hb)
-      $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
-    icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
-      (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
-        ApiImpl.nodeVacantU γ id))).1 $$ Hbs with ⟨#Hbs, Hrs⟩
-    imodintro
-    iexists γ
-    iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
-    ipureintro; exact Hd
+  iintro Hm
+  imod cluster_alloc_ns N vs ctxs boot dup sl md E false (fun h => by cases h) Hrb Hne Hnd Hnz Hlen
+    HB Hmd HmdB $$ Hm with ⟨%γ, %Hd, H⟩
+  imodintro
+  iexists γ
+  iframe H
+  ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2.1⟩
 
 /-! ## Joining -/
 
@@ -626,7 +663,39 @@ theorem ownSnapsMade_snapshotValid_data (γ : Cluster) (S : List SnapRec) (sv : 
 (`nodeAppliedLb`, which since 2026-11-01 holds the snapshot hand-out). (2026-11-01, durability stage
 I-4: keyed by the storage's key `K`.) -/
 def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
-  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k)
+  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k ∗
+    -- (auth-lease S4, 2026-11-16, L-r2) in the cluster's no-snapshot mode, never past index `1`
+    -- (the client's promise; raft's leaders then never fall back to a snapshot)
+    ⌜clusterNoSnap γ → k ≤ 1⌝)
+
+/-- (auth-lease S4, L-r2) Outside the no-snapshot mode the justification is the applied bound. -/
+theorem storBnd_off (γ : Cluster) (K : GName) (c k : Nat) (h : ¬ clusterNoSnap γ) (hk : c ≤ k) :
+    nodeAppliedLb (GF := GF) γ K k ⊢ storBnd γ K c := by
+  unfold storBnd
+  iintro #H
+  iexists k
+  iframe H
+  isplitr
+  · ipureintro; exact hk
+  ipureintro; intro h'; exact absurd h' h
+
+/-- (auth-lease S4, L-r2) The justification at a point at most `1`, in either mode. -/
+theorem storBnd_le_one (γ : Cluster) (K : GName) (c k : Nat) (hk : c ≤ k) (h1 : k ≤ 1) :
+    nodeAppliedLb (GF := GF) γ K k ⊢ storBnd γ K c := by
+  unfold storBnd
+  iintro #H
+  iexists k
+  iframe H
+  isplitr
+  · ipureintro; exact hk
+  ipureintro; intro _; exact h1
+
+/-- (auth-lease S4, L-r2) **In the no-snapshot mode, the storage is compacted at most to `1`.** -/
+theorem storBnd_cap (γ : Cluster) (K : GName) (c : Nat) :
+    storBnd (GF := GF) γ K c ⊢ ⌜clusterNoSnap γ → c ≤ 1⌝ := by
+  unfold storBnd
+  iintro ⟨%k, %hk, -, %h⟩
+  ipureintro; intro hm; have := h hm; omega
 
 -- (2026-11-01, durability stage I-4) `storDL γ id i` (an open definition: "the committed log
 -- delivered to some node `id`") is now the sealed `nodeCommitLb γ K i` (`InvNode.lean`): it is
@@ -701,10 +770,10 @@ theorem snapshotCert_valid (γ : Cluster) (N : Namespace) (sv : SnapshotM) :
   · iunfold isCluster at Hc
     iunfold ApiImpl.isClusterU at Hc
     icases Hc with ⟨%HU, -, -⟩
-    obtain ⟨⟨c0, g, ⟨⟨_, _, _, _, _, Hreg, _⟩, _⟩⟩, _⟩ := HU
+    obtain ⟨⟨c0, g, ⟨⟨_, _, _, _, Hreg, _⟩, _⟩⟩, _⟩ := HU
     iunfold snapshotCert at Hk
     iunfold ApiImpl.snapshotCert at Hk
-    icases Hk with ⟨-, #Hrc, -⟩
+    icases Hk with ⟨#Hrc, -⟩
     iunfold raftSnapCert at Hrc
     icases Hrc with ⟨-, -, -, #Hat⟩
     iunfold snapAtOk at Hat

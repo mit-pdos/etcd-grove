@@ -67,6 +67,9 @@ abbrev StartNode.spec : Prop :=
   csm.AutoLeave' = false →
   -- the peers are the cluster's voters
   vs = pv.map Peer.ID' →
+  -- (auth-lease S4, 2026-11-16, until L-r5's mode set at boot) outside the cluster's no-snapshot mode
+  -- (`clusterNoSnap`; until then every cluster's names, `UniNames`)
+  ¬ clusterNoSnap γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅

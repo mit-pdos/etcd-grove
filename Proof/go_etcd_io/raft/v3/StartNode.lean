@@ -75,7 +75,7 @@ private theorem snapValid_raftCert (γ : Cluster) (N : Namespace) (E : CoPset) (
   icases Hm with ⟨%gr, %K, %key, %Hk, #HK, -⟩
   obtain ⟨Hreg, HkK, Hmat⟩ := Hk
   have hm' := hm
-  obtain ⟨⟨h0, -, hd, -, Hsok, -, -⟩, -⟩ := hm'
+  obtain ⟨⟨h0, -, hd, Hsok, -, -⟩, -⟩ := hm'
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -109,7 +109,7 @@ private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c :
       raftBnd sn c := by
   iintro #Hsn #H0 Hb
   unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb nodeAppliedLbU raftBnd
-  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
+  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩), -⟩
   · ileft
     iexists 0
     isplitr; · ipureintro; omega
@@ -308,7 +308,7 @@ private theorem wp_StartNode_impl
     EtcdGrove.StartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.StartNode.spec
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Hv Hvo Hl Hln
-    Hal Hvs
+    Hal Hvs Hnsm
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx⟩
   ihave #Hboot0 := Hboot
   iunfold EtcdGrove.nodeBoot at Hboot
@@ -418,7 +418,10 @@ private theorem wp_StartNode_impl
   imod dghostVar_alloc (GF := GF)
     ((DurMaps.empty, (RaftState.init, W64 0)) : DurMaps × (RaftState × StateType)) with ⟨%gbw, Hbw⟩
   have Hne : vs ≠ [] := by intro h; rw [h] at Hid; cases Hid
-  have Hns : γ.raft.reNoSnap = false := Hmr.1.2.2.2.1
+  have Hns : γ.raft.reNoSnap = false := by
+    unfold clusterNoSnap at Hnsm; cases h : γ.raft.reNoSnap
+    · rfl
+    · exact absurd h Hnsm
   -- `setupNode`: `NewRawNode` (its storage the empty view at the fresh names), `Bootstrap`,
   -- `newNode`
   wp_auto

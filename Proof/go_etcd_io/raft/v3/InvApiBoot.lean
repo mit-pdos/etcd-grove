@@ -86,12 +86,15 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
     -- (raft-entsize §2) the bound on proposed data (`RaftNames.maxData`): at most `2^31`, and met
     -- by the bootstrap log's entries
     (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31)
-    (HmxdB : ∀ b, mxd = some b → ∀ e ∈ boot, e.data.length ≤ b) :
+    (HmxdB : ∀ b, mxd = some b → ∀ e ∈ boot, e.data.length ≤ b)
+    -- (auth-lease S4, 2026-11-16, L-r6) the no-snapshot mode (`RaftNames.reNoSnap`), the caller's
+    -- choice, only with a bootstrap log
+    (ns : Bool) (Hns0 : ns = true → boot ≠ []) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     BootLog vs ctxs boot →
     ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
         ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
-          γ.raft.maxData = mxd⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+          γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = ns⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
@@ -118,7 +121,13 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   imod ownRaftGhost_alloc_core_reg E (GMap.listToSet vs) (GMap.listToSet vs) (some (DynCfg.all dc))
     (fun _ _ => True) (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud md tab) none
     (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) sl
+    ns (fun h => by
+      have := Hns0 h
+      intro he
+      have hl := congrArg List.length he
+      rw [toEntries_length] at hl
+      exact this (List.length_eq_zero_iff.1 hl))
+    false (fun h => by cases h) (fun _ _ => True) sl
     (N .@ "raft") N (some g) (some gd) dup mxd Hmxd
     (fun b hb e he => by
       obtain ⟨e0, he0, hd⟩ := toEntries_data_mem he
@@ -132,7 +141,7 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
   subst Hγr
   have Hrn : DecNames γ c0 gd := by
-    refine ⟨Hv.1, Hv, ?_, Hns, ?_, ?_, Hrd⟩
+    refine ⟨Hv.1, Hv, ?_, ?_, ?_, Hrd⟩
     · unfold RaftNames.dyn; rw [Hdyn]; simp [DynCfg.all_self, dc]
     · intro L d; rw [Hsok]; trivial
     · rw [Hrg]; simp
@@ -182,7 +191,7 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   iexists γ
   iframe Hops Hctx Hdc Hblb
   isplitr
-  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length], Hmxd'⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length], Hmxd', Hns⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

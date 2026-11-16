@@ -661,7 +661,9 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         □ (⌜st.msg.Type' = MsgSnap⌝ -∗
            ∃ (sv : SnapshotM) (scfg : CSLists),
              ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-               uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+               uint.Z sv.Metadata'.Index' < 2^61 ∧
+               -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode
+               γ.reNoSnap = false⌝ ∗
              isMessageC γ (absSnap st.msg sv scfg) ∗ snapDataOk γ sv.Metadata'.Index' sv.Data' ∗
              -- (2026-10-26, D22 J2) its receiver-local fact
              snapLocal γ id sv.Metadata'.Index') ∗
@@ -688,8 +690,17 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
   icases ownStepGhost_term0 γ _ cf id s $$ Hghost
     with ⟨%Hb1, Hghost⟩
-  -- (raft-final phase 2) the no-snapshot mode is off (`NsCap`)
+  -- (auth-lease S4, 2026-11-16) a `MsgSnap` is outside the no-snapshot mode (`"#Hsnap"`), so the
+  -- node is (`NsLink`)
   icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
+  ihave %Hsnp : ⌜m.Type' = MsgSnap → γ.reNoSnap = false⌝ $$ []
+  · by_cases hty : m.Type' = MsgSnap
+    · ihave ⟨%sv0, %scfg0, %Hp0, -⟩ := Hsnap $$ %hty
+      ipureintro; exact fun _ => Hp0.2.2.2
+    · ipureintro; exact fun h => absurd h hty
+  icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
+  have Hnsm : m.Type' = MsgSnap → s.gh.ns = false := fun h => by
+    unfold NsLink at Hnl; rw [Hnl]; exact Hsnp h
   have HnP : m.Type' ≠ MsgProp := by not_net
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)
@@ -708,7 +719,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   rw [← Hszl] at *
   wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
       Hwf
-    (RNMode.pre_net Hpf (by not_net)) (fun _ => Hns0.1)
+    (RNMode.pre_net Hpf (by not_net)) Hnsm
     $$ [$Hphys $Hghost $Hlc Hmin Hcred]
   · simp only [HnP, ↓reduceIte, named]
     isplitr
@@ -735,7 +746,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0, -⟩
     iexists sv0, scfg0
     iframe Hm0 Hd0
-    ipureintro; exact Hp0
+    ipureintro; exact ⟨Hp0.1, Hp0.2.1, Hp0.2.2.1⟩
   simp only [HnP]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Hxwf, %Htm, %Hresp,
     %Hsfr, %Htrc, -⟩
@@ -1848,10 +1859,11 @@ theorem rdSnapOut_pure (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : Lis
     ipureintro; exact H
   | some l =>
     simp only [rdSnapOut]
-    iintro ⟨Hs, #Hc, %H⟩
+    iintro ⟨Hs, #Hc, %Hns, %H⟩
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), (fun l' h => by cases h; exact H)⟩
     iframe Hs Hc
+    isplitr; · ipureintro; exact Hns
     ipureintro; exact H
 
 /-- A `Ready` `run` computed and abandoned but keeps armed (`readyc` set): what
@@ -2154,7 +2166,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
         iunfold rdSnapOut at Hsnz; icases Hsnz with %H; ipureintro
         exact ⟨fun _ => H, Nat.le_refl _⟩
       | some l =>
-        iunfold rdSnapOut at Hsnz; icases Hsnz with ⟨-, -, %Hlo⟩; ipureintro
+        iunfold rdSnapOut at Hsnz; icases Hsnz with ⟨-, -, -, %Hlo⟩; ipureintro
         refine ⟨fun h => (by cases h), ?_⟩
         obtain ⟨-, Hce0, Hpre, -⟩ := Hlo
         subst Hce0

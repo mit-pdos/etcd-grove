@@ -5,9 +5,15 @@
 def memStorInv (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : IProp GF :=
   memStorInvP ms γs (memStorJ γ K)
 
+theorem memStorJ_B_lb [package_sem : Assumptions] [MemStorReg GF] (γ : Cluster) (K : GName) (k :
+    Nat) : (memStorJ γ K).B k ⊢ nodeAppliedLb γ K k
+
 def memStorJ (γ : Cluster) (K : GName) : MemJust GF :=
-  { SV := snapshotValid γ, B := fun k => nodeAppliedLb γ K k, DL := nodeCommitLb γ K, SV_pers := ⋯, B_pers := ⋯,
-    B_timeless := ⋯, DL_pers := ⋯ }
+  { SV := snapshotValid γ, B := fun k => iprop(nodeAppliedLb γ K k ∗ ⌜clusterNoSnap γ → k ≤ 1⌝), DL := nodeCommitLb γ K,
+    SV_pers := ⋯, B_pers := ⋯, B_timeless := ⋯, DL_pers := ⋯ }
+
+theorem memStorJ_B_off [package_sem : Assumptions] [MemStorReg GF] (γ : Cluster) (K : GName) (k :
+    Nat) (h : ¬clusterNoSnap γ) : nodeAppliedLb γ K k ⊢ (memStorJ γ K).B k
 
 theorem memStorage_isStorage [package_sem : Assumptions] [MemStorReg GF] (wp_LastIndex :
     MemoryStorage.LastIndex.spec) (wp_FirstIndex : MemoryStorage.FirstIndex.spec) (wp_Term :
@@ -23,3 +29,6 @@ theorem memStorInv_alloc [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) 
     (γ : Cluster) (K : GName) (c : Nat) (sv : SnapshotM) (E : CoPset) : ⊢ memStorLock ms γs -∗
     memStorFresh ms γs c sv -∗ nodeAppliedLb γ K c -∗ ⌜sv.Metadata'.Index' = W64 0⌝ ∨ snapshotValid
     γ sv ∗ nodeCommitLb γ K (uint.nat sv.Metadata'.Index') ={E}=∗ memStorInv ms γs γ K
+
+theorem memStorJ_B_le_one [package_sem : Assumptions] [MemStorReg GF] (γ : Cluster) (K : GName) (k :
+    Nat) (h : k ≤ 1) : nodeAppliedLb γ K k ⊢ (memStorJ γ K).B k

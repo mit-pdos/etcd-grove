@@ -41,12 +41,39 @@ variable [MemStorReg GF]
 durability stage I-4: keyed by the storage's key, `snapGiven` merged into `nodeAppliedLb`). -/
 def memStorJ (γ : Cluster) (K : GName) : MemJust GF where
   SV := snapshotValid γ
-  B k := nodeAppliedLb γ K k
+  -- (auth-lease S4, 2026-11-16, L-r2) with the no-snapshot mode's cap (`storBnd`)
+  B k := iprop(nodeAppliedLb γ K k ∗ ⌜clusterNoSnap γ → k ≤ 1⌝)
   DL := nodeCommitLb γ K
   SV_pers := fun sv => by infer_instance
   B_pers := fun k => by infer_instance
   B_timeless := fun k => by infer_instance
   DL_pers := fun i => by infer_instance
+
+/-- (auth-lease S4, L-r2) Outside the no-snapshot mode, `memStorJ`'s justification is the applied
+bound. -/
+theorem memStorJ_B_off (γ : Cluster) (K : GName) (k : Nat) (h : ¬ clusterNoSnap γ) :
+    nodeAppliedLb (GF := GF) γ K k ⊢ (memStorJ γ K).B k := by
+  show _ ⊢ iprop(nodeAppliedLb γ K k ∗ _)
+  iintro #H
+  isplitr
+  · iexact H
+  ipureintro; intro h'; exact absurd h' h
+
+/-- (auth-lease S4, L-r2) ... and at a point at most `1`, in either mode. -/
+theorem memStorJ_B_le_one (γ : Cluster) (K : GName) (k : Nat) (h : k ≤ 1) :
+    nodeAppliedLb (GF := GF) γ K k ⊢ (memStorJ γ K).B k := by
+  show _ ⊢ iprop(nodeAppliedLb γ K k ∗ _)
+  iintro #H
+  isplitr
+  · iexact H
+  ipureintro; intro _; exact h
+
+/-- (auth-lease S4, L-r2) `memStorJ`'s justification gives the applied bound. -/
+theorem memStorJ_B_lb (γ : Cluster) (K : GName) (k : Nat) :
+    (memStorJ (GF := GF) γ K).B k ⊢ nodeAppliedLb γ K k := by
+  show iprop(nodeAppliedLb γ K k ∗ _) ⊢ _
+  iintro ⟨#H, -⟩
+  iexact H
 
 /-- **The `MemoryStorage` invariant of key `K`** (persistent): the generic one at the API's
 justifications. -/

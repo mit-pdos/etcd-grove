@@ -1,6 +1,36 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, L1 option 1: feasibility done, STOPPED for the go)
+## START HERE (S4, 2026-11-16, L1 option 1: raft part 1 committed; STOPPED at a sorry finding)
+
+- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). Plan: Freeze `notes/auth-lease-s4-freeze.md` §8.4
+  (L-r0..L-r6, then server, drivers); GO by etcd-grove-02 (questions.md, "GO (etcd-grove-02 ...").
+- **Done (raft, this checkpoint commit):** `NsCap := ⌜ns = false⌝ ∨ storCapF st 1`, `NsCap.past_le`; `maybeSendAppend`'s
+  two `ns = true` branches proved; `ownRaftPhysC_sn` gives `LogNsOk`; `ownRaftPhysC_set_ns` revived (unused yet);
+  `maybeSendSnapshot.spec` takes `s.gh.ns = false`; `isRaftMsg` gains `reNoSnap = true → ≠ MsgSnap` (the two `Step`
+  sites read it); L-r0 `clusterNoSnap` (+`clusterNoSnap_boot`); L-r1 `DecNames` without the flag, `UniNames.noSnap`
+  gone; L-r2 `storBnd`/`memStorJ.B` with `⌜clusterNoSnap γ → k ≤ 1⌝` (+`storBnd_off/_le_one/_cap`, `memStorJ_B_*`);
+  L-r3 `readySnap`'s `some` case ends in `⌜¬ clusterNoSnap γ⌝` (`readySnap_mode`); `snapshotCert` no longer
+  carries the flag (members in the mode make snapshots: `snapshotCert_make`); L-r4 `sentMsg_mode`; L-r6
+  `cluster_alloc_ns` (`cluster_alloc` = its `false` instance). Raft's importables + `Link` build; `interface/` regenerated.
+- **Interim:** `StartNode.spec`/`RestartNode.spec` take `¬ clusterNoSnap γ` (StartNode's goes with L-r5);
+  `RawNode.Bootstrap`/`setupNode` still take `γ.reNoSnap = false`.
+- **Open (hard stop):** `memStorInv_alloc` (a pre-existing `sorry`, unused, `MemstorageApi.lean:89`): with L-r2 its
+  conclusion asks `memStorJ.B c`, false in the mode for `c > 1`; proposed premise `⌜clusterNoSnap γ → c ≤ 1⌝`.
+- **Next, in order:** L-r5: `Bootstrap` takes `⌜γ.reNoSnap = false⌝ ∨ storCapF (interface.ok si) 1` and sets
+  `ns` (an `ownRaftPhys` form of `ownRaftPhysC_set_ns` before `raise_tc`; `sk.gh = {sn, ns := γ.reNoSnap}`);
+  `setupNode`'s `InitialState` post carries the cap (NewRawNode's `R'` := cap ∗ R'); `StartNode` derives it from
+  the attached `isStorage`'s `Hbound` + `storBnd_cap`, then drops its premise. Then server (§8.4), drivers.
+  Clients outside raft do NOT build yet (DecNames patterns, `storBnd` patterns, `readySnap` some-case pattern
+  gets one more `-`, Start/RestartNode premise, `snapshotCert_of_raft` arity, `api_sentSnapCert` arity).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build Proof.go_etcd_io.raft.v3.Link
+  <raft importables>` (logs `/shared/tmp/auth-lease-s4/build-raft-*.log`); check `LAKE_OPTS=--packages=... etc/lean-check.py
+  --max-open 2`, `--stop` before builds. Interfaces: `LAKE_OPTS=... etc/gen-interface.py etc/api/raft.txt`.
+- **Pitfalls:** in `local macro`s with `hygiene false`, Iris hyps are not Lean hyps (`rw … at Hnscap` fails); after
+  `cases Hns : s.gh.ns` the Iris context is already rewritten. `ApiImpl.readySnap` and `readySnap` must stay
+  defeq (`¬ γ.raft.reNoSnap = true` vs `¬ clusterNoSnap γ`). Token `authlease-3354335` (ports 16000/17000).
+
+## Previous START HERE (feasibility, superseded)
+
 
 - **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). S0–S3c on lean. Draft `notes/auth-lease-s4-draft.md`
   (statement approved). Decisions: `questions.md` (untracked), "auth-lease S4", "S4 Freeze r1 decisions", "S4 Freeze rev 2: L1 stop".
