@@ -123,6 +123,30 @@ theorem walDirLks_purgeStep (dir : GoString) (hj : NamesH) (nm0 : GoString) (lfs
   ipureintro
   exact LkRel_subAt hr hs h0 hnl
 
+/-- **The tail's description and its lock** (the handle's `walTailW` conjunct; unit `locks`, session 10): lent
+with the handle to a purge round, so that a purger's lock refutes being on the tail's inode
+(`walTailLk_excl`). -/
+def walTailLk (fd : w64) (i : Ino) : IProp GF :=
+  iprop(∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
+    fdLocksW fd ⟨i, rd, true, lo, lk⟩)
+
+/-- **A purger's lock is not on the tail's inode** (the tail's description holds an exclusive lock:
+`fdLocksW_excl`, `fdLocks_excl`). -/
+theorem walTailLk_excl (fd : w64) (i i' : Ino) (k : LockKind) (fd' : w64) :
+    walTailLk (GF := GF) fd i ∗ osLock (GF := GF) k i' fd' ∗ fileutil.lockKind (GF := GF) k ⊢
+      walTailLk (GF := GF) fd i ∗ osLock (GF := GF) k i' fd' ∗ ⌜i' ≠ i⌝ := by
+  iintro ⟨H, Hl, #Hk⟩
+  by_cases he : i' = i
+  · subst he
+    unfold walTailLk
+    icases H with ⟨%rd, %lo, %lk, -, Hw⟩
+    ihave ⟨Hlk, %hk⟩ := fdLocksW_excl fd _ rfl $$ Hw
+    obtain ⟨kk, hkk⟩ := hk
+    iexfalso
+    iapply fdLocks_excl fd fd' ⟨i', rd, true, lo, lk⟩ kk k hkk
+    iframe; iexact Hk
+  · iframe; ipureintro; exact he
+
 /-- **The handle's share of its directory, lent** (see the file header): back with the claim's names after
 removals of `.wal` names but the tail's. -/
 theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
@@ -160,15 +184,17 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
 
 /-- **The client handle, lent to a purge round** (see the file header): its share of the directory
 (`walDirH_lend`), its tail's key and record (`tg`: the history, metadata, cuts, write position, inode), the
-lock token's pending-cut flag; back with the claim's names after removals of `.wal` names but the tail's. -/
+lock token's pending-cut flag, the tail's locked description (`walTailLk`, session 10); back with the claim's
+names after removals of `.wal` names but the tail's. -/
 theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     walOpenWF (W := W) P Mr w dir ⊢
       ∃ (j : Ino) (X : List GoString) (hj : NamesH) (R : Roots) (q : Qp) (nm0 : GoString) (ino : Ino)
-        (lfs : List Loc) (γ : GName) (tg : TailG),
+        (lfs : List Loc) (γ : GName) (tg : TailG) (tfd : w64),
         walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
         osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walDirLks (W := W) dir hj nm0 lfs tg.2.2.1 ∗
         walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗
+        walTailLk (GF := GF) tfd ino ∗
         ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∀ b ∈ X, walNameP b = false) ∧
           ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝ ∗
         ∀ hj' : NamesH, ⌜WalSub hj hj' nm0⌝ -∗
@@ -176,7 +202,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
           osSharedInv R -∗ osCallPerm (1 : Qp).half.half -∗
           walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
           walDirLks (W := W) dir hj' nm0 lfs tg.2.2.1 -∗ walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
-          walCutFrag (W := W) none -∗ walOpenWF (W := W) P Mr w dir := by
+          walCutFrag (W := W) none -∗ walTailLk (GF := GF) tfd ino -∗ walOpenWF (W := W) P Mr w dir := by
   refine (walOpenWF_iff (W := W) P Mr w dir).1.trans ?_
   iintro ⟨%h, Hh, %hd, %hmd, Hpc⟩
   unfold walHandleIn
@@ -189,12 +215,14 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
   icases (walOpenW_cut (W := W) w dir).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,
-    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG)
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG), fd
   unfold tailVar
   iframe Hkey Hn Hp Hsh Hc Ho Hlk Hk Hv Hcf
+  isplitl [Hfd]
+  · unfold walTailLk; iexact Hfd
   isplitr
   · ipureintro; exact hf
-  iintro %hj' %hs Hn Hp Hsh' Hc Ho Hlk Hk Hv Hcf
+  iintro %hj' %hs Hn Hp Hsh' Hc Ho Hlk Hk Hv Hcf Hfd
   ihave Hdh := Hback $$ %hj' %hs Hn Hp Hsh' Hc Ho Hlk
   ihave Hopen := (walOpenW_cut (W := W) w dir).2 $$ [Hwc Hpf Hcf]
   · iframe Hwc Hpf Hcf
@@ -207,6 +235,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
     iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 Hdh Hl1 Hl2 Hl3 Hl5 Hl6 Hl7
       Hl8 Hl9 Hl10 Hl11 Hopen
     unfold walTailW
+    iunfold walTailLk at Hfd
     iframe Hf Hfd Hoff Hk
     isplitl [Hm Hb Hv]
     · iexists m, bs

@@ -82,6 +82,12 @@ theorem regionCrashed_nonwal {cl : List Claim} {n : Nat} {m' : Tree} {j : Ino} {
   · exact ⟨_, hr', treeNearW_treeDel hbtw m'⟩
   · exact ⟨m', hr', treeNearW_refl j m'⟩
 
+/-- **A crash of the claims `cl'` is one of `cl` on a tree agreeing with it but at `j`'s non-`.wal`
+names** (what a history change at a non-`.wal` name of a claim of `j` gives: a create,
+`NonWalLog.crash`, or a removal, `PurgeOther.lean`). -/
+def NonWalCrash (cl cl' : List Claim) (j : Ino) : Prop :=
+  ∀ {n : Nat} {m' : Tree}, RegionCrashed cl' n m' → ∃ m'', RegionCrashed cl n m'' ∧ TreeNearW j m'' m'
+
 /-- The hypotheses of a history change at a non-`.wal` name of the claim `(j, N, h)`. -/
 structure NonWalLog (cl : List Claim) (j : Ino) (N : NameSet) (h : NamesH) (x : Nat) (e : LogEntry)
     (c : Ents) (bt : GoString) : Prop where
@@ -94,22 +100,20 @@ structure NonWalLog (cl : List Claim) (j : Ino) (N : NameSet) (h : NamesH) (x : 
   nonwal : walNameP bt = false
 
 theorem NonWalLog.crash {cl : List Claim} {j : Ino} {N : NameSet} {h : NamesH} {x : Nat}
-    {e : LogEntry} {c : Ents} {bt : GoString} (H : NonWalLog cl j N h x e c bt) {n : Nat} {m' : Tree}
-    (hr : RegionCrashed (replClaim (j, N, h) (j, N, h.log x e c) cl) n m') :
-    ∃ m'', RegionCrashed cl n m'' ∧ TreeNearW j m'' m' :=
-  regionCrashed_nonwal hr H.mem H.coh H.start H.writes H.cur H.others H.nonwal
+    {e : LogEntry} {c : Ents} {bt : GoString} (H : NonWalLog cl j N h x e c bt) :
+    NonWalCrash cl (replClaim (j, N, h) (j, N, h.log x e c) cl) j :=
+  fun hr => regionCrashed_nonwal hr H.mem H.coh H.start H.writes H.cur H.others H.nonwal
 
 /-- **A WAL's crash condition after the create** (its area directory not `j`; its alternative, if
 any, on the same names). -/
 theorem crashOkA_nonwal {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
-    {alt : Option WalLay} {cl : List Claim} {n : Nat} {j : Ino} {N : NameSet} {h : NamesH}
-    {x : Nat} {e : LogEntry} {c : Ents} {bt : GoString}
+    {alt : Option WalLay} {cl cl' : List Claim} {n : Nat} {j : Ino}
     (hok : CrashOkA C Mr d lay alt cl n)
     (halt : ∀ lay0, alt = some lay0 → lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.j = lay.j)
-    (hljr : lay.jr ≠ j) (H : NonWalLog cl j N h x e c bt) :
-    CrashOkA C Mr d lay alt (replClaim (j, N, h) (j, N, h.log x e c) cl) n := by
+    (hljr : lay.jr ≠ j) (H : NonWalCrash cl cl' j) :
+    CrashOkA C Mr d lay alt cl' n := by
   intro m' fo hr hf hn hw
-  obtain ⟨m'', hr', hnear⟩ := H.crash hr
+  obtain ⟨m'', hr', hnear⟩ := H hr
   have hwi := hnear.walInos lay.j
   have hent : m''.entry lay.jr lay.nm = m'.entry lay.jr lay.nm :=
     hnear _ _ (fun e => absurd e hljr)
@@ -121,22 +125,20 @@ theorem crashOkA_nonwal {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     rw [h1, h2]; exact hent
 
 theorem crashOkW_nonwal {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
-    {cl : List Claim} {n : Nat} {j : Ino} {N : NameSet} {h : NamesH}
-    {x : Nat} {e : LogEntry} {c : Ents} {bt : GoString}
-    (hok : CrashOkW C Mr d lay cl n) (hljr : lay.jr ≠ j) (H : NonWalLog cl j N h x e c bt) :
-    CrashOkW C Mr d lay (replClaim (j, N, h) (j, N, h.log x e c) cl) n := by
+    {cl cl' : List Claim} {n : Nat} {j : Ino}
+    (hok : CrashOkW C Mr d lay cl n) (hljr : lay.jr ≠ j) (H : NonWalCrash cl cl' j) :
+    CrashOkW C Mr d lay cl' n := by
   obtain ⟨alt, halt, hc⟩ := hok
   refine ⟨alt, halt, crashOkA_nonwal hc (fun lay0 h0 => ?_) hljr H⟩
   obtain ⟨-, h1, h2, h3, -⟩ := halt lay0 h0
   exact ⟨h1, h2, h3⟩
 
 /-- **A directory of the area with no WAL, after the create.** -/
-theorem absentOk_nonwal {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat} {j : Ino}
-    {N : NameSet} {h : NamesH} {x : Nat} {e : LogEntry} {c : Ents} {bt : GoString}
-    (hao : AbsentOk s jr cl n) (hjjr : j ≠ jr) (H : NonWalLog cl j N h x e c bt) :
-    AbsentOk s jr (replClaim (j, N, h) (j, N, h.log x e c) cl) n := by
+theorem absentOk_nonwal {s : AbsDiskState} {jr : Ino} {cl cl' : List Claim} {n : Nat} {j : Ino}
+    (hao : AbsentOk s jr cl n) (hjjr : j ≠ jr) (H : NonWalCrash cl cl' j) :
+    AbsentOk s jr cl' n := by
   intro dir nm hin hnone m' hr J hJ
-  obtain ⟨m'', hr', hnear⟩ := H.crash hr
+  obtain ⟨m'', hr', hnear⟩ := H hr
   rw [← hnear.walInos J]
   exact hao dir nm hin hnone m'' hr' J (by rw [hnear _ _ (fun e => absurd e.symm hjjr)]; exact hJ)
 
@@ -184,16 +186,16 @@ theorem dirClaimOk_nonwal_other {jr : Ino} {cl : List Claim} {j : Ino} {X : List
   · rw [he] at hc1; exact absurd hc1.symm hj'j
   · exact hex1 c' hc'' hne hc1 b hb
 
-/-- **The pure facts after a create at a non-`.wal` name of a keyed WAL directory's claim** (see the
-file header). The old state: the invariant's pure conjuncts (any pending cut `cp`), the WAL of
-`dir` with its layout `lay`, keyed `(lay.j, X)`, its claim `(lay.j, .except X, hj)`; the new claim
-`hj.log x e c`, coherent, `c` agreeing with `hj.cur` on the `.wal` names; `e` writing only `bt`,
-free, non-`.wal`, held by no other claim of `lay.j`. -/
-theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
+/-- **The pure facts after a history change at a non-`.wal` name of a keyed WAL directory's claim**
+(a create, `brokenHist_pure`, or a removal, `PurgeOther.lean`): the old state as `brokenHist_pure`'s; the
+new claim `hj.log x e c`, coherent, `c` agreeing with `hj.cur` on the `.wal` names; a crash of the new
+claims one of the old on a tree agreeing but at `lay.j`'s non-`.wal` names (`NonWalCrash`), and the area's
+two crash conditions (`DirsOk`, `AbsentNone`) kept. -/
+theorem nonwalHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
     {CR : GMap GoString (NameSet × NamesH × Ino)} {K : GMap GoString (Ino × List GoString)}
     {cp : Option GoString} {dir : GoString} {lay : WalLay} {X : List GoString} {hj : NamesH}
-    {x : Nat} {e : LogEntry} {c : Ents} {bt : GoString}
+    {x : Nat} {e : LogEntry} {c : Ents}
     (hW : WalsOk C Mr R jr s Ls cl n) (hWC : WalsCreateOk jr cl) (hCO : CreatingOk jr cl CR)
     (hAN : AbsentNone s jr cl n) (hNm : WalsNamed Ls cl n)
     (hDK : DirKeysOk C Mr jr s Ls cl n K cp) (hAt : WalsAt jr Ls cl)
@@ -201,10 +203,11 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     (hc0 : ClaimOnce (lay.j, .except X, hj) cl)
     (hcoh' : ClaimCoh (hj.log x e c) lay.j (.except X))
     (hc : ∀ b, walNameP b = true → c !! b = hj.cur !! b)
-    (hs : hj.next ≤ e.start) (hbt : ∀ b, (NameSet.except X).Mem b → e.op.Writes lay.j b → b = bt)
-    (hcur : hj.cur !! bt = none)
-    (hothers : ∀ c' ∈ cl, c' ≠ (lay.j, NameSet.except X, hj) → c'.1 = lay.j → ¬ c'.2.1.Mem bt)
-    (hbtw : walNameP bt = false) :
+    (Hc : NonWalCrash cl (replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl) lay.j)
+    (hDo : DirsOk R s cl n →
+      DirsOk R s (replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl) n)
+    (hAn : lay.j ≠ jr → AbsentNone s jr cl n →
+      AbsentNone s jr (replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl) n) :
     let cl' := replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl
     WalsOk C Mr R jr s Ls cl' n ∧ WalsCreateOk jr cl' ∧ CreatingOk jr cl' CR ∧
       AbsentNone s jr cl' n ∧ WalsNamed Ls cl' n ∧ DirKeysOk C Mr jr s Ls cl' n K cp ∧
@@ -219,8 +222,7 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
   simp only [Prod.mk.injEq, true_and] at hj1e
   subst hj1e
   have hD : DirClaimOk jr cl lay.j X hj := ⟨hjjr, hX, hc0, hcoh1, hexcl1⟩
-  have H : NonWalLog cl lay.j (.except X) hj x e c bt :=
-    ⟨hcl, hcoh1, hs, hbt, hcur, hothers, hbtw⟩
+  have H : NonWalCrash cl cl' lay.j := Hc
   have hD' := dirClaimOk_nonwal (x := x) (e := e) (c := c) hD hcoh'
   -- a WAL directory claim of the new claims
   have hwdc : ∀ (j' : Ino) (hj'' : NamesH), WalDirClaim j' hj'' cl' →
@@ -244,10 +246,10 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     rw [hl'] at hla; cases hla
     rw [hjr']; exact Ne.symm hjjr
   refine ⟨⟨fun dir' d' hd' => ?_, hW.2.1, hW.2.2.1, hW.2.2.2.1,
-      absentOk_nonwal hW.2.2.2.2.1 hjjr H, dirsOk_cut hW.2.2.2.2.2 hcl hcoh1 hs hbt hcur hothers⟩,
+      absentOk_nonwal hW.2.2.2.2.1 hjjr H, hDo hW.2.2.2.2.2⟩,
     walsCreateOk_cut hjjr hWC,
     creatingOk_cut hCO hjjr hcl ⟨_, walNameP_wal, except_mem_wal hX⟩,
-    absentNone_cut hAN hjjr hcl hcoh1 hs hbt hcur hothers, fun dir' lay' hl' => ?_, ?_, ?_⟩
+    hAn hjjr hAN, fun dir' lay' hl' => ?_, ?_, ?_⟩
   · -- `WalsOk`'s layouts
     obtain ⟨la, nm, hj2, hla, hin, hjr', hnm, hwd, habs, hcr⟩ := hW.1 dir' d' hd'
     have hjrne := hljr dir' d' la hd' hla
@@ -269,7 +271,7 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
       · rw [hj'] at h1
         exact segsNamed_congr_wal (fun b hb => (hc b hb).symm) (h1 hj ⟨X, hX, hcl, hcoh1⟩)
       · exact h1 hj'' hWc'
-    · obtain ⟨m'', hr', hnear⟩ := H.crash hr
+    · obtain ⟨m'', hr', hnear⟩ := H hr
       exact segsNamedC_congr_ents (fun b hb => hnear.ents_wal _ b hb) (h2 m'' hr')
   · -- `DirKeysOk`
     refine ⟨fun dir' j' X' hk' => ?_, fun dir' d' lay' hd' hl' hcd => ?_, fun dir' l hl' => ?_⟩
@@ -305,6 +307,44 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     rcases mem_replClaim_cases hm with he | ⟨hm', -⟩
     · simp only [Prod.mk.injEq] at he; exact absurd he.1 (Ne.symm hjjr)
     · exact (hAt dir' lay' hl').2 N h hm' hN
+
+/-- **The pure facts after a create at a non-`.wal` name of a keyed WAL directory's claim** (see the
+file header). The old state: the invariant's pure conjuncts (any pending cut `cp`), the WAL of
+`dir` with its layout `lay`, keyed `(lay.j, X)`, its claim `(lay.j, .except X, hj)`; the new claim
+`hj.log x e c`, coherent, `c` agreeing with `hj.cur` on the `.wal` names; `e` writing only `bt`,
+free, non-`.wal`, held by no other claim of `lay.j`. -/
+theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {CR : GMap GoString (NameSet × NamesH × Ino)} {K : GMap GoString (Ino × List GoString)}
+    {cp : Option GoString} {dir : GoString} {lay : WalLay} {X : List GoString} {hj : NamesH}
+    {x : Nat} {e : LogEntry} {c : Ents} {bt : GoString}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hWC : WalsCreateOk jr cl) (hCO : CreatingOk jr cl CR)
+    (hAN : AbsentNone s jr cl n) (hNm : WalsNamed Ls cl n)
+    (hDK : DirKeysOk C Mr jr s Ls cl n K cp) (hAt : WalsAt jr Ls cl)
+    (hK : K !! dir = some (lay.j, X)) (hl : Ls !! dir = some lay)
+    (hc0 : ClaimOnce (lay.j, .except X, hj) cl)
+    (hcoh' : ClaimCoh (hj.log x e c) lay.j (.except X))
+    (hc : ∀ b, walNameP b = true → c !! b = hj.cur !! b)
+    (hs : hj.next ≤ e.start) (hbt : ∀ b, (NameSet.except X).Mem b → e.op.Writes lay.j b → b = bt)
+    (hcur : hj.cur !! bt = none)
+    (hothers : ∀ c' ∈ cl, c' ≠ (lay.j, NameSet.except X, hj) → c'.1 = lay.j → ¬ c'.2.1.Mem bt)
+    (hbtw : walNameP bt = false) :
+    let cl' := replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl
+    WalsOk C Mr R jr s Ls cl' n ∧ WalsCreateOk jr cl' ∧ CreatingOk jr cl' CR ∧
+      AbsentNone s jr cl' n ∧ WalsNamed Ls cl' n ∧ DirKeysOk C Mr jr s Ls cl' n K cp ∧
+      WalsAt jr Ls cl' := by
+  have hcl : (lay.j, NameSet.except X, hj) ∈ cl := claimOnce_mem hc0
+  obtain ⟨lay1, hj1, hl1, hlj, hjjr, hX, -, hcoh1, hexcl1⟩ := hDK.1 dir lay.j X hK
+  rw [hl] at hl1
+  cases hl1
+  have hj1e := walClaim_eq hexcl1 hX hcl
+  simp only [Prod.mk.injEq, true_and] at hj1e
+  subst hj1e
+  have H : NonWalLog cl lay.j (.except X) hj x e c bt :=
+    ⟨hcl, hcoh1, hs, hbt, hcur, hothers, hbtw⟩
+  exact nonwalHist_pure hW hWC hCO hAN hNm hDK hAt hK hl hc0 hcoh' hc H.crash
+    (fun hdo => dirsOk_cut hdo hcl hcoh1 hs hbt hcur hothers)
+    (fun hjjr' han => absentNone_cut han hjjr' hcl hcoh1 hs hbt hcur hothers)
 
 end pure
 

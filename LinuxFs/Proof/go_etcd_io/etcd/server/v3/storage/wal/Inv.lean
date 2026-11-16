@@ -405,11 +405,13 @@ def DirClaimOk (jr : Ino) (cl : List Claim) (j : Ino) (X : List GoString) (hj : 
 
 /-- **A WAL directory's claim is exclusive on all its names** (W7-W12 log, ninth and tenth
 sessions; `DirClaimsOk`'s second conjunct): no other claim of `j` among `cl` holds a name of `.except
-X`, and `X` holds no `.wal.broken` name. `Repair` creates `<seg>.wal.broken` in the claim at an
+X`, and `X` is the pipeline's names (`walTmps`: every claim is minted so, `Create`'s and the boot's; unit
+`locks`, session 10, for a purge, which removes names of the directory outside `X`), so it holds no
+`.wal.broken` name (`DirClaimExcl.not_broken`). `Repair` creates `<seg>.wal.broken` in the claim at an
 `os` call's update, where the shared invariant's `NamesCoh.disj` cannot be opened: the name is in the
 claim (not in `X`) and in no other claim of `j` (`brokenHist_pure`'s `hothers`). -/
 def DirClaimExcl (cl : List Claim) (j : Ino) (X : List GoString) (hj : NamesH) : Prop :=
-  (∀ b ∈ X, ¬ go!".wal.broken" <:+ b) ∧
+  X = walTmps ∧
     ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, (NameSet.except X).Mem b → ¬ c'.2.1.Mem b
 
 /-- The pipeline's names hold no `.wal.broken` name. -/
@@ -417,6 +419,10 @@ theorem walTmps_not_broken : ∀ b ∈ walTmps, ¬ go!".wal.broken" <:+ b := by
   intro b hb
   simp only [walTmps, List.mem_cons, List.not_mem_nil, or_false] at hb
   rcases hb with rfl | rfl <;> decide
+
+theorem DirClaimExcl.not_broken {cl : List Claim} {j : Ino} {X : List GoString} {hj : NamesH}
+    (h : DirClaimExcl cl j X hj) : ∀ b ∈ X, ¬ go!".wal.broken" <:+ b := by
+  rw [h.1]; exact walTmps_not_broken
 
 /-- A `.wal` name is none of the pipeline's. -/
 theorem not_walTmps_of_wal {b : GoString} (hb : walNameP b = true) : b ∉ walTmps := fun hm => by

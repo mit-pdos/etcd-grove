@@ -540,7 +540,7 @@ theorem dirClaimsOk_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   simp only at hjc
   refine ⟨walTmps, h, ⟨(hst.2.2.2.2.2 dir lay hL).1, walTmps_not_wal, honce, ?_,
     fun c' hc' hne hcj b hb => hex c' hc' hne hcj b (fun hbX => by
-      rw [walTmps_not_wal b hbX] at hb; cases hb)⟩, walTmps_not_broken, hex⟩
+      rw [walTmps_not_wal b hbX] at hb; cases hb)⟩, rfl, hex⟩
   exact claimCoh_init _ _ _ (by rw [hjc, namesOf_nil hV])
     (fun b _ => by rw [hjc, namesOf_nil hV])
 

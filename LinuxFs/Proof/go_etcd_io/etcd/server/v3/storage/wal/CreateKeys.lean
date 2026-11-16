@@ -192,7 +192,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       rw [GMap.lookup_insert_eq] at hl'
       cases hl'
       rw [hlay.2.2]
-      refine ⟨X, hJ, ⟨hJjr, hX, hnewOnce, hJcoh, hnewEx⟩, by rw [hXt]; exact walTmps_not_broken,
+      refine ⟨X, hJ, ⟨hJjr, hX, hnewOnce, hJcoh, hnewEx⟩, hXt,
         fun c' hc' hne' hcj b hb => ?_⟩
       rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
       · exact (hne' he).elim

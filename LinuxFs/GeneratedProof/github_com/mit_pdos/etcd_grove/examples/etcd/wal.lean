@@ -4,10 +4,13 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import LinuxFs.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.durable
+public import LinuxFs.GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
+public import LinuxFs.GeneratedProof.os
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import LinuxFs.Code.github_com.mit_pdos.etcd_grove.examples.etcd.wal
 

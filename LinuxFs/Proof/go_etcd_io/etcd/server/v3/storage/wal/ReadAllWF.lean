@@ -27,7 +27,7 @@ theorem walDirKey_agree (dir : GoString) (j j' : Fs.Ino) (X X' : List GoString) 
     ⊢@{IProp GF} walDirKey (W := W) dir j X -∗ walDirKey (W := W) dir j' X' -∗ ⌜j = j' ∧ X = X'⌝ := by
   unfold walDirKey
   letI := walAllG (W := W)
-  iintro #H1 #H2
+  iintro ⟨#H1, -⟩ ⟨#H2, -⟩
   ihave %h := ghostMapElem_agree dir W.γdk _ _ (j, X) (j', X') $$ H1 H2
   ipureintro
   simpa only [Prod.mk.injEq] using h

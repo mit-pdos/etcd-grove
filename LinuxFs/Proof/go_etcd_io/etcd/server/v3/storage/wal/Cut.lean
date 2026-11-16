@@ -36,6 +36,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PurgeFull
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpNames
 
 @[expose] public section
 
@@ -51,9 +52,6 @@ section cut
 variable [GooseExts]
 
 /-! ## The pipeline's names -/
-
-/-- The file pipeline's names (`fmt.Sprintf("%d.tmp", fp.count%2)`, file_pipeline.go:77). -/
-def walTmps : List GoString := [go!"0.tmp", go!"1.tmp"]
 
 theorem walTmps_not_wal : ∀ b ∈ walTmps, walNameP b = false := by
   intro b hb

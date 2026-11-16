@@ -435,7 +435,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         | some v =>
           obtain ⟨lay1, -, hl1, -⟩ := Hdko.1 dir v.1 v.2 e
           rw [hLd] at hl1; cases hl1
-      imod walDirKey_insert K dir J X hKd $$ Hdk with ⟨Hdk, #Hkey⟩
+      imod walDirKey_insert K dir J X hKd hXt $$ Hdk with ⟨Hdk, #Hkey⟩
       imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
         (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
         hsegs hpg hino hJo $$ Hpk Ho with ⟨Hpk, Ho⟩

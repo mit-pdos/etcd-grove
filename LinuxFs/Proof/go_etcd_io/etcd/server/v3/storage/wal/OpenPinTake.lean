@@ -120,10 +120,10 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
   iintro Ha
   cases e : K !! dir with
   | none =>
-    obtain ⟨X2, hj2, hD, -⟩ := hK.2.2 dir lay hl
+    obtain ⟨X2, hj2, hD, hx2⟩ := hK.2.2 dir lay hl
     obtain ⟨hXe, hje⟩ := hD.eq_of_mem hX hc
     subst hXe hje
-    imod walDirKey_insert (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
+    imod walDirKey_insert (W := W) K dir lay.j X e hx2.1 $$ Ha with ⟨Ha, Hk⟩
     imodintro
     iexists _
     iframe Ha Hk
@@ -136,7 +136,9 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
     subst hlj
     obtain ⟨hXe, -⟩ := DirClaimOk.eq_of_mem (jr := jr) ⟨hjr, hX1, ho, hco, hex⟩ hX hc
     subst hXe
-    icases walDirKeysAuth_get (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
+    obtain ⟨X2, hj2, hD2, hx2⟩ := hK.2.2 dir lay hl
+    obtain ⟨hXe2, -⟩ := hD2.eq_of_mem hX hc
+    icases walDirKeysAuth_get (W := W) K dir lay.j X e (by rw [hXe2]; exact hx2.1) $$ Ha with ⟨Ha, Hk⟩
     imodintro
     iexists K
     iframe Ha Hk
