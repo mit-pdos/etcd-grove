@@ -186,6 +186,40 @@ theorem walInos_delete_first {E : Ents} {b : GoString} {i : Ino} {is : List Ino}
 
 /-! ## The full layout's condition after the removal -/
 
+/-- **The full layout's crash condition after the removal** (no alternative: `DirKeysOk`'s, no cut
+pending), from the old one (`crashOkA_purgeF`; the premises as `walFullOk_purge`'s). -/
+theorem crashOkA_full_purge {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {g0 : SegG} {gs : List SegG} {cl : List Claim} {n : Nat} {X : List GoString} {h : NamesH}
+    {x : Nat} {e : LogEntry} {c : Ents} {bt : GoString} {p : Nat}
+    (hok : WalFullOk C Mr d lay cl n)
+    (hcr : CrashOkA C Mr (walFullD d lay.pg lay) (unpurge lay.pg lay) none cl n)
+    (habs : WalAbsD C Mr d lay h.cur) (hnd : ((lay.pg ++ lay.segs).map (·.ino)).Nodup)
+    (hs : lay.segs = g0 :: gs) (hgs : gs ≠ []) (hp : segStart lay.cuts (lay.first + 1) ≤ p)
+    (hX : ∀ b ∈ X, walNameP b = false)
+    (hcl : (lay.j, NameSet.except X, h) ∈ cl) (hcoh : ClaimCoh h lay.j (.except X))
+    (hcoh' : ClaimCoh (h.log x e c) lay.j (.except X)) (hst : h.next ≤ e.start)
+    (hbt : ∀ b, (NameSet.except X).Mem b → e.op.Writes lay.j b → b = bt)
+    (hothers : ∀ c' ∈ cl, c' ≠ (lay.j, NameSet.except X, h) → c'.1 = lay.j → ¬ c'.2.1.Mem bt)
+    (hcur0 : h.cur !! bt = some (.file g0.ino)) (hwal' : walInos c = gs.map (·.ino)) :
+    CrashOkA C Mr (walFullD (walPurgeD d lay p) (purgeLayP lay g0).pg (purgeLayP lay g0))
+      (unpurge (purgeLayP lay g0).pg (purgeLayP lay g0)) none
+      (replClaim (lay.j, NameSet.except X, h) (lay.j, NameSet.except X, h.log x e c) cl) n := by
+  obtain ⟨⟨e0, hF⟩, -, hz⟩ := hok
+  have hf := pg_le_first habs hF
+  have hdl : lay.segs.dropLast = g0 :: gs.dropLast := by
+    rw [hs]
+    cases gs with
+    | nil => exact absurd rfl hgs
+    | cons g1 gs' => rfl
+  rw [unpurge_purgeLayP hs hf, walFullD_purgeLayP d lay g0 p hf]
+  refine crashOkA_purgeF hC hF (by simpa using hnd) (t := lay.pg.length) (g0 := g0) (gs := gs)
+    (by simp [hs]) hgs (hz g0 (by rw [hdl]; simp)) hX hcl hcoh hcoh' hst hbt hothers hcur0
+    (by rw [habs.names.1, hs]) hwal' (Nat.le_max_left _ _) ?_ hcr
+  have e1 : (unpurge lay.pg lay).first + (lay.pg.length + 1) = lay.first + 1 := by
+    simp only [unpurge_first]; omega
+  rw [unpurge_cuts, e1]
+  exact Nat.le_trans hp (Nat.le_max_right _ _)
+
 /-- **The full layout's condition after the removal** (see the file header): the old condition, the
 crash condition without an alternative (`DirKeysOk`'s: no cut pending), the static relation over the
 claim's names `h.cur`, `g0` the first named segment and not the last, the removal (the entry `e` at `x`,
@@ -206,6 +240,8 @@ theorem walFullOk_purge {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur
     (hcur0 : h.cur !! bt = some (.file g0.ino)) (hwal' : walInos c = gs.map (·.ino)) :
     WalFullOk C Mr (walPurgeD d lay p) (purgeLayP lay g0)
       (replClaim (lay.j, NameSet.except X, h) (lay.j, NameSet.except X, h.log x e c) cl) n := by
+  have hcrF := crashOkA_full_purge hC hok hcr habs hnd hs hgs hp hX hcl hcoh hcoh' hst hbt hothers hcur0
+    hwal'
   obtain ⟨⟨e0, hF⟩, -, hz⟩ := hok
   have hf := pg_le_first habs hF
   have hdl : lay.segs.dropLast = g0 :: gs.dropLast := by
@@ -214,15 +250,9 @@ theorem walFullOk_purge {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur
     | nil => exact absurd rfl hgs
     | cons g1 gs' => rfl
   unfold WalFullOk
-  rw [unpurge_purgeLayP hs hf, walFullD_purgeLayP d lay g0 p hf]
-  refine ⟨⟨e0, hF.pur_mono (Nat.le_max_left _ _)⟩, ⟨none, (fun _ h => nomatch h), ?_⟩, ?_⟩
-  · refine crashOkA_purgeF hC hF (by simpa using hnd) (t := lay.pg.length) (g0 := g0) (gs := gs)
-      (by simp [hs]) hgs (hz g0 (by rw [hdl]; simp)) hX hcl hcoh hcoh' hst hbt hothers hcur0
-      (by rw [habs.names.1, hs]) hwal' (Nat.le_max_left _ _) ?_ hcr
-    have e1 : (unpurge lay.pg lay).first + (lay.pg.length + 1) = lay.first + 1 := by
-      simp only [unpurge_first]; omega
-    rw [unpurge_cuts, e1]
-    exact Nat.le_trans hp (Nat.le_max_right _ _)
+  refine ⟨?_, ⟨none, (fun _ h => nomatch h), hcrF⟩, ?_⟩
+  · rw [unpurge_purgeLayP hs hf, walFullD_purgeLayP d lay g0 p hf]
+    exact ⟨e0, hF.pur_mono (Nat.le_max_left _ _)⟩
   · refine hz.mono (fun g hg => ?_)
     simp only [purgeLayP_pg, purgeLayP_segs, hs, List.tail_cons, List.mem_append,
       List.mem_singleton] at hg
