@@ -526,10 +526,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave HKV := hK.2 $$ HKV
   iunfold srvApplyKV at HKV
   icases HKV with ⟨%ua, -, -, Hakv, Hbo, -, -, -, -⟩
-  iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%p, -, -, Hko, Hcmo⟩
-  iunfold apply.kvOwn at Hko
-  icases Hko with ⟨⟨%c, Hws⟩, Hkb, -, -⟩
+  icases srvApplyKVW_open B.E ua x $$ Hakv with ⟨%p, %c, -, -, Hws, Hkb, Hcmo, -⟩
   iunfold apply.kvBk at Hkb
   icases Hkb with ⟨%B2, HmB, -, HtB⟩
   ihave %HB2 : ⌜B2 = d⌝ $$ [HtB]

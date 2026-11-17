@@ -1,43 +1,43 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4: server wiring IN PROGRESS, WIP commits, does not compile)
+## START HERE (S4, 2026-11-17, item 7b F4: server wiring IN PROGRESS, WIP commits; applyEntryNormal and NewServer(R) left)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP; nothing builds past the files
-  listed below). Base of the coming leaves build: `00b09c1360`. Decisions: `questions.md`, last entry (OPEN: Fr at
-  `E.lg = false`).
-- **Done (lean-check `--fast -a` clean):** `InvApplier` (imports `WinTieApply`; `srvKVInvs` last conjunct
-  `srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false)`; `srvEnvOk` 3rd conjunct `(E.win = none ∧
-  E.stq = ¼)`; new `srvApplyKVW E ua x := ∃ w, ⌜E.lg = false → w = none⌝ ∗ applyKV {E with win := w} ua x` and its
-  lemmas `_open` (pieces at `E`, window part in the closing wand: use it instead of unfolding inside long proofs),
-  `_crOwn`, `_writer`, `_authOn`; `InvApRes.srvApplyKVW_hookRO`); `srvKVInvsOn`, `srvKVInvsC` gain the same tie
-  conjunct; every applier row holds `srvApplyKVW` (`srvApplyKV`, `srvApplyKVOn`, `srvApplyKVC`, `srvApplyKVCore`,
-  `applyBuilt(C/On)`, `srvUberRowM`, InvBuild's `Hua`, `srvApplyKVM_open`); `SnapApplyDefs.srvKVInvsM_winTie`.
-  Checked clean: KVStoreApi, KVStoreLaws, InvApplier, InvRead, InvStart, InvBuild, KVApplyOn, ServerOnDefs, ServerOn,
-  UberOn, SnapRO, InvRunRes, StartOn, KVApply, ApplyEntryOn, AppliedOn, InvApRes, ApplyKVCore, ApplyNormalOn,
-  SnapApplyAuthM, ApplyCmpArm, SnapSendBranch, SnapRecvFacts, SnapRecvOn, MergedImageOn, RunOn, KVRead, ReadOn,
-  AuthComp, AuthCompRows, CompactEnv, EtcdServer__Compact, SnapApplyDefs.
-- **Edited, not yet checked:** `applyAll.specSnapM` and `applySnapshot.specSnapM` gain `¬ clusterNoSnap
-  γr.raft.raft.cl` (passed from `run_job_snapC`'s `hns`, ApplyAllSnap, EtcdServer__applySnapshot); `applySnapshot_walk`
-  gains `hns` (unused yet).
-- **Next, in order:** (1) the walk (SnapApplyWalk ~l.443): after `applierFor_envAus`, `srvKVInvsM_winTie` (from
-  `isServerM`'s atomics) + `srvApi.applyKV_free E _ (fun h => absurd h hns)` on `srvApplyKVW`'s window, then
-  `{E with win := none} = E` (`rw [← hwin]; rfl`) to get `applyKV E`; keep `HlWt : E.Wt none` (= `winTok γt none`);
-  restore: `restorePreA_of_au` + `au_restore_tie` (Q at `wStQ ¼`, `crOwn`, `winTok none`; build `kvNx γr on
-  (kvModelM …A')` as `restoreArgs_holds` does; mind the walk's `rw [Hkm.1, Hkm.2]` on the goal: destruct the tie
-  after it, or re-`rw`); l.641 `hstq` is now `HenvW.2.2.1.2 : E.stq = ¼`; thread `wStQ ¼` + `E.Wt none` through
-  `snapWalkPost` (SnapApplyPost) into `snap_applyKV` (its `hEw` premise → `(E.win = none ∧ E.stq = ¼)`, new
-  resource `E.Wt none`, wSt → `wStQ ¼`). (2) `applyEntryNormal` (arms at `grep -n winTgt_none`; admin arms
-  (`hAd`) need no push: call `adminEntryOn` at `{E with win := w}`): per `hA` arm, open `srvApplyKVW`, at
-  `E.lg = true` `applyKV_push` with `Lt` the committed model log after the entry (`□ E.Nx Lt` from the raft lb of
-  `A ++ [m]`; `winTgt` via `KVOutcomeOn.backendLog_of_step`/`revokeLog_eq_backendLog`), call `hA` at
-  `E' := {E with win := some (s, itemsOfLog Lt)}` (convert each `E`-resource by `iExactEq H; rfl`), at
-  `E.lg = false` call at `E` (window none); repack `srvApplyKVW`. (3) NewServer/NewServerR (handoff step (3) below;
-  at `E.lg = false` `tie_free` right after `tie_alloc`, Fr from `E.lg = false`). (4) remaining callers:
-  `importers.py --uses srvKVInvs --uses srvApplyKVW … InvApplier.lean` (EtcdServer__apply, StopShutdown, run,
-  start, examples, client). Then (6)-(8) of the previous START HERE.
-- **Pitfalls:** `rw [hX]` on the goal rewrites literal `{E with win := w}` pieces in the Iris context (SnapSendBranch,
-  ApplyNormalOn): open with `srvApplyKVW_open`, keep `E`-level pieces. `pkill -f rs56-chk.sh` kills your own shell.
-  `/shared/tmp/rs56-chk.sh FILE` checks one file and shows a failing import's errors.
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `EtcdServer__applyEntryNormal`,
+  `NewServer`, `NewServerR` and what imports them do not compile). Base of the coming leaves build: `00b09c1360`.
+  Decisions: `questions.md`, last entry (forms, and OPEN: the free-marker fact `Fr` at `E.lg = false`).
+- **Done (lean-check `--fast -a` clean on every server file below):** `srvKVInvs`/`srvKVInvsOn`/`srvKVInvsC` last
+  conjunct `srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false)`; `srvEnvOk` 3rd conjunct `(E.win =
+  none ∧ E.stq = ¼)`; `srvApplyKVW E ua x := ∃ w, ⌜E.lg = false → w = none⌝ ∗ applyKV {E with win := w} ua x` in every
+  applier row, lemmas `srvApplyKVW_open` (pieces at `E`, window part in the closing wand: use it, never unfold
+  inside long proofs), `_of_none`, `_crOwn`, `_writer`, `_authOn`, `_hookRO`; `srvKVInvsM_winTie`. Snapshot path done:
+  `applyAll.specSnapM`/`applySnapshot.specSnapM`/`applySnapshot_walk` take `¬ clusterNoSnap γr.raft.raft.cl` (from
+  `run_job_snapC`'s `hns`); the walk frees the window (`applyKV_free`), restores at ¼ (`restorePreA_of_au` +
+  `au_restore_tie`), `snapWalkPost`/`snap_applyKV` carry `wStQ E.γs E.stq` and `E.Wt none`. Checked: InvApplier,
+  KVStore{Api,Laws}, Inv{Read,Start,Build,ApRes,RunRes}, KVApply(On), ServerOn(Defs), UberOn, SnapRO, StartOn,
+  ApplyEntryOn, AppliedOn, ApplyKVCore, ApplyNormalOn, ApplyCmpArm, SnapSendBranch, SnapRecv{Facts,On},
+  MergedImageOn, RunOn, KVRead, ReadOn, AuthComp(Rows), CompactEnv, ModeSpecs, StopImage, StopShutdown, SnapApply*
+  (Defs, AuthM, Walk, Names, IsServer, Opts, OptsLemmas, KV, Post), EtcdServer__{Compact, applySnapshot, apply,
+  applyAll, run, start, snapshot}, ApplyAllSnap.
+- **Next, in order:** (1) `EtcdServer__applyEntryNormal` (arms: `grep -n winTgt_none`; `HKV` is now `srvApplyKVW`,
+  open it with `srvApplyKVW_open` where only the backend pieces are used). Admin arms (`hAd`): call `adminEntryOn` at
+  `{E with win := w}` (any `E`), no push. Each `hA` arm: unfold `srvApplyKVW` (`⟨%w0, %Hw0, HKV⟩`); at `E.lg = false`
+  (`w0 = none` by `Hw0`) convert to `applyKV E` (`{E with win := none} = E`: `rw [← HEo.2.2.1.1]`) and keep the
+  call as is; at `E.lg = true`: `srvApi.applyKV_push hPers hReach E _ HEo.2.2.1.2 w0 ua x Lt hlt` with the tie from
+  `Hkvi` (last conjunct), `□ E.Nx Lt` (`Lt` the committed model log after the entry, from the raft lb of `A ++ [m]`;
+  `kvNxOff`/`kvNxOn` unfold), then call `hA` at `E' := {E with win := some (s, itemsOfLog Lt)}` (convert each
+  `E`-resource in and out by `iExactEq H; rfl`), the premise `winTgt` via `KVOutcomeOn.backendLog_of_step` (KV kinds)
+  / `revokeLog_eq_backendLog` (revoke) / `Lt = x.log` (kinds that leave the log); repack `srvApplyKVW` with the new
+  window (`⌜E.lg = false → …⌝` vacuous). The `v3 = false` replay arms also call `hA`: same push. (2) NewServer /
+  NewServerR: previous START HERE's step (3) (split `bootStore.law`'s `wSt` into `wStQ ¼` ×2, `tie_alloc` after
+  `NewLessor` with `Lt = log`, `Wt := winTok γt`, `stq := ¼` in the `AEnv` literals (sed on `γlt := γlt }`), `Haus`
+  by `envAus_tie`, the tie into `srvKVInvs`; at `E.lg = false`, `tie_free` right after (Fr from `E.lg = false`), the
+  start rows' `srvApplyKVW` at the window). (3) remaining callers (examples, client: `importers.py --uses srvKVInvs
+  --uses srvKVInvsOn --uses srvApplyKVW … InvApplier.lean`; their patterns mostly end in `-`). Then (6)-(8) of the
+  previous START HERE (leaves build, step 7 with the lm-none lemma if `Fr` stays, step 8, c6b merge).
+- **Pitfalls:** `rw [hX]` on the goal rewrites literal `{E with win := w}` pieces in the Iris context (fixed with
+  `srvApplyKVW_open`). An `icases` of `srvKVInvsOn` whose last `%X` used to take two pure conjuncts now needs
+  `%X0, %X1, -` (SnapRecvOn, ApplyAllSnap, MergedImageOn). `pkill -f rs56-chk.sh` kills your own shell.
+  `/shared/tmp/rs56-chk.sh FILE [N]` checks one file and shows a failing import's errors.
 
 ## Previous START HERE (S4, 2026-11-17, item 7b F4: step-7 Iris lemmas + apply-thread tie lemmas done; server wiring next)
 
