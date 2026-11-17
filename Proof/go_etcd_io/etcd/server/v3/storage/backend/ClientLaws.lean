@@ -255,7 +255,8 @@ theorem newPostK_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF
         "HnRB" ∷ rbOwn γ (rbData P D) ∗
         "HnRT" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           rdTok γ P b) ∗
-        "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ "HnSr" ∷ srSlot b) := by
+        "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ "HnSr" ∷ srSlot b ∗
+        "HnTok" ∷ rbClaimToks γ P (fun _ => True)) := by
   unfold newPostK; exact .rfl
 
 end named

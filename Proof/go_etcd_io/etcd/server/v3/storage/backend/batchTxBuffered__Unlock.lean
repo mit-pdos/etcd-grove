@@ -41,9 +41,10 @@ set_option hygiene false in
 freedom), then the postcondition (the four free outcomes: nothing pending, or written back
 without a commit, with or without a view to update). -/
 local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
-    imod trkSide_idle (hG := hG) γ P $S _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
+    imod trkSide_idle (hG := hG) γ P $S _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB)
+      ($hb).2.2.2.2.2.2.2.2.2.2.1 ⊤ (by solve_ndisj) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
       with ⟨Hhkd, Hin⟩
-    imod rbPartR_idle (hG := hG) γ P $S _ _ rc (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
+    imod rbPartR_idle (hG := hG) γ P $S _ _ rc (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) ⊤ (by solve_ndisj) $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
     wp_apply (hBU γ P W Pk b t)
       $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
@@ -73,9 +74,10 @@ set_option hygiene false in
 /-- `batchTx.Unlock` with nothing pending (A1.5: the claimed writes forgotten, `BSess.clrCw`, every
 tracked bucket idle), then the postcondition. -/
 local macro "bu_free0" hb:term:max hf:term:max : tactic => `(tactic| (
-    imod trkSide_idle (hG := hG) γ P st _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
+    imod trkSide_idle (hG := hG) γ P st _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB)
+      ($hb).2.2.2.2.2.2.2.2.2.2.1 ⊤ (by solve_ndisj) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
       with ⟨Hhkd, Hin⟩
-    imod rbPartR_idle (hG := hG) γ P st _ _ rc (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
+    imod rbPartR_idle (hG := hG) γ P st _ _ rc (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) ⊤ (by solve_ndisj) $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
     wp_apply (hBU γ P W Pk b t)
       $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
@@ -159,7 +161,7 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
 set_option hygiene false in
 /-- `batchTx.Unlock` after a commit, then the postcondition. -/
 local macro "bu_release" : tactic => `(tactic| (
-    imod batchGhostAt_idle (hG := hG) γ P st2 _ Sp _ rp rc Hfin.1.2.2.2.2.2 $$ [$(frameH `Hg2) $(frameH `Hrb) $(frameH `Hrc)]
+    imod batchGhostAt_idle (hG := hG) γ P st2 _ Sp _ rp rc Hfin.1.2.2.2.2.2 ⊤ (by solve_ndisj) $$ [$(frameH `Hg2) $(frameH `Hrb) $(frameH `Hrc)]
       with ⟨Hg2, Hin, Hinc⟩
     wp_apply (hBU γ P W Pk b t) $$ [$(frameH `Hown) Hph2 Hg2 HWv HPk]
     · iframe #

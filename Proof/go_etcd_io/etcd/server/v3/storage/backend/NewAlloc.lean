@@ -551,7 +551,9 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     ⟨%grbk, Hrbka, Hrbk⟩
   imod ghostVar_alloc true with ⟨%gcln, Hcln⟩
   -- (A1 of `auth-schema-srv`, 2026-11-17) the tracked buckets' readers' contents, every bucket unclaimed
-  imod rbr_alloc (GF := GF) P (rbDomOf P D) (rv0 D) with ⟨%grbr, %grbc, Hrbra, Hrbca, Hrbrr, Hrbrb⟩
+  imod rbr_alloc (GF := GF) P (rbDomOf P D) (rv0 D) with ⟨%grbr, Hrbra, Hrbrr, Hrbrb, Hrbri⟩
+  -- (A6.2) the claim elements: every bucket unclaimed, half the claim invariant's, half the tokens
+  imod rbc_alloc (GF := GF) (rbDomOf P D) with ⟨%grbc, Hrbca, Hrbci, Hrbct⟩
   -- (the backend-compaction stage, O1) the deletable keys' registration, nothing yet
   imod saved_pred_alloc (A := GoString × GoString) (fun _ => iprop(False)) (DFrac.own 1)
     DFrac.valid_own_one with ⟨%gdlg, Hdlg⟩
@@ -615,8 +617,36 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   icases gv_halves gcvw _ $$ Hcvw with ⟨Hcvwc, Hcvwi⟩
   icases gv_halves gused _ $$ Hused with ⟨Husedb, Husedr⟩
   icases gv_halves ghkd _ $$ Hhkd with ⟨Hhkdb, Hhkdc⟩
-  ihave Hrbk := rbEls_top_of γ 1 (fun n => ((rbData P D).lookup n, false)) $$ Hrbk
-  icases (rbEls_halves γ (fun _ => True) _).2 $$ Hrbk with ⟨Hrbkb, Hrbkc⟩
+  -- (A6.2) each tracked bucket's element: half the claim invariant's, a quarter the batch lock's, a
+  -- quarter the client's
+  ihave Hrbk := BigSepM.bigSepM_mono (Φ := fun n (_ : Unit) =>
+      ghostMapElem (GF := GF) γ.rbk n (DFrac.own 1) ((rbData P D).lookup n, false))
+    (Ψ := fun n (_ : Unit) => iprop(
+      ghostMapElem (GF := GF) γ.rbk n (DFrac.own (1 : Qp).half) ((rbData P D).lookup n, false) ∗
+      ghostMapElem γ.rbk n (DFrac.own (1 : Qp).half.half) ((rbData P D).lookup n, false) ∗
+      ghostMapElem γ.rbk n (DFrac.own (1 : Qp).half.half) ((rbData P D).lookup n, false)))
+    (fun {k} {_} _ => by
+      iintro H
+      icases (ghostMapElem_halves γ.rbk k _).1 $$ H with ⟨H1, H2⟩
+      ihave H2 := gme_frac γ.rbk k _ _ _ q4_add.symm $$ H2
+      icases gme_split γ.rbk k _ _ _ $$ H2 with ⟨H2, H3⟩
+      iframe) $$ Hrbk
+  icases (map_zip3 γ.rbD _ _ _).2 $$ Hrbk with ⟨Hrbki, Hrbkb, Hrbkc⟩
+  ihave Hrbkb := rbEls_top_of γ _ (fun n => ((rbData P D).lookup n, false)) $$ Hrbkb
+  ihave Hrbkc := rbEls_top_of γ _ (fun n => ((rbData P D).lookup n, false)) $$ Hrbkc
+  -- (A6.2) the claim invariant: every bucket unclaimed, the readers seeing the writer's contents
+  imod inv_alloc rbClaimN ⊤ (rbClaimInv γ P) $$ [Hrbca Hrbki Hrbri Hrbci] with #Hcinv
+  · inext
+    iapply rbClaimInv_init γ P (fun n => ((rbData P D).lookup n, false)) (fun n => rvBkt P (rv0 D) n)
+      (rbDomOf_bt P D) (fun n hn _ => by
+        have hRB := rbDomOf_rb P D n hn
+        have h := rvBkt_idle (st0_bgOk P D wtx).2.2.2.2.2.2.2.2.2.2.1 hRB rfl
+        show rvBkt P (rv0 D) n = ((rbData P D).lookup n).getD ∅
+        rw [rbData_lookup, if_pos hRB]
+        exact h)
+    iframe
+  ihave Htoks := rbClaimToks_init γ P $$ [Hrbct]
+  · iframe Hcinv Hrbct
   ihave Hrbkc : rbOwn γ (rbData P D) $$ [Hrbkc]
   · unfold rbOwn
     iapply rbPartF_part γ (fun _ => True) (rbData P D) (fun _ => false)
@@ -636,7 +666,9 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
         · ipureintro; exact rbDomOf_absent P D
         · iexact Hrbkb
       · ipureintro; intro _ _ _; trivial
+    isplitr
     · ipureintro; exact rbDomOf_bt P D
+    · iexact Hcinv
   icases gv_halves gcln _ $$ Hcln with ⟨Hclnc, Hclnr⟩
   -- the tokens
   imod ownTokAuth_add wbInit gwb 0 $$ Hwba with ⟨Hwba, Hwbt⟩
@@ -687,15 +719,15 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod Hmk with ⟨HW, HPk, HK⟩
   imod sync.init_Mutex (batchFree γ P (W γ) (Pk γ) b t) ⊤ (muOf t) $$ [Hmx]
     [Htxf Hpend Hdel Hwb Hphk Hhookb Hown Hwtx Hmus Hviewb Hrvsb Hwba Hwbc Husedb Hopnb Hhkdb Hrbkb
-      Hrbra Hrbca Hrbrb Hfkb HW HPk]
+      Hrbra Hrbrb Hfkb HW HPk]
     with #Hbl
   · iexact Hmx
   · inext
-    ihave Hrbs : rbrSide γ P (st0 D wtx) $$ [Hrbra Hrbca Hrbrb]
+    ihave Hrbs : rbrSide γ P (st0 D wtx) $$ [Hrbra Hrbrb]
     · iapply rbrSide_init γ P (st0 D wtx) (rbDomOf_rb P D) (fun _ => rfl)
       iframe
     iapply batchFree_init γ P (W γ) (Pk γ) b t db wtx D hP
-    ihave Hrbkb := rbSide_mono γ P _ _ (tkI P (st0 D wtx)) (fun _ _ _ => rfl) $$ Hrbkb
+    ihave Hrbkb := rbSide_mono γ P _ _ (tkI P (st0 D wtx)) (fun _ _ _ => Or.inl rfl) $$ Hrbkb
     unfold trkSide trkHalf
     iframe
     iframe #
@@ -737,7 +769,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (R2b-3c part 2) the backend's file is at `path`
   isplitr
   · iunfold bFile; iexists db; iexact Hdbat
-  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hfkdc Hdlsc Hsr]
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hfkdc Hdlsc Hsr Htoks]
   · unfold newPostK
     isplitr
     · iexact Hb
@@ -769,7 +801,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
       · iexact Hfkdc
       · rw [show dlR P (∅ : GMap (GoString × GoString) GoString) = ∅ from GMap.map_filter_empty _]
         iexact Hdlsc
-    iexact Hsr
+    iframe Hsr Htoks
   unfold runTok
   iframe Hstop Hdcp Hstk Hopnr Husedr
 
