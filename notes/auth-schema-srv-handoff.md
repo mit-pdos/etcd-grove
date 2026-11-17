@@ -1,6 +1,40 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A6 in progress: A6.1a done; stopped at a large-context checkpoint)
+## START HERE (2026-11-17, A6: STOPPED at a realizability finding, for etcd-grove-03)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A6, A7); decisions `questions.md` (untracked; "A6.1a decided", "A6.1b").
+- Done: A1-A5 (History); A6.1a (b3ea959bf1, ACCEPTED); **the Held index** (952283bbfb, APPROVED): `Held : Loc →
+  AuthData → IProp`, `GetUser`/`GetRole` take the caller's `Φ` as `GetAllUsers` (the stronger posts, done);
+  **A6.1b** (a5cb6ded57) in `etcdserver/AuthRealRead.lean`: `heldR γ P b Y x D` (the token), `heldR_rdCap`
+  (`rdB` → `rdCap`, a quarter of bbolt's tx lent), `heldR_point` ×3, `heldR_forEach`, `heldR_reader`,
+  `authBE_real` (generic over the caller's ghost steps `Racq`/`Robs`/`Rrel`), `auth_isBucket` ×3; **the lent family**
+  (this commit): `authRTx rt R L Held`/`authBE bi R L Held`, `L : ι → IProp` lent to `RLock` and given back (the
+  realization borrows its open share against the caller's `authCur γc q`, or `T`); schema's six read specs take `L i`.
+  Targeted build of the 7 modules green (`/shared/tmp/auth-schema-srv/held-build5.log`).
+- **STOP (finding, questions.md "A6.1b"):** `authBackendReads`' read-transaction clauses (`GetUser`, `GetRole`,
+  `GetAllUsers`: `{{T ∗ authOwn M hs}}`) take no reader ticket; schema's code runs `ReadTx().RLock()`, which needs
+  an `rdTok`; the realization's only slots (`authRdSlots` = `authRdN` `rdTok`s) all back the premise's `authRdN`
+  tickets `R`, any of which may be in use: the realization cannot supply the slot. Options (a)/(b) in questions.md.
+- Next, after the decision: (1) the realization invariant per backend `γc` (design: questions.md "A6.1b", the
+  sketch below); (2) the write side from A5's callee triples (claimed parts `rbOwnInR`/`rbRd`, `Unlock.spec`'s
+  accessor at mask ⊤, receipts bound writes < receiptBound ≤ 2^48); (3) the auth-level read contract from schema's
+  specs + post-processing (rtHeldF_rbRd at any time while held); then A7 HARD STOP.
+- Realization sketch: `inv` per `γc` holding: `rbRd γB n ½ m_n` for the three auth buckets with each `m_n` the
+  encoding of a recorded state (`authBucketsAre`-per-bucket), its index ≥ the published index (the realization's
+  `authPubQ` quarter); `authWTok γc` when a batch is open (else the idle facts: every bucket = `authLockI`'s state);
+  the `bOpen authOpenQ` vault, lent per `RLock` against `authCur γc q` (release needs `authCur 1`: none lent) or
+  against `T`; the tickets ↔ `rdTok` exchange; the lifecycle (retired/released flags).
+- Pitfalls: (0)-(7) as before (History, A5). (8) a spec binder `{ι : Type}` IS named by `intro` (`intro … Held ι L i`)
+  but must NOT be passed explicitly when applying the spec (`hRT abe bi lg R Held L`). (9) the triple inside
+  `authBE`'s `□ (…)`: `iintro !> %Φ !> - HΦ` (two `!>`); inside `authRTx`'s `□ (∀ i, …)`: `iintro !> %i !> %Ψ …`.
+  (10) `wp_apply` of an Iris-hypothesis triple can fail silently into `sorry` under `--fast`: use
+  `iapply H $$ %args %Ψ [pre] [post]`, then `inext`.
+
+## History
+
+### A6.1a STOP (2026-11-17, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -30,7 +64,7 @@
 - Pitfalls: (0)-(6) of A5 (History) still apply. (7) `backend.bktEnts_sorted` and other backend lemmas sit in sections
   with `hG`/`package_sem` instance variables: a client file needs the same `variable` block to use them.
 
-## History
+
 
 ### A5 done (2026-11-17, superseded)
 

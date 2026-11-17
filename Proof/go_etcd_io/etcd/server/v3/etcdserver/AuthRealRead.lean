@@ -293,7 +293,7 @@ of the auth bucket `bi` (in the table, at the global `bv`), the key's entry of t
 theorem heldR_point (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt : Loc) (Y : RView → IProp GF) (x : Loc)
     (D : AuthData) (bv : GoString) (bi : BucketInfo) (sel : AuthData → BktData)
-    (hb : P.has bi) (hsafe : bi.safe = false) (hsel : ∀ rv, sel (rvAuth P rv) = rvBkt P rv bi.name)
+    (hb : P.has bi) (hsel : ∀ rv, sel (rvAuth P rv) = rvBkt P rv bi.name)
     (hbk : ∀ bk : GoInterface,
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         globalAddr bv ↦□ bk ⊢ isBucket bk bi) :
@@ -435,24 +435,24 @@ theorem heldR_reader (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
   iunfold authReader
   isplitr
   · iintro !>
-    iapply heldR_point hUR γ P W Pk b rt Y x D _ mvcc.authBI AuthData.auth hP.1 rfl
+    iapply heldR_point hUR γ P W Pk b rt Y x D _ mvcc.authBI AuthData.auth hP.1
       (fun _ => rfl) (auth_isBucket hID hName hSafe) $$ H
   isplitr
   · iintro !>
-    iapply heldR_point hUR γ P W Pk b rt Y x D _ mvcc.authUsersBI AuthData.users hP.2.1 rfl
+    iapply heldR_point hUR γ P W Pk b rt Y x D _ mvcc.authUsersBI AuthData.users hP.2.1
       (fun _ => rfl) (authUsers_isBucket hID hName hSafe) $$ H
   isplitr
   · iintro !>
-    iapply heldR_point hUR γ P W Pk b rt Y x D _ mvcc.authRolesBI AuthData.roles hP.2.2 rfl
+    iapply heldR_point hUR γ P W Pk b rt Y x D _ mvcc.authRolesBI AuthData.roles hP.2.2
       (fun _ => rfl) (authRoles_isBucket hID hName hSafe) $$ H
   · iintro !>
     iapply heldR_forEach hFE γ P W Pk b rt Y x D hP.2.1 (authUsers_isBucket hID hName hSafe) $$ H
 
-/-- **The real backend is an `authBE`** for the read resource `R`, over the caller's ghost steps:
-`R` is redeemed for a reader slot, an open share and the caller's `C` (`Racq`); after `readTx.RLock`
-the caller observes, with the held read, the share and `C`, its `Y rv` and the well-formedness of the
-auth buckets read (`Robs`); at `RUnlock` the slot and `Y rv` give `R` back (`Rrel`). The token is
-`heldR … Y`. -/
+/-- **The real backend is an `authBE`** for the read resource `R` and the lent family `L`, over the
+caller's ghost steps: `R` with the lent `L i` is redeemed for a reader slot, an open share and the
+caller's `C i qo` (`Racq`); after `readTx.RLock` the caller observes, with the held read, the share and
+`C i qo`, the lent `L i` back, its `Y rv` and the well-formedness of the auth buckets read (`Robs`); at
+`RUnlock` the slot and `Y rv` give `R` back (`Rrel`). The token is `heldR … Y`. -/
 theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
     (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
@@ -461,16 +461,16 @@ theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (R : IProp GF) (C : Qp → IProp GF)
-    (Y : RView → IProp GF) (hP : authHas P) :
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (R : IProp GF) {ι : Type}
+    (L : ι → IProp GF) (C : ι → Qp → IProp GF) (Y : RView → IProp GF) (hP : authHas P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗
-      □ (R ={⊤}=∗ ∃ qo : Qp, rdTok γ P b ∗ bOpen γ qo ∗ C qo) ∗
-      □ (∀ (x : Loc) (rv : RView) (qo : Qp), rtHeld γ P b x rv ∗ bOpen γ qo ∗ C qo ={⊤}=∗
-          rtHeld γ P b x rv ∗ Y rv ∗ ⌜authWf (rvAuth P rv)⌝) ∗
+      □ (∀ i : ι, R ∗ L i ={⊤}=∗ ∃ qo : Qp, rdTok γ P b ∗ bOpen γ qo ∗ C i qo) ∗
+      □ (∀ (i : ι) (x : Loc) (rv : RView) (qo : Qp), rtHeld γ P b x rv ∗ bOpen γ qo ∗ C i qo ={⊤}=∗
+          rtHeld γ P b x rv ∗ L i ∗ Y rv ∗ ⌜authWf (rvAuth P rv)⌝) ∗
       □ (∀ rv : RView, rdTok γ P b ∗ Y rv ={⊤}=∗ R) ⊢
-      authBE (beIface b) R (heldR γ P b Y) := by
+      authBE (beIface b) R L (heldR γ P b Y) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hacq, #Hobs, #Hrel⟩
   iunfold authBE
   iintro !> %Φ !> - HΦ
@@ -481,11 +481,11 @@ theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   · ipureintro; rfl
   iunfold authRTx
   isplitr
-  · iintro !> %Ψ !> HR HΨ
-    imod Hacq $$ HR with ⟨%qo, Htok, Ho, HC⟩
+  · iintro !> %i !> %Ψ ⟨HR, HL⟩ HΨ
+    imod Hacq $$ %i [$HR $HL] with ⟨%qo, Htok, Ho, HC⟩
     iapply wp_fupd
     wp_apply (hRL γ P W Pk b rt qo) $$ [$Hb $Hrt $Htok $Ho] as ⟨%x, %rv, Hh, Ho⟩
-    imod Hobs $$ %x %rv %qo [$Hh $Ho $HC] with ⟨Hh, HY, %Hawf⟩
+    imod Hobs $$ %i %x %rv %qo [$Hh $Ho $HC] with ⟨Hh, HL, HY, %Hawf⟩
     icases rtHeld_wf γ P b x rv $$ Hh with ⟨Hh, %Hwf⟩
     imodintro
     iapply HΨ
@@ -497,6 +497,7 @@ theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
       iexists rv
       iframe Hh HY
       ipureintro; exact ⟨rfl, Hwf⟩
+    iframe HL
     iapply heldR_reader hUR hFE hID hName hSafe γ P W Pk b rt Y x (rvAuth P rv) hP $$
       [$Hpkg $Hsch $Hb $Hrt]
   · iintro !> %x %D !> %Ψ Hh HΨ

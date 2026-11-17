@@ -259,27 +259,33 @@ instance authReader_persistent (r : GoInterfaceOk) (H : IProp GF) (D : AuthData)
   unfold authReader; infer_instance
 
 /-- **A `backend.ReadTx` over the auth buckets** `rt`, for the read resource `R` (persistent):
-`RLock()` turns `R` into the token `Held D` of a well-formed snapshot `D`, under which its reads
-are `authReader`'s, and `RUnlock()` turns the token back into `R`. -/
-def authRTx (rt : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) : IProp GF :=
-  iprop(□ ({{ R }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
-      {{ RET #(); ∃ (x : Loc) (D : AuthData), ⌜authWf D⌝ ∗ Held x D ∗ authReader rt (Held x D) D }}) ∗
+`RLock()` turns `R` into the token `Held x D` of a well-formed snapshot `D` (in the session of
+bbolt's transaction `x`), under which its reads are `authReader`'s, and `RUnlock()` turns the token
+back into `R`. `RLock()` borrows a resource `L i` of the caller's and gives it back (auth-schema-srv A6:
+the realization lends its share of the backend's open token against the caller's share of the
+currency, `authCur γc q`, or its write token). -/
+def authRTx (rt : GoInterfaceOk) (R : IProp GF) {ι : Type} (L : ι → IProp GF)
+    (Held : Loc → AuthData → IProp GF) : IProp GF :=
+  iprop(□ (∀ i : ι, {{ R ∗ L i }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
+      {{ RET #(); ∃ (x : Loc) (D : AuthData), ⌜authWf D⌝ ∗ Held x D ∗ L i ∗
+        authReader rt (Held x D) D }}) ∗
     □ (∀ (x : Loc) (D : AuthData),
       {{ Held x D }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); R }}))
 
-instance authRTx_persistent (rt : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) :
-    Persistent (authRTx rt R Held) := by
+instance authRTx_persistent (rt : GoInterfaceOk) (R : IProp GF) {ι : Type} (L : ι → IProp GF)
+    (Held : Loc → AuthData → IProp GF) : Persistent (authRTx rt R L Held) := by
   unfold authRTx; infer_instance
 
 /-- **A `backend.Backend` over the auth buckets** `bi` (persistent): `ReadTx()` returns an
 `authRTx` for `R`. -/
-def authBE (bi : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) : IProp GF :=
+def authBE (bi : GoInterfaceOk) (R : IProp GF) {ι : Type} (L : ι → IProp GF)
+    (Held : Loc → AuthData → IProp GF) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
     {{ (rt : GoInterface), RET #rt;
-        ∃ rti : GoInterfaceOk, ⌜rt = GoInterface.ok rti⌝ ∗ authRTx rti R Held }}))
+        ∃ rti : GoInterfaceOk, ⌜rt = GoInterface.ok rti⌝ ∗ authRTx rti R L Held }}))
 
-instance authBE_persistent (bi : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) :
-    Persistent (authBE bi R Held) := by
+instance authBE_persistent (bi : GoInterfaceOk) (R : IProp GF) {ι : Type} (L : ι → IProp GF)
+    (Held : Loc → AuthData → IProp GF) : Persistent (authBE bi R L Held) := by
   unfold authBE; infer_instance
 
 /-- The entries `unsafeGetAllRoles`' range returns of the roles bucket `m`: `[0x00, 0xff)`, no limit

@@ -29,11 +29,12 @@ every pure fact `Φ` the snapshot's token implies (the caller's: a token taken w
 which state the buckets hold). -/
 abbrev schema.authBackend.GetAllUsers.spec : Prop :=
   ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF)
+    {ι : Type} (L : ι → IProp GF) (i : ι)
     (Φ : schema.AuthData → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abeF go!"be" abe ↦□ (GoInterface.ok bi : GoInterface) ∗ schema.abeF go!"lg" abe ↦□ lg ∗
-      schema.authBE bi R Held ∗ R ∗ □ (∀ (x : Loc) (D : schema.AuthData), Held x D -∗ Held x D ∗ ⌜Φ D⌝) }}
+      schema.authBE bi R L Held ∗ R ∗ L i ∗ □ (∀ (x : Loc) (D : schema.AuthData), Held x D -∗ Held x D ∗ ⌜Φ D⌝) }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"GetAllUsers")) (Val #()))
-  {{ (s : GoSlice), RET #s; R ∗ ∃ D : schema.AuthData, ⌜schema.authWf D ∧ Φ D⌝ ∗
+  {{ (s : GoSlice), RET #s; R ∗ L i ∗ ∃ D : schema.AuthData, ⌜schema.authWf D ∧ Φ D⌝ ∗
       schema.usersOutD s D.users }}
 
 end spec

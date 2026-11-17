@@ -33,15 +33,15 @@ theorem schema.authBackend.GetUser.wp_proof
     (hG_ : schema.authReadTx.UnsafeGetUser.spec (GF := GF) (hG := hG))
     (hRU : schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG)) :
     schema.authBackend.GetUser.spec (GF := GF) (hG := hG) := by
-  intro abe bi lg R Held Φp name
-  wp_start as ⟨#Hbe, #Hlg, %Hlgnn, #HBE, HR, #HΦp⟩
+  intro abe bi lg R Held ι L i Φp name
+  wp_start as ⟨#Hbe, #Hlg, %Hlgnn, #HBE, HR, HL, #HΦp⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply (hRT abe bi lg R Held) $$ [$Hbe $Hlg $HBE] as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩
+  wp_apply (hRT abe bi lg R Held L) $$ [$Hbe $Hlg $HBE] as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩
   subst Htx
   (try wp_auto)
-  wp_apply (hRL l rt R Held) $$ [$Htxf $Hrtx $HR] as ⟨%x, %D, %Hwf, HD, #HrdD⟩
+  wp_apply (hRL l rt R Held L i) $$ [$Htxf $Hrtx $HR $HL] as ⟨%x, %D, %Hwf, HD, HL, #HrdD⟩
   icases HΦp $$ %x %D HD with ⟨HD, %HΦD⟩
   (try wp_auto)
   wp_apply (hG_ l rt lg name (Held x D) D Hlgnn Hwf.1) $$ [$Htxf $Hlgf $HrdD $HD] as %u ⟨HD, Hu⟩
@@ -49,13 +49,13 @@ theorem schema.authBackend.GetUser.wp_proof
   (try wp_auto)
   wp_bind (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
   -- `iapply`, not `wp_apply`: a Lean spec applied at the deferred call leaves a stray goal
-  iapply (hRU l rt R Held x D) $$ [Hpkg Htxf Hrtx HD]
+  iapply (hRU l rt R Held L x D) $$ [Hpkg Htxf Hrtx HD]
   · iframe Hpkg Htxf Hrtx HD
   inext
   iintro HR
   (try wp_auto)
   iapply HΦ
-  iframe HR
+  iframe HR HL
   iexists D
   iframe Hu
   ipureintro; exact ⟨Hwf, HΦD⟩
