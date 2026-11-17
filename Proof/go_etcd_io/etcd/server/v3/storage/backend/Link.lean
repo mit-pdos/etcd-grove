@@ -510,7 +510,7 @@ theorem batchTxBuffered.wp_UnsafeDeleteBucket :
 
 theorem bbolt.Bucket.wp_Put_kv :
     EtcdGrove.bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Bucket.Put_kv.wp_proof
+  EtcdGrove.bbolt.Bucket.Put_kv.wp_proof bbolt.Bucket.wp_Put
 
 theorem batchTx.wp_unsafePut :
     EtcdGrove.backend.batchTx.unsafePut.spec (GF := GF) (hG := hG) :=

@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.Close()` by the owner of the committed data, when the environment's calls do not fail:
 `nil`, and the file of inode `i` given back holding `D`, unless the file was given up before
-(`boltNoFile`: an earlier `DB.Close`; a mapping bbolt leaked when `madvise`, which the model lets
-fail with any errno and no premise on the file system's steps constrains, failed after a remap's
-`mmap`; or a partial last page, which a write's failure would leave and the premises exclude, but
-the proof does not use them there). -/
+(`boltNoFile`: an earlier `DB.Close`, which keeps the file; a mapping bbolt leaked when a remap's
+`munmap`, or `madvise` after its `mmap`, failed (failures `NoMapLockErr` excludes since session S3d
+made `madvise` a step, but the leak is recorded without the failed step's evidence); or a partial last
+page, which a write's failure would leave; `notes/bbolt-integration-plan.md`, Log, "S3d"). -/
 abbrev DB.Close_ownNoErr.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)],

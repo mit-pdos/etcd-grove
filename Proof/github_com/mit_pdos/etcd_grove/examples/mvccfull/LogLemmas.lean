@@ -273,7 +273,7 @@ theorem txn_good (ks : List GoString) (M : GMap GoString kvRec) (rev : w64) (L :
       by_cases h0 : b.kind = W64 0
       · simp only [h0, ↓reduceIte]
         have hb1 := (hs.1 b hbm h0)
-        refine ⟨hg.put _ _ _ hb1.1 ?_, hls.put _ _ _ hb1.2, ?_⟩
+        refine ⟨hg.put _ _ _ hb1.1 ?_, hls.put _ _ _ hb1.2.1, ?_⟩
         · intro _ hin
           obtain ⟨c, hc, hck⟩ := List.mem_map.1 hin
           obtain ⟨i, hi, a, ha, hor⟩ := hpv c hc
@@ -314,6 +314,80 @@ theorem txn_good (ks : List GoString) (M : GMap GoString kvRec) (rev : w64) (L :
               exact ⟨j, by omega, b, hb, Or.inr ⟨rfl, h1, (mem_delKeys hx).2.2⟩⟩
         · simp only [h1, ↓reduceIte]; exact ⟨hg, hls, hpv.mono (by omega)⟩
 
+/-! ## The pending puts' sizes (S1b, 2026-11-17)
+
+Every put of a revision the tester's log makes has a key and a value of at most `etcdKeyMax` bytes
+(`opValid`'s, `subsOk`'s), what `MvccReachable.notify` takes of a revision. -/
+
+/-- **The pending model's puts are short.** -/
+def PVals (P : PendM) : Prop := ChPutsLe etcdKeyMax (P.chs.map toChange)
+
+theorem PVals.start (M : GMap GoString kvRec) (rev : w64) : PVals ⟨rev, M, []⟩ :=
+  ChPutsLe.nil _
+
+theorem PVals.put {P : PendM} (h : PVals P) {k v : GoString} (l : w64)
+    (hk : k.length ≤ etcdKeyMax) (hv : v.length ≤ etcdKeyMax) : PVals (P.put k v l) := by
+  unfold PVals
+  simp only [PendM.put, List.map_append, List.map_cons, List.map_nil, toChange_put]
+  exact ChPutsLe.append_put h l hk hv
+
+theorem PVals.del {P : PendM} (h : PVals P) (keys : List GoString) (endNil : Bool)
+    (kk e : GoString) : PVals (P.del keys endNil kk e) := by
+  unfold PVals
+  rw [PendM.del_chs, List.map_append, List.map_map]
+  have : (toChange ∘ delChange) = Change.del := funext toChange_delChange
+  rw [this]
+  exact ChPutsLe.append_dels h _
+
+theorem PVals.delOne {P : PendM} (h : PVals P) (k : GoString) : PVals (P.delOne k) := by
+  unfold PVals
+  simp only [PendM.delOne, List.map_append, List.map_cons, List.map_nil, toChange_delChange]
+  exact ChPutsLe.append_dels h [k]
+
+theorem PVals.foldl_delOne : ∀ (l : List GoString) (P : PendM), PVals P → PVals (l.foldl PendM.delOne P)
+  | [], _, h => h
+  | k :: l, P, h => PVals.foldl_delOne l _ (h.delOne k)
+
+theorem PVals.foldl_subStep (ks : List GoString) (subs : List SubM)
+    (hs : ∀ x ∈ subs, x.kind = W64 0 → x.key.length ≤ etcdKeyMax ∧ x.val.length ≤ etcdKeyMax) :
+    ∀ P : PendM, PVals P → PVals (subs.foldl (subStep ks) P) := by
+  induction subs with
+  | nil => intro P h; exact h
+  | cons x subs ih =>
+    intro P h
+    simp only [List.foldl_cons]
+    apply ih (fun y hy => hs y (List.mem_cons_of_mem _ hy))
+    unfold subStep
+    split
+    · rename_i h0
+      exact h.put _ (hs x (List.mem_cons_self ..) h0).1 (hs x (List.mem_cons_self ..) h0).2
+    · split
+      · exact h.del _ _ _ _
+      · exact h
+
+/-- **A valid operation's revision puts short keys and values.** -/
+theorem opPend_vals (ks : List GoString) (s : MSt) (o : OpM) (hv : opValid ks s o) :
+    PVals (opPend ks s o) := by
+  have hP0 := PVals.start (lastSt s.hs) (W64 (s.hs.length : Int))
+  obtain ⟨-, -, hvp, hvt, -⟩ := hv
+  unfold opPend
+  dsimp only
+  split
+  · rename_i h0
+    exact hP0.put _ (hvp h0).2.2.1 (hvp h0).2.2.2
+  split
+  · exact hP0.del _ _ _ _
+  split
+  · rename_i h2
+    split
+    · rename_i hw
+      exact PVals.foldl_subStep ks o.subs
+        (fun x hx h0 => ⟨((hvt h2 hw).1 x hx h0).2.2.1, ((hvt h2 hw).1 x hx h0).2.2.2⟩) _ hP0
+    · exact hP0
+  split
+  · exact PVals.foldl_delOne _ _ hP0
+  · exact hP0
+
 /-! ## One operation's revision -/
 
 /-- The live leases after an operation. -/
@@ -335,7 +409,7 @@ theorem opPend_good (ks : List GoString) (s : MSt) (o : OpM) (hv : opValid ks s 
   · have hg : ¬ o.kind = kGrant := by rw [h0]; decide
     have hr : ¬ o.kind = kRevoke := by rw [h0]; decide
     simp only [eq_true h0, hg, hr, ↓reduceIte]
-    obtain ⟨hk, hle⟩ := hvp h0
+    obtain ⟨hk, hle, -⟩ := hvp h0
     exact ⟨hP0.put _ _ _ hk (fun _ => by simp), LeaseSt.put hl _ _ _ hle⟩
   by_cases h1 : o.kind = kDelete
   · have hg : ¬ o.kind = kGrant := by rw [h1]; decide
@@ -671,7 +745,7 @@ theorem mInv_step (ks : List GoString) (s : MSt) (o : OpM) (hI : MInv ks s)
             ((⟨(logOfHist s.hs), s.crev, none⟩ : MvccState).notify (P.chs.map toChange)).commitPending := by
           simp [MvccState.notify, MvccState.commitPending, commitLog, hpne]
         rw [heq]
-        exact MvccReachable.commit _ (MvccReachable.notify _ _ h3 rfl hwf)
+        exact MvccReachable.commit _ (MvccReachable.notify _ _ h3 rfl hwf (hP ▸ opPend_vals ks s o hv))
 
 /-- **The invariant along a valid log.** -/
 theorem runM_inv (ks : List GoString) (ops : List OpM) (h : logOk ks ops) :

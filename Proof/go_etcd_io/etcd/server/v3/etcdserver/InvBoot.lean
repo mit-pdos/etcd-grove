@@ -608,7 +608,8 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] []
   · ipureintro
     exact ⟨rfl, rfl, Hnn.1, Hnn.2⟩
-  · iapply epCsOk_of_csOptA $$ Hcs
+  · iapply (epCsOk_of_csOptA _ memSnapEmpty.Metadata'.ConfState'
+      (by simp [storage.csIdCount, memSnapEmpty])) $$ Hcs
   · iexact Hnone
   · iexact Hinv0
 

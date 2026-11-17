@@ -93,6 +93,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
+    -- (S1b, 2026-11-17) the snapshot's conf state of at most `storage.csIdMax` ids (its voters':
+    -- `snap_csIdCount`), as `ep.confState` keeps it (`epCsOk`)
+    (hcsz : storage.csIdCount sv.Metadata'.ConfState' ≤ storage.csIdMax)
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)

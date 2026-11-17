@@ -38,7 +38,7 @@ private theorem mainConfig_ok (mx : Mix) :
     unfold cblOf; exact if_pos (show (0 : Int) < sint.Z (W64 2) by decide)
   have hdep : (normalizeM (mainConfigM go!"mvccfull" mx)).Depth' = W64 4 := by
     unfold normalizeM mainConfigM; rfl
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · unfold readMixOk; refine ⟨by decide, ⟨0, by decide, by decide⟩, by decide⟩
   · show (0 : Int) ≤ sint.Z (W64 12000); decide
   · show sint.Z (W64 12000) < 2 ^ 38; decide
@@ -46,6 +46,9 @@ private theorem mainConfig_ok (mx : Mix) :
   · rw [hlim]; decide
   · rw [hcbl]; unfold mvcc.batchLimitOk; decide
   · rw [hdep, show sint.nat (W64 4) = 4 by decide, hk]; decide
+  · show sint.Z (mainConfigM go!"mvccfull" mx).MaxVal' ≤ 2 ^ 20
+    rw [show (mainConfigM go!"mvccfull" mx).MaxVal' = W64 5000 from rfl]; decide
+  · rw [hdep]; decide
 
 theorem Main.wp_proof
     (wp_MainConfig : MainConfig.spec (GF := GF) (hG := hG))

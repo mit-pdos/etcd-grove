@@ -128,14 +128,16 @@ local macro "del_range_tail" : tactic => `(tactic| (
           omega
         wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj L crev Z)
           $$ [$(frameH `Htx) $(frameH `Hkj) $(frameH `Hown)] as ⟨Htx, Hown⟩
-        · ipureintro
-          rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
-              (pend ++ (ks.take j).map .del) =
-            mvcc.applyChanges (W64 (ilog.length : Int))
-              (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
-              ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
-          rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
-          exact hpres kj hmem
+        · isplitr
+          · ipureintro
+            rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
+                (pend ++ (ks.take j).map .del) =
+              mvcc.applyChanges (W64 (ilog.length : Int))
+                (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
+                ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
+            rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
+            exact hpres kj hmem
+          · ipureintro; exact mvcc.findKey_key_le _ Hfit.1 Hfit.2 (hpres kj hmem)
         (try wp_auto)
         wp_for_post
         (try wp_auto)
@@ -167,7 +169,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key endk k e L crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend, Hown⟩
+  wp_start as ⟨Htw, #Hkey, #Hend, Hown, %Hfit⟩
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

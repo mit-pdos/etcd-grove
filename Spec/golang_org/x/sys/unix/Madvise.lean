@@ -2,7 +2,8 @@
 `unix.Madvise(b, advice)` with a paging hint (`MADV_NORMAL`, `MADV_RANDOM`, `MADV_SEQUENTIAL`,
 `MADV_WILLNEED`; minibolt passes `MADV_RANDOM`) (this repository's `golang.org/x/sys/unix`,
 project `bboltfs`): the model (`TrustedCode/golang_org/x/sys/unix.lean`) returns `nil` or an
-arbitrary `Errno`, with no effect. Proved in `Proof/golang_org/x/sys/unix/Madvise.lean`.
+arbitrary `Errno`, with no effect (the extension's `Madvise` step, since 2026-11-17: hence `osInv`).
+Proved in `Proof/golang_org/x/sys/unix/Madvise.lean`.
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -29,8 +30,8 @@ variable [golang_org.x.sys.unix.Assumptions]
 
 /-- See the file header. -/
 abbrev golang_org.x.sys.unix.Madvise.spec : Prop :=
-  ∀ (sl : GoSlice) (advice : w64), advice.toNat ≤ 3 →
-  {{ (emp : IProp GF) }}
+  ∀ (sl : GoSlice) (advice : w64), advice.toNat ≤ 3 → 0 ≤ sl.len.toInt →
+  {{ osInv (GF := GF) }}
     (App (App (Val (@! golang_org.x.sys.unix.Madvise)) (Val #sl)) (Val #advice))
   {{ (e : w64), RET #(errnoErr e); emp }}
 

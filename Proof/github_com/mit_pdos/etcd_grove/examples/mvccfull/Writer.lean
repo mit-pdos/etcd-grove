@@ -305,7 +305,19 @@ def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h :
     ctrInv (readersN .@ "compactions") (rF go!"compactions" x) ∗
     ctrInv (readersN .@ "restores") (rF go!"restores" x) ∗
     ctrInv (readersN .@ "restarts") (rF go!"restarts" x) ∗
-    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38 ∧ ks.length < 2 ^ 60⌝)
+    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38 ∧ ks.length < 2 ^ 60 ∧
+      (∀ k ∈ ks, k.length ≤ etcdKeyMax) ∧ 0 ≤ sint.Z cfg.MaxVal' ∧ sint.Z cfg.MaxVal' ≤ 2 ^ 20⌝)
+
+/-- (S1b, 2026-11-17) **The writer's sizes**: its keys of at most `etcdKeyMax` bytes, its values'
+padding of at most `2 ^ 20` (`Run`'s `runCfgOk`). -/
+theorem writerCtx_bounds (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc)
+    (γh : HistNames) :
+    writerCtx (GF := GF) x ks cfg wr h γh ⊢
+      ⌜(∀ k ∈ ks, k.length ≤ etcdKeyMax) ∧ 0 ≤ sint.Z cfg.MaxVal' ∧ sint.Z cfg.MaxVal' ≤ 2 ^ 20⌝ := by
+  iintro H
+  iunfold writerCtx at H
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hc⟩
+  ipureintro; exact Hc.2.2.2
 
 instance writerCtx_persistent (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
     (h : Loc) (γh : HistNames) : Persistent (writerCtx (GF := GF) x ks cfg wr h γh) := by

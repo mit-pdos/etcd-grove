@@ -410,6 +410,116 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `fmt.Errorf` added too. Remaining of the old boundary: `bbolt.{Open_kv, DB.Close_kv,
     Bucket.Put_kv}.wp_proof`, `backend.{fileHolds, dbFile, dbFile_persistent, dbFile_timeless}`, the
     options' axioms (S2).
+* 2026-11-17: **S3d, `Open`/`Close` with no error** (session `bbolt-open-noerr`, branch `bbolt-open-noerr`
+  off `bbolt-integrate` `4511e2dcd1`). Done: item 1 (`open` with no free fd, `os.OpenFile.specCreateSNoErr`),
+  item 2's semantics and premise (`madvise` a step, covered by `NoMapLockErr`), not its strengthened
+  `DB.Close_ownNoErr`; item 3 (`Open_sharedNoErr.spec`) **not done: as written it is false**, below. No new
+  `axiom` or `sorry`, no closed theorem's statement changed. `notes/decisions.md`, "fsExt: `open` with no
+  free fd does not return (a premise, not a stall rule); `madvise` a step of the extension".
+  - **`open` with no free fd** (premise, `Premises.lean`, pending review; Go example
+    `premise_no_map_lock_err.go`): `NoMapLockErr`'s new clause, `MapLockCovers "Open"` (a covered path,
+    no free fd) and `MapLockOk "Open"` (`EINTR`, fd `-1`, or errno 0): the models retry `EINTR`, so the
+    call does not return out of fds. Not a stall rule in `FsStep`: that makes `open` non-atomic, and
+    every tree lifting lemma and ~10 crash-aware `wp_atomic` proofs of `open` would need re-proving; the
+    premise has the same meaning and changes nothing proved. `noMapLockErr_keeps`,
+    `noIoErr_noMapLockErr_keeps` re-proved (`isFsStep_open_eintr`, `IoSet.all`, `openCovers_io`).
+  - **The framework S3c drafted** (all public, statements of the old lemmas unchanged, each now an
+    instance): `wp_fs_stepMX` (`World.lean`: the continuation gets `FsStepV ∧ ExtSemantics.step`),
+    `wp_logStepSWGQ`/`wp_logStepSWQ` (`TreeSharedLog.lean`: `hpost` gets the semantics' step),
+    `wp_osOpenCreateSQ` and `wp_osOpenFileSQ` (`TreeSharedCreate.lean`: generic in a failure's errno
+    `Pe`, from `hpe`). `NoErrSpecsOpenFile.lean`: `open_failure_eintr` (a covered `open` that succeeds
+    from every free fd fails only with `EINTR`), `openCreate_succ`, `openFile_succ`, and the
+    extension-level `wp_osOpenCreateSNE`, `wp_osOpenFileSNE` (a failure is `EINTR`).
+  - **`os.OpenFile.specCreateSNoErr`** (`Spec/os/OpenFileSNoErr.lean`, proof `Proof/os/OpenFileSNoErr.lean`):
+    `∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)] d b flag perm R j dq h q r qc Q,
+    Sio.path (child d b) →` `specCreateS`'s premises `→ {{ specCreateS's pre }} os.OpenFile(d/b, flag, perm)
+    {{ f err. osPathS R d dq j ∗ osCallPerm qc ∗ ∃ o, Q o ∗ crOut j b h (own q) o ∗ crMeta o ∗ ∃ fd i,
+    ⌜err = nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗ os.ownFile f fd (child d b) (own 1) ∗ os.ownOff f 0 ∗
+    osFd fd (own 1) (openFd i (flag ||| O_CLOEXEC)) }}` (`specCreateS` without the error disjunct; the
+    loop's proof `wp_proofCreateSnc`'s over the error-free steps, every error exit a contradiction).
+  - **`madvise`** (trusted semantics, `Impl.lean`, and model, `unix.lean`; pending review; Go example
+    `map_madvise.go`): the extension's `"Madvise"` (no change, any errno; `DataOp`, `FsRetOp`), which
+    `unix.Madvise`'s model calls for a non-empty slice; `MapLockCovers "Madvise"` (at the base of a
+    mapping of a covered file), `MapLockOk` errno 0. `GooseLang/Ext/Fs/Madvise.lean`: `wp_osMadviseG`,
+    `wp_osMadvise`, `wp_osMadviseNE`. **`unix.Madvise.spec` changed** (its pre `emp` → `osInv`, and the
+    premise `0 ≤ sl.len.toInt`): its callers (bbolt's `mmapF`, minibolt's `DB.mmap`, `DB.mmapCrash`)
+    pass them. New `unix.Madvise.specNoErr` (`Spec/golang_org/x/sys/unix/MadviseNoErr.lean`: a mapping's
+    base, `nil`).
+  - **`DB.Close_ownNoErr.spec` not strengthened** (for the coordinator): its post `⌜err = nil⌝ ∗
+    fileHolds i D` with no escape is **unprovable with the present `DB.Close.spec`**, `madvise` aside.
+    `boltNoFile` has four sources, and only `madvise`'s is the premises' now: (1) an earlier plain
+    `DB.Close` (`DB.Close.spec`'s pre is only `isBolt db γ`, persistent: another thread may close the
+    database while the caller holds `boltState γ 1 D`; it gives the file up, `junkRes_shut`), (2) a
+    remap's failed `munmap` and (3) `madvise`'s failure after `mmap` (leaks, `junkRes_leak`, recorded
+    without evidence of the failed step), (4) a partial last page from a failed chunked write (which
+    `EFBIG` at `maxBytes` can cause under the premises, `wdbOK`'s size bound being `2 ^ 62`). What it
+    needs: (1) `DB.Close` stashing the file's resources in `closedR` (`fileHolds i C` for the committed
+    `C`, or `⌜¬ FsNoErr⌝`) for a later `Close_own` to take with `boltState`; (2)-(3) each leak recording
+    `⌜¬ FsNoErr⌝` (the `munmap`/`madvise` specs' failure arm with the step's evidence, `wp_os_stepX`);
+    (4) a write bound `≤ maxBytes` or the partial page's `⌜¬ FsNoErr⌝`. An invariant redesign of
+    `DB.Close`, the remap and `Commit`'s writes.
+  - **`Open_sharedNoErr.spec` not stated** (for the coordinator): **`err = nil` is false as written**,
+    beyond the environment's errors, for four reasons the options and the file allow: (a) `flock`'s
+    `ErrTimeout` (`Options.Timeout` is untracked, `OptsM`; with another description holding the lock,
+    which no proof-level fact excludes, `Open` times out when `Timeout ≠ 0`; `0`, etcd's, loops);
+    (b) `mmap too large` (`mmapSize` of `max(file size, InitialMmapSize)` above `maxMapSize = 2 ^ 48 - 1`:
+    `InitialMmapSize` is untracked, and `fileHolds` bounds the file only by `2 ^ 62`); (c) the
+    `Begin`/`Commit` path (`!NoFreelistSync && !hasSyncedFreelist()`: `NoFreelistSync` untracked, and a
+    `Commit` with no error needs its own error-free proof: `write`'s `WriteAt`, `fdatasync`, the remap's
+    `munmap`/`mmap`/`madvise`, `DB.grow`); (d) none of `Open`'s callee specs used by `Open.wp_proofG`
+    (`flock.spec`, `DB.init.spec`, `DB.getPageSize.spec_own`, `DB.metasZero.spec_own`,
+    `DB.mmapUnlocked.spec_own`, `fdatasync.spec`, `Begin_err`, `Commit_err`) has an error-free variant
+    yet; each is a generic-in-the-errors re-proof as S3a/S3c did. A provable statement:
+    `Open_shared.spec`'s under the premises (`∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat
+    (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) → (∀ p, Sio.path p) →`), with options known beyond `OptsM`
+    (`Timeout = 0`, `InitialMmapSize ≤ maxMapSize`, `NoFreelistSync = true`: e.g. a pre `opts ↦{dqo} v ∗
+    ⌜optsVal v o ∧ v.Timeout' = 0 ∧ …⌝` in place of `optsAt`, which the backend's `boltOpenOptions`
+    meets: etcd sets `NoFreelistSync: true` and leaves `Timeout` 0) and the file's size bounded
+    (`≤ maxMapSize`: a new law or predicate of the sealed `fileHolds`), with the post `err = nil`.
+* 2026-11-17, **S1b** (branch `bbolt-putbound`): **`bbolt.Bucket.Put_kv` a theorem**, the backend's last
+  in-memory bbolt axiom. The proved `Bucket.Put` takes `kb.length + vb.length ≤ bboltEntryMax` (`2 ^ 28`); the
+  bound is threaded from where it is known (the request check, the hooks' conf state, the tester's
+  generators), with no closed theorem gaining a premise. Changed statements:
+  - **bbolt/backend.** `bbolt.Bucket.Put_kv.spec`: premise `kb.length + vb.length ≤ bbolt.bboltEntryMax`, one
+    outcome (`nil`, the entry set; the `ErrValueTooLarge` case gone); proof over `bbolt.Bucket.Put`
+    (`etc/link-lean-first-backend.txt`). `backend.batchTx.{unsafePut, UnsafePut, UnsafeSeqPut}`,
+    `backend.batchTxBuffered.{UnsafePut, UnsafeSeqPut}`: the same premise.
+  - **The constant.** `etcdKeyMax` `2 ^ 27` → `2 ^ 27 - 2 ^ 19` (the request check's bound,
+    `etcdMaxRequestBytesOk`), so that a key and a value, encoded, fit an entry; in place of the proposed
+    sum bounds (no change to `ChPutsLe`, `irrPutsLe`, `TxnOp.putsLe` or `MarshalIRR`). Ledger entry.
+  - **Trust boundary, two length facts** (approved by the coordinator; ledger entries):
+    `proto.Marshal.spec` (KeyValue): post `(kvEncode kv).length ≤ key + value + 128`;
+    `schema.MustUnsafeSaveConfStateToBackend.spec`: premise `storage.csOkN n cs`, the callback's
+    `vb.length ≤ 25 * n + 128`.
+  - **mvcc.** `MvccReachable.notify` requires `ChPutsLe etcdKeyMax pend` (`reach_putsLe`: a reachable
+    state's log and notified log put short keys and values); the write handle (`mvccTxnI .write`) carries
+    `ChPutsLe etcdKeyMax pend` (law `mvccTxn_write_putsLe`, proved in `Api.lean`); `KV.Put.contract`,
+    `Txn.Put.contract`: premise `k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax`. Internal:
+    `storeTxnWrite.{put, Put}`, `metricsTxnWrite.Put`, `writeView.Put` (the same premise),
+    `storeTxnWrite.delete` (`k.length ≤ etcdKeyMax`), `storeTxnWrite.{deleteRange, DeleteRange}`,
+    `metricsTxnWrite.DeleteRange` (`LogPutsLe etcdKeyMax ilog ∧ ChPutsLe etcdKeyMax pend`),
+    `writeView.DeleteRange` (the log's bound from the index certificate); `keyPutOk` (the bridge's put
+    condition) has the entry bound; `meta_entry_fits` (compaction records).
+  - **The server's txn and apply.** `txn.put`: `o.key ≤ etcdKeyMax ∧ (¬ ignoreValue → o.val ≤ etcdKeyMax)`
+    (an `IgnoreValue` put's stored value bounded by the write handle's law); `txn.Put`: both;
+    `txn.executeTxn`, `txn.txn`: every operation of the branch `putsLe etcdKeyMax`; `txn.Txn.specSole`:
+    `TxnPreA log t ∧ t.putsLe etcdKeyMax`. `apply.putPre`/`putPreW`/`txnPre`/`txnPreW` and `apply.rqOk`,
+    `rqSmall` carry the request's bound; `rqSmall_of_small` takes `irrPutsLe etcdKeyMax rq`, from the KV
+    invariant's `logPutsOk` (`entryOk_of_shape`, `entryOkOn_of_shape` take `entryPutsOk m`).
+    `EtcdServer.apply.spec`, `EtcdServer.applyEntries.spec`: premise `logPutsOk` of the batch;
+    `EtcdServer.applyAll.specBatch`: the same in its pure part; `clusterWorkloadOk(M)`, `srvC(M)`: also
+    `logPutsOk L` (from `kvWork`'s).
+  - **The conf state.** `storage.csIdCount`, `csIdMax = 2 ^ 20`, `csOkN`; `csInv` keeps `csOkN csIdMax`;
+    `BackendHooks.SetConfState.spec` takes it; `epCsOk` carries `csIdCount c ≤ csIdMax`
+    (`epCsOk_of_csOptA` takes it); `EtcdServer.applyConfChange.spec`: premise
+    `GMap.size γs.raft.cfg ≤ 2 ^ 20` (`srvApRes_cfg_size`); `EtcdServer.applySnapshot.specSnapM`: premise
+    `csIdCount sv.Metadata'.ConfState' ≤ csIdMax` (`snap_csIdCount`, from the certificate);
+    `restart_snapOnceR`: premise `GMap.size γr.raft.cfg ≤ 2 ^ 20`.
+  - **Examples.** mvccrand: values `"v" ++ itoa n` (`newVal_short`). mvccfull: `runCfgOk` gains
+    `MaxVal ≤ 2 ^ 20 ∧ Depth ≤ 2 ^ 20` (`Main`'s `MainConfig`: `5000`, `4`); `writerCtx`'s last pure part,
+    `runner.newVal.spec` (premise `0 ≤ MaxVal ≤ 2 ^ 20`, post `v.length ≤ etcdKeyMax`),
+    `runner.genSubs.spec` (the keys' and `MaxVal`'s bounds), `runner.writeSub.spec`, `opValid`'s put
+    clause and `subsOk`'s (key and value `≤ etcdKeyMax`); the model's `PVals`/`opPend_vals`.
 
 ### S3e (branch `bbolt-files-backend`, off `bbolt-integrate` `4511e2dcd1`, 2026-11-17): the backend's database files over the file model
 

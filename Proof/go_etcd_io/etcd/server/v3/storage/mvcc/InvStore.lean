@@ -1796,12 +1796,13 @@ def noPutCond : Bucket → Puts → GoString → GoString → Prop := fun _ _ _ 
 /-- **The real backend's condition on a put** (`BackendBridge.lean`): at most `2^56` puts in a
 session (the backend's bound on a session's operations), a key of `1..MaxKeySize` bytes above
 every key of the bucket `m` and of the session's puts `l` (the safe-range discipline of the
-`Key` bucket, and `UnsafeSeqPut`'s order check). (No bound on the value: bbolt refuses one above
-`MaxValueSize` and the backend's `lg.Fatal` exits:
-`nonissues/etcd-backend-put-value-too-large-fatal.md`.) -/
-def keyPutOk (m : Bucket) (l : Puts) (k _v : GoString) : Prop :=
+`Key` bucket, and `UnsafeSeqPut`'s order check), and (stage S1b of
+`notes/bbolt-integration-plan.md`, 2026-11-17) the entry of at most `bboltEntryMax` bytes, bbolt's
+bound on what it stores (until then no bound on the value). -/
+def keyPutOk (m : Bucket) (l : Puts) (k v : GoString) : Prop :=
   l.length < 2 ^ 56 ∧ 0 < k.length ∧ k.length ≤ backend.maxKeySize ∧
-    (∀ k' v', m.lookup k' = some v' → go.GoStringLt k' k) ∧ ∀ p ∈ l, go.GoStringLt p.1 k
+    (∀ k' v', m.lookup k' = some v' → go.GoStringLt k' k) ∧ (∀ p ∈ l, go.GoStringLt p.1 k) ∧
+    k.length + v.length ≤ bbolt.bboltEntryMax
 
 /-- The store's batch transaction contract over mvcc's assumed backend: no tokens, no condition
 on the puts, the compaction's calls. -/
@@ -2390,7 +2391,7 @@ theorem pendPuts_length_le (ilog : Log) (pend : List Change) :
 the next position, above the bucket's keys and the pending puts' (`RevOrder.lean`). -/
 theorem storePutOk_next (γ : StoreNames) (ilog : Log) (pend : List Change) (t : Bool)
     (d : GoString) (hlen : ilog.length < 2 ^ 63) (hcs : ∀ cs ∈ ilog, cs.length < 2 ^ 63)
-    (hp : pend.length + 1 < putMax γ) :
+    (hp : pend.length + 1 < putMax γ) (hd : d.length + 18 ≤ bbolt.bboltEntryMax) :
     storePutOk γ (bucketMap ilog) (pendPuts ilog pend)
       (revBytes ⟨W64 ilog.length, W64 pend.length⟩ t) d := by
   unfold storePutOk kbPutOk
@@ -2401,11 +2402,12 @@ theorem storePutOk_next (γ : StoreNames) (ilog : Log) (pend : List Change) (t :
     rw [hkb] at hp
     simp only at hp ⊢
     have hk := RevOrder.revBytes_keyOk ⟨W64 ilog.length, W64 pend.length⟩ t
-    refine ⟨by have := pendPuts_length_le ilog pend; omega, hk.1, hk.2, ?_, ?_⟩
+    refine ⟨by have := pendPuts_length_le ilog pend; omega, hk.1, hk.2, ?_, ?_, ?_⟩
     · intro k' v' h
       exact RevOrder.bucketMap_lt_next ilog pend t hlen hcs h
     · intro p hp'
       exact RevOrder.pendPuts_lt_next ilog pend t (by omega) hp'
+    · rw [revBytes_length]; split <;> omega
 
 /-- The backend's put condition holds of a bucket with fewer entries (M2's item 15: the view's
 bucket, thin of the log's). -/
@@ -2419,8 +2421,8 @@ theorem storePutOk_mono (γ : StoreNames) (M m : Bucket) (l : Puts) (k d : GoStr
     rw [hkb] at h
     simp only at h ⊢
     unfold keyPutOk at *
-    obtain ⟨a, b, c, e, f⟩ := h
-    exact ⟨a, b, c, fun k' v' h' => e k' v' (hm _ _ h'), f⟩
+    obtain ⟨a, b, c, e, f, g⟩ := h
+    exact ⟨a, b, c, fun k' v' h' => e k' v' (hm _ _ h'), f, g⟩
 
 instance bucketView_fractional (γ : StoreNames) (m : Bucket) :
     Fractional (fun q => bucketView (GF := GF) γ q m) where

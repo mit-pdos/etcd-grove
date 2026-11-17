@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchModel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 
 @[expose] public section
 
@@ -56,12 +57,15 @@ def MvccState.compactTo (σ : MvccState) (r : Int) : MvccState := { σ with crev
 def mvccStart : MvccState := ⟨[[], []], -1, none⟩
 
 /-- **The states a store goes through**: from `mvccStart`, a commit's two steps (of well-formed
-changes, each delete of a key present: `LogWf`), compactions to a revision above the last and at
-most the current one. -/
+changes, each delete of a key present: `LogWf`; each put of a key and a value of at most
+`etcdKeyMax` bytes, `ChPutsLe`: stage S1b of `notes/bbolt-integration-plan.md`, 2026-11-17, what
+lets the store write an entry, a tombstone or a kept value, that bbolt can hold), compactions to a
+revision above the last and at most the current one. -/
 inductive MvccReachable : MvccState → Prop
   | start : MvccReachable mvccStart
   | notify (σ : MvccState) (pend : List Change) :
-      MvccReachable σ → σ.pending = none → LogWf (σ.log ++ [pend]) → MvccReachable (σ.notify pend)
+      MvccReachable σ → σ.pending = none → LogWf (σ.log ++ [pend]) → ChPutsLe etcdKeyMax pend →
+      MvccReachable (σ.notify pend)
   | commit (σ : MvccState) : MvccReachable σ → MvccReachable σ.commitPending
   | compact (σ : MvccState) (r : Int) :
       MvccReachable σ → σ.pending = none → 1 ≤ r → σ.crev < r → r ≤ (σ.rev : Int) →
@@ -261,7 +265,7 @@ private theorem reach_logWf_aux : ∀ σ : MvccState, MvccReachable σ →
       · simp at hr; subst hr; simp at hi
       · simp at hr
     exact ⟨this, this⟩
-  | notify σ pend _ hp hwf ih =>
+  | notify σ pend _ hp hwf _ ih =>
     refine ⟨ih.1, ?_⟩
     rw [MvccState.notify_notifiedLog]
     unfold commitLog
@@ -291,6 +295,47 @@ private theorem reach_logWf_aux : ∀ σ : MvccState, MvccReachable σ →
 theorem reach_logWf (σ : MvccState) (h : MvccReachable σ) :
     LogWf' σ.log ∧ LogWf' σ.notifiedLog :=
   ⟨LogWf'.of_wf (reach_logWf_aux σ h).1, LogWf'.of_wf (reach_logWf_aux σ h).2⟩
+
+
+/-- The invariant `reach_putsLe` follows from (S1b). -/
+private theorem reach_putsLe_aux : ∀ σ : MvccState, MvccReachable σ →
+    LogPutsLe etcdKeyMax σ.log ∧ LogPutsLe etcdKeyMax σ.notifiedLog := by
+  intro σ h
+  induction h with
+  | start =>
+    have : LogPutsLe etcdKeyMax mvccStart.log := LogPutsLe.empties _
+    exact ⟨this, by simpa [MvccState.notifiedLog, mvccStart] using this⟩
+  | notify σ pend _ hp _ hc ih =>
+    refine ⟨ih.1, ?_⟩
+    rw [MvccState.notify_notifiedLog]
+    unfold commitLog
+    split
+    · exact ih.1
+    · exact ih.1.snoc hc
+  | commit σ _ ih =>
+    have hc : σ.commitPending.notifiedLog = σ.commitPending.log := by
+      simp [MvccState.commitPending, MvccState.notifiedLog]
+    have hl : LogPutsLe etcdKeyMax σ.commitPending.log := by
+      have h2 := ih.2
+      simp only [MvccState.commitPending]
+      unfold MvccState.notifiedLog at h2
+      unfold commitLog
+      cases hpd : σ.pending with
+      | none => simpa [hpd] using ih.1
+      | some p =>
+        rw [hpd] at h2
+        by_cases hp : p = []
+        · simpa [hp] using ih.1
+        · simpa [hp] using h2
+    exact ⟨hl, hc ▸ hl⟩
+  | compact σ r _ _ _ _ _ ih =>
+    exact ih
+
+/-- **A reachable state's puts are short** (S1b, 2026-11-17): every key and value its history and
+its notified history put is at most `etcdKeyMax` bytes. -/
+theorem reach_putsLe (σ : MvccState) (h : MvccReachable σ) :
+    LogPutsLe etcdKeyMax σ.log ∧ LogPutsLe etcdKeyMax σ.notifiedLog :=
+  reach_putsLe_aux σ h
 
 
 end api

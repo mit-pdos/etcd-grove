@@ -2028,3 +2028,26 @@ the coordinator's review.
   readers), 2 (the synced freelist page a store slot), 3 (`pread` of store slots inside
   `pagesInv`: a `ReadAt` spec whose held bytes are opened from an invariant around each `pread`),
   5 (`WriteFlag`), 6 (`io.CopyN`/`SectionReader` specs) stand as S4a recorded them.
+
+## S3d: `open` and `madvise` without errors; what `Open`/`Close` with no error still need (2026-11-17)
+
+Session `bbolt-open-noerr` (`notes/bbolt-integration-plan.md`, Log, "S3d"). Decided by the session, **for
+the user's review** where marked.
+
+- **D-N1. `open` with no free fd: a premise clause, not a stall rule** (for the user's review;
+  `notes/decisions.md`, "fsExt: `open` with no free fd does not return"). `NoMapLockErr` asks a covered
+  `open` with no free fd to fail with `EINTR`, which the models retry: the call does not return. Kept
+  `open` atomic and every proof of it unchanged.
+- **D-N2. `madvise` a step of `fsExt`** (for the user's review): the model's outcomes kept (any errno, no
+  change), the premise covers a mapping of a covered file. `unix.Madvise.spec` takes `osInv` and
+  `0 ≤ sl.len.toInt` (its three callers updated); `unix.Madvise.specNoErr` new.
+- **D-N3. `os.OpenFile.specCreateSNoErr` covers one path** (`Sio.path (child d b)`), not every path:
+  the premise is only needed on the name opened.
+- **D-N4. `DB.Close_ownNoErr.spec` keeps its statement** (for the coordinator): the requested post
+  `⌜err = nil⌝ ∗ fileHolds i D` is unprovable while a plain `DB.Close` (pre `isBolt db γ` only) can give
+  the file up under the caller's `boltState`; and a remap's leaks and a partial last page carry no
+  evidence of a failed step. The design of the fix is in the Log.
+- **D-N5. `Open_sharedNoErr.spec` not stated** (for the coordinator): with `Timeout`, `InitialMmapSize`,
+  `NoFreelistSync` untracked by `OptsM` and the file's size bounded only by `2 ^ 62`, `Open` returns
+  `ErrTimeout`, `mmap too large`, or `Commit`'s errors without any error of the environment, so
+  `err = nil` is false for some states its pre allows. The provable statement is in the Log.

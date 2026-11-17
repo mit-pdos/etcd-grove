@@ -910,6 +910,9 @@ theorem mvcc.rt_locked [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
     (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) cl
 
+theorem mvcc.meta_entry_fits {k v : GoString} (hk : mvcc.metaCompactKey k) (hv : mvcc.metaRevVal v)
+    : List.length k + List.length v ≤ bbolt.bboltEntryMax
+
 theorem mvcc.lastVal_sorted {es : List backend.Ent} (hs : backend.entsSorted es) (k v : GoString) :
     backend.lastVal es k = some v ↔ (k, v) ∈ es
 

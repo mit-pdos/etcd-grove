@@ -105,6 +105,10 @@ theorem mvcc.applyChanges_take_succ (r : w64) (s : List EtcdKv) (cs : List mvcc.
     (hi : i < cs.length) : mvcc.applyChanges r s (List.take (i + 1) cs) = mvcc.applyChange r
     (mvcc.applyChanges r s (List.take i cs)) cs[i]
 
+theorem mvcc.findKey_key_le {n : Nat} {log : mvcc.Log} {pend : List mvcc.Change} (r : w64) (hl :
+    mvcc.LogPutsLe n log) (hp : mvcc.ChPutsLe n pend) {k : GoString} (h : (mvcc.findKey k
+    (mvcc.applyChanges r (mvcc.stateAfter log) pend)).isSome = true) : List.length k ≤ n
+
 theorem mvcc.stateAt_last (log : mvcc.Log) : mvcc.stateAt log (List.length log - 1) =
     mvcc.stateAfter log
 
@@ -161,6 +165,9 @@ theorem mvcc.findKey_putKv_other {s : List EtcdKv} (hs : List.Pairwise etcdKvLes
 theorem mvcc.LogPutsLe.take {n : Nat} {L : mvcc.Log} (h : mvcc.LogPutsLe n L) (k : Nat) :
     mvcc.LogPutsLe n (List.take k L)
 
+theorem mvcc.ChPutsLe.append_dels {n : Nat} {cs : List mvcc.Change} (h : mvcc.ChPutsLe n cs) (ks :
+    List GoString) : mvcc.ChPutsLe n (cs ++ List.map mvcc.Change.del ks)
+
 theorem mvcc.evsOf_append (log : mvcc.Log) (cs : List mvcc.Change) : mvcc.evsOf (log ++ [cs]) =
     mvcc.evsOf log ++ mvcc.evsOfRev (List.length log) cs
 
@@ -183,6 +190,8 @@ theorem mvcc.kiFold_singleton (ki0 : mvcc.KeyIndex) (ev : mvcc.Ev) (k : GoString
     [ev] k = if ev.key = k then mvcc.kiApply ki0 ev else ki0
 
 theorem mvcc.LogPutsLe.empties (n : Nat) : mvcc.LogPutsLe n [[], []]
+
+theorem mvcc.ChPutsLe.nil (n : Nat) : mvcc.ChPutsLe n []
 
 def mvcc.kiFold (ki0 : mvcc.KeyIndex) (evs : List mvcc.Ev) (k : GoString) : mvcc.KeyIndex :=
   List.foldl mvcc.kiApply ki0 (List.filter (fun ev => decide (ev.key = k)) evs)
@@ -258,5 +267,9 @@ theorem mvcc.kiGet_indexOf (log : mvcc.Log) (hlen : List.length log < 2 ^ 63) (h
     mvcc.Change), cs ∈ log → cs.length < 2 ^ 63) (hwf : mvcc.LogWf log) (k : GoString) (r : Nat) (hr
     : r < 2 ^ 63) : mvcc.KvMatch log ((mvcc.idxGet (mvcc.indexOf (mvcc.evsOf log)) k).bind fun ki =>
     mvcc.kiGet ki (W64 ↑r)) (mvcc.findKey k (mvcc.stateAt log r))
+
+theorem mvcc.ChPutsLe.append_put {n : Nat} {cs : List mvcc.Change} (h : mvcc.ChPutsLe n cs) {k v :
+    GoString} (l : w64) (hk : List.length k ≤ n) (hv : List.length v ≤ n) : mvcc.ChPutsLe n (cs ++
+    [mvcc.Change.put k v l])
 
 theorem mvcc.LogWf'.of_wf {log : mvcc.Log} (h : mvcc.LogWf log) : mvcc.LogWf' log

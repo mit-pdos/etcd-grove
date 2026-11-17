@@ -35,8 +35,8 @@ The rules:
   (`sort.«Sort».wp_anyLess`), and the freelist implementations' contracts
   (`internal.freelist.impl_contract` of the callees `FLCallees` they rest on).
 - **The backend's `_kv` specs** (`bbolt.Tx.Size_kv.spec`, ...: the backend's corollaries of the
-  triples over its vocabulary, stage S1, and the axioms `Open_kv`, `DB.Close_kv` and
-  `Bucket.Put_kv`) are not bbolt's results: a declaration proving one is skipped, and the
+  triples over its vocabulary, stages S1 and S1b, and the axioms `Open_kv` and `DB.Close_kv`)
+  are not bbolt's results: a declaration proving one is skipped, and the
   backend's `Link.lean` (`etc/gen-link.py --backend`) links them to this one's results.
 - Instance binders (`[sync.Assumptions]`, `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`) are left to instance search: the
   section's `[package_sem : go_etcd_io.bbolt.Assumptions]` includes every imported package's;
@@ -589,8 +589,8 @@ importable `Spec` module (`etc/api/bbolt.txt`), as `Link.lean` states it. Genera
 `etc/gen-link.py --bbolt --results` -- do not edit by hand. Built with the rest; read its output
 to check it. The results of `links_pending` take its hypotheses (`Link.lean`'s header), which
 `#print axioms` does not show. The `_kv` specs of etcd's backend are not here: the backend's
-`Link.lean` derives them from these results (stage S1), but `Open_kv`, `DB.Close_kv` and
-`Bucket.Put_kv`, still the backend's axioms.
+`Link.lean` derives them from these results (stages S1, S1b), but `Open_kv` and `DB.Close_kv`,
+still the backend's axioms.
 -/
 module
 

@@ -271,11 +271,12 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.dbFile
+axiom backend.fileHolds
 axiom backend.snapshot.Close.wp_proof
 axiom backend.snapshot.Size.wp_proof
 axiom backend.snapshot.WriteTo.wp_proof
-axiom bbolt.Bucket.Put_kv.wp_proof
-axiom bbolt.DB.Close_ownNoErrH.pendingS3d
+axiom bbolt.DB.Close_kv.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -300,6 +301,7 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
+axiom dbFileAbsent
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom entryEncC_ok
@@ -320,7 +322,7 @@ axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom goose_adequacy_start
+axiom goose_adequacy_start_files
 axiom grpc.ChainStreamInterceptor.wp_proof
 axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof

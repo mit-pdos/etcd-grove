@@ -12,7 +12,9 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof (hdel : mvcc.storeTxnWrite.delet
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗
               ownSlice key k DFrac.discard ∗
-                ownSlice endk e DFrac.discard ∗ lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) -∗
+                ownSlice endk e DFrac.discard ∗
+                  lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗
+                    ⌜mvcc.LogPutsLe etcdKeyMax ilog ∧ mvcc.ChPutsLe etcdKeyMax pend⌝ -∗
           (▷
               ∀ n rev,
                 mvcc.storeTxnWriteIs tw s γ trace ilog

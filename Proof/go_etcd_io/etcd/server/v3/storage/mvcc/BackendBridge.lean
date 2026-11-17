@@ -1876,7 +1876,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   icases batchLocked_thin γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, #Hth⟩
   icases batchLocked_dl γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, %Hdlv⟩
   ihave %Hsub := thinV_sub γ _ _ $$ Hth
-  obtain ⟨hl, hk0, hk1, hbm, hord⟩ := Hok
+  obtain ⟨hl, hk0, hk1, hbm, hord, hkv⟩ := Hok
   obtain ⟨hs', hpend⟩ := sessPuts_put HPw Hs hl
   have hW : ∀ e ∈ bkOf st.W.bks keyBI.id, strLt e.1 k := by
     rw [show keyBI.id = W64 1 from rfl, Hs.2.2.1]; exact hord
@@ -1909,7 +1909,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
       cases hm : m.lookup kc with
       | none => rw [hm] at hc'; simp [Option.filter] at hc'
       | some w => exact hbm kc w hm
-  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k)
+  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hkv hW hpend (key_not_hk hP k)
     hP.2.2.2.2.1 (key_not_fk k) hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
   iapply HΦ
@@ -2580,6 +2580,14 @@ theorem dlStep_del {P : BParams} (hP : bridgeParams P) {st : BSess} {k : GoStrin
     | some v => rw [GMap.lookup_insert_ne _ _ (fun e => he (Prod.mk.inj e).2.symm)]
     | none => rfl
 
+/-- (S1b, 2026-11-17) **A compaction record fits a bbolt entry**: its key and a revision's bytes. -/
+theorem meta_entry_fits {k v : GoString} (hk : metaCompactKey k) (hv : metaRevVal v) :
+    k.length + v.length ≤ bbolt.bboltEntryMax := by
+  obtain ⟨x, -, rfl⟩ := hv
+  rw [revBytes_length]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rcases hk with rfl | rfl <;> decide
+
 /-- **A compaction key put into `Meta` in a fresh session** (the backend-compaction stage, R2-3;
 `batchTxSpecG`'s `Meta` clause): the backend's `UnsafePut` into the hook bucket `Meta` (not
 safe-range, untracked, the key not a hook's own: `hHK`), from the lock with no puts to the token
@@ -2636,7 +2644,7 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
   · iapply hkPut_of_not_HK γ P metaBI.name k st.S (hHK k hk)
   ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
   · rw [fkPut_of_fk γ _ _ (fkKey_meta hk)]; iexact Hfk
-  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
+  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 (meta_entry_fits hk hv) hpend hSB
       (fun _ => hFV v hv))
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl, -, -, Hfp⟩
   have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
@@ -3276,7 +3284,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     · iapply hkPut_of_not_HK γ P metaBI.name k st'.S (hHK k hk)
     ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
     · rw [fkPut_of_fk γ _ _ (fkKey_meta hk)]; iexact Hfk
-    wp_apply (hUP γ P W Pk b t st' bk2 metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
+    wp_apply (hUP γ P W Pk b t st' bk2 metaBI key val k v hP.2.1 hlen.1 hlen.2 (meta_entry_fits hk hv) hpend hSB
         (fun _ => hFV v hv))
       $$ [$Hb $Ht $Hl' $Hbk2 $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl', -, -, Hfp⟩
     have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
