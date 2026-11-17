@@ -73,7 +73,7 @@ abbrev New.spec : Prop :=
   {{ (sp : Loc) (err : GoInterface), RET (PairV #sp #err); ⌜err = GoInterface.nil⌝ ∗
       ∃ mt lt : Loc, isStore sp
         ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ ∗
-      □ (∀ (W : WatchSpec Obj) (γk : KVNames), clientWatchOk cl γk -∗ watchContractOk S W codec -∗
+      □ (∀ (W : WatchSpec GF Obj) (γk : KVNames), clientWatchOk cl γk -∗ watchContractOk S W codec -∗
           newItemOk S nf -∗
           storeWatchOk sp ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ W γk) }}
 

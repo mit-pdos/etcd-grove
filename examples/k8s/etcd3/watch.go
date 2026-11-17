@@ -1,7 +1,6 @@
 package etcd3
 
-// Stage 7f-6 (notes/k8s-7f6-scope.md; stage B: the generator, the events' encoding and the check;
-// running a watch, runWatch, comes with stage D): TestCorrectness's watch traffic (RunWatchTraffic,
+// Stage 7f-0/7f-6 (notes/k8s-7f-scope.md, notes/k8s-7f6-scope.md): TestCorrectness's watch traffic (RunWatchTraffic,
 // runWatch) and its watch validator (correctness.WatchValidator) in the driver. A watch is one
 // lintest operation of a watcher client (lintest.RunLin2's second group): Apply runs it to its end
 // and returns the events it received (encoded as a plain value, encodeWEvents, as Output.Items
@@ -12,6 +11,9 @@ package etcd3
 // histories a failed write that took effect may not be in: notes/k8s-7d-scope.md §2).
 
 import (
+	"context"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
@@ -25,6 +27,14 @@ const (
 	BSlow    = 1
 	BHiccup  = 2
 	BStalled = 3
+)
+
+// The test's WatchConfig.
+const (
+	watchDuration  = 500 * time.Millisecond
+	slowDelay      = 2 * time.Millisecond
+	hiccupDuration = 150 * time.Millisecond
+	maxEvents      = 200
 )
 
 // The types of a watch event (WEvent.Type: watch.Added, Modified, Deleted, Bookmark, Error).
@@ -245,6 +255,102 @@ func decodeWEvents(s string) ([]WEvent, bool) {
 		evs = append(evs, WEvent{Type: t, Obj: o})
 	}
 	return evs, true
+}
+
+// runWatch runs the watch in through the store s and returns its output (the events it received,
+// encoded) and the object of its last event that is not an error, if any (the watcher's next
+// cached object: the test's lastNonErrorEvent). It is the test's runWatch, but for two
+// departures. A Watch call that fails is a failed watch (WFailed: the client's error, in a
+// partition; the test panics on an error that is not a StorageError). Events after a watch.Error
+// event are kept and read until the channel closes or the watch's time is up (the etcd3 watcher
+// sends them: nonissues/k8s-etcd3-watcher-events-after-error.md; the test reports an error). As
+// the test's RunWatchTraffic, a watch shorter than HiccupDuration is followed by a sleep for the
+// rest of it.
+func runWatch(s storage.Interface, in Input) (Output, Obj, bool) {
+	if in.Skip {
+		return Output{WFailed: true}, Obj{}, false
+	}
+	start := time.Now()
+	evs, failed := watchEvents(s, in)
+	if d := time.Since(start); d < hiccupDuration {
+		time.Sleep(hiccupDuration - d)
+	}
+	if failed {
+		return Output{WFailed: true}, Obj{}, false
+	}
+	o, ok := lastObj(evs)
+	return Output{WEvents: encodeWEvents(evs)}, o, ok
+}
+
+// watchEvents runs the watch in through the store s, consumed as in.Behavior says (consume): its
+// events, or true if the Watch call failed. The watch's context is the driver's own
+// WithCancel(Background()), not the test's WithTimeout(2s + HiccupDuration): the driver cancels it
+// once it has stopped reading (where the test's deadline would fire, at the latest), so every event
+// it records was received while the watch was live (not stopped, its context not done), when the
+// store promises a gap-free prefix of the history (notes/k8s-7f5a-draft.md §2; after a deadline the
+// watcher may skip events, nonissues/k8s-etcd3-watcher-gap-after-cancel.md). The consumer's timer
+// (watchDuration) bounds the watch as the deadline did.
+func watchEvents(s storage.Interface, in Input) ([]WEvent, bool) {
+	ctx, cancel := context.WithCancel(context.Background())
+	w, err := s.Watch(ctx, in.WKey, watchOptions(in))
+	if err != nil {
+		cancel()
+		return nil, true
+	}
+	evs := consume(w, in)
+	w.Stop()
+	cancel()
+	return evs, false
+}
+
+// consume reads the watch w as in.Behavior says (the test's runWatch): for watchDuration or until
+// maxEvents events, or until the channel closes; slow (slowDelay before each read), with a hiccup
+// (one HiccupDuration pause after the first event, once a watch-list's initial events are done),
+// or stalled (nothing read for HiccupDuration, then no events).
+func consume(w watch.Interface, in Input) []WEvent {
+	timer := time.NewTimer(watchDuration)
+	defer timer.Stop()
+	if in.Behavior == BStalled {
+		<-time.After(hiccupDuration)
+		return nil
+	}
+	initialDone := in.SendInit != 2
+	hiccupDone := in.Behavior != BHiccup
+	var evs []WEvent
+	for {
+		if initialDone {
+			var delay time.Duration
+			if !hiccupDone && len(evs) > 0 {
+				delay = hiccupDuration
+				hiccupDone = true
+			} else if in.Behavior == BSlow {
+				delay = slowDelay
+			}
+			if delay > 0 {
+				select {
+				case <-timer.C:
+					return evs
+				case <-time.After(delay):
+				}
+			}
+		}
+		select {
+		case <-timer.C:
+			return evs
+		case ev, open := <-w.ResultChan():
+			if !open {
+				return evs
+			}
+			we := toWEvent(ev)
+			evs = append(evs, we)
+			if we.Type == WBookmark {
+				initialDone = true
+			}
+			if len(evs) >= maxEvents {
+				return evs
+			}
+		}
+	}
 }
 
 // lastObj is the object of the last event that is not an error (the test's lastNonErrorEvent):

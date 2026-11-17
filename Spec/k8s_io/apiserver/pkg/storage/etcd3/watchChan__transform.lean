@@ -31,7 +31,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev watchChan.transform.spec : Prop :=
-  ∀ (Obj : Type) (S : ObjSpec GF Obj) (W : WatchSpec Obj) (codec : GoInterface)
+  ∀ (Obj : Type) (S : ObjSpec GF Obj) (W : WatchSpec GF Obj) (codec : GoInterface)
     (vi ti : GoInterfaceOk) (wc wp : Loc) (ctx : GoInterface) (nf : GoFunc)
     (p : k8s_io.apiserver.pkg.storage.SelectionPredicate) (sel : Obj → Bool) (emp : Bool)
     (ep : Loc) (x : k8s_io.apiserver.pkg.storage.etcd3.event) (σ : KVState) (r : KRaw),

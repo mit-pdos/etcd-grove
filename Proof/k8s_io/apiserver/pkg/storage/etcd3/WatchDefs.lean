@@ -728,14 +728,18 @@ instance kraw_countable : Pos.Countable KRaw :=
       cases a <;> cases b <;> simp_all)
 
 /-- **The watch path's additions to the store's object contract** (proved for the driver's codec in
-7f-5a-P; not trusted): the initial-events-end annotation's effect on a body. -/
-structure WatchSpec (Obj : Type) where
-  annotate : Obj → Obj
+7f-5a-P; not trusted): an object annotated as the initial-events-end bookmark (`annAt x o rv`: `x`
+holds the body `o`, annotated, at the resource version string `rv`). An ownership predicate, not a
+function on bodies: a body type need not record the annotation (the driver's `DObj` does not; its
+Go object's `Annotated` field does; ledger 2026-11-16, "the watch's annotated object is not
+expressible for the driver"). -/
+structure WatchSpec (GF : BundledGFunctors) (Obj : Type) where
+  annAt : GoInterface → Obj → GoString → IProp GF
 
 /-- **The watch path's object contract** (persistent): `runtime.Decode(codec, data)` (no target,
 `decodeObj`) gives a fresh object of the data's body (some resource version string) or an error;
-`storage.AnnotateInitialEventsEndBookmark(x)` annotates the body (`W.annotate`) and returns `nil`. -/
-def watchContractOk (S : ObjSpec GF Obj) (W : WatchSpec Obj) (codec : GoInterface) : IProp GF :=
+`storage.AnnotateInitialEventsEndBookmark(x)` annotates the object (`W.annAt`) and returns `nil`. -/
+def watchContractOk (S : ObjSpec GF Obj) (W : WatchSpec GF Obj) (codec : GoInterface) : IProp GF :=
   iprop(□ (∀ (dsl : GoSlice) (d : GoString) (Φ : val → IProp GF),
       dsl ↦*□ d -∗
       ▷ (∀ (x err : GoInterface),
@@ -747,11 +751,11 @@ def watchContractOk (S : ObjSpec GF Obj) (W : WatchSpec Obj) (codec : GoInterfac
         {{ Φ }}) ∗
     □ (∀ (x : GoInterface) (o : Obj) (rv : GoString) (Φ : val → IProp GF),
       S.objAt x o rv -∗
-      ▷ (∀ err : GoInterface, ⌜err = GoInterface.nil⌝ ∗ S.objAt x (W.annotate o) rv -∗ Φ #err) -∗
+      ▷ (∀ err : GoInterface, ⌜err = GoInterface.nil⌝ ∗ W.annAt x o rv -∗ Φ #err) -∗
       WP (App (Val (@! k8s_io.apiserver.pkg.storage.AnnotateInitialEventsEndBookmark)) (Val #x))
         {{ Φ }}))
 
-instance watchContractOk_persistent (S : ObjSpec GF Obj) (W : WatchSpec Obj) (codec : GoInterface) :
+instance watchContractOk_persistent (S : ObjSpec GF Obj) (W : WatchSpec GF Obj) (codec : GoInterface) :
     Persistent (watchContractOk S W codec) := by
   unfold watchContractOk; infer_instance
 
@@ -769,7 +773,7 @@ transformer, group-resource), a `newFunc` making the zero object, `getCurrentSto
 store's `GetCurrentResourceVersion` (whose result is a pair), `getResourceSizeEstimator` calling the store's (which answers
 `nil`: `storeListOk`'s `rseNilR`); the client's watcher over the cluster's KV `γk`; the watch path's
 object contract; the object type's name (`objectType`, the block loggers'; `createWatchChan`). -/
-def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) : IProp GF :=
+def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γk : KVNames) : IProp GF :=
   iprop(∃ (wp : Loc) (nf crv rse : GoFunc),
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"watcher" sp ↦□ wp ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"client" wp ↦□ c.cl ∗
@@ -797,7 +801,7 @@ def storeWatchOk (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVN
     watchContractOk c.S W c.codec ∗
     ∃ ot : GoString, structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"objectType" wp ↦□ ot)
 
-instance storeWatchOk_persistent (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames) :
+instance storeWatchOk_persistent (sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γk : KVNames) :
     Persistent (storeWatchOk sp c W γk) := by
   unfold storeWatchOk; infer_instance
 
@@ -823,11 +827,12 @@ def kObjOpt (S : ObjSpec GF Obj) (x : GoInterface) (oo : Option Obj) (rev : w64)
 /-- **The received `watch.Event` `v` is the event `e`**: an Error event's object a failure status;
 any other event's type, and its object owned, holding the body (annotated if `e.ann`) at the
 resource version `e.rv`. -/
-def wevAt (S : ObjSpec GF Obj) (W : WatchSpec Obj) (v : k8s_io.apimachinery.pkg.watch.Event)
+def wevAt (S : ObjSpec GF Obj) (W : WatchSpec GF Obj) (v : k8s_io.apimachinery.pkg.watch.Event)
     (e : KWEv Obj) : IProp GF :=
   if e.t = 4 then iprop(⌜v.Type' = go!"ERROR"⌝ ∗ statusFailureAt v.Object')
   else iprop(⌜e.t < 4 ∧ v.Type' = kEvTypeStr e.t⌝ ∗
-    S.objAt v.Object' (if e.ann then W.annotate e.o else e.o) (S.fmtRV (W64 (e.rv : Int))))
+    if e.ann then W.annAt v.Object' e.o (S.fmtRV (W64 (e.rv : Int)))
+    else S.objAt v.Object' e.o (S.fmtRV (W64 (e.rv : Int))))
 
 /-- The ghost names of one store watch. -/
 structure KWatchNames where
@@ -878,7 +883,7 @@ Unless they are all Error events, they come from the ideal stream from a start p
 fired at: always a subsequence (`kStreamSub`), and a prefix (`kStreamOk`) unless the watch is no
 longer live (`kCancelled`). A consumer that holds `kLive` (has not called `Stop`) and can refute
 `□ cd.PDone` reads the prefix. -/
-def kResElem [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+def kResElem [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (i : Int)
     (v : k8s_io.apimachinery.pkg.watch.Event) : IProp GF :=
@@ -896,7 +901,7 @@ call) or `kStopped` (a later one), and gives `kStopped`; `ch` is an SPSC channel
 elements, and the caller holds its consumer's half (nothing received yet) and `kLive`. The
 channel's closing carries nothing: the watch's goroutines get their thread tokens at their `go`
 statements and give them back when they exit (`wp_fork_tok`, `wp_ThreadExit`). -/
-def k8sWatch [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (wi : GoInterface)
+def k8sWatch [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (wi : GoInterface)
     (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool)
     (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF) : IProp GF :=
   iprop(∃ (wo : GoInterfaceOk) (ch : Loc), ⌜wi = GoInterface.ok wo⌝ ∗

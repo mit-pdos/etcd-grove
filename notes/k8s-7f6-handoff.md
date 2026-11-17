@@ -1,6 +1,47 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, third 7f-6 agent): stage B done, at the land stop
+## START HERE (2026-11-16, fifth 7f-6 agent): stage D done, at its land stop
+
+- **Branch:** `k8s-7f6` (lean `3a0a47deb1` merged, `a7c843fab8`). Go target `k8s-7f6-target`
+  `88a1646324`. Decisions: worktree `questions.md` (untracked; annAt and D forms ACCEPTED).
+- **Done (D):** Go + translation (dfc8fc428d); annAt (f969619c10); `WRun.lean`, `watchOptions`,
+  `toWEvent`, `encodeWEvents`, `lastObj` (1702ae42de, c651ec6b1f, 6b2fe2f294); `consume.wp_proof`
+  (8981aeebbf); `watchEvents`/`runWatch` specs and proofs over `store.Watch.spec`, and the whole watch
+  run linked in the driver's `Link` (`etc/link-lean-first-k8setcd3.txt`, 5cef7d43b5). Nothing linked
+  calls `runWatch` yet: no closed statement moved.
+- **Specs (internal, forms):** `watchEvents.spec`: store.Watch's premises with `opts := watchOptsV x p`
+  (key, parsed `MinRV`), pre `isStore`, `storeWatchOk sp c driverW γk`, feature gates, `Q`'s updates;
+  post `failed → sieOfL x = some false ∧ n = 0`, else `wevsOwnM sl wes`, `Forall₂ kWEvRel kes wes`,
+  `kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive') (kModeOf (sieOfL x) x.Bookmarks' n) Q kes`.
+  `runWatch.spec`: the same premises only for `x.Skip' = false`; post `wFailedOut` (skipped or failed)
+  or `wEventsOut (encWEventsL wes)` with `lastObjL wes`.
+- **Next:** the coordinator's go for etc/land.sh (no commits while it lands); then stage E (Scope §5:
+  the wiring, `Apply`'s `KWatch` branch over `runWatch.spec`) and the stage E obligations (History).
+- **Pitfalls:** lean-check "elaborating line 1" forever = an import that does not build (here: a new
+  Spec file with an error, `isStore` must be `k8s.isStore`). `lake build` the new imports first and
+  read its errors; then lean-check works (consume.lean: ~1 min fresh, then seconds per edit).
+  `wp_if_destruct`/`wp_apply` already run `wp_auto` (a following `wp_auto` fails "no progress");
+  `wp_apply (lc := 2) f` gives `Hlc1 Hlc2` for a select; Go constants (`hiccupDuration`) need
+  `simp only [<pkg>.hiccupDuration]` before `wp_auto` sees them; a `wp_join` over a branch that
+  `return`s needs `(Q := fun v => (⌜v = executeVal⌝ ∗ …) ∨ (⌜v = returnVal #()⌝ ∗ …))`; spatial
+  hypotheses the case needs (`timer`) go in its `with [...]`; reduce `if ok = true` with
+  `rw [ite_eq_left rfl]`/`rw [ite_eq_right Bool.false_ne_true]`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`.
+
+## History
+
+### 2026-11-16, fourth 7f-6 agent: D's Go, annAt, WRun, the leaves, consume.spec
+
+- Stopped at consume.wp_proof (done by the fifth agent); see the commits above.
+
+### 2026-11-16, fourth 7f-6 agent: stage D started, stopped on the annotation defect (resolved)
+
+- D's Go and translation; the defect (no `W : WatchSpec DObj` satisfies `watchContractOk driverSpec`)
+  recorded and accepted as `annAt`.
+
+### 2026-11-16, third 7f-6 agent: stage B done (landed)
 
 - **Branch:** `k8s-7f6` (lean `d559d8bc9f` merged). Go target: `k8s-7f6-target` (`4952cb3b91`): its
   watch.go predates the B1 split: **port the B1 split (and B2's `step`) there before stage D.**
@@ -33,8 +74,6 @@
   builds; gates under `flock /shared/tmp/etcd-grove-full-build.lock`. Go: `cd examples/k8s/etcd3;
   GOWORK=off go test -run 'TestWatchOkEdges|TestGenWatchCases' .`; translation:
   `PATH=/usr/local/go/bin:$PATH etc/goose.py --project k8s-apiserver` (GOWORK unset).
-
-## History
 
 ### 2026-11-16, second 7f-6 agent: B1
 

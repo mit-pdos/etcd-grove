@@ -26,6 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.checkedEve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.consume
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__Decode
@@ -34,6 +35,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.delItem
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeItems
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWith
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errOut
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
@@ -68,6 +70,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.keyInScope
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Empty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Matches
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__RequiresExactMatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lastObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOptions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOut
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
@@ -105,6 +108,7 @@ public import Proof.reflect.Zero
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableLo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.runWatch
 public import Proof.k8s_io.apimachinery.pkg.runtime.Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvBytes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvString
@@ -117,6 +121,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toEvent
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toWEvent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.tryUpdateFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.uidOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.updated
@@ -127,9 +132,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner_
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateObject
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wantEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchListOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchOptions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.withPre
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadApps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadKeys
@@ -427,6 +434,14 @@ theorem wp_closure :
     EtcdGrove.k8s_etcd3.closure.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.closure.wp_proof wp_addConfig wp_mstep wp_removeAt wp_advance
 
+theorem wp_toWEvent :
+    EtcdGrove.k8s_etcd3.toWEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.toWEvent.wp_proof
+
+theorem wp_consume :
+    EtcdGrove.k8s_etcd3.consume.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.consume.wp_proof wp_toWEvent _root_.Perennial.time.wp_NewTimer _root_.Perennial.time.wp_After _root_.Perennial.time.Timer.wp_Stop
+
 theorem wp_decodeWEvents :
     EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
@@ -442,6 +457,10 @@ theorem wp_encodeItems :
 theorem wp_encodeV0 :
     EtcdGrove.k8s_etcd3.encodeV0.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.encodeV0.wp_proof wp_encodeWith
+
+theorem wp_encodeWEvents :
+    EtcdGrove.k8s_etcd3.encodeWEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.encodeWEvents.wp_proof wp_encodeObj wp_rvBytes
 
 theorem wp_errOut :
     EtcdGrove.k8s_etcd3.errOut.spec (GF := GF) (hG := hG) :=
@@ -686,6 +705,22 @@ theorem fieldSel.wp_RequiresExactMatch :
 theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
+
+theorem wp_lastObj :
+    EtcdGrove.k8s_etcd3.lastObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.lastObj.wp_proof
+
+theorem wp_watchOptions :
+    EtcdGrove.k8s_etcd3.watchOptions.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchOptions.wp_proof wp_matchOpt wp_predicate
+
+theorem wp_watchEvents :
+    EtcdGrove.k8s_etcd3.watchEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchEvents.wp_proof k8s.store.wp_Watch wp_watchOptions wp_consume k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem wp_runWatch :
+    EtcdGrove.k8s_etcd3.runWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.runWatch.wp_proof wp_watchEvents wp_lastObj wp_encodeWEvents _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since _root_.Perennial.time.wp_Sleep
 
 end links_hasLC
 

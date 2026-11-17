@@ -43,7 +43,7 @@ variable {Obj : Type} [DecidableEq Obj]
 
 /-- **`transform`'s result `res` for the raw event `r` at `σ`**: `nil` when it is filtered out, else
 an owned `watch.Event` holding its model (`transform.spec`'s post). -/
-def kResOf (c : StoreCfg GF Obj) (W : WatchSpec Obj) (sel : Obj → Bool) (emp : Bool) (σ : KVState)
+def kResOf (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (sel : Obj → Bool) (emp : Bool) (σ : KVState)
     (r : KRaw) (res : Loc) : IProp GF :=
   match kRawToEv c.S.dec sel emp c.S.zero σ r with
   | none => iprop(⌜res = null⌝)
@@ -51,7 +51,7 @@ def kResOf (c : StoreCfg GF Obj) (W : WatchSpec Obj) (sel : Obj → Bool) (emp :
 
 /-- **A response channel's element** (its only one): an owned `*processingResult` holding
 `transform`'s result for `r` at `σ` and no error. -/
-def kRcElem (c : StoreCfg GF Obj) (W : WatchSpec Obj) (sel : Obj → Bool) (emp : Bool) (σ : KVState)
+def kRcElem (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (sel : Obj → Bool) (emp : Bool) (σ : KVState)
     (r : KRaw) : Int → Loc → IProp GF :=
   fun _ v => iprop(∃ res : Loc,
     v ↦ k8s_io.apiserver.pkg.storage.etcd3.processingResult.mk res GoInterface.nil ∗
@@ -60,7 +60,7 @@ def kRcElem (c : StoreCfg GF Obj) (W : WatchSpec Obj) (sel : Obj → Bool) (emp 
 /-- **`processingQueue`'s `i`-th element**: the `i`-th element of `incomingEventChan` (`kInElem`'s
 body, the raw event `r` at `σ` exposed) and the consumer half of the response channel `rc`, whose
 element is `transform`'s result for `r` at `σ`. -/
-def kQElem [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+def kQElem [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (i : Int) (rc : Loc) : IProp GF :=
   iprop(∃ (p : Loc) (r : KRaw) (raws : List KRaw) (lb lb0 st : Nat) (σ σ0 : KVState)

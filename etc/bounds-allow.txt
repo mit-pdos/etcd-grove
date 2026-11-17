@@ -104,7 +104,7 @@ spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__
 # The k8s etcd3 driver (7e-4): `call`, `Apply` and `Check` pass the same bound on to the store's
 # `GetList` (`Main` takes it from the adequacy theorem's constants, as before); they go once the store's
 # `isStore` holds it (the follow-up above).
-spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/(call|Apply|Check)\.lean$  # the driver passes the store's list-path bound on (7e-4; follow-up above)
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/(call|Apply|Check|watchEvents|runWatch)\.lean$  # the driver passes the store's list-path bound on (7e-4; follow-up above; and `store.Watch`'s, 7f-6 D)
 
 # The receive loop's levels (per-type stage B3, 2026-11-11): `watchServer.Watch`'s goroutine splits its
 # thread token into levels and borrows the inner pool `I` (level 2) and the gRPC run pool (level 3),

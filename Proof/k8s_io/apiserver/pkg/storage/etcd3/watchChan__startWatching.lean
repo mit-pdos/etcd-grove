@@ -129,7 +129,7 @@ variable {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj]
 
 /-- **`sendError`'s commit from a running producer of `resultChan`** (`kResChan`, `kResAlive`): the
 token back on either outcome. -/
-theorem kRes_errCommit (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+theorem kRes_errCommit (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (chR : Loc) (q : Qp) :
     ⊢ kResChan c W γ cd sel emp inS m Q procd alive chR -∗ kResAlive alive q -∗
@@ -186,7 +186,7 @@ theorem wp_prod_sendError [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (wp_sendError : watchChan.sendError.spec (GF := GF) (hG := hG))
     {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] (wc sp : Loc)
-    (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames) (cd : context.ContextDesc (IProp GF))
+    (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames) (cd : context.ContextDesc (IProp GF))
     (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool) (m : KWatchMode)
     (Q : Nat → KVState → IProp GF) (procd alive : GName) (ctx : GoInterfaceOk) (kp : GoString)
     (recur : Bool) (q : Qp) (err : GoInterface) :

@@ -212,7 +212,7 @@ theorem kRaw_transformOk (c : StoreCfg GF Obj) {σ : KVState} {kp : GoString} {r
 the producer's (`kWcProd`), the predicate `internalPred` (`selPredOkW`: the caller's, or
 `storage.Everything` for an empty one), the result block logger, the store's watcher and the object
 contract `transform` reads, and the scope under the store's prefix. -/
-def kWcCons [Pos.Countable Obj] (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γk : KVNames)
+def kWcCons [Pos.Countable Obj] (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γk : KVNames)
     (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool)
     (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName)
     (ctx : GoInterfaceOk) (kp : GoString) (recur : Bool) : IProp GF :=
@@ -226,7 +226,7 @@ def kWcCons [Pos.Countable Obj] (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSp
 
 set_option synthInstance.maxSize 4096 in
 set_option synthInstance.maxHeartbeats 400000 in
-instance kWcCons_persistent [Pos.Countable Obj] (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj)
+instance kWcCons_persistent [Pos.Countable Obj] (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj)
     (γk : KVNames) (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool)
     (emp : Bool) (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF)
     (procd alive : GName) (ctx : GoInterfaceOk) (kp : GoString) (recur : Bool) :
@@ -248,7 +248,7 @@ abbrev rwgN : Namespace := nroot.@"k8sRunWg"
 producer of `resultChan` (`kResAlive`) with its half of `procd` at `n`, the received element's facts
 and its transform `e` held by `v`: `S` the two back (an aborted send), or the commit, after which
 `procd`'s half is at `n + 1` (`kResInv_send_acc`). -/
-theorem kRes_evCommit [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+theorem kRes_evCommit [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (chR : Loc) (q : Qp)
     (n : Nat) (r : KRaw) (raws' : List KRaw) (lbr lb0 st : Nat) (σr σ0 : KVState) (e : KWEv Obj)
@@ -283,7 +283,7 @@ theorem kRes_evCommit [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec O
 
 /-- **The processing goroutine's filtered raw event** (`transform` gave `nil`): `kResInv_filter`
 inside `kResChan`'s invariant, with a later credit. -/
-theorem kRes_filterStep [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj)
+theorem kRes_filterStep [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj)
     (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool)
     (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName)
     (chR : Loc) (q : Qp) (n : Nat) (r : KRaw) (raws' : List KRaw) (lbr lb0 st : Nat)
@@ -315,7 +315,7 @@ set_option maxHeartbeats 800000 in
 /-- **`run`'s close of `resultChan`** (after `resultChanWG.Wait()`, holding the whole alive token): the
 producer token out of `kResInv` into the closed SPSC (`R := True`), `kResClosed` left in the invariant (a
 copy of Perennial's `spsc_close_au` over `kResChan`'s one invariant). -/
-theorem kRes_close_au [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+theorem kRes_close_au [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (chR : Loc)
     (Φ : IProp GF) :
@@ -403,7 +403,7 @@ over the names `γ0` gives (`kCancelPD`'s `stop`, `prodEx`, `procEx`, made befor
 one invariant with the producers' `kResInv`), the raw and sent events' lists, `procd` and `alive`: the
 producer's state (`kProdSt`), the processing side's (`kProcSt`, the whole `alive`), and the
 consumer's half of `resultChan`. -/
-theorem kWatch_alloc [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ0 : KWatchNames)
+theorem kWatch_alloc [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ0 : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (chI chR : Loc) (γcI γcR : ChanNames) :
     ⊢ isChan chI γcI Loc -∗ ownChan γcI Loc (.Buffered []) -∗
