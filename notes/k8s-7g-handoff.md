@@ -7,14 +7,23 @@
   manifest. Scope (approved 2026-11-17): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local).
 - Done: step 0 (Go) `e9bf69f83a`, `47eae5838c` (IsPkgInit, gen-init); step 0 report answered
   (questions.md: land 0-5 together; cmp `opaqueInitsOk` accepted; Raw approved; Freeze wording).
-- **Step 1 (trust texts) written, HARD STOP pending the coordinator's attack/review**:
-  `notes/k8s-7g-trust.md` (index, proposals V and T, the IsTooManyRequests finding, delta). Seven
-  spec files + `Deep.lean` vocabulary, all elaborate; **no axiom files yet**. Go evidence
-  `examples/k8s/etcd3/trustspecs_test.go`, `correctness/cmpdiff_test.go` (green:
-  `/shared/tmp/k8s7g/step1-go.out`). Perennial proposal: `notes/perennial-changes.md`, "Generic maps
-  and slices iterators".
-- Next, after the review: add the axiom files (`Proof/reflect/DeepEqualK8s.lean`, ...), apply V/T
-  if approved, tcb baseline/collection update; then step 2 (pure real model, Scope §5).
+- **Step 1 done** (`11962185aa` texts, `50faaad1a3` axioms): reviewed by an independent attack
+  (`notes/axiom-review/k8s-7g-trust.md`); axioms added for DeepEqual.spec_k8s, cmp.Diff,
+  maps.Keys/Clone/Equal, meta.SetList. `SuggestsClientDelay.spec` REFUTED with the existing
+  `HasStatusCause.wp_proof` (apiErrOk does not hold `*st.Details`); fix (a) + T land on a separate
+  soundness branch. **Do not touch View.lean / HasStatusCause / IsTooManyRequests /
+  SuggestsClientDelay here** until etcd-grove-03 says it landed; then merge lean, restate
+  SuggestsClientDelay over the fixed apiErrOk, apply V (text in `notes/k8s-7g-trust.md` §2) with M2.
+- `etc/tcb-baseline.txt` not yet updated (needs a full build; the driver breaks until step 5):
+  +6 axioms here, +`cmp.opaqueInitsOk`; add `etc/tcb-collections/k8setcd3.txt` lines at step 6.
+- **Next: step 2** (pure real model, Scope §5, 800-1300 lines), in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/correctness/` (`RModel.lean`, ...).
+  Plan: `RM` = `{ items : GMap GoString Obj, rv : w64, prefix : GoString, rewrite : GMap GoString
+  Bool }` (CompactRV is always 0: no compactions); responses as `(DeepV × DeepV)` (object view,
+  error view: `k8sDeep.DeepV`, so the `DeepEqual` calls compare them directly); `rexecL` per op
+  (create/update/delete/get/list) from `model.go`, `rvalidateGetL`/`rvalidateListL`, `rstepL`;
+  `replayL` (states by RV, changes), `validateWatchL` (`watch.go`). Read `model.go` lines 294-560
+  and `replay.go`, `watch.go` before writing; reuse `DObj`/`mstore` vocab only in step 4's bridges.
 - Open: the driver's Lean proofs do not build against the new translation until step 5 (KModel:
   Output gains `Raw`); `IsTooManyRequests.spec` is false today (typed nil `*StatusError`).
 - Pitfalls:
