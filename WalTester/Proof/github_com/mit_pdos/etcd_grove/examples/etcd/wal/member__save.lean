@@ -154,16 +154,31 @@ macro "save_main" : tactic => `(tactic| (
     ihave Hau := tInv_saveAu W e γ o c d h es hok hes ht hsim $$ [Hwo Ho]
     · iframe; iframe #
     obtain ⟨hidx, henc⟩ := tEnts_saveOk es hes
-    wp_apply (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) hp (absHs h) rs ls
-        (es.map absEnt) true _) $$ [Hwf Hents Hau]
+    -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and
+    -- taken back after it
+    iapply fupd_wp
+    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
+      with ⟨%γs, Hws⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+    imodintro
+    wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
+        (es.map absEnt) true _) $$ [Hws Hents Hau]
       as %err Hr
     · iframe; iframe #
+      isplitr
+      · ipureintro; exact Or.inr rfl
       isplitl []
       · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
         iexact Hhp
-      ipureintro; exact ⟨hidx, henc⟩
-    icases Hr with (⟨%Herr, Hwf, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
+      ipureintro; exact ⟨hidx, henc, fun hc => absurd hc walCov_ioNone⟩
+    icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
     · subst Herr
+      iapply fupd_wp
+      imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]
+        with Hwf
+      · iframe Hws Hlc1
+      imodintro
+      ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ $$ Hwf
       subst d0
       try wp_auto
       wp_apply wp_mustSync
@@ -248,7 +263,7 @@ macro "save_main" : tactic => `(tactic| (
         iexact Hlen1
     · -- `Save` failed: the member stops
       cases err with
-      | nil => exact absurd rfl Herr
+      | nil => exact absurd rfl Herr.1
       | ok ie =>
       try wp_auto
       iapply HΦ
@@ -268,7 +283,8 @@ theorem member.save.wp_proof
     (wp_mustSync : walMustSync.spec (GF := GF) (hG := hG))
     (wp_phsNext : phsNext.spec (GF := GF) (hG := hG))
     (wp_Save : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr) :
     member.save.spec (GF := GF) (hG := hG) := by
   intro W e γ m w v o os c d qc h esl es hf hok hhs hes ht hsm1 hsm2 hsim hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Hes, #Harea, Hwf,

@@ -49,6 +49,10 @@ applied to its own binders in order, its hypotheses becoming the caller's. A bin
 (W := W) ...` (the WAL's specs at every generation's ghost names) is given `fun W : WalGS GF => ...`,
 and a hypothesis reached through it that mentions `(W := W)` becomes `∀ W : WalGS GF, ...`, passed as
 `(h W)`.
+A binder that instantiates the no-I/O-error set (`(Sio := ioNone)`, wal-link L1a) instantiates it in the
+result's hypotheses too, and a hypothesis that is then a no-error spec (one whose statement starts with
+the coverage premise `(∀ st i, Sio.ino st i) →`) at `ioNone` holds vacuously: it is given `noErr_ioNone`
+(`HandleShared.lean`), not taken.
 """
 import os
 import re
@@ -448,6 +452,8 @@ def main(root, perennial, argv0, check=False, cfg=None):
                 m = re.fullmatch(r"\(([\w']+) := \1\)", ca)
                 if not (m and re.fullmatch(r"\(" + re.escape(m.group(1)) + r" := .+\)", ba)):
                     sys.exit(f"gen-link.py {flag}: {x['name']} proves {callee} at {ca}, a binder needs {ba}")
+                # ... and the callee's hypotheses that name it are at the binder's instance
+                sub[ca] = ba
         for p in x["params"]:
             sub.setdefault(p[1], p[1])
         return sub
@@ -476,6 +482,34 @@ def main(root, perennial, argv0, check=False, cfg=None):
         extras_of[s] = out
         return out
 
+    # a no-error spec (`<T>.<M>.spec…` whose statement starts with the coverage premise
+    # `(∀ st i, Sio.ino st i) →`, wal-link L1a) at `(Sio := ioNone)` holds vacuously (`noErr_ioNone`,
+    # `HandleShared.lean`): a hypothesis of that type is discharged, not taken
+    cov_of = {}
+
+    def covers_premise(spec):
+        if spec not in cov_of:
+            x = specs.get(spec)
+            ok = False
+            if x is not None:
+                path = os.path.join(root, *x["mod"].split(".")) + ".lean"
+                try:
+                    src = link_bbolt.strip_comments(open(path, encoding="utf-8").read())
+                except OSError:
+                    src = ""
+                short_name = spec[len(x["ns"]) + 1:] if x["ns"] and spec.startswith(x["ns"] + ".") else spec
+                m = re.search(r"\babbrev\s+(?:_root_\.)?" + re.escape(short_name) + r"\b.*?:=\s*", src, re.S)
+                ok = bool(m) and re.match(r"\(∀ st i, Sio\.ino st i\) →", src[m.end():]) is not None
+            cov_of[spec] = ok
+        return cov_of[spec]
+
+    def vacuous(ty):
+        app = parse_app(norm(ty))
+        if not app or "(Sio := ioNone)" not in app[2]:
+            return False
+        name = app[0][len("_root_."):] if app[0].startswith("_root_.") else app[0]
+        return covers_premise(name)
+
     def hyps(s):
         if s in hyps_of:
             return hyps_of[s]
@@ -484,6 +518,8 @@ def main(root, perennial, argv0, check=False, cfg=None):
         out = []
 
         def add(ty, stem, fw=False):
+            if vacuous(ty):
+                return
             n = hyp_name(wrapW(norm(ty), fw), stem)
             if n not in out:
                 out.append(n)
@@ -543,6 +579,8 @@ def main(root, perennial, argv0, check=False, cfg=None):
 
     def hyp_arg(ty, fw):
         ty = norm(ty)
+        if vacuous(ty):
+            return "noErr_ioNone"
         n = hyp_names[wrapW(ty, fw)]
         return f"({n} W)" if wrapW(ty, fw) != ty else n
 

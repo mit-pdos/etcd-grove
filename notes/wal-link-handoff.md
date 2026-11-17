@@ -10,16 +10,22 @@
   `walRead_of_fold`, the eager steps `walFoldChkFrom_save_cons`/`_snoc_save`/`_snoc_snap` (`WalSaveOkC` = `WalSaveOk`
   unfolded, so the sealed `WalRecs` can import it), `walCommitLe_of_fold`, `walCommitLeFrom_snoc/_nil`, `walIdxLe_*`.
 - **L1a in progress (no-twin collapses decided by etcd-grove-03, Scope §8).** Done: `PW/HandleShared.lean` (the shared
-  handle `walOpenWS Sio P Mr w dir γ q`, invariant `walShInv` = handle+`γl ↦ none` ∨ `ownMutex`+½`γl ↦ some q`+the
-  holder's share ∨ whole token; laws `walOpenWS_alloc/_split/_pers/_acquire/_release/_finish/_reclaim`, `walHdl`
-  (handle when `¬ walCov Sio`, else fresh room), `ioNone` + its `FsStepSat` instance); **`Sync` merged** (one spec,
-  one proof; `WAL__SyncNoErr.lean` spec+proof deleted); WalTester's `member__sync` shares the handle for the call and
-  reclaims it; `etc/link_walfs.py` accepts `(Sio := ioNone)` at a binder; both Links regenerated, targeted build OK.
-  **Checkpoint: Sync's text reported, waiting for review** before Save, SaveSnapshot, ReleaseLockTo, Close.
-- **Next, in order:** Save (two proofs → one; the callees `saveEntry`/`saveState`/`cut` keep their twin families, so
-  the merged proof chooses the callee spec by `walCov Sio`, like Sync's `sync`/`sync.specNoErr`), SaveSnapshot
-  (`specPre` as a precondition disjunct), ReleaseLockTo (rename), Close (disjunction of handle states); WalTester's
-  members move like `member__sync` (share for the call, reclaim). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+  handle `walOpenWS Sio P Mr w dir γ q`; laws `_alloc/_split/_pers/_acquire/_release/_finish/_reclaim`, `walHdl`
+  + `walHdl_open/_close/_wf/_of_wf`, `ioNone`, `noErr_ioNone`); **`Sync` merged** (7eba580698; shape ACCEPTED by
+  etcd-grove-03, `questions.md`); **`Save` merged** (one spec, one proof; `WAL__SaveNoErr` spec+proof deleted;
+  `saveRoom` moved to `WAL__Save`'s spec, premise `walCov Sio → saveRoom … ≤ walFreshRoom`); `PW/CalleeCov.lean`:
+  the callees' two specs chosen at a call by `walCov` (`saveEntry`, `saveState`, `sync`, `cut`; bridges, not
+  specs, gone with the queued cleanup); `etc/link_walfs.py`: a binder's `(Sio := ioNone)` reaches the result's
+  hypotheses, and a no-error spec hypothesis at `ioNone` is discharged by `noErr_ioNone` (else WalTester's
+  `member.wp_save` would take the unproved `cut.specNoErr`); WalTester's `member__save` shares the handle.
+- **Next, in order:** SaveSnapshot (`specPre` as a precondition disjunct), ReleaseLockTo (rename: `specNoErr`
+  becomes `spec` over `walOpenWS`; the weak form stays a corollary), Close (one spec over the handle states, the
+  five proofs lemmas of its one proof); WalTester's members move like `member__sync`/`member__save` (alloc share,
+  call with `γ 1`, reclaim with the `£ 1` of `wp_apply (lc := 1)`). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+- **Pitfall (lock + later credit):** a method that needs the handle *before* its first resolution after `Lock`
+  (Save's step bound) takes `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand with
+  `wp_go_step_receipt'` (its `£ 1` strips the invariant's later), then `wp_raise_receipt` at the next resolution
+  (`WAL__Save.lean`). Macros in proofs: `$H` in spec patterns is an antiquotation; expand by hand.
 - **Open (for L3/L5):** nothing produces `walOpenWFR` yet (Create's/ReadAll's posts give `walOpenWF`; room is an
   open layer-1 decision, `notes/wal-units/noioerr.md`): the server's shared handle needs the fresh room from
   bootstrap's slot (L3, trusted) and, in L5, from `Create` (headers < 2^43) and the restart's `ReadAll` (a tail bound).

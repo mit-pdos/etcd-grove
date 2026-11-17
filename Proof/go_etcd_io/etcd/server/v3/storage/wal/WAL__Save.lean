@@ -1,24 +1,26 @@
 /-
-`(*WAL).Save` over its callees: `sync`, `saveEntry`, `saveState`, `cut` (their specs, hypotheses until
-proved: `saveEntry`/`saveState`/`sync` wait for writes past the tail's preallocated size), the laws of
-the client's raft messages (`WalPbIn.IsEmptyLaw`, `WalPbIn.MustSyncLaw`, `WalPbIn.ZeroLaw`: the part
-cannot import the main tree's raft specs, plan §10), `WAL.tail`, and Perennial's `Mutex`. The update
-commits right after the lock (`walHandleIn_append`; the deferred `Unlock`'s resolution, a counted step, raises the
-WALs' step bound read at
-a look, `walHandleIn_steps`, which the commit deposits); then (S/wal.go:1093-1135): the lock, the
-shortcut (an empty state and no entries: nothing written, the committed handle quiescent already), the
-nil states replaced by fresh zero ones (`ZeroLaw`), `MustSync`, the entries' records (the loop's
-invariant `SaveSt`, `SavePure.lean`), the state's, the tail's offset (`Seek`, always the encoder's
-offset), then `sync` if `MustSync` and the tail is below `SegmentSizeBytes`, `cut` if it is not
-(its pipeline bound from a step's receipt and the handle's, `walPc_bound`). Lean-first.
+`(*WAL).Save` over its callees: `sync`, `saveEntry`, `saveState`, `cut` (their two specs each, chosen at a
+call by whether `Sio` covers every inode, `CalleeCov.lean`: their families are left for the queued
+cleanup), the laws of the client's raft messages (`WalPbIn.IsEmptyLaw`, `WalPbIn.MustSyncLaw`,
+`WalPbIn.ZeroLaw`: the part cannot import the main tree's raft specs, plan §10), `WAL.tail`, and
+Perennial's `Mutex`. One proof since wal-link L1a (2026-11-17, `notes/wal-link-scope.md` §8; the former
+`wp_proof` and `wp_proofNoErr` merged). After the lock, the deferred `Unlock`'s resolution gives the later
+credit with which the share gives the handle (`walOpenWS_acquire`, `walHdl_open`: with the fresh room when
+`walCov Sio`); the update commits at the next resolution (`walHandleIn_append`; that step raises the WALs'
+step bound read at a look, `walHandleIn_steps`, which the commit deposits); then (S/wal.go:1093-1135): the
+shortcut (an empty state and no entries: nothing written, the committed handle quiescent already), the nil
+states replaced by fresh zero ones (`ZeroLaw`), `MustSync`, the entries' records (the loop's invariant
+`SaveSt`, `SavePure.lean`, with the room left for the batch's remaining frames when covered), the state's,
+the tail's offset (`Seek`, always the encoder's offset), then `sync` if `MustSync` and the tail is below
+`SegmentSizeBytes`, `cut` if it is not (its pipeline bound from a step's receipt and the handle's,
+`walPc_bound`). The room after: the tail below `SegmentSizeBytes`, or the cut's fresh segment, both within
+`walFreshRoom`. Before the unlock the handle goes back (`walOpenWS_release`), or, after an error (only when
+not covered, and then with the whole share), the whole share is spent (`walOpenWS_finish`). Lean-first.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Save
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cut
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveEntry
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveState
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CalleeCov
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutPre
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleAppend
@@ -47,6 +49,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+
+/-- The remaining frames' room, one entry consumed. -/
+theorem save_drop_sum (Mr : WalMarshal) (es : List EntryM) (j : Nat) (e : EntryM) (he : es[j]? = some e) :
+    ((es.drop j).map (fun e => (Mr.encEntry e).length + 64)).sum =
+      ((Mr.encEntry e).length + 64) + ((es.drop (j + 1)).map (fun e => (Mr.encEntry e).length + 64)).sum := by
+  have hj : j < es.length := (List.getElem?_eq_some_iff.1 he).1
+  rw [List.getElem?_eq_getElem hj] at he
+  cases he
+  rw [List.drop_eq_getElem_cons hj, List.map_cons, List.sum_cons]
+
+/-- A small stream leaves the fresh room. -/
+theorem save_room_small (a b c : Nat) (h : a + b + c ≤ 2 ^ 43) : a + b + c + walFreshRoom ≤ maxBytes := by
+  unfold walFreshRoom
+  have : (2 : Nat) ^ 43 ≤ maxBytes := by decide
+  omega
 
 /-- A slice's length is zero iff its list is empty. -/
 theorem save_slen_zero (sl : GoSlice) (xs : List Loc) (h1 : xs.length = sint.nat sl.len)
@@ -86,21 +104,21 @@ theorem save_pc_bound (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n
   icases Hx with ⟨⟨-, Hr⟩, %hb⟩
   iframe Hr; ipureintro; exact hb
 
-/-- **`Save`'s success post** from a quiescent handle (`hc.Done`) and the sync's wand. -/
+/-- **`Save`'s success post** from a quiescent handle (`hc.Done`) and the sync's wand: the handle for the
+lock (`walHdl`, the fresh room when covered). -/
 theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (hs : HardStateM)
     (es : List EntryM) (Q : WalDur → IProp GF) (h hc : WalHS) (hD : hc.Done)
-    (hmd : hc.md.length < 2 ^ 41) :
+    (hmd : hc.md.length < 2 ^ 41)
+    (hroom : walCov Sio → hc.o0 + hc.out.length + hc.pend.length + walFreshRoom ≤ maxBytes) :
     ⊢ walHandleIn (W := W) P Mr w dir hc TailMetaW -∗ ⧗ hc.pc -∗ WalFs.walLenLb w dir (h.H.length + 1) -∗
       (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) -∗
       (⌜walMustSync (h.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (h.H.length + 1)) -∗
-      (walOpenWF (W := W) P Mr w dir ∗ ∃ d : WalDur, Q d ∗ WalFs.walLenLb w dir (d.H.length + 1) ∗
+      (walHdl (W := W) Sio P Mr w dir ∗ ∃ d : WalDur, Q d ∗ WalFs.walLenLb w dir (d.H.length + 1) ∗
         (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (d.H.length + 1))) := by
   iintro Hh Hr #Hlb ⟨%d, HQ, %hd⟩ Hs
   isplitl [Hh Hr]
-  · iapply (walOpenWF_iff P Mr w dir).2
-    iexists hc
+  · iapply walHdl_close Sio P Mr w dir hc hD hmd hroom
     iframe Hh Hr
-    ipureintro; exact ⟨hD, hmd⟩
   iexists d
   rw [hd]
   iframe HQ Hlb Hs
@@ -110,30 +128,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
+    (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_saveEntry : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.spec (W := W) P Mr)
+    (wp_saveEntryNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_saveState : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr)
+    (wp_saveStateNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr)
+    (wp_cutNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P)
     (wp_mustSync : WalPbIn.MustSyncLaw (GF := GF) (hG := hG) P)
     (hzero : WalPbIn.ZeroLaw (GF := GF) (hG := hG) P) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) P Mr := by
-  intro R jr r w dir hp hs sl esL es sized Q
-  wp_start as ⟨#Harea, Hw, #Hhs, #Hsl, Hes, %hidx, %hsz, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (Sio := Sio) (W := W) P Mr := by
+  intro R jr r w dir γ q hp hs sl esL es sized Q
+  wp_start as ⟨#Harea, Hw, %hq, #Hhs, #Hsl, Hes, %hidx, %hsz, %hk, Hau⟩
+  icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
+  icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, #Hseg⟩
   ihave %hS := walAreaOk_encState walCodec Mr R jr r $$ Harea
-  icases walHandleIn_idx P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hix⟩
-  icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, #Hseg⟩
-  icases walHandleIn_pure P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hpu0⟩
-  icases walHandleIn_pkgInit P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hwpk0⟩
-  have hix0 := hix.1 hD.1
-  -- the WALs' step bound at a look (`⧖ |H|`), raised by the receipt of the deferred `w.mu.Unlock`'s
-  -- resolution, deposited by the commit right after it (`notes/bounds-plan.md`, "The WAL's segment sequence")
-  iapply (wp_notCrashed_acc _ _ rfl)
-  iintro Hnc
-  imod walHandleIn_steps P Mr R jr r w dir h TailMetaW $$ Harea Hnc Hh with ⟨Hnc, Hh, #Hst⟩
-  imodintro
-  iframe Hnc
   ihave %hlen := ownSlice_len $$ Hsl
   iunfold walEntsIn at Hes
   icases Hes with #Hes
@@ -142,8 +153,33 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply +noauto sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
+  -- the deferred `w.mu.Unlock`'s resolution: its later credit takes the handle out of the share
+  wp_to_resolve
+  first
+    | wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+    | wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+  iapply wp_go_step_receipt'
+  case hv => exact isPanic_intoVal _
+  inext
+  iintro - Hlc
+  iapply wp_value'
+  iapply fupd_wp
+  imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc] with ⟨-, Hheld, Hh⟩
+  · iframe Hw Hlocked Hlc
+  imodintro
+  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHandleIn_idx P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hix⟩
+  icases walHandleIn_pkgInit P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hwpk0⟩
+  have hix0 := hix.1 hD.1
+  -- the WALs' step bound at a look (`⧖ |H|`), raised by the next resolution's receipt, deposited by the
+  -- commit right after it (`notes/bounds-plan.md`, "The WAL's segment sequence")
+  iapply (wp_notCrashed_acc _ _ rfl)
+  iintro Hnc
+  imod walHandleIn_steps P Mr R jr r w dir h TailMetaW $$ Harea Hnc Hh with ⟨Hnc, Hh, #Hst⟩
+  imodintro
+  iframe Hnc
   wp_raise_receipt Hst
-  -- the commit, right after the lock
+  -- the commit
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_append P Mr R jr r w dir h (WalOpG.save hs es).toRaw sized Q hD.1
@@ -156,7 +192,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     · omega
     · have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
   have hs0 := SaveSt.init Mr h hs es
-  generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS) = h1 at hs0 ⊢
+  have hroom1 : walCov Sio →
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).o0 +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).out.length +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).pend.length +
+      walFreshRoom ≤ maxBytes := hroom
+  generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS) = h1 at hs0 hroom1 ⊢
   (try wp_auto)
   -- the shortcut's test
   wp_apply (wp_empty hp hs) $$ [] as %b %hb
@@ -178,22 +219,28 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   rotate_left
   · -- the shortcut: nothing written, the committed handle quiescent
     obtain ⟨hse, rfl⟩ := hc.1 rfl
+    have hf := SaveSt.finEmpty hs0 hD hse
+    rw [← hs0.pc]
+    ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir hs [] Q h h1 hf.done (by rw [hf.md]; exact hmd) hroom1
+      $$ Hh Hr Hlb HQ []
+    · iintro %hm
+      exfalso
+      rcases hm with hm | ⟨hm, -⟩
+      · exact hm rfl
+      · exact hm hse
     wp_auto
+    iapply fupd_wp
+    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hhdl] with ⟨Hw, Hlocked⟩
+    · iframe Hpers Hheld Hhdl
+    imodintro
+    (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
     (try wp_auto)
-    have hf := SaveSt.finEmpty hs0 hD hse
     iapply HΦ
     ileft
     isplitr
     · ipureintro; rfl
-    rw [← hs0.pc]
-    iapply save_post P Mr w dir hs [] Q h h1 hf.done (by rw [hf.md]; exact hmd)
-      $$ Hh Hr Hlb HQ
-    iintro %hm
-    exfalso
-    rcases hm with hm | ⟨hm, -⟩
-    · exact hm rfl
-    · exact hm hse
+    iframe Hw Hpost
   have hne : ¬ (hsEmptyP hs ∧ es = []) := fun h => by simpa using hc.2 h
   wp_auto
   -- `st == nil`: a fresh zero state
@@ -239,16 +286,25 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   rename_i _ i_ptr_1
   have hst1 : h1.st = walLastHS (h.H.map WalOpG.toM) := hs0.st.trans hD.2
   have hsl : sint.nat sl.len = es.length := by omega
-  -- the entries' records: after `j` of them, the handle at `SaveSt … j`
+  -- the entries' records: after `j` of them, the handle at `SaveSt … j`, with room for the rest when covered
   ihave HI : (∃ (j k0 : w64) (hc : WalHS),
       "i" ∷ i_ptr ↦ j ∗ "i0" ∷ i_ptr_1 ↦ k0 ∗ "Hh" ∷ walHandleIn P Mr w dir hc TailMetaW ∗
       "%Hs" ∷ ⌜SaveSt Mr h hs es (sint.nat j) hc⌝ ∗
+      "%Hroom" ∷ ⌜walCov Sio → hc.o0 + hc.out.length + hc.pend.length +
+        (((es.drop (sint.nat j)).map (fun e => (Mr.encEntry e).length + 64)).sum +
+          ((Mr.encState hs).length + 64)) ≤ maxBytes⌝ ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF)
-    $$ [-HΦ Hr HQ «$res0» w Hlocked defer ents st mustSync]
+    $$ [-HΦ Hr HQ Hheld «$res0» w defer ents st mustSync]
   · iexists W64 0, _, h1
     iframe
     ipureintro
-    exact ⟨hs0, by decide, Nat.zero_le _⟩
+    refine ⟨hs0, ?_, by decide, Nat.zero_le _⟩
+    intro hc
+    have := hk hc
+    have := hroom1 hc
+    unfold saveRoom at *
+    simp only [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]
+    omega
   wp_for HI
   by_cases Hlt : sint.Z j < sint.Z sl.len
   · -- an entry
@@ -274,9 +330,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     obtain ⟨hpos, hlast, hrec⟩ := Hs.entryPre hcut hix.2 e he
     have hei : uint.nat e.Index' < 2 ^ 64 - 1 := hidx e (List.mem_of_getElem? he)
-    wp_apply (wp_saveEntry R jr r w dir hc l e hpos hei (hsz e (List.mem_of_getElem? he)) hlast hrec) $$ [Hh] as %err Hres
+    have hdrop := save_drop_sum Mr es (sint.nat j) e he
+    wp_apply (walCov_saveEntry P Mr wp_saveEntry wp_saveEntryNE R jr r w dir hc l e hpos hei
+      (hsz e (List.mem_of_getElem? he)) hlast hrec (fun hc => by have := Hroom hc; omega)) $$ [Hh]
+      as %err Hres
     · iframe Harea Hh Hel
-    icases Hres with (⟨%herr, %out', %pend', %sz', Hh⟩ | %herr)
+    icases Hres with (⟨%herr, %out', %pend', %sz', Hh, %hlen'⟩ | %herr)
     · subst herr
       (try wp_auto)
       wp_for_post
@@ -285,15 +344,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       iframe
       have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
       ipureintro
-      refine ⟨?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_⟩
       · rw [hj1]; exact Hs.step e he out' pend' sz'
+      · intro hc; have := Hroom hc; have := hlen' hc; rw [hj1]; simp only; omega
       · word
       · omega
     · rcases err with ei | _
       rotate_left
-      · exact absurd rfl herr
+      · exact absurd rfl herr.1
       (try wp_auto)
       wp_for_post
+      have hq1 : q = 1 := hq.resolve_left (herr).2
+      subst hq1
+      iapply fupd_wp
+      imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hlocked
+      · iframe Hpers Hheld
+      imodintro
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
       (try wp_auto)
@@ -309,24 +375,35 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     have : sint.nat j = (sint.Z j).toNat := rfl
     have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
     omega
-  rw [hje] at Hs
+  rw [hje] at Hs Hroom
+  simp only [List.drop_length, List.map_nil, List.sum_nil, Nat.zero_add] at Hroom
   (try wp_auto)
   -- the state's record
-  wp_apply (wp_saveState R jr r w dir hc hp' hs (Hs.statePre hcut hix0 hix.2)) $$ [Hh] as %err Hres
+  wp_apply (walCov_saveState P Mr wp_saveState wp_saveStateNE R jr r w dir hc hp' hs
+    (Hs.statePre hcut hix0 hix.2) Hroom) $$ [Hh] as %err Hres
   · iframe Harea Hh Hhs'; ipureintro; exact hp'n
   ihave Hres2 : (⌜err = GoInterface.nil⌝ ∗ ∃ hc2 : WalHS, walHandleIn P Mr w dir hc2 TailMetaW ∗
-      ⌜SaveFin h hs es hc2⌝) ∨ ⌜err ≠ GoInterface.nil⌝ $$ [Hres]
-  · icases Hres with (⟨⟨%herr, %hse⟩, Hh⟩ | ⟨⟨%herr, %hse⟩, %out', %pend', %sz', Hh⟩ | %herr)
-    · ileft; iframe; ipureintro; exact ⟨herr, Hs.finEmpty hD hse⟩
+      ⌜SaveFin h hs es hc2 ∧ (walCov Sio → hc2.o0 + hc2.out.length + hc2.pend.length ≤ maxBytes)⌝) ∨
+      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ $$ [Hres]
+  · icases Hres with (⟨⟨%herr, %hse⟩, Hh⟩ | ⟨⟨%herr, %hse⟩, %out', %pend', %sz', Hh, %hlen'⟩ | %herr)
+    · ileft; iframe; ipureintro
+      exact ⟨herr, Hs.finEmpty hD hse, fun hc => by have := Hroom hc; omega⟩
     · ileft; isplitr
       · ipureintro; exact herr
-      iexists _; iframe Hh; ipureintro; exact Hs.finState hse out' pend' sz'
+      iexists _; iframe Hh; ipureintro
+      exact ⟨Hs.finState hse out' pend' sz', fun hc => by have := Hroom hc; have := hlen' hc; simp only; omega⟩
     · iright; ipureintro; exact herr
-  icases Hres2 with (⟨%herr, %hc2, Hh, %hf⟩ | %herr)
+  icases Hres2 with (⟨%herr, %hc2, Hh, %hf2⟩ | %herr)
   rotate_left
   · rcases err with ei | _
     rotate_left
-    · exact absurd rfl herr
+    · exact absurd rfl herr.1
+    have hq1 : q = 1 := hq.resolve_left (herr).2
+    subst hq1
+    iapply fupd_wp
+    imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hlocked
+    · iframe Hpers Hheld
+    imodintro
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
     (try wp_auto)
@@ -336,6 +413,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     · ipureintro; exact herr
     icases HQ with ⟨%d, HQ, -⟩
     iexists d; iexact HQ
+  obtain ⟨hf, hroom2⟩ := hf2
   subst herr
   (try wp_auto)
   -- the tail's offset
@@ -362,46 +440,78 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     wp_auto
     wp_if_destruct
     · -- no sync due
+      ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir hs es Q h hc2 hf.done (by rw [hf.md]; exact hmd)
+        (fun hc => save_room_small _ _ _ (by
+          have := save_hif hc2.o0 hc2.out.length ho3 Hif; have := hroom2 hc; omega))
+        $$ Hh Hr Hlb HQ []
+      · iintro %hm
+        exfalso
+        refine not_walMustSync _ _ _ ?_ hm
+        rw [← hst1]
+        intro hx
+        have hnot : ¬ (sl.len ≠ W64 0 ∨ hs.Vote' ≠ h1.st.Vote' ∨ hs.Term' ≠ h1.st.Term') :=
+          fun hy => absurd (hms.2 hy) (by decide)
+        apply hnot
+        rcases hx with hx | hx
+        · left
+          intro h0
+          apply hx
+          rw [← List.length_eq_zero_iff, ← hlen2, List.length_eq_zero_iff]
+          exact (save_slen_zero sl esL hlen.1 hlen.2).1 h0
+        · right; exact hx
+      iapply fupd_wp
+      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hhdl] with ⟨Hw, Hlocked⟩
+      · iframe Hpers Hheld Hhdl
+      imodintro
+      (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
       (try wp_auto)
       iapply HΦ
       ileft
       isplitr
       · ipureintro; rfl
-      iapply save_post P Mr w dir hs es Q h hc2 hf.done (by rw [hf.md]; exact hmd) $$ Hh Hr Hlb HQ
-      iintro %hm
-      exfalso
-      refine not_walMustSync _ _ _ ?_ hm
-      rw [← hst1]
-      intro hx
-      have hnot : ¬ (sl.len ≠ W64 0 ∨ hs.Vote' ≠ h1.st.Vote' ∨ hs.Term' ≠ h1.st.Term') :=
-        fun hy => absurd (hms.2 hy) (by decide)
-      apply hnot
-      rcases hx with hx | hx
-      · left
-        intro h0
-        apply hx
-        rw [← List.length_eq_zero_iff, ← hlen2, List.length_eq_zero_iff]
-        exact (save_slen_zero sl esL hlen.1 hlen.2).1 h0
-      · right; exact hx
-    · wp_apply (wp_sync R jr r w dir hc2 hf.rest) $$ [Hh] as %err Hres
+      iframe Hw Hpost
+    · wp_apply (walCov_sync P Mr wp_sync wp_syncNE R jr r w dir hc2 hf.rest hroom2) $$ [Hh] as %err Hres
       · iframe Harea Hh
-      (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
-      (try wp_auto)
-      iapply HΦ
       icases Hres with (⟨%herr, Hh, #Hsyn⟩ | %herr)
-      · ileft
-        isplitr
-        · ipureintro; exact herr
+      · subst herr
         ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-        iapply save_post P Mr w dir hs es Q h
+        ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir hs es Q h
           { hc2 with out := hc2.out ++ hc2.pend, pend := [], sz := max hc2.sz (hc2.o0 + hc2.out.length + hc2.pend.length) }
           ⟨hf.rest, hf.st⟩ (by simp only; rw [hf.md]; exact hmd)
-          $$ Hh Hr Hlb HQ
-        iintro -
-        rw [hlenH]; iexact Hsyn
-      · iright
+          (fun hc => save_room_small _ _ _ (by
+            have := save_hif hc2.o0 hc2.out.length ho3 Hif
+            have := hroom2 hc
+            simp only [List.length_append, List.length_nil]; omega))
+          $$ Hh Hr Hlb HQ []
+        · iintro -
+          rw [hlenH]; iexact Hsyn
+        iapply fupd_wp
+        imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hhdl] with ⟨Hw, Hlocked⟩
+        · iframe Hpers Hheld Hhdl
+        imodintro
+        (try wp_auto)
+        wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+        (try wp_auto)
+        iapply HΦ
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iframe Hw Hpost
+      · rcases err with ei | _
+        rotate_left
+        · exact absurd rfl herr.1
+        have hq1 : q = 1 := hq.resolve_left (herr).2
+        subst hq1
+        iapply fupd_wp
+        imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hlocked
+        · iframe Hpers Hheld
+        imodintro
+        (try wp_auto)
+        wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+        (try wp_auto)
+        iapply HΦ
+        iright
         isplitr
         · ipureintro; exact herr
         icases HQ with ⟨%d, HQ, -⟩
@@ -419,25 +529,44 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       rw [hf.H]; exact walCutPos_save h.H hs es hne
     have hsz2 : hc2.md.length + (Mr.encState hc2.st).length < 2 ^ 42 := by
       have := hS hc2.st; rw [hf.md]; omega
-    wp_apply (wp_cut R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos
-      (by rw [hf.H]; simp) hsz2) $$ [Hh] as %err Hres
+    wp_apply (walCov_cut P Mr wp_cut wp_cutNE R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos
+      (by rw [hf.H]; simp) hsz2 hroom2) $$ [Hh] as %err Hres
     · iframe Harea Hh
-    (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
-    (try wp_auto)
-    iapply HΦ
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
-    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', -⟩ := hh'
-      ileft
-      isplitr
-      · ipureintro; exact herr
+    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hroom'⟩ := hh'
+      subst herr
       rw [← hpc'] at *
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-      iapply save_post P Mr w dir hs es Q h h' ⟨hrest', by rw [hst', hH']; exact hf.st⟩
-        (by rw [hmd', hf.md]; exact hmd) $$ Hh Hr2 Hlb HQ
-      iintro -
-      rw [hlenH]; iexact Hsyn
-    · iright
+      ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir hs es Q h h' ⟨hrest', by rw [hst', hH']; exact hf.st⟩
+        (by rw [hmd', hf.md]; exact hmd) (fun _ => save_room_small _ _ _ hroom') $$ Hh Hr2 Hlb HQ []
+      · iintro -
+        rw [hlenH]; iexact Hsyn
+      iapply fupd_wp
+      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hhdl] with ⟨Hw, Hlocked⟩
+      · iframe Hpers Hheld Hhdl
+      imodintro
+      (try wp_auto)
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+      (try wp_auto)
+      iapply HΦ
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iframe Hw Hpost
+    · rcases err with ei | _
+      rotate_left
+      · exact absurd rfl herr.1
+      have hq1 : q = 1 := hq.resolve_left (herr).2
+      subst hq1
+      iapply fupd_wp
+      imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hlocked
+      · iframe Hpers Hheld
+      imodintro
+      (try wp_auto)
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+      (try wp_auto)
+      iapply HΦ
+      iright
       isplitr
       · ipureintro; exact herr
       icases HQ with ⟨%d, HQ, -⟩

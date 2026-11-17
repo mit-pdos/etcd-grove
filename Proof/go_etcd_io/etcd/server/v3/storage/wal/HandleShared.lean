@@ -53,6 +53,10 @@ def ioNone : IoSet := ⟨fun _ _ => False, fun _ => False⟩
 
 theorem walCov_ioNone : ¬ walCov ioNone := fun h => h default 0
 
+/-- **A no-error spec holds vacuously at `ioNone`** (its premise, that `Sio` covers every inode, fails): how
+`etc/gen-link.py --wal-tester` discharges such a hypothesis of a WAL result the tester takes at `ioNone`. -/
+theorem noErr_ioNone {A : Prop} : (∀ st i, ioNone.ino st i) → A := fun h => absurd h walCov_ioNone
+
 instance fsStepSat_ioNone [ExtSemantics fsExt] : FsStepSat (NoIoErr ioNone) where
   sat := by
     intro _ _ o v _ st _ e' _ _ _ _ hc
@@ -90,6 +94,62 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 /-- **The handle a holder of `w.mu` finds** (see the file header). -/
 def walHdl (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
   iprop((⌜¬ walCov Sio⌝ ∗ walOpenWF (W := W) P Mr w dir) ∨ walOpenWFR (W := W) P Mr w dir walFreshRoom)
+
+/-- **The handle a lock holder finds, unfolded**: a quiescent handle, with the fresh room when `Sio` covers
+every inode. -/
+theorem walHdl_open (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    walHdl (W := W) Sio P Mr w dir ⊢
+      ∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+        ⧗ h.pc ∗ ⌜walCov Sio → h.o0 + h.out.length + h.pend.length + walFreshRoom ≤ maxBytes⌝ := by
+  unfold walHdl
+  iintro (⟨%hc, Hw⟩ | Hw)
+  · icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
+    iexists h
+    iframe Hh Hr
+    ipureintro; exact ⟨hD, hmd, fun h => absurd h hc⟩
+  · icases (walOpenWFR_iff P Mr w dir walFreshRoom).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
+    iexists h
+    iframe Hh Hr
+    ipureintro; exact ⟨hD, hmd, fun _ => hb⟩
+
+/-- **The handle given back to the lock** (`walHdl_open`'s converse). -/
+theorem walHdl_close (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
+    (hD : h.Done) (hmd : h.md.length < 2 ^ 41)
+    (hroom : walCov Sio → h.o0 + h.out.length + h.pend.length + walFreshRoom ≤ maxBytes) :
+    walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⧗ h.pc ⊢ walHdl (W := W) Sio P Mr w dir := by
+  iintro ⟨Hh, Hr⟩
+  unfold walHdl
+  by_cases hc : walCov Sio
+  · iright
+    iapply (walOpenWFR_iff P Mr w dir walFreshRoom).2
+    iexists h
+    iframe Hh Hr
+    ipureintro; exact ⟨hD, hmd, hroom hc⟩
+  · ileft
+    isplitr
+    · ipureintro; exact hc
+    iapply (walOpenWF_iff P Mr w dir).2
+    iexists h
+    iframe Hh Hr
+    ipureintro; exact ⟨hD, hmd⟩
+
+/-- **The handle of a client that assumes nothing of `Sio`** (WalTester's, between calls). -/
+theorem walHdl_wf (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    walHdl (W := W) Sio P Mr w dir ⊢ walOpenWF (W := W) P Mr w dir := by
+  unfold walHdl
+  iintro (⟨-, Hw⟩ | Hw)
+  · iexact Hw
+  · iapply walOpenWFR_wf P Mr w dir walFreshRoom $$ Hw
+
+/-- `walHdl_wf`'s converse, when `Sio` does not cover every inode. -/
+theorem walHdl_of_wf (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (hc : ¬ walCov Sio) :
+    walOpenWF (W := W) P Mr w dir ⊢ walHdl (W := W) Sio P Mr w dir := by
+  unfold walHdl
+  iintro Hw
+  ileft
+  iframe Hw
+  ipureintro; exact hc
 
 /-- **The shared handle's invariant** (see the file header). -/
 def walShInv (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN) :

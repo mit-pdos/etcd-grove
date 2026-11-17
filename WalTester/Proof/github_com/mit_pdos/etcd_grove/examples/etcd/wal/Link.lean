@@ -72,6 +72,7 @@ public import Spec.fmt.ErrorfErrsNot
 public import Spec.fmt.ErrorfErrsTerm
 public import Spec.fmt.SprintfBroken
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWALUnlock
 public import Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
 public import Spec.internal.filepathlite.IsAbs
@@ -783,7 +784,7 @@ theorem etcd_wal.member.wp_save
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_phsNext (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save (walRaftP
     (GF := GF)) walRaftMr h_WalPbIn_GetIndexLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw
-    h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw h_WalPbIn_ZeroLaw))
+    h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw h_WalPbIn_ZeroLaw noErr_ioNone))
 
 theorem etcd_wal.member.wp_opEntries
     (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw :
