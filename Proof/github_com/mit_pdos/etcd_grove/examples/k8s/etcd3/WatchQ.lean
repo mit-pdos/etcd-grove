@@ -87,6 +87,22 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+/-- **etcd's history as the watch check's bridge needs it** (`KHistW`), from the invariant's facts
+(`kvWfHist` at the driver's store, `KHistI`). -/
+theorem khistW_of (c : StoreCfg GF DObj) (hc : CfgD c) (γ : KNames) (σ : KVState)
+    (hw : kvWfHist c σ) (hk : KHistI γ σ) : KHistW σ := by
+  refine ⟨hk.1, fun r hr v hv => ?_, fun r hr => ?_⟩
+  · have := hw r hr v hv
+    rw [hc.1, hc.2] at this
+    exact this
+  · refine Nat.le_trans (List.length_filter_le _ _) ?_
+    unfold KVState.changesAt
+    split
+    · simp
+    · cases h : σ.changes[r - σ.compacted - 1]? with
+      | none => simp
+      | some cs => simpa using hk.2.2.1 cs (List.mem_of_getElem? h)
+
 /-- **A watch's read update's result** at a firing at `σ` (see the file header). -/
 def watchQ (γ : KNames) (c : StoreCfg GF DObj) (lb : Nat) (σ : KVState) : IProp GF :=
   iprop(⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ ∧

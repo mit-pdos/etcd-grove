@@ -547,9 +547,9 @@ kind 5, no cached object; unless skipped, its key under the driver's resource pr
 `PrepareKey` takes, short, its resource version parsed below `2^62 + 201` (G1: a cached object at
 `2^62` or above counts as none), its match and initial-events options as the watch check reads
 them (`WatchInOk`), a watch-list asking for bookmarks, and any other watch from revision 0 asking
-for initial events (`kModeOk_of`'s premises). -/
+for initial events (`kModeOk_of`'s premises); a skipped watch has no resource version. -/
 def GenInW (x : Input) : Prop :=
-  x.Kind' = W64 5 ∧ x.UseCached' = false ∧
+  x.Kind' = W64 5 ∧ x.UseCached' = false ∧ (x.Skip' = true → x.MinRV' = []) ∧
   (x.Skip' = false →
     go!"/objs/" <+: x.WKey' ∧ (k8s.prepareKeyM go!"/objs" x.WKey' x.Recursive').isSome ∧
     x.WKey'.length ≤ 2 ^ 20 ∧

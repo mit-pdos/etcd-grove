@@ -61,7 +61,8 @@ abbrev runWatch.spec : Prop :=
       (⌜y = wFailedOut ∧ ok = false ∧ (x.Skip' = true ∨ (sieOfL x = some false ∧ uint.nat n = 0))⌝) ∨
       (∃ (wes : List WEv) (kes : List (KWEv DObj)),
         ⌜x.Skip' = false ∧ y = wEventsOut (encWEventsL wes) ∧
-          lastObjL wes = (if ok then some o else none) ∧ List.Forall₂ kWEvRel kes wes⌝ ∗
+          lastObjL wes = (if ok then some o else none) ∧ List.Forall₂ kWEvRel kes wes ∧
+          ∀ w ∈ wes, (encodeWith tagV1 w.o).length < 2 ^ 63⌝ ∗
         kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
           (kModeOf (sieOfL x) x.Bookmarks' n) Q kes) }}
 

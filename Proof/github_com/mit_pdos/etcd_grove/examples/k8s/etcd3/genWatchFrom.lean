@@ -321,7 +321,8 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
   iapply HΦ
   ipureintro
   obtain ⟨⟨h1, h2, h3, ⟨h4a, h4b, h4c⟩, h5⟩, hw, hb, hs⟩ := Hy
-  exact ⟨h1, h2, fun _ => ⟨h4a, h4b _, h4c, r, by rw [h5]; exact hr0, by word, hw, hb, hs⟩⟩
+  refine ⟨h1, h2, ?_, fun _ => ⟨h4a, h4b _, h4c, r, by rw [h5]; exact hr0, by word, hw, hb, hs⟩⟩
+  intro h; rw [h3] at h; cases h
 
 theorem genWatch.wp_proof (wp_genWatchFrom : genWatchFrom.spec (GF := GF) (hG := hG)) :
     genWatch.spec (GF := GF) (hG := hG) := by

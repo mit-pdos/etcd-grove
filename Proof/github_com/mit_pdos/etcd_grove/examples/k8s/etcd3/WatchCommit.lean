@@ -71,6 +71,51 @@ theorem watchOkL_stream_commit (x : Input) (k : GoString) (n : w64)
     word
   exact watchOkL_of_stream (x := x) (hs := h.hist) _ h wes n hn hin hwf rfl hrv rfl hok hst
 
+/-- A driver record of a store event of type at most 4 whose encoding fits is one the check
+decodes (`WEvOk`): an Error event's object is the zero object, any other's the event's. -/
+theorem wevOk_of_rel {e : KWEv DObj} {w : WEv} (h : kWEvRel e w) (ht : e.t ≤ 4)
+    (hl : (encodeWith tagV1 w.o).length < 2 ^ 63) : WEvOk w := by
+  refine ⟨by rw [h.1]; omega, ?_, hl⟩
+  by_cases h4 : e.t = 4
+  · rw [h.2.2 h4]; unfold fitsD zObj; simp
+  · rw [h.2.1 h4]; exact DObj.toObj_fits e.o (W64 (e.rv : Int))
+
+theorem forall₂_mem_right {α β : Type} {R : α → β → Prop} :
+    ∀ {l1 : List α} {l2 : List β}, List.Forall₂ R l1 l2 → ∀ b ∈ l2, ∃ a ∈ l1, R a b
+  | [], [], .nil, b, h => by cases h
+  | a :: _, _ :: _, .cons hr hs, b, h => by
+    rcases List.mem_cons.1 h with rfl | h
+    · exact ⟨a, List.mem_cons_self, hr⟩
+    · obtain ⟨a', ha', hr'⟩ := forall₂_mem_right hs b h
+      exact ⟨a', List.mem_cons_of_mem _ ha', hr'⟩
+
+/-- A prepared key is the key, or the key and a `/`. -/
+theorem prepareKeyM_length {rp key k : GoString} {r : Bool} (h : k8s.prepareKeyM rp key r = some k) :
+    k.length ≤ key.length + 1 := by
+  unfold k8s.prepareKeyM at h
+  split at h
+  · simp at h
+  split at h
+  · simp at h
+  split at h
+  · simp at h
+  split at h
+  · simp only [] at h
+    split at h
+    · cases h; simp
+    · simp at h
+  · simp only [] at h
+    split at h
+    · cases h; simp
+    · simp at h
+
+/-- Two states of etcd's history (`KHistI`), one's changes a prefix of the other's: one history,
+not older. -/
+theorem sameHist_of_khist {γ : KNames} {σ σe : KVState} (h : KHistI γ σ) (he : KHistI γ σe)
+    (hp : σ.changes <+: σe.changes) : kvSameHist σ σe ∧ σ.rev ≤ σe.rev := by
+  refine ⟨⟨h.1.trans he.1.symm, h.2.1.trans he.2.1.symm, Or.inl hp⟩, ?_⟩
+  unfold KVState.rev; rw [h.1, he.1]; have := hp.length_le; omega
+
 end pure
 
 end k8s_etcd3

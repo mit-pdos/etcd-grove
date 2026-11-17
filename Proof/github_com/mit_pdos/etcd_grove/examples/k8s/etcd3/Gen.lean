@@ -62,7 +62,7 @@ theorem Gen.wp_proof (wp_get : cache.get.spec (GF := GF) (hG := hG))
        wp_if_destruct
        · iapply HΦ
          isplitr
-         · ipureintro; right; exact ⟨rfl, rfl, fun h => by simp at h⟩
+         · ipureintro; right; exact ⟨rfl, rfl, fun _ => rfl, fun h => by simp at h⟩
          unfold cachedIn; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
        · wp_apply wp_getW c tbl id $$ [Hc] as %o %ok -
          · iframe Hc
