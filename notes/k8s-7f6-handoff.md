@@ -33,8 +33,11 @@
 - **Done, built (step 8):** `newStore.spec`/proof (seed, features, `etcd3.New`; post: seed cell at
   `σs2`, `isStore sp (storeCfgD …)`, `□ ∀ γk, clientWatchOk cl γk -∗ storeWatchOk sp (storeCfgD …)
   driverW γk`); `storeCfgD` in `WContract.lean`.
-- **Next, in order:** step 9 `Main*` (single member: `kvWatch_served` at `clientAddr`). **E-2 hard stop**
-  before linking (Link/MainLinked/Adequacy/Results): report old → new closed texts.
+- **Done, built (step 9):** `Main*.spec` (watchers, wops, bounds, `ContextReadErrs`/`ContextErrsClient`
+  binders) and their proofs over `newStore`, `clientWatchOk_of_regs`, `Check` (771b092979, then Main).
+- **AT CHECKPOINT E-2 (hard stop):** `notes/k8s-7f6e-statements.md` (closed statements old → new,
+  forms since E-1). After approval: step 10 (F): link-lean-first files, `Link`/`MainLinked`/
+  `Adequacy`/`Results`, interfaces, tcb collection, bounds check, STATUS; then the land stop.
 - **Pitfalls:** build slots are often both busy (a full c6b build retries): queue builds in the
   background and write ahead; lean-check spins at "elaborating line 1" until the imports are built
   by `lake` (then it works, ~1 min per file). `subst` on `g' = g` eliminates `g`: `subst g'`.
