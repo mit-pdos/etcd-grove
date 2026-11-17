@@ -59,7 +59,7 @@ def lfOK (N : Namespace) (db : Loc) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMe
     (xs : List ByteG) : Prop :=
   fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧ flFileOK (xs.map Prod.fst) C ∧
     C.hwm * 4096 ≤ xs.length ∧ 8192 ≤ xs.length ∧ xs.length = m.size ∧ m.size ≤ L ∧
-    m.size < 2 ^ 63 ∧ m.maps = GMap.singleton b L ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
+    m.size < 2 ^ 62 ∧ m.maps = GMap.singleton b L ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
     (↑N : CoPset) ## ↑osN ∧ db ≠ null
 
 /-- **What `loadFreelist` takes at `Open`**: `open_core`'s inputs, the mapping's client halves
@@ -106,7 +106,7 @@ abbrev DB.loadFreelist.spec_open : Prop :=
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
   lfOK N db C b L m xs → 0 ≤ fd.toInt →
   {{ lfPre (GF := GF) γbq N db sp f fd p b L m xs ∗
-      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) }}
+      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))
   {{ RET #(); lfPost γbq N db sp f fd p C b L m xs }}
 
@@ -258,7 +258,7 @@ theorem DB.loadFreelist.wp_proof_open
     (hFP : DB.freepages.spec (GF := GF) (hG := hG)) :
     DB.loadFreelist.spec_open (GF := GF) (hG := hG) := by
   intro _ _ γbq N db sp f fd p C b L m xs hok hfd
-  wp_start as ⟨Hpre, Honce⟩
+  wp_start as ⟨Hpre, Honce, #Hrcm⟩
   iunfold lfPre at Hpre
   icases Hpre with ⟨#Hpkg, Hpre⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -308,7 +308,7 @@ theorem DB.loadFreelist.wp_proof_open
         FLPg.empty interface.nil rfl hok' ⟨htx1, htx2⟩ hN hdb γbq $$
         [Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
           HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn⟩
-      · iframe Hpkg Hos Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+      · iframe Hpkg Hos Hrcm Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
         iframe
       ihave Hcore' := Hcore
       iunfold isBoltCoreP at Hcore'
@@ -328,7 +328,7 @@ theorem DB.loadFreelist.wp_proof_open
       wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hmlk] as ⟨Hlk, HR⟩
       iunfold metaR at HR
       icases HR with ⟨%C', %F, %cl, %fli', %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk',
-        Hfa, Hro', %Hok, %HF⟩
+        Hfa, Hro', #Hrcm, %Hok, %HF⟩
       icombine Hcur Hcur' gives % ⟨_, hC⟩
       subst hC
       icombine Hcls Hcls' gives % ⟨_, hcl⟩
@@ -377,6 +377,7 @@ theorem DB.loadFreelist.wp_proof_open
         [$Hsync $Hmlk $Hlk Hcur' Hst' Hcls' Hop' Hfl' Hwa' Hob Hmlk' Hfa Hro]
       · iunfold metaR
         iexists C, ∅, false, fli, wa
+        iframe Hrcm
         simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte]
         iframe
         isplitl [Hro]
@@ -504,7 +505,7 @@ theorem DB.loadFreelist.wp_proof_open
       (FLPg.ofInit (flIds pg)) fli rfl hok' ⟨htx1, htx2⟩ hN hdb γbq $$
       [Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
         HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn⟩
-    · iframe Hpkg Hos Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+    · iframe Hpkg Hos Hrcm Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
       iframe
     have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (flIds pg)) fli) := by
       unfold lfW openWb

@@ -71,6 +71,8 @@ public import Proof.go_etcd_io.bbolt.DB__Begin
 public import Proof.go_etcd_io.bbolt.DB__Begin_err
 public import Proof.go_etcd_io.bbolt.DB__Close
 public import Proof.go_etcd_io.bbolt.DB__Close_noErr
+public import Proof.go_etcd_io.bbolt.DB__Close_own
+public import Proof.go_etcd_io.bbolt.DB__Close_ownNoErr
 public import Proof.go_etcd_io.bbolt.DB__Info
 public import Proof.go_etcd_io.bbolt.DB__Stats
 public import Proof.go_etcd_io.bbolt.DB__beginRWTx
@@ -98,6 +100,7 @@ public import Proof.go_etcd_io.bbolt.Mmap.RemapBody
 public import Proof.go_etcd_io.bbolt.Mmap.Unmap
 public import Proof.go_etcd_io.bbolt.Open
 public import Proof.go_etcd_io.bbolt.Open.Close
+public import Proof.go_etcd_io.bbolt.Open.CloseFile
 public import Proof.go_etcd_io.bbolt.Open.CloseNoErr
 public import Proof.go_etcd_io.bbolt.Open.FileModeString
 public import Proof.go_etcd_io.bbolt.Open.Flock
@@ -1113,6 +1116,18 @@ theorem DB.wp_close_ownedNoErr :
 theorem DB.wp_Close_noErr :
     _root_.Perennial.EtcdGrove.bbolt.DB.Close_noErr.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.Close_noErr.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_ownedNoErr
+
+theorem DB.wp_close_ownedNoErrM :
+    _root_.Perennial.EtcdGrove.bbolt.DB.close.spec_ownedNoErrM (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.close.wp_proof_ownedNoErrM _root_.Perennial.EtcdGrove.bbolt.DB.wp_munmapNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FlockNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_CloseNoErr
+
+theorem DB.wp_Close_own :
+    _root_.Perennial.EtcdGrove.bbolt.DB.Close_own.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.Close_own.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_ownedNoErrM
+
+theorem DB.wp_Close_ownNoErr :
+    _root_.Perennial.EtcdGrove.bbolt.DB.Close_ownNoErr.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.Close_ownNoErr.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Close_own
 
 theorem DB.wp_Info :
     _root_.Perennial.EtcdGrove.bbolt.DB.Info.spec (GF := GF) (hG := hG) :=

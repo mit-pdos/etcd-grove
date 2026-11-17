@@ -32,6 +32,8 @@ importable Spec.go_etcd_io.bbolt.Open
 importable Spec.go_etcd_io.bbolt.Open_shared
 importable Spec.go_etcd_io.bbolt.DB__Close
 importable Spec.go_etcd_io.bbolt.DB__Close_noErr
+importable Spec.go_etcd_io.bbolt.DB__Close_own
+importable Spec.go_etcd_io.bbolt.DB__Close_ownNoErr
 importable Spec.go_etcd_io.bbolt.DB__Begin
 importable Spec.go_etcd_io.bbolt.DB__Info
 importable Spec.go_etcd_io.bbolt.DB__Stats

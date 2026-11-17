@@ -52,7 +52,7 @@ abbrev Open_shared.spec : Prop :=
       osPathS R d dq j ∗ osCallPerm qc ∗
       (∃ oc, crOut j b h (DFrac.own 1) oc ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
-            ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
+            ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D) ∨
          ⌜err ≠ GoInterface.nil⌝)) }}
 
 end spec

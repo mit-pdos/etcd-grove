@@ -37,8 +37,11 @@ variable [sem : go.Semantics]
 /-- `B` is the database at `db` (persistent, agreeing). -/
 def dblAt (B : BNs) (db : Loc) : IProp GF := iprop(ghostMapElem B.dbl () DFrac.discard db)
 
-/-- `B`'s receipts' base (the opened file's txid) is `t0` (persistent, agreeing). -/
-def t0At (B : BNs) (t0 : Nat) : IProp GF := iprop(ghostMapElem B.t0 () DFrac.discard t0)
+/-- `B`'s receipts' base (the opened file's txid) is `t0` and its file's inode `i` (persistent,
+agreeing; the inode since session bbolt-inv: what `boltIno` names, so that `Close` can give the
+file back, `DB.Close_own.spec`). -/
+def t0At (B : BNs) (t0 : Nat) (i : Ino) : IProp GF :=
+  iprop(ghostMapElem B.t0 () DFrac.discard (t0, i))
 
 /-- The database's logger: a `boltLogger` (batch 15: the option's, or bbolt's `discardLogger`'s
 value, which `Open` sets when the option's is nil and which is one, `Open/Logger.discardLogger_boltLogger'`; so
@@ -104,7 +107,7 @@ at most `2 ^ 62` (maintainer 12, item 1: `Open`'s `ReceiptBoundLe GF (2 ^ 62)`, 
 `Commit` bounds the next txid, `receipt_txid_lt`). -/
 def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
     IProp GF :=
-  iprop(dblAt B db ∗ t0At B t0 ∗
+  iprop(dblAt B db ∗ t0At B t0 p.ino ∗
     ⌜(t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62) ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN⌝ ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed B.bq N db sp ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
@@ -189,7 +192,22 @@ theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : BFile) (sp sp
   iintro ⟨⟨⟨-, Ht, -, -, -, ⟨-, Hsp, -⟩, -⟩, -⟩, ⟨-, Ht', -, -, -, ⟨-, Hsp', -⟩, -⟩⟩
   icombine Ht Ht' gives %h1
   icombine Hsp Hsp' gives %h2
-  ipureintro; exact ⟨h2, h1.2⟩
+  ipureintro; exact ⟨h2, (Prod.mk.inj h1.2).1⟩
+
+/-- The core's `t0At`, with its file's inode. -/
+theorem isBoltCoreP_t0At (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ⊢ t0At B t0 p.ino := by
+  unfold isBoltCoreP
+  iintro ⟨-, Ht, -⟩
+  iexact Ht
+
+/-- **The inode of `t0At` agrees** with the core's file (`boltIno`'s law, session bbolt-inv). -/
+theorem isBoltCoreP_ino (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 t0' : Nat)
+    (i : Ino) : isBoltCoreP (GF := GF) B N db p sp t0 ∗ t0At B t0' i ⊢ ⌜p.ino = i⌝ := by
+  unfold isBoltCoreP t0At
+  iintro ⟨⟨-, Ht, -⟩, Ht'⟩
+  icombine Ht Ht' gives %h
+  ipureintro; exact (Prod.mk.inj h.2).2
 
 /-- **The database's logger is `logPtrTyped`** (batch 34; `dbFixed`'s last clause, read against the
 caller's copy of the logger field). -/

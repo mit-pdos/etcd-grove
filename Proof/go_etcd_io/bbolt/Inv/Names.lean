@@ -41,8 +41,10 @@ open Iris
 - `wv`: `ghostVar (Option View)`, the writer's borrowed view (½ `pagesInv`, ½ the writer);
 - `txs`: `ghostMap Loc TxReg`, the transactions (auth `txsInv`);
 - `dbl`: `ghostVar Loc`, discarded: the database's location;
-- `cls`: `ghostVar Bool`, closed (½ `rwR`, ½ `metaR`);
-- `t0`: `ghostVar Nat`, discarded: the opened file's txid (the receipts' base);
+- `cls`: `ghostVar Bool`, closed (½ `rwR`, ¼ `metaR`, ¼ `pagesInv`'s `slotsOs`: `Close` takes the
+  store slots' bytes, session bbolt-inv);
+- `t0`: `ghostMap Unit (Nat × Ino)`, a discarded fragment: the opened file's txid (the receipts'
+  base) and inode (`boltIno`, session bbolt-inv);
 - `pool`: the reader pool's name (round 4, N5);
 - `mln`: `ghostVar Unit`, the meta cells' loan token (`metaLend`: home, or with the writer, while
   `pagesInv` holds it; the reader borrowing the meta cells holds it, U3 finding 10);
@@ -54,7 +56,10 @@ open Iris
 - `opn`: `dghostVar Bool`, the opening (batch 41): `false` at 1 with `Open` until after
   `loadFreelist`, then `true`, discarded (persistent, in `isBoltCoreP`);
 - `spr`: `ghostVar Bool`, the spare reader pair in use (batch 41: ½ beside the spare pair or with
-  its reader, ½ in `metaR`). -/
+  its reader, ½ in `metaR`);
+- `nf`: `dghostVar Bool`, the file given up (session bbolt-inv, `boltNoFile`): `false` at 1 in the
+  writer side's junk clause while no mapping leaked; `true`, discarded, once a mapping leaked or
+  `DB.Close` closed the database without giving the file back (`closedR`). -/
 structure BNs where
   st : GName
   bq : GName
@@ -77,6 +82,7 @@ structure BNs where
   fpb : GName
   opn : GName
   spr : GName
+  nf : GName
   deriving Inhabited
 
 /-- The names of a `BoltName`'s list `gs` (`γ.gs`), by position. -/
@@ -86,12 +92,12 @@ def bnsOf (gs : List GName) : BNs :=
    gs.getD 8 default, gs.getD 9 default, gs.getD 10 default, gs.getD 11 default,
    gs.getD 12 default, gs.getD 13 default, gs.getD 14 default, gs.getD 15 default,
    gs.getD 16 default, gs.getD 17 default, gs.getD 18 default, gs.getD 19 default,
-   gs.getD 20 default⟩
+   gs.getD 20 default, gs.getD 21 default⟩
 
 /-- The list of names `Open` returns (`⟨mkGs B, N⟩` is the database's `BoltName`). -/
 def mkGs (B : BNs) : List GName :=
   [B.st, B.bq, B.cur, B.fl, B.rds, B.fltx, B.mtok, B.map, B.out, B.mlk, B.wv, B.txs, B.dbl,
-    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr]
+    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr, B.nf]
 
 theorem bnsOf_mkGs (B : BNs) : bnsOf (mkGs B) = B := rfl
 

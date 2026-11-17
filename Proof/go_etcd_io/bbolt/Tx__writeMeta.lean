@@ -55,16 +55,18 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 (slot `s`, the mapping's base `b`): from `metalock`'s resource, the slot's page-cache bytes
 (whole) and its cells' client halves (as bytes at ½), and, given them back as the write left
 them (`j` bytes written, all or nothing) and a time receipt (of a step under `metalock`, for
-the writer side's receipts), `metalock`'s resource and `Ψ j`. -/
+the writer side's receipts) with the persistent receipt `⧖ m` the first half gave raised to
+`⧖ (m + 1)` by that step (session bbolt-inv: `metaR`'s receipt of the committed txid),
+`metalock`'s resource and `Ψ j`. -/
 def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (Ψ : Nat → IProp GF) : IProp GF :=
-  iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ (xs : List ByteG) (old : List w8),
+  iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ (m : Nat) (xs : List ByteG) (old : List w8), ⧖ m ∗
     osBytes K.p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
     bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) old ∗
     ∀ (j : Nat) (ys : List ByteG),
       ⌜(j = 0 ∨ j = 4096) ∧ ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
       osBytes K.p.ino (4096 * s) (DFrac.own 1) ys -∗
       bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (ys.map Prod.fst) -∗
-      receipt 1 ={⊤}=∗ metaR K.B K.db K.p ∗ Ψ j)
+      receipt 1 -∗ ⧖ (m + 1) ={⊤}=∗ metaR K.B K.db K.p ∗ Ψ j)
 
 /-- **`tx.writeMeta()`** (see the file header): the meta `mv` (as `Meta.Write` needs it) written
 at slot `mv.txid % 2` of a file of at least two pages mapped once at `b` (at least two pages);
@@ -99,6 +101,24 @@ abbrev Tx.writeMeta.spec : Prop :=
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
 
 end spec
+
+set_option hygiene false in
+/-- `wp_take_receipt as Hr` and `wp_raise_receipt H` (`Proof/ReceiptTactics.lean`) in one step
+(session bbolt-inv, the meta write): the next resolution's step gives its exclusive receipt `Hr`
+and raises `H : ⧖ m` (in the intuitionistic context) to `⧖ (m + 1)`, still named `H`. -/
+macro "wp_take_receipt" " as " Hr:ident " raising " H:ident : tactic => `(tactic| (
+  wp_to_resolve
+  first
+    | wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+    | wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+  iapply wp_go_step_preceipt'
+  case hv => exact isPanic_intoVal _
+  isplitr
+  · iexact $H:ident
+  iclear $H:ident
+  inext
+  iintro $Hr:ident #$H:ident -
+  iapply wp_value'))
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -185,7 +205,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_apply hWrite mp sl.ptr mv zeroHdr _ hroot hfl hmp Hpos (by omega) $$ [Hmv Hh Hm0] as ⟨Hmv, Hh, Hm0⟩
   · iframe #; iframe
   wp_apply +noauto sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
-  wp_take_receipt as Hrc
+  -- the commit step's first half (its persistent receipt `Hm'`, raised by the next step)
+  iunfold commitStep at Hcp
+  imod Hcp $$ HR with ⟨%m, %xs, %old, #Hm', Hxs, %Hxl, Hold, Hk⟩
+  wp_take_receipt as Hrc raising Hm'
   wp_apply hId $$ [Hh] as Hh
   · iframe #; iframe
   have hoff : ((mv.txid' % W64 2) * W64 4096).toNat = 4096 * (mv.txid'.toNat % 2) := by
@@ -197,9 +220,6 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe
   ihave Hsl := Hback $$ %(metaBuf mv) %(by rw [metaBuf_length, List.length_replicate]) [Hb]
   · rw [flatMap_encode_w8]; iexact Hb
-  -- the commit step's first half
-  iunfold commitStep at Hcp
-  imod Hcp $$ HR with ⟨%xs, %old, Hxs, %Hxl, Hold, Hk⟩
   ihave Hc : mcellsAny om.maps ((mv.txid' % W64 2) * W64 4096).toNat
       (((mv.txid' % W64 2) * W64 4096).toNat + (metaBuf mv).length) $$ [Hold]
   · rw [hmaps, metaBuf_length, hoff]
@@ -250,7 +270,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iintro Hm Hys Hc
   icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
   · simp only [List.length_map]; iexact Hc
-  imod Hk $$ %j %ys [] Hys Hc Hrc with ⟨HR, HΨ⟩
+  imod Hk $$ %j %ys [] Hys Hc Hrc Hm' with ⟨HR, HΨ⟩
   · ipureintro; exact ⟨hj01, hys⟩
   cases lg with
   | nil => unfold boltLogger; iexfalso; iexact Hlgok

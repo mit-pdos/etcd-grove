@@ -62,6 +62,92 @@ def viewCells (q : Qp) (v : View) : IProp GF :=
 def osSlot (p : BFile) (s : Nat) (bs : List w8) : IProp GF :=
   iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
 
+/-- **The store slots' page-cache bytes while the database is open** (session bbolt-inv, for
+`Close`'s hand-back of the file, `DB.Close_own.spec`): `cls`'s quarter at `false` with every slot's
+`osSlot`; once closed (`cls`'s quarter at `true`, no live writer: `Close` holds the writer side
+idle), nothing (`Close` took them, `store_close`). Over `pagesInv`'s slots, bytes and live writer's
+txid (`storeSlots σ`, `σ.bytes`, `σ.wtx`), not `σ`, so that a transition keeping the three keeps it
+syntactically. A transition that moves slots opens it with the writer's txid (`slotsOs_open_w`:
+a live writer excludes the closed case) or `cls` (`slotsOs_open_c`). -/
+def slotsOs (B : BNs) (p : BFile) (S : List Nat) (bs : Nat → List w8) (wtx : Option Nat) :
+    IProp GF :=
+  iprop((ghostVar B.cls (1 : Qp).half.half false ∗ [∗list] s ∈ S, osSlot p s (bs s)) ∨
+    (ghostVar B.cls (1 : Qp).half.half true ∗ ⌜wtx = none⌝))
+
+omit go_gctx sem in
+instance slotsOs_timeless (B : BNs) (p : BFile) (S : List Nat) (bs : Nat → List w8)
+    (wtx : Option Nat) : Timeless (slotsOs (GF := GF) B p S bs wtx) := by
+  have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
+    intro s bs
+    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p.ino off dq xs) := fun _ _ _ => by
+      unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+    unfold osSlot; infer_instance
+  unfold slotsOs; infer_instance
+
+omit go_gctx sem in
+/-- A live writer (`wtx ≠ none`) excludes the closed case. -/
+theorem slotsOs_open_w (B : BNs) (p : BFile) (S : List Nat) (bs : Nat → List w8)
+    (wtx : Option Nat) (hw : wtx ≠ none) :
+    slotsOs (GF := GF) B p S bs wtx ⊢
+      ghostVar B.cls (1 : Qp).half.half false ∗ [∗list] s ∈ S, osSlot p s (bs s) := by
+  unfold slotsOs
+  iintro (H | ⟨-, %h⟩)
+  · iexact H
+  · exact absurd h hw
+
+omit go_gctx sem in
+/-- `cls` at `false` (the writer side's half, `rwR`) excludes the closed case. -/
+theorem slotsOs_open_c (B : BNs) (p : BFile) (S : List Nat) (bs : Nat → List w8)
+    (wtx : Option Nat) (q : Qp) :
+    slotsOs (GF := GF) B p S bs wtx ∗ ghostVar B.cls q false ⊢
+      (ghostVar B.cls (1 : Qp).half.half false ∗ [∗list] s ∈ S, osSlot p s (bs s)) ∗
+      ghostVar B.cls q false := by
+  unfold slotsOs
+  iintro ⟨(H | ⟨H, -⟩), Hc⟩
+  · iframe
+  · icombine H Hc gives %h
+    exact absurd h.2 (by decide)
+
+omit go_gctx sem in
+theorem slotsOs_intro (B : BNs) (p : BFile) (S : List Nat) (bs : Nat → List w8)
+    (wtx : Option Nat) :
+    ghostVar (GF := GF) B.cls (1 : Qp).half.half false ∗ ([∗list] s ∈ S, osSlot p s (bs s)) ⊢
+      slotsOs B p S bs wtx := by
+  unfold slotsOs
+  iintro H
+  ileft; iexact H
+
+omit sem in
+/-- `cls`'s three parts (`rwR`'s half, `metaR`'s and `pagesInv`'s quarters) set together. -/
+theorem cls_set3 (E : CoPset) (γ : GName) (a a' a'' b : Bool) :
+    ghostVar (GF := GF) γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half.half a' ∗
+      ghostVar γ (1 : Qp).half.half a'' ⊢
+    |={E}=> ghostVar γ (1 : Qp).half b ∗ ghostVar γ (1 : Qp).half.half b ∗
+      ghostVar γ (1 : Qp).half.half b := by
+  iintro ⟨H1, H2, H3⟩
+  icombine H2 H3 gives % ⟨_, h⟩
+  subst h
+  ihave H2 := (ghostVar_split_half (GF := GF) γ (1 : Qp).half a').2 $$ [H2 H3]
+  · iframe
+  imod ghostVar_update_halves (GF := GF) b γ a a' $$ H1 H2 with ⟨H1, H2⟩
+  icases (ghostVar_split_half (GF := GF) γ (1 : Qp).half b).1 $$ H2 with ⟨H2, H3⟩
+  imodintro
+  isplitl [H1]
+  · iexact H1
+  isplitl [H2]
+  · iexact H2
+  · iexact H3
+
+omit go_gctx sem in
+/-- The writer's close (`wtx` to `none`) keeps it. -/
+theorem slotsOs_none (B : BNs) (p : BFile) (S : List Nat) (bs : Nat → List w8)
+    (wtx : Option Nat) :
+    slotsOs (GF := GF) B p S bs wtx ⊢ slotsOs B p S bs none := by
+  unfold slotsOs
+  iintro (H | ⟨H, -⟩)
+  · ileft; iexact H
+  · iright; iframe; ipureintro; rfl
+
 /-- The slots `S` whole, as they move between the store and `W`: their client cell halves (when
 mapped) and their page-cache bytes, holding `bs`. -/
 def slotsOwn (ms : MapSt) (p : BFile) (S : List Nat) (bs : Nat → List w8) : IProp GF :=
@@ -166,7 +252,7 @@ def pagesInv (B : BNs) (p : BFile) : IProp GF :=
     ghostVar B.map (1 : Qp).half.half σ.ms ∗ ghostVar B.wv (1 : Qp).half σ.wst ∗
     rdsAuth B σ.R ∗
     ([∗map] k ↦ r ∈ σ.R, k ↪[B.fltx] (W64 (r.v.txid : Int)) ∗ ghostVar B.mtok sync.rfrac ()) ∗
-    storeCells σ ∗ ([∗list] s ∈ storeSlots σ, osSlot p s (σ.bytes s)) ∗ bytesWit B σ W ∗
+    storeCells σ ∗ slotsOs B p (storeSlots σ) σ.bytes σ.wtx ∗ bytesWit B σ W ∗
     metaLend B σ ∗ ⌜storeOK σ⌝)
 
 /-! ## Lemma statements (U3), fancy updates at `pagesN N` -/
@@ -179,11 +265,6 @@ private theorem pagesInv_timeless (B : BNs) (p : BFile) : Timeless (pagesInv (GF
     intro σ; unfold metaLend metaCellsQ; split <;> infer_instance
   have h4 : ∀ σ W, Timeless (bytesWit (GF := GF) B σ W) := by
     intro σ W; unfold bytesWit; split <;> infer_instance
-  have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
-    intro s bs
-    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p.ino off dq xs) := fun _ _ _ => by
-      unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
-    unfold osSlot; infer_instance
   unfold pagesInv
   infer_instance
 
@@ -1583,12 +1664,13 @@ theorem store_setFl (C : CommitSt) (fl : FLPg)
 mapping) borrowed at `wq`. -/
 theorem store_wbegin (C : CommitSt) (b : Loc) (l : Nat) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
-      ghostVar B.map (1 : Qp).half (some (b, l) : MapSt) ∗ ghostVar B.wv (1 : Qp).half wIdle ⊢
+      ghostVar B.map (1 : Qp).half (some (b, l) : MapSt) ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
+      ghostVar B.cls (1 : Qp).half false ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.map (1 : Qp).half (some (b, l) : MapSt) ∗
       ghostVar B.wv (1 : Qp).half ((some (View.ofC b C), some (C.txid + 1), false, true) : WSt) ∗
-      viewCells wq (View.ofC b C) := by
-  iintro ⟨#Hinv, Hcur, Hmap, Hwv⟩
+      viewCells wq (View.ofC b C) ∗ ghostVar B.cls (1 : Qp).half false := by
+  iintro ⟨#Hinv, Hcur, Hmap, Hwv, Hc⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
@@ -1617,6 +1699,9 @@ theorem store_wbegin (C : CommitSt) (b : Loc) (l : Nat) :
   have hvc := (viewCells_slots (GF := GF) wq v σ.bytes hwok.2.2.2.2.1 hTl).2
   rw [show v.base = b from rfl] at hvc
   ihave Hv := hvc $$ Hv
+  icases slotsOs_open_c B p _ _ _ _ $$ [Hos Hc] with ⟨Hos, Hc⟩
+  · iframe
+  ihave Hos := slotsOs_intro B p (storeSlots σ) σ.bytes (σ.wbegin v).wtx $$ Hos
   imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
     iexists σ.wbegin v, W
@@ -1784,6 +1869,7 @@ theorem store_wclose (v : View) (w : Nat) (pb wl : Bool) (fl : FLPg)
           · simp [hc, (mem_pagesSlots _ _).2 hc]
           · simp [hc, show s ∉ pagesSlots v.pages from fun h => hc ((mem_pagesSlots _ _).1 h)])
       iframe
+  ihave Hos := slotsOs_none B p _ _ _ $$ Hos
   imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
     iexists σ.wclose, W
@@ -1834,6 +1920,8 @@ private theorem store_free_core (out : Bool) (C : CommitSt) (fl : FLPg) (ms : Ma
   subst hC hfl hms hws
   have hwσ : σ.wtx = some w := hw
   have hpσ : σ.pub = false := hpub
+  icases slotsOs_open_w B p (storeSlots σ) σ.bytes σ.wtx (by rw [hwσ]; exact Option.some_ne_none w)
+    $$ Hos with ⟨Hc4, Hos⟩
   have hcn : id.toNat + n < 2 ^ 64 := hcan.2.1
   have hslt : ∀ s, s ∈ storeSlots σ → s < 2 ^ 64 := by
     intro s hs
@@ -1875,6 +1963,8 @@ private theorem store_free_core (out : Bool) (C : CommitSt) (fl : FLPg) (ms : Ma
       unfold slotsOwn
       iapply BigSepL.bigSepL_nil.2; iempintro
     icases Hcs with ⟨Hcells, Hos⟩
+    ihave Hos := slotsOs_intro B p (storeSlots σ') σ'.bytes σ'.wtx $$ [Hc4 Hos]
+    · iframe
     imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
     · inext
       iexists σ', W
@@ -1953,6 +2043,8 @@ private theorem store_free_core (out : Bool) (C : CommitSt) (fl : FLPg) (ms : Ma
         exact ⟨hbn _ (by omega) (by omega), hlent0 _ (by omega) (by omega)⟩) $$ [Hcells Hos HS]
     · iframe
     icases Hcs with ⟨Hcells, Hos⟩
+    ihave Hos := slotsOs_intro B p (storeSlots σ') σ'.bytes σ'.wtx $$ [Hc4 Hos]
+    · iframe
     -- the bytes witness, updated with both halves
     -- batch 40B: the freed page's bytes recorded, the `fpb` token home or out
     have hcond0 : ¬ fbCond σ.C σ.fl σ.wtx σ.pub := by
@@ -2130,14 +2222,15 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
     (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ⊢
+      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ∗
+      ghostVar B.cls (1 : Qp).half false ⊢
     |={E}=> ∃ (S : List Nat) (bs : Nat → List w8),
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half (fl.releasePending ro) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       ghostMapAuth B.fltx 1 F ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ ∗
-      ⌜∀ s ∈ S, (bs s).length = 4096⌝ := by
-  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Ha⟩
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ ∗ ghostVar B.cls (1 : Qp).half false := by
+  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv, Ha, Hc⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
@@ -2169,8 +2262,13 @@ theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
     intro s _ hs'
     refine lent_none_of σ s (fun k r hr hc => hs' ?_) (fun v hv _ => by rw [← hwv] at hv; cases hv)
     exact (hok'.2.2.2.2.2.2.1 k r hr).2.2.1 s hc
+  icases slotsOs_open_c B p _ _ _ _ $$ [Hos Hc] with ⟨⟨Hc4, Hos⟩, Hc⟩
+  · iframe
   icases slots_leave p σ (σ.release ro) rfl rfl rfl hsub hnone $$ [Hcells Hos] with
     ⟨Hcells, Hos, HS⟩
+  · iframe
+  ihave Hos := slotsOs_intro B p (storeSlots (σ.release ro)) (σ.release ro).bytes
+    (σ.release ro).wtx $$ [Hc4 Hos]
   · iframe
   imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
   · inext
@@ -2232,6 +2330,8 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
   subst hC hfl' hms'
   simp only [StoreSt.wst, Prod.mk.injEq] at hws
   obtain ⟨hwv, hwtx, hpb, hwl⟩ := hws
+  icases slotsOs_open_w B p (storeSlots σ) σ.bytes σ.wtx (by rw [← hwtx]; exact Option.some_ne_none w)
+    $$ Hos with ⟨Hc4, Hos⟩
   obtain ⟨b, l, hmsb⟩ : ∃ b l, σ.ms = some (b, l) := by
     rcases hm : σ.ms with _ | ⟨b, l⟩
     · exact absurd hm hms
@@ -2300,6 +2400,8 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
     (fun s hs => ⟨hbn s ((hS0 s).1 hs), hlent0 s hs⟩) $$ [Hcells Hos HS]
   · iframe; unfold slotsOwn; iexact HS
   icases Hcs with ⟨Hcells, Hos⟩
+  ihave Hos := slotsOs_intro B p (storeSlots σ') σ'.bytes σ'.wtx $$ [Hc4 Hos]
+  · iframe
   -- the committed state, all three parts
   icases ((ghostVar_fractional (GF := GF) B.cur σ.C).fractional _ _).2 $$ [Hcur Hcurq] with Hc34
   · iframe
@@ -2374,6 +2476,8 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
   have hwσ : σ.wtx = some w := hw
   have hpσ : σ.pub = false := hpub
   have hok' := storeOK_rollback σ w Hok hwσ hpσ
+  icases slotsOs_open_w B p (storeSlots σ) σ.bytes σ.wtx (by rw [hwσ]; exact Option.some_ne_none w)
+    $$ Hos with ⟨Hc4, Hos⟩
   imod ghostVar_update_halves (σ.fl.rollback (W64 (w : Int))) B.fl _ _ $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
   have hsub : ∀ s ∈ storeSlots (σ.rollback (W64 (w : Int))), s ∈ storeSlots σ :=
     fun s hs => storeSlots_rollback_sub σ _ s hs
@@ -2384,6 +2488,9 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
       (fun v hv _ hc => hs' ((hok'.2.2.2.2.2.2.2.1 v hv).2.2.1 s hc))
   icases slots_leave p σ (σ.rollback (W64 (w : Int))) rfl rfl rfl hsub hnone $$ [Hcells Hos] with
     ⟨Hcells, Hos, HS⟩
+  · iframe
+  ihave Hos := slotsOs_intro B p (storeSlots (σ.rollback (W64 (w : Int))))
+    (σ.rollback (W64 (w : Int))).bytes (σ.rollback (W64 (w : Int))).wtx $$ [Hc4 Hos]
   · iframe
   unfold bytesWit
   icases Hbw with ⟨Hb1, Hb2, %hW, Hfb⟩
@@ -2743,6 +2850,75 @@ theorem meta_put (C : CommitSt) (ms : MapSt) :
     imodintro; iframe
   · icombine Hout Hout' gives % ⟨_, hb⟩; cases hb
 
+/-- **`Close` takes the store slots' page-cache bytes** (session bbolt-inv, `DB.Close_own.spec`):
+with the writer side idle and `cls` at `false` (`rwR`'s half, `metaR`'s quarter), `cls` set to
+`true` in its three places (`pagesInv`'s quarter now in `slotsOs`' closed case), the store slots
+handed out with the store's facts of their bytes: the current tree's pages are their slots' bytes,
+each slot a whole page, no meta slot. -/
+theorem store_close (C : CommitSt) (fl : FLPg) :
+    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
+      ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
+      ghostVar B.cls (1 : Qp).half false ∗ ghostVar B.cls (1 : Qp).half.half false ⊢
+    |={E}=> ∃ bs : Nat → List w8,
+      ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
+      ghostVar B.wv (1 : Qp).half wIdle ∗
+      ghostVar B.cls (1 : Qp).half true ∗ ghostVar B.cls (1 : Qp).half.half true ∗
+      ([∗list] s ∈ slotsOf C fl, osSlot p s (bs s)) ∗
+      ⌜pagesFromBytes bs C.pages ∧ (∀ s ∈ slotsOf C fl, 2 ≤ s ∧ (bs s).length = 4096) ∧
+        (∀ s ∈ treeSlots C, s ∉ pendSlots fl)⌝ := by
+  iintro ⟨#Hinv, Hcur, Hfl, Hwv, Hc2, Hc4⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hfl
+  simp only [StoreSt.wst, wIdle, Prod.mk.injEq] at hws
+  obtain ⟨-, hwtx, -, -⟩ := hws
+  icases slotsOs_open_c B p _ _ _ _ $$ [Hos Hc2] with ⟨⟨Hc4', Hos⟩, Hc2⟩
+  · iframe
+  imod cls_set3 (GF := GF) _ B.cls false false false true $$ [Hc2 Hc4 Hc4'] with ⟨Hc2, Hc4, Hc4'⟩
+  · iframe
+  ihave Hcl : slotsOs (GF := GF) B p (storeSlots σ) σ.bytes σ.wtx $$ [Hc4']
+  · unfold slotsOs; iright; iframe; ipureintro; exact hwtx.symm
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hcl Hbw Hml] with _
+  · inext; iexists σ, W; iframe
+    ipureintro; exact Hok
+  imodintro
+  iexists σ.bytes
+  iframe Hcur Hfl Hwv
+  isplitl [Hc2]
+  · iexact Hc2
+  isplitl [Hc4]
+  · iexact Hc4
+  rw [show slotsOf σ.C σ.fl = storeSlots σ from rfl]
+  isplitl [Hos]
+  · iexact Hos
+  ipureintro
+  refine ⟨Hok.2.2.2.2.2.2.2.2.1, fun s hs => Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs, ?_⟩
+  -- the idle store's tree slots are not pending (as `DB__beginRWTx.storeOK_tree_not_pend`)
+  obtain ⟨-, htree, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h17, -, -, -, hhwm⟩ := Hok
+  intro s hs hp
+  have hlt : s < 2 ^ 64 := by
+    unfold treeSlots at hs
+    rw [mem_pagesSlots_iff] at hs
+    obtain ⟨id, pg, hpg, -, hs2⟩ := hs
+    have := htree.2.2.2.1 id pg hpg
+    omega
+  rcases h17 s hs with h | h
+  · exact h hp
+  · obtain ⟨t, pd, x, hx0, hx, rfl⟩ : ∃ t pd x, σ.fl.pending !! t = some pd ∧ x ∈ pd.ids ∧
+        x.toNat = s := by
+      simp only [pendSlots, FLPg.pendingIds, List.mem_map, List.mem_flatMap] at hp
+      obtain ⟨x, ⟨⟨t, pd⟩, hkv, hx⟩, rfl⟩ := hp
+      exact ⟨t, pd, x, (GMap.mem_toList _ _ _).1 hkv, hx, rfl⟩
+    have hxe : W64 ((x.toNat : Nat) : Int) = x := by
+      apply BitVec.eq_of_toNat_eq; rw [toNat_W64_of_lt _ hlt]
+    have := h t pd hx0 (by rw [hxe]; exact hx)
+    rw [← hwtx] at this; cases this
+
 /-- **The new mapping's store cells hold the store's bytes** (batch 15, U4's remap, before
 `store_carve`): in one atomic step `e` (e.g. the store of `db.dataref` after `mmap`), with the
 mapping `(b, l)` in the file's `OsMeta` and the client halves of the store slots' cells (any
@@ -2754,7 +2930,8 @@ successor). -/
 theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
     (ι : Iris.ProgramLogic.Language.Atomic ↑s e) (hE' : ↑osN ⊆ E \ ↑(pagesN N)) (C : CommitSt) (fl : FLPg)
     (ws : WSt) (b : Loc) (l : Nat) (m : OsMeta) (dqm : DFrac) (W : GMap Nat (List w8))
-    (hb : m.maps !! b = some l) (hl : ∀ s ∈ slotsOf C fl, s < l / 4096) (Φ : val → IProp GF) :
+    (hb : m.maps !! b = some l) (hl : ∀ s ∈ slotsOf C fl, s < l / 4096) (Φ : val → IProp GF)
+    (hw : ws.2.1 ≠ none) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ osInv -∗
       ghostVar B.cur (1 : Qp).half.half C -∗ ghostVar B.fl (1 : Qp).half fl -∗
       ghostVar B.map (1 : Qp).half (none : MapSt) -∗ ghostVar B.wv (1 : Qp).half ws -∗
@@ -2779,7 +2956,9 @@ theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
   unfold bytesWit
   icases Hbw with ⟨Hbyt', Hbm, %Hwit, Hfb⟩
   icombine Hbyt Hbyt' gives % ⟨_, hW⟩
-  subst hC hF hW
+  icombine Hwv Hwv' gives % ⟨_, hws⟩
+  subst hC hF hW hws
+  icases slotsOs_open_w B p (storeSlots σ) σ.bytes σ.wtx hw $$ Hos' with ⟨Hc4, Hos'⟩
   have hS : storeSlots σ = slotsOf σ.C σ.fl := rfl
   have hlen := Hok.2.2.2.2.2.2.2.2.2.2.2.1
   imodintro
@@ -2790,6 +2969,8 @@ theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
   ihave Hwp := Hk $$ %σ.bytes %(fun t ht => Hwit t (hS ▸ ht)) Hcur Hfl Hmap Hwv Hbyt Hm Hcells
   iapply wp_wand $$ Hwp
   iintro %v HΦ
+  ihave Hos' := slotsOs_intro B p (slotsOf σ.C σ.fl) σ.bytes σ.wtx $$ [Hc4 Hos']
+  · iframe
   imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells' Hos' Hbyt' Hbm Hfb Hml] with _
   · inext; iexists σ, W; iframe
     rw [hS]; iframe

@@ -217,7 +217,7 @@ theorem cm_pub_ok (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (Pg : Pages)
     (hm' : w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
       ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
         (wb' s).length = 4096)
-    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps) (hsz63 : m'.size < 2 ^ 63)
+    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps) (hsz63 : m'.size < 2 ^ 62)
     (hin : ∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size)
     (hch : ∀ id pg, X.t.bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
       wb' (id.toNat + j) = pageChunk pg j)

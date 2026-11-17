@@ -60,7 +60,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   wp_apply sync.RWMutex.wp_RLock $$ [$Hsync $Hmtok] as ⟨Hrl, HP⟩
   iunfold metaR at HR
-  icases HR with ⟨%C', %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, %Hok, %HF⟩
+  icases HR with ⟨%C', %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
   iunfold Pm at HP
   icases HP with ⟨%ms, Hmap', Hmf, Hmt⟩
   icombine Hcur Hcur' gives % ⟨_, hC⟩
@@ -181,6 +181,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, false, _, wa
+      iframe Hrcm
       simp only [Bool.false_eq_true, ↓reduceIte]
       iunfold fltxAuth
       iframe

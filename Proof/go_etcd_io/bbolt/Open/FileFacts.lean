@@ -33,8 +33,8 @@ facts (empty, or an image of a committed state). -/
 def openedF (i : Ino) (D : Data) : IProp GF :=
   iprop(∃ (m : OsMeta) (xs : List ByteG), osMeta i (DFrac.own 1) m ∗
     osBytes i 0 (DFrac.own 1) xs ∗
-    ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧
-      ((m.size = 0 ∧ D = ∅) ∨ ∃ C, openOK C D m xs)⌝)
+    ⌜m.maps = ∅ ∧ xs.length = m.size ∧ (m.size < 2 ^ 62 ∧ m.size % 4096 = 0) ∧
+      ((m.size = 0 ∧ D = ∅) ∨ ∃ C, openOK C D m xs)⌝ ∗ fileRcpt (xs.map Prod.fst))
 
 /-- `openedF` of equal arguments (made here so that `simp`'s congruence lemma for `openedF`, which
 `Open`'s proof needs, is this module's, not a spec's proof file's: `etc/api/bbolt-layout.txt`). -/
@@ -46,10 +46,10 @@ theorem openedF_congr {i i' : Ino} {D D' : Data} (hi : i = i') (hD : D = D') :
 theorem fileHolds_opened (i : Ino) (D : Data) :
     fileHoldsDef (GF := GF) i D ⊢ openedF i D := by
   iintro H
-  icases fileHolds_decode i D $$ H with ⟨%m, %xs, Hm, Hb, %hml, Hr⟩
+  icases fileHolds_decode i D $$ H with ⟨%m, %xs, Hm, Hb, %hml, #Hrc, Hr⟩
   unfold openedF
   iexists m, xs
-  iframe Hm Hb
+  iframe Hm Hb Hrc
   icases Hr with (%h | ⟨%C, %hC⟩)
   · ipureintro; exact ⟨hml.1, hml.2.1, hml.2.2, Or.inl h⟩
   · ipureintro
@@ -65,8 +65,12 @@ theorem new_opened (i : Ino) :
   iframe Hm
   isplitr
   · unfold osBytes bytesG; iapply BigSepL.bigSepL_nil.2; iempintro
-  ipureintro
-  exact ⟨rfl, rfl, by decide, Or.inl ⟨rfl, rfl⟩⟩
+  isplitr
+  · ipureintro
+    exact ⟨rfl, rfl, by decide, Or.inl ⟨rfl, rfl⟩⟩
+  unfold fileRcpt
+  ileft; ipureintro
+  exact fun C h => fileImage_nil_not C (by simpa using h)
 
 end s
 

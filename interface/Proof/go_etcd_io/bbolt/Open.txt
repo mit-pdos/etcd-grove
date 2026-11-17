@@ -49,7 +49,7 @@ theorem bbolt.Open.wp_proof [sync.Assumptions] (hOpenFile : ∀ [inst : ExtSeman
                           ((⌜err = GoInterface.nil⌝ ∗
                               ∃ γ i,
                                 ⌜γ.ns = N ∧ Fs.lookupH R V' path = some (Fs.Node.file i)⌝ ∗
-                                  bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
+                                  bbolt.isBolt db γ ∗ bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D) ∨
                             ⌜err ≠ GoInterface.nil⌝)) -∗
                   Φ (intoVal db, intoVal err)) -∗
             WP ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal path)) (intoVal mode)) (intoVal opts)) {{ Φ }}
@@ -69,10 +69,6 @@ syntax bbolt.tacticOpen_tx_exit
 theorem bbolt.boltTx.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
     Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (T T✝ :
     bbolt.TxView) (e_T : T = T✝) : bbolt.boltTx tx γ q T = bbolt.boltTx tx✝ γ✝ q✝ T✝
-
-theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
-    bbolt.boltState γ q D = bbolt.boltState γ✝ q✝ D✝
 
 syntax bbolt.tacticOpt_rdt_
 

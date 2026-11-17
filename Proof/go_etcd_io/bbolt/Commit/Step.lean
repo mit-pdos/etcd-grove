@@ -116,7 +116,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
   unfold commitStep
   iintro HR
   iunfold metaR at HR
-  icases HR with ⟨%C0, %F, %cl, %fli, %wa, Hcur, Hst, Hcls, Hop, Hfli, Hwa, Hob, Hmlk, Hfa, Hro,
+  icases HR with ⟨%C0, %F, %cl, %fli, %wa, Hcur, Hst, Hcls, Hop, Hfli, Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm,
     %Hok, %HF⟩
   icombine Hcur Hcurq gives % ⟨_, hC0⟩
   subst C0
@@ -140,14 +140,14 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · exact hmok.1
     · exact hmok.2.1
   imodintro
-  iexists xa, C.slot (mv.txid'.toNat % 2)
-  iframe Hxa Hold
+  iexists C.txid, xa, C.slot (mv.txid'.toNat % 2)
+  iframe Hrcm Hxa Hold
   isplitr
   · ipureintro
     have := congrArg List.length hxab.1
     simp only [List.length_map] at this
     exact ⟨this.trans (hslotlen _), hslotlen _⟩
-  iintro %j %ys %hj Hys Hnew Hrc
+  iintro %j %ys %hj Hys Hnew Hrc #Hrc1
   obtain ⟨hj01, hys⟩ := hj
   rcases hj01 with rfl | rfl
   · -- nothing written: everything back, the update unfired
@@ -168,6 +168,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · iunfold metaR
       iexists C, F, false, fli, wa
       simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
+      iframe Hrcm
       iframe
       ipureintro; exact ⟨fun _ => ⟨hmok, htok, htx1⟩, HF⟩
     unfold cpPost
@@ -220,7 +221,8 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · iunfold metaR
       iexists (C.publish (metaBuf mv) (metaSummed mv) pages), F, false, fli, wa
       simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
-      rw [hDn]
+      rw [hDn, htx']
+      iframe Hrc1
       iframe
       ipureintro
       refine ⟨fun _ => ⟨hmeta, htree, by omega⟩, fun k t h => ?_⟩

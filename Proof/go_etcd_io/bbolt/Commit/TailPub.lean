@@ -118,7 +118,7 @@ with `SBT` back among the `W` slots, holding the write's bytes, the file grown a
 mapping's end. -/
 theorem wdbOK_written (w : WDb) (m : OsMeta) (SBT : List Nat) (wb' : Nat → List w8)
     (hok : wdbOK w) (hsub : ∀ s ∈ SBT, s ∈ w.W) (hsz1 : w.m.size ≤ m.size)
-    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 63)
+    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 62)
     (hmaps : m.maps = w.m.maps)
     (hlen : ∀ s ∈ SBT, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
     (hold : ∀ s ∈ w.W, s ∉ SBT → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none)
@@ -205,7 +205,7 @@ the written slots and the tail back among the `W` slots. -/
 theorem cm_unpub_ok (w : WDb) (m : OsMeta) (SB T : List Nat) (P : Nat → Bool)
     (wb' : Nat → List w8) (hok : wdbOK w) (hsub : ∀ s ∈ SB ++ T, s ∈ w.W)
     (hsz1 : w.m.size ≤ m.size) (hsz2 : m.size ≤ max w.m.size (mapLen w.ms))
-    (hsz63 : m.size < 2 ^ 63) (hmaps : m.maps = w.m.maps)
+    (hsz63 : m.size < 2 ^ 62) (hmaps : m.maps = w.m.maps)
     (hlen : ∀ s ∈ SB ++ T, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
     (hold : ∀ s ∈ w.W, s ∉ SB ++ T → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none)
     (hpart : ∀ s, 4096 * s < m.size → m.size < 4096 * (s + 1) →

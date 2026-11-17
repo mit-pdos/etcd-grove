@@ -83,7 +83,7 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
   · iunfold Pm; iexists _; iframe
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur, Hst', Hcls, Hop, Hfl, Hwa, Hob, Hmlk, Hfa, Hro,
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur, Hst', Hcls, Hop, Hfl, Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm,
     %Hok, %HF⟩
   iunfold fltxAuth at Hfa
   icases Hfa with ⟨Hfa, %o, Ho, Hcl⟩
@@ -157,6 +157,7 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur Hst' Hcls Hop Hfl Hwa Hob Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, cl, _, wa
+      iframe Hrcm
       iunfold fltxAuth
       iframe
       ipureintro
