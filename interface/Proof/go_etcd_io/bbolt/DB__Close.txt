@@ -43,10 +43,6 @@ theorem bbolt.pt_split {V : Type} [TypedPointsto V] (l : Loc) (v : V) : typedPoi
 theorem bbolt.treeOK_root' (C : bbolt.CommitSt) (htree : bbolt.treeOK C) : 2 ≤ C.root ∧ C.root <
     C.hwm
 
-theorem bbolt.dbPathLk.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (db db✝ : Loc)
-    (e_db : db = db✝) (p p✝ : bbolt.BFile) (e_p : p = p✝) (fd fd✝ : w64) (e_fd : fd = fd✝) :
-    bbolt.dbPathLk db p fd = bbolt.dbPathLk db✝ p✝ fd✝
-
 theorem bbolt.DB.Close.wp_proof (hOwned : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 :
     HasExt Fs.fsExt], bbolt.DB.close.spec_owned) : bbolt.DB.Close.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Close.spec`, unfolded:
@@ -59,7 +55,3 @@ theorem bbolt.DB.Close.wp_proof (hOwned : ∀ [inst : ExtSemantics Fs.fsExt] [Fs
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Close" (intoVal db)))
                 (intoVal ()))
               {{ Φ }}
-
-theorem bbolt.metaOsBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ :
-    bbolt.BFile) (e_p : p = p✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C
-    = C✝) : bbolt.metaOsBytes p dq C = bbolt.metaOsBytes p✝ dq✝ C✝

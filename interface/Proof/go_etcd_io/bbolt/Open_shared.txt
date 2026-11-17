@@ -47,7 +47,9 @@ theorem bbolt.Open_shared.wp_proof [go.BasicIntoValInj] [ExtSemantics Fs.fsExt] 
                           ∃ oc,
                             crOut j b h (DFrac.own 1) oc ∗
                               ((⌜err = GoInterface.nil⌝ ∗
-                                  ∃ γ i, ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
+                                  ∃ γ i,
+                                    ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗
+                                      bbolt.isBolt db γ ∗ bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D) ∨
                                 ⌜err ≠ GoInterface.nil⌝)) -∗
                     Φ (intoVal db, intoVal err)) -∗
               WP

@@ -23,7 +23,7 @@ def bbolt.Open.spec : Prop :=
                           ((⌜err = GoInterface.nil⌝ ∗
                               ∃ γ i,
                                 ⌜γ.ns = N ∧ Fs.lookupH R V' path = some (Fs.Node.file i)⌝ ∗
-                                  bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
+                                  bbolt.isBolt db γ ∗ bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D) ∨
                             ⌜err ≠ GoInterface.nil⌝)) -∗
                   Φ (intoVal db, intoVal err)) -∗
             WP ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal path)) (intoVal mode)) (intoVal opts)) {{ Φ }}

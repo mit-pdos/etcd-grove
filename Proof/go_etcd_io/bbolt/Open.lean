@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.bbolt.Open.SyncAcc
 public import Proof.go_etcd_io.bbolt.Inv.LoggerOk
 public import Proof.go_etcd_io.bbolt.Open.PoolNew
 public import Proof.ReceiptTactics
+public import Proof.go_etcd_io.bbolt.Open.Congr
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section

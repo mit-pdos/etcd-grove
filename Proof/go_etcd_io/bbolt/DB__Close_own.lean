@@ -13,6 +13,7 @@ module
 public import Spec.go_etcd_io.bbolt.DB__Close_own
 public import Proof.go_etcd_io.bbolt.DB__Close
 public import Proof.go_etcd_io.bbolt.Open.CloseFile
+public import Proof.go_etcd_io.bbolt.Open.Congr
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
