@@ -30,8 +30,10 @@
 - **Done, built (step 7(iii)-(iv)):** `WatchEnvN.lean`: `clientWatchOk_of_regs` (clusterUp's
   registrations + `isNewClient` + `kvReadAu γk OneChange` (`one_read_au`) ⇒ `k8s.clientWatchOk cl γk`;
   for `k` bridges and Main's one address), via `memberWatch_of_reg`, `streams_of_regs`.
-- **Next, in order:** New's wand ⇒ `storeWatchOk` (with `watchContractOk_driver`, `newItemOk_driver`); step 8
-  `newStore`; step 9 `Main*` (single member: `kvWatch_served` at `clientAddr`). **E-2 hard stop**
+- **Done, built (step 8):** `newStore.spec`/proof (seed, features, `etcd3.New`; post: seed cell at
+  `σs2`, `isStore sp (storeCfgD …)`, `□ ∀ γk, clientWatchOk cl γk -∗ storeWatchOk sp (storeCfgD …)
+  driverW γk`); `storeCfgD` in `WContract.lean`.
+- **Next, in order:** step 9 `Main*` (single member: `kvWatch_served` at `clientAddr`). **E-2 hard stop**
   before linking (Link/MainLinked/Adequacy/Results): report old → new closed texts.
 - **Pitfalls:** build slots are often both busy (a full c6b build retries): queue builds in the
   background and write ahead; lean-check spins at "elaborating line 1" until the imports are built

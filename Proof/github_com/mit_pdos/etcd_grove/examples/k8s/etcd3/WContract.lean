@@ -8,7 +8,9 @@ Lean-first (no Rocq counterpart). The driver's side of the store's watch path (s
   `storage.AnnotateInitialEventsEndBookmark` of a driver object goes through its `GetAnnotations`
   (`nil`: the store's objects are not annotated) and `SetAnnotations` (the key set to `"true"`), so
   the object is `driverW`'s annotated one;
-- `newItemOk_driver`: `newObj` is the store's `newFunc` for the driver (`newObj`'s zero object).
+- `newItemOk_driver`: `newObj` is the store's `newFunc` for the driver (`newObj`'s zero object);
+- `storeCfgD`: the configuration `newStore` makes the store with (the driver's object spec, codec,
+  versioner, transformer and decoder, `/registry` and `/objs`, over the kubernetes client `kc`).
 -/
 module
 
@@ -33,6 +35,24 @@ namespace EtcdGrove
 namespace k8s_etcd3
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8s
+
+section cfg
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
+/-- **The driver's store configuration** (see the file header): over the kubernetes client `kc`
+(its etcd client `cl`, at the members `ms`, its watch environment `V`), the metrics trackers
+`mt lt` (`New`'s), the history names `γh`. -/
+def storeCfgD (kc cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (mt lt : Loc)
+    (γh : GName) : k8s.StoreCfg GF DObj :=
+  { S := driverSpec, codec := codecI, vi := versionerI, ti := identityI, di := decoderI,
+    pathPrefix := go!"/registry", resourcePrefix := go!"/objs", gr := ⟨[], go!"objs"⟩, kc := kc,
+    cl := cl, ms := ms, V := V, mt := mt, lt := lt, γh := γh }
+
+end cfg
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
