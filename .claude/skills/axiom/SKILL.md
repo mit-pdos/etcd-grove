@@ -101,6 +101,21 @@ counter and thread tokens").
      library), or a ghost step two triples both grant.
    - *A wrong package-init fact* (`opaqueInitsOk`, `*_init`): read the variable after init and check
      the claimed value.
+   - *A cross-world entailment* (the `crossWorld` check; 2026-11-17, `notes/axiom-review/ctx-descs.md`):
+     an entailment, a persistent law or a premise-class field whose left side is satisfiable by bare
+     persistent points-to cells (`l ↦□ v`, an `isPkgInit` made of such cells) and whose conclusion is
+     a pure equation about an opaque Lean function of a pointer-typed value (`errDesc e`,
+     `incomingOf p`, ...) is suspect. Such a statement is quantified over every heap, not only the one
+     an execution builds: allocate a fresh heap holding just those cells (lemma `crossWorld` in
+     `Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/ctxdescs/CrossWorld.lean` on branch
+     `axiom/ctx-descs`: `iOwn_alloc` of one fragment under `withHeapName hG γ`, then
+     `bupd_soundness`/`pure_soundness`) and the pure conclusion becomes a Lean fact for every location
+     and every cell content. Two worlds with different contents then give `False`, or a constant
+     function (`incomingOf_const`); with a per-run post about the same location (an axiom's
+     postcondition), the run that reaches it has postcondition `False`. A docstring arguing "fixed
+     within an execution" does not save it: the Lean statement is not per execution. The fix states
+     the fact per execution (inside the post of the spec that makes the value, or behind a ghost
+     name), or as a pure fact of a location-free value (an empty struct's).
    If no gap is found, try the claims one by one anyway: the axiom survives only the attacks tried.
    *A trusted semantics of an OS interface* (a GooseLang extension's `Impl`, such as the Linux file
    extension): every claim about the kernel is about the extension's one target configuration

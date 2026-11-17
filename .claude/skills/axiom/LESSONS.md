@@ -13,3 +13,14 @@ configuration, a reasonable etcd deployment, and keep the semantics uniform (few
 Rule (SKILL.md, step 3): test kernel claims on the extension's configuration through its helper,
 vary the starting state, include the client's exact case, and test a source-argued claim before a
 proof uses it.
+
+## 2026-11-17: premise entailments that hold in every heap (ContextReadErrs.descs)
+
+`ContextReadErrs.descs` (a premise of 50 closed results) and the axiom `incomingOf_cancelCtx` argued
+per execution ("a location's persistent field value is fixed within an execution"), but were stated
+as entailments from persistent points-tos, which hold in every heap: a fresh heap with just those
+cells makes the pure conclusion a Lean fact at every location (`crossWorld`, proved;
+`notes/axiom-review/ctx-descs.md`). Approved by the user, 2026-11-17, via etcd-grove-03, as a check of
+the skill. Rule (SKILL.md, step 3, "A cross-world entailment"): check every entailment whose left side
+bare persistent cells satisfy and whose conclusion is a pure equation of an opaque function of a
+pointer.
