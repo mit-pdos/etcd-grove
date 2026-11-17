@@ -578,3 +578,9 @@ premises: `rnStopOkStarted`, `bootstrapContract`).
 |---|---|---|
 | `apierrors.HasStatusCause.wp_proof` | **false** (2026-11-17) | `apiErrOk` holds the struct but not the details, while the post constrains every view built later: write the causes after the call, build the view, conclude `b = true`; Go returned `false` (`examples/axiomcx/hasstatuscause`). Bug record `notes/hasstatuscause-later-view.md`; fix (a) in the apierrors-fix stage |
 | `apierrors.{IsTooManyRequests,IsGone,IsInternalError,IsResourceExpired}.spec` (named hypotheses of client-go cache's `Link`, not axioms) | **false** (2026-11-17) | No precondition, but a typed nil `*StatusError` panics in `Status()` (`ReasonForError`), as `IsTimeout`'s did (`examples/axiomcx/apierrorstypednil`). Bug record `notes/apierrors-typednil-hypotheses.md`; fix in the apierrors-fix stage |
+
+### Found by etcd-grove-03's releasesnap attack (2026-11-17; Go: etcd `server/etcdserver/api/snap/db.go` `ReleaseSnapDBs`, at the etcd pin)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `storage.storage.Release.wp_proof` | **false** (2026-11-17) | Its frame keeps a held snapshot file (`backend.fileHolds`, taken out of `snapDirInv` by `SnapRO.snapDir_take`, whose `snapRmM` gives the `Release` premise), but Go's `ReleaseSnapDBs` lists the directory and deletes it (`examples/axiomcx/releasesnap`). No current proof known to reach it. Bug record `notes/release-snapdb-held-file.md`; fix in the WAL link's L2 |
