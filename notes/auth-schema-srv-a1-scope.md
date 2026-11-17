@@ -36,8 +36,9 @@ stage: option (a)") left unproved, for the buckets a client claims.
 ## 2. The model (decisions in §6)
 
 **D1. Per-session kind of each tracked bucket** (pure, `Model2.lean`): `RbK := idle | put | del |
-mix`, a ghost field `BSess.tk : GoString → RbK`. `BSess.put`/`create` on a tracked bucket join `put`,
-`del`/`delBucket` join `del` (put ⊔ del = mix); `Unlock` resets every bucket to `idle` (its
+mix`, a ghost map `tk : GoString → RbK` (A1.1: `TrkModel.lean`'s `TkMap`; where it lives, `BSess` or the
+batch lock's ghost, is A1.2's). `BSess.put` on a tracked bucket joins `put` (`create` leaves the kind:
+it changes no key), `del`/`delBucket` join `del` (put ⊔ del = mix); `Unlock` resets every bucket to `idle` (its
 write-back and, when a delete is pending, its commit leave every tracked bucket's readers' contents
 at the writer's, below); a commit leaves `tk`. A0's `AuthSess` (`BkW` per bucket, the `Sw` token) is
 the auth-side image of `tk` on `authUsers`/`authRoles`; `auth` is always `put`.

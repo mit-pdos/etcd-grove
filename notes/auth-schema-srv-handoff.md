@@ -1,28 +1,26 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A1 Scope written; STOP for its decisions)
+## START HERE (2026-11-17, A1.1 done; STOP at checkpoint A1.1)
 
-- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; A0 landed (lean 722a6314a7). Decisions:
-  `questions.md`. Plan: `notes/auth-schema-srv-scope.md` §3 (A1-A7).
-- Done: A1's Scope `notes/auth-schema-srv-a1-scope.md` (notes only): per-bucket kinds `RbK` in `BSess.tk`,
-  readers' contents `rvBkt`, the readers' ghost `γ.rbr` claimed per bucket (sealed `rbOwnInR`), the readers'
-  law, `Unlock`'s accessor run at the write-back and the commit; no trusted text restated in text.
-  Go test `notes/auth-schema-srv-a1/zz_a1_trackedwindow_test.go` (M1/M2/M4 never violated, M3 control seen;
-  3 runs). Lean probe `/shared/tmp/auth-schema-srv/A1Probe.lean` (0 errors; `Scratch/` is untracked).
-- Waiting on: the coordinator, A1 Scope §6 decisions 1-5 (recommended: claim per bucket; kinds; the
-  accessor; `hookStep` strengthened, which changes the exported `Results.lean:1081` post; `OpenBackend`'s
-  meaning via `isBackend` routine).
-- Next, once decided: merge lean (the origin/lean merge, Perennial pin c6b39d4f8), then A1.1 (pure model)
-  checkpoint, A1.2-A1.5 (checkpoint at `Unlock`'s statement), A1.6-A1.9. A3/A4 can run beside A1.
-- Go tests: copy the test into `server/storage/backend` (or `storage/schema` for A0's) of the clone
-  `/shared/tmp/auth-schema-srv/etcd` (fork pin 6e8f0c004); `cd server; PATH=/usr/local/go/bin:$PATH
-  TMPDIR=/shared/tmp systemd-run --scope -q -p MemoryMax=32G env GOWORK=off GOTOOLCHAIN=go1.27.3 go test
-  ./storage/backend/ -run TestA1 -count=1 -v` (~35 s).
-- Pitfalls: `Model.lean` already has an `AuthView`: the bucket view is `BkView`. `lean-check` on a fresh
-  file first rebuilds imports (4-5 min; it says "stopped when the edited declaration was done": rerun with
-  `-a` for the whole file). Builds via `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json
-  build ...`; `LAKE_OPTS=--packages=...` for `etc/lean-check.py`; `--stop` it before ending a turn. A stray
-  Perennial clone was moved out of `.lake/packages` (to `/shared/tmp/auth-schema-srv/perennial-stray-from-worktree`).
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`. A1 Scope `notes/auth-schema-srv-a1-scope.md`,
+  decided by etcd-grove-03 (`questions.md`, "A1 Scope decided"): claim per bucket, kinds, the accessor, `hookStep`
+  strengthened (ledger entry old → new when edited; stop if a post weakens or a premise grows), `OpenBackend` via
+  `isBackend` with a filled-value soundness argument written at A1.5 and reviewed before proving past it.
+- Done: Scope (e256330834); A1.1, the pure model `Proof/.../storage/backend/TrkModel.lean` (`RbK`, `TkMap`, `rvBkt`,
+  `kOk`, `trkOk`, `hookStepT`; preservation by put/del/create/delBucket/write-back/hook/commit; the readers' contents
+  at the write-back by kind and at the commit; built, imported by nothing). Forms: `questions.md` "A1.1".
+- Next: wait for etcd-grove-03's word that the origin/lean merge (pin c6b39d4f8) landed; merge lean; then A1.2 (the
+  kinds' home, `γ.rbr` and the claim marker in `BNames`, `rtCore`/`rbSide` halves, `trkOk` into `sessWf`/`freeOk`,
+  `hookStepT` into `hooksSpec` + ledger, `New`/`NewAlloc`), A1.3-A1.5, checkpoint A1.5 (with the soundness
+  argument).
+- Go test: `notes/auth-schema-srv-a1/zz_a1_trackedwindow_test.go` into `server/storage/backend` of
+  `/shared/tmp/auth-schema-srv/etcd`; `cd server; PATH=/usr/local/go/bin:$PATH TMPDIR=/shared/tmp systemd-run --scope -q
+  -p MemoryMax=32G env GOWORK=off GOTOOLCHAIN=go1.27.3 go test ./storage/backend/ -run TestA1 -count=1 -v` (~35 s).
+- Pitfalls: `lean-check` on a fresh file rebuilds imports first (minutes), then says "stopped when the edited
+  declaration was done": rerun with `-a`. In `TrkModel`, rewrite `bkOf ... = []` after `lastVal_append_single`, not
+  before (simp turns `[] ++ [e]` into `[e]`). Builds: `/shared/tmp/build-slot.sh lake
+  --packages=/shared/tmp/manifest-e9e.json build ...`; `LAKE_OPTS=--packages=...` for `etc/lean-check.py`, `--stop` it
+  before ending a turn. Bucket view in auth is `BkView` (`Model.lean` has an `AuthView`).
 
 ## History
 
